@@ -36,13 +36,21 @@ CONFIRMED = _entry("Link", "Лінк", status=STATUS_CONFIRMED)
 LEGACY = _entry("Midna", "Мідна")
 
 
-def _dialog(qtbot, entries, update_callback=None):
+def _dialog(
+    qtbot,
+    entries,
+    update_callback=None,
+    placeholder_speaker_callback=None,
+    apply_speaker_name_callback=None,
+):
     dialog = GlossaryDialog(
         entries=entries,
         occurrence_map={},
         parent=None,
         jump_callback=MagicMock(),
         update_callback=update_callback,
+        placeholder_speaker_callback=placeholder_speaker_callback,
+        apply_speaker_name_callback=apply_speaker_name_callback,
     )
     qtbot.addWidget(dialog)
     return dialog
@@ -368,6 +376,32 @@ class TestSpeakerIdentityResolution:
         assert item0.background().color().alpha() > 0
         assert "Provisional speaker identity" in item0.toolTip()
         assert "game data" in item0.toolTip()
+
+    def test_legacy_game_code_uses_the_plugin_placeholder_callback(self, qtbot):
+        """Older glossary entries did not persist ``provisional`` yet."""
+        apply = MagicMock()
+        legacy_code = GlossaryEntry(
+            original="Ash",
+            translation="",
+            notes="The dialogue calls her Ashei.",
+            section="Characters",
+        )
+        dialog = _dialog(
+            qtbot,
+            [legacy_code],
+            placeholder_speaker_callback=lambda term: term == "Ash",
+            apply_speaker_name_callback=apply,
+        )
+        dialog.show()
+        dialog.focus_term("Ash")
+
+        item = dialog._tables["Characters"].item(0, 0)
+        assert item.foreground().color().name() == "#6a1b9a"
+        assert dialog._speaker_identity_pane.isVisibleTo(dialog) is True
+        dialog._speaker_name_combo.setEditText("Ashei")
+        assert dialog._apply_speaker_name_button.isEnabled() is True
+        dialog._apply_speaker_name_button.click()
+        apply.assert_called_once_with("Ash", "Ashei")
 
     def test_speaker_identity_pane_visibility(self, qtbot):
         prov_char = GlossaryEntry(

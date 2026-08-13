@@ -5,3 +5,4 @@
 3. [x] Add one editable known-speaker selector plus an explicit Apply action for the selected provisional code; keep Merge Speakers editing as a fallback.
 4. [x] Route Apply through the existing alias persistence and glossary rename/migration path, then refresh folders, prompts, highlighting, and the open Glossary dialog.
 5. [x] Add focused dialog/handler tests, run relevant Windows `.venv` verification, update version/docs, and commit only this iteration's files.
+6. [x] Fall back to the active plugin for legacy Character entries that predate the persisted `provisional` flag.

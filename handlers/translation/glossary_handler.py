@@ -15,6 +15,7 @@ from .base_translation_handler import BaseTranslationHandler
 from .glossary_prompt_manager import GlossaryPromptManager
 from .glossary_occurrence_updater import GlossaryOccurrenceUpdater
 from core.glossary_manager import GlossaryEntry, GlossaryManager, GlossaryOccurrence
+from core.speaker_alias_merge import load_speaker_aliases
 from components.glossary_dialog import GlossaryDialog
 from components.glossary_edit_dialog import GlossaryEditDialog
 from utils.logging_utils import log_debug
@@ -312,6 +313,7 @@ class GlossaryHandler(BaseTranslationHandler):
                 global_replace_callback=self.global_replace_glossary,
                 apply_speaker_name_callback=self._handle_apply_speaker_name,
                 initial_term=initial_term,
+                placeholder_speaker_callback=self._placeholder_speaker_callback(),
             )
             self.dialog.finished.connect(self._on_glossary_dialog_closed)
             self.dialog.show()
@@ -332,6 +334,29 @@ class GlossaryHandler(BaseTranslationHandler):
         launcher = getattr(actions, "build_glossary_from_text", None)
         if callable(launcher):
             launcher()
+
+    def _placeholder_speaker_callback(self):
+        """Classify legacy glossary Character terms from the active game rules."""
+        hook = getattr(getattr(self.mw, "current_game_rules", None), "is_placeholder_speaker", None)
+        if not callable(hook):
+            return None
+        project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        try:
+            aliases = load_speaker_aliases(project_dir)
+        except (TypeError, ValueError):
+            aliases = {}
+
+        def is_placeholder(term: str) -> bool:
+            term = str(term or "").strip()
+            if not term or term in aliases:
+                return False
+            try:
+                return bool(hook(term))
+            except Exception as exc:
+                log_debug(f"Glossary: is_placeholder_speaker failed: {exc}")
+                return False
+
+        return is_placeholder
 
     def refresh_open_dialog(self) -> None:
         """Reload the glossary dialog, if open, from the current manager state."""

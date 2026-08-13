@@ -342,3 +342,17 @@ def test_gh_handle_apply_speaker_name_failure_does_not_focus_term(gh):
 
     gh.mw.speaker_merge_handler.save_names.assert_called_once_with({"Ash": "Ashy"})
     gh.dialog.focus_term.assert_not_called()
+
+
+def test_gh_placeholder_speaker_callback_recognizes_legacy_code_and_alias(gh):
+    gh.mw.current_game_rules.is_placeholder_speaker.side_effect = lambda term: term == "Ash"
+    gh.mw.project_manager.project_dir = None
+
+    with patch("handlers.translation.glossary_handler.load_speaker_aliases", return_value={}):
+        callback = gh._placeholder_speaker_callback()
+    assert callback("Ash") is True
+    assert callback("Ashei") is False
+
+    with patch("handlers.translation.glossary_handler.load_speaker_aliases", return_value={"Ash": "Ashei"}):
+        callback = gh._placeholder_speaker_callback()
+    assert callback("Ash") is False

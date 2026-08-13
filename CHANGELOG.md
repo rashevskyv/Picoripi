@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.078-dev] - 2026-08-13
+
+### Fixed
+- **Legacy Speaker Codes in Glossary**: Glossary Characters now consult the active game's placeholder-speaker rule as a fallback, so older entries such as `Ash` receive the same purple identity UI and manual Apply path without recreating the glossary.
+
 ## [0.3.077-dev] - 2026-08-10
 
 ### Added

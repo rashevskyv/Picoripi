@@ -135,6 +135,7 @@ class GlossaryDialog(QDialog):
         global_replace_callback: Optional[Callable[[str, str], None]] = None,
         apply_speaker_name_callback: Optional[Callable[[str, str], None]] = None,
         initial_term: Optional[str] = None,
+        placeholder_speaker_callback: Optional[Callable[[str], bool]] = None,
     ) -> None:
         """Initialize a new instance."""
         super().__init__(parent)
@@ -169,6 +170,7 @@ class GlossaryDialog(QDialog):
         self._clear_callback = clear_callback
         self._global_replace_callback = global_replace_callback
         self._apply_speaker_name_callback = apply_speaker_name_callback
+        self._placeholder_speaker_callback = placeholder_speaker_callback
         self._initial_term = initial_term
         self._pending_select_term: Optional[str] = None
         self._is_populating = False
@@ -544,7 +546,7 @@ class GlossaryDialog(QDialog):
                     str(len(occurrences)),
                 ]
                 needs_review = self._needs_review(entry)
-                provisional = bool(getattr(entry, "provisional", False))
+                provisional = self._is_provisional_character(entry)
                 for col, value in enumerate(values):
                     item = QTableWidgetItem(value)
                     if col == 3:
@@ -988,11 +990,7 @@ class GlossaryDialog(QDialog):
         self._profiled_checkbox.setChecked(entry.profiled)
         self._populate_variants(entry)
 
-        is_provisional_char = (
-            bool(entry)
-            and bool(getattr(entry, "provisional", False))
-            and ((getattr(entry, "section", "") or "").strip().lower() == "characters")
-        )
+        is_provisional_char = self._is_provisional_character(entry)
         if is_provisional_char:
             self._speaker_identity_pane.setVisible(True)
             candidates = self._build_speaker_candidates(entry)
@@ -1068,7 +1066,7 @@ class GlossaryDialog(QDialog):
 
         for e in self._all_entries:
             orig = (getattr(e, "original", "") or "").strip().lower()
-            if getattr(e, "provisional", False) and orig:
+            if self._is_provisional_character(e) and orig:
                 excluded_lower.add(orig)
 
         candidates: List[str] = []
@@ -1091,7 +1089,7 @@ class GlossaryDialog(QDialog):
 
         # 2. Known permanent speaker names (non-provisional Characters glossary originals)
         for e in self._all_entries:
-            if not getattr(e, "provisional", False) and (getattr(e, "section", "") or "").strip().lower() == "characters":
+            if not self._is_provisional_character(e) and (getattr(e, "section", "") or "").strip().lower() == "characters":
                 orig = str(getattr(e, "original", "") or "").strip()
                 if orig:
                     add_candidate(orig)
@@ -1110,9 +1108,7 @@ class GlossaryDialog(QDialog):
             self._apply_speaker_name_button.setEnabled(False)
             return False
 
-        provisional = bool(getattr(self._current_entry, "provisional", False))
-        section = (getattr(self._current_entry, "section", "") or "").strip().lower()
-        if not provisional or section != "characters":
+        if not self._is_provisional_character(self._current_entry):
             self._apply_speaker_name_button.setEnabled(False)
             return False
 
@@ -1129,7 +1125,9 @@ class GlossaryDialog(QDialog):
             return False
 
         provisional_codes_lower = {
-            e.original.strip().lower() for e in self._all_entries if getattr(e, "provisional", False)
+            e.original.strip().lower()
+            for e in self._all_entries
+            if self._is_provisional_character(e)
         }
         if proposed_lower in provisional_codes_lower:
             self._apply_speaker_name_button.setEnabled(False)
@@ -1145,6 +1143,20 @@ class GlossaryDialog(QDialog):
         provisional_code = self._current_entry.original.strip()
         permanent_name = self._speaker_name_combo.currentText().strip()
         self._apply_speaker_name_callback(provisional_code, permanent_name)
+
+    def _is_provisional_character(self, entry: Optional[GlossaryEntry]) -> bool:
+        """Whether this Character term is an unresolved game speaker code."""
+        if entry is None or (getattr(entry, "section", "") or "").strip().lower() != "characters":
+            return False
+        if bool(getattr(entry, "provisional", False)):
+            return True
+        callback = self._placeholder_speaker_callback
+        if not callable(callback):
+            return False
+        try:
+            return bool(callback(entry.original))
+        except Exception:
+            return False
 
     def _set_variants_visible(self, visible: bool) -> None:
         """Show the variant picker only when there is a decision to make."""
