@@ -320,3 +320,25 @@ def test_gh_handle_glossary_entry_delete(gh):
     gh._handle_glossary_entry_delete("term")
     gh.glossary_manager.delete_entry.assert_called_with("term")
     gh._prompt_manager._update_glossary_highlighting.assert_called()
+
+
+def test_gh_handle_apply_speaker_name_success_focuses_term(gh):
+    gh.mw.speaker_merge_handler = MagicMock()
+    gh.mw.speaker_merge_handler.save_names.return_value = True
+    gh.dialog = MagicMock()
+
+    gh._handle_apply_speaker_name("Ash", "Ashy")
+
+    gh.mw.speaker_merge_handler.save_names.assert_called_once_with({"Ash": "Ashy"})
+    gh.dialog.focus_term.assert_called_once_with("Ashy")
+
+
+def test_gh_handle_apply_speaker_name_failure_does_not_focus_term(gh):
+    gh.mw.speaker_merge_handler = MagicMock()
+    gh.mw.speaker_merge_handler.save_names.return_value = False
+    gh.dialog = MagicMock()
+
+    gh._handle_apply_speaker_name("Ash", "Ashy")
+
+    gh.mw.speaker_merge_handler.save_names.assert_called_once_with({"Ash": "Ashy"})
+    gh.dialog.focus_term.assert_not_called()

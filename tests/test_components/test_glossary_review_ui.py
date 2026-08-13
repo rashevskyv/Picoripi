@@ -345,3 +345,268 @@ class TestReviewStateFromContextMenu:
         # translation and notes are passed through untouched
         assert callback.call_args.args[1] == AMBIGUOUS.translation
         assert callback.call_args.args[2] == AMBIGUOUS.notes
+
+
+class TestSpeakerIdentityResolution:
+    """Provisional speaker identity resolution in the Glossary Characters tab."""
+
+    def test_provisional_row_uses_purple_foreground_and_updates_tooltip(self, qtbot):
+        prov_entry = GlossaryEntry(
+            original="Ash",
+            translation="",
+            notes="Game character",
+            section="Characters",
+            provisional=True,
+            status=STATUS_TRANSLATED,
+        )
+        dialog = _dialog(qtbot, [prov_entry])
+        table = dialog._tables.get("Characters") or dialog._tables.get("All")
+        assert table is not None
+
+        item0 = table.item(0, 0)
+        assert item0.foreground().color().name() == "#6a1b9a"
+        assert item0.background().color().alpha() > 0
+        assert "Provisional speaker identity" in item0.toolTip()
+        assert "game data" in item0.toolTip()
+
+    def test_speaker_identity_pane_visibility(self, qtbot):
+        prov_char = GlossaryEntry(
+            original="Ash",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=True,
+        )
+        perm_char = GlossaryEntry(
+            original="Ashy",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=False,
+        )
+        prov_term = GlossaryEntry(
+            original="CLERK_A",
+            translation="",
+            notes="",
+            section="Terms",
+            provisional=True,
+        )
+        dialog = _dialog(qtbot, [prov_char, perm_char, prov_term])
+
+        dialog.focus_term("Ash")
+        assert dialog._speaker_identity_pane.isVisibleTo(dialog) is True
+
+        dialog.focus_term("Ashy")
+        assert dialog._speaker_identity_pane.isVisibleTo(dialog) is False
+
+        dialog.focus_term("CLERK_A")
+        assert dialog._speaker_identity_pane.isVisibleTo(dialog) is False
+
+    def test_proposal_and_evidence_display(self, qtbot):
+        prov_char = GlossaryEntry(
+            original="Ash",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=True,
+            suggested_name="Ashy",
+            suggested_name_evidence="Dialogue lines say 'Ashy!'",
+        )
+        dialog = _dialog(qtbot, [prov_char])
+        dialog.focus_term("Ash")
+
+        assert dialog._speaker_evidence_label.isVisibleTo(dialog) is True
+        text = dialog._speaker_evidence_label.text()
+        assert "Ashy" in text
+        assert "Dialogue lines say" in text
+
+    def test_candidates_building_and_filtering(self, qtbot):
+        prov_char = GlossaryEntry(
+            original="Ash",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=True,
+            suggested_name="Ashy",
+        )
+        perm_char1 = GlossaryEntry(
+            original="Brock",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=False,
+        )
+        perm_char2 = GlossaryEntry(
+            original="Misty",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=False,
+        )
+        other_prov = GlossaryEntry(
+            original="BOY_A",
+            translation="Хлопчик",
+            notes="",
+            section="Characters",
+            provisional=True,
+            suggested_name="Tommy",
+        )
+        dialog = _dialog(qtbot, [prov_char, perm_char1, perm_char2, other_prov])
+
+        candidates = dialog._build_speaker_candidates(prov_char)
+        assert "Ashy" in candidates
+        assert "Brock" in candidates
+        assert "Misty" in candidates
+        assert "Tommy" in candidates
+
+        assert "Ash" not in candidates
+        assert "BOY_A" not in candidates
+        assert "Хлопчик" not in candidates
+
+    def test_manual_entry_and_validation(self, qtbot):
+        prov_char = GlossaryEntry(
+            original="Ash",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=True,
+        )
+        other_prov = GlossaryEntry(
+            original="BOY_A",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=True,
+        )
+        dialog = GlossaryDialog(
+            entries=[prov_char, other_prov],
+            occurrence_map={},
+            parent=None,
+            jump_callback=MagicMock(),
+            apply_speaker_name_callback=MagicMock(),
+        )
+        qtbot.addWidget(dialog)
+        dialog.focus_term("Ash")
+
+        dialog._speaker_name_combo.setEditText("Ash")
+        assert dialog._apply_speaker_name_button.isEnabled() is False
+
+        dialog._speaker_name_combo.setEditText("   ")
+        assert dialog._apply_speaker_name_button.isEnabled() is False
+
+        dialog._speaker_name_combo.setEditText("BOY_A")
+        assert dialog._apply_speaker_name_button.isEnabled() is False
+
+        dialog._speaker_name_combo.setEditText("Ashy")
+        assert dialog._apply_speaker_name_button.isEnabled() is True
+
+    def test_explicit_apply_callback(self, qtbot):
+        callback = MagicMock()
+        prov_char = GlossaryEntry(
+            original="Ash",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=True,
+            suggested_name="Ashy",
+        )
+        dialog = GlossaryDialog(
+            entries=[prov_char],
+            occurrence_map={},
+            parent=None,
+            jump_callback=MagicMock(),
+            apply_speaker_name_callback=callback,
+        )
+        qtbot.addWidget(dialog)
+        dialog.focus_term("Ash")
+
+        callback.assert_not_called()
+
+        dialog._speaker_name_combo.setEditText("Ashy")
+        dialog._apply_speaker_name_button.click()
+
+        callback.assert_called_once_with("Ash", "Ashy")
+
+    def test_unsafe_prefill_prevented_when_no_suggested_name(self, qtbot):
+        prov_char = GlossaryEntry(
+            original="Ash",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=True,
+            suggested_name="",
+        )
+        perm_char = GlossaryEntry(
+            original="Brock",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=False,
+        )
+        dialog = GlossaryDialog(
+            entries=[prov_char, perm_char],
+            occurrence_map={},
+            parent=None,
+            jump_callback=MagicMock(),
+            apply_speaker_name_callback=MagicMock(),
+        )
+        qtbot.addWidget(dialog)
+        dialog.focus_term("Ash")
+
+        assert dialog._speaker_name_combo.currentText() == ""
+        assert dialog._apply_speaker_name_button.isEnabled() is False
+
+    def test_legitimate_permanent_original_equals_translation_remains_candidate(self, qtbot):
+        prov_char = GlossaryEntry(
+            original="GORON_A",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=True,
+        )
+        perm_char = GlossaryEntry(
+            original="Goron",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=False,
+        )
+        other_term = GlossaryEntry(
+            original="Spring",
+            translation="Goron",
+            notes="",
+            section="Terms",
+            provisional=False,
+        )
+        dialog = _dialog(qtbot, [prov_char, perm_char, other_term])
+
+        candidates = dialog._build_speaker_candidates(prov_char)
+        assert "Goron" in candidates
+
+    def test_callback_less_dialog_keeps_apply_disabled_and_click_is_noop(self, qtbot):
+        prov_char = GlossaryEntry(
+            original="Ash",
+            translation="",
+            notes="",
+            section="Characters",
+            provisional=True,
+            suggested_name="Ashy",
+            suggested_name_evidence="Evidence text",
+        )
+        dialog = GlossaryDialog(
+            entries=[prov_char],
+            occurrence_map={},
+            parent=None,
+            jump_callback=MagicMock(),
+            apply_speaker_name_callback=None,
+        )
+        qtbot.addWidget(dialog)
+        dialog.focus_term("Ash")
+
+        assert dialog._speaker_identity_pane.isVisibleTo(dialog) is True
+        assert dialog._apply_speaker_name_button.isEnabled() is False
+        dialog._speaker_name_combo.setEditText("Ashy")
+        assert dialog._apply_speaker_name_button.isEnabled() is False
+
+        # Direct click invocation must be no-op and not crash
+        dialog._on_apply_speaker_name_clicked()

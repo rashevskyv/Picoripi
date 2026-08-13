@@ -373,3 +373,26 @@ class TestGlossaryMigrationOnApply:
         manager.rename_original.assert_not_called()
         glossary_handler._update_glossary_highlighting.assert_not_called()
         glossary_handler.refresh_open_dialog.assert_not_called()
+
+    def test_public_save_names_helper_returns_bool_success(self, tmp_path):
+        mw = _mw(tmp_path)
+        glossary_handler = MagicMock()
+        manager = MagicMock()
+        glossary_handler.glossary_manager = manager
+        mw.translation_handler.glossary_handler = glossary_handler
+
+        handler = SpeakerMergeHandler(mw)
+
+        # Success path returns True
+        res = handler.save_names({"Voice 41": "RENADO"})
+        assert res is True
+        assert json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8")) == {"Voice 41": "RENADO"}
+        manager.rename_original.assert_called_once_with("Voice 41", "RENADO")
+
+        # Empty mapping returns False
+        assert handler.save_names({}) is False
+
+        # Missing project dir returns False
+        no_proj_mw = _mw(tmp_path, has_project=False)
+        no_proj_handler = SpeakerMergeHandler(no_proj_mw)
+        assert no_proj_handler.save_names({"Voice 41": "RENADO"}) is False

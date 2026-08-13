@@ -1,5 +1,14 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.077-dev] - 2026-08-10
+
+### Added
+- **Glossary Primary Speaker Identity Resolver**: Made the Glossary Characters tab the primary manual interface for resolving provisional game speaker codes into permanent character names with an editable combo selector, candidate filtering, AI proposal & evidence display, and explicit Apply action.
+
+### Changed
+- **Provisional Speaker Styling**: Provisional character rows in the Glossary are styled in purple (`#6a1b9a`), matching Merge Speakers unmatched manual rows, with an updated tooltip clarifying game-data origin.
+- **Version Updates**: Bumped application and documentation version to `0.3.077-dev`.
+
 ## [0.3.076-dev] - 2026-08-10
 
 ### Added

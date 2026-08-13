@@ -208,7 +208,14 @@ class SpeakerMergeHandler:
                 )
             )
 
-    def _save_names(self, project_dir, names: dict) -> None:
+    def save_names(self, names: dict) -> bool:
+        """Public helper to save speaker names using the active project directory."""
+        project_dir = self._project_dir()
+        if not project_dir:
+            return False
+        return self._save_names(project_dir, names)
+
+    def _save_names(self, project_dir, names: dict) -> bool:
         """Store the names as the report now reads them and migrate glossary entries.
 
         The join proposes; a person decides. A voice matched by one line is a
@@ -217,7 +224,7 @@ class SpeakerMergeHandler:
         """
         confirmed_mappings = {code: name for code, name in (names or {}).items() if name}
         if not confirmed_mappings:
-            return
+            return False
         merged = dict(load_speaker_aliases(project_dir))
         merged.update(confirmed_mappings)
         if save_speaker_aliases(project_dir, merged) is None:
@@ -225,9 +232,10 @@ class SpeakerMergeHandler:
             QMessageBox.warning(
                 self.mw, "Merge Speakers", "Could not write speaker_aliases.json."
             )
-            return
+            return False
         self._refresh_speaker_views()
         self._migrate_glossary_entries(confirmed_mappings)
+        return True
 
     def _migrate_glossary_entries(self, confirmed_mappings: dict) -> None:
         """Migrate existing glossary entries from code -> confirmed permanent speaker name."""

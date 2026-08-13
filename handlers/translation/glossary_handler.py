@@ -310,6 +310,7 @@ class GlossaryHandler(BaseTranslationHandler):
                 build_callback=self._launch_glossary_build,
                 clear_callback=self._handle_glossary_clear,
                 global_replace_callback=self.global_replace_glossary,
+                apply_speaker_name_callback=self._handle_apply_speaker_name,
                 initial_term=initial_term,
             )
             self.dialog.finished.connect(self._on_glossary_dialog_closed)
@@ -718,6 +719,22 @@ class GlossaryHandler(BaseTranslationHandler):
         if self.mw.statusBar:
             self.mw.statusBar.showMessage(f"Glossary cleared: {removed} entries removed", 4000)
         return [], {}
+
+    def _handle_apply_speaker_name(self, code: str, permanent_name: str) -> None:
+        """Route manual resolution of a provisional speaker identity through SpeakerMergeHandler."""
+        code = (code or "").strip()
+        permanent_name = (permanent_name or "").strip()
+        if not code or not permanent_name or code == permanent_name:
+            return
+
+        merge_handler = getattr(self.mw, "speaker_merge_handler", None)
+        if merge_handler is None:
+            from handlers.speaker_merge_handler import SpeakerMergeHandler
+            merge_handler = SpeakerMergeHandler(self.mw)
+
+        success = bool(merge_handler.save_names({code: permanent_name}))
+        if success and self.dialog and hasattr(self.dialog, "focus_term"):
+            self.dialog.focus_term(permanent_name)
 
     # ── AI Glossary Classification ───────────────────────────────────────
 

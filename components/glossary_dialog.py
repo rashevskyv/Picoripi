@@ -1,4 +1,4 @@
-﻿"""Dialog for viewing glossary entries and navigating to occurrences."""
+"""Dialog for viewing glossary entries and navigating to occurrences."""
 from __future__ import annotations
 import json
 from html import escape
@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 from PyQt6.QtCore import Qt, QRect, QSize, QTimer
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -42,10 +43,9 @@ from core.glossary_manager import (
 # Rows awaiting a human decision. Translucent so it tints the row without
 # fighting the selection highlight or the light/dark palette.
 _NEEDS_REVIEW_BRUSH = QBrush(QColor(255, 200, 0, 60))
-# A term that is not a name at all -- an actor id the game data gave us. Red
-# rather than the review amber: this is not a translation to weigh up, it is a
-# placeholder to replace.
-_PROVISIONAL_BRUSH = QBrush(QColor(220, 60, 60, 55))
+# Foreground color for provisional game-code character rows, matching
+# Merge Speakers "Unmatched manual rows".
+_PROVISIONAL_FOREGROUND = QBrush(QColor("#6a1b9a"))
 class _RichTextItemDelegate(QStyledItemDelegate):
     """Render rich-text list items (e.g., occurrences list)."""
 
@@ -133,6 +133,7 @@ class GlossaryDialog(QDialog):
             Callable[[], Optional[Tuple[Sequence[GlossaryEntry], Dict[str, List[GlossaryOccurrence]]]]]
         ] = None,
         global_replace_callback: Optional[Callable[[str, str], None]] = None,
+        apply_speaker_name_callback: Optional[Callable[[str, str], None]] = None,
         initial_term: Optional[str] = None,
     ) -> None:
         """Initialize a new instance."""
@@ -167,6 +168,7 @@ class GlossaryDialog(QDialog):
         self._build_callback = build_callback
         self._clear_callback = clear_callback
         self._global_replace_callback = global_replace_callback
+        self._apply_speaker_name_callback = apply_speaker_name_callback
         self._initial_term = initial_term
         self._pending_select_term: Optional[str] = None
         self._is_populating = False
@@ -211,6 +213,38 @@ class GlossaryDialog(QDialog):
         self._original_label = QLabel("", self)
         self._original_label.setWordWrap(True)
         right_layout.addWidget(self._original_label)
+
+        # Speaker identity resolution pane (shown for provisional Character entries)
+        self._speaker_identity_pane = QWidget(self)
+        speaker_layout = QVBoxLayout(self._speaker_identity_pane)
+        speaker_layout.setContentsMargins(0, 4, 0, 8)
+
+        self._speaker_identity_title = QLabel("<b>Speaker identity (provisional game code):</b>", self)
+        speaker_layout.addWidget(self._speaker_identity_title)
+
+        self._speaker_evidence_label = QLabel(self)
+        self._speaker_evidence_label.setWordWrap(True)
+        self._speaker_evidence_label.setStyleSheet(
+            "color: #444; font-style: italic; background-color: #f0f0f5; padding: 6px; border-radius: 4px;"
+        )
+        speaker_layout.addWidget(self._speaker_evidence_label)
+
+        combo_row = QHBoxLayout()
+        self._speaker_name_combo = QComboBox(self)
+        self._speaker_name_combo.setEditable(True)
+        self._speaker_name_combo.setPlaceholderText("Enter or select permanent character name...")
+        self._speaker_name_combo.editTextChanged.connect(lambda _text: self._validate_speaker_name())
+        self._speaker_name_combo.currentIndexChanged.connect(lambda _idx: self._validate_speaker_name())
+        combo_row.addWidget(self._speaker_name_combo, 1)
+
+        self._apply_speaker_name_button = QPushButton("Apply speaker name", self)
+        self._apply_speaker_name_button.clicked.connect(self._on_apply_speaker_name_clicked)
+        combo_row.addWidget(self._apply_speaker_name_button)
+
+        speaker_layout.addLayout(combo_row)
+        right_layout.addWidget(self._speaker_identity_pane)
+        self._speaker_identity_pane.setVisible(False)
+
         translation_label = QLabel("Translation:", self)
         right_layout.addWidget(translation_label)
         self._translation_edit = QLineEdit(self)
@@ -523,17 +557,13 @@ class GlossaryDialog(QDialog):
                     if needs_review:
                         item.setBackground(_NEEDS_REVIEW_BRUSH)
                         item.setToolTip(self._review_reason(entry))
-                    # Louder than "needs review", and for a different reason:
-                    # the TERM is wrong here, not the translation. Nobody should
-                    # translate "CLERK_B" -- they should find out who that is.
                     if provisional:
-                        item.setBackground(_PROVISIONAL_BRUSH)
+                        item.setForeground(_PROVISIONAL_FOREGROUND)
                         item.setToolTip(
-                            "Provisional name.\n\n"
-                            f"\"{entry.original}\" is how the game's own files label this "
-                            "character, not a name. Run Merge Speakers to match it "
-                            "against a marked-up script, or set the name there by hand; "
-                            "the glossary then shows the real name instead."
+                            "Provisional speaker identity.\n\n"
+                            f"\"{entry.original}\" was extracted from game data as a temporary speaker identifier. "
+                            "Select this term in the Glossary to assign its permanent character name, "
+                            "or use Merge Speakers to match it against a script."
                         )
                     table.setItem(row, col, item)
                     
@@ -957,12 +987,58 @@ class GlossaryDialog(QDialog):
         self._notes_edit.setPlainText(self._rendered_notes())
         self._profiled_checkbox.setChecked(entry.profiled)
         self._populate_variants(entry)
+
+        is_provisional_char = (
+            bool(entry)
+            and bool(getattr(entry, "provisional", False))
+            and ((getattr(entry, "section", "") or "").strip().lower() == "characters")
+        )
+        if is_provisional_char:
+            self._speaker_identity_pane.setVisible(True)
+            candidates = self._build_speaker_candidates(entry)
+            self._speaker_name_combo.blockSignals(True)
+            self._speaker_name_combo.clear()
+            for cand in candidates:
+                self._speaker_name_combo.addItem(cand)
+
+            sug_name = str(getattr(entry, "suggested_name", "") or "").strip()
+            if sug_name:
+                idx = self._speaker_name_combo.findText(sug_name, Qt.MatchFlag.MatchExactly)
+                if idx >= 0:
+                    self._speaker_name_combo.setCurrentIndex(idx)
+                else:
+                    self._speaker_name_combo.setEditText(sug_name)
+            else:
+                self._speaker_name_combo.setEditText("")
+                self._speaker_name_combo.setCurrentIndex(-1)
+            self._speaker_name_combo.blockSignals(False)
+
+            sug_ev = str(getattr(entry, "suggested_name_evidence", "") or "").strip()
+            if sug_name or sug_ev:
+                parts = []
+                if sug_name:
+                    parts.append(f"<b>AI Proposal:</b> {escape(sug_name)}")
+                if sug_ev:
+                    parts.append(f"<b>Evidence:</b> {escape(sug_ev)}")
+                self._speaker_evidence_label.setText("<br>".join(parts))
+                self._speaker_evidence_label.setVisible(True)
+            else:
+                self._speaker_evidence_label.setText("")
+                self._speaker_evidence_label.setVisible(False)
+
+            self._validate_speaker_name()
+        else:
+            if hasattr(self, '_speaker_identity_pane'):
+                self._speaker_identity_pane.setVisible(False)
+                self._apply_speaker_name_button.setEnabled(False)
+
         self._suppress_editor_signals = False
         if hasattr(self, '_notes_variation_button'):
             self._notes_variation_busy = False
             self._notes_variation_button.setText(self._notes_variation_default_text)
         self._mark_editor_dirty(False)
         self._update_editor_enabled_state()
+
     def _clear_entry_details(self) -> None:
         """Internal helper to remove entry details."""
         self._current_entry = None
@@ -973,12 +1049,102 @@ class GlossaryDialog(QDialog):
         self._notes_edit.clear()
         self._profiled_checkbox.setChecked(False)
         self._populate_variants(None)
+        if hasattr(self, '_speaker_identity_pane'):
+            self._speaker_identity_pane.setVisible(False)
+            self._apply_speaker_name_button.setEnabled(False)
         self._suppress_editor_signals = False
         if hasattr(self, '_notes_variation_button'):
             self._notes_variation_busy = False
             self._notes_variation_button.setText(self._notes_variation_default_text)
             self._notes_variation_button.setEnabled(False)
         self._update_editor_enabled_state()
+
+    def _build_speaker_candidates(self, entry: GlossaryEntry) -> List[str]:
+        """Build list of candidate permanent speaker names for a provisional character entry."""
+        excluded_lower = set()
+        selected_code = (getattr(entry, "original", "") or "").strip().lower()
+        if selected_code:
+            excluded_lower.add(selected_code)
+
+        for e in self._all_entries:
+            orig = (getattr(e, "original", "") or "").strip().lower()
+            if getattr(e, "provisional", False) and orig:
+                excluded_lower.add(orig)
+
+        candidates: List[str] = []
+        seen_lower = set()
+
+        def add_candidate(val: str) -> None:
+            clean_val = val.strip()
+            if not clean_val:
+                return
+            low = clean_val.lower()
+            if low in excluded_lower or low in seen_lower:
+                return
+            seen_lower.add(low)
+            candidates.append(clean_val)
+
+        # 1. Saved suggested_name of selected entry as initial proposal when present
+        sug_name = str(getattr(entry, "suggested_name", "") or "").strip()
+        if sug_name:
+            add_candidate(sug_name)
+
+        # 2. Known permanent speaker names (non-provisional Characters glossary originals)
+        for e in self._all_entries:
+            if not getattr(e, "provisional", False) and (getattr(e, "section", "") or "").strip().lower() == "characters":
+                orig = str(getattr(e, "original", "") or "").strip()
+                if orig:
+                    add_candidate(orig)
+
+        # 3. Distinct non-empty suggested_name values from other entries
+        for e in self._all_entries:
+            sug = str(getattr(e, "suggested_name", "") or "").strip()
+            if sug:
+                add_candidate(sug)
+
+        return candidates
+
+    def _validate_speaker_name(self) -> bool:
+        """Enable Apply speaker name button only when callback and text form a valid permanent mapping."""
+        if not self._current_entry or self._apply_speaker_name_callback is None:
+            self._apply_speaker_name_button.setEnabled(False)
+            return False
+
+        provisional = bool(getattr(self._current_entry, "provisional", False))
+        section = (getattr(self._current_entry, "section", "") or "").strip().lower()
+        if not provisional or section != "characters":
+            self._apply_speaker_name_button.setEnabled(False)
+            return False
+
+        proposed = self._speaker_name_combo.currentText().strip()
+        if not proposed:
+            self._apply_speaker_name_button.setEnabled(False)
+            return False
+
+        code_lower = self._current_entry.original.strip().lower()
+        proposed_lower = proposed.lower()
+
+        if proposed_lower == code_lower:
+            self._apply_speaker_name_button.setEnabled(False)
+            return False
+
+        provisional_codes_lower = {
+            e.original.strip().lower() for e in self._all_entries if getattr(e, "provisional", False)
+        }
+        if proposed_lower in provisional_codes_lower:
+            self._apply_speaker_name_button.setEnabled(False)
+            return False
+
+        self._apply_speaker_name_button.setEnabled(True)
+        return True
+
+    def _on_apply_speaker_name_clicked(self) -> None:
+        """Handle explicit Apply speaker name button click."""
+        if not self._validate_speaker_name() or not self._apply_speaker_name_callback or not self._current_entry:
+            return
+        provisional_code = self._current_entry.original.strip()
+        permanent_name = self._speaker_name_combo.currentText().strip()
+        self._apply_speaker_name_callback(provisional_code, permanent_name)
 
     def _set_variants_visible(self, visible: bool) -> None:
         """Show the variant picker only when there is a decision to make."""
