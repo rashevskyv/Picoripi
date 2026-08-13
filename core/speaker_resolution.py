@@ -31,6 +31,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from core.speaker_alias_merge import is_confirmed_speaker_alias
 from utils.logging_utils import log_debug
 
 _UNKNOWN = ("", "unknown", "none")
@@ -343,7 +344,8 @@ def build_speaker_pool(
 
     def display_name(name: Any) -> str:
         raw = str(name or "").strip()
-        return canonicalize(translate(aliases.get(raw, raw)))
+        alias = aliases.get(raw)
+        return canonicalize(translate(alias if is_confirmed_speaker_alias(alias) else raw))
 
     # Every source is glossary-translated to one canonical DISPLAY name so the
     # editor field and the folders show the identical string for a row (e.g. a
@@ -454,7 +456,7 @@ def resolve_speaker_identity(mw: Any, name: Any) -> Optional[str]:
         return None
 
     alias = _speaker_aliases(mw).get(resolved)
-    if alias:
+    if is_confirmed_speaker_alias(alias):
         return str(alias).strip() or None
 
     rules = getattr(mw, "current_game_rules", None) if mw else None

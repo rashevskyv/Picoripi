@@ -344,6 +344,26 @@ def test_gh_handle_apply_speaker_name_failure_does_not_focus_term(gh):
     gh.dialog.focus_term.assert_not_called()
 
 
+def test_gh_reassign_speaker_name_focuses_new_term_only_on_success(gh):
+    gh.mw.speaker_merge_handler = MagicMock()
+    gh.mw.speaker_merge_handler.reassign_name.return_value = True
+    gh.dialog = MagicMock()
+
+    gh._handle_reassign_speaker_name("Ash", "ASHEI", "TELMA")
+
+    gh.mw.speaker_merge_handler.reassign_name.assert_called_once_with("Ash", "ASHEI", "TELMA")
+    gh.dialog.focus_term.assert_called_once_with("TELMA")
+
+
+def test_gh_confirmed_speaker_codes_excludes_conflict_labels(gh):
+    gh.mw.project_manager.project_dir = None
+    with patch(
+        "handlers.translation.glossary_handler.load_speaker_aliases",
+        return_value={"Ash": "ASHEI", "Other": "ASHEI / TELMA"},
+    ):
+        assert gh._confirmed_speaker_codes("ASHEI") == ["Ash"]
+
+
 def test_gh_placeholder_speaker_callback_recognizes_legacy_code_and_alias(gh):
     gh.mw.current_game_rules.is_placeholder_speaker.side_effect = lambda term: term == "Ash"
     gh.mw.project_manager.project_dir = None
@@ -356,3 +376,10 @@ def test_gh_placeholder_speaker_callback_recognizes_legacy_code_and_alias(gh):
     with patch("handlers.translation.glossary_handler.load_speaker_aliases", return_value={"Ash": "Ashei"}):
         callback = gh._placeholder_speaker_callback()
     assert callback("Ash") is False
+
+    with patch(
+        "handlers.translation.glossary_handler.load_speaker_aliases",
+        return_value={"Ash": "ASHEI / TELMA"},
+    ):
+        callback = gh._placeholder_speaker_callback()
+    assert callback("Ash") is True

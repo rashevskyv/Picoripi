@@ -15,7 +15,7 @@ from .base_translation_handler import BaseTranslationHandler
 from .glossary_prompt_manager import GlossaryPromptManager
 from .glossary_occurrence_updater import GlossaryOccurrenceUpdater
 from core.glossary_manager import GlossaryEntry, GlossaryManager, GlossaryOccurrence
-from core.speaker_alias_merge import load_speaker_aliases
+from core.speaker_alias_merge import is_confirmed_speaker_alias, load_speaker_aliases
 from components.glossary_dialog import GlossaryDialog
 from components.glossary_edit_dialog import GlossaryEditDialog
 from utils.logging_utils import log_debug
@@ -312,6 +312,8 @@ class GlossaryHandler(BaseTranslationHandler):
                 clear_callback=self._handle_glossary_clear,
                 global_replace_callback=self.global_replace_glossary,
                 apply_speaker_name_callback=self._handle_apply_speaker_name,
+                reassign_speaker_callback=self._handle_reassign_speaker_name,
+                speaker_codes_callback=self._confirmed_speaker_codes,
                 initial_term=initial_term,
                 placeholder_speaker_callback=self._placeholder_speaker_callback(),
             )
@@ -348,7 +350,7 @@ class GlossaryHandler(BaseTranslationHandler):
 
         def is_placeholder(term: str) -> bool:
             term = str(term or "").strip()
-            if not term or term in aliases:
+            if not term or is_confirmed_speaker_alias(aliases.get(term)):
                 return False
             try:
                 return bool(hook(term))
@@ -357,6 +359,34 @@ class GlossaryHandler(BaseTranslationHandler):
                 return False
 
         return is_placeholder
+
+    def _confirmed_speaker_codes(self, permanent_name: str) -> List[str]:
+        """Game codes explicitly mapped to this permanent Character term."""
+        target = str(permanent_name or "").strip().casefold()
+        if not target:
+            return []
+        project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        try:
+            aliases = load_speaker_aliases(project_dir)
+        except (TypeError, ValueError):
+            return []
+        return sorted(
+            str(code).strip()
+            for code, name in aliases.items()
+            if is_confirmed_speaker_alias(name)
+            and str(name).strip().casefold() == target
+        )
+
+    def _handle_reassign_speaker_name(
+        self, speaker_code: str, current_name: str, permanent_name: str
+    ) -> None:
+        """Change an already-confirmed game code to another character name."""
+        merge_handler = getattr(self.mw, "speaker_merge_handler", None)
+        reassign = getattr(merge_handler, "reassign_name", None)
+        if not callable(reassign):
+            return
+        if reassign(speaker_code, current_name, permanent_name) and self.dialog:
+            self.dialog.focus_term(permanent_name)
 
     def refresh_open_dialog(self) -> None:
         """Reload the glossary dialog, if open, from the current manager state."""

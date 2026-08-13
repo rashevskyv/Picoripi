@@ -15,6 +15,7 @@ from components.speaker_merge_dialog import SpeakerMergeDialog
 from core.speaker_alias_merge import (
     Vote,
     find_markup_project,
+    is_confirmed_speaker_alias,
     load_speaker_aliases,
     markup_speaker_lines,
     merge_script_speakers,
@@ -139,7 +140,8 @@ class SpeakerMergeHandler:
         # is already right, and a name decided earlier must not be voted over.
         unresolved = sorted({
             code for code in row_codes.values()
-            if code not in existing and self._looks_like_a_code(code)
+            if not is_confirmed_speaker_alias(existing.get(code))
+            and self._looks_like_a_code(code)
         })
         if not unresolved:
             QMessageBox.information(
@@ -215,14 +217,29 @@ class SpeakerMergeHandler:
             return False
         return self._save_names(project_dir, names)
 
-    def _save_names(self, project_dir, names: dict) -> bool:
+    def reassign_name(self, code: str, current_name: str, permanent_name: str) -> bool:
+        """Move one confirmed game code from one character term to another."""
+        project_dir = self._project_dir()
+        if not project_dir:
+            return False
+        return self._save_names(
+            project_dir,
+            {code: permanent_name},
+            glossary_sources={code: current_name},
+        )
+
+    def _save_names(self, project_dir, names: dict, glossary_sources: dict | None = None) -> bool:
         """Store the names as the report now reads them and migrate glossary entries.
 
         The join proposes; a person decides. A voice matched by one line is a
         suggestion the user confirms here, and a voice the join got wrong is
         corrected here -- both end up in the same file as the automatic ones.
         """
-        confirmed_mappings = {code: name for code, name in (names or {}).items() if name}
+        confirmed_mappings = {
+            code: name
+            for code, name in (names or {}).items()
+            if code and is_confirmed_speaker_alias(name)
+        }
         if not confirmed_mappings:
             return False
         merged = dict(load_speaker_aliases(project_dir))
@@ -234,10 +251,12 @@ class SpeakerMergeHandler:
             )
             return False
         self._refresh_speaker_views()
-        self._migrate_glossary_entries(confirmed_mappings)
+        self._migrate_glossary_entries(confirmed_mappings, glossary_sources)
         return True
 
-    def _migrate_glossary_entries(self, confirmed_mappings: dict) -> None:
+    def _migrate_glossary_entries(
+        self, confirmed_mappings: dict, glossary_sources: dict | None = None
+    ) -> None:
         """Migrate existing glossary entries from code -> confirmed permanent speaker name."""
         try:
             glossary_handler = getattr(
@@ -254,10 +273,11 @@ class SpeakerMergeHandler:
 
         renamed_count = 0
         for code, permanent_name in confirmed_mappings.items():
-            if not code or not permanent_name or code == permanent_name:
+            source_name = (glossary_sources or {}).get(code, code)
+            if not source_name or not permanent_name or source_name == permanent_name:
                 continue
             try:
-                result = manager.rename_original(code, permanent_name)
+                result = manager.rename_original(source_name, permanent_name)
                 if result is not None:
                     renamed_count += 1
             except Exception as exc:

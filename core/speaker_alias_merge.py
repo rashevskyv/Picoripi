@@ -72,6 +72,17 @@ class Vote(NamedTuple):
 NAME_SEPARATOR = " / "
 
 
+def is_confirmed_speaker_alias(value: object) -> bool:
+    """Whether an alias is one permanent name rather than an old conflict label.
+
+    ``merge_script_speakers`` uses ``" / "`` to display multiple competing
+    names. That is useful evidence in the review dialog, but never an identity
+    decision: treating it as one hid the provisional code and leaked the
+    conflict into translation context.
+    """
+    return bool(str(value or "").strip()) and NAME_SEPARATOR not in str(value)
+
+
 @dataclass
 class MergeResult:
     """What the join concluded, and everything it refused to conclude."""

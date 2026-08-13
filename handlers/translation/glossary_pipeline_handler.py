@@ -16,7 +16,7 @@ from handlers.translation.glossary_ai_config import resolve_glossary_ai_config
 from handlers.translation.glossary_pipeline_worker import GlossaryBuildWorker
 from core.glossary_build.pipeline_coordinator import MODE_SEED
 from core.glossary_build.script_seeds import seeds_from_markup
-from core.speaker_alias_merge import find_markup_project, load_speaker_aliases
+from core.speaker_alias_merge import find_markup_project, is_confirmed_speaker_alias, load_speaker_aliases
 from ui.glossary_build_dialog import (
     AREA_PROJECT,
     AREA_SELECTED,
@@ -69,7 +69,7 @@ class GlossaryPipelineHandler:
         for seed in seeds:
             term = str(seed.get("term") or "").strip()
             name = (aliases or {}).get(term)
-            if name:
+            if is_confirmed_speaker_alias(name):
                 renamed.append({**seed, "term": name, "provisional": False})
             elif self._is_placeholder(term):
                 renamed.append({**seed, "provisional": True})

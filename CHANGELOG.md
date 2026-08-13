@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.080-dev] - 2026-08-13
+
+### Added
+- **Confirmed Speaker Reassignment**: A confirmed Character now keeps a Speaker identity panel that identifies its game code and lets the user reassign that code to another permanent character name without recreating the glossary.
+
+## [0.3.079-dev] - 2026-08-13
+
+### Fixed
+- **Conflicting Speaker Aliases**: Legacy values such as `ASHEI / TELMA` are now treated as unresolved evidence, not confirmed identities. They remain purple and manually editable in Glossary/Merge Speakers, and cannot reach speaker folders or translation AI context as a name.
+
 ## [0.3.078-dev] - 2026-08-13
 
 ### Fixed

@@ -1,4 +1,16 @@
-# Completed plan: resolve provisional speakers in Glossary
+# Completed plan: edit confirmed speaker identity mappings
+
+1. [x] Keep confirmed identity mappings non-provisional while exposing their originating game code in Glossary.
+2. [x] Let a user reassign that code to another permanent character name, preserving the existing explicit alias save and glossary-migration path.
+3. [x] Verify the actual `Ash -> ASHEI` project mapping, cover it with focused tests, version, document, and commit.
+
+# Previously completed plan: reject conflicting legacy speaker aliases
+
+1. [x] Inspect the live project data and identify the stale `Ash -> ASHEI / TELMA` alias as the cause of the missing provisional UI.
+2. [x] Treat slash-joined conflict labels as evidence rather than confirmed identities across Glossary, merging, glossary seeding, folders, and AI speaker resolution.
+3. [x] Block slash-joined labels from manual Apply, add regression coverage, verify, version, document, and commit the focused fix.
+
+# Previously completed plan: resolve provisional speakers in Glossary
 
 1. [x] Audit the existing provisional color, description/occurrence panes, structured AI `suggested_name` evidence, and confirmed alias save path.
 2. [x] Make provisional Character rows use the Merge Speakers unmatched purple and expose the AI suggestion/evidence in the selected-entry details.

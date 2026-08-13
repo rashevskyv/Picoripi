@@ -39,6 +39,7 @@ from core.glossary_manager import (
     GlossaryOccurrence,
     render_notes,
 )
+from core.speaker_alias_merge import is_confirmed_speaker_alias
 
 # Rows awaiting a human decision. Translucent so it tints the row without
 # fighting the selection highlight or the light/dark palette.
@@ -134,6 +135,8 @@ class GlossaryDialog(QDialog):
         ] = None,
         global_replace_callback: Optional[Callable[[str, str], None]] = None,
         apply_speaker_name_callback: Optional[Callable[[str, str], None]] = None,
+        reassign_speaker_callback: Optional[Callable[[str, str, str], None]] = None,
+        speaker_codes_callback: Optional[Callable[[str], Sequence[str]]] = None,
         initial_term: Optional[str] = None,
         placeholder_speaker_callback: Optional[Callable[[str], bool]] = None,
     ) -> None:
@@ -170,7 +173,11 @@ class GlossaryDialog(QDialog):
         self._clear_callback = clear_callback
         self._global_replace_callback = global_replace_callback
         self._apply_speaker_name_callback = apply_speaker_name_callback
+        self._reassign_speaker_callback = reassign_speaker_callback
+        self._speaker_codes_callback = speaker_codes_callback
         self._placeholder_speaker_callback = placeholder_speaker_callback
+        self._current_speaker_code = ""
+        self._current_speaker_is_provisional = False
         self._initial_term = initial_term
         self._pending_select_term: Optional[str] = None
         self._is_populating = False
@@ -221,7 +228,7 @@ class GlossaryDialog(QDialog):
         speaker_layout = QVBoxLayout(self._speaker_identity_pane)
         speaker_layout.setContentsMargins(0, 4, 0, 8)
 
-        self._speaker_identity_title = QLabel("<b>Speaker identity (provisional game code):</b>", self)
+        self._speaker_identity_title = QLabel(self)
         speaker_layout.addWidget(self._speaker_identity_title)
 
         self._speaker_evidence_label = QLabel(self)
@@ -991,34 +998,51 @@ class GlossaryDialog(QDialog):
         self._populate_variants(entry)
 
         is_provisional_char = self._is_provisional_character(entry)
-        if is_provisional_char:
+        speaker_code = entry.original.strip() if is_provisional_char else self._confirmed_speaker_code(entry)
+        self._current_speaker_code = speaker_code
+        self._current_speaker_is_provisional = is_provisional_char
+        if speaker_code:
             self._speaker_identity_pane.setVisible(True)
+            state = "provisional game code" if is_provisional_char else "confirmed game code"
+            self._speaker_identity_title.setText(
+                f"<b>Speaker identity ({state}: {escape(speaker_code)}):</b>"
+            )
+            self._apply_speaker_name_button.setText(
+                "Apply speaker name" if is_provisional_char else "Reassign speaker"
+            )
             candidates = self._build_speaker_candidates(entry)
             self._speaker_name_combo.blockSignals(True)
             self._speaker_name_combo.clear()
             for cand in candidates:
                 self._speaker_name_combo.addItem(cand)
 
-            sug_name = str(getattr(entry, "suggested_name", "") or "").strip()
-            if sug_name:
-                idx = self._speaker_name_combo.findText(sug_name, Qt.MatchFlag.MatchExactly)
+            suggested_name = str(getattr(entry, "suggested_name", "") or "").strip()
+            current_name = "" if is_provisional_char else entry.original.strip()
+            initial_name = suggested_name or current_name
+            if initial_name:
+                idx = self._speaker_name_combo.findText(initial_name, Qt.MatchFlag.MatchExactly)
                 if idx >= 0:
                     self._speaker_name_combo.setCurrentIndex(idx)
                 else:
-                    self._speaker_name_combo.setEditText(sug_name)
+                    self._speaker_name_combo.setEditText(initial_name)
             else:
                 self._speaker_name_combo.setEditText("")
                 self._speaker_name_combo.setCurrentIndex(-1)
             self._speaker_name_combo.blockSignals(False)
 
-            sug_ev = str(getattr(entry, "suggested_name_evidence", "") or "").strip()
-            if sug_name or sug_ev:
+            suggested_evidence = str(getattr(entry, "suggested_name_evidence", "") or "").strip()
+            if is_provisional_char and (suggested_name or suggested_evidence):
                 parts = []
-                if sug_name:
-                    parts.append(f"<b>AI Proposal:</b> {escape(sug_name)}")
-                if sug_ev:
-                    parts.append(f"<b>Evidence:</b> {escape(sug_ev)}")
+                if suggested_name:
+                    parts.append(f"<b>AI Proposal:</b> {escape(suggested_name)}")
+                if suggested_evidence:
+                    parts.append(f"<b>Evidence:</b> {escape(suggested_evidence)}")
                 self._speaker_evidence_label.setText("<br>".join(parts))
+                self._speaker_evidence_label.setVisible(True)
+            elif not is_provisional_char:
+                self._speaker_evidence_label.setText(
+                    "Choose another permanent character name to change this mapping."
+                )
                 self._speaker_evidence_label.setVisible(True)
             else:
                 self._speaker_evidence_label.setText("")
@@ -1029,6 +1053,7 @@ class GlossaryDialog(QDialog):
             if hasattr(self, '_speaker_identity_pane'):
                 self._speaker_identity_pane.setVisible(False)
                 self._apply_speaker_name_button.setEnabled(False)
+                self._apply_speaker_name_button.setText("Apply speaker name")
 
         self._suppress_editor_signals = False
         if hasattr(self, '_notes_variation_button'):
@@ -1050,6 +1075,9 @@ class GlossaryDialog(QDialog):
         if hasattr(self, '_speaker_identity_pane'):
             self._speaker_identity_pane.setVisible(False)
             self._apply_speaker_name_button.setEnabled(False)
+            self._apply_speaker_name_button.setText("Apply speaker name")
+        self._current_speaker_code = ""
+        self._current_speaker_is_provisional = False
         self._suppress_editor_signals = False
         if hasattr(self, '_notes_variation_button'):
             self._notes_variation_busy = False
@@ -1104,11 +1132,15 @@ class GlossaryDialog(QDialog):
 
     def _validate_speaker_name(self) -> bool:
         """Enable Apply speaker name button only when callback and text form a valid permanent mapping."""
-        if not self._current_entry or self._apply_speaker_name_callback is None:
+        if not self._current_entry or not self._current_speaker_code:
             self._apply_speaker_name_button.setEnabled(False)
             return False
-
-        if not self._is_provisional_character(self._current_entry):
+        callback = (
+            self._apply_speaker_name_callback
+            if self._current_speaker_is_provisional
+            else self._reassign_speaker_callback
+        )
+        if callback is None:
             self._apply_speaker_name_button.setEnabled(False)
             return False
 
@@ -1116,11 +1148,20 @@ class GlossaryDialog(QDialog):
         if not proposed:
             self._apply_speaker_name_button.setEnabled(False)
             return False
+        if not is_confirmed_speaker_alias(proposed):
+            self._apply_speaker_name_button.setEnabled(False)
+            return False
 
-        code_lower = self._current_entry.original.strip().lower()
+        code_lower = self._current_speaker_code.lower()
         proposed_lower = proposed.lower()
 
         if proposed_lower == code_lower:
+            self._apply_speaker_name_button.setEnabled(False)
+            return False
+        if (
+            not self._current_speaker_is_provisional
+            and proposed_lower == self._current_entry.original.strip().lower()
+        ):
             self._apply_speaker_name_button.setEnabled(False)
             return False
 
@@ -1138,11 +1179,29 @@ class GlossaryDialog(QDialog):
 
     def _on_apply_speaker_name_clicked(self) -> None:
         """Handle explicit Apply speaker name button click."""
-        if not self._validate_speaker_name() or not self._apply_speaker_name_callback or not self._current_entry:
+        if not self._validate_speaker_name() or not self._current_entry:
             return
-        provisional_code = self._current_entry.original.strip()
         permanent_name = self._speaker_name_combo.currentText().strip()
-        self._apply_speaker_name_callback(provisional_code, permanent_name)
+        if self._current_speaker_is_provisional:
+            if self._apply_speaker_name_callback:
+                self._apply_speaker_name_callback(self._current_speaker_code, permanent_name)
+        elif self._reassign_speaker_callback:
+            self._reassign_speaker_callback(
+                self._current_speaker_code, self._current_entry.original.strip(), permanent_name
+            )
+
+    def _confirmed_speaker_code(self, entry: GlossaryEntry) -> str:
+        """Return the first confirmed game code that currently names this character."""
+        if (getattr(entry, "section", "") or "").strip().lower() != "characters":
+            return ""
+        callback = self._speaker_codes_callback
+        if not callable(callback):
+            return ""
+        try:
+            codes = callback(entry.original) or ()
+        except Exception:
+            return ""
+        return next((str(code).strip() for code in codes if str(code).strip()), "")
 
     def _is_provisional_character(self, entry: Optional[GlossaryEntry]) -> bool:
         """Whether this Character term is an unresolved game speaker code."""

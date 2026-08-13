@@ -135,6 +135,17 @@ class TestRefusals:
         saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
         assert saved == {"Voice 41": "Renado"}
 
+    def test_a_conflicting_legacy_alias_is_revisited(self, tmp_path, no_dialog):
+        (tmp_path / ALIAS_FILENAME).write_text(
+            json.dumps({"Voice 41": "RENADO / TELMA"}), encoding="utf-8"
+        )
+        mw = _mw(tmp_path)
+
+        _run(mw, [("RENADO", LONG_A), ("RENADO", LONG_B)])
+
+        result = no_dialog.report.call_args.args[0]
+        assert "Voice 41" in result.all_placeholders
+
 
 class TestWhatCountsAsACode:
     """A game spells its actors in its own terms, and only it knows which."""
@@ -256,14 +267,14 @@ class TestMerging:
         _apply_from_dialog(no_dialog)
         mw.ui_updater.block_list_updater.refresh_virtual_folder_labels.assert_called_once()
 
-    def test_a_voice_two_characters_share_is_saved_under_both_names(self, tmp_path, no_dialog):
-        """Refusing to name it threw away a correct answer about the game."""
+    def test_a_shared_voice_requires_a_manual_permanent_name(self, tmp_path, no_dialog):
+        """A review label is evidence, never a code-to-name identity."""
         mw = _mw(tmp_path)
         _run(mw, [("RENADO", LONG_A), ("TELMA", LONG_B)])
-        _apply_from_dialog(no_dialog)
+        _apply_from_dialog(no_dialog, chosen={"Voice 41": "RENADO"})
 
         saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
-        assert saved == {"Voice 41": "RENADO / TELMA"}
+        assert saved == {"Voice 41": "RENADO"}
 
     def test_the_result_reaches_the_report_dialog(self, tmp_path, no_dialog):
         """The report is a dialog over the result, not a string built here."""
@@ -396,3 +407,19 @@ class TestGlossaryMigrationOnApply:
         no_proj_mw = _mw(tmp_path, has_project=False)
         no_proj_handler = SpeakerMergeHandler(no_proj_mw)
         assert no_proj_handler.save_names({"Voice 41": "RENADO"}) is False
+
+    def test_reassign_name_moves_the_confirmed_character_entry(self, tmp_path):
+        mw = _mw(tmp_path)
+        glossary_handler = MagicMock()
+        manager = MagicMock()
+        manager.get_raw_text.return_value = "raw text"
+        glossary_handler.glossary_manager = manager
+        mw.translation_handler.glossary_handler = glossary_handler
+
+        handler = SpeakerMergeHandler(mw)
+        assert handler.reassign_name("Ash", "ASHEI", "TELMA") is True
+
+        assert json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8")) == {
+            "Ash": "TELMA"
+        }
+        manager.rename_original.assert_called_once_with("ASHEI", "TELMA")

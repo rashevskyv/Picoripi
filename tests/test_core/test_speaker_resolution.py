@@ -150,6 +150,29 @@ def test_plugin_unresolved_placeholder_returns_none():
     assert res.source == "none"
 
 
+def test_conflicting_alias_keeps_placeholder_unknown(tmp_path):
+    import json
+    from core.speaker_alias_merge import ALIAS_FILENAME
+
+    (tmp_path / ALIAS_FILENAME).write_text(
+        json.dumps({"CLERK_B": "Barnes / Telma"}), encoding="utf-8"
+    )
+    mw = _MW()
+    mw.project_manager.project_dir = tmp_path
+
+    class _Rules:
+        def get_speaker_for_string(self, b, s):
+            return "CLERK_B"
+
+        def is_placeholder_speaker(self, name):
+            return name == "CLERK_B"
+
+    mw.current_game_rules = _Rules()
+    res = resolve_speaker_for_string(mw, 0, 0, composer=_Composer(_Client(None), speaker="NONE"))
+    assert res.name is None
+    assert res.source == "none"
+
+
 def test_plugin_real_display_name_remains_available():
     mw = _MW()
 

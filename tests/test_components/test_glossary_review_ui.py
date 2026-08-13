@@ -42,6 +42,8 @@ def _dialog(
     update_callback=None,
     placeholder_speaker_callback=None,
     apply_speaker_name_callback=None,
+    reassign_speaker_callback=None,
+    speaker_codes_callback=None,
 ):
     dialog = GlossaryDialog(
         entries=entries,
@@ -51,6 +53,8 @@ def _dialog(
         update_callback=update_callback,
         placeholder_speaker_callback=placeholder_speaker_callback,
         apply_speaker_name_callback=apply_speaker_name_callback,
+        reassign_speaker_callback=reassign_speaker_callback,
+        speaker_codes_callback=speaker_codes_callback,
     )
     qtbot.addWidget(dialog)
     return dialog
@@ -531,6 +535,9 @@ class TestSpeakerIdentityResolution:
         dialog._speaker_name_combo.setEditText("BOY_A")
         assert dialog._apply_speaker_name_button.isEnabled() is False
 
+        dialog._speaker_name_combo.setEditText("Ashei / Telma")
+        assert dialog._apply_speaker_name_button.isEnabled() is False
+
         dialog._speaker_name_combo.setEditText("Ashy")
         assert dialog._apply_speaker_name_button.isEnabled() is True
 
@@ -644,3 +651,25 @@ class TestSpeakerIdentityResolution:
 
         # Direct click invocation must be no-op and not crash
         dialog._on_apply_speaker_name_clicked()
+
+    def test_confirmed_character_can_be_reassigned_by_its_game_code(self, qtbot):
+        ashei = GlossaryEntry("ASHEI", "", section="Characters")
+        telma = GlossaryEntry("TELMA", "", section="Characters")
+        reassign = MagicMock()
+        dialog = _dialog(
+            qtbot,
+            [ashei, telma],
+            reassign_speaker_callback=reassign,
+            speaker_codes_callback=lambda name: ["Ash"] if name == "ASHEI" else [],
+        )
+        dialog.focus_term("ASHEI")
+
+        assert dialog._speaker_identity_pane.isVisibleTo(dialog) is True
+        assert "Ash" in dialog._speaker_identity_title.text()
+        assert dialog._apply_speaker_name_button.text() == "Reassign speaker"
+        assert dialog._apply_speaker_name_button.isEnabled() is False
+
+        dialog._speaker_name_combo.setEditText("TELMA")
+        assert dialog._apply_speaker_name_button.isEnabled() is True
+        dialog._apply_speaker_name_button.click()
+        reassign.assert_called_once_with("Ash", "ASHEI", "TELMA")
