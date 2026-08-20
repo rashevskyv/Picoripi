@@ -70,3 +70,45 @@ def test_timeline_parser_requires_exact_dialogue_coverage():
 
     with pytest.raises(ValueError, match="cover dialogue IDs exactly"):
         parse_timeline_response(valid, {"d00001", "d00002", "d00003"})
+
+
+def _event(title, ids, **extra):
+    return {"event_title": title, "summary": "", "location": "",
+            "participants": [], "dialogue_ids": ids, **extra}
+
+
+def test_a_line_claimed_twice_stays_with_the_first_event():
+    """The model repeats a line across neighbouring events; that is a slip.
+
+    Failing the whole pass over it threw away an analysis of thousands of lines
+    and reported "missing=[], unknown=[]", which named nothing at all.
+    """
+    payload = json.dumps({"events": [
+        _event("Arrival", ["d00001", "d00002"]),
+        _event("Warning", ["d00002", "d00003"]),
+    ]})
+
+    events = parse_timeline_response(payload, {"d00001", "d00002", "d00003"})
+
+    assert [e["dialogue_ids"] for e in events] == [["d00001", "d00002"], ["d00003"]]
+
+
+def test_an_event_whose_lines_all_belong_earlier_is_dropped():
+    payload = json.dumps({"events": [
+        _event("Arrival", ["d00001", "d00002"]),
+        _event("Repeat", ["d00001"]),
+    ]})
+
+    events = parse_timeline_response(payload, {"d00001", "d00002"})
+
+    assert [e["event_title"] for e in events] == ["Arrival"]
+
+
+def test_a_repeat_never_hides_a_line_the_ai_missed():
+    """Deduplicating must not turn incomplete coverage into a silent pass."""
+    payload = json.dumps({"events": [
+        _event("Arrival", ["d00001", "d00001"]),
+    ]})
+
+    with pytest.raises(ValueError, match="missing=\\['d00002'\\]"):
+        parse_timeline_response(payload, {"d00001", "d00002"})

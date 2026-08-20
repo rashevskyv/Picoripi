@@ -161,7 +161,8 @@ def parse_timeline_response(text: str, expected_ids: set[str]) -> list[dict]:
     events = payload.get("events") if isinstance(payload, dict) else None
     if not isinstance(events, list) or not events:
         raise ValueError("AI returned no timeline events")
-    seen = []
+    claimed: set[str] = set()
+    duplicates: list[str] = []
     normalized = []
     for raw in events:
         if not isinstance(raw, dict):
@@ -169,10 +170,25 @@ def parse_timeline_response(text: str, expected_ids: set[str]) -> list[dict]:
         dialogue_ids = [str(value) for value in raw.get("dialogue_ids") or []]
         if not dialogue_ids:
             raise ValueError("A timeline event contains no dialogue IDs")
-        seen.extend(dialogue_ids)
         title = str(raw.get("event_title") or "").strip()
         if not title:
             raise ValueError("A timeline event has no title")
+
+        # A line belongs to one event, but the model does repeat one across two
+        # neighbouring events. That is a slip, not a wrong answer: every line is
+        # still covered, and the first event to claim it is the one that placed
+        # it in the story. Discarding an analysis of thousands of lines over it
+        # costs far more than dropping the later claim.
+        kept = []
+        for dialogue_id in dialogue_ids:
+            if dialogue_id in claimed:
+                duplicates.append(dialogue_id)
+                continue
+            claimed.add(dialogue_id)
+            kept.append(dialogue_id)
+        if not kept:
+            continue  # every line here already belongs to an earlier event
+
         normalized.append({
             "event_title": title,
             "summary": str(raw.get("summary") or "").strip(),
@@ -182,12 +198,19 @@ def parse_timeline_response(text: str, expected_ids: set[str]) -> list[dict]:
                 if str(value).strip()
             ],
             "interactions": _normalize_interactions(raw.get("interactions")),
-            "dialogue_ids": dialogue_ids,
+            "dialogue_ids": kept,
         })
-    if len(seen) != len(set(seen)) or set(seen) != expected_ids:
-        missing = sorted(expected_ids - set(seen))
-        unknown = sorted(set(seen) - expected_ids)
-        raise ValueError(f"AI did not cover dialogue IDs exactly (missing={missing}, unknown={unknown})")
+    if duplicates:
+        log_error(
+            f"Timeline analysis: {len(duplicates)} dialogue ID(s) claimed by more "
+            f"than one event, kept in the first: {sorted(set(duplicates))[:10]}"
+        )
+    if claimed != expected_ids:
+        missing = sorted(expected_ids - claimed)
+        unknown = sorted(claimed - expected_ids)
+        raise ValueError(
+            f"AI did not cover dialogue IDs exactly (missing={missing}, unknown={unknown})"
+        )
     return normalized
 
 
