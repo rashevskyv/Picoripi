@@ -390,21 +390,11 @@ class AIWorker(QObject):
                 self.total_chunks_calculated.emit(len(chunks), len(chunks_to_skip))
                 session_state = self.task_details.get('session_state')
                 provider_override = self.task_details.get('provider_settings_override', {})
+                workers = int(self.task_details.get('workers', 1) or 1)
+                attempt = self.task_details.get('attempt', 1)
 
-                for i, chunk in enumerate(chunks):
-                    if i in chunks_to_skip:
-                        log_debug(f"AIWorker: Skipping already translated chunk {i + 1}/{len(chunks)}.")
-                        continue
-
-                    if self.is_cancelled:
-                        log_debug("AIWorker: Translation cancelled by user before processing chunk.")
-                        self.translation_cancelled.emit()
-                        return
-
-                    # We no longer handle retries internally here. 
-                    # We emit an error and let the AILifecycleManager handle the interactive retry dialog.
-                    attempt = self.task_details.get('attempt', 1)
-
+                def _build_chunk_request(i: int):
+                    chunk = chunks[i]
                     composer_args_for_chunk = self.task_details['composer_args'].copy()
                     composer_args_for_chunk['source_items'] = chunk
                     composer_args_for_chunk['all_source_items'] = source_items
@@ -424,6 +414,123 @@ class AIWorker(QObject):
                                 rebuilt += '\n'
                             rebuilt += json_section
                             user = rebuilt
+                    return system, user
+
+                def _validate_chunk_result(i: int, chunk: list, cleaned_text: str):
+                    parsed_response = json.loads(cleaned_text)
+                    translated_items = parsed_response.get('translated_strings', [])
+
+                    if len(translated_items) != len(chunk):
+                        raise ValueError(f"Line count mismatch in chunk {i+1}. Expected {len(chunk)}, got {len(translated_items)}.")
+
+                    rules = getattr(self.mw, 'current_game_rules', None) if self.mw else None
+                    for result_item, source_item in zip(translated_items, chunk):
+                        if not isinstance(result_item, dict):
+                            raise ValueError("A translated item is not a JSON object")
+                        translated_value = next(
+                            (
+                                str(result_item[key])
+                                for key in ("translation", "text", "translated_text")
+                                if key in result_item and result_item[key] is not None
+                            ),
+                            "",
+                        )
+                        source_value = (
+                            source_item.get('text', '')
+                            if isinstance(source_item, dict) else str(source_item)
+                        )
+                        source_id = (
+                            source_item.get('id')
+                            if isinstance(source_item, dict) else None
+                        )
+                        real_block_idx = self.task_details.get('block_idx')
+                        real_string_idx = source_id
+                        temp_id_map = self.task_details.get('temp_id_map') or {}
+                        if source_id in temp_id_map:
+                            real_block_idx, real_string_idx = temp_id_map[source_id]
+                        elif str(source_id) in temp_id_map:
+                            real_block_idx, real_string_idx = temp_id_map[str(source_id)]
+                        validate_translation_layout(
+                            editor_text_for_layout(source_value, rules),
+                            translated_value,
+                            resolve_lines_per_window(
+                                self.mw,
+                                real_block_idx,
+                                real_string_idx,
+                            ),
+                            allow_line_expansion=True,
+                        )
+                    return parsed_response
+
+                # Parallel path when workers > 1 and stateless
+                if workers > 1 and not session_state:
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+                    indices = [idx for idx in range(len(chunks)) if idx not in chunks_to_skip]
+
+                    def _worker_call(idx: int):
+                        if self.is_cancelled:
+                            return idx, None, None
+                        chunk = chunks[idx]
+                        system, user = _build_chunk_request(idx)
+                        messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+                        if attempt > 1 and isinstance(messages, list):
+                            for msg in messages:
+                                if isinstance(msg, dict) and msg.get('role') == 'system':
+                                    reminder = (
+                                        "\n\nIMPORTANT REMINDER FOR RETRY:\n"
+                                        "Your previous response caused a JSON parsing error (likely due to illegal trailing commas before closing braces/brackets, or unescaped characters).\n"
+                                        "Please ensure your response is 100% valid, strictly compliant JSON. Do NOT include any trailing commas (e.g., no comma after the last field in an object or array, such as: `\"translation\": \"text\", }` which is illegal in JSON). Return ONLY the clean JSON block."
+                                    )
+                                    msg['content'] = msg.get('content', '') + reminder
+                                    break
+                        self._log_ai_traffic(messages)
+                        response = self.provider.translate(messages, session=None, settings_override=provider_override)
+                        if self.is_cancelled:
+                            return idx, None, None
+                        self._log_ai_traffic(messages, response_text=response.text)
+                        cleaned = self._clean_json_response(response.text)
+                        _validate_chunk_result(idx, chunk, cleaned)
+                        return idx, cleaned, response.text
+
+                    completed_count = len(chunks_to_skip)
+                    pool_size = min(workers, max(1, len(indices)))
+                    with ThreadPoolExecutor(max_workers=pool_size) as pool:
+                        future_to_idx = {pool.submit(_worker_call, idx): idx for idx in indices}
+                        for future in as_completed(future_to_idx):
+                            if self.is_cancelled:
+                                break
+                            idx = future_to_idx[future]
+                            try:
+                                chunk_idx, cleaned_text, raw_text = future.result()
+                                if self.is_cancelled or chunk_idx is None:
+                                    break
+                                completed_count += 1
+                                self.progress_updated.emit(completed_count)
+                                self.step_updated.emit(1, f"Translating chunk {completed_count}/{len(chunks)} (Attempt {attempt})", AIStatusDialog.STATUS_IN_PROGRESS)
+                                task_details_for_chunk = self.task_details.copy()
+                                self.chunk_translated.emit(chunk_idx, cleaned_text, task_details_for_chunk)
+                            except (TranslationProviderError, json.JSONDecodeError, ValueError, Exception) as e:
+                                self._log_ai_traffic([{"role": "user", "content": f"Chunk {idx}"}], error=str(e))
+                                resp_t = getattr(e, 'response_text', '')
+                                err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, f"chunk {idx}")
+                                self.error.emit(err_msg, updated_details)
+                                return
+                    if self.is_cancelled:
+                        self.translation_cancelled.emit()
+                    return
+
+                # Sequential path when workers == 1 or session_state is present
+                for i, chunk in enumerate(chunks):
+                    if i in chunks_to_skip:
+                        log_debug(f"AIWorker: Skipping already translated chunk {i + 1}/{len(chunks)}.")
+                        continue
+
+                    if self.is_cancelled:
+                        log_debug("AIWorker: Translation cancelled by user before processing chunk.")
+                        self.translation_cancelled.emit()
+                        return
+
+                    system, user = _build_chunk_request(i)
 
                     session_payload = None
                     if session_state:
@@ -436,10 +543,7 @@ class AIWorker(QObject):
                     detail_parts = []
                     if chunk:
                         first_item = chunk[0]
-                        if isinstance(first_item, dict):
-                            item_id = first_item.get('id', 0)
-                        else:
-                            item_id = 0
+                        item_id = first_item.get('id', 0) if isinstance(first_item, dict) else 0
                             
                         bmg_id = f"{block_label}_Str_{item_id}"
                         script_line = None
@@ -494,62 +598,17 @@ class AIWorker(QObject):
 
                         self._log_ai_traffic(messages, response_text=response.text)
                         cleaned_text = self._clean_json_response(response.text)
-                        parsed_response = json.loads(cleaned_text)
-                        translated_items = parsed_response.get('translated_strings', [])
+                        _validate_chunk_result(i, chunk, cleaned_text)
 
-                        if len(translated_items) == len(chunk):
-                            rules = getattr(self.mw, 'current_game_rules', None) if self.mw else None
-                            for result_item, source_item in zip(translated_items, chunk):
-                                if not isinstance(result_item, dict):
-                                    raise ValueError("A translated item is not a JSON object")
-                                translated_value = next(
-                                    (
-                                        str(result_item[key])
-                                        for key in ("translation", "text", "translated_text")
-                                        if key in result_item and result_item[key] is not None
-                                    ),
-                                    "",
-                                )
-                                source_value = (
-                                    source_item.get('text', '')
-                                    if isinstance(source_item, dict) else str(source_item)
-                                )
-                                source_id = (
-                                    source_item.get('id')
-                                    if isinstance(source_item, dict) else None
-                                )
-                                real_block_idx = self.task_details.get('block_idx')
-                                real_string_idx = source_id
-                                temp_id_map = self.task_details.get('temp_id_map') or {}
-                                if source_id in temp_id_map:
-                                    real_block_idx, real_string_idx = temp_id_map[source_id]
-                                elif str(source_id) in temp_id_map:
-                                    real_block_idx, real_string_idx = temp_id_map[str(source_id)]
-                                validate_translation_layout(
-                                    editor_text_for_layout(source_value, rules),
-                                    translated_value,
-                                    resolve_lines_per_window(
-                                        self.mw,
-                                        real_block_idx,
-                                        real_string_idx,
-                                    ),
-                                    allow_line_expansion=True,
-                                )
-                            if session_state and not session_state.bootstrapped:
-                                log_debug(f"AIWorker: First chunk (index {i}) of block translation successful. Marking session as bootstrapped.")
-                                session_state.bootstrapped = True
+                        if session_state and not session_state.bootstrapped:
+                            log_debug(f"AIWorker: First chunk (index {i}) of block translation successful. Marking session as bootstrapped.")
+                            session_state.bootstrapped = True
 
-                            task_details_for_chunk = self.task_details.copy()
-                            if session_state:
-                                task_details_for_chunk['session_state'] = session_state
-                                task_details_for_chunk['session_user_message'] = user
-                            self.chunk_translated.emit(i, cleaned_text, task_details_for_chunk)
-                        else:
-                            # Line count mismatch is also an error that should trigger the debug dialog
-                            error_msg = f"Line count mismatch in chunk {i+1}. Expected {len(chunk)}, got {len(translated_items)}."
-                            self.task_details['raw_response_text'] = response.text
-                            self.error.emit(error_msg, self.task_details)
-                            return
+                        task_details_for_chunk = self.task_details.copy()
+                        if session_state:
+                            task_details_for_chunk['session_state'] = session_state
+                            task_details_for_chunk['session_user_message'] = user
+                        self.chunk_translated.emit(i, cleaned_text, task_details_for_chunk)
 
                     except (TranslationProviderError, json.JSONDecodeError, ValueError) as e:
                         self._log_ai_traffic(messages, error=str(e))

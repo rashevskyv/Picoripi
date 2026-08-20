@@ -51,6 +51,17 @@ class SettingsAiMixin:
 
         provider_form.addRow("Preset:", preset_layout)
 
+        self.translation_workers_spin = QSpinBox(self)
+        self.translation_workers_spin.setRange(1, 16)
+        self.translation_workers_spin.setValue(6)
+        self.translation_workers_spin.setToolTip(
+            "<b>Parallel Requests</b><br>"
+            "Number of concurrent translation requests sent during batch/chunked translation.<br>"
+            "Proxies with multi-account rotation (e.g. Gemini Web2API) process requests in parallel.<br>"
+            "Set to 1 for standard sequential translation."
+        )
+        provider_form.addRow("Parallel Requests:", self.translation_workers_spin)
+
         layout.addLayout(provider_form)
 
         self.ai_provider_pages = QStackedWidget(self)
@@ -69,10 +80,10 @@ class SettingsAiMixin:
         self.openai_api_key_env_edit.setPlaceholderText("OPENAI_API_KEY")
         openai_layout.addRow("API Key Env Var:", self.openai_api_key_env_edit)
         self.openai_endpoint_edit = QLineEdit(self)
-        self.openai_endpoint_edit.setPlaceholderText("https://api.openai.com/v1 or http://127.0.0.1:8000")
+        self.openai_endpoint_edit.setPlaceholderText("https://api.openai.com/v1 or http://127.0.0.1:8081/v1")
         openai_layout.addRow("Endpoint:", self.openai_endpoint_edit)
         self.openai_model_edit = QLineEdit(self)
-        self.openai_model_edit.setPlaceholderText("gpt-4o-mini")
+        self.openai_model_edit.setPlaceholderText("gpt-4o-mini or gemini-3.7-flash")
         openai_layout.addRow("Model:", self.openai_model_edit)
         self.openai_temperature_spin = QDoubleSpinBox(self)
         self.openai_temperature_spin.setRange(0.0, 2.0); self.openai_temperature_spin.setDecimals(2); self.openai_temperature_spin.setSingleStep(0.05); self.openai_temperature_spin.setValue(0.0)
@@ -97,10 +108,10 @@ class SettingsAiMixin:
         gemini_group = QGroupBox("Google Gemini API", self.ai_translation_tab)
         gemini_layout = QFormLayout(gemini_group)
         self.gemini_base_url_edit = QLineEdit(self)
-        self.gemini_base_url_edit.setPlaceholderText("Leave empty for native API")
+        self.gemini_base_url_edit.setPlaceholderText("http://127.0.0.1:8081/v1 (or leave empty for Google API)")
         gemini_layout.addRow("Base URL (optional):", self.gemini_base_url_edit)
-        self.gemini_api_key_edit = QLineEdit(self); self.gemini_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password); self.gemini_api_key_edit.setPlaceholderText("Gemini API Key"); gemini_layout.addRow("API Key:", self.gemini_api_key_edit)
-        self.gemini_model_edit = QLineEdit(self); self.gemini_model_edit.setPlaceholderText("gemini-1.5-flash-latest"); gemini_layout.addRow("Model:", self.gemini_model_edit)
+        self.gemini_api_key_edit = QLineEdit(self); self.gemini_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password); self.gemini_api_key_edit.setPlaceholderText("Gemini API Key (optional for local proxy)"); gemini_layout.addRow("API Key:", self.gemini_api_key_edit)
+        self.gemini_model_edit = QLineEdit(self); self.gemini_model_edit.setPlaceholderText("gemini-3.7-flash"); gemini_layout.addRow("Model:", self.gemini_model_edit)
         self.ai_provider_pages.addWidget(gemini_group)
 
         perplexity_group = QGroupBox("Perplexity API", self.ai_translation_tab)
@@ -160,6 +171,25 @@ class SettingsAiMixin:
         self.glossary_chunk_size_spin.setSingleStep(100)
         self.glossary_chunk_size_spin.setSuffix(" chars")
         layout.addRow("Text Chunk Size:", self.glossary_chunk_size_spin)
+
+        self.glossary_workers_spin = QSpinBox(self)
+        self.glossary_workers_spin.setRange(1, 16)
+        self.glossary_workers_spin.setToolTip(
+            "How many glossary requests run at once. A proxy that rotates several "
+            "accounts serves them in parallel; going wider than the number of "
+            "accounts only queues the extra threads on an account's cooldown. "
+            "1 means the old one-at-a-time build."
+        )
+        layout.addRow("Parallel Requests:", self.glossary_workers_spin)
+
+        self.glossary_retry_delay_spin = QSpinBox(self)
+        self.glossary_retry_delay_spin.setRange(0, 600)
+        self.glossary_retry_delay_spin.setSuffix(" s")
+        self.glossary_retry_delay_spin.setToolTip(
+            "How long to wait before retrying the entries that failed. When the "
+            "server sends a Retry-After, that wins over this."
+        )
+        layout.addRow("Retry Delay:", self.glossary_retry_delay_spin)
 
         self.glossary_use_translation_key_checkbox.stateChanged.connect(self._on_glossary_use_translation_key_changed)
         self.glossary_provider_combo.currentIndexChanged.connect(self._on_glossary_provider_changed)

@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import pyqtSignal, Qt, QThread
 from utils.logging_utils import log_debug
+from core.glossary_build.parallel import DEFAULT_RETRY_DELAY, DEFAULT_WORKERS
 from core.translation.config import build_default_translation_config, merge_translation_config
 import pycountry
 
@@ -390,6 +391,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
         self.glossary_model_edit.setText(glossary_ai_cfg.get('model', 'gpt-4o'))
         self.glossary_chunk_size_spin.setValue(glossary_ai_cfg.get('chunk_size', 8000))
+        self.glossary_workers_spin.setValue(int(glossary_ai_cfg.get('workers', DEFAULT_WORKERS) or DEFAULT_WORKERS))
+        self.glossary_retry_delay_spin.setValue(int(glossary_ai_cfg.get('retry_delay', DEFAULT_RETRY_DELAY)))
         
         # Load Spellchecker settings
         self.spellcheck_enabled_checkbox.setChecked(getattr(self.mw, 'spellchecker_enabled', False))
@@ -479,7 +482,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'api_key': manual_key or '',
             'use_translation_api_key': use_translation_key,
             'model': self.glossary_model_edit.text().strip(),
-            'chunk_size': self.glossary_chunk_size_spin.value()
+            'chunk_size': self.glossary_chunk_size_spin.value(),
+            'workers': self.glossary_workers_spin.value(),
+            'retry_delay': self.glossary_retry_delay_spin.value()
         }
 
         is_project_active = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project is not None
@@ -640,6 +645,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.translation_provider_combo.blockSignals(False)
         self.on_provider_changed(self.translation_provider_combo.currentIndex())
 
+        if hasattr(self, 'translation_workers_spin'):
+            self.translation_workers_spin.setValue(int(self.translation_config_snapshot.get('workers', 6) or 6))
+
         providers_cfg = self.translation_config_snapshot.get('providers', {})
         
         openai_cfg = providers_cfg.get('openai', {})
@@ -701,6 +709,8 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         config = merge_translation_config(build_default_translation_config(), self.translation_config_snapshot)
         provider_key = self.translation_provider_combo.currentData() or 'disabled'
         config['provider'] = provider_key
+        if hasattr(self, 'translation_workers_spin'):
+            config['workers'] = self.translation_workers_spin.value()
         providers_cfg = config.setdefault('providers', {})
         
         openai_cfg = providers_cfg.setdefault('openai', {})

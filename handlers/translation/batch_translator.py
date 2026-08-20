@@ -270,6 +270,9 @@ class AIBatchTranslator(BaseTranslationHandler):
         
         block_idx = context.get('block_idx')
         task_type = context.get('type')
+        if 'workers' not in context:
+            cfg = getattr(self.mw, 'translation_config', {}) or {}
+            context['workers'] = int(cfg.get('workers', 6) or 6)
 
         if 'precomposed_prompt' in context:
             self.main_handler._run_ai_task(provider, context)

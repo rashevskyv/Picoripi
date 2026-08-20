@@ -334,7 +334,7 @@ def test_AIWorker_run_glossary_occurrence_batch_update_chunking(worker_deps):
         
     assert provider.translate.call_count == 2
     mock_success.assert_called_once()
-    
+
     # Verify aggregated payload has all 15 elements
     success_arg = mock_success.call_args[0][0]
     payload = json.loads(success_arg.text)
@@ -345,5 +345,52 @@ def test_AIWorker_run_glossary_occurrence_batch_update_chunking(worker_deps):
         assert occurrences[i]["translation"] == f"trans{i}"
 
 
+def test_AIWorker_run_translate_block_chunked_parallel(worker_deps):
+    provider, prompt_composer = worker_deps
+    source_items = [{"id": i, "text": f"Line {i}"} for i in range(25)]
 
+    prompt_composer.compose_batch_request.side_effect = lambda **kwargs: (
+        "sys",
+        json.dumps(kwargs.get("source_items", [])),
+        "fmt"
+    )
+
+    task_details = {
+        'type': 'translate_block_chunked',
+        'block_idx': 0,
+        'source_items': source_items,
+        'workers': 4,
+        'composer_args': {
+            'system_prompt': 'sys',
+            'block_idx': 0,
+            'mode_description': 'block 1'
+        }
+    }
+
+    worker = AIWorker(provider, prompt_composer, task_details)
+
+    def dynamic_translate(messages, session=None, settings_override=None):
+        import re
+        user_msg = next((m['content'] for m in messages if m.get('role') == 'user'), "")
+        ids = re.findall(r'"id":\s*(\d+)', user_msg)
+        if ids:
+            return ProviderResponse(text=json.dumps({
+                "translated_strings": [{"id": int(i), "translation": f"Переклад {i}"} for i in ids]
+            }))
+        return ProviderResponse(text=json.dumps({
+            "translated_strings": [{"translation": "Переклад"}]
+        }))
+
+    provider.translate.side_effect = dynamic_translate
+
+    chunk_signals = []
+    worker.chunk_translated.connect(lambda idx, text, ctx: chunk_signals.append((idx, text)))
+    error_signals = []
+    worker.error.connect(lambda msg, ctx: error_signals.append(msg))
+
+    worker.run()
+
+    assert not error_signals, f"Unexpected errors: {error_signals}"
+    assert len(chunk_signals) == 3
+    assert provider.translate.call_count == 3
 

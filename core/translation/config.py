@@ -1,4 +1,4 @@
-﻿
+
 from typing import Dict
 
 def merge_translation_config(base: Dict, custom: Dict) -> Dict:
@@ -23,6 +23,7 @@ def build_default_translation_config() -> dict:
     return {
         "provider": "disabled",
         "session_mode": "auto",
+        "workers": 6,
         "providers": {
             "openai": {
                 "api_key": "",
@@ -47,7 +48,7 @@ def build_default_translation_config() -> dict:
             "gemini": {
                 "api_key": "",
                 "api_key_env": "GEMINI_API_KEY",
-                "model": "gemini-1.5-flash-latest",
+                "model": "gemini-3.7-flash",
                 "temperature": 0.0,
                 "timeout": 120,
                 "base_url": "",

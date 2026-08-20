@@ -149,3 +149,42 @@ def test_openai_provider_cancel_active_stream_closes_response(mock_post):
     assert provider._active_stream_response is None
 
 
+def test_provider_endpoint_normalization():
+    from core.translation.providers import GeminiProvider
+
+    p_root = OpenAIProvider({"endpoint": "http://127.0.0.1:8081", "model": "gemini-3.7-flash"})
+    assert p_root._get_chat_endpoint() == "http://127.0.0.1:8081/v1/chat/completions"
+
+    p_v1 = OpenAIProvider({"endpoint": "http://127.0.0.1:8081/v1", "model": "gemini-3.7-flash"})
+    assert p_v1._get_chat_endpoint() == "http://127.0.0.1:8081/v1/chat/completions"
+
+    g_root = GeminiProvider({"base_url": "http://127.0.0.1:8081", "model": "gemini-3.7-flash"})
+    assert g_root._get_openai_compat_endpoint() == "http://127.0.0.1:8081/v1/chat/completions"
+
+    g_v1 = GeminiProvider({"base_url": "http://127.0.0.1:8081/v1", "model": "gemini-3.7-flash"})
+    assert g_v1._get_openai_compat_endpoint() == "http://127.0.0.1:8081/v1/chat/completions"
+
+
+@patch('core.translation.providers.requests.post')
+def test_gemini_provider_openai_compat_mode(mock_post):
+    from core.translation.providers import GeminiProvider
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {"content-type": "application/json"}
+    mock_resp.json.return_value = {
+        "id": "proxy-123",
+        "choices": [{"message": {"role": "assistant", "content": "Proxy translation"}}]
+    }
+    mock_post.return_value = mock_resp
+
+    provider = GeminiProvider({
+        "base_url": "http://127.0.0.1:8081",
+        "model": "gemini-3.7-flash",
+    })
+    res = provider.translate([{"role": "user", "content": "Hi"}])
+    assert res.text == "Proxy translation"
+    assert res.message_id == "proxy-123"
+    assert mock_post.call_args[0][0] == "http://127.0.0.1:8081/v1/chat/completions"
+    assert mock_post.call_args[1]["headers"]["Authorization"] == "Bearer dummy"
+
+
