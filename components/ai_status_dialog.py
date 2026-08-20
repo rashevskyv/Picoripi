@@ -1,44 +1,15 @@
 # components/ai_status_dialog.py ---
-import os
-import ctypes
 from typing import Optional
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QWidget, QProgressBar, QDialogButtonBox, QCheckBox
 from PyQt6.QtGui import QMovie, QFont, QPalette
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QEvent
-from utils.logging_utils import log_info, log_error
+from utils.power_utils import prevent_sleep, restore_sleep, put_to_sleep
+from core.auto_sleep_manager import AutoSleepManager
 
-def prevent_sleep():
-    """Prevent sleep."""
-    if os.name == 'nt':
-        try:
-            # ES_CONTINUOUS = 0x80000000, ES_SYSTEM_REQUIRED = 0x00000001
-            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
-            log_info("System sleep prevention activated for AI operation.")
-        except Exception as e:
-            log_error(f"Failed to set sleep prevention: {e}")
-
-def restore_sleep():
-    """Restore sleep."""
-    if os.name == 'nt':
-        try:
-            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
-            log_info("System sleep prevention deactivated.")
-        except Exception as e:
-            log_error(f"Failed to restore sleep state: {e}")
-
-def put_to_sleep():
-    """Put to sleep."""
-    if os.name == 'nt':
-        try:
-            # SetSuspendState(False, True, False) -> sleep
-            ctypes.windll.powrprof.SetSuspendState(0, 1, 0)
-            log_info("System suspended successfully after AI operation.")
-        except Exception as e:
-            log_error(f"Failed to suspend system: {e}")
-            os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
+__all__ = ["AIStatusDialog", "prevent_sleep", "restore_sleep", "put_to_sleep"]
 
 class AIStatusDialog(QDialog):
-    """Dialog class for a i status."""
+    """Dialog class for AI operation status."""
     cancelled = pyqtSignal()
     STATUS_PENDING = 0
     STATUS_IN_PROGRESS = 1
@@ -137,7 +108,7 @@ class AIStatusDialog(QDialog):
         self.prevent_sleep_checkbox.toggled.connect(self._handle_prevent_sleep_toggled)
         
         self.sleep_after_checkbox = QCheckBox("Put computer to sleep when finished", self)
-        self.sleep_after_checkbox.setToolTip("Suspend/Sleep the computer automatically after the AI task completes.")
+        self.sleep_after_checkbox.setToolTip("Suspend/Sleep the computer automatically after the AI task completes if idle.")
         self.sleep_after_checkbox.setChecked(False)
         self.sleep_after_checkbox.toggled.connect(self._handle_sleep_after_toggled)
         
@@ -158,6 +129,7 @@ class AIStatusDialog(QDialog):
 
     def reject(self):
         """Reject."""
+        AutoSleepManager.get_instance().cancel_sleep("AI dialog rejected/cancelled")
         if getattr(self, 'is_running', False):
             self.user_cancelled = True
             self.cancelled.emit()
@@ -171,6 +143,7 @@ class AIStatusDialog(QDialog):
 
     def closeEvent(self, event: QEvent):
         """Closeevent."""
+        AutoSleepManager.get_instance().cancel_sleep("AI dialog closed")
         if getattr(self, 'is_running', False):
             event.ignore()
             self.reject()
@@ -245,12 +218,34 @@ class AIStatusDialog(QDialog):
         
         restore_sleep()
         
-        # Show structured popup notification to the user (suppressed during unit tests)
+        # 1. Schedule sleep evaluation FIRST before showing dialogs/popups
+        if self.sleep_after_checkbox.isChecked() and not getattr(self, 'user_cancelled', False) and success:
+            delay = 300
+            p = self.parentWidget()
+            while p:
+                sm = getattr(p, 'settings_manager', None)
+                if sm:
+                    val = sm.get("auto_sleep_idle_delay_seconds", 300)
+                    if isinstance(val, int) and val > 0:
+                        delay = val
+                    break
+                p = getattr(p, 'parentWidget', lambda: None)()
+            AutoSleepManager.get_instance().schedule_sleep(
+                task_name=self.operation_title,
+                delay_seconds=delay,
+                parent_widget=self.parentWidget() or self
+            )
+        else:
+            AutoSleepManager.get_instance().cancel_sleep(reason="AI operation finished without sleep condition")
+
+        # 2. Show structured popup notification to the user (suppressed during unit tests)
         import sys
         if 'pytest' not in sys.modules and show_popup:
             from PyQt6.QtWidgets import QMessageBox, QMainWindow, QApplication
             if getattr(self, 'user_cancelled', False):
-                QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} was cancelled.")
+                msg_box = QMessageBox(QMessageBox.Icon.Information, self.operation_title, f"{self.operation_title} was cancelled.", parent=self.parentWidget() or self)
+                msg_box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+                msg_box.show()
             elif success:
                 total_retranslated = 0
                 if previous_translations:
@@ -304,11 +299,9 @@ class AIStatusDialog(QDialog):
                         dialog.destroyed.connect(lambda: setattr(mw, 'active_result_dialog', None) if mw else None)
                     dialog.show()
                 else:
-                    QMessageBox.information(self.parentWidget() or self, self.operation_title, f"{self.operation_title} finished.")
-
-        if self.sleep_after_checkbox.isChecked() and not getattr(self, 'user_cancelled', False) and success:
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(5000, put_to_sleep)
+                    msg_box = QMessageBox(QMessageBox.Icon.Information, self.operation_title, f"{self.operation_title} finished.", parent=self.parentWidget() or self)
+                    msg_box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+                    msg_box.show()
 
     def _handle_prevent_sleep_toggled(self, checked: bool):
         """Internal helper to handle prevent sleep toggled."""
@@ -379,4 +372,3 @@ class AIStatusDialog(QDialog):
         label.setFont(font)
         label.setPalette(palette)
         label.setText(f"{prefix} {text}")
-

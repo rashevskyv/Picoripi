@@ -31,6 +31,7 @@ def mock_mw():
     mw.warnings_enabled = True
     mw.glossary_enabled = True
     mw.show_archive_size_warnings = True
+    mw.auto_sleep_idle_delay_seconds = 300
     mw.show_force_alias_warning = True
     mw.last_browse_dir = "C:/"
     mw.enable_console_logging = True
@@ -206,3 +207,20 @@ def test_GlobalSettings_saves_and_loads_script_markup_studio_geometry(mock_mw, t
     s.load(d)
     assert d["script_markup_studio_geometry"] == geom
     assert mock_mw.script_markup_studio_geometry == geom
+
+
+def test_GlobalSettings_saves_and_loads_auto_sleep_idle_delay_seconds(mock_mw, tmp_path):
+    f = tmp_path / "settings.json"
+    s = GlobalSettings(mock_mw, f)
+
+    mock_mw.auto_sleep_idle_delay_seconds = 600
+    s.save({})
+
+    saved = json.loads(f.read_text())
+    assert saved["auto_sleep_idle_delay_seconds"] == 600
+
+    mock_mw.auto_sleep_idle_delay_seconds = 300
+    d = {}
+    s.load(d)
+    assert d["auto_sleep_idle_delay_seconds"] == 600
+    assert mock_mw.auto_sleep_idle_delay_seconds == 600

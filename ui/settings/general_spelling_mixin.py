@@ -55,6 +55,10 @@ class SettingsGeneralSpellingMixin:
         self.show_archive_size_warnings_checkbox = QCheckBox("Show archive size warnings", self)
         layout.addRow(self.show_archive_size_warnings_checkbox)
 
+        self.auto_sleep_idle_delay_spinbox = LabeledSpinBox("Auto-Sleep Idle Delay (minutes):", 1, 60, 5, parent=self)
+        self.auto_sleep_idle_delay_spinbox.setToolTip("Duration of continuous user inactivity required before putting computer to sleep after task completion.")
+        layout.addRow(self.auto_sleep_idle_delay_spinbox)
+
         self.plugin_combo.activated.connect(self.on_plugin_changed)
         self.theme_combo.activated.connect(self.on_theme_changed)
 
@@ -89,6 +93,11 @@ class SettingsGeneralSpellingMixin:
         layout.addRow("Dictionary Language:", self.spellcheck_language_combo)
         
         manage_button = QPushButton("Manage Dictionaries...", self)
+        manage_button.setToolTip(
+            "<b>Manage dictionaries</b><br>"
+            "Click — download or remove spellchecker dictionaries, and review the "
+            "words you added via Spellcheck → Add to Dictionary."
+        )
         manage_button.clicked.connect(self._open_dictionary_manager)
         layout.addRow(manage_button)
         

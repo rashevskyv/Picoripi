@@ -23,11 +23,12 @@ from core.mempalace_worker import (
 from utils.logging_utils import log_error
 
 # Import decomposed elements
-from ui.mempalace.mempalace_sleep import prevent_sleep, restore_sleep, put_to_sleep
+from ui.mempalace.mempalace_sleep import prevent_sleep, restore_sleep
 from ui.mempalace.mempalace_ui import (
     MemePalaceBuilderUiMixin,
     SECONDARY_BUTTON_STYLE,
     WORKFLOW_BUTTON_STYLE,
+    set_workflow_enabled,
 )
 from ui.mempalace.mempalace_pipeline import MemePalacePipelineMixin
 
@@ -229,13 +230,26 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         else:
             QMessageBox.warning(self, "Characters", message)
 
-    def _finish_and_maybe_sleep(self):
+    def _finish_and_maybe_sleep(self, success: bool = True):
         """Internal helper to finish and maybe sleep."""
         restore_sleep()
-        if self.sleep_after_checkbox.isChecked() and not getattr(self, "user_cancelled", False):
-            self.append_log("[System] All tasks completed! Suspending system in 5 seconds...")
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(5000, put_to_sleep)
+        if self.sleep_after_checkbox.isChecked() and not getattr(self, "user_cancelled", False) and success:
+            self.append_log("[System] All tasks completed! Idle sleep countdown scheduled...")
+            delay = 300
+            sm = getattr(self.mw, 'settings_manager', None)
+            if sm:
+                val = sm.get("auto_sleep_idle_delay_seconds", 300)
+                if isinstance(val, int) and val > 0:
+                    delay = val
+            from core.auto_sleep_manager import AutoSleepManager
+            AutoSleepManager.get_instance().schedule_sleep(
+                task_name="MemePalace Pipeline",
+                delay_seconds=delay,
+                parent_widget=self
+            )
+        else:
+            from core.auto_sleep_manager import AutoSleepManager
+            AutoSleepManager.get_instance().cancel_sleep(reason="MemePalace pipeline finished without sleep condition")
 
     def _handle_prevent_sleep_toggled(self, checked: bool):
         """Internal helper to handle prevent sleep toggled."""
@@ -251,6 +265,9 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
     def _handle_sleep_after_toggled(self, checked: bool):
         """Internal helper to handle sleep after toggled."""
         self.save_builder_settings()
+        if not checked:
+            from core.auto_sleep_manager import AutoSleepManager
+            AutoSleepManager.get_instance().cancel_sleep(reason="Sleep after finish unchecked")
         if self.worker and self.worker.isRunning():
             if checked:
                 self.append_log("[System] Scheduled computer sleep upon task completion.")
@@ -473,20 +490,40 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             imported_version=self.imported_hierarchy_project_version,
         )
 
+    def _dialogue_search_has_results(self) -> bool:
+        """Whether step 1 has linked any game text to the script yet."""
+        if self.story_document_id is None:
+            return False
+        try:
+            return bool(
+                self.client.get_dialogue_mapping_state(self.story_document_id).has_results
+            )
+        except Exception:
+            return False
+
     def _refresh_wizard_state(self) -> None:
         if not hasattr(self, "workflow_tabs"):
             return
         source_ready = self._source_is_ready()
         self.workflow_tabs.setTabEnabled(1, source_ready)
         self.workflow_tabs.setTabEnabled(2, False)
-        self.source_next_btn.setEnabled(source_ready)
+        set_workflow_enabled(self.source_next_btn, source_ready)
         self.mapping_next_btn.setEnabled(False)
-        self.analyze_story_timeline_btn.setEnabled(
-            bool(self.story_document_id) and not (self.worker and self.worker.isRunning())
-        )
-        self.analyze_character_voices_btn.setEnabled(
-            bool(self.story_document_id) and not (self.worker and self.worker.isRunning())
-        )
+
+        # Steps 2 and 3 both read the links step 1 saves, so neither is a thing
+        # the user can do until that search has produced some. Gating on the
+        # imported document alone let all three sit there blue and unordered.
+        busy = bool(self.worker and self.worker.isRunning())
+        context_found = self._dialogue_search_has_results()
+        set_workflow_enabled(self.analyze_story_timeline_btn, context_found and not busy)
+        set_workflow_enabled(self.analyze_character_voices_btn, context_found and not busy)
+        if not context_found:
+            self.story_timeline_status_label.setText(
+                "Run step 1 first: story events are attached to the lines it links."
+            )
+            self.character_profiles_status_label.setText(
+                "Run step 1 first: a character's voice is learned from their linked lines."
+            )
 
         if not self.wing_edit.text().strip():
             message = "Enter a Wing name to continue."
@@ -1704,6 +1741,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         """Handle builder close event by safely shutting down the worker thread."""
         self.should_sleep_after = False
         restore_sleep()
+        from core.auto_sleep_manager import AutoSleepManager
+        AutoSleepManager.get_instance().cancel_sleep(reason="MemePalace builder closed")
         if self.worker:
             from utils.thread_utils import safe_shutdown_thread
             self.append_log("Shutting down worker thread...")

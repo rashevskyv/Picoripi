@@ -49,6 +49,7 @@ class GlobalSettings:
             "warnings_enabled": True,
             "glossary_enabled": True,
             "show_archive_size_warnings": True,
+            "auto_sleep_idle_delay_seconds": 300,
             "last_browse_dir": str(Path.home()),
             "recent_projects": [],
             "translation_ai": {
@@ -62,7 +63,14 @@ class GlobalSettings:
                 "api_key": "",
                 "use_translation_api_key": False,
                 "model": "gpt-4o",
-                "chunk_size": 8000
+                "chunk_size": 8000,
+                # Parallel requests during a glossary build. Match this to the
+                # number of accounts the endpoint rotates through: past that,
+                # the extra threads only queue on some account's cooldown.
+                "workers": 6,
+                # Seconds to wait before retrying failed entries when the server
+                # named no Retry-After of its own.
+                "retry_delay": 60
             },
             "bfn_glyph_table_column_widths": [],
             "bookmarks": [],
@@ -213,6 +221,7 @@ class GlobalSettings:
             "warnings_enabled": getattr(self.mw, 'warnings_enabled', True),
             "glossary_enabled": getattr(self.mw, 'glossary_enabled', True),
             "show_archive_size_warnings": getattr(self.mw, 'show_archive_size_warnings', True),
+            "auto_sleep_idle_delay_seconds": getattr(self.mw, 'auto_sleep_idle_delay_seconds', 300) if isinstance(getattr(self.mw, 'auto_sleep_idle_delay_seconds', 300), int) else 300,
             "last_browse_dir": getattr(self.mw, 'last_browse_dir', str(Path.home())),
             "enable_console_logging": getattr(self.mw, 'enable_console_logging', True),
             "enable_file_logging": getattr(self.mw, 'enable_file_logging', True),

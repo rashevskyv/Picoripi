@@ -256,6 +256,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         self.warnings_enabled_checkbox.setChecked(getattr(self.mw, 'warnings_enabled', True))
         self.glossary_enabled_checkbox.setChecked(getattr(self.mw, 'glossary_enabled', True))
         self.show_archive_size_warnings_checkbox.setChecked(getattr(self.mw, 'show_archive_size_warnings', True))
+        self.auto_sleep_idle_delay_spinbox.setValue(max(1, getattr(self.mw, 'auto_sleep_idle_delay_seconds', 300) // 60))
         
         self.enable_console_logging_checkbox.setChecked(getattr(self.mw, 'enable_console_logging', True))
         self.enable_file_logging_checkbox.setChecked(getattr(self.mw, 'enable_file_logging', True))
@@ -500,6 +501,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             'warnings_enabled': self.warnings_enabled_checkbox.isChecked(),
             'glossary_enabled': self.glossary_enabled_checkbox.isChecked(),
             'show_archive_size_warnings': self.show_archive_size_warnings_checkbox.isChecked(),
+            'auto_sleep_idle_delay_seconds': self.auto_sleep_idle_delay_spinbox.value() * 60,
             'original_file_path': self.original_path_edit.text() if is_project_active else getattr(self.mw, 'original_file_path', ''),
             'edited_file_path': self.edited_path_edit.text() if is_project_active else getattr(self.mw, 'edited_file_path', ''),
             'is_directory_mode': self.dir_mode_checkbox.isChecked() if is_project_active else getattr(self.mw, 'is_directory_mode', False),
