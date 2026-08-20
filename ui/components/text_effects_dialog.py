@@ -155,6 +155,11 @@ class TextEffectsDialog(QDialog):
         self._color_preview.setFixedSize(32, 22)
         self._color_preview.setStyleSheet(f"background-color: {self._color_hex}; border: 1px solid #555; border-radius: 3px;")
         btn_color = QPushButton("Pick Color…")
+        btn_color.setToolTip(
+            "<b>Pick colour</b><br>"
+            "Click — choose the effect colour in the system colour picker. The "
+            "swatch on the left shows the current value."
+        )
         btn_color.setFixedWidth(100)
         btn_color.clicked.connect(self._pick_color)
         color_row.addWidget(self._color_preview)

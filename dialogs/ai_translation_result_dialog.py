@@ -79,6 +79,11 @@ class AITranslationResultDialog(QDialog):
         btn_layout.addStretch()
         
         self.close_btn = QPushButton("OK", self)
+        self.close_btn.setToolTip(
+            "<b>OK</b><br>"
+            "Click — close the result summary (Enter). The translations are already "
+            "applied; nothing here is undone by closing."
+        )
         self.close_btn.setDefault(True)
         self.close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(self.close_btn)

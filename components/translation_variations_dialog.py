@@ -138,10 +138,20 @@ class TranslationVariationsDialog(QDialog):
         
         if show_refresh:
             self._refresh_button = QPushButton("Refresh", self)
+            self._refresh_button.setToolTip(
+                "<b>Refresh</b><br>"
+                "Click — ask the AI for another set of variations. The list is "
+                "replaced, so apply one first if you want to keep it."
+            )
             self._refresh_button.clicked.connect(self._on_refresh)
             self._buttons.addButton(self._refresh_button, QDialogButtonBox.ButtonRole.ActionRole)
 
         self._apply_button = QPushButton("Apply", self)
+        self._apply_button.setToolTip(
+            "<b>Apply</b><br>"
+            "Click — put the selected variation into the editor and close.<br>"
+            "Undo it afterwards with Ctrl+Z if you change your mind."
+        )
         self._apply_button.clicked.connect(self._apply_current_selection)
         self._buttons.addButton(self._apply_button, QDialogButtonBox.ButtonRole.AcceptRole)
         self._buttons.addButton("Cancel", QDialogButtonBox.ButtonRole.RejectRole)

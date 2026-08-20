@@ -54,6 +54,14 @@ class SearchReviewDialog(BaseTextReviewDialog):
     def setup_left_panel(self, layout: QVBoxLayout):
         layout.addWidget(QLabel("Search Matches:"))
         self.matches_list = QListWidget()
+        self.matches_list.setToolTip(
+            "<b>Matches</b><br>"
+            "Click — review that match and jump the main editor to its string.<br>"
+            "Ctrl-click or Shift-click — build a multi-selection without jumping.<br>"
+            "Right-click — act on the whole selection: AI translate, spellcheck, "
+            "move, set font/width, autofix, revert, restore.<br>"
+            "Ctrl+right-click — the AI translate entry opens the prompt editor first."
+        )
         self.matches_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.matches_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.matches_list.customContextMenuRequested.connect(self.show_context_menu)
@@ -121,19 +129,37 @@ class SearchReviewDialog(BaseTextReviewDialog):
         button_layout = QVBoxLayout()
 
         self.find_button = QPushButton("Find")
+        self.find_button.setToolTip(
+            "<b>Find</b><br>"
+            "Click — search with the current term and options, and rebuild the "
+            "match list on the left."
+        )
         self.find_button.clicked.connect(self.perform_search)
         button_layout.addWidget(self.find_button)
 
         self.replace_button = QPushButton("Replace")
+        self.replace_button.setToolTip(
+            "<b>Replace</b><br>"
+            "Click — replace the current match only and move to the next one."
+        )
         self.replace_button.clicked.connect(self.replace_match)
         button_layout.addWidget(self.replace_button)
 
         self.replace_all_button = QPushButton("Replace All")
+        self.replace_all_button.setToolTip(
+            "<b>Replace all</b><br>"
+            "Click — replace every match in the list at once. Undo with Ctrl+Z in "
+            "the main editor, one string at a time."
+        )
         self.replace_all_button.clicked.connect(self.replace_all_matches)
         self.replace_all_button.setStyleSheet("background-color: #047857; color: white; font-weight: bold;")
         button_layout.addWidget(self.replace_all_button)
 
         self.skip_button = QPushButton("Skip")
+        self.skip_button.setToolTip(
+            "<b>Skip</b><br>"
+            "Click — leave this match untouched and move to the next one."
+        )
         self.skip_button.clicked.connect(self.skip_match)
         button_layout.addWidget(self.skip_button)
 

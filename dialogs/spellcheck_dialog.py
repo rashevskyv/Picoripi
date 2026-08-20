@@ -125,6 +125,12 @@ class SpellcheckDialog(BaseTextReviewDialog):
     def setup_left_panel(self, layout: QVBoxLayout):
         layout.addWidget(QLabel("Misspelled Words:"))
         self.misspelled_list = QListWidget()
+        self.misspelled_list.setToolTip(
+            "<b>Misspelled words</b><br>"
+            "Click — review that word and jump the main editor to its string.<br>"
+            "Ctrl-click or Shift-click — select entries without jumping.<br>"
+            "Double-click — jump to the string only."
+        )
         self.misspelled_list.itemClicked.connect(self.jump_to_item_from_list)
         self.misspelled_list.itemDoubleClicked.connect(self._on_item_double_click)
         layout.addWidget(self.misspelled_list)
@@ -135,24 +141,52 @@ class SpellcheckDialog(BaseTextReviewDialog):
 
         layout.addWidget(QLabel("Suggestions:"))
         self.suggestions_list = QListWidget()
+        self.suggestions_list.setToolTip(
+            "<b>Suggestions</b><br>"
+            "Select one and press Replace, or double-click it to replace straight "
+            "away."
+        )
         self.suggestions_list.itemDoubleClicked.connect(self.replace_with_suggestion)
         layout.addWidget(self.suggestions_list)
 
         # Action buttons
         button_layout = QVBoxLayout()
         self.ignore_button = QPushButton("Ignore")
+        self.ignore_button.setToolTip(
+            "<b>Ignore</b><br>"
+            "Click — leave this one occurrence as it is and move to the next.<br>"
+            "Nothing is remembered; the same word flagged elsewhere still comes up."
+        )
         self.ignore_button.clicked.connect(self.ignore_word)
         button_layout.addWidget(self.ignore_button)
 
         self.ignore_all_button = QPushButton("Ignore All")
+        self.ignore_all_button.setToolTip(
+            "<b>Ignore all</b><br>"
+            "Click — drop every remaining occurrence of this word from the review "
+            "list, for this run only.<br>"
+            "Use Add to Dictionary instead to remember it permanently."
+        )
         self.ignore_all_button.clicked.connect(self.ignore_all_word)
         button_layout.addWidget(self.ignore_all_button)
 
         self.replace_button = QPushButton("Replace")
+        self.replace_button.setToolTip(
+            "<b>Replace</b><br>"
+            "Click — swap the word for the suggestion selected on the right.<br>"
+            "Double-clicking a suggestion does the same in one step."
+        )
         self.replace_button.clicked.connect(self.replace_word)
         button_layout.addWidget(self.replace_button)
 
         self.add_to_dict_button = QPushButton("Add to Dictionary")
+        self.add_to_dict_button.setToolTip(
+            "<b>Add to dictionary</b><br>"
+            "Click — save the word to your custom dictionary, so it is never "
+            "flagged again in any project.<br>"
+            "Manage the saved words later in Settings → Spelling → Manage "
+            "Dictionary."
+        )
         self.add_to_dict_button.clicked.connect(self.add_to_dictionary)
         button_layout.addWidget(self.add_to_dict_button)
 

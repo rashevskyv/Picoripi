@@ -194,6 +194,12 @@ class AITranslationComparisonDialog(QDialog):
         btn_layout.addStretch()
         
         self.close_btn = QPushButton("OK", self)
+        self.close_btn.setToolTip(
+            "<b>OK</b><br>"
+            "Click — accept the table as shown and close (Enter).<br>"
+            "Double-click a cell to edit it, Ctrl+Enter to commit that edit.<br>"
+            "Ctrl+Z / Ctrl+Y undo and redo edits while this window is open."
+        )
         self.close_btn.setDefault(True)
         self.close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(self.close_btn)

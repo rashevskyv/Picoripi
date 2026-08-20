@@ -85,6 +85,10 @@ class TagAliasDialog(QDialog):
         self.ok_button.clicked.connect(self.accept)
         
         self.cancel_button = QPushButton("Cancel", self)
+        self.cancel_button.setToolTip(
+            "<b>Cancel</b><br>"
+            "Click — close without saving the alias (Esc)."
+        )
         self.cancel_button.clicked.connect(self.reject)
         
         buttons_layout.addWidget(self.ok_button)

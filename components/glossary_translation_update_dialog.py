@@ -122,6 +122,11 @@ class GlossaryTranslationUpdateDialog(QDialog):
         right_layout.addLayout(button_row)
 
         apply_button = QPushButton("Apply", right_panel)
+        apply_button.setToolTip(
+            "<b>Apply</b><br>"
+            "Click — accept the suggestion for this occurrence, mark it done and "
+            "move to the next one."
+        )
         apply_button.clicked.connect(lambda: self._apply_current(next_item=True))
         button_row.addWidget(apply_button)
 
@@ -131,6 +136,11 @@ class GlossaryTranslationUpdateDialog(QDialog):
         button_row.addWidget(self._apply_all_button)
 
         skip_button = QPushButton("Skip", right_panel)
+        skip_button.setToolTip(
+            "<b>Skip</b><br>"
+            "Click — leave this occurrence unchanged and move to the next one. It "
+            "stays in the list, unticked."
+        )
         skip_button.clicked.connect(self._skip_current)
         button_row.addWidget(skip_button)
 
@@ -143,10 +153,21 @@ class GlossaryTranslationUpdateDialog(QDialog):
         button_row.addStretch(1)
 
         self._ai_current_button = QPushButton("AI Suggest", right_panel)
+        self._ai_current_button.setToolTip(
+            "<b>AI suggest</b><br>"
+            "Click — ask the AI to rewrite this one occurrence around the new "
+            "glossary term, instead of a plain text swap.<br>"
+            "Nothing is applied until you press Apply."
+        )
         self._ai_current_button.clicked.connect(self._run_ai_for_current)
         button_row.addWidget(self._ai_current_button)
 
         self._ai_all_button = QPushButton("AI All", right_panel)
+        self._ai_all_button.setToolTip(
+            "<b>AI all</b><br>"
+            "Click — request AI suggestions for every remaining occurrence. Long "
+            "running and billed per request."
+        )
         self._ai_all_button.clicked.connect(self._run_ai_for_all)
         button_row.addWidget(self._ai_all_button)
 

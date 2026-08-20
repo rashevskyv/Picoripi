@@ -1494,8 +1494,13 @@ class ScriptMarkupStudioDialog(QDialog):
 
         self.hierarchy_split_text_cb = QCheckBox("Split paragraphs")
         self.hierarchy_split_text_cb.setToolTip(
-            "When Type is Text, create one Text block per non-empty paragraph in the "
-            "selection. Speakers can be assigned later from the tree."
+            "<b>Split paragraphs</b><br>"
+            "Only has an effect when Type is <b>Text</b>; disabled otherwise.<br><br>"
+            "<b>Checked</b> — Apply mark makes one Text block per paragraph in the "
+            "selection, splitting at blank lines and skipping empty ones. Use this "
+            "for a run of dialogue where each paragraph is its own line of speech; "
+            "assign the speakers afterwards from the tree.<br>"
+            "<b>Unchecked</b> — the whole selection becomes a single Text block."
         )
         hierarchy_layout.addWidget(self.hierarchy_split_text_cb)
 

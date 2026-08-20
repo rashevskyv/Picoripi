@@ -740,6 +740,63 @@ def test_mempalace_builder_wizard_gates_later_steps_until_source_is_ready(qapp, 
     assert not dialog.mapping_next_btn.isEnabled()
 
 
+def test_story_context_actions_are_numbered_and_gated_in_order(qapp, tmp_path):
+    """Three equally blue buttons said nothing about which one comes first."""
+    mock_mw, _settings = _settings_backed_main_window()
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+
+    assert dialog.match_dialogue_btn.text().startswith("Step 1")
+    assert dialog.analyze_story_timeline_btn.text().startswith("Step 2")
+    assert dialog.analyze_character_voices_btn.text().startswith("Step 3")
+
+    # Steps 2 and 3 read what step 1 saves, so they are not offered before it.
+    assert not dialog.analyze_story_timeline_btn.isEnabled()
+    assert not dialog.analyze_character_voices_btn.isEnabled()
+    assert dialog.analyze_story_timeline_btn.styleSheet() == SECONDARY_BUTTON_STYLE
+    assert dialog.analyze_character_voices_btn.styleSheet() == SECONDARY_BUTTON_STYLE
+    assert "step 1" in dialog.story_timeline_status_label.text().lower()
+    assert "step 1" in dialog.character_profiles_status_label.text().lower()
+
+
+def test_a_locked_continue_button_does_not_look_clickable(qapp, tmp_path):
+    mock_mw, _settings = _settings_backed_main_window()
+    mock_mw.project_manager.project_dir = str(tmp_path)
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+
+    assert not dialog.source_next_btn.isEnabled()
+    assert dialog.source_next_btn.styleSheet() == SECONDARY_BUTTON_STYLE
+
+    project_path = tmp_path / "script_markup_project.json"
+    project_path.write_text(json.dumps(_hierarchy_project_payload()), encoding="utf-8")
+    assert dialog._load_hierarchy_project_preview(str(project_path))
+    assert dialog._import_sync_hierarchy_project()
+
+    assert dialog.source_next_btn.isEnabled()
+    assert dialog.source_next_btn.styleSheet() == WORKFLOW_BUTTON_STYLE
+
+
+def test_embedded_in_the_wizard_it_drops_its_own_close_buttons(qapp, tmp_path):
+    """It is a page of the pipeline now; the wizard owns the only Close."""
+    from ui.pipeline_wizard_dialog import _embed_mempalace_builder
+
+    mock_mw, _settings = _settings_backed_main_window()
+    mock_mw.project_manager.project_dir = str(tmp_path)
+
+    parent_widget = QWidget()
+    builder = _embed_mempalace_builder(mock_mw, parent=parent_widget)
+
+    assert builder.cancel_btn.isHidden()
+    assert builder.story_context_done_btn.isHidden()
+    # ...but the same button is the only way to stop a running job.
+    builder._set_ui_enabled(False)
+    assert not builder.cancel_btn.isHidden()  # the parent is never shown in tests
+    assert builder.cancel_btn.text() == "Stop"
+    builder.deleteLater()
+
+
 def test_mempalace_builder_dialog_passes_target_lang_to_chapter_analyzer(qapp):
     mock_mw = MagicMock()
     mock_mw.project_manager = MagicMock()

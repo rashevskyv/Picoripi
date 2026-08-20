@@ -22,6 +22,11 @@ class LargeTextReportDialog(QDialog):
         layout.addWidget(self.text_edit)
         
         close_btn = QPushButton("Close", self)
+        close_btn.setToolTip(
+            "<b>Close</b><br>"
+            "Click — dismiss the report (Esc).<br>"
+            "Select text above and press Ctrl+C first if you want to keep a copy."
+        )
         close_btn.clicked.connect(self.accept)
         layout.addWidget(close_btn)
         

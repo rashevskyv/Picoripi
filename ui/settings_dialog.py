@@ -141,6 +141,11 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         layout.addWidget(line_edit)
         
         browse_button = QPushButton("...")
+        browse_button.setToolTip(
+            "<b>Browse</b><br>"
+            "Click — pick a script or executable (.bat, .cmd, .exe, .py, .sh).<br>"
+            "You can also type or paste a path into the field on the left."
+        )
         browse_button.setFixedSize(24, 24)
         browse_button.clicked.connect(lambda: self._browse_for_script(line_edit))
         layout.addWidget(browse_button)
@@ -170,6 +175,12 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         layout.addWidget(line_edit)
         
         browse_button = QPushButton("...")
+        browse_button.setToolTip(
+            "<b>Browse</b><br>"
+            "Click — pick a game data file (.json, .arc, .rarc, .bfn, .bmg).<br>"
+            "With Directory Mode ticked it asks for a folder instead.<br>"
+            "You can also type or paste a path into the field on the left."
+        )
         browse_button.setFixedSize(24, 24)
         browse_button.clicked.connect(lambda: self._browse_for_file(line_edit))
         layout.addWidget(browse_button)
@@ -205,6 +216,11 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         layout.addWidget(line_edit)
         
         browse_button = QPushButton("...")
+        browse_button.setToolTip(
+            "<b>Browse</b><br>"
+            "Click — pick a folder.<br>"
+            "You can also type or paste a path into the field on the left."
+        )
         browse_button.setFixedSize(24, 24)
         browse_button.clicked.connect(lambda: self._browse_for_directory(line_edit))
         layout.addWidget(browse_button)

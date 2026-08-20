@@ -9,6 +9,20 @@ from components.custom_tree_widget import CustomTreeWidget
 from components.chapter_picker import HierarchicalChapterComboBox
 
 
+# Shared with the handlers that re-set these tooltips when the buttons are
+# enabled/disabled, so the wording stays in one place.
+ADD_BLOCK_TOOLTIP = (
+    "<b>Add block</b><br>"
+    "Click — import a file into the project as a new block.<br>"
+    "Right-click the tree — Import Block… / Import Directory… for a whole folder."
+)
+ADD_FOLDER_TOOLTIP = (
+    "<b>Create virtual folder</b><br>"
+    "Click — add a new empty virtual folder to the block tree.<br>"
+    "Right-click a folder or block in the tree — Create Folder / Create Subfolder."
+)
+
+
 def configure_speaker_autocomplete(combo: QComboBox) -> None:
     """Show case-insensitive speaker suggestions matching the typed prefix."""
     completer = combo.completer()
@@ -76,14 +90,26 @@ class LayoutBuilder:
         block_header_layout.addWidget(QLabel("Blocks (double-click to rename):"))
         block_header_layout.addStretch()
 
-        self.mw.add_folder_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), 'Create new virtual folder')
+        self.mw.add_folder_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), ADD_FOLDER_TOOLTIP)
         self.mw.add_folder_button.setEnabled(False)
         block_header_layout.addWidget(self.mw.add_folder_button)
 
-        self.mw.expand_all_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_TitleBarUnshadeButton), 'Expand all folders', '⇊')
+        self.mw.expand_all_button = self._create_header_button(
+            self.style.standardIcon(QStyle.StandardPixmap.SP_TitleBarUnshadeButton),
+            "<b>Expand all folders</b><br>"
+            "Click — open every folder and virtual block in the tree.<br>"
+            "Ctrl+wheel over the tree — zoom the tree font.",
+            '⇊',
+        )
         block_header_layout.addWidget(self.mw.expand_all_button)
 
-        self.mw.collapse_all_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_TitleBarShadeButton), 'Collapse all folders', '⇈')
+        self.mw.collapse_all_button = self._create_header_button(
+            self.style.standardIcon(QStyle.StandardPixmap.SP_TitleBarShadeButton),
+            "<b>Collapse all folders</b><br>"
+            "Click — close every folder and virtual block in the tree.<br>"
+            "Ctrl+wheel over the tree — zoom the tree font.",
+            '⇈',
+        )
         block_header_layout.addWidget(self.mw.collapse_all_button)
 
         left_layout.addLayout(block_header_layout)
@@ -113,27 +139,51 @@ class LayoutBuilder:
         block_toolbar.setContentsMargins(4, 4, 4, 4)
         block_toolbar.setSpacing(4)
 
-        self.mw.add_block_button = self._create_toolbar_button('+', 'Add new block (import file)')
+        self.mw.add_block_button = self._create_toolbar_button('+', ADD_BLOCK_TOOLTIP)
         block_toolbar.addWidget(self.mw.add_block_button)
 
-        self.mw.delete_block_button = self._create_toolbar_button('-', 'Delete selected block')
+        self.mw.delete_block_button = self._create_toolbar_button(
+            '-',
+            "<b>Delete block</b><br>"
+            "Click — remove the block selected in the tree from the project.<br>"
+            "Right-click the block — Remove Block / Delete Folder does the same.",
+        )
         block_toolbar.addWidget(self.mw.delete_block_button)
 
-        self.mw.rename_block_button = self._create_toolbar_button('✎', 'Rename selected block')
+        self.mw.rename_block_button = self._create_toolbar_button(
+            '✎',
+            "<b>Rename block</b><br>"
+            "Click — rename the block selected in the tree.<br>"
+            "Double-click the name in the tree, or right-click it — Rename Block.",
+        )
         block_toolbar.addWidget(self.mw.rename_block_button)
 
         block_toolbar.addStretch()
 
-        self.mw.move_block_up_button = self._create_toolbar_button('↑', 'Move block up')
+        self.mw.move_block_up_button = self._create_toolbar_button(
+            '↑',
+            "<b>Move block up</b><br>"
+            "Click — move the selected block one position up.<br>"
+            "Dragging a block in the tree moves it too.<br>"
+            "Alt+Shift+Up — jump to the previous block instead of moving it.",
+        )
         block_toolbar.addWidget(self.mw.move_block_up_button)
 
-        self.mw.move_block_down_button = self._create_toolbar_button('↓', 'Move block down')
+        self.mw.move_block_down_button = self._create_toolbar_button(
+            '↓',
+            "<b>Move block down</b><br>"
+            "Click — move the selected block one position down.<br>"
+            "Dragging a block in the tree moves it too.<br>"
+            "Alt+Shift+Down — jump to the next block instead of moving it.",
+        )
         block_toolbar.addWidget(self.mw.move_block_down_button)
 
         self.mw.refresh_virtual_blocks_button = self._create_toolbar_button(
             '⟳',
-            'Rebuild virtual folders (Speakers, Chapters, Items) from the current '
-            'story data — use if a folder looks out of sync with the editor.',
+            "<b>Rebuild virtual folders</b><br>"
+            "Click — rebuild Speakers, Chapters and Items from the current story "
+            "data. Use it if a folder looks out of sync with the editor.<br>"
+            "Nothing in the translation files is touched.",
         )
         block_toolbar.addWidget(self.mw.refresh_virtual_blocks_button)
 
@@ -142,7 +192,12 @@ class LayoutBuilder:
         
         left_layout.addSpacing(8)
         self.mw.open_glossary_button = QPushButton('Glossary…')
-        self.mw.open_glossary_button.setToolTip('Open glossary')
+        self.mw.open_glossary_button.setToolTip(
+            "<b>Glossary</b><br>"
+            "Click — open the project glossary (Ctrl+G).<br>"
+            "Ctrl-click a glossary term in the Original panel — open that entry "
+            "for editing directly."
+        )
         left_layout.addWidget(self.mw.open_glossary_button)
 
     def _build_right_panel(self):
@@ -203,7 +258,11 @@ class LayoutBuilder:
         preview_header_layout.addWidget(self.mw.show_warnings_only_checkbox)
         
         self.mw.warnings_filter_button = QPushButton("Warnings: 0 / 0")
-        self.mw.warnings_filter_button.setToolTip("Select warnings to filter by")
+        self.mw.warnings_filter_button.setToolTip(
+            "<b>Warning filter</b><br>"
+            "Click — choose which warning types “Show Warnings Only” filters by.<br>"
+            "The label shows selected / total active warning types."
+        )
         self.mw.warnings_filter_button.setFixedWidth(150)
         self.mw.warnings_filter_button.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.warnings_filter_button)
@@ -249,7 +308,9 @@ class LayoutBuilder:
         )
         self.mw.original_width_label.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.original_width_label.setToolTip(
-            "Click to copy this original-text width to the translation Max-width field."
+            "<b>Original max-width</b><br>"
+            "Click — copy this width into the translation Max-width field on the "
+            "right, then press Apply there."
         )
         original_tools_layout.addWidget(self.mw.original_width_label)
         original_tools_layout.addStretch(1)
@@ -371,7 +432,12 @@ class LayoutBuilder:
 
         self.mw.revert_string_button = QPushButton()
         self.mw.revert_string_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowForward))
-        self.mw.revert_string_button.setToolTip("Revert current string to original file content")
+        self.mw.revert_string_button.setToolTip(
+            "<b>Revert string</b><br>"
+            "Click — replace the current translation with the original file content.<br>"
+            "Right-click a block in the tree — “Revert … to original” for a whole "
+            "block, chapter or project."
+        )
         self.mw.revert_string_button.setFixedWidth(30)
         self.mw.revert_string_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.revert_string_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
@@ -382,7 +448,13 @@ class LayoutBuilder:
         
         self.mw.restore_translation_button = QPushButton()
         self.mw.restore_translation_button.setIcon(restore_icon)
-        self.mw.restore_translation_button.setToolTip("Restore last saved/reverted translation (Ctrl+Shift+T)")
+        self.mw.restore_translation_button.setToolTip(
+            "<b>Restore translation</b><br>"
+            "Click — bring back the last translation saved in the local backup "
+            "database for this string (Ctrl+Shift+T).<br>"
+            "Right-click a block in the tree — Restore All Translations for a whole "
+            "block or project."
+        )
         self.mw.restore_translation_button.setFixedWidth(30)
         self.mw.restore_translation_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.restore_translation_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
@@ -393,7 +465,11 @@ class LayoutBuilder:
         
         self.mw.inspect_story_context_button = QPushButton()
         self.mw.inspect_story_context_button.setIcon(story_icon)
-        self.mw.inspect_story_context_button.setToolTip('Show timeline, speaker and visual context for the selected row from MemePalace (Ctrl+I)')
+        self.mw.inspect_story_context_button.setToolTip(
+            "<b>Inspect story context</b><br>"
+            "Click — show timeline, speaker and visual context for the selected row "
+            "from MemePalace (Ctrl+I)."
+        )
         self.mw.inspect_story_context_button.setFixedWidth(30)
         self.mw.inspect_story_context_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.inspect_story_context_button.setStyleSheet("QPushButton { padding: 4px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; } QPushButton:hover { background-color: #e6e6e6; }")
@@ -405,8 +481,11 @@ class LayoutBuilder:
         self.mw.open_current_string_in_markup_studio_button = QPushButton()
         self.mw.open_current_string_in_markup_studio_button.setIcon(markup_icon)
         self.mw.open_current_string_in_markup_studio_button.setToolTip(
-            "Open the marked-script place linked to the current game string in "
-            "Script Markup Studio"
+            "<b>Open in Script Markup Studio</b><br>"
+            "Click — jump to the marked-script place linked to the current game "
+            "string.<br>"
+            "Enabled once a string is selected; the Studio also opens from "
+            "Tools → Script Markup Studio."
         )
         self.mw.open_current_string_in_markup_studio_button.setFixedWidth(30)
         self.mw.open_current_string_in_markup_studio_button.setCursor(
@@ -474,26 +553,65 @@ class LayoutBuilder:
 
         self.mw.navigate_down_button = QPushButton()
         self.mw.navigate_down_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowDown))
-        self.mw.navigate_down_button.setToolTip("Navigate to next problem string (Ctrl+Down)")
+        self.mw.navigate_down_button.setToolTip(
+            "<b>Next problem string</b><br>"
+            "Click — jump to the next string that has a warning (Ctrl+Down).<br>"
+            "Alt+Down — next string regardless of warnings.<br>"
+            "Alt+Shift+Down — next block."
+        )
         self.mw.navigate_down_button.setFixedSize(control_height, control_height)
         editor_action_layout.addWidget(self.mw.navigate_down_button)
 
         self.mw.navigate_up_button = QPushButton()
         self.mw.navigate_up_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowUp))
-        self.mw.navigate_up_button.setToolTip("Navigate to previous problem string (Ctrl+Up)")
+        self.mw.navigate_up_button.setToolTip(
+            "<b>Previous problem string</b><br>"
+            "Click — jump to the previous string that has a warning (Ctrl+Up).<br>"
+            "Alt+Up — previous string regardless of warnings.<br>"
+            "Alt+Shift+Up — previous block."
+        )
         self.mw.navigate_up_button.setFixedSize(control_height, control_height)
         editor_action_layout.addWidget(self.mw.navigate_up_button)
 
         self.mw.ai_translate_button = QPushButton('AI Translate')
+        self.mw.ai_translate_button.setToolTip(
+            "<b>AI Translate</b><br>"
+            "Click — translate the current string. If a translation for it is "
+            "already in the backup database, that one is reused instead of a new "
+            "AI request.<br>"
+            "Ctrl-click — open the prompt editor before sending, and ignore the "
+            "stored translation (always re-translate).<br>"
+            "To translate more than one string, select lines in the Strings panel "
+            "and use its right-click menu (Ctrl-click there too for the prompt "
+            "editor)."
+        )
         self.mw.ai_translate_button.setFixedHeight(control_height)
         editor_action_layout.addWidget(self.mw.ai_translate_button)
 
         self.mw.ai_variation_button = QPushButton('AI Variation')
+        self.mw.ai_variation_button.setToolTip(
+            "<b>AI Variation</b><br>"
+            "Click — ask the AI for an alternative wording of the current "
+            "translation.<br>"
+            "Select part of the text in the Editable panel first — only that "
+            "fragment is rewritten.<br>"
+            "Ctrl-click — open the prompt editor before sending."
+        )
         self.mw.ai_variation_button.setFixedHeight(control_height)
         editor_action_layout.addWidget(self.mw.ai_variation_button)
 
         self.mw.auto_fix_button = QPushButton('Auto-fix')
-        self.mw.auto_fix_button.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A). Ctrl-click to select rules.")
+        self.mw.auto_fix_button.setToolTip(
+            "<b>Auto-fix</b><br>"
+            "Click — fix the detected issues in the current string with every "
+            "enabled rule (Ctrl+Shift+A).<br>"
+            "Ctrl-click — pick which rules to apply first.<br>"
+            "Shift-click — page-local mode: each page is fixed in isolation, so "
+            "text never flows across a page boundary.<br>"
+            "Ctrl+Shift-click — pick the rules and run page-local.<br>"
+            "Modifiers work on the button only; the Ctrl+Shift+A shortcut always "
+            "runs the plain fix."
+        )
         self.mw.auto_fix_button.setFixedHeight(control_height)
         editor_action_layout.addWidget(self.mw.auto_fix_button)
         header_grid.addWidget(
@@ -564,7 +682,12 @@ class LayoutBuilder:
         formatting_layout.addWidget(QLabel("Max-width:"))
         self.mw.width_spinbox = QSpinBox()
         self.mw.width_spinbox.setRange(0, 10000)
-        self.mw.width_spinbox.setToolTip("Set custom width for this string (0 = use plugin default)")
+        self.mw.width_spinbox.setToolTip(
+            "<b>Max-width</b><br>"
+            "Set a custom width for this string (0 = use the plugin default), then "
+            "press Apply.<br>"
+            "Right-click — Reset to Plugin Default, or Set Width from Original."
+        )
         self.mw.width_spinbox.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.mw.width_spinbox.setFixedHeight(control_height)
         self.mw.width_spinbox.setFixedWidth(110)
@@ -593,6 +716,14 @@ class LayoutBuilder:
         formatting_layout.addWidget(self.mw.width_spinbox)
         
         self.mw.apply_width_button = QPushButton("Apply")
+        self.mw.apply_width_button.setToolTip(
+            "<b>Apply formatting</b><br>"
+            "Click — save the Font and Max-width override for this string. Enabled "
+            "only while there is an unapplied change.<br>"
+            "Right-click the Max-width field — Reset to Plugin Default, or Set Width "
+            "from Original.<br>"
+            "Clicking the Max-width value above the Original panel copies it here."
+        )
         self.mw.apply_width_button.setEnabled(False)
         self.mw.apply_width_button.setFixedHeight(control_height)
         self.mw.apply_width_button.setFixedWidth(72)

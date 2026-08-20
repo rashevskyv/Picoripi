@@ -59,16 +59,31 @@ class BaseTextReviewDialog(QDialog):
         self.top_nav_layout.addWidget(self.progress_bar)
 
         self.cancel_analysis_button = QPushButton("Cancel")
+        self.cancel_analysis_button.setToolTip(
+            "<b>Cancel</b><br>"
+            "Click — stop the running scan. Results found so far stay in the list.<br>"
+            "Only visible while a scan is in progress."
+        )
         self.cancel_analysis_button.setVisible(False)
         self.top_nav_layout.addWidget(self.cancel_analysis_button)
 
         self.top_nav_layout.addStretch()
 
         self.prev_button = QPushButton("← Previous")
+        self.prev_button.setToolTip(
+            "<b>Previous match</b><br>"
+            "Click — go to the previous entry in the list on the left.<br>"
+            "Clicking an entry in that list jumps straight to it."
+        )
         self.prev_button.clicked.connect(self.go_to_previous_item)
         self.top_nav_layout.addWidget(self.prev_button)
 
         self.next_button = QPushButton("Next →")
+        self.next_button.setToolTip(
+            "<b>Next match</b><br>"
+            "Click — go to the next entry in the list on the left.<br>"
+            "Clicking an entry in that list jumps straight to it."
+        )
         self.next_button.clicked.connect(self.go_to_next_item)
         self.top_nav_layout.addWidget(self.next_button)
 

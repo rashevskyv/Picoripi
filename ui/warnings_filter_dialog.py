@@ -106,8 +106,18 @@ class WarningsFilterDialog(QDialog):
         if sorted_active_pids:
             helper_layout = QHBoxLayout()
             select_all_btn = QPushButton("Select All")
+            select_all_btn.setToolTip(
+                "<b>Select all</b><br>"
+                "Click — tick every warning type, so the filter shows strings with "
+                "any warning."
+            )
             select_all_btn.clicked.connect(self._select_all)
             select_none_btn = QPushButton("Select None")
+            select_none_btn.setToolTip(
+                "<b>Select none</b><br>"
+                "Click — untick everything, then tick just the warning types you "
+                "want to work through."
+            )
             select_none_btn.clicked.connect(self._select_none)
             
             helper_layout.addWidget(select_all_btn)
@@ -118,10 +128,19 @@ class WarningsFilterDialog(QDialog):
         # Dialog buttons
         btn_layout = QHBoxLayout()
         ok_btn = QPushButton("OK")
+        ok_btn.setToolTip(
+            "<b>OK</b><br>"
+            "Click — apply the ticked warning types to the filter (Enter).<br>"
+            "The counter on the Warnings button shows selected / total."
+        )
         ok_btn.setDefault(True)
         ok_btn.clicked.connect(self.accept)
-        
+
         cancel_btn = QPushButton("Cancel")
+        cancel_btn.setToolTip(
+            "<b>Cancel</b><br>"
+            "Click — close without changing the filter (Esc)."
+        )
         cancel_btn.clicked.connect(self.reject)
 
         btn_layout.addStretch(1)

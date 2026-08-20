@@ -83,15 +83,30 @@ class CachedTranslationDialog(QDialog):
         btn_layout.addStretch()
         
         self.restore_btn = QPushButton("OK", self)
+        self.restore_btn.setToolTip(
+            "<b>Use the saved translation</b><br>"
+            "Click — reuse the translation already in the backup database. No AI "
+            "request is made (Enter)."
+        )
         self.restore_btn.setDefault(True)
         self.restore_btn.clicked.connect(lambda: self.done(1))
         btn_layout.addWidget(self.restore_btn)
         
         self.translate_btn = QPushButton("Translate Anew", self)
+        self.translate_btn.setToolTip(
+            "<b>Translate anew</b><br>"
+            "Click — ignore the saved translation and send a fresh AI request.<br>"
+            "Ctrl-clicking AI Translate in the main window skips this dialog and "
+            "always re-translates."
+        )
         self.translate_btn.clicked.connect(lambda: self.done(2))
         btn_layout.addWidget(self.translate_btn)
         
         self.cancel_btn = QPushButton("Cancel", self)
+        self.cancel_btn.setToolTip(
+            "<b>Cancel</b><br>"
+            "Click — leave the string as it is and make no AI request (Esc)."
+        )
         self.cancel_btn.clicked.connect(lambda: self.done(0))
         btn_layout.addWidget(self.cancel_btn)
         

@@ -35,6 +35,12 @@ class SettingsAiMixin:
         provider_layout.addWidget(self.translation_provider_combo)
 
         self.test_provider_btn = QPushButton("Test Provider", self)
+        self.test_provider_btn.setToolTip(
+            "<b>Test provider</b><br>"
+            "Click — send one tiny request to check the key, model and endpoint.<br>"
+            "Enabled once a provider is selected; the result appears next to the "
+            "button."
+        )
         self.test_provider_btn.setEnabled(False)
         provider_layout.addWidget(self.test_provider_btn)
 
@@ -45,7 +51,17 @@ class SettingsAiMixin:
         preset_layout.addWidget(self.translation_preset_combo)
 
         self.save_preset_btn = QPushButton("Save Preset", self)
+        self.save_preset_btn.setToolTip(
+            "<b>Save preset</b><br>"
+            "Click — store the current provider, model and parameters under the "
+            "preset name. Saving with an existing name overwrites it."
+        )
         self.delete_preset_btn = QPushButton("Delete Preset", self)
+        self.delete_preset_btn.setToolTip(
+            "<b>Delete preset</b><br>"
+            "Click — remove the preset selected in the drop-down. The provider "
+            "settings currently in the form stay as they are."
+        )
         preset_layout.addWidget(self.save_preset_btn)
         preset_layout.addWidget(self.delete_preset_btn)
 
@@ -143,6 +159,13 @@ class SettingsAiMixin:
         self.gemini_api_key_edit.textChanged.connect(self._refresh_glossary_api_key_from_translation)
         
         self.edit_prompts_btn = QPushButton("Edit Prompts JSON", self)
+        self.edit_prompts_btn.setToolTip(
+            "<b>Edit prompts JSON</b><br>"
+            "Click — edit the raw prompt templates sent to the AI.<br>"
+            "For a one-off tweak, Ctrl-click AI Translate or AI Variation instead: "
+            "that opens the prompt editor for a single request without changing "
+            "these defaults."
+        )
         layout.addWidget(self.edit_prompts_btn)
         layout.addStretch(1)
 

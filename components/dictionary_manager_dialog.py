@@ -136,6 +136,12 @@ class DictionaryManagerDialog(QDialog):
         main_layout.addWidget(self.dict_list)
         
         self.download_button = QPushButton("Download Selected", self)
+        self.download_button.setToolTip(
+            "<b>Download selected</b><br>"
+            "Click — fetch the dictionaries ticked above and install them for the "
+            "spellchecker.<br>"
+            "Enabled once at least one entry is ticked."
+        )
         self.download_button.setEnabled(False)
         main_layout.addWidget(self.download_button)
 

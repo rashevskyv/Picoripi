@@ -375,8 +375,19 @@ class SettingsPluginMixin:
         
         single_btn_row = QHBoxLayout()
         add_single_btn = QPushButton("Add Row", self)
+        add_single_btn.setToolTip(
+            "<b>Add row</b><br>"
+            "Click — append an empty single-tag row, then type the tag and its "
+            "display text.<br>"
+            "Changes take effect after you press OK in Settings."
+        )
         add_single_btn.clicked.connect(lambda: self._add_table_row(self.single_tags_table))
         remove_single_btn = QPushButton("Remove Row", self)
+        remove_single_btn.setToolTip(
+            "<b>Remove row</b><br>"
+            "Click — delete the row selected in the table; with nothing selected it "
+            "removes the last row. One row per click."
+        )
         remove_single_btn.clicked.connect(lambda: self._remove_table_row(self.single_tags_table))
         single_btn_row.addWidget(add_single_btn); single_btn_row.addWidget(remove_single_btn)
         single_layout.addLayout(single_btn_row)
@@ -398,8 +409,19 @@ class SettingsPluginMixin:
         
         wrap_btn_row = QHBoxLayout()
         add_wrap_btn = QPushButton("Add Row", self)
+        add_wrap_btn.setToolTip(
+            "<b>Add row</b><br>"
+            "Click — append an empty wrapping-tag row (a tag with an opening and a "
+            "closing part).<br>"
+            "Changes take effect after you press OK in Settings."
+        )
         add_wrap_btn.clicked.connect(lambda: self._add_table_row(self.wrap_tags_table))
         remove_wrap_btn = QPushButton("Remove Row", self)
+        remove_wrap_btn.setToolTip(
+            "<b>Remove row</b><br>"
+            "Click — delete the row selected in the table; with nothing selected it "
+            "removes the last row. One row per click."
+        )
         remove_wrap_btn.clicked.connect(lambda: self._remove_table_row(self.wrap_tags_table))
         wrap_btn_row.addWidget(add_wrap_btn); wrap_btn_row.addWidget(remove_wrap_btn)
         wrap_layout.addLayout(wrap_btn_row)
@@ -716,8 +738,20 @@ class SettingsPluginMixin:
         
         btn_row = QHBoxLayout()
         add_btn = QPushButton("Add Alias", tab)
+        add_btn.setToolTip(
+            "<b>Add alias</b><br>"
+            "Click — append an empty alias row mapping a raw game tag to a readable "
+            "name.<br>"
+            "Use the search field above to find an existing alias before adding a "
+            "duplicate."
+        )
         add_btn.clicked.connect(lambda: self._add_alias_row())
         remove_btn = QPushButton("Remove Alias", tab)
+        remove_btn.setToolTip(
+            "<b>Remove alias</b><br>"
+            "Click — delete the selected alias row; with nothing selected it removes "
+            "the last row. One row per click."
+        )
         remove_btn.clicked.connect(self._remove_alias_row)
         btn_row.addWidget(add_btn); btn_row.addWidget(remove_btn)
         btn_row.addStretch()
@@ -846,8 +880,19 @@ class SettingsPluginMixin:
         
         btn_row = QHBoxLayout()
         add_btn = QPushButton("Add Character", tab)
+        add_btn.setToolTip(
+            "<b>Add character</b><br>"
+            "Click — append an empty row for a character and its pixel width.<br>"
+            "Widths feed the line-width warnings, so recalculate widths after "
+            "changing them."
+        )
         add_btn.clicked.connect(lambda: self._add_font_map_row())
         remove_btn = QPushButton("Remove Character", tab)
+        remove_btn.setToolTip(
+            "<b>Remove character</b><br>"
+            "Click — delete the selected character row; with nothing selected it "
+            "removes the last row. One row per click."
+        )
         remove_btn.clicked.connect(self._remove_font_map_row)
         btn_row.addWidget(add_btn); btn_row.addWidget(remove_btn)
         btn_row.addStretch()

@@ -17,7 +17,13 @@ class ToolBarBuilder:
         self.mw.main_toolbar.setIconSize(QSize(24, 24))
 
         self.mw.open_ai_chat_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), 'Open AI Chat', self.mw)
-        self.mw.open_ai_chat_action.setToolTip("Open a chat window to discuss translations with AI (Ctrl+Shift+C)")
+        self.mw.open_ai_chat_action.setToolTip(
+            "<b>AI Chat</b><br>"
+            "Click — open a chat window to discuss translations with the AI "
+            "(Ctrl+Shift+C).<br>"
+            "Ctrl+Enter in the chat input sends the message; plain Enter adds a "
+            "new line."
+        )
         self.mw.open_ai_chat_action.setShortcut('Ctrl+Shift+C')
 
         self.mw.main_toolbar.addAction(self.mw.save_action)
@@ -49,7 +55,11 @@ class ToolBarBuilder:
         cmd_icon = QIcon(pixmap_cmd)
 
         self.mw.run_external_script_action = QAction(cmd_icon, 'Run External Script', self.mw)
-        self.mw.run_external_script_action.setToolTip("Run configured external script / build tool")
+        self.mw.run_external_script_action.setToolTip(
+            "<b>Run external script</b><br>"
+            "Click — run the external script / build tool configured in "
+            "Settings (Ctrl+P)."
+        )
         
         # Push Help and Script to the far right
         toolbar_spacer = QWidget()

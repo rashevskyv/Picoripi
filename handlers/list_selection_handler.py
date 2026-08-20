@@ -650,8 +650,9 @@ class ListSelectionHandler(BaseHandler):
         # Enable Add Folder if project exists
         if hasattr(self.mw, 'add_folder_button'):
             self.mw.add_folder_button.setEnabled(has_project)
+            from ui.builders.layout_builder import ADD_FOLDER_TOOLTIP
             self.mw.add_folder_button.setToolTip(
-                "Create new virtual folder" if has_project
+                ADD_FOLDER_TOOLTIP if has_project
                 else "Creating folders is only available in Project mode (within a .uiproj project)."
             )
 

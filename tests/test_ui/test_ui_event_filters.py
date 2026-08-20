@@ -175,10 +175,12 @@ def test_all_search_fields_select_existing_text_on_click(
         search.setProperty("selectAllOnClick", True)
     filter_obj = MainWindowEventFilter(mw)
     search.installEventFilter(filter_obj)
+    qtbot.addWidget(mw)
     mw.show()
+    mw.activateWindow()
 
     QTest.mouseClick(search, Qt.MouseButton.LeftButton)
-    qtbot.wait(10)
+    qtbot.wait(50)
 
     assert search.selectedText() == "Midna"
 

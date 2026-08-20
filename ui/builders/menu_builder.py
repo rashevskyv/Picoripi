@@ -82,6 +82,13 @@ class MenuBuilder:
 
         self.mw.save_action = QAction(save_icon, '&Save Changes', self.mw)
         self.mw.save_action.setShortcut('Ctrl+S')
+        self.mw.save_action.setToolTip(
+            "<b>Save changes</b><br>"
+            "Click — write every unsaved string to the translation files (Ctrl+S).<br>"
+            "Right-click a block in the tree — “Save changes for …” saves just that "
+            "block or selection.<br>"
+            "Use “Show Unsaved Only” above the tree to see what is still pending."
+        )
         file_menu.addAction(self.mw.save_action)
 
         self.mw.save_as_action = QAction(QIcon.fromTheme("document-save-as"), 'Save Changes &As...', self.mw)
@@ -114,6 +121,11 @@ class MenuBuilder:
 
         self.mw.open_settings_action = QAction(settings_icon, '&Settings...', self.mw)
         self.mw.open_settings_action.setShortcut('Ctrl+P')
+        self.mw.open_settings_action.setToolTip(
+            "<b>Settings</b><br>"
+            "Click — open application settings: AI provider and prompts, spelling, "
+            "plugins, external script (Ctrl+P)."
+        )
         file_menu.addAction(self.mw.open_settings_action)
         file_menu.addSeparator()
 
@@ -142,10 +154,19 @@ class MenuBuilder:
 
         self.mw.undo_typing_action = QAction(undo_icon, '&Undo Typing', self.mw)
         self.mw.undo_typing_action.setShortcut(QKeySequence.StandardKey.Undo)
+        self.mw.undo_typing_action.setToolTip(
+            "<b>Undo</b><br>"
+            "Click — undo the last edit (Ctrl+Z).<br>"
+            "Works from the editor and from the Speaker field."
+        )
         edit_menu.addAction(self.mw.undo_typing_action)
 
         self.mw.redo_typing_action = QAction(redo_icon, '&Redo Typing', self.mw)
         self.mw.redo_typing_action.setShortcuts([QKeySequence.StandardKey.Redo, QKeySequence('Ctrl+Shift+Z')])
+        self.mw.redo_typing_action.setToolTip(
+            "<b>Redo</b><br>"
+            "Click — redo the edit you just undid (Ctrl+Y or Ctrl+Shift+Z)."
+        )
         edit_menu.addAction(self.mw.redo_typing_action)
         edit_menu.addSeparator()
 
@@ -215,6 +236,12 @@ class MenuBuilder:
 
         self.mw.find_action = QAction(find_icon, '&Find...', self.mw)
         self.mw.find_action.setShortcut('Ctrl+F')
+        self.mw.find_action.setToolTip(
+            "<b>Find</b><br>"
+            "Click — show or hide the search panel (Ctrl+F).<br>"
+            "F3 — find next, Shift+F3 — find previous.<br>"
+            "Ctrl+H — Advanced Search across the whole project."
+        )
         edit_menu.addAction(self.mw.find_action)
 
         self.mw.advanced_search_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), '&Advanced Search...', self.mw)
@@ -233,7 +260,14 @@ class MenuBuilder:
         edit_menu.addSeparator()
 
         self.mw.recalculate_widths_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_BrowserReload), 'Recalculate Font Widths', self.mw)
-        self.mw.recalculate_widths_action.setToolTip("Force recalculate widths and issues for all strings in the project")
+        self.mw.recalculate_widths_action.setToolTip(
+            "<b>Recalculate font widths</b><br>"
+            "Click — re-measure pixel widths and re-scan issues for every string in "
+            "the project (Ctrl+Shift+R). Use it after changing fonts or width "
+            "settings.<br>"
+            "Right-click a single block in the tree — Rescan Issues / Calculate Line "
+            "Widths for that block only."
+        )
         self.mw.recalculate_widths_action.setShortcut('Ctrl+Shift+R')
         edit_menu.addAction(self.mw.recalculate_widths_action)
 
@@ -249,7 +283,11 @@ class MenuBuilder:
         self.mw.toggle_preview_action.setCheckable(True)
         self.mw.toggle_preview_action.setChecked(bool(getattr(self.mw, 'preview_enabled', True)))
         self.mw.toggle_preview_action.setShortcut('Ctrl+Shift+P')
-        self.mw.toggle_preview_action.setToolTip("Toggle the visibility of the visual text preview")
+        self.mw.toggle_preview_action.setToolTip(
+            "<b>Preview</b><br>"
+            "Click — show or hide the visual in-game text preview under the editor "
+            "(Ctrl+Shift+P). Checked means visible."
+        )
         view_menu.addAction(self.mw.toggle_preview_action)
 
         view_menu.addSeparator()
@@ -297,7 +335,11 @@ class MenuBuilder:
             'BFN &Font Editor...',
             self.mw
         )
-        self.mw.bfn_editor_action.setToolTip('Open the BFN Font Editor (Nintendo binary font)')
+        self.mw.bfn_editor_action.setToolTip(
+            "<b>BFN Font Editor</b><br>"
+            "Click — open the editor for Nintendo BFN binary fonts in a separate "
+            "window; the project stays open."
+        )
         tools_menu.addAction(self.mw.bfn_editor_action)
 
         # Create a dynamic beautiful icon for Script Markup Studio with letter 'R'
@@ -498,6 +540,11 @@ class MenuBuilder:
         """Internal helper to create help menu."""
         self.mw.help_shortcuts_action = QAction(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton)), '&Shortcuts Help', self.mw)
         self.mw.help_shortcuts_action.setShortcut('F1')
+        self.mw.help_shortcuts_action.setToolTip(
+            "<b>Shortcuts help</b><br>"
+            "Click — open the full keyboard shortcuts reference (F1).<br>"
+            "Modifier-clicks are described in each button's own tooltip."
+        )
 
         help_menu = QMenu('&Help', menubar)
         help_menu.setToolTipsVisible(True)

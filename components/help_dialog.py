@@ -85,6 +85,12 @@ class HelpShortcutsDialog(QDialog):
         
         footer_layout = QHBoxLayout()
         close_button = QPushButton("Close")
+        close_button.setToolTip(
+            "<b>Close</b><br>"
+            "Click — dismiss this reference (Esc). Reopen it any time with F1.<br>"
+            "Mouse shortcuts (Ctrl-click, Shift-click) are described in each "
+            "button's own tooltip."
+        )
         close_button.clicked.connect(self.accept)
         footer_layout.addStretch()
         footer_layout.addWidget(close_button)

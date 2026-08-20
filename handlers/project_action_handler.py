@@ -261,6 +261,7 @@ class ProjectActionHandler(BaseHandler):
 
     def _set_project_actions_enabled(self, enabled: bool):
         """Enable or disable project-specific UI actions and update their tooltips."""
+        from ui.builders.layout_builder import ADD_BLOCK_TOOLTIP, ADD_FOLDER_TOOLTIP
         actions_map = {
             'close_project_action': {
                 'enabled_tip': "Close the current project or file",
@@ -275,11 +276,11 @@ class ProjectActionHandler(BaseHandler):
                 'disabled_tip': "This action is only available in Project mode (within a .uiproj project)."
             },
             'add_block_button': {
-                'enabled_tip': "Add new block (import file)",
+                'enabled_tip': ADD_BLOCK_TOOLTIP,
                 'disabled_tip': "Adding blocks is only available in Project mode (within a .uiproj project)."
             },
             'add_folder_button': {
-                'enabled_tip': "Create new virtual folder",
+                'enabled_tip': ADD_FOLDER_TOOLTIP,
                 'disabled_tip': "Creating folders is only available in Project mode (within a .uiproj project)."
             },
             'export_bmg_json_action': {
