@@ -100,8 +100,8 @@ def test_mempalace_viewer_double_click_navigation(qapp):
         mock_mw.block_list_widget.setCurrentItem.assert_called_once_with(mock_tree_item)
         
         # Verify single shot timer scheduled the string selection
-        mock_timer_singleshot.assert_called_once()
-        args, kwargs = mock_timer_singleshot.call_args
+        matching_calls = [c for c in mock_timer_singleshot.call_args_list if c[0] and c[0][0] == 50]
+        assert len(matching_calls) == 1
         # Call the scheduled lambda to ensure select_string_by_absolute_index is triggered
-        args[1]()
+        matching_calls[0][0][1]()
         mock_mw.list_selection_handler.select_string_by_absolute_index.assert_called_once_with(353)

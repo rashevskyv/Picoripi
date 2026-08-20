@@ -41,6 +41,8 @@ class MockMainWindow(QMainWindow):
         self.ui_updater = MagicMock()
         self.undo_manager = MagicMock()
         self.is_programmatically_changing_text = False
+        self.is_loading_data = False
+        self.is_adjusting_cursor = False
         self.current_game_rules = MagicMock()
         self.text_operation_handler = None # Will be set after creation
         self.current_game_rules.convert_editor_text_to_data = lambda x: x
@@ -66,6 +68,7 @@ def test_asterisk_persistence_on_navigation(mock_async_scanner):
     mw.text_operation_handler = toh
     lsh = ListSelectionHandler(mw, dsp, mw.ui_updater)
     
+    mw.editor_bound_row = (0, 0)
     # Mocking edited_text_edit as it's used in text_edited
     mw.edited_text_edit = MagicMock()
     
