@@ -428,6 +428,30 @@ class MainWindowActions:
             self.mw.speaker_merge_handler = handler
         handler.merge_from_script()
 
+    def open_pipeline_wizard(self):
+        """Open the guided localization pipeline.
+
+        Shown, never exec'd: the wizard's whole job is to launch other tools, so
+        a modal wizard would block the very window it just opened. Kept on the
+        main window and reused, so returning to it finds the same window rather
+        than stacking copies.
+        """
+        self._show_pipeline_wizard()
+
+    def _show_pipeline_wizard(self, step_key: str = ""):
+        """Raise the wizard, optionally on a named step."""
+        from ui.pipeline_wizard_dialog import PipelineWizardDialog
+        dialog = getattr(self.mw, 'pipeline_wizard_dialog', None)
+        if dialog is None:
+            dialog = PipelineWizardDialog(self.mw)
+            self.mw.pipeline_wizard_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+        if step_key:
+            dialog.select_step(step_key)
+        return dialog
+
     def open_bfn_editor_standalone(self):
         """Open BFN Font Editor as a standalone window (no archive binding)."""
         self.bfn_actions.open_bfn_editor_standalone()

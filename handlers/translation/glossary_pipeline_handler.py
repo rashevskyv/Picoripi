@@ -54,11 +54,26 @@ class GlossaryPipelineHandler:
         return []
 
     def _structural_seeds(self):
-        """Glossary material already written down somewhere, needing no AI."""
+        """Glossary material already written down somewhere, needing no AI.
+
+        Two sources, both optional and both gap-filling, so a project with only
+        one of them still gets everything that one knows:
+
+        * the game's own data, if the plugin can read it;
+        * the marked-up script, which names the cast the way a reader does.
+        """
         return self._apply_speaker_names(self._plugin_seeds() + self._markup_seeds())
 
     def _apply_speaker_names(self, seeds):
-        """Use confirmed names and mark unresolved game identifiers temporary."""
+        """Seed a character under the name we decided for them.
+
+        The plugin names a character the way the game's files do -- "Bou",
+        "CLERK_B" -- because that is all the files have. The Merge Speakers step
+        then works out that Bou is MAYOR BO, and that decision has to reach the
+        glossary too: otherwise the same character is seeded twice, once under
+        an identifier nobody recognises and once under their name, and the
+        evidence the plugin gathered stays attached to the wrong one.
+        """
         project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
         try:
             aliases = load_speaker_aliases(project_dir)
@@ -70,6 +85,7 @@ class GlossaryPipelineHandler:
             term = str(seed.get("term") or "").strip()
             name = (aliases or {}).get(term)
             if is_confirmed_speaker_alias(name):
+                # Decided: it is a name now, not a stand-in.
                 renamed.append({**seed, "term": name, "provisional": False})
             elif self._is_placeholder(term):
                 renamed.append({**seed, "provisional": True})
@@ -78,6 +94,7 @@ class GlossaryPipelineHandler:
         return renamed
 
     def _is_placeholder(self, term: str) -> bool:
+        """Whether this term is the game's internal id rather than a name."""
         hook = getattr(
             getattr(self.mw, "current_game_rules", None), "is_placeholder_speaker", None
         )
@@ -89,11 +106,7 @@ class GlossaryPipelineHandler:
             return False
 
     def _plugin_seeds(self):
-        """Glossary material the active plugin can read out of the game data.
-
-        Optional: a plugin that cannot do this returns nothing and the build
-        simply has no head start.
-        """
+        """Glossary material the active plugin can read out of the game data."""
         rules = getattr(self.mw, "current_game_rules", None)
         getter = getattr(rules, "get_glossary_seed_entries", None)
         if not callable(getter):
@@ -118,6 +131,24 @@ class GlossaryPipelineHandler:
         except Exception as exc:
             log_error(f"GlossaryPipelineHandler: script seeding failed: {exc}")
             return []
+
+    def _concurrency_options(self) -> dict:
+        """How wide to run and how long to wait before retrying failures.
+
+        Read from ``glossary_ai`` directly rather than the resolved provider
+        config: these are the tool's own knobs, and they must survive the
+        fallback to the AI Translation provider's settings.
+        """
+        config = getattr(self.mw, "glossary_ai", {}) or {}
+        options = {}
+        for key, name in (("workers", "workers"), ("retry_delay", "retry_delay")):
+            try:
+                value = config.get(key)
+                if value is not None:
+                    options[name] = float(value) if key == "retry_delay" else int(value)
+            except (TypeError, ValueError):
+                pass  # a corrupt setting falls back to the worker's default
+        return options
 
     def _resolve_provider(self):
         config = resolve_glossary_ai_config(self.mw)
@@ -155,6 +186,11 @@ class GlossaryPipelineHandler:
         exist yet, so a first build on a new project works without the user
         having to seed the file by hand.
         """
+        # Already bound: nothing to resolve, and re-resolving on every check
+        # would run the binder twice for one build.
+        if getattr(manager, "glossary_path", None) is not None:
+            return True
+
         glossary_handler = getattr(
             getattr(self.mw, "translation_handler", None), "glossary_handler", None
         )
@@ -181,39 +217,79 @@ class GlossaryPipelineHandler:
 
     # -- entry point --------------------------------------------------------
 
-    def build_from_text(self) -> None:
-        """Show the launch dialog and start a build."""
-        dataset = getattr(self.mw.data_store, "data", None)
-        if not dataset:
-            QMessageBox.information(self.mw, "Build Glossary", "Open a project first.")
-            return
-
-        manager = self._glossary_manager()
-        if manager is None:
-            QMessageBox.warning(self.mw, "Build Glossary", "Glossary manager is not available.")
-            return
-
-        if not self._bind_glossary_file(manager):
-            return
-
-        # Label the block that would actually be swept (see _resolve_area).
+    def make_dialog(
+        self,
+        parent=None,
+        on_build=None,
+        *,
+        target_step: Optional[str] = None,
+    ) -> GlossaryBuildDialog:
+        """The options form, told what this project can actually offer."""
         current_idx = getattr(self.mw.data_store, "physical_block_idx", -1)
         block_names = getattr(self.mw, "block_names", {}) or {}
         current_label = block_names.get(str(current_idx)) or (
             f"Block {current_idx + 1}" if current_idx is not None and current_idx >= 0 else ""
         )
-
-        dialog = GlossaryBuildDialog(
-            self.mw,
+        manager = self._glossary_manager()
+        try:
+            entries = len(manager.get_entries() or []) if manager is not None else 0
+        except Exception:
+            entries = 0
+        return GlossaryBuildDialog(
+            parent if parent is not None else self.mw,
             has_selection=bool(self._selected_block_indices()),
             current_block_label=current_label,
+            can_seed_structurally=bool(self._structural_seeds()),
+            existing_entries=entries,
+            on_build=on_build,
+            target_step=target_step,
         )
+
+    def build_from_text(self) -> None:
+        """Show the launch dialog and start a build."""
+        manager = self._ready_to_build()
+        if manager is None:
+            return
+        dialog = self.make_dialog()
         if not dialog.exec():
             return
+        self.start_build(dialog.options(), manager=manager)
 
-        options = dialog.options()
-        # Structural seeding makes no request, so it must not demand a working
-        # provider -- it is the one mode that still works with the model down.
+    def _ready_to_build(self):
+        """The glossary manager, once every refusal has had its say."""
+        if not getattr(self.mw.data_store, "data", None):
+            QMessageBox.information(self.mw, "Build Glossary", "Open a project first.")
+            return None
+        manager = self._glossary_manager()
+        if manager is None:
+            QMessageBox.warning(self.mw, "Build Glossary", "Glossary manager is not available.")
+            return None
+        if not self._bind_glossary_file(manager):
+            return None
+        return manager
+
+    def seed_from_game_data(self) -> None:
+        """Run structural seeding directly from game data and script markup."""
+        manager = self._ready_to_build()
+        if manager is None:
+            return
+        self.start_build(
+            {
+                "mode": MODE_SEED,
+                "area": AREA_PROJECT,
+                "chunk_size": "balanced",
+                "translate": False,
+            },
+            manager=manager,
+        )
+
+    def start_build(self, options: dict, manager=None) -> None:
+        """Run a build with options already chosen."""
+        manager = manager if manager is not None else self._ready_to_build()
+        if manager is None:
+            return
+        dataset = getattr(self.mw.data_store, "data", None)
+
         provider = None
         if options["mode"] != MODE_SEED:
             provider = self._resolve_provider()
@@ -226,7 +302,12 @@ class GlossaryPipelineHandler:
             target_lang = "Ukrainian"
 
         self._status = AIStatusDialog(self.mw)
-        self._status.start("AI Glossary Build (text sweep)", is_chunked=True)
+        title = (
+            "Glossary Seeding (game data)"
+            if options["mode"] == MODE_SEED
+            else "AI Glossary Build (text sweep)"
+        )
+        self._status.start(title, is_chunked=True)
 
         self._worker = GlossaryBuildWorker(
             manager,
@@ -239,6 +320,7 @@ class GlossaryPipelineHandler:
             translate=options["translate"],
             structural_seeds=self._structural_seeds(),
             parent=self.mw,
+            **self._concurrency_options(),
         )
         self._worker.progress.connect(self._on_progress)
         self._worker.log.connect(self._on_log)
@@ -278,8 +360,6 @@ class GlossaryPipelineHandler:
                 manager.save_to_disk()
                 handler._cached_glossary = manager.get_raw_text()
                 handler.glossary_handler._update_glossary_highlighting()
-                # The build may have been launched from the open glossary dialog;
-                # it is holding a snapshot taken before the run.
                 handler.glossary_handler.refresh_open_dialog()
             except Exception as exc:
                 log_error(f"Failed to refresh glossary after build: {exc}")

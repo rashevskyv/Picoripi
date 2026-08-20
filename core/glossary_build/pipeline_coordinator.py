@@ -17,7 +17,8 @@ Translation (pass 3) is a separate step run on demand: ``run_translate``.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional, Sequence
 
 from core.glossary_manager import (
@@ -36,7 +37,8 @@ from .ai_adapters import (
 )
 from .describe_driver import DescribeResult, describe_term
 from .occurrence_bridge import occurrences_by_term
-from .sweep_driver import AggregatedTerm, sweep_terms
+from .parallel import DEFAULT_RETRY_DELAY, DEFAULT_WORKERS, run_with_retry_pass
+from .sweep_driver import AggregatedTerm, merge_raw_terms
 from .text_sweep import DEFAULT_CHUNK_SIZE, items_from_dataset, pack_chunks
 from .translate_driver import propose_translations
 
@@ -61,9 +63,17 @@ class BuildResult:
 
     seeded: int = 0
     seeded_structural: int = 0
+    # Terms offered per glossary section, whether or not they were new. A run
+    # that adds nothing is otherwise unreadable: "Items" missing because the
+    # source produced none looks exactly like "Items" missing because they were
+    # already there, and the user cannot tell which without this.
+    offered_by_section: Dict[str, int] = field(default_factory=dict)
     described: int = 0
+    # Placeholder terms the AI proposed a real name for, awaiting a person.
     names_suggested: int = 0
     translated: int = 0
+    # Units still failing after the retry pass: their entries got nothing.
+    failed: int = 0
     cancelled: bool = False
 
 
@@ -81,8 +91,13 @@ class GlossaryBuildCoordinator:
         mask: Optional[Callable[[str], str]] = None,
         is_cancelled: Optional[Callable[[], bool]] = None,
         on_progress: Optional[Callable[[str, int, int], None]] = None,
+        on_log: Optional[Callable[[str], None]] = None,
         weigh: Callable[[str], int] = len,
         structural_seeds: Optional[Sequence[Dict[str, Any]]] = None,
+        workers: int = DEFAULT_WORKERS,
+        retry_delay: float = DEFAULT_RETRY_DELAY,
+        sleep: Callable[[float], None] = time.sleep,
+        max_consecutive_failures: int = 0,
     ) -> None:
         self.manager = manager
         self.call = call
@@ -92,8 +107,13 @@ class GlossaryBuildCoordinator:
         self.mask = mask
         self._is_cancelled = is_cancelled
         self._on_progress = on_progress
+        self._on_log = on_log
         self.weigh = weigh
         self.structural_seeds = list(structural_seeds or ())
+        self.workers = max(1, int(workers))
+        self.retry_delay = float(retry_delay)
+        self.sleep = sleep
+        self.max_consecutive_failures = max(0, int(max_consecutive_failures))
 
     def _cancelled(self) -> bool:
         return bool(self._is_cancelled and self._is_cancelled())
@@ -101,6 +121,38 @@ class GlossaryBuildCoordinator:
     def _progress(self, stage: str, done: int, total: int) -> None:
         if self._on_progress:
             self._on_progress(stage, done, total)
+
+    def _log(self, message: str) -> None:
+        if self._on_log:
+            self._on_log(message)
+
+    def _pooled(self, stage: str, items, work, on_result, result: BuildResult) -> None:
+        """Run one pass's AI calls in parallel and write results as they land.
+
+        ``on_result`` runs on this thread, so the passes keep writing to the
+        manager exactly as they did when they were loops -- and since every
+        manager write persists immediately, a stopped run keeps what it finished.
+        """
+        outcome = run_with_retry_pass(
+            items,
+            work,
+            workers=self.workers,
+            retry_delay=self.retry_delay,
+            sleep=self.sleep,
+            on_result=on_result,
+            on_progress=lambda done, total: self._progress(stage, done, total),
+            is_cancelled=self._is_cancelled,
+            max_consecutive_failures=self.max_consecutive_failures,
+            on_log=self._log,
+        )
+        result.failed += len(outcome.failed)
+        if outcome.stop_error is not None:
+            raise RuntimeError(
+                f"AI backend is not responding: {self.max_consecutive_failures} calls in a "
+                f"row failed during the {stage} pass. Stopped so the rest of the run is not "
+                f"spent waiting. Entries finished before this point are saved. "
+                f"Last error: {outcome.stop_error}"
+            ) from outcome.stop_error
 
     # -- public API ---------------------------------------------------------
 
@@ -129,7 +181,7 @@ class GlossaryBuildCoordinator:
             return result
 
         if mode in (MODE_THOROUGH, MODE_DRAFT):
-            aggregated = self._sweep(dataset, block_indices)
+            aggregated = self._sweep(dataset, block_indices, result)
             if self._cancelled():
                 result.cancelled = True
                 return result
@@ -160,27 +212,30 @@ class GlossaryBuildCoordinator:
             for e in self.manager.get_entries()
             if e.notes and not e.translation
         ]
-        total = len(targets)
-        for index, entry in enumerate(targets):
-            if self._cancelled():
-                result.cancelled = True
-                break
-            tr = propose_translations(
+
+        def translate(entry):
+            return propose_translations(
                 entry.original,
                 entry.notes,
                 propose,
                 normalize=self.manager.normalize_term,
             )
-            if tr.active:
-                self.manager.update_entry(
-                    entry.original,
-                    translation=tr.active,
-                    notes=entry.notes,
-                    status=STATUS_TRANSLATED,
-                    translation_variants=tuple(tr.variants),
-                )
-                result.translated += 1
-            self._progress("translate", index + 1, total)
+
+        def store(entry, tr):
+            if not tr.active:
+                return
+            self.manager.update_entry(
+                entry.original,
+                translation=tr.active,
+                notes=entry.notes,
+                status=STATUS_TRANSLATED,
+                translation_variants=tuple(tr.variants),
+            )
+            result.translated += 1
+
+        self._pooled("translate", targets, translate, store, result)
+        if self._cancelled():
+            result.cancelled = True
         return result
 
     # -- passes -------------------------------------------------------------
@@ -199,11 +254,16 @@ class GlossaryBuildCoordinator:
             term = str(seed.get("term") or "").strip()
             if not term:
                 continue
+            section = seed.get("section") or None
+            # Counted before any skip: the question this answers is "did the
+            # source produce Items at all", which a run that skipped them all
+            # as already-decided must still answer yes to.
+            label = section or "(no section)"
+            result.offered_by_section[label] = result.offered_by_section.get(label, 0) + 1
             existing = self.manager.get_entry(term)
             if existing is not None and existing.translation and not existing.is_unconfirmed:
                 continue
             description = str(seed.get("description") or "").strip()
-            section = seed.get("section") or None
             status = STATUS_FRAGMENTS if description else STATUS_SEEDED
             if existing is None:
                 self.manager.seed_entry(
@@ -212,6 +272,10 @@ class GlossaryBuildCoordinator:
                     status=status,
                     description=description,
                     icon=str(seed.get("icon") or ""),
+                    # A term the source could only give as an internal id. It
+                    # is a stand-in for a name nobody has decided yet, and the
+                    # glossary has to say so rather than presenting "CLERK_B"
+                    # as though it were the character's name.
                     provisional=bool(seed.get("provisional")),
                 )
                 result.seeded += 1
@@ -245,19 +309,23 @@ class GlossaryBuildCoordinator:
                 kept.append(seed)
         return kept
 
-    def _sweep(self, dataset, block_indices) -> Dict[str, AggregatedTerm]:
+    def _sweep(self, dataset, block_indices, result: BuildResult) -> Dict[str, AggregatedTerm]:
         items = items_from_dataset(dataset, block_indices=block_indices)
         chunks = pack_chunks(items, self.chunk_size, weigh=self.weigh)
         extract = make_extract(
             self.call, self.prompts, target_lang=self.target_lang, mask=self.mask
         )
-        return sweep_terms(
+        aggregated: Dict[str, AggregatedTerm] = {}
+        self._pooled(
+            "sweep",
             chunks,
             extract,
-            normalize=self.manager.normalize_term,
-            is_cancelled=self._is_cancelled,
-            on_chunk=lambda done, total: self._progress("sweep", done, total),
+            lambda chunk, raws: merge_raw_terms(
+                aggregated, raws, normalize=self.manager.normalize_term
+            ),
+            result,
         )
+        return aggregated
 
     def _seed_all(self, aggregated: Dict[str, AggregatedTerm], mode: str, result: BuildResult) -> None:
         terms = list(aggregated.values())
@@ -299,53 +367,64 @@ class GlossaryBuildCoordinator:
     def _describe_all(self, dataset, result: BuildResult) -> None:
         occ_by_term = occurrences_by_term(self.manager, dataset)
         targets = [e for e in self.manager.get_entries() if e.status in _DESCRIBE_TARGETS]
-        total = len(targets)
-        for index, entry in enumerate(targets):
-            if self._cancelled():
-                return
+
+        def describe(entry) -> DescribeResult:
             occurrences = occ_by_term.get(entry.original, [])
             fold = make_fold(self.call, self.prompts, term=entry.original, target_lang=self.target_lang)
             if occurrences:
                 synthesize = make_synthesize_stack(
                     self.call, self.prompts, term=entry.original, target_lang=self.target_lang
                 )
-                described = describe_term(dataset, occurrences, synthesize, fold=fold, weigh=self.weigh)
-            elif entry.notes:
+                return describe_term(dataset, occurrences, synthesize, fold=fold, weigh=self.weigh)
+            if entry.notes:
                 # A term the text never spells out -- a speaker identifier, say --
                 # has no occurrences to read, but a seeder may have handed over
                 # evidence in its notes. Fold that into prose instead of skipping
                 # the entry, which would leave it raw forever.
-                described = DescribeResult(description=fold([entry.notes]))
-            else:
-                continue
-            if described.description:
-                self.manager.update_entry(
-                    entry.original,
-                    translation=entry.translation,
-                    notes=described.description,
-                    status=STATUS_SYNTHESIZED,
-                )
-                result.described += 1
-            self._progress("describe", index + 1, total)
+                return DescribeResult(description=fold([entry.notes]))
+            return DescribeResult(description="")
+
+        def store(entry, described: DescribeResult) -> None:
+            if not described.description:
+                return
+            self.manager.update_entry(
+                entry.original,
+                translation=entry.translation,
+                notes=described.description,
+                status=STATUS_SYNTHESIZED,
+            )
+            result.described += 1
+
+        self._pooled("describe", targets, describe, store, result)
         self._suggest_names(result)
 
     def _suggest_names(self, result: BuildResult) -> None:
-        """Store AI name guesses for review without applying them."""
+        """Read a real name out of each placeholder term's own description.
+
+        A character's lines give them away -- they say their own name, they are
+        addressed by name, they advertise the shop they keep -- and the
+        description is written from exactly those lines. So the answer is
+        already sitting in the glossary; this asks for it as a field instead of
+        leaving a person to read three hundred descriptions looking for it.
+
+        Suggestions only. Renaming a character rewrites every line they speak,
+        so nothing here is applied without a person saying so.
+        """
         targets = [
             entry for entry in self.manager.get_entries()
             if entry.provisional and entry.notes and not entry.suggested_name
         ]
         if not targets:
             return
-        suggest = make_name_suggester(
-            self.call, self.prompts, target_lang=self.target_lang
-        )
-        total = len(targets)
-        for index, entry in enumerate(targets):
-            if self._cancelled():
+        suggest = make_name_suggester(self.call, self.prompts, target_lang=self.target_lang)
+
+        def ask(entry):
+            return suggest(entry.original, entry.notes)
+
+        def store(entry, guess) -> None:
+            if guess is None or not guess.name:
                 return
-            guess = suggest(entry.original, entry.notes)
-            if guess.name:
-                self.manager.suggest_name(entry.original, guess.name, guess.evidence)
-                result.names_suggested += 1
-            self._progress("name", index + 1, total)
+            self.manager.suggest_name(entry.original, guess.name, guess.evidence)
+            result.names_suggested += 1
+
+        self._pooled("name", targets, ask, store, result)

@@ -56,6 +56,42 @@ class AggregatedTerm:
         return [f.text for f in self.fragments]
 
 
+def merge_raw_terms(
+    aggregated: Dict[str, AggregatedTerm],
+    raws: Iterable[RawTerm],
+    *,
+    normalize: Callable[[str], str] = GlossaryManager.normalize_term,
+    max_fragments: int = DEFAULT_MAX_FRAGMENTS,
+) -> None:
+    """Fold one chunk's raw terms into ``aggregated`` in place.
+
+    Split out from the sweep loop so the AI calls can run in a thread pool while
+    the merging stays on one thread -- the aggregate is a plain dict, and keeping
+    every write to it on the collecting thread is cheaper than making it safe to
+    share.
+    """
+    for raw in raws:
+        term = (raw.term or "").strip()
+        key = normalize(term)
+        if not key:
+            continue
+
+        entry = aggregated.get(key)
+        if entry is None:
+            entry = AggregatedTerm(term=term, normalized=key)
+            aggregated[key] = entry
+
+        entry.mentions += 1
+        section = (raw.section or "").strip()
+        if section:
+            entry._sections[section] += 1
+
+        fragment = (raw.fragment or "").strip()
+        if fragment and len(entry.fragments) < max_fragments:
+            if all(existing.text != fragment for existing in entry.fragments):
+                entry.fragments.append(DescriptionFragment(text=fragment))
+
+
 def sweep_terms(
     chunks: Sequence[SweepChunk],
     extract: Callable[[SweepChunk], Iterable[RawTerm]],
@@ -82,26 +118,9 @@ def sweep_terms(
     for index, chunk in enumerate(chunks):
         if is_cancelled is not None and is_cancelled():
             break
-        for raw in extract(chunk):
-            term = (raw.term or "").strip()
-            key = normalize(term)
-            if not key:
-                continue
-
-            entry = aggregated.get(key)
-            if entry is None:
-                entry = AggregatedTerm(term=term, normalized=key)
-                aggregated[key] = entry
-
-            entry.mentions += 1
-            section = (raw.section or "").strip()
-            if section:
-                entry._sections[section] += 1
-
-            fragment = (raw.fragment or "").strip()
-            if fragment and len(entry.fragments) < max_fragments:
-                if all(existing.text != fragment for existing in entry.fragments):
-                    entry.fragments.append(DescriptionFragment(text=fragment))
+        merge_raw_terms(
+            aggregated, extract(chunk), normalize=normalize, max_fragments=max_fragments
+        )
 
         if on_chunk is not None:
             on_chunk(index + 1, total)

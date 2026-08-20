@@ -187,23 +187,28 @@ you put in them are yours. `content_role` may be `"BossName"`, `"PokemonName"`,
 interpreting it. Do not expect the engine to understand a role by name, and do not add engine
 code that compares against a specific value.
 
-### 4.2 Planned Capabilities
+### 4.2 Declared Capabilities
 
-These are designed but **not yet implemented**. See `docs/PIPELINE_ROADMAP.md` before
-relying on them:
+`get_capabilities()` returns the set of names below. It is what the **Localization Pipeline**
+wizard (`Tools → Localization Pipeline…`) reads to decide which steps to offer, so a step
+that needs the game's own data never appears for a plugin that cannot supply it.
 
-- `get_capabilities()` — declares which capabilities the plugin implements, so the pipeline
-  wizard can show them before anything is run.
-- `get_glossary_seed_entries()` — ready-made glossary material straight from game data:
-  `{term, description?, section, icon?, source_ref}`. A game whose data already pairs a name
-  with its description can seed the glossary with **no AI involved at all**.
-- `get_external_lore(term)` — external knowledge lookup used to ground glossary descriptions.
+Declaring nothing is a complete answer. The wizard still offers the whole path that runs on
+extracted text alone — collect, describe, translate and confirm the glossary, then translate
+the text — because none of that needs anything from the game beyond the text itself.
+
+| Name | Hook it promises | What appears once declared |
+| :--- | :--- | :--- |
+| `glossary_seed` | `get_glossary_seed_entries()` | "Structural seed only" mode: ready-made glossary material straight from game data (`{term, description?, section, icon?, source_ref}`), with **no AI involved at all** |
+| `external_lore` | `get_external_lore(term)` | external knowledge lookup grounding glossary descriptions |
+| `speaker_attribution` | `get_speaker_for_string()` | the **Name the speakers** step, which joins a marked-up script onto the speaker codes the game data produced |
+
+Also implemented, and needing no declaration:
+
 - `get_addressee_for_string()` — who a line is addressed to, for the Story Timeline and
   translation prompts.
 - A `role_instruction` key alongside `content_role`, so a plugin supplies not just the name of
-  a role but the sentence explaining what it means to the AI. Today the engine still carries a
-  hardcoded instruction for one game-specific role; that paragraph moves into its plugin, after
-  which the engine will never need to know any role by name.
+  a role but the sentence explaining what it means to the AI.
 
 ### 4.3 Reference Implementation
 

@@ -70,6 +70,8 @@ class MainWindowEventHandler:
             self.mw.run_external_script_action.triggered.connect(self.mw.actions.run_external_script)
         if hasattr(self.mw, 'bfn_editor_action') and self.mw.bfn_editor_action:
             self.mw.bfn_editor_action.triggered.connect(self.mw.actions.open_bfn_editor_standalone)
+        if hasattr(self.mw, 'pipeline_wizard_action') and self.mw.pipeline_wizard_action:
+            self.mw.pipeline_wizard_action.triggered.connect(self.mw.actions.open_pipeline_wizard)
         if hasattr(self.mw, 'script_markup_studio_action') and self.mw.script_markup_studio_action:
             self.mw.script_markup_studio_action.triggered.connect(self.mw.actions.open_script_markup_studio)
         if hasattr(self.mw, 'mempalace_builder_action') and self.mw.mempalace_builder_action:
@@ -344,6 +346,7 @@ class MainWindowEventHandler:
         if hasattr(mw, 'open_settings_action'): safe_disconnect(mw.open_settings_action, 'triggered')
         if hasattr(mw, 'run_external_script_action'): safe_disconnect(mw.run_external_script_action, 'triggered')
         if hasattr(mw, 'bfn_editor_action'): safe_disconnect(mw.bfn_editor_action, 'triggered')
+        if hasattr(mw, 'pipeline_wizard_action'): safe_disconnect(mw.pipeline_wizard_action, 'triggered')
         if hasattr(mw, 'script_markup_studio_action'): safe_disconnect(mw.script_markup_studio_action, 'triggered')
         if hasattr(mw, 'mempalace_builder_action'): safe_disconnect(mw.mempalace_builder_action, 'triggered')
         if hasattr(mw, 'inspect_story_context_action'): safe_disconnect(mw.inspect_story_context_action, 'triggered')

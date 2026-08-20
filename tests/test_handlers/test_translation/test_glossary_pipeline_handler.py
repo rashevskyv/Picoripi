@@ -194,8 +194,11 @@ def test_build_binds_the_glossary_file_before_starting(
     mock_dialog.return_value.options.return_value = {
         "area": AREA_PROJECT, "mode": "draft", "chunk_size": "local", "translate": False,
     }
-    mw = _mw()
+    # Unbound at the start, exactly as a session that has not opened the
+    # glossary yet: the build has to resolve the path itself.
+    mw = _mw(bind_glossary=False)
     binder = mw.translation_handler.glossary_handler.bind_glossary_for_write
+    binder.return_value = Path(tempfile.gettempdir()) / "picoripi_test_project" / "glossary.json"
     handler = GlossaryPipelineHandler(mw)
 
     handler.build_from_text()
@@ -204,7 +207,25 @@ def test_build_binds_the_glossary_file_before_starting(
     mock_worker.return_value.start.assert_called_once()
 
 
-class TestSpeakerSeedSources:
+@patch("handlers.translation.glossary_pipeline_handler.AIStatusDialog")
+@patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildWorker")
+@patch("handlers.translation.glossary_pipeline_handler.get_provider_for_config")
+def test_a_build_can_start_from_options_without_showing_the_dialog(
+    mock_provider, mock_worker, mock_status
+):
+    """The wizard hosts the form itself and starts the run from it."""
+    handler = GlossaryPipelineHandler(_mw())
+
+    handler.start_build(
+        {"area": AREA_PROJECT, "mode": "draft", "chunk_size": "local", "translate": False}
+    )
+
+    mock_worker.return_value.start.assert_called_once()
+
+
+class TestSeedSources:
+    """Everything already written down, gathered before a single AI call."""
+
     def _handler(self, tmp_path, *, plugin_seeds=(), aliases=None):
         import json
 
@@ -218,39 +239,74 @@ class TestSpeakerSeedSources:
             (tmp_path / "speaker_aliases.json").write_text(
                 json.dumps(aliases), encoding="utf-8"
             )
-        return GlossaryPipelineHandler(mw)
+        handler = GlossaryPipelineHandler(mw)
+        handler.mw = mw
+        return handler
 
-    def test_confirmed_name_replaces_the_game_identifier(self, tmp_path):
+    def test_a_decided_name_replaces_the_identifier_the_game_uses(self, tmp_path):
+        """Merge Speakers worked out Bou is MAYOR BO; the glossary must know."""
         handler = self._handler(
             tmp_path,
-            plugin_seeds=[{"term": "Bou", "section": "Characters"}],
+            plugin_seeds=[{"term": "Bou", "section": "Characters", "description": "ev"}],
             aliases={"Bou": "MAYOR BO"},
         )
 
-        assert handler._structural_seeds()[0]["term"] == "MAYOR BO"
+        seeds = handler._structural_seeds()
 
-    def test_unconfirmed_identifier_is_provisional(self, tmp_path):
+        assert [s["term"] for s in seeds] == ["MAYOR BO"]
+        assert seeds[0]["description"] == "ev"   # the evidence follows the name
+
+    def test_terms_that_are_not_speaker_codes_are_untouched(self, tmp_path):
         handler = self._handler(
             tmp_path,
-            plugin_seeds=[{"term": "CLERK_B", "section": "Characters"}],
+            plugin_seeds=[{"term": "Lantern", "section": "Items"}],
+            aliases={"Bou": "MAYOR BO"},
+        )
+
+        assert [s["term"] for s in handler._structural_seeds()] == ["Lantern"]
+
+    def test_no_decisions_yet_changes_nothing(self, tmp_path):
+        handler = self._handler(
+            tmp_path, plugin_seeds=[{"term": "Bou", "section": "Characters"}]
+        )
+
+        assert [s["term"] for s in handler._structural_seeds()] == ["Bou"]
+
+    def test_a_plugin_that_seeds_nothing_still_gets_the_script(self, tmp_path):
+        """A game with no readable data files is not a game with no glossary."""
+        handler = self._handler(tmp_path)
+        handler._markup_seeds = lambda: [{"term": "RENADO", "section": "Characters"}]
+
+        assert [s["term"] for s in handler._structural_seeds()] == ["RENADO"]
+
+    def test_an_undecided_identifier_is_seeded_as_provisional(self, tmp_path):
+        """"CLERK_B" is not a name, and the glossary must not present it as one."""
+        handler = self._handler(
+            tmp_path, plugin_seeds=[{"term": "CLERK_B", "section": "Characters"}]
         )
         handler.mw.current_game_rules.is_placeholder_speaker = lambda n: n == "CLERK_B"
 
-        assert handler._structural_seeds()[0]["provisional"] is True
+        seeds = handler._structural_seeds()
 
-    def test_real_name_is_not_provisional(self, tmp_path):
+        assert seeds[0]["provisional"] is True
+
+    def test_deciding_the_name_clears_the_provisional_flag(self, tmp_path):
         handler = self._handler(
             tmp_path,
-            plugin_seeds=[{"term": "Midna", "section": "Characters"}],
+            plugin_seeds=[{"term": "CLERK_B", "section": "Characters"}],
+            aliases={"CLERK_B": "BARNES"},
         )
-        handler.mw.current_game_rules.is_placeholder_speaker = lambda _n: False
+        handler.mw.current_game_rules.is_placeholder_speaker = lambda n: n == "CLERK_B"
+
+        seeds = handler._structural_seeds()
+
+        assert seeds[0]["term"] == "BARNES"
+        assert seeds[0]["provisional"] is False
+
+    def test_a_real_name_is_never_flagged(self, tmp_path):
+        handler = self._handler(
+            tmp_path, plugin_seeds=[{"term": "Lantern", "section": "Items"}]
+        )
+        handler.mw.current_game_rules.is_placeholder_speaker = lambda n: False
 
         assert not handler._structural_seeds()[0].get("provisional")
-
-    def test_plugin_without_seeds_still_gets_markup_speakers(self, tmp_path):
-        handler = self._handler(tmp_path)
-        handler._markup_seeds = lambda: [
-            {"term": "RENADO", "section": "Characters"}
-        ]
-
-        assert handler._structural_seeds()[0]["term"] == "RENADO"

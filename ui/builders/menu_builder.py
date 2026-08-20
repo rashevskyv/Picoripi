@@ -267,6 +267,17 @@ class MenuBuilder:
         tools_menu.installEventFilter(self.tooltip_filter)
         self.mw.tools_menu = tools_menu
 
+        # The wizard explains the recommended order, while the direct actions
+        # remain available for experienced users.
+        self.mw.pipeline_wizard_action = QAction('&Localization Pipeline...', self.mw)
+        self.mw.pipeline_wizard_action.setToolTip(
+            "<b>Localization Pipeline</b><br>"
+            "Click — open the guided pipeline: every step in order, how far each "
+            "one has got, and the tool that does it."
+        )
+        tools_menu.addAction(self.mw.pipeline_wizard_action)
+        tools_menu.addSeparator()
+
         # Create a dynamic beautiful icon for BFN Font Editor with letter 'A'
         pixmap = QPixmap(32, 32)
         pixmap.fill(Qt.GlobalColor.transparent)
