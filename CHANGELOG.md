@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.085-dev] - 2026-08-20
+
+### Added
+- **Localization Pipeline**: One non-modal, capability-aware wizard presents the localization steps in order. It includes optional structural glossary seeding from game data and focused views for text sweep and term description.
+- **Parallel AI work**: Batch translation and glossary-building support configurable concurrent requests (1–16; default 6), intended for compatible multi-account proxy services.
+- **Idle-aware post-task sleep**: Completed AI and MemePalace tasks can schedule sleep only after the configured period of genuine system inactivity; user activity cancels it.
+
+### Changed
+- **Local AI proxy compatibility**: Gemini and OpenAI-compatible providers accept both root and `/v1` endpoints without duplicating the path and work with proxies that do not require a real API key.
+- **Speaker-folder responsiveness**: Blank source rows are excluded from every `Speakers/None` facet, and the speaker selector reuses its prepared options while the speaker pool is unchanged.
+- **Story Timeline**: Duplicate dialogue claims are omitted before AI analysis.
+
 ## [0.3.081-dev] - 2026-08-13
 
 ### Added
