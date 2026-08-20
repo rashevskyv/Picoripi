@@ -817,3 +817,116 @@ def test_continuation_row_after_removal_finds_non_empty_row(qapp, mock_mw):
     row3 = handler._continuation_row_after_removal(source_rows, [(0, 2)])
     assert row3 == (0, 3)
 
+
+def test_speaker_combobox_caching_and_invalidation(qapp, mock_mw):
+    """Test that speaker combobox options are built once per speaker_pool instance and invalidated properly."""
+    class CountingComboBox(QComboBox):
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            self.clear_count = 0
+            self.add_item_count = 0
+
+        def clear(self):
+            self.clear_count += 1
+            super().clear()
+
+        def addItem(self, *args, **kwargs):
+            self.add_item_count += 1
+            super().addItem(*args, **kwargs)
+
+    class CountingPoolDict(dict):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.values_call_count = 0
+
+        def values(self):
+            self.values_call_count += 1
+            return super().values()
+
+    mock_dp = MagicMock()
+    updater = StringSettingsUpdater(mock_mw, mock_dp)
+    combo = CountingComboBox()
+    combo.setEditable(True)
+    mock_mw.speaker_combobox = combo
+    mock_mw.ui_updater = MagicMock()
+    mock_mw.ui_updater.block_list_updater = MagicMock()
+    mock_mw.translation_handler = None
+    mock_mw.current_game_rules = None
+    mock_mw.project_manager = None
+
+    pool_a = CountingPoolDict({(0, 0): "Hero", (0, 1): "Villain"})
+    mock_mw.ui_updater.block_list_updater._speaker_pool_cache = pool_a
+    mock_mw.ui_updater.block_list_updater._story_projection_cache = None
+    mock_mw.ui_updater.block_list_updater._story_item_mappings_cache = {}
+
+    # 1. First update builds choices once
+    updater._apply_normalized_story_speaker(0, 0)
+    assert combo.clear_count == 1
+    assert pool_a.values_call_count == 1
+    assert combo.currentText() == "Hero"
+    assert combo._last_displayed_char == "Hero"
+    items_after_first = [combo.itemText(i) for i in range(combo.count())]
+    assert items_after_first == ["None", "Hero", "Villain"]
+    add_count_after_first = combo.add_item_count
+
+    # 2. Second update for another string with same pool: no repeat clear, no repeat values(), no repeat addItem
+    updater._apply_normalized_story_speaker(0, 1)
+    assert combo.clear_count == 1
+    assert pool_a.values_call_count == 1
+    assert combo.add_item_count == add_count_after_first
+    assert combo.currentText() == "Villain"
+    assert combo._last_displayed_char == "Villain"
+
+    # 3. Third update for unassigned string resolves to "None" without rebuild
+    updater._apply_normalized_story_speaker(0, 2)
+    assert combo.clear_count == 1
+    assert pool_a.values_call_count == 1
+    assert combo.add_item_count == add_count_after_first
+    assert combo.currentText() == "None"
+    assert combo._last_displayed_char == "None"
+
+    # 4. Replacing pool with a new dict rebuilds choices exactly once and new name appears
+    pool_b = CountingPoolDict({(0, 0): "Hero", (0, 1): "Princess"})
+    mock_mw.ui_updater.block_list_updater._speaker_pool_cache = pool_b
+    updater._apply_normalized_story_speaker(0, 1)
+    assert combo.clear_count == 2
+    assert pool_b.values_call_count == 1
+    assert combo.currentText() == "Princess"
+    assert combo._last_displayed_char == "Princess"
+    items_pool_b = [combo.itemText(i) for i in range(combo.count())]
+    assert items_pool_b == ["None", "Hero", "Princess"]
+
+    # 5. Case-insensitive canonical selection: lowercase "princess" resolves to canonical "Princess"
+    pool_c = CountingPoolDict({(0, 0): "Hero", (0, 1): "Princess", (0, 2): "princess"})
+    mock_mw.ui_updater.block_list_updater._speaker_pool_cache = pool_c
+    updater._apply_normalized_story_speaker(0, 2)
+    assert combo.currentText() == "Princess"
+    assert combo._last_displayed_char == "Princess"
+
+    # 6. Speaker -> Item -> Speaker transition
+    projection = StoryVirtualProjection(1, (), ())
+    client = MagicMock()
+    ref_item = MagicMock()
+    ref_item.name = "Master Sword"
+    client.get_reference_items.return_value = (ref_item,)
+    client.get_reference_item_context.return_value = None
+    mock_mw.ui_updater.block_list_updater._story_projection_cache = projection
+    mock_mw.ui_updater.block_list_updater._story_item_mappings_cache = {(0, 0): "Master Sword"}
+    mock_mw.translation_handler = MagicMock()
+    mock_mw.translation_handler.prompt_composer._get_mempalace_client.return_value = client
+
+    # Transition to item role
+    updater._apply_normalized_story_speaker(0, 0)
+    assert combo.currentText() == "Master Sword"
+    assert combo._story_role == "item"
+    item_options = [combo.itemText(i) for i in range(combo.count())]
+    assert "Master Sword" in item_options
+
+    # Transition back to speaker role
+    mock_mw.ui_updater.block_list_updater._story_item_mappings_cache = {}
+    updater._apply_normalized_story_speaker(0, 0)
+    assert combo.currentText() == "Hero"
+    assert combo._story_role == "speaker"
+    restored_options = [combo.itemText(i) for i in range(combo.count())]
+    assert restored_options == ["None", "Hero", "Princess"]
+

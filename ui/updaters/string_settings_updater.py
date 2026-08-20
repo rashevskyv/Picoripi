@@ -28,11 +28,15 @@ class StringSettingsUpdater(BaseUIUpdater):
         self._story_context_cache = {}
         self._reference_items_cache = {}
         self._projection_context_indices = {}
+        self._cached_speaker_pool = None
+        self._cached_speaker_pool_case_map = {}
 
     def clear_story_context_cache(self) -> None:
         self._story_context_cache.clear()
         self._reference_items_cache.clear()
         self._projection_context_indices.clear()
+        self._cached_speaker_pool = None
+        self._cached_speaker_pool_case_map.clear()
 
     def _project_speaker_names(self):
         """Return every persisted manual and legacy speaker name in the project."""
@@ -236,54 +240,80 @@ class StringSettingsUpdater(BaseUIUpdater):
         combo = getattr(self.mw, "speaker_combobox", None)
         if combo is not None:
             combo.blockSignals(True)
-            combo.clear()
-            combo.addItem("None")
-            if role == "item" and projection and client:
-                references = self._reference_items_cache.get(projection.document_id)
-                if references is None:
-                    references = client.get_reference_items(projection.document_id)
-                    self._reference_items_cache[projection.document_id] = references
-                for reference in references:
-                    if reference.name != "None":
-                        combo.addItem(reference.name)
-            elif pool_available and role == "speaker":
-                # Every selectable speaker == every virtual folder, same names.
-                unique_names = {}
-                for value in speaker_pool.values():
-                    name = str(value or "").strip()
-                    if name and name.casefold() != "none":
-                        unique_names.setdefault(name.casefold(), name)
-                for name in sorted(unique_names.values(), key=str.casefold):
-                    combo.addItem(name)
-            elif projection:
-                unique_names = {}
-                for speaker in projection.speakers:
-                    name = str(speaker.name or "").strip()
-                    if name:
-                        unique_names.setdefault(name.casefold(), name)
-                for name in self._project_speaker_names():
-                    unique_names.setdefault(name.casefold(), name)
-                for name in sorted(unique_names.values(), key=str.casefold):
-                    if name != "None":
+            if pool_available and role == "speaker":
+                pool_cached = (
+                    getattr(self, "_cached_speaker_pool", None) is speaker_pool
+                    and getattr(combo, "_populated_for_pool", None) is speaker_pool
+                    and getattr(combo, "_story_role", None) == "speaker"
+                    and combo.count() > 0
+                )
+                if not pool_cached:
+                    combo.clear()
+                    combo.addItem("None")
+                    case_map = {"none": (0, "None")}
+                    unique_names = {}
+                    for value in speaker_pool.values():
+                        name = str(value or "").strip()
+                        if name and name.casefold() != "none":
+                            unique_names.setdefault(name.casefold(), name)
+                    for name in sorted(unique_names.values(), key=str.casefold):
                         combo.addItem(name)
-            elif role == "speaker":
-                unique_names = {}
-                for name in self._project_speaker_names():
-                    unique_names.setdefault(name.casefold(), name)
-                for name in sorted(unique_names.values(), key=str.casefold):
-                    combo.addItem(name)
-            current_index = next(
-                (
-                    index for index in range(combo.count())
-                    if combo.itemText(index).casefold() == current.casefold()
-                ),
-                -1,
-            )
-            if not isinstance(current_index, int) or current_index < 0:
-                combo.addItem(current)
+                        case_map[name.casefold()] = (combo.count() - 1, name)
+                    self._cached_speaker_pool = speaker_pool
+                    self._cached_speaker_pool_case_map = case_map
+                    combo._populated_for_pool = speaker_pool
+                else:
+                    case_map = getattr(self, "_cached_speaker_pool_case_map", {})
+
+                lookup = case_map.get(current.casefold())
+                if lookup is not None:
+                    current_index, current = lookup
+                else:
+                    combo.addItem(current)
+                    current_index = combo.count() - 1
+                    case_map[current.casefold()] = (current_index, current)
+                combo.setCurrentIndex(current_index)
             else:
-                current = combo.itemText(current_index)
-            combo.setCurrentText(current)
+                combo._populated_for_pool = None
+                combo.clear()
+                combo.addItem("None")
+                if role == "item" and projection and client:
+                    references = self._reference_items_cache.get(projection.document_id)
+                    if references is None:
+                        references = client.get_reference_items(projection.document_id)
+                        self._reference_items_cache[projection.document_id] = references
+                    for reference in references:
+                        if reference.name != "None":
+                            combo.addItem(reference.name)
+                elif projection:
+                    unique_names = {}
+                    for speaker in projection.speakers:
+                        name = str(speaker.name or "").strip()
+                        if name:
+                            unique_names.setdefault(name.casefold(), name)
+                    for name in self._project_speaker_names():
+                        unique_names.setdefault(name.casefold(), name)
+                    for name in sorted(unique_names.values(), key=str.casefold):
+                        if name != "None":
+                            combo.addItem(name)
+                elif role == "speaker":
+                    unique_names = {}
+                    for name in self._project_speaker_names():
+                        unique_names.setdefault(name.casefold(), name)
+                    for name in sorted(unique_names.values(), key=str.casefold):
+                        combo.addItem(name)
+                current_index = next(
+                    (
+                        index for index in range(combo.count())
+                        if combo.itemText(index).casefold() == current.casefold()
+                    ),
+                    -1,
+                )
+                if not isinstance(current_index, int) or current_index < 0:
+                    combo.addItem(current)
+                else:
+                    current = combo.itemText(current_index)
+                combo.setCurrentText(current)
             combo._last_displayed_char = current
             combo._story_role = role
             combo.setEnabled(True)
