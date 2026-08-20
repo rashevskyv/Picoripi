@@ -350,6 +350,15 @@ class BlockListUpdater(BaseUIUpdater):
             for string_idx in range(len(block))
         }
 
+    def _is_blank_row(self, block_idx: int, string_idx: int) -> bool:
+        data = getattr(getattr(self.mw, "data_store", None), "data", None)
+        if not isinstance(data, list) or not (0 <= block_idx < len(data)):
+            return False
+        block = data[block_idx]
+        if not isinstance(block, (list, tuple)) or not (0 <= string_idx < len(block)):
+            return False
+        return not str(block[string_idx] or "").strip()
+
     def _story_linked_rows(self, projection: StoryVirtualProjection) -> set[tuple[int, int]]:
         linked = set()
 
@@ -529,7 +538,10 @@ class BlockListUpdater(BaseUIUpdater):
         for name in sorted(
             (name for name in speakers if name != "None"), key=natural_sort_key
         ):
-            rows = [row for row in speakers[name] if row in scope]
+            rows = [
+                row for row in speakers[name]
+                if row in scope and not self._is_blank_row(*row)
+            ]
             if not rows:
                 continue
             assigned.update(rows)
@@ -538,9 +550,13 @@ class BlockListUpdater(BaseUIUpdater):
             )
         if root.childCount() == 0:
             return None
+        none_rows = [
+            row for row in sorted(scope - assigned)
+            if not self._is_blank_row(*row)
+        ]
         none_item = self._add_virtual_role_leaf(
             root, "None", -3, Qt.ItemDataRole.UserRole + 15,
-            "None", sorted(scope - assigned),
+            "None", none_rows,
         )
         if none_item is not None:
             root.takeChild(root.indexOfChild(none_item))
@@ -1638,6 +1654,8 @@ class BlockListUpdater(BaseUIUpdater):
                 combined_speakers = {}  # {speaker_name: [(b_idx, s_idx), ...]}
                 assigned_strings = set()  # {(b_idx, s_idx), ...}
                 for row in sorted(speaker_pool):
+                    if self._is_blank_row(*row):
+                        continue
                     speaker_name = speaker_pool[row]
                     combined_speakers.setdefault(speaker_name, []).append(row)
                     assigned_strings.add(row)
@@ -1645,10 +1663,13 @@ class BlockListUpdater(BaseUIUpdater):
                 # None is a real virtual speaker block in every context model. It is
                 # the complete complement of assigned rows, not a legacy-only fallback.
                 none_strings = []
-                for b_idx in range(len(self.mw.data_store.data)):
-                    block_data = self.mw.data_store.data[b_idx]
+                data = getattr(getattr(self.mw, "data_store", None), "data", None) or []
+                for b_idx in range(len(data)):
+                    block_data = data[b_idx]
+                    if not isinstance(block_data, (list, tuple)):
+                        continue
                     for s_idx in range(len(block_data)):
-                        if (b_idx, s_idx) not in assigned_strings:
+                        if (b_idx, s_idx) not in assigned_strings and not self._is_blank_row(b_idx, s_idx):
                             none_strings.append((b_idx, s_idx))
                 if none_strings:
                     combined_speakers["None"] = none_strings

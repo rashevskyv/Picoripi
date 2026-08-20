@@ -720,3 +720,50 @@ def test_BlockListUpdater_populate_blocks_show_unsaved_only(updater):
     folder_names = [r.text(0) for r in root_items]
     assert any("DirtyFolder" in f for f in folder_names)
     assert not any("CleanFolder" in f for f in folder_names)
+
+
+def test_speakers_none_excludes_blank_and_whitespace_rows(mock_mw, mock_dp):
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    mock_mw.data_store.data = [["Hero line", "", "   \t  ", "Unassigned speech"]]
+    mock_mw.data_store.block_names = {"0": "Block 0"}
+    mock_mw.project_manager = None
+    mock_mw.translation_handler = None
+    mock_mw.list_selection_handler = None
+    mock_mw.block_list_widget.create_item = MagicMock(side_effect=lambda name, idx, role: QTreeWidgetItem([name]))
+
+    with patch(
+        "core.speaker_resolution.build_speaker_pool",
+        return_value={(0, 0): "Hero"},
+    ):
+        updater.populate_blocks()
+
+    widget = mock_mw.block_list_widget
+    speakers_root = None
+    for i in range(widget.topLevelItemCount()):
+        item = widget.topLevelItem(i)
+        if item.text(0) == "Speakers":
+            speakers_root = item
+            break
+
+    assert speakers_root is not None
+    speaker_folders = {
+        speakers_root.child(i).data(0, Qt.ItemDataRole.UserRole + 15): speakers_root.child(i).data(0, Qt.ItemDataRole.UserRole + 13)
+        for i in range(speakers_root.childCount())
+    }
+    assert "Hero" in speaker_folders
+    assert speaker_folders["Hero"] == [(0, 0)]
+    assert "None" in speaker_folders
+    assert speaker_folders["None"] == [(0, 3)]
+
+    # Test nested Windows/<kind>/Speakers/None
+    parent = QTreeWidgetItem(["Windows"])
+    speakers_dict = {"Hero": [(0, 0)]}
+    allowed = {(0, 0), (0, 1), (0, 2), (0, 3)}
+    proj_root = updater._add_speaker_projection_root(parent, speakers_dict, allowed_rows=allowed)
+    assert proj_root is not None
+    nested_folders = {
+        proj_root.child(i).data(0, Qt.ItemDataRole.UserRole + 15): proj_root.child(i).data(0, Qt.ItemDataRole.UserRole + 13)
+        for i in range(proj_root.childCount())
+    }
+    assert nested_folders.get("Hero") == [(0, 0)]
+    assert nested_folders.get("None") == [(0, 3)]
