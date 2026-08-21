@@ -1,6 +1,23 @@
 import pytest
 
-from core.glossary_manager import STATUS_FRAGMENTS, GlossaryEntry, GlossaryManager
+from core.glossary_manager import (
+    STATUS_FRAGMENTS,
+    GlossaryEntry,
+    GlossaryManager,
+    possible_duplicate_pairs,
+)
+
+
+def test_possible_duplicates_are_proposals_not_merges():
+    entries = [
+        GlossaryEntry("Princess Zelda", "Зельда", section="Characters"),
+        GlossaryEntry("Princess Zeldá", "", status="seeded", section="Characters"),
+        GlossaryEntry("Princess Zelda", "", status="seeded", section="Places"),
+    ]
+
+    assert possible_duplicate_pairs(entries) == [
+        ("Princess Zelda", "Princess Zeldá")
+    ]
 
 def test_GlossaryEntry_is_valid():
     assert GlossaryEntry("term", "term").is_valid()

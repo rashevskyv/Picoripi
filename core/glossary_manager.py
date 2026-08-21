@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Callable
 import re
+from difflib import SequenceMatcher
 import unicodedata
 import ahocorasick
 
@@ -128,6 +129,28 @@ class GlossaryOccurrence:
     start: int
     end: int
     line_text: str
+
+
+def possible_duplicate_pairs(entries) -> List[Tuple[str, str]]:
+    """Conservative fuzzy duplicate proposals; never merges anything itself."""
+    candidates = []
+    for index, left in enumerate(entries):
+        left_key = "".join(ch for ch in left.original.casefold() if ch.isalnum())
+        if len(left_key) < 4:
+            continue
+        for right in entries[index + 1:]:
+            if left.section and right.section and left.section != right.section:
+                continue
+            right_key = "".join(ch for ch in right.original.casefold() if ch.isalnum())
+            if left_key == right_key or len(right_key) < 4:
+                continue
+            if left_key[:2] != right_key[:2] or abs(len(left_key) - len(right_key)) > 3:
+                continue
+            # ponytail: lexical similarity only; replace with semantic matching
+            # if real projects show that differently spelled aliases are missed.
+            if SequenceMatcher(None, left_key, right_key).ratio() >= 0.88:
+                candidates.append((left.original, right.original))
+    return candidates
 
 
 def _fragments_from_raw(raw) -> Tuple[DescriptionFragment, ...]:

@@ -37,6 +37,7 @@ from core.glossary_manager import (
     TERM_PLACEHOLDER,
     GlossaryEntry,
     GlossaryOccurrence,
+    possible_duplicate_pairs,
     render_notes,
 )
 from core.speaker_alias_merge import is_confirmed_speaker_alias
@@ -162,6 +163,7 @@ class GlossaryDialog(QDialog):
         self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
 
         self._all_entries = list(entries)
+        self._duplicate_pairs = possible_duplicate_pairs(self._all_entries)
         self._filtered_entries: List[GlossaryEntry] = list(entries)
         self._occurrences = occurrence_map
         self._jump_callback = jump_callback
@@ -274,7 +276,7 @@ class GlossaryDialog(QDialog):
         self._confirm_button.clicked.connect(self._on_confirm_clicked)
         right_layout.addWidget(self._confirm_button)
 
-        # The three variable-height areas share a draggable splitter: a long
+        # The variable-height areas share a draggable splitter: a long
         # rationale or a long description needs room, and a fixed cap cannot
         # know which one the user is reading.
         detail_splitter = QSplitter(Qt.Orientation.Vertical, self)
@@ -299,7 +301,7 @@ class GlossaryDialog(QDialog):
         self._profiled_checkbox = QCheckBox("Profiled via AI (Speech Profile generated)", self)
         notes_layout.addWidget(self._profiled_checkbox)
         notes_row = QHBoxLayout()
-        notes_label = QLabel("Notes:", self)
+        notes_label = QLabel("Description:", self)
         notes_row.addWidget(notes_label)
         self._notes_variation_default_text = "AI Variations"
         self._notes_variation_button = QPushButton(self._notes_variation_default_text, self)
@@ -314,6 +316,18 @@ class GlossaryDialog(QDialog):
         notes_layout.addWidget(self._notes_edit, 1)
         detail_splitter.addWidget(notes_pane)
 
+        ai_notes_pane = QWidget(self)
+        ai_notes_layout = QVBoxLayout(ai_notes_pane)
+        ai_notes_layout.setContentsMargins(0, 0, 0, 0)
+        ai_notes_label = QLabel("AI notes and unresolved choices:", self)
+        ai_notes_layout.addWidget(ai_notes_label)
+        self._ai_notes_edit = QPlainTextEdit(self)
+        self._ai_notes_edit.setReadOnly(True)
+        self._ai_notes_edit.setUndoRedoEnabled(False)
+        self._ai_notes_edit.setPlaceholderText("No AI doubts or alternative choices recorded.")
+        ai_notes_layout.addWidget(self._ai_notes_edit, 1)
+        detail_splitter.addWidget(ai_notes_pane)
+
         occurrences_pane = QWidget(self)
         occurrences_layout = QVBoxLayout(occurrences_pane)
         occurrences_layout.setContentsMargins(0, 0, 0, 0)
@@ -327,7 +341,7 @@ class GlossaryDialog(QDialog):
         self._occurrence_list.itemDoubleClicked.connect(self._activate_selected_occurrence)
         occurrences_layout.addWidget(self._occurrence_list, 1)
         detail_splitter.addWidget(occurrences_pane)
-        detail_splitter.setSizes([150, 200, 200])
+        detail_splitter.setSizes([140, 180, 160, 200])
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, parent=self)
         
         self._save_button = QPushButton("Save Changes", self)
@@ -343,14 +357,11 @@ class GlossaryDialog(QDialog):
         if self._update_callback is None or self._global_replace_callback is None:
             self._global_replace_button.setVisible(False)
             
-        # Same launcher as Tools > Build Glossary from Text: it already offers
-        # every mode (thorough / draft / augment / translate-only), so the
-        # glossary needs a door to it, not its own copy of the buttons.
-        self._build_button = QPushButton("Build / Translate via AI...", self)
+        # Same single route as Tools and the pipeline wizard.
+        self._build_button = QPushButton("Run automatic glossary pass...", self)
         self._build_button.setStyleSheet("background-color: #2563eb; color: white; font-weight: bold;")
         self._build_button.setToolTip(
-            "Sweep the project text for terms, describe them, or propose translations "
-            "for entries that have a description but no translation yet."
+            "Seed, discover, describe, and propose translations in one uninterrupted pass."
         )
         self._build_button.clicked.connect(self._on_build_clicked)
         button_box.addButton(self._build_button, QDialogButtonBox.ButtonRole.ActionRole)
@@ -1049,6 +1060,7 @@ class GlossaryDialog(QDialog):
         self._translation_edit.setText(entry.translation or '')
         self._notes_template = entry.notes or ''
         self._notes_edit.setPlainText(self._rendered_notes())
+        self._ai_notes_edit.setPlainText(self._ai_notes_for_entry(entry))
         self._profiled_checkbox.setChecked(entry.profiled)
         self._populate_variants(entry)
 
@@ -1126,6 +1138,7 @@ class GlossaryDialog(QDialog):
         self._translation_edit.clear()
         self._notes_template = ''
         self._notes_edit.clear()
+        self._ai_notes_edit.clear()
         self._profiled_checkbox.setChecked(False)
         self._populate_variants(None)
         if hasattr(self, '_speaker_identity_pane'):
@@ -1301,6 +1314,43 @@ class GlossaryDialog(QDialog):
         self._confirm_button.setVisible(bool(entry) and self._needs_review(entry))
         self._confirm_button.setEnabled(can_confirm)
 
+    def _ai_notes_for_entry(self, entry: GlossaryEntry) -> str:
+        """Render existing AI evidence separately from the clean description."""
+        sections = []
+        fragments = []
+        for fragment in getattr(entry, "fragments", ()) or ():
+            text = str(getattr(fragment, "text", "") or "").strip()
+            if text and text not in fragments:
+                fragments.append(text)
+        if fragments:
+            sections.append("Observations collected during the text sweep:\n- " + "\n- ".join(fragments))
+
+        variants = getattr(entry, "translation_variants", ()) or ()
+        if len(variants) > 1:
+            choices = [
+                f"{variant.translation} — {variant.rationale}".rstrip(" —")
+                for variant in variants
+            ]
+            sections.append("Defensible translation choices:\n- " + "\n- ".join(choices))
+
+        suggested_name = str(getattr(entry, "suggested_name", "") or "").strip()
+        name_evidence = str(getattr(entry, "suggested_name_evidence", "") or "").strip()
+        if suggested_name or name_evidence:
+            text = f"Possible speaker identity: {suggested_name or '(unknown)'}"
+            if name_evidence:
+                text += f"\nEvidence: {name_evidence}"
+            sections.append(text)
+        duplicates = [
+            right if left == entry.original else left
+            for left, right in self._duplicate_pairs
+            if entry.original in (left, right)
+        ]
+        if duplicates:
+            sections.append(
+                "Possible duplicate terms (review manually):\n- " + "\n- ".join(duplicates)
+            )
+        return "\n\n".join(sections)
+
     def _rendered_notes(self) -> str:
         """The stored notes with the term placeholder filled in."""
         entry = self._current_entry
@@ -1424,6 +1474,7 @@ class GlossaryDialog(QDialog):
     ) -> None:
         """Hot-reload entries and occurrences from external source and refresh UI."""
         self._all_entries = list(entries)
+        self._duplicate_pairs = possible_duplicate_pairs(self._all_entries)
         self._occurrences = occurrence_map
         
         # Save currently selected term name to restore selection after reload

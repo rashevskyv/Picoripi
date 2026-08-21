@@ -83,6 +83,18 @@ def test_worker_translate_flag_runs_pass_3(qtbot):
     assert entry.translation == "Ордон"
 
 
+def test_auto_mode_always_proposes_translations(qtbot):
+    manager = _manager()
+    worker = GlossaryBuildWorker(
+        manager, FakeProvider(), DATASET, mode="auto", translate=False
+    )
+    _capture(worker)
+
+    worker.run()
+
+    assert manager.get_entry("Ordon").translation == "Ордон"
+
+
 def test_worker_draft_mode_skips_describe(qtbot):
     manager = _manager()
     provider = FakeProvider()

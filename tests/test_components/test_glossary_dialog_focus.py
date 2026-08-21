@@ -1,5 +1,9 @@
 """Opening the glossary for a speaker must land ON that speaker's entry."""
-from core.glossary_manager import GlossaryEntry
+from core.glossary_manager import (
+    DescriptionFragment,
+    GlossaryEntry,
+    TranslationVariant,
+)
 from components.glossary_dialog import GlossaryDialog
 
 
@@ -66,3 +70,29 @@ def test_escape_closes_dialog_without_crashing(qtbot):
     event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
     dlg.keyPressEvent(event)  # must not raise AttributeError
     assert not dlg.isVisible()
+
+
+def test_ai_notes_are_separate_from_the_clean_description(qtbot):
+    entry = GlossaryEntry(
+        original="Spring Goron",
+        translation="Ґорон Джерела",
+        notes="A Goron associated with the hot spring.",
+        fragments=(DescriptionFragment("The context may mean a bath, not a season."),),
+        translation_variants=(
+            TranslationVariant("Ґорон Джерела", "spring means a hot spring"),
+            TranslationVariant("Весняний Ґорон", "spring may mean the season"),
+        ),
+    )
+    dialog = GlossaryDialog(
+        parent=None,
+        entries=[entry],
+        occurrence_map={},
+        jump_callback=lambda _occurrence: None,
+    )
+    qtbot.addWidget(dialog)
+    dialog.focus_term("Spring Goron")
+
+    assert dialog._notes_edit.toPlainText() == entry.notes
+    ai_notes = dialog._ai_notes_edit.toPlainText()
+    assert "bath, not a season" in ai_notes
+    assert "spring may mean the season" in ai_notes

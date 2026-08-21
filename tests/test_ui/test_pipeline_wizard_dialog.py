@@ -88,7 +88,7 @@ class TestReadingTheProject:
         dialog = PipelineWizardDialog(_mw(tmp_path))
 
         assert all(s.state == NOT_STARTED for s in dialog._states.values())
-        assert "0 / 7 steps complete" in dialog.headline.text()
+        assert "0 / 5 steps complete" in dialog.headline.text()
         dialog.deleteLater()
 
     def test_partial_work_is_shown_as_a_count_not_a_bare_light(self, tmp_path):
@@ -153,16 +153,15 @@ class TestTheWizardIsTheEnginesNotOneGames:
     def test_a_plugin_that_declares_nothing_still_gets_the_whole_text_path(self):
         keys = [step.key for step in steps_for(set())]
 
-        assert keys == ["markup", "context", "seed", "describe", "translate", "text"]
+        assert keys == ["markup", "context", "glossary", "text"]
 
     def test_speaker_merging_appears_only_where_the_game_attributes_speakers(self):
         assert "speakers" not in [s.key for s in steps_for({"glossary_seed"})]
         assert "speakers" in [s.key for s in steps_for({"speaker_attribution"})]
 
-    def test_structural_seeding_appears_only_where_the_plugin_declares_glossary_seed(self):
-        assert "structural_seed" in [s.key for s in steps_for({"glossary_seed"})]
-        assert "structural_seed" not in [s.key for s in steps_for(set())]
-        assert "structural_seed" not in [s.key for s in steps_for({"speaker_attribution"})]
+    def test_structural_seeding_is_part_of_the_one_glossary_route(self):
+        assert "glossary" in [s.key for s in steps_for({"glossary_seed"})]
+        assert "structural_seed" not in [s.key for s in steps_for({"glossary_seed"})]
 
     def test_an_unknown_capability_adds_nothing(self):
         assert steps_for({"time_travel"}) == steps_for(set())
@@ -184,7 +183,7 @@ class TestNavigation:
         dialog = PipelineWizardDialog(_mw(tmp_path, capabilities=()))
 
         assert "speakers" not in [step.key for step in dialog._steps]
-        assert len(_shown(dialog)) == 6
+        assert len(_shown(dialog)) == 4
         dialog.deleteLater()
 
     def test_a_game_with_no_script_says_so_rather_than_nagging(self, tmp_path):
@@ -363,25 +362,13 @@ class TestLaunching:
         mw.script_markup_studio_action.trigger.assert_called_once()
         dialog.deleteLater()
 
-    def test_the_glossary_step_opens_the_glossary(self, tmp_path):
-        mw = _mw(tmp_path)
-        dialog = PipelineWizardDialog(mw)
+    def test_the_glossary_step_hosts_the_automatic_route(self, tmp_path):
+        dialog = PipelineWizardDialog(_mw(tmp_path))
 
-        dialog.select_step("translate")
-        dialog._run_current()
+        step = dialog._step_for("glossary")
 
-        mw.translation_handler.show_glossary_dialog.assert_called_once()
-        dialog.deleteLater()
-
-    def test_structural_seed_triggers_handler(self, tmp_path):
-        mw = _mw(tmp_path, capabilities=("glossary_seed",))
-        mw.glossary_pipeline_handler.seed_from_game_data = MagicMock()
-        dialog = PipelineWizardDialog(mw)
-
-        dialog.select_step("structural_seed")
-        dialog._run_current()
-
-        mw.glossary_pipeline_handler.seed_from_game_data.assert_called_once()
+        assert step.embed is not None
+        assert step.run is None
         dialog.deleteLater()
 
     def test_the_last_step_has_no_button_to_press(self, tmp_path):
@@ -408,20 +395,18 @@ class TestLaunching:
 
 @pytest.mark.usefixtures("qapp")
 class TestTheGlossaryStepsAreOneStep:
-    """Describing, naming and translating are things you do to the collection."""
+    """The model's glossary passes are one uninterrupted user-facing route."""
 
     def test_they_are_nested_under_collecting_the_terms(self, tmp_path):
         dialog = PipelineWizardDialog(_mw(tmp_path))
 
-        for key in ("describe", "speakers", "translate"):
-            item = dialog._item_for(key)
-            assert item.parent() is dialog._item_for("seed"), key
+        assert dialog._item_for("speakers").parent() is dialog._item_for("glossary")
         dialog.deleteLater()
 
     def test_the_stages_around_the_glossary_stay_at_the_top(self, tmp_path):
         dialog = PipelineWizardDialog(_mw(tmp_path))
 
-        for key in ("markup", "context", "seed", "text"):
+        for key in ("markup", "context", "glossary", "text"):
             assert dialog._item_for(key).parent() is None, key
         dialog.deleteLater()
 
@@ -440,7 +425,7 @@ class TestTheGlossaryStepsAreOneStep:
         """A step whose only content is a button to open the step is a door."""
         dialog = PipelineWizardDialog(_mw(tmp_path))
 
-        assert dialog._step_for("seed").embed is not None
-        assert dialog._step_for("seed").run is None
-        assert dialog._step_for("describe").embed is not None
+        assert dialog._step_for("glossary").embed is not None
+        assert dialog._step_for("glossary").run is None
+        assert dialog._step_for("describe") is None
         dialog.deleteLater()

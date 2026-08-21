@@ -1,8 +1,10 @@
 """Tests for the Build-Glossary-from-Text launch dialog."""
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QDialogButtonBox
 
 from core.glossary_build.pipeline_coordinator import (
     MODE_AUGMENT,
+    MODE_AUTO,
     MODE_DRAFT,
     MODE_THOROUGH,
     MODE_TRANSLATE,
@@ -142,6 +144,29 @@ class TestWhatThisProjectCanActuallyOffer:
 
 
 class TestTargetStepViews:
+    def test_auto_route_selects_all_blocks_and_all_passes(self, qtbot):
+        dialog = GlossaryBuildDialog(
+            target_step="auto", block_labels=[(0, "Intro"), (1, "Village")]
+        )
+        qtbot.addWidget(dialog)
+
+        options = dialog.options()
+        assert options["mode"] == MODE_AUTO
+        assert options["block_indices"] is None
+        assert options["translate"] is True
+        assert options["full_rescan"] is False
+
+    def test_auto_route_can_exclude_individual_blocks(self, qtbot):
+        dialog = GlossaryBuildDialog(
+            target_step="auto", block_labels=[(0, "Intro"), (1, "Village")]
+        )
+        qtbot.addWidget(dialog)
+
+        dialog._block_list.item(1).setCheckState(Qt.CheckState.Unchecked)
+
+        assert dialog.options()["block_indices"] == [0]
+        assert "1 of 2" in dialog._all_blocks_check.text()
+
     def test_sweep_step_tailored_view(self, qtbot):
         dialog = GlossaryBuildDialog(target_step="seed")
         qtbot.addWidget(dialog)

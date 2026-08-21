@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from core.glossary_manager import GlossaryManager
+from core.glossary_build.pipeline_coordinator import MODE_AUTO
 from handlers.translation.glossary_pipeline_handler import GlossaryPipelineHandler
 from ui.glossary_build_dialog import AREA_CURRENT, AREA_PROJECT, AREA_SELECTED
 
@@ -133,7 +134,7 @@ def test_finished_reports_and_refreshes(mock_box):
     handler = GlossaryPipelineHandler(mw)
     handler._on_finished(True, "seeded 3, described 3, translated 0")
 
-    mock_box.information.assert_called_once()
+    mock_box.return_value.exec.assert_called_once()
     mw.translation_handler.glossary_handler._update_glossary_highlighting.assert_called_once()
 
 
@@ -221,6 +222,35 @@ def test_a_build_can_start_from_options_without_showing_the_dialog(
     )
 
     mock_worker.return_value.start.assert_called_once()
+
+
+@patch("handlers.translation.glossary_pipeline_handler.AIStatusDialog")
+@patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildWorker")
+@patch("handlers.translation.glossary_pipeline_handler.get_provider_for_config")
+def test_auto_route_sweeps_only_changed_blocks(
+    mock_provider, mock_worker, mock_status
+):
+    mw = _mw(dataset=[["same"], ["changed"]])
+    handler = GlossaryPipelineHandler(mw)
+    handler._load_scan_state = MagicMock(
+        return_value={"0": handler._fingerprint_block(["same"]), "1": "old"}
+    )
+
+    handler.start_build(
+        {
+            "area": AREA_PROJECT,
+            "mode": MODE_AUTO,
+            "chunk_size": "balanced",
+            "translate": True,
+            "block_indices": None,
+            "full_rescan": False,
+        }
+    )
+
+    kwargs = mock_worker.call_args.kwargs
+    assert kwargs["mode"] == MODE_AUTO
+    assert kwargs["block_indices"] == [1]
+    assert kwargs["translate"] is True
 
 
 class TestSeedSources:

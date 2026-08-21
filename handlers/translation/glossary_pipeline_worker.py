@@ -15,6 +15,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 from core.glossary_build.parallel import DEFAULT_RETRY_DELAY, DEFAULT_WORKERS
 from core.glossary_build.pipeline_coordinator import (
+    MODE_AUTO,
     MODE_THOROUGH,
     BuildResult,
     GlossaryBuildCoordinator,
@@ -73,6 +74,7 @@ class GlossaryBuildWorker(QThread):
         self._retry_delay = float(retry_delay)
         self._timeout = max(90, int(timeout))
         self._cancel = False
+        self.last_result: Optional[BuildResult] = None
 
     def cancel(self) -> None:
         """Request cooperative cancellation."""
@@ -126,7 +128,8 @@ class GlossaryBuildWorker(QThread):
                 max_consecutive_failures=self._max_consecutive_failures,
             )
             result = coordinator.build(self.dataset, self.mode, block_indices=self.block_indices)
-            if self.translate and not result.cancelled:
+            self.last_result = result
+            if (self.translate or self.mode == MODE_AUTO) and not result.cancelled:
                 coordinator.run_translate(result)
 
             # Losing some units is a partial result; losing *every* unit is a

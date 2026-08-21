@@ -383,7 +383,7 @@ class MenuBuilder:
         self.mw.mempalace_builder_action.setShortcut('Ctrl+M')
         tools_menu.addAction(self.mw.mempalace_builder_action)
 
-        # Dynamic icon for Build Glossary from Text with letter 'G'
+        # Dynamic icon for the unified glossary pass with letter 'G'
         pixmap_g = QPixmap(32, 32)
         pixmap_g.fill(Qt.GlobalColor.transparent)
         painter_g = QPainter(pixmap_g)
@@ -396,12 +396,11 @@ class MenuBuilder:
 
         self.mw.build_glossary_text_action = QAction(
             QIcon(pixmap_g),
-            'Build &Glossary from Text...',
+            'Prepare &Glossary...',
             self.mw
         )
         self.mw.build_glossary_text_action.setToolTip(
-            'Sweep project text with AI to collect glossary terms, then describe each term '
-            'from the context around every place it appears'
+            'Seed, discover, describe, and propose glossary translations in one automatic pass'
         )
         tools_menu.addAction(self.mw.build_glossary_text_action)
 

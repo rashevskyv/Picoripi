@@ -199,7 +199,7 @@ the text — because none of that needs anything from the game beyond the text i
 
 | Name | Hook it promises | What appears once declared |
 | :--- | :--- | :--- |
-| `glossary_seed` | `get_glossary_seed_entries()` | "Structural seed only" mode: ready-made glossary material straight from game data (`{term, description?, section, icon?, source_ref}`), with **no AI involved at all** |
+| `glossary_seed` | `get_glossary_seed_entries()` | Ready-made glossary material from game data (`{term, description?, section, icon?, source_ref, blocks?}`), consumed first by the unified automatic glossary pass without an AI request |
 | `external_lore` | `get_external_lore(term)` | external knowledge lookup grounding glossary descriptions |
 | `speaker_attribution` | `get_speaker_for_string()` | the **Name the speakers** step, which joins a marked-up script onto the speaker codes the game data produced |
 

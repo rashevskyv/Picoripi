@@ -9,6 +9,7 @@ from pathlib import Path
 
 from core.glossary_build.pipeline_coordinator import (
     MODE_AUGMENT,
+    MODE_AUTO,
     MODE_DRAFT,
     MODE_SEED,
     MODE_THOROUGH,
@@ -62,6 +63,25 @@ def _manager():
 
 
 DATASET = [["Ordon village is calm today", "Link visits Ordon often"]]
+
+
+def test_auto_mode_runs_the_single_complete_route():
+    manager = _manager()
+    coordinator = GlossaryBuildCoordinator(
+        manager,
+        FakeAI(),
+        PROMPTS,
+        structural_seeds=[{"term": "Hero's Bow", "section": "Items"}],
+    )
+
+    result = coordinator.build(DATASET, MODE_AUTO)
+    coordinator.run_translate(result)
+
+    assert manager.get_entry("Hero's Bow") is not None
+    assert manager.get_entry("Ordon").translation == "Ордон"
+    assert result.seeded_structural == 1
+    assert result.described >= 2
+    assert result.translated >= 2
 
 
 class TestThorough:

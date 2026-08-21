@@ -59,20 +59,8 @@ def _trigger(action_name: str) -> Callable:
     return run
 
 
-def _run_structural_seed(mw):
-    """Run structural seeding directly from game data tables and script markup."""
-    handler = getattr(mw, "glossary_pipeline_handler", None)
-    if handler is None:
-        from handlers.translation.glossary_pipeline_handler import GlossaryPipelineHandler
-
-        handler = GlossaryPipelineHandler(mw)
-        mw.glossary_pipeline_handler = handler
-    handler.seed_from_game_data()
-
-
-
-def _embed_glossary_sweep(mw, parent=None) -> QWidget:
-    """The Build Glossary form tailored for sweeping text with AI."""
+def _embed_glossary_auto(mw, parent=None) -> QWidget:
+    """The one user-facing glossary route, embedded in the pipeline."""
     from handlers.translation.glossary_pipeline_handler import GlossaryPipelineHandler
 
     handler = getattr(mw, "glossary_pipeline_handler", None)
@@ -83,32 +71,11 @@ def _embed_glossary_sweep(mw, parent=None) -> QWidget:
     form = handler.make_dialog(
         parent=parent,
         on_build=lambda: handler.start_build(form.options()),
-        target_step="seed",
+        target_step="auto",
     )
     form.setWindowFlags(Qt.WindowType.Widget)
     form.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
     return form
-
-
-def _embed_glossary_describe(mw, parent=None) -> QWidget:
-    """The Build Glossary form tailored for describing existing terms."""
-    from handlers.translation.glossary_pipeline_handler import GlossaryPipelineHandler
-
-    handler = getattr(mw, "glossary_pipeline_handler", None)
-    if handler is None:
-        handler = GlossaryPipelineHandler(mw)
-        mw.glossary_pipeline_handler = handler
-
-    form = handler.make_dialog(
-        parent=parent,
-        on_build=lambda: handler.start_build(form.options()),
-        target_step="describe",
-    )
-    form.setWindowFlags(Qt.WindowType.Widget)
-    form.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
-    return form
-
-
 def _embed_mempalace_builder(mw, parent=None) -> QWidget:
     """The Context Builder, hosted inside this window rather than beside it.
 
@@ -216,34 +183,15 @@ STEPS: List[Step] = [
         embed=_embed_mempalace_builder,
     ),
     Step(
-        "structural_seed",
-        "Seed terms from game data",
-        "Extracts items, location names, and boss cards directly from the game's "
-        "binary files and data tables without making any AI requests.\n\n"
-        "This establishes the ground truth terminology from game code before "
-        "running AI text sweeps. Fills gaps only, so it is safe to run first "
-        "and safe to repeat.",
-        "Seed from game data",
-        _run_structural_seed,
-        requires="glossary_seed",
-    ),
-    Step(
-        "seed",
-        "Sweep text with AI",
-        "Sweeps the project dialogue text with AI to find character nicknames, "
-        "lore terms, magic spells, and items that do not appear in system tables.\n\n"
-        "Terms found by AI complement those already seeded from game data and script markup.",
-        embed=_embed_glossary_sweep,
-    ),
-    Step(
-        "describe",
-        "Describe the terms",
-        "A term on its own is not enough to translate it: 'Bomb' could be the "
-        "item, the shop or the flower. Describing reads the context around every "
-        "place the term occurs and writes what it actually is.\n\n"
-        "Reads project text to synthesize rich descriptions for all current glossary terms.",
-        embed=_embed_glossary_describe,
-        parent="seed",
+        "glossary",
+        "Prepare and enrich the glossary",
+        "This is the single glossary route. It first takes every reliable term "
+        "available from game data and Script Markup, then sweeps the selected "
+        "project blocks for missing terms, builds descriptions from the available "
+        "context, and proposes translation variants.\n\n"
+        "The pass runs without stopping for questions. Ambiguities remain visible "
+        "as AI notes and review choices, but they never block text translation.",
+        embed=_embed_glossary_auto,
     ),
     Step(
         "speakers",
@@ -258,18 +206,7 @@ STEPS: List[Step] = [
         "Merge speakers from the script",
         _trigger("merge_speakers_action"),
         requires="speaker_attribution",
-        parent="seed",
-    ),
-    Step(
-        "translate",
-        "Translate and confirm the glossary",
-        "Each term gets translation variants to choose between. A confirmed term "
-        "is a decision the text translation will then follow everywhere.\n\n"
-        "Entries still awaiting a decision are highlighted; the 'Needs review' "
-        "filter shows only those.",
-        "Open the glossary",
-        lambda mw: mw.translation_handler.show_glossary_dialog(),
-        parent="seed",
+        parent="glossary",
     ),
     Step(
         "text",
@@ -386,6 +323,17 @@ class PipelineWizardDialog(QDialog):
         except Exception:
             pass
         glossary = glossary_states(entries)
+        review_backlog = sum(
+            1 for entry in entries if bool(getattr(entry, "is_unconfirmed", False))
+        )
+        glossary_state = StepState(
+            NOT_STARTED if not entries else PARTIAL if review_backlog else DONE,
+            (
+                "automatic pass not run"
+                if not entries
+                else f"{len(entries)} terms; {review_backlog} awaiting review"
+            ),
+        )
 
         seeds = []
         try:
@@ -413,6 +361,7 @@ class PipelineWizardDialog(QDialog):
             "seed": glossary["seed"],
             "describe": glossary["describe"],
             "translate": glossary["translate"],
+            "glossary": glossary_state,
             "text": translation_state(
                 getattr(store, "data", None),
                 getattr(store, "edited_file_data", None),

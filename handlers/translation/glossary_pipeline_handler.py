@@ -6,15 +6,19 @@ progress through the shared AIStatusDialog.
 """
 from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
 from typing import List, Optional
 
 from PyQt6.QtWidgets import QMessageBox
 
 from components.ai_status_dialog import AIStatusDialog
+from core.glossary_manager import possible_duplicate_pairs
 from core.translation.providers import get_provider_for_config
 from handlers.translation.glossary_ai_config import resolve_glossary_ai_config
 from handlers.translation.glossary_pipeline_worker import GlossaryBuildWorker
-from core.glossary_build.pipeline_coordinator import MODE_SEED
+from core.glossary_build.pipeline_coordinator import MODE_AUTO, MODE_SEED
 from core.glossary_build.script_seeds import seeds_from_markup
 from core.speaker_alias_merge import find_markup_project, is_confirmed_speaker_alias, load_speaker_aliases
 from ui.glossary_build_dialog import (
@@ -32,6 +36,7 @@ class GlossaryPipelineHandler:
         self.mw = main_window
         self._worker: Optional[GlossaryBuildWorker] = None
         self._status: Optional[AIStatusDialog] = None
+        self._pending_scan_state: Optional[dict] = None
 
     # -- helpers ------------------------------------------------------------
 
@@ -172,6 +177,48 @@ class GlossaryPipelineHandler:
         current = getattr(self.mw.data_store, "physical_block_idx", -1)
         return [current] if current is not None and current >= 0 else None
 
+    @staticmethod
+    def _fingerprint_block(block) -> str:
+        payload = json.dumps(block, ensure_ascii=False, sort_keys=True, default=str)
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def _scan_state_path(self, manager) -> Optional[Path]:
+        glossary_path = getattr(manager, "glossary_path", None)
+        return Path(glossary_path).with_suffix(".scan.json") if glossary_path else None
+
+    def _load_scan_state(self, manager) -> dict:
+        path = self._scan_state_path(manager)
+        if path is None or not path.exists():
+            return {}
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
+        except (OSError, ValueError, TypeError):
+            return {}
+
+    def _save_scan_state(self, manager, state: dict) -> None:
+        path = self._scan_state_path(manager)
+        if path is None:
+            return
+        try:
+            path.write_text(
+                json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            log_error(f"GlossaryPipelineHandler: saving incremental scan state failed: {exc}")
+
+    @staticmethod
+    def _seeds_for_scope(seeds, block_indices):
+        """Keep global seeds for whole-project runs and placed seeds for subsets."""
+        if block_indices is None:
+            return list(seeds)
+        wanted = set(block_indices)
+        return [
+            seed for seed in seeds
+            if seed.get("blocks") and wanted.intersection(int(i) for i in seed["blocks"])
+        ]
+
     def _bind_glossary_file(self, manager) -> bool:
         """Ensure the glossary is bound to the project file before building.
 
@@ -243,6 +290,15 @@ class GlossaryPipelineHandler:
             existing_entries=entries,
             on_build=on_build,
             target_step=target_step,
+            block_labels=[
+                (
+                    index,
+                    block_names.get(str(index))
+                    or getattr(self.mw.data_store, "block_names", {}).get(str(index))
+                    or f"Block {index + 1}",
+                )
+                for index, _block in enumerate(getattr(self.mw.data_store, "data", None) or [])
+            ],
         )
 
     def build_from_text(self) -> None:
@@ -250,7 +306,7 @@ class GlossaryPipelineHandler:
         manager = self._ready_to_build()
         if manager is None:
             return
-        dialog = self.make_dialog()
+        dialog = self.make_dialog(target_step="auto")
         if not dialog.exec():
             return
         self.start_build(dialog.options(), manager=manager)
@@ -297,6 +353,23 @@ class GlossaryPipelineHandler:
                 return
 
         block_indices = self._resolve_area(options["area"])
+        structural_seeds = self._structural_seeds()
+        self._pending_scan_state = None
+        if options["mode"] == MODE_AUTO:
+            selected = options.get("block_indices")
+            requested = list(range(len(dataset))) if selected is None else list(selected)
+            current = {
+                str(index): self._fingerprint_block(dataset[index])
+                for index in requested
+                if 0 <= index < len(dataset)
+            }
+            previous = self._load_scan_state(manager)
+            block_indices = requested if options.get("full_rescan") else [
+                index for index in requested
+                if previous.get(str(index)) != current.get(str(index))
+            ]
+            self._pending_scan_state = {**previous, **current}
+            structural_seeds = self._seeds_for_scope(structural_seeds, selected)
         target_lang = getattr(self.mw, "target_language", "Ukrainian")
         if not isinstance(target_lang, str):
             target_lang = "Ukrainian"
@@ -318,7 +391,7 @@ class GlossaryPipelineHandler:
             target_lang=target_lang,
             chunk_size=options["chunk_size"],
             translate=options["translate"],
-            structural_seeds=self._structural_seeds(),
+            structural_seeds=structural_seeds,
             parent=self.mw,
             **self._concurrency_options(),
         )
@@ -364,12 +437,57 @@ class GlossaryPipelineHandler:
             except Exception as exc:
                 log_error(f"Failed to refresh glossary after build: {exc}")
 
+        last_result = getattr(self._worker, "last_result", None)
+        if (
+            success
+            and self._pending_scan_state is not None
+            and not getattr(last_result, "failed", 0)
+            and not getattr(last_result, "cancelled", False)
+            and manager is not None
+        ):
+            self._save_scan_state(manager, self._pending_scan_state)
+        self._pending_scan_state = None
+
         if success:
-            QMessageBox.information(self.mw, "Build Glossary", f"Finished: {summary}")
+            self._show_report(summary, manager)
         else:
             QMessageBox.warning(self.mw, "Build Glossary", f"Stopped: {summary}")
 
         self._worker = None
+
+    def _show_report(self, summary: str, manager) -> None:
+        entries = list(manager.get_entries() or []) if manager is not None else []
+        review = sum(1 for entry in entries if entry.is_unconfirmed)
+        ambiguous = sum(1 for entry in entries if len(entry.translation_variants) > 1)
+        untranslated = sum(1 for entry in entries if not entry.translation)
+        undescribed = sum(1 for entry in entries if not entry.notes)
+        duplicates = len(possible_duplicate_pairs(entries))
+        box = QMessageBox(self.mw)
+        box.setWindowTitle("Automatic glossary pass completed")
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setText("The automatic pass completed. The glossary is not treated as finished.")
+        box.setInformativeText(
+            f"{summary}\n\nReview backlog: {review}\n"
+            f"Ambiguous translations: {ambiguous}\n"
+            f"Untranslated entries: {untranslated}\n"
+            f"Entries without a description: {undescribed}\n"
+            f"Possible duplicates: {duplicates}"
+        )
+        review_button = box.addButton("Review glossary", QMessageBox.ButtonRole.ActionRole)
+        editor_button = box.addButton("Continue in editor", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(QMessageBox.StandardButton.Close)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is review_button:
+            glossary_handler = getattr(
+                getattr(self.mw, "translation_handler", None), "glossary_handler", None
+            )
+            opener = getattr(glossary_handler, "show_glossary_dialog", None)
+            if callable(opener):
+                opener()
+        elif clicked is editor_button:
+            self.mw.raise_()
+            self.mw.activateWindow()
 
     def prepare_to_close(self) -> None:
         """Cancel any in-flight build before shutdown."""

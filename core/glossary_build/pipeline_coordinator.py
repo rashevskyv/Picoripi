@@ -52,6 +52,10 @@ MODE_TRANSLATE = "translate"
 # Structural seed only: take the terms the game names itself and stop. Makes no
 # AI call at all, so it costs nothing and works with the model offline.
 MODE_SEED = "seed"
+# The user-facing path: structural seeds -> AI sweep -> descriptions. The worker
+# immediately follows it with translation proposals, so the model never pauses
+# for decisions halfway through a long project.
+MODE_AUTO = "auto"
 
 # Statuses whose entries still want a description (targets of the describe pass).
 _DESCRIBE_TARGETS = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS})
@@ -177,6 +181,23 @@ class GlossaryBuildCoordinator:
         # seeded count says what the AI actually found.
         if mode == MODE_SEED:
             self._seed_structural(result, block_indices)
+            result.cancelled = self._cancelled()
+            return result
+
+        if mode == MODE_AUTO:
+            self._seed_structural(result)
+            if self._cancelled():
+                result.cancelled = True
+                return result
+            aggregated = self._sweep(dataset, block_indices, result)
+            if self._cancelled():
+                result.cancelled = True
+                return result
+            self._seed_all(aggregated, MODE_THOROUGH, result)
+            if self._cancelled():
+                result.cancelled = True
+                return result
+            self._describe_all(dataset, result)
             result.cancelled = self._cancelled()
             return result
 

@@ -6,7 +6,9 @@ The build itself runs in GlossaryBuildWorker; this dialog only gathers input.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence, Tuple
+
+from PyQt6.QtCore import Qt
 
 from PyQt6.QtWidgets import (
     QButtonGroup,
@@ -17,12 +19,15 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QGroupBox,
     QLabel,
+    QListWidget,
+    QListWidgetItem,
     QRadioButton,
     QVBoxLayout,
 )
 
 from core.glossary_build.pipeline_coordinator import (
     MODE_AUGMENT,
+    MODE_AUTO,
     MODE_DRAFT,
     MODE_SEED,
     MODE_THOROUGH,
@@ -48,12 +53,15 @@ class GlossaryBuildDialog(QDialog):
         existing_entries: int = 0,
         on_build=None,
         target_step: Optional[str] = None,
+        block_labels: Sequence[Tuple[int, str]] = (),
     ):
         super().__init__(parent)
         self._target_step = target_step
         self._existing_entries = existing_entries
 
-        if target_step == "seed":
+        if target_step == "auto":
+            self.setWindowTitle("Prepare Glossary")
+        elif target_step == "seed":
             self.setWindowTitle("Sweep Text with AI")
         elif target_step == "describe":
             self.setWindowTitle("Describe Glossary Terms")
@@ -66,7 +74,14 @@ class GlossaryBuildDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        if target_step == "seed":
+        if target_step == "auto":
+            intro_text = (
+                "One automatic pass seeds terms from game data and Script Markup, "
+                "finds additional terms in the selected text, builds descriptions, "
+                "and proposes translation variants. It never pauses for review; "
+                "all unresolved choices remain in the glossary backlog."
+            )
+        elif target_step == "seed":
             intro_text = (
                 "Sweeps project dialogue text with AI to find character nicknames, "
                 "lore terms, magic spells, and items that do not appear in system tables, "
@@ -122,6 +137,31 @@ class GlossaryBuildDialog(QDialog):
             self._area_current.setChecked(True)
         layout.addWidget(area_box)
 
+        self._block_list = None
+        self._all_blocks_check = None
+        self._full_rescan_check = None
+        if target_step == "auto":
+            area_box.hide()
+            blocks_box = QGroupBox("Project blocks")
+            blocks_layout = QVBoxLayout(blocks_box)
+            self._all_blocks_check = QCheckBox("Whole project")
+            self._all_blocks_check.setChecked(True)
+            self._all_blocks_check.toggled.connect(self._toggle_all_blocks)
+            blocks_layout.addWidget(self._all_blocks_check)
+            self._block_list = QListWidget()
+            self._block_list.setMaximumHeight(180)
+            self._syncing_blocks = True
+            for block_idx, block_label in block_labels:
+                item = QListWidgetItem(block_label)
+                item.setData(Qt.ItemDataRole.UserRole, int(block_idx))
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Checked)
+                self._block_list.addItem(item)
+            self._syncing_blocks = False
+            self._block_list.itemChanged.connect(self._sync_block_selection)
+            blocks_layout.addWidget(self._block_list)
+            layout.addWidget(blocks_box)
+
         # -- build passes ----------------------------------------------------
         self._mode_group = QButtonGroup(self)
 
@@ -162,7 +202,9 @@ class GlossaryBuildDialog(QDialog):
             self._mode_group.addButton(button)
             button.setProperty("mode_key", key)
 
-        if target_step == "seed":
+        if target_step == "auto":
+            self._mode_thorough.setChecked(True)
+        elif target_step == "seed":
             mode_box = QGroupBox("Sweep Depth")
             mode_layout = QVBoxLayout(mode_box)
             mode_layout.addWidget(self._mode_thorough)
@@ -225,6 +267,16 @@ class GlossaryBuildDialog(QDialog):
             self._sync_translate_check(self._mode_translate.isChecked())
             self._mode_seed.toggled.connect(self._sync_seed_mode)
             self._sync_seed_mode(self._mode_seed.isChecked())
+            if target_step == "auto":
+                self._translate_check.setChecked(True)
+                self._translate_check.hide()
+
+                self._full_rescan_check = QCheckBox("Re-scan every selected block with AI")
+                self._full_rescan_check.setToolTip(
+                    "Normally only new or changed blocks are swept. Enable this for a "
+                    "deliberate full evidence rebuild; existing confirmed choices stay protected."
+                )
+                layout.addWidget(self._full_rescan_check)
 
         standard = QDialogButtonBox.StandardButton.Ok
         if on_build is None:
@@ -232,7 +284,10 @@ class GlossaryBuildDialog(QDialog):
         buttons = QDialogButtonBox(standard)
         ok_btn = buttons.button(QDialogButtonBox.StandardButton.Ok)
 
-        if target_step == "seed":
+        self._ok_button = ok_btn
+        if target_step == "auto":
+            ok_btn.setText("Run automatic glossary pass")
+        elif target_step == "seed":
             ok_btn.setText("Sweep text with AI")
         elif target_step == "describe":
             ok_btn.setText("Describe terms")
@@ -247,6 +302,8 @@ class GlossaryBuildDialog(QDialog):
         buttons.accepted.connect(on_build if on_build is not None else self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        if target_step == "auto":
+            self._sync_block_selection()
 
     @staticmethod
     def _set_available(button, available: bool, why: str) -> None:
@@ -281,6 +338,8 @@ class GlossaryBuildDialog(QDialog):
         return button.property("area_key") if button else AREA_CURRENT
 
     def selected_mode(self) -> str:
+        if self._target_step == "auto":
+            return MODE_AUTO
         if self._target_step == "describe":
             return MODE_AUGMENT
         button = self._mode_group.checkedButton()
@@ -293,9 +352,52 @@ class GlossaryBuildDialog(QDialog):
             if self._translate_check is not None
             else False
         )
-        return {
+        options = {
             "area": self.selected_area(),
             "mode": self.selected_mode(),
             "chunk_size": self._chunk_combo.currentData(),
-            "translate": translate_checked,
+            "translate": translate_checked or self._target_step == "auto",
         }
+        if self._target_step == "auto":
+            selected = self.selected_block_indices()
+            total = self._block_list.count() if self._block_list is not None else 0
+            options["block_indices"] = None if len(selected) == total else selected
+            options["full_rescan"] = bool(
+                self._full_rescan_check and self._full_rescan_check.isChecked()
+            )
+        return options
+
+    def selected_block_indices(self) -> list[int]:
+        """Checked physical blocks, in project order."""
+        if self._block_list is None:
+            return []
+        return [
+            int(self._block_list.item(i).data(Qt.ItemDataRole.UserRole))
+            for i in range(self._block_list.count())
+            if self._block_list.item(i).checkState() == Qt.CheckState.Checked
+        ]
+
+    def _toggle_all_blocks(self, checked: bool) -> None:
+        if self._block_list is None or self._syncing_blocks:
+            return
+        self._syncing_blocks = True
+        state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        for index in range(self._block_list.count()):
+            self._block_list.item(index).setCheckState(state)
+        self._syncing_blocks = False
+        self._sync_block_selection()
+
+    def _sync_block_selection(self, _item=None) -> None:
+        if self._block_list is None or self._syncing_blocks:
+            return
+        selected = len(self.selected_block_indices())
+        total = self._block_list.count()
+        if self._all_blocks_check is not None:
+            self._all_blocks_check.blockSignals(True)
+            self._all_blocks_check.setChecked(selected == total)
+            self._all_blocks_check.setText(
+                "Whole project" if selected == total else f"Selected blocks: {selected} of {total}"
+            )
+            self._all_blocks_check.blockSignals(False)
+        if hasattr(self, "_ok_button"):
+            self._ok_button.setEnabled(selected > 0)

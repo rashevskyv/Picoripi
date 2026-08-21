@@ -1,5 +1,18 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.087-dev] - 2026-08-21
+
+### Added
+- **Single Automatic Glossary Pass**: Game-data and Script Markup seeds, incremental AI discovery, description synthesis, and translation proposals now run in one uninterrupted route without pausing for user decisions.
+- **Per-Block Scope**: The pass defaults to the whole project and exposes every physical block as a checked item that can be excluded independently.
+- **Incremental AI Sweep**: Per-block fingerprints in `glossary.scan.json` skip unchanged text on later runs; an explicit full re-scan option rebuilds evidence without replacing confirmed choices.
+- **AI Notes Pane**: Glossary descriptions are now visually separated from sweep observations, translation rationales, speaker evidence, and conservative fuzzy duplicate proposals.
+- **Actionable Completion Report**: The final report shows review backlog, ambiguity, untranslated, undescribed, and possible-duplicate counts, with buttons to review or continue editing.
+
+### Changed
+- **Unified Pipeline Wizard**: The former structural seed, sweep, describe, and glossary-translate choices are presented as one `Prepare and enrich the glossary` step. Direct Tools and glossary-window launchers enter the same route.
+- **Non-Blocking Readiness Model**: A glossary is no longer presented as globally finished; unresolved decisions remain in a backlog and do not block main-text translation.
+
 ## [0.3.086-dev] - 2026-08-21
 
 ### Added
