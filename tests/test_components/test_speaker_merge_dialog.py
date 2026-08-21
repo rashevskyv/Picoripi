@@ -148,7 +148,7 @@ class TestDialog:
 
         assert applied["Voice 74"] == "GREAT FAIRY"
         assert applied["Voice 41"] == "RENADO"
-        assert applied["Voice 107"] == "TRILL / PLUMM"
+        assert "Voice 107" not in applied
         dialog.deleteLater()
 
     def test_a_cleared_name_is_not_saved(self):
@@ -198,4 +198,161 @@ class TestDialog:
 
         assert dialog.tree.topLevelItemCount() == 0
         assert "nothing to show" in dialog.details.toPlainText()
+        dialog.deleteLater()
+
+    def test_extract_candidates_helper(self):
+        from components.speaker_merge_dialog import extract_candidates
+        res = _result()
+        cands_107 = extract_candidates(res, "Voice 107")
+        names_107 = [name for name, _ in cands_107]
+        assert "TRILL" in names_107
+        assert "PLUMM" in names_107
+
+    def test_checkboxes_initialized_properly(self):
+        dialog = SpeakerMergeDialog(_result())
+        tree = dialog.tree
+
+        # Voice 41 (Strong) has name -> Checked
+        assert tree.topLevelItem(0).child(0).checkState(0) == Qt.CheckState.Checked
+        # Voice 107 (Shared) has name -> Checked
+        assert tree.topLevelItem(1).child(0).checkState(0) == Qt.CheckState.Checked
+        # Voice 99 (Unmatched) has no name -> Unchecked
+        assert tree.topLevelItem(3).child(0).checkState(0) == Qt.CheckState.Unchecked
+
+        dialog.deleteLater()
+
+    def test_check_all_and_uncheck_all(self):
+        dialog = SpeakerMergeDialog(_result())
+        tree = dialog.tree
+
+        dialog.uncheck_all_btn.click()
+        assert tree.topLevelItem(0).child(0).checkState(0) == Qt.CheckState.Unchecked
+        assert tree.topLevelItem(1).child(0).checkState(0) == Qt.CheckState.Unchecked
+        assert len(dialog.chosen_names(only_checked=True)) == 0
+
+        dialog.check_all_btn.click()
+        assert tree.topLevelItem(0).child(0).checkState(0) == Qt.CheckState.Checked
+        assert tree.topLevelItem(1).child(0).checkState(0) == Qt.CheckState.Checked
+        assert len(dialog.chosen_names(only_checked=True)) > 0
+
+        dialog.deleteLater()
+
+    def test_search_filter_tree(self):
+        dialog = SpeakerMergeDialog(_result())
+        tree = dialog.tree
+
+        dialog.search_edit.setText("RENADO")
+        # Voice 41 (RENADO) visible, Voice 107 (TRILL) hidden
+        assert not tree.topLevelItem(0).child(0).isHidden()
+        assert tree.topLevelItem(1).child(0).isHidden()
+
+        dialog.search_edit.setText("")
+        assert not tree.topLevelItem(1).child(0).isHidden()
+
+        dialog.deleteLater()
+
+    def test_candidate_buttons_selection(self):
+        dialog = SpeakerMergeDialog(_result())
+        tree = dialog.tree
+
+        # Select Voice 107 (Shared: TRILL / PLUMM)
+        shared_item = tree.topLevelItem(1).child(0)
+        tree.setCurrentItem(shared_item)
+
+        assert not dialog.candidates_widget.isHidden()
+        # Find candidate button for TRILL
+        trill_btn = None
+        for btn in dialog._candidate_buttons:
+            if btn.property("candidate_name") == "TRILL":
+                trill_btn = btn
+                break
+        assert trill_btn is not None
+        trill_btn.click()
+
+        assert shared_item.text(1) == "TRILL"
+        assert dialog.name_edit.text() == "TRILL"
+        assert shared_item.checkState(0) == Qt.CheckState.Checked
+
+        dialog.deleteLater()
+
+    def test_shared_voice_requires_one_confirmed_candidate(self):
+        dialog = SpeakerMergeDialog(_result(), on_apply=lambda _names: True)
+        shared_item = dialog.tree.topLevelItem(1).child(0)
+        dialog.tree.setCurrentItem(shared_item)
+
+        assert not dialog.apply_single_button.isEnabled()
+        assert all("Both:" not in btn.text() for btn in dialog._candidate_buttons)
+
+        dialog.deleteLater()
+
+    def test_apply_checked_only_applies_checked_rows(self):
+        applied = {}
+        dialog = SpeakerMergeDialog(_result(), on_apply=applied.update)
+        tree = dialog.tree
+
+        # Uncheck Voice 107
+        shared_item = tree.topLevelItem(1).child(0)
+        shared_item.setCheckState(0, Qt.CheckState.Unchecked)
+
+        dialog.apply_button.click()
+
+        assert "Voice 41" in applied
+        assert "Voice 107" not in applied
+        dialog.deleteLater()
+
+    def test_apply_all_valid_applies_all_regardless_of_checks(self):
+        applied = {}
+        dialog = SpeakerMergeDialog(_result(), on_apply=applied.update)
+        tree = dialog.tree
+
+        # Uncheck all
+        dialog.uncheck_all_btn.click()
+        assert len(dialog.chosen_names(only_checked=True)) == 0
+
+        # Click Apply All Valid
+        dialog.apply_all_button.click()
+
+        assert "Voice 41" in applied
+        assert "Voice 107" not in applied
+        dialog.deleteLater()
+
+    def test_apply_single_speaker_button(self):
+        applied = {}
+        dialog = SpeakerMergeDialog(_result(), on_apply=applied.update)
+        tree = dialog.tree
+
+        # Select Voice 41
+        item = tree.topLevelItem(0).child(0)
+        tree.setCurrentItem(item)
+
+        dialog.apply_single_button.click()
+
+        assert applied == {"Voice 41": "RENADO"}
+        assert "Saved 'Voice 41'" in dialog.feedback_label.text()
+        assert "[Applied]" in item.text(2)
+
+        dialog.deleteLater()
+
+    def test_failed_single_apply_does_not_claim_success(self):
+        dialog = SpeakerMergeDialog(_result(), on_apply=lambda _names: False)
+        item = dialog.tree.topLevelItem(0).child(0)
+        dialog.tree.setCurrentItem(item)
+
+        dialog.apply_single_button.click()
+
+        assert "Could not save" in dialog.feedback_label.text()
+        assert "[Applied]" not in item.text(2)
+        dialog.deleteLater()
+
+    def test_name_edit_syncs_to_tree_item(self):
+        dialog = SpeakerMergeDialog(_result())
+        tree = dialog.tree
+
+        item = tree.topLevelItem(0).child(0)
+        tree.setCurrentItem(item)
+
+        dialog.name_edit.setText("RENADO ELDER")
+        assert item.text(1) == "RENADO ELDER"
+        assert item.checkState(0) == Qt.CheckState.Checked
+
         dialog.deleteLater()

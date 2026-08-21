@@ -1,5 +1,17 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.086-dev] - 2026-08-21
+
+### Added
+- **Granular Speaker Merge Selection**: Added checkboxes for every speaker row and group header in the Merge Speakers dialog, enabling selective confirmation and saving of character mappings.
+- **Candidate Name Quick-Picker**: The Inspector pane dynamically extracts candidate names from votes and conflicts, providing one-click chip buttons for individual candidates (e.g. `[ HANCH (2) ]`) and a clear action. Shared voices remain unresolved until one permanent name is chosen.
+- **Single-Speaker Immediate Apply**: Added an `Apply This Speaker` button in the Inspector card to apply and save individual character identities without exiting the dialog or applying all rows.
+- **Tree Quick-Filter & Batch Toggles**: Added a real-time search/filter bar to filter voice codes and names, alongside `Check All` and `Uncheck All` buttons.
+- **Context Menu Actions**: Right-clicking tree items offers quick candidate assignment, single-speaker application, check/uncheck toggles, and group-wide check/uncheck actions.
+
+### Changed
+- **Unambiguous Bottom Action Buttons**: Replaced the ambiguous single apply button with `Apply Checked (N)` (displaying exact count of checked mappings), `Apply All Valid`, and dynamic status counting.
+
 ## [0.3.085-dev] - 2026-08-20
 
 ### Added
