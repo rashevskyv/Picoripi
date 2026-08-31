@@ -908,6 +908,68 @@ def test_preview_fits_message_window_not_full_framebuffer(qapp):
     assert abs(frame.width() / frame.height() - 551.0 / 117.0) < 0.15
 
 
+def test_preview_uses_blo_font_size_and_centers_short_pages(qapp):
+    """Scale is BLO fontSize * window-fit, not 'pack 4 lines into the box'."""
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+
+    mw = MagicMock()
+    mw.active_game_plugin = "zelda_bmg"
+    style = window_style_for_kind(0)
+    style = dict(style)
+    style["geometry"] = {
+        "screen": [608, 448],
+        "box": [29.5, 273.5, 551.0, 117.0],
+        "text": [83.0, 275.0, 443.0, 114.0],
+        "text_metrics": {"font_x": 23.0, "font_y": 22.0, "line_space": 23.0, "char_space": 1.0},
+        "asset_frame": True,
+    }
+    style["lines_per_page"] = 4
+    rules = MagicMock()
+    rules.get_preview_window_style.return_value = style
+    rules.prepare_preview_glyph_text.side_effect = lambda text: (text, None, None, None)
+    mw.current_game_rules = rules
+    mw.data_store.current_block_idx = 0
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.default_font_file = None
+    mw.all_bfn_fonts = {"tp.bfn": _make_renderable_bfn_for_preview()}
+    mw.project_manager = None
+    mw.preview_enabled = True
+    mw.preview_bg_image_path = ""
+    mw.preview_bg_scale = 100
+    mw.preview_bg_offset_x = 0
+    mw.preview_bg_offset_y = 0
+    mw.preview_bg_hidden = True
+    mw.preview_line_spacing = 10
+    mw.preview_text_rect = [40, 30, 280, 110]
+    mw.preview_text_color = "#ffffff"
+    mw.preview_shadow_enabled = False
+    mw.preview_glow_enabled = False
+    mw.preview_fix_font_scale = False
+    mw.preview_fixed_font_scale = 1.0
+    mw.preview_char_spacing = 0
+    mw.string_metadata = {}
+    mw.bfn_preview_column = None
+
+    widget = BfnPreviewWidget(mw)
+    widget.resize(900, 180)
+    widget.show()
+    qapp.processEvents()
+    try:
+        widget.update_preview_text("C'mon, now, hurry on up an' bring\nEpona with you.")
+        widget.grab()
+        scale = widget._last_computed_scale_factor
+        _, _, fit = widget._window_fit_transform(style["geometry"])
+        expected = (22.0 / 24.0) * fit
+        assert abs(scale - expected) < 0.05, (scale, expected, fit)
+        from plugins.zelda_bmg.window_frame_loader import textbox_height_center
+        offset = textbox_height_center(114.0, 22.0, 23.0, 4, 2)
+        assert offset > 30.0
+        assert widget._used_page_lines("C'mon, now, hurry on up an' bring\nEpona with you.") == 2
+    finally:
+        widget.hide()
+
+
 
 
 

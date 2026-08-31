@@ -414,7 +414,7 @@ class BfnCore:
 
         return self._qimages_cache
 
-    def layout_text(self, text: str, translation_map: Optional[Dict[str, str]] = None, line_spacing: int = 10,
+    def layout_text(self, text: str, translation_map: Optional[Dict[str, str]] = None, line_spacing: float = 10,
                     char_spacing: float = 0, colors: Optional[List[Optional[str]]] = None,
                     scales: Optional[List[float]] = None,
                     icons: Optional[Dict[int, Dict[str, Any]]] = None) -> Tuple[List[Dict[str, Any]], int, int]:
@@ -449,9 +449,9 @@ class BfnCore:
             - total height of text block
         """
         try:
-            line_spacing = int(line_spacing)
+            line_spacing = float(line_spacing)
         except (TypeError, ValueError):
-            line_spacing = 10
+            line_spacing = 10.0
         try:
             char_spacing = float(char_spacing)
         except (TypeError, ValueError):

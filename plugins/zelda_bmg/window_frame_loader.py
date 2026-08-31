@@ -71,6 +71,7 @@ class WindowFrame:
     box: Tuple[float, float, float, float]
     text: Tuple[float, float, float, float]
     icon_slot: Optional[Tuple[float, float, float, float]] = None
+    text_metrics: Optional[Dict[str, float]] = None
 
 
 _CACHE: Dict[str, Optional[WindowFrame]] = {}
@@ -194,7 +195,11 @@ def load_window_frame(screen_class: str, mw=None) -> Optional[WindowFrame]:
         icon_slot = _nested_rect(root, "n_all", "set_it_n")
         text = _text_pane_rect(screen_class, box, icon_slot)
         image = _compose(screen_class, size, box, textures)
-        frame = WindowFrame(image=image, screen=size, box=box, text=text, icon_slot=icon_slot)
+        metrics = _TEXT_METRICS.get(screen_class)
+        frame = WindowFrame(
+            image=image, screen=size, box=box, text=text, icon_slot=icon_slot,
+            text_metrics=dict(metrics) if metrics else None,
+        )
     except Exception:
         frame = None
     _CACHE[screen_class] = frame
@@ -212,7 +217,26 @@ def frame_to_geometry(frame: WindowFrame) -> dict:
     }
     if frame.icon_slot:
         geom["icon_slot"] = list(frame.icon_slot)
+    if frame.text_metrics:
+        geom["text_metrics"] = dict(frame.text_metrics)
     return geom
+
+
+def textbox_height_center(tbox_h: float, font_y: float, line_space: float,
+                          line_max: int, now_page_line: int) -> float:
+    """Vertical offset of the first line inside mg_e4lin.
+
+    jmessage_tRenderingProcessor::do_heightcenter, page type 0:
+        (TBoxH - (fontY + lineSpace*(lineMax-1))) / 2
+        + lineSpace * 0.5 * (lineMax - nowPageLine)   if the page is short
+    which is the same as centering the used-line block in the text box.
+    """
+    used = max(1, int(now_page_line))
+    maximum = max(1, int(line_max))
+    offset = (float(tbox_h) - (float(font_y) + float(line_space) * (maximum - 1))) / 2.0
+    if maximum != used:
+        offset += float(line_space) * 0.5 * (maximum - used)
+    return offset
 
 
 def _scale_rect(rect, hx, hy, cx, cy):
@@ -237,6 +261,17 @@ _TEXT_PANE = {
     "item": (400.0, 95.0),
     "wood": (427.0, 187.0),
     "stone": (427.0, 187.0),
+}
+
+# TBX2 metrics from mg_e4lin (charSpace / lineSpace / fontSize as s16).
+# Talk: zelda_message_window_text.blo; item: zelda_item_get_window_text.blo;
+# signs: zelda_kanban_wood_a.blo / stone (same 25x23 / 23 / 1).
+_TEXT_METRICS = {
+    "talk": {"font_x": 23.0, "font_y": 22.0, "line_space": 23.0, "char_space": 1.0},
+    "explain": {"font_x": 23.0, "font_y": 22.0, "line_space": 23.0, "char_space": 1.0},
+    "item": {"font_x": 23.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0},
+    "wood": {"font_x": 25.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0},
+    "stone": {"font_x": 25.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0},
 }
 
 
@@ -305,11 +340,15 @@ def _compose(screen_class: str, size, box, textures: Dict[str, QImage]) -> QImag
 
 def _paint_talk_like(p: QPainter, box, textures, item=False):
     x, y, w, h = box
-    dark = QColor(8, 10, 16, 252)
     p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(dark)
-    p.drawRoundedRect(QRectF(x, y, w, h), 6.0, 6.0)
     if item:
+        # HIO mBoxItemAlphaP = 0.3 — a light darkening, not a solid bar.
+        fade = (_find_tex(textures, "black") or _find_tex(textures, "i4_gra")
+                or _find_tex(textures, "112") or _find_tex(textures, "8_01"))
+        if fade is not None:
+            p.drawImage(QRectF(x, y, w, h), _alpha_tint(fade, QColor(0, 0, 0, 77)))
+        else:
+            p.fillRect(QRectF(x, y, w, h), QColor(0, 0, 0, 77))
         gold = _find_tex(textures, "gold_uzu") or _find_tex(textures, "kazari")
         if gold is not None:
             ornament = _alpha_tint(gold, QColor(210, 190, 120, 230))
@@ -317,12 +356,30 @@ def _paint_talk_like(p: QPainter, box, textures, item=False):
             p.drawImage(QRectF(x, y, side, h), ornament)
             p.drawImage(QRectF(x + w - side, y, side, h), ornament.mirrored(True, False))
         return
-    # Talk filigree: one left-side kado texture, mirrored for the right.
+    # Talk: I8 112 caps + 8_01 middle, tinted black (GX I8 used as alpha).
+    # BLO PIC2 base_00/01/02 are 151px tall on a 117px n_all — the extra is the
+    # vertical fade over the scene. HIO mBoxTalkAlphaP = 0.9.
+    fade_l = _find_tex(textures, "112")
+    fade_c = _find_tex(textures, "8_01") or fade_l
+    fade_h = max(h, 151.0)
+    fy = y + (h - fade_h) / 2.0
+    side = min(112.0, max(24.0, w * 0.2))
+    dark = QColor(0, 0, 0, 230)  # 255 * 0.9
+    if fade_l is not None:
+        left = _alpha_tint(fade_l, dark)
+        p.drawImage(QRectF(x, fy, side, fade_h), left)
+        p.drawImage(QRectF(x + w - side, fy, side, fade_h), left.mirrored(True, False))
+    if fade_c is not None and w > side * 2.0:
+        p.drawImage(QRectF(x + side, fy, w - side * 2.0, fade_h),
+                    _alpha_tint(fade_c, dark))
+    elif fade_l is None:
+        p.fillRect(QRectF(x, fy, w, fade_h), QColor(0, 0, 0, 140))
     kado = _find_tex(textures, "kado")
     if kado is None:
         return
-    ornament = _alpha_tint(kado, QColor(232, 216, 168, 255))
-    ow, oh = float(kado.width()), float(kado.height())
+    # Vertex color on garde00/grade01 is approximately (182, 182, 149).
+    ornament = _alpha_tint(kado, QColor(182, 182, 149, 220))
+    ow, oh = 208.0, min(142.0, float(kado.height()) if kado.height() else 142.0)
     p.drawImage(QRectF(x - 8.0, y + (h - oh) / 2.0, ow, oh), ornament)
     p.drawImage(QRectF(x + w - ow + 8.0, y + (h - oh) / 2.0, ow, oh),
                 ornament.mirrored(True, False))

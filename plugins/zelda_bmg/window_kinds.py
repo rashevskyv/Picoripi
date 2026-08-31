@@ -48,8 +48,8 @@ _SCREEN = (608, 448)
 
 _TALK_FRAME = {
     "style": "talk",
-    "fill": "#0a0c14",
-    "fill_alpha": 216,
+    "fill": "#000000",
+    "fill_alpha": 140,
     "border": "#f0e6c8",
     "border_alpha": 40,
     "radius": 14.0,
@@ -67,8 +67,14 @@ _HALO_SPIRIT = {"color": "#ffff6e", "alpha": 210, "radius_ratio": 0.9}
 _HALO_GREEN = {"color": "#469600", "alpha": 150, "radius_ratio": 0.9}
 
 
+# Non-JP mg_e4lin TBX2 (fontSize / lineSpace / charSpace).
+_METRICS_TALK = {"font_x": 23.0, "font_y": 22.0, "line_space": 23.0, "char_space": 1.0}
+_METRICS_ITEM = {"font_x": 23.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0}
+_METRICS_SIGN = {"font_x": 25.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0}
+
+
 def _geometry(text_xywh, hio_xy=(1.0, 1.0), text_pane_widen=1.0,
-              pad_xy=(22.0, 10.0)):
+              pad_xy=(22.0, 10.0), metrics=None):
     """Stable screen-space box + inner text for preview (not exact BLO pixels).
 
     text_xywh is the unscaled text pane; HIO scale and optional 1.2x text-pane
@@ -83,23 +89,30 @@ def _geometry(text_xywh, hio_xy=(1.0, 1.0), text_pane_widen=1.0,
     tx = tx - (tw - text_xywh[2]) / 2.0
     ty = ty - (th - text_xywh[3]) * 0.15
     pad_x, pad_y = pad_xy[0] * hx, pad_xy[1] * hy
-    return {
+    out = {
         "screen": list(_SCREEN),
         "text": [tx, ty, tw, th],
         "box": [tx - pad_x, ty - pad_y, tw + 2 * pad_x, th + 2 * pad_y],
         "hio_scale": [hx, hy],
     }
+    if metrics:
+        out["text_metrics"] = dict(metrics)
+    return out
 
 
 # Approximate base text panes before HIO / pane widen (font-pixel layout).
 _GEOM_TALK = _geometry((76, 292, 410, 118), hio_xy=(1.2, 1.0),
-                       text_pane_widen=1.2, pad_xy=(22.0, 10.0))
+                       text_pane_widen=1.2, pad_xy=(22.0, 10.0),
+                       metrics=_METRICS_TALK)
 _GEOM_ITEM = _geometry((70, 280, 360, 130), hio_xy=(1.05, 0.97),
-                       text_pane_widen=1.2, pad_xy=(22.0, 12.0))
+                       text_pane_widen=1.2, pad_xy=(22.0, 12.0),
+                       metrics=_METRICS_ITEM)
 _GEOM_WOOD = _geometry((120, 70, 360, 260), hio_xy=(1.0, 1.0),
-                       text_pane_widen=1.2, pad_xy=(26.0, 14.0))
+                       text_pane_widen=1.2, pad_xy=(26.0, 14.0),
+                       metrics=_METRICS_SIGN)
 _GEOM_STONE = _geometry((120, 70, 360, 260), hio_xy=(1.0, 1.0),
-                        text_pane_widen=1.2, pad_xy=(26.0, 14.0))
+                        text_pane_widen=1.2, pad_xy=(26.0, 14.0),
+                        metrics=_METRICS_SIGN)
 _GEOM_HOWL = _geometry((150, 180, 300, 140), hio_xy=(1.05, 1.1),
                        text_pane_widen=1.0, pad_xy=(16.0, 10.0))
 _GEOM_PLACE = _geometry((94, 200, 420, 48), hio_xy=(1.0, 1.0),
@@ -111,7 +124,8 @@ _GEOM_BOSS = _geometry((94, 190, 420, 56), hio_xy=(1.0, 1.0),
 _GEOM_STAFF = _geometry((80, 40, 448, 360), hio_xy=(1.0, 1.0),
                         text_pane_widen=1.0, pad_xy=(16.0, 12.0))
 _GEOM_EXPLAIN = _geometry((90, 120, 420, 200), hio_xy=(1.2, 1.0),
-                          text_pane_widen=1.2, pad_xy=(22.0, 12.0))
+                          text_pane_widen=1.2, pad_xy=(22.0, 12.0),
+                          metrics=_METRICS_TALK)
 
 
 def _style(kind_name, frame, halo=_HALO_TALK, shadow=_TALK_SHADOW,
@@ -177,8 +191,8 @@ _STONE_FRAME = {
 
 _ITEM_FRAME = {
     "style": "item",
-    "fill": "#101a30",
-    "fill_alpha": 222,
+    "fill": "#000000",
+    "fill_alpha": 77,
     "border": "#f0e6c8",
     "border_alpha": 60,
     "radius": 14.0,
@@ -385,6 +399,8 @@ def _copy_style(style: Dict[str, Any]) -> Dict[str, Any]:
         for key in ("screen", "text", "box", "hio_scale"):
             if isinstance(geom.get(key), list):
                 geom[key] = list(geom[key])
+        if isinstance(geom.get("text_metrics"), dict):
+            geom["text_metrics"] = dict(geom["text_metrics"])
         out["geometry"] = geom
     if isinstance(out.get("item_icon"), dict):
         out["item_icon"] = dict(out["item_icon"])

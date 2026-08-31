@@ -311,6 +311,57 @@ def test_manual_override_beats_0x02a5_in_preview_only(qapp, bmg_rules):
     assert bytes(msg.info) == bytes(info)
 
 
+def test_talk_and_item_styles_carry_blo_text_metrics():
+    talk = window_style_for_kind(0)
+    metrics = talk["geometry"]["text_metrics"]
+    assert metrics["font_y"] == 22.0
+    assert metrics["line_space"] == 23.0
+    assert metrics["char_space"] == 1.0
+    item = window_style_for_kind(9)
+    assert item["geometry"]["text_metrics"]["font_y"] == 23.0
+    wood = window_style_for_kind(2)
+    assert wood["geometry"]["text_metrics"]["font_x"] == 25.0
+
+
+def test_textbox_height_center_centers_used_lines():
+    from plugins.zelda_bmg.window_frame_loader import textbox_height_center
+
+    # Talk mg_e4lin 114px, fontY 22, lineSpace 23, 4-line box, 2-line page.
+    two = textbox_height_center(114.0, 22.0, 23.0, 4, 2)
+    four = textbox_height_center(114.0, 22.0, 23.0, 4, 4)
+    used_h = 22.0 + 23.0  # two lines
+    assert abs(two - (114.0 - used_h) / 2.0) < 1e-6
+    assert four < two
+    # Game formula is equivalent to centering the used block.
+    assert two > 30.0
+
+
+def test_talk_fade_is_translucent_not_a_solid_bar(qapp):
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtGui import QImage, QPainter, QColor
+    from plugins.zelda_bmg.window_frame_loader import _paint_talk_like
+
+    fade = QImage(32, 32, QImage.Format.Format_ARGB32)
+    fade.fill(QColor(180, 180, 180, 180))
+    kado = QImage(16, 16, QImage.Format.Format_ARGB32)
+    kado.fill(QColor(255, 255, 255, 200))
+    textures = {
+        "message_window_base_112_8i_02": fade,
+        "message_window_base_8_01": fade,
+        "tt_message_win_kado_216_01": kado,
+    }
+    canvas = QImage(608, 448, QImage.Format.Format_ARGB32_Premultiplied)
+    canvas.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(canvas)
+    try:
+        _paint_talk_like(painter, (29.5, 273.5, 551.0, 117.0), textures, item=False)
+    finally:
+        painter.end()
+    sample = canvas.pixelColor(305, 332)
+    assert 20 < sample.alpha() < 240, sample.alpha()
+    assert sample.red() < 40 and sample.green() < 40 and sample.blue() < 40
+
+
 def test_unknown_kind_shows_number_and_json_can_name_it():
     unknown = window_style_for_kind(42)
     assert unknown["kind_name"] == "Dialogue (kind 42)"
@@ -553,7 +604,7 @@ def test_dump_talk_frame_loads_when_msgres_present(qapp, tmp_path):
     assert not frame.image.isNull()
     assert frame.screen[0] >= 600
     assert frame.box[2] > 200 and frame.box[3] > 50
-    # Opaque ornament or fill pixels exist.
+    # Fade / ornaments exist, but the talk band is not a solid bar.
     sample = 0
     img = frame.image
     for y in range(0, img.height(), 8):
@@ -561,3 +612,8 @@ def test_dump_talk_frame_loads_when_msgres_present(qapp, tmp_path):
             if img.pixelColor(x, y).alpha() > 40:
                 sample += 1
     assert sample > 20
+    cx = int(frame.box[0] + frame.box[2] / 2)
+    cy = int(frame.box[1] + frame.box[3] / 2)
+    mid = img.pixelColor(max(0, min(img.width() - 1, cx)),
+                         max(0, min(img.height() - 1, cy)))
+    assert 20 < mid.alpha() < 250, mid.alpha()

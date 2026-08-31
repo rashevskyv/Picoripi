@@ -749,6 +749,14 @@ class BfnPreviewWidget(QWidget):
             self.page_bar.setGeometry(x, y, 38, height)
             self.page_bar.raise_()
 
+    @staticmethod
+    def _used_page_lines(text: str) -> int:
+        """Visible lines on this preview page (trailing blank lines ignored)."""
+        lines = (text or "").split("\n")
+        while lines and lines[-1] == "":
+            lines.pop()
+        return max(1, len(lines))
+
     def _lines_per_page(self, game_style=None) -> int:
         """Lines per message window: plugin style first, then the plugin's
         global setting; 0 disables pagination."""
@@ -1620,11 +1628,31 @@ class BfnPreviewWidget(QWidget):
         fallback_font.setPixelSize(max(10, int(cell_h * 0.85)))
         fallback_fm = QFontMetrics(fallback_font)
 
+        geom = (game_style or {}).get("geometry") if isinstance(game_style, dict) else None
+        metrics = geom.get("text_metrics") if isinstance(geom, dict) else None
+        layout_line_spacing = self.line_spacing
+        layout_char_spacing = getattr(self.mw, 'preview_char_spacing', 0)
+        game_font_y = game_line_space = None
+        if used_preset and isinstance(metrics, dict):
+            try:
+                game_font_y = float(metrics["font_y"])
+                game_line_space = float(metrics["line_space"])
+                game_char_space = float(metrics.get("char_space", 0) or 0)
+            except (TypeError, ValueError, KeyError):
+                game_font_y = game_line_space = None
+            if game_font_y and game_font_y > 0 and cell_h > 0:
+                inf = bfn.inf1[0] if getattr(bfn, 'inf1', None) else {}
+                leading = inf.get("leading", 0) or cell_h
+                # Layout in BFN pixels so that after (fontY/cell)*fit the
+                # baseline step equals BLO lineSpace * fit.
+                layout_line_spacing = game_line_space * cell_h / game_font_y - leading
+                layout_char_spacing = game_char_space * cell_h / game_font_y
+
         # Call unified layout engine via the BfnCore implementation.
         from core.bfn_core import BfnCore
         glyphs, total_width, total_height = BfnCore.layout_text(
-            bfn, cleaned_text, self.translation_map, self.line_spacing,
-            char_spacing=getattr(self.mw, 'preview_char_spacing', 0),
+            bfn, cleaned_text, self.translation_map, layout_line_spacing,
+            char_spacing=layout_char_spacing,
             colors=char_colors,
             scales=char_scales,
             icons=char_icons
@@ -1636,13 +1664,18 @@ class BfnPreviewWidget(QWidget):
             self.draw_bounding_box(painter)
             return
 
-        # Determine scaling factor. Like the game, text has a FIXED size that
-        # does not depend on how much text there is: the text area represents a
-        # message box of lines_per_page lines (TP talk box: 4), so one page of
-        # text exactly fills the box height. Short/long strings no longer jump
-        # between huge and tiny.
+        # Game text is a fixed BLO fontSize inside mg_e4lin, scaled only by the
+        # window-fit. Do not pack lines_per_page into the box — short pages sit
+        # in the middle (do_heightcenter), they do not grow.
+        fit = 1.0
+        if used_preset and isinstance(geom, dict):
+            _, _, fit = self._window_fit_transform(geom)
+            if fit <= 0:
+                fit = 1.0
         if self.fix_font_scale:
             scale_factor = self.fixed_font_scale
+        elif game_font_y and cell_h > 0:
+            scale_factor = (game_font_y / cell_h) * fit
         else:
             inf = bfn.inf1[0] if getattr(bfn, 'inf1', None) else {}
             leading = inf.get("leading", 0) or cell_h
@@ -1665,7 +1698,6 @@ class BfnPreviewWidget(QWidget):
 
         # Text offset inside the window (game: HIO mTextPosX/mTextPosY)
         text_dx = text_dy = 0
-        geom = (game_style or {}).get("geometry") if isinstance(game_style, dict) else None
         # BLO mg_e4lin already includes HIO text inset; do not apply mTextPos twice.
         if game_style and game_style.get("text_offset") and not (
                 isinstance(geom, dict) and geom.get("asset_frame")):
@@ -1675,6 +1707,14 @@ class BfnPreviewWidget(QWidget):
                 text_dy = int(round(float(off[1]) * scale_factor))
             except (TypeError, ValueError, IndexError):
                 text_dx = text_dy = 0
+
+        if game_font_y and game_line_space is not None and used_preset:
+            from plugins.zelda_bmg.window_frame_loader import textbox_height_center
+            tbox_h = float(geom["text"][3]) if isinstance(geom.get("text"), (list, tuple)) else 0.0
+            line_max = self._lines_per_page(game_style) or 4
+            now_lines = self._used_page_lines(cleaned_text)
+            text_dy += int(round(textbox_height_center(
+                tbox_h, game_font_y, game_line_space, line_max, now_lines) * fit))
 
         # ── 2-frame. Message window frame around the text area ───────────────
         # Preset geometry supplies a stable box; otherwise pad the text rect.
