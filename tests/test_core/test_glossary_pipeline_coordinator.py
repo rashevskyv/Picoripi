@@ -65,6 +65,70 @@ def _manager():
 DATASET = [["Ordon village is calm today", "Link visits Ordon often"]]
 
 
+def test_voice_codes_are_not_described_or_translated():
+    """Voice 70 is a bank id. Merge Speakers names it; the glossary pass must not."""
+    manager = _manager()
+    manager.seed_entry(
+        "Voice 70",
+        section="Characters",
+        description="In-game speaker id Voice 70 (3 lines).",
+        provisional=True,
+    )
+    ai = FakeAI()
+    coordinator = GlossaryBuildCoordinator(manager, ai, PROMPTS)
+    result = coordinator.build([["You saved our chief, Brother!"]], MODE_AUGMENT)
+    coordinator.run_translate(result)
+
+    entry = manager.get_entry("Voice 70")
+    assert entry.notes == "In-game speaker id Voice 70 (3 lines)."
+    assert entry.translation == ""
+    assert not any("Excerpts where it appears" in call for call in ai.calls)
+    assert not any("Description:" in call for call in ai.calls)
+
+
+def test_describe_uses_block_owned_rows_when_the_name_is_never_spoken():
+    """The block list is a source of truth: three lines in VILLAGE GORON #2
+    are that character's, even if the dialogue never says the label."""
+    manager = _manager()
+    manager.seed_entry("VILLAGE GORON #2", section="Characters")
+    manager.bind_project_rows(
+        type("Store", (), {"block_names": {"0": "VILLAGE GORON #2"}})(),
+        None,
+    )
+    dataset = [["You saved our chief, Brother, and we are thankful."]]
+    ai = FakeAI()
+    coordinator = GlossaryBuildCoordinator(manager, ai, PROMPTS)
+    coordinator.build(dataset, MODE_AUGMENT)
+
+    entry = manager.get_entry("VILLAGE GORON #2")
+    assert entry is not None
+    assert entry.notes == "a description"
+    assert any("Excerpts where it appears" in call for call in ai.calls)
+
+
+def test_describe_and_translate_uses_speaker_pool_owned_rows():
+    """A marked-script speaker in speaker_pool gets described and translated."""
+    manager = _manager()
+    manager.seed_entry("AGITHA'S STALKER", section="Characters")
+    manager.bind_project_rows(
+        None,
+        None,
+        speaker_pool={(0, 0): "AGITHA'S STALKER", (0, 1): "AGITHA'S STALKER"},
+    )
+    dataset = [["I watch her from afar...", "She loves golden bugs..."]]
+    ai = FakeAI(variants=[{"translation": "Переслідувач Агіти", "rationale": "context"}])
+    coordinator = GlossaryBuildCoordinator(manager, ai, PROMPTS)
+    result = coordinator.build(dataset, MODE_AUGMENT)
+    coordinator.run_translate(result)
+
+    entry = manager.get_entry("AGITHA'S STALKER")
+    assert entry is not None
+    assert entry.notes == "a description"
+    assert entry.translation == "Переслідувач Агіти"
+    assert any("Excerpts where it appears" in call for call in ai.calls)
+
+
+
 def test_auto_mode_runs_the_single_complete_route():
     manager = _manager()
     coordinator = GlossaryBuildCoordinator(
@@ -303,7 +367,7 @@ class TestDescribingTermsWithNoOccurrences:
     def test_evidence_in_the_notes_is_folded_into_prose(self):
         manager = _manager()
         manager.seed_entry(
-            "Voice 41",
+            "CLERK_B",
             section="Characters",
             status=STATUS_FRAGMENTS,
             description='Identify who this is: "I am the shaman of this village"',
@@ -314,7 +378,7 @@ class TestDescribingTermsWithNoOccurrences:
         # The dataset must not contain the term, or it would have occurrences.
         coordinator.build([["a line that never names the speaker"]], MODE_AUGMENT)
 
-        entry = manager.get_entry("Voice 41")
+        entry = manager.get_entry("CLERK_B")
         assert entry.notes == "folded"
         assert entry.status == STATUS_SYNTHESIZED
         # It went through the fold pass, not the occurrence-based one.

@@ -108,7 +108,7 @@ Return ONLY the translated text. Do not add any introduction or meta comments.
             {"role": "user", "content": user_prompt}
         ]
         try:
-            response = self.ai_provider.translate(messages, session=None)
+            response = self.ai_provider.translate(messages, session=None, settings_override={"think": 1, "timeout": 300})
             translated = response.text.strip()
             log_info(f"Successfully translated background lore for '{title}' to {self.target_lang}")
             return f"Page: {title}\n{translated}"
@@ -568,7 +568,9 @@ JSON Structure:
                 try:
                     # Query AI
                     log_ai_traffic(self.mw, "mempalace_speech_profiling", messages)
-                    response = self.ai_provider.translate(messages, session=None)
+                    response = self.ai_provider.translate(
+                        messages, session=None, settings_override={"think": 4, "timeout": 300}
+                    )
                     log_ai_traffic(self.mw, "mempalace_speech_profiling", messages, response_text=response.text)
                     consecutive_failures = 0
                     
@@ -608,7 +610,9 @@ JSON Structure:
                             
                             try:
                                 log_ai_traffic(self.mw, "mempalace_speech_profile_synthesis", synth_messages)
-                                synth_response = self.ai_provider.translate(synth_messages, session=None)
+                                synth_response = self.ai_provider.translate(
+                                    synth_messages, session=None, settings_override={"think": 1, "timeout": 300}
+                                )
                                 log_ai_traffic(self.mw, "mempalace_speech_profile_synthesis", synth_messages, response_text=synth_response.text)
                                 final_notes = synth_response.text.strip()
                                 

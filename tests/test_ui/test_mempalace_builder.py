@@ -129,19 +129,21 @@ def test_mempalace_builder_uses_consistent_action_styles(qapp):
     dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
 
     workflow_buttons = (
-        dialog.ai_profile_speech_btn,
+        dialog.hierarchy_project_import_btn,
+        dialog.match_dialogue_btn,
         dialog.map_chapters_btn,
-        dialog.analyze_chapter_btn,
-        dialog.analyze_all_chapters_btn,
     )
     assert all(button.styleSheet() == WORKFLOW_BUTTON_STYLE for button in workflow_buttons)
     assert dialog.cancel_btn.styleSheet() == SECONDARY_BUTTON_STYLE
     assert dialog.clear_btn.styleSheet() == DANGER_BUTTON_STYLE
     assert dialog.hierarchy_project_browse_btn.styleSheet() == SECONDARY_BUTTON_STYLE
-    assert dialog.workflow_tabs.count() == 3
+    assert dialog.workflow_tabs.count() == 2
     assert dialog.workflow_tabs.tabText(0) == "1. Source"
     assert dialog.source_next_btn.text() == "Continue to Story Context →"
     assert dialog.map_chapters_btn.isHidden()
+    assert dialog.analyze_all_chapters_btn.isHidden()
+    assert dialog.pipeline_btn.isHidden()
+    assert dialog.mapping_next_btn.isHidden()
     assert dialog.table.isHidden()
     assert dialog.legacy_fallback_checkbox.isHidden()
     assert dialog.file_path_edit.isHidden()
@@ -154,7 +156,8 @@ def test_mempalace_builder_uses_consistent_action_styles(qapp):
     assert dialog.workflow_tabs.tabText(1) == "2. Story Context"
     assert dialog.story_group.isHidden()
     assert dialog.mapping_review_table.isHidden()
-    assert dialog.workflow_tabs.widget(2).isAncestorOf(dialog.analyze_all_chapters_btn)
+    assert dialog.workflow_tabs.widget(1).isAncestorOf(dialog.match_dialogue_btn)
+    assert dialog.workflow_tabs.widget(1).isAncestorOf(dialog.log_text)
 
 
 def test_mempalace_builder_selects_validated_hierarchy_project(qapp, tmp_path):
@@ -269,7 +272,6 @@ def test_mempalace_builder_import_sync_persists_metadata_idempotently(qapp, tmp_
     assert dialog.hierarchy_project_status_label.text().startswith("Status: Up to date")
     assert dialog.file_path_edit.text() == str(raw_path)
     assert dialog.workflow_tabs.isTabEnabled(1)
-    assert not dialog.workflow_tabs.isTabEnabled(2)
 
     assert dialog._import_sync_hierarchy_project()
     assert {key: settings[key] for key in first_metadata} == first_metadata
@@ -345,7 +347,7 @@ def test_mempalace_builder_matches_open_project_to_dialogue_nodes(qapp, qtbot, t
     # Cold CI/test processes may need a few seconds to import the alignment
     # stack before the tiny job starts; this is a completion guard, not a
     # performance assertion.
-    qtbot.waitUntil(lambda: dialog.worker is None, timeout=25000)
+    qtbot.waitUntil(lambda: dialog.worker is None, timeout=35000)
 
     mappings = dialog.client.get_dialogue_mappings(dialog.story_document_id)
     assert len(mappings) == 1
@@ -697,20 +699,24 @@ def test_mempalace_builder_pipeline_session_persistence(qapp):
     assert "Continue Pipeline (Step 2/4)" in dialog2.pipeline_btn.text()
 
 
-def test_mempalace_builder_keeps_old_analysis_step_locked(qapp, tmp_path):
-    mock_mw = MagicMock()
-    mock_mw.project_manager = MagicMock()
-    mock_mw.project_manager.project = None
-    mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/file.bmg"
-    mock_mw.data_store.data = [["Line"]]
-    mock_mw.data_store.block_names = {"0": "zel_00"}
-    mock_mw.settings_manager = MagicMock()
-    
+def test_timeline_and_voices_unlock_once_story_context_exists(qapp, tmp_path):
+    mock_mw, _settings = _settings_backed_main_window()
+    mock_mw.project_manager.project_dir = str(tmp_path)
     parent_widget = QWidget()
     dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
-    assert not dialog.workflow_tabs.isTabEnabled(2)
-    assert not dialog.mapping_next_btn.isEnabled()
+    project_path = tmp_path / "script_markup_project.json"
+    project_path.write_text(json.dumps(_hierarchy_project_payload()), encoding="utf-8")
+    assert dialog._load_hierarchy_project_preview(str(project_path))
+    assert dialog._import_sync_hierarchy_project()
+    assert not dialog.analyze_story_timeline_btn.isEnabled()
+    assert not dialog.analyze_character_voices_btn.isEnabled()
+
+    dialog._dialogue_search_has_results = lambda: True
+    dialog._refresh_wizard_state()
+
+    assert dialog.analyze_story_timeline_btn.isEnabled()
+    assert dialog.analyze_character_voices_btn.isEnabled()
+    assert dialog.workflow_tabs.count() == 2
 
 
 def test_mempalace_builder_wizard_gates_later_steps_until_source_is_ready(qapp, tmp_path):
@@ -721,7 +727,6 @@ def test_mempalace_builder_wizard_gates_later_steps_until_source_is_ready(qapp, 
 
     assert dialog.workflow_tabs.isTabEnabled(0)
     assert not dialog.workflow_tabs.isTabEnabled(1)
-    assert not dialog.workflow_tabs.isTabEnabled(2)
     assert not dialog.source_next_btn.isEnabled()
 
     project_path = tmp_path / "script_markup_project.json"
@@ -730,14 +735,12 @@ def test_mempalace_builder_wizard_gates_later_steps_until_source_is_ready(qapp, 
     assert dialog._import_sync_hierarchy_project()
 
     assert dialog.workflow_tabs.isTabEnabled(1)
-    assert not dialog.workflow_tabs.isTabEnabled(2)
     assert dialog.source_next_btn.isEnabled()
     assert "ready" in dialog.source_readiness_label.text().lower()
     dialog.source_next_btn.click()
     assert dialog.workflow_tabs.currentIndex() == 1
-
-    assert not dialog.workflow_tabs.isTabEnabled(2)
-    assert not dialog.mapping_next_btn.isEnabled()
+    assert not dialog.analyze_story_timeline_btn.isEnabled()
+    assert not dialog.analyze_character_voices_btn.isEnabled()
 
 
 def test_story_context_actions_are_numbered_and_gated_in_order(qapp, tmp_path):
@@ -750,6 +753,9 @@ def test_story_context_actions_are_numbered_and_gated_in_order(qapp, tmp_path):
     assert dialog.match_dialogue_btn.text().startswith("Step 1")
     assert dialog.analyze_story_timeline_btn.text().startswith("Step 2")
     assert dialog.analyze_character_voices_btn.text().startswith("Step 3")
+    assert "no ai" in dialog.match_dialogue_btn.toolTip().lower()
+    assert "glossary" in dialog.analyze_story_timeline_btn.toolTip().lower()
+    assert "merge speakers" in dialog.analyze_character_voices_btn.toolTip().lower()
 
     # Steps 2 and 3 read what step 1 saves, so they are not offered before it.
     assert not dialog.analyze_story_timeline_btn.isEnabled()
@@ -842,3 +848,232 @@ def test_mempalace_builder_dialog_passes_target_lang_to_chapter_analyzer(qapp):
         mock_worker_class.assert_called_once()
         kwargs = mock_worker_class.call_args[1]
         assert kwargs.get("target_lang") == "Spanish"
+
+
+def test_mempalace_builder_stop_no_keeps_running(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    dialog.worker = mock_worker
+    dialog.cancel_btn.setEnabled(True)
+
+    with patch("PyQt6.QtWidgets.QMessageBox.question", return_value=QMessageBox.StandardButton.No) as mock_q:
+        dialog._handle_close_or_cancel()
+        mock_q.assert_called_once_with(
+            dialog,
+            "Stop current AI operation?",
+            "The current request will stop after the active network step. Are you sure you want to continue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+    mock_worker.cancel.assert_not_called()
+    assert dialog.user_cancelled is False
+    assert dialog.cancel_btn.isEnabled() is True
+    dialog.worker = None
+
+
+def test_mempalace_builder_stop_yes_cancels_worker(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    dialog.worker = mock_worker
+    dialog.cancel_btn.setEnabled(True)
+
+    with patch("PyQt6.QtWidgets.QMessageBox.question", return_value=QMessageBox.StandardButton.Yes) as mock_q:
+        dialog._handle_close_or_cancel()
+        mock_q.assert_called_once()
+
+    mock_worker.cancel.assert_called_once()
+    assert dialog.user_cancelled is True
+    assert dialog.cancel_btn.isEnabled() is False
+    dialog.worker = None
+
+
+def test_mempalace_builder_close_running_no_ignores_close(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    from PyQt6.QtGui import QCloseEvent
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    dialog.worker = mock_worker
+
+    event = QCloseEvent()
+    with patch("PyQt6.QtWidgets.QMessageBox.question", return_value=QMessageBox.StandardButton.No) as mock_q:
+        dialog.closeEvent(event)
+        mock_q.assert_called_once_with(
+            dialog,
+            "Stop current AI operation and close the builder?",
+            "The current request will stop after the active network step. Are you sure you want to continue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+    assert event.isAccepted() is False
+    assert dialog.worker is mock_worker
+    dialog.worker = None
+
+
+def test_mempalace_builder_close_running_yes_shuts_down_worker(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    from PyQt6.QtGui import QCloseEvent
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    dialog.worker = mock_worker
+
+    event = QCloseEvent()
+    with patch("PyQt6.QtWidgets.QMessageBox.question", return_value=QMessageBox.StandardButton.Yes) as mock_q, \
+         patch("utils.thread_utils.safe_shutdown_thread") as mock_shutdown:
+        dialog.closeEvent(event)
+        mock_q.assert_called_once()
+        mock_shutdown.assert_called_once_with(mock_worker, mock_worker)
+
+    assert event.isAccepted() is True
+    assert dialog.worker is None
+
+
+def test_mempalace_builder_close_without_worker_no_confirmation(qapp):
+    from PyQt6.QtGui import QCloseEvent
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    dialog.worker = None
+
+    event = QCloseEvent()
+    with patch("PyQt6.QtWidgets.QMessageBox.question") as mock_q:
+        dialog.closeEvent(event)
+        mock_q.assert_not_called()
+
+    assert event.isAccepted() is True
+
+
+def test_mempalace_builder_escape_running_no_keeps_running(qtbot):
+    from PyQt6.QtWidgets import QMessageBox
+    from PyQt6.QtCore import Qt
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    qtbot.addWidget(parent_widget)
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+    dialog.show()
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    dialog.worker = mock_worker
+
+    with patch("PyQt6.QtWidgets.QMessageBox.question", return_value=QMessageBox.StandardButton.No) as mock_q:
+        qtbot.keyClick(dialog, Qt.Key.Key_Escape)
+        mock_q.assert_called_once_with(
+            dialog,
+            "Stop current AI operation and close the builder?",
+            "The current request will stop after the active network step. Are you sure you want to continue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+    assert dialog.isVisible() is True
+    assert dialog.worker is mock_worker
+    dialog.worker = None
+
+
+def test_mempalace_builder_escape_running_yes_shuts_down(qtbot):
+    from PyQt6.QtWidgets import QMessageBox
+    from PyQt6.QtCore import Qt
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    qtbot.addWidget(parent_widget)
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+    dialog.show()
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    dialog.worker = mock_worker
+
+    with patch("PyQt6.QtWidgets.QMessageBox.question", return_value=QMessageBox.StandardButton.Yes) as mock_q, \
+         patch("utils.thread_utils.safe_shutdown_thread") as mock_shutdown:
+        qtbot.keyClick(dialog, Qt.Key.Key_Escape)
+        mock_q.assert_called_once()
+        mock_shutdown.assert_called_once_with(mock_worker, mock_worker)
+
+    assert dialog.worker is None
+    assert dialog.isVisible() is False
+
+
+def test_mempalace_builder_escape_no_worker_closes_immediately(qtbot):
+    from PyQt6.QtCore import Qt
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    qtbot.addWidget(parent_widget)
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+    dialog.show()
+    dialog.worker = None
+
+    with patch("PyQt6.QtWidgets.QMessageBox.question") as mock_q:
+        qtbot.keyClick(dialog, Qt.Key.Key_Escape)
+        mock_q.assert_not_called()
+
+    assert dialog.isVisible() is False
+
+
+
+
+def test_mempalace_builder_reject_direct_running_no_keeps_running(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    dialog.worker = mock_worker
+
+    with patch("PyQt6.QtWidgets.QMessageBox.question", return_value=QMessageBox.StandardButton.No) as mock_q:
+        dialog.reject()
+        mock_q.assert_called_once_with(
+            dialog,
+            "Stop current AI operation and close the builder?",
+            "The current request will stop after the active network step. Are you sure you want to continue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+    assert dialog.worker is mock_worker
+    dialog.worker = None
+
+
+def test_mempalace_builder_reject_direct_running_yes_shuts_down(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    mock_mw, _ = _settings_backed_main_window()
+    parent_widget = QWidget()
+    dialog = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
+    dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    dialog.worker = mock_worker
+
+    with patch("PyQt6.QtWidgets.QMessageBox.question", return_value=QMessageBox.StandardButton.Yes) as mock_q, \
+         patch("utils.thread_utils.safe_shutdown_thread") as mock_shutdown:
+        dialog.reject()
+        mock_q.assert_called_once()
+        mock_shutdown.assert_called_once_with(mock_worker, mock_worker)
+
+    assert dialog.worker is None

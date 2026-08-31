@@ -83,6 +83,24 @@ def is_confirmed_speaker_alias(value: object) -> bool:
     return bool(str(value or "").strip()) and NAME_SEPARATOR not in str(value)
 
 
+def split_shared_speaker_names(value: object) -> list:
+    """The character names a shared-voice alias carries, in order."""
+    text = str(value or "").strip()
+    if not text:
+        return []
+    return [part.strip() for part in text.split(NAME_SEPARATOR) if part.strip()]
+
+
+def is_applyable_speaker_alias(value: object) -> bool:
+    """A name the user can Apply: one character, or several on a shared voice.
+
+    One voice for two Spring Zoras is what the game does. Blocking Apply until
+    a single name is picked threw that mapping away.
+    """
+    parts = split_shared_speaker_names(value)
+    return bool(parts) and all(part and NAME_SEPARATOR not in part for part in parts)
+
+
 @dataclass
 class MergeResult:
     """What the join concluded, and everything it refused to conclude."""
@@ -104,6 +122,11 @@ class MergeResult:
     is_markup: bool = False
     all_placeholders: List[str] = field(default_factory=list)
     game_display_names: List[str] = field(default_factory=list)
+    # The join's own suggested name per code, kept even when the dialog shows a
+    # name the user already applied. Clear restores this, not an empty field.
+    proposed: Dict[str, str] = field(default_factory=dict)
+    # Saved aliases at dialog open, so already-applied codes stay visible.
+    applied: Dict[str, str] = field(default_factory=dict)
 
     @property
     def summary(self) -> str:
@@ -253,6 +276,10 @@ def save_speaker_aliases(project_dir, aliases: Dict[str, str]) -> Optional[str]:
 
 MARKUP_FILENAME = "script_markup_project.json"
 
+# path -> (mtime_ns, size, project). Parsing a full TP script on every pipeline
+# activation is what made the wizard feel stuck.
+_MARKUP_PROJECT_CACHE: Dict[str, tuple] = {}
+
 
 def find_markup_project(script_path=None, project_dir=None):
     """The Script Markup Studio project for this script, if it has one.
@@ -272,8 +299,16 @@ def find_markup_project(script_path=None, project_dir=None):
         candidates.append(Path(project_dir) / MARKUP_FILENAME)
     for path in candidates:
         try:
-            if path.is_file():
-                return load_hierarchy_project(path)
+            if not path.is_file():
+                continue
+            key = str(path.resolve())
+            stat = path.stat()
+            cached = _MARKUP_PROJECT_CACHE.get(key)
+            if cached and cached[0] == stat.st_mtime_ns and cached[1] == stat.st_size:
+                return cached[2]
+            project = load_hierarchy_project(path)
+            _MARKUP_PROJECT_CACHE[key] = (stat.st_mtime_ns, stat.st_size, project)
+            return project
         except Exception:
             continue
     return None

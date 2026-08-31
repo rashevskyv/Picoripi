@@ -23,10 +23,22 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.speaker_alias_merge import NAME_SEPARATOR, is_confirmed_speaker_alias
+from core.speaker_alias_merge import (
+    NAME_SEPARATOR,
+    is_applyable_speaker_alias,
+    split_shared_speaker_names,
+)
+from utils.window_utils import show_as_independent_window
 
 _CODE_ROLE = Qt.ItemDataRole.UserRole
 _DISPLAY_ROLE = Qt.ItemDataRole.UserRole + 1
+_APPLIED_NAME_ROLE = Qt.ItemDataRole.UserRole + 2
+
+_STRONG_COLOR = QColor("#2e7d32")
+_SHARED_COLOR = QColor("#e65100")
+_WEAK_COLOR = QColor("#1565c0")
+_UNMATCHED_COLOR = QColor("#6a1b9a")
+_DISPLAY_COLOR = QColor("#00695c")
 
 
 class NameOnlyDelegate(QStyledItemDelegate):
@@ -131,12 +143,9 @@ class SpeakerMergeDialog(QDialog):
     """Merged names on the left; the lines behind the selected one on the right."""
 
     def __init__(self, result, parent=None, on_apply=None):
-        if parent is not None and (
-            not isinstance(parent, QWidget) or bool(getattr(parent, "_is_test_mode", False))
-        ):
-            parent = None
-        super().__init__(parent)
+        super().__init__(None)
         self.setWindowTitle("Merge Speakers")
+        show_as_independent_window(self)
         self.resize(1080, 680)
         self._result = result
         self._on_apply = on_apply
@@ -239,6 +248,13 @@ class SpeakerMergeDialog(QDialog):
         self.name_edit.textChanged.connect(self._on_name_edit_changed)
         name_layout.addWidget(self.name_edit, 1)
 
+        self.reset_button = QPushButton("Clear", self.inspector_card)
+        self.reset_button.setToolTip(
+            "Restore the suggested name. Delete the text to leave this voice unnamed."
+        )
+        self.reset_button.clicked.connect(self._reset_current_name)
+        name_layout.addWidget(self.reset_button)
+
         self.apply_single_button = QPushButton("Apply This Speaker", self.inspector_card)
         self.apply_single_button.setToolTip("Apply and save only this speaker mapping now")
         self.apply_single_button.clicked.connect(self._apply_current_speaker)
@@ -299,14 +315,24 @@ class SpeakerMergeDialog(QDialog):
 
         strong_matches = []
         shared_matches = []
+        applied = getattr(self._result, "applied", {}) or {}
         for code, name in sorted(resolved.items()):
             votes_str = _votes_line(unproven.get(code) or self._votes_for(code))
+            preexisting = code in applied or not (
+                self._result.evidence.get(code) or unproven.get(code)
+            )
             if NAME_SEPARATOR in name:
-                source = f"{votes_str} • Shared voice" if votes_str else "Shared voice"
+                if preexisting:
+                    source = f"{votes_str} • Already applied" if votes_str else "Already applied"
+                else:
+                    source = f"{votes_str} • Shared voice" if votes_str else "Shared voice"
                 shared_matches.append((code, name, source))
             else:
                 source_tag = "Markup Studio match" if is_markup else "Script match"
-                source = f"{votes_str} • {source_tag}" if votes_str else source_tag
+                if preexisting:
+                    source = f"{votes_str} • Already applied" if votes_str else "Already applied"
+                else:
+                    source = f"{votes_str} • {source_tag}" if votes_str else source_tag
                 strong_matches.append((code, name, source))
 
         suggested = []
@@ -315,9 +341,12 @@ class SpeakerMergeDialog(QDialog):
                 continue
             votes = self._result.evidence.get(code) or []
             is_glossary = any("glossary description" in getattr(v, "text", "") for v in votes)
+            is_block = any("block name" in getattr(v, "text", "").lower() for v in votes)
             top = _top_name(counter)
             if is_glossary:
                 source = "Glossary suggestion"
+            elif is_block:
+                source = "Block name suggestion"
             else:
                 votes_str = _votes_line(counter)
                 source = f"{votes_str} • Weak match" if votes_str else "Weak match"
@@ -340,14 +369,22 @@ class SpeakerMergeDialog(QDialog):
             if is_markup
             else f"Strong script matches ({len(strong_matches)})"
         )
-        self._add_group(strong_label, strong_matches, QColor("#2e7d32"))
-        self._add_group(f"Shared / conflicting matches ({len(shared_matches)})", shared_matches, QColor("#e65100"))
-        self._add_group(f"Weak or AI suggestions ({len(suggested)})", suggested, QColor("#1565c0"))
-        self._add_group(f"Unmatched manual rows ({len(unmatched)})", unmatched, QColor("#6a1b9a"))
+        self._add_group(strong_label, strong_matches, _STRONG_COLOR)
+        self._add_group(
+            f"Shared / conflicting matches ({len(shared_matches)})",
+            shared_matches,
+            _SHARED_COLOR,
+        )
+        self._add_group(
+            f"Weak or AI suggestions ({len(suggested)})", suggested, _WEAK_COLOR
+        )
+        self._add_group(
+            f"Unmatched manual rows ({len(unmatched)})", unmatched, _UNMATCHED_COLOR
+        )
         self._add_group(
             f"Game data display names ({len(display_items)})",
             display_items,
-            QColor("#00695c"),
+            _DISPLAY_COLOR,
             is_editable=False,
             is_display_name=True,
         )
@@ -386,7 +423,7 @@ class SpeakerMergeDialog(QDialog):
                 child.setFlags(child.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
             else:
                 child.setFlags(child.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                if is_confirmed_speaker_alias(name):
+                if is_applyable_speaker_alias(name):
                     child.setCheckState(0, Qt.CheckState.Checked)
                 else:
                     child.setCheckState(0, Qt.CheckState.Unchecked)
@@ -408,7 +445,7 @@ class SpeakerMergeDialog(QDialog):
             code = item.data(0, _CODE_ROLE)
             is_display = bool(item.data(0, _DISPLAY_ROLE))
             name = item.text(1).strip()
-            if code and is_confirmed_speaker_alias(name) and not is_display:
+            if code and is_applyable_speaker_alias(name) and not is_display:
                 if not only_checked or item.checkState(0) == Qt.CheckState.Checked:
                     names[code] = name
             walker += 1
@@ -429,6 +466,7 @@ class SpeakerMergeDialog(QDialog):
             self.inspector_badge.setText("")
             self.name_edit.setEnabled(False)
             self.name_edit.setText("")
+            self.reset_button.setEnabled(False)
             self.apply_single_button.setEnabled(False)
             self.candidates_widget.setVisible(False)
             self.feedback_label.setText("")
@@ -444,6 +482,7 @@ class SpeakerMergeDialog(QDialog):
             self.inspector_badge.setStyleSheet("color: #00695c; font-weight: bold;")
             self.name_edit.setEnabled(False)
             self.name_edit.setText(name)
+            self.reset_button.setEnabled(False)
             self.apply_single_button.setEnabled(False)
             self.candidates_widget.setVisible(False)
             self.feedback_label.setText("")
@@ -453,7 +492,10 @@ class SpeakerMergeDialog(QDialog):
         group_title = parent.text(0) if parent else ""
         self.inspector_title.setText(f"Voice Code: {code}")
 
-        if "Shared" in group_title:
+        if item.data(0, _APPLIED_NAME_ROLE) == name:
+            self.inspector_badge.setText("Applied")
+            self.inspector_badge.setStyleSheet("color: #2e7d32; font-weight: bold;")
+        elif "Shared" in group_title:
             self.inspector_badge.setText("Shared Voice / Multiple Candidates")
             self.inspector_badge.setStyleSheet("color: #e65100; font-weight: bold;")
         elif "Weak" in group_title:
@@ -471,8 +513,9 @@ class SpeakerMergeDialog(QDialog):
         self.name_edit.setText(name)
         self.name_edit.blockSignals(False)
         self.apply_single_button.setEnabled(
-            self._on_apply is not None and is_confirmed_speaker_alias(name)
+            self._on_apply is not None and is_applyable_speaker_alias(name)
         )
+        self.reset_button.setEnabled(bool(self._default_name(code)))
         self.feedback_label.setText("")
 
         candidates = extract_candidates(self._result, code)
@@ -482,15 +525,29 @@ class SpeakerMergeDialog(QDialog):
                 label = f"{cand_name} ({vote_count})" if vote_count > 1 else cand_name
                 btn = QPushButton(label, self.candidates_widget)
                 btn.setProperty("candidate_name", cand_name)
-                btn.setToolTip(f"Choose '{cand_name}'")
-                btn.clicked.connect(lambda _, n=cand_name: self._set_current_name(n))
+                btn.setToolTip(
+                    f"Toggle '{cand_name}' on this shared voice. "
+                    "Several names can stay assigned at once."
+                )
+                btn.clicked.connect(lambda _, n=cand_name: self._toggle_candidate(n))
                 self.candidates_layout.addWidget(btn)
                 self._candidate_buttons.append(btn)
 
+            if len(candidates) > 1:
+                all_names = NAME_SEPARATOR.join(c[0] for c in candidates)
+                btn_all = QPushButton("All candidates", self.candidates_widget)
+                btn_all.setProperty("candidate_name", all_names)
+                btn_all.setToolTip("Keep every candidate on this shared voice")
+                btn_all.clicked.connect(lambda: self._set_current_name(all_names))
+                self.candidates_layout.addWidget(btn_all)
+                self._candidate_buttons.append(btn_all)
+
             btn_clear = QPushButton("Clear", self.candidates_widget)
-            btn_clear.setProperty("candidate_name", "")
-            btn_clear.setToolTip("Clear name for this voice")
-            btn_clear.clicked.connect(lambda: self._set_current_name(""))
+            btn_clear.setProperty("candidate_name", "__reset__")
+            btn_clear.setToolTip(
+                "Restore the suggested name. Delete the text to leave this voice unnamed."
+            )
+            btn_clear.clicked.connect(self._reset_current_name)
             self.candidates_layout.addWidget(btn_clear)
             self._candidate_buttons.append(btn_clear)
 
@@ -498,16 +555,119 @@ class SpeakerMergeDialog(QDialog):
         else:
             self.candidates_widget.setVisible(False)
 
+    def _default_name(self, code: str) -> str:
+        """The name the join proposed, which Clear restores."""
+        proposed = getattr(self._result, "proposed", None) or {}
+        text = str(proposed.get(code) or "").strip()
+        if text:
+            return text
+        resolved = str((self._result.resolved or {}).get(code) or "").strip()
+        if resolved:
+            return resolved
+        return _top_name((self._result.unproven or {}).get(code) or {})
+
+    def _reset_current_name(self) -> None:
+        current = self.tree.currentItem()
+        if not current:
+            return
+        code = current.data(0, _CODE_ROLE)
+        if not code:
+            return
+        self._set_current_name(self._default_name(code))
+        current = self.tree.currentItem()
+        if current is None:
+            return
+        name = current.text(1).strip()
+        if current.data(0, _APPLIED_NAME_ROLE) == name:
+            self._paint_item(current, _STRONG_COLOR)
+            if NAME_SEPARATOR not in name:
+                self._move_item_to_group(current, "Strong")
+        elif NAME_SEPARATOR in name:
+            self._move_item_to_group(current, "Shared")
+            self._paint_item(current, _SHARED_COLOR)
+
+    def _paint_item(self, item: QTreeWidgetItem, color: QColor) -> None:
+        brush = QBrush(color)
+        for col in range(3):
+            item.setForeground(col, brush)
+
+    def _find_group(self, prefix: str) -> Optional[QTreeWidgetItem]:
+        for i in range(self.tree.topLevelItemCount()):
+            group = self.tree.topLevelItem(i)
+            if group.text(0).startswith(prefix):
+                return group
+        return None
+
+    def _refresh_group_title(self, group: Optional[QTreeWidgetItem]) -> None:
+        if group is None:
+            return
+        title = group.text(0)
+        base = title.rsplit(" (", 1)[0] if " (" in title else title
+        count = group.childCount()
+        group.setText(0, f"{base} ({count})")
+        group.setHidden(count == 0)
+
+    def _move_item_to_group(self, item: QTreeWidgetItem, prefix: str) -> None:
+        parent = item.parent()
+        if parent is not None and parent.text(0).startswith(prefix):
+            return
+        target = self._find_group(prefix)
+        if target is None and prefix == "Strong":
+            is_markup = bool(getattr(self._result, "is_markup", False))
+            title = (
+                "Strong Markup Studio matches (0)"
+                if is_markup
+                else "Strong script matches (0)"
+            )
+            target = QTreeWidgetItem(["", "", ""])
+            target.setText(0, title)
+            font = target.font(0)
+            font.setBold(True)
+            target.setFont(0, font)
+            target.setFlags(
+                target.flags()
+                | Qt.ItemFlag.ItemIsUserCheckable
+                | Qt.ItemFlag.ItemIsAutoTristate
+            )
+            target.setCheckState(0, Qt.CheckState.Checked)
+            self.tree.insertTopLevelItem(0, target)
+        if target is None or parent is None:
+            return
+        self._updating_checks = True
+        try:
+            taken = parent.takeChild(parent.indexOfChild(item))
+            if taken is None:
+                return
+            target.addChild(taken)
+            target.setExpanded(True)
+            self.tree.setCurrentItem(taken)
+        finally:
+            self._updating_checks = False
+        self._refresh_group_title(parent)
+        self._refresh_group_title(target)
+
     def _update_candidate_buttons_style(self, current_name: str) -> None:
-        current_name = (current_name or "").strip()
+        selected = set(split_shared_speaker_names(current_name))
+        joined = NAME_SEPARATOR.join(split_shared_speaker_names(current_name))
         for btn in self._candidate_buttons:
             cand = btn.property("candidate_name")
-            if cand is not None and cand == current_name and cand != "":
+            if not cand or cand == "__reset__":
+                btn.setStyleSheet("padding: 3px 8px;")
+                continue
+            if cand == joined or cand in selected:
                 btn.setStyleSheet(
                     "font-weight: bold; background-color: #d1e7dd; border: 1px solid #0f5132; border-radius: 3px; padding: 3px 8px;"
                 )
             else:
                 btn.setStyleSheet("padding: 3px 8px;")
+
+    def _toggle_candidate(self, cand_name: str) -> None:
+        current = split_shared_speaker_names(self.name_edit.text())
+        if cand_name in current:
+            current = [name for name in current if name != cand_name]
+        else:
+            current.append(cand_name)
+        self._set_current_name(NAME_SEPARATOR.join(current))
 
     def _set_current_name(self, name: str) -> None:
         current = self.tree.currentItem()
@@ -517,11 +677,13 @@ class SpeakerMergeDialog(QDialog):
         self.name_edit.setText(name)
         self.name_edit.blockSignals(False)
         current.setText(1, name)
-        if is_confirmed_speaker_alias(name):
+        if is_applyable_speaker_alias(name):
             current.setCheckState(0, Qt.CheckState.Checked)
         self.apply_single_button.setEnabled(
-            self._on_apply is not None and is_confirmed_speaker_alias(name)
+            self._on_apply is not None and is_applyable_speaker_alias(name)
         )
+        code = current.data(0, _CODE_ROLE)
+        self.reset_button.setEnabled(bool(self._default_name(code)))
         self._update_counts_and_buttons()
         self._update_candidate_buttons_style(name)
 
@@ -530,11 +692,13 @@ class SpeakerMergeDialog(QDialog):
         if not current:
             return
         current.setText(1, text)
-        if is_confirmed_speaker_alias(text):
+        if is_applyable_speaker_alias(text):
             current.setCheckState(0, Qt.CheckState.Checked)
         self.apply_single_button.setEnabled(
-            self._on_apply is not None and is_confirmed_speaker_alias(text)
+            self._on_apply is not None and is_applyable_speaker_alias(text)
         )
+        code = current.data(0, _CODE_ROLE)
+        self.reset_button.setEnabled(bool(self._default_name(code)))
         self._update_counts_and_buttons()
         self._update_candidate_buttons_style(text)
 
@@ -571,17 +735,22 @@ class SpeakerMergeDialog(QDialog):
         code = current.data(0, _CODE_ROLE)
         is_display = bool(current.data(0, _DISPLAY_ROLE))
         name = current.text(1).strip()
-        if not code or is_display or not is_confirmed_speaker_alias(name):
+        if not code or is_display or not is_applyable_speaker_alias(name):
             return
         if self._on_apply({code: name}) is False:
             self.feedback_label.setStyleSheet("color: #b71c1c; font-weight: bold;")
             self.feedback_label.setText(f"Could not save '{code}'.")
             return
-        self.feedback_label.setStyleSheet("color: #2e7d32; font-weight: bold;")
-        self.feedback_label.setText(f"✓ Saved '{code}' → '{name}'")
+        current.setData(0, _APPLIED_NAME_ROLE, name)
         current_votes = current.text(2)
         if "[Applied]" not in current_votes:
             current.setText(2, f"{current_votes} • [Applied]" if current_votes else "[Applied]")
+        self._paint_item(current, _STRONG_COLOR)
+        if NAME_SEPARATOR not in name:
+            self._move_item_to_group(current, "Strong")
+        self._update_inspector(self.tree.currentItem())
+        self.feedback_label.setStyleSheet("color: #2e7d32; font-weight: bold;")
+        self.feedback_label.setText(f"✓ Saved '{code}' → '{name}'")
         self._update_counts_and_buttons()
 
     # -- Selection & Filtering ----------------------------------------------
@@ -687,7 +856,10 @@ class SpeakerMergeDialog(QDialog):
                     self.name_edit.blockSignals(True)
                     self.name_edit.setText(item.text(1))
                     self.name_edit.blockSignals(False)
-                    self.apply_single_button.setEnabled(self._on_apply is not None and bool(text))
+                    self.apply_single_button.setEnabled(
+                        self._on_apply is not None and is_applyable_speaker_alias(text)
+                    )
+                    self.reset_button.setEnabled(bool(self._default_name(item.data(0, _CODE_ROLE))))
                     self._update_candidate_buttons_style(item.text(1))
         finally:
             self._updating_checks = False
@@ -732,7 +904,7 @@ class SpeakerMergeDialog(QDialog):
                 f"Apply '{code}' Now", self._apply_current_speaker
             )
             apply_action.setEnabled(
-                self._on_apply is not None and is_confirmed_speaker_alias(name)
+                self._on_apply is not None and is_applyable_speaker_alias(name)
             )
 
             is_checked = item.checkState(0) == Qt.CheckState.Checked
@@ -742,7 +914,8 @@ class SpeakerMergeDialog(QDialog):
                     0, Qt.CheckState.Unchecked if is_checked else Qt.CheckState.Checked
                 ),
             )
-            menu.addAction("Clear Name", lambda: self._set_current_name(""))
+            reset_action = menu.addAction("Clear (restore suggestion)", self._reset_current_name)
+            reset_action.setEnabled(bool(self._default_name(code)))
             menu.addSeparator()
 
         parent = item.parent() or item

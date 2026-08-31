@@ -115,6 +115,7 @@ def test_AIStatusDialog_sleep_handling(mock_put, mock_restore, mock_prevent, qap
 
 
 def test_AIStatusDialog_cancel_prevents_sleep(qapp):
+    from PyQt6.QtWidgets import QMessageBox
     dialog = AIStatusDialog()
     dialog.sleep_after_checkbox.setChecked(True)
     
@@ -122,8 +123,9 @@ def test_AIStatusDialog_cancel_prevents_sleep(qapp):
     dialog.start("Test")
     assert dialog.user_cancelled is False
     
-    # Simulate user cancel
-    dialog.on_cancel()
+    # Simulate user cancel with confirmation
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes):
+        dialog.on_cancel()
     assert dialog.user_cancelled is True
     
     # Finish operation and verify schedule_sleep was NOT called
@@ -181,4 +183,287 @@ def test_AIStatusDialog_finish_triggers_comparison(qapp):
             sys.modules['pytest'] = pytest_module
 
 
+def test_AIStatusDialog_captures_active_source_window(qapp):
+    from PyQt6.QtWidgets import QMainWindow
+    win = QMainWindow()
+    win.show()
+    qapp.setActiveWindow(win)
 
+    dialog = AIStatusDialog()
+    dialog.start("Test Active Capture")
+    assert dialog.source_window == win
+    dialog.finish(show_popup=False)
+    win.close()
+
+
+def test_AIStatusDialog_captures_focused_child_window(qapp):
+    from PyQt6.QtWidgets import QMainWindow, QTextEdit
+    win = QMainWindow()
+    child = QTextEdit(win)
+    win.show()
+    child.setFocus()
+    qapp.setActiveWindow(win)
+
+    dialog = AIStatusDialog()
+    dialog.start("Test Child Capture")
+    assert dialog.source_window == win
+    dialog.finish(show_popup=False)
+    win.close()
+
+
+def test_AIStatusDialog_explicit_source_window(qapp):
+    from PyQt6.QtWidgets import QWidget
+    win = QWidget()
+    win.show()
+
+    dialog = AIStatusDialog()
+    dialog.start("Test Explicit", source_window=win)
+    assert dialog.source_window == win
+    dialog.finish(show_popup=False)
+    win.close()
+
+
+def test_AIStatusDialog_finish_without_popup_activates_source(qapp):
+    from PyQt6.QtWidgets import QWidget
+    from unittest.mock import MagicMock
+    win = QWidget()
+    win.show()
+    win.activateWindow = MagicMock()
+    win.raise_ = MagicMock()
+
+    dialog = AIStatusDialog()
+    dialog.start("Test Return", source_window=win)
+    dialog.finish(show_popup=False)
+
+    win.raise_.assert_called()
+    win.activateWindow.assert_called()
+    win.close()
+
+
+def test_AIStatusDialog_finish_in_pytest_activates_source(qapp):
+    from PyQt6.QtWidgets import QWidget
+    from unittest.mock import MagicMock
+    win = QWidget()
+    win.show()
+    win.activateWindow = MagicMock()
+    win.raise_ = MagicMock()
+
+    dialog = AIStatusDialog()
+    dialog.start("Test Pytest Fallback", source_window=win)
+    # When pytest is in sys.modules, popup is suppressed and source is directly activated
+    dialog.finish(success=True, show_popup=True)
+
+    win.raise_.assert_called()
+    win.activateWindow.assert_called()
+    win.close()
+
+
+def test_AIStatusDialog_cancel_and_reject_activates_source(qapp):
+    from PyQt6.QtWidgets import QWidget, QMessageBox
+    from unittest.mock import MagicMock, patch
+    win = QWidget()
+    win.show()
+    win.activateWindow = MagicMock()
+    win.raise_ = MagicMock()
+
+    dialog = AIStatusDialog()
+    dialog.start("Test Cancel Return", source_window=win)
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes):
+        dialog.on_cancel()
+    dialog.finish(success=False, show_popup=False)
+
+    win.raise_.assert_called()
+    win.activateWindow.assert_called()
+    win.close()
+
+
+def test_AIStatusDialog_reject_when_not_running_activates_source(qapp):
+    from PyQt6.QtWidgets import QWidget
+    from unittest.mock import MagicMock
+    win = QWidget()
+    win.show()
+    win.activateWindow = MagicMock()
+    win.raise_ = MagicMock()
+
+    dialog = AIStatusDialog()
+    dialog.source_window = win
+    dialog.reject()
+
+    win.raise_.assert_called()
+    win.activateWindow.assert_called()
+    win.close()
+
+
+def test_AIStatusDialog_deleted_source_window_safe(qapp):
+    from PyQt6.QtWidgets import QWidget
+    from PyQt6 import sip
+    win = QWidget()
+    win.show()
+
+    dialog = AIStatusDialog()
+    dialog.start("Test Deleted", source_window=win)
+    assert dialog.source_window == win
+
+    # Delete C++ object
+    sip.delete(win)
+    assert dialog.source_window is None
+
+    # Should not throw any exception
+    dialog.finish(show_popup=False)
+
+
+def test_AIStatusDialog_popup_dismissal_restores_source(qapp):
+    import sys
+    from unittest.mock import patch, MagicMock
+    from PyQt6.QtWidgets import QWidget, QMessageBox
+
+    win = QWidget()
+    win.show()
+    win.activateWindow = MagicMock()
+    win.raise_ = MagicMock()
+
+    dialog = AIStatusDialog()
+    dialog.start("Test Popup Dismissal", source_window=win)
+
+    pytest_module = sys.modules.get('pytest')
+    try:
+        if 'pytest' in sys.modules:
+            del sys.modules['pytest']
+
+        with patch('PyQt6.QtWidgets.QMessageBox.show') as mock_msg_show:
+            dialog.finish(success=True, show_popup=True)
+            mock_msg_show.assert_called_once()
+
+            # Source should not have been activated while popup is open
+            assert win.activateWindow.call_count == 0
+
+            # Simulate closing/destroying the QMessageBox
+            msg_boxes = [w for w in qapp.topLevelWidgets() if isinstance(w, QMessageBox)]
+            for mb in msg_boxes:
+                mb.destroyed.emit(mb)
+
+            assert win.activateWindow.call_count >= 1
+            assert win.raise_.call_count >= 1
+    finally:
+        if pytest_module:
+            sys.modules['pytest'] = pytest_module
+        win.close()
+
+
+def test_AIStatusDialog_cancel_no_keeps_running(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    from unittest.mock import MagicMock, patch
+    dialog = AIStatusDialog()
+    dialog.start("Test Cancel No")
+    cancelled_spy = MagicMock()
+    dialog.cancelled.connect(cancelled_spy)
+
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.No) as mock_q:
+        dialog.on_cancel()
+        mock_q.assert_called_once_with(
+            dialog,
+            "Cancel AI operation?",
+            "The current request will stop after the active network step. Are you sure you want to cancel it?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+    assert dialog.is_running is True
+    assert dialog.user_cancelled is False
+    assert dialog.cancel_button.isEnabled() is True
+    assert dialog.title_label.text() == "Test Cancel No"
+    cancelled_spy.assert_not_called()
+    dialog.finish(show_popup=False)
+
+
+def test_AIStatusDialog_cancel_yes_cancels_and_emits(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    from unittest.mock import MagicMock, patch
+    dialog = AIStatusDialog()
+    dialog.start("Test Cancel Yes")
+    cancelled_spy = MagicMock()
+    dialog.cancelled.connect(cancelled_spy)
+
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes) as mock_q:
+        dialog.on_cancel()
+        mock_q.assert_called_once()
+
+    assert dialog.user_cancelled is True
+    assert dialog.cancel_button.isEnabled() is False
+    assert dialog.title_label.text() == "Cancelling AI Operation..."
+    cancelled_spy.assert_called_once()
+
+    # Second cancel invocation while cancelling should NOT prompt again
+    with patch('PyQt6.QtWidgets.QMessageBox.question') as mock_q2:
+        dialog.on_cancel()
+        mock_q2.assert_not_called()
+        assert cancelled_spy.call_count == 1
+
+    dialog.finish(show_popup=False)
+
+
+def test_AIStatusDialog_reject_escape_path_follows_confirmation(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    from unittest.mock import MagicMock, patch
+    dialog = AIStatusDialog()
+    dialog.start("Test Escape Reject")
+    cancelled_spy = MagicMock()
+    dialog.cancelled.connect(cancelled_spy)
+
+    # Reject with No
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.No):
+        dialog.reject()
+    assert dialog.user_cancelled is False
+    cancelled_spy.assert_not_called()
+
+    # Reject with Yes
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes):
+        dialog.reject()
+    assert dialog.user_cancelled is True
+    cancelled_spy.assert_called_once()
+    dialog.finish(show_popup=False)
+
+
+def test_AIStatusDialog_close_event_follows_confirmation(qapp):
+    from PyQt6.QtWidgets import QMessageBox
+    from PyQt6.QtGui import QCloseEvent
+    from unittest.mock import MagicMock, patch
+    dialog = AIStatusDialog()
+    dialog.start("Test Close Event")
+    cancelled_spy = MagicMock()
+    dialog.cancelled.connect(cancelled_spy)
+
+    # Close with No
+    event = QCloseEvent()
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.No):
+        dialog.closeEvent(event)
+    assert event.isAccepted() is False
+    assert dialog.user_cancelled is False
+    cancelled_spy.assert_not_called()
+
+    # Close with Yes
+    event2 = QCloseEvent()
+    with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes):
+        dialog.closeEvent(event2)
+    assert event2.isAccepted() is False
+    assert dialog.user_cancelled is True
+    cancelled_spy.assert_called_once()
+    dialog.finish(show_popup=False)
+
+
+def test_AIStatusDialog_finished_dialog_closes_without_confirmation(qapp):
+    from PyQt6.QtGui import QCloseEvent
+    from unittest.mock import patch
+    dialog = AIStatusDialog()
+    # Dialog not started / finished
+    assert dialog.is_running is False
+
+    with patch('PyQt6.QtWidgets.QMessageBox.question') as mock_q:
+        dialog.reject()
+        mock_q.assert_not_called()
+
+    event = QCloseEvent()
+    with patch('PyQt6.QtWidgets.QMessageBox.question') as mock_q:
+        dialog.closeEvent(event)
+        mock_q.assert_not_called()
+        assert event.isAccepted() is True

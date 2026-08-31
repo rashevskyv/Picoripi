@@ -34,7 +34,7 @@ class TestFailuresAreData:
             raise ValueError(item)
 
         outcome = run_pool(range(4), work, workers=2)
-        assert outcome.failed == [0, 1, 2, 3]
+        assert sorted(outcome.failed) == [0, 1, 2, 3]
 
 
 class TestResultsCarryTheirItem:
@@ -51,6 +51,26 @@ class TestResultsCarryTheirItem:
         run_pool(range(5), work, workers=3, on_result=lambda i, r: pairs.append((i, r)))
 
         assert all(result == f"result-{item}" for item, result in pairs)
+
+
+class TestRollingWindow:
+    def test_a_slow_unit_does_not_block_the_next_slot(self):
+        """With a batch barrier, item 2 would wait for item 0. A rolling window
+        starts item 2 as soon as item 1 frees a worker."""
+        started = []
+        released = threading.Event()
+
+        def work(item):
+            started.append(item)
+            if item == 0:
+                released.wait(timeout=2)
+            elif item == 1:
+                released.set()
+            return item
+
+        outcome = run_pool([0, 1, 2], work, workers=2)
+        assert outcome.completed == 3
+        assert 2 in started
 
 
 class TestProgressAndIncrementalWriting:
@@ -158,7 +178,7 @@ class TestTheRetryPass:
         )
         # Every unit was attempted twice: once per pass.
         assert len(widths) == 16
-        assert outcome.failed == list(range(8))
+        assert sorted(outcome.failed) == list(range(8))
 
     def test_a_stopped_run_is_not_retried(self):
         attempts = []

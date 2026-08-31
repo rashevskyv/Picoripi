@@ -148,6 +148,11 @@ class ListSelectionHandler(BaseHandler):
                 self.block_selected(item, previous)
                 self.mw.block_list_widget.scrollToItem(item)
                 self.select_string_by_absolute_index(int(string_idx))
+                preview_edit = getattr(self.mw, 'preview_text_edit', None)
+                if preview_edit and hasattr(preview_edit, 'set_selected_lines'):
+                    rel_idx = self._get_relative_index(int(string_idx))
+                    if rel_idx != -1:
+                        preview_edit.set_selected_lines([rel_idx], force=True)
                 self._target_block_idx = None
                 self._target_string_idx = None
                 return True
@@ -585,18 +590,55 @@ class ListSelectionHandler(BaseHandler):
         self._update_block_toolbar_button_states(block_index)
 
     def _on_cursor_visible_timeout(self) -> None:
-        """Ensure preview cursor is visible when timer fires."""
+        """Position preview scrollbar so the target row appears near top with 2 rows above it."""
         preview_edit = getattr(self.mw, 'preview_text_edit', None)
-        if preview_edit:
-            try:
-                from PyQt6 import sip
-            except ImportError:
-                import sip
-            try:
-                if not sip.isdeleted(preview_edit):
-                    preview_edit.ensureCursorVisible()
-            except (TypeError, RuntimeError):
-                pass
+        if not preview_edit:
+            return
+        try:
+            from PyQt6 import sip
+        except ImportError:
+            import sip
+        try:
+            if sip.isdeleted(preview_edit):
+                return
+        except (TypeError, RuntimeError):
+            pass
+
+        try:
+            cursor = preview_edit.textCursor() if hasattr(preview_edit, 'textCursor') else None
+            cursor_obj = cursor() if callable(cursor) else cursor
+            target_block_number = -1
+            if cursor_obj:
+                if hasattr(cursor_obj, 'blockNumber'):
+                    target_block_number = cursor_obj.blockNumber()
+                elif hasattr(cursor_obj, 'block'):
+                    block = cursor_obj.block()
+                    if block and hasattr(block, 'isValid') and block.isValid():
+                        target_block_number = block.blockNumber()
+
+            if target_block_number >= 0:
+                anchor_block_number = max(0, target_block_number - 2)
+                doc = preview_edit.document() if hasattr(preview_edit, 'document') else None
+                doc_obj = doc() if callable(doc) else doc
+                anchor_block = doc_obj.findBlockByNumber(anchor_block_number) if doc_obj and hasattr(doc_obj, 'findBlockByNumber') else None
+
+                if anchor_block and hasattr(anchor_block, 'isValid') and anchor_block.isValid():
+                    scrollbar = preview_edit.verticalScrollBar() if hasattr(preview_edit, 'verticalScrollBar') else None
+                    scrollbar_obj = scrollbar() if callable(scrollbar) else scrollbar
+                    if scrollbar_obj and hasattr(scrollbar_obj, 'setValue'):
+                        anchor_pos = anchor_block.firstLineNumber() if hasattr(anchor_block, 'firstLineNumber') else anchor_block_number
+                        if anchor_pos == -1:
+                            anchor_pos = anchor_block_number
+                        min_val = scrollbar_obj.minimum() if hasattr(scrollbar_obj, 'minimum') and callable(scrollbar_obj.minimum) else 0
+                        max_val = scrollbar_obj.maximum() if hasattr(scrollbar_obj, 'maximum') and callable(scrollbar_obj.maximum) else anchor_pos
+                        clamped_val = max(min_val, min(anchor_pos, max_val))
+                        scrollbar_obj.setValue(clamped_val)
+                        return
+
+            if hasattr(preview_edit, 'ensureCursorVisible') and callable(preview_edit.ensureCursorVisible):
+                preview_edit.ensureCursorVisible()
+        except Exception:
+            pass
 
     def _schedule_string_selection(self, line_number: int) -> None:
         """Schedule string selection via timer."""

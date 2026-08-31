@@ -1,5 +1,11 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.088-dev] - 2026-08-29
+
+### Fixed
+- **Glossary Speaker Source of Truth Alignment**: Unified row-to-speaker resolution between the glossary occurrence index, the virtual Speakers folders, and the translation editor by feeding the raw speaker pool from `build_speaker_pool(mw, raw=True)` into `GlossaryManager`.
+- **Marked-Script Spoken Occurrences**: Marked-script character speakers (such as `AGITHA'S STALKER`) now correctly own their dialogue rows in the glossary (`kind="spoken"`), enabling description synthesis and automated translation even if the character name never appears in dialogue text.
+
 ## [0.3.087-dev] - 2026-08-21
 
 ### Added
@@ -12,12 +18,13 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ### Changed
 - **Unified Pipeline Wizard**: The former structural seed, sweep, describe, and glossary-translate choices are presented as one `Prepare and enrich the glossary` step. Direct Tools and glossary-window launchers enter the same route.
 - **Non-Blocking Readiness Model**: A glossary is no longer presented as globally finished; unresolved decisions remain in a backlog and do not block main-text translation.
+- **Shared Voice Assignment**: One Voice can be applied to several characters (`SPRING ZORA #1 / SPRING ZORA #2`). Merge Speakers keeps every named candidate, Apply This Speaker is enabled for that mapping, and the glossary still stores one term per character rather than a joined `A / B` name.
 
 ## [0.3.086-dev] - 2026-08-21
 
 ### Added
 - **Granular Speaker Merge Selection**: Added checkboxes for every speaker row and group header in the Merge Speakers dialog, enabling selective confirmation and saving of character mappings.
-- **Candidate Name Quick-Picker**: The Inspector pane dynamically extracts candidate names from votes and conflicts, providing one-click chip buttons for individual candidates (e.g. `[ HANCH (2) ]`) and a clear action. Shared voices remain unresolved until one permanent name is chosen.
+- **Candidate Name Quick-Picker**: The Inspector pane dynamically extracts candidate names from votes and conflicts, providing one-click chip buttons for individual candidates (e.g. `[ HANCH (2) ]`), an `All candidates` action for a shared voice, and a clear action.
 - **Single-Speaker Immediate Apply**: Added an `Apply This Speaker` button in the Inspector card to apply and save individual character identities without exiting the dialog or applying all rows.
 - **Tree Quick-Filter & Batch Toggles**: Added a real-time search/filter bar to filter voice codes and names, alongside `Check All` and `Uncheck All` buttons.
 - **Context Menu Actions**: Right-clicking tree items offers quick candidate assignment, single-speaker application, check/uncheck toggles, and group-wide check/uncheck actions.

@@ -12,15 +12,25 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, List, Sequence
 
-from core.glossary_manager import GlossaryManager, GlossaryOccurrence
+from core.glossary_manager import OCC_SPOKEN, GlossaryManager, GlossaryOccurrence
 from .context_window import Occurrence
 
 
 def to_occurrences(occurrences: Iterable[GlossaryOccurrence]) -> List[Occurrence]:
-    """Convert glossary occurrences to describe Occurrences, one per row."""
+    """Convert glossary occurrences to describe Occurrences, one per row.
+
+    Spoken lines come first: they are who the character is. Mentions (how
+    others address them) fill in after, and a row that is both is kept once.
+    """
+    spoken, mentioned = [], []
+    for occ in occurrences:
+        if getattr(occ, "kind", "") == OCC_SPOKEN:
+            spoken.append(occ)
+        else:
+            mentioned.append(occ)
     seen = set()
     out: List[Occurrence] = []
-    for occ in occurrences:
+    for occ in spoken + mentioned:
         key = (occ.block_idx, occ.string_idx)
         if key in seen:
             continue

@@ -46,6 +46,8 @@ def resolve_translation_credentials(translation_config: Dict[str, Any], provider
             if base_url:
                 credentials['base_url'] = base_url
                 credentials['endpoint'] = base_url
+            if cfg.get('timeout'):
+                credentials['timeout'] = cfg.get('timeout')
             return credentials
 
     if provider_name == 'Ollama' and base_url:

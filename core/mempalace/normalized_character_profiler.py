@@ -100,7 +100,9 @@ class NormalizedCharacterProfilerWorker(QThread):
 
     def _request_profile(self, messages) -> dict:
         log_ai_traffic(self.mw, "mempalace_normalized_character_profile", messages)
-        response: ProviderResponse = self.ai_provider.translate(messages, session=None)
+        response: ProviderResponse = self.ai_provider.translate(
+            messages, session=None, settings_override={"think": 4, "timeout": 300}
+        )
         log_ai_traffic(
             self.mw,
             "mempalace_normalized_character_profile",

@@ -34,7 +34,7 @@ tested with plain functions.
 from __future__ import annotations
 
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from typing import Any, Callable, List, Optional, Sequence
 
@@ -61,6 +61,9 @@ class PoolResult:
     # Set when the pass stopped early because the backend stopped answering.
     stop_error: Optional[BaseException] = None
     cancelled: bool = False
+    completed: int = 0
+    total: int = 0
+    stage: str = ""
 
 
 def retry_after_seconds(error: object) -> float:
@@ -98,13 +101,15 @@ def run_pool(
     the whole pool, not per thread: three threads failing once each is the same
     dead backend as one thread failing three times.
 
-    Units go out a poolful at a time rather than all at once. A pool with an
-    unbounded queue runs far ahead of whoever is reading the results, so a stop
-    or a cancel would land after every one of six hundred requests had already
-    been sent -- which is the opposite of stopping.
+    Units stay in a rolling window of ``workers`` in-flight requests. A batch
+    barrier (pool.map of N) left N-1 accounts idle while one hung for two
+    minutes; filling a slot as soon as it frees is what the proxy's per-account
+    occupancy is built for. Never queue the whole run up front -- a stop would
+    then land after every request had already been sent.
     """
     items = list(items)
     outcome = PoolResult()
+    outcome.total = len(items)
     if not items:
         return outcome
 
@@ -122,12 +127,28 @@ def run_pool(
 
     consecutive = 0
     done = 0
+    next_i = 0
     with ThreadPoolExecutor(max_workers=width) as pool:
-        # ponytail: one batch is a barrier, so a slow request holds up the next
-        # batch. Move to a rolling window of futures if that ever costs more
-        # than the ordering and the prompt stop are worth.
-        for start in range(0, total, width):
-            for item, result, error in pool.map(attempt, items[start : start + width]):
+        pending = {}
+
+        def _fill():
+            nonlocal next_i
+            while (
+                len(pending) < width
+                and next_i < total
+                and not stopped
+                and not (is_cancelled is not None and is_cancelled())
+            ):
+                item = items[next_i]
+                next_i += 1
+                pending[pool.submit(attempt, item)] = item
+
+        _fill()
+        while pending:
+            finished, _ = wait(pending, return_when=FIRST_COMPLETED)
+            for fut in finished:
+                pending.pop(fut, None)
+                item, result, error = fut.result()
                 if result is _SKIPPED:
                     continue
                 done += 1
@@ -140,12 +161,14 @@ def run_pool(
                         stopped = True
                 else:
                     consecutive = 0
+                    outcome.completed += 1
                     if on_result is not None:
                         on_result(item, result)
                 if on_progress is not None:
                     on_progress(done, total)
             if stopped or (is_cancelled is not None and is_cancelled()):
                 break
+            _fill()
 
     outcome.cancelled = bool(is_cancelled is not None and is_cancelled())
     return outcome
@@ -202,5 +225,7 @@ def run_with_retry_pass(
     )
     # The retry pass owns the outcome now; the first pass's failures either
     # succeeded here or are still in second.failed.
+    second.completed = first.completed + (second.completed or 0)
+    second.total = first.total
     second.retry_after = max(second.retry_after, first.retry_after)
     return second

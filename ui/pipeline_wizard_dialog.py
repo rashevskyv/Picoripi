@@ -15,7 +15,7 @@ import os
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional
 
-from PyQt6.QtCore import QEvent, Qt
+from PyQt6.QtCore import QEvent, QTimer, Qt
 from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -40,11 +40,11 @@ from core.pipeline_status import (
     overall,
     present,
     speaker_names_state,
-    structural_seed_state,
     translation_state,
 )
 from core.speaker_alias_merge import find_markup_project, load_speaker_aliases
 from utils.logging_utils import log_debug
+from utils.window_utils import show_as_independent_window
 
 _ICONS = {NOT_STARTED: "⚪", PARTIAL: "\U0001f7e1", DONE: "✅"}
 _STEP_ROLE = Qt.ItemDataRole.UserRole
@@ -118,6 +118,34 @@ def _embed_mempalace_builder(mw, parent=None) -> QWidget:
     return builder
 
 
+def _embed_markup_studio(mw, parent=None) -> QWidget:
+    """Script Markup Studio as a pipeline page, not a second window.
+
+    The marked-up script is what Merge Speakers and the Context Builder read.
+    Opening it beside the wizard hid that it is step one of this same route.
+    """
+    from ui.script_markup_studio_dialog import ScriptMarkupStudioDialog
+
+    class _Embedded(ScriptMarkupStudioDialog):
+        def close(self):
+            return False
+
+        def reject(self):
+            return
+
+        def closeEvent(self, event):
+            event.ignore()
+
+    studio = _Embedded(mw, parent)
+    studio.setWindowFlags(Qt.WindowType.Widget)
+    studio.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+    studio.setMinimumSize(0, 0)
+    for action in studio.file_menu.actions():
+        if action.text().replace("&", "") == "Close":
+            action.setVisible(False)
+    return studio
+
+
 @dataclass(frozen=True)
 class Step:
     key: str
@@ -170,16 +198,21 @@ STEPS: List[Step] = [
         "Everything downstream that needs to know who is talking reads this. "
         "Skip it and the next step has to guess from ALL-CAPS lines, which gets "
         "names wrong and misses most of them.",
-        "Open Script Markup Studio",
-        _trigger("script_markup_studio_action"),
+        embed=_embed_markup_studio,
     ),
     Step(
         "context",
         "Build the story context",
-        "Weaves the marked-up script into a timeline: which scene a line belongs "
-        "to, what happened before it, who was present.\n\n"
-        "This is what lets a translation prompt say more than 'translate this "
-        "sentence' -- the model gets the scene around the line.",
+        "After the script is marked up (and speakers named), this copies that "
+        "structure into MemePalace and links each game line to its place in the "
+        "story.\n\n"
+        "Step 1 finds context automatically — no AI. Steps 2 and 3 are the "
+        "analysis: a timeline of what already happened, and how each character "
+        "speaks. Run those before filling glossary descriptions if you want "
+        "scene notes and voice profiles in later prompts. They do not invent "
+        "glossary terms and they do not replace Merge Speakers.\n\n"
+        "Without this step, translation still works as 'translate this sentence'. "
+        "With it, the prompt can know the scene.",
         embed=_embed_mempalace_builder,
     ),
     Step(
@@ -206,7 +239,7 @@ STEPS: List[Step] = [
         "Merge speakers from the script",
         _trigger("merge_speakers_action"),
         requires="speaker_attribution",
-        parent="glossary",
+        parent="markup",
     ),
     Step(
         "text",
@@ -224,24 +257,24 @@ class PipelineWizardDialog(QDialog):
     """Steps on the left, the selected step and its launcher on the right."""
 
     def __init__(self, main_window, parent=None):
-        parent = parent if parent is not None else main_window
-        if parent is not None and (
-            not isinstance(parent, QWidget) or bool(getattr(parent, "_is_test_mode", False))
-        ):
-            parent = None
-        super().__init__(parent)
+        super().__init__(None)
         self.mw = main_window
         self.setWindowTitle("Localization Pipeline")
+        show_as_independent_window(self)
         # Roomy enough for the embedded Context Builder, which is a full
         # workflow rather than a paragraph and a button.
         self.resize(1220, 820)
-        # Never modal: this window exists to open other windows, and a modal
-        # wizard would lock the user out of the tool it just launched.
-        self.setModal(False)
         self._states: Dict[str, StepState] = {}
         self._steps: List[Step] = steps_for(capabilities_of(main_window))
         self._codes_cache: Optional[tuple] = None  # (project_dir, codes)
         self._markup_path: str = ""
+        self._last_step_labels: Optional[list] = None
+        self._closing = False
+        self._in_init = True
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.setInterval(250)
+        self._refresh_timer.timeout.connect(lambda: self.refresh(select=False))
 
         layout = QVBoxLayout(self)
         self.headline = QLabel(self)
@@ -294,7 +327,7 @@ class PipelineWizardDialog(QDialog):
 
         self.list.currentItemChanged.connect(self._on_current_changed)
         self.refresh()
-        self.select_step(self._first_unfinished())
+        self._in_init = False
 
     # -- reading the project ------------------------------------------------
 
@@ -335,15 +368,6 @@ class PipelineWizardDialog(QDialog):
             ),
         )
 
-        seeds = []
-        try:
-            rules = getattr(mw, "current_game_rules", None)
-            getter = getattr(rules, "get_glossary_seed_entries", None)
-            if callable(getter):
-                seeds = getter() or []
-        except Exception:
-            seeds = []
-
         store = getattr(mw, "data_store", None)
         markup_project = find_markup_project(script_path, project_dir)
         self._markup_path = str(getattr(markup_project, "source_path", "") or "")
@@ -354,7 +378,6 @@ class PipelineWizardDialog(QDialog):
                 "story context built",
                 "no story context yet",
             ),
-            "structural_seed": structural_seed_state(seeds, entries),
             "speakers": speaker_names_state(
                 load_speaker_aliases(project_dir), self._speaker_codes(project_dir)
             ),
@@ -389,8 +412,10 @@ class PipelineWizardDialog(QDialog):
         self._codes_cache = (project_dir, codes)
         return codes
 
-    def refresh(self) -> None:
-        """Re-read the project and redraw. Cheap enough to run on every return."""
+    def refresh(self, *, select: bool = True) -> None:
+        """Re-read the project and redraw. Skips the tree if nothing changed."""
+        if self._closing:
+            return
         try:
             self._states = self._probe()
         except Exception as exc:
@@ -400,6 +425,16 @@ class PipelineWizardDialog(QDialog):
         # Recomputed here, not only at construction: loading another project can
         # bring a different plugin, and with it a different set of steps.
         self._steps = steps_for(capabilities_of(self.mw))
+
+        labels = [
+            (step.key, self._state_for(step).state, self._state_for(step).detail, step.title)
+            for step in self._steps
+        ]
+        done = overall([self._state_for(step) for step in self._steps])
+        self.headline.setText(f"Localization pipeline — {done.detail}")
+        if labels == self._last_step_labels:
+            return
+        self._last_step_labels = labels
 
         current = self._current_key()
         self.list.blockSignals(True)
@@ -416,17 +451,26 @@ class PipelineWizardDialog(QDialog):
             item.setData(0, _STEP_ROLE, step.key)
             items[step.key] = item
         self.list.expandAll()
+        target = current if current and current in items else self._first_unfinished()
+        if target and target in items:
+            self.list.setCurrentItem(items[target])
         self.list.blockSignals(False)
-
-        done = overall([self._state_for(step) for step in self._steps])
-        self.headline.setText(f"Localization pipeline — {done.detail}")
-        self.select_step(current or self._first_unfinished())
+        if self._in_init:
+            return
+        if select:
+            self.select_step(target)
 
     def select_step(self, key: str) -> None:
         """Bring one step to the front, for a shortcut that names it."""
         item = self._item_for(key)
-        if item is not None:
-            self.list.setCurrentItem(item)
+        if item is None:
+            return
+        if self.list.currentItem() is item:
+            step = self._step_for(key)
+            if step is not None:
+                self._show_step(step)
+            return
+        self.list.setCurrentItem(item)
 
     def _item_for(self, key: str):
         walker = QTreeWidgetItemIterator(self.list)
@@ -455,6 +499,12 @@ class PipelineWizardDialog(QDialog):
 
     # -- signals ------------------------------------------------------------
 
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        step = self._step_for(self._current_key())
+        if step is not None:
+            self._show_step(step)
+
     def changeEvent(self, event) -> None:
         """Re-read the project whenever the user comes back to this window.
 
@@ -462,9 +512,24 @@ class PipelineWizardDialog(QDialog):
         it tells us nothing about the result. Coming back does.
         """
         super().changeEvent(event)
-        if event.type() == QEvent.Type.ActivationChange and self.isActiveWindow():
-            if hasattr(self, "list"):
-                self.refresh()
+        if (
+            event.type() == QEvent.Type.ActivationChange
+            and self.isActiveWindow()
+            and self.isVisible()
+            and not self._closing
+            and hasattr(self, "list")
+        ):
+            self._refresh_timer.start()
+
+    def reject(self) -> None:
+        self._closing = True
+        self._refresh_timer.stop()
+        super().reject()
+
+    def closeEvent(self, event) -> None:
+        self._closing = True
+        self._refresh_timer.stop()
+        super().closeEvent(event)
 
     def _on_current_changed(self, current=None, _previous=None) -> None:
         key = current.data(0, _STEP_ROLE) if current is not None else self._current_key()
@@ -491,8 +556,11 @@ class PipelineWizardDialog(QDialog):
         """
         if step.embed is None:
             return self._explain_page
+        if self._in_init:
+            return self._explain_page
         self._publish_markup_project()
         widget = self._embedded.get(step.key)
+        first = widget is None
         if widget is None:
             try:
                 widget = step.embed(self.mw, self.stack)
@@ -504,14 +572,13 @@ class PipelineWizardDialog(QDialog):
                 return self._explain_page
             self._embedded[step.key] = widget
             self.stack.addWidget(widget)
-        # Even freshly built: the earlier steps keep changing what it should
-        # read, and marking the script up is a step of this same wizard.
-        reload_hook = getattr(widget, "_load_active_markup_studio_project", None)
-        if callable(reload_hook):
-            try:
-                reload_hook()
-            except Exception as exc:
-                log_debug(f"Pipeline wizard: refreshing {step.key} failed: {exc}")
+        if first:
+            reload_hook = getattr(widget, "_load_active_markup_studio_project", None)
+            if callable(reload_hook):
+                try:
+                    reload_hook()
+                except Exception as exc:
+                    log_debug(f"Pipeline wizard: refreshing {step.key} failed: {exc}")
         return widget
 
     def _publish_markup_project(self) -> None:

@@ -80,7 +80,9 @@ Your output must be a valid JSON array of objects. Do not wrap the JSON in markd
             
             log_ai_traffic(self.mw, "mempalace_chapter_analysis", messages)
             try:
-                response: ProviderResponse = self.ai_provider.translate(messages, session=None)
+                response: ProviderResponse = self.ai_provider.translate(
+                    messages, session=None, settings_override={"think": 1, "timeout": 300}
+                )
                 log_ai_traffic(self.mw, "mempalace_chapter_analysis", messages, response_text=response.text)
             except Exception as e_ch:
                 log_ai_traffic(self.mw, "mempalace_chapter_analysis", messages, error=str(e_ch))

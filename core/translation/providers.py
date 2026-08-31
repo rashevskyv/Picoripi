@@ -21,6 +21,8 @@ def provider_error(message: str, response=None) -> TranslationProviderError:
     the block. The header is the only place that number exists, so it travels
     with the error instead of being flattened into the message text.
     """
+    import re
+
     error = TranslationProviderError(message)
     header = None
     if response is not None:
@@ -34,6 +36,21 @@ def provider_error(message: str, response=None) -> TranslationProviderError:
         error.retry_after = max(0.0, float(header))
     except (TypeError, ValueError):
         error.retry_after = 0.0
+
+    if error.retry_after <= 0.0:
+        match = re.search(r"[Rr]etry after (\d+(?:\.\d+)?)s", message)
+        if match:
+            try:
+                error.retry_after = float(match.group(1))
+            except ValueError:
+                pass
+        elif response is not None and getattr(response, "text", None):
+            match_resp = re.search(r"[Rr]etry after (\d+(?:\.\d+)?)s", str(response.text))
+            if match_resp:
+                try:
+                    error.retry_after = float(match_resp.group(1))
+                except ValueError:
+                    pass
     return error
 
 @dataclass
@@ -84,6 +101,31 @@ class BaseTranslationProvider:
         except Exception as e:
             log_debug(f"{self.__class__.__name__}: Failed to close active stream response: {e}")
 
+def _split_timeout(timeout: float, base_url: str = ""):
+    """(connect, read) so a dead local proxy fails in 10s, not the full read budget."""
+    read = float(timeout)
+    host = (base_url or "").lower()
+    if "localhost" in host or "127.0.0.1" in host:
+        return (min(10.0, read), read)
+    return read
+
+
+def _extract_timeout(settings: Dict[str, Any], default: float = 60.0) -> float:
+    """Safely extracts timeout from settings dict, supporting int, float, or string values."""
+    if not isinstance(settings, dict):
+        return default
+    raw = settings.get('timeout')
+    if raw is None:
+        return default
+    try:
+        val = float(raw)
+        if val > 0:
+            return val
+    except (ValueError, TypeError):
+        pass
+    return default
+
+
 class OpenAIProvider(BaseTranslationProvider):
     """Open a i provider implementation."""
     supports_sessions = True
@@ -114,11 +156,17 @@ class OpenAIProvider(BaseTranslationProvider):
 
     def _prepare_body(self, messages: List[Dict[str, str]], current_settings: Dict[str, Any]) -> Dict[str, Any]:
         """Internal helper to prepare body."""
-        body: Dict[str, Any] = {"model": self.model, "messages": messages}
+        model = current_settings.get('model') or self.model
+        body: Dict[str, Any] = {"model": model, "messages": messages}
         
+        if 'think' in current_settings:
+            body['think'] = current_settings['think']
+        elif 'think_mode' in current_settings:
+            body['think_mode'] = current_settings['think_mode']
+
         if current_settings.get('web_search_enabled'):
-            if self.model.startswith('gpt-4'):
-                body['model'] = f"{self.model}-search-preview"
+            if model.startswith('gpt-4'):
+                body['model'] = f"{model}-search-preview"
 
         if isinstance(current_settings.get('temperature'), (float, int)):
             body['temperature'] = current_settings['temperature']
@@ -147,17 +195,18 @@ class OpenAIProvider(BaseTranslationProvider):
 
         body = self._prepare_body(messages, current_settings)
         
-        timeout = 60
-        if isinstance(current_settings.get('timeout'), int) and current_settings['timeout'] > 0:
-            timeout = current_settings['timeout']
+        timeout = _extract_timeout(current_settings, default=60.0)
+        post_timeout = _split_timeout(timeout, self.base_url)
 
         try:
             log_info(f"OpenAIProvider: Sending request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
-            response = requests.post(endpoint, headers=headers, json=body, timeout=timeout)
+            response = requests.post(endpoint, headers=headers, json=body, timeout=post_timeout)
             log_info(f"OpenAIProvider: Response received. Status code: {response.status_code}", category="ai")
             response.raise_for_status()
         except Timeout:
-            raise TranslationProviderError(f"Request timed out after {timeout} seconds.")
+            err = TranslationProviderError(f"Request timed out after {timeout} seconds.")
+            err.retry_after = 15.0
+            raise err
         except requests.RequestException as e:
             failed_response = getattr(e, 'response', None)
             detail = f" - {failed_response.text[:200]}" if failed_response is not None else ""
@@ -251,13 +300,12 @@ class OpenAIProvider(BaseTranslationProvider):
         body = self._prepare_body(messages, current_settings)
         body['stream'] = True
 
-        timeout = 60
-        if isinstance(current_settings.get('timeout'), int) and current_settings['timeout'] > 0:
-            timeout = current_settings['timeout']
+        timeout = _extract_timeout(current_settings, default=60.0)
+        post_timeout = _split_timeout(timeout, self.base_url)
         
         try:
             log_info(f"OpenAIProvider: Sending stream request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
-            with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=timeout) as response:
+            with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=post_timeout) as response:
                 self._set_active_stream_response(response)
                 try:
                     log_info(f"OpenAIProvider: Stream response received. Status code: {response.status_code}", category="ai")
@@ -333,9 +381,7 @@ class OllamaChatProvider(BaseTranslationProvider):
         if current_settings.get('keep_alive'):
             body['keep_alive'] = current_settings['keep_alive']
 
-        timeout = 120
-        if isinstance(current_settings.get('timeout'), int) and current_settings['timeout'] > 0:
-            timeout = current_settings['timeout']
+        timeout = _extract_timeout(current_settings, default=120.0)
 
         try:
             with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=timeout) as response:
@@ -421,9 +467,7 @@ class GeminiProvider(BaseTranslationProvider):
         if settings_override:
             current_settings.update(settings_override)
 
-        timeout = 120
-        if isinstance(current_settings.get('timeout'), int) and current_settings['timeout'] > 0:
-            timeout = current_settings['timeout']
+        timeout = _extract_timeout(current_settings, default=120.0)
 
         extra_headers = current_settings.get('extra_headers')
         headers = {"Content-Type": "application/json"}
@@ -451,9 +495,7 @@ class GeminiProvider(BaseTranslationProvider):
         if settings_override:
             current_settings.update(settings_override)
 
-        timeout = 120
-        if isinstance(current_settings.get('timeout'), int) and current_settings['timeout'] > 0:
-            timeout = current_settings['timeout']
+        timeout = _extract_timeout(current_settings, default=120.0)
 
         extra_headers = current_settings.get('extra_headers')
         headers = {"Content-Type": "application/json"}
@@ -503,7 +545,10 @@ class GeminiProvider(BaseTranslationProvider):
 
         endpoint = self._get_openai_compat_endpoint()
         log_info(f"GeminiProvider (compat): Sending request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
-        response = requests.post(endpoint, headers=request_headers, json=body, timeout=timeout)
+        response = requests.post(
+            endpoint, headers=request_headers, json=body,
+            timeout=_split_timeout(timeout, self.base_url),
+        )
         response.raise_for_status()
         data = response.json()
         text = None

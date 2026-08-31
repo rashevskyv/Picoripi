@@ -1,4 +1,4 @@
-DARK_THEME_STYLESHEET = """
+﻿DARK_THEME_STYLESHEET = """
 QWidget {
     background-color: #2E2E2E;
     color: #E0E0E0;
@@ -55,7 +55,8 @@ QPushButton {
     background-color: #4A4A4A;
     color: #E0E0E0;
     border: 1px solid #5A5A5A;
-    padding: 5px;
+    padding: 5px 14px;
+    min-height: 22px;
     border-radius: 3px;
 }
 QPushButton:hover {
@@ -72,7 +73,8 @@ QPushButton:disabled {
 QPushButton#close_search_panel_button {
     font-weight: bold;
     font-size: 14px;
-    padding: 0px;
+    padding: 0px 4px;
+    min-height: 16px;
 }
 QComboBox {
     background-color: #383838;
@@ -109,7 +111,7 @@ QToolBar {
 QToolButton {
     background-color: transparent;
     border: 1px solid transparent;
-    padding: 4px;
+    padding: 4px 8px;
 }
 QToolButton:hover {
     background-color: #5A5A5A;
@@ -209,6 +211,48 @@ QTabBar::tab:!selected:hover {
 """
 
 LIGHT_THEME_STYLESHEET = """
+QPushButton {
+    background-color: #F8F9FA;
+    color: #212529;
+    border: 1px solid #CED4DA;
+    padding: 5px 14px;
+    min-height: 22px;
+    border-radius: 3px;
+}
+QPushButton:hover {
+    background-color: #E9ECEF;
+    border: 1px solid #ADB5BD;
+}
+QPushButton:pressed {
+    background-color: #DEE2E6;
+    border: 1px solid #6C757D;
+}
+QPushButton:disabled {
+    background-color: #E9ECEF;
+    color: #888888;
+    border: 1px solid #DEE2E6;
+}
+QPushButton#close_search_panel_button {
+    font-weight: bold;
+    font-size: 14px;
+    padding: 0px 4px;
+    min-height: 16px;
+}
+QToolButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 4px 8px;
+}
+QToolButton:hover {
+    background-color: #E0E0E0;
+    border: 1px solid #CCCCCC;
+}
+QToolButton:pressed {
+    background-color: #D0D0D0;
+}
+QToolButton:disabled {
+    color: #888888;
+}
 QScrollBar:vertical {
     border: none;
     background: transparent;

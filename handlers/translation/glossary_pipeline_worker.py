@@ -26,10 +26,9 @@ from utils.logging_utils import log_error
 
 _PROMPTS_PATH = "translation_prompts/glossary_pipeline_prompts.json"
 
-# A normal reply takes 3-25s: the endpoint may work through several accounts
-# inside a single request before it answers. A tighter timeout does not "detect
-# hangs sooner", it just throws away requests that were about to succeed.
-DEFAULT_TIMEOUT = 120
+# A normal reply takes 3-25s; with Parallel Requests the proxy may also pace
+# per IP/account (3-20s) before Gemini answers. 60s is too tight for that path.
+DEFAULT_TIMEOUT = 180
 
 
 class GlossaryBuildWorker(QThread):
@@ -75,6 +74,7 @@ class GlossaryBuildWorker(QThread):
         self._timeout = max(90, int(timeout))
         self._cancel = False
         self.last_result: Optional[BuildResult] = None
+        self.stopped_error: Optional[Any] = None
 
     def cancel(self) -> None:
         """Request cooperative cancellation."""
@@ -99,7 +99,7 @@ class GlossaryBuildWorker(QThread):
         quietly.
         """
         response = self.provider.translate(
-            messages, session=None, settings_override={"timeout": self._timeout}
+            messages, session=None, settings_override={"timeout": self._timeout, "think": 1}
         )
         return getattr(response, "text", "") or ""
 
@@ -109,6 +109,7 @@ class GlossaryBuildWorker(QThread):
         return json.loads(Path(_PROMPTS_PATH).read_text(encoding="utf-8"))
 
     def run(self) -> None:
+        coordinator = None
         try:
             prompts = self._load_prompts()
             coordinator = GlossaryBuildCoordinator(
@@ -140,11 +141,15 @@ class GlossaryBuildWorker(QThread):
             success = not result.cancelled and bool(produced or not result.failed)
             self.build_finished.emit(success, self._summarize(result))
         except Exception as exc:  # provider / parse failures abort the run
+            if coordinator is not None and coordinator.last_result is not None:
+                self.last_result = coordinator.last_result
             if self._cancel:
                 # Cancelling mid-request surfaces as a provider error; report the
                 # reason the user actually gave.
                 self.build_finished.emit(False, self._summarize(BuildResult(cancelled=True)))
                 return
+            if getattr(exc, "stage", None) is not None:
+                self.stopped_error = exc
             log_error(f"GlossaryBuildWorker failed: {exc}", exc_info=True)
             self.build_finished.emit(False, str(exc))
 

@@ -607,7 +607,7 @@ def test_mempalace_chapter_ai_analyzer_worker_target_language():
 
     # Mock ai_provider.translate to capture prompts
     captured_messages = []
-    def mock_translate(messages, session=None):
+    def mock_translate(messages, session=None, *args, **kwargs):
         nonlocal captured_messages
         captured_messages = messages
         resp = MagicMock()

@@ -460,20 +460,20 @@ class LineNumberedTextEdit(QPlainTextEdit):
         """Get the selected lines."""
         return sorted(list(self._selected_lines))
 
-    def set_selected_lines(self, lines: List[int]):
+    def set_selected_lines(self, lines: List[int], force: bool = False):
         # Safeguard multi-selection in preview:
         # If we currently have multiple lines selected (len > 1), and a programmatic call
         # tries to select a single line that is already part of the current selection,
         # we ignore it to prevent lazy-loading or text updates from resetting user's selection.
         """Set the selected lines."""
-        if len(lines) == 1 and len(self._selected_lines) > 1 and lines[0] in self._selected_lines:
+        if not force and len(lines) == 1 and len(self._selected_lines) > 1 and lines[0] in self._selected_lines:
             return
 
         new_set = set(lines)
-        if self._selected_lines == new_set:
+        if not force and self._selected_lines == new_set:
             return
         self._selected_lines = new_set
-        self._update_selection_highlight()
+        self._update_selection_highlight(force=force)
         self._emit_selection_changed()
 
     def clear_selection(self):
@@ -483,12 +483,16 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self._update_selection_highlight()
         self._emit_selection_changed()
 
-    def _update_selection_highlight(self):
+    def _update_selection_highlight(self, force: bool = False):
         """Internal helper to update the selection highlight."""
-        lines_to_highlight = self._selected_lines - self._previously_selected_lines
-        lines_to_clear = self._previously_selected_lines - self._selected_lines
-        
-        self.highlightManager.set_background_for_lines(lines_to_highlight, lines_to_clear)
+        if not hasattr(self, 'highlightManager'):
+            return
+        if force:
+            self.highlightManager.setPreviewSelectedLineHighlight(list(self._selected_lines))
+        else:
+            lines_to_highlight = self._selected_lines - self._previously_selected_lines
+            lines_to_clear = self._previously_selected_lines - self._selected_lines
+            self.highlightManager.set_background_for_lines(lines_to_highlight, lines_to_clear)
         
         self._previously_selected_lines = self._selected_lines.copy()
         if hasattr(self, 'minimap'):

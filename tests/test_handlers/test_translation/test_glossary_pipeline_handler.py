@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from core.glossary_manager import GlossaryManager
-from core.glossary_build.pipeline_coordinator import MODE_AUTO
+from core.glossary_build.pipeline_coordinator import MODE_AUGMENT, MODE_AUTO
 from handlers.translation.glossary_pipeline_handler import GlossaryPipelineHandler
 from ui.glossary_build_dialog import AREA_CURRENT, AREA_PROJECT, AREA_SELECTED
 
@@ -19,6 +19,7 @@ def _mw(dataset=None, current_idx=0, selected=None, bind_glossary=True):
     mw.block_names = {}
     mw.target_language = "Ukrainian"
     mw.glossary_ai = {"provider": "Gemini", "api_key": "k"}
+    mw.current_game_rules.is_placeholder_speaker.return_value = False
 
     manager = GlossaryManager()
     # The handler refuses to build against an unbound glossary, since seeded
@@ -81,6 +82,30 @@ def test_worker_started_with_dialog_options(mock_dialog, mock_provider, mock_wor
 @patch("handlers.translation.glossary_pipeline_handler.AIStatusDialog")
 @patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildWorker")
 @patch("handlers.translation.glossary_pipeline_handler.get_provider_for_config")
+@patch("handlers.translation.glossary_pipeline_handler.build_speaker_pool")
+def test_start_build_binds_raw_speaker_pool(
+    mock_build_pool, mock_provider, mock_worker, mock_status
+):
+    mock_build_pool.return_value = {(0, 0): "AGITHA'S STALKER"}
+    mw = _mw()
+    handler = GlossaryPipelineHandler(mw)
+    manager = mw.translation_handler.glossary_handler.glossary_manager
+
+    handler.start_build({
+        "area": AREA_PROJECT,
+        "mode": "draft",
+        "chunk_size": "local",
+        "translate": True,
+    }, manager=manager)
+
+    mock_build_pool.assert_called_once_with(mw, raw=True)
+    assert manager._speaker_pool == {(0, 0): "AGITHA'S STALKER"}
+
+
+
+@patch("handlers.translation.glossary_pipeline_handler.AIStatusDialog")
+@patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildWorker")
+@patch("handlers.translation.glossary_pipeline_handler.get_provider_for_config")
 @patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildDialog")
 def test_current_block_area_limits_indices(mock_dialog, mock_provider, mock_worker, mock_status):
     mock_dialog.return_value.exec.return_value = True
@@ -138,11 +163,36 @@ def test_finished_reports_and_refreshes(mock_box):
     mw.translation_handler.glossary_handler._update_glossary_highlighting.assert_called_once()
 
 
-@patch("handlers.translation.glossary_pipeline_handler.QMessageBox")
-def test_finished_failure_warns(mock_box):
+@patch("handlers.translation.glossary_pipeline_handler.GlossaryStoppedDialog")
+def test_finished_failure_shows_stopped_dialog(mock_dialog):
+    mock_dialog.return_value.action = "close"
     handler = GlossaryPipelineHandler(_mw())
     handler._on_finished(False, "provider exploded")
-    mock_box.warning.assert_called_once()
+    mock_dialog.return_value.exec.assert_called_once()
+    assert mock_dialog.call_args.kwargs["auto_retry_delay"] == 300
+
+
+@patch("handlers.translation.glossary_pipeline_handler.GlossaryStoppedDialog")
+def test_stopped_dialog_consecutive_failure_uses_600s_delay(mock_dialog):
+    mock_dialog.return_value.action = "resume"
+    handler = GlossaryPipelineHandler(_mw())
+    handler._stopped_retry_count = 1
+    handler.start_build = MagicMock()
+
+    handler._on_finished(False, "provider exploded again")
+
+    assert mock_dialog.call_args.kwargs["auto_retry_delay"] == 600
+    assert handler._stopped_retry_count == 2
+    handler.start_build.assert_called_once()
+
+
+@patch("handlers.translation.glossary_pipeline_handler.QMessageBox")
+def test_success_resets_stopped_retry_count(mock_box):
+    mw = _mw()
+    handler = GlossaryPipelineHandler(mw)
+    handler._stopped_retry_count = 3
+    handler._on_finished(True, "seeded 1, described 1, translated 1")
+    assert handler._stopped_retry_count == 0
 
 
 @patch("handlers.translation.glossary_pipeline_handler.AIStatusDialog")
@@ -253,90 +303,133 @@ def test_auto_route_sweeps_only_changed_blocks(
     assert kwargs["translate"] is True
 
 
+@patch("handlers.translation.glossary_pipeline_handler.AIStatusDialog")
+@patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildWorker")
+@patch("handlers.translation.glossary_pipeline_handler.get_provider_for_config")
+def test_resume_pending_switches_mode_to_augment(
+    mock_provider, mock_worker, mock_status
+):
+    mw = _mw()
+    handler = GlossaryPipelineHandler(mw)
+    handler.start_build(
+        {
+            "area": AREA_PROJECT,
+            "mode": MODE_AUTO,
+            "resume_pending": True,
+            "chunk_size": "balanced",
+            "translate": True,
+        }
+    )
+    kwargs = mock_worker.call_args.kwargs
+    assert kwargs["mode"] == MODE_AUGMENT
+
+
 class TestSeedSources:
-    """Everything already written down, gathered before a single AI call."""
-
-    def _handler(self, tmp_path, *, plugin_seeds=(), aliases=None):
-        import json
-
-        mw = _mw()
-        mw.project_manager.project_dir = str(tmp_path)
-        mw.current_game_rules.get_glossary_seed_entries.return_value = list(plugin_seeds)
-        mw.translation_handler.prompt_composer._find_script_path.return_value = str(
-            tmp_path / "script.txt"
-        )
-        if aliases:
-            (tmp_path / "speaker_aliases.json").write_text(
-                json.dumps(aliases), encoding="utf-8"
-            )
-        handler = GlossaryPipelineHandler(mw)
-        handler.mw = mw
-        return handler
+    """The build seeds characters under the names decided in Merge Speakers."""
 
     def test_a_decided_name_replaces_the_identifier_the_game_uses(self, tmp_path):
-        """Merge Speakers worked out Bou is MAYOR BO; the glossary must know."""
-        handler = self._handler(
-            tmp_path,
-            plugin_seeds=[{"term": "Bou", "section": "Characters", "description": "ev"}],
-            aliases={"Bou": "MAYOR BO"},
-        )
+        mw = _mw()
+        mw.project_manager.project_dir = str(tmp_path)
+        aliases_path = tmp_path / "speaker_aliases.json"
+        aliases_path.write_text('{"Bou": "MAYOR BO"}', encoding="utf-8")
 
-        seeds = handler._structural_seeds()
+        handler = GlossaryPipelineHandler(mw)
+        handler._plugin_seeds = MagicMock(return_value=[{"term": "Bou", "section": "Characters"}])
+        handler._markup_seeds = MagicMock(return_value=[])
 
-        assert [s["term"] for s in seeds] == ["MAYOR BO"]
-        assert seeds[0]["description"] == "ev"   # the evidence follows the name
+        seeded = handler._structural_seeds()
+        assert seeded == [{"term": "MAYOR BO", "section": "Characters", "provisional": False}]
 
     def test_terms_that_are_not_speaker_codes_are_untouched(self, tmp_path):
-        handler = self._handler(
-            tmp_path,
-            plugin_seeds=[{"term": "Lantern", "section": "Items"}],
-            aliases={"Bou": "MAYOR BO"},
-        )
+        mw = _mw()
+        mw.project_manager.project_dir = str(tmp_path)
+        aliases_path = tmp_path / "speaker_aliases.json"
+        aliases_path.write_text('{"Bou": "MAYOR BO"}', encoding="utf-8")
 
-        assert [s["term"] for s in handler._structural_seeds()] == ["Lantern"]
+        handler = GlossaryPipelineHandler(mw)
+        handler._plugin_seeds = MagicMock(return_value=[{"term": "Master Sword", "section": "Items"}])
+        handler._markup_seeds = MagicMock(return_value=[])
+
+        seeded = handler._structural_seeds()
+        assert seeded == [{"term": "Master Sword", "section": "Items"}]
 
     def test_no_decisions_yet_changes_nothing(self, tmp_path):
-        handler = self._handler(
-            tmp_path, plugin_seeds=[{"term": "Bou", "section": "Characters"}]
-        )
+        mw = _mw()
+        mw.project_manager.project_dir = str(tmp_path)
 
-        assert [s["term"] for s in handler._structural_seeds()] == ["Bou"]
+        handler = GlossaryPipelineHandler(mw)
+        handler._plugin_seeds = MagicMock(return_value=[{"term": "Bou"}])
+        handler._markup_seeds = MagicMock(return_value=[])
+
+        assert handler._structural_seeds() == [{"term": "Bou"}]
 
     def test_a_plugin_that_seeds_nothing_still_gets_the_script(self, tmp_path):
-        """A game with no readable data files is not a game with no glossary."""
-        handler = self._handler(tmp_path)
-        handler._markup_seeds = lambda: [{"term": "RENADO", "section": "Characters"}]
+        mw = _mw()
+        mw.project_manager.project_dir = str(tmp_path)
 
-        assert [s["term"] for s in handler._structural_seeds()] == ["RENADO"]
+        handler = GlossaryPipelineHandler(mw)
+        handler._plugin_seeds = MagicMock(return_value=[])
+        handler._markup_seeds = MagicMock(return_value=[{"term": "Link"}])
+
+        assert handler._structural_seeds() == [{"term": "Link"}]
 
     def test_an_undecided_identifier_is_seeded_as_provisional(self, tmp_path):
-        """"CLERK_B" is not a name, and the glossary must not present it as one."""
-        handler = self._handler(
-            tmp_path, plugin_seeds=[{"term": "CLERK_B", "section": "Characters"}]
-        )
-        handler.mw.current_game_rules.is_placeholder_speaker = lambda n: n == "CLERK_B"
+        """A placeholder speaker code needs to say so in the glossary."""
+        mw = _mw()
+        mw.project_manager.project_dir = str(tmp_path)
+        mw.current_game_rules.is_placeholder_speaker.side_effect = lambda t: t == "CLERK_B"
 
-        seeds = handler._structural_seeds()
+        handler = GlossaryPipelineHandler(mw)
+        handler._plugin_seeds = MagicMock(return_value=[{"term": "CLERK_B"}])
+        handler._markup_seeds = MagicMock(return_value=[])
 
-        assert seeds[0]["provisional"] is True
+        seeded = handler._structural_seeds()
+        assert seeded == [{"term": "CLERK_B", "provisional": True}]
 
     def test_deciding_the_name_clears_the_provisional_flag(self, tmp_path):
-        handler = self._handler(
-            tmp_path,
-            plugin_seeds=[{"term": "CLERK_B", "section": "Characters"}],
-            aliases={"CLERK_B": "BARNES"},
+        """Once confirmed to be a real character name, the provisional mark drops."""
+        mw = _mw()
+        mw.project_manager.project_dir = str(tmp_path)
+        mw.current_game_rules.is_placeholder_speaker.side_effect = lambda t: t == "CLERK_B"
+        aliases_path = tmp_path / "speaker_aliases.json"
+        aliases_path.write_text('{"CLERK_B": "BEEDLE"}', encoding="utf-8")
+
+        handler = GlossaryPipelineHandler(mw)
+        handler._plugin_seeds = MagicMock(return_value=[{"term": "CLERK_B"}])
+        handler._markup_seeds = MagicMock(return_value=[])
+
+        seeded = handler._structural_seeds()
+        assert seeded == [{"term": "BEEDLE", "provisional": False}]
+
+    def test_a_shared_voice_seeds_each_named_character(self, tmp_path):
+        mw = _mw()
+        mw.project_manager.project_dir = str(tmp_path)
+        mw.current_game_rules.is_placeholder_speaker.side_effect = lambda t: t == "zrSPA"
+        aliases_path = tmp_path / "speaker_aliases.json"
+        aliases_path.write_text(
+            '{"zrSPA": "SPRING ZORA #1 / SPRING ZORA #2"}', encoding="utf-8"
         )
-        handler.mw.current_game_rules.is_placeholder_speaker = lambda n: n == "CLERK_B"
 
-        seeds = handler._structural_seeds()
+        handler = GlossaryPipelineHandler(mw)
+        handler._plugin_seeds = MagicMock(
+            return_value=[{"term": "zrSPA", "section": "Characters"}]
+        )
+        handler._markup_seeds = MagicMock(return_value=[])
 
-        assert seeds[0]["term"] == "BARNES"
-        assert seeds[0]["provisional"] is False
+        seeded = handler._structural_seeds()
+        assert seeded == [
+            {"term": "SPRING ZORA #1", "section": "Characters", "provisional": False},
+            {"term": "SPRING ZORA #2", "section": "Characters", "provisional": False},
+        ]
 
     def test_a_real_name_is_never_flagged(self, tmp_path):
-        handler = self._handler(
-            tmp_path, plugin_seeds=[{"term": "Lantern", "section": "Items"}]
-        )
-        handler.mw.current_game_rules.is_placeholder_speaker = lambda n: False
+        mw = _mw()
+        mw.project_manager.project_dir = str(tmp_path)
+        mw.current_game_rules.is_placeholder_speaker.side_effect = lambda t: False
 
-        assert not handler._structural_seeds()[0].get("provisional")
+        handler = GlossaryPipelineHandler(mw)
+        handler._plugin_seeds = MagicMock(return_value=[{"term": "Link"}])
+        handler._markup_seeds = MagicMock(return_value=[])
+
+        seeded = handler._structural_seeds()
+        assert seeded == [{"term": "Link"}]

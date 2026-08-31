@@ -1,6 +1,17 @@
 # components/ai_status_dialog.py ---
 from typing import Optional
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QWidget, QProgressBar, QDialogButtonBox, QCheckBox
+from PyQt6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QDialog,
+    QDialogButtonBox,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QProgressBar,
+    QVBoxLayout,
+    QWidget,
+)
 from PyQt6.QtGui import QMovie, QFont, QPalette
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QEvent
 from utils.power_utils import prevent_sleep, restore_sleep, put_to_sleep
@@ -27,6 +38,7 @@ class AIStatusDialog(QDialog):
         self.user_cancelled = False
         self.is_running = False
         self.operation_title = "AI Operation"
+        self._source_window: Optional[QWidget] = None
 
         self.steps = [
             "Preparing request...",
@@ -127,10 +139,25 @@ class AIStatusDialog(QDialog):
         """Handle the cancel event."""
         self.reject()
 
+    def _confirm_cancellation(self) -> bool:
+        """Prompt the user for explicit confirmation before cancelling a running AI operation."""
+        reply = QMessageBox.question(
+            self,
+            "Cancel AI operation?",
+            "The current request will stop after the active network step. Are you sure you want to cancel it?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
+
     def reject(self):
         """Reject."""
-        AutoSleepManager.get_instance().cancel_sleep("AI dialog rejected/cancelled")
         if getattr(self, 'is_running', False):
+            if getattr(self, 'user_cancelled', False):
+                return
+            if not self._confirm_cancellation():
+                return
+            AutoSleepManager.get_instance().cancel_sleep("AI dialog rejected/cancelled")
             self.user_cancelled = True
             self.cancelled.emit()
             self.title_label.setText("Cancelling AI Operation...")
@@ -138,18 +165,21 @@ class AIStatusDialog(QDialog):
             self.detail_label.setVisible(True)
             self.cancel_button.setEnabled(False)
         else:
+            AutoSleepManager.get_instance().cancel_sleep("AI dialog rejected/cancelled")
             super().reject()
             restore_sleep()
+            self._activate_source_window()
 
     def closeEvent(self, event: QEvent):
         """Closeevent."""
-        AutoSleepManager.get_instance().cancel_sleep("AI dialog closed")
         if getattr(self, 'is_running', False):
             event.ignore()
             self.reject()
         else:
+            AutoSleepManager.get_instance().cancel_sleep("AI dialog closed")
             super().closeEvent(event)
             restore_sleep()
+            self._activate_source_window()
 
     def setup_progress_bar(self, total_chunks: int, completed_chunks: int = 0):
         """Setup progress bar."""
@@ -177,8 +207,95 @@ class AIStatusDialog(QDialog):
         self.movie.stop()
         super().hideEvent(event)
 
-    def start(self, title: str, is_chunked: bool = False, model_name: Optional[str] = None):
+    def _is_deleted(self, widget: Optional[QWidget]) -> bool:
+        """Safely check whether a QWidget or QObject is deleted or None."""
+        if widget is None:
+            return True
+        try:
+            from PyQt6 import sip
+            from PyQt6.QtCore import QObject
+            if isinstance(widget, QObject) and sip.isdeleted(widget):
+                return True
+            _ = widget.isVisible()
+            return False
+        except (RuntimeError, TypeError, AttributeError, Exception):
+            return True
+
+    def _capture_source_window(self) -> Optional[QWidget]:
+        """Capture the active top-level source window before status dialog displays."""
+        active = QApplication.activeWindow()
+        if active is not None and active is not self and not self._is_deleted(active):
+            top = active.window()
+            if top is not None and top is not self and not self._is_deleted(top):
+                return top
+            return active
+
+        focus = QApplication.focusWidget()
+        if focus is not None and focus is not self and not self._is_deleted(focus):
+            top = focus.window()
+            if top is not None and top is not self and not self._is_deleted(top):
+                return top
+            return focus
+
+        modal = QApplication.activeModalWidget()
+        if modal is not None and modal is not self and not self._is_deleted(modal):
+            top = modal.window()
+            if top is not None and top is not self and not self._is_deleted(top):
+                return top
+            return modal
+
+        parent = self.parentWidget()
+        if parent is not None and parent is not self and not self._is_deleted(parent):
+            top = parent.window()
+            if top is not None and top is not self and not self._is_deleted(top):
+                return top
+            return parent
+
+        for widget in QApplication.topLevelWidgets():
+            if widget is not self and widget.isVisible() and not self._is_deleted(widget):
+                return widget
+
+        return None
+
+    def _activate_source_window(self) -> None:
+        """Safely return focus and activation to the source window."""
+        source = getattr(self, '_source_window', None)
+        if self._is_deleted(source):
+            return
+        try:
+            if source.isMinimized():
+                source.showNormal()
+            elif not source.isVisible():
+                source.show()
+            source.raise_()
+            source.activateWindow()
+        except (RuntimeError, Exception):
+            pass
+
+    @property
+    def source_window(self) -> Optional[QWidget]:
+        """Source window captured at operation start."""
+        if self._is_deleted(getattr(self, '_source_window', None)):
+            return None
+        return self._source_window
+
+    @source_window.setter
+    def source_window(self, window: Optional[QWidget]) -> None:
+        self._source_window = window
+
+    def start(
+        self,
+        title: str,
+        is_chunked: bool = False,
+        model_name: Optional[str] = None,
+        source_window: Optional[QWidget] = None,
+    ):
         """Start."""
+        if source_window is not None and not self._is_deleted(source_window):
+            self._source_window = source_window.window() if hasattr(source_window, 'window') else source_window
+        else:
+            self._source_window = self._capture_source_window()
+
         self.user_cancelled = False
         self.is_running = True
         self.operation_title = title
@@ -240,31 +357,59 @@ class AIStatusDialog(QDialog):
 
         # 2. Show structured popup notification to the user (suppressed during unit tests)
         import sys
+        popup_shown = False
+
+        def attach_return_to_source(popup_widget: QWidget) -> None:
+            if hasattr(popup_widget, 'finished'):
+                try:
+                    popup_widget.finished.connect(lambda _res=0: self._activate_source_window())
+                except Exception:
+                    pass
+            if hasattr(popup_widget, 'destroyed'):
+                try:
+                    popup_widget.destroyed.connect(lambda _obj=None: self._activate_source_window())
+                except Exception:
+                    pass
+
         if 'pytest' not in sys.modules and show_popup:
-            from PyQt6.QtWidgets import QMessageBox, QMainWindow, QApplication
+            from PyQt6.QtWidgets import QMessageBox, QMainWindow
+
+            # Find MainWindow to store active dialog references
+            mw = None
+            p = self.parentWidget()
+            while p:
+                if isinstance(p, QMainWindow):
+                    mw = p
+                    break
+                p = p.parentWidget() if hasattr(p, 'parentWidget') else None
+            if not mw:
+                for widget in QApplication.topLevelWidgets():
+                    if isinstance(widget, QMainWindow):
+                        mw = widget
+                        break
+
+            # Helper to close any previously open generic info message box
+            if mw and getattr(mw, 'active_info_msg_box', None) is not None:
+                try:
+                    mw.active_info_msg_box.close()
+                except Exception:
+                    pass
+                mw.active_info_msg_box = None
+
             if getattr(self, 'user_cancelled', False):
                 msg_box = QMessageBox(QMessageBox.Icon.Information, self.operation_title, f"{self.operation_title} was cancelled.", parent=self.parentWidget() or self)
                 msg_box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+                attach_return_to_source(msg_box)
+                if mw:
+                    mw.active_info_msg_box = msg_box
+                    msg_box.destroyed.connect(lambda: setattr(mw, 'active_info_msg_box', None) if mw else None)
                 msg_box.show()
+                popup_shown = True
             elif success:
                 total_retranslated = 0
                 if previous_translations:
                     for b_idx, items in previous_translations.items():
                         total_retranslated += len(items)
-                
-                # Find MainWindow to store active dialog references
-                mw = None
-                p = self.parentWidget()
-                while p:
-                    if isinstance(p, QMainWindow):
-                        mw = p
-                        break
-                    p = p.parentWidget() if hasattr(p, 'parentWidget') else None
-                if not mw:
-                    for widget in QApplication.topLevelWidgets():
-                        if isinstance(widget, QMainWindow):
-                            mw = widget
-                            break
 
                 if previous_translations and total_retranslated >= 1 and translation_details:
                     # Close previous comparison dialog if it is open
@@ -279,9 +424,11 @@ class AIStatusDialog(QDialog):
                     if mw:
                         mw.active_comparison_dialog = dialog
                     dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+                    attach_return_to_source(dialog)
                     if mw:
                         dialog.destroyed.connect(lambda: setattr(mw, 'active_comparison_dialog', None) if mw else None)
                     dialog.show()
+                    popup_shown = True
                 elif translation_details:
                     # Close previous result dialog if it is open
                     if mw and getattr(mw, 'active_result_dialog', None) is not None:
@@ -295,13 +442,23 @@ class AIStatusDialog(QDialog):
                     if mw:
                         mw.active_result_dialog = dialog
                     dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+                    attach_return_to_source(dialog)
                     if mw:
                         dialog.destroyed.connect(lambda: setattr(mw, 'active_result_dialog', None) if mw else None)
                     dialog.show()
+                    popup_shown = True
                 else:
                     msg_box = QMessageBox(QMessageBox.Icon.Information, self.operation_title, f"{self.operation_title} finished.", parent=self.parentWidget() or self)
                     msg_box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+                    attach_return_to_source(msg_box)
+                    if mw:
+                        mw.active_info_msg_box = msg_box
+                        msg_box.destroyed.connect(lambda: setattr(mw, 'active_info_msg_box', None) if mw else None)
                     msg_box.show()
+                    popup_shown = True
+
+        if not popup_shown:
+            self._activate_source_window()
 
     def _handle_prevent_sleep_toggled(self, checked: bool):
         """Internal helper to handle prevent sleep toggled."""

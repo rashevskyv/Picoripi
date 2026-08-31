@@ -1,4 +1,4 @@
-"""Launch dialog for building the glossary from project text.
+﻿"""Launch dialog for building the glossary from project text.
 
 Collects the options the pipeline needs -- area, depth mode, chunk-size preset,
 and whether to translate right away -- and hands them back as a plain dict.
@@ -51,6 +51,8 @@ class GlossaryBuildDialog(QDialog):
         current_block_label: str = "",
         can_seed_structurally: bool = True,
         existing_entries: int = 0,
+        pending_description_count: int = 0,
+        pending_translation_count: int = 0,
         on_build=None,
         target_step: Optional[str] = None,
         block_labels: Sequence[Tuple[int, str]] = (),
@@ -58,6 +60,8 @@ class GlossaryBuildDialog(QDialog):
         super().__init__(parent)
         self._target_step = target_step
         self._existing_entries = existing_entries
+        self._pending_description_count = pending_description_count
+        self._pending_translation_count = pending_translation_count
 
         if target_step == "auto":
             self.setWindowTitle("Prepare Glossary")
@@ -101,6 +105,16 @@ class GlossaryBuildDialog(QDialog):
         intro.setWordWrap(True)
         layout.addWidget(intro)
 
+        if existing_entries > 0:
+            status_text = (
+                f"<b>Glossary on disk:</b> {existing_entries} terms saved "
+                f"({pending_description_count} awaiting description, {pending_translation_count} awaiting translation)"
+            )
+            status_lbl = QLabel(status_text)
+            status_lbl.setStyleSheet("color: #3b6e99; margin-top: 4px; margin-bottom: 4px; font-size: 11px;")
+            status_lbl.setWordWrap(True)
+            layout.addWidget(status_lbl)
+
         if target_step == "describe" and existing_entries == 0:
             warn = QLabel(
                 "⚠️ <b>Glossary is empty</b>: there are no terms to describe yet.<br>"
@@ -140,6 +154,7 @@ class GlossaryBuildDialog(QDialog):
         self._block_list = None
         self._all_blocks_check = None
         self._full_rescan_check = None
+        self._resume_pending_check = None
         if target_step == "auto":
             area_box.hide()
             blocks_box = QGroupBox("Project blocks")
@@ -278,6 +293,17 @@ class GlossaryBuildDialog(QDialog):
                 )
                 layout.addWidget(self._full_rescan_check)
 
+                if pending_description_count > 0 or pending_translation_count > 0:
+                    self._resume_pending_check = QCheckBox(
+                        f"Resume unfinished entries only (skip text sweep: {pending_description_count} need desc, {pending_translation_count} need trans)"
+                    )
+                    self._resume_pending_check.setToolTip(
+                        "Skip sweeping project blocks and immediately continue describing and translating "
+                        "terms that are already saved in the glossary."
+                    )
+                    self._resume_pending_check.toggled.connect(self._sync_resume_mode)
+                    layout.addWidget(self._resume_pending_check)
+
         standard = QDialogButtonBox.StandardButton.Ok
         if on_build is None:
             standard |= QDialogButtonBox.StandardButton.Cancel
@@ -329,6 +355,22 @@ class GlossaryBuildDialog(QDialog):
         for button in (self._area_project, self._area_selected, self._area_current):
             button.setEnabled(not seed_only and self._area_enabled(button))
 
+    def _sync_resume_mode(self, resume_only: bool) -> None:
+        if self._block_list is not None:
+            self._block_list.setEnabled(not resume_only)
+        if self._all_blocks_check is not None:
+            self._all_blocks_check.setEnabled(not resume_only)
+        if self._full_rescan_check is not None:
+            self._full_rescan_check.setEnabled(not resume_only)
+        if hasattr(self, "_ok_button"):
+            if resume_only:
+                self._ok_button.setText("Resume describing & translating")
+                self._ok_button.setEnabled(True)
+            else:
+                self._ok_button.setText("Run automatic glossary pass")
+                selected = len(self.selected_block_indices())
+                self._ok_button.setEnabled(selected > 0)
+
     def _area_enabled(self, button) -> bool:
         """Selected-blocks stays disabled without a selection."""
         return self._has_selection if button is self._area_selected else True
@@ -352,11 +394,16 @@ class GlossaryBuildDialog(QDialog):
             if self._translate_check is not None
             else False
         )
+        resume_pending = bool(
+            self._resume_pending_check and self._resume_pending_check.isChecked()
+        )
+        mode = MODE_AUGMENT if resume_pending else self.selected_mode()
         options = {
             "area": self.selected_area(),
-            "mode": self.selected_mode(),
+            "mode": mode,
             "chunk_size": self._chunk_combo.currentData(),
             "translate": translate_checked or self._target_step == "auto",
+            "resume_pending": resume_pending,
         }
         if self._target_step == "auto":
             selected = self.selected_block_indices()
@@ -400,4 +447,7 @@ class GlossaryBuildDialog(QDialog):
             )
             self._all_blocks_check.blockSignals(False)
         if hasattr(self, "_ok_button"):
-            self._ok_button.setEnabled(selected > 0)
+            resume_active = bool(
+                self._resume_pending_check and self._resume_pending_check.isChecked()
+            )
+            self._ok_button.setEnabled(resume_active or selected > 0)

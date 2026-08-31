@@ -236,6 +236,27 @@ class TestReadingTheMarkup:
         assert markup_speaker_lines(project) == [("RENADO", LONG_B)]
 
 
+class TestApplyableAlias:
+    def test_a_single_name_is_applyable(self):
+        from core.speaker_alias_merge import is_applyable_speaker_alias
+
+        assert is_applyable_speaker_alias("RENADO")
+        assert not is_applyable_speaker_alias("")
+        assert not is_applyable_speaker_alias("  ")
+
+    def test_a_shared_voice_name_is_applyable(self):
+        from core.speaker_alias_merge import (
+            is_applyable_speaker_alias,
+            is_confirmed_speaker_alias,
+            split_shared_speaker_names,
+        )
+
+        alias = "SPRING ZORA #1 / SPRING ZORA #2"
+        assert is_applyable_speaker_alias(alias)
+        assert not is_confirmed_speaker_alias(alias)
+        assert split_shared_speaker_names(alias) == ["SPRING ZORA #1", "SPRING ZORA #2"]
+
+
 class TestPersistence:
     def test_a_saved_map_round_trips(self, tmp_path):
         from core.speaker_alias_merge import load_speaker_aliases, save_speaker_aliases

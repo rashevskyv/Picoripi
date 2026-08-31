@@ -197,3 +197,27 @@ class TestTargetStepViews:
         assert ok_btn.text() == "Describe terms"
         assert not ok_btn.isEnabled()
         assert "empty" in ok_btn.toolTip().lower()
+
+    def test_auto_route_shows_and_toggles_resume_check(self, qtbot):
+        dialog = GlossaryBuildDialog(
+            target_step="auto",
+            existing_entries=20,
+            pending_description_count=5,
+            pending_translation_count=8,
+            block_labels=[(0, "Intro"), (1, "Village")],
+        )
+        qtbot.addWidget(dialog)
+        ok_btn = dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Ok)
+
+        assert dialog._resume_pending_check is not None
+        assert not dialog._resume_pending_check.isChecked()
+        assert ok_btn.text() == "Run automatic glossary pass"
+        assert dialog.options()["mode"] == MODE_AUTO
+
+        dialog._resume_pending_check.setChecked(True)
+        assert not dialog._block_list.isEnabled()
+        assert not dialog._all_blocks_check.isEnabled()
+        assert ok_btn.text() == "Resume describing & translating"
+        opts = dialog.options()
+        assert opts["mode"] == MODE_AUGMENT
+        assert opts["resume_pending"] is True

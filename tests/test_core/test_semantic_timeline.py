@@ -112,3 +112,53 @@ def test_a_repeat_never_hides_a_line_the_ai_missed():
 
     with pytest.raises(ValueError, match="missing=\\['d00002'\\]"):
         parse_timeline_response(payload, {"d00001", "d00002"})
+
+
+def test_story_timeline_worker_chunking_and_retry(tmp_path):
+    from unittest.mock import MagicMock
+    from core.mempalace.timeline_ai_analyzer import StoryTimelineAIAnalyzerWorker
+
+    client = MemePalaceClient(project_dir=str(tmp_path))
+    document_id, node_id = _story_with_link(client)
+
+    ai_provider = MagicMock()
+    call_count = 0
+
+    def mock_translate(messages, session=None, settings_override=None):
+        nonlocal call_count
+        call_count += 1
+        assert settings_override is not None
+        assert settings_override.get("timeout") == 300
+        # Fail on first attempt to test retry
+        if call_count == 1:
+            raise TimeoutError("Simulated timeout")
+        resp = MagicMock()
+        resp.text = json.dumps({
+            "events": [{
+                "event_title": "Hero Arrives",
+                "summary": "Arrival in town",
+                "location": "Town gate",
+                "participants": ["Hero"],
+                "interactions": [],
+                "dialogue_ids": ["d00001"],
+            }]
+        })
+        return resp
+
+    ai_provider.translate = mock_translate
+
+    worker = StoryTimelineAIAnalyzerWorker(
+        client=client,
+        ai_provider=ai_provider,
+        document_id=document_id,
+        target_lang="Ukrainian",
+    )
+
+    results = []
+    worker.finished.connect(lambda ok, msg: results.append((ok, msg)))
+    worker.run()
+
+    assert len(results) == 1
+    assert results[0][0] is True
+    assert "Built 1 story events" in results[0][1]
+    assert call_count == 2  # 1 fail + 1 retry success

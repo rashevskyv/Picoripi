@@ -485,7 +485,7 @@ JSON structure:
 
             log_ai_traffic(self.mw, "mempalace_terminology_mining", messages)
             try:
-                response = self.ai_provider.translate(messages, session=None)
+                response = self.ai_provider.translate(messages, session=None, settings_override={"think": 1, "timeout": 300})
                 log_ai_traffic(self.mw, "mempalace_terminology_mining", messages, response_text=response.text)
             except Exception as e_mining:
                 log_ai_traffic(self.mw, "mempalace_terminology_mining", messages, error=str(e_mining))
@@ -594,7 +594,9 @@ JSON structure:
                         
                         try:
                             log_ai_traffic(self.mw, "mempalace_notes_synthesis", synth_messages)
-                            synth_response = self.ai_provider.translate(synth_messages, session=None)
+                            synth_response = self.ai_provider.translate(
+                                synth_messages, session=None, settings_override={"think": 1, "timeout": 300}
+                            )
                             log_ai_traffic(self.mw, "mempalace_notes_synthesis", synth_messages, response_text=synth_response.text)
                             synthesized_notes = synth_response.text.strip()
                             
@@ -657,7 +659,9 @@ JSON structure:
                         
                         try:
                             log_ai_traffic(self.mw, "mempalace_new_term_creation", new_term_messages)
-                            new_term_response = self.ai_provider.translate(new_term_messages, session=None)
+                            new_term_response = self.ai_provider.translate(
+                                new_term_messages, session=None, settings_override={"think": 1, "timeout": 300}
+                            )
                             log_ai_traffic(self.mw, "mempalace_new_term_creation", new_term_messages, response_text=new_term_response.text)
                             term_data = robust_json_loads(new_term_response.text)
                             translated_name = term_data.get("translation", term_name).strip()

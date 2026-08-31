@@ -230,6 +230,16 @@ class TestItDoesNotBlockTheToolsItOpens:
         assert dialog.isModal() is False
         dialog.deleteLater()
 
+    def test_the_wizard_is_its_own_alt_tab_window(self, tmp_path):
+        from PyQt6.QtCore import Qt
+
+        dialog = PipelineWizardDialog(_mw(tmp_path))
+
+        assert dialog.parent() is None
+        assert dialog.windowFlags() & Qt.WindowType.Window
+        assert not dialog.testAttribute(Qt.WidgetAttribute.WA_QuitOnClose)
+        dialog.deleteLater()
+
     def test_opening_it_again_reuses_the_same_window(self, tmp_path):
         from ui.main_window.main_window_actions import MainWindowActions
 
@@ -280,6 +290,16 @@ class TestEmbeddedTools:
 
         assert step.embed is not None
         assert step.run is None
+        dialog.deleteLater()
+
+    def test_the_markup_step_hosts_the_studio_instead_of_a_button(self, tmp_path):
+        dialog = PipelineWizardDialog(_mw(tmp_path))
+        step = dialog._step_for("markup")
+
+        assert step.embed is not None
+        assert step.run is None
+        dialog.select_step("markup")
+        assert dialog.stack.currentWidget() is not dialog._explain_page
         dialog.deleteLater()
 
     def test_an_explaining_step_stays_on_the_explanation_page(self, tmp_path):
@@ -356,10 +376,10 @@ class TestLaunching:
         mw = _mw(tmp_path)
         dialog = PipelineWizardDialog(mw)
 
-        dialog.select_step("markup")
+        dialog.select_step("speakers")
         dialog._run_current()
 
-        mw.script_markup_studio_action.trigger.assert_called_once()
+        mw.merge_speakers_action.trigger.assert_called_once()
         dialog.deleteLater()
 
     def test_the_glossary_step_hosts_the_automatic_route(self, tmp_path):
@@ -397,10 +417,10 @@ class TestLaunching:
 class TestTheGlossaryStepsAreOneStep:
     """The model's glossary passes are one uninterrupted user-facing route."""
 
-    def test_they_are_nested_under_collecting_the_terms(self, tmp_path):
+    def test_naming_speakers_is_nested_under_marking_up_the_script(self, tmp_path):
         dialog = PipelineWizardDialog(_mw(tmp_path))
 
-        assert dialog._item_for("speakers").parent() is dialog._item_for("glossary")
+        assert dialog._item_for("speakers").parent() is dialog._item_for("markup")
         dialog.deleteLater()
 
     def test_the_stages_around_the_glossary_stay_at_the_top(self, tmp_path):

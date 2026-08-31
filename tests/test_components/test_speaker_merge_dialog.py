@@ -87,6 +87,21 @@ class TestDialog:
 
         dialog.deleteLater()
 
+    def test_an_already_applied_name_is_labelled_as_such(self):
+        result = MergeResult(
+            resolved={"Voice 26": "MAYOR BO", "zrSPA": "SPRING ZORA #1 / SPRING ZORA #2"},
+            all_placeholders=["Bou"],
+        )
+        dialog = SpeakerMergeDialog(result)
+        tree = dialog.tree
+        strong = tree.topLevelItem(0).child(0)
+        shared = tree.topLevelItem(1).child(0)
+        assert strong.text(0) == "Voice 26"
+        assert strong.text(2) == "Already applied"
+        assert shared.text(0) == "zrSPA"
+        assert shared.text(2) == "Already applied"
+        dialog.deleteLater()
+
     def test_only_name_column_opens_editor(self):
         dialog = SpeakerMergeDialog(_result())
         tree = dialog.tree
@@ -148,7 +163,7 @@ class TestDialog:
 
         assert applied["Voice 74"] == "GREAT FAIRY"
         assert applied["Voice 41"] == "RENADO"
-        assert "Voice 107" not in applied
+        assert applied["Voice 107"] == "TRILL / PLUMM"
         dialog.deleteLater()
 
     def test_a_cleared_name_is_not_saved(self):
@@ -167,6 +182,15 @@ class TestDialog:
         dialog = SpeakerMergeDialog(_result())
 
         assert not dialog.apply_button.isEnabled()
+        dialog.deleteLater()
+
+    def test_the_dialog_is_its_own_alt_tab_window(self):
+        dialog = SpeakerMergeDialog(_result())
+
+        assert dialog.parent() is None
+        assert dialog.windowFlags() & Qt.WindowType.Window
+        assert not dialog.isModal()
+        assert not dialog.testAttribute(Qt.WidgetAttribute.WA_QuitOnClose)
         dialog.deleteLater()
 
     def test_the_first_decision_is_shown_without_a_click(self):
@@ -260,28 +284,27 @@ class TestDialog:
         tree.setCurrentItem(shared_item)
 
         assert not dialog.candidates_widget.isHidden()
-        # Find candidate button for TRILL
-        trill_btn = None
-        for btn in dialog._candidate_buttons:
-            if btn.property("candidate_name") == "TRILL":
-                trill_btn = btn
-                break
-        assert trill_btn is not None
+        trill_btn = next(
+            btn for btn in dialog._candidate_buttons
+            if btn.property("candidate_name") == "TRILL"
+        )
+        # Toggle TRILL off the shared assignment; PLUMM remains.
         trill_btn.click()
 
-        assert shared_item.text(1) == "TRILL"
-        assert dialog.name_edit.text() == "TRILL"
+        assert shared_item.text(1) == "PLUMM"
+        assert dialog.name_edit.text() == "PLUMM"
         assert shared_item.checkState(0) == Qt.CheckState.Checked
 
         dialog.deleteLater()
 
-    def test_shared_voice_requires_one_confirmed_candidate(self):
+    def test_shared_voice_apply_keeps_every_named_character(self):
         dialog = SpeakerMergeDialog(_result(), on_apply=lambda _names: True)
         shared_item = dialog.tree.topLevelItem(1).child(0)
         dialog.tree.setCurrentItem(shared_item)
 
-        assert not dialog.apply_single_button.isEnabled()
-        assert all("Both:" not in btn.text() for btn in dialog._candidate_buttons)
+        assert dialog.apply_single_button.isEnabled()
+        assert any(btn.text() == "All candidates" for btn in dialog._candidate_buttons)
+        assert shared_item.text(1) == "TRILL / PLUMM"
 
         dialog.deleteLater()
 
@@ -313,7 +336,55 @@ class TestDialog:
         dialog.apply_all_button.click()
 
         assert "Voice 41" in applied
-        assert "Voice 107" not in applied
+        assert applied["Voice 107"] == "TRILL / PLUMM"
+        dialog.deleteLater()
+
+    def test_apply_this_speaker_saves_a_shared_voice(self):
+        applied = {}
+        dialog = SpeakerMergeDialog(_result(), on_apply=applied.update)
+        shared_item = dialog.tree.topLevelItem(1).child(0)
+        dialog.tree.setCurrentItem(shared_item)
+
+        dialog.apply_single_button.click()
+
+        assert applied == {"Voice 107": "TRILL / PLUMM"}
+        assert "Saved 'Voice 107'" in dialog.feedback_label.text()
+        assert shared_item.foreground(0).color() == QColor("#2e7d32")
+        assert dialog.inspector_badge.text() == "Applied"
+        dialog.deleteLater()
+
+    def test_applying_one_shared_name_moves_the_row_to_strong_green(self):
+        applied = {}
+        dialog = SpeakerMergeDialog(_result(), on_apply=applied.update)
+        shared_item = dialog.tree.topLevelItem(1).child(0)
+        dialog.tree.setCurrentItem(shared_item)
+        dialog.name_edit.setText("TRILL")
+
+        dialog.apply_single_button.click()
+
+        assert applied == {"Voice 107": "TRILL"}
+        strong = dialog.tree.topLevelItem(0)
+        moved = next(
+            strong.child(i) for i in range(strong.childCount())
+            if strong.child(i).text(0) == "Voice 107"
+        )
+        assert moved.text(1) == "TRILL"
+        assert moved.foreground(0).color() == QColor("#2e7d32")
+        assert dialog.inspector_badge.text() == "Applied"
+        dialog.deleteLater()
+
+    def test_clear_restores_the_suggested_name(self):
+        dialog = SpeakerMergeDialog(_result(), on_apply=lambda _names: True)
+        shared_item = dialog.tree.topLevelItem(1).child(0)
+        dialog.tree.setCurrentItem(shared_item)
+
+        dialog.name_edit.setText("TRILL")
+        assert shared_item.text(1) == "TRILL"
+
+        dialog.reset_button.click()
+        assert shared_item.text(1) == "TRILL / PLUMM"
+        assert dialog.name_edit.text() == "TRILL / PLUMM"
+        assert dialog.apply_single_button.isEnabled()
         dialog.deleteLater()
 
     def test_apply_single_speaker_button(self):
@@ -330,6 +401,8 @@ class TestDialog:
         assert applied == {"Voice 41": "RENADO"}
         assert "Saved 'Voice 41'" in dialog.feedback_label.text()
         assert "[Applied]" in item.text(2)
+        assert item.foreground(0).color() == QColor("#2e7d32")
+        assert dialog.inspector_badge.text() == "Applied"
 
         dialog.deleteLater()
 

@@ -1,7 +1,13 @@
 import pytest
 from unittest.mock import MagicMock, patch
 import requests
-from core.translation.providers import OpenAIProvider, TranslationProviderError
+from core.translation.providers import OpenAIProvider, TranslationProviderError, _split_timeout
+
+def test_split_timeout_fails_fast_on_local_proxy():
+    assert _split_timeout(180, "http://localhost:8081/v1") == (10.0, 180.0)
+    assert _split_timeout(180, "http://127.0.0.1:8081/v1") == (10.0, 180.0)
+    assert _split_timeout(60, "https://api.openai.com/v1") == 60
+
 
 def test_openai_provider_init_default_url_requires_key():
     # Default URL, no key -> raises error
@@ -188,3 +194,41 @@ def test_gemini_provider_openai_compat_mode(mock_post):
     assert mock_post.call_args[1]["headers"]["Authorization"] == "Bearer dummy"
 
 
+def test_extract_timeout_utility():
+    from core.translation.providers import _extract_timeout
+
+    assert _extract_timeout({}, default=60.0) == 60.0
+    assert _extract_timeout({"timeout": 120}, default=60.0) == 120.0
+    assert _extract_timeout({"timeout": "300"}, default=60.0) == 300.0
+    assert _extract_timeout({"timeout": 45.5}, default=60.0) == 45.5
+    assert _extract_timeout({"timeout": -10}, default=60.0) == 60.0
+    assert _extract_timeout({"timeout": "invalid"}, default=60.0) == 60.0
+    assert _extract_timeout(None, default=60.0) == 60.0
+
+
+@patch('core.translation.providers.requests.post')
+def test_openai_provider_timeout_override(mock_post):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {"content-type": "application/json"}
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"role": "assistant", "content": "Done"}}]
+    }
+    mock_post.return_value = mock_resp
+
+    provider = OpenAIProvider({
+        "endpoint": "http://localhost:8081",
+        "model": "local-model",
+        "timeout": 60,
+    })
+
+    # Default provider timeout. Local proxy: fail connect fast, keep the read budget.
+    provider.translate([{"role": "user", "content": "Hi"}])
+    assert mock_post.call_args[1]["timeout"] == (10.0, 60.0)
+
+    # Override timeout in settings_override
+    provider.translate(
+        [{"role": "user", "content": "Hi"}],
+        settings_override={"timeout": 300}
+    )
+    assert mock_post.call_args[1]["timeout"] == (10.0, 300.0)

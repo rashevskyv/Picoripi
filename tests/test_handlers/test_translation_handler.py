@@ -792,3 +792,109 @@ def test_translate_specific_strings_chunking(th):
         assert 'precomposed_prompt' not in task_details
 
 
+def test_translation_ui_handler_activate_entry_physical_navigation():
+    from handlers.translation.translation_ui_handler import TranslationUIHandler
+    from PyQt6.QtWidgets import QTextEdit
+
+    mock_main = MagicMock()
+    mock_mw = MagicMock()
+    mock_main.mw = mock_mw
+
+    text_edit = QTextEdit()
+    text_edit.setPlainText("Line 0\nLine 1\nLine 2\nLine 3")
+    mock_mw.original_text_edit = text_edit
+    mock_mw.edited_text_edit = MagicMock()
+    mock_mw.list_selection_handler = MagicMock()
+    mock_mw.block_list_widget = MagicMock()
+
+    ui_handler = TranslationUIHandler(mock_main)
+
+    with patch('handlers.translation.translation_ui_handler.getattr', wraps=getattr):
+        ui_handler._activate_entry({"block_idx": 4, "string_idx": 743, "line_idx": 2})
+
+    # 3. Sends exact zero-based pair (4, 743) to navigate_to_physical_string
+    mock_mw.list_selection_handler.navigate_to_physical_string.assert_called_once_with(4, 743)
+    # 4. Does not call select_block_by_index
+    mock_mw.block_list_widget.select_block_by_index.assert_not_called()
+
+    # 5. Positions the original editor at the correct intra-string QTextBlock (line_idx=2)
+    assert text_edit.textCursor().blockNumber() == 2
+    mock_mw.edited_text_edit.setFocus.assert_called_once()
+    mock_mw.raise_.assert_called_once()
+    mock_mw.activateWindow.assert_called_once()
+
+
+def test_translation_ui_handler_activate_entry_distinct_physical_block_tuples():
+    from handlers.translation.translation_ui_handler import TranslationUIHandler
+
+    mock_main = MagicMock()
+    mock_mw = MagicMock()
+    mock_main.mw = mock_mw
+    mock_mw.original_text_edit = None
+    mock_mw.edited_text_edit = None
+    mock_mw.list_selection_handler = MagicMock()
+
+    ui_handler = TranslationUIHandler(mock_main)
+
+    # 6. Verify (block_idx=4, string_idx=7) is sent as (4, 7) and distinct from (block_idx=1, string_idx=7)
+    ui_handler._activate_entry({"block_idx": 4, "string_idx": 7, "line_idx": 0})
+    mock_mw.list_selection_handler.navigate_to_physical_string.assert_called_with(4, 7)
+
+    mock_mw.list_selection_handler.navigate_to_physical_string.reset_mock()
+    ui_handler._activate_entry({"block_idx": 1, "string_idx": 7, "line_idx": 0})
+    mock_mw.list_selection_handler.navigate_to_physical_string.assert_called_with(1, 7)
+
+
+def test_translation_ui_handler_activate_entry_fallback_when_no_list_selection_handler():
+    from handlers.translation.translation_ui_handler import TranslationUIHandler
+
+    mock_main = MagicMock()
+    mock_mw = MagicMock()
+    mock_main.mw = mock_mw
+    mock_mw.list_selection_handler = None
+    mock_mw.data_store = MagicMock()
+    mock_mw.original_text_edit = None
+    mock_mw.edited_text_edit = None
+
+    ui_handler = TranslationUIHandler(mock_main)
+    ui_handler.ui_updater = MagicMock()
+
+    ui_handler._activate_entry({"block_idx": 3, "string_idx": 10})
+    assert mock_mw.data_store.current_block_idx == 3
+    assert mock_mw.data_store.current_string_idx == 10
+    ui_handler.ui_updater.populate_strings_for_block.assert_called_once_with(3)
+    mock_mw.ui_updater.update_text_views.assert_called_once()
+
+
+def test_translation_ui_handler_activate_entry_resolves_physical_block_in_tree(qtbot):
+    from handlers.translation.translation_ui_handler import TranslationUIHandler
+    from handlers.list_selection_handler import ListSelectionHandler
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtCore import Qt
+
+    tree = QTreeWidget()
+    qtbot.addWidget(tree)
+    item_b1 = QTreeWidgetItem(tree, ["Block 1"])
+    item_b1.setData(0, Qt.ItemDataRole.UserRole, 1)
+    item_b4 = QTreeWidgetItem(tree, ["Block 4"])
+    item_b4.setData(0, Qt.ItemDataRole.UserRole, 4)
+
+    mock_mw = MagicMock()
+    mock_mw.block_list_widget = tree
+    mock_mw.is_loading_data = False
+    mock_main = MagicMock()
+    mock_main.mw = mock_mw
+
+    lsh = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+    lsh.block_selected = MagicMock()
+    lsh.select_string_by_absolute_index = MagicMock()
+    mock_mw.list_selection_handler = lsh
+
+    ui_handler = TranslationUIHandler(mock_main)
+    ui_handler._activate_entry({"block_idx": 4, "string_idx": 7, "line_idx": 1})
+
+    assert tree.currentItem() == item_b4
+    lsh.block_selected.assert_called_once_with(item_b4, None)
+    lsh.select_string_by_absolute_index.assert_called_once_with(7)
+
+

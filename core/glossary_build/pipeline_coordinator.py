@@ -1,4 +1,4 @@
-"""Coordinator: run the glossary build passes and write to the glossary.
+﻿"""Coordinator: run the glossary build passes and write to the glossary.
 
 Ties the drivers together and persists results through GlossaryManager. Kept
 free of Qt: it takes one raw AI text call ``call(messages) -> str`` and drives
@@ -61,6 +61,15 @@ MODE_AUTO = "auto"
 _DESCRIBE_TARGETS = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS})
 
 
+def is_unnamed_voice_term(term: str) -> bool:
+    """Game voice-bank ids ("Voice 70") are not character names.
+
+    They get real names via Merge Speakers from Script. Running describe/translate
+    on them produces "Голос 70" and burns AI calls on identifiers.
+    """
+    return (term or "").strip().lower().startswith("voice ")
+
+
 @dataclass
 class BuildResult:
     """Counts from a build run."""
@@ -79,6 +88,31 @@ class BuildResult:
     # Units still failing after the retry pass: their entries got nothing.
     failed: int = 0
     cancelled: bool = False
+
+
+class GlossaryBuildStoppedError(RuntimeError):
+    """Raised when an AI glossary pass is stopped early due to consecutive backend failures."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        stage: str = "",
+        completed: int = 0,
+        total: int = 0,
+        failed: int = 0,
+        consecutive_failures: int = 0,
+        last_error: Optional[BaseException] = None,
+        result: Optional[BuildResult] = None,
+    ):
+        super().__init__(message)
+        self.stage = stage
+        self.completed = completed
+        self.total = total
+        self.failed = failed
+        self.consecutive_failures = consecutive_failures
+        self.last_error = last_error
+        self.result = result
 
 
 class GlossaryBuildCoordinator:
@@ -118,6 +152,7 @@ class GlossaryBuildCoordinator:
         self.retry_delay = float(retry_delay)
         self.sleep = sleep
         self.max_consecutive_failures = max(0, int(max_consecutive_failures))
+        self.last_result: Optional[BuildResult] = None
 
     def _cancelled(self) -> bool:
         return bool(self._is_cancelled and self._is_cancelled())
@@ -151,11 +186,24 @@ class GlossaryBuildCoordinator:
         )
         result.failed += len(outcome.failed)
         if outcome.stop_error is not None:
-            raise RuntimeError(
+            completed_count = getattr(outcome, "completed", 0)
+            total_count = len(items)
+            msg = (
                 f"AI backend is not responding: {self.max_consecutive_failures} calls in a "
-                f"row failed during the {stage} pass. Stopped so the rest of the run is not "
-                f"spent waiting. Entries finished before this point are saved. "
+                f"row failed during the {stage} pass ({completed_count}/{total_count} completed). "
+                f"Stopped so the rest of the run is not spent waiting. "
+                f"Entries finished before this point are saved. "
                 f"Last error: {outcome.stop_error}"
+            )
+            raise GlossaryBuildStoppedError(
+                msg,
+                stage=stage,
+                completed=completed_count,
+                total=total_count,
+                failed=len(outcome.failed),
+                consecutive_failures=self.max_consecutive_failures,
+                last_error=outcome.stop_error,
+                result=result,
             ) from outcome.stop_error
 
     # -- public API ---------------------------------------------------------
@@ -169,6 +217,7 @@ class GlossaryBuildCoordinator:
     ) -> BuildResult:
         """Run a build in the given mode."""
         result = BuildResult()
+        self.last_result = result
         if mode == MODE_TRANSLATE:
             # Nothing to build; the caller runs the translate pass.
             return result
@@ -220,7 +269,8 @@ class GlossaryBuildCoordinator:
 
     def run_translate(self, result: Optional[BuildResult] = None) -> BuildResult:
         """Propose translations for entries that have a description but none yet."""
-        result = result or BuildResult()
+        result = result or self.last_result or BuildResult()
+        self.last_result = result
         propose = make_propose(self.call, self.prompts, target_lang=self.target_lang)
 
         # An entry needs translating when it has something to translate from (a
@@ -231,7 +281,7 @@ class GlossaryBuildCoordinator:
         targets = [
             e
             for e in self.manager.get_entries()
-            if e.notes and not e.translation
+            if e.notes and not e.translation and not is_unnamed_voice_term(e.original)
         ]
 
         def translate(entry):
@@ -387,7 +437,10 @@ class GlossaryBuildCoordinator:
 
     def _describe_all(self, dataset, result: BuildResult) -> None:
         occ_by_term = occurrences_by_term(self.manager, dataset)
-        targets = [e for e in self.manager.get_entries() if e.status in _DESCRIBE_TARGETS]
+        targets = [
+            e for e in self.manager.get_entries()
+            if e.status in _DESCRIBE_TARGETS and not is_unnamed_voice_term(e.original)
+        ]
 
         def describe(entry) -> DescribeResult:
             occurrences = occ_by_term.get(entry.original, [])
@@ -434,6 +487,7 @@ class GlossaryBuildCoordinator:
         targets = [
             entry for entry in self.manager.get_entries()
             if entry.provisional and entry.notes and not entry.suggested_name
+            and not is_unnamed_voice_term(entry.original)
         ]
         if not targets:
             return

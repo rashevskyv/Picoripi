@@ -9,6 +9,7 @@ from difflib import SequenceMatcher
 import unicodedata
 import ahocorasick
 
+from core.speaker_alias_merge import split_shared_speaker_names
 from utils.logging_utils import log_debug
 
 
@@ -118,9 +119,18 @@ class GlossaryMatch:
     end: int
 
 
+OCC_MENTION = "mention"
+OCC_SPOKEN = "spoken"
+
+
 @dataclass(frozen=True)
 class GlossaryOccurrence:
-    """Specific occurrence of a glossary entry in project data."""
+    """Specific occurrence of a glossary entry in project data.
+
+    ``mention`` — the term is spelled in the line (someone names or addresses
+    them). ``spoken`` — this is a line the character themselves says, even if
+    the label never appears in the text.
+    """
 
     entry: GlossaryEntry
     block_idx: int
@@ -129,6 +139,7 @@ class GlossaryOccurrence:
     start: int
     end: int
     line_text: str
+    kind: str = OCC_MENTION
 
 
 def possible_duplicate_pairs(entries) -> List[Tuple[str, str]]:
@@ -251,6 +262,39 @@ class GlossaryManager:
         self._first_word_index: Dict[str, List[Tuple[GlossaryEntry, re.Pattern[str]]]] = {}
         self._non_word_patterns: List[Tuple[GlossaryEntry, re.Pattern[str]]] = []
         self._word_finder = re.compile(r'\w+')
+        # Optional project context so a character term whose name never appears
+        # in dialogue still owns the rows it actually speaks / the block named
+        # after it. Without this, "VILLAGE GORON #2" shows Occurrences: 0
+        # while the block list shows three lines.
+        self._block_names: Dict[int, str] = {}
+        self._speaker_for: Optional[Callable[[int, int], Optional[str]]] = None
+        self._speaker_aliases: Dict[str, str] = {}
+        self._speaker_pool: Optional[Dict[Tuple[int, int], str]] = None
+
+    _GENERIC_BLOCK_NAME = re.compile(r"^(block\s*\d+|message id\s*:)", re.I)
+
+    def bind_project_rows(
+        self,
+        data_store=None,
+        rules=None,
+        speaker_aliases=None,
+        speaker_pool: Optional[Dict[Tuple[int, int], str]] = None,
+    ) -> None:
+        """Attach block names and speaker attribution used to own rows."""
+        names: Dict[int, str] = {}
+        raw = {}
+        if data_store is not None:
+            raw = getattr(data_store, "block_names", None) or {}
+        for key, value in raw.items():
+            try:
+                names[int(key)] = str(value)
+            except (TypeError, ValueError):
+                continue
+        self._block_names = names
+        getter = getattr(rules, "get_speaker_for_string", None) if rules is not None else None
+        self._speaker_for = getter if callable(getter) else None
+        self._speaker_aliases = dict(speaker_aliases or {})
+        self._speaker_pool = dict(speaker_pool or {}) if speaker_pool is not None else None
 
     @staticmethod
     def normalize_term(value: str) -> str:
@@ -462,11 +506,173 @@ class GlossaryManager:
                             string_idx=string_idx,
                             line_idx=line_idx,
                             line_text=line,
+                            kind=OCC_MENTION,
                         )
                         occurrences.setdefault(match.entry.original, []).append(occ)
 
+        self._append_owned_occurrences(dataset, occurrences, is_cancelled)
         self._occurrence_index = occurrences
         return occurrences
+
+    def _append_owned_occurrences(self, dataset, occurrences, is_cancelled=None) -> None:
+        """Attach rows a term owns by block name or speaker id, not by spelling.
+
+        Searching the line for "VILLAGE GORON #2" finds nothing: the character
+        never says their internal label. The three messages in that block are
+        still theirs, and the describe pass needs those rows as evidence.
+        """
+        if not dataset or (
+            not self._block_names
+            and self._speaker_for is None
+            and not self._speaker_pool
+        ):
+            return
+        by_norm: Dict[str, List[GlossaryEntry]] = {}
+        for entry in self._entries:
+            key = self.normalize_term(entry.original)
+            if key:
+                by_norm.setdefault(key, []).append(entry)
+        if not by_norm:
+            return
+        for block_idx, block in enumerate(dataset):
+            if is_cancelled and is_cancelled():
+                return
+            if not isinstance(block, list):
+                continue
+            block_label = self._block_names.get(block_idx, "")
+            block_key = ""
+            if block_label and not self._GENERIC_BLOCK_NAME.match(block_label.strip()):
+                block_key = self.normalize_term(block_label)
+            for string_idx, value in enumerate(block):
+                if is_cancelled and is_cancelled():
+                    return
+                text = "" if value is None else str(value)
+                if not text.strip():
+                    continue
+                owners: List[GlossaryEntry] = []
+                if block_key:
+                    owners.extend(by_norm.get(block_key, ()))
+                if self._speaker_pool is not None:
+                    speaker = self._speaker_pool.get((block_idx, string_idx))
+                    if speaker:
+                        speaker_key = self.normalize_term(speaker)
+                        if speaker_key:
+                            owners.extend(by_norm.get(speaker_key, ()))
+                        for part in split_shared_speaker_names(speaker):
+                            part_key = self.normalize_term(part)
+                            if part_key and part_key != speaker_key:
+                                owners.extend(by_norm.get(part_key, ()))
+                elif self._speaker_for is not None:
+                    try:
+                        speaker = self._speaker_for(block_idx, string_idx)
+                    except Exception:
+                        speaker = None
+                    speaker_key = self.normalize_term(speaker or "")
+                    if speaker_key:
+                        owners.extend(by_norm.get(speaker_key, ()))
+                    alias = self._speaker_aliases.get(speaker or "")
+                    if alias:
+                        for part in split_shared_speaker_names(alias):
+                            owners.extend(by_norm.get(self.normalize_term(part), ()))
+                if not owners:
+                    continue
+                line = text.split("\n", 1)[0]
+                seen_terms = set()
+                for entry in owners:
+                    term = entry.original
+                    if term in seen_terms:
+                        continue
+                    seen_terms.add(term)
+                    bucket = occurrences.setdefault(term, [])
+                    if any(
+                        o.block_idx == block_idx
+                        and o.string_idx == string_idx
+                        and o.kind == OCC_SPOKEN
+                        for o in bucket
+                    ):
+                        continue
+                    bucket.append(
+                        GlossaryOccurrence(
+                            entry=entry,
+                            start=0,
+                            end=len(line),
+                            block_idx=block_idx,
+                            string_idx=string_idx,
+                            line_idx=0,
+                            line_text=line,
+                            kind=OCC_SPOKEN,
+                        )
+                    )
+
+    def _append_owned_occurrences_for_entry(
+        self, dataset: Sequence, entry: GlossaryEntry, bucket: List[GlossaryOccurrence]
+    ) -> None:
+        if not dataset or not entry or not entry.original:
+            return
+        entry_key = self.normalize_term(entry.original)
+        if not entry_key:
+            return
+        for block_idx, block in enumerate(dataset):
+            if not isinstance(block, list):
+                continue
+            block_label = self._block_names.get(block_idx, "")
+            block_key = ""
+            if block_label and not self._GENERIC_BLOCK_NAME.match(block_label.strip()):
+                block_key = self.normalize_term(block_label)
+            for string_idx, value in enumerate(block):
+                text = "" if value is None else str(value)
+                if not text.strip():
+                    continue
+                matched = False
+                if block_key and block_key == entry_key:
+                    matched = True
+                if not matched and self._speaker_pool is not None:
+                    speaker = self._speaker_pool.get((block_idx, string_idx))
+                    if speaker:
+                        spk_key = self.normalize_term(speaker)
+                        if spk_key == entry_key:
+                            matched = True
+                        if not matched:
+                            for part in split_shared_speaker_names(speaker):
+                                if self.normalize_term(part) == entry_key:
+                                    matched = True
+                                    break
+                elif not matched and self._speaker_for is not None:
+                    try:
+                        speaker = self._speaker_for(block_idx, string_idx)
+                    except Exception:
+                        speaker = None
+                    spk_key = self.normalize_term(speaker or "")
+                    if spk_key == entry_key:
+                        matched = True
+                    if not matched:
+                        alias = self._speaker_aliases.get(speaker or "")
+                        if alias:
+                            for part in split_shared_speaker_names(alias):
+                                if self.normalize_term(part) == entry_key:
+                                    matched = True
+                                    break
+                if matched:
+                    if any(
+                        o.block_idx == block_idx
+                        and o.string_idx == string_idx
+                        and o.kind == OCC_SPOKEN
+                        for o in bucket
+                    ):
+                        continue
+                    line = text.split("\n", 1)[0]
+                    bucket.append(
+                        GlossaryOccurrence(
+                            entry=entry,
+                            start=0,
+                            end=len(line),
+                            block_idx=block_idx,
+                            string_idx=string_idx,
+                            line_idx=0,
+                            line_text=line,
+                            kind=OCC_SPOKEN,
+                        )
+                    )
 
     def update_occurrences_for_entry(self, dataset: Sequence, old_term: Optional[str], new_entry: Optional[GlossaryEntry]) -> None:
         """Incrementally update the occurrence index for a single glossary entry change."""
@@ -506,6 +712,8 @@ class GlossaryManager:
                                     line_text=line,
                                 )
                                 term_occurrences.append(occ)
+                if self._block_names or self._speaker_pool or self._speaker_for is not None:
+                    self._append_owned_occurrences_for_entry(dataset, new_entry, term_occurrences)
             self._occurrence_index[new_entry.original] = term_occurrences
 
     def get_occurrences_for(self, entry: GlossaryEntry) -> List[GlossaryOccurrence]:

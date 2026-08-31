@@ -4,7 +4,7 @@ import re
 from typing import Dict, List, Optional, Tuple, Any
 
 from PyQt6.QtWidgets import QDialog, QMessageBox
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor
 
 from .base_translation_handler import BaseTranslationHandler
@@ -264,7 +264,8 @@ class TranslationUIHandler(BaseTranslationHandler):
         block = entry.get('block_idx')
         string = entry.get('string_idx')
         line_idx = entry.get('line_idx')
-        if block is None or string is None: return
+        if block is None or string is None:
+            return
 
         try:
             from PyQt6 import sip
@@ -279,54 +280,45 @@ class TranslationUIHandler(BaseTranslationHandler):
             except (TypeError, RuntimeError):
                 return True
 
+        if not self.mw or is_qt_deleted(self.mw):
+            return
+
         block_idx, string_idx = int(block), int(string)
         line_number = int(line_idx) if line_idx is not None else None
 
-        block_widget = getattr(self.mw, 'block_list_widget', None)
-        current_block_idx = getattr(self.mw.data_store, 'current_block_idx', -1)
-        block_changed = (block_idx != current_block_idx)
-
-        if block_widget and not is_qt_deleted(block_widget) and hasattr(block_widget, 'select_block_by_index'):
-            block_widget.select_block_by_index(block_idx)
-
-        def select_string_and_scroll():
-            """Select string and scroll."""
-            if not self.mw or is_qt_deleted(self.mw):
-                return
-
-            list_selection_handler = getattr(self.mw, 'list_selection_handler', None)
-            if list_selection_handler and not is_qt_deleted(list_selection_handler):
-                list_selection_handler.select_string_by_absolute_index(string_idx)
-            else:
+        list_selection_handler = getattr(self.mw, 'list_selection_handler', None)
+        if list_selection_handler and not is_qt_deleted(list_selection_handler) and hasattr(list_selection_handler, 'navigate_to_physical_string'):
+            list_selection_handler.navigate_to_physical_string(block_idx, string_idx)
+        else:
+            if hasattr(self.mw, 'data_store') and self.mw.data_store:
                 self.mw.data_store.current_block_idx = block_idx
                 self.mw.data_store.current_string_idx = string_idx
+            if hasattr(self.ui_updater, 'populate_strings_for_block'):
                 self.ui_updater.populate_strings_for_block(block_idx)
+            if hasattr(self.mw, 'ui_updater') and hasattr(self.mw.ui_updater, 'update_text_views'):
                 self.mw.ui_updater.update_text_views()
 
-            editor = getattr(self.mw, 'original_text_edit', None)
-            if editor and not is_qt_deleted(editor) and line_number is not None:
-                block_obj = editor.document().findBlockByNumber(line_number)
-                if block_obj.isValid():
-                    cursor = editor.textCursor()
-                    cursor.setPosition(block_obj.position())
-                    editor.setTextCursor(cursor)
-                    editor.ensureCursorVisible()
+        editor = getattr(self.mw, 'original_text_edit', None)
+        if editor and not is_qt_deleted(editor) and line_number is not None:
+            doc = getattr(editor, 'document', None)
+            if doc:
+                doc_obj = doc() if callable(doc) else doc
+                if hasattr(doc_obj, 'findBlockByNumber'):
+                    block_obj = doc_obj.findBlockByNumber(line_number)
+                    if block_obj and hasattr(block_obj, 'isValid') and block_obj.isValid():
+                        cursor = editor.textCursor()
+                        cursor.setPosition(block_obj.position())
+                        editor.setTextCursor(cursor)
+                        if hasattr(editor, 'ensureCursorVisible'):
+                            editor.ensureCursorVisible()
 
-            def apply_focus():
-                """Apply focus."""
-                if not self.mw or is_qt_deleted(self.mw):
-                    return
-                edited_text_edit = getattr(self.mw, 'edited_text_edit', None)
-                if edited_text_edit and not is_qt_deleted(edited_text_edit):
-                    edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
-                elif editor and not is_qt_deleted(editor):
-                    editor.setFocus(Qt.FocusReason.OtherFocusReason)
-                self.mw.raise_()
-                self.mw.activateWindow()
+        edited_text_edit = getattr(self.mw, 'edited_text_edit', None)
+        if edited_text_edit and not is_qt_deleted(edited_text_edit) and hasattr(edited_text_edit, 'setFocus'):
+            edited_text_edit.setFocus(Qt.FocusReason.OtherFocusReason)
+        elif editor and not is_qt_deleted(editor) and hasattr(editor, 'setFocus'):
+            editor.setFocus(Qt.FocusReason.OtherFocusReason)
 
-            QTimer.singleShot(100, apply_focus)
-
-        if block_changed:
-            QTimer.singleShot(200, select_string_and_scroll)
-        else:
-            select_string_and_scroll()
+        if hasattr(self.mw, 'raise_'):
+            self.mw.raise_()
+        if hasattr(self.mw, 'activateWindow'):
+            self.mw.activateWindow()

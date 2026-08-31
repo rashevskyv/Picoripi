@@ -7,15 +7,18 @@ more importantly -- what was not.
 """
 from __future__ import annotations
 
+import re
+from collections import Counter, defaultdict
 from typing import Dict, Tuple
 
 from PyQt6.QtWidgets import QMessageBox
 
 from components.speaker_merge_dialog import SpeakerMergeDialog
 from core.speaker_alias_merge import (
+    NAME_SEPARATOR,
     Vote,
     find_markup_project,
-    is_confirmed_speaker_alias,
+    is_applyable_speaker_alias,
     load_speaker_aliases,
     markup_speaker_lines,
     merge_script_speakers,
@@ -136,17 +139,17 @@ class SpeakerMergeHandler:
             return
 
         existing = load_speaker_aliases(project_dir)
-        # Only rename what still reads as a code. A name the game data gave us
-        # is already right, and a name decided earlier must not be voted over.
-        unresolved = sorted({
+        # Show every placeholder, including ones already named: the user may
+        # want to rematch. Game-data display names stay out of this list.
+        placeholders = sorted({
             code for code in row_codes.values()
-            if not is_confirmed_speaker_alias(existing.get(code))
-            and self._looks_like_a_code(code)
+            if self._looks_like_a_code(code)
         })
-        if not unresolved:
+        if not placeholders:
             QMessageBox.information(
                 self.mw, "Merge Speakers",
-                "Every speaker code already has a name. Nothing to merge.",
+                "The active plugin did not attribute any line to a speaker code, "
+                "so there is nothing to name.",
             )
             return
 
@@ -160,12 +163,30 @@ class SpeakerMergeHandler:
         })
 
         result = merge_script_speakers(
-            script_rows, game_rows, row_codes, codes_to_resolve=unresolved
+            script_rows, game_rows, row_codes, codes_to_resolve=placeholders
         )
-        result.codes_seen = len(unresolved)
-        self._add_glossary_suggestions(result, unresolved)
+        self._add_glossary_suggestions(result, placeholders)
+        self._add_block_name_suggestions(result, placeholders, row_codes)
+        result.proposed = {}
+        for code in placeholders:
+            if is_applyable_speaker_alias(result.resolved.get(code)):
+                result.proposed[code] = result.resolved[code]
+            else:
+                counter = result.unproven.get(code) or {}
+                if counter:
+                    result.proposed[code] = sorted(
+                        counter.items(), key=lambda kv: (-kv[1], kv[0])
+                    )[0][0]
+        result.applied = {
+            code: str(existing[code]).strip()
+            for code in placeholders
+            if is_applyable_speaker_alias(existing.get(code))
+        }
+        for code, name in result.applied.items():
+            result.resolved[code] = name
+        result.codes_seen = len(placeholders)
         result.is_markup = reviewed
-        result.all_placeholders = unresolved
+        result.all_placeholders = placeholders
         result.game_display_names = display_names
         log_debug(f"Speaker merge: {result.summary}")
 
@@ -187,8 +208,14 @@ class SpeakerMergeHandler:
         marked, and confirmed by the same Apply.
         """
         try:
-            manager = self.mw.translation_handler.glossary_handler.glossary_manager
+            glossary_handler = self.mw.translation_handler.glossary_handler
+            manager = glossary_handler.glossary_manager
             entries = list(manager.get_entries() or [])
+            if not entries:
+                init = getattr(glossary_handler, "initialize_glossary_highlighting", None)
+                if callable(init):
+                    init()
+                    entries = list(manager.get_entries() or [])
         except Exception as exc:
             log_debug(f"Speaker merge: reading glossary suggestions failed: {exc}")
             return
@@ -208,6 +235,45 @@ class SpeakerMergeHandler:
                     + (getattr(entry, "suggested_name_evidence", "") or entry.notes or ""),
                     (),
                 )
+            )
+
+    _GENERIC_BLOCK_NAME = re.compile(r"^(block\s*\d+|message id\s*:)", re.I)
+
+    def _add_block_name_suggestions(self, result, unresolved, row_codes) -> None:
+        """Name leftover codes from the blocks they actually speak in."""
+        wanted = {
+            code
+            for code in unresolved or ()
+            if code not in result.resolved and code not in result.unproven
+        }
+        if not wanted:
+            return
+        raw = getattr(getattr(self.mw, "data_store", None), "block_names", None) or {}
+        names: Dict[int, str] = {}
+        for key, value in raw.items():
+            try:
+                names[int(key)] = str(value or "").strip()
+            except (TypeError, ValueError):
+                continue
+        if not names:
+            return
+        counts: Dict[str, Counter] = defaultdict(Counter)
+        for (block_idx, _string_idx), code in (row_codes or {}).items():
+            if code not in wanted:
+                continue
+            label = names.get(block_idx, "")
+            if (
+                not label
+                or self._GENERIC_BLOCK_NAME.match(label)
+                or label.casefold() == str(code).casefold()
+            ):
+                continue
+            counts[code][label] += 1
+        for code, counter in counts.items():
+            top, n = counter.most_common(1)[0]
+            result.unproven[code] = dict(counter)
+            result.evidence.setdefault(code, []).append(
+                Vote(top, f"From the block name ({n} line(s) in this block).", ())
             )
 
     def save_names(self, names: dict) -> bool:
@@ -238,7 +304,7 @@ class SpeakerMergeHandler:
         confirmed_mappings = {
             code: name
             for code, name in (names or {}).items()
-            if code and is_confirmed_speaker_alias(name)
+            if code and is_applyable_speaker_alias(name)
         }
         if not confirmed_mappings:
             return False
@@ -275,6 +341,10 @@ class SpeakerMergeHandler:
         for code, permanent_name in confirmed_mappings.items():
             source_name = (glossary_sources or {}).get(code, code)
             if not source_name or not permanent_name or source_name == permanent_name:
+                continue
+            # A shared voice maps onto several characters. Do not collapse them
+            # into one glossary term named "A / B".
+            if NAME_SEPARATOR in permanent_name:
                 continue
             try:
                 result = manager.rename_original(source_name, permanent_name)

@@ -6,7 +6,7 @@ from components.ai_chat_dialog import AIChatDialog
 from core.translation.session_manager import TranslationSessionManager
 from core.translation.providers import ProviderResponse
 from handlers.translation.ai_worker import AIWorker
-from utils.logging_utils import log_debug, log_warning
+from utils.logging_utils import log_debug
 from html import escape
 import markdown
 
@@ -21,6 +21,7 @@ class AIChatHandler(BaseHandler):
         self._thread: Optional[QThread] = None
         self.system_prompt = "You are a helpful linguistic assistant specializing in video game localization."
         self._stream_buffer: Dict[int, str] = {}
+        self._message_queue: List[Dict[str, Any]] = []
 
     def _get_available_providers(self) -> Dict[str, Dict[str, str]]:
         """Internal helper to get the available providers."""
@@ -80,13 +81,23 @@ class AIChatHandler(BaseHandler):
         if index in self.sessions:
             del self.sessions[index]
             log_debug(f"AI Chat: Session for tab {index} has been removed.")
-        else:
-            if index in self.sessions:
-                del self.sessions[index]
-                log_debug(f"AI Chat: Session for tab index {index} has been removed.")
+        self._message_queue = [item for item in self._message_queue if item.get('tab_index') != index]
 
     def _handle_send_message(self, tab_index: int, message: str, provider_key: str, web_search_enabled: bool) -> None:
         """Internal helper to handle send message."""
+        if self._thread and self._thread.isRunning():
+            self._message_queue.append({
+                'tab_index': tab_index,
+                'message': message,
+                'provider_key': provider_key,
+                'web_search_enabled': web_search_enabled,
+            })
+            return
+
+        self._start_chat_request(tab_index, message, provider_key, web_search_enabled)
+
+    def _start_chat_request(self, tab_index: int, message: str, provider_key: str, web_search_enabled: bool) -> None:
+        """Prepare and start an AI chat worker thread."""
         if self.dialog:
             html = f"""
             <table class="message-table user-message">
@@ -99,7 +110,6 @@ class AIChatHandler(BaseHandler):
             </table>
             """
             self.dialog.append_to_history(tab_index, html)
-            self.dialog.set_input_enabled(tab_index, False)
 
         provider = self.mw.translation_handler._prepare_provider(provider_key)
         if not provider:
@@ -113,8 +123,9 @@ class AIChatHandler(BaseHandler):
               </tr>
             </table>
             """
-            self.dialog.append_to_history(tab_index, error_html)
-            self.dialog.set_input_enabled(tab_index, True)
+            if self.dialog:
+                self.dialog.append_to_history(tab_index, error_html)
+            self._process_next_queued_message()
             return
 
         session_manager = self.sessions.get(tab_index)
@@ -158,11 +169,6 @@ class AIChatHandler(BaseHandler):
             'web_search_enabled': web_search_enabled,
             'content_end_pos_before': content_end_pos_before
         }
-
-        if self._thread and self._thread.isRunning():
-            log_warning("AI Chat: An AI task is already running. Please wait.")
-            self.dialog.set_input_enabled(tab_index, True)
-            return
 
         self._thread = QThread()
         self._worker = AIWorker(provider, None, task_details, self.mw)
@@ -311,7 +317,7 @@ class AIChatHandler(BaseHandler):
             self.dialog.append_to_history(tab_index, html)
 
     def _cleanup_worker(self) -> None:
-        """Internal helper to cleanup worker."""
+        """Internal helper to cleanup worker and process next queued message."""
         tab_index = self._worker.task_details.get('tab_index') if self._worker else None
         if self.dialog and tab_index is not None:
             self.dialog.set_input_enabled(tab_index, True)
@@ -320,9 +326,24 @@ class AIChatHandler(BaseHandler):
         safe_shutdown_thread(self._thread, self._worker)
         self._thread = None
         self._worker = None
+        self._process_next_queued_message()
+
+    def _process_next_queued_message(self) -> None:
+        """Start the next message waiting in the queue if no worker is running."""
+        if self._thread and self._thread.isRunning():
+            return
+        if self._message_queue:
+            next_task = self._message_queue.pop(0)
+            self._start_chat_request(
+                next_task['tab_index'],
+                next_task['message'],
+                next_task['provider_key'],
+                next_task['web_search_enabled'],
+            )
 
     def prepare_to_close(self) -> None:
         """Prepare to close."""
+        self._message_queue.clear()
         from utils.thread_utils import safe_shutdown_thread
         safe_shutdown_thread(self._thread, self._worker)
         self._thread = None

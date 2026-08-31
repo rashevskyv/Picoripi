@@ -505,16 +505,14 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         if not hasattr(self, "workflow_tabs"):
             return
         source_ready = self._source_is_ready()
+        context_found = self._dialogue_search_has_results()
         self.workflow_tabs.setTabEnabled(1, source_ready)
-        self.workflow_tabs.setTabEnabled(2, False)
         set_workflow_enabled(self.source_next_btn, source_ready)
-        self.mapping_next_btn.setEnabled(False)
 
         # Steps 2 and 3 both read the links step 1 saves, so neither is a thing
         # the user can do until that search has produced some. Gating on the
         # imported document alone let all three sit there blue and unordered.
         busy = bool(self.worker and self.worker.isRunning())
-        context_found = self._dialogue_search_has_results()
         set_workflow_enabled(self.analyze_story_timeline_btn, context_found and not busy)
         set_workflow_enabled(self.analyze_character_voices_btn, context_found and not busy)
         if not context_found:
@@ -534,7 +532,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         elif self.hierarchy_selection_error:
             message = "The selected JSON is invalid. Choose another project file."
         elif self._current_hierarchy_status() == HierarchyImportStatus.UP_TO_DATE:
-            message = "Source is ready. Continue to character preparation."
+            message = "Source is ready. Continue to Story Context to link lines, then timeline and voices."
         elif self.hierarchy_project is not None:
             message = "Review the preview and click Import/Sync to continue."
         else:
@@ -1629,9 +1627,19 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
     @pyqtSlot()
     def _handle_close_or_cancel(self):
         """Internal helper to handle close or cancel."""
-        self.should_sleep_after = False
-        restore_sleep()
         if self.worker and self.worker.isRunning():
+            reply = QMessageBox.question(
+                self,
+                "Stop current AI operation?",
+                "The current request will stop after the active network step. Are you sure you want to continue?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            self.should_sleep_after = False
+            restore_sleep()
             self.user_cancelled = True
             
             if getattr(self, "pipeline_running", False) and getattr(self, "pipeline_step", 0) > 0:
@@ -1659,6 +1667,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             self.cancel_btn.setEnabled(False)
             self._update_pipeline_btn_text()
         else:
+            self.should_sleep_after = False
+            restore_sleep()
             self.save_builder_settings()
             self.close()
 
@@ -1737,8 +1747,24 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         except Exception as e:
             log_error(f"Failed to save builder settings: {e}")
 
+    def reject(self):
+        """Handle dialog rejection (e.g. Escape key) via guarded close."""
+        self.close()
+
     def closeEvent(self, event):
         """Handle builder close event by safely shutting down the worker thread."""
+        if self.worker and self.worker.isRunning():
+            reply = QMessageBox.question(
+                self,
+                "Stop current AI operation and close the builder?",
+                "The current request will stop after the active network step. Are you sure you want to continue?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                event.ignore()
+                return
+
         self.should_sleep_after = False
         restore_sleep()
         from core.auto_sleep_manager import AutoSleepManager

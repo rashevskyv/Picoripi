@@ -303,7 +303,7 @@ class AIWorker(QObject):
                     try:
                         self._last_messages = messages
                         self._log_ai_traffic(messages)
-                        response = self.provider.translate(messages, session=None)
+                        response = self.provider.translate(messages, session=None, settings_override={"think": 1})
                         self._log_ai_traffic(messages, response_text=response.text)
                         cleaned_text = self._clean_json_response(response.text)
                         parsed = json.loads(cleaned_text) if cleaned_text else []
@@ -390,6 +390,7 @@ class AIWorker(QObject):
                 self.total_chunks_calculated.emit(len(chunks), len(chunks_to_skip))
                 session_state = self.task_details.get('session_state')
                 provider_override = self.task_details.get('provider_settings_override', {})
+                provider_override.setdefault('think', 1)
                 workers = int(self.task_details.get('workers', 1) or 1)
                 attempt = self.task_details.get('attempt', 1)
 
@@ -640,6 +641,7 @@ class AIWorker(QObject):
 
                 provider_settings_override = self.task_details.get('provider_settings_override', {})
                 provider_settings_override.update(settings_override)
+                provider_settings_override.setdefault('think', 1)
 
                 for i, chunk in enumerate(chunks):
                     if self.is_cancelled:
@@ -796,6 +798,12 @@ class AIWorker(QObject):
             
             provider_settings_override = self.task_details.get('provider_settings_override', {})
             provider_settings_override.update(settings_override)
+            if task_type in ['translate_single', 'generate_variation', 'glossary_notes_variation']:
+                provider_settings_override.setdefault('think', 2)
+            elif task_type == 'fill_glossary':
+                provider_settings_override.setdefault('think', 4)
+            elif task_type == 'translate_preview':
+                provider_settings_override.setdefault('think', 1)
 
             attempt = self.task_details.get('attempt', 1)
             if attempt > 1 and isinstance(messages, list):

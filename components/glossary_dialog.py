@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QPlainTextEdit,
+    QSizePolicy,
     QStyledItemDelegate,
     QStyle,
     QTabWidget,
@@ -41,13 +42,35 @@ from core.glossary_manager import (
     render_notes,
 )
 from core.speaker_alias_merge import is_confirmed_speaker_alias
+from utils.window_utils import show_as_independent_window
 
-# Rows awaiting a human decision. Translucent so it tints the row without
-# fighting the selection highlight or the light/dark palette.
-_NEEDS_REVIEW_BRUSH = QBrush(QColor(255, 200, 0, 60))
+# Rows awaiting a human decision. Two strengths so a choice-between-variants
+# is darker than a translation that just has not been confirmed yet.
+_UNREVIEWED_BRUSH = QBrush(QColor("#fff3b0"))
+_MULTI_VARIANT_BRUSH = QBrush(QColor("#e67e22"))
+_NEEDS_REVIEW_BRUSH = _UNREVIEWED_BRUSH
 # Foreground color for provisional game-code character rows, matching
 # Merge Speakers "Unmatched manual rows".
 _PROVISIONAL_FOREGROUND = QBrush(QColor("#6a1b9a"))
+
+
+class _GlossaryTermTable(QTableWidget):
+    """Term list: never pan sideways on click or current-cell change."""
+
+    def scrollTo(self, index, hint=QAbstractItemView.ScrollHint.EnsureVisible):
+        bar = self.horizontalScrollBar()
+        x = bar.value()
+        super().scrollTo(index, hint)
+        bar.setValue(x)
+
+
+class _DetailPane(QWidget):
+    """Detail splitter pane: allows flexible resizing without artificial minimum constraints."""
+
+    def minimumSizeHint(self) -> QSize:  # type: ignore[override]
+        return QSize(0, 30)
+
+
 class _RichTextItemDelegate(QStyledItemDelegate):
     """Render rich-text list items (e.g., occurrences list)."""
 
@@ -113,6 +136,23 @@ class _RichTextItemDelegate(QStyledItemDelegate):
         return QSize(int(size.width()), int(size.height()) + 14) # 6px top, 6px bottom + 2px line space
 
 
+class _VariantItemDelegate(QStyledItemDelegate):
+    """Render variant list items with a horizontal separating line."""
+
+    def paint(self, painter, option, index):  # type: ignore[override]
+        """Paint."""
+        super().paint(painter, option, index)
+        painter.save()
+        painter.setPen(QColor(220, 220, 220))
+        painter.drawLine(option.rect.left(), option.rect.bottom(), option.rect.right(), option.rect.bottom())
+        painter.restore()
+
+    def sizeHint(self, option, index):  # type: ignore[override]
+        """Sizehint."""
+        size = super().sizeHint(option, index)
+        return QSize(size.width(), max(size.height() + 6, 26))
+
+
 class GlossaryDialog(QDialog):
     """Show glossary entries with occurrences and allow navigation."""
     def __init__(
@@ -140,10 +180,12 @@ class GlossaryDialog(QDialog):
         speaker_codes_callback: Optional[Callable[[str], Sequence[str]]] = None,
         initial_term: Optional[str] = None,
         placeholder_speaker_callback: Optional[Callable[[str], bool]] = None,
+        discuss_variant_callback: Optional[Callable[[GlossaryEntry], None]] = None,
     ) -> None:
         """Initialize a new instance."""
-        super().__init__(parent)
+        super().__init__(None)
         self.setWindowTitle("Glossary")
+        show_as_independent_window(self)
         self.resize(840, 520)
 
         parent_settings = getattr(parent, 'settings_manager', None)
@@ -178,6 +220,7 @@ class GlossaryDialog(QDialog):
         self._reassign_speaker_callback = reassign_speaker_callback
         self._speaker_codes_callback = speaker_codes_callback
         self._placeholder_speaker_callback = placeholder_speaker_callback
+        self._discuss_variant_callback = discuss_variant_callback
         self._current_speaker_code = ""
         self._current_speaker_is_provisional = False
         self._initial_term = initial_term
@@ -211,16 +254,20 @@ class GlossaryDialog(QDialog):
         search_layout.addWidget(self._unconfirmed_only_checkbox)
         layout.addLayout(search_layout)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        layout.addWidget(splitter, 1)
+        self._main_splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        self._main_splitter.setHandleWidth(6)
+        layout.addWidget(self._main_splitter, 1)
 
         self._tab_widget = QTabWidget(self)
         self._tab_widget.currentChanged.connect(self._on_tab_changed)
-        splitter.addWidget(self._tab_widget)
+        self._main_splitter.addWidget(self._tab_widget)
 
         right_panel = QWidget(self)
         right_layout = QVBoxLayout(right_panel)
-        splitter.addWidget(right_panel)
+        self._main_splitter.addWidget(right_panel)
+        self._main_splitter.setStretchFactor(0, 1)
+        self._main_splitter.setStretchFactor(1, 1)
+        self._main_splitter.setSizes([360, 480])
         self._original_label = QLabel("", self)
         self._original_label.setWordWrap(True)
         right_layout.addWidget(self._original_label)
@@ -271,31 +318,62 @@ class GlossaryDialog(QDialog):
 
         self._confirm_button = QPushButton("Confirm translation", self)
         self._confirm_button.setToolTip(
-            "Mark this entry as decided. It stops being highlighted for review."
+            "Mark this translation as decided and move to the next term. "
+            "Unreviewed rows stay pale yellow; several proposed variants stay orange "
+            "until you pick one."
         )
         self._confirm_button.clicked.connect(self._on_confirm_clicked)
         right_layout.addWidget(self._confirm_button)
 
-        # The variable-height areas share a draggable splitter: a long
-        # rationale or a long description needs room, and a fixed cap cannot
-        # know which one the user is reading.
-        detail_splitter = QSplitter(Qt.Orientation.Vertical, self)
-        right_layout.addWidget(detail_splitter, 1)
+        # The variants list has its own top-level splitter handle, so the
+        # divider sits directly below the list rather than below its actions.
+        self._detail_splitter = QSplitter(Qt.Orientation.Vertical, self)
+        self._detail_splitter.setHandleWidth(6)
+        right_layout.addWidget(self._detail_splitter, 1)
 
         # Proposed variants: shown only when the AI offered a real choice.
-        self._variants_pane = QWidget(self)
+        self._variants_pane = _DetailPane(self)
+        self._variants_pane.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         variants_layout = QVBoxLayout(self._variants_pane)
         variants_layout.setContentsMargins(0, 0, 0, 0)
         self._variants_label = QLabel("Proposed variants (pick one):", self)
         variants_layout.addWidget(self._variants_label)
         self._variants_list = QListWidget(self)
+        self._variants_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._variants_list.setWordWrap(True)
-        self._variants_list.itemClicked.connect(self._on_variant_chosen)
+        self._variants_list.setItemDelegate(_VariantItemDelegate(self._variants_list))
+        self._variants_list.itemDoubleClicked.connect(lambda item: self._apply_variant_item(item, advance=False))
+        self._variants_list.currentItemChanged.connect(lambda _cur, _prev: self._update_variant_buttons_state())
         variants_layout.addWidget(self._variants_list, 1)
-        detail_splitter.addWidget(self._variants_pane)
+        self._detail_splitter.addWidget(self._variants_pane)
         self._set_variants_visible(False)
 
-        notes_pane = QWidget(self)
+        lower_details_pane = _DetailPane(self)
+        lower_details_layout = QVBoxLayout(lower_details_pane)
+        lower_details_layout.setContentsMargins(0, 0, 0, 0)
+        variants_btn_layout = QHBoxLayout()
+        self._apply_variant_button = QPushButton("Apply selected variant", self)
+        self._apply_variant_button.setToolTip(
+            "Apply the selected variant translation, confirm the term, and move to the next entry."
+        )
+        self._apply_variant_button.clicked.connect(self._on_apply_selected_variant)
+        variants_btn_layout.addWidget(self._apply_variant_button)
+
+        self._discuss_variant_button = QPushButton("Discuss with AI…", self)
+        self._discuss_variant_button.setToolTip(
+            "Open AI chat with term context to discuss the proposed variants."
+        )
+        self._discuss_variant_button.clicked.connect(self._on_discuss_variants_clicked)
+        variants_btn_layout.addWidget(self._discuss_variant_button)
+        variants_btn_layout.addStretch()
+        lower_details_layout.addLayout(variants_btn_layout)
+
+        self._lower_detail_splitter = QSplitter(Qt.Orientation.Vertical, lower_details_pane)
+        self._lower_detail_splitter.setHandleWidth(6)
+        lower_details_layout.addWidget(self._lower_detail_splitter, 1)
+        self._detail_splitter.addWidget(lower_details_pane)
+
+        notes_pane = _DetailPane(self)
         notes_layout = QVBoxLayout(notes_pane)
         notes_layout.setContentsMargins(0, 0, 0, 0)
         self._profiled_checkbox = QCheckBox("Profiled via AI (Speech Profile generated)", self)
@@ -314,9 +392,9 @@ class GlossaryDialog(QDialog):
             self._notes_variation_button.hide()
         self._notes_edit = QPlainTextEdit(self)
         notes_layout.addWidget(self._notes_edit, 1)
-        detail_splitter.addWidget(notes_pane)
+        self._lower_detail_splitter.addWidget(notes_pane)
 
-        ai_notes_pane = QWidget(self)
+        ai_notes_pane = _DetailPane(self)
         ai_notes_layout = QVBoxLayout(ai_notes_pane)
         ai_notes_layout.setContentsMargins(0, 0, 0, 0)
         ai_notes_label = QLabel("AI notes and unresolved choices:", self)
@@ -326,12 +404,12 @@ class GlossaryDialog(QDialog):
         self._ai_notes_edit.setUndoRedoEnabled(False)
         self._ai_notes_edit.setPlaceholderText("No AI doubts or alternative choices recorded.")
         ai_notes_layout.addWidget(self._ai_notes_edit, 1)
-        detail_splitter.addWidget(ai_notes_pane)
+        self._lower_detail_splitter.addWidget(ai_notes_pane)
 
-        occurrences_pane = QWidget(self)
+        occurrences_pane = _DetailPane(self)
         occurrences_layout = QVBoxLayout(occurrences_pane)
         occurrences_layout.setContentsMargins(0, 0, 0, 0)
-        self._occurrence_label = QLabel("Occurrences: 0", self)
+        self._occurrence_label = QLabel("Mentions: 0   Spoken: 0", self)
         occurrences_layout.addWidget(self._occurrence_label)
         self._occurrence_list = QListWidget(self)
         self._occurrence_list.setSpacing(6)
@@ -340,8 +418,14 @@ class GlossaryDialog(QDialog):
         self._occurrence_list.setItemDelegate(_RichTextItemDelegate(self._occurrence_list))
         self._occurrence_list.itemDoubleClicked.connect(self._activate_selected_occurrence)
         occurrences_layout.addWidget(self._occurrence_list, 1)
-        detail_splitter.addWidget(occurrences_pane)
-        detail_splitter.setSizes([140, 180, 160, 200])
+        self._lower_detail_splitter.addWidget(occurrences_pane)
+        self._detail_splitter.setStretchFactor(0, 1)
+        self._detail_splitter.setStretchFactor(1, 3)
+        self._detail_splitter.setSizes([140, 540])
+        self._lower_detail_splitter.setStretchFactor(0, 1)
+        self._lower_detail_splitter.setStretchFactor(1, 1)
+        self._lower_detail_splitter.setStretchFactor(2, 1)
+        self._lower_detail_splitter.setSizes([180, 160, 200])
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, parent=self)
         
         self._save_button = QPushButton("Save Changes", self)
@@ -528,7 +612,8 @@ class GlossaryDialog(QDialog):
             else:
                 tab_entries = [e for e in entries if e.section == tab_name]
                 
-            table = QTableWidget(self)
+            table = _GlossaryTermTable(self)
+            table.setAutoScroll(False)
             table.setColumnCount(4)
             table.setHorizontalHeaderLabels(["Term", "Translation", "Notes", "Count"])
             table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -572,7 +657,7 @@ class GlossaryDialog(QDialog):
                     ),
                     str(len(occurrences)),
                 ]
-                needs_review = self._needs_review(entry)
+                review_brush = self._review_brush(entry)
                 provisional = self._is_provisional_character(entry)
                 for col, value in enumerate(values):
                     item = QTableWidgetItem(value)
@@ -583,8 +668,8 @@ class GlossaryDialog(QDialog):
                         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     if col == 3:
                         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                    if needs_review:
-                        item.setBackground(_NEEDS_REVIEW_BRUSH)
+                    if review_brush is not None:
+                        item.setBackground(review_brush)
                         item.setToolTip(self._review_reason(entry))
                     if provisional:
                         item.setForeground(_PROVISIONAL_FOREGROUND)
@@ -777,7 +862,12 @@ class GlossaryDialog(QDialog):
 
     def _on_editor_content_changed(self) -> None:
         """Internal helper to handle the editor content changed event."""
-        if self._suppress_editor_signals or not self._update_callback or not self._current_entry:
+        if self._suppress_editor_signals:
+            return
+        if self._current_entry is not None:
+            # AI notes are read-only evidence; keep {{TERM}} in sync with Translation.
+            self._ai_notes_edit.setPlainText(self._ai_notes_for_entry(self._current_entry))
+        if not self._update_callback or not self._current_entry:
             return
         current_translation = self._translation_edit.text().strip()
         current_notes = self._notes_for_save()
@@ -813,6 +903,18 @@ class GlossaryDialog(QDialog):
             else:
                 self._save_button.setVisible(True)
                 self._save_button.setEnabled(can_edit)
+        self._update_variant_buttons_state()
+
+    def _update_variant_buttons_state(self) -> None:
+        """Update enabled state for variant action buttons."""
+        has_entry = self._current_entry is not None
+        has_selected_item = bool(self._variants_list.currentItem()) if hasattr(self, "_variants_list") else False
+        can_apply = has_entry and has_selected_item and (self._update_callback is not None)
+        if hasattr(self, "_apply_variant_button"):
+            self._apply_variant_button.setEnabled(can_apply)
+        if hasattr(self, "_discuss_variant_button"):
+            has_discuss = self._discuss_variant_callback is not None
+            self._discuss_variant_button.setEnabled(has_entry and has_discuss)
     def _save_editor_changes(self) -> None:
         """Internal helper to save editor changes."""
         if self._is_populating or not self._update_callback or not self._current_entry:
@@ -839,6 +941,7 @@ class GlossaryDialog(QDialog):
         profiled: Optional[bool] = None,
         status: Optional[str] = None,
         section: Optional[str] = None,
+        select_after: Optional[str] = None,
     ) -> bool:
         """Internal helper to attempt entry update.
 
@@ -863,7 +966,7 @@ class GlossaryDialog(QDialog):
         new_entries, new_occurrence_map = result
         self._all_entries = list(new_entries)
         self._occurrences = new_occurrence_map
-        self._pending_select_term = entry.original
+        self._pending_select_term = select_after if select_after is not None else entry.original
         self._apply_filter(self._search_field.text())
         return True
 
@@ -1019,22 +1122,29 @@ class GlossaryDialog(QDialog):
 
     def _update_occurrences(self, entry: GlossaryEntry) -> None:
         """Internal helper to update the occurrences."""
-        occ_list = self._occurrences.get(entry.original, [])
+        occ_list = list(self._occurrences.get(entry.original, []))
+        spoken_rows = [o for o in occ_list if getattr(o, "kind", "mention") == "spoken"]
+        mention_rows = [o for o in occ_list if getattr(o, "kind", "mention") != "spoken"]
+        occ_list = spoken_rows + mention_rows
         self._occurrence_list.clear()
         for index, occ in enumerate(occ_list, start=1):
             preview = occ.line_text.strip()
             if len(preview) > 120:
                 preview = f"{preview[:117]}…"
             preview_html = escape(preview).replace('\n', '<br>')
+            kind = getattr(occ, "kind", "mention") or "mention"
+            kind_label = "spoken" if kind == "spoken" else "mention"
             header_html = (
-                f"<b>#{index}</b> | block <b>{occ.block_idx}</b> | "
-                f"string <b>{occ.string_idx}</b> | line <b>{occ.line_idx + 1}</b>"
+                f"<b>#{index}</b> | {kind_label} | block <b>{occ.block_idx}</b> | "
+                f"string <b>{occ.string_idx + 1}</b> | line <b>{occ.line_idx + 1}</b>"
             )
             item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.DisplayRole, f"{header_html}<br>{preview_html}")
             item.setData(Qt.ItemDataRole.UserRole, occ)
             self._occurrence_list.addItem(item)
-        self._occurrence_label.setText(f"Occurrences: {len(occ_list)}")
+        mentions = sum(1 for occ in occ_list if getattr(occ, "kind", "mention") != "spoken")
+        spoken = sum(1 for occ in occ_list if getattr(occ, "kind", "mention") == "spoken")
+        self._occurrence_label.setText(f"Mentions: {mentions}   Spoken: {spoken}")
     def _entry_for_row(self, row: int) -> Optional[GlossaryEntry]:
         """Internal helper to entry for row."""
         if row < 0:
@@ -1291,13 +1401,24 @@ class GlossaryDialog(QDialog):
         self._variants_pane.setVisible(visible)
         self._variants_label.setVisible(visible)
         self._variants_list.setVisible(visible)
+        if hasattr(self, "_apply_variant_button"):
+            self._apply_variant_button.setVisible(visible)
+        if hasattr(self, "_discuss_variant_button"):
+            self._discuss_variant_button.setVisible(visible)
+        if visible and hasattr(self, "_detail_splitter"):
+            sizes = self._detail_splitter.sizes()
+            if sizes and sizes[0] <= 0:
+                sizes[0] = 140
+                self._detail_splitter.setSizes(sizes)
 
     def _populate_variants(self, entry: Optional[GlossaryEntry]) -> None:
         """Fill the variant picker and the confirm button for this entry."""
         self._variants_list.clear()
         variants = list(getattr(entry, "translation_variants", ()) or ()) if entry else []
         # One variant means the AI saw no real ambiguity; nothing to choose.
-        self._set_variants_visible(len(variants) > 1)
+        has_multiple = len(variants) > 1
+        self._set_variants_visible(has_multiple)
+        matching_item = None
         for variant in variants:
             label = variant.translation
             if variant.rationale:
@@ -1308,11 +1429,18 @@ class GlossaryDialog(QDialog):
                 font = item.font()
                 font.setBold(True)
                 item.setFont(font)
+                matching_item = item
             self._variants_list.addItem(item)
+
+        if matching_item is not None:
+            self._variants_list.setCurrentItem(matching_item)
+        elif self._variants_list.count() > 0:
+            self._variants_list.setCurrentRow(0)
 
         can_confirm = bool(entry) and self._needs_review(entry) and bool(self._update_callback)
         self._confirm_button.setVisible(bool(entry) and self._needs_review(entry))
         self._confirm_button.setEnabled(can_confirm)
+        self._update_variant_buttons_state()
 
     def _ai_notes_for_entry(self, entry: GlossaryEntry) -> str:
         """Render existing AI evidence separately from the clean description."""
@@ -1349,7 +1477,15 @@ class GlossaryDialog(QDialog):
             sections.append(
                 "Possible duplicate terms (review manually):\n- " + "\n- ".join(duplicates)
             )
-        return "\n\n".join(sections)
+        raw = "\n\n".join(sections)
+        translation = ""
+        if hasattr(self, "_translation_edit"):
+            translation = self._translation_edit.text()
+        return render_notes(
+            raw,
+            translation=translation or (entry.translation or ""),
+            original=entry.original,
+        )
 
     def _rendered_notes(self) -> str:
         """The stored notes with the term placeholder filled in."""
@@ -1361,12 +1497,13 @@ class GlossaryDialog(QDialog):
         )
 
     def _refresh_rendered_notes(self) -> None:
-        """Re-render the notes after the translation changed."""
-        if TERM_PLACEHOLDER not in (self._notes_template or ""):
-            return
+        """Re-render description and AI notes after the translation changed."""
         was_suppressed = self._suppress_editor_signals
         self._suppress_editor_signals = True
-        self._notes_edit.setPlainText(self._rendered_notes())
+        if TERM_PLACEHOLDER in (self._notes_template or ""):
+            self._notes_edit.setPlainText(self._rendered_notes())
+        if self._current_entry is not None:
+            self._ai_notes_edit.setPlainText(self._ai_notes_for_entry(self._current_entry))
         self._suppress_editor_signals = was_suppressed
 
     def _notes_for_save(self) -> str:
@@ -1381,31 +1518,63 @@ class GlossaryDialog(QDialog):
             return template
         return typed
 
-    def _on_variant_chosen(self, item: QListWidgetItem) -> None:
-        """Pick a variant: fill the translation, re-render notes, and settle it.
+    def _on_apply_selected_variant(self) -> None:
+        """Apply the currently selected proposed variant, confirm it, and advance."""
+        item = self._variants_list.currentItem()
+        if not item:
+            return
+        self._apply_variant_item(item, advance=True)
 
-        Choosing from the list IS the decision the highlight is asking for, so
-        the entry stops being flagged immediately rather than needing a second
-        click on Confirm.
-        """
+    def _apply_variant_item(self, item: QListWidgetItem, advance: bool = False) -> None:
+        """Apply a variant item: update translation edit, refresh notes, and confirm."""
         translation = item.data(Qt.ItemDataRole.UserRole)
         if not translation:
             return
         self._translation_edit.setText(str(translation))
         self._refresh_rendered_notes()
-        self._on_confirm_clicked()
+        self._on_confirm_clicked(advance=advance)
 
-    def _on_confirm_clicked(self) -> None:
-        """Save the current translation and mark the entry as decided."""
+    def _on_variant_chosen(self, item: QListWidgetItem) -> None:
+        """Apply a chosen variant (alias for _apply_variant_item)."""
+        self._apply_variant_item(item, advance=False)
+
+    def _on_discuss_variants_clicked(self) -> None:
+        """Handle Discuss with AI... button click."""
+        if not self._discuss_variant_callback or not self._current_entry:
+            return
+        self._discuss_variant_callback(self._current_entry)
+
+    def _next_visible_term_after(self, original: str) -> Optional[str]:
+        """The next term in the current table, so Confirm can walk the list."""
+        table = self._active_table()
+        visible: List[str] = []
+        for row in range(table.rowCount()):
+            if table.isRowHidden(row):
+                continue
+            entry = self._entry_for_row(row)
+            if entry:
+                visible.append(entry.original)
+        try:
+            idx = visible.index(original)
+        except ValueError:
+            return visible[0] if visible else None
+        if idx + 1 < len(visible):
+            return visible[idx + 1]
+        return None
+
+    def _on_confirm_clicked(self, advance: bool = True) -> None:
+        """Save the current translation, mark it decided, and optionally open the next term."""
         entry = self._current_entry
         if not entry or not self._update_callback:
             return
+        next_term = self._next_visible_term_after(entry.original) if advance else None
         self._attempt_entry_update(
             entry,
             self._translation_edit.text(),
             self._notes_for_save(),
             self._profiled_checkbox.isChecked(),
             status=STATUS_CONFIRMED,
+            select_after=next_term or entry.original,
         )
 
     @staticmethod
@@ -1420,6 +1589,15 @@ class GlossaryDialog(QDialog):
             return f"{len(variants)} translation variants proposed:\n{listed}"
         status = getattr(entry, "status", "") or "unconfirmed"
         return f"Awaiting review (status: {status})."
+
+    @staticmethod
+    def _review_brush(entry: GlossaryEntry) -> Optional[QBrush]:
+        """Background for a row that still needs a person to look at it."""
+        if not GlossaryDialog._needs_review(entry):
+            return None
+        if len(getattr(entry, "translation_variants", ()) or ()) > 1:
+            return _MULTI_VARIANT_BRUSH
+        return _UNREVIEWED_BRUSH
 
     @staticmethod
     def _needs_review(entry: GlossaryEntry) -> bool:
@@ -1465,7 +1643,7 @@ class GlossaryDialog(QDialog):
         else:
             self._clear_entry_details()
             self._occurrence_list.clear()
-            self._occurrence_label.setText("Occurrences: 0")
+            self._occurrence_label.setText("Mentions: 0   Spoken: 0")
  
     def reload_data(
         self,

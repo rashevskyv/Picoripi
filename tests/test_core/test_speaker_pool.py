@@ -249,3 +249,43 @@ def test_confirmed_alias_replaces_codes_from_every_pool_source(tmp_path):
         (0, 1): "Barnes",
         (0, 2): "Barnes",
     }
+
+
+def test_raw_speaker_pool_returns_source_identity_without_glossary_translation(tmp_path):
+    """Glossary consumer needs raw=True so names match GlossaryEntry.original."""
+    script_path = tmp_path / "zelda_tp_script.txt"
+    script_path.write_text("FOUNTAIN SOLDIER\nline\n", encoding="utf-8")
+    client = _Client([{"bmg_id": "zel_00_Str_5", "script_line": 2}])
+    glossary = _Glossary([("FOUNTAIN SOLDIER", "Солдат біля фонтану")])
+    composer = _Composer(str(script_path), client, glossary, {2: "FOUNTAIN SOLDIER"})
+    handler = _Handler({"zel_00_Str_5": (0, 5)})
+    mw = _MW(blocks=[_Block()], data=[["a line"] * 6], handler=handler)
+
+    display_pool = build_speaker_pool(mw, composer=composer, projection=None, raw=False)
+    raw_pool = build_speaker_pool(mw, composer=composer, projection=None, raw=True)
+
+    assert display_pool[(0, 5)] == "Солдат біля фонтану"
+    assert raw_pool[(0, 5)] == "FOUNTAIN SOLDIER"
+
+
+def test_raw_speaker_pool_resolves_alias_without_glossary_translation(tmp_path):
+    """An alias resolves to the target name in raw form (not glossary-translated)."""
+    import json
+    from core.speaker_alias_merge import ALIAS_FILENAME
+
+    (tmp_path / ALIAS_FILENAME).write_text(
+        json.dumps({"CLERK_B": "Barnes"}), encoding="utf-8"
+    )
+    glossary = _Glossary([("Barnes", "Барнс")])
+    composer = _Composer("", None, glossary, {})
+    mw = _MW(
+        blocks=[_Block({"character_assignments": {"0": "CLERK_B"}})],
+        data=[["some text"]],
+    )
+    mw.project_manager.project_dir = tmp_path
+
+    display_pool = build_speaker_pool(mw, composer=composer, projection=None, raw=False)
+    raw_pool = build_speaker_pool(mw, composer=composer, projection=None, raw=True)
+
+    assert display_pool[(0, 0)] == "Барнс"
+    assert raw_pool[(0, 0)] == "Barnes"

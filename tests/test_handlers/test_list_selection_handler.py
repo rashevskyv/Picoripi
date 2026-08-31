@@ -753,4 +753,266 @@ def test_ListSelectionHandler_handle_physical_block_selection(handler):
         mock_schedule.assert_called_once_with(0)
 
 
+def test_navigate_to_physical_string_clears_multi_selection_and_highlights_target(qtbot):
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtGui import QColor
 
+    tree = QTreeWidget()
+    qtbot.addWidget(tree)
+    item_b0 = QTreeWidgetItem(tree, ["Block 0"])
+    item_b0.setData(0, Qt.ItemDataRole.UserRole, 0)
+    item_b1 = QTreeWidgetItem(tree, ["Block 1"])
+    item_b1.setData(0, Qt.ItemDataRole.UserRole, 1)
+
+    preview = LineNumberedTextEdit()
+    qtbot.addWidget(preview)
+    preview.preview_selected_line_color = QColor(200, 255, 200)
+    preview.setPlainText("Row 0\nRow 1\nRow 2\nRow 3")
+
+    # Set prior multi-selection [0, 1, 2] containing target 1
+    preview.set_selected_lines([0, 1, 2])
+    assert preview.get_selected_lines() == [0, 1, 2]
+
+    mock_mw = MagicMock()
+    mock_mw.block_list_widget = tree
+    mock_mw.preview_text_edit = preview
+    mock_mw.is_loading_data = False
+    mock_mw.is_programmatically_changing_text = False
+    mock_mw.data_store.data = [["Row 0", "Row 1", "Row 2", "Row 3"], ["B1 Row 0", "B1 Row 1"]]
+    mock_mw.data_store.displayed_string_indices = [0, 1, 2, 3]
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.physical_block_idx = 0
+    mock_mw.data_store.current_string_idx = 0
+    mock_mw.data_store.edited_data = {}
+    mock_mw.data_store.edited_sublines = set()
+    mock_mw.data_store.current_view_kind = ViewKind.PHYSICAL
+    mock_mw.project_manager = None
+
+    lsh = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+    lsh.block_selected = MagicMock()
+
+    # Direct physical navigation to target string_idx=1 in block 0
+    lsh.navigate_to_physical_string(0, 1)
+
+    # 1. Ends with exactly [1]
+    assert preview.get_selected_lines() == [1]
+
+    # 2. Visual ExtraSelection highlight is present for row 1
+    extra_selections = preview.extraSelections()
+    selected_block_nums = [s.cursor.blockNumber() for s in preview.highlightManager._preview_selected_line_selections]
+    assert selected_block_nums == [1]
+    assert any(s.cursor.blockNumber() == 1 for s in extra_selections)
+
+
+def test_navigate_to_physical_string_restores_visual_highlight_after_refresh(qtbot):
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtGui import QColor
+
+    tree = QTreeWidget()
+    qtbot.addWidget(tree)
+    item_b0 = QTreeWidgetItem(tree, ["Block 0"])
+    item_b0.setData(0, Qt.ItemDataRole.UserRole, 0)
+
+    preview = LineNumberedTextEdit()
+    qtbot.addWidget(preview)
+    preview.preview_selected_line_color = QColor(200, 255, 200)
+    preview.setPlainText("Row 0\nRow 1\nRow 2")
+
+    # Set selection to [1]
+    preview.set_selected_lines([1], force=True)
+    assert preview.get_selected_lines() == [1]
+    assert len(preview.highlightManager._preview_selected_line_selections) == 1
+
+    # Simulate document/highlight refresh wiping visual selections while logical selection remains
+    preview.highlightManager.clearAllHighlights()
+    assert len(preview.highlightManager._preview_selected_line_selections) == 0
+    assert preview.get_selected_lines() == [1]
+
+    mock_mw = MagicMock()
+    mock_mw.block_list_widget = tree
+    mock_mw.preview_text_edit = preview
+    mock_mw.is_loading_data = False
+    mock_mw.is_programmatically_changing_text = False
+    mock_mw.data_store.data = [["Row 0", "Row 1", "Row 2"]]
+    mock_mw.data_store.displayed_string_indices = [0, 1, 2]
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.physical_block_idx = 0
+    mock_mw.data_store.current_string_idx = 1
+    mock_mw.data_store.edited_data = {}
+    mock_mw.data_store.edited_sublines = set()
+    mock_mw.data_store.current_view_kind = ViewKind.PHYSICAL
+    mock_mw.project_manager = None
+
+    lsh = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+    lsh.block_selected = MagicMock()
+
+    # Navigating/reselecting row 1 restores the visual target highlight
+    lsh.navigate_to_physical_string(0, 1)
+
+    # 3. Visual highlight restored
+    assert preview.get_selected_lines() == [1]
+    selected_block_nums = [s.cursor.blockNumber() for s in preview.highlightManager._preview_selected_line_selections]
+    assert selected_block_nums == [1]
+
+
+def test_ordinary_set_selected_lines_preserves_multi_selection(qtbot):
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    from PyQt6.QtGui import QColor
+
+    preview = LineNumberedTextEdit()
+    qtbot.addWidget(preview)
+    preview.preview_selected_line_color = QColor(200, 255, 200)
+    preview.setPlainText("Row 0\nRow 1\nRow 2\nRow 3")
+
+    # Set multi-selection [0, 1, 2]
+    preview.set_selected_lines([0, 1, 2])
+    assert preview.get_selected_lines() == [0, 1, 2]
+
+    # 5. Non-forced programmatic single line call inside multi-selection is ignored
+    preview.set_selected_lines([1], force=False)
+    assert preview.get_selected_lines() == [0, 1, 2]
+
+    # Non-forced call outside multi-selection changes selection
+    preview.set_selected_lines([3], force=False)
+    assert preview.get_selected_lines() == [3]
+
+
+def test_navigate_to_physical_string_with_sparse_filter_selects_relative_index(qtbot):
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtGui import QColor
+
+    tree = QTreeWidget()
+    qtbot.addWidget(tree)
+    item_b0 = QTreeWidgetItem(tree, ["Block 0"])
+    item_b0.setData(0, Qt.ItemDataRole.UserRole, 0)
+
+    preview = LineNumberedTextEdit()
+    qtbot.addWidget(preview)
+    preview.preview_selected_line_color = QColor(200, 255, 200)
+    preview.setPlainText("Row 10\nRow 743\nRow 900")
+
+    mock_mw = MagicMock()
+    mock_mw.block_list_widget = tree
+    mock_mw.preview_text_edit = preview
+    mock_mw.is_loading_data = False
+    mock_mw.is_programmatically_changing_text = False
+    # Mock block with 1000 items
+    block_data = [f"Row {i}" for i in range(1000)]
+    mock_mw.data_store.data = [block_data]
+    mock_mw.data_store.displayed_string_indices = [10, 743, 900]
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.physical_block_idx = 0
+    mock_mw.data_store.current_string_idx = 0
+    mock_mw.data_store.edited_data = {}
+    mock_mw.data_store.edited_sublines = set()
+    mock_mw.data_store.current_view_kind = ViewKind.PHYSICAL
+    mock_mw.project_manager = None
+
+    lsh = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+    lsh.block_selected = MagicMock()
+
+    # 1. Sparse filter [10, 743, 900]: navigating to absolute string 743 force-selects relative index [1]
+    lsh.navigate_to_physical_string(0, 743)
+
+    assert preview.get_selected_lines() == [1]
+    selected_block_nums = [s.cursor.blockNumber() for s in preview.highlightManager._preview_selected_line_selections]
+    assert selected_block_nums == [1]
+
+
+def test_navigate_to_physical_string_when_target_filtered_out_does_not_highlight_wrong_row(qtbot):
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+    from PyQt6.QtGui import QColor
+
+    tree = QTreeWidget()
+    qtbot.addWidget(tree)
+    item_b0 = QTreeWidgetItem(tree, ["Block 0"])
+    item_b0.setData(0, Qt.ItemDataRole.UserRole, 0)
+
+    preview = LineNumberedTextEdit()
+    qtbot.addWidget(preview)
+    preview.preview_selected_line_color = QColor(200, 255, 200)
+    preview.setPlainText("Row 10\nRow 20\nRow 30")
+
+    mock_mw = MagicMock()
+    mock_mw.block_list_widget = tree
+    mock_mw.preview_text_edit = preview
+    mock_mw.is_loading_data = False
+    mock_mw.is_programmatically_changing_text = False
+    block_data = [f"Row {i}" for i in range(1000)]
+    mock_mw.data_store.data = [block_data]
+    mock_mw.data_store.displayed_string_indices = [10, 20, 30]
+    mock_mw.data_store.current_block_idx = 0
+    mock_mw.data_store.physical_block_idx = 0
+    mock_mw.data_store.current_string_idx = -1
+    mock_mw.data_store.edited_data = {}
+    mock_mw.data_store.edited_sublines = set()
+    mock_mw.data_store.current_view_kind = ViewKind.PHYSICAL
+    mock_mw.project_manager = None
+
+    lsh = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+    lsh.block_selected = MagicMock()
+
+    # 2. Filter [10, 20, 30] does not contain 743: navigation must not force-select 743 or highlight unrelated rows
+    lsh.navigate_to_physical_string(0, 743)
+
+    assert 743 not in preview.get_selected_lines()
+    assert preview.get_selected_lines() == []
+    assert len(preview.highlightManager._preview_selected_line_selections) == 0
+
+
+def test_on_cursor_visible_timeout_anchors_scrollbar_two_rows_above_target(qtbot):
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    from PyQt6.QtGui import QTextCursor
+
+    preview = LineNumberedTextEdit()
+    qtbot.addWidget(preview)
+    preview.resize(300, 200)
+    preview.show()
+    preview.setPlainText("\n".join([f"Line {i}" for i in range(50)]))
+
+    mock_mw = MagicMock()
+    mock_mw.preview_text_edit = preview
+    lsh = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+
+    # Target block 10 -> anchor is block 8 (2 rows above target)
+    block10 = preview.document().findBlockByNumber(10)
+    cursor = QTextCursor(block10)
+    preview.setTextCursor(cursor)
+
+    lsh._on_cursor_visible_timeout()
+
+    # 1. Scrollbar positioned at anchor block 8
+    assert preview.verticalScrollBar().value() == 8
+    # 3. Target cursor stays on its original destination block 10
+    assert preview.textCursor().blockNumber() == 10
+
+
+@pytest.mark.parametrize("target_block", [0, 1])
+def test_on_cursor_visible_timeout_anchors_to_top_for_small_indices(target_block, qtbot):
+    from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+    from PyQt6.QtGui import QTextCursor
+
+    preview = LineNumberedTextEdit()
+    qtbot.addWidget(preview)
+    preview.resize(300, 200)
+    preview.show()
+    preview.setPlainText("\n".join([f"Line {i}" for i in range(50)]))
+
+    mock_mw = MagicMock()
+    mock_mw.preview_text_edit = preview
+    lsh = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
+
+    block = preview.document().findBlockByNumber(target_block)
+    cursor = QTextCursor(block)
+    preview.setTextCursor(cursor)
+
+    lsh._on_cursor_visible_timeout()
+
+    # 2. For target preview block 0 and 1, the anchor is block 0 (scrollbar value 0)
+    assert preview.verticalScrollBar().value() == 0
+    # 3. Target cursor stays on original destination block
+    assert preview.textCursor().blockNumber() == target_block

@@ -14,17 +14,32 @@ from typing import List, Optional
 from PyQt6.QtWidgets import QMessageBox
 
 from components.ai_status_dialog import AIStatusDialog
-from core.glossary_manager import possible_duplicate_pairs
+from core.glossary_manager import (
+    STATUS_FRAGMENTS,
+    STATUS_SEEDED,
+    possible_duplicate_pairs,
+)
 from core.translation.providers import get_provider_for_config
 from handlers.translation.glossary_ai_config import resolve_glossary_ai_config
 from handlers.translation.glossary_pipeline_worker import GlossaryBuildWorker
-from core.glossary_build.pipeline_coordinator import MODE_AUTO, MODE_SEED
+from core.glossary_build.pipeline_coordinator import MODE_AUGMENT, MODE_AUTO, MODE_SEED
 from core.glossary_build.script_seeds import seeds_from_markup
-from core.speaker_alias_merge import find_markup_project, is_confirmed_speaker_alias, load_speaker_aliases
+from core.speaker_resolution import build_speaker_pool
+from core.speaker_alias_merge import (
+    find_markup_project,
+    is_applyable_speaker_alias,
+    load_speaker_aliases,
+    split_shared_speaker_names,
+)
 from ui.glossary_build_dialog import (
     AREA_PROJECT,
     AREA_SELECTED,
     GlossaryBuildDialog,
+)
+from ui.glossary_stopped_dialog import (
+    ACTION_RESUME,
+    ACTION_REVIEW,
+    GlossaryStoppedDialog,
 )
 from utils.logging_utils import log_debug, log_error
 
@@ -37,6 +52,10 @@ class GlossaryPipelineHandler:
         self._worker: Optional[GlossaryBuildWorker] = None
         self._status: Optional[AIStatusDialog] = None
         self._pending_scan_state: Optional[dict] = None
+        self._stopped_retry_count: int = 0
+        self._prevent_sleep: bool = True
+        self._sleep_after: bool = False
+        self._last_options: Optional[dict] = None
 
     # -- helpers ------------------------------------------------------------
 
@@ -89,9 +108,11 @@ class GlossaryPipelineHandler:
         for seed in seeds:
             term = str(seed.get("term") or "").strip()
             name = (aliases or {}).get(term)
-            if is_confirmed_speaker_alias(name):
-                # Decided: it is a name now, not a stand-in.
-                renamed.append({**seed, "term": name, "provisional": False})
+            if is_applyable_speaker_alias(name):
+                # One voice can name several characters. Seed each name, never
+                # one glossary term called "A / B".
+                for part in split_shared_speaker_names(name):
+                    renamed.append({**seed, "term": part, "provisional": False})
             elif self._is_placeholder(term):
                 renamed.append({**seed, "provisional": True})
             else:
@@ -146,13 +167,32 @@ class GlossaryPipelineHandler:
         """
         config = getattr(self.mw, "glossary_ai", {}) or {}
         options = {}
-        for key, name in (("workers", "workers"), ("retry_delay", "retry_delay")):
+        for key, name in (
+            ("workers", "workers"),
+            ("retry_delay", "retry_delay"),
+            ("max_consecutive_failures", "max_consecutive_failures"),
+            ("timeout", "timeout"),
+        ):
             try:
                 value = config.get(key)
                 if value is not None:
                     options[name] = float(value) if key == "retry_delay" else int(value)
             except (TypeError, ValueError):
                 pass  # a corrupt setting falls back to the worker's default
+        if "max_consecutive_failures" not in options:
+            options["max_consecutive_failures"] = 5
+        if "timeout" not in options:
+            # The local proxy retries across accounts; 60s is not enough for
+            # Parallel Requests > 1 plus the per-IP pace gap.
+            try:
+                resolved = resolve_glossary_ai_config(self.mw)
+                t = resolved.get("timeout")
+                if t is not None:
+                    options["timeout"] = max(180, int(t))
+                else:
+                    options["timeout"] = 180
+            except (TypeError, ValueError, AttributeError):
+                pass
         return options
 
     def _resolve_provider(self):
@@ -278,16 +318,21 @@ class GlossaryPipelineHandler:
             f"Block {current_idx + 1}" if current_idx is not None and current_idx >= 0 else ""
         )
         manager = self._glossary_manager()
-        try:
-            entries = len(manager.get_entries() or []) if manager is not None else 0
-        except Exception:
-            entries = 0
+        entries = list(manager.get_entries() or []) if manager is not None else []
+        existing_count = len(entries)
+        undescribed_count = sum(
+            1 for e in entries if not e.notes or e.status in {STATUS_SEEDED, STATUS_FRAGMENTS}
+        )
+        untranslated_count = sum(1 for e in entries if e.notes and not e.translation)
+
         return GlossaryBuildDialog(
             parent if parent is not None else self.mw,
             has_selection=bool(self._selected_block_indices()),
             current_block_label=current_label,
             can_seed_structurally=bool(self._structural_seeds()),
-            existing_entries=entries,
+            existing_entries=existing_count,
+            pending_description_count=undescribed_count,
+            pending_translation_count=untranslated_count,
             on_build=on_build,
             target_step=target_step,
             block_labels=[
@@ -344,7 +389,23 @@ class GlossaryPipelineHandler:
         manager = manager if manager is not None else self._ready_to_build()
         if manager is None:
             return
+        project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        try:
+            aliases = load_speaker_aliases(project_dir)
+        except Exception:
+            aliases = {}
+
+        raw_pool = build_speaker_pool(self.mw, raw=True)
+        manager.bind_project_rows(
+            getattr(self.mw, "data_store", None),
+            getattr(self.mw, "current_game_rules", None),
+            speaker_aliases=aliases,
+            speaker_pool=raw_pool,
+        )
         dataset = getattr(self.mw.data_store, "data", None)
+
+        if options.get("resume_pending"):
+            options["mode"] = MODE_AUGMENT
 
         provider = None
         if options["mode"] != MODE_SEED:
@@ -374,12 +435,19 @@ class GlossaryPipelineHandler:
         if not isinstance(target_lang, str):
             target_lang = "Ukrainian"
 
+        self._last_options = dict(options)
+        self._prevent_sleep = options.get("prevent_sleep", self._prevent_sleep)
+        self._sleep_after = options.get("sleep_after", self._sleep_after)
+
         self._status = AIStatusDialog(self.mw)
-        title = (
-            "Glossary Seeding (game data)"
-            if options["mode"] == MODE_SEED
-            else "AI Glossary Build (text sweep)"
-        )
+        self._status.prevent_sleep_checkbox.setChecked(self._prevent_sleep)
+        self._status.sleep_after_checkbox.setChecked(self._sleep_after)
+        if options["mode"] == MODE_SEED:
+            title = "Glossary Seeding (game data)"
+        elif options["mode"] == MODE_AUGMENT:
+            title = "AI Glossary Build (describing & translating terms)"
+        else:
+            title = "AI Glossary Build (text sweep)"
         self._status.start(title, is_chunked=True)
 
         self._worker = GlossaryBuildWorker(
@@ -421,7 +489,12 @@ class GlossaryPipelineHandler:
         log_debug(f"Glossary build finished: success={success} summary={summary}")
         if self._status:
             try:
-                self._status.finish()
+                self._prevent_sleep = self._status.prevent_sleep_checkbox.isChecked()
+                self._sleep_after = self._status.sleep_after_checkbox.isChecked()
+            except Exception:
+                pass
+            try:
+                self._status.finish(show_popup=False)
             except Exception:
                 pass
             self._status = None
@@ -438,6 +511,9 @@ class GlossaryPipelineHandler:
                 log_error(f"Failed to refresh glossary after build: {exc}")
 
         last_result = getattr(self._worker, "last_result", None)
+        stopped_error = getattr(self._worker, "stopped_error", None)
+        is_cancelled = getattr(self._worker, "_cancel", False) or getattr(last_result, "cancelled", False)
+
         if (
             success
             and self._pending_scan_state is not None
@@ -449,11 +525,107 @@ class GlossaryPipelineHandler:
         self._pending_scan_state = None
 
         if success:
+            self._stopped_retry_count = 0
             self._show_report(summary, manager)
+        elif is_cancelled:
+            self._stopped_retry_count = 0
+            QMessageBox.information(self.mw, "Build Glossary", "Glossary build was cancelled.")
         else:
-            QMessageBox.warning(self.mw, "Build Glossary", f"Stopped: {summary}")
+            self._show_stopped_dialog(summary, manager, stopped_error=stopped_error, last_result=last_result)
 
         self._worker = None
+
+    def _show_stopped_dialog(
+        self,
+        summary: str,
+        manager,
+        *,
+        stopped_error=None,
+        last_result=None,
+    ) -> None:
+        entries = list(manager.get_entries() or []) if manager is not None else []
+        total_entries = len(entries)
+        described_count = sum(
+            1 for e in entries if e.notes and e.status not in {STATUS_SEEDED, STATUS_FRAGMENTS}
+        )
+        undescribed_count = sum(
+            1 for e in entries if not e.notes or e.status in {STATUS_SEEDED, STATUS_FRAGMENTS}
+        )
+        untranslated_count = sum(1 for e in entries if e.notes and not e.translation)
+
+        stage_name = getattr(stopped_error, "stage", "") if stopped_error else ""
+        completed_units = getattr(stopped_error, "completed", 0) if stopped_error else 0
+        total_units = getattr(stopped_error, "total", 0) if stopped_error else 0
+        err_msg = str(getattr(stopped_error, "last_error", "") or summary)
+
+        can_resume = (
+            undescribed_count > 0
+            or untranslated_count > 0
+            or (total_units > 0 and completed_units < total_units)
+            or bool(stage_name)
+            or bool(self._last_options)
+        )
+
+        parsed_retry = 0
+        import re
+        match = re.search(r"[Rr]etry after (\d+(?:\.\d+)?)s", err_msg)
+        if match:
+            try:
+                parsed_retry = int(float(match.group(1))) + 5
+            except ValueError:
+                pass
+
+        if parsed_retry > 0:
+            auto_retry_delay = parsed_retry
+        else:
+            auto_retry_delay = 600 if self._stopped_retry_count >= 1 else 300
+
+        dialog = GlossaryStoppedDialog(
+            self.mw,
+            stage_name=stage_name,
+            summary=summary,
+            total_entries=total_entries,
+            described_count=described_count,
+            undescribed_count=undescribed_count,
+            untranslated_count=untranslated_count,
+            completed_units=completed_units,
+            total_units=total_units,
+            last_error=err_msg,
+            auto_retry_delay=auto_retry_delay,
+            can_resume=can_resume,
+            prevent_sleep=self._prevent_sleep,
+            sleep_after=self._sleep_after,
+            translate=bool((self._last_options or {}).get("translate", True)),
+        )
+        dialog.exec()
+
+        self._prevent_sleep = dialog.prevent_sleep_checkbox.isChecked()
+        self._sleep_after = dialog.sleep_after_checkbox.isChecked()
+
+        if dialog.action == ACTION_RESUME:
+            self._stopped_retry_count += 1
+            if self._last_options:
+                resume_options = dict(self._last_options)
+            else:
+                resume_options = {
+                    "mode": MODE_AUGMENT,
+                    "area": AREA_PROJECT,
+                    "chunk_size": "balanced",
+                    "translate": True,
+                }
+            resume_options["prevent_sleep"] = self._prevent_sleep
+            resume_options["sleep_after"] = self._sleep_after
+            self.start_build(resume_options, manager=manager)
+        elif dialog.action == ACTION_REVIEW:
+            self._stopped_retry_count = 0
+            glossary_handler = getattr(
+                getattr(self.mw, "translation_handler", None), "glossary_handler", None
+            )
+            opener = getattr(glossary_handler, "show_glossary_dialog", None)
+            if callable(opener):
+                opener()
+        else:
+            self._stopped_retry_count = 0
 
     def _show_report(self, summary: str, manager) -> None:
         entries = list(manager.get_entries() or []) if manager is not None else []

@@ -369,13 +369,14 @@ def test_gh_reassign_speaker_name_focuses_new_term_only_on_success(gh):
     gh.dialog.focus_term.assert_called_once_with("TELMA")
 
 
-def test_gh_confirmed_speaker_codes_excludes_conflict_labels(gh):
+def test_gh_confirmed_speaker_codes_includes_shared_voice_parts(gh):
     gh.mw.project_manager.project_dir = None
     with patch(
         "handlers.translation.glossary_handler.load_speaker_aliases",
         return_value={"Ash": "ASHEI", "Other": "ASHEI / TELMA"},
     ):
-        assert gh._confirmed_speaker_codes("ASHEI") == ["Ash"]
+        assert gh._confirmed_speaker_codes("ASHEI") == ["Ash", "Other"]
+        assert gh._confirmed_speaker_codes("TELMA") == ["Other"]
 
 
 def test_gh_placeholder_speaker_callback_recognizes_legacy_code_and_alias(gh):
@@ -396,4 +397,66 @@ def test_gh_placeholder_speaker_callback_recognizes_legacy_code_and_alias(gh):
         return_value={"Ash": "ASHEI / TELMA"},
     ):
         callback = gh._placeholder_speaker_callback()
-    assert callback("Ash") is True
+    assert callback("Ash") is False
+
+
+def test_gh_format_variant_discussion_context(gh):
+    from core.glossary_manager import DescriptionFragment, TranslationVariant
+    entry = GlossaryEntry(
+        original="Spring Goron",
+        translation="Ґорон Джерела",
+        notes="A Goron living near the hot spring.",
+        fragments=(
+            DescriptionFragment("He manages the thermal bath."),
+        ),
+        translation_variants=(
+            TranslationVariant("Ґорон Джерела", "spring = bathhouse"),
+            TranslationVariant("Весняний Ґорон", "spring = season"),
+        ),
+    )
+    gh.mw.target_language = "Ukrainian"
+    context = gh.format_variant_discussion_context(entry)
+    assert "Term: Spring Goron" in context
+    assert "Target language: Ukrainian" in context
+    assert "Description:\nA Goron living near the hot spring." in context
+    assert "Description fragments:\n- He manages the thermal bath." in context
+    assert "Proposed translation candidates:" in context
+    assert "- Ґорон Джерела (Rationale: spring = bathhouse)" in context
+    assert "- Весняний Ґорон (Rationale: spring = season)" in context
+    assert "You must recommend exactly one of the displayed candidates above, verbatim." in context
+
+    # Test fallback target language
+    gh.mw.target_language = None
+    fallback_context = gh.format_variant_discussion_context(entry)
+    assert "Target language: Ukrainian" in fallback_context
+
+    gh.mw.target_language = "German"
+    custom_context = gh.format_variant_discussion_context(entry)
+    assert "Target language: German" in custom_context
+
+
+def test_gh_handle_discuss_variants_from_dialog(gh):
+    from core.glossary_manager import TranslationVariant
+    entry = GlossaryEntry(
+        original="Spring Goron",
+        translation="Ґорон Джерела",
+        notes="A Goron.",
+        translation_variants=(
+            TranslationVariant("Ґорон Джерела", "spring = bathhouse"),
+        ),
+    )
+    gh.mw.ai_chat_handler = MagicMock()
+    gh._handle_discuss_variants_from_dialog(entry)
+
+    gh.mw.ai_chat_handler.show_chat_window.assert_called_once()
+    initial_text = gh.mw.ai_chat_handler.show_chat_window.call_args.kwargs["initial_text"]
+    assert "Term: Spring Goron" in initial_text
+    assert "Ґорон Джерела" in initial_text
+
+
+def test_gh_handle_discuss_variants_from_dialog_safe_noops(gh):
+    gh.mw.ai_chat_handler = None
+    # None entry or missing chat handler must not raise
+    gh._handle_discuss_variants_from_dialog(None)
+    entry = GlossaryEntry(original="Test", translation="")
+    gh._handle_discuss_variants_from_dialog(entry)

@@ -1357,6 +1357,7 @@ class GameRules(BaseGameRules):
                 # pass proposes the name from that.
                 "description": self._speaker_evidence(name, samples),
                 "section": "Characters",
+                "provisional": True,
                 "source_ref": f"{len(samples)} attributed line(s)",
             })
         return out

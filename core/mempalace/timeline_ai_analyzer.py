@@ -11,6 +11,10 @@ from core.translation.providers import ProviderResponse
 from utils.logging_utils import log_ai_traffic, log_error
 
 
+TIMELINE_CHUNK_SIZE = 20
+TIMELINE_REQUEST_TIMEOUT = 300
+
+
 class StoryTimelineAIAnalyzerWorker(QThread):
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)
@@ -41,7 +45,7 @@ class StoryTimelineAIAnalyzerWorker(QThread):
 
             aliases = {node.id: f"d{index:05d}" for index, node in enumerate(dialogues, 1)}
             node_by_id = {node.id: node for node in nodes}
-            chunks = [dialogues[i:i + 40] for i in range(0, len(dialogues), 40)]
+            chunks = [dialogues[i:i + TIMELINE_CHUNK_SIZE] for i in range(0, len(dialogues), TIMELINE_CHUNK_SIZE)]
             events = []
             for chunk_index, chunk in enumerate(chunks):
                 if self.is_cancelled:
@@ -62,14 +66,29 @@ class StoryTimelineAIAnalyzerWorker(QThread):
                     },
                     {"role": "user", "content": prompt},
                 ]
-                log_ai_traffic(self.mw, "mempalace_semantic_timeline", messages)
-                response: ProviderResponse = self.ai_provider.translate(messages, session=None)
-                log_ai_traffic(
-                    self.mw, "mempalace_semantic_timeline", messages,
-                    response_text=response.text,
-                )
-                parsed = parse_timeline_response(response.text, {aliases[node.id] for node in chunk})
-                events.extend(parsed)
+
+                max_retries = 2
+                for attempt in range(max_retries):
+                    if self.is_cancelled:
+                        self.finished.emit(False, "Timeline analysis was cancelled.")
+                        return
+                    try:
+                        log_ai_traffic(self.mw, "mempalace_semantic_timeline", messages)
+                        response: ProviderResponse = self.ai_provider.translate(
+                            messages, session=None, settings_override={"think": 1, "timeout": TIMELINE_REQUEST_TIMEOUT}
+                        )
+                        log_ai_traffic(
+                            self.mw, "mempalace_semantic_timeline", messages,
+                            response_text=response.text,
+                        )
+                        parsed = parse_timeline_response(response.text, {aliases[node.id] for node in chunk})
+                        events.extend(parsed)
+                        break
+                    except Exception as exc:
+                        if attempt < max_retries - 1 and not self.is_cancelled:
+                            self.log.emit(f"Retry chunk {current} due to: {exc}")
+                            continue
+                        raise
 
             alias_to_node = {alias: node_id for node_id, alias in aliases.items()}
             contexts = []

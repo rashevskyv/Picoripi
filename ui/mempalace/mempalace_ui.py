@@ -102,7 +102,13 @@ class MemePalaceBuilderUiMixin:
         layout.addWidget(title_label)
 
         desc_label = QLabel(
-            "Follow the steps from a validated script source to chapter mapping and AI analysis."
+            "This is the story-context step of the localization pipeline — after the "
+            "script is marked up and speakers are named, before the glossary is filled "
+            "and the game text is translated.\n\n"
+            "First import the Markup Studio project. Then link each game line to its "
+            "place in that script. Then, if you want scene-aware translation, ask the "
+            "AI to write what already happened (timeline) and how each character speaks "
+            "(voices). Glossary and translation read those results; they do not replace them."
         )
         desc_label.setStyleSheet("color: #666666; font-size: 12px;")
         desc_label.setWordWrap(True)
@@ -123,9 +129,18 @@ class MemePalaceBuilderUiMixin:
         source_layout.setContentsMargins(14, 14, 14, 14)
         source_layout.setSpacing(10)
         source_intro = QLabel(
-            "Choose the structured Markup Studio project. Import/Sync validates it and "
-            "unlocks the next steps."
+            "<b>What this step is.</b> Markup Studio already decided which script lines "
+            "are speakers, speech, chapters and scenes. This step copies that approved "
+            "structure into MemePalace so later work can sit on the story instead of "
+            "re-guessing it from a raw .txt file.<br><br>"
+            "<b>Do this after</b> the script is marked (and speakers named, if you use "
+            "Merge Speakers). <b>Do this before</b> filling glossary descriptions or "
+            "translating, if you want those prompts to know the scene.<br><br>"
+            "Select <code>script_markup_project.json</code>, check the preview, then "
+            "Import/Sync. Re-running Import after you re-mark the script updates the "
+            "tree; it does not duplicate it."
         )
+        source_intro.setTextFormat(Qt.TextFormat.RichText)
         source_intro.setWordWrap(True)
         source_layout.addWidget(source_intro)
 
@@ -138,20 +153,28 @@ class MemePalaceBuilderUiMixin:
         hierarchy_layout.addWidget(self.hierarchy_project_path_edit, 1)
         self.hierarchy_project_browse_btn = QPushButton("Select project…")
         self.hierarchy_project_browse_btn.setToolTip(
-            "<b>Select project</b><br>"
-            "Click — pick the script_markup_project.json produced by Script Markup "
-            "Studio. Nothing is read until you press Import/Sync."
+            "<b>Select Markup Studio project</b><br><br>"
+            "Pick the <code>script_markup_project.json</code> that Script Markup Studio "
+            "saved next to the walkthrough (or in the Picoripi project folder).<br><br>"
+            "This file is the machine source of truth: who speaks, which lines are "
+            "dialogue, and how chapters/scenes nest. MemePalace will not invent that "
+            "structure from a raw script.<br><br>"
+            "Choosing a file only fills the path. Nothing is imported until you press "
+            "Import/Sync and see a green “Up to date” status."
         )
         self.hierarchy_project_browse_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
         self.hierarchy_project_browse_btn.clicked.connect(self._browse_hierarchy_project)
         hierarchy_layout.addWidget(self.hierarchy_project_browse_btn)
         self.hierarchy_project_import_btn = QPushButton("Import/Sync")
         self.hierarchy_project_import_btn.setToolTip(
-            "<b>Import / sync structure</b><br>"
-            "Click — read chapters, scenes and lines from the selected project into "
-            "MemePalace. Safe to run again after re-marking the script: existing "
-            "context is updated, not duplicated.<br>"
-            "Enabled once a project file is selected."
+            "<b>Import / sync the marked script</b><br><br>"
+            "Reads the selected Markup Studio project into the MemePalace database: "
+            "acts, chapters, scenes, speakers and dialogue nodes.<br><br>"
+            "Only <b>approved</b> marks are imported. Unmarked or unapproved lines stay "
+            "out until you finish them in Markup Studio and sync again.<br><br>"
+            "Safe to run after you re-mark the script: existing links and analysis are "
+            "updated in place, not copied. Enabled once a valid project file is selected "
+            "and a wing name is set."
         )
         self.hierarchy_project_import_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
         self.hierarchy_project_import_btn.setEnabled(False)
@@ -178,6 +201,13 @@ class MemePalaceBuilderUiMixin:
                 clean_name = "".join(c if c.isalnum() else "_" for c in game_name).strip("_")
                 if clean_name:
                     self.wing_edit.setText(clean_name)
+        self.wing_edit.setToolTip(
+            "<b>Wing name</b><br><br>"
+            "A short label for this game inside MemePalace (for Twilight Princess it is "
+            "usually filled from the plugin display name).<br><br>"
+            "Chapters, mappings and character profiles are stored under this name. "
+            "Changing it later looks like a different game unless you import again."
+        )
         self.wing_edit.textChanged.connect(self._refresh_wizard_state)
         project_form.addRow("Wing name:", self.wing_edit)
         source_layout.addWidget(project_group)
@@ -211,10 +241,11 @@ class MemePalaceBuilderUiMixin:
         source_nav.addStretch()
         self.source_next_btn = QPushButton("Continue to Story Context →")
         self.source_next_btn.setToolTip(
-            "<b>Continue to step 2</b><br>"
-            "Click — move to Story Context. Enabled once a Markup Studio project is "
-            "imported and a wing name is set.<br>"
-            "You can also click the tab headers to move between unlocked steps."
+            "<b>Continue to Story Context</b><br><br>"
+            "Opens the next tab: link each in-game line to a marked script line, then "
+            "optionally build the timeline and character voices.<br><br>"
+            "Enabled when Import/Sync is up to date and a wing name is set. You can "
+            "also click the tab header once it is unlocked."
         )
         self.source_next_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
         self.source_next_btn.setEnabled(False)
@@ -229,15 +260,29 @@ class MemePalaceBuilderUiMixin:
         chapters_layout.setContentsMargins(14, 14, 14, 14)
         chapters_layout.setSpacing(10)
         chapters_intro = QLabel(
-            "Connect game text to marked script context; only uncertain cases appear below."
+            "<b>What this tab is for.</b> The game file has lines; the marked script "
+            "has story. Until they are linked, translation cannot know which scene a "
+            "row belongs to.<br><br>"
+            "<b>Step 1</b> is automatic and does not use AI: it matches game text to "
+            "marked dialogue. Clear matches are saved; only doubtful ones come back "
+            "for a decision below. Menus and system messages are skipped.<br><br>"
+            "<b>Step 2 (timeline)</b> and <b>step 3 (voices)</b> are the analysis. They "
+            "need step 1 first. Run them <b>before</b> you fill glossary descriptions "
+            "if you want those notes and the translation prompt to know what already "
+            "happened and how the speaker talks. They do not invent glossary terms "
+            "and they do not overwrite names you confirmed in Merge Speakers."
         )
+        chapters_intro.setTextFormat(Qt.TextFormat.RichText)
         chapters_intro.setWordWrap(True)
         chapters_layout.addWidget(chapters_intro)
         self.toggle_story_btn = QPushButton("Show imported structure")
         self.toggle_story_btn.setToolTip(
-            "<b>Show imported structure</b><br>"
-            "Click — toggle the tree of imported chapters, scenes and script lines. "
-            "It is a read-only preview; nothing there is edited."
+            "<b>Show imported structure</b><br><br>"
+            "Opens a read-only tree of what Import/Sync brought in: acts, chapters, "
+            "scenes, speakers and dialogue with their source line numbers.<br><br>"
+            "Use it to check that Markup Studio and MemePalace agree. Nothing in the "
+            "tree is edited here — fix the script in Markup Studio, then Import/Sync "
+            "again."
         )
         self.toggle_story_btn.setCheckable(True)
         self.toggle_story_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
@@ -255,7 +300,7 @@ class MemePalaceBuilderUiMixin:
         self.story_tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.story_tree.setMinimumHeight(160)
         story_layout.addWidget(self.story_tree)
-        self.dialogue_mapping_group = QGroupBox("Find story context")
+        self.dialogue_mapping_group = QGroupBox("Link lines, then analyse story and voices")
         dialogue_mapping_layout = QVBoxLayout(self.dialogue_mapping_group)
         dialogue_mapping_help = QLabel(
             "The program will connect clear matches by itself. Menu text, system messages, "
@@ -266,11 +311,15 @@ class MemePalaceBuilderUiMixin:
         dialogue_mapping_actions = QHBoxLayout()
         self.match_dialogue_btn = QPushButton("Step 1 — Find Context Automatically")
         self.match_dialogue_btn.setToolTip(
-            "<b>Step 1 of 3 — Find context automatically</b><br>"
-            "Click — match game text to marked script places. Clear matches are "
-            "saved on their own; only ambiguous ones come back for review below.<br>"
-            "Menu text and system messages are skipped, not queued for you.<br><br>"
-            "Steps 2 and 3 read these links, so this one has to run first."
+            "<b>Step 1 of 3 — Find context automatically (no AI)</b><br><br>"
+            "Matches each non-empty game string to a marked script line by the text "
+            "itself. Exact unique matches are saved at once. Repeated greetings and "
+            "near-matches come back one by one below so you can Use Context, pick "
+            "another place, or mark Not Story.<br><br>"
+            "Menus, HUD and system lines are skipped — they are not story.<br><br>"
+            "This has to finish before timeline or voices: those jobs only read "
+            "<i>linked</i> lines. Re-run after you re-mark the script; already-decided "
+            "links are kept unless the source text changed."
         )
         self.match_dialogue_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
         self.match_dialogue_btn.clicked.connect(self._start_dialogue_node_mapping)
@@ -291,12 +340,16 @@ class MemePalaceBuilderUiMixin:
         self.analyze_story_timeline_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
         self.analyze_story_timeline_btn.setEnabled(False)
         self.analyze_story_timeline_btn.setToolTip(
-            "<b>Step 2 of 3 — Build the timeline</b><br>"
-            "Click — read the linked dialogue and attach a story event to every "
-            "line: where in the story it happens and what has happened before it. "
-            "That is what a translation prompt carries as scene context.<br><br>"
-            "Needs step 1: there is nothing to place on a timeline until game text "
-            "has been linked to the script."
+            "<b>Step 2 of 3 — Build the timeline (AI)</b><br><br>"
+            "Reads linked dialogue in story order and writes a short event for each "
+            "stretch: where we are, what just happened, what the scene is about.<br><br>"
+            "That package is what the translation prompt uses instead of “translate "
+            "this sentence in isolation”. Midna after the children are taken is not "
+            "the same Midna as in Ordon.<br><br>"
+            "Needs step 1. Does not fill the glossary. Run it <b>before</b> the "
+            "glossary describe pass if you want scene notes available there. Long "
+            "and billed per chunk; already-analysed stretches are reused.<br><br>"
+            "Grey until step 1 has produced at least one link."
         )
         self.analyze_story_timeline_btn.clicked.connect(self._start_story_timeline_analysis)
         timeline_actions.addWidget(self.analyze_story_timeline_btn)
@@ -315,11 +368,15 @@ class MemePalaceBuilderUiMixin:
         self.analyze_character_voices_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
         self.analyze_character_voices_btn.setEnabled(False)
         self.analyze_character_voices_btn.setToolTip(
-            "<b>Step 3 of 3 — Analyze character voices</b><br>"
-            "Click — read each character's linked lines and write down how they "
-            "speak: personality, register, verbal habits, and the guidance a "
-            "translator needs to keep that voice consistent.<br><br>"
-            "Needs step 1: a character's voice is learned from their linked lines."
+            "<b>Step 3 of 3 — Analyse character voices (AI)</b><br><br>"
+            "Reads each named speaker’s linked lines and writes how they talk: "
+            "register, tempo, habits, address (ти/ви), and translator guidance "
+            "so Midna, Renado and a shop clerk do not share one voice.<br><br>"
+            "Uses the names from Markup Studio / Merge Speakers. It does not invent "
+            "or rename characters, and it does not dump a raw-script guess into the "
+            "glossary.<br><br>"
+            "Needs step 1. Best <b>before</b> glossary descriptions, so character "
+            "notes can quote a real voice profile. Grey until step 1 has links."
         )
         self.analyze_character_voices_btn.clicked.connect(
             self._start_normalized_character_profiling
@@ -462,19 +519,32 @@ class MemePalaceBuilderUiMixin:
 
         review_decision_actions = QHBoxLayout()
         self.approve_mapping_btn = QPushButton("Use Context")
-        self.approve_mapping_btn.setToolTip("Save the selected marked-script location for this game text.")
+        self.approve_mapping_btn.setToolTip(
+            "<b>Use this context</b><br><br>"
+            "Saves the marked-script place on the right as the story location of the "
+            "game line on the left. After this, timeline and voice analysis can "
+            "include that line, and the editor’s Speaker / Story Timeline can show it."
+        )
         self.approve_mapping_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
         self.approve_mapping_btn.setEnabled(False)
         self.approve_mapping_btn.clicked.connect(self._approve_selected_dialogue_mapping)
         review_decision_actions.addWidget(self.approve_mapping_btn)
         self.choose_other_mapping_btn = QPushButton("Compare Places…")
-        self.choose_other_mapping_btn.setToolTip("Search and preview another marked script location.")
+        self.choose_other_mapping_btn.setToolTip(
+            "<b>Compare other places</b><br><br>"
+            "Search marked dialogue by text, speaker or scene when the suggestion is "
+            "wrong (the same “Yes.” is said by everyone). Preview nearby lines before "
+            "you commit. Selecting a result updates the right-hand pane immediately."
+        )
         self.choose_other_mapping_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
         self.choose_other_mapping_btn.clicked.connect(self._show_dialogue_candidate_picker)
         review_decision_actions.addWidget(self.choose_other_mapping_btn)
         self.open_mapping_in_studio_btn = QPushButton("Open Studio")
         self.open_mapping_in_studio_btn.setToolTip(
-            "Open this exact source line in Script Markup Studio to inspect or re-mark it."
+            "<b>Open in Markup Studio</b><br><br>"
+            "Jumps to this exact source line in Script Markup Studio (the pipeline’s "
+            "markup step, or a standalone Studio window). Fix the mark there, save, "
+            "then Import/Sync and Find Context again if the link should change."
         )
         self.open_mapping_in_studio_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
         self.open_mapping_in_studio_btn.setEnabled(False)
@@ -484,7 +554,10 @@ class MemePalaceBuilderUiMixin:
         review_decision_actions.addWidget(self.open_mapping_in_studio_btn)
         self.reject_mapping_btn = QPushButton("Not Story")
         self.reject_mapping_btn.setToolTip(
-            "Keep this game text out of story context and remove it from the review queue."
+            "<b>Not story</b><br><br>"
+            "Leaves this game line out of the story map (HUD, shop bark, padding). "
+            "It is removed from the review queue and will not get a timeline event "
+            "or character-voice weight. Translations in the project are untouched."
         )
         self.reject_mapping_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
         self.reject_mapping_btn.clicked.connect(self._reject_selected_dialogue_mapping)
@@ -528,8 +601,10 @@ class MemePalaceBuilderUiMixin:
         self.table.setVisible(False)
         chapters_nav = QHBoxLayout()
         self.story_context_completion_label = QLabel(
-            "After the automatic search, only the decision cards shown above need attention. "
-            "If there are no cards, this step is complete."
+            "Step 1 first: after the automatic search, only the cards above need a "
+            "decision. When there are no cards, the links are done — then run "
+            "timeline and voices if you want scene-aware translation, before filling "
+            "the glossary."
         )
         self.story_context_completion_label.setWordWrap(True)
         self.story_context_completion_label.setStyleSheet("color: #666666;")
@@ -537,128 +612,110 @@ class MemePalaceBuilderUiMixin:
         chapters_nav.addStretch()
         self.story_context_done_btn = QPushButton("Done — Close Builder")
         self.story_context_done_btn.setToolTip(
-            "<b>Finish</b><br>"
-            "Click — close the builder. Everything decided so far is already saved; "
-            "reopening the builder resumes where you stopped."
+            "<b>Finish</b><br><br>"
+            "Closes the builder. Links, timeline events and voice profiles already "
+            "saved stay in MemePalace. Reopening resumes here. Glossary and "
+            "translation are the next pipeline steps, not this window."
         )
         self.story_context_done_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
         self.story_context_done_btn.setVisible(False)
         self.story_context_done_btn.clicked.connect(self._handle_close_or_cancel)
         chapters_nav.addWidget(self.story_context_done_btn)
-        self.mapping_next_btn = QPushButton("Analysis will unlock in the next stage")
-        self.mapping_next_btn.setToolTip(
-            "<b>Continue to step 3</b><br>"
-            "Click — move to Analysis. Unlocks once the story context queue is "
-            "cleared."
-        )
-        self.mapping_next_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
-        self.mapping_next_btn.setEnabled(False)
-        self.mapping_next_btn.setVisible(False)
-        self.mapping_next_btn.clicked.connect(lambda: self._go_to_wizard_step(2))
-        chapters_nav.addWidget(self.mapping_next_btn)
         chapters_layout.addLayout(chapters_nav)
-        self.workflow_tabs.addTab(chapters_tab, "2. Story Context")
 
-        # Step 3: future analysis and activity
-        analysis_tab = QWidget()
-        analysis_layout = QVBoxLayout(analysis_tab)
-        analysis_layout.setContentsMargins(14, 14, 14, 14)
-        analysis_layout.setSpacing(10)
-        analysis_intro = QLabel(
-            "Analyze mapped chapters and finish character speech profiling. Progress and logs "
-            "for long-running operations stay on this step."
+        activity_group = QGroupBox("Activity")
+        activity_layout = QVBoxLayout(activity_group)
+        activity_help = QLabel(
+            "Progress and the log belong to the jobs on this tab (Find Context, "
+            "timeline, voices). Prevent sleep for long AI runs. Clearing the database "
+            "wipes imported structure and analysis only — not your translations or "
+            "glossary."
         )
-        analysis_intro.setWordWrap(True)
-        analysis_layout.addWidget(analysis_intro)
-
-        analysis_actions = QGroupBox("Analysis actions")
-        analysis_actions_layout = QVBoxLayout(analysis_actions)
-        chapter_actions = QHBoxLayout()
-        self.analyze_chapter_btn = QPushButton("Analyze Selected Chapters")
-        self.analyze_chapter_btn.setToolTip(
-            "<b>Analyze selected chapters</b><br>"
-            "Click — run AI analysis on the chapters selected in the tree only.<br>"
-            "Ctrl-click and Shift-click in the tree to select several chapters "
-            "first. Progress appears in the activity log below."
-        )
-        self.analyze_chapter_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
-        self.analyze_chapter_btn.clicked.connect(self._analyze_selected_chapter)
-        chapter_actions.addWidget(self.analyze_chapter_btn)
-        self.analyze_all_chapters_btn = QPushButton("Analyze All Chapters")
-        self.analyze_all_chapters_btn.setToolTip(
-            "<b>Analyze all chapters</b><br>"
-            "Click — run AI analysis over every mapped chapter. Long-running and "
-            "billed per request; already analyzed chapters are reused."
-        )
-        self.analyze_all_chapters_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
-        self.analyze_all_chapters_btn.clicked.connect(self._analyze_all_chapters)
-        chapter_actions.addWidget(self.analyze_all_chapters_btn)
-        chapter_actions.addStretch()
-        analysis_actions_layout.addLayout(chapter_actions)
-        self.ai_profile_speech_btn = QPushButton("Profile Character Speech via AI")
-        self.ai_profile_speech_btn.setToolTip(
-            "<b>Profile character speech</b><br>"
-            "Click — have the AI describe how each character talks, so translations "
-            "keep a consistent voice. Needs chapters to be analyzed first."
-        )
-        self.ai_profile_speech_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
-        self.ai_profile_speech_btn.clicked.connect(self._profile_characters_speech_via_ai)
-        analysis_actions_layout.addWidget(self.ai_profile_speech_btn, 0, Qt.AlignmentFlag.AlignLeft)
-        analysis_layout.addWidget(analysis_actions)
-
-        automation_group = QGroupBox("Automation")
-        automation_layout = QVBoxLayout(automation_group)
-        self.pipeline_btn = QPushButton("Run Complete Automated Workflow")
-        self.pipeline_btn.setToolTip("Run all MemePalace processing steps sequentially.")
-        self.pipeline_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
-        self.pipeline_btn.clicked.connect(self._start_complete_pipeline)
-        automation_layout.addWidget(self.pipeline_btn, 0, Qt.AlignmentFlag.AlignLeft)
-        self.prevent_sleep_checkbox = QCheckBox("Prevent computer sleep during analysis")
+        activity_help.setWordWrap(True)
+        activity_help.setStyleSheet("color: #666666;")
+        activity_layout.addWidget(activity_help)
+        self.prevent_sleep_checkbox = QCheckBox("Prevent computer sleep during long jobs")
         self.prevent_sleep_checkbox.setChecked(True)
+        self.prevent_sleep_checkbox.setToolTip(
+            "<b>Prevent sleep</b><br><br>"
+            "Keeps the machine awake while Find Context, timeline or voice analysis "
+            "is running. Uncheck if you are only reviewing cards."
+        )
         self.prevent_sleep_checkbox.toggled.connect(self._handle_prevent_sleep_toggled)
-        self.sleep_after_checkbox = QCheckBox("Put computer to sleep when finished")
+        self.sleep_after_checkbox = QCheckBox("Sleep when the current job finishes")
         self.sleep_after_checkbox.setChecked(False)
+        self.sleep_after_checkbox.setToolTip(
+            "<b>Sleep when finished</b><br><br>"
+            "After the running job ends successfully, put the computer to sleep. "
+            "Cancelled or failed jobs do not sleep. Useful overnight for timeline "
+            "or voice analysis; not for a short Find Context pass."
+        )
         self.sleep_after_checkbox.toggled.connect(self._handle_sleep_after_toggled)
         sleep_layout = QHBoxLayout()
         sleep_layout.addWidget(self.prevent_sleep_checkbox)
         sleep_layout.addWidget(self.sleep_after_checkbox)
         sleep_layout.addStretch()
-        automation_layout.addLayout(sleep_layout)
-        analysis_layout.addWidget(automation_group)
-
+        activity_layout.addLayout(sleep_layout)
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
-        analysis_layout.addWidget(self.progress_bar)
-        analysis_layout.addWidget(QLabel("Activity log"))
+        self.progress_bar.setToolTip("Overall progress of the job currently running on this tab.")
+        activity_layout.addWidget(self.progress_bar)
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
-        self.log_text.setMinimumHeight(100)
-        analysis_layout.addWidget(self.log_text, 1)
+        self.log_text.setMinimumHeight(72)
+        self.log_text.setMaximumHeight(140)
+        self.log_text.setToolTip("Timestamped log of import, matching and AI jobs.")
+        activity_layout.addWidget(self.log_text)
         danger_row = QHBoxLayout()
         danger_row.addStretch()
         self.clear_btn = QPushButton("Clear MemePalace Database…")
         self.clear_btn.setToolTip(
-            "<b>Clear MemePalace database</b><br>"
-            "Click — permanently delete all imported structure, mappings and "
-            "analysis. Asks for confirmation first; there is no undo.<br>"
-            "Translations in the project are not touched."
+            "<b>Clear MemePalace database</b><br><br>"
+            "Permanently deletes imported structure, line links, timeline events and "
+            "voice profiles for this wing. Asks for confirmation; there is no undo.<br><br>"
+            "Does not touch translations, glossary entries, or the Markup Studio "
+            "project. Use after a bad import, not as a routine step."
         )
         self.clear_btn.setStyleSheet(DANGER_BUTTON_STYLE)
         self.clear_btn.clicked.connect(self._clear_database)
         danger_row.addWidget(self.clear_btn)
-        analysis_layout.addLayout(danger_row)
-        self.workflow_tabs.addTab(analysis_tab, "3. Analysis")
+        activity_layout.addLayout(danger_row)
+        chapters_layout.addWidget(activity_group)
 
+        self.workflow_tabs.addTab(chapters_tab, "2. Story Context")
         self.workflow_tabs.setTabEnabled(1, False)
-        self.workflow_tabs.setTabEnabled(2, False)
+
+        # Hidden leftovers from the retired chapter-mining tab. Methods and
+        # tests that still name these widgets keep working; they are not a step.
+        self.mapping_next_btn = QPushButton("Continue to Analysis →")
+        self.mapping_next_btn.setVisible(False)
+        self.mapping_next_btn.setEnabled(False)
+        self.analyze_chapter_btn = QPushButton("Analyze Selected Chapters")
+        self.analyze_chapter_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
+        self.analyze_chapter_btn.setVisible(False)
+        self.analyze_chapter_btn.clicked.connect(self._analyze_selected_chapter)
+        self.analyze_all_chapters_btn = QPushButton("Analyze All Chapters")
+        self.analyze_all_chapters_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
+        self.analyze_all_chapters_btn.setVisible(False)
+        self.analyze_all_chapters_btn.clicked.connect(self._analyze_all_chapters)
+        self.ai_profile_speech_btn = QPushButton("Profile Character Speech via AI")
+        self.ai_profile_speech_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
+        self.ai_profile_speech_btn.setVisible(False)
+        self.ai_profile_speech_btn.clicked.connect(self._profile_characters_speech_via_ai)
+        self.pipeline_btn = QPushButton("Run Complete Automated Workflow")
+        self.pipeline_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
+        self.pipeline_btn.setVisible(False)
+        self.pipeline_btn.clicked.connect(self._start_complete_pipeline)
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
         self.cancel_btn = QPushButton("Close")
         self.cancel_btn.setToolTip(
-            "<b>Close</b><br>"
-            "Click — close the builder (Esc). A running analysis is asked to stop "
-            "first; finished work stays saved."
+            "<b>Close</b><br><br>"
+            "Closes the builder (Esc). A running job is asked to stop first; "
+            "already saved links, timeline events and voice profiles stay. "
+            "When this builder is inside Localization Pipeline, use the pipeline "
+            "Close instead — this button is hidden there except as Stop."
         )
         self.cancel_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
         self.cancel_btn.clicked.connect(self._handle_close_or_cancel)

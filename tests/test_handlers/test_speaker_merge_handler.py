@@ -135,15 +135,34 @@ class TestRefusals:
         saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
         assert saved == {"Voice 41": "Renado"}
 
-    def test_a_conflicting_legacy_alias_is_revisited(self, tmp_path, no_dialog):
+    def test_an_applied_shared_voice_stays_visible_for_rematch(self, tmp_path, no_dialog):
         (tmp_path / ALIAS_FILENAME).write_text(
             json.dumps({"Voice 41": "RENADO / TELMA"}), encoding="utf-8"
         )
         mw = _mw(tmp_path)
-
         _run(mw, [("RENADO", LONG_A), ("RENADO", LONG_B)])
 
         result = no_dialog.report.call_args.args[0]
+        assert result.resolved["Voice 41"] == "RENADO / TELMA"
+        assert result.applied["Voice 41"] == "RENADO / TELMA"
+        assert result.proposed["Voice 41"] == "RENADO"
+        saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
+        assert saved == {"Voice 41": "RENADO / TELMA"}
+
+    def test_already_named_codes_still_appear_when_others_remain(self, tmp_path, no_dialog):
+        (tmp_path / ALIAS_FILENAME).write_text(
+            json.dumps({"Voice 41": "RENADO / TELMA"}), encoding="utf-8"
+        )
+        mw = _mw(
+            tmp_path,
+            rows={(0, 0): LONG_A, (0, 1): LONG_B, (0, 2): "A leftover unmatched line here"},
+            codes={(0, 0): "Voice 41", (0, 1): "Voice 41", (0, 2): "Bou"},
+        )
+        _run(mw, [("RENADO", LONG_A), ("TELMA", LONG_B)])
+
+        result = no_dialog.report.call_args.args[0]
+        assert result.resolved["Voice 41"] == "RENADO / TELMA"
+        assert "Bou" in result.all_placeholders
         assert "Voice 41" in result.all_placeholders
 
 
@@ -267,14 +286,13 @@ class TestMerging:
         _apply_from_dialog(no_dialog)
         mw.ui_updater.block_list_updater.refresh_virtual_folder_labels.assert_called_once()
 
-    def test_a_shared_voice_requires_a_manual_permanent_name(self, tmp_path, no_dialog):
-        """A review label is evidence, never a code-to-name identity."""
+    def test_a_shared_voice_saves_every_named_character(self, tmp_path, no_dialog):
         mw = _mw(tmp_path)
         _run(mw, [("RENADO", LONG_A), ("TELMA", LONG_B)])
-        _apply_from_dialog(no_dialog, chosen={"Voice 41": "RENADO"})
+        _apply_from_dialog(no_dialog)
 
         saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
-        assert saved == {"Voice 41": "RENADO"}
+        assert saved == {"Voice 41": "RENADO / TELMA"}
 
     def test_the_result_reaches_the_report_dialog(self, tmp_path, no_dialog):
         """The report is a dialog over the result, not a string built here."""
@@ -341,6 +359,38 @@ class TestSuggestionsFromTheGlossary:
         result = no_dialog.report.call_args.args[0]
         assert "Bans" not in result.unproven
 
+    def test_empty_glossary_reloads_from_disk_before_suggesting(self, tmp_path, no_dialog):
+        from types import SimpleNamespace
+
+        mw = _mw(tmp_path, codes={(0, 0): "Bans", (0, 1): "Bans"})
+        entry = SimpleNamespace(
+            original="Bans",
+            notes="",
+            suggested_name="BARNES",
+            suggested_name_evidence="shop",
+        )
+        manager = mw.translation_handler.glossary_handler.glossary_manager
+        manager.get_entries.side_effect = [[], [entry]]
+        _run(mw, [("SOMEONE ELSE", "A line that is nowhere in the game text")])
+
+        mw.translation_handler.glossary_handler.initialize_glossary_highlighting.assert_called_once()
+        result = no_dialog.report.call_args.args[0]
+        assert result.unproven["Bans"] == {"BARNES": 1}
+
+    def test_block_name_suggests_who_an_unmatched_code_is(self, tmp_path, no_dialog):
+        mw = _mw(
+            tmp_path,
+            rows={(0, 0): "A leftover unmatched line here"},
+            codes={(0, 0): "Bou"},
+        )
+        mw.data_store.block_names = {"0": "MAYOR BO"}
+        mw.translation_handler.glossary_handler.glossary_manager.get_entries.return_value = []
+        _run(mw, [("SOMEONE ELSE", "A line that is nowhere in the game text")])
+
+        result = no_dialog.report.call_args.args[0]
+        assert result.unproven["Bou"] == {"MAYOR BO": 1}
+        assert "block name" in result.evidence["Bou"][0].text.lower()
+
 
 class TestGlossaryMigrationOnApply:
     def test_save_names_migrates_glossary_entries_and_refreshes_views(self, tmp_path, no_dialog):
@@ -358,6 +408,20 @@ class TestGlossaryMigrationOnApply:
         glossary_handler._update_glossary_highlighting.assert_called_once()
         glossary_handler.refresh_open_dialog.assert_called_once()
         assert (tmp_path / ALIAS_FILENAME).exists()
+
+    def test_shared_voice_does_not_collapse_glossary_into_joined_name(self, tmp_path, no_dialog):
+        mw = _mw(tmp_path)
+        glossary_handler = MagicMock()
+        manager = MagicMock()
+        glossary_handler.glossary_manager = manager
+        mw.translation_handler.glossary_handler = glossary_handler
+
+        _run(mw, [("RENADO", LONG_A), ("TELMA", LONG_B)])
+        _apply_from_dialog(no_dialog)
+
+        saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
+        assert saved == {"Voice 41": "RENADO / TELMA"}
+        manager.rename_original.assert_not_called()
 
     def test_save_names_succeeds_even_if_glossary_manager_is_unavailable(self, tmp_path, no_dialog):
         mw = _mw(tmp_path)

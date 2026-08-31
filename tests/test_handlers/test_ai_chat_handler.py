@@ -52,6 +52,103 @@ def test_AIChatHandler_handle_send_message(mock_qthread_class, mock_worker_class
     assert 1 in chat_handler.sessions
     mock_worker_class.assert_called_once()
     mock_thread_instance.start.assert_called_once()
+    # Dialog input remains enabled (set_input_enabled(False) is never called)
+    chat_handler.dialog.set_input_enabled.assert_not_called()
+
+
+def test_AIChatHandler_busy_chat_queues_second_message(chat_handler, mock_mw):
+    chat_handler.dialog = MagicMock()
+    mock_thread = MagicMock()
+    mock_thread.isRunning.return_value = True
+    chat_handler._thread = mock_thread
+
+    chat_handler._handle_send_message(1, "second message", "openai", False)
+
+    # Dialog history NOT appended before dequeue
+    chat_handler.dialog.append_to_history.assert_not_called()
+    # Queued in _message_queue
+    assert len(chat_handler._message_queue) == 1
+    assert chat_handler._message_queue[0]["message"] == "second message"
+    assert chat_handler._message_queue[0]["tab_index"] == 1
+
+
+@patch('handlers.ai_chat_handler.AIWorker')
+@patch('handlers.ai_chat_handler.QThread')
+def test_AIChatHandler_queued_message_starts_after_worker_completes(mock_qthread, mock_worker, chat_handler, mock_mw):
+    chat_handler.dialog = MagicMock()
+    mock_provider = MagicMock()
+    mock_mw.translation_handler._prepare_provider.return_value = mock_provider
+    mock_provider.supports_sessions = True
+
+    # Setup running thread and worker
+    mock_thread_inst = MagicMock()
+    mock_thread_inst.isRunning.return_value = False
+    chat_handler._thread = mock_thread_inst
+    worker_mock = MagicMock()
+    chat_handler._worker = worker_mock
+    worker_mock.task_details = {'tab_index': 1}
+
+    # Queue second message
+    chat_handler._message_queue.append({
+        'tab_index': 1,
+        'message': 'queued message',
+        'provider_key': 'openai',
+        'web_search_enabled': False,
+    })
+
+    chat_handler._cleanup_worker()
+
+    # User bubble appended once upon starting the queued request
+    chat_handler.dialog.append_to_history.assert_called_once()
+    assert "queued message" in chat_handler.dialog.append_to_history.call_args.args[1]
+
+    # Queue should now be empty and second request started
+    assert len(chat_handler._message_queue) == 0
+    mock_worker.assert_called_once()
+    assert chat_handler._worker is not None
+
+
+@patch('handlers.ai_chat_handler.AIWorker')
+@patch('handlers.ai_chat_handler.QThread')
+def test_AIChatHandler_streaming_queue_end_to_end_ordering(mock_qthread, mock_worker, chat_handler, mock_mw):
+    chat_handler.dialog = MagicMock()
+    mock_provider = MagicMock()
+    mock_mw.translation_handler._prepare_provider.return_value = mock_provider
+    mock_provider.supports_sessions = True
+
+    mock_thread_inst = MagicMock()
+    mock_thread_inst.isRunning.return_value = False
+    mock_qthread.return_value = mock_thread_inst
+
+    # Send message 1
+    chat_handler._handle_send_message(1, "First prompt", "openai", False)
+    assert chat_handler.dialog.append_to_history.call_count == 1
+    assert "First prompt" in chat_handler.dialog.append_to_history.call_args.args[1]
+    assert len(chat_handler._message_queue) == 0
+
+    # While message 1 is running, send message 2
+    mock_thread_inst.isRunning.return_value = True
+    chat_handler._handle_send_message(1, "Second prompt", "openai", False)
+
+    # Second user bubble is NOT appended yet
+    assert chat_handler.dialog.append_to_history.call_count == 1
+    assert len(chat_handler._message_queue) == 1
+
+    # First stream completes and worker cleans up
+    mock_thread_inst.isRunning.return_value = False
+    response = MagicMock(text="AI response 1", annotations=[], conversation_id="conv-1")
+    context = {'tab_index': 1, 'session_state': MagicMock(), 'session_user_message': 'First prompt'}
+    chat_handler._on_ai_stream_finished(response, context)
+    assert chat_handler.dialog.append_to_history.call_count == 2  # +1 for AI message
+
+    # Worker cleanup triggers next queued message
+    chat_handler._cleanup_worker()
+
+    # Second user message is now appended and worker started
+    assert chat_handler.dialog.append_to_history.call_count == 3  # +1 for Second user message
+    assert "Second prompt" in chat_handler.dialog.append_to_history.call_args.args[1]
+    assert len(chat_handler._message_queue) == 0
+
 
 def test_AIChatHandler_process_annotations(chat_handler):
     assert chat_handler._process_annotations("foo", []) == "foo"

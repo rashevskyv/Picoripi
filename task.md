@@ -1,9 +1,8 @@
-# Завершено: єдиний автоматичний glossary pipeline (`0.3.087-dev`)
+# Список завдань (task.md)
 
-- [x] Один правильний маршрут замість набору конкуруючих режимів у UI.
-- [x] Структурні й Script Markup seeds перед AI-аналізом.
-- [x] Інкрементальний sweep усього проєкту або вибраних блоків.
-- [x] Автоматичні описи та декілька перекладів із rationale.
-- [x] Окремі AI-нотатки та ручні пропозиції можливих дублікатів.
-- [x] Невирішений backlog не блокує переклад тексту.
-- [x] Підсумковий звіт із переходом до глосарію або редактора.
+- [x] 1. Додавання режиму `raw=True` у `build_speaker_pool()` (`core/speaker_resolution.py`) без перекладу глосарієм для вихідної ідентичності
+- [x] 2. Підтримка `speaker_pool` у `GlossaryManager.bind_project_rows()` та `_append_owned_occurrences()` (`core/glossary_manager.py`)
+- [x] 3. Передача `raw_pool` у `bind_project_rows()` під час відкриття/оновлення діалогу глосарію (`handlers/translation/glossary_handler.py`)
+- [x] 4. Передача `raw_pool` у `bind_project_rows()` на старті пайплайну глосарію (`handlers/translation/glossary_pipeline_handler.py`)
+- [x] 5. Модульні тести для raw пулу, входжень та пайплайну (`test_speaker_pool.py`, `test_glossary_occurrence_bridge.py`, `test_glossary_pipeline_coordinator.py`, `test_glossary_pipeline_handler.py`)
+- [x] 6. Ітерація версії до `0.3.088-dev`, перевірка `ruff`, `git diff --check` та оновлення документації

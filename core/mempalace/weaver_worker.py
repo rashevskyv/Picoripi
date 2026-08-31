@@ -569,7 +569,9 @@ JSON format example (assuming target language is Ukrainian):
 
             try:
                 log_ai_traffic(mw, "mempalace_scene_annotation", messages)
-                response: ProviderResponse = self.ai_provider.translate(messages, session=None)
+                response: ProviderResponse = self.ai_provider.translate(
+                    messages, session=None, settings_override={"think": 1, "timeout": 300}
+                )
                 log_ai_traffic(mw, "mempalace_scene_annotation", messages, response_text=response.text)
                 
                 # Parse JSON safely

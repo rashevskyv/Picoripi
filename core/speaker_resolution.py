@@ -15,9 +15,10 @@ The resolution order (highest authority first) is:
 4. the active plugin rules fallback (``BaseGameRules.get_speaker_for_string``).
 
 Post-processing:
-If the resolved name has a confirmed alias in ``speaker_aliases.json``, it is mapped to
-that permanent alias (source suffix ``(alias)`` or ``alias``). Otherwise, if the name is an
-unconfirmed placeholder (``BaseGameRules.is_placeholder_speaker``), it is cleared to None/none
+If the resolved name has an applyable alias in ``speaker_aliases.json``, it is mapped to
+that permanent alias (source suffix ``(alias)`` or ``alias``). A shared voice keeps every
+named character joined with ``" / "``. Otherwise, if the name is an unconfirmed
+placeholder (``BaseGameRules.is_placeholder_speaker``), it is cleared to None/none
 so raw developer codes are never used as display names or sent to translation AI.
 
 Step 3 must be fed the **original** game text, never the edited/translated text:
@@ -31,7 +32,12 @@ import re
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from core.speaker_alias_merge import is_confirmed_speaker_alias
+from core.speaker_alias_merge import (
+    NAME_SEPARATOR,
+    is_applyable_speaker_alias,
+    is_confirmed_speaker_alias,
+    split_shared_speaker_names,
+)
 from utils.logging_utils import log_debug
 
 _UNKNOWN = ("", "unknown", "none")
@@ -293,6 +299,7 @@ def build_speaker_pool(
     composer: Any = None,
     projection: Any = None,
     script_raw_rows: Any = None,
+    raw: bool = False,
 ) -> dict:
     """The single source of truth mapping every row to its resolved speaker.
 
@@ -314,14 +321,38 @@ def build_speaker_pool(
     per row) so it is opt-in: pass ``script_raw_rows`` (a precomputed
     ``{row: raw_name}`` from ``resolve_script_speaker_raw_rows``) only from the
     user-triggered "rebuild virtual folders" action, and cache it. All script
-    speaker names are glossary-translated to match the editor field's display.
+    speaker names are glossary-translated to match the editor field's display,
+    unless ``raw=True`` is requested for source-identity consumers (like Glossary).
 
-    Returns ``{(block_idx, string_idx): display_name}`` for every resolved row.
+    Returns ``{(block_idx, string_idx): name}`` for every resolved row.
     Rows absent from the result belong to the ``None`` folder.
     """
     if composer is None:
         handler = getattr(mw, "translation_handler", None)
         composer = getattr(handler, "prompt_composer", None) if handler else None
+
+    if projection is None and mw is not None:
+        ui_updater = getattr(mw, "ui_updater", None)
+        block_updater = getattr(ui_updater, "block_list_updater", None)
+        cached = getattr(block_updater, "_story_projection_cache", None)
+        try:
+            from core.mempalace.story_timeline import StoryVirtualProjection
+
+            if isinstance(cached, StoryVirtualProjection):
+                projection = cached
+            elif composer is not None and hasattr(composer, "_get_mempalace_client"):
+                client = composer._get_mempalace_client()
+                if client is not None and hasattr(client, "get_story_virtual_projection"):
+                    candidate = client.get_story_virtual_projection()
+                    if isinstance(candidate, StoryVirtualProjection):
+                        projection = candidate
+        except Exception:
+            pass
+
+    if script_raw_rows is None and mw is not None:
+        ui_updater = getattr(mw, "ui_updater", None)
+        block_updater = getattr(ui_updater, "block_list_updater", None)
+        script_raw_rows = getattr(block_updater, "_script_speaker_raw_cache", None)
 
     translate = _glossary_translator(composer)
     aliases = _speaker_aliases(mw)
@@ -342,31 +373,39 @@ def build_speaker_pool(
             return text
         return canonical.setdefault(text.casefold(), text)
 
-    def display_name(name: Any) -> str:
-        raw = str(name or "").strip()
-        alias = aliases.get(raw)
-        return canonicalize(translate(alias if is_confirmed_speaker_alias(alias) else raw))
+    def resolve_name(name: Any) -> str:
+        raw_name = str(name or "").strip()
+        alias = aliases.get(raw_name)
+        if is_applyable_speaker_alias(alias):
+            parts = split_shared_speaker_names(alias)
+            return NAME_SEPARATOR.join(
+                canonicalize(translate(part) if not raw else part) for part in parts
+            )
+        target = alias if is_confirmed_speaker_alias(alias) else raw_name
+        return canonicalize(translate(target) if not raw else target)
 
     # Every source is glossary-translated to one canonical DISPLAY name so the
     # editor field and the folders show the identical string for a row (e.g. a
     # projection heading "TWILIGHT PRINCESS" and a script match both become
     # "Сутінкова Принцеса" and merge into one folder). Translating an already
-    # translated or non-glossary name is a no-op.
+    # translated or non-glossary name is a no-op. When raw=True, the source
+    # identity is kept without glossary translation.
 
     # 1. manual overrides (an explicit "None" blocks every lower source).
     from core.story_context_overrides import iter_story_context_overrides
+
     for block_idx, string_idx, assignment in iter_story_context_overrides(mw):
         if "speaker" not in assignment:
             continue
         name = str(assignment.get("speaker") or "").strip()
         resolved[(block_idx, string_idx)] = (
-            display_name(name) if _is_known(name) else None
+            resolve_name(name) if _is_known(name) else None
         )
 
     def fill(source_rows: dict) -> None:
         for row, name in source_rows.items():
             if row not in resolved and name:
-                resolved[row] = display_name(name)
+                resolved[row] = resolve_name(name)
 
     # 2. normalized marked-script speakers.
     if projection is not None:
@@ -456,7 +495,7 @@ def resolve_speaker_identity(mw: Any, name: Any) -> Optional[str]:
         return None
 
     alias = _speaker_aliases(mw).get(resolved)
-    if is_confirmed_speaker_alias(alias):
+    if is_applyable_speaker_alias(alias):
         return str(alias).strip() or None
 
     rules = getattr(mw, "current_game_rules", None) if mw else None

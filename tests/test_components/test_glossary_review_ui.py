@@ -1,10 +1,15 @@
 """M2: surfacing translation variants and the review state in the glossary dialog."""
 from unittest.mock import MagicMock
 
-from components.glossary_dialog import GlossaryDialog
+from components.glossary_dialog import (
+    GlossaryDialog,
+    _MULTI_VARIANT_BRUSH,
+    _UNREVIEWED_BRUSH,
+)
 from core.glossary_manager import (
     STATUS_CONFIRMED,
     STATUS_TRANSLATED,
+    DescriptionFragment,
     GlossaryEntry,
     TranslationVariant,
 )
@@ -30,6 +35,15 @@ AMBIGUOUS = _entry(
         TranslationVariant("Весняний Ґорон", "spring = season"),
     ),
 )
+AMBIGUOUS_2 = _entry(
+    "Autumn Goron",
+    "Осінній Ґорон",
+    status=STATUS_TRANSLATED,
+    variants=(
+        TranslationVariant("Осінній Ґорон", "autumn"),
+        TranslationVariant("Ґорон Осені", "fall"),
+    ),
+)
 SINGLE = _entry("Ordon", "Ордон", status=STATUS_TRANSLATED,
                 variants=(TranslationVariant("Ордон", "transliteration"),))
 CONFIRMED = _entry("Link", "Лінк", status=STATUS_CONFIRMED)
@@ -44,6 +58,7 @@ def _dialog(
     apply_speaker_name_callback=None,
     reassign_speaker_callback=None,
     speaker_codes_callback=None,
+    discuss_variant_callback=None,
 ):
     dialog = GlossaryDialog(
         entries=entries,
@@ -55,9 +70,49 @@ def _dialog(
         apply_speaker_name_callback=apply_speaker_name_callback,
         reassign_speaker_callback=reassign_speaker_callback,
         speaker_codes_callback=speaker_codes_callback,
+        discuss_variant_callback=discuss_variant_callback,
     )
     qtbot.addWidget(dialog)
     return dialog
+
+
+class TestTableScroll:
+    def test_selecting_the_translation_cell_does_not_pan_sideways(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE, AMBIGUOUS, CONFIRMED])
+        table = dialog._active_table()
+        table.setColumnWidth(0, 420)
+        table.setColumnWidth(1, 420)
+        table.setColumnWidth(2, 800)
+        table.resize(260, 180)
+        bar = table.horizontalScrollBar()
+        bar.setValue(0)
+        table.setCurrentCell(0, 1)
+        assert bar.value() == 0
+
+
+class TestReviewColours:
+    def _row_brush(self, dialog, term):
+        table = dialog._active_table()
+        for row in range(table.rowCount()):
+            item = table.item(row, 0)
+            if item and item.text() == term:
+                return item.background()
+        raise AssertionError(f"missing row {term}")
+
+    def test_unreviewed_and_ambiguous_rows_are_different_colours(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE, AMBIGUOUS, CONFIRMED, LEGACY])
+        assert self._row_brush(dialog, "Ordon") == _UNREVIEWED_BRUSH
+        assert self._row_brush(dialog, "Spring Goron") == _MULTI_VARIANT_BRUSH
+        assert self._row_brush(dialog, "Ordon") != self._row_brush(dialog, "Spring Goron")
+
+    def test_confirmed_and_legacy_rows_are_not_tinted(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE, AMBIGUOUS, CONFIRMED, LEGACY])
+        confirmed = self._row_brush(dialog, "Link")
+        legacy = self._row_brush(dialog, "Midna")
+        assert confirmed != _UNREVIEWED_BRUSH
+        assert confirmed != _MULTI_VARIANT_BRUSH
+        assert legacy != _UNREVIEWED_BRUSH
+        assert legacy != _MULTI_VARIANT_BRUSH
 
 
 class TestNeedsReview:
@@ -138,6 +193,67 @@ class TestVariantPicker:
         dialog._on_variant_chosen(dialog._variants_list.item(1))
         assert dialog._translation_edit.text() == "Весняний Ґорон"
 
+    def test_single_click_selects_variant_without_modifying_or_confirming(self, qtbot):
+        from PyQt6.QtCore import Qt
+        callback = MagicMock()
+        dialog = _dialog(qtbot, [AMBIGUOUS, SINGLE], update_callback=callback)
+        dialog.show()
+        dialog.focus_term("Spring Goron")
+        assert dialog._translation_edit.text() == "Ґорон Джерела"
+        assert dialog._current_entry.original == "Spring Goron"
+
+        # Simulate a real single click on the second proposed-variant item
+        rect = dialog._variants_list.visualItemRect(dialog._variants_list.item(1))
+        qtbot.mouseClick(dialog._variants_list.viewport(), Qt.MouseButton.LeftButton, pos=rect.center())
+
+        # Assert variant is selected in the list
+        assert dialog._variants_list.currentRow() == 1
+        # Assert callback was NOT called
+        callback.assert_not_called()
+        # Assert entry status is still STATUS_TRANSLATED (not confirmed)
+        assert dialog._current_entry.status == STATUS_TRANSLATED
+        assert dialog._current_entry.status != STATUS_CONFIRMED
+        # Assert translation edit unchanged
+        assert dialog._translation_edit.text() == "Ґорон Джерела"
+        # Assert dialog remains on the same glossary term
+        assert dialog._current_entry.original == "Spring Goron"
+
+    def test_variant_list_uses_horizontal_separators(self, qtbot):
+        from components.glossary_dialog import _VariantItemDelegate
+        dialog = _dialog(qtbot, [AMBIGUOUS])
+        delegate = dialog._variants_list.itemDelegate()
+        assert isinstance(delegate, _VariantItemDelegate)
+
+    def test_rich_text_item_delegate_size_hint_returns_qsize(self, qtbot):
+        from PyQt6.QtCore import QSize, Qt
+        from PyQt6.QtWidgets import QStyleOptionViewItem
+        from components.glossary_dialog import _RichTextItemDelegate
+        from core.glossary_manager import GlossaryOccurrence
+
+        occ = GlossaryOccurrence(AMBIGUOUS, 0, 0, 0, 0, 0, "<b>Goron</b> text")
+        dialog = _dialog(qtbot, [AMBIGUOUS])
+        dialog._occurrences = {AMBIGUOUS.original: [occ]}
+        dialog._update_occurrences(AMBIGUOUS)
+
+        delegate = dialog._occurrence_list.itemDelegate()
+        assert isinstance(delegate, _RichTextItemDelegate)
+        assert dialog._occurrence_list.count() > 0
+
+        item = dialog._occurrence_list.item(0)
+        index = dialog._occurrence_list.indexFromItem(item)
+        assert index.data(Qt.ItemDataRole.DisplayRole)  # non-empty HTML text
+
+        option = QStyleOptionViewItem()
+        option.font = dialog.font()
+        option.widget = dialog._occurrence_list
+        option.rect.setWidth(300)
+
+        hint = delegate.sizeHint(option, index)
+        assert isinstance(hint, QSize)
+        assert hint.isValid()
+        assert hint.width() > 0
+        assert hint.height() > 14
+
 
 class TestConfirm:
     def test_confirm_sends_confirmed_status(self, qtbot):
@@ -156,6 +272,34 @@ class TestConfirm:
         dialog = _dialog(qtbot, [CONFIRMED], update_callback=MagicMock())
         dialog._populate_variants(CONFIRMED)
         assert dialog._confirm_button.isVisibleTo(dialog) is False
+
+    def test_confirm_advances_to_the_next_term(self, qtbot):
+        first = _entry("Aardvark", "А", status=STATUS_TRANSLATED)
+        second = _entry("Bear", "Б", status=STATUS_TRANSLATED)
+
+        def update(original, translation, notes, profiled=None, **kwargs):
+            confirmed = _entry(original, translation, notes=notes, status=STATUS_CONFIRMED)
+            rest = [e for e in (first, second) if e.original != original]
+            return ([confirmed, *rest], {})
+
+        dialog = _dialog(qtbot, [first, second], update_callback=update)
+        dialog._show_entry_for_row(0)
+        assert dialog._current_entry.original == "Aardvark"
+        dialog._on_confirm_clicked()
+        assert dialog._current_entry.original == "Bear"
+
+    def test_confirm_on_the_last_term_stays_there(self, qtbot):
+        only = _entry("Aardvark", "А", status=STATUS_TRANSLATED)
+        confirmed = _entry("Aardvark", "А", status=STATUS_CONFIRMED)
+
+        dialog = _dialog(
+            qtbot,
+            [only],
+            update_callback=lambda *a, **k: ([confirmed], {}),
+        )
+        dialog._show_entry_for_row(0)
+        dialog._on_confirm_clicked()
+        assert dialog._current_entry.original == "Aardvark"
 
     def test_confirm_noop_without_callback(self, qtbot):
         dialog = _dialog(qtbot, [AMBIGUOUS])
@@ -254,6 +398,59 @@ class TestVariantChoiceSettlesTheEntry:
         assert callback.call_args.kwargs["status"] == STATUS_CONFIRMED
         assert callback.call_args.args[1] == "Весняний Ґорон"
 
+    def test_apply_selected_variant_button_confirms_and_advances(self, qtbot):
+        second = _entry("Ordon", "Ордон", status=STATUS_TRANSLATED)
+
+        def update_cb(orig, trans, notes, profiled=None, status=None, select_after=None):
+            c = _entry(orig, trans, notes=notes, status=status)
+            return ([c, second], {})
+
+        dialog = _dialog(qtbot, [AMBIGUOUS, second], update_callback=update_cb)
+        dialog._show_entry_for_row(0)
+        assert dialog._current_entry.original == "Spring Goron"
+
+        dialog._variants_list.setCurrentRow(1)
+        assert dialog._apply_variant_button.isEnabled() is True
+        dialog._apply_variant_button.click()
+
+        assert dialog._current_entry.original == "Ordon"
+
+    def test_double_click_on_variant_confirms_without_advancing(self, qtbot):
+        second = _entry("Ordon", "Ордон", status=STATUS_TRANSLATED)
+
+        def update_cb(orig, trans, notes, profiled=None, status=None, select_after=None):
+            c = _entry(orig, trans, notes=notes, status=status)
+            return ([c, second], {})
+
+        dialog = _dialog(qtbot, [AMBIGUOUS, second], update_callback=update_cb)
+        dialog._show_entry_for_row(0)
+        assert dialog._current_entry.original == "Spring Goron"
+
+        item1 = dialog._variants_list.item(1)
+        dialog._variants_list.itemDoubleClicked.emit(item1)
+
+        assert dialog._translation_edit.text() == "Весняний Ґорон"
+        assert dialog._current_entry.original == "Spring Goron"
+        assert dialog._current_entry.translation == "Весняний Ґорон"
+
+    def test_discuss_with_ai_button_invokes_callback(self, qtbot):
+        discuss_cb = MagicMock()
+        dialog = _dialog(qtbot, [AMBIGUOUS], discuss_variant_callback=discuss_cb)
+        dialog._current_entry = AMBIGUOUS
+        dialog._populate_variants(AMBIGUOUS)
+
+        assert dialog._discuss_variant_button.isVisibleTo(dialog) is True
+        assert dialog._discuss_variant_button.isEnabled() is True
+        dialog._discuss_variant_button.click()
+        discuss_cb.assert_called_once_with(AMBIGUOUS)
+
+    def test_discuss_with_ai_button_disabled_without_callback(self, qtbot):
+        dialog = _dialog(qtbot, [AMBIGUOUS], discuss_variant_callback=None)
+        dialog._current_entry = AMBIGUOUS
+        dialog._populate_variants(AMBIGUOUS)
+
+        assert dialog._discuss_variant_button.isEnabled() is False
+
     def test_confirmed_entry_is_no_longer_highlighted(self):
         """Confirming must win over the variants still on record.
 
@@ -272,10 +469,71 @@ class TestVariantChoiceSettlesTheEntry:
         )
         assert GlossaryDialog._needs_review(settled) is False
 
-    def test_variant_list_has_no_fixed_height_cap(self, qtbot):
-        """It lives in a splitter now, so the user can drag it larger."""
-        dialog = _dialog(qtbot, [AMBIGUOUS])
-        assert dialog._variants_list.maximumHeight() > 1000
+    def test_variants_pane_is_expandable_splitter_child_and_not_collapsed(self, qtbot):
+        dialog = _dialog(qtbot, [AMBIGUOUS, SINGLE, AMBIGUOUS_2])
+        dialog.show()
+        assert hasattr(dialog, "_main_splitter")
+        assert dialog._main_splitter.handleWidth() >= 4
+        assert hasattr(dialog, "_detail_splitter")
+        assert dialog._detail_splitter.widget(0) == dialog._variants_pane
+        assert dialog._detail_splitter.handleWidth() >= 4
+        assert dialog._lower_detail_splitter.count() == 3
+        assert dialog._lower_detail_splitter.handleWidth() >= 4
+        assert dialog._variants_pane.sizePolicy().verticalPolicy().name == "Expanding"
+
+        dialog.focus_term("Spring Goron")
+        assert dialog._variants_pane.isVisibleTo(dialog) is True
+        sizes = dialog._detail_splitter.sizes()
+        assert sizes[0] > 0
+
+        # Choose a nonzero custom variants-pane height and record actual size
+        dialog._detail_splitter.setSizes([500, 50])
+        chosen_height = dialog._detail_splitter.sizes()[0]
+        assert chosen_height > sizes[0]
+
+        # Switching between multi-variant terms preserves the chosen size
+        dialog.focus_term("Autumn Goron")
+        assert abs(dialog._detail_splitter.sizes()[0] - chosen_height) <= 2
+
+        # User chooses a shorter height, and switching terms preserves it
+        dialog._detail_splitter.setSizes([60, 600])
+        short_height = dialog._detail_splitter.sizes()[0]
+        assert short_height < 100
+        dialog.focus_term("Spring Goron")
+        assert abs(dialog._detail_splitter.sizes()[0] - short_height) <= 2
+
+        # Switch to the single-variant term so the pane is hidden
+        dialog.focus_term("Ordon")
+        assert dialog._variants_pane.isVisibleTo(dialog) is False
+
+        # Switch back to a multi-variant term and assert size is preserved within tolerance
+        dialog.focus_term("Spring Goron")
+        assert dialog._variants_pane.isVisibleTo(dialog) is True
+        assert abs(dialog._detail_splitter.sizes()[0] - short_height) <= 2
+
+        # If user collapsed the pane to zero, populating or switching restores it with usable nonzero height
+        dialog._detail_splitter.setSizes([0, 600])
+        assert dialog._detail_splitter.sizes()[0] == 0
+        dialog._populate_variants(AMBIGUOUS)
+        assert dialog._detail_splitter.sizes()[0] > 0
+
+        # The resize handle belongs to the list, before its action buttons.
+        handle = dialog._detail_splitter.handle(1)
+        handle_y = handle.mapToGlobal(handle.rect().center()).y()
+        list_bottom = dialog._variants_list.mapToGlobal(dialog._variants_list.rect().bottomLeft()).y()
+        buttons_top = dialog._apply_variant_button.mapToGlobal(dialog._apply_variant_button.rect().topLeft()).y()
+        assert list_bottom <= handle_y < buttons_top
+
+        # Resize the main horizontal splitter in both directions and check variants pane width
+        dialog._main_splitter.setSizes([200, 600])
+        qtbot.wait_exposed(dialog)
+        wide_width = dialog._variants_pane.width()
+
+        dialog._main_splitter.setSizes([600, 200])
+        qtbot.wait_exposed(dialog)
+        narrow_width = dialog._variants_pane.width()
+
+        assert wide_width > narrow_width
 
 
 class TestNotesPlaceholder:
@@ -323,6 +581,58 @@ class TestNotesPlaceholder:
         dialog._save_editor_changes()
 
         assert callback.call_args.args[2] == "Моє власне пояснення."
+
+
+class TestAiNotesPlaceholder:
+    """Sweep fragments keep {{TERM}} stored; the pane shows the chosen name."""
+
+    def _dialog_with_fragments(self, qtbot, update_callback=None):
+        entry = GlossaryEntry(
+            original="Agitha",
+            translation="Агіта",
+            notes="{{TERM}} — персонаж, що збирає комах.",
+            status=STATUS_TRANSLATED,
+            fragments=(
+                DescriptionFragment("{{TERM}} — це принцеса жучиного царства."),
+                DescriptionFragment("{{TERM}} живе у будинку в Замку Гірул."),
+            ),
+            translation_variants=(
+                TranslationVariant("Агіта", "трансліт"),
+                TranslationVariant("Агіта Принцеса", "з титулом"),
+            ),
+        )
+        dialog = _dialog(qtbot, [entry], update_callback=update_callback)
+        dialog._current_entry = entry
+        dialog._populate_entry_details(entry)
+        return dialog, entry
+
+    def test_ai_notes_show_the_active_translation_not_the_token(self, qtbot):
+        dialog, _ = self._dialog_with_fragments(qtbot)
+        shown = dialog._ai_notes_edit.toPlainText()
+        assert "{{TERM}}" not in shown
+        assert "Агіта — це принцеса жучиного царства." in shown
+        assert "Агіта живе у будинку в Замку Гірул." in shown
+
+    def test_ai_notes_follow_a_newly_picked_variant(self, qtbot):
+        callback = MagicMock(return_value=([], {}))
+        dialog, entry = self._dialog_with_fragments(qtbot, update_callback=callback)
+        dialog._populate_variants(entry)
+
+        dialog._on_variant_chosen(dialog._variants_list.item(1))
+
+        shown = dialog._ai_notes_edit.toPlainText()
+        assert "{{TERM}}" not in shown
+        assert "Агіта Принцеса — це принцеса жучиного царства." in shown
+
+    def test_ai_notes_follow_a_typed_translation(self, qtbot):
+        callback = MagicMock(return_value=([], {}))
+        dialog, _ = self._dialog_with_fragments(qtbot, update_callback=callback)
+
+        dialog._translation_edit.setText("Агітка")
+
+        shown = dialog._ai_notes_edit.toPlainText()
+        assert "{{TERM}}" not in shown
+        assert "Агітка — це принцеса жучиного царства." in shown
 
 
 class TestReviewStateFromContextMenu:
@@ -699,3 +1009,37 @@ class TestSpeakerIdentityResolution:
         assert dialog._apply_speaker_name_button.isEnabled() is True
         dialog._apply_speaker_name_button.click()
         reassign.assert_called_once_with("Ash", "ASHEI", "TELMA")
+
+
+class TestGlossaryOccurrenceDisplayAndNavigation:
+    """Occurrence display numbering and activation."""
+
+    def test_occurrence_display_uses_one_based_string_number_and_retains_zero_based_user_role(self, qtbot):
+        from PyQt6.QtCore import Qt
+        from core.glossary_manager import GlossaryOccurrence
+
+        occ = GlossaryOccurrence(AMBIGUOUS, 2, 743, 3, 0, 0, "Some occurrence text")
+        dialog = _dialog(qtbot, [AMBIGUOUS])
+        dialog._occurrences = {AMBIGUOUS.original: [occ]}
+        dialog._update_occurrences(AMBIGUOUS)
+
+        assert dialog._occurrence_list.count() == 1
+        item = dialog._occurrence_list.item(0)
+
+        # 1. An occurrence with string_idx=743 is displayed as string 744 (1-based)
+        display_html = item.data(Qt.ItemDataRole.DisplayRole)
+        assert "string <b>744</b>" in display_html
+        assert "string <b>743</b>" not in display_html
+        assert "line <b>4</b>" in display_html
+        assert "block <b>2</b>" in display_html
+
+        # 2. The QListWidgetItem UserRole still contains an occurrence whose string_idx is 743 (0-based)
+        stored_occ = item.data(Qt.ItemDataRole.UserRole)
+        assert isinstance(stored_occ, GlossaryOccurrence)
+        assert stored_occ.block_idx == 2
+        assert stored_occ.string_idx == 743
+        assert stored_occ.line_idx == 3
+
+        # Double click activates jump_callback with the stored 0-based occurrence
+        dialog._activate_selected_occurrence(item)
+        dialog._jump_callback.assert_called_once_with(stored_occ)

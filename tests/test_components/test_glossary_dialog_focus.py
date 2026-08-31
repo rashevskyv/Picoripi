@@ -33,6 +33,16 @@ def _dialog(qtbot, initial_term=None):
     return dlg
 
 
+def test_glossary_dialog_is_its_own_alt_tab_window(qtbot):
+    from PyQt6.QtCore import Qt
+
+    dlg = _dialog(qtbot)
+    assert dlg.parent() is None
+    assert dlg.windowFlags() & Qt.WindowType.Window
+    assert not dlg.isModal()
+    assert not dlg.testAttribute(Qt.WidgetAttribute.WA_QuitOnClose)
+
+
 def test_initial_term_selects_entry_and_switches_section(qtbot):
     dlg = _dialog(qtbot, initial_term="TWILIGHT PRINCESS")
     dlg.focus_term("TWILIGHT PRINCESS")  # deterministic (constructor uses a timer)
