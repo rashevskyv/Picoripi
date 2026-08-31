@@ -162,14 +162,17 @@ def test_zelda_bmg_rules_show_per_window_controls(qapp):
 
     dialog = SettingsDialog(mw)
 
-    assert dialog.zelda_window_layouts_grid.count() == 36
+    # 4 header labels + 9 groups * 4 widgets
+    assert dialog.zelda_window_layouts_grid.count() == 40
     assert dialog.per_window_mode_radio.isChecked()
     assert not dialog.shared_window_mode_radio.isChecked()
     assert dialog.window_rules_mode_stack.currentIndex() == 1
     assert dialog._zelda_window_layout_controls["dialog"]["max_width"].value() == 435
     assert dialog._zelda_window_layout_controls["item"]["warn_width"].value() == 340
     assert dialog._zelda_window_layout_controls["explain"]["max_width"].value() == 435
-    assert dialog._zelda_window_layout_controls["subtitles"]["lines_per_page"].value() == 2
+    assert dialog._zelda_window_layout_controls["subtitles"]["lines_per_page"].value() == 4
+    assert dialog._zelda_window_layout_controls["kanban_talk"]["lines_per_page"].value() == 7
+    assert dialog._zelda_window_layout_controls["signs"]["lines_per_page"].value() == 7
 
     dialog.shared_window_mode_radio.setChecked(True)
     assert dialog.window_rules_mode_stack.currentIndex() == 0
@@ -193,13 +196,21 @@ def test_zelda_bmg_window_rules_save_grouped_kinds_only_on_accept(qapp, tmp_path
     sign_controls["warn_width"].setValue(261)
     sign_controls["max_width"].setValue(281)
     sign_controls["lines_per_page"].setValue(5)
+    kanban_controls = dialog._zelda_window_layout_controls["kanban_talk"]
+    kanban_controls["warn_width"].setValue(401)
+    kanban_controls["max_width"].setValue(421)
+    kanban_controls["lines_per_page"].setValue(7)
     dialog.accept()
 
     saved = json.loads(target.read_text(encoding="utf-8"))
-    for kind in ("2", "15", "6"):
+    for kind in ("2", "6"):
         assert saved["kinds"][kind]["warn_width"] == 261
         assert saved["kinds"][kind]["max_width"] == 281
         assert saved["kinds"][kind]["lines_per_page"] == 5
+    # Kind 15 is Dialogue (kanban), not wood/stone — signs save must not touch it
+    assert saved["kinds"]["15"]["warn_width"] == 401
+    assert saved["kinds"]["15"]["max_width"] == 421
+    assert saved["kinds"]["15"]["lines_per_page"] == 7
     assert mw.current_game_rules._window_layouts is None
 
 

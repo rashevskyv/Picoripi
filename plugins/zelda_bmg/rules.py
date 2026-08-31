@@ -1044,15 +1044,18 @@ class GameRules(BaseGameRules):
     _ITEM_WINDOW_KIND = 9
 
     # Windows that are not one character speaking to another: subtitles and
-    # staff credits (1, 5, 7), signs (2, 6, 15), item windows (9), location
-    # plates (12), howling stones (17) and boss cards (19).
-    _NON_CONVERSATIONAL_KINDS = {1, 2, 5, 6, 7, 9, 12, 15, 17, 19}
+    # staff credits (1, 5, 7), wooden/stone signs (2, 6), item windows (9),
+    # location plates (12), howling stones (17) and boss cards (19).
+    # Kind 15 is Talk with kanban pagination (isKanbanMessage), so it stays
+    # conversational for speaker/addressee like other Talk dialogue.
+    _NON_CONVERSATIONAL_KINDS = {1, 2, 5, 6, 7, 9, 12, 17, 19}
 
-    # Of those, the ones with no speaker at all: signs (2, 6, 15), staff credits
-    # (7), item windows (9), location plates (12), howling stones (17) and boss
-    # cards (19). Subtitles (1, 5) are excluded -- somebody IS speaking there,
-    # we just cannot say who yet.
-    _SYSTEM_VOICE_KINDS = {2, 6, 7, 9, 12, 15, 17, 19}
+    # Of those, the ones with no speaker at all: wooden/stone signs (2, 6),
+    # staff credits (7), item windows (9), location plates (12), howling
+    # stones (17) and boss cards (19). Subtitles (1, 5) are excluded --
+    # somebody IS speaking there, we just cannot say who yet. Kind 15 is
+    # real Talk dialogue, so it is not System.
+    _SYSTEM_VOICE_KINDS = {2, 6, 7, 9, 12, 17, 19}
     _SYSTEM_SPEAKER = "System"
 
     # Prefix for a voice id we could not put a name to. Deliberately not a
@@ -1449,18 +1452,20 @@ class GameRules(BaseGameRules):
         (fuki_kind byte, dusklight JMSMesgEntry_c): talk box, wooden/stone
         sign, item-get window (item icon + indented text), cutscene
         subtitles, location plate, Midna / light-spirit talk variants, etc.
-        Shared values extracted from dusklight sources:
+        Message ID 0x02A5 forces the Item screen. Shared values from
+        dusklight sources:
           - talk frame alpha 0.9 (mBoxTalkAlphaP), text offset +4.5,0
             (mTextPosX/Y), black text shadow at +2,+2 (shadow pane TEV);
           - per-character halo colors per window kind (dMsgScrnLight_c);
           - text brightness: main text modulated by TEV white (200,200,200).
         """
-        from .window_kinds import window_style_for_kind, layout_for_kind
+        from .window_kinds import (
+            effective_fuki_kind, window_style_for_kind, layout_for_kind,
+        )
         fuki_kind = None
         if block_idx is not None and string_idx is not None:
             attrs = self.get_message_attributes(block_idx, string_idx)
-            if attrs:
-                fuki_kind = attrs.get("fuki_kind")
+            fuki_kind = effective_fuki_kind(attrs)
         # window_layouts.json drives pagination and lets users name/describe
         # window kinds the catalog doesn't know yet
         layout = layout_for_kind(self._get_window_layouts(), fuki_kind)
@@ -1487,8 +1492,8 @@ class GameRules(BaseGameRules):
         attrs = self.get_message_attributes(block_idx, string_idx)
         if attrs is None:
             return None
-        from .window_kinds import layout_for_kind
-        fuki_kind = attrs.get("fuki_kind")
+        from .window_kinds import effective_fuki_kind, layout_for_kind
+        fuki_kind = effective_fuki_kind(attrs)
         layout = layout_for_kind(self._get_window_layouts(), fuki_kind)
         layout = self._resolve_auto_widths(layout, fuki_kind)
         return layout or None

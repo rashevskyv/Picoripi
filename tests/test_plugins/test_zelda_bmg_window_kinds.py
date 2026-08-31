@@ -47,15 +47,21 @@ def test_decode_message_attributes_tolerates_short_info():
 
 
 def test_window_styles_per_kind():
-    # signs: wooden (2, 15) and stone (6), no per-character halo
+    # signs: wooden (2) and stone (6), no per-character halo
     wood = window_style_for_kind(2)
     assert wood["kind_name"] == "Wooden sign"
     assert wood["frame"]["style"] == "wood"
     assert "halo" not in wood
-    assert window_style_for_kind(15)["frame"]["style"] == "wood"
     stone = window_style_for_kind(6)
     assert stone["kind_name"] == "Stone sign"
     assert stone["frame"]["style"] == "stone"
+
+    # kind 15 is Talk visuals with kanban pagination — not a wooden sign
+    kanban_talk = window_style_for_kind(15)
+    assert kanban_talk["kind_name"] == "Dialogue (kanban)"
+    assert kanban_talk["frame"]["style"] == "talk"
+    assert kanban_talk["halo"]["color"] == "#e1d26e"
+    assert kanban_talk["screen_class"] == "talk"
 
     # item-get window: item icon slot + indented text
     item = window_style_for_kind(9)
@@ -85,6 +91,7 @@ def test_window_styles_per_kind():
     assert talk["frame"]["style"] == "talk"
     assert talk["halo"]["color"] == "#e1d26e"
     assert window_style_for_kind(99)["frame"]["style"] == "talk"
+    assert window_style_for_kind(99)["kind_name"] == "Dialogue (kind 99)"
     assert window_style_for_kind(None)["frame"]["style"] == "talk"
 
 
@@ -176,14 +183,17 @@ def test_boss_names_are_excluded_from_automatic_story_matching(bmg_rules):
 
 
 @pytest.mark.parametrize("kind, warn, max_width, lines", [
-    (0, 410, 435, 4),    # all talk variants use the JSON default
-    (2, 340, 360, 4),    # wooden sign
-    (6, 340, 360, 4),    # stone sign
+    (0, 410, 435, 4),    # talk default
+    (1, 460, 480, 4),    # subtitles / jimaku getLineMax
+    (5, 460, 480, 4),
+    (2, 340, 360, 7),    # wooden sign (kanban pagination)
+    (6, 340, 360, 7),    # stone sign
+    (15, 410, 435, 7),   # Dialogue (kanban): Talk widths, kanban lines
+    (7, 400, 420, 10),   # staff credits
     (9, 340, 360, 4),    # item window
-    (16, 410, 435, 4),   # descriptions / save
-    (1, 460, 480, 2),    # subtitles
-    (12, 420, 440, 1),   # location name
-    (19, 420, 440, 1),   # boss name
+    (16, 410, 435, 6),   # descriptions / save
+    (12, 420, 440, 4),   # location name
+    (19, 420, 440, 4),   # boss name
     (17, 300, 320, 4),   # howling
 ])
 def test_rules_string_layout_uses_json_defaults_per_window_kind(
@@ -195,6 +205,110 @@ def test_rules_string_layout_uses_json_defaults_per_window_kind(
     assert layout["warn_width"] == warn
     assert layout["max_width"] == max_width
     assert layout["lines_per_page"] == lines
+
+
+def test_message_0x02a5_forces_item_window(bmg_rules):
+    bmg_rules.last_loaded_bmg = _FakeBmg([
+        _FakeMsg(_info(msg_id=0x02A5, fuki_kind=0)),
+    ])
+    style = bmg_rules.get_preview_window_style(0, 0)
+    layout = bmg_rules.get_string_layout(0, 0)
+    assert style["kind_name"] == "Item get"
+    assert style["frame"]["style"] == "item"
+    assert layout["max_width"] == 360
+
+
+class _PreviewDS:
+    def __init__(self, json_path="a.bmg", edited_json_path=None):
+        self.physical_block_idx = 0
+        self.current_block_idx = 0
+        self.current_string_idx = 0
+        self.json_path = json_path
+        self.edited_json_path = edited_json_path
+
+
+def _wire_preview_mw(bmg_rules, msg):
+    bmg_rules.last_loaded_bmg = _FakeBmg([msg])
+    bmg_rules.mw.data_store = _PreviewDS()
+    bmg_rules.mw.active_game_plugin = "zelda_bmg"
+    bmg_rules.mw.current_game_rules = bmg_rules
+    bmg_rules.mw.preview_enabled = True
+    bmg_rules.mw.preview_bg_image_path = ""
+    bmg_rules.mw.preview_bg_scale = 100
+    bmg_rules.mw.preview_bg_offset_x = 0
+    bmg_rules.mw.preview_bg_offset_y = 0
+    bmg_rules.mw.preview_bg_hidden = False
+    bmg_rules.mw.preview_line_spacing = 10
+    bmg_rules.mw.preview_text_rect = [40, 30, 280, 110]
+    bmg_rules.mw.preview_text_color = "#ffffff"
+    bmg_rules.mw.preview_shadow_enabled = False
+    bmg_rules.mw.preview_glow_enabled = False
+    bmg_rules.mw.preview_fix_font_scale = False
+    bmg_rules.mw.preview_fixed_font_scale = 1.0
+    bmg_rules.mw.preview_char_spacing = 0
+    bmg_rules.mw.all_bfn_fonts = {}
+    bmg_rules.mw.default_font_file = None
+    bmg_rules.mw.project_manager = None
+    bmg_rules.mw.string_metadata = {}
+    return bmg_rules.mw
+
+
+def test_manual_preview_override_does_not_mutate_bmg_info(qapp, bmg_rules):
+    from ui.components.bfn_preview_widget import BfnPreviewWidget
+
+    info = bytearray(_info(msg_id=0x100, fuki_kind=0))
+    msg = _FakeMsg(bytes(info))
+    _wire_preview_mw(bmg_rules, msg)
+
+    widget = BfnPreviewWidget(bmg_rules.mw)
+    before = bytes(msg.info)
+    widget.cycle_window_preset(1)  # Dialogue explicit
+    widget.cycle_window_preset(1)  # Wooden sign
+    assert bytes(msg.info) == before
+    assert decode_message_attributes(msg.info)["fuki_kind"] == 0
+    assert widget._get_game_window_style()["frame"]["style"] == "wood"
+    # Auto still resolves from the unchanged message attrs
+    widget._window_preset_override = None
+    assert widget._get_game_window_style()["frame"]["style"] == "talk"
+
+
+def test_preview_override_resets_when_file_path_changes(qapp, bmg_rules):
+    from ui.components.bfn_preview_widget import BfnPreviewWidget
+
+    msg = _FakeMsg(_info(msg_id=0x100, fuki_kind=0))
+    _wire_preview_mw(bmg_rules, msg)
+    widget = BfnPreviewWidget(bmg_rules.mw)
+    widget.cycle_window_preset(1)
+    widget.cycle_window_preset(1)  # Wooden sign
+    assert widget._window_preset_override == 2
+
+    # Same block index, different loaded file -> override returns to Auto
+    bmg_rules.mw.data_store.json_path = "other_file.bmg"
+    widget._sync_window_preset_scope()
+    assert widget._window_preset_override is None
+    assert widget._get_game_window_style()["frame"]["style"] == "talk"
+
+
+def test_manual_override_beats_0x02a5_in_preview_only(qapp, bmg_rules):
+    from ui.components.bfn_preview_widget import BfnPreviewWidget
+
+    info = bytearray(_info(msg_id=0x02A5, fuki_kind=0))
+    msg = _FakeMsg(bytes(info))
+    _wire_preview_mw(bmg_rules, msg)
+    widget = BfnPreviewWidget(bmg_rules.mw)
+
+    assert widget._resolve_auto_window_style()["frame"]["style"] == "item"
+    assert bmg_rules.get_string_layout(0, 0)["max_width"] == 360
+
+    widget.cycle_window_preset(1)
+    widget.cycle_window_preset(1)  # Wooden sign override
+    assert widget._get_game_window_style()["frame"]["style"] == "wood"
+    # Layout / Auto still force Item from message id; INF1 untouched
+    assert bmg_rules.get_string_layout(0, 0)["max_width"] == 360
+    assert widget._resolve_auto_window_style()["kind_name"] == "Item get"
+    assert decode_message_attributes(msg.info)["message_id"] == 0x02A5
+    assert decode_message_attributes(msg.info)["fuki_kind"] == 0
+    assert bytes(msg.info) == bytes(info)
 
 
 def test_unknown_kind_shows_number_and_json_can_name_it():
@@ -375,3 +489,75 @@ def test_preview_widget_renders_window_kind_frames(qapp, kind, expected_hue):
         assert gray > 200, "stone sign frame not painted"
     else:
         assert teal > 20, "item placeholder not painted"
+
+
+def test_item_get_uses_four_line_text_pane():
+    from plugins.zelda_bmg.window_frame_loader import _text_pane_rect
+    box = (29.5, 273.5, 551.0, 117.0)
+    icon = (58.0, 286.0, 100.0, 100.0)
+    text = _text_pane_rect("item", box, icon)
+    assert text[2] == 400.0
+    assert text[3] == 95.0
+    # 4 game lines in 95px; a 5th line would need ~119px.
+    assert text[3] / 4 < 28
+    assert text[0] >= icon[0] + icon[2]
+
+
+def test_talk_text_pane_is_inset_from_window():
+    from plugins.zelda_bmg.window_frame_loader import _text_pane_rect
+    box = (29.5, 283.5, 551.0, 117.0)
+    text = _text_pane_rect("talk", box, None)
+    assert text[2] == 443.0
+    assert text[3] == 114.0
+    assert text[0] > box[0] + 40
+    assert text[0] + text[2] < box[0] + box[2] - 40
+
+
+def test_subtitles_do_not_load_talk_dump_frame():
+    from plugins.zelda_bmg.window_frame_loader import screen_class_for_kind
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+    assert screen_class_for_kind(1, window_style_for_kind(1)) is None
+    assert screen_class_for_kind(5, window_style_for_kind(5)) is None
+    assert screen_class_for_kind(2, window_style_for_kind(2)) == "wood"
+    assert screen_class_for_kind(9, window_style_for_kind(9)) == "item"
+
+
+def test_gx_i8_decode_writes_luma_pixels():
+    from plugins.zelda_bmg.gx_texture import decode_gx
+    from PyQt6.QtGui import QImage
+
+    # One 8x4 I8 tile of 0x80.
+    img = decode_gx(bytes([0x80] * 32), 8, 4, 1)
+    assert img.width() == 8 and img.height() == 4
+    c = img.pixelColor(0, 0)
+    assert c.red() == 128 and c.alpha() == 128
+
+
+def test_dump_talk_frame_loads_when_msgres_present(qapp, tmp_path):
+    pytest.importorskip("PyQt6")
+    from plugins.zelda_bmg.window_frame_loader import (
+        find_layout_root, load_window_frame, _CACHE, _LAYOUT_ROOT,
+    )
+    import plugins.zelda_bmg.window_frame_loader as loader
+
+    layout = find_layout_root()
+    if layout is None:
+        from pathlib import Path
+        known = Path(r"E:\Emulators\RomHacking\ZELDA\TP_UA\ISO\ENG\root\res\Layout")
+        if not (known / "msgres01.arc").is_file():
+            pytest.skip("retail Layout dump not available")
+        loader._LAYOUT_ROOT = known
+    loader._CACHE.pop("talk", None)
+    frame = load_window_frame("talk")
+    assert frame is not None
+    assert not frame.image.isNull()
+    assert frame.screen[0] >= 600
+    assert frame.box[2] > 200 and frame.box[3] > 50
+    # Opaque ornament or fill pixels exist.
+    sample = 0
+    img = frame.image
+    for y in range(0, img.height(), 8):
+        for x in range(0, img.width(), 8):
+            if img.pixelColor(x, y).alpha() > 40:
+                sample += 1
+    assert sample > 20

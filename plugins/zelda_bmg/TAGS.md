@@ -341,25 +341,31 @@ MemPalace.
 (+0x0B, позиція вікна), `se_mood` (+0x0E, емоція), `camera_id` (+0x0F),
 анімації тіла/обличчя NPC (+0x10/+0x11).
 
-Мапа значень (switch у `d_msg_object.cpp`):
+Мапа значень (`dMsgObject_c::talkStartInit` / `getLineMax`, non-JP):
 
-| fuki_kind | Екран | Ресурс | Прев'ю |
+| fuki_kind | Екран | Ресурс | Прев'ю / рядки |
 |---|---|---|---|
-| 0, 3, 4, 10, 11, 16, 18… | dMsgScrnTalk_c | zelda_message_window_new.blo | звичайне діалогове вікно, золоте сяйво |
-| 1, 5 | dMsgScrnJimaku_c | zelda_jimaku_message_text.blo | субтитри катсцен — без рамки |
-| 2, 15 | dMsgScrnTree_c | zelda_kanban_wood_a.blo | дерев'яна табличка |
-| 6 | dMsgScrnKanban_c | zelda_kanban_stone_a.blo | кам'яна табличка |
-| 7 | dMsgScrnStaff_c | — | титри |
-| 8 | dMsgScrnTalk_c | ..._text_seirei.blo | вікно духа світла: яскраво-жовте сяйво + «пікарі» |
-| 9 | dMsgScrnItem_c | zelda_item_get_window.blo | вікно предмета: іконка зліва, текст зсунуто вправо |
-| 12 | dMsgScrnPlace_c | — | плашка назви локації |
+| 0, 3, 4, 10, 11, 16, 18… | dMsgScrnTalk_c | zelda_message_window_new.blo | звичайний діалог (16 = Descriptions/save, 6 рядків) |
+| 1, 5 | dMsgScrnJimaku_c | zelda_jimaku_message_text.blo | субтитри катсцен — без рамки (4 рядки) |
+| 2 | dMsgScrnTree_c | zelda_kanban_wood_a.blo | дерев'яна табличка (7 рядків) |
+| 6 | dMsgScrnKanban_c | zelda_kanban_stone_a.blo | кам'яна табличка (7 рядків) |
+| 7 | dMsgScrnStaff_c | — | титри (10 рядків) |
+| 8 | dMsgScrnTalk_c | ..._text_seirei.blo | вікно духа світла: яскраво-жовте сяйво |
+| 9 | dMsgScrnItem_c | zelda_item_get_window.blo | вікно предмета: іконка зліва (повідомлення `0x02A5` завжди Item) |
+| 12 | dMsgScrnPlace_c | — | плашка назви локації (4 рядки) |
 | 13 | dMsgScrnTalk_c | — | вікно Мідни: блакитний текст #82e6e6, синє сяйво |
 | 14 | dMsgScrnTalk_c | — | діалог із зеленим текстом #96dc64 |
-| 17 | dMsgScrnHowl_c | — | вовче виття — без рамки |
-| 19 | dMsgScrnBoss_c | — | ім'я боса — без рамки |
+| 15 | dMsgScrnTalk_c | — | Dialogue (kanban): візуал Talk, пагінація як у знаків (`isKanbanMessage`, 7 рядків); реальний діалог для speaker/addressee |
+| 17 | dMsgScrnHowl_c | — | вовче виття — без рамки (4 рядки) |
+| 19 | dMsgScrnBoss_c | — | ім'я боса — без рамки (4 рядки) |
 
-Прев'ю в редакторі визначає тип автоматично з `msg.info` і малює відповідну
-рамку; назва типу показується маленьким бейджем над рамкою.
+`dMsgScrnExplain_c` не вибирається з BMG `fuki_kind` — лише ручний пресет у прев'ю.
+`isKanbanMessage`: kinds 2, 6, 15.
+
+Прев'ю в редакторі визначає тип автоматично з `msg.info` (і `0x02A5` → Item)
+і малює відповідну рамку зі стабільною геометрією пресету; назва типу
+показується маленьким бейджем. Під прев'ю є перемикач Auto / ручний пресет
+екрана (не змінює INF1/BMG).
 
 Ліміти ширини рядка, шрифт і кількість рядків на сторінку для кожного типу
 вікна задаються у `window_layouts.json` (пріоритет: ручний override рядка >

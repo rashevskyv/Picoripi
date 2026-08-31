@@ -8,7 +8,9 @@
         "kind entries override it for other windows. Explicit per-string",
         "overrides always win. font_file picks the BFN font for the kind",
         "(empty = default font).",
-        "lines_per_page drives preview pagination and the page-height scale.",
+        "lines_per_page follows non-JP getLineMax: kanban kinds 2/6/15 -> 7,",
+        "staff 7 -> 10, save 16 -> 6, all others including jimaku/place/boss -> 4.",
+        "Kind 15 is Talk visuals with kanban pagination (not a wooden sign).",
         "An optional 'name' labels the kind in the editor (preview badge and the",
         "Window: label). Unknown kinds show as 'Dialogue (kind N)' - to classify",
         "one (e.g. the ring-menu item info screen), add its number here."
@@ -23,38 +25,37 @@
         "1": {
             "warn_width": 460,
             "max_width": 480,
-            "lines_per_page": 2,
+            "lines_per_page": 4,
             "name": "Subtitles"
         },
         "5": {
             "warn_width": 460,
             "max_width": 480,
-            "lines_per_page": 2,
+            "lines_per_page": 4,
             "name": "Subtitles"
         },
         "2": {
             "warn_width": 340,
             "max_width": 360,
-            "lines_per_page": 4,
+            "lines_per_page": 7,
             "name": "Wooden sign"
         },
         "15": {
-            "warn_width": 340,
-            "max_width": 360,
-            "font_file": "reishotai_24_22.bfn",
-            "lines_per_page": 4,
-            "name": "Wooden sign"
+            "warn_width": 410,
+            "max_width": 435,
+            "lines_per_page": 7,
+            "name": "Dialogue (kanban)"
         },
         "6": {
             "warn_width": 340,
             "max_width": 360,
-            "lines_per_page": 4,
+            "lines_per_page": 7,
             "name": "Stone sign"
         },
         "7": {
             "warn_width": 400,
             "max_width": 420,
-            "lines_per_page": 4,
+            "lines_per_page": 10,
             "name": "Staff credits"
         },
         "9": {
@@ -67,13 +68,13 @@
             "warn_width": 420,
             "max_width": 440,
             "font_file": "reishotai_24_22.bfn",
-            "lines_per_page": 1,
+            "lines_per_page": 4,
             "name": "Location name"
         },
         "16": {
             "warn_width": 410,
             "max_width": 435,
-            "lines_per_page": 4,
+            "lines_per_page": 6,
             "name": "Descriptions / save"
         },
         "17": {
@@ -86,7 +87,7 @@
             "warn_width": 420,
             "max_width": 440,
             "font_file": "reishotai_24_22.bfn",
-            "lines_per_page": 1,
+            "lines_per_page": 4,
             "name": "Boss name"
         }
     }

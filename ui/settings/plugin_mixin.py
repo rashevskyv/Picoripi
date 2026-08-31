@@ -17,7 +17,8 @@ class SettingsPluginMixin:
 
     _ZELDA_BMG_WINDOW_GROUPS = (
         ("dialog", "Dialogue (all talk variants)", None),
-        ("signs", "Wood / stone signs", ("2", "15", "6")),
+        ("signs", "Wood / stone signs", ("2", "6")),
+        ("kanban_talk", "Dialogue (kanban)", ("15",)),
         ("item", "Item window", ("9",)),
         ("explain", "Descriptions / save", ("16",)),
         ("subtitles", "Subtitles", ("1", "5")),

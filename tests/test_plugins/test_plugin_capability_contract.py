@@ -393,7 +393,7 @@ class TestSystemLines:
         rules._speaker_id_table_cache = {}
         return rules
 
-    @pytest.mark.parametrize("kind", [2, 6, 7, 9, 12, 15, 17, 19])
+    @pytest.mark.parametrize("kind", [2, 6, 7, 9, 12, 17, 19])
     def test_signs_items_plates_and_credits_are_system(self, kind):
         assert self._rules(kind).get_speaker_for_string(0, 0) == "System"
 
@@ -404,6 +404,10 @@ class TestSystemLines:
 
     def test_a_talk_box_is_not_system(self):
         assert self._rules(0).get_speaker_for_string(0, 0) is None
+
+    def test_kanban_talk_kind_15_is_not_system(self):
+        """Kind 15 is Talk with kanban pagination, not a wooden sign."""
+        assert self._rules(15).get_speaker_for_string(0, 0) is None
 
 
 class TestSpeakerFromVoiceId:

@@ -4,7 +4,8 @@ import re
 from collections import OrderedDict
 from pathlib import Path
 from PyQt6.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
-                             QColorDialog, QVBoxLayout, QPushButton, QFrame, QDialog)
+                             QColorDialog, QVBoxLayout, QHBoxLayout, QPushButton,
+                             QFrame, QDialog, QLabel, QSizePolicy)
 from PyQt6.QtGui import (QPainter, QColor, QImage, QPen, QPainterPath, QFontMetrics,
                          QRadialGradient, QBrush)
 from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize
@@ -75,6 +76,59 @@ class BfnSideButton(QPushButton):
         self.setProperty("active", active)
         self.style().unpolish(self)
         self.style().polish(self)
+
+
+class BfnPreviewWindowBar(QFrame):
+    """Compact Auto / manual window-preset switcher placed under the preview.
+
+    Ephemeral UI state only — never rewrites INF1/BMG attributes.
+    """
+
+    def __init__(self, preview_widget: 'BfnPreviewWidget'):
+        super().__init__(preview_widget.parent() if preview_widget else None)
+        self.preview = preview_widget
+        self.setObjectName("bfn_preview_window_bar")
+        self.setFixedHeight(28)
+        self.setStyleSheet(
+            "BfnPreviewWindowBar {"
+            "  background: #181818;"
+            "  border: 1px solid #2a2a2a;"
+            "  border-radius: 4px;"
+            "}"
+            "QPushButton {"
+            "  background: #1e1e1e;"
+            "  color: #cccccc;"
+            "  border: 1px solid #3a3a3a;"
+            "  border-radius: 4px;"
+            "  font-size: 11px;"
+            "  min-width: 26px;"
+            "  max-width: 26px;"
+            "  min-height: 22px;"
+            "}"
+            "QPushButton:hover { background: #2d2d2d; color: #ffffff; }"
+            "QLabel { color: #c8c8c8; font-size: 11px; }"
+        )
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(6, 2, 6, 2)
+        layout.setSpacing(6)
+        self.btn_prev = QPushButton("◀", self)
+        self.btn_next = QPushButton("▶", self)
+        self.label = QLabel("Auto", self)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.btn_prev.setToolTip("Previous message-window preview preset")
+        self.btn_next.setToolTip("Next message-window preview preset")
+        self.btn_prev.clicked.connect(lambda: self.preview.cycle_window_preset(-1))
+        self.btn_next.clicked.connect(lambda: self.preview.cycle_window_preset(1))
+        layout.addWidget(self.btn_prev)
+        layout.addWidget(self.label, 1)
+        layout.addWidget(self.btn_next)
+        if preview_widget is not None:
+            preview_widget.window_preset_bar = self
+            preview_widget._refresh_window_preset_label()
+
+    def set_label(self, text: str):
+        self.label.setText(text)
 
 
 class BfnPreviewSideBar(QFrame):
@@ -336,6 +390,13 @@ class BfnPreviewWidget(QWidget):
         self._page_count = 1
         self._build_page_bar()
 
+        # Preview-only window preset override (None = Auto from message attrs)
+        self._window_preset_override = None
+        self._window_preset_scope = None
+        self.window_preset_bar = None
+        self._last_frame_rect = QRectF()
+        self._last_text_rect = QRect()
+
     def load_translation_map(self):
         """Load translation map."""
         project_dir = None
@@ -390,13 +451,67 @@ class BfnPreviewWidget(QWidget):
         if not getattr(self.mw, 'preview_enabled', True):
             return
         self.activate_preview()
+        self._sync_window_preset_scope()
         if text != self.text:
             self._preview_page = 0
         self.text = text
         if self.isHidden():
             return
         self._refresh_page_bar()
+        self._refresh_window_preset_label()
         self.update()
+
+    def _window_preset_scope_token(self):
+        """Identity of the loaded plugin + file/block; override resets when it changes."""
+        plugin = getattr(self.mw, 'active_game_plugin', None)
+        ds = getattr(self.mw, 'data_store', None)
+        block_idx = getattr(ds, 'physical_block_idx', None) if ds is not None else None
+        if block_idx is None:
+            block_idx = getattr(ds, 'current_block_idx', None) if ds is not None else None
+        json_path = getattr(ds, 'json_path', None) if ds is not None else None
+        edited_path = getattr(ds, 'edited_json_path', None) if ds is not None else None
+        return (plugin, block_idx, json_path, edited_path)
+
+    def _sync_window_preset_scope(self):
+        token = self._window_preset_scope_token()
+        if token != self._window_preset_scope:
+            self._window_preset_scope = token
+            self._window_preset_override = None
+
+    def cycle_window_preset(self, delta: int):
+        """Cycle the ephemeral preview window preset (does not mutate BMG/info)."""
+        try:
+            from plugins.zelda_bmg.window_kinds import PREVIEW_WINDOW_PRESETS
+            presets = list(PREVIEW_WINDOW_PRESETS)
+        except Exception:
+            presets = [None]
+        self._sync_window_preset_scope()
+        try:
+            index = presets.index(self._window_preset_override)
+        except ValueError:
+            index = 0
+        index = (index + int(delta)) % len(presets)
+        self._window_preset_override = presets[index]
+        self._preview_page = 0
+        self._refresh_window_preset_label()
+        self._refresh_page_bar()
+        self.update()
+
+    def _refresh_window_preset_label(self):
+        bar = getattr(self, 'window_preset_bar', None)
+        if bar is None:
+            return
+        if getattr(self.mw, 'active_game_plugin', None) != 'zelda_bmg':
+            bar.hide()
+            return
+        bar.show()
+        try:
+            from plugins.zelda_bmg.window_kinds import preset_label
+            auto_style = self._resolve_auto_window_style()
+            bar.set_label(preset_label(self._window_preset_override, auto_style))
+        except Exception:
+            bar.set_label("Auto" if self._window_preset_override is None else str(
+                self._window_preset_override))
 
     def get_bg_top_left(self) -> QPoint:
         """Calculate the top-left position of the background image inside the widget."""
@@ -488,8 +603,29 @@ class BfnPreviewWidget(QWidget):
                 return name
         return None
 
+    def _is_using_preset_geometry(self) -> bool:
+        """True when the active window style supplies stable screen geometry."""
+        style = self._get_game_window_style()
+        geom = (style or {}).get("geometry") if isinstance(style, dict) else None
+        return isinstance(geom, dict) and isinstance(geom.get("text"), (list, tuple))
+
     def draw_bounding_box(self, painter):
-        """Draw bounding box."""
+        """Draw bounding box.
+
+        Preset geometry owns the painted text/frame rects and is not free-moved,
+        so the editable overlay/handles are suppressed in that mode.
+        """
+        if self._is_using_preset_geometry():
+            guide = self._last_text_rect if isinstance(self._last_text_rect, QRect) and self._last_text_rect.isValid() else None
+            if guide is None or guide.isNull():
+                guide, _, used = self._preset_text_and_frame_rects(self._get_game_window_style())
+                if not used:
+                    return
+            painter.setPen(QPen(QColor("#555555"), 1.0, Qt.PenStyle.DashLine))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(guide)
+            return
+
         abs_rect = self.get_absolute_text_rect()
         if self.mouse_inside or self.drag_active or self.resize_active:
             # Active state: solid blue border
@@ -754,7 +890,8 @@ class BfnPreviewWidget(QWidget):
                 self.drag_start_pos = event.pos()
                 self.drag_start_offset_x = self.bg_offset_x
                 self.drag_start_offset_y = self.bg_offset_y
-            else:
+            elif not self._is_using_preset_geometry():
+                # Editable text-rect drag/resize only when no preset geometry.
                 handle = self.get_handle_under_mouse(event.pos())
                 abs_rect = self.get_absolute_text_rect()
                 if handle:
@@ -784,14 +921,14 @@ class BfnPreviewWidget(QWidget):
             self.bg_offset_x = self.drag_start_offset_x + dx
             self.bg_offset_y = self.drag_start_offset_y + dy
             self.update()
-        elif self.drag_active:
+        elif self.drag_active and not self._is_using_preset_geometry():
             dx = event.pos().x() - self.drag_start_pos.x()
             dy = event.pos().y() - self.drag_start_pos.y()
             new_x = self.drag_start_rect.x() + dx
             new_y = self.drag_start_rect.y() + dy
             self.text_rect.moveTo(new_x, new_y)
             self.update()
-        elif self.resize_active:
+        elif self.resize_active and not self._is_using_preset_geometry():
             dx = event.pos().x() - self.drag_start_pos.x()
             dy = event.pos().y() - self.drag_start_pos.y()
             r = QRect(self.drag_start_rect)
@@ -818,6 +955,9 @@ class BfnPreviewWidget(QWidget):
             
             self.text_rect = QRect(QPoint(x1, y1), QPoint(x2, y2))
             self.update()
+        elif self._is_using_preset_geometry():
+            self.hover_handle = None
+            self.setCursor(Qt.CursorShape.ArrowCursor)
         else:
             handle = self.get_handle_under_mouse(event.pos())
             self.hover_handle = handle
@@ -1142,13 +1282,8 @@ class BfnPreviewWidget(QWidget):
         cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
         return cleaned_text, None, None, None
 
-    def _get_game_window_style(self):
-        """Fetch the in-game message window style from the active plugin.
-
-        The current string's coordinates are passed so the plugin can pick the
-        window TYPE from the message's own attributes (talk box, sign, item-get
-        window, subtitles...).
-        """
+    def _resolve_auto_window_style(self):
+        """Message-driven window style (includes 0x02A5 Item force from the plugin)."""
         rules = getattr(self.mw, 'current_game_rules', None)
         if rules and hasattr(rules, 'get_preview_window_style'):
             ds = getattr(self.mw, 'data_store', None)
@@ -1164,6 +1299,167 @@ class BfnPreviewWidget(QWidget):
             except Exception:
                 pass
         return None
+
+    def _layout_for_override_preset(self, preset):
+        rules = getattr(self.mw, 'current_game_rules', None)
+        layouts = None
+        if rules is not None and hasattr(rules, '_get_window_layouts'):
+            try:
+                layouts = rules._get_window_layouts()
+            except Exception:
+                layouts = None
+        if layouts is None:
+            try:
+                from plugins.zelda_bmg.window_kinds import load_window_layouts
+                layouts = load_window_layouts()
+            except Exception:
+                layouts = {"default": {}, "kinds": {}}
+        try:
+            from plugins.zelda_bmg.window_kinds import (
+                EXPLAIN_PRESET_KEY, layout_for_kind,
+            )
+            kind = None if preset == EXPLAIN_PRESET_KEY else preset
+            return layout_for_kind(layouts, kind)
+        except Exception:
+            return {}
+
+    def _get_game_window_style(self):
+        """Fetch the in-game message window style from the active plugin.
+
+        Auto follows the current string's INF1 attributes. A manual preview
+        override replaces only the painted preset; it never rewrites BMG/info.
+        """
+        self._sync_window_preset_scope()
+        auto_style = self._resolve_auto_window_style()
+        override = self._window_preset_override
+        if override is None:
+            return self._with_dump_frame(auto_style)
+        try:
+            from plugins.zelda_bmg.window_kinds import window_style_for_preset
+            layout = self._layout_for_override_preset(override)
+            style = window_style_for_preset(override, layout)
+            if self.mw is not None and not getattr(self.mw, "use_per_window_layouts", True):
+                style = dict(style)
+                style["lines_per_page"] = getattr(self.mw, "lines_per_page", 4)
+            return self._with_dump_frame(style)
+        except Exception:
+            return self._with_dump_frame(auto_style)
+
+    def _with_dump_frame(self, style):
+        """Overlay BLO/BTI geometry from the local retail dump when present."""
+        self._window_frame_image = None
+        if not isinstance(style, dict):
+            return style
+        try:
+            from plugins.zelda_bmg.window_frame_loader import (
+                load_window_frame, screen_class_for_kind, frame_to_geometry,
+            )
+            cls = screen_class_for_kind(style.get("fuki_kind"), style)
+            frame = load_window_frame(cls, self.mw) if cls else None
+        except Exception:
+            return style
+        if frame is None:
+            return style
+        out = dict(style)
+        out["geometry"] = frame_to_geometry(frame)
+        # Per-glyph moya is drawn in screen space; at window-fit scale it
+        # becomes a yellow fog over the box. Keep a light halo only.
+        if isinstance(out.get("halo"), dict):
+            halo = dict(out["halo"])
+            halo["alpha"] = min(int(halo.get("alpha", 160)), 80)
+            out["halo"] = halo
+        self._window_frame_image = frame.image
+        return out
+
+    def _draw_item_slot(self, painter, game_style, geom) -> bool:
+        slot = geom.get("icon_slot")
+        if not (isinstance(slot, (list, tuple)) and len(slot) >= 4):
+            return False
+        origin_x, origin_y, fit = self._window_fit_transform(geom)
+        if fit <= 0:
+            return False
+        dest = self._map_game_xywh(slot, origin_x, origin_y, fit)
+        item_img = None
+        try:
+            from plugins.zelda_bmg.window_frame_loader import load_item_icon
+            rules = getattr(self.mw, "current_game_rules", None)
+            ds = getattr(self.mw, "data_store", None)
+            b_idx = getattr(ds, "physical_block_idx", None) if ds is not None else None
+            s_idx = getattr(ds, "current_string_idx", None) if ds is not None else None
+            attrs = None
+            if rules is not None and hasattr(rules, "get_message_attributes"):
+                attrs = rules.get_message_attributes(b_idx, s_idx)
+            item_no = (attrs or {}).get("item_no") or 0
+            if not item_no and attrs:
+                # Game: mItemIndex = messageID - 0x65, with 0x02A5 remapped to 0x40.
+                mid = int(attrs.get("message_id") or 0)
+                if mid == 0x02A5:
+                    item_no = 0x40
+                elif 0 < mid - 0x65 <= 0xFF:
+                    item_no = mid - 0x65
+            if item_no:
+                item_img = load_item_icon(item_no, self.mw)
+        except Exception:
+            item_img = None
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        if item_img is not None and not item_img.isNull():
+            painter.drawImage(dest, item_img)
+        painter.restore()
+        return True
+
+    def _preview_viewport_rect(self) -> QRectF:
+        """Inner preview area between the side toolbars."""
+        return QRectF(self.rect()).adjusted(42, 6, -46, -6)
+
+    def _window_fit_transform(self, geom):
+        """Map game pixels so the BLO window (n_all), not the 608x448 screen, fills the preview."""
+        viewport = self._preview_viewport_rect()
+        screen = (geom or {}).get("screen") or [608, 448]
+        try:
+            sw, sh = float(screen[0]), float(screen[1])
+        except (TypeError, ValueError, IndexError):
+            sw, sh = 608.0, 448.0
+        box = (geom or {}).get("box") if isinstance(geom, dict) else None
+        if isinstance(box, (list, tuple)) and len(box) >= 4:
+            bx, by, bw, bh = (float(box[0]), float(box[1]), float(box[2]), float(box[3]))
+        else:
+            bx, by, bw, bh = 0.0, 0.0, sw, sh
+        if bw <= 0 or bh <= 0 or viewport.width() <= 0 or viewport.height() <= 0:
+            return 0.0, 0.0, 1.0
+        # Kado/ornaments hang outside n_all; keep them in view.
+        pad = max(20.0, bh * 0.22)
+        fit = min(viewport.width() / (bw + pad * 2.0),
+                  viewport.height() / (bh + pad * 2.0))
+        origin_x = viewport.center().x() - (bx + bw / 2.0) * fit
+        origin_y = viewport.center().y() - (by + bh / 2.0) * fit
+        return origin_x, origin_y, fit
+
+    def _map_game_xywh(self, xywh, origin_x, origin_y, fit) -> QRectF:
+        x, y, w, h = (float(xywh[0]), float(xywh[1]), float(xywh[2]), float(xywh[3]))
+        return QRectF(origin_x + x * fit, origin_y + y * fit, w * fit, h * fit)
+
+    def _preset_text_and_frame_rects(self, game_style):
+        """Stable text + frame rects from the selected preset geometry.
+
+        Returns (text_rect: QRect, frame_rect: QRectF, used_preset: bool).
+        When the style has no geometry, falls back to the editable text rect.
+        """
+        abs_rect = self.get_absolute_text_rect()
+        geom = (game_style or {}).get("geometry") if isinstance(game_style, dict) else None
+        if not isinstance(geom, dict) or not isinstance(geom.get("text"), (list, tuple)):
+            frame_rect = QRectF(abs_rect)
+            return abs_rect, frame_rect, False
+
+        origin_x, origin_y, fit = self._window_fit_transform(geom)
+        if fit <= 0:
+            return abs_rect, QRectF(abs_rect), False
+        text_f = self._map_game_xywh(geom["text"], origin_x, origin_y, fit)
+        if isinstance(geom.get("box"), (list, tuple)) and len(geom["box"]) >= 4:
+            frame_rect = self._map_game_xywh(geom["box"], origin_x, origin_y, fit)
+        else:
+            frame_rect = QRectF(text_f)
+        return text_f.toRect(), frame_rect, True
 
     @staticmethod
     def _scaled_color(color_hex: str, brightness: float) -> str:
@@ -1308,6 +1604,12 @@ class BfnPreviewWidget(QWidget):
             from PyQt6.QtCore import QTimer
             QTimer.singleShot(0, self._refresh_page_bar)
 
+        # Stable preset geometry when available: frame size does not follow
+        # text length or the editable preview_text_rect.
+        text_rect, preset_frame, used_preset = self._preset_text_and_frame_rects(game_style)
+        if used_preset:
+            abs_rect = text_rect
+
         # Extract glyph metrics
         gly = bfn.gly1[0]
         cell_w = gly["cell_width"]
@@ -1349,7 +1651,7 @@ class BfnPreviewWidget(QWidget):
             if not isinstance(lines_per_page, (int, float)) or lines_per_page <= 0:
                 lines_per_page = 4
             page_height = lines_per_page * line_advance
-            if page_height > 0:
+            if page_height > 0 and abs_rect.height() > 0:
                 scale_factor = abs_rect.height() / page_height
             elif total_width > 0 and total_height > 0:
                 scale_factor = min(abs_rect.width() / total_width,
@@ -1359,11 +1661,14 @@ class BfnPreviewWidget(QWidget):
         self._last_computed_scale_factor = scale_factor
 
         # Offscreen image size: same as abs_rect
-        img_size = QSize(abs_rect.width(), abs_rect.height())
+        img_size = QSize(max(1, abs_rect.width()), max(1, abs_rect.height()))
 
         # Text offset inside the window (game: HIO mTextPosX/mTextPosY)
         text_dx = text_dy = 0
-        if game_style and game_style.get("text_offset"):
+        geom = (game_style or {}).get("geometry") if isinstance(game_style, dict) else None
+        # BLO mg_e4lin already includes HIO text inset; do not apply mTextPos twice.
+        if game_style and game_style.get("text_offset") and not (
+                isinstance(geom, dict) and geom.get("asset_frame")):
             try:
                 off = game_style["text_offset"]
                 text_dx = int(round(float(off[0]) * scale_factor))
@@ -1372,16 +1677,24 @@ class BfnPreviewWidget(QWidget):
                 text_dx = text_dy = 0
 
         # ── 2-frame. Message window frame around the text area ───────────────
-        # The frame kind follows the message's window type (talk box, wooden or
-        # stone sign, item-get window, location plate; subtitles have none).
-        frame_rect = QRectF(abs_rect)
-        if game_style and isinstance(game_style.get("frame"), dict):
+        # Preset geometry supplies a stable box; otherwise pad the text rect.
+        frame_rect = QRectF(preset_frame) if used_preset else QRectF(abs_rect)
+        dump_frame = getattr(self, "_window_frame_image", None)
+        if dump_frame is not None and not dump_frame.isNull() and used_preset:
+            geom = (game_style or {}).get("geometry") or {}
+            origin_x, origin_y, fit = self._window_fit_transform(geom)
+            sw = float(dump_frame.width())
+            sh = float(dump_frame.height())
+            if fit > 0 and sw > 0 and sh > 0:
+                painter.drawImage(QRectF(origin_x, origin_y, sw * fit, sh * fit), dump_frame)
+        elif game_style and isinstance(game_style.get("frame"), dict):
             fr = game_style["frame"]
             fr_style = fr.get("style", "talk")
-            pad_x = float(fr.get("pad_x", 20)) * scale_factor
-            pad_y = float(fr.get("pad_y", 10)) * scale_factor
             radius = float(fr.get("radius", 14)) * scale_factor
-            frame_rect = QRectF(abs_rect).adjusted(-pad_x, -pad_y, pad_x, pad_y)
+            if not used_preset:
+                pad_x = float(fr.get("pad_x", 20)) * scale_factor
+                pad_y = float(fr.get("pad_y", 10)) * scale_factor
+                frame_rect = QRectF(abs_rect).adjusted(-pad_x, -pad_y, pad_x, pad_y)
             border = QColor(fr.get("border", "#ffffff"))
             border.setAlpha(int(fr.get("border_alpha", 40)))
 
@@ -1408,8 +1721,18 @@ class BfnPreviewWidget(QWidget):
             painter.drawRoundedRect(frame_rect, radius, radius)
             painter.restore()
 
-        # Item-get window: item icon slot on the left, text starts after it
-        if game_style and isinstance(game_style.get("item_icon"), dict):
+        self._last_frame_rect = QRectF(frame_rect)
+        self._last_text_rect = QRect(abs_rect)
+
+        # Item-get window: item icon on the left. Dump BLO already insets mg_null
+        # for the text, so do not shift glyphs again (that stacked the lines).
+        geom = (game_style or {}).get("geometry") if isinstance(game_style, dict) else None
+        already_inset = isinstance(geom, dict) and geom.get("item_text_already_inset")
+        item_drawn = False
+        if isinstance(geom, dict) and geom.get("icon_slot"):
+            item_drawn = self._draw_item_slot(painter, game_style, geom)
+        if (not already_inset and not item_drawn
+                and game_style and isinstance(game_style.get("item_icon"), dict)):
             ic = game_style["item_icon"]
             icon_size = float(ic.get("size", 48)) * scale_factor
             gap = float(ic.get("gap", 10)) * scale_factor
@@ -1425,7 +1748,6 @@ class BfnPreviewWidget(QWidget):
             painter.setPen(QPen(slot_border, 1.5))
             painter.setBrush(slot_fill)
             painter.drawRoundedRect(slot, icon_size * 0.15, icon_size * 0.15)
-            # generic "item" placeholder: a diamond in the slot
             painter.setPen(Qt.PenStyle.NoPen)
             gem = QColor("#78d2b4")
             gem.setAlpha(220)
@@ -1440,7 +1762,6 @@ class BfnPreviewWidget(QWidget):
             path.closeSubpath()
             painter.drawPath(path)
             painter.restore()
-            # shift the text to the right of the item, like in game
             text_dx += int(round(icon_size + gap))
 
         # Window-kind badge (editor aid, not part of the game look)
@@ -1562,6 +1883,9 @@ class BfnPreviewWidget(QWidget):
                 ip.translate(-15, -15)
                 for g in icon_glyphs:
                     spec = g["icon"]
+                    tex = str(spec.get("texture") or "").replace("\\", "/")
+                    if game_style and tex.endswith("font_46.png") and game_style.get("bullet_tint"):
+                        spec = dict(spec, tint=str(game_style["bullet_tint"]))
                     g_scale = g.get("scale", 1.0) or 1.0
                     size = float(spec.get("width", 24)) * g_scale
                     # like COutFont: black silhouette at +2,+2, then the icon

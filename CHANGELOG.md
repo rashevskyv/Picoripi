@@ -3,6 +3,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [0.3.088-dev] - 2026-08-29
 
 ### Fixed
+- **TP Message Window Preview**: Corrected Twilight Princess window-kind mapping (kind 15 is Talk/kanban, not wood), non-JP `getLineMax` line counts, `0x02A5` Item force, and stable preset-based frame geometry so text length no longer resizes the preview box. Added an ephemeral Auto/manual window preset switcher under the preview. Preview frames are composited from the local retail `res/Layout/msgres*.arc` BLO/BTI files when a game dump is on disk.
 - **Glossary Speaker Source of Truth Alignment**: Unified row-to-speaker resolution between the glossary occurrence index, the virtual Speakers folders, and the translation editor by feeding the raw speaker pool from `build_speaker_pool(mw, raw=True)` into `GlossaryManager`.
 - **Marked-Script Spoken Occurrences**: Marked-script character speakers (such as `AGITHA'S STALKER`) now correctly own their dialogue rows in the glossary (`kind="spoken"`), enabling description synthesis and automated translation even if the character name never appears in dialogue text.
 

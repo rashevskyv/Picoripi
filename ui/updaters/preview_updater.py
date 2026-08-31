@@ -724,13 +724,17 @@ class PreviewUpdater(BaseUIUpdater):
         show_preview = preview_enabled and (toggle_action.isChecked() if toggle_action else True)
 
         if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
+            preview_widget = self.mw.bfn_preview_widget
+            preview_host = self._preview_visibility_host(preview_widget, self.mw)
             if show_preview:
-                if self.mw.bfn_preview_widget.isHidden():
-                    self.mw.bfn_preview_widget.show()
-                self.mw.bfn_preview_widget.update_preview_text(edited_text_raw)
+                if preview_host.isHidden():
+                    preview_host.show()
+                if preview_host is not preview_widget and preview_widget.isHidden():
+                    preview_widget.show()
+                preview_widget.update_preview_text(edited_text_raw)
             else:
-                if not self.mw.bfn_preview_widget.isHidden():
-                    self.mw.bfn_preview_widget.hide()
+                if not preview_host.isHidden():
+                    preview_host.hide()
 
         # Sync text with active BFN Font Editor simulation if it is open
         editor = getattr(self.mw, '_bfn_editor_window', None)
@@ -753,11 +757,30 @@ class PreviewUpdater(BaseUIUpdater):
         if hasattr(self.mw, 'dictionary_tooltip') and self.mw.dictionary_tooltip:
              self.mw.dictionary_tooltip.hide()
 
+    @staticmethod
+    def _preview_visibility_host(preview_widget, mw=None):
+        """Prefer the preview column host when it is a real widget."""
+        host_mw = mw
+        column = getattr(host_mw, 'bfn_preview_column', None) if host_mw is not None else None
+        if column is None or column is preview_widget:
+            return preview_widget
+        is_hidden = getattr(column, 'isHidden', None)
+        if not callable(is_hidden):
+            return preview_widget
+        try:
+            # Real QWidget returns bool; MagicMock autofill returns another mock.
+            if not isinstance(is_hidden(), bool):
+                return preview_widget
+        except Exception:
+            return preview_widget
+        return column
+
     def update_preview_visibility(self, checked=None, *, persist=True):
         """Update visibility of the visual preview widget based on loaded fonts and menu toggle state."""
         preview_widget = getattr(self.mw, 'bfn_preview_widget', None)
         if not preview_widget:
             return
+        preview_host = self._preview_visibility_host(preview_widget, self.mw)
 
         toggle_action = getattr(self.mw, 'toggle_preview_action', None)
         explicit_change = checked is not None
@@ -772,14 +795,14 @@ class PreviewUpdater(BaseUIUpdater):
             if toggle_action:
                 toggle_action.setChecked(False)
             self.preview_cache.cancel_idle_caching()
-            preview_widget.hide()
+            preview_host.hide()
             return
 
         all_bfn_fonts = getattr(self.mw, 'all_bfn_fonts', {})
         fonts_loaded = bool(all_bfn_fonts)
 
         if not fonts_loaded:
-            preview_widget.hide()
+            preview_host.hide()
             if toggle_action:
                 toggle_action.setEnabled(False)
                 toggle_action.setChecked(False)
@@ -790,7 +813,9 @@ class PreviewUpdater(BaseUIUpdater):
             activate_preview = getattr(preview_widget, 'activate_preview', None)
             if callable(activate_preview):
                 activate_preview()
-            preview_widget.show()
+            preview_host.show()
+            if preview_host is not preview_widget:
+                preview_widget.show()
             # Immediately update preview text when showing
             edited_text_raw = ""
             if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:

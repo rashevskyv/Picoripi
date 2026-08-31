@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QApplication, QMenu, QFileDialog, QInputDialog
-from PyQt6.QtCore import QPoint, QPointF, Qt, QRect, QEvent
+from PyQt6.QtCore import QPoint, QPointF, Qt, QRect, QRectF, QEvent
 from PyQt6.QtGui import QMouseEvent, QImage
 from ui.components.bfn_preview_widget import BfnPreviewWidget
 from core.bfn_core import BfnCore
@@ -797,8 +797,115 @@ def test_bfn_preview_widget_page_switcher(qapp):
     assert widget.page_bar.isHidden()
 
 
+def _make_renderable_bfn_for_preview():
+    bfn = BfnCore()
+    bfn.inf1 = [{"encoding": 1, "ascent": 20, "descent": 4, "width": 12,
+                 "leading": 24, "fallback_code": 0, "unk1": 0}]
+    bfn.gly1 = [{"start_glyph": 0, "end_glyph": 95, "cell_width": 24, "cell_height": 24,
+                 "page_data_size": 0, "texture_format": 0,
+                 "glyph_horizontal_count": 5, "glyph_vertical_count": 5,
+                 "texture_width": 120, "texture_height": 120, "sheets_binary": []}]
+    bfn.map1 = [{"mapping_type": 2, "first_char": 32, "last_char": 127,
+                 "mapping_entry_count": 96, "entries": list(range(96))}]
+    bfn.wid1 = [{"first_code_included": 0, "last_code_included": 95,
+                 "packets": [{"kerning": 0, "width": 20}] * 95}]
+    sheets = []
+    for _ in range(4):
+        img = QImage(120, 120, QImage.Format.Format_ARGB32)
+        img.fill(Qt.GlobalColor.white)
+        sheets.append(img)
+    bfn._qimages_cache = sheets
+    return bfn
 
 
+def test_preview_preset_geometry_stable_across_text_lengths(qapp):
+    """Frame size comes from the window preset, not from text length."""
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+
+    mw = MagicMock()
+    mw.active_game_plugin = "zelda_bmg"
+    style = window_style_for_kind(0)
+    rules = MagicMock()
+    rules.get_preview_window_style.return_value = style
+    rules.prepare_preview_glyph_text.side_effect = lambda text: (text, None, None, None)
+    mw.current_game_rules = rules
+    mw.data_store.current_block_idx = 0
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.default_font_file = None
+    mw.all_bfn_fonts = {"tp.bfn": _make_renderable_bfn_for_preview()}
+    mw.project_manager = None
+    mw.preview_enabled = True
+    mw.preview_bg_image_path = ""
+    mw.preview_bg_scale = 100
+    mw.preview_bg_offset_x = 0
+    mw.preview_bg_offset_y = 0
+    mw.preview_bg_hidden = False
+    mw.preview_line_spacing = 10
+    mw.preview_text_rect = [40, 30, 280, 110]
+    mw.preview_text_color = "#ffffff"
+    mw.preview_shadow_enabled = False
+    mw.preview_glow_enabled = False
+    mw.preview_fix_font_scale = False
+    mw.preview_fixed_font_scale = 1.0
+    mw.preview_char_spacing = 0
+    mw.string_metadata = {}
+    mw.bfn_preview_column = None
+
+    widget = BfnPreviewWidget(mw)
+    widget.resize(480, 320)
+    widget.show()
+    qapp.processEvents()
+    try:
+        # Preset geometry itself must not depend on text length.
+        text_a, frame_a, used_a = widget._preset_text_and_frame_rects(style)
+        text_b, frame_b, used_b = widget._preset_text_and_frame_rects(style)
+        assert used_a and used_b
+        assert frame_a == frame_b
+        assert text_a == text_b
+        assert frame_a.width() > 0 and frame_a.height() > 0
+
+        widget.update_preview_text("Hi")
+        widget.grab()
+        short_frame = QRectF(widget._last_frame_rect)
+
+        widget.update_preview_text("Line one\nLine two\nLine three\nLine four")
+        widget.grab()
+        long_frame = QRectF(widget._last_frame_rect)
+    finally:
+        widget.hide()
+
+    assert short_frame.width() > 0 and short_frame.height() > 0
+    assert short_frame == long_frame
+
+
+def test_preview_fits_message_window_not_full_framebuffer(qapp):
+    """A short preview strip must scale n_all, not shrink 608x448 to the widget height."""
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+
+    mw = MagicMock()
+    mw.active_game_plugin = "zelda_bmg"
+    mw.current_game_rules = MagicMock()
+    mw.preview_enabled = True
+    mw.preview_bg_image_path = ""
+    mw.preview_bg_hidden = True
+    mw.preview_text_rect = [40, 30, 280, 110]
+    widget = BfnPreviewWidget(mw)
+    widget.resize(900, 180)
+    style = window_style_for_kind(9)
+    style = dict(style)
+    style["geometry"] = {
+        "screen": [608, 448],
+        "box": [29.5, 273.5, 551.0, 117.0],
+        "text": [176.5, 287.0, 375.0, 98.0],
+        "icon_slot": [58.0, 286.0, 100.0, 100.0],
+    }
+    text, frame, used = widget._preset_text_and_frame_rects(style)
+    assert used
+    # Native BLO text pane is 375px; 608x448-fit on this strip is ~150px.
+    assert text.width() > 300
+    assert frame.width() > 480
+    assert abs(frame.width() / frame.height() - 551.0 / 117.0) < 0.15
 
 
 
