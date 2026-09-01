@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QApplication, QMenu, QFileDialog, QInputDialog
 from PyQt6.QtCore import QPoint, QPointF, Qt, QRect, QRectF, QEvent
 from PyQt6.QtGui import QMouseEvent, QImage
-from ui.components.bfn_preview_widget import BfnPreviewWidget
+from ui.components.bfn_preview_widget import BfnPreviewWidget, BfnPreviewWindowBar
 from core.bfn_core import BfnCore
 
 @pytest.fixture(scope="module")
@@ -592,7 +592,7 @@ def test_disabled_bfn_preview_does_not_prepare_text(qapp):
     assert widget._preview_resources_loaded is False
 
 
-def test_page_bar_is_pinned_to_rendered_background(qapp):
+def test_page_bar_is_pinned_to_preview_right_edge(qapp):
 
     mw_mock = MagicMock()
     mw_mock.preview_enabled = True
@@ -606,7 +606,7 @@ def test_page_bar_is_pinned_to_rendered_background(qapp):
 
     widget._position_page_bar()
 
-    assert widget.page_bar.geometry() == QRect(720, 15, 38, 240)
+    assert widget.page_bar.geometry() == QRect(900 - 38, 0, 38, 300)
 
 
 def test_bfn_preview_widget_background_gestures(qapp):
@@ -968,6 +968,60 @@ def test_preview_uses_blo_font_size_and_centers_short_pages(qapp):
         assert widget._used_page_lines("C'mon, now, hurry on up an' bring\nEpona with you.") == 2
     finally:
         widget.hide()
+
+
+def test_preview_sidebar_keeps_icons_and_tooltips(qapp):
+    widget = BfnPreviewWidget(MagicMock())
+    bar = widget.sidebar
+    assert bar.btn_shadow.toolTip()
+    assert bar.btn_glow.toolTip()
+    assert bar.btn_bg.toolTip()
+    assert bar.btn_hide_bg.toolTip()
+    assert bar.btn_spacing.toolTip()
+    assert not bar.btn_shadow.icon().isNull()
+    assert not bar.btn_bg.icon().isNull()
+    assert not widget.btn_page_prev.icon().isNull()
+    assert not widget.btn_page_next.icon().isNull()
+
+
+def test_window_preset_bar_keeps_arrows_together(qapp):
+    widget = BfnPreviewWidget(MagicMock())
+    bar = BfnPreviewWindowBar(widget)
+    bar.set_label("Auto")
+    bar.resize(400, 28)
+    bar.show()
+    qapp.processEvents()
+    try:
+        assert bar.btn_prev.toolTip()
+        assert bar.btn_next.toolTip()
+        assert not bar.btn_prev.icon().isNull()
+        gap = bar.btn_next.x() - (bar.btn_prev.x() + bar.btn_prev.width())
+        assert 20 < gap < 280
+        assert bar.label.x() > bar.btn_prev.x()
+        assert bar.btn_next.x() > bar.label.x()
+        mid = (bar.btn_prev.x() + bar.btn_next.x() + bar.btn_next.width()) / 2
+        assert abs(mid - bar.width() / 2) < 20
+        w_auto = bar.label.minimumWidth()
+        bar.set_label("Auto: Descriptions / save")
+        qapp.processEvents()
+        assert bar.label.minimumWidth() == w_auto
+    finally:
+        bar.hide()
+
+
+def test_preview_page_follows_editor_cursor_line(qapp):
+    widget = BfnPreviewWidget(MagicMock())
+    widget._lines_per_page = MagicMock(return_value=4)
+    widget._prepare_render_text = MagicMock(return_value=(
+        "L1\nL2\nL3\nL4\nL5", None, None, None))
+    widget._refresh_page_bar()
+    assert widget._page_count == 2
+    widget.sync_page_to_editor_line(0)
+    assert widget._preview_page == 0
+    widget.sync_page_to_editor_line(3)
+    assert widget._preview_page == 0
+    widget.sync_page_to_editor_line(4)
+    assert widget._preview_page == 1
 
 
 

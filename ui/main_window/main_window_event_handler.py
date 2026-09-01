@@ -507,6 +507,9 @@ class MainWindowEventHandler:
         
         self.mw.previous_cursor_pos = editor.textCursor().position()
         self.mw.ui_updater.update_status_bar()
+        preview = getattr(self.mw, "bfn_preview_widget", None)
+        if preview is not None:
+            preview.sync_page_to_editor_line(editor.textCursor().blockNumber())
 
     def handle_edited_selection_changed(self):
         """Handle edited selection changed."""

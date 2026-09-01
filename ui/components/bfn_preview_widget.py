@@ -7,8 +7,8 @@ from PyQt6.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
                              QColorDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QFrame, QDialog, QLabel, QSizePolicy)
 from PyQt6.QtGui import (QPainter, QColor, QImage, QPen, QPainterPath, QFontMetrics,
-                         QRadialGradient, QBrush)
-from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize
+                         QRadialGradient, QBrush, QIcon, QPixmap)
+from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize, QPointF
 
 
 def _looks_like_bfn_editor(editor) -> bool:
@@ -35,16 +35,97 @@ def _looks_like_bfn_core(bfn) -> bool:
     )
 
 
+def _preview_icon(kind: str, size: int = 16, color: str = "#e0e0e0") -> QIcon:
+    """Vector glyphs that do not depend on emoji fonts (those often render blank)."""
+    pm = QPixmap(size, size)
+    pm.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    c = QColor(color)
+    pen = QPen(c, 1.4)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    m = 2.5
+    if kind == "shadow":
+        p.drawRoundedRect(QRectF(m + 2, m + 2, size - 7, size - 7), 2, 2)
+        p.setPen(QPen(c, 1.6))
+        p.drawRoundedRect(QRectF(m, m, size - 7, size - 7), 2, 2)
+    elif kind == "glow":
+        p.setBrush(QColor(c.red(), c.green(), c.blue(), 80))
+        cx = cy = size / 2.0
+        r = size * 0.38
+        path = QPainterPath()
+        for i in range(8):
+            ang = i * 3.14159265 / 4.0 - 3.14159265 / 2.0
+            rad = r if i % 2 == 0 else r * 0.45
+            pt = QPointF(cx + rad * math.cos(ang), cy + rad * math.sin(ang))
+            if i == 0:
+                path.moveTo(pt)
+            else:
+                path.lineTo(pt)
+        path.closeSubpath()
+        p.drawPath(path)
+    elif kind == "image":
+        p.drawRoundedRect(QRectF(m, m + 1, size - 2 * m, size - 2 * m - 1), 2, 2)
+        p.setBrush(c)
+        mountain = QPainterPath()
+        mountain.moveTo(m + 1, size - m - 2)
+        mountain.lineTo(size * 0.4, size * 0.45)
+        mountain.lineTo(size * 0.62, size * 0.7)
+        mountain.lineTo(size - m - 1, size - m - 2)
+        mountain.closeSubpath()
+        p.drawPath(mountain)
+        p.drawEllipse(QRectF(size * 0.58, m + 3, 3.5, 3.5))
+    elif kind == "eye":
+        p.drawEllipse(QRectF(m, size * 0.32, size - 2 * m, size * 0.36))
+        p.setBrush(c)
+        p.drawEllipse(QRectF(size * 0.38, size * 0.38, size * 0.24, size * 0.24))
+    elif kind == "spacing":
+        for y in (m + 2, size / 2.0, size - m - 2):
+            p.drawLine(QPointF(m + 1, y), QPointF(size - m - 1, y))
+    elif kind == "prev":
+        path = QPainterPath()
+        path.moveTo(size * 0.68, m + 1)
+        path.lineTo(size * 0.32, size / 2.0)
+        path.lineTo(size * 0.68, size - m - 1)
+        p.drawPath(path)
+    elif kind == "next":
+        path = QPainterPath()
+        path.moveTo(size * 0.32, m + 1)
+        path.lineTo(size * 0.68, size / 2.0)
+        path.lineTo(size * 0.32, size - m - 1)
+        p.drawPath(path)
+    elif kind == "up":
+        path = QPainterPath()
+        path.moveTo(m + 1, size * 0.68)
+        path.lineTo(size / 2.0, size * 0.32)
+        path.lineTo(size - m - 1, size * 0.68)
+        p.drawPath(path)
+    elif kind == "down":
+        path = QPainterPath()
+        path.moveTo(m + 1, size * 0.32)
+        path.lineTo(size / 2.0, size * 0.68)
+        path.lineTo(size - m - 1, size * 0.32)
+        p.drawPath(path)
+    p.end()
+    return QIcon(pm)
+
+
 class BfnSideButton(QPushButton):
     """A compact square icon button for the BFN preview sidebar."""
     SIZE = 30
 
-    def __init__(self, icon_text: str, tooltip: str, checkable: bool = False, parent=None):
+    def __init__(self, icon_key: str, tooltip: str, checkable: bool = False, parent=None,
+                 text: str = ""):
         """Initialize a new instance."""
-        super().__init__(icon_text, parent)
+        super().__init__(text, parent)
         self.setFixedSize(self.SIZE, self.SIZE)
         self.setToolTip(tooltip)
         self.setCheckable(checkable)
+        if icon_key:
+            self.setIcon(_preview_icon(icon_key))
+            self.setIconSize(QSize(16, 16))
         self._apply_style(False)
 
     def _apply_style(self, checked: bool):
@@ -63,7 +144,7 @@ class BfnSideButton(QPushButton):
             "}"
         )
         active = (
-            "QPushButton:checked, QPushButton[active=true] {"
+            "QPushButton:checked, QPushButton[active=\"true\"] {"
             "  background: #1c3a5e;"
             "  border-color: #0078d7;"
             "  color: #ffffff;"
@@ -89,6 +170,7 @@ class BfnPreviewWindowBar(QFrame):
         self.preview = preview_widget
         self.setObjectName("bfn_preview_window_bar")
         self.setFixedHeight(28)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
         self.setStyleSheet(
             "BfnPreviewWindowBar {"
             "  background: #181818;"
@@ -100,32 +182,56 @@ class BfnPreviewWindowBar(QFrame):
             "  color: #cccccc;"
             "  border: 1px solid #3a3a3a;"
             "  border-radius: 4px;"
-            "  font-size: 11px;"
-            "  min-width: 26px;"
-            "  max-width: 26px;"
-            "  min-height: 22px;"
             "}"
             "QPushButton:hover { background: #2d2d2d; color: #ffffff; }"
             "QLabel { color: #c8c8c8; font-size: 11px; }"
         )
         layout = QHBoxLayout(self)
         layout.setContentsMargins(6, 2, 6, 2)
-        layout.setSpacing(6)
-        self.btn_prev = QPushButton("◀", self)
-        self.btn_next = QPushButton("▶", self)
+        layout.setSpacing(4)
+        self.btn_prev = QPushButton("", self)
+        self.btn_next = QPushButton("", self)
+        for btn, kind, tip in (
+            (self.btn_prev, "prev", "Previous message-window preview preset"),
+            (self.btn_next, "next", "Next message-window preview preset"),
+        ):
+            btn.setFixedSize(24, 22)
+            btn.setIcon(_preview_icon(kind, 12))
+            btn.setIconSize(QSize(12, 12))
+            btn.setToolTip(tip)
         self.label = QLabel("Auto", self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.btn_prev.setToolTip("Previous message-window preview preset")
-        self.btn_next.setToolTip("Next message-window preview preset")
+        self.label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
         self.btn_prev.clicked.connect(lambda: self.preview.cycle_window_preset(-1))
         self.btn_next.clicked.connect(lambda: self.preview.cycle_window_preset(1))
+        layout.addStretch(1)
         layout.addWidget(self.btn_prev)
-        layout.addWidget(self.label, 1)
+        layout.addWidget(self.label)
         layout.addWidget(self.btn_next)
+        layout.addStretch(1)
+        self._lock_label_width()
         if preview_widget is not None:
             preview_widget.window_preset_bar = self
             preview_widget._refresh_window_preset_label()
+
+    def _lock_label_width(self):
+        """Keep arrows still when the preset name changes length."""
+        fm = self.label.fontMetrics()
+        widest = fm.horizontalAdvance("Auto: Dialogue")
+        try:
+            from plugins.zelda_bmg.window_kinds import (
+                PREVIEW_WINDOW_PRESETS, preset_label, WINDOW_KIND_STYLES,
+                EXPLAIN_WINDOW_STYLE,
+            )
+            names = [preset_label(p) for p in PREVIEW_WINDOW_PRESETS]
+            names.extend("Auto: " + s.get("kind_name", "") for s in WINDOW_KIND_STYLES.values())
+            names.append("Auto: " + EXPLAIN_WINDOW_STYLE.get("kind_name", "Explain"))
+            for name in names:
+                if name:
+                    widest = max(widest, fm.horizontalAdvance(name))
+        except Exception:
+            widest = max(widest, 160)
+        self.label.setMinimumWidth(widest + 12)
 
     def set_label(self, text: str):
         self.label.setText(text)
@@ -148,41 +254,36 @@ class BfnPreviewSideBar(QFrame):
             "  border-bottom-left-radius: 6px;"
             "}"
         )
-        # Don't intercept mouse events for the preview canvas
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 8, 4, 8)
         layout.setSpacing(4)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Color swatch button — shows current text color
-        self.btn_color = BfnSideButton("A", "Text Color")
+        self.btn_color = BfnSideButton("", "Text Color", text="A")
         self._update_color_btn()
         self.btn_color.clicked.connect(self.pw._open_text_color_dialog)
         layout.addWidget(self.btn_color)
 
-        # Shadow toggle button
-        self.btn_shadow = BfnSideButton("\u25a1", "Drop Shadow (click to configure)", checkable=True)
+        self.btn_shadow = BfnSideButton("shadow", "Drop Shadow (click to configure)", checkable=True)
         self.btn_shadow.setChecked(self.pw.shadow_enabled)
         self.btn_shadow.clicked.connect(self._on_shadow_clicked)
         layout.addWidget(self.btn_shadow)
 
-        # Glow toggle button
-        self.btn_glow = BfnSideButton("\u2605", "Outer Glow (click to configure)", checkable=True)
+        self.btn_glow = BfnSideButton("glow", "Outer Glow (click to configure)", checkable=True)
         self.btn_glow.setChecked(self.pw.glow_enabled)
         self.btn_glow.clicked.connect(self._on_glow_clicked)
         layout.addWidget(self.btn_glow)
 
         layout.addSpacing(6)
 
-        # Background image button
-        self.btn_bg = BfnSideButton("\U0001f5bc", "Set Background Image...")
+        self.btn_bg = BfnSideButton("image", "Set Background Image...")
         self.btn_bg.clicked.connect(self._on_set_bg)
         layout.addWidget(self.btn_bg)
 
-        # Hide/show background toggle
-        self.btn_hide_bg = BfnSideButton("\U0001f441", "Show / Hide Background", checkable=True)
+        self.btn_hide_bg = BfnSideButton("eye", "Show / Hide Background", checkable=True)
         self.btn_hide_bg.setChecked(self.pw.bg_hidden)
         self.btn_hide_bg.setEnabled(bool(self.pw.bg_image_path))
         self.btn_hide_bg.clicked.connect(self._on_hide_bg)
@@ -190,8 +291,7 @@ class BfnPreviewSideBar(QFrame):
 
         layout.addSpacing(6)
 
-        # Line spacing button
-        self.btn_spacing = BfnSideButton("\u21f3", "Set Line Spacing...")
+        self.btn_spacing = BfnSideButton("spacing", "Set Line Spacing...")
         self.btn_spacing.clicked.connect(self._on_set_spacing)
         layout.addWidget(self.btn_spacing)
 
@@ -330,6 +430,7 @@ class BfnPreviewWidget(QWidget):
         
         self.setMinimumHeight(150)  # Increased minimum height to accommodate dialogue frames nicely
         self.setStyleSheet("BfnPreviewWidget { background-color: #111111; border: 1px solid #333333; border-radius: 6px; }")
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
         
         self._preview_resources_loaded = False
         
@@ -459,6 +560,7 @@ class BfnPreviewWidget(QWidget):
             return
         self._refresh_page_bar()
         self._refresh_window_preset_label()
+        self.sync_page_to_editor_line()
         self.update()
 
     def _window_preset_scope_token(self):
@@ -495,6 +597,7 @@ class BfnPreviewWidget(QWidget):
         self._preview_page = 0
         self._refresh_window_preset_label()
         self._refresh_page_bar()
+        self.sync_page_to_editor_line()
         self.update()
 
     def _refresh_window_preset_label(self):
@@ -689,6 +792,7 @@ class BfnPreviewWidget(QWidget):
         """Vertical page switcher bar on the right side with prev/next buttons and page indicator squares."""
         from PyQt6.QtWidgets import QVBoxLayout, QPushButton, QFrame
         self.page_bar = QFrame(self)
+        self.page_bar.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
         self.page_bar.setStyleSheet(
             "QFrame {"
             "  background: rgba(15, 15, 15, 200);"
@@ -698,56 +802,64 @@ class BfnPreviewWidget(QWidget):
             "}"
         )
         self.page_bar.setFixedWidth(38)
-        
+
         bar_layout = QVBoxLayout(self.page_bar)
         bar_layout.setContentsMargins(4, 8, 4, 8)
-        bar_layout.setSpacing(6)
-
-        # Keep the whole switcher as one compact, vertically centred group.
+        bar_layout.setSpacing(4)
         bar_layout.addStretch()
-        
-        # Top button: Previous page (▲)
-        self.btn_page_prev = QPushButton("▲", self.page_bar)
+
+        self.btn_page_prev = QPushButton("", self.page_bar)
         self.btn_page_prev.setFixedSize(30, 30)
+        self.btn_page_prev.setIcon(_preview_icon("up"))
+        self.btn_page_prev.setIconSize(QSize(14, 14))
         self.btn_page_prev.setStyleSheet(self._button_stylesheet())
         self.btn_page_prev.clicked.connect(lambda: self._change_page(-1))
         self.btn_page_prev.setToolTip("Previous page")
         bar_layout.addWidget(self.btn_page_prev, 0, Qt.AlignmentFlag.AlignHCenter)
-        
-        # Container layout for page indicators (squares)
+
         self.indicators_layout = QVBoxLayout()
-        self.indicators_layout.setSpacing(6)
+        self.indicators_layout.setSpacing(4)
         self.indicators_layout.setContentsMargins(0, 0, 0, 0)
+        self.indicators_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         bar_layout.addLayout(self.indicators_layout)
-        
-        # Bottom button: Next page (▼)
-        self.btn_page_next = QPushButton("▼", self.page_bar)
+
+        self.btn_page_next = QPushButton("", self.page_bar)
         self.btn_page_next.setFixedSize(30, 30)
+        self.btn_page_next.setIcon(_preview_icon("down"))
+        self.btn_page_next.setIconSize(QSize(14, 14))
         self.btn_page_next.setStyleSheet(self._button_stylesheet())
         self.btn_page_next.clicked.connect(lambda: self._change_page(1))
         self.btn_page_next.setToolTip("Next page")
         bar_layout.addWidget(self.btn_page_next, 0, Qt.AlignmentFlag.AlignHCenter)
 
         bar_layout.addStretch()
-        
+
         self.indicator_buttons = []
         self.page_bar.hide()
 
     def _position_page_bar(self):
         if hasattr(self, 'page_bar'):
-            x = self.width() - 38
-            y = 0
-            height = self.height()
-            if self.bg_image and not self.bg_image.isNull() and not self.bg_hidden:
-                scale = self.bg_scale / 100.0 if self.bg_scale else 1.0
-                image_right = int(round(self.bg_offset_x + self.bg_image.width() * scale))
-                image_top = int(round(self.bg_offset_y))
-                image_height = int(round(self.bg_image.height() * scale))
-                x = max(0, min(self.width() - 38, image_right))
-                y = max(0, min(self.height(), image_top))
-                height = max(0, min(image_height, self.height() - y))
-            self.page_bar.setGeometry(x, y, 38, height)
+            self.page_bar.setGeometry(self.width() - 38, 0, 38, self.height())
             self.page_bar.raise_()
+
+    def sync_page_to_editor_line(self, line_idx=None):
+        """Show the preview page that contains the Editable cursor line."""
+        if line_idx is None:
+            editor = getattr(self.mw, "edited_text_edit", None)
+            if editor is None:
+                return
+            try:
+                line_idx = editor.textCursor().blockNumber()
+            except Exception:
+                return
+        try:
+            line_idx = int(line_idx)
+        except (TypeError, ValueError):
+            return
+        lpp = self._lines_per_page()
+        if lpp <= 0:
+            return
+        self._jump_to_page(max(0, line_idx) // lpp)
 
     @staticmethod
     def _used_page_lines(text: str) -> int:
