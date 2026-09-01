@@ -969,8 +969,11 @@ class ListSelectionHandler(BaseHandler):
                 if block_to_show.isValid():
                     cursor = QTextCursor(block_to_show)
                     preview_edit.setTextCursor(cursor)
-                    # Use a small timer to ensure the widget has finished layout after potential text updates
-                    self._cursor_visible_timer.start(10)
+                    # Jump-to-third-row is for external navigation (glossary,
+                    # search, undo). A click or arrow in Strings & Blocks
+                    # should leave the list where the user put it.
+                    if not is_manual_click:
+                        self._cursor_visible_timer.start(10)
         elif preview_edit and hasattr(preview_edit, 'highlightManager'):
             preview_edit.highlightManager.clearPreviewSelectedLineHighlight()
 

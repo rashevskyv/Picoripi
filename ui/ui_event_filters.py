@@ -56,12 +56,12 @@ class TextEditEventFilter(QObject):
                     if event.key() == Qt.Key.Key_Up:
                         current_row = self.mw.data_store.current_string_idx
                         if current_row > 0:
-                            self.mw.list_selection_handler.string_selected_from_preview(current_row - 1)
+                            self.mw.list_selection_handler.string_selected_from_preview(current_row - 1, is_manual_click=True)
                         return True
                     elif event.key() == Qt.Key.Key_Down:
                         current_row = self.mw.data_store.current_string_idx
                         if self.mw.data_store.current_block_idx != -1 and current_row < len(self.mw.data_store.data[self.mw.data_store.current_block_idx]) - 1:
-                            self.mw.list_selection_handler.string_selected_from_preview(current_row + 1)
+                            self.mw.list_selection_handler.string_selected_from_preview(current_row + 1, is_manual_click=True)
                         return True
             
             if is_alt_pressed and not is_ctrl_pressed and not is_shift_pressed:
@@ -106,7 +106,7 @@ class TextEditEventFilter(QObject):
                                 target_idx = i
                                 break
                         if target_idx != -1:
-                            self.mw.list_selection_handler.string_selected_from_preview(target_idx)
+                            self.mw.list_selection_handler.string_selected_from_preview(target_idx, is_manual_click=True)
                         return True
                         
                     elif event.key() == Qt.Key.Key_Down:
@@ -117,7 +117,7 @@ class TextEditEventFilter(QObject):
                                 target_idx = i
                                 break
                         if target_idx != -1:
-                            self.mw.list_selection_handler.string_selected_from_preview(target_idx)
+                            self.mw.list_selection_handler.string_selected_from_preview(target_idx, is_manual_click=True)
                         return True
                         
             if is_ctrl_pressed and not is_alt_pressed:

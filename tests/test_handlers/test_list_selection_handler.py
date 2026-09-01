@@ -1016,3 +1016,27 @@ def test_on_cursor_visible_timeout_anchors_to_top_for_small_indices(target_block
     assert preview.verticalScrollBar().value() == 0
     # 3. Target cursor stays on original destination block
     assert preview.textCursor().blockNumber() == target_block
+
+
+def test_manual_preview_click_does_not_reanchor_scrollbar(handler):
+    block = MagicMock()
+    block.isValid.return_value = True
+    handler.mw.preview_text_edit.document.return_value.findBlockByNumber.return_value = block
+    handler.mw.preview_text_edit.document.return_value.blockCount.return_value = 50
+    handler.mw.data_store.data = [["Line %d" % i for i in range(50)]]
+    handler.mw.data_store.displayed_string_indices = list(range(50))
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.physical_block_idx = 0
+    handler.mw.data_store.current_string_idx = 20
+    handler.mw.data_store.current_view_kind = ViewKind.PHYSICAL
+    handler.mw.data_store.get_displayed_index_pos = lambda target: target if isinstance(target, int) else -1
+    handler.mw.edited_text_edit = None
+    handler.mw.search_panel_widget = None
+    handler._cursor_visible_timer.start = MagicMock()
+
+    with patch("handlers.list_selection_handler.QTextCursor", return_value=MagicMock()):
+        handler.string_selected_from_preview(25, is_manual_click=True)
+        handler._cursor_visible_timer.start.assert_not_called()
+
+        handler.string_selected_from_preview(25, is_manual_click=False)
+        handler._cursor_visible_timer.start.assert_called_once()
