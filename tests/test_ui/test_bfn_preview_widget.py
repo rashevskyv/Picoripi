@@ -597,16 +597,19 @@ def test_page_bar_is_pinned_to_preview_right_edge(qapp):
     mw_mock = MagicMock()
     mw_mock.preview_enabled = True
     widget = BfnPreviewWidget(mw_mock)
+    widget._plugin_has_capability = MagicMock(return_value=True)
+    widget._lines_per_page = MagicMock(return_value=4)
+    widget._prepare_render_text = MagicMock(return_value=(
+        "L1\nL2\nL3\nL4\nL5", None, None, None))
     widget.resize(900, 300)
-    widget.bg_image = QImage(700, 240, QImage.Format.Format_ARGB32)
-    widget.bg_hidden = False
-    widget.bg_scale = 100
-    widget.bg_offset_x = 20
-    widget.bg_offset_y = 15
-
+    widget._refresh_page_bar()
     widget._position_page_bar()
 
-    assert widget.page_bar.geometry() == QRect(900 - 38, 0, 38, 300)
+    geo = widget.page_bar.geometry()
+    assert geo.right() <= 900
+    assert geo.top() >= 38
+    assert geo.bottom() <= 300
+    assert geo.height() < 120
 
 
 def test_bfn_preview_widget_background_gestures(qapp):
@@ -748,48 +751,37 @@ def test_bfn_preview_widget_page_switcher(qapp):
     
     assert widget._page_count == 3
     assert not widget.page_bar.isHidden()
-    assert len(widget.indicator_buttons) == 3
-    
-    # Active index is 0, so first button is checked, others not
-    assert widget.indicator_buttons[0].isChecked() is True
-    assert widget.indicator_buttons[1].isChecked() is False
-    assert widget.indicator_buttons[2].isChecked() is False
+    assert widget.page_index_label.text() == "1/3"
     
     # Both arrows stay enabled because navigation wraps at both ends.
     assert widget.btn_page_prev.isEnabled() is True
     assert widget.btn_page_next.isEnabled() is True
     
-    # Position check: geometry should stretch full height on the right
     widget._position_page_bar()
-    assert widget.page_bar.geometry() == QRect(400 - 38, 0, 38, 300)
+    geo = widget.page_bar.geometry()
+    assert geo.width() <= 36
+    assert geo.height() <= 90
+    assert geo.right() <= 400
+    assert geo.bottom() <= 300
+    assert geo.top() >= 38
     
-    # Test jump to page 1 via clicking indicator button
-    widget.indicator_buttons[1].click()
+    widget.btn_page_next.click()
     assert widget._preview_page == 1
-    assert widget.indicator_buttons[0].isChecked() is False
-    assert widget.indicator_buttons[1].isChecked() is True
-    assert widget.indicator_buttons[2].isChecked() is False
+    assert widget.page_index_label.text() == "2/3"
     
-    # Now both buttons should be enabled
-    assert widget.btn_page_prev.isEnabled() is True
-    assert widget.btn_page_next.isEnabled() is True
-    
-    # Click next button to go to page 2
     widget.btn_page_next.click()
     assert widget._preview_page == 2
-    assert widget.indicator_buttons[0].isChecked() is False
-    assert widget.indicator_buttons[1].isChecked() is False
-    assert widget.indicator_buttons[2].isChecked() is True
+    assert widget.page_index_label.text() == "3/3"
     
     # Next wraps from the last page to the first.
-    assert widget.btn_page_prev.isEnabled() is True
-    assert widget.btn_page_next.isEnabled() is True
     widget.btn_page_next.click()
     assert widget._preview_page == 0
+    assert widget.page_index_label.text() == "1/3"
 
     # Previous wraps from the first page to the last.
     widget.btn_page_prev.click()
     assert widget._preview_page == 2
+    assert widget.page_index_label.text() == "3/3"
     
     # Test single page hides bar
     widget._prepare_render_text = MagicMock(return_value=("Single line text", None, None, None))
@@ -1070,10 +1062,27 @@ def test_page_indicators_stay_compact(qapp):
         "L1\nL2\nL3\nL4\nL5", None, None, None))
     widget._refresh_page_bar()
     assert widget._page_count == 2
-    for btn in widget.indicator_buttons:
-        assert btn.height() == 10
-        assert btn.width() == 10
-    assert widget.indicators_host.height() <= 40
+    assert widget.page_index_label.text() == "1/2"
+    widget._jump_to_page(1)
+    assert widget.page_index_label.text() == "2/2"
+    assert widget.page_bar.height() <= 90
+
+
+def test_preview_source_toggles_original_and_translation(qapp):
+    widget = BfnPreviewWidget(MagicMock())
+    widget.show()
+    qapp.processEvents()
+    try:
+        widget.update_preview_text("translated line", original="original line")
+        assert widget.text == "translated line"
+        widget.source_btn.click()
+        assert widget._preview_shows_original is True
+        assert widget.text == "original line"
+        widget.source_btn.click()
+        assert widget.text == "translated line"
+        assert not widget.source_btn.icon().isNull()
+    finally:
+        widget.hide()
 
 
 def test_editor_line_change_wins_after_manual_page(qapp):

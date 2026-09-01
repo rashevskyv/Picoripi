@@ -63,6 +63,17 @@ class GameRules(BaseGameRules):
     def get_display_name(self) -> str:
         return "Default Plugin Template"
 
+    def get_capabilities(self) -> Set[str]:
+        """Opt-in features. Empty here on purpose.
+
+        See ``docs/PLUGIN_AUTHORING_GUIDE.md`` §4.2. When the game's own files
+        or a decompilation already encode window kinds, dialogue flow, or lore,
+        copy the *approach* from ``plugins/zelda_bmg/`` (Twilight Princess) —
+        that plugin reads those sources and advertises capabilities such as
+        ``message_window_preview``. Do not copy its game-specific tables.
+        """
+        return set()
+
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if isinstance(json_obj, str):
             blocks = []

@@ -39,6 +39,12 @@ seeding, and the Story Timeline. All of it is opt-in and nothing breaks if you s
 See `docs/PLUGIN_AUTHORING_GUIDE.md` section 4 for the full list of hooks, and
 `plugins/zelda_bmg/` for a reference implementation that goes the whole way.
 
+If the game has a decompilation or original layout/message files, **read those
+first** the way `zelda_bmg` reads dusklight and `res/Layout`. Capabilities such
+as `message_window_preview` exist so the BFN preview can draw real in-game
+windows; they stay off until your plugin declares them in `get_capabilities()`.
+Copy the pattern, not the Twilight Princess tables.
+
 For detailed guidance, see:
 
 - `docs/PLUGIN_AUTHORING_GUIDE.md`

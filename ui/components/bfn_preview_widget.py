@@ -469,6 +469,9 @@ class BfnPreviewWidget(QWidget):
         self.fix_font_scale = bool(getattr(self.mw, 'preview_fix_font_scale', False))
         self.fixed_font_scale = float(getattr(self.mw, 'preview_fixed_font_scale', 1.0))
         self._last_computed_scale_factor = 1.0
+        self._edited_preview_text = ""
+        self._original_preview_text = ""
+        self._preview_shows_original = False
 
         if getattr(self.mw, 'preview_enabled', True):
             self.activate_preview()
@@ -502,6 +505,7 @@ class BfnPreviewWidget(QWidget):
         self._last_editor_line = None
         self._page_string_token = None
         self._build_page_bar()
+        self._build_source_button()
 
         # Preview-only window preset override (None = Auto from message attrs)
         self._window_preset_override = None
@@ -559,8 +563,8 @@ class BfnPreviewWidget(QWidget):
                 self.bg_image = None
         self._preview_resources_loaded = True
 
-    def update_preview_text(self, text: str):
-        """Update the text and request redraw."""
+    def update_preview_text(self, text: str, original: str = None):
+        """Update the translation preview text, and optionally the original."""
         if not getattr(self.mw, 'preview_enabled', True):
             return
         self.activate_preview()
@@ -571,11 +575,16 @@ class BfnPreviewWidget(QWidget):
             self._preview_page = 0
             self._page_origin = "editor"
             self._last_editor_line = None
-        self.text = text
+        self._edited_preview_text = text or ""
+        if original is not None:
+            self._original_preview_text = original or ""
+        self.text = (self._original_preview_text if self._preview_shows_original
+                     else self._edited_preview_text)
         if self.isHidden():
             return
         self._refresh_page_bar()
         self._refresh_window_preset_label()
+        self._refresh_source_button()
         self.update()
 
     def _window_preset_scope_token(self):
@@ -804,71 +813,95 @@ class BfnPreviewWidget(QWidget):
             "}"
         )
 
+    def _build_source_button(self):
+        """Top-right toggle between original and translated preview text."""
+        self.source_btn = QPushButton(self)
+        self.source_btn.setFixedSize(30, 30)
+        self.source_btn.setStyleSheet(self._button_stylesheet())
+        self.source_btn.clicked.connect(self._toggle_preview_source)
+        self._refresh_source_button()
+
+    def _refresh_source_button(self):
+        if not hasattr(self, "source_btn"):
+            return
+        showing_orig = self._preview_shows_original
+        self.source_btn.setIcon(_letter_icon("O" if showing_orig else "T", "#e0e0e0"))
+        self.source_btn.setIconSize(QSize(16, 16))
+        self.source_btn.setToolTip(
+            "Previewing original. Click to show the translation."
+            if showing_orig else
+            "Previewing translation. Click to show the original."
+        )
+        self._position_source_button()
+
+    def _position_source_button(self):
+        if hasattr(self, "source_btn"):
+            self.source_btn.move(self.width() - 34, 4)
+            self.source_btn.raise_()
+
+    def _toggle_preview_source(self):
+        self._preview_shows_original = not self._preview_shows_original
+        self.text = (self._original_preview_text if self._preview_shows_original
+                     else self._edited_preview_text)
+        self._preview_page = 0
+        self._refresh_source_button()
+        self._refresh_page_bar()
+        self.update()
+
     def _build_page_bar(self):
-        """Compact prev / dots / next cluster, vertically centred on the right."""
+        """Fixed-size up / n/N / down control. Never stretches with the preview."""
         self.page_bar = QFrame(self)
         self.page_bar.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        self.page_bar.setFixedSize(32, 84)
         self.page_bar.setStyleSheet(
             "QFrame {"
-            "  background: rgba(15, 15, 15, 200);"
-            "  border-left: 1px solid #2a2a2a;"
-            "  border-top-right-radius: 6px;"
-            "  border-bottom-right-radius: 6px;"
+            "  background: rgba(18, 18, 18, 230);"
+            "  border: 1px solid #3a3a3a;"
+            "  border-radius: 6px;"
             "}"
         )
-        self.page_bar.setFixedWidth(38)
+        layout = QVBoxLayout(self.page_bar)
+        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setSpacing(2)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
-        bar_layout = QVBoxLayout(self.page_bar)
-        bar_layout.setContentsMargins(4, 8, 4, 8)
-        bar_layout.setSpacing(0)
-        bar_layout.addStretch(1)
-
-        cluster = QFrame(self.page_bar)
-        cluster.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        cluster_layout = QVBoxLayout(cluster)
-        cluster_layout.setContentsMargins(0, 0, 0, 0)
-        cluster_layout.setSpacing(4)
-        cluster_layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
-
-        self.btn_page_prev = QPushButton("", cluster)
-        self.btn_page_prev.setFixedSize(30, 30)
-        self.btn_page_prev.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.btn_page_prev.setIcon(_preview_icon("up"))
-        self.btn_page_prev.setIconSize(QSize(14, 14))
+        self.btn_page_prev = QPushButton("", self.page_bar)
+        self.btn_page_prev.setFixedSize(26, 26)
+        self.btn_page_prev.setIcon(_preview_icon("up", 12))
+        self.btn_page_prev.setIconSize(QSize(12, 12))
         self.btn_page_prev.setStyleSheet(self._button_stylesheet())
         self.btn_page_prev.clicked.connect(lambda: self._change_page(-1))
         self.btn_page_prev.setToolTip("Previous page")
-        cluster_layout.addWidget(self.btn_page_prev, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.btn_page_prev, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        self.indicators_host = QWidget(cluster)
-        self.indicators_host.setFixedWidth(10)
-        self.indicators_layout = QVBoxLayout(self.indicators_host)
-        self.indicators_layout.setSpacing(4)
-        self.indicators_layout.setContentsMargins(0, 0, 0, 0)
-        self.indicators_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self.indicators_layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
-        cluster_layout.addWidget(self.indicators_host, 0, Qt.AlignmentFlag.AlignHCenter)
+        self.page_index_label = QLabel("1/1", self.page_bar)
+        self.page_index_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.page_index_label.setFixedSize(26, 16)
+        self.page_index_label.setStyleSheet("QLabel { color: #dddddd; font-size: 10px; }")
+        layout.addWidget(self.page_index_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        self.btn_page_next = QPushButton("", cluster)
-        self.btn_page_next.setFixedSize(30, 30)
-        self.btn_page_next.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.btn_page_next.setIcon(_preview_icon("down"))
-        self.btn_page_next.setIconSize(QSize(14, 14))
+        self.btn_page_next = QPushButton("", self.page_bar)
+        self.btn_page_next.setFixedSize(26, 26)
+        self.btn_page_next.setIcon(_preview_icon("down", 12))
+        self.btn_page_next.setIconSize(QSize(12, 12))
         self.btn_page_next.setStyleSheet(self._button_stylesheet())
         self.btn_page_next.clicked.connect(lambda: self._change_page(1))
         self.btn_page_next.setToolTip("Next page")
-        cluster_layout.addWidget(self.btn_page_next, 0, Qt.AlignmentFlag.AlignHCenter)
-
-        bar_layout.addWidget(cluster, 0, Qt.AlignmentFlag.AlignHCenter)
-        bar_layout.addStretch(1)
+        layout.addWidget(self.btn_page_next, 0, Qt.AlignmentFlag.AlignHCenter)
 
         self.indicator_buttons = []
         self.page_bar.hide()
 
     def _position_page_bar(self):
-        if hasattr(self, 'page_bar'):
-            self.page_bar.setGeometry(self.width() - 38, 0, 38, self.height())
-            self.page_bar.raise_()
+        if not hasattr(self, "page_bar") or self.page_bar.isHidden():
+            return
+        bar_w, bar_h = self.page_bar.width(), self.page_bar.height()
+        x = self.width() - bar_w - 4
+        y = max(38, (self.height() - bar_h) // 2)
+        y = min(y, max(38, self.height() - bar_h - 4))
+        self.page_bar.move(x, y)
+        self.page_bar.raise_()
+        self._position_source_button()
 
     def _current_string_token(self):
         ds = getattr(self.mw, "data_store", None)
@@ -1001,34 +1034,9 @@ class BfnPreviewWidget(QWidget):
             self._page_count = 1
         self._preview_page = max(0, min(self._page_count - 1, self._preview_page))
         if self._page_count > 1:
-            # Recreate indicator squares if the count changed
-            if len(self.indicator_buttons) != self._page_count:
-                # Clear layout
-                while self.indicators_layout.count() > 0:
-                    item = self.indicators_layout.takeAt(0)
-                    widget = item.widget()
-                    if widget:
-                        widget.deleteLater()
-                self.indicator_buttons.clear()
-                
-                # Rebuild
-                for i in range(self._page_count):
-                    btn = QPushButton(self.indicators_host)
-                    btn.setFixedSize(10, 10)
-                    btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-                    btn.setCheckable(True)
-                    btn.setStyleSheet(self._indicator_stylesheet())
-                    btn.setChecked(i == self._preview_page)
-                    btn.clicked.connect(lambda checked, idx=i: self._manual_jump_to_page(idx))
-                    btn.setToolTip(f"Go to page {i + 1}")
-                    self.indicators_layout.addWidget(btn, 0, Qt.AlignmentFlag.AlignHCenter)
-                    self.indicator_buttons.append(btn)
-            else:
-                # Just update checked state
-                for i, btn in enumerate(self.indicator_buttons):
-                    btn.setChecked(i == self._preview_page)
-                    
-            # Navigation wraps at both ends, so both arrows stay available.
+            self.page_index_label.setText(f"{self._preview_page + 1}/{self._page_count}")
+            self.page_index_label.setToolTip(
+                f"Page {self._preview_page + 1} of {self._page_count}")
             self.btn_page_prev.setEnabled(True)
             self.btn_page_next.setEnabled(True)
             self.page_bar.show()
@@ -1068,6 +1076,7 @@ class BfnPreviewWidget(QWidget):
         super().resizeEvent(event)
         self._position_sidebar()
         self._position_page_bar()
+        self._position_source_button()
 
     def enterEvent(self, event):
         """Enterevent."""

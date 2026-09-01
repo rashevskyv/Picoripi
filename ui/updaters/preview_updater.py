@@ -731,7 +731,7 @@ class PreviewUpdater(BaseUIUpdater):
                     preview_host.show()
                 if preview_host is not preview_widget and preview_widget.isHidden():
                     preview_widget.show()
-                preview_widget.update_preview_text(edited_text_raw)
+                preview_widget.update_preview_text(edited_text_raw, original=original_text_raw)
             else:
                 if not preview_host.isHidden():
                     preview_host.hide()
@@ -822,7 +822,15 @@ class PreviewUpdater(BaseUIUpdater):
                 edited_text_raw, _ = self.data_processor.get_current_string_text(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
                 if edited_text_raw is None:
                     edited_text_raw = ""
-            preview_widget.update_preview_text(edited_text_raw)
+            orig = ""
+            if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
+                orig = self.data_processor._get_string_from_source(
+                    self.mw.data_store.physical_block_idx,
+                    self.mw.data_store.current_string_idx,
+                    self.mw.data_store.data,
+                    "original_data_for_readonly_view",
+                ) or ""
+            preview_widget.update_preview_text(edited_text_raw, original=orig)
 
         if enabled:
             self.schedule_pre_cache()

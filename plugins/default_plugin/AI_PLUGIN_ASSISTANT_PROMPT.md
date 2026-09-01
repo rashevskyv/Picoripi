@@ -30,6 +30,10 @@ First, ask me these questions:
 4. Text layout:
    - What is the maximum pixel width per line?
    - How many lines fit on one page/dialog window?
+   - Is there a decompilation, leaked layout files, or message-window metadata
+     that already encodes window *kind* (talk box vs sign vs item get)? If yes,
+     study `plugins/zelda_bmg/` (`get_capabilities` includes
+     `message_window_preview`) instead of inventing a preview from the editor text.
    - What page-break, line-break, pause, clear, or speaker-control tags exist?
    - Should AutoFix wrap only by width, by sentence/page structure, or by game-specific rules?
 

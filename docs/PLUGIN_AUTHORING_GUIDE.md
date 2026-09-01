@@ -202,6 +202,7 @@ the text — because none of that needs anything from the game beyond the text i
 | `glossary_seed` | `get_glossary_seed_entries()` | Ready-made glossary material from game data (`{term, description?, section, icon?, source_ref, blocks?}`), consumed first by the unified automatic glossary pass without an AI request |
 | `external_lore` | `get_external_lore(term)` | external knowledge lookup grounding glossary descriptions |
 | `speaker_attribution` | `get_speaker_for_string()` | the **Name the speakers** step, which joins a marked-up script onto the speaker codes the game data produced |
+| `message_window_preview` | `get_preview_window_style()`, `get_string_layout()` | BFN preview chrome: per-message window frames, kind switcher, and in-game line-per-page pagination. Advertise this only when the plugin can tell windows apart from game data |
 
 Also implemented, and needing no declaration:
 
@@ -226,8 +227,12 @@ this can go. From the game's own files and a decompilation it mines:
   (`get_scene_context_for_string`, `stage_data.py`);
 - **per-window layout** — derives text width and lines-per-page per message from its window
   kind rather than one global limit (`get_string_layout`);
-- **rich preview** — per-character colors, text scaling, and inline button icons
-  (`prepare_preview_glyph_text`);
+- **rich preview** — per-character colors, text scaling, inline button icons
+  (`prepare_preview_glyph_text`), and in-game message windows (`message_window_preview`:
+  `window_kinds.py`, `window_frame_loader.py`, BLO/BTI frames from a local dump);
+- **decompilation as evidence** — window class, line counts, and tag behaviour are
+  taken from the game's own code (dusklight) when it exists, not guessed from the
+  editor text. If your game has a decomp or leaked layout files, start there.
 - **external lore** — descriptions from a community wiki (currently in
   `core/mempalace/character_profiler.py`; moving into the plugin, see the roadmap).
 
