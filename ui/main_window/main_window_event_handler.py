@@ -106,6 +106,8 @@ class MainWindowEventHandler:
             self.mw.edited_text_edit.textChanged.connect(self.mw.editor_operation_handler.text_edited)
             self.mw.edited_text_edit.cursorPositionChanged.connect(self.handle_edited_cursor_position_changed)
             self.mw.edited_text_edit.selectionChanged.connect(self.handle_edited_selection_changed)
+            if hasattr(self.mw.edited_text_edit, 'lineClicked'):
+                self.mw.edited_text_edit.lineClicked.connect(self.handle_edited_line_clicked)
             if hasattr(self.mw, 'undo_typing_action'):
                 self.mw.undo_typing_action.triggered.connect(self.mw.undo_manager.undo)
             if hasattr(self.mw, 'redo_typing_action'):
@@ -372,6 +374,7 @@ class MainWindowEventHandler:
             safe_disconnect(mw.edited_text_edit, 'textChanged')
             safe_disconnect(mw.edited_text_edit, 'cursorPositionChanged')
             safe_disconnect(mw.edited_text_edit, 'selectionChanged')
+            safe_disconnect(mw.edited_text_edit, 'lineClicked')
             safe_disconnect(mw.edited_text_edit, 'addTagMappingRequest')
 
         if hasattr(mw, 'undo_typing_action'): safe_disconnect(mw.undo_typing_action, 'triggered')
@@ -507,9 +510,12 @@ class MainWindowEventHandler:
         
         self.mw.previous_cursor_pos = editor.textCursor().position()
         self.mw.ui_updater.update_status_bar()
+
+    def handle_edited_line_clicked(self, line_idx: int):
+        """A click on an Editable line selects that preview page until the next action."""
         preview = getattr(self.mw, "bfn_preview_widget", None)
         if preview is not None:
-            preview.sync_page_to_editor_line(editor.textCursor().blockNumber())
+            preview.follow_editor_line(line_idx)
 
     def handle_edited_selection_changed(self):
         """Handle edited selection changed."""

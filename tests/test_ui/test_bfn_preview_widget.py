@@ -1016,12 +1016,45 @@ def test_preview_page_follows_editor_cursor_line(qapp):
         "L1\nL2\nL3\nL4\nL5", None, None, None))
     widget._refresh_page_bar()
     assert widget._page_count == 2
-    widget.sync_page_to_editor_line(0)
+    widget.follow_editor_line(0)
     assert widget._preview_page == 0
-    widget.sync_page_to_editor_line(3)
+    widget.follow_editor_line(3)
     assert widget._preview_page == 0
-    widget.sync_page_to_editor_line(4)
+    widget.follow_editor_line(4)
     assert widget._preview_page == 1
+
+
+def test_manual_preview_page_is_not_stolen_by_text_refresh(qapp):
+    mw = MagicMock()
+    mw.preview_enabled = True
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 744
+    widget = BfnPreviewWidget(mw)
+    widget._lines_per_page = MagicMock(return_value=4)
+    widget._prepare_render_text = MagicMock(return_value=(
+        "L1\nL2\nL3\nL4\nL5", None, None, None))
+    widget.show()
+    qapp.processEvents()
+    try:
+        widget.update_preview_text("L1\nL2\nL3\nL4\nL5")
+        widget._refresh_page_bar()
+        widget._change_page(1)
+        assert widget._preview_page == 1
+        widget.update_preview_text("L1\nL2\nL3\nL4\nL5")
+        assert widget._preview_page == 1
+        widget.follow_editor_line(1)
+        assert widget._preview_page == 0
+    finally:
+        widget.hide()
+
+
+def test_text_color_button_stays_dark(qapp):
+    mw = MagicMock()
+    mw.preview_text_color = "#ffffff"
+    widget = BfnPreviewWidget(mw)
+    style = widget.sidebar.btn_color.styleSheet()
+    assert "#1e1e1e" in style
+    assert "background: #ffffff" not in style.replace(" ", "")
 
 
 

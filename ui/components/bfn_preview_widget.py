@@ -300,19 +300,17 @@ class BfnPreviewSideBar(QFrame):
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _update_color_btn(self):
-        """Tint the 'A' button background to reflect current text color."""
+        """Keep the chrome dark; the letter A uses the current text color."""
         c = QColor(self.pw.text_color)
-        dark = c.lightness() < 128
-        text_col = "#ffffff" if dark else "#111111"
         self.btn_color.setStyleSheet(
-            f"QPushButton {{"
-            f"  background: {self.pw.text_color};"
-            f"  color: {text_col};"
-            f"  border: 1px solid #555;"
-            f"  border-radius: 5px;"
-            f"  font-size: 13px; font-weight: bold;"
-            f"}}"
-            f"QPushButton:hover {{ border-color: #999; }}"
+            "QPushButton {"
+            "  background: #1e1e1e;"
+            f"  color: {c.name()};"
+            "  border: 1px solid #3a3a3a;"
+            "  border-radius: 5px;"
+            "  font-size: 13px; font-weight: bold;"
+            "}"
+            "QPushButton:hover { background: #2d2d2d; border-color: #5a5a5a; }"
         )
 
     def refresh_state(self):
@@ -489,6 +487,8 @@ class BfnPreviewWidget(QWidget):
         # Message page switcher (multi-page messages show one window at a time)
         self._preview_page = 0
         self._page_count = 1
+        self._page_follow_editor = False
+        self._page_string_token = None
         self._build_page_bar()
 
         # Preview-only window preset override (None = Auto from message attrs)
@@ -553,14 +553,16 @@ class BfnPreviewWidget(QWidget):
             return
         self.activate_preview()
         self._sync_window_preset_scope()
-        if text != self.text:
+        token = self._current_string_token()
+        if token != self._page_string_token:
+            self._page_string_token = token
             self._preview_page = 0
+            self._page_follow_editor = False
         self.text = text
         if self.isHidden():
             return
         self._refresh_page_bar()
         self._refresh_window_preset_label()
-        self.sync_page_to_editor_line()
         self.update()
 
     def _window_preset_scope_token(self):
@@ -595,9 +597,9 @@ class BfnPreviewWidget(QWidget):
         index = (index + int(delta)) % len(presets)
         self._window_preset_override = presets[index]
         self._preview_page = 0
+        self._page_follow_editor = False
         self._refresh_window_preset_label()
         self._refresh_page_bar()
-        self.sync_page_to_editor_line()
         self.update()
 
     def _refresh_window_preset_label(self):
@@ -810,6 +812,7 @@ class BfnPreviewWidget(QWidget):
 
         self.btn_page_prev = QPushButton("", self.page_bar)
         self.btn_page_prev.setFixedSize(30, 30)
+        self.btn_page_prev.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btn_page_prev.setIcon(_preview_icon("up"))
         self.btn_page_prev.setIconSize(QSize(14, 14))
         self.btn_page_prev.setStyleSheet(self._button_stylesheet())
@@ -817,14 +820,17 @@ class BfnPreviewWidget(QWidget):
         self.btn_page_prev.setToolTip("Previous page")
         bar_layout.addWidget(self.btn_page_prev, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        self.indicators_layout = QVBoxLayout()
+        self.indicators_host = QWidget(self.page_bar)
+        self.indicators_host.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Maximum)
+        self.indicators_layout = QVBoxLayout(self.indicators_host)
         self.indicators_layout.setSpacing(4)
         self.indicators_layout.setContentsMargins(0, 0, 0, 0)
         self.indicators_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        bar_layout.addLayout(self.indicators_layout)
+        bar_layout.addWidget(self.indicators_host, 0, Qt.AlignmentFlag.AlignHCenter)
 
         self.btn_page_next = QPushButton("", self.page_bar)
         self.btn_page_next.setFixedSize(30, 30)
+        self.btn_page_next.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btn_page_next.setIcon(_preview_icon("down"))
         self.btn_page_next.setIconSize(QSize(14, 14))
         self.btn_page_next.setStyleSheet(self._button_stylesheet())
@@ -842,8 +848,22 @@ class BfnPreviewWidget(QWidget):
             self.page_bar.setGeometry(self.width() - 38, 0, 38, self.height())
             self.page_bar.raise_()
 
+    def _current_string_token(self):
+        ds = getattr(self.mw, "data_store", None)
+        if ds is None:
+            return None
+        return (
+            getattr(ds, "physical_block_idx", None),
+            getattr(ds, "current_string_idx", None),
+        )
+
+    def follow_editor_line(self, line_idx):
+        """User clicked a line in Editable — that page wins until the next action."""
+        self._page_follow_editor = True
+        self.sync_page_to_editor_line(line_idx)
+
     def sync_page_to_editor_line(self, line_idx=None):
-        """Show the preview page that contains the Editable cursor line."""
+        """Show the preview page that contains the given Editable line."""
         if line_idx is None:
             editor = getattr(self.mw, "edited_text_edit", None)
             if editor is None:
@@ -886,11 +906,16 @@ class BfnPreviewWidget(QWidget):
     def _change_page(self, delta: int):
         if self._page_count <= 1:
             return
+        self._page_follow_editor = False
         new_page = (self._preview_page + delta) % self._page_count
         if new_page != self._preview_page:
             self._preview_page = new_page
             self._refresh_page_bar()
             self.update()
+
+    def _manual_jump_to_page(self, page_idx: int):
+        self._page_follow_editor = False
+        self._jump_to_page(page_idx)
 
     def _jump_to_page(self, page_idx: int):
         new_page = max(0, min(self._page_count - 1, page_idx))
@@ -925,12 +950,13 @@ class BfnPreviewWidget(QWidget):
                 
                 # Rebuild
                 for i in range(self._page_count):
-                    btn = QPushButton(self.page_bar)
-                    btn.setFixedSize(12, 12)
+                    btn = QPushButton(self.indicators_host)
+                    btn.setFixedSize(10, 10)
+                    btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
                     btn.setCheckable(True)
                     btn.setStyleSheet(self._indicator_stylesheet())
                     btn.setChecked(i == self._preview_page)
-                    btn.clicked.connect(lambda checked, idx=i: self._jump_to_page(idx))
+                    btn.clicked.connect(lambda checked, idx=i: self._manual_jump_to_page(idx))
                     btn.setToolTip(f"Go to page {i + 1}")
                     self.indicators_layout.addWidget(btn, 0, Qt.AlignmentFlag.AlignHCenter)
                     self.indicator_buttons.append(btn)
