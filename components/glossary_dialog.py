@@ -342,7 +342,6 @@ class GlossaryDialog(QDialog):
         self._variants_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._variants_list.setWordWrap(True)
         self._variants_list.setItemDelegate(_VariantItemDelegate(self._variants_list))
-        self._variants_list.itemDoubleClicked.connect(lambda item: self._apply_variant_item(item, advance=False))
         self._variants_list.currentItemChanged.connect(lambda _cur, _prev: self._update_variant_buttons_state())
         variants_layout.addWidget(self._variants_list, 1)
         self._detail_splitter.addWidget(self._variants_pane)

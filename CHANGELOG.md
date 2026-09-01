@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.090-dev] - 2026-09-01
+
+### Changed
+- **Glossary Proposed Variants Selection**: Double-clicking a proposed translation variant in the glossary dialog now only selects the item without applying, confirming, modifying the translation field, or advancing. Applying a chosen variant is explicitly initiated via the `Apply selected variant` button.
+
 ## [0.3.088-dev] - 2026-08-29
 
 ### Fixed

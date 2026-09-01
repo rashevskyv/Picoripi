@@ -415,23 +415,27 @@ class TestVariantChoiceSettlesTheEntry:
 
         assert dialog._current_entry.original == "Ordon"
 
-    def test_double_click_on_variant_confirms_without_advancing(self, qtbot):
+    def test_double_click_on_variant_selects_without_modifying_or_confirming(self, qtbot):
+        from PyQt6.QtCore import Qt
+
+        callback = MagicMock()
         second = _entry("Ordon", "Ордон", status=STATUS_TRANSLATED)
-
-        def update_cb(orig, trans, notes, profiled=None, status=None, select_after=None):
-            c = _entry(orig, trans, notes=notes, status=status)
-            return ([c, second], {})
-
-        dialog = _dialog(qtbot, [AMBIGUOUS, second], update_callback=update_cb)
-        dialog._show_entry_for_row(0)
+        dialog = _dialog(qtbot, [AMBIGUOUS, second], update_callback=callback)
+        dialog.show()
+        dialog.focus_term("Spring Goron")
+        assert dialog._translation_edit.text() == "Ґорон Джерела"
         assert dialog._current_entry.original == "Spring Goron"
+        assert dialog._variants_list.currentRow() == 0
 
-        item1 = dialog._variants_list.item(1)
-        dialog._variants_list.itemDoubleClicked.emit(item1)
+        rect = dialog._variants_list.visualItemRect(dialog._variants_list.item(1))
+        qtbot.mouseDClick(dialog._variants_list.viewport(), Qt.MouseButton.LeftButton, pos=rect.center())
 
-        assert dialog._translation_edit.text() == "Весняний Ґорон"
+        assert dialog._variants_list.currentRow() == 1
+        callback.assert_not_called()
+        assert dialog._translation_edit.text() == "Ґорон Джерела"
         assert dialog._current_entry.original == "Spring Goron"
-        assert dialog._current_entry.translation == "Весняний Ґорон"
+        assert dialog._current_entry.status == STATUS_TRANSLATED
+        assert dialog._current_entry.status != STATUS_CONFIRMED
 
     def test_discuss_with_ai_button_invokes_callback(self, qtbot):
         discuss_cb = MagicMock()
