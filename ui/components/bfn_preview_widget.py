@@ -5,7 +5,7 @@ from collections import OrderedDict
 from pathlib import Path
 from PyQt6.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
                              QColorDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QFrame, QDialog, QLabel, QSizePolicy)
+                             QFrame, QDialog, QLabel, QSizePolicy, QLayout)
 from PyQt6.QtGui import (QPainter, QColor, QImage, QPen, QPainterPath, QFontMetrics,
                          QRadialGradient, QBrush, QIcon, QPixmap)
 from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize, QPointF
@@ -108,6 +108,21 @@ def _preview_icon(kind: str, size: int = 16, color: str = "#e0e0e0") -> QIcon:
         path.lineTo(size / 2.0, size * 0.68)
         path.lineTo(size - m - 1, size * 0.32)
         p.drawPath(path)
+    p.end()
+    return QIcon(pm)
+
+
+def _letter_icon(letter: str, color: str, size: int = 16) -> QIcon:
+    pm = QPixmap(size, size)
+    pm.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
+    font = p.font()
+    font.setBold(True)
+    font.setPixelSize(size - 1)
+    p.setFont(font)
+    p.setPen(QColor(color))
+    p.drawText(pm.rect(), Qt.AlignmentFlag.AlignCenter, letter)
     p.end()
     return QIcon(pm)
 
@@ -262,7 +277,7 @@ class BfnPreviewSideBar(QFrame):
         layout.setSpacing(4)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.btn_color = BfnSideButton("", "Text Color", text="A")
+        self.btn_color = BfnSideButton("", "Text Color")
         self._update_color_btn()
         self.btn_color.clicked.connect(self.pw._open_text_color_dialog)
         layout.addWidget(self.btn_color)
@@ -300,18 +315,14 @@ class BfnPreviewSideBar(QFrame):
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _update_color_btn(self):
-        """Keep the chrome dark; the letter A uses the current text color."""
+        """Dark chrome like the other tools; an A glyph in the preview text color."""
         c = QColor(self.pw.text_color)
-        self.btn_color.setStyleSheet(
-            "QPushButton {"
-            "  background: #1e1e1e;"
-            f"  color: {c.name()};"
-            "  border: 1px solid #3a3a3a;"
-            "  border-radius: 5px;"
-            "  font-size: 13px; font-weight: bold;"
-            "}"
-            "QPushButton:hover { background: #2d2d2d; border-color: #5a5a5a; }"
-        )
+        if not c.isValid():
+            c = QColor("#ffffff")
+        self.btn_color.setText("")
+        self.btn_color.setIcon(_letter_icon("A", c.name()))
+        self.btn_color.setIconSize(QSize(16, 16))
+        self.btn_color._apply_style(False)
 
     def refresh_state(self):
         """Sync button visual states with current widget settings."""
@@ -487,7 +498,8 @@ class BfnPreviewWidget(QWidget):
         # Message page switcher (multi-page messages show one window at a time)
         self._preview_page = 0
         self._page_count = 1
-        self._page_follow_editor = False
+        self._page_origin = "editor"
+        self._last_editor_line = None
         self._page_string_token = None
         self._build_page_bar()
 
@@ -557,7 +569,8 @@ class BfnPreviewWidget(QWidget):
         if token != self._page_string_token:
             self._page_string_token = token
             self._preview_page = 0
-            self._page_follow_editor = False
+            self._page_origin = "editor"
+            self._last_editor_line = None
         self.text = text
         if self.isHidden():
             return
@@ -597,7 +610,8 @@ class BfnPreviewWidget(QWidget):
         index = (index + int(delta)) % len(presets)
         self._window_preset_override = presets[index]
         self._preview_page = 0
-        self._page_follow_editor = False
+        self._page_origin = "preview"
+        self._last_editor_line = self._editor_line_or_none()
         self._refresh_window_preset_label()
         self._refresh_page_bar()
         self.update()
@@ -606,7 +620,7 @@ class BfnPreviewWidget(QWidget):
         bar = getattr(self, 'window_preset_bar', None)
         if bar is None:
             return
-        if getattr(self.mw, 'active_game_plugin', None) != 'zelda_bmg':
+        if not self._plugin_has_capability("message_window_preview"):
             bar.hide()
             return
         bar.show()
@@ -791,8 +805,7 @@ class BfnPreviewWidget(QWidget):
         )
 
     def _build_page_bar(self):
-        """Vertical page switcher bar on the right side with prev/next buttons and page indicator squares."""
-        from PyQt6.QtWidgets import QVBoxLayout, QPushButton, QFrame
+        """Compact prev / dots / next cluster, vertically centred on the right."""
         self.page_bar = QFrame(self)
         self.page_bar.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
         self.page_bar.setStyleSheet(
@@ -807,10 +820,17 @@ class BfnPreviewWidget(QWidget):
 
         bar_layout = QVBoxLayout(self.page_bar)
         bar_layout.setContentsMargins(4, 8, 4, 8)
-        bar_layout.setSpacing(4)
-        bar_layout.addStretch()
+        bar_layout.setSpacing(0)
+        bar_layout.addStretch(1)
 
-        self.btn_page_prev = QPushButton("", self.page_bar)
+        cluster = QFrame(self.page_bar)
+        cluster.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        cluster_layout = QVBoxLayout(cluster)
+        cluster_layout.setContentsMargins(0, 0, 0, 0)
+        cluster_layout.setSpacing(4)
+        cluster_layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
+
+        self.btn_page_prev = QPushButton("", cluster)
         self.btn_page_prev.setFixedSize(30, 30)
         self.btn_page_prev.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btn_page_prev.setIcon(_preview_icon("up"))
@@ -818,17 +838,18 @@ class BfnPreviewWidget(QWidget):
         self.btn_page_prev.setStyleSheet(self._button_stylesheet())
         self.btn_page_prev.clicked.connect(lambda: self._change_page(-1))
         self.btn_page_prev.setToolTip("Previous page")
-        bar_layout.addWidget(self.btn_page_prev, 0, Qt.AlignmentFlag.AlignHCenter)
+        cluster_layout.addWidget(self.btn_page_prev, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        self.indicators_host = QWidget(self.page_bar)
-        self.indicators_host.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Maximum)
+        self.indicators_host = QWidget(cluster)
+        self.indicators_host.setFixedWidth(10)
         self.indicators_layout = QVBoxLayout(self.indicators_host)
         self.indicators_layout.setSpacing(4)
         self.indicators_layout.setContentsMargins(0, 0, 0, 0)
         self.indicators_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        bar_layout.addWidget(self.indicators_host, 0, Qt.AlignmentFlag.AlignHCenter)
+        self.indicators_layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
+        cluster_layout.addWidget(self.indicators_host, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        self.btn_page_next = QPushButton("", self.page_bar)
+        self.btn_page_next = QPushButton("", cluster)
         self.btn_page_next.setFixedSize(30, 30)
         self.btn_page_next.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.btn_page_next.setIcon(_preview_icon("down"))
@@ -836,9 +857,10 @@ class BfnPreviewWidget(QWidget):
         self.btn_page_next.setStyleSheet(self._button_stylesheet())
         self.btn_page_next.clicked.connect(lambda: self._change_page(1))
         self.btn_page_next.setToolTip("Next page")
-        bar_layout.addWidget(self.btn_page_next, 0, Qt.AlignmentFlag.AlignHCenter)
+        cluster_layout.addWidget(self.btn_page_next, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        bar_layout.addStretch()
+        bar_layout.addWidget(cluster, 0, Qt.AlignmentFlag.AlignHCenter)
+        bar_layout.addStretch(1)
 
         self.indicator_buttons = []
         self.page_bar.hide()
@@ -857,10 +879,45 @@ class BfnPreviewWidget(QWidget):
             getattr(ds, "current_string_idx", None),
         )
 
-    def follow_editor_line(self, line_idx):
-        """User clicked a line in Editable — that page wins until the next action."""
-        self._page_follow_editor = True
+    def _plugin_has_capability(self, name: str) -> bool:
+        """Preview chrome that is game-specific must be opted in by the plugin."""
+        rules = getattr(self.mw, "current_game_rules", None)
+        getter = getattr(rules, "get_capabilities", None)
+        if not callable(getter):
+            return False
+        try:
+            return name in (getter() or ())
+        except Exception:
+            return False
+
+    def _editor_line_or_none(self):
+        editor = getattr(self.mw, "edited_text_edit", None)
+        if editor is None:
+            return None
+        try:
+            line = editor.textCursor().blockNumber()
+        except Exception:
+            return None
+        return line if isinstance(line, int) else None
+
+    def note_editor_line(self, line_idx):
+        """Editor line changed: that is a new last action, unless it is the same line."""
+        if not self._plugin_has_capability("message_window_preview"):
+            return
+        try:
+            line_idx = int(line_idx)
+        except (TypeError, ValueError):
+            return
+        if line_idx == self._last_editor_line:
+            return
+        self._last_editor_line = line_idx
+        self._page_origin = "editor"
         self.sync_page_to_editor_line(line_idx)
+
+    def follow_editor_line(self, line_idx):
+        """Explicit click on an Editable line — editor action wins."""
+        self._last_editor_line = None
+        self.note_editor_line(line_idx)
 
     def sync_page_to_editor_line(self, line_idx=None):
         """Show the preview page that contains the given Editable line."""
@@ -906,7 +963,8 @@ class BfnPreviewWidget(QWidget):
     def _change_page(self, delta: int):
         if self._page_count <= 1:
             return
-        self._page_follow_editor = False
+        self._page_origin = "preview"
+        self._last_editor_line = self._editor_line_or_none()
         new_page = (self._preview_page + delta) % self._page_count
         if new_page != self._preview_page:
             self._preview_page = new_page
@@ -914,7 +972,8 @@ class BfnPreviewWidget(QWidget):
             self.update()
 
     def _manual_jump_to_page(self, page_idx: int):
-        self._page_follow_editor = False
+        self._page_origin = "preview"
+        self._last_editor_line = self._editor_line_or_none()
         self._jump_to_page(page_idx)
 
     def _jump_to_page(self, page_idx: int):
@@ -926,6 +985,10 @@ class BfnPreviewWidget(QWidget):
 
     def _refresh_page_bar(self):
         if not hasattr(self, 'page_bar'):
+            return
+        if not self._plugin_has_capability("message_window_preview"):
+            self._page_count = 1
+            self.page_bar.hide()
             return
         try:
             clean_text, _, _, _ = self._prepare_render_text()

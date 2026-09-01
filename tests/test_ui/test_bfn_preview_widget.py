@@ -734,6 +734,7 @@ def test_bfn_preview_widget_page_switcher(qapp):
     mw_mock = MagicMock()
     widget = BfnPreviewWidget(mw_mock)
     widget.setGeometry(0, 0, 400, 300)
+    widget._plugin_has_capability = MagicMock(return_value=True)
     
     # Initially hide
     assert widget.page_bar.isHidden()
@@ -1011,6 +1012,7 @@ def test_window_preset_bar_keeps_arrows_together(qapp):
 
 def test_preview_page_follows_editor_cursor_line(qapp):
     widget = BfnPreviewWidget(MagicMock())
+    widget._plugin_has_capability = MagicMock(return_value=True)
     widget._lines_per_page = MagicMock(return_value=4)
     widget._prepare_render_text = MagicMock(return_value=(
         "L1\nL2\nL3\nL4\nL5", None, None, None))
@@ -1030,6 +1032,7 @@ def test_manual_preview_page_is_not_stolen_by_text_refresh(qapp):
     mw.data_store.physical_block_idx = 0
     mw.data_store.current_string_idx = 744
     widget = BfnPreviewWidget(mw)
+    widget._plugin_has_capability = MagicMock(return_value=True)
     widget._lines_per_page = MagicMock(return_value=4)
     widget._prepare_render_text = MagicMock(return_value=(
         "L1\nL2\nL3\nL4\nL5", None, None, None))
@@ -1052,9 +1055,47 @@ def test_text_color_button_stays_dark(qapp):
     mw = MagicMock()
     mw.preview_text_color = "#ffffff"
     widget = BfnPreviewWidget(mw)
-    style = widget.sidebar.btn_color.styleSheet()
+    style = widget.sidebar.btn_color.styleSheet().replace(" ", "")
     assert "#1e1e1e" in style
-    assert "background: #ffffff" not in style.replace(" ", "")
+    assert "background:#ffffff" not in style
+    assert not widget.sidebar.btn_color.icon().isNull()
+    assert widget.sidebar.btn_color.text() == ""
+
+
+def test_page_indicators_stay_compact(qapp):
+    widget = BfnPreviewWidget(MagicMock())
+    widget._plugin_has_capability = MagicMock(return_value=True)
+    widget._lines_per_page = MagicMock(return_value=4)
+    widget._prepare_render_text = MagicMock(return_value=(
+        "L1\nL2\nL3\nL4\nL5", None, None, None))
+    widget._refresh_page_bar()
+    assert widget._page_count == 2
+    for btn in widget.indicator_buttons:
+        assert btn.height() == 10
+        assert btn.width() == 10
+    assert widget.indicators_host.height() <= 40
+
+
+def test_editor_line_change_wins_after_manual_page(qapp):
+    mw = MagicMock()
+    cursor = MagicMock()
+    cursor.blockNumber.return_value = 0
+    mw.edited_text_edit.textCursor.return_value = cursor
+    widget = BfnPreviewWidget(mw)
+    widget._plugin_has_capability = MagicMock(return_value=True)
+    widget._lines_per_page = MagicMock(return_value=4)
+    widget._prepare_render_text = MagicMock(return_value=(
+        "L1\nL2\nL3\nL4\nL5", None, None, None))
+    widget._refresh_page_bar()
+    widget.note_editor_line(0)
+    widget._change_page(1)
+    assert widget._preview_page == 1
+    widget.note_editor_line(0)
+    assert widget._preview_page == 1
+    widget.note_editor_line(4)
+    assert widget._preview_page == 1
+    widget.note_editor_line(0)
+    assert widget._preview_page == 0
 
 
 

@@ -18,6 +18,9 @@ fuki_kind selects the screen class in dMsgObject_c::talkStartInit
 (d_msg_object.cpp). Line counts come from getLineMax (non-JP). Preview
 geometry falls back to HIO-scaled layout; when a local retail dump is
 present, `window_frame_loader` paints BLO/BTI frames from res/Layout.
+
+The BFN preview only turns this chrome on when the active plugin advertises
+the ``message_window_preview`` capability (see GameRules.get_capabilities).
 """
 from typing import Any, Dict, List, Optional, Tuple, Union
 

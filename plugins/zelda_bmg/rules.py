@@ -1069,8 +1069,18 @@ class GameRules(BaseGameRules):
     _WINDOW_SPEAKERS = {13: "Midna", 8: "Light Spirit"}
 
     def get_capabilities(self) -> Set[str]:
-        """Reads terms and speakers from the game's data, and lore from the wiki."""
-        return {"glossary_seed", "external_lore", "speaker_attribution"}
+        """Reads terms and speakers from the game's data, and lore from the wiki.
+
+        ``message_window_preview`` opts the BFN preview into TP window chrome
+        (kind switcher, dump frames, per-kind pagination). Other plugins stay
+        on the generic preview until they advertise the same capability.
+        """
+        return {
+            "glossary_seed",
+            "external_lore",
+            "speaker_attribution",
+            "message_window_preview",
+        }
 
     # The player character every NPC talk flow is aimed at. TP's talk flows are
     # built per-NPC and fire when Link speaks to them, so an NPC line inside one

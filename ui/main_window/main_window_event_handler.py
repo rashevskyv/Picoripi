@@ -510,9 +510,12 @@ class MainWindowEventHandler:
         
         self.mw.previous_cursor_pos = editor.textCursor().position()
         self.mw.ui_updater.update_status_bar()
+        preview = getattr(self.mw, "bfn_preview_widget", None)
+        if preview is not None:
+            preview.note_editor_line(editor.textCursor().blockNumber())
 
     def handle_edited_line_clicked(self, line_idx: int):
-        """A click on an Editable line selects that preview page until the next action."""
+        """A click on an Editable line is an editor action and wins the preview page."""
         preview = getattr(self.mw, "bfn_preview_widget", None)
         if preview is not None:
             preview.follow_editor_line(line_idx)

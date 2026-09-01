@@ -126,4 +126,6 @@ class TestPluginExposesIt:
     def test_capability_is_declared(self):
         from plugins.zelda_bmg.rules import GameRules
 
-        assert "external_lore" in GameRules.__new__(GameRules).get_capabilities()
+        caps = GameRules.__new__(GameRules).get_capabilities()
+        assert "external_lore" in caps
+        assert "message_window_preview" in caps
