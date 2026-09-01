@@ -64,6 +64,12 @@
             "lines_per_page": 4,
             "name": "Item get"
         },
+        "11": {
+            "warn_width": 410,
+            "max_width": 435,
+            "lines_per_page": 4,
+            "name": "Item info"
+        },
         "12": {
             "warn_width": 420,
             "max_width": 440,

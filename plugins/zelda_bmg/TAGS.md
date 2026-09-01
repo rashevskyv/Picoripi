@@ -345,13 +345,14 @@ MemPalace.
 
 | fuki_kind | Екран | Ресурс | Прев'ю / рядки |
 |---|---|---|---|
-| 0, 3, 4, 10, 11, 16, 18… | dMsgScrnTalk_c | zelda_message_window_new.blo | звичайний діалог (16 = Descriptions/save, 6 рядків) |
+| 0, 3, 4, 10, 16, 18… | dMsgScrnTalk_c | zelda_message_window_new.blo | звичайний діалог (16 = Descriptions/save, 6 рядків) |
 | 1, 5 | dMsgScrnJimaku_c | zelda_jimaku_message_text.blo | субтитри катсцен — без рамки (4 рядки) |
 | 2 | dMsgScrnTree_c | zelda_kanban_wood_a.blo | дерев'яна табличка (7 рядків) |
 | 6 | dMsgScrnKanban_c | zelda_kanban_stone_a.blo | кам'яна табличка (7 рядків) |
 | 7 | dMsgScrnStaff_c | — | титри (10 рядків) |
 | 8 | dMsgScrnTalk_c | ..._text_seirei.blo | вікно духа світла: яскраво-жовте сяйво |
-| 9 | dMsgScrnItem_c | zelda_item_get_window.blo | вікно предмета: іконка зліва (повідомлення `0x02A5` завжди Item) |
+| 9 | dMsgScrnItem_c | zelda_item_get_window.blo | вікно отримання предмета: іконка зліва («You got…»; `0x02A5` завжди Item) |
+| 11 | dMsgScrnTalk_c | zelda_message_window_new.blo | опис предмета в меню паузи (не Item get; `item_no` в INF1) |
 | 12 | dMsgScrnPlace_c | — | плашка назви локації (4 рядки) |
 | 13 | dMsgScrnTalk_c | — | вікно Мідни: блакитний текст #82e6e6, синє сяйво |
 | 14 | dMsgScrnTalk_c | — | діалог із зеленим текстом #96dc64 |

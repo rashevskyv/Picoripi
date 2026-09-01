@@ -32,7 +32,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 #   1, 5     dMsgScrnJimaku_c
 #   10       sets a flag, then falls through to Talk
 #   default  dMsgScrnTalk_c — includes 0,3,4,8,10,11,13,14,15,16,18
-#            (8 = light-spirit text layout; 15 = Talk visuals + kanban
+#            (8 = light-spirit text layout; 11 = pause-menu item description
+#            with Talk chrome, NOT dMsgScrnItem_c; 15 = Talk visuals + kanban
 #            pagination via isKanbanMessage {2,6,15})
 #   message_id 0x02A5 always uses Item even when kind would fall through
 # dMsgScrnExplain_c is NOT selected by BMG fuki_kind (manual preview only).
@@ -244,6 +245,9 @@ WINDOW_KIND_STYLES: Dict[int, Dict[str, Any]] = {
     9: _style("Item get", _ITEM_FRAME, halo=None,
               item_icon={"size": 48.0, "gap": 10.0}, geometry=_GEOM_ITEM,
               screen_class="item"),
+    # Pause-menu / collection description. talkStartInit falls through to
+    # Talk (not Item). item_no in INF1 names the collectible; no get-window icon.
+    11: _talk("Item info"),
     # location name plate
     12: _style("Location name", _PLATE_FRAME, halo=None, geometry=_GEOM_PLACE,
               screen_class="place"),
@@ -289,7 +293,8 @@ PREVIEW_WINDOW_PRESETS: List[Optional[Union[int, str]]] = [
     0,   # Dialogue (Talk)
     2,   # Wooden sign
     6,   # Stone sign
-    9,   # Item
+    9,   # Item get
+    11,  # Item info (Talk)
     7,   # Staff
     12,  # Place
     19,  # Boss

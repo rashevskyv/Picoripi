@@ -1844,8 +1844,8 @@ class BfnPreviewWidget(QWidget):
             ]
             for step in range(1, self.glow_spread + 1):
                 for dx_unit, dy_unit in offsets:
-                    ox = abs_rect.x() + dx_unit * step
-                    oy = abs_rect.y() + dy_unit * step
+                    ox = abs_rect.x() + text_dx + dx_unit * step
+                    oy = abs_rect.y() + text_dy + dy_unit * step
                     painter.drawImage(ox, oy, tinted_glow)
             painter.restore()
 
@@ -1862,7 +1862,7 @@ class BfnPreviewWidget(QWidget):
             sdx = int(round(math.cos(rad) * self.shadow_distance))
             sdy = int(round(math.sin(rad) * self.shadow_distance))
 
-            painter.drawImage(abs_rect.x() + sdx, abs_rect.y() + sdy, tinted_shadow)
+            painter.drawImage(abs_rect.x() + text_dx + sdx, abs_rect.y() + text_dy + sdy, tinted_shadow)
         elif game_style and isinstance(game_style.get("shadow"), dict):
             # Game shadow: a black copy of the text offset by +2,+2 game pixels
             # (TP shadow pane 't4_s' / COutFont icon shadows), scaled with text

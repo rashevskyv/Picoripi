@@ -69,6 +69,13 @@ def test_window_styles_per_kind():
     assert item["frame"]["style"] == "item"
     assert item["item_icon"]["size"] == 48.0
 
+    # kind 11 is pause-menu item copy on the Talk screen, not Item get
+    info = window_style_for_kind(11)
+    assert info["kind_name"] == "Item info"
+    assert info["frame"]["style"] == "talk"
+    assert info["screen_class"] == "talk"
+    assert "item_icon" not in info
+
     # cutscene subtitles: no frame at all
     jimaku = window_style_for_kind(1)
     assert jimaku["kind_name"] == "Subtitles"
@@ -101,6 +108,7 @@ def test_window_kind_names():
     assert window_kind_name(17) == "Howling stone"
     assert window_kind_name(7) == "Staff credits"
     assert window_kind_name(0) == "Dialogue"
+    assert window_kind_name(11) == "Item info"
 
 
 def test_original_game_fonts_follow_window_kind():
@@ -191,6 +199,7 @@ def test_boss_names_are_excluded_from_automatic_story_matching(bmg_rules):
     (15, 410, 435, 7),   # Dialogue (kanban): Talk widths, kanban lines
     (7, 400, 420, 10),   # staff credits
     (9, 340, 360, 4),    # item window
+    (11, 410, 435, 4),   # item info (Talk)
     (16, 410, 435, 6),   # descriptions / save
     (12, 420, 440, 4),   # location name
     (19, 420, 440, 4),   # boss name
