@@ -463,11 +463,16 @@ class MainWindow(QMainWindow):
             self.settings_manager.save_settings()
         for other, action in getattr(self, "language_actions", {}).items():
             action.setChecked(other == code)
-        QMessageBox.information(
-            self,
-            _tr("Language"),
-            _tr("A restart is required to apply the new interface language."),
-        )
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setWindowTitle(_tr("Language"))
+        box.setText(_tr("A restart is required to apply the new interface language."))
+        now_btn = box.addButton(_tr("Restart Now"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(_tr("Restart Later"), QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if box.clickedButton() is now_btn:
+            self.is_restart_in_progress = True
+            self.helper.restart_application()
 
     def load_game_plugin(self):
         """Proxy to plugin_handler for backward compatibility in handlers."""

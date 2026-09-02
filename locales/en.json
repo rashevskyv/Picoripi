@@ -1,5 +1,4 @@
 {
-  "@language_name": "English",
   " ── ": " ── ",
   "&Add Bookmark...": "&Add Bookmark...",
   "&Advanced Search...": "&Advanced Search...",
@@ -156,6 +155,7 @@
   "<b>Wing name</b><br><br>A short label for this game inside MemePalace (for Twilight Princess it is usually filled from the plugin display name).<br><br>Chapters, mappings and character profiles are stored under this name. Changing it later looks like a different game unless you import again.": "<b>Wing name</b><br><br>A short label for this game inside MemePalace (for Twilight Princess it is usually filled from the plugin display name).<br><br>Chapters, mappings and character profiles are stored under this name. Changing it later looks like a different game unless you import again.",
   "<i>(Running in fallback mode due to plugin load error)</i>": "<i>(Running in fallback mode due to plugin load error)</i>",
   "? Help": "? Help",
+  "@language_name": "English",
   "[empty]": "[empty]",
   "A marked dialogue must have an owning speaker. To remove or rebuild the speaker block, open this line in Markup Studio.": "A marked dialogue must have an owning speaker. To remove or rebuild the speaker block, open this line in Markup Studio.",
   "A restart is required to apply the new theme.": "A restart is required to apply the new theme.",
