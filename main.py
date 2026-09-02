@@ -452,7 +452,7 @@ class MainWindow(QMainWindow):
 
     def change_ui_language(self, code: str) -> None:
         """Persist the Language-menu choice. The new catalog loads on the next start."""
-        from core.i18n import available_languages, current_language, tr as _tr
+        from core.i18n import available_languages, current_language, tr
         if code == current_language():
             return
         if code not in available_languages():
@@ -465,10 +465,10 @@ class MainWindow(QMainWindow):
             action.setChecked(other == code)
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Information)
-        box.setWindowTitle(_tr("Language"))
-        box.setText(_tr("A restart is required to apply the new interface language."))
-        now_btn = box.addButton(_tr("Restart Now"), QMessageBox.ButtonRole.AcceptRole)
-        box.addButton(_tr("Restart Later"), QMessageBox.ButtonRole.RejectRole)
+        box.setWindowTitle(tr("Language"))
+        box.setText(tr("A restart is required to apply the new interface language."))
+        now_btn = box.addButton(tr("Restart Now"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(tr("Restart Later"), QMessageBox.ButtonRole.RejectRole)
         box.exec()
         if box.clickedButton() is now_btn:
             self.is_restart_in_progress = True

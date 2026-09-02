@@ -906,6 +906,8 @@
   "Reset the current AI translation session": "Reset the current AI translation session",
   "Reset to Plugin Default": "Reset to Plugin Default",
   "Restart is required after changing the interface language.": "Restart is required after changing the interface language.",
+  "Restart Later": "Restart Later",
+  "Restart Now": "Restart Now",
   "Restore All Translations": "Restore All Translations",
   "Restore Error": "Restore Error",
   "Restore the suggested name. Delete the text to leave this voice unnamed.": "Restore the suggested name. Delete the text to leave this voice unnamed.",
