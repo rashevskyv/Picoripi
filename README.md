@@ -21,7 +21,7 @@ The recommended AI backend for glossary and bulk translation is **Gemini Web2API
 - [Script Markup](docs/wiki/9_Script_Markup.md)
 - [AI Translation](docs/wiki/11_AI_Translation.md)
 
-Interface language: **Language** menu (English / Українська). To fill `locales/uk.json` (and later other languages), run `tools/i18n-translate/run.bat` with Gemini Web2API up. See [Configuration](docs/wiki/4_Configuration_Guide.md).
+Interface language: **Language** menu lists every `locales/*.json` that already has translations (name from `@language_name` in that file). Missing strings stay English. Fill catalogs with `tools/i18n-translate/run.bat`. See [Configuration](docs/wiki/4_Configuration_Guide.md).
 
 **Engineering / process:**
 
