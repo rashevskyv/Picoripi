@@ -193,3 +193,16 @@ def test_legacy_negative_session_migrates_to_explicit_view(store, legacy_block, 
     assert restored.current_string_idx == 3
     assert restored.current_view_kind == kind
     assert restored.view_block_token == legacy_block
+
+
+def test_session_restore_clears_show_unsaved_only_filters(store):
+    store.show_unsaved_only = True
+    store.show_unsaved_blocks_only = True
+    snapshot = store.get_session_snapshot()
+    assert snapshot["show_unsaved_only"] is True
+    assert snapshot["show_unsaved_blocks_only"] is True
+
+    restored = AppDataStore()
+    assert restored.restore_from_snapshot(snapshot) is True
+    assert restored.show_unsaved_only is False
+    assert restored.show_unsaved_blocks_only is False

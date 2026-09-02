@@ -76,7 +76,7 @@ def test_TextEditEventFilter_alt_up_down_skips_empty(mock_mw):
     
     assert res is True
     # Verify string_selected_from_preview was called with preview index 3
-    handler_mock.string_selected_from_preview.assert_called_once_with(3)
+    handler_mock.string_selected_from_preview.assert_called_once_with(3, is_manual_click=True)
     
     # Reset mock
     handler_mock.reset_mock()
@@ -87,7 +87,7 @@ def test_TextEditEventFilter_alt_up_down_skips_empty(mock_mw):
     res_up = filter_obj.eventFilter(mock_mw.preview_text_edit, event_up)
     
     assert res_up is True
-    handler_mock.string_selected_from_preview.assert_called_once_with(0)
+    handler_mock.string_selected_from_preview.assert_called_once_with(0, is_manual_click=True)
 
 def test_MainWindowEventFilter_routes_speaker_line_edit_undo_to_app_action(qapp):
     mw = QWidget()

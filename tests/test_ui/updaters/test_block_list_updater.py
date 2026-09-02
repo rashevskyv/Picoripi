@@ -1,3 +1,4 @@
+import re
 import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
@@ -9,6 +10,12 @@ from core.mempalace.story_timeline import (
     StoryVirtualProjection,
     StoryVirtualSpeaker,
 )
+
+def folder_label(item):
+    base = item.data(0, Qt.UserRole + 4)
+    if base:
+        return base
+    return re.sub(r" \(\d+\)$", "", item.text(0) or "")
 
 @pytest.fixture
 def mock_mw():
@@ -153,6 +160,34 @@ def test_manual_story_none_suppresses_normalized_story_link(mock_mw, mock_dp):
 
     parent = QTreeWidgetItem(["Story"])
     assert updater._add_story_folder_item(parent, folder, None, hide_empty=True) is False
+
+
+def test_virtual_leaf_and_parent_get_warning_counts(updater):
+    updater.mw.data_store.data = [["Hero line", "Broken line"]]
+    updater.mw.data_store.problems_per_subline = {(0, 1, 0): {"prob1"}}
+    updater.mw.current_game_rules.get_problem_definitions.return_value = {
+        "prob1": {"priority": 1, "name": "Width Error", "color": "#ff0000"}
+    }
+    updater.mw.detection_enabled = {"prob1": True}
+
+    parent = QTreeWidgetItem(["Items"])
+    leaf = updater._add_virtual_role_leaf(
+        parent,
+        "Master Sword",
+        -4,
+        Qt.UserRole + 16,
+        "Master Sword",
+        [(0, 0), (0, 1)],
+    )
+
+    assert leaf is not None
+    assert leaf.text(0) == "Master Sword (1)"
+    assert leaf.data(0, Qt.UserRole + 20)["prob1"] == 1
+
+    updater._set_virtual_folder_mappings(parent)
+    assert parent.data(0, Qt.UserRole + 13) == [(0, 0), (0, 1)]
+    assert parent.data(0, Qt.UserRole + 20)["prob1"] == 1
+    assert parent.text(0) == "Items (1)"
 
 
 def test_empty_virtual_leaf_is_not_added(updater):
@@ -377,18 +412,18 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
         updater.mw.block_list_widget.topLevelItem(i)
         for i in range(updater.mw.block_list_widget.topLevelItemCount())
     ]
-    story_root = next(item for item in roots if item.text(0) == "Story")
+    story_root = next(item for item in roots if folder_label(item) == "Story")
     scene_item = story_root.child(0).child(0).child(0)
-    assert scene_item.text(0) == "Scene One"
+    assert folder_label(scene_item) == "Scene One"
     assert scene_item.data(0, Qt.UserRole) == -2
     assert scene_item.data(0, Qt.UserRole + 11) == 30
     assert scene_item.data(0, Qt.UserRole + 13) == [(1, 1), (0, 0)]
 
-    speakers_root = next(item for item in roots if item.text(0) == "Speakers")
+    speakers_root = next(item for item in roots if folder_label(item) == "Speakers")
     midna = next(
         speakers_root.child(i)
         for i in range(speakers_root.childCount())
-        if speakers_root.child(i).text(0) == "MIDNA"
+        if folder_label(speakers_root.child(i)) == "MIDNA"
     )
     assert midna.data(0, Qt.UserRole + 13) == [(1, 1)]
     system = next(
@@ -411,11 +446,11 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     story_none = next(
         story_root.child(i)
         for i in range(story_root.childCount())
-        if story_root.child(i).text(0) == "None"
+        if folder_label(story_root.child(i)) == "None"
     )
     assert story_none.data(0, Qt.UserRole + 13) == [(1, 0), (1, 2)]
 
-    items_root = next(item for item in roots if item.text(0) == "Items")
+    items_root = next(item for item in roots if folder_label(item) == "Items")
     item_str1 = next(
         items_root.child(i)
         for i in range(items_root.childCount())
@@ -432,14 +467,14 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     # Every row has a Window binding, so an empty global None is omitted.
     assert all(item.text(0) != "None" for item in roots)
 
-    windows_root = next(item for item in roots if item.text(0) == "Windows")
+    windows_root = next(item for item in roots if folder_label(item) == "Windows")
     descriptions = next(
         windows_root.child(i)
         for i in range(windows_root.childCount())
-        if windows_root.child(i).text(0) == "Descriptions / save"
+        if folder_label(windows_root.child(i)) == "Descriptions / save"
     )
     description_children = [
-        descriptions.child(i).text(0) for i in range(descriptions.childCount())
+        folder_label(descriptions.child(i)) for i in range(descriptions.childCount())
     ]
     assert "Story" in description_children
     assert "Speakers" in description_children
@@ -448,10 +483,10 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     dialogue = next(
         windows_root.child(i)
         for i in range(windows_root.childCount())
-        if windows_root.child(i).text(0) == "Dialogue"
+        if folder_label(windows_root.child(i)) == "Dialogue"
     )
     dialogue_children = [
-        dialogue.child(i).text(0) for i in range(dialogue.childCount())
+        folder_label(dialogue.child(i)) for i in range(dialogue.childCount())
     ]
     assert "Story" not in dialogue_children
     assert "Speakers" not in dialogue_children
@@ -459,7 +494,7 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     nested_items = next(
         dialogue.child(i)
         for i in range(dialogue.childCount())
-        if dialogue.child(i).text(0) == "Items"
+        if folder_label(dialogue.child(i)) == "Items"
     )
     nested_items_none = nested_items.child(0)
     assert nested_items_none.data(0, Qt.UserRole + 16) == "None"
@@ -468,16 +503,16 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     unbound = next(
         dialogue.child(i)
         for i in range(dialogue.childCount())
-        if dialogue.child(i).text(0) == "None"
+        if folder_label(dialogue.child(i)) == "None"
     )
     assert unbound.data(0, Qt.UserRole + 13) == [(1, 2)]
     assert unbound.data(0, Qt.UserRole + 17) == "unbound"
 
-    notated_root = next(item for item in roots if item.text(0) == "Notated")
+    notated_root = next(item for item in roots if folder_label(item) == "Notated")
     noted = next(
         notated_root.child(i)
         for i in range(notated_root.childCount())
-        if notated_root.child(i).text(0) == "Notated"
+        if folder_label(notated_root.child(i)) == "Notated"
     )
     assert noted.data(0, Qt.UserRole) == -5
     assert noted.data(0, Qt.UserRole + 13) == [(0, 0)]
@@ -485,7 +520,7 @@ def test_BlockListUpdater_populates_normalized_story_and_speaker_folders(updater
     nested_notated = next(
         descriptions.child(i)
         for i in range(descriptions.childCount())
-        if descriptions.child(i).text(0) == "Notated"
+        if folder_label(descriptions.child(i)) == "Notated"
     )
     assert nested_notated.child(0).data(0, Qt.UserRole + 13) == [(0, 0)]
 
@@ -513,11 +548,11 @@ def test_BlockListUpdater_hides_virtual_folders_that_only_contain_none(updater):
     ]
     assert all(item.text(0) not in {"Story", "Speakers", "Items"} for item in roots)
 
-    windows_root = next(item for item in roots if item.text(0) == "Windows")
+    windows_root = next(item for item in roots if folder_label(item) == "Windows")
     window_kind = windows_root.child(0)
     assert window_kind.childCount() == 1
     window_none = window_kind.child(0)
-    assert window_none.text(0) == "None"
+    assert folder_label(window_none) == "None"
     assert window_none.data(0, Qt.UserRole + 13) == [(0, 0), (1, 0), (1, 1)]
 
 
@@ -767,3 +802,152 @@ def test_speakers_none_excludes_blank_and_whitespace_rows(mock_mw, mock_dp):
     }
     assert nested_folders.get("Hero") == [(0, 0)]
     assert nested_folders.get("None") == [(0, 3)]
+
+
+def test_all_game_rows_skips_blank_and_whitespace(mock_mw, mock_dp):
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    mock_mw.data_store.data = [["Hero line", "", "   \t  ", "Loose talk"]]
+
+    assert updater._all_game_rows() == {(0, 0), (0, 3)}
+
+
+def test_item_and_story_none_omit_blank_rows(mock_mw, mock_dp):
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    mock_mw.data_store.data = [["Hero line", "", "   ", "Loose talk", "You got the Master Sword."]]
+    mock_mw.data_store.show_unsaved_blocks_only = False
+    mock_mw.data_store.edited_data = {}
+    parent = QTreeWidgetItem(["root"])
+    allowed = {(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)}
+
+    items = updater._add_item_projection_root(
+        parent, {"Master Sword": [(0, 4)]}, allowed_rows=allowed
+    )
+    item_folders = {
+        items.child(i).data(0, Qt.ItemDataRole.UserRole + 16): items.child(i).data(
+            0, Qt.ItemDataRole.UserRole + 13
+        )
+        for i in range(items.childCount())
+    }
+    assert item_folders["Master Sword"] == [(0, 4)]
+    assert item_folders["None"] == [(0, 0), (0, 3)]
+
+    mapping = StoryVirtualMapping("0", "Block_Str_0", 0)
+    folder = StoryVirtualFolder(10, "scene", "Scene", (), (mapping,))
+    projection = StoryVirtualProjection(1, (folder,), ())
+    story = updater._add_story_projection_root(parent, projection, allowed)
+    story_none = next(
+        story.child(i)
+        for i in range(story.childCount())
+        if story.child(i).text(0) == "None"
+    )
+    assert story_none.data(0, Qt.ItemDataRole.UserRole + 13) == [(0, 3), (0, 4)]
+
+    notated = updater._add_notated_projection_root(parent, allowed)
+    assert notated is None
+
+
+def test_windows_kind_none_omits_blanks_and_drops_empty_kinds(mock_mw, mock_dp):
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    mock_mw.data_store.data = [
+        ["You got a heart."] + [""] * 5 + ["Loose talk"]
+    ]
+    mock_mw.current_game_rules.get_preview_window_style.side_effect = (
+        lambda block_idx, string_idx: {
+            "kind_name": "Item Get" if string_idx < 6 else "Dialogue"
+        }
+    )
+    parent = QTreeWidgetItem(["root"])
+    projection = StoryVirtualProjection(1, (), ())
+    windows = updater._add_windows_projection_root(parent, projection, {}, {})
+    kinds = {
+        folder_label(windows.child(i)): windows.child(i)
+        for i in range(windows.childCount())
+    }
+    assert set(kinds) == {"Item Get", "Dialogue"}
+
+    item_get = kinds["Item Get"]
+    assert item_get.childCount() == 1
+    assert folder_label(item_get.child(0)) == "None"
+    assert item_get.child(0).data(0, Qt.ItemDataRole.UserRole + 13) == [(0, 0)]
+
+    dialogue = kinds["Dialogue"]
+    assert dialogue.childCount() == 1
+    assert folder_label(dialogue.child(0)) == "None"
+    assert dialogue.child(0).data(0, Qt.ItemDataRole.UserRole + 13) == [(0, 6)]
+
+    updater._window_kind_groups_cache = None
+    mock_mw.data_store.data = [[""] * 6 + ["Loose talk"]]
+    blank_parent = QTreeWidgetItem(["root"])
+    windows_blank_kind = updater._add_windows_projection_root(
+        blank_parent, projection, {}, {}
+    )
+    remaining = {
+        folder_label(windows_blank_kind.child(i))
+        for i in range(windows_blank_kind.childCount())
+    }
+    assert remaining == {"Dialogue"}
+
+
+def _tree_item_with_role(name, idx, role):
+    item = QTreeWidgetItem([name])
+    if idx is not None:
+        item.setData(0, role, idx)
+    return item
+
+
+def test_populated_physical_block_is_not_an_empty_aggregate(updater):
+    updater.mw.block_list_widget.create_item = _tree_item_with_role
+    updater.mw.project_manager = None
+    updater.mw.data_store.data = [["Hello", "World", "Third"]]
+    updater.mw.data_store.block_names = {"0": "zel_00"}
+    updater.populate_blocks()
+
+    physical = updater.mw.block_list_widget.topLevelItem(0)
+    assert physical is not None
+    assert physical.data(0, Qt.UserRole) == 0
+    assert physical.data(0, Qt.UserRole + 18) != "aggregate"
+    mappings = physical.data(0, Qt.UserRole + 13)
+    assert not mappings
+
+
+def test_folder_expand_persists_without_rebuilding_tree(qapp):
+    from components.tree_folder_mixin import TreeFolderMixin
+
+    class DummyTreeWidget(QTreeWidget, TreeFolderMixin):
+        def __init__(self):
+            super().__init__()
+            self._mw = MagicMock()
+            self._is_programmatic_expansion = False
+
+        def window(self):
+            return self._mw
+
+    tree = DummyTreeWidget()
+    folder = MagicMock()
+    folder.is_expanded = False
+    tree._mw.project_manager.project = MagicMock()
+    tree._mw.project_manager.find_virtual_folder.return_value = folder
+    tree._mw.ui_updater = MagicMock()
+
+    item = QTreeWidgetItem(tree, ["Folder"])
+    item.setData(0, Qt.UserRole + 1, "fid")
+    item.setData(0, Qt.UserRole + 2, ["fid"])
+    item.setExpanded(True)
+
+    tree._handle_item_state_changed(item)
+
+    assert folder.is_expanded is True
+    tree._mw.ui_updater.populate_blocks.assert_not_called()
+    tree._mw.project_manager.save.assert_not_called()
+    tree._flush_folder_state_save()
+    tree._mw.project_manager.save.assert_called_once()
+
+
+def test_stale_window_cache_does_not_revive_blank_rows(mock_mw, mock_dp):
+    updater = BlockListUpdater(mock_mw, mock_dp)
+    mock_mw.data_store.data = [["You got a heart.", "", ""]]
+    updater._window_kind_groups_cache = {
+        "Item Get": {(0, 0), (0, 1), (0, 2)},
+    }
+
+    assert updater._window_kind_groups() == {"Item Get": {(0, 0)}}

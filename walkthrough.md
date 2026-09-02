@@ -23,3 +23,17 @@
 - Модульні тести: `python -m pytest tests/test_core/test_speaker_pool.py tests/test_core/test_glossary_occurrence_bridge.py tests/test_core/test_glossary_pipeline_coordinator.py tests/test_handlers/test_translation/test_glossary_pipeline_handler.py -q` — **81 passed**.
 - Статичний аналіз: `python -m ruff check ...` — **All checks passed**.
 - `git diff --check` — **0 помилок**.
+
+---
+
+# Walkthrough: Реліз Picoripi v0.3.090
+
+## Огляд
+Підготовлено та верифіковано офіційний реліз **v0.3.090** (попередній базовий реліз — `v0.3.068`). Усі проміжні зміни (M1–M4 глосарію, рендеринг розкладки Twilight Princess, Script Markup Studio, паралельні AI-воркери, стабілізація списків та віртуальних папок) консолідовано в єдиний стандартизований ченджлог.
+
+## Виконана верифікація
+- **Повний прогін `test_all.ps1`**: 3082 модульних та інтеграційних тести, 10 тестів швидкодії — **100% Passed**.
+- **Ruff лінтер**: виправлено невикористані імпорти у плагінах та тестах — **All checks passed**.
+- **Інваріанти плагінів**: усунуто згадку конкретного плагіна з абстрактного контракту `plugins/base_game_rules.py`.
+- **Git diff**: `git diff --check` без помилок.
+

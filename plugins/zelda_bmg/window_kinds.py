@@ -22,7 +22,7 @@ present, `window_frame_loader` paints BLO/BTI frames from res/Layout.
 The BFN preview only turns this chrome on when the active plugin advertises
 the ``message_window_preview`` capability (see GameRules.get_capabilities).
 """
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 # fuki_kind -> screen (dusklight dMsgObject_c::talkStartInit):
 #   9        dMsgScrnItem_c

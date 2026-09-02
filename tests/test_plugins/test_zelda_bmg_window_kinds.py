@@ -584,7 +584,6 @@ def test_subtitles_do_not_load_talk_dump_frame():
 
 def test_gx_i8_decode_writes_luma_pixels():
     from plugins.zelda_bmg.gx_texture import decode_gx
-    from PyQt6.QtGui import QImage
 
     # One 8x4 I8 tile of 0x80.
     img = decode_gx(bytes([0x80] * 32), 8, 4, 1)
@@ -595,9 +594,7 @@ def test_gx_i8_decode_writes_luma_pixels():
 
 def test_dump_talk_frame_loads_when_msgres_present(qapp, tmp_path):
     pytest.importorskip("PyQt6")
-    from plugins.zelda_bmg.window_frame_loader import (
-        find_layout_root, load_window_frame, _CACHE, _LAYOUT_ROOT,
-    )
+    from plugins.zelda_bmg.window_frame_loader import find_layout_root, load_window_frame
     import plugins.zelda_bmg.window_frame_loader as loader
 
     layout = find_layout_root()

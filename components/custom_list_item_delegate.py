@@ -294,7 +294,11 @@ class CustomListItemDelegate(QStyledItemDelegate):
                     problem_definitions = main_window.current_game_rules.get_problem_definitions()
 
                 if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, 'block_list_updater') and hasattr(main_window.ui_updater.block_list_updater, '_get_aggregated_problems_for_block'):
-                    if is_virtual_row:
+                    stored_counts = index.data(Qt.ItemDataRole.UserRole + 20)
+                    row_mappings = index.data(Qt.ItemDataRole.UserRole + 13)
+                    if isinstance(stored_counts, dict):
+                        block_problem_counts = stored_counts
+                    elif is_virtual_row:
                         s_idx_data = index.data(Qt.ItemDataRole.UserRole + 1)
                         block_problem_counts = {}
                         detection_config = getattr(main_window, 'detection_enabled', {})
@@ -305,6 +309,11 @@ class CustomListItemDelegate(QStyledItemDelegate):
                                 problem_ids.update(p_set)
                         filtered_problems = {p_id for p_id in problem_ids if detection_config.get(p_id, True)}
                         block_problem_counts = {p_id: 1 for p_id in filtered_problems}
+                    elif isinstance(row_mappings, (list, tuple)) and row_mappings:
+                        block_problem_counts = main_window.ui_updater.block_list_updater._get_aggregated_problems_for_block(
+                            block_idx_data if isinstance(block_idx_data, int) else -2,
+                            row_mappings=list(row_mappings),
+                        )
                     else:
                         ch_id = index.data(Qt.ItemDataRole.UserRole + 11)
                         block_problem_counts = main_window.ui_updater.block_list_updater._get_aggregated_problems_for_block(block_idx_data, category_name=category_name, chapter_id=ch_id)
@@ -701,7 +710,17 @@ class CustomListItemDelegate(QStyledItemDelegate):
             tooltip_lines.append("<b>Custom Layout Settings</b>: Layout settings override applied inside this item.")
             
         if hasattr(main_window, 'ui_updater') and hasattr(main_window.ui_updater, 'block_list_updater'):
-            block_problem_counts = main_window.ui_updater.block_list_updater._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=chapter_id)
+            stored_counts = index.data(Qt.ItemDataRole.UserRole + 20)
+            row_mappings = index.data(Qt.ItemDataRole.UserRole + 13)
+            if isinstance(stored_counts, dict):
+                block_problem_counts = stored_counts
+            elif isinstance(row_mappings, (list, tuple)) and row_mappings:
+                block_problem_counts = main_window.ui_updater.block_list_updater._get_aggregated_problems_for_block(
+                    block_idx if isinstance(block_idx, int) else -2,
+                    row_mappings=list(row_mappings),
+                )
+            else:
+                block_problem_counts = main_window.ui_updater.block_list_updater._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=chapter_id)
             if problem_definitions and block_problem_counts:
                 sorted_ids = sorted(block_problem_counts.keys(), key=lambda pid: problem_definitions.get(pid, {}).get("priority", 99))
                 for pid in sorted_ids:

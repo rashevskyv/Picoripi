@@ -344,10 +344,12 @@ class BlockListUpdater(BaseUIUpdater):
         return self._story_override_index_cache
 
     def _all_game_rows(self) -> set[tuple[int, int]]:
+        """Non-blank source rows. Padding stays in physical blocks, not virtual folders."""
         return {
             (block_idx, string_idx)
             for block_idx, block in enumerate(getattr(self.mw.data_store, "data", []))
             for string_idx in range(len(block))
+            if not self._is_blank_row(block_idx, string_idx)
         }
 
     def _is_blank_row(self, block_idx: int, string_idx: int) -> bool:
@@ -358,6 +360,11 @@ class BlockListUpdater(BaseUIUpdater):
         if not isinstance(block, (list, tuple)) or not (0 <= string_idx < len(block)):
             return False
         return not str(block[string_idx] or "").strip()
+
+    def _virtual_scope(self, allowed_rows=None) -> set[tuple[int, int]]:
+        """Rows a virtual folder may hold: ``allowed_rows`` or all game rows, minus blanks."""
+        scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
+        return {row for row in scope if not self._is_blank_row(*row)}
 
     def _story_linked_rows(self, projection: StoryVirtualProjection) -> set[tuple[int, int]]:
         linked = set()
@@ -404,10 +411,40 @@ class BlockListUpdater(BaseUIUpdater):
         )
         parent.addChild(item)
         self._register_item_in_cache(item)
+        self._apply_virtual_issue_indicators(item)
         return item
 
-    @staticmethod
-    def _set_virtual_folder_mappings(item: QTreeWidgetItem) -> list[tuple[int, int]]:
+    def _apply_virtual_issue_indicators(self, item: QTreeWidgetItem) -> None:
+        """Copy physical-block warning ticks onto a virtual folder or leaf."""
+        kind = item.data(0, Qt.ItemDataRole.UserRole)
+        if isinstance(kind, int) and kind >= 0:
+            return
+        mappings = item.data(0, Qt.ItemDataRole.UserRole + 13) or []
+        rules = getattr(self.mw, "current_game_rules", None)
+        defs = rules.get_problem_definitions() if rules else {}
+        if not isinstance(defs, dict):
+            defs = {}
+        counts = (
+            self._get_aggregated_problems_for_block(-2, row_mappings=list(mappings))
+            if mappings
+            else {pid: 0 for pid in defs}
+        )
+        item.setData(0, Qt.ItemDataRole.UserRole + 20, dict(counts or {}))
+        if not defs:
+            return
+        label = item.data(0, Qt.ItemDataRole.UserRole + 4)
+        if not label:
+            label = re.sub(r" \(\d+\)$", "", item.text(0) or "")
+            item.setData(0, Qt.ItemDataRole.UserRole + 4, label)
+        prior_tip = item.toolTip(0)
+        self._apply_issues_and_tooltip(item, label, counts, defs)
+        issue_tip = item.toolTip(0)
+        if prior_tip and issue_tip:
+            item.setToolTip(0, f"{prior_tip}<br><br>{issue_tip}")
+        elif prior_tip:
+            item.setToolTip(0, prior_tip)
+
+    def _set_virtual_folder_mappings(self, item: QTreeWidgetItem) -> list[tuple[int, int]]:
         """Store the unique rows contained by a virtual folder and all descendants."""
         rows = []
         seen = set()
@@ -424,13 +461,16 @@ class BlockListUpdater(BaseUIUpdater):
         for child_idx in range(item.childCount()):
             child = item.child(child_idx)
             if child.childCount():
-                add(BlockListUpdater._set_virtual_folder_mappings(child))
+                add(self._set_virtual_folder_mappings(child))
             else:
                 add(child.data(0, Qt.ItemDataRole.UserRole + 13))
         if item.childCount():
             item.setData(0, Qt.ItemDataRole.UserRole + 13, rows)
-            item.setData(0, Qt.ItemDataRole.UserRole + 18, "aggregate")
+            kind = item.data(0, Qt.ItemDataRole.UserRole)
+            if not isinstance(kind, int) or kind < 0:
+                item.setData(0, Qt.ItemDataRole.UserRole + 18, "aggregate")
             item.setToolTip(0, f"{len(rows)} game strings in this folder and its subfolders")
+            self._apply_virtual_issue_indicators(item)
         return rows
 
     def _add_story_folder_item(
@@ -450,6 +490,7 @@ class BlockListUpdater(BaseUIUpdater):
                 mappings.append(row)
         if allowed_rows is not None:
             mappings = [row for row in mappings if row in allowed_rows]
+        mappings = [row for row in mappings if not self._is_blank_row(*row)]
         if getattr(self.mw.data_store, "show_unsaved_blocks_only", False):
             own_unsaved = any(item in self.mw.data_store.edited_data for item in mappings)
         else:
@@ -485,6 +526,7 @@ class BlockListUpdater(BaseUIUpdater):
 
         parent.addChild(item)
         self._register_item_in_cache(item)
+        self._apply_virtual_issue_indicators(item)
         if selected_id == folder.id:
             self.mw.block_list_widget.setCurrentItem(item)
             item.setSelected(True)
@@ -501,10 +543,11 @@ class BlockListUpdater(BaseUIUpdater):
         allowed_rows: set[tuple[int, int]] | None = None,
         selected_id=None,
     ):
-        scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
+        scope = self._virtual_scope(allowed_rows)
         root = QTreeWidgetItem(["Story"])
         self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
         root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        root.setData(0, Qt.ItemDataRole.UserRole + 4, "Story")
         for folder in projection.roots:
             self._add_story_folder_item(
                 root, folder, selected_id, scope, True
@@ -530,18 +573,16 @@ class BlockListUpdater(BaseUIUpdater):
         speakers: dict[str, list[tuple[int, int]]],
         allowed_rows: set[tuple[int, int]] | None = None,
     ):
-        scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
+        scope = self._virtual_scope(allowed_rows)
         root = QTreeWidgetItem(["Speakers"])
         self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
         root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        root.setData(0, Qt.ItemDataRole.UserRole + 4, "Speakers")
         assigned = set()
         for name in sorted(
             (name for name in speakers if name != "None"), key=natural_sort_key
         ):
-            rows = [
-                row for row in speakers[name]
-                if row in scope and not self._is_blank_row(*row)
-            ]
+            rows = [row for row in speakers[name] if row in scope]
             if not rows:
                 continue
             assigned.update(rows)
@@ -550,10 +591,7 @@ class BlockListUpdater(BaseUIUpdater):
             )
         if root.childCount() == 0:
             return None
-        none_rows = [
-            row for row in sorted(scope - assigned)
-            if not self._is_blank_row(*row)
-        ]
+        none_rows = sorted(scope - assigned)
         none_item = self._add_virtual_role_leaf(
             root, "None", -3, Qt.ItemDataRole.UserRole + 15,
             "None", none_rows,
@@ -573,10 +611,11 @@ class BlockListUpdater(BaseUIUpdater):
         item_mappings: dict[str, list[tuple[int, int]]],
         allowed_rows: set[tuple[int, int]] | None = None,
     ):
-        scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
+        scope = self._virtual_scope(allowed_rows)
         root = QTreeWidgetItem(["Items"])
         self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
         root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        root.setData(0, Qt.ItemDataRole.UserRole + 4, "Items")
         assigned = set()
         for name in sorted(item_mappings, key=natural_sort_key):
             rows = [row for row in item_mappings[name] if row in scope]
@@ -616,13 +655,14 @@ class BlockListUpdater(BaseUIUpdater):
         allowed_rows: set[tuple[int, int]] | None = None,
     ):
         """Add the independent Notated facet to the virtual tree."""
-        scope = set(allowed_rows) if allowed_rows is not None else self._all_game_rows()
+        scope = self._virtual_scope(allowed_rows)
         noted = sorted(scope & self._notated_rows())
         if not noted:
             return None
         root = QTreeWidgetItem(["Notated"])
         self._set_item_style_icon(root, 0, QStyle.StandardPixmap.SP_DirIcon)
         root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        root.setData(0, Qt.ItemDataRole.UserRole + 4, "Notated")
         self._add_virtual_role_leaf(
             root, "Notated", -5, Qt.ItemDataRole.UserRole + 19, "Notated", noted
         )
@@ -635,24 +675,28 @@ class BlockListUpdater(BaseUIUpdater):
         return root
 
     def _window_kind_groups(self) -> dict[str, set[tuple[int, int]]]:
-        if self._window_kind_groups_cache is not None:
-            return self._window_kind_groups_cache
-        groups = {}
-        rules = getattr(self.mw, "current_game_rules", None)
-        for block_idx, string_idx in sorted(self._all_game_rows()):
-            name = "Unknown"
-            getter = getattr(rules, "get_preview_window_style", None)
-            if callable(getter):
-                try:
-                    style = getter(block_idx=block_idx, string_idx=string_idx)
-                    candidate = style.get("kind_name") if isinstance(style, dict) else None
-                    if isinstance(candidate, str) and candidate.strip():
-                        name = candidate.strip()
-                except Exception:
-                    pass
-            groups.setdefault(name, set()).add((block_idx, string_idx))
-        self._window_kind_groups_cache = groups
-        return self._window_kind_groups_cache
+        if self._window_kind_groups_cache is None:
+            groups = {}
+            rules = getattr(self.mw, "current_game_rules", None)
+            for block_idx, string_idx in sorted(self._all_game_rows()):
+                name = "Unknown"
+                getter = getattr(rules, "get_preview_window_style", None)
+                if callable(getter):
+                    try:
+                        style = getter(block_idx=block_idx, string_idx=string_idx)
+                        candidate = style.get("kind_name") if isinstance(style, dict) else None
+                        if isinstance(candidate, str) and candidate.strip():
+                            name = candidate.strip()
+                    except Exception:
+                        pass
+                groups.setdefault(name, set()).add((block_idx, string_idx))
+            self._window_kind_groups_cache = groups
+        cleaned = {}
+        for name, rows in self._window_kind_groups_cache.items():
+            kept = {row for row in rows if not self._is_blank_row(*row)}
+            if kept:
+                cleaned[name] = kept
+        return cleaned
 
     def _window_bound_rows(self) -> set[tuple[int, int]]:
         """Rows classified into a concrete Window facet."""
@@ -676,6 +720,7 @@ class BlockListUpdater(BaseUIUpdater):
         windows_root = QTreeWidgetItem(["Windows"])
         self._set_item_style_icon(windows_root, 0, QStyle.StandardPixmap.SP_DirIcon)
         windows_root.setFlags(windows_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        windows_root.setData(0, Qt.ItemDataRole.UserRole + 4, "Windows")
         story_rows = self._story_linked_rows(projection)
         speaker_rows = {
             row for name, rows in speakers.items() if name != "None" for row in rows
@@ -685,11 +730,16 @@ class BlockListUpdater(BaseUIUpdater):
             kind_root = QTreeWidgetItem([kind_name])
             self._set_item_style_icon(kind_root, 0, QStyle.StandardPixmap.SP_DirIcon)
             kind_root.setFlags(kind_root.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            kind_root.setData(0, Qt.ItemDataRole.UserRole + 4, kind_name)
             self._add_story_projection_root(kind_root, projection, rows)
             self._add_speaker_projection_root(kind_root, speakers, rows)
             self._add_item_projection_root(kind_root, item_mappings, rows)
             self._add_notated_projection_root(kind_root, rows)
-            unbound = sorted(rows - story_rows - speaker_rows - item_rows)
+            unbound = sorted(
+                row
+                for row in (rows - story_rows - speaker_rows - item_rows)
+                if not self._is_blank_row(*row)
+            )
             unbound_item = self._add_virtual_role_leaf(
                 kind_root, "None", -3, Qt.ItemDataRole.UserRole + 15,
                 "None", unbound,
@@ -1066,7 +1116,7 @@ class BlockListUpdater(BaseUIUpdater):
             cursor = cursor.parent()
         return tuple(reversed(path))
 
-    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None, speaker_name: str = None, speaker_mappings: list = None, chapter_mappings: list = None) -> dict:
+    def _get_aggregated_problems_for_block(self, block_idx: int, pre_aggregated_counts: dict = None, category_name: str = None, chapter_id: int = None, speaker_name: str = None, speaker_mappings: list = None, chapter_mappings: list = None, row_mappings: list = None) -> dict:
         """Internal helper to get the aggregated problems for block using central FilterQueryAPI."""
         detection_config = getattr(self.mw, 'detection_enabled', {})
         return self.mw.filter_query_api.get_aggregated_problems_for_block(
@@ -1077,7 +1127,8 @@ class BlockListUpdater(BaseUIUpdater):
             speaker_name=speaker_name,
             speaker_mappings=speaker_mappings,
             detection_config=detection_config,
-            chapter_mappings=chapter_mappings
+            chapter_mappings=chapter_mappings,
+            row_mappings=row_mappings,
         )
 
     def _apply_issues_and_tooltip(self, item: QTreeWidgetItem, base_display_name: str, problem_counts: dict, problem_definitions: dict):
@@ -1726,6 +1777,7 @@ class BlockListUpdater(BaseUIUpdater):
 
                         problem_definitions = self.mw.current_game_rules.get_problem_definitions() if self.mw.current_game_rules else {}
                         speaker_problem_counts = self._get_aggregated_problems_for_block(-3, speaker_name=speaker_name, speaker_mappings=speaker_mappings_list)
+                        speaker_item.setData(0, Qt.ItemDataRole.UserRole + 20, dict(speaker_problem_counts or {}))
                         self._apply_issues_and_tooltip(speaker_item, speaker_name, speaker_problem_counts, problem_definitions)
 
                         speakers_root.addChild(speaker_item)
@@ -1776,7 +1828,17 @@ class BlockListUpdater(BaseUIUpdater):
                     }
                     item_rows = {row for rows in item_mappings.values() for row in rows}
                     window_rows = self._window_bound_rows()
-                    globally_unbound = self._all_game_rows() - story_rows - speaker_rows - item_rows - window_rows
+                    globally_unbound = {
+                        row
+                        for row in (
+                            self._all_game_rows()
+                            - story_rows
+                            - speaker_rows
+                            - item_rows
+                            - window_rows
+                        )
+                        if not self._is_blank_row(*row)
+                    }
                     global_none_item = self._add_virtual_role_leaf(
                         tree_root,
                         "None",
@@ -1855,6 +1917,23 @@ class BlockListUpdater(BaseUIUpdater):
                 ch_mappings_from_item = item.data(0, Qt.ItemDataRole.UserRole + 13) if ch_id is not None else None
                 block_problem_counts = self._get_aggregated_problems_for_block(block_idx, category_name=category_name, chapter_id=ch_id, chapter_mappings=ch_mappings_from_item)
                 self._apply_issues_and_tooltip(item, base_display_name, block_problem_counts, problem_definitions)
+
+            iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+            while iterator.value():
+                virtual_item = iterator.value()
+                mappings = virtual_item.data(0, Qt.ItemDataRole.UserRole + 13)
+                if isinstance(mappings, (list, tuple)):
+                    contains_block = False
+                    for row in mappings:
+                        try:
+                            if len(row) == 2 and int(row[0]) == block_idx:
+                                contains_block = True
+                                break
+                        except (TypeError, ValueError):
+                            continue
+                    if contains_block:
+                        self._apply_virtual_issue_indicators(virtual_item)
+                iterator += 1
         finally:
             self.mw.block_list_widget.blockSignals(False)
 

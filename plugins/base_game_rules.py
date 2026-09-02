@@ -165,8 +165,7 @@ class BaseGameRules:
         ``external_lore`` (``get_external_lore``),
         ``speaker_attribution`` (``get_speaker_for_string``),
         ``message_window_preview`` (per-kind message windows, pagination, dump
-        frames in the BFN preview; see ``plugins/zelda_bmg`` as the reference
-        when you have game files or a decompilation).
+        frames in the BFN preview when you have game files or a decompilation).
         Default: none.
         """
         return set()

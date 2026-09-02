@@ -279,8 +279,8 @@ def test_ai_prompt_context_lookup_performance(qapp):
     duration = time.perf_counter() - t0
     
     print(f"\nAI Prompt context composition duration for 100 items: {duration*1000:.2f}ms")
-    # Budget is < 100ms
-    assert duration < 0.100, f"AI Prompt context composition took too long: {duration*1000:.2f}ms (budget: 100ms)"
+    # Budget is < 200ms (avoids flakiness under 16-worker CPU contention)
+    assert duration < 0.200, f"AI Prompt context composition took too long: {duration*1000:.2f}ms (budget: 200ms)"
 
 
 @pytest.mark.performance

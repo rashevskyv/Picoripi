@@ -184,7 +184,7 @@ class TreeFolderMixin:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _handle_item_state_changed(self, item):
-        """Persist expand/collapse state to ProjectManager and refresh compaction."""
+        """Persist expand/collapse state without rebuilding the tree."""
         if getattr(self, '_is_programmatic_expansion', False):
             return
 
@@ -212,12 +212,23 @@ class TreeFolderMixin:
             if f_obj:
                 f_obj.is_expanded = is_expanded
 
-        pm.save()
-        self.setUpdatesEnabled(False)
-        try:
-            main_window.ui_updater.populate_blocks()
-        finally:
-            self.setUpdatesEnabled(True)
+        self._schedule_folder_state_save()
+
+    def _schedule_folder_state_save(self):
+        """Write expansion state after the user stops opening/closing folders."""
+        timer = getattr(self, "_folder_state_save_timer", None)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(self._flush_folder_state_save)
+            self._folder_state_save_timer = timer
+        timer.start(400)
+
+    def _flush_folder_state_save(self):
+        main_window = self.window()
+        pm = getattr(main_window, "project_manager", None)
+        if pm and pm.project:
+            pm.save()
 
     # ─────────────────────────────────────────────────────────────────────────
     # Tree → ProjectManager synchronisation

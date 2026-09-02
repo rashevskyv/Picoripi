@@ -1,5 +1,29 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [v0.3.090] - 2026-09-02
+
+### 🚀 Added
+- **Unified Guided Glossary Pipeline**: Introduced an end-to-end, single-pass glossary enrichment pipeline combining game-data structural seeding, incremental AI text sweeps with fingerprint caching (`glossary.scan.json`), automated description synthesis, and translation suggestions into a non-blocking workflow.
+- **Granular Speaker Identity & Merge Resolution**: Added an interactive Speaker Merge and Resolution interface in the Glossary and Tools menu. Allows resolving provisional game speaker codes (e.g. voice IDs) into verified character names with candidate quick-pick chips, shared-voice assignment, and granular per-row checkboxes.
+- **Retail Twilight Princess Message Window Preview**: Integrated game-accurate message box rendering for Zelda Twilight Princess using retail layout archives (`res/Layout/msgres*.arc`). Supports dynamic window-kind presets (talk, kanban, item, wood), height-centered typography with drop shadows, and authentic controller button icon glyphs.
+- **Story Timeline & Dialogue Mapping**: Added the Story Timeline window offering character profiling, context assignment, and dialogue mapping. Dialogue flow, owning NPC actor context, and scene metadata are automatically injected into AI translation prompts.
+- **Script Markup Studio Redesign**: Revamped the studio workspace with clear stage indicators (`Source -> Markup -> Review -> MemPalace`), live save status badges, an intelligent Next Action dashboard, and hierarchy tree search.
+- **Parallel Local AI Proxy Workflows**: Enabled concurrent AI batch translation and glossary tasks (configurable 1–16 parallel workers) with seamless support for OpenAI/Gemini compatible local reverse proxies (root and `/v1` endpoints) and resilient HTTP proxy error handling.
+- **Idle-Aware Power Management**: AI and background analysis tasks can now trigger optional system sleep only after a verified duration of genuine user inactivity.
+
+### 🐛 Fixed
+- **Selection & Scroll Stability**: Fixed list view jumping and preserved scroll positions in Strings and Blocks lists when navigating items or clicking editor elements.
+- **Virtual Speaker Folder Purity**: Prevented blank dialogue rows and unresolved raw developer codes from polluting virtual speaker folders or leaking into AI translation prompts.
+- **Forced Issue Scan Cache Invalidation**: Resolved an issue where repeated Issue Scan requests returned stale cached results by introducing a `force=True` parameter that invalidates modification timestamp caches.
+- **Tag Validation & Icon Spacing**: Canonicalized control tags and aliases, respected zero-width font-map control characters, and narrowed false-positive missing icon space warnings.
+- **Editor Window Proliferation**: Eliminated unwanted secondary taskbar icons created by unparented modal dialogs across Script Markup Studio.
+
+### ⚡ Improved
+- **Glossary Variant Selection UX**: Selecting a proposed translation variant requires explicit confirmation via the Apply button, preventing accidental overwrites when inspecting options.
+- **Per-Block Scope Control**: Physical project blocks can be selectively included or excluded during glossary sweeps.
+- **Width Limit Calibration**: Automatically calibrates per-window-kind width thresholds directly from original game text.
+- **Tree Navigation Performance**: Optimized block tree expansion and virtual folder browsing with uniform row heights and lazy caching.
+
 ## [0.3.090-dev] - 2026-09-01
 
 ### Changed

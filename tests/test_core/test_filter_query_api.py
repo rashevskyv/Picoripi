@@ -100,6 +100,32 @@ def test_get_aggregated_problems_for_block(mock_mw):
     counts = api.get_aggregated_problems_for_block(0, detection_config={"warning_tag": True, "error_width": True})
     assert counts == {"warning_tag": 1, "error_width": 2}
 
+def test_get_aggregated_problems_for_row_mappings(mock_mw):
+    api = FilterQueryAPI(mock_mw)
+    mock_mw.current_game_rules.get_problem_definitions.return_value = {
+        "warning_tag": {"severity": "warning"},
+        "error_width": {"severity": "error"},
+    }
+    mock_mw.data_store.problems_per_subline = {
+        (0, 1, 0): {"warning_tag"},
+        (0, 2, 0): {"error_width"},
+        (0, 6, 0): {"error_width"},
+    }
+
+    counts = api.get_aggregated_problems_for_block(
+        -4,
+        row_mappings=[(0, 1), (0, 2)],
+        detection_config={"warning_tag": True, "error_width": True},
+    )
+    assert counts == {"warning_tag": 1, "error_width": 1}
+
+def test_notated_view_uses_virtual_mappings(mock_mw):
+    api = FilterQueryAPI(mock_mw)
+    indices, _ = api.get_filtered_string_indices(
+        -5, virtual_mappings=[(0, 0), (0, 6)]
+    )
+    assert indices == [(0, 0), (0, 6)]
+
 def test_is_project_block_unsaved(mock_mw):
     api = FilterQueryAPI(mock_mw)
     mock_mw.data_store.unsaved_block_indices = {0}

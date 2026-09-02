@@ -847,6 +847,7 @@ def test_UIUpdater_sync_filter_checkboxes_with_store(updater, mock_mw):
     from PyQt6.QtWidgets import QCheckBox
     mock_mw.hide_translated_checkbox = QCheckBox()
     mock_mw.show_unsaved_only_checkbox = QCheckBox()
+    mock_mw.show_unsaved_blocks_checkbox = QCheckBox()
     mock_mw.show_warnings_only_checkbox = QCheckBox()
     mock_mw.hide_empty_strings_checkbox = QCheckBox()
     mock_mw.highlight_categorized_checkbox = QCheckBox()
@@ -855,6 +856,7 @@ def test_UIUpdater_sync_filter_checkboxes_with_store(updater, mock_mw):
 
     mock_mw.data_store.hide_translated = True
     mock_mw.data_store.show_unsaved_only = False
+    mock_mw.data_store.show_unsaved_blocks_only = True
     mock_mw.data_store.show_warnings_only = True
     mock_mw.data_store.hide_empty_strings = False
     mock_mw.data_store.highlight_categorized = True
@@ -865,6 +867,7 @@ def test_UIUpdater_sync_filter_checkboxes_with_store(updater, mock_mw):
 
     assert mock_mw.hide_translated_checkbox.isChecked() is True
     assert mock_mw.show_unsaved_only_checkbox.isChecked() is False
+    assert mock_mw.show_unsaved_blocks_checkbox.isChecked() is True
     assert mock_mw.show_warnings_only_checkbox.isChecked() is True
     assert mock_mw.hide_empty_strings_checkbox.isChecked() is False
     assert mock_mw.highlight_categorized_checkbox.isChecked() is True

@@ -256,6 +256,85 @@ def test_clicking_restored_virtual_item_rebuilds_empty_strings_view(handler):
     handler.mw.ui_updater.populate_current_view.assert_called_once_with(force=True)
 
 
+def _capture_click_indices(handler, texts):
+    from core.data_store import AppDataStore
+    from core.filter_query_api import FilterQueryAPI
+
+    store = AppDataStore()
+    store.data = [list(texts)]
+    store.block_names = {"0": "zel_00"}
+    handler.mw.data_store = store
+    api = FilterQueryAPI(handler.mw, handler.data_processor)
+    handler.mw.filter_query_api = api
+    captured = {}
+
+    def populate(block_idx, category_name=None, force=False):
+        view = store.current_view_kind
+        if view == ViewKind.CHAPTER:
+            block_idx = -2
+        elif view == ViewKind.SPEAKER:
+            block_idx = -3
+        elif view == ViewKind.ITEM:
+            block_idx = -4
+        elif view == ViewKind.NOTATED:
+            block_idx = -5
+        indices, _ = api.get_filtered_string_indices(
+            block_idx=block_idx,
+            category_name=category_name,
+            data_source=store.data,
+            virtual_mappings=store.chapter_mappings,
+        )
+        captured["block_idx"] = block_idx
+        captured["indices"] = indices
+        store.displayed_string_indices = indices
+
+    handler.ui_updater.populate_strings_for_block.side_effect = populate
+    handler.ui_updater.populate_current_view.side_effect = (
+        lambda force=False: populate(store.current_block_idx, store.current_category_name, force)
+    )
+    return store, captured
+
+
+def test_clicking_physical_block_fills_strings_preview(handler):
+    store, captured = _capture_click_indices(handler, ["Hello", "World", "Third"])
+    item = QTreeWidgetItem(["zel_00"])
+    item.setData(0, Qt.UserRole, 0)
+    with patch.object(handler, "_update_block_toolbar_button_states"):
+        handler.block_selected(item, None)
+
+    assert captured["block_idx"] == 0
+    assert captured["indices"] == [0, 1, 2]
+    assert store.displayed_string_indices == [0, 1, 2]
+
+
+def test_clicking_virtual_leaf_fills_mapped_strings_preview(handler):
+    store, captured = _capture_click_indices(handler, ["Hello", "World", "Third"])
+    item = QTreeWidgetItem(["MIDNA"])
+    item.setData(0, Qt.UserRole, -3)
+    item.setData(0, Qt.UserRole + 15, "MIDNA")
+    item.setData(0, Qt.UserRole + 13, [(0, 0), (0, 2)])
+    with patch.object(handler, "_update_block_toolbar_button_states"):
+        handler.block_selected(item, None)
+
+    assert captured["block_idx"] == -3
+    assert captured["indices"] == [(0, 0), (0, 2)]
+    assert store.displayed_string_indices == [(0, 0), (0, 2)]
+
+
+def test_physical_block_is_not_treated_as_empty_aggregate(handler):
+    store, captured = _capture_click_indices(handler, ["Hello", "World"])
+    item = QTreeWidgetItem(["zel_00"])
+    item.setData(0, Qt.UserRole, 0)
+    item.setData(0, Qt.UserRole + 18, "aggregate")
+    item.setData(0, Qt.UserRole + 13, [])
+    with patch.object(handler, "_update_block_toolbar_button_states"):
+        handler.block_selected(item, None)
+
+    assert captured.get("block_idx") == 0
+    assert captured.get("indices") == [0, 1]
+    assert store.current_view_kind == ViewKind.PHYSICAL
+
+
 def test_selecting_virtual_parent_shows_all_descendant_rows(handler):
     item = QTreeWidgetItem(["Windows"])
     item.setData(0, Qt.UserRole + 18, "aggregate")

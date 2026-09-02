@@ -53,7 +53,7 @@ class FilterQueryAPI:
         if data_source is None:
             data_source = getattr(self.data_store, 'data', []) or []
 
-        is_virtual = block_idx in (-2, -3, -4)
+        is_virtual = block_idx in (-2, -3, -4, -5)
 
         # 1. Determine base target indices
         target_indices = []
@@ -180,6 +180,38 @@ class FilterQueryAPI:
 
         return target_indices, placeholder_texts
 
+    def _problem_counts_for_rows(
+        self,
+        mappings: Optional[List[Any]],
+        detection_config: Dict[str, bool],
+        problem_definitions: Dict[str, Any],
+    ) -> Dict[str, int]:
+        """Count enabled problems on an explicit set of (block, string) rows."""
+        problem_counts = {pid: 0 for pid in problem_definitions.keys()}
+        mapping_set = set()
+        list_sel = getattr(self.mw, "list_selection_handler", None)
+        for mapping in mappings or ():
+            if isinstance(mapping, (tuple, list)) and len(mapping) == 2:
+                try:
+                    mapping_set.add((int(mapping[0]), int(mapping[1])))
+                except (TypeError, ValueError):
+                    continue
+            elif hasattr(mapping, "get"):
+                bmg_id = mapping.get("bmg_id")
+                if list_sel and bmg_id:
+                    indices = list_sel.resolve_bmg_id_to_indices(bmg_id)
+                    if indices:
+                        mapping_set.add(indices)
+        if not mapping_set:
+            return problem_counts
+        for (b_idx, s_idx, _subline_idx), problems in self.data_store.problems_per_subline.items():
+            if (b_idx, s_idx) not in mapping_set:
+                continue
+            for p_id in problems:
+                if detection_config.get(p_id, True) and p_id in problem_counts:
+                    problem_counts[p_id] += 1
+        return problem_counts
+
     def get_aggregated_problems_for_block(
         self,
         block_idx: int,
@@ -189,7 +221,8 @@ class FilterQueryAPI:
         speaker_name: Optional[str] = None,
         speaker_mappings: Optional[List[Tuple[int, int]]] = None,
         detection_config: Optional[Dict[str, bool]] = None,
-        chapter_mappings: Optional[List[Any]] = None
+        chapter_mappings: Optional[List[Any]] = None,
+        row_mappings: Optional[List[Any]] = None,
     ) -> Dict[str, int]:
         """Get aggregated problems counts for tree nodes."""
         if detection_config is None:
@@ -199,30 +232,31 @@ class FilterQueryAPI:
         if not self.current_game_rules:
             return problem_counts
 
+        problem_definitions = self.current_game_rules.get_problem_definitions() or {}
         is_chapter = (block_idx == -2)
         is_speaker = (block_idx == -3)
+
+        if row_mappings is not None:
+            return self._problem_counts_for_rows(
+                row_mappings, detection_config, problem_definitions
+            )
+
         if not is_chapter and not is_speaker and not (0 <= block_idx < len(self.data_store.data)):
             return problem_counts
 
-        problem_definitions = self.current_game_rules.get_problem_definitions()
         problem_counts = {pid: 0 for pid in problem_definitions.keys()}
 
         if is_speaker:
-            spk_mappings = set(speaker_mappings or [])
+            spk_mappings = list(speaker_mappings or [])
             if not spk_mappings and speaker_name and self.project_manager and self.project_manager.project:
                 for b_idx, block in enumerate(self.project_manager.project.blocks):
                     assignments = block.metadata.get("character_assignments", {})
                     for s_idx_str, c_name in assignments.items():
                         if c_name == speaker_name:
-                            spk_mappings.add((b_idx, int(s_idx_str)))
-
-            for (b_idx, s_idx, subline_idx), problems in self.data_store.problems_per_subline.items():
-                if (b_idx, s_idx) in spk_mappings:
-                    filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
-                    for p_id in filtered_problems:
-                        if p_id in problem_counts:
-                            problem_counts[p_id] += 1
-            return problem_counts
+                            spk_mappings.append((b_idx, int(s_idx_str)))
+            return self._problem_counts_for_rows(
+                spk_mappings, detection_config, problem_definitions
+            )
 
         if is_chapter:
             mappings = chapter_mappings
@@ -240,25 +274,9 @@ class FilterQueryAPI:
                             if client and hasattr(client, 'get_chapter_mappings'):
                                 wing_name = composer.prompt_composer._get_wing_name()
                                 mappings = client.get_chapter_mappings(wing_name, chapter_id)
-            ch_mappings = set()
-            list_sel = getattr(self.mw, 'list_selection_handler', None)
-            for m in mappings:
-                if isinstance(m, (tuple, list)):
-                    ch_mappings.add(m)
-                elif hasattr(m, 'get'):
-                    bmg_id = m.get("bmg_id")
-                    if list_sel:
-                        indices = list_sel.resolve_bmg_id_to_indices(bmg_id)
-                        if indices:
-                            ch_mappings.add(indices)
- 
-            for (b_idx, s_idx, subline_idx), problems in self.data_store.problems_per_subline.items():
-                if (b_idx, s_idx) in ch_mappings:
-                    filtered_problems = {p_id for p_id in problems if detection_config.get(p_id, True)}
-                    for p_id in filtered_problems:
-                        if p_id in problem_counts:
-                            problem_counts[p_id] += 1
-            return problem_counts
+            return self._problem_counts_for_rows(
+                mappings, detection_config, problem_definitions
+            )
  
         if pre_aggregated_counts is not None and category_name is None:
             block_counts = pre_aggregated_counts.get(block_idx, {})

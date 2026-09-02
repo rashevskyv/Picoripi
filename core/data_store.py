@@ -374,8 +374,9 @@ class AppDataStore:
         self.hide_translation_tags = snapshot.get("hide_translation_tags", False)
         self.show_overrides_only = snapshot.get("show_overrides_only", False)
         self.hide_empty_strings = snapshot.get("hide_empty_strings", False)
-        self.show_unsaved_only = snapshot.get("show_unsaved_only", False)
-        self.show_unsaved_blocks_only = snapshot.get("show_unsaved_blocks_only", False)
+        # Session-only views: never come back on after a restart.
+        self.show_unsaved_only = False
+        self.show_unsaved_blocks_only = False
         self.show_warnings_only = snapshot.get("show_warnings_only", False)
         self.active_warning_filters = snapshot.get("active_warning_filters", [])
 

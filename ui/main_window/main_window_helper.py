@@ -455,6 +455,9 @@ class MainWindowHelper:
         self.mw.data_store.hide_empty_strings = hide_empty_val
         if hasattr(self.mw, 'hide_empty_strings_checkbox') and self.mw.hide_empty_strings_checkbox:
             self.mw.hide_empty_strings_checkbox.setChecked(hide_empty_val)
+
+        self.mw.data_store.show_unsaved_only = False
+        self.mw.data_store.show_unsaved_blocks_only = False
         
         # Sync other filter checkboxes
         if hasattr(self.mw, 'ui_updater') and self.mw.ui_updater:

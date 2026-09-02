@@ -102,6 +102,7 @@ class UIUpdater:
         checkbox_mappings = [
             ('hide_translated_checkbox', 'hide_translated'),
             ('show_unsaved_only_checkbox', 'show_unsaved_only'),
+            ('show_unsaved_blocks_checkbox', 'show_unsaved_blocks_only'),
             ('show_warnings_only_checkbox', 'show_warnings_only'),
             ('hide_empty_strings_checkbox', 'hide_empty_strings'),
             ('highlight_categorized_checkbox', 'highlight_categorized'),

@@ -219,13 +219,14 @@ class ListSelectionHandler(BaseHandler):
                 self._handle_virtual_row_selection(current_item)
                 return
 
-            if current_item.data(0, Qt.UserRole + 18) == "aggregate":
-                self._handle_aggregate_virtual_selection(current_item)
-                return
-
             block_index = current_item.data(0, Qt.UserRole)
             category_name = current_item.data(0, Qt.UserRole + 10)
             chapter_id = current_item.data(0, Qt.UserRole + 11)
+            is_physical_block = isinstance(block_index, int) and block_index >= 0
+
+            if current_item.data(0, Qt.UserRole + 18) == "aggregate" and not is_physical_block:
+                self._handle_aggregate_virtual_selection(current_item)
+                return
 
             if block_index == -3:
                 self._handle_speaker_selection(current_item)
