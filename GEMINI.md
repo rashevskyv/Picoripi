@@ -1,4 +1,4 @@
-# The "Picoripi" (v0.3.090)
+# The "Picoripi" (v0.3.091-dev)
 
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
