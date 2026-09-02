@@ -97,7 +97,12 @@ class CustomListItemPaintMixin:
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index):
         """Paint."""
         painter.save()
+        try:
+            self._paint_item(painter, option, index)
+        finally:
+            painter.restore()
 
+    def _paint_item(self, painter: QPainter, option: QStyleOptionViewItem, index):
         is_selected = option.state & QStyle.StateFlag.State_Selected
         is_drag_hover = False
         if hasattr(self.list_widget, '_custom_drop_target') and self.list_widget._custom_drop_target:
@@ -144,6 +149,7 @@ class CustomListItemPaintMixin:
         problem_definitions = {}
         block_problem_counts = {}
         has_unsaved_changes_in_item = False
+        is_virtual_row = bool(index.data(Qt.ItemDataRole.UserRole + 12))
         has_metadata_changes = bool(main_window) and self._item_has_layout_overrides(main_window, index)
 
         if main_window:
@@ -157,7 +163,6 @@ class CustomListItemPaintMixin:
             if stored_unsaved is not None:
                 has_unsaved_changes_in_item = bool(stored_unsaved)
             else:
-                is_virtual_row = index.data(Qt.ItemDataRole.UserRole + 12)
                 if is_virtual_row:
                     s_idx_data = index.data(Qt.ItemDataRole.UserRole + 1)
                     has_unsaved_changes_in_item = (block_idx_data, s_idx_data) in edited_keys
@@ -441,6 +446,4 @@ class CustomListItemPaintMixin:
             # Less aggressive elision
             elided_all = metrics.elidedText(full_text, Qt.TextElideMode.ElideRight, max(text_rect.width(), 20))
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided_all)
-        painter.restore()
-
         painter.restore()

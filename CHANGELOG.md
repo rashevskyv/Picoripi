@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.095-dev] - 2026-09-02
+
+### Fixed
+- **Block tree paint crash**: Drawing a Blocks row no longer raises `is_virtual_row` unbound, which left archive names blank.
+
 ## [0.3.094-dev] - 2026-09-02
 
 ### Fixed
