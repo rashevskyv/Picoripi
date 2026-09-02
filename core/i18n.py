@@ -1,7 +1,10 @@
 """UI translation catalogs. English source strings are the keys.
 
-Look up the current language JSON under locales/; missing keys fall back to
-English, then to the key itself. Russian is not a supported UI language.
+Look up the current language JSON under locales/; missing or empty keys fall
+back to English, then to the key itself. Russian is not a supported UI language.
+
+The Language menu lists a catalog only when the file exists and has UI strings.
+Each file's own display name is the reserved key ``@language_name``.
 """
 from __future__ import annotations
 
@@ -11,38 +14,10 @@ from typing import Dict, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCALES_DIR = ROOT / "locales"
-LANGS_PATH = ROOT / "tools" / "i18n-translate" / "languages.json"
-
-# Languages the running app offers. Other catalogs may exist for deploy-time
-# translation; they stay out of the Language menu until added here.
-SHIPPED_UI_LANGUAGES = ("en", "uk")
+LANGUAGE_NAME_KEY = "@language_name"
 
 _catalog: Dict[str, str] = {}
 _language = "en"
-_names: Dict[str, str] = {}
-
-
-def language_names() -> Dict[str, str]:
-    """code -> label in the Language menu."""
-    global _names
-    if _names:
-        return _names
-    _names = {"en": "English", "uk": "Українська"}
-    if LANGS_PATH.exists():
-        extra = json.loads(LANGS_PATH.read_text(encoding="utf-8"))
-        extra.pop("ru", None)
-        for code, name in extra.items():
-            _names.setdefault(code, name)
-    return _names
-
-
-def available_languages() -> list:
-    """Codes shown in the in-app Language menu (English + Ukrainian)."""
-    return [c for c in SHIPPED_UI_LANGUAGES]
-
-
-def current_language() -> str:
-    return _language
 
 
 def _load_file(code: str) -> Dict[str, str]:
@@ -53,16 +28,60 @@ def _load_file(code: str) -> Dict[str, str]:
     return {str(k): str(v) for k, v in data.items() if isinstance(v, str)}
 
 
+def _has_ui_strings(data: Dict[str, str]) -> bool:
+    return any(
+        key and not key.startswith("@") and value.strip()
+        for key, value in data.items()
+    )
+
+
+def available_languages() -> list:
+    """Codes shown in the Language menu: catalogs on disk that have translations."""
+    codes = []
+    if LOCALES_DIR.is_dir():
+        for path in sorted(LOCALES_DIR.glob("*.json")):
+            code = path.stem
+            if code == "ru":
+                continue
+            data = _load_file(code)
+            if code == "en" or _has_ui_strings(data):
+                codes.append(code)
+    if "en" in codes:
+        codes.remove("en")
+    codes.insert(0, "en")
+    return codes
+
+
+def language_display_name(code: str) -> str:
+    """Name as stored in that language's catalog."""
+    name = _load_file(code).get(LANGUAGE_NAME_KEY, "").strip()
+    if name:
+        return name
+    if code == "en":
+        return "English"
+    return code
+
+
+def language_names() -> Dict[str, str]:
+    """code -> label in the Language menu."""
+    return {code: language_display_name(code) for code in available_languages()}
+
+
+def current_language() -> str:
+    return _language
+
+
 def set_language(code: str) -> str:
     """Load catalogs for ``code``. Unknown codes become English."""
     global _catalog, _language
-    names = language_names()
-    if code not in SHIPPED_UI_LANGUAGES:
+    if code not in available_languages():
         code = "en"
     en = _load_file("en")
     chosen = {} if code == "en" else _load_file(code)
     merged = dict(en)
     for key, value in chosen.items():
+        if key.startswith("@"):
+            continue
         if value.strip():
             merged[key] = value
     _catalog = merged
@@ -71,10 +90,12 @@ def set_language(code: str) -> str:
 
 
 def tr(text: str, *args, **kwargs) -> str:
-    """Translate a UI string. ``text`` is the English source (and the catalog key)."""
+    """Translate a UI string. Missing entries stay English (the key)."""
     if not text:
         return text
     out = _catalog.get(text, text)
+    if not str(out).strip():
+        out = text
     if args or kwargs:
         try:
             out = out.format(*args, **kwargs)

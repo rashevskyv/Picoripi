@@ -514,7 +514,7 @@ class MenuBuilder:
         bookmarks_menu.addSeparator()
 
     def _build_language_menu(self, menubar):
-        """Separate Language menu: English source plus catalogs from languages.json."""
+        """Language menu: one entry per locales/*.json that already has translations."""
         from core.i18n import available_languages, current_language, language_names
 
         language_menu = menubar.addMenu(tr('&Language'))

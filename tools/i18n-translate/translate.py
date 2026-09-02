@@ -43,6 +43,7 @@ SRC_ROOTS = [
 LANGS = json.loads((ROOT / "languages.json").read_text(encoding="utf-8"))
 LANGS.pop("ru", None)
 FAIL_LOG = ROOT / "failures.log"
+LANGUAGE_NAME_KEY = "@language_name"
 
 PROMPT = """You are a translation engine for the UI of Picoripi, a desktop localization workbench for game text (Python, PyQt6).
 
@@ -201,7 +202,7 @@ def source_strings():
 def sync_en(en):
     used = source_strings()
     missing = sorted(used - set(en))
-    extra = [key for key in list(en) if key not in used]
+    extra = [key for key in list(en) if key not in used and not str(key).startswith("@")]
     for key in extra:
         en.pop(key, None)
     for key in missing:
@@ -212,6 +213,8 @@ def sync_en(en):
 def build_jobs(en, data, codes, force=False):
     jobs = []
     for key in en:
+        if str(key).startswith("@"):
+            continue
         todo = [c for c in codes if force or not data[c].get(key, "").strip()]
         if todo:
             jobs.append((key, en[key] or key, todo))
@@ -249,6 +252,7 @@ def main():
         sys.exit("Russian is not a Picoripi UI language")
 
     en = load("en")
+    en.setdefault(LANGUAGE_NAME_KEY, "English")
     if not args.no_sync:
         added, extra = sync_en(en)
         save("en", en)
@@ -269,12 +273,18 @@ def main():
         sys.exit("The requests package is required to translate. pip install requests")
 
     data = {c: load(c) for c in codes}
+    for c in codes:
+        native = LANGS.get(c)
+        if native:
+            data[c][LANGUAGE_NAME_KEY] = native
     uk_catalog = data["uk"] if "uk" in data else load("uk")
     jobs = build_jobs(en, data, codes, args.force)
     if args.limit:
         jobs = jobs[: args.limit]
 
     if not jobs:
+        for c in codes:
+            save(c, data[c])
         print("Nothing to translate: every language already has every key.")
         return
 
@@ -320,7 +330,7 @@ def main():
                         save(c, data[c])
                     state["dirty"].clear()
 
-    for c in state["dirty"]:
+    for c in codes:
         save(c, data[c])
 
     took = time.monotonic() - started

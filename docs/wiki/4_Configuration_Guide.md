@@ -92,4 +92,4 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 - Do not point External Tool at a build that reads unsaved buffers — Save first.
 - Do not put machine-absolute paths in wiki or README examples.
 
-To fill extra interface languages (or to complete Ukrainian): start Gemini Web2API, then run `tools/i18n-translate/run.bat`. The window selects target languages; **Ukrainian is on by default**. Other languages stay off until a deploy pass. The in-app **Language** menu still shows only English and Ukrainian until `SHIPPED_UI_LANGUAGES` is extended.
+To fill extra interface languages (or to complete Ukrainian): start Gemini Web2API, then run `tools/i18n-translate/run.bat`. The window selects target languages; **Ukrainian is on by default**. After a catalog has translations, it appears in **Language**; the name comes from `@language_name` in that JSON. Missing strings stay English.

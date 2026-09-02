@@ -26,7 +26,7 @@ Picoripi is now largely AI-developed, so the AI must behave less like a code gen
 
 - New or changed interface copy is `tr("English source")` in code **and** the matching entry in `locales/uk.json` in the same change.
 - Do not leave a new control English-only in the Ukrainian catalog. Other languages are filled later by `tools/i18n-translate/run.bat`, which may use the Ukrainian string as extra context.
-- The running app Language menu is English and Ukrainian only. Do not add Russian.
+- The Language menu lists catalogs under `locales/` that already have translations; `@language_name` in each file is the menu label. Missing keys stay English. Do not add Russian.
 
 ### 1.3. Respect The Existing Architecture
 

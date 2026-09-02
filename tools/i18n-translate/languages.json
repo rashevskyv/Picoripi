@@ -1,14 +1,14 @@
 {
-  "uk": "Ukrainian",
-  "ja": "Japanese",
-  "fr": "French",
-  "de": "German",
-  "it": "Italian",
-  "es": "Spanish",
-  "zh": "Chinese (Simplified)",
-  "ko": "Korean",
-  "nl": "Dutch",
-  "pt": "Portuguese",
-  "se": "Swedish",
-  "vi": "Vietnamese"
+  "uk": "Українська",
+  "ja": "日本語",
+  "fr": "Français",
+  "de": "Deutsch",
+  "it": "Italiano",
+  "es": "Español",
+  "zh": "中文",
+  "ko": "한국어",
+  "nl": "Nederlands",
+  "pt": "Português",
+  "se": "Svenska",
+  "vi": "Tiếng Việt"
 }

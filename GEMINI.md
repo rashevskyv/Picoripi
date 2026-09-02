@@ -14,7 +14,7 @@ This document provides a comprehensive overview of the "Picoripi" project to be 
 
 - User-visible Picoripi chrome goes through `tr("English source")` (`core/i18n.py`). The English literal is the catalog key.
 - When you add or change a UI string, put the English text in `tr("...")` **and** add the same key to `locales/uk.json` in the same change. Later languages use the Ukrainian wording as extra context.
-- The in-app **Language** menu ships **English** and **Українська** only. Other catalogs are filled by `tools/i18n-translate/run.bat` before a multi-language deploy. Do not add Russian.
+- The **Language** menu lists `locales/*.json` that already contain UI strings. The label is `@language_name` in that file. Missing keys stay English. Do not add Russian.
 
 ## AI Development Manifesto (Mandatory)
 

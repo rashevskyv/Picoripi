@@ -452,11 +452,10 @@ class MainWindow(QMainWindow):
 
     def change_ui_language(self, code: str) -> None:
         """Persist the Language-menu choice. The new catalog loads on the next start."""
-        from core.i18n import current_language, language_names, tr as _tr
+        from core.i18n import available_languages, current_language, tr as _tr
         if code == current_language():
             return
-        names = language_names()
-        if code not in names and code != "en":
+        if code not in available_languages():
             return
         self.ui_language = code
         if hasattr(self, "settings_manager"):

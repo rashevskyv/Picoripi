@@ -164,9 +164,9 @@ Bookmarks listed under the separator survive restart.
 
 ## 8a. Language menu
 
-**Language** lists **English** and **Українська** only. Changing it writes `ui_language` and asks for a restart.
+**Language** lists every `locales/<code>.json` that already has UI translations. The label is `@language_name` inside that file (English, Українська, …). Changing it writes `ui_language` and asks for a restart.
 
-Other interface languages are not in this menu yet. Fill them with `tools/i18n-translate/run.bat` before a multi-language deploy, then they can be added to `SHIPPED_UI_LANGUAGES` in `core/i18n.py`.
+A missing string in the chosen catalog is shown in English. Russian is never listed. Fill more catalogs with `tools/i18n-translate/run.bat`; they appear in the menu after a restart.
 
 ---
 
