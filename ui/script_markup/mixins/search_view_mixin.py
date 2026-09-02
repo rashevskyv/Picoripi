@@ -97,18 +97,40 @@ class SearchViewMixin:
         if self.search_edit.text().strip():
             self.search_status_label.setText("")
 
-    def _on_search_text_changed(self, _text: str):
+    def _ensure_search_filter_timer(self):
+        timer = getattr(self, "_search_filter_timer", None)
+        if timer is None:
+            from PyQt6.QtCore import QTimer
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.setInterval(120)
+            timer.timeout.connect(self._run_search_from_field)
+            self._search_filter_timer = timer
+        return timer
+
+    def _run_search_from_field(self):
+        timer = getattr(self, "_search_filter_timer", None)
+        if timer is not None:
+            timer.stop()
         self._reset_search_state(clear_highlight=True)
         self._find_search_match(forward=True, advance=False)
+
+    def _on_search_text_changed(self, _text: str):
+        self._ensure_search_filter_timer().start()
 
     def _on_search_options_changed(self, _checked: bool = False):
-        self._reset_search_state(clear_highlight=True)
-        self._find_search_match(forward=True, advance=False)
+        self._run_search_from_field()
 
     def _find_next_search_match(self, _checked: bool = False):
+        timer = getattr(self, "_search_filter_timer", None)
+        if timer is not None:
+            timer.stop()
         self._find_search_match(forward=True, advance=True)
 
     def _find_previous_search_match(self, _checked: bool = False):
+        timer = getattr(self, "_search_filter_timer", None)
+        if timer is not None:
+            timer.stop()
         self._find_search_match(forward=False, advance=True)
 
     def _compile_search_pattern(self, query: str):

@@ -14,6 +14,13 @@ def _fresh_autosave_path():
     return Path(tempfile.gettempdir()) / f"picoripi_sms_test_{uuid.uuid4().hex}.json"
 
 
+def _flush_search(dialog):
+    timer = getattr(dialog, "_search_filter_timer", None)
+    if timer is not None:
+        timer.stop()
+    dialog._run_search_from_field()
+
+
 def _make_dialog(qapp):
     mock_mw = MagicMock()
     # current_game_rules=None → "Picoripi rules" mode uses the real BaseGameRules.

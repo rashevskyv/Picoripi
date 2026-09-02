@@ -1,6 +1,7 @@
 from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtTest import QTest
 from .helpers import (
+    _flush_search,
     _make_dialog,
     _select_lines,
 )
@@ -12,6 +13,7 @@ def test_studio_search_preserves_raw_cursor_and_selection(qapp):
     before = dialog.raw_edit.textCursor()
 
     dialog.search_edit.setText("Act Two")
+    _flush_search(dialog)
 
     after = dialog.raw_edit.textCursor()
     assert after.selectionStart() == before.selectionStart()
@@ -28,6 +30,7 @@ def test_studio_search_next_advances_without_moving_raw_cursor(qapp):
     dialog.raw_edit.setTextCursor(cursor)
 
     dialog.search_edit.setText("Act Two")
+    _flush_search(dialog)
     first = dialog.raw_edit.extraSelections()[0].cursor.selectionStart()
     dialog._find_next_search_match()
     second = dialog.raw_edit.extraSelections()[0].cursor.selectionStart()
@@ -44,6 +47,7 @@ def test_studio_search_next_cycles_from_active_match_not_raw_cursor(qapp):
     dialog.raw_edit.setTextCursor(cursor)
 
     dialog.search_edit.setText("Act Two")
+    _flush_search(dialog)
     starts = [dialog.raw_edit.extraSelections()[0].cursor.selectionStart()]
     dialog._find_next_search_match()
     starts.append(dialog.raw_edit.extraSelections()[0].cursor.selectionStart())
@@ -67,6 +71,7 @@ def test_studio_search_enter_advances_without_triggering_default_button(qapp):
     dialog.help_btn.setDefault(True)
 
     dialog.search_edit.setText("Act Two")
+    _flush_search(dialog)
     first = dialog.raw_edit.extraSelections()[0].cursor.selectionStart()
     QTest.keyClick(dialog.search_edit, Qt.Key.Key_Return)
     second = dialog.raw_edit.extraSelections()[0].cursor.selectionStart()
@@ -88,6 +93,7 @@ def test_studio_search_highlight_survives_refresh(qapp):
     dialog = _make_dialog(qapp)
     dialog.raw_edit.setPlainText("Act One\nAct Two\n")
     dialog.search_edit.setText("Act Two")
+    _flush_search(dialog)
 
     dialog._refresh()
 
@@ -99,6 +105,7 @@ def test_studio_search_options_case_word_and_regex(qapp):
     dialog.raw_edit.setPlainText("act\nAct\nAction\nAct 2\nAct A\n")
 
     dialog.search_edit.setText("Act")
+    _flush_search(dialog)
     assert dialog.search_status_label.text() == "1/5"
 
     dialog.search_case_cb.setChecked(True)
@@ -109,10 +116,12 @@ def test_studio_search_options_case_word_and_regex(qapp):
 
     dialog.search_edit.setText(r"Act \d")
     dialog.search_regex_cb.setChecked(True)
+    _flush_search(dialog)
     assert dialog.search_status_label.text() == "1/1"
     assert dialog.raw_edit.extraSelections()[0].cursor.selectedText() == "Act 2"
 
     dialog.search_edit.setText("(")
+    _flush_search(dialog)
     assert dialog.search_status_label.text() == "Bad regex"
     assert dialog.raw_edit.extraSelections() == []
 

@@ -9,6 +9,7 @@ from core.script_markup import (
     mark_text,
 )
 from .helpers import (
+    _flush_search,
     _make_dialog,
     _use_hierarchy_mode,
     _set_hierarchy_type,
@@ -267,6 +268,7 @@ def test_studio_range_edit_handles_share_raw_highlight_layer_with_search(qapp):
     mark_key = dialog.flags_list.topLevelItem(0).child(0).data(0, Qt.ItemDataRole.UserRole + 2)
 
     dialog.search_edit.setText("MIDNA")
+    _flush_search(dialog)
     assert dialog._start_range_edit(mark_key)
 
     selections = dialog.raw_edit.extraSelections()

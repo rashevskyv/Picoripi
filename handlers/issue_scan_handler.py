@@ -313,7 +313,10 @@ class IssueScanHandler(BaseHandler):
         if not pending_scan_indices:
             log_info("Loaded all block issues from cache.")
             if hasattr(self.mw, 'ui_updater'):
-                self.ui_updater.populate_blocks()
+                if hasattr(self.ui_updater, 'refresh_block_tree_indicators'):
+                    self.ui_updater.refresh_block_tree_indicators()
+                else:
+                    self.ui_updater.populate_blocks()
             callback = self._scan_completion_callback
             self._scan_completion_callback = None
             if callback:
@@ -436,7 +439,10 @@ class IssueScanHandler(BaseHandler):
         # Invalidate cache to force a full scan
         """Rescan all tags."""
         def show_completion():
-            self.ui_updater.populate_blocks()
+            if hasattr(self.ui_updater, 'refresh_block_tree_indicators'):
+                self.ui_updater.refresh_block_tree_indicators()
+            else:
+                self.ui_updater.populate_blocks()
             QMessageBox.information(self.mw, tr('Scan Complete'), tr('Full issue scan complete.'))
 
         self._perform_initial_silent_scan_all_issues(on_completed=show_completion, force=True)

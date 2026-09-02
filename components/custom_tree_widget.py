@@ -7,8 +7,6 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QColor, QIcon, QPixmap, QPainter
 
-from utils.logging_utils import log_debug
-
 from .tree_navigation_mixin import TreeNavigationMixin
 from .tree_context_menu_mixin import TreeContextMenuMixin
 from .tree_folder_mixin import TreeFolderMixin
@@ -108,7 +106,6 @@ class CustomTreeWidget(
 
     def keyPressEvent(self, event):
         """Keypressevent."""
-        log_debug(f"CustomTreeWidget: keyPressEvent key={event.key()}, mods={int(event.modifiers().value)}")
         is_ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
         is_alt = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
         is_shift = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
@@ -157,17 +154,9 @@ class CustomTreeWidget(
                 painter.drawRect(rect.left(), y - 2, rect.width(), 4)
                 painter.end()
 
-    def event(self, event):
-        """Event."""
-        if event.type() == QEvent.Type.ToolTip:
-            log_debug("CustomTreeWidget: event() ToolTip received")
-        return super().event(event)
-
     def viewportEvent(self, event):
         """Viewportevent."""
-        if event.type() == QEvent.Type.ToolTip:
-            log_debug(f"CustomTreeWidget: viewport ToolTip at {event.pos()}")
-        elif event.type() == QEvent.Type.MouseMove:
+        if event.type() == QEvent.Type.MouseMove:
             index = self.indexAt(event.pos())
             if index.isValid():
                 delegate = self.itemDelegateForIndex(index)

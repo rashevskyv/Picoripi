@@ -67,6 +67,9 @@ class HighlightMixin:
         finally:
             self.mw.block_list_widget.blockSignals(False)
 
+        for item in items_to_update:
+            self._stamp_item_paint_stats(item)
+
         # Global update to ensure all delegates are re-run for visible ancestors
         self.mw.block_list_widget.viewport().update()
 

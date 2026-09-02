@@ -53,8 +53,18 @@ class PreviewRenderer:
 
         problem_string_indices = set()
         detection_config = getattr(self.mw, 'detection_enabled', {})
-        if hasattr(self.mw.data_store, 'problems_per_subline'):
-            problems_dict = self.mw.data_store.problems_per_subline
+        ds = getattr(self.mw, 'data_store', None)
+        by_row = ds.problems_by_row() if ds is not None and hasattr(ds, 'problems_by_row') else None
+        if isinstance(by_row, dict):
+            for (b_idx, s_idx), problems in by_row.items():
+                if not any(detection_config.get(p_id, True) for p_id in problems):
+                    continue
+                if is_virtual:
+                    problem_string_indices.add((b_idx, s_idx))
+                elif b_idx == block_idx:
+                    problem_string_indices.add(s_idx)
+        elif ds is not None and hasattr(ds, 'problems_per_subline'):
+            problems_dict = ds.problems_per_subline
             if isinstance(problems_dict, dict):
                 for key, problems in problems_dict.items():
                     if is_virtual:

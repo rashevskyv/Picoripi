@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.092-dev] - 2026-09-02
+
+### Changed
+- **Faster tree, search, and issue highlights**: The block tree no longer logs every key and tooltip, and after a save or issue scan it refreshes stars/progress/warnings on existing rows instead of rebuilding the tree. Warning highlights in Strings use the row problem index. Script Markup Find waits briefly while you type.
+
 ## [0.3.091-dev] - 2026-09-02
 
 ### Added

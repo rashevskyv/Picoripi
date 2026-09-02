@@ -153,57 +153,49 @@ class CustomListItemPaintMixin:
             edited_keys = getattr(ds, 'edited_data', {}) if ds else {}
             unsaved_blocks = getattr(ds, 'unsaved_block_indices', set()) if ds else set()
 
-            # 1. Determine Unsaved changes (*)
-            is_virtual_row = index.data(Qt.ItemDataRole.UserRole + 12)
-            if is_virtual_row:
-                s_idx_data = index.data(Qt.ItemDataRole.UserRole + 1)
-                has_unsaved_changes_in_item = (block_idx_data, s_idx_data) in edited_keys
-            elif category_name:
-                # ITEM is a Category (Virtual Sub-block)
-                # Show star ONLY if this specific category has edited lines
-                if project and block_idx_data is not None:
-                    block_map = getattr(main_window, 'block_to_project_file_map', {})
-                    if isinstance(block_map, dict):
-                        data_indices = [d_idx for d_idx, p_idx in block_map.items() if p_idx == block_idx_data]
-                    else:
-                        data_indices = []
-                    if not data_indices:
-                        data_indices = [block_idx_data]
-                    proj_b_idx = block_idx_data
-                    if 0 <= proj_b_idx < len(project.blocks):
-                        block = project.blocks[proj_b_idx]
-                        category = next((c for c in block.categories if c.name == category_name), None)
-                        if category:
-                            # Check if any line index belonging to this category is in edited_data
+            stored_unsaved = index.data(Qt.ItemDataRole.UserRole + 21)
+            if stored_unsaved is not None:
+                has_unsaved_changes_in_item = bool(stored_unsaved)
+            else:
+                is_virtual_row = index.data(Qt.ItemDataRole.UserRole + 12)
+                if is_virtual_row:
+                    s_idx_data = index.data(Qt.ItemDataRole.UserRole + 1)
+                    has_unsaved_changes_in_item = (block_idx_data, s_idx_data) in edited_keys
+                elif category_name:
+                    if project and block_idx_data is not None:
+                        block_map = getattr(main_window, 'block_to_project_file_map', {})
+                        if isinstance(block_map, dict):
+                            data_indices = [d_idx for d_idx, p_idx in block_map.items() if p_idx == block_idx_data]
+                        else:
+                            data_indices = []
+                        if not data_indices:
+                            data_indices = [block_idx_data]
+                        if 0 <= block_idx_data < len(project.blocks):
+                            category = next((c for c in project.blocks[block_idx_data].categories if c.name == category_name), None)
+                            if category:
+                                has_unsaved_changes_in_item = any(
+                                    (d_idx, l_idx) in edited_keys
+                                    for d_idx in data_indices
+                                    for l_idx in category.line_indices
+                                )
+                elif merged_folder_ids:
+                    if project:
+                        all_p_indices = self._project_indices_for_folders(pm, merged_folder_ids)
+                        block_map = getattr(main_window, 'block_to_project_file_map', {})
+                        if isinstance(block_map, dict) and block_map:
                             has_unsaved_changes_in_item = any(
-                                (d_idx, l_idx) in edited_keys 
-                                for d_idx in data_indices
-                                for l_idx in category.line_indices
+                                block_map.get(data_idx) in all_p_indices
+                                for data_idx in unsaved_blocks
                             )
-            elif merged_folder_ids:
-                # ITEM is a Folder (possibly compacted)
-                # Show star if ANY block inside this folder subtree is unsaved
-                if project:
-                    all_p_indices = self._project_indices_for_folders(pm, merged_folder_ids)
-                    
-                    # If any edited data block maps to one of these project blocks, show star
+                        else:
+                            has_unsaved_changes_in_item = any(
+                                data_idx in all_p_indices for data_idx in unsaved_blocks
+                            )
+                elif block_idx_data is not None:
                     block_map = getattr(main_window, 'block_to_project_file_map', {})
-                    if isinstance(block_map, dict) and block_map:
-                        has_unsaved_changes_in_item = any(
-                            block_map.get(data_idx) in all_p_indices 
-                            for data_idx in unsaved_blocks
-                        )
-                    else:
-                        has_unsaved_changes_in_item = any(
-                            data_idx in all_p_indices 
-                            for data_idx in unsaved_blocks
-                        )
-            elif block_idx_data is not None:
-                # ITEM is a regular Block (Physical)
-                block_map = getattr(main_window, 'block_to_project_file_map', {})
-                has_unsaved_changes_in_item = self._project_block_is_unsaved(
-                    block_map, unsaved_blocks, block_idx_data
-                )
+                    has_unsaved_changes_in_item = self._project_block_is_unsaved(
+                        block_map, unsaved_blocks, block_idx_data
+                    )
 
             # 2. Other indicators — counts are stamped on the item at populate.
             if block_idx_data is not None:
@@ -226,61 +218,12 @@ class CustomListItemPaintMixin:
             metadata_color = self._color_metadata_indicator_dark if theme == 'dark' else self._color_metadata_indicator
             problem_indicator_colors_to_draw.append(metadata_color)
 
-        # Progress bar fill (Progress Visualisation)
-        percentage = 0.0
-        is_virtual_row = index.data(Qt.ItemDataRole.UserRole + 12)
-        if not is_virtual_row and main_window and hasattr(main_window, 'data_processor') and main_window.data_processor:
-            try:
-                pm = getattr(main_window, 'project_manager', None)
-                project = pm.project if pm else None
-                if category_name and project and block_idx_data is not None:
-                    block_map = getattr(main_window, 'block_to_project_file_map', {})
-                    proj_b_idx = block_map.get(block_idx_data, block_idx_data)
-                    if 0 <= proj_b_idx < len(project.blocks):
-                        block = project.blocks[proj_b_idx]
-                        category = next((c for c in block.categories if c.name == category_name), None)
-                        if category and category.line_indices:
-                            category_indices = set(category.line_indices)
-                            needs_set = main_window.data_processor.get_needs_translation_set(block_idx_data)
-                            translated_set = main_window.data_processor.get_translated_set(block_idx_data)
-                            total_needs = len(category_indices & needs_set)
-                            if total_needs > 0:
-                                translated = len(category_indices & translated_set)
-                                percentage = translated / total_needs
-                            else:
-                                percentage = 0.0 # No strings need translation, do not treat as fully complete
-                elif block_idx_data is not None and not category_name:
-                    ch_id_data = index.data(Qt.ItemDataRole.UserRole + 11)
-                    if block_idx_data == -2 and ch_id_data is not None:
-                        ch_mappings = index.data(Qt.ItemDataRole.UserRole + 13)
-                        if ch_mappings:
-                            status_sets = {}
-                            for b_idx, _ in ch_mappings:
-                                if b_idx not in status_sets:
-                                    status_sets[b_idx] = (
-                                        main_window.data_processor.get_needs_translation_set(b_idx),
-                                        main_window.data_processor.get_translated_set(b_idx),
-                                    )
-                            total_needs = sum(1 for b_idx, s_idx in ch_mappings if s_idx in status_sets[b_idx][0])
-                            if total_needs > 0:
-                                translated = sum(1 for b_idx, s_idx in ch_mappings if s_idx in status_sets[b_idx][1])
-                                percentage = translated / total_needs
-                            else:
-                                percentage = 0.0
-                    else:
-                        ds = getattr(main_window, 'data_store', None)
-                        if ds and hasattr(ds, 'data') and ds.data and 0 <= block_idx_data < len(ds.data):
-                            block_data = ds.data[block_idx_data]
-                            if isinstance(block_data, list) and block_data:
-                                needs_set = main_window.data_processor.get_needs_translation_set(block_idx_data)
-                                total_needs = len(needs_set)
-                                if total_needs > 0:
-                                    translated = len(main_window.data_processor.get_translated_set(block_idx_data))
-                                    percentage = translated / total_needs
-                                else:
-                                    percentage = 0.0
-            except Exception as e:
-                log_debug(f"CustomListItemDelegate: Error calculating progress percentage: {e}")
+        # Progress bar fill — stamped at populate; compute only if the item is stale.
+        stored_pct = index.data(Qt.ItemDataRole.UserRole + 22)
+        if isinstance(stored_pct, (int, float)) and not isinstance(stored_pct, bool):
+            percentage = float(stored_pct)
+        else:
+            percentage = 0.0
 
         if percentage > 0.0:
             x_start = item_rect.left() + current_number_area_width

@@ -572,8 +572,11 @@ class SaveMixin:
 
                 if hasattr(self.mw, 'ui_updater'):
                     affected_blocks = {b_idx for (b_idx, s_idx) in filtered_edited_data.keys()}
-                    for b_idx in affected_blocks:
-                        self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                    if hasattr(self.mw.ui_updater, 'refresh_block_tree_indicators'):
+                        self.mw.ui_updater.refresh_block_tree_indicators()
+                    else:
+                        for b_idx in affected_blocks:
+                            self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                     self.mw.ui_updater.update_title()
 
                     if self.mw.data_store.current_block_idx in affected_blocks:
@@ -599,8 +602,11 @@ class SaveMixin:
 
                             if hasattr(self.mw, 'ui_updater'):
                                 affected_blocks = {b_idx for (b_idx, s_idx) in filtered_edited_data.keys()}
-                                for b_idx in affected_blocks:
-                                    self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                                if hasattr(self.mw.ui_updater, 'refresh_block_tree_indicators'):
+                                    self.mw.ui_updater.refresh_block_tree_indicators()
+                                else:
+                                    for b_idx in affected_blocks:
+                                        self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                                 self.mw.ui_updater.update_title()
 
                                 if self.mw.data_store.current_block_idx in affected_blocks:
@@ -634,8 +640,11 @@ class SaveMixin:
 
                     if hasattr(self.mw, 'ui_updater'):
                         affected_blocks = {b_idx for (b_idx, s_idx) in filtered_edited_data.keys()}
-                        for b_idx in affected_blocks:
-                            self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
+                        if hasattr(self.mw.ui_updater, 'refresh_block_tree_indicators'):
+                            self.mw.ui_updater.refresh_block_tree_indicators()
+                        else:
+                            for b_idx in affected_blocks:
+                                self.mw.ui_updater.update_block_item_text_with_problem_count(b_idx)
                         self.mw.ui_updater.update_title()
 
                         if self.mw.data_store.current_block_idx in affected_blocks:

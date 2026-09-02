@@ -48,11 +48,129 @@ class ProblemsMixin:
         item.setText(0, display_name_with_issues)
 
         item.setData(0, Qt.ItemDataRole.UserRole + 20, dict(problem_counts or {}))
+        self._stamp_item_paint_stats(item)
 
         if tooltip_lines:
             item.setToolTip(0, "<br><br>".join(tooltip_lines))
         else:
             item.setToolTip(0, tr(''))
+
+    def _stamp_item_paint_stats(self, item: QTreeWidgetItem) -> None:
+        """Store unsaved/progress flags so the delegate does not recompute on paint."""
+        mw = self.mw
+        ds = getattr(mw, "data_store", None)
+        dsp = getattr(mw, "data_processor", None)
+        pm = getattr(mw, "project_manager", None)
+        project = pm.project if pm else None
+        block_idx = item.data(0, Qt.ItemDataRole.UserRole)
+        category_name = item.data(0, Qt.ItemDataRole.UserRole + 10)
+        merged_folder_ids = item.data(0, Qt.ItemDataRole.UserRole + 2)
+        mappings = item.data(0, Qt.ItemDataRole.UserRole + 13)
+        unsaved_blocks = getattr(ds, "unsaved_block_indices", set()) if ds else set()
+        edited_keys = getattr(ds, "edited_data", {}) if ds else {}
+        block_map = getattr(mw, "block_to_project_file_map", {}) or {}
+
+        unsaved = False
+        if category_name and project and block_idx is not None:
+            data_indices = [d_idx for d_idx, p_idx in block_map.items() if p_idx == block_idx] or [block_idx]
+            if 0 <= block_idx < len(project.blocks):
+                category = next(
+                    (c for c in project.blocks[block_idx].categories if c.name == category_name),
+                    None,
+                )
+                if category:
+                    unsaved = any(
+                        (d_idx, l_idx) in edited_keys
+                        for d_idx in data_indices
+                        for l_idx in category.line_indices
+                    )
+        elif merged_folder_ids and pm:
+            all_p = set()
+            for folder_id in merged_folder_ids:
+                all_p.update(pm.get_all_block_indices_under_folder(folder_id))
+            if block_map:
+                unsaved = any(block_map.get(data_idx) in all_p for data_idx in unsaved_blocks)
+            else:
+                unsaved = any(data_idx in all_p for data_idx in unsaved_blocks)
+        elif isinstance(block_idx, int) and block_idx >= 0:
+            if block_map:
+                unsaved = any(block_map.get(data_idx) == block_idx for data_idx in unsaved_blocks)
+            else:
+                unsaved = block_idx in unsaved_blocks
+        elif isinstance(mappings, (list, tuple)) and edited_keys:
+            unsaved = any(
+                (int(row[0]), int(row[1])) in edited_keys
+                for row in mappings
+                if isinstance(row, (list, tuple)) and len(row) == 2
+            )
+
+        percentage = 0.0
+        try:
+            if dsp is None:
+                pass
+            elif category_name and project and isinstance(block_idx, int):
+                if 0 <= block_idx < len(project.blocks):
+                    category = next(
+                        (c for c in project.blocks[block_idx].categories if c.name == category_name),
+                        None,
+                    )
+                    if category and category.line_indices:
+                        lines = set(category.line_indices)
+                        needs = dsp.get_needs_translation_set(block_idx)
+                        translated = dsp.get_translated_set(block_idx)
+                        total_needs = len(lines & needs)
+                        if total_needs > 0:
+                            percentage = len(lines & translated) / total_needs
+            elif isinstance(mappings, (list, tuple)) and mappings:
+                status_sets = {}
+                total_needs = 0
+                translated_n = 0
+                for row in mappings:
+                    if not (isinstance(row, (list, tuple)) and len(row) == 2):
+                        continue
+                    b_idx, s_idx = int(row[0]), int(row[1])
+                    if b_idx not in status_sets:
+                        status_sets[b_idx] = (
+                            dsp.get_needs_translation_set(b_idx),
+                            dsp.get_translated_set(b_idx),
+                        )
+                    if s_idx in status_sets[b_idx][0]:
+                        total_needs += 1
+                        if s_idx in status_sets[b_idx][1]:
+                            translated_n += 1
+                if total_needs > 0:
+                    percentage = translated_n / total_needs
+            elif isinstance(block_idx, int) and block_idx >= 0 and ds and ds.data and block_idx < len(ds.data):
+                block_data = ds.data[block_idx]
+                if isinstance(block_data, list) and block_data:
+                    needs = dsp.get_needs_translation_set(block_idx)
+                    if needs:
+                        percentage = len(dsp.get_translated_set(block_idx)) / len(needs)
+        except Exception:
+            percentage = 0.0
+
+        item.setData(0, Qt.ItemDataRole.UserRole + 21, bool(unsaved))
+        item.setData(0, Qt.ItemDataRole.UserRole + 22, float(percentage))
+
+    def refresh_block_tree_indicators(self, block_idx: int | None = None) -> None:
+        """Refresh stars/progress/warnings on existing items without rebuilding the tree."""
+        if not hasattr(self.mw, "block_list_widget") or not self.mw.block_list_widget:
+            return
+        if block_idx is not None:
+            self.update_block_item_text_with_problem_count(block_idx)
+            return
+        from PyQt6.QtWidgets import QTreeWidgetItemIterator
+        iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+        while iterator.value():
+            item = iterator.value()
+            kind = item.data(0, Qt.ItemDataRole.UserRole)
+            mappings = item.data(0, Qt.ItemDataRole.UserRole + 13)
+            if isinstance(kind, int) and kind < 0 and isinstance(mappings, (list, tuple)):
+                self._apply_virtual_issue_indicators(item)
+            else:
+                self._stamp_item_paint_stats(item)
+            iterator += 1
+        self.mw.block_list_widget.viewport().update()
 
     def _create_block_tree_item(self, block_idx: int, problem_definitions: dict, pre_aggregated_counts: dict = None) -> QTreeWidgetItem:
         """Helper to create a single block tree item with issue counts and tooltips."""
@@ -199,6 +317,7 @@ class ProblemsMixin:
                 block_problem_counts = self._get_aggregated_problems_for_block(block_idx_for_icon, pre_aggregated_counts)
                 self._apply_issues_and_tooltip(folder_item, clean_display_name, block_problem_counts, problem_definitions)
 
+        self._stamp_item_paint_stats(folder_item)
         parent_item.addChild(folder_item)
 
         if compaction_type != 2:

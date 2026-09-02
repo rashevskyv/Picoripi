@@ -41,6 +41,10 @@ class UIUpdater:
         """Update the block item text with problem count."""
         self.block_list_updater.update_block_item_text_with_problem_count(block_idx)
 
+    def refresh_block_tree_indicators(self, block_idx=None):
+        """Refresh stars/progress/warnings without rebuilding the block tree."""
+        self.block_list_updater.refresh_block_tree_indicators(block_idx)
+
     def update_status_bar(self):
         """Update the status bar."""
         self.title_status_bar_updater.update_status_bar()

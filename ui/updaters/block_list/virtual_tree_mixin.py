@@ -63,6 +63,7 @@ class VirtualTreeMixin:
         )
         item.setData(0, Qt.ItemDataRole.UserRole + 20, dict(counts or {}))
         if not defs:
+            self._stamp_item_paint_stats(item)
             return
         label = item.data(0, Qt.ItemDataRole.UserRole + 4)
         if not label:

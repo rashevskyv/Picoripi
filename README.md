@@ -1,4 +1,4 @@
-# Picoripi v0.3.091-dev
+# Picoripi v0.3.092-dev
 
 **Picoripi** is a visual translation and localization workbench (Python, **PyQt6**) for texts with strict length and layout constraints. It started as a Nintendo-format editor (BMG, BFN, U8/RARC) and stays general enough for any structured translation project.
 
