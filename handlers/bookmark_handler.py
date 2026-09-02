@@ -7,10 +7,7 @@ from utils.logging_utils import log_info, log_debug
 from core.i18n import tr
 
 class BookmarkHandler(BaseHandler):
-    """
-    Handler for managing and navigating text line bookmarks.
-    Bookmarks are saved persistently inside settings.json.
-    """
+    """Bookmarks for the open project, stored in that project's .uiproj."""
     def __init__(self, main_window: Any, data_processor: Any, ui_updater: Any):
         """Initialize a new instance."""
         super().__init__(main_window, data_processor, ui_updater)
@@ -21,8 +18,26 @@ class BookmarkHandler(BaseHandler):
         self._jump_timer.timeout.connect(self._on_jump_timer_timeout)
         self._pending_jump_string_idx: Optional[int] = None
 
+    def _has_open_project(self) -> bool:
+        return bool(
+            getattr(self.mw, 'project_manager', None)
+            and self.mw.project_manager.project
+        )
+
+    def _persist_bookmarks(self) -> None:
+        if self._has_open_project():
+            self.mw.project_manager.save_settings_to_project(self.mw)
+
     def add_bookmark(self) -> None:
         """Create a new bookmark at the current line of the active block."""
+        if not self._has_open_project():
+            QMessageBox.warning(
+                self.mw,
+                tr('Add Bookmark'),
+                tr('Open a project before adding bookmarks.')
+            )
+            return
+
         block_idx = self.data_store.current_block_idx
         string_idx = self.data_store.current_string_idx
 
@@ -42,39 +57,35 @@ class BookmarkHandler(BaseHandler):
             text_preview = text_preview[:35] + "..."
 
         block_name = self.mw.data_store.block_names.get(str(block_idx), f"Block {block_idx}")
-        default_name = f"Line {string_idx + 1}: {text_preview}" if text_preview else f"Line {string_idx + 1}"
+        default_name = (
+            tr("Line {0}: {1}").format(string_idx + 1, text_preview)
+            if text_preview
+            else tr("Line {0}").format(string_idx + 1)
+        )
 
         name, ok = QInputDialog.getText(
             self.mw,
-            "Add Bookmark",
-            "Enter Bookmark Name:",
+            tr('Add Bookmark'),
+            tr('Enter Bookmark Name:'),
             text=default_name
         )
 
         if ok and name.strip():
-            # Get project name if project is active
-            project_name = None
-            if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
-                project_name = self.mw.project_manager.project.name
-
             bookmark = {
                 "id": str(uuid.uuid4()),
                 "name": name.strip(),
-                "project_name": project_name,
+                "project_name": self.mw.project_manager.project.name,
                 "block_name": block_name,
                 "block_idx": block_idx,
                 "string_idx": string_idx,
                 "text_preview": text_preview
             }
 
-            # Initialize bookmarks list if not exists
             if not hasattr(self.mw, 'bookmarks') or self.mw.bookmarks is None:
                 self.mw.bookmarks = []
 
             self.mw.bookmarks.append(bookmark)
-            self.mw.settings_manager.save_settings()
-            if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
-                self.mw.project_manager.save_settings_to_project(self.mw)
+            self._persist_bookmarks()
             self.update_bookmarks_menu()
             
             log_info(f"Bookmark added: {name.strip()} in block {block_name} at line {string_idx + 1}")
@@ -102,8 +113,10 @@ class BookmarkHandler(BaseHandler):
                 QMessageBox.warning(
                     self.mw,
                     tr('Jump to Bookmark'),
-                    f"This bookmark belongs to project '{bookmark.get('project_name')}', "
-                    f"but the currently active project is '{current_project_name or 'None'}'."
+                    tr("This bookmark belongs to project '{0}', but the currently active project is '{1}'.").format(
+                        bookmark.get('project_name'),
+                        current_project_name or tr('None'),
+                    )
                 )
                 return
 
@@ -173,9 +186,7 @@ class BookmarkHandler(BaseHandler):
 
         if reply == QMessageBox.StandardButton.Yes:
             self.mw.bookmarks = []
-            self.mw.settings_manager.save_settings()
-            if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
-                self.mw.project_manager.save_settings_to_project(self.mw)
+            self._persist_bookmarks()
             self.update_bookmarks_menu()
             log_info("All bookmarks cleared.")
 
@@ -191,19 +202,17 @@ class BookmarkHandler(BaseHandler):
         if not bookmark:
             return
 
-        name = bookmark.get('name', 'Bookmark')
+        name = bookmark.get('name', tr('Bookmark'))
         reply = QMessageBox.question(
             self.mw,
             tr('Delete Bookmark'),
-            f"Are you sure you want to delete bookmark '{name}'?",
+            tr("Are you sure you want to delete bookmark '{0}'?").format(name),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
         if reply == QMessageBox.StandardButton.Yes:
             self.mw.bookmarks = [b for b in bookmarks if b.get('id') != bookmark_id]
-            self.mw.settings_manager.save_settings()
-            if hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project:
-                self.mw.project_manager.save_settings_to_project(self.mw)
+            self._persist_bookmarks()
             self.update_bookmarks_menu()
             log_info(f"Bookmark deleted: {name}")
 
@@ -214,25 +223,24 @@ class BookmarkHandler(BaseHandler):
 
         self.mw.bookmarks_menu.clear()
         self.mw.bookmarks_menu.addAction(self.mw.add_bookmark_action)
+        has_project = self._has_open_project()
+        self.mw.add_bookmark_action.setEnabled(has_project)
 
-        bookmarks = getattr(self.mw, 'bookmarks', [])
+        bookmarks = getattr(self.mw, 'bookmarks', []) if has_project else []
+        if not isinstance(bookmarks, list):
+            bookmarks = []
         if bookmarks:
-            # Add Delete Bookmark Submenu
             delete_menu = self.mw.bookmarks_menu.addMenu(tr('Delete Bookmark'))
             delete_menu.setToolTip(tr('Select a bookmark to delete'))
             for b in bookmarks:
-                block_name = b.get('block_name', 'Unknown Block')
-                string_idx = b.get('string_idx', 0)
-                name = b.get('name', 'Bookmark')
-                display_text = f"{name} ({block_name}, Line {string_idx + 1})"
-                action = delete_menu.addAction(display_text)
+                action = delete_menu.addAction(self._bookmark_label(b))
                 bookmark_id = b.get('id')
-                # Capture bookmark_id inside slot lambda
                 action.triggered.connect(
                     lambda checked, b_id=bookmark_id: self.delete_bookmark(b_id)
                 )
 
         self.mw.bookmarks_menu.addAction(self.mw.clear_bookmarks_action)
+        self.mw.clear_bookmarks_action.setEnabled(bool(bookmarks))
         self.mw.bookmarks_menu.addSeparator()
 
         if not bookmarks:
@@ -240,19 +248,16 @@ class BookmarkHandler(BaseHandler):
             no_bookmarks_action.setEnabled(False)
             return
 
-        # Populate bookmarks
         for b in bookmarks:
-            block_name = b.get('block_name', 'Unknown Block')
-            string_idx = b.get('string_idx', 0)
-            name = b.get('name', 'Bookmark')
-            
-            # Format display text: "{Bookmark Name} ({Block}, Line {Num})"
-            display_text = f"{name} ({block_name}, Line {string_idx + 1})"
-            
-            action = self.mw.bookmarks_menu.addAction(display_text)
+            action = self.mw.bookmarks_menu.addAction(self._bookmark_label(b))
             bookmark_id = b.get('id')
-            # Capture block_id inside slot lambda
             action.triggered.connect(
                 lambda checked, b_id=bookmark_id: self.jump_to_bookmark(b_id)
             )
+
+    def _bookmark_label(self, bookmark: dict) -> str:
+        block_name = bookmark.get('block_name', tr('Unknown Block'))
+        string_idx = bookmark.get('string_idx', 0)
+        name = bookmark.get('name', tr('Bookmark'))
+        return tr("{0} ({1}, Line {2})").format(name, block_name, string_idx + 1)
 

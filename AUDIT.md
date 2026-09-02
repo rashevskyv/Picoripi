@@ -852,7 +852,7 @@ Recommended execution order — smallest, self-verifiable steps first; each step
 - `[x]` **SMS-M1** (trivial) — deleted tracked-but-unreferenced `test_settings_dump.json`; explicitly left `dummy.json` at repo root because `test_app_action_handler.py`, `test_saved_translations_handler.py`, and `test_session_state_manager.py` reference that path directly.
 - `[x]` **SMS-L1** (low-medium) — hierarchy-AI prepare/AI threads now go through `safe_shutdown_thread()` during `closeEvent()` and `reject()`; added a real-Qt close-during-AI lifecycle test.
 - `[x]` **SMS-P2** (low-medium) — minimap text changes are debounced, large document map drawing samples by minimap height, and deterministic unit/performance coverage was added.
-- `[ ]` **SMS-A1** (high) — phase 1 completed: pure hierarchy AI job-prep helpers and both workers moved to `core/script_markup/hierarchy_ai_jobs.py` with UI compatibility re-exports, reducing `ui/script_markup_studio_dialog.py` to 5 747 lines. Remaining work: split the dialog into mixins one contract at a time and split `tests/test_ui/test_script_markup_studio.py` along the same boundaries. Do **not** combine with behavior changes.
+- `[x]` **SMS-A1** (high) — dialog split into `ui/script_markup/` mixins (2026-09-02). `ui/script_markup_studio_dialog.py` is a compatibility shim. Tests still import the shim; `tests/test_ui/test_script_markup_studio.py` not split yet.
 - `[x]` **SMS-D1** (trivial, last) — refreshed audit header metrics to v0.3.070-dev / 2026-07-09 using tracked + untracked workspace Python files.
 
 ### 11.3. Agent-1 implementation update — 2026-07-09

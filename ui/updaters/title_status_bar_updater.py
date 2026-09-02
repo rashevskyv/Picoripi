@@ -36,9 +36,11 @@ class TitleStatusBarUpdater(BaseUIUpdater):
             
             pixel_width = calculate_string_width(text_to_cursor_with_spaces, font_map_for_string, icon_sequences=icon_sequences)
             
-            self.mw.status_label_part1.setText(f"Pos: {pos_in_block}")
-            self.mw.status_label_part2.setText(f"Line: {line_len_no_tags}/{line_len_with_tags}")
-            self.mw.status_label_part3.setText(f"Width: {pixel_width}px")
+            self.mw.status_label_part1.setText(tr("Pos: {0}").format(pos_in_block))
+            self.mw.status_label_part2.setText(
+                tr("Line: {0}/{1}").format(line_len_no_tags, line_len_with_tags)
+            )
+            self.mw.status_label_part3.setText(tr("Width: {0}px").format(pixel_width))
         
         self.mw.ui_updater.synchronize_original_cursor()
 
@@ -65,9 +67,11 @@ class TitleStatusBarUpdater(BaseUIUpdater):
             text_to_cursor_with_dots = line_text_with_dots[:pos_in_block]
             text_to_cursor_with_spaces = convert_dots_to_spaces_from_editor(text_to_cursor_with_dots)
             pixel_width = calculate_string_width(text_to_cursor_with_spaces, font_map_for_string, icon_sequences=icon_sequences)
-            self.mw.status_label_part1.setText(f"Pos: {pos_in_block}")
-            self.mw.status_label_part2.setText(f"Line: {line_len_no_tags}/{line_len_with_tags}")
-            self.mw.status_label_part3.setText(f"Width: {pixel_width}px")
+            self.mw.status_label_part1.setText(tr("Pos: {0}").format(pos_in_block))
+            self.mw.status_label_part2.setText(
+                tr("Line: {0}/{1}").format(line_len_no_tags, line_len_with_tags)
+            )
+            self.mw.status_label_part3.setText(tr("Width: {0}px").format(pixel_width))
             return
 
         selected_text_with_dots = cursor.selectedText()
@@ -82,9 +86,9 @@ class TitleStatusBarUpdater(BaseUIUpdater):
         sel_start_block_obj = editor.document().findBlock(sel_start_abs)
         sel_start_pos_in_block = sel_start_abs - sel_start_block_obj.position()
         
-        self.mw.status_label_part1.setText(f"Sel: {len_no_tags}/{len_with_tags}")
-        self.mw.status_label_part2.setText(f"At: {sel_start_pos_in_block}")
-        self.mw.status_label_part3.setText(f"Width: {pixel_width}px")
+        self.mw.status_label_part1.setText(tr("Sel: {0}/{1}").format(len_no_tags, len_with_tags))
+        self.mw.status_label_part2.setText(tr("At: {0}").format(sel_start_pos_in_block))
+        self.mw.status_label_part3.setText(tr("Width: {0}px").format(pixel_width))
 
     def clear_status_bar(self):
         """Remove status bar."""
@@ -109,18 +113,28 @@ class TitleStatusBarUpdater(BaseUIUpdater):
         """Update the plugin status label."""
         if self.mw.plugin_status_label:
             if getattr(self.mw, 'current_game_rules', None):
-                display_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else "Unknown"
-                self.mw.plugin_status_label.setText(f"Plugin: {display_name}")
+                display_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else tr("Unknown")
+                self.mw.plugin_status_label.setText(tr("Plugin: {0}").format(display_name))
             else:
                 self.mw.plugin_status_label.setText(tr('Plugin: [None]'))
 
     def update_statusbar_paths(self):
         """Update the statusbar paths."""
         if hasattr(self.mw, 'original_path_label') and self.mw.original_path_label:
-            orig_filename = Path(self.mw.data_store.json_path).name if self.mw.data_store.json_path else "[not specified]"
-            self.mw.original_path_label.setText(f"Original: {orig_filename}")
-            self.mw.original_path_label.setToolTip(self.mw.data_store.json_path if self.mw.data_store.json_path else "Path to original file")
+            orig_filename = Path(self.mw.data_store.json_path).name if self.mw.data_store.json_path else tr("[not specified]")
+            self.mw.original_path_label.setText(tr("Original: {0}").format(orig_filename))
+            self.mw.original_path_label.setToolTip(
+                self.mw.data_store.json_path if self.mw.data_store.json_path else tr("Path to original file")
+            )
         if hasattr(self.mw, 'edited_path_label') and self.mw.edited_path_label:
-            edited_filename = Path(self.mw.data_store.edited_json_path).name if self.mw.data_store.edited_json_path else "[not specified]"
-            self.mw.edited_path_label.setText(f"Changes: {edited_filename}")
-            self.mw.edited_path_label.setToolTip(self.mw.data_store.edited_json_path if self.mw.data_store.edited_json_path else "Path to changes file")
+            edited_filename = (
+                Path(self.mw.data_store.edited_json_path).name
+                if self.mw.data_store.edited_json_path
+                else tr("[not specified]")
+            )
+            self.mw.edited_path_label.setText(tr("Changes: {0}").format(edited_filename))
+            self.mw.edited_path_label.setToolTip(
+                self.mw.data_store.edited_json_path
+                if self.mw.data_store.edited_json_path
+                else tr("Path to changes file")
+            )

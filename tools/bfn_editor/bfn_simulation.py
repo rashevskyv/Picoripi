@@ -1,12 +1,21 @@
 from PyQt6 import QtGui, QtWidgets
 
+from core.i18n import tr
 from tools.bfn_editor.bfn_widgets import SimGlyphItem
 
 class BfnSimMixin:
     def on_sim_text_changed(self):
         if self.sim_input.hasFocus() and hasattr(self, 'chk_sync_sim_text'):
             self.chk_sync_sim_text.setChecked(False)
-        self.update_simulation()
+        timer = getattr(self, "_sim_update_timer", None)
+        if timer is None:
+            from PyQt6 import QtCore
+            timer = QtCore.QTimer(self)
+            timer.setSingleShot(True)
+            timer.setInterval(50)
+            timer.timeout.connect(self.update_simulation)
+            self._sim_update_timer = timer
+        timer.start()
 
     def update_simulation(self):
         if not self.sheet_images:
@@ -135,7 +144,7 @@ class BfnSimMixin:
         menu = self.sim_input.createStandardContextMenu(pos)
         menu.addSeparator()
         
-        eng_menu = menu.addMenu("Insert English Pangram (Риба)...")
+        eng_menu = menu.addMenu(tr("Insert English Pangram (Риба)..."))
         eng_p1 = eng_menu.addAction("The quick brown fox jumps over the lazy dog.")
         eng_p2 = eng_menu.addAction("Jackdaws love my big sphinx of quartz.")
         eng_p3 = eng_menu.addAction("Pack my box with five dozen liquor jugs.")

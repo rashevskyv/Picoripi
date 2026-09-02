@@ -6,6 +6,15 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - **Interface language**: **Language** menu lists catalogs under `locales/` that already have translations (`@language_name` in each file). Missing strings stay English. Fill catalogs with `tools/i18n-translate/run.bat` (Ukrainian selected by default).
 
 ### Changed
+- **Editor stays live while typing**: Selecting a string paints the editors immediately (speaker/story panel waits one event-loop tick). While typing, glossary, spellcheck, tag/icon coloring, warnings, BFN and the strings preview stay off; they start ~1.5s after the last keystroke. The issue scanner no longer resets the editor when it finishes.
+- **Click-to-edit no longer waits on BFN**: Clicking a string fills Original/Editable first. Width labels, BFN preview and Font Editor simulation run on the next paint tick. Leaving a row with pending typing saves the text without running analysis on the old row.
+- **Faster string switching**: A click in Strings and Blocks no longer re-highlights the glossary, measures widths, copies the font map, or re-lays out BFN before the editors paint. BFN trails by about a frame so typing can start immediately.
+- **Boss name preview matches the BLO**: `zelda_boss_name.blo` `sfont00` is a 600×77 ruby box (font 34, line 24, `HBIND_CENTER`), not the 30px `n_all` bar. Lines are centered; `{scale:…}` still applies.
+- **Bookmarks are per project**: The Bookmarks menu lists only the open project's bookmarks, stored in that `.uiproj`. Global `settings.json` no longer keeps a bookmark list (leftover entries for a project name are copied into the project once).
+- **Main window Ukrainian chrome**: Status bar, warning filter, BFN empty/auto labels, string-settings Window/Chapter/Speaker, and plugin warning names now go through `tr()` with Ukrainian catalog entries.
+- **BFN Font Editor Ukrainian UI**: Window title, tabs, buttons, dialogs, status messages and file prompts go through `tr()` with Ukrainian catalog entries (pangram samples stay as-is). Long button and glyph-table headers wrap to two lines and the panel/columns grow with the language.
+- **Faster glyph table**: The BFN Font Editor glyph table paints previews as table icons instead of a widget per cell, caches scaled pixmaps, and waits briefly before filtering while you type.
+- **Smoother block list and glossary**: Block/folder rows no longer scan all string metadata or talk to MemPalace while painting. Warning ticks are stored on the tree item at populate, so scrolling does not re-aggregate. Glossary search waits briefly and reuses its tables instead of rebuilding every tab on each keystroke. Font simulation in the BFN editor coalesces typing the same way. The BFN preview reuses the last glyph layout until the text or font changes.
 - **Wiki and Gemini Web2API docs**: User handbook now lives under `docs/wiki/` (index, Web2API/WebTOP setup, virtual navigation). README maps to it. `Show Unsaved Only` still does not survive restart (session-only). Agents update the wiki via the `update-wiki` skill.
 
 ## [v0.3.090] - 2026-09-02

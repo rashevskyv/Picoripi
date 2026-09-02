@@ -1,5 +1,6 @@
 import re
 import os
+from PyQt6.QtCore import QObject, QTimer
 from PyQt6.QtWidgets import QComboBox
 from .base_ui_updater import BaseUIUpdater
 from core.mempalace.story_timeline import StoryStringContext, StoryVirtualProjection
@@ -31,6 +32,18 @@ class StringSettingsUpdater(BaseUIUpdater):
         self._projection_context_indices = {}
         self._cached_speaker_pool = None
         self._cached_speaker_pool_case_map = {}
+        owner = main_window if isinstance(main_window, QObject) else None
+        self._panel_timer = QTimer(owner)
+        self._panel_timer.setSingleShot(True)
+        self._panel_timer.timeout.connect(self.update_string_settings_panel)
+
+    def schedule_panel_update(self) -> None:
+        """Refresh the side panel after the editors have painted.
+
+        Story/speaker lookup can hit SQLite and the script cache. Doing it
+        inside the click handler delays the first paint of the edited text.
+        """
+        self._panel_timer.start(0)
 
     def clear_story_context_cache(self) -> None:
         self._story_context_cache.clear()
@@ -328,7 +341,7 @@ class StringSettingsUpdater(BaseUIUpdater):
                 None,
             )
             structure_id = context.structure_id if context is not None else None
-            display = " › ".join(context.structure_path) if context is not None else "No chapter"
+            display = " › ".join(context.structure_path) if context is not None else tr("No chapter")
             chapter_label.story_structure_id = structure_id
             if isinstance(chapter_label, QComboBox):
                 if hasattr(chapter_label, "set_story_projection"):
@@ -357,11 +370,11 @@ class StringSettingsUpdater(BaseUIUpdater):
 
         label = getattr(self.mw, "speaker_label", None)
         if label is not None:
-            label.setText(f"Speaker: {current}")
+            label.setText(tr("Speaker: {0}").format(current))
             label.setToolTip(tooltip)
         select_label = getattr(self.mw, "speaker_select_label", None)
         if select_label is not None:
-            select_label.setText("Item:" if role == "item" else "Speaker:")
+            select_label.setText(tr("Item:") if role == "item" else tr("Speaker:"))
             select_label.setToolTip(
                 tooltip + " Double-click this label to open the matching virtual block."
             )
@@ -376,7 +389,9 @@ class StringSettingsUpdater(BaseUIUpdater):
         self.mw.font_combobox.blockSignals(True)
         self.mw.font_combobox.clear()
 
-        default_font_display_text = f"Default ({self.mw.default_font_file or 'None'})"
+        default_font_display_text = tr("Default ({0})").format(
+            self.mw.default_font_file or tr("None")
+        )
         self.mw.font_combobox.addItem(default_font_display_text, tr('default'))
 
         all_fonts = getattr(self.mw, 'all_font_maps', {})
@@ -691,7 +706,7 @@ class StringSettingsUpdater(BaseUIUpdater):
                 except Exception:
                     kind_name = None
             if kind_name:
-                kind_value_label.setText(kind_name)
+                kind_value_label.setText(tr(kind_name))
             else:
                 kind_value_label.setText(tr('Unknown'))
 

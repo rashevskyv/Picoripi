@@ -29,6 +29,29 @@ def test_uk_catalog_overrides_when_present():
     assert i18n.tr("&Language") == "&Language"
 
 
+def test_uk_catalog_covers_main_window_chrome():
+    i18n.init("uk")
+    assert i18n.tr("Blocks (double-click to rename):").startswith("Блоки")
+    assert i18n.tr("Warnings: {0} / {1}").format(0, 11).startswith("Попередження")
+    assert i18n.tr("Plugin: {0}").format("Zelda: Twilight Princess BMG").startswith("Плагін")
+    assert i18n.tr("None") == "Немає"
+    assert i18n.tr("Dialogue") == "Діалог"
+    assert i18n.tr("Tag Error") == "Помилка тегу"
+    i18n.init("en")
+
+
+def test_uk_catalog_covers_bfn_editor_chrome():
+    i18n.init("uk")
+    assert i18n.tr("BFN Font Editor v{0}", "1.0.21").startswith("Редактор шрифтів BFN")
+    assert i18n.tr("Font Editor") == "Редактор шрифту"
+    assert i18n.tr("Glyph Table") == "Таблиця гліфів"
+    assert i18n.tr("Texture Sheets:") == "Текстурні аркуші:"
+    assert i18n.tr("Save Changes (Ctrl+S)") == "Зберегти зміни (Ctrl+S)"
+    assert i18n.tr("Sync with editor") == "Синхронізувати з редактором"
+    i18n.init("en")
+    assert i18n.tr("Font Editor") == "Font Editor"
+
+
 def test_missing_string_stays_english():
     i18n.init("uk")
     missing = "This UI string is not in any catalog"

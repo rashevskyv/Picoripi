@@ -608,6 +608,44 @@ def test_UIUpdater_update_text_views_with_width_label(updater, mock_mw):
     mock_mw.original_width_label.show.assert_called()
 
 
+def test_update_text_views_light_skips_width_and_bfn(updater, mock_mw):
+    """A row click fills editors without blocking on BFN/width work."""
+    mock_mw.current_block_idx = 0
+    mock_mw.current_string_idx = 0
+    mock_mw.data = [["orig"]]
+    updater.preview_updater.data_processor._get_string_from_source.return_value = "orig"
+    updater.preview_updater.data_processor.get_current_string_text.return_value = ("edit", False)
+    mock_mw.current_game_rules = None
+    mock_mw.show_multiple_spaces_as_dots = False
+    mock_mw.preview_enabled = True
+    mock_mw.original_text_edit = MagicMock()
+    mock_mw.edited_text_edit = MagicMock()
+    mock_mw.original_text_edit.toPlainText.return_value = ""
+    mock_mw.edited_text_edit.toPlainText.return_value = ""
+    c = MagicMock()
+    c.position.return_value = 0
+    c.anchor.return_value = 0
+    c.hasSelection.return_value = False
+    mock_mw.original_text_edit.textCursor.return_value = c
+    mock_mw.edited_text_edit.textCursor.return_value = c
+    mock_mw.problems_per_subline = {}
+    mock_mw.original_width_label = MagicMock()
+    mock_mw.helper = MagicMock()
+    mock_mw.helper.get_font_map_for_string.return_value = {}
+    mock_mw.icon_sequences = []
+    mock_mw.bfn_preview_widget = MagicMock()
+    mock_mw.bfn_preview_widget.isHidden.return_value = False
+
+    with patch('ui.updaters.preview_updater.calculate_strict_string_width', return_value=42) as mock_w:
+        updater.update_text_views(heavy=False)
+
+    mock_mw.edited_text_edit.setPlainText.assert_called_with("edit")
+    mock_w.assert_not_called()
+    mock_mw.original_width_label.setText.assert_not_called()
+    mock_mw.bfn_preview_widget.update_preview_text.assert_not_called()
+    mock_mw.ui_updater.update_status_bar.assert_not_called()
+
+
 @patch.object(PreviewUpdater, 'update_text_views')
 @patch.object(PreviewUpdater, '_apply_highlights_for_block')
 def test_UIUpdater_populate_strings_with_category(mock_hl, mock_ut, updater, mock_mw):

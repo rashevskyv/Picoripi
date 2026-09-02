@@ -54,6 +54,28 @@ def handler(mock_mw):
 def test_TextOperationHandler_init(handler, mock_mw):
     assert handler.mw == mock_mw
 
+
+def test_analysis_waits_until_typing_pauses():
+    from handlers.text_operation.preview_mixin import PREVIEW_UPDATE_DELAY
+
+    assert PREVIEW_UPDATE_DELAY >= 1000
+
+
+@patch('handlers.text_operation_handler.convert_dots_to_spaces_from_editor', side_effect=lambda x: x)
+def test_stop_and_flush_persists_without_idle_analysis(mock_conv, handler, mock_mw):
+    """Leaving a row must save the buffer without running BFN/preview on the old row."""
+    mock_mw.edited_text_edit.toPlainText.return_value = "pending text"
+    handler._run_post_edit_analysis = MagicMock()
+    handler._update_preview_content = MagicMock()
+    handler.preview_update_timer.start(1500)
+
+    handler.stop_and_flush_editor_changes()
+
+    mock_mw.data_processor.update_edited_data.assert_called_with(0, 0, "pending text")
+    handler._run_post_edit_analysis.assert_not_called()
+    handler._update_preview_content.assert_not_called()
+    assert not handler.preview_update_timer.isActive()
+
 @patch('handlers.text_operation_handler.convert_dots_to_spaces_from_editor', side_effect=lambda x: x)
 def test_TextOperationHandler_text_edited(mock_conv, handler, mock_mw):
     mock_mw.edited_text_edit.toPlainText.return_value = "new text"
@@ -329,7 +351,7 @@ def test_TextOperationHandler_on_issue_scan_finished(handler, mock_mw):
     assert (0, 1, 0) in mock_mw.data_store.problems_per_subline
     assert mock_mw.data_store.problems_per_subline[(0, 1, 0)] == {"PROB_FINISHED"}
     handler.ui_updater.update_block_item_text_with_problem_count.assert_called_with(0)
-    handler.ui_updater.update_text_views.assert_called()
+    handler.ui_updater.update_text_views.assert_not_called()
 
 @patch('handlers.text_operation_handler.AutofixSelectionDialog')
 @patch('PyQt6.QtWidgets.QApplication.keyboardModifiers')

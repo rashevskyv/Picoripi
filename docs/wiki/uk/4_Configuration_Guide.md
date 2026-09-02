@@ -78,7 +78,7 @@ Enable spell checking · Dictionary Language · **Manage Dictionaries…** (за
 | `locales/uk.json` | Український каталог UI. Новий `tr("...")` у коді одразу додає сюди той самий ключ |
 | `.env` | Необов’язково `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | Фільтри UI, навігація, незбережені правки, undo. **Show Unsaved Only** при відновленні примусово вимикається |
-| `project.uiproj` | Запис проєкту: ім’я, тека плагіна, шляхи source/translation |
+| `project.uiproj` | Запис проєкту: ім’я, тека плагіна, шляхи source/translation, закладки проєкту (`metadata.settings.bookmarks`) |
 | `config.json` плагіна | Типові значення для цієї гри |
 | `aliases.json` плагіна | Додаткові аліаси тегів |
 | `translation_prompts/` | JSON промптів для Edit Prompts JSON / пайплайну глосарія |

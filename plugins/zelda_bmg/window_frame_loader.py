@@ -261,6 +261,9 @@ _TEXT_PANE = {
     "item": (400.0, 95.0),
     "wood": (427.0, 187.0),
     "stone": (427.0, 187.0),
+    # zelda_boss_name.blo sfont00 / zelda_stage_title_foreign.blo sfont00
+    "boss": (600.0, 77.0),
+    "place": (460.0, 34.0),
 }
 
 # TBX2 metrics from mg_e4lin (charSpace / lineSpace / fontSize as s16).
@@ -272,6 +275,8 @@ _TEXT_METRICS = {
     "item": {"font_x": 23.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0},
     "wood": {"font_x": 25.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0},
     "stone": {"font_x": 25.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0},
+    "boss": {"font_x": 34.0, "font_y": 34.0, "line_space": 24.0, "char_space": 1.0},
+    "place": {"font_x": 28.0, "font_y": 26.0, "line_space": 24.0, "char_space": 0.0},
 }
 
 

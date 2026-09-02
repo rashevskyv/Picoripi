@@ -187,10 +187,11 @@ class DictionaryManagerDialog(QDialog):
             log_error(f"Could not fetch dictionary list: {error_msg}")
         self.refresh_list()
 
-    def refresh_list(self):
+    def refresh_list(self, *, rescan_local: bool = False):
         """Update the list."""
         self.dict_list.clear()
-        self.local_languages = self.spellchecker_manager.scan_local_dictionaries() if self.spellchecker_manager else {}
+        if rescan_local or not getattr(self, "local_languages", None):
+            self.local_languages = self.spellchecker_manager.scan_local_dictionaries() if self.spellchecker_manager else {}
         filter_text = self.filter_edit.text().lower()
         
         for lang_code in self.remote_languages:
@@ -245,7 +246,7 @@ class DictionaryManagerDialog(QDialog):
         self.progress_bar.setVisible(False)
         self.status_label.setText(message)
         if success:
-            self.refresh_list()
+            self.refresh_list(rescan_local=True)
             if self.spellchecker_manager:
                 self.spellchecker_manager.reload_dictionary(self.spellchecker_manager.language)
         self.update_button_state()

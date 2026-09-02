@@ -52,9 +52,7 @@ def test_add_bookmark_success(handler, mock_mw):
         assert b["project_name"] == "Test Project"
         assert b["block_name"] == "test_block.json"
         
-        # Verify settings saved
-        mock_mw.settings_manager.save_settings.assert_called_once()
-        # Verify project settings saved since project is active
+        mock_mw.settings_manager.save_settings.assert_not_called()
         mock_mw.project_manager.save_settings_to_project.assert_called_once_with(mock_mw)
         # Verify menu was cleared and updated
         assert mock_mw.bookmarks_menu.clear.called
@@ -82,8 +80,17 @@ def test_clear_bookmarks(handler, mock_mw):
         mock_question.return_value = QMessageBox.StandardButton.Yes
         handler.clear_bookmarks()
         assert len(mock_mw.bookmarks) == 0
-        mock_mw.settings_manager.save_settings.assert_called_once()
+        mock_mw.settings_manager.save_settings.assert_not_called()
         mock_mw.project_manager.save_settings_to_project.assert_called_once_with(mock_mw)
+
+
+def test_add_bookmark_requires_project(handler, mock_mw):
+    mock_mw.project_manager.project = None
+    with patch("PyQt6.QtWidgets.QMessageBox.warning") as mock_warn:
+        handler.add_bookmark()
+    mock_warn.assert_called_once()
+    assert mock_mw.bookmarks == []
+    mock_mw.project_manager.save_settings_to_project.assert_not_called()
 
 def test_jump_to_bookmark_same_block(handler, mock_mw):
     mock_mw.bookmarks = [{
@@ -132,7 +139,7 @@ def test_delete_bookmark_yes(handler, mock_mw):
         mock_question.return_value = QMessageBox.StandardButton.Yes
         handler.delete_bookmark("b-id")
         assert len(mock_mw.bookmarks) == 0
-        mock_mw.settings_manager.save_settings.assert_called_once()
+        mock_mw.settings_manager.save_settings.assert_not_called()
         mock_mw.project_manager.save_settings_to_project.assert_called_once_with(mock_mw)
         assert mock_mw.bookmarks_menu.clear.called
 

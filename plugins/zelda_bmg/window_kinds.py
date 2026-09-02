@@ -23,6 +23,7 @@ The BFN preview only turns this chrome on when the active plugin advertises
 the ``message_window_preview`` capability (see GameRules.get_capabilities).
 """
 from typing import Any, Dict, List, Optional, Union
+from core.i18n import tr
 
 # fuki_kind -> screen (dusklight dMsgObject_c::talkStartInit):
 #   9        dMsgScrnItem_c
@@ -75,6 +76,9 @@ _HALO_GREEN = {"color": "#469600", "alpha": 150, "radius_ratio": 0.9}
 _METRICS_TALK = {"font_x": 23.0, "font_y": 22.0, "line_space": 23.0, "char_space": 1.0}
 _METRICS_ITEM = {"font_x": 23.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0}
 _METRICS_SIGN = {"font_x": 25.0, "font_y": 23.0, "line_space": 23.0, "char_space": 1.0}
+# zelda_boss_name.blo sfont00 TBX2 (ruby font); ctor forces charSpace 1.0 on non-JP.
+_METRICS_BOSS = {"font_x": 34.0, "font_y": 34.0, "line_space": 24.0, "char_space": 1.0}
+_METRICS_PLACE = {"font_x": 28.0, "font_y": 26.0, "line_space": 24.0, "char_space": 0.0}
 
 
 def _geometry(text_xywh, hio_xy=(1.0, 1.0), text_pane_widen=1.0,
@@ -119,12 +123,15 @@ _GEOM_STONE = _geometry((120, 70, 360, 260), hio_xy=(1.0, 1.0),
                         metrics=_METRICS_SIGN)
 _GEOM_HOWL = _geometry((150, 180, 300, 140), hio_xy=(1.05, 1.1),
                        text_pane_widen=1.0, pad_xy=(16.0, 10.0))
-_GEOM_PLACE = _geometry((94, 200, 420, 48), hio_xy=(1.0, 1.0),
-                        text_pane_widen=1.0, pad_xy=(30.0, 6.0))
+_GEOM_PLACE = _geometry((74, 333, 460, 34), hio_xy=(1.0, 1.0),
+                        text_pane_widen=1.0, pad_xy=(30.0, 6.0),
+                        metrics=_METRICS_PLACE)
 _GEOM_JIMAKU = _geometry((74, 380, 460, 50), hio_xy=(1.0, 1.0),
                          text_pane_widen=1.2, pad_xy=(12.0, 4.0))
-_GEOM_BOSS = _geometry((94, 190, 420, 56), hio_xy=(1.0, 1.0),
-                       text_pane_widen=1.0, pad_xy=(20.0, 8.0))
+# sfont00 is 600x77, HBIND_CENTER, overlapping the 610x30 n_all bar.
+_GEOM_BOSS = _geometry((4, 312, 600, 77), hio_xy=(1.0, 1.0),
+                       text_pane_widen=1.0, pad_xy=(5.0, 0.0),
+                       metrics=_METRICS_BOSS)
 _GEOM_STAFF = _geometry((80, 40, 448, 360), hio_xy=(1.0, 1.0),
                         text_pane_widen=1.0, pad_xy=(16.0, 12.0))
 _GEOM_EXPLAIN = _geometry((90, 120, 420, 200), hio_xy=(1.2, 1.0),
@@ -134,7 +141,7 @@ _GEOM_EXPLAIN = _geometry((90, 120, 420, 200), hio_xy=(1.2, 1.0),
 
 def _style(kind_name, frame, halo=_HALO_TALK, shadow=_TALK_SHADOW,
            default_text_color=None, item_icon=None, text_offset=(4.5, 0.0),
-           geometry=None, screen_class="talk"):
+           geometry=None, screen_class="talk", text_align="left"):
     style: Dict[str, Any] = {
         "kind_name": kind_name,
         "frame": frame,
@@ -144,6 +151,7 @@ def _style(kind_name, frame, halo=_HALO_TALK, shadow=_TALK_SHADOW,
         # Talk/item are dark; kanban signs are light. COutFont bullet is TEV
         # black — correct on wood/stone, invisible on dialogue unless inverted.
         "bullet_tint": "#e6dcc8" if screen_class in ("talk", "item", "explain", "jimaku") else "#000000",
+        "text_align": text_align,
     }
     if halo:
         style["halo"] = dict(halo)
@@ -253,7 +261,7 @@ WINDOW_KIND_STYLES: Dict[int, Dict[str, Any]] = {
     11: _talk("Item info"),
     # location name plate
     12: _style("Location name", _PLATE_FRAME, halo=None, geometry=_GEOM_PLACE,
-              screen_class="place"),
+              screen_class="place", text_align="left"),
     # Midna's window: cyan default text, blue halo
     13: _talk("Midna", halo=_HALO_MIDNA, default_text_color="#82e6e6"),
     # green-text talk variant (getFontCCColorTable fukiKind 14)
@@ -268,7 +276,7 @@ WINDOW_KIND_STYLES: Dict[int, Dict[str, Any]] = {
               screen_class="howl"),
     # boss name: bare centered caption
     19: _style("Boss name", None, halo=None, geometry=_GEOM_BOSS,
-              screen_class="boss"),
+              screen_class="boss", text_align="center"),
 }
 
 # Manual preview preset only — never selected from INF1 fuki_kind.
@@ -467,7 +475,8 @@ def preset_label(preset: Optional[Union[int, str]],
     """Compact label for the preview override control."""
     if preset is None:
         name = (auto_style or {}).get("kind_name") or "Dialogue"
-        return f"Auto: {name}"
+        return tr("Auto: {0}").format(tr(name))
     if preset == EXPLAIN_PRESET_KEY:
-        return "Explain"
-    return window_style_for_kind(int(preset)).get("kind_name", str(preset))
+        return tr("Explain")
+    kind_name = window_style_for_kind(int(preset)).get("kind_name", str(preset))
+    return tr(kind_name) if isinstance(kind_name, str) else str(kind_name)

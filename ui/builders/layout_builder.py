@@ -259,7 +259,7 @@ class LayoutBuilder:
         self.mw.warnings_filter_button.setToolTip(
             tr('<b>Warning filter</b><br>Click — choose which warning types “Show Warnings Only” filters by.<br>The label shows selected / total active warning types.')
         )
-        self.mw.warnings_filter_button.setFixedWidth(150)
+        self.mw.warnings_filter_button.setFixedWidth(180)
         self.mw.warnings_filter_button.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.warnings_filter_button)
         
@@ -318,7 +318,7 @@ class LayoutBuilder:
 
         original_header_layout = QHBoxLayout()
         original_header_layout.setContentsMargins(0, 0, 0, 0)
-        original_header_layout.addWidget(self._create_editor_title_label("Original"))
+        original_header_layout.addWidget(self._create_editor_title_label(tr('Original')))
         original_header_layout.addStretch(1)
 
         left_header_layout.addLayout(original_header_layout)
@@ -508,7 +508,7 @@ class LayoutBuilder:
         compact_label_width = 62
 
         # Row 1: window information on the left, actions on the far right.
-        self.mw.window_kind_label = NavigableLabel("Window:")
+        self.mw.window_kind_label = NavigableLabel(tr('Window:'))
         self.mw.window_kind_label.setStyleSheet(
             "font-weight: bold; color: #2e7d32; font-size: 13px;"
         )
@@ -576,7 +576,7 @@ class LayoutBuilder:
         )
 
         # Row 2: chapter assignment.
-        self.mw.chapter_select_label = NavigableLabel("Chapter:")
+        self.mw.chapter_select_label = NavigableLabel(tr('Chapter:'))
         self.mw.chapter_select_label.setStyleSheet(
             "font-weight: bold; color: #6a1b9a; font-size: 13px;"
         )
@@ -604,7 +604,7 @@ class LayoutBuilder:
         self.mw.speaker_label.setVisible(False)
 
         # Row 3: speaker on the left, all translation formatting on the right.
-        self.mw.speaker_select_label = NavigableLabel("Speaker:")
+        self.mw.speaker_select_label = NavigableLabel(tr('Speaker:'))
         self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; font-size: 13px;")
         self.mw.speaker_select_label.setToolTip(
             tr('Double-click to open this row in its virtual Speaker or Item block.')
@@ -685,7 +685,7 @@ class LayoutBuilder:
 
         editable_title_layout = QHBoxLayout()
         editable_title_layout.setContentsMargins(0, 0, 0, 0)
-        editable_title_layout.addWidget(self._create_editor_title_label("Editable"))
+        editable_title_layout.addWidget(self._create_editor_title_label(tr('Editable')))
         editable_title_layout.addStretch(1)
         right_header_layout.addLayout(editable_title_layout)
         bottom_right_layout.addWidget(self.mw.right_header_container)

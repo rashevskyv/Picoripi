@@ -161,6 +161,7 @@ class ImportGlyphCommand(QtGui.QUndoCommand):
         if self.viewer.current_sheet_index == self.sheet_idx:
             self.viewer.display_current_sheet()
         self.viewer.update_simulation()
+        self.viewer._invalidate_glyph_preview_cache(sheet_qimg)
         self.viewer.populate_glyph_table()
 
     def redo(self):
@@ -173,6 +174,7 @@ class ImportGlyphCommand(QtGui.QUndoCommand):
         if self.viewer.current_sheet_index == self.sheet_idx:
             self.viewer.display_current_sheet()
         self.viewer.update_simulation()
+        self.viewer._invalidate_glyph_preview_cache(sheet_qimg)
         self.viewer.populate_glyph_table()
 
 
@@ -218,6 +220,8 @@ class RenderFontCommand(QtGui.QUndoCommand):
             self.viewer.update_overlays()
             
         self.viewer.update_simulation()
+        for sheet_idx in sheets_to_update:
+            self.viewer._invalidate_glyph_preview_cache(self.viewer.sheet_images[sheet_idx])
         self.viewer.populate_glyph_table()
 
     def redo(self):
@@ -255,6 +259,8 @@ class RenderFontCommand(QtGui.QUndoCommand):
             self.viewer.update_overlays()
             
         self.viewer.update_simulation()
+        for sheet_idx in sheets_to_update:
+            self.viewer._invalidate_glyph_preview_cache(self.viewer.sheet_images[sheet_idx])
         self.viewer.populate_glyph_table()
 
 

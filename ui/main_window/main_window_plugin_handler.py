@@ -167,7 +167,9 @@ class MainWindowPluginHandler:
             selected_active = [pid for pid in active_filters if pid in active_pids]
             selected_count = len(selected_active)
             
-            self.mw.warnings_filter_button.setText(f"Warnings: {selected_count} / {total_active}")
+            self.mw.warnings_filter_button.setText(
+                tr("Warnings: {0} / {1}").format(selected_count, total_active)
+            )
 
     def trigger_check_tags_action(self):
         """Trigger check tags action."""

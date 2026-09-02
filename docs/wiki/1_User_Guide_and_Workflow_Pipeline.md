@@ -125,7 +125,7 @@ This is the localization pipeline plus utilities. Prefer **Localization Pipeline
 | Command | Shortcut | Role |
 |---------|----------|------|
 | Localization Pipeline… | | Ordered steps + status. Thin: every button runs the same action as the menu |
-| BFN Font Editor… | | Nintendo `.bfn` in a separate window; the project stays open |
+| BFN Font Editor… | | Nintendo `.bfn` in a separate window; the project stays open. Uses the same **Language** as the rest of the app |
 | Script Markup Studio… | | Mark a walkthrough (Phase 0 for MemePalace). See [9](9_Script_Markup.md) |
 | MemePalace Context Builder… | Ctrl+M | Weave the marked script into story memory |
 | Prepare Glossary… | | One automatic glossary pass |
@@ -155,10 +155,10 @@ Shortcuts are window-wide. **Ctrl+PageUp / Ctrl+PageDown** also move to the prev
 
 | Command | Shortcut | Notes |
 |---------|----------|--------|
-| Add Bookmark… | Ctrl+B | Current line of the active block |
-| Clear All Bookmarks | | Permanent delete |
+| Add Bookmark… | Ctrl+B | Current line of the active block. Needs an open project. |
+| Clear All Bookmarks | | Permanent delete from this project |
 
-Bookmarks listed under the separator survive restart.
+The menu lists only bookmarks for the **open project**. They are stored in that project's `.uiproj` (`metadata.settings.bookmarks`), not in `settings.json`. Closing the project clears the menu. If a project has no bookmark list yet, leftover entries for its name in the old global `settings.json` are copied into the project once.
 
 ---
 
@@ -166,7 +166,7 @@ Bookmarks listed under the separator survive restart.
 
 **Language** lists every `locales/<code>.json` that already has UI translations. The label is `@language_name` inside that file (English, Українська, …). Changing it writes `ui_language` and asks for a restart.
 
-A missing string in the chosen catalog is shown in English. Russian is never listed. Fill more catalogs with `tools/i18n-translate/run.bat`; they appear in the menu after a restart.
+A missing string in the chosen catalog is shown in English. Russian is never listed. Fill more catalogs with `tools/i18n-translate/run.bat`; they appear in the menu after a restart. **BFN Font Editor** uses this language too.
 
 ---
 
@@ -252,7 +252,7 @@ Status bar (bottom of the window): Original path, Changes path, Plugin name, `St
 
 ## 12. Strings in block (top right)
 
-Click a line to bind Original + Editable. The list itself is read-only.
+Click a line to bind Original + Editable immediately. The BFN preview follows about a frame later. Glossary, spellcheck, tags, and warnings catch up after you stop typing (~1.5s). The list itself is read-only.
 
 | Checkbox | Effect |
 |----------|--------|

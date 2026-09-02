@@ -87,8 +87,9 @@ class WarningsFilterDialog(QDialog):
 
                 # Checkbox
                 checkbox_name = definition.get("name", pid)
-                checkbox = QCheckBox(checkbox_name)
-                checkbox.setToolTip(definition.get("description", "No description available."))
+                checkbox = QCheckBox(tr(checkbox_name) if checkbox_name else pid)
+                raw_tip = definition.get("description") or "No description available."
+                checkbox.setToolTip(tr(raw_tip))
                 
                 # Check state (if it is in selected_pids)
                 checkbox.setChecked(pid in self.selected_pids)

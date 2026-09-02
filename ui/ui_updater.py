@@ -85,9 +85,13 @@ class UIUpdater:
         """Refresh the active view without treating its kind as a block address."""
         self.preview_updater.populate_current_view(force=force)
             
-    def update_text_views(self): 
+    def update_text_views(self, *, heavy: bool = True):
         """Update the text views."""
-        self.preview_updater.update_text_views()
+        self.preview_updater.update_text_views(heavy=heavy)
+
+    def schedule_row_paint_followup(self):
+        """After a light editor fill, paint BFN/widths on the next tick."""
+        self.preview_updater.schedule_row_paint_followup()
 
     def update_preview_visibility(self, checked=None, *, persist=True):
         """Update the preview visibility."""

@@ -244,3 +244,43 @@ def test_ProjectManager_add_block_archive_grouping(pm):
     assert folders[0].children[0].name == "inner_folder"
     assert b.id in folders[0].children[0].block_ids
     assert b.id not in pm.project.metadata.get('root_block_ids', [])
+
+
+class _BookmarkWindow:
+    def __init__(self, settings_path, bookmarks=None):
+        self.bookmarks = bookmarks if bookmarks is not None else []
+        self.settings_manager = type("SM", (), {"settings_file_path": str(settings_path)})()
+        self.font_size = 10
+
+
+def test_ProjectManager_migrates_legacy_global_bookmarks_once(pm, tmp_path):
+    settings_file = tmp_path / "settings.json"
+    settings_file.write_text(
+        json.dumps({
+            "bookmarks": [
+                {"id": "keep", "name": "Mine", "project_name": "Test"},
+                {"id": "skip", "name": "Other", "project_name": "Elsewhere"},
+            ]
+        }),
+        encoding="utf-8",
+    )
+    mw = _BookmarkWindow(settings_file)
+    pm.load_settings_from_project(mw)
+    assert [b["id"] for b in mw.bookmarks] == ["keep"]
+    assert pm.project.metadata["settings"]["bookmarks"][0]["id"] == "keep"
+
+    mw2 = _BookmarkWindow(settings_file, bookmarks=[])
+    pm.load_settings_from_project(mw2)
+    assert [b["id"] for b in mw2.bookmarks] == ["keep"]
+
+
+def test_ProjectManager_does_not_migrate_when_project_has_bookmarks(pm, tmp_path):
+    pm.project.metadata["settings"] = {"bookmarks": [{"id": "project", "name": "Local"}]}
+    settings_file = tmp_path / "settings.json"
+    settings_file.write_text(
+        json.dumps({"bookmarks": [{"id": "global", "name": "Old", "project_name": "Test"}]}),
+        encoding="utf-8",
+    )
+    mw = _BookmarkWindow(settings_file)
+    pm.load_settings_from_project(mw)
+    assert mw.bookmarks == [{"id": "project", "name": "Local"}]

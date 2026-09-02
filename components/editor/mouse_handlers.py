@@ -358,12 +358,13 @@ class LNETMouseHandlers:
                         self.editor._selected_lines.add(block_number)
                     self.editor._last_clicked_line = block_number
                 else:
-                    self.editor.clear_selection()
-                    self.editor._selected_lines.add(block_number)
+                    self.editor._selected_lines = {block_number}
                     self.editor._last_clicked_line = block_number
+                    self.editor._update_selection_highlight()
                     self.editor.lineClicked.emit(block_number)
-                    
-                self.editor._update_selection_highlight()
+                    event.accept()
+                    return
+
                 self.editor._update_selection_highlight()
                 self.editor._emit_selection_changed()
                 event.accept()

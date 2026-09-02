@@ -57,6 +57,8 @@ Dropping strings onto a virtual leaf assigns that facet (speaker, chapter, …).
 
 When the plugin declares `message_window_preview` (Twilight Princess BMG), the preview can draw talk / item-get / sign chrome from a **local** game dump. The repo does not ship Nintendo assets. Page `n/N` and original/translation (`T`/`O`) sit on that bar.
 
+Boss name cards follow `zelda_boss_name.blo` (`sfont00` 600×77, ruby 34px, centered). `{scale:…}` in the string still applies.
+
 **Global → Enable Live Preview** turns the live simulator off to reduce lag.
 
 **Do not** expect TP window frames without a legal local dump and the Zelda BMG plugin.

@@ -48,7 +48,8 @@ def test_bookmark_handler_add_bookmark_success(mock_mw):
         assert mock_mw.bookmarks[0]["name"] == "My Bookmark"
         assert mock_mw.bookmarks[0]["block_idx"] == 0
         assert mock_mw.bookmarks[0]["string_idx"] == 5
-        mock_mw.settings_manager.save_settings.assert_called_once()
+        mock_mw.settings_manager.save_settings.assert_not_called()
+        mock_mw.project_manager.save_settings_to_project.assert_called_once_with(mock_mw)
 
 def test_bookmark_handler_jump_to_bookmark_same_block(mock_mw):
     mock_mw.bookmarks = [{
@@ -110,7 +111,8 @@ def test_bookmark_handler_clear_bookmarks(mock_mw):
     with patch.object(QMessageBox, 'question', return_value=QMessageBox.StandardButton.Yes):
         handler.clear_bookmarks()
         assert mock_mw.bookmarks == []
-        mock_mw.settings_manager.save_settings.assert_called_once()
+        mock_mw.settings_manager.save_settings.assert_not_called()
+        mock_mw.project_manager.save_settings_to_project.assert_called_once_with(mock_mw)
 
 def test_bookmark_handler_delete_bookmark(mock_mw):
     mock_mw.bookmarks = [{"id": "b1", "name": "B1"}, {"id": "b2", "name": "B2"}]

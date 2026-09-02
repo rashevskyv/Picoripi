@@ -1,4 +1,6 @@
 from PyQt6 import QtCore
+
+from core.i18n import tr
 from tools.bfn_editor.bfn_commands import EditMetricsCommand
 
 class BfnViewMixin:
@@ -90,9 +92,9 @@ class BfnViewMixin:
         idx = self.get_selected_glyph_index()
         if idx == -1:
             if self.selected_cell is None:
-                self.info_text.setText("No glyph selected")
+                self.info_text.setText(tr("No glyph selected"))
             else:
-                self.info_text.setText(f"Cell ({gx}, {gy})\nOut of valid glyph range!")
+                self.info_text.setText(tr("Cell ({0}, {1})\nOut of valid glyph range!", gx, gy))
             self.spin_kerning.setEnabled(False)
             self.spin_width.setEnabled(False)
             self.btn_auto_width.setEnabled(False)
@@ -107,7 +109,7 @@ class BfnViewMixin:
         self.btn_import_glyph.setEnabled(True)
         
         # Check mapping character
-        map_char = "Unknown"
+        map_char = tr("Unknown")
         maps = self.metadata.get("MAP1", [])
         for m in maps:
             m_type = m.get("mapping_type", 0)
@@ -144,9 +146,10 @@ class BfnViewMixin:
                         break
                         
         self.info_text.setText(
-            f"Selected Glyph Index: {idx}\n"
-            f"Sheet: {self.current_sheet_index}, Cell: ({gx}, {gy})\n"
-            f"Mapping: {map_char}"
+            tr(
+                "Selected Glyph Index: {0}\nSheet: {1}, Cell: ({2}, {3})\nMapping: {4}",
+                idx, self.current_sheet_index, gx, gy, map_char,
+            )
         )
         
         # Get kerning and width
@@ -231,8 +234,8 @@ class BfnViewMixin:
         self._dirty = val
         self.btn_save.setEnabled(val)
         if val:
-            self.status.showMessage("Unsaved changes pending. Click Save or press Ctrl+S to apply.")
+            self.status.showMessage(tr("Unsaved changes pending. Click Save or press Ctrl+S to apply."))
             if hasattr(self, 'chk_auto_sync') and self.chk_auto_sync.isChecked():
                 self.schedule_auto_sync()
         else:
-            self.status.showMessage("All changes saved.")
+            self.status.showMessage(tr("All changes saved."))

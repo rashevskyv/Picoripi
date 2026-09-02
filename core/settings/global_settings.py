@@ -74,7 +74,6 @@ class GlobalSettings:
                 "retry_delay": 60
             },
             "bfn_glyph_table_column_widths": [],
-            "bookmarks": [],
             "bfn_auto_sync_enabled": False,
             "preview_bg_image_path": "",
             "preview_bg_scale": 100,
@@ -120,6 +119,9 @@ class GlobalSettings:
             attr = getattr(cls, key, None)
             if not (isinstance(attr, property) or hasattr(attr, '__set__')):
                 setattr(self.mw, key, value)
+
+        # Bookmarks belong to the open project (.uiproj), not settings.json.
+        self.mw.bookmarks = []
         
         self.mw.current_font_size = self.defaults['font_size']
 
@@ -237,7 +239,6 @@ class GlobalSettings:
             "log_file_path": getattr(self.mw, 'log_file_path', ""),
             "enabled_log_categories": getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"]),
             "bfn_glyph_table_column_widths": getattr(self.mw, 'bfn_glyph_table_column_widths', []),
-            "bookmarks": getattr(self.mw, 'bookmarks', []) if isinstance(getattr(self.mw, 'bookmarks', []), list) else [],
             "bfn_auto_sync_enabled": getattr(self.mw, 'bfn_auto_sync_enabled', False),
             "preview_bg_image_path": getattr(self.mw, 'preview_bg_image_path', ""),
             "preview_bg_scale": getattr(self.mw, 'preview_bg_scale', 100),
@@ -273,6 +274,8 @@ class GlobalSettings:
             "hide_empty_strings": bool(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False)) if isinstance(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False), bool) else False,
             "last_advanced_search_query": getattr(self.mw, 'last_advanced_search_query', "") if isinstance(getattr(self.mw, 'last_advanced_search_query', None), str) else ""
         })
+
+        global_data.pop("bookmarks", None)
 
         if self.mw.restore_unsaved_on_startup and self.mw.data_store.edited_data:
             serializable_edited_data = {str(k): v for k, v in self.mw.data_store.edited_data.items()}

@@ -137,6 +137,7 @@ class AppDataStore:
     _index_overrides: Dict[int, Set[int]] = field(default_factory=dict, init=False, repr=False)
     _index_warnings: Dict[int, Dict[str, Set[Tuple[int, int]]]] = field(default_factory=dict, init=False, repr=False)
     _index_categorized: Dict[int, Set[int]] = field(default_factory=dict, init=False, repr=False)
+    _index_problems_by_row: Optional[Dict[Tuple[int, int], Set[str]]] = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
         # Wrap dictionaries with IndexingDict for automatic cache invalidation
@@ -173,6 +174,7 @@ class AppDataStore:
             self._index_overrides.pop(block_idx, None)
             self._index_warnings.pop(block_idx, None)
             self._index_categorized.pop(block_idx, None)
+            self._index_problems_by_row = None
         else:
             self._index_empty.clear()
             self._index_needs_translation.clear()
@@ -181,13 +183,26 @@ class AppDataStore:
             self._index_overrides.clear()
             self._index_warnings.clear()
             self._index_categorized.clear()
+            self._index_problems_by_row = None
 
     def clear_warnings_index(self, block_idx: Optional[int] = None):
         """Clear warnings index for a specific block or all blocks."""
+        self._index_problems_by_row = None
         if block_idx is not None:
             self._index_warnings.pop(block_idx, None)
         else:
             self._index_warnings.clear()
+
+    def problems_by_row(self) -> Dict[Tuple[int, int], Set[str]]:
+        """(block, string) → problem ids, inverted from problems_per_subline."""
+        idx = self._index_problems_by_row
+        if idx is None:
+            idx = {}
+            for (b_idx, s_idx, _sub), problems in self.problems_per_subline.items():
+                bucket = idx.setdefault((b_idx, s_idx), set())
+                bucket.update(problems)
+            self._index_problems_by_row = idx
+        return idx
 
     # Editor subline modification tracking (QTextBlock numbers that were changed)
     edited_sublines: Set[int] = field(default_factory=set)

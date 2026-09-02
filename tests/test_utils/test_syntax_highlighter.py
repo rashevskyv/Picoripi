@@ -69,6 +69,18 @@ def test_JsonTagHighlighter_set_spellchecker_enabled(highlighter):
     hl.set_spellchecker_enabled(True)
     hl.rehighlight.assert_not_called()
 
+def test_highlightBlock_skips_glossary_and_tags_while_typing(highlighter):
+    hl, doc = highlighter
+    hl._typing_mode = True
+    hl._rebuild_glossary_cache = MagicMock()
+    hl._rebuild_translation_glossary_cache = MagicMock()
+    hl._get_icon_matches_for_block = MagicMock(return_value=[])
+    hl.highlightBlock("Castle {Color:Red} text")
+    hl._rebuild_glossary_cache.assert_not_called()
+    hl._rebuild_translation_glossary_cache.assert_not_called()
+    hl._get_icon_matches_for_block.assert_not_called()
+    hl.setFormat.assert_called()
+
 def test_JsonTagHighlighter_apply_css_to_format(highlighter):
     hl, doc = highlighter
     fmt = QTextCharFormat()

@@ -157,6 +157,8 @@ class TestFilter:
         dialog = _dialog(qtbot, [AMBIGUOUS, SINGLE, CONFIRMED])
         dialog._unconfirmed_only_checkbox.setChecked(True)
         dialog._search_field.setText("ordon")
+        dialog._filter_timer.stop()
+        dialog._apply_filter(dialog._search_field.text())
         assert [e.original for e in dialog._filtered_entries] == ["Ordon"]
 
 

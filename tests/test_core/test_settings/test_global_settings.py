@@ -173,6 +173,24 @@ def test_GlobalSettings_saves_and_loads_translation_config(mock_mw, tmp_path):
     assert mock_mw.translation_config["providers"]["gemini"]["api_key"] == "test-key-123"
     assert mock_mw.translation_config["providers"]["gemini"]["model"] == "gemini-test-model"
 
+def test_GlobalSettings_does_not_persist_or_load_bookmarks(mock_mw, tmp_path):
+    f = tmp_path / "settings.json"
+    f.write_text(
+        json.dumps({"ui_language": "en", "bookmarks": [{"id": "old", "name": "X"}]}),
+        encoding="utf-8",
+    )
+    s = GlobalSettings(mock_mw, f)
+    mock_mw.bookmarks = [{"id": "live"}]
+    s.save({})
+    saved = json.loads(f.read_text(encoding="utf-8"))
+    assert "bookmarks" not in saved
+
+    d = {}
+    s.load(d)
+    assert mock_mw.bookmarks == []
+    assert "bookmarks" not in d
+
+
 def test_GlobalSettings_saves_and_loads_ui_language(mock_mw, tmp_path):
     f = tmp_path / "settings.json"
     s = GlobalSettings(mock_mw, f)

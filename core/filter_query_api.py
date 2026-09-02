@@ -204,10 +204,19 @@ class FilterQueryAPI:
                         mapping_set.add(indices)
         if not mapping_set:
             return problem_counts
-        for (b_idx, s_idx, _subline_idx), problems in self.data_store.problems_per_subline.items():
-            if (b_idx, s_idx) not in mapping_set:
-                continue
-            for p_id in problems:
+        by_row = None
+        getter = getattr(self.data_store, "problems_by_row", None)
+        if callable(getter):
+            maybe = getter()
+            if isinstance(maybe, dict):
+                by_row = maybe
+        if by_row is None:
+            by_row = {}
+            for (b_idx, s_idx, _subline_idx), problems in self.data_store.problems_per_subline.items():
+                bucket = by_row.setdefault((b_idx, s_idx), set())
+                bucket.update(problems)
+        for pair in mapping_set:
+            for p_id in by_row.get(pair, ()):
                 if detection_config.get(p_id, True) and p_id in problem_counts:
                     problem_counts[p_id] += 1
         return problem_counts

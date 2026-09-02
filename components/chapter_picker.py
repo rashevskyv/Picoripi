@@ -132,7 +132,7 @@ class ChapterSelectionDialog(QDialog):
         ):
             button.setEnabled(can_edit)
 
-        self.none_item = QTreeWidgetItem(("No chapter", ""))
+        self.none_item = QTreeWidgetItem((tr("No chapter"), ""))
         self.none_item.setData(0, self.ID_ROLE, None)
         self.none_item.setData(0, self.PATH_ROLE, ())
         self.none_item.setFlags(
@@ -493,11 +493,11 @@ class HierarchicalChapterComboBox(QComboBox):
         self.blockSignals(True)
         self.clear()
         self._selection_path = tuple(path or ())
-        text = " › ".join(self._selection_path) if structure_id is not None else "No chapter"
+        text = " › ".join(self._selection_path) if structure_id is not None else tr("No chapter")
         self.addItem(text, structure_id)
         self.setCurrentIndex(0)
         self.story_structure_id = structure_id
-        self.setToolTip(text if structure_id is not None else "No chapter assigned")
+        self.setToolTip(text if structure_id is not None else tr("No chapter assigned"))
         self.blockSignals(False)
 
     def current_story_path(self):

@@ -57,6 +57,8 @@
 
 Коли плагін оголошує `message_window_preview` (Twilight Princess BMG), прев’ю може малювати хром talk / item-get / sign з **локального** дампу гри. Репозиторій не постачає ассети Nintendo. Сторінка `n/N` і original/translation (`T`/`O`) на тій панелі.
 
+Картки імені боса відповідають `zelda_boss_name.blo` (`sfont00` 600×77, ruby 34px, по центру). `{scale:…}` у рядку все одно застосовується.
+
 **Global → Enable Live Preview** вимикає живий симулятор, щоб зменшити лаги.
 
 **Не** чекайте рамок вікон TP без легального локального дампу і плагіна Zelda BMG.

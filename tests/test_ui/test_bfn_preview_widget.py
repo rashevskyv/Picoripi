@@ -963,6 +963,66 @@ def test_preview_uses_blo_font_size_and_centers_short_pages(qapp):
         widget.hide()
 
 
+def test_boss_caption_uses_blo_font_and_centers_lines(qapp):
+    """sfont00 is 600x77 ruby 34px, HBIND_CENTER — not a stretched 30px strip."""
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+
+    mw = MagicMock()
+    mw.active_game_plugin = "zelda_bmg"
+    style = window_style_for_kind(19)
+    style = dict(style)
+    rules = MagicMock()
+    rules.get_preview_window_style.return_value = style
+    rules.prepare_preview_glyph_text.side_effect = lambda text: (text, None, None, None)
+    mw.current_game_rules = rules
+    mw.data_store.current_block_idx = 0
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.default_font_file = None
+    mw.all_bfn_fonts = {"tp.bfn": _make_renderable_bfn_for_preview()}
+    mw.project_manager = None
+    mw.preview_enabled = True
+    mw.preview_bg_image_path = ""
+    mw.preview_bg_scale = 100
+    mw.preview_bg_offset_x = 0
+    mw.preview_bg_offset_y = 0
+    mw.preview_bg_hidden = True
+    mw.preview_line_spacing = 10
+    mw.preview_text_rect = [40, 30, 280, 110]
+    mw.preview_text_color = "#ffffff"
+    mw.preview_shadow_enabled = False
+    mw.preview_glow_enabled = False
+    mw.preview_fix_font_scale = False
+    mw.preview_fixed_font_scale = 1.0
+    mw.preview_char_spacing = 0
+    mw.string_metadata = {}
+    mw.bfn_preview_column = None
+
+    widget = BfnPreviewWidget(mw)
+    widget.resize(900, 220)
+    widget.show()
+    qapp.processEvents()
+    try:
+        widget.update_preview_text("Twilit Parasite\nDIABABA")
+        widget.grab()
+        scale = widget._last_computed_scale_factor
+        geom = style.get("geometry") or {}
+        _, _, fit = widget._window_fit_transform(geom)
+        expected = (34.0 / 24.0) * fit
+        assert abs(scale - expected) < 0.08, (scale, expected, fit)
+        assert style.get("text_align") == "center"
+        assert geom.get("text")[2] >= 500
+        assert geom.get("text")[3] >= 70
+        glyphs = [
+            {"draw_x": 0.0, "draw_y": 0.0, "width": 40.0},
+            {"draw_x": 40.0, "draw_y": 0.0, "width": 40.0},
+        ]
+        widget._center_glyph_lines(glyphs, 200.0)
+        assert abs(glyphs[0]["draw_x"] - 60.0) < 0.5
+    finally:
+        widget.hide()
+
+
 def test_preview_sidebar_keeps_icons_and_tooltips(qapp):
     widget = BfnPreviewWidget(MagicMock())
     bar = widget.sidebar

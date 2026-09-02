@@ -1,1 +1,1 @@
-# Package containing decomposed managers for DataStateProcessor
+# Package containing decomposed managers/mixins for DataStateProcessor

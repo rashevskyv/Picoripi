@@ -78,7 +78,7 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 | `locales/uk.json` | Ukrainian UI catalog. Add a key here whenever you add `tr("...")` in code |
 | `.env` | Optional `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | UI filters, navigation, unsaved edits, undo. **Show Unsaved Only** is forced off on restore |
-| `project.uiproj` | Project record: name, plugin folder, source/translation paths |
+| `project.uiproj` | Project record: name, plugin folder, source/translation paths, project bookmarks (`metadata.settings.bookmarks`) |
 | plugin `config.json` | Defaults for that game |
 | plugin `aliases.json` | Extra tag aliases |
 | `translation_prompts/` | Prompt JSON used by Edit Prompts JSON / glossary pipeline |

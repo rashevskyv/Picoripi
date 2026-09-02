@@ -71,6 +71,53 @@ def test_bfn_editor_window_init(qapp):
     
     editor.close()
 
+
+def test_wrap_ui_text_splits_long_labels(qapp):
+    from PyQt6.QtGui import QFontMetrics
+    from tools.bfn_editor.window_ui_mixin import painted_text_width, wrap_ui_text
+
+    fm = QFontMetrics(QApplication.font())
+    text = "Експортувати поточний аркуш PNG..."
+    wrapped, width = wrap_ui_text(text, fm, 120)
+    assert "\n" in wrapped
+    assert width < painted_text_width(fm, text)
+    short, short_w = wrap_ui_text("Width", fm, 200)
+    assert short == "Width"
+    assert short_w == painted_text_width(fm, "Width")
+
+
+def test_bfn_editor_uk_labels_fit_on_two_lines(qapp):
+    from core import i18n
+    from tools.bfn_editor.window_ui_mixin import painted_text_width
+
+    i18n.init("uk")
+    try:
+        editor = BfnEditorWindow()
+        assert "\n" in editor.btn_export_sheet.text()
+        for btn in (
+            editor.btn_export_sheet,
+            editor.btn_import_sheet,
+            editor.btn_export_glyph,
+            editor.btn_import_glyph,
+            editor.btn_render_font,
+        ):
+            fm = btn.fontMetrics()
+            for line in btn.text().split("\n"):
+                assert painted_text_width(fm, line) + 16 <= btn.minimumWidth(), (
+                    f"{btn.text()!r} line {line!r} does not fit {btn.minimumWidth()}px"
+                )
+        header = editor.table_glyphs.horizontalHeader()
+        for col in range(editor.table_glyphs.columnCount()):
+            item = editor.table_glyphs.horizontalHeaderItem(col)
+            need = editor._header_caption_width(header, item.text())
+            assert editor.table_glyphs.columnWidth(col) >= need, (
+                f"col {col} {item.text()!r} need {need} got {editor.table_glyphs.columnWidth(col)}"
+            )
+        editor.close()
+    finally:
+        i18n.init("en")
+
+
 def test_bfn_editor_window_open_from_bytes(qapp, dummy_bfn_bytes):
     """Test opening a BFN file from RAM bytes."""
     editor = BfnEditorWindow()
@@ -140,6 +187,34 @@ def test_bfn_editor_window_original_fonts(qapp, dummy_bfn_bytes):
     assert item_orig.text() == "A"
     
     # Clean up
+    editor.clear_temp()
+    editor.close()
+
+
+def test_glyph_table_uses_item_icons_not_cell_widgets(qapp, dummy_bfn_bytes):
+    editor = BfnEditorWindow()
+    editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
+    editor.populate_glyph_table()
+
+    assert editor.table_glyphs.rowCount() > 0
+    assert editor.table_glyphs.cellWidget(0, 0) is None
+    assert editor.table_glyphs.cellWidget(0, 2) is None
+    orig = editor.table_glyphs.item(0, 0)
+    glyph = editor.table_glyphs.item(0, 2)
+    assert orig is not None
+    assert orig.icon().isNull()
+    assert glyph is not None and not glyph.icon().isNull()
+    cache_size = len(getattr(editor, "_glyph_preview_cache", {}))
+    editor.populate_glyph_table()
+    assert len(editor._glyph_preview_cache) == cache_size
+
+    editor.table_search.setText("99999")
+    assert editor._glyph_search_timer.isActive()
+    assert editor.table_glyphs.rowCount() > 0
+    editor._glyph_search_timer.stop()
+    editor.populate_glyph_table()
+    assert editor.table_glyphs.rowCount() == 0
+
     editor.clear_temp()
     editor.close()
 
@@ -469,13 +544,12 @@ def test_bfn_editor_window_header_tooltips_and_no_header_resize(qapp, dummy_bfn_
         assert item is not None
         assert item.toolTip() == expected_text, f"Header {col_idx} should have tooltip '{expected_text}'"
         
-    # 2. Verify on_header_handle_double_clicked calculates based on content only (ignoring long header text)
-    # The header for column 0 is "Original Render" (very long).
-    # But the content in column 0 is a glyph cellWidget with small pixmap (~12px width).
-    # With header text excluded, the width should be reduced to minimum limit (35px).
+    # Auto-resize keeps the wrapped header readable even if the glyph pixmap is tiny.
     editor.on_header_handle_double_clicked(0)
     col_w = editor.table_glyphs.columnWidth(0)
-    assert 35 <= col_w <= 55, f"Column 0 width should be compressed to content size, got {col_w}"
+    header0 = editor.table_glyphs.horizontalHeaderItem(0)
+    need = editor._header_caption_width(editor.table_glyphs.horizontalHeader(), header0.text())
+    assert col_w >= need, f"Column 0 width {col_w} must fit header '{header0.text()}' ({need}px)"
     
     editor.clear_temp()
     editor.close()
@@ -516,8 +590,15 @@ def test_bfn_editor_window_column_widths_persistence(qapp, dummy_bfn_bytes):
     # 5. Populate table and verify widths are restored
     editor.populate_glyph_table()
     
+    header = editor.table_glyphs.horizontalHeader()
     for col, w in enumerate(test_widths):
-        assert editor.table_glyphs.columnWidth(col) == w, f"Column {col} width should be restored to {w}"
+        item = editor.table_glyphs.horizontalHeaderItem(col)
+        need = w
+        if item and item.text():
+            need = max(w, editor._header_caption_width(header, item.text()))
+        assert editor.table_glyphs.columnWidth(col) == need, (
+            f"Column {col} width should be restored to at least {w} (got {editor.table_glyphs.columnWidth(col)}, need {need})"
+        )
         
     # 6. Test fallback when no saved widths are present
     mock_settings.clear()

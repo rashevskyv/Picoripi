@@ -29,7 +29,7 @@ def apply_premium_dark_theme(widget):
             background-color: #2b2d42;
             border: 1px solid #3d405b;
             border-radius: 4px;
-            padding: 6px;
+            padding: 4px 6px;
             color: #f8f9fa;
             font-weight: bold;
         }
@@ -142,7 +142,7 @@ def apply_premium_dark_theme(widget):
         QHeaderView::section {
             background-color: #2b2d42;
             color: #f8f9fa;
-            padding: 6px 12px;
+            padding: 4px 6px;
             border: 1px solid #1e1e24;
             font-weight: bold;
         }
@@ -213,7 +213,7 @@ def apply_premium_light_theme(widget):
             background-color: #e2e4e9;
             border: 1px solid #cbd5e1;
             border-radius: 4px;
-            padding: 6px;
+            padding: 4px 6px;
             color: #1e1e24;
             font-weight: bold;
         }
@@ -327,7 +327,7 @@ def apply_premium_light_theme(widget):
         QHeaderView::section {
             background-color: #e2e4e9;
             color: #1e1e24;
-            padding: 6px 12px;
+            padding: 4px 6px;
             border: 1px solid #cbd5e1;
             font-weight: bold;
         }
