@@ -10,13 +10,16 @@ The recommended AI backend for glossary and bulk translation is **Gemini Web2API
 
 **Wiki (start here):** [docs/wiki/README.md](docs/wiki/README.md)
 
-- [User Guide and Pipeline](docs/wiki/1_User_Guide_and_Workflow_Pipeline.md)
-- [API Reference](docs/wiki/2_API_Reference.md)
-- [Plugin Developer Guide](docs/wiki/3_Plugin_Developer_Guide.md)
+- [Interface](docs/wiki/1_User_Guide_and_Workflow_Pipeline.md)
+- [Code map](docs/wiki/2_API_Reference.md)
+- [Plugins](docs/wiki/3_Plugin_Developer_Guide.md)
 - [Configuration](docs/wiki/4_Configuration_Guide.md)
-- [Gemini Web2API / WebTOP](docs/wiki/5_Gemini_Web2API.md) — how to start the proxy, point Picoripi at it, and run Parallel Requests
-- [Virtual Navigation and Preview](docs/wiki/6_Virtual_Navigation_and_Preview.md)
+- [Gemini Web2API / WebTOP](docs/wiki/5_Gemini_Web2API.md)
+- [Virtual navigation and preview](docs/wiki/6_Virtual_Navigation_and_Preview.md)
 - [Maintaining the wiki](docs/wiki/7_Maintaining_This_Wiki.md)
+- [Localization Pipeline](docs/wiki/8_Localization_Pipeline.md)
+- [Script Markup](docs/wiki/9_Script_Markup.md)
+- [AI Translation](docs/wiki/11_AI_Translation.md)
 
 **Engineering / process:**
 
@@ -25,9 +28,9 @@ The recommended AI backend for glossary and bulk translation is **Gemini Web2API
 - [MemPalace Context Manifesto](docs/MEMPALACE_CONTEXT_MANIFESTO.md)
 - [Pipeline Roadmap](docs/PIPELINE_ROADMAP.md)
 - [Testing Strategy](docs/TESTING_STRATEGY_AND_AUDIT.md)
-- [Plugin Authoring Guide](docs/PLUGIN_AUTHORING_GUIDE.md)
-- [Default Plugin Template](plugins/default_plugin/README.md)
 - [ChatMock (ChatGPT web proxy)](docs/chatmock_setup.md)
+
+Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin READMEs) may lag the code. Use the wiki, then the source.
 
 ---
 

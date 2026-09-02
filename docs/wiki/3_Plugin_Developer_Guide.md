@@ -1,126 +1,139 @@
-# Plugin Developer Guide (with AI Prompts)
+# Plugin Developer Guide
 
-This document provides technical guidelines on how the Picoripi plugin architecture functions and details how to build new game-specific plugins. It includes a copy-pasteable prompt designed to instruct AI models (like Gemini, ChatGPT, Claude) to build fully functional plugins.
+This page is the plugin contract as implemented in code. Source of truth: `plugins/base_game_rules.py`, `ui/main_window/main_window_plugin_handler.py`, `handlers/project_action_handler.py` (discovery), `ui/settings/logging_mixin.py` (`find_plugins`).
 
-Current quick-start path:
-
-- Start from `plugins/default_plugin/`.
-- Read `docs/PLUGIN_AUTHORING_GUIDE.md`.
-- Use `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` for AI-assisted plugin design.
-- Use PyQt6 imports only.
+Do not treat `docs/PLUGIN_AUTHORING_GUIDE.md` or plugin READMEs as current unless you have just checked them against those files.
 
 ---
 
-## 1. Architectural Overview & Hook System
+## Discovery and load
 
-Picoripi discovers plugins dynamically by scanning the directories inside `plugins/`. Any directory that contains a `rules.py` containing a subclass of `BaseGameRules` (`plugins/base_game_rules.py`) is registered as a plugin.
+**Discovery** (New Project and Settings → Global → Active Game Plugin): every **directory** under `plugins/` that contains `config.json`. `import_plugins` is skipped in Settings. `display_name` in that JSON is the label; the folder name is the plugin id.
 
-```mermaid
-graph TD
-    A[main.py: MainWindow] -->|Discovers| B[plugins/]
-    B -->|Scans rules.py| C[GameRules Subclass]
-    C -->|Inherits| D[BaseGameRules]
-    C -->|Coordinates| E[config.py]
-    C -->|Coordinates| F[tag_manager.py]
-    C -->|Coordinates| G[problem_analyzer.py]
-    C -->|Coordinates| H[text_fixer.py]
-```
+**Load:** `importlib.import_module(f"plugins.{active_game_plugin}.rules")`. The module must define `GameRules`, a subclass of `BaseGameRules`. Constructor: `GameRules(main_window_ref=self.mw)`.
 
-### 1.1 Core Inheritance Hooks
-A custom plugin must override methods in `BaseGameRules` to define its layout rules, formatting, and file parsers.
+If import fails, the user gets **Plugin Load Error** and the app falls back to `BaseGameRules` itself.
 
-*   `load_data_from_json_obj(self, json_data: Any) -> Tuple[List[List[str]], Dict[int, str]]`: Decodes the raw file format loaded from disk into the internal lists of string arrays (pages/blocks of dialogues) and block name mappings.
-*   `save_data_to_json_obj(self, data: List[List[str]], block_names: Dict[int, str]) -> Any`: Encodes the modified dialogue lists back into the raw file format for writing to disk.
-*   `get_display_name(self) -> str`: Return a user-friendly plugin name shown in settings.
-*   `get_problem_definitions(self) -> Dict[str, Dict[str, Any]]`: Returns a dictionary mapping problem IDs to names, descriptions, colors, and layout priority levels.
-*   `get_legitimate_tags(self) -> Set[str]`: Returns a set of regular expression patterns or strings defining valid in-game control codes (e.g. `{Color:Red}`, `[PLAYER]`).
-*   `get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]`: Defines the color/style patterns for text highlights in editors.
-*   `analyze_subline(self, ...)`: Validates a single text line (computes widths, checks tags, spacings) and returns a set of active warning codes.
-*   `autofix_data_string(self, ...)`: Automatically wraps, pads, and formats strings to resolve warnings.
+Related modules are force-reloaded with the plugin: `config`, `tag_checker_handler`, `tag_manager`, `problem_analyzer`, `text_fixer`, `tag_logic`.
+
+**Aliases:** `plugins/<id>/aliases.json` is merged into `default_tag_mappings` after load.
+
+**Project actions:** `get_plugin_actions()` may add menu/toolbar `QAction`s (`text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`).
 
 ---
 
-## 2. Configuration & Default Metrics (`plain_text`)
+## Minimal plugin layout
 
-The standard layout behavior is provided by the `plain_text` plugin. It serves as a benchmark for custom designs.
+Copy `plugins/default_plugin/` to `plugins/<your_id>/`. Required for discovery + load:
 
-### 2.1 File Structure
-A standard plugin directory contains:
 ```
-plugins/my_plugin/
-├── __init__.py
-├── rules.py                 # Extends BaseGameRules
-├── config.py                # Defines priority constants, colors, and problems
-├── tag_manager.py           # Handles regex tag validation and syntax highlight styles
-├── problem_analyzer.py      # Bounding checks, orphan prepositions, width calculation
-├── text_fixer.py            # Line splitter, smart word wrapping, page padding logic
-└── font_map.json            # Character pixel widths & gameplay tag aliases
+plugins/<your_id>/
+  config.json          # at least "display_name"
+  rules.py             # class GameRules(BaseGameRules)
 ```
 
-### 2.2 Character Width Mapping (`font_map.json`)
-The layout guideline uses proportional width calculations:
-```json
-{
-  "widths": {
-    "32": 4,
-    "33": 2,
-    "65": 7
-  },
-  "aliases": {
-    "{PLAYER}": {
-      "alias": "Link",
-      "width": 24
-    }
-  },
-  "default_width": 6
-}
-```
-*   `widths`: A lookup where keys are decimal ASCII/Unicode code points, and values are pixel widths.
-*   `aliases`: Defines pixel widths for specific game tags. If the tag name represents a pronoun or entity, prepend `F:` (e.g., `{F:Link}`) to allow the translation engine to handle Slavic declensions properly, swapping the real tag back in post-translation.
+Typical extra files (template has them): `config.py`, `tag_manager.py`, `problem_analyzer.py`, `text_fixer.py`, `font_map.json`, `fonts/`, `translation_prompts/prompts.json`, `aliases.json`.
+
+`default_plugin.GameRules.get_display_name()` returns `Default Plugin Template`. `get_capabilities()` returns `set()` on purpose.
 
 ---
 
-## 3. Copy-Paste AI Prompt for Generating New Plugins
+## `config.json`
 
-When prompting an AI assistant to write a custom plugin for Picoripi, use the following detailed prompt. Copy it exactly and fill in the bracketed parts to get a fully working, robust implementation:
+Loaded for the display name and as a bag of plugin defaults. The template includes (non-exhaustive): `display_name`, `newline_display_symbol`, wrap flags, `game_dialog_max_width_pixels`, `line_width_warning_threshold_pixels`, `lines_per_page`, `default_font_file`, `autofix_enabled`, `detection_enabled`, tag/newline colours.
 
-```text
-You are an expert developer building a custom game plugin for the "Picoripi" visual translation workbench.
-Picoripi is built using Python 3.14 and PyQt6.
+Shipped ids and labels:
 
-I need you to generate a fully functioning game plugin named: [MY_GAME_PLUGIN_NAME].
-This plugin must reside in a package directory 'plugins/[my_game_plugin_name]/'.
+| Folder | `display_name` |
+|--------|----------------|
+| `zelda_bmg` | Zelda: Twilight Princess BMG |
+| `zelda_mc` | The Legend of Zelda: The Minish Cap |
+| `zelda_ww` | Zelda: The Wind Waker |
+| `plain_text` | Zelda: The Wind Waker |
+| `pokemon_fr` | Pokemon FireRed/LeafGreen |
+| `default_plugin` | Default Plugin Template |
 
-The plugin must implement:
-1. 'config.py': Define warning code strings prefixed with '[PREFIX]_', priority integers, QColor objects, and the PROBLEM_DEFINITIONS dictionary.
-2. 'tag_manager.py': Manage game-specific tags. Tag syntax for this game uses [DESCRIBE TAG FORMAT, e.g. <Tag:Value> or [tag_id]]. Specify regex patterns to match valid tags. Add syntax highlighting rules returning List[Tuple[str, QTextCharFormat]].
-3. 'problem_analyzer.py': Must calculate pixel width using the provided 'editor_font_map'. Must identify the following warnings:
-    - '[PREFIX]_TAG_WARNING' (Broken/unclosed tags).
-    - '[PREFIX]_WIDTH_EXCEEDED' (Pixel width exceeding the configured threshold).
-    - '[PREFIX]_SHORT_LINE' (Next line's words can fit on current line. Incorporate lookahead to prevent leaving a single-letter preposition hanging at the end of a line).
-    - [ADD OTHER CUSTOM CHECKS IF ANY].
-4. 'text_fixer.py': Implement 'autofix_data_string' that takes a raw dialogue string, parses its layout pages, wraps text using proportional character widths from 'editor_font_map' to fit under the pixel width threshold, cleans extra spaces, checks tag spacing, and returns the formatted text.
-5. 'rules.py': Inherit from 'BaseGameRules' (imported from 'plugins.base_game_rules'). Map all methods to coordinate the components defined above:
-    - 'load_data_from_json_obj(self, json_data)': Custom parser that takes raw loaded files and returns (data_list, block_names_dict).
-    - 'save_data_to_json_obj(self, data, block_names)': Custom serializer back to disk format.
-    - 'analyze_subline(...)': Delegates to problem_analyzer.
-    - 'autofix_data_string(...)': Delegates to text_fixer.
-    - 'get_editor_page_size(self)': Returns [NUMBER, e.g. 3 or 4] lines per page.
-    - 'get_display_name(self)': Returns "[FRIENDLY_GAME_TITLE]".
+---
 
-Here are the specific details of the game format:
-- File Format: [DESCRIBE FORMAT, e.g. JSON with a list of dictionaries containing 'id' and 'text', or plain text transcript]
-- Special tags: [LIST TAGS, e.g. <COLOR:RED>, <PLAYER>, <PAGE_BREAK>]
-- Text boundaries: Max pixel width is [MAX_WIDTH] pixels. Line count limit per dialog is [MAX_LINES] lines.
+## Capabilities
 
-Please output the complete code for:
-- 'config.py'
-- 'tag_manager.py'
-- 'problem_analyzer.py'
-- 'text_fixer.py'
-- 'rules.py'
+`get_capabilities() -> Set[str]`. Empty means: pipeline still offers markup, context, glossary, and text translation. Optional names:
 
-Ensure the code is robust, imports PyQt6 modules correctly, uses BaseGameRules interfaces, and includes no placeholders.
-```
+| Name | Hook | Who uses it |
+|------|------|-------------|
+| `glossary_seed` | `get_glossary_seed_entries()` | Glossary auto-pass |
+| `external_lore` | `get_external_lore(term)` | Describe pass |
+| `speaker_attribution` | `get_speaker_for_string()` | Pipeline **Name the speakers**; Speaker field |
+| `message_window_preview` | preview chrome / pagination | BFN preview window bar |
 
-Using this prompt ensures the AI generates components matching Picoripi's internal architectural interface, preventing integration issues.
+`zelda_bmg` returns all four.
+
+Seed dict keys: `term` (required), `description`, `section`, `icon`, `source_ref`.
+
+`is_placeholder_speaker(name)`: `True` (default) = merge step may replace this identity with a script name. Return `False` for already-display names (`System`, curated names).
+
+---
+
+## Data in and out
+
+Internal store is `List[List[str]]` (blocks of strings) plus block names.
+
+| Method | Role |
+|--------|------|
+| `load_data_from_json_obj(json_data)` | File bytes/JSON/text → `(blocks, extra_dict)` |
+| `save_data_to_json_obj(data, block_names)` | Inverse |
+| `convert_editor_text_to_data(text)` | Editor → stored (default: aliases → tags) |
+| `get_text_representation_for_editor(subline)` | Stored → editor (default: tags → aliases) |
+| `get_text_representation_for_preview(data_string)` | Preview list; newlines become `newline_display_symbol` |
+| `prepare_preview_glyph_text(text)` | Visual BFN preview: strip tags, optional per-char colours |
+| `get_enter_char` / `get_shift_enter_char` / `get_ctrl_enter_char` | What Enter inserts |
+
+Base `load_data_from_json_obj` understands a list, `{ "strings": [...] }`, and Kruptar `{END}` text.
+
+---
+
+## Layout, tags, issues
+
+| Method | Role |
+|--------|------|
+| `get_string_layout(block, string)` | Optional `{warn_width, max_width, font_file, lines_per_page}`. Priority: per-string metadata > this hook > global plugin settings |
+| `get_problem_definitions()` | `{id: {name, …}}` for Detection / Auto-fix / Warnings filter |
+| `analyze_subline(...)` | Return a set of problem ids for one visual line |
+| `autofix_data_string(..., page_local=False)` | Return `(new_text, changed)` |
+| `get_short_problem_name(id)` | Label |
+| `get_default_tag_mappings()` | alias → original tag |
+| `get_dynamic_name_tags()` | `{tag: display_name}` substituted before script matching |
+| `get_spellcheck_ignore_pattern()` | Regex of tags/control codes to skip |
+| `get_legitimate_tags()` | Default empty |
+| `get_syntax_highlighting_rules()` | `List[Tuple[pattern, QTextCharFormat]]` |
+| `get_tag_tooltip(tag)` | Hover text |
+| `get_tag_checker_handler()` | Optional checker object |
+| `get_custom_context_tags()` / `save_custom_context_tags` | Context Tags settings |
+| `get_context_menu_actions(editor, selected_text)` | Extra editor menu items |
+| `get_editor_page_size()` | Default 2 |
+| `calculate_string_width_override(...)` | Optional pixel width |
+| `process_pasted_segment(...)` | Paste sanitiser |
+
+---
+
+## Speakers, scene, AI metadata
+
+| Method | Role |
+|--------|------|
+| `get_speaker_for_string(block, string)` | Game-data speaker; engine fills rows the user has not set; never overwrites a user choice |
+| `get_addressee_for_string(block, string, speaker=)` | T–V / gendered address |
+| `should_auto_match_story_context(block, string)` | Default True; skip automatic dialogue matching if False |
+| `get_translation_context_for_string(block, string)` | See [11](11_AI_Translation.md). Engine never compares values to a specific game |
+| `get_ai_flow_context_for_string` / `get_ai_flow_overview` | Dialogue-graph notes in the prompt |
+| `get_scene_context_for_string` | Story Timeline evidence (`resource`, `msg_group`, `flow_ids`, `candidate_actors`, …) |
+
+---
+
+## What not to do
+
+- Do not put game dumps, `.arc`, or Nintendo assets in a plugin you commit.
+- Do not hard-code Twilight Princess window kind integers in the **engine**. Put them in the plugin (`zelda_bmg` already does).
+- Do not teach the engine a new `content_role` string; return `role_instruction` from the plugin instead.
+- Do not declare `speaker_attribution` unless `get_speaker_for_string` actually returns identities.
+- Do not copy `zelda_bmg` tables into a new game plugin; copy the **approach** (read this game’s files, advertise capabilities).
+- Do not forget `config.json` — without it the plugin never appears in New Project / Settings.

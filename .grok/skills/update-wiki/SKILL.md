@@ -18,16 +18,20 @@ Skip for pure refactors, tests-only, or comments.
 
 1. Read `docs/wiki/7_Maintaining_This_Wiki.md` (ownership table). Do not invent a new page if an existing one owns the fact.
 2. `git diff` / `git status` (and the files you edited this turn). List user-visible deltas in one sentence each.
-3. Patch **only** the owning wiki page. Typical homes:
-   - UI / hotkeys / daily pipeline → `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md`
-   - Python APIs → `docs/wiki/2_API_Reference.md`
-   - Plugins → `docs/wiki/3_Plugin_Developer_Guide.md` and `docs/PLUGIN_AUTHORING_GUIDE.md` if the contract changed
-   - settings.json / .env → `docs/wiki/4_Configuration_Guide.md`
+3. Re-read the **Python/UI source** for that fact. Existing `docs/*.md` and plugin READMEs may be stale — do not copy them forward as truth.
+4. Patch **only** the owning wiki page. Typical homes:
+   - UI / hotkeys / Settings tabs → `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md`
+   - Which module implements a control → `docs/wiki/2_API_Reference.md`
+   - Plugins (`BaseGameRules`, capabilities) → `docs/wiki/3_Plugin_Developer_Guide.md`
+   - settings.json / .env / session → `docs/wiki/4_Configuration_Guide.md`
    - Gemini Web2API, WebTOP, Parallel Requests, local `/v1` proxy → `docs/wiki/5_Gemini_Web2API.md`
    - Virtual folders, TP window preview, Show Unsaved Only → `docs/wiki/6_Virtual_Navigation_and_Preview.md`
-4. If the **entry point** moved (new menu, new recommended provider), add or fix one link in `README.md` Documentation Map and at most a short paragraph. Do not paste the wiki page into README.
-5. Add a dated bullet to `CHANGELOG.md` only when this is a shipped behavior change, not a docs-only tidy.
-6. If no wiki page fits and the fact will stay, add a row to `7_Maintaining_This_Wiki.md` **and** a link in `docs/wiki/README.md` before creating a new page.
+   - Localization Pipeline wizard, glossary auto-pass → `docs/wiki/8_Localization_Pipeline.md`
+   - Script Markup Studio → `docs/wiki/9_Script_Markup.md`
+   - AI Translate / Variation / Chat / providers → `docs/wiki/11_AI_Translation.md`
+5. If the **entry point** moved (new menu, new recommended provider), add or fix one link in `README.md` Documentation Map and at most a short paragraph. Do not paste the wiki page into README.
+6. Add a dated bullet to `CHANGELOG.md` only when this is a shipped behavior change, not a docs-only tidy.
+7. If no wiki page fits and the fact will stay, add a row to `7_Maintaining_This_Wiki.md` **and** a link in `docs/wiki/README.md` before creating a new page.
 
 ## Rules
 

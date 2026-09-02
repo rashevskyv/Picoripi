@@ -1,212 +1,339 @@
-# User Guide and Workflow Pipeline
+# User Guide: Interface
 
-This document is a comprehensive user manual for the **Picoripi** visual translation workbench. It explains the user interface, keyboard shortcuts, localization pipeline steps, AI integration capabilities, and layout-troubleshooting features.
+This page is the map of the main window as built in `ui/builders/menu_builder.py`, `toolbar_builder.py`, and `layout_builder.py`. Labels below match the English UI.
+
+Recommended order of work: [8. Localization Pipeline](8_Localization_Pipeline.md). Virtual folders and the in-game preview: [6. Virtual Navigation and Preview](6_Virtual_Navigation_and_Preview.md). AI buttons: [11. AI Translation](11_AI_Translation.md).
 
 ---
 
-## 1. Interface Anatomy & UI Components
-
-The Picoripi graphical user interface is divided into functional zones designed to streamline the translation and layout-validation workflow.
+## 1. Layout
 
 ```
 +---------------------------------------------------------------------------------+
-|                                  Menu Bar                                       |
+| File  Edit  View  Tools  Navigation  Bookmarks                         Help     |
 +---------------------------------------------------------------------------------+
-|                                 Tool Bar                                        |
+| Toolbar: Save  Undo Redo  Find  Preview  AI Chat  BFN  Recalc  Settings  >_  F1 |
 +---------------------------------------------------------------------------------+
-| Project Tree    | Text Editors Panel (Original vs translation) | String Settings |
-| (Left)          | +------------------------------------------+ | (Right)         |
-|                 | | Original Text Area (Read-Only)           | |                 |
-|                 | +------------------------------------------+ | Font Select     |
-|                 | | Translation Text Area (Editable)         | | Width Override |
-|                 | +------------------------------------------+ | Metadata View   |
-|                 |                                              |                 |
-|                 | Preview & Issues Panel (Bottom)              |                 |
-|                 | +------------------------------------------+ |                 |
-|                 | | Strings/Layout Preview & Warnings Gutter  | |                 |
-|                 | +------------------------------------------+ |                 |
-+-----------------+----------------------------------------------+-----------------+
-|                                 Status Bar                                      |
+| Blocks (tree)        | Strings in block (click a line to select)                |
+| folders + files      | Hide empty / translated / unsaved / overrides / warnings |
+| Speakers, Story, …   +----------------------------------------------------------+
+| + − ✎ ↑ ↓ ⟳         | Original (read-only) | tools | Editable translation      |
+| Glossary…            | Max-width, Hide tags |      | Window / Chapter / Speaker |
 +---------------------------------------------------------------------------------+
 ```
 
-### 1.1 Main Menu Bar
-*   **File Menu**:
-    *   `New Project`: Starts the Project Creation Wizard to set up a new `.uiproj` workspace.
-    *   `Open Project`: Loads an existing `.uiproj` file.
-    *   `Save Project`: Instantly commits in-memory edits to disk.
-    *   `Close Project`: Cleans up active states, handles caches, and returns to the initial state.
-*   **Edit Menu**:
-    *   `Undo / Redo`: Navigates back and forth through the text edit history.
-    *   `Revert Selected String`: Reverts the currently focused dialogue string back to its original state.
-    *   `Revert Block to Original`: Reverts the entire selected file block back to its original state.
-*   **Translation Menu**:
-    *   `Translate Line via AI`: Calls the active LLM to translate the highlighted row.
-    *   `AI Translation Variations`: Opens the modeless Variations view.
-    *   `Discuss with AI`: Opens the context-aware chat assistant dialogue.
-*   **Tools Menu**:
-    *   `Glossary Manager`: Opens the tabbed glossary manager dialog.
-    *   `Global Issue Scan`: Initiates a project-wide scan of tag syntax and width issues.
-    *   `Spellcheck Dictionary Manager`: Manages custom spellchecking dictionaries.
-    *   `Run Build Script`: Executes the configured compilation tool/ROM compiler.
-*   **Settings Menu**:
-    *   `Preferences`: Opens the main global settings panel.
+| Region | What it is |
+|--------|------------|
+| Left | Project tree: physical files plus derived virtual roots. Header: **Blocks (double-click to rename):** |
+| Top right | **Strings in block (click line to select):** read-only list. Click a line to bind the editors. |
+| Bottom left | **Original** — source text, read-only. |
+| Bottom right | **Editable** — the only pane that writes translations. |
+| Narrow column between Original and Editable | Revert string, Restore translation, Inspect story context, jump to Script Markup Studio. |
+| Above Editable | **Window:**, **Chapter:**, **Speaker:**, then **AI Translate**, **AI Variation**, **Auto-fix**, **Font:**, **Max-width:**, **Apply**. |
+| Under Editable | Visual preview (toggle with **View → Preview**). |
 
-### 1.2 Interactive Toolbar Actions
-*   📂 **Open/New Project**: Fast shortcuts for project management.
-*   💾 **Save**: Instantly saves changes without showing blocker dialogs. Triggers a black, semi-transparent **Toast Notification** in the bottom-left corner.
-*   ↩️/↪️ **Undo & Redo**: Standard history navigation.
-*   🤖 **Translate Line**: Triggers AI translation for the focused row.
-*   🎭 **AI Variations**: Generates up to 10 translation variants.
-*   ⚡ **Auto-Fix**: Automatically word-wraps, cleans spaces, and formats tags for the current block.
-*   🔍 **Search Bar**: Project-wide fuzzy search matching with punctuation-insensitive search logic.
-*   📖 **Glossary**: Opens the glossary manager.
-*   ⚙️ **Settings**: Opens the settings dialog.
-*   ▶️ **Run External Script (`>_`)**: Spawns ROM builds, packers, or emulators asynchronously in a detached console window.
-
-### 1.3 Project Tree (Left Panel)
-*   **Virtual Folders**: Organize raw files into chapters or categories. These folders are virtual and do not modify the actual directories on disk. Derived roots (**Story**, **Speakers**, **Windows**, **Items**, **Notated**) pack non-empty strings only — see [6. Virtual Navigation and Preview](6_Virtual_Navigation_and_Preview.md).
-*   **Asterisk Propagation (`*`)**: Unsaved changes in dialogue strings propagate an asterisk next to the file name and up the parent folders (e.g. `Folder* -> Subfolder* -> file.json*`).
-*   **Progress Bars**: Semi-transparent green bars render left-to-right beneath file names, representing the completion percentage of non-empty translatable strings. Empty lines and tag-only codes are ignored to prevent false completion metrics.
-
-### 1.4 Text Editors & Preview Panels (Center Panel)
-*   **Original Pane (Read-Only)**: Displays the source text. Words that match glossary terms are underlined. Hovering over them shows their definition in a tooltip.
-*   **Translation Pane (Editable)**: Where translations are entered. Contains line numbers, syntax highlighting for tags, and a vertical guideline showing where text exceeds the warning limit.
-*   **Smart Empty Lines Hiding**: If a block contains 3 or more consecutive empty lines, the read-only preview panel condenses them into a single line showing `[start-end] X empty line(s)` to save screen space. Double-clicking this line number scrolls the editor to that string.
-*   **Preview & Issues Panel**: Shows a rendered preview of the final text layout and details warning markers in the gutter.
-
-### 1.5 String Settings Panel (Right Panel)
-*   **Font Selection Combo Box**: Assigns a custom font override to the active line. Renders a soft purple background when an override is active.
-*   **Width SpinBox**: Sets a custom pixel width threshold for the focused line. Renders a soft purple background and border when active.
-*   **Metadata View**: Displays BMG IDs, file paths, and AI model translation metadata.
+Do **not** type in Original. Do **not** treat the Strings list as an editor.
 
 ---
 
-## 2. Power-User Hotkeys & Modifier Shortcuts
+## 2. First launch
 
-Picoripi contains advanced modifiers that alter standard toolbar and mouse actions:
+1. `File → New Project…` (`Ctrl+N`) or `Open Project…` (`Ctrl+O`).
+2. New Project (**Create New Project**) asks for:
+   - **Project Name**
+   - **Project Location** (folder that will hold `project.uiproj`)
+   - **Source Type:** **Folders** or **Files**
+   - **Source:** original files (or an extracted ISO `root`)
+   - **Translation:** writable copy
+   - **Auto-create translation files**
+   - **Game Plugin:** folder under `plugins/` that has `config.json`
+   - **Description** (optional)
+3. Plugins currently discovered that way (folder name → **display_name** in `config.json`):
+   - `zelda_bmg` — Zelda: Twilight Princess BMG
+   - `zelda_mc` — The Legend of Zelda: The Minish Cap
+   - `zelda_ww` — Zelda: The Wind Waker
+   - `plain_text` — also labelled Zelda: The Wind Waker in its `config.json`
+   - `pokemon_fr` — Pokemon FireRed/LeafGreen
+   - `default_plugin` — Default Plugin Template
+4. After open, the last session is restored (block, string, undo stack, most filters). **Show Unsaved Only** (tree and strings list) is always off after a restart (`core/data_store.py`).
+5. `File → Close Project` unloads the workspace. It does not quit Picoripi.
 
-| Trigger Action | Hotkey / Modifier | Outcome / Behavior |
-| :--- | :--- | :--- |
-| **Silent Save** | `Ctrl + S` | Instantly commits edits and triggers a bottom-left Toast notification. |
-| **Block Navigation** | `Ctrl + PageUp / PageDown` | Cycles focus through files in the Project Tree. |
-| **Zoom Workspace** | `Ctrl + Mouse Wheel` | Scales font sizes across the editors, tree, and preview. |
-| **Selective Auto-Fix** | `Ctrl + Click on Auto-Fix` | Opens the **Selective Auto-Fix Dialog** to toggle specific rules (e.g. toggle icon spacing, page margins, empty lines). |
-| **Page-Local Auto-Fix** | `Shift + Click on Auto-Fix` | Runs Auto-Fix only on the active page, keeping page counts intact. |
-| **Prompt Editor** | `Ctrl + Click on Translate` | Opens the **Prompt Editor Dialog** to adjust the system instructions for this run. |
-| **AI Variation Modifiers** | `Ctrl + Click on AI Variations` | Opens a prompt field to append instructions (e.g., "make it more formal"). |
-| **Glossary Navigation** | `Ctrl + Click on Glossary Word` | Opens the Glossary Manager focused on the clicked term. |
-| **Curly Tag Replacements** | `Ctrl + Click on Bracketed Tag` | Replaces a bracket tag (e.g., `[PLAYER]`) with a curly tag from the clipboard (e.g. `{PLAYER}`). |
-
----
-
-## 3. Step-by-Step Translation Pipeline
-
-This section details a standard translation workflow:
-
-```mermaid
-graph TD
-    A[Launch Picoripi] --> B[New Project Wizard]
-    B --> C[Set Source and Fonts Paths]
-    C --> D[Start Gemini Web2API WebTOP]
-    D --> E[Settings: OpenAI Compatible to localhost 8081]
-    E --> F[Script Markup then Glossary pipeline]
-    F --> G[Virtual Speakers / Story / Windows]
-    G --> H[AI or manual translation]
-    H --> I[Gutter warnings and Auto-Fix]
-    I --> J[Compile ROM via toolbar]
-```
-
-Start the Gemini Web2API proxy (WebTOP) **before** glossary or batch translation. Full setup: [5. Gemini Web2API](5_Gemini_Web2API.md).
-
-### Step 1: Create a Project Workspace
-1.  Go to **File -> New Project** (`Ctrl+N`).
-2.  In the Project Wizard, set a **Project Name** and choose a game plugin (e.g., `zelda_mc` for Zelda Minish Cap, or `plain_text`).
-3.  Choose a **Source Directory** (where your raw BMG/JSON files are stored).
-4.  Choose a **Fonts Directory** (for custom Nintendo `.bfn` files or `.json` font maps).
-5.  Click Create. The system scans the directory, extracts archive members in memory (no disk clutter), and populates the Project Tree.
-
-### Step 2: Organize the Narrative Tree
-1.  Right-click any folder in the Project Tree and select **Create Category**.
-2.  Name the category (e.g., `Chapter_1_Intro`).
-3.  Drag and drop files to organize them logically.
-4.  Right-click a file and select **Rename** to change its display label.
-
-### Step 3: Configure AI (Gemini Web2API)
-
-The production path is the **local Gemini Web2API proxy**, not a paid Google API key.
-
-1. Start Web2API (`run.bat` in that repo) and open WebTOP at `http://127.0.0.1:8081/` — at least one account must be **Active**.
-2. In Picoripi: **Settings → Preferences → AI Translation**.
-3. Active Provider: **OpenAI Compatible**. Endpoint: `http://127.0.0.1:8081/v1`. Model: `gemini-3.7-flash`. Timeout: 180 s. Parallel Requests: 4–8 if several accounts are Active.
-4. Click **Test Provider**, then **Save Preset** (e.g. `Gemini Web2API`).
-5. On the **AI Glossary** tab, keep “use the AI Translation key” so glossary builds hit the same proxy.
-
-Details and failure cases: [5. Gemini Web2API](5_Gemini_Web2API.md). ChatMock (ChatGPT web) is documented separately in `docs/chatmock_setup.md`.
-
-### Step 4: Translating Dialogue
-*   **Manual**: Click a line in the preview panel and start typing in the Translation Editor.
-*   **AI Translation**:
-    1.  Select a line or highlight multiple lines in the preview panel.
-    2.  Click **Translate** on the toolbar.
-    3.  The system identifies the active line's indices and injects up to 3 preceding and 3 succeeding lines as context. This ensures that pronouns, Slavic gender endings, and formal/informal verb inflections remain consistent.
-    4.  The system checks the glossary, extracts terms found in the source text, and injects only those terms into the LLM prompt.
-    5.  It replaces complex inline tags with human word equivalents using the **Force-Alias (`F:`)** prefix (e.g., `{escape:0:0022}` becomes `{F:Buddy}`). This prevents the LLM from corrupting the tag syntax. Post-translation, it restores the original tags.
+**Do not** point Source and Translation at the same writable tree if you still need a clean original. **Do not** bundle copyrighted dumps in this repo.
 
 ---
 
-## 4. Under the Hood: Word Wrapping & Layout Algorithms
+## 3. File menu
 
-Picoripi's layout calculation engine ensures that text fits within target UI bounds.
+| Command | Shortcut | What it does |
+|---------|----------|----------------|
+| New Project… | Ctrl+N | Wizard above |
+| Open Project… | Ctrl+O | Load a `project.uiproj` |
+| Recent Projects | | Last workspaces |
+| Close Project | | Unload. Disabled until a project is open |
+| Import Block… | | Add one file. **Project mode only** (tooltip: “only available in Project mode”) |
+| Import Directory… | | Add a folder of files. Same restriction |
+| Save Changes | Ctrl+S | Write **every** unsaved string. No confirm dialog |
+| Save Changes As… | | Copy translations to a new location |
+| Reload Original | | Re-read source files from disk |
+| Revert Changes File to Original… | | Throw away the translation file and start from source |
+| Export Translations to JSON… | | Round-trip translations. Disabled with no project |
+| Export Original to JSON… | | Dump source strings |
+| Import Translations from JSON… | | Load a previous export |
+| Reload Tag Mappings from Settings | | Re-apply aliases after you edited plugin settings |
+| Settings… | Ctrl+P | Preferences |
+| Exit | | Quit; session checkpoint is written |
 
-### 4.1 Proportional Width Calculation
-Traditional word processors wrap text based on character counts. Picoripi wraps text based on **pixel width**:
-
-$$\text{Total Line Width (px)} = \sum_{c \in \text{characters}} \text{Width}(c) + \text{Width}(\text{Tags}) + \text{Kerning}$$
-
-*   **Character Widths**: Retrieved from `font_map.json` (Unicode decimal keys).
-*   **Tags and Aliases**: If the editor encounters a tag alias like `{PLAYER}`, it queries the font map and substitutes the alias's width (e.g., 24px).
-*   **Guideline Tickers**: A vertical guideline in the text editor scales to match these measurements, updating in real time as you type.
-
-### 4.2 Proportional Word Wrapping
-When wrapping text, the formatting engine uses a lookahead algorithm:
-1.  It sums the widths of words sequentially.
-2.  If adding the next word exceeds `line_width_warning_threshold_pixels`, it splits the line.
-3.  **Exception**: If a single word is wider than the threshold, but the line's total width is less than the hard limit (`game_dialog_max_width_pixels`), the word is allowed to remain without splitting. This prevents premature wrapping splits.
-
-### 4.3 Sentence-Integrity Pagination
-Dialogue screens are segmented into multi-page text boxes. Picoripi groups pages using breaks like `\p` or `\l`:
-*   **Sentence Preservation**: The pagination engine tries to keep sentences together on a single page. If adding the next sentence exceeds the page line limit (e.g., 4 lines), the entire sentence is pushed to the next page.
-*   **Page-Local Auto-Fix (`Shift+AutoFix`)**: Fixes layout issues on the active page only, without pushing text onto subsequent pages. This preserves page boundaries.
-
-### 4.4 Lookahead Preposition Rules
-In Slavic languages (like Ukrainian) and some others, single-letter prepositions (e.g. "в", "й", "і", "а", "з", "у") should not sit isolated at the end of a line.
-*   **Lookahead rule**: If the lookahead parser identifies that a single-character word is positioned at the end of a line, it checks if both the preposition and the word following it can fit together on the current line.
-*   **Behavior**: If they do not fit, both the preposition and the following word are pushed to the next line together. This avoids orphaned prepositions.
+Partial save: right-click a block → save that block only. **Do not** use Revert unless you mean to discard the translation file.
 
 ---
 
-## 5. Troubleshooting Common Layout Issues
+## 4. Edit menu
 
-Here is how to resolve typical warnings highlighted in the gutter:
+| Command | Shortcut | Notes |
+|---------|----------|--------|
+| Undo Typing | Ctrl+Z | Editor and Speaker field |
+| Redo Typing | Ctrl+Y or Ctrl+Shift+Z | |
+| Save Translated | Ctrl+T | Snapshot of the current translation (local backup). Disabled until a string is selected |
+| Restore Translated | Ctrl+Shift+T | Bring that snapshot back |
+| Undo Paste Block | | Enabled after a block paste |
+| Paste Block Text | Ctrl+Shift+V | Paste a whole block’s worth of lines |
+| Find… | Ctrl+F | Toggle the inline search panel. F3 next, Shift+F3 previous |
+| Advanced Search… | Ctrl+H | Project-wide search/replace |
+| Auto-fix Current String | Ctrl+Shift+A | Current string. Ctrl-click the **Auto-fix** button to pick rules. The shortcut always runs the plain fix |
+| Rescan All Issues | | Full warning scan |
+| Recalculate Font Widths | Ctrl+Shift+R | Re-measure widths and re-scan every string. After fonts or width settings change |
 
-### Red Gutter: Pixel Width Exceeded (`ZWW_WIDTH_EXCEEDED`)
-*   **Cause**: The translated text line exceeds the pixel boundary of the dialogue box.
-*   **Fix**: Click **Auto-Fix** to automatically wrap the text using proportional width parameters. If it still overflows, rephrase the translation or shorten the words.
+---
 
-### Green Gutter: Short Line (`ZWW_SHORT_LINE`)
-*   **Cause**: Words from the next line can fit onto the current line.
-*   **Fix**: Run **Auto-Fix** to pull words up and balance the line layout.
+## 5. View menu
 
-### Light Gray Gutter: Malformed or Mismatched Tag (`ZWW_TAG_WARNING`)
-*   **Cause**: A control tag is missing a closing brace (e.g. `{Color:Red` or `[PLAYER`), or the translated text has a mismatch in tag count or tag names compared to the original (excluding exceptions like `Link` and `Epona` case-insensitively).
-*   **Fix**: Inspect the tags and ensure they match the original text. You can also run **Auto-Fix** to clean up tag syntaxes automatically.
+| Command | Shortcut | Notes |
+|---------|----------|--------|
+| Preview | Ctrl+Shift+P | Checkable. Shows or hides the visual preview under Editable |
+| Hide Tags | Ctrl+Q | Hide control codes in Original and translation panels |
 
-### Light Blue Gutter: Missing Tag Spacing (`ZWW_MISSING_ICON_SPACING`)
-*   **Cause**: A button icon tag (e.g., `[(A)]`) is directly merged with text characters (e.g., `Press[(A)]to`), or two words are separated by zero-width tags (e.g., `word1{color:red}word2`) without any space.
-*   **Fix**: Auto-Fix automatically inserts spaces (e.g., `Press [(A)] to` or `word1 {color:red}word2`). The parser ignores adjacent punctuation like periods or commas, and treats hyphens immediately after the icon (e.g. `{(L)}-наведення`) as an exception where no space is required. Spacing before the hyphen in such constructs is treated as an error and automatically stripped. For zero-width tags, a space is required if they are situated directly between two alphanumeric characters of adjacent words.
+Same hide-tags toggle exists as the **Hide tags** checkbox above Original.
 
-### Purple Gutter: Broken Icon-Hyphen Wrap (`ZWW_BROKEN_ICON_HYPHEN`)
-*   **Cause**: A tag-hyphen-word construct (e.g., `{(L)}-наведення`) is broken across a line break.
-*   **Fix**: The word wrap engine treats these constructs as single entities to prevent automatic splitting. If split manually, rephrase or adjust line breaks to keep the construct on the same line.
+---
 
+## 6. Tools menu
+
+This is the localization pipeline plus utilities. Prefer **Localization Pipeline…** over clicking items at random. Same actions live in the wizard.
+
+| Command | Shortcut | Role |
+|---------|----------|------|
+| Localization Pipeline… | | Ordered steps + status. Thin: every button runs the same action as the menu |
+| BFN Font Editor… | | Nintendo `.bfn` in a separate window; the project stays open |
+| Script Markup Studio… | | Mark a walkthrough (Phase 0 for MemePalace). See [9](9_Script_Markup.md) |
+| MemePalace Context Builder… | Ctrl+M | Weave the marked script into story memory |
+| Prepare Glossary… | | One automatic glossary pass |
+| Merge Speakers from Script… | | Match script names to game voice codes. Needs plugin capability `speaker_attribution` |
+| Inspect Story Context… | Ctrl+I | Timeline, speaker, visual context for the **selected** row |
+| MemePalace Database Viewer… | Ctrl+Shift+I | Rooms, visual contexts, character graph |
+| Fix All Strings… | | Project-wide Auto-Fix with a rule checklist |
+| Export Current BMG to JSON… | | Selected BMG only. Disabled until a BMG block is selected |
+| Import Current BMG from JSON… | | Into the selected block |
+
+---
+
+## 7. Navigation menu
+
+| Command | Shortcut |
+|---------|----------|
+| Next Block Nav | Alt+Shift+Down |
+| Previous Block Nav | Alt+Shift+Up |
+| Next Folder Nav | Alt+Shift+Right |
+| Previous Folder Nav | Alt+Shift+Left |
+
+Shortcuts are window-wide. The up/down arrows next to **AI Translate** jump **problem** strings (Ctrl+Down / Ctrl+Up). Alt+Down / Alt+Up (and Up/Down in the Strings list) move one string regardless of warnings.
+
+---
+
+## 8. Bookmarks menu
+
+| Command | Shortcut | Notes |
+|---------|----------|--------|
+| Add Bookmark… | Ctrl+B | Current line of the active block |
+| Clear All Bookmarks | | Permanent delete |
+
+Bookmarks listed under the separator survive restart.
+
+---
+
+## 9. Help
+
+**Help** sits as a corner button on the menu bar (not a normal left-to-right menu).
+
+| Command | Shortcut |
+|---------|----------|
+| Shortcuts Help | F1 |
+
+Opens **Keyboard Shortcuts Reference**. Mouse modifiers (Ctrl-click, Shift-click) are documented on each button’s tooltip, not in that table.
+
+Shortcuts listed in F1:
+
+| Action | Shortcut |
+|--------|----------|
+| Save Project/File | Ctrl+S |
+| Hide/Show Tags in Editor | Ctrl+Q |
+| AI Chat Window | Ctrl+Shift+C |
+| Open Glossary | Ctrl+G |
+| Shortcuts Help | F1 |
+| Settings | Ctrl+P |
+| Undo | Ctrl+Z |
+| Redo | Ctrl+Y / Ctrl+Shift+Z |
+| Find Text | Ctrl+F |
+| Advanced Search | Ctrl+H |
+| Find Next | F3 |
+| Find Previous | Shift+F3 |
+| Paste Block Text | Ctrl+Shift+V |
+| Auto-fix Current String | Ctrl+Shift+A |
+| Navigate to Next Problem | Ctrl+Down |
+| Navigate to Previous Problem | Ctrl+Up |
+| Select Next String | Alt+Down / Down (in Preview) |
+| Select Previous String | Alt+Up / Up (in Preview) |
+| Next Block | Alt+Shift+Down |
+| Previous Block | Alt+Shift+Up |
+| Next Folder/Category | Alt+Shift+Right |
+| Previous Folder/Category | Alt+Shift+Left |
+
+---
+
+## 10. Toolbar
+
+Left to right (`toolbar_builder.py`):
+
+Save · Undo · Redo · Find · Preview · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · Recalculate Font Widths · Settings · (spacer) · **Run External Script** (`>_`) · Shortcuts Help.
+
+**AI Translate** and **AI Variation** are **not** on this toolbar. They sit above Editable.
+
+**Run External Script** runs the path in **Settings → Global → External Tool/Script Path**. Save (`Ctrl+S`) before you run a ROM build; the tool reads files on disk.
+
+**AI Chat:** in the chat input, Ctrl+Enter sends; Enter adds a new line.
+
+---
+
+## 11. Blocks tree (left)
+
+Header buttons: add folder (disabled until a project is open), expand all, collapse all. Ctrl+wheel over the tree zooms the tree font.
+
+**Show Unsaved Only** (above the tree): only blocks and folders with unsaved changes. Session-only; always off after restart.
+
+Tree toolbar (bottom of the panel; buttons start disabled):
+
+| Button | Action |
+|--------|--------|
+| + | Add / import a block |
+| − | Delete the selected block |
+| ✎ | Rename |
+| ↑ / ↓ | Reorder. Drag-and-drop also moves. Alt+Shift+Up/Down **navigates**, it does not move |
+| ⟳ | Rebuild Speakers, Chapters and Items from current story data. Does not touch translation files |
+
+**Glossary…** under the tree opens the project glossary (`Ctrl+G`). Ctrl-click a glossary term in Original to open that entry.
+
+Right-click (empty space): **Create Folder**, **AI: Translate All Blocks (UA Chronological)**, **Revert All Blocks to Original**, **Restore All Translations**.
+
+Right-click a file: import, save this block, rescan, widths, markers, restore. **Chapters** root and Act folders have no context menu (read-only structure).
+
+---
+
+## 12. Strings in block (top right)
+
+Click a line to bind Original + Editable. The list itself is read-only.
+
+| Checkbox | Effect |
+|----------|--------|
+| Highlight moved | Highlight strings already in a virtual category. Hidden unless categories apply |
+| Hide moved | Hide those strings from the parent view. Hidden unless categories apply |
+| Hide empty strings | Collapse consecutive empty strings into a placeholder |
+| Hide translated | Hide already translated strings |
+| Show Overrides Only | Only strings with custom font or width |
+| Show Unsaved Only | Only strings with unsaved changes. **Always off after restart** |
+| Show Warnings Only | Only strings with selected warning types |
+| **Warnings: X / Y** | Choose which warning types the filter uses. X = selected types, Y = types enabled in Detection |
+
+Several filters can combine. **Do not** leave **Show Unsaved Only** on and assume the file is empty — uncheck it.
+
+---
+
+## 13. Original and Editable
+
+**Original**
+
+- Read-only. Selectable.
+- **Max-width:** click the value to copy it into the translation Max-width field, then press **Apply** on the right.
+- **Hide tags** (`Ctrl+Q`).
+
+**Column of icon buttons** (between the panes)
+
+| Button | Action |
+|--------|--------|
+| Arrow | **Revert string** — replace the current translation with the original file content |
+| Document+arrow | **Restore translation** — last backup (`Ctrl+Shift+T`) |
+| S | **Inspect story context** (`Ctrl+I`) |
+| R | **Open in Script Markup Studio** — jump to the marked-script place for this string |
+
+**Editable**
+
+- This is where you type.
+- Title **Editable**.
+- Under it: visual BFN preview (if Preview is on) with a window-kind bar when the plugin supports it.
+
+**Do not** apply Font / Max-width without **Apply**. **Apply** is enabled only while there is an unapplied change.
+
+---
+
+## 14. Story Context (above Editable)
+
+| Field | Behaviour |
+|-------|-----------|
+| **Window:** | Message window type from game data. Double-click the label to open the physical block |
+| **Chapter:** | Assign this row to a Story chapter or scene, including rows without a script link. Double-click the label to open the virtual Chapter |
+| **Speaker:** | Editable combo. Type or pick. Double-click the label to open virtual Speaker or Item |
+| **Font:** | Per-string font override |
+| **Max-width:** | 0 = plugin default. Right-click: **Reset to Plugin Default**, **Set Width from Original** |
+| **Apply** | Save Font and Max-width for this string |
+
+`None` in Speaker clears the assignment. Empty BMG padding is not stuffed into Speakers; do not invent a speaker for those slots.
+
+---
+
+## 15. Action buttons above Editable
+
+| Button | Click | Modifiers |
+|--------|-------|-----------|
+| Down / Up arrows | Next / previous **problem** string (Ctrl+Down / Ctrl+Up) | Alt+Down/Up = next string anyway; Alt+Shift+Down/Up = next block |
+| **AI Translate** | Translate the current string. Reuses a backup if one exists | Ctrl-click: prompt editor + always re-translate. Multi-string: select lines in Strings, right-click |
+| **AI Variation** | Alternative wording of the current translation | Select a fragment in Editable first to rewrite only that. Ctrl-click: prompt editor |
+| **Auto-fix** | Fix issues with every enabled rule (`Ctrl+Shift+A`) | Ctrl-click: pick rules. Shift-click: page-local (text never flows across a page). Ctrl+Shift-click: both. The keyboard shortcut is always the plain fix |
+
+If an AI task is already running, Translate shows **AI Busy**.
+
+---
+
+## 16. Settings (`Ctrl+P`)
+
+Window title **Settings**. Tabs:
+
+| Tab | Contents |
+|-----|----------|
+| **Global** | Theme (restart), Active Game Plugin (restart), font sizes, external script path, space dots, restore session, prompt editor before AI, live preview, real-time warning scan, glossary system, archive size warnings, auto-sleep idle delay |
+| **Project** | Only with a project open. Subtabs: File Paths, Display, Rules, Context Tags, Tag Aliases, Font Map, Detection, Auto-fix |
+| **Spelling** | Enable spell checking, dictionary language, Manage Dictionaries… |
+| **AI Translation** | See [11](11_AI_Translation.md) |
+| **AI Glossary** | Provider, key, Use API key from AI Translation, model, chunk size, Parallel Requests, Retry Delay |
+| **Logging** | Console / file / `ai_traffic.log`, log path, event categories |
+
+Theme change and plugin change each show a restart required dialog.
+
+---
+
+## 17. What not to do in the main window
+
+- Do not edit Original.
+- Do not treat an empty Strings list as a bug before unchecking **Show Unsaved Only** and **Hide empty strings**.
+- Do not Revert the changes file unless you intend to wipe translations.
+- Do not skip Save before `>_`.
+- Do not set Parallel Requests higher than Active accounts on the local proxy dashboard.
+- Do not run glossary / merge / bulk translate with no provider configured.
+- Do not treat empty BMG slots as unbound dialogue — they stay in the physical file only.

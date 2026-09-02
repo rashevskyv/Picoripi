@@ -54,7 +54,7 @@ Keep at least one **Active** account before starting a Picoripi batch.
 
 ## Turn it on inside Picoripi
 
-**Settings → AI Translation** (menu: Settings → Preferences, AI Translation tab).
+**Settings → AI Translation** (`File → Settings…` / `Ctrl+P`, AI Translation tab).
 
 Recommended preset for Web2API:
 
