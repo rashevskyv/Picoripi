@@ -33,7 +33,7 @@ Subtabs:
 
 | Subtab | Role |
 |--------|------|
-| File Paths | Source / translation / fonts directories |
+| File Paths | **Directory Mode (Load from folder)**, **Auto-generate translation path**, Original / Changes paths, Original Fonts Directory Path, Fonts Directory Path |
 | Display | Default Font for Project, wrap preview, wrap editors, Newline Symbol + style, Tag Style |
 | Rules | Game Dialog Max Width (px), Editor Line Width Warning (px), Show guideline, Lines Per Page. For `zelda_bmg`: **Window limit mode** — Shared for all windows vs Separate by window type (`window_layouts.json`) |
 | Context Tags | Custom insert/wrap tags for the editor menu |

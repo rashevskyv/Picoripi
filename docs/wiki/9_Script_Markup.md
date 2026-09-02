@@ -27,13 +27,21 @@ Colours (`_KIND_COLORS`):
 
 ---
 
-## Three modes
+## Modes
+
+Default is **Hierarchy markup**. **Picoripi rules** and **Custom recipe** live under **Advanced ▾ → Legacy tools**.
 
 | Mode | Use |
 |------|-----|
 | **Hierarchy markup** (default) | Manual depth-indexed tree marks. Each mark has depth, type, label/text, colour. Exports canonical Markdown |
-| **Picoripi rules** | The program’s walkthrough parser (speakers and scenes). Best for already-structured scripts |
-| **Custom recipe** | Tunable rules plus teach-by-example, for messy raw walkthroughs |
+| **Picoripi rules** (legacy) | The program’s walkthrough parser (speakers and scenes). Best for already-structured scripts |
+| **Custom recipe** (legacy) | Tunable rules plus teach-by-example, for messy raw walkthroughs |
+
+The window is staged **1. Source — 2. Markup — 3. Review — 4. MemPalace**.
+
+**File ▾:** Open script..., Open project..., Save, Save As..., Close. **Auto-fill ▾:** Join selected structures; Continue from marked examples... (local, no AI); AI mark missing.... **Advanced ▾:** Template, Export (**Preview result…**, **Export game_script.md…**), Change Type Color..., Legacy tools.
+
+**Ctrl+M** in the **main window** is MemePalace Context Builder. **Ctrl+M inside Studio** marks the selection (or saves an in-progress edit). They are not the same command.
 
 ---
 
@@ -94,6 +102,8 @@ Blank source lines are not “markable”. A stray empty line will not hold the 
 - **MemePalace Context Builder** imports the hierarchy timeline.
 - Glossary auto-pass seeds character names from markup (`core/glossary_build/script_seeds.py`).
 - **R** on the main window jumps from a game string to its marked place.
+
+**Finish for MemPalace…** refuses to proceed while unmarked ranges remain.
 
 **Do not** export and then edit the Markdown by hand if you still expect Studio to own the project — keep working in Studio and re-export.
 

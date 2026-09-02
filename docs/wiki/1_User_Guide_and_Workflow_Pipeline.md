@@ -145,7 +145,7 @@ This is the localization pipeline plus utilities. Prefer **Localization Pipeline
 | Next Folder Nav | Alt+Shift+Right |
 | Previous Folder Nav | Alt+Shift+Left |
 
-Shortcuts are window-wide. The up/down arrows next to **AI Translate** jump **problem** strings (Ctrl+Down / Ctrl+Up). Alt+Down / Alt+Up (and Up/Down in the Strings list) move one string regardless of warnings.
+Shortcuts are window-wide. **Ctrl+PageUp / Ctrl+PageDown** also move to the previous/next block (`ui_event_filters.py`). The up/down arrows next to **AI Translate** jump **problem** strings (Ctrl+Down / Ctrl+Up). Alt+Down / Alt+Up (and Up/Down in the Strings list) move one string regardless of warnings.
 
 ---
 
@@ -196,6 +196,7 @@ Shortcuts listed in F1:
 | Previous Block | Alt+Shift+Up |
 | Next Folder/Category | Alt+Shift+Right |
 | Previous Folder/Category | Alt+Shift+Left |
+| Next / previous block (extra) | Ctrl+PageDown / Ctrl+PageUp |
 
 ---
 
@@ -234,6 +235,8 @@ Tree toolbar (bottom of the panel; buttons start disabled):
 Right-click (empty space): **Create Folder**, **AI: Translate All Blocks (UA Chronological)**, **Revert All Blocks to Original**, **Restore All Translations**.
 
 Right-click a file: import, save this block, rescan, widths, markers, restore. **Chapters** root and Act folders have no context menu (read-only structure).
+
+Status bar (bottom of the window): Original path, Changes path, Plugin name, `Strings: N | Unbound: N`, then cursor Pos / Line / Width.
 
 ---
 
@@ -289,7 +292,7 @@ Several filters can combine. **Do not** leave **Show Unsaved Only** on and assum
 |-------|-----------|
 | **Window:** | Message window type from game data. Double-click the label to open the physical block |
 | **Chapter:** | Assign this row to a Story chapter or scene, including rows without a script link. Double-click the label to open the virtual Chapter |
-| **Speaker:** | Editable combo. Type or pick. Double-click the label to open virtual Speaker or Item |
+| **Speaker:** | Editable combo with autocomplete. **Enter** commits the name (`save_speaker_for_current_string`). Clicking a drop-down item alone does not save. Double-click the label to open virtual Speaker or Item |
 | **Font:** | Per-string font override |
 | **Max-width:** | 0 = plugin default. Right-click: **Reset to Plugin Default**, **Set Width from Original** |
 | **Apply** | Save Font and Max-width for this string |
@@ -318,7 +321,7 @@ Window title **Settings**. Tabs:
 | Tab | Contents |
 |-----|----------|
 | **Global** | Theme (restart), Active Game Plugin (restart), font sizes, external script path, space dots, restore session, prompt editor before AI, live preview, real-time warning scan, glossary system, archive size warnings, auto-sleep idle delay |
-| **Project** | Only with a project open. Subtabs: File Paths, Display, Rules, Context Tags, Tag Aliases, Font Map, Detection, Auto-fix |
+| **Project** | Only with a project open. Subtabs: File Paths (Directory Mode, Auto-generate translation path, original/changes/fonts paths), Display, Rules, Context Tags, Tag Aliases, Font Map, Detection, Auto-fix (**Align sentences to original page layout**, **Prevent adding empty padding lines during pagination**, plus per-problem toggles) |
 | **Spelling** | Enable spell checking, dictionary language, Manage Dictionaries… |
 | **AI Translation** | See [11](11_AI_Translation.md) |
 | **AI Glossary** | Provider, key, Use API key from AI Translation, model, chunk size, Parallel Requests, Retry Delay |

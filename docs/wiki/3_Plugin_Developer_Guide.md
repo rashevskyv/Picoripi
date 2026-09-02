@@ -66,7 +66,11 @@ Shipped ids and labels:
 | `speaker_attribution` | `get_speaker_for_string()` | Pipeline **Name the speakers**; Speaker field |
 | `message_window_preview` | preview chrome / pagination | BFN preview window bar |
 
-`zelda_bmg` returns all four.
+`zelda_bmg` returns all four. Settings default `active_game_plugin` is `"zelda_mc"` until a project says otherwise (`core/settings/global_settings.py`).
+
+Optional hooks **not** on the base class, used if present: `get_preview_window_style(block, string)` (window chrome when `message_window_preview` is set), `msg_to_editor_text`, `export_runtime_session_state` / `restore_runtime_session_state`, `replace_runtime_names_for_ai`. `zelda_bmg.prepare_preview_glyph_text` may return a 4-tuple `(text, colors, scales, icons)`; the preview accepts the base 2-tuple as well.
+
+There is no `get_plugin()` / `PluginManager`. Import plugins under `plugins/import_plugins/` (`BaseImportRules`) are a separate paste-import path, not this loader.
 
 Seed dict keys: `term` (required), `description`, `section`, `icon`, `source_ref`.
 
@@ -80,8 +84,8 @@ Internal store is `List[List[str]]` (blocks of strings) plus block names.
 
 | Method | Role |
 |--------|------|
-| `load_data_from_json_obj(json_data)` | File bytes/JSON/text → `(blocks, extra_dict)` |
-| `save_data_to_json_obj(data, block_names)` | Inverse |
+| `load_data_from_json_obj(json_data)` | File bytes/JSON/text → `(blocks, extra_dict)`. `zelda_bmg` accepts **bytes** via `bmg_tool.BMGFile` |
+| `save_data_to_json_obj(data, block_names)` | Inverse; may return text **or packed bytes** (BMG) |
 | `convert_editor_text_to_data(text)` | Editor → stored (default: aliases → tags) |
 | `get_text_representation_for_editor(subline)` | Stored → editor (default: tags → aliases) |
 | `get_text_representation_for_preview(data_string)` | Preview list; newlines become `newline_display_symbol` |

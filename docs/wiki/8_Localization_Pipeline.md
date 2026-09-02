@@ -55,7 +55,7 @@ Shown only if `speaker_attribution` is in capabilities.
 
 Button: **Merge speakers from the script** → `merge_speakers_action`.
 
-The game groups lines by voice (`Voice 8`, placement names). The script has display names. This joins them on line text. Names then reach the Speaker field, virtual folders, translation prompts, and glossary seeds.
+The game groups lines by voice (`Voice 8`, placement names). The script has display names. This joins them on line text (`SpeakerMergeHandler.merge_from_script`). Needs an open project and `get_speaker_for_string`. If markup speaker lines are missing, it may guess from ALL-CAPS and warn. Apply saves aliases beside the project. Names then reach the Speaker field, virtual folders, translation prompts, and glossary seeds.
 
 Status: named placeholder codes / total placeholder codes the plugin still reports.
 
@@ -67,8 +67,13 @@ Embedded: MemePalace Context Builder (its own Close / Done buttons are hidden; S
 
 Copies markup into MemePalace and links each game line to a place in the story.
 
-- Step 1 in the builder: **Find Context Automatically** — no AI.
-- Steps 2 and 3: optional AI **timeline** and **character voices**. They need an AI provider. They do not invent glossary terms and they do not replace Merge Speakers.
+Window title **MemPalace Context Builder**. Tab **1. Source**: **Select project…**, **Import/Sync**, **Continue to Story Context →**. Then:
+
+- **Step 1 — Find Context Automatically** — no AI.
+- **Step 2 — Build Timeline with AI**
+- **Step 3 — Analyze Character Voices with AI**
+
+Steps 2–3 need an AI provider. They do not invent glossary terms and they do not replace Merge Speakers.
 
 Status: all-or-nothing — “story context built” if a MemePalace DB path exists, else “no story context yet”.
 

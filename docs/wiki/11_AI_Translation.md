@@ -59,11 +59,12 @@ Nothing selected (`physical_block_idx == -1`): the button does nothing.
 
 **AI Variation**:
 
-- Click: alternative wording of the **current translation**.
+- Click: alternative wording of the **current translation** (`request_type='variation_list'`; temperature override 0.7).
 - Select a fragment in Editable first — only that fragment is rewritten.
 - Ctrl-click: prompt editor.
+- Pick from **AI Translation Variations**; Refresh / Ctrl-click ignores the in-memory cache.
 
-**AI Chat** (toolbar, `Ctrl+Shift+C`): discuss translations. Ctrl+Enter sends; Enter is a newline.
+**AI Chat** (toolbar, `Ctrl+Shift+C`): window **AI Chat**. Discuss translations. Ctrl+Enter / Send sends; Enter is a newline. Optional **Web Search**. Chat does **not** write the Editable pane; copy a suggestion yourself or use **AI Translate**.
 
 Tree empty-space menu: **AI: Translate All Blocks (UA Chronological)** — `translate_all_blocks_chronologically()`.
 
