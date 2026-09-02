@@ -3,6 +3,7 @@
     QPlainTextEdit, QComboBox, QPushButton, QHBoxLayout, QCheckBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QEvent, QObject
+from core.i18n import tr
 
 
 class _ChatInputEventFilter(QObject):
@@ -33,7 +34,7 @@ class _ChatTab(QWidget):
         controls_layout = QHBoxLayout()
         self.model_combo = QComboBox(self)
         controls_layout.addWidget(self.model_combo)
-        self.web_search_checkbox = QCheckBox("Web Search", self)
+        self.web_search_checkbox = QCheckBox(tr('Web Search'), self)
         controls_layout.addWidget(self.web_search_checkbox)
         controls_layout.addStretch(1)
         layout.addLayout(controls_layout)
@@ -45,10 +46,10 @@ class _ChatTab(QWidget):
         input_layout = QHBoxLayout()
         self.input_edit = QPlainTextEdit(self)
         self.input_edit.setFixedHeight(100)
-        self.input_edit.setPlaceholderText("Enter your message... (Ctrl+Enter to send)")
+        self.input_edit.setPlaceholderText(tr('Enter your message... (Ctrl+Enter to send)'))
         input_layout.addWidget(self.input_edit)
 
-        self.send_button = QPushButton("Send", self)
+        self.send_button = QPushButton(tr('Send'), self)
         self.send_button.setFixedSize(80, 100)
         self.send_button.setStyleSheet("""
             QPushButton {
@@ -87,7 +88,7 @@ class AIChatDialog(QDialog):
     def __init__(self, parent=None):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("AI Chat")
+        self.setWindowTitle(tr('AI Chat'))
         self.resize(700, 800)
         self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
 
@@ -99,8 +100,8 @@ class AIChatDialog(QDialog):
 
         self.tabs.tabBar().installEventFilter(self)
 
-        self.add_tab_button = QPushButton("+")
-        self.add_tab_button.setToolTip("New Chat Session")
+        self.add_tab_button = QPushButton(tr('+'))
+        self.add_tab_button.setToolTip(tr('New Chat Session'))
         self.tabs.setCornerWidget(self.add_tab_button, Qt.Corner.TopLeftCorner)
         
         self.tabs.tabCloseRequested.connect(self.remove_tab)

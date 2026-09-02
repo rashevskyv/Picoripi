@@ -14,6 +14,7 @@ from core.translation.config import build_default_translation_config, merge_tran
 import pycountry
 
 from .settings.settings_ui_setup import SettingsDialogUiMixin
+from core.i18n import tr
 
 class ProviderTestWorker(QThread):
     """Provider test worker implementation."""
@@ -58,7 +59,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         """Initialize a new instance."""
         super().__init__(main_window)
         self.mw = main_window
-        self.setWindowTitle("Settings")
+        self.setWindowTitle(tr('Settings'))
         initial_width = getattr(self.mw, 'settings_window_width', 800)
         self.setMinimumWidth(800)
         self.resize(initial_width, self.height())
@@ -99,13 +100,13 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
         is_project_active = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project is not None
 
-        self.tabs.addTab(self.general_tab, "Global")
+        self.tabs.addTab(self.general_tab, tr('Global'))
         if is_project_active:
-            self.tabs.addTab(self.plugin_tab, "Project")
-        self.tabs.addTab(self.spelling_tab, "Spelling")
-        self.tabs.addTab(self.ai_translation_tab, "AI Translation")
-        self.tabs.addTab(self.ai_glossary_tab, "AI Glossary")
-        self.tabs.addTab(self.logging_tab, "Logging")
+            self.tabs.addTab(self.plugin_tab, tr('Project'))
+        self.tabs.addTab(self.spelling_tab, tr('Spelling'))
+        self.tabs.addTab(self.ai_translation_tab, tr('AI Translation'))
+        self.tabs.addTab(self.ai_glossary_tab, tr('AI Glossary'))
+        self.tabs.addTab(self.logging_tab, tr('Logging'))
         
         self.setup_general_tab()
         self.setup_plugin_tab()
@@ -140,11 +141,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         
         layout.addWidget(line_edit)
         
-        browse_button = QPushButton("...")
+        browse_button = QPushButton(tr('...'))
         browse_button.setToolTip(
-            "<b>Browse</b><br>"
-            "Click — pick a script or executable (.bat, .cmd, .exe, .py, .sh).<br>"
-            "You can also type or paste a path into the field on the left."
+            tr('<b>Browse</b><br>Click — pick a script or executable (.bat, .cmd, .exe, .py, .sh).<br>You can also type or paste a path into the field on the left.')
         )
         browse_button.setFixedSize(24, 24)
         browse_button.clicked.connect(lambda: self._browse_for_script(line_edit))
@@ -174,12 +173,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         
         layout.addWidget(line_edit)
         
-        browse_button = QPushButton("...")
+        browse_button = QPushButton(tr('...'))
         browse_button.setToolTip(
-            "<b>Browse</b><br>"
-            "Click — pick a game data file (.json, .arc, .rarc, .bfn, .bmg).<br>"
-            "With Directory Mode ticked it asks for a folder instead.<br>"
-            "You can also type or paste a path into the field on the left."
+            tr('<b>Browse</b><br>Click — pick a game data file (.json, .arc, .rarc, .bfn, .bmg).<br>With Directory Mode ticked it asks for a folder instead.<br>You can also type or paste a path into the field on the left.')
         )
         browse_button.setFixedSize(24, 24)
         browse_button.clicked.connect(lambda: self._browse_for_file(line_edit))
@@ -215,11 +211,9 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         
         layout.addWidget(line_edit)
         
-        browse_button = QPushButton("...")
+        browse_button = QPushButton(tr('...'))
         browse_button.setToolTip(
-            "<b>Browse</b><br>"
-            "Click — pick a folder.<br>"
-            "You can also type or paste a path into the field on the left."
+            tr('<b>Browse</b><br>Click — pick a folder.<br>You can also type or paste a path into the field on the left.')
         )
         browse_button.setFixedSize(24, 24)
         browse_button.clicked.connect(lambda: self._browse_for_directory(line_edit))
@@ -362,7 +356,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
 
         self.translation_preset_combo.blockSignals(True)
         self.translation_preset_combo.clear()
-        self.translation_preset_combo.addItem("Default", "default")
+        self.translation_preset_combo.addItem(tr('Default'), tr('default'))
         for p_name in sorted(self.translation_presets.keys()):
             self.translation_preset_combo.addItem(p_name, p_name)
 
@@ -587,7 +581,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         """Handle the edit prompts clicked event."""
         plugin_name = self.plugin_combo.currentData()
         if not plugin_name:
-            QMessageBox.warning(self, "Edit Prompts", "Please select a plugin first.")
+            QMessageBox.warning(self, tr('Edit Prompts'), tr('Please select a plugin first.'))
             return
 
         plugin_prompts_path = Path("plugins", plugin_name, "translation_prompts", "prompts.json")
@@ -619,7 +613,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             from PyQt6.QtCore import QUrl
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(plugin_prompts_path.resolve())))
         else:
-            QMessageBox.warning(self, "Edit Prompts", "Could not find or create prompts.json file.")
+            QMessageBox.warning(self, tr('Edit Prompts'), tr('Could not find or create prompts.json file.'))
 
     def on_test_provider_clicked(self):
         """Handle the test provider clicked event."""
@@ -627,13 +621,13 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         translation_config = settings.get('translation_config', {})
         provider_key = translation_config.get('provider', 'disabled')
         if provider_key == 'disabled':
-            QMessageBox.warning(self, "Test Provider", "Please select a provider first.")
+            QMessageBox.warning(self, tr('Test Provider'), tr('Please select a provider first.'))
             return
 
         provider_settings = translation_config.get('providers', {}).get(provider_key, {})
         
         self.test_provider_btn.setEnabled(False)
-        self.test_provider_btn.setText("Testing...")
+        self.test_provider_btn.setText(tr('Testing...'))
 
         self.test_worker = ProviderTestWorker(provider_key, provider_settings)
         self.test_worker.finished_signal.connect(self.on_test_provider_finished)
@@ -642,12 +636,12 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
     def on_test_provider_finished(self, success, result):
         """Handle the test provider finished event."""
         self.test_provider_btn.setEnabled(True)
-        self.test_provider_btn.setText("Test Provider")
+        self.test_provider_btn.setText(tr('Test Provider'))
 
         if success:
-            QMessageBox.information(self, "Test Provider Success", f"Connection successful!\nResponse from provider:\n\n{result}")
+            QMessageBox.information(self, tr('Test Provider Success'), f"Connection successful!\nResponse from provider:\n\n{result}")
         else:
-            QMessageBox.critical(self, "Test Provider Failure", f"Connection failed!\nError:\n\n{result}")
+            QMessageBox.critical(self, tr('Test Provider Failure'), f"Connection failed!\nError:\n\n{result}")
 
     def _apply_translation_config_to_ui(self, config: dict):
         """Internal helper to apply translation config to ui."""
@@ -795,7 +789,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         if ok and name.strip():
             name = name.strip()
             if name == "Default":
-                QMessageBox.warning(self, "Save Preset", "Cannot overwrite the Default preset.")
+                QMessageBox.warning(self, tr('Save Preset'), tr('Cannot overwrite the Default preset.'))
                 return
             
             config = self._get_translation_config_from_ui()
@@ -803,7 +797,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             
             self.translation_preset_combo.blockSignals(True)
             self.translation_preset_combo.clear()
-            self.translation_preset_combo.addItem("Default", "default")
+            self.translation_preset_combo.addItem(tr('Default'), tr('default'))
             for p_name in sorted(self.translation_presets.keys()):
                 self.translation_preset_combo.addItem(p_name, p_name)
             
@@ -817,10 +811,10 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
         current_name = self.translation_preset_combo.currentText()
         current_data = self.translation_preset_combo.currentData()
         if current_data == "default":
-            QMessageBox.warning(self, "Delete Preset", "Cannot delete the Default preset.")
+            QMessageBox.warning(self, tr('Delete Preset'), tr('Cannot delete the Default preset.'))
             return
             
-        reply = QMessageBox.question(self, "Delete Preset", f"Are you sure you want to delete the preset '{current_name}'?",
+        reply = QMessageBox.question(self, tr('Delete Preset'), f"Are you sure you want to delete the preset '{current_name}'?",
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             if current_data in self.translation_presets:
@@ -828,7 +822,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
             
             self.translation_preset_combo.blockSignals(True)
             self.translation_preset_combo.clear()
-            self.translation_preset_combo.addItem("Default", "default")
+            self.translation_preset_combo.addItem(tr('Default'), tr('default'))
             for p_name in sorted(self.translation_presets.keys()):
                 self.translation_preset_combo.addItem(p_name, p_name)
             self.translation_preset_combo.setCurrentIndex(0)
@@ -842,7 +836,7 @@ class SettingsDialog(QDialog, SettingsDialogUiMixin):
                 and self.plugin_combo.currentData() == "zelda_bmg"):
             success, error = self.persist_zelda_bmg_window_rules()
             if not success:
-                QMessageBox.warning(self, "Invalid Window Layout", error)
+                QMessageBox.warning(self, tr('Invalid Window Layout'), error)
                 return
         super().accept()
 

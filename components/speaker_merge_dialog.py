@@ -29,6 +29,7 @@ from core.speaker_alias_merge import (
     split_shared_speaker_names,
 )
 from utils.window_utils import show_as_independent_window
+from core.i18n import tr
 
 _CODE_ROLE = Qt.ItemDataRole.UserRole
 _DISPLAY_ROLE = Qt.ItemDataRole.UserRole + 1
@@ -144,7 +145,7 @@ class SpeakerMergeDialog(QDialog):
 
     def __init__(self, result, parent=None, on_apply=None):
         super().__init__(None)
-        self.setWindowTitle("Merge Speakers")
+        self.setWindowTitle(tr('Merge Speakers'))
         show_as_independent_window(self)
         self.resize(1080, 680)
         self._result = result
@@ -158,8 +159,7 @@ class SpeakerMergeDialog(QDialog):
         # Header summary & hint
         layout.addWidget(QLabel(result.summary, self))
         hint = QLabel(
-            "Select which speaker names to apply using checkboxes or choose candidates in the inspector. "
-            "Double-click a Name cell to edit inline.",
+            tr('Select which speaker names to apply using checkboxes or choose candidates in the inspector. Double-click a Name cell to edit inline.'),
             self,
         )
         hint.setWordWrap(True)
@@ -176,16 +176,16 @@ class SpeakerMergeDialog(QDialog):
 
         search_layout = QHBoxLayout()
         self.search_edit = QLineEdit(left_widget)
-        self.search_edit.setPlaceholderText("Filter voices or names...")
+        self.search_edit.setPlaceholderText(tr('Filter voices or names...'))
         self.search_edit.setClearButtonEnabled(True)
         self.search_edit.textChanged.connect(self._filter_tree)
         search_layout.addWidget(self.search_edit, 1)
 
-        self.check_all_btn = QPushButton("Check All", left_widget)
+        self.check_all_btn = QPushButton(tr('Check All'), left_widget)
         self.check_all_btn.clicked.connect(self._check_all)
         search_layout.addWidget(self.check_all_btn)
 
-        self.uncheck_all_btn = QPushButton("Uncheck All", left_widget)
+        self.uncheck_all_btn = QPushButton(tr('Uncheck All'), left_widget)
         self.uncheck_all_btn.clicked.connect(self._uncheck_all)
         search_layout.addWidget(self.uncheck_all_btn)
         left_layout.addLayout(search_layout)
@@ -217,13 +217,13 @@ class SpeakerMergeDialog(QDialog):
         card_layout.setSpacing(6)
 
         title_layout = QHBoxLayout()
-        self.inspector_title = QLabel("Select a speaker", self.inspector_card)
+        self.inspector_title = QLabel(tr('Select a speaker'), self.inspector_card)
         title_font = self.inspector_title.font()
         title_font.setBold(True)
         self.inspector_title.setFont(title_font)
         title_layout.addWidget(self.inspector_title)
 
-        self.inspector_badge = QLabel("", self.inspector_card)
+        self.inspector_badge = QLabel(tr(''), self.inspector_card)
         title_layout.addWidget(self.inspector_badge)
         title_layout.addStretch()
         card_layout.addLayout(title_layout)
@@ -233,7 +233,7 @@ class SpeakerMergeDialog(QDialog):
         cand_outer = QVBoxLayout(self.candidates_widget)
         cand_outer.setContentsMargins(0, 0, 0, 0)
         cand_outer.setSpacing(4)
-        cand_outer.addWidget(QLabel("Choose Candidate Name:", self.candidates_widget))
+        cand_outer.addWidget(QLabel(tr('Choose Candidate Name:'), self.candidates_widget))
 
         self.candidates_layout = QHBoxLayout()
         self.candidates_layout.setSpacing(6)
@@ -242,26 +242,26 @@ class SpeakerMergeDialog(QDialog):
 
         # Name edit row
         name_layout = QHBoxLayout()
-        name_layout.addWidget(QLabel("Name:", self.inspector_card))
+        name_layout.addWidget(QLabel(tr('Name:'), self.inspector_card))
         self.name_edit = QLineEdit(self.inspector_card)
-        self.name_edit.setPlaceholderText("Enter or select speaker name...")
+        self.name_edit.setPlaceholderText(tr('Enter or select speaker name...'))
         self.name_edit.textChanged.connect(self._on_name_edit_changed)
         name_layout.addWidget(self.name_edit, 1)
 
-        self.reset_button = QPushButton("Clear", self.inspector_card)
+        self.reset_button = QPushButton(tr('Clear'), self.inspector_card)
         self.reset_button.setToolTip(
-            "Restore the suggested name. Delete the text to leave this voice unnamed."
+            tr('Restore the suggested name. Delete the text to leave this voice unnamed.')
         )
         self.reset_button.clicked.connect(self._reset_current_name)
         name_layout.addWidget(self.reset_button)
 
-        self.apply_single_button = QPushButton("Apply This Speaker", self.inspector_card)
-        self.apply_single_button.setToolTip("Apply and save only this speaker mapping now")
+        self.apply_single_button = QPushButton(tr('Apply This Speaker'), self.inspector_card)
+        self.apply_single_button.setToolTip(tr('Apply and save only this speaker mapping now'))
         self.apply_single_button.clicked.connect(self._apply_current_speaker)
         name_layout.addWidget(self.apply_single_button)
         card_layout.addLayout(name_layout)
 
-        self.feedback_label = QLabel("", self.inspector_card)
+        self.feedback_label = QLabel(tr(''), self.inspector_card)
         self.feedback_label.setStyleSheet("color: #2e7d32; font-weight: bold;")
         card_layout.addWidget(self.feedback_label)
 
@@ -283,17 +283,17 @@ class SpeakerMergeDialog(QDialog):
         bottom_layout.addWidget(self.status_label)
         bottom_layout.addStretch()
 
-        self.apply_button = QPushButton("Apply checked names", self)
+        self.apply_button = QPushButton(tr('Apply checked names'), self)
         self.apply_button.setDefault(True)
         self.apply_button.clicked.connect(self._apply_checked)
         bottom_layout.addWidget(self.apply_button)
 
-        self.apply_all_button = QPushButton("Apply All Valid", self)
-        self.apply_all_button.setToolTip("Apply all non-empty speaker names regardless of checkbox state")
+        self.apply_all_button = QPushButton(tr('Apply All Valid'), self)
+        self.apply_all_button.setToolTip(tr('Apply all non-empty speaker names regardless of checkbox state'))
         self.apply_all_button.clicked.connect(self._apply_all)
         bottom_layout.addWidget(self.apply_all_button)
 
-        self.close_button = QPushButton("Close", self)
+        self.close_button = QPushButton(tr('Close'), self)
         self.close_button.clicked.connect(self.reject)
         bottom_layout.addWidget(self.close_button)
 
@@ -462,7 +462,7 @@ class SpeakerMergeDialog(QDialog):
         self._candidate_buttons.clear()
 
         if item is None:
-            self.inspector_title.setText("Select a speaker")
+            self.inspector_title.setText(tr('Select a speaker'))
             self.inspector_badge.setText("")
             self.name_edit.setEnabled(False)
             self.name_edit.setText("")
@@ -478,7 +478,7 @@ class SpeakerMergeDialog(QDialog):
 
         if is_display or not code:
             self.inspector_title.setText(f"Display Name: {code or item.text(0)}")
-            self.inspector_badge.setText("Game Data (Read-only)")
+            self.inspector_badge.setText(tr('Game Data (Read-only)'))
             self.inspector_badge.setStyleSheet("color: #00695c; font-weight: bold;")
             self.name_edit.setEnabled(False)
             self.name_edit.setText(name)
@@ -493,19 +493,19 @@ class SpeakerMergeDialog(QDialog):
         self.inspector_title.setText(f"Voice Code: {code}")
 
         if item.data(0, _APPLIED_NAME_ROLE) == name:
-            self.inspector_badge.setText("Applied")
+            self.inspector_badge.setText(tr('Applied'))
             self.inspector_badge.setStyleSheet("color: #2e7d32; font-weight: bold;")
         elif "Shared" in group_title:
-            self.inspector_badge.setText("Shared Voice / Multiple Candidates")
+            self.inspector_badge.setText(tr('Shared Voice / Multiple Candidates'))
             self.inspector_badge.setStyleSheet("color: #e65100; font-weight: bold;")
         elif "Weak" in group_title:
-            self.inspector_badge.setText("Weak / AI Suggestion")
+            self.inspector_badge.setText(tr('Weak / AI Suggestion'))
             self.inspector_badge.setStyleSheet("color: #1565c0; font-weight: bold;")
         elif "Strong" in group_title:
-            self.inspector_badge.setText("Strong Match")
+            self.inspector_badge.setText(tr('Strong Match'))
             self.inspector_badge.setStyleSheet("color: #2e7d32; font-weight: bold;")
         else:
-            self.inspector_badge.setText("Unmatched Placeholder")
+            self.inspector_badge.setText(tr('Unmatched Placeholder'))
             self.inspector_badge.setStyleSheet("color: #6a1b9a; font-weight: bold;")
 
         self.name_edit.setEnabled(True)
@@ -535,17 +535,17 @@ class SpeakerMergeDialog(QDialog):
 
             if len(candidates) > 1:
                 all_names = NAME_SEPARATOR.join(c[0] for c in candidates)
-                btn_all = QPushButton("All candidates", self.candidates_widget)
+                btn_all = QPushButton(tr('All candidates'), self.candidates_widget)
                 btn_all.setProperty("candidate_name", all_names)
-                btn_all.setToolTip("Keep every candidate on this shared voice")
+                btn_all.setToolTip(tr('Keep every candidate on this shared voice'))
                 btn_all.clicked.connect(lambda: self._set_current_name(all_names))
                 self.candidates_layout.addWidget(btn_all)
                 self._candidate_buttons.append(btn_all)
 
-            btn_clear = QPushButton("Clear", self.candidates_widget)
+            btn_clear = QPushButton(tr('Clear'), self.candidates_widget)
             btn_clear.setProperty("candidate_name", "__reset__")
             btn_clear.setToolTip(
-                "Restore the suggested name. Delete the text to leave this voice unnamed."
+                tr('Restore the suggested name. Delete the text to leave this voice unnamed.')
             )
             btn_clear.clicked.connect(self._reset_current_name)
             self.candidates_layout.addWidget(btn_clear)
@@ -914,18 +914,18 @@ class SpeakerMergeDialog(QDialog):
                     0, Qt.CheckState.Unchecked if is_checked else Qt.CheckState.Checked
                 ),
             )
-            reset_action = menu.addAction("Clear (restore suggestion)", self._reset_current_name)
+            reset_action = menu.addAction(tr('Clear (restore suggestion)'), self._reset_current_name)
             reset_action.setEnabled(bool(self._default_name(code)))
             menu.addSeparator()
 
         parent = item.parent() or item
         if parent.childCount() > 0:
             menu.addAction(
-                "Check All in Group",
+                tr('Check All in Group'),
                 lambda p=parent: self._toggle_group_checks(p, Qt.CheckState.Checked),
             )
             menu.addAction(
-                "Uncheck All in Group",
+                tr('Uncheck All in Group'),
                 lambda p=parent: self._toggle_group_checks(p, Qt.CheckState.Unchecked),
             )
 

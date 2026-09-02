@@ -1,19 +1,20 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QHBoxLayout, QAbstractItemView
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor
+from core.i18n import tr
 
 class HelpShortcutsDialog(QDialog):
     """Dialog class for help shortcuts."""
     def __init__(self, parent=None):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Keyboard Shortcuts Reference")
+        self.setWindowTitle(tr('Keyboard Shortcuts Reference'))
         self.setMinimumWidth(600)
         self.setMinimumHeight(500)
         
         layout = QVBoxLayout(self)
         
-        title_label = QLabel("Keyboard Shortcuts")
+        title_label = QLabel(tr('Keyboard Shortcuts'))
         title_font = QFont()
         title_font.setPointSize(14)
         title_font.setBold(True)
@@ -23,7 +24,7 @@ class HelpShortcutsDialog(QDialog):
         
         self.table = QTableWidget()
         self.table.setColumnCount(2)
-        self.table.setHorizontalHeaderLabels(["Action", "Shortcut"])
+        self.table.setHorizontalHeaderLabels([tr("Action"), tr("Shortcut")])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(False) 
@@ -66,7 +67,7 @@ class HelpShortcutsDialog(QDialog):
         
         self.table.setRowCount(len(self.shortcuts))
         for i, (action, shortcut) in enumerate(self.shortcuts):
-            item_action = QTableWidgetItem(action)
+            item_action = QTableWidgetItem(tr(action))
             item_shortcut = QTableWidgetItem(shortcut)
             
             if action.startswith("---"):
@@ -84,12 +85,9 @@ class HelpShortcutsDialog(QDialog):
         layout.addWidget(self.table)
         
         footer_layout = QHBoxLayout()
-        close_button = QPushButton("Close")
+        close_button = QPushButton(tr('Close'))
         close_button.setToolTip(
-            "<b>Close</b><br>"
-            "Click — dismiss this reference (Esc). Reopen it any time with F1.<br>"
-            "Mouse shortcuts (Ctrl-click, Shift-click) are described in each "
-            "button's own tooltip."
+            tr("<b>Close</b><br>Click — dismiss this reference (Esc). Reopen it any time with F1.<br>Mouse shortcuts (Ctrl-click, Shift-click) are described in each button's own tooltip.")
         )
         close_button.clicked.connect(self.accept)
         footer_layout.addStretch()

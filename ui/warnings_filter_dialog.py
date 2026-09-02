@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
 from typing import Dict, Any, List
+from core.i18n import tr
 
 class WarningsFilterDialog(QDialog):
     """Dialog for selecting which warnings to filter by in the preview panel."""
@@ -21,7 +22,7 @@ class WarningsFilterDialog(QDialog):
         from PyQt6.QtWidgets import QWidget
         parent_widget = parent if isinstance(parent, QWidget) else None
         super().__init__(parent_widget)
-        self.setWindowTitle("Filter by Warnings")
+        self.setWindowTitle(tr('Filter by Warnings'))
         self.setMinimumWidth(400)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
@@ -38,7 +39,7 @@ class WarningsFilterDialog(QDialog):
         layout.setContentsMargins(16, 16, 16, 16)
 
         # Description
-        desc_label = QLabel("Select warnings to filter strings by in the preview panel:")
+        desc_label = QLabel(tr('Select warnings to filter strings by in the preview panel:'))
         desc_label.setWordWrap(True)
         layout.addWidget(desc_label)
 
@@ -60,7 +61,7 @@ class WarningsFilterDialog(QDialog):
         )
 
         if not sorted_active_pids:
-            no_warnings_label = QLabel("No active warnings to select.\nEnable warnings in Settings first.")
+            no_warnings_label = QLabel(tr('No active warnings to select.\nEnable warnings in Settings first.'))
             no_warnings_label.setStyleSheet("color: #7f8c8d; font-style: italic;")
             no_warnings_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             scroll_layout.addWidget(no_warnings_label)
@@ -105,18 +106,14 @@ class WarningsFilterDialog(QDialog):
         # Selection helpers
         if sorted_active_pids:
             helper_layout = QHBoxLayout()
-            select_all_btn = QPushButton("Select All")
+            select_all_btn = QPushButton(tr('Select All'))
             select_all_btn.setToolTip(
-                "<b>Select all</b><br>"
-                "Click — tick every warning type, so the filter shows strings with "
-                "any warning."
+                tr('<b>Select all</b><br>Click — tick every warning type, so the filter shows strings with any warning.')
             )
             select_all_btn.clicked.connect(self._select_all)
-            select_none_btn = QPushButton("Select None")
+            select_none_btn = QPushButton(tr('Select None'))
             select_none_btn.setToolTip(
-                "<b>Select none</b><br>"
-                "Click — untick everything, then tick just the warning types you "
-                "want to work through."
+                tr('<b>Select none</b><br>Click — untick everything, then tick just the warning types you want to work through.')
             )
             select_none_btn.clicked.connect(self._select_none)
             
@@ -127,19 +124,16 @@ class WarningsFilterDialog(QDialog):
 
         # Dialog buttons
         btn_layout = QHBoxLayout()
-        ok_btn = QPushButton("OK")
+        ok_btn = QPushButton(tr('OK'))
         ok_btn.setToolTip(
-            "<b>OK</b><br>"
-            "Click — apply the ticked warning types to the filter (Enter).<br>"
-            "The counter on the Warnings button shows selected / total."
+            tr('<b>OK</b><br>Click — apply the ticked warning types to the filter (Enter).<br>The counter on the Warnings button shows selected / total.')
         )
         ok_btn.setDefault(True)
         ok_btn.clicked.connect(self.accept)
 
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton(tr('Cancel'))
         cancel_btn.setToolTip(
-            "<b>Cancel</b><br>"
-            "Click — close without changing the filter (Esc)."
+            tr('<b>Cancel</b><br>Click — close without changing the filter (Esc).')
         )
         cancel_btn.clicked.connect(self.reject)
 

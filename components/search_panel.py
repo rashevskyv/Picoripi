@@ -3,6 +3,7 @@ from PyQt6.QtGui import (QAction)
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QPainter, QPen, QColor
 import collections
+from core.i18n import tr
 
 class SearchLineEdit(QLineEdit):
     """Search line edit implementation."""
@@ -197,36 +198,36 @@ class SearchPanelWidget(QWidget):
         self.search_query_edit.setLineEdit(SearchLineEdit(self, self.mw))
         self.search_query_edit.setEditable(True)
         self.search_query_edit.setInsertPolicy(QComboBox.InsertPolicy.NoInsert) 
-        self.search_query_edit.lineEdit().setPlaceholderText("Find...")
+        self.search_query_edit.lineEdit().setPlaceholderText(tr('Find...'))
         
-        self.find_next_button = QPushButton("Next", self)
-        self.find_previous_button = QPushButton("Prev", self)
-        self.advanced_button = QPushButton("Advance", self)
+        self.find_next_button = QPushButton(tr('Next'), self)
+        self.find_previous_button = QPushButton(tr('Prev'), self)
+        self.advanced_button = QPushButton(tr('Advance'), self)
         
         button_width = 75 
         self.find_next_button.setFixedWidth(button_width)
         self.find_previous_button.setFixedWidth(button_width)
         self.advanced_button.setFixedWidth(button_width)
         
-        self.case_sensitive_checkbox = QCheckBox("Aa", self)
-        self.case_sensitive_checkbox.setToolTip("Case sensitive")
+        self.case_sensitive_checkbox = QCheckBox(tr('Aa'), self)
+        self.case_sensitive_checkbox.setToolTip(tr('Case sensitive'))
         
-        self.search_in_original_checkbox = QCheckBox("Original", self)
-        self.search_in_original_checkbox.setToolTip("Search in original text")
+        self.search_in_original_checkbox = QCheckBox(tr('Original'), self)
+        self.search_in_original_checkbox.setToolTip(tr('Search in original text'))
         
-        self.ignore_tags_newlines_checkbox = QCheckBox("No Tags", self)
+        self.ignore_tags_newlines_checkbox = QCheckBox(tr('No Tags'), self)
         self.ignore_tags_newlines_checkbox.setChecked(True) 
-        self.ignore_tags_newlines_checkbox.setToolTip("Ignore tags {...} [...], newlines, and extra spaces")
+        self.ignore_tags_newlines_checkbox.setToolTip(tr('Ignore tags {...} [...], newlines, and extra spaces'))
         
-        self.fuzzy_search_checkbox = QCheckBox("Fuzzy", self)
-        self.fuzzy_search_checkbox.setToolTip("Search for similar words (ignores endings)")
+        self.fuzzy_search_checkbox = QCheckBox(tr('Fuzzy'), self)
+        self.fuzzy_search_checkbox.setToolTip(tr('Search for similar words (ignores endings)'))
 
-        self.status_label = QLabel("", self)
+        self.status_label = QLabel(tr(''), self)
         self.status_label.setMinimumWidth(100) 
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.close_search_panel_button = QPushButton("X", self)
-        self.close_search_panel_button.setToolTip("Close search panel")
+        self.close_search_panel_button = QPushButton(tr('X'), self)
+        self.close_search_panel_button.setToolTip(tr('Close search panel'))
         self.close_search_panel_button.setFixedSize(24, 24)
 
         left_layout = QHBoxLayout()

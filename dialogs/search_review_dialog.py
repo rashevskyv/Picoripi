@@ -13,6 +13,7 @@ from dialogs.search.search_utils import (
     prepare_text_for_tagless_search_with_mapping,
     adjust_replacement_case
 )
+from core.i18n import tr
 
 class SearchReviewDialog(BaseTextReviewDialog):
     """Interactive dialog for reviewing search results in a block with a replace option."""
@@ -52,15 +53,10 @@ class SearchReviewDialog(BaseTextReviewDialog):
             QTimer.singleShot(50, self._load_content)
 
     def setup_left_panel(self, layout: QVBoxLayout):
-        layout.addWidget(QLabel("Search Matches:"))
+        layout.addWidget(QLabel(tr('Search Matches:')))
         self.matches_list = QListWidget()
         self.matches_list.setToolTip(
-            "<b>Matches</b><br>"
-            "Click — review that match and jump the main editor to its string.<br>"
-            "Ctrl-click or Shift-click — build a multi-selection without jumping.<br>"
-            "Right-click — act on the whole selection: AI translate, spellcheck, "
-            "move, set font/width, autofix, revert, restore.<br>"
-            "Ctrl+right-click — the AI translate entry opens the prompt editor first."
+            tr('<b>Matches</b><br>Click — review that match and jump the main editor to its string.<br>Ctrl-click or Shift-click — build a multi-selection without jumping.<br>Right-click — act on the whole selection: AI translate, spellcheck, move, set font/width, autofix, revert, restore.<br>Ctrl+right-click — the AI translate entry opens the prompt editor first.')
         )
         self.matches_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.matches_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -69,7 +65,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
         self.matches_list.itemDoubleClicked.connect(self._on_item_double_click)
         layout.addWidget(self.matches_list)
 
-        self.selection_status_label = QLabel("Selected: 0")
+        self.selection_status_label = QLabel(tr('Selected: 0'))
         layout.addWidget(self.selection_status_label)
         self.matches_list.itemSelectionChanged.connect(self.update_selection_status)
 
@@ -83,82 +79,76 @@ class SearchReviewDialog(BaseTextReviewDialog):
 
     def setup_right_panel(self, layout: QVBoxLayout):
         from PyQt6.QtWidgets import QCheckBox
-        layout.addWidget(QLabel("Find:"))
+        layout.addWidget(QLabel(tr('Find:')))
         self.find_input = QLineEdit()
         self.find_input.setText(self.query)
-        self.find_input.setPlaceholderText("Enter search query...")
+        self.find_input.setPlaceholderText(tr('Enter search query...'))
         self.find_input.returnPressed.connect(self.perform_search)
         layout.addWidget(self.find_input)
 
         # Options checkboxes layout
         options_layout = QHBoxLayout()
 
-        self.case_sensitive_checkbox = QCheckBox("Aa")
-        self.case_sensitive_checkbox.setToolTip("Case sensitive")
+        self.case_sensitive_checkbox = QCheckBox(tr('Aa'))
+        self.case_sensitive_checkbox.setToolTip(tr('Case sensitive'))
         self.case_sensitive_checkbox.setChecked(self.case_sensitive)
         options_layout.addWidget(self.case_sensitive_checkbox)
 
-        self.fuzzy_checkbox = QCheckBox("Fuzzy")
-        self.fuzzy_checkbox.setToolTip("Search for similar words (ignores endings)")
+        self.fuzzy_checkbox = QCheckBox(tr('Fuzzy'))
+        self.fuzzy_checkbox.setToolTip(tr('Search for similar words (ignores endings)'))
         self.fuzzy_checkbox.setChecked(self.is_fuzzy)
         options_layout.addWidget(self.fuzzy_checkbox)
 
-        self.original_checkbox = QCheckBox("Original")
-        self.original_checkbox.setToolTip("Search in original text")
+        self.original_checkbox = QCheckBox(tr('Original'))
+        self.original_checkbox.setToolTip(tr('Search in original text'))
         self.original_checkbox.setChecked(self.search_in_original)
         options_layout.addWidget(self.original_checkbox)
 
-        self.no_tags_checkbox = QCheckBox("No Tags")
-        self.no_tags_checkbox.setToolTip("Ignore tags {...} [...], newlines, and extra spaces")
+        self.no_tags_checkbox = QCheckBox(tr('No Tags'))
+        self.no_tags_checkbox.setToolTip(tr('Ignore tags {...} [...], newlines, and extra spaces'))
         self.no_tags_checkbox.setChecked(self.ignore_tags)
         options_layout.addWidget(self.no_tags_checkbox)
 
         layout.addLayout(options_layout)
 
-        layout.addWidget(QLabel("Replace with:"))
+        layout.addWidget(QLabel(tr('Replace with:')))
         self.replace_input = QLineEdit()
-        self.replace_input.setPlaceholderText("Enter replacement text...")
+        self.replace_input.setPlaceholderText(tr('Enter replacement text...'))
         layout.addWidget(self.replace_input)
 
-        self.match_case_replace_checkbox = QCheckBox("Match case on replace")
-        self.match_case_replace_checkbox.setToolTip("Preserve the casing of the original word (e.g., 'Word' -> 'Replacement', 'WORD' -> 'REPLACEMENT')")
+        self.match_case_replace_checkbox = QCheckBox(tr('Match case on replace'))
+        self.match_case_replace_checkbox.setToolTip(tr("Preserve the casing of the original word (e.g., 'Word' -> 'Replacement', 'WORD' -> 'REPLACEMENT')"))
         self.match_case_replace_checkbox.setChecked(False)
         layout.addWidget(self.match_case_replace_checkbox)
 
         # Action buttons
         button_layout = QVBoxLayout()
 
-        self.find_button = QPushButton("Find")
+        self.find_button = QPushButton(tr('Find'))
         self.find_button.setToolTip(
-            "<b>Find</b><br>"
-            "Click — search with the current term and options, and rebuild the "
-            "match list on the left."
+            tr('<b>Find</b><br>Click — search with the current term and options, and rebuild the match list on the left.')
         )
         self.find_button.clicked.connect(self.perform_search)
         button_layout.addWidget(self.find_button)
 
-        self.replace_button = QPushButton("Replace")
+        self.replace_button = QPushButton(tr('Replace'))
         self.replace_button.setToolTip(
-            "<b>Replace</b><br>"
-            "Click — replace the current match only and move to the next one."
+            tr('<b>Replace</b><br>Click — replace the current match only and move to the next one.')
         )
         self.replace_button.clicked.connect(self.replace_match)
         button_layout.addWidget(self.replace_button)
 
-        self.replace_all_button = QPushButton("Replace All")
+        self.replace_all_button = QPushButton(tr('Replace All'))
         self.replace_all_button.setToolTip(
-            "<b>Replace all</b><br>"
-            "Click — replace every match in the list at once. Undo with Ctrl+Z in "
-            "the main editor, one string at a time."
+            tr('<b>Replace all</b><br>Click — replace every match in the list at once. Undo with Ctrl+Z in the main editor, one string at a time.')
         )
         self.replace_all_button.clicked.connect(self.replace_all_matches)
         self.replace_all_button.setStyleSheet("background-color: #047857; color: white; font-weight: bold;")
         button_layout.addWidget(self.replace_all_button)
 
-        self.skip_button = QPushButton("Skip")
+        self.skip_button = QPushButton(tr('Skip'))
         self.skip_button.setToolTip(
-            "<b>Skip</b><br>"
-            "Click — leave this match untouched and move to the next one."
+            tr('<b>Skip</b><br>Click — leave this match untouched and move to the next one.')
         )
         self.skip_button.clicked.connect(self.skip_match)
         button_layout.addWidget(self.skip_button)
@@ -169,7 +159,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
     def _load_content(self):
         try:
             log_debug("SearchReviewDialog: _load_content started")
-            self.status_label.setText("Searching text...")
+            self.status_label.setText(tr('Searching text...'))
 
             import sys
             parent = self.parentWidget()
@@ -178,7 +168,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
             if is_test:
                 log_debug("SearchReviewDialog: Running in test mode, using synchronous loading")
                 self.find_matches()
-                self.status_label.setText("Highlighting matches...")
+                self.status_label.setText(tr('Highlighting matches...'))
                 self.pre_highlight_all_matches()
                 self.show_current_item()
                 if not self.query:
@@ -211,7 +201,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
             except TypeError:
                 pass
             self.cancel_analysis_button.clicked.connect(self.search_worker.cancel)
-            self.cancel_analysis_button.clicked.connect(lambda: self.status_label.setText("Cancelling..."))
+            self.cancel_analysis_button.clicked.connect(lambda: self.status_label.setText(tr('Cancelling...')))
 
             self.search_worker.start()
         except Exception as e:
@@ -241,7 +231,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
             self._process_text_spacing_and_line_numbers()
             self._apply_zebra_striping()
 
-            self.status_label.setText("Highlighting matches...")
+            self.status_label.setText(tr('Highlighting matches...'))
             self.pre_highlight_all_matches()
             self.show_current_item()
             if not self.query:
@@ -263,7 +253,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
                 self._shutdown_worker()
                 super().reject()
                 return
-            self.status_label.setText("Search cancelled.")
+            self.status_label.setText(tr('Search cancelled.'))
             self.show_progress_ui(False)
             self.set_controls_enabled(True)
         except Exception as e:
@@ -635,7 +625,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
         except TypeError:
             pass
         self.cancel_analysis_button.clicked.connect(self.search_worker.cancel)
-        self.cancel_analysis_button.clicked.connect(lambda: self.status_label.setText("Cancelling..."))
+        self.cancel_analysis_button.clicked.connect(lambda: self.status_label.setText(tr('Cancelling...')))
 
         self.search_worker.start()
 
@@ -1214,7 +1204,7 @@ class SearchReviewDialog(BaseTextReviewDialog):
     def reject(self):
         if hasattr(self, 'search_worker') and self.search_worker and self.search_worker.isRunning():
             self._is_closing = True
-            self.status_label.setText("Cancelling and closing...")
+            self.status_label.setText(tr('Cancelling and closing...'))
             self.set_controls_enabled(False)
             self.search_worker.cancel()
             return

@@ -31,6 +31,7 @@ from ui.mempalace.mempalace_ui import (
     set_workflow_enabled,
 )
 from ui.mempalace.mempalace_pipeline import MemePalacePipelineMixin
+from core.i18n import tr
 
 
 _HIERARCHY_PATH_KEY = "mempalace_hierarchy_project_path"
@@ -44,7 +45,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         """Initialize a new instance."""
         super().__init__(parent or main_window)
         self.mw = main_window
-        self.setWindowTitle("MemPalace Context Builder")
+        self.setWindowTitle(tr('MemPalace Context Builder'))
         self.resize(1080, 800)
         self.setMinimumSize(900, 800)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -133,21 +134,21 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
     @pyqtSlot()
     def _start_story_timeline_analysis(self):
         if self.worker and self.worker.isRunning():
-            QMessageBox.information(self, "MemPalace", "Another MemPalace task is still running.")
+            QMessageBox.information(self, tr('MemPalace'), tr('Another MemPalace task is still running.'))
             return
         if not self.story_document_id:
-            QMessageBox.warning(self, "Timeline", "Import a marked Script Markup Studio project first.")
+            QMessageBox.warning(self, tr('Timeline'), tr('Import a marked Script Markup Studio project first.'))
             return
         ai_provider = None
         if getattr(self.mw, "translation_handler", None):
             ai_provider = self.mw.translation_handler._prepare_provider()
         if not ai_provider:
-            QMessageBox.warning(self, "Timeline", "Configure an AI provider before building the timeline.")
+            QMessageBox.warning(self, tr('Timeline'), tr('Configure an AI provider before building the timeline.'))
             return
         self.analyze_story_timeline_btn.setEnabled(False)
         self.story_timeline_progress.setVisible(True)
         self.story_timeline_progress.setRange(0, 0)
-        self.story_timeline_status_label.setText("Analyzing marked dialogue…")
+        self.story_timeline_status_label.setText(tr('Analyzing marked dialogue…'))
         self.worker = StoryTimelineAIAnalyzerWorker(
             self.client,
             ai_provider,
@@ -176,28 +177,28 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         )
         self.append_log(message)
         if success:
-            QMessageBox.information(self, "Timeline Ready", message)
+            QMessageBox.information(self, tr('Timeline Ready'), message)
         else:
-            QMessageBox.warning(self, "Timeline", message)
+            QMessageBox.warning(self, tr('Timeline'), message)
 
     @pyqtSlot()
     def _start_normalized_character_profiling(self):
         if self.worker and self.worker.isRunning():
-            QMessageBox.information(self, "MemPalace", "Another MemPalace task is still running.")
+            QMessageBox.information(self, tr('MemPalace'), tr('Another MemPalace task is still running.'))
             return
         if not self.story_document_id:
-            QMessageBox.warning(self, "Characters", "Import a marked Script Markup Studio project first.")
+            QMessageBox.warning(self, tr('Characters'), tr('Import a marked Script Markup Studio project first.'))
             return
         ai_provider = None
         if getattr(self.mw, "translation_handler", None):
             ai_provider = self.mw.translation_handler._prepare_provider()
         if not ai_provider:
-            QMessageBox.warning(self, "Characters", "Configure an AI provider before analyzing characters.")
+            QMessageBox.warning(self, tr('Characters'), tr('Configure an AI provider before analyzing characters.'))
             return
         self.analyze_character_voices_btn.setEnabled(False)
         self.character_profiles_progress.setVisible(True)
         self.character_profiles_progress.setRange(0, 0)
-        self.character_profiles_status_label.setText("Analyzing character dialogue…")
+        self.character_profiles_status_label.setText(tr('Analyzing character dialogue…'))
         self.worker = NormalizedCharacterProfilerWorker(
             self.client,
             ai_provider,
@@ -226,9 +227,9 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         )
         self.append_log(message)
         if success:
-            QMessageBox.information(self, "Character Voices Ready", message)
+            QMessageBox.information(self, tr('Character Voices Ready'), message)
         else:
-            QMessageBox.warning(self, "Characters", message)
+            QMessageBox.warning(self, tr('Characters'), message)
 
     def _finish_and_maybe_sleep(self, success: bool = True):
         """Internal helper to finish and maybe sleep."""
@@ -399,7 +400,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             self.hierarchy_project_preview_label.setStyleSheet("color: #a80000; font-size: 11px;")
             self._refresh_wizard_state()
             if show_error:
-                QMessageBox.warning(self, "Hierarchy project import error", str(exc))
+                QMessageBox.warning(self, tr('Hierarchy project import error'), str(exc))
             return False
 
         self.hierarchy_project = project
@@ -517,10 +518,10 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         set_workflow_enabled(self.analyze_character_voices_btn, context_found and not busy)
         if not context_found:
             self.story_timeline_status_label.setText(
-                "Run step 1 first: story events are attached to the lines it links."
+                tr('Run step 1 first: story events are attached to the lines it links.')
             )
             self.character_profiles_status_label.setText(
-                "Run step 1 first: a character's voice is learned from their linked lines."
+                tr("Run step 1 first: a character's voice is learned from their linked lines.")
             )
 
         if not self.wing_edit.text().strip():
@@ -567,8 +568,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         if self.hierarchy_project is None:
             QMessageBox.warning(
                 self,
-                "Hierarchy project required",
-                "Select and validate a Markup Studio project first.",
+                tr('Hierarchy project required'),
+                tr('Select and validate a Markup Studio project first.'),
             )
             return False
 
@@ -583,7 +584,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             self._set_hierarchy_project_status(HierarchyImportStatus.IMPORT_ERROR, str(exc))
             QMessageBox.warning(
                 self,
-                "Hierarchy project import error",
+                tr('Hierarchy project import error'),
                 f"The project was validated but could not be saved to MemPalace:\n{exc}",
             )
             return False
@@ -619,7 +620,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         self.story_tree.clear()
         if self.story_document_id is None:
             self.story_tree_status_label.setText(
-                "Import a Markup Studio project to build the tree."
+                tr('Import a Markup Studio project to build the tree.')
             )
             self.story_tree_status_label.setStyleSheet("color: #666666;")
             return
@@ -735,19 +736,19 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         if self.story_document_id is None:
             QMessageBox.warning(
                 self,
-                "Story tree required",
-                "Import a Markup Studio Project before matching game strings.",
+                tr('Story tree required'),
+                tr('Import a Markup Studio Project before matching game strings.'),
             )
             return
         store = getattr(self.mw, "data_store", None)
         data = getattr(store, "data", None)
         if not isinstance(data, list) or not data:
-            QMessageBox.warning(self, "Open project required", "Open a game project first.")
+            QMessageBox.warning(self, tr('Open project required'), tr('Open a game project first.'))
             return
         game_messages = self._game_messages_for_story_alignment(data)
         if not game_messages:
             QMessageBox.information(
-                self, "Nothing to match", "The open project has no eligible dialogue strings."
+                self, tr('Nothing to match'), tr('The open project has no eligible dialogue strings.')
             )
             return
 
@@ -755,7 +756,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         self.dialogue_mapping_progress.setRange(0, 0)
         self.dialogue_mapping_progress.setVisible(True)
         self.dialogue_mapping_summary_label.setText(
-            "Aligning marked dialogue with the open game project…"
+            tr('Aligning marked dialogue with the open game project…')
         )
         self.worker = DialogueAlignmentWorker(
             self.client,
@@ -781,7 +782,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             self.dialogue_mapping_summary_label.setText(error or "Matching stopped.")
             self.dialogue_mapping_summary_label.setStyleSheet("color: #a80000;")
             if error and "cancelled" not in error.lower():
-                QMessageBox.warning(self, "Dialogue matching failed", error)
+                QMessageBox.warning(self, tr('Dialogue matching failed'), error)
             return
         spoken = summary["spoken_only"]
         coverage = spoken["supported_relation_coverage"]
@@ -810,13 +811,12 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
 
     def _set_saved_dialogue_search_actions(self, complete: bool) -> None:
         """Make rerunning secondary once durable search results exist."""
-        self.match_dialogue_btn.setText("Recheck After Changes")
+        self.match_dialogue_btn.setText(tr('Recheck After Changes'))
         self.match_dialogue_btn.setStyleSheet(SECONDARY_BUTTON_STYLE)
         self.story_context_done_btn.setVisible(complete)
         if complete:
             self.story_context_completion_label.setText(
-                "All context decisions are saved. These links are already available to AI "
-                "translation; rerun the search only after the script or game text changes."
+                tr('All context decisions are saved. These links are already available to AI translation; rerun the search only after the script or game text changes.')
             )
 
     def _restore_dialogue_mapping_state(self) -> None:
@@ -825,7 +825,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             return
         state = self.client.get_dialogue_mapping_state(self.story_document_id)
         if not state.has_results:
-            self.match_dialogue_btn.setText("Find Context Automatically")
+            self.match_dialogue_btn.setText(tr('Find Context Automatically'))
             self.match_dialogue_btn.setStyleSheet(WORKFLOW_BUTTON_STYLE)
             self.story_context_done_btn.setVisible(False)
             return
@@ -904,7 +904,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             visited.add(current.id)
             if current.node_type == "speaker":
                 speaker = self._short_story_node_text(current)
-            elif current.node_type in {"act", "chapter", "scene"}:
+            elif current.node_type in {"act", tr('chapter'), "scene"}:
                 structural.append(self._short_story_node_text(current))
             current = nodes.get(current.parent_id)
         structural.reverse()
@@ -913,9 +913,9 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
     def _set_dialogue_candidate(self, candidate) -> None:
         if candidate is None:
             self._current_candidate_node_id = None
-            self.mapping_review_candidate_label.setText("No reliable script place selected")
+            self.mapping_review_candidate_label.setText(tr('No reliable script place selected'))
             self.mapping_review_location_label.setText(
-                "Choose a marked line below to compare its surrounding dialogue."
+                tr('Choose a marked line below to compare its surrounding dialogue.')
             )
             self.mapping_context_preview.setHtml(
                 "<p><b>No context selected.</b></p>"
@@ -1055,15 +1055,15 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         if node is None or node.start_line is None:
             QMessageBox.information(
                 self,
-                "Choose a script place",
-                "Choose a marked script line before opening Markup Studio.",
+                tr('Choose a script place'),
+                tr('Choose a marked script line before opening Markup Studio.'),
             )
             return
         actions = getattr(self.mw, "actions", None)
         open_studio = getattr(actions, "open_script_markup_studio", None)
         if not callable(open_studio):
             QMessageBox.warning(
-                self, "Markup Studio unavailable", "Could not open Script Markup Studio."
+                self, tr('Markup Studio unavailable'), tr('Could not open Script Markup Studio.')
             )
             return
         open_studio()
@@ -1075,8 +1075,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         ):
             QMessageBox.warning(
                 self,
-                "Could not show script line",
-                "Markup Studio opened, but the selected source line could not be shown.",
+                tr('Could not show script line'),
+                tr('Markup Studio opened, but the selected source line could not be shown.'),
             )
             return
         studio.show()
@@ -1188,8 +1188,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                 
         if not ai_provider:
             QMessageBox.warning(
-                self, "AI Provider Error", 
-                "No active AI Provider configured. Please check your API settings."
+                self, tr('AI Provider Error'), 
+                tr('No active AI Provider configured. Please check your API settings.')
             )
         return ai_provider
 
@@ -1201,7 +1201,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         
         file_path = self.file_path_edit.text().strip()
         if not file_path or not os.path.exists(file_path):
-            QMessageBox.warning(self, "Validation Error", "Please select a valid game script file first.")
+            QMessageBox.warning(self, tr('Validation Error'), tr('Please select a valid game script file first.'))
             return
 
         ai_provider = self._get_ai_provider_or_warn()
@@ -1264,7 +1264,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                 self._advance_pipeline()
             else:
                 self._finish_and_maybe_sleep()
-                QMessageBox.information(self, "Success", f"Character profiling completed!\n\n{message}")
+                QMessageBox.information(self, tr('Success'), f"Character profiling completed!\n\n{message}")
         else:
             if getattr(self, "user_cancelled", False):
                 self.append_log("Character mining stopped by user.")
@@ -1278,7 +1278,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                     self._abort_pipeline(message)
                 else:
                     self._finish_and_maybe_sleep()
-                    QMessageBox.warning(self, "Failed", f"Character profiling failed:\n{message}")
+                    QMessageBox.warning(self, tr('Failed'), f"Character profiling failed:\n{message}")
 
     @pyqtSlot()
     def _profile_characters_speech_via_ai(self):
@@ -1351,7 +1351,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                 self._advance_pipeline()
             else:
                 self._finish_and_maybe_sleep()
-                QMessageBox.information(self, "Success", f"Character speech profiling completed!\n\n{message}")
+                QMessageBox.information(self, tr('Success'), f"Character speech profiling completed!\n\n{message}")
         else:
             if getattr(self, "user_cancelled", False):
                 self.append_log("Character speech profiling stopped by user.")
@@ -1365,7 +1365,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                     self._abort_pipeline(message)
                 else:
                     self._finish_and_maybe_sleep()
-                    QMessageBox.warning(self, "Failed", f"Character speech profiling failed:\n{message}")
+                    QMessageBox.warning(self, tr('Failed'), f"Character speech profiling failed:\n{message}")
 
     @pyqtSlot()
     def _start_chapters_mapping(self):
@@ -1374,7 +1374,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         
         file_path = self.file_path_edit.text().strip()
         if not file_path or not os.path.exists(file_path):
-            QMessageBox.warning(self, "Validation Error", "Please select a valid game script file first.")
+            QMessageBox.warning(self, tr('Validation Error'), tr('Please select a valid game script file first.'))
             return
 
         self._start_chapters_mapping_core(file_path)
@@ -1406,7 +1406,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             if getattr(self, "pipeline_running", False):
                 self._advance_pipeline()
             else:
-                QMessageBox.information(self, "Success", f"Chapters mapped successfully!\n\n{message}")
+                QMessageBox.information(self, tr('Success'), f"Chapters mapped successfully!\n\n{message}")
         else:
             if getattr(self, "user_cancelled", False):
                 self.append_log("Chapters mapping stopped by user.")
@@ -1417,7 +1417,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                 if getattr(self, "pipeline_running", False):
                     self._abort_pipeline(message)
                 else:
-                    QMessageBox.warning(self, "Failed", f"Chapters mapping failed:\n{message}")
+                    QMessageBox.warning(self, tr('Failed'), f"Chapters mapping failed:\n{message}")
 
     @pyqtSlot()
     def _analyze_selected_chapter(self):
@@ -1425,7 +1425,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         selected_items = self.table.selectedItems()
         selected_rows = sorted(list(set(item.row() for item in selected_items)))
         if not selected_rows:
-            QMessageBox.warning(self, "No selection", "Please select one or more chapters to analyze from the table.")
+            QMessageBox.warning(self, tr('No selection'), tr('Please select one or more chapters to analyze from the table.'))
             return
 
         self.save_builder_settings()
@@ -1458,7 +1458,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                 if getattr(self, "pipeline_running", False):
                     self._advance_pipeline()
                 else:
-                    QMessageBox.information(self, "Finished", "All selected chapters successfully analyzed via AI!")
+                    QMessageBox.information(self, tr('Finished'), tr('All selected chapters successfully analyzed via AI!'))
                     self._finish_and_maybe_sleep()
         else:
             self._set_ui_enabled(True)
@@ -1473,7 +1473,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                 if getattr(self, "pipeline_running", False):
                     self._abort_pipeline(message)
                 else:
-                    QMessageBox.warning(self, "AI Error", f"Chapter analysis failed:\n{message}")
+                    QMessageBox.warning(self, tr('AI Error'), f"Chapter analysis failed:\n{message}")
                     self._finish_and_maybe_sleep()
             self.analysis_queue = []
             self.analysis_total_count = 0
@@ -1483,9 +1483,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
     def _analyze_all_chapters(self):
         """Setup queue to analyze all chapters."""
         reply = QMessageBox.question(
-            self, "Analyze All Chapters",
-            "This will analyze all chapters one by one using the AI provider. It may take several minutes.\n\n"
-            "Do you want to proceed?",
+            self, tr('Analyze All Chapters'),
+            tr('This will analyze all chapters one by one using the AI provider. It may take several minutes.\n\nDo you want to proceed?'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
         )
         if reply != QMessageBox.StandardButton.Yes:
@@ -1509,7 +1508,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
             if getattr(self, "pipeline_running", False):
                 self._advance_pipeline()
             else:
-                QMessageBox.information(self, "Finished", "No chapters found to analyze.")
+                QMessageBox.information(self, tr('Finished'), tr('No chapters found to analyze.'))
             return
 
         self.analysis_total_count = len(self.analysis_queue)
@@ -1524,7 +1523,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         if not self.analysis_queue:
             self._set_ui_enabled(True)
             self.progress_bar.setValue(100)
-            QMessageBox.information(self, "Finished", "All chapters successfully analyzed via AI!")
+            QMessageBox.information(self, tr('Finished'), tr('All chapters successfully analyzed via AI!'))
             self._finish_and_maybe_sleep()
             return
 
@@ -1593,9 +1592,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
     def _clear_database(self):
         """Clear mapped data from local database."""
         reply = QMessageBox.question(
-            self, "Clear Database", 
-            "Are you sure you want to completely clear the local MemePalace database?\n\n"
-            "This will delete all mapped rooms, dialogues, relations, script chapters, and chapter summaries.",
+            self, tr('Clear Database'), 
+            tr('Are you sure you want to completely clear the local MemePalace database?\n\nThis will delete all mapped rooms, dialogues, relations, script chapters, and chapter summaries.'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
         )
         if reply != QMessageBox.StandardButton.Yes:
@@ -1616,7 +1614,7 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
                     pass
                     
                 self.append_log("SUCCESS: Local database cleared successfully!")
-                QMessageBox.information(self, "Clear Database", "Local database cleared successfully.")
+                QMessageBox.information(self, tr('Clear Database'), tr('Local database cleared successfully.'))
                 self.refresh_chapters_list()
             else:
                 self.append_log("ERROR: Failed to clear the database.")
@@ -1630,8 +1628,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         if self.worker and self.worker.isRunning():
             reply = QMessageBox.question(
                 self,
-                "Stop current AI operation?",
-                "The current request will stop after the active network step. Are you sure you want to continue?",
+                tr('Stop current AI operation?'),
+                tr('The current request will stop after the active network step. Are you sure you want to continue?'),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
@@ -1756,8 +1754,8 @@ class MemePalaceBuilderDialog(QDialog, MemePalaceBuilderUiMixin, MemePalacePipel
         if self.worker and self.worker.isRunning():
             reply = QMessageBox.question(
                 self,
-                "Stop current AI operation and close the builder?",
-                "The current request will stop after the active network step. Are you sure you want to continue?",
+                tr('Stop current AI operation and close the builder?'),
+                tr('The current request will stop after the active network step. Are you sure you want to continue?'),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )

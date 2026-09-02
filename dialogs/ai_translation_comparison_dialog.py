@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QEvent, QPoint
 from PyQt6.QtGui import QColor, QKeyEvent
+from core.i18n import tr
 
 class MultilineItemDelegate(QStyledItemDelegate):
     """Custom delegate for multiline text editing in table cells using QTextEdit."""
@@ -82,7 +83,7 @@ class AITranslationComparisonDialog(QDialog):
             self.mw = self.mw.parentWidget()
         ds = getattr(self.mw, 'data_store', None)
         
-        self.setWindowTitle("AI Translation Comparison")
+        self.setWindowTitle(tr('AI Translation Comparison'))
         self.setMinimumSize(800, 500)
         self.resize(850, 550)
         
@@ -193,12 +194,9 @@ class AITranslationComparisonDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         
-        self.close_btn = QPushButton("OK", self)
+        self.close_btn = QPushButton(tr('OK'), self)
         self.close_btn.setToolTip(
-            "<b>OK</b><br>"
-            "Click — accept the table as shown and close (Enter).<br>"
-            "Double-click a cell to edit it, Ctrl+Enter to commit that edit.<br>"
-            "Ctrl+Z / Ctrl+Y undo and redo edits while this window is open."
+            tr('<b>OK</b><br>Click — accept the table as shown and close (Enter).<br>Double-click a cell to edit it, Ctrl+Enter to commit that edit.<br>Ctrl+Z / Ctrl+Y undo and redo edits while this window is open.')
         )
         self.close_btn.setDefault(True)
         self.close_btn.clicked.connect(self.accept)
@@ -281,8 +279,8 @@ class AITranslationComparisonDialog(QDialog):
         meta = self.row_metadata[row]
         
         menu = QMenu(self)
-        edit_action = menu.addAction("Edit Text")
-        var_action = menu.addAction("AI Variations")
+        edit_action = menu.addAction(tr('Edit Text'))
+        var_action = menu.addAction(tr('AI Variations'))
         
         action = menu.exec(self.table_widget.viewport().mapToGlobal(pos))
         if action == edit_action:

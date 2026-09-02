@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from utils.logging_utils import log_debug, log_error
 import pycountry
+from core.i18n import tr
 
 DICTIONARY_API_URL = "https://api.github.com/repos/wooorm/dictionaries/contents/dictionaries"
 DICTIONARY_DOWNLOAD_URL_TEMPLATE = "https://raw.githubusercontent.com/wooorm/dictionaries/main/dictionaries/{lang_code}/index.{ext}"
@@ -110,7 +111,7 @@ class DictionaryManagerDialog(QDialog):
     def __init__(self, parent=None):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Dictionary Manager")
+        self.setWindowTitle(tr('Dictionary Manager'))
         self.setMinimumSize(450, 400)
         self.spellchecker_manager = getattr(parent, 'mw', parent).spellchecker_manager
         
@@ -124,23 +125,20 @@ class DictionaryManagerDialog(QDialog):
         main_layout = QVBoxLayout(self)
         
         filter_layout = QHBoxLayout()
-        filter_layout.addWidget(QLabel("Filter:"))
+        filter_layout.addWidget(QLabel(tr('Filter:')))
         self.filter_edit = QLineEdit(self)
-        self.filter_edit.setPlaceholderText("e.g., Ukrainian or uk")
+        self.filter_edit.setPlaceholderText(tr('e.g., Ukrainian or uk'))
         self.filter_edit.setProperty("selectAllOnClick", True)
         filter_layout.addWidget(self.filter_edit)
         main_layout.addLayout(filter_layout)
 
-        main_layout.addWidget(QLabel("Available Dictionaries:"))
+        main_layout.addWidget(QLabel(tr('Available Dictionaries:')))
         self.dict_list = QListWidget(self)
         main_layout.addWidget(self.dict_list)
         
-        self.download_button = QPushButton("Download Selected", self)
+        self.download_button = QPushButton(tr('Download Selected'), self)
         self.download_button.setToolTip(
-            "<b>Download selected</b><br>"
-            "Click — fetch the dictionaries ticked above and install them for the "
-            "spellchecker.<br>"
-            "Enabled once at least one entry is ticked."
+            tr('<b>Download selected</b><br>Click — fetch the dictionaries ticked above and install them for the spellchecker.<br>Enabled once at least one entry is ticked.')
         )
         self.download_button.setEnabled(False)
         main_layout.addWidget(self.download_button)
@@ -149,7 +147,7 @@ class DictionaryManagerDialog(QDialog):
         self.progress_bar.setVisible(False)
         main_layout.addWidget(self.progress_bar)
 
-        self.status_label = QLabel("", self)
+        self.status_label = QLabel(tr(''), self)
         main_layout.addWidget(self.status_label)
         
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
@@ -173,7 +171,7 @@ class DictionaryManagerDialog(QDialog):
 
     def load_dictionaries(self):
         """Load dictionaries asynchronously."""
-        self.status_label.setText("Fetching remote dictionary list...")
+        self.status_label.setText(tr('Fetching remote dictionary list...'))
         self.list_worker = DictionaryListFetchWorker(DICTIONARY_API_URL)
         self.list_worker.finished_signal.connect(self.on_list_fetched)
         self.list_worker.start()
@@ -183,7 +181,7 @@ class DictionaryManagerDialog(QDialog):
         if success:
             self.remote_languages = sorted([item['name'] for item in data if item['type'] == 'dir'])
             self.lang_code_map = {code: self._get_lang_name(code) for code in self.remote_languages}
-            self.status_label.setText("Ready.")
+            self.status_label.setText(tr('Ready.'))
         else:
             self.status_label.setText(f"Error fetching list: {error_msg}")
             log_error(f"Could not fetch dictionary list: {error_msg}")

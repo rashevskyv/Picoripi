@@ -8,6 +8,7 @@ from core.story_context_overrides import (
     iter_story_context_overrides,
 )
 from core.glossary_manager import render_notes
+from core.i18n import tr
 
 class StringSettingsUpdater(BaseUIUpdater):
     """String settings updater implementation."""
@@ -249,7 +250,7 @@ class StringSettingsUpdater(BaseUIUpdater):
                 )
                 if not pool_cached:
                     combo.clear()
-                    combo.addItem("None")
+                    combo.addItem(tr('None'))
                     case_map = {"none": (0, "None")}
                     unique_names = {}
                     for value in speaker_pool.values():
@@ -276,7 +277,7 @@ class StringSettingsUpdater(BaseUIUpdater):
             else:
                 combo._populated_for_pool = None
                 combo.clear()
-                combo.addItem("None")
+                combo.addItem(tr('None'))
                 if role == "item" and projection and client:
                     references = self._reference_items_cache.get(projection.document_id)
                     if references is None:
@@ -339,7 +340,7 @@ class StringSettingsUpdater(BaseUIUpdater):
                 else:
                     chapter_label.blockSignals(True)
                     chapter_label.clear()
-                    chapter_label.addItem("No chapter", None)
+                    chapter_label.addItem(tr('No chapter'), None)
                     if projection:
                         for folder_id, path in self._story_structure_choices(projection):
                             chapter_label.addItem(" › ".join(path), folder_id)
@@ -376,7 +377,7 @@ class StringSettingsUpdater(BaseUIUpdater):
         self.mw.font_combobox.clear()
 
         default_font_display_text = f"Default ({self.mw.default_font_file or 'None'})"
-        self.mw.font_combobox.addItem(default_font_display_text, "default")
+        self.mw.font_combobox.addItem(default_font_display_text, tr('default'))
 
         all_fonts = getattr(self.mw, 'all_font_maps', {})
         if all_fonts:
@@ -408,10 +409,10 @@ class StringSettingsUpdater(BaseUIUpdater):
                 self.mw.speaker_combobox.clear()
                 self.mw.speaker_combobox.setEnabled(False)
                 self.mw.speaker_combobox._last_displayed_char = None
-                self.mw.speaker_combobox.setToolTip("Select or type speaker name for this string")
+                self.mw.speaker_combobox.setToolTip(tr('Select or type speaker name for this string'))
                 self.mw.speaker_combobox.blockSignals(False)
             if hasattr(self.mw, 'speaker_select_label') and self.mw.speaker_select_label:
-                self.mw.speaker_select_label.setToolTip("Select or type speaker name for this string")
+                self.mw.speaker_select_label.setToolTip(tr('Select or type speaker name for this string'))
             chapter_label = getattr(self.mw, "chapter_value_label", None)
             if chapter_label is not None:
                 if isinstance(chapter_label, QComboBox):
@@ -421,15 +422,15 @@ class StringSettingsUpdater(BaseUIUpdater):
                     else:
                         chapter_label.blockSignals(True)
                         chapter_label.clear()
-                        chapter_label.addItem("No chapter", None)
+                        chapter_label.addItem(tr('No chapter'), None)
                         chapter_label.blockSignals(False)
                 else:
-                    chapter_label.setText("No chapter")
+                    chapter_label.setText(tr('No chapter'))
                 chapter_label.story_structure_id = None
                 chapter_label.setEnabled(False)
             window_value = getattr(self.mw, "window_kind_value_label", None)
             if window_value is not None:
-                window_value.setText("Unknown")
+                window_value.setText(tr('Unknown'))
             return
 
         self.mw.font_combobox.setEnabled(True)
@@ -528,8 +529,8 @@ class StringSettingsUpdater(BaseUIUpdater):
             unique_speakers.update(mempalace_speakers)
             unique_speakers = {c for c in unique_speakers if c and str(c).strip()}
             
-            self.mw.speaker_combobox.addItem("")
-            self.mw.speaker_combobox.addItem("None")
+            self.mw.speaker_combobox.addItem(tr(''))
+            self.mw.speaker_combobox.addItem(tr('None'))
             for c in sorted(unique_speakers):
                 if c != "None":
                     self.mw.speaker_combobox.addItem(c)
@@ -692,7 +693,7 @@ class StringSettingsUpdater(BaseUIUpdater):
             if kind_name:
                 kind_value_label.setText(kind_name)
             else:
-                kind_value_label.setText("Unknown")
+                kind_value_label.setText(tr('Unknown'))
 
         # Update font: explicit override > window-kind font > default
         font_file = string_meta.get("font_file")

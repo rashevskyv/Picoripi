@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QPushButton, QDialogButtonBox, QWidget,
 )
 from PyQt6.QtCore import Qt, QObject, QEvent
+from core.i18n import tr
 
 
 class ReturnToAcceptFilter(QObject):
@@ -50,7 +51,7 @@ class GlossaryEditDialog(QDialog):
     ) -> None:
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Edit Glossary Entry")
+        self.setWindowTitle(tr('Edit Glossary Entry'))
 
         layout = QVBoxLayout(self)
         self.setLayout(layout)
@@ -62,7 +63,7 @@ class GlossaryEditDialog(QDialog):
 
         # --- Translation row ---
         translation_layout = QHBoxLayout()
-        translation_layout.addWidget(QLabel("Translation:"))
+        translation_layout.addWidget(QLabel(tr('Translation:')))
         translation_layout.addStretch(1)
         self._ai_button_default_text = "AI Fill"
         self._ai_button = QPushButton(self._ai_button_default_text, self)
@@ -79,7 +80,7 @@ class GlossaryEditDialog(QDialog):
 
         # --- Notes row ---
         notes_header_layout = QHBoxLayout()
-        notes_header_layout.addWidget(QLabel("Notes:"))
+        notes_header_layout.addWidget(QLabel(tr('Notes:')))
         notes_header_layout.addStretch(1)
         self._notes_variation_default_text = "AI Variations"
         self._notes_variation_button = QPushButton(self._notes_variation_default_text, self)

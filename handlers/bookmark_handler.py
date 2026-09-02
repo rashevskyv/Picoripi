@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QMessageBox, QInputDialog, QTreeWidgetItemIterator
 from PyQt6.QtCore import Qt, QTimer
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_debug
+from core.i18n import tr
 
 class BookmarkHandler(BaseHandler):
     """
@@ -28,8 +29,8 @@ class BookmarkHandler(BaseHandler):
         if block_idx == -1 or string_idx == -1:
             QMessageBox.warning(
                 self.mw,
-                "Add Bookmark",
-                "Please select a block and a string to bookmark."
+                tr('Add Bookmark'),
+                tr('Please select a block and a string to bookmark.')
             )
             return
 
@@ -100,7 +101,7 @@ class BookmarkHandler(BaseHandler):
             if current_project_name != bookmark.get('project_name'):
                 QMessageBox.warning(
                     self.mw,
-                    "Jump to Bookmark",
+                    tr('Jump to Bookmark'),
                     f"This bookmark belongs to project '{bookmark.get('project_name')}', "
                     f"but the currently active project is '{current_project_name or 'None'}'."
                 )
@@ -165,8 +166,8 @@ class BookmarkHandler(BaseHandler):
 
         reply = QMessageBox.question(
             self.mw,
-            "Clear Bookmarks",
-            "Are you sure you want to delete all bookmarks?",
+            tr('Clear Bookmarks'),
+            tr('Are you sure you want to delete all bookmarks?'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
@@ -193,7 +194,7 @@ class BookmarkHandler(BaseHandler):
         name = bookmark.get('name', 'Bookmark')
         reply = QMessageBox.question(
             self.mw,
-            "Delete Bookmark",
+            tr('Delete Bookmark'),
             f"Are you sure you want to delete bookmark '{name}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
@@ -217,8 +218,8 @@ class BookmarkHandler(BaseHandler):
         bookmarks = getattr(self.mw, 'bookmarks', [])
         if bookmarks:
             # Add Delete Bookmark Submenu
-            delete_menu = self.mw.bookmarks_menu.addMenu("Delete Bookmark")
-            delete_menu.setToolTip("Select a bookmark to delete")
+            delete_menu = self.mw.bookmarks_menu.addMenu(tr('Delete Bookmark'))
+            delete_menu.setToolTip(tr('Select a bookmark to delete'))
             for b in bookmarks:
                 block_name = b.get('block_name', 'Unknown Block')
                 string_idx = b.get('string_idx', 0)
@@ -235,7 +236,7 @@ class BookmarkHandler(BaseHandler):
         self.mw.bookmarks_menu.addSeparator()
 
         if not bookmarks:
-            no_bookmarks_action = self.mw.bookmarks_menu.addAction("No Bookmarks")
+            no_bookmarks_action = self.mw.bookmarks_menu.addAction(tr('No Bookmarks'))
             no_bookmarks_action.setEnabled(False)
             return
 

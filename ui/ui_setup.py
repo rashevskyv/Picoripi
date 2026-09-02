@@ -4,6 +4,7 @@ from ui.builders.layout_builder import LayoutBuilder
 from ui.builders.statusbar_builder import StatusBarBuilder
 from ui.builders.menu_builder import MenuBuilder
 from ui.builders.toolbar_builder import ToolBarBuilder
+from core.i18n import tr
 
 def setup_main_window_ui(main_window):
     """
@@ -11,7 +12,7 @@ def setup_main_window_ui(main_window):
     This replaces the monolithic 470-line setup function.
     """
     # 1. Basic Window Setup
-    main_window.setWindowTitle("Picoripi")
+    main_window.setWindowTitle(tr('Picoripi'))
     icon_path = Path("assets/icon.ico")
     if icon_path.exists():
         main_window.setWindowIcon(QIcon(str(icon_path)))

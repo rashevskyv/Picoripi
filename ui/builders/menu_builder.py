@@ -3,6 +3,7 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtGui import QIcon, QKeySequence, QPixmap, QPainter, QColor, QFont
 from PyQt6.QtCore import Qt, QObject, QEvent
 from pathlib import Path
+from core.i18n import tr
 
 class MenuToolTipEventFilter(QObject):
     """Menu tool tip event filter implementation."""
@@ -35,11 +36,12 @@ class MenuBuilder:
         self._build_tools_menu(menubar)
         self._build_navigation_menu(menubar)
         self._build_bookmarks_menu(menubar)
+        self._build_language_menu(menubar)
         self._build_help_menu(menubar)
 
     def _build_file_menu(self, menubar):
         """Internal helper to create file menu."""
-        file_menu = menubar.addMenu('&File')
+        file_menu = menubar.addMenu(tr('&File'))
         file_menu.setToolTipsVisible(True)
         file_menu.installEventFilter(self.tooltip_filter)
         
@@ -50,92 +52,86 @@ class MenuBuilder:
         settings_icon = QIcon.fromTheme('settings', self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView))
 
         # Project actions
-        self.mw.new_project_action = QAction(QIcon.fromTheme("document-new"), '&New Project...', self.mw)
+        self.mw.new_project_action = QAction(QIcon.fromTheme("document-new"), tr('&New Project...'), self.mw)
         self.mw.new_project_action.setShortcut('Ctrl+N')
         file_menu.addAction(self.mw.new_project_action)
 
-        self.mw.open_project_action = QAction(open_icon, '&Open Project...', self.mw)
+        self.mw.open_project_action = QAction(open_icon, tr('&Open Project...'), self.mw)
         self.mw.open_project_action.setShortcut('Ctrl+O')
         file_menu.addAction(self.mw.open_project_action)
 
         # Recent Projects submenu
-        self.mw.recent_projects_menu = QMenu('Recent Projects', self.mw)
+        self.mw.recent_projects_menu = QMenu(tr('Recent Projects'), self.mw)
         self.mw.recent_projects_menu.installEventFilter(self.tooltip_filter)
         file_menu.addMenu(self.mw.recent_projects_menu)
 
-        self.mw.close_project_action = QAction('&Close Project', self.mw)
+        self.mw.close_project_action = QAction(tr('&Close Project'), self.mw)
         self.mw.close_project_action.setEnabled(False)
         file_menu.addAction(self.mw.close_project_action)
         file_menu.addSeparator()
 
         # Block actions
-        self.mw.import_block_action = QAction(QIcon.fromTheme("document-import"), '&Import Block...', self.mw)
+        self.mw.import_block_action = QAction(QIcon.fromTheme("document-import"), tr('&Import Block...'), self.mw)
         self.mw.import_block_action.setEnabled(False)
-        self.mw.import_block_action.setToolTip("This action is only available in Project mode (within a .uiproj project).")
+        self.mw.import_block_action.setToolTip(tr('This action is only available in Project mode (within a .uiproj project).'))
         file_menu.addAction(self.mw.import_block_action)
 
-        self.mw.import_directory_action = QAction(QIcon.fromTheme("folder-open"), 'Import &Directory...', self.mw)
+        self.mw.import_directory_action = QAction(QIcon.fromTheme("folder-open"), tr('Import &Directory...'), self.mw)
         self.mw.import_directory_action.setEnabled(False)
-        self.mw.import_directory_action.setToolTip("This action is only available in Project mode (within a .uiproj project).")
+        self.mw.import_directory_action.setToolTip(tr('This action is only available in Project mode (within a .uiproj project).'))
         file_menu.addAction(self.mw.import_directory_action)
         file_menu.addSeparator()
 
-        self.mw.save_action = QAction(save_icon, '&Save Changes', self.mw)
+        self.mw.save_action = QAction(save_icon, tr('&Save Changes'), self.mw)
         self.mw.save_action.setShortcut('Ctrl+S')
         self.mw.save_action.setToolTip(
-            "<b>Save changes</b><br>"
-            "Click — write every unsaved string to the translation files (Ctrl+S).<br>"
-            "Right-click a block in the tree — “Save changes for …” saves just that "
-            "block or selection.<br>"
-            "Use “Show Unsaved Only” above the tree to see what is still pending."
+            tr('<b>Save changes</b><br>Click — write every unsaved string to the translation files (Ctrl+S).<br>Right-click a block in the tree — “Save changes for …” saves just that block or selection.<br>Use “Show Unsaved Only” above the tree to see what is still pending.')
         )
         file_menu.addAction(self.mw.save_action)
 
-        self.mw.save_as_action = QAction(QIcon.fromTheme("document-save-as"), 'Save Changes &As...', self.mw)
+        self.mw.save_as_action = QAction(QIcon.fromTheme("document-save-as"), tr('Save Changes &As...'), self.mw)
         file_menu.addAction(self.mw.save_as_action)
         file_menu.addSeparator()
 
-        self.mw.reload_action = QAction(reload_icon, 'Reload Original', self.mw)
+        self.mw.reload_action = QAction(reload_icon, tr('Reload Original'), self.mw)
         file_menu.addAction(self.mw.reload_action)
 
-        self.mw.revert_action = QAction(QIcon.fromTheme("document-revert"), '&Revert Changes File to Original...', self.mw)
+        self.mw.revert_action = QAction(QIcon.fromTheme("document-revert"), tr('&Revert Changes File to Original...'), self.mw)
         file_menu.addAction(self.mw.revert_action)
         file_menu.addSeparator()
 
-        self.mw.export_translations_action = QAction(QIcon.fromTheme("document-export"), '&Export Translations to JSON...', self.mw)
+        self.mw.export_translations_action = QAction(QIcon.fromTheme("document-export"), tr('&Export Translations to JSON...'), self.mw)
         self.mw.export_translations_action.setEnabled(False)
         file_menu.addAction(self.mw.export_translations_action)
 
-        self.mw.export_original_action = QAction(QIcon.fromTheme("document-export"), '&Export Original to JSON...', self.mw)
+        self.mw.export_original_action = QAction(QIcon.fromTheme("document-export"), tr('&Export Original to JSON...'), self.mw)
         self.mw.export_original_action.setEnabled(False)
         file_menu.addAction(self.mw.export_original_action)
 
-        self.mw.import_translations_action = QAction(QIcon.fromTheme("document-import"), '&Import Translations from JSON...', self.mw)
+        self.mw.import_translations_action = QAction(QIcon.fromTheme("document-import"), tr('&Import Translations from JSON...'), self.mw)
         self.mw.import_translations_action.setEnabled(False)
         file_menu.addAction(self.mw.import_translations_action)
         file_menu.addSeparator()
 
-        self.mw.reload_tag_mappings_action = QAction(QIcon.fromTheme("preferences-system"), 'Reload &Tag Mappings from Settings', self.mw)
+        self.mw.reload_tag_mappings_action = QAction(QIcon.fromTheme("preferences-system"), tr('Reload &Tag Mappings from Settings'), self.mw)
         file_menu.addAction(self.mw.reload_tag_mappings_action)
         file_menu.addSeparator()
 
-        self.mw.open_settings_action = QAction(settings_icon, '&Settings...', self.mw)
+        self.mw.open_settings_action = QAction(settings_icon, tr('&Settings...'), self.mw)
         self.mw.open_settings_action.setShortcut('Ctrl+P')
         self.mw.open_settings_action.setToolTip(
-            "<b>Settings</b><br>"
-            "Click — open application settings: AI provider and prompts, spelling, "
-            "plugins, external script (Ctrl+P)."
+            tr('<b>Settings</b><br>Click — open application settings: AI provider and prompts, spelling, plugins, external script (Ctrl+P).')
         )
         file_menu.addAction(self.mw.open_settings_action)
         file_menu.addSeparator()
 
-        self.mw.exit_action = QAction(exit_icon, 'E&xit', self.mw)
+        self.mw.exit_action = QAction(exit_icon, tr('E&xit'), self.mw)
         self.mw.exit_action.triggered.connect(self.mw.close)
         file_menu.addAction(self.mw.exit_action)
 
     def _build_edit_menu(self, menubar):
         """Internal helper to create edit menu."""
-        edit_menu = menubar.addMenu('&Edit')
+        edit_menu = menubar.addMenu(tr('&Edit'))
         edit_menu.setObjectName('&Edit')
         edit_menu.setToolTipsVisible(True)
         edit_menu.installEventFilter(self.tooltip_filter)
@@ -152,20 +148,17 @@ class MenuBuilder:
         redo_icon = QIcon(redo_local) if Path(redo_local).exists() else QIcon.fromTheme("edit-redo", self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowForward))
         find_icon = self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
 
-        self.mw.undo_typing_action = QAction(undo_icon, '&Undo Typing', self.mw)
+        self.mw.undo_typing_action = QAction(undo_icon, tr('&Undo Typing'), self.mw)
         self.mw.undo_typing_action.setShortcut(QKeySequence.StandardKey.Undo)
         self.mw.undo_typing_action.setToolTip(
-            "<b>Undo</b><br>"
-            "Click — undo the last edit (Ctrl+Z).<br>"
-            "Works from the editor and from the Speaker field."
+            tr('<b>Undo</b><br>Click — undo the last edit (Ctrl+Z).<br>Works from the editor and from the Speaker field.')
         )
         edit_menu.addAction(self.mw.undo_typing_action)
 
-        self.mw.redo_typing_action = QAction(redo_icon, '&Redo Typing', self.mw)
+        self.mw.redo_typing_action = QAction(redo_icon, tr('&Redo Typing'), self.mw)
         self.mw.redo_typing_action.setShortcuts([QKeySequence.StandardKey.Redo, QKeySequence('Ctrl+Shift+Z')])
         self.mw.redo_typing_action.setToolTip(
-            "<b>Redo</b><br>"
-            "Click — redo the edit you just undid (Ctrl+Y or Ctrl+Shift+Z)."
+            tr('<b>Redo</b><br>Click — redo the edit you just undid (Ctrl+Y or Ctrl+Shift+Z).')
         )
         edit_menu.addAction(self.mw.redo_typing_action)
         edit_menu.addSeparator()
@@ -213,93 +206,83 @@ class MenuBuilder:
         painter_r.end()
         menu_restore_icon = QIcon(pixmap_r)
 
-        self.mw.save_translated_action = QAction(QIcon.fromTheme("document-save"), '&Save Translated', self.mw)
+        self.mw.save_translated_action = QAction(QIcon.fromTheme("document-save"), tr('&Save Translated'), self.mw)
         self.mw.save_translated_action.setShortcut('Ctrl+T')
         self.mw.save_translated_action.setEnabled(False)
         edit_menu.addAction(self.mw.save_translated_action)
 
-        self.mw.restore_translated_action = QAction(menu_restore_icon, '&Restore Translated', self.mw)
+        self.mw.restore_translated_action = QAction(menu_restore_icon, tr('&Restore Translated'), self.mw)
         self.mw.restore_translated_action.setShortcut('Ctrl+Shift+T')
         self.mw.restore_translated_action.setEnabled(False)
         edit_menu.addAction(self.mw.restore_translated_action)
         edit_menu.addSeparator()
 
-        self.mw.undo_paste_action = QAction(undo_icon, 'Undo &Paste Block', self.mw)
+        self.mw.undo_paste_action = QAction(undo_icon, tr('Undo &Paste Block'), self.mw)
         self.mw.undo_paste_action.setEnabled(False)
         edit_menu.addAction(self.mw.undo_paste_action)
         edit_menu.addSeparator()
 
-        self.mw.paste_block_action = QAction(QIcon.fromTheme("edit-paste"), '&Paste Block Text', self.mw)
+        self.mw.paste_block_action = QAction(QIcon.fromTheme("edit-paste"), tr('&Paste Block Text'), self.mw)
         self.mw.paste_block_action.setShortcut('Ctrl+Shift+V')
         edit_menu.addAction(self.mw.paste_block_action)
         edit_menu.addSeparator()
 
-        self.mw.find_action = QAction(find_icon, '&Find...', self.mw)
+        self.mw.find_action = QAction(find_icon, tr('&Find...'), self.mw)
         self.mw.find_action.setShortcut('Ctrl+F')
         self.mw.find_action.setToolTip(
-            "<b>Find</b><br>"
-            "Click — show or hide the search panel (Ctrl+F).<br>"
-            "F3 — find next, Shift+F3 — find previous.<br>"
-            "Ctrl+H — Advanced Search across the whole project."
+            tr('<b>Find</b><br>Click — show or hide the search panel (Ctrl+F).<br>F3 — find next, Shift+F3 — find previous.<br>Ctrl+H — Advanced Search across the whole project.')
         )
         edit_menu.addAction(self.mw.find_action)
 
-        self.mw.advanced_search_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), '&Advanced Search...', self.mw)
+        self.mw.advanced_search_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('&Advanced Search...'), self.mw)
         self.mw.advanced_search_action.setShortcut('Ctrl+H')
         edit_menu.addAction(self.mw.advanced_search_action)
         edit_menu.addSeparator()
         
-        self.mw.auto_fix_action = QAction(QIcon.fromTheme("document-edit"), "Auto-&fix Current String", self.mw)
+        self.mw.auto_fix_action = QAction(QIcon.fromTheme("document-edit"), tr('Auto-&fix Current String'), self.mw)
         self.mw.auto_fix_action.setShortcut(QKeySequence("Ctrl+Shift+A")) 
-        self.mw.auto_fix_action.setToolTip("Automatically fix issues in the current string (Ctrl+Shift+A). Ctrl-click to select rules.")
+        self.mw.auto_fix_action.setToolTip(tr('Automatically fix issues in the current string (Ctrl+Shift+A). Ctrl-click to select rules.'))
         edit_menu.addAction(self.mw.auto_fix_action)
         edit_menu.addSeparator()
 
-        self.mw.rescan_all_tags_action = QAction(QIcon.fromTheme("system-search"), 'Rescan All Issues', self.mw)
+        self.mw.rescan_all_tags_action = QAction(QIcon.fromTheme("system-search"), tr('Rescan All Issues'), self.mw)
         edit_menu.addAction(self.mw.rescan_all_tags_action)
         edit_menu.addSeparator()
 
-        self.mw.recalculate_widths_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_BrowserReload), 'Recalculate Font Widths', self.mw)
+        self.mw.recalculate_widths_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_BrowserReload), tr('Recalculate Font Widths'), self.mw)
         self.mw.recalculate_widths_action.setToolTip(
-            "<b>Recalculate font widths</b><br>"
-            "Click — re-measure pixel widths and re-scan issues for every string in "
-            "the project (Ctrl+Shift+R). Use it after changing fonts or width "
-            "settings.<br>"
-            "Right-click a single block in the tree — Rescan Issues / Calculate Line "
-            "Widths for that block only."
+            tr('<b>Recalculate font widths</b><br>Click — re-measure pixel widths and re-scan issues for every string in the project (Ctrl+Shift+R). Use it after changing fonts or width settings.<br>Right-click a single block in the tree — Rescan Issues / Calculate Line Widths for that block only.')
         )
         self.mw.recalculate_widths_action.setShortcut('Ctrl+Shift+R')
         edit_menu.addAction(self.mw.recalculate_widths_action)
 
     def _build_view_menu(self, menubar):
         """Internal helper to create view menu."""
-        view_menu = menubar.addMenu('&View')
+        view_menu = menubar.addMenu(tr('&View'))
         view_menu.setToolTipsVisible(True)
         view_menu.installEventFilter(self.tooltip_filter)
         self.mw.view_menu = view_menu
 
         preview_icon = self.style.standardIcon(QStyle.StandardPixmap.SP_DesktopIcon)
-        self.mw.toggle_preview_action = QAction(preview_icon, '&Preview', self.mw)
+        self.mw.toggle_preview_action = QAction(preview_icon, tr('&Preview'), self.mw)
         self.mw.toggle_preview_action.setCheckable(True)
         self.mw.toggle_preview_action.setChecked(bool(getattr(self.mw, 'preview_enabled', True)))
         self.mw.toggle_preview_action.setShortcut('Ctrl+Shift+P')
         self.mw.toggle_preview_action.setToolTip(
-            "<b>Preview</b><br>"
-            "Click — show or hide the visual in-game text preview under the editor "
-            "(Ctrl+Shift+P). Checked means visible."
+            tr('<b>Preview</b><br>Click — show or hide the visual in-game text preview under the editor (Ctrl+Shift+P). Checked means visible.')
         )
         view_menu.addAction(self.mw.toggle_preview_action)
 
         view_menu.addSeparator()
-        self.mw.toggle_hide_tags_action = QAction('&Hide Tags', self.mw)
+        self.mw.toggle_hide_tags_action = QAction(tr('&Hide Tags'), self.mw)
         self.mw.toggle_hide_tags_action.setShortcut('Ctrl+Q')
-        self.mw.toggle_hide_tags_action.setToolTip("Toggle hiding tags in both original and translation texts (Ctrl+Q)")
+        self.mw.toggle_hide_tags_action.setToolTip(tr('Toggle hiding tags in both original and translation texts (Ctrl+Q)'))
         view_menu.addAction(self.mw.toggle_hide_tags_action)
 
 
     def _build_tools_menu(self, menubar):
         """Internal helper to create tools menu."""
-        tools_menu = menubar.addMenu('&Tools')
+        tools_menu = menubar.addMenu(tr('&Tools'))
         tools_menu.setObjectName('&Tools')
         tools_menu.setToolTipsVisible(True)
         tools_menu.installEventFilter(self.tooltip_filter)
@@ -307,11 +290,9 @@ class MenuBuilder:
 
         # The wizard explains the recommended order, while the direct actions
         # remain available for experienced users.
-        self.mw.pipeline_wizard_action = QAction('&Localization Pipeline...', self.mw)
+        self.mw.pipeline_wizard_action = QAction(tr('&Localization Pipeline...'), self.mw)
         self.mw.pipeline_wizard_action.setToolTip(
-            "<b>Localization Pipeline</b><br>"
-            "Click — open the guided pipeline: every step in order, how far each "
-            "one has got, and the tool that does it."
+            tr('<b>Localization Pipeline</b><br>Click — open the guided pipeline: every step in order, how far each one has got, and the tool that does it.')
         )
         tools_menu.addAction(self.mw.pipeline_wizard_action)
         tools_menu.addSeparator()
@@ -332,13 +313,11 @@ class MenuBuilder:
 
         self.mw.bfn_editor_action = QAction(
             bfn_editor_icon,
-            'BFN &Font Editor...',
+            tr('BFN &Font Editor...'),
             self.mw
         )
         self.mw.bfn_editor_action.setToolTip(
-            "<b>BFN Font Editor</b><br>"
-            "Click — open the editor for Nintendo BFN binary fonts in a separate "
-            "window; the project stays open."
+            tr('<b>BFN Font Editor</b><br>Click — open the editor for Nintendo BFN binary fonts in a separate window; the project stays open.')
         )
         tools_menu.addAction(self.mw.bfn_editor_action)
 
@@ -356,10 +335,10 @@ class MenuBuilder:
 
         self.mw.script_markup_studio_action = QAction(
             markup_icon,
-            'Script Markup &Studio...',
+            tr('Script Markup &Studio...'),
             self.mw
         )
-        self.mw.script_markup_studio_action.setToolTip('Convert a raw walkthrough into the standardized script format for MemePalace (Phase 0)')
+        self.mw.script_markup_studio_action.setToolTip(tr('Convert a raw walkthrough into the standardized script format for MemePalace (Phase 0)'))
         tools_menu.addAction(self.mw.script_markup_studio_action)
 
         # Create a dynamic beautiful icon for MemePalace Context Builder with letter 'M'
@@ -376,10 +355,10 @@ class MenuBuilder:
 
         self.mw.mempalace_builder_action = QAction(
             mempalace_icon,
-            'Meme&Palace Context Builder...',
+            tr('Meme&Palace Context Builder...'),
             self.mw
         )
-        self.mw.mempalace_builder_action.setToolTip('Weave chronological context walkthrough into your project memory (Ctrl+M)')
+        self.mw.mempalace_builder_action.setToolTip(tr('Weave chronological context walkthrough into your project memory (Ctrl+M)'))
         self.mw.mempalace_builder_action.setShortcut('Ctrl+M')
         tools_menu.addAction(self.mw.mempalace_builder_action)
 
@@ -396,18 +375,17 @@ class MenuBuilder:
 
         self.mw.build_glossary_text_action = QAction(
             QIcon(pixmap_g),
-            'Prepare &Glossary...',
+            tr('Prepare &Glossary...'),
             self.mw
         )
         self.mw.build_glossary_text_action.setToolTip(
-            'Seed, discover, describe, and propose glossary translations in one automatic pass'
+            tr('Seed, discover, describe, and propose glossary translations in one automatic pass')
         )
         tools_menu.addAction(self.mw.build_glossary_text_action)
 
-        self.mw.merge_speakers_action = QAction('&Merge Speakers from Script...', self.mw)
+        self.mw.merge_speakers_action = QAction(tr('&Merge Speakers from Script...'), self.mw)
         self.mw.merge_speakers_action.setToolTip(
-            'Match the marked-up script against the lines the game data already grouped '
-            'by speaker, and give those speaker codes their real names'
+            tr('Match the marked-up script against the lines the game data already grouped by speaker, and give those speaker codes their real names')
         )
         tools_menu.addAction(self.mw.merge_speakers_action)
 
@@ -425,10 +403,10 @@ class MenuBuilder:
 
         self.mw.inspect_story_context_action = QAction(
             story_icon,
-            'Inspect &Story Context...',
+            tr('Inspect &Story Context...'),
             self.mw
         )
-        self.mw.inspect_story_context_action.setToolTip('Show timeline, speaker and visual context for the selected row from MemePalace (Ctrl+I)')
+        self.mw.inspect_story_context_action.setToolTip(tr('Show timeline, speaker and visual context for the selected row from MemePalace (Ctrl+I)'))
         self.mw.inspect_story_context_action.setShortcut('Ctrl+I')
         tools_menu.addAction(self.mw.inspect_story_context_action)
 
@@ -446,21 +424,21 @@ class MenuBuilder:
 
         self.mw.mempalace_viewer_action = QAction(
             viewer_icon,
-            'MemePalace Database &Viewer...',
+            tr('MemePalace Database &Viewer...'),
             self.mw
         )
-        self.mw.mempalace_viewer_action.setToolTip('Examine and browse full rooms, visual contexts and character graph relations in local database (Ctrl+Shift+I)')
+        self.mw.mempalace_viewer_action.setToolTip(tr('Examine and browse full rooms, visual contexts and character graph relations in local database (Ctrl+Shift+I)'))
         self.mw.mempalace_viewer_action.setShortcut('Ctrl+Shift+I')
         tools_menu.addAction(self.mw.mempalace_viewer_action)
         tools_menu.addSeparator()
 
         self.mw.fix_all_strings_action = QAction(
             QIcon.fromTheme("edit-find-replace"),
-            'Fix All Strings...',
+            tr('Fix All Strings...'),
             self.mw
         )
         self.mw.fix_all_strings_action.setToolTip(
-            'Automatically fix selected types of formatting and layout issues across all strings'
+            tr('Automatically fix selected types of formatting and layout issues across all strings')
         )
         tools_menu.addAction(self.mw.fix_all_strings_action)
 
@@ -468,22 +446,22 @@ class MenuBuilder:
 
         self.mw.export_bmg_json_action = QAction(
             self.style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton),
-            'Export Current BMG to &JSON...',
+            tr('Export Current BMG to &JSON...'),
             self.mw
         )
         self.mw.export_bmg_json_action.setToolTip(
-            'Export the text content of the currently selected BMG file to a JSON file for inspection'
+            tr('Export the text content of the currently selected BMG file to a JSON file for inspection')
         )
         self.mw.export_bmg_json_action.setEnabled(False)
         tools_menu.addAction(self.mw.export_bmg_json_action)
 
         self.mw.import_bmg_json_action = QAction(
             self.style.standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton),
-            'Import Current BMG from &JSON...',
+            tr('Import Current BMG from &JSON...'),
             self.mw
         )
         self.mw.import_bmg_json_action.setToolTip(
-            'Import BMG text content from an exported JSON file into the currently selected block'
+            tr('Import BMG text content from an exported JSON file into the currently selected block')
         )
         self.mw.import_bmg_json_action.setEnabled(False)
         tools_menu.addAction(self.mw.import_bmg_json_action)
@@ -491,67 +469,87 @@ class MenuBuilder:
 
     def _build_navigation_menu(self, menubar):
         """Internal helper to create navigation menu."""
-        self.mw.navigation_menu = menubar.addMenu('&Navigation')
+        self.mw.navigation_menu = menubar.addMenu(tr('&Navigation'))
         self.mw.navigation_menu.setToolTipsVisible(True)
         self.mw.navigation_menu.installEventFilter(self.tooltip_filter)
         
-        self.mw.next_block_nav_action = QAction('Next Block Nav', self.mw)
+        self.mw.next_block_nav_action = QAction(tr('Next Block Nav'), self.mw)
         self.mw.next_block_nav_action.setShortcut(QKeySequence('Alt+Shift+Down'))
         self.mw.next_block_nav_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
         self.mw.navigation_menu.addAction(self.mw.next_block_nav_action)
 
-        self.mw.prev_block_nav_action = QAction('Previous Block Nav', self.mw)
+        self.mw.prev_block_nav_action = QAction(tr('Previous Block Nav'), self.mw)
         self.mw.prev_block_nav_action.setShortcut(QKeySequence('Alt+Shift+Up'))
         self.mw.prev_block_nav_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
         self.mw.navigation_menu.addAction(self.mw.prev_block_nav_action)
 
-        self.mw.next_folder_nav_action = QAction('Next Folder Nav', self.mw)
+        self.mw.next_folder_nav_action = QAction(tr('Next Folder Nav'), self.mw)
         self.mw.next_folder_nav_action.setShortcut(QKeySequence('Alt+Shift+Right'))
         self.mw.next_folder_nav_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
         self.mw.navigation_menu.addAction(self.mw.next_folder_nav_action)
 
-        self.mw.prev_folder_nav_action = QAction('Previous Folder Nav', self.mw)
+        self.mw.prev_folder_nav_action = QAction(tr('Previous Folder Nav'), self.mw)
         self.mw.prev_folder_nav_action.setShortcut(QKeySequence('Alt+Shift+Left'))
         self.mw.prev_folder_nav_action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
         self.mw.navigation_menu.addAction(self.mw.prev_folder_nav_action)
 
     def _build_bookmarks_menu(self, menubar):
         """Internal helper to create bookmarks menu."""
-        bookmarks_menu = menubar.addMenu('&Bookmarks')
+        bookmarks_menu = menubar.addMenu(tr('&Bookmarks'))
         bookmarks_menu.setToolTipsVisible(True)
         bookmarks_menu.installEventFilter(self.tooltip_filter)
         self.mw.bookmarks_menu = bookmarks_menu
 
         # Add Bookmark Action
-        self.mw.add_bookmark_action = QAction('&Add Bookmark...', self.mw)
+        self.mw.add_bookmark_action = QAction(tr('&Add Bookmark...'), self.mw)
         self.mw.add_bookmark_action.setShortcut('Ctrl+B')
-        self.mw.add_bookmark_action.setToolTip("Add bookmark at the current line of the active block (Ctrl+B)")
+        self.mw.add_bookmark_action.setToolTip(tr('Add bookmark at the current line of the active block (Ctrl+B)'))
         bookmarks_menu.addAction(self.mw.add_bookmark_action)
 
         # Clear Bookmarks Action
-        self.mw.clear_bookmarks_action = QAction('&Clear All Bookmarks', self.mw)
-        self.mw.clear_bookmarks_action.setToolTip("Delete all bookmarks persistently")
+        self.mw.clear_bookmarks_action = QAction(tr('&Clear All Bookmarks'), self.mw)
+        self.mw.clear_bookmarks_action.setToolTip(tr('Delete all bookmarks persistently'))
         bookmarks_menu.addAction(self.mw.clear_bookmarks_action)
 
         bookmarks_menu.addSeparator()
 
+    def _build_language_menu(self, menubar):
+        """Separate Language menu: English source plus catalogs from languages.json."""
+        from core.i18n import available_languages, current_language, language_names
+
+        language_menu = menubar.addMenu(tr('&Language'))
+        language_menu.setToolTipsVisible(True)
+        language_menu.installEventFilter(self.tooltip_filter)
+        self.mw.language_menu = language_menu
+        self.mw.language_actions = {}
+        names = language_names()
+        current = current_language()
+        for code in available_languages():
+            label = names.get(code, code)
+            action = QAction(label, self.mw)
+            action.setCheckable(True)
+            action.setChecked(code == current)
+            action.setData(code)
+            action.setToolTip(tr('Restart is required after changing the interface language.'))
+            action.triggered.connect(lambda checked, c=code: self.mw.change_ui_language(c))
+            language_menu.addAction(action)
+            self.mw.language_actions[code] = action
+
     def _build_help_menu(self, menubar):
         """Internal helper to create help menu."""
-        self.mw.help_shortcuts_action = QAction(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton)), '&Shortcuts Help', self.mw)
+        self.mw.help_shortcuts_action = QAction(QIcon.fromTheme("input-keyboard", self.style.standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton)), tr('&Shortcuts Help'), self.mw)
         self.mw.help_shortcuts_action.setShortcut('F1')
         self.mw.help_shortcuts_action.setToolTip(
-            "<b>Shortcuts help</b><br>"
-            "Click — open the full keyboard shortcuts reference (F1).<br>"
-            "Modifier-clicks are described in each button's own tooltip."
+            tr("<b>Shortcuts help</b><br>Click — open the full keyboard shortcuts reference (F1).<br>Modifier-clicks are described in each button's own tooltip.")
         )
 
-        help_menu = QMenu('&Help', menubar)
+        help_menu = QMenu(tr('&Help'), menubar)
         help_menu.setToolTipsVisible(True)
         help_menu.installEventFilter(self.tooltip_filter)
         help_menu.addAction(self.mw.help_shortcuts_action)
         
         help_button = QToolButton()
-        help_button.setText("Help")
+        help_button.setText(tr("Help"))
         help_button.setMenu(help_menu)
         help_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         help_button.setStyleSheet("QToolButton { border: none; padding: 5px 10px; background: transparent; } QToolButton::menu-indicator { image: none; } QToolButton:hover { background-color: rgba(0,0,0,0.1); }")

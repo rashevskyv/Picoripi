@@ -8,6 +8,7 @@ from core.translation.providers import get_provider_for_config, ProviderResponse
 from core.tag_utils import mask_all_tags_including_visual_markers
 from components.ai_status_dialog import AIStatusDialog
 from handlers.translation.ai_worker import AIWorker
+from core.i18n import tr
 
 class GlossaryBuilderHandler:
     """Handler for glossary builder operations."""
@@ -27,7 +28,7 @@ class GlossaryBuilderHandler:
                 return json.load(f)
         except Exception as e:
             log_debug(f"Error loading glossary builder prompts: {e}")
-            QMessageBox.critical(self.mw, "Error", "Could not load glossary builder prompts file.")
+            QMessageBox.critical(self.mw, tr('Error'), tr('Could not load glossary builder prompts file.'))
             return None
 
     def _split_text_into_chunks(self, text, chunk_size):
@@ -92,7 +93,7 @@ class GlossaryBuilderHandler:
                 break
 
         if not has_content:
-            QMessageBox.information(self.mw, "Info", "The selected block/category is empty. Nothing to process.")
+            QMessageBox.information(self.mw, tr('Info'), tr('The selected block/category is empty. Nothing to process.'))
             return
 
         # 2. Get AI settings
@@ -111,8 +112,8 @@ class GlossaryBuilderHandler:
             if provider_name not in ('Ollama',) and not is_custom and not (resolved_credentials.get('api_key') or resolved_credentials.get('api_key_env')):
                 QMessageBox.warning(
                     self.mw,
-                    "AI Error",
-                    "No API key is configured for the selected glossary provider in AI Translation settings."
+                    tr('AI Error'),
+                    tr('No API key is configured for the selected glossary provider in AI Translation settings.')
                 )
                 return
 
@@ -123,7 +124,7 @@ class GlossaryBuilderHandler:
             provider = get_provider_for_config(glossary_ai_config)
         except Exception as e:
             log_debug(f"Failed to initialize AI provider: {e}")
-            QMessageBox.critical(self.mw, "AI Error", f"Failed to initialize AI provider: {e}")
+            QMessageBox.critical(self.mw, tr('AI Error'), f"Failed to initialize AI provider: {e}")
             return
 
         self._start_async_glossary_task(block_id, provider, glossary_ai_config, block_data, target_indices, chunk_size)
@@ -222,12 +223,12 @@ class GlossaryBuilderHandler:
 
         manager = self._glossary_manager
         if not manager:
-            QMessageBox.warning(self.mw, "AI Error", "Glossary manager is not available.")
+            QMessageBox.warning(self.mw, tr('AI Error'), tr('Glossary manager is not available.'))
             self._cleanup_worker()
             return
 
         if not aggregated_terms:
-            QMessageBox.information(self.mw, "Finished", "The AI did not find any new terms to add to the glossary.")
+            QMessageBox.information(self.mw, tr('Finished'), tr('The AI did not find any new terms to add to the glossary.'))
             if status_bar:
                 status_bar.showMessage("Glossary generation complete.", 5000)
             self._cleanup_worker()
@@ -289,21 +290,21 @@ class GlossaryBuilderHandler:
             f"skipped duplicates={skipped_duplicates}"
         )
 
-        QMessageBox.information(self.mw, "Success", summary_text)
+        QMessageBox.information(self.mw, tr('Success'), summary_text)
         if status_bar:
             status_bar.showMessage(summary_text, 5000)
         self._cleanup_worker()
 
     def _on_glossary_error(self, message: str, status_bar) -> None:
         """Internal helper to handle the glossary error event."""
-        QMessageBox.warning(self.mw, "AI Error", message)
+        QMessageBox.warning(self.mw, tr('AI Error'), message)
         if status_bar:
             status_bar.showMessage("Glossary generation failed.", 5000)
         self._cleanup_worker()
 
     def _on_glossary_cancelled(self, status_bar) -> None:
         """Internal helper to handle the glossary cancelled event."""
-        QMessageBox.information(self.mw, "Cancelled", "Glossary generation was cancelled.")
+        QMessageBox.information(self.mw, tr('Cancelled'), tr('Glossary generation was cancelled.'))
         if status_bar:
             status_bar.showMessage("Glossary generation cancelled.", 5000)
         self._cleanup_worker()

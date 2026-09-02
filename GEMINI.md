@@ -10,6 +10,12 @@ This document provides a comprehensive overview of the "Picoripi" project to be 
 # Gemini Web2API
 - Recommended AI backend for glossary and batch translation. How-to: `docs/wiki/5_Gemini_Web2API.md`.
 
+# UI language (i18n)
+
+- User-visible Picoripi chrome goes through `tr("English source")` (`core/i18n.py`). The English literal is the catalog key.
+- When you add or change a UI string, put the English text in `tr("...")` **and** add the same key to `locales/uk.json` in the same change. Later languages use the Ukrainian wording as extra context.
+- The in-app **Language** menu ships **English** and **Українська** only. Other catalogs are filled by `tools/i18n-translate/run.bat` before a multi-language deploy. Do not add Russian.
+
 ## AI Development Manifesto (Mandatory)
 
 Picoripi is largely AI-developed, so every AI agent must behave like a careful maintainer, not like a one-shot code generator. This section is the required operating contract for AI work in this repository. The extended version lives in `docs/AI_DEVELOPMENT_MANIFESTO.md`, but the rules below are authoritative even when that file is not opened.

@@ -2,12 +2,13 @@ import os
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QPlainTextEdit, QLabel, QMessageBox, QLineEdit
 from PyQt6.QtCore import QProcess, Qt
 from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor
+from core.i18n import tr
 
 class ScriptRunnerDialog(QDialog):
     def __init__(self, parent, script_path: str):
         super().__init__(parent)
         self.script_path = script_path
-        self.setWindowTitle("External Script Execution")
+        self.setWindowTitle(tr('External Script Execution'))
         self.resize(750, 480)
         self.setMinimumSize(500, 300)
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMinMaxButtonsHint)
@@ -20,7 +21,7 @@ class ScriptRunnerDialog(QDialog):
         layout = QVBoxLayout(self)
         
         # Header showing status and script path
-        self.status_label = QLabel("Starting external script...", self)
+        self.status_label = QLabel(tr('Starting external script...'), self)
         self.status_label.setStyleSheet("font-weight: bold; font-size: 13px; color: #0284c7;")
         layout.addWidget(self.status_label)
         
@@ -46,7 +47,7 @@ class ScriptRunnerDialog(QDialog):
         # Interactive stdin layout (input field + Send button)
         input_layout = QHBoxLayout()
         self.input_edit = QLineEdit(self)
-        self.input_edit.setPlaceholderText("Type input for script here and press Enter to send...")
+        self.input_edit.setPlaceholderText(tr('Type input for script here and press Enter to send...'))
         self.input_edit.setStyleSheet(
             "background-color: #1e293b; color: #ffffff; border: 1px solid #475569; border-radius: 4px; padding: 6px; font-family: Consolas, monospace;"
         )
@@ -54,12 +55,9 @@ class ScriptRunnerDialog(QDialog):
         self.input_edit.setEnabled(False)
         input_layout.addWidget(self.input_edit)
         
-        self.send_button = QPushButton("Send", self)
+        self.send_button = QPushButton(tr('Send'), self)
         self.send_button.setToolTip(
-            "<b>Send</b><br>"
-            "Click — pass the typed line to the running script's standard input "
-            "(Enter in the input field does the same).<br>"
-            "Enabled only while a process is running."
+            tr("<b>Send</b><br>Click — pass the typed line to the running script's standard input (Enter in the input field does the same).<br>Enabled only while a process is running.")
         )
         self.send_button.setStyleSheet(
             "background-color: #0284c7; color: white; font-weight: bold; padding: 6px 16px; border-radius: 4px;"
@@ -74,22 +72,18 @@ class ScriptRunnerDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         
-        self.stop_button = QPushButton("Stop Process", self)
+        self.stop_button = QPushButton(tr('Stop Process'), self)
         self.stop_button.setToolTip(
-            "<b>Stop process</b><br>"
-            "Click — terminate the running script. Output produced so far stays in "
-            "the log."
+            tr('<b>Stop process</b><br>Click — terminate the running script. Output produced so far stays in the log.')
         )
         self.stop_button.setStyleSheet("background-color: #dc2626; color: white; font-weight: bold; padding: 6px 12px; border-radius: 4px;")
         self.stop_button.clicked.connect(self.stop_process)
         self.stop_button.setEnabled(False)
         btn_layout.addWidget(self.stop_button)
         
-        self.close_button = QPushButton("Close", self)
+        self.close_button = QPushButton(tr('Close'), self)
         self.close_button.setToolTip(
-            "<b>Close</b><br>"
-            "Click — close this window. Stop the process first if it is still "
-            "running."
+            tr('<b>Close</b><br>Click — close this window. Stop the process first if it is still running.')
         )
         self.close_button.setStyleSheet("padding: 6px 12px; border-radius: 4px;")
         self.close_button.clicked.connect(self.close)
@@ -108,7 +102,7 @@ class ScriptRunnerDialog(QDialog):
         self.process.finished.connect(self.handle_finished)
         self.process.errorOccurred.connect(self.handle_error)
         
-        self.status_label.setText("Running script...")
+        self.status_label.setText(tr('Running script...'))
         self.status_label.setStyleSheet("font-weight: bold; font-size: 13px; color: #d97706;") # Orange for running
         self.stop_button.setEnabled(True)
         self.input_edit.setEnabled(True)
@@ -196,13 +190,13 @@ class ScriptRunnerDialog(QDialog):
         self.send_button.setEnabled(False)
         if exit_status == QProcess.ExitStatus.NormalExit:
             if exit_code == 0:
-                self.status_label.setText("Success: Script finished successfully!")
+                self.status_label.setText(tr('Success: Script finished successfully!'))
                 self.status_label.setStyleSheet("font-weight: bold; font-size: 13px; color: #16a34a;") # Green
             else:
                 self.status_label.setText(f"Error: Script exited with code {exit_code}")
                 self.status_label.setStyleSheet("font-weight: bold; font-size: 13px; color: #dc2626;") # Red
         else:
-            self.status_label.setText("Crashed: Script crashed or was stopped.")
+            self.status_label.setText(tr('Crashed: Script crashed or was stopped.'))
             self.status_label.setStyleSheet("font-weight: bold; font-size: 13px; color: #dc2626;")
 
     def handle_error(self, error):
@@ -211,15 +205,15 @@ class ScriptRunnerDialog(QDialog):
         self.send_button.setEnabled(False)
         err_msg = self.process.errorString()
         self.append_output(f"\n[Process Error]: {err_msg}\n", is_error=True)
-        self.status_label.setText("Error: Failed to execute script.")
+        self.status_label.setText(tr('Error: Failed to execute script.'))
         self.status_label.setStyleSheet("font-weight: bold; font-size: 13px; color: #dc2626;")
 
     def stop_process(self):
         if self.process and self.process.state() == QProcess.ProcessState.Running:
             reply = QMessageBox.question(
                 self,
-                "Stop Process",
-                "Are you sure you want to terminate the running script?",
+                tr('Stop Process'),
+                tr('Are you sure you want to terminate the running script?'),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
@@ -232,8 +226,8 @@ class ScriptRunnerDialog(QDialog):
         if self.process and self.process.state() == QProcess.ProcessState.Running:
             reply = QMessageBox.question(
                 self,
-                "Script Still Running",
-                "The script is still running. Would you like to terminate it and close the window?",
+                tr('Script Still Running'),
+                tr('The script is still running. Would you like to terminate it and close the window?'),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )

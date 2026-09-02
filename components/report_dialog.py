@@ -1,5 +1,6 @@
 # components/report_dialog.py
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPlainTextEdit, QPushButton
+from core.i18n import tr
 
 class LargeTextReportDialog(QDialog):
     """Dialog class for large text report."""
@@ -21,11 +22,9 @@ class LargeTextReportDialog(QDialog):
         self.text_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         layout.addWidget(self.text_edit)
         
-        close_btn = QPushButton("Close", self)
+        close_btn = QPushButton(tr('Close'), self)
         close_btn.setToolTip(
-            "<b>Close</b><br>"
-            "Click — dismiss the report (Esc).<br>"
-            "Select text above and press Ctrl+C first if you want to keep a copy."
+            tr('<b>Close</b><br>Click — dismiss the report (Esc).<br>Select text above and press Ctrl+C first if you want to keep a copy.')
         )
         close_btn.clicked.connect(self.accept)
         layout.addWidget(close_btn)

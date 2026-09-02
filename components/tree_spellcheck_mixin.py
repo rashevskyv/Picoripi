@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 
 from utils.logging_utils import log_debug, log_error
+from core.i18n import tr
 
 
 class TreeSpellcheckMixin:
@@ -55,7 +56,7 @@ class TreeSpellcheckMixin:
         """Internal helper to open explorer at path."""
         path_obj = Path(abs_path)
         if not path_obj.exists():
-            QMessageBox.warning(self, "Reveal", f"File not found:\n{abs_path}")
+            QMessageBox.warning(self, tr('Reveal'), f"File not found:\n{abs_path}")
             return
         if platform.system() == "Windows":
             subprocess.Popen(['explorer', '/select,', str(path_obj)])
@@ -123,10 +124,10 @@ class TreeSpellcheckMixin:
             text_to_check = '\n'.join(text_parts)
             if not text_to_check.strip():
                 if not all_translated_lines:
-                    QMessageBox.information(self, "Spellcheck", "No text found to check in this block.")
+                    QMessageBox.information(self, tr('Spellcheck'), tr('No text found to check in this block.'))
                 else:
                     QMessageBox.information(
-                        self, "Spellcheck",
+                        self, tr('Spellcheck'),
                         f"No spelling errors found!\nChecked {len(all_translated_lines)} lines.",
                     )
                 return

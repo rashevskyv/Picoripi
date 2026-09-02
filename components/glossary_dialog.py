@@ -43,6 +43,7 @@ from core.glossary_manager import (
 )
 from core.speaker_alias_merge import is_confirmed_speaker_alias
 from utils.window_utils import show_as_independent_window
+from core.i18n import tr
 
 # Rows awaiting a human decision. Two strengths so a choice-between-variants
 # is darker than a translation that just has not been confirmed yet.
@@ -184,7 +185,7 @@ class GlossaryDialog(QDialog):
     ) -> None:
         """Initialize a new instance."""
         super().__init__(None)
-        self.setWindowTitle("Glossary")
+        self.setWindowTitle(tr('Glossary'))
         show_as_independent_window(self)
         self.resize(840, 520)
 
@@ -232,21 +233,20 @@ class GlossaryDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        header = QLabel("Select a term to review occurrences. Double-click an occurrence to jump to the editor.", self)
+        header = QLabel(tr('Select a term to review occurrences. Double-click an occurrence to jump to the editor.'), self)
         header.setWordWrap(True)
         layout.addWidget(header)
 
         search_layout = QHBoxLayout()
-        search_layout.addWidget(QLabel("Search:", self))
+        search_layout.addWidget(QLabel(tr('Search:'), self))
         self._search_field = QLineEdit(self)
-        self._search_field.setPlaceholderText("Type a term or translation...")
+        self._search_field.setPlaceholderText(tr('Type a term or translation...'))
         self._search_field.setProperty("selectAllOnClick", True)
         self._search_field.textChanged.connect(self._apply_filter)
         search_layout.addWidget(self._search_field, 1)
-        self._unconfirmed_only_checkbox = QCheckBox("Needs review", self)
+        self._unconfirmed_only_checkbox = QCheckBox(tr('Needs review'), self)
         self._unconfirmed_only_checkbox.setToolTip(
-            "Show only entries still awaiting your decision — highlighted rows: several "
-            "translation variants were proposed, or the entry has not been confirmed yet."
+            tr('Show only entries still awaiting your decision — highlighted rows: several translation variants were proposed, or the entry has not been confirmed yet.')
         )
         self._unconfirmed_only_checkbox.stateChanged.connect(
             lambda _state: self._apply_filter(self._search_field.text())
@@ -268,15 +268,15 @@ class GlossaryDialog(QDialog):
         self._main_splitter.setStretchFactor(0, 1)
         self._main_splitter.setStretchFactor(1, 1)
         self._main_splitter.setSizes([360, 480])
-        self._original_label = QLabel("", self)
+        self._original_label = QLabel(tr(''), self)
         self._original_label.setWordWrap(True)
         right_layout.addWidget(self._original_label)
 
         category_row = QHBoxLayout()
-        category_row.addWidget(QLabel("Category:", self))
+        category_row.addWidget(QLabel(tr('Category:'), self))
         self._category_combo = QComboBox(self)
         self._category_combo.setEditable(True)
-        self._category_combo.setPlaceholderText("Select or type a new category...")
+        self._category_combo.setPlaceholderText(tr('Select or type a new category...'))
         category_row.addWidget(self._category_combo, 1)
         right_layout.addLayout(category_row)
 
@@ -298,12 +298,12 @@ class GlossaryDialog(QDialog):
         combo_row = QHBoxLayout()
         self._speaker_name_combo = QComboBox(self)
         self._speaker_name_combo.setEditable(True)
-        self._speaker_name_combo.setPlaceholderText("Enter or select permanent character name...")
+        self._speaker_name_combo.setPlaceholderText(tr('Enter or select permanent character name...'))
         self._speaker_name_combo.editTextChanged.connect(lambda _text: self._validate_speaker_name())
         self._speaker_name_combo.currentIndexChanged.connect(lambda _idx: self._validate_speaker_name())
         combo_row.addWidget(self._speaker_name_combo, 1)
 
-        self._apply_speaker_name_button = QPushButton("Apply speaker name", self)
+        self._apply_speaker_name_button = QPushButton(tr('Apply speaker name'), self)
         self._apply_speaker_name_button.clicked.connect(self._on_apply_speaker_name_clicked)
         combo_row.addWidget(self._apply_speaker_name_button)
 
@@ -311,16 +311,14 @@ class GlossaryDialog(QDialog):
         right_layout.addWidget(self._speaker_identity_pane)
         self._speaker_identity_pane.setVisible(False)
 
-        translation_label = QLabel("Translation:", self)
+        translation_label = QLabel(tr('Translation:'), self)
         right_layout.addWidget(translation_label)
         self._translation_edit = QLineEdit(self)
         right_layout.addWidget(self._translation_edit)
 
-        self._confirm_button = QPushButton("Confirm translation", self)
+        self._confirm_button = QPushButton(tr('Confirm translation'), self)
         self._confirm_button.setToolTip(
-            "Mark this translation as decided and move to the next term. "
-            "Unreviewed rows stay pale yellow; several proposed variants stay orange "
-            "until you pick one."
+            tr('Mark this translation as decided and move to the next term. Unreviewed rows stay pale yellow; several proposed variants stay orange until you pick one.')
         )
         self._confirm_button.clicked.connect(self._on_confirm_clicked)
         right_layout.addWidget(self._confirm_button)
@@ -336,7 +334,7 @@ class GlossaryDialog(QDialog):
         self._variants_pane.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         variants_layout = QVBoxLayout(self._variants_pane)
         variants_layout.setContentsMargins(0, 0, 0, 0)
-        self._variants_label = QLabel("Proposed variants (pick one):", self)
+        self._variants_label = QLabel(tr('Proposed variants (pick one):'), self)
         variants_layout.addWidget(self._variants_label)
         self._variants_list = QListWidget(self)
         self._variants_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -351,16 +349,16 @@ class GlossaryDialog(QDialog):
         lower_details_layout = QVBoxLayout(lower_details_pane)
         lower_details_layout.setContentsMargins(0, 0, 0, 0)
         variants_btn_layout = QHBoxLayout()
-        self._apply_variant_button = QPushButton("Apply selected variant", self)
+        self._apply_variant_button = QPushButton(tr('Apply selected variant'), self)
         self._apply_variant_button.setToolTip(
-            "Apply the selected variant translation, confirm the term, and move to the next entry."
+            tr('Apply the selected variant translation, confirm the term, and move to the next entry.')
         )
         self._apply_variant_button.clicked.connect(self._on_apply_selected_variant)
         variants_btn_layout.addWidget(self._apply_variant_button)
 
-        self._discuss_variant_button = QPushButton("Discuss with AI…", self)
+        self._discuss_variant_button = QPushButton(tr('Discuss with AI…'), self)
         self._discuss_variant_button.setToolTip(
-            "Open AI chat with term context to discuss the proposed variants."
+            tr('Open AI chat with term context to discuss the proposed variants.')
         )
         self._discuss_variant_button.clicked.connect(self._on_discuss_variants_clicked)
         variants_btn_layout.addWidget(self._discuss_variant_button)
@@ -375,10 +373,10 @@ class GlossaryDialog(QDialog):
         notes_pane = _DetailPane(self)
         notes_layout = QVBoxLayout(notes_pane)
         notes_layout.setContentsMargins(0, 0, 0, 0)
-        self._profiled_checkbox = QCheckBox("Profiled via AI (Speech Profile generated)", self)
+        self._profiled_checkbox = QCheckBox(tr('Profiled via AI (Speech Profile generated)'), self)
         notes_layout.addWidget(self._profiled_checkbox)
         notes_row = QHBoxLayout()
-        notes_label = QLabel("Description:", self)
+        notes_label = QLabel(tr('Description:'), self)
         notes_row.addWidget(notes_label)
         self._notes_variation_default_text = "AI Variations"
         self._notes_variation_button = QPushButton(self._notes_variation_default_text, self)
@@ -396,19 +394,19 @@ class GlossaryDialog(QDialog):
         ai_notes_pane = _DetailPane(self)
         ai_notes_layout = QVBoxLayout(ai_notes_pane)
         ai_notes_layout.setContentsMargins(0, 0, 0, 0)
-        ai_notes_label = QLabel("AI notes and unresolved choices:", self)
+        ai_notes_label = QLabel(tr('AI notes and unresolved choices:'), self)
         ai_notes_layout.addWidget(ai_notes_label)
         self._ai_notes_edit = QPlainTextEdit(self)
         self._ai_notes_edit.setReadOnly(True)
         self._ai_notes_edit.setUndoRedoEnabled(False)
-        self._ai_notes_edit.setPlaceholderText("No AI doubts or alternative choices recorded.")
+        self._ai_notes_edit.setPlaceholderText(tr('No AI doubts or alternative choices recorded.'))
         ai_notes_layout.addWidget(self._ai_notes_edit, 1)
         self._lower_detail_splitter.addWidget(ai_notes_pane)
 
         occurrences_pane = _DetailPane(self)
         occurrences_layout = QVBoxLayout(occurrences_pane)
         occurrences_layout.setContentsMargins(0, 0, 0, 0)
-        self._occurrence_label = QLabel("Mentions: 0   Spoken: 0", self)
+        self._occurrence_label = QLabel(tr('Mentions: 0   Spoken: 0'), self)
         occurrences_layout.addWidget(self._occurrence_label)
         self._occurrence_list = QListWidget(self)
         self._occurrence_list.setSpacing(6)
@@ -427,13 +425,13 @@ class GlossaryDialog(QDialog):
         self._lower_detail_splitter.setSizes([180, 160, 200])
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, parent=self)
         
-        self._save_button = QPushButton("Save Changes", self)
+        self._save_button = QPushButton(tr('Save Changes'), self)
         self._save_button.clicked.connect(self._save_editor_changes)
         button_box.addButton(self._save_button, QDialogButtonBox.ButtonRole.ActionRole)
         if self._update_callback is None:
             self._save_button.setVisible(False)
 
-        self._global_replace_button = QPushButton("Global Replace...", self)
+        self._global_replace_button = QPushButton(tr('Global Replace...'), self)
         self._global_replace_button.setStyleSheet("background-color: #0d9488; color: white; font-weight: bold;")
         self._global_replace_button.clicked.connect(self._on_global_replace_clicked)
         button_box.addButton(self._global_replace_button, QDialogButtonBox.ButtonRole.ActionRole)
@@ -441,26 +439,26 @@ class GlossaryDialog(QDialog):
             self._global_replace_button.setVisible(False)
             
         # Same single route as Tools and the pipeline wizard.
-        self._build_button = QPushButton("Run automatic glossary pass...", self)
+        self._build_button = QPushButton(tr('Run automatic glossary pass...'), self)
         self._build_button.setStyleSheet("background-color: #2563eb; color: white; font-weight: bold;")
         self._build_button.setToolTip(
-            "Seed, discover, describe, and propose translations in one uninterrupted pass."
+            tr('Seed, discover, describe, and propose translations in one uninterrupted pass.')
         )
         self._build_button.clicked.connect(self._on_build_clicked)
         button_box.addButton(self._build_button, QDialogButtonBox.ButtonRole.ActionRole)
         if self._build_callback is None:
             self._build_button.setVisible(False)
 
-        self._ai_classify_button = QPushButton("Organize via AI", self)
+        self._ai_classify_button = QPushButton(tr('Organize via AI'), self)
         self._ai_classify_button.setStyleSheet("background-color: #8b5cf6; color: white; font-weight: bold;")
         self._ai_classify_button.clicked.connect(self._on_ai_classify_clicked)
         button_box.addButton(self._ai_classify_button, QDialogButtonBox.ButtonRole.ActionRole)
         if self._ai_classify_callback is None:
             self._ai_classify_button.setVisible(False)
             
-        self._clear_button = QPushButton("Clear Glossary", self)
+        self._clear_button = QPushButton(tr('Clear Glossary'), self)
         self._clear_button.setStyleSheet("background-color: #b91c1c; color: white; font-weight: bold;")
-        self._clear_button.setToolTip("Remove every entry. The glossary file is backed up first.")
+        self._clear_button.setToolTip(tr('Remove every entry. The glossary file is backed up first.'))
         self._clear_button.clicked.connect(self._on_clear_clicked)
         button_box.addButton(self._clear_button, QDialogButtonBox.ButtonRole.DestructiveRole)
         if self._clear_callback is None:
@@ -519,7 +517,7 @@ class GlossaryDialog(QDialog):
             return
         response = QMessageBox.question(
             self,
-            "Clear Glossary",
+            tr('Clear Glossary'),
             f"Remove all {total} entries from the glossary?\n\n"
             "This cannot be undone from here. The glossary file is copied to "
             "glossary.json.bak first, so the entries can be restored by hand.",
@@ -547,7 +545,7 @@ class GlossaryDialog(QDialog):
         from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QDialogButtonBox, QVBoxLayout
         
         dialog = QDialog(self)
-        dialog.setWindowTitle("Global Replace in Glossary")
+        dialog.setWindowTitle(tr('Global Replace in Glossary'))
         dialog.resize(380, 160)
         dialog.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         
@@ -555,12 +553,12 @@ class GlossaryDialog(QDialog):
         form = QFormLayout()
         
         find_edit = QLineEdit(dialog)
-        find_edit.setPlaceholderText("e.g. goron")
-        form.addRow("Find word/phrase:", find_edit)
+        find_edit.setPlaceholderText(tr('e.g. goron'))
+        form.addRow(tr('Find word/phrase:'), find_edit)
         
         replace_edit = QLineEdit(dialog)
-        replace_edit.setPlaceholderText("e.g. goron new")
-        form.addRow("Replace with:", replace_edit)
+        replace_edit.setPlaceholderText(tr('e.g. goron new'))
+        form.addRow(tr('Replace with:'), replace_edit)
         
         layout.addLayout(form)
         
@@ -576,7 +574,7 @@ class GlossaryDialog(QDialog):
         replace_text = replace_edit.text().strip()
         
         if not find_text:
-            QMessageBox.warning(self, "Global Replace", "Find word cannot be empty.")
+            QMessageBox.warning(self, tr('Global Replace'), tr('Find word cannot be empty.'))
             return
             
         self._global_replace_callback(find_text, replace_text)
@@ -978,7 +976,7 @@ class GlossaryDialog(QDialog):
                 categories.setdefault(value.casefold(), value)
         self._category_combo.blockSignals(True)
         self._category_combo.clear()
-        self._category_combo.addItem("")
+        self._category_combo.addItem(tr(''))
         self._category_combo.addItems(sorted(categories.values(), key=str.casefold))
         self._category_combo.setEditText((entry.section or "").strip())
         self._category_combo.blockSignals(False)
@@ -999,7 +997,7 @@ class GlossaryDialog(QDialog):
             return
         response = QMessageBox.question(
             self,
-            "Delete Glossary Entry",
+            tr('Delete Glossary Entry'),
             f"Remove term \"{entry.original}\" from the glossary?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -1032,7 +1030,7 @@ class GlossaryDialog(QDialog):
         )
         review_action.setEnabled(self._update_callback is not None)
         menu.addSeparator()
-        delete_action = menu.addAction("Delete Entry")
+        delete_action = menu.addAction(tr('Delete Entry'))
         delete_action.setEnabled(self._delete_callback is not None)
         selected_action = menu.exec(self._active_table().viewport().mapToGlobal(pos))
         if selected_action == delete_action:
@@ -1217,7 +1215,7 @@ class GlossaryDialog(QDialog):
                 self._speaker_evidence_label.setVisible(True)
             elif not is_provisional_char:
                 self._speaker_evidence_label.setText(
-                    "Choose another permanent character name to change this mapping."
+                    tr('Choose another permanent character name to change this mapping.')
                 )
                 self._speaker_evidence_label.setVisible(True)
             else:
@@ -1229,7 +1227,7 @@ class GlossaryDialog(QDialog):
             if hasattr(self, '_speaker_identity_pane'):
                 self._speaker_identity_pane.setVisible(False)
                 self._apply_speaker_name_button.setEnabled(False)
-                self._apply_speaker_name_button.setText("Apply speaker name")
+                self._apply_speaker_name_button.setText(tr('Apply speaker name'))
 
         self._suppress_editor_signals = False
         if hasattr(self, '_notes_variation_button'):
@@ -1242,7 +1240,7 @@ class GlossaryDialog(QDialog):
         """Internal helper to remove entry details."""
         self._current_entry = None
         self._suppress_editor_signals = True
-        self._original_label.setText('Nothing selected')
+        self._original_label.setText(tr('Nothing selected'))
         self._category_combo.clear()
         self._translation_edit.clear()
         self._notes_template = ''
@@ -1253,7 +1251,7 @@ class GlossaryDialog(QDialog):
         if hasattr(self, '_speaker_identity_pane'):
             self._speaker_identity_pane.setVisible(False)
             self._apply_speaker_name_button.setEnabled(False)
-            self._apply_speaker_name_button.setText("Apply speaker name")
+            self._apply_speaker_name_button.setText(tr('Apply speaker name'))
         self._current_speaker_code = ""
         self._current_speaker_is_provisional = False
         self._suppress_editor_signals = False
@@ -1642,7 +1640,7 @@ class GlossaryDialog(QDialog):
         else:
             self._clear_entry_details()
             self._occurrence_list.clear()
-            self._occurrence_label.setText("Mentions: 0   Spoken: 0")
+            self._occurrence_label.setText(tr('Mentions: 0   Spoken: 0'))
  
     def reload_data(
         self,

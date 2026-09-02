@@ -1,4 +1,5 @@
-﻿from PyQt6.QtWidgets import (
+from core.i18n import tr
+from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QLabel,
@@ -13,15 +14,14 @@ class SessionBootstrapDialog(QDialog):
     def __init__(self, parent, system_prompt: str) -> None:
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("AI Translation – Start Session")
+        self.setWindowTitle(tr('AI Translation – Start Session'))
         self.setModal(True)
         self.setMinimumWidth(560)
 
         layout = QVBoxLayout(self)
 
         intro_label = QLabel(
-            "Review the system prompt before starting the dialogue. "
-            "Add your own instructions for the entire session if needed."
+            tr('Review the system prompt before starting the dialogue. Add your own instructions for the entire session if needed.')
         )
         intro_label.setWordWrap(True)
         layout.addWidget(intro_label)
@@ -32,12 +32,12 @@ class SessionBootstrapDialog(QDialog):
         system_view.setMinimumHeight(240)
         layout.addWidget(system_view)
 
-        instructions_label = QLabel("Additional Instructions (optional):", self)
+        instructions_label = QLabel(tr('Additional Instructions (optional):'), self)
         instructions_label.setWordWrap(True)
         layout.addWidget(instructions_label)
 
         self._instructions_edit = QPlainTextEdit(self)
-        self._instructions_edit.setPlaceholderText("Write what should be considered throughout the session...")
+        self._instructions_edit.setPlaceholderText(tr('Write what should be considered throughout the session...'))
         self._instructions_edit.setMinimumHeight(120)
         layout.addWidget(self._instructions_edit)
 

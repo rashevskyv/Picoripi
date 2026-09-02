@@ -2,6 +2,7 @@
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
+from core.i18n import tr
 
 class ToolBarBuilder:
     """Tool bar builder implementation."""
@@ -16,13 +17,9 @@ class ToolBarBuilder:
         self.mw.addToolBar(self.mw.main_toolbar)
         self.mw.main_toolbar.setIconSize(QSize(24, 24))
 
-        self.mw.open_ai_chat_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), 'Open AI Chat', self.mw)
+        self.mw.open_ai_chat_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), tr('Open AI Chat'), self.mw)
         self.mw.open_ai_chat_action.setToolTip(
-            "<b>AI Chat</b><br>"
-            "Click — open a chat window to discuss translations with the AI "
-            "(Ctrl+Shift+C).<br>"
-            "Ctrl+Enter in the chat input sends the message; plain Enter adds a "
-            "new line."
+            tr('<b>AI Chat</b><br>Click — open a chat window to discuss translations with the AI (Ctrl+Shift+C).<br>Ctrl+Enter in the chat input sends the message; plain Enter adds a new line.')
         )
         self.mw.open_ai_chat_action.setShortcut('Ctrl+Shift+C')
 
@@ -54,11 +51,9 @@ class ToolBarBuilder:
         painter_cmd.end()
         cmd_icon = QIcon(pixmap_cmd)
 
-        self.mw.run_external_script_action = QAction(cmd_icon, 'Run External Script', self.mw)
+        self.mw.run_external_script_action = QAction(cmd_icon, tr('Run External Script'), self.mw)
         self.mw.run_external_script_action.setToolTip(
-            "<b>Run external script</b><br>"
-            "Click — run the external script / build tool configured in "
-            "Settings (Ctrl+P)."
+            tr('<b>Run external script</b><br>Click — run the external script / build tool configured in Settings (Ctrl+P).')
         )
         
         # Push Help and Script to the far right

@@ -6,6 +6,8 @@ __pycache__/
 /venv/
 .venv/
 .venv-gpu/
+tools/i18n-translate/.venv/
+tools/i18n-translate/failures.log
 font_tool/
 build_gemini_dir.py
 /gemini/

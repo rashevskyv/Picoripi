@@ -1,12 +1,13 @@
 ﻿from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QStyle
 from PyQt6.QtCore import Qt
+from core.i18n import tr
 
 class FolderDeleteDialog(QDialog):
     """Dialog class for folder delete."""
     def __init__(self, folder_name: str, parent=None):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Delete Folder")
+        self.setWindowTitle(tr('Delete Folder'))
         self.setModal(True)
         # 0: Cancel, 1: Delete Only Folder (keep contents), 2: Delete Folder + Contents
         self.result_action = 0 
@@ -37,13 +38,13 @@ class FolderDeleteDialog(QDialog):
         # Buttons
         btn_layout = QVBoxLayout()
         
-        self.btn_keep = QPushButton("Delete Folder, but Keep Contents")
-        self.btn_keep.setToolTip("Removes the folder and moves its contents up one level.")
+        self.btn_keep = QPushButton(tr('Delete Folder, but Keep Contents'))
+        self.btn_keep.setToolTip(tr('Removes the folder and moves its contents up one level.'))
         self.btn_keep.clicked.connect(self._on_keep_clicked)
         btn_layout.addWidget(self.btn_keep)
         
-        self.btn_delete_all = QPushButton("Delete Folder AND its Contents")
-        self.btn_delete_all.setToolTip("Permanently removes this folder and everything inside it from the project.")
+        self.btn_delete_all = QPushButton(tr('Delete Folder AND its Contents'))
+        self.btn_delete_all.setToolTip(tr('Permanently removes this folder and everything inside it from the project.'))
         self.btn_delete_all.setStyleSheet("color: #d32f2f;") # Red text to indicate destruction
         self.btn_delete_all.clicked.connect(self._on_delete_all_clicked)
         btn_layout.addWidget(self.btn_delete_all)
@@ -52,7 +53,7 @@ class FolderDeleteDialog(QDialog):
         
         layout.addSpacing(10)
         
-        self.btn_cancel = QPushButton("Cancel")
+        self.btn_cancel = QPushButton(tr('Cancel'))
         self.btn_cancel.clicked.connect(self.reject)
         layout.addWidget(self.btn_cancel, alignment=Qt.AlignmentFlag.AlignCenter)
         

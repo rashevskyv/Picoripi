@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info
 from components.folder_delete_dialog import FolderDeleteDialog
+from core.i18n import tr
 
 
 class VirtualFolderHandler(BaseHandler):
@@ -91,7 +92,7 @@ class VirtualFolderHandler(BaseHandler):
 
         if is_empty:
             reply = QMessageBox.question(
-                self.mw, 'Delete Folder',
+                self.mw, tr('Delete Folder'),
                 f"Are you sure you want to delete the empty folder '{folder.name}'?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
             )

@@ -2,6 +2,7 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox, QMessageBox)
 from PyQt6.QtGui import QIntValidator
 from PyQt6.QtCore import QThread, pyqtSignal, QTimer
+from core.i18n import tr
 
 FORCE_ALIAS_INFO = (
     "You have enabled the Force Alias option for this tag.\n\n"
@@ -31,15 +32,15 @@ class TagAliasDialog(QDialog):
         layout.addWidget(self.info_label)
         
         # Force alias checkbox
-        self.force_checkbox = QCheckBox("Force alias (convert tag to permanent plain text)", self)
+        self.force_checkbox = QCheckBox(tr('Force alias (convert tag to permanent plain text)'), self)
         self.force_checkbox.setToolTip(FORCE_ALIAS_INFO)
         layout.addWidget(self.force_checkbox)
         
         # Alias field
-        layout.addWidget(QLabel("Alias name (will be enclosed in curly braces):", self))
+        layout.addWidget(QLabel(tr('Alias name (will be enclosed in curly braces):'), self))
         
         alias_input_layout = QHBoxLayout()
-        self.prefix_label = QLabel("F:", self)
+        self.prefix_label = QLabel(tr('F:'), self)
         self.prefix_label.setStyleSheet("font-weight: bold; font-size: 11pt; color: #808080;")
         self.alias_edit = QLineEdit(self)
         alias_input_layout.addWidget(self.prefix_label)
@@ -47,7 +48,7 @@ class TagAliasDialog(QDialog):
         layout.addLayout(alias_input_layout)
         
         # Custom width field (defined first so it exists when setting initial checkbox state)
-        self.width_label = QLabel("Custom width in pixels (leave empty for none):", self)
+        self.width_label = QLabel(tr('Custom width in pixels (leave empty for none):'), self)
         layout.addWidget(self.width_label)
         self.width_edit = QLineEdit(self)
         self.width_edit.setValidator(QIntValidator(1, 9999, self))
@@ -80,14 +81,13 @@ class TagAliasDialog(QDialog):
         
         # Buttons
         buttons_layout = QHBoxLayout()
-        self.ok_button = QPushButton("OK", self)
+        self.ok_button = QPushButton(tr('OK'), self)
         self.ok_button.setDefault(True)
         self.ok_button.clicked.connect(self.accept)
         
-        self.cancel_button = QPushButton("Cancel", self)
+        self.cancel_button = QPushButton(tr('Cancel'), self)
         self.cancel_button.setToolTip(
-            "<b>Cancel</b><br>"
-            "Click — close without saving the alias (Esc)."
+            tr('<b>Cancel</b><br>Click — close without saving the alias (Esc).')
         )
         self.cancel_button.clicked.connect(self.reject)
         
@@ -122,11 +122,11 @@ class TagAliasDialog(QDialog):
         if is_checked and not self._is_initializing:
             if getattr(self.mw, 'show_force_alias_warning', True):
                 msg_box = QMessageBox(self)
-                msg_box.setWindowTitle("Force Alias Enabled")
+                msg_box.setWindowTitle(tr('Force Alias Enabled'))
                 msg_box.setText(FORCE_ALIAS_INFO)
                 msg_box.setIcon(QMessageBox.Icon.Information)
                 
-                cb = QCheckBox("Don't show next time", msg_box)
+                cb = QCheckBox(tr("Don't show next time"), msg_box)
                 msg_box.setCheckBox(cb)
                 
                 msg_box.exec()

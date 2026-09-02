@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QListWidgetItem,
     QVBoxLayout,
 )
+from core.i18n import tr
 
 
 class SpeakerSelectionDialog(QDialog):
@@ -18,14 +19,14 @@ class SpeakerSelectionDialog(QDialog):
 
     def __init__(self, names, selected_name=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Choose speaker")
+        self.setWindowTitle(tr('Choose speaker'))
         self.setMinimumSize(480, 520)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Choose the speaker for the selected strings:"))
+        layout.addWidget(QLabel(tr('Choose the speaker for the selected strings:')))
 
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("Search names…")
+        self.search_edit.setPlaceholderText(tr('Search names…'))
         self.search_edit.setClearButtonEnabled(True)
         layout.addWidget(self.search_edit)
 
@@ -53,7 +54,7 @@ class SpeakerSelectionDialog(QDialog):
         self.buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Select")
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText(tr('Select'))
         layout.addWidget(self.buttons)
 
         self.search_edit.textChanged.connect(self._filter_names)

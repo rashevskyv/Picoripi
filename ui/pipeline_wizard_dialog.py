@@ -45,6 +45,7 @@ from core.pipeline_status import (
 from core.speaker_alias_merge import find_markup_project, load_speaker_aliases
 from utils.logging_utils import log_debug
 from utils.window_utils import show_as_independent_window
+from core.i18n import tr
 
 _ICONS = {NOT_STARTED: "⚪", PARTIAL: "\U0001f7e1", DONE: "✅"}
 _STEP_ROLE = Qt.ItemDataRole.UserRole
@@ -259,7 +260,7 @@ class PipelineWizardDialog(QDialog):
     def __init__(self, main_window, parent=None):
         super().__init__(None)
         self.mw = main_window
-        self.setWindowTitle("Localization Pipeline")
+        self.setWindowTitle(tr('Localization Pipeline'))
         show_as_independent_window(self)
         # Roomy enough for the embedded Context Builder, which is a full
         # workflow rather than a paragraph and a button.
@@ -320,7 +321,7 @@ class PipelineWizardDialog(QDialog):
             QDialogButtonBox.StandardButton.Close | QDialogButtonBox.StandardButton.Retry,
             self,
         )
-        buttons.button(QDialogButtonBox.StandardButton.Retry).setText("Refresh")
+        buttons.button(QDialogButtonBox.StandardButton.Retry).setText(tr('Refresh'))
         buttons.button(QDialogButtonBox.StandardButton.Retry).clicked.connect(self.refresh)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -443,7 +444,7 @@ class PipelineWizardDialog(QDialog):
         for step in self._steps:
             state = self._state_for(step)
             label = (
-                f"{_ICONS.get(state.state, _ICONS[NOT_STARTED])}  {step.title}\n"
+                f"{_ICONS.get(state.state, _ICONS[NOT_STARTED])}  {tr(step.title)}\n"
                 f"      {state.detail}"
             )
             host = items.get(step.parent) if step.parent else None
@@ -539,13 +540,13 @@ class PipelineWizardDialog(QDialog):
 
     def _show_step(self, step: Step) -> None:
         state = self._state_for(step)
-        self.title.setText(step.title)
+        self.title.setText(tr(step.title))
         self.state_label.setText(
             f"{_ICONS.get(state.state, _ICONS[NOT_STARTED])}  {state.detail}"
         )
-        self.why.setText(step.why)
+        self.why.setText(tr(step.why))
         self.run_button.setVisible(bool(step.run))
-        self.run_button.setText(step.button or "")
+        self.run_button.setText(tr(step.button) if step.button else "")
         self.stack.setCurrentWidget(self._page_for(step))
 
     def _page_for(self, step: Step) -> QWidget:

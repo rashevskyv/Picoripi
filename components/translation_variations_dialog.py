@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
 
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from utils.logging_utils import log_warning
+from core.i18n import tr
 
 
 class VariationsListDelegate(QStyledItemDelegate):
@@ -95,12 +96,12 @@ class TranslationVariationsDialog(QDialog):
         """Initialize a new instance."""
         super().__init__(parent)
         self.mw = parent
-        self.setWindowTitle("AI Translation Variations")
+        self.setWindowTitle(tr('AI Translation Variations'))
         self.selected_translation: Optional[str] = None
 
         layout = QVBoxLayout(self)
 
-        layout.addWidget(QLabel("Select a translation option and double-click or press 'Apply'."))
+        layout.addWidget(QLabel(tr("Select a translation option and double-click or press 'Apply'.")))
 
         self.splitter = QSplitter(Qt.Orientation.Horizontal, self)
         
@@ -137,20 +138,16 @@ class TranslationVariationsDialog(QDialog):
         self._buttons = QDialogButtonBox(self)
         
         if show_refresh:
-            self._refresh_button = QPushButton("Refresh", self)
+            self._refresh_button = QPushButton(tr('Refresh'), self)
             self._refresh_button.setToolTip(
-                "<b>Refresh</b><br>"
-                "Click — ask the AI for another set of variations. The list is "
-                "replaced, so apply one first if you want to keep it."
+                tr('<b>Refresh</b><br>Click — ask the AI for another set of variations. The list is replaced, so apply one first if you want to keep it.')
             )
             self._refresh_button.clicked.connect(self._on_refresh)
             self._buttons.addButton(self._refresh_button, QDialogButtonBox.ButtonRole.ActionRole)
 
-        self._apply_button = QPushButton("Apply", self)
+        self._apply_button = QPushButton(tr('Apply'), self)
         self._apply_button.setToolTip(
-            "<b>Apply</b><br>"
-            "Click — put the selected variation into the editor and close.<br>"
-            "Undo it afterwards with Ctrl+Z if you change your mind."
+            tr('<b>Apply</b><br>Click — put the selected variation into the editor and close.<br>Undo it afterwards with Ctrl+Z if you change your mind.')
         )
         self._apply_button.clicked.connect(self._apply_current_selection)
         self._buttons.addButton(self._apply_button, QDialogButtonBox.ButtonRole.AcceptRole)

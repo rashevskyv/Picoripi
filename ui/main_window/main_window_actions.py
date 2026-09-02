@@ -11,6 +11,7 @@ import json
 from ui.settings_dialog import SettingsDialog
 
 from dialogs.tag_alias_dialog import TagAliasDialog, AliasUpdateWorker
+from core.i18n import tr
 
 
 class MainWindowActions:
@@ -114,8 +115,8 @@ class MainWindowActions:
             restore_session_after = self.mw.restore_unsaved_on_startup
             
             if restore_session_before and not restore_session_after and self.mw.data_store.unsaved_changes:
-                reply = QMessageBox.question(self.mw, "Discard Unsaved Changes?",
-                                             "You have disabled session restore.\nDo you want to discard the current unsaved changes now?",
+                reply = QMessageBox.question(self.mw, tr('Discard Unsaved Changes?'),
+                                             tr('You have disabled session restore.\nDo you want to discard the current unsaved changes now?'),
                                              QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
                 if reply == QMessageBox.StandardButton.Yes:
                     self.mw.data_store.edited_data.clear()
@@ -197,7 +198,7 @@ class MainWindowActions:
             
             if dialog.rules_changed_requires_rescan:
                 log_info("Rules were changed. Triggering a full rescan of all issues.")
-                QMessageBox.information(self.mw, "Settings Changed", "Rules have been updated. Rescanning all issues...")
+                QMessageBox.information(self.mw, tr('Settings Changed'), tr('Rules have been updated. Rescanning all issues...'))
                 if hasattr(self.mw, 'app_action_handler'):
                     self.mw.app_action_handler.rescan_all_tags()
 
@@ -247,7 +248,7 @@ class MainWindowActions:
         """Trigger undo paste action."""
         log_info("Undo Paste Block action triggered.")
         if not self.mw.can_undo_paste:
-            QMessageBox.information(self.mw, "Undo Paste", "Nothing to undo for the last paste operation.")
+            QMessageBox.information(self.mw, tr('Undo Paste'), tr('Nothing to undo for the last paste operation.'))
             if hasattr(self.mw, 'statusBar'): self.mw.statusBar.showMessage("Nothing to undo for paste.", 2000)
             return
 
@@ -312,7 +313,7 @@ class MainWindowActions:
         if not self.mw.settings_manager: return
         plugin_config_path = self.mw.settings_manager._get_plugin_config_path()
         if not plugin_config_path or not Path(plugin_config_path).exists():
-            QMessageBox.warning(self.mw, "Reload Error", "Plugin configuration file not found.")
+            QMessageBox.warning(self.mw, tr('Reload Error'), tr('Plugin configuration file not found.'))
             return
 
         try:
@@ -321,29 +322,29 @@ class MainWindowActions:
             
             if "default_tag_mappings" in plugin_data:
                 self.mw.default_tag_mappings = plugin_data["default_tag_mappings"]
-                QMessageBox.information(self.mw, "Tag Mappings Reloaded", f"Default tag mappings reloaded from\n{Path(plugin_config_path).name}.")
+                QMessageBox.information(self.mw, tr('Tag Mappings Reloaded'), f"Default tag mappings reloaded from\n{Path(plugin_config_path).name}.")
                 if self.mw.data_store.current_block_idx != -1:
-                    if QMessageBox.question(self.mw, "Rescan Block", "Rescan the current block with the new mappings?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) == QMessageBox.StandardButton.Yes:
+                    if QMessageBox.question(self.mw, tr('Rescan Block'), tr('Rescan the current block with the new mappings?'), QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) == QMessageBox.StandardButton.Yes:
                         self.mw.issue_scan_handler.rescan_issues_for_single_block(self.mw.data_store.current_block_idx, use_default_mappings=True)
             else:
-                QMessageBox.warning(self.mw, "Reload Error", "'default_tag_mappings' not found in plugin config.")
+                QMessageBox.warning(self.mw, tr('Reload Error'), tr("'default_tag_mappings' not found in plugin config."))
 
         except Exception as e:
-            QMessageBox.critical(self.mw, "Reload Error", f"Failed to read plugin config:\n{e}")
+            QMessageBox.critical(self.mw, tr('Reload Error'), f"Failed to read plugin config:\n{e}")
 
     def handle_add_tag_mapping_request(self, bracket_tag: str, curly_tag: str):
         """Handle add tag mapping request."""
         log_info(f"Received request to map '{bracket_tag}' -> '{curly_tag}'")
         if not bracket_tag or not curly_tag:
-            QMessageBox.warning(self.mw, "Add Tag Mapping Error", "Both tags must be non-empty.")
+            QMessageBox.warning(self.mw, tr('Add Tag Mapping Error'), tr('Both tags must be non-empty.'))
             return
         if not hasattr(self.mw, 'default_tag_mappings'): self.mw.default_tag_mappings = {}
         if bracket_tag in self.mw.default_tag_mappings and self.mw.default_tag_mappings[bracket_tag] == curly_tag:
-            QMessageBox.information(self.mw, "Add Tag Mapping", f"Mapping '{bracket_tag}' -> '{curly_tag}' already exists.")
+            QMessageBox.information(self.mw, tr('Add Tag Mapping'), f"Mapping '{bracket_tag}' -> '{curly_tag}' already exists.")
             return
         reply = QMessageBox.StandardButton.Yes
         if bracket_tag in self.mw.default_tag_mappings:
-            reply = QMessageBox.question(self.mw, "Confirm Overwrite",
+            reply = QMessageBox.question(self.mw, tr('Confirm Overwrite'),
                                          f"Tag '{bracket_tag}' is already mapped to '{self.mw.default_tag_mappings[bracket_tag]}'.\n"
                                          f"Overwrite with '{curly_tag}'?",
                                          QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
@@ -358,11 +359,11 @@ class MainWindowActions:
                 self.mw.project_manager.save_settings_to_project(self.mw)
                 self.mw.project_manager.save()
 
-            QMessageBox.information(self.mw, "Tag Mapping Added",
+            QMessageBox.information(self.mw, tr('Tag Mapping Added'),
                                     f"Mapping '{bracket_tag}' -> '{curly_tag}' has been added/updated.\n"
                                     "This change has been saved to the project settings.")
             if self.mw.data_store.current_block_idx != -1:
-                if QMessageBox.question(self.mw, "Rescan Block", "Rescan the current block with the new mapping now?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) == QMessageBox.StandardButton.Yes:
+                if QMessageBox.question(self.mw, tr('Rescan Block'), tr('Rescan the current block with the new mapping now?'), QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) == QMessageBox.StandardButton.Yes:
                     self.mw.issue_scan_handler.rescan_issues_for_single_block(self.mw.data_store.current_block_idx, use_default_mappings=True)
         else: log_info("User cancelled overwrite or no action taken.")
 
@@ -498,7 +499,7 @@ class MainWindowActions:
                 if hasattr(ui, 'populate_strings_for_block'):
                     ui.populate_current_view(force=True)
                     
-            QMessageBox.information(self.mw, "Recalculation Complete", "All text widths and issues have been successfully recalculated!")
+            QMessageBox.information(self.mw, tr('Recalculation Complete'), tr('All text widths and issues have been successfully recalculated!'))
 
         # 2. Perform full silent scan of all issues (which recalculates all widths) with force=True
         if hasattr(self.mw, 'issue_scan_handler'):
@@ -514,7 +515,7 @@ class MainWindowActions:
             
         alias, width = dialog.get_data()
         if not alias:
-            QMessageBox.warning(self.mw, "Invalid Alias", "Alias cannot be empty.")
+            QMessageBox.warning(self.mw, tr('Invalid Alias'), tr('Alias cannot be empty.'))
             return
             
         if not hasattr(self.mw, 'default_tag_mappings'):
@@ -523,7 +524,7 @@ class MainWindowActions:
         if alias in self.mw.default_tag_mappings:
             QMessageBox.warning(
                 self.mw, 
-                "Duplicate Alias", 
+                tr('Duplicate Alias'), 
                 f"Alias '{alias}' is already registered for tag '{self.mw.default_tag_mappings[alias]}'."
             )
             return
@@ -569,7 +570,7 @@ class MainWindowActions:
         new_alias, width = dialog.get_data()
         new_alias = new_alias.strip()
         if not new_alias:
-            QMessageBox.warning(self.mw, "Invalid Alias", "Alias cannot be empty.")
+            QMessageBox.warning(self.mw, tr('Invalid Alias'), tr('Alias cannot be empty.'))
             return
             
         if not hasattr(self.mw, 'default_tag_mappings'):
@@ -578,7 +579,7 @@ class MainWindowActions:
         if new_alias != alias and new_alias in self.mw.default_tag_mappings:
             QMessageBox.warning(
                 self.mw, 
-                "Duplicate Alias", 
+                tr('Duplicate Alias'), 
                 f"Alias '{new_alias}' is already registered for tag '{self.mw.default_tag_mappings[new_alias]}'."
             )
             return
@@ -621,7 +622,7 @@ class MainWindowActions:
         """Remove tag alias."""
         reply = QMessageBox.question(
             self.mw,
-            "Remove Tag Alias",
+            tr('Remove Tag Alias'),
             f"Are you sure you want to remove the alias '{alias}' for tag '{original_tag}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
@@ -699,7 +700,7 @@ class MainWindowActions:
         else:
             # Async mode for production with non-blocking QProgressDialog
             self._progress_dialog = QProgressDialog("Updating tag aliases across the project...", None, 0, 0, self.mw)
-            self._progress_dialog.setWindowTitle("Tag Aliases")
+            self._progress_dialog.setWindowTitle(tr('Tag Aliases'))
             self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
             self._progress_dialog.setCancelButton(None) # Remove cancel button to ensure integrity
             self._progress_dialog.show()
@@ -761,8 +762,8 @@ class MainWindowActions:
         if not script_path:
             QMessageBox.warning(
                 self.mw,
-                "Run External Tool/Script",
-                "No script or tool path configured.\n\nPlease go to Project -> Settings -> Global and set the path."
+                tr('Run External Tool/Script'),
+                tr('No script or tool path configured.\n\nPlease go to Project -> Settings -> Global and set the path.')
             )
             return
 
@@ -770,7 +771,7 @@ class MainWindowActions:
         if not path_obj.exists() or not path_obj.is_file():
             QMessageBox.critical(
                 self.mw,
-                "Run External Tool/Script",
+                tr('Run External Tool/Script'),
                 f"Configured script path does not exist or is not a file:\n{script_path}"
             )
             return
@@ -796,6 +797,6 @@ class MainWindowActions:
         except Exception as e:
             QMessageBox.critical(
                 self.mw,
-                "Run External Script Error",
+                tr('Run External Script Error'),
                 f"Failed to start script:\n{e}"
             )

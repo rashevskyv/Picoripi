@@ -8,6 +8,7 @@ from core.project_manager import ProjectManager
 from core.data_manager import load_json_file, load_text_file
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
+from core.i18n import tr
 
 class ProjectLoadWorker(QThread):
     """Worker thread for loading project files asynchronously."""
@@ -399,12 +400,12 @@ class ProjectActionHandler(BaseHandler):
             def on_created(state_restored):
                 QMessageBox.information(
                     self.mw,
-                    "Project Created",
+                    tr('Project Created'),
                     f"Project '{project.name}' has been created successfully."
                 )
             self._populate_blocks_from_project(on_completed=on_created)
         else:
-            QMessageBox.critical(self.mw, "Project Creation Failed", "Failed to create project.")
+            QMessageBox.critical(self.mw, tr('Project Creation Failed'), tr('Failed to create project.'))
 
     def open_project_action(self) -> None:
         """Open project action."""
@@ -479,7 +480,7 @@ class ProjectActionHandler(BaseHandler):
         else:
             QMessageBox.critical(
                 self.mw,
-                "Project Load Failed",
+                tr('Project Load Failed'),
                 f"Failed to load project from:\n{project_path}"
             )
 
@@ -556,7 +557,7 @@ class ProjectActionHandler(BaseHandler):
         log_info("Import Block action triggered.")
 
         if not self.mw.project_manager or not self.mw.project_manager.project:
-            QMessageBox.warning(self.mw, "No Project", "Please open or create a project first.")
+            QMessageBox.warning(self.mw, tr('No Project'), tr('Please open or create a project first.'))
             return
 
         dialog = ImportBlockDialog(self.mw, project_manager=self.mw.project_manager)
@@ -580,17 +581,17 @@ class ProjectActionHandler(BaseHandler):
             log_info(f"Block '{info['name']}' imported successfully.")
             # Update UI
             def on_imported(state_restored):
-                QMessageBox.information(self.mw, "Block Imported", f"Block '{info['name']}' has been imported.")
+                QMessageBox.information(self.mw, tr('Block Imported'), f"Block '{info['name']}' has been imported.")
             self._populate_blocks_from_project(on_completed=on_imported)
         else:
-            QMessageBox.critical(self.mw, "Import Failed", "Failed to import block.")
+            QMessageBox.critical(self.mw, tr('Import Failed'), tr('Failed to import block.'))
 
     def import_directory_action(self) -> None:
         """Import directory action."""
         log_info("Import Directory action triggered.")
 
         if not self.mw.project_manager or not self.mw.project_manager.project:
-            QMessageBox.warning(self.mw, "No Project", "Please open or create a project first.")
+            QMessageBox.warning(self.mw, tr('No Project'), tr('Please open or create a project first.'))
             return
 
         start_dir = str(Path.home())
@@ -611,10 +612,10 @@ class ProjectActionHandler(BaseHandler):
         if blocks:
             log_info(f"{len(blocks)} blocks imported successfully from '{directory_path}'.")
             def on_dir_imported(state_restored):
-                QMessageBox.information(self.mw, "Directory Imported", f"{len(blocks)} blocks have been imported.")
+                QMessageBox.information(self.mw, tr('Directory Imported'), f"{len(blocks)} blocks have been imported.")
             self._populate_blocks_from_project(on_completed=on_dir_imported)
         else:
-            QMessageBox.information(self.mw, "Import Result", "No supported files found or failed to import.")
+            QMessageBox.information(self.mw, tr('Import Result'), tr('No supported files found or failed to import.'))
 
     def delete_block_action(self) -> None:
         """Remove block action."""
@@ -639,7 +640,7 @@ class ProjectActionHandler(BaseHandler):
 
             reply = QMessageBox.question(
                 self.mw,
-                'Delete Block',
+                tr('Delete Block'),
                 f"Are you sure you want to remove block '{block_name}' from the project?\n\n"
                 "This will NOT delete the physical files, only the reference in the project.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -674,7 +675,7 @@ class ProjectActionHandler(BaseHandler):
 
                 self._populate_blocks_from_project()
             else:
-                QMessageBox.critical(self.mw, "Delete Error", "Failed to remove block.")
+                QMessageBox.critical(self.mw, tr('Delete Error'), tr('Failed to remove block.'))
 
         elif folder_id is not None:
             self.mw.virtual_folder_handler.delete_folder_action(folder_id, current_item)
@@ -841,7 +842,7 @@ class ProjectActionHandler(BaseHandler):
             from PyQt6.QtCore import Qt
             total_steps = len(worker.blocks) * 2
             progress_dialog = QProgressDialog("Loading project blocks...", None, 0, total_steps, self.mw)
-            progress_dialog.setWindowTitle("Loading Project")
+            progress_dialog.setWindowTitle(tr('Loading Project'))
             progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
             progress_dialog.setMinimumDuration(0) # show immediately
             progress_dialog.setValue(0)
@@ -853,7 +854,7 @@ class ProjectActionHandler(BaseHandler):
                 if 'pytest' not in sys.modules and progress_dialog:
                     progress_dialog.close()
                 if worker.error_occurred:
-                    QMessageBox.critical(self.mw, "Load Error", f"An error occurred while loading project files:\n{worker.error_occurred}")
+                    QMessageBox.critical(self.mw, tr('Load Error'), f"An error occurred while loading project files:\n{worker.error_occurred}")
                 if on_completed:
                     on_completed(False)
                 if startup_loading:
@@ -995,7 +996,7 @@ class ProjectActionHandler(BaseHandler):
 
         if not recent_projects:
             # Add "No recent projects" action
-            no_recent_action = self.mw.recent_projects_menu.addAction("No recent projects")
+            no_recent_action = self.mw.recent_projects_menu.addAction(tr('No recent projects'))
             no_recent_action.setEnabled(False)
             return
 
@@ -1021,7 +1022,7 @@ class ProjectActionHandler(BaseHandler):
 
         # Add separator and "Clear Recent Projects" action
         self.mw.recent_projects_menu.addSeparator()
-        clear_action = self.mw.recent_projects_menu.addAction("Clear Recent Projects")
+        clear_action = self.mw.recent_projects_menu.addAction(tr('Clear Recent Projects'))
         clear_action.triggered.connect(self._clear_recent_projects)
 
     def _open_recent_project(self, project_path: str) -> None:
@@ -1031,7 +1032,7 @@ class ProjectActionHandler(BaseHandler):
         if not Path(project_path).exists():
             QMessageBox.critical(
                 self.mw,
-                "Project Not Found",
+                tr('Project Not Found'),
                 f"Project file not found:\n{project_path}\n\n"
                 f"It may have been moved or deleted."
             )
@@ -1128,7 +1129,7 @@ class ProjectActionHandler(BaseHandler):
         else:
             QMessageBox.critical(
                 self.mw,
-                "Project Load Failed",
+                tr('Project Load Failed'),
                 f"Failed to load project from:\n{project_path}"
             )
 
@@ -1175,8 +1176,8 @@ class ProjectActionHandler(BaseHandler):
         """Clear all recent projects."""
         reply = QMessageBox.question(
             self.mw,
-            'Clear Recent Projects',
-            "Are you sure you want to clear all recent projects?",
+            tr('Clear Recent Projects'),
+            tr('Are you sure you want to clear all recent projects?'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )

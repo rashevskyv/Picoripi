@@ -6,6 +6,7 @@ from PyQt6.QtGui import QTextCursor, QColor, QFont
 from typing import List
 from utils.logging_utils import log_debug
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
+from core.i18n import tr
 
 class BaseTextReviewDialog(QDialog):
     """Base interactive dialog for reviewing and editing text in a 3-panel layout."""
@@ -50,7 +51,7 @@ class BaseTextReviewDialog(QDialog):
 
         # 1. Top status bar and navigation
         self.top_nav_layout = QHBoxLayout()
-        self.status_label = QLabel("Loading...")
+        self.status_label = QLabel(tr('Loading...'))
         self.top_nav_layout.addWidget(self.status_label)
 
         self.progress_bar = QProgressBar()
@@ -58,31 +59,25 @@ class BaseTextReviewDialog(QDialog):
         self.progress_bar.setVisible(False)
         self.top_nav_layout.addWidget(self.progress_bar)
 
-        self.cancel_analysis_button = QPushButton("Cancel")
+        self.cancel_analysis_button = QPushButton(tr('Cancel'))
         self.cancel_analysis_button.setToolTip(
-            "<b>Cancel</b><br>"
-            "Click — stop the running scan. Results found so far stay in the list.<br>"
-            "Only visible while a scan is in progress."
+            tr('<b>Cancel</b><br>Click — stop the running scan. Results found so far stay in the list.<br>Only visible while a scan is in progress.')
         )
         self.cancel_analysis_button.setVisible(False)
         self.top_nav_layout.addWidget(self.cancel_analysis_button)
 
         self.top_nav_layout.addStretch()
 
-        self.prev_button = QPushButton("← Previous")
+        self.prev_button = QPushButton(tr('← Previous'))
         self.prev_button.setToolTip(
-            "<b>Previous match</b><br>"
-            "Click — go to the previous entry in the list on the left.<br>"
-            "Clicking an entry in that list jumps straight to it."
+            tr('<b>Previous match</b><br>Click — go to the previous entry in the list on the left.<br>Clicking an entry in that list jumps straight to it.')
         )
         self.prev_button.clicked.connect(self.go_to_previous_item)
         self.top_nav_layout.addWidget(self.prev_button)
 
-        self.next_button = QPushButton("Next →")
+        self.next_button = QPushButton(tr('Next →'))
         self.next_button.setToolTip(
-            "<b>Next match</b><br>"
-            "Click — go to the next entry in the list on the left.<br>"
-            "Clicking an entry in that list jumps straight to it."
+            tr('<b>Next match</b><br>Click — go to the next entry in the list on the left.<br>Clicking an entry in that list jumps straight to it.')
         )
         self.next_button.clicked.connect(self.go_to_next_item)
         self.top_nav_layout.addWidget(self.next_button)
@@ -110,7 +105,7 @@ class BaseTextReviewDialog(QDialog):
         self.text_edit.setFont(QFont("Courier New", 10))
         self.text_edit.custom_double_click_handler = self._on_text_double_click
 
-        self.middle_layout.addWidget(QLabel("Text:"))
+        self.middle_layout.addWidget(QLabel(tr('Text:')))
         self.middle_layout.addWidget(self.text_edit)
         self.splitter.addWidget(self.middle_panel)
 

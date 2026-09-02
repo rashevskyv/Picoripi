@@ -3,6 +3,7 @@ from typing import Optional, Any
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QProgressBar, QHBoxLayout
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+from core.i18n import tr
 
 class AutoSleepCountdownDialog(QDialog):
     """Non-modal countdown notification dialog shown before entering sleep mode."""
@@ -14,7 +15,7 @@ class AutoSleepCountdownDialog(QDialog):
         self.task_name = task_name
         self._is_closing = False
 
-        self.setWindowTitle("System Sleep Countdown")
+        self.setWindowTitle(tr('System Sleep Countdown'))
         self.setModal(False)
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setMinimumWidth(380)
@@ -40,8 +41,7 @@ class AutoSleepCountdownDialog(QDialog):
         layout.addWidget(self.time_label)
 
         self.info_label = QLabel(
-            "The computer will sleep if no user activity is detected.\n"
-            "Press any key, move the mouse, or click 'Stay Awake' to cancel.",
+            tr("The computer will sleep if no user activity is detected.\nPress any key, move the mouse, or click 'Stay Awake' to cancel."),
             self
         )
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -57,7 +57,7 @@ class AutoSleepCountdownDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        self.cancel_button = QPushButton("Stay Awake", self)
+        self.cancel_button = QPushButton(tr('Stay Awake'), self)
         self.cancel_button.setDefault(True)
         self.cancel_button.clicked.connect(self._on_stay_awake_clicked)
         btn_layout.addWidget(self.cancel_button)

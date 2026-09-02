@@ -9,6 +9,7 @@ from PyQt6.QtGui import QKeySequence
 from utils.logging_utils import log_info, log_error
 from plugins.base_game_rules import BaseGameRules
 from utils.utils import clear_width_caches
+from core.i18n import tr
 
 
 if TYPE_CHECKING:
@@ -134,7 +135,7 @@ class MainWindowPluginHandler:
         
         # Show error to user so they know why settings are missing
         if error_message:
-            QMessageBox.critical(self.mw, "Plugin Load Error", 
+            QMessageBox.critical(self.mw, tr('Plugin Load Error'), 
                                  f"Failed to load plugin '{self.mw.active_game_plugin}'.\n"
                                  "Falling back to base rules.\n\n"
                                  f"Error details:\n{error_message}")

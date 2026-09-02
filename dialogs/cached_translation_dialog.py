@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QTextEdit, QHBoxLayout, QPushButton
 )
 from PyQt6.QtCore import Qt
+from core.i18n import tr
 
 class CachedTranslationDialog(QDialog):
     """Custom dialog for displaying cached translations to prevent window stretching."""
@@ -22,9 +23,9 @@ class CachedTranslationDialog(QDialog):
         
         # Set Window Title
         if cached_count == 1:
-            self.setWindowTitle("Cached Translation Detected")
+            self.setWindowTitle(tr('Cached Translation Detected'))
         else:
-            self.setWindowTitle("Cached Translations Detected")
+            self.setWindowTitle(tr('Cached Translations Detected'))
             
         # Layouts and settings
         self.setMinimumSize(500, 350)
@@ -56,7 +57,7 @@ class CachedTranslationDialog(QDialog):
         layout.addWidget(self.info_label)
         
         # 2. Source Label
-        self.source_label = QLabel("Source: Loaded from cache", self)
+        self.source_label = QLabel(tr('Source: Loaded from cache'), self)
         self.source_label.setStyleSheet("color: gray; font-style: italic;")
         layout.addWidget(self.source_label)
         
@@ -82,30 +83,24 @@ class CachedTranslationDialog(QDialog):
         btn_layout.setSpacing(8)
         btn_layout.addStretch()
         
-        self.restore_btn = QPushButton("OK", self)
+        self.restore_btn = QPushButton(tr('OK'), self)
         self.restore_btn.setToolTip(
-            "<b>Use the saved translation</b><br>"
-            "Click — reuse the translation already in the backup database. No AI "
-            "request is made (Enter)."
+            tr('<b>Use the saved translation</b><br>Click — reuse the translation already in the backup database. No AI request is made (Enter).')
         )
         self.restore_btn.setDefault(True)
         self.restore_btn.clicked.connect(lambda: self.done(1))
         btn_layout.addWidget(self.restore_btn)
         
-        self.translate_btn = QPushButton("Translate Anew", self)
+        self.translate_btn = QPushButton(tr('Translate Anew'), self)
         self.translate_btn.setToolTip(
-            "<b>Translate anew</b><br>"
-            "Click — ignore the saved translation and send a fresh AI request.<br>"
-            "Ctrl-clicking AI Translate in the main window skips this dialog and "
-            "always re-translates."
+            tr('<b>Translate anew</b><br>Click — ignore the saved translation and send a fresh AI request.<br>Ctrl-clicking AI Translate in the main window skips this dialog and always re-translates.')
         )
         self.translate_btn.clicked.connect(lambda: self.done(2))
         btn_layout.addWidget(self.translate_btn)
         
-        self.cancel_btn = QPushButton("Cancel", self)
+        self.cancel_btn = QPushButton(tr('Cancel'), self)
         self.cancel_btn.setToolTip(
-            "<b>Cancel</b><br>"
-            "Click — leave the string as it is and make no AI request (Esc)."
+            tr('<b>Cancel</b><br>Click — leave the string as it is and make no AI request (Esc).')
         )
         self.cancel_btn.clicked.connect(lambda: self.done(0))
         btn_layout.addWidget(self.cancel_btn)

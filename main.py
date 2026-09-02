@@ -74,6 +74,7 @@ from ui.main_window.main_window_event_handler import MainWindowEventHandler
 from ui.main_window.main_window_block_handler import MainWindowBlockHandler
 
 from core.context import UIProvider
+from core.i18n import tr
 
 
 class StateProperty:
@@ -138,14 +139,14 @@ class MainWindow(QMainWindow):
         self._startup_loading_pending = False
         log_info("Initializing main window...")
 
-        self.report_startup_progress(8, "Initializing application state…")
+        self.report_startup_progress(8, tr("Initializing application state…"))
         self._init_metadata()
         self._init_state()
         self._init_visual_settings()
-        self.report_startup_progress(12, "Loading settings and fonts…")
+        self.report_startup_progress(12, tr("Loading settings and fonts…"))
         self._init_data_structures()
         self._init_handlers()
-        self.report_startup_progress(42, "Building the workspace…")
+        self.report_startup_progress(42, tr("Building the workspace…"))
         self._init_ui()
 
     def report_startup_progress(self, value: int, message: str) -> None:
@@ -246,8 +247,10 @@ class MainWindow(QMainWindow):
         self.ui_updater = UIUpdater(self, self.data_processor)
         self.undo_manager = UndoManager(self)
 
-        self.report_startup_progress(15, "Reading application settings…")
+        self.report_startup_progress(15, tr("Reading application settings…"))
         self.settings_manager.load_settings()
+        from core.i18n import init as init_i18n
+        init_i18n(self.settings_manager.get("ui_language", "en"))
 
         # Actions Handlers
         self.string_settings_updater = StringSettingsUpdater(self, self.data_processor)
@@ -258,7 +261,7 @@ class MainWindow(QMainWindow):
         self.block_handler = MainWindowBlockHandler(self)
 
         # Plugin Setup
-        self.report_startup_progress(32, "Loading game plugin…")
+        self.report_startup_progress(32, tr("Loading game plugin…"))
         self.plugin_handler.load_game_plugin()
 
         # Merge autofix_enabled and detection_enabled defaults from the plugin if they are empty
@@ -333,7 +336,7 @@ class MainWindow(QMainWindow):
         self.plugin_status_label: Optional[QLabel] = None
 
         # Setup
-        self.report_startup_progress(45, "Creating editors and toolbars…")
+        self.report_startup_progress(45, tr("Creating editors and toolbars…"))
         setup_main_window_ui(self)
         self.ui_handler.force_focus()
         log_info("UI setup complete.")
@@ -355,7 +358,7 @@ class MainWindow(QMainWindow):
         self.text_analysis_handler.ensure_menu_action()
 
         log_info("Initializing dynamic UI from plugin...")
-        self.report_startup_progress(52, "Preparing plugin tools…")
+        self.report_startup_progress(52, tr("Preparing plugin tools…"))
         self.plugin_handler.setup_plugin_ui()
         self.plugin_handler.update_warnings_filter_button()
 
@@ -388,7 +391,7 @@ class MainWindow(QMainWindow):
                     editor_widget.updateLineNumberAreaWidth(0)
 
         self.ui_handler.apply_font_size()
-        self.report_startup_progress(58, "Restoring the previous workspace…")
+        self.report_startup_progress(58, tr("Restoring the previous workspace…"))
         self.helper.restore_state_after_settings_load()
         self.helper.apply_text_wrap_settings()
 
@@ -420,7 +423,7 @@ class MainWindow(QMainWindow):
             self.project_action_handler._set_project_actions_enabled(False)
             if hasattr(self, 'close_project_action') and self.close_project_action:
                 self.close_project_action.setEnabled(True)
-                self.close_project_action.setToolTip("Close the current project or file")
+                self.close_project_action.setToolTip(tr('Close the current project or file'))
         else:
             self.project_action_handler._set_project_actions_enabled(False)
 
@@ -447,6 +450,26 @@ class MainWindow(QMainWindow):
 
 
 
+    def change_ui_language(self, code: str) -> None:
+        """Persist the Language-menu choice. The new catalog loads on the next start."""
+        from core.i18n import current_language, language_names, tr as _tr
+        if code == current_language():
+            return
+        names = language_names()
+        if code not in names and code != "en":
+            return
+        self.ui_language = code
+        if hasattr(self, "settings_manager"):
+            self.settings_manager.set("ui_language", code)
+            self.settings_manager.save_settings()
+        for other, action in getattr(self, "language_actions", {}).items():
+            action.setChecked(other == code)
+        QMessageBox.information(
+            self,
+            _tr("Language"),
+            _tr("A restart is required to apply the new interface language."),
+        )
+
     def load_game_plugin(self):
         """Proxy to plugin_handler for backward compatibility in handlers."""
         self.plugin_handler.load_game_plugin()
@@ -464,6 +487,7 @@ class MainWindow(QMainWindow):
     # --- Settings Properties (Proxy to SettingsManager via Descriptors) ---
     current_font_size = SettingsProperty('font_size', DEFAULT_APP_FONT_SIZE)
     active_game_plugin = SettingsProperty('active_game_plugin', "zelda_mc")
+    ui_language = SettingsProperty('ui_language', "en")
     show_multiple_spaces_as_dots = SettingsProperty('show_multiple_spaces_as_dots', True)
     theme = SettingsProperty('theme', "auto")
     restore_unsaved_on_startup = SettingsProperty('restore_unsaved_on_startup', False)
@@ -574,7 +598,7 @@ class MainWindow(QMainWindow):
         target_block_idx = block_idx if block_idx is not None else self.data_store.current_block_idx
 
         if target_block_idx == -1:
-            QMessageBox.information(self, "Build Glossary", "Please select a block first.")
+            QMessageBox.information(self, tr('Build Glossary'), tr('Please select a block first.'))
             return
 
         self.glossary_builder_handler = GlossaryBuilderHandler(self)
@@ -605,14 +629,14 @@ class MainWindow(QMainWindow):
         from PyQt6.QtWidgets import QMessageBox, QCheckBox
         msg_box = QMessageBox(self)
         msg_box.setIcon(QMessageBox.Icon.Warning)
-        msg_box.setWindowTitle("Archive Size Warning")
+        msg_box.setWindowTitle(tr('Archive Size Warning'))
         msg_box.setText(
             f"The packed archive '{archive_rel_path}' size ({new_size} bytes) "
             f"exceeds the original archive size ({orig_size} bytes).\n\n"
             f"This may lead to game crashes, text truncation, or corruption when importing the file into the ROM.\n\n"
             f"Please shorten your translation strings in this archive to reduce its size."
         )
-        cb = QCheckBox("Do not show this warning in the future", msg_box)
+        cb = QCheckBox(tr('Do not show this warning in the future'), msg_box)
         msg_box.setCheckBox(cb)
         msg_box.exec()
         if cb.isChecked():

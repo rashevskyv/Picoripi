@@ -22,6 +22,12 @@ Picoripi is now largely AI-developed, so the AI must behave less like a code gen
 - Keep changes local to the ownership boundary implied by the bug or feature.
 - After every meaningful change, verify the relevant path before moving on.
 
+### 1.3a. UI strings are English + Ukrainian together
+
+- New or changed interface copy is `tr("English source")` in code **and** the matching entry in `locales/uk.json` in the same change.
+- Do not leave a new control English-only in the Ukrainian catalog. Other languages are filled later by `tools/i18n-translate/run.bat`, which may use the Ukrainian string as extra context.
+- The running app Language menu is English and Ukrainian only. Do not add Russian.
+
 ### 1.3. Respect The Existing Architecture
 
 - Read nearby code before editing.

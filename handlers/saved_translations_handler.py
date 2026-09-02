@@ -7,6 +7,7 @@ from typing import List, Tuple
 from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
 from handlers.base_handler import BaseHandler
+from core.i18n import tr
 
 class SavedTranslationsHandler(BaseHandler):
     """Handler for saved translations operations."""
@@ -49,7 +50,7 @@ class SavedTranslationsHandler(BaseHandler):
         manager = self.ctx.saved_translations_manager
         saved_text = manager.get_saved_translation(block_idx, string_idx)
         if saved_text is None:
-            QMessageBox.warning(self.ctx, "Restore Error", "No saved translation found for this line.")
+            QMessageBox.warning(self.ctx, tr('Restore Error'), tr('No saved translation found for this line.'))
             return False
         
         # Check if current is different
@@ -117,7 +118,7 @@ class SavedTranslationsHandler(BaseHandler):
             if hasattr(self.ctx, 'statusBar') and self.ctx.statusBar:
                 self.ctx.statusBar.showMessage(f"Restored {restored_count} saved translations.", 2000)
         else:
-            QMessageBox.information(self.ctx, "Restore Translation", "No saved translations were found for the selected lines.")
+            QMessageBox.information(self.ctx, tr('Restore Translation'), tr('No saved translations were found for the selected lines.'))
 
     def restore_translations_for_block(self, block_idx: int) -> None:
         """Restore translations for block."""
@@ -134,14 +135,13 @@ class SavedTranslationsHandler(BaseHandler):
         manager = self.ctx.saved_translations_manager
         translations = manager.load_all_saved_translations()
         if not translations:
-            QMessageBox.information(self.ctx, "Restore All Translations", "No saved translations found in the project.")
+            QMessageBox.information(self.ctx, tr('Restore All Translations'), tr('No saved translations found in the project.'))
             return
             
         reply = QMessageBox.question(
             self.ctx,
-            "Restore All Translations",
-            "Are you sure you want to restore all saved translations in the project?\n\n"
-            "This will overwrite current edits in memory.",
+            tr('Restore All Translations'),
+            tr('Are you sure you want to restore all saved translations in the project?\n\nThis will overwrite current edits in memory.'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -183,32 +183,32 @@ class SavedTranslationsHandler(BaseHandler):
             if hasattr(self.ctx, 'statusBar') and self.ctx.statusBar:
                 self.ctx.statusBar.showMessage(f"Restored {restored_count} saved translations across {len(affected_blocks)} block(s).", 2000)
         else:
-            QMessageBox.information(self.ctx, "Restore All Translations", "All translations in memory are already matching the saved translations.")
+            QMessageBox.information(self.ctx, tr('Restore All Translations'), tr('All translations in memory are already matching the saved translations.'))
 
     def save_translation_action(self) -> None:
         """Save translation action."""
         block_idx = self.data_store.current_block_idx
         string_idx = self.data_store.current_string_idx
         if block_idx == -1 or string_idx == -1:
-            QMessageBox.warning(self.ctx, "Save Translation", "Please select a line first.")
+            QMessageBox.warning(self.ctx, tr('Save Translation'), tr('Please select a line first.'))
             return
 
         curr_text, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
         original_text = self.data_processor._get_string_from_source(block_idx, string_idx, self.data_store.data, "original_data")
         
         if not curr_text or curr_text == original_text:
-            QMessageBox.information(self.ctx, "Save Translation", "This string does not have any translation/edits to save.")
+            QMessageBox.information(self.ctx, tr('Save Translation'), tr('This string does not have any translation/edits to save.'))
             return
 
         self.ctx.saved_translations_manager.save_translation(block_idx, string_idx, curr_text)
-        QMessageBox.information(self.ctx, "Save Translation", f"Translation for line {string_idx + 1} has been saved.")
+        QMessageBox.information(self.ctx, tr('Save Translation'), f"Translation for line {string_idx + 1} has been saved.")
 
     def restore_translation_action(self) -> None:
         """Restore translation action."""
         block_idx = self.data_store.current_block_idx
         string_idx = self.data_store.current_string_idx
         if block_idx == -1 or string_idx == -1:
-            QMessageBox.warning(self.ctx, "Restore Translation", "Please select a line first.")
+            QMessageBox.warning(self.ctx, tr('Restore Translation'), tr('Please select a line first.'))
             return
 
         self.restore_translation(block_idx, string_idx)
@@ -216,7 +216,7 @@ class SavedTranslationsHandler(BaseHandler):
     def export_translations_to_json_action(self) -> None:
         """Export translations to json action."""
         if not self.data_store.data:
-            QMessageBox.warning(self.ctx, "Export Error", "No project or file is currently open.")
+            QMessageBox.warning(self.ctx, tr('Export Error'), tr('No project or file is currently open.'))
             return
 
         # Determine target file name
@@ -265,16 +265,16 @@ class SavedTranslationsHandler(BaseHandler):
             with open(save_path, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, ensure_ascii=False, indent=2)
             QMessageBox.information(
-                self.ctx, 'Export Translations',
+                self.ctx, tr('Export Translations'),
                 f'Successfully exported translations to:\n{save_path}'
             )
         except Exception as e:
-            QMessageBox.critical(self.ctx, 'Export Error', f'Failed to save JSON:\n{e}')
+            QMessageBox.critical(self.ctx, tr('Export Error'), f'Failed to save JSON:\n{e}')
 
     def export_original_to_json_action(self) -> None:
         """Export original text to json action."""
         if not self.data_store.data:
-            QMessageBox.warning(self.ctx, "Export Error", "No project or file is currently open.")
+            QMessageBox.warning(self.ctx, tr('Export Error'), tr('No project or file is currently open.'))
             return
 
         # Determine target file name
@@ -323,16 +323,16 @@ class SavedTranslationsHandler(BaseHandler):
             with open(save_path, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, ensure_ascii=False, indent=2)
             QMessageBox.information(
-                self.ctx, 'Export Original Text',
+                self.ctx, tr('Export Original Text'),
                 f'Successfully exported original text to:\n{save_path}'
             )
         except Exception as e:
-            QMessageBox.critical(self.ctx, 'Export Error', f'Failed to save JSON:\n{e}')
+            QMessageBox.critical(self.ctx, tr('Export Error'), f'Failed to save JSON:\n{e}')
 
     def import_translations_from_json_action(self) -> None:
         """Import translations from json action."""
         if not self.data_store.data:
-            QMessageBox.warning(self.ctx, "Import Error", "No project or file is currently open.")
+            QMessageBox.warning(self.ctx, tr('Import Error'), tr('No project or file is currently open.'))
             return
 
         load_path, _ = QFileDialog.getOpenFileName(
@@ -348,20 +348,19 @@ class SavedTranslationsHandler(BaseHandler):
             with open(load_path, 'r', encoding='utf-8') as f:
                 import_data = json.load(f)
         except Exception as e:
-            QMessageBox.critical(self.ctx, 'Import Error', f'Failed to load JSON file:\\n{e}')
+            QMessageBox.critical(self.ctx, tr('Import Error'), f'Failed to load JSON file:\\n{e}')
             return
 
         files_data = import_data.get("files", {})
         if not files_data:
-            QMessageBox.warning(self.ctx, 'Import Error', 'The selected JSON does not contain valid translations.')
+            QMessageBox.warning(self.ctx, tr('Import Error'), tr('The selected JSON does not contain valid translations.'))
             return
 
         # Confirm
         reply = QMessageBox.question(
             self.ctx,
-            'Confirm Import',
-            'This will import matching translations into your current project/file edits in memory.\n'
-            'Do you want to proceed?',
+            tr('Confirm Import'),
+            tr('This will import matching translations into your current project/file edits in memory.\nDo you want to proceed?'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes
         )
@@ -404,9 +403,9 @@ class SavedTranslationsHandler(BaseHandler):
             self.ui_updater.update_text_views()
             QMessageBox.information(
                 self.ctx,
-                'Import Translations',
+                tr('Import Translations'),
                 f'Successfully imported {imported_count} translations.\n'
                 'The changes are loaded in the editor. Click "Save" to save them.'
             )
         else:
-            QMessageBox.information(self.ctx, "Import Translations", "No matching translations were found to import.")
+            QMessageBox.information(self.ctx, tr('Import Translations'), tr('No matching translations were found to import.'))

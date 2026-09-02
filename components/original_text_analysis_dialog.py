@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 )
 
 from utils.utils import calculate_string_width, DEFAULT_CHAR_WIDTH_FALLBACK
+from core.i18n import tr
 
 BASE_BAR_COLOR = QColor(66, 135, 245, 220)
 HIGHLIGHT_BAR_COLOR = QColor(244, 160, 0, 230)
@@ -213,13 +214,13 @@ class OriginalTextAnalysisDialog(QDialog):
     def __init__(self, parent=None) -> None:
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Original Text Width Analysis")
+        self.setWindowTitle(tr('Original Text Width Analysis'))
         self.resize(1100, 750)
 
         layout = QVBoxLayout(self)
 
         selector_layout = QHBoxLayout()
-        selector_layout.addWidget(QLabel("Font map:"))
+        selector_layout.addWidget(QLabel(tr('Font map:')))
         self._font_combo = QComboBox(self)
         self._font_combo.setMinimumWidth(200)
         selector_layout.addWidget(self._font_combo)
@@ -230,7 +231,7 @@ class OriginalTextAnalysisDialog(QDialog):
         self._chart_stack = QStackedWidget(self)
         layout.addWidget(self._chart_stack)
 
-        self._summary_label = QLabel("Ready")
+        self._summary_label = QLabel(tr('Ready'))
         self._summary_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._summary_label)
 
@@ -242,7 +243,7 @@ class OriginalTextAnalysisDialog(QDialog):
         self._font_views: Dict[str, Dict[str, Any]] = {}
 
         self._hint_label = QLabel(
-            "Scroll: zoom, Middle: pan; Hover for details. Click on bar/row to sync."
+            tr('Scroll: zoom, Middle: pan; Hover for details. Click on bar/row to sync.')
         )
         self._hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._hint_label)
@@ -277,7 +278,7 @@ class OriginalTextAnalysisDialog(QDialog):
         if title:
             self.set_custom_title(title)
         elif not self._custom_title:
-            self.setWindowTitle("Original Text Width Analysis")
+            self.setWindowTitle(tr('Original Text Width Analysis'))
             
         self._raw_entries = [dict(entry) for entry in raw_entries]
         self._font_maps = font_maps or {}
@@ -331,14 +332,14 @@ class OriginalTextAnalysisDialog(QDialog):
         for font_name in sorted(self._font_maps.keys()):
             self._font_combo.addItem(font_name)
         if self._font_combo.count() == 0:
-            self._font_combo.addItem("No font maps")
+            self._font_combo.addItem(tr('No font maps'))
             self._font_combo.setEnabled(False)
         else:
             self._font_combo.setEnabled(True)
         self._font_combo.blockSignals(False)
 
         if not self._raw_entries:
-            self._summary_label.setText("No data")
+            self._summary_label.setText(tr('No data'))
             self.show(); self.raise_(); self.activateWindow()
             return
 
@@ -352,7 +353,7 @@ class OriginalTextAnalysisDialog(QDialog):
                 self._font_combo.setCurrentIndex(index)
             self._apply_font(target_font)
         else:
-            self._summary_label.setText("No font selected")
+            self._summary_label.setText(tr('No font selected'))
             self.show(); self.raise_(); self.activateWindow()
 
     def _apply_font(self, font_name: str) -> None:
@@ -429,7 +430,7 @@ class OriginalTextAnalysisDialog(QDialog):
     def _update_summary(self, entries: List[dict]) -> None:
         """Internal helper to update the summary."""
         if not entries:
-            self._summary_label.setText("No entries")
+            self._summary_label.setText(tr('No entries'))
             return
         top = entries[0]
         self._summary_label.setText(

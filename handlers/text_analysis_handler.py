@@ -12,6 +12,7 @@ from handlers.base_handler import BaseHandler
 from components.original_text_analysis_dialog import OriginalTextAnalysisDialog
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, DEFAULT_CHAR_WIDTH_FALLBACK
+from core.i18n import tr
 
 
 class TextAnalysisHandler(BaseHandler):
@@ -32,9 +33,9 @@ class TextAnalysisHandler(BaseHandler):
         if self._menu_action is not None:
             return
 
-        action = QAction('Original Text Width Analysis', self.mw)
+        action = QAction(tr('Original Text Width Analysis'), self.mw)
         action.setToolTip(
-            'Collect the top 100 widest original lines (in pixels) and show a chart.'
+            tr('Collect the top 100 widest original lines (in pixels) and show a chart.')
         )
         action.triggered.connect(self.analyze_original_text)
         tools_menu.addAction(action)
@@ -46,8 +47,8 @@ class TextAnalysisHandler(BaseHandler):
         if not isinstance(data_source, list) or not data_source:
             QMessageBox.information(
                 self.mw,
-                'Original Text Analysis',
-                'No original data loaded. Please load a file first.',
+                tr('Original Text Analysis'),
+                tr('No original data loaded. Please load a file first.'),
             )
             return
 
@@ -55,8 +56,8 @@ class TextAnalysisHandler(BaseHandler):
         if not font_maps:
             QMessageBox.warning(
                 self.mw,
-                'Original Text Analysis',
-                'No font maps loaded for the current plugin.',
+                tr('Original Text Analysis'),
+                tr('No font maps loaded for the current plugin.'),
             )
             return
 
@@ -91,8 +92,8 @@ class TextAnalysisHandler(BaseHandler):
         if not raw_entries:
             QMessageBox.information(
                 self.mw,
-                'Original Text Analysis',
-                'There is no text to analyse.',
+                tr('Original Text Analysis'),
+                tr('There is no text to analyse.'),
             )
             return
 

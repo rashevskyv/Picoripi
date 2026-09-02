@@ -6,6 +6,7 @@ from PyQt6.QtGui import QTextCursor
 from core.data_store import ViewKind, get_view_kind, store_is_virtual_view
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug, log_info
+from core.i18n import tr
 
 class ListSelectionHandler(BaseHandler):
     """Handler for list selection operations."""
@@ -716,10 +717,10 @@ class ListSelectionHandler(BaseHandler):
             # Enable delete and rename for any selected block or folder
             if hasattr(self.mw, 'delete_block_button'):
                 self.mw.delete_block_button.setEnabled(True)
-                self.mw.delete_block_button.setToolTip("Delete selected block or folder")
+                self.mw.delete_block_button.setToolTip(tr('Delete selected block or folder'))
             if hasattr(self.mw, 'rename_block_button'):
                 self.mw.rename_block_button.setEnabled(True)
-                self.mw.rename_block_button.setToolTip("Rename selected block or folder")
+                self.mw.rename_block_button.setToolTip(tr('Rename selected block or folder'))
 
             # Enable move up/down based on siblings in the tree
             if hasattr(self.mw, 'move_block_up_button'):

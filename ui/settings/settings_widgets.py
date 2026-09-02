@@ -2,6 +2,7 @@
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QColorDialog, QPushButton
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import pyqtSignal
+from core.i18n import tr
 
 class ColorPickerButton(QPushButton):
     """Color picker button implementation."""
@@ -15,7 +16,7 @@ class ColorPickerButton(QPushButton):
             self.setText(self._color.name(QColor.HexArgb))
         except Exception:
             self.setText(self._color.name())
-        self.setToolTip("Click to choose a color")
+        self.setToolTip(tr('Click to choose a color'))
         self.clicked.connect(self.pick_color)
         self._update_style()
 
@@ -68,7 +69,7 @@ class TagDisplayWidget(QWidget):
         
         self.color_btn = QPushButton(self)
         self.color_btn.setFixedSize(20, 20)
-        self.color_btn.setToolTip("Pick color")
+        self.color_btn.setToolTip(tr('Pick color'))
         layout.addWidget(self.color_btn)
         
         self.color_btn.clicked.connect(self._pick_color)

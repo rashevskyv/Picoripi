@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 from PyQt6.QtWidgets import QVBoxLayout, QGroupBox, QFormLayout, QCheckBox, QLineEdit
 from utils.logging_utils import log_debug
+from core.i18n import tr
 
 class SettingsLoggingMixin:
     """Mixin class for Logging tab and plugin discovery in settings dialog."""
@@ -30,7 +31,7 @@ class SettingsLoggingMixin:
         """Populate plugin list."""
         self.plugin_map = self.find_plugins()
         self.plugin_combo.clear()
-        self.plugin_combo.addItem("None", "")
+        self.plugin_combo.addItem(tr('None'), tr(''))
         for display_name, dir_name in self.plugin_map.items():
             self.plugin_combo.addItem(display_name, dir_name)
 
@@ -38,22 +39,22 @@ class SettingsLoggingMixin:
         """Setup logging tab."""
         layout = QVBoxLayout(self.logging_tab)
         
-        handler_group = QGroupBox("Log Destinations", self.logging_tab)
+        handler_group = QGroupBox(tr('Log Destinations'), self.logging_tab)
         handler_layout = QFormLayout(handler_group)
-        self.enable_console_logging_checkbox = QCheckBox("Enable Console Logging", self)
+        self.enable_console_logging_checkbox = QCheckBox(tr('Enable Console Logging'), self)
         handler_layout.addRow(self.enable_console_logging_checkbox)
-        self.enable_file_logging_checkbox = QCheckBox("Enable File Logging", self)
+        self.enable_file_logging_checkbox = QCheckBox(tr('Enable File Logging'), self)
         handler_layout.addRow(self.enable_file_logging_checkbox)
         
-        self.log_ai_traffic_checkbox = QCheckBox("Log AI Traffic to File (ai_traffic.log)", self)
+        self.log_ai_traffic_checkbox = QCheckBox(tr('Log AI Traffic to File (ai_traffic.log)'), self)
         handler_layout.addRow(self.log_ai_traffic_checkbox)
         
         self.log_file_path_edit = QLineEdit(self)
-        self.log_file_path_edit.setPlaceholderText("Leave empty for default app_debug.txt")
-        handler_layout.addRow("Log File Path:", self._create_path_selector(self.log_file_path_edit))
+        self.log_file_path_edit.setPlaceholderText(tr('Leave empty for default app_debug.txt'))
+        handler_layout.addRow(tr('Log File Path:'), self._create_path_selector(self.log_file_path_edit))
         layout.addWidget(handler_group)
         
-        cat_group = QGroupBox("Log Event Categories", self.logging_tab)
+        cat_group = QGroupBox(tr('Log Event Categories'), self.logging_tab)
         cat_layout = QVBoxLayout(cat_group)
         
         self.log_categories_checkboxes = {}

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 from utils.logging_utils import log_debug
+from core.i18n import tr
 
 _DEFAULT_GLOSSARY_PROMPT = (
     "You are the creative {target_lang} localization lead for {{GAME_NAME}}. "
@@ -118,18 +119,18 @@ class GlossaryPromptManager:
         self.current_prompts_path = prompts_path
 
         if not prompts_path:
-            QMessageBox.critical(self._mw, "AI Translation", "prompts.json not found.")
+            QMessageBox.critical(self._mw, tr('AI Translation'), tr('prompts.json not found.'))
             return None, None
 
         try:
             prompt_data = json.loads(prompts_path.read_text("utf-8"))
         except Exception as e:
-            QMessageBox.critical(self._mw, "AI Translation", f"Failed to load prompts.json: {e}")
+            QMessageBox.critical(self._mw, tr('AI Translation'), f"Failed to load prompts.json: {e}")
             return None, None
 
         system_prompt = self._extract_system_prompt(prompt_data)
         if not system_prompt:
-            QMessageBox.critical(self._mw, "AI Translation", "System prompt not defined in prompts.json.")
+            QMessageBox.critical(self._mw, tr('AI Translation'), tr('System prompt not defined in prompts.json.'))
             return None, None
 
         glossary_path = self._resolve_glossary_path(plugin_name)
@@ -139,7 +140,7 @@ class GlossaryPromptManager:
             try:
                 glossary_text = glossary_path.read_text("utf-8").strip()
             except Exception as e:
-                QMessageBox.warning(self._mw, "AI Translation", f"Failed to read glossary: {e}")
+                QMessageBox.warning(self._mw, tr('AI Translation'), f"Failed to read glossary: {e}")
 
         self._current_glossary_path = glossary_path
         self._current_plugin_name = plugin_name

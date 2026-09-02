@@ -1,5 +1,6 @@
 # ui/main_window/mempalace_actions.py
 from PyQt6.QtWidgets import QMessageBox
+from core.i18n import tr
 
 
 class MempalaceActions:
@@ -70,7 +71,7 @@ class MempalaceActions:
         """
         ds = getattr(self.mw, 'data_store', None)
         if not ds or ds.current_block_idx == -1 or ds.current_string_idx == -1:
-            QMessageBox.warning(self.mw, "Story Timeline", "Please select a dialogue row to inspect.")
+            QMessageBox.warning(self.mw, tr('Story Timeline'), tr('Please select a dialogue row to inspect.'))
             return
 
         block_idx = ds.current_block_idx

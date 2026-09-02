@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush
 from PyQt6.QtCore import Qt, pyqtSignal, QPointF
+from core.i18n import tr
 
 
 class AnglePickerWidget(QWidget):
@@ -139,12 +140,12 @@ class TextEffectsDialog(QDialog):
         root_layout.setSpacing(12)
 
         # ── Enabled checkbox ──────────────────────────────────────────────────
-        self.chk_enabled = QCheckBox("Enable effect")
+        self.chk_enabled = QCheckBox(tr('Enable effect'))
         self.chk_enabled.setChecked(bool(settings.get("enabled", False)))
         root_layout.addWidget(self.chk_enabled)
 
         # ── Group box with parameters ─────────────────────────────────────────
-        group = QGroupBox("Parameters")
+        group = QGroupBox(tr('Parameters'))
         form = QFormLayout(group)
         form.setSpacing(8)
         root_layout.addWidget(group)
@@ -154,18 +155,16 @@ class TextEffectsDialog(QDialog):
         self._color_preview = QLabel()
         self._color_preview.setFixedSize(32, 22)
         self._color_preview.setStyleSheet(f"background-color: {self._color_hex}; border: 1px solid #555; border-radius: 3px;")
-        btn_color = QPushButton("Pick Color…")
+        btn_color = QPushButton(tr('Pick Color…'))
         btn_color.setToolTip(
-            "<b>Pick colour</b><br>"
-            "Click — choose the effect colour in the system colour picker. The "
-            "swatch on the left shows the current value."
+            tr('<b>Pick colour</b><br>Click — choose the effect colour in the system colour picker. The swatch on the left shows the current value.')
         )
         btn_color.setFixedWidth(100)
         btn_color.clicked.connect(self._pick_color)
         color_row.addWidget(self._color_preview)
         color_row.addWidget(btn_color)
         color_row.addStretch()
-        form.addRow("Color:", color_row)
+        form.addRow(tr('Color:'), color_row)
 
         # Alpha (opacity) row
         alpha_row = QHBoxLayout()
@@ -180,7 +179,7 @@ class TextEffectsDialog(QDialog):
         self.spin_alpha.valueChanged.connect(self.slider_alpha.setValue)
         alpha_row.addWidget(self.slider_alpha)
         alpha_row.addWidget(self.spin_alpha)
-        form.addRow("Opacity (0–255):", alpha_row)
+        form.addRow(tr('Opacity (0–255):'), alpha_row)
 
         if mode == self.MODE_SHADOW:
             # Angle row with interactive picker
@@ -203,7 +202,7 @@ class TextEffectsDialog(QDialog):
             self.spin_angle.valueChanged.connect(self.angle_picker.setAngle)
             
             # Text explanation
-            lbl_angle_hint = QLabel("Drag needle or click wheel to set direction (Photoshop style).")
+            lbl_angle_hint = QLabel(tr('Drag needle or click wheel to set direction (Photoshop style).'))
             lbl_angle_hint.setStyleSheet("color: #888; font-size: 9px;")
             lbl_angle_hint.setWordWrap(True)
             
@@ -215,7 +214,7 @@ class TextEffectsDialog(QDialog):
             right_col.addWidget(lbl_angle_hint)
             angle_layout.addLayout(right_col)
             
-            form.addRow("Angle:", angle_layout)
+            form.addRow(tr('Angle:'), angle_layout)
 
             # Distance row
             self.spin_distance = QSpinBox()
@@ -223,7 +222,7 @@ class TextEffectsDialog(QDialog):
             self.spin_distance.setValue(int(settings.get("distance", 3)))
             self.spin_distance.setSuffix(" px")
             self.spin_distance.setFixedWidth(80)
-            form.addRow("Distance:", self.spin_distance)
+            form.addRow(tr('Distance:'), self.spin_distance)
 
         else:  # GLOW
             # Spread row
@@ -232,7 +231,7 @@ class TextEffectsDialog(QDialog):
             self.spin_spread.setValue(int(settings.get("spread", 4)))
             self.spin_spread.setSuffix(" px")
             self.spin_spread.setFixedWidth(80)
-            form.addRow("Spread:", self.spin_spread)
+            form.addRow(tr('Spread:'), self.spin_spread)
 
         # ── OK / Cancel ───────────────────────────────────────────────────────
         bbox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)

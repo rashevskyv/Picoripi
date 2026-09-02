@@ -10,6 +10,7 @@ from plugins.base_game_rules import BaseGameRules
 from core.state_manager import AppState
 from .width_calculation_worker import WidthCalculationWorker
 from components.report_dialog import LargeTextReportDialog
+from core.i18n import tr
 
 class SaveWorker(QThread):
     """Save worker implementation."""
@@ -75,7 +76,7 @@ class AppActionHandler(BaseHandler):
         """Open file dialog action."""
         log_info("Open File Dialog action triggered.")
         if self.mw.data_store.unsaved_changes:
-            reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Save before opening new file?", QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
+            reply = QMessageBox.question(self.mw, tr('Unsaved Changes'), tr('Save before opening new file?'), QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
             if reply == QMessageBox.StandardButton.Save:
                 def on_save_done(success: bool):
                     if success:
@@ -102,7 +103,7 @@ class AppActionHandler(BaseHandler):
         """Open changes file dialog action."""
         log_info("Open Changes File Dialog action triggered.")
         if not self.mw.data_store.json_path:
-            QMessageBox.warning(self.mw, "Open Changes File", "Please open an original file first.")
+            QMessageBox.warning(self.mw, tr('Open Changes File'), tr('Please open an original file first.'))
             return
             
         start_dir = ""
@@ -114,7 +115,7 @@ class AppActionHandler(BaseHandler):
         path, _ = QFileDialog.getOpenFileName(self.mw, "Open Changes (Edited) File", start_dir, "Supported Files (*.json *.txt *.bmg *.bfn *.arc *.rarc);;BMG Files (*.bmg);;BFN Files (*.bfn);;ARC Files (*.arc *.rarc);;JSON Files (*.json);;Text Files (*.txt);;All Files (*)")
         if path:
             if self.mw.data_store.unsaved_changes:
-                 reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Loading a new changes file will discard current unsaved edits. Proceed?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+                 reply = QMessageBox.question(self.mw, tr('Unsaved Changes'), tr('Loading a new changes file will discard current unsaved edits. Proceed?'), QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
                  if reply == QMessageBox.StandardButton.No:
                      return
             
@@ -137,11 +138,11 @@ class AppActionHandler(BaseHandler):
                 error = f"Unsupported file type: {file_extension}"
 
             if error:
-                QMessageBox.critical(self.mw, "Load Error", f"Failed to load selected changes file:\n{path}\n\n{error}")
+                QMessageBox.critical(self.mw, tr('Load Error'), f"Failed to load selected changes file:\n{path}\n\n{error}")
                 return
                 
             if not self.mw.current_game_rules:
-                QMessageBox.critical(self.mw, "Load Error", "No game plugin active to parse the file.")
+                QMessageBox.critical(self.mw, tr('Load Error'), tr('No game plugin active to parse the file.'))
                 return
 
             # Backup authoritative original keys
@@ -205,7 +206,7 @@ class AppActionHandler(BaseHandler):
         
         # Prepare QProgressDialog
         progress_dialog = QProgressDialog("Initializing save operation...", None, 0, 100, self.mw)
-        progress_dialog.setWindowTitle("Saving Changes")
+        progress_dialog.setWindowTitle(tr('Saving Changes'))
         progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
         progress_dialog.setMinimumDuration(0)
         progress_dialog.setCancelButton(None)  # Disable cancel to prevent corrupted saves
@@ -231,9 +232,9 @@ class AppActionHandler(BaseHandler):
             
             if not success:
                 if errors:
-                    QMessageBox.critical(self.mw, "Save Error", "Failed to save files:\n" + "\n".join(errors))
+                    QMessageBox.critical(self.mw, tr('Save Error'), "Failed to save files:\n" + "\n".join(errors))
                 else:
-                    QMessageBox.critical(self.mw, "Save Error", "Failed to save files due to an unknown error.")
+                    QMessageBox.critical(self.mw, tr('Save Error'), tr('Failed to save files due to an unknown error.'))
             
             if on_finished_callback:
                 on_finished_callback(success, warnings, errors)
@@ -249,7 +250,7 @@ class AppActionHandler(BaseHandler):
         """Save as dialog action."""
         log_info("Save As Dialog action triggered.")
         if not self.mw.data_store.json_path:
-            QMessageBox.warning(self.mw, "Save As Error", "No original file open.")
+            QMessageBox.warning(self.mw, tr('Save As Error'), tr('No original file open.'))
             return
             
         current_edited_path = self.mw.data_store.edited_json_path if self.mw.data_store.edited_json_path else self._derive_edited_path(self.mw.data_store.json_path)
@@ -263,10 +264,10 @@ class AppActionHandler(BaseHandler):
             
             def on_save_finished(success: bool):
                 if success:
-                    QMessageBox.information(self.mw, "Saved As", f"Changes saved to:\n{self.mw.data_store.edited_json_path}")
+                    QMessageBox.information(self.mw, tr('Saved As'), f"Changes saved to:\n{self.mw.data_store.edited_json_path}")
                     self.ui_updater.update_statusbar_paths()
                 else:
-                    QMessageBox.critical(self.mw, "Save As Error", f"Failed to save to:\n{self.mw.data_store.edited_json_path}")
+                    QMessageBox.critical(self.mw, tr('Save As Error'), f"Failed to save to:\n{self.mw.data_store.edited_json_path}")
                     self.mw.data_store.edited_json_path = original_edited_path_backup
                     self.ui_updater.update_statusbar_paths()
             
@@ -292,7 +293,7 @@ class AppActionHandler(BaseHandler):
 
         with self.mw.state.enter(AppState.LOADING_DATA), self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):
             if not self.mw.current_game_rules:
-                QMessageBox.critical(self.mw, "Load Error", "Cannot load file: No game plugin is active.")
+                QMessageBox.critical(self.mw, tr('Load Error'), tr('Cannot load file: No game plugin is active.'))
                 return
 
             file_content = None
@@ -324,7 +325,7 @@ class AppActionHandler(BaseHandler):
                 self.ui_updater.update_statusbar_paths()
                 self.ui_updater.populate_blocks()
                 self.ui_updater.populate_strings_for_block(-1)
-                QMessageBox.critical(self.mw, "Load Error", f"Failed to load: {original_file_path}\n{error}")
+                QMessageBox.critical(self.mw, tr('Load Error'), f"Failed to load: {original_file_path}\n{error}")
                 return
 
             # Reset plugin state if it tracks keys (like pokemon_fr)
@@ -333,7 +334,7 @@ class AppActionHandler(BaseHandler):
                 
             data, block_names_from_plugin = self.mw.current_game_rules.load_data_from_json_obj(file_content)
             if not data and file_content is not None:
-                QMessageBox.critical(self.mw, "Plugin Error", f"The active plugin '{self.mw.current_game_rules.get_display_name()}' could not parse the file:\n{original_file_path}")
+                QMessageBox.critical(self.mw, tr('Plugin Error'), f"The active plugin '{self.mw.current_game_rules.get_display_name()}' could not parse the file:\n{original_file_path}")
                 self.mw.data_store.json_path = None
                 self.mw.data_store.data = []
                 self.ui_updater.populate_blocks()
@@ -368,7 +369,7 @@ class AppActionHandler(BaseHandler):
                         edit_error = f"Failed to read BMG changes file: {e}"
 
                 if edit_error:
-                    QMessageBox.warning(self.mw, "Edited Load Warning", f"Could not load changes file: {self.mw.data_store.edited_json_path}\n{edit_error}")
+                    QMessageBox.warning(self.mw, tr('Edited Load Warning'), f"Could not load changes file: {self.mw.data_store.edited_json_path}\n{edit_error}")
                 else:
                     plugin_keys_backup = None
                     if hasattr(self.mw.current_game_rules, 'original_keys'):
@@ -423,11 +424,11 @@ class AppActionHandler(BaseHandler):
         """Update the original data action."""
         log_info("Reload Original action triggered.")
         if not self.mw.data_store.json_path:
-            QMessageBox.information(self.mw, "Reload", "No file open.")
+            QMessageBox.information(self.mw, tr('Reload'), tr('No file open.'))
             return
             
         if self.mw.data_store.unsaved_changes:
-            reply = QMessageBox.question(self.mw, 'Unsaved Changes', "Reloading will discard current unsaved edits in memory. Proceed?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            reply = QMessageBox.question(self.mw, tr('Unsaved Changes'), tr('Reloading will discard current unsaved edits in memory. Proceed?'), QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
             if reply == QMessageBox.StandardButton.No:
                 return
                 
@@ -437,14 +438,14 @@ class AppActionHandler(BaseHandler):
     def calculate_widths_for_block_action(self, block_idx: int, category_name: Optional[str] = None) -> None:
         """Calculate widths for block action."""
         if block_idx < 0 or not self.mw.data_store.data or block_idx >= len(self.mw.data_store.data) or not isinstance(self.mw.data_store.data[block_idx], list):
-            QMessageBox.warning(self.mw, "Calculate Widths Error", "Invalid block selected or no data.")
+            QMessageBox.warning(self.mw, tr('Calculate Widths Error'), tr('Invalid block selected or no data.'))
             return
 
         if not self.mw.font_map:
-             QMessageBox.warning(self.mw, "Calculate Widths Error", "Font map is not loaded. Cannot calculate widths.")
+             QMessageBox.warning(self.mw, tr('Calculate Widths Error'), tr('Font map is not loaded. Cannot calculate widths.'))
              return
         if not self.game_rules_plugin:
-            QMessageBox.warning(self.mw, "Calculate Widths Error", "Game rules plugin not loaded.")
+            QMessageBox.warning(self.mw, tr('Calculate Widths Error'), tr('Game rules plugin not loaded.'))
             return
 
         # Handle "virtual block" (category) logic
@@ -467,7 +468,7 @@ class AppActionHandler(BaseHandler):
         num_to_process = len(target_indices) if target_indices is not None else num_strings_total
 
         if num_to_process == 0:
-            QMessageBox.information(self.mw, "Calculate Line Widths", "Target is empty.")
+            QMessageBox.information(self.mw, tr('Calculate Line Widths'), tr('Target is empty.'))
             return
 
         block_data = list(all_strings_in_block) # snapshot
@@ -512,7 +513,7 @@ class AppActionHandler(BaseHandler):
             cleanup()
 
             if not report_text and not entries:
-                QMessageBox.information(self.mw, "Calculate Line Widths", f"Block {block_name} processed. No lines found.")
+                QMessageBox.information(self.mw, tr('Calculate Line Widths'), f"Block {block_name} processed. No lines found.")
                 return
 
             if hasattr(self.mw, 'text_analysis_handler') and entries:

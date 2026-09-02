@@ -6,6 +6,7 @@ from PyQt6.QtCore import QPoint
 from ui.ui_utils import prettify_standard_context_menu
 from utils.logging_utils import log_debug
 from utils.utils import is_control_modifier_pressed
+from core.i18n import tr
 
 class LNETContextMenuLogic:
     """L n e t context menu logic implementation."""
@@ -126,13 +127,13 @@ class LNETContextMenuLogic:
                 existing_entry = translator.get_glossary_entry(add_term_candidate)
 
             if existing_entry and translator is not None:
-                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Edit Glossary Entry...")
+                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Edit Glossary Entry...'))
                 action.setEnabled(True)
                 action.triggered.connect(
                     lambda checked=False, term=existing_entry.original: translator.edit_glossary_entry(term)
                 )
             else:
-                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Add to Glossary...")
+                action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Add to Glossary...'))
                 action_enabled = bool(add_term_candidate) and translator is not None
                 action.setEnabled(action_enabled)
                 if action_enabled:
@@ -206,11 +207,11 @@ class LNETContextMenuLogic:
                                 )
                             menu.addSeparator()
                         else:
-                            no_suggestions_action = menu.addAction("(No suggestions)")
+                            no_suggestions_action = menu.addAction(tr('(No suggestions)'))
                             no_suggestions_action.setEnabled(False)
                             menu.addSeparator()
                     else:
-                        no_suggestions_action = menu.addAction("(Loading suggestions... 🔄)")
+                        no_suggestions_action = menu.addAction(tr('(Loading suggestions... 🔄)'))
                         no_suggestions_action.setEnabled(False)
                         separator_action = menu.addSeparator()
 
@@ -247,7 +248,7 @@ class LNETContextMenuLogic:
                 # Check if there is an existing glossary entry under cursor
                 glossary_entry = self.editor._find_glossary_entry_at(position_in_widget_coords)
                 if glossary_entry:
-                    action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Edit Glossary Entry...")
+                    action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Edit Glossary Entry...'))
                     action.triggered.connect(
                         lambda checked=False, term=glossary_entry.original: translator.edit_glossary_entry(term)
                     )
@@ -261,7 +262,7 @@ class LNETContextMenuLogic:
                         add_term_candidate = cursor_at_pos.selectedText().strip()
                     
                     if add_term_candidate:
-                        action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Add to Glossary...")
+                        action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Add to Glossary...'))
                         context_line = cursor.block().text().replace('\u2029', ' ').strip()
                         action.triggered.connect(
                             lambda checked=False, t=add_term_candidate, ctx=context_line: translator.add_glossary_entry(term="", translation=t, context=ctx)
@@ -269,7 +270,7 @@ class LNETContextMenuLogic:
 
                 if has_selection:
                     selected_text = cursor.selectedText().replace('\u2029', '\n')
-                    variation_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), "AI Variations for Selected")
+                    variation_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), tr('AI Variations for Selected'))
                     variation_action.triggered.connect(
                         lambda checked=False, sel=selected_text: translator.generate_variation_for_current_string(selected_text=sel)
                     )
@@ -319,14 +320,14 @@ class LNETContextMenuLogic:
                 menu.addSeparator()
                 curr_key = (main_window.data_store.current_block_idx, main_window.data_store.current_string_idx)
                 if curr_key in main_window.data_store.edited_data:
-                    save_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), "Save String")
+                    save_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), tr('Save String'))
                     save_action.triggered.connect(lambda checked=False, key=curr_key: main_window.data_processor.save_specific_edits([key]))
                 
-                revert_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), "Revert String to Original")
+                revert_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), tr('Revert String to Original'))
                 revert_action.triggered.connect(lambda: main_window.data_processor.perform_revert_strings(main_window.data_store.current_block_idx, [main_window.data_store.current_string_idx]))
                 
                 if hasattr(main_window, 'saved_translations_manager') and main_window.saved_translations_manager.has_saved_translation(main_window.data_store.current_block_idx, main_window.data_store.current_string_idx):
-                    restore_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), "Restore Translated")
+                    restore_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), tr('Restore Translated'))
                     restore_action.triggered.connect(lambda: main_window.saved_translations_handler.restore_translation(main_window.data_store.current_block_idx, main_window.data_store.current_string_idx))
         
         if self.editor.objectName() == "preview_text_edit":
@@ -377,7 +378,7 @@ class LNETContextMenuLogic:
                 translate_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), action_text)
                 translate_action.triggered.connect(make_translate_trigger(position_in_widget_coords))
 
-                translate_block_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), "AI Translate Entire Block (UA)")
+                translate_block_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), tr('AI Translate Entire Block (UA)'))
                 translate_block_action.triggered.connect(make_translate_block_trigger())
 
             spellchecker_manager = getattr(main_window, 'spellchecker_manager', None)

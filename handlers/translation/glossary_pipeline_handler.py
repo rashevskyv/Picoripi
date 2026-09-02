@@ -42,6 +42,7 @@ from ui.glossary_stopped_dialog import (
     GlossaryStoppedDialog,
 )
 from utils.logging_utils import log_debug, log_error
+from core.i18n import tr
 
 
 class GlossaryPipelineHandler:
@@ -201,7 +202,7 @@ class GlossaryPipelineHandler:
             return get_provider_for_config(config)
         except Exception as exc:
             log_error(f"GlossaryPipelineHandler: provider init failed: {exc}")
-            QMessageBox.critical(self.mw, "AI Error", f"Failed to initialize AI provider: {exc}")
+            QMessageBox.critical(self.mw, tr('AI Error'), f"Failed to initialize AI provider: {exc}")
             return None
 
     def _resolve_area(self, area: str) -> Optional[List[int]]:
@@ -294,11 +295,8 @@ class GlossaryPipelineHandler:
         # No project directory means nowhere to put a project-scoped glossary.
         QMessageBox.warning(
             self.mw,
-            "Build Glossary",
-            "No open project to store the glossary in.\n\n"
-            "The glossary belongs to the project and lives beside it as "
-            "glossary.json, so a build now would be discarded when the glossary "
-            "next reloads. Open or create a project, then run the build again.",
+            tr('Build Glossary'),
+            tr('No open project to store the glossary in.\n\nThe glossary belongs to the project and lives beside it as glossary.json, so a build now would be discarded when the glossary next reloads. Open or create a project, then run the build again.'),
         )
         return False
 
@@ -359,11 +357,11 @@ class GlossaryPipelineHandler:
     def _ready_to_build(self):
         """The glossary manager, once every refusal has had its say."""
         if not getattr(self.mw.data_store, "data", None):
-            QMessageBox.information(self.mw, "Build Glossary", "Open a project first.")
+            QMessageBox.information(self.mw, tr('Build Glossary'), tr('Open a project first.'))
             return None
         manager = self._glossary_manager()
         if manager is None:
-            QMessageBox.warning(self.mw, "Build Glossary", "Glossary manager is not available.")
+            QMessageBox.warning(self.mw, tr('Build Glossary'), tr('Glossary manager is not available.'))
             return None
         if not self._bind_glossary_file(manager):
             return None
@@ -529,7 +527,7 @@ class GlossaryPipelineHandler:
             self._show_report(summary, manager)
         elif is_cancelled:
             self._stopped_retry_count = 0
-            QMessageBox.information(self.mw, "Build Glossary", "Glossary build was cancelled.")
+            QMessageBox.information(self.mw, tr('Build Glossary'), tr('Glossary build was cancelled.'))
         else:
             self._show_stopped_dialog(summary, manager, stopped_error=stopped_error, last_result=last_result)
 
@@ -635,9 +633,9 @@ class GlossaryPipelineHandler:
         undescribed = sum(1 for entry in entries if not entry.notes)
         duplicates = len(possible_duplicate_pairs(entries))
         box = QMessageBox(self.mw)
-        box.setWindowTitle("Automatic glossary pass completed")
+        box.setWindowTitle(tr('Automatic glossary pass completed'))
         box.setIcon(QMessageBox.Icon.Information)
-        box.setText("The automatic pass completed. The glossary is not treated as finished.")
+        box.setText(tr('The automatic pass completed. The glossary is not treated as finished.'))
         box.setInformativeText(
             f"{summary}\n\nReview backlog: {review}\n"
             f"Ambiguous translations: {ambiguous}\n"

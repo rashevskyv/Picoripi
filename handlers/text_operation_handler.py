@@ -12,6 +12,7 @@ from utils.utils import convert_dots_to_spaces_from_editor, calculate_string_wid
 from .async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 from .autofix_worker import AutofixWorker
 from core.tag_utils import iter_all_strings
+from core.i18n import tr
 
 if TYPE_CHECKING:
     from core.context import ProjectContext
@@ -586,10 +587,10 @@ class TextOperationHandler(BaseHandler):
         """Paste block text."""
         log_debug("--> TextOperationHandler: paste_block_text triggered.")
         if self.mw.data_store.physical_block_idx == -1:
-            QMessageBox.warning(self.mw, "Paste Error", "Please select a block.")
+            QMessageBox.warning(self.mw, tr('Paste Error'), tr('Please select a block.'))
             return
         if not self.mw.current_game_rules:
-            QMessageBox.warning(self.mw, "Paste Error", "Game rules not loaded.")
+            QMessageBox.warning(self.mw, tr('Paste Error'), tr('Game rules not loaded.'))
             return
             
         block_idx: int = self.mw.data_store.physical_block_idx
@@ -615,7 +616,7 @@ class TextOperationHandler(BaseHandler):
             
         start_string_idx = self.mw.data_store.current_string_idx if self.mw.data_store.current_string_idx != -1 else 0
         pasted_text_raw = QApplication.clipboard().text()
-        if not pasted_text_raw: QMessageBox.information(self.mw, "Paste", "Clipboard empty."); return
+        if not pasted_text_raw: QMessageBox.information(self.mw, tr('Paste'), tr('Clipboard empty.')); return
         
         segments_from_clipboard_raw = re.split(r'\{END\}\r?\n', pasted_text_raw)
         parsed_strings = []
@@ -628,7 +629,7 @@ class TextOperationHandler(BaseHandler):
         if parsed_strings and not parsed_strings[-1] and num_raw_segments > 1 and segments_from_clipboard_raw[-1] == '':
             parsed_strings.pop()
             
-        if not parsed_strings: QMessageBox.information(self.mw, "Paste", "No valid segments found."); return
+        if not parsed_strings: QMessageBox.information(self.mw, tr('Paste'), tr('No valid segments found.')); return
         
         original_block_len = len(self.mw.data_store.data[block_idx])
         successfully_processed_count = 0
@@ -638,7 +639,7 @@ class TextOperationHandler(BaseHandler):
             current_target_string_idx = start_string_idx + i
             if current_target_string_idx >= original_block_len:
                 if i == 0:
-                    QMessageBox.warning(self.mw, "Paste Error", f"Cannot paste starting at line {start_string_idx + 1}. Block has {original_block_len} lines.")
+                    QMessageBox.warning(self.mw, tr('Paste Error'), f"Cannot paste starting at line {start_string_idx + 1}. Block has {original_block_len} lines.")
                 break
             
             original_text_for_tags = self.mw.data_store.data[block_idx][current_target_string_idx]
@@ -690,7 +691,7 @@ class TextOperationHandler(BaseHandler):
         original_text = self.data_processor._get_string_from_source(block_idx, line_index, self.mw.data_store.data, "original_for_revert")
         
         if original_text is None:
-            QMessageBox.warning(self.mw, "Revert Error", f"Could not find original text for data line {line_index + 1}.")
+            QMessageBox.warning(self.mw, tr('Revert Error'), f"Could not find original text for data line {line_index + 1}.")
             return
 
         current_text, _ = self.data_processor.get_current_string_text(block_idx, line_index)
@@ -726,21 +727,21 @@ class TextOperationHandler(BaseHandler):
     def calculate_width_for_data_line_action(self, data_line_idx: int) -> None:
         """Calculate width for data line action."""
         if self.mw.data_store.physical_block_idx == -1 or data_line_idx < 0:
-            QMessageBox.warning(self.mw, "Calculate Width Error", "No block or data line selected.")
+            QMessageBox.warning(self.mw, tr('Calculate Width Error'), tr('No block or data line selected.'))
             return
 
         current_text_data_line, source = self.data_processor.get_current_string_text(self.mw.data_store.physical_block_idx, data_line_idx)
         original_text_data_line = self.data_processor._get_string_from_source(self.mw.data_store.physical_block_idx, data_line_idx, self.mw.data_store.data, "width_calc_original_data_line")
 
         if current_text_data_line is None and original_text_data_line is None:
-            QMessageBox.warning(self.mw, "Calculate Width Error", f"Could not retrieve text for data line {data_line_idx + 1}.")
+            QMessageBox.warning(self.mw, tr('Calculate Width Error'), f"Could not retrieve text for data line {data_line_idx + 1}.")
             return
         
         if not self.mw.font_map:
-             QMessageBox.warning(self.mw, "Calculate Width Error", "Font map is not loaded. Cannot calculate width.")
+             QMessageBox.warning(self.mw, tr('Calculate Width Error'), tr('Font map is not loaded. Cannot calculate width.'))
              return
         if not self.mw.current_game_rules:
-            QMessageBox.warning(self.mw, "Calculate Width Error", "Game rules plugin not loaded.")
+            QMessageBox.warning(self.mw, tr('Calculate Width Error'), tr('Game rules plugin not loaded.'))
             return
 
         from utils.utils import resolve_width_limits
@@ -866,10 +867,10 @@ class TextOperationHandler(BaseHandler):
     def _auto_fix_current_string_impl(self, allowed_problems: Optional[Set[str]] = None, page_local: bool = False) -> None:
         """Internal helper to auto fix current string impl."""
         if self.mw.data_store.physical_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
-            QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
+            QMessageBox.information(self.mw, tr('Auto-fix'), tr('No string selected to fix.'))
             return
         if not self.mw.current_game_rules:
-            QMessageBox.warning(self.mw, "Auto-fix Error", "Game rules plugin not loaded.")
+            QMessageBox.warning(self.mw, tr('Auto-fix Error'), tr('Game rules plugin not loaded.'))
             return
  
         # Cancel any in-flight async scanner BEFORE AutoFix. If the old scanner
@@ -984,12 +985,12 @@ class TextOperationHandler(BaseHandler):
             target_strings = None
 
         if not self.mw.current_game_rules:
-            QMessageBox.warning(self.mw, "Auto-fix Error", "Game rules plugin not loaded.")
+            QMessageBox.warning(self.mw, tr('Auto-fix Error'), tr('Game rules plugin not loaded.'))
             return
 
         problem_definitions = self.mw.current_game_rules.get_problem_definitions()
         if not problem_definitions:
-            QMessageBox.information(self.mw, "Auto-fix", "No problems are defined for this plugin.")
+            QMessageBox.information(self.mw, tr('Auto-fix'), tr('No problems are defined for this plugin.'))
             return
 
         # Fetch current autofix enabled settings as default checkbox states
@@ -1000,7 +1001,7 @@ class TextOperationHandler(BaseHandler):
 
         selected_problems = dialog.get_selected_problems()
         if not selected_problems:
-            QMessageBox.information(self.mw, "Auto-fix", "No problems selected to fix.")
+            QMessageBox.information(self.mw, tr('Auto-fix'), tr('No problems selected to fix.'))
             return
 
         # Count total strings
@@ -1010,7 +1011,7 @@ class TextOperationHandler(BaseHandler):
             total_strings = sum(1 for _ in iter_all_strings(self.mw.data_store.data))
 
         if total_strings == 0:
-            QMessageBox.information(self.mw, "Auto-fix", "No strings to fix.")
+            QMessageBox.information(self.mw, tr('Auto-fix'), tr('No strings to fix.'))
             return
 
         # Prepare deep copies of required data structures for thread-safety
@@ -1157,4 +1158,4 @@ class TextOperationHandler(BaseHandler):
 
     def _on_autofix_error(self, err_msg: str) -> None:
         """Called when AutofixWorker encounters an error."""
-        QMessageBox.critical(self.mw, "Auto-fix Error", f"An error occurred during auto-fix:\n{err_msg}")
+        QMessageBox.critical(self.mw, tr('Auto-fix Error'), f"An error occurred during auto-fix:\n{err_msg}")

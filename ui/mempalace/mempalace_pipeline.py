@@ -1,6 +1,7 @@
 import os
 from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_error
+from core.i18n import tr
 
 class MemePalacePipelineMixin:
     """Orchestration pipeline execution mixin for MemePalaceBuilderDialog."""
@@ -28,7 +29,7 @@ class MemePalacePipelineMixin:
         """Start or resume the complete MemePalace orchestration pipeline sequentially."""
         file_path = self.file_path_edit.text().strip()
         if not file_path or not os.path.exists(file_path):
-            QMessageBox.warning(self, "Validation Error", "Please select a valid game script file first.")
+            QMessageBox.warning(self, tr('Validation Error'), tr('Please select a valid game script file first.'))
             return
 
         ai_provider = self._get_ai_provider_or_warn()
@@ -39,7 +40,7 @@ class MemePalacePipelineMixin:
         
         if has_saved:
             msg_box = QMessageBox(self)
-            msg_box.setWindowTitle("Resume Pipeline Session")
+            msg_box.setWindowTitle(tr('Resume Pipeline Session'))
             msg_box.setIcon(QMessageBox.Icon.Question)
             msg_box.setText(
                 f"An incomplete MemePalace pipeline session was found at Step {self.saved_pipeline_step}/4.\n\n"
@@ -68,13 +69,8 @@ class MemePalacePipelineMixin:
                     self.file_path_edit.setText(self.saved_pipeline_script)
         else:
             reply = QMessageBox.question(
-                self, "Run Complete Pipeline",
-                "This will sequentially execute all MemePalace steps step-by-step:\n"
-                "1. Mine Characters & Terms via AI\n"
-                "2. Map BMG to Script Chapters\n"
-                "3. AI Analyze All Chapters\n"
-                "4. AI Profile Characters Speech\n\n"
-                "This process can take several minutes. Do you want to start the complete pipeline?",
+                self, tr('Run Complete Pipeline'),
+                tr('This will sequentially execute all MemePalace steps step-by-step:\n1. Mine Characters & Terms via AI\n2. Map BMG to Script Chapters\n3. AI Analyze All Chapters\n4. AI Profile Characters Speech\n\nThis process can take several minutes. Do you want to start the complete pipeline?'),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
             )
             if reply != QMessageBox.StandardButton.Yes:
@@ -134,10 +130,8 @@ class MemePalacePipelineMixin:
             self.progress_bar.setValue(100)
             self.append_log(">>> COMPLETE MEMEPALACE PIPELINE FINISHED SUCCESSFULLY! <<<")
             QMessageBox.information(
-                self, "Pipeline Success",
-                "Congratulations! The complete MemePalace context orchestration pipeline completed successfully!\n\n"
-                "All characters mined, dialogue lines mapped to story chapters, AI chapter summaries generated, "
-                "and character speech profiles fully synthesized and loaded into the Glossary!"
+                self, tr('Pipeline Success'),
+                tr('Congratulations! The complete MemePalace context orchestration pipeline completed successfully!\n\nAll characters mined, dialogue lines mapped to story chapters, AI chapter summaries generated, and character speech profiles fully synthesized and loaded into the Glossary!')
             )
             self._finish_and_maybe_sleep()
             self._update_pipeline_btn_text()
@@ -168,7 +162,7 @@ class MemePalacePipelineMixin:
         self.progress_bar.setValue(0)
         self.append_log(f">>> PIPELINE ABORTED DUE TO ERROR AT STEP {step}: {error_message} <<<")
         QMessageBox.warning(
-            self, "Pipeline Failed",
+            self, tr('Pipeline Failed'),
             f"MemePalace Pipeline aborted at Step {step} due to error:\n{error_message}"
         )
         self._finish_and_maybe_sleep()

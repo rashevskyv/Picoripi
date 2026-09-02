@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 from utils import power_utils
+from core.i18n import tr
 
 
 ACTION_RESUME = "resume"
@@ -107,8 +108,7 @@ class GlossaryStoppedDialog(QDialog):
         header_layout.addWidget(icon_label)
 
         header_text = QLabel(
-            "<b>AI backend stopped responding during the glossary build.</b><br>"
-            "All entries processed before this point are safely saved to disk.",
+            tr('<b>AI backend stopped responding during the glossary build.</b><br>All entries processed before this point are safely saved to disk.'),
             self,
         )
         header_text.setWordWrap(True)
@@ -174,7 +174,7 @@ class GlossaryStoppedDialog(QDialog):
         # Error details box
         err_msg = str(last_error or summary).strip()
         if err_msg:
-            details_label = QLabel("<b>Details:</b>", self)
+            details_label = QLabel(tr('<b>Details:</b>'), self)
             layout.addWidget(details_label)
 
             self.details_edit = QTextEdit(self)
@@ -186,13 +186,13 @@ class GlossaryStoppedDialog(QDialog):
 
         # Sleep options
         sleep_layout = QHBoxLayout()
-        self.prevent_sleep_checkbox = QCheckBox("Prevent computer sleep", self)
-        self.prevent_sleep_checkbox.setToolTip("Keep the computer awake while waiting and running.")
+        self.prevent_sleep_checkbox = QCheckBox(tr('Prevent computer sleep'), self)
+        self.prevent_sleep_checkbox.setToolTip(tr('Keep the computer awake while waiting and running.'))
         self.prevent_sleep_checkbox.setChecked(prevent_sleep)
         self.prevent_sleep_checkbox.toggled.connect(self._handle_prevent_sleep_toggled)
 
-        self.sleep_after_checkbox = QCheckBox("Put computer to sleep when finished", self)
-        self.sleep_after_checkbox.setToolTip("Suspend/Sleep the computer automatically after the task completes if idle.")
+        self.sleep_after_checkbox = QCheckBox(tr('Put computer to sleep when finished'), self)
+        self.sleep_after_checkbox.setToolTip(tr('Suspend/Sleep the computer automatically after the task completes if idle.'))
         self.sleep_after_checkbox.setChecked(sleep_after)
 
         sleep_layout.addWidget(self.prevent_sleep_checkbox)
@@ -212,12 +212,12 @@ class GlossaryStoppedDialog(QDialog):
             self.resume_btn.clicked.connect(self._on_resume_clicked)
             btn_layout.addWidget(self.resume_btn)
 
-        self.review_btn = QPushButton("Review Glossary", self)
+        self.review_btn = QPushButton(tr('Review Glossary'), self)
         self.review_btn.setStyleSheet("padding: 6px 14px; min-height: 24px;")
         self.review_btn.clicked.connect(self._on_review_clicked)
         btn_layout.addWidget(self.review_btn)
 
-        self.close_btn = QPushButton("Close", self)
+        self.close_btn = QPushButton(tr('Close'), self)
         self.close_btn.setStyleSheet("padding: 6px 14px; min-height: 24px;")
         self.close_btn.clicked.connect(self._on_close_clicked)
         btn_layout.addWidget(self.close_btn)
@@ -255,7 +255,7 @@ class GlossaryStoppedDialog(QDialog):
             time_str = self._format_time(self._remaining_seconds)
             self.resume_btn.setText(f"Resume Unfinished Pass (Auto-retry in {time_str})")
         else:
-            self.resume_btn.setText("Resume Unfinished Pass")
+            self.resume_btn.setText(tr('Resume Unfinished Pass'))
 
     def _on_tick(self) -> None:
         self._remaining_seconds -= 1

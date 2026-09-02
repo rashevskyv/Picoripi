@@ -15,6 +15,7 @@ from core.mempalace.story_timeline import (
 from core.story_context_overrides import iter_story_context_overrides
 from core.manual_story_structures import apply_manual_story_structures
 from core.mempalace.dialogue_mapping import canonicalize_dialogue_text
+from core.i18n import tr
 
 class BlockListUpdater(BaseUIUpdater):
     """Block list updater implementation."""
@@ -1158,7 +1159,7 @@ class BlockListUpdater(BaseUIUpdater):
         if tooltip_lines:
             item.setToolTip(0, "<br><br>".join(tooltip_lines))
         else:
-            item.setToolTip(0, "")
+            item.setToolTip(0, tr(''))
 
     def _create_block_tree_item(self, block_idx: int, problem_definitions: dict, pre_aggregated_counts: dict = None) -> QTreeWidgetItem:
         """Helper to create a single block tree item with issue counts and tooltips."""
@@ -1960,7 +1961,7 @@ class BlockListUpdater(BaseUIUpdater):
 
                 if item.text(0) != base_display_name:
                     item.setText(0, base_display_name)
-                item.setToolTip(0, "")
+                item.setToolTip(0, tr(''))
             iterator += 1
 
         if hasattr(self.mw, 'block_list_widget'):

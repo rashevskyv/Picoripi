@@ -2,6 +2,7 @@
 from utils.constants import APP_VERSION
 from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor, remove_all_tags
 from .base_ui_updater import BaseUIUpdater
+from core.i18n import tr
 
 class TitleStatusBarUpdater(BaseUIUpdater):
     """Title status bar updater implementation."""
@@ -87,9 +88,9 @@ class TitleStatusBarUpdater(BaseUIUpdater):
 
     def clear_status_bar(self):
         """Remove status bar."""
-        if hasattr(self.mw, 'status_label_part1'): self.mw.status_label_part1.setText("Pos: 0")
-        if hasattr(self.mw, 'status_label_part2'): self.mw.status_label_part2.setText("Line: 0/0")
-        if hasattr(self.mw, 'status_label_part3'): self.mw.status_label_part3.setText("Width: 0px")
+        if hasattr(self.mw, 'status_label_part1'): self.mw.status_label_part1.setText(tr('Pos: 0'))
+        if hasattr(self.mw, 'status_label_part2'): self.mw.status_label_part2.setText(tr('Line: 0/0'))
+        if hasattr(self.mw, 'status_label_part3'): self.mw.status_label_part3.setText(tr('Width: 0px'))
 
     def update_title(self):
         """Update the title."""
@@ -111,7 +112,7 @@ class TitleStatusBarUpdater(BaseUIUpdater):
                 display_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else "Unknown"
                 self.mw.plugin_status_label.setText(f"Plugin: {display_name}")
             else:
-                self.mw.plugin_status_label.setText("Plugin: [None]")
+                self.mw.plugin_status_label.setText(tr('Plugin: [None]'))
 
     def update_statusbar_paths(self):
         """Update the statusbar paths."""

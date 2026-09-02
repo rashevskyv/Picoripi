@@ -5,6 +5,7 @@ from PyQt6.QtGui import QTextCursor
 from PyQt6.QtWidgets import QTreeWidgetItemIterator
 from .base_handler import BaseHandler
 from utils.logging_utils import log_debug
+from core.i18n import tr
 
 class CategoryHandler(BaseHandler):
     """Handles virtual block (Category) operations within projects."""
@@ -108,7 +109,7 @@ class CategoryHandler(BaseHandler):
             getattr(self.mw.data_store, 'selected_string_indices', []) or []
         )
         if not selected_indices:
-            QMessageBox.warning(self.mw, "Move to Virtual Block", "No strings selected in preview.")
+            QMessageBox.warning(self.mw, tr('Move to Virtual Block'), tr('No strings selected in preview.'))
             return
 
         if self.mw.data_store.current_block_idx == -1:
@@ -227,7 +228,7 @@ class CategoryHandler(BaseHandler):
     def delete_category(self, block_idx: int, category_name: str) -> None:
         """Remove a virtual block (the strings remain in the block)."""
         reply = QMessageBox.question(
-            self.mw, "Delete Virtual Block",
+            self.mw, tr('Delete Virtual Block'),
             f"Are you sure you want to delete virtual block '{category_name}'?\n\n(Strings will not be deleted from the block itself.)",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )

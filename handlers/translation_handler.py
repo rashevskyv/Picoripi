@@ -25,6 +25,7 @@ from components.prompt_editor_dialog import PromptEditorDialog
 from utils.logging_utils import log_debug
 from utils.utils import is_control_modifier_pressed
 from core.tag_utils import iter_all_strings
+from core.i18n import tr
 
 
 class TranslationHandler(BaseHandler):
@@ -114,7 +115,7 @@ class TranslationHandler(BaseHandler):
         preview_edit = self.mw.preview_text_edit
         selected_lines = preview_edit.get_selected_lines()
         if not selected_lines:
-            QMessageBox.information(self.mw, "Glossary", "No lines selected in the preview.")
+            QMessageBox.information(self.mw, tr('Glossary'), tr('No lines selected in the preview.'))
             return
 
         start_line = min(selected_lines)
@@ -282,8 +283,8 @@ class TranslationHandler(BaseHandler):
 
         reply = QMessageBox.question(
             self.mw,
-            "Translation Cancelled",
-            "Keep the already translated parts?",
+            tr('Translation Cancelled'),
+            tr('Keep the already translated parts?'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes
         )
@@ -364,7 +365,7 @@ class TranslationHandler(BaseHandler):
         is_ctrl = force_prompt or self._is_control_pressed()
         log_debug(f"translate_current_string called: is_ai_running={self.is_ai_running}, block={self.mw.data_store.physical_block_idx}, string={self.mw.data_store.current_string_idx}, force_prompt={is_ctrl}")
         if self.is_ai_running:
-            QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
+            QMessageBox.information(self.mw, tr('AI Busy'), tr('An AI task is already running. Please wait for it to complete.'))
             return
         if self.mw.data_store.physical_block_idx == -1 or self.mw.data_store.current_string_idx == -1: return
         source_text = str(self.glossary_handler._get_original_string(
@@ -391,7 +392,7 @@ class TranslationHandler(BaseHandler):
         force_prompt = force_prompt or self._is_control_pressed()
 
         if self.is_ai_running:
-            QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
+            QMessageBox.information(self.mw, tr('AI Busy'), tr('An AI task is already running. Please wait for it to complete.'))
             return
 
         if not pairs:
@@ -496,7 +497,7 @@ class TranslationHandler(BaseHandler):
             force_prompt = False
         force_prompt = force_prompt or self._is_control_pressed()
         if self.is_ai_running:
-            QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
+            QMessageBox.information(self.mw, tr('AI Busy'), tr('An AI task is already running. Please wait for it to complete.'))
             return
         block_idx = self.mw.data_store.physical_block_idx
         if block_idx == -1: return
@@ -535,11 +536,11 @@ class TranslationHandler(BaseHandler):
             force_prompt = False
         force_prompt = force_prompt or self._is_control_pressed()
         if self.is_ai_running:
-            QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
+            QMessageBox.information(self.mw, tr('AI Busy'), tr('An AI task is already running. Please wait for it to complete.'))
             return
         target_block_idx = self.mw.data_store.current_block_idx if block_idx is None else block_idx
         if target_block_idx is None or target_block_idx == -1:
-            QMessageBox.information(self.mw, "AI Translation", "Select a block to translate.")
+            QMessageBox.information(self.mw, tr('AI Translation'), tr('Select a block to translate.'))
             return
         
         self.start_new_session = True
@@ -566,7 +567,7 @@ class TranslationHandler(BaseHandler):
                 chapter_id = self.mw.data_store.current_chapter_id
             if chapter_id is None:
                 self.ui_handler.finish_ai_operation()
-                QMessageBox.information(self.mw, "AI Translation", "No chapter ID available.")
+                QMessageBox.information(self.mw, tr('AI Translation'), tr('No chapter ID available.'))
                 return
 
             chapter_mappings = []
@@ -582,7 +583,7 @@ class TranslationHandler(BaseHandler):
 
             if not chapter_mappings:
                 self.ui_handler.finish_ai_operation()
-                QMessageBox.information(self.mw, "AI Translation", "No lines mapped to this chapter.")
+                QMessageBox.information(self.mw, tr('AI Translation'), tr('No lines mapped to this chapter.'))
                 return
 
             # Keep backup of pre-translation state for each block in the chapter
@@ -622,13 +623,13 @@ class TranslationHandler(BaseHandler):
             data_source = self.mw.data_store.data
             if not isinstance(data_source, list) or not (0 <= target_block_idx < len(data_source)):
                 self.ui_handler.finish_ai_operation()
-                QMessageBox.information(self.mw, "AI Translation", "No block data available to translate.")
+                QMessageBox.information(self.mw, tr('AI Translation'), tr('No block data available to translate.'))
                 return
 
             block_strings = self.glossary_handler._get_original_block(target_block_idx)
             if not block_strings:
                 self.ui_handler.finish_ai_operation()
-                QMessageBox.information(self.mw, "AI Translation", "The selected block is empty.")
+                QMessageBox.information(self.mw, tr('AI Translation'), tr('The selected block is empty.'))
                 return
 
             # Determine target indices
@@ -692,7 +693,7 @@ class TranslationHandler(BaseHandler):
     def resume_block_translation(self, block_idx: int) -> None:
         """Resume block translation."""
         if block_idx not in self.translation_progress:
-            QMessageBox.information(self.mw, "Resume Translation", "No active translation session found for this block.")
+            QMessageBox.information(self.mw, tr('Resume Translation'), tr('No active translation session found for this block.'))
             return
 
         progress_entry = self.translation_progress.get(block_idx, {})
@@ -899,12 +900,12 @@ class TranslationHandler(BaseHandler):
     def translate_all_blocks_chronologically(self) -> None:
         """Translate all blocks chronologically."""
         if self.is_ai_running:
-            QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
+            QMessageBox.information(self.mw, tr('AI Busy'), tr('An AI task is already running. Please wait for it to complete.'))
             return
             
         data_source = self.mw.data_store.data
         if not isinstance(data_source, list) or not data_source:
-            QMessageBox.information(self.mw, "AI Translation", "No data available to translate.")
+            QMessageBox.information(self.mw, tr('AI Translation'), tr('No data available to translate.'))
             return
 
         target_block_idx = 999999
@@ -917,7 +918,7 @@ class TranslationHandler(BaseHandler):
                 msg = f"An interrupted chronological translation session was found ({completed}/{total} chunks completed).\n\nWould you like to resume it?"
                 choice = QMessageBox.question(
                     self.mw, 
-                    "Resume Chronological Translation", 
+                    tr('Resume Chronological Translation'), 
                     msg, 
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
                     QMessageBox.StandardButton.Yes
@@ -983,7 +984,7 @@ class TranslationHandler(BaseHandler):
 
         if not all_project_items:
             self.ui_handler.finish_ai_operation()
-            QMessageBox.information(self.mw, "AI Translation", "No dialogues found to translate.")
+            QMessageBox.information(self.mw, tr('AI Translation'), tr('No dialogues found to translate.'))
             return
 
         # 2. Sort chronologically using MemePalace mappings

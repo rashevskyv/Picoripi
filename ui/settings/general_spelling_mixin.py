@@ -3,6 +3,7 @@ from components.labeled_spinbox import LabeledSpinBox
 from components.dictionary_manager_dialog import DictionaryManagerDialog
 from .settings_widgets import ColorPickerButton
 from utils.logging_utils import log_debug
+from core.i18n import tr
 
 class SettingsGeneralSpellingMixin:
     """Mixin class for general and spelling tabs in settings dialog."""
@@ -13,11 +14,11 @@ class SettingsGeneralSpellingMixin:
         
         self.theme_combo = QComboBox(self)
         self.theme_combo.addItems(["Auto", "Light", "Dark"])
-        layout.addRow(QLabel("Theme (requires restart):"), self.theme_combo)
+        layout.addRow(QLabel(tr('Theme (requires restart):')), self.theme_combo)
         
         self.plugin_combo = QComboBox(self)
         self.populate_plugin_list()
-        layout.addRow(QLabel("Active Game Plugin:"), self.plugin_combo)
+        layout.addRow(QLabel(tr('Active Game Plugin:')), self.plugin_combo)
         
         self.font_size_spinbox = LabeledSpinBox("Application Font Size:", 6, 24, 10, parent=self)
         layout.addRow(self.font_size_spinbox)
@@ -26,37 +27,37 @@ class SettingsGeneralSpellingMixin:
         layout.addRow(self.tooltip_font_size_spinbox)
         
         self.external_script_path_edit = QLineEdit(self)
-        self.external_script_path_edit.setPlaceholderText("Path to .bat, .cmd, .exe, etc.")
+        self.external_script_path_edit.setPlaceholderText(tr('Path to .bat, .cmd, .exe, etc.'))
         self.external_script_selector = self._create_script_selector(self.external_script_path_edit)
-        layout.addRow(QLabel("External Tool/Script Path:"), self.external_script_selector)
+        layout.addRow(QLabel(tr('External Tool/Script Path:')), self.external_script_selector)
         
-        self.show_spaces_checkbox = QCheckBox("Show special spaces as dots", self)
+        self.show_spaces_checkbox = QCheckBox(tr('Show special spaces as dots'), self)
         layout.addRow(self.show_spaces_checkbox)
         
         self.space_dot_color_picker = ColorPickerButton(parent=self)
-        layout.addRow("Space Dot Color:", self.space_dot_color_picker)
+        layout.addRow(tr('Space Dot Color:'), self.space_dot_color_picker)
         
-        self.restore_session_checkbox = QCheckBox("Restore unsaved session on startup", self)
-        self.restore_session_checkbox.setToolTip("If unchecked, any unsaved changes will be discarded on close.")
+        self.restore_session_checkbox = QCheckBox(tr('Restore unsaved session on startup'), self)
+        self.restore_session_checkbox.setToolTip(tr('If unchecked, any unsaved changes will be discarded on close.'))
         layout.addRow(self.restore_session_checkbox)
 
-        self.prompt_editor_checkbox = QCheckBox("Show prompt editor before AI requests", self)
+        self.prompt_editor_checkbox = QCheckBox(tr('Show prompt editor before AI requests'), self)
         layout.addRow(self.prompt_editor_checkbox)
 
-        self.preview_enabled_checkbox = QCheckBox("Enable Live Preview (turn off to reduce lag)", self)
+        self.preview_enabled_checkbox = QCheckBox(tr('Enable Live Preview (turn off to reduce lag)'), self)
         layout.addRow(self.preview_enabled_checkbox)
 
-        self.warnings_enabled_checkbox = QCheckBox("Enable Real-Time Warning Scan (turn off to reduce lag)", self)
+        self.warnings_enabled_checkbox = QCheckBox(tr('Enable Real-Time Warning Scan (turn off to reduce lag)'), self)
         layout.addRow(self.warnings_enabled_checkbox)
 
-        self.glossary_enabled_checkbox = QCheckBox("Enable Glossary System (turn off to reduce lag)", self)
+        self.glossary_enabled_checkbox = QCheckBox(tr('Enable Glossary System (turn off to reduce lag)'), self)
         layout.addRow(self.glossary_enabled_checkbox)
 
-        self.show_archive_size_warnings_checkbox = QCheckBox("Show archive size warnings", self)
+        self.show_archive_size_warnings_checkbox = QCheckBox(tr('Show archive size warnings'), self)
         layout.addRow(self.show_archive_size_warnings_checkbox)
 
         self.auto_sleep_idle_delay_spinbox = LabeledSpinBox("Auto-Sleep Idle Delay (minutes):", 1, 60, 5, parent=self)
-        self.auto_sleep_idle_delay_spinbox.setToolTip("Duration of continuous user inactivity required before putting computer to sleep after task completion.")
+        self.auto_sleep_idle_delay_spinbox.setToolTip(tr('Duration of continuous user inactivity required before putting computer to sleep after task completion.'))
         layout.addRow(self.auto_sleep_idle_delay_spinbox)
 
         self.plugin_combo.activated.connect(self.on_plugin_changed)
@@ -68,7 +69,7 @@ class SettingsGeneralSpellingMixin:
         selected_theme = self.theme_combo.currentText().lower()
         if selected_theme != self.initial_theme:
             self.theme_changed_requires_restart = True
-            QMessageBox.information(self, "Theme Change", "A restart is required to apply the new theme.", QMessageBox.StandardButton.Ok)
+            QMessageBox.information(self, tr('Theme Change'), tr('A restart is required to apply the new theme.'), QMessageBox.StandardButton.Ok)
         else:
             self.theme_changed_requires_restart = False
 
@@ -80,23 +81,21 @@ class SettingsGeneralSpellingMixin:
         self._populate_font_list(selected_dir_name)
         
         self.plugin_changed_requires_restart = True
-        QMessageBox.information(self, "Plugin Change", "A restart is required to switch the game plugin.", QMessageBox.StandardButton.Ok)
+        QMessageBox.information(self, tr('Plugin Change'), tr('A restart is required to switch the game plugin.'), QMessageBox.StandardButton.Ok)
 
     def setup_spelling_tab(self):
         """Setup spelling tab."""
         layout = QFormLayout(self.spelling_tab)
         
-        self.spellcheck_enabled_checkbox = QCheckBox("Enable spell checking", self)
+        self.spellcheck_enabled_checkbox = QCheckBox(tr('Enable spell checking'), self)
         layout.addRow(self.spellcheck_enabled_checkbox)
         
         self.spellcheck_language_combo = QComboBox(self)
-        layout.addRow("Dictionary Language:", self.spellcheck_language_combo)
+        layout.addRow(tr('Dictionary Language:'), self.spellcheck_language_combo)
         
-        manage_button = QPushButton("Manage Dictionaries...", self)
+        manage_button = QPushButton(tr('Manage Dictionaries...'), self)
         manage_button.setToolTip(
-            "<b>Manage dictionaries</b><br>"
-            "Click — download or remove spellchecker dictionaries, and review the "
-            "words you added via Spellcheck → Add to Dictionary."
+            tr('<b>Manage dictionaries</b><br>Click — download or remove spellchecker dictionaries, and review the words you added via Spellcheck → Add to Dictionary.')
         )
         manage_button.clicked.connect(self._open_dictionary_manager)
         layout.addRow(manage_button)

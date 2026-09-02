@@ -68,6 +68,7 @@ from components.editor.minimap import TextMinimap
 from utils.logging_utils import log_info, log_error
 from utils.constants import SETTINGS_DIR
 from utils.thread_utils import safe_shutdown_thread
+from core.i18n import tr
 
 
 # Background tint per classification, shared by the highlighter and the legend.
@@ -1058,7 +1059,7 @@ class ScriptMarkupStudioDialog(QDialog):
         self._hierarchy_ai_elapsed_timer.setInterval(1000)
         self._hierarchy_ai_elapsed_timer.timeout.connect(self._update_hierarchy_ai_elapsed_detail)
 
-        self.setWindowTitle("Script Markup Studio")
+        self.setWindowTitle(tr('Script Markup Studio'))
         self.resize(900, 720)
         self.setMinimumSize(720, 520)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -1125,14 +1126,14 @@ class ScriptMarkupStudioDialog(QDialog):
         self.save_markup_btn = self._add_menu_action(self.project_menu, "Save project...", self._save_hierarchy_project)
         self.reset_markup_btn = self._add_menu_action(self.project_menu, "Reset marks...", self._reset_current_markup)
 
-        self.save_project_primary_btn = QPushButton("Save Project…", self)
+        self.save_project_primary_btn = QPushButton(tr('Save Project…'), self)
         self.save_project_primary_btn.setGeometry(-2000, -2000, 0, 0)
-        self.save_project_primary_btn.setToolTip("Save the markup project.")
+        self.save_project_primary_btn.setToolTip(tr('Save the markup project.'))
         self.save_project_primary_btn.clicked.connect(self._save_hierarchy_project)
 
-        self.finish_mempalace_btn = QPushButton("Finish for MemPalace…", self)
+        self.finish_mempalace_btn = QPushButton(tr('Finish for MemPalace…'), self)
         self.finish_mempalace_btn.setGeometry(-2000, -2000, 0, 0)
-        self.finish_mempalace_btn.setToolTip("Finish the markup and go to MemPalace.")
+        self.finish_mempalace_btn.setToolTip(tr('Finish the markup and go to MemPalace.'))
         self.finish_mempalace_btn.clicked.connect(self._finish_markup_for_mempalace)
 
         self.template_menu_btn, self.template_menu = self._create_menu_button("Template", "Template menu")
@@ -1152,9 +1153,9 @@ class ScriptMarkupStudioDialog(QDialog):
 
         self.mode_combo = QComboBox(self)
         self.mode_combo.setGeometry(-2000, -2000, 0, 0)
-        self.mode_combo.addItem("Hierarchy markup", "hierarchy")
-        self.mode_combo.addItem("Picoripi rules", "picoripi")
-        self.mode_combo.addItem("Custom recipe", "custom")
+        self.mode_combo.addItem(tr('Hierarchy markup'), tr('hierarchy'))
+        self.mode_combo.addItem(tr('Picoripi rules'), tr('picoripi'))
+        self.mode_combo.addItem(tr('Custom recipe'), tr('custom'))
         self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
         self.mode_combo.setVisible(False)
 
@@ -1168,13 +1169,13 @@ class ScriptMarkupStudioDialog(QDialog):
         self.progress_layout.setContentsMargins(0, 0, 0, 0)
         self.progress_layout.setSpacing(6)
 
-        self.stage_source_label = QLabel("1. Source")
-        self.stage_line1_label = QLabel(" ── ")
-        self.stage_markup_label = QLabel("2. Markup")
-        self.stage_line2_label = QLabel(" ── ")
-        self.stage_review_label = QLabel("3. Review")
-        self.stage_line3_label = QLabel(" ── ")
-        self.stage_mempalace_label = QLabel("4. MemPalace")
+        self.stage_source_label = QLabel(tr('1. Source'))
+        self.stage_line1_label = QLabel(tr(' ── '))
+        self.stage_markup_label = QLabel(tr('2. Markup'))
+        self.stage_line2_label = QLabel(tr(' ── '))
+        self.stage_review_label = QLabel(tr('3. Review'))
+        self.stage_line3_label = QLabel(tr(' ── '))
+        self.stage_mempalace_label = QLabel(tr('4. MemPalace'))
 
         stage_font = QFont()
         stage_font.setPointSize(9)
@@ -1200,7 +1201,7 @@ class ScriptMarkupStudioDialog(QDialog):
         top_header.addLayout(self.progress_layout)
         top_header.addStretch(1)
 
-        self.save_status_label = QLabel("Project saved ✓")
+        self.save_status_label = QLabel(tr('Project saved ✓'))
         self.save_status_label.setStyleSheet("font-size: 11px; font-weight: bold; color: #107c41;")
         top_header.addWidget(self.save_status_label)
         root.addLayout(top_header)
@@ -1214,7 +1215,7 @@ class ScriptMarkupStudioDialog(QDialog):
         next_layout.setContentsMargins(8, 8, 8, 8)
         next_layout.setSpacing(6)
 
-        self.next_action_desc_label = QLabel("No script or project loaded yet.")
+        self.next_action_desc_label = QLabel(tr('No script or project loaded yet.'))
         self.next_action_desc_label.setStyleSheet("font-size: 11px; color: #444; border: none; background: transparent;")
         self.next_action_desc_label.setWordWrap(True)
         next_layout.addWidget(self.next_action_desc_label)
@@ -1223,8 +1224,8 @@ class ScriptMarkupStudioDialog(QDialog):
         btn_layout.setContentsMargins(0, 0, 0, 0)
         btn_layout.setSpacing(6)
 
-        self.next_action_btn = QPushButton("Open Script or Project…")
-        self.next_action_btn.setToolTip("Execute the recommended next action.")
+        self.next_action_btn = QPushButton(tr('Open Script or Project…'))
+        self.next_action_btn.setToolTip(tr('Execute the recommended next action.'))
         self.next_action_btn.setAutoDefault(False)
         self.next_action_btn.setStyleSheet(
             "QPushButton { background: #0f6cbd; color: white; font-weight: bold; font-size: 11px; border-radius: 4px; padding: 4px 10px; min-height: 22px; border: none; }"
@@ -1234,8 +1235,8 @@ class ScriptMarkupStudioDialog(QDialog):
         self.next_action_btn.clicked.connect(self._on_next_action_clicked)
         btn_layout.addWidget(self.next_action_btn)
 
-        self.next_action_secondary_btn = QPushButton("AI Fill Remaining…")
-        self.next_action_secondary_btn.setToolTip("Fill the remaining unmarked lines using AI.")
+        self.next_action_secondary_btn = QPushButton(tr('AI Fill Remaining…'))
+        self.next_action_secondary_btn.setToolTip(tr('Fill the remaining unmarked lines using AI.'))
         self.next_action_secondary_btn.setAutoDefault(False)
         self.next_action_secondary_btn.setStyleSheet(
             "QPushButton { background: #f7f7f7; border: 1px solid #b8b8b8; color: #333; font-weight: bold; font-size: 11px; border-radius: 4px; padding: 4px 10px; min-height: 22px; }"
@@ -1253,8 +1254,8 @@ class ScriptMarkupStudioDialog(QDialog):
         control_row.setSpacing(6)
 
         # File menu button
-        self.file_btn = QPushButton("File ▾")
-        self.file_btn.setToolTip("Open script, open/save projects, or close Markup Studio.")
+        self.file_btn = QPushButton(tr('File ▾'))
+        self.file_btn.setToolTip(tr('Open script, open/save projects, or close Markup Studio.'))
         self.file_menu = QMenu(self.file_btn)
         self.file_btn.setMenu(self.file_menu)
 
@@ -1293,36 +1294,36 @@ class ScriptMarkupStudioDialog(QDialog):
         control_row.addWidget(self.file_btn)
 
         # Quick Save button
-        self.quick_save_btn = QPushButton("Save")
-        self.quick_save_btn.setToolTip("Quick save changes (Ctrl+S).")
+        self.quick_save_btn = QPushButton(tr('Save'))
+        self.quick_save_btn.setToolTip(tr('Quick save changes (Ctrl+S).'))
         self.quick_save_btn.clicked.connect(self._quick_save_project)
         control_row.addWidget(self.quick_save_btn)
 
         # Undo / Redo
-        self.undo_btn = QPushButton("Undo")
-        self.undo_btn.setToolTip("Undo the last action.")
+        self.undo_btn = QPushButton(tr('Undo'))
+        self.undo_btn.setToolTip(tr('Undo the last action.'))
         self.undo_btn.clicked.connect(self._undo_history)
         control_row.addWidget(self.undo_btn)
 
-        self.redo_btn = QPushButton("Redo")
-        self.redo_btn.setToolTip("Redo the undone action.")
+        self.redo_btn = QPushButton(tr('Redo'))
+        self.redo_btn.setToolTip(tr('Redo the undone action.'))
         self.redo_btn.clicked.connect(self._redo_history)
         control_row.addWidget(self.redo_btn)
 
         control_row.addStretch(1)
 
         # Add Auto-fill to control row
-        self.auto_markup_menu_btn.setText("Auto-fill ▾")
+        self.auto_markup_menu_btn.setText(tr('Auto-fill ▾'))
         control_row.addWidget(self.auto_markup_menu_btn)
 
         # Advanced menu button
-        self.advanced_btn = QPushButton("Advanced ▾", self)
-        self.advanced_btn.setToolTip("Advanced and legacy features menu.")
+        self.advanced_btn = QPushButton(tr('Advanced ▾'), self)
+        self.advanced_btn.setToolTip(tr('Advanced and legacy features menu.'))
         self.advanced_menu = QMenu(self.advanced_btn)
         self.advanced_btn.setMenu(self.advanced_menu)
 
         # Submenu: Template
-        self.template_menu = QMenu("Template", self.advanced_menu)
+        self.template_menu = QMenu(tr('Template'), self.advanced_menu)
         self.load_template_btn = self._add_menu_action(
             self.template_menu,
             "Open template...",
@@ -1338,7 +1339,7 @@ class ScriptMarkupStudioDialog(QDialog):
         self.advanced_menu.addMenu(self.template_menu)
 
         # Submenu: Export
-        self.export_menu = QMenu("Export", self.advanced_menu)
+        self.export_menu = QMenu(tr('Export'), self.advanced_menu)
         self.preview_btn = self._add_menu_action(
             self.export_menu,
             "Preview result…",
@@ -1361,24 +1362,24 @@ class ScriptMarkupStudioDialog(QDialog):
         )
 
         # Submenu: Legacy tools
-        self.legacy_menu = QMenu("Legacy tools", self.advanced_menu)
-        self.action_mode_hierarchy = self.legacy_menu.addAction("Rules mode: Hierarchy markup")
+        self.legacy_menu = QMenu(tr('Legacy tools'), self.advanced_menu)
+        self.action_mode_hierarchy = self.legacy_menu.addAction(tr('Rules mode: Hierarchy markup'))
         self.action_mode_hierarchy.setCheckable(True)
         self.action_mode_hierarchy.setChecked(self.mode == "hierarchy")
         self.action_mode_hierarchy.triggered.connect(lambda: self._set_rules_mode("hierarchy"))
 
-        self.action_mode_picoripi = self.legacy_menu.addAction("Rules mode: Picoripi rules")
+        self.action_mode_picoripi = self.legacy_menu.addAction(tr('Rules mode: Picoripi rules'))
         self.action_mode_picoripi.setCheckable(True)
         self.action_mode_picoripi.setChecked(self.mode == "picoripi")
         self.action_mode_picoripi.triggered.connect(lambda: self._set_rules_mode("picoripi"))
 
-        self.action_mode_custom = self.legacy_menu.addAction("Rules mode: Custom recipe")
+        self.action_mode_custom = self.legacy_menu.addAction(tr('Rules mode: Custom recipe'))
         self.action_mode_custom.setCheckable(True)
         self.action_mode_custom.setChecked(self.mode == "custom")
         self.action_mode_custom.triggered.connect(lambda: self._set_rules_mode("custom"))
 
         self.legacy_menu.addSeparator()
-        self.show_legacy_controls_action = self.legacy_menu.addAction("Show legacy parser controls")
+        self.show_legacy_controls_action = self.legacy_menu.addAction(tr('Show legacy parser controls'))
         self.show_legacy_controls_action.setCheckable(True)
         self.show_legacy_controls_action.setChecked(False)
         self.show_legacy_controls_action.triggered.connect(self._toggle_legacy_controls)
@@ -1395,40 +1396,40 @@ class ScriptMarkupStudioDialog(QDialog):
         self.recipe_menu_btn.setVisible(False)
 
         # Help button
-        self.help_btn = QPushButton("? Help")
-        self.help_btn.setToolTip("Open guide.")
+        self.help_btn = QPushButton(tr('? Help'))
+        self.help_btn.setToolTip(tr('Open guide.'))
         self.help_btn.clicked.connect(self._show_help)
         control_row.addWidget(self.help_btn)
 
         root.addLayout(control_row)
 
-        self.path_label = QLabel("No file loaded")
+        self.path_label = QLabel(tr('No file loaded'))
         self.path_label.setVisible(False)  # We hide it, but keep it for compatibility
 
-        self.project_state_label = QLabel("Markup project: Not saved")
+        self.project_state_label = QLabel(tr('Markup project: Not saved'))
         self.project_state_label.setVisible(False)
 
         # Recipe flags + teach (custom engine only)
         controls = QHBoxLayout()
-        self.recipe_box = QGroupBox("Recipe")
+        self.recipe_box = QGroupBox(tr('Recipe'))
         flags_layout = QHBoxLayout(self.recipe_box)
-        self.cb_gutter = QCheckBox("Gutter speakers (Format B)")
+        self.cb_gutter = QCheckBox(tr('Gutter speakers (Format B)'))
         self.cb_gutter.setToolTip(
-            "Treat a standalone speaker name line as the speaker for the dialogue lines below it."
+            tr('Treat a standalone speaker name line as the speaker for the dialogue lines below it.')
         )
         self.cb_gutter.setChecked(self.recipe.gutter_speakers)
         self.cb_gutter.toggled.connect(self._on_flag_changed)
         flags_layout.addWidget(self.cb_gutter)
-        self.cb_continuation = QCheckBox("Join wrapped lines")
+        self.cb_continuation = QCheckBox(tr('Join wrapped lines'))
         self.cb_continuation.setToolTip(
-            "Join wrapped dialogue lines before previewing or exporting the standardized script."
+            tr('Join wrapped dialogue lines before previewing or exporting the standardized script.')
         )
         self.cb_continuation.setChecked(self.recipe.continuation)
         self.cb_continuation.toggled.connect(self._on_flag_changed)
         flags_layout.addWidget(self.cb_continuation)
         controls.addWidget(self.recipe_box)
 
-        self.teach_box = QGroupBox("Mark current line as…")
+        self.teach_box = QGroupBox(tr('Mark current line as…'))
         teach_layout = QHBoxLayout(self.teach_box)
         tooltips = {
             "speaker": "Open the speaker teacher: mark the NAME and the spoken TEXT separately — works for any separator.",
@@ -1447,26 +1448,26 @@ class ScriptMarkupStudioDialog(QDialog):
             teach_layout.addWidget(btn)
         controls.addWidget(self.teach_box, 1)
 
-        self.hierarchy_box = QGroupBox("Mark selected text")
+        self.hierarchy_box = QGroupBox(tr('Mark selected text'))
         hierarchy_layout = QHBoxLayout(self.hierarchy_box)
-        hierarchy_layout.addWidget(QLabel("Depth:"))
+        hierarchy_layout.addWidget(QLabel(tr('Depth:')))
         self.hierarchy_depth_spin = QSpinBox()
         self.hierarchy_depth_spin.setRange(0, 12)
-        self.hierarchy_depth_spin.setToolTip("0 is the top level; higher numbers are nested deeper.")
+        self.hierarchy_depth_spin.setToolTip(tr('0 is the top level; higher numbers are nested deeper.'))
         hierarchy_layout.addWidget(self.hierarchy_depth_spin)
 
-        hierarchy_layout.addWidget(QLabel("Type:"))
+        hierarchy_layout.addWidget(QLabel(tr('Type:')))
         self.hierarchy_type_combo = QComboBox()
         self.hierarchy_type_combo.setEditable(True)
         self.hierarchy_type_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.hierarchy_type_combo.setMinimumWidth(170)
         self.hierarchy_type_combo.setMinimumContentsLength(14)
         self.hierarchy_type_combo.setToolTip(
-            "Choose the hierarchy mark type. Shortcuts: Ctrl+S Structure, Ctrl+P Speaker, Ctrl+T Text, Ctrl+B Breaker, Ctrl+I Ignore."
+            tr('Choose the hierarchy mark type. Shortcuts: Ctrl+S Structure, Ctrl+P Speaker, Ctrl+T Text, Ctrl+B Breaker, Ctrl+I Ignore.')
         )
         for type_def in self.hierarchy_type_definitions.values():
             self._add_hierarchy_type_item(type_def)
-        self.hierarchy_type_combo.lineEdit().setPlaceholderText("Type or choose")
+        self.hierarchy_type_combo.lineEdit().setPlaceholderText(tr('Type or choose'))
         self.hierarchy_type_combo.lineEdit().setToolTip(self.hierarchy_type_combo.toolTip())
         self.hierarchy_type_combo.lineEdit().editingFinished.connect(
             self._finalize_hierarchy_type_text
@@ -1474,14 +1475,13 @@ class ScriptMarkupStudioDialog(QDialog):
         self.hierarchy_type_combo.currentIndexChanged.connect(self._on_hierarchy_type_changed)
         hierarchy_layout.addWidget(self.hierarchy_type_combo)
 
-        self.hierarchy_role_label = QLabel("Role:")
+        self.hierarchy_role_label = QLabel(tr('Role:'))
         hierarchy_layout.addWidget(self.hierarchy_role_label)
         self.hierarchy_role_combo = QComboBox()
-        self.hierarchy_role_combo.addItem("Speaker", "speaker")
-        self.hierarchy_role_combo.addItem("Item", "item")
+        self.hierarchy_role_combo.addItem(tr('Speaker'), tr('speaker'))
+        self.hierarchy_role_combo.addItem(tr('Item'), tr('item'))
         self.hierarchy_role_combo.setToolTip(
-            "Speaker creates dialogue. Item creates a non-dialogue reference entry. "
-            "For Text, Item automatically means Item Description."
+            tr('Speaker creates dialogue. Item creates a non-dialogue reference entry. For Text, Item automatically means Item Description.')
         )
         self.hierarchy_role_combo.currentIndexChanged.connect(
             self._on_hierarchy_role_changed
@@ -1489,36 +1489,29 @@ class ScriptMarkupStudioDialog(QDialog):
         hierarchy_layout.addWidget(self.hierarchy_role_combo)
 
         self.hierarchy_label_edit = QLineEdit()
-        self.hierarchy_label_edit.setPlaceholderText("Label/text (optional)")
+        self.hierarchy_label_edit.setPlaceholderText(tr('Label/text (optional)'))
         hierarchy_layout.addWidget(self.hierarchy_label_edit, 1)
 
-        self.hierarchy_split_text_cb = QCheckBox("Split paragraphs")
+        self.hierarchy_split_text_cb = QCheckBox(tr('Split paragraphs'))
         self.hierarchy_split_text_cb.setToolTip(
-            "<b>Split paragraphs</b><br>"
-            "Only has an effect when Type is <b>Text</b>; disabled otherwise.<br><br>"
-            "<b>Checked</b> — Apply mark makes one Text block per paragraph in the "
-            "selection, splitting at blank lines and skipping empty ones. Use this "
-            "for a run of dialogue where each paragraph is its own line of speech; "
-            "assign the speakers afterwards from the tree.<br>"
-            "<b>Unchecked</b> — the whole selection becomes a single Text block."
+            tr('<b>Split paragraphs</b><br>Only has an effect when Type is <b>Text</b>; disabled otherwise.<br><br><b>Checked</b> — Apply mark makes one Text block per paragraph in the selection, splitting at blank lines and skipping empty ones. Use this for a run of dialogue where each paragraph is its own line of speech; assign the speakers afterwards from the tree.<br><b>Unchecked</b> — the whole selection becomes a single Text block.')
         )
         hierarchy_layout.addWidget(self.hierarchy_split_text_cb)
 
-        self.hierarchy_color_btn = QPushButton("Color")
+        self.hierarchy_color_btn = QPushButton(tr('Color'))
         self.hierarchy_color_btn.setMinimumWidth(82)
         self.hierarchy_color_btn.clicked.connect(self._choose_hierarchy_type_color)
         hierarchy_layout.addWidget(self.hierarchy_color_btn)
 
-        self.hierarchy_mark_btn = QPushButton("Apply mark")
+        self.hierarchy_mark_btn = QPushButton(tr('Apply mark'))
         self.hierarchy_mark_btn.setMinimumWidth(118)
         self.hierarchy_mark_btn.setToolTip(
-            "Mark the current selection with the chosen Type (Ctrl+M). Quick types: Ctrl+S Structure, "
-            "Ctrl+P Speaker, Ctrl+T Text, Ctrl+B Breaker, Ctrl+I Ignore."
+            tr('Mark the current selection with the chosen Type (Ctrl+M). Quick types: Ctrl+S Structure, Ctrl+P Speaker, Ctrl+T Text, Ctrl+B Breaker, Ctrl+I Ignore.')
         )
         self.hierarchy_mark_btn.clicked.connect(self._mark_selection_as_hierarchy)
         hierarchy_layout.addWidget(self.hierarchy_mark_btn)
 
-        self.hierarchy_clear_btn = QPushButton("Remove mark")
+        self.hierarchy_clear_btn = QPushButton(tr('Remove mark'))
         self.hierarchy_clear_btn.setMinimumWidth(98)
         self.hierarchy_clear_btn.clicked.connect(self._clear_selected_hierarchy_marks)
         hierarchy_layout.addWidget(self.hierarchy_clear_btn)
@@ -1531,25 +1524,23 @@ class ScriptMarkupStudioDialog(QDialog):
         self.range_panel = QWidget()
         range_row = QHBoxLayout(self.range_panel)
         range_row.setContentsMargins(0, 0, 0, 0)
-        self.range_label = QLabel("Timeline range: full file")
+        self.range_label = QLabel(tr('Timeline range: full file'))
         self.range_label.setStyleSheet("color:#666;")
         range_row.addWidget(self.range_label, 1)
-        self.start_range_btn = QPushButton("Start from cursor")
+        self.start_range_btn = QPushButton(tr('Start from cursor'))
         self.start_range_btn.setToolTip(
-            "Legacy parser helper: skip everything before the current line "
-            "(table of contents, cast list, legal text)."
+            tr('Legacy parser helper: skip everything before the current line (table of contents, cast list, legal text).')
         )
         self.start_range_btn.clicked.connect(self._set_timeline_start)
         range_row.addWidget(self.start_range_btn)
-        self.end_range_btn = QPushButton("End at cursor")
+        self.end_range_btn = QPushButton(tr('End at cursor'))
         self.end_range_btn.setToolTip(
-            "Legacy parser helper: skip everything after the current line "
-            "(appendices, credits, non-story notes)."
+            tr('Legacy parser helper: skip everything after the current line (appendices, credits, non-story notes).')
         )
         self.end_range_btn.clicked.connect(self._set_timeline_end)
         range_row.addWidget(self.end_range_btn)
-        self.clear_range_btn = QPushButton("Use full file")
-        self.clear_range_btn.setToolTip("Legacy parser helper: remove the start/end crop.")
+        self.clear_range_btn = QPushButton(tr('Use full file'))
+        self.clear_range_btn.setToolTip(tr('Legacy parser helper: remove the start/end crop.'))
         self.clear_range_btn.clicked.connect(self._clear_timeline_range)
         range_row.addWidget(self.clear_range_btn)
         root.addWidget(self.range_panel)
@@ -1563,55 +1554,55 @@ class ScriptMarkupStudioDialog(QDialog):
         raw_header = QHBoxLayout()
         raw_header.setContentsMargins(0, 0, 0, 0)
         # Search line and status indicator layout
-        raw_header.addWidget(QLabel("Find:"))
+        raw_header.addWidget(QLabel(tr('Find:')))
         self.search_edit = _SearchLineEdit()
-        self.search_edit.setPlaceholderText("Search raw script")
+        self.search_edit.setPlaceholderText(tr('Search raw script'))
         self.search_edit.setClearButtonEnabled(True)
         self.search_edit.setMinimumWidth(220)
         self.search_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.search_edit.setToolTip(
-            "Search raw script (Ctrl+F). Press Enter for the next match or Shift+Enter for the previous match."
+            tr('Search raw script (Ctrl+F). Press Enter for the next match or Shift+Enter for the previous match.')
         )
         self.search_edit.textChanged.connect(self._on_search_text_changed)
         self.search_edit.findNextRequested.connect(self._find_next_search_match)
         self.search_edit.findPreviousRequested.connect(self._find_previous_search_match)
         raw_header.addWidget(self.search_edit, 1)
 
-        self.search_prev_btn = QPushButton("Prev")
+        self.search_prev_btn = QPushButton(tr('Prev'))
         self.search_prev_btn.setToolTip(
-            "Jump to the previous search match in the raw script (Shift+Enter in Find)."
+            tr('Jump to the previous search match in the raw script (Shift+Enter in Find).')
         )
         self.search_prev_btn.clicked.connect(self._find_previous_search_match)
         raw_header.addWidget(self.search_prev_btn)
 
-        self.search_next_btn = QPushButton("Next")
+        self.search_next_btn = QPushButton(tr('Next'))
         self.search_next_btn.setToolTip(
-            "Jump to the next search match in the raw script (Enter in Find)."
+            tr('Jump to the next search match in the raw script (Enter in Find).')
         )
         self.search_next_btn.clicked.connect(self._find_next_search_match)
         raw_header.addWidget(self.search_next_btn)
 
-        self.search_case_cb = QCheckBox("Aa")
-        self.search_case_cb.setToolTip("Only match text with the same uppercase/lowercase letters.")
+        self.search_case_cb = QCheckBox(tr('Aa'))
+        self.search_case_cb.setToolTip(tr('Only match text with the same uppercase/lowercase letters.'))
         self.search_case_cb.toggled.connect(self._on_search_options_changed)
         raw_header.addWidget(self.search_case_cb)
 
-        self.search_word_cb = QCheckBox("Word")
-        self.search_word_cb.setToolTip("Only match complete words, not text inside longer words.")
+        self.search_word_cb = QCheckBox(tr('Word'))
+        self.search_word_cb.setToolTip(tr('Only match complete words, not text inside longer words.'))
         self.search_word_cb.toggled.connect(self._on_search_options_changed)
         raw_header.addWidget(self.search_word_cb)
 
-        self.search_regex_cb = QCheckBox(".*")
-        self.search_regex_cb.setToolTip("Interpret the search text as a regular expression pattern.")
+        self.search_regex_cb = QCheckBox(tr('.*'))
+        self.search_regex_cb.setToolTip(tr('Interpret the search text as a regular expression pattern.'))
         self.search_regex_cb.toggled.connect(self._on_search_options_changed)
         raw_header.addWidget(self.search_regex_cb)
 
-        self.search_status_label = QLabel("")
+        self.search_status_label = QLabel(tr(''))
         self.search_status_label.setMinimumWidth(48)
         self.search_status_label.setStyleSheet("color:#666;")
         raw_header.addWidget(self.search_status_label)
 
-        self.raw_label = QLabel("")
+        self.raw_label = QLabel(tr(''))
         raw_header.addWidget(self.raw_label)
         raw_layout.addLayout(raw_header)
 
@@ -1631,35 +1622,35 @@ class ScriptMarkupStudioDialog(QDialog):
         outline_layout.setSpacing(4)
         outline_header = QHBoxLayout()
         outline_header.setContentsMargins(0, 0, 0, 0)
-        self.outline_label = QLabel("Script tree (double-click to jump):")
+        self.outline_label = QLabel(tr('Script tree (double-click to jump):'))
         self.outline_label.setToolTip(
-            "Double-click a node to jump to source. Press F2, use Rename node, or click an already selected node to rename."
+            tr('Double-click a node to jump to source. Press F2, use Rename node, or click an already selected node to rename.')
         )
         outline_header.addWidget(self.outline_label)
         outline_header.addStretch(1)
-        self.expand_tree_btn = QPushButton("Expand all")
-        self.expand_tree_btn.setToolTip("Expand every node in the script tree.")
+        self.expand_tree_btn = QPushButton(tr('Expand all'))
+        self.expand_tree_btn.setToolTip(tr('Expand every node in the script tree.'))
         self.expand_tree_btn.clicked.connect(self._expand_outline_all)
         outline_header.addWidget(self.expand_tree_btn)
-        self.collapse_tree_btn = QPushButton("Collapse all")
-        self.collapse_tree_btn.setToolTip("Collapse every node in the script tree.")
+        self.collapse_tree_btn = QPushButton(tr('Collapse all'))
+        self.collapse_tree_btn.setToolTip(tr('Collapse every node in the script tree.'))
         self.collapse_tree_btn.clicked.connect(self._collapse_outline_all)
         outline_header.addWidget(self.collapse_tree_btn)
         outline_layout.addLayout(outline_header)
         self.outline_search_edit = QLineEdit()
-        self.outline_search_edit.setPlaceholderText("Search tree…")
+        self.outline_search_edit.setPlaceholderText(tr('Search tree…'))
         self.outline_search_edit.setClearButtonEnabled(True)
         self.outline_search_edit.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
         self.outline_search_edit.setToolTip(
-            "Filter the script tree or review queue. Matching branches are expanded automatically."
+            tr('Filter the script tree or review queue. Matching branches are expanded automatically.')
         )
         self.outline_search_edit.textChanged.connect(self._on_outline_search_changed)
         outline_layout.addWidget(self.outline_search_edit)
         self.flags_list = _ScriptTreeWidget(self)
         self.flags_list.setToolTip(
-            "Double-click a node to jump to source. Press F2, use Rename node, or click an already selected node to rename."
+            tr('Double-click a node to jump to source. Press F2, use Rename node, or click an already selected node to rename.')
         )
         self.flags_list.setHeaderHidden(True)
         self.flags_list.setAlternatingRowColors(True)
@@ -2277,7 +2268,7 @@ class ScriptMarkupStudioDialog(QDialog):
 
         self._rebuild_search_matches(self._current_search_signature())
         if self._search_error:
-            self.search_status_label.setText("Bad regex")
+            self.search_status_label.setText(tr('Bad regex'))
             self._apply_raw_extra_selections()
             return
         if not self._search_matches:
@@ -2861,7 +2852,7 @@ class ScriptMarkupStudioDialog(QDialog):
             if self.mode == "hierarchy":
                 self.raw_label.setText("")
             else:
-                self.raw_label.setText("⚙️ Automatic rule preview")
+                self.raw_label.setText(tr('⚙️ Automatic rule preview'))
                 self.raw_label.setStyleSheet("color: #4b5563; font-style: italic;")
 
     def _select_hierarchy_type_id(self, type_id: str):
@@ -2909,7 +2900,7 @@ class ScriptMarkupStudioDialog(QDialog):
             self.hierarchy_type_combo.setCurrentIndex(-1)
             self.hierarchy_type_combo.setEditText("")
             if self.hierarchy_type_combo.lineEdit() is not None:
-                self.hierarchy_type_combo.lineEdit().setPlaceholderText("Mixed")
+                self.hierarchy_type_combo.lineEdit().setPlaceholderText(tr('Mixed'))
         finally:
             self.hierarchy_type_combo.blockSignals(False)
         self.hierarchy_type_combo.setStyleSheet("")
@@ -2932,9 +2923,9 @@ class ScriptMarkupStudioDialog(QDialog):
             int(common_depth) if common_depth is not None else marks[0].depth
         )
         if common_depth is None:
-            self.hierarchy_depth_spin.setToolTip("Mixed depth; change this value to apply one depth to all selected nodes.")
+            self.hierarchy_depth_spin.setToolTip(tr('Mixed depth; change this value to apply one depth to all selected nodes.'))
         else:
-            self.hierarchy_depth_spin.setToolTip("0 is the top level; higher numbers are nested deeper.")
+            self.hierarchy_depth_spin.setToolTip(tr('0 is the top level; higher numbers are nested deeper.'))
 
         if common_type_id is not None:
             self._select_hierarchy_type_id(str(common_type_id))
@@ -3029,8 +3020,8 @@ class ScriptMarkupStudioDialog(QDialog):
         self._range_edit_drag_handle = None
         self._bulk_edit_mark_keys = []
         self._bulk_edit_initial_controls = {}
-        self.hierarchy_depth_spin.setToolTip("0 is the top level; higher numbers are nested deeper.")
-        self.hierarchy_label_edit.setPlaceholderText("Label/text (optional)")
+        self.hierarchy_depth_spin.setToolTip(tr('0 is the top level; higher numbers are nested deeper.'))
+        self.hierarchy_label_edit.setPlaceholderText(tr('Label/text (optional)'))
         self._update_range_edit_label()
         self._update_hierarchy_edit_controls()
         self._apply_raw_extra_selections()
@@ -3721,7 +3712,7 @@ class ScriptMarkupStudioDialog(QDialog):
                 source_col = None
             source_mark = self._hierarchy_mark_at_line(line_no, source_col) if line_no is not None else None
             if source_mark is not None:
-                jump_tree_action = menu.addAction("Jump to this text in tree")
+                jump_tree_action = menu.addAction(tr('Jump to this text in tree'))
                 jump_tree_action.triggered.connect(
                     lambda _checked=False, line=line_no, col=source_col: self._jump_raw_line_to_outline(line, col)
                 )
@@ -3734,24 +3725,24 @@ class ScriptMarkupStudioDialog(QDialog):
                 )
                 fold_action.triggered.connect(lambda _checked=False, key=fold_key: self._toggle_raw_hierarchy_fold(key))
             if self._collapsed_hierarchy_keys:
-                expand_all_action = menu.addAction("Expand all raw folds")
+                expand_all_action = menu.addAction(tr('Expand all raw folds'))
                 expand_all_action.triggered.connect(self._expand_all_raw_hierarchy_folds)
             if fold_key or self._collapsed_hierarchy_keys:
                 menu.addSeparator()
-            mark_action = menu.addAction("Mark selection as hierarchy node")
+            mark_action = menu.addAction(tr('Mark selection as hierarchy node'))
             mark_action.triggered.connect(self._mark_selection_as_hierarchy)
             if self._selected_hierarchy_marks():
-                clear_hierarchy_action = menu.addAction("Clear hierarchy mark")
+                clear_hierarchy_action = menu.addAction(tr('Clear hierarchy mark'))
                 clear_hierarchy_action.triggered.connect(self._clear_selected_hierarchy_marks)
             return
 
-        mark_menu = menu.addMenu("Mark selection as")
+        mark_menu = menu.addMenu(tr('Mark selection as'))
         for label, kind in _MENU_MARKS:
             action = mark_menu.addAction(label)
             action.triggered.connect(lambda _checked=False, k=kind: self._mark_selection_as(k))
 
         if any(idx in self.manual_marks for idx in self._selected_line_indices()):
-            clear_action = menu.addAction("Clear manual mark")
+            clear_action = menu.addAction(tr('Clear manual mark'))
             clear_action.triggered.connect(self._clear_selected_manual_marks)
 
     def _selected_line_indices(self) -> list[int]:
@@ -4757,16 +4748,15 @@ class ScriptMarkupStudioDialog(QDialog):
         if not any(mark.approved for mark in self.hierarchy_marks):
             QMessageBox.information(
                 self,
-                "Reset marks",
-                "There are no hierarchy marks to reset.",
+                tr('Reset marks'),
+                tr('There are no hierarchy marks to reset.'),
             )
             return
 
         answer = QMessageBox.question(
             self,
-            "Reset marks?",
-            "Clear all hierarchy marks from the current script?\n\n"
-            "The raw script and hierarchy templates will stay unchanged.",
+            tr('Reset marks?'),
+            tr('Clear all hierarchy marks from the current script?\n\nThe raw script and hierarchy templates will stay unchanged.'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -5060,7 +5050,7 @@ class ScriptMarkupStudioDialog(QDialog):
                 with open(path, "r", encoding="utf-8", errors="replace") as f:
                     text = f.read()
         except Exception as e:
-            QMessageBox.warning(self, "Load failed", f"Could not read file:\n{e}")
+            QMessageBox.warning(self, tr('Load failed'), f"Could not read file:\n{e}")
             return
         self._set_history_suspended(True)
         try:
@@ -5139,7 +5129,7 @@ class ScriptMarkupStudioDialog(QDialog):
                 if hierarchy:
                     self.raw_label.setText("")
                 else:
-                    self.raw_label.setText("⚙️ Automatic rule preview")
+                    self.raw_label.setText(tr('⚙️ Automatic rule preview'))
                     self.raw_label.setStyleSheet("color: #4b5563; font-style: italic;")
         self.outline_label.setText(
             "Script tree (double-click to jump):"
@@ -5990,8 +5980,8 @@ class ScriptMarkupStudioDialog(QDialog):
             )
         if not mappings:
             QMessageBox.information(
-                self, "No linked game row",
-                "This marked node does not have a saved game-string link yet."
+                self, tr('No linked game row'),
+                tr('This marked node does not have a saved game-string link yet.')
             )
             return False
         mapping = mappings[0]
@@ -6440,8 +6430,8 @@ class ScriptMarkupStudioDialog(QDialog):
         if not joined:
             QMessageBox.information(
                 self,
-                "Join structures",
-                "Select two or more Structure nodes with the same label and depth.",
+                tr('Join structures'),
+                tr('Select two or more Structure nodes with the same label and depth.'),
             )
         return joined
 
@@ -6943,7 +6933,7 @@ class ScriptMarkupStudioDialog(QDialog):
         selected_count = len(mark_keys)
 
         menu = QMenu(self)
-        jump_action = menu.addAction("Jump to source")
+        jump_action = menu.addAction(tr('Jump to source'))
         open_game_action = None
         delete_action = None
         delete_branch_action = None
@@ -6976,7 +6966,7 @@ class ScriptMarkupStudioDialog(QDialog):
             menu.addSeparator()
         if self.mode == "hierarchy" and mark_keys:
             if selected_count == 1:
-                open_game_action = menu.addAction("Open linked game row")
+                open_game_action = menu.addAction(tr('Open linked game row'))
             if speaker_mark_keys:
                 convert_items_action = menu.addAction(
                     "Convert Speaker Block to Item"
@@ -7005,17 +6995,17 @@ class ScriptMarkupStudioDialog(QDialog):
                     f"Approve {selected_count} as Auto-fill examples"
                 )
             if selected_count == 1:
-                rename_action = menu.addAction("Rename node...")
-                edit_range_action = menu.addAction("Edit node")
+                rename_action = menu.addAction(tr('Rename node...'))
+                edit_range_action = menu.addAction(tr('Edit node'))
             else:
                 edit_range_action = menu.addAction(f"Edit {selected_count} selected nodes")
             if (
                 primary_key and self._range_edit_mark_key == primary_key
                 or set(mark_keys).intersection(self._bulk_edit_mark_keys)
             ):
-                stop_range_action = menu.addAction("Stop editing")
+                stop_range_action = menu.addAction(tr('Stop editing'))
             if len(self._joinable_structure_marks_for_keys(direct_mark_keys)) >= 2:
-                join_structures_action = menu.addAction("Join selected structures")
+                join_structures_action = menu.addAction(tr('Join selected structures'))
             movable_marks = [
                 self._hierarchy_mark_for_key(key)
                 for key in mark_keys
@@ -7033,7 +7023,7 @@ class ScriptMarkupStudioDialog(QDialog):
                 depth_up_action = depth_menu.addAction(f"Move {branch_label} shallower")
                 depth_up_action.setEnabled(any(mark.depth > 0 for mark in movable_marks))
                 depth_down_action = depth_menu.addAction(f"Move {branch_label} deeper")
-                set_depth_menu = depth_menu.addMenu("Set depth")
+                set_depth_menu = depth_menu.addMenu(tr('Set depth'))
                 max_depth = max(
                     6,
                     max((m.depth for m in self.hierarchy_marks), default=0) + 2,
@@ -7118,7 +7108,7 @@ class ScriptMarkupStudioDialog(QDialog):
 
     def _update_range_label(self):
         if not self.start_line and not self.end_line:
-            self.range_label.setText("Timeline range: full file")
+            self.range_label.setText(tr('Timeline range: full file'))
         else:
             start = self.start_line or 1
             end = self.end_line or "end"
@@ -7139,7 +7129,7 @@ class ScriptMarkupStudioDialog(QDialog):
     def _teach_current_line(self, kind: str):
         sample = self._current_line_text()
         if not sample:
-            QMessageBox.information(self, "Nothing to learn", "Place the cursor on a non-empty line first.")
+            QMessageBox.information(self, tr('Nothing to learn'), tr('Place the cursor on a non-empty line first.'))
             return
         if kind == "chapter":
             pat, target = learn_header_pattern(sample, group="title"), self.recipe.chapter_patterns
@@ -7151,9 +7141,8 @@ class ScriptMarkupStudioDialog(QDialog):
             return
         if not pat:
             QMessageBox.information(
-                self, "Could not infer a rule",
-                "This line has no reliable pattern to learn from "
-                "(headers need surrounding delimiters like '=== … ===').",
+                self, tr('Could not infer a rule'),
+                tr("This line has no reliable pattern to learn from (headers need surrounding delimiters like '=== … ===')."),
             )
             return
         if pat not in target:
@@ -7171,40 +7160,37 @@ class ScriptMarkupStudioDialog(QDialog):
 
     def _build_speaker_teacher(self) -> QDialog:
         dlg = QDialog(self)
-        dlg.setWindowTitle("Teach a speaker format")
+        dlg.setWindowTitle(tr('Teach a speaker format'))
         dlg.resize(580, 320)
         dlg.result_pattern = None
         v = QVBoxLayout(dlg)
         v.addWidget(QLabel(
-            "Mark the two parts of one example line:\n"
-            "1. Select the speaker NAME, click 'Use selection as name'.\n"
-            "2. Select the spoken TEXT, click 'Use selection as dialogue'.\n"
-            "Works for any format (NAME:, Name -, [Name] …)."
+            tr("Mark the two parts of one example line:\n1. Select the speaker NAME, click 'Use selection as name'.\n2. Select the spoken TEXT, click 'Use selection as dialogue'.\nWorks for any format (NAME:, Name -, [Name] …).")
         ))
         sample_edit = QPlainTextEdit()
         sample_edit.setPlainText(self._current_line_text())
         sample_edit.setMaximumHeight(70)
         v.addWidget(sample_edit)
 
-        name_edit = QLineEdit(); name_edit.setReadOnly(True); name_edit.setPlaceholderText("(speaker name)")
-        name_btn = QPushButton("Use selection as name")
-        name_btn.setToolTip("Use the selected text as the speaker-name part of this example.")
-        nrow = QHBoxLayout(); nrow.addWidget(QLabel("Name:")); nrow.addWidget(name_edit, 1); nrow.addWidget(name_btn)
+        name_edit = QLineEdit(); name_edit.setReadOnly(True); name_edit.setPlaceholderText(tr('(speaker name)'))
+        name_btn = QPushButton(tr('Use selection as name'))
+        name_btn.setToolTip(tr('Use the selected text as the speaker-name part of this example.'))
+        nrow = QHBoxLayout(); nrow.addWidget(QLabel(tr('Name:'))); nrow.addWidget(name_edit, 1); nrow.addWidget(name_btn)
         v.addLayout(nrow)
 
-        text_edit = QLineEdit(); text_edit.setReadOnly(True); text_edit.setPlaceholderText("(spoken text)")
-        text_btn = QPushButton("Use selection as dialogue")
-        text_btn.setToolTip("Use the selected text as the spoken-dialogue part of this example.")
-        trow = QHBoxLayout(); trow.addWidget(QLabel("Dialogue:")); trow.addWidget(text_edit, 1); trow.addWidget(text_btn)
+        text_edit = QLineEdit(); text_edit.setReadOnly(True); text_edit.setPlaceholderText(tr('(spoken text)'))
+        text_btn = QPushButton(tr('Use selection as dialogue'))
+        text_btn.setToolTip(tr('Use the selected text as the spoken-dialogue part of this example.'))
+        trow = QHBoxLayout(); trow.addWidget(QLabel(tr('Dialogue:'))); trow.addWidget(text_edit, 1); trow.addWidget(text_btn)
         v.addLayout(trow)
 
-        preview = QLabel(""); preview.setWordWrap(True); preview.setStyleSheet("color:#444;")
+        preview = QLabel(tr('')); preview.setWordWrap(True); preview.setStyleSheet("color:#444;")
         v.addWidget(preview)
 
         brow = QHBoxLayout(); brow.addStretch(1)
-        cancel_btn = QPushButton("Cancel"); ok_btn = QPushButton("Add rule"); ok_btn.setDefault(True)
-        cancel_btn.setToolTip("Close this teacher without adding a new speaker rule.")
-        ok_btn.setToolTip("Add the inferred speaker rule to the current custom recipe.")
+        cancel_btn = QPushButton(tr('Cancel')); ok_btn = QPushButton(tr('Add rule')); ok_btn.setDefault(True)
+        cancel_btn.setToolTip(tr('Close this teacher without adding a new speaker rule.'))
+        ok_btn.setToolTip(tr('Add the inferred speaker rule to the current custom recipe.'))
         brow.addWidget(cancel_btn); brow.addWidget(ok_btn)
         v.addLayout(brow)
 
@@ -7229,9 +7215,9 @@ class ScriptMarkupStudioDialog(QDialog):
                 m = re.match(pat, sample)
                 preview.setText(f"✓ Captures  speaker = '{m.group('speaker')}'   dialogue = '{m.group('text')}'")
             elif pat:
-                preview.setText("Rule built.")
+                preview.setText(tr('Rule built.'))
             else:
-                preview.setText("Mark the name and the dialogue (or use a 'NAME:' line).")
+                preview.setText(tr("Mark the name and the dialogue (or use a 'NAME:' line)."))
 
         def set_name():
             sel = sample_edit.textCursor().selectedText().strip()
@@ -7247,8 +7233,8 @@ class ScriptMarkupStudioDialog(QDialog):
             pat, _ = compute()
             dlg.result_pattern = pat
             if not pat:
-                QMessageBox.information(dlg, "Cannot build rule",
-                                       "Select the speaker name and the spoken text first.")
+                QMessageBox.information(dlg, tr('Cannot build rule'),
+                                       tr('Select the speaker name and the spoken text first.'))
                 return
             dlg.accept()
 
@@ -7297,7 +7283,7 @@ class ScriptMarkupStudioDialog(QDialog):
 
     def _build_preview_dialog(self) -> QDialog:
         dlg = QDialog(self)
-        dlg.setWindowTitle("Standardized script - preview")
+        dlg.setWindowTitle(tr('Standardized script - preview'))
         dlg.resize(720, 680)
         v = QVBoxLayout(dlg)
         view = QPlainTextEdit()
@@ -7306,8 +7292,8 @@ class ScriptMarkupStudioDialog(QDialog):
         view.setPlainText(self._preview_text())
         v.addWidget(view)
         row = QHBoxLayout(); row.addStretch(1)
-        ok = QPushButton("Close"); ok.clicked.connect(dlg.close)
-        ok.setToolTip("Close the preview window.")
+        ok = QPushButton(tr('Close')); ok.clicked.connect(dlg.close)
+        ok.setToolTip(tr('Close the preview window.'))
         row.addWidget(ok)
         v.addLayout(row)
         dlg._view = view
@@ -7319,7 +7305,7 @@ class ScriptMarkupStudioDialog(QDialog):
 
     def _build_help_dialog(self) -> QDialog:
         dlg = QDialog(self)
-        dlg.setWindowTitle("Script Markup Studio — Help")
+        dlg.setWindowTitle(tr('Script Markup Studio — Help'))
         dlg.resize(640, 660)
         layout = QVBoxLayout(dlg)
         browser = QTextBrowser()
@@ -7336,8 +7322,8 @@ class ScriptMarkupStudioDialog(QDialog):
         browser.setHtml(_HELP_HTML)
         layout.addWidget(browser)
         row = QHBoxLayout(); row.addStretch(1)
-        ok = QPushButton("OK"); ok.setDefault(True); ok.clicked.connect(dlg.accept)
-        ok.setToolTip("Close the help window.")
+        ok = QPushButton(tr('OK')); ok.setDefault(True); ok.clicked.connect(dlg.accept)
+        ok.setToolTip(tr('Close the help window.'))
         row.addWidget(ok)
         layout.addLayout(row)
         self._help_browser = browser
@@ -7591,15 +7577,15 @@ class ScriptMarkupStudioDialog(QDialog):
         if not provider_key or provider_key == "disabled":
             QMessageBox.information(
                 self,
-                "AI markup",
-                "AI provider is disabled. Configure it in AI Translation settings first.",
+                tr('AI markup'),
+                tr('AI provider is disabled. Configure it in AI Translation settings first.'),
             )
             return None, "", ""
         provider_settings = config.get("providers", {}).get(provider_key, {})
         if not isinstance(provider_settings, dict) or not provider_settings:
             QMessageBox.warning(
                 self,
-                "AI markup",
+                tr('AI markup'),
                 f"No AI provider settings found for '{provider_key}'.",
             )
             return None, "", ""
@@ -7608,7 +7594,7 @@ class ScriptMarkupStudioDialog(QDialog):
             model_name = str(provider_settings.get("model") or provider_key)
             return provider, str(provider_key), model_name
         except TranslationProviderError as exc:
-            QMessageBox.critical(self, "AI markup", str(exc))
+            QMessageBox.critical(self, tr('AI markup'), str(exc))
             return None, "", ""
 
     def _prepare_hierarchy_ai_jobs(self, raw_lines: list[str], unmarked_ranges: list[tuple[int, int]]):
@@ -7625,7 +7611,7 @@ class ScriptMarkupStudioDialog(QDialog):
         self._flush_pending_history()
         raw_text = self.raw_edit.toPlainText()
         if not raw_text.strip():
-            QMessageBox.information(self, "Continue from marked examples", "Load a raw script first.")
+            QMessageBox.information(self, tr('Continue from marked examples'), tr('Load a raw script first.'))
             return
         if not any(
             mark.approved and mark.origin == "manual"
@@ -7633,8 +7619,8 @@ class ScriptMarkupStudioDialog(QDialog):
         ):
             QMessageBox.information(
                 self,
-                "Continue from marked examples",
-                "Mark at least one hierarchy example manually, then run this auto-fill again.",
+                tr('Continue from marked examples'),
+                tr('Mark at least one hierarchy example manually, then run this auto-fill again.'),
             )
             return
         raw_lines = raw_text.splitlines()
@@ -7643,10 +7629,8 @@ class ScriptMarkupStudioDialog(QDialog):
         if added <= 0:
             QMessageBox.information(
                 self,
-                "Continue from marked examples",
-                "No confident local patterns were found.\n\n"
-                "Mark one complete block first, such as one act with chapters, "
-                "one chapter with scenes, or a speaker/text sequence, then run this again.",
+                tr('Continue from marked examples'),
+                tr('No confident local patterns were found.\n\nMark one complete block first, such as one act with chapters, one chapter with scenes, or a speaker/text sequence, then run this again.'),
             )
             return
 
@@ -7667,7 +7651,7 @@ class ScriptMarkupStudioDialog(QDialog):
         if skipped:
             details.append("")
             details.append(f"Skipped {skipped} duplicate or unsafe marks.")
-        QMessageBox.information(self, "Continue from marked examples", "\n".join(details))
+        QMessageBox.information(self, tr('Continue from marked examples'), "\n".join(details))
 
     def _run_hierarchy_ai_markup(
         self,
@@ -7684,18 +7668,18 @@ class ScriptMarkupStudioDialog(QDialog):
         raw_text = self.raw_edit.toPlainText()
         raw_lines = raw_text.splitlines()
         if not raw_text.strip():
-            QMessageBox.information(self, title, "Load a raw script first.")
+            QMessageBox.information(self, title, tr('Load a raw script first.'))
             return
         if require_examples and not any(mark.approved for mark in self.hierarchy_marks):
             QMessageBox.information(
                 self,
                 title,
-                "Mark or approve at least one hierarchy example first, then run this auto-fill again.",
+                tr('Mark or approve at least one hierarchy example first, then run this auto-fill again.'),
             )
             return
         unmarked_ranges = self._unmarked_ranges(raw_lines)
         if not unmarked_ranges:
-            QMessageBox.information(self, title, "There are no unmarked lines left.")
+            QMessageBox.information(self, title, tr('There are no unmarked lines left.'))
             return
 
         provider, _provider_key, model_name = self._create_hierarchy_ai_provider()
@@ -7978,14 +7962,14 @@ class ScriptMarkupStudioDialog(QDialog):
             details.extend(f"- {warning}" for warning in warnings[:8])
             if len(warnings) > 8:
                 details.append(f"- ...and {len(warnings) - 8} more.")
-        QMessageBox.information(self, "AI markup finished", "\n".join(details))
+        QMessageBox.information(self, tr('AI markup finished'), "\n".join(details))
 
     def _on_hierarchy_ai_error(self, message: str):
         status = self._hierarchy_ai_status
         if status is not None:
             status.update_step(2, "AI response could not be used", AIStatusDialog.STATUS_ERROR)
             status.finish(success=False, show_popup=False)
-        QMessageBox.warning(self, "AI markup failed", message or "AI markup failed.")
+        QMessageBox.warning(self, tr('AI markup failed'), message or "AI markup failed.")
 
     def _cancel_hierarchy_ai_markup(self):
         if self._hierarchy_ai_prepare_worker is not None:
@@ -8015,10 +7999,10 @@ class ScriptMarkupStudioDialog(QDialog):
                 json.dump(payload, f, indent=2, ensure_ascii=False)
             self._last_json_payload_path = str(Path(path).resolve())
             log_info(f"ScriptMarkupStudio: saved {payload.get('format', 'json')} to {path}")
-            QMessageBox.information(self, "Saved", f"Saved to:\n{path}")
+            QMessageBox.information(self, tr('Saved'), f"Saved to:\n{path}")
             return True
         except Exception as e:
-            QMessageBox.warning(self, "Save failed", f"Could not write file:\n{e}")
+            QMessageBox.warning(self, tr('Save failed'), f"Could not write file:\n{e}")
             return False
 
     def _save_hierarchy_project(self):
@@ -8044,7 +8028,7 @@ class ScriptMarkupStudioDialog(QDialog):
         if unmarked:
             QMessageBox.warning(
                 self,
-                "Markup is not complete",
+                tr('Markup is not complete'),
                 f"There are still {len(unmarked)} unmarked text ranges. "
                 "Finish or ignore them before preparing the project for MemPalace.",
             )
@@ -8054,7 +8038,7 @@ class ScriptMarkupStudioDialog(QDialog):
         if pending:
             reply = QMessageBox.question(
                 self,
-                "Finish markup for MemPalace?",
+                tr('Finish markup for MemPalace?'),
                 f"This will accept {len(pending)} visible Auto-fill nodes as correct "
                 "and save the complete project for MemPalace. Continue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -8100,12 +8084,12 @@ class ScriptMarkupStudioDialog(QDialog):
             self._last_json_payload_path = str(Path(path).resolve())
             return data
         except Exception as e:
-            QMessageBox.warning(self, "Load failed", f"Could not read file:\n{e}")
+            QMessageBox.warning(self, tr('Load failed'), f"Could not read file:\n{e}")
             return None
 
     def _apply_hierarchy_project_payload(self, data: dict) -> bool:
         if data.get("format") != _HIERARCHY_PROJECT_FORMAT:
-            QMessageBox.warning(self, "Load failed", "This is not a hierarchy markup project.")
+            QMessageBox.warning(self, tr('Load failed'), tr('This is not a hierarchy markup project.'))
             return False
         self._set_history_suspended(True)
         try:
@@ -8169,9 +8153,8 @@ class ScriptMarkupStudioDialog(QDialog):
         if current and os.path.normcase(current) != os.path.normcase(resolved):
             reply = QMessageBox.question(
                 self,
-                "Open another markup project?",
-                "Markup Studio currently has another project open. Opening the Builder's "
-                "project will replace the current editor contents. Continue?",
+                tr('Open another markup project?'),
+                tr("Markup Studio currently has another project open. Opening the Builder's project will replace the current editor contents. Continue?"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
@@ -8187,7 +8170,7 @@ class ScriptMarkupStudioDialog(QDialog):
             except (OSError, ValueError, json.JSONDecodeError) as exc:
                 QMessageBox.warning(
                     self,
-                    "Could not open markup project",
+                    tr('Could not open markup project'),
                     f"The Builder project could not be opened:\n{exc}",
                 )
                 return False
@@ -8267,7 +8250,7 @@ class ScriptMarkupStudioDialog(QDialog):
                     ensure_ascii=False,
                 )
         except OSError as exc:
-            QMessageBox.warning(self, "Save failed", f"Could not update the project:\n{exc}")
+            QMessageBox.warning(self, tr('Save failed'), f"Could not update the project:\n{exc}")
             return False
         self._last_json_payload_path = resolved
         self._last_saved_state = copy.deepcopy(self._history_snapshot())
@@ -8304,7 +8287,7 @@ class ScriptMarkupStudioDialog(QDialog):
 
     def _apply_hierarchy_template_payload(self, data: dict) -> bool:
         if data.get("format") != _HIERARCHY_TEMPLATE_FORMAT:
-            QMessageBox.warning(self, "Load failed", "This is not a hierarchy template.")
+            QMessageBox.warning(self, tr('Load failed'), tr('This is not a hierarchy template.'))
             return False
         self._set_history_suspended(True)
         try:
@@ -8334,7 +8317,7 @@ class ScriptMarkupStudioDialog(QDialog):
 
     def _export(self):
         if not (self._psm_text or "").strip():
-            QMessageBox.information(self, "Nothing to export", "Load and mark up a script first.")
+            QMessageBox.information(self, tr('Nothing to export'), tr('Load and mark up a script first.'))
             return
         path, _ = QFileDialog.getSaveFileName(
             self, "Export standardized script", self._default_export_name(),
@@ -8345,10 +8328,10 @@ class ScriptMarkupStudioDialog(QDialog):
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(self._psm_text)
-            QMessageBox.information(self, "Exported", f"Saved standardized script to:\n{path}")
+            QMessageBox.information(self, tr('Exported'), f"Saved standardized script to:\n{path}")
             log_info(f"ScriptMarkupStudio: exported standardized script to {path}")
         except Exception as e:
-            QMessageBox.warning(self, "Export failed", f"Could not write file:\n{e}")
+            QMessageBox.warning(self, tr('Export failed'), f"Could not write file:\n{e}")
 
     def _save_recipe(self):
         path, _ = QFileDialog.getSaveFileName(self, "Save recipe", "markup_recipe.json", "JSON (*.json)")
@@ -8359,7 +8342,7 @@ class ScriptMarkupStudioDialog(QDialog):
                 json.dump(self.recipe.to_dict(), f, indent=2, ensure_ascii=False)
             log_info(f"ScriptMarkupStudio: saved recipe to {path}")
         except Exception as e:
-            QMessageBox.warning(self, "Save failed", f"Could not write recipe:\n{e}")
+            QMessageBox.warning(self, tr('Save failed'), f"Could not write recipe:\n{e}")
 
     def _load_recipe(self):
         path, _ = QFileDialog.getOpenFileName(self, "Load recipe", "", "JSON (*.json)")
@@ -8380,7 +8363,7 @@ class ScriptMarkupStudioDialog(QDialog):
             self._refresh()
             self._record_history()
         except Exception as e:
-            QMessageBox.warning(self, "Load failed", f"Could not read recipe:\n{e}")
+            QMessageBox.warning(self, tr('Load failed'), f"Could not read recipe:\n{e}")
 
     def _quick_save_project(self) -> bool:
         self._refresh()
@@ -8396,7 +8379,7 @@ class ScriptMarkupStudioDialog(QDialog):
                 log_info(f"ScriptMarkupStudio: quick saved project to {self.current_hierarchy_project_path}")
                 return True
             except Exception as e:
-                QMessageBox.warning(self, "Save failed", f"Could not write file:\n{e}")
+                QMessageBox.warning(self, tr('Save failed'), f"Could not write file:\n{e}")
                 return False
         else:
             return self._save_hierarchy_project()
@@ -8426,41 +8409,41 @@ class ScriptMarkupStudioDialog(QDialog):
 
         # 1. Update Progress Bar
         if has_source:
-            self.stage_source_label.setText("1. Source ✓")
+            self.stage_source_label.setText(tr('1. Source ✓'))
             self.stage_source_label.setStyleSheet("color: #107c41;")
         else:
-            self.stage_source_label.setText("1. Source")
+            self.stage_source_label.setText(tr('1. Source'))
             self.stage_source_label.setStyleSheet("color: #0f6cbd;")
 
         if has_approved:
-            self.stage_markup_label.setText("2. Markup ✓")
+            self.stage_markup_label.setText(tr('2. Markup ✓'))
             self.stage_markup_label.setStyleSheet("color: #107c41;")
         elif has_source:
-            self.stage_markup_label.setText("2. Markup")
+            self.stage_markup_label.setText(tr('2. Markup'))
             self.stage_markup_label.setStyleSheet("color: #0f6cbd;")
         else:
-            self.stage_markup_label.setText("2. Markup")
+            self.stage_markup_label.setText(tr('2. Markup'))
             self.stage_markup_label.setStyleSheet("color: #8a8a8a;")
 
         if review_complete:
-            self.stage_review_label.setText("3. Review ✓")
+            self.stage_review_label.setText(tr('3. Review ✓'))
             self.stage_review_label.setStyleSheet("color: #107c41;")
         elif has_approved:
-            self.stage_review_label.setText("3. Review")
+            self.stage_review_label.setText(tr('3. Review'))
             self.stage_review_label.setStyleSheet("color: #0f6cbd;")
         else:
-            self.stage_review_label.setText("3. Review")
+            self.stage_review_label.setText(tr('3. Review'))
             self.stage_review_label.setStyleSheet("color: #8a8a8a;")
 
         is_project_saved = self.current_hierarchy_project_path and (self._last_saved_state is not None and self._history_snapshot() == self._last_saved_state)
         if markup_complete and is_project_saved:
-            self.stage_mempalace_label.setText("4. MemPalace ✓")
+            self.stage_mempalace_label.setText(tr('4. MemPalace ✓'))
             self.stage_mempalace_label.setStyleSheet("color: #107c41;")
         elif markup_complete:
-            self.stage_mempalace_label.setText("4. MemPalace")
+            self.stage_mempalace_label.setText(tr('4. MemPalace'))
             self.stage_mempalace_label.setStyleSheet("color: #0f6cbd;")
         else:
-            self.stage_mempalace_label.setText("4. MemPalace")
+            self.stage_mempalace_label.setText(tr('4. MemPalace'))
             self.stage_mempalace_label.setStyleSheet("color: #8a8a8a;")
 
         # 2. Update Next Action
@@ -8468,52 +8451,52 @@ class ScriptMarkupStudioDialog(QDialog):
         self.next_action_btn.setEnabled(True)
 
         if not has_source:
-            self.next_action_desc_label.setText("No script or project loaded yet. Load your walkthrough script to begin.")
-            self.next_action_btn.setText("Open Script or Project…")
+            self.next_action_desc_label.setText(tr('No script or project loaded yet. Load your walkthrough script to begin.'))
+            self.next_action_btn.setText(tr('Open Script or Project…'))
             self.next_action_btn.setStyleSheet(
                 "QPushButton { background: #0f6cbd; color: white; font-weight: bold; font-size: 13px; border-radius: 4px; padding: 6px 16px; min-height: 28px; }"
                 "QPushButton:hover { background: #115ea3; }"
             )
         elif not has_approved:
-            self.next_action_desc_label.setText("Please mark at least one text selection manually to create an example for Auto-fill.")
-            self.next_action_btn.setText("Mark the First Example")
+            self.next_action_desc_label.setText(tr('Please mark at least one text selection manually to create an example for Auto-fill.'))
+            self.next_action_btn.setText(tr('Mark the First Example'))
             self.next_action_btn.setStyleSheet(
                 "QPushButton { background: #0f6cbd; color: white; font-weight: bold; font-size: 13px; border-radius: 4px; padding: 6px 16px; min-height: 28px; }"
                 "QPushButton:hover { background: #115ea3; }"
             )
         elif unmarked_ranges and not unapproved_marks:
-            self.next_action_desc_label.setText("You have marked examples. You can now use Auto-fill to analyze remaining text ranges locally or with AI.")
-            self.next_action_btn.setText("Continue from My Examples")
+            self.next_action_desc_label.setText(tr('You have marked examples. You can now use Auto-fill to analyze remaining text ranges locally or with AI.'))
+            self.next_action_btn.setText(tr('Continue from My Examples'))
             self.next_action_btn.setStyleSheet(
                 "QPushButton { background: #0f6cbd; color: white; font-weight: bold; font-size: 13px; border-radius: 4px; padding: 6px 16px; min-height: 28px; }"
                 "QPushButton:hover { background: #115ea3; }"
             )
-            self.next_action_secondary_btn.setText("AI Fill Remaining…")
+            self.next_action_secondary_btn.setText(tr('AI Fill Remaining…'))
             self.next_action_secondary_btn.setVisible(True)
         elif unapproved_marks:
             self.next_action_desc_label.setText(f"Auto-fill has suggested {len(unapproved_marks)} marks. Please review, approve, or correct them.")
-            self.next_action_btn.setText("Review Suggestions →")
+            self.next_action_btn.setText(tr('Review Suggestions →'))
             self.next_action_btn.setStyleSheet(
                 "QPushButton { background: #0f6cbd; color: white; font-weight: bold; font-size: 13px; border-radius: 4px; padding: 6px 16px; min-height: 28px; }"
                 "QPushButton:hover { background: #115ea3; }"
             )
         elif unmarked_ranges:
             self.next_action_desc_label.setText(f"There are still {len(unmarked_ranges)} unmarked text ranges. Focus and resolve them.")
-            self.next_action_btn.setText("Go to Next Unmarked Range →")
+            self.next_action_btn.setText(tr('Go to Next Unmarked Range →'))
             self.next_action_btn.setStyleSheet(
                 "QPushButton { background: #0f6cbd; color: white; font-weight: bold; font-size: 13px; border-radius: 4px; padding: 6px 16px; min-height: 28px; }"
                 "QPushButton:hover { background: #115ea3; }"
             )
         elif markup_complete and not is_project_saved:
-            self.next_action_desc_label.setText("Markup complete — all nodes approved, no unmarked text. Save the project and transfer context to MemPalace.")
-            self.next_action_btn.setText("Save and Continue to MemPalace →")
+            self.next_action_desc_label.setText(tr('Markup complete — all nodes approved, no unmarked text. Save the project and transfer context to MemPalace.'))
+            self.next_action_btn.setText(tr('Save and Continue to MemPalace →'))
             self.next_action_btn.setStyleSheet(
                 "QPushButton { background: #107c41; color: white; font-weight: bold; font-size: 13px; border-radius: 4px; padding: 6px 16px; min-height: 28px; }"
                 "QPushButton:hover { background: #138a49; }"
             )
         else:
-            self.next_action_desc_label.setText("Markup complete and project successfully saved. You can proceed directly to MemePalace Builder.")
-            self.next_action_btn.setText("Open MemPalace Builder →")
+            self.next_action_desc_label.setText(tr('Markup complete and project successfully saved. You can proceed directly to MemePalace Builder.'))
+            self.next_action_btn.setText(tr('Open MemPalace Builder →'))
             self.next_action_btn.setStyleSheet(
                 "QPushButton { background: #107c41; color: white; font-weight: bold; font-size: 13px; border-radius: 4px; padding: 6px 16px; min-height: 28px; }"
                 "QPushButton:hover { background: #138a49; }"
@@ -8536,11 +8519,8 @@ class ScriptMarkupStudioDialog(QDialog):
         elif not has_approved:
             QMessageBox.information(
                 self,
-                "Mark the First Example",
-                "To get started:\n\n"
-                "1. Select a block of text in the 'Raw script' editor on the left.\n"
-                "2. Press Ctrl+M (or right-click and select 'Apply mark') to create your first approved hierarchy node.\n"
-                "3. Repeat this for a couple of different examples (e.g. Dialogue, Actions, Chapters) so the Auto-fill engine can learn from them."
+                tr('Mark the First Example'),
+                tr("To get started:\n\n1. Select a block of text in the 'Raw script' editor on the left.\n2. Press Ctrl+M (or right-click and select 'Apply mark') to create your first approved hierarchy node.\n3. Repeat this for a couple of different examples (e.g. Dialogue, Actions, Chapters) so the Auto-fill engine can learn from them.")
             )
         elif unmarked_ranges and not unapproved_marks:
             self._continue_hierarchy_from_examples()
@@ -8601,10 +8581,10 @@ class ScriptMarkupStudioDialog(QDialog):
 
         if not self.current_hierarchy_project_path:
             if self._is_autosaved_dirty:
-                self.save_status_label.setText("Unsaved changes *")
+                self.save_status_label.setText(tr('Unsaved changes *'))
                 self.save_status_label.setStyleSheet("font-size: 12px; font-weight: bold; color: #d83b01;")
             else:
-                self.save_status_label.setText("Autosaved")
+                self.save_status_label.setText(tr('Autosaved'))
                 self.save_status_label.setStyleSheet("font-size: 12px; font-weight: bold; color: #8a8a8a;")
             return
 
@@ -8613,13 +8593,13 @@ class ScriptMarkupStudioDialog(QDialog):
             is_saved = (current_state == self._last_saved_state)
 
         if is_saved:
-            self.save_status_label.setText("Project saved ✓")
+            self.save_status_label.setText(tr('Project saved ✓'))
             self.save_status_label.setStyleSheet("font-size: 12px; font-weight: bold; color: #107c41;")
         elif self._is_autosaved_dirty:
-            self.save_status_label.setText("Unsaved changes *")
+            self.save_status_label.setText(tr('Unsaved changes *'))
             self.save_status_label.setStyleSheet("font-size: 12px; font-weight: bold; color: #d83b01;")
         else:
-            self.save_status_label.setText("Autosaved")
+            self.save_status_label.setText(tr('Autosaved'))
             self.save_status_label.setStyleSheet("font-size: 12px; font-weight: bold; color: #0f6cbd;")
 
     def _autosave_session_tick(self):

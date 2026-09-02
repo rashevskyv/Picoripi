@@ -5,13 +5,14 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLineEdit, QGroupBox, QDialogButtonBox
 )
 from PyQt6.QtCore import Qt
+from core.i18n import tr
 
 class BlockPropertiesDialog(QDialog):
     """Dialog class for block properties."""
     def __init__(self, parent, block_idx: int):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Block Properties")
+        self.setWindowTitle(tr('Block Properties'))
         self.setMinimumWidth(550)
         self.resize(550, 480)
         
@@ -91,7 +92,7 @@ class BlockPropertiesDialog(QDialog):
         layout = QVBoxLayout(self)
         
         # 1. Group Box: General Info
-        gen_group = QGroupBox("General Info", self)
+        gen_group = QGroupBox(tr('General Info'), self)
         gen_layout = QFormLayout(gen_group)
         gen_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         
@@ -103,7 +104,7 @@ class BlockPropertiesDialog(QDialog):
         layout.addWidget(gen_group)
         
         # 2. Group Box: Archive/Container Details
-        archive_group = QGroupBox("Archive / Container Details", self)
+        archive_group = QGroupBox(tr('Archive / Container Details'), self)
         archive_layout = QFormLayout(archive_group)
         archive_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         
@@ -113,7 +114,7 @@ class BlockPropertiesDialog(QDialog):
         layout.addWidget(archive_group)
         
         # 3. Group Box: Paths & Disk Info
-        paths_group = QGroupBox("Paths & Disk Info", self)
+        paths_group = QGroupBox(tr('Paths & Disk Info'), self)
         paths_layout = QFormLayout(paths_group)
         paths_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         

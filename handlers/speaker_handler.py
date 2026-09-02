@@ -9,6 +9,7 @@ from core.story_context_overrides import (
     update_story_context_override,
 )
 from .base_handler import BaseHandler
+from core.i18n import tr
 
 class SpeakerHandler(BaseHandler):
     """Handles virtual speaker folder navigation, persistence, and pending row retention."""
@@ -348,9 +349,8 @@ class SpeakerHandler(BaseHandler):
         if node is None or node.start_line is None:
             QMessageBox.information(
                 self.mw,
-                "No marked-script link yet",
-                "This game string is not linked to a marked script line yet. "
-                "Run Story Context matching after saving the current Markup Studio project.",
+                tr('No marked-script link yet'),
+                tr('This game string is not linked to a marked script line yet. Run Story Context matching after saving the current Markup Studio project.'),
             )
             return False
         project_path = client.get_story_document_source_path(document_id)
@@ -364,8 +364,8 @@ class SpeakerHandler(BaseHandler):
         if studio is None or not callable(navigate) or not navigate(project_path, node.start_line):
             QMessageBox.warning(
                 self.mw,
-                "Could not open marked line",
-                "Markup Studio opened, but the linked source line could not be shown.",
+                tr('Could not open marked line'),
+                tr('Markup Studio opened, but the linked source line could not be shown.'),
             )
             return False
         studio.show()
@@ -444,9 +444,8 @@ class SpeakerHandler(BaseHandler):
             if not char_name or char_name.casefold() == "none":
                 QMessageBox.information(
                     self.mw,
-                    "Choose a speaker",
-                    "A marked dialogue must have an owning speaker. To remove or rebuild "
-                    "the speaker block, open this line in Markup Studio.",
+                    tr('Choose a speaker'),
+                    tr('A marked dialogue must have an owning speaker. To remove or rebuild the speaker block, open this line in Markup Studio.'),
                 )
                 if cb is not None:
                     cb.setCurrentText(", ".join(current) if current else "None")
@@ -464,8 +463,8 @@ class SpeakerHandler(BaseHandler):
                 return
             QMessageBox.warning(
                 self.mw,
-                "Could not change speaker",
-                "The linked Text block or its owning Speaker block could not be updated.",
+                tr('Could not change speaker'),
+                tr('The linked Text block or its owning Speaker block could not be updated.'),
             )
             if cb is not None:
                 cb.setCurrentText(", ".join(current) if current else "None")

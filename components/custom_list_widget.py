@@ -4,6 +4,7 @@ from PyQt6.QtCore import Qt, QPoint, QEvent
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
 from .custom_list_item_delegate import CustomListItemDelegate
 from utils.logging_utils import log_debug, log_error
+from core.i18n import tr
 
 class CustomListWidget(QListWidget):
     """Widget component for custom list."""
@@ -54,7 +55,7 @@ class CustomListWidget(QListWidget):
 
         # "Add Block" option (always available if project is loaded)
         if hasattr(main_window, 'project_manager') and main_window.project_manager:
-            add_block_action = menu.addAction("Add Block...")
+            add_block_action = menu.addAction(tr('Add Block...'))
             if hasattr(main_window, 'app_action_handler') and hasattr(main_window.app_action_handler, 'import_block_action'):
                 add_block_action.triggered.connect(main_window.app_action_handler.import_block_action)
             menu.addSeparator()
@@ -240,9 +241,9 @@ class CustomListWidget(QListWidget):
                 log_debug("CustomListWidget: No lines with misspellings found")
                 from PyQt6.QtWidgets import QMessageBox
                 if len(all_translated_lines) == 0:
-                    QMessageBox.information(self, "Spellcheck", "No text found to check in this block.")
+                    QMessageBox.information(self, tr('Spellcheck'), tr('No text found to check in this block.'))
                 else:
-                    QMessageBox.information(self, "Spellcheck", f"No spelling errors found!\nChecked {len(all_translated_lines)} lines.")
+                    QMessageBox.information(self, tr('Spellcheck'), f"No spelling errors found!\nChecked {len(all_translated_lines)} lines.")
                 return
 
             log_debug(f"CustomListWidget: Opening SpellcheckDialog with {len(line_numbers)} lines")

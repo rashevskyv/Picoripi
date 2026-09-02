@@ -37,6 +37,7 @@ Skip for pure refactors, tests-only, or comments.
 ## Rules
 
 - One home per fact. If the wiki already says it, fix that sentence; do not append a second copy.
-- Name controls as the UI shows them (English labels), including in `docs/wiki/uk/`.
+- Name controls as the UI shows them. In English wiki pages use the English labels; in `docs/wiki/uk/` use the Ukrainian UI wording from `locales/uk.json` when the catalog has it, otherwise the English label.
+- New UI copy: `tr("English")` in code **and** `locales/uk.json` in the same change.
 - Do not document unshipped `PIPELINE_ROADMAP.md` items as if they exist.
 - Do not put Google cookies, API keys, or machine-local absolute paths in the wiki. Web2API checkout is "the `gemini-web2api` repo"; endpoint is `http://127.0.0.1:8081/v1`.

@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import QMessageBox
 from core.glossary_manager import GlossaryEntry, GlossaryOccurrence
 from components.glossary_translation_update_dialog import GlossaryTranslationUpdateDialog
 from utils.logging_utils import log_debug
+from core.i18n import tr
 
 
 class GlossaryOccurrenceUpdater:
@@ -241,7 +242,7 @@ class GlossaryOccurrenceUpdater:
     def _start_ai_occurrence_batch(self, occurrences: List[GlossaryOccurrence]) -> None:
         """Internal helper to start ai occurrence batch."""
         if not occurrences:
-            QMessageBox.information(self._mw, "AI Update", "No occurrences to process.")
+            QMessageBox.information(self._mw, tr('AI Update'), tr('No occurrences to process.'))
             return
         if not self.translation_update_dialog or not self._current_translation_entry:
             return
@@ -435,7 +436,7 @@ class GlossaryOccurrenceUpdater:
         if dialog:
             dialog.on_ai_error(message)
         else:
-            QMessageBox.warning(self._mw, "AI Update", message or "AI request failed.")
+            QMessageBox.warning(self._mw, tr('AI Update'), message or "AI request failed.")
             if self._mw.statusBar:
                 self._mw.statusBar.showMessage("AI glossary update failed.", 4000)
         self._pending_ai_occurrences = []

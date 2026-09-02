@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from utils.logging_utils import log_debug, log_info
+from core.i18n import tr
 
 
 class NewProjectDialog(QDialog):
@@ -33,7 +34,7 @@ class NewProjectDialog(QDialog):
     def __init__(self, parent=None, available_plugins=None):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Create New Project")
+        self.setWindowTitle(tr('Create New Project'))
         self.setMinimumWidth(500)
 
         self.available_plugins = available_plugins or {}
@@ -53,72 +54,72 @@ class NewProjectDialog(QDialog):
 
         # Project name
         self.name_edit = QLineEdit(self)
-        self.name_edit.setPlaceholderText("e.g., Wind Waker Translation")
-        form_layout.addRow("Project Name:", self.name_edit)
+        self.name_edit.setPlaceholderText(tr('e.g., Wind Waker Translation'))
+        form_layout.addRow(tr('Project Name:'), self.name_edit)
 
         # Project directory
         dir_layout = QHBoxLayout()
         self.dir_edit = QLineEdit(self)
-        self.dir_edit.setPlaceholderText("Select where to create the project files (.uiproj)...")
+        self.dir_edit.setPlaceholderText(tr('Select where to create the project files (.uiproj)...'))
         self.dir_edit.setReadOnly(True)
         dir_layout.addWidget(self.dir_edit)
 
-        browse_button = QPushButton("Browse...", self)
+        browse_button = QPushButton(tr('Browse...'), self)
         browse_button.clicked.connect(self._browse_directory)
         dir_layout.addWidget(browse_button)
 
-        form_layout.addRow("Project Location:", dir_layout)
+        form_layout.addRow(tr('Project Location:'), dir_layout)
 
         # Mode selection
         mode_layout = QHBoxLayout()
         self.mode_group = QButtonGroup(self)
-        self.radio_folders = QRadioButton("Folders")
-        self.radio_files = QRadioButton("Files")
+        self.radio_folders = QRadioButton(tr('Folders'))
+        self.radio_files = QRadioButton(tr('Files'))
         self.radio_folders.setChecked(True)
         self.mode_group.addButton(self.radio_folders)
         self.mode_group.addButton(self.radio_files)
         mode_layout.addWidget(self.radio_folders)
         mode_layout.addWidget(self.radio_files)
         mode_layout.addStretch()
-        form_layout.addRow("Source Type:", mode_layout)
+        form_layout.addRow(tr('Source Type:'), mode_layout)
 
         # Source location
         source_layout = QHBoxLayout()
         self.source_edit = QLineEdit(self)
-        self.source_edit.setPlaceholderText("Select source directory...")
+        self.source_edit.setPlaceholderText(tr('Select source directory...'))
         self.source_edit.setReadOnly(True)
         source_layout.addWidget(self.source_edit)
-        self.browse_source_btn = QPushButton("Browse...", self)
+        self.browse_source_btn = QPushButton(tr('Browse...'), self)
         self.browse_source_btn.clicked.connect(self._browse_source)
         source_layout.addWidget(self.browse_source_btn)
-        form_layout.addRow("Source:", source_layout)
+        form_layout.addRow(tr('Source:'), source_layout)
 
         # Translation location
         trans_layout = QHBoxLayout()
         self.trans_edit = QLineEdit(self)
-        self.trans_edit.setPlaceholderText("Select translation directory...")
+        self.trans_edit.setPlaceholderText(tr('Select translation directory...'))
         self.trans_edit.setReadOnly(True)
         trans_layout.addWidget(self.trans_edit)
-        self.browse_trans_btn = QPushButton("Browse...", self)
+        self.browse_trans_btn = QPushButton(tr('Browse...'), self)
         self.browse_trans_btn.clicked.connect(self._browse_translation)
         trans_layout.addWidget(self.browse_trans_btn)
-        form_layout.addRow("Translation:", trans_layout)
+        form_layout.addRow(tr('Translation:'), trans_layout)
 
         # Auto-create Checkbox
-        self.auto_create_cb = QCheckBox("Auto-create translation files")
+        self.auto_create_cb = QCheckBox(tr('Auto-create translation files'))
         self.auto_create_cb.toggled.connect(self._on_auto_create_toggled)
-        form_layout.addRow("", self.auto_create_cb)
+        form_layout.addRow(tr(''), self.auto_create_cb)
 
         # Plugin selection
         self.plugin_combo = QComboBox(self)
         self._populate_plugins()
-        form_layout.addRow("Game Plugin:", self.plugin_combo)
+        form_layout.addRow(tr('Game Plugin:'), self.plugin_combo)
 
         # Description
         self.description_edit = QTextEdit(self)
-        self.description_edit.setPlaceholderText("Optional: Enter project description...")
+        self.description_edit.setPlaceholderText(tr('Optional: Enter project description...'))
         self.description_edit.setMaximumHeight(80)
-        form_layout.addRow("Description:", self.description_edit)
+        form_layout.addRow(tr('Description:'), self.description_edit)
 
         layout.addLayout(form_layout)
 
@@ -142,7 +143,7 @@ class NewProjectDialog(QDialog):
             self.available_plugins = self._scan_plugins()
 
         # Add placeholder item
-        self.plugin_combo.addItem("-- Select a plugin --", None)
+        self.plugin_combo.addItem(tr('-- Select a plugin --'), None)
 
         for display_name in sorted(self.available_plugins.keys()):
             plugin_dir = self.available_plugins[display_name]
@@ -177,11 +178,11 @@ class NewProjectDialog(QDialog):
         self.source_edit.clear()
         self.trans_edit.clear()
         if is_folders:
-            self.source_edit.setPlaceholderText("Select source directory...")
-            self.trans_edit.setPlaceholderText("Select translation directory...")
+            self.source_edit.setPlaceholderText(tr('Select source directory...'))
+            self.trans_edit.setPlaceholderText(tr('Select translation directory...'))
         else:
-            self.source_edit.setPlaceholderText("Select source file...")
-            self.trans_edit.setPlaceholderText("Select translation file...")
+            self.source_edit.setPlaceholderText(tr('Select source file...'))
+            self.trans_edit.setPlaceholderText(tr('Select translation file...'))
             
     def _on_auto_create_toggled(self, checked):
         """Internal helper to handle the auto create toggled event."""
@@ -267,30 +268,30 @@ class NewProjectDialog(QDialog):
         # Validate project name
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.warning(self, "Invalid Input", "Please enter a project name.")
+            QMessageBox.warning(self, tr('Invalid Input'), tr('Please enter a project name.'))
             self.name_edit.setFocus()
             return
 
         # Validate directory
         directory = self.dir_edit.text().strip()
         if not directory or not Path(directory).exists():
-            QMessageBox.warning(self, "Invalid Location", "Please select a valid location for the project.")
+            QMessageBox.warning(self, tr('Invalid Location'), tr('Please select a valid location for the project.'))
             return
 
         source_path = self.source_edit.text().strip()
         if not source_path or not Path(source_path).exists():
-            QMessageBox.warning(self, "Invalid Source", "Please select a valid source.")
+            QMessageBox.warning(self, tr('Invalid Source'), tr('Please select a valid source.'))
             return
             
         trans_path = self.trans_edit.text().strip()
         if not self.auto_create_cb.isChecked() and (not trans_path or not Path(trans_path).exists()):
-            QMessageBox.warning(self, "Invalid Translation", "Please select a valid translation path or enable auto-create.")
+            QMessageBox.warning(self, tr('Invalid Translation'), tr('Please select a valid translation path or enable auto-create.'))
             return
 
         # Validate plugin selection
         plugin = self.plugin_combo.currentData()
         if plugin is None:
-            QMessageBox.warning(self, "Invalid Input", "Please select a game plugin for the project.")
+            QMessageBox.warning(self, tr('Invalid Input'), tr('Please select a game plugin for the project.'))
             self.plugin_combo.setFocus()
             return
 
@@ -305,7 +306,7 @@ class NewProjectDialog(QDialog):
         if Path(project_path).exists():
             reply = QMessageBox.question(
                 self,
-                "Project Exists",
+                tr('Project Exists'),
                 f"A folder named '{safe_name}' already exists at this location.\n\n"
                 f"Do you want to use this folder anyway?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -360,7 +361,7 @@ class OpenProjectDialog(QDialog):
     def __init__(self, parent=None):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Open Project")
+        self.setWindowTitle(tr('Open Project'))
         self.setMinimumWidth(500)
 
         self.project_path = None
@@ -373,7 +374,7 @@ class OpenProjectDialog(QDialog):
 
         # Instructions
         info_label = QLabel(
-            "Select a project file (.uiproj) to open.",
+            tr('Select a project file (.uiproj) to open.'),
             self
         )
         info_label.setWordWrap(True)
@@ -383,11 +384,11 @@ class OpenProjectDialog(QDialog):
         path_layout = QHBoxLayout()
 
         self.path_edit = QLineEdit(self)
-        self.path_edit.setPlaceholderText("Select project.uiproj file...")
+        self.path_edit.setPlaceholderText(tr('Select project.uiproj file...'))
         self.path_edit.setReadOnly(True)
         path_layout.addWidget(self.path_edit)
 
-        browse_file_button = QPushButton("Browse...", self)
+        browse_file_button = QPushButton(tr('Browse...'), self)
         browse_file_button.clicked.connect(self._browse_file)
         path_layout.addWidget(browse_file_button)
 
@@ -434,15 +435,15 @@ class OpenProjectDialog(QDialog):
         if not path:
             QMessageBox.warning(
                 self,
-                "No Project Selected",
-                "Please select a .uiproj file."
+                tr('No Project Selected'),
+                tr('Please select a .uiproj file.')
             )
             return
 
         if not Path(path).exists():
             QMessageBox.warning(
                 self,
-                "File Not Found",
+                tr('File Not Found'),
                 f"The selected file does not exist:\n{path}"
             )
             return
@@ -451,16 +452,16 @@ class OpenProjectDialog(QDialog):
         if not Path(path).is_file():
             QMessageBox.warning(
                 self,
-                "Invalid Selection",
-                "Please select a project file, not a directory."
+                tr('Invalid Selection'),
+                tr('Please select a project file, not a directory.')
             )
             return
 
         if not path.endswith('.uiproj'):
             QMessageBox.warning(
                 self,
-                "Invalid File",
-                "Please select a .uiproj file."
+                tr('Invalid File'),
+                tr('Please select a .uiproj file.')
             )
             return
 
@@ -494,7 +495,7 @@ class ImportBlockDialog(QDialog):
     def __init__(self, parent=None, project_manager=None):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Import Block")
+        self.setWindowTitle(tr('Import Block'))
         self.setMinimumWidth(500)
 
         self.project_manager = project_manager
@@ -524,47 +525,46 @@ class ImportBlockDialog(QDialog):
         # Source file selection
         source_layout = QHBoxLayout()
         self.file_edit = QLineEdit(self)
-        self.file_edit.setPlaceholderText("Select source file to import...")
+        self.file_edit.setPlaceholderText(tr('Select source file to import...'))
         self.file_edit.setReadOnly(True)
         self.file_edit.textChanged.connect(self._on_source_file_selected)
         source_layout.addWidget(self.file_edit)
 
-        browse_source_button = QPushButton("Browse...", self)
+        browse_source_button = QPushButton(tr('Browse...'), self)
         browse_source_button.clicked.connect(self._browse_source_file)
         source_layout.addWidget(browse_source_button)
 
-        form_layout.addRow("Source File:", source_layout)
+        form_layout.addRow(tr('Source File:'), source_layout)
 
         # Translation file selection
         translation_layout = QHBoxLayout()
         self.translation_edit = QLineEdit(self)
-        self.translation_edit.setPlaceholderText("Optional: select existing translation file...")
+        self.translation_edit.setPlaceholderText(tr('Optional: select existing translation file...'))
         self.translation_edit.setReadOnly(True)
         translation_layout.addWidget(self.translation_edit)
 
-        browse_translation_button = QPushButton("Browse...", self)
+        browse_translation_button = QPushButton(tr('Browse...'), self)
         browse_translation_button.clicked.connect(self._browse_translation_file)
         translation_layout.addWidget(browse_translation_button)
 
-        form_layout.addRow("Translation File:", translation_layout)
+        form_layout.addRow(tr('Translation File:'), translation_layout)
 
         # Block name
         self.name_edit = QLineEdit(self)
-        self.name_edit.setPlaceholderText("Auto-filled from filename")
-        form_layout.addRow("Block Name:", self.name_edit)
+        self.name_edit.setPlaceholderText(tr('Auto-filled from filename'))
+        form_layout.addRow(tr('Block Name:'), self.name_edit)
 
         # Description
         self.description_edit = QTextEdit(self)
-        self.description_edit.setPlaceholderText("Optional: Enter block description...")
+        self.description_edit.setPlaceholderText(tr('Optional: Enter block description...'))
         self.description_edit.setMaximumHeight(80)
-        form_layout.addRow("Description:", self.description_edit)
+        form_layout.addRow(tr('Description:'), self.description_edit)
 
         layout.addLayout(form_layout)
 
         # Info label
         info_label = QLabel(
-            "The source file will be copied to the project's 'sources/' directory.\n"
-            "If you don't specify a translation file, the source will be copied to 'translation/'.",
+            tr("The source file will be copied to the project's 'sources/' directory.\nIf you don't specify a translation file, the source will be copied to 'translation/'."),
             self
         )
         info_label.setWordWrap(True)
@@ -639,15 +639,15 @@ class ImportBlockDialog(QDialog):
         if not file_path:
             QMessageBox.warning(
                 self,
-                "No File Selected",
-                "Please select a source file to import."
+                tr('No File Selected'),
+                tr('Please select a source file to import.')
             )
             return
 
         if not Path(file_path).exists():
             QMessageBox.warning(
                 self,
-                "File Not Found",
+                tr('File Not Found'),
                 f"The selected file does not exist:\n{file_path}"
             )
             return
@@ -697,7 +697,7 @@ class MoveToFolderDialog(QDialog):
         self.selected_folder_id = None
         self.new_folder_created = False
         
-        self.setWindowTitle("Move Files to folder")
+        self.setWindowTitle(tr('Move Files to folder'))
         self.setMinimumSize(400, 500)
         self._setup_ui()
         self._populate_tree()
@@ -706,7 +706,7 @@ class MoveToFolderDialog(QDialog):
         """Internal helper to setup ui."""
         layout = QVBoxLayout(self)
         
-        label = QLabel("Select destination folder:")
+        label = QLabel(tr('Select destination folder:'))
         layout.addWidget(label)
         
         self.tree = QTreeWidget()
@@ -715,7 +715,7 @@ class MoveToFolderDialog(QDialog):
         layout.addWidget(self.tree)
         
         # New Folder Button
-        self.btn_new_folder = QPushButton("New Folder")
+        self.btn_new_folder = QPushButton(tr('New Folder'))
         self.btn_new_folder.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder))
         self.btn_new_folder.clicked.connect(self._create_new_folder)
         layout.addWidget(self.btn_new_folder)

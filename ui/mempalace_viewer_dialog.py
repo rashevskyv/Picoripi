@@ -8,6 +8,7 @@ from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt, pyqtSlot
 from core.mempalace_client import MemePalaceClient
 from utils.logging_utils import log_info, log_error
+from core.i18n import tr
 
 class MemePalaceViewerDialog(QDialog):
     """Dialog class for meme palace viewer."""
@@ -15,7 +16,7 @@ class MemePalaceViewerDialog(QDialog):
         """Initialize a new instance."""
         super().__init__(parent or main_window)
         self.mw = main_window
-        self.setWindowTitle("MemePalace Database Viewer")
+        self.setWindowTitle(tr('MemePalace Database Viewer'))
         self.resize(900, 600)
         self.setMinimumSize(800, 500)
         
@@ -156,7 +157,7 @@ class MemePalaceViewerDialog(QDialog):
         header_layout = QHBoxLayout()
         
         # Wing Selection
-        wing_label = QLabel("Wing (Active Game):")
+        wing_label = QLabel(tr('Wing (Active Game):'))
         self.wing_combo = QComboBox()
         self.wing_combo.currentIndexChanged.connect(self._handle_wing_changed)
         header_layout.addWidget(wing_label)
@@ -165,14 +166,14 @@ class MemePalaceViewerDialog(QDialog):
         header_layout.addSpacing(20)
 
         # DB Path Indicator
-        self.db_path_label = QLabel("Database Path: Loading...")
+        self.db_path_label = QLabel(tr('Database Path: Loading...'))
         self.db_path_label.setStyleSheet("color: #666666; font-family: 'Consolas', monospace; font-size: 11px;")
         if self.client and self.client.db_path:
             self.db_path_label.setText(f"SQLite DB: {os.path.abspath(self.client.db_path)}")
         header_layout.addWidget(self.db_path_label, 1)
 
         # Refresh Button
-        self.refresh_btn = QPushButton("Refresh")
+        self.refresh_btn = QPushButton(tr('Refresh'))
         self.refresh_btn.setObjectName("refreshBtn")
         self.refresh_btn.clicked.connect(self._refresh_data)
         header_layout.addWidget(self.refresh_btn)
@@ -187,7 +188,7 @@ class MemePalaceViewerDialog(QDialog):
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
         
-        left_label = QLabel("Story Rooms / Timeline Locations:")
+        left_label = QLabel(tr('Story Rooms / Timeline Locations:'))
         left_label.setStyleSheet("font-weight: bold; color: #0078d7;")
         left_layout.addWidget(left_label)
         
@@ -206,17 +207,17 @@ class MemePalaceViewerDialog(QDialog):
         scene_layout.setContentsMargins(10, 10, 10, 10)
         
         # Visual Scene Action
-        vis_label = QLabel("Visual Action Context (AI Scene Annotation):")
+        vis_label = QLabel(tr('Visual Action Context (AI Scene Annotation):'))
         vis_label.setStyleSheet("font-weight: bold;")
         scene_layout.addWidget(vis_label)
         
         self.visual_context_text = QTextEdit()
         self.visual_context_text.setReadOnly(True)
-        self.visual_context_text.setPlaceholderText("No visual action context annotation has been generated for this room yet...")
+        self.visual_context_text.setPlaceholderText(tr('No visual action context annotation has been generated for this room yet...'))
         scene_layout.addWidget(self.visual_context_text)
         
         # Dialogues Block
-        diag_label = QLabel("Verbatim Dialogue Lines in Room:")
+        diag_label = QLabel(tr('Verbatim Dialogue Lines in Room:'))
         diag_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
         scene_layout.addWidget(diag_label)
         
@@ -228,7 +229,7 @@ class MemePalaceViewerDialog(QDialog):
         self.dialogues_table.cellDoubleClicked.connect(self._handle_dialogue_double_clicked)
         scene_layout.addWidget(self.dialogues_table)
         
-        self.tab_widget.addTab(scene_tab, "Scene Context & Dialogues")
+        self.tab_widget.addTab(scene_tab, tr('Scene Context & Dialogues'))
 
         # Tab 2: Character Cast & Relations
         relations_tab = QWidget()
@@ -236,7 +237,7 @@ class MemePalaceViewerDialog(QDialog):
         relations_tab.setLayout(relations_layout)
         relations_layout.setContentsMargins(10, 10, 10, 10)
         
-        cast_label = QLabel("Global Temporal Knowledge Graph Relations:")
+        cast_label = QLabel(tr('Global Temporal Knowledge Graph Relations:'))
         cast_label.setStyleSheet("font-weight: bold; color: #0078d7;")
         relations_layout.addWidget(cast_label)
         
@@ -247,7 +248,7 @@ class MemePalaceViewerDialog(QDialog):
         self.relations_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         relations_layout.addWidget(self.relations_table)
         
-        self.tab_widget.addTab(relations_tab, "Character Cast & Relations")
+        self.tab_widget.addTab(relations_tab, tr('Character Cast & Relations'))
         
         splitter.addWidget(self.tab_widget)
         
@@ -277,7 +278,7 @@ class MemePalaceViewerDialog(QDialog):
                     
             # Fallback if combo is still empty
             if self.wing_combo.count() == 0:
-                self.wing_combo.addItem("Zelda_TP", "Zelda_TP")
+                self.wing_combo.addItem(tr('Zelda_TP'), tr('Zelda_TP'))
                 
         except Exception as e:
             log_error(f"Error loading wings in viewer: {e}")
@@ -322,7 +323,7 @@ class MemePalaceViewerDialog(QDialog):
                 
                 # Special styling for cast profiles
                 if name == "Global_Cast_Profiles":
-                    item.setText("👥 GLOBAL CHARACTER CAST")
+                    item.setText(tr('👥 GLOBAL CHARACTER CAST'))
                     item.setForeground(QColor("#5c2d91"))
                     font = QFont()
                     font.setBold(True)
@@ -490,7 +491,7 @@ class MemePalaceViewerDialog(QDialog):
         """Force reload database file and refresh UI lists."""
         self._init_client()
         self._load_wings()
-        QMessageBox.information(self, "MemePalace Viewer", "Database records refreshed successfully!")
+        QMessageBox.information(self, tr('MemePalace Viewer'), tr('Database records refreshed successfully!'))
 
     def closeEvent(self, event):
         """Clear reference in main window when closed."""

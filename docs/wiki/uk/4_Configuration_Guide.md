@@ -73,7 +73,9 @@ Enable spell checking · Dictionary Language · **Manage Dictionaries…** (за
 
 | Файл | Роль |
 |------|------|
-| `settings.json` | Глобальні + останній плагін + пресети AI. Локальний; не в git |
+| `settings.json` | Глобальні + останній плагін + пресети AI + `ui_language` (`en` / `uk`). Локальний; не в git |
+| `locales/en.json` | Англійський каталог UI (ключ = англійське джерело) |
+| `locales/uk.json` | Український каталог UI. Новий `tr("...")` у коді одразу додає сюди той самий ключ |
 | `.env` | Необов’язково `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | Фільтри UI, навігація, незбережені правки, undo. **Show Unsaved Only** при відновленні примусово вимикається |
 | `project.uiproj` | Запис проєкту: ім’я, тека плагіна, шляхи source/translation |
@@ -89,3 +91,5 @@ Enable spell checking · Dictionary Language · **Manage Dictionaries…** (за
 - Не змінюйте **Active Game Plugin** і не чекайте завантаження BMG без перезапуску.
 - Не спрямовуйте External Tool на збірку, яка читає незбережені буфери — спочатку Save.
 - Не ставте в прикладах вікі чи README абсолютні шляхи машини.
+
+Щоб заповнити український каталог (або пізніше інші мови): запустіть Gemini Web2API, потім `tools/i18n-translate/run.bat`. У вікні оберіть мови; **Ukrainian увімкнений типово**. Інші мови лишайте вимкненими до деплою. Меню **Language** у програмі показує лише English і Українська, поки не розширять `SHIPPED_UI_LANGUAGES`.

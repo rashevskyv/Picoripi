@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QAction
 
 from utils.logging_utils import log_debug
+from core.i18n import tr
 
 
 class TreeContextMenuMixin:
@@ -56,11 +57,11 @@ class TreeContextMenuMixin:
             aah = getattr(main_window, 'app_action_handler', None)
             pah = getattr(main_window, 'project_action_handler', None)
 
-            add_block = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon), "Import Block...")
+            add_block = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon), tr('Import Block...'))
             if aah and hasattr(aah, 'import_block_action'):
                 add_block.triggered.connect(aah.import_block_action)
 
-            add_dir = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon), "Import Directory...")
+            add_dir = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon), tr('Import Directory...'))
             if aah and hasattr(aah, 'import_directory_action'):
                 add_dir.triggered.connect(aah.import_directory_action)
             elif pah and hasattr(pah, 'import_directory_action'):
@@ -70,7 +71,7 @@ class TreeContextMenuMixin:
         # в”Ђв”Ђ Empty-space click: "Create Folder", "Translate All", "Revert All", "Restore All" в”Ђв”Ђ
         if not item:
             act = menu.addAction(
-                self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), "Create Folder"
+                self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), tr('Create Folder')
             )
             act.triggered.connect(self._create_folder_at_cursor)
             
@@ -80,17 +81,17 @@ class TreeContextMenuMixin:
             
             translator = getattr(main_window, 'translation_handler', None)
             if translator:
-                tall = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), "AI: Translate All Blocks (UA Chronological)")
+                tall = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), tr('AI: Translate All Blocks (UA Chronological)'))
                 tall.setEnabled(has_data)
                 tall.triggered.connect(lambda: translator.translate_all_blocks_chronologically() if hasattr(translator, "translate_all_blocks_chronologically") else None)
                 
-            rall = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), "Revert All Blocks to Original")
+            rall = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), tr('Revert All Blocks to Original'))
             rall.setEnabled(has_data)
             rall.triggered.connect(self._revert_all_blocks_to_original)
             
             sth = getattr(main_window, 'saved_translations_handler', None)
             if sth:
-                rst_all = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), "Restore All Translations")
+                rst_all = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward), tr('Restore All Translations'))
                 rst_all.setEnabled(has_data)
                 rst_all.triggered.connect(lambda: sth.restore_all_saved_translations_action())
                 
@@ -141,17 +142,17 @@ class TreeContextMenuMixin:
                         )
                         header.setEnabled(False)
                         ren = menu.addAction(
-                            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Rename Folder..."
+                            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Rename Folder...')
                         )
                         ren.triggered.connect(
                             lambda checked=False, fid=f_id, name=folder.name: self._rename_folder_by_id(fid, name)
                         )
-                        dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), "Delete Folder")
+                        dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), tr('Delete Folder'))
                         dlt.triggered.connect(
                             lambda checked=False, itm=item, fid=f_id: self._delete_folder_by_id(itm, fid)
                         )
                         sub = menu.addAction(
-                            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), "Create Subfolder..."
+                            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), tr('Create Subfolder...')
                         )
                         sub.triggered.connect(
                             lambda checked=False, fid=f_id: self._create_subfolder_by_id(fid)
@@ -167,17 +168,17 @@ class TreeContextMenuMixin:
                         )
                         h.setEnabled(False)
                     ren = menu.addAction(
-                        self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Rename Folder..."
+                        self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Rename Folder...')
                     )
                     ren.triggered.connect(
                         lambda checked=False, fid=folder.id, name=folder.name: self._rename_folder_by_id(fid, name)
                     )
-                    dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), "Delete Folder")
+                    dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), tr('Delete Folder'))
                     dlt.triggered.connect(
                         lambda checked=False, itm=item, fid=folder.id: self._delete_folder_by_id(itm, fid)
                     )
                     sub = menu.addAction(
-                        self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), "Create Subfolder..."
+                        self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), tr('Create Subfolder...')
                     )
                     sub.triggered.connect(
                         lambda checked=False, fid=folder.id: self._create_subfolder_by_id(fid)
@@ -195,12 +196,12 @@ class TreeContextMenuMixin:
             cat_h.setEnabled(False)
             if lsh:
                 ren = menu.addAction(
-                    self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Rename Virtual Block..."
+                    self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Rename Virtual Block...')
                 )
                 ren.triggered.connect(
                     lambda checked=False, bidx=block_idx, cname=category_name: lsh.rename_category(bidx, cname)
                 )
-                dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), "Delete Virtual Block")
+                dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), tr('Delete Virtual Block'))
                 dlt.triggered.connect(
                     lambda checked=False, bidx=block_idx, cname=category_name: lsh.delete_category(bidx, cname)
                 )
@@ -222,25 +223,25 @@ class TreeContextMenuMixin:
             lsh = getattr(main_window, 'list_selection_handler', None)
             pah = getattr(main_window, 'project_action_handler', None)
 
-            ren = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Rename Block")
+            ren = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Rename Block'))
             if lsh and hasattr(lsh, 'rename_block'):
                 ren.triggered.connect(lambda checked=False, i=item: lsh.rename_block(i))
 
-            dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), "Remove Block")
+            dlt = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon), tr('Remove Block'))
             if pah and hasattr(pah, 'delete_block_action'):
                 dlt.triggered.connect(lambda checked=False: pah.delete_block_action())
 
-            cf = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), "Create Folder")
+            cf = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), tr('Create Folder'))
             cf.triggered.connect(self._create_folder_at_cursor)
             menu.addSeparator()
 
             # Reveal in Explorer sub-menu
-            reveal_menu = menu.addMenu(self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon), "Reveal in Explorer")
-            orig_act = reveal_menu.addAction("Original")
+            reveal_menu = menu.addMenu(self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon), tr('Reveal in Explorer'))
+            orig_act = reveal_menu.addAction(tr('Original'))
             orig_act.triggered.connect(
                 lambda checked=False, idx=block_idx: self._reveal_in_explorer(idx, is_translation=False)
             )
-            trans_act = reveal_menu.addAction("Translation")
+            trans_act = reveal_menu.addAction(tr('Translation'))
             trans_act.triggered.connect(
                 lambda checked=False, idx=block_idx: self._reveal_in_explorer(idx, is_translation=True)
             )
@@ -268,7 +269,7 @@ class TreeContextMenuMixin:
             # Set Default Font
             ssh = getattr(main_window, 'string_settings_handler', None)
             if ssh:
-                font_menu = menu.addMenu(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), "Set Default Font")
+                font_menu = menu.addMenu(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView), tr('Set Default Font'))
                 
                 # Default option
                 default_font_display_text = f"Default ({main_window.default_font_file or 'None'})"
@@ -291,10 +292,10 @@ class TreeContextMenuMixin:
             aah = getattr(main_window, 'app_action_handler', None)
             ish = getattr(main_window, 'issue_scan_handler', None)
             if ish and hasattr(ish, 'rescan_issues_for_single_block'):
-                ra = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload), "Rescan Issues")
+                ra = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload), tr('Rescan Issues'))
                 ra.triggered.connect(lambda checked=False, idx=block_idx: ish.rescan_issues_for_single_block(idx))
             if aah and hasattr(aah, 'calculate_widths_for_block_action'):
-                ca = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon), "Calculate Line Widths")
+                ca = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon), tr('Calculate Line Widths'))
                 ca.triggered.connect(
                     lambda checked=False, idx=block_idx, cname=category_name: aah.calculate_widths_for_block_action(idx, cname)
                 )
@@ -303,7 +304,7 @@ class TreeContextMenuMixin:
             scm = getattr(main_window, 'spellchecker_manager', None)
             if scm and scm.enabled:
                 menu.addSeparator()
-                sca = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), "Spellcheck")
+                sca = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), tr('Spellcheck'))
                 sca.triggered.connect(
                     lambda checked=False, idx=block_idx, cname=category_name: self._open_spellcheck_for_block(idx, cname)
                 )
@@ -314,7 +315,7 @@ class TreeContextMenuMixin:
                 menu.addSeparator()
                 progress = translator.translation_progress.get(block_idx)
                 if progress and progress['completed_chunks'] and len(progress['completed_chunks']) < progress['total_chunks']:
-                    ra = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay), "AI: Resume Translation")
+                    ra = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay), tr('AI: Resume Translation'))
                     ra.triggered.connect(
                         lambda checked=False, idx=block_idx: translator.resume_block_translation(idx)
                     )
@@ -334,12 +335,12 @@ class TreeContextMenuMixin:
                     )
 
                 # Translate All option
-                tall = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), "AI: Translate All Blocks (UA Chronological)")
+                tall = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), tr('AI: Translate All Blocks (UA Chronological)'))
                 if hasattr(translator, "translate_all_blocks_chronologically"):
                     tall.triggered.connect(lambda checked=False: translator.translate_all_blocks_chronologically())
                 else:
                     # Fallback if not fully implemented in UI yet
-                    tall.triggered.connect(lambda checked=False: QMessageBox.information(self, "Translate All", "Translating all blocks chronologically according to script. (Will be run in background)"))
+                    tall.triggered.connect(lambda checked=False: QMessageBox.information(self, tr('Translate All'), tr('Translating all blocks chronologically according to script. (Will be run in background)')))
 
                 glossary_label = (
                     f"AI: Build Glossary for Virtual Block '{category_name}'"
@@ -437,7 +438,7 @@ class TreeContextMenuMixin:
                 if actions and hasattr(actions, 'open_bfn_editor_for_block'):
                     bfn_act = menu.addAction(
                         self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView),
-                        "Edit BFN Font..."
+                        tr('Edit BFN Font...')
                     )
                     bfn_act.triggered.connect(lambda checked=False, idx=block_idx: actions.open_bfn_editor_for_block(idx))
                     menu.addSeparator()
@@ -446,7 +447,7 @@ class TreeContextMenuMixin:
             menu.addSeparator()
             prop_act = menu.addAction(
                 self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation),
-                "Properties..."
+                tr('Properties...')
             )
             prop_act.triggered.connect(lambda checked=False, idx=block_idx: self._show_block_properties(idx))
 
@@ -551,8 +552,8 @@ class TreeContextMenuMixin:
                 )
 
         palace_menu.addSeparator()
-        notes_menu = palace_menu.addMenu("Notes")
-        note_action = notes_menu.addAction("Add / Edit Notes...")
+        notes_menu = palace_menu.addMenu(tr('Notes'))
+        note_action = notes_menu.addAction(tr('Add / Edit Notes...'))
         note_action.triggered.connect(
             lambda checked=False, rows=tuple(selected_rows),
             restore_locator=preserved_locator:
@@ -563,7 +564,7 @@ class TreeContextMenuMixin:
             str(get_story_context_override(self.window(), *row).get("translator_note") or "").strip()
             for row in selected_rows
         )
-        clear_note_action = notes_menu.addAction("Remove Notes")
+        clear_note_action = notes_menu.addAction(tr('Remove Notes'))
         clear_note_action.setEnabled(has_notes)
         clear_note_action.triggered.connect(
             lambda checked=False, rows=tuple(selected_rows),
@@ -571,7 +572,7 @@ class TreeContextMenuMixin:
                 self._set_notes_for_rows(rows, "", restore_locator)
         )
         palace_menu.addSeparator()
-        clear_action = palace_menu.addAction("Clear All Context")
+        clear_action = palace_menu.addAction(tr('Clear All Context'))
         clear_action.triggered.connect(
             lambda checked=False, rows=tuple(selected_rows),
             restore_locator=preserved_locator:
@@ -717,7 +718,7 @@ class TreeContextMenuMixin:
         
         reply = QMessageBox.question(
             self,
-            "Revert to Original",
+            tr('Revert to Original'),
             f"Are you sure you want to revert {total_strings} string(s) to their original state?\n\n"
             "All unsaved changes for these strings will be lost.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -800,12 +801,12 @@ class TreeContextMenuMixin:
                     to_restore_count += 1
                     
         if to_restore_count == 0:
-            QMessageBox.information(self, "Restore Translation", "No saved translations found for the selection.")
+            QMessageBox.information(self, tr('Restore Translation'), tr('No saved translations found for the selection.'))
             return
             
         reply = QMessageBox.question(
             self,
-            "Restore Translations",
+            tr('Restore Translations'),
             f"Are you sure you want to restore saved translations for {to_restore_count} string(s)?\n\n"
             "This will overwrite current edits in memory.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -838,7 +839,7 @@ class TreeContextMenuMixin:
         
         reply = QMessageBox.question(
             self,
-            "Revert All Blocks",
+            tr('Revert All Blocks'),
             f"Are you sure you want to revert all {total_strings} string(s) across {num_blocks} block(s) to their original state?\n\n"
             "All unsaved changes in the entire project will be lost.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,

@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
 
 
 from core.glossary_manager import GlossaryOccurrence
+from core.i18n import tr
 
 
 class GlossaryTranslationUpdateDialog(QDialog):
@@ -79,7 +80,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         
         self._old_translation_edit = QLineEdit(self)
         self._old_translation_edit.setText(self._old_translation)
-        self._old_translation_edit.setPlaceholderText("[empty]")
+        self._old_translation_edit.setPlaceholderText(tr('[empty]'))
         self._old_translation_edit.setMinimumWidth(150)
         self._old_translation_edit.textChanged.connect(self._on_old_translation_changed)
         top_layout.addWidget(self._old_translation_edit)
@@ -95,7 +96,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         left_panel = QWidget(splitter)
         left_layout = QVBoxLayout(left_panel)
         left_panel.setLayout(left_layout)
-        left_layout.addWidget(QLabel("Occurrences", left_panel))
+        left_layout.addWidget(QLabel(tr('Occurrences'), left_panel))
 
         self._occurrence_list = QListWidget(left_panel)
         self._occurrence_list.currentRowChanged.connect(self._load_occurrence)
@@ -111,62 +112,53 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
         self._original_view = QPlainTextEdit(right_panel)
         self._original_view.setReadOnly(True)
-        right_layout.addWidget(QLabel("Original text", right_panel))
+        right_layout.addWidget(QLabel(tr('Original text'), right_panel))
         right_layout.addWidget(self._original_view, 1)
 
         self._translation_edit = QPlainTextEdit(right_panel)
-        right_layout.addWidget(QLabel("Translation", right_panel))
+        right_layout.addWidget(QLabel(tr('Translation'), right_panel))
         right_layout.addWidget(self._translation_edit, 1)
 
         button_row = QHBoxLayout()
         right_layout.addLayout(button_row)
 
-        apply_button = QPushButton("Apply", right_panel)
+        apply_button = QPushButton(tr('Apply'), right_panel)
         apply_button.setToolTip(
-            "<b>Apply</b><br>"
-            "Click — accept the suggestion for this occurrence, mark it done and "
-            "move to the next one."
+            tr('<b>Apply</b><br>Click — accept the suggestion for this occurrence, mark it done and move to the next one.')
         )
         apply_button.clicked.connect(lambda: self._apply_current(next_item=True))
         button_row.addWidget(apply_button)
 
-        self._apply_all_button = QPushButton("Apply All", right_panel)
-        self._apply_all_button.setToolTip("Apply suggested translations to all remaining occurrences and mark them all as completed (with checkmarks).")
+        self._apply_all_button = QPushButton(tr('Apply All'), right_panel)
+        self._apply_all_button.setToolTip(tr('Apply suggested translations to all remaining occurrences and mark them all as completed (with checkmarks).'))
         self._apply_all_button.clicked.connect(self._run_apply_all)
         button_row.addWidget(self._apply_all_button)
 
-        skip_button = QPushButton("Skip", right_panel)
+        skip_button = QPushButton(tr('Skip'), right_panel)
         skip_button.setToolTip(
-            "<b>Skip</b><br>"
-            "Click — leave this occurrence unchanged and move to the next one. It "
-            "stays in the list, unticked."
+            tr('<b>Skip</b><br>Click — leave this occurrence unchanged and move to the next one. It stays in the list, unticked.')
         )
         skip_button.clicked.connect(self._skip_current)
         button_row.addWidget(skip_button)
 
-        self._quick_replace_all_button = QPushButton("Replace All (No AI)", right_panel)
+        self._quick_replace_all_button = QPushButton(tr('Replace All (No AI)'), right_panel)
         self._quick_replace_all_button.setStyleSheet("background-color: #047857; color: white; font-weight: bold;")
-        self._quick_replace_all_button.setToolTip("Instantly replace old translation with new translation across all occurrences without using AI.")
+        self._quick_replace_all_button.setToolTip(tr('Instantly replace old translation with new translation across all occurrences without using AI.'))
         self._quick_replace_all_button.clicked.connect(self._run_quick_replace_all)
         button_row.addWidget(self._quick_replace_all_button)
 
         button_row.addStretch(1)
 
-        self._ai_current_button = QPushButton("AI Suggest", right_panel)
+        self._ai_current_button = QPushButton(tr('AI Suggest'), right_panel)
         self._ai_current_button.setToolTip(
-            "<b>AI suggest</b><br>"
-            "Click — ask the AI to rewrite this one occurrence around the new "
-            "glossary term, instead of a plain text swap.<br>"
-            "Nothing is applied until you press Apply."
+            tr('<b>AI suggest</b><br>Click — ask the AI to rewrite this one occurrence around the new glossary term, instead of a plain text swap.<br>Nothing is applied until you press Apply.')
         )
         self._ai_current_button.clicked.connect(self._run_ai_for_current)
         button_row.addWidget(self._ai_current_button)
 
-        self._ai_all_button = QPushButton("AI All", right_panel)
+        self._ai_all_button = QPushButton(tr('AI All'), right_panel)
         self._ai_all_button.setToolTip(
-            "<b>AI all</b><br>"
-            "Click — request AI suggestions for every remaining occurrence. Long "
-            "running and billed per request."
+            tr('<b>AI all</b><br>Click — request AI suggestions for every remaining occurrence. Long running and billed per request.')
         )
         self._ai_all_button.clicked.connect(self._run_ai_for_all)
         button_row.addWidget(self._ai_all_button)
@@ -261,7 +253,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
             return
         candidate = self._translation_edit.toPlainText().rstrip('\n')
         if not candidate:
-            QMessageBox.warning(self, "Update", "Translation cannot be empty.")
+            QMessageBox.warning(self, tr('Update'), tr('Translation cannot be empty.'))
             return
         
         # Apply changes
@@ -269,7 +261,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         
         self._status[id(occ)] = 'applied'
         self._refresh_occurrence_item(occ)
-        self._status_label.setText("Applied.")
+        self._status_label.setText(tr('Applied.'))
         
         if next_item:
             self._select_next()
@@ -357,7 +349,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
             return
         self._status[id(occ)] = 'skipped'
         self._refresh_occurrence_item(occ)
-        self._status_label.setText("Skipped.")
+        self._status_label.setText(tr('Skipped.'))
         self._select_next()
 
     def _select_next(self) -> None:
@@ -382,12 +374,12 @@ class GlossaryTranslationUpdateDialog(QDialog):
             return
         remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
         if not remaining:
-            QMessageBox.information(self, "AI Update", "All occurrences already applied.")
+            QMessageBox.information(self, tr('AI Update'), tr('All occurrences already applied.'))
             return
         reply = QMessageBox.question(
             self,
-            "AI Update",
-            "Run AI suggestions for all remaining occurrences?",
+            tr('AI Update'),
+            tr('Run AI suggestions for all remaining occurrences?'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -418,14 +410,14 @@ class GlossaryTranslationUpdateDialog(QDialog):
         self._refresh_occurrence_item(occurrence)
         if self._current_occurrence() is occurrence:
             self._translation_edit.setPlainText(new_translation)
-            self._status_label.setText("AI applied.")
+            self._status_label.setText(tr('AI applied.'))
         if not self._batch_mode:
             self._select_next()
 
     def on_ai_error(self, message: str) -> None:
         """Handle the ai error event."""
         if message:
-            QMessageBox.warning(self, "AI Update", message)
+            QMessageBox.warning(self, tr('AI Update'), message)
         self.set_batch_active(False)
         self.set_ai_busy(False)
 
@@ -433,12 +425,12 @@ class GlossaryTranslationUpdateDialog(QDialog):
         """Apply suggested translations to all remaining occurrences and mark them all as completed."""
         remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
         if not remaining:
-            QMessageBox.information(self, "Apply All", "All occurrences already applied.")
+            QMessageBox.information(self, tr('Apply All'), tr('All occurrences already applied.'))
             return
 
         reply = QMessageBox.question(
             self,
-            "Apply All",
+            tr('Apply All'),
             f"Are you sure you want to apply suggested translations to all {len(remaining)} remaining occurrences "
             f"and mark them all as completed (with checkmarks)?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -477,7 +469,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
         QMessageBox.information(
             self,
-            "Success",
+            tr('Success'),
             f"Successfully applied suggested translations to all {applied_count} occurrence(s)!"
         )
 
@@ -490,12 +482,12 @@ class GlossaryTranslationUpdateDialog(QDialog):
         """Internal helper to run quick replace all."""
         remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
         if not remaining:
-            QMessageBox.information(self, "Replace All", "All occurrences already applied.")
+            QMessageBox.information(self, tr('Replace All'), tr('All occurrences already applied.'))
             return
 
         reply = QMessageBox.question(
             self,
-            "Replace All (No AI)",
+            tr('Replace All (No AI)'),
             f"Are you sure you want to instantly replace '{self._old_translation}' with '{self._new_translation}' "
             f"in all {len(remaining)} remaining translated lines without using AI?\n\n"
             f"This will also match grammatical cases (e.g. '{self._old_translation}a' -> '{self._new_translation}a').",
@@ -531,7 +523,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
         QMessageBox.information(
             self,
-            "Success",
+            tr('Success'),
             f"Successfully replaced term occurrences in {applied_count} translated line(s)!"
         )
 

@@ -5,6 +5,7 @@ import re
 from typing import Optional, Tuple, List
 
 from utils.logging_utils import log_debug
+from core.i18n import tr
 
 class LNETMouseHandlers:
     """L n e t mouse handlers implementation."""
@@ -117,7 +118,7 @@ class LNETMouseHandlers:
             ai_chat_handler = getattr(main_window, 'ai_chat_handler', None)
             if ai_chat_handler:
                 menu.addSeparator()
-                discuss_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), "Discuss with AI...")
+                discuss_action = menu.addAction(main_window.style().standardIcon(QStyle.StandardPixmap.SP_DialogHelpButton), tr('Discuss with AI...'))
                 
                 text_to_discuss = ""
                 cursor = self.editor.textCursor()

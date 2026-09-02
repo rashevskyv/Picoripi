@@ -73,7 +73,9 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 
 | File | Role |
 |------|------|
-| `settings.json` | Global + last plugin + AI presets. Local; untracked |
+| `settings.json` | Global + last plugin + AI presets + `ui_language` (`en` / `uk`). Local; untracked |
+| `locales/en.json` | English UI catalog (keys = English source strings) |
+| `locales/uk.json` | Ukrainian UI catalog. Add a key here whenever you add `tr("...")` in code |
 | `.env` | Optional `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | UI filters, navigation, unsaved edits, undo. **Show Unsaved Only** is forced off on restore |
 | `project.uiproj` | Project record: name, plugin folder, source/translation paths |
@@ -89,3 +91,5 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 - Do not switch **Active Game Plugin** and expect BMG load without restart.
 - Do not point External Tool at a build that reads unsaved buffers — Save first.
 - Do not put machine-absolute paths in wiki or README examples.
+
+To fill extra interface languages (or to complete Ukrainian): start Gemini Web2API, then run `tools/i18n-translate/run.bat`. The window selects target languages; **Ukrainian is on by default**. Other languages stay off until a deploy pass. The in-app **Language** menu still shows only English and Ukrainian until `SHIPPED_UI_LANGUAGES` is extended.

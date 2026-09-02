@@ -24,6 +24,7 @@ from core.speaker_resolution import build_speaker_pool
 from components.glossary_dialog import GlossaryDialog
 from components.glossary_edit_dialog import GlossaryEditDialog
 from utils.logging_utils import log_debug
+from core.i18n import tr
 
 
 class CategorySelectionDialog(QDialog):
@@ -31,12 +32,12 @@ class CategorySelectionDialog(QDialog):
     def __init__(self, parent, categories: List[str]):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Choose Glossary Categories")
+        self.setWindowTitle(tr('Choose Glossary Categories'))
         self.resize(360, 400)
         self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Select categories to organize your glossary:", self))
+        layout.addWidget(QLabel(tr('Select categories to organize your glossary:'), self))
         
         # Scroll area for checkboxes
         scroll = QScrollArea(self)
@@ -56,9 +57,9 @@ class CategorySelectionDialog(QDialog):
         layout.addWidget(scroll, 1)
         
         # Custom category input
-        layout.addWidget(QLabel("Add custom categories (comma-separated):", self))
+        layout.addWidget(QLabel(tr('Add custom categories (comma-separated):'), self))
         self.custom_input = QLineEdit(self)
-        self.custom_input.setPlaceholderText("e.g. Items, Weapons, Spells")
+        self.custom_input.setPlaceholderText(tr('e.g. Items, Weapons, Spells'))
         layout.addWidget(self.custom_input)
         
         # Buttons
@@ -210,17 +211,17 @@ class GlossaryHandler(BaseTranslationHandler):
         if not tools_menu:
             return
         if self._open_glossary_action is None:
-            action = QAction("Open Glossary...", self.mw)
+            action = QAction(tr('Open Glossary...'), self.mw)
             action.setShortcut("Ctrl+G")
-            action.setToolTip("Open glossary and jump to occurrences (Ctrl+G)")
+            action.setToolTip(tr('Open glossary and jump to occurrences (Ctrl+G)'))
             action.triggered.connect(self.show_glossary_dialog)
             tools_menu.addAction(action)
             self._open_glossary_action = action
 
         reset_action = getattr(self.main_handler, "_reset_session_action", None)
         if reset_action is None:
-            reset_action = QAction("AI Reset Translation Session", self.mw)
-            reset_action.setToolTip("Reset the current AI translation session")
+            reset_action = QAction(tr('AI Reset Translation Session'), self.mw)
+            reset_action.setToolTip(tr('Reset the current AI translation session'))
             reset_action.triggered.connect(self.main_handler.reset_translation_session)
             tools_menu.addAction(reset_action)
             self.main_handler._reset_session_action = reset_action
@@ -278,7 +279,7 @@ class GlossaryHandler(BaseTranslationHandler):
 
         data_source = self.mw.data_store.data
         if not isinstance(data_source, list):
-            QMessageBox.information(self.mw, "Glossary", "No data is loaded for analysis.")
+            QMessageBox.information(self.mw, tr('Glossary'), tr('No data is loaded for analysis.'))
             return
 
         raw_pool = build_speaker_pool(self.mw, raw=True)
@@ -290,7 +291,7 @@ class GlossaryHandler(BaseTranslationHandler):
         )
         # Prepare and run GlossaryOccurrenceWorker with QProgressDialog
         progress_dialog = QProgressDialog("Building glossary occurrence index...", "Cancel", 0, 100, self.mw)
-        progress_dialog.setWindowTitle("Please Wait")
+        progress_dialog.setWindowTitle(tr('Please Wait'))
         progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
         progress_dialog.setMinimumDuration(0)
 
@@ -650,7 +651,7 @@ class GlossaryHandler(BaseTranslationHandler):
                 payload = json.loads(cleaned)
             except json.JSONDecodeError as exc:
                 log_debug(f"AI Glossary Fill: failed to parse response: {exc}")
-                QMessageBox.warning(self.mw, "AI Glossary Fill", "Could not parse AI response.")
+                QMessageBox.warning(self.mw, tr('AI Glossary Fill'), tr('Could not parse AI response.'))
                 return
             if isinstance(payload, dict):
                 if "translation" in payload:
@@ -660,7 +661,7 @@ class GlossaryHandler(BaseTranslationHandler):
 
         current_translation, current_notes = dialog.get_values()
         if translation_value is None and notes_value is None:
-            QMessageBox.information(self.mw, "AI Glossary Fill", "AI response did not include translation or notes.")
+            QMessageBox.information(self.mw, tr('AI Glossary Fill'), tr('AI response did not include translation or notes.'))
             return
 
         new_translation = translation_value or current_translation
@@ -674,7 +675,7 @@ class GlossaryHandler(BaseTranslationHandler):
         if isinstance(dialog, GlossaryEditDialog):
             dialog.set_ai_busy(False)
         msg = error_message or "AI request failed."
-        QMessageBox.warning(self.mw, "AI Glossary Fill", msg)
+        QMessageBox.warning(self.mw, tr('AI Glossary Fill'), msg)
 
     # ── Notes variation ───────────────────────────────────────────────────
 
@@ -726,7 +727,7 @@ class GlossaryHandler(BaseTranslationHandler):
 
         variants = self.main_handler.ui_handler.parse_variation_payload(cleaned)
         if not variants:
-            QMessageBox.information(self.mw, "AI Glossary Notes", "Failed to parse variations from AI response.")
+            QMessageBox.information(self.mw, tr('AI Glossary Notes'), tr('Failed to parse variations from AI response.'))
             return
 
         chosen = self.main_handler.ui_handler.show_variations_dialog(variants)
@@ -876,7 +877,7 @@ class GlossaryHandler(BaseTranslationHandler):
         """Classify glossary via ai."""
         entries = self.glossary_manager.get_entries()
         if not entries:
-            QMessageBox.information(self.mw, "Glossary", "No glossary entries to classify.")
+            QMessageBox.information(self.mw, tr('Glossary'), tr('No glossary entries to classify.'))
             return
 
         provider = self.mw.translation_handler.ai_lifecycle_manager._prepare_provider()
@@ -935,7 +936,7 @@ Do not write any markdown formatting like ```json, just output raw JSON text.
             
         selected_categories = dialog.get_selected_categories()
         if not selected_categories:
-            QMessageBox.information(self.dialog, "Glossary", "No categories selected. Operation cancelled.")
+            QMessageBox.information(self.dialog, tr('Glossary'), tr('No categories selected. Operation cancelled.'))
             return
             
         # 2. Start Stage 2: Classify terms into selected categories
@@ -988,11 +989,11 @@ Do not write any markdown code blocks (like ```json), just output the raw JSON d
         try:
             classification_map = json.loads(cleaned)
         except Exception as e:
-            QMessageBox.warning(self.dialog, "AI Error", f"Failed to parse AI classification: {e}")
+            QMessageBox.warning(self.dialog, tr('AI Error'), f"Failed to parse AI classification: {e}")
             return
             
         if not isinstance(classification_map, dict):
-            QMessageBox.warning(self.dialog, "AI Error", "AI did not return a valid dictionary mapping terms to categories.")
+            QMessageBox.warning(self.dialog, tr('AI Error'), tr('AI did not return a valid dictionary mapping terms to categories.'))
             return
             
         # Update glossary manager categories (sections)
@@ -1022,7 +1023,7 @@ Do not write any markdown code blocks (like ```json), just output the raw JSON d
             
         QMessageBox.information(
             self.dialog if self.dialog else self.mw,
-            "Success",
+            tr('Success'),
             f"Successfully organized {updated_count} glossary terms into categories!"
         )
 
@@ -1030,7 +1031,7 @@ Do not write any markdown code blocks (like ```json), just output the raw JSON d
         """Internal helper to handle classify error."""
         self.main_handler.ui_handler.finish_ai_operation()
         msg = error_message or "AI request failed."
-        QMessageBox.warning(self.dialog if self.dialog else self.mw, "AI Error", msg)
+        QMessageBox.warning(self.dialog if self.dialog else self.mw, tr('AI Error'), msg)
 
     def global_replace_glossary(self, find_word: str, replace_word: str) -> None:
         # Build occurrence index BEFORE replacing so we know where old original terms were
@@ -1042,7 +1043,7 @@ Do not write any markdown code blocks (like ```json), just output the raw JSON d
         if not modified_list:
             QMessageBox.information(
                 self.dialog if self.dialog else self.mw,
-                "Global Replace",
+                tr('Global Replace'),
                 f"No occurrences of '{find_word}' found in the glossary."
             )
             return

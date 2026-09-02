@@ -3,6 +3,7 @@ from __future__ import annotations
 from PyQt6.QtCore import QEvent, Qt, QRect, QSize, QTimer
 from PyQt6.QtGui import QColor, QMouseEvent, QPainter, QPalette, QPen, QPixmap
 from PyQt6.QtWidgets import QWidget
+from core.i18n import tr
 
 
 class TextMinimap(QWidget):
@@ -28,7 +29,7 @@ class TextMinimap(QWidget):
 
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
-        self.setToolTip("Document minimap")
+        self.setToolTip(tr('Document minimap'))
         self.hide()
 
         editor.textChanged.connect(self.schedule_invalidate)

@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
     QTreeWidgetItem,
     QVBoxLayout,
 )
+from core.i18n import tr
 
 
 class StoryStructureTree(QTreeWidget):
@@ -76,14 +77,14 @@ class ChapterSelectionDialog(QDialog):
 
     def __init__(self, projection=None, selected_id=None, parent=None, choices=None):
         super().__init__(parent)
-        self.setWindowTitle("Choose chapter or scene")
+        self.setWindowTitle(tr('Choose chapter or scene'))
         self.setMinimumSize(640, 520)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Choose where this string belongs:"))
+        layout.addWidget(QLabel(tr('Choose where this string belongs:')))
 
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("Search acts, chapters, and scenes…")
+        self.search_edit.setPlaceholderText(tr('Search acts, chapters, and scenes…'))
         self.search_edit.setClearButtonEnabled(True)
         layout.addWidget(self.search_edit)
 
@@ -95,16 +96,15 @@ class ChapterSelectionDialog(QDialog):
         layout.addWidget(self.tree)
 
         edit_hint = QLabel(
-            "Drag nodes to reorder or nest them. Add under the selected node, "
-            "or select No chapter to add at the top level:"
+            tr('Drag nodes to reorder or nest them. Add under the selected node, or select No chapter to add at the top level:')
         )
         layout.addWidget(edit_hint)
         edit_row = QHBoxLayout()
-        self.add_act_button = QPushButton("+ Act")
-        self.add_chapter_button = QPushButton("+ Chapter")
-        self.add_scene_button = QPushButton("+ Scene")
-        self.rename_button = QPushButton("Rename")
-        self.remove_button = QPushButton("Remove")
+        self.add_act_button = QPushButton(tr('+ Act'))
+        self.add_chapter_button = QPushButton(tr('+ Chapter'))
+        self.add_scene_button = QPushButton(tr('+ Scene'))
+        self.rename_button = QPushButton(tr('Rename'))
+        self.remove_button = QPushButton(tr('Remove'))
         for button in (
             self.add_act_button,
             self.add_chapter_button,
@@ -212,7 +212,7 @@ class ChapterSelectionDialog(QDialog):
         self.buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Select")
+        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText(tr('Select'))
         layout.addWidget(self.buttons)
 
         self.search_edit.textChanged.connect(self._filter_tree)
@@ -382,7 +382,7 @@ class ChapterSelectionDialog(QDialog):
             return
         answer = QMessageBox.question(
             self,
-            "Remove story structure",
+            tr('Remove story structure'),
             f"Remove '{item.text(0)}' and all structures below it?\n\n"
             "Strings assigned to this branch will be moved to No chapter.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -484,7 +484,7 @@ class HierarchicalChapterComboBox(QComboBox):
         super().__init__(parent)
         self._projection = None
         self._selection_path = ()
-        self.addItem("No chapter", None)
+        self.addItem(tr('No chapter'), None)
 
     def set_story_projection(self, projection):
         self._projection = projection

@@ -16,6 +16,7 @@ from PyQt6.QtGui import QMovie, QFont, QPalette
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QEvent
 from utils.power_utils import prevent_sleep, restore_sleep, put_to_sleep
 from core.auto_sleep_manager import AutoSleepManager
+from core.i18n import tr
 
 __all__ = ["AIStatusDialog", "prevent_sleep", "restore_sleep", "put_to_sleep"]
 
@@ -30,7 +31,7 @@ class AIStatusDialog(QDialog):
     def __init__(self, parent=None):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("AI Operation")
+        self.setWindowTitle(tr('AI Operation'))
         self.setModal(True)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
         self.setMinimumWidth(450)
@@ -52,7 +53,7 @@ class AIStatusDialog(QDialog):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(15, 15, 15, 15)
 
-        self.title_label = QLabel("AI Translation", self)
+        self.title_label = QLabel(tr('AI Translation'), self)
         font = self.title_label.font()
         font.setPointSize(12)
         font.setBold(True)
@@ -60,7 +61,7 @@ class AIStatusDialog(QDialog):
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.title_label)
 
-        self.subtitle_label = QLabel("", self)
+        self.subtitle_label = QLabel(tr(''), self)
         subtitle_font = QFont(self.title_label.font())
         subtitle_font.setPointSize(max(subtitle_font.pointSize() - 2, 8))
         subtitle_font.setItalic(True)
@@ -95,7 +96,7 @@ class AIStatusDialog(QDialog):
         main_layout.addLayout(animation_layout)
         main_layout.addStretch(1)
 
-        self.detail_label = QLabel("", self)
+        self.detail_label = QLabel(tr(''), self)
         detail_font = QFont(self.title_label.font())
         detail_font.setPointSize(max(detail_font.pointSize() - 3, 8))
         detail_font.setItalic(True)
@@ -114,13 +115,13 @@ class AIStatusDialog(QDialog):
 
         # Sleep options
         sleep_layout = QHBoxLayout()
-        self.prevent_sleep_checkbox = QCheckBox("Prevent computer sleep", self)
-        self.prevent_sleep_checkbox.setToolTip("Keep the computer awake while AI operation is running.")
+        self.prevent_sleep_checkbox = QCheckBox(tr('Prevent computer sleep'), self)
+        self.prevent_sleep_checkbox.setToolTip(tr('Keep the computer awake while AI operation is running.'))
         self.prevent_sleep_checkbox.setChecked(True)
         self.prevent_sleep_checkbox.toggled.connect(self._handle_prevent_sleep_toggled)
         
-        self.sleep_after_checkbox = QCheckBox("Put computer to sleep when finished", self)
-        self.sleep_after_checkbox.setToolTip("Suspend/Sleep the computer automatically after the AI task completes if idle.")
+        self.sleep_after_checkbox = QCheckBox(tr('Put computer to sleep when finished'), self)
+        self.sleep_after_checkbox.setToolTip(tr('Suspend/Sleep the computer automatically after the AI task completes if idle.'))
         self.sleep_after_checkbox.setChecked(False)
         self.sleep_after_checkbox.toggled.connect(self._handle_sleep_after_toggled)
         
@@ -143,8 +144,8 @@ class AIStatusDialog(QDialog):
         """Prompt the user for explicit confirmation before cancelling a running AI operation."""
         reply = QMessageBox.question(
             self,
-            "Cancel AI operation?",
-            "The current request will stop after the active network step. Are you sure you want to cancel it?",
+            tr('Cancel AI operation?'),
+            tr('The current request will stop after the active network step. Are you sure you want to cancel it?'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -160,8 +161,8 @@ class AIStatusDialog(QDialog):
             AutoSleepManager.get_instance().cancel_sleep("AI dialog rejected/cancelled")
             self.user_cancelled = True
             self.cancelled.emit()
-            self.title_label.setText("Cancelling AI Operation...")
-            self.detail_label.setText("Please wait for the current request to abort cleanly...")
+            self.title_label.setText(tr('Cancelling AI Operation...'))
+            self.detail_label.setText(tr('Please wait for the current request to abort cleanly...'))
             self.detail_label.setVisible(True)
             self.cancel_button.setEnabled(False)
         else:

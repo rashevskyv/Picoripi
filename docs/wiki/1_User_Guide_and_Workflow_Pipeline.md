@@ -162,6 +162,14 @@ Bookmarks listed under the separator survive restart.
 
 ---
 
+## 8a. Language menu
+
+**Language** lists **English** and **Українська** only. Changing it writes `ui_language` and asks for a restart.
+
+Other interface languages are not in this menu yet. Fill them with `tools/i18n-translate/run.bat` before a multi-language deploy, then they can be added to `SHIPPED_UI_LANGUAGES` in `core/i18n.py`.
+
+---
+
 ## 9. Help
 
 **Help** sits as a corner button on the menu bar (not a normal left-to-right menu).

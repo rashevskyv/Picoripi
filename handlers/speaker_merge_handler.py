@@ -26,6 +26,7 @@ from core.speaker_alias_merge import (
     script_speaker_lines,
 )
 from utils.logging_utils import log_debug, log_error
+from core.i18n import tr
 
 
 class SpeakerMergeHandler:
@@ -66,16 +67,8 @@ class SpeakerMergeHandler:
         """Warn that an unmarked script gives a weaker merge; offer to stop."""
         answer = QMessageBox.warning(
             self.mw,
-            "Merge Speakers",
-            "This script has not been marked up in Script Markup Studio, so the "
-            "speakers have to be guessed.\n\n"
-            "Guessing means every ALL-CAPS line is read as a name and everything "
-            "under it as that character's lines. Section banners and shouted "
-            "words become speakers, a heading that is not upper case is missed "
-            "entirely, and stage directions blur into speech. Names will be "
-            "wrong and many will not be found.\n\n"
-            "Mark the script up first for a merge you can trust, or continue and "
-            "check every name in the report.",
+            tr('Merge Speakers'),
+            tr("This script has not been marked up in Script Markup Studio, so the speakers have to be guessed.\n\nGuessing means every ALL-CAPS line is read as a name and everything under it as that character's lines. Section banners and shouted words become speakers, a heading that is not upper case is missed entirely, and stage directions blur into speech. Names will be wrong and many will not be found.\n\nMark the script up first for a merge you can trust, or continue and check every name in the report."),
             QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
@@ -124,17 +117,16 @@ class SpeakerMergeHandler:
         project_dir = self._project_dir()
         if not project_dir:
             QMessageBox.information(
-                self.mw, "Merge Speakers",
-                "Open a project first: the speaker names are stored beside it.",
+                self.mw, tr('Merge Speakers'),
+                tr('Open a project first: the speaker names are stored beside it.'),
             )
             return
 
         game_rows, row_codes = self._game_rows_and_codes()
         if not row_codes:
             QMessageBox.information(
-                self.mw, "Merge Speakers",
-                "The active plugin did not attribute any line to a speaker, so "
-                "there is nothing for the script to name.",
+                self.mw, tr('Merge Speakers'),
+                tr('The active plugin did not attribute any line to a speaker, so there is nothing for the script to name.'),
             )
             return
 
@@ -147,9 +139,8 @@ class SpeakerMergeHandler:
         })
         if not placeholders:
             QMessageBox.information(
-                self.mw, "Merge Speakers",
-                "The active plugin did not attribute any line to a speaker code, "
-                "so there is nothing to name.",
+                self.mw, tr('Merge Speakers'),
+                tr('The active plugin did not attribute any line to a speaker code, so there is nothing to name.'),
             )
             return
 
@@ -313,7 +304,7 @@ class SpeakerMergeHandler:
         if save_speaker_aliases(project_dir, merged) is None:
             log_error("Speaker merge: could not write speaker_aliases.json")
             QMessageBox.warning(
-                self.mw, "Merge Speakers", "Could not write speaker_aliases.json."
+                self.mw, tr('Merge Speakers'), tr('Could not write speaker_aliases.json.')
             )
             return False
         self._refresh_speaker_views()

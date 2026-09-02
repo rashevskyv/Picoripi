@@ -14,6 +14,7 @@ from core.translation.providers import (
 )
 from core.translation.config import build_default_translation_config
 from utils.logging_utils import log_debug, log_warning, log_info
+from core.i18n import tr
 
 class AILifecycleManager(BaseTranslationHandler):
     """Manager class for a i lifecycle."""
@@ -81,12 +82,12 @@ class AILifecycleManager(BaseTranslationHandler):
         provider_key = provider_key_override if provider_key_override is not None else config.get('provider', 'disabled')
         
         if not provider_key or provider_key == 'disabled':
-            QMessageBox.information(self.mw, "AI Translation", "The AI provider is disabled in the settings.")
+            QMessageBox.information(self.mw, tr('AI Translation'), tr('The AI provider is disabled in the settings.'))
             return None
         
         provider_settings = config.get('providers', {}).get(provider_key, {})
         if not provider_settings:
-            QMessageBox.warning(self.mw, "AI Translation", f"No configuration found for provider '{provider_key}'.")
+            QMessageBox.warning(self.mw, tr('AI Translation'), f"No configuration found for provider '{provider_key}'.")
             return None
 
         try:
@@ -103,7 +104,7 @@ class AILifecycleManager(BaseTranslationHandler):
         except TranslationProviderError as exc:
             if provider_key_override is None:
                 self._provider_supports_sessions = False
-            QMessageBox.critical(self.mw, "AI Translation", str(exc))
+            QMessageBox.critical(self.mw, tr('AI Translation'), str(exc))
             return None
 
     def run_ai_task(self, provider: BaseTranslationProvider, task_details: dict):
@@ -234,7 +235,7 @@ class AILifecycleManager(BaseTranslationHandler):
             elif task_type == 'glossary_notes_variation':
                 self.main_handler.glossary_handler._set_notes_dialog_busy(context.get('dialog'), False)
                 message = error_message or "AI request failed."
-                QMessageBox.warning(self.mw, "AI Glossary Notes", message)
+                QMessageBox.warning(self.mw, tr('AI Glossary Notes'), message)
             return
 
         is_timeout = 'timed out' in error_message.lower()
@@ -260,7 +261,7 @@ class AILifecycleManager(BaseTranslationHandler):
 
             if is_timeout:
                 message = f"AI translation timed out after {timeout_seconds or '?'} seconds while processing {mode}.\n\nWould you like to wait longer and retry?"
-                user_choice = QMessageBox.question(self.mw, "AI Translation Timeout", message, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
+                user_choice = QMessageBox.question(self.mw, tr('AI Translation Timeout'), message, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
                 if user_choice != QMessageBox.StandardButton.Yes:
                     log_debug("User chose not to retry after timeout.")
                     pass
@@ -274,7 +275,7 @@ class AILifecycleManager(BaseTranslationHandler):
                 log_debug(f"Showing debug retry dialog for AI task. Attempt {attempt}/{max_attempts}")
                 
                 msg_box = QMessageBox(self.mw)
-                msg_box.setWindowTitle("AI Translation Error (Debug)")
+                msg_box.setWindowTitle(tr('AI Translation Error (Debug)'))
                 msg_box.setIcon(QMessageBox.Icon.Warning)
                 msg_box.setText(f"An error occurred during AI operation (Attempt {attempt}/{max_attempts}).")
                 
@@ -313,7 +314,7 @@ class AILifecycleManager(BaseTranslationHandler):
 
         self.main_handler.ui_handler.finish_ai_operation(success=False)
         failure_message = f"Operation failed after {max_attempts} attempts while processing {mode}.\n\nLast error: {error_message}"
-        QMessageBox.critical(self.mw, "AI Operation Failed", failure_message)
+        QMessageBox.critical(self.mw, tr('AI Operation Failed'), failure_message)
 
     def _record_session_exchange(self, *, context: dict, assistant_content: str, response: Optional[ProviderResponse] = None) -> None:
         """Internal helper to record session exchange."""
@@ -417,7 +418,7 @@ class AILifecycleManager(BaseTranslationHandler):
         else:
             log_warning(f"A retry was requested for an unhandled task type: {task_type}")
             self.main_handler.ui_handler.finish_ai_operation(success=False)
-            QMessageBox.critical(self.mw, "AI Operation Failed", f"Retry logic not implemented for task '{task_type}'.")
+            QMessageBox.critical(self.mw, tr('AI Operation Failed'), f"Retry logic not implemented for task '{task_type}'.")
 
     def prepare_to_close(self) -> None:
         """Prepare to close."""

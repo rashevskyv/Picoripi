@@ -11,6 +11,7 @@ from PyQt6.QtGui import QColor
 from utils.logging_utils import log_debug
 from components.labeled_spinbox import LabeledSpinBox
 from .settings_widgets import ColorPickerButton, TagDisplayWidget
+from core.i18n import tr
 
 class SettingsPluginMixin:
     """Mixin class for project/plugin settings tab and subtabs."""
@@ -48,14 +49,14 @@ class SettingsPluginMixin:
         aliases_tab = QWidget()
         font_map_tab = QWidget()
 
-        self.plugin_tabs.addTab(paths_tab, "File Paths")
-        self.plugin_tabs.addTab(display_tab, "Display")
-        self.plugin_tabs.addTab(rules_tab, "Rules")
-        self.plugin_tabs.addTab(context_tags_tab, "Context Tags")
-        self.plugin_tabs.addTab(aliases_tab, "Tag Aliases")
-        self.plugin_tabs.addTab(font_map_tab, "Font Map")
-        self.plugin_tabs.addTab(detection_tab, "Detection")
-        self.plugin_tabs.addTab(autofix_tab, "Auto-fix")
+        self.plugin_tabs.addTab(paths_tab, tr('File Paths'))
+        self.plugin_tabs.addTab(display_tab, tr('Display'))
+        self.plugin_tabs.addTab(rules_tab, tr('Rules'))
+        self.plugin_tabs.addTab(context_tags_tab, tr('Context Tags'))
+        self.plugin_tabs.addTab(aliases_tab, tr('Tag Aliases'))
+        self.plugin_tabs.addTab(font_map_tab, tr('Font Map'))
+        self.plugin_tabs.addTab(detection_tab, tr('Detection'))
+        self.plugin_tabs.addTab(autofix_tab, tr('Auto-fix'))
 
         self._setup_paths_subtab(paths_tab)
         self._setup_display_subtab(display_tab)
@@ -72,7 +73,7 @@ class SettingsPluginMixin:
     def _populate_font_list(self, plugin_dir_name: str):
         """Internal helper to populate font list."""
         self.font_file_combo.clear()
-        self.font_file_combo.addItem("None", "")
+        self.font_file_combo.addItem(tr('None'), tr(''))
 
         if not plugin_dir_name:
             return
@@ -114,40 +115,40 @@ class SettingsPluginMixin:
         """Internal helper to setup display subtab."""
         layout = QFormLayout(tab)
         self.font_file_combo = QComboBox(self)
-        layout.addRow("Default Font for Project:", self.font_file_combo)
+        layout.addRow(tr('Default Font for Project:'), self.font_file_combo)
         
-        self.preview_wrap_checkbox = QCheckBox("Wrap lines in preview panel", self)
+        self.preview_wrap_checkbox = QCheckBox(tr('Wrap lines in preview panel'), self)
         layout.addRow(self.preview_wrap_checkbox)
-        self.editors_wrap_checkbox = QCheckBox("Wrap lines in editor panels", self)
+        self.editors_wrap_checkbox = QCheckBox(tr('Wrap lines in editor panels'), self)
         layout.addRow(self.editors_wrap_checkbox)
         self.newline_symbol_edit = QLineEdit(self)
-        layout.addRow("Newline Symbol:", self.newline_symbol_edit)
+        layout.addRow(tr('Newline Symbol:'), self.newline_symbol_edit)
 
         newline_style_row = QWidget(self)
         nlr = QHBoxLayout(newline_style_row); nlr.setContentsMargins(0,0,0,0)
         self.newline_color_picker = ColorPickerButton(parent=self)
-        self.newline_bold_chk = QCheckBox("Bold", self)
-        self.newline_italic_chk = QCheckBox("Italic", self)
-        self.newline_underline_chk = QCheckBox("Underline", self)
+        self.newline_bold_chk = QCheckBox(tr('Bold'), self)
+        self.newline_italic_chk = QCheckBox(tr('Italic'), self)
+        self.newline_underline_chk = QCheckBox(tr('Underline'), self)
         nlr.addWidget(self.newline_color_picker)
         nlr.addWidget(self.newline_bold_chk)
         nlr.addWidget(self.newline_italic_chk)
         nlr.addWidget(self.newline_underline_chk)
         nlr.addStretch(1)
-        layout.addRow("Newline Symbol Style:", newline_style_row)
+        layout.addRow(tr('Newline Symbol Style:'), newline_style_row)
 
         tag_style_row = QWidget(self)
         tsr = QHBoxLayout(tag_style_row); tsr.setContentsMargins(0,0,0,0)
         self.tag_color_picker = ColorPickerButton(parent=self)
-        self.tag_bold_chk = QCheckBox("Bold", self)
-        self.tag_italic_chk = QCheckBox("Italic", self)
-        self.tag_underline_chk = QCheckBox("Underline", self)
+        self.tag_bold_chk = QCheckBox(tr('Bold'), self)
+        self.tag_italic_chk = QCheckBox(tr('Italic'), self)
+        self.tag_underline_chk = QCheckBox(tr('Underline'), self)
         tsr.addWidget(self.tag_color_picker)
         tsr.addWidget(self.tag_bold_chk)
         tsr.addWidget(self.tag_italic_chk)
         tsr.addWidget(self.tag_underline_chk)
         tsr.addStretch(1)
-        layout.addRow("Tag Style:", tag_style_row)
+        layout.addRow(tr('Tag Style:'), tag_style_row)
 
     def on_rules_changed(self):
         """Handle the rules changed event."""
@@ -163,7 +164,7 @@ class SettingsPluginMixin:
         self.width_warning_spinbox = LabeledSpinBox("Editor Line Width Warning (px):", 100, 10000, 208, parent=self)
         self.width_warning_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
 
-        self.show_width_guideline_checkbox = QCheckBox("Show guideline", self)
+        self.show_width_guideline_checkbox = QCheckBox(tr('Show guideline'), self)
         self.show_width_guideline_checkbox.stateChanged.connect(self.on_rules_changed)
 
         self.lines_per_page_spinbox = LabeledSpinBox("Lines Per Page:", 1, 20, 4, parent=self)
@@ -195,11 +196,11 @@ class SettingsPluginMixin:
 
         use_per_type = getattr(self.mw, "use_per_window_layouts", True)
 
-        mode_group = QGroupBox("Window limit mode", self)
+        mode_group = QGroupBox(tr('Window limit mode'), self)
         mode_layout = QHBoxLayout(mode_group)
         mode_layout.setContentsMargins(12, 8, 12, 8)
-        self.shared_window_mode_radio = QRadioButton("Shared for all windows", mode_group)
-        self.per_window_mode_radio = QRadioButton("Separate by window type", mode_group)
+        self.shared_window_mode_radio = QRadioButton(tr('Shared for all windows'), mode_group)
+        self.per_window_mode_radio = QRadioButton(tr('Separate by window type'), mode_group)
         self.window_mode_button_group = QButtonGroup(self)
         self.window_mode_button_group.addButton(self.shared_window_mode_radio, 0)
         self.window_mode_button_group.addButton(self.per_window_mode_radio, 1)
@@ -218,7 +219,7 @@ class SettingsPluginMixin:
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
         global_page = QWidget(self.window_rules_mode_stack)
-        global_group = QGroupBox("Shared defaults", global_page)
+        global_group = QGroupBox(tr('Shared defaults'), global_page)
         global_layout = QFormLayout(global_group)
         global_layout.setContentsMargins(12, 10, 12, 10)
         global_layout.addRow(self.game_dialog_width_spinbox)
@@ -232,11 +233,11 @@ class SettingsPluginMixin:
         per_type_page = QWidget(self.window_rules_mode_stack)
         per_type_layout = QVBoxLayout(per_type_page)
         per_type_layout.setContentsMargins(0, 4, 0, 0)
-        defaults_group = QGroupBox("Defaults by window type", per_type_page)
+        defaults_group = QGroupBox(tr('Defaults by window type'), per_type_page)
         defaults_layout = QVBoxLayout(defaults_group)
         defaults_layout.setContentsMargins(12, 10, 12, 12)
         description = QLabel(
-            "The message's fuki_kind selects one of these default layouts automatically."
+            tr("The message's fuki_kind selects one of these default layouts automatically.")
         )
         description.setWordWrap(True)
         defaults_layout.addWidget(description)
@@ -352,16 +353,16 @@ class SettingsPluginMixin:
         
         # Search Filter
         search_layout = QHBoxLayout()
-        search_layout.addWidget(QLabel("Filter Tags:"))
+        search_layout.addWidget(QLabel(tr('Filter Tags:')))
         self.tags_search_edit = QLineEdit(self)
-        self.tags_search_edit.setPlaceholderText("Search by hex, emoji, or tag name...")
+        self.tags_search_edit.setPlaceholderText(tr('Search by hex, emoji, or tag name...'))
         self.tags_search_edit.setClearButtonEnabled(True)
         self.tags_search_edit.textChanged.connect(self._filter_tags_tables)
         search_layout.addWidget(self.tags_search_edit)
         layout.addLayout(search_layout)
         
         # Single Tags
-        single_group = QGroupBox("Single Tags (RMB without selection)", self)
+        single_group = QGroupBox(tr('Single Tags (RMB without selection)'), self)
         single_layout = QVBoxLayout(single_group)
         self.single_tags_table = QTableWidget(0, 2, self)
         self.single_tags_table.setHorizontalHeaderLabels(["Display (Emoji/Hex)", "Tag"])
@@ -375,19 +376,14 @@ class SettingsPluginMixin:
         single_layout.addWidget(self.single_tags_table)
         
         single_btn_row = QHBoxLayout()
-        add_single_btn = QPushButton("Add Row", self)
+        add_single_btn = QPushButton(tr('Add Row'), self)
         add_single_btn.setToolTip(
-            "<b>Add row</b><br>"
-            "Click — append an empty single-tag row, then type the tag and its "
-            "display text.<br>"
-            "Changes take effect after you press OK in Settings."
+            tr('<b>Add row</b><br>Click — append an empty single-tag row, then type the tag and its display text.<br>Changes take effect after you press OK in Settings.')
         )
         add_single_btn.clicked.connect(lambda: self._add_table_row(self.single_tags_table))
-        remove_single_btn = QPushButton("Remove Row", self)
+        remove_single_btn = QPushButton(tr('Remove Row'), self)
         remove_single_btn.setToolTip(
-            "<b>Remove row</b><br>"
-            "Click — delete the row selected in the table; with nothing selected it "
-            "removes the last row. One row per click."
+            tr('<b>Remove row</b><br>Click — delete the row selected in the table; with nothing selected it removes the last row. One row per click.')
         )
         remove_single_btn.clicked.connect(lambda: self._remove_table_row(self.single_tags_table))
         single_btn_row.addWidget(add_single_btn); single_btn_row.addWidget(remove_single_btn)
@@ -395,7 +391,7 @@ class SettingsPluginMixin:
         layout.addWidget(single_group)
         
         # Wrap Tags
-        wrap_group = QGroupBox("Wrap Tags (RMB with selection)", self)
+        wrap_group = QGroupBox(tr('Wrap Tags (RMB with selection)'), self)
         wrap_layout = QVBoxLayout(wrap_group)
         self.wrap_tags_table = QTableWidget(0, 3, self)
         self.wrap_tags_table.setHorizontalHeaderLabels(["Display (Emoji/Hex)", "Opening Tag", "Closing Tag"])
@@ -409,19 +405,14 @@ class SettingsPluginMixin:
         wrap_layout.addWidget(self.wrap_tags_table)
         
         wrap_btn_row = QHBoxLayout()
-        add_wrap_btn = QPushButton("Add Row", self)
+        add_wrap_btn = QPushButton(tr('Add Row'), self)
         add_wrap_btn.setToolTip(
-            "<b>Add row</b><br>"
-            "Click — append an empty wrapping-tag row (a tag with an opening and a "
-            "closing part).<br>"
-            "Changes take effect after you press OK in Settings."
+            tr('<b>Add row</b><br>Click — append an empty wrapping-tag row (a tag with an opening and a closing part).<br>Changes take effect after you press OK in Settings.')
         )
         add_wrap_btn.clicked.connect(lambda: self._add_table_row(self.wrap_tags_table))
-        remove_wrap_btn = QPushButton("Remove Row", self)
+        remove_wrap_btn = QPushButton(tr('Remove Row'), self)
         remove_wrap_btn.setToolTip(
-            "<b>Remove row</b><br>"
-            "Click — delete the row selected in the table; with nothing selected it "
-            "removes the last row. One row per click."
+            tr('<b>Remove row</b><br>Click — delete the row selected in the table; with nothing selected it removes the last row. One row per click.')
         )
         remove_wrap_btn.clicked.connect(lambda: self._remove_table_row(self.wrap_tags_table))
         wrap_btn_row.addWidget(add_wrap_btn); wrap_btn_row.addWidget(remove_wrap_btn)
@@ -454,7 +445,7 @@ class SettingsPluginMixin:
         if clicked_row != -1 and clicked_row not in selected_rows:
             selected_rows = [clicked_row]
             
-        add_action = menu.addAction("Add Row")
+        add_action = menu.addAction(tr('Add Row'))
         clone_action = menu.addAction(f"Clone Row{'s' if len(selected_rows) > 1 else ''}")
         delete_action = menu.addAction(f"Delete Row{'s' if len(selected_rows) > 1 else ''}")
         
@@ -543,8 +534,8 @@ class SettingsPluginMixin:
         """Internal helper to setup paths subtab."""
         layout = QFormLayout(tab)
         
-        self.dir_mode_checkbox = QCheckBox("Directory Mode (Load from folder)", tab)
-        self.auto_generate_checkbox = QCheckBox("Auto-generate translation path", tab)
+        self.dir_mode_checkbox = QCheckBox(tr('Directory Mode (Load from folder)'), tab)
+        self.auto_generate_checkbox = QCheckBox(tr('Auto-generate translation path'), tab)
         
         layout.addRow(self.dir_mode_checkbox)
         layout.addRow(self.auto_generate_checkbox)
@@ -554,8 +545,8 @@ class SettingsPluginMixin:
         self.edited_path_edit = QLineEdit(tab)
         self.edited_path_edit.setObjectName("PathLineEdit")
 
-        self.orig_label_widget = QLabel("Original File Path:")
-        self.changes_label_widget = QLabel("Changes File Path:")
+        self.orig_label_widget = QLabel(tr('Original File Path:'))
+        self.changes_label_widget = QLabel(tr('Changes File Path:'))
 
         self.original_path_selector = self._create_path_selector(self.original_path_edit)
         self.edited_path_selector = self._create_path_selector(self.edited_path_edit)
@@ -565,16 +556,16 @@ class SettingsPluginMixin:
         # Original Fonts Directory Path Selection
         self.orig_fonts_path_edit = QLineEdit(tab)
         self.orig_fonts_path_edit.setObjectName("PathLineEdit")
-        self.orig_fonts_path_edit.setPlaceholderText("Optional path to original fonts folder")
+        self.orig_fonts_path_edit.setPlaceholderText(tr('Optional path to original fonts folder'))
         self.orig_fonts_path_selector = self._create_dir_selector(self.orig_fonts_path_edit)
-        layout.addRow(QLabel("Original Fonts Directory Path (original font):"), self.orig_fonts_path_selector)
+        layout.addRow(QLabel(tr('Original Fonts Directory Path (original font):')), self.orig_fonts_path_selector)
 
         # Fonts Directory Path Selection
         self.fonts_path_edit = QLineEdit(tab)
         self.fonts_path_edit.setObjectName("PathLineEdit")
-        self.fonts_path_edit.setPlaceholderText("Optional path to fonts folder")
+        self.fonts_path_edit.setPlaceholderText(tr('Optional path to fonts folder'))
         self.fonts_path_selector = self._create_dir_selector(self.fonts_path_edit)
-        layout.addRow(QLabel("Fonts Directory Path (translated font):"), self.fonts_path_selector)
+        layout.addRow(QLabel(tr('Fonts Directory Path (translated font):')), self.fonts_path_selector)
 
         # Signals
         self.dir_mode_checkbox.stateChanged.connect(self._on_dir_mode_changed)
@@ -587,11 +578,11 @@ class SettingsPluginMixin:
         """Internal helper to handle the dir mode changed event."""
         is_dir = (state == Qt.CheckState.Checked)
         if is_dir:
-            self.orig_label_widget.setText("Original Directory Path:")
-            self.changes_label_widget.setText("Changes Directory Path:")
+            self.orig_label_widget.setText(tr('Original Directory Path:'))
+            self.changes_label_widget.setText(tr('Changes Directory Path:'))
         else:
-            self.orig_label_widget.setText("Original File Path:")
-            self.changes_label_widget.setText("Changes File Path:")
+            self.orig_label_widget.setText(tr('Original File Path:'))
+            self.changes_label_widget.setText(tr('Changes File Path:'))
         self._update_auto_changes_path()
 
     def _on_auto_generate_changed(self, state):
@@ -639,14 +630,14 @@ class SettingsPluginMixin:
         layout.addRow(QLabel(title))
 
         if not self.mw.current_game_rules:
-            layout.addRow(QLabel("No game rules loaded."))
+            layout.addRow(QLabel(tr('No game rules loaded.')))
             return
 
         problem_definitions = self.mw.current_game_rules.get_problem_definitions()
         if not problem_definitions:
-            layout.addRow(QLabel("No problem definitions found in current plugin."))
+            layout.addRow(QLabel(tr('No problem definitions found in current plugin.')))
             if self.mw.current_game_rules.get_display_name() == "Base Game (No Plugin)":
-                layout.addRow(QLabel("<i>(Running in fallback mode due to plugin load error)</i>"))
+                layout.addRow(QLabel(tr('<i>(Running in fallback mode due to plugin load error)</i>')))
             return
 
         sorted_problem_ids = sorted(
@@ -691,15 +682,15 @@ class SettingsPluginMixin:
         """Internal helper to setup autofix subtab."""
         layout = QVBoxLayout(tab)
         
-        general_group = QGroupBox("General Auto-fix Settings", tab)
+        general_group = QGroupBox(tr('General Auto-fix Settings'), tab)
         general_layout = QVBoxLayout(general_group)
-        self.align_sentences_checkbox = QCheckBox("Align sentences to original page layout", general_group)
-        self.align_sentences_checkbox.setToolTip("Align translation sentences structure and pages matching original layout.")
+        self.align_sentences_checkbox = QCheckBox(tr('Align sentences to original page layout'), general_group)
+        self.align_sentences_checkbox.setToolTip(tr('Align translation sentences structure and pages matching original layout.'))
         self.align_sentences_checkbox.stateChanged.connect(self.on_rules_changed)
         general_layout.addWidget(self.align_sentences_checkbox)
         
-        self.prevent_empty_lines_checkbox = QCheckBox("Prevent adding empty padding lines during pagination", general_group)
-        self.prevent_empty_lines_checkbox.setToolTip("Do not add empty padding lines at the end of pages to fill remaining space.")
+        self.prevent_empty_lines_checkbox = QCheckBox(tr('Prevent adding empty padding lines during pagination'), general_group)
+        self.prevent_empty_lines_checkbox.setToolTip(tr('Do not add empty padding lines at the end of pages to fill remaining space.'))
         self.prevent_empty_lines_checkbox.stateChanged.connect(self.on_rules_changed)
         general_layout.addWidget(self.prevent_empty_lines_checkbox)
         
@@ -716,9 +707,9 @@ class SettingsPluginMixin:
         
         # Search Filter
         search_layout = QHBoxLayout()
-        search_layout.addWidget(QLabel("Filter Aliases:"))
+        search_layout.addWidget(QLabel(tr('Filter Aliases:')))
         self.aliases_search_edit = QLineEdit(tab)
-        self.aliases_search_edit.setPlaceholderText("Search by alias or original tag...")
+        self.aliases_search_edit.setPlaceholderText(tr('Search by alias or original tag...'))
         self.aliases_search_edit.setClearButtonEnabled(True)
         self.aliases_search_edit.textChanged.connect(self._filter_aliases_table)
         search_layout.addWidget(self.aliases_search_edit)
@@ -738,20 +729,14 @@ class SettingsPluginMixin:
         layout.addWidget(self.aliases_table)
         
         btn_row = QHBoxLayout()
-        add_btn = QPushButton("Add Alias", tab)
+        add_btn = QPushButton(tr('Add Alias'), tab)
         add_btn.setToolTip(
-            "<b>Add alias</b><br>"
-            "Click — append an empty alias row mapping a raw game tag to a readable "
-            "name.<br>"
-            "Use the search field above to find an existing alias before adding a "
-            "duplicate."
+            tr('<b>Add alias</b><br>Click — append an empty alias row mapping a raw game tag to a readable name.<br>Use the search field above to find an existing alias before adding a duplicate.')
         )
         add_btn.clicked.connect(lambda: self._add_alias_row())
-        remove_btn = QPushButton("Remove Alias", tab)
+        remove_btn = QPushButton(tr('Remove Alias'), tab)
         remove_btn.setToolTip(
-            "<b>Remove alias</b><br>"
-            "Click — delete the selected alias row; with nothing selected it removes "
-            "the last row. One row per click."
+            tr('<b>Remove alias</b><br>Click — delete the selected alias row; with nothing selected it removes the last row. One row per click.')
         )
         remove_btn.clicked.connect(self._remove_alias_row)
         btn_row.addWidget(add_btn); btn_row.addWidget(remove_btn)
@@ -826,7 +811,7 @@ class SettingsPluginMixin:
         if clicked_row != -1 and clicked_row not in selected_rows:
             selected_rows = [clicked_row]
             
-        add_action = menu.addAction("Add Alias")
+        add_action = menu.addAction(tr('Add Alias'))
         clone_action = menu.addAction(f"Clone Alias{'es' if len(selected_rows) > 1 else ''}")
         delete_action = menu.addAction(f"Delete Alias{'es' if len(selected_rows) > 1 else ''}")
         
@@ -858,9 +843,9 @@ class SettingsPluginMixin:
         
         # Search Filter
         search_layout = QHBoxLayout()
-        search_layout.addWidget(QLabel("Filter Characters:"))
+        search_layout.addWidget(QLabel(tr('Filter Characters:')))
         self.font_map_search_edit = QLineEdit(tab)
-        self.font_map_search_edit.setPlaceholderText("Search by character or sequence...")
+        self.font_map_search_edit.setPlaceholderText(tr('Search by character or sequence...'))
         self.font_map_search_edit.setClearButtonEnabled(True)
         self.font_map_search_edit.textChanged.connect(self._filter_font_map_table)
         search_layout.addWidget(self.font_map_search_edit)
@@ -880,19 +865,14 @@ class SettingsPluginMixin:
         layout.addWidget(self.font_map_table)
         
         btn_row = QHBoxLayout()
-        add_btn = QPushButton("Add Character", tab)
+        add_btn = QPushButton(tr('Add Character'), tab)
         add_btn.setToolTip(
-            "<b>Add character</b><br>"
-            "Click — append an empty row for a character and its pixel width.<br>"
-            "Widths feed the line-width warnings, so recalculate widths after "
-            "changing them."
+            tr('<b>Add character</b><br>Click — append an empty row for a character and its pixel width.<br>Widths feed the line-width warnings, so recalculate widths after changing them.')
         )
         add_btn.clicked.connect(lambda: self._add_font_map_row())
-        remove_btn = QPushButton("Remove Character", tab)
+        remove_btn = QPushButton(tr('Remove Character'), tab)
         remove_btn.setToolTip(
-            "<b>Remove character</b><br>"
-            "Click — delete the selected character row; with nothing selected it "
-            "removes the last row. One row per click."
+            tr('<b>Remove character</b><br>Click — delete the selected character row; with nothing selected it removes the last row. One row per click.')
         )
         remove_btn.clicked.connect(self._remove_font_map_row)
         btn_row.addWidget(add_btn); btn_row.addWidget(remove_btn)
@@ -994,7 +974,7 @@ class SettingsPluginMixin:
         if clicked_row != -1 and clicked_row not in selected_rows:
             selected_rows = [clicked_row]
             
-        add_action = menu.addAction("Add Character")
+        add_action = menu.addAction(tr('Add Character'))
         clone_action = menu.addAction(f"Clone Character{'s' if len(selected_rows) > 1 else ''}")
         delete_action = menu.addAction(f"Delete Character{'s' if len(selected_rows) > 1 else ''}")
         

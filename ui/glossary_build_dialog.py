@@ -33,6 +33,7 @@ from core.glossary_build.pipeline_coordinator import (
     MODE_THOROUGH,
     MODE_TRANSLATE,
 )
+from core.i18n import tr
 
 
 AREA_PROJECT = "project"
@@ -64,13 +65,13 @@ class GlossaryBuildDialog(QDialog):
         self._pending_translation_count = pending_translation_count
 
         if target_step == "auto":
-            self.setWindowTitle("Prepare Glossary")
+            self.setWindowTitle(tr('Prepare Glossary'))
         elif target_step == "seed":
-            self.setWindowTitle("Sweep Text with AI")
+            self.setWindowTitle(tr('Sweep Text with AI'))
         elif target_step == "describe":
-            self.setWindowTitle("Describe Glossary Terms")
+            self.setWindowTitle(tr('Describe Glossary Terms'))
         else:
-            self.setWindowTitle("Build Glossary from Text")
+            self.setWindowTitle(tr('Build Glossary from Text'))
 
         self.setModal(on_build is None)
         self.setMinimumWidth(460)
@@ -117,20 +118,19 @@ class GlossaryBuildDialog(QDialog):
 
         if target_step == "describe" and existing_entries == 0:
             warn = QLabel(
-                "⚠️ <b>Glossary is empty</b>: there are no terms to describe yet.<br>"
-                "Run <i>Seed terms from game data</i> or <i>Sweep text with AI</i> first."
+                tr('⚠️ <b>Glossary is empty</b>: there are no terms to describe yet.<br>Run <i>Seed terms from game data</i> or <i>Sweep text with AI</i> first.')
             )
             warn.setStyleSheet("color: #d9534f; margin-top: 4px; margin-bottom: 4px;")
             warn.setWordWrap(True)
             layout.addWidget(warn)
 
         # -- area ----------------------------------------------------------
-        area_box = QGroupBox("Area")
+        area_box = QGroupBox(tr('Area'))
         area_layout = QVBoxLayout(area_box)
         self._area_group = QButtonGroup(self)
 
-        self._area_project = QRadioButton("Whole project")
-        self._area_selected = QRadioButton("Selected blocks")
+        self._area_project = QRadioButton(tr('Whole project'))
+        self._area_selected = QRadioButton(tr('Selected blocks'))
         label = f"Current block ({current_block_label})" if current_block_label else "Current block"
         self._area_current = QRadioButton(label)
 
@@ -157,9 +157,9 @@ class GlossaryBuildDialog(QDialog):
         self._resume_pending_check = None
         if target_step == "auto":
             area_box.hide()
-            blocks_box = QGroupBox("Project blocks")
+            blocks_box = QGroupBox(tr('Project blocks'))
             blocks_layout = QVBoxLayout(blocks_box)
-            self._all_blocks_check = QCheckBox("Whole project")
+            self._all_blocks_check = QCheckBox(tr('Whole project'))
             self._all_blocks_check.setChecked(True)
             self._all_blocks_check.toggled.connect(self._toggle_all_blocks)
             blocks_layout.addWidget(self._all_blocks_check)
@@ -180,31 +180,26 @@ class GlossaryBuildDialog(QDialog):
         # -- build passes ----------------------------------------------------
         self._mode_group = QButtonGroup(self)
 
-        self._mode_thorough = QRadioButton("Thorough (recommended)")
+        self._mode_thorough = QRadioButton(tr('Thorough (recommended)'))
         self._mode_thorough.setToolTip(
-            "Sweep for terms, then describe each one from every place it appears."
+            tr('Sweep for terms, then describe each one from every place it appears.')
         )
-        self._mode_draft = QRadioButton("Draft (fast, rough)")
+        self._mode_draft = QRadioButton(tr('Draft (fast, rough)'))
         self._mode_draft.setToolTip(
-            "One sweep only. Descriptions come from wherever a term was first seen, "
-            "so entries are marked unconfirmed."
+            tr('One sweep only. Descriptions come from wherever a term was first seen, so entries are marked unconfirmed.')
         )
-        self._mode_seed = QRadioButton("Structural seed only (no AI)")
+        self._mode_seed = QRadioButton(tr('Structural seed only (no AI)'))
         self._mode_seed.setToolTip(
-            "Take only the terms already written down somewhere -- the game's own "
-            "item windows, location plates and boss cards, and the characters a "
-            "marked-up script names. Makes no AI request at all, and fills only "
-            "gaps, so it is safe to run first and safe to repeat."
+            tr("Take only the terms already written down somewhere -- the game's own item windows, location plates and boss cards, and the characters a marked-up script names. Makes no AI request at all, and fills only gaps, so it is safe to run first and safe to repeat.")
         )
 
-        self._mode_augment = QRadioButton("Augment existing entries")
+        self._mode_augment = QRadioButton(tr('Augment existing entries'))
         self._mode_augment.setToolTip(
-            "Skip the sweep. Describe glossary entries that already exist, using the project text."
+            tr('Skip the sweep. Describe glossary entries that already exist, using the project text.')
         )
-        self._mode_translate = QRadioButton("Translate existing entries only")
+        self._mode_translate = QRadioButton(tr('Translate existing entries only'))
         self._mode_translate.setToolTip(
-            "No sweep, no describing. Propose translations for entries that already have a "
-            "description but no translation. Entries that are already translated are left alone."
+            tr('No sweep, no describing. Propose translations for entries that already have a description but no translation. Entries that are already translated are left alone.')
         )
 
         for button, key in (
@@ -220,7 +215,7 @@ class GlossaryBuildDialog(QDialog):
         if target_step == "auto":
             self._mode_thorough.setChecked(True)
         elif target_step == "seed":
-            mode_box = QGroupBox("Sweep Depth")
+            mode_box = QGroupBox(tr('Sweep Depth'))
             mode_layout = QVBoxLayout(mode_box)
             mode_layout.addWidget(self._mode_thorough)
             mode_layout.addWidget(self._mode_draft)
@@ -229,13 +224,13 @@ class GlossaryBuildDialog(QDialog):
         elif target_step == "describe":
             self._mode_augment.setChecked(True)
         else:
-            mode_box = QGroupBox("Depth")
+            mode_box = QGroupBox(tr('Depth'))
             mode_layout = QVBoxLayout(mode_box)
             mode_layout.addWidget(self._mode_thorough)
             mode_layout.addWidget(self._mode_draft)
             mode_layout.addWidget(self._mode_seed)
 
-            follow_box = QGroupBox("Follow-up passes")
+            follow_box = QGroupBox(tr('Follow-up passes'))
             follow_layout = QVBoxLayout(follow_box)
             follow_layout.addWidget(self._mode_augment)
             follow_layout.addWidget(self._mode_translate)
@@ -263,18 +258,18 @@ class GlossaryBuildDialog(QDialog):
         # -- options -------------------------------------------------------
         options = QFormLayout()
         self._chunk_combo = QComboBox()
-        self._chunk_combo.addItem("Local / small model (2000)", "local")
-        self._chunk_combo.addItem("Balanced (4000)", "balanced")
-        self._chunk_combo.addItem("Cloud / large model (8000)", "cloud")
+        self._chunk_combo.addItem(tr('Local / small model (2000)'), tr('local'))
+        self._chunk_combo.addItem(tr('Balanced (4000)'), tr('balanced'))
+        self._chunk_combo.addItem(tr('Cloud / large model (8000)'), tr('cloud'))
         self._chunk_combo.setCurrentIndex(1)
-        options.addRow("Chunk size:", self._chunk_combo)
+        options.addRow(tr('Chunk size:'), self._chunk_combo)
         layout.addLayout(options)
 
         self._translate_check = None
         if target_step != "describe":
-            self._translate_check = QCheckBox("Also propose translations now")
+            self._translate_check = QCheckBox(tr('Also propose translations now'))
             self._translate_check.setToolTip(
-                "Runs the translation pass right after describing. You can also run it later."
+                tr('Runs the translation pass right after describing. You can also run it later.')
             )
             layout.addWidget(self._translate_check)
 
@@ -286,10 +281,9 @@ class GlossaryBuildDialog(QDialog):
                 self._translate_check.setChecked(True)
                 self._translate_check.hide()
 
-                self._full_rescan_check = QCheckBox("Re-scan every selected block with AI")
+                self._full_rescan_check = QCheckBox(tr('Re-scan every selected block with AI'))
                 self._full_rescan_check.setToolTip(
-                    "Normally only new or changed blocks are swept. Enable this for a "
-                    "deliberate full evidence rebuild; existing confirmed choices stay protected."
+                    tr('Normally only new or changed blocks are swept. Enable this for a deliberate full evidence rebuild; existing confirmed choices stay protected.')
                 )
                 layout.addWidget(self._full_rescan_check)
 
@@ -298,8 +292,7 @@ class GlossaryBuildDialog(QDialog):
                         f"Resume unfinished entries only (skip text sweep: {pending_description_count} need desc, {pending_translation_count} need trans)"
                     )
                     self._resume_pending_check.setToolTip(
-                        "Skip sweeping project blocks and immediately continue describing and translating "
-                        "terms that are already saved in the glossary."
+                        tr('Skip sweeping project blocks and immediately continue describing and translating terms that are already saved in the glossary.')
                     )
                     self._resume_pending_check.toggled.connect(self._sync_resume_mode)
                     layout.addWidget(self._resume_pending_check)
@@ -312,18 +305,18 @@ class GlossaryBuildDialog(QDialog):
 
         self._ok_button = ok_btn
         if target_step == "auto":
-            ok_btn.setText("Run automatic glossary pass")
+            ok_btn.setText(tr('Run automatic glossary pass'))
         elif target_step == "seed":
-            ok_btn.setText("Sweep text with AI")
+            ok_btn.setText(tr('Sweep text with AI'))
         elif target_step == "describe":
-            ok_btn.setText("Describe terms")
+            ok_btn.setText(tr('Describe terms'))
             if existing_entries == 0:
                 ok_btn.setEnabled(False)
                 ok_btn.setToolTip(
-                    "The glossary is empty. Run structural seed or text sweep first to collect terms."
+                    tr('The glossary is empty. Run structural seed or text sweep first to collect terms.')
                 )
         else:
-            ok_btn.setText("Build")
+            ok_btn.setText(tr('Build'))
 
         buttons.accepted.connect(on_build if on_build is not None else self.accept)
         buttons.rejected.connect(self.reject)
@@ -364,10 +357,10 @@ class GlossaryBuildDialog(QDialog):
             self._full_rescan_check.setEnabled(not resume_only)
         if hasattr(self, "_ok_button"):
             if resume_only:
-                self._ok_button.setText("Resume describing & translating")
+                self._ok_button.setText(tr('Resume describing & translating'))
                 self._ok_button.setEnabled(True)
             else:
-                self._ok_button.setText("Run automatic glossary pass")
+                self._ok_button.setText(tr('Run automatic glossary pass'))
                 selected = len(self.selected_block_indices())
                 self._ok_button.setEnabled(selected > 0)
 

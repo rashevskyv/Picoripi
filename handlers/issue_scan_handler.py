@@ -7,6 +7,7 @@ from PyQt6.QtCore import QTimer, Qt
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_debug, log_error
 from utils.constants import APP_VERSION
+from core.i18n import tr
 
 ISSUE_RULE_ENGINE_VERSION = 3
 
@@ -419,13 +420,13 @@ class IssueScanHandler(BaseHandler):
             self.ui_updater.update_block_item_text_with_problem_count(-2)
             
             if show_message_on_completion:
-                QMessageBox.information(self.mw, "Scan Complete", "Issue scan for chapter complete.")
+                QMessageBox.information(self.mw, tr('Scan Complete'), tr('Issue scan for chapter complete.'))
         else:
             self._perform_issues_scan_for_block(target_block_idx)
             self.ui_updater.update_block_item_text_with_problem_count(target_block_idx)
             
             if show_message_on_completion:
-                QMessageBox.information(self.mw, "Scan Complete", f"Issue scan for block {target_block_idx} complete.")
+                QMessageBox.information(self.mw, tr('Scan Complete'), f"Issue scan for block {target_block_idx} complete.")
         
         # Save the updated issues cache
         self._save_issues_cache()
@@ -436,7 +437,7 @@ class IssueScanHandler(BaseHandler):
         """Rescan all tags."""
         def show_completion():
             self.ui_updater.populate_blocks()
-            QMessageBox.information(self.mw, "Scan Complete", "Full issue scan complete.")
+            QMessageBox.information(self.mw, tr('Scan Complete'), tr('Full issue scan complete.'))
 
         self._perform_initial_silent_scan_all_issues(on_completed=show_completion, force=True)
 

@@ -25,6 +25,7 @@ class GlobalSettings:
             "external_script_path": "",
             "font_size": default_font_size,
             "active_game_plugin": "zelda_mc",
+            "ui_language": "en",
             "target_language": "Ukrainian",
             "show_multiple_spaces_as_dots": True,
             "enable_console_logging": True,

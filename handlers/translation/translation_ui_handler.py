@@ -13,6 +13,7 @@ from components.session_bootstrap_dialog import SessionBootstrapDialog
 from components.ai_status_dialog import AIStatusDialog
 from utils.utils import convert_spaces_to_dots_for_display
 from core.state_manager import AppState
+from core.i18n import tr
 
 class TranslationUIHandler(BaseTranslationHandler):
     """Handler for translation u i operations."""
@@ -71,10 +72,10 @@ class TranslationUIHandler(BaseTranslationHandler):
         
         message = f"Expected {expected} lines, received {actual}. The translation for {mode_label} may break formatting. Apply?"
         if strict:
-            QMessageBox.warning(self.mw, "AI Translation", message)
+            QMessageBox.warning(self.mw, tr('AI Translation'), message)
             return False
         
-        reply = QMessageBox.question(self.mw, "AI Translation", message, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        reply = QMessageBox.question(self.mw, tr('AI Translation'), message, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
         return reply == QMessageBox.StandardButton.Yes
 
     def apply_full_translation(self, new_text: str):
@@ -108,7 +109,7 @@ class TranslationUIHandler(BaseTranslationHandler):
         
         cursor = edited_widget.textCursor()
         if not cursor.hasSelection():
-            QMessageBox.warning(self.mw, "Apply Variation", "No text selected to apply variation to.")
+            QMessageBox.warning(self.mw, tr('Apply Variation'), tr('No text selected to apply variation to.'))
             return
 
         with self.mw.state.enter(AppState.PROGRAMMATIC_TEXT_CHANGE):

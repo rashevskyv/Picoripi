@@ -1,14 +1,15 @@
-﻿from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QHBoxLayout, QSpinBox, QPushButton, QCheckBox
+from core.i18n import tr
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QHBoxLayout, QSpinBox, QPushButton, QCheckBox
 
 class MassFontDialog(QDialog):
     """Dialog class for mass font."""
     def __init__(self, parent=None):
         """Initialize a new instance."""
         super().__init__(parent)
-        self.setWindowTitle("Set Font for Multiple Lines")
+        self.setWindowTitle(tr('Set Font for Multiple Lines'))
         layout = QVBoxLayout(self)
         
-        layout.addWidget(QLabel("Select a font to apply to the selected lines:"))
+        layout.addWidget(QLabel(tr('Select a font to apply to the selected lines:')))
         
         self.font_combo = QComboBox(self)
         self.populate_fonts(parent)
@@ -41,7 +42,7 @@ class MassWidthDialog(QDialog):
         """Initialize a new instance."""
         super().__init__(parent)
         self.main_window = parent
-        self.setWindowTitle("Set Width for Multiple Lines")
+        self.setWindowTitle(tr('Set Width for Multiple Lines'))
         layout = QVBoxLayout(self)
         
         # A multi-selection may contain several window kinds with different
@@ -49,8 +50,7 @@ class MassWidthDialog(QDialog):
         # plugin to resolve the correct default independently for every line.
         self.default_width = 0
         layout.addWidget(QLabel(
-            "Enter a new width for the selected lines.\n"
-            "Enter 0 or click Default to use each line's window-type default."
+            tr("Enter a new width for the selected lines.\nEnter 0 or click Default to use each line's window-type default.")
         ))
         
         controls_layout = QHBoxLayout()
@@ -59,12 +59,12 @@ class MassWidthDialog(QDialog):
         self.width_spinbox.setValue(self.default_width)
         controls_layout.addWidget(self.width_spinbox)
 
-        self.default_button = QPushButton("Default", self)
+        self.default_button = QPushButton(tr('Default'), self)
         self.default_button.clicked.connect(self.set_default_width)
         controls_layout.addWidget(self.default_button)
         layout.addLayout(controls_layout)
 
-        self.auto_width_checkbox = QCheckBox("Auto-width from original", self)
+        self.auto_width_checkbox = QCheckBox(tr('Auto-width from original'), self)
         self.auto_width_checkbox.setChecked(False)
         self.auto_width_checkbox.toggled.connect(self.on_auto_width_toggled)
         layout.addWidget(self.auto_width_checkbox)

@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QWidget,
 )
+from core.i18n import tr
 
 class PromptEditorDialog(QDialog):
     """Allow users to preview/edit AI system+user prompts before sending."""
@@ -55,7 +56,7 @@ class PromptEditorDialog(QDialog):
 
         options_row = QHBoxLayout()
         options_row.addStretch(1)
-        self._save_checkbox = QCheckBox("Save changes to prompt template", self)
+        self._save_checkbox = QCheckBox(tr('Save changes to prompt template'), self)
         self._save_checkbox.setVisible(allow_save)
         options_row.addWidget(self._save_checkbox)
         layout.addLayout(options_row)

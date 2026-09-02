@@ -6,6 +6,7 @@ from typing import List
 import re
 from utils.logging_utils import log_debug, log_error
 from dialogs.base_text_review_dialog import BaseTextReviewDialog
+from core.i18n import tr
 
 class SpellcheckAnalysisWorker(QThread):
     progress = pyqtSignal(int)
@@ -123,69 +124,53 @@ class SpellcheckDialog(BaseTextReviewDialog):
         return f"Block {block_idx}"
 
     def setup_left_panel(self, layout: QVBoxLayout):
-        layout.addWidget(QLabel("Misspelled Words:"))
+        layout.addWidget(QLabel(tr('Misspelled Words:')))
         self.misspelled_list = QListWidget()
         self.misspelled_list.setToolTip(
-            "<b>Misspelled words</b><br>"
-            "Click — review that word and jump the main editor to its string.<br>"
-            "Ctrl-click or Shift-click — select entries without jumping.<br>"
-            "Double-click — jump to the string only."
+            tr('<b>Misspelled words</b><br>Click — review that word and jump the main editor to its string.<br>Ctrl-click or Shift-click — select entries without jumping.<br>Double-click — jump to the string only.')
         )
         self.misspelled_list.itemClicked.connect(self.jump_to_item_from_list)
         self.misspelled_list.itemDoubleClicked.connect(self._on_item_double_click)
         layout.addWidget(self.misspelled_list)
 
     def setup_right_panel(self, layout: QVBoxLayout):
-        self.word_label = QLabel("Word:")
+        self.word_label = QLabel(tr('Word:'))
         layout.addWidget(self.word_label)
 
-        layout.addWidget(QLabel("Suggestions:"))
+        layout.addWidget(QLabel(tr('Suggestions:')))
         self.suggestions_list = QListWidget()
         self.suggestions_list.setToolTip(
-            "<b>Suggestions</b><br>"
-            "Select one and press Replace, or double-click it to replace straight "
-            "away."
+            tr('<b>Suggestions</b><br>Select one and press Replace, or double-click it to replace straight away.')
         )
         self.suggestions_list.itemDoubleClicked.connect(self.replace_with_suggestion)
         layout.addWidget(self.suggestions_list)
 
         # Action buttons
         button_layout = QVBoxLayout()
-        self.ignore_button = QPushButton("Ignore")
+        self.ignore_button = QPushButton(tr('Ignore'))
         self.ignore_button.setToolTip(
-            "<b>Ignore</b><br>"
-            "Click — leave this one occurrence as it is and move to the next.<br>"
-            "Nothing is remembered; the same word flagged elsewhere still comes up."
+            tr('<b>Ignore</b><br>Click — leave this one occurrence as it is and move to the next.<br>Nothing is remembered; the same word flagged elsewhere still comes up.')
         )
         self.ignore_button.clicked.connect(self.ignore_word)
         button_layout.addWidget(self.ignore_button)
 
-        self.ignore_all_button = QPushButton("Ignore All")
+        self.ignore_all_button = QPushButton(tr('Ignore All'))
         self.ignore_all_button.setToolTip(
-            "<b>Ignore all</b><br>"
-            "Click — drop every remaining occurrence of this word from the review "
-            "list, for this run only.<br>"
-            "Use Add to Dictionary instead to remember it permanently."
+            tr('<b>Ignore all</b><br>Click — drop every remaining occurrence of this word from the review list, for this run only.<br>Use Add to Dictionary instead to remember it permanently.')
         )
         self.ignore_all_button.clicked.connect(self.ignore_all_word)
         button_layout.addWidget(self.ignore_all_button)
 
-        self.replace_button = QPushButton("Replace")
+        self.replace_button = QPushButton(tr('Replace'))
         self.replace_button.setToolTip(
-            "<b>Replace</b><br>"
-            "Click — swap the word for the suggestion selected on the right.<br>"
-            "Double-clicking a suggestion does the same in one step."
+            tr('<b>Replace</b><br>Click — swap the word for the suggestion selected on the right.<br>Double-clicking a suggestion does the same in one step.')
         )
         self.replace_button.clicked.connect(self.replace_word)
         button_layout.addWidget(self.replace_button)
 
-        self.add_to_dict_button = QPushButton("Add to Dictionary")
+        self.add_to_dict_button = QPushButton(tr('Add to Dictionary'))
         self.add_to_dict_button.setToolTip(
-            "<b>Add to dictionary</b><br>"
-            "Click — save the word to your custom dictionary, so it is never "
-            "flagged again in any project.<br>"
-            "Manage the saved words later in Settings → Spelling → Manage "
-            "Dictionary."
+            tr('<b>Add to dictionary</b><br>Click — save the word to your custom dictionary, so it is never flagged again in any project.<br>Manage the saved words later in Settings → Spelling → Manage Dictionary.')
         )
         self.add_to_dict_button.clicked.connect(self.add_to_dictionary)
         button_layout.addWidget(self.add_to_dict_button)
@@ -197,7 +182,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
         """Load spellcheck content after dialog is shown."""
         try:
             log_debug("SpellcheckDialog: _load_content started")
-            self.status_label.setText("Analyzing text...")
+            self.status_label.setText(tr('Analyzing text...'))
 
             import sys
             parent = self.parentWidget()
@@ -206,7 +191,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
             if is_test:
                 log_debug("SpellcheckDialog: Running in test mode, using synchronous loading")
                 self.find_misspelled_words()
-                self.status_label.setText("Highlighting errors...")
+                self.status_label.setText(tr('Highlighting errors...'))
                 self.pre_highlight_all_misspelled_words()
                 self.show_current_item()
                 log_debug("SpellcheckDialog: Synchronous content loading complete")
@@ -231,7 +216,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
             except TypeError:
                 pass
             self.cancel_analysis_button.clicked.connect(self.analysis_worker.cancel)
-            self.cancel_analysis_button.clicked.connect(lambda: self.status_label.setText("Cancelling..."))
+            self.cancel_analysis_button.clicked.connect(lambda: self.status_label.setText(tr('Cancelling...')))
 
             self.analysis_worker.start()
         except Exception as e:
@@ -254,7 +239,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
             self.items_to_review = items_to_review
             self.misspelled_words = self.items_to_review
 
-            self.status_label.setText("Highlighting errors...")
+            self.status_label.setText(tr('Highlighting errors...'))
             self.pre_highlight_all_misspelled_words()
             self.show_current_item()
 
@@ -274,7 +259,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
                 self._shutdown_worker()
                 super().reject()
                 return
-            self.status_label.setText("Analysis cancelled.")
+            self.status_label.setText(tr('Analysis cancelled.'))
             self.show_progress_ui(False)
             self.set_controls_enabled(True)
         except Exception as e:
@@ -361,8 +346,8 @@ class SpellcheckDialog(BaseTextReviewDialog):
     def show_current_item(self, from_click=False):
         """Display current misspelled word and its suggestions."""
         if self.current_item_index >= len(self.items_to_review):
-            self.status_label.setText("Spellcheck complete!")
-            self.word_label.setText("No more misspelled words.")
+            self.status_label.setText(tr('Spellcheck complete!'))
+            self.word_label.setText(tr('No more misspelled words.'))
             self.suggestions_list.clear()
             for btn in [self.ignore_button, self.ignore_all_button, self.replace_button, self.add_to_dict_button, self.prev_button, self.next_button]:
                 btn.setEnabled(False)
@@ -563,7 +548,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
     def reject(self):
         if hasattr(self, 'analysis_worker') and self.analysis_worker and self.analysis_worker.isRunning():
             self._is_closing = True
-            self.status_label.setText("Cancelling and closing...")
+            self.status_label.setText(tr('Cancelling and closing...'))
             self.set_controls_enabled(False)
             self.analysis_worker.cancel()
             return

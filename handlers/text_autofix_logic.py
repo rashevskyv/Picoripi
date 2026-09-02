@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtGui import QTextCursor
 from utils.logging_utils import log_debug
 from utils.utils import convert_spaces_to_dots_for_display
+from core.i18n import tr
 
 class TextAutofixLogic:
     """Text autofix logic implementation delegated to GameRules."""
@@ -48,7 +49,7 @@ class TextAutofixLogic:
         """Auto fix current string."""
         log_debug("TextAutofixLogic.auto_fix_current_string: Called.")
         if self.mw.data_store.physical_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
-            QMessageBox.information(self.mw, "Auto-fix", "No string selected to fix.")
+            QMessageBox.information(self.mw, tr('Auto-fix'), tr('No string selected to fix.'))
             return
 
         block_idx = self.mw.data_store.physical_block_idx
@@ -104,7 +105,7 @@ class TextAutofixLogic:
                     break
                 iteration += 1
             if not stabilized:
-                QMessageBox.warning(self.mw, "Auto-fix", "Auto-fix could not stabilize the text. Some rules might be conflicting.")
+                QMessageBox.warning(self.mw, tr('Auto-fix'), tr('Auto-fix could not stabilize the text. Some rules might be conflicting.'))
             final_text_to_apply = fixed_text
             changed = final_text_to_apply != current_text
         else:

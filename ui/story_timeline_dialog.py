@@ -21,6 +21,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QRect, QSize, QTimer
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QFontMetrics
 
 from core.story_inspector import build_timeline_inspection
+from core.i18n import tr
 
 _ACCENT = "#137333"
 _ACCENT_DIM = "#9aa0a6"
@@ -79,7 +80,7 @@ class TimelineStripWidget(QWidget):
                     tip += f"<br>{html.escape(n['summary'])}"
                 self.setToolTip(tip)
             else:
-                self.setToolTip("")
+                self.setToolTip(tr(''))
             self.update()
 
     def mousePressEvent(self, event):
@@ -143,7 +144,7 @@ class StoryTimelineDialog(QDialog):
     def __init__(self, main_window):
         super().__init__(main_window)
         self.mw = main_window
-        self.setWindowTitle("Story Timeline")
+        self.setWindowTitle(tr('Story Timeline'))
         self.setModal(False)
         self.resize(900, 640)
         self.setMinimumSize(560, 420)
@@ -157,11 +158,10 @@ class StoryTimelineDialog(QDialog):
         self._heading.setTextFormat(Qt.TextFormat.RichText)
         self._heading.setWordWrap(True)
         top_row.addWidget(self._heading, 1)
-        self._follow_checkbox = QCheckBox("Follow selection")
+        self._follow_checkbox = QCheckBox(tr('Follow selection'))
         self._follow_checkbox.setChecked(True)
         self._follow_checkbox.setToolTip(
-            "Keep the window in sync with the row you select in the editor. "
-            "Uncheck to pin the current row."
+            tr('Keep the window in sync with the row you select in the editor. Uncheck to pin the current row.')
         )
         top_row.addWidget(self._follow_checkbox, 0, Qt.AlignmentFlag.AlignTop)
         layout.addLayout(top_row)

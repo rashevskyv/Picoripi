@@ -5,6 +5,7 @@ from PyQt6.QtCore import QRect, QProcess, QPoint, Qt
 from utils.logging_utils import log_debug, log_info, log_error
 from pathlib import Path
 import sys
+from core.i18n import tr
 
 if TYPE_CHECKING:
     from main import MainWindow
@@ -80,7 +81,7 @@ class MainWindowHelper:
         found = self.mw.search_handler.find_next(query_to_use, case_sensitive_to_use, search_in_original_to_use, ignore_tags_to_use, is_fuzzy_to_use)
         if not found and not self.mw.search_panel_widget.isVisible():
             from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.information(self.mw, "Find", f"Not found: \"{query_to_use}\"")
+            QMessageBox.information(self.mw, tr('Find'), f"Not found: \"{query_to_use}\"")
 
     def execute_find_previous_shortcut(self):
         """Execute find previous shortcut."""
@@ -106,7 +107,7 @@ class MainWindowHelper:
         found = self.mw.search_handler.find_previous(query_to_use, case_sensitive_to_use, search_in_original_to_use, ignore_tags_to_use, is_fuzzy_to_use)
         if not found and not self.mw.search_panel_widget.isVisible():
             from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.information(self.mw, "Find", f"Not found: \"{query_to_use}\"")
+            QMessageBox.information(self.mw, tr('Find'), f"Not found: \"{query_to_use}\"")
 
     def handle_panel_find_next(self, query, case_sensitive, search_in_original, ignore_tags, is_fuzzy):
         """Handle panel find next."""
@@ -201,7 +202,7 @@ class MainWindowHelper:
                 self.mw.last_advanced_search_query = query
                 
             if not self.mw.data_store.data:
-                QMessageBox.warning(self.mw, "Advanced Search", "No project data loaded.")
+                QMessageBox.warning(self.mw, tr('Advanced Search'), tr('No project data loaded.'))
                 return
 
             edited_data = self.mw.data_store.edited_data
@@ -295,7 +296,7 @@ class MainWindowHelper:
             dialog.show()
         except Exception as e:
             log_error(f"MainWindowHelper: Error in open_advanced_search: {e}", exc_info=True)
-            QMessageBox.critical(self.mw, "Error", f"An error occurred: {e}")
+            QMessageBox.critical(self.mw, tr('Error'), f"An error occurred: {e}")
 
     def load_all_data_for_path(self, original_file_path, manually_set_edited_path=None, is_initial_load_from_settings=False):
         """Load all data for path."""

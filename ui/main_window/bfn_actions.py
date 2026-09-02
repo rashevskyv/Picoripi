@@ -4,6 +4,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QInputDialog
 from utils.logging_utils import log_info
 from bmg_tool import BMGFile, BMGMessage
+from core.i18n import tr
 
 class BfnActions:
     """Helper class containing BFN Font Editor action methods for MainWindow."""
@@ -51,13 +52,13 @@ class BfnActions:
 
         pm = getattr(self.mw, 'project_manager', None)
         if not pm or not pm.project:
-            QMessageBox.warning(self.mw, 'BFN Editor', 'No project is open.')
+            QMessageBox.warning(self.mw, tr('BFN Editor'), tr('No project is open.'))
             return
 
         block_map = getattr(self.mw, 'block_to_project_file_map', {})
         proj_b_idx = block_map.get(block_idx, block_idx)
         if proj_b_idx >= len(pm.project.blocks):
-            QMessageBox.warning(self.mw, 'BFN Editor', 'Could not resolve block file.')
+            QMessageBox.warning(self.mw, tr('BFN Editor'), tr('Could not resolve block file.'))
             return
 
         block = pm.project.blocks[proj_b_idx]
@@ -82,7 +83,7 @@ class BfnActions:
                         except Exception:
                             pass
             except Exception as e:
-                QMessageBox.critical(self.mw, 'BFN Editor', f'Failed to read .bfn from archive:\n{e}')
+                QMessageBox.critical(self.mw, tr('BFN Editor'), f'Failed to read .bfn from archive:\n{e}')
                 return
 
             def save_callback(filename: str, new_bytes: bytes):
@@ -93,7 +94,7 @@ class BfnActions:
                     Path(archive_abs).write_bytes(container.pack())
                     log_info(f"BFN Editor: saved '{filename}' back to archive '{archive_rel_path}'.")
                 except Exception as ex:
-                    QMessageBox.critical(editor, 'BFN Editor', f'Failed to write back to archive:\n{ex}')
+                    QMessageBox.critical(editor, tr('BFN Editor'), f'Failed to write back to archive:\n{ex}')
 
             editor.open_from_bytes(
                 bfn_bytes,
@@ -156,13 +157,13 @@ class BfnActions:
         ds = getattr(self.mw, 'data_store', None)
 
         if not pm or not pm.project or ds is None or ds.current_block_idx == -1:
-            QMessageBox.warning(self.mw, 'Export BMG', 'No block selected. Please select a BMG block first.')
+            QMessageBox.warning(self.mw, tr('Export BMG'), tr('No block selected. Please select a BMG block first.'))
             return
 
         block_map = getattr(self.mw, 'block_to_project_file_map', {})
         proj_b_idx = block_map.get(ds.current_block_idx)
         if proj_b_idx is None or proj_b_idx >= len(pm.project.blocks):
-            QMessageBox.warning(self.mw, 'Export BMG', 'Cannot resolve the selected block to a project file.')
+            QMessageBox.warning(self.mw, tr('Export BMG'), tr('Cannot resolve the selected block to a project file.'))
             return
 
         block = pm.project.blocks[proj_b_idx]
@@ -193,8 +194,8 @@ class BfnActions:
         raw_src, label_src = _read_bmg_bytes(is_translation=False)
 
         if raw_trans is None and raw_src is None:
-            QMessageBox.warning(self.mw, 'Export BMG',
-                'The selected block does not appear to reference a BMG file.')
+            QMessageBox.warning(self.mw, tr('Export BMG'),
+                tr('The selected block does not appear to reference a BMG file.'))
             return
 
         def bmg_bytes_to_dict(raw: bytes, label: str) -> dict:
@@ -238,12 +239,12 @@ class BfnActions:
             with open(save_path, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, ensure_ascii=False, indent=2)
             QMessageBox.information(
-                self.mw, 'Export BMG',
+                self.mw, tr('Export BMG'),
                 f'Successfully exported BMG content to:\n{save_path}\n\n'
                 f'Messages: {export_data.get("source", export_data.get("translation", {})).get("message_count", 0)}'
             )
         except Exception as e:
-            QMessageBox.critical(self.mw, 'Export BMG', f'Failed to save JSON:\n{e}')
+            QMessageBox.critical(self.mw, tr('Export BMG'), f'Failed to save JSON:\n{e}')
 
     def import_current_bmg_from_json(self):
         """Import BMG text content from an exported JSON file into the currently selected block."""
@@ -251,13 +252,13 @@ class BfnActions:
         ds = getattr(self.mw, 'data_store', None)
 
         if not pm or not pm.project or ds is None or ds.current_block_idx == -1:
-            QMessageBox.warning(self.mw, 'Import BMG', 'No block selected. Please select a BMG block first.')
+            QMessageBox.warning(self.mw, tr('Import BMG'), tr('No block selected. Please select a BMG block first.'))
             return
 
         block_map = getattr(self.mw, 'block_to_project_file_map', {})
         proj_b_idx = block_map.get(ds.current_block_idx)
         if proj_b_idx is None or proj_b_idx >= len(pm.project.blocks):
-            QMessageBox.warning(self.mw, 'Import BMG', 'Cannot resolve the selected block to a project file.')
+            QMessageBox.warning(self.mw, tr('Import BMG'), tr('Cannot resolve the selected block to a project file.'))
             return
 
         block = pm.project.blocks[proj_b_idx]
@@ -276,7 +277,7 @@ class BfnActions:
             with open(load_path, 'r', encoding='utf-8') as f:
                 import_data = json.load(f)
         except Exception as e:
-            QMessageBox.critical(self.mw, 'Import BMG', f'Failed to load JSON file:\n{e}')
+            QMessageBox.critical(self.mw, tr('Import BMG'), f'Failed to load JSON file:\n{e}')
             return
 
         # Determine which dictionary to read (translation or source)
@@ -304,18 +305,18 @@ class BfnActions:
         elif 'messages' in import_data:
             bmg_dict = import_data
         else:
-            QMessageBox.warning(self.mw, 'Import BMG', 'The selected JSON does not contain valid BMG export data.')
+            QMessageBox.warning(self.mw, tr('Import BMG'), tr('The selected JSON does not contain valid BMG export data.'))
             return
 
         messages_list = bmg_dict.get('messages', [])
         if not messages_list:
-            QMessageBox.warning(self.mw, 'Import BMG', 'No messages found in the JSON file.')
+            QMessageBox.warning(self.mw, tr('Import BMG'), tr('No messages found in the JSON file.'))
             return
 
         # Confirm with the user
         reply = QMessageBox.question(
             self.mw,
-            'Confirm Import',
+            tr('Confirm Import'),
             f'This will replace all strings in the current block "{block.name}" with the {len(messages_list)} strings from the JSON file.\n'
             'Do you want to proceed?',
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -332,7 +333,7 @@ class BfnActions:
                 editor_text = self.mw.current_game_rules.msg_to_editor_text(bmg_msg)
                 imported_strings.append(editor_text)
         except Exception as e:
-            QMessageBox.critical(self.mw, 'Import BMG', f'Failed to parse messages from JSON:\n{e}')
+            QMessageBox.critical(self.mw, tr('Import BMG'), f'Failed to parse messages from JSON:\n{e}')
             return
 
         # Remove any existing memory edits for this block first
@@ -365,7 +366,7 @@ class BfnActions:
 
         QMessageBox.information(
             self.mw,
-            'Import BMG',
+            tr('Import BMG'),
             f'Successfully imported {len(imported_strings)} strings from JSON into block "{block.name}".\n'
             'The changes are loaded in the editor. Click "Save" to save them to the translation file.'
         )

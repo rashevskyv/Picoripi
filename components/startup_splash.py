@@ -3,6 +3,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont, QPainter
 from PyQt6.QtWidgets import QApplication, QLabel, QProgressBar, QVBoxLayout, QWidget
+from core.i18n import tr
 
 
 class StartupSplash(QWidget):
@@ -17,17 +18,17 @@ class StartupSplash(QWidget):
         layout.setContentsMargins(42, 34, 42, 32)
         layout.setSpacing(12)
 
-        title = QLabel("PICORIPI")
+        title = QLabel(tr('PICORIPI'))
         title_font = QFont()
         title_font.setPointSize(22)
         title_font.setBold(True)
         title.setFont(title_font)
         title.setStyleSheet("color: #f3f0ff; letter-spacing: 3px;")
 
-        subtitle = QLabel("Translation Workbench")
+        subtitle = QLabel(tr('Translation Workbench'))
         subtitle.setStyleSheet("color: #aca4c7; font-size: 11px;")
 
-        self.status_label = QLabel("Starting…")
+        self.status_label = QLabel(tr('Starting…'))
         self.status_label.setStyleSheet("color: #ffffff; font-size: 12px;")
 
         self.progress_bar = QProgressBar()

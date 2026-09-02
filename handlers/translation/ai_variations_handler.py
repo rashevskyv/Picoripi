@@ -11,6 +11,7 @@ from core.translation.layout_contract import (
     resolve_lines_per_window,
     validate_translation_layout,
 )
+from core.i18n import tr
 
 
 class AIVariationsHandler(BaseTranslationHandler):
@@ -87,7 +88,7 @@ class AIVariationsHandler(BaseTranslationHandler):
         self.main_handler.ui_handler.finish_ai_operation(show_popup=False)
 
         if not variants_raw:
-            QMessageBox.information(self.mw, "AI Variation", "Failed to parse variations from AI response.")
+            QMessageBox.information(self.mw, tr('AI Variation'), tr('Failed to parse variations from AI response.'))
             return
             
         # Restore placeholders
@@ -194,7 +195,7 @@ class AIVariationsHandler(BaseTranslationHandler):
     def generate_variation_for_string(self, block_idx: int, string_idx: int, force: bool = False, on_success_callback: Optional[callable] = None, parent: Optional[Any] = None, selected_text: Optional[str] = None) -> None:
         """Generate variation for a specific string."""
         if self.main_handler.is_ai_running:
-            QMessageBox.information(self.mw, "AI Busy", "An AI task is already running. Please wait for it to complete.")
+            QMessageBox.information(self.mw, tr('AI Busy'), tr('An AI task is already running. Please wait for it to complete.'))
             return
         if block_idx == -1 or string_idx == -1: 
             return
@@ -202,7 +203,7 @@ class AIVariationsHandler(BaseTranslationHandler):
         original_text = str(self.main_handler.glossary_handler._get_original_string(block_idx, string_idx))
         current_translation, _ = self.data_processor.get_current_string_text(block_idx, string_idx)
         if not current_translation:
-            QMessageBox.information(self.mw, "AI Variation", "There is no current translation to vary.")
+            QMessageBox.information(self.mw, tr('AI Variation'), tr('There is no current translation to vary.'))
             return
 
         # Check cache if not forced

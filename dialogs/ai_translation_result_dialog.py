@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QTextEdit, QHBoxLayout, QPushButton
 )
 from PyQt6.QtCore import Qt
+from core.i18n import tr
 
 class AITranslationResultDialog(QDialog):
     """Custom dialog for displaying detailed AI translation results in a scrollable format."""
@@ -16,7 +17,7 @@ class AITranslationResultDialog(QDialog):
         parent_widget = parent if isinstance(parent, QWidget) else None
         super().__init__(parent_widget)
         
-        self.setWindowTitle("AI Translation Results")
+        self.setWindowTitle(tr('AI Translation Results'))
         self.setMinimumSize(550, 400)
         self.resize(600, 450)
         
@@ -78,11 +79,9 @@ class AITranslationResultDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         
-        self.close_btn = QPushButton("OK", self)
+        self.close_btn = QPushButton(tr('OK'), self)
         self.close_btn.setToolTip(
-            "<b>OK</b><br>"
-            "Click — close the result summary (Enter). The translations are already "
-            "applied; nothing here is undone by closing."
+            tr('<b>OK</b><br>Click — close the result summary (Enter). The translations are already applied; nothing here is undone by closing.')
         )
         self.close_btn.setDefault(True)
         self.close_btn.clicked.connect(self.accept)

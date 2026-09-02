@@ -7,6 +7,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
 from components.chapter_picker import HierarchicalChapterComboBox
+from core.i18n import tr
 
 
 # Shared with the handlers that re-set these tooltips when the buttons are
@@ -87,7 +88,7 @@ class LayoutBuilder:
         
         # Block Header
         block_header_layout = QHBoxLayout()
-        block_header_layout.addWidget(QLabel("Blocks (double-click to rename):"))
+        block_header_layout.addWidget(QLabel(tr('Blocks (double-click to rename):')))
         block_header_layout.addStretch()
 
         self.mw.add_folder_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), ADD_FOLDER_TOOLTIP)
@@ -116,8 +117,8 @@ class LayoutBuilder:
 
         # Block Filter
         block_filter_layout = QHBoxLayout()
-        self.mw.show_unsaved_blocks_checkbox = QCheckBox("Show Unsaved Only")
-        self.mw.show_unsaved_blocks_checkbox.setToolTip("Only show blocks and folders with unsaved changes.")
+        self.mw.show_unsaved_blocks_checkbox = QCheckBox(tr('Show Unsaved Only'))
+        self.mw.show_unsaved_blocks_checkbox.setToolTip(tr('Only show blocks and folders with unsaved changes.'))
         self.mw.show_unsaved_blocks_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         block_filter_layout.addWidget(self.mw.show_unsaved_blocks_checkbox)
         block_filter_layout.addStretch()
@@ -191,12 +192,9 @@ class LayoutBuilder:
         left_layout.addWidget(block_list_container)
         
         left_layout.addSpacing(8)
-        self.mw.open_glossary_button = QPushButton('Glossary…')
+        self.mw.open_glossary_button = QPushButton(tr('Glossary…'))
         self.mw.open_glossary_button.setToolTip(
-            "<b>Glossary</b><br>"
-            "Click — open the project glossary (Ctrl+G).<br>"
-            "Ctrl-click a glossary term in the Original panel — open that entry "
-            "for editing directly."
+            tr('<b>Glossary</b><br>Click — open the project glossary (Ctrl+G).<br>Ctrl-click a glossary term in the Original panel — open that entry for editing directly.')
         )
         left_layout.addWidget(self.mw.open_glossary_button)
 
@@ -210,58 +208,56 @@ class LayoutBuilder:
         
         preview_header_layout = QHBoxLayout()
         preview_header_layout.setContentsMargins(0, 0, 8, 0)
-        preview_header_layout.addWidget(QLabel("Strings in block (click line to select):"))
+        preview_header_layout.addWidget(QLabel(tr('Strings in block (click line to select):')))
         preview_header_layout.addStretch()
         
-        self.mw.highlight_categorized_checkbox = QCheckBox("Highlight moved")
-        self.mw.highlight_categorized_checkbox.setToolTip("Highlight strings in the parent block that have already been moved to a virtual block (category). Helps you see what's left to organize.")
+        self.mw.highlight_categorized_checkbox = QCheckBox(tr('Highlight moved'))
+        self.mw.highlight_categorized_checkbox.setToolTip(tr("Highlight strings in the parent block that have already been moved to a virtual block (category). Helps you see what's left to organize."))
         self.mw.highlight_categorized_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.highlight_categorized_checkbox.hide()
         preview_header_layout.addWidget(self.mw.highlight_categorized_checkbox)
         
         preview_header_layout.addSpacing(15)
         
-        self.mw.hide_categorized_checkbox = QCheckBox("Hide moved")
-        self.mw.hide_categorized_checkbox.setToolTip("Filter out strings from the parent block view if they are already present in any virtual block. Useful for focused organizing.")
+        self.mw.hide_categorized_checkbox = QCheckBox(tr('Hide moved'))
+        self.mw.hide_categorized_checkbox.setToolTip(tr('Filter out strings from the parent block view if they are already present in any virtual block. Useful for focused organizing.'))
         self.mw.hide_categorized_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.hide_categorized_checkbox.hide()
         preview_header_layout.addWidget(self.mw.hide_categorized_checkbox)
         
         preview_header_layout.addSpacing(15)
-        self.mw.hide_empty_strings_checkbox = QCheckBox("Hide empty strings")
-        self.mw.hide_empty_strings_checkbox.setToolTip("Collapse consecutive empty strings into a single placeholder.")
+        self.mw.hide_empty_strings_checkbox = QCheckBox(tr('Hide empty strings'))
+        self.mw.hide_empty_strings_checkbox.setToolTip(tr('Collapse consecutive empty strings into a single placeholder.'))
         self.mw.hide_empty_strings_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.hide_empty_strings_checkbox)
         
         preview_header_layout.addSpacing(15)
-        self.mw.hide_translated_checkbox = QCheckBox("Hide translated")
-        self.mw.hide_translated_checkbox.setToolTip("Hide strings that have already been translated.")
+        self.mw.hide_translated_checkbox = QCheckBox(tr('Hide translated'))
+        self.mw.hide_translated_checkbox.setToolTip(tr('Hide strings that have already been translated.'))
         self.mw.hide_translated_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.hide_translated_checkbox)
         
         preview_header_layout.addSpacing(15)
-        self.mw.show_overrides_only_checkbox = QCheckBox("Show Overrides Only")
-        self.mw.show_overrides_only_checkbox.setToolTip("Only show strings that have custom font or width overrides.")
+        self.mw.show_overrides_only_checkbox = QCheckBox(tr('Show Overrides Only'))
+        self.mw.show_overrides_only_checkbox.setToolTip(tr('Only show strings that have custom font or width overrides.'))
         self.mw.show_overrides_only_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.show_overrides_only_checkbox)
         
         preview_header_layout.addSpacing(15)
-        self.mw.show_unsaved_only_checkbox = QCheckBox("Show Unsaved Only")
-        self.mw.show_unsaved_only_checkbox.setToolTip("Only show strings with unsaved changes.")
+        self.mw.show_unsaved_only_checkbox = QCheckBox(tr('Show Unsaved Only'))
+        self.mw.show_unsaved_only_checkbox.setToolTip(tr('Only show strings with unsaved changes.'))
         self.mw.show_unsaved_only_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.show_unsaved_only_checkbox)
         
         preview_header_layout.addSpacing(15)
-        self.mw.show_warnings_only_checkbox = QCheckBox("Show Warnings Only:")
-        self.mw.show_warnings_only_checkbox.setToolTip("Only show strings with selected warnings.")
+        self.mw.show_warnings_only_checkbox = QCheckBox(tr('Show Warnings Only:'))
+        self.mw.show_warnings_only_checkbox.setToolTip(tr('Only show strings with selected warnings.'))
         self.mw.show_warnings_only_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         preview_header_layout.addWidget(self.mw.show_warnings_only_checkbox)
         
-        self.mw.warnings_filter_button = QPushButton("Warnings: 0 / 0")
+        self.mw.warnings_filter_button = QPushButton(tr('Warnings: 0 / 0'))
         self.mw.warnings_filter_button.setToolTip(
-            "<b>Warning filter</b><br>"
-            "Click — choose which warning types “Show Warnings Only” filters by.<br>"
-            "The label shows selected / total active warning types."
+            tr('<b>Warning filter</b><br>Click — choose which warning types “Show Warnings Only” filters by.<br>The label shows selected / total active warning types.')
         )
         self.mw.warnings_filter_button.setFixedWidth(150)
         self.mw.warnings_filter_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -299,7 +295,7 @@ class LayoutBuilder:
         original_tools_layout.setContentsMargins(0, 0, 0, 0)
         original_tools_layout.setSpacing(6)
 
-        original_tools_layout.addWidget(QLabel("Max-width:"))
+        original_tools_layout.addWidget(QLabel(tr('Max-width:')))
         self.mw.original_width_label = ClickableLabel("")
         self.mw.original_width_label.setObjectName("original_width_value")
         self.mw.original_width_label.setStyleSheet(
@@ -308,15 +304,13 @@ class LayoutBuilder:
         )
         self.mw.original_width_label.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mw.original_width_label.setToolTip(
-            "<b>Original max-width</b><br>"
-            "Click — copy this width into the translation Max-width field on the "
-            "right, then press Apply there."
+            tr('<b>Original max-width</b><br>Click — copy this width into the translation Max-width field on the right, then press Apply there.')
         )
         original_tools_layout.addWidget(self.mw.original_width_label)
         original_tools_layout.addStretch(1)
 
-        self.mw.hide_original_tags_checkbox = QCheckBox("Hide tags")
-        self.mw.hide_original_tags_checkbox.setToolTip("Hide tags in all text panels. (Ctrl+Q)")
+        self.mw.hide_original_tags_checkbox = QCheckBox(tr('Hide tags'))
+        self.mw.hide_original_tags_checkbox.setToolTip(tr('Hide tags in all text panels. (Ctrl+Q)'))
         self.mw.hide_original_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         original_tools_layout.addWidget(self.mw.hide_original_tags_checkbox)
         left_header_layout.addStretch(1)
@@ -433,10 +427,7 @@ class LayoutBuilder:
         self.mw.revert_string_button = QPushButton()
         self.mw.revert_string_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowForward))
         self.mw.revert_string_button.setToolTip(
-            "<b>Revert string</b><br>"
-            "Click — replace the current translation with the original file content.<br>"
-            "Right-click a block in the tree — “Revert … to original” for a whole "
-            "block, chapter or project."
+            tr('<b>Revert string</b><br>Click — replace the current translation with the original file content.<br>Right-click a block in the tree — “Revert … to original” for a whole block, chapter or project.')
         )
         self.mw.revert_string_button.setFixedWidth(30)
         self.mw.revert_string_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -449,11 +440,7 @@ class LayoutBuilder:
         self.mw.restore_translation_button = QPushButton()
         self.mw.restore_translation_button.setIcon(restore_icon)
         self.mw.restore_translation_button.setToolTip(
-            "<b>Restore translation</b><br>"
-            "Click — bring back the last translation saved in the local backup "
-            "database for this string (Ctrl+Shift+T).<br>"
-            "Right-click a block in the tree — Restore All Translations for a whole "
-            "block or project."
+            tr('<b>Restore translation</b><br>Click — bring back the last translation saved in the local backup database for this string (Ctrl+Shift+T).<br>Right-click a block in the tree — Restore All Translations for a whole block or project.')
         )
         self.mw.restore_translation_button.setFixedWidth(30)
         self.mw.restore_translation_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -466,9 +453,7 @@ class LayoutBuilder:
         self.mw.inspect_story_context_button = QPushButton()
         self.mw.inspect_story_context_button.setIcon(story_icon)
         self.mw.inspect_story_context_button.setToolTip(
-            "<b>Inspect story context</b><br>"
-            "Click — show timeline, speaker and visual context for the selected row "
-            "from MemePalace (Ctrl+I)."
+            tr('<b>Inspect story context</b><br>Click — show timeline, speaker and visual context for the selected row from MemePalace (Ctrl+I).')
         )
         self.mw.inspect_story_context_button.setFixedWidth(30)
         self.mw.inspect_story_context_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -481,11 +466,7 @@ class LayoutBuilder:
         self.mw.open_current_string_in_markup_studio_button = QPushButton()
         self.mw.open_current_string_in_markup_studio_button.setIcon(markup_icon)
         self.mw.open_current_string_in_markup_studio_button.setToolTip(
-            "<b>Open in Script Markup Studio</b><br>"
-            "Click — jump to the marked-script place linked to the current game "
-            "string.<br>"
-            "Enabled once a string is selected; the Studio also opens from "
-            "Tools → Script Markup Studio."
+            tr('<b>Open in Script Markup Studio</b><br>Click — jump to the marked-script place linked to the current game string.<br>Enabled once a string is selected; the Studio also opens from Tools → Script Markup Studio.')
         )
         self.mw.open_current_string_in_markup_studio_button.setFixedWidth(30)
         self.mw.open_current_string_in_markup_studio_button.setCursor(
@@ -532,11 +513,11 @@ class LayoutBuilder:
             "font-weight: bold; color: #2e7d32; font-size: 13px;"
         )
         self.mw.window_kind_label.setToolTip(
-            "Message window type from the game data. Double-click to open the physical game block.")
+            tr('Message window type from the game data. Double-click to open the physical game block.'))
         self.mw.window_kind_label.setFixedWidth(compact_label_width)
         header_grid.addWidget(self.mw.window_kind_label, 0, 0)
 
-        self.mw.window_kind_value_label = QLabel("")
+        self.mw.window_kind_value_label = QLabel(tr(''))
         self.mw.window_kind_value_label.setFixedWidth(compact_context_width)
         self.mw.window_kind_value_label.setFixedHeight(compact_context_height)
         self.mw.window_kind_value_label.setStyleSheet("color: #000000; font-size: 13px;")
@@ -554,10 +535,7 @@ class LayoutBuilder:
         self.mw.navigate_down_button = QPushButton()
         self.mw.navigate_down_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowDown))
         self.mw.navigate_down_button.setToolTip(
-            "<b>Next problem string</b><br>"
-            "Click — jump to the next string that has a warning (Ctrl+Down).<br>"
-            "Alt+Down — next string regardless of warnings.<br>"
-            "Alt+Shift+Down — next block."
+            tr('<b>Next problem string</b><br>Click — jump to the next string that has a warning (Ctrl+Down).<br>Alt+Down — next string regardless of warnings.<br>Alt+Shift+Down — next block.')
         )
         self.mw.navigate_down_button.setFixedSize(control_height, control_height)
         editor_action_layout.addWidget(self.mw.navigate_down_button)
@@ -565,52 +543,28 @@ class LayoutBuilder:
         self.mw.navigate_up_button = QPushButton()
         self.mw.navigate_up_button.setIcon(self.style.standardIcon(QStyle.StandardPixmap.SP_ArrowUp))
         self.mw.navigate_up_button.setToolTip(
-            "<b>Previous problem string</b><br>"
-            "Click — jump to the previous string that has a warning (Ctrl+Up).<br>"
-            "Alt+Up — previous string regardless of warnings.<br>"
-            "Alt+Shift+Up — previous block."
+            tr('<b>Previous problem string</b><br>Click — jump to the previous string that has a warning (Ctrl+Up).<br>Alt+Up — previous string regardless of warnings.<br>Alt+Shift+Up — previous block.')
         )
         self.mw.navigate_up_button.setFixedSize(control_height, control_height)
         editor_action_layout.addWidget(self.mw.navigate_up_button)
 
-        self.mw.ai_translate_button = QPushButton('AI Translate')
+        self.mw.ai_translate_button = QPushButton(tr('AI Translate'))
         self.mw.ai_translate_button.setToolTip(
-            "<b>AI Translate</b><br>"
-            "Click — translate the current string. If a translation for it is "
-            "already in the backup database, that one is reused instead of a new "
-            "AI request.<br>"
-            "Ctrl-click — open the prompt editor before sending, and ignore the "
-            "stored translation (always re-translate).<br>"
-            "To translate more than one string, select lines in the Strings panel "
-            "and use its right-click menu (Ctrl-click there too for the prompt "
-            "editor)."
+            tr('<b>AI Translate</b><br>Click — translate the current string. If a translation for it is already in the backup database, that one is reused instead of a new AI request.<br>Ctrl-click — open the prompt editor before sending, and ignore the stored translation (always re-translate).<br>To translate more than one string, select lines in the Strings panel and use its right-click menu (Ctrl-click there too for the prompt editor).')
         )
         self.mw.ai_translate_button.setFixedHeight(control_height)
         editor_action_layout.addWidget(self.mw.ai_translate_button)
 
-        self.mw.ai_variation_button = QPushButton('AI Variation')
+        self.mw.ai_variation_button = QPushButton(tr('AI Variation'))
         self.mw.ai_variation_button.setToolTip(
-            "<b>AI Variation</b><br>"
-            "Click — ask the AI for an alternative wording of the current "
-            "translation.<br>"
-            "Select part of the text in the Editable panel first — only that "
-            "fragment is rewritten.<br>"
-            "Ctrl-click — open the prompt editor before sending."
+            tr('<b>AI Variation</b><br>Click — ask the AI for an alternative wording of the current translation.<br>Select part of the text in the Editable panel first — only that fragment is rewritten.<br>Ctrl-click — open the prompt editor before sending.')
         )
         self.mw.ai_variation_button.setFixedHeight(control_height)
         editor_action_layout.addWidget(self.mw.ai_variation_button)
 
-        self.mw.auto_fix_button = QPushButton('Auto-fix')
+        self.mw.auto_fix_button = QPushButton(tr('Auto-fix'))
         self.mw.auto_fix_button.setToolTip(
-            "<b>Auto-fix</b><br>"
-            "Click — fix the detected issues in the current string with every "
-            "enabled rule (Ctrl+Shift+A).<br>"
-            "Ctrl-click — pick which rules to apply first.<br>"
-            "Shift-click — page-local mode: each page is fixed in isolation, so "
-            "text never flows across a page boundary.<br>"
-            "Ctrl+Shift-click — pick the rules and run page-local.<br>"
-            "Modifiers work on the button only; the Ctrl+Shift+A shortcut always "
-            "runs the plain fix."
+            tr('<b>Auto-fix</b><br>Click — fix the detected issues in the current string with every enabled rule (Ctrl+Shift+A).<br>Ctrl-click — pick which rules to apply first.<br>Shift-click — page-local mode: each page is fixed in isolation, so text never flows across a page boundary.<br>Ctrl+Shift-click — pick the rules and run page-local.<br>Modifiers work on the button only; the Ctrl+Shift+A shortcut always runs the plain fix.')
         )
         self.mw.auto_fix_button.setFixedHeight(control_height)
         editor_action_layout.addWidget(self.mw.auto_fix_button)
@@ -627,7 +581,7 @@ class LayoutBuilder:
             "font-weight: bold; color: #6a1b9a; font-size: 13px;"
         )
         self.mw.chapter_select_label.setToolTip(
-            "Double-click to open this row in its virtual Chapter."
+            tr('Double-click to open this row in its virtual Chapter.')
         )
         self.mw.chapter_select_label.setFixedWidth(compact_label_width)
         header_grid.addWidget(self.mw.chapter_select_label, 1, 0)
@@ -636,31 +590,31 @@ class LayoutBuilder:
         self.mw.chapter_combobox.setFixedHeight(compact_context_height)
         self.mw.chapter_combobox.setStyleSheet("font-size: 13px;")
         self.mw.chapter_combobox.setToolTip(
-            "Assign this row to a Story chapter or scene, including rows without a script link."
+            tr('Assign this row to a Story chapter or scene, including rows without a script link.')
         )
         self.mw.chapter_combobox.story_structure_id = None
         # Compatibility alias for navigation code and older UI tests.
         self.mw.chapter_value_label = self.mw.chapter_combobox
         header_grid.addWidget(self.mw.chapter_combobox, 1, 1)
 
-        self.mw.speaker_label = QLabel("")
+        self.mw.speaker_label = QLabel(tr(''))
         self.mw.speaker_label.setObjectName("speaker_label")
         self.mw.speaker_label.setStyleSheet("QLabel#speaker_label { font-weight: bold; color: #2e7d32; font-size: 12px; padding-left: 5px; }")
-        self.mw.speaker_label.setToolTip("Speaker for the current line mapped from MemePalace")
+        self.mw.speaker_label.setToolTip(tr('Speaker for the current line mapped from MemePalace'))
         self.mw.speaker_label.setVisible(False)
 
         # Row 3: speaker on the left, all translation formatting on the right.
         self.mw.speaker_select_label = NavigableLabel("Speaker:")
         self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; font-size: 13px;")
         self.mw.speaker_select_label.setToolTip(
-            "Double-click to open this row in its virtual Speaker or Item block."
+            tr('Double-click to open this row in its virtual Speaker or Item block.')
         )
         self.mw.speaker_select_label.setFixedWidth(compact_label_width)
         header_grid.addWidget(self.mw.speaker_select_label, 2, 0)
         self.mw.speaker_combobox = QComboBox()
         self.mw.speaker_combobox.setEditable(True)
         configure_speaker_autocomplete(self.mw.speaker_combobox)
-        self.mw.speaker_combobox.setToolTip("Select or type speaker name for this string")
+        self.mw.speaker_combobox.setToolTip(tr('Select or type speaker name for this string'))
         self.mw.speaker_combobox.setFixedWidth(compact_context_width)
         self.mw.speaker_combobox.setFixedHeight(compact_context_height)
         self.mw.speaker_combobox.setStyleSheet("font-size: 13px;")
@@ -671,7 +625,7 @@ class LayoutBuilder:
         formatting_layout = QHBoxLayout(formatting_group)
         formatting_layout.setContentsMargins(0, 0, 0, 0)
         formatting_layout.setSpacing(4)
-        font_label = QLabel("Font:")
+        font_label = QLabel(tr('Font:'))
         formatting_layout.addWidget(font_label)
         self.mw.font_combobox = QComboBox()
         self.mw.font_combobox.setFixedWidth(170)
@@ -679,14 +633,11 @@ class LayoutBuilder:
         formatting_layout.addWidget(self.mw.font_combobox)
         formatting_layout.addSpacing(12)
 
-        formatting_layout.addWidget(QLabel("Max-width:"))
+        formatting_layout.addWidget(QLabel(tr('Max-width:')))
         self.mw.width_spinbox = QSpinBox()
         self.mw.width_spinbox.setRange(0, 10000)
         self.mw.width_spinbox.setToolTip(
-            "<b>Max-width</b><br>"
-            "Set a custom width for this string (0 = use the plugin default), then "
-            "press Apply.<br>"
-            "Right-click — Reset to Plugin Default, or Set Width from Original."
+            tr('<b>Max-width</b><br>Set a custom width for this string (0 = use the plugin default), then press Apply.<br>Right-click — Reset to Plugin Default, or Set Width from Original.')
         )
         self.mw.width_spinbox.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.mw.width_spinbox.setFixedHeight(control_height)
@@ -695,8 +646,8 @@ class LayoutBuilder:
         def show_width_context_menu(pos):
             """Show width context menu."""
             menu = QMenu()
-            reset_action = menu.addAction("Reset to Plugin Default")
-            set_from_original_action = menu.addAction("Set Width from Original")
+            reset_action = menu.addAction(tr('Reset to Plugin Default'))
+            set_from_original_action = menu.addAction(tr('Set Width from Original'))
             action = menu.exec(self.mw.width_spinbox.mapToGlobal(pos))
             if action == reset_action:
                 block_idx = self.mw.data_store.physical_block_idx
@@ -715,14 +666,9 @@ class LayoutBuilder:
         self.mw.width_spinbox.customContextMenuRequested.connect(show_width_context_menu)
         formatting_layout.addWidget(self.mw.width_spinbox)
         
-        self.mw.apply_width_button = QPushButton("Apply")
+        self.mw.apply_width_button = QPushButton(tr('Apply'))
         self.mw.apply_width_button.setToolTip(
-            "<b>Apply formatting</b><br>"
-            "Click — save the Font and Max-width override for this string. Enabled "
-            "only while there is an unapplied change.<br>"
-            "Right-click the Max-width field — Reset to Plugin Default, or Set Width "
-            "from Original.<br>"
-            "Clicking the Max-width value above the Original panel copies it here."
+            tr('<b>Apply formatting</b><br>Click — save the Font and Max-width override for this string. Enabled only while there is an unapplied change.<br>Right-click the Max-width field — Reset to Plugin Default, or Set Width from Original.<br>Clicking the Max-width value above the Original panel copies it here.')
         )
         self.mw.apply_width_button.setEnabled(False)
         self.mw.apply_width_button.setFixedHeight(control_height)

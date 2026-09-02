@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (QWidget, QMenu, QFileDialog, QInputDialog,
 from PyQt6.QtGui import (QPainter, QColor, QImage, QPen, QPainterPath, QFontMetrics,
                          QRadialGradient, QBrush, QIcon, QPixmap)
 from PyQt6.QtCore import Qt, QRect, QPoint, QRectF, QSize, QPointF
+from core.i18n import tr
 
 
 def _looks_like_bfn_editor(editor) -> bool:
@@ -204,8 +205,8 @@ class BfnPreviewWindowBar(QFrame):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(6, 2, 6, 2)
         layout.setSpacing(4)
-        self.btn_prev = QPushButton("", self)
-        self.btn_next = QPushButton("", self)
+        self.btn_prev = QPushButton(tr(''), self)
+        self.btn_next = QPushButton(tr(''), self)
         for btn, kind, tip in (
             (self.btn_prev, "prev", "Previous message-window preview preset"),
             (self.btn_next, "next", "Next message-window preview preset"),
@@ -214,7 +215,7 @@ class BfnPreviewWindowBar(QFrame):
             btn.setIcon(_preview_icon(kind, 12))
             btn.setIconSize(QSize(12, 12))
             btn.setToolTip(tip)
-        self.label = QLabel("Auto", self)
+        self.label = QLabel(tr('Auto'), self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
         self.btn_prev.clicked.connect(lambda: self.preview.cycle_window_preset(-1))
@@ -865,28 +866,28 @@ class BfnPreviewWidget(QWidget):
         layout.setSpacing(2)
         layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
-        self.btn_page_prev = QPushButton("", self.page_bar)
+        self.btn_page_prev = QPushButton(tr(''), self.page_bar)
         self.btn_page_prev.setFixedSize(26, 26)
         self.btn_page_prev.setIcon(_preview_icon("up", 12))
         self.btn_page_prev.setIconSize(QSize(12, 12))
         self.btn_page_prev.setStyleSheet(self._button_stylesheet())
         self.btn_page_prev.clicked.connect(lambda: self._change_page(-1))
-        self.btn_page_prev.setToolTip("Previous page")
+        self.btn_page_prev.setToolTip(tr('Previous page'))
         layout.addWidget(self.btn_page_prev, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        self.page_index_label = QLabel("1/1", self.page_bar)
+        self.page_index_label = QLabel(tr('1/1'), self.page_bar)
         self.page_index_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.page_index_label.setFixedSize(26, 16)
         self.page_index_label.setStyleSheet("QLabel { color: #dddddd; font-size: 10px; }")
         layout.addWidget(self.page_index_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        self.btn_page_next = QPushButton("", self.page_bar)
+        self.btn_page_next = QPushButton(tr(''), self.page_bar)
         self.btn_page_next.setFixedSize(26, 26)
         self.btn_page_next.setIcon(_preview_icon("down", 12))
         self.btn_page_next.setIconSize(QSize(12, 12))
         self.btn_page_next.setStyleSheet(self._button_stylesheet())
         self.btn_page_next.clicked.connect(lambda: self._change_page(1))
-        self.btn_page_next.setToolTip("Next page")
+        self.btn_page_next.setToolTip(tr('Next page'))
         layout.addWidget(self.btn_page_next, 0, Qt.AlignmentFlag.AlignHCenter)
 
         self.indicator_buttons = []
@@ -1229,27 +1230,27 @@ class BfnPreviewWidget(QWidget):
         """Show context menu."""
         menu = QMenu(self)
         
-        action_set_bg = menu.addAction("Set Background Image...")
-        action_hide_bg = menu.addAction("Hide Background")
+        action_set_bg = menu.addAction(tr('Set Background Image...'))
+        action_hide_bg = menu.addAction(tr('Hide Background'))
         action_hide_bg.setCheckable(True)
         action_hide_bg.setChecked(self.bg_hidden)
         action_hide_bg.setEnabled(bool(self.bg_image_path))
-        action_clear_bg = menu.addAction("Clear Background Image")
+        action_clear_bg = menu.addAction(tr('Clear Background Image'))
         action_clear_bg.setEnabled(bool(self.bg_image_path))
         
         menu.addSeparator()
-        action_set_spacing = menu.addAction("Set Line Spacing...")
-        action_reset_rect = menu.addAction("Reset Text Area")
+        action_set_spacing = menu.addAction(tr('Set Line Spacing...'))
+        action_reset_rect = menu.addAction(tr('Reset Text Area'))
         
-        action_fix_scale = menu.addAction("Fix Font Scale")
+        action_fix_scale = menu.addAction(tr('Fix Font Scale'))
         action_fix_scale.setCheckable(True)
         action_fix_scale.setChecked(self.fix_font_scale)
 
         menu.addSeparator()
-        fx_menu = menu.addMenu("Text Effects")
-        action_text_color = fx_menu.addAction("Text Color...")
-        action_shadow = fx_menu.addAction("Drop Shadow...")
-        action_glow = fx_menu.addAction("Outer Glow...")
+        fx_menu = menu.addMenu(tr('Text Effects'))
+        action_text_color = fx_menu.addAction(tr('Text Color...'))
+        action_shadow = fx_menu.addAction(tr('Drop Shadow...'))
+        action_glow = fx_menu.addAction(tr('Outer Glow...'))
 
         action = menu.exec(self.mapToGlobal(pos))
         if action == action_set_bg:
