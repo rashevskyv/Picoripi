@@ -14,7 +14,7 @@
 +---------------------------------------------------------------------------------+
 | File  Edit  View  Tools  Navigation  Bookmarks                         Help     |
 +---------------------------------------------------------------------------------+
-| Toolbar: Save  Undo Redo  Find  Preview  AI Chat  BFN  Recalc  Settings  >_  F1 |
+| Toolbar: Save  Undo Redo  Find  Preview  AI Chat  BFN  Rescan All  Settings  >_  F1 |
 +---------------------------------------------------------------------------------+
 | Blocks (tree)        | Strings in block (click a line to select)                |
 | folders + files      | Hide empty / translated / unsaved / overrides / warnings |
@@ -102,8 +102,7 @@
 | Find… | Ctrl+F | Показати/сховати панель пошуку. F3 далі, Shift+F3 назад |
 | Advanced Search… | Ctrl+H | Пошук/заміна по проєкту |
 | Auto-fix Current String | Ctrl+Shift+A | Поточний рядок. Ctrl-клік по кнопці **Auto-fix** — вибір правил. Шорткат завжди запускає звичайний фікс |
-| Rescan All Issues | | Повне сканування попереджень |
-| Recalculate Font Widths | Ctrl+Shift+R | Переміряти ширини і пересканувати всі рядки. Після зміни шрифтів або таблиць ширини |
+| Rescan All | Ctrl+Shift+R | Примусово: ширини, усі попередження, дерево Blocks, редактори й прев’ю. Коли дерево виглядає застарілим або після зміни шрифтів/тегів/ширин. Та сама кнопка на панелі інструментів. Правий клік по одному блоку — лише той блок |
 
 ---
 
@@ -214,7 +213,7 @@
 
 Зліва направо (`toolbar_builder.py`):
 
-Save · Undo · Redo · Find · Preview · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · Recalculate Font Widths · Settings · (розпірка) · **Run External Script** (`>_`) · Shortcuts Help.
+Save · Undo · Redo · Find · Preview · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (розпірка) · **Run External Script** (`>_`) · Shortcuts Help.
 
 **AI Translate** і **AI Variation** на цьому тулбарі **немає**. Вони над Editable.
 

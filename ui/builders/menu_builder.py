@@ -245,16 +245,16 @@ class MenuBuilder:
         edit_menu.addAction(self.mw.auto_fix_action)
         edit_menu.addSeparator()
 
-        self.mw.rescan_all_tags_action = QAction(QIcon.fromTheme("system-search"), tr('Rescan All Issues'), self.mw)
-        edit_menu.addAction(self.mw.rescan_all_tags_action)
-        edit_menu.addSeparator()
-
-        self.mw.recalculate_widths_action = QAction(self.style.standardIcon(QStyle.StandardPixmap.SP_BrowserReload), tr('Recalculate Font Widths'), self.mw)
-        self.mw.recalculate_widths_action.setToolTip(
-            tr('<b>Recalculate font widths</b><br>Click — re-measure pixel widths and re-scan issues for every string in the project (Ctrl+Shift+R). Use it after changing fonts or width settings.<br>Right-click a single block in the tree — Rescan Issues / Calculate Line Widths for that block only.')
+        self.mw.rescan_all_action = QAction(
+            self.style.standardIcon(QStyle.StandardPixmap.SP_BrowserReload), tr('Rescan All'), self.mw
         )
-        self.mw.recalculate_widths_action.setShortcut('Ctrl+Shift+R')
-        edit_menu.addAction(self.mw.recalculate_widths_action)
+        self.mw.rescan_all_action.setShortcut('Ctrl+Shift+R')
+        self.mw.rescan_all_action.setToolTip(
+            tr('<b>Rescan All</b><br>Click — force a full rebuild: font widths, every warning, the Blocks tree, editors and the in-game preview (Ctrl+Shift+R).<br>Use this after fonts, tags or width settings change, or if the tree looks stale. Right-click one block for a scan of that block only.')
+        )
+        edit_menu.addAction(self.mw.rescan_all_action)
+        self.mw.recalculate_widths_action = self.mw.rescan_all_action
+        self.mw.rescan_all_tags_action = self.mw.rescan_all_action
 
     def _build_view_menu(self, menubar):
         """Internal helper to create view menu."""

@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.093-dev] - 2026-09-02
+
+### Changed
+- **Rescan All**: Toolbar and **Edit** use one **Rescan All** command (`Ctrl+Shift+R`). It reloads font maps, re-measures widths, force-scans every warning, rebuilds the Blocks tree, and refreshes editors and the in-game preview. Right-click a block for that block only.
+
 ## [0.3.092-dev] - 2026-09-02
 
 ### Changed

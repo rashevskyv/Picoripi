@@ -359,33 +359,67 @@ class MainWindowSettingsActionsMixin:
 
 
     def trigger_recalculate_widths(self):
-        """Force recalculate text widths and issues for the entire project."""
+        """Force widths, warnings, tree, editors and preview for the whole project."""
         from PyQt6.QtWidgets import QMessageBox
+        from utils.utils import clear_width_caches
 
-        # 1. Reload font metrics
+        clear_width_caches()
+
         sm = getattr(self.mw, 'settings_manager', None)
         if sm and hasattr(sm, 'load_all_font_maps'):
             sm.load_all_font_maps()
         elif hasattr(self.mw, 'font_map_loader'):
             self.mw.font_map_loader.load_all_font_maps()
-            
+
         if hasattr(self.mw, 'string_settings_updater'):
             self.mw.string_settings_updater.update_font_combobox()
-            
+
+        ds = getattr(self.mw, 'data_store', None)
+        if ds is not None and hasattr(ds, 'clear_indexes'):
+            ds.clear_indexes()
+        helper = getattr(self.mw, 'helper', None)
+        if helper is not None and hasattr(helper, 'rebuild_unsaved_block_indices'):
+            helper.rebuild_unsaved_block_indices()
+
+        ui = getattr(self.mw, 'ui_updater', None)
+        pu = getattr(ui, 'preview_updater', None) if ui is not None else None
+        cache = getattr(pu, 'preview_cache', None) if pu is not None else None
+        if cache is not None and hasattr(cache, 'cache'):
+            cache.cache.clear()
+
+        preview = getattr(self.mw, 'bfn_preview_widget', None)
+        if preview is not None:
+            preview._glyph_layout_cache = None
+
+        for name in ('edited_text_edit', 'original_text_edit', 'preview_text_edit'):
+            widget = getattr(self.mw, name, None)
+            highlighter = getattr(widget, 'highlighter', None) if widget is not None else None
+            if highlighter is not None and hasattr(highlighter, 'set_typing_mode'):
+                highlighter.set_typing_mode(False, trigger_rehighlight=True)
+
         def on_recalculate_completed():
-            # 3. Refresh text views and preview cache
             ui = getattr(self.mw, 'ui_updater', None)
             if ui:
+                if hasattr(ui, 'populate_blocks'):
+                    ui.populate_blocks()
                 if hasattr(ui, 'update_text_views'):
-                    ui.update_text_views()
-                if hasattr(ui, 'populate_strings_for_block'):
+                    try:
+                        ui.update_text_views(heavy=True)
+                    except TypeError:
+                        ui.update_text_views()
+                if hasattr(ui, 'populate_current_view'):
                     ui.populate_current_view(force=True)
-                    
-            QMessageBox.information(self.mw, tr('Recalculation Complete'), tr('All text widths and issues have been successfully recalculated!'))
 
-        # 2. Perform full silent scan of all issues (which recalculates all widths) with force=True
+            QMessageBox.information(
+                self.mw,
+                tr('Rescan complete'),
+                tr('Widths, warnings, the block tree, editors and preview have been rebuilt.'),
+            )
+
         if hasattr(self.mw, 'issue_scan_handler'):
-            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues(on_completed=on_recalculate_completed, force=True)
+            self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues(
+                on_completed=on_recalculate_completed, force=True
+            )
         else:
             on_recalculate_completed()
 

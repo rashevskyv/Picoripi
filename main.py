@@ -312,6 +312,7 @@ class MainWindow(QMainWindow):
         self.undo_paste_action = None
         self.rescan_all_tags_action = None
         self.recalculate_widths_action = None
+        self.rescan_all_action = None
         self.find_action = None
         self.advanced_search_action = None
         self.auto_fix_action = None

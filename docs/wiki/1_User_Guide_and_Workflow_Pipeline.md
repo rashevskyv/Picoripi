@@ -14,7 +14,7 @@ Recommended order of work: [8. Localization Pipeline](8_Localization_Pipeline.md
 +---------------------------------------------------------------------------------+
 | File  Edit  View  Tools  Navigation  Bookmarks                         Help     |
 +---------------------------------------------------------------------------------+
-| Toolbar: Save  Undo Redo  Find  Preview  AI Chat  BFN  Recalc  Settings  >_  F1 |
+| Toolbar: Save  Undo Redo  Find  Preview  AI Chat  BFN  Rescan All  Settings  >_  F1 |
 +---------------------------------------------------------------------------------+
 | Blocks (tree)        | Strings in block (click a line to select)                |
 | folders + files      | Hide empty / translated / unsaved / overrides / warnings |
@@ -102,8 +102,7 @@ Partial save: right-click a block → save that block only. **Do not** use Rever
 | Find… | Ctrl+F | Toggle the inline search panel. F3 next, Shift+F3 previous |
 | Advanced Search… | Ctrl+H | Project-wide search/replace |
 | Auto-fix Current String | Ctrl+Shift+A | Current string. Ctrl-click the **Auto-fix** button to pick rules. The shortcut always runs the plain fix |
-| Rescan All Issues | | Full warning scan |
-| Recalculate Font Widths | Ctrl+Shift+R | Re-measure widths and re-scan every string. After fonts or width settings change |
+| Rescan All | Ctrl+Shift+R | Force widths, every warning, the Blocks tree, editors and preview. Use when the tree looks stale or after font/tag/width changes. Same control as the toolbar button. Right-click one block for that block only |
 
 ---
 
@@ -214,7 +213,7 @@ Shortcuts listed in F1:
 
 Left to right (`toolbar_builder.py`):
 
-Save · Undo · Redo · Find · Preview · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · Recalculate Font Widths · Settings · (spacer) · **Run External Script** (`>_`) · Shortcuts Help.
+Save · Undo · Redo · Find · Preview · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (spacer) · **Run External Script** (`>_`) · Shortcuts Help.
 
 **AI Translate** and **AI Variation** are **not** on this toolbar. They sit above Editable.
 
