@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.094-dev] - 2026-09-02
+
+### Fixed
+- **Block tree names**: Refreshing stars/warnings no longer treats that update as a folder rename, which had wiped archive and file labels in Blocks.
+
 ## [0.3.093-dev] - 2026-09-02
 
 ### Changed

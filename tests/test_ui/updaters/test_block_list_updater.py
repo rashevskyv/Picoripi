@@ -190,6 +190,24 @@ def test_virtual_leaf_and_parent_get_warning_counts(updater):
     assert parent.text(0) == "Items (1)"
 
 
+def test_refresh_indicators_keeps_folder_and_block_labels(updater):
+    tree = updater.mw.block_list_widget
+    folder = QTreeWidgetItem(["Ordon Village [2 | 1]"])
+    folder.setData(0, Qt.UserRole + 1, "folder-ordon")
+    folder.setData(0, Qt.UserRole + 4, "Ordon Village [2 | 1]")
+    block = QTreeWidgetItem(["zelda_tp.bmg"])
+    block.setData(0, Qt.UserRole, 0)
+    block.setData(0, Qt.UserRole + 4, "zelda_tp.bmg")
+    tree.addTopLevelItem(folder)
+    folder.addChild(block)
+
+    updater.refresh_block_tree_indicators()
+
+    assert folder.text(0) == "Ordon Village [2 | 1]"
+    assert block.text(0) == "zelda_tp.bmg"
+    assert folder.data(0, Qt.UserRole + 4) == "Ordon Village [2 | 1]"
+
+
 def test_empty_virtual_leaf_is_not_added(updater):
     root = QTreeWidgetItem(["Root"])
 

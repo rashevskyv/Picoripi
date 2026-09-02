@@ -18,8 +18,14 @@ class TreeFolderMixin:
         """Internal helper to handle item changed."""
         if getattr(self, '_is_programmatic_expansion', False):
             return
+        if column != 0:
+            return
 
-        new_name = item.text(column)
+        new_name = (item.text(column) or "").strip()
+        new_name = re.sub(r" \(\d+\)$", "", new_name)
+        new_name = re.sub(r" \[\d+ \| \d+\]$", "", new_name).strip()
+        if not new_name:
+            return
         folder_id = item.data(column, Qt.UserRole + 1)
         if not folder_id:
             return

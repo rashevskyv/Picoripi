@@ -391,7 +391,11 @@ class CustomListItemPaintMixin:
         available_text_w = header_end - text_start_x
         text_rect = QRect(text_start_x, item_rect.top(), max(30, available_text_w), item_rect.height())
         
-        full_text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+        full_text = index.data(Qt.ItemDataRole.DisplayRole)
+        if not isinstance(full_text, str) or not full_text:
+            stored = index.data(Qt.ItemDataRole.UserRole + 4)
+            full_text = stored if isinstance(stored, str) else ""
+        full_text = full_text or ""
         metrics = QFontMetrics(current_font)
         
         # 1. Split text into "Name" and "Metadata"

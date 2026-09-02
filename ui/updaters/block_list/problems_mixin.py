@@ -42,10 +42,11 @@ class ProblemsMixin:
                 desc = prob_def.get("description", "")
                 tooltip_lines.append(f"<b>{full_name}</b>: {count_sublines} sublines<br><i>{desc}</i>")
 
-        if total_issues > 0:
+        if total_issues > 0 and base_display_name:
             display_name_with_issues = f"{base_display_name} ({total_issues})"
 
-        item.setText(0, display_name_with_issues)
+        if base_display_name:
+            item.setText(0, display_name_with_issues)
 
         item.setData(0, Qt.ItemDataRole.UserRole + 20, dict(problem_counts or {}))
         self._stamp_item_paint_stats(item)
@@ -160,17 +161,25 @@ class ProblemsMixin:
             self.update_block_item_text_with_problem_count(block_idx)
             return
         from PyQt6.QtWidgets import QTreeWidgetItemIterator
-        iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
-        while iterator.value():
-            item = iterator.value()
-            kind = item.data(0, Qt.ItemDataRole.UserRole)
-            mappings = item.data(0, Qt.ItemDataRole.UserRole + 13)
-            if isinstance(kind, int) and kind < 0 and isinstance(mappings, (list, tuple)):
-                self._apply_virtual_issue_indicators(item)
-            else:
-                self._stamp_item_paint_stats(item)
-            iterator += 1
-        self.mw.block_list_widget.viewport().update()
+        tree = self.mw.block_list_widget
+        tree.blockSignals(True)
+        was_programmatic = getattr(tree, "_is_programmatic_expansion", False)
+        tree._is_programmatic_expansion = True
+        try:
+            iterator = QTreeWidgetItemIterator(tree)
+            while iterator.value():
+                item = iterator.value()
+                kind = item.data(0, Qt.ItemDataRole.UserRole)
+                mappings = item.data(0, Qt.ItemDataRole.UserRole + 13)
+                if isinstance(kind, int) and kind < 0 and isinstance(mappings, (list, tuple)):
+                    self._apply_virtual_issue_indicators(item)
+                else:
+                    self._stamp_item_paint_stats(item)
+                iterator += 1
+        finally:
+            tree._is_programmatic_expansion = was_programmatic
+            tree.blockSignals(False)
+            tree.viewport().update()
 
     def _create_block_tree_item(self, block_idx: int, problem_definitions: dict, pre_aggregated_counts: dict = None) -> QTreeWidgetItem:
         """Helper to create a single block tree item with issue counts and tooltips."""
