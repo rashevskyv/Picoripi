@@ -8,7 +8,7 @@ The recommended AI backend for glossary and bulk translation is **Gemini Web2API
 
 ## Documentation Map
 
-**Wiki (start here):** [docs/wiki/README.md](docs/wiki/README.md)
+**Wiki (start here):** [English](docs/wiki/README.md) · [Українська](docs/wiki/uk/README.md)
 
 - [Interface](docs/wiki/1_User_Guide_and_Workflow_Pipeline.md)
 - [Code map](docs/wiki/2_API_Reference.md)

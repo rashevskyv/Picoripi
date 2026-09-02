@@ -1,6 +1,10 @@
 # Maintaining this wiki
 
+**Language:** English · [Українська](uk/7_Maintaining_This_Wiki.md)
+
 ## One home per fact
+
+English files in `docs/wiki/` are the source of truth. `docs/wiki/uk/` is the Ukrainian translation of the same pages, not a second fact store. After you patch an English page, update its `uk/` twin in the same change. UI control names stay English in both languages.
 
 | Fact | Home |
 |------|------|
@@ -28,8 +32,9 @@ Do not copy a full how-to into README when a wiki page exists. README links here
 After a user-visible or settings change:
 
 1. Identify the row in the table above.
-2. Patch that page (and README’s map if the entry point moved).
-3. CHANGELOG gets a dated bullet only for shipped **behaviour**; the wiki gets the durable how-to.
-4. If a control was renamed, search `docs/wiki` for the old English label.
+2. Patch that English page (and README’s map if the entry point moved).
+3. Patch `docs/wiki/uk/` with the same filename.
+4. CHANGELOG gets a dated bullet only for shipped **behaviour**; the wiki gets the durable how-to.
+5. If a control was renamed, search `docs/wiki` for the old English label.
 
 Agents: invoke the `update-wiki` skill (`/update-wiki`) after such work, or when the user asks to refresh docs. Re-read the owning source file before editing the page.

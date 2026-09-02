@@ -1,5 +1,7 @@
 # User Guide: Interface
 
+**Language:** English · [Українська](uk/1_User_Guide_and_Workflow_Pipeline.md)
+
 This page is the map of the main window as built in `ui/builders/menu_builder.py`, `toolbar_builder.py`, and `layout_builder.py`. Labels below match the English UI.
 
 Recommended order of work: [8. Localization Pipeline](8_Localization_Pipeline.md). Virtual folders and the in-game preview: [6. Virtual Navigation and Preview](6_Virtual_Navigation_and_Preview.md). AI buttons: [11. AI Translation](11_AI_Translation.md).

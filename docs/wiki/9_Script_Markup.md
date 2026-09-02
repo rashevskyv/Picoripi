@@ -1,5 +1,7 @@
 # Script Markup Studio
 
+**Language:** English · [Українська](uk/9_Script_Markup.md)
+
 Opens from **Tools → Script Markup Studio…**, from pipeline step **Mark up the script**, or from the purple **R** button next to the editors (jump to the place linked to the current game string).
 
 Implementation: `ui/script_markup_studio_dialog.py`. Logic: `core/script_markup/` (Qt-free). The in-window Help HTML is the product’s own description; this page follows that plus the menus/shortcuts in the same file.

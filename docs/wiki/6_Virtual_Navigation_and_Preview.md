@@ -1,5 +1,7 @@
 # Virtual Navigation and Preview
 
+**Language:** English · [Українська](uk/6_Virtual_Navigation_and_Preview.md)
+
 The left **Blocks** tree mixes physical files with derived views. Built in `ui/updaters/block_list_updater.py`. Physical rows are the source of truth for save/load. Virtual folders only **group** existing strings.
 
 ---

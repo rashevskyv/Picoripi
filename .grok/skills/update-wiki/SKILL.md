@@ -32,10 +32,11 @@ Skip for pure refactors, tests-only, or comments.
 5. If the **entry point** moved (new menu, new recommended provider), add or fix one link in `README.md` Documentation Map and at most a short paragraph. Do not paste the wiki page into README.
 6. Add a dated bullet to `CHANGELOG.md` only when this is a shipped behavior change, not a docs-only tidy.
 7. If no wiki page fits and the fact will stay, add a row to `7_Maintaining_This_Wiki.md` **and** a link in `docs/wiki/README.md` before creating a new page.
+8. After the English page is patched, update the Ukrainian twin in `docs/wiki/uk/` (same filename). English is the source of truth; `uk/` is a translation. Keep UI labels in English in both. Also update `docs/wiki/uk/README.md` if the index row changed.
 
 ## Rules
 
 - One home per fact. If the wiki already says it, fix that sentence; do not append a second copy.
-- Name controls as the UI shows them (English labels).
+- Name controls as the UI shows them (English labels), including in `docs/wiki/uk/`.
 - Do not document unshipped `PIPELINE_ROADMAP.md` items as if they exist.
 - Do not put Google cookies, API keys, or machine-local absolute paths in the wiki. Web2API checkout is "the `gemini-web2api` repo"; endpoint is `http://127.0.0.1:8081/v1`.

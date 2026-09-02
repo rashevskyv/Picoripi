@@ -1,5 +1,7 @@
 # Configuration
 
+**Language:** English · [Українська](uk/4_Configuration_Guide.md)
+
 User-facing settings live in **Settings…** (`Ctrl+P`), `ui/settings_dialog.py`. On-disk: `settings.json` in the working directory (do not commit it). Optional `.env` is loaded at startup (`core/settings_manager.py` + `python-dotenv`) for API key env vars.
 
 This page lists **controls as the UI shows them**, then the files they persist to.

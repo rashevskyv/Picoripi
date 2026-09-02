@@ -1,5 +1,7 @@
 # Plugin Developer Guide
 
+**Language:** English · [Українська](uk/3_Plugin_Developer_Guide.md)
+
 This page is the plugin contract as implemented in code. Source of truth: `plugins/base_game_rules.py`, `ui/main_window/main_window_plugin_handler.py`, `handlers/project_action_handler.py` (discovery), `ui/settings/logging_mixin.py` (`find_plugins`).
 
 Do not treat `docs/PLUGIN_AUTHORING_GUIDE.md` or plugin READMEs as current unless you have just checked them against those files.

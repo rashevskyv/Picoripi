@@ -1,5 +1,7 @@
 # Gemini Web2API (WebTOP)
 
+**Language:** English · [Українська](uk/5_Gemini_Web2API.md)
+
 Gemini Web2API is the **local proxy** Picoripi uses for glossary builds and bulk translation. It turns a signed-in [Gemini](https://gemini.google.com) browser session into an OpenAI-compatible HTTP API. Picoripi never talks to Google’s billed Gemini API unless you deliberately leave the Base URL empty and paste a Google API key.
 
 The proxy’s browser dashboard (account list, rotation, cooldowns) is the **WebTOP**. Open it at `http://127.0.0.1:8081/` while the proxy is running.

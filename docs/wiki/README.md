@@ -1,6 +1,8 @@
 # Picoripi Wiki
 
-How-to for translators and plugin authors. Written from the **current source**, not from older `docs/*.md` files (those can lag). `README.md` in the repo root is the map and the short pitch.
+**Language:** English · [Українська](uk/README.md)
+
+How-to for translators and plugin authors. Ukrainian copies live in [`uk/`](uk/README.md). English is the source of truth; keep UI labels English in both. Written from the **current source**, not from older `docs/*.md` files (those can lag). `README.md` in the repo root is the map and the short pitch.
 
 When product behaviour changes, update the **owning** page in [7](7_Maintaining_This_Wiki.md). Do not grow a second copy of the same fact in `CHANGELOG.md` or `GEMINI.md`.
 

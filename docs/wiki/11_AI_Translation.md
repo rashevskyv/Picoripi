@@ -1,5 +1,7 @@
 # AI Translation
 
+**Language:** English · [Українська](uk/11_AI_Translation.md)
+
 Picoripi talks to LLMs through **Settings → AI Translation**. Glossary builds use **Settings → AI Glossary** (optionally the same key). Recommended local proxy: [5. Gemini Web2API](5_Gemini_Web2API.md).
 
 Handlers: `handlers/translation_handler.py`, `handlers/translation/`. Providers: `core/translation/providers.py`. Defaults: `core/translation/config.py`. Prompts: **Edit Prompts JSON** and plugin `translation_prompts/prompts.json`.

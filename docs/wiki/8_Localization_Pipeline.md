@@ -1,5 +1,7 @@
 # Localization Pipeline
 
+**Language:** English · [Українська](uk/8_Localization_Pipeline.md)
+
 Open with **Tools → Localization Pipeline…**. Window title: **Localization Pipeline**.
 
 The dialog is deliberately thin (`ui/pipeline_wizard_dialog.py`): it computes no pipeline of its own. Every button runs the same `QAction` as the Tools menu. Steps that are whole workflows are **embedded** in the right pane instead of opening a second window.
