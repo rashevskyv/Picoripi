@@ -1,20 +1,33 @@
-# Picoripi v0.3.090
+# Picoripi v0.3.091-dev
 
-The **Picoripi** (v0.3.090) is a visual translation and localization workbench built with **Python** and **PyQt6**. It is designed for precise, visual, and highly convenient translation of texts with strict length and layout constraints. While initially built to excel at retro game localization (supporting complex Nintendo formats and custom tags), its core architecture is fully generalizable to any structured translation, alignment, or editing workflow.
+**Picoripi** is a visual translation and localization workbench (Python, **PyQt6**) for texts with strict length and layout constraints. It started as a Nintendo-format editor (BMG, BFN, U8/RARC) and stays general enough for any structured translation project.
 
+The recommended AI backend for glossary and bulk translation is **Gemini Web2API** (local proxy + WebTOP dashboard). See [Wiki: Gemini Web2API](docs/wiki/5_Gemini_Web2API.md).
 
 ---
 
 ## Documentation Map
 
-- [Feature Reference](docs/FEATURE_REFERENCE.md): detailed description of the main user-facing and engineering subsystems.
-- [AI Development Manifesto](docs/AI_DEVELOPMENT_MANIFESTO.md): rules for AI-assisted architecture, implementation, testing, documentation, and release work.
-- [MemPalace Context Manifesto](docs/MEMPALACE_CONTEXT_MANIFESTO.md): living roadmap and completion contract for Markup Studio, story timeline, character context, glossary, and context-aware AI translation integration.
-- [Testing Strategy And Test Audit](docs/TESTING_STRATEGY_AND_AUDIT.md): test-suite audit, risk register, and parallel test commands.
-- [Plugin Authoring Guide](docs/PLUGIN_AUTHORING_GUIDE.md): current guide for creating new plugins from `plugins/default_plugin/`.
-- [Default Plugin Template](plugins/default_plugin/README.md): copy-ready baseline plugin for new game/text formats.
-- [AI Plugin Assistant Prompt](plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md): guided prompt for AI-assisted plugin development.
-- [Wiki Plugin Developer Guide](docs/wiki/3_Plugin_Developer_Guide.md): extended plugin API and hook reference.
+**Wiki (start here):** [docs/wiki/README.md](docs/wiki/README.md)
+
+- [User Guide and Pipeline](docs/wiki/1_User_Guide_and_Workflow_Pipeline.md)
+- [API Reference](docs/wiki/2_API_Reference.md)
+- [Plugin Developer Guide](docs/wiki/3_Plugin_Developer_Guide.md)
+- [Configuration](docs/wiki/4_Configuration_Guide.md)
+- [Gemini Web2API / WebTOP](docs/wiki/5_Gemini_Web2API.md) — how to start the proxy, point Picoripi at it, and run Parallel Requests
+- [Virtual Navigation and Preview](docs/wiki/6_Virtual_Navigation_and_Preview.md)
+- [Maintaining the wiki](docs/wiki/7_Maintaining_This_Wiki.md)
+
+**Engineering / process:**
+
+- [Feature Reference](docs/FEATURE_REFERENCE.md)
+- [AI Development Manifesto](docs/AI_DEVELOPMENT_MANIFESTO.md)
+- [MemPalace Context Manifesto](docs/MEMPALACE_CONTEXT_MANIFESTO.md)
+- [Pipeline Roadmap](docs/PIPELINE_ROADMAP.md)
+- [Testing Strategy](docs/TESTING_STRATEGY_AND_AUDIT.md)
+- [Plugin Authoring Guide](docs/PLUGIN_AUTHORING_GUIDE.md)
+- [Default Plugin Template](plugins/default_plugin/README.md)
+- [ChatMock (ChatGPT web proxy)](docs/chatmock_setup.md)
 
 ---
 
@@ -22,6 +35,9 @@ The **Picoripi** (v0.3.090) is a visual translation and localization workbench b
 
 ### 1. Project Management & Workspace Navigation
 - **Project-Based Workflow**: Creates, loads, and manages `.uiproj` projects encapsulating all translation files, virtual categories, and settings.
+- **Derived virtual views**: **Story**, **Speakers**, **Windows**, **Items**, and **Notated** pack non-empty strings in roughly sorted groups. Empty BMG padding stays only in the physical file. Warning ticks appear on virtual folders the same way they do on files. See the [virtual navigation wiki](docs/wiki/6_Virtual_Navigation_and_Preview.md).
+- **Twilight Princess window preview**: When the Zelda BMG plugin exposes `message_window_preview`, the BFN preview draws talk / item-get / sign chrome from a local game dump (not shipped in this repo). Page `n/N` and original/translation (`T`/`O`) sit on the preview.
+- **Show Unsaved Only** (tree and string list) is a session filter. A restart always clears it so a forgotten check cannot hide the project.
 - **Redesigned Script Markup Studio Interface**: Reorganized the workspace to separate workflow stages, file operations, and advanced tools. Features a centralized File menu, a Live Save Status Indicator, a dynamic 4-stage Progress Bar, and an intelligent Next Action dashboard suggesting context-aware buttons (AI Auto-fill, suggestions review, or MemPalace transition) based on project completion.
 - **Virtual Folder Structure**: Organizes text blocks into nested virtual folders (categories) for logical narrative layout. Supports drag-and-drop file organization.
 - **Granular Status & Propagation**: Unsaved changes propagate dynamically as asterisks (`*`) up the folder tree, with specialized error/warning counts on parent nodes.
@@ -169,19 +185,27 @@ The **Picoripi** (v0.3.090) is a visual translation and localization workbench b
 
 ## AI Translation Subsystem & Configuration
 
-Picoripi features a powerful, highly customizable AI Translation subsystem designed specifically to tackle the complexities of retro game localization. Below is an overview of the supported AI providers, capabilities, and configuration options.
+### Gemini Web2API (recommended)
 
-### 1. Supported AI Providers & Models
-You can configure the active translation engine in the **AI Translation** tab within the Global Settings dialog. The system supports:
-- **OpenAI Compatible**: Connects to the standard OpenAI chat completions API or any compatible endpoints (e.g., Local LLMs, Llama.cpp, OpenRouter, Perplexity, DeepSeek, Anthropic wrappers).
-  - *Parameters*: API Key, Endpoint URL, Model Name, Temperature, Max Output Tokens, Request Timeout.
-- **Google Gemini API**: Native Google Gemini integration supporting the official API endpoints or custom proxy endpoints.
-  - *Parameters*: Base URL (optional), API Key, Model Name (e.g., `gemini-1.5-flash-latest` or `gemini-1.5-pro-latest`).
-- **Ollama Chat API**: Fully local, zero-cost execution using Ollama.
-  - *Parameters*: Base URL (defaults to `http://localhost:11434`), Model Name, Temperature, Request Timeout, and Keep Alive settings (e.g., `5m` to keep models cached in VRAM).
-- **Perplexity API**: Tailored wrapper for Perplexity AI models, supporting custom temperatures and token limits.
+Glossary builds and block translation need **many** LLM calls. The supported way to do that at scale is **Gemini Web2API**: a local process that exposes `http://127.0.0.1:8081/v1` and rotates signed-in Gemini web accounts. Its dashboard (**WebTOP**, `http://127.0.0.1:8081/`) is where you add accounts and watch cooldowns.
 
-### 2. Core AI Capabilities
+1. Start the proxy (`run.bat` in the `gemini-web2api` checkout).
+2. In Picoripi: **Settings → Preferences → AI Translation** → Active Provider **OpenAI Compatible**, Endpoint `http://127.0.0.1:8081/v1`, model `gemini-3.7-flash`, timeout **180 s**, Parallel Requests **4–8** (not higher than the number of Active accounts).
+3. **Test Provider**, then **Save Preset**.
+4. AI Glossary should reuse the translation key.
+
+Full steps, failure cases, and what Picoripi does *not* store (cookies stay in the proxy): [Wiki: Gemini Web2API](docs/wiki/5_Gemini_Web2API.md).
+
+### Other providers
+
+Configure these in the same **AI Translation** tab:
+- **OpenAI Compatible**: OpenAI, OpenRouter, Llama.cpp, or any `/v1` endpoint (including Web2API).
+- **Google Gemini API**: Official Google key. Leave Base URL empty. Optional Base URL can also point at Web2API (`http://127.0.0.1:8081/v1`) without a Google key.
+- **Ollama Chat API**: Local models at `http://localhost:11434`.
+- **Perplexity API**: Perplexity chat models.
+- **ChatMock**: ChatGPT web proxy — [docs/chatmock_setup.md](docs/chatmock_setup.md).
+
+### Core AI Capabilities
 - **Dialogue Translation**: Translate single lines, selected ranges in the preview panel, entire project blocks, or virtual chapters chronologically.
 - **Session/Chat History Tracking**: Enables session-based translations where the context of the conversation is preserved across multiple requests. This ensures consistent character tones, pronoun genders, and verbs (highly critical for languages like Ukrainian).
 - **Surrounding Context Injection**: For every string sent to translation, Picoripi gathers up to 3 preceding and 3 succeeding strings (with their current translation status) and injects them as conversation context, preventing the AI from translating sentences in a vacuum.

@@ -72,6 +72,7 @@ Every AI coding session should follow this sequence unless the user explicitly a
    - Run tests in parallel by default.
 
 5. Update documentation.
+   - Update `docs/wiki/` for user-facing how-to (ownership: `docs/wiki/7_Maintaining_This_Wiki.md`). Invoke the `update-wiki` skill.
    - Update `docs/FEATURE_REFERENCE.md` for important user-facing behavior.
    - Update `docs/TESTING_STRATEGY_AND_AUDIT.md` for test policy or test infrastructure changes.
    - Update `docs/PLUGIN_AUTHORING_GUIDE.md` and `plugins/default_plugin/` when plugin contracts change.

@@ -65,7 +65,7 @@ The Picoripi graphical user interface is divided into functional zones designed 
 *   ▶️ **Run External Script (`>_`)**: Spawns ROM builds, packers, or emulators asynchronously in a detached console window.
 
 ### 1.3 Project Tree (Left Panel)
-*   **Virtual Folders**: Organize raw files into chapters or categories. These folders are virtual and do not modify the actual directories on disk.
+*   **Virtual Folders**: Organize raw files into chapters or categories. These folders are virtual and do not modify the actual directories on disk. Derived roots (**Story**, **Speakers**, **Windows**, **Items**, **Notated**) pack non-empty strings only — see [6. Virtual Navigation and Preview](6_Virtual_Navigation_and_Preview.md).
 *   **Asterisk Propagation (`*`)**: Unsaved changes in dialogue strings propagate an asterisk next to the file name and up the parent folders (e.g. `Folder* -> Subfolder* -> file.json*`).
 *   **Progress Bars**: Semi-transparent green bars render left-to-right beneath file names, representing the completion percentage of non-empty translatable strings. Empty lines and tag-only codes are ignored to prevent false completion metrics.
 
@@ -107,15 +107,17 @@ This section details a standard translation workflow:
 ```mermaid
 graph TD
     A[Launch Picoripi] --> B[New Project Wizard]
-    B --> C[Set Source & Fonts Paths]
-    C --> D[Sync Files]
-    D --> E[Organize Tree via Virtual Folders]
-    E --> F[Configure AI Presets]
-    F --> G[Perform AI/Manual Translation]
-    G --> H[Address Gutter Warnings]
-    H --> I[Run Auto-Fix]
-    I --> J[Compile ROM & Test via >_ Button]
+    B --> C[Set Source and Fonts Paths]
+    C --> D[Start Gemini Web2API WebTOP]
+    D --> E[Settings: OpenAI Compatible to localhost 8081]
+    E --> F[Script Markup then Glossary pipeline]
+    F --> G[Virtual Speakers / Story / Windows]
+    G --> H[AI or manual translation]
+    H --> I[Gutter warnings and Auto-Fix]
+    I --> J[Compile ROM via toolbar]
 ```
+
+Start the Gemini Web2API proxy (WebTOP) **before** glossary or batch translation. Full setup: [5. Gemini Web2API](5_Gemini_Web2API.md).
 
 ### Step 1: Create a Project Workspace
 1.  Go to **File -> New Project** (`Ctrl+N`).
@@ -130,12 +132,17 @@ graph TD
 3.  Drag and drop files to organize them logically.
 4.  Right-click a file and select **Rename** to change its display label.
 
-### Step 3: Configure AI Presets
-1.  Go to **Tools -> Settings** and select the **AI Translation** tab.
-2.  Select a provider (e.g., Gemini).
-3.  Enter your **API Key** and select a model (e.g. `gemini-1.5-pro-latest`).
-4.  Set a custom **Temperature** (lower values like `0.3` are recommended for consistent translations).
-5.  Click **Save Preset** and give it a name. You can save multiple presets (e.g., a local Ollama preset and a Gemini preset) and switch between them instantly.
+### Step 3: Configure AI (Gemini Web2API)
+
+The production path is the **local Gemini Web2API proxy**, not a paid Google API key.
+
+1. Start Web2API (`run.bat` in that repo) and open WebTOP at `http://127.0.0.1:8081/` — at least one account must be **Active**.
+2. In Picoripi: **Settings → Preferences → AI Translation**.
+3. Active Provider: **OpenAI Compatible**. Endpoint: `http://127.0.0.1:8081/v1`. Model: `gemini-3.7-flash`. Timeout: 180 s. Parallel Requests: 4–8 if several accounts are Active.
+4. Click **Test Provider**, then **Save Preset** (e.g. `Gemini Web2API`).
+5. On the **AI Glossary** tab, keep “use the AI Translation key” so glossary builds hit the same proxy.
+
+Details and failure cases: [5. Gemini Web2API](5_Gemini_Web2API.md). ChatMock (ChatGPT web) is documented separately in `docs/chatmock_setup.md`.
 
 ### Step 4: Translating Dialogue
 *   **Manual**: Click a line in the preview panel and start typing in the Translation Editor.

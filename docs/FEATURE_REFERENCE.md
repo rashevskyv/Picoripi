@@ -4,7 +4,7 @@ This document describes the most important Picoripi functions at the product and
 
 ## 1. Project Workspace And Session Recovery
 
-Picoripi is organized around `.uiproj` projects. A project stores source and translated files, virtual folders, project-level settings, plugin selection, block names, metadata, and navigation state.
+Picoripi is organized around `.uiproj` projects. A project stores source and translated files, virtual folders, project-level settings, plugin selection, block names, metadata, and navigation state. The recommended LLM backend for glossary and batch translation is the local Gemini Web2API proxy (WebTOP); see `docs/wiki/5_Gemini_Web2API.md`.
 
 Key capabilities:
 

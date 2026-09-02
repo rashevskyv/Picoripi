@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.091-dev] - 2026-09-02
+
+### Changed
+- **Wiki and Gemini Web2API docs**: User handbook now lives under `docs/wiki/` (index, Web2API/WebTOP setup, virtual navigation). README maps to it. `Show Unsaved Only` still does not survive restart (session-only). Agents update the wiki via the `update-wiki` skill.
+
 ## [v0.3.090] - 2026-09-02
 
 ### 🚀 Added

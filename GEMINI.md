@@ -3,6 +3,13 @@
 
 This document provides a comprehensive overview of the "Picoripi" project to be used as a working context for Gemini.
 
+# wiki
+- Handbook: `docs/wiki/README.md`. Ownership table: `docs/wiki/7_Maintaining_This_Wiki.md`.
+- **update-wiki** (`.grok/skills/update-wiki/SKILL.md`) — after user-visible or settings changes, or when the user says `/update-wiki`. Do not duplicate the same how-to in README, CHANGELOG, and three wiki pages.
+
+# Gemini Web2API
+- Recommended AI backend for glossary and batch translation. How-to: `docs/wiki/5_Gemini_Web2API.md`.
+
 ## AI Development Manifesto (Mandatory)
 
 Picoripi is largely AI-developed, so every AI agent must behave like a careful maintainer, not like a one-shot code generator. This section is the required operating contract for AI work in this repository. The extended version lives in `docs/AI_DEVELOPMENT_MANIFESTO.md`, but the rules below are authoritative even when that file is not opened.

@@ -35,15 +35,17 @@ The application's state and preferences are stored in the root directory under `
 *   **`spellchecker_enabled`**: Boolean flag to toggle live hunspell checks.
 *   **`spellchecker_language`**: ISO language code (e.g., `"uk_UA"`, `"en_US"`).
 *   **`live_bfn_preview`**: Live simulator flag for custom Nintendo fonts.
-*   **`ai_provider`**: Active LLM client. Value must be one of: `"openai"`, `"gemini"`, `"ollama"`, `"perplexity"`.
+*   **`ai_provider`**: Active LLM client. Value must be one of: `"openai"`, `"gemini"`, `"ollama"`, `"perplexity"`. For Gemini Web2API use `"openai"` (OpenAI Compatible) with a local endpoint.
 *   **`ai_presets`**: Dictionary storing named configurations for API connections:
     ```json
     "ai_presets": {
-      "MyGemini": {
-        "provider": "gemini",
-        "model": "gemini-1.5-pro",
-        "api_key": "AIzaSy...",
-        "temperature": 0.3
+      "Gemini Web2API": {
+        "provider": "openai",
+        "model": "gemini-3.7-flash",
+        "endpoint_url": "http://127.0.0.1:8081/v1",
+        "api_key": "local",
+        "timeout": 180,
+        "temperature": 0.0
       },
       "LocalOllama": {
         "provider": "ollama",
@@ -53,6 +55,8 @@ The application's state and preferences are stored in the root directory under `
       }
     }
     ```
+
+Gemini Web2API setup (WebTOP, accounts, Parallel Requests): [5. Gemini Web2API](5_Gemini_Web2API.md).
 
 ---
 
