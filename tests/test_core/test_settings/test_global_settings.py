@@ -15,6 +15,7 @@ def mock_mw():
     mw.tooltip_font_size = 11
     mw.external_script_path = ""
     mw.active_game_plugin = "test_plugin"
+    mw.ui_language = "en"
     mw.show_multiple_spaces_as_dots = True
     mw.space_dot_color_hex = "#123456"
     mw.window_was_maximized_on_close = False
@@ -171,6 +172,22 @@ def test_GlobalSettings_saves_and_loads_translation_config(mock_mw, tmp_path):
     assert mock_mw.translation_config["provider"] == "gemini"
     assert mock_mw.translation_config["providers"]["gemini"]["api_key"] == "test-key-123"
     assert mock_mw.translation_config["providers"]["gemini"]["model"] == "gemini-test-model"
+
+def test_GlobalSettings_saves_and_loads_ui_language(mock_mw, tmp_path):
+    f = tmp_path / "settings.json"
+    s = GlobalSettings(mock_mw, f)
+
+    mock_mw.ui_language = "uk"
+    s.save({"ui_language": "uk"})
+
+    saved = json.loads(f.read_text(encoding="utf-8"))
+    assert saved["ui_language"] == "uk"
+
+    mock_mw.ui_language = "en"
+    d = {}
+    s.load(d)
+    assert d["ui_language"] == "uk"
+
 
 def test_GlobalSettings_saves_and_loads_tooltip_font_size(mock_mw, tmp_path):
     f = tmp_path / "settings.json"

@@ -194,6 +194,12 @@ class GlobalSettings:
                     if 'model' in prov_cfg:
                         translation_ai_to_save['model'] = prov_cfg['model']
 
+        ui_language = settings_dict.get("ui_language")
+        if not isinstance(ui_language, str) or not ui_language.strip():
+            ui_language = getattr(self.mw, "ui_language", "en")
+        if not isinstance(ui_language, str) or not ui_language.strip():
+            ui_language = "en"
+
         global_data.update({
             "tree_font_size": getattr(self.mw, 'tree_font_size', self.mw.current_font_size),
             "preview_font_size": getattr(self.mw, 'preview_font_size', self.mw.current_font_size),
@@ -202,6 +208,7 @@ class GlobalSettings:
             "external_script_path": getattr(self.mw, 'external_script_path', "") if isinstance(getattr(self.mw, 'external_script_path', ""), str) else "",
             "font_size": self.mw.current_font_size,
             "active_game_plugin": self.mw.active_game_plugin,
+            "ui_language": ui_language,
             "target_language": getattr(self.mw, 'target_language', 'Ukrainian') if isinstance(getattr(self.mw, 'target_language', None), str) else 'Ukrainian',
             "show_multiple_spaces_as_dots": self.mw.show_multiple_spaces_as_dots,
             "space_dot_color_hex": self.mw.space_dot_color_hex,
