@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.096-dev] - 2026-09-03
+
+### Changed
+- **Glossary Ukrainian chrome**: Window title, tabs, table headers, buttons, tooltips, occurrence labels, and speaker-identity copy go through `tr()` with Ukrainian catalog entries. Tab identities stay English so filters and tests keep matching.
+
 ## [0.3.095-dev] - 2026-09-02
 
 ### Fixed

@@ -20,7 +20,7 @@
 | folders + files      | Hide empty / translated / unsaved / overrides / warnings |
 | Speakers, Story, …   +----------------------------------------------------------+
 | + − ✎ ↑ ↓ ⟳         | Original (read-only) | tools | Editable translation      |
-| Glossary…            | Max-width, Hide tags |      | Window / Chapter / Speaker |
+| Глосарій…            | Max-width, Hide tags |      | Window / Chapter / Speaker |
 +---------------------------------------------------------------------------------+
 ```
 
@@ -186,7 +186,7 @@
 | Save Project/File | Ctrl+S |
 | Hide/Show Tags in Editor | Ctrl+Q |
 | AI Chat Window | Ctrl+Shift+C |
-| Open Glossary | Ctrl+G |
+| Глосарій… | Ctrl+G |
 | Shortcuts Help | F1 |
 | Settings | Ctrl+P |
 | Undo | Ctrl+Z |
@@ -239,7 +239,7 @@ Save · Undo · Redo · Find · Preview · **Open AI Chat** (`Ctrl+Shift+C`) · 
 | ↑ / ↓ | Порядок. Drag-and-drop теж переміщує. Alt+Shift+Up/Down **навигує**, не рухає |
 | ⟳ | Перебудувати Speakers, Chapters і Items з поточних сюжетних даних. Файли перекладу не чіпає |
 
-**Glossary…** під деревом відкриває глосарій проєкту (`Ctrl+G`). Ctrl-клік по терміну в Original відкриває той запис.
+**Глосарій…** під деревом відкриває глосарій проєкту (`Ctrl+G`). Ctrl-клік по терміну в Original відкриває той запис.
 
 Правий клік (порожнє місце): **Create Folder**, **AI: Translate All Blocks (UA Chronological)**, **Revert All Blocks to Original**, **Restore All Translations**.
 

@@ -103,11 +103,11 @@ UI (режим auto):
 - **Also propose translations now** увімкнено і сховано.
 - Опційно: **Re-scan every selected block with AI** (зазвичай лише нові/змінені блоки).
 - Опційно: **Resume unfinished entries only**, коли частині термінів ще потрібен опис або переклад.
-- Кнопка: **Run automatic glossary pass**.
+- Кнопка: **Запустити автоматичний прохід глосарія...**.
 
 Статус: порожньо → “automatic pass not run”; інакше `N terms; M awaiting review` (непідтверджені). Partial, поки черга review не порожня.
 
-Ручний глосарій: **Glossary…** / `Ctrl+G`. Те саме сховище.
+Ручний глосарій: **Глосарій…** / `Ctrl+G`. Те саме сховище.
 
 **Робити** спочатку налаштувати AI ([11](11_AI_Translation.md), [5](5_Gemini_Web2API.md)). **Не** вважати непідтверджені записи блокером для перекладу тексту.
 

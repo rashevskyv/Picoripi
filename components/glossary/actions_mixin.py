@@ -33,9 +33,12 @@ class ActionsMixin:
         response = QMessageBox.question(
             self,
             tr('Clear Glossary'),
-            f"Remove all {total} entries from the glossary?\n\n"
-            "This cannot be undone from here. The glossary file is copied to "
-            "glossary.json.bak first, so the entries can be restored by hand.",
+            tr(
+                'Remove all {total} entries from the glossary?\n\n'
+                'This cannot be undone from here. The glossary file is copied to '
+                'glossary.json.bak first, so the entries can be restored by hand.',
+                total=total,
+            ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -78,6 +81,12 @@ class ActionsMixin:
         layout.addLayout(form)
         
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, parent=dialog)
+        ok_btn = button_box.button(QDialogButtonBox.StandardButton.Ok)
+        if ok_btn is not None:
+            ok_btn.setText(tr('OK'))
+        cancel_btn = button_box.button(QDialogButtonBox.StandardButton.Cancel)
+        if cancel_btn is not None:
+            cancel_btn.setText(tr('Cancel'))
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box)

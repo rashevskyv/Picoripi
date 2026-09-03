@@ -276,7 +276,7 @@ class GlossaryDialog(
         notes_row = QHBoxLayout()
         notes_label = QLabel(tr('Description:'), self)
         notes_row.addWidget(notes_label)
-        self._notes_variation_default_text = "AI Variations"
+        self._notes_variation_default_text = tr('AI Variations')
         self._notes_variation_button = QPushButton(self._notes_variation_default_text, self)
         self._notes_variation_button.clicked.connect(self._on_notes_variation_clicked)
         self._notes_variation_busy = False
@@ -322,7 +322,10 @@ class GlossaryDialog(
         self._lower_detail_splitter.setStretchFactor(2, 1)
         self._lower_detail_splitter.setSizes([180, 160, 200])
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, parent=self)
-        
+        close_btn = button_box.button(QDialogButtonBox.StandardButton.Close)
+        if close_btn is not None:
+            close_btn.setText(tr('Close'))
+
         self._save_button = QPushButton(tr('Save Changes'), self)
         self._save_button.clicked.connect(self._save_editor_changes)
         button_box.addButton(self._save_button, QDialogButtonBox.ButtonRole.ActionRole)

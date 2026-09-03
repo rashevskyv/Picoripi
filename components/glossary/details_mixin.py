@@ -52,10 +52,15 @@ class DetailsMixin:
                 preview = f"{preview[:117]}…"
             preview_html = escape(preview).replace('\n', '<br>')
             kind = getattr(occ, "kind", "mention") or "mention"
-            kind_label = "spoken" if kind == "spoken" else "mention"
-            header_html = (
-                f"<b>#{index}</b> | {kind_label} | block <b>{occ.block_idx}</b> | "
-                f"string <b>{occ.string_idx + 1}</b> | line <b>{occ.line_idx + 1}</b>"
+            kind_label = tr("spoken") if kind == "spoken" else tr("mention")
+            header_html = tr(
+                '<b>#{index}</b> | {kind} | block <b>{block}</b> | '
+                'string <b>{string}</b> | line <b>{line}</b>',
+                index=index,
+                kind=kind_label,
+                block=occ.block_idx,
+                string=occ.string_idx + 1,
+                line=occ.line_idx + 1,
             )
             item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.DisplayRole, f"{header_html}<br>{preview_html}")
@@ -63,13 +68,15 @@ class DetailsMixin:
             self._occurrence_list.addItem(item)
         mentions = sum(1 for occ in occ_list if getattr(occ, "kind", "mention") != "spoken")
         spoken = sum(1 for occ in occ_list if getattr(occ, "kind", "mention") == "spoken")
-        self._occurrence_label.setText(f"Mentions: {mentions}   Spoken: {spoken}")
+        self._occurrence_label.setText(
+            tr('Mentions: {mentions}   Spoken: {spoken}', mentions=mentions, spoken=spoken)
+        )
 
     def _populate_entry_details(self, entry: GlossaryEntry) -> None:
         """Internal helper to populate entry details."""
         self._current_entry = entry
         self._suppress_editor_signals = True
-        self._original_label.setText(f"Term: {entry.original}")
+        self._original_label.setText(tr('Term: {original}', original=entry.original))
         self._populate_category_choices(entry)
         self._translation_edit.setText(entry.translation or '')
         self._notes_template = entry.notes or ''
@@ -84,12 +91,16 @@ class DetailsMixin:
         self._current_speaker_is_provisional = is_provisional_char
         if speaker_code:
             self._speaker_identity_pane.setVisible(True)
-            state = "provisional game code" if is_provisional_char else "confirmed game code"
+            state = tr("provisional game code") if is_provisional_char else tr("confirmed game code")
             self._speaker_identity_title.setText(
-                f"<b>Speaker identity ({state}: {escape(speaker_code)}):</b>"
+                tr(
+                    '<b>Speaker identity ({state}: {code}):</b>',
+                    state=state,
+                    code=escape(speaker_code),
+                )
             )
             self._apply_speaker_name_button.setText(
-                "Apply speaker name" if is_provisional_char else "Reassign speaker"
+                tr('Apply speaker name') if is_provisional_char else tr('Reassign speaker')
             )
             candidates = self._build_speaker_candidates(entry)
             self._speaker_name_combo.blockSignals(True)
@@ -115,9 +126,11 @@ class DetailsMixin:
             if is_provisional_char and (suggested_name or suggested_evidence):
                 parts = []
                 if suggested_name:
-                    parts.append(f"<b>AI Proposal:</b> {escape(suggested_name)}")
+                    parts.append(tr('<b>AI Proposal:</b> {name}', name=escape(suggested_name)))
                 if suggested_evidence:
-                    parts.append(f"<b>Evidence:</b> {escape(suggested_evidence)}")
+                    parts.append(
+                        tr('<b>Evidence:</b> {evidence}', evidence=escape(suggested_evidence))
+                    )
                 self._speaker_evidence_label.setText("<br>".join(parts))
                 self._speaker_evidence_label.setVisible(True)
             elif not is_provisional_char:

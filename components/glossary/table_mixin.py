@@ -56,6 +56,18 @@ class TableMixin:
             tabs.append("Unassigned")
         return tabs
 
+    @staticmethod
+    def _glossary_tab_label(tab_name: str) -> str:
+        """Display label for a tab. Internal keys stay English."""
+        return tr(tab_name)
+
+    def _glossary_tab_key(self, index: int) -> str:
+        """English tab identity, independent of the translated caption."""
+        tip = self._tab_widget.tabToolTip(index)
+        if tip:
+            return tip
+        return self._tab_widget.tabText(index)
+
     def _entries_for_glossary_tab(self, tab_name: str, entries: Sequence[GlossaryEntry]) -> list[GlossaryEntry]:
         if tab_name == "All":
             return list(entries)
@@ -104,10 +116,13 @@ class TableMixin:
                     if provisional:
                         item.setForeground(_PROVISIONAL_FOREGROUND)
                         item.setToolTip(
-                            "Provisional speaker identity.\n\n"
-                            f"\"{entry.original}\" was extracted from game data as a temporary speaker identifier. "
-                            "Select this term in the Glossary to assign its permanent character name, "
-                            "or use Merge Speakers to match it against a script."
+                            tr(
+                                'Provisional speaker identity.\n\n'
+                                '"{original}" was extracted from game data as a temporary speaker identifier. '
+                                'Select this term in the Glossary to assign its permanent character name, '
+                                'or use Merge Speakers to match it against a script.',
+                                original=entry.original,
+                            )
                         )
             if resize:
                 table.resizeColumnToContents(0)
@@ -122,7 +137,12 @@ class TableMixin:
         table = _GlossaryTermTable(self)
         table.setAutoScroll(False)
         table.setColumnCount(4)
-        table.setHorizontalHeaderLabels(["Term", "Translation", "Notes", "Count"])
+        table.setHorizontalHeaderLabels([
+            tr('Term'),
+            tr('Translation'),
+            tr('Notes'),
+            tr('Count'),
+        ])
         table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         header = table.horizontalHeader()
@@ -151,10 +171,14 @@ class TableMixin:
         
         # Save current selected term and tab to restore after population
         selected_term = self._current_entry.original if self._current_entry else None
-        current_tab_text = self._tab_widget.tabText(self._tab_widget.currentIndex()) if hasattr(self, '_tab_widget') and self._tab_widget.count() > 0 else "All"
+        current_tab_key = (
+            self._glossary_tab_key(self._tab_widget.currentIndex())
+            if hasattr(self, '_tab_widget') and self._tab_widget.count() > 0
+            else "All"
+        )
         tabs_to_create = self._glossary_tab_names(entries)
         existing_tabs = [
-            self._tab_widget.tabText(idx) for idx in range(self._tab_widget.count())
+            self._glossary_tab_key(idx) for idx in range(self._tab_widget.count())
         ] if hasattr(self, "_tab_widget") else []
         reuse = existing_tabs == tabs_to_create and all(name in self._tables for name in tabs_to_create)
 
@@ -178,11 +202,12 @@ class TableMixin:
                     resize=True,
                 )
                 self._tables[tab_name] = table
-                self._tab_widget.addTab(table, tab_name)
+                tab_idx = self._tab_widget.addTab(table, self._glossary_tab_label(tab_name))
+                self._tab_widget.setTabToolTip(tab_idx, tab_name)
             
         restore_idx = 0
         for idx in range(self._tab_widget.count()):
-            if self._tab_widget.tabText(idx) == current_tab_text:
+            if self._glossary_tab_key(idx) == current_tab_key:
                 restore_idx = idx
                 break
         self._tab_widget.setCurrentIndex(restore_idx)
@@ -216,13 +241,13 @@ class TableMixin:
             self._tab_widget.blockSignals(True)
             found_tab = False
             for idx in range(self._tab_widget.count()):
-                if self._tab_widget.tabText(idx) == target_section:
+                if self._glossary_tab_key(idx) == target_section:
                     self._tab_widget.setCurrentIndex(idx)
                     found_tab = True
                     break
             if not found_tab:
                 for idx in range(self._tab_widget.count()):
-                    if self._tab_widget.tabText(idx) == "All":
+                    if self._glossary_tab_key(idx) == "All":
                         self._tab_widget.setCurrentIndex(idx)
                         break
             self._tab_widget.blockSignals(False)
@@ -342,9 +367,13 @@ class TableMixin:
                 f"  • {v.translation}" + (f" — {v.rationale}" if v.rationale else "")
                 for v in variants
             )
-            return f"{len(variants)} translation variants proposed:\n{listed}"
+            return tr(
+                '{count} translation variants proposed:\n{listed}',
+                count=len(variants),
+                listed=listed,
+            )
         status = getattr(entry, "status", "") or "unconfirmed"
-        return f"Awaiting review (status: {status})."
+        return tr('Awaiting review (status: {status}).', status=status)
 
     @staticmethod
     def _review_brush(entry: GlossaryEntry) -> Optional[QBrush]:

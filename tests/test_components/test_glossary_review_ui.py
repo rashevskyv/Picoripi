@@ -696,7 +696,7 @@ class TestCategoryAssignment:
 
         assert callback.call_args.kwargs["section"] == "Creatures"
         assert "Creatures" in [
-            dialog._tab_widget.tabText(index)
+            dialog._tab_widget.tabToolTip(index)
             for index in range(dialog._tab_widget.count())
         ]
 

@@ -49,7 +49,7 @@ def test_initial_term_selects_entry_and_switches_section(qtbot):
     assert dlg._current_entry is not None
     assert dlg._current_entry.original == "TWILIGHT PRINCESS"
     # jumped to the entry's section tab and filtered to it
-    assert dlg._tab_widget.tabText(dlg._tab_widget.currentIndex()) == "Main"
+    assert dlg._tab_widget.tabToolTip(dlg._tab_widget.currentIndex()) == "Main"
     assert dlg._search_field.text() == "TWILIGHT PRINCESS"
 
 

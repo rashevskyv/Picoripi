@@ -24,7 +24,9 @@ class EditorMixin:
         self._notes_variation_busy = busy
         has_callback = self._ai_variation_callback is not None
         if busy:
-            self._notes_variation_button.setText(f"{self._notes_variation_default_text} (working...)")
+            self._notes_variation_button.setText(
+                tr('{label} (working...)', label=self._notes_variation_default_text)
+            )
         else:
             self._notes_variation_button.setText(self._notes_variation_default_text)
         should_enable = has_callback and not busy and self._current_entry is not None
@@ -180,7 +182,7 @@ class EditorMixin:
         response = QMessageBox.question(
             self,
             tr('Delete Glossary Entry'),
-            f"Remove term \"{entry.original}\" from the glossary?",
+            tr('Remove term "{original}" from the glossary?', original=entry.original),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -209,7 +211,7 @@ class EditorMixin:
         menu = QMenu(self)
         settled = not self._needs_review(entry)
         review_action = menu.addAction(
-            "Mark for review" if settled else "Mark as reviewed"
+            tr('Mark for review') if settled else tr('Mark as reviewed')
         )
         review_action.setEnabled(self._update_callback is not None)
         menu.addSeparator()
@@ -239,7 +241,12 @@ class EditorMixin:
             if text and text not in fragments:
                 fragments.append(text)
         if fragments:
-            sections.append("Observations collected during the text sweep:\n- " + "\n- ".join(fragments))
+            sections.append(
+                tr(
+                    'Observations collected during the text sweep:\n- {items}',
+                    items="\n- ".join(fragments),
+                )
+            )
 
         variants = getattr(entry, "translation_variants", ()) or ()
         if len(variants) > 1:
@@ -247,14 +254,19 @@ class EditorMixin:
                 f"{variant.translation} — {variant.rationale}".rstrip(" —")
                 for variant in variants
             ]
-            sections.append("Defensible translation choices:\n- " + "\n- ".join(choices))
+            sections.append(
+                tr('Defensible translation choices:\n- {items}', items="\n- ".join(choices))
+            )
 
         suggested_name = str(getattr(entry, "suggested_name", "") or "").strip()
         name_evidence = str(getattr(entry, "suggested_name_evidence", "") or "").strip()
         if suggested_name or name_evidence:
-            text = f"Possible speaker identity: {suggested_name or '(unknown)'}"
+            text = tr(
+                'Possible speaker identity: {name}',
+                name=suggested_name or tr('(unknown)'),
+            )
             if name_evidence:
-                text += f"\nEvidence: {name_evidence}"
+                text += "\n" + tr('Evidence: {evidence}', evidence=name_evidence)
             sections.append(text)
         duplicates = [
             right if left == entry.original else left
@@ -263,7 +275,10 @@ class EditorMixin:
         ]
         if duplicates:
             sections.append(
-                "Possible duplicate terms (review manually):\n- " + "\n- ".join(duplicates)
+                tr(
+                    'Possible duplicate terms (review manually):\n- {items}',
+                    items="\n- ".join(duplicates),
+                )
             )
         raw = "\n\n".join(sections)
         translation = ""
