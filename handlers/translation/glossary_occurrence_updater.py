@@ -113,10 +113,9 @@ class GlossaryOccurrenceUpdater:
     def _apply_occurrence_translation(self, occurrence: GlossaryOccurrence, new_text: str) -> None:
         """Internal helper to apply occurrence translation."""
         self._main_handler.data_processor.update_edited_data(
-            occurrence.block_idx, occurrence.string_idx, new_text
+            occurrence.block_idx, occurrence.string_idx, new_text, skip_ui_refresh=True
         )
-        self._mw.ui_updater.populate_strings_for_block(occurrence.block_idx)
-        if (self._mw.data_store.current_block_idx == occurrence.block_idx
+        if (self._mw.data_store.physical_block_idx == occurrence.block_idx
                 and self._mw.data_store.current_string_idx == occurrence.string_idx):
             self._mw.ui_updater.update_text_views()
         self._mw.ui_updater.update_block_item_text_with_problem_count(occurrence.block_idx)

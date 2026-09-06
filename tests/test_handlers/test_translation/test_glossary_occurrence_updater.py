@@ -64,15 +64,62 @@ def test_gou_occurrence_helpers(updater):
     assert updater._get_occurrence_translation_text(occ) == "trans"
     updater._main_handler.data_processor.get_current_string_text.assert_called_with(1, 2)
     
-    # Apply translation
-    updater._mw.data_store.current_block_idx = 1
+    # Apply translation - active occurrence
+    updater._mw.data_store.physical_block_idx = 1
     updater._mw.data_store.current_string_idx = 2
     updater._apply_occurrence_translation(occ, "new_t")
     
-    updater._main_handler.data_processor.update_edited_data.assert_called_with(1, 2, "new_t")
-    updater._mw.ui_updater.populate_strings_for_block.assert_called_with(1)
-    updater._mw.ui_updater.update_text_views.assert_called()
-    updater._mw.ui_updater.update_block_item_text_with_problem_count.assert_called_with(1)
+    updater._main_handler.data_processor.update_edited_data.assert_called_once_with(
+        1, 2, "new_t", skip_ui_refresh=True
+    )
+    updater._mw.ui_updater.populate_strings_for_block.assert_not_called()
+    updater._mw.ui_updater.update_text_views.assert_called_once()
+    updater._mw.ui_updater.update_block_item_text_with_problem_count.assert_called_once_with(1)
+
+def test_gou_apply_occurrence_translation_non_active(updater):
+    occ = GlossaryOccurrence(GlossaryEntry("t", "tr"), 1, 2, 3, 0, 0, "line")
+
+    # Inactive case 1: different string index
+    updater._mw.data_store.physical_block_idx = 1
+    updater._mw.data_store.current_string_idx = 99
+    updater._apply_occurrence_translation(occ, "new_t")
+
+    updater._main_handler.data_processor.update_edited_data.assert_called_once_with(
+        1, 2, "new_t", skip_ui_refresh=True
+    )
+    updater._mw.ui_updater.populate_strings_for_block.assert_not_called()
+    updater._mw.ui_updater.update_text_views.assert_not_called()
+    updater._mw.ui_updater.update_block_item_text_with_problem_count.assert_called_once_with(1)
+
+    # Inactive case 2: different physical block index
+    updater._main_handler.data_processor.update_edited_data.reset_mock()
+    updater._mw.ui_updater.reset_mock()
+    updater._mw.data_store.physical_block_idx = 5
+    updater._mw.data_store.current_string_idx = 2
+    updater._apply_occurrence_translation(occ, "new_t2")
+
+    updater._main_handler.data_processor.update_edited_data.assert_called_once_with(
+        1, 2, "new_t2", skip_ui_refresh=True
+    )
+    updater._mw.ui_updater.populate_strings_for_block.assert_not_called()
+    updater._mw.ui_updater.update_text_views.assert_not_called()
+    updater._mw.ui_updater.update_block_item_text_with_problem_count.assert_called_once_with(1)
+
+def test_gou_apply_occurrence_translation_virtual_view_active(updater):
+    occ = GlossaryOccurrence(GlossaryEntry("t", "tr"), 1, 2, 3, 0, 0, "line")
+
+    # In virtual view, current_block_idx is negative (e.g. -3), but physical_block_idx matches
+    updater._mw.data_store.current_block_idx = -3
+    updater._mw.data_store.physical_block_idx = 1
+    updater._mw.data_store.current_string_idx = 2
+    updater._apply_occurrence_translation(occ, "virtual_text")
+
+    updater._main_handler.data_processor.update_edited_data.assert_called_once_with(
+        1, 2, "virtual_text", skip_ui_refresh=True
+    )
+    updater._mw.ui_updater.populate_strings_for_block.assert_not_called()
+    updater._mw.ui_updater.update_text_views.assert_called_once()
+    updater._mw.ui_updater.update_block_item_text_with_problem_count.assert_called_once_with(1)
 
 def test_gou_request_ai_occurrence_update(updater):
     # No dialog

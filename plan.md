@@ -19,3 +19,10 @@
    - [x] Написати тести на `spoken` входження для 7 рядків `AGITHA'S STALKER` у `tests/test_core/test_glossary_occurrence_bridge.py`.
    - [x] Написати тести на пайплайн опису/перекладу в `tests/test_core/test_glossary_pipeline_coordinator.py` та `tests/test_handlers/test_translation/test_glossary_pipeline_handler.py`.
    - [x] Запустити тести, перевірити `ruff` та `git diff --check`.
+
+## Виконано: швидке застосування перекладу глосарію
+
+- [x] У `_apply_occurrence_translation()` замінити повну перебудову preview-блоку на точкове оновлення лише активного фізичного рядка.
+- [x] Передати `skip_ui_refresh=True` у запис даних і виконувати один refresh індикатора блоку.
+- [x] Покрити активний, неактивний та віртуальний режими регресійними тестами.
+- [x] Підняти dev-версію до `0.3.097-dev`; Gemini перевірив вузький і суміжний набір тестів, Ruff та `git diff --check`.

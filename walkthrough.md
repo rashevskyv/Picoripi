@@ -42,3 +42,24 @@
 - **GitHub Release**: опубліковано реліз без бінарників: [Release v0.3.090](https://github.com/rashevskyv/Picoripi/releases/tag/v0.3.090).
 - **Пост-деплой**: версію бампнуто до `0.3.091-dev` для наступного циклу розробки.
 
+---
+
+# Walkthrough: Усунення затримки застосування перекладу глосарію (v0.3.097-dev)
+
+## Причина
+
+`GlossaryOccurrenceUpdater._apply_occurrence_translation()` після зміни одного входження примусово викликав `populate_strings_for_block()` для всього цільового блоку. Це відбувалося в UI-потоці, зокрема для блоків, які не були відкриті, тому на великих блоках застосунок міг не відповідати 5–6 секунд. Оновлення індикатора блоку також виконувалося двічі: усередині `update_edited_data()` і одразу після нього.
+
+## Виправлення
+
+- Запис у `update_edited_data()` тепер використовує `skip_ui_refresh=True`.
+- Повну перебудову preview-блоку прибрано.
+- Текстові поля оновлюються лише коли входження є поточним активним фізичним рядком (`physical_block_idx` і `current_string_idx`). Це коректно працює і у віртуальних поданнях, де `current_block_idx` є від’ємним маркером виду.
+- Елемент дерева блоку оновлюється рівно один раз.
+
+## Перевірка
+
+- `tests/test_handlers/test_translation/test_glossary_occurrence_updater.py`: **13 passed**.
+- Увесь набір `tests/test_handlers/test_translation/`: **167 passed**.
+- `ruff check` для змінених файлів і `git diff --check`: без зауважень.
+
