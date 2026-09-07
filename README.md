@@ -67,6 +67,7 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
 - **Auto-Synchronized Filter Checkboxes**: Automatically synchronizes the graphical states of all filter checkboxes (such as `Show Unsaved Only`, `Hide translated`, etc.) inside the preview panel with the internal `AppDataStore` values upon startup, session restoration, or project settings loading to prevent visual UI state desynchronization.
 - **Warning-Specific Preview Filtering**: Allows filtering the preview panel by specific warning categories. Adds a filter button (`Warnings: X / Y`, where X is the number of active warning filters and Y is the number of enabled warnings in Settings -> Detection) next to the preview layout toggles. Clicking the button opens a modal dialog (`WarningsFilterDialog`) with checkboxes and descriptive tooltips for each warning type, enabling users to isolate strings matching a subset of selected warnings or view all warnings if no specific filters are checked. If no warnings are selected, the preview is cleared.
 - **Auto-follow scroll in Script Markup Studio**: Adds a toolbar checkbox `Auto-follow scroll` inside the Script Markup Studio. When enabled, scrolling the raw script pane dynamically aligns the preview pane to the top visible line in the raw pane using `ensureCursorVisible()` (gentle scrolling). If the target line is already visible, the view remains stationary to avoid layout jumping.
+- **Interface Localization (i18n) & Language Menu**: Comprehensive localization across all application chrome using `tr()`. The **Language** menu dynamically lists all active translations (`locales/*.json`) with their native titles (e.g. English, Українська, 日本語, etc.). Missing keys fall back gracefully to English. Supported by an automated batch translation pipeline (`tools/i18n-translate/`) with Gemini Web2API proxy integration.
 
 ---
 
@@ -152,6 +153,8 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
 - **Unified Side-by-Side Term Editing**: Presents the original term (read-only, selectable) alongside the editable translation on a single line, paired with a compact confirmation button.
 - **Collapsible Section Panes**: Notes/Description, AI Notes, and Occurrences sections feature toggleable collapsible headers (`[▼]/[▶]`) to reclaim vertical space and minimize visual clutter.
 - **Granular Occurrence Filtering**: Features independent checkboxes to filter term occurrences by Mentions (direct text matches) and Spoken lines (dialogue spoken by character).
+- **Relocated "Needs Review" Filter**: The unconfirmed terms filter checkbox has been relocated from the search bar directly beneath the terms and categories table (`_tab_widget`), preserving all vertical space for term details while visually grouping it with the table it filters.
+- **Character Profiling Metadata**: Relocated the "Profiled via AI" checkbox to the Description header with an explicit tooltip clarifying its speech profiling status.
 
 ---
 

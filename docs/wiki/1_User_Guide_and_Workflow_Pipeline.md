@@ -241,7 +241,17 @@ Tree toolbar (bottom of the panel; buttons start disabled):
 
 **Glossary…** under the tree opens the project glossary (`Ctrl+G`). Ctrl-click a glossary term in Original to open that entry.
 
-Choosing and applying a proposed translation variant updates the existing occurrence index in place when the term and category are unchanged. This keeps confirmation responsive even in large projects; changing the term/category or confirming before the index exists still performs a full correctness scan.
+**Glossary Dialog Layout & Controls**:
+- **Left Panel (Terms & Categories)**:
+  - Top: Search bar for filtering terms in real time.
+  - Middle: Category tabs (`_tab_widget`) organizing entries into semantic domains ("Characters", "Items", "Locations", etc.).
+  - Bottom: Dedicated bottom bar with the **Needs review** (`_unconfirmed_only_checkbox`) filter checkbox, filtering the table to unconfirmed terms without taking up horizontal search bar or vertical detail space.
+- **Right Panel (Term Details)**:
+  - **Side-by-Side Term & Translation**: Synchronized `QGridLayout` with uniform 26px height. The original term is read-only, selectable, constrained to 280px max width, and features an interactive **Wiki ↗** button linking directly to game lore search (via `BaseGameRules.get_external_reference_url`). The editable translation is paired with a compact **Confirm** button.
+  - **Description & Notes**: Includes the **Profiled via AI** checkbox in the section header with a descriptive tooltip indicating character speech profiling status.
+  - **Collapsible Sections**: Description, AI Notes, and Occurrences panels feature collapse/expand toggle buttons (`[▼]/[▶]`) to optimize vertical space.
+  - **Granular Occurrence Filtering**: Independent checkboxes for **Mentions** (text references) and **Spoken** (lines spoken by this character).
+  - **Fast Variant Confirmation**: Applying a proposed translation variant updates the existing occurrence index in place when the term and category are unchanged. This keeps confirmation responsive (sub-second) even in large projects; changing the term/category or confirming before the index exists still performs a full correctness scan.
 
 Right-click (empty space): **Create Folder**, **AI: Translate All Blocks (UA Chronological)**, **Revert All Blocks to Original**, **Restore All Translations**.
 
