@@ -59,7 +59,7 @@ First, ask me these questions:
    - Does a message carry any attribute saying which on-screen window or box the game draws it in? That attribute usually identifies the message's role - item name, place name, boss name, speaker caption - and can seed the glossary directly.
    - Does the game data already pair a name with its own description or icon (for example an item-acquisition screen)? Those pairs are ready-made glossary entries that need no AI at all.
    - Can conversations, branches, or scene membership be reconstructed from the data?
-   - Is there a community wiki or reference source for this game that glossary descriptions could be grounded in?
+   - Is there a community wiki or reference source for this game that glossary descriptions could be grounded in (get_external_lore) or directly linked to in the glossary UI (get_external_reference_url)?
    - Is there a fan script or walkthrough transcript containing scenes and speakers?
    - Which of these should the first version include, and which can wait?
 

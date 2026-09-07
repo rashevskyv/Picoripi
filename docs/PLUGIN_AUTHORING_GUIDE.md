@@ -206,6 +206,7 @@ the text — because none of that needs anything from the game beyond the text i
 
 Also implemented, and needing no declaration:
 
+- `get_external_reference_url(term)` — direct web/wiki reference URL for terms, providing one-click access to external lore in the glossary UI.
 - `get_addressee_for_string()` — who a line is addressed to, for the Story Timeline and
   translation prompts.
 - A `role_instruction` key alongside `content_role`, so a plugin supplies not just the name of

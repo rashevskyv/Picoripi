@@ -508,6 +508,13 @@ class PhysicalSelectionMixin:
             self.mw.data_store.current_string_idx = curr_s_idx
             self.mw.data_store.edited_sublines.clear() # Clear editor sublines on line change
 
+            # Restore subline asterisks if the selected line has unsaved changes in memory
+            if (curr_b_idx, curr_s_idx) in self.mw.data_store.edited_data:
+                current_text = self.mw.data_store.edited_data[(curr_b_idx, curr_s_idx)]
+                toh = getattr(self.mw, 'text_operation_handler', None) or getattr(self.mw, 'editor_operation_handler', None)
+                if toh and hasattr(toh, 'sync_subline_asterisks'):
+                    toh.sync_subline_asterisks(curr_b_idx, curr_s_idx, current_text)
+
             if hasattr(self.mw, 'undo_manager') and not original_programmatic_state:
                 cat = getattr(self.mw.data_store, 'current_category_name', None)
                 self.mw.undo_manager.record_navigation(

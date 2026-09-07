@@ -128,4 +128,18 @@ class TestPluginExposesIt:
 
         caps = GameRules.__new__(GameRules).get_capabilities()
         assert "external_lore" in caps
+        assert "external_reference" in caps
         assert "message_window_preview" in caps
+
+    def test_reference_url_generates_valid_wiki_search_url(self):
+        from plugins.zelda_bmg.wiki import reference_url
+        from plugins.zelda_bmg.rules import GameRules
+
+        url = reference_url("Master Sword")
+        assert url == "https://zeldawiki.wiki/wiki/Special:Search?search=Master%20Sword"
+        assert reference_url("") is None
+        assert reference_url("   ") is None
+
+        rules = GameRules.__new__(GameRules)
+        assert rules.get_external_reference_url("Midna") == "https://zeldawiki.wiki/wiki/Special:Search?search=Midna"
+        assert rules.get_external_reference_url("") is None

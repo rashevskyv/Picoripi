@@ -117,3 +117,10 @@ def lookup(term: str) -> Optional[str]:
     except Exception as exc:
         log_warning(f"Zelda Wiki lookup failed for '{term}': {exc}")
     return None
+
+
+def reference_url(term: str) -> Optional[str]:
+    """External wiki search or article URL for ``term``."""
+    if not term or not term.strip():
+        return None
+    return f"https://zeldawiki.wiki/wiki/Special:Search?search={urllib.parse.quote(term.strip())}"

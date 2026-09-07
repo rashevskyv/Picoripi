@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -76,6 +77,7 @@ class GlossaryDialog(
         initial_term: Optional[str] = None,
         placeholder_speaker_callback: Optional[Callable[[str], bool]] = None,
         discuss_variant_callback: Optional[Callable[[GlossaryEntry], None]] = None,
+        external_reference_callback: Optional[Callable[[str], Optional[str]]] = None,
     ) -> None:
         """Initialize a new instance."""
         super().__init__(None)
@@ -116,6 +118,7 @@ class GlossaryDialog(
         self._speaker_codes_callback = speaker_codes_callback
         self._placeholder_speaker_callback = placeholder_speaker_callback
         self._discuss_variant_callback = discuss_variant_callback
+        self._external_reference_callback = external_reference_callback
         self._current_speaker_code = ""
         self._current_speaker_is_provisional = False
         self._initial_term = initial_term
@@ -142,6 +145,8 @@ class GlossaryDialog(
         self._filter_timer.timeout.connect(lambda: self._apply_filter(self._search_field.text()))
         self._search_field.textChanged.connect(self._filter_timer.start)
         search_layout.addWidget(self._search_field, 1)
+        layout.addLayout(search_layout)
+
         self._unconfirmed_only_checkbox = QCheckBox(tr('Needs review'), self)
         self._unconfirmed_only_checkbox.setToolTip(
             tr('Show only entries still awaiting your decision — highlighted rows: several translation variants were proposed, or the entry has not been confirmed yet.')
@@ -149,16 +154,27 @@ class GlossaryDialog(
         self._unconfirmed_only_checkbox.stateChanged.connect(
             lambda _state: self._apply_filter(self._search_field.text())
         )
-        search_layout.addWidget(self._unconfirmed_only_checkbox)
-        layout.addLayout(search_layout)
 
         self._main_splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self._main_splitter.setHandleWidth(6)
         layout.addWidget(self._main_splitter, 1)
 
+        left_panel = QWidget(self)
+        left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(4)
+
         self._tab_widget = QTabWidget(self)
         self._tab_widget.currentChanged.connect(self._on_tab_changed)
-        self._main_splitter.addWidget(self._tab_widget)
+        left_layout.addWidget(self._tab_widget, 1)
+
+        left_bottom_bar = QHBoxLayout()
+        left_bottom_bar.setContentsMargins(2, 2, 2, 2)
+        left_bottom_bar.addWidget(self._unconfirmed_only_checkbox)
+        left_bottom_bar.addStretch()
+        left_layout.addLayout(left_bottom_bar)
+
+        self._main_splitter.addWidget(left_panel)
 
         right_panel = QWidget(self)
         right_layout = QVBoxLayout(right_panel)
@@ -168,7 +184,7 @@ class GlossaryDialog(
         self._main_splitter.setSizes([360, 480])
         self._original_label = QLabel(tr(''), self)
         self._original_label.setWordWrap(True)
-        right_layout.addWidget(self._original_label)
+        self._original_label.setVisible(False)  # Preserved for backward compatibility
 
         category_row = QHBoxLayout()
         category_row.addWidget(QLabel(tr('Category:'), self))
@@ -209,17 +225,61 @@ class GlossaryDialog(
         right_layout.addWidget(self._speaker_identity_pane)
         self._speaker_identity_pane.setVisible(False)
 
-        translation_label = QLabel(tr('Translation:'), self)
-        right_layout.addWidget(translation_label)
+        # Term & Translation row: Original on left, Translation on right
+        term_trans_grid = QGridLayout()
+        term_trans_grid.setContentsMargins(0, 2, 0, 4)
+        term_trans_grid.setHorizontalSpacing(10)
+        term_trans_grid.setVerticalSpacing(2)
+
+        term_trans_grid.addWidget(QLabel(tr('Original:'), self), 0, 0)
+        term_trans_grid.addWidget(QLabel(tr('Translation:'), self), 0, 1)
+
+        orig_box = QHBoxLayout()
+        orig_box.setContentsMargins(0, 0, 0, 0)
+        orig_box.setSpacing(4)
+        self._original_edit = QLineEdit(self)
+        self._original_edit.setReadOnly(True)
+        self._original_edit.setFixedHeight(26)
+        self._original_edit.setMaximumWidth(280)
+        self._original_edit.setPlaceholderText(tr('Original term...'))
+        self._original_edit.setStyleSheet("background-color: #f8fafc; font-weight: bold;")
+        orig_box.addWidget(self._original_edit, 1)
+
+        self._wiki_link_button = QPushButton(tr('Wiki ↗'), self)
+        self._wiki_link_button.setFixedHeight(26)
+        self._wiki_link_button.setStyleSheet("padding: 2px 8px;")
+        self._wiki_link_button.setToolTip(tr('Open external wiki reference for this term'))
+        self._wiki_link_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._wiki_link_button.setVisible(False)
+        self._wiki_link_button.clicked.connect(self._on_open_wiki_link)
+        orig_box.addWidget(self._wiki_link_button)
+
+        term_trans_grid.addLayout(orig_box, 1, 0)
+
+        trans_box = QHBoxLayout()
+        trans_box.setContentsMargins(0, 0, 0, 0)
+        trans_box.setSpacing(4)
         self._translation_edit = QLineEdit(self)
-        right_layout.addWidget(self._translation_edit)
+        self._translation_edit.setFixedHeight(26)
+        trans_box.addWidget(self._translation_edit, 1)
 
         self._confirm_button = QPushButton(tr('Confirm translation'), self)
+        self._confirm_button.setFixedHeight(26)
+        self._confirm_button.setStyleSheet("padding: 2px 8px;")
+        self._confirm_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self._confirm_button.setToolTip(
             tr('Mark this translation as decided and move to the next term. Unreviewed rows stay pale yellow; several proposed variants stay orange until you pick one.')
         )
         self._confirm_button.clicked.connect(self._on_confirm_clicked)
-        right_layout.addWidget(self._confirm_button)
+        trans_box.addWidget(self._confirm_button)
+
+        term_trans_grid.addLayout(trans_box, 1, 1)
+
+        # Allocate 1/3 to Original and 2/3 to Translation
+        term_trans_grid.setColumnStretch(0, 1)
+        term_trans_grid.setColumnStretch(1, 2)
+
+        right_layout.addLayout(term_trans_grid)
 
         # The variants list has its own top-level splitter handle, so the
         # divider sits directly below the list rather than below its actions.
@@ -271,41 +331,127 @@ class GlossaryDialog(
         notes_pane = _DetailPane(self)
         notes_layout = QVBoxLayout(notes_pane)
         notes_layout.setContentsMargins(0, 0, 0, 0)
-        self._profiled_checkbox = QCheckBox(tr('Profiled via AI (Speech Profile generated)'), self)
-        notes_layout.addWidget(self._profiled_checkbox)
-        notes_row = QHBoxLayout()
+        notes_layout.setSpacing(2)
+
+        notes_header = QHBoxLayout()
+        notes_header.setContentsMargins(0, 0, 0, 0)
+        notes_header.setSpacing(6)
+        self._notes_collapse_button = QPushButton("▼", self)
+        self._notes_collapse_button.setFixedSize(22, 22)
+        self._notes_collapse_button.setStyleSheet("font-size: 10px; font-weight: bold; padding: 0px;")
+        self._notes_collapse_button.setToolTip(tr("Collapse/Expand section"))
+        notes_header.addWidget(self._notes_collapse_button)
+
         notes_label = QLabel(tr('Description:'), self)
-        notes_row.addWidget(notes_label)
+        notes_label.setStyleSheet("font-weight: bold;")
+        notes_header.addWidget(notes_label)
+
         self._notes_variation_default_text = tr('AI Variations')
         self._notes_variation_button = QPushButton(self._notes_variation_default_text, self)
         self._notes_variation_button.clicked.connect(self._on_notes_variation_clicked)
         self._notes_variation_busy = False
-        notes_row.addWidget(self._notes_variation_button)
-        notes_row.addStretch()
-        notes_layout.addLayout(notes_row)
+        notes_header.addWidget(self._notes_variation_button)
+        notes_header.addStretch()
+
+        self._profiled_checkbox = QCheckBox(tr('Profiled via AI (Speech Profile generated)'), self)
+        self._profiled_checkbox.setToolTip(
+            tr('Indicates that an AI speech profile has been generated for this character. Automated profiling workers will skip re-analyzing marked characters. Changes are saved with the entry.')
+        )
+        notes_header.addWidget(self._profiled_checkbox)
+        notes_layout.addLayout(notes_header)
+
         if not self._ai_variation_callback:
             self._notes_variation_button.hide()
+
         self._notes_edit = QPlainTextEdit(self)
         notes_layout.addWidget(self._notes_edit, 1)
+
+        def _toggle_notes():
+            collapsed = not self._notes_edit.isHidden()
+            self._notes_edit.setHidden(collapsed)
+            self._notes_collapse_button.setText("▶" if collapsed else "▼")
+            if collapsed:
+                notes_pane.setMaximumHeight(34)
+            else:
+                notes_pane.setMaximumHeight(16777215)
+        self._notes_collapse_button.clicked.connect(_toggle_notes)
+
         self._lower_detail_splitter.addWidget(notes_pane)
 
         ai_notes_pane = _DetailPane(self)
         ai_notes_layout = QVBoxLayout(ai_notes_pane)
         ai_notes_layout.setContentsMargins(0, 0, 0, 0)
+        ai_notes_layout.setSpacing(2)
+
+        ai_notes_header = QHBoxLayout()
+        ai_notes_header.setContentsMargins(0, 0, 0, 0)
+        ai_notes_header.setSpacing(6)
+        self._ai_notes_collapse_button = QPushButton("▼", self)
+        self._ai_notes_collapse_button.setFixedSize(22, 22)
+        self._ai_notes_collapse_button.setStyleSheet("font-size: 10px; font-weight: bold; padding: 0px;")
+        self._ai_notes_collapse_button.setToolTip(tr("Collapse/Expand section"))
+        ai_notes_header.addWidget(self._ai_notes_collapse_button)
+
         ai_notes_label = QLabel(tr('AI notes and unresolved choices:'), self)
-        ai_notes_layout.addWidget(ai_notes_label)
+        ai_notes_label.setStyleSheet("font-weight: bold;")
+        ai_notes_header.addWidget(ai_notes_label)
+        ai_notes_header.addStretch()
+        ai_notes_layout.addLayout(ai_notes_header)
+
         self._ai_notes_edit = QPlainTextEdit(self)
         self._ai_notes_edit.setReadOnly(True)
         self._ai_notes_edit.setUndoRedoEnabled(False)
         self._ai_notes_edit.setPlaceholderText(tr('No AI doubts or alternative choices recorded.'))
         ai_notes_layout.addWidget(self._ai_notes_edit, 1)
+
+        def _toggle_ai_notes():
+            collapsed = not self._ai_notes_edit.isHidden()
+            self._ai_notes_edit.setHidden(collapsed)
+            self._ai_notes_collapse_button.setText("▶" if collapsed else "▼")
+            if collapsed:
+                ai_notes_pane.setMaximumHeight(34)
+            else:
+                ai_notes_pane.setMaximumHeight(16777215)
+        self._ai_notes_collapse_button.clicked.connect(_toggle_ai_notes)
+
         self._lower_detail_splitter.addWidget(ai_notes_pane)
 
         occurrences_pane = _DetailPane(self)
         occurrences_layout = QVBoxLayout(occurrences_pane)
         occurrences_layout.setContentsMargins(0, 0, 0, 0)
+        occurrences_layout.setSpacing(2)
+
+        occ_header = QHBoxLayout()
+        occ_header.setContentsMargins(0, 0, 0, 0)
+        occ_header.setSpacing(6)
+        self._occ_collapse_button = QPushButton("▼", self)
+        self._occ_collapse_button.setFixedSize(22, 22)
+        self._occ_collapse_button.setStyleSheet("font-size: 10px; font-weight: bold; padding: 0px;")
+        self._occ_collapse_button.setToolTip(tr("Collapse/Expand section"))
+        occ_header.addWidget(self._occ_collapse_button)
+
+        occ_title = QLabel(tr('Occurrences:'), self)
+        occ_title.setStyleSheet("font-weight: bold;")
+        occ_header.addWidget(occ_title)
+
+        self._show_mentions_checkbox = QCheckBox(tr('Mentions'), self)
+        self._show_mentions_checkbox.setChecked(True)
+        self._show_mentions_checkbox.setToolTip(tr('Show text occurrences where this term is mentioned'))
+        self._show_mentions_checkbox.toggled.connect(lambda _checked: self._repopulate_occurrences_filter())
+        occ_header.addWidget(self._show_mentions_checkbox)
+
+        self._show_spoken_checkbox = QCheckBox(tr('Spoken'), self)
+        self._show_spoken_checkbox.setChecked(True)
+        self._show_spoken_checkbox.setToolTip(tr('Show dialogue lines spoken by this character'))
+        self._show_spoken_checkbox.toggled.connect(lambda _checked: self._repopulate_occurrences_filter())
+        occ_header.addWidget(self._show_spoken_checkbox)
+
+        occ_header.addStretch()
         self._occurrence_label = QLabel(tr('Mentions: 0   Spoken: 0'), self)
-        occurrences_layout.addWidget(self._occurrence_label)
+        self._occurrence_label.setStyleSheet("color: #666;")
+        occ_header.addWidget(self._occurrence_label)
+        occurrences_layout.addLayout(occ_header)
+
         self._occurrence_list = QListWidget(self)
         self._occurrence_list.setSpacing(6)
         self._occurrence_list.setWordWrap(True)
@@ -313,6 +459,17 @@ class GlossaryDialog(
         self._occurrence_list.setItemDelegate(_RichTextItemDelegate(self._occurrence_list))
         self._occurrence_list.itemDoubleClicked.connect(self._activate_selected_occurrence)
         occurrences_layout.addWidget(self._occurrence_list, 1)
+
+        def _toggle_occ():
+            collapsed = not self._occurrence_list.isHidden()
+            self._occurrence_list.setHidden(collapsed)
+            self._occ_collapse_button.setText("▶" if collapsed else "▼")
+            if collapsed:
+                occurrences_pane.setMaximumHeight(34)
+            else:
+                occurrences_pane.setMaximumHeight(16777215)
+        self._occ_collapse_button.clicked.connect(_toggle_occ)
+
         self._lower_detail_splitter.addWidget(occurrences_pane)
         self._detail_splitter.setStretchFactor(0, 1)
         self._detail_splitter.setStretchFactor(1, 3)

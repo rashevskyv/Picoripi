@@ -1,15 +1,10 @@
-from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import (QApplication, QWidget, QAbstractItemView, QMessageBox, QPushButton, QPlainTextEdit)
-from PyQt6.QtCore import QPoint, Qt
+from unittest.mock import patch
+from PyQt6.QtWidgets import (QAbstractItemView)
+from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
 from core.script_markup import (
-    HierarchyAIPromptTooLarge,
     HierarchyMark,
     HierarchyType,
-    HierarchyTypeDefinition,
-    LineKind,
-    default_type_definitions,
-    mark_text,
 )
 from .helpers import (
     _make_dialog,

@@ -1078,6 +1078,7 @@ class GameRules(BaseGameRules):
         return {
             "glossary_seed",
             "external_lore",
+            "external_reference",
             "speaker_attribution",
             "message_window_preview",
         }
@@ -1283,6 +1284,12 @@ class GameRules(BaseGameRules):
         from .wiki import lookup
 
         return lookup(term)
+
+    def get_external_reference_url(self, term: str) -> Optional[str]:
+        """Return a Zelda Wiki search or reference URL for ``term``."""
+        from .wiki import reference_url
+
+        return reference_url(term)
 
     def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
         """Terms TP names itself: location plates, boss cards, item windows.

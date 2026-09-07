@@ -1,13 +1,8 @@
 from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtTest import QTest
 from core.script_markup import (
-    HierarchyAIPromptTooLarge,
     HierarchyMark,
     HierarchyType,
-    HierarchyTypeDefinition,
-    LineKind,
-    default_type_definitions,
-    mark_text,
 )
 from .helpers import (
     _make_dialog,

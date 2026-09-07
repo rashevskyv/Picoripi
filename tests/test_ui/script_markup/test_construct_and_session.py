@@ -1,20 +1,15 @@
 import pytest
-from PyQt6.QtWidgets import (QApplication, QWidget, QAbstractItemView, QMessageBox, QPushButton, QPlainTextEdit)
+from PyQt6.QtWidgets import (QApplication, QAbstractItemView, QPushButton)
 from PyQt6.QtCore import QPoint, Qt
-from PyQt6.QtGui import QCloseEvent, QTextCursor
+from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtTest import QTest
 from core.script_markup import (
-    HierarchyAIPromptTooLarge,
     HierarchyMark,
     HierarchyType,
     HierarchyTypeDefinition,
-    LineKind,
-    default_type_definitions,
-    mark_text,
 )
 from ui.script_markup_studio_dialog import (
     ScriptMarkupStudioDialog,
-    _ClassificationHighlighter,
     _RAW_HIERARCHY_GUTTER_WIDTH,
     _HELP_HTML,
 )

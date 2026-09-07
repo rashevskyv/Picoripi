@@ -104,6 +104,7 @@ def test_immediate_async_scan_on_string_select(mock_async_scanner, main_window):
     dsp = DataStateProcessor(main_window)
     toh = TextOperationHandler(main_window, dsp, main_window.ui_updater)
     main_window.editor_operation_handler = toh
+    main_window.ui_updater.schedule_row_paint_followup.side_effect = toh.launch_async_scanner_immediate
     lsh = ListSelectionHandler(main_window, dsp, main_window.ui_updater)
     
     main_window.current_game_rules.problem_analyzer = MagicMock()
@@ -111,7 +112,8 @@ def test_immediate_async_scan_on_string_select(mock_async_scanner, main_window):
     # Select a string
     lsh.string_selected_from_preview(0)
     
-    # The scan should be launched immediately without debounce
+    # The scan should be scheduled and launched immediately without debounce
+    main_window.ui_updater.schedule_row_paint_followup.assert_called_once()
     mock_async_scanner.assert_called_once()
     
     # Verify arguments of AsyncIssueScanner

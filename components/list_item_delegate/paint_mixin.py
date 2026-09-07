@@ -3,7 +3,6 @@ import re
 from PyQt6.QtWidgets import QStyle, QStyleOptionViewItem
 from PyQt6.QtGui import QPainter, QColor, QFontMetrics, QFont, QIcon, QPalette
 from PyQt6.QtCore import QRect, Qt, QPoint
-from utils.logging_utils import log_debug
 
 _ITEM_METADATA_TAIL = re.compile(r'(\s*[\[({].*[\]})]\s*)$')
 

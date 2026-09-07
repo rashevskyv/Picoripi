@@ -239,6 +239,15 @@ class BaseGameRules:
         """
         return None
 
+    def get_external_reference_url(self, term: str) -> Optional[str]:
+        """Return an external web reference or wiki URL for ``term``, or None.
+
+        For games with a community reference (a wiki, a database, a guide),
+        a plugin may provide a web URL for the term so users can inspect external
+        lore in a browser with one click. Default: no external URL.
+        """
+        return None
+
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
         """Get the problem definitions."""
         return {}

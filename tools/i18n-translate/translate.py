@@ -66,10 +66,36 @@ RULES:
 10. If the input includes "ukrainian", that is the approved Ukrainian UI wording. Use it as extra context for meaning and tone when translating into other languages.
 """
 
+BATCH_PROMPT = """You are a translation engine for the UI of Picoripi, a desktop localization workbench for game text (Python, PyQt6).
+
+INPUT (JSON): {{"items": [{{"id": 0, "text": "<english_ui_string>", "languages": ["<code>", ...]}, ...]}}
+OUTPUT (JSON only): {{"translations": [{{"id": 0, "<code>": "<translation>", ...}, ...]}}
+
+LANGUAGE CODES:
+{table}
+
+RULES:
+1. Output ONLY the JSON object. No markdown, no code fences, no explanations.
+2. Answer with every requested code for each item ID.
+3. Preserve placeholders exactly: {{name}}, {{0}}, %s, %d, and HTML tags such as <b>, <br>, <code>.
+4. Preserve newlines as \\n escapes and keep the same number of lines.
+5. Keep Qt mnemonics: a leading or inner & marks the shortcut letter (example: &File). Put & on a sensible letter in the translation.
+6. Leave product and brand names untouched: Picoripi, MemePalace, Gemini, Web2API, WebTOP, BFN, BMG, Twilight Princess, Zelda.
+7. These are short UI labels, buttons, dialogs and tooltips: translate naturally and concisely, the way a native desktop app would word it.
+8. If the text is a bare technical token, file extension, path, or already the target language, return it unchanged.
+9. Do not translate into Russian. If a requested code were ru it would be a mistake; it will not be requested.
+10. If an item includes "ukrainian", use it as extra context for meaning and tone when translating into other languages.
+"""
+
 
 def build_prompt(codes):
     table = "\n".join(f"{c} = {LANGS[c]}" for c in codes)
     return PROMPT.format(table=table)
+
+
+def build_batch_prompt(codes):
+    table = "\n".join(f"{c} = {LANGS[c]}" for c in codes)
+    return BATCH_PROMPT.format(table=table)
 
 
 def extract_json(content):
@@ -129,6 +155,74 @@ def translate(session, args, text, codes, ukrainian=None):
             if bad:
                 raise ValueError("; ".join(bad))
             return {c: out[c] for c in codes}
+        except Exception as e:
+            resp = getattr(e, "response", None)
+            if getattr(resp, "status_code", None) == 429 and waited < args.max_wait:
+                nap = min(retry_after(resp, args.cooldown), args.max_wait - waited)
+                waited += nap
+                print(f"  rate limited, waiting {nap:.0f}s ({waited:.0f}/{args.max_wait:.0f}s used)")
+                time.sleep(nap)
+                continue
+            last = e
+            attempt += 1
+            if attempt <= args.retries:
+                time.sleep(args.retry_delay * attempt)
+    raise RuntimeError(last)
+
+
+def translate_batch(session, args, batch_items, codes, uk_catalog=None):
+    items = []
+    for idx, (key, text, todo) in enumerate(batch_items):
+        item = {"id": idx, "text": text, "languages": todo}
+        if uk_catalog and "uk" not in todo:
+            uk_hint = uk_catalog.get(key)
+            if uk_hint:
+                item["ukrainian"] = uk_hint
+        items.append(item)
+
+    payload = {
+        "model": args.model,
+        "messages": [
+            {"role": "system", "content": build_batch_prompt(codes)},
+            {"role": "user", "content": json.dumps({"items": items}, ensure_ascii=True)},
+        ],
+        "stream": False,
+    }
+    body = json.dumps(payload, ensure_ascii=True).encode("utf-8")
+    last, waited, attempt = None, 0, 0
+    while attempt <= args.retries:
+        try:
+            r = session.post(args.url, data=body, headers={"Content-Type": "application/json"}, timeout=args.timeout)
+            r.raise_for_status()
+            out = extract_json(r.json()["choices"][0]["message"]["content"])
+            tr_list = out.get("translations", [])
+            tr_map = {t["id"]: t for t in tr_list if isinstance(t, dict) and "id" in t}
+            results = []
+            for idx, (key, text, todo) in enumerate(batch_items):
+                t = tr_map.get(idx, {})
+                item_dict = {}
+                item_err = None
+                for c in todo:
+                    val = t.get(c)
+                    if isinstance(val, str) and val.strip():
+                        prob = problems(text, val)
+                        if prob:
+                            item_err = ValueError(f"item {idx} ({c}): {prob}")
+                            break
+                        item_dict[c] = val
+                    else:
+                        item_err = ValueError(f"batch reply missing item {idx} code {c}")
+                        break
+                if item_err:
+                    try:
+                        uk_hint = uk_catalog.get(key) if uk_catalog else None
+                        sub_out = translate(session, args, text, todo, ukrainian=uk_hint)
+                        results.append((batch_items[idx], sub_out, None))
+                    except Exception as fallback_err:
+                        results.append((batch_items[idx], None, fallback_err))
+                else:
+                    results.append((batch_items[idx], item_dict, None))
+            return results
         except Exception as e:
             resp = getattr(e, "response", None)
             if getattr(resp, "status_code", None) == 429 and waited < args.max_wait:
@@ -233,8 +327,9 @@ def build_parser():
     p.add_argument("--retry-delay", type=float, default=2.0)
     p.add_argument("--cooldown", type=float, default=60.0)
     p.add_argument("--max-wait", type=float, default=1800.0)
-    p.add_argument("--timeout", type=int, default=180)
+    p.add_argument("--timeout", type=int, default=60)
     p.add_argument("--flush-every", type=int, default=25)
+    p.add_argument("--batch-size", type=int, default=20, help="number of strings per translation request")
     p.add_argument("--no-sync", action="store_true", help="skip adding source literals missing from en.json")
     p.add_argument("--sync-only", action="store_true", help="only refresh en.json from tr() literals")
     return p
@@ -296,39 +391,84 @@ def main():
     started = time.monotonic()
     FAIL_LOG.write_text("", encoding="utf-8")
 
-    def worker(job):
-        key, text, todo = job
-        session = requests.Session()
-        try:
-            uk_hint = uk_catalog.get(key) or None
-            return job, translate(session, args, text, todo, ukrainian=uk_hint), None
-        except Exception as e:
-            return job, None, e
-        finally:
-            session.close()
+    if args.batch_size > 1:
+        chunks = [jobs[i : i + args.batch_size] for i in range(0, len(jobs), args.batch_size)]
 
-    with ThreadPoolExecutor(max_workers=args.threads) as pool:
-        futures = [pool.submit(worker, j) for j in jobs]
-        for f in as_completed(futures):
-            (key, text, todo), out, err = f.result()
-            with lock:
-                state["done"] += 1
-                n = state["done"]
-                preview = text.replace("\n", " ")[:52]
-                if err:
-                    state["failed"] += 1
-                    print(f"[{n:>5}/{len(jobs)}] FAIL {' '.join(todo)} | {preview} -> {err}")
-                    with FAIL_LOG.open("a", encoding="utf-8") as fh:
-                        fh.write(f"{key!r}\t{','.join(todo)}\t{err}\n")
-                    continue
-                for c in todo:
-                    data[c][key] = out[c]
-                state["dirty"].update(todo)
-                print(f"[{n:>5}/{len(jobs)}] ok   {' '.join(todo)} | {preview}")
-                if n % args.flush_every == 0:
+        def batch_worker(chunk):
+            session = requests.Session()
+            try:
+                return translate_batch(session, args, chunk, codes, uk_catalog)
+            except Exception:
+                # Fallback to single item translation for this chunk
+                fallback_results = []
+                for job in chunk:
+                    key, text, todo = job
+                    try:
+                        uk_hint = uk_catalog.get(key) if uk_catalog else None
+                        res = translate(session, args, text, todo, ukrainian=uk_hint)
+                        fallback_results.append((job, res, None))
+                    except Exception as item_err:
+                        fallback_results.append((job, None, item_err))
+                return fallback_results
+            finally:
+                session.close()
+
+        with ThreadPoolExecutor(max_workers=args.threads) as pool:
+            futures = [pool.submit(batch_worker, c) for c in chunks]
+            for f in as_completed(futures):
+                batch_res = f.result()
+                with lock:
+                    for (key, text, todo), out, err in batch_res:
+                        state["done"] += 1
+                        n = state["done"]
+                        preview = text.replace("\n", " ")[:52]
+                        if err:
+                            state["failed"] += 1
+                            print(f"[{n:>5}/{len(jobs)}] FAIL {' '.join(todo)} | {preview} -> {err}", flush=True)
+                            with FAIL_LOG.open("a", encoding="utf-8") as fh:
+                                fh.write(f"{key!r}\t{','.join(todo)}\t{err}\n")
+                            continue
+                        for c in todo:
+                            data[c][key] = out[c]
+                        state["dirty"].update(todo)
+                        print(f"[{n:>5}/{len(jobs)}] ok   {' '.join(todo)} | {preview}", flush=True)
                     for c in state["dirty"]:
                         save(c, data[c])
                     state["dirty"].clear()
+    else:
+        def worker(job):
+            key, text, todo = job
+            session = requests.Session()
+            try:
+                uk_hint = uk_catalog.get(key) or None
+                return job, translate(session, args, text, todo, ukrainian=uk_hint), None
+            except Exception as e:
+                return job, None, e
+            finally:
+                session.close()
+
+        with ThreadPoolExecutor(max_workers=args.threads) as pool:
+            futures = [pool.submit(worker, j) for j in jobs]
+            for f in as_completed(futures):
+                (key, text, todo), out, err = f.result()
+                with lock:
+                    state["done"] += 1
+                    n = state["done"]
+                    preview = text.replace("\n", " ")[:52]
+                    if err:
+                        state["failed"] += 1
+                        print(f"[{n:>5}/{len(jobs)}] FAIL {' '.join(todo)} | {preview} -> {err}")
+                        with FAIL_LOG.open("a", encoding="utf-8") as fh:
+                            fh.write(f"{key!r}\t{','.join(todo)}\t{err}\n")
+                        continue
+                    for c in todo:
+                        data[c][key] = out[c]
+                    state["dirty"].update(todo)
+                    print(f"[{n:>5}/{len(jobs)}] ok   {' '.join(todo)} | {preview}")
+                    if n % args.flush_every == 0:
+                        for c in state["dirty"]:
+                            save(c, data[c])
+                        state["dirty"].clear()
 
     for c in codes:
         save(c, data[c])

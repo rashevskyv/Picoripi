@@ -1,17 +1,10 @@
 from core.script_markup import (
-    HierarchyAIPromptTooLarge,
     HierarchyMark,
     HierarchyType,
-    HierarchyTypeDefinition,
-    LineKind,
     default_type_definitions,
-    mark_text,
 )
 from ui.script_markup_studio_dialog import (
-    ScriptMarkupStudioDialog,
-    _ClassificationHighlighter,
     _RAW_HIERARCHY_GUTTER_WIDTH,
-    _HELP_HTML,
 )
 from .helpers import (
     _make_dialog,

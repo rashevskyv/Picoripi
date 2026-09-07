@@ -236,3 +236,10 @@ class GameRules(BaseGameRules):
     def get_base_game_rules_class(self):
         """Get the base game rules class."""
         return BaseGameRules
+
+    def get_external_reference_url(self, term: str) -> Optional[str]:
+        """Return a Zelda Wiki search or reference URL for ``term``."""
+        if not term or not term.strip():
+            return None
+        import urllib.parse
+        return f"https://zeldawiki.wiki/wiki/Special:Search?search={urllib.parse.quote(term.strip())}"

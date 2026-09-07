@@ -132,6 +132,7 @@ class DialogMixin:
                 initial_term=initial_term,
                 placeholder_speaker_callback=self._placeholder_speaker_callback(),
                 discuss_variant_callback=self._handle_discuss_variants_from_dialog,
+                external_reference_callback=self._get_external_reference_url,
             )
             self.dialog.finished.connect(self._on_glossary_dialog_closed)
             self.dialog.show()
@@ -145,6 +146,17 @@ class DialogMixin:
         worker.finished.connect(worker.deleteLater)
         worker.start()
         progress_dialog.show()
+
+    def _get_external_reference_url(self, term: str) -> Optional[str]:
+        """Look up external wiki or guide URL for ``term`` via the current plugin rules."""
+        rules = getattr(self.mw, "current_game_rules", None)
+        getter = getattr(rules, "get_external_reference_url", None)
+        if callable(getter):
+            try:
+                return getter(term)
+            except Exception:
+                return None
+        return None
 
     def _launch_glossary_build(self) -> None:
         """Open the build/translate launcher from inside the glossary dialog."""

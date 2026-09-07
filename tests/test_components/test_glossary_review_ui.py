@@ -59,6 +59,7 @@ def _dialog(
     reassign_speaker_callback=None,
     speaker_codes_callback=None,
     discuss_variant_callback=None,
+    external_reference_callback=None,
 ):
     dialog = GlossaryDialog(
         entries=entries,
@@ -71,6 +72,7 @@ def _dialog(
         reassign_speaker_callback=reassign_speaker_callback,
         speaker_codes_callback=speaker_codes_callback,
         discuss_variant_callback=discuss_variant_callback,
+        external_reference_callback=external_reference_callback,
     )
     qtbot.addWidget(dialog)
     return dialog
@@ -1049,3 +1051,117 @@ class TestGlossaryOccurrenceDisplayAndNavigation:
         # Double click activates jump_callback with the stored 0-based occurrence
         dialog._activate_selected_occurrence(item)
         dialog._jump_callback.assert_called_once_with(stored_occ)
+
+
+class TestGlossaryLayoutAndControls:
+    """Tests for reorganized layout, wiki link, collapsible panes, and occurrence filters."""
+
+    def test_original_edit_shows_term_and_is_readonly(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE])
+        dialog._show_entry_for_row(0)
+        assert dialog._original_edit.text() == SINGLE.original
+        assert dialog._original_edit.isReadOnly() is True
+
+    def test_wiki_button_hidden_when_no_callback_or_url(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE])
+        dialog._show_entry_for_row(0)
+        assert dialog._wiki_link_button.isVisibleTo(dialog) is False
+
+    def test_wiki_button_shown_when_url_provided(self, qtbot, monkeypatch):
+        mock_cb = MagicMock(return_value="https://zeldawiki.wiki/wiki/Ordon_Village")
+        dialog = _dialog(qtbot, [SINGLE], external_reference_callback=mock_cb)
+        dialog._show_entry_for_row(0)
+        assert dialog._wiki_link_button.isVisibleTo(dialog) is True
+        mock_cb.assert_called_with(SINGLE.original)
+
+        # Clicking wiki button opens the URL
+        opened_urls = []
+        monkeypatch.setattr(
+            "PyQt6.QtGui.QDesktopServices.openUrl",
+            lambda url: opened_urls.append(url.toString()),
+        )
+        dialog._wiki_link_button.click()
+        assert opened_urls == ["https://zeldawiki.wiki/wiki/Ordon_Village"]
+
+    def test_collapsible_panes_toggle_visibility(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE])
+        assert not dialog._notes_edit.isHidden()
+        assert not dialog._ai_notes_edit.isHidden()
+        assert not dialog._occurrence_list.isHidden()
+
+        # Collapse Description
+        dialog._notes_collapse_button.click()
+        assert dialog._notes_edit.isHidden()
+        assert dialog._notes_collapse_button.text() == "▶"
+
+        dialog._notes_collapse_button.click()
+        assert not dialog._notes_edit.isHidden()
+        assert dialog._notes_collapse_button.text() == "▼"
+
+        # Collapse AI Notes
+        dialog._ai_notes_collapse_button.click()
+        assert dialog._ai_notes_edit.isHidden()
+        assert dialog._ai_notes_collapse_button.text() == "▶"
+
+        # Collapse Occurrences
+        dialog._occ_collapse_button.click()
+        assert dialog._occurrence_list.isHidden()
+        assert dialog._occ_collapse_button.text() == "▶"
+
+    def test_occurrence_filter_by_mentions_and_spoken_checkboxes(self, qtbot):
+        from PyQt6.QtCore import Qt
+        from core.glossary_manager import GlossaryOccurrence
+        occ_mention = GlossaryOccurrence(SINGLE, 0, 10, 1, 0, 0, "Mention text", kind="mention")
+        occ_spoken = GlossaryOccurrence(SINGLE, 0, 20, 2, 0, 0, "Spoken text", kind="spoken")
+
+        dialog = _dialog(qtbot, [SINGLE])
+        dialog._occurrences = {SINGLE.original: [occ_mention, occ_spoken]}
+        dialog._update_occurrences(SINGLE)
+
+        assert dialog._occurrence_list.count() == 2
+        assert "Mentions (1)" in dialog._show_mentions_checkbox.text()
+        assert "Spoken (1)" in dialog._show_spoken_checkbox.text()
+
+        # Uncheck mentions -> only spoken shown
+        dialog._show_mentions_checkbox.setChecked(False)
+        assert dialog._occurrence_list.count() == 1
+        item = dialog._occurrence_list.item(0)
+        assert "spoken" in item.data(Qt.ItemDataRole.DisplayRole)
+
+        # Uncheck spoken too -> 0 shown
+        dialog._show_spoken_checkbox.setChecked(False)
+        assert dialog._occurrence_list.count() == 0
+
+        # Re-check mentions only -> 1 mention shown
+        dialog._show_mentions_checkbox.setChecked(True)
+        assert dialog._occurrence_list.count() == 1
+        item = dialog._occurrence_list.item(0)
+        assert "mention" in item.data(Qt.ItemDataRole.DisplayRole)
+
+    def test_term_and_translation_level_alignment_and_width_constraints(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE])
+        dialog.show()
+        qtbot.waitExposed(dialog)
+
+        # 1. Height and vertical level alignment
+        assert dialog._original_edit.height() == dialog._translation_edit.height() == 26
+        assert dialog._wiki_link_button.height() == 26
+        assert dialog._confirm_button.height() == 26
+
+        # Both edits are on the same vertical Y level within the dialog
+        orig_global_y = dialog._original_edit.mapTo(dialog, dialog._original_edit.rect().topLeft()).y()
+        trans_global_y = dialog._translation_edit.mapTo(dialog, dialog._translation_edit.rect().topLeft()).y()
+        assert orig_global_y == trans_global_y
+
+        # 2. Constraints on original space
+        assert dialog._original_edit.maximumWidth() == 280
+
+    def test_needs_review_checkbox_located_under_terms_table(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE])
+        dialog.show()
+        qtbot.waitExposed(dialog)
+
+        # Checkbox is located below the tab widget in the left panel
+        tab_bottom_y = dialog._tab_widget.mapTo(dialog, dialog._tab_widget.rect().bottomLeft()).y()
+        chk_top_y = dialog._unconfirmed_only_checkbox.mapTo(dialog, dialog._unconfirmed_only_checkbox.rect().topLeft()).y()
+        assert chk_top_y >= tab_bottom_y

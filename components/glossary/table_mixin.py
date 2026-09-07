@@ -100,16 +100,16 @@ class TableMixin:
                     if item is None:
                         item = QTableWidgetItem()
                         table.setItem(row, col, item)
+                        if col in (0, 3):
+                            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     item.setText(value)
                     item.setBackground(QBrush())
                     item.setForeground(QBrush())
                     item.setToolTip("")
                     if col == 3:
                         item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     if col == 0:
                         item.setData(Qt.ItemDataRole.UserRole, entry)
-                        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     if review_brush is not None:
                         item.setBackground(review_brush)
                         item.setToolTip(self._review_reason(entry))

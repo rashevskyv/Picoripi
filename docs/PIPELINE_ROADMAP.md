@@ -49,6 +49,9 @@ def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
 def get_external_lore(self, term: str) -> Optional[str]:
     """Зовнішнє джерело знань про термін. Дефолт: None."""
 
+def get_external_reference_url(self, term: str) -> Optional[str]:
+    """Пряме веб-посилання на статтю або пошук у wiki / довіднику. Дефолт: None."""
+
 def get_addressee_for_string(self, block_idx, string_idx) -> Optional[str]:
     """До кого звернена репліка. Дефолт: None."""
 ```

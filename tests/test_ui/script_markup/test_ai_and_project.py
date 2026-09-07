@@ -1,15 +1,12 @@
 import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import (QApplication, QWidget, QAbstractItemView, QMessageBox, QPushButton, QPlainTextEdit)
+from PyQt6.QtWidgets import (QMessageBox)
 from core.script_markup import (
     HierarchyAIPromptTooLarge,
     HierarchyMark,
     HierarchyType,
     HierarchyTypeDefinition,
-    LineKind,
-    default_type_definitions,
-    mark_text,
 )
 from .helpers import (
     _make_dialog,

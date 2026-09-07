@@ -1,4 +1,4 @@
-# Picoripi v0.3.096-dev"""
+# Picoripi v0.3.101
 
 **Picoripi** is a visual translation and localization workbench (Python, **PyQt6**) for texts with strict length and layout constraints. It started as a Nintendo-format editor (BMG, BFN, U8/RARC) and stays general enough for any structured translation project.
 
@@ -148,6 +148,10 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
   - Stage 1: Scans terms and suggests 4 to 7 thematic categories.
   - Stage 2: Displays checkable UI, dynamically classifies all entries, writes back to the markdown database, and reloads active tabs.
 - **HTML Tooltips & Font Scaling**: Renders rich markdown glossary descriptions on hover (supporting lists, line breaks, bold styling). Configurable `tooltip_font_size` SpinBox (6px to 32px) scales tooltips globally.
+- **External Wiki Reference Integration**: Directly opens relevant lore/character search pages (e.g. Zelda Wiki via `BaseGameRules.get_external_reference_url`) using an interactive "Wiki ↗" button next to the original term.
+- **Unified Side-by-Side Term Editing**: Presents the original term (read-only, selectable) alongside the editable translation on a single line, paired with a compact confirmation button.
+- **Collapsible Section Panes**: Notes/Description, AI Notes, and Occurrences sections feature toggleable collapsible headers (`[▼]/[▶]`) to reclaim vertical space and minimize visual clutter.
+- **Granular Occurrence Filtering**: Features independent checkboxes to filter term occurrences by Mentions (direct text matches) and Spoken lines (dialogue spoken by character).
 
 ---
 

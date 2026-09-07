@@ -48,3 +48,7 @@ graphify-out/
 # Test artifacts
 .tmp_test_run/
 pytest-of-Administrator/
+
+# Scratch files in .grok
+/.grok/*
+!/.grok/skills/

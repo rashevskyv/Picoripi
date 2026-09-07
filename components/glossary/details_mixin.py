@@ -1,6 +1,7 @@
 """Glossary entry details, occurrences, speaker identity, and variants."""
 from __future__ import annotations
 
+import os
 import time
 from html import escape
 from typing import List, Optional
@@ -41,14 +42,47 @@ class DetailsMixin:
             has_discuss = self._discuss_variant_callback is not None
             self._discuss_variant_button.setEnabled(has_entry and has_discuss)
 
+    def _on_open_wiki_link(self) -> None:
+        """Open external wiki reference URL in the default browser."""
+        url = getattr(self, "_current_wiki_url", None)
+        if url:
+            from PyQt6.QtCore import QUrl
+            from PyQt6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(QUrl(url))
+
     def _update_occurrences(self, entry: GlossaryEntry) -> None:
         """Internal helper to update the occurrences."""
         occ_list = list(self._occurrences.get(entry.original, []))
         spoken_rows = [o for o in occ_list if getattr(o, "kind", "mention") == "spoken"]
         mention_rows = [o for o in occ_list if getattr(o, "kind", "mention") != "spoken"]
-        occ_list = spoken_rows + mention_rows
+        self._current_entry_occurrences = spoken_rows + mention_rows
+        mentions = len(mention_rows)
+        spoken = len(spoken_rows)
+        self._occurrence_label.setText(
+            tr('Mentions: {mentions}   Spoken: {spoken}', mentions=mentions, spoken=spoken)
+        )
+        if hasattr(self, "_show_mentions_checkbox"):
+            self._show_mentions_checkbox.setText(tr('Mentions ({count})', count=mentions))
+        if hasattr(self, "_show_spoken_checkbox"):
+            self._show_spoken_checkbox.setText(tr('Spoken ({count})', count=spoken))
+        self._repopulate_occurrences_filter()
+
+    def _repopulate_occurrences_filter(self) -> None:
+        """Filter the occurrence list according to mentions and spoken checkboxes."""
         self._occurrence_list.clear()
-        for index, occ in enumerate(occ_list, start=1):
+        occ_list = getattr(self, "_current_entry_occurrences", [])
+        show_mentions = getattr(self, "_show_mentions_checkbox", None)
+        show_spoken = getattr(self, "_show_spoken_checkbox", None)
+        can_show_mentions = show_mentions.isChecked() if show_mentions is not None else True
+        can_show_spoken = show_spoken.isChecked() if show_spoken is not None else True
+
+        filtered_occs = [
+            occ for occ in occ_list
+            if (getattr(occ, "kind", "mention") == "spoken" and can_show_spoken)
+            or (getattr(occ, "kind", "mention") != "spoken" and can_show_mentions)
+        ]
+
+        for index, occ in enumerate(filtered_occs, start=1):
             preview = occ.line_text.strip()
             if len(preview) > 120:
                 preview = f"{preview[:117]}…"
@@ -68,17 +102,29 @@ class DetailsMixin:
             item.setData(Qt.ItemDataRole.DisplayRole, f"{header_html}<br>{preview_html}")
             item.setData(Qt.ItemDataRole.UserRole, occ)
             self._occurrence_list.addItem(item)
-        mentions = sum(1 for occ in occ_list if getattr(occ, "kind", "mention") != "spoken")
-        spoken = sum(1 for occ in occ_list if getattr(occ, "kind", "mention") == "spoken")
-        self._occurrence_label.setText(
-            tr('Mentions: {mentions}   Spoken: {spoken}', mentions=mentions, spoken=spoken)
-        )
 
     def _populate_entry_details(self, entry: GlossaryEntry) -> None:
         """Internal helper to populate entry details."""
         self._current_entry = entry
         self._suppress_editor_signals = True
         self._original_label.setText(tr('Term: {original}', original=entry.original))
+        if hasattr(self, "_original_edit"):
+            self._original_edit.setText(entry.original)
+
+        url = None
+        callback = getattr(self, "_external_reference_callback", None)
+        if callable(callback):
+            try:
+                url = callback(entry.original)
+            except Exception:
+                url = None
+        self._current_wiki_url = url
+        if hasattr(self, "_wiki_link_button"):
+            self._wiki_link_button.setVisible(bool(url))
+            if url:
+                self._wiki_link_button.setToolTip(
+                    tr("Open external wiki reference for '{term}'", term=entry.original)
+                )
         self._populate_category_choices(entry)
         self._translation_edit.setText(entry.translation or '')
         self._notes_template = entry.notes or ''
@@ -161,8 +207,14 @@ class DetailsMixin:
     def _clear_entry_details(self) -> None:
         """Internal helper to remove entry details."""
         self._current_entry = None
+        self._current_entry_occurrences = []
         self._suppress_editor_signals = True
         self._original_label.setText(tr('Nothing selected'))
+        if hasattr(self, "_original_edit"):
+            self._original_edit.clear()
+        self._current_wiki_url = None
+        if hasattr(self, "_wiki_link_button"):
+            self._wiki_link_button.setVisible(False)
         self._category_combo.clear()
         self._translation_edit.clear()
         self._notes_template = ''
@@ -370,14 +422,37 @@ class DetailsMixin:
 
     def _apply_variant_item(self, item: QListWidgetItem, advance: bool = False) -> None:
         """Apply a variant item: update translation edit, refresh notes, and confirm."""
-        t_start = time.perf_counter()
         translation = item.data(Qt.ItemDataRole.UserRole)
         if not translation:
             return
-        self._translation_edit.setText(str(translation))
-        self._refresh_rendered_notes()
-        self._on_confirm_clicked(advance=advance)
-        elapsed = time.perf_counter() - t_start
+
+        profile_enabled = os.environ.get("PICORIPI_PROFILE_GLOSSARY_VARIANT") == "1"
+        profiler = None
+        if profile_enabled:
+            import cProfile
+            profiler = cProfile.Profile()
+            profiler.enable()
+
+        t_start = time.perf_counter()
+        try:
+            self._translation_edit.setText(str(translation))
+            self._refresh_rendered_notes()
+            self._on_confirm_clicked(advance=advance)
+        finally:
+            elapsed = time.perf_counter() - t_start
+            if profiler is not None:
+                profiler.disable()
+                import tempfile
+                with tempfile.NamedTemporaryFile(
+                    suffix=".prof", prefix="picoripi_glossary_variant_", delete=False
+                ) as f:
+                    prof_path = f.name
+                profiler.dump_stats(prof_path)
+                print(f"\nGLOSSARY VARIANT WALL TIME: {elapsed:.4f}s")
+                print(f"PROFILE: {prof_path}")
+                print("To inspect top 30 cumulative functions:")
+                print(f"  .\\venv\\Scripts\\python.exe tools\\benchmark_glossary_variant.py --profile \"{prof_path}\"\n")
+
         log_debug(f"Glossary: variant application took {elapsed:.3f}s")
 
     def _on_variant_chosen(self, item: QListWidgetItem) -> None:

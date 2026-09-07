@@ -1,4 +1,4 @@
-from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
 from .helpers import (
     _flush_search,

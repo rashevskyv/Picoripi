@@ -1,5 +1,50 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [v0.3.101] - 2026-09-07
+
+### 🚀 Added
+- **Application Interface Localization (i18n)**: Comprehensive multi-language UI localization across the entire application chrome using `tr()`. Added a **Language** menu listing active catalogs (`locales/*.json`). Includes a built-in automated translation pipeline (`tools/i18n-translate/`) with Gemini Web2API proxy support and high-performance batch processing.
+- **Automated Release & Deployment Skill**: Added the `deploy` skill (`.agents/skills/deploy/SKILL.md` and `.grok/skills/deploy/SKILL.md`) governing the release lifecycle: UI catalog synchronization, parallel test suite validation, version management, and GitHub release publication.
+- **External Wiki Reference Integration**: Added `BaseGameRules.get_external_reference_url(term)` plugin contract implemented for Zelda plugins (`zelda_bmg`, `zelda_mc`, `zelda_ww`) generating Zelda Wiki search URLs. Added an interactive "Wiki ↗" button next to the original term in the Glossary details pane opening external lore search in the default web browser.
+- **Collapsible Glossary Sections**: Added collapse/expand toggles (`[▼]/[▶]`) to Description/Notes, AI Notes, and Occurrences panels in `GlossaryDialog` to optimize vertical screen space.
+- **Granular Occurrence Filtering**: Added independent filter checkboxes for "Mentions" and "Spoken" dialogue occurrences within the occurrences panel.
+- **Unified Rescan All**: Single unified command (`Ctrl+Shift+R`) on toolbar and Edit menu to reload font maps, re-measure widths, force-scan warnings, rebuild Blocks tree, and refresh editors and previews.
+
+### 🐛 Fixed
+- **Subline Asterisks Persistence on Navigation**: Restored immediate subline asterisk re-synchronization when navigating to a string with unsaved in-memory edits.
+- **Fast Glossary Variant Confirmation**: Re-binds existing occurrence coordinates and speaker assignments on entry confirmation when term and category are unchanged, reducing median confirmation time from 4.64s to 0.25s (18x speedup).
+- **Instant Occurrence Translation Application**: Removed synchronous full preview block rebuild and duplicate tree refresh when applying glossary occurrence translations.
+- **Block Tree Names & Virtual Rows**: Fixed issue where star/warning refreshes caused folder renames, and resolved `is_virtual_row` unbound crash on archive items.
+
+### ⚡ Improved
+- **Glossary UI Ergonomics**: Replaced nested column layouts with a synchronized `QGridLayout`, set uniform 26px height across original/translation line edits and action buttons, rebalanced column stretch to 1:2 (33% original, 67% translation), and added a 280px maximum width constraint on the original term edit.
+- **Relocated "Needs review" filter**: Moved the unconfirmed terms filter checkbox out of the top search row into a dedicated bottom bar directly beneath the terms and translations table (`_tab_widget`).
+- **Profiled via AI Checkbox**: Relocated the speech profiling metadata checkbox to the Description header with an explicit explanatory tooltip clarifying its function.
+- **High-Performance Tree & Highlights**: Block tree refreshes stars/warnings on existing rows without full tree rebuilds, and warning highlights in Strings use the row problem index directly.
+
+## [0.3.101-dev] - 2026-09-07
+
+### Changed
+- **Relocated "Needs review" filter checkbox in Glossary**: Moved the unconfirmed terms filter checkbox out of the top search bar and into a dedicated bottom bar directly beneath the terms and translations table (`_tab_widget`). This groups the filter with the table it controls and eliminates full-width vertical space consumption.
+
+## [0.3.100-dev] - 2026-09-07
+
+### Fixed
+- **Glossary Original & Translation level alignment**: Replaced independent nested column layouts with a synchronized `QGridLayout` and set a uniform `setFixedHeight(26)` across original/translation line edits and action buttons, eliminating vertical misalignment and jitter when buttons toggle visibility.
+- **Original space reduction in Glossary**: Rebalanced column stretch to 1:2 (33% original, 67% translation) and added `maximumWidth(280)` on the original term edit, preventing excessive empty space and allocating optimal width to translation inputs.
+
+## [0.3.099-dev] - 2026-09-07
+
+### Added
+- **External Wiki Reference hook & Glossary button**: Added `BaseGameRules.get_external_reference_url(term)` plugin hook implemented in `zelda_bmg`, `zelda_mc`, and `zelda_ww` (generating search URLs for Zelda Wiki). Added an interactive "Wiki ↗" button next to the original term in the Glossary details pane opening external lore search in the default web browser.
+- **Collapsible Glossary detail panes**: Added collapse/expand toggles (`[▼]/[▶]`) to Description/Notes, AI Notes, and Occurrences panels in `GlossaryDialog` to optimize vertical screen space.
+- **Granular Occurrence filtering**: Added independent filter checkboxes for "Mentions" and "Spoken" dialogue occurrences within the occurrences panel.
+
+### Changed
+- **Unified Side-by-Side Term & Translation layout**: Displayed the original term (read-only, selectable) alongside the editable translation on a single row, eliminating redundant vertical space and ensuring the original is always visible.
+- **Compact Confirm translation button**: Shrunk the confirm translation button from a full-width bar to a compact button aligned to the right of the translation input.
+- **Relocated "Profiled via AI" checkbox**: Moved the character profiling metadata checkbox from the variant actions row into the Description header with an explicit explanatory tooltip clarifying that it marks character speech profiling status.
+
 ## [0.3.098-dev] - 2026-09-07
 
 ### Fixed

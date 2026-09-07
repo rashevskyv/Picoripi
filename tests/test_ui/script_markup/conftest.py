@@ -2,16 +2,7 @@ import pytest
 from PyQt6.QtWidgets import QApplication, QWidget
 
 from .helpers import (
-    _find_tree_item,
     _fresh_autosave_path,
-    _large_hierarchy_script,
-    _make_dialog,
-    _select_lines,
-    _set_hierarchy_type,
-    _tree_item_count,
-    _use_custom_mode,
-    _use_hierarchy_mode,
-    _use_picoripi_mode,
 )
 
 
