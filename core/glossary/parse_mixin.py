@@ -288,14 +288,7 @@ class ParseMixin:
                 log_debug(f"GlossaryManager: Failed to write JSON glossary: {e}")
                 
             if not write_only:
-                try:
-                    self.load_from_text(
-                        plugin_name=self._plugin_name,
-                        glossary_path=self._glossary_path,
-                        raw_text=self._raw_text,
-                    )
-                except Exception:
-                    pass
+                self._build_pattern_cache()
         else:
             # In-memory only (e.g. tests)
             # Make sure _raw_text is in sync (we generate Markdown for compatibility/tests that check get_raw_text)

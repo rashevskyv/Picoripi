@@ -635,3 +635,101 @@ def test_rename_original_safe_noops(manager):
     assert manager.rename_original("Apple", "") is None
     assert manager.rename_original("Missing", "New") is None
     assert manager.rename_original("Apple", "Apple") == entry
+
+
+def test_update_occurrences_for_entry_reuses_occurrences_when_original_and_section_unchanged(manager):
+    from core.glossary.models import OCC_MENTION, OCC_SPOKEN, GlossaryOccurrence
+
+    e1 = GlossaryEntry("Sword", "Меч", section="Items")
+    occ_mention = GlossaryOccurrence(
+        entry=e1,
+        start=5,
+        end=10,
+        block_idx=0,
+        string_idx=1,
+        line_idx=0,
+        line_text="Iron Sword here",
+        kind=OCC_MENTION,
+    )
+    occ_spoken = GlossaryOccurrence(
+        entry=e1,
+        start=0,
+        end=15,
+        block_idx=1,
+        string_idx=0,
+        line_idx=0,
+        line_text="I am the sword.",
+        kind=OCC_SPOKEN,
+    )
+    manager._entries = [e1]
+    manager._occurrence_index = {"Sword": [occ_mention, occ_spoken]}
+
+    e1_updated = GlossaryEntry("Sword", "Вищий Меч", notes="Legendary", section="Items", status="confirmed")
+    # Pass dataset=None: if it doesn't reuse, it would produce 0 occurrences
+    manager.update_occurrences_for_entry(None, old_term="Sword", new_entry=e1_updated, previous_entry=e1)
+
+    result_occs = manager.get_occurrences_for(e1_updated)
+    assert len(result_occs) == 2
+    assert result_occs[0].entry == e1_updated
+    assert result_occs[0].start == 5
+    assert result_occs[0].end == 10
+    assert result_occs[0].kind == OCC_MENTION
+    assert result_occs[1].entry == e1_updated
+    assert result_occs[1].start == 0
+    assert result_occs[1].end == 15
+    assert result_occs[1].kind == OCC_SPOKEN
+
+
+def test_update_occurrences_for_entry_rescans_when_section_changes(manager):
+    from core.glossary.models import OCC_MENTION, GlossaryOccurrence
+
+    e1 = GlossaryEntry("Sword", "Меч", section="Items")
+    occ = GlossaryOccurrence(
+        entry=e1,
+        start=0,
+        end=5,
+        block_idx=0,
+        string_idx=0,
+        line_idx=0,
+        line_text="Sword",
+        kind=OCC_MENTION,
+    )
+    manager._entries = [e1]
+    manager._occurrence_index = {"Sword": [occ]}
+
+    e1_new_sec = GlossaryEntry("Sword", "Меч", section="Weapons")
+    # With dataset=None, rescan produces [] occurrences, demonstrating fast-path was NOT taken
+    manager.update_occurrences_for_entry(None, old_term="Sword", new_entry=e1_new_sec, previous_entry=e1)
+
+    assert manager.get_occurrences_for(e1_new_sec) == []
+
+
+def test_update_occurrences_for_entry_does_not_treat_empty_index_as_valid(manager):
+    e1 = GlossaryEntry("Sword", "Меч")
+    manager._entries = [e1]
+    manager._occurrence_index = {}  # empty index (not yet built)
+    manager._build_pattern_cache()
+
+    dataset = [["Sword in the stone"]]
+    manager.update_occurrences_for_entry(dataset, old_term="Sword", new_entry=e1)
+
+    # Empty index must trigger build_occurrence_index, not be treated as a valid 0-match index
+    assert len(manager.get_occurrences_for(e1)) == 1
+
+
+def test_persist_does_not_reload_from_text(manager, tmp_path):
+    f = tmp_path / "glossary.json"
+    manager._glossary_path = f
+    e1 = manager.add_entry("Hero", "Герой", "Note")
+    assert e1 is not None
+
+    # Update in memory
+    updated = manager.update_entry("Hero", "Лицар", "Updated Note")
+    assert updated is not None
+
+    # Pattern cache is updated and file is written without losing in-memory entry reference
+    assert manager.get_entry("Hero") is updated
+    assert "Лицар" in f.read_text(encoding="utf-8")
+    matches = manager.find_matches("The Hero arrived")
+    assert len(matches) == 1
+    assert matches[0].entry is updated

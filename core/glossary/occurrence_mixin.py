@@ -273,11 +273,48 @@ class OccurrenceMixin:
                         )
                     )
 
-    def update_occurrences_for_entry(self, dataset: Sequence, old_term: Optional[str], new_entry: Optional[GlossaryEntry]) -> None:
+    def update_occurrences_for_entry(
+        self,
+        dataset: Sequence,
+        old_term: Optional[str],
+        new_entry: Optional[GlossaryEntry],
+        previous_entry: Optional[GlossaryEntry] = None,
+    ) -> None:
         """Incrementally update the occurrence index for a single glossary entry change."""
         if not self._occurrence_index and self._entries:
             self.build_occurrence_index(dataset)
             return
+
+        # Fast path: when original term has not changed and index has valid occurrences for it
+        if (
+            old_term
+            and new_entry
+            and old_term == new_entry.original
+            and self._occurrence_index
+            and old_term in self._occurrence_index
+        ):
+            existing_occs = self._occurrence_index[old_term]
+            old_section = (
+                previous_entry.section
+                if previous_entry is not None
+                else (existing_occs[0].entry.section if existing_occs else None)
+            )
+            section_changed = (old_section != new_entry.section)
+            if not section_changed:
+                self._occurrence_index[new_entry.original] = [
+                    GlossaryOccurrence(
+                        entry=new_entry,
+                        start=occ.start,
+                        end=occ.end,
+                        block_idx=occ.block_idx,
+                        string_idx=occ.string_idx,
+                        line_idx=occ.line_idx,
+                        line_text=occ.line_text,
+                        kind=occ.kind,
+                    )
+                    for occ in existing_occs
+                ]
+                return
 
         if old_term:
             self._occurrence_index.pop(old_term, None)

@@ -241,6 +241,8 @@ Tree toolbar (bottom of the panel; buttons start disabled):
 
 **Glossary…** under the tree opens the project glossary (`Ctrl+G`). Ctrl-click a glossary term in Original to open that entry.
 
+Choosing and applying a proposed translation variant updates the existing occurrence index in place when the term and category are unchanged. This keeps confirmation responsive even in large projects; changing the term/category or confirming before the index exists still performs a full correctness scan.
+
 Right-click (empty space): **Create Folder**, **AI: Translate All Blocks (UA Chronological)**, **Revert All Blocks to Original**, **Restore All Translations**.
 
 Right-click a file: import, save this block, rescan, widths, markers, restore. **Chapters** root and Act folders have no context menu (read-only structure).

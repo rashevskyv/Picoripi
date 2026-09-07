@@ -9,6 +9,7 @@ from core.glossary.models import (
     STATUS_SEEDED,
     DescriptionFragment,
     GlossaryEntry,
+    GlossaryOccurrence,
     TranslationVariant,
 )
 from core.glossary.replace import replace_preserve_case
@@ -65,6 +66,8 @@ class MutationMixin:
             section=section,
             profiled=profiled
         )
+        if section and section not in self._section_order:
+            self._section_order.append(section)
         self._session_changes[original_key] = new_entry
         new_entries = list(self._entries)
         new_entries.append(new_entry)
@@ -121,10 +124,32 @@ class MutationMixin:
                     suggested_name=entry.suggested_name,
                     suggested_name_evidence=entry.suggested_name_evidence,
                 )
+                if section and section not in self._section_order:
+                    self._section_order.append(section)
                 new_entries = list(self._entries)
                 new_entries[idx] = updated_entry
                 self._entries = new_entries
-                self._occurrence_index = {}
+                if self._occurrence_index and original_key in self._occurrence_index:
+                    target_section = section if section is not None else entry.section
+                    if target_section == entry.section:
+                        existing_occs = self._occurrence_index[original_key]
+                        self._occurrence_index[original_key] = [
+                            GlossaryOccurrence(
+                                entry=updated_entry,
+                                start=occ.start,
+                                end=occ.end,
+                                block_idx=occ.block_idx,
+                                string_idx=occ.string_idx,
+                                line_idx=occ.line_idx,
+                                line_text=occ.line_text,
+                                kind=occ.kind,
+                            )
+                            for occ in existing_occs
+                        ]
+                    else:
+                        self._occurrence_index.pop(original_key, None)
+                else:
+                    self._occurrence_index = {}
                 self._session_changes[original_key] = updated_entry
                 self._persist()
                 return updated_entry

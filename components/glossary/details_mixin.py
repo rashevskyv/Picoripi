@@ -1,6 +1,7 @@
 """Glossary entry details, occurrences, speaker identity, and variants."""
 from __future__ import annotations
 
+import time
 from html import escape
 from typing import List, Optional
 
@@ -9,6 +10,7 @@ from PyQt6.QtWidgets import QListWidgetItem
 from core.glossary_manager import GlossaryEntry
 from core.speaker_alias_merge import is_confirmed_speaker_alias
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 
 class DetailsMixin:
@@ -368,12 +370,15 @@ class DetailsMixin:
 
     def _apply_variant_item(self, item: QListWidgetItem, advance: bool = False) -> None:
         """Apply a variant item: update translation edit, refresh notes, and confirm."""
+        t_start = time.perf_counter()
         translation = item.data(Qt.ItemDataRole.UserRole)
         if not translation:
             return
         self._translation_edit.setText(str(translation))
         self._refresh_rendered_notes()
         self._on_confirm_clicked(advance=advance)
+        elapsed = time.perf_counter() - t_start
+        log_debug(f"Glossary: variant application took {elapsed:.3f}s")
 
     def _on_variant_chosen(self, item: QListWidgetItem) -> None:
         """Apply a chosen variant (alias for _apply_variant_item)."""

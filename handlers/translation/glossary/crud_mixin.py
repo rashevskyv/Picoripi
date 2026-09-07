@@ -1,9 +1,11 @@
+import time
 from typing import Optional
 
 from PyQt6.QtWidgets import QMessageBox
 
 from core.glossary_manager import GlossaryOccurrence
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 
 class CrudMixin:
@@ -22,6 +24,7 @@ class CrudMixin:
         ``confirmed`` when the user accepts a translation. Left as None the
         existing status is preserved.
         """
+        t_start = time.perf_counter()
         previous_entry = self.glossary_manager.get_entry(original)
         previous_translation = previous_entry.translation if previous_entry else None
 
@@ -31,12 +34,14 @@ class CrudMixin:
         if section is not None:
             update_kwargs["section"] = section
         if self.glossary_manager.update_entry(original, translation, notes, **update_kwargs):
-            self.glossary_manager._occurrence_index = old_index
+            if not self.glossary_manager._occurrence_index and old_index:
+                self.glossary_manager._occurrence_index = old_index
             data_source = getattr(self.mw.data_store, "data", [])
             updated_entry = self.glossary_manager.get_entry(original)
-            self.glossary_manager.update_occurrences_for_entry(data_source, original, updated_entry)
+            self.glossary_manager.update_occurrences_for_entry(
+                data_source, original, updated_entry, previous_entry=previous_entry
+            )
 
-            self.glossary_manager.save_to_disk()
             occurrence_map = self.glossary_manager.get_occurrence_map()
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
             self._update_glossary_highlighting()
@@ -44,17 +49,21 @@ class CrudMixin:
             if self.mw.statusBar:
                 self.mw.statusBar.showMessage(f"Glossary updated: {original}", 4000)
 
+            occurrences = occurrence_map.get(updated_entry.original, []) if updated_entry else []
             if (
                 updated_entry is not None
                 and updated_entry.translation.strip() != ""
             ):
-                occurrences = occurrence_map.get(updated_entry.original, [])
                 if occurrences:
                     self._occurrence_updater.show_translation_update_dialog(
                         entry=updated_entry,
                         previous_translation=previous_translation or "",
                         occurrences=occurrences,
                     )
+            elapsed = time.perf_counter() - t_start
+            log_debug(
+                f"Glossary: entry update for term length={len(original)} completed in {elapsed:.3f}s (occurrences: {len(occurrences)})"
+            )
             return entries, occurrence_map
         return None
 
@@ -62,11 +71,11 @@ class CrudMixin:
         """Internal helper to handle glossary entry delete."""
         old_index = self.glossary_manager._occurrence_index.copy() if self.glossary_manager._occurrence_index else {}
         if self.glossary_manager.delete_entry(original):
-            self.glossary_manager._occurrence_index = old_index
+            if not self.glossary_manager._occurrence_index and old_index:
+                self.glossary_manager._occurrence_index = old_index
             data_source = getattr(self.mw.data_store, "data", [])
             self.glossary_manager.update_occurrences_for_entry(data_source, original, None)
 
-            self.glossary_manager.save_to_disk()
             occurrence_map = self.glossary_manager.get_occurrence_map()
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
             self._update_glossary_highlighting()

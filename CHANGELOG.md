@@ -1,5 +1,10 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.098-dev] - 2026-09-07
+
+### Fixed
+- **Fast glossary variant confirmation**: Applying a proposed translation variant now reuses the existing occurrence coordinates and speaker ownership when the term and category are unchanged, instead of rescanning every project string. The measured 6,000-string confirmation path fell from a 4.64 s median to 0.25 s; full scans remain for changed categories/terms and missing indexes.
+
 ## [0.3.096-dev] - 2026-09-03
 
 ### Changed
