@@ -73,4 +73,4 @@
 - [x] Відновити збереження зірочок підрядків при навігації в `handlers/list_selection/physical_selection_mixin.py` та узгодити тести в `tests/test_asterisk_logic.py` і `tests/test_tag_validation.py`.
 - [x] Пройти повний набір паралельних тестів (`pytest -n auto`), перевірку Ruff та `git diff --check`.
 - [x] Консолідувати англійський ченджлог для релізу `v0.3.101` у `CHANGELOG.md` та оновити `README.md`, `GEMINI.md`, `AUDIT.md`.
-- [ ] Опублікувати реліз `v0.3.101` на GitHub без бінарників і підняти версію до `0.3.102-dev`.
+- [x] Опублікувати реліз `v0.3.101` на GitHub без бінарників і підняти версію до `0.3.102-dev`.

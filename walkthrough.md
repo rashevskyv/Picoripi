@@ -229,6 +229,7 @@
 
 ## Результати тестування та верифікації
 - **Ruff linter**: `ruff check .` — **All checks passed**.
-- **Паралельні тести**: `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/` — **Всі тести пройдено успішно**.
+- **Паралельні тести**: `$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/` — **3349 passed, 1 skipped** за 71.5 с.
 - **Git diff**: `git diff --check` — **0 помилок**.
-- **Версія програми**: випущено реліз **v0.3.101**.
+- **Версія програми**: випущено офіційний реліз **v0.3.101** на GitHub без бінарників: [Release v0.3.101](https://github.com/rashevskyv/Picoripi/releases/tag/v0.3.101).
+- **Пост-деплой**: версію бампнуто до **0.3.102-dev** для наступного циклу розробки.
