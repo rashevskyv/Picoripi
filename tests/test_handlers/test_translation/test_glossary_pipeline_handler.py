@@ -433,3 +433,47 @@ class TestSeedSources:
 
         seeded = handler._structural_seeds()
         assert seeded == [{"term": "Link"}]
+
+
+class TestForceRetranslate:
+    @patch("handlers.translation.glossary_pipeline_handler.AIStatusDialog")
+    @patch("handlers.translation.glossary_pipeline_handler.GlossaryBuildWorker")
+    @patch("handlers.translation.glossary_pipeline_handler.get_provider_for_config")
+    def test_force_retranslate_creates_backup_and_launches_worker(
+        self, mock_provider, mock_worker, mock_status, tmp_path
+    ):
+        mw = _mw()
+        glossary_file = tmp_path / "glossary.json"
+        glossary_file.write_text('[{"original": "Link", "translation": "Лінк"}]', encoding="utf-8")
+        manager = mw.translation_handler.glossary_handler.glossary_manager
+        manager.load_from_text(plugin_name="zelda_mc", glossary_path=glossary_file, raw_text=glossary_file.read_text(encoding="utf-8"))
+
+        handler = GlossaryPipelineHandler(mw)
+        handler.force_retranslate()
+
+        bak_file = tmp_path / "glossary.json.bak"
+        assert bak_file.exists()
+        assert bak_file.read_text(encoding="utf-8") == glossary_file.read_text(encoding="utf-8")
+
+        mock_worker.assert_called_once()
+        kwargs = mock_worker.call_args.kwargs
+        assert kwargs["mode"] == "translate"
+        assert kwargs["translate"] is True
+        assert kwargs["force_retranslate"] is True
+
+    @patch("handlers.translation.glossary_pipeline_handler.QMessageBox.warning")
+    def test_force_retranslate_warns_when_worker_already_running(self, mock_warning):
+        mw = _mw()
+        handler = GlossaryPipelineHandler(mw)
+        handler._worker = MagicMock()
+        handler._worker.isRunning.return_value = True
+
+        handler.force_retranslate()
+        mock_warning.assert_called_once()
+
+    @patch("handlers.translation.glossary_pipeline_handler.QMessageBox.information")
+    def test_force_retranslate_informs_when_glossary_empty(self, mock_info):
+        mw = _mw()
+        handler = GlossaryPipelineHandler(mw)
+        handler.force_retranslate()
+        mock_info.assert_called_once()

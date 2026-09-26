@@ -246,10 +246,16 @@ STEPS: List[Step] = [
         "text",
         "Translate the text",
         "With the glossary confirmed and the speakers named, the text itself is "
-        "translated block by block from the editor -- every line carrying its "
-        "terms, its speaker and its scene into the prompt.\n\n"
-        "There is no single button here on purpose: translating is done where "
-        "you can read the result.",
+        "translated block by block or through the multi-agent pipeline.\n\n"
+        "• Phase 1: Translate Story First (Chronological) — translates main narrative "
+        "dialogue in chronological order, building a rolling narrative ledger of canon, "
+        "lore, and character voices.\n"
+        "• Phase 2: Translate Remaining Blocks — translates menus, shops, and system text "
+        "using the canon established during story translation.\n"
+        "• Chief Editor Review: Parallel translation workers are supervised inline by an "
+        "Editor agent that polishes the text and enforces glossary consistency.\n\n"
+        "You can launch each phase below, or run the full pipeline automatically. "
+        "Afterwards, run 'Fix All Strings' to automatically handle length and width limits.",
     ),
 ]
 
@@ -311,6 +317,32 @@ class PipelineWizardDialog(QDialog):
         right.addWidget(self.state_label)
         right.addWidget(self.why, 1)
         right.addWidget(self.run_button)
+
+        # Dedicated pipeline action buttons for Step "text"
+        self.text_pipeline_widget = QWidget(explain)
+        text_layout = QVBoxLayout(self.text_pipeline_widget)
+        text_layout.setContentsMargins(0, 8, 0, 0)
+        text_layout.setSpacing(8)
+
+        self.btn_story_first = QPushButton(tr("Translate Story First (Chronological)"), self.text_pipeline_widget)
+        self.btn_story_first.setToolTip(tr("Translate narrative dialogue lines first, establishing story canon."))
+        self.btn_story_first.clicked.connect(self._run_story_first)
+        text_layout.addWidget(self.btn_story_first)
+
+        self.btn_remaining_blocks = QPushButton(tr("Translate Remaining Blocks (Semantic & System)"), self.text_pipeline_widget)
+        self.btn_remaining_blocks.setToolTip(tr("Translate menus, shops, and system text using narrative context."))
+        self.btn_remaining_blocks.clicked.connect(self._run_remaining_blocks)
+        text_layout.addWidget(self.btn_remaining_blocks)
+
+        self.btn_full_pipeline = QPushButton(tr("Run Full Pipeline (Story ➔ Semantic)"), self.text_pipeline_widget)
+        self.btn_full_pipeline.setStyleSheet("font-weight: bold; padding: 6px;")
+        self.btn_full_pipeline.setToolTip(tr("Run full automated pipeline: Story first, then remaining blocks."))
+        self.btn_full_pipeline.clicked.connect(self._run_full_pipeline)
+        text_layout.addWidget(self.btn_full_pipeline)
+
+        self.text_pipeline_widget.setVisible(False)
+        right.addWidget(self.text_pipeline_widget)
+
         self.stack.addWidget(explain)
         self._explain_page = explain
         self._embedded: Dict[str, QWidget] = {}
@@ -547,6 +579,8 @@ class PipelineWizardDialog(QDialog):
         self.why.setText(tr(step.why))
         self.run_button.setVisible(bool(step.run))
         self.run_button.setText(tr(step.button) if step.button else "")
+        if hasattr(self, "text_pipeline_widget"):
+            self.text_pipeline_widget.setVisible(step.key == "text")
         self.stack.setCurrentWidget(self._page_for(step))
 
     def _page_for(self, step: Step) -> QWidget:
@@ -605,3 +639,18 @@ class PipelineWizardDialog(QDialog):
         except Exception as exc:
             log_debug(f"Pipeline wizard: launching {step.key} failed: {exc}")
         self.refresh()
+
+    def _run_story_first(self) -> None:
+        handler = getattr(self.mw, "translation_handler", None)
+        if handler:
+            handler.translate_story_first()
+
+    def _run_remaining_blocks(self) -> None:
+        handler = getattr(self.mw, "translation_handler", None)
+        if handler:
+            handler.translate_remaining_blocks()
+
+    def _run_full_pipeline(self) -> None:
+        handler = getattr(self.mw, "translation_handler", None)
+        if handler:
+            handler.translate_all_blocks_pipeline()

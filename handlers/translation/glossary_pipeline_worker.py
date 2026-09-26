@@ -49,6 +49,7 @@ class GlossaryBuildWorker(QThread):
         target_lang: str = "Ukrainian",
         chunk_size: Any = "balanced",
         translate: bool = False,
+        force_retranslate: bool = False,
         prompts: Optional[dict] = None,
         max_consecutive_failures: int = 3,
         workers: int = DEFAULT_WORKERS,
@@ -66,6 +67,7 @@ class GlossaryBuildWorker(QThread):
         self.target_lang = target_lang
         self.chunk_size = chunk_size
         self.translate = translate
+        self.force_retranslate = force_retranslate
         self._prompts = prompts
         self.structural_seeds = list(structural_seeds or ())
         self._max_consecutive_failures = max(1, int(max_consecutive_failures))
@@ -131,7 +133,7 @@ class GlossaryBuildWorker(QThread):
             result = coordinator.build(self.dataset, self.mode, block_indices=self.block_indices)
             self.last_result = result
             if (self.translate or self.mode == MODE_AUTO) and not result.cancelled:
-                coordinator.run_translate(result)
+                coordinator.run_translate(result, force=self.force_retranslate)
 
             # Losing some units is a partial result; losing *every* unit is a
             # failed run wearing a success message. Only report success when

@@ -1,4 +1,4 @@
-﻿"""Coordinator: run the glossary build passes and write to the glossary.
+"""Coordinator: run the glossary build passes and write to the glossary.
 
 Ties the drivers together and persists results through GlossaryManager. Kept
 free of Qt: it takes one raw AI text call ``call(messages) -> str`` and drives
@@ -267,8 +267,13 @@ class GlossaryBuildCoordinator:
         result.cancelled = self._cancelled()
         return result
 
-    def run_translate(self, result: Optional[BuildResult] = None) -> BuildResult:
-        """Propose translations for entries that have a description but none yet."""
+    def run_translate(
+        self,
+        result: Optional[BuildResult] = None,
+        *,
+        force: bool = False,
+    ) -> BuildResult:
+        """Propose translations for entries that have a description, or force-retranslate all entries."""
         result = result or self.last_result or BuildResult()
         self.last_result = result
         propose = make_propose(self.call, self.prompts, target_lang=self.target_lang)
@@ -276,18 +281,18 @@ class GlossaryBuildCoordinator:
         # An entry needs translating when it has something to translate from (a
         # description) and no translation yet. Deliberately not keyed on status:
         # entries added by hand or by older tools carry no status but still
-        # qualify. Entries that already have a translation are left alone --
-        # replacing a decided translation is not this pass's job.
+        # qualify. Entries that already have a translation are left alone unless
+        # force=True is explicitly requested to overwrite with new AI suggestions.
         targets = [
             e
             for e in self.manager.get_entries()
-            if e.notes and not e.translation and not is_unnamed_voice_term(e.original)
+            if (force or (e.notes and not e.translation)) and not is_unnamed_voice_term(e.original)
         ]
 
         def translate(entry):
             return propose_translations(
                 entry.original,
-                entry.notes,
+                entry.notes or "",
                 propose,
                 normalize=self.manager.normalize_term,
             )

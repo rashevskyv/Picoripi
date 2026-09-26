@@ -22,7 +22,12 @@ from core.glossary_manager import (
 from core.translation.providers import get_provider_for_config
 from handlers.translation.glossary_ai_config import resolve_glossary_ai_config
 from handlers.translation.glossary_pipeline_worker import GlossaryBuildWorker
-from core.glossary_build.pipeline_coordinator import MODE_AUGMENT, MODE_AUTO, MODE_SEED
+from core.glossary_build.pipeline_coordinator import (
+    MODE_AUGMENT,
+    MODE_AUTO,
+    MODE_SEED,
+    MODE_TRANSLATE,
+)
 from core.glossary_build.script_seeds import seeds_from_markup
 from core.speaker_resolution import build_speaker_pool
 from core.speaker_alias_merge import (
@@ -382,8 +387,44 @@ class GlossaryPipelineHandler:
             manager=manager,
         )
 
+    def force_retranslate(self) -> None:
+        """Directly run a forced re-translation of all glossary entries using AI."""
+        if self._worker is not None and self._worker.isRunning():
+            QMessageBox.warning(self.mw, tr('AI Busy'), tr('A glossary build or translation task is already running.'))
+            return
+        manager = self._ready_to_build()
+        if manager is None:
+            return
+        entries = list(manager.get_entries() or [])
+        if not entries:
+            QMessageBox.information(self.mw, tr('Force Retranslate'), tr('Glossary is empty. There are no terms to retranslate.'))
+            return
+
+        glossary_path = getattr(manager, "glossary_path", None)
+        if glossary_path and Path(glossary_path).exists():
+            try:
+                import shutil
+                bak_path = Path(glossary_path).with_suffix(".json.bak")
+                shutil.copy2(glossary_path, bak_path)
+            except Exception as exc:
+                log_error(f"Failed to create glossary backup before force retranslate: {exc}")
+
+        self.start_build(
+            {
+                "mode": MODE_TRANSLATE,
+                "area": AREA_PROJECT,
+                "chunk_size": "balanced",
+                "translate": True,
+                "force_retranslate": True,
+            },
+            manager=manager,
+        )
+
     def start_build(self, options: dict, manager=None) -> None:
         """Run a build with options already chosen."""
+        if self._worker is not None and self._worker.isRunning():
+            QMessageBox.warning(self.mw, tr('AI Busy'), tr('A glossary build or translation task is already running.'))
+            return
         manager = manager if manager is not None else self._ready_to_build()
         if manager is None:
             return
@@ -440,7 +481,9 @@ class GlossaryPipelineHandler:
         self._status = AIStatusDialog(self.mw)
         self._status.prevent_sleep_checkbox.setChecked(self._prevent_sleep)
         self._status.sleep_after_checkbox.setChecked(self._sleep_after)
-        if options["mode"] == MODE_SEED:
+        if options.get("force_retranslate"):
+            title = "AI Glossary Build (re-translating terms)"
+        elif options["mode"] == MODE_SEED:
             title = "Glossary Seeding (game data)"
         elif options["mode"] == MODE_AUGMENT:
             title = "AI Glossary Build (describing & translating terms)"
@@ -457,6 +500,7 @@ class GlossaryPipelineHandler:
             target_lang=target_lang,
             chunk_size=options["chunk_size"],
             translate=options["translate"],
+            force_retranslate=options.get("force_retranslate", False),
             structural_seeds=structural_seeds,
             parent=self.mw,
             **self._concurrency_options(),

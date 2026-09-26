@@ -271,6 +271,14 @@ class TestTranslateOnly:
         assert result.translated == 0
         assert m.get_entry("Ordon").translation == "Мій Ордон"
 
+    def test_force_retranslate_overwrites_existing_translation(self):
+        m = _manager()
+        m.add_entry("Ordon", "Старий Ордон", "a village")
+        coord = GlossaryBuildCoordinator(m, FakeAI(), PROMPTS)
+        result = coord.run_translate(force=True)
+        assert result.translated == 1
+        assert m.get_entry("Ordon").translation == "Ордон"
+
     def test_entry_without_description_is_skipped(self):
         """Nothing to translate from — the term alone is not enough."""
         m = _manager()

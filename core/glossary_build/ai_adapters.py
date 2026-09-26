@@ -85,8 +85,12 @@ def parse_json_object(text: str) -> Dict[str, Any]:
 
 def _fill(template: str, **fields: str) -> str:
     out = template
+    target_lang = fields.get("target_lang", "")
     for key, value in fields.items():
         out = out.replace("{" + key + "}", value)
+    if target_lang:
+        from utils.text_misc import resolve_target_language_prompt
+        out = resolve_target_language_prompt(out, target_lang)
     return out
 
 
@@ -119,6 +123,9 @@ def make_extract(
             if not term:
                 continue
             fragment = item.get("fragment") or item.get("description") or item.get("notes") or ""
+            if fragment:
+                from core.glossary.notes import ensure_term_placeholder
+                fragment = ensure_term_placeholder(str(fragment).strip(), original=term)
             out.append(
                 RawTerm(
                     term=term,
@@ -131,11 +138,14 @@ def make_extract(
     return extract
 
 
-def _description_from_reply(reply: str) -> str:
+def _description_from_reply(reply: str, term: str = "") -> str:
     obj = parse_json_object(reply)
     if "description" in obj:
-        return str(obj.get("description") or "").strip()
-    return _strip_fences(reply).strip()
+        desc = str(obj.get("description") or "").strip()
+    else:
+        desc = _strip_fences(reply).strip()
+    from core.glossary.notes import ensure_term_placeholder
+    return ensure_term_placeholder(desc, original=term)
 
 
 def make_synthesize_stack(
@@ -153,7 +163,7 @@ def make_synthesize_stack(
     def synthesize(windows: Sequence[ContextWindow]) -> str:
         joined = separator.join(w.text for w in windows)
         user = _fill(cfg["user_prompt_template"], term=term, windows=joined, target_lang=target_lang)
-        return _description_from_reply(call(_messages(system, user)))
+        return _description_from_reply(call(_messages(system, user)), term=term)
 
     return synthesize
 
@@ -172,7 +182,7 @@ def make_fold(
     def fold(texts: Sequence[str]) -> str:
         joined = "\n\n".join(f"- {t}" for t in texts if t)
         user = _fill(cfg["user_prompt_template"], term=term, fragments=joined, target_lang=target_lang)
-        return _description_from_reply(call(_messages(system, user)))
+        return _description_from_reply(call(_messages(system, user)), term=term)
 
     return fold
 

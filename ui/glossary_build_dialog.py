@@ -1,4 +1,4 @@
-﻿"""Launch dialog for building the glossary from project text.
+"""Launch dialog for building the glossary from project text.
 
 Collects the options the pipeline needs -- area, depth mode, chunk-size preset,
 and whether to translate right away -- and hands them back as a plain dict.
@@ -155,6 +155,7 @@ class GlossaryBuildDialog(QDialog):
         self._all_blocks_check = None
         self._full_rescan_check = None
         self._resume_pending_check = None
+        self._force_retranslate_check = None
         if target_step == "auto":
             area_box.hide()
             blocks_box = QGroupBox(tr('Project blocks'))
@@ -273,6 +274,12 @@ class GlossaryBuildDialog(QDialog):
             )
             layout.addWidget(self._translate_check)
 
+            self._force_retranslate_check = QCheckBox(tr('Force re-translate already translated terms'))
+            self._force_retranslate_check.setToolTip(
+                tr('Re-translate entries that already have a translation using the latest rules, overwriting them.')
+            )
+            layout.addWidget(self._force_retranslate_check)
+
             self._mode_translate.toggled.connect(self._sync_translate_check)
             self._sync_translate_check(self._mode_translate.isChecked())
             self._mode_seed.toggled.connect(self._sync_seed_mode)
@@ -344,6 +351,10 @@ class GlossaryBuildDialog(QDialog):
             if seed_only:
                 self._translate_check.setChecked(False)
             self._translate_check.setEnabled(not seed_only)
+        if self._force_retranslate_check is not None:
+            if seed_only:
+                self._force_retranslate_check.setChecked(False)
+            self._force_retranslate_check.setEnabled(not seed_only)
         self._chunk_combo.setEnabled(not seed_only)
         for button in (self._area_project, self._area_selected, self._area_current):
             button.setEnabled(not seed_only and self._area_enabled(button))
@@ -397,6 +408,9 @@ class GlossaryBuildDialog(QDialog):
             "chunk_size": self._chunk_combo.currentData(),
             "translate": translate_checked or self._target_step == "auto",
             "resume_pending": resume_pending,
+            "force_retranslate": bool(
+                self._force_retranslate_check and self._force_retranslate_check.isChecked()
+            ),
         }
         if self._target_step == "auto":
             selected = self.selected_block_indices()

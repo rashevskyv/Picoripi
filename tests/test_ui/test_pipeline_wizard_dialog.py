@@ -449,3 +449,59 @@ class TestTheGlossaryStepsAreOneStep:
         assert dialog._step_for("glossary").run is None
         assert dialog._step_for("describe") is None
         dialog.deleteLater()
+
+
+@pytest.mark.usefixtures("qapp")
+class TestTextPipelineLaunching:
+    """The text step offers Story First, Remaining Blocks, and Full Pipeline launchers."""
+
+    def test_text_step_shows_pipeline_buttons(self, tmp_path):
+        dialog = PipelineWizardDialog(_mw(tmp_path))
+        dialog.select_step("text")
+
+        assert hasattr(dialog, "text_pipeline_widget")
+        assert not dialog.text_pipeline_widget.isHidden()
+        assert hasattr(dialog, "btn_story_first")
+        assert hasattr(dialog, "btn_remaining_blocks")
+        assert hasattr(dialog, "btn_full_pipeline")
+        dialog.deleteLater()
+
+    def test_other_step_hides_pipeline_buttons(self, tmp_path):
+        dialog = PipelineWizardDialog(_mw(tmp_path))
+        dialog.select_step("speakers")
+
+        assert dialog.text_pipeline_widget.isHidden()
+        dialog.deleteLater()
+
+    def test_clicking_story_first_calls_handler(self, tmp_path):
+        mw = _mw(tmp_path)
+        mw.translation_handler.translate_story_first = MagicMock()
+        dialog = PipelineWizardDialog(mw)
+        dialog.select_step("text")
+
+        dialog.btn_story_first.click()
+
+        mw.translation_handler.translate_story_first.assert_called_once()
+        dialog.deleteLater()
+
+    def test_clicking_remaining_blocks_calls_handler(self, tmp_path):
+        mw = _mw(tmp_path)
+        mw.translation_handler.translate_remaining_blocks = MagicMock()
+        dialog = PipelineWizardDialog(mw)
+        dialog.select_step("text")
+
+        dialog.btn_remaining_blocks.click()
+
+        mw.translation_handler.translate_remaining_blocks.assert_called_once()
+        dialog.deleteLater()
+
+    def test_clicking_full_pipeline_calls_handler(self, tmp_path):
+        mw = _mw(tmp_path)
+        mw.translation_handler.translate_all_blocks_pipeline = MagicMock()
+        dialog = PipelineWizardDialog(mw)
+        dialog.select_step("text")
+
+        dialog.btn_full_pipeline.click()
+
+        mw.translation_handler.translate_all_blocks_pipeline.assert_called_once()
+        dialog.deleteLater()

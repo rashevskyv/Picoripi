@@ -221,3 +221,10 @@ class TestTargetStepViews:
         opts = dialog.options()
         assert opts["mode"] == MODE_AUGMENT
         assert opts["resume_pending"] is True
+
+    def test_force_retranslate_option_included_in_options(self, qtbot):
+        dialog = GlossaryBuildDialog(has_selection=False)
+        qtbot.addWidget(dialog)
+        assert dialog.options()["force_retranslate"] is False
+        dialog._force_retranslate_check.setChecked(True)
+        assert dialog.options()["force_retranslate"] is True
