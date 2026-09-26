@@ -1,5 +1,16 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.135-dev] - 2026-09-26
+
+### 🚀 Added & 🛠️ Improved
+- **Mobile Companion PWA Header & Navigation Ergonomics**:
+  - Replaced the bulky `● Connected` text badge in the header with a compact glowing green indicator dot (`.status-dot`), saving ~75px of horizontal space and allowing the full project title dropdown to fit without truncation or cramming.
+  - Enlarged the back/forward term navigation buttons (`[◀]` and `[▶]`) to minimum 44×38px touch targets (`.nav-arrow-btn`) with 1.15rem arrow glyphs and interactive tap feedback (`transform: scale(0.95)`), adhering to mobile touch guidelines.
+  - Aligned the `← Back` button (`.btn-back`) to 38px height and enhanced the active term counter typography for improved readability.
+
+### Fixed
+- **Companion Review Filter Excludes Confirmed Terms**: Fixed `is_unconfirmed` condition in `companion/server/api.py`, `storage.py`, and `glossary_view.js` to ensure confirmed terms (`status="confirmed"`) are strictly excluded from the "Needs review" filter, even when they retain multiple historical candidate variants (`translation_variants`).
+
 ## [0.3.134-dev] - 2026-09-26
 
 ### 🚀 Added & 🛠️ Improved
@@ -16,7 +27,6 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - **Centralized Settings State Synchronization**: Updated `MainWindowSettingsActionsMixin.open_settings_dialog` to synchronize modified settings with `SettingsManager.set(key, value)`.
 - **Open Settings Delegation**: Added `open_settings_dialog()` delegator method on `MainWindow` to allow child and modeless dialogs to reliably invoke application settings.
 - **Glossary Companion Sync Prompt**: Resolved server URL lookup in `GlossaryDialog` and connected the "Yes" confirmation prompt to automatically open the Settings dialog and re-check server configuration upon closing.
-- **Companion Review Filter Excludes Confirmed Terms**: Fixed `is_unconfirmed` condition in `companion/server/api.py`, `storage.py`, and `glossary_view.js` to ensure confirmed terms (`status="confirmed"`) are strictly excluded from the "Needs review" filter, even when they retain multiple historical candidate variants (`translation_variants`).
 
 ## [0.3.133-dev] - 2026-09-26
 

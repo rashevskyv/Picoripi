@@ -1,4 +1,4 @@
-# Picoripi v0.3.134-dev
+# Picoripi v0.3.135-dev
 
 **Picoripi** is a visual translation and localization workbench (Python, **PyQt6**) for texts with strict length and layout constraints. It started as a Nintendo-format editor (BMG, BFN, U8/RARC) and stays general enough for any structured translation project.
 
@@ -215,7 +215,7 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
 - **Picoripi Companion (Mobile Web PWA & Synchronization Server)**:
   - Full mobile web application (PWA) and synchronization server allowing you to open your translation glossary on your smartphone (iOS Safari / Android Chrome) or tablet.
   - Installable as a native-feeling standalone app via "Add to Home Screen".
-  - Features an ergonomic **"✓ Confirm & Next"** workflow to rapidly approve terms from your phone with automatic navigation to the next unreviewed entry.
+  - Features an ergonomic **"✓ Confirm & Next"** workflow to rapidly approve terms from your phone with automatic navigation to the next unreviewed entry, touch-optimized controls (44×38px touch targets, tap animations), a minimalist glowing status indicator dot, and streamlined project header.
   - Full fidelity: horizontal category tabs, live debounced search, "Needs review" filter, interactive candidate variant cards, dynamic lore description with real-time `{{TERM}}` substitution, editable user notes, and in-game dialogue occurrences with English quotes and reference translations.
   - **Automatic Background Synchronization**: Automatically queries the Companion server on application startup and project open in a non-blocking background thread (`CompanionPullWorker`), hot-reloading in-memory glossaries and editor highlighting without lag. Automatically syncs changes on project save and close with debouncing protection.
   - 1-click manual desktop synchronization via the **`[☁ Companion Sync...]`** button in `GlossaryDialog` with automatic backup protection (`.bak`).

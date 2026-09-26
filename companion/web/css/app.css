@@ -101,6 +101,16 @@ body {
   max-width: 150px;
 }
 .header-right { display: flex; align-items: center; gap: 8px; }
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
 .icon-btn {
   background: transparent;
   border: none;
@@ -147,6 +157,7 @@ body {
 .btn-outline { background: transparent; color: var(--accent-info); border: 1px solid var(--accent-info); }
 .btn-ghost { background: transparent; color: var(--text-muted); }
 .btn-sm { padding: 6px 12px; font-size: 0.85rem; min-height: 36px; }
+.btn-back { min-height: 38px; padding: 6px 14px; font-size: 0.95rem; font-weight: 600; }
 .btn-xs { padding: 3px 8px; font-size: 0.75rem; min-height: 28px; border-radius: var(--radius-sm); }
 .btn-lg { min-height: 52px; font-size: 1.05rem; }
 
@@ -301,17 +312,35 @@ body {
 .editor-nav-counters {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: var(--text-muted);
 }
 .nav-arrow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   color: var(--text-main);
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
+  min-width: 44px;
+  min-height: 38px;
+  padding: 6px 14px;
+  font-size: 1.15rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-arrow-btn:active:not(:disabled) {
+  background: var(--border-color);
+  transform: scale(0.95);
+}
+.nav-arrow-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .editor-scroll-body {

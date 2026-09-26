@@ -38,7 +38,7 @@
       <select id="projectSelect" class="project-select" aria-label="Select Project"></select>
     </div>
     <div class="header-right">
-      <span id="syncBadge" class="badge badge-success">● Connected</span>
+      <span id="syncBadge" class="status-dot" title="Connected" aria-label="Connected"></span>
       <button id="refreshBtn" class="icon-btn" title="Refresh data">↻</button>
       <button id="logoutBtn" class="icon-btn" title="Logout">⏻</button>
     </div>
@@ -76,7 +76,7 @@
   <!-- Detail View: Term Editor -->
   <section id="editorView" class="view hidden">
     <div class="editor-header">
-      <button id="backToListBtn" class="btn btn-secondary btn-sm">← Back</button>
+      <button id="backToListBtn" class="btn btn-secondary btn-back">← Back</button>
       <div class="editor-nav-counters">
         <button id="prevTermBtn" class="nav-arrow-btn">◀</button>
         <span id="termCounter">0 / 0</span>
