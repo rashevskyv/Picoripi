@@ -60,7 +60,7 @@ class ScriptRunnerDialog(QDialog):
             tr("<b>Send</b><br>Click — pass the typed line to the running script's standard input (Enter in the input field does the same).<br>Enabled only while a process is running.")
         )
         self.send_button.setStyleSheet(
-            "background-color: #0284c7; color: white; font-weight: bold; padding: 6px 16px; border-radius: 4px;"
+            "QPushButton { background-color: #0284c7; color: white; font-weight: bold; padding: 6px 16px; border-radius: 4px; }"
         )
         self.send_button.clicked.connect(self.send_input)
         self.send_button.setEnabled(False)
@@ -76,7 +76,7 @@ class ScriptRunnerDialog(QDialog):
         self.stop_button.setToolTip(
             tr('<b>Stop process</b><br>Click — terminate the running script. Output produced so far stays in the log.')
         )
-        self.stop_button.setStyleSheet("background-color: #dc2626; color: white; font-weight: bold; padding: 6px 12px; border-radius: 4px;")
+        self.stop_button.setStyleSheet("QPushButton { background-color: #dc2626; color: white; font-weight: bold; padding: 6px 12px; border-radius: 4px; }")
         self.stop_button.clicked.connect(self.stop_process)
         self.stop_button.setEnabled(False)
         btn_layout.addWidget(self.stop_button)
@@ -85,7 +85,7 @@ class ScriptRunnerDialog(QDialog):
         self.close_button.setToolTip(
             tr('<b>Close</b><br>Click — close this window. Stop the process first if it is still running.')
         )
-        self.close_button.setStyleSheet("padding: 6px 12px; border-radius: 4px;")
+        self.close_button.setStyleSheet("QPushButton { padding: 6px 12px; border-radius: 4px; }")
         self.close_button.clicked.connect(self.close)
         btn_layout.addWidget(self.close_button)
         

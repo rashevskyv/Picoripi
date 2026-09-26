@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QStyle
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QStyle
 from PyQt6.QtCore import Qt
 from core.i18n import tr
 
@@ -45,7 +45,7 @@ class FolderDeleteDialog(QDialog):
         
         self.btn_delete_all = QPushButton(tr('Delete Folder AND its Contents'))
         self.btn_delete_all.setToolTip(tr('Permanently removes this folder and everything inside it from the project.'))
-        self.btn_delete_all.setStyleSheet("color: #d32f2f;") # Red text to indicate destruction
+        self.btn_delete_all.setStyleSheet("QPushButton { color: #d32f2f; }") # Red text to indicate destruction
         self.btn_delete_all.clicked.connect(self._on_delete_all_clicked)
         btn_layout.addWidget(self.btn_delete_all)
         

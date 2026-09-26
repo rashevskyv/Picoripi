@@ -157,7 +157,7 @@ class SearchReviewDialog(
             tr('<b>Replace all</b><br>Click — replace every match in the list at once. Undo with Ctrl+Z in the main editor, one string at a time.')
         )
         self.replace_all_button.clicked.connect(self.replace_all_matches)
-        self.replace_all_button.setStyleSheet("background-color: #047857; color: white; font-weight: bold;")
+        self.replace_all_button.setStyleSheet("QPushButton { background-color: #047857; color: white; font-weight: bold; }")
         button_layout.addWidget(self.replace_all_button)
 
         self.skip_button = QPushButton(tr('Skip'))
