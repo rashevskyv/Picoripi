@@ -1,5 +1,498 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.133-dev] - 2026-09-26
+
+### Improved
+- Glossary occurrence cards show the complete source message and corresponding Russian reference entry, with a vertical scrollbar for long cards.
+- Preview zoom and panning keep the background, frame, and text aligned; warning tooltips show colored status markers.
+- Reference translations remain contextual evidence for AI translation, while the original text is the translation source.
+
+## [0.3.132-dev] - 2026-09-23
+
+### 🚀 Added & 🛠️ Improved
+- **Authentic BLO Font Scaling & Layout Line Spacing**:
+  - **Restored Authentic BLO Metrics**: Reinstated game layout line spacing and character advance based on BLO `text_metrics` (`layout_line_spacing = game_line_space * cell_h / game_font_y - leading`, `layout_char_spacing = game_char_space * cell_h / game_font_y`) and native font ratio `scale_factor = (game_font_y / cell_h) * fit` from commit `d0fc666c`.
+  - **Original Vertical Centering (`do_heightcenter`)**: Restored `textbox_height_center` algorithm matching the console engine `jmessage_tRenderingProcessor::do_heightcenter`, providing exact vertical margin symmetry inside dialogue frames.
+  - **Lockstep 1:1 Bidirectional Scaling**: Fully preserved bidirectional proportional scaling with window dimensions and background image zoom (`Ctrl+Wheel`).
+  - **Robust Type Coercion**: Maintained numeric/boolean type sanitization across preview widget properties to prevent `MagicMock` poisoning in headless/test environments.
+  - **Comprehensive Unit Testing**: All 40 preview unit tests in `tests/test_ui/test_bfn_preview_widget.py` pass cleanly.
+
+## [0.3.131-dev] - 2026-09-23
+
+### 🚀 Added & 🛠️ Improved
+- **Bidirectional Proportional Preview Scaling & Aspect Ratio Lock**:
+  - **1:1 Scaling with Background**: Re-engineered font rendering scale calculation in `ui/components/bfn_preview/paint_mixin.py` to strictly couple with frame transformation `fit` (`scale_factor = (game_font_y / cell_h) * fit` or `fixed_font_scale * (fit / base_fit)`). Text and background frame now scale in lockstep bidirectionally (both when expanding and shrinking) preserving the exact 100% visual proportion without one-sided scale clamping or overflowing.
+  - **Custom Background Geometry Locking**: Preset frame bounds and fit calculations now dynamically bind to custom background image transformation properties (`bg_scale / 100.0`, `bg_offset_x`, `bg_offset_y`) when a background image is active, keeping frame boundaries and text positions aligned with the custom backdrop.
+  - **Anti-Clipping Offscreen Buffer Expansion**: Expanded offscreen QImage rendering buffer bounds (`img_w = max(1, abs_rect.width(), int(round(total_width * scale_factor + 40)))`, `img_h = max(1, abs_rect.height(), int(round(total_height * scale_factor + 40)))`), preventing edge text, shadows, and glyph descenders from being cut off during high-zoom rendering.
+  - **Dynamic Preview Sidebar Button Scaling**: Implemented height-responsive button resizing in `BfnPreviewSideBar` (`resizeEvent`), dynamically scaling icon buttons from 28px down to 24px and 20px when preview panel height decreases below 215px and 165px. Prevents button overlapping at compact splitter heights without enforcing rigid min-height window locks.
+  - **Mouse Wheel Zoom & Reset Shortcut**: Added Ctrl+Wheel wheel event handler for smooth background zooming (±5% steps) and a "Reset Scale (100%)" action to the preview context menu (localized in English and Ukrainian).
+- **Multi-Language ROM Discovery & Automatic ISO Extraction**:
+  - **Automatic Wii/GC ISO Extraction via `wit`**: Integrated `_try_extract_iso_messages()` in `plugins/zelda_bmg/reference.py`, allowing users to select an `.iso` file directly. Picoripi automatically locates `wit.exe` and extracts message files (`+*Msg*`) seamlessly into an extracted folder.
+  - **Deep Recursive Directory Scanning**: Enhanced folder scanning using recursive patterns (`**/Msg*` and `**/msg*`) to locate deeply nested PAL message folders (`Msgde`, `Msgfr`, `Msgit`, `Msgsp`, `Msguk`) without requiring precise navigation down to the `res/` directory.
+  - **PAL Russian (`Msguk`) Priority Mapping**: When official PAL languages (`Msgde`, `Msgfr`, etc.) are detected alongside `Msguk`, `Msguk` is accurately prioritized and mapped as `Russian (RU)` with `cp1251` single-byte encoding (since European PAL Russian fan localizations replace UK English).
+  - **Direct ISO Selection Prompt**: Enhanced the reference selection prompt (`_prompt_load_multi_reference_rom`) in `MainWindowEventHandler` to allow selecting `.iso` GameCube/Wii images in addition to unpacked directories.
+
+
+## [0.3.130-dev] - 2026-09-23
+
+### 🚀 Added & 🛠️ Improved
+- **Multi-Language ROM Discovery & Cyrillic Encoding Fix**:
+  - **Direct BMG Decoding Without Mojibake**: Added `override_encoding` support to `BMGFile.load(data, override_encoding=...)` in `bmg_tool.py`, allowing BMG files with Cyrillic cp1251 characters to be parsed directly into unicode strings without lossy intermediate cp1252 re-encoding.
+  - **Accurate Language Identification**: Mapped `Msg`, `Msg_RU`, `Msg_US`, `Msg_UK`, `Msg_EN`, etc. to `Russian (RU)` with `cp1251` encoding in `plugins/zelda_bmg/reference.py`, eliminating the previous `Reference ()` fallback tab label.
+  - **Smart Sibling & Recursive Directory Scanning**: When selecting a specific language directory (such as `.../res/Msg`), `load_zelda_bmg_multi_reference` now automatically traverses parent and sibling directories, discovering all localized PAL folders (`Msgde`, `Msgfr`, `Msgit`, `Msgsp`, `Msgjp`) simultaneously.
+- **Editor Height Alignment & Vertical Space Optimization**:
+  - **Compact 2-Row Header Layout**: Re-engineered `header_grid` in `_build_edited_panel()` into a sleek 2-row layout (Row 0: `Window` + `Chapter` on left, Navigation/AI/Fix actions on right; Row 1: `Speaker` on left, Font/Max-width/Apply on right).
+  - **Raised Editors**: Raised both text editors by over 35 pixels, eliminating excessive top padding and blank vertical space.
+  - **Clean Left Header**: Removed the redundant `Original / Reference` title above the multi-language tabs and removed top stretch padding.
+  - **Dynamic Level Alignment (`HeaderSyncFilter`)**: Updated `HeaderSyncFilter` to dynamically compute `left_header.height = right_header.height - tab_bar.height`, ensuring the top edge of text editing areas across left and right panels starts at the exact same vertical Y level across all screen resolutions and DPI scaling.
+  - **Aligned Middle Panel Buttons**: Adjusted spacing in `_build_middle_panel()` so the revert string button aligns directly with Line 1 of both text editors.
+
+## [0.3.129-dev] - 2026-09-23
+
+### 🚀 Added & 🛠️ Improved
+- **Automatic Background Synchronization for Picoripi Companion**:
+  - **Automatic Pull on Project Open**: When opening any project or recent project, Picoripi automatically pulls the latest reviewed glossary terms from the remote Companion server in the background, updates local `glossary.json` (with automatic `.bak` backup), hot-reloads the glossary manager and open review dialogs, and notifies the user via statusbar.
+  - **Automatic Push on Save & Exit**: Whenever changes are saved, a project is closed, the glossary review window is closed, or the application exits, Picoripi pushes current terms, context occurrences, and reference translations to the Companion server so mobile devices immediately receive the freshest data.
+  - **Non-Blocking Architecture**: Integrated `CompanionPullWorker` and `CompanionPushWorker` via `QThread`, preventing UI freezes and safely tolerating network unavailability or offline servers without disruptive pop-up errors.
+  - **Configurable Auto-Sync Toggle**: Added `companion_auto_sync` option and a dedicated checkbox *"Automatically sync on project open and close"* in **Settings ➔ Companion**.
+  - **Unit Testing**: Added lifecycle unit tests in `tests/test_companion/test_companion_sync_client.py` for background pull/push workers and offline/online scenarios.
+
+## [0.3.128-dev] - 2026-09-23
+
+### 🚀 Added & 🛠️ Improved
+- **Picoripi Companion: Mobile Web PWA & Synchronization Server**:
+  - **Companion Server (`companion/server/`)**:
+    - Lightweight, high-performance FastAPI service running natively on Ubuntu Linux (systemd) or Docker (`docker-compose.yml`).
+    - Project storage manager (`StorageManager`) with automated `.bak` backups before every modification, project metadata, and atomic JSON persistence.
+    - RESTful API supporting PIN/token authentication (`/api/auth/login`), project listing (`/api/projects`), full-fidelity glossary sync (`/api/sync/push`, `/api/sync/pull`), category filtering, "Needs review" querying, in-game occurrence lookups, and term update endpoints.
+  - **Mobile Web App PWA (`companion/web/`)**:
+    - Mobile-first, responsive Single Page Application optimized for touch targets (48px) and safe areas on iOS Safari and Android Chrome.
+    - Full PWA support: web app manifest, maskable SVG icon, and "Add to Home Screen" standalone app mode.
+    - **Glossary List View**: Horizontal scrolling category pills (`All`, `Characters`, `Locations`, `Items`, etc.) with counts, live debounced search, "Needs review" filter toggle, and responsive term cards with status and variant count badges.
+    - **Term Review & Editor Screen**:
+      - Previous/Next navigation with progress counters.
+      - Original term card (`О:`) with one-tap clipboard copy.
+      - Large translation input (`П:`).
+      - Primary action: **"✓ Confirm & Next"** button to confirm status, save, and immediately advance to the next unreviewed term.
+      - Candidate Variants: interactive cards displaying proposed AI translations and rationales; tapping applies the variant to the translation field immediately.
+      - Context & Lore: collapsible sections for dynamic lore description with real-time `{{TERM}}` substitution, AI and editable user notes, and in-game occurrences with English quotes and Russian reference translation blocks.
+  - **Desktop Integration (`core/companion_sync.py`)**:
+    - Built-in `CompanionSyncClient` with push/pull operations, server health tests, and automatic `.bak` backup protection.
+    - Added **`[☁ Companion Sync...]`** action button to `GlossaryDialog` for 1-click push and pull with instant view hot-reloading.
+    - Added **Companion** tab to Application Settings (`SettingsCompanionMixin`) for configuring server URL, API token, and testing connection.
+  - **Testing**:
+    - Added unit test suite in `tests/test_companion/test_companion_server.py` covering storage, backup creation, authentication, filters, and sync endpoints.
+    - Added unit test suite in `tests/test_companion/test_companion_sync_client.py` covering push, pull, backups, and error handling.
+    - Added UI test `TestGlossaryCompanionSyncButton` in `tests/test_components/test_glossary_review_ui.py`.
+- **Unpacked Multi-Language ROM Reference Loading (PAL Multi-5 Support)**:
+  - **Multi-Language Detection & Extraction**: Added `load_zelda_bmg_multi_reference` to `plugins/zelda_bmg/reference.py` and `BaseGameRules.load_multi_reference` to automatically discover localized message folders in unpacked ROMs (`root/res/`, `files/res/`, `res/`).
+  - **Smart Region & Language Mapping**:
+    - English directories (`Msguk`, `Msgus`, `Msgen`, `Msge`) where Russian translation replaced English are decoded as single-byte `cp1251` and labeled `Russian (RU)`.
+    - Native European multi-language folders (`Msgde`, `Msgfr`, `Msgit`, `Msgsp`, `Msgjp`) are loaded with `cp1252` (and Shift-JIS for Japanese) as `German (DE)`, `French (FR)`, `Italian (IT)`, `Spanish (ES)`.
+    - Single patch directory fallback: if no multi-language folders are found, the folder is loaded as a single reference patch.
+  - **Dynamic Multi-Language Tabs in Editor**:
+    - Enhanced `source_tab_widget` (`ui/updaters/text_views_mixin.py`) to dynamically generate read-only comparison tabs for every detected reference language (`Original (EN)`, `Russian (RU)`, `German (DE)`, `French (FR)`, `Spanish (ES)`, `Italian (IT)`).
+    - Synchronized line navigation across all language editors while preserving scroll, cursor, and active tab index.
+  - **Multi-Language Context for AI Translation Prompts**:
+    - Injected `reference_translations` into batch translation payloads (`handlers/translation/prompt_composer/batch_mixin.py`).
+    - Added structured `REFERENCE TRANSLATIONS (from other official releases / reference patch for context)` block into single string translation and variations prompts (`handlers/translation/prompt_composer/messages_mixin.py`).
+    - Provides LLMs with crucial multi-lingual context on honorifics/politeness (German "du/Sie", French "tu/vous") and grammatical gender/number.
+  - **UI Menu & Event Integration**:
+    - Added **"Load Unpacked ROM (Multi-Language Reference)..."** action (`load_multi_reference_rom_action`) to the **File** menu.
+    - Persisted unpacked ROM path in `project_settings.json` (`reference_patch_path`) and automatically reloaded all reference languages on project open.
+    - Updated UI localization in `locales/en.json` and `locales/uk.json`.
+  - **Testing**:
+    - Added comprehensive unit tests in `tests/test_core/test_multi_reference.py` covering multi-language extraction, `cp1251`/`cp1252` encodings, and delegation.
+    - Added `test_update_text_views_populates_multi_reference` in `tests/test_ui/test_source_tab_widget.py`.
+    - Added prompt reference translation verification in `tests/test_handlers/test_ai_prompt_composer.py`.
+
+## [0.3.127-dev] - 2026-09-22
+
+### 🚀 Added & 🛠️ Improved
+- **Glossary Reference Translation Variant & AI Notes Isolation**:
+  - **Reference Variant Isolation**: External patch reference variants (such as `Желе зелёного чу — RU патч v2.0`) in `GlossaryDialog` (`_variants_list`) are visually isolated with distinctive styling (cyan/blue text `#0284c7` / `#38bdf8`, italic font, distinct tooltip).
+  - **Context-Only Protection**: Disabled double-click application and the "Apply selected variant" button for reference variants, guaranteeing that reference text cannot accidentally overwrite the translation editor or trigger early settlement.
+  - **AI Notes Categorization**: Reference variants in `_ai_notes_for_entry` are separated from target translation options into an explicit `Russian reference translation (for context):` section instead of being mixed into `Defensible translation choices:`.
+  - **Mention Counterpart Auto-Fallback**: If no explicit Russian variant exists in the glossary entry, the system automatically checks `_reference_data` for the first dialogue mention string and supplies `Russian reference context (from mention string):\n"{line}"` to ensure full context.
+- **Preview Proportional Scaling & Overlap Prevention**:
+  - **Sidebar Height Constraints**: Enforced `MIN_HEIGHT = 230px` on `BfnPreviewSideBar` and `BfnPreviewWidget`, plus minimum height on the preview column splitter (`260px`), preventing vertical button overlap when the preview column is resized.
+  - **Proportional Text Scaling**: Ensured text scales down proportionally with dialog frame `fit` even when `fix_font_scale` is enabled (`scale_factor = self.fixed_font_scale * fit`), keeping dialogue text neatly inside the frame box on window resize rather than overflowing.
+- **Testing**:
+  - Added `TestGlossaryReferenceVariantsAndNotes` in `tests/test_components/test_glossary_review_ui.py` covering:
+    - Reference variant styling, italic font, and disabled apply/double-click operations.
+    - Separation of reference variants in AI notes.
+    - Fallback to reference context from mention strings when no variant exists.
+  - Added tests in `tests/test_ui/test_bfn_preview_widget.py` for sidebar minimum height and proportional scaling.
+
+## [0.3.126-dev] - 2026-09-22
+
+### 🚀 Added & 🛠️ Improved
+- **Reference Translation Counterpart in Glossary Occurrences**:
+  - Threaded loaded reference patch data (`AppDataStore.reference_data`) into `GlossaryDialog` and `TableMixin.reload_data(...)`.
+  - For every dialogue occurrence in the glossary list (`_occurrence_list`), displayed the corresponding translation phrase from the reference patch (e.g. Russian patch v2.0) in an eye-catching colored badge container (`RU:` with soft sky blue background).
+  - Implemented smart term highlighting (`_highlight_russian_term`): if a 100% confident direct match for the glossary term is found in the Russian text (via exact word-boundary match or Slavic noun/adjective inflection), the term is highlighted with an underlined amber style.
+  - Full context preservation: if no direct term match is found with 100% certainty, the complete Russian phrase is displayed without truncation or premature elision, ensuring the translator has the entire dialogue context.
+  - Removed the artificial 120-character preview truncation on occurrences to prevent cutting off essential narrative context.
+  - Enhanced English occurrence preview to highlight the target term directly in `EN:` lines for mention occurrences.
+- **Robust Mock-Free UI Tab Counting**:
+  - Hardened `_do_update_text_views` in `ui/updaters/text_views_mixin.py` to safely verify tab count without raising type comparison errors against mock objects in test suites.
+- **Testing**:
+  - Added `TestGlossaryReferenceOccurrences` in `tests/test_components/test_glossary_review_ui.py` covering:
+    - Rendering of the `RU:` block when reference data is present.
+    - Direct term highlighting within the Russian text.
+    - Full phrase context display without truncation when direct match is absent.
+    - Clean omission of `RU:` block when reference data is not loaded.
+    - Hot-reloading of reference data in an open dialog.
+
+## [0.3.125-dev] - 2026-09-22
+
+### 🚀 Added & 🛠️ Improved
+- **Plugin-Driven Reference Translation Architecture**:
+  - Decoupled game-specific reference patch loading from `core/reference_manager.py` to adhere strictly to Picoripi's plugin architecture ("the mechanism is general, but the concrete implementation is in the plugin").
+  - Added reference patch lifecycle hooks to `BaseGameRules` in `plugins/base_game_rules.py`:
+    - `supports_reference_patch() -> bool`: whether the plugin supports loading external reference translation patches (default: `False`).
+    - `get_reference_language_label() -> str`: display label for the reference tab (e.g. `'Russian (RU)'`, `'German (DE)'`; default: `'Reference (RU)'`).
+    - `load_reference_patch(patch_path, block_names) -> Dict[Tuple[int, int], str]`: parses and maps patch texts to project blocks (default: `{}`).
+  - Created `plugins/zelda_bmg/reference.py` encapsulating all Nintendo GameCube/Wii Zelda BMG specific logic:
+    - RARC archive extraction (`bmgres*.arc` / `Msg/*.arc`).
+    - Binary BMG decoding with `windows-1251` (`cp1251`) single-byte encoding.
+    - Escape tag conversion (`{escape:...}`).
+    - Dynamic mapping between `zel_XX` resource names and project block indices.
+  - Implemented `supports_reference_patch`, `get_reference_language_label`, and `load_reference_patch` in `plugins/zelda_bmg/rules.py`.
+  - Refactored `ReferenceManager` (`core/reference_manager.py`) into a clean, game-agnostic coordinator that delegates loading and labeling to the active plugin.
+  - Updated `ui/builders/layout_builder.py` and `ui/updaters/text_views_mixin.py` to dynamically synchronize the reference tab title with the active plugin's language label.
+  - Updated `tools/extract_ru_glossary_variants.py` to instantiate the active plugin and use `ReferenceManager.load_reference`.
+- **Capability Documentation & Propagation (Mandatory)**:
+  - Updated `docs/PIPELINE_ROADMAP.md` section 2.2 with the new reference patch hooks.
+  - Updated `docs/PLUGIN_AUTHORING_GUIDE.md` section 4 with `supports_reference_patch`, `get_reference_language_label`, and `load_reference_patch`.
+  - Updated `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` question 8 to prompt new plugin authors about existing translation patches.
+- **Testing**:
+  - Updated `tests/test_core/test_reference_manager.py` with tests for delegation to `BaseGameRules`, `ZeldaBmgRules` declarations, and `_extract_bmg_messages`.
+  - Updated `tests/test_ui/test_source_tab_widget.py` for flexible reference tab labels.
+
+## [0.3.124-dev] - 2026-09-22
+
+### 🚀 Added & 🛠️ Improved
+- **Reference Translation Tab (Russian / RU) in Editor**:
+  - Replaced the single `original_text_edit` in the translation editor layout with a tabbed container (`self.mw.source_tab_widget`, `QTabWidget`) containing **"Original (EN)"** (`original_text_edit`) and **"Russian (RU)"** (`reference_text_edit`).
+  - Added full line width/font metrics synchronization and event filters to `reference_text_edit`, including support for tag hiding (`Ctrl+Q`), line numbering, and soft shading.
+  - Implemented smart text copying: clicking the revert/copy button (`→`, `revert_string_button`) now contextually copies the active reference text into `edited_text_edit` when the **Russian (RU)** tab is selected, or original English text when the **Original (EN)** tab is selected.
+- **Reference Manager & External Patch Integration**:
+  - Created `core/reference_manager.py` with `ReferenceManager` to load external reference patches (such as GameCube/Wii Russian translation patches containing `bmgres*.arc` files).
+  - Implemented in-memory RARC archive extraction and BMG binary decoding using `windows-1251` (`cp1251`) encoding, converting raw BMG escape sequences to Picoripi tag format (`{escape:...}`).
+  - Mapped reference BMG blocks directly to project blocks (`AppDataStore.reference_data` keyed by `(block_idx, string_idx)`).
+  - Added project setting `reference_patch_path` in `core/settings/plugin_settings.py` for persistent configuration per project.
+  - Added **"Load Reference Translation Patch..."** menu action under the **File** menu (`load_reference_patch_action`) with file picker dialog.
+- **Multi-Pass Russian Glossary Variant Extractor**:
+  - Implemented `tools/extract_ru_glossary_variants.py` to extract corresponding Russian translations and populate `translation_variants` in `glossary.json` with `rationale="RU патч v2.0"`.
+  - Uses 4 extraction strategies: exact standalone matching, tagged/colored span extraction (`{escape:255:...}`), character name frequency analysis across speaker lines, and clean multi-word phrase matching.
+  - Successfully extracted **692 Russian terminology variants** into the Twilight Princess project glossary with automatic backup creation (`glossary.json.bak`).
+- **UI Localization (i18n)**:
+  - Added English and Ukrainian translations in `locales/en.json` and `locales/uk.json` for all new UI strings:
+    - `"Original (EN)"` / `"Оригінал (EN)"`
+    - `"Russian (RU)"` / `"Російська (RU)"`
+    - `"Load Reference Translation Patch..."` / `"Завантажити референсний переклад..."`
+    - `"Select Reference Translation Patch Directory"` / `"Оберіть папку референсного перекладу"`
+    - `"Loaded {count} reference strings from patch."` / `"Завантажено {count} референсних рядків із патчу."`
+    - `"Reference Translation"` / `"Референсний переклад"`
+    - `"No reference translation found in selected folder."` / `"У вибраній папці не знайдено референсного перекладу."`
+- **Testing**:
+  - Added `tests/test_core/test_reference_manager.py` for testing archive discovery, BMG parsing, `cp1251` decoding, and block mapping.
+  - Added `tests/test_ui/test_source_tab_widget.py` for testing tab switching, UI text updating, and contextual copying (`→` button).
+  - Added `tests/test_core/test_glossary_ru_variants.py` for testing multi-pass extraction and variant merging.
+  - Verified with full test suite passing across UI and Core test lanes.
+
+## [0.3.123-dev] - 2026-09-15
+
+### 🚀 Added & 🛠️ Improved
+- **Proposed Variant Application Without Auto-Advance & Double-Click Support**:
+  - Connected `itemDoubleClicked` on `_variants_list` to `_on_variant_double_clicked`, enabling instant application of proposed variants via double-click.
+  - Decoupled variant application from term confirmation and row navigation: clicking **"Apply selected variant"** (`_apply_variant_button`) or double-clicking an item in `_variants_list` now applies the chosen candidate directly into `_translation_edit`, updates rendered notes (`_refresh_rendered_notes`), and marks the active item bold in the list (`_update_variant_boldness`), staying on the current term without advancing.
+  - Term settlement and advancement to the next entry now occurs strictly upon clicking **"Confirm translation"** (`_confirm_button`), ensuring translators can inspect, review, and manually tweak the candidate before confirming.
+  - Updated button tooltip to `Apply the selected variant translation to the editor.` and added Ukrainian translation in `locales/uk.json`.
+- **Testing**:
+  - Updated `tests/test_components/test_glossary_review_ui.py` with tests for in-place variant application, double-click behavior, and decoupled confirmation.
+  - Updated `tests/test_tools/test_benchmark_glossary_variant.py` to match the in-place application contract.
+
+## [0.3.122-dev] - 2026-09-15
+
+### 🚀 Added & 🛠️ Improved
+- **Interactive Splitter & Compact Labels for Original and Translation**:
+  - Replaced the static layout between Original and Translation fields with a horizontal `QSplitter` (`_term_trans_splitter`), allowing users to freely adjust the boundary between the original term and the translation input field.
+  - Replaced bulky "Original:" and "Translation:" text labels with compact **`O:`** and **`T:`** (`О:` and `П:` in Ukrainian) indicator labels featuring descriptive hover tooltips (`"Original"` and `"Translation"`).
+  - Both `_original_edit` and `_translation_edit` are now perfectly level and unobstructed across a single unified row.
+- **Relocated Wiki Reference Button**:
+  - Moved the **`[Wiki ↗]`** button (`_wiki_link_button`) out of the original field row and down into the dedicated action row alongside **`[Save]`**, **`[Confirm translation]`**, and **`[Discuss with AI…]`**.
+  - When visible, it sits neatly at the start of the action button row, leaving both Original and Translation input fields with maximum horizontal room.
+- **Reliable In-Place Term Saving**:
+  - Verified and guaranteed that clicking **`[Save]`** (`_save_term_button`) or pressing `Ctrl+S` saves all current field edits in-place without closing the glossary window or switching selection away from the active term.
+  - Hardened `_save_editor_changes` against boolean arguments emitted by Qt button click signals.
+- **Balanced Default Heights & Persistent Splitter Geometry**:
+  - Balanced default heights for vertical detail panes: `_variants_pane` now opens to a modest default height (~120px) instead of dominating the entire window.
+  - The Description (`notes_pane`), AI Notes (`ai_notes_pane`), and Occurrences (`occurrences_pane`) splitters are balanced equally (150px each).
+  - Added complete persistence in `settings.json` for all splitters (`term_trans_splitter_sizes`, `main_splitter_sizes`, `detail_splitter_sizes`, and `lower_detail_splitter_sizes`), restoring the user's exact preferred pane sizes on dialog reopen.
+- **Testing**:
+  - Updated `tests/test_components/test_glossary_review_ui.py` with tests verifying the `O:`/`T:` labels, `_wiki_link_button` positioning on the action row, balanced default detail pane sizes, in-place save behavior without dialog dismissal, and persistence across dialog instances.
+
+## [0.3.121-dev] - 2026-09-14
+
+### 🚀 Added & 🛠️ Improved
+- **Unconstrained Translation Input Field in Glossary Dialog**:
+  - Resolved UI cramping where long translations (e.g. multi-word character names, titles, and localized phrases) were severely truncated or squeezed due to action buttons sharing the same row.
+  - Moved the action buttons — **`[Save]`** (`_save_term_button`), **`[Confirm translation]`** (`_confirm_button`), and **`[Discuss with AI…]`** (`_discuss_variant_button`) — down to a dedicated row (`trans_actions_box`) directly below the translation input field.
+  - The `_translation_edit` field now spans the full width of the translation column (giving 400–550px+ of visible space instead of ~18–50px), allowing even long localized texts to fit comfortably without premature scrolling or clipping.
+  - Set a robust minimum width of 160px for the `_original_edit` field (with a 280px maximum) to prevent original terms from collapsing when the splitter or window is adjusted.
+  - Action buttons below the translation field align seamlessly with the left edge of `_translation_edit`.
+- **Testing**:
+  - Updated `test_term_and_translation_level_alignment_and_width_constraints` in `tests/test_components/test_glossary_review_ui.py` to assert that action buttons are positioned on a dedicated row below `_translation_edit`, vertically aligned together, and that `_translation_edit` retains dedicated expansive width.
+
+## [0.3.120-dev] - 2026-09-14
+
+### 🚀 Added & 🛠️ Improved
+- **Dedicated Retry Button in AI Chat Dialog**:
+  - Added a dedicated **Retry** button (`self.retry_button`, `QPushButton(tr('Retry'))`) directly in the action button column next to the chat message input field (`input_edit`) in `components/ai_chat_dialog.py`.
+  - Styled with a high-visibility amber/orange accent (`#ea580c`, hover `#c2410c`, pressed `#9a3412`), standard height 28px, matching the geometry of `stop_button` and `send_button`.
+  - Implemented dynamic geometry synchronization: `send_button` height automatically adjusts between 100px (full height when idle with no retriable prompt) and 68px (when Retry or Stop button is active), perfectly matching the 100px height of `input_edit`.
+  - Tooltip dynamically shows a preview of the prompt that will be retried (e.g. `Retry the last message: "..."`), and supports the `Ctrl+Shift+R` keyboard shortcut.
+- **Smart Retrying in AIChatHandler**:
+  - Implemented `_handle_retry_message` in `handlers/ai_chat_handler.py`: seamlessly resends the last user message without re-rendering duplicate user chat bubbles (`user_rendered=True`).
+  - Automatically wipes the previous error message or incomplete stream response from the document before starting the new generation.
+  - Automatically retrieves the currently active model provider and web search toggle from the tab's controls (`model_combo` and `web_search_checkbox`), enabling users to switch providers (e.g. to Gemini or another server) before clicking Retry.
+  - Cleans duplicated turn entries from `TranslationSessionState.history` if the previous exchange was recorded, keeping conversation context clean and in-sync.
+  - Supports non-blocking request queueing if another tab's thread is currently executing.
+  - Added visual retry hint inside the chat error message card: `↻ Click Retry to try again.`.
+- **Localization & Lifecycle**:
+  - Added `"Retry"`, `"Retry the last message"`, and `"Click Retry to try again."` to `locales/en.json` and `locales/uk.json`.
+  - Properly clears retry tracking on tab closure and dialogue context resets (`Reset Context`).
+- **Testing**:
+  - Added `test_chat_tab_retry_button` in `tests/test_components/test_ai_chat_dialog.py` verifying visibility, geometry, tooltips, generating toggles, and signals.
+  - Added tests in `tests/test_handlers/test_ai_chat_handler.py` covering resending with active provider, queuing while busy, history cleanup, and context reset clearing.
+
+## [0.3.119-dev] - 2026-09-14
+
+### 🚀 Added & 🛠️ Improved
+- **Transcription & Glossary Normalization of Hyrule / Hylia / Hylian**:
+  - Unified all root forms of `Hy-` [haɪ] (Hyrule, Hylia, Hylian) to canonical Ukrainian academic forms (Гайрул, Гайлія, гайлійці / гайлійський, гайрульський окунь, озеро Гайлія) across system prompts, plugin templates (`zelda_mc`, `zelda_ww`, `zelda_bmg`, `pokemon_fr`, `plain_text`, `common`), AI Chat, and glossary pipeline.
+  - Completely audited and fixed 62 entries in `translation_prompts/glossary.json` and 85 entries in the active Twilight Princess workspace project.
+
+### 🚀 Added & 🛠️ Improved
+- **Unified Term Save Button in Glossary Dialog**:
+  - Replaced clumsy, scattered save buttons in the collapsible section headers (`_save_description_button` in `notes_header` and `_save_notes_button` in `ai_notes_header`) with a clean, unified **Save** button (`_save_term_button`) located directly in the main action row next to the translation editor and `[Confirm translation]`.
+  - The unified button automatically activates and highlights with an accent blue color (`#2563eb`) whenever any field of the term (translation, description notes, or AI user notes) has uncommitted changes.
+  - Clicking **Save** saves the current record in place without navigating away or advancing to the next row (unlike **Confirm translation** which settles and moves to the next term).
+  - Preserved `_save_description_button` and `_save_notes_button` as aliases for complete backwards compatibility with tests and callers.
+  - Fully supports `Ctrl+S` keyboard shortcut throughout the dialog.
+- **Header Cleanliness**:
+  - Cleaned up the `[▼] Description:` header bar by removing the cramped save button wedged between `[AI Variations]` and `[ ] Profiled via AI`.
+  - Cleaned up the `[▼] AI notes and unresolved choices:` header bar by removing the detached, far-right save button.
+- **Localization & Testing**:
+  - Added translations for `"Save changes to this term (Ctrl+S)"` in `locales/uk.json` and `locales/en.json`.
+  - Added `test_save_term_button_state_and_click` in `tests/test_components/test_glossary_review_ui.py` covering dirty state tracking, accent styling, in-place saving, and backwards-compatible aliases.
+
+## [0.3.117-dev] - 2026-09-14
+
+### 🚀 Added & 🛠️ Improved
+- **Clean Block Header & Toolbar Deduplication**:
+  - Removed the duplicate AI button from the block list header (`block_header_layout` in `ui/builders/layout_builder.py`), retaining the dedicated **AI Batch Translation** button strictly in the main top toolbar (`ui/builders/toolbar_builder.py`).
+  - Further reduced the horizontal footprint of the block list header, allowing the block panel to be resized down to ~140-150px without horizontal truncation.
+  - Cleaned up event bindings and property declarations in `main.py` and `ui/main_window/main_window_event_handler.py`.
+- **Testing**:
+  - Updated `tests/test_components/test_ai_batch_translation_dialog.py` to verify that the block header remains clean, without duplicate action buttons, while keeping toolbar and menu triggers fully operational.
+
+## [0.3.116-dev] - 2026-09-14
+
+### 🚀 Added & 🛠️ Improved
+- **Blocks Panel Width Optimization & Header Shortening**:
+  - Replaced the verbose `Blocks (double-click to rename):` header label with compact `Blocks:` (`self.mw.blocks_header_label`), moving the double-click rename explanation into the label's detailed tooltip (`tr('<b>Blocks</b><br>Double-click a category or block to rename it.')`).
+  - Set `left_panel` minimum width constraint to 150px and compacted block toolbar controls under the tree (`26x26` with `padding: 0px`).
+  - Resolves the layout constraint where the blocks panel was locked to a minimum width of ~390px, allowing users to freely shrink the blocks list panel down to ~175px to maximize space for strings and text editors.
+- **AI Batch Translation Header Button Icon**:
+  - Added dedicated dynamic purple `AI` badge icon (`_create_ai_icon`) to `self.mw.ai_batch_header_button` in `ui/builders/layout_builder.py`, perfectly matching the toolbar button styling.
+  - Reset `padding: 0px` in `_create_header_button` so button text and icons render crisply without being clipped by the global stylesheet's default button padding.
+- **Localization**:
+  - Added catalog entries for `"Blocks:"` and its tooltip in both `locales/en.json` and `locales/uk.json`, while preserving previous catalog keys for complete backwards compatibility.
+- **Testing**:
+  - Updated `tests/test_components/test_ai_batch_translation_dialog.py` with assertions for header button icon validity (`assert not mw.ai_batch_header_button.icon().isNull()`), header label text and tooltip, and compact left panel width constraints.
+
+## [0.3.115-dev] - 2026-09-14
+
+### 🚀 Added & 🛠️ Improved
+- **Top AI Batch Translation Buttons & Pipeline Modes Dialog**:
+  - Implemented `AIBatchTranslationDialog` (`components/ai_batch_translation_dialog.py`): interactive modal dialog providing full explanations and direct action triggers for all batch translation modes:
+    * **Phase 1: Story First (Chronological)**: translates dialogue lines and cutscenes chronologically, recording character voices, lore decisions, and terminology into the `NarrativeLedger`.
+    * **Phase 2: Remaining Blocks (Semantic & System)**: translates menus, UI, shops, and items using the accumulated narrative canon context.
+    * **Full Pipeline (Story ➔ Semantic)**: primary automated route that runs Phase 1 then seamlessly transitions to Phase 2.
+    * **Translate All Blocks (Chronological Legacy)**: flat linear translation across all blocks without partitioning.
+    * **Non-blocking rules notice**: informs users that minor tag variations and width overflows do not halt translation and can be adjusted with Auto-fix.
+  - Added **AI Batch Translation** action to the main toolbar (`ui/builders/toolbar_builder.py`) with a custom purple `AI` badge icon.
+  - Added **AI** header button to the blocks panel (`block_header_layout` in `ui/builders/layout_builder.py`) beside folder controls, ensuring the batch pipeline dialog is easily accessible right from the blocks view.
+- **Clean Block Context Menu**:
+  - Removed project-wide batch translation actions from the individual block context menu (`components/tree_context_menu/menu_mixin.py`).
+  - The block context menu now contains strictly block-targeted actions: `AI: Translate Block '<name>' (UA)` (or `AI: Resume Translation`) and `AI: Build Glossary for '<name>'`.
+  - Added `AI Batch Translation...` trigger to the tree's empty-space context menu.
+- **Localization**:
+  - Added comprehensive English and Ukrainian localization catalogs for all dialog elements and tooltips in `locales/en.json` and `locales/uk.json`.
+- **Testing**:
+  - Added test suite `tests/test_components/test_ai_batch_translation_dialog.py` (10 tests) covering dialog initialization, data states, button actions, toolbar/header triggers, and tree context menu isolation.
+
+## [0.3.114-dev] - 2026-09-13
+
+### 🚀 Added & 🛠️ Improved
+- **Multi-Agent Translation Consilium (Translator + Inline Arbiter/Editor)**:
+  - Designed and implemented a collaborative multi-agent architecture where the primary translation agent draft is followed by an inline Editor/Arbiter supervisor review.
+  - The Arbiter inspects translations against the active glossary for exact term alignment, tone consistency, and natural phrasing.
+  - User-specified non-blocking exceptions: tag discrepancies (e.g. `[PLAYER]` being translated or replaced by the hero name like "Лінк") and pixel width or line limit overflows do not trigger re-translation or hard error blocks, allowing subsequent automated autofix passes (`TextAutofixLogic`) to handle physical formatting.
+  - Added dedicated `"editor_review"` system prompt to `translation_prompts/prompts.json` and all plugin prompt catalogs (`plugins/common/defaults/prompts.json`, `zelda_mc`, `zelda_ww`, `zelda_bmg`, `pokemon_fr`, `plain_text`, `default_plugin`).
+  - Added `load_editor_review_prompt()` to `GlossaryPromptManager` and `GlossaryHandler`.
+- **Two-Phase Chronological & Semantic Translation Pipeline (Story First ➔ Semantic)**:
+  - Added `classify_project_items()` in `core/translation/block_classifier.py`: intelligently partitions all translatable lines across the project into chronological **Story Dialogue** (prioritized by MemePalace `script_line` timeline mapping and story block heuristics) and **Semantic / System Blocks** (menus, UI, item descriptions, shops, mini-games).
+  - Added `NarrativeLedger` in `core/translation/narrative_ledger.py`: lightweight in-memory canon ledger that records established terms, character voices, and narrative milestones during Phase 1. In Phase 2, this accumulated canon is automatically injected into prompts (`handlers/translation/prompt_composer/batch_mixin.py`), ensuring complete narrative cohesion between story and system texts.
+  - Implemented `translate_story_first()`, `translate_remaining_blocks()`, and `translate_all_blocks_pipeline()` (story first, then automatically remaining blocks) in `handlers/translation/facade/translate_mixin.py`.
+  - Preserved full backward compatibility for `translate_all_blocks_chronologically()` (synthetic block index 999999).
+- **Dedicated AI Batch Translation Submenus**:
+  - Grouped all batch translation actions into a dedicated `AI Batch Translation ➔` submenu in both the project tree context menu (`components/tree_context_menu/menu_mixin.py`) and the main window `Tools` menu (`ui/builders/menu_builder.py`).
+  - Cleaned up top-level menus and tree context menus, preventing visual clutter while exposing granular execution options:
+    * `Translate Story First (Chronological)`
+    * `Translate Remaining Blocks (Semantic & System)`
+    * `Run Full Pipeline (Story ➔ Semantic)`
+    * `Translate All Blocks (Chronological)`
+- **Localization Pipeline Wizard Step 5 Integration**:
+  - Embedded dedicated action trigger controls into Step 5 ("Translate the text") of `PipelineWizardDialog` (`ui/pipeline_wizard_dialog.py`).
+  - Provides three distinct, clearly labeled buttons directly inside the wizard flow to launch Story First, Remaining Blocks, or the Full Pipeline.
+  - Updated step explanation text describing the two-phase pipeline and the Editor consilium.
+- **Test Suite Reliability & Hang Prevention**:
+  - Eliminated test hanging in `tests/test_components/test_glossary_review_ui.py` by making `_maybe_prompt_unsaved_changes` safely bypass modal prompts when the dialog is not visible.
+  - Added global `--timeout=90` to `pyproject.toml` so any stalled test fails fast with an informative traceback.
+  - Increased `waitUntil` timeout in `tests/test_ui/test_mempalace_builder.py` from 35s to 50s for reliable completion under heavy 16-worker parallel CPU load.
+
+## [0.3.113-dev] - 2026-09-13
+
+### 🐛 Fixed & 🚀 Added
+- **Direct "Save Note" & "Save Description" Buttons in Glossary Dialog**:
+  - Added a dedicated `Save Note` button (`_save_notes_button`) directly in the header of the notes pane (`ai_notes_header`) beside the title and collapse button.
+  - Added a dedicated `Save Description` button (`_save_description_button`) in the header of the description pane (`notes_header`).
+  - Added standard `Ctrl+S` keyboard shortcut (`QShortcut` with `QKeySequence.StandardKey.Save`) to quickly save current term edits from anywhere in `GlossaryDialog`.
+  - Buttons dynamically reflect dirty state: disabled when clean, and highlighted with an accent color (`#2563eb`) as soon as user types into the editors.
+- **Unsaved Changes Protection Pop-Up on Row / Tab Navigation & Dialog Close**:
+  - Implemented `_maybe_prompt_unsaved_changes` in `components/glossary/editor_mixin.py` prompting with `QMessageBox.question` (`Save` / `Discard` / `Cancel`).
+  - Integrated protection into table row switching (`_on_entry_current_changed`, `_on_entry_selected`), category tab switching (`_on_tab_changed`), and window closing (`closeEvent`, `reject`).
+  - When `Cancel` is selected, selection safely remains on the current row and typed notes are preserved.
+- **Persistent "Confirm Translation" Button for Settled / White Rows in Glossary Dialog**:
+  - Maintained visibility and enabled state of the `Confirm translation` button (`_confirm_button`) next to the translation input field and the `Discuss with AI…` button (`_discuss_variant_button`) for all selected entries, including settled/reviewed (white) entries.
+  - Previously, `_confirm_button` was conditionally shown only when `self._needs_review(entry)` was true, causing it to disappear on confirmed or settled entries and forcing translators who typed a custom translation to navigate down to the bottom-right `Save Changes` button.
+  - Translators can now type custom translations or make quick adjustments on any term and immediately click `Confirm translation` (`_confirm_button`) right beside the translation input field to save the entry with confirmed status and advance to the next term seamlessly.
+  - When no entry is selected, `_confirm_button` remains cleanly hidden and disabled.
+  - Updated and expanded unit tests in `tests/test_components/test_glossary_review_ui.py` covering settled entry confirmation, custom text persistence, and empty selection handling.
+
+## [0.3.112-dev] - 2026-09-13
+
+### 🐛 Fixed & 🚀 Added
+- **Dynamic Term Tag (`{{TERM}}`) Normalization in Glossary Descriptions**:
+  - Implemented `ensure_term_placeholder(notes, original, known_names)` in `core/glossary/notes.py`: automatically detects whenever a glossary note or description starts with an original term name, an earlier translation/transliteration (such as "Аґіта — ..."), or leading punctuation/verbs, and converts it into the standardized `{{TERM}} — ...` placeholder token.
+  - Enhanced `render_notes()` in `core/glossary/notes.py` to seamlessly handle both `{TERM}` and `{{TERM}}`, correctly substituting the current translation in real time.
+  - Integrated `ensure_term_placeholder` across `core/glossary_build/ai_adapters.py` (`make_extract`, `_description_from_reply`, `make_synthesize_stack`, `make_fold`), guaranteeing that all AI-generated or swept descriptions and fragments automatically use `{{TERM}}`.
+  - Fixed prompt resolution in `core/glossary_build/ai_adapters.py`: `_fill` now invokes `resolve_target_language_prompt` from `utils.text_misc`, properly unwrapping `[IF_TARGET_LANG: ...]` blocks for the active target language.
+  - In `components/glossary/details_mixin.py` and `editor_mixin.py`, existing descriptions with hardcoded or transliterated names are automatically normalized into `{{TERM}}` templates upon opening and saving. Switching translation variants immediately reflects the selected name in the description editor in real time (e.g. dynamically changing "Аґіта" to "Махаона").
+  - Prompts in `translation_prompts/glossary_pipeline_prompts.json`, `translation_prompts/glossary_builder_prompts.json`, and `handlers/translation/prompt_composer/messages_mixin.py` have been strengthened with strict mandatory instructions and examples never to hardcode term names or transliterations in descriptions.
+
+- **Editable Notes Window & User Custom Remarks in `GlossaryDialog`**:
+  - Unlocked the AI notes widget (`self._ai_notes_edit`) in `GlossaryDialog`: removed read-only restrictions, enabled full undo/redo (`setUndoRedoEnabled(True)`), and updated the placeholder text to "Enter user notes or view AI remarks...".
+  - Added persistent `user_notes` field to `GlossaryEntry` in `core/glossary/models.py`.
+  - Serialized `user_notes` in JSON glossary formats via `notes.py` (`_entry_to_dict`) and deserialized in `parse_mixin.py` (`load_from_text`).
+  - Added `user_notes` support to `MutationMixin` (`add_entry`, `update_entry`, `rename_original` collision merge) and `CrudMixin._handle_glossary_entry_update` with defensive callback fallback for backward compatibility.
+  - When custom user notes are typed into `_ai_notes_edit`, the editor is marked dirty and changes are saved. If untouched, the widget continues to dynamically show live AI observations and translation variants.
+
+## [0.3.111-dev] - 2026-09-13
+
+### 🐛 Fixed
+- **AI Chat Context Retention & Dialogue Memory**: Fixed a critical issue where subsequent user turns in the AI Chat window failed to send previous dialogue context to the model, causing the AI to lose track of the conversation topic and issue standard refusals.
+  - Corrected `TranslationSessionState.prepare_request()` in `core/translation/session_manager.py`: eliminated legacy code that stripped `self.history` whenever a provider returned a `conversation_id`.
+  - Ensured that `messages` sent to stateless chat endpoints (`/v1/chat/completions`: Gemini Web2API, OpenAI, Ollama, etc.) always consistently contain the system prompt (`system`), all recorded user/assistant message pairs in dialogue history (`self.history`), and the current user message.
+  - Softened the initial prompt instruction generated by `format_variant_discussion_context` in `handlers/translation/glossary/speaker_mixin.py` from a rigid constraint ("must choose only from existing candidates verbatim") into an open invitation to discuss, refine, and suggest creative alternatives and adaptations according to game lore and Ukrainian localization standards.
+
+### 🚀 Added
+- **AI Chat Independent Top-Level Window & Windows Alt+Tab Support**:
+  - Configured `AIChatDialog` as an independent top-level OS window (`Qt.WindowType.Window` with minimize, maximize, and close buttons, initialized without parent HWND ownership).
+  - Enables full Windows `Alt+Tab` task switcher integration and dedicated Windows taskbar entry, allowing users to freely switch between Picoripi and the chat window or keep them side-by-side.
+  - Added automatic window unminimizing (`showNormal()`) and foreground activation when reopening or focusing the chat window from menus or glossary actions.
+  - Guaranteed clean closure of the AI Chat window upon application shutdown in `AIChatHandler.prepare_to_close()`.
+
+## [0.3.110-dev] - 2026-09-12
+
+### 🐛 Fixed
+- **QToolTip Styling & Button Stylesheet Isolation**: Fixed an issue where tooltips appeared with invisible white text on white backgrounds on Windows when hovering over buttons in the glossary and other dialogs.
+  - Added explicit `QToolTip` stylesheet rules with proper contrast to both `DARK_THEME_STYLESHEET` (`#2E2E2E` background, `#E0E0E0` text, `#505050` border) and `LIGHT_THEME_STYLESHEET` (`#F8F9FA` background, `#212529` text, `#CED4DA` border) in `ui/themes.py`.
+  - Strictly scoped inline button stylesheets with `QPushButton { ... }` across `components/glossary/dialog.py`, `components/glossary_translation_update_dialog.py`, `dialogs/search_review/dialog.py`, `dialogs/script_runner_dialog.py`, and `components/folder_delete_dialog.py` to prevent button text and background colors from leaking into child `QTipLabel` tooltip widgets.
+  - Replaced hardcoded light background on `_original_edit` in `GlossaryDialog` with `QLineEdit { font-weight: bold; }`, ensuring seamless theme adaptation without white-on-white text in dark mode.
+
+## [0.3.109-dev] - 2026-09-12
+
+### 💄 Improved
+- **AI Operation Status Dialog Layout (`AIStatusDialog`)**:
+  * Reorganized bottom controls: stacked the sleep prevention options (`Prevent computer sleep` and `Put computer to sleep when finished`) vertically on the left side.
+  * Placed the `Cancel` button to the right of the stacked checkboxes, vertically centered with the checkbox group for a compact, balanced layout that prevents excessive dialog width in localized environments.
+
+## [0.3.108-dev] - 2026-09-12
+
+### 🚀 Added
+- **Force Retranslate Glossary with AI (`Force Retranslate...`)**:
+  * Added a dedicated action button (`_retranslate_button`, `#ea580c`) in `GlossaryDialog` and an option checkbox (`_force_retranslate_check`) in `GlossaryBuildDialog` to allow users to force-retranslate all existing glossary entries using AI with the latest transcription and translation rules.
+  * Automatically creates a durable safety backup copy (`glossary.json.bak`) before starting the translation pass.
+  * Extended `run_translate` in `GlossaryBuildCoordinator` with `force: bool = False` to target all existing entries, overwrite previous translations, propose new candidate variants, mark entries with `STATUS_TRANSLATED` ("Needs review"), and hot-reload the glossary dialog in real time.
+- **AI Chat "Reset Context" Button (`Скинути контекст`)**: Added a dedicated toolbar button in each AI Chat session tab that resets the conversation session state (`TranslationSessionManager.reset()`). Clears dialogue memory and posts a styled in-chat separator line (`Context Reset: Previous messages will not be sent to the AI in subsequent requests.`) ensuring fresh query context without deleting past readable transcripts.
+- **AI Chat Dual "Scroll to Bottom" Controls (`↓ В самий низ`)**:
+  - Added a toolbar jump button (`↓ Bottom`) in the top controls layout for instant access.
+  - Added a floating circular scroll-to-bottom button (`↓`) inside the chat history viewport that automatically becomes visible whenever the user scrolls up past 60px from the bottom and smoothly disappears upon reaching the bottom.
+
+### 🐛 Fixed
+- **AI Chat Auto-Scroll to Incoming Responses & Stream Following**: Fixed issue where the chat window stayed stationary at previous messages or user prompts while the AI response was streaming off-screen below the visible area ("екран не рухається, а відповідь десь пливе знизу").
+  - Immediately moves the viewport to incoming response placeholders and starting text upon sending messages.
+  - Smoothly tracks incoming stream chunks in real time as the response expands.
+  - Intelligently pauses auto-scrolling when the user manually scrolls up to inspect previous dialogue, and resumes auto-scrolling when scrolled back near the bottom.
+  - Encapsulated viewport scrolling and text manipulation methods (`is_at_bottom`, `remove_text_after`, `insert_stream_chunk`, `get_document_end_pos`) inside `_ChatTab` and `AIChatDialog`, removing brittle direct manipulation of internal scrollbars from the handler.
+
+## [0.3.107-dev] - 2026-09-12
+
+### 🚀 Added
+- **Strict Ukrainian & Japanese Localization Transcription Rules in AI Prompts**:
+  - Embedded comprehensive practical transcription and transliteration rules into global and plugin prompts:
+    * **Modern Ukrainian Orthography (2019)**: Transcribes plosive [g] (letter G/g) strictly as **Ґ / ґ** (*Hogwarts* -> **Гоґвортс**, *Gandalf* -> **Ґандальф**, *Ganon* -> **Ґанон**, *Gordon* -> **Ґордон**), pharyngeal [h] (letter H/h) as **Г / г** (*Harry* -> **Гаррі**, *Hyrule* -> **Гайрул**), [w] as **В / в** (*Wind* -> **Вінд**), digraph Th as **Т / т** (*Arthur* -> **Артур*), with preserved double consonants in proper names and strict typographic apostrophe (`’`) rules.
+    * **Japanese Transcription (Kovalenko System)**: Transcribes Japanese names and terms following the academic Ukrainian practical standard (**shi** -> **сі**, **chi** -> **ті**, **tsu** -> **цу**, **ji** -> **дзі**, **fu** -> **фу**, plosive g -> **ґ**, syllabic n before p/b/m -> **м**), with zero tolerance for Russian-style Polivanov calques (*ши*, *чи*, *джи*).
+  - **Full Plugin Ecosystem Coverage**: Deployed customized prompt configurations across all bundled game plugins with game-specific character examples: `zelda_mc` (*The Minish Cap*), `zelda_ww` (*The Wind Waker*), `zelda_bmg` (*Twilight Princess*), `pokemon_fr` (*Pokémon FireRed*), `plain_text`, and `default_plugin`.
+  - **Glossary & AI Chat Alignment**: Updated glossary prompt templates, builder prompts, pipeline translation prompts, batch/single translation instructions, and the AI Chat system prompt so that terminology extraction and interactive translation queries consistently enforce these rules.
+  - **Multi-Language Conditional Directive Support (`[IF_TARGET_LANG: <Lang>]`)**: Extended `resolve_target_language_prompt` (`utils/text_misc.py`) to parse and resolve conditional language blocks, ensuring that Cyrillic transcription rules are actively delivered when translating to Ukrainian while being cleanly stripped when translating to non-Cyrillic languages (maintaining 100% compliance with AUD-L1 multilingual prompt isolation).
+
+## [0.3.106-dev] - 2026-09-12
+
+### 🐛 Fixed
+- **AI Chat Send and Stop Button Width & Clipping**: Fixed issue where localized button labels ("Надіслати" in Ukrainian, "Зупинити", etc.) did not fit within the hardcoded 80px button width, causing the text to be clipped horizontally at the button edges. Button width is now dynamically calculated using bold font metrics (`max(110, advance + 30)`), ensuring generous padding and preventing text truncation across all UI languages and high-DPI scaling levels.
+
+## [0.3.105-dev] - 2026-09-12
+
+### 🚀 Added
+- **Interactive AI Chat Request Queue**: Messages sent while the AI model is already generating a response are now immediately visible in the chat log with a distinctive `[In Queue]` badge (`chat-queue-badge`). A dynamic queue status bar appears above the input box indicating queued messages and providing a "Cancel Queue" action.
+- **Real-Time Generation Status & Diagnostics**: Added live generation progress indicator (`status_label`) in the chat window tab header. Displays active elapsed timer, current phase ("Thinking...", "Generating response (Xs, N chars / ~M tokens)..."), and explicit diagnostic details on connection failures (distinguishing read timeouts from proxy connection failures).
+- **Dedicated Generation Stop Button**: Added an interactive "Stop" button next to "Send" that appears while an AI generation is active, allowing users to cooperatively interrupt the stream at any point.
+
+### 🐛 Fixed
+- **Stream Response Preservation on Timeout or Error**: Fixed critical issue where partial streamed text was wiped out and replaced with an error message when a streaming connection encountered a timeout or interruption. Streamed partial text is now permanently preserved, formatted as Markdown, accompanied by an inline warning indicator (`chat-interrupted-warning`), and persisted in session history.
+- **Apostrophe and Quotation HTML Escaping Bug**: Fixed raw HTML entities (`&#x27;`, `&quot;`) leaking into streamed text by removing premature escaping in plain-text insertion and applying clean Markdown/HTML decoding.
+- **Markdown List and Table Rendering**: Enhanced chat Markdown rendering with GitHub tables support, automated blank line normalization before list items (`*`, `-`, `+`, `1.`), and preserved syntax highlighting.
+- **Extended Streaming Timeout for Web Search**: Automatically increased the network socket timeout to 180s when web search is active and 120s for standard chat streaming to accommodate local AI proxy latency (e.g. Gemini Web2API).
+
+## [0.3.104-dev] - 2026-09-12
+
+### 🚀 Added
+- **Always-Accessible "Discuss with AI…" in Glossary**: Moved the "Discuss with AI…" button out of the conditional variants pane directly into the term & translation row (`trans_box`) next to "Confirm translation". The button is now always available for any selected glossary entry (not hidden when an entry lacks multiple variants).
+- **Rich AI Discussion Context for Glossary Entries**: Enhanced `format_variant_discussion_context` to compile comprehensive context into the AI chat prompt: term category, current translation, wiki reference URL (`BaseGameRules.get_external_reference_url`), confirmed speaker codes and AI candidate suggestions, full descriptions and fragments, and in-game dialogue occurrences (with counts and exact script sample lines).
+- **Table Context Menu Action**: Added "Discuss with AI…" to the right-click context menu of the glossary terms table, allowing instant discussion of any term directly from the table.
+- **Dynamic In-Dialog Edit Forwarding**: Clicking "Discuss with AI…" now captures actively typed edits in the translation line edit, category combobox, and notes so that the AI receives the latest state visible on screen without requiring manual saving first.
+
+## [0.3.103-dev] - 2026-09-09
+
+### 🐛 Fixed
+- **Glossary Review Advance on Single Translation Confirmation**: Fixed issue where clicking the "Confirm translation" button on unreviewed terms (yellow rows awaiting confirmation) did not advance to the next term due to Qt's `clicked(bool checked = False)` overriding the `advance=True` default argument. Added robust advancement and reverse navigation when confirming the last remaining item under "Needs review" filter.
+
 ## [v0.3.101] - 2026-09-07
 
 ### 🚀 Added
