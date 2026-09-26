@@ -1,4 +1,4 @@
-# Picoripi v0.3.133-dev
+# Picoripi v0.3.134-dev
 
 **Picoripi** is a visual translation and localization workbench (Python, **PyQt6**) for texts with strict length and layout constraints. It started as a Nintendo-format editor (BMG, BFN, U8/RARC) and stays general enough for any structured translation project.
 
@@ -217,7 +217,8 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
   - Installable as a native-feeling standalone app via "Add to Home Screen".
   - Features an ergonomic **"✓ Confirm & Next"** workflow to rapidly approve terms from your phone with automatic navigation to the next unreviewed entry.
   - Full fidelity: horizontal category tabs, live debounced search, "Needs review" filter, interactive candidate variant cards, dynamic lore description with real-time `{{TERM}}` substitution, editable user notes, and in-game dialogue occurrences with English quotes and reference translations.
-  - 1-click desktop synchronization via the **`[☁ Companion Sync...]`** button in `GlossaryDialog` with automatic backup protection (`.bak`).
+  - **Automatic Background Synchronization**: Automatically queries the Companion server on application startup and project open in a non-blocking background thread (`CompanionPullWorker`), hot-reloading in-memory glossaries and editor highlighting without lag. Automatically syncs changes on project save and close with debouncing protection.
+  - 1-click manual desktop synchronization via the **`[☁ Companion Sync...]`** button in `GlossaryDialog` with automatic backup protection (`.bak`).
   - Automated deployment on Ubuntu servers via Docker Compose (`docker compose up -d`) or native systemd service (`install_ubuntu.sh`). See [companion/README.md](companion/README.md).
 
 

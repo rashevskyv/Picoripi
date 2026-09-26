@@ -129,8 +129,11 @@ class StorageManager:
         needs_review = sum(
             1
             for e in glossary
-            if (e.get("status") or "").lower() in {"seeded", "fragments", "synthesized", "translated"}
-            or len(e.get("translation_variants", [])) > 1
+            if (e.get("status") or "").lower() != "confirmed"
+            and (
+                (e.get("status") or "").lower() in {"seeded", "fragments", "synthesized", "translated"}
+                or len(e.get("translation_variants", [])) > 1
+            )
         )
 
         return ProjectSummary(

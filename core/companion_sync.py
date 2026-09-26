@@ -8,6 +8,7 @@ import requests
 
 from core.glossary.models import GlossaryEntry, GlossaryOccurrence
 from core.glossary.notes import _entry_to_dict
+from core.i18n import tr
 from utils.logging_utils import log_debug, log_info, log_error
 
 
@@ -140,22 +141,54 @@ class CompanionSyncClient:
             if not remote_glossary:
                 return False, f"No glossary entries returned for project '{project_name}'.", 0
 
-            # Backup existing local glossary before overwriting
+            # Compare with existing local glossary to count how many entries actually changed
+            changed_count = 0
+            local_entries = []
             if glossary_path and glossary_path.exists():
-                bak_path = glossary_path.with_suffix(".json.bak")
                 try:
-                    bak_path.write_bytes(glossary_path.read_bytes())
-                    log_debug(f"CompanionSyncClient: Created backup at {bak_path}")
-                except Exception as e:
-                    log_error(f"CompanionSyncClient: Backup creation failed: {e}")
+                    local_entries = json.loads(glossary_path.read_text(encoding="utf-8"))
+                except Exception:
+                    local_entries = []
 
-            # Write updated glossary to disk
-            if glossary_path:
-                raw_json = json.dumps(remote_glossary, ensure_ascii=False, indent=2) + "\n"
-                glossary_path.write_text(raw_json, encoding="utf-8")
-                log_info(f"CompanionSyncClient: Pulled and saved {len(remote_glossary)} terms to {glossary_path}")
+            local_lookup = {e.get("original", ""): e for e in local_entries if isinstance(e, dict)}
+            for remote_entry in remote_glossary:
+                orig = remote_entry.get("original", "")
+                local_entry = local_lookup.get(orig)
+                if local_entry is None:
+                    changed_count += 1
+                else:
+                    if (
+                        local_entry.get("translation") != remote_entry.get("translation")
+                        or local_entry.get("status") != remote_entry.get("status")
+                        or local_entry.get("notes") != remote_entry.get("notes")
+                        or local_entry.get("user_notes") != remote_entry.get("user_notes")
+                        or local_entry.get("section") != remote_entry.get("section")
+                        or local_entry.get("translation_variants") != remote_entry.get("translation_variants")
+                    ):
+                        changed_count += 1
 
-            return True, f"Successfully pulled {len(remote_glossary)} terms from Companion server.", len(remote_glossary)
+            if len(local_entries) > len(remote_glossary):
+                changed_count += (len(local_entries) - len(remote_glossary))
+
+            # Only write to disk if there are actual changes or if file didn't exist
+            if changed_count > 0 or not (glossary_path and glossary_path.exists()):
+                if glossary_path and glossary_path.exists():
+                    bak_path = glossary_path.with_suffix(".json.bak")
+                    try:
+                        bak_path.write_bytes(glossary_path.read_bytes())
+                        log_debug(f"CompanionSyncClient: Created backup at {bak_path}")
+                    except Exception as e:
+                        log_error(f"CompanionSyncClient: Backup creation failed: {e}")
+
+                if glossary_path:
+                    raw_json = json.dumps(remote_glossary, ensure_ascii=False, indent=2) + "\n"
+                    glossary_path.write_text(raw_json, encoding="utf-8")
+                    log_info(f"CompanionSyncClient: Pulled and saved {changed_count} updated terms to {glossary_path}")
+
+                return True, f"Successfully pulled {changed_count} updated terms from Companion server.", changed_count
+            else:
+                log_debug(f"CompanionSyncClient: Local glossary is already in sync with server ({len(remote_glossary)} terms).")
+                return True, "Glossary is already in sync with Companion server.", 0
         except requests.exceptions.RequestException as e:
             log_error(f"CompanionSyncClient: Pull failed: {e}")
             return False, f"Failed to pull from companion server: {e}", 0
@@ -234,9 +267,28 @@ def get_companion_client_from_mw(mw: Any, timeout: int = 15) -> Optional[Compani
     if not mw:
         return None
     settings_mgr = getattr(mw, "settings_manager", None)
-    server_url = settings_mgr.get("companion_server_url", "") if settings_mgr else getattr(mw, "companion_server_url", "")
-    token = settings_mgr.get("companion_api_token", "") if settings_mgr else getattr(mw, "companion_api_token", "picoripi")
-    auto_sync = settings_mgr.get("companion_auto_sync", True) if settings_mgr else getattr(mw, "companion_auto_sync", True)
+    server_url = (settings_mgr.get("companion_server_url", "") if settings_mgr else "") or getattr(mw, "companion_server_url", "")
+    token = (settings_mgr.get("companion_api_token", "") if settings_mgr else "") or getattr(mw, "companion_api_token", "picoripi")
+    auto_sync = settings_mgr.get("companion_auto_sync", None) if settings_mgr else None
+    if auto_sync is None:
+        auto_sync = getattr(mw, "companion_auto_sync", None)
+
+    if not server_url:
+        try:
+            import json
+            from utils.constants import SETTINGS_FILE_PATH
+            if Path(SETTINGS_FILE_PATH).exists():
+                with open(SETTINGS_FILE_PATH, "r", encoding="utf-8") as f:
+                    disk_data = json.load(f)
+                    server_url = disk_data.get("companion_server_url", "")
+                    token = disk_data.get("companion_api_token", token or "picoripi")
+                    if auto_sync is None:
+                        auto_sync = disk_data.get("companion_auto_sync", True)
+        except Exception:
+            pass
+
+    if auto_sync is None:
+        auto_sync = True
 
     if not auto_sync or not server_url:
         return None
@@ -254,16 +306,36 @@ def resolve_project_glossary_info(mw: Any) -> Tuple[Optional[str], Optional[Path
     project_name = getattr(project_obj, "name", "DefaultProject")
 
     trans_handler = getattr(mw, "translation_handler", None)
-    glossary_mgr = getattr(mw, "glossary_manager", None)
-    if not glossary_mgr and trans_handler:
-        glossary_mgr = getattr(trans_handler, "glossary_manager", None)
+    glossary_handler = getattr(trans_handler, "glossary_handler", None) if trans_handler else None
+    glossary_mgr = (
+        getattr(mw, "glossary_manager", None)
+        or (getattr(glossary_handler, "glossary_manager", None) if glossary_handler else None)
+        or (getattr(trans_handler, "glossary_manager", None) if trans_handler else None)
+    )
 
     glossary_path = None
     if glossary_mgr and getattr(glossary_mgr, "glossary_path", None):
         glossary_path = glossary_mgr.glossary_path
-    if not glossary_path and getattr(project_mgr, "project_path", None):
-        candidate = Path(project_mgr.project_path).parent / "glossary.json"
-        glossary_path = candidate
+    if not glossary_path and project_mgr:
+        # Check project_dir or project_file_path
+        p_dir = getattr(project_mgr, "project_dir", None)
+        if not p_dir and getattr(project_mgr, "project_file_path", None):
+            try:
+                p_dir = Path(project_mgr.project_file_path).parent
+            except Exception:
+                p_dir = None
+        if p_dir:
+            p_dir = Path(p_dir)
+            if (p_dir / "glossary.json").exists():
+                glossary_path = p_dir / "glossary.json"
+            elif (p_dir / "glossary.md").exists():
+                glossary_path = p_dir / "glossary.md"
+            else:
+                glossary_path = p_dir / "glossary.json"
+
+    # Ensure glossary_mgr has the resolved path bound if it wasn't yet
+    if glossary_mgr and glossary_path and not getattr(glossary_mgr, "glossary_path", None):
+        glossary_mgr._glossary_path = glossary_path
 
     return project_name, glossary_path, glossary_mgr
 
@@ -273,6 +345,18 @@ def auto_pull_in_background(mw: Any, on_completed: Optional[Any] = None) -> Opti
     client = get_companion_client_from_mw(mw)
     if not client or not client.is_configured:
         return None
+
+    # Debounce checks: don't pull if worker already running or pulled within last 3 seconds
+    existing_worker = getattr(mw, "_companion_pull_worker", None)
+    if isinstance(existing_worker, CompanionPullWorker) and existing_worker.isRunning():
+        return None
+    import time
+    now = time.time()
+    last_pull = getattr(mw, "_last_companion_pull_ts", 0.0)
+    if isinstance(last_pull, (int, float)) and now - last_pull < 3.0:
+        return None
+    mw._last_companion_pull_ts = now
+
     project_name, glossary_path, glossary_mgr = resolve_project_glossary_info(mw)
     if not project_name or not glossary_path:
         return None
@@ -280,29 +364,57 @@ def auto_pull_in_background(mw: Any, on_completed: Optional[Any] = None) -> Opti
     worker = CompanionPullWorker(client, project_name, glossary_path)
 
     def on_finished(ok: bool, msg: str, count: int):
-        if ok and count > 0:
-            log_info(f"Companion auto-sync: Pulled {count} terms for '{project_name}'.")
-            if glossary_mgr and hasattr(glossary_mgr, "load_from_disk"):
+        if ok:
+            if count > 0:
+                log_info(f"Companion auto-sync: Pulled {count} updated terms for '{project_name}'.")
+                if glossary_mgr:
+                    if hasattr(glossary_mgr, "refresh_from_disk"):
+                        try:
+                            glossary_mgr.refresh_from_disk()
+                        except Exception as exc:
+                            log_debug(f"Companion auto-sync refresh glossary error: {exc}")
+                    elif hasattr(glossary_mgr, "load_from_disk"):
+                        try:
+                            glossary_mgr.load_from_disk()
+                        except Exception as exc:
+                            log_debug(f"Companion auto-sync reload glossary error: {exc}")
+
+                trans_handler = getattr(mw, "translation_handler", None)
+                if trans_handler and hasattr(trans_handler, "initialize_glossary_highlighting"):
+                    try:
+                        trans_handler.initialize_glossary_highlighting()
+                    except Exception as exc:
+                        log_debug(f"Companion auto-sync highlight reinit error: {exc}")
+
+                active_dialog = getattr(trans_handler, "_active_glossary_dialog", None) if trans_handler else None
+                if active_dialog and hasattr(active_dialog, "reload_data"):
+                    try:
+                        active_dialog.reload_data()
+                    except Exception as exc:
+                        log_debug(f"Companion auto-sync reload dialog error: {exc}")
+
+                glossary_handler = getattr(mw, "glossary_handler", None) or getattr(trans_handler, "glossary_handler", None)
+                if glossary_handler and hasattr(glossary_handler, "refresh_open_dialog"):
+                    try:
+                        glossary_handler.refresh_open_dialog()
+                    except Exception as exc:
+                        log_debug(f"Companion auto-sync refresh dialog error: {exc}")
+
+                if hasattr(mw, "statusBar") and mw.statusBar():
+                    mw.statusBar().showMessage(tr("Companion: auto-synced {count} updated terms from server.").format(count=count), 5000)
+            else:
+                log_info(f"Companion auto-sync: '{project_name}' is in sync with server.")
+                if hasattr(mw, "statusBar") and mw.statusBar():
+                    mw.statusBar().showMessage(tr("Companion: glossary is in sync with server."), 3000)
+        else:
+            log_debug(f"Companion auto-sync pull: {msg}")
+            # If server has no terms yet for this project, and local has terms, auto-push initial glossary
+            if "No glossary entries returned" in msg and glossary_path and glossary_path.exists():
                 try:
-                    glossary_mgr.load_from_disk()
+                    log_info(f"Companion auto-sync: Server has no terms for '{project_name}'. Auto-pushing initial glossary...")
+                    auto_push_in_background(mw)
                 except Exception as exc:
-                    log_debug(f"Companion auto-sync reload glossary error: {exc}")
-            trans_handler = getattr(mw, "translation_handler", None)
-            if trans_handler and hasattr(trans_handler, "initialize_glossary_highlighting"):
-                try:
-                    trans_handler.initialize_glossary_highlighting()
-                except Exception as exc:
-                    log_debug(f"Companion auto-sync highlight reinit error: {exc}")
-            active_dialog = getattr(trans_handler, "_active_glossary_dialog", None) if trans_handler else None
-            if active_dialog and hasattr(active_dialog, "reload_data"):
-                try:
-                    active_dialog.reload_data()
-                except Exception as exc:
-                    log_debug(f"Companion auto-sync reload dialog error: {exc}")
-            if hasattr(mw, "statusBar") and mw.statusBar():
-                mw.statusBar().showMessage(f"Companion: auto-synced {count} terms from server.", 4000)
-        elif not ok:
-            log_debug(f"Companion auto-sync pull skipped/failed: {msg}")
+                    log_debug(f"Failed to auto-push initial glossary: {exc}")
 
         if on_completed and callable(on_completed):
             on_completed(ok, msg, count)
@@ -321,6 +433,11 @@ def auto_push_in_background(mw: Any, on_completed: Optional[Any] = None) -> Opti
     client = get_companion_client_from_mw(mw)
     if not client or not client.is_configured:
         return None
+
+    existing_worker = getattr(mw, "_companion_push_worker", None)
+    if isinstance(existing_worker, CompanionPushWorker) and existing_worker.isRunning():
+        return None
+
     project_name, glossary_path, glossary_mgr = resolve_project_glossary_info(mw)
     if not project_name or not glossary_path:
         return None

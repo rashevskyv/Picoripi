@@ -122,6 +122,10 @@ def test_api_sync_flow_and_filtering(temp_companion_env):
             "translation": "Лінк",
             "section": "Characters",
             "status": "confirmed",
+            "translation_variants": [
+                {"translation": "Лінк", "rationale": "Canon"},
+                {"translation": "Линк", "rationale": "Alternative"},
+            ],
             "notes": "Hero of Time",
         },
         {
@@ -215,3 +219,10 @@ def test_api_sync_flow_and_filtering(temp_companion_env):
     midna_entry = next(e for e in pulled["glossary"] if e["original"] == "Midna")
     assert midna_entry["status"] == "confirmed"
     assert midna_entry["user_notes"] == "Approved from mobile test"
+
+    # 9. Verify that after Midna is confirmed, needs_review filter returns 0 entries
+    r = client.get("/api/glossary?project=Twilight+Princess&needs_review=true", headers=auth_header)
+    assert r.status_code == 200
+    res = r.json()
+    assert len(res["entries"]) == 0
+    assert res["needs_review_count"] == 0

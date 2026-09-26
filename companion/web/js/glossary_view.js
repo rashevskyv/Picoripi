@@ -21,7 +21,14 @@ async function refreshGlossaryList(notify = false) {
     );
 
     state.glossaryData = data;
-    state.filteredEntries = data.entries || [];
+    let entries = data.entries || [];
+    if (state.needsReviewOnly) {
+      entries = entries.filter((e) => {
+        const s = (e.status || '').toLowerCase();
+        return s !== 'confirmed';
+      });
+    }
+    state.filteredEntries = entries;
 
     renderCategoryPills(data.categories, data.category_counts, data.total);
     renderStats(data);
@@ -97,8 +104,10 @@ function renderTermsList(entries) {
     const status = (entry.status || '').toLowerCase();
     const isConfirmed = status === 'confirmed';
     const isUnconfirmed =
-      ['seeded', 'fragments', 'synthesized', 'translated'].includes(status) ||
-      (entry.translation_variants && entry.translation_variants.length > 1);
+      !isConfirmed && (
+        ['seeded', 'fragments', 'synthesized', 'translated'].includes(status) ||
+        (entry.translation_variants && entry.translation_variants.length > 1)
+      );
 
     card.className = `term-card ${isConfirmed ? 'confirmed' : ''} ${isUnconfirmed ? 'unconfirmed' : ''}`;
 

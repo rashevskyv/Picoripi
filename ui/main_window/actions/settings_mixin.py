@@ -49,6 +49,8 @@ class MainWindowSettingsActionsMixin:
         # Apply ALL new settings to self.mw immediately so they are captured by subsequent save_settings()
         for key, value in new_settings.items():
             setattr(self.mw, key, value)
+            if hasattr(self.mw, 'settings_manager') and hasattr(self.mw.settings_manager, 'set'):
+                self.mw.settings_manager.set(key, value)
         if hasattr(self.mw, 'toggle_preview_action'):
             self.mw.toggle_preview_action.setChecked(bool(self.mw.preview_enabled))
         if hasattr(self.mw, 'ui_updater'):

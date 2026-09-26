@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from PyQt6.QtCore import Qt, QRect
@@ -300,8 +301,20 @@ class ActionsMixin:
 
         parent = getattr(self, "_parent", None)
         settings_mgr = getattr(parent, "settings_manager", None)
-        server_url = settings_mgr.get("companion_server_url", "") if settings_mgr else getattr(parent, "companion_server_url", "")
-        token = settings_mgr.get("companion_api_token", "") if settings_mgr else getattr(parent, "companion_api_token", "picoripi")
+        server_url = (settings_mgr.get("companion_server_url", "") if settings_mgr else "") or getattr(parent, "companion_server_url", "")
+        token = (settings_mgr.get("companion_api_token", "") if settings_mgr else "") or getattr(parent, "companion_api_token", "picoripi")
+
+        if not server_url:
+            try:
+                import json
+                from utils.constants import SETTINGS_FILE_PATH
+                if Path(SETTINGS_FILE_PATH).exists():
+                    with open(SETTINGS_FILE_PATH, "r", encoding="utf-8") as f:
+                        disk_data = json.load(f)
+                        server_url = disk_data.get("companion_server_url", "")
+                        token = disk_data.get("companion_api_token", token or "picoripi")
+            except Exception:
+                pass
 
         if not server_url:
             ans = QMessageBox.question(
@@ -315,10 +328,31 @@ class ActionsMixin:
                 QMessageBox.StandardButton.Yes,
             )
             if ans == QMessageBox.StandardButton.Yes:
-                open_settings = getattr(parent, "open_settings_dialog", None)
-                if callable(open_settings):
-                    open_settings()
-            return
+                if hasattr(parent, "open_settings_dialog") and callable(parent.open_settings_dialog):
+                    parent.open_settings_dialog()
+                elif hasattr(parent, "actions") and hasattr(parent.actions, "open_settings_dialog"):
+                    parent.actions.open_settings_dialog()
+                elif hasattr(parent, "open_settings_action"):
+                    parent.open_settings_action.trigger()
+
+                # Re-check settings after user closes Settings dialog
+                server_url = (settings_mgr.get("companion_server_url", "") if settings_mgr else "") or getattr(parent, "companion_server_url", "")
+                token = (settings_mgr.get("companion_api_token", "") if settings_mgr else "") or getattr(parent, "companion_api_token", "picoripi")
+                if not server_url:
+                    try:
+                        import json
+                        from utils.constants import SETTINGS_FILE_PATH
+                        if Path(SETTINGS_FILE_PATH).exists():
+                            with open(SETTINGS_FILE_PATH, "r", encoding="utf-8") as f:
+                                disk_data = json.load(f)
+                                server_url = disk_data.get("companion_server_url", "")
+                                token = disk_data.get("companion_api_token", token or "picoripi")
+                    except Exception:
+                        pass
+                if not server_url:
+                    return
+            else:
+                return
 
         client = CompanionSyncClient(server_url, token)
 

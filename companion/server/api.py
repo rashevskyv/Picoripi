@@ -142,7 +142,10 @@ def create_api_router(storage: StorageManager, auth_token: str = AUTH_TOKEN) -> 
                 continue
 
             status_val = (e.get("status") or "").lower()
-            is_unconfirmed = status_val in {"seeded", "fragments", "synthesized", "translated"} or len(e.get("translation_variants", [])) > 1
+            is_unconfirmed = status_val != "confirmed" and (
+                status_val in {"seeded", "fragments", "synthesized", "translated"}
+                or len(e.get("translation_variants", [])) > 1
+            )
 
             if needs_review is True and not is_unconfirmed:
                 continue

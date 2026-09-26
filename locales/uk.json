@@ -1631,5 +1631,9 @@
   "⚙ Test Server Connection...": "⚙ Перевірити з'єднання із сервером...",
   "Companion Sync": "Синхронізація кампаньйона",
   "Automatically sync on project open and close": "Автоматично синхронізувати при відкритті та закритті проєкту",
-  "When enabled, Picoripi will automatically pull reviewed glossary terms on project open and push changes on project save/close in the background.": "Якщо увімкнено, Picoripi автоматично завантажуватиме перевірені терміни глосарію при відкритті проєкту та вивантажуватиме зміни у фоновому режимі при збереженні чи закритті."
+  "When enabled, Picoripi will automatically pull reviewed glossary terms on project open and push changes on project save/close in the background.": "Якщо увімкнено, Picoripi автоматично завантажуватиме перевірені терміни глосарію при відкритті проєкту та вивантажуватиме зміни у фоновому режимі при збереженні чи закритті.",
+  "Companion: auto-synced {count} updated terms from server.": "Кампаньйон: автоматично синхронізовано {count} оновлених термінів із сервера.",
+  "Companion: glossary is in sync with server.": "Кампаньйон: глосарій повністю синхронізовано із сервером.",
+  "Companion: pushed initial glossary to server for mobile review.": "Кампаньйон: вивантажено початковий глосарій на сервер для перегляду з мобільного.",
+  "Companion: auto-syncing with server...": "Кампаньйон: автоматична синхронізація із сервером..."
 }

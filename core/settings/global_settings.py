@@ -275,7 +275,10 @@ class GlobalSettings:
             "script_markup_studio_geometry": getattr(self.mw, 'script_markup_studio_geometry', None) if isinstance(getattr(self.mw, 'script_markup_studio_geometry', None), dict) else None,
             "variations_splitter_state": getattr(self.mw, 'variations_splitter_state', None) if isinstance(getattr(self.mw, 'variations_splitter_state', None), str) else None,
             "hide_empty_strings": bool(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False)) if isinstance(getattr(getattr(self.mw, 'data_store', None), 'hide_empty_strings', False), bool) else False,
-            "last_advanced_search_query": getattr(self.mw, 'last_advanced_search_query', "") if isinstance(getattr(self.mw, 'last_advanced_search_query', None), str) else ""
+            "last_advanced_search_query": getattr(self.mw, 'last_advanced_search_query', "") if isinstance(getattr(self.mw, 'last_advanced_search_query', None), str) else "",
+            "companion_server_url": str(getattr(self.mw, 'companion_server_url', '') or settings_dict.get('companion_server_url', '') or ''),
+            "companion_api_token": str(getattr(self.mw, 'companion_api_token', 'picoripi') or settings_dict.get('companion_api_token', 'picoripi') or 'picoripi'),
+            "companion_auto_sync": bool(getattr(self.mw, 'companion_auto_sync', settings_dict.get('companion_auto_sync', True))),
         })
 
         global_data.pop("bookmarks", None)

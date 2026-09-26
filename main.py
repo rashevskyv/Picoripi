@@ -162,6 +162,7 @@ class MainWindow(QMainWindow):
         if splash is None:
             if not self.isVisible():
                 self.show()
+            self._trigger_startup_companion_sync()
             return
         splash.update_progress(100, "Ready")
         self.show()
@@ -170,6 +171,24 @@ class MainWindow(QMainWindow):
         self._startup_splash = None
         self.raise_()
         self.activateWindow()
+        self._trigger_startup_companion_sync()
+
+    def _trigger_startup_companion_sync(self) -> None:
+        """Schedule non-blocking background auto-sync with Companion server on application startup."""
+        try:
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(600, self._do_startup_companion_sync)
+        except Exception as exc:
+            log_debug(f"MainWindow: Startup companion sync schedule error: {exc}")
+
+    def _do_startup_companion_sync(self) -> None:
+        """Execute background auto-sync with Companion server if project is active."""
+        try:
+            if getattr(self, "companion_auto_sync", True):
+                from core.companion_sync import auto_pull_in_background
+                auto_pull_in_background(self)
+        except Exception as exc:
+            log_debug(f"MainWindow: Startup companion sync error: {exc}")
 
     def _init_metadata(self) -> None:
         self.EDITOR_PLAYER_TAG = EDITOR_PLAYER_TAG
@@ -620,6 +639,13 @@ class MainWindow(QMainWindow):
         from components.ai_batch_translation_dialog import AIBatchTranslationDialog
         dialog = AIBatchTranslationDialog(self)
         dialog.exec()
+
+    def open_settings_dialog(self):
+        """Open settings dialog via actions handler."""
+        if hasattr(self, 'actions') and hasattr(self.actions, 'open_settings_dialog'):
+            return self.actions.open_settings_dialog()
+        elif hasattr(self, 'open_settings_action'):
+            return self.open_settings_action.trigger()
 
     def show_message(self, title: str, text: str, type: str = "info") -> None:
         from PyQt6.QtWidgets import QMessageBox

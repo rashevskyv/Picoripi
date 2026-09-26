@@ -1,5 +1,23 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.134-dev] - 2026-09-26
+
+### 🚀 Added & 🛠️ Improved
+- **Automatic Background Companion Sync on Startup**:
+  - Implemented non-blocking background auto-sync triggered 600ms after startup UI readiness (`finish_startup_loading()`) and on project load.
+  - Granular remote vs local glossary diffing in `CompanionSyncClient.pull_project()`; skips file backups and disk I/O when glossaries are identical (`changed_count = 0`).
+  - Hot in-memory reloading on change via `glossary_mgr.refresh_from_disk()`, instant editor syntax highlighting re-initialization, and auto-refreshing open `GlossaryDialog` views.
+  - Automatic push fallback: if the Companion server has no terms for the current project while the local project has terms, automatically pushes the initial glossary to make terms immediately available for mobile review.
+  - Built-in debouncing (3-second window) and running-worker detection (`existing_worker.isRunning()`) to prevent overlapping pull requests.
+  - Localized status bar feedback (`Companion: auto-synced {count} updated terms from server.` and `Companion: glossary is in sync with server.`).
+
+### Fixed
+- **Companion Server Settings Persistence**: Added `companion_server_url`, `companion_api_token`, and `companion_auto_sync` serialization to `GlobalSettings.save` so configured Companion server endpoints persist to `settings.json`.
+- **Centralized Settings State Synchronization**: Updated `MainWindowSettingsActionsMixin.open_settings_dialog` to synchronize modified settings with `SettingsManager.set(key, value)`.
+- **Open Settings Delegation**: Added `open_settings_dialog()` delegator method on `MainWindow` to allow child and modeless dialogs to reliably invoke application settings.
+- **Glossary Companion Sync Prompt**: Resolved server URL lookup in `GlossaryDialog` and connected the "Yes" confirmation prompt to automatically open the Settings dialog and re-check server configuration upon closing.
+- **Companion Review Filter Excludes Confirmed Terms**: Fixed `is_unconfirmed` condition in `companion/server/api.py`, `storage.py`, and `glossary_view.js` to ensure confirmed terms (`status="confirmed"`) are strictly excluded from the "Needs review" filter, even when they retain multiple historical candidate variants (`translation_variants`).
+
 ## [0.3.133-dev] - 2026-09-26
 
 ### Improved

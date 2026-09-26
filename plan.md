@@ -362,3 +362,32 @@
 - [x] Замінити тести й описи, що вимагали показу лише однієї лінії; перевірити різну кількість ліній EN і RU. Передача референсних мов у одиночні й пакетні промпти як контекст оригіналу вже реалізована.
 - [x] Увімкнути прокрутку по пікселях для списку входжень і перевірити видиму вертикальну смугу на одній довгій картці.
 - [x] Узгодити етапи, оновити версію до `0.3.133-dev` та зафіксувати зміни глосарію окремим комітом.
+
+## Етап 55: Виправлення збереження налаштувань сервера компаньйона та відкриття діалогу (v0.3.134-dev)
+- [x] Виправлено збереження `companion_server_url`, `companion_api_token` та `companion_auto_sync` у `GlobalSettings.save` (`core/settings/global_settings.py`), щоб параметри коректно записувалися у `settings.json`.
+- [x] Синхронізовано `settings_manager` при збереженні `SettingsDialog` у `ui/main_window/actions/settings_mixin.py` (`settings_manager.set(key, value)`), щоб зміни негайно відображалися у пам'яті програми.
+- [x] Реалізовано метод-делегат `MainWindow.open_settings_dialog` у `main.py` для виклику діалогу налаштувань з довільних контекстів.
+- [x] Оновлено `GlossaryDialog._on_companion_sync_clicked` (`components/glossary/actions_mixin.py`): надійне зчитування налаштувань (з `settings_manager`, атрибутів `parent` та прямого fallback до `settings.json`), а при виборі "Yes" у вікні попередження відкривається діалог налаштувань через `open_settings_dialog`, після закриття якого параметри автоматично перевіряються повторно.
+- [x] Забезпечено надійне зчитування у `get_companion_client_from_mw` (`core/companion_sync.py`).
+- [x] Додано модульні тести збереження конфігурації та взаємодії з діалогом у `tests/test_companion/test_companion_sync_client.py`.
+- [x] Попередньо збережено налаштування сервера користувача (`http://72.56.126.242:8000`) у локальний `~/.picoripi/settings.json`.
+
+## Етап 56: Автоматична фонова синхронізація з Companion сервером при старті та відкритті проєкту (v0.3.134-dev)
+- [x] Додано виклик `_trigger_startup_companion_sync()` та `_do_startup_companion_sync()` з таймером 600мс у `main.py` при завершенні стартового завантаження (`finish_startup_loading()`), що гарантує плавний неблокуючий запуск інтерфейсу перед фоновим опитуванням.
+- [x] Модернізовано `core/companion_sync.py`:
+  - `pull_project`: поглиблене порівняння локальних та віддалених термінів; бекап `.json.bak` та перезапис файлу на диску виконуються виключно при наявності реальних змін (`changed_count > 0`), якщо дані ідентичні — повертається `changed_count = 0` без зайвих операцій запису на диск.
+  - `resolve_project_glossary_info`: надійна резолюція директорії проєкту через `project_dir` та `project_file_path`, а також підключення `glossary_manager` через різні шари архітектури (`mw.glossary_manager`, `mw.translation_handler.glossary_handler.glossary_manager`).
+  - `auto_pull_in_background`: захист від паралельних повторних запитів (3-секундний дебаунс, перевірка `existing_worker.isRunning()`), перезавантаження кешу глосарію у пам'яті через `glossary_mgr.refresh_from_disk()`, оновлення підсвітки глосарію в редакторах (`initialize_glossary_highlighting()`), оновлення активного діалогу глосарію (`reload_data()`, `refresh_open_dialog()`) та виведення статусного повідомлення в рядок стану `statusBar`.
+  - Автоматичне вивантаження (`auto_push_in_background`), якщо на сервері ще немає термінів для поточного проєкту, а локальний глосарій містить записи — для негайного доступу з мобільного пристрою.
+- [x] Додано модульні тести: `test_auto_pull_triggers_glossary_refresh_and_status` (перевірка перезавантаження пам'яті при змінах та пропуску при 0 змін), дебаунсу та `test_main_window_startup_companion_sync` у `tests/test_companion/test_companion_sync_client.py`.
+- [x] Повна локалізація рядків у `locales/uk.json`.
+- [x] Підняття версії програми до `0.3.134-dev`.
+
+## Етап 57: Виправлення фільтрації «Needs review» у Companion (виключення вже підтверджених термінів) (v0.3.134-dev)
+- [x] Виправлено логіку `is_unconfirmed` у `companion/server/api.py`: додано обов'язкову перевірку `status_val != "confirmed"`, щоб терміни зі статусом `confirmed`, які мають збережені альтернативні варіанти перекладу (`translation_variants > 1`), не потрапляли у список `needs_review=true`.
+- [x] Виправлено підрахунок `needs_review` у `companion/server/storage.py` (`save_project`), виключивши підтверджені записи.
+- [x] Оновлено `companion/web/js/glossary_view.js`:
+  - `isUnconfirmed` визначається як `!isConfirmed && (...)`, завдяки чому на картці підтвердженого терміна ніколи не з'являється помаранчева крапка `●` або клас `unconfirmed`.
+  - У `refreshGlossaryList` додано надійну клієнтську фільтрацію, яка гарантує, що при активному перемикачі `Needs review` зелені підтверджені терміни не відображаються у списку.
+- [x] Оновлено тести у `tests/test_companion/test_companion_server.py` з верифікацією, що після підтвердження термінів фільтр `needs_review=true` повертає 0 записів.
+- [x] Підняття версії програми до `0.3.134-dev`.
