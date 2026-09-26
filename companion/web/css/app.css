@@ -41,7 +41,7 @@ body {
 
 /* Utilities */
 .hidden { display: none !important; }
-.view { display: flex; flex-direction: column; flex: 1; height: 100%; overflow: hidden; }
+.view { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 
 /* Login Screen */
 #loginScreen {
@@ -252,12 +252,16 @@ body {
 
 .terms-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   -webkit-overflow-scrolling: touch;
+}
+.terms-list > * {
+  flex-shrink: 0;
 }
 .term-card {
   background: var(--bg-card);
@@ -266,6 +270,7 @@ body {
   padding: 12px 14px;
   cursor: pointer;
   transition: transform 0.1s, border-color 0.15s;
+  flex-shrink: 0;
 }
 .term-card:active { transform: scale(0.99); }
 .term-card.unconfirmed { border-left: 4px solid var(--accent-warning); }
@@ -345,21 +350,28 @@ body {
 
 .editor-scroll-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  padding-bottom: max(32px, env(safe-area-inset-bottom));
 }
 
-.meta-row { display: flex; align-items: center; gap: 8px; }
+.editor-scroll-body > * {
+  flex-shrink: 0;
+}
+
+.meta-row { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 .field-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 10px 14px;
+  flex-shrink: 0;
 }
 .field-header {
   display: flex;
@@ -388,6 +400,7 @@ body {
   grid-template-columns: 2fr 1fr;
   gap: 8px;
   margin-top: 2px;
+  flex-shrink: 0;
 }
 
 /* Proposed Variants */
@@ -396,6 +409,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 12px 14px;
+  flex-shrink: 0;
 }
 .section-title {
   display: flex;
@@ -442,9 +456,11 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
+  flex-shrink: 0;
 }
 .accordion-header {
   width: 100%;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -455,6 +471,7 @@ body {
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
+  user-select: none;
 }
 .accordion-content {
   padding: 12px 14px;

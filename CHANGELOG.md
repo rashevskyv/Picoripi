@@ -1,5 +1,15 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.136-dev] - 2026-09-26
+
+### 🛠️ Fixed & Improved
+- **Companion Mobile Editor Natural Scrolling & Accordion Squashing Fix**:
+  - Fixed a critical layout bug where accordion elements (`.accordion-item`) at the bottom of the term editor were squashed down to flat 2px lines due to default flex-shrink behavior on elements with `overflow: hidden`.
+  - Added `flex-shrink: 0` to all direct children of `.editor-scroll-body` and `.terms-list`, ensuring field cards, proposed variants, and accordions always maintain their full intrinsic heights.
+  - Set explicit `min-height: 44px` on `.accordion-header` for consistent touch ergonomics and tap accessibility.
+  - Replaced `height: 100%` with `min-height: 0` on `.view` containers to prevent viewport overflow caused by header stacking.
+  - Enabled smooth native mobile momentum scrolling with `-webkit-overflow-scrolling: touch` and comfortable bottom padding `padding-bottom: max(32px, env(safe-area-inset-bottom))`.
+
 ## [0.3.135-dev] - 2026-09-26
 
 ### 🚀 Added & 🛠️ Improved
