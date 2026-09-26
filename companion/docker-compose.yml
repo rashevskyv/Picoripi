@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  picoripi-companion:
+    build:
+      context: ..
+      dockerfile: companion/server/Dockerfile
+    container_name: picoripi-companion
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PICORIPI_COMPANION_TOKEN=picoripi
+      - COMPANION_PORT=8000
+      - COMPANION_HOST=0.0.0.0
+    volumes:
+      - ./server/data:/app/data
