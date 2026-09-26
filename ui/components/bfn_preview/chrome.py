@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QSizePolicy,
+    QSpacerItem,
     QVBoxLayout,
 )
 
@@ -164,8 +165,8 @@ class BfnPreviewSideBar(QFrame):
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 8, 4, 8)
-        layout.setSpacing(4)
+        layout.setContentsMargins(4, 6, 4, 6)
+        layout.setSpacing(3)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.btn_color = BfnSideButton("", "Text Color")
@@ -183,7 +184,8 @@ class BfnPreviewSideBar(QFrame):
         self.btn_glow.clicked.connect(self._on_glow_clicked)
         layout.addWidget(self.btn_glow)
 
-        layout.addSpacing(6)
+        self.spacer1 = QSpacerItem(0, 4, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        layout.addSpacerItem(self.spacer1)
 
         self.btn_bg = BfnSideButton("image", "Set Background Image...")
         self.btn_bg.clicked.connect(self._on_set_bg)
@@ -195,13 +197,57 @@ class BfnPreviewSideBar(QFrame):
         self.btn_hide_bg.clicked.connect(self._on_hide_bg)
         layout.addWidget(self.btn_hide_bg)
 
-        layout.addSpacing(6)
+        self.spacer2 = QSpacerItem(0, 4, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        layout.addSpacerItem(self.spacer2)
 
         self.btn_spacing = BfnSideButton("spacing", "Set Line Spacing...")
         self.btn_spacing.clicked.connect(self._on_set_spacing)
         layout.addWidget(self.btn_spacing)
 
         layout.addStretch()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_button_layout()
+
+    def _update_button_layout(self):
+        h = self.height()
+        if h <= 0:
+            return
+        if h < 165:
+            btn_size = 20
+            icon_size = 12
+            spacing = 1
+            margin_y = 2
+            extra_spacing = 2
+        elif h < 215:
+            btn_size = 24
+            icon_size = 14
+            spacing = 2
+            margin_y = 4
+            extra_spacing = 3
+        else:
+            btn_size = 28
+            icon_size = 16
+            spacing = 3
+            margin_y = 6
+            extra_spacing = 5
+
+        lay = self.layout()
+        if lay is not None:
+            lay.setContentsMargins(4, margin_y, 4, margin_y)
+            lay.setSpacing(spacing)
+            if hasattr(self, 'spacer1') and self.spacer1 is not None:
+                self.spacer1.changeSize(0, extra_spacing, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+            if hasattr(self, 'spacer2') and self.spacer2 is not None:
+                self.spacer2.changeSize(0, extra_spacing, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+            lay.invalidate()
+        for btn in (getattr(self, 'btn_color', None), getattr(self, 'btn_shadow', None),
+                    getattr(self, 'btn_glow', None), getattr(self, 'btn_bg', None),
+                    getattr(self, 'btn_hide_bg', None), getattr(self, 'btn_spacing', None)):
+            if btn is not None:
+                btn.setFixedSize(btn_size, btn_size)
+                btn.setIconSize(QSize(icon_size, icon_size))
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -248,7 +294,7 @@ class BfnPreviewSideBar(QFrame):
             new_image = QImage(file_path)
             self.pw.bg_image = new_image
             self.pw.mw.preview_bg_image_path = file_path
-            if not new_image.isNull() and (not had_previous_image or
+            if not new_image.isNull() and not self.pw._is_using_preset_geometry() and (not had_previous_image or
                     (self.pw.bg_offset_x == 0 and self.pw.bg_offset_y == 0)):
                 sf = self.pw.bg_scale / 100.0
                 self.pw.bg_offset_x = int((self.pw.width() - new_image.width() * sf) / 2)

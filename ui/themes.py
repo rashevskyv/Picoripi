@@ -1,4 +1,4 @@
-﻿DARK_THEME_STYLESHEET = """
+DARK_THEME_STYLESHEET = """
 QWidget {
     background-color: #2E2E2E;
     color: #E0E0E0;
@@ -208,6 +208,13 @@ QTabBar::tab:selected {
 QTabBar::tab:!selected:hover {
     background-color: #4A4A4A;
 }
+QToolTip {
+    background-color: #2E2E2E;
+    color: #E0E0E0;
+    border: 1px solid #505050;
+    padding: 4px 8px;
+    border-radius: 3px;
+}
 """
 
 LIGHT_THEME_STYLESHEET = """
@@ -357,5 +364,12 @@ QComboBox QAbstractItemView {
     color: #000000;
     selection-background-color: #E0E0E0;
     border: 1px solid #CCCCCC;
+}
+QToolTip {
+    background-color: #F8F9FA;
+    color: #212529;
+    border: 1px solid #CED4DA;
+    padding: 4px 8px;
+    border-radius: 3px;
 }
 """

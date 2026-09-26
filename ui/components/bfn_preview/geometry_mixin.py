@@ -160,10 +160,33 @@ class BfnPreviewGeometryMixin:
 
     def get_bg_top_left(self) -> QPoint:
         """Calculate the top-left position of the background image inside the widget."""
+        if self.bg_image and not self.bg_image.isNull() and not self.bg_hidden:
+            return QPoint(int(self.bg_offset_x), int(self.bg_offset_y))
         return QPoint(0, 0)
 
     def get_absolute_text_rect(self) -> QRect:
-        """Get the text rect in absolute widget coordinates (relative to background's top-left)."""
+        """Get the text rect in absolute widget coordinates (relative to background's top-left and scale)."""
+        if self.bg_image and not self.bg_image.isNull() and not self.bg_hidden:
+            try:
+                bg_scale = float(self.bg_scale)
+            except (TypeError, ValueError):
+                bg_scale = 100.0
+            if bg_scale == 0:
+                sx = self.rect().width() / self.bg_image.width() if self.bg_image.width() > 0 else 1.0
+                sy = self.rect().height() / self.bg_image.height() if self.bg_image.height() > 0 else 1.0
+                return QRect(
+                    int(round(self.text_rect.x() * sx)),
+                    int(round(self.text_rect.y() * sy)),
+                    int(round(self.text_rect.width() * sx)),
+                    int(round(self.text_rect.height() * sy)),
+                )
+            bg_s = (bg_scale / 100.0) if bg_scale > 0 else 1.0
+            return QRect(
+                int(round(self.bg_offset_x + self.text_rect.x() * bg_s)),
+                int(round(self.bg_offset_y + self.text_rect.y() * bg_s)),
+                int(round(self.text_rect.width() * bg_s)),
+                int(round(self.text_rect.height() * bg_s)),
+            )
         return self.text_rect.translated(self.get_bg_top_left())
 
     def get_active_bfn_font(self):
@@ -179,12 +202,14 @@ class BfnPreviewGeometryMixin:
         block_idx = getattr(self.mw.data_store, 'current_block_idx', -1)
         string_idx = getattr(self.mw.data_store, 'current_string_idx', -1)
         
+        string_meta = getattr(self.mw, 'string_metadata', {})
         font_file = None
-        if block_idx != -1 and string_idx != -1:
-            string_meta = self.mw.string_metadata.get((block_idx, string_idx), {})
-            font_file = string_meta.get("font_file")
+        if isinstance(string_meta, dict) and block_idx != -1 and string_idx != -1:
+            meta_entry = string_meta.get((block_idx, string_idx), {})
+            if isinstance(meta_entry, dict):
+                font_file = meta_entry.get("font_file")
 
-        if not font_file or font_file == "default":
+        if not isinstance(font_file, str) or font_file == "default":
             rules = getattr(self.mw, 'current_game_rules', None)
             layout_getter = getattr(rules, 'get_string_layout', None)
             if callable(layout_getter) and block_idx != -1 and string_idx != -1:
@@ -194,10 +219,13 @@ class BfnPreviewGeometryMixin:
                 except Exception:
                     font_file = None
 
-        if not font_file or font_file == "default":
-            font_file = getattr(self.mw, 'default_font_file', None)
+        if not isinstance(font_file, str) or font_file == "default":
+            default_font = getattr(self.mw, 'default_font_file', None)
+            font_file = default_font if isinstance(default_font, str) else None
 
         all_bfn_fonts = getattr(self.mw, 'all_bfn_fonts', {})
+        if not isinstance(all_bfn_fonts, dict):
+            all_bfn_fonts = {}
 
         if not font_file:
             if all_bfn_fonts:

@@ -142,6 +142,22 @@ class BfnPreviewMouseMixin:
             self.update()
         super().mouseReleaseEvent(event)
 
+    def wheelEvent(self, event):
+        """Handle Ctrl+Wheel to proportionally scale the preview background and text."""
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            delta = event.angleDelta().y()
+            step = 5 if delta > 0 else -5
+            new_scale = max(5, min(1000, self.bg_scale + step))
+            if new_scale != self.bg_scale:
+                self.bg_scale = new_scale
+                self.mw.preview_bg_scale = self.bg_scale
+                if hasattr(self.mw, 'settings_manager'):
+                    self.mw.settings_manager.save_settings()
+                self.update()
+            event.accept()
+            return
+        super().wheelEvent(event)
+
     def show_context_menu(self, pos):
         """Show context menu."""
         menu = QMenu(self)
@@ -155,6 +171,8 @@ class BfnPreviewMouseMixin:
         action_clear_bg.setEnabled(bool(self.bg_image_path))
         
         menu.addSeparator()
+        action_reset_scale = menu.addAction(tr('Reset Scale (100%)'))
+        action_reset_scale.setEnabled(self.bg_scale != 100)
         action_set_spacing = menu.addAction(tr('Set Line Spacing...'))
         action_reset_rect = menu.addAction(tr('Reset Text Area'))
         
@@ -182,7 +200,7 @@ class BfnPreviewMouseMixin:
                     self.mw.preview_bg_image_path = file_path
                     
                     # Center the image inside the preview widget initially, only if no previous image was set/positioned
-                    if not new_image.isNull() and (not had_previous_image or (self.bg_offset_x == 0 and self.bg_offset_y == 0)):
+                    if not new_image.isNull() and not self._is_using_preset_geometry() and (not had_previous_image or (self.bg_offset_x == 0 and self.bg_offset_y == 0)):
                         scale_factor = self.bg_scale / 100.0
                         new_w = self.bg_image.width() * scale_factor
                         new_h = self.bg_image.height() * scale_factor
@@ -209,6 +227,12 @@ class BfnPreviewMouseMixin:
             if hasattr(self.mw, 'settings_manager'):
                 self.mw.settings_manager.save_settings()
             self.update()
+        elif action == action_reset_scale:
+            self.bg_scale = 100
+            self.mw.preview_bg_scale = 100
+            if hasattr(self.mw, 'settings_manager'):
+                self.mw.settings_manager.save_settings()
+            self.update()
         elif action == action_set_spacing:
             val, ok = QInputDialog.getInt(
                 self, "Set Line Spacing", "Enter line spacing in pixels:", self.line_spacing, -100, 100
@@ -229,6 +253,9 @@ class BfnPreviewMouseMixin:
             self.fix_font_scale = action_fix_scale.isChecked()
             if self.fix_font_scale:
                 self.fixed_font_scale = self._last_computed_scale_factor
+                self.fixed_font_fit = getattr(self, "_last_computed_fit", None)
+            else:
+                self.fixed_font_fit = None
             self.mw.preview_fix_font_scale = self.fix_font_scale
             self.mw.preview_fixed_font_scale = self.fixed_font_scale
             if hasattr(self.mw, 'settings_manager'):

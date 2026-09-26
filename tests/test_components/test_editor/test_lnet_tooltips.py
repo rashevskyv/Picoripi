@@ -197,3 +197,78 @@ def test_virtual_folder_editor_tooltip_uses_physical_block(app):
     assert tooltip is not None
     assert "Editor warning" in tooltip
     mw.close()
+
+
+def test_format_warning_dot():
+    from PyQt6.QtGui import QColor
+    from components.editor.lnet_tooltips import _format_warning_dot
+
+    # 1. QColor with alpha should yield opaque hex
+    c1 = QColor(255, 0, 0, 100)
+    assert _format_warning_dot(c1) == "<span style='color: #ff0000;'>●</span> "
+
+    # 2. RGB tuple/list
+    c2 = (0, 200, 0)
+    assert _format_warning_dot(c2) == "<span style='color: #00c800;'>●</span> "
+
+    # 3. Hex string
+    c3 = "#0000ff"
+    assert _format_warning_dot(c3) == "<span style='color: #0000ff;'>●</span> "
+
+    # 4. None / invalid
+    assert _format_warning_dot(None) == ""
+    assert _format_warning_dot("") == ""
+    assert _format_warning_dot("not-a-color") == ""
+
+
+def test_warning_tooltip_displays_colored_dot(app):
+    mw, editor = _make_real_main_window(app)
+    mw.data_store.current_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.data_store.problems_per_subline = {(0, 0, 0): {"WARN_TAG"}}
+
+    from unittest.mock import MagicMock
+    from PyQt6.QtGui import QColor
+    mw.current_game_rules = MagicMock()
+    mw.current_game_rules.get_problem_definitions.return_value = {
+        "WARN_TAG": {
+            "name": "Tag Warning",
+            "description": "Tag mismatch",
+            "color": QColor(255, 105, 180, 100),
+        }
+    }
+    mw.detection_enabled = {"WARN_TAG": True}
+
+    tooltip = LNETTooltipLogic(editor).find_warning_tooltip_at(QPoint(5, 5))
+    assert tooltip is not None
+    # Must contain the dot with the opaque hex color
+    assert "<span style='color: #ff69b4;'>●</span> <b>Tag Warning</b>: Tag mismatch" in tooltip
+    mw.close()
+
+
+def test_list_item_delegate_tooltip_displays_colored_dot():
+    from components.list_item_delegate.tooltip_mixin import CustomListItemTooltipMixin
+    from unittest.mock import MagicMock
+    from PyQt6.QtCore import Qt, QModelIndex
+    from PyQt6.QtGui import QColor
+
+    delegate = CustomListItemTooltipMixin()
+    main_window = MagicMock()
+    main_window.current_game_rules.get_problem_definitions.return_value = {
+        "PROBLEM_WIDTH": {
+            "name": "Width Limit",
+            "description": "Too long",
+            "color": QColor(0, 200, 0, 150),
+            "priority": 1,
+        }
+    }
+
+    index = MagicMock(spec=QModelIndex)
+    index.data.side_effect = lambda role: (
+        {"PROBLEM_WIDTH": 3} if role == Qt.ItemDataRole.UserRole + 20 else None
+    )
+
+    delegate._item_has_layout_overrides = lambda mw, idx: False
+
+    tooltip = delegate._get_problems_tooltip_text(main_window, index)
+    assert "<span style='color: #00c800;'>●</span> <b>Width Limit</b>: 3 cases<br><i>Too long</i>" in tooltip

@@ -131,9 +131,7 @@ def test_speaker_click_selects_all_existing_text(qapp, qtbot):
     mw.show()
 
     QTest.mouseClick(line_edit, Qt.MouseButton.LeftButton)
-    qtbot.wait(10)
-
-    assert line_edit.selectedText() == "System"
+    qtbot.waitUntil(lambda: line_edit.selectedText() == "System", timeout=1000)
 
 
 def test_speaker_autocomplete_is_prefix_based_and_case_insensitive(qapp):
@@ -180,9 +178,7 @@ def test_all_search_fields_select_existing_text_on_click(
     mw.activateWindow()
 
     QTest.mouseClick(search, Qt.MouseButton.LeftButton)
-    qtbot.wait(50)
-
-    assert search.selectedText() == "Midna"
+    qtbot.waitUntil(lambda: search.selectedText() == "Midna", timeout=3000)
 
 
 def test_speaker_enter_commits_only_first_qcombobox_signal(qapp):

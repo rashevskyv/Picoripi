@@ -242,10 +242,10 @@ class BfnPreviewPaintMixin:
         slot = geom.get("icon_slot")
         if not (isinstance(slot, (list, tuple)) and len(slot) >= 4):
             return False
-        origin_x, origin_y, fit = self._window_fit_transform(geom)
-        if fit <= 0:
+        origin_x, origin_y, sx, sy = self._game_viewport_transform(geom)
+        if sx <= 0 or sy <= 0:
             return False
-        dest = self._map_game_xywh(slot, origin_x, origin_y, fit)
+        dest = self._map_game_xywh(slot, origin_x, origin_y, sx, sy)
         item_img = None
         try:
             from plugins.zelda_bmg.window_frame_loader import load_item_icon
@@ -329,9 +329,48 @@ class BfnPreviewPaintMixin:
         origin_y = viewport.center().y() - (by + bh / 2.0) * fit
         return origin_x, origin_y, fit
 
-    def _map_game_xywh(self, xywh, origin_x, origin_y, fit) -> QRectF:
+    def _game_viewport_transform(self, geom):
+        """Map game pixels so the BLO window fills the preview, accounting for zoom and pan.
+
+        Returns (origin_x: float, origin_y: float, scale_x: float, scale_y: float).
+        """
+        screen = (geom or {}).get("screen") or [608, 448]
+        try:
+            sw, sh = float(screen[0]), float(screen[1])
+        except (TypeError, ValueError, IndexError):
+            sw, sh = 608.0, 448.0
+        raw_bg_scale = getattr(self, "bg_scale", 100)
+        bg_scale = float(raw_bg_scale) if isinstance(raw_bg_scale, (int, float)) and not isinstance(raw_bg_scale, bool) else 100.0
+
+        has_bg = bool(self.bg_image and not self.bg_image.isNull() and not self.bg_hidden)
+        if has_bg and bg_scale == 0:
+            scale_x = (self.rect().width() / sw) if sw > 0 else 1.0
+            scale_y = (self.rect().height() / sh) if sh > 0 else 1.0
+            return 0.0, 0.0, scale_x, scale_y
+
+        base_ox, base_oy, fit = self._window_fit_transform(geom)
+        if fit <= 0:
+            return 0.0, 0.0, 1.0, 1.0
+
+        if not has_bg:
+            return base_ox, base_oy, fit, fit
+
+        bg_s = (bg_scale / 100.0) if bg_scale > 0 else 1.0
+        fit_eff = fit * bg_s
+        vp = self._preview_viewport_rect()
+        cx = vp.center().x()
+        cy = vp.center().y()
+        pan_x = float(getattr(self, "bg_offset_x", 0.0) or 0.0)
+        pan_y = float(getattr(self, "bg_offset_y", 0.0) or 0.0)
+        origin_x = cx + (base_ox - cx) * bg_s + pan_x
+        origin_y = cy + (base_oy - cy) * bg_s + pan_y
+        return origin_x, origin_y, fit_eff, fit_eff
+
+    def _map_game_xywh(self, xywh, origin_x, origin_y, scale_x, scale_y=None) -> QRectF:
+        if scale_y is None:
+            scale_y = scale_x
         x, y, w, h = (float(xywh[0]), float(xywh[1]), float(xywh[2]), float(xywh[3]))
-        return QRectF(origin_x + x * fit, origin_y + y * fit, w * fit, h * fit)
+        return QRectF(origin_x + x * scale_x, origin_y + y * scale_y, w * scale_x, h * scale_y)
 
     def _preset_text_and_frame_rects(self, game_style):
         """Stable text + frame rects from the selected preset geometry.
@@ -345,12 +384,10 @@ class BfnPreviewPaintMixin:
             frame_rect = QRectF(abs_rect)
             return abs_rect, frame_rect, False
 
-        origin_x, origin_y, fit = self._window_fit_transform(geom)
-        if fit <= 0:
-            return abs_rect, QRectF(abs_rect), False
-        text_f = self._map_game_xywh(geom["text"], origin_x, origin_y, fit)
+        origin_x, origin_y, sx, sy = self._game_viewport_transform(geom)
+        text_f = self._map_game_xywh(geom["text"], origin_x, origin_y, sx, sy)
         if isinstance(geom.get("box"), (list, tuple)) and len(geom["box"]) >= 4:
-            frame_rect = self._map_game_xywh(geom["box"], origin_x, origin_y, fit)
+            frame_rect = self._map_game_xywh(geom["box"], origin_x, origin_y, sx, sy)
         else:
             frame_rect = QRectF(text_f)
         return text_f.toRect(), frame_rect, True
@@ -421,15 +458,27 @@ class BfnPreviewPaintMixin:
     def _paint_event_impl(self, painter, event):
         """Internal helper to paint event impl."""
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
-        
+
+        game_style = self._get_game_window_style()
+        geom = (game_style or {}).get("geometry") if isinstance(game_style, dict) else None
+        used_preset = bool(isinstance(geom, dict) and isinstance(geom.get("text"), (list, tuple)))
+
         # ── 1. Background ─────────────────────────────────────────────────────
         painter.save()
         path = QPainterPath()
         path.addRoundedRect(QRectF(self.rect()), 6, 6)
         painter.setClipPath(path)
-        
+
         if self.bg_image and not self.bg_image.isNull() and not self.bg_hidden:
-            if self.bg_scale == 0:
+            if used_preset:
+                ox, oy, sx, sy = self._game_viewport_transform(geom)
+                screen = (geom or {}).get("screen") or [608, 448]
+                try:
+                    sw, sh = float(screen[0]), float(screen[1])
+                except (TypeError, ValueError, IndexError):
+                    sw, sh = float(self.bg_image.width()), float(self.bg_image.height())
+                painter.drawImage(self._map_game_xywh([0, 0, sw, sh], ox, oy, sx, sy), self.bg_image)
+            elif self.bg_scale == 0:
                 painter.drawImage(self.rect(), self.bg_image)
             else:
                 scale_factor = self.bg_scale / 100.0
@@ -567,16 +616,38 @@ class BfnPreviewPaintMixin:
             self.draw_bounding_box(painter)
             return
 
-        # Game text is a fixed BLO fontSize inside mg_e4lin, scaled only by the
-        # window-fit. Do not pack lines_per_page into the box — short pages sit
-        # in the middle (do_heightcenter), they do not grow.
         fit = 1.0
         if used_preset and isinstance(geom, dict):
-            _, _, fit = self._window_fit_transform(geom)
-            if fit <= 0:
-                fit = 1.0
+            _, _, _, fit = self._game_viewport_transform(geom)
+        self._last_computed_fit = fit
+
         if self.fix_font_scale:
-            scale_factor = self.fixed_font_scale
+            base_fit = getattr(self, "fixed_font_fit", None)
+            try:
+                base_fit = float(base_fit)
+            except (TypeError, ValueError):
+                base_fit = 0.0
+            if used_preset and fit > 0:
+                if base_fit <= 0:
+                    base_fit = fit
+                    self.fixed_font_fit = base_fit
+                scale_factor = float(self.fixed_font_scale) * (fit / base_fit) if base_fit > 0 else float(self.fixed_font_scale)
+            else:
+                try:
+                    scale_factor = float(self.fixed_font_scale)
+                except (TypeError, ValueError):
+                    scale_factor = 1.0
+                try:
+                    bg_s = float(self.bg_scale)
+                except (TypeError, ValueError):
+                    bg_s = 100.0
+                if self.bg_image and not self.bg_hidden and bg_s > 0:
+                    scale_factor *= (bg_s / 100.0)
+                vp = self._preview_viewport_rect()
+                if abs_rect.width() > 0 and abs_rect.height() > 0:
+                    if vp.width() < abs_rect.width() or vp.height() < abs_rect.height():
+                        vp_fit = min(vp.width() / abs_rect.width(), vp.height() / abs_rect.height())
+                        scale_factor = min(scale_factor, scale_factor * vp_fit)
         elif game_font_y and cell_h > 0:
             scale_factor = (game_font_y / cell_h) * fit
         else:
@@ -600,8 +671,10 @@ class BfnPreviewPaintMixin:
         if align == "center" and scale_factor > 0:
             self._center_glyph_lines(glyphs, abs_rect.width() / scale_factor)
 
-        # Offscreen image size: same as abs_rect
-        img_size = QSize(max(1, abs_rect.width()), max(1, abs_rect.height()))
+        # Offscreen image size: ensure it covers both abs_rect and laid out glyphs
+        img_w = max(1, abs_rect.width(), int(round(total_width * scale_factor + 40)))
+        img_h = max(1, abs_rect.height(), int(round(total_height * scale_factor + 40)))
+        img_size = QSize(img_w, img_h)
 
         # Text offset inside the window (game: HIO mTextPosX/mTextPosY)
         text_dx = text_dy = 0
@@ -629,11 +702,11 @@ class BfnPreviewPaintMixin:
         dump_frame = getattr(self, "_window_frame_image", None)
         if dump_frame is not None and not dump_frame.isNull() and used_preset:
             geom = (game_style or {}).get("geometry") or {}
-            origin_x, origin_y, fit = self._window_fit_transform(geom)
+            ox, oy, sx, sy = self._game_viewport_transform(geom)
             sw = float(dump_frame.width())
             sh = float(dump_frame.height())
-            if fit > 0 and sw > 0 and sh > 0:
-                painter.drawImage(QRectF(origin_x, origin_y, sw * fit, sh * fit), dump_frame)
+            if sx > 0 and sy > 0 and sw > 0 and sh > 0:
+                painter.drawImage(self._map_game_xywh([0, 0, sw, sh], ox, oy, sx, sy), dump_frame)
         elif game_style and isinstance(game_style.get("frame"), dict):
             fr = game_style["frame"]
             fr_style = fr.get("style", "talk")

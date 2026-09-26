@@ -1,6 +1,29 @@
-﻿from PyQt6.QtCore import QPoint
+from PyQt6.QtCore import QPoint
+from PyQt6.QtGui import QColor
 from typing import Optional
 import re
+
+
+def _format_warning_dot(raw_color) -> str:
+    """Format an opaque RGB colored dot (bullet) for warning tooltips."""
+    if raw_color is None:
+        return ""
+    if isinstance(raw_color, QColor):
+        if raw_color.isValid():
+            return f"<span style='color: #{raw_color.red():02x}{raw_color.green():02x}{raw_color.blue():02x};'>●</span> "
+        return ""
+    if isinstance(raw_color, (list, tuple)) and len(raw_color) >= 3:
+        try:
+            r, g, b = int(raw_color[0]), int(raw_color[1]), int(raw_color[2])
+            return f"<span style='color: #{r:02x}{g:02x}{b:02x};'>●</span> "
+        except (TypeError, ValueError):
+            return ""
+    if isinstance(raw_color, str) and raw_color.strip():
+        qc = QColor(raw_color)
+        if qc.isValid():
+            return f"<span style='color: #{qc.red():02x}{qc.green():02x}{qc.blue():02x};'>●</span> "
+    return ""
+
 
 class LNETTooltipLogic:
     """L n e t tooltip logic implementation."""
@@ -89,10 +112,11 @@ class LNETTooltipLogic:
                 if not detection_config.get(prob_id, True):
                     continue
 
+                dot = _format_warning_dot(prob_def.get("color"))
                 if name:
-                    tooltip_lines.append(f"<b>{name}</b>: {desc}")
+                    tooltip_lines.append(f"{dot}<b>{name}</b>: {desc}")
                 else:
-                    tooltip_lines.append(desc)
+                    tooltip_lines.append(f"{dot}{desc}")
         
         if tooltip_lines:
             font_size = getattr(self.editor.window(), 'tooltip_font_size', 11)

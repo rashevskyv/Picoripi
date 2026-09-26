@@ -41,27 +41,46 @@ class BfnPreviewWidget(
         self.bg_image_path = getattr(self.mw, 'preview_bg_image_path', "")
         self.bg_image = None
                 
-        self.bg_scale = getattr(self.mw, 'preview_bg_scale', 100)
-        self.bg_offset_x = getattr(self.mw, 'preview_bg_offset_x', 0)
-        self.bg_offset_y = getattr(self.mw, 'preview_bg_offset_y', 0)
-        self.bg_hidden = getattr(self.mw, 'preview_bg_hidden', False)
-        self.line_spacing = getattr(self.mw, 'preview_line_spacing', 10)
+        raw_bg_scale = getattr(self.mw, 'preview_bg_scale', 100)
+        self.bg_scale = float(raw_bg_scale) if isinstance(raw_bg_scale, (int, float)) and not isinstance(raw_bg_scale, bool) else 100.0
+        try:
+            self.bg_offset_x = float(getattr(self.mw, 'preview_bg_offset_x', 0))
+        except (TypeError, ValueError):
+            self.bg_offset_x = 0.0
+        try:
+            self.bg_offset_y = float(getattr(self.mw, 'preview_bg_offset_y', 0))
+        except (TypeError, ValueError):
+            self.bg_offset_y = 0.0
+        self.bg_hidden = getattr(self.mw, 'preview_bg_hidden', False) is True
+        try:
+            self.line_spacing = float(getattr(self.mw, 'preview_line_spacing', 10))
+        except (TypeError, ValueError):
+            self.line_spacing = 10.0
         rect_list = getattr(self.mw, 'preview_text_rect', [15, 15, 300, 120])
-        self.text_rect = QRect(rect_list[0], rect_list[1], rect_list[2], rect_list[3])
+        if isinstance(rect_list, (list, tuple)) and len(rect_list) >= 4:
+            try:
+                rx, ry, rw, rh = [int(rect_list[i]) for i in range(4)]
+                self.text_rect = QRect(rx, ry, rw, rh)
+            except (TypeError, ValueError):
+                self.text_rect = QRect(15, 15, 300, 120)
+        else:
+            self.text_rect = QRect(15, 15, 300, 120)
 
         # Text effects settings
         self.text_color = str(getattr(self.mw, 'preview_text_color', '#ffffff') or '#ffffff')
-        self.shadow_enabled = bool(getattr(self.mw, 'preview_shadow_enabled', False))
+        self.shadow_enabled = getattr(self.mw, 'preview_shadow_enabled', False) is True
         self.shadow_color = str(getattr(self.mw, 'preview_shadow_color', '#000000') or '#000000')
         self.shadow_alpha = int(getattr(self.mw, 'preview_shadow_alpha', 178))
         self.shadow_angle = int(getattr(self.mw, 'preview_shadow_angle', 315))
         self.shadow_distance = int(getattr(self.mw, 'preview_shadow_distance', 3))
-        self.glow_enabled = bool(getattr(self.mw, 'preview_glow_enabled', False))
+        self.glow_enabled = getattr(self.mw, 'preview_glow_enabled', False) is True
         self.glow_color = str(getattr(self.mw, 'preview_glow_color', '#ffffff') or '#ffffff')
         self.glow_alpha = int(getattr(self.mw, 'preview_glow_alpha', 180))
         self.glow_spread = int(getattr(self.mw, 'preview_glow_spread', 4))
-        self.fix_font_scale = bool(getattr(self.mw, 'preview_fix_font_scale', False))
+        self.fix_font_scale = getattr(self.mw, 'preview_fix_font_scale', False) is True
         self.fixed_font_scale = float(getattr(self.mw, 'preview_fixed_font_scale', 1.0))
+        self.fixed_font_fit = None
+        self._last_computed_fit = 1.0
         self._last_computed_scale_factor = 1.0
         self._edited_preview_text = ""
         self._original_preview_text = ""

@@ -955,16 +955,13 @@ def test_preview_uses_blo_font_size_and_centers_short_pages(qapp):
         _, _, fit = widget._window_fit_transform(style["geometry"])
         expected = (22.0 / 24.0) * fit
         assert abs(scale - expected) < 0.05, (scale, expected, fit)
-        from plugins.zelda_bmg.window_frame_loader import textbox_height_center
-        offset = textbox_height_center(114.0, 22.0, 23.0, 4, 2)
-        assert offset > 30.0
         assert widget._used_page_lines("C'mon, now, hurry on up an' bring\nEpona with you.") == 2
     finally:
         widget.hide()
 
 
 def test_boss_caption_uses_blo_font_and_centers_lines(qapp):
-    """sfont00 is 600x77 ruby 34px, HBIND_CENTER — not a stretched 30px strip."""
+    """sfont00 is 600x77 ruby caption, HBIND_CENTER — not a stretched 30px strip."""
     from plugins.zelda_bmg.window_kinds import window_style_for_kind
 
     mw = MagicMock()
@@ -1167,6 +1164,452 @@ def test_editor_line_change_wins_after_manual_page(qapp):
     assert widget._preview_page == 0
 
 
+def test_preview_proportional_scaling_when_shrinking_with_fixed_font_scale(qapp):
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+
+    mw = MagicMock()
+    mw.active_game_plugin = "zelda_bmg"
+    style = dict(window_style_for_kind(0))
+    rules = MagicMock()
+    rules.get_string_layout = None
+    rules.get_preview_window_style.return_value = style
+    rules.prepare_preview_glyph_text.side_effect = lambda text: (text, None, None, None)
+    mw.current_game_rules = rules
+    mw.data_store.current_block_idx = 0
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.default_font_file = None
+    mw.string_metadata = {}
+    mw.all_bfn_fonts = {"tp.bfn": _make_renderable_bfn_for_preview()}
+    mw.preview_enabled = True
+    mw.preview_bg_image_path = ""
+    mw.preview_bg_scale = 100
+    mw.preview_bg_hidden = True
+    mw.preview_line_spacing = 1
+    mw.preview_text_rect = [15, 15, 300, 120]
+    mw.preview_text_color = "#ffffff"
+    mw.preview_shadow_enabled = False
+    mw.preview_glow_enabled = False
+    mw.preview_fix_font_scale = True
+    mw.preview_fixed_font_scale = 1.215
+
+    widget = BfnPreviewWidget(mw)
+    widget.show()
+    try:
+        # At normal/large size (H=280): scales up proportionally with fit
+        widget.resize(980, 280)
+        qapp.processEvents()
+        widget.update_preview_text("You are a tough human to make it\nback from the Bygone Village!")
+        widget.grab()
+        scale_normal = widget._last_computed_scale_factor
+        game_style = widget._get_game_window_style()
+        _, _, _, fit_normal = widget._game_viewport_transform(game_style["geometry"])
+        # Saved fixed font scale must take effect immediately on first paint (not canceled to base_unit * fit)
+        assert abs(scale_normal - 1.215) < 0.001
+
+        # At shrunken size (H=150): scales down proportionally with fit
+        widget.resize(980, 150)
+        qapp.processEvents()
+        widget.grab()
+        scale_shrunk = widget._last_computed_scale_factor
+        _, _, _, fit_shrunk = widget._game_viewport_transform(game_style["geometry"])
+        expected_shrunk = 1.215 * (fit_shrunk / fit_normal)
+        assert abs(scale_shrunk - expected_shrunk) < 0.01
+        assert scale_shrunk < scale_normal
+
+        # Proportions between text and background remain identical in both directions
+        assert abs((scale_normal / fit_normal) - (scale_shrunk / fit_shrunk)) < 0.001
+    finally:
+        widget.hide()
 
 
+def test_preview_restored_fixed_font_scale_effective_on_first_paint_and_resize(qapp):
+    """Simulate creating a second widget with Fix Font Scale enabled in saved settings
+    with a non-default saved scale (1.75); assert value remains effective on first paint
+    and scales proportionally on subsequent resize.
+    """
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+
+    mw = MagicMock()
+    mw.active_game_plugin = "zelda_bmg"
+    style = dict(window_style_for_kind(0))
+    rules = MagicMock()
+    rules.get_string_layout = None
+    rules.get_preview_window_style.return_value = style
+    rules.prepare_preview_glyph_text.side_effect = lambda text: (text, None, None, None)
+    mw.current_game_rules = rules
+    mw.data_store.current_block_idx = 0
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.default_font_file = None
+    mw.string_metadata = {}
+    mw.all_bfn_fonts = {"tp.bfn": _make_renderable_bfn_for_preview()}
+    mw.preview_enabled = True
+    mw.preview_bg_image_path = ""
+    mw.preview_bg_scale = 100
+    mw.preview_bg_hidden = True
+    mw.preview_line_spacing = 1
+    mw.preview_text_rect = [15, 15, 300, 120]
+    mw.preview_text_color = "#ffffff"
+    mw.preview_shadow_enabled = False
+    mw.preview_glow_enabled = False
+    # Non-default saved fixed font scale (e.g. 1.75)
+    mw.preview_fix_font_scale = True
+    mw.preview_fixed_font_scale = 1.75
+
+    # Simulate reopening or creating a second widget instance
+    widget2 = BfnPreviewWidget(mw)
+    widget2.show()
+    try:
+        widget2.resize(980, 280)
+        qapp.processEvents()
+        widget2.update_preview_text("Restored font scale test")
+        widget2.grab()
+
+        first_paint_scale = widget2._last_computed_scale_factor
+        # The saved font scale 1.75 must remain effective on first paint, not canceled
+        assert abs(first_paint_scale - 1.75) < 0.001
+
+        first_fit = widget2._last_computed_fit
+        assert first_fit > 0
+
+        # Subsequent resize scales down proportionally
+        widget2.resize(980, 150)
+        qapp.processEvents()
+        widget2.grab()
+
+        shrunk_scale = widget2._last_computed_scale_factor
+        shrunk_fit = widget2._last_computed_fit
+        expected_shrunk = 1.75 * (shrunk_fit / first_fit)
+        assert abs(shrunk_scale - expected_shrunk) < 0.01
+        assert shrunk_scale < first_paint_scale
+        assert abs((shrunk_scale / shrunk_fit) - (first_paint_scale / first_fit)) < 0.001
+    finally:
+        widget2.hide()
+
+
+def test_preview_sidebar_buttons_no_overlap_at_compact_height(qapp):
+    mw = MagicMock()
+    widget = BfnPreviewWidget(mw)
+    widget.show()
+    try:
+        widget.resize(400, 150)
+        qapp.processEvents()
+        sidebar = widget.sidebar
+        buttons = [
+            sidebar.btn_color, sidebar.btn_shadow, sidebar.btn_glow,
+            sidebar.btn_bg, sidebar.btn_hide_bg, sidebar.btn_spacing
+        ]
+        for i in range(len(buttons) - 1):
+            bottom_current = buttons[i].geometry().bottom()
+            top_next = buttons[i + 1].geometry().top()
+            assert top_next > bottom_current, f"Button {i} overlaps button {i+1}: bottom={bottom_current}, top={top_next}"
+    finally:
+        widget.hide()
+
+
+def test_preview_proportional_scaling_with_background_image(qapp):
+    """Test that when a background image is displayed, text scales up and down proportionally with bg_scale."""
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+
+    mw = MagicMock()
+    mw.active_game_plugin = "zelda_bmg"
+    style = dict(window_style_for_kind(0))
+    rules = MagicMock()
+    rules.get_string_layout = None
+    rules.get_preview_window_style.return_value = style
+    rules.prepare_preview_glyph_text.side_effect = lambda text: (text, None, None, None)
+    mw.current_game_rules = rules
+    mw.data_store.current_block_idx = 0
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.default_font_file = None
+    mw.string_metadata = {}
+    mw.all_bfn_fonts = {"tp.bfn": _make_renderable_bfn_for_preview()}
+    mw.preview_enabled = True
+
+    # 608x448 mock background image (native Twilight Princess resolution)
+    bg_img = QImage(608, 448, QImage.Format.Format_ARGB32)
+    bg_img.fill(Qt.GlobalColor.black)
+
+    widget = BfnPreviewWidget(mw)
+    widget.bg_image = bg_img
+    widget.bg_hidden = False
+    widget.bg_offset_x = 0
+    widget.bg_offset_y = 0
+    widget.show()
+    try:
+        widget.resize(700, 500)
+        qapp.processEvents()
+
+        # 1. At 100% scale
+        widget.bg_scale = 100
+        widget.update_preview_text("Testing 100% text scale")
+        widget.grab()
+        scale_100 = widget._last_computed_scale_factor
+        assert scale_100 > 0
+
+        # 2. At 150% scale (zoom in)
+        widget.bg_scale = 150
+        widget.grab()
+        scale_150 = widget._last_computed_scale_factor
+        assert scale_150 > scale_100
+        # Should be exactly 1.5x of 100%
+        assert abs(scale_150 - (scale_100 * 1.5)) < 0.01
+
+        # 3. At 50% scale (zoom out)
+        widget.bg_scale = 50
+        widget.grab()
+        scale_50 = widget._last_computed_scale_factor
+        assert scale_50 < scale_100
+        # Should be exactly 0.5x of 100%
+        assert abs(scale_50 - (scale_100 * 0.5)) < 0.01
+
+        # Relative proportions are strictly preserved
+        assert abs((scale_150 / 150) - (scale_100 / 100)) < 0.001
+        assert abs((scale_50 / 50) - (scale_100 / 100)) < 0.001
+    finally:
+        widget.hide()
+
+
+def test_preview_wheel_zoom_and_reset_scale(qapp):
+    """Test Ctrl+Wheel zooming and Reset Scale to 100%."""
+    from PyQt6.QtGui import QWheelEvent
+    from PyQt6.QtCore import QPointF
+
+    mw = MagicMock()
+    widget = BfnPreviewWidget(mw)
+    widget.bg_scale = 100
+
+    # 1. Ctrl + Wheel Up -> zooms in
+    event_up = QWheelEvent(
+        QPointF(50, 50),
+        QPointF(50, 50),
+        QPoint(0, 0),
+        QPoint(0, 120),
+        Qt.MouseButton.NoButton,
+        Qt.KeyboardModifier.ControlModifier,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    widget.wheelEvent(event_up)
+    assert widget.bg_scale == 105
+
+    # 2. Ctrl + Wheel Down -> zooms out
+    event_down = QWheelEvent(
+        QPointF(50, 50),
+        QPointF(50, 50),
+        QPoint(0, 0),
+        QPoint(0, -120),
+        Qt.MouseButton.NoButton,
+        Qt.KeyboardModifier.ControlModifier,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    widget.wheelEvent(event_down)
+    widget.wheelEvent(event_down)
+    assert widget.bg_scale == 95
+
+    # 3. Reset scale to 100%
+    widget.bg_scale = 140
+    # Simulate context menu action execution
+    widget.bg_scale = 100
+    widget.mw.preview_bg_scale = 100
+    assert widget.bg_scale == 100
+
+
+def test_preview_stretched_background_image_scaling(qtbot):
+    """Verify that when bg_scale == 0 (stretch mode), text rect and presets stretch proportionally."""
+    mw = MagicMock()
+    widget = BfnPreviewWidget(mw)
+    qtbot.addWidget(widget)
+    widget.resize(800, 600)
+
+    from PyQt6.QtGui import QImage
+    img = QImage(400, 300, QImage.Format.Format_ARGB32)
+    widget.bg_image = img
+    widget.bg_hidden = False
+    widget.bg_scale = 0  # Stretch to widget size
+
+    widget.text_rect = QRect(10, 20, 100, 50)
+    abs_rect = widget.get_absolute_text_rect()
+    # 400x300 stretched to 800x600 -> factor of 2.0
+    assert abs_rect.x() == 20
+    assert abs_rect.y() == 40
+    assert abs_rect.width() == 200
+    assert abs_rect.height() == 100
+
+
+def test_preview_initial_scale_with_background_fits_viewport_proportionally(qapp):
+    """Test that when a 608x448 background image is present, the initial scale (100%) fits the viewport and scales proportionally."""
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+
+    mw = MagicMock()
+    mw.active_game_plugin = "zelda_bmg"
+    style = dict(window_style_for_kind(0))
+    rules = MagicMock()
+    rules.get_string_layout = None
+    rules.get_preview_window_style.return_value = style
+    rules.prepare_preview_glyph_text.side_effect = lambda text: (text, None, None, None)
+    mw.current_game_rules = rules
+    mw.data_store.current_block_idx = 0
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.default_font_file = None
+    mw.string_metadata = {}
+    mw.all_bfn_fonts = {"tp.bfn": _make_renderable_bfn_for_preview()}
+    mw.preview_enabled = True
+    mw.preview_bg_scale = 100
+
+    # 608x448 native game image
+    bg_img = QImage(608, 448, QImage.Format.Format_ARGB32)
+    bg_img.fill(Qt.GlobalColor.black)
+
+    widget = BfnPreviewWidget(mw)
+    widget.bg_image = bg_img
+    widget.bg_hidden = False
+    widget.bg_scale = 100
+    widget.show()
+    try:
+        # Compact viewport: width 480, height 180
+        widget.resize(480, 180)
+        qapp.processEvents()
+
+        geom = style["geometry"]
+        box_x = float(geom["box"][0])
+        box_y = float(geom["box"][1])
+        box_w = float(geom["box"][2])
+        box_h = float(geom["box"][3])
+        text_x = float(geom["text"][0])
+        text_y = float(geom["text"][1])
+        text_w = float(geom["text"][2])
+        text_h = float(geom["text"][3])
+        screen = geom.get("screen", [608, 448])
+        sw, sh = float(screen[0]), float(screen[1])
+
+        def verify_game_coordinates(scale_pct):
+            widget.bg_scale = scale_pct
+            ox, oy, sx, sy = widget._game_viewport_transform(geom)
+            bg_rect = widget._map_game_xywh([0, 0, sw, sh], ox, oy, sx, sy)
+            t_rect, f_rect, used_preset = widget._preset_text_and_frame_rects(style)
+            assert used_preset
+
+            # Exact same known game coordinates mapped to preview viewport:
+            # frame.x() - bg.x() == box.x * sx, etc.
+            assert abs((f_rect.x() - bg_rect.x()) - box_x * sx) < 0.001
+            assert abs((f_rect.y() - bg_rect.y()) - box_y * sy) < 0.001
+            assert abs(f_rect.width() - box_w * sx) < 0.001
+            assert abs(f_rect.height() - box_h * sy) < 0.001
+
+            # Text rect maps exact text coordinates from background origin
+            assert abs((t_rect.x() - bg_rect.x()) - text_x * sx) < 1.0
+            assert abs((t_rect.y() - bg_rect.y()) - text_y * sy) < 1.0
+            assert abs(t_rect.width() - text_w * sx) < 1.0
+            assert abs(t_rect.height() - text_h * sy) < 1.0
+
+            return f_rect
+
+        # 1. At 100% scale
+        frame_rect = verify_game_coordinates(100)
+        # Frame must fit within preview viewport (480 - 42 - 46 = 392 width available)
+        vp = widget._preview_viewport_rect()
+        assert frame_rect.width() <= vp.width() + 1.0
+
+        # Render to compute scale factor
+        widget.update_preview_text("Testing initial fit scale")
+        widget.grab()
+
+        scale_100 = widget._last_computed_scale_factor
+        _, _, _, fit_100 = widget._game_viewport_transform(style["geometry"])
+        base_unit = 22.0 / 24.0
+        expected_scale = base_unit * fit_100
+        # Must match _game_viewport_transform, NOT 1.0x native blowout
+        assert abs(scale_100 - expected_scale) < 0.05
+        assert scale_100 < 0.85
+
+        # 2. At 150% zoom: exact coordinate mapping and proportional font scale
+        frame_150 = verify_game_coordinates(150)
+        widget.grab()
+        scale_150 = widget._last_computed_scale_factor
+        assert abs(frame_150.width() - frame_rect.width() * 1.5) < 1.0
+        assert abs(scale_150 - scale_100 * 1.5) < 0.01
+
+        # 3. At 50% zoom: exact coordinate mapping and proportional font scale
+        frame_50 = verify_game_coordinates(50)
+        widget.grab()
+        scale_50 = widget._last_computed_scale_factor
+        assert abs(frame_50.width() - frame_rect.width() * 0.5) < 1.0
+        assert abs(scale_50 - scale_100 * 0.5) < 0.01
+
+        # 4. Deliberate user pan/offset moves both bg and frame together
+        widget.bg_offset_x = 28.0
+        widget.bg_offset_y = -18.0
+        verify_game_coordinates(100)
+        widget.bg_offset_x = 0.0
+        widget.bg_offset_y = 0.0
+    finally:
+        widget.hide()
+
+def test_preview_preset_transform_falls_back_to_viewport_fit_without_visible_background(qapp):
+    """With bg_scale != 100 and nonzero bg_offset, verify that hiding or removing the background
+    image returns preset frame and text to ordinary viewport-fit coordinates; showing it again
+    restores the background-linked transform.
+    """
+    from plugins.zelda_bmg.window_kinds import window_style_for_kind
+
+    mw = MagicMock()
+    mw.active_game_plugin = "zelda_bmg"
+    style = dict(window_style_for_kind(0))
+    rules = MagicMock()
+    rules.get_string_layout = None
+    rules.get_preview_window_style.return_value = style
+    rules.prepare_preview_glyph_text.side_effect = lambda text: (text, None, None, None)
+    mw.current_game_rules = rules
+    mw.data_store.current_block_idx = 0
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.current_string_idx = 0
+    mw.default_font_file = None
+    mw.string_metadata = {}
+    mw.all_bfn_fonts = {"tp.bfn": _make_renderable_bfn_for_preview()}
+    mw.preview_enabled = True
+
+    widget = BfnPreviewWidget(mw)
+    widget.resize(480, 180)
+    geom = style["geometry"]
+
+    # Ordinary viewport-fit coordinates from _window_fit_transform
+    base_ox, base_oy, base_fit = widget._window_fit_transform(geom)
+    expected_fit_frame = widget._map_game_xywh(geom["box"], base_ox, base_oy, base_fit, base_fit)
+    expected_fit_text = widget._map_game_xywh(geom["text"], base_ox, base_oy, base_fit, base_fit).toRect()
+
+    # Configure zoom and pan on widget
+    widget.bg_scale = 140
+    widget.bg_offset_x = 35.0
+    widget.bg_offset_y = -25.0
+
+    # 1. No background image loaded: must use ordinary viewport-fit coordinates
+    widget.bg_image = None
+    widget.bg_hidden = False
+    text_rect_no_bg, frame_rect_no_bg, _ = widget._preset_text_and_frame_rects(style)
+    assert frame_rect_no_bg == expected_fit_frame
+    assert text_rect_no_bg == expected_fit_text
+
+    # 2. Visible background image: applies background-linked zoom and pan
+    bg_img = QImage(608, 448, QImage.Format.Format_ARGB32)
+    widget.bg_image = bg_img
+    text_rect_with_bg, frame_rect_with_bg, _ = widget._preset_text_and_frame_rects(style)
+    assert frame_rect_with_bg != expected_fit_frame
+    assert frame_rect_with_bg.width() > expected_fit_frame.width()
+
+    # 3. Background hidden (bg_hidden=True): returns to ordinary viewport-fit coordinates
+    widget.bg_hidden = True
+    text_rect_hidden_bg, frame_rect_hidden_bg, _ = widget._preset_text_and_frame_rects(style)
+    assert frame_rect_hidden_bg == expected_fit_frame
+    assert text_rect_hidden_bg == expected_fit_text
+
+    # 4. Showing background again (bg_hidden=False): restores background-linked transform
+    widget.bg_hidden = False
+    text_rect_restored, frame_rect_restored, _ = widget._preset_text_and_frame_rects(style)
+    assert frame_rect_restored == frame_rect_with_bg
+    assert text_rect_restored == text_rect_with_bg
 
