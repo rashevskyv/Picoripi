@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Picoripi Companion</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="screen active">
+    <div class="login-card">
+      <div class="login-header">
+        <img src="icon-192.svg" alt="Picoripi" class="login-logo">
+        <h2>Picoripi Companion</h2>
+        <p>Mobile glossary & translation review</p>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="tokenInput">Access Token / PIN</label>
+          <input type="password" id="tokenInput" placeholder="Enter token..." autocomplete="current-password" required>
+        </div>
+        <div id="loginError" class="error-msg"></div>
+        <button type="submit" class="btn btn-primary btn-block">Connect</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- App Header -->
+  <header id="appHeader" class="app-header hidden">
+    <div class="header-left">
+      <span class="app-title">Picoripi</span>
+      <select id="projectSelect" class="project-select" aria-label="Select Project"></select>
+    </div>
+    <div class="header-right">
+      <span id="syncBadge" class="badge badge-success">● Connected</span>
+      <button id="refreshBtn" class="icon-btn" title="Refresh data">↻</button>
+      <button id="logoutBtn" class="icon-btn" title="Logout">⏻</button>
+    </div>
+  </header>
+
+  <!-- Main View: Term List -->
+  <main id="listView" class="view hidden">
+    <div class="search-bar-container">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search term, translation, notes..." autocomplete="off">
+        <button id="searchClearBtn" class="clear-btn hidden">✕</button>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div id="categoryPills" class="category-pills">
+        <!-- Dynamically rendered category pills -->
+      </div>
+      <button id="needsReviewToggle" class="filter-toggle-btn" title="Show only terms needing review">
+        <span class="filter-dot">🟡</span> Needs review (<span id="needsReviewCount">0</span>)
+      </button>
+    </div>
+
+    <div id="termsList" class="terms-list">
+      <!-- Dynamically rendered term cards -->
+      <div class="loading-state">Loading glossary...</div>
+    </div>
+
+    <div class="bottom-stats-bar">
+      <span>Confirmed: <strong id="statsConfirmed">0</strong> / <strong id="statsTotal">0</strong> (<span id="statsPercent">0%</span>)</span>
+    </div>
+  </main>
+
+  <!-- Detail View: Term Editor -->
+  <section id="editorView" class="view hidden">
+    <div class="editor-header">
+      <button id="backToListBtn" class="btn btn-secondary btn-sm">← Back</button>
+      <div class="editor-nav-counters">
+        <button id="prevTermBtn" class="nav-arrow-btn">◀</button>
+        <span id="termCounter">0 / 0</span>
+        <button id="nextTermBtn" class="nav-arrow-btn">▶</button>
+      </div>
+    </div>
+
+    <div class="editor-scroll-body">
+      <div class="meta-row">
+        <span id="entryCategoryBadge" class="badge badge-category">Category</span>
+        <span id="entryStatusBadge" class="badge">Status</span>
+        <button id="wikiLinkBtn" class="btn btn-xs btn-outline" style="margin-left: auto;">Wiki ↗</button>
+      </div>
+
+      <!-- Term Original -->
+      <div class="field-card">
+        <div class="field-header">
+          <span class="field-label-orig">О: Original</span>
+          <button id="copyOrigBtn" class="btn btn-xs btn-ghost" title="Copy original">📋 Copy</button>
+        </div>
+        <div id="originalText" class="field-text-orig">Original text here</div>
+      </div>
+
+      <!-- Term Translation -->
+      <div class="field-card">
+        <div class="field-header">
+          <label for="translationInput" class="field-label-trans">П: Translation</label>
+        </div>
+        <div class="input-wrapper">
+          <input type="text" id="translationInput" class="translation-input" placeholder="Type Ukrainian translation...">
+        </div>
+      </div>
+
+      <!-- Main Action Buttons -->
+      <div class="actions-row">
+        <button id="confirmNextBtn" class="btn btn-confirm btn-lg">✓ Confirm & Next</button>
+        <button id="saveTermBtn" class="btn btn-primary">💾 Save</button>
+      </div>
+
+      <!-- Proposed Variants Section -->
+      <div id="variantsSection" class="section-card">
+        <div class="section-title">
+          <span>⚡ Proposed Variants</span>
+          <span id="variantCountBadge" class="badge badge-count">0</span>
+        </div>
+        <div id="variantsList" class="variants-container">
+          <!-- Dynamically populated candidate variants -->
+        </div>
+      </div>
+
+      <!-- Accordion: Description (Lore) -->
+      <div class="accordion-item">
+        <button class="accordion-header" id="descHeader">
+          <span>📖 Description (Lore)</span>
+          <span class="chevron">▼</span>
+        </button>
+        <div class="accordion-content" id="descContent">
+          <div id="descriptionText" class="lore-text">No description available.</div>
+        </div>
+      </div>
+
+      <!-- Accordion: Notes -->
+      <div class="accordion-item">
+        <button class="accordion-header" id="notesHeader">
+          <span>💡 Notes & Comments</span>
+          <span class="chevron">▼</span>
+        </button>
+        <div class="accordion-content" id="notesContent">
+          <div class="notes-block">
+            <label class="sublabel">AI Notes:</label>
+            <div id="aiNotesText" class="ai-notes-box"></div>
+          </div>
+          <div class="notes-block">
+            <label for="userNotesInput" class="sublabel">Your Notes:</label>
+            <textarea id="userNotesInput" class="user-notes-input" placeholder="Add custom translation notes..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accordion: Occurrences -->
+      <div class="accordion-item">
+        <button class="accordion-header" id="occHeader">
+          <span>💬 In-Game Occurrences</span>
+          <span id="occCountBadge" class="badge badge-count">0</span>
+          <span class="chevron">▼</span>
+        </button>
+        <div class="accordion-content" id="occContent">
+          <div class="occ-filter-row">
+            <button id="occFilterAll" class="btn-chip active">All</button>
+            <button id="occFilterSpoken" class="btn-chip">Spoken</button>
+            <button id="occFilterMentions" class="btn-chip">Mentions</button>
+          </div>
+          <div id="occurrencesList" class="occurrences-list">
+            <!-- Dynamically populated occurrence lines -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+  <script src="js/glossary_view.js"></script>
+  <script src="js/editor_view.js"></script>
+</body>
+</html>

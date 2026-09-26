@@ -57,6 +57,12 @@ class SettingsLoadSaveMixin:
         self.log_ai_traffic_checkbox.setChecked(getattr(self.mw, 'log_ai_traffic', False))
         self.log_file_path_edit.setText(getattr(self.mw, 'log_file_path', ""))
         
+        if hasattr(self, 'companion_url_edit'):
+            self.companion_url_edit.setText(getattr(self.mw, 'companion_server_url', ''))
+            self.companion_token_edit.setText(getattr(self.mw, 'companion_api_token', 'picoripi'))
+        if hasattr(self, 'companion_auto_sync_check'):
+            self.companion_auto_sync_check.setChecked(getattr(self.mw, 'companion_auto_sync', True))
+
         enabled_cats = getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"])
         for cat_id, chk in self.log_categories_checkboxes.items():
             chk.setChecked(cat_id in enabled_cats)
@@ -334,7 +340,10 @@ class SettingsLoadSaveMixin:
             'log_file_path': self.log_file_path_edit.text(),
             'enabled_log_categories': [cat_id for cat_id, chk in self.log_categories_checkboxes.items() if chk.isChecked()],
             'context_menu_tags': self._get_tags_from_tables(),
-            'default_tag_mappings': aliases_dict
+            'default_tag_mappings': aliases_dict,
+            'companion_server_url': self.companion_url_edit.text().strip() if hasattr(self, 'companion_url_edit') else getattr(self.mw, 'companion_server_url', ''),
+            'companion_api_token': self.companion_token_edit.text().strip() if hasattr(self, 'companion_token_edit') else getattr(self.mw, 'companion_api_token', 'picoripi'),
+            'companion_auto_sync': self.companion_auto_sync_check.isChecked() if hasattr(self, 'companion_auto_sync_check') else getattr(self.mw, 'companion_auto_sync', True)
         }
 
     def _get_tags_from_tables(self):

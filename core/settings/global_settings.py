@@ -107,7 +107,10 @@ class GlobalSettings:
             "script_markup_studio_geometry": None,
             "variations_splitter_state": None,
             "hide_empty_strings": False,
-            "last_advanced_search_query": ""
+            "last_advanced_search_query": "",
+            "companion_server_url": "",
+            "companion_api_token": "picoripi",
+            "companion_auto_sync": True
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:

@@ -163,6 +163,11 @@ class LifecycleMixin:
                 if hasattr(self.mw, 'bookmark_handler'):
                     self.mw.bookmark_handler.update_bookmarks_menu()
                 log_info(f"Project '{project.name}' opened with {len(project.blocks)} blocks.")
+                try:
+                    from core.companion_sync import auto_pull_in_background
+                    auto_pull_in_background(self.mw)
+                except Exception as exc:
+                    log_debug(f"Failed to auto-pull companion on open: {exc}")
 
             self._populate_blocks_from_project(on_completed=on_opened)
         else:
@@ -183,6 +188,13 @@ class LifecycleMixin:
         # Force save session before closing so current edits are saved in .picoripi_session
         if hasattr(self.data_processor, '_autosave_session'):
             self.data_processor._autosave_session(force=True)
+
+        # Auto-push companion glossary before clearing project
+        try:
+            from core.companion_sync import sync_push_on_close
+            sync_push_on_close(self.mw)
+        except Exception as exc:
+            log_debug(f"Failed to auto-push companion on project close: {exc}")
 
         # Clear project
         if self.mw.project_manager:

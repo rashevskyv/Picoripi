@@ -4,7 +4,7 @@ from typing import Optional, Any, Union, List, Dict, Tuple
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog
 from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal
 from .base_handler import BaseHandler
-from utils.logging_utils import log_info, log_error
+from utils.logging_utils import log_info, log_error, log_debug
 from core.data_manager import load_json_file, load_text_file
 from plugins.base_game_rules import BaseGameRules
 from core.state_manager import AppState
@@ -60,6 +60,11 @@ class AppActionHandler(BaseHandler):
 
         event.accept()
         if event.isAccepted():
+            try:
+                from core.companion_sync import sync_push_on_close
+                sync_push_on_close(self.mw)
+            except Exception as exc:
+                log_debug(f"Failed to auto-push companion on exit: {exc}")
             if hasattr(self.data_processor, '_autosave_session'):
                 self.data_processor._autosave_session(force=True)
             if self.mw.project_manager:
@@ -235,7 +240,13 @@ class AppActionHandler(BaseHandler):
                     QMessageBox.critical(self.mw, tr('Save Error'), "Failed to save files:\n" + "\n".join(errors))
                 else:
                     QMessageBox.critical(self.mw, tr('Save Error'), tr('Failed to save files due to an unknown error.'))
-            
+            else:
+                try:
+                    from core.companion_sync import auto_push_in_background
+                    auto_push_in_background(self.mw)
+                except Exception as exc:
+                    log_debug(f"Companion auto-push after save error: {exc}")
+
             if on_finished_callback:
                 on_finished_callback(success, warnings, errors)
 

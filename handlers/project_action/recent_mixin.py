@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List
 from PyQt6.QtWidgets import QMessageBox
 from core.project_manager import ProjectManager
-from utils.logging_utils import log_info
+from utils.logging_utils import log_info, log_debug
 from core.i18n import tr
 
 
@@ -134,6 +134,11 @@ class RecentMixin:
                     self.mw.bookmark_handler.update_bookmarks_menu()
 
                 log_info(f"Project '{project.name}' open sequence complete. Total data blocks: {len(self.mw.data_store.data)}")
+                try:
+                    from core.companion_sync import auto_pull_in_background
+                    auto_pull_in_background(self.mw)
+                except Exception as exc:
+                    log_debug(f"Failed to auto-pull companion on recent open: {exc}")
 
                 if not state_restored:
                     log_info(f"Restoring UI state for block {restored_block}, category '{restored_cat}'")

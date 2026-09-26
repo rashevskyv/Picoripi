@@ -63,6 +63,7 @@ class SettingsDialog(
         self.ai_translation_tab = QWidget()
         self.ai_glossary_tab = QWidget()
         self.logging_tab = QWidget()
+        self.companion_tab = QWidget()
 
         is_project_active = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project is not None
 
@@ -73,6 +74,7 @@ class SettingsDialog(
         self.tabs.addTab(self.ai_translation_tab, tr('AI Translation'))
         self.tabs.addTab(self.ai_glossary_tab, tr('AI Glossary'))
         self.tabs.addTab(self.logging_tab, tr('Logging'))
+        self.tabs.addTab(self.companion_tab, tr('Companion'))
         
         self.setup_general_tab()
         self.setup_plugin_tab()
@@ -80,6 +82,7 @@ class SettingsDialog(
         self.setup_ai_translation_tab()
         self.setup_ai_glossary_tab()
         self.setup_logging_tab()
+        self.setup_companion_tab()
 
         self.edit_prompts_btn.clicked.connect(self.on_edit_prompts_clicked)
 
