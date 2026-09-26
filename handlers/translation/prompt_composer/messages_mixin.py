@@ -255,6 +255,31 @@ class MessagesMixin:
             if story_context:
                 context_lines.append(f"Story Context:\n{story_context}")
 
+        # Reference translations from unpacked ROM / patch
+        ref_texts: List[str] = []
+        ref_langs = getattr(self.mw.data_store, 'reference_languages_data', {})
+        if block_idx is not None and block_idx != -1 and string_idx is not None and string_idx != -1:
+            if isinstance(ref_langs, dict) and ref_langs:
+                for lang_name, lang_dict in ref_langs.items():
+                    if isinstance(lang_dict, dict):
+                        t = lang_dict.get((block_idx, string_idx), "")
+                        if isinstance(t, str) and t.strip():
+                            ref_texts.append(f"- {lang_name}: {t.strip()}")
+            else:
+                raw_ref = getattr(self.mw.data_store, 'reference_data', {})
+                if isinstance(raw_ref, dict):
+                    single_ref = raw_ref.get((block_idx, string_idx), "")
+                    if isinstance(single_ref, str) and single_ref.strip():
+                        from core.reference_manager import ReferenceManager
+                        game_rules = getattr(self.mw, 'current_game_rules', None)
+                        ref_label = ReferenceManager.get_reference_language_label(game_rules)
+                        ref_texts.append(f"- {ref_label}: {single_ref.strip()}")
+            if ref_texts:
+                context_lines.append(
+                    "REFERENCE TRANSLATIONS (contextual reference only; the original text remains the source):\n"
+                    + "\n".join(ref_texts)
+                )
+
         # Objective conversation structure from the game BMG itself. This is
         # complementary to MemePalace: it supplies real order, branches,
         # conditions and game actions, but does not override the per-line speaker.
@@ -335,19 +360,21 @@ class MessagesMixin:
                 f'Generate 5 alternative {target_lang} glossary descriptions for the provided term.',
                 'Each description should be 1-2 sentences and stay under 60 words.',
                 'Preserve any tags/placeholders exactly as provided.',
+                'When the description refers to the term itself, always use the literal token {{TERM}} instead of writing out or transliterating the name (e.g. "{{TERM}} — персонаж, ...").',
                 'Keep the description informative and suitable for a glossary entry.',
                 'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
                 'Do NOT wrap the array in an object. Return only valid JSON without any markdown or extra commentary.',
             ]
         else:
             instructions = [
-                f'Translate the text into {target_lang} without altering the meaning.',
+                f'Translate the original source text into {target_lang} without altering the meaning.',
                 f'Prefer keeping {expected_lines} lines (including empty ones) and the original window_count.',
                 'Treat the SOURCE LAYOUT TARGET as the preferred layout, not an absolute prohibition. Translate each source line into its corresponding output line; never remove, merge, or reorder source lines. First use concise wording within max_line_width_px. If that would harm meaning or readability, add only the minimum necessary extra lines or dialogue windows.',
                 f'GLOSSARY IS MANDATORY: Every term found in the glossary MUST be translated exactly as specified in the "Translation" column. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect word endings to match {target_lang} grammar.',
                 'Read the "Notes" column in the glossary carefully for character gender, age, personality, speech style, and form of address (e.g. formal/informal). Apply this to the full translation.',
                 'Use MEMORY PALACE CONTEXT for the event, location, participants, their event-local interactions, persistent relationships, and character voice profiles. Apply only facts that are present; do not invent missing information.',
                 'All tags must be preserved exactly as they appear.',
+                'Strictly follow system prompt transcription and orthography rules for proper names and Japanese terms (e.g. G -> Ґ, H -> Г, shi -> сі, chi -> ті, ji -> дзі).',
                 'Return only one valid JSON object in the form {"translation":"..."}. The translation string must preserve the source layout exactly. Do not add explanations or meta text.',
             ]
 
@@ -361,6 +388,13 @@ class MessagesMixin:
             if tag_alias_legend:
                 instructions.append('TAG ALIAS LEGEND: Refer to the "TAG ALIAS LEGEND" section below to understand what tag aliases mean. Place them correctly in the translated text.')
             instructions.append('ANCHORED TAGS: Any tags not present in the legend (e.g. {0}, {1}, [PLAYER]) are anchored system tags. Do NOT translate, modify, or delete them. Maintain them in their correct positions.')
+            if ref_texts:
+                instructions.append(
+                    f'REFERENCE TRANSLATIONS CONTEXT: The original text is the primary translation source. '
+                    f'Loaded reference translations are contextual evidence for meaning, '
+                    f'speaker tone, and gender only. Do NOT translate from any reference language into {target_lang}, '
+                    f'and do NOT copy a reference translation as the {target_lang} result.'
+                )
 
         user_sections: List[str] = ['\n'.join(context_lines), '\n'.join(instructions)]
         if glossary_text:
@@ -374,19 +408,19 @@ class MessagesMixin:
                 user_sections.append(source_text)
                 user_sections.append('Full current translation (for context):')
                 user_sections.append(str(current_translation))
-                user_sections.append('Selected segment to vary/translate (Input text):')
+                user_sections.append('Selected segment to vary/translate (Input text, original source):')
                 user_sections.append(selected_text)
             else:
                 user_sections.append('Current translation:')
                 user_sections.append(str(current_translation))
-                user_sections.append('Input text:')
+                user_sections.append('Input text (Original source):')
                 user_sections.append(source_text)
         else:
             if request_type == 'glossary_notes_variation' and current_translation is not None:
                 user_sections.append('Current description:')
                 user_sections.append(str(current_translation or '(empty)'))
 
-            user_sections.append('Input text:')
+            user_sections.append('Input text (Original source):')
             user_sections.append(source_text)
 
         user_content = '\n\n'.join([section for section in user_sections if section])

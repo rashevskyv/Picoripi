@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.story_context_overrides import get_story_context_override
 from core.translation.session_manager import TranslationSessionState
@@ -25,6 +25,8 @@ class BatchMixin:
         is_retry: bool = False,
         retry_reason: str = '',
         temp_id_map: Optional[Dict] = None,
+        narrative_ledger: Optional[Any] = None,
+        **kwargs: Any,
     ) -> Tuple[str, str, Dict]:
         """Compose batch request."""
         placeholder_map: Dict = {}
@@ -108,6 +110,28 @@ class BatchMixin:
                     current_text_clean, real_b_idx, real_s_idx
                 ),
             }
+            # Reference translations for context
+            ref_langs = getattr(self.mw.data_store, 'reference_languages_data', {})
+            ref_translations: Dict[str, str] = {}
+            if isinstance(ref_langs, dict) and ref_langs and real_b_idx is not None and real_s_idx is not None:
+                for lang_name, lang_dict in ref_langs.items():
+                    if isinstance(lang_dict, dict):
+                        t = lang_dict.get((real_b_idx, real_s_idx), "")
+                        if isinstance(t, str) and t.strip():
+                            ref_translations[str(lang_name)] = t.strip()
+            elif real_b_idx is not None and real_s_idx is not None:
+                raw_ref = getattr(self.mw.data_store, 'reference_data', {})
+                if isinstance(raw_ref, dict):
+                    single_ref = raw_ref.get((real_b_idx, real_s_idx), "")
+                    if isinstance(single_ref, str) and single_ref.strip():
+                        from core.reference_manager import ReferenceManager
+                        game_rules = getattr(self.mw, 'current_game_rules', None)
+                        ref_label = ReferenceManager.get_reference_language_label(game_rules)
+                        ref_translations[ref_label] = single_ref.strip()
+
+            if ref_translations:
+                item_for_ai['reference_translations'] = ref_translations
+
             item_for_ai.update(translation_context)
             structure_path = [
                 str(part) for part in manual.get('structure_path') or () if str(part)
@@ -434,21 +458,27 @@ class BatchMixin:
             json_payload_for_ai['glossary'] = glossary_text
         if tag_alias_legend:
             json_payload_for_ai['tag_alias_legend'] = tag_alias_legend
+        if narrative_ledger and hasattr(narrative_ledger, "format_for_prompt"):
+            narrative_text = narrative_ledger.format_for_prompt()
+            if narrative_text:
+                json_payload_for_ai['established_narrative_context'] = narrative_text
 
         target_lang = self._get_target_lang()
         if not is_retry:
             instructions = [
-                f'Translate the "text" field for each object in the "strings_to_translate" array into {target_lang}.',
+                f'Translate the "text" field (original source) for each object in the "strings_to_translate" array into {target_lang}.',
                 'Return a single, valid JSON object with a "translated_strings" key.',
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object in the returned array must have the original "id" (integer) and a "translation" (string) field.',
                 'The number of objects in the "translated_strings" array must exactly match the number of objects provided in the input.',
                 'LAYOUT PRIORITY: First try to preserve line_count, blank_line_indices, trailing-newline state, and window_count from each item\'s "layout" field. Translate each source line into the corresponding output line and prefer concise wording that stays within max_line_width_px. Never remove, merge, or reorder source lines. You may add the minimum necessary extra lines, and therefore an extra dialogue window, only when the translation cannot remain readable or fit the width otherwise.',
                 f'GLOSSARY IS MANDATORY: Every term found in the "glossary" field MUST be translated exactly as specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect the word endings to match {target_lang} grammar. Glossary overrides everything.',
-                'Carefully read the "Notes" column of the glossary for details about character gender, age, personality, speech style, and the form of address (e.g. formal/informal). Apply this information to the entire translation.',
+                'Carefully read the "Notes" column of the glossary for details about character gender, age, personality, speech style, and form of address (e.g. formal/informal). Apply this information to the entire translation.',
                 'Resolve each item\'s "story_context_ref" in "story_context_catalog". Use its event, location, participants, event-local interactions, character profiles, and known relationships. Apply only populated facts; do not invent missing context.',
                 'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present), "speaker" and "addressee", to determine whether text is dialogue, a caption, a name, an item, or another UI role and translate it accordingly.',
                 'Follow the rules from the system prompt regarding tags.',
+                'NARRATIVE CANON: Strictly maintain consistency with any established terms, speaker voices, and decisions in "established_narrative_context".',
+                'TRANSCRIPTION RULES: Strictly follow proper name transcription and Japanese transliteration rules from the system prompt (e.g. G -> Ґ, H -> Г, Hyrule -> Гайрул, Hylia -> Гайлія, shi -> сі, chi -> ті, ji -> дзі, zero tolerance for Russianisms).',
                 'Do not add any explanations or text outside the JSON object.',
             ]
         else:
@@ -456,7 +486,7 @@ class BatchMixin:
                 'Your previous response was invalid. Please correct it.',
                 f'Error: {retry_reason}',
                 'Follow these instructions carefully:',
-                f'Translate the "text" field for each object in the "strings_to_translate" array into {target_lang}.',
+                f'Translate the "text" field (original source) for each object in the "strings_to_translate" array into {target_lang}.',
                 'Return a single, valid JSON object with a "translated_strings" key.',
                 'The value of "translated_strings" must be an array of objects.',
                 'Each object must have the original "id" and a "translation" field.',
@@ -465,7 +495,8 @@ class BatchMixin:
                 'GLOSSARY IS MANDATORY: Every term in the "glossary" MUST be translated exactly as specified. No synonyms or alternatives allowed.',
                 'Resolve each item\'s "story_context_ref" in "story_context_catalog" and use it for event facts, location, participants, interactions, character voices, relationships, gender agreement, and forms of address. Do not invent missing facts.',
                 'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present), "speaker" and "addressee", to determine the text role and tone.',
-                'Follow the rules from the system prompt regarding tags.',
+                'Follow the rules from the system prompt regarding tags and proper name transcription.',
+                'NARRATIVE CANON: Strictly maintain consistency with any established terms, speaker voices, and decisions in "established_narrative_context".',
                 'Do not add any explanations or text outside the JSON object.',
             ]
 
@@ -502,6 +533,15 @@ class BatchMixin:
         if tag_alias_legend:
             instructions.append('TAG ALIAS LEGEND: Use the "tag_alias_legend" field in the JSON payload to understand the meaning of tag aliases (e.g. colors, speed). Place these tag aliases correctly around the corresponding translated words.')
         instructions.append('ANCHORED TAGS: Any tags not present in the "tag_alias_legend" are anchored system tags (e.g. {0}, {1}, [PLAYER]). Do NOT translate, modify, or delete them. Keep them exactly in their correct relative positions in the translation.')
+        has_ref_translations = any('reference_translations' in it for it in items_with_context)
+        if has_ref_translations:
+            instructions.append(
+                f'REFERENCE TRANSLATIONS CONTEXT: The "text" field is the primary original source text to translate. '
+                f'Loaded reference translations (in "reference_translations") '
+                f'are contextual evidence for meaning, speaker tone, and gender only. '
+                f'Do NOT translate from any reference language into {target_lang}, '
+                f'and do NOT copy a reference translation as the {target_lang} result.'
+            )
 
         # Add a note about text unity to the system prompt
         system_prompt_addition = (

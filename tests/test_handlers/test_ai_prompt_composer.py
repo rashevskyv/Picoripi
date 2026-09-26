@@ -686,6 +686,82 @@ def test_resolved_defaults_prompts_have_no_cyrillic(composer):
         resolved_mc_sys = resolve_target_language_prompt(mc_prompts["translation"]["system_prompt"], "Spanish")
         assert not cyrillic_pattern.search(resolved_mc_sys), f"Cyrillic characters found in resolved Minish Cap system prompt: {cyrillic_pattern.findall(resolved_mc_sys)}"
 
+    # 5. Check plugins/zelda_ww, zelda_bmg, pokemon_fr, plain_text, default_plugin
+    other_plugin_names = ["zelda_ww", "zelda_bmg", "pokemon_fr", "plain_text", "default_plugin"]
+    for p_name in other_plugin_names:
+        p_path = Path("plugins") / p_name / "translation_prompts" / "prompts.json"
+        if p_path.exists():
+            with open(p_path, "r", encoding="utf-8") as f:
+                p_data = json.load(f)
+            if "translation" in p_data and "system_prompt" in p_data["translation"]:
+                res_sys = resolve_target_language_prompt(p_data["translation"]["system_prompt"], "Spanish")
+                assert not cyrillic_pattern.search(res_sys), f"Cyrillic found in resolved {p_name} system prompt: {cyrillic_pattern.findall(res_sys)}"
+
+    # 6. Check translation_prompts/glossary_pipeline_prompts.json
+    pipeline_prompts_path = Path("translation_prompts") / "glossary_pipeline_prompts.json"
+    if pipeline_prompts_path.exists():
+        with open(pipeline_prompts_path, "r", encoding="utf-8") as f:
+            pipe_data = json.load(f)
+        if "translate" in pipe_data and "system_prompt" in pipe_data["translate"]:
+            res_pipe = resolve_target_language_prompt(pipe_data["translate"]["system_prompt"], "Spanish")
+            assert not cyrillic_pattern.search(res_pipe), f"Cyrillic found in pipeline translate prompt: {cyrillic_pattern.findall(res_pipe)}"
+
+
+def test_resolve_target_language_prompt_conditional_blocks():
+    from utils.utils import resolve_target_language_prompt
+
+    template = (
+        "Common intro\n"
+        "[IF_TARGET_LANG: Ukrainian]\n"
+        "Ukrainian transcription: G -> Ґ, H -> Г, Hogwarts -> Гоґвортс.\n"
+        "Japanese: shi -> сі, chi -> ті, ji -> дзі.\n"
+        "[/IF_TARGET_LANG]\n"
+        "Common outro for {target_lang}."
+    )
+
+    # When target language is Ukrainian
+    resolved_uk = resolve_target_language_prompt(template, "Ukrainian")
+    assert "Ukrainian transcription: G -> Ґ, H -> Г, Hogwarts -> Гоґвортс." in resolved_uk
+    assert "Japanese: shi -> сі, chi -> ті, ji -> дзі." in resolved_uk
+    assert "Common outro for Ukrainian." in resolved_uk
+    assert "[IF_TARGET_LANG" not in resolved_uk
+    assert "[/IF_TARGET_LANG]" not in resolved_uk
+
+    # When target language is Spanish
+    resolved_es = resolve_target_language_prompt(template, "Spanish")
+    assert "Ukrainian transcription" not in resolved_es
+    assert "Гоґвортс" not in resolved_es
+    assert "Common intro" in resolved_es
+    assert "Common outro for Spanish." in resolved_es
+    assert "[IF_TARGET_LANG" not in resolved_es
+
+
+def test_prompts_contain_transcription_rules_for_ukrainian():
+    import json
+    from pathlib import Path
+    from utils.utils import resolve_target_language_prompt
+
+    # Check defaults
+    defaults_path = Path("plugins") / "common" / "defaults" / "prompts.json"
+    with open(defaults_path, "r", encoding="utf-8") as f:
+        prompts = json.load(f)
+    sys_uk = resolve_target_language_prompt(prompts["translation"]["system_prompt"], "Ukrainian")
+    assert "Гоґвортс" in sys_uk
+    assert "Ґ/ґ" in sys_uk or "Ґ" in sys_uk
+    assert "Коваленка" in sys_uk or "Kovalenko" in sys_uk
+    assert "сі" in sys_uk and "ті" in sys_uk and "дзі" in sys_uk
+
+    # Check all plugins
+    plugins_to_check = ["zelda_mc", "zelda_ww", "zelda_bmg", "pokemon_fr", "plain_text", "default_plugin"]
+    for p_name in plugins_to_check:
+        p_path = Path("plugins") / p_name / "translation_prompts" / "prompts.json"
+        assert p_path.exists(), f"Missing prompts.json for {p_name}"
+        with open(p_path, "r", encoding="utf-8") as f:
+            p_data = json.load(f)
+        resolved = resolve_target_language_prompt(p_data["translation"]["system_prompt"], "Ukrainian")
+        assert "Ґ" in resolved, f"Plugin {p_name} missing Ґ in Ukrainian prompt"
+        assert "сі" in resolved, f"Plugin {p_name} missing 'сі' in Ukrainian prompt"
+
 
 def test_AIPromptComposer_tag_alias_legend_and_newlines(composer):
     # Setup tag mappings
@@ -960,3 +1036,83 @@ class TestSpeakerInPrompts:
         assert "CLERK_B" not in single_user
         assert "CLERK_B" not in batch_user
         assert '"speaker": "Unknown"' in batch_user
+
+
+def test_prompts_include_reference_translations(composer):
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+    composer.mw.data_store.block_names = {"0": "Block 0"}
+    composer.mw.data_store.data = [["Wake up!"]]
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+    composer.main_handler._glossary_manager.get_entries.return_value = []
+
+    # Configure multi-language reference
+    composer.mw.data_store.reference_languages_data = {
+        "Russian (RU)": {(0, 0): "Проснись!"},
+        "German (DE)": {(0, 0): "Aufwachen!"},
+    }
+
+    # Test single string
+    _, single_user = composer.compose_messages(
+        "SysPrompt", "Wake up!", block_idx=0, string_idx=0,
+        expected_lines=1, mode_description="translation"
+    )
+    assert "REFERENCE TRANSLATIONS" in single_user
+    assert "- Russian (RU): Проснись!" in single_user
+    assert "- German (DE): Aufwachen!" in single_user
+    assert "The original text is the primary translation source" in single_user
+    assert "Do NOT translate from any reference language" in single_user
+
+    # Test batch
+    _, batch_user, _ = composer.compose_batch_request(
+        "SysPrompt", [{"id": 0, "text": "Wake up!"}],
+        [{"id": 0, "text": "Wake up!"}], block_idx=0, mode_description="translation"
+    )
+    assert "reference_translations" in batch_user
+    assert "Проснись!" in batch_user
+    assert "Aufwachen!" in batch_user
+    assert "The \"text\" field is the primary original source text" in batch_user
+    assert "Do NOT translate from any reference language" in batch_user
+
+
+def test_prompts_do_not_falsely_label_non_english_source_as_english(composer):
+    from unittest.mock import patch
+
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+    composer.mw.data_store.block_names = {"0": "Block 0"}
+    composer.mw.data_store.data = [["Guten Morgen!"]]
+    composer.main_handler._glossary_manager = MagicMock()
+    composer.main_handler._glossary_manager.get_relevant_terms.return_value = []
+    composer.main_handler._glossary_manager.get_entries.return_value = []
+
+    # Single string translation
+    _, single_user = composer.compose_messages(
+        "SysPrompt", "Guten Morgen!", block_idx=0, string_idx=0,
+        expected_lines=1, mode_description="translation"
+    )
+    # Batch translation
+    _, batch_user, _ = composer.compose_batch_request(
+        "SysPrompt", [{"id": 0, "text": "Guten Morgen!"}],
+        [{"id": 0, "text": "Guten Morgen!"}], block_idx=0, mode_description="translation"
+    )
+
+    # Neither single nor batch instructions/labels should falsely label the source as English
+    assert "English" not in single_user
+    assert "English" not in batch_user
+    assert "Input text (Original source):" in single_user
+    assert "Translate the original source text into" in single_user
+
+    # When legacy reference_data exists without multi-language map,
+    # it must use the label from get_reference_language_label, not hardcoded Russian
+    composer.mw.data_store.reference_languages_data = {}
+    composer.mw.data_store.reference_data = {(0, 0): "Bonjour!"}
+    with patch("core.reference_manager.ReferenceManager.get_reference_language_label", return_value="French (FR)"):
+        _, single_ref_user = composer.compose_messages(
+            "SysPrompt", "Guten Morgen!", block_idx=0, string_idx=0,
+            expected_lines=1, mode_description="translation"
+        )
+        assert "- French (FR): Bonjour!" in single_ref_user
+        assert "Russian" not in single_ref_user
+        assert "English" not in single_ref_user

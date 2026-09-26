@@ -1,14 +1,15 @@
 """Translate entry points for TranslationHandler."""
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import QPoint
 from PyQt6.QtWidgets import QMessageBox
 
 from utils.logging_utils import log_debug
-from core.tag_utils import iter_all_strings
 from core.i18n import tr
+from core.translation.block_classifier import classify_project_items
+from components.ai_status_dialog import AIStatusDialog
 
 
 class TranslateMixin:
@@ -420,30 +421,37 @@ class TranslateMixin:
         else:
             self.translate_current_string(force_prompt=force_prompt)
 
-    def translate_all_blocks_chronologically(self) -> None:
-        """Translate all blocks chronologically."""
+    def _run_partitioned_translation(
+        self,
+        raw_items: List[Dict[str, Any]],
+        temp_id_map: Dict[int, Tuple[int, int]],
+        target_block_idx: int,
+        operation_title: str,
+        mode_description: str,
+        on_complete=None,
+    ) -> None:
+        """Helper to run a batch of classified items with scene context and resume support."""
         if self.is_ai_running:
             QMessageBox.information(self.mw, tr('AI Busy'), tr('An AI task is already running. Please wait for it to complete.'))
             return
-            
+
         data_source = self.mw.data_store.data
-        if not isinstance(data_source, list) or not data_source:
+        if not isinstance(data_source, list) or not data_source or not raw_items:
             QMessageBox.information(self.mw, tr('AI Translation'), tr('No data available to translate.'))
             return
 
-        target_block_idx = 999999
         is_resume = False
         progress_entry = self.translation_progress.get(target_block_idx)
         if progress_entry and progress_entry.get('completed_chunks') and progress_entry.get('source_items'):
             completed = len(progress_entry['completed_chunks'])
             total = progress_entry.get('total_chunks', 0)
             if total > 0 and completed < total:
-                msg = f"An interrupted chronological translation session was found ({completed}/{total} chunks completed).\n\nWould you like to resume it?"
+                msg = f"An interrupted translation session was found ({completed}/{total} chunks completed).\n\nWould you like to resume it?"
                 choice = QMessageBox.question(
-                    self.mw, 
-                    tr('Resume Chronological Translation'), 
-                    msg, 
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
+                    self.mw,
+                    tr('Resume Translation'),
+                    msg,
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                     QMessageBox.StandardButton.Yes
                 )
                 if choice == QMessageBox.StandardButton.Yes:
@@ -455,17 +463,14 @@ class TranslateMixin:
         if is_resume:
             source_items = progress_entry.get('source_items', [])
             temp_id_map = progress_entry.get('temp_id_map', {})
-            
-            operation_title = "Resuming AI Translation (All Blocks Chronological)"
-            self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
-            
+
+            self.ui_handler.start_ai_operation(f"Resuming {operation_title}", is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
             provider = self.ai_lifecycle_manager._prepare_provider()
             if not provider:
                 self.ui_handler.finish_ai_operation()
                 return
 
             block_timeout = 180
-
             task_details = {
                 'type': 'translate_block_chunked',
                 'provider': provider,
@@ -474,69 +479,236 @@ class TranslateMixin:
                 'max_retries': 4,
                 'block_idx': target_block_idx,
                 'temp_id_map': temp_id_map,
-                'mode_description': "all blocks chronologically",
+                'mode_description': mode_description,
                 'provider_settings_override': {'timeout': block_timeout},
                 'timeout_seconds': block_timeout,
                 'is_resume': True,
-                'session_reset_attempted': progress_entry.get('session_reset_attempted', False)
+                'session_reset_attempted': progress_entry.get('session_reset_attempted', False),
+                'enable_editor_review': True,
             }
+            if on_complete:
+                task_details['on_complete'] = on_complete
             if progress_entry.get('custom_user_header'):
                 task_details['custom_user_header'] = progress_entry.get('custom_user_header')
                 task_details['custom_user_label'] = progress_entry.get('custom_user_label')
             if progress_entry.get('system_prompt_override'):
                 task_details['system_prompt_override'] = progress_entry.get('system_prompt_override')
-                
+
             self._initiate_batch_translation(task_details)
             return
 
         self.start_new_session = True
-        operation_title = "AI Translation (All Blocks Chronological)"
-        
         self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
         from components.ai_status_dialog import AIStatusDialog
-        self.ui_handler.update_ai_operation_step(0, "Preparing chronological data...", AIStatusDialog.STATUS_IN_PROGRESS)
+        self.ui_handler.update_ai_operation_step(0, "Preparing data...", AIStatusDialog.STATUS_IN_PROGRESS)
 
-        # 1. Gather all dialogue strings across all blocks
-        all_project_items = []
-        for b_idx, s_idx, original_text in iter_all_strings(data_source):
-            all_project_items.append({
-                'block_idx': b_idx,
-                'string_idx': s_idx,
-                'text': str(original_text or "")
-            })
+        # Save pre-translation state for backup/revert
+        for b_idx in range(len(data_source)):
+            if b_idx not in self.pre_translation_state:
+                self.pre_translation_state[b_idx] = self.data_processor.get_block_texts(b_idx)
 
-        if not all_project_items:
-            self.ui_handler.finish_ai_operation()
-            QMessageBox.information(self.mw, tr('AI Translation'), tr('No dialogues found to translate.'))
-            return
-
-        # 2. Sort chronologically using MemePalace mappings
         wing_name = self.prompt_composer._get_wing_name()
         client = self.prompt_composer._get_mempalace_client()
         block_names_map = {b_idx: self.prompt_composer._get_block_label(b_idx) for b_idx in range(len(data_source))}
-        
+
+        source_items = []
+        for item in raw_items:
+            scene_context = ""
+            if client:
+                b_idx = item['block_idx']
+                s_idx = item['string_idx']
+                block_label = block_names_map.get(b_idx, f"Block_{b_idx + 1}")
+                bmg_id = f"{block_label}_Str_{s_idx}"
+                try:
+                    cached = client.get_cached_context(bmg_id, item['text'])
+                    if cached and cached.get("room"):
+                        room = cached.get("room")
+                        visual = client.get_room_visual_context(wing_name, room)
+                        if visual:
+                            scene_context = f"Scene: {room.replace('_', ' ')}\n{visual}"
+                        else:
+                            scene_context = f"Scene: {room.replace('_', ' ')}"
+                except Exception:
+                    pass
+
+            source_item = {
+                'id': item['id'],
+                'text': item['text']
+            }
+            if scene_context:
+                source_item['scene_context'] = scene_context
+            source_items.append(source_item)
+
+        source_items, temp_id_map = self._filter_already_saved_translations(source_items, temp_id_map)
+        if not source_items:
+            self.ui_handler.finish_ai_operation()
+            if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+                self.mw.statusBar.showMessage("All selected lines restored from saved translations.", 3000)
+            if callable(on_complete):
+                on_complete()
+            return
+
+        provider = self.ai_lifecycle_manager._prepare_provider()
+        if not provider:
+            self.ui_handler.finish_ai_operation()
+            return
+
+        block_timeout = 180
+        task_details = {
+            'type': 'translate_block_chunked',
+            'provider': provider,
+            'source_items': source_items,
+            'attempt': 1,
+            'max_retries': 4,
+            'block_idx': target_block_idx,
+            'temp_id_map': temp_id_map,
+            'mode_description': mode_description,
+            'provider_settings_override': {'timeout': block_timeout},
+            'timeout_seconds': block_timeout,
+            'session_reset_attempted': False,
+            'enable_editor_review': True,
+        }
+        if on_complete:
+            task_details['on_complete'] = on_complete
+        self._initiate_batch_translation(task_details)
+
+    def translate_story_first(self, on_complete=None) -> None:
+        """Phase 1: Translate story dialogue chronologically with Narrative Ledger."""
+        data_source = self.mw.data_store.data
+        classified = classify_project_items(data_source, self.mw)
+        if not classified.has_story:
+            QMessageBox.information(self.mw, tr('AI Translation'), tr('No story dialogues found to translate.'))
+            return
+
+        self._run_partitioned_translation(
+            raw_items=classified.story_items,
+            temp_id_map=classified.story_temp_id_map,
+            target_block_idx=999998,
+            operation_title=tr("AI Translation (Story First Chronological)"),
+            mode_description="story blocks chronologically",
+            on_complete=on_complete,
+        )
+
+    def translate_remaining_blocks(self, on_complete=None) -> None:
+        """Phase 2: Translate remaining semantic & system blocks using established lore context."""
+        data_source = self.mw.data_store.data
+        classified = classify_project_items(data_source, self.mw)
+        if not classified.has_semantic:
+            QMessageBox.information(self.mw, tr('AI Translation'), tr('No remaining semantic or system blocks found to translate.'))
+            return
+
+        self._run_partitioned_translation(
+            raw_items=classified.semantic_items,
+            temp_id_map=classified.semantic_temp_id_map,
+            target_block_idx=999997,
+            operation_title=tr("AI Translation (Remaining Blocks)"),
+            mode_description="remaining semantic blocks",
+            on_complete=on_complete,
+        )
+
+    def translate_all_blocks_pipeline(self) -> None:
+        """Full Pipeline: Translate Story first, then seamlessly proceed to Remaining Blocks."""
+        data_source = self.mw.data_store.data
+        if not isinstance(data_source, list) or not data_source:
+            QMessageBox.information(self.mw, tr('AI Translation'), tr('No data available to translate.'))
+            return
+
+        classified = classify_project_items(data_source, self.mw)
+        if not classified.has_story and not classified.has_semantic:
+            QMessageBox.information(self.mw, tr('AI Translation'), tr('No dialogues found to translate.'))
+            return
+
+        if classified.has_story and classified.has_semantic:
+            def _after_story():
+                log_debug("translate_all_blocks_pipeline: Story phase complete, proceeding to remaining blocks.")
+                self.translate_remaining_blocks()
+
+            self.translate_story_first(on_complete=_after_story)
+        elif classified.has_story:
+            self.translate_story_first()
+        else:
+            self.translate_remaining_blocks()
+
+    def translate_all_blocks_chronologically(self) -> None:
+        """
+        Translates all blocks in the project chronologically based on MemePalace script markings.
+        Falls back to default order for blocks without markings.
+        Uses chunking to handle large projects reliably.
+        """
+        if self.is_ai_running:
+            QMessageBox.information(self.mw, tr("AI Busy"), tr("An AI task is already running. Please wait for it to complete."))
+            return
+
+        data_source = self.mw.data_store.data
+        if not isinstance(data_source, list) or not data_source:
+            QMessageBox.information(self.mw, tr("AI Translation"), tr("No data available to translate."))
+            return
+
+        # Check for existing progress on synthetic block index 999999
+        if 999999 in self.translation_progress:
+            progress = self.translation_progress[999999]
+            completed = len(progress['completed_chunks'])
+            total = progress['total_chunks']
+            reply = QMessageBox.question(
+                self.mw,
+                tr("Resume Translation"),
+                f"Previous project-wide translation progress found ({completed}/{total} chunks completed).\nDo you want to resume?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Yes
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.resume_block_translation(999999)
+                return
+            elif reply == QMessageBox.StandardButton.No:
+                del self.translation_progress[999999]
+            else:
+                return
+
+        # 1. Collect all valid strings across all blocks
+        all_project_items = []
+        for b_idx, block in enumerate(data_source):
+            if not isinstance(block, list):
+                continue
+            for s_idx, string_val in enumerate(block):
+                text_to_trans = self.glossary_handler._get_original_string(b_idx, s_idx)
+                if text_to_trans and text_to_trans.strip():
+                    all_project_items.append({
+                        'block_idx': b_idx,
+                        'string_idx': s_idx,
+                        'text': text_to_trans
+                    })
+
+        if not all_project_items:
+            QMessageBox.information(self.mw, tr("AI Translation"), tr("No text found to translate."))
+            return
+
+        self.ui_handler.start_ai_operation("AI Translation (All Blocks Chronologically)", is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
+        self.ui_handler.update_ai_operation_step(0, "Preparing data...", AIStatusDialog.STATUS_IN_PROGRESS)
+
+        wing_name = self.prompt_composer._get_wing_name()
+        client = self.prompt_composer._get_mempalace_client()
+        block_names_map = {b_idx: self.prompt_composer._get_block_label(b_idx) for b_idx in range(len(data_source))}
+
         scored_items = []
         for item in all_project_items:
             b_idx = item['block_idx']
             s_idx = item['string_idx']
             block_label = block_names_map[b_idx]
             bmg_id = f"{block_label}_Str_{s_idx}"
-            
+
             script_line = 999999
             if client:
                 mapping = client.get_script_mapping(wing_name, bmg_id)
                 if mapping and mapping.get("script_line"):
                     script_line = mapping["script_line"]
             scored_items.append((item, script_line))
-            
+
         scored_items.sort(key=lambda x: x[1])
         sorted_items = [x[0] for x in scored_items]
 
-        # Save pre-translation state for backup/revert
         for b_idx in range(len(data_source)):
             self.pre_translation_state[b_idx] = self.data_processor.get_block_texts(b_idx)
 
-        # 3. Build source items and temp ID mappings
         source_items = []
         temp_id_map = {}
         for temp_id, item in enumerate(sorted_items):
@@ -546,22 +718,25 @@ class TranslateMixin:
                 s_idx = item['string_idx']
                 block_label = block_names_map[b_idx]
                 bmg_id = f"{block_label}_Str_{s_idx}"
-                cached = client.get_cached_context(bmg_id, item['text'])
-                if cached and cached.get("room"):
-                    room = cached.get("room")
-                    visual = client.get_room_visual_context(wing_name, room)
-                    if visual:
-                        scene_context = f"Scene: {room.replace('_', ' ')}\n{visual}"
-                    else:
-                        scene_context = f"Scene: {room.replace('_', ' ')}"
-            
+                try:
+                    cached = client.get_cached_context(bmg_id, item['text'])
+                    if cached and cached.get("room"):
+                        room = cached.get("room")
+                        visual = client.get_room_visual_context(wing_name, room)
+                        if visual:
+                            scene_context = f"Scene: {room.replace('_', ' ')}\n{visual}"
+                        else:
+                            scene_context = f"Scene: {room.replace('_', ' ')}"
+                except Exception:
+                    pass
+
             source_item = {
                 'id': temp_id,
                 'text': item['text']
             }
             if scene_context:
                 source_item['scene_context'] = scene_context
-                
+
             source_items.append(source_item)
             temp_id_map[temp_id] = (item['block_idx'], item['string_idx'])
 
@@ -577,9 +752,7 @@ class TranslateMixin:
             self.ui_handler.finish_ai_operation()
             return
 
-
         block_timeout = 180
-
         target_block_idx = 999999
         task_details = {
             'type': 'translate_block_chunked',
@@ -592,6 +765,7 @@ class TranslateMixin:
             'mode_description': "all blocks chronologically",
             'provider_settings_override': {'timeout': block_timeout},
             'timeout_seconds': block_timeout,
-            'session_reset_attempted': False
+            'session_reset_attempted': False,
+            'enable_editor_review': True,
         }
         self._initiate_batch_translation(task_details)

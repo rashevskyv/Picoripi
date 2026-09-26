@@ -298,6 +298,23 @@ class AIBatchTranslator(BaseTranslationHandler):
         if context.get('system_prompt_override'):
             system_prompt = context['system_prompt_override']
 
+        narrative_ledger = getattr(self.main_handler, 'narrative_ledger', None)
+        if narrative_ledger is None:
+            from core.translation.narrative_ledger import NarrativeLedger
+            narrative_ledger = NarrativeLedger()
+            self.main_handler.narrative_ledger = narrative_ledger
+        context['narrative_ledger'] = narrative_ledger
+
+        # Load editor review prompt if not explicitly disabled
+        if context.get('enable_editor_review', True):
+            try:
+                editor_system_prompt = self.main_handler.glossary_handler.load_editor_review_prompt()
+                if editor_system_prompt:
+                    context['editor_system_prompt'] = editor_system_prompt
+                    context['enable_editor_review'] = True
+            except Exception:
+                pass
+
         session_state = self.main_handler._session_manager.get_state()
         composer_args = {
             'system_prompt': system_prompt,
@@ -308,6 +325,7 @@ class AIBatchTranslator(BaseTranslationHandler):
             'retry_reason': context.get('last_error', ''),
             'session_state': session_state,
             'temp_id_map': context.get('temp_id_map'),
+            'narrative_ledger': narrative_ledger,
         }
         context['composer_args'] = composer_args
 
@@ -509,8 +527,15 @@ class AIBatchTranslator(BaseTranslationHandler):
                 self.ui_updater.update_text_views()
                 if hasattr(self.mw, 'app_action_handler'):
                     for m_block in modified_blocks:
-                        if m_block != 999999 and m_block >= 0:
+                        if m_block < 999900 and m_block >= 0:
                             self.mw.issue_scan_handler.rescan_issues_for_single_block(m_block, show_message_on_completion=False)
+
+                on_complete = context.get('on_complete')
+                if callable(on_complete):
+                    try:
+                        on_complete()
+                    except Exception as exc:
+                        log_debug(f"BatchTranslator: on_complete callback failed: {exc}")
                 
                 if block_idx == -2:
                     if -2 in self.main_handler.translation_progress:

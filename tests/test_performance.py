@@ -32,7 +32,7 @@ def generate_synthetic_dataset(lines_count=5000, glossary_count=100):
     base_terms = [
         ("Master Sword", "Майстер-меч"),
         ("Zelda", "Зельда"),
-        ("Hyrule", "Хайрул"),
+        ("Hyrule", "Гайрул"),
         ("Rupee", "Рупія"),
         ("PLAYER", "ГРАВЕЦЬ"),
         ("Time", "Час"),

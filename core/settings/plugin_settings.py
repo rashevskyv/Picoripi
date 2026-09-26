@@ -1,4 +1,4 @@
-﻿import json
+import json
 import os
 from pathlib import Path
 from typing import Dict, Optional, Any
@@ -188,6 +188,25 @@ class PluginSettings:
             elif not hasattr(self.mw, "translation_config") or not self.mw.translation_config:
                 self.mw.translation_config = build_default_translation_config()
 
+            ref_path = combined_data.get("reference_patch_path")
+            if ref_path:
+                self.mw.reference_patch_path = ref_path
+                try:
+                    from core.reference_manager import ReferenceManager
+                    game_rules = getattr(self.mw, "current_game_rules", None)
+                    ref_langs = ReferenceManager.load_multi_reference(
+                        ref_path,
+                        self.mw.data_store.block_names,
+                        game_rules=game_rules
+                    )
+                    self.mw.data_store.reference_languages_data = ref_langs
+                    self.mw.data_store.reference_data = (
+                        ref_langs.get("Russian (RU)")
+                        or (next(iter(ref_langs.values())) if ref_langs else {})
+                    )
+                except Exception as err:
+                    log_error(f"Failed to load reference from {ref_path}: {err}")
+
             log_debug("Merged settings loaded successfully.")
         except Exception as e:
             log_error(f"Error applying merged settings: {e}", exc_info=True)
@@ -298,7 +317,8 @@ class PluginSettings:
             ),
             "align_sentences_to_original_pages": getattr(self.mw, 'align_sentences_to_original_pages', False),
             "prevent_empty_lines_in_autofix": getattr(self.mw, 'prevent_empty_lines_in_autofix', False),
-            "context_menu_tags": getattr(self.mw, 'context_menu_tags', {"single_tags": [], "wrap_tags": []})
+            "context_menu_tags": getattr(self.mw, 'context_menu_tags', {"single_tags": [], "wrap_tags": []}),
+            "reference_patch_path": getattr(self.mw, 'reference_patch_path', None)
         }
         
         project_data.update(plugin_data_to_save)

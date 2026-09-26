@@ -42,6 +42,9 @@ class AIWorkerRunMixin:
             settings_override = {}
             if self.task_details.get('web_search_enabled'):
                 settings_override['web_search_enabled'] = True
+            extra_override = self.task_details.get('settings_override')
+            if isinstance(extra_override, dict):
+                settings_override.update(extra_override)
 
             if task_type == 'chat_message_stream':
                 state = self.task_details.get('session_state')
@@ -346,6 +349,37 @@ class AIWorkerRunMixin:
                         )
                     return parsed_response
 
+                def _maybe_run_editor_review(chunk_i: int, chunk_items: list, cleaned_draft: str) -> str:
+                    if not self.task_details.get('enable_editor_review', False):
+                        return cleaned_draft
+                    editor_prompt = self.task_details.get('editor_system_prompt')
+                    if not editor_prompt or self.is_cancelled:
+                        return cleaned_draft
+                    try:
+                        ledger = self.task_details.get('narrative_ledger')
+                        ledger_text = ledger.format_for_prompt() if ledger and hasattr(ledger, 'format_for_prompt') else ""
+                        draft_payload = json.loads(cleaned_draft)
+                        editor_input = {
+                            "task": "Review, polish, and ensure terminology consistency for the draft translation.",
+                            "source_strings": chunk_items,
+                            "draft_translation": draft_payload,
+                        }
+                        if ledger_text:
+                            editor_input["established_narrative_context"] = ledger_text
+                        review_messages = [
+                            {"role": "system", "content": editor_prompt},
+                            {"role": "user", "content": json.dumps(editor_input, ensure_ascii=False, indent=2)}
+                        ]
+                        review_resp = self.provider.translate(review_messages, session=None, settings_override=provider_override)
+                        if self.is_cancelled or not review_resp or not review_resp.text:
+                            return cleaned_draft
+                        polished_cleaned = self._clean_json_response(review_resp.text)
+                        _validate_chunk_result(chunk_i, chunk_items, polished_cleaned)
+                        return polished_cleaned
+                    except Exception as e:
+                        log_debug(f"AIWorker: Editor review for chunk {chunk_i} skipped/failed, keeping draft: {e}")
+                        return cleaned_draft
+
                 # Parallel path when workers > 1 and stateless
                 if workers > 1 and not session_state:
                     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -374,6 +408,7 @@ class AIWorkerRunMixin:
                         self._log_ai_traffic(messages, response_text=response.text)
                         cleaned = self._clean_json_response(response.text)
                         _validate_chunk_result(idx, chunk, cleaned)
+                        cleaned = _maybe_run_editor_review(idx, chunk, cleaned)
                         return idx, cleaned, response.text
 
                     completed_count = len(chunks_to_skip)
@@ -483,6 +518,7 @@ class AIWorkerRunMixin:
                         self._log_ai_traffic(messages, response_text=response.text)
                         cleaned_text = self._clean_json_response(response.text)
                         _validate_chunk_result(i, chunk, cleaned_text)
+                        cleaned_text = _maybe_run_editor_review(i, chunk, cleaned_text)
 
                         if session_state and not session_state.bootstrapped:
                             log_debug(f"AIWorker: First chunk (index {i}) of block translation successful. Marking session as bootstrapped.")

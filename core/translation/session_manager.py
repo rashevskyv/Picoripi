@@ -32,17 +32,15 @@ class TranslationSessionState:
     ) -> Tuple[List[Dict[str, str]], Optional[Dict[str, str]]]:
         """Return request messages and optional session payload."""
         message_copy = {"role": user_message["role"], "content": user_message["content"]}
-        if not self.bootstrapped:
-            return [
-                {"role": "system", "content": self.current_system_prompt},
-                message_copy,
-            ], None
-        if self.conversation_id:
-            return [message_copy], {"conversation_id": self.conversation_id}
-        history_copy = [{"role": item["role"], "content": item["content"]} for item in self.history]
-        if history_copy:
-            return [*history_copy, message_copy], None
-        return [message_copy], None
+        messages: List[Dict[str, str]] = []
+        if self.current_system_prompt:
+            messages.append({"role": "system", "content": self.current_system_prompt})
+        for item in self.history:
+            messages.append({"role": item["role"], "content": item["content"]})
+        messages.append(message_copy)
+
+        session_payload = {"conversation_id": self.conversation_id} if self.conversation_id else None
+        return messages, session_payload
 
     def record_exchange(
         self,
