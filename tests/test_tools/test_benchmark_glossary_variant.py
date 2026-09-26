@@ -50,6 +50,8 @@ class FakeHost(DetailsMixin):
 
     def _refresh_rendered_notes(self) -> None:
         self._refresh_notes_called = True
+        if getattr(self, "_raise_on_refresh", False):
+            raise RuntimeError("Deliberate failure during refresh")
 
     def _on_confirm_clicked(self, advance: bool = False) -> None:
         self._confirm_call_count += 1
@@ -140,8 +142,7 @@ def test_probe_disabled_by_default(monkeypatch, capsys):
 
     assert host._translation_edit.text_val == "NewVariantTranslation"
     assert host._refresh_notes_called is True
-    assert host._confirm_call_count == 1
-    assert host._confirmed_advance is True
+    assert host._confirm_call_count == 0
 
     captured = capsys.readouterr()
     assert "GLOSSARY VARIANT WALL TIME:" not in captured.out
@@ -159,8 +160,7 @@ def test_probe_enabled_generates_prof_and_executes_once(monkeypatch, capsys):
     host._apply_variant_item(item, advance=True)
 
     assert host._translation_edit.text_val == secret_variant
-    assert host._confirm_call_count == 1
-    assert host._confirmed_advance is True
+    assert host._confirm_call_count == 0
 
     captured = capsys.readouterr()
     out = captured.out
@@ -185,14 +185,14 @@ def test_probe_enabled_generates_prof_and_executes_once(monkeypatch, capsys):
 
 
 def test_probe_handles_exceptions_and_disables_profiler(monkeypatch, capsys):
-    """Exceptions during confirm still disable the profiler and dump stats without leaking state."""
+    """Exceptions during variant apply still disable the profiler and dump stats without leaking state."""
     monkeypatch.setenv("PICORIPI_PROFILE_GLOSSARY_VARIANT", "1")
 
     host = FakeHost()
-    host._raise_on_confirm = True
+    host._raise_on_refresh = True
     item = FakeItem("VariantFailing")
 
-    with pytest.raises(RuntimeError, match="Deliberate failure during confirmation"):
+    with pytest.raises(RuntimeError, match="Deliberate failure during refresh"):
         host._apply_variant_item(item, advance=False)
 
     captured = capsys.readouterr()

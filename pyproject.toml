@@ -2,7 +2,7 @@
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short -m \"not performance\""
+addopts = "-v --tb=short -m \"not performance\" --timeout=90"
 qt_api = "pyqt6"
 
 filterwarnings = [
