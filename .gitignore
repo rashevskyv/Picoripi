@@ -6,6 +6,9 @@ __pycache__/
 /venv/
 .venv/
 .venv-gpu/
+companion/venv/
+companion/server/data/
+companion/data/
 tools/i18n-translate/.venv/
 tools/i18n-translate/failures.log
 font_tool/
