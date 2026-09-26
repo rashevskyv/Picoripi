@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog
 from PyQt6.QtGui import QAction
@@ -116,6 +116,7 @@ class DialogMixin:
 
             entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
             self._glossary_signature_on_open = self._glossary_signature()
+            ref_data, ref_lang = self._resolve_reference_data_and_label()
             self.dialog = GlossaryDialog(
                 parent=self.mw, entries=entries, occurrence_map=occurrence_map,
                 jump_callback=self._jump_to_occurrence,
@@ -133,6 +134,10 @@ class DialogMixin:
                 placeholder_speaker_callback=self._placeholder_speaker_callback(),
                 discuss_variant_callback=self._handle_discuss_variants_from_dialog,
                 external_reference_callback=self._get_external_reference_url,
+                force_retranslate_callback=self._launch_glossary_force_retranslate,
+                reference_data=ref_data,
+                reference_language=ref_lang,
+                source_data=data_source,
             )
             self.dialog.finished.connect(self._on_glossary_dialog_closed)
             self.dialog.show()
@@ -165,6 +170,16 @@ class DialogMixin:
         if callable(launcher):
             launcher()
 
+    def _launch_glossary_force_retranslate(self) -> None:
+        """Launch forced re-translation pass from inside the glossary dialog."""
+        handler = getattr(self.mw, 'glossary_pipeline_handler', None)
+        if handler is None:
+            from handlers.translation.glossary_pipeline_handler import GlossaryPipelineHandler
+            handler = GlossaryPipelineHandler(self.mw)
+            self.mw.glossary_pipeline_handler = handler
+        if handler is not None:
+            handler.force_retranslate()
+
     def refresh_open_dialog(self) -> None:
         """Reload the glossary dialog, if open, from the current manager state."""
         if not self.dialog or not self.dialog.isVisible():
@@ -185,7 +200,43 @@ class DialogMixin:
             else self.glossary_manager.get_occurrence_map()
         )
         entries = sorted(self.glossary_manager.get_entries(), key=lambda e: e.original.lower())
-        self.dialog.reload_data(entries, occurrence_map)
+        ref_data, ref_lang = self._resolve_reference_data_and_label()
+        self.dialog.reload_data(
+            entries,
+            occurrence_map,
+            reference_data=ref_data,
+            reference_language=ref_lang,
+            source_data=data_source,
+        )
+
+    def _resolve_reference_data_and_label(
+        self,
+    ) -> Tuple[Optional[Dict[Tuple[int, int], str]], Optional[str]]:
+        """Resolve reference data and language label from the same language."""
+        ref_langs = getattr(getattr(self.mw, "data_store", None), "reference_languages_data", None)
+        if isinstance(ref_langs, dict) and ref_langs:
+            # Check if Russian (RU) is populated with data
+            ru_data = ref_langs.get("Russian (RU)")
+            if isinstance(ru_data, dict) and ru_data:
+                return ru_data, "Russian (RU)"
+            # Otherwise find the first language with populated data
+            for lang_name, lang_dict in ref_langs.items():
+                if isinstance(lang_dict, dict) and lang_dict:
+                    return lang_dict, lang_name
+            # If all maps in ref_langs are empty, return the first language key or Russian if present
+            first_name = "Russian (RU)" if "Russian (RU)" in ref_langs else next(iter(ref_langs.keys()))
+            return ref_langs.get(first_name, {}), first_name
+
+        # Fallback to single/legacy reference_data in data_store
+        ref_data = getattr(getattr(self.mw, "data_store", None), "reference_data", None)
+        from core.reference_manager import ReferenceManager
+        ref_label = ReferenceManager.get_reference_language_label(getattr(self.mw, "current_game_rules", None))
+        return ref_data, ref_label
+
+    def _resolve_reference_language_label(self) -> str:
+        """Resolve current reference language label from multi-reference data or active rules."""
+        _, label = self._resolve_reference_data_and_label()
+        return label or ""
 
     def prepare_to_close(self) -> None:
         """Gracefully shutdown glossary occurrence worker if running."""

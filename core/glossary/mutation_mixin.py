@@ -49,7 +49,7 @@ class MutationMixin:
         """Clear the tracked session glossary modifications."""
         self._session_changes.clear()
 
-    def add_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None, profiled: bool = False) -> Optional[GlossaryEntry]:
+    def add_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None, profiled: bool = False, user_notes: str = "") -> Optional[GlossaryEntry]:
         """Add entry."""
         original_key = (original or '').strip()
         if not original_key:
@@ -57,14 +57,15 @@ class MutationMixin:
         existing = next((entry for entry in self._entries if entry.original == original_key), None)
         if existing:
             return self.update_entry(
-                original_key, translation, notes, section=section, profiled=profiled
+                original_key, translation, notes, section=section, profiled=profiled, user_notes=user_notes
             )
         new_entry = GlossaryEntry(
             original=original_key,
             translation=translation.strip(),
             notes=notes.strip(),
             section=section,
-            profiled=profiled
+            profiled=profiled,
+            user_notes=user_notes,
         )
         if section and section not in self._section_order:
             self._section_order.append(section)
@@ -88,11 +89,12 @@ class MutationMixin:
         icon: Optional[str] = None,
         fragments: Optional[Tuple[DescriptionFragment, ...]] = None,
         translation_variants: Optional[Tuple[TranslationVariant, ...]] = None,
+        user_notes: Optional[str] = None,
     ) -> Optional[GlossaryEntry]:
         """Update the entry, preserving lifecycle fields unless overridden.
 
         Lifecycle fields (``status``, ``icon``, ``fragments``,
-        ``translation_variants``) are carried over from the existing entry when
+        ``translation_variants``, ``user_notes``) are carried over from the existing entry when
         not passed, so a plain edit never silently drops them.
         """
         original_key = (original or '').strip()
@@ -123,6 +125,7 @@ class MutationMixin:
                     provisional=entry.provisional,
                     suggested_name=entry.suggested_name,
                     suggested_name_evidence=entry.suggested_name_evidence,
+                    user_notes=user_notes if user_notes is not None else entry.user_notes,
                 )
                 if section and section not in self._section_order:
                     self._section_order.append(section)
@@ -230,6 +233,7 @@ class MutationMixin:
             provisional=False,
             suggested_name="",
             suggested_name_evidence="",
+            user_notes=target_entry.user_notes or old_entry.user_notes,
         )
 
         new_entries = []

@@ -1,7 +1,7 @@
 """Glossary term table tabs, selection, filter, and reload."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush
@@ -43,8 +43,18 @@ class TableMixin:
 
     def _on_tab_changed(self, index: int) -> None:
         """Internal helper to handle the tab changed event."""
-        if self._is_populating:
+        if self._is_populating or getattr(self, "_prompting_unsaved", False):
             return
+        if getattr(self, "_editor_dirty", False) and self._current_entry:
+            if not self._maybe_prompt_unsaved_changes():
+                prev_idx = getattr(self, "_prev_tab_index", 0)
+                self._prompting_unsaved = True
+                self._tab_widget.blockSignals(True)
+                self._tab_widget.setCurrentIndex(prev_idx)
+                self._tab_widget.blockSignals(False)
+                self._prompting_unsaved = False
+                return
+        self._prev_tab_index = index
         active_table = self._active_table()
         row = active_table.currentRow()
         self._show_entry_for_row(row)
@@ -211,6 +221,7 @@ class TableMixin:
                 restore_idx = idx
                 break
         self._tab_widget.setCurrentIndex(restore_idx)
+        self._prev_tab_index = restore_idx
         self._tab_widget.blockSignals(False)
         self._is_populating = False
         
@@ -297,14 +308,37 @@ class TableMixin:
         else:
             self._clear_entry_details()
 
-    def _on_entry_current_changed(self, row: int, _column: int, _prev_row: int, _prev_column: int) -> None:
+    def _on_entry_current_changed(self, row: int, _column: int, prev_row: int, prev_column: int) -> None:
         """Internal helper to handle the entry current changed event."""
-        if self._is_populating:
+        if self._is_populating or getattr(self, "_prompting_unsaved", False):
             return
+
+        if prev_row >= 0 and prev_row != row and getattr(self, "_editor_dirty", False) and self._current_entry:
+            target_entry = self._entry_for_row(row)
+            target_term = target_entry.original if target_entry else None
+            if not self._maybe_prompt_unsaved_changes(target_term=target_term):
+                active_table = self._active_table()
+                self._prompting_unsaved = True
+                active_table.blockSignals(True)
+                active_table.setCurrentCell(prev_row, prev_column)
+                active_table.blockSignals(False)
+                self._prompting_unsaved = False
+                return
+            if target_term and self._current_entry and self._current_entry.original == target_term:
+                return
+
         self._show_entry_for_row(row)
 
     def _on_entry_selected(self, row: int, _column: int) -> None:
         """Internal helper to handle the entry selected event."""
+        if self._is_populating or getattr(self, "_prompting_unsaved", False):
+            return
+        active_table = self._active_table()
+        if row != active_table.currentRow():
+            return
+        entry = self._entry_for_row(row)
+        if self._current_entry and entry and self._current_entry.original == entry.original:
+            return
         self._show_entry_for_row(row)
 
     def _on_entry_edited(self, item: QTableWidgetItem) -> None:
@@ -433,9 +467,18 @@ class TableMixin:
     def reload_data(
         self,
         entries: Sequence[GlossaryEntry],
-        occurrence_map: Dict[str, List[GlossaryOccurrence]]
+        occurrence_map: Dict[str, List[GlossaryOccurrence]],
+        reference_data: Optional[Dict[Tuple[int, int], str]] = None,
+        reference_language: Optional[str] = None,
+        source_data: Optional[Any] = None,
     ) -> None:
         """Hot-reload entries and occurrences from external source and refresh UI."""
+        if reference_data is not None:
+            self._reference_data = dict(reference_data)
+        if reference_language is not None:
+            self._reference_language = reference_language
+        if source_data is not None:
+            self._source_data = source_data
         self._all_entries = list(entries)
         self._duplicate_pairs = possible_duplicate_pairs(self._all_entries)
         self._occurrences = occurrence_map

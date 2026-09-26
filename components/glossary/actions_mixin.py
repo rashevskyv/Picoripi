@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtWidgets import QMessageBox
 from core.glossary_manager import STATUS_CONFIRMED
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 
 class ActionsMixin:
@@ -22,6 +23,34 @@ class ActionsMixin:
         """Internal helper to handle the build clicked event."""
         if self._build_callback:
             self._build_callback()
+
+    def _on_force_retranslate_clicked(self) -> None:
+        """Internal helper to handle the force retranslate clicked event."""
+        if not getattr(self, "_force_retranslate_callback", None):
+            return
+        total = len(self._all_entries)
+        if not total:
+            QMessageBox.information(
+                self,
+                tr('Force Retranslate'),
+                tr('Glossary is empty. There are no terms to retranslate.'),
+            )
+            return
+        response = QMessageBox.question(
+            self,
+            tr('Force Retranslate Glossary'),
+            tr(
+                'Retranslate all {total} entries with AI using current transcription and translation rules?\n\n'
+                'Existing translations and variants will be overwritten with newly generated suggestions from the model.\n\n'
+                'A backup copy (glossary.json.bak) will be created automatically before proceeding.',
+                total=total,
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if response != QMessageBox.StandardButton.Yes:
+            return
+        self._force_retranslate_callback()
 
     def _on_clear_clicked(self) -> None:
         """Internal helper to handle the clear glossary clicked event."""
@@ -119,6 +148,22 @@ class ActionsMixin:
             )
             self.setGeometry(rect)
         self._restore_maximized_on_show = bool(state.get('is_maximized', False))
+        if hasattr(self, '_main_splitter'):
+            splitter_sizes = state.get('main_splitter_sizes')
+            if isinstance(splitter_sizes, list) and len(splitter_sizes) == 2 and all(isinstance(x, int) and x > 0 for x in splitter_sizes):
+                self._main_splitter.setSizes(splitter_sizes)
+        if hasattr(self, '_term_trans_splitter'):
+            splitter_sizes = state.get('term_trans_splitter_sizes')
+            if isinstance(splitter_sizes, list) and len(splitter_sizes) == 2 and all(isinstance(x, int) and x > 0 for x in splitter_sizes):
+                self._term_trans_splitter.setSizes(splitter_sizes)
+        if hasattr(self, '_detail_splitter'):
+            splitter_sizes = state.get('detail_splitter_sizes')
+            if isinstance(splitter_sizes, list) and len(splitter_sizes) == 2 and all(isinstance(x, int) and x > 0 for x in splitter_sizes):
+                self._detail_splitter.setSizes(splitter_sizes)
+        if hasattr(self, '_lower_detail_splitter'):
+            splitter_sizes = state.get('lower_detail_splitter_sizes')
+            if isinstance(splitter_sizes, list) and len(splitter_sizes) == 3 and all(isinstance(x, int) and x > 0 for x in splitter_sizes):
+                self._lower_detail_splitter.setSizes(splitter_sizes)
 
     def _save_dialog_state(self) -> None:
         """Internal helper to save dialog state."""
@@ -127,6 +172,14 @@ class ActionsMixin:
         geometry_source = self.normalGeometry() if self.isMaximized() else self.geometry()
         state['geometry'] = self._geometry_to_dict(geometry_source)
         state['is_maximized'] = bool(self.isMaximized())
+        if hasattr(self, '_main_splitter'):
+            state['main_splitter_sizes'] = self._main_splitter.sizes()
+        if hasattr(self, '_term_trans_splitter'):
+            state['term_trans_splitter_sizes'] = self._term_trans_splitter.sizes()
+        if hasattr(self, '_detail_splitter'):
+            state['detail_splitter_sizes'] = self._detail_splitter.sizes()
+        if hasattr(self, '_lower_detail_splitter'):
+            state['lower_detail_splitter_sizes'] = self._lower_detail_splitter.sizes()
         data['glossary_dialog_state'] = state
         self._write_settings_file(data)
 
@@ -169,8 +222,32 @@ class ActionsMixin:
 
     def closeEvent(self, event) -> None:
         """Closeevent."""
+        if hasattr(self, '_maybe_prompt_unsaved_changes') and not self._maybe_prompt_unsaved_changes():
+            event.ignore()
+            return
         self._save_dialog_state()
+        parent = getattr(self, "_parent", None)
+        if parent:
+            try:
+                from core.companion_sync import auto_push_in_background
+                auto_push_in_background(parent)
+            except Exception as exc:
+                log_debug(f"Failed to auto-push on glossary close: {exc}")
         super().closeEvent(event)
+
+    def reject(self) -> None:
+        """Reject (Close/Esc)."""
+        if hasattr(self, '_maybe_prompt_unsaved_changes') and not self._maybe_prompt_unsaved_changes():
+            return
+        self._save_dialog_state()
+        parent = getattr(self, "_parent", None)
+        if parent:
+            try:
+                from core.companion_sync import auto_push_in_background
+                auto_push_in_background(parent)
+            except Exception as exc:
+                log_debug(f"Failed to auto-push on glossary reject: {exc}")
+        super().reject()
 
     def keyPressEvent(self, event) -> None:
         """Keypressevent."""
@@ -196,9 +273,11 @@ class ActionsMixin:
             return visible[0] if visible else None
         if idx + 1 < len(visible):
             return visible[idx + 1]
+        if hasattr(self, "_unconfirmed_only_checkbox") and self._unconfirmed_only_checkbox.isChecked() and idx - 1 >= 0:
+            return visible[idx - 1]
         return None
 
-    def _on_confirm_clicked(self, advance: bool = True) -> None:
+    def _on_confirm_clicked(self, *args, advance: bool = True, **kwargs) -> None:
         """Save the current translation, mark it decided, and optionally open the next term."""
         entry = self._current_entry
         if not entry or not self._update_callback:
@@ -211,4 +290,89 @@ class ActionsMixin:
             self._profiled_checkbox.isChecked(),
             status=STATUS_CONFIRMED,
             select_after=next_term or entry.original,
+            user_notes=self._user_notes_for_save(),
         )
+
+    def _on_companion_sync_clicked(self) -> None:
+        """Show companion sync options (Push to mobile / Pull from mobile)."""
+        from PyQt6.QtWidgets import QMenu, QMessageBox
+        from core.companion_sync import CompanionSyncClient
+
+        parent = getattr(self, "_parent", None)
+        settings_mgr = getattr(parent, "settings_manager", None)
+        server_url = settings_mgr.get("companion_server_url", "") if settings_mgr else getattr(parent, "companion_server_url", "")
+        token = settings_mgr.get("companion_api_token", "") if settings_mgr else getattr(parent, "companion_api_token", "picoripi")
+
+        if not server_url:
+            ans = QMessageBox.question(
+                self,
+                tr("Companion Server"),
+                tr(
+                    "Companion server is not configured yet.\n\n"
+                    "Would you like to open Settings to specify your remote Companion server URL and token?"
+                ),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if ans == QMessageBox.StandardButton.Yes:
+                open_settings = getattr(parent, "open_settings_dialog", None)
+                if callable(open_settings):
+                    open_settings()
+            return
+
+        client = CompanionSyncClient(server_url, token)
+
+        menu = QMenu(self)
+        push_action = menu.addAction(tr("⬆ Push Glossary & Context to Mobile Companion"))
+        pull_action = menu.addAction(tr("⬇ Pull Reviewed Glossary from Mobile Companion"))
+        menu.addSeparator()
+        test_action = menu.addAction(tr("⚙ Test Server Connection..."))
+
+        selected = menu.exec(self._companion_sync_button.mapToGlobal(self._companion_sync_button.rect().bottomLeft()))
+        if not selected:
+            return
+
+        if selected == test_action:
+            ok, msg = client.test_connection()
+            if ok:
+                QMessageBox.information(self, tr("Companion Server"), f"✓ {msg}")
+            else:
+                QMessageBox.warning(self, tr("Companion Server"), f"✗ {msg}")
+            return
+
+        project_mgr = getattr(parent, "project_manager", None)
+        project_obj = getattr(project_mgr, "project", None)
+        project_name = getattr(project_obj, "name", "DefaultProject") if project_obj else "DefaultProject"
+        glossary_mgr = getattr(parent, "glossary_manager", None)
+        glossary_path = getattr(glossary_mgr, "glossary_path", None)
+
+        if selected == push_action:
+            ok, msg, count = client.push_project(
+                project_name=project_name,
+                glossary_path=glossary_path,
+                entries=self._all_entries,
+                occurrence_map=self._occurrences,
+                reference_data=self._reference_data,
+            )
+            if ok:
+                QMessageBox.information(self, tr("Companion Sync"), f"✓ {msg}")
+            else:
+                QMessageBox.critical(self, tr("Companion Sync"), f"✗ {msg}")
+        elif selected == pull_action:
+            ok, msg, count = client.pull_project(
+                project_name=project_name,
+                glossary_path=glossary_path,
+            )
+            if ok:
+                if glossary_mgr:
+                    glossary_mgr.refresh_from_disk()
+                glossary_handler = getattr(parent, "glossary_handler", None)
+                if glossary_handler and hasattr(glossary_handler, "refresh_open_dialog"):
+                    glossary_handler.refresh_open_dialog()
+                QMessageBox.information(
+                    self,
+                    tr("Companion Sync"),
+                    f"✓ {msg}\n\nLocal glossary updated and view refreshed.",
+                )
+            else:
+                QMessageBox.critical(self, tr("Companion Sync"), f"✗ {msg}")

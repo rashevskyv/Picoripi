@@ -733,3 +733,60 @@ def test_persist_does_not_reload_from_text(manager, tmp_path):
     matches = manager.find_matches("The Hero arrived")
     assert len(matches) == 1
     assert matches[0].entry is updated
+
+
+def test_ensure_term_placeholder_replaces_prefix():
+    from core.glossary.notes import ensure_term_placeholder
+    # Matches original
+    res = ensure_term_placeholder("Agitha — a girl who loves bugs.", original="Agitha")
+    assert res == "{{TERM}} — a girl who loves bugs."
+
+    # Matches known variant or old transliteration
+    res2 = ensure_term_placeholder(
+        "Аґіта — персонаж, дівчинка з жуками.",
+        original="Agitha",
+        known_names=["Махаона", "Аґіта"],
+    )
+    assert res2 == "{{TERM}} — персонаж, дівчинка з жуками."
+
+    # Verb case
+    res3 = ensure_term_placeholder("Agitha is a collector.", original="Agitha")
+    assert res3 == "{{TERM}} is a collector."
+
+
+def test_ensure_term_placeholder_normalizes_single_brackets():
+    from core.glossary.notes import ensure_term_placeholder
+    res = ensure_term_placeholder("{TERM} — character description.", original="Agitha")
+    assert res == "{{TERM}} — character description."
+
+
+def test_ensure_term_placeholder_keeps_existing_term_placeholder():
+    from core.glossary.notes import ensure_term_placeholder
+    res = ensure_term_placeholder("{{TERM}} — character description.", original="Agitha")
+    assert res == "{{TERM}} — character description."
+
+
+def test_ensure_term_placeholder_handles_leading_dashes():
+    from core.glossary.notes import ensure_term_placeholder
+    res = ensure_term_placeholder("— персонаж, дівчинка.", original="Agitha")
+    assert res == "{{TERM}} — персонаж, дівчинка."
+
+
+def test_glossary_user_notes_persistence(manager, tmp_path):
+    f = tmp_path / "glossary.json"
+    manager._glossary_path = f
+    e = manager.add_entry("Agitha", "Махаона", "{{TERM}} — дівчинка.", user_notes="Custom user note.")
+    assert e is not None
+    assert e.user_notes == "Custom user note."
+
+    # Update user_notes
+    updated = manager.update_entry("Agitha", "Махаона", "{{TERM}} — дівчинка.", user_notes="Updated user note.")
+    assert updated is not None
+    assert updated.user_notes == "Updated user note."
+
+    # Reload from text / disk
+    reloaded_manager = type(manager)()
+    reloaded_manager.load_from_text(plugin_name=None, glossary_path=f, raw_text=f.read_text(encoding="utf-8"))
+    loaded_entry = reloaded_manager.get_entry("Agitha")
+    assert loaded_entry is not None
+    assert loaded_entry.user_notes == "Updated user note."

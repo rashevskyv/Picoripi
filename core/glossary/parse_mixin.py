@@ -57,6 +57,7 @@ class ParseMixin:
                         suggested_name_evidence=str(
                             item.get("suggested_name_evidence", "") or ""
                         ),
+                        user_notes=str(item.get("user_notes", "") or ""),
                     )
                     if entry.is_valid():
                         self._entries.append(entry)

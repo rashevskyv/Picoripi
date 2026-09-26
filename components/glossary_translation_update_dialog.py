@@ -142,7 +142,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         button_row.addWidget(skip_button)
 
         self._quick_replace_all_button = QPushButton(tr('Replace All (No AI)'), right_panel)
-        self._quick_replace_all_button.setStyleSheet("background-color: #047857; color: white; font-weight: bold;")
+        self._quick_replace_all_button.setStyleSheet("QPushButton { background-color: #047857; color: white; font-weight: bold; }")
         self._quick_replace_all_button.setToolTip(tr('Instantly replace old translation with new translation across all occurrences without using AI.'))
         self._quick_replace_all_button.clicked.connect(self._run_quick_replace_all)
         button_row.addWidget(self._quick_replace_all_button)

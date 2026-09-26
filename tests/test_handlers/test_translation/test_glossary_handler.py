@@ -423,7 +423,7 @@ def test_gh_format_variant_discussion_context(gh):
     assert "Proposed translation candidates:" in context
     assert "- Ґорон Джерела (Rationale: spring = bathhouse)" in context
     assert "- Весняний Ґорон (Rationale: spring = season)" in context
-    assert "You must recommend exactly one of the displayed candidates above, verbatim." in context
+    assert "Recommend the most appropriate candidate or suggest refined/creative alternatives" in context
 
     # Test fallback target language
     gh.mw.target_language = None
@@ -433,6 +433,37 @@ def test_gh_format_variant_discussion_context(gh):
     gh.mw.target_language = "German"
     custom_context = gh.format_variant_discussion_context(entry)
     assert "Target language: German" in custom_context
+
+
+def test_gh_format_variant_discussion_context_rich(gh):
+    from core.glossary_manager import (
+        GlossaryEntry,
+        GlossaryOccurrence,
+    )
+    entry = GlossaryEntry(
+        original="ARMOGOHMA",
+        translation="Армогохма",
+        section="Boss Names",
+        notes="Twilit Arachnid boss.",
+    )
+    gh.mw.target_language = "Ukrainian"
+    gh.mw.current_game_rules = MagicMock()
+    gh.mw.current_game_rules.get_external_reference_url.return_value = "https://zeldawiki.wiki.gg/wiki/Armogohma"
+
+    occ = GlossaryOccurrence(entry, 0, 1156, 1, 0, 0, "Twilit Arachnid ARMOGOHMA appears")
+    gh.dialog = MagicMock()
+    gh.dialog._occurrences = {"ARMOGOHMA": [occ]}
+
+    context = gh.format_variant_discussion_context(entry)
+    assert "Term: ARMOGOHMA" in context
+    assert "Category: Boss Names" in context
+    assert "Current translation: Армогохма" in context
+    assert "Target language: Ukrainian" in context
+    assert "Wiki reference: https://zeldawiki.wiki.gg/wiki/Armogohma" in context
+    assert "Description:\nTwilit Arachnid boss." in context
+    assert "Occurrences: 1 mentions, 0 spoken" in context
+    assert "Twilit Arachnid ARMOGOHMA appears" in context
+    assert "Analyze the glossary term in the context of the game lore" in context
 
 
 def test_gh_handle_discuss_variants_from_dialog(gh):
@@ -460,3 +491,31 @@ def test_gh_handle_discuss_variants_from_dialog_safe_noops(gh):
     gh._handle_discuss_variants_from_dialog(None)
     entry = GlossaryEntry(original="Test", translation="")
     gh._handle_discuss_variants_from_dialog(entry)
+
+
+def test_resolve_reference_data_and_label_matches_language(gh):
+    # Case 1: Russian (RU) populated
+    gh.mw.data_store.reference_languages_data = {
+        "Russian (RU)": {(0, 0): "Привет"},
+        "German (DE)": {(0, 0): "Hallo"},
+    }
+    data, label = gh._resolve_reference_data_and_label()
+    assert label == "Russian (RU)"
+    assert data == {(0, 0): "Привет"}
+
+    # Case 2: Russian (RU) is empty map -> must pick German and NOT label as RU
+    gh.mw.data_store.reference_languages_data = {
+        "Russian (RU)": {},
+        "German (DE)": {(0, 0): "Hallo"},
+    }
+    data, label = gh._resolve_reference_data_and_label()
+    assert label == "German (DE)"
+    assert data == {(0, 0): "Hallo"}
+
+    # Case 3: Legacy reference_data only
+    gh.mw.data_store.reference_languages_data = {}
+    gh.mw.data_store.reference_data = {(0, 0): "Fallback"}
+    with patch("core.reference_manager.ReferenceManager.get_reference_language_label", return_value="German (DE)"):
+        data, label = gh._resolve_reference_data_and_label()
+        assert label == "German (DE)"
+        assert data == {(0, 0): "Fallback"}

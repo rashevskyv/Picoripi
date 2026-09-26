@@ -61,6 +61,10 @@ class GlossaryHandler(
         """Load prompts."""
         return self._prompt_manager.load_prompts()
 
+    def load_editor_review_prompt(self) -> Optional[str]:
+        """Load editor review prompt."""
+        return self._prompt_manager.load_editor_review_prompt()
+
     def bind_glossary_for_write(self):
         """Bind the glossary to the project file, creating it when absent."""
         return self._prompt_manager.bind_glossary_for_write()

@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from html import escape
 from typing import List, Optional
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QListWidgetItem
-from core.glossary_manager import GlossaryEntry
+from core.glossary_manager import GlossaryEntry, GlossaryOccurrence
 from core.speaker_alias_merge import is_confirmed_speaker_alias
 from core.i18n import tr
 from utils.logging_utils import log_debug
@@ -31,16 +33,37 @@ class DetailsMixin:
         if occurrence:
             self._jump_callback(occurrence)
 
+    @staticmethod
+    def _is_reference_variant(variant) -> bool:
+        """Check whether a variant represents an external reference translation."""
+        if not variant:
+            return False
+        rat = getattr(variant, "rationale", "") or ""
+        return bool("RU" in rat or "патч" in rat.lower() or rat.startswith("ref:"))
+
+    @classmethod
+    def _is_reference_item(cls, item: Optional[QListWidgetItem]) -> bool:
+        """Check whether a QListWidgetItem holds a reference translation variant."""
+        if not item:
+            return False
+        return bool(item.data(Qt.ItemDataRole.UserRole + 1))
+
     def _update_variant_buttons_state(self) -> None:
         """Update enabled state for variant action buttons."""
         has_entry = self._current_entry is not None
-        has_selected_item = bool(self._variants_list.currentItem()) if hasattr(self, "_variants_list") else False
-        can_apply = has_entry and has_selected_item and (self._update_callback is not None)
+        cur_item = self._variants_list.currentItem() if hasattr(self, "_variants_list") else None
+        has_selected_item = bool(cur_item)
+        is_ref = self._is_reference_item(cur_item)
+        can_apply = has_entry and has_selected_item and (not is_ref) and (self._update_callback is not None)
         if hasattr(self, "_apply_variant_button"):
             self._apply_variant_button.setEnabled(can_apply)
         if hasattr(self, "_discuss_variant_button"):
             has_discuss = self._discuss_variant_callback is not None
             self._discuss_variant_button.setEnabled(has_entry and has_discuss)
+            self._discuss_variant_button.setVisible(has_discuss)
+        if hasattr(self, "_confirm_button"):
+            can_confirm = has_entry and (self._update_callback is not None)
+            self._confirm_button.setEnabled(can_confirm)
 
     def _on_open_wiki_link(self) -> None:
         """Open external wiki reference URL in the default browser."""
@@ -67,6 +90,91 @@ class DetailsMixin:
             self._show_spoken_checkbox.setText(tr('Spoken ({count})', count=spoken))
         self._repopulate_occurrences_filter()
 
+    def _is_russian_reference(self) -> bool:
+        """Check whether the active reference data is confirmed to be Russian."""
+        lang = getattr(self, "_reference_language", None)
+        if not lang:
+            return False
+        return bool("Russian" in lang or "(RU)" in lang or lang.strip().lower() == "ru")
+
+
+    def _highlight_russian_term(self, ru_text: str, entry: Optional[GlossaryEntry]) -> str:
+        """Highlight direct term match in Russian text if found with 100% confidence.
+
+        Otherwise returns the complete escaped text without truncation to preserve context.
+        """
+        if not entry:
+            return escape(ru_text)
+
+        candidates: List[str] = []
+        if entry.translation and entry.translation.strip():
+            candidates.append(entry.translation.strip())
+        for v in getattr(entry, "translation_variants", ()) or ():
+            t = getattr(v, "translation", "")
+            if t and t.strip() and t.strip() not in candidates:
+                candidates.append(t.strip())
+
+        # 1. Exact case-insensitive word-boundary match
+        for cand in candidates:
+            if len(cand) < 2:
+                continue
+            pattern = re.compile(rf"\b{re.escape(cand)}\b", re.IGNORECASE)
+            m = pattern.search(ru_text)
+            if m:
+                start, end = m.span()
+                before = escape(ru_text[:start])
+                match_txt = escape(ru_text[start:end])
+                after = escape(ru_text[end:])
+                return f"{before}<b style='color: #f59e0b; text-decoration: underline;'>{match_txt}</b>{after}"
+
+        # 2. Inflected match for single-word Russian terms (length >= 4)
+        for cand in candidates:
+            words = cand.split()
+            if len(words) == 1 and len(cand) >= 4:
+                stem = re.sub(r'[аеиоуыэюяйьъ]+$', '', cand, flags=re.IGNORECASE)
+                if len(stem) >= 3:
+                    pattern = re.compile(rf"\b{re.escape(stem)}[а-яёА-ЯЁ]{{0,3}}\b", re.IGNORECASE)
+                    m = pattern.search(ru_text)
+                    if m:
+                        start, end = m.span()
+                        before = escape(ru_text[:start])
+                        match_txt = escape(ru_text[start:end])
+                        after = escape(ru_text[end:])
+                        return f"{before}<b style='color: #f59e0b; text-decoration: underline;'>{match_txt}</b>{after}"
+
+        # If no 100% confident direct match, return full phrase escaped without truncation
+        return escape(ru_text)
+
+    def _get_source_message(self, occ: GlossaryOccurrence) -> Optional[str]:
+        """Retrieve full original source message for an occurrence if available."""
+        source_data = getattr(self, "_source_data", None)
+        if source_data is None:
+            parent = getattr(self, "_parent", None)
+            if parent is not None:
+                data_store = getattr(parent, "data_store", None)
+                if data_store is not None:
+                    source_data = getattr(data_store, "data", None)
+
+        if source_data is None:
+            return None
+
+        b_idx = getattr(occ, "block_idx", None)
+        s_idx = getattr(occ, "string_idx", None)
+        if b_idx is None or s_idx is None:
+            return None
+
+        if isinstance(source_data, dict):
+            val = source_data.get((b_idx, s_idx))
+            return str(val) if val is not None else None
+
+        if isinstance(source_data, (list, tuple)) and 0 <= b_idx < len(source_data):
+            block = source_data[b_idx]
+            if isinstance(block, (list, tuple)) and 0 <= s_idx < len(block):
+                val = block[s_idx]
+                return str(val) if val is not None else None
+
+        return None
+
     def _repopulate_occurrences_filter(self) -> None:
         """Filter the occurrence list according to mentions and spoken checkboxes."""
         self._occurrence_list.clear()
@@ -82,11 +190,11 @@ class DetailsMixin:
             or (getattr(occ, "kind", "mention") != "spoken" and can_show_mentions)
         ]
 
+        ref_data = getattr(self, "_reference_data", None) or {}
+        entry = getattr(self, "_current_entry", None)
+        is_ru_ref = self._is_russian_reference()
+
         for index, occ in enumerate(filtered_occs, start=1):
-            preview = occ.line_text.strip()
-            if len(preview) > 120:
-                preview = f"{preview[:117]}…"
-            preview_html = escape(preview).replace('\n', '<br>')
             kind = getattr(occ, "kind", "mention") or "mention"
             kind_label = tr("spoken") if kind == "spoken" else tr("mention")
             header_html = tr(
@@ -98,8 +206,56 @@ class DetailsMixin:
                 string=occ.string_idx + 1,
                 line=occ.line_idx + 1,
             )
+
+            source_msg = self._get_source_message(occ)
+            if source_msg is not None and str(source_msg).strip():
+                en_lines = str(source_msg).replace('\r\n', '\n').replace('\r', '\n').split('\n')
+                single_fallback = False
+            else:
+                en_lines = [occ.line_text or ""]
+                single_fallback = True
+
+            rendered_en = []
+            is_spoken = getattr(occ, "kind", "mention") == "spoken"
+            for l_idx, line_str in enumerate(en_lines):
+                should_highlight = (
+                    not is_spoken
+                    and (
+                        l_idx == occ.line_idx
+                        or (single_fallback and 0 <= occ.start < occ.end <= len(line_str))
+                    )
+                    and 0 <= occ.start < occ.end <= len(line_str)
+                )
+                if should_highlight:
+                    en_before = escape(line_str[:occ.start])
+                    en_match = escape(line_str[occ.start:occ.end])
+                    en_after = escape(line_str[occ.end:])
+                    rendered_en.append(f"{en_before}<b style='color: #60a5fa;'>{en_match}</b>{en_after}")
+                else:
+                    rendered_en.append(escape(line_str))
+
+            en_html = "<br>".join(rendered_en)
+            preview_html = f"<div style='margin-top: 2px;'><b style='color: #94a3b8;'>EN:</b> {en_html}</div>"
+
+            ru_block = ""
+            if is_ru_ref:
+                ru_raw = ref_data.get((occ.block_idx, occ.string_idx))
+                if ru_raw is not None and str(ru_raw).strip():
+                    ru_lines = str(ru_raw).replace('\r\n', '\n').replace('\r', '\n').split('\n')
+                    highlighted_ru = [self._highlight_russian_term(line, entry) for line in ru_lines]
+                    ru_html = "<br>".join(highlighted_ru)
+                    ru_block = (
+                        f"<div style='margin-top: 4px; padding: 3px 6px; "
+                        f"background-color: rgba(56, 189, 248, 0.12); border-radius: 3px;'>"
+                        f"<b style='color: #0284c7;'>RU:</b> {ru_html}</div>"
+                    )
+            if ru_block:
+                item_content = f"{header_html}<br>{preview_html}{ru_block}"
+            else:
+                item_content = f"{header_html}<br>{preview_html}"
+
             item = QListWidgetItem()
-            item.setData(Qt.ItemDataRole.DisplayRole, f"{header_html}<br>{preview_html}")
+            item.setData(Qt.ItemDataRole.DisplayRole, item_content)
             item.setData(Qt.ItemDataRole.UserRole, occ)
             self._occurrence_list.addItem(item)
 
@@ -127,9 +283,20 @@ class DetailsMixin:
                 )
         self._populate_category_choices(entry)
         self._translation_edit.setText(entry.translation or '')
-        self._notes_template = entry.notes or ''
+        from core.glossary.notes import ensure_term_placeholder
+        candidates = [entry.translation] + [
+            v.translation for v in (getattr(entry, "translation_variants", ()) or ())
+        ]
+        self._notes_template = ensure_term_placeholder(
+            entry.notes or '', original=entry.original, known_names=candidates
+        )
         self._notes_edit.setPlainText(self._rendered_notes())
-        self._ai_notes_edit.setPlainText(self._ai_notes_for_entry(entry))
+        if getattr(entry, "user_notes", ""):
+            self._ai_notes_edit.setPlainText(entry.user_notes)
+        else:
+            self._ai_notes_edit.setPlainText(self._ai_notes_for_entry(entry))
+        self._initial_ai_notes = self._ai_notes_edit.toPlainText().strip()
+        self._user_notes_edited = False
         self._profiled_checkbox.setChecked(entry.profiled)
         self._populate_variants(entry)
 
@@ -374,12 +541,10 @@ class DetailsMixin:
         self._variants_list.setVisible(visible)
         if hasattr(self, "_apply_variant_button"):
             self._apply_variant_button.setVisible(visible)
-        if hasattr(self, "_discuss_variant_button"):
-            self._discuss_variant_button.setVisible(visible)
         if visible and hasattr(self, "_detail_splitter"):
             sizes = self._detail_splitter.sizes()
             if sizes and sizes[0] <= 0:
-                sizes[0] = 140
+                sizes[0] = 120
                 self._detail_splitter.setSizes(sizes)
 
     def _populate_variants(self, entry: Optional[GlossaryEntry]) -> None:
@@ -390,38 +555,81 @@ class DetailsMixin:
         has_multiple = len(variants) > 1
         self._set_variants_visible(has_multiple)
         matching_item = None
+        is_dark = self.palette().color(self.backgroundRole()).lightness() < 128
+        ref_color = QColor("#38bdf8") if is_dark else QColor("#0284c7")
+
         for variant in variants:
+            is_ref = self._is_reference_variant(variant)
             label = variant.translation
             if variant.rationale:
                 label = f"{variant.translation} — {variant.rationale}"
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, variant.translation)
-            if entry and variant.translation == entry.translation:
+            item.setData(Qt.ItemDataRole.UserRole + 1, is_ref)
+            if is_ref:
+                item.setForeground(ref_color)
                 font = item.font()
-                font.setBold(True)
+                font.setItalic(True)
                 item.setFont(font)
-                matching_item = item
+                item.setToolTip(
+                    tr("Reference translation variant (for context only, not applicable as Ukrainian translation)")
+                )
+            else:
+                if entry and variant.translation == entry.translation:
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+                    matching_item = item
             self._variants_list.addItem(item)
 
         if matching_item is not None:
             self._variants_list.setCurrentItem(matching_item)
         elif self._variants_list.count() > 0:
-            self._variants_list.setCurrentRow(0)
+            first_target_row = -1
+            for row in range(self._variants_list.count()):
+                if not self._is_reference_item(self._variants_list.item(row)):
+                    first_target_row = row
+                    break
+            self._variants_list.setCurrentRow(first_target_row if first_target_row >= 0 else 0)
 
-        can_confirm = bool(entry) and self._needs_review(entry) and bool(self._update_callback)
-        self._confirm_button.setVisible(bool(entry) and self._needs_review(entry))
+        can_confirm = bool(entry) and bool(self._update_callback)
+        self._confirm_button.setVisible(bool(entry))
         self._confirm_button.setEnabled(can_confirm)
         self._update_variant_buttons_state()
 
-    def _on_apply_selected_variant(self) -> None:
-        """Apply the currently selected proposed variant, confirm it, and advance."""
-        item = self._variants_list.currentItem()
-        if not item:
+    def _update_variant_boldness(self, active_translation: str) -> None:
+        """Update font bolding in the variants list to reflect active translation."""
+        if not hasattr(self, "_variants_list"):
             return
-        self._apply_variant_item(item, advance=True)
+        for i in range(self._variants_list.count()):
+            it = self._variants_list.item(i)
+            if self._is_reference_item(it):
+                continue
+            font = it.font()
+            is_active = (it.data(Qt.ItemDataRole.UserRole) == active_translation)
+            if font.bold() != is_active:
+                font.setBold(is_active)
+                it.setFont(font)
+
+    def _on_apply_selected_variant(self) -> None:
+        """Apply the currently selected proposed variant to the translation editor."""
+        if not self._current_entry or self._update_callback is None:
+            return
+        item = self._variants_list.currentItem()
+        if not item or self._is_reference_item(item):
+            return
+        self._apply_variant_item(item)
+
+    def _on_variant_double_clicked(self, item: QListWidgetItem) -> None:
+        """Handle double-click on a proposed variant item."""
+        if not item or not self._current_entry or self._update_callback is None:
+            return
+        if self._is_reference_item(item):
+            return
+        self._apply_variant_item(item)
 
     def _apply_variant_item(self, item: QListWidgetItem, advance: bool = False) -> None:
-        """Apply a variant item: update translation edit, refresh notes, and confirm."""
+        """Apply a variant item: update translation edit, refresh notes, and highlight."""
         translation = item.data(Qt.ItemDataRole.UserRole)
         if not translation:
             return
@@ -437,7 +645,9 @@ class DetailsMixin:
         try:
             self._translation_edit.setText(str(translation))
             self._refresh_rendered_notes()
-            self._on_confirm_clicked(advance=advance)
+            self._update_variant_boldness(str(translation))
+            if hasattr(self, "_variants_list") and self._variants_list.currentItem() is not item:
+                self._variants_list.setCurrentItem(item)
         finally:
             elapsed = time.perf_counter() - t_start
             if profiler is not None:
@@ -457,10 +667,25 @@ class DetailsMixin:
 
     def _on_variant_chosen(self, item: QListWidgetItem) -> None:
         """Apply a chosen variant (alias for _apply_variant_item)."""
-        self._apply_variant_item(item, advance=False)
+        self._apply_variant_item(item)
 
     def _on_discuss_variants_clicked(self) -> None:
         """Handle Discuss with AI... button click."""
         if not self._discuss_variant_callback or not self._current_entry:
             return
-        self._discuss_variant_callback(self._current_entry)
+        entry = self._current_entry
+        from dataclasses import replace
+        current_trans = self._translation_edit.text().strip() if hasattr(self, "_translation_edit") else entry.translation
+        current_sec = (
+            self._canonical_category_name(self._category_combo.currentText())
+            if hasattr(self, "_category_combo") and hasattr(self, "_canonical_category_name")
+            else (self._category_combo.currentText().strip() if hasattr(self, "_category_combo") else entry.section)
+        )
+        current_notes = self._notes_for_save() if hasattr(self, "_notes_for_save") else entry.notes
+        entry = replace(
+            entry,
+            translation=current_trans if current_trans else entry.translation,
+            section=current_sec if current_sec else entry.section,
+            notes=current_notes if current_notes else entry.notes,
+        )
+        self._discuss_variant_callback(entry)

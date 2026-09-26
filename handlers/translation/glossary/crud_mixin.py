@@ -17,6 +17,7 @@ class CrudMixin:
         profiled: Optional[bool] = None,
         status: Optional[str] = None,
         section: Optional[str] = None,
+        user_notes: Optional[str] = None,
     ):
         """Internal helper to handle glossary entry update.
 
@@ -33,6 +34,8 @@ class CrudMixin:
         update_kwargs = {"profiled": profiled, "status": status}
         if section is not None:
             update_kwargs["section"] = section
+        if user_notes is not None:
+            update_kwargs["user_notes"] = user_notes
         if self.glossary_manager.update_entry(original, translation, notes, **update_kwargs):
             if not self.glossary_manager._occurrence_index and old_index:
                 self.glossary_manager._occurrence_index = old_index

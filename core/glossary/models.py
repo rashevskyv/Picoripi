@@ -73,6 +73,7 @@ class GlossaryEntry:
     # onto every line the character speaks.
     suggested_name: str = ""
     suggested_name_evidence: str = ""
+    user_notes: str = ""
 
     def is_valid(self) -> bool:
         """Whether the entry should load and appear.

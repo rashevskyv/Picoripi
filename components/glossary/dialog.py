@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -78,12 +78,19 @@ class GlossaryDialog(
         placeholder_speaker_callback: Optional[Callable[[str], bool]] = None,
         discuss_variant_callback: Optional[Callable[[GlossaryEntry], None]] = None,
         external_reference_callback: Optional[Callable[[str], Optional[str]]] = None,
+        force_retranslate_callback: Optional[Callable[[], None]] = None,
+        reference_data: Optional[Dict[Tuple[int, int], str]] = None,
+        reference_language: Optional[str] = None,
+        source_data: Optional[Any] = None,
     ) -> None:
         """Initialize a new instance."""
         super().__init__(None)
         self.setWindowTitle(tr('Glossary'))
         show_as_independent_window(self)
         self.resize(840, 520)
+
+        self._force_retranslate_callback = force_retranslate_callback
+        self._parent = parent
 
         parent_settings = getattr(parent, 'settings_manager', None)
         settings_path = getattr(parent_settings, 'settings_file_path', 'settings.json')
@@ -119,6 +126,13 @@ class GlossaryDialog(
         self._placeholder_speaker_callback = placeholder_speaker_callback
         self._discuss_variant_callback = discuss_variant_callback
         self._external_reference_callback = external_reference_callback
+        self._reference_data: Dict[Tuple[int, int], str] = dict(reference_data) if reference_data else {}
+        self._reference_language: Optional[str] = reference_language
+        self._source_data = source_data
+        if self._source_data is None and parent is not None:
+            data_store = getattr(parent, "data_store", None)
+            if data_store is not None:
+                self._source_data = getattr(data_store, "data", None)
         self._current_speaker_code = ""
         self._current_speaker_is_provisional = False
         self._initial_term = initial_term
@@ -225,61 +239,105 @@ class GlossaryDialog(
         right_layout.addWidget(self._speaker_identity_pane)
         self._speaker_identity_pane.setVisible(False)
 
-        # Term & Translation row: Original on left, Translation on right
-        term_trans_grid = QGridLayout()
-        term_trans_grid.setContentsMargins(0, 2, 0, 4)
-        term_trans_grid.setHorizontalSpacing(10)
-        term_trans_grid.setVerticalSpacing(2)
+        # Term & Translation row: horizontal splitter allowing user to freely adjust boundary
+        self._term_trans_splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        self._term_trans_splitter.setHandleWidth(6)
+        self._term_trans_splitter.setChildrenCollapsible(False)
 
-        term_trans_grid.addWidget(QLabel(tr('Original:'), self), 0, 0)
-        term_trans_grid.addWidget(QLabel(tr('Translation:'), self), 0, 1)
-
-        orig_box = QHBoxLayout()
-        orig_box.setContentsMargins(0, 0, 0, 0)
+        # Left pane: Original (letter O with tooltip)
+        orig_pane = QWidget(self)
+        orig_box = QHBoxLayout(orig_pane)
+        orig_box.setContentsMargins(0, 0, 4, 0)
         orig_box.setSpacing(4)
+
+        self._orig_field_label = QLabel(tr("O:"), self)
+        self._orig_field_label.setToolTip(tr("Original"))
+        self._orig_field_label.setStyleSheet("font-weight: bold;")
+        orig_box.addWidget(self._orig_field_label)
+
         self._original_edit = QLineEdit(self)
         self._original_edit.setReadOnly(True)
         self._original_edit.setFixedHeight(26)
-        self._original_edit.setMaximumWidth(280)
+        self._original_edit.setMinimumWidth(80)
         self._original_edit.setPlaceholderText(tr('Original term...'))
-        self._original_edit.setStyleSheet("background-color: #f8fafc; font-weight: bold;")
+        self._original_edit.setStyleSheet("QLineEdit { font-weight: bold; }")
         orig_box.addWidget(self._original_edit, 1)
+
+        self._term_trans_splitter.addWidget(orig_pane)
+
+        # Right pane: Translation (letter T with tooltip)
+        trans_pane = QWidget(self)
+        trans_box = QHBoxLayout(trans_pane)
+        trans_box.setContentsMargins(4, 0, 0, 0)
+        trans_box.setSpacing(4)
+
+        self._trans_field_label = QLabel(tr("T:"), self)
+        self._trans_field_label.setToolTip(tr("Translation"))
+        self._trans_field_label.setStyleSheet("font-weight: bold;")
+        trans_box.addWidget(self._trans_field_label)
+
+        self._translation_edit = QLineEdit(self)
+        self._translation_edit.setFixedHeight(26)
+        self._translation_edit.setMinimumWidth(80)
+        trans_box.addWidget(self._translation_edit, 1)
+
+        self._term_trans_splitter.addWidget(trans_pane)
+
+        self._term_trans_splitter.setStretchFactor(0, 1)
+        self._term_trans_splitter.setStretchFactor(1, 1)
+        self._term_trans_splitter.setSizes([260, 260])
+
+        right_layout.addWidget(self._term_trans_splitter)
+
+        # Action buttons row: placed below term & translation splitter
+        actions_box = QHBoxLayout()
+        actions_box.setContentsMargins(0, 4, 0, 4)
+        actions_box.setSpacing(4)
 
         self._wiki_link_button = QPushButton(tr('Wiki ↗'), self)
         self._wiki_link_button.setFixedHeight(26)
-        self._wiki_link_button.setStyleSheet("padding: 2px 8px;")
+        self._wiki_link_button.setStyleSheet("QPushButton { padding: 2px 8px; }")
         self._wiki_link_button.setToolTip(tr('Open external wiki reference for this term'))
         self._wiki_link_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self._wiki_link_button.setVisible(False)
         self._wiki_link_button.clicked.connect(self._on_open_wiki_link)
-        orig_box.addWidget(self._wiki_link_button)
+        actions_box.addWidget(self._wiki_link_button)
 
-        term_trans_grid.addLayout(orig_box, 1, 0)
-
-        trans_box = QHBoxLayout()
-        trans_box.setContentsMargins(0, 0, 0, 0)
-        trans_box.setSpacing(4)
-        self._translation_edit = QLineEdit(self)
-        self._translation_edit.setFixedHeight(26)
-        trans_box.addWidget(self._translation_edit, 1)
+        self._save_term_button = QPushButton(tr('Save'), self)
+        self._save_term_button.setFixedHeight(26)
+        self._save_term_button.setStyleSheet("QPushButton { padding: 2px 8px; }")
+        self._save_term_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._save_term_button.setToolTip(tr('Save changes to this term (Ctrl+S)'))
+        self._save_term_button.setEnabled(False)
+        self._save_term_button.clicked.connect(lambda: self._save_editor_changes())
+        actions_box.addWidget(self._save_term_button)
+        self._save_description_button = self._save_term_button
+        self._save_notes_button = self._save_term_button
 
         self._confirm_button = QPushButton(tr('Confirm translation'), self)
         self._confirm_button.setFixedHeight(26)
-        self._confirm_button.setStyleSheet("padding: 2px 8px;")
+        self._confirm_button.setStyleSheet("QPushButton { padding: 2px 8px; }")
         self._confirm_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self._confirm_button.setToolTip(
             tr('Mark this translation as decided and move to the next term. Unreviewed rows stay pale yellow; several proposed variants stay orange until you pick one.')
         )
-        self._confirm_button.clicked.connect(self._on_confirm_clicked)
-        trans_box.addWidget(self._confirm_button)
+        self._confirm_button.clicked.connect(lambda: self._on_confirm_clicked(advance=True))
+        actions_box.addWidget(self._confirm_button)
 
-        term_trans_grid.addLayout(trans_box, 1, 1)
+        self._discuss_variant_button = QPushButton(tr('Discuss with AI…'), self)
+        self._discuss_variant_button.setFixedHeight(26)
+        self._discuss_variant_button.setStyleSheet("QPushButton { padding: 2px 8px; }")
+        self._discuss_variant_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._discuss_variant_button.setToolTip(
+            tr('Open AI chat with term context to discuss this entry.')
+        )
+        self._discuss_variant_button.clicked.connect(self._on_discuss_variants_clicked)
+        actions_box.addWidget(self._discuss_variant_button)
+        self._discuss_entry_button = self._discuss_variant_button
 
-        # Allocate 1/3 to Original and 2/3 to Translation
-        term_trans_grid.setColumnStretch(0, 1)
-        term_trans_grid.setColumnStretch(1, 2)
+        actions_box.addStretch()
 
-        right_layout.addLayout(term_trans_grid)
+        right_layout.addLayout(actions_box)
 
         # The variants list has its own top-level splitter handle, so the
         # divider sits directly below the list rather than below its actions.
@@ -299,6 +357,7 @@ class GlossaryDialog(
         self._variants_list.setWordWrap(True)
         self._variants_list.setItemDelegate(_VariantItemDelegate(self._variants_list))
         self._variants_list.currentItemChanged.connect(lambda _cur, _prev: self._update_variant_buttons_state())
+        self._variants_list.itemDoubleClicked.connect(self._on_variant_double_clicked)
         variants_layout.addWidget(self._variants_list, 1)
         self._detail_splitter.addWidget(self._variants_pane)
         self._set_variants_visible(False)
@@ -309,17 +368,10 @@ class GlossaryDialog(
         variants_btn_layout = QHBoxLayout()
         self._apply_variant_button = QPushButton(tr('Apply selected variant'), self)
         self._apply_variant_button.setToolTip(
-            tr('Apply the selected variant translation, confirm the term, and move to the next entry.')
+            tr('Apply the selected variant translation to the editor.')
         )
         self._apply_variant_button.clicked.connect(self._on_apply_selected_variant)
         variants_btn_layout.addWidget(self._apply_variant_button)
-
-        self._discuss_variant_button = QPushButton(tr('Discuss with AI…'), self)
-        self._discuss_variant_button.setToolTip(
-            tr('Open AI chat with term context to discuss the proposed variants.')
-        )
-        self._discuss_variant_button.clicked.connect(self._on_discuss_variants_clicked)
-        variants_btn_layout.addWidget(self._discuss_variant_button)
         variants_btn_layout.addStretch()
         lower_details_layout.addLayout(variants_btn_layout)
 
@@ -338,7 +390,7 @@ class GlossaryDialog(
         notes_header.setSpacing(6)
         self._notes_collapse_button = QPushButton("▼", self)
         self._notes_collapse_button.setFixedSize(22, 22)
-        self._notes_collapse_button.setStyleSheet("font-size: 10px; font-weight: bold; padding: 0px;")
+        self._notes_collapse_button.setStyleSheet("QPushButton { font-size: 10px; font-weight: bold; padding: 0px; }")
         self._notes_collapse_button.setToolTip(tr("Collapse/Expand section"))
         notes_header.addWidget(self._notes_collapse_button)
 
@@ -351,6 +403,7 @@ class GlossaryDialog(
         self._notes_variation_button.clicked.connect(self._on_notes_variation_clicked)
         self._notes_variation_busy = False
         notes_header.addWidget(self._notes_variation_button)
+
         notes_header.addStretch()
 
         self._profiled_checkbox = QCheckBox(tr('Profiled via AI (Speech Profile generated)'), self)
@@ -388,7 +441,7 @@ class GlossaryDialog(
         ai_notes_header.setSpacing(6)
         self._ai_notes_collapse_button = QPushButton("▼", self)
         self._ai_notes_collapse_button.setFixedSize(22, 22)
-        self._ai_notes_collapse_button.setStyleSheet("font-size: 10px; font-weight: bold; padding: 0px;")
+        self._ai_notes_collapse_button.setStyleSheet("QPushButton { font-size: 10px; font-weight: bold; padding: 0px; }")
         self._ai_notes_collapse_button.setToolTip(tr("Collapse/Expand section"))
         ai_notes_header.addWidget(self._ai_notes_collapse_button)
 
@@ -396,12 +449,13 @@ class GlossaryDialog(
         ai_notes_label.setStyleSheet("font-weight: bold;")
         ai_notes_header.addWidget(ai_notes_label)
         ai_notes_header.addStretch()
+
         ai_notes_layout.addLayout(ai_notes_header)
 
         self._ai_notes_edit = QPlainTextEdit(self)
-        self._ai_notes_edit.setReadOnly(True)
-        self._ai_notes_edit.setUndoRedoEnabled(False)
-        self._ai_notes_edit.setPlaceholderText(tr('No AI doubts or alternative choices recorded.'))
+        self._ai_notes_edit.setReadOnly(False)
+        self._ai_notes_edit.setUndoRedoEnabled(True)
+        self._ai_notes_edit.setPlaceholderText(tr('Enter user notes or view AI remarks...'))
         ai_notes_layout.addWidget(self._ai_notes_edit, 1)
 
         def _toggle_ai_notes():
@@ -426,7 +480,7 @@ class GlossaryDialog(
         occ_header.setSpacing(6)
         self._occ_collapse_button = QPushButton("▼", self)
         self._occ_collapse_button.setFixedSize(22, 22)
-        self._occ_collapse_button.setStyleSheet("font-size: 10px; font-weight: bold; padding: 0px;")
+        self._occ_collapse_button.setStyleSheet("QPushButton { font-size: 10px; font-weight: bold; padding: 0px; }")
         self._occ_collapse_button.setToolTip(tr("Collapse/Expand section"))
         occ_header.addWidget(self._occ_collapse_button)
 
@@ -455,6 +509,7 @@ class GlossaryDialog(
         self._occurrence_list = QListWidget(self)
         self._occurrence_list.setSpacing(6)
         self._occurrence_list.setWordWrap(True)
+        self._occurrence_list.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
         self._occurrence_list.setTextElideMode(Qt.TextElideMode.ElideNone)
         self._occurrence_list.setItemDelegate(_RichTextItemDelegate(self._occurrence_list))
         self._occurrence_list.itemDoubleClicked.connect(self._activate_selected_occurrence)
@@ -473,24 +528,27 @@ class GlossaryDialog(
         self._lower_detail_splitter.addWidget(occurrences_pane)
         self._detail_splitter.setStretchFactor(0, 1)
         self._detail_splitter.setStretchFactor(1, 3)
-        self._detail_splitter.setSizes([140, 540])
+        self._detail_splitter.setSizes([120, 450])
         self._lower_detail_splitter.setStretchFactor(0, 1)
         self._lower_detail_splitter.setStretchFactor(1, 1)
         self._lower_detail_splitter.setStretchFactor(2, 1)
-        self._lower_detail_splitter.setSizes([180, 160, 200])
+        self._lower_detail_splitter.setSizes([150, 150, 150])
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, parent=self)
         close_btn = button_box.button(QDialogButtonBox.StandardButton.Close)
         if close_btn is not None:
             close_btn.setText(tr('Close'))
 
         self._save_button = QPushButton(tr('Save Changes'), self)
-        self._save_button.clicked.connect(self._save_editor_changes)
+        self._save_button.clicked.connect(lambda: self._save_editor_changes())
         button_box.addButton(self._save_button, QDialogButtonBox.ButtonRole.ActionRole)
+        self._save_shortcut = QShortcut(QKeySequence.StandardKey.Save, self)
+        self._save_shortcut.activated.connect(lambda: self._save_editor_changes())
         if self._update_callback is None:
             self._save_button.setVisible(False)
+            self._save_shortcut.setEnabled(False)
 
         self._global_replace_button = QPushButton(tr('Global Replace...'), self)
-        self._global_replace_button.setStyleSheet("background-color: #0d9488; color: white; font-weight: bold;")
+        self._global_replace_button.setStyleSheet("QPushButton { background-color: #0d9488; color: white; font-weight: bold; }")
         self._global_replace_button.clicked.connect(self._on_global_replace_clicked)
         button_box.addButton(self._global_replace_button, QDialogButtonBox.ButtonRole.ActionRole)
         if self._update_callback is None or self._global_replace_callback is None:
@@ -498,7 +556,7 @@ class GlossaryDialog(
             
         # Same single route as Tools and the pipeline wizard.
         self._build_button = QPushButton(tr('Run automatic glossary pass...'), self)
-        self._build_button.setStyleSheet("background-color: #2563eb; color: white; font-weight: bold;")
+        self._build_button.setStyleSheet("QPushButton { background-color: #2563eb; color: white; font-weight: bold; }")
         self._build_button.setToolTip(
             tr('Seed, discover, describe, and propose translations in one uninterrupted pass.')
         )
@@ -507,15 +565,33 @@ class GlossaryDialog(
         if self._build_callback is None:
             self._build_button.setVisible(False)
 
+        self._retranslate_button = QPushButton(tr('Force Retranslate...'), self)
+        self._retranslate_button.setStyleSheet("QPushButton { background-color: #ea580c; color: white; font-weight: bold; }")
+        self._retranslate_button.setToolTip(
+            tr('Retranslate all entries with AI using current rules, overwriting existing translations with newly proposed variants.')
+        )
+        self._retranslate_button.clicked.connect(self._on_force_retranslate_clicked)
+        button_box.addButton(self._retranslate_button, QDialogButtonBox.ButtonRole.ActionRole)
+        if self._force_retranslate_callback is None:
+            self._retranslate_button.setVisible(False)
+
         self._ai_classify_button = QPushButton(tr('Organize via AI'), self)
-        self._ai_classify_button.setStyleSheet("background-color: #8b5cf6; color: white; font-weight: bold;")
+        self._ai_classify_button.setStyleSheet("QPushButton { background-color: #8b5cf6; color: white; font-weight: bold; }")
         self._ai_classify_button.clicked.connect(self._on_ai_classify_clicked)
         button_box.addButton(self._ai_classify_button, QDialogButtonBox.ButtonRole.ActionRole)
         if self._ai_classify_callback is None:
             self._ai_classify_button.setVisible(False)
+
+        self._companion_sync_button = QPushButton(tr('☁ Companion Sync...'), self)
+        self._companion_sync_button.setStyleSheet("QPushButton { background-color: #6366f1; color: white; font-weight: bold; }")
+        self._companion_sync_button.setToolTip(
+            tr('Push glossary & occurrences to mobile Companion or pull reviewed translations from your phone.')
+        )
+        self._companion_sync_button.clicked.connect(self._on_companion_sync_clicked)
+        button_box.addButton(self._companion_sync_button, QDialogButtonBox.ButtonRole.ActionRole)
             
         self._clear_button = QPushButton(tr('Clear Glossary'), self)
-        self._clear_button.setStyleSheet("background-color: #b91c1c; color: white; font-weight: bold;")
+        self._clear_button.setStyleSheet("QPushButton { background-color: #b91c1c; color: white; font-weight: bold; }")
         self._clear_button.setToolTip(tr('Remove every entry. The glossary file is backed up first.'))
         self._clear_button.clicked.connect(self._on_clear_clicked)
         button_box.addButton(self._clear_button, QDialogButtonBox.ButtonRole.DestructiveRole)
@@ -526,6 +602,7 @@ class GlossaryDialog(
         layout.addWidget(button_box)
         self._translation_edit.textChanged.connect(self._on_editor_content_changed)
         self._notes_edit.textChanged.connect(self._on_editor_content_changed)
+        self._ai_notes_edit.textChanged.connect(self._on_editor_content_changed)
         self._profiled_checkbox.stateChanged.connect(self._on_editor_content_changed)
         self._category_combo.currentTextChanged.connect(self._on_editor_content_changed)
         self._update_editor_enabled_state()

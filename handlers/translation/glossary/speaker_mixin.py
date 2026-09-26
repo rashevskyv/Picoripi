@@ -21,14 +21,42 @@ class SpeakerMixin:
         ai_chat_handler.show_chat_window(initial_text=context_text)
 
     def format_variant_discussion_context(self, entry: GlossaryEntry) -> str:
-        """Format the exact context and constraints for discussing glossary variants in AI chat."""
+        """Format the exact context and constraints for discussing glossary entries/variants in AI chat."""
         target_lang = getattr(self.mw, "target_language", "Ukrainian")
         if not isinstance(target_lang, str) or not target_lang.strip():
             target_lang = "Ukrainian"
         parts = [
             f"Term: {entry.original}",
-            f"Target language: {target_lang}",
         ]
+        if getattr(entry, "section", None):
+            parts.append(f"Category: {entry.section}")
+        if getattr(entry, "translation", None):
+            parts.append(f"Current translation: {entry.translation}")
+        parts.append(f"Target language: {target_lang}")
+
+        wiki_url = None
+        if hasattr(self, "_get_external_reference_url"):
+            wiki_url = self._get_external_reference_url(entry.original)
+        elif hasattr(self, "mw"):
+            rules = getattr(self.mw, "current_game_rules", None)
+            getter = getattr(rules, "get_external_reference_url", None)
+            if callable(getter):
+                try:
+                    wiki_url = getter(entry.original)
+                except Exception:
+                    wiki_url = None
+        if wiki_url:
+            parts.append(f"Wiki reference: {wiki_url}")
+
+        if hasattr(self, "_confirmed_speaker_codes"):
+            codes = self._confirmed_speaker_codes(entry.original)
+            if codes:
+                parts.append(f"Speaker code(s): {', '.join(codes)}")
+        if getattr(entry, "suggested_name", ""):
+            parts.append(f"Suggested character name: {entry.suggested_name}")
+        if getattr(entry, "suggested_name_evidence", ""):
+            parts.append(f"Speaker name evidence: {entry.suggested_name_evidence}")
+
         if entry.notes:
             parts.append(f"Description:\n{entry.notes}")
         fragments = [
@@ -38,6 +66,31 @@ class SpeakerMixin:
         ]
         if fragments:
             parts.append("Description fragments:\n- " + "\n- ".join(fragments))
+
+        occs = []
+        if getattr(self, "dialog", None) and hasattr(self.dialog, "_occurrences"):
+            occs = self.dialog._occurrences.get(entry.original, [])
+        elif hasattr(self, "glossary_manager") and hasattr(self.glossary_manager, "occurrences"):
+            occs = self.glossary_manager.occurrences.get(entry.original, [])
+
+        if occs:
+            spoken_occs = [o for o in occs if getattr(o, "kind", "mention") == "spoken"]
+            mention_occs = [o for o in occs if getattr(o, "kind", "mention") != "spoken"]
+            parts.append(f"Occurrences: {len(mention_occs)} mentions, {len(spoken_occs)} spoken")
+            sample_lines = []
+            seen = set()
+            for o in spoken_occs + mention_occs:
+                preview = getattr(o, "line_text", "") or getattr(o, "preview_text", "")
+                if preview and preview not in seen:
+                    seen.add(preview)
+                    clean_preview = " ".join(preview.split())
+                    prefix = "[Spoken]" if getattr(o, "kind", "mention") == "spoken" else "[Mention]"
+                    sample_lines.append(f"- {prefix} Block {o.block_idx}, Line {o.string_idx + 1}: \"{clean_preview}\"")
+                    if len(sample_lines) >= 5:
+                        break
+            if sample_lines:
+                parts.append("In-game dialogue occurrences:\n" + "\n".join(sample_lines))
+
         variants = getattr(entry, "translation_variants", ()) or ()
         if variants:
             variant_lines = []
@@ -47,12 +100,18 @@ class SpeakerMixin:
                     line += f" (Rationale: {v.rationale})"
                 variant_lines.append(line)
             parts.append("Proposed translation candidates:\n" + "\n".join(variant_lines))
-        parts.append(
-            "Instruction:\n"
-            "Analyze the term, description, and proposed translation candidates. "
-            "You must recommend exactly one of the displayed candidates above, verbatim. "
-            "Choose only from the existing candidates."
-        )
+            parts.append(
+                "Instruction:\n"
+                "Analyze the term, description, and proposed translation candidates. "
+                "Recommend the most appropriate candidate or suggest refined/creative alternatives, "
+                f"explaining your reasoning in the context of the game lore and {target_lang} localization standards."
+            )
+        else:
+            parts.append(
+                "Instruction:\n"
+                "Analyze the glossary term in the context of the game lore, category, wiki reference, and in-game dialogue occurrences. "
+                f"Discuss and suggest the most appropriate translation into {target_lang}."
+            )
         return "\n\n".join(parts)
 
     def _placeholder_speaker_callback(self):
