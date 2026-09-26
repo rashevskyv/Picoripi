@@ -26,7 +26,7 @@ Recommended order of work: [8. Localization Pipeline](8_Localization_Pipeline.md
 
 | Region | What it is |
 |--------|------------|
-| Left | Project tree: physical files plus derived virtual roots. Header: **Blocks (double-click to rename):** |
+| Left | Project tree: physical files plus derived virtual roots. Header: **Blocks:** (double-click hint in tooltip). |
 | Top right | **Strings in block (click line to select):** read-only list. Click a line to bind the editors. |
 | Bottom left | **Original** — source text, read-only. |
 | Bottom right | **Editable** — the only pane that writes translations. |
@@ -251,7 +251,8 @@ Tree toolbar (bottom of the panel; buttons start disabled):
   - **Description & Notes**: Includes the **Profiled via AI** checkbox in the section header with a descriptive tooltip indicating character speech profiling status.
   - **Collapsible Sections**: Description, AI Notes, and Occurrences panels feature collapse/expand toggle buttons (`[▼]/[▶]`) to optimize vertical space.
   - **Granular Occurrence Filtering**: Independent checkboxes for **Mentions** (text references) and **Spoken** (lines spoken by this character).
-  - **Fast Variant Confirmation**: Applying a proposed translation variant updates the existing occurrence index in place when the term and category are unchanged. This keeps confirmation responsive (sub-second) even in large projects; changing the term/category or confirming before the index exists still performs a full correctness scan.
+  - **Reference Line Preview & Occurrence Alignment**: For each dialogue occurrence, the preview shows the complete original message and the full corresponding reference record for that (block, string) without trimming surrounding lines. Long previews scroll vertically, even when there is only one occurrence. The occurrence is highlighted within the full original text, and matching reference terms are highlighted within the reference lines while preserving all line breaks. The `RU:` block is displayed only when the reference is explicitly identified as Russian; other reference languages provide evidence to the AI translator without displaying an `RU:` badge in occurrences.
+  - **In-Place Variant Application & Double-Click**: Double-clicking any proposed variant or clicking **Apply selected variant** inserts the candidate translation and updates notes in place without advancing to the next row. Confirmation and progression to the next term are strictly decoupled and triggered by clicking **Confirm translation**.
 
 Right-click (empty space): **Create Folder**, **AI: Translate All Blocks (UA Chronological)**, **Revert All Blocks to Original**, **Restore All Translations**.
 

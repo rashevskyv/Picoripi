@@ -1,4 +1,4 @@
-# Picoripi v0.3.101
+# Picoripi v0.3.133-dev
 
 **Picoripi** is a visual translation and localization workbench (Python, **PyQt6**) for texts with strict length and layout constraints. It started as a Nintendo-format editor (BMG, BFN, U8/RARC) and stays general enough for any structured translation project.
 
@@ -42,6 +42,7 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
 - **Project-Based Workflow**: Creates, loads, and manages `.uiproj` projects encapsulating all translation files, virtual categories, and settings.
 - **Derived virtual views**: **Story**, **Speakers**, **Windows**, **Items**, and **Notated** pack non-empty strings in roughly sorted groups. Empty BMG padding stays only in the physical file. Warning ticks appear on virtual folders the same way they do on files. See the [virtual navigation wiki](docs/wiki/6_Virtual_Navigation_and_Preview.md).
 - **Twilight Princess window preview**: When the Zelda BMG plugin exposes `message_window_preview`, the BFN preview draws talk / item-get / sign chrome from a local game dump (not shipped in this repo). Page `n/N` and original/translation (`T`/`O`) sit on the preview.
+- **Bidirectional Proportional Preview Scaling & Aspect Ratio Lock**: The game window starts fitted to the preview; with a visible background, the image, frame, and dialogue text share the same transform as the panel resizes or `Ctrl+Wheel` zooms. Hiding the background restores the ordinary window fit. "Fix Font Scale" retains the chosen text size across reopening, and "Reset Scale (100%)" restores 100% zoom. Expanded offscreen rendering buffers prevent text, shadow, and glyph descender clipping, while the preview sidebar adapts button sizes (down to 24px/20px) on compact panels.
 - **Show Unsaved Only** (tree and string list) is a session filter. A restart always clears it so a forgotten check cannot hide the project.
 - **Redesigned Script Markup Studio Interface**: Reorganized the workspace to separate workflow stages, file operations, and advanced tools. Features a centralized File menu, a Live Save Status Indicator, a dynamic 4-stage Progress Bar, and an intelligent Next Action dashboard suggesting context-aware buttons (AI Auto-fill, suggestions review, or MemPalace transition) based on project completion.
 - **Virtual Folder Structure**: Organizes text blocks into nested virtual folders (categories) for logical narrative layout. Supports drag-and-drop file organization.
@@ -67,6 +68,14 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
 - **Auto-Synchronized Filter Checkboxes**: Automatically synchronizes the graphical states of all filter checkboxes (such as `Show Unsaved Only`, `Hide translated`, etc.) inside the preview panel with the internal `AppDataStore` values upon startup, session restoration, or project settings loading to prevent visual UI state desynchronization.
 - **Warning-Specific Preview Filtering**: Allows filtering the preview panel by specific warning categories. Adds a filter button (`Warnings: X / Y`, where X is the number of active warning filters and Y is the number of enabled warnings in Settings -> Detection) next to the preview layout toggles. Clicking the button opens a modal dialog (`WarningsFilterDialog`) with checkboxes and descriptive tooltips for each warning type, enabling users to isolate strings matching a subset of selected warnings or view all warnings if no specific filters are checked. If no warnings are selected, the preview is cleared.
 - **Auto-follow scroll in Script Markup Studio**: Adds a toolbar checkbox `Auto-follow scroll` inside the Script Markup Studio. When enabled, scrolling the raw script pane dynamically aligns the preview pane to the top visible line in the raw pane using `ensureCursorVisible()` (gentle scrolling). If the target line is already visible, the view remains stationary to avoid layout jumping.
+- **Reference Translation Tabs & Unpacked Multi-Language ROM / ISO Support (PAL Multi-5)**:
+  - **Single Patch, Unpacked ROM & ISO Image Support**: Supports loading an external reference translation patch (`File -> Load Reference Translation Patch...`), an unpacked multi-language ROM directory, or a GameCube/Wii `.iso` disc image directly (`File -> Load Unpacked ROM (Multi-Language Reference)...`). If an `.iso` file is selected, Picoripi automatically locates `wit.exe` and extracts the message files into an extracted folder.
+  - **Deep Recursive Directory Scanning**: Searches recursively for language directories (`**/Msg*` and `**/msg*`), discovering nested PAL localization folders without requiring users to navigate into internal game directory structures.
+  - **Intelligent Region & Language Mapping**: In European PAL dumps (e.g. Twilight Princess), game dialogue resides in language-specific directories (`Msguk`/`Msgen`/`Msgus`/`Msge`, `Msgde`, `Msgfr`, `Msgit`, `Msgsp`). When a community Russian patch was applied, Russian replaced English in the UK English folder (`Msguk`) and is decoded with single-byte `cp1251` under the label **`Russian (RU)`**. Native Nintendo European localizations are concurrently loaded with `cp1252` as **`German (DE)`**, **`French (FR)`**, **`Italian (IT)`**, and **`Spanish (ES)`**.
+  - **Dynamic Multi-Language Source Tabs**: Replaces the fixed source panel with dynamically generated read-only editor tabs (`Original (EN)`, `Russian (RU)`, `German (DE)`, `French (FR)`, `Italian (IT)`, `Spanish (ES)`). All tabs share synchronized line navigation and cursor tracking while preserving active tab choice across block changes.
+  - **Context-Aware Text Copying**: Clicking the copy/revert arrow (`→`) copies the text from whichever reference tab is currently active directly into the target translation editor.
+  - **Multi-Language Context for AI Translations**: Reference translations from all loaded languages are automatically structured and injected into AI translation prompts (`handlers/translation/prompt_composer/`), giving LLMs explicit guidance on grammatical gender, formal/informal address forms (e.g., German *du/Sie*, French *tu/vous*), and character tone across European releases. The translator always translates from the original source text and treats reference translations strictly as contextual evidence, with an explicit rule against translating from or copying a reference language as the target result.
+  - **Glossary Variants Extraction**: Multi-pass reference variant extraction (`tools/extract_ru_glossary_variants.py`) matches reference dialogue strings with glossary terms (exact standalone, tagged/colored spans, character frequencies, and multi-word phrases) and enriches `glossary.json` `translation_variants` with `rationale="RU патч v2.0"`.
 - **Interface Localization (i18n) & Language Menu**: Comprehensive localization across all application chrome using `tr()`. The **Language** menu dynamically lists all active translations (`locales/*.json`) with their native titles (e.g. English, Українська, 日本語, etc.). Missing keys fall back gracefully to English. Supported by an automated batch translation pipeline (`tools/i18n-translate/`) with Gemini Web2API proxy integration.
 
 ---
@@ -135,6 +144,34 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
 - **AI Translation Presets**:
   - Save, load, and manage custom API provider presets (endpoint URL, model names, API keys, parameters) directly from the settings dialog.
   - Allows quick, seamless switching between different setups (e.g., local Ollama, OmniRouter, native Google Gemini, or customized OpenAI endpoints) without re-entering credentials.
+- **AI Chat Window with Queue, Context Reset, Auto-Scroll & Diagnostics**:
+  - Multi-tab AI Chat window with real-time token/character counts and live elapsed generation timer.
+  - Queues subsequent user messages with interactive `[In Queue]` badges and a "Cancel Queue" action banner while generation is in progress.
+  - Features an active "Stop" button and preserves partial responses on network timeouts, interruptions, or cancellations with clean Markdown formatting and error indicators.
+  - Dynamic button width calculation ensuring Ukrainian action labels (`Надіслати`, `Зупинити`) fit cleanly across diverse font scaling and high-DPI setups.
+  - Intelligent auto-scrolling that follows streaming responses in real time, with viewport movement to incoming responses and auto-scroll pause when reading earlier chat history.
+  - Dedicated "Reset Context" (`Скинути контекст`) button to clear conversation memory and start a fresh dialogue without previous turns.
+  - Dual "Scroll to Bottom" (`↓ В самий низ`) controls: a top toolbar jump button and a floating circular scroll button that appears whenever scrolled up.
+  - Reliable multi-turn dialogue memory ensuring previous messages and system instructions are consistently sent to stateless LLM backends (Gemini Web2API, OpenAI, Ollama).
+  - Independent top-level OS window architecture with full Windows `Alt+Tab` task switcher and taskbar integration.
+- **Strict Orthography, Transliteration & Transcription Rules (Ukrainian & Japanese Kovalenko System)**:
+  - System prompts and glossary templates enforce Ukrainian Orthography (2019) standards: rendering plosive sound [g] (letter G) strictly as Ukrainian **Ґ / ґ** (*Hogwarts* -> **Гоґвортс**, *Ganon* -> **Ґанон**, *Gandalf* -> **Ґандальф**) instead of Russian calques with Г/Х, and sound [h] strictly as Ukrainian **Г / г** (*Harry* -> **Гаррі**, *Hyrule* -> **Гайрул**).
+  - Enforces strict canonical unification for the Zelda `Hy-` [haɪ] root: **Hyrule** -> **Гайрул**, **Hylia** -> **Гайлія**, **Hylian** -> **гайлійський / гайлієць** (including all landmarks, fish, and fauna: *Lake Hylia* -> **озеро Гайлія**, *Hylian shield* -> **гайлійський щит**, *Hyrule Bass* -> **гайрульський окунь**, *Hylian Loach* -> **гайлійський в'юн**), eliminating Russian-style "Хайрул" and desynchronized "Гілія / Хілія / гілійці".
+  - Enforces the Ukrainian practical transcription of Japanese (Kovalenko system): **shi** -> **сі** (*Yoshi* -> **Йосі**), **chi** -> **ті** (*Hitachi* -> **Хітаті**), **tsu** -> **цу**, **ji** -> **дзі** (*Fuji* -> **Фудзі**), plosive g -> **ґ**, and zero tolerance for Russian-style Polivanov forms (*ши*, *чи*, *джи*).
+  - Integrated into global prompts, all individual game plugins (*The Minish Cap*, *The Wind Waker*, *Twilight Princess*, *Pokémon FireRed*, *Plain Text*, *Default Plugin*), batch/single translation instructions, and AI Chat via dynamic language blocks (`[IF_TARGET_LANG: Ukrainian]`).
+- **Multi-Agent Translation Consilium (Translator + Inline Arbiter/Editor)**:
+  - Integrates a collaborative multi-agent translation workflow: the primary translator generates the target text while an inline Editor/Arbiter supervisor reviews and polishes the draft.
+  - The Arbiter verifies terminology against the active glossary, enforces narrative voice consistency, and refines phrasing while keeping layout constraints and control tag variations non-blocking (e.g. `[PLAYER]` being translated or replaced with the protagonist name like "Лінк").
+- **Two-Phase Chronological & Semantic Pipeline (Story First ➔ Remaining Blocks)**:
+  - Intelligently classifies all project text items (`classify_project_items`) into chronological **Story Dialogue** (using MemePalace `script_line` mappings and story block heuristics) and **Semantic / System Blocks** (menus, UI, item descriptions, mini-games, shops).
+  - **Narrative Ledger Canon Context**: Phase 1 records translated terminology, character voices, and narrative developments into an in-memory `NarrativeLedger`. When Phase 2 executes, this accumulated canon context is automatically injected into prompts, guaranteeing that secondary and system texts remain 100% faithful to the main storyline.
+- **Top AI Batch Translation Buttons & Interactive Modes Dialog**:
+  - Added a prominent **AI** action button directly on the main toolbar (`main_toolbar`) and in the blocks panel header (`block_header_layout`) opening the comprehensive **AI Batch Translation Dialog** (`AIBatchTranslationDialog`).
+  - The dialog clearly presents and explains each pipeline mode (Story First, Remaining Blocks, Full Pipeline, Chronological Legacy) with detailed cards, step badges, and non-blocking rules guidance.
+  - Cleaned up the block tree context menu: removed whole-project batch translation actions from individual block menus, ensuring block context menus contain only actions relevant to the selected block (`AI: Translate Block` and `AI: Build Glossary`), while providing an `AI Batch Translation...` action on empty space.
+- **Dedicated AI Batch Translation Submenus & Localization Pipeline Wizard**:
+  - Organized all batch translation operations into dedicated `AI Batch Translation ➔` submenus in both the project tree context menu and the main `Tools` menu (`Translate Story First`, `Translate Remaining Blocks`, `Run Full Pipeline (Story ➔ Semantic)`, and `Translate All Blocks (Chronological)`).
+  - Embedded direct action triggers into Step 5 ("Translate the text") of the Localization Pipeline Wizard (`PipelineWizardDialog`), allowing translators to initiate each phase with a single click.
 
 ---
 
@@ -154,7 +191,35 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
 - **Collapsible Section Panes**: Notes/Description, AI Notes, and Occurrences sections feature toggleable collapsible headers (`[▼]/[▶]`) to reclaim vertical space and minimize visual clutter.
 - **Granular Occurrence Filtering**: Features independent checkboxes to filter term occurrences by Mentions (direct text matches) and Spoken lines (dialogue spoken by character).
 - **Relocated "Needs Review" Filter**: The unconfirmed terms filter checkbox has been relocated from the search bar directly beneath the terms and categories table (`_tab_widget`), preserving all vertical space for term details while visually grouping it with the table it filters.
-- **Character Profiling Metadata**: Relocated the "Profiled via AI" checkbox to the Description header with an explicit tooltip clarifying its speech profiling status.
+- **Context-Enriched AI Discussion**: Opens an interactive AI chat window directly from the entry toolbar or table context menu with comprehensive context automatically compiled into the prompt (category, original term, translation, external wiki reference link, confirmed speaker codes, description notes, and in-game dialogue occurrences with script line quotes).
+- **Reference Patch Occurrences Context**: For every dialogue occurrence, the glossary dialog displays the complete original source message and the full corresponding reference record for that (block, string) without trimming surrounding lines. The occurrence is highlighted within the full original message, and matching reference terms are highlighted within the reference lines while preserving all line breaks and HTML formatting. The `RU:` preview is shown only when the loaded reference is explicitly identified as Russian (other loaded reference languages provide context to the AI translator without being labeled as RU). If the reference record is absent or empty, the `RU:` block is omitted.
+- **Force Retranslate with AI & Safe Backup**:
+  - Dedicated **"Force Retranslate..."** button in the Glossary dialog bottom toolbar (styled with distinct orange highlight `#ea580c`) allowing users to re-translate all glossary entries using AI with the latest prompts, orthography, and transcription rules.
+  - Automatically creates a durable safety backup copy (`glossary.json.bak`) prior to starting.
+  - Overwrites existing translations with freshly generated AI proposals, sets entry status to `translated` (flagged for review), and hot-reloads the glossary dialog in real time upon completion.
+  - Also integrates a **"Force re-translate already translated terms"** checkbox option in the Glossary Build / Prepare dialog for full pipeline re-runs.
+- **Unified Term Save Button & Dedicated Action Row**:
+  - A clean, prominent **Save** button (`_save_term_button`), **Confirm translation** (`_confirm_button`), and **Discuss with AI…** (`_discuss_variant_button`) organized on a dedicated action row directly below the translation input field.
+  - Gives the translation input field full unobstructed horizontal width (up to 400–550px+), allowing long character names and localized phrases to fit comfortably without clipping or premature scrolling.
+  - The Save button automatically lights up with a vivid blue accent (`#2563eb`) whenever any field (translation, description, or notes) has uncommitted changes, saving the record in place without navigating away.
+  - Fully supports `Ctrl+S` from anywhere in the dialog.
+  - Removed clumsy, cluttered save buttons from the collapsible section headers (`[▼] Description` and `[▼] AI Notes`), keeping pane titles focused and distraction-free while retaining full backward compatibility.
+- **Unsaved Changes Navigation Protection (Pop-Up)**:
+  - Automatically prompts the user (`Save` / `Discard` / `Cancel`) when selecting another term row in the table, switching category tabs, or closing the dialog with uncommitted edits, protecting custom notes and translations from accidental loss.
+- **Proposed Variant Application & Double-Click Support**:
+  - Double-clicking any proposed AI translation variant in the list or clicking the **"Apply selected variant"** button instantly applies the candidate into the translation editor, updates rendered notes, and bolds the active variant in the list without advancing to the next entry.
+  - Advancing to the next term is strictly decoupled and happens only when explicitly confirming via the **"Confirm translation"** button, allowing full review and manual adjustments before settling the entry.
+- **Reference Variant & Notes Context Isolation**:
+  - In the proposed variants list, reference translations from external patches (e.g. `RU patch v2.0`) are visually isolated with distinctive cyan styling and italic font, clearly marked for contextual reference. Double-clicking and applying via button are safely disabled on reference items.
+  - In AI Notes, reference variants are separated from target translation choices under an explicit "Russian reference translation (for context)" section. If no direct variant exists, the counterpart reference text from the first mention string is automatically provided as reference context.
+- **Picoripi Companion (Mobile Web PWA & Synchronization Server)**:
+  - Full mobile web application (PWA) and synchronization server allowing you to open your translation glossary on your smartphone (iOS Safari / Android Chrome) or tablet.
+  - Installable as a native-feeling standalone app via "Add to Home Screen".
+  - Features an ergonomic **"✓ Confirm & Next"** workflow to rapidly approve terms from your phone with automatic navigation to the next unreviewed entry.
+  - Full fidelity: horizontal category tabs, live debounced search, "Needs review" filter, interactive candidate variant cards, dynamic lore description with real-time `{{TERM}}` substitution, editable user notes, and in-game dialogue occurrences with English quotes and reference translations.
+  - 1-click desktop synchronization via the **`[☁ Companion Sync...]`** button in `GlossaryDialog` with automatic backup protection (`.bak`).
+  - Automated deployment on Ubuntu servers via Docker Compose (`docker compose up -d`) or native systemd service (`install_ubuntu.sh`). See [companion/README.md](companion/README.md).
+
 
 ---
 

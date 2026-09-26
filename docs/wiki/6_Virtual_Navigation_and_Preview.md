@@ -61,6 +61,8 @@ Boss name cards follow `zelda_boss_name.blo` (`sfont00` 600×77, ruby 34px, cent
 
 **Global → Enable Live Preview** turns the live simulator off to reduce lag.
 
+**Preview scaling and layout**: The preview starts by fitting the message window to the available space. With a background image visible, the image, frame, and text share the same game-coordinate transform; `Ctrl+Wheel` zooms them together, and **Reset Scale (100%)** restores 100% zoom while retaining any pan offset. Pan offsets apply only while the background is visible. **Fix Font Scale** restores the chosen text scale on reopening and adjusts it proportionally when the panel is resized. The sidebar reduces button sizes on compact panels, and warning tooltips show a colored dot beside each warning name.
+
 **Do not** expect TP window frames without a legal local dump and the Zelda BMG plugin.
 
 ---

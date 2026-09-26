@@ -103,11 +103,12 @@ UI (auto mode):
 - **Also propose translations now** is on and hidden.
 - Optional: **Re-scan every selected block with AI** (normally only new/changed blocks).
 - Optional: **Resume unfinished entries only** when some terms still need description or translation.
+- Optional: **Force re-translate already translated terms** to re-translate all entries using current rules, overwriting existing translations.
 - Button: **Run automatic glossary pass**.
 
 Status: empty → “automatic pass not run”; else `N terms; M awaiting review` (unconfirmed entries). Partial until the review backlog is empty.
 
-Manual glossary: **Glossary…** / `Ctrl+G`. Same store.
+Manual glossary: **Glossary…** / `Ctrl+G`. Same store. Features a direct **Force Retranslate...** button (with automatic `glossary.json.bak` backup creation) to re-translate all terms via AI and update proposals in place. When a reference patch is loaded, reference variants from external patches are styled distinctly (cyan/italic), blocked from double-click application, and kept separate in AI notes (with automatic context from mention lines when no explicit variant exists).
 
 **Do** configure AI first ([11](11_AI_Translation.md), [5](5_Gemini_Web2API.md)). **Do not** treat unconfirmed entries as a blocker for translating text.
 

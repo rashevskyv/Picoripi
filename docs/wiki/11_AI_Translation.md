@@ -66,7 +66,7 @@ Nothing selected (`physical_block_idx == -1`): the button does nothing.
 - Ctrl-click: prompt editor.
 - Pick from **AI Translation Variations**; Refresh / Ctrl-click ignores the in-memory cache.
 
-**AI Chat** (toolbar, `Ctrl+Shift+C`): window **AI Chat**. Discuss translations. Ctrl+Enter / Send sends; Enter is a newline. Optional **Web Search**. Chat does **not** write the Editable pane; copy a suggestion yourself or use **AI Translate**.
+**AI Chat** (toolbar, `Ctrl+Shift+C`): window **AI Chat**. Discuss translations. Ctrl+Enter / Send sends; Enter is a newline. Optional **Web Search**. Features a dedicated **Retry** button (and `Ctrl+Shift+R`) to instantly resend the last message (with new model/settings or after a connection failure) without retyping, a **Stop** button during generation, message queueing, and a **Reset Context** action. Chat does **not** write the Editable pane; copy a suggestion yourself or use **AI Translate**.
 
 Tree empty-space menu: **AI: Translate All Blocks (UA Chronological)** — `translate_all_blocks_chronologically()`.
 
@@ -86,6 +86,25 @@ The engine does **not** hard-code game vocabulary. The plugin may attach (`get_t
 | `force_glossary` | line must produce a glossary entry |
 
 Plus speaker (after Merge Speakers), glossary hits, MemePalace scene if built, optional `get_ai_flow_context_for_string` / `get_ai_flow_overview`.
+
+### Language-Specific Transcription Directives
+
+System and plugin prompts support language-conditional directive blocks:
+`[IF_TARGET_LANG: <Language>]...[/IF_TARGET_LANG]`.
+When the target language matches (e.g. `Ukrainian`), the directives unwrap to provide strict rules for transcription and transliteration:
+- English plosive `G` is transcribed as Ukrainian `Ґ` (e.g. *Ganon* -> **Ґанон**, *Goron* -> **Ґорон**, *Gengar* -> **Ґенґар**), while aspirate `H` is transcribed as `Г` (e.g. *Hyrule* -> **Гайрул**, *Hogwarts* -> **Гоґвортс**).
+- Zelda universe `Hy-` [haɪ] root is consistently unified using `Г` and `ай`: *Hyrule* -> **Гайрул**, *Hylia* -> **Гайлія**, *Hylian* -> **гайлійський / гайлієць** (including all landmarks and creatures: *Lake Hylia* -> **озеро Гайлія**, *Hylian Shield* -> **гайлійський щит**, *Hyrule Bass* -> **гайрульський окунь**, *Hylian Loach* -> **гайлійський в'юн**). Russian calques like «Хайрул» and desynchronized forms like «Гілія / Хілія / гілійці» are strictly prohibited.
+- Japanese names and terms follow the academic Kovalenko system (`shi` -> **сі**, `chi` -> **ті**, `tsu` -> **цу**, `ji` -> **дзі**, plosive `g` -> **ґ**), avoiding Russian-style Polivanov adaptations (e.g. *Satoshi* -> **Сатосі**, *Shigeru* -> **Сіґеру**, *Fuji* -> **Фудзі**).
+When a non-matching target language is selected (e.g. `Spanish`), these blocks are cleanly stripped, keeping prompts completely free of Cyrillic characters.
+
+### Reference Translations Context
+
+When external reference patches or unpacked multi-language ROMs are loaded, corresponding dialogue lines from all available reference languages are injected under `REFERENCE TRANSLATIONS` (for single strings) or `reference_translations` (for batch requests).
+
+The engine enforces strict translation boundaries:
+- **Primary Source**: The model always translates from the original source text (`Input text (Original source):` or the `"text"` field).
+- **Context Only**: Reference translations are contextual evidence only, helping disambiguate meaning, speaker tone, and character gender across official or community localizations.
+- **Strict Prohibition**: The prompt explicitly forbids translating from any reference language or copying a reference translation as the target result.
 
 ---
 

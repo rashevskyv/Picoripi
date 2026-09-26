@@ -207,6 +207,10 @@ the text — because none of that needs anything from the game beyond the text i
 Also implemented, and needing no declaration:
 
 - `get_external_reference_url(term)` — direct web/wiki reference URL for terms, providing one-click access to external lore in the glossary UI.
+- `supports_reference_patch()` — returns `True` if the plugin can load external reference translation patches. Default: `False`.
+- `get_reference_language_label()` — returns the display title for the reference translation tab in the editor (e.g. `'Russian (RU)'`, `'German (DE)'`). Default: `'Reference (RU)'`.
+- `load_reference_patch(patch_path, block_names=None)` — parses and maps external reference translation patch files (archives, ROMs, or folders) into a `(block_idx, string_idx) -> reference_text` mapping for side-by-side comparison in the editor and glossary variant extraction. Default: `{}`.
+- `load_multi_reference(patch_path, block_names=None)` — parses reference translation files for multiple languages (e.g. from an unpacked PAL/Multi-5 ROM) into a `language_label -> {(block_idx, string_idx): reference_text}` mapping, providing multi-language comparison tabs in the editor and rich multi-language context to AI translation prompts. Default: wraps `load_reference_patch()`.
 - `get_addressee_for_string()` — who a line is addressed to, for the Story Timeline and
   translation prompts.
 - A `role_instruction` key alongside `content_role`, so a plugin supplies not just the name of

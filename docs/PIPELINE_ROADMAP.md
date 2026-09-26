@@ -54,6 +54,18 @@ def get_external_reference_url(self, term: str) -> Optional[str]:
 
 def get_addressee_for_string(self, block_idx, string_idx) -> Optional[str]:
     """До кого звернена репліка. Дефолт: None."""
+
+def supports_reference_patch(self) -> bool:
+    """Чи підтримує плагін завантаження референсного перекладу. Дефолт: False."""
+
+def get_reference_language_label(self) -> str:
+    """Мітка мови референсу для вкладки в редакторі (наприклад, 'Russian (RU)'). Дефолт: 'Reference (RU)'."""
+
+def load_reference_patch(self, patch_path: str, block_names: Optional[List[str]] = None) -> Dict[Tuple[int, int], str]:
+    """Завантаження та парсинг файлів референсного перекладу у відображення (block_idx, string_idx) -> text. Дефолт: {}."""
+
+def load_multi_reference(self, patch_path: str, block_names: Optional[List[str]] = None) -> Dict[str, Dict[Tuple[int, int], str]]:
+    """Завантаження та парсинг файлів референсних перекладів кількома мовами (наприклад, з розпакованого ROM). Дефолт: обгортка load_reference_patch()."""
 ```
 
 **Реалізація в TP (приклад, не частина рушія):**
