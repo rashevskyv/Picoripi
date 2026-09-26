@@ -88,6 +88,8 @@ class AppDataStore:
     # data is a property defined below
     edited_data: Dict[Tuple[int, int], str] = field(default_factory=dict)  # Unsaved changes per (block_idx, string_idx)
     edited_file_data: List[Any] = field(default_factory=list)  # Currently loaded file data
+    reference_data: Dict[Tuple[int, int], str] = field(default_factory=dict)  # Primary reference text per (block_idx, string_idx)
+    reference_languages_data: Dict[str, Dict[Tuple[int, int], str]] = field(default_factory=dict)  # All loaded reference languages
 
     # Metadata
     block_names: Dict[str, str] = field(default_factory=dict)
@@ -422,6 +424,8 @@ class AppDataStore:
         self.data = []
         self.edited_data = {}
         self.edited_file_data = []
+        self.reference_data = {}
+        self.reference_languages_data = {}
         self.block_names = {}
         self.unsaved_changes = False
         self.unsaved_block_indices = set()

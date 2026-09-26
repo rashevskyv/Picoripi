@@ -248,6 +248,50 @@ class BaseGameRules:
         """
         return None
 
+    def supports_reference_patch(self) -> bool:
+        """Whether this plugin supports loading an external reference translation patch."""
+        return False
+
+    def get_reference_language_label(self) -> str:
+        """Return the UI display label for the reference translation tab.
+
+        Examples: 'Russian (RU)', 'German (DE)', 'Japanese (JA)'. Default: 'Reference (RU)'.
+        """
+        return "Reference (RU)"
+
+    def load_reference_patch(
+        self, patch_path: str, block_names: Optional[List[str]] = None
+    ) -> Dict[Tuple[int, int], str]:
+        """Load and parse an external reference translation patch for the active project.
+
+        Args:
+            patch_path: Path to the directory or file containing the reference translation patch.
+            block_names: Optional list of project block names to map against.
+
+        Returns:
+            A mapping of (block_idx, string_idx) -> reference_text.
+        """
+        return {}
+
+    def load_multi_reference(
+        self, patch_path: str, block_names: Optional[List[str]] = None
+    ) -> Dict[str, Dict[Tuple[int, int], str]]:
+        """Load and parse reference translation files for multiple languages (e.g. from an unpacked ROM).
+
+        Args:
+            patch_path: Path to the directory containing reference patches or an unpacked ROM.
+            block_names: Optional list of project block names to map against.
+
+        Returns:
+            A mapping of language_label -> {(block_idx, string_idx): reference_text}.
+            Default implementation delegates to load_reference_patch() under get_reference_language_label().
+        """
+        ref_dict = self.load_reference_patch(patch_path, block_names=block_names)
+        if ref_dict:
+            label = self.get_reference_language_label()
+            return {label: ref_dict}
+        return {}
+
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
         """Get the problem definitions."""
         return {}

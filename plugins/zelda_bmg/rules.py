@@ -1291,6 +1291,34 @@ class GameRules(BaseGameRules):
 
         return reference_url(term)
 
+    def supports_reference_patch(self) -> bool:
+        """Zelda BMG supports loading external reference translation patches (e.g. GC/Wii RU patch)."""
+        return True
+
+    def get_reference_language_label(self) -> str:
+        """Return the UI display label for the reference translation tab."""
+        return "Russian (RU)"
+
+    def load_reference_patch(
+        self, patch_path: str, block_names: Optional[List[str] | Dict[str, str]] = None
+    ) -> Dict[Tuple[int, int], str]:
+        """Load and parse reference translation files from a folder or file for Zelda BMG."""
+        from .reference import load_zelda_bmg_reference_patch
+
+        return load_zelda_bmg_reference_patch(
+            patch_path, block_names=block_names, game_rules=self
+        )
+
+    def load_multi_reference(
+        self, patch_path: str, block_names: Optional[List[str] | Dict[str, str]] = None
+    ) -> Dict[str, Dict[Tuple[int, int], str]]:
+        """Load and parse reference translation files for multiple languages from an unpacked ROM or folder."""
+        from .reference import load_zelda_bmg_multi_reference
+
+        return load_zelda_bmg_multi_reference(
+            patch_path, block_names=block_names, game_rules=self
+        )
+
     def get_glossary_seed_entries(self) -> List[Dict[str, Any]]:
         """Terms TP names itself: location plates, boss cards, item windows.
 

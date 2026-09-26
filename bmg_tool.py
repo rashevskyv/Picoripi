@@ -71,7 +71,7 @@ class BMGFile:
             return 'utf-16-le' if self.endianness == '<' else 'utf-16-be'
         return self.encoding
 
-    def load(self, data: bytes):
+    def load(self, data: bytes, override_encoding: str = None):
         if data[:8] != b'MESGbmg1':
             raise ValueError("Invalid magic header. Not a BMG file!")
 
@@ -85,7 +85,9 @@ class BMGFile:
             struct.unpack_from(se + '8sIIB3I', data, 0)
 
         self.original_enc_val = enc_val
-        if enc_val in ENCODINGS:
+        if override_encoding:
+            self.encoding = override_encoding
+        elif enc_val in ENCODINGS:
             self.encoding = ENCODINGS[enc_val]
             if self.encoding == 'shift_jis':
                 self.encoding = 'cp1252'
