@@ -317,6 +317,7 @@ class MainWindow(QMainWindow):
         self.advanced_search_action = None
         self.auto_fix_action = None
         self.open_ai_chat_action = None
+        self.ai_batch_translate_action = None
         self.restore_translation_button = None
         self.save_translated_action = None
         self.restore_translated_action = None
@@ -376,12 +377,17 @@ class MainWindow(QMainWindow):
         self.text_edit_filter = TextEditEventFilter(self)
         self.preview_text_edit.installEventFilter(self.text_edit_filter)
         self.original_text_edit.installEventFilter(self.text_edit_filter)
+        if hasattr(self, 'reference_text_edit') and self.reference_text_edit:
+            self.reference_text_edit.installEventFilter(self.text_edit_filter)
         self.edited_text_edit.installEventFilter(self.text_edit_filter)
 
 
         self.ui_updater.update_plugin_status_label()
 
-        for editor_widget in [self.preview_text_edit, self.original_text_edit, self.edited_text_edit]:
+        all_editors = [self.preview_text_edit, self.original_text_edit, self.edited_text_edit]
+        if hasattr(self, 'reference_text_edit') and self.reference_text_edit:
+            all_editors.append(self.reference_text_edit)
+        for editor_widget in all_editors:
             if editor_widget:
                 editor_widget.line_width_warning_threshold_pixels = self.line_width_warning_threshold_pixels
                 editor_widget.font_map = self.font_map
@@ -608,6 +614,12 @@ class MainWindow(QMainWindow):
 
         self.glossary_builder_handler = GlossaryBuilderHandler(self)
         self.glossary_builder_handler.build_glossary_for_block(target_block_idx, category_name)
+
+    def open_ai_batch_translation_dialog(self):
+        """Open the AI Batch Translation dialog with explanation of pipeline modes."""
+        from components.ai_batch_translation_dialog import AIBatchTranslationDialog
+        dialog = AIBatchTranslationDialog(self)
+        dialog.exec()
 
     def show_message(self, title: str, text: str, type: str = "info") -> None:
         from PyQt6.QtWidgets import QMessageBox

@@ -3,7 +3,8 @@ from PyQt6.QtWidgets import (
     QLabel, QPushButton, QStyle, QSizePolicy, QComboBox, QSpinBox,
     QMenu, QCheckBox, QCompleter
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
 from components.editor.line_numbered_text_edit import LineNumberedTextEdit
 from components.custom_tree_widget import CustomTreeWidget
 from components.chapter_picker import HierarchicalChapterComboBox
@@ -83,12 +84,17 @@ class LayoutBuilder:
     def _build_left_panel(self):
         """Internal helper to create left panel."""
         self.left_panel = QWidget()
+        self.left_panel.setMinimumWidth(150)
         left_layout = QVBoxLayout(self.left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
         
         # Block Header
         block_header_layout = QHBoxLayout()
-        block_header_layout.addWidget(QLabel(tr('Blocks (double-click to rename):')))
+        self.mw.blocks_header_label = QLabel(tr('Blocks:'))
+        self.mw.blocks_header_label.setToolTip(
+            tr('<b>Blocks</b><br>Double-click a category or block to rename it.')
+        )
+        block_header_layout.addWidget(self.mw.blocks_header_label)
         block_header_layout.addStretch()
 
         self.mw.add_folder_button = self._create_header_button(self.style.standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), ADD_FOLDER_TOOLTIP)
@@ -137,8 +143,8 @@ class LayoutBuilder:
 
         # Block Toolbar
         block_toolbar = QHBoxLayout()
-        block_toolbar.setContentsMargins(4, 4, 4, 4)
-        block_toolbar.setSpacing(4)
+        block_toolbar.setContentsMargins(2, 2, 2, 2)
+        block_toolbar.setSpacing(2)
 
         self.mw.add_block_button = self._create_toolbar_button('+', ADD_BLOCK_TOOLTIP)
         block_toolbar.addWidget(self.mw.add_block_button)
@@ -292,7 +298,7 @@ class LayoutBuilder:
         left_header_layout.setSpacing(0)
 
         original_tools_layout = QHBoxLayout()
-        original_tools_layout.setContentsMargins(0, 0, 0, 0)
+        original_tools_layout.setContentsMargins(0, 4, 0, 4)
         original_tools_layout.setSpacing(6)
 
         original_tools_layout.addWidget(QLabel(tr('Max-width:')))
@@ -313,22 +319,29 @@ class LayoutBuilder:
         self.mw.hide_original_tags_checkbox.setToolTip(tr('Hide tags in all text panels. (Ctrl+Q)'))
         self.mw.hide_original_tags_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
         original_tools_layout.addWidget(self.mw.hide_original_tags_checkbox)
-        left_header_layout.addStretch(1)
         left_header_layout.addLayout(original_tools_layout)
-
-        original_header_layout = QHBoxLayout()
-        original_header_layout.setContentsMargins(0, 0, 0, 0)
-        original_header_layout.addWidget(self._create_editor_title_label(tr('Original')))
-        original_header_layout.addStretch(1)
-
-        left_header_layout.addLayout(original_header_layout)
         bottom_left_layout.addWidget(self.mw.left_header_container)
+
+        from PyQt6.QtWidgets import QTabWidget
+        self.mw.source_tab_widget = QTabWidget()
+        self.mw.source_tab_widget.setObjectName("source_tab_widget")
 
         self.mw.original_text_edit = LineNumberedTextEdit(self.mw)
         self.mw.original_text_edit.setObjectName("original_text_edit")
         self.mw.original_text_edit.setReadOnly(True)
         self.mw.original_text_edit.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
-        bottom_left_layout.addWidget(self.mw.original_text_edit)
+
+        self.mw.reference_text_edit = LineNumberedTextEdit(self.mw)
+        self.mw.reference_text_edit.setObjectName("reference_text_edit")
+        self.mw.reference_text_edit.setReadOnly(True)
+        self.mw.reference_text_edit.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
+
+        from core.reference_manager import ReferenceManager
+        ref_label = ReferenceManager.get_reference_language_label(getattr(self.mw, 'current_game_rules', None))
+        self.mw.source_tab_widget.addTab(self.mw.original_text_edit, tr('Original (EN)'))
+        self.mw.source_tab_widget.addTab(self.mw.reference_text_edit, tr(ref_label))
+
+        bottom_left_layout.addWidget(self.mw.source_tab_widget)
         self.mw.bottom_right_splitter.addWidget(bottom_left_panel)
 
     def _build_middle_panel(self):
@@ -338,7 +351,7 @@ class LayoutBuilder:
         middle_layout.setContentsMargins(0, 0, 0, 0)
         middle_layout.setSpacing(0)
         
-        middle_layout.addSpacing(92)
+        middle_layout.addSpacing(76)
         
         from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont, QIcon
         
@@ -497,35 +510,63 @@ class LayoutBuilder:
         right_header_layout.setContentsMargins(0, 0, 0, 0)
         right_header_layout.setSpacing(0)
 
-        control_height = 30
+        control_height = 28
 
         header_grid = QGridLayout()
         header_grid.setContentsMargins(0, 2, 0, 2)
-        header_grid.setHorizontalSpacing(4)
+        header_grid.setHorizontalSpacing(6)
         header_grid.setVerticalSpacing(2)
-        compact_context_height = 28
-        compact_context_width = 220
-        compact_label_width = 62
+        compact_context_height = 26
+        compact_label_width = 58
 
-        # Row 1: window information on the left, actions on the far right.
+        # Row 0: Window and Chapter on the left, action buttons on the right.
+        row0_left = QWidget()
+        row0_left_layout = QHBoxLayout(row0_left)
+        row0_left_layout.setContentsMargins(0, 0, 0, 0)
+        row0_left_layout.setSpacing(4)
+
         self.mw.window_kind_label = NavigableLabel(tr('Window:'))
         self.mw.window_kind_label.setStyleSheet(
-            "font-weight: bold; color: #2e7d32; font-size: 13px;"
+            "font-weight: bold; color: #2e7d32; font-size: 12px;"
         )
         self.mw.window_kind_label.setToolTip(
             tr('Message window type from the game data. Double-click to open the physical game block.'))
         self.mw.window_kind_label.setFixedWidth(compact_label_width)
-        header_grid.addWidget(self.mw.window_kind_label, 0, 0)
+        row0_left_layout.addWidget(self.mw.window_kind_label)
 
         self.mw.window_kind_value_label = QLabel(tr(''))
-        self.mw.window_kind_value_label.setFixedWidth(compact_context_width)
+        self.mw.window_kind_value_label.setFixedWidth(110)
         self.mw.window_kind_value_label.setFixedHeight(compact_context_height)
-        self.mw.window_kind_value_label.setStyleSheet("color: #000000; font-size: 13px;")
+        self.mw.window_kind_value_label.setStyleSheet("color: #000000; font-size: 12px;")
         self.mw.window_kind_value_label.setAlignment(
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         )
         self.mw.window_kind_value_label.setToolTip(self.mw.window_kind_label.toolTip())
-        header_grid.addWidget(self.mw.window_kind_value_label, 0, 1)
+        row0_left_layout.addWidget(self.mw.window_kind_value_label)
+
+        self.mw.chapter_select_label = NavigableLabel(tr('Chapter:'))
+        self.mw.chapter_select_label.setStyleSheet(
+            "font-weight: bold; color: #6a1b9a; font-size: 12px;"
+        )
+        self.mw.chapter_select_label.setToolTip(
+            tr('Double-click to open this row in its virtual Chapter.')
+        )
+        self.mw.chapter_select_label.setFixedWidth(compact_label_width)
+        row0_left_layout.addWidget(self.mw.chapter_select_label)
+
+        self.mw.chapter_combobox = HierarchicalChapterComboBox()
+        self.mw.chapter_combobox.setMinimumWidth(140)
+        self.mw.chapter_combobox.setFixedHeight(compact_context_height)
+        self.mw.chapter_combobox.setStyleSheet("font-size: 12px;")
+        self.mw.chapter_combobox.setToolTip(
+            tr('Assign this row to a Story chapter or scene, including rows without a script link.')
+        )
+        self.mw.chapter_combobox.story_structure_id = None
+        # Compatibility alias for navigation code and older UI tests.
+        self.mw.chapter_value_label = self.mw.chapter_combobox
+        row0_left_layout.addWidget(self.mw.chapter_combobox)
+
+        header_grid.addWidget(row0_left, 0, 0)
 
         editor_action_group = QWidget()
         editor_action_layout = QHBoxLayout(editor_action_group)
@@ -571,55 +612,42 @@ class LayoutBuilder:
         header_grid.addWidget(
             editor_action_group,
             0,
-            3,
+            2,
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
         )
 
-        # Row 2: chapter assignment.
-        self.mw.chapter_select_label = NavigableLabel(tr('Chapter:'))
-        self.mw.chapter_select_label.setStyleSheet(
-            "font-weight: bold; color: #6a1b9a; font-size: 13px;"
-        )
-        self.mw.chapter_select_label.setToolTip(
-            tr('Double-click to open this row in its virtual Chapter.')
-        )
-        self.mw.chapter_select_label.setFixedWidth(compact_label_width)
-        header_grid.addWidget(self.mw.chapter_select_label, 1, 0)
-        self.mw.chapter_combobox = HierarchicalChapterComboBox()
-        self.mw.chapter_combobox.setFixedWidth(compact_context_width)
-        self.mw.chapter_combobox.setFixedHeight(compact_context_height)
-        self.mw.chapter_combobox.setStyleSheet("font-size: 13px;")
-        self.mw.chapter_combobox.setToolTip(
-            tr('Assign this row to a Story chapter or scene, including rows without a script link.')
-        )
-        self.mw.chapter_combobox.story_structure_id = None
-        # Compatibility alias for navigation code and older UI tests.
-        self.mw.chapter_value_label = self.mw.chapter_combobox
-        header_grid.addWidget(self.mw.chapter_combobox, 1, 1)
+        # Row 1: Speaker on the left, all translation formatting on the right.
+        row1_left = QWidget()
+        row1_left_layout = QHBoxLayout(row1_left)
+        row1_left_layout.setContentsMargins(0, 0, 0, 0)
+        row1_left_layout.setSpacing(4)
 
         self.mw.speaker_label = QLabel(tr(''))
         self.mw.speaker_label.setObjectName("speaker_label")
         self.mw.speaker_label.setStyleSheet("QLabel#speaker_label { font-weight: bold; color: #2e7d32; font-size: 12px; padding-left: 5px; }")
         self.mw.speaker_label.setToolTip(tr('Speaker for the current line mapped from MemePalace'))
         self.mw.speaker_label.setVisible(False)
+        row1_left_layout.addWidget(self.mw.speaker_label)
 
-        # Row 3: speaker on the left, all translation formatting on the right.
         self.mw.speaker_select_label = NavigableLabel(tr('Speaker:'))
-        self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; font-size: 13px;")
+        self.mw.speaker_select_label.setStyleSheet("font-weight: bold; color: #1565c0; font-size: 12px;")
         self.mw.speaker_select_label.setToolTip(
             tr('Double-click to open this row in its virtual Speaker or Item block.')
         )
         self.mw.speaker_select_label.setFixedWidth(compact_label_width)
-        header_grid.addWidget(self.mw.speaker_select_label, 2, 0)
+        row1_left_layout.addWidget(self.mw.speaker_select_label)
+
         self.mw.speaker_combobox = QComboBox()
         self.mw.speaker_combobox.setEditable(True)
         configure_speaker_autocomplete(self.mw.speaker_combobox)
         self.mw.speaker_combobox.setToolTip(tr('Select or type speaker name for this string'))
-        self.mw.speaker_combobox.setFixedWidth(compact_context_width)
+        self.mw.speaker_combobox.setMinimumWidth(180)
         self.mw.speaker_combobox.setFixedHeight(compact_context_height)
-        self.mw.speaker_combobox.setStyleSheet("font-size: 13px;")
+        self.mw.speaker_combobox.setStyleSheet("font-size: 12px;")
         self.mw.speaker_combobox.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        header_grid.addWidget(self.mw.speaker_combobox, 2, 1)
+        row1_left_layout.addWidget(self.mw.speaker_combobox)
+
+        header_grid.addWidget(row1_left, 1, 0)
 
         formatting_group = QWidget()
         formatting_layout = QHBoxLayout(formatting_group)
@@ -628,10 +656,10 @@ class LayoutBuilder:
         font_label = QLabel(tr('Font:'))
         formatting_layout.addWidget(font_label)
         self.mw.font_combobox = QComboBox()
-        self.mw.font_combobox.setFixedWidth(170)
+        self.mw.font_combobox.setFixedWidth(160)
         self.mw.font_combobox.setFixedHeight(control_height)
         formatting_layout.addWidget(self.mw.font_combobox)
-        formatting_layout.addSpacing(12)
+        formatting_layout.addSpacing(8)
 
         formatting_layout.addWidget(QLabel(tr('Max-width:')))
         self.mw.width_spinbox = QSpinBox()
@@ -641,7 +669,7 @@ class LayoutBuilder:
         )
         self.mw.width_spinbox.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.mw.width_spinbox.setFixedHeight(control_height)
-        self.mw.width_spinbox.setFixedWidth(110)
+        self.mw.width_spinbox.setFixedWidth(90)
         
         def show_width_context_menu(pos):
             """Show width context menu."""
@@ -672,15 +700,15 @@ class LayoutBuilder:
         )
         self.mw.apply_width_button.setEnabled(False)
         self.mw.apply_width_button.setFixedHeight(control_height)
-        self.mw.apply_width_button.setFixedWidth(72)
+        self.mw.apply_width_button.setFixedWidth(70)
         formatting_layout.addWidget(self.mw.apply_width_button)
         header_grid.addWidget(
             formatting_group,
+            1,
             2,
-            3,
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
         )
-        header_grid.setColumnStretch(2, 1)
+        header_grid.setColumnStretch(1, 1)
         right_header_layout.addLayout(header_grid)
 
         editable_title_layout = QHBoxLayout()
@@ -690,25 +718,38 @@ class LayoutBuilder:
         right_header_layout.addLayout(editable_title_layout)
         bottom_right_layout.addWidget(self.mw.right_header_container)
 
-        # Sync heights using event filter
+        # Sync heights using event filter to ensure both left and right editors start at identical Y level
         from PyQt6.QtCore import QObject, QEvent
         class HeaderSyncFilter(QObject):
-            """Header sync filter implementation."""
-            def __init__(self, source, target):
-                """Initialize a new instance."""
-                super().__init__(source)
-                self.source = source
-                self.target = target
-                if self.source.height() > 0:
-                    self.target.setFixedHeight(self.source.height())
+            """Header sync filter ensuring left and right editors start at the exact same horizontal level."""
+            def __init__(self, right_header, left_header, tab_widget):
+                super().__init__(right_header)
+                self.right_header = right_header
+                self.left_header = left_header
+                self.tab_widget = tab_widget
+                self._sync()
+
+            def _sync(self):
+                tab_bar = getattr(self.tab_widget, 'tabBar', None)
+                tab_bar_obj = tab_bar() if callable(tab_bar) else None
+                tab_bar_h = tab_bar_obj.sizeHint().height() if tab_bar_obj else 28
+                if tab_bar_h <= 0:
+                    tab_bar_h = 28
+                rh = self.right_header.height()
+                if rh > 0:
+                    target_h = max(26, rh - tab_bar_h)
+                    self.left_header.setFixedHeight(target_h)
 
             def eventFilter(self, obj, event):
-                """Eventfilter."""
-                if obj is self.source and event.type() == QEvent.Type.Resize:
-                    self.target.setFixedHeight(self.source.height())
+                if obj is self.right_header and event.type() == QEvent.Type.Resize:
+                    self._sync()
                 return super().eventFilter(obj, event)
 
-        self.mw.header_sync_filter = HeaderSyncFilter(self.mw.right_header_container, self.mw.left_header_container)
+        self.mw.header_sync_filter = HeaderSyncFilter(
+            self.mw.right_header_container,
+            self.mw.left_header_container,
+            getattr(self.mw, 'source_tab_widget', None)
+        )
         self.mw.right_header_container.installEventFilter(self.mw.header_sync_filter)
 
         self.mw.edited_text_edit = LineNumberedTextEdit(self.mw)
@@ -740,8 +781,12 @@ class LayoutBuilder:
     def _create_header_button(self, icon, tooltip, text=None):
         """Internal helper to create header button."""
         btn = QPushButton()
-        if icon: btn.setIcon(icon)
-        elif text: btn.setText(text)
+        btn.setStyleSheet("padding: 0px;")
+        if icon:
+            btn.setIcon(icon)
+            btn.setIconSize(QSize(20, 20))
+        elif text:
+            btn.setText(text)
         btn.setToolTip(tooltip)
         btn.setFixedSize(28, 28)
         return btn
@@ -756,6 +801,20 @@ class LayoutBuilder:
         """Internal helper to create toolbar button."""
         btn = QPushButton(text)
         btn.setToolTip(tooltip)
-        btn.setFixedSize(32, 32)
+        btn.setStyleSheet("padding: 0px; font-weight: bold;")
+        btn.setFixedSize(26, 26)
         btn.setEnabled(False)
         return btn
+
+    def _create_ai_icon(self, size: int = 24) -> QIcon:
+        """Create a crisp dynamic icon for AI actions with purple 'AI' badge."""
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(QColor("#7c3aed"))
+        font = QFont("Segoe UI", int(size * 0.45), QFont.Weight.Bold)
+        painter.setFont(font)
+        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "AI")
+        painter.end()
+        return QIcon(pixmap)

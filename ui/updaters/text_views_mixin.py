@@ -1,7 +1,7 @@
 """Text-view update mixin for PreviewUpdater."""
 from __future__ import annotations
 
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QTextCursor
 
 from utils.utils import (
@@ -10,6 +10,7 @@ from utils.utils import (
 )
 from ui.components.bfn_preview_widget import _looks_like_bfn_editor
 from core.data_store import store_is_virtual_view
+from core.i18n import tr
 
 
 class TextViewsMixin:
@@ -35,7 +36,7 @@ class TextViewsMixin:
             self._in_update_text_views = False
 
     def _set_editor_highlighters_typing_mode(self, enabled: bool) -> None:
-        for name in ('edited_text_edit', 'original_text_edit'):
+        for name in ('edited_text_edit', 'original_text_edit', 'reference_text_edit'):
             widget = getattr(self.mw, name, None)
             highlighter = getattr(widget, 'highlighter', None) if widget is not None else None
             if highlighter is not None:
@@ -135,6 +136,90 @@ class TextViewsMixin:
                 if orig_has_selection: new_orig_cursor.setPosition(min(orig_text_edit_cursor_pos, len(original_text_for_display)), QTextCursor.MoveMode.KeepAnchor)
                 else: new_orig_cursor.setPosition(min(orig_text_edit_cursor_pos, len(original_text_for_display)))
                 orig_edit.setTextCursor(new_orig_cursor)
+
+        # Update Reference text editors (supporting multi-language unpacked ROMs)
+        source_tabs = getattr(self.mw, 'source_tab_widget', None)
+        ref_langs = getattr(self.mw.data_store, 'reference_languages_data', {})
+
+        if isinstance(ref_langs, dict) and ref_langs and source_tabs and hasattr(source_tabs, 'count') and callable(getattr(source_tabs, 'count', None)):
+            from components.editor.line_edit.widget import LineNumberedTextEdit
+            if not hasattr(self.mw, 'reference_text_edits') or not isinstance(self.mw.reference_text_edits, dict):
+                self.mw.reference_text_edits = {}
+                if hasattr(self.mw, 'reference_text_edit'):
+                    primary_name = "Russian (RU)" if "Russian (RU)" in ref_langs else (next(iter(ref_langs.keys())) if ref_langs else "Russian (RU)")
+                    self.mw.reference_text_edits[primary_name] = self.mw.reference_text_edit
+
+            current_keys = list(ref_langs.keys())
+            if getattr(self.mw, '_last_synced_ref_langs', None) != current_keys:
+                saved_idx = source_tabs.currentIndex()
+                while source_tabs.count() > 1:
+                    source_tabs.removeTab(1)
+                for lang_name in current_keys:
+                    widget = self.mw.reference_text_edits.get(lang_name)
+                    if not widget:
+                        widget = LineNumberedTextEdit(self.mw)
+                        widget.setObjectName(f"ref_edit_{lang_name}")
+                        widget.setReadOnly(True)
+                        widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
+                        self.mw.reference_text_edits[lang_name] = widget
+                    source_tabs.addTab(widget, tr(lang_name))
+                if "Russian (RU)" in self.mw.reference_text_edits:
+                    self.mw.reference_text_edit = self.mw.reference_text_edits["Russian (RU)"]
+                elif current_keys:
+                    self.mw.reference_text_edit = self.mw.reference_text_edits[current_keys[0]]
+                self.mw._last_synced_ref_langs = current_keys
+                if saved_idx >= 0 and saved_idx < source_tabs.count():
+                    source_tabs.setCurrentIndex(saved_idx)
+
+            b_idx = self.mw.data_store.physical_block_idx
+            s_idx = self.mw.data_store.current_string_idx
+            for lang_name, widget in self.mw.reference_text_edits.items():
+                lang_dict = ref_langs.get(lang_name, {})
+                t_raw = lang_dict.get((b_idx, s_idx), "") if (b_idx != -1 and s_idx != -1) else ""
+                t_disp = convert_spaces_to_dots_for_display(str(t_raw), self.mw.show_multiple_spaces_as_dots)
+                if widget.toPlainText() != t_disp:
+                    c_pos = int(widget.textCursor().position())
+                    a_pos = int(widget.textCursor().anchor())
+                    has_sel = bool(widget.textCursor().hasSelection())
+                    widget.setPlainText(t_disp)
+                    c = widget.textCursor()
+                    c.setPosition(min(a_pos, len(t_disp)))
+                    if has_sel:
+                        c.setPosition(min(c_pos, len(t_disp)), QTextCursor.MoveMode.KeepAnchor)
+                    else:
+                        c.setPosition(min(c_pos, len(t_disp)))
+                    widget.setTextCursor(c)
+        else:
+            ref_edit = getattr(self.mw, 'reference_text_edit', None)
+            if ref_edit:
+                ref_text_raw = ""
+                if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:
+                    ref_text_raw = self.mw.data_store.reference_data.get(
+                        (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx), ""
+                    )
+                ref_text_for_display = convert_spaces_to_dots_for_display(str(ref_text_raw), self.mw.show_multiple_spaces_as_dots)
+                if ref_edit.toPlainText() != ref_text_for_display:
+                    ref_cursor_pos = int(ref_edit.textCursor().position())
+                    ref_anchor_pos = int(ref_edit.textCursor().anchor())
+                    ref_has_sel = bool(ref_edit.textCursor().hasSelection())
+                    ref_edit.setPlainText(ref_text_for_display)
+                    new_ref_cursor = ref_edit.textCursor()
+                    new_ref_cursor.setPosition(min(ref_anchor_pos, len(ref_text_for_display)))
+                    if ref_has_sel:
+                        new_ref_cursor.setPosition(min(ref_cursor_pos, len(ref_text_for_display)), QTextCursor.MoveMode.KeepAnchor)
+                    else:
+                        new_ref_cursor.setPosition(min(ref_cursor_pos, len(ref_text_for_display)))
+                    ref_edit.setTextCursor(new_ref_cursor)
+                if source_tabs:
+                    tab_count = getattr(source_tabs, 'count', None)
+                    tab_count_val = tab_count() if callable(tab_count) else 0
+                    if isinstance(tab_count_val, int) and tab_count_val > 1:
+                        from core.reference_manager import ReferenceManager
+                        game_rules = getattr(self.mw, 'current_game_rules', None)
+                        ref_label = ReferenceManager.get_reference_language_label(game_rules)
+                        expected_tab_text = tr(ref_label)
+                        if source_tabs.tabText(1) != expected_tab_text:
+                            source_tabs.setTabText(1, expected_tab_text)
 
         edited_widget = self.mw.edited_text_edit
         if edited_widget:

@@ -4,6 +4,7 @@ from PyQt6.QtGui import QTextCursor, QKeyEvent
 from PyQt6.QtCore import QTimer
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 from utils.utils import ALL_TAGS_PATTERN
+from core.i18n import tr
 
 if TYPE_CHECKING:
     from main import MainWindow
@@ -82,6 +83,18 @@ class MainWindowEventHandler:
             self.mw.build_glossary_text_action.triggered.connect(self.mw.actions.build_glossary_from_text)
         if hasattr(self.mw, 'merge_speakers_action'):
             self.mw.merge_speakers_action.triggered.connect(self.mw.actions.merge_speakers_from_script)
+        if hasattr(self.mw, 'translate_story_action') and self.mw.translate_story_action:
+            self.mw.translate_story_action.triggered.connect(
+                lambda: self.mw.translation_handler.translate_story_first() if hasattr(self.mw, 'translation_handler') else None
+            )
+        if hasattr(self.mw, 'translate_remaining_action') and self.mw.translate_remaining_action:
+            self.mw.translate_remaining_action.triggered.connect(
+                lambda: self.mw.translation_handler.translate_remaining_blocks() if hasattr(self.mw, 'translation_handler') else None
+            )
+        if hasattr(self.mw, 'translate_all_pipeline_action') and self.mw.translate_all_pipeline_action:
+            self.mw.translate_all_pipeline_action.triggered.connect(
+                lambda: self.mw.translation_handler.translate_all_blocks_pipeline() if hasattr(self.mw, 'translation_handler') else None
+            )
         if hasattr(self.mw, 'mempalace_viewer_action') and self.mw.mempalace_viewer_action:
             self.mw.mempalace_viewer_action.triggered.connect(self.mw.actions.open_mempalace_viewer)
         if hasattr(self.mw, 'fix_all_strings_action') and self.mw.fix_all_strings_action:
@@ -90,6 +103,10 @@ class MainWindowEventHandler:
             self.mw.export_bmg_json_action.triggered.connect(self.mw.actions.export_current_bmg_to_json)
         if hasattr(self.mw, 'import_bmg_json_action') and self.mw.import_bmg_json_action:
             self.mw.import_bmg_json_action.triggered.connect(self.mw.actions.import_current_bmg_from_json)
+        if hasattr(self.mw, 'load_reference_patch_action') and self.mw.load_reference_patch_action:
+            self.mw.load_reference_patch_action.triggered.connect(self._prompt_load_reference_patch)
+        if hasattr(self.mw, 'load_multi_reference_rom_action') and self.mw.load_multi_reference_rom_action:
+            self.mw.load_multi_reference_rom_action.triggered.connect(self._prompt_load_multi_reference_rom)
         if hasattr(self.mw, 'help_shortcuts_action'): self.mw.help_shortcuts_action.triggered.connect(self.mw.actions.show_shortcuts_help)
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget.currentItemChanged.connect(self.mw.list_selection_handler.block_selected)
@@ -192,6 +209,8 @@ class MainWindowEventHandler:
             self.mw.clear_bookmarks_action.triggered.connect(self.mw.bookmark_handler.clear_bookmarks)
         if hasattr(self.mw, 'open_ai_chat_action'):
             self.mw.open_ai_chat_action.triggered.connect(self.mw.ai_chat_handler.show_chat_window)
+        if hasattr(self.mw, 'ai_batch_translate_action') and self.mw.ai_batch_translate_action:
+            self.mw.ai_batch_translate_action.triggered.connect(self.mw.open_ai_batch_translation_dialog)
         if hasattr(self.mw, 'search_panel_widget'):
             self.mw.search_panel_widget.close_requested.connect(self.mw.helper.hide_search_panel)
             self.mw.search_panel_widget.find_next_requested.connect(self.mw.helper.handle_panel_find_next)
@@ -227,7 +246,22 @@ class MainWindowEventHandler:
             self.mw.navigate_down_button.clicked.connect(lambda: self.mw.list_selection_handler.navigate_to_problem_string(direction_down=True))
         
         if hasattr(self.mw, 'revert_string_button'):
-            self.mw.revert_string_button.clicked.connect(lambda: self.mw.data_processor.perform_revert_strings(self.mw.data_store.current_block_idx, [self.mw.data_store.current_string_idx]) if self.mw.data_store.current_block_idx != -1 and self.mw.data_store.current_string_idx != -1 else None)
+            def _on_revert_clicked():
+                if self.mw.data_store.current_block_idx == -1 or self.mw.data_store.current_string_idx == -1:
+                    return
+                # If Reference (Russian) tab is active, copy reference text into translation
+                if hasattr(self.mw, 'source_tab_widget') and self.mw.source_tab_widget.currentIndex() == 1:
+                    ref_text = ""
+                    if hasattr(self.mw, 'reference_text_edit') and self.mw.reference_text_edit:
+                        ref_text = self.mw.reference_text_edit.toPlainText()
+                    if hasattr(self.mw, 'edited_text_edit') and self.mw.edited_text_edit:
+                        self.mw.edited_text_edit.setPlainText(ref_text)
+                else:
+                    self.mw.data_processor.perform_revert_strings(
+                        self.mw.data_store.current_block_idx,
+                        [self.mw.data_store.current_string_idx]
+                    )
+            self.mw.revert_string_button.clicked.connect(_on_revert_clicked)
         
         if hasattr(self.mw, 'inspect_story_context_button') and self.mw.inspect_story_context_button:
             self.mw.inspect_story_context_button.clicked.connect(self.mw.actions.inspect_story_context)
@@ -356,6 +390,9 @@ class MainWindowEventHandler:
         if hasattr(mw, 'mempalace_builder_action'): safe_disconnect(mw.mempalace_builder_action, 'triggered')
         if hasattr(mw, 'inspect_story_context_action'): safe_disconnect(mw.inspect_story_context_action, 'triggered')
         if hasattr(mw, 'build_glossary_text_action'): safe_disconnect(mw.build_glossary_text_action, 'triggered')
+        if hasattr(mw, 'translate_story_action'): safe_disconnect(mw.translate_story_action, 'triggered')
+        if hasattr(mw, 'translate_remaining_action'): safe_disconnect(mw.translate_remaining_action, 'triggered')
+        if hasattr(mw, 'translate_all_pipeline_action'): safe_disconnect(mw.translate_all_pipeline_action, 'triggered')
         if hasattr(mw, 'mempalace_viewer_action'): safe_disconnect(mw.mempalace_viewer_action, 'triggered')
         if hasattr(mw, 'fix_all_strings_action'): safe_disconnect(mw.fix_all_strings_action, 'triggered')
         if hasattr(mw, 'export_bmg_json_action'): safe_disconnect(mw.export_bmg_json_action, 'triggered')
@@ -420,6 +457,7 @@ class MainWindowEventHandler:
         if hasattr(mw, 'add_bookmark_action'): safe_disconnect(mw.add_bookmark_action, 'triggered')
         if hasattr(mw, 'clear_bookmarks_action'): safe_disconnect(mw.clear_bookmarks_action, 'triggered')
         if hasattr(mw, 'open_ai_chat_action'): safe_disconnect(mw.open_ai_chat_action, 'triggered')
+        if hasattr(mw, 'ai_batch_translate_action'): safe_disconnect(mw.ai_batch_translate_action, 'triggered')
 
         # Widgets and Custom Panels
         if hasattr(mw, 'search_panel_widget') and mw.search_panel_widget:
@@ -594,3 +632,70 @@ class MainWindowEventHandler:
         
         self.mw.is_adjusting_selection = False
         self.mw.ui_updater.update_status_bar_selection()
+
+    def _prompt_load_multi_reference_rom(self) -> None:
+        """Prompt user to select an unpacked multi-language ROM folder or ISO image (e.g. PAL Multi-5 with RU patch)."""
+        from PyQt6.QtWidgets import QFileDialog
+        initial_dir = getattr(self.mw, 'reference_patch_path', '') or ''
+        dir_path = QFileDialog.getExistingDirectory(
+            self.mw,
+            tr("Select Unpacked Multi-Language ROM Folder"),
+            initial_dir,
+        )
+        if not dir_path:
+            iso_path, _ = QFileDialog.getOpenFileName(
+                self.mw,
+                tr("Select Multi-Language ROM ISO Image"),
+                initial_dir,
+                "Game ISO Images (*.iso);;All Files (*)",
+            )
+            if not iso_path:
+                return
+            dir_path = iso_path
+
+        self._apply_reference_path(dir_path)
+
+    def _prompt_load_reference_patch(self) -> None:
+        """Prompt user to select a folder containing reference translation files (e.g. RU patch)."""
+        from PyQt6.QtWidgets import QFileDialog
+        initial_dir = getattr(self.mw, 'reference_patch_path', '') or ''
+        dir_path = QFileDialog.getExistingDirectory(
+            self.mw,
+            tr("Select Reference Patch / Translation Folder"),
+            initial_dir,
+        )
+        if not dir_path:
+            return
+
+        self._apply_reference_path(dir_path)
+
+    def _apply_reference_path(self, dir_path: str) -> None:
+        """Load and apply reference translations from dir_path."""
+        from core.reference_manager import ReferenceManager
+        self.mw.reference_patch_path = dir_path
+        project_dir = getattr(self.mw.project_manager, 'project_dir', None)
+        if project_dir:
+            ReferenceManager.set_reference_patch_path(project_dir, dir_path)
+
+        game_rules = getattr(self.mw, 'current_game_rules', None)
+        ref_langs = ReferenceManager.load_multi_reference(
+            dir_path,
+            self.mw.data_store.block_names,
+            game_rules=game_rules
+        )
+        self.mw.data_store.reference_languages_data = ref_langs
+        primary_ref = (
+            ref_langs.get("Russian (RU)")
+            or (next(iter(ref_langs.values())) if ref_langs else {})
+        )
+        self.mw.data_store.reference_data = primary_ref
+
+        if hasattr(self.mw, 'ui_updater'):
+            self.mw.ui_updater.update_text_views()
+
+        if hasattr(self.mw, 'show_toast'):
+            if ref_langs:
+                summary = ", ".join(f"{k} ({len(v)})" for k, v in ref_langs.items())
+                self.mw.show_toast(tr("Loaded reference languages: {summary}", summary=summary))
+            else:
+                self.mw.show_toast(tr("No reference translation strings found in selected folder."))

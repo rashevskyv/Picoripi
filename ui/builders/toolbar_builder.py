@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QToolBar, QStyle, QWidget, QSizePolicy
+from PyQt6.QtWidgets import QToolBar, QStyle, QWidget, QSizePolicy
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
@@ -23,6 +23,27 @@ class ToolBarBuilder:
         )
         self.mw.open_ai_chat_action.setShortcut('Ctrl+Shift+C')
 
+        # Create a dynamic beautiful icon for AI Batch Translation with 'AI' badge
+        pixmap_ai = QPixmap(32, 32)
+        pixmap_ai.fill(Qt.GlobalColor.transparent)
+        painter_ai = QPainter(pixmap_ai)
+        painter_ai.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter_ai.setPen(QColor("#7c3aed"))
+        font_ai = QFont("Segoe UI", 13, QFont.Weight.Bold)
+        painter_ai.setFont(font_ai)
+        painter_ai.drawText(pixmap_ai.rect(), Qt.AlignmentFlag.AlignCenter, "AI")
+        painter_ai.end()
+        ai_batch_icon = QIcon(pixmap_ai)
+
+        self.mw.ai_batch_translate_action = QAction(ai_batch_icon, tr('AI Batch Translation'), self.mw)
+        self.mw.ai_batch_translate_action.setToolTip(
+            tr(
+                "<b>AI Batch Translation</b><br>"
+                "Click — open batch translation dialog to choose translation pipeline "
+                "(Story First, Remaining Blocks, Full Pipeline)."
+            )
+        )
+
         self.mw.main_toolbar.addAction(self.mw.save_action)
         self.mw.main_toolbar.addSeparator()
         self.mw.main_toolbar.addAction(self.mw.undo_typing_action)
@@ -32,6 +53,7 @@ class ToolBarBuilder:
         self.mw.main_toolbar.addSeparator()
         self.mw.main_toolbar.addAction(self.mw.toggle_preview_action)
         self.mw.main_toolbar.addSeparator()
+        self.mw.main_toolbar.addAction(self.mw.ai_batch_translate_action)
         self.mw.main_toolbar.addAction(self.mw.open_ai_chat_action)
         self.mw.main_toolbar.addSeparator()
         self.mw.main_toolbar.addAction(self.mw.bfn_editor_action)

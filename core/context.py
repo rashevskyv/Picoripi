@@ -49,6 +49,14 @@ class UIProvider(Protocol):
         """Original text edit."""
         ...
     @property
+    def reference_text_edit(self) -> Optional['LineNumberedTextEdit']:
+        """Reference text edit."""
+        ...
+    @property
+    def source_tab_widget(self) -> Optional[Any]:
+        """Source tab widget."""
+        ...
+    @property
     def edited_text_edit(self) -> 'LineNumberedTextEdit':
         """Edited text edit."""
         ...
@@ -183,6 +191,14 @@ class ProjectContext(Protocol):
     @property
     def original_text_edit(self) -> 'LineNumberedTextEdit':
         """Original text edit."""
+        ...
+    @property
+    def reference_text_edit(self) -> Optional['LineNumberedTextEdit']:
+        """Reference text edit."""
+        ...
+    @property
+    def source_tab_widget(self) -> Optional[Any]:
+        """Source tab widget."""
         ...
     @property
     def edited_text_edit(self) -> 'LineNumberedTextEdit':

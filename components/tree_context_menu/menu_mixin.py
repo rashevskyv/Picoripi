@@ -1,7 +1,7 @@
 """Tree context menu builder (show_context_menu)."""
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QMenu, QStyle, QMessageBox,
+    QMenu, QStyle,
 )
 from PyQt6.QtGui import QAction
 
@@ -79,9 +79,9 @@ class MenuMixin:
             
             translator = getattr(main_window, 'translation_handler', None)
             if translator:
-                tall = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), tr('AI: Translate All Blocks (UA Chronological)'))
-                tall.setEnabled(has_data)
-                tall.triggered.connect(lambda: translator.translate_all_blocks_chronologically() if hasattr(translator, "translate_all_blocks_chronologically") else None)
+                ai_batch_act = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), tr('AI Batch Translation...'))
+                ai_batch_act.setEnabled(has_data)
+                ai_batch_act.triggered.connect(lambda: main_window.open_ai_batch_translation_dialog() if hasattr(main_window, "open_ai_batch_translation_dialog") else None)
                 
             rall = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), tr('Revert All Blocks to Original'))
             rall.setEnabled(has_data)
@@ -331,14 +331,6 @@ class MenuMixin:
                     ta.triggered.connect(
                         lambda checked=False, idx=block_idx, cname=category_name, chid=ch_id: translator.translate_current_block(idx, cname, chid)
                     )
-
-                # Translate All option
-                tall = menu.addAction(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation), tr('AI: Translate All Blocks (UA Chronological)'))
-                if hasattr(translator, "translate_all_blocks_chronologically"):
-                    tall.triggered.connect(lambda checked=False: translator.translate_all_blocks_chronologically())
-                else:
-                    # Fallback if not fully implemented in UI yet
-                    tall.triggered.connect(lambda checked=False: QMessageBox.information(self, tr('Translate All'), tr('Translating all blocks chronologically according to script. (Will be run in background)')))
 
                 glossary_label = (
                     f"AI: Build Glossary for Virtual Block '{category_name}'"

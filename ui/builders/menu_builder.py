@@ -117,6 +117,15 @@ class MenuBuilder:
         file_menu.addAction(self.mw.reload_tag_mappings_action)
         file_menu.addSeparator()
 
+        self.mw.load_reference_patch_action = QAction(QIcon.fromTheme("folder-open"), tr('Load &Reference Patch/Translation...'), self.mw)
+        self.mw.load_reference_patch_action.setToolTip(tr('Load a reference patch or folder (e.g. Russian translation) to compare against in the editor.'))
+        file_menu.addAction(self.mw.load_reference_patch_action)
+
+        self.mw.load_multi_reference_rom_action = QAction(QIcon.fromTheme("drive-optical"), tr('Load &Unpacked ROM (Multi-Language Reference)...'), self.mw)
+        self.mw.load_multi_reference_rom_action.setToolTip(tr('Load an unpacked multi-language ROM directory to pull all languages (Russian, German, French, etc.) into reference context.'))
+        file_menu.addAction(self.mw.load_multi_reference_rom_action)
+        file_menu.addSeparator()
+
         self.mw.open_settings_action = QAction(settings_icon, tr('&Settings...'), self.mw)
         self.mw.open_settings_action.setShortcut('Ctrl+P')
         self.mw.open_settings_action.setToolTip(
@@ -388,6 +397,38 @@ class MenuBuilder:
             tr('Match the marked-up script against the lines the game data already grouped by speaker, and give those speaker codes their real names')
         )
         tools_menu.addAction(self.mw.merge_speakers_action)
+
+        # AI Batch Translation Submenu
+        ai_batch_menu = tools_menu.addMenu(tr('AI &Batch Translation'))
+        ai_batch_menu.setToolTipsVisible(True)
+        ai_batch_menu.installEventFilter(self.tooltip_filter)
+
+        self.mw.translate_story_action = QAction(
+            tr('Translate &Story First (Chronological)...'),
+            self.mw
+        )
+        self.mw.translate_story_action.setToolTip(
+            tr('Translate chronological narrative story lines first, establishing canon and characters for downstream blocks.')
+        )
+        ai_batch_menu.addAction(self.mw.translate_story_action)
+
+        self.mw.translate_remaining_action = QAction(
+            tr('Translate &Remaining Blocks (Semantic & System)...'),
+            self.mw
+        )
+        self.mw.translate_remaining_action.setToolTip(
+            tr('Translate shops, menus, and system text using narrative context established during story translation.')
+        )
+        ai_batch_menu.addAction(self.mw.translate_remaining_action)
+
+        self.mw.translate_all_pipeline_action = QAction(
+            tr('Translate &All (Story ➔ Semantic Pipeline)...'),
+            self.mw
+        )
+        self.mw.translate_all_pipeline_action.setToolTip(
+            tr('Run full multi-agent translation pipeline: Story first, then remaining blocks with canon context.')
+        )
+        ai_batch_menu.addAction(self.mw.translate_all_pipeline_action)
 
         # Create a dynamic beautiful icon for Inspect Story Context with letter 'S'
         pixmap_s = QPixmap(32, 32)

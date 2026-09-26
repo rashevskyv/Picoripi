@@ -318,6 +318,7 @@ class MainWindowHelper:
         editors_wrap_mode = QPlainTextEdit.LineWrapMode.WidgetWidth if self.mw.editors_wrap_lines else QPlainTextEdit.LineWrapMode.NoWrap
         if hasattr(self.mw, 'preview_text_edit'): self.mw.preview_text_edit.setLineWrapMode(preview_wrap_mode)
         if hasattr(self.mw, 'original_text_edit'): self.mw.original_text_edit.setLineWrapMode(editors_wrap_mode)
+        if hasattr(self.mw, 'reference_text_edit'): self.mw.reference_text_edit.setLineWrapMode(editors_wrap_mode)
         if hasattr(self.mw, 'edited_text_edit'): self.mw.edited_text_edit.setLineWrapMode(editors_wrap_mode)
 
     def reconfigure_all_highlighters(self):
@@ -338,6 +339,7 @@ class MainWindowHelper:
         text_edits_with_highlighters = []
         if hasattr(self.mw, 'preview_text_edit') and hasattr(self.mw.preview_text_edit, 'highlighter'): text_edits_with_highlighters.append(self.mw.preview_text_edit)
         if hasattr(self.mw, 'original_text_edit') and hasattr(self.mw.original_text_edit, 'highlighter'): text_edits_with_highlighters.append(self.mw.original_text_edit)
+        if hasattr(self.mw, 'reference_text_edit') and hasattr(self.mw.reference_text_edit, 'highlighter'): text_edits_with_highlighters.append(self.mw.reference_text_edit)
         if hasattr(self.mw, 'edited_text_edit') and hasattr(self.mw.edited_text_edit, 'highlighter'): text_edits_with_highlighters.append(self.mw.edited_text_edit)
         for text_edit in text_edits_with_highlighters:
             if text_edit.highlighter:
