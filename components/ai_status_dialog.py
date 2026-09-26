@@ -113,28 +113,33 @@ class AIStatusDialog(QDialog):
         self.progress_bar.setVisible(False)
         main_layout.addWidget(self.progress_bar)
 
-        # Sleep options
-        sleep_layout = QHBoxLayout()
+        # Bottom controls: sleep options stacked vertically on the left, Cancel button on the right
+        bottom_layout = QHBoxLayout()
+
+        checkboxes_layout = QVBoxLayout()
+        checkboxes_layout.setSpacing(4)
         self.prevent_sleep_checkbox = QCheckBox(tr('Prevent computer sleep'), self)
         self.prevent_sleep_checkbox.setToolTip(tr('Keep the computer awake while AI operation is running.'))
         self.prevent_sleep_checkbox.setChecked(True)
         self.prevent_sleep_checkbox.toggled.connect(self._handle_prevent_sleep_toggled)
-        
+
         self.sleep_after_checkbox = QCheckBox(tr('Put computer to sleep when finished'), self)
         self.sleep_after_checkbox.setToolTip(tr('Suspend/Sleep the computer automatically after the AI task completes if idle.'))
         self.sleep_after_checkbox.setChecked(False)
         self.sleep_after_checkbox.toggled.connect(self._handle_sleep_after_toggled)
-        
-        sleep_layout.addWidget(self.prevent_sleep_checkbox)
-        sleep_layout.addWidget(self.sleep_after_checkbox)
-        sleep_layout.addStretch()
-        main_layout.addLayout(sleep_layout)
+
+        checkboxes_layout.addWidget(self.prevent_sleep_checkbox)
+        checkboxes_layout.addWidget(self.sleep_after_checkbox)
+        bottom_layout.addLayout(checkboxes_layout)
+
+        bottom_layout.addStretch(1)
 
         self.button_box = QDialogButtonBox(self)
         self.cancel_button = self.button_box.addButton("Cancel", QDialogButtonBox.ButtonRole.RejectRole)
-        main_layout.addWidget(self.button_box)
-
         self.button_box.rejected.connect(self.on_cancel)
+        bottom_layout.addWidget(self.button_box, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+
+        main_layout.addLayout(bottom_layout)
 
     def on_cancel(self):
         """Handle the cancel event."""

@@ -78,6 +78,30 @@ def test_AIStatusDialog_modeless_and_sleep_checkboxes(qapp):
     assert dialog.sleep_after_checkbox.isChecked() is False
 
 
+def test_AIStatusDialog_bottom_controls_layout(qapp):
+    dialog = AIStatusDialog()
+    dialog.show()
+    try:
+        cb1 = dialog.prevent_sleep_checkbox
+        cb2 = dialog.sleep_after_checkbox
+        bbox = dialog.button_box
+
+        # Checkboxes should be stacked vertically on the left
+        assert cb1.y() < cb2.y()
+        assert cb1.x() == cb2.x()
+
+        # Cancel button / button_box should be to the right of the checkboxes
+        assert bbox.x() > cb1.x()
+        assert bbox.x() >= cb1.x() + cb1.width()
+
+        # Button box should be vertically aligned with the checkboxes section
+        assert bbox.y() >= cb1.y()
+        assert bbox.y() + bbox.height() <= cb2.y() + cb2.height() + 5
+    finally:
+        dialog.close()
+
+
+
 from unittest.mock import patch, ANY
 
 @patch('components.ai_status_dialog.prevent_sleep')
