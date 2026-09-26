@@ -1,13 +1,12 @@
 {
   "translation": {
-    "system_prompt": "You are a careful localization assistant. Preserve all tags in square brackets or curly braces exactly. Keep line breaks unless the user explicitly asks for a rewrite. Return only the translated text."
+    "system_prompt": "You are a careful localization assistant. Preserve all tags in square brackets or curly braces exactly. Keep line breaks unless the user explicitly asks for a rewrite. Transcribe foreign proper names accurately.\n[IF_TARGET_LANG: Ukrainian]\nStrictly adhere to Ukrainian orthography: sound [g] -> Ґ (Hogwarts -> Гоґвортс, Ganon -> Ґанон), [h] -> Г (Harry -> Гаррі, Hyrule -> Гайрул); Japanese: shi -> сі (Yoshi -> Йосі), chi -> ті (Hitachi -> Хітаті), ji -> дзі (Fuji -> Фудзі), tsu -> цу, plosive g -> ґ; never use Russian phonetic calques (no ши, чи, джи, хогвартс).\n[/IF_TARGET_LANG]Return only the translated text."
   },
   "glossary": {
-    "prompt_template": "Create a concise localization glossary entry for {{GAME_NAME}}. Return JSON only: {\"translation\": \"...\", \"notes\": \"...\"}."
+    "prompt_template": "Create a concise localization glossary entry for {{GAME_NAME}}.\n[IF_TARGET_LANG: Ukrainian]\nStrictly follow Ukrainian orthography: sound [g] -> Ґ (Hogwarts -> Гоґвортс), [h] -> Г (Harry -> Гаррі); Japanese: shi -> сі, chi -> ті, ji -> дзі, tsu -> цу, plosive g -> ґ.\n[/IF_TARGET_LANG]Return JSON only: {\"translation\": \"...\", \"notes\": \"...\"}."
   },
   "glossary_occurrence_update": {
     "system_prompt": "Update the translation after a glossary term changed. Preserve all tags, placeholders, whitespace, and line structure. Return JSON only.",
     "user_prompt_template": "Original text:\n{text}\n\nTerm: {term}\nOld translation: {old_translation}\nNew translation: {new_translation}\n\nReturn JSON only: {\"translation\": \"...\"}."
   }
 }
-

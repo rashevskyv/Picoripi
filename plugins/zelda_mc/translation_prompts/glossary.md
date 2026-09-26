@@ -203,7 +203,7 @@
 | Klaus | Клаус |  |
 | Knuckle | Мінґл |  |
 | Labrynna | Лабрінна |  |
-| Lake Hylia | Озеро Гілія |  |
+| Lake Hylia | Озеро Гайлія |  |
 | Lakeside Cabin | Приозерна Хатина |  |
 | Lakitu | Лакіту |  |
 | Leever | Лівер |  |
