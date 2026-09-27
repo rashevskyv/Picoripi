@@ -103,10 +103,6 @@ class MainWindowEventHandler:
             self.mw.export_bmg_json_action.triggered.connect(self.mw.actions.export_current_bmg_to_json)
         if hasattr(self.mw, 'import_bmg_json_action') and self.mw.import_bmg_json_action:
             self.mw.import_bmg_json_action.triggered.connect(self.mw.actions.import_current_bmg_from_json)
-        if hasattr(self.mw, 'load_reference_patch_action') and self.mw.load_reference_patch_action:
-            self.mw.load_reference_patch_action.triggered.connect(self._prompt_load_reference_patch)
-        if hasattr(self.mw, 'load_multi_reference_rom_action') and self.mw.load_multi_reference_rom_action:
-            self.mw.load_multi_reference_rom_action.triggered.connect(self._prompt_load_multi_reference_rom)
         if hasattr(self.mw, 'help_shortcuts_action'): self.mw.help_shortcuts_action.triggered.connect(self.mw.actions.show_shortcuts_help)
         if hasattr(self.mw, 'block_list_widget'):
             self.mw.block_list_widget.currentItemChanged.connect(self.mw.list_selection_handler.block_selected)
@@ -672,10 +668,17 @@ class MainWindowEventHandler:
     def _apply_reference_path(self, dir_path: str) -> None:
         """Load and apply reference translations from dir_path."""
         from core.reference_manager import ReferenceManager
-        self.mw.reference_patch_path = dir_path
+        self.mw.reference_patch_path = dir_path or ""
         project_dir = getattr(self.mw.project_manager, 'project_dir', None)
         if project_dir:
-            ReferenceManager.set_reference_patch_path(project_dir, dir_path)
+            ReferenceManager.set_reference_patch_path(project_dir, dir_path or "")
+
+        if not dir_path:
+            self.mw.data_store.reference_languages_data = {}
+            self.mw.data_store.reference_data = {}
+            if hasattr(self.mw, 'ui_updater'):
+                self.mw.ui_updater.update_text_views()
+            return
 
         game_rules = getattr(self.mw, 'current_game_rules', None)
         ref_langs = ReferenceManager.load_multi_reference(

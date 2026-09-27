@@ -421,3 +421,37 @@
   - Замінено `height: 100%` на `min-height: 0` для `.view`, що усунуло вихід інтерфейсу за межі екрана через додавання висоти `appHeader`.
   - Увімкнено плавний інерційний скрол `-webkit-overflow-scrolling: touch` та комфортний нижній відступ `padding-bottom: max(32px, env(safe-area-inset-bottom))`.
   - Версія `0.3.136-dev`.
+
+- [x] 60. Аудит документації та синхронізація змін від останнього релізу GitHub (`v0.3.101`) до `0.3.136-dev`:
+  - Знайдено останній реліз на GitHub: `v0.3.101` (2026-09-07).
+  - Проведено повний порівняльний аудит усіх комітів між `v0.3.101` та `HEAD` (`0.3.136-dev`) і стану документації у `README.md` та `docs/wiki/`.
+  - Створено окремі сторінки вікі для Picoripi Companion: `docs/wiki/12_Picoripi_Companion.md` та `docs/wiki/uk/12_Picoripi_Companion.md`.
+  - Оновлено реєстр відповідальності `docs/wiki/7_Maintaining_This_Wiki.md` та `docs/wiki/uk/7_Maintaining_This_Wiki.md`.
+  - Оновлено індекси документації `docs/wiki/README.md`, `docs/wiki/uk/README.md` та карту `README.md`.
+  - Оновлено `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` та `docs/wiki/uk/1_User_Guide_and_Workflow_Pipeline.md` (меню File, Tools, тулбар, виділений рядок Save/Confirm/Discuss, захист правок, `[☁ Companion Sync...]`, динамічні вкладки мов, копіювання за `→`, синхронізація Y-рівня `HeaderSyncFilter`, вкладка Companion у Settings).
+  - Оновлено `docs/wiki/2_API_Reference.md` та `docs/wiki/uk/2_API_Reference.md` переліком нових модулів.
+  - Оновлено `docs/wiki/4_Configuration_Guide.md` та `docs/wiki/uk/4_Configuration_Guide.md` параметрами Companion та шляхом референсу.
+  - Оновлено `docs/wiki/8_Localization_Pipeline.md` та `docs/wiki/uk/8_Localization_Pipeline.md`: крок 5 з кнопками Story First, Remaining Blocks, Full Pipeline.
+  - Оновлено `docs/wiki/11_AI_Translation.md` та `docs/wiki/uk/11_AI_Translation.md`: розділ про пакетний переклад, `AIBatchTranslationDialog` та `NarrativeLedger`.
+  - Доповнено `README.md` описом компактного 2-рядкового заголовка редактора та вирівнювання висоти.
+  - Оновлено граф знань `graphify update .`.
+
+- [x] 61. Перенесення конфігурації референсів з меню File до вікна Settings (Project + Global):
+  - Прибрано пункти `Load Reference Patch/Translation...` та `Load Unpacked ROM (Multi-Language Reference)...` з меню File (`ui/builders/menu_builder.py`, `ui/main_window/main_window_event_handler.py`).
+  - Додано поле вибору `Reference Translation / ROM Path` з меню вибору папки або образу `.iso` у `Settings -> Project -> File Paths` (`ui/settings/plugin_paths_mixin.py`, `ui/settings/path_picker_mixin.py`, `ui/settings/load_save_mixin.py`).
+  - Додано конфігурацію шляху до утиліти `Wiimms ISO Tool (wit.exe)` у `Settings -> Global` (`ui/settings/general_spelling_mixin.py`, `core/settings/global_settings.py`).
+  - Реалізовано пріоритет використання налаштованого `wit_tool_path` у `plugins/zelda_bmg/reference.py` перед системним PATH та автопошуком.
+  - Очищення та гаряче оновлення референсів при зміні або очищенні шляху в налаштуваннях (`ui/main_window/actions/settings_mixin.py`, `ui/main_window/main_window_event_handler.py`).
+  - Додано модульні тести у `tests/test_ui/test_settings/test_reference_and_wit_settings.py` (4/4 passed).
+  - Оновлено локалізацію в `locales/uk.json` та документацію у `docs/wiki/` (User Guide, Configuration Guide та їхні `uk/` близнюки).
+  - Ітерація версії до `0.3.137-dev`.
+
+- [x] 62. Випуск та деплой релізу v0.3.137:
+  - Виконано пайплайн перекладу інтерфейсу `tools/i18n-translate/`: 1709 ключів синхронізовано та перекладено для `uk` без пропусків.
+  - Повна перевірка статичного аналізу `ruff check .` — 0 помилок.
+  - Перевірка `git diff --check` — чисто.
+  - Усунено флаки в паралельних UI тестах: додано `qtbot.waitUntil` у `test_studio_tree_selected_click_renames_node`, додано `qtbot.waitExposed` у `test_ui_event_filters.py`.
+  - Згенеровано детальний англомовний ченджлог у `CHANGELOG.md`.
+  - Оновлено `utils/constants.py`, `README.md`, `GEMINI.md`, `AUDIT.md` до версії `0.3.137`.
+  - Створення Git-тегу `v0.3.137` та публікація релізу на GitHub без бінарників.
+

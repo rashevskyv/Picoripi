@@ -19,6 +19,7 @@
 | Application Font Size | 6–24, типово 10 |
 | Tooltip Font Size | 6–32, типово 11 |
 | External Tool/Script Path | `.bat` / `.cmd` / `.exe` — кнопка тулбара `>_` |
+| Wiimms ISO Tool (wit.exe) Path | Необов'язковий шлях до `wit.exe` для автовилучення повідомлень з образів GameCube/Wii ISO |
 | Show special spaces as dots | |
 | Space Dot Color | |
 | Restore unsaved session on startup | Якщо знято — незбережені зміни викидаються при закритті |
@@ -35,7 +36,7 @@
 
 | Підвкладка | Роль |
 |------------|------|
-| File Paths | **Directory Mode (Load from folder)**, **Auto-generate translation path**, шляхи Original / Changes, Original Fonts Directory Path, Fonts Directory Path |
+| File Paths | **Directory Mode (Load from folder)**, **Auto-generate translation path**, шляхи Original / Changes, Original Fonts Directory Path, Fonts Directory Path, **Reference Translation / ROM Path** (тека референсного патчу, розпакований ROM або образ `.iso`) |
 | Display | Default Font for Project, wrap preview, wrap editors, Newline Symbol + стиль, Tag Style |
 | Rules | Game Dialog Max Width (px), Editor Line Width Warning (px), Show guideline, Lines Per Page. Для `zelda_bmg`: **Window limit mode** — Shared for all windows vs Separate by window type (`window_layouts.json`) |
 | Context Tags | Власні insert/wrap-теги для меню редактора |
@@ -56,6 +57,17 @@ Enable spell checking · Dictionary Language · **Manage Dictionaries…** (за
 
 Типовий конфіг (`build_default_translation_config`): provider `disabled`, workers `6`, OpenAI env `OPENAI_API_KEY`, Gemini env `GEMINI_API_KEY`, таймаут OpenAI 60 с, Gemini 120 с.
 
+### Companion
+
+Підключення до бекенда мобільного перегляду глосарія. Див. [12. Picoripi Companion](12_Picoripi_Companion.md).
+
+| Контроль | Нотатки |
+|----------|---------|
+| Companion Server URL | Адреса сервісу Companion (наприклад `http://127.0.0.1:8000` або IP сервера) |
+| API Token / PIN | Токен автентифікації (`companion_api_token`) |
+| Test Connection | Перевірка доступності сервера та валідності токена |
+| Automatically sync on project open and close | Фоновий авто-pull при відкритті проєкту; авто-push при збереженні/виході |
+
 ### Logging
 
 | Контроль | |
@@ -73,12 +85,12 @@ Enable spell checking · Dictionary Language · **Manage Dictionaries…** (за
 
 | Файл | Роль |
 |------|------|
-| `settings.json` | Глобальні + останній плагін + пресети AI + `ui_language` (`en` / `uk`). Локальний; не в git |
+| `settings.json` | Глобальні + останній плагін + пресети AI + `ui_language` + `companion_server_url`/`token`/`auto_sync`. Локальний; не в git |
 | `locales/en.json` | Англійський каталог UI (ключ = англійське джерело) |
 | `locales/uk.json` | Український каталог UI. Новий `tr("...")` у коді одразу додає сюди той самий ключ |
 | `.env` | Необов’язково `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | Фільтри UI, навігація, незбережені правки, undo. **Show Unsaved Only** при відновленні примусово вимикається |
-| `project.uiproj` | Запис проєкту: ім’я, тека плагіна, шляхи source/translation, закладки проєкту (`metadata.settings.bookmarks`) |
+| `project.uiproj` | Запис проєкту: ім’я, тека плагіна, шляхи source/translation, закладки, `reference_patch_path` |
 | `config.json` плагіна | Типові значення для цієї гри |
 | `aliases.json` плагіна | Додаткові аліаси тегів |
 | `translation_prompts/` | JSON промптів для Edit Prompts JSON / пайплайну глосарія |

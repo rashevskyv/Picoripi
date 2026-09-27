@@ -62,6 +62,8 @@ class SettingsLoadSaveMixin:
             self.companion_token_edit.setText(getattr(self.mw, 'companion_api_token', 'picoripi'))
         if hasattr(self, 'companion_auto_sync_check'):
             self.companion_auto_sync_check.setChecked(getattr(self.mw, 'companion_auto_sync', True))
+        if hasattr(self, 'wit_tool_path_edit'):
+            self.wit_tool_path_edit.setText(getattr(self.mw, 'wit_tool_path', ''))
 
         enabled_cats = getattr(self.mw, 'enabled_log_categories', ["general", "lifecycle", "file_ops", "settings", "ui_action", "ai", "scanner", "plugins"])
         for cat_id, chk in self.log_categories_checkboxes.items():
@@ -79,6 +81,8 @@ class SettingsLoadSaveMixin:
             self.edited_path_edit.setText(proj.metadata.get('translation_path', ''))
             self.fonts_path_edit.setText(getattr(self.mw, 'fonts_dir_path', ""))
             self.orig_fonts_path_edit.setText(getattr(self.mw, 'orig_fonts_dir_path', ""))
+            if hasattr(self, 'reference_path_edit'):
+                self.reference_path_edit.setText(getattr(self.mw, 'reference_patch_path', '') or '')
             
             # Enable controls
             self.dir_mode_checkbox.setEnabled(True)
@@ -87,6 +91,7 @@ class SettingsLoadSaveMixin:
             if hasattr(self, 'edited_path_selector'): self.edited_path_selector.setEnabled(not auto_gen)
             if hasattr(self, 'fonts_path_selector'): self.fonts_path_selector.setEnabled(True)
             if hasattr(self, 'orig_fonts_path_selector'): self.orig_fonts_path_selector.setEnabled(True)
+            if hasattr(self, 'reference_path_selector'): self.reference_path_selector.setEnabled(True)
         else:
             is_dir_mode = getattr(self.mw, 'is_directory_mode', False)
             auto_gen = getattr(self.mw, 'auto_generate_translation_path', False)
@@ -94,6 +99,8 @@ class SettingsLoadSaveMixin:
             self.edited_path_edit.setText("")
             self.fonts_path_edit.setText("")
             self.orig_fonts_path_edit.setText("")
+            if hasattr(self, 'reference_path_edit'):
+                self.reference_path_edit.setText("")
             
             # Disable controls
             self.dir_mode_checkbox.setEnabled(False)
@@ -102,6 +109,7 @@ class SettingsLoadSaveMixin:
             if hasattr(self, 'edited_path_selector'): self.edited_path_selector.setEnabled(False)
             if hasattr(self, 'fonts_path_selector'): self.fonts_path_selector.setEnabled(False)
             if hasattr(self, 'orig_fonts_path_selector'): self.orig_fonts_path_selector.setEnabled(False)
+            if hasattr(self, 'reference_path_selector'): self.reference_path_selector.setEnabled(False)
             
         self.dir_mode_checkbox.setChecked(is_dir_mode)
         self.auto_generate_checkbox.setChecked(auto_gen)
@@ -343,7 +351,9 @@ class SettingsLoadSaveMixin:
             'default_tag_mappings': aliases_dict,
             'companion_server_url': self.companion_url_edit.text().strip() if hasattr(self, 'companion_url_edit') else getattr(self.mw, 'companion_server_url', ''),
             'companion_api_token': self.companion_token_edit.text().strip() if hasattr(self, 'companion_token_edit') else getattr(self.mw, 'companion_api_token', 'picoripi'),
-            'companion_auto_sync': self.companion_auto_sync_check.isChecked() if hasattr(self, 'companion_auto_sync_check') else getattr(self.mw, 'companion_auto_sync', True)
+            'companion_auto_sync': self.companion_auto_sync_check.isChecked() if hasattr(self, 'companion_auto_sync_check') else getattr(self.mw, 'companion_auto_sync', True),
+            'wit_tool_path': self.wit_tool_path_edit.text().strip() if hasattr(self, 'wit_tool_path_edit') else getattr(self.mw, 'wit_tool_path', ''),
+            'reference_patch_path': self.reference_path_edit.text().strip() if is_project_active and hasattr(self, 'reference_path_edit') else getattr(self.mw, 'reference_patch_path', ''),
         }
 
     def _get_tags_from_tables(self):

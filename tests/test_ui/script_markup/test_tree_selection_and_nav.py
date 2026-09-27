@@ -317,8 +317,9 @@ def test_studio_tree_f2_renames_selected_node(qapp, monkeypatch):
     assert dialog.hierarchy_marks[0].text == "Opening Structure"
     assert "Opening Structure" in dialog.flags_list.topLevelItem(0).text(0)
 
-def test_studio_tree_selected_click_renames_node(qapp, monkeypatch):
+def test_studio_tree_selected_click_renames_node(qapp, monkeypatch, qtbot):
     dialog = _make_dialog(qapp)
+    qtbot.addWidget(dialog)
     _use_hierarchy_mode(dialog)
     dialog.raw_edit.setPlainText("Act One\nScene One\n")
     dialog.hierarchy_marks = [
@@ -342,8 +343,7 @@ def test_studio_tree_selected_click_renames_node(qapp, monkeypatch):
         Qt.KeyboardModifier.NoModifier,
         dialog.flags_list.visualItemRect(item).center(),
     )
-    QTest.qWait(5)
-    qapp.processEvents()
+    qtbot.waitUntil(lambda: dialog.hierarchy_marks[0].text == "Clicked Structure", timeout=3000)
 
     assert dialog.hierarchy_marks[0].text == "Clicked Structure"
     assert "Clicked Structure" in dialog.flags_list.topLevelItem(0).text(0)

@@ -129,6 +129,7 @@ This is the localization pipeline plus utilities. Prefer **Localization Pipeline
 | MemePalace Context Builder… | Ctrl+M | Weave the marked script into story memory |
 | Prepare Glossary… | | One automatic glossary pass |
 | Merge Speakers from Script… | | Match script names to game voice codes. Needs plugin capability `speaker_attribution` |
+| AI Batch Translation ➔ | | Submenu: Translate Story First, Translate Remaining Blocks, Translate All (Story ➔ Semantic) |
 | Inspect Story Context… | Ctrl+I | Timeline, speaker, visual context for the **selected** row |
 | MemePalace Database Viewer… | Ctrl+Shift+I | Rooms, visual contexts, character graph |
 | Fix All Strings… | | Project-wide Auto-Fix with a rule checklist |
@@ -213,7 +214,7 @@ Shortcuts listed in F1:
 
 Left to right (`toolbar_builder.py`):
 
-Save · Undo · Redo · Find · Preview · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (spacer) · **Run External Script** (`>_`) · Shortcuts Help.
+Save · Undo · Redo · Find · Preview · **AI Batch Translation** (opens pipeline mode chooser) · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (spacer) · **Run External Script** (`>_`) · Shortcuts Help.
 
 **AI Translate** and **AI Variation** are **not** on this toolbar. They sit above Editable.
 
@@ -248,11 +249,14 @@ Tree toolbar (bottom of the panel; buttons start disabled):
   - Bottom: Dedicated bottom bar with the **Needs review** (`_unconfirmed_only_checkbox`) filter checkbox, filtering the table to unconfirmed terms without taking up horizontal search bar or vertical detail space.
 - **Right Panel (Term Details)**:
   - **Side-by-Side Term & Translation**: Synchronized `QGridLayout` with uniform 26px height. The original term is read-only, selectable, constrained to 280px max width, and features an interactive **Wiki ↗** button linking directly to game lore search (via `BaseGameRules.get_external_reference_url`). The editable translation is paired with a compact **Confirm** button.
+  - **Dedicated Action Row**: Positioned directly below the translation input field to allow the input unobstructed full width (up to 400–550px+). Contains a prominent **Save** button (`Ctrl+S`, which lights up in blue `#2563eb` when uncommitted edits exist), **Confirm translation** (advances to next unreviewed term), and **Discuss with AI…** (opens chat with full term context).
+  - **Unsaved Changes Navigation Protection**: A confirmation dialog (`Save` / `Discard` / `Cancel`) appears when selecting another row, switching tabs, or closing the dialog with uncommitted edits.
   - **Description & Notes**: Includes the **Profiled via AI** checkbox in the section header with a descriptive tooltip indicating character speech profiling status.
   - **Collapsible Sections**: Description, AI Notes, and Occurrences panels feature collapse/expand toggle buttons (`[▼]/[▶]`) to optimize vertical space.
   - **Granular Occurrence Filtering**: Independent checkboxes for **Mentions** (text references) and **Spoken** (lines spoken by this character).
   - **Reference Line Preview & Occurrence Alignment**: For each dialogue occurrence, the preview shows the complete original message and the full corresponding reference record for that (block, string) without trimming surrounding lines. Long previews scroll vertically, even when there is only one occurrence. The occurrence is highlighted within the full original text, and matching reference terms are highlighted within the reference lines while preserving all line breaks. The `RU:` block is displayed only when the reference is explicitly identified as Russian; other reference languages provide evidence to the AI translator without displaying an `RU:` badge in occurrences.
-  - **In-Place Variant Application & Double-Click**: Double-clicking any proposed variant or clicking **Apply selected variant** inserts the candidate translation and updates notes in place without advancing to the next row. Confirmation and progression to the next term are strictly decoupled and triggered by clicking **Confirm translation**.
+  - **In-Place Variant Application & Double-Click**: Double-clicking any proposed variant or clicking **Apply selected variant** inserts the candidate translation and updates notes in place without advancing to the next row. Confirmation and progression to the next term are strictly decoupled and triggered by clicking **Confirm translation**. Reference variants from external patches are styled distinctly (cyan/italic) and protected from double-click application.
+- **Bottom Toolbar**: Contains **Force Retranslate...** (highlighted in orange `#ea580c`, creates automatic `glossary.json.bak` backup before AI re-translates entries) and **`[☁ Companion Sync...]`** for 1-click push and pull synchronization with [Picoripi Companion](12_Picoripi_Companion.md).
 
 Right-click (empty space): **Create Folder**, **AI: Translate All Blocks (UA Chronological)**, **Revert All Blocks to Original**, **Restore All Translations**.
 
@@ -281,34 +285,39 @@ Several filters can combine. **Do not** leave **Show Unsaved Only** on and assum
 
 ---
 
-## 13. Original and Editable
+## 13. Original, Reference Tabs, and Editable
 
-**Original**
+**Source Panel (Left)**
 
-- Read-only. Selectable.
+- **Dynamic Reference Tabs**: When a reference patch or multi-language ROM / ISO is configured in project settings (**Settings → Project → File Paths → Reference Translation / ROM Path**), the panel dynamically generates comparison tabs (`Original (EN)`, `Russian (RU)`, `German (DE)`, `French (FR)`, `Italian (IT)`, `Spanish (ES)`).
+- Read-only, selectable, with synchronized line scrolling and cursor movement across all language views.
 - **Max-width:** click the value to copy it into the translation Max-width field, then press **Apply** on the right.
-- **Hide tags** (`Ctrl+Q`).
+- **Hide tags** (`Ctrl+Q`): toggles control code visibility across all source and translation tabs.
 
 **Column of icon buttons** (between the panes)
 
 | Button | Action |
 |--------|--------|
-| Arrow | **Revert string** — replace the current translation with the original file content |
+| Arrow (`→`) | **Copy active source string** — copies text from whichever tab is currently active (Original or reference translation) into the target translation editor |
 | Document+arrow | **Restore translation** — last backup (`Ctrl+Shift+T`) |
 | S | **Inspect story context** (`Ctrl+I`) |
 | R | **Open in Script Markup Studio** — jump to the marked-script place for this string |
 
-**Editable**
+**Editable (Right)**
 
 - This is where you type.
-- Title **Editable**.
+- **Vertical Level Synchronization**: An event filter (`HeaderSyncFilter`) dynamically calculates `left_header.height = right_header.height - tab_bar.height`, ensuring the top line of text editors on both sides starts at the exact same vertical Y level across all screen resolutions and DPI scaling.
 - Under it: visual BFN preview (if Preview is on) with a window-kind bar when the plugin supports it.
 
 **Do not** apply Font / Max-width without **Apply**. **Apply** is enabled only while there is an unapplied change.
 
 ---
 
-## 14. Story Context (above Editable)
+## 14. Story Context & Controls (above Editable)
+
+Organized into a compact 2-row header above the editable pane:
+- **Row 0**: `Window:` and `Chapter:` on the left; Navigation (`[↓][↑]`), `AI Translate`, `AI Variation`, and `Auto-fix` on the right.
+- **Row 1**: `Speaker:` on the left; `Font:`, `Max-width:`, and `Apply` on the right.
 
 | Field | Behaviour |
 |-------|-----------|
@@ -342,11 +351,12 @@ Window title **Settings**. Tabs:
 
 | Tab | Contents |
 |-----|----------|
-| **Global** | Theme (restart), Active Game Plugin (restart), font sizes, external script path, space dots, restore session, prompt editor before AI, live preview, real-time warning scan, glossary system, archive size warnings, auto-sleep idle delay |
-| **Project** | Only with a project open. Subtabs: File Paths (Directory Mode, Auto-generate translation path, original/changes/fonts paths), Display, Rules, Context Tags, Tag Aliases, Font Map, Detection, Auto-fix (**Align sentences to original page layout**, **Prevent adding empty padding lines during pagination**, plus per-problem toggles) |
+| **Global** | Theme (restart), Active Game Plugin (restart), font sizes, external script path, Wiimms ISO Tool (`wit.exe`) path, space dots, restore session, prompt editor before AI, live preview, real-time warning scan, glossary system, archive size warnings, auto-sleep idle delay |
+| **Project** | Only with a project open. Subtabs: File Paths (Directory Mode, Auto-generate translation path, original/changes/fonts paths, Reference Translation / ROM Path with popup selector for folder or `.iso`), Display, Rules, Context Tags, Tag Aliases, Font Map, Detection, Auto-fix (**Align sentences to original page layout**, **Prevent adding empty padding lines during pagination**, plus per-problem toggles) |
 | **Spelling** | Enable spell checking, dictionary language, Manage Dictionaries… |
 | **AI Translation** | See [11](11_AI_Translation.md) |
 | **AI Glossary** | Provider, key, Use API key from AI Translation, model, chunk size, Parallel Requests, Retry Delay |
+| **Companion** | Server URL, API token, Test Connection, automatically sync on project open/close (see [12](12_Picoripi_Companion.md)) |
 | **Logging** | Console / file / `ai_traffic.log`, log path, event categories |
 
 Theme change and plugin change each show a restart required dialog.

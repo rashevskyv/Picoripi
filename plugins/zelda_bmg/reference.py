@@ -219,7 +219,23 @@ def _try_extract_iso_messages(iso_path: Path) -> Optional[Path]:
     """If wit (Wiimms ISO Tool) is available, extract message archives from an ISO image."""
     import shutil
     import subprocess
-    wit_exe = shutil.which("wit")
+    wit_exe = None
+
+    # Check configured wit_tool_path from global settings
+    try:
+        from utils.constants import SETTINGS_FILE_PATH
+        import json
+        if SETTINGS_FILE_PATH.is_file():
+            with open(SETTINGS_FILE_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                cfg_wit = data.get("wit_tool_path", "").strip()
+                if cfg_wit and Path(cfg_wit).is_file():
+                    wit_exe = cfg_wit
+    except Exception:
+        pass
+
+    if not wit_exe:
+        wit_exe = shutil.which("wit")
     if not wit_exe:
         candidates = [
             Path("E:/Emulators/RomHacking/ZELDA/TP_UA/soft/wit-v3.05a-r8638-cygwin64/bin/wit.exe"),

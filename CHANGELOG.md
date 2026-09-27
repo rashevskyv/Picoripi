@@ -1,5 +1,31 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.137] - 2026-09-27
+
+### 🚀 Added & Architectural Changes
+- **Reference & ROM Configuration Moved to Settings**:
+  - Moved reference translations and multi-language ROM / `.iso` path configuration out of the `File` menu into **Settings → Project → File Paths** (`Reference Translation / ROM Path`).
+  - Added interactive popup menu for browsing either a patch/unpacked ROM folder or a game `.iso` disc image, with a clear path option.
+  - Added global **Wiimms ISO Tool (`wit.exe`) Path** setting in **Settings → Global** to allow custom executable configuration for automatic GameCube/Wii ISO message extraction, prioritized ahead of system `PATH` and fallback locations.
+  - Dynamically clears or loads multi-language reference tabs (`Original`, `RU`, `DE`, `FR`, `IT`, `ES`) in real time when Settings are saved.
+- **Picoripi Companion PWA & Background Desktop Synchronization**:
+  - Standalone mobile PWA companion (FastAPI + HTML5/CSS/JS) with Docker and systemd deployment workflows.
+  - Non-blocking automatic desktop synchronization on application startup and project open/close with diff-based change detection, local backups (`.bak`), and hot in-memory reloading.
+  - Touch-optimized mobile interface with 44px touch targets, natural inertial scrolling, and strict exclusion of confirmed terms from review filters.
+- **AI Batch Translation Pipelines**:
+  - Introduced `AIBatchTranslationDialog` and Tools menu commands for `Story First`, `Remaining Blocks`, and `All Pipeline` modes.
+  - Integrated `NarrativeLedger` for character voice consistency and an Arbiter/Editor consensus workflow.
+- **Compact 2-Row Editor Header & Vertical Alignment**:
+  - Streamlined story, speaker, window, font, and width controls into a compact 2-row layout.
+  - Added `HeaderSyncFilter` for exact vertical baseline Y-alignment between source tabs and editable panels across DPI scales.
+- **Full Wiki & Documentation Twin Parity**:
+  - Added `docs/wiki/12_Picoripi_Companion.md` and `docs/wiki/uk/12_Picoripi_Companion.md`.
+  - Fully synchronized User Guide, Configuration Guide, and Pipeline documentation across English and Ukrainian catalogs.
+
+### 🛠️ Fixed
+- **Status Bar Resilience in Background Workers**: Guarded `statusBar()` calls in background workers to safely handle both method and object references in test environments.
+- **Companion Settings Persistence**: Fixed serialization of Companion server endpoint parameters in `GlobalSettings.save`.
+
 ## [0.3.136-dev] - 2026-09-26
 
 ### 🛠️ Fixed & Improved

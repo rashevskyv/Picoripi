@@ -19,6 +19,7 @@ This page lists **controls as the UI shows them**, then the files they persist t
 | Application Font Size | 6–24, default 10 |
 | Tooltip Font Size | 6–32, default 11 |
 | External Tool/Script Path | `.bat` / `.cmd` / `.exe` — the toolbar `>_` button |
+| Wiimms ISO Tool (wit.exe) Path | Optional path to `wit.exe` for automatic GameCube/Wii ISO message extraction |
 | Show special spaces as dots | |
 | Space Dot Color | |
 | Restore unsaved session on startup | If unchecked, unsaved changes are discarded on close |
@@ -35,7 +36,7 @@ Subtabs:
 
 | Subtab | Role |
 |--------|------|
-| File Paths | **Directory Mode (Load from folder)**, **Auto-generate translation path**, Original / Changes paths, Original Fonts Directory Path, Fonts Directory Path |
+| File Paths | **Directory Mode (Load from folder)**, **Auto-generate translation path**, Original / Changes paths, Original Fonts Directory Path, Fonts Directory Path, **Reference Translation / ROM Path** (reference patch folder, unpacked ROM, or `.iso` disc image) |
 | Display | Default Font for Project, wrap preview, wrap editors, Newline Symbol + style, Tag Style |
 | Rules | Game Dialog Max Width (px), Editor Line Width Warning (px), Show guideline, Lines Per Page. For `zelda_bmg`: **Window limit mode** — Shared for all windows vs Separate by window type (`window_layouts.json`) |
 | Context Tags | Custom insert/wrap tags for the editor menu |
@@ -56,6 +57,17 @@ See [11. AI Translation](11_AI_Translation.md). Keys belong in Settings or `.env
 
 Default translation config (`build_default_translation_config`): provider `disabled`, workers `6`, OpenAI env `OPENAI_API_KEY`, Gemini env `GEMINI_API_KEY`, OpenAI timeout 60 s, Gemini timeout 120 s.
 
+### Companion
+
+Connection to the mobile review backend. See [12. Picoripi Companion](12_Picoripi_Companion.md).
+
+| Control | Notes |
+|---------|-------|
+| Companion Server URL | URL of Companion service (e.g. `http://127.0.0.1:8000` or remote server IP) |
+| API Token / PIN | Authentication token (`companion_api_token`) |
+| Test Connection | Tests whether the server is reachable and accepting tokens |
+| Automatically sync on project open and close | Background auto-pull on project open; auto-push on save/exit |
+
 ### Logging
 
 | Control | |
@@ -73,12 +85,12 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 
 | File | Role |
 |------|------|
-| `settings.json` | Global + last plugin + AI presets + `ui_language` (`en` / `uk`). Local; untracked |
+| `settings.json` | Global + last plugin + AI presets + `ui_language` + `companion_server_url`/`token`/`auto_sync`. Local; untracked |
 | `locales/en.json` | English UI catalog (keys = English source strings) |
 | `locales/uk.json` | Ukrainian UI catalog. Add a key here whenever you add `tr("...")` in code |
 | `.env` | Optional `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | UI filters, navigation, unsaved edits, undo. **Show Unsaved Only** is forced off on restore |
-| `project.uiproj` | Project record: name, plugin folder, source/translation paths, project bookmarks (`metadata.settings.bookmarks`) |
+| `project.uiproj` | Project record: name, plugin folder, source/translation paths, bookmarks, `reference_patch_path` |
 | plugin `config.json` | Defaults for that game |
 | plugin `aliases.json` | Extra tag aliases |
 | `translation_prompts/` | Prompt JSON used by Edit Prompts JSON / glossary pipeline |

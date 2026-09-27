@@ -30,6 +30,16 @@ class SettingsGeneralSpellingMixin:
         self.external_script_path_edit.setPlaceholderText(tr('Path to .bat, .cmd, .exe, etc.'))
         self.external_script_selector = self._create_script_selector(self.external_script_path_edit)
         layout.addRow(QLabel(tr('External Tool/Script Path:')), self.external_script_selector)
+
+        self.wit_tool_path_edit = QLineEdit(self)
+        self.wit_tool_path_edit.setPlaceholderText(tr('Optional path to wit.exe (Wiimms ISO Tool)'))
+        self.wit_tool_selector = self._create_file_selector(
+            self.wit_tool_path_edit,
+            tr('Select Wiimms ISO Tool (wit.exe)'),
+            "Executable Files (*.exe wit*);;All Files (*)",
+            tr('<b>Browse</b><br>Click — locate the wit.exe executable for automatic GameCube/Wii ISO message extraction.<br>You can also leave this blank to use PATH or auto-discovery.')
+        )
+        layout.addRow(QLabel(tr('Wiimms ISO Tool (wit.exe) Path:')), self.wit_tool_selector)
         
         self.show_spaces_checkbox = QCheckBox(tr('Show special spaces as dots'), self)
         layout.addRow(self.show_spaces_checkbox)

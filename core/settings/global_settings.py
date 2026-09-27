@@ -110,7 +110,8 @@ class GlobalSettings:
             "last_advanced_search_query": "",
             "companion_server_url": "",
             "companion_api_token": "picoripi",
-            "companion_auto_sync": True
+            "companion_auto_sync": True,
+            "wit_tool_path": ""
         }
 
     def load(self, settings_dict: Dict[str, Any]) -> None:
@@ -279,6 +280,7 @@ class GlobalSettings:
             "companion_server_url": str(getattr(self.mw, 'companion_server_url', '') or settings_dict.get('companion_server_url', '') or ''),
             "companion_api_token": str(getattr(self.mw, 'companion_api_token', 'picoripi') or settings_dict.get('companion_api_token', 'picoripi') or 'picoripi'),
             "companion_auto_sync": bool(getattr(self.mw, 'companion_auto_sync', settings_dict.get('companion_auto_sync', True))),
+            "wit_tool_path": str(getattr(self.mw, 'wit_tool_path', '') or settings_dict.get('wit_tool_path', '') or ''),
         })
 
         global_data.pop("bookmarks", None)

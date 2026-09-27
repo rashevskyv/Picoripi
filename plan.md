@@ -405,3 +405,43 @@
 - [x] Замінено `height: 100%` на `min-height: 0` для `.view`, що усунуло вихід інтерфейсу за межі екрана через додавання висоти `appHeader`.
 - [x] Увімкнено плавний інерційний скрол `-webkit-overflow-scrolling: touch` та комфортний нижній відступ `padding-bottom: max(32px, env(safe-area-inset-bottom))`.
 - [x] Підняття версії програми до `0.3.136-dev`.
+
+## Етап 60: Аудит документації та повна синхронізація з останнім релізом v0.3.101 (v0.3.136-dev)
+- [x] Пошук останнього опублікованого релізу на GitHub: визначено `v0.3.101` (2026-09-07).
+- [x] Порівняльний аналіз усіх змін кодової бази та інтерфейсу від `v0.3.101` до `HEAD` (`0.3.136-dev`).
+- [x] Створення нової документації для Picoripi Companion у вікі:
+  - `docs/wiki/12_Picoripi_Companion.md` (англійська)
+  - `docs/wiki/uk/12_Picoripi_Companion.md` (українська)
+- [x] Оновлення реєстру відповідальності сторінок у `docs/wiki/7_Maintaining_This_Wiki.md` та `docs/wiki/uk/7_Maintaining_This_Wiki.md`.
+- [x] Оновлення загальних індексів документації `docs/wiki/README.md`, `docs/wiki/uk/README.md` та карти документації в `README.md`.
+- [x] Синхронізація сторінок інструкцій користувача `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` та `docs/wiki/uk/1_User_Guide_and_Workflow_Pipeline.md`:
+  - Меню File: додано команди `Load Reference Patch/Translation…` та `Load Unpacked ROM (Multi-Language Reference)…`.
+  - Меню Tools: додано підменю `AI Batch Translation ➔` з усіма трьома режимами.
+  - Тулбар: додано кнопку `AI Batch Translation` (`AIBatchTranslationDialog`).
+  - Вікно глосарію: додано виділений рядок дій Save/Confirm/Discuss, модальний діалог захисту від випадкової втрати незбережених правок, кнопки `[☁ Companion Sync...]` та `Force Retranslate...`, стилізацію референсних кандидатів.
+  - Редактор: описано динамічні вкладки мов, копіювання за `→`, синхронізацію рівня Y через `HeaderSyncFilter` та компактну 2-рядкову панель.
+  - Settings: додано опис вкладки **Companion**.
+- [x] Оновлення карти коду `docs/wiki/2_API_Reference.md` та `docs/wiki/uk/2_API_Reference.md` новими модулями компаньйона, референсу, класифікації блоків і прев'ю.
+- [x] Оновлення конфігурації `docs/wiki/4_Configuration_Guide.md` та `docs/wiki/uk/4_Configuration_Guide.md` параметрами Companion та шляхом референсу в проєкті.
+- [x] Оновлення опису кроку 5 у `docs/wiki/8_Localization_Pipeline.md` та `docs/wiki/uk/8_Localization_Pipeline.md` з новими кнопками запуску фаз перекладу.
+- [x] Оновлення `docs/wiki/11_AI_Translation.md` та `docs/wiki/uk/11_AI_Translation.md` розділом про пакетні конвеєри, `AIBatchTranslationDialog` та `NarrativeLedger`.
+- [x] Доповнення `README.md` описом компактного 2-рядкового заголовка та вирівнювання висоти редакторів.
+- [x] Оновлення графа знань проекту за допомогою `graphify update .`.
+
+## Етап 61: Перенесення конфігурації референсів з меню File до вікна Settings (Project + Global) (v0.3.137-dev)
+- [x] Прибрано пункти `Load Reference Patch/Translation...` та `Load Unpacked ROM (Multi-Language Reference)...` з меню File (`ui/builders/menu_builder.py`, `ui/main_window/main_window_event_handler.py`).
+- [x] Додано рядок `Reference Translation / ROM Path:` у `Settings -> Project -> File Paths` з випадаючим меню для вибору папки або ISO-образу (`ui/settings/plugin_paths_mixin.py`, `ui/settings/path_picker_mixin.py`, `ui/settings/load_save_mixin.py`).
+- [x] Додано рядок `Wiimms ISO Tool (wit.exe) Path:` у `Settings -> Global` для глобального налаштування шляху до утиліти `wit` (`ui/settings/general_spelling_mixin.py`, `core/settings/global_settings.py`).
+- [x] Реалізовано пріоритет використання налаштованого `wit_tool_path` у `plugins/zelda_bmg/reference.py` перед системним `PATH` та хардкодними шляхами.
+- [x] Очищення та динамічне завантаження референсів при зміні шляху в налаштуваннях (`ui/main_window/actions/settings_mixin.py`, `ui/main_window/main_window_event_handler.py`).
+- [x] Додано модульні тести у `tests/test_ui/test_settings/test_reference_and_wit_settings.py` (4 тести пройдено успішно).
+- [x] Оновлено `locales/uk.json` та документацію у `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md`, `docs/wiki/4_Configuration_Guide.md` та їхніх дзеркальних українських версіях у `docs/wiki/uk/`.
+- [x] Ітерація версії до `0.3.137-dev` у `utils/constants.py`, `README.md`, `GEMINI.md`.
+
+## Етап 62: Випуск та деплой релізу v0.3.137
+- [x] Синхронізація та переклад UI рядків (`tools/i18n-translate/`): 1709 ключів у каталозі `locales/uk.json`.
+- [x] Статичний аналіз `ruff check .` та перевірка форматування `git diff --check`.
+- [x] Виправлення стабільності паралельних UI тестів у `tests/test_ui/script_markup/test_tree_selection_and_nav.py` та `tests/test_ui/test_ui_event_filters.py`.
+- [x] Підготовка ченджлогу в `CHANGELOG.md` та оновлення версії в `utils/constants.py`, `README.md`, `GEMINI.md`, `AUDIT.md`.
+- [x] Створення релізного тегу `v0.3.137` та публікація на GitHub через `gh release create`.
+

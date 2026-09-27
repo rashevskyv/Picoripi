@@ -18,5 +18,6 @@
 | [8. Пайплайн локалізації](8_Localization_Pipeline.md) | Майстер кроків, статус, автопрохід глосарія |
 | [9. Script Markup](9_Script_Markup.md) | Режими Studio, шорткати, експорт |
 | [11. AI-переклад](11_AI_Translation.md) | Провайдери, AI Translate / Variation / Chat, промпти |
+| [12. Picoripi Companion](12_Picoripi_Companion.md) | Мобільний PWA, перевірка глосарія на телефоні, сервер синхронізації |
 
 **Рекомендований AI-бекенд для глосарія і пакетного перекладу:** Gemini Web2API. Див. [сторінку 5](5_Gemini_Web2API.md).

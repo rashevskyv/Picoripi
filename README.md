@@ -1,4 +1,4 @@
-# Picoripi v0.3.136-dev
+# Picoripi v0.3.137
 
 **Picoripi** is a visual translation and localization workbench (Python, **PyQt6**) for texts with strict length and layout constraints. It started as a Nintendo-format editor (BMG, BFN, U8/RARC) and stays general enough for any structured translation project.
 
@@ -20,6 +20,7 @@ The recommended AI backend for glossary and bulk translation is **Gemini Web2API
 - [Localization Pipeline](docs/wiki/8_Localization_Pipeline.md)
 - [Script Markup](docs/wiki/9_Script_Markup.md)
 - [AI Translation](docs/wiki/11_AI_Translation.md)
+- [Picoripi Companion (Mobile & Sync)](docs/wiki/12_Picoripi_Companion.md)
 
 Interface language: **Language** menu lists every `locales/*.json` that already has translations (name from `@language_name` in that file). Missing strings stay English. Fill catalogs with `tools/i18n-translate/run.bat`. See [Configuration](docs/wiki/4_Configuration_Guide.md).
 
@@ -77,6 +78,10 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
   - **Multi-Language Context for AI Translations**: Reference translations from all loaded languages are automatically structured and injected into AI translation prompts (`handlers/translation/prompt_composer/`), giving LLMs explicit guidance on grammatical gender, formal/informal address forms (e.g., German *du/Sie*, French *tu/vous*), and character tone across European releases. The translator always translates from the original source text and treats reference translations strictly as contextual evidence, with an explicit rule against translating from or copying a reference language as the target result.
   - **Glossary Variants Extraction**: Multi-pass reference variant extraction (`tools/extract_ru_glossary_variants.py`) matches reference dialogue strings with glossary terms (exact standalone, tagged/colored spans, character frequencies, and multi-word phrases) and enriches `glossary.json` `translation_variants` with `rationale="RU патч v2.0"`.
 - **Interface Localization (i18n) & Language Menu**: Comprehensive localization across all application chrome using `tr()`. The **Language** menu dynamically lists all active translations (`locales/*.json`) with their native titles (e.g. English, Українська, 日本語, etc.). Missing keys fall back gracefully to English. Supported by an automated batch translation pipeline (`tools/i18n-translate/`) with Gemini Web2API proxy integration.
+- **Compact 2-Row Editor Header & Vertical Height Alignment**:
+  - Re-engineered `header_grid` above the translation editor into a compact 2-row layout (Row 0: `Window:` + `Chapter:` on left, Navigation/AI/Fix actions on right; Row 1: `Speaker:` on left, Font/Max-width/Apply on right), raising text editing areas by ~35px and eliminating excessive top margin.
+  - Implemented dynamic vertical alignment (`HeaderSyncFilter`) synchronizing the top edge of text editing areas across left (source tabs) and right (editable translation) panels (`left_header.height = right_header.height - tab_bar.height`).
+  - Aligned the middle panel revert string button (`→`) directly with Line 1 of both text editors.
 
 ---
 

@@ -66,11 +66,32 @@ Nothing selected (`physical_block_idx == -1`): the button does nothing.
 - Ctrl-click: prompt editor.
 - Pick from **AI Translation Variations**; Refresh / Ctrl-click ignores the in-memory cache.
 
-**AI Chat** (toolbar, `Ctrl+Shift+C`): window **AI Chat**. Discuss translations. Ctrl+Enter / Send sends; Enter is a newline. Optional **Web Search**. Features a dedicated **Retry** button (and `Ctrl+Shift+R`) to instantly resend the last message (with new model/settings or after a connection failure) without retyping, a **Stop** button during generation, message queueing, and a **Reset Context** action. Chat does **not** write the Editable pane; copy a suggestion yourself or use **AI Translate**.
-
-Tree empty-space menu: **AI: Translate All Blocks (UA Chronological)** — `translate_all_blocks_chronologically()`.
+**AI Chat** (toolbar, `Ctrl+Shift+C`): window **AI Chat**. Discuss translations. Ctrl+Enter / Send sends; Enter is a newline. Optional **Web Search**. Features a dedicated **Retry** button (and `Ctrl+Shift+R`) to instantly resend the last message (with new model/settings or after a connection failure) without retyping, a **Stop** button during generation, message queueing with `[In Queue]` badge, and a **Reset Context** action. Chat does **not** write the Editable pane; copy a suggestion yourself or use **AI Translate**.
 
 ---
+
+## Batch Translation Pipelines & Modes
+
+Bulk translation can be launched from the main toolbar **AI** button, the blocks tree header, **Tools → AI Batch Translation ➔**, or Step 5 of the [Localization Pipeline](8_Localization_Pipeline.md). This opens the **AI Batch Translation Dialog** (`AIBatchTranslationDialog`).
+
+### Available Modes
+
+1. **Translate Story First (Chronological)**:
+   - Uses `core/translation/block_classifier.py` and MemePalace script mappings to isolate primary narrative dialogue.
+   - Translates lines chronologically, accumulating established terms, voice styles, and story revelations into an in-memory `NarrativeLedger` (`core/translation/narrative_ledger.py`).
+2. **Translate Remaining Blocks (Semantic & System)**:
+   - Translates remaining UI, menu, inventory, shop, and mini-game blocks.
+   - Automatically injects the canon context established in the `NarrativeLedger` during Phase 1 into translation prompts, ensuring auxiliary text matches the storyline.
+3. **Run Full Pipeline (Story ➔ Semantic)**:
+   - Automatically runs Phase 1 followed immediately by Phase 2 in a single multi-stage run.
+4. **Translate All Blocks (Chronological Legacy)**:
+   - Flattens all blocks into a single chronological timeline and translates continuously.
+
+### Multi-Agent Translation Consilium
+
+During batch runs, translations are processed through a cooperative multi-agent architecture:
+- **Primary Translator**: Generates candidate phrasing respecting layout limits and control codes.
+- **Inline Arbiter / Editor**: A supervisor agent that validates terminology against active glossary entries, refines phrasing, and checks tone consistency before text is committed.
 
 ## What goes into the prompt
 

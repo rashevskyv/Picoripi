@@ -126,7 +126,12 @@ Chunk size: Local / small (2000), Balanced (4000), Cloud / large (8000).
 
 ### 5. Translate the text (`text`)
 
-No run button. Translation is done in the editor (**AI Translate**, selection right-click, tree **AI: Translate All Blocks**).
+Features embedded action buttons directly in the right pane:
+- **Translate Story First (Chronological)**: Translates main narrative dialogue lines in chronological order, recording translated terminology, character voices, and narrative developments into a rolling `NarrativeLedger`.
+- **Translate Remaining Blocks (Semantic & System)**: Translates menus, shops, and system text using the canon context established during story translation.
+- **Run Full Pipeline (Story ➔ Semantic)**: Runs the complete automated multi-agent pipeline (Story first, then remaining blocks with canon context).
+
+Translation can also be triggered from the editor (**AI Translate**, selection right-click, main toolbar **AI** button, or **Tools → AI Batch Translation ➔**).
 
 Status: non-empty rows whose current text differs from the original. Lines kept identical (names, numbers) undercount on purpose.
 

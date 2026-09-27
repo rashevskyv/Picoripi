@@ -400,12 +400,14 @@ def auto_pull_in_background(mw: Any, on_completed: Optional[Any] = None) -> Opti
                     except Exception as exc:
                         log_debug(f"Companion auto-sync refresh dialog error: {exc}")
 
-                if hasattr(mw, "statusBar") and mw.statusBar():
-                    mw.statusBar().showMessage(tr("Companion: auto-synced {count} updated terms from server.").format(count=count), 5000)
+                sb = mw.statusBar() if callable(getattr(mw, "statusBar", None)) else getattr(mw, "statusBar", None)
+                if sb and hasattr(sb, "showMessage"):
+                    sb.showMessage(tr("Companion: auto-synced {count} updated terms from server.").format(count=count), 5000)
             else:
                 log_info(f"Companion auto-sync: '{project_name}' is in sync with server.")
-                if hasattr(mw, "statusBar") and mw.statusBar():
-                    mw.statusBar().showMessage(tr("Companion: glossary is in sync with server."), 3000)
+                sb = mw.statusBar() if callable(getattr(mw, "statusBar", None)) else getattr(mw, "statusBar", None)
+                if sb and hasattr(sb, "showMessage"):
+                    sb.showMessage(tr("Companion: glossary is in sync with server."), 3000)
         else:
             log_debug(f"Companion auto-sync pull: {msg}")
             # If server has no terms yet for this project, and local has terms, auto-push initial glossary

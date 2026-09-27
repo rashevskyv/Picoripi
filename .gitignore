@@ -32,6 +32,7 @@ mempalace_local.db
 ai_traffic.log
 stderr_output.log
 session_state.json
+settings.json
 tmp_benchmark.py
 *.bak
 *.migrated

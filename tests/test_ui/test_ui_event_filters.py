@@ -128,10 +128,12 @@ def test_speaker_click_selects_all_existing_text(qapp, qtbot):
     line_edit = mw.speaker_combobox.lineEdit()
     filter_obj = MainWindowEventFilter(mw)
     line_edit.installEventFilter(filter_obj)
+    qtbot.addWidget(mw)
     mw.show()
+    qtbot.waitExposed(mw)
 
     QTest.mouseClick(line_edit, Qt.MouseButton.LeftButton)
-    qtbot.waitUntil(lambda: line_edit.selectedText() == "System", timeout=1000)
+    qtbot.waitUntil(lambda: line_edit.selectedText() == "System", timeout=3000)
 
 
 def test_speaker_autocomplete_is_prefix_based_and_case_insensitive(qapp):
@@ -175,7 +177,7 @@ def test_all_search_fields_select_existing_text_on_click(
     search.installEventFilter(filter_obj)
     qtbot.addWidget(mw)
     mw.show()
-    mw.activateWindow()
+    qtbot.waitExposed(mw)
 
     QTest.mouseClick(search, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: search.selectedText() == "Midna", timeout=3000)

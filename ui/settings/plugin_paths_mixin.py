@@ -44,6 +44,13 @@ class PluginPathsMixin:
         self.fonts_path_selector = self._create_dir_selector(self.fonts_path_edit)
         layout.addRow(QLabel(tr('Fonts Directory Path (translated font):')), self.fonts_path_selector)
 
+        # Reference Translation / ROM Path Selection (for multi-language comparison)
+        self.reference_path_edit = QLineEdit(tab)
+        self.reference_path_edit.setObjectName("PathLineEdit")
+        self.reference_path_edit.setPlaceholderText(tr('Optional path to reference patch folder or multi-language ROM / ISO'))
+        self.reference_path_selector = self._create_reference_selector(self.reference_path_edit)
+        layout.addRow(QLabel(tr('Reference Translation / ROM Path:')), self.reference_path_selector)
+
         # Signals
         self.dir_mode_checkbox.stateChanged.connect(self._on_dir_mode_changed)
         self.auto_generate_checkbox.stateChanged.connect(self._on_auto_generate_changed)

@@ -18,6 +18,7 @@ English files in `docs/wiki/` are the source of truth. `docs/wiki/uk/` is the Uk
 | Localization Pipeline wizard and glossary auto-pass | `8_Localization_Pipeline.md` |
 | Script Markup Studio | `9_Script_Markup.md` |
 | AI Translate / Variation / Chat / providers | `11_AI_Translation.md` |
+| Picoripi Companion (mobile PWA and sync server) | `12_Picoripi_Companion.md` |
 | Short pitch + setup + doc map | repo `README.md` |
 | Dated list of shipped **code** changes | `CHANGELOG.md` |
 | Agent operating contract | `docs/AI_DEVELOPMENT_MANIFESTO.md` and `GEMINI.md` |

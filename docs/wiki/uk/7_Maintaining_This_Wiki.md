@@ -18,6 +18,7 @@
 | Майстер пайплайну і автоглосарій | `8_Localization_Pipeline.md` | `uk/8_…` |
 | Script Markup Studio | `9_Script_Markup.md` | `uk/9_…` |
 | AI Translate / Variation / Chat | `11_AI_Translation.md` | `uk/11_…` |
+| Picoripi Companion (мобільний PWA та сервер синхронізації) | `12_Picoripi_Companion.md` | `uk/12_…` |
 | Короткий пітч + карта | кореневий `README.md` | посилання на `docs/wiki/uk/README.md` |
 
 **Авторитет:** поточний Python/UI. Якщо старі `docs/*.md` розходяться з кодом — правити англійську вікі з коду, потім українську копію.

@@ -170,6 +170,13 @@ class MainWindowSettingsActionsMixin:
                     # Re-populate blocks
                     if hasattr(self.mw, 'project_action_handler'):
                         self.mw.project_action_handler._populate_blocks_from_project()
+
+                new_ref = new_settings.get('reference_patch_path', '') or ''
+                old_ref = getattr(self.mw, 'reference_patch_path', '') or ''
+                if new_ref != old_ref:
+                    self.mw.reference_patch_path = new_ref
+                    if hasattr(self.mw, 'event_handler') and hasattr(self.mw.event_handler, '_apply_reference_path'):
+                        self.mw.event_handler._apply_reference_path(new_ref)
             else:
                 self.mw.is_directory_mode = new_is_dir
                 self.mw.auto_generate_translation_path = new_auto_gen

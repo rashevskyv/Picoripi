@@ -1,3 +1,109 @@
+# Walkthrough: Перенесення конфігурації референсів з меню File до вікна Settings (Project + Global) (v0.3.137-dev)
+
+## Огляд та архітектурне рішення
+За вказівкою користувача було переглянуто спосіб підключення зовнішніх референсів та образів дисків. Раніше пункти `Load Reference Patch/Translation...` та `Load Unpacked ROM (Multi-Language Reference)...` були розміщені безпосередньо в кореневому меню `File`, що перевантажувало меню дій та порушувало принцип централізованого конфігурування проєкту.
+
+Було реалізовано повноцінне перенесення конфігурації референсів у вікно `Settings` (`Ctrl+P`):
+1. **Для плагіна / поточного проєкту**:
+   - У `Settings -> Project -> File Paths` додано поле вибору `Reference Translation / ROM Path:` (`reference_path_edit`) із кнопкою огляду (`...`).
+   - Кнопка огляду відкриває зручне спливаюче меню вибору:
+     - `Select Folder (Patch or Unpacked ROM)...` — вибір папки розпакованого ROM або патчу.
+     - `Select Game ISO Image (*.iso)...` — вибір безпосередньо двійкового `.iso` образу диска гри (Nintendo GameCube / Wii).
+     - `Clear Path` — очищення шляху для скидання референсів.
+   - Поле активне лише тоді, коли відкрито проєкт, та синхронізоване з параметром `reference_patch_path` у `project_settings.json`.
+   - При зміні або очищенні шляху в налаштуваннях та натисканні `OK` викликається автоматичне оновлення (`_apply_reference_path`): дані перезавантажуються або очищуються, а динамічні вкладки порівняння референсів у редакторі джерела (`source_tab_widget`) миттєво оновлюються без перезапуску застосунку.
+
+2. **Для всього Picoripi (Global Settings)**:
+   - У `Settings -> Global` додано поле вибору виконуваного файлу `Wiimms ISO Tool (wit.exe) Path:` (`wit_tool_path_edit`).
+   - Дозволяє користувачеві вказати кастомний шлях до утиліти `wit.exe` для автоматичного вилучення реплік повідомлень з образів дисків `.iso`.
+   - Зберігається у глобальному конфігураційному файлі `~/.picoripi/settings.json`.
+   - У `plugins/zelda_bmg/reference.py` реалізовано пріоритетну перевірку налаштованого шляху `wit_tool_path` перед системним `PATH` та хардкодними резервними шляхами.
+
+3. **Очищення меню `File`**:
+   - Пункти `Load Reference Patch/Translation...` та `Load Unpacked ROM (Multi-Language Reference)...` повністю прибрано з меню `File` у `ui/builders/menu_builder.py`.
+   - Відповідні слухачі сигналів очищено в `ui/main_window/main_window_event_handler.py`.
+
+## Змінені файли
+- `ui/builders/menu_builder.py`: видалено створення та додавання дій референсів у меню `File`.
+- `ui/main_window/main_window_event_handler.py`: прибрано підключення дій меню, додано підтримку повного очищення даних при порожньому шляху в `_apply_reference_path`.
+- `ui/settings/path_picker_mixin.py`: додано `_create_reference_selector` з інтерактивним меню вибору папки/ISO/очищення та `_create_file_selector`.
+- `ui/settings/plugin_paths_mixin.py`: додано поле `reference_path_edit` та селектор `reference_path_selector` до підвкладки `File Paths`.
+- `ui/settings/general_spelling_mixin.py`: додано поле `wit_tool_path_edit` та селектор `wit_tool_selector` до глобальної вкладки `Global`.
+- `ui/settings/load_save_mixin.py`: завантаження та збереження `wit_tool_path` та `reference_patch_path`.
+- `core/settings/global_settings.py`: додано значення за замовчуванням та персистенцію `wit_tool_path`.
+- `plugins/zelda_bmg/reference.py`: зчитування `wit_tool_path` із глобальних налаштувань у `_try_extract_iso_messages`.
+- `locales/uk.json`: додано переклади всіх нових підказок, заголовків та пунктів меню вибору.
+- `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` та `uk/`: прибрано пункти з таблиці меню `File`, оновлено опис динамічних вкладок та налаштувань.
+- `docs/wiki/4_Configuration_Guide.md` та `uk/`: додано опис параметрів `wit_tool_path` та `reference_patch_path`.
+- `tests/test_ui/test_settings/test_reference_and_wit_settings.py`: 4 нових тести (меню File без дій референсів, завантаження/збереження wit та reference у діалозі налаштувань, використання налаштованого wit у вилученні ISO).
+
+## Результати тестування
+- Усі 4 нових тести пройдено успішно: `tests/test_ui/test_settings/test_reference_and_wit_settings.py`.
+- Повний набір тестів налаштувань та референсів (59 тестів) виконано паралельно без жодних збоїв.
+
+---
+
+# Walkthrough: Аудит документації та повна синхронізація з останнім релізом v0.3.101 (v0.3.136-dev)
+
+## Огляд та виявлені розбіжності
+На запит користувача було перевірено останній офіційний реліз на GitHub та всі зміни в кодовій базі від моменту його створення до поточного стану (`HEAD`, версія `v0.3.136-dev`).
+
+1. **Останній реліз на GitHub**:
+   - Останнім опублікованим тегом і релізом на GitHub є **`v0.3.101`** (від 2026-09-07).
+   - Між `v0.3.101` та `HEAD` (`0.3.136-dev`) було додано 22 коміти зі значним функціоналом.
+
+2. **Виявлені прогалини в документації (`README.md` та `docs/wiki/`)**:
+   - **Повна відсутність Picoripi Companion у вікі**: хоча короткий опис компаньйона був у `README.md` та окремому `companion/README.md`, у всій структурі `docs/wiki/` не було жодної згадки про мобільний додаток PWA, бекенд на FastAPI, налаштування хоста/токена у Settings, архітектуру двосторонньої фонової автосинхронізації чи Docker/systemd деплой.
+   - **Застарілий опис кроку 5 у пайплайні локалізації (`docs/wiki/8_Localization_Pipeline.md`)**: сторінка стверджувала, що крок «Translate the text» не має кнопки запуску перекладу («No run button»), тоді як у коміті `8921b544` у візард було додано кнопки пакетного конвеєра: `btn_story_first`, `btn_remaining_blocks`, `btn_full_pipeline`.
+   - **Відсутність нових пунктів меню File**: `Load Reference Patch/Translation…` та `Load Unpacked ROM (Multi-Language Reference)…` (робота з multi-language образами ISO/ROM через `wit.exe`, `cp1251` та ін.) не були внесені до таблиці меню та довідника API.
+   - **Відсутність меню та кнопок AI Batch Translation**: у меню `Tools ➔ AI Batch Translation ➔` та на панелі інструментів (кнопка виклику `AIBatchTranslationDialog`) були відсутні в описі інтерфейсу та API.
+   - **Зміни у вікні глосарію (`GlossaryDialog`)**: не було задокументовано виділений нижній рядок дій (`Save`, `Confirm`, `Discuss with AI…`), діалог захисту незбережених змін при перемиканні термінів, кнопку `[☁ Companion Sync...]` та `Force Retranslate...`.
+   - **Динамічні вкладки мов у редакторі джерела та вирівнювання висоти шапки**: вкладки порівняння референсних мов (`Original`, `RU`, `DE`, `FR`, `IT`, `ES`), стрілка копіювання `→`, фільтр вирівнювання базової лінії полів `HeaderSyncFilter` та компактний 2-рядковий заголовок не були описані у посібнику користувача та README.
+
+## Виконані зміни та синхронізація
+
+1. **Створення повноцінного розділу Picoripi Companion у вікі**:
+   - Створено `docs/wiki/12_Picoripi_Companion.md` (англійська еталонна версія).
+   - Створено парну сторінку українською мовою `docs/wiki/uk/12_Picoripi_Companion.md`.
+   - Документовано архітектуру, роботу PWA, ендпоінти FastAPI, механізм фонового бекапу (`.bak`), авто-пуш, авто-пул, розгортання в Docker та через systemd.
+   - Оновлено реєстр підтримки `docs/wiki/7_Maintaining_This_Wiki.md` та `docs/wiki/uk/7_Maintaining_This_Wiki.md`.
+   - Додано розділ до головної таблиці навігації `docs/wiki/README.md`, `docs/wiki/uk/README.md` та карти документації в `README.md`.
+
+2. **Оновлення посібника користувача (`docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` та `uk/`)**:
+   - Додано пункти завантаження референсів до таблиці меню **File**.
+   - Додано підменю пакетного ШІ-перекладу до таблиці меню **Tools**.
+   - Додано кнопку пакетного перекладу до опису головної панелі інструментів.
+   - Доповнено опис діалогу глосарію: кнопка синхронізації з сервером `[☁ Companion Sync...]`, виділений ряд дій `Save` / `Confirm` / `Discuss with AI…`, модальний захист правок, кнопка `Force Retranslate...`.
+   - Додано опис багатомовних вкладок у лівій панелі редактора, кнопка копіювання за `→`, синхронізація Y-рівнів елементів через `HeaderSyncFilter` та компактний дворядковий заголовок.
+   - Додано опис нової вкладки **Companion** у вікні Settings.
+
+3. **Оновлення довідника API (`docs/wiki/2_API_Reference.md` та `uk/`)**:
+   - Додано опис нових модулів: `core/companion_sync.py`, `companion/server/api.py`, `companion/server/storage.py`, `core/reference_manager.py`, `core/block_classifier.py`, `core/narrative_ledger.py`, `ui/dialogs/ai_batch_translation_dialog.py`, `ui/components/bfn_preview/`.
+
+4. **Оновлення налаштувань конфігурації (`docs/wiki/4_Configuration_Guide.md` та `uk/`)**:
+   - Додано підрозділ `### Companion` з параметрами `companion_server_url`, `companion_api_token`, `companion_auto_sync`.
+   - Додано параметр шляху до референсного патчу `reference_patch_path`.
+
+5. **Оновлення пайплайну локалізації (`docs/wiki/8_Localization_Pipeline.md` та `uk/`)**:
+   - Оновлено опис кроку 5 (Translate the text), актуалізовано наявність вбудованих кнопок запуску конвеєра: `btn_story_first`, `btn_remaining_blocks`, `btn_full_pipeline`.
+
+6. **Оновлення розділу ШІ-перекладу (`docs/wiki/11_AI_Translation.md` та `uk/`)**:
+   - Додано вичерпний розділ `## Batch Translation Pipelines & Modes` з описом трьох режимів (`Story First`, `Remaining Blocks`, `All Pipeline`), реєстру персонажів `NarrativeLedger`, консиліуму арбітра/редактора (Arbiter/Editor) та діалогу `AIBatchTranslationDialog`.
+
+7. **Оновлення `README.md`**:
+   - Додано опис компактного дворядкового заголовка редактора та вирівнювання полів за висотою в розділ ключових функцій.
+   - Додано посилання на `12_Picoripi_Companion.md` у Documentation Map.
+
+8. **Синхронізація планів і графа знань**:
+   - Доповнено `task.md` (пункт 60) та `plan.md` (Етап 60).
+   - Оновлено граф знань кодової бази через `graphify update .`.
+
+## Результати перевірки
+- Всі 14 змінених сторінок вікі суворо дотримуються правила парності (EN/UK twin parity) зі збереженням англійських міток інтерфейсу (`tr(...)`).
+- Перевірка `git diff --check` виконана без жодних помилок (відсутні trailing whitespace або проблеми з кодуванням).
+
+---
+
 # Walkthrough: Природний скрол та виправлення сплющення акордеонів у Companion (v0.3.136-dev)
 
 ## Огляд та вирішені проблеми
@@ -1847,3 +1953,35 @@
 - Усі 13 тестів компаньйона та налаштувань пройдено за 5.33с.
 - Статичний аналіз `ruff check` пройдено чисто (0 помилок).
 - `git diff --check` без зауважень.
+
+---
+
+# Walkthrough: Випуск та деплой релізу v0.3.137
+
+## Огляд
+Здійснено повноцінний реліз програми **Picoripi v0.3.137**, що консолідує всі нововведення та виправлення, накопичені з релізу `v0.3.101` (22 коміти, 36 ітерацій розробки).
+
+## Основні зміни в релізі v0.3.137
+1. **Перенесення конфігурації референсів та образів ROM/ISO у Settings**:
+   - Очищено меню `File` від команд завантаження референсів.
+   - У `Settings -> Project -> File Paths` додано поле вибору `Reference Translation / ROM Path` з меню вибору папки розпакованого ROM або дискового образу `.iso`.
+   - У `Settings -> Global` додано глобальне налаштування шляху до утиліти `Wiimms ISO Tool (wit.exe)`.
+   - Динамічне завантаження та оновлення вкладок мовних порівнянь у редакторі при збереженні налаштувань.
+2. **Мобільний компаньйон Picoripi Companion PWA та фонова синхронізація**:
+   - Повноцінний автономний PWA застосунок (FastAPI + HTML5) з конфігураціями для розгортання через Docker та systemd.
+   - Неблокуюча фонова синхронізація глосарію при старті застосунку та відкритті проєкту з захисними бекапами `.bak`.
+   - Виправлена фільтрація "Needs review" для виключення вже підтверджених термінів.
+   - Ергономічний сенсорний інтерфейс з природним інерційним скролом та таргет-зонами 44px.
+3. **Пакетний ШІ-переклад діалогів та сюжету**:
+   - Впроваджено діалог `AIBatchTranslationDialog` з режимами `Story First`, `Remaining Blocks` та `All Pipeline`.
+   - Інтегровано `NarrativeLedger` для фіксації та узгодження характерних голосів персонажів.
+4. **Компактна 2-рядкова панель редактора та точне вирівнювання**:
+   - Зручне розміщення елементів керування у 2 рядки.
+   - Додано `HeaderSyncFilter` для строгого вирівнювання базової лінії Y між вихідними вкладками та робочим полем.
+5. **Повна синхронізація документації та вікі-дзеркал**:
+   - Створено сторінки `docs/wiki/12_Picoripi_Companion.md` та українську версію `docs/wiki/uk/12_Picoripi_Companion.md`.
+   - Повністю синхронізовано User Guide, Configuration Guide, Localization Pipeline та API Reference.
+6. **Оптимізація та надійність тестів**:
+   - Усунено часові затримки та тайм-аути в паралельному тестовому наборі (`qtbot.waitUntil`, `qtbot.waitExposed`).
+   - Синхронізовано та локалізовано 1709 ключів інтерфейсу в `locales/uk.json`.
+

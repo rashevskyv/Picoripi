@@ -117,15 +117,6 @@ class MenuBuilder:
         file_menu.addAction(self.mw.reload_tag_mappings_action)
         file_menu.addSeparator()
 
-        self.mw.load_reference_patch_action = QAction(QIcon.fromTheme("folder-open"), tr('Load &Reference Patch/Translation...'), self.mw)
-        self.mw.load_reference_patch_action.setToolTip(tr('Load a reference patch or folder (e.g. Russian translation) to compare against in the editor.'))
-        file_menu.addAction(self.mw.load_reference_patch_action)
-
-        self.mw.load_multi_reference_rom_action = QAction(QIcon.fromTheme("drive-optical"), tr('Load &Unpacked ROM (Multi-Language Reference)...'), self.mw)
-        self.mw.load_multi_reference_rom_action.setToolTip(tr('Load an unpacked multi-language ROM directory to pull all languages (Russian, German, French, etc.) into reference context.'))
-        file_menu.addAction(self.mw.load_multi_reference_rom_action)
-        file_menu.addSeparator()
-
         self.mw.open_settings_action = QAction(settings_icon, tr('&Settings...'), self.mw)
         self.mw.open_settings_action.setShortcut('Ctrl+P')
         self.mw.open_settings_action.setToolTip(
