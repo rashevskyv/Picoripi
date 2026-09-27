@@ -444,4 +444,5 @@
 - [x] Виправлення стабільності паралельних UI тестів у `tests/test_ui/script_markup/test_tree_selection_and_nav.py` та `tests/test_ui/test_ui_event_filters.py`.
 - [x] Підготовка ченджлогу в `CHANGELOG.md` та оновлення версії в `utils/constants.py`, `README.md`, `GEMINI.md`, `AUDIT.md`.
 - [x] Створення релізного тегу `v0.3.137` та публікація на GitHub через `gh release create`.
+- [x] Перехід до наступного циклу розробки `0.3.138-dev`.
 
