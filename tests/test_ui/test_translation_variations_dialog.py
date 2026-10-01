@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from PyQt6.QtCore import Qt, QRect
-from PyQt6.QtGui import QPainter, QFont, QImage
+from PyQt6.QtGui import QPainter, QImage
 from PyQt6.QtWidgets import QStyleOptionViewItem, QStyle
 
 from components.translation_variations_dialog import TranslationVariationsDialog, VariationsListDelegate
@@ -39,13 +39,16 @@ def test_variations_list_delegate_paint(mock_parent):
     image = QImage(100, 100, QImage.Format.Format_ARGB32)
     painter = QPainter(image)
     
-    option = QStyleOptionViewItem()
-    option.rect = QRect(0, 0, 100, 20)
-    option.state = QStyle.StateFlag.State_Selected
-    option.font = QFont()
-    
     # Get a real index from the QListWidget model
     index = dialog._list.model().index(0, 0)
+
+    # A hand-built option without initStyleOption/widget segfaults inside
+    # QStyledItemDelegate::paint on Linux offscreen.
+    option = QStyleOptionViewItem()
+    delegate.initStyleOption(option, index)
+    option.widget = dialog._list
+    option.rect = QRect(0, 0, 100, 20)
+    option.state = QStyle.StateFlag.State_Selected
     
     # Paint call
     delegate.paint(painter, option, index)
@@ -53,6 +56,7 @@ def test_variations_list_delegate_paint(mock_parent):
     # Test for unselected state
     option.state = QStyle.StateFlag.State_None
     delegate.paint(painter, option, index)
+    painter.end()
 
 def test_variations_dialog_editing(qapp):
     from PyQt6.QtWidgets import QWidget

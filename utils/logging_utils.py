@@ -9,6 +9,12 @@ project_root = Path(__file__).resolve().parent.parent
 default_log_file_path = str(project_root / 'app_debug.txt')
 log_file_path = default_log_file_path
 
+
+def ai_traffic_log_path() -> Path:
+    """Single place that decides where ai_traffic.log lives."""
+    import os
+    return Path(os.getcwd()) / "ai_traffic.log"
+
 class SafeRotatingFileHandler(RotatingFileHandler):
     """
     A robust subclass of RotatingFileHandler that gracefully handles PermissionError
@@ -126,8 +132,7 @@ def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: s
                         
                 # Also truncate ai_traffic.log in workspace root upon startup
                 try:
-                    import os
-                    ai_log_path = Path(os.getcwd()) / "ai_traffic.log"
+                    ai_log_path = ai_traffic_log_path()
                     if ai_log_path.exists():
                         with open(ai_log_path, 'w', encoding='utf-8') as f:
                             f.truncate(0)
@@ -244,7 +249,7 @@ def log_ai_traffic(mw, task_type: str, messages: list, response_text: str = None
     
     # 2. Log to a separate file ai_traffic.log in workspace root
     try:
-        log_file = os.path.join(os.getcwd(), "ai_traffic.log")
+        log_file = ai_traffic_log_path()
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(f"==================== {timestamp} ====================\n")

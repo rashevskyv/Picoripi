@@ -1,6 +1,8 @@
 """Tests for Picoripi Companion Server API and StorageManager."""
 from pathlib import Path
 import pytest
+
+pytest.importorskip("fastapi")
 from starlette.testclient import TestClient
 
 from companion.server.main import create_app

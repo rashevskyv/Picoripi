@@ -29,8 +29,8 @@ class AIWorkerRunMixin:
             is_resume = self.task_details.get('is_resume', False)
             if not is_retry and not is_resume:
                 try:
-                    import os
-                    log_file = os.path.join(os.getcwd(), "ai_traffic.log")
+                    from utils.logging_utils import ai_traffic_log_path
+                    log_file = ai_traffic_log_path()
                     with open(log_file, "w", encoding="utf-8") as f:
                         pass # Truncate the file
                 except Exception as e:

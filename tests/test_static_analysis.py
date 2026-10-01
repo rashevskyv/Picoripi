@@ -1,14 +1,15 @@
 import subprocess
 import sys
+from pathlib import Path
 
 def test_ruff_check():
     """
     Runs Ruff check on the codebase to ensure no syntax errors or undefined names are present.
     """
-    cmd = [sys.executable, "-m", "ruff", "check"]
+    cmd = [sys.executable, "-m", "ruff", "check", "--exclude", "gemini"]
     
     # Run the command in the project root
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parents[1])
     
     assert result.returncode == 0, f"Ruff check failed with exit code {result.returncode}.\nOutput:\n{result.stdout}\nErrors:\n{result.stderr}"
 

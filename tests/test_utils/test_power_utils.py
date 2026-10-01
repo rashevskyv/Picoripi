@@ -1,5 +1,8 @@
 # tests/test_utils/test_power_utils.py ---
 import ctypes
+import os
+
+import pytest
 from unittest.mock import patch, MagicMock
 from utils.power_utils import (
     get_system_idle_seconds,
@@ -9,6 +12,7 @@ from utils.power_utils import (
 )
 
 
+@pytest.mark.skipif(os.name != "nt", reason="needs real ctypes.windll structures")
 def test_get_system_idle_seconds_mocked_windows():
     with (
         patch("os.name", "nt"),

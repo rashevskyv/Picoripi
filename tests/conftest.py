@@ -94,6 +94,33 @@ class MockMainWindow(MagicMock):
         self.current_view_kind = kind if isinstance(kind, ViewKind) else ViewKind(kind)
 
 
+@pytest.fixture(scope="session")
+def _user_files_dir(tmp_path_factory):
+    return tmp_path_factory.mktemp("user_files")
+
+
+@pytest.fixture(autouse=True)
+def isolate_user_files(_user_files_dir, monkeypatch):
+    """Keep the suite out of ~/.picoripi and the repo root (settings, logs)."""
+    import utils.constants as constants
+    import utils.logging_utils as logging_utils
+    import core.settings_manager as settings_manager
+
+    settings_dir = _user_files_dir / "settings"
+    settings_file = str(settings_dir / "settings.json")
+    monkeypatch.setattr(constants, "SETTINGS_DIR", settings_dir)
+    monkeypatch.setattr(constants, "SETTINGS_FILE_PATH", settings_file)
+    monkeypatch.setattr(settings_manager, "SETTINGS_DIR", settings_dir)
+    monkeypatch.setattr(settings_manager, "SETTINGS_FILE_PATH", settings_file)
+    import sys
+    if "main" in sys.modules:  # main.py binds the path by name at import time
+        monkeypatch.setattr(sys.modules["main"], "SETTINGS_FILE_PATH", settings_file, raising=False)
+    log_file = str(_user_files_dir / "app_debug.txt")
+    monkeypatch.setattr(logging_utils, "default_log_file_path", log_file)
+    monkeypatch.setattr(logging_utils, "log_file_path", log_file)
+    monkeypatch.setattr(logging_utils, "ai_traffic_log_path", lambda: _user_files_dir / "ai_traffic.log")
+
+
 @pytest.fixture(autouse=True)
 def silent_logging(mocker):
     """Mocks logging so tests don't pollute output unnecessarily."""

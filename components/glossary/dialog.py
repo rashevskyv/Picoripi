@@ -93,7 +93,8 @@ class GlossaryDialog(
         self._parent = parent
 
         parent_settings = getattr(parent, 'settings_manager', None)
-        settings_path = getattr(parent_settings, 'settings_file_path', 'settings.json')
+        import utils.constants as constants
+        settings_path = getattr(parent_settings, 'settings_file_path', None) or constants.SETTINGS_FILE_PATH
         self._settings_path = Path(settings_path)
         self._restore_maximized_on_show = False
         self._current_entry: Optional[GlossaryEntry] = None

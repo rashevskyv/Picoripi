@@ -1,3 +1,6 @@
+import os
+
+import pytest
 from PyQt6 import sip
 from PyQt6.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 from dialogs.search_review_dialog import SearchReviewDialog
@@ -210,6 +213,7 @@ def test_search_review_dialog_jump_to_item_with_modifier(qapp):
     dialog._navigate_to_block_and_string.assert_called_once_with(0, 1)
     dialog.show_current_item.assert_called_once_with(from_click=True)
 
+@pytest.mark.skipif(os.name != "nt", reason="uses ctypes.windll")
 def test_maybe_edit_prompt_with_ctypes_ctrl_pressed(qapp):
     """Test that _maybe_edit_prompt triggers PromptEditorDialog when Ctrl key is pressed via ctypes."""
     from unittest.mock import patch

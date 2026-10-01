@@ -5,6 +5,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - wp0 0.1: `.gitattributes` (LF everywhere, CRLF for .bat/.ps1, binaries marked); BOM stripped from 52 .py files.
 - wp0 0.2: pinned `PyQt6-Qt6==6.6.1`, `PyQt6-sip`, dev tools; `requires-python = ">=3.10"`.
 - wp0 0.3: user aliases → `~/.picoripi/plugins/<name>/aliases.json` (shipped file stays as read-only defaults); prompt edits → `<project>/plugin_overrides/<name>/prompts.json` (or the settings dir without a project); `eval` → `ast.literal_eval` for `string_metadata` keys.
+- wp0 0.4: test hygiene — Windows-only tests skipped elsewhere, delegate paint test uses `initStyleOption`, `fastapi` importorskip, ruff test runs from repo root without `gemini/`, autouse fixture keeps settings/`app_debug.txt`/`ai_traffic.log` out of `~/.picoripi` and the repo; glossary dialog no longer defaults to a CWD-relative `settings.json`.
 
 ## [0.3.141-dev] - 2026-09-29
 

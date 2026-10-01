@@ -1046,7 +1046,8 @@ def test_window_preset_bar_keeps_arrows_together(qapp):
         assert bar.btn_next.toolTip()
         assert not bar.btn_prev.icon().isNull()
         gap = bar.btn_next.x() - (bar.btn_prev.x() + bar.btn_prev.width())
-        assert 20 < gap < 280
+        # Arrows hug the label; the label is as wide as the longest preset name.
+        assert 20 < gap <= bar.label.width() + 2 * bar.layout().spacing()
         assert bar.label.x() > bar.btn_prev.x()
         assert bar.btn_next.x() > bar.label.x()
         mid = (bar.btn_prev.x() + bar.btn_next.x() + bar.btn_next.width()) / 2
