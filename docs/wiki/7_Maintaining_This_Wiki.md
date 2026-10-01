@@ -21,7 +21,7 @@ English files in `docs/wiki/` are the source of truth. `docs/wiki/uk/` is the Uk
 | Picoripi Companion (mobile PWA and sync server) | `12_Picoripi_Companion.md` |
 | Short pitch + setup + doc map | repo `README.md` |
 | Dated list of shipped **code** changes | `CHANGELOG.md` |
-| Agent operating contract | `docs/AI_DEVELOPMENT_MANIFESTO.md` and `GEMINI.md` |
+| Agent operating contract | `AGENTS.md` (extended rationale: `docs/AI_DEVELOPMENT_MANIFESTO.md`) |
 | Planned architecture, not yet shipped | `docs/PIPELINE_ROADMAP.md` |
 
 Do not copy a full how-to into README when a wiki page exists. README links here.

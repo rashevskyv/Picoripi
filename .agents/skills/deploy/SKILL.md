@@ -92,10 +92,16 @@ Verify that all linters, formatting, and parallel test suites pass cleanly.
    ```
 2. **Finalize `CHANGELOG.md`**:
    - Ensure the release heading is dated: `## [0.3.101] - YYYY-MM-DD`.
-   - Provide clear, detailed English notes categorized by `Added`, `Changed`, `Fixed`, and `Performance`.
+   - Find the last tag actually published on the remote (`gh release list`), not the latest local version
+     bump, and compile the notes from every commit and CHANGELOG entry since that tag.
+   - Keep only significant features and fixes. Drop internal optimizations, duplicates, and bugs that were
+     introduced and fixed inside the same range.
+   - Categories, in this order, omitted when empty: `### 🚀 Added`, `### 🐛 Fixed`, `### ⚡ Improved`,
+     `### 🔄 Changed`. Each entry is a bullet: `- **Focus Area**: active-voice description`, naming the
+     component for complex fixes.
 3. **Update project documentation**:
-   - `README.md`: Update version tag, documentation maps, and feature descriptions.
-   - `GEMINI.md`: Update version banner and reference details.
+   - `README.md`: Update documentation maps and feature descriptions. Never add "New in vX.Y.Z" sections.
+   - `AGENTS.md`: Only when agent rules or commands changed. It carries no version string.
    - `AUDIT.md`: Record completed tasks and update active follow-ups.
 4. **Update tracking files in Ukrainian**:
    - `task.md`: Mark release task as completed.
