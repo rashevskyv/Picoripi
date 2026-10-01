@@ -1,3 +1,9 @@
+[project]
+name = "picoripi"
+requires-python = ">=3.10"
+# Version lives only in utils/constants.py.
+dynamic = ["version"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

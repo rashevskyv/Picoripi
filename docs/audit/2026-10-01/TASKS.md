@@ -5,7 +5,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 
 ## WP0 — Foundation and hygiene
 - [x] 0.1 `.gitattributes` + renormalize commit + strip 51 BOMs
-- [ ] 0.2 pin `PyQt6-Qt6`, `PyQt6-sip`, dev tools; `requires-python`
+- [x] 0.2 pin `PyQt6-Qt6`, `PyQt6-sip`, dev tools; `requires-python`
 - [ ] 0.3 stop writing into `plugins/` (aliases, materialised prompts); `literal_eval`; delete MagicMock/test_plugin
 - [ ] 0.4 test hygiene: skipif, delegate paint test, importorskip/asset skips, ruff cwd, tmp_path for settings/logs
 - [ ] 0.5 xdist flakiness: lambdas → slots, 3‑arg singleShot, `id()` dict

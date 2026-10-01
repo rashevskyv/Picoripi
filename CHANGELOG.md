@@ -3,6 +3,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [Unreleased]
 
 - wp0 0.1: `.gitattributes` (LF everywhere, CRLF for .bat/.ps1, binaries marked); BOM stripped from 52 .py files.
+- wp0 0.2: pinned `PyQt6-Qt6==6.6.1`, `PyQt6-sip`, dev tools; `requires-python = ">=3.10"`.
 
 ## [0.3.141-dev] - 2026-09-29
 
