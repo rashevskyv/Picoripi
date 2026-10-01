@@ -102,11 +102,14 @@ Verify that all linters, formatting, and parallel test suites pass cleanly.
 3. **Update project documentation**:
    - `README.md`: Update documentation maps and feature descriptions. Never add "New in vX.Y.Z" sections.
    - `AGENTS.md`: Only when agent rules or commands changed. It carries no version string.
-   - `AUDIT.md`: Record completed tasks and update active follow-ups.
+   - `docs/OPEN_ITEMS.md`: Remove closed items, add new follow-ups.
 4. **Update tracking files in Ukrainian**:
    - `task.md`: Mark release task as completed.
    - `plan.md`: Update milestones.
-   - `walkthrough.md`: Add detailed release walkthrough in Ukrainian.
+   - `walkthrough.md`: Write the release walkthrough in Ukrainian, then move it to
+     `docs/history/walkthroughs/vX.Y.Z.md` and reset the root file to its heading
+     (`scripts/deploy.py::roll_walkthrough` does this). Root `plan.md` / `task.md` / `walkthrough.md` hold
+     the current iteration only.
 
 ---
 

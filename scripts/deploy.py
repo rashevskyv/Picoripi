@@ -8,6 +8,9 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 CONSTANTS_PATH = ROOT_DIR / 'utils' / 'constants.py'
 README_PATH = ROOT_DIR / 'README.md'
 CHANGELOG_PATH = ROOT_DIR / 'CHANGELOG.md'
+WALKTHROUGH_PATH = ROOT_DIR / 'walkthrough.md'
+WALKTHROUGH_ARCHIVE_DIR = ROOT_DIR / 'docs' / 'history' / 'walkthroughs'
+WALKTHROUGH_STUB = "# Walkthrough\n"
 
 def log(message, color="\033[94m"):
     print(f"{color}{message}\033[0m")
@@ -105,6 +108,19 @@ def update_changelog(new_version, added, fixed, improved):
         
     return new_entry
 
+def roll_walkthrough(version, src=WALKTHROUGH_PATH, archive_dir=WALKTHROUGH_ARCHIVE_DIR):
+    """Move the current-iteration walkthrough into the archive so the root file stays short."""
+    if not src.exists():
+        return None
+    content = src.read_text(encoding='utf-8')
+    if content.strip() in ("", WALKTHROUGH_STUB.strip()):
+        return None
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    dst = archive_dir / f'v{version}.md'
+    dst.write_text(content, encoding='utf-8')
+    src.write_text(WALKTHROUGH_STUB, encoding='utf-8')
+    return dst
+
 def deploy():
     log("\n🚀 Starting Picoripi Deployment Process", "\033[1;92m")
     
@@ -143,6 +159,7 @@ def deploy():
     update_file(CONSTANTS_PATH, r'APP_VERSION = "[^"]+"', f'APP_VERSION = "{new_version}"')
     update_file(README_PATH, r'# Picoripi v[\d\.]+', f'# Picoripi v{new_version}')
     release_body = update_changelog(new_version, added, fixed, improved)
+    roll_walkthrough(new_version)
 
     log("🔧 Git operations...", "\033[94m")
     run_command("git add .")

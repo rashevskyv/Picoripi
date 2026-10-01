@@ -10,7 +10,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 0.4 test hygiene: skipif, delegate paint test, importorskip/asset skips, ruff cwd, tmp_path for settings/logs
 - [ ] 0.5 xdist flakiness: lambdas → slots, 3‑arg singleShot, `id()` dict
 - [x] 0.6 `AGENTS.md` (≤1.5k tok) + `CLAUDE.md` stub + `GEMINI.md` stub; delete duplicate workflows
-- [ ] 0.7 archive logs to `docs/history/`; short current `plan.md`/`task.md`/`walkthrough.md`; `docs/OPEN_ITEMS.md`; deploy rollover
+- [x] 0.7 archive logs to `docs/history/`; short current `plan.md`/`task.md`/`walkthrough.md`; `docs/OPEN_ITEMS.md`; deploy rollover
 - [ ] 0.8 `.graphifyignore`; single Graphify rule; `graphify .`
 - [ ] 0.9 local disk cleanup; `git rm --cached dummy.json .grok/skills`
 - [ ] WP0 exit: suite green (Win+Linux), ruff clean, version bump, walkthrough
