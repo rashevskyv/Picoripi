@@ -1,6 +1,7 @@
 # components/tree_folder_mixin.py
 """Virtual folder CRUD, tree↔PM synchronisation, expansion-state mixin for CustomTreeWidget."""
 import re
+from utils.thread_utils import single_shot
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QInputDialog, QTreeWidgetItemIterator
 
@@ -94,7 +95,7 @@ class TreeFolderMixin:
                 self.setCurrentItem(item)
                 item.setSelected(True)
                 self.scrollToItem(item)
-                QTimer.singleShot(100, lambda: self.editItem(item, 0))
+                single_shot(100, self, lambda: self.editItem(item, 0))
                 break
             it += 1
 

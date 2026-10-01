@@ -17,7 +17,7 @@ from core.script_markup.hierarchy_ai_jobs import (
     HIERARCHY_FORMAT_VERSION as _HIERARCHY_FORMAT_VERSION,
 )
 from utils.logging_utils import log_info, log_error
-from utils.constants import SETTINGS_DIR
+import utils.constants as constants
 from utils.thread_utils import safe_shutdown_thread
 
 from ui.script_markup.constants import (
@@ -36,7 +36,7 @@ class SessionMixin:
         return None
 
     def _path_from_value(self, value) -> Path | None:
-        if isinstance(value, (str, os.PathLike)) and str(value):
+        if isinstance(value, (str, Path)) and str(value):
             return Path(value)
         return None
 
@@ -121,7 +121,7 @@ class SessionMixin:
             path = self._path_from_value(sm.get("script_markup_studio_autosave_path"))
             if path is not None:
                 return path
-        return SETTINGS_DIR / "script_markup_studio_autosave.json"
+        return constants.SETTINGS_DIR / "script_markup_studio_autosave.json"
 
     def _session_view_payload(self) -> dict:
         cursor = self.raw_edit.textCursor()

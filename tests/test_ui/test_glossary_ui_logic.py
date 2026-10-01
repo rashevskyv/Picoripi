@@ -170,7 +170,7 @@ def test_glossary_translation_quick_replace_all(qapp):
     
     applied = {}
     def mock_apply(occ, text):
-        applied[id(occ)] = text
+        applied[GlossaryTranslationUpdateDialog._occ_key(occ)] = text
         
     def mock_get_current(occ):
         if occ.string_idx == 0:
@@ -199,10 +199,10 @@ def test_glossary_translation_quick_replace_all(qapp):
         dialog._run_quick_replace_all()
         
     # Check that both occurrences had their old value replaced by the new value
-    assert applied[id(occ1)] == "This is new translation"
-    assert applied[id(occ2)] == "Another new value"
-    assert dialog._status[id(occ1)] == 'applied'
-    assert dialog._status[id(occ2)] == 'applied'
+    assert applied[GlossaryTranslationUpdateDialog._occ_key(occ1)] == "This is new translation"
+    assert applied[GlossaryTranslationUpdateDialog._occ_key(occ2)] == "Another new value"
+    assert dialog._status[dialog._occ_key(occ1)] == 'applied'
+    assert dialog._status[dialog._occ_key(occ2)] == 'applied'
     
     dialog.deleteLater()
     QApplication.processEvents()
@@ -218,7 +218,7 @@ def test_glossary_translation_apply_all(qapp):
     
     applied = {}
     def mock_apply(occ, text):
-        applied[id(occ)] = text
+        applied[GlossaryTranslationUpdateDialog._occ_key(occ)] = text
         
     def mock_get_current(occ):
         if occ.string_idx == 0:
@@ -247,10 +247,10 @@ def test_glossary_translation_apply_all(qapp):
         dialog._run_apply_all()
         
     # Check that both occurrences had suggested translations applied
-    assert applied[id(occ1)] == "This is new translation"
-    assert applied[id(occ2)] == "Another new value"
-    assert dialog._status[id(occ1)] == 'applied'
-    assert dialog._status[id(occ2)] == 'applied'
+    assert applied[GlossaryTranslationUpdateDialog._occ_key(occ1)] == "This is new translation"
+    assert applied[GlossaryTranslationUpdateDialog._occ_key(occ2)] == "Another new value"
+    assert dialog._status[dialog._occ_key(occ1)] == 'applied'
+    assert dialog._status[dialog._occ_key(occ2)] == 'applied'
     
     dialog.deleteLater()
     QApplication.processEvents()

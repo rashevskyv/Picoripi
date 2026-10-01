@@ -16,6 +16,7 @@ import re
 import threading
 from typing import Any, Optional
 
+from PyQt6 import sip
 from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal
 
 from utils.logging_utils import log_error
@@ -344,7 +345,7 @@ def get_scanner_thread_pool() -> QThreadPool:
     Anything more would just waste CPU racing the latest input.
     """
     global _pool_singleton
-    if _pool_singleton is None:
+    if _pool_singleton is None or sip.isdeleted(_pool_singleton):
         pool = QThreadPool()
         pool.setMaxThreadCount(1)
         # We rely on cooperative cancellation so the pool can exit promptly

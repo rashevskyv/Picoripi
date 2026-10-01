@@ -130,15 +130,13 @@ class WindowUiMixin:
         self.btn_undo = QtWidgets.QPushButton(tr('Undo'))
         self.btn_undo.setEnabled(False)
         self.btn_undo.clicked.connect(self.action_undo.trigger)
-        self.action_undo.changed.connect(lambda: self.btn_undo.setEnabled(self.action_undo.isEnabled()))
-        self.action_undo.changed.connect(lambda: self.btn_undo.setText(self.action_undo.text()))
+        self.action_undo.changed.connect(self._sync_undo_button)
         toolbar.addWidget(self.btn_undo)
 
         self.btn_redo = QtWidgets.QPushButton(tr('Redo'))
         self.btn_redo.setEnabled(False)
         self.btn_redo.clicked.connect(self.action_redo.trigger)
-        self.action_redo.changed.connect(lambda: self.btn_redo.setEnabled(self.action_redo.isEnabled()))
-        self.action_redo.changed.connect(lambda: self.btn_redo.setText(self.action_redo.text()))
+        self.action_redo.changed.connect(self._sync_redo_button)
         toolbar.addWidget(self.btn_redo)
 
         toolbar.addSpacing(10)
@@ -417,6 +415,16 @@ class WindowUiMixin:
         self.scene.addItem(self.width_line_item)
 
         self.view.set_scale(2.0)
+
+    def _sync_undo_button(self):
+        """Mirror the undo action onto its toolbar button (bound slot, dies with the window)."""
+        self.btn_undo.setEnabled(self.action_undo.isEnabled())
+        self.btn_undo.setText(self.action_undo.text())
+
+    def _sync_redo_button(self):
+        """Mirror the redo action onto its toolbar button."""
+        self.btn_redo.setEnabled(self.action_redo.isEnabled())
+        self.btn_redo.setText(self.action_redo.text())
 
     def apply_theme(self):
         self.is_dark_theme = apply_theme_by_settings(self)

@@ -1,7 +1,8 @@
 """Text-view update mixin for PreviewUpdater."""
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, QTimer
+from utils.thread_utils import single_shot
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor
 
 from utils.utils import (
@@ -278,7 +279,7 @@ class TextViewsMixin:
         self._pending_row_followup = row
         self._followup_gen = getattr(self, '_followup_gen', 0) + 1
         gen = self._followup_gen
-        QTimer.singleShot(16, lambda g=gen: self._row_paint_followup(g))
+        single_shot(16, self.mw, lambda g=gen: self._row_paint_followup(g))
 
     def _followup_row_is_current(self, gen: int) -> bool:
         if gen != getattr(self, '_followup_gen', 0):

@@ -318,6 +318,11 @@ def test_bfn_editor_window_save_changes_translation_map(qapp, tmp_path, dummy_bf
     
     editor.clear_temp()
     editor.close()
+    # Detach before the locals die: letting gc tear down a Python-owned parent
+    # that still owns the editor crashes the interpreter on the next collect.
+    editor.setParent(None)
+    editor.deleteLater()
+    parent.deleteLater()
 
 
 def test_bfn_editor_window_save_changes_translation_map_project_dir(qapp, tmp_path, dummy_bfn_bytes, monkeypatch):
@@ -389,6 +394,11 @@ def test_bfn_editor_window_save_changes_translation_map_project_dir(qapp, tmp_pa
     
     editor.clear_temp()
     editor.close()
+    # Detach before the locals die: letting gc tear down a Python-owned parent
+    # that still owns the editor crashes the interpreter on the next collect.
+    editor.setParent(None)
+    editor.deleteLater()
+    parent.deleteLater()
 
 
 def test_bfn_editor_window_parent_node_selection(qapp, dummy_bfn_bytes):

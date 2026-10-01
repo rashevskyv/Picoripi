@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from PyQt6.QtWidgets import QApplication
+from utils.thread_utils import single_shot
 from PyQt6.QtCore import Qt, QTimer
 
 from dialogs.search.search_utils import adjust_replacement_case
@@ -31,7 +32,7 @@ class ReplaceMixin:
 
             if found_item:
                 main_window.block_list_widget.setCurrentItem(found_item)
-                QTimer.singleShot(80, lambda: main_window.list_selection_handler.select_string_by_absolute_index(string_idx))
+                single_shot(80, main_window.block_list_widget, lambda: main_window.list_selection_handler.select_string_by_absolute_index(string_idx))
         else:
             main_window.list_selection_handler.select_string_by_absolute_index(string_idx)
 

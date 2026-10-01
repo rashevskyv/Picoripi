@@ -1,5 +1,6 @@
 import pytest
 import gc
+from PyQt6 import sip
 from PyQt6.QtCore import QThread, Qt
 # Monkeypatch Qt item roles for backwards compatibility
 Qt.EditRole = Qt.ItemDataRole.EditRole
@@ -191,9 +192,11 @@ def cleanup_qt(qapp):
     yield
     # Stop and wait for the scanner thread pool tasks to exit
     try:
-        from handlers.async_issue_scanner import get_scanner_thread_pool
-        pool = get_scanner_thread_pool()
-        if pool is not None:
+        # Read the singleton directly: creating the pool here, mid-teardown,
+        # left a wrapper whose C++ object was gone by the next test.
+        import handlers.async_issue_scanner as scanner
+        pool = scanner._pool_singleton
+        if pool is not None and not sip.isdeleted(pool):
             pool.waitForDone(2000)
     except Exception:
         pass

@@ -1,6 +1,23 @@
 from typing import Optional, Any
-from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QObject, QThread, QTimer
 from utils.logging_utils import log_debug, log_warning, log_error
+
+def single_shot(msec: int, context: Any, fn) -> None:
+    """``QTimer.singleShot`` that never fires after *context* is destroyed.
+
+    PyQt6 has no ``singleShot(msec, context, slot)`` overload; a lambda passed
+    to the 2-arg form outlives the widgets it captures. A child timer dies with
+    its parent instead.
+    """
+    if not isinstance(context, QObject):
+        QTimer.singleShot(msec, fn)
+        return
+    timer = QTimer(context)
+    timer.setSingleShot(True)
+    timer.timeout.connect(fn)
+    timer.timeout.connect(timer.deleteLater)
+    timer.start(msec)
+
 
 def safe_shutdown_thread(thread: Optional[QThread], worker: Optional[Any] = None, timeout_ms: int = 1000, allow_terminate: bool = False) -> None:
     """

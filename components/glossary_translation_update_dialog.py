@@ -187,9 +187,14 @@ class GlossaryTranslationUpdateDialog(QDialog):
             item = QListWidgetItem(self._format_occurrence_label(idx, occ))
             self._occurrence_list.addItem(item)
 
+    @staticmethod
+    def _occ_key(occ: GlossaryOccurrence) -> tuple:
+        """Stable identity of an occurrence (``id()`` gets recycled once an object dies)."""
+        return (occ.block_idx, occ.string_idx, occ.line_idx, occ.start, occ.end)
+
     def _format_occurrence_label(self, number: int, occ: GlossaryOccurrence) -> str:
         """Internal helper to format occurrence label."""
-        status = self._status.get(id(occ))
+        status = self._status.get(self._occ_key(occ))
         suffix = ""
         if status == 'applied':
             suffix = " ✓"
@@ -199,10 +204,10 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
     def _refresh_occurrence_item(self, occ: GlossaryOccurrence) -> None:
         """Internal helper to update the occurrence item."""
-        occ_id = id(occ)
+        occ_id = self._occ_key(occ)
         for row in range(self._occurrence_list.count()):
             data_occ = self._occurrences[row]
-            if id(data_occ) == occ_id:
+            if self._occ_key(data_occ) == occ_id:
                 self._occurrence_list.item(row).setText(
                     self._format_occurrence_label(row + 1, data_occ)
                 )
@@ -259,7 +264,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         # Apply changes
         self._apply_translation_cb(occ, candidate)
         
-        self._status[id(occ)] = 'applied'
+        self._status[self._occ_key(occ)] = 'applied'
         self._refresh_occurrence_item(occ)
         self._status_label.setText(tr('Applied.'))
         
@@ -347,7 +352,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         occ = self._current_occurrence()
         if not occ:
             return
-        self._status[id(occ)] = 'skipped'
+        self._status[self._occ_key(occ)] = 'skipped'
         self._refresh_occurrence_item(occ)
         self._status_label.setText(tr('Skipped.'))
         self._select_next()
@@ -372,7 +377,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
         """Internal helper to run ai for all."""
         if not self._ai_request_all or self._ai_busy:
             return
-        remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
+        remaining = [occ for occ in self._occurrences if self._status.get(self._occ_key(occ)) != 'applied']
         if not remaining:
             QMessageBox.information(self, tr('AI Update'), tr('All occurrences already applied.'))
             return
@@ -406,7 +411,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
     def on_ai_result(self, occurrence: GlossaryOccurrence, new_translation: str) -> None:
         """Handle the ai result event."""
         self._apply_translation_cb(occurrence, new_translation)
-        self._status[id(occurrence)] = 'applied'
+        self._status[self._occ_key(occurrence)] = 'applied'
         self._refresh_occurrence_item(occurrence)
         if self._current_occurrence() is occurrence:
             self._translation_edit.setPlainText(new_translation)
@@ -423,7 +428,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
     def _run_apply_all(self) -> None:
         """Apply suggested translations to all remaining occurrences and mark them all as completed."""
-        remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
+        remaining = [occ for occ in self._occurrences if self._status.get(self._occ_key(occ)) != 'applied']
         if not remaining:
             QMessageBox.information(self, tr('Apply All'), tr('All occurrences already applied.'))
             return
@@ -453,14 +458,14 @@ class GlossaryTranslationUpdateDialog(QDialog):
         for occ in remaining:
             # If it's the currently selected occurrence, we take the text from the editor.
             # Otherwise we compute the suggestion based on its current translation.
-            if current_occ and id(occ) == id(current_occ):
+            if current_occ and self._occ_key(occ) == self._occ_key(current_occ):
                 new_text = self._translation_edit.toPlainText().rstrip('\n')
             else:
                 current_translation = self._get_current_translation(occ) or ""
                 new_text = self._suggest_translation(current_translation)
             
             self._apply_translation_cb(occ, new_text)
-            self._status[id(occ)] = 'applied'
+            self._status[self._occ_key(occ)] = 'applied'
             self._refresh_occurrence_item(occ)
             applied_count += 1
 
@@ -480,7 +485,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
 
     def _run_quick_replace_all(self) -> None:
         """Internal helper to run quick replace all."""
-        remaining = [occ for occ in self._occurrences if self._status.get(id(occ)) != 'applied']
+        remaining = [occ for occ in self._occurrences if self._status.get(self._occ_key(occ)) != 'applied']
         if not remaining:
             QMessageBox.information(self, tr('Replace All'), tr('All occurrences already applied.'))
             return
@@ -514,7 +519,7 @@ class GlossaryTranslationUpdateDialog(QDialog):
             new_text = suggest_smart_translation(current_translation, self._old_translation, self._new_translation)
             if new_text != current_translation:
                 self._apply_translation_cb(occ, new_text)
-                self._status[id(occ)] = 'applied'
+                self._status[self._occ_key(occ)] = 'applied'
                 self._refresh_occurrence_item(occ)
                 applied_count += 1
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from PyQt6 import sip
 from PyQt6.QtCore import QEasingCurve, QEvent, QObject, QPropertyAnimation, QRect, QSize, Qt, QTimer, pyqtProperty
 from PyQt6.QtWidgets import QAbstractScrollArea, QApplication, QScrollBar, QWidget
+from utils.thread_utils import single_shot
 
 
 _MANAGER_ATTR = "_picoripi_adaptive_scrollbars_manager"
@@ -261,7 +262,7 @@ class AdaptiveScrollBar(QScrollBar):
 
     def event(self, event) -> bool:
         if event.type() in (QEvent.Type.StyleChange, QEvent.Type.Polish):
-            QTimer.singleShot(0, lambda: self._apply_thickness(self._thickness))
+            single_shot(0, self, lambda: self._apply_thickness(self._thickness))
         return super().event(event)
 
 
@@ -289,7 +290,7 @@ class AdaptiveScrollBarManager(QObject):
         return super().eventFilter(obj, event)
 
     def _configure_later(self, area: QAbstractScrollArea) -> None:
-        QTimer.singleShot(0, lambda area=area: self._configure_area(area))
+        single_shot(0, area, lambda area=area: self._configure_area(area))
 
     def _configure_tree(self, root: QWidget) -> None:
         if _is_deleted(root):
