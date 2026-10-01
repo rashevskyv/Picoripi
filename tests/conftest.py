@@ -1,7 +1,7 @@
 import pytest
 import gc
 from PyQt6 import sip
-from PyQt6.QtCore import QThread, Qt
+from PyQt6.QtCore import QEvent, QThread, Qt
 # Monkeypatch Qt item roles for backwards compatibility
 Qt.EditRole = Qt.ItemDataRole.EditRole
 Qt.DisplayRole = Qt.ItemDataRole.DisplayRole
@@ -206,8 +206,10 @@ def cleanup_qt(qapp):
         widget.close()
         widget.deleteLater()
 
-    # Process events to let deleteLater work
+    # processEvents() alone does not deliver DeferredDelete; without the explicit
+    # flush, this test's deleteLater() runs inside a later test's event loop.
     QApplication.processEvents()
+    QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     # Stop any background QThreads before gc.collect() — destroying a running
     # QThread aborts the process.

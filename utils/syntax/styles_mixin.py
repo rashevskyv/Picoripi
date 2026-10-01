@@ -5,6 +5,7 @@ import re
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont, QPalette
+from PyQt6.QtWidgets import QWidget
 
 from utils.logging_utils import log_debug
 from utils.utils import SPACE_DOT_SYMBOL
@@ -58,8 +59,7 @@ class StylesMixin:
                            space_dot_color_hex="#BBBBBB",
                            bracket_tag_color_hex="#FF8C00"):
         """Reconfigure styles."""
-        doc = self.document()
-        editor_widget = doc.parent() if doc else None
+        editor_widget = self._owner_editor()
         
         self.newline_char = newline_symbol
         
@@ -67,7 +67,7 @@ class StylesMixin:
         if current_theme == 'dark':
             self.default_text_color = QColor("#E0E0E0")
         else:
-            if editor_widget and hasattr(editor_widget, 'palette'):
+            if isinstance(editor_widget, QWidget):
                 self.default_text_color = editor_widget.palette().color(QPalette.ColorRole.Text)
             else:
                  self.default_text_color = QColor(Qt.GlobalColor.black)

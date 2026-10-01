@@ -1,4 +1,4 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets, sip
 
 from core.i18n import tr
 from tools.bfn_editor.bfn_widgets import ImageView, SimImageView
@@ -124,6 +124,10 @@ class WindowUiMixin:
         self.action_undo.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
         self.action_redo = self.undo_stack.createRedoAction(self, tr("Redo"))
         self.action_redo.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
+        # createUndo/RedoAction parent the action to `self` in C++ but PyQt still
+        # marks it Python-owned; hand ownership to the parent or gc deletes it twice.
+        sip.transferto(self.action_undo, self)
+        sip.transferto(self.action_redo, self)
         self.addAction(self.action_undo)
         self.addAction(self.action_redo)
 

@@ -29,10 +29,9 @@ _TAG_SPLIT_SPACE_PATTERN = re.compile(r"[ ·](?:\{(?!f:|F:)[^}]*\}|\[[^\]]*\])+[
 class HighlightMixin:
     def _should_highlight_icons(self) -> bool:
         """Internal helper to check if should highlight icons."""
-        doc = self.document()
-        if not doc:
+        if not self.document():
             return False
-        editor_widget = doc.parent()
+        editor_widget = self._owner_editor()
         if hasattr(editor_widget, 'objectName') and editor_widget.objectName() == 'preview_text_edit':
             return False
         return True
@@ -313,9 +312,8 @@ class HighlightMixin:
         rules_to_apply = self._compiled_custom_rules_all
         
         # Performance optimization for the preview window by not highlighting bracket tags (controller buttons)
-        doc = self.document()
-        if doc:
-            editor_widget = doc.parent()
+        if self.document():
+            editor_widget = self._owner_editor()
             if hasattr(editor_widget, 'objectName') and editor_widget.objectName() == 'preview_text_edit':
                 rules_to_apply = self._compiled_custom_rules_preview
         

@@ -46,6 +46,20 @@ class JsonTagHighlighter(
     STATE_ORANGE = 8
 
 
+    def _owner_editor(self):
+        """The editor this highlighter paints.
+
+        Prefer the explicit ref: ``document().parent()`` goes through a
+        Qt-created document whose wrapper sip cannot invalidate, and after an
+        earlier editor died it can hand back a stale wrapper for a reused
+        address (access violation on the next method call).
+        """
+        ref = getattr(self, "_editor_widget_ref", None)
+        if ref is not None:
+            return ref
+        doc = self.document()
+        return doc.parent() if doc else None
+
     def __init__(self, parent: QTextDocument, main_window_ref=None, editor_widget_ref=None):
         """Initialize a new instance."""
         super().__init__(parent)
@@ -81,7 +95,7 @@ class JsonTagHighlighter(
         if current_theme == 'dark':
             self.default_text_color = QColor("#E0E0E0")
         else:
-            editor_widget = parent.parent() if parent else None
+            editor_widget = self._owner_editor()
             if editor_widget and isinstance(editor_widget, QWidget) and hasattr(editor_widget, 'palette'):
                 self.default_text_color = editor_widget.palette().color(QPalette.ColorRole.Text)
 

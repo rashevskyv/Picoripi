@@ -217,10 +217,10 @@ def test_extract_words_from_text(highlighter):
 
 def test_should_highlight_icons_for_preview(highlighter, mock_mw):
     hl, doc = highlighter
-    # Set parent to simulate preview_text_edit
+    # The highlighter asks its explicit editor ref, not document().parent().
     parent_mock = MagicMock()
     parent_mock.objectName.return_value = 'preview_text_edit'
-    doc.parent = MagicMock(return_value=parent_mock)
+    hl._editor_widget_ref = parent_mock
 
     assert hl._should_highlight_icons() is False
 
