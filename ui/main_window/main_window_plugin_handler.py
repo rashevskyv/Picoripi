@@ -115,8 +115,14 @@ class MainWindowPluginHandler:
             return
         from pathlib import Path
         import json
-        aliases_path = Path("plugins") / self.mw.active_game_plugin / "aliases.json"
-        if aliases_path.exists():
+        from utils.constants import user_plugin_dir
+        # Shipped defaults first (read-only), then the user's saved aliases on top.
+        for aliases_path in (
+            Path("plugins") / self.mw.active_game_plugin / "aliases.json",
+            user_plugin_dir(self.mw.active_game_plugin) / "aliases.json",
+        ):
+            if not aliases_path.exists():
+                continue
             try:
                 with open(aliases_path, 'r', encoding='utf-8') as f:
                     custom_aliases = json.load(f)

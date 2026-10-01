@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+from utils.constants import user_plugin_dir
 from utils.logging_utils import log_debug
 from core.i18n import tr
 
@@ -47,9 +48,38 @@ class GlossaryPromptManager:
         """Internal helper to fallback dir."""
         return Path("translation_prompts")
 
+    def override_dir(self, plugin_name: Optional[str]) -> Optional[Path]:
+        """Writable prompt overrides: per project when one is open, else per user."""
+        if not plugin_name:
+            return None
+        project_dir = self._project_dir()
+        if project_dir:
+            return project_dir / "plugin_overrides" / plugin_name
+        return user_plugin_dir(plugin_name)
+
+    def materialize_prompts_override(self, plugin_name: Optional[str]) -> Optional[Path]:
+        """Return the writable prompts.json, copying the resolved default there first."""
+        target_dir = self.override_dir(plugin_name)
+        if not target_dir:
+            return None
+        target_path = target_dir / "prompts.json"
+        if not target_path.exists():
+            source = self._resolve_file("prompts.json", plugin_name)
+            if source and source.exists():
+                try:
+                    target_dir.mkdir(parents=True, exist_ok=True)
+                    import shutil
+                    shutil.copy2(source, target_path)
+                    log_debug(f"Materialized prompts override {target_path} from {source}")
+                except Exception as exc:
+                    log_debug(f"Failed to materialize prompts override {target_path}: {exc}")
+        return target_path
+
     def _resolve_file(self, filename: str, plugin_name: Optional[str]) -> Optional[Path]:
         """Internal helper to resolve file."""
+        override = self.override_dir(plugin_name)
         candidates = [
+            override and override / filename,
             self._plugin_dir(plugin_name) and self._plugin_dir(plugin_name) / filename,
             Path("plugins", "common", "defaults") / filename,
             self._fallback_dir() / filename,
@@ -282,23 +312,9 @@ class GlossaryPromptManager:
         if not plugin_name:
             return False
 
-        plugin_dir = self._plugin_dir(plugin_name)
-        if not plugin_dir:
+        target_path = self.materialize_prompts_override(plugin_name)
+        if not target_path:
             return False
-        
-        target_path = plugin_dir / "prompts.json"
-
-        # If local prompts.json doesn't exist, materialize it from defaults
-        if not target_path.exists():
-            current_resolved = self._resolve_file("prompts.json", plugin_name)
-            if current_resolved and current_resolved.exists():
-                try:
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
-                    import shutil
-                    shutil.copy2(current_resolved, target_path)
-                    log_debug(f"Copied default prompts to {target_path} for on-demand writing.")
-                except Exception as exc:
-                    log_debug(f"Failed to copy default prompts to {target_path}: {exc}")
 
         try:
             target_path.parent.mkdir(parents=True, exist_ok=True)

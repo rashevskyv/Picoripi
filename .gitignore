@@ -44,6 +44,7 @@ resources/spellchecker/spell_cache.json
 /plugins/UA/
 /plugins/MagicMock/
 /plugins/test_plugin/
+plugins/*/aliases.json
 /image.png
 
 # Graphify output

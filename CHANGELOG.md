@@ -4,6 +4,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 - wp0 0.1: `.gitattributes` (LF everywhere, CRLF for .bat/.ps1, binaries marked); BOM stripped from 52 .py files.
 - wp0 0.2: pinned `PyQt6-Qt6==6.6.1`, `PyQt6-sip`, dev tools; `requires-python = ">=3.10"`.
+- wp0 0.3: user aliases → `~/.picoripi/plugins/<name>/aliases.json` (shipped file stays as read-only defaults); prompt edits → `<project>/plugin_overrides/<name>/prompts.json` (or the settings dir without a project); `eval` → `ast.literal_eval` for `string_metadata` keys.
 
 ## [0.3.141-dev] - 2026-09-29
 

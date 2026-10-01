@@ -22,3 +22,8 @@ DT_PREVIEW_SELECTED_LINE_COLOR = "#003E6B"
 # Settings path in home directory
 SETTINGS_DIR = Path.home() / ".picoripi"
 SETTINGS_FILE_PATH = str(SETTINGS_DIR / "settings.json")
+
+
+def user_plugin_dir(plugin_name: str) -> Path:
+    """Per-user writable data for a plugin. Never write into ``plugins/`` itself."""
+    return SETTINGS_DIR / "plugins" / plugin_name

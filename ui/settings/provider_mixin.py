@@ -1,6 +1,4 @@
-from pathlib import Path
 from PyQt6.QtWidgets import QMessageBox, QInputDialog
-from utils.logging_utils import log_debug
 from core.translation.config import build_default_translation_config, merge_translation_config
 from core.i18n import tr
 from ui.settings.provider_worker import ProviderTestWorker
@@ -16,31 +14,14 @@ class SettingsProviderMixin:
             QMessageBox.warning(self, tr('Edit Prompts'), tr('Please select a plugin first.'))
             return
 
-        plugin_prompts_path = Path("plugins", plugin_name, "translation_prompts", "prompts.json")
-        
-        # If local prompts.json doesn't exist, materialize it on-demand
-        if not plugin_prompts_path.exists():
-            fallback_path = None
-            if hasattr(self.mw, 'translation_handler') and hasattr(self.mw.translation_handler, 'glossary_handler'):
-                fallback_path = self.mw.translation_handler.glossary_handler._prompt_manager._resolve_file("prompts.json", plugin_name)
-            
-            if not fallback_path:
-                candidates = [
-                    Path("plugins", "common", "defaults", "prompts.json"),
-                    Path("translation_prompts", "prompts.json")
-                ]
-                fallback_path = next((p for p in candidates if p and p.exists()), None)
-            
-            if fallback_path and fallback_path.exists():
-                try:
-                    plugin_prompts_path.parent.mkdir(parents=True, exist_ok=True)
-                    import shutil
-                    shutil.copy2(fallback_path, plugin_prompts_path)
-                    log_debug(f"Materialized local prompts.json for plugin '{plugin_name}' from {fallback_path}")
-                except Exception as e:
-                    log_debug(f"Failed to materialize local prompts.json: {e}")
-        
-        if plugin_prompts_path.exists():
+        # Edits go to a writable override copy, never into plugins/.
+        plugin_prompts_path = None
+        glossary_handler = getattr(getattr(self.mw, 'translation_handler', None), 'glossary_handler', None)
+        prompt_manager = getattr(glossary_handler, '_prompt_manager', None)
+        if prompt_manager is not None:
+            plugin_prompts_path = prompt_manager.materialize_prompts_override(plugin_name)
+
+        if plugin_prompts_path and plugin_prompts_path.exists():
             from PyQt6.QtGui import QDesktopServices
             from PyQt6.QtCore import QUrl
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(plugin_prompts_path.resolve())))

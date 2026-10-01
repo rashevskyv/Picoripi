@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 from pathlib import Path
@@ -5,7 +6,8 @@ from typing import Dict, Optional, Any
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 from utils.constants import (
     DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS,
-    DEFAULT_LINE_WIDTH_WARNING_THRESHOLD
+    DEFAULT_LINE_WIDTH_WARNING_THRESHOLD,
+    user_plugin_dir,
 )
 from core.translation.config import build_default_translation_config, merge_translation_config
 
@@ -136,7 +138,7 @@ class PluginSettings:
             self.mw.default_tag_mappings.update(combined_data.get("default_tag_mappings", {}))
             
             try:
-                self.mw.string_metadata = {eval(k): v for k, v in combined_data.get("string_metadata", {}).items()}
+                self.mw.string_metadata = {ast.literal_eval(k): v for k, v in combined_data.get("string_metadata", {}).items()}
             except Exception as e:
                 log_error(f"Error deserializing string_metadata keys: {e}. Metadata will be empty.", exc_info=True)
                 self.mw.string_metadata = {}
@@ -244,8 +246,8 @@ class PluginSettings:
         """Saves current settings to project_settings.json inside the project directory."""
         # Save custom aliases to aliases.json of the active plugin
         plugin_name = getattr(self.mw, 'active_game_plugin', None)
-        if plugin_name:
-            aliases_path = Path("plugins") / plugin_name / "aliases.json"
+        if isinstance(plugin_name, str) and plugin_name:
+            aliases_path = user_plugin_dir(plugin_name) / "aliases.json"
             try:
                 aliases_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(aliases_path, 'w', encoding='utf-8') as f:
