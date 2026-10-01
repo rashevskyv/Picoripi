@@ -54,6 +54,6 @@ graphify-out/
 .tmp_test_run/
 pytest-of-Administrator/
 
-# Scratch files in .grok
-/.grok/*
-!/.grok/skills/
+# Local agent scratch (skills live in .agents/skills)
+/.grok/
+.tmp_audit/

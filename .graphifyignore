@@ -1,0 +1,12 @@
+# Keep the knowledge graph about product code only (gitignore syntax).
+tests/
+gemini/
+.grok/
+.tmp_audit/
+.tmp_test_run/
+docs/history/
+graphify-out/
+locales/
+translation_prompts/glossary.json
+*.md
+!docs/ARCHITECTURE.md

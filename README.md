@@ -1,4 +1,4 @@
-# Picoripi v0.3.141-dev
+# Picoripi v0.3.142-dev
 
 **Picoripi** is a visual translation and localization workbench (Python, **PyQt6**) for texts with strict length and layout constraints. It started as a Nintendo-format editor (BMG, BFN, U8/RARC) and stays general enough for any structured translation project.
 
@@ -426,24 +426,14 @@ $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto -m performanc
 ### 6. Codebase Knowledge Graph (Graphify)
 Picoripi supports **Graphify** (`graphifyy`), an AST-based semantic knowledge graph builder. This generates an interactive structural graph and analysis of the codebase, which AI coding assistants can query to understand relationships, modules, and workflows without reading raw files.
 
-To generate/update the knowledge graph:
-1. Ensure dependencies are installed:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Initialize the platform skill (e.g. for Claude Code, Gemini CLI, etc.):
-   ```bash
-   .\.venv\Scripts\graphify.exe install
-   ```
-3. Run the extraction and clustering process from `.venv`:
-   ```bash
-   # Extract AST and build semantic graph (requires OpenAI/Gemini API key)
-   $env:OPENAI_API_KEY="your-api-key"; .\.venv\Scripts\graphify.exe extract . --backend openai
+To update the knowledge graph after code changes (AST-only, no API key, no cost):
+```bash
+graphify update .
+```
+`.graphifyignore` keeps tests, locales, archives and markdown out of the graph. How agents query it is defined
+once, in `.agents/rules/graphify.md`.
 
-   # Perform clustering and generate interactive visualization & markdown reports
-   $env:OPENAI_API_KEY="your-api-key"; $env:GRAPHIFY_VIZ_NODE_LIMIT=10000; .\.venv\Scripts\graphify.exe cluster-only . --backend openai
-   ```
-4. Zipped output and files are written to `graphify-out/`:
+Output is written to `graphify-out/`:
    - `graph.html`: Interactive, searchable 2D network diagram.
    - `GRAPH_REPORT.md`: Architectural summary, structural anomalies, and recommended walkthrough questions.
    - `graph.json`: Serialized knowledge graph dataset.

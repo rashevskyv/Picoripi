@@ -11,13 +11,13 @@ def bump():
     with open(CONSTANTS_PATH, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    match = re.search(r'APP_VERSION = "(\d+)\.(\d+)\.(\d+)"', content)
+    match = re.search(r'APP_VERSION = "(\d+)\.(\d+)\.(\d+)(-dev)?"', content)
     if not match:
         print("Error: Could not parse APP_VERSION in utils/constants.py")
         return
 
-    major, minor, patch = match.groups()
-    new_version = f"{major}.{minor}.{int(patch) + 1}"
+    major, minor, patch, suffix = match.groups()
+    new_version = f"{major}.{minor}.{int(patch) + 1}{suffix or ''}"
     
     new_content = re.sub(r'APP_VERSION = "[^"]+"', f'APP_VERSION = "{new_version}"', content)
     

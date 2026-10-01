@@ -13,8 +13,8 @@ def test_SessionStateManager_load_save(tmp_path):
     ssm2 = SessionStateManager(f)
     assert ssm2.get_state_for_file("test")["key"] == "value"
     
-def test_SessionStateManager_cleanup():
-    ssm = SessionStateManager("dummy.json")
+def test_SessionStateManager_cleanup(tmp_path):
+    ssm = SessionStateManager(tmp_path / "dummy.json")
     for i in range(60):
         ssm.set_state_for_file(f"f_{i}", {"k": "v"})
     ssm.cleanup_old_states(50) # It's a pass/nop in code currently

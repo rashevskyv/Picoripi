@@ -1,6 +1,6 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [Unreleased]
+## [0.3.142-dev] - 2026-10-01
 
 - wp0 0.1: `.gitattributes` (LF everywhere, CRLF for .bat/.ps1, binaries marked); BOM stripped from 52 .py files.
 - wp0 0.2: pinned `PyQt6-Qt6==6.6.1`, `PyQt6-sip`, dev tools; `requires-python = ">=3.10"`.
@@ -8,6 +8,9 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - wp0 0.4: test hygiene — Windows-only tests skipped elsewhere, delegate paint test uses `initStyleOption`, `fastapi` importorskip, ruff test runs from repo root without `gemini/`, autouse fixture keeps settings/`app_debug.txt`/`ai_traffic.log` out of `~/.picoripi` and the repo; glossary dialog no longer defaults to a CWD-relative `settings.json`.
 - wp0 0.6: `AGENTS.md` is the single agent entry (rules, commands, checklist); `CLAUDE.md` and `GEMINI.md` are stubs; duplicate `.agents/workflows/` removed (release-notes rules merged into the deploy skill).
 - wp0 0.7: process logs archived under `docs/history/` (changelog split by month, old walkthrough/plan/task/audit, refactor specs); root `plan.md`/`task.md`/`walkthrough.md` hold the current iteration only; `docs/OPEN_ITEMS.md` added; `scripts/deploy.py` rolls the walkthrough into the archive on release.
+- wp0 0.5: xdist crash roots fixed (deferred callbacks bound to their widgets, stable occurrence keys, QAction ownership, highlighter editor reference, DeferredDelete flush in conftest); UI/tools lanes pass 5 consecutive `-n 2` runs.
+- wp0 0.8: `.graphifyignore` keeps tests, locales, archives and markdown out of the graph (15.9k → 9.5k nodes); README documents the free `graphify update .` path only.
+- wp0 0.9: `dummy.json` and `.grok/skills` untracked (the session-state test now writes to `tmp_path`); `scripts/bump_version.py` keeps the `-dev` suffix.
 
 ## [0.3.141-dev] - 2026-09-29
 
