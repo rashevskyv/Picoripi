@@ -1,4 +1,4 @@
-﻿import re
+import re
 from utils.utils import remove_all_tags, convert_dots_to_spaces_from_editor, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
 
 SENTENCE_END_PUNCTUATION_PATTERN = re.compile(r'[.,!?](?:["\']|")?$')

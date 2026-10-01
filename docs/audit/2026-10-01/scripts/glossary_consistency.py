@@ -1,5 +1,5 @@
 """Empirical consistency check of translation_prompts/glossary.json (no Qt)."""
-import json, re, sys, unicodedata, collections, itertools
+import json, re, sys, unicodedata, collections
 from difflib import SequenceMatcher
 
 PATH = sys.argv[1] if len(sys.argv) > 1 else "/home/claude/pico/translation_prompts/glossary.json"

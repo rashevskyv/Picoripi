@@ -1,4 +1,4 @@
-﻿"""
+"""
 Yaz0 compression and decompression for Nintendo archive formats.
 
 Yaz0 is a run-length/back-reference compression scheme used extensively

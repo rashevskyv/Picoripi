@@ -1,4 +1,4 @@
-﻿from enum import Enum, auto
+from enum import Enum, auto
 from typing import Set, ContextManager
 from contextlib import contextmanager
 

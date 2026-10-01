@@ -4,7 +4,7 @@ Tick boxes as you go. Details for every id are in `PLAN.md`; evidence in the `A_
 Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite is green.
 
 ## WP0 — Foundation and hygiene
-- [ ] 0.1 `.gitattributes` + renormalize commit + strip 51 BOMs
+- [x] 0.1 `.gitattributes` + renormalize commit + strip 51 BOMs
 - [ ] 0.2 pin `PyQt6-Qt6`, `PyQt6-sip`, dev tools; `requires-python`
 - [ ] 0.3 stop writing into `plugins/` (aliases, materialised prompts); `literal_eval`; delete MagicMock/test_plugin
 - [ ] 0.4 test hygiene: skipif, delegate paint test, importorskip/asset skips, ruff cwd, tmp_path for settings/logs

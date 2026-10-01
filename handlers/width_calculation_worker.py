@@ -1,4 +1,4 @@
-﻿# handlers/width_calculation_worker.py
+# handlers/width_calculation_worker.py
 from PyQt6.QtCore import QThread, pyqtSignal
 from typing import List, Dict, Any, Optional
 from utils.utils import calculate_string_width, remove_all_tags

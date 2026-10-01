@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QWidget, QToolTip
+from PyQt6.QtWidgets import QWidget, QToolTip
 from PyQt6.QtGui import QColor, QMouseEvent
 from PyQt6.QtCore import Qt, QSize
 

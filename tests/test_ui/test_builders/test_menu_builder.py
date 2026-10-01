@@ -1,4 +1,4 @@
-﻿"""Tests for MenuBuilder verifying menu items, tooltips, and actions."""
+"""Tests for MenuBuilder verifying menu items, tooltips, and actions."""
 import pytest
 from PyQt6.QtWidgets import QMainWindow, QMenu
 from ui.builders.menu_builder import MenuBuilder

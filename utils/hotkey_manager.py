@@ -1,4 +1,4 @@
-﻿"""
+"""
 Windows-level global hotkey manager.
 
 Used to intercept key combinations that are grabbed by the OS before Qt can

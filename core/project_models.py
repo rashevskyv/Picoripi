@@ -1,4 +1,4 @@
-﻿# core/project_models.py
+# core/project_models.py
 """
 Data models for the project-oriented paradigm:
 - Project: Top-level container holding all project data

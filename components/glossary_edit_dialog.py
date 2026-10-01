@@ -1,4 +1,4 @@
-﻿# components/glossary_edit_dialog.py
+# components/glossary_edit_dialog.py
 """
 Dialog for editing a single glossary entry (term → translation + notes).
 Supports optional AI Fill and AI Notes Variation actions.

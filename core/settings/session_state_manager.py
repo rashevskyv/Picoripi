@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 from typing import Dict, Any, Union
 from utils.logging_utils import log_error

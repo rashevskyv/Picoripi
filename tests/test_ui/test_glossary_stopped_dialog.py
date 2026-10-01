@@ -1,4 +1,4 @@
-﻿"""Tests for GlossaryStoppedDialog with auto-retry countdown timer and sleep prevention."""
+"""Tests for GlossaryStoppedDialog with auto-retry countdown timer and sleep prevention."""
 from ui.glossary_stopped_dialog import GlossaryStoppedDialog, remaining_work
 
 

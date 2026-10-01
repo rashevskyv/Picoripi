@@ -4,7 +4,7 @@ Runs AIPromptComposer against a fake main window (no MemPalace DB, no plugin
 flow data, 12 glossary entries, a 40-string block). Sizes are chars; tokens
 estimated at ~4 chars/token for English and ~2.5 chars/token for Cyrillic.
 """
-import os, sys, json, re, types
+import os, sys, json, re
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, "/home/claude/pico")
 

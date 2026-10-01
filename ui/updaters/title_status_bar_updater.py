@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 from utils.constants import APP_VERSION
 from utils.utils import calculate_string_width, convert_dots_to_spaces_from_editor, remove_all_tags
 from .base_ui_updater import BaseUIUpdater

@@ -1,4 +1,4 @@
-﻿"""Force-alias utilities for AI translation.
+"""Force-alias utilities for AI translation.
 
 A 'Force alias' is a tag alias whose display name starts with ``F:`` or ``f:``.
 When text is prepared for AI translation:

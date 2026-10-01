@@ -1,4 +1,4 @@
-﻿"""Reusable prompt editor dialog for AI requests."""
+"""Reusable prompt editor dialog for AI requests."""
 from __future__ import annotations
 from typing import Tuple
 

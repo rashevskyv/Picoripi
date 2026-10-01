@@ -1,4 +1,4 @@
-﻿"""
+"""
 U8 archive container for Nintendo GameCube/Wii games.
 
 U8 is a flat-list archive format (magic 0x55AA382D, "U.8-") commonly used

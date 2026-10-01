@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QStatusBar, QLabel
+from PyQt6.QtWidgets import QStatusBar, QLabel
 from PyQt6.QtGui import QFont, QFontMetrics
 from core.i18n import tr
 

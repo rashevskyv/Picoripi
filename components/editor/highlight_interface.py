@@ -1,4 +1,4 @@
-﻿from PyQt6.QtGui import QTextBlock
+from PyQt6.QtGui import QTextBlock
 from typing import Optional
 
 class LNETHighlightInterface:

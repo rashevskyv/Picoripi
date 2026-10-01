@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import Set, List, Tuple
 from plugins.common.tag_manager import GenericTagManager
 

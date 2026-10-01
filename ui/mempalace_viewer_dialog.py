@@ -1,4 +1,4 @@
-﻿import os
+import os
 from PyQt6.QtWidgets import (
     QDialog, QAbstractItemView, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTextEdit, 
     QMessageBox, QTabWidget, QWidget, QListWidget,

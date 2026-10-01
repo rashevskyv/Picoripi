@@ -1,4 +1,4 @@
-﻿class LNETHighlightWrappers:
+class LNETHighlightWrappers:
     """L n e t highlight wrappers implementation."""
     def __init__(self, editor):
         """Initialize a new instance."""

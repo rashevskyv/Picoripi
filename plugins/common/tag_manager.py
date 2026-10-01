@@ -1,4 +1,4 @@
-﻿import re
+import re
 from typing import List, Set, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 

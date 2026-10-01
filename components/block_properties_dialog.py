@@ -1,4 +1,4 @@
-﻿# components/block_properties_dialog.py
+# components/block_properties_dialog.py
 import os
 from pathlib import Path
 from PyQt6.QtWidgets import (

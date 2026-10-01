@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 import time
 import threading
 from collections import deque

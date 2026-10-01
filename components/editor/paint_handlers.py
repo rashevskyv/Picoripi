@@ -1,4 +1,4 @@
-﻿from PyQt6.QtGui import QPainter, QPaintEvent
+from PyQt6.QtGui import QPainter, QPaintEvent
 from utils.utils import calculate_string_width
 
 class LNETPaintHandlers:

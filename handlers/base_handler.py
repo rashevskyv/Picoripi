@@ -1,4 +1,4 @@
-﻿# handlers/base_handler.py
+# handlers/base_handler.py
 from __future__ import annotations
 from typing import TYPE_CHECKING
 

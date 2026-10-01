@@ -1,5 +1,9 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [Unreleased]
+
+- wp0 0.1: `.gitattributes` (LF everywhere, CRLF for .bat/.ps1, binaries marked); BOM stripped from 52 .py files.
+
 ## [0.3.141-dev] - 2026-09-29
 
 ### 🚀 Added & Architectural Changes

@@ -1,4 +1,4 @@
-﻿class BaseTranslationHandler:
+class BaseTranslationHandler:
     """Handler for base translation operations."""
     def __init__(self, main_handler):
         """Initialize a new instance."""

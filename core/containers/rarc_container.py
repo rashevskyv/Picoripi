@@ -1,4 +1,4 @@
-﻿"""
+"""
 RARC (Resource ARChive) container for Nintendo GameCube/Wii games.
 
 Supports reading and writing RARC archives in-memory, including archives

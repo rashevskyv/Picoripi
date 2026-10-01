@@ -1,4 +1,4 @@
-﻿"""Dialog shown when the glossary build pipeline is stopped by AI failure.
+"""Dialog shown when the glossary build pipeline is stopped by AI failure.
 
 Displays the current progress, saved status on disk, and provides a countdown
 timer that automatically retries resuming after a progressive delay (5m -> 10m).

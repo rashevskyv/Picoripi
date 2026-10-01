@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 from PyQt6.QtCore import QTimer
 from utils.logging_utils import log_debug, log_info, log_error

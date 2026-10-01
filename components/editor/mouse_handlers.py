@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import QApplication, QMainWindow, QStyle
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStyle
 from PyQt6.QtGui import QTextCursor, QMouseEvent
 from PyQt6.QtCore import Qt, QPoint
 import re
