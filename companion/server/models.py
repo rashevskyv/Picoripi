@@ -50,6 +50,7 @@ class GlossaryEntryUpdate(BaseModel):
     user_notes: Optional[str] = None
     notes: Optional[str] = None
     section: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
 class GlossaryListResponse(BaseModel):

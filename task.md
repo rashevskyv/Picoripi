@@ -456,3 +456,32 @@
   - Створення Git-тегу `v0.3.137` та публікація релізу на GitHub без бінарників.
   - Перехід до наступного циклу розробки `0.3.138-dev`.
 
+- [x] 63. Виправлення сплющення та відновлення пропорційного розгортання секцій у GlossaryDialog:
+  - Усунено сплющення секцій опису, нотаток ШІ та входжень до мікроскопічних щілин: встановлено `setChildrenCollapsible(False)` для `_lower_detail_splitter` та `setMinimumHeight(60)` для контейнера деталей.
+  - Реалізовано збереження булевого стану згортання (`notes_collapsed`, `ai_notes_collapsed`, `occurrences_collapsed`) у `settings.json` поряд із розмірами спліттера.
+  - Додано автоматичну зворотну сумісність та міграцію сплющених станів зі старих налаштувань (визначення `collapsed=True` при розмірі `<= 34px` та виправлення пропорцій спліттера).
+  - Створено механізм динамічного балансування висоти (`_rebalance_lower_splitter`): при розгортанні секція гарантовано отримує читабельний розмір (від 90–140px), а за потреби запозичує простір у надмірно розтягнутого блоку варіантів перекладу.
+  - Додано підказки та курсор-руку (`PointingHandCursor`) для кнопок `[▼]/[▶]`, локалізовано рядки в `locales/en.json` та `locales/uk.json`.
+  - Покрито модульними тестами у `tests/test_components/test_glossary_review_ui.py` (`TestCollapsibleDetailPanes`), усунено колізію `settings.json` у тестах.
+  - Піднято версію програми до `0.3.139-dev`.
+
+- [x] 64. Розумна двостороння синхронізація глосарію за ДІФом та вікно синхронізації при відкритті:
+  - Реалізовано відстеження часових міток (`updated_at` в ISO 8601 UTC) для кожного терміна в `GlossaryEntry` (`core/glossary/models.py`), їх серіалізацію у словники (`core/glossary/notes.py`), парсинг із файлів (`core/glossary/parse_mixin.py`) та автоматичне оновлення при створенні/редагуванні термінів (`core/glossary/mutation_mixin.py`).
+  - Підтримано збереження та передачу `updated_at` на стороні сервера й моделей Companion (`companion/server/storage.py`, `companion/server/models.py`).
+  - Створено механізм порівняння та розумного злиття глосаріїв у `core/companion_sync.py` (`merge_glossaries`, `apply_conflict_resolutions`, `entries_differ`): аналіз різниці полів, автоматичне застосування новіших локальних чи віддалених змін і формування записів про конфлікти при одночасному редагуванні з різними значеннями.
+  - Створено модальне вікно синхронізації `CompanionSyncDialog` (`components/companion/sync_dialog.py`): сучасний інтерфейс з анімованим індикатором перебігу, поетапними статусами («Connecting to Companion server…», «Analyzing local and remote changes…», «Uploading local changes to server…»), автоматичним плавним закриттям при успіху та кнопками «Skip & Work Offline» і «Retry».
+  - Створено інтерактивне вікно вирішення конфліктів `CompanionConflictDialog` (`components/companion/conflict_dialog.py`): порівняння полів термінів PC vs Companion бік-о-бік з можливістю індивідуального вибору варіантів та кнопками масового вибору («Keep All Local» / «Keep All Remote»).
+  - Інтегровано відкриття `CompanionSyncDialog` при виклику вікна глосарію (`show_glossary_dialog` у `handlers/translation/glossary/dialog_mixin.py`) за умови налаштованого сервера Companion та увімкненого автосинку; додано пункт «🔄 Smart Sync with Companion...» у меню кнопки `[☁ Companion Sync...]` (`components/glossary/actions_mixin.py`).
+  - Оновлено фонову синхронізацію при запуску додатка та завантаженні проєктів (`smart_sync_in_background`), замінивши односторонній деструктивний pull на безпечне злиття зі збереженням локальних правок.
+  - Локалізовано всі повідомлення та інтерфейсні рядки англійською та українською мовами (`locales/en.json`, `locales/uk.json`).
+  - Розширено модульні тести в `tests/test_companion/test_companion_sync_client.py` перевірками парсингу таймстемпів, виявлення змін полів, комбінованого злиття, роботи воркерів та діалогів.
+  - Піднято версію програми до `0.3.140-dev`.
+
+- [x] 65. Розумна синхронізація глосарію при закриванні програми та закритті проєкту:
+  - Реалізовано режим завершення роботи `is_closing=True` у `CompanionSyncDialog` (`components/companion/sync_dialog.py`): заголовок «Closing Picoripi — Synchronizing Glossary…», статус «Synchronizing local glossary changes with Companion server before exit…», прискорене автоматичне закриття (800мс), кнопки швидкого пропуску «Skip & Close» та «Close Anyway» у разі недоступності сервера.
+  - Оновлено `sync_push_on_close` у `core/companion_sync.py`: виконання розумного злиття через `sync_project`, примусове збереження `save_to_disk()` незбережених правок глосарію з пам'яті на диск, відображення діалогу синхронізації при закритті додатку (`handle_close_event` у `handlers/app_action_handler.py`) та закритті проєкту (`close_project_action` у `handlers/project_action/lifecycle_mixin.py`).
+  - Виправлено `commit_merge` та `push_project`: тепер об'єднаний набір `merged_entries` передається безпосередньо у запит push, гарантуючи негайне вивантаження всіх локальних правок користувача до хмари без ризику зчитування старих даних із диска.
+  - Переведено завершення діалогу глосарію (`closeEvent`/`reject` у `components/glossary/actions_mixin.py`) на неблокуючий розумний фоновий синк `smart_sync_in_background`.
+  - Додано двомовну локалізацію нових інтерфейсних елементів у `locales/en.json` та `locales/uk.json`.
+  - Додано модульні тести `test_companion_sync_dialog_is_closing_mode` та `test_sync_push_on_close_executes_smart_sync` у `tests/test_companion/test_companion_sync_client.py`.
+  - Піднято версію програми до `0.3.141-dev`.

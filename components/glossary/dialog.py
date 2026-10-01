@@ -99,6 +99,9 @@ class GlossaryDialog(
         self._current_entry: Optional[GlossaryEntry] = None
         self._suppress_editor_signals = False
         self._editor_dirty = False
+        self._notes_collapsed = False
+        self._ai_notes_collapsed = False
+        self._occurrences_collapsed = False
         # Notes as stored (may hold the term placeholder); the editor shows them
         # rendered against the current translation.
         self._notes_template = ""
@@ -363,6 +366,8 @@ class GlossaryDialog(
         self._set_variants_visible(False)
 
         lower_details_pane = _DetailPane(self)
+        self._lower_details_pane = lower_details_pane
+        self._lower_details_pane.setMinimumHeight(60)
         lower_details_layout = QVBoxLayout(lower_details_pane)
         lower_details_layout.setContentsMargins(0, 0, 0, 0)
         variants_btn_layout = QHBoxLayout()
@@ -377,10 +382,12 @@ class GlossaryDialog(
 
         self._lower_detail_splitter = QSplitter(Qt.Orientation.Vertical, lower_details_pane)
         self._lower_detail_splitter.setHandleWidth(6)
+        self._lower_detail_splitter.setChildrenCollapsible(False)
         lower_details_layout.addWidget(self._lower_detail_splitter, 1)
         self._detail_splitter.addWidget(lower_details_pane)
 
         notes_pane = _DetailPane(self)
+        self._notes_pane = notes_pane
         notes_layout = QVBoxLayout(notes_pane)
         notes_layout.setContentsMargins(0, 0, 0, 0)
         notes_layout.setSpacing(2)
@@ -390,6 +397,7 @@ class GlossaryDialog(
         notes_header.setSpacing(6)
         self._notes_collapse_button = QPushButton("▼", self)
         self._notes_collapse_button.setFixedSize(22, 22)
+        self._notes_collapse_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._notes_collapse_button.setStyleSheet("QPushButton { font-size: 10px; font-weight: bold; padding: 0px; }")
         self._notes_collapse_button.setToolTip(tr("Collapse/Expand section"))
         notes_header.addWidget(self._notes_collapse_button)
@@ -419,19 +427,12 @@ class GlossaryDialog(
         self._notes_edit = QPlainTextEdit(self)
         notes_layout.addWidget(self._notes_edit, 1)
 
-        def _toggle_notes():
-            collapsed = not self._notes_edit.isHidden()
-            self._notes_edit.setHidden(collapsed)
-            self._notes_collapse_button.setText("▶" if collapsed else "▼")
-            if collapsed:
-                notes_pane.setMaximumHeight(34)
-            else:
-                notes_pane.setMaximumHeight(16777215)
-        self._notes_collapse_button.clicked.connect(_toggle_notes)
+        self._notes_collapse_button.clicked.connect(self._toggle_notes)
 
         self._lower_detail_splitter.addWidget(notes_pane)
 
         ai_notes_pane = _DetailPane(self)
+        self._ai_notes_pane = ai_notes_pane
         ai_notes_layout = QVBoxLayout(ai_notes_pane)
         ai_notes_layout.setContentsMargins(0, 0, 0, 0)
         ai_notes_layout.setSpacing(2)
@@ -441,8 +442,10 @@ class GlossaryDialog(
         ai_notes_header.setSpacing(6)
         self._ai_notes_collapse_button = QPushButton("▼", self)
         self._ai_notes_collapse_button.setFixedSize(22, 22)
+        self._ai_notes_collapse_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._ai_notes_collapse_button.setToolTip(tr("Collapse section"))
         self._ai_notes_collapse_button.setStyleSheet("QPushButton { font-size: 10px; font-weight: bold; padding: 0px; }")
-        self._ai_notes_collapse_button.setToolTip(tr("Collapse/Expand section"))
+
         ai_notes_header.addWidget(self._ai_notes_collapse_button)
 
         ai_notes_label = QLabel(tr('AI notes and unresolved choices:'), self)
@@ -458,19 +461,12 @@ class GlossaryDialog(
         self._ai_notes_edit.setPlaceholderText(tr('Enter user notes or view AI remarks...'))
         ai_notes_layout.addWidget(self._ai_notes_edit, 1)
 
-        def _toggle_ai_notes():
-            collapsed = not self._ai_notes_edit.isHidden()
-            self._ai_notes_edit.setHidden(collapsed)
-            self._ai_notes_collapse_button.setText("▶" if collapsed else "▼")
-            if collapsed:
-                ai_notes_pane.setMaximumHeight(34)
-            else:
-                ai_notes_pane.setMaximumHeight(16777215)
-        self._ai_notes_collapse_button.clicked.connect(_toggle_ai_notes)
+        self._ai_notes_collapse_button.clicked.connect(self._toggle_ai_notes)
 
         self._lower_detail_splitter.addWidget(ai_notes_pane)
 
         occurrences_pane = _DetailPane(self)
+        self._occurrences_pane = occurrences_pane
         occurrences_layout = QVBoxLayout(occurrences_pane)
         occurrences_layout.setContentsMargins(0, 0, 0, 0)
         occurrences_layout.setSpacing(2)
@@ -480,8 +476,10 @@ class GlossaryDialog(
         occ_header.setSpacing(6)
         self._occ_collapse_button = QPushButton("▼", self)
         self._occ_collapse_button.setFixedSize(22, 22)
+        self._occ_collapse_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._occ_collapse_button.setToolTip(tr("Collapse section"))
         self._occ_collapse_button.setStyleSheet("QPushButton { font-size: 10px; font-weight: bold; padding: 0px; }")
-        self._occ_collapse_button.setToolTip(tr("Collapse/Expand section"))
+
         occ_header.addWidget(self._occ_collapse_button)
 
         occ_title = QLabel(tr('Occurrences:'), self)
@@ -515,15 +513,7 @@ class GlossaryDialog(
         self._occurrence_list.itemDoubleClicked.connect(self._activate_selected_occurrence)
         occurrences_layout.addWidget(self._occurrence_list, 1)
 
-        def _toggle_occ():
-            collapsed = not self._occurrence_list.isHidden()
-            self._occurrence_list.setHidden(collapsed)
-            self._occ_collapse_button.setText("▶" if collapsed else "▼")
-            if collapsed:
-                occurrences_pane.setMaximumHeight(34)
-            else:
-                occurrences_pane.setMaximumHeight(16777215)
-        self._occ_collapse_button.clicked.connect(_toggle_occ)
+        self._occ_collapse_button.clicked.connect(self._toggle_occ)
 
         self._lower_detail_splitter.addWidget(occurrences_pane)
         self._detail_splitter.setStretchFactor(0, 1)
@@ -614,3 +604,124 @@ class GlossaryDialog(
         elif self._filtered_entries:
             self._active_table().selectRow(0)
             self._show_entry_for_row(0)
+
+    def _set_section_collapsed(self, section_name: str, collapsed: bool, update_splitter: bool = True) -> None:
+        """Collapse or expand a detail section cleanly, updating splitter sizes."""
+        section_map = {
+            "notes": {
+                "attr": "_notes_collapsed",
+                "pane": getattr(self, "_notes_pane", None),
+                "content": getattr(self, "_notes_edit", None),
+                "button": getattr(self, "_notes_collapse_button", None),
+                "idx": 0,
+            },
+            "ai_notes": {
+                "attr": "_ai_notes_collapsed",
+                "pane": getattr(self, "_ai_notes_pane", None),
+                "content": getattr(self, "_ai_notes_edit", None),
+                "button": getattr(self, "_ai_notes_collapse_button", None),
+                "idx": 1,
+            },
+            "occurrences": {
+                "attr": "_occurrences_collapsed",
+                "pane": getattr(self, "_occurrences_pane", None),
+                "content": getattr(self, "_occurrence_list", None),
+                "button": getattr(self, "_occ_collapse_button", None),
+                "idx": 2,
+            },
+        }
+        info = section_map.get(section_name)
+        if not info or info["pane"] is None or info["content"] is None or info["button"] is None:
+            return
+
+        setattr(self, info["attr"], collapsed)
+        info["button"].setText("▶" if collapsed else "▼")
+        info["button"].setToolTip(tr("Expand section") if collapsed else tr("Collapse section"))
+
+        pane = info["pane"]
+        content = info["content"]
+        idx = info["idx"]
+
+        if collapsed:
+            content.setHidden(True)
+            content.setMinimumHeight(0)
+            pane.setMinimumHeight(0)
+            pane.setMaximumHeight(32)
+        else:
+            content.setHidden(False)
+            content.setMinimumHeight(50)
+            pane.setMaximumHeight(16777215)
+            pane.setMinimumHeight(80)
+
+        if update_splitter and hasattr(self, "_lower_detail_splitter"):
+            self._rebalance_lower_splitter(focus_idx=idx, just_expanded=not collapsed)
+
+    def _rebalance_lower_splitter(self, focus_idx: int = -1, just_expanded: bool = False) -> None:
+        """Rebalance splitter sizes across lower detail panes without squishing."""
+        if not hasattr(self, "_lower_detail_splitter"):
+            return
+        sizes = list(self._lower_detail_splitter.sizes())
+        if len(sizes) != 3:
+            return
+
+        total_h = sum(sizes)
+        if total_h <= 0:
+            total_h = self._lower_detail_splitter.height()
+        if total_h <= 0:
+            total_h = 450
+
+        # If expanding and available height in lower_splitter is too constrained,
+        # try to borrow space from _variants_pane in _detail_splitter if possible.
+        if just_expanded and hasattr(self, "_detail_splitter"):
+            ds = self._detail_splitter.sizes()
+            if len(ds) == 2 and ds[0] > 160 and ds[1] < 280:
+                needed = 280 - ds[1]
+                can_take = ds[0] - 120
+                shift = max(0, min(needed, can_take))
+                if shift > 0:
+                    self._detail_splitter.setSizes([ds[0] - shift, ds[1] + shift])
+                    total_h = sum(self._lower_detail_splitter.sizes())
+                    if total_h <= 0:
+                        total_h = 450
+
+        collapsed = [
+            bool(getattr(self, "_notes_collapsed", False)),
+            bool(getattr(self, "_ai_notes_collapsed", False)),
+            bool(getattr(self, "_occurrences_collapsed", False)),
+        ]
+        num_expanded = 3 - sum(collapsed)
+
+        if num_expanded == 0:
+            self._lower_detail_splitter.setSizes([32, 32, 32])
+            return
+
+        # Target minimum height for expanded sections: at least 90px
+        collapsed_cost = sum(32 for c in collapsed if c)
+        available_expanded = max(90 * num_expanded, total_h - collapsed_cost)
+
+        new_sizes = [32, 32, 32]
+        if num_expanded == 1:
+            for i in range(3):
+                if not collapsed[i]:
+                    new_sizes[i] = available_expanded
+        elif num_expanded == 2:
+            exp_indices = [i for i in range(3) if not collapsed[i]]
+            half = available_expanded // 2
+            new_sizes[exp_indices[0]] = half
+            new_sizes[exp_indices[1]] = available_expanded - half
+        else: # All 3 expanded
+            third = available_expanded // 3
+            new_sizes[0] = third
+            new_sizes[1] = third
+            new_sizes[2] = available_expanded - (2 * third)
+
+        self._lower_detail_splitter.setSizes(new_sizes)
+
+    def _toggle_notes(self) -> None:
+        self._set_section_collapsed("notes", not getattr(self, "_notes_collapsed", False))
+
+    def _toggle_ai_notes(self) -> None:
+        self._set_section_collapsed("ai_notes", not getattr(self, "_ai_notes_collapsed", False))
+
+    def _toggle_occ(self) -> None:
+        self._set_section_collapsed("occurrences", not getattr(self, "_occurrences_collapsed", False))

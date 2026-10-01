@@ -101,6 +101,11 @@ class StorageManager:
             except Exception:
                 pass
 
+        now_iso = datetime.now(timezone.utc).isoformat()
+        for entry in glossary:
+            if not entry.get("updated_at"):
+                entry["updated_at"] = now_iso
+
         # Write new glossary atomically
         tmp_glossary = pdir / "glossary.json.tmp"
         tmp_glossary.write_text(json.dumps(glossary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -203,6 +208,8 @@ class StorageManager:
             target_entry["notes"] = update.notes
         if update.section is not None:
             target_entry["section"] = update.section
+        now_iso = getattr(update, "updated_at", None) or datetime.now(timezone.utc).isoformat()
+        target_entry["updated_at"] = now_iso
 
         # Write back safely
         tmp_glossary = pdir / "glossary.json.tmp"

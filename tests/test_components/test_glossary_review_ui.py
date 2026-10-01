@@ -1,4 +1,6 @@
 """M2: surfacing translation variants and the review state in the glossary dialog."""
+import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
@@ -78,6 +80,7 @@ def _dialog(
         external_reference_callback=external_reference_callback,
         force_retranslate_callback=force_retranslate_callback,
     )
+    dialog._settings_path = Path(tempfile.gettempdir()) / f"picoripi_test_settings_{id(dialog)}.json"
     qtbot.addWidget(dialog)
     return dialog
 
@@ -1871,3 +1874,115 @@ class TestGlossaryCompanionSyncButton:
         assert hasattr(dialog, "_companion_sync_button")
         assert not dialog._companion_sync_button.isHidden()
         assert "Companion Sync" in dialog._companion_sync_button.text()
+
+
+class TestCollapsibleDetailPanes:
+    def test_children_collapsible_disabled_on_lower_splitter(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE])
+        assert dialog._lower_detail_splitter.childrenCollapsible() is False
+
+    def test_collapse_and_expand_rebalance_without_squishing(self, qtbot):
+        dialog = _dialog(qtbot, [SINGLE])
+        dialog.resize(950, 700)
+        dialog.show()
+        qtbot.waitExposed(dialog)
+
+        # Initially all three are expanded and have readable height
+        sizes = dialog._lower_detail_splitter.sizes()
+        assert len(sizes) == 3
+        assert all(s >= 80 for s in sizes)
+
+        # Collapse Description
+        dialog._notes_collapse_button.click()
+        assert dialog._notes_edit.isHidden()
+        assert dialog._notes_collapse_button.text() == "▶"
+        sizes_after_collapse = dialog._lower_detail_splitter.sizes()
+        assert sizes_after_collapse[0] <= 34
+        # The other two expanded panes should have received space
+        assert sizes_after_collapse[1] >= sizes[1]
+        assert sizes_after_collapse[2] >= sizes[2]
+
+        # Collapse Occurrences as well
+        dialog._occ_collapse_button.click()
+        assert dialog._occurrence_list.isHidden()
+        assert dialog._occ_collapse_button.text() == "▶"
+        sizes_two_col = dialog._lower_detail_splitter.sizes()
+        assert sizes_two_col[0] <= 34
+        assert sizes_two_col[2] <= 34
+        # AI notes (only expanded pane) should occupy the rest
+        assert sizes_two_col[1] > 200
+
+        # Now expand Occurrences back: it must NOT be stuck at 34px!
+        dialog._occ_collapse_button.click()
+        assert not dialog._occurrence_list.isHidden()
+        assert dialog._occ_collapse_button.text() == "▼"
+        sizes_reexpanded = dialog._lower_detail_splitter.sizes()
+        assert sizes_reexpanded[2] >= 90  # Readable height, not squished!
+
+        # Now expand Description back
+        dialog._notes_collapse_button.click()
+        assert not dialog._notes_edit.isHidden()
+        assert dialog._notes_collapse_button.text() == "▼"
+        sizes_all_expanded = dialog._lower_detail_splitter.sizes()
+        assert all(s >= 80 for s in sizes_all_expanded)
+
+    def test_collapsed_state_persistence_and_old_state_migration(self, qtbot, tmp_path):
+        import json
+        settings_file = tmp_path / "settings.json"
+        dialog = _dialog(qtbot, [SINGLE])
+        dialog.resize(950, 700)
+        dialog.show()
+        qtbot.waitExposed(dialog)
+        dialog._settings_path = settings_file
+
+        # Collapse AI notes and Occurrences
+        dialog._ai_notes_collapse_button.click()
+        dialog._occ_collapse_button.click()
+        assert dialog._notes_collapse_button.text() == "▼"
+        assert dialog._ai_notes_collapse_button.text() == "▶"
+        assert dialog._occ_collapse_button.text() == "▶"
+        dialog._save_dialog_state()
+
+        # Reopen with saved state
+        dialog2 = _dialog(qtbot, [SINGLE])
+        dialog2.resize(950, 700)
+        dialog2._settings_path = settings_file
+        dialog2._load_dialog_state()
+        dialog2.show()
+        qtbot.waitExposed(dialog2)
+
+        assert dialog2._notes_collapsed is False
+        assert dialog2._ai_notes_collapsed is True
+        assert dialog2._occurrences_collapsed is True
+        assert not dialog2._notes_edit.isHidden()
+        assert dialog2._ai_notes_edit.isHidden()
+        assert dialog2._occurrence_list.isHidden()
+        assert dialog2._notes_collapse_button.text() == "▼"
+        assert dialog2._ai_notes_collapse_button.text() == "▶"
+        assert dialog2._occ_collapse_button.text() == "▶"
+        s2 = dialog2._lower_detail_splitter.sizes()
+        assert s2[0] >= 100
+        assert s2[1] <= 34
+        assert s2[2] <= 34
+
+        # Test migration from old format where only sizes [242, 34, 34] were saved without flags
+        with open(settings_file, "w", encoding="utf-8") as f:
+            json.dump({
+                "glossary_dialog_state": {
+                    "lower_detail_splitter_sizes": [242, 34, 34]
+                }
+            }, f)
+
+        dialog3 = _dialog(qtbot, [SINGLE])
+        dialog3.resize(950, 700)
+        dialog3._settings_path = settings_file
+        dialog3._load_dialog_state()
+        dialog3.show()
+        qtbot.waitExposed(dialog3)
+
+        assert dialog3._notes_collapsed is False
+        assert dialog3._ai_notes_collapsed is True
+        assert dialog3._occurrences_collapsed is True
+        assert not dialog3._notes_edit.isHidden()
+        assert dialog3._ai_notes_edit.isHidden()
+        assert dialog3._occurrence_list.isHidden()

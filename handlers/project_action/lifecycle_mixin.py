@@ -164,10 +164,10 @@ class LifecycleMixin:
                     self.mw.bookmark_handler.update_bookmarks_menu()
                 log_info(f"Project '{project.name}' opened with {len(project.blocks)} blocks.")
                 try:
-                    from core.companion_sync import auto_pull_in_background
-                    auto_pull_in_background(self.mw)
+                    from core.companion_sync import smart_sync_in_background
+                    smart_sync_in_background(self.mw)
                 except Exception as exc:
-                    log_debug(f"Failed to auto-pull companion on open: {exc}")
+                    log_debug(f"Failed to auto-sync companion on open: {exc}")
 
             self._populate_blocks_from_project(on_completed=on_opened)
         else:

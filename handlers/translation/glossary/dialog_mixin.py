@@ -91,6 +91,35 @@ class DialogMixin:
             speaker_aliases=self._load_speaker_aliases(),
             speaker_pool=raw_pool,
         )
+
+        # Automatic smart synchronization with Companion if configured
+        if getattr(self.mw, "companion_auto_sync", True):
+            try:
+                from core.companion_sync import (
+                    get_companion_client_from_mw,
+                    resolve_project_glossary_info,
+                )
+                from components.companion.sync_dialog import CompanionSyncDialog
+
+                client = get_companion_client_from_mw(self.mw)
+                if client and client.is_configured:
+                    p_name, g_path, _ = resolve_project_glossary_info(self.mw)
+                    if p_name and g_path:
+                        sync_dlg = CompanionSyncDialog(
+                            parent=self.mw,
+                            client=client,
+                            project_name=p_name,
+                            glossary_path=g_path,
+                            entries=self.glossary_manager.get_entries(),
+                            occurrence_map=self.glossary_manager.get_occurrence_map(),
+                            reference_data=getattr(getattr(self.mw, "data_store", None), "reference_data", None),
+                        )
+                        sync_dlg.exec()
+                        if sync_dlg.terms_pulled > 0:
+                            self.glossary_manager.refresh_from_disk()
+            except Exception as exc:
+                log_debug(f"Glossary dialog companion auto-sync error: {exc}")
+
         # Prepare and run GlossaryOccurrenceWorker with QProgressDialog
         progress_dialog = QProgressDialog("Building glossary occurrence index...", "Cancel", 0, 100, self.mw)
         progress_dialog.setWindowTitle(tr('Please Wait'))

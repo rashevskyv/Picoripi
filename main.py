@@ -185,8 +185,8 @@ class MainWindow(QMainWindow):
         """Execute background auto-sync with Companion server if project is active."""
         try:
             if getattr(self, "companion_auto_sync", True):
-                from core.companion_sync import auto_pull_in_background
-                auto_pull_in_background(self)
+                from core.companion_sync import smart_sync_in_background
+                smart_sync_in_background(self)
         except Exception as exc:
             log_debug(f"MainWindow: Startup companion sync error: {exc}")
 

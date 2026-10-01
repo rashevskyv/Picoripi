@@ -1,6 +1,7 @@
 """CRUD, seed/suggest, session changes, and global replace for GlossaryManager."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 import re
@@ -66,6 +67,7 @@ class MutationMixin:
             section=section,
             profiled=profiled,
             user_notes=user_notes,
+            updated_at=datetime.now(timezone.utc).isoformat(),
         )
         if section and section not in self._section_order:
             self._section_order.append(section)
@@ -126,6 +128,7 @@ class MutationMixin:
                     suggested_name=entry.suggested_name,
                     suggested_name_evidence=entry.suggested_name_evidence,
                     user_notes=user_notes if user_notes is not None else entry.user_notes,
+                    updated_at=datetime.now(timezone.utc).isoformat(),
                 )
                 if section and section not in self._section_order:
                     self._section_order.append(section)
@@ -311,6 +314,7 @@ class MutationMixin:
             status=status,
             icon=(icon or "").strip(),
             provisional=provisional,
+            updated_at=datetime.now(timezone.utc).isoformat(),
         )
         self._session_changes[original_key] = new_entry
         self._entries = list(self._entries) + [new_entry]

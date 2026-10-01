@@ -1,4 +1,4 @@
-# Picoripi v0.3.138-dev
+# Picoripi v0.3.141-dev
 
 **Picoripi** is a visual translation and localization workbench (Python, **PyQt6**) for texts with strict length and layout constraints. It started as a Nintendo-format editor (BMG, BFN, U8/RARC) and stays general enough for any structured translation project.
 
@@ -222,9 +222,13 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
   - Installable as a native-feeling standalone app via "Add to Home Screen".
   - Features an ergonomic **"✓ Confirm & Next"** workflow to rapidly approve terms from your phone with automatic navigation to the next unreviewed entry, touch-optimized controls (44×38px touch targets, tap animations), a minimalist glowing status indicator dot, and streamlined project header.
   - Full fidelity: horizontal category tabs, live debounced search, "Needs review" filter, interactive candidate variant cards, dynamic lore description with real-time `{{TERM}}` substitution, editable user notes, and in-game dialogue occurrences with English quotes and reference translations.
-  - **Automatic Background Synchronization**: Automatically queries the Companion server on application startup and project open in a non-blocking background thread (`CompanionPullWorker`), hot-reloading in-memory glossaries and editor highlighting without lag. Automatically syncs changes on project save and close with debouncing protection.
+  - **Smart Bidirectional Synchronization**: Smart diff-based two-way sync comparing per-entry modification timestamps (`updated_at`). Automatically pulls newer reviewed terms from mobile Companion and pushes local edits/additions to the server with automatic backup creation (`.bak`).
+  - **Visual Synchronization Dialog**: When opening the glossary, launching sync from the toolbar/menu, or closing the application/project, displays a dedicated synchronization progress window (`CompanionSyncDialog`) showing live status ("Connecting to Companion server…", "Analyzing local and remote changes…", "Pushing local updates to Companion server…") with an animated progress bar and offline bypass ("Skip & Work Offline" / "Skip & Close").
+  - **Exit & Shutdown Synchronization**: Automatically synchronizes the glossary upon closing the application (`File -> Exit` or window close `X`), ensuring that all changes made on the local PC are immediately pushed to the Companion cloud with automatic shutdown completion.
+  - **Interactive Conflict Resolver**: In rare cases of simultaneous conflicting changes on the same term, opens `CompanionConflictDialog` allowing users to inspect local vs remote translations and notes side-by-side and choose individual or bulk ("Keep All Local" / "Keep All Remote") resolutions.
   - 1-click manual desktop synchronization via the **`[☁ Companion Sync...]`** button in `GlossaryDialog` with automatic backup protection (`.bak`).
   - Automated deployment on Ubuntu servers via Docker Compose (`docker compose up -d`) or native systemd service (`install_ubuntu.sh`). See [companion/README.md](companion/README.md).
+
 
 
 ---

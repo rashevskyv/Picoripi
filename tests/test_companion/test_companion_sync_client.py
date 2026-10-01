@@ -378,7 +378,7 @@ def test_main_window_startup_companion_sync(monkeypatch):
 
     called_with = []
     monkeypatch.setattr(
-        "core.companion_sync.auto_pull_in_background",
+        "core.companion_sync.smart_sync_in_background",
         lambda mw: called_with.append(mw),
     )
 
@@ -387,3 +387,314 @@ def test_main_window_startup_companion_sync(monkeypatch):
     MainWindow._do_startup_companion_sync(fake_mw)
 
     assert called_with == [fake_mw]
+
+
+def test_parse_timestamp():
+    from core.companion_sync import parse_timestamp
+
+    assert parse_timestamp("") == 0.0
+    assert parse_timestamp(None) == 0.0
+    assert parse_timestamp(12345.6) == 12345.6
+
+    ts1 = parse_timestamp("2026-09-29T12:00:00Z")
+    assert ts1 > 0
+
+    ts2 = parse_timestamp("2026-09-29T12:00:00+00:00")
+    assert abs(ts1 - ts2) < 0.001
+
+
+def test_entries_differ():
+    from core.companion_sync import entries_differ
+
+    e1 = {"original": "Link", "translation": "Лінк", "status": "confirmed"}
+    e2 = {"original": "Link", "translation": "Лінк", "status": "confirmed"}
+    differs, fields = entries_differ(e1, e2)
+    assert not differs
+    assert fields == []
+
+    e3 = {"original": "Link", "translation": "Лінк (новий)", "status": "confirmed"}
+    differs, fields = entries_differ(e1, e3)
+    assert differs
+    assert "translation" in fields
+
+
+def test_merge_glossaries_clean_and_conflict():
+    from core.companion_sync import (
+        merge_glossaries,
+        apply_conflict_resolutions,
+    )
+
+    local_entries = [
+        {"original": "Link", "translation": "Лінк", "status": "confirmed", "updated_at": "2026-09-29T10:00:00Z"},
+        {"original": "Zelda", "translation": "Зельда", "status": "confirmed", "updated_at": "2026-09-29T12:00:00Z"},
+        {"original": "Epona", "translation": "Епона", "status": "confirmed", "updated_at": "2026-09-29T10:00:00Z"},
+        {"original": "Sword", "translation": "Меч", "status": "confirmed", "updated_at": "2026-09-29T12:00:00Z"},
+    ]
+
+    remote_entries = [
+        # Link: remote is newer
+        {"original": "Link", "translation": "Лінк Оновлений", "status": "confirmed", "updated_at": "2026-09-29T11:00:00Z"},
+        # Zelda: local is newer (remote is 11:00, local is 12:00)
+        {"original": "Zelda", "translation": "Зельда Стара", "status": "confirmed", "updated_at": "2026-09-29T11:00:00Z"},
+        # Epona: conflict (same timestamp, different translations)
+        {"original": "Epona", "translation": "Конячка", "status": "confirmed", "updated_at": "2026-09-29T10:00:00Z"},
+        # Shield: remote added
+        {"original": "Shield", "translation": "Щит", "status": "confirmed", "updated_at": "2026-09-29T10:00:00Z"},
+    ]
+
+    res = merge_glossaries(local_entries, remote_entries)
+    # Link -> remote (pulled)
+    # Zelda -> local (pushed)
+    # Sword -> local only (pushed)
+    # Shield -> remote only (pulled)
+    # Epona -> conflict!
+    assert len(res.conflicts) == 1
+    assert res.conflicts[0].original == "Epona"
+    assert "translation" in res.conflicts[0].differing_fields
+
+    # Resolve conflict: choose remote for Epona
+    resolved_res = apply_conflict_resolutions(res, {"Epona": "remote"})
+    assert len(resolved_res.conflicts) == 0
+
+    epona_entry = next(e for e in resolved_res.merged_entries if e["original"] == "Epona")
+    assert epona_entry["translation"] == "Конячка"
+
+
+def test_companion_sync_client_sync_project(tmp_path: Path):
+    from core.companion_sync import CompanionSyncClient
+
+    client = CompanionSyncClient("http://myserver:8000", "tok123")
+    glossary_file = tmp_path / "glossary.json"
+    glossary_file.write_text(
+        json.dumps([{"original": "Old", "translation": "Старий", "updated_at": "2026-09-29T10:00:00Z"}]),
+        encoding="utf-8",
+    )
+
+    remote_payload = {
+        "project_name": "Test",
+        "updated_at": "2026-09-29T12:00:00Z",
+        "glossary": [
+            {"original": "Old", "translation": "Новий Переклад", "updated_at": "2026-09-29T12:00:00Z"},
+            {"original": "AddedOnPhone", "translation": "З Телефона", "updated_at": "2026-09-29T12:00:00Z"},
+        ],
+    }
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = remote_payload
+
+    with patch("requests.get", return_value=mock_resp):
+        ok, msg, pulled, pushed, conflicts, merge_res = client.sync_project("Test", glossary_file)
+        assert ok is True
+        assert pulled == 2
+        assert len(conflicts) == 0
+
+        # Verify local file updated
+        disk_data = json.loads(glossary_file.read_text(encoding="utf-8"))
+        assert len(disk_data) == 2
+        assert disk_data[0]["translation"] == "Новий Переклад"
+        assert disk_data[1]["original"] == "AddedOnPhone"
+
+        # Verify backup was created
+        bak_file = tmp_path / "glossary.json.bak"
+        assert bak_file.exists()
+
+
+def test_companion_conflict_dialog_ui(qtbot):
+    from components.companion.conflict_dialog import CompanionConflictDialog
+    from core.companion_sync import ConflictRecord
+
+    conflicts = [
+        ConflictRecord(
+            original="Hero",
+            local_entry={"original": "Hero", "translation": "Герой (ПК)"},
+            remote_entry={"original": "Hero", "translation": "Лицар (Моб)"},
+            local_time="2026-09-29T10:00:00Z",
+            remote_time="2026-09-29T10:00:01Z",
+            differing_fields=["translation"],
+        )
+    ]
+
+    dlg = CompanionConflictDialog(conflicts)
+    qtbot.addWidget(dlg)
+
+    # By default local is selected
+    assert dlg.get_resolutions() == {"Hero": "local"}
+
+    # Click Keep All Remote
+    dlg._select_all_remote()
+    assert dlg.get_resolutions() == {"Hero": "remote"}
+
+
+def test_companion_sync_dialog_ui(tmp_path: Path, qtbot):
+    from components.companion.sync_dialog import CompanionSyncDialog
+    from core.companion_sync import CompanionSyncClient
+
+    client = CompanionSyncClient("http://myserver:8000", "token123")
+    g_file = tmp_path / "glossary.json"
+    g_file.write_text("[]", encoding="utf-8")
+
+    dlg = CompanionSyncDialog(
+        client=client,
+        project_name="TestProj",
+        glossary_path=g_file,
+        auto_close_ms=0,
+        auto_start=False,
+    )
+    qtbot.addWidget(dlg)
+
+    with patch.object(
+        client,
+        "sync_project",
+        return_value=(True, "Synchronized successfully: 2 pulled, 1 pushed.", 2, 1, [], None),
+    ):
+        dlg.start_sync()
+        qtbot.waitUntil(lambda: dlg.was_successful, timeout=3000)
+        assert dlg.terms_pulled == 2
+        assert dlg.terms_pushed == 1
+        assert "✓" in dlg._status_label.text()
+
+
+def test_smart_sync_in_background_lifecycle(tmp_path: Path, qtbot):
+    from core.companion_sync import smart_sync_in_background, CompanionSyncClient
+
+    g_file = tmp_path / "glossary.json"
+    g_file.write_text("[]", encoding="utf-8")
+
+    fake_mw = MagicMock()
+    fake_mw.settings_manager = None
+    fake_mw.companion_server_url = "http://myserver:8000"
+    fake_mw.companion_api_token = "token123"
+    fake_mw.companion_auto_sync = True
+    fake_mw.project_manager.project.name = "MyProject"
+    fake_mw.glossary_manager.glossary_path = g_file
+    fake_mw.glossary_manager.get_entries.return_value = []
+    fake_mw.glossary_manager.get_occurrence_map.return_value = {}
+
+    client = CompanionSyncClient("http://myserver:8000", "token123")
+
+    with patch("core.companion_sync.get_companion_client_from_mw", return_value=client):
+        with patch.object(
+            client,
+            "sync_project",
+            return_value=(True, "OK", 3, 1, [], None),
+        ):
+            results = []
+            worker = smart_sync_in_background(
+                fake_mw, on_completed=lambda ok, msg, pulled, pushed: results.append((ok, pulled, pushed))
+            )
+            assert worker is not None
+            qtbot.waitUntil(lambda: len(results) == 1, timeout=3000)
+            assert results == [(True, 3, 1)]
+            assert fake_mw.glossary_manager.refresh_from_disk.called
+
+
+def test_show_glossary_dialog_runs_companion_sync(tmp_path: Path, qtbot):
+    from handlers.translation.glossary_handler import GlossaryHandler
+
+    main_handler = MagicMock()
+    main_handler.mw = MagicMock()
+    main_handler.mw.tools_menu = MagicMock()
+    main_handler.mw.data_store.data = [["Line 1", "Line 2"]]
+    main_handler.mw.current_game_rules = MagicMock()
+    main_handler.mw.companion_auto_sync = True
+
+    g_file = tmp_path / "glossary.json"
+    g_file.write_text("[]", encoding="utf-8")
+    main_handler.mw.project_manager.project.name = "TestSyncProj"
+    main_handler.mw.glossary_manager.glossary_path = g_file
+    main_handler.mw.glossary_manager.get_entries.return_value = []
+    main_handler.mw.glossary_manager.get_occurrence_map.return_value = {}
+
+    handler = GlossaryHandler(main_handler)
+    handler.load_prompts = MagicMock(return_value=("System Prompt", "Glossary Text"))
+    handler.glossary_manager = MagicMock()
+    handler.glossary_manager.get_entries.return_value = []
+    handler.glossary_manager.get_occurrence_map.return_value = {}
+
+    sync_calls = []
+
+    class MockSyncDialog:
+        def __init__(self, *args, **kwargs):
+            self.terms_pulled = 2
+            self.terms_pushed = 0
+
+        def exec(self):
+            sync_calls.append(True)
+            return 1
+
+    with patch("core.companion_sync.get_companion_client_from_mw") as mock_get_client:
+        mock_client = MagicMock()
+        mock_client.is_configured = True
+        mock_get_client.return_value = mock_client
+
+        with patch("components.companion.sync_dialog.CompanionSyncDialog", MockSyncDialog):
+            with patch("handlers.translation.glossary.dialog_mixin.QProgressDialog") as mock_prog:
+                mock_prog.return_value.canceled = MagicMock()
+                with patch("handlers.translation.glossary.dialog_mixin.GlossaryOccurrenceWorker") as mock_occ_worker:
+                    mock_worker_inst = MagicMock()
+                    mock_occ_worker.return_value = mock_worker_inst
+                    handler.show_glossary_dialog()
+                    assert len(sync_calls) == 1
+                    assert handler.glossary_manager.refresh_from_disk.called
+
+
+def test_companion_sync_dialog_is_closing_mode(tmp_path: Path, qtbot):
+    from components.companion.sync_dialog import CompanionSyncDialog
+    from core.companion_sync import CompanionSyncClient
+
+    client = CompanionSyncClient("http://myserver:8000", "token123")
+    g_file = tmp_path / "glossary.json"
+    g_file.write_text("[]", encoding="utf-8")
+
+    dlg = CompanionSyncDialog(
+        client=client,
+        project_name="TestProj",
+        glossary_path=g_file,
+        auto_close_ms=0,
+        auto_start=False,
+        is_closing=True,
+    )
+    qtbot.addWidget(dlg)
+
+    assert "Closing Picoripi" in dlg.windowTitle()
+    assert dlg.is_closing is True
+    assert dlg._skip_button.text() == "Skip & Close"
+
+    # Simulate error
+    dlg._on_sync_finished(False, "Connection error", 0, 0)
+    assert dlg._skip_button.text() == "Close Anyway"
+
+
+def test_sync_push_on_close_executes_smart_sync(tmp_path: Path):
+    from core.companion_sync import sync_push_on_close, CompanionSyncClient
+
+    fake_mw = MagicMock()
+    fake_mw.is_testing = True
+    fake_mw.settings_manager = None
+    fake_mw.companion_server_url = "http://myserver:8000"
+    fake_mw.companion_api_token = "token123"
+    fake_mw.companion_auto_sync = True
+
+    g_file = tmp_path / "glossary.json"
+    g_file.write_text("[]", encoding="utf-8")
+
+    fake_project = MagicMock()
+    fake_project.name = "ClosingProj"
+    fake_mw.project_manager.project = fake_project
+    fake_mw.glossary_manager.glossary_path = g_file
+    fake_mw.glossary_manager.get_entries.return_value = []
+    fake_mw.glossary_manager.get_occurrence_map.return_value = {}
+
+    client = CompanionSyncClient("http://myserver:8000", "token123")
+
+    with patch("core.companion_sync.get_companion_client_from_mw", return_value=client):
+        with patch.object(
+            client,
+            "sync_project",
+            return_value=(True, "OK", 0, 5, [], None),
+        ) as mock_sync:
+            res = sync_push_on_close(fake_mw, show_dialog=False)
+            assert res is True
+            assert fake_mw.glossary_manager.save_to_disk.called
+            mock_sync.assert_called_once()

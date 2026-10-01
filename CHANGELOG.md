@@ -1,5 +1,50 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [0.3.141-dev] - 2026-09-29
+
+### 🚀 Added & Architectural Changes
+- **Smart Glossary Synchronization on Application Shutdown & Project Close**:
+  - Implemented automatic diff-based synchronization when closing the application (`MainWindow.closeEvent` / `File → Exit`) and when closing a project (`File → Close Project`).
+  - Automatically pushes any pending in-memory and local glossary modifications made by the user on their PC to the remote Companion cloud/server before shutdown, guaranteeing zero data loss between mobile and desktop devices.
+  - Displays the dedicated `CompanionSyncDialog` in exit mode (`is_closing=True`) with a customized header ("Closing Picoripi — Synchronizing Glossary…"), real-time progress indicators ("Pushing local updates to Companion server…"), and rapid completion auto-close (800ms).
+  - Ergonomic exit controls: offers a 1-click `"Skip & Close"` button to bypass synchronization immediately if the user is in a hurry, as well as a `"Close Anyway"` option if the server is offline or unreachable.
+  - Guaranteed local persistence: automatically flushes pending glossary entries to disk via `save_to_disk()` and directly passes the merged entry payload to the sync client.
+  - Seamless background synchronization: upgraded `GlossaryDialog` dismissal (`closeEvent`/`reject`) to run `smart_sync_in_background`.
+  - Added localized strings in `locales/en.json` and `locales/uk.json`.
+
+## [0.3.140-dev] - 2026-09-29
+
+### 🚀 Added & Architectural Changes
+- **Smart Bidirectional Diff & Merge Synchronization for Companion Server**:
+  - Implemented smart diff-based two-way synchronization engine (`merge_glossaries`, `apply_conflict_resolutions`, `CompanionSyncClient.sync_project`) that intelligently merges local and remote glossary entries based on per-entry timestamps (`updated_at`) and file/server modification times.
+  - Automatically identifies newer reviewed terms from the mobile Companion app (downloading and updating local `glossary.json` with `.bak` backup protection) and newer edits or newly added terms from the desktop application (uploading merged changes to the server).
+  - Added timestamp tracking (`updated_at` in ISO 8601 UTC) across `GlossaryEntry`, serialization in `notes.py`, parsing in `parse_mixin.py`, mutation tracking in `mutation_mixin.py`, and Companion server storage in `storage.py` and `models.py`.
+- **Visual Synchronization Progress Dialog (`CompanionSyncDialog`)**:
+  - Automatically triggered upon opening the Glossary dialog (`Ctrl+G` / `Tools → Open Glossary...`) when Companion auto-sync is enabled.
+  - Displays a dedicated modern progress window ("Йдеться синхронізація") showing connection status, real-time diff analysis, and merge progress with an animated progress bar.
+  - Includes a non-blocking "Skip & Work Offline" action to ensure the user can immediately continue working offline without waiting or hanging if the remote server is unreachable.
+  - Features smooth auto-dismiss upon successful synchronization with status bar feedback.
+- **Interactive Collision & Conflict Resolver (`CompanionConflictDialog`)**:
+  - Automatically detects collisions when the same term has been edited with differing values locally and remotely within close succession.
+  - Presents an interactive side-by-side card view comparing local (PC) and remote (Companion) translations, statuses, notes, and modification timestamps.
+  - Provides ergonomic individual radio selections and bulk actions ("Keep All Local" / "Keep All Remote") with safe application into the merged glossary.
+- **Glossary Dialog Integration**:
+  - Added `"🔄 Smart Sync with Companion..."` as the top action in the `[☁ Companion Sync...]` button menu in `GlossaryDialog` for on-demand synchronization with instant hot-reloading of the glossary table.
+  - Upgraded background auto-sync on application startup and project opening (`smart_sync_in_background`) to use the bidirectional diff engine, preventing accidental overwrites of local edits.
+  - Localized all dialogs, buttons, and status strings into English and Ukrainian (`locales/en.json`, `locales/uk.json`).
+
+### 🚀 Added & Architectural Changes
+- **Collapsible Detail Panes & Responsive Splitter Sizing in Glossary Dialog**:
+  - Implemented comprehensive collapse/expand lifecycle management in `GlossaryDialog` (`_set_section_collapsed` and `_rebalance_lower_splitter`) for the three lower detail sections: **Description**, **AI Notes & Unresolved Choices**, and **Occurrences**.
+  - Enabled `setChildrenCollapsible(False)` on `_lower_detail_splitter` so Qt never automatically crushes detail panes into illegible slits.
+  - Dynamically redistributes available vertical height when collapsing or expanding sections:
+    - Collapsing a section shrinks it cleanly to a compact 32px header bar with `"▶"` indicator, hides the content editor/list, and distributes the freed height among the remaining expanded panes.
+    - Expanding a section back actively allocates comfortable, readable height (at least 90-140px, never stuck at 34px), and dynamically borrows space from an over-expanded `_variants_pane` in `_detail_splitter` if total space in the lower detail splitter is constrained.
+  - Added full persistent storage and restoration of `notes_collapsed`, `ai_notes_collapsed`, and `occurrences_collapsed` in `settings.json`.
+  - Added automatic backward-compatibility migration for older `settings.json` files: sections previously saved with heights `<= 34` are seamlessly recognized as collapsed rather than shown as flattened slits with visible text.
+  - Added pointing hand cursors (`Qt.CursorShape.PointingHandCursor`) on collapse toggle buttons and localized dynamic tooltips (`Collapse section` / `Expand section`) in English and Ukrainian.
+  - Isolated test settings paths in `test_glossary_review_ui.py` to prevent workspace pollution and parallel test interference.
+
 ## [0.3.137] - 2026-09-27
 
 ### 🚀 Added & Architectural Changes

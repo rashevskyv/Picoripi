@@ -58,6 +58,7 @@ class ParseMixin:
                             item.get("suggested_name_evidence", "") or ""
                         ),
                         user_notes=str(item.get("user_notes", "") or ""),
+                        updated_at=str(item.get("updated_at", "") or ""),
                     )
                     if entry.is_valid():
                         self._entries.append(entry)

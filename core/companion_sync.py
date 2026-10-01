@@ -1,15 +1,229 @@
-"""Desktop sync client for Picoripi Companion Server."""
-from __future__ import annotations
-
+from dataclasses import dataclass
+from datetime import datetime, timezone
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import requests
 
 from core.glossary.models import GlossaryEntry, GlossaryOccurrence
 from core.glossary.notes import _entry_to_dict
 from core.i18n import tr
 from utils.logging_utils import log_debug, log_info, log_error
+
+
+def parse_timestamp(ts: Any) -> float:
+    """Parse ISO timestamp string or numeric timestamp to epoch seconds float."""
+    if not ts:
+        return 0.0
+    if isinstance(ts, (int, float)):
+        return float(ts)
+    if isinstance(ts, str):
+        cleaned = ts.strip()
+        if not cleaned:
+            return 0.0
+        try:
+            if cleaned.endswith("Z"):
+                cleaned = cleaned[:-1] + "+00:00"
+            dt = datetime.fromisoformat(cleaned)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.timestamp()
+        except Exception:
+            return 0.0
+    return 0.0
+
+
+@dataclass
+class ConflictRecord:
+    """A detected collision where a term was modified both locally and remotely with differing values."""
+
+    original: str
+    local_entry: Dict[str, Any]
+    remote_entry: Dict[str, Any]
+    local_time: str
+    remote_time: str
+    differing_fields: List[str]
+    chosen_source: Optional[str] = None  # 'local' or 'remote'
+
+
+@dataclass
+class MergeResult:
+    """Result of glossary diff & merge calculation."""
+
+    merged_entries: List[Dict[str, Any]]
+    pulled_count: int
+    pushed_count: int
+    conflicts: List[ConflictRecord]
+
+
+def entries_differ(e1: Dict[str, Any], e2: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    """Determine whether significant fields between two glossary entries differ."""
+    fields = [
+        "translation",
+        "status",
+        "user_notes",
+        "notes",
+        "section",
+        "translation_variants",
+        "provisional",
+        "suggested_name",
+        "suggested_name_evidence",
+        "profiled",
+    ]
+    differing: List[str] = []
+    for f in fields:
+        v1 = e1.get(f)
+        v2 = e2.get(f)
+        if v1 is None:
+            v1 = ""
+        if v2 is None:
+            v2 = ""
+        if isinstance(v1, tuple):
+            v1 = list(v1)
+        if isinstance(v2, tuple):
+            v2 = list(v2)
+        if v1 != v2:
+            differing.append(f)
+    return bool(differing), differing
+
+
+def merge_glossaries(
+    local_entries: List[Dict[str, Any]],
+    remote_entries: List[Dict[str, Any]],
+    local_mtime: float = 0.0,
+    remote_mtime: float = 0.0,
+) -> MergeResult:
+    """Perform smart diff-based merge of local and remote glossary entries.
+
+    Compares timestamps per entry (or fallback to file/remote mtime) to take
+    whichever was updated more recently. Flags true collisions (same term modified
+    differently within 2 seconds) as conflicts for user review.
+    """
+    loc_map: Dict[str, Dict[str, Any]] = {
+        e.get("original", ""): dict(e)
+        for e in local_entries
+        if isinstance(e, dict) and e.get("original")
+    }
+    rem_map: Dict[str, Dict[str, Any]] = {
+        e.get("original", ""): dict(e)
+        for e in remote_entries
+        if isinstance(e, dict) and e.get("original")
+    }
+
+    # Maintain existing order of local entries, then append remote-only entries
+    ordered_keys: List[str] = []
+    seen: set = set()
+    for e in local_entries:
+        orig = e.get("original") if isinstance(e, dict) else None
+        if orig and orig not in seen:
+            ordered_keys.append(orig)
+            seen.add(orig)
+    for e in remote_entries:
+        orig = e.get("original") if isinstance(e, dict) else None
+        if orig and orig not in seen:
+            ordered_keys.append(orig)
+            seen.add(orig)
+
+    merged: List[Dict[str, Any]] = []
+    pulled_count = 0
+    pushed_count = 0
+    conflicts: List[ConflictRecord] = []
+
+    for key in ordered_keys:
+        in_loc = key in loc_map
+        in_rem = key in rem_map
+
+        if in_loc and not in_rem:
+            # Term added locally
+            merged.append(loc_map[key])
+            pushed_count += 1
+        elif in_rem and not in_loc:
+            # Term added remotely
+            merged.append(rem_map[key])
+            pulled_count += 1
+        else:
+            loc_e = loc_map[key]
+            rem_e = rem_map[key]
+            differs, diff_fields = entries_differ(loc_e, rem_e)
+            if not differs:
+                # Content matches: preserve whichever has timestamp
+                entry_to_keep = dict(loc_e)
+                if not entry_to_keep.get("updated_at") and rem_e.get("updated_at"):
+                    entry_to_keep["updated_at"] = rem_e["updated_at"]
+                merged.append(entry_to_keep)
+            else:
+                # Content differs: determine newer version
+                t_loc_str = loc_e.get("updated_at", "")
+                t_rem_str = rem_e.get("updated_at", "")
+                t_loc = parse_timestamp(t_loc_str) or local_mtime
+                t_rem = parse_timestamp(t_rem_str) or remote_mtime
+
+                time_diff = t_rem - t_loc
+                if time_diff > 2.0:
+                    # Remote is newer
+                    merged.append(rem_e)
+                    pulled_count += 1
+                elif time_diff < -2.0:
+                    # Local is newer
+                    merged.append(loc_e)
+                    pushed_count += 1
+                else:
+                    # Simultaneous or ambiguous collision -> conflict
+                    conflict = ConflictRecord(
+                        original=key,
+                        local_entry=loc_e,
+                        remote_entry=rem_e,
+                        local_time=t_loc_str or (datetime.fromtimestamp(t_loc, tz=timezone.utc).isoformat() if t_loc else "unknown"),
+                        remote_time=t_rem_str or (datetime.fromtimestamp(t_rem, tz=timezone.utc).isoformat() if t_rem else "unknown"),
+                        differing_fields=diff_fields,
+                    )
+                    conflicts.append(conflict)
+                    # Temporary entry pending resolution
+                    merged.append(loc_e)
+
+    return MergeResult(
+        merged_entries=merged,
+        pulled_count=pulled_count,
+        pushed_count=pushed_count,
+        conflicts=conflicts,
+    )
+
+
+def apply_conflict_resolutions(
+    merge_result: MergeResult,
+    resolutions: Dict[str, str],
+) -> MergeResult:
+    """Apply resolved choices ('local' or 'remote') to a MergeResult."""
+    merged = list(merge_result.merged_entries)
+    pulled = merge_result.pulled_count
+    pushed = merge_result.pushed_count
+    remaining_conflicts: List[ConflictRecord] = []
+
+    for conf in merge_result.conflicts:
+        choice = resolutions.get(conf.original)
+        if choice == "remote":
+            conf.chosen_source = "remote"
+            pulled += 1
+            for i, e in enumerate(merged):
+                if e.get("original") == conf.original:
+                    merged[i] = conf.remote_entry
+                    break
+        elif choice == "local":
+            conf.chosen_source = "local"
+            pushed += 1
+            for i, e in enumerate(merged):
+                if e.get("original") == conf.original:
+                    merged[i] = conf.local_entry
+                    break
+        else:
+            remaining_conflicts.append(conf)
+
+    return MergeResult(
+        merged_entries=merged,
+        pulled_count=pulled,
+        pushed_count=pushed,
+        conflicts=remaining_conflicts,
+    )
 
 
 class CompanionSyncClient:
@@ -54,7 +268,7 @@ class CompanionSyncClient:
         self,
         project_name: str,
         glossary_path: Path,
-        entries: Optional[Sequence[GlossaryEntry]] = None,
+        entries: Optional[Sequence[Union[GlossaryEntry, Dict[str, Any]]]] = None,
         occurrence_map: Optional[Dict[str, List[GlossaryOccurrence]]] = None,
         reference_data: Optional[Dict[Tuple[int, int], str]] = None,
     ) -> Tuple[bool, str, int]:
@@ -65,8 +279,12 @@ class CompanionSyncClient:
         # Prepare glossary payload
         serialized_entries: List[Dict[str, Any]] = []
         if entries:
-            serialized_entries = [_entry_to_dict(e) for e in entries]
+            serialized_entries = [
+                e if isinstance(e, dict) else _entry_to_dict(e)
+                for e in entries
+            ]
         elif glossary_path and glossary_path.exists():
+
             try:
                 raw = glossary_path.read_text(encoding="utf-8")
                 serialized_entries = json.loads(raw)
@@ -193,6 +411,163 @@ class CompanionSyncClient:
             log_error(f"CompanionSyncClient: Pull failed: {e}")
             return False, f"Failed to pull from companion server: {e}", 0
 
+    def sync_project(
+        self,
+        project_name: str,
+        glossary_path: Path,
+        entries: Optional[Sequence[GlossaryEntry]] = None,
+        occurrence_map: Optional[Dict[str, List[GlossaryOccurrence]]] = None,
+        reference_data: Optional[Dict[Tuple[int, int], str]] = None,
+        on_status: Optional[Callable[[str], None]] = None,
+    ) -> Tuple[bool, str, int, int, List[ConflictRecord], Optional[MergeResult]]:
+        """Perform bidirectional diff & merge between local glossary and Companion server."""
+        if not self.is_configured:
+            return False, "Companion server URL or API token is not configured.", 0, 0, [], None
+
+        if on_status:
+            on_status(tr("Connecting to Companion server…"))
+
+        try:
+            url = f"{self.server_url}/api/sync/pull"
+            resp = requests.get(
+                url,
+                headers=self._get_headers(),
+                params={"project": project_name},
+                timeout=self.timeout,
+            )
+
+            # If project is not found or has no terms on server, push local if available
+            if resp.status_code == 404 or (resp.status_code == 200 and not resp.json().get("glossary")):
+                local_has_terms = bool(entries) or (glossary_path and glossary_path.exists())
+                if local_has_terms:
+                    if on_status:
+                        on_status(tr("Uploading initial glossary to Companion server…"))
+                    ok, msg, count = self.push_project(
+                        project_name=project_name,
+                        glossary_path=glossary_path,
+                        entries=entries,
+                        occurrence_map=occurrence_map,
+                        reference_data=reference_data,
+                    )
+                    return ok, msg, 0, count, [], None
+                return True, "No glossary terms to synchronize.", 0, 0, [], None
+
+            if resp.status_code != 200:
+                if resp.status_code == 401:
+                    return False, "Authentication failed: invalid token or PIN.", 0, 0, [], None
+                return False, f"Server error {resp.status_code}: {resp.text}", 0, 0, [], None
+
+            data = resp.json()
+            remote_glossary = data.get("glossary", [])
+            remote_mtime = parse_timestamp(data.get("updated_at", ""))
+
+            local_mtime = (
+                glossary_path.stat().st_mtime
+                if (glossary_path and glossary_path.exists())
+                else 0.0
+            )
+
+            local_entries_dict: List[Dict[str, Any]] = []
+            if entries:
+                local_entries_dict = [_entry_to_dict(e) for e in entries]
+            elif glossary_path and glossary_path.exists():
+                try:
+                    local_entries_dict = json.loads(glossary_path.read_text(encoding="utf-8"))
+                except Exception as exc:
+                    log_error(f"CompanionSyncClient: Failed reading local glossary: {exc}")
+                    local_entries_dict = []
+
+            if on_status:
+                on_status(tr("Analyzing local and remote glossary changes…"))
+
+            merge_res = merge_glossaries(
+                local_entries=local_entries_dict,
+                remote_entries=remote_glossary,
+                local_mtime=local_mtime,
+                remote_mtime=remote_mtime,
+            )
+
+            if merge_res.conflicts:
+                return (
+                    True,
+                    tr("Conflicts detected between local and remote entries."),
+                    merge_res.pulled_count,
+                    merge_res.pushed_count,
+                    merge_res.conflicts,
+                    merge_res,
+                )
+
+            return self.commit_merge(
+                project_name=project_name,
+                glossary_path=glossary_path,
+                merge_result=merge_res,
+                occurrence_map=occurrence_map,
+                reference_data=reference_data,
+                on_status=on_status,
+            )
+        except requests.exceptions.RequestException as e:
+            log_error(f"CompanionSyncClient: Sync failed: {e}")
+            return False, f"Failed to sync with Companion server: {e}", 0, 0, [], None
+
+    def commit_merge(
+        self,
+        project_name: str,
+        glossary_path: Path,
+        merge_result: MergeResult,
+        occurrence_map: Optional[Dict[str, List[GlossaryOccurrence]]] = None,
+        reference_data: Optional[Dict[Tuple[int, int], str]] = None,
+        on_status: Optional[Callable[[str], None]] = None,
+    ) -> Tuple[bool, str, int, int, List[ConflictRecord], Optional[MergeResult]]:
+        """Commit merged glossary locally and push necessary updates to Companion server."""
+        pulled = merge_result.pulled_count
+        pushed = merge_result.pushed_count
+        merged_entries = merge_result.merged_entries
+
+        # 1. Update local file if pulled terms exist or if local file was missing
+        if pulled > 0 or not (glossary_path and glossary_path.exists()):
+            if on_status:
+                on_status(tr("Saving updated terms to local glossary…"))
+            if glossary_path and glossary_path.exists():
+                bak_path = glossary_path.with_suffix(".json.bak")
+                try:
+                    bak_path.write_bytes(glossary_path.read_bytes())
+                    log_debug(f"CompanionSyncClient: Backup created at {bak_path}")
+                except Exception as exc:
+                    log_error(f"CompanionSyncClient: Backup creation failed: {exc}")
+
+            if glossary_path:
+                try:
+                    raw_json = json.dumps(merged_entries, ensure_ascii=False, indent=2) + "\n"
+                    glossary_path.write_text(raw_json, encoding="utf-8")
+                    log_info(f"CompanionSyncClient: Saved {pulled} pulled terms to {glossary_path}")
+                except Exception as exc:
+                    log_error(f"CompanionSyncClient: Failed writing local glossary: {exc}")
+                    return False, f"Failed writing local glossary: {exc}", 0, 0, [], merge_result
+
+        # 2. Push to server if local updates or additions exist
+        if pushed > 0:
+            if on_status:
+                on_status(tr("Pushing local updates to Companion server…"))
+            ok, msg, count = self.push_project(
+                project_name=project_name,
+                glossary_path=glossary_path,
+                entries=merged_entries,
+                occurrence_map=occurrence_map,
+                reference_data=reference_data,
+            )
+
+            if not ok:
+                return False, f"Failed to push updates to Companion server: {msg}", pulled, 0, [], merge_result
+
+        if pulled == 0 and pushed == 0:
+            msg = tr("Glossary is already in sync with Companion.")
+        else:
+            msg = tr("Synchronized successfully: {pulled} pulled, {pushed} pushed.").format(
+                pulled=pulled, pushed=pushed
+            )
+
+        return True, msg, pulled, pushed, [], merge_result
+
 
 try:
     from PyQt6.QtCore import QThread, pyqtSignal
@@ -260,6 +635,46 @@ class CompanionPushWorker(QThread):
             reference_data=self.reference_data,
         )
         self.finished_with_result.emit(ok, msg, count)
+
+
+class CompanionSyncWorker(QThread):
+    """Background worker for smart bidirectional synchronization with Companion server."""
+
+    progress_status = pyqtSignal(str)
+    conflicts_detected = pyqtSignal(list, object)  # (List[ConflictRecord], MergeResult)
+    finished_with_result = pyqtSignal(bool, str, int, int)  # (ok, msg, pulled_count, pushed_count)
+
+    def __init__(
+        self,
+        client: CompanionSyncClient,
+        project_name: str,
+        glossary_path: Path,
+        entries: Optional[Sequence[GlossaryEntry]] = None,
+        occurrence_map: Optional[Dict[str, List[GlossaryOccurrence]]] = None,
+        reference_data: Optional[Dict[Tuple[int, int], str]] = None,
+    ):
+        super().__init__()
+        self.client = client
+        self.project_name = project_name
+        self.glossary_path = glossary_path
+        self.entries = entries
+        self.occurrence_map = occurrence_map
+        self.reference_data = reference_data
+
+    def run(self):
+        ok, msg, pulled, pushed, conflicts, merge_result = self.client.sync_project(
+            project_name=self.project_name,
+            glossary_path=self.glossary_path,
+            entries=self.entries,
+            occurrence_map=self.occurrence_map,
+            reference_data=self.reference_data,
+            on_status=self.progress_status.emit,
+        )
+        if conflicts:
+            self.conflicts_detected.emit(conflicts, merge_result)
+        else:
+            self.finished_with_result.emit(ok, msg, pulled, pushed)
+
 
 
 def get_companion_client_from_mw(mw: Any, timeout: int = 15) -> Optional[CompanionSyncClient]:
@@ -475,28 +890,147 @@ def auto_push_in_background(mw: Any, on_completed: Optional[Any] = None) -> Opti
     return worker
 
 
-def sync_push_on_close(mw: Any) -> None:
-    """Fast synchronous push on close with short timeout to ensure server is updated."""
-    client = get_companion_client_from_mw(mw, timeout=3)
+def sync_push_on_close(mw: Any, show_dialog: bool = True) -> bool:
+    """Synchronous diff-based sync on close to push local changes to Companion server."""
+    client = get_companion_client_from_mw(mw, timeout=6)
     if not client or not client.is_configured:
-        return
+        return False
     project_name, glossary_path, glossary_mgr = resolve_project_glossary_info(mw)
     if not project_name or not glossary_path:
-        return
+        return False
+
+    # Ensure any pending in-memory changes are persisted to disk
+    if glossary_mgr and hasattr(glossary_mgr, "save_to_disk"):
+        try:
+            glossary_mgr.save_to_disk()
+        except Exception as exc:
+            log_debug(f"Companion auto-sync (on close): save_to_disk failed: {exc}")
+
     try:
         entries = glossary_mgr.get_entries() if glossary_mgr and hasattr(glossary_mgr, "get_entries") else None
         occurrence_map = glossary_mgr.get_occurrence_map() if glossary_mgr and hasattr(glossary_mgr, "get_occurrence_map") else None
         reference_data = getattr(getattr(mw, "data_store", None), "reference_data", None)
-        ok, msg, count = client.push_project(
-            project_name,
-            glossary_path,
+
+        is_testing = getattr(mw, "is_testing", False)
+        from PyQt6.QtWidgets import QApplication, QWidget
+
+        has_gui = QApplication.instance() is not None and isinstance(mw, QWidget) and not is_testing
+        if has_gui and show_dialog:
+            try:
+                from components.companion.sync_dialog import CompanionSyncDialog
+                dlg = CompanionSyncDialog(
+                    parent=mw,
+                    client=client,
+                    project_name=project_name,
+                    glossary_path=glossary_path,
+                    entries=entries,
+                    occurrence_map=occurrence_map,
+                    reference_data=reference_data,
+                    auto_start=True,
+                    auto_close_ms=800,
+                    is_closing=True,
+                )
+                dlg.exec()
+                log_info(f"Companion auto-sync (on close dialog): finished with result {dlg.was_successful}")
+                return dlg.was_successful
+            except Exception as exc:
+                log_debug(f"CompanionSyncDialog on close failed to display: {exc}")
+
+        ok, msg, pulled, pushed, conflicts, merge_res = client.sync_project(
+            project_name=project_name,
+            glossary_path=glossary_path,
             entries=entries,
             occurrence_map=occurrence_map,
             reference_data=reference_data,
         )
         if ok:
-            log_info(f"Companion auto-sync (on close): Pushed {count} terms.")
+            log_info(f"Companion auto-sync (on close): {pushed} pushed, {pulled} pulled.")
         else:
             log_debug(f"Companion auto-sync (on close) skipped/failed: {msg}")
+        return ok
     except Exception as exc:
         log_debug(f"Companion sync_push_on_close exception: {exc}")
+        return False
+
+
+
+def smart_sync_in_background(mw: Any, on_completed: Optional[Any] = None) -> Optional[CompanionSyncWorker]:
+    """Execute smart background synchronization with Companion server without blocking UI."""
+    client = get_companion_client_from_mw(mw)
+    if not client or not client.is_configured:
+        return None
+
+    existing_worker = getattr(mw, "_companion_sync_worker", None)
+    if isinstance(existing_worker, CompanionSyncWorker) and existing_worker.isRunning():
+        return None
+
+    import time
+    now = time.time()
+    last_sync = getattr(mw, "_last_companion_sync_ts", 0.0)
+    if isinstance(last_sync, (int, float)) and now - last_sync < 3.0:
+        return None
+    mw._last_companion_sync_ts = now
+
+    project_name, glossary_path, glossary_mgr = resolve_project_glossary_info(mw)
+    if not project_name or not glossary_path:
+        return None
+
+    entries = glossary_mgr.get_entries() if glossary_mgr and hasattr(glossary_mgr, "get_entries") else None
+    occurrence_map = glossary_mgr.get_occurrence_map() if glossary_mgr and hasattr(glossary_mgr, "get_occurrence_map") else None
+    reference_data = getattr(getattr(mw, "data_store", None), "reference_data", None)
+
+    worker = CompanionSyncWorker(
+        client=client,
+        project_name=project_name,
+        glossary_path=glossary_path,
+        entries=entries,
+        occurrence_map=occurrence_map,
+        reference_data=reference_data,
+    )
+
+    def on_finished(ok: bool, msg: str, pulled: int, pushed: int):
+        if ok and pulled > 0:
+            if glossary_mgr:
+                if hasattr(glossary_mgr, "refresh_from_disk"):
+                    glossary_mgr.refresh_from_disk()
+                elif hasattr(glossary_mgr, "load_from_disk"):
+                    glossary_mgr.load_from_disk()
+            trans_handler = getattr(mw, "translation_handler", None)
+            if trans_handler and hasattr(trans_handler, "initialize_glossary_highlighting"):
+                try:
+                    trans_handler.initialize_glossary_highlighting()
+                except Exception:
+                    pass
+            active_dialog = getattr(trans_handler, "_active_glossary_dialog", None) if trans_handler else None
+            if active_dialog and hasattr(active_dialog, "reload_data"):
+                try:
+                    active_dialog.reload_data()
+                except Exception:
+                    pass
+            glossary_handler = getattr(mw, "glossary_handler", None) or getattr(trans_handler, "glossary_handler", None)
+            if glossary_handler and hasattr(glossary_handler, "refresh_open_dialog"):
+                try:
+                    glossary_handler.refresh_open_dialog()
+                except Exception:
+                    pass
+
+        sb = mw.statusBar() if callable(getattr(mw, "statusBar", None)) else getattr(mw, "statusBar", None)
+        if sb and hasattr(sb, "showMessage"):
+            if ok:
+                if pulled > 0 or pushed > 0:
+                    sb.showMessage(tr("Companion: synchronized ({pulled} pulled, {pushed} pushed).").format(pulled=pulled, pushed=pushed), 5000)
+                else:
+                    sb.showMessage(tr("Companion: glossary is in sync with server."), 3000)
+            else:
+                log_debug(f"Companion smart sync: {msg}")
+
+        if on_completed and callable(on_completed):
+            on_completed(ok, msg, pulled, pushed)
+
+        if hasattr(mw, "_companion_sync_worker") and mw._companion_sync_worker is worker:
+            mw._companion_sync_worker = None
+
+    worker.finished_with_result.connect(on_finished)
+    mw._companion_sync_worker = worker
+    worker.start()
+    return worker
