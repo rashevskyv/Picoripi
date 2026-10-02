@@ -6,6 +6,10 @@ Picoripi розмовляє з LLM через **Settings → AI Translation**. �
 
 Обробники: `handlers/translation_handler.py`, `handlers/translation/`. Провайдери: `core/translation/providers.py`. Типові значення: `core/translation/config.py`. Промпти: **Edit Prompts JSON** і `translation_prompts/prompts.json` плагіна.
 
+Файли промптів зливаються **по ключах**, пізніші перекривають раніші: `translation_prompts/prompts.json` → `plugins/common/defaults/prompts.json` → `plugins/<name>/translation_prompts/prompts.json` → копія-перевизначення проєкту або користувача. Файл плагіна, що містить лише розділ `translation`, все одно отримує розділи `glossary`, `glossary_occurrence_update`, `mempalace` та `editor_review` зі спільного файлу (`core/translation/prompt_files.py`).
+
+**Редакторський прохід** — необов'язковий другий запит на кожен фрагмент, який шліфує чернетку промптом `editor_review`. Типово вимкнений; щоб увімкнути, задайте `"editor_review_enabled": true` у конфігурації перекладу. Він подвоює кількість запитів.
+
 ---
 
 ## Увімкнути провайдера

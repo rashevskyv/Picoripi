@@ -101,9 +101,6 @@ def check_prompts(prompts: Any, report: Report) -> None:
     unknown = sorted(set(prompts) - set(PROMPT_SECTIONS))
     if unknown:
         report.warnings.append("prompts.json: sections the host does not read: " + ", ".join(unknown))
-    missing = [section for section in PROMPT_SECTIONS if section not in prompts]
-    if missing:
-        report.warnings.append("prompts.json: no section " + ", ".join(missing) + " (the common defaults are not merged in)")
 
 
 def _read_json(path: Path, report: Report) -> Any:

@@ -11,6 +11,13 @@ the line when it is done or moved into a plan.
 - UI command "Create plugin from template" (copy `plugins/default_plugin`, rename, open the prompt file).
   WP5.4 delivers the generator (`tools/new_plugin.py`); the menu entry is still unplanned.
 
+## Found during WP5
+
+- **`editor_review_enabled` and `max_reference_languages` have no settings-dialog control** (translation
+  config keys). Add a checkbox in the AI Translation settings tab if the editor-review pass is to be used.
+- **Three scripts in `scratch/` import `plugins.zelda_bmg.text_fixer`** — the reason that module and
+  `zelda_bmg/problem_analyzer.py` were kept as named subclasses in WP5.2.
+
 ## Found during WP3
 
 - **WP3 exit is not ticked**: no real glossary build was run on a live model (it spends account quota and

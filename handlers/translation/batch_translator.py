@@ -25,6 +25,27 @@ PREVIEW_ITEMS = 12
 class AIBatchTranslator(BaseTranslationHandler):
     """Handler for batch and chunked translation operations."""
 
+    def _attach_editor_review(self, context: dict) -> None:
+        """Give the run its editor-review prompt when the pass is switched on.
+
+        The pass is a second request per chunk. Its prompt used to be unreachable
+        for every shipped plugin, which kept the pass off; now that prompts are
+        merged by key the prompt is always found, so the pass has its own switch:
+        ``translation_config["editor_review_enabled"]``.
+        """
+        translation_config = getattr(self.mw, 'translation_config', None)
+        wanted = isinstance(translation_config, dict) and bool(translation_config.get('editor_review_enabled', False))
+        if not wanted or not context.get('enable_editor_review', True):
+            context['enable_editor_review'] = False
+            return
+        try:
+            editor_system_prompt = self.main_handler.glossary_handler.load_editor_review_prompt()
+        except Exception:
+            editor_system_prompt = None
+        context['enable_editor_review'] = bool(editor_system_prompt)
+        if editor_system_prompt:
+            context['editor_system_prompt'] = editor_system_prompt
+
     @staticmethod
     def _translation_value(item: Dict[str, Any]) -> str:
         for key in ("translation", "text", "translated_text"):
@@ -312,15 +333,7 @@ class AIBatchTranslator(BaseTranslationHandler):
         if context.get('system_prompt_override'):
             system_prompt = context['system_prompt_override']
 
-        # Load editor review prompt if not explicitly disabled
-        if context.get('enable_editor_review', True):
-            try:
-                editor_system_prompt = self.main_handler.glossary_handler.load_editor_review_prompt()
-                if editor_system_prompt:
-                    context['editor_system_prompt'] = editor_system_prompt
-                    context['enable_editor_review'] = True
-            except Exception:
-                pass
+        self._attach_editor_review(context)
 
         session_state = self.main_handler._session_manager.get_state()
         composer_args = {

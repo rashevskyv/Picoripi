@@ -1,4 +1,3 @@
-import json
 import os
 from PyQt6.QtCore import QThread, pyqtSignal
 from typing import Any, Optional, Tuple
@@ -70,23 +69,12 @@ class MemePalaceScriptAnalyzerWorker(QThread):
         self.log.emit("Script pre-analysis cancellation requested...")
 
     def _load_plugin_prompts(self) -> dict:
-        """Load prompts.json for active plugin if available."""
-        from pathlib import Path
-        prompts_data = {}
-        if self.plugin_name:
-            prompts_path = Path("plugins") / self.plugin_name / "translation_prompts" / "prompts.json"
-            if not prompts_path.exists():
-                prompts_path = Path("plugins") / "common" / "defaults" / "prompts.json"
-            if not prompts_path.exists():
-                prompts_path = Path("translation_prompts") / "prompts.json"
-            
-            if prompts_path.exists():
-                try:
-                    prompts_data = json.loads(prompts_path.read_text("utf-8"))
-                    self.log.emit(f"MemePalace Worker: Loaded per-plugin prompts config from {prompts_path}")
-                except Exception as e_load:
-                    log_error(f"Failed to load prompts.json for plugin {self.plugin_name}: {e_load}")
-        return prompts_data
+        """Prompt sections for the active plugin, merged key by key over the common defaults."""
+        if not self.plugin_name:
+            return {}
+        from core.translation.prompt_files import load_merged_prompts
+        self.log.emit(f"MemePalace Worker: Loaded prompts for plugin {self.plugin_name}")
+        return load_merged_prompts(self.plugin_name)
 
     def _get_mining_prompts(self, script_segment: str, prompts_data: dict) -> Tuple[str, str]:
         """Resolve Mining prompts with per-plugin customizations and fallbacks."""

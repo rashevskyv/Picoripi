@@ -1,4 +1,3 @@
-import json
 import re
 from PyQt6.QtCore import QThread, pyqtSignal
 from typing import Any, Optional, Tuple
@@ -117,22 +116,11 @@ Return ONLY the translated text. Do not add any introduction or meta comments.
             return f"Page: {title} (Original English Context)\n{text}"
 
     def _load_plugin_prompts(self) -> dict:
-        """Load prompts.json for active plugin if available."""
-        from pathlib import Path
-        prompts_data = {}
-        if self.plugin_name:
-            prompts_path = Path("plugins") / self.plugin_name / "translation_prompts" / "prompts.json"
-            if not prompts_path.exists():
-                prompts_path = Path("plugins") / "common" / "defaults" / "prompts.json"
-            if not prompts_path.exists():
-                prompts_path = Path("translation_prompts") / "prompts.json"
-            
-            if prompts_path.exists():
-                try:
-                    prompts_data = json.loads(prompts_path.read_text("utf-8"))
-                except Exception as e_load:
-                    log_error(f"Failed to load prompts.json for plugin {self.plugin_name}: {e_load}")
-        return prompts_data
+        """Prompt sections for the active plugin, merged key by key over the common defaults."""
+        if not self.plugin_name:
+            return {}
+        from core.translation.prompt_files import load_merged_prompts
+        return load_merged_prompts(self.plugin_name)
 
     def _get_glossary_context_for_character(self, char_name: str) -> tuple[Optional[Any], str]:
         """Return an existing glossary entry and a compact context block for a character."""

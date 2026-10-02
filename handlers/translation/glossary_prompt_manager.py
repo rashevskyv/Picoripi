@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+from core.translation.prompt_files import load_merged_prompts
 from utils.constants import user_plugin_dir
 from utils.logging_utils import log_debug
 from core.i18n import tr
@@ -86,6 +87,10 @@ class GlossaryPromptManager:
         ]
         return next((p for p in candidates if p and p.exists()), None)
 
+    def merged_prompts(self, plugin_name: Optional[str]) -> Dict:
+        """Every prompt section for the plugin: application, common, plugin and override files merged by key."""
+        return load_merged_prompts(plugin_name, [self.override_dir(plugin_name)])
+
     def _project_dir(self) -> Optional[Path]:
         """Directory of the open project, or None when no project is open."""
         manager = getattr(self._mw, "project_manager", None)
@@ -153,12 +158,13 @@ class GlossaryPromptManager:
             return None, None
 
         try:
-            prompt_data = json.loads(prompts_path.read_text("utf-8"))
+            # Checked on its own so that a broken top file is reported, not silently skipped.
+            json.loads(prompts_path.read_text("utf-8"))
         except Exception as e:
             QMessageBox.critical(self._mw, tr('AI Translation'), f"Failed to load prompts.json: {e}")
             return None, None
 
-        system_prompt = self._extract_system_prompt(prompt_data)
+        system_prompt = self._extract_system_prompt(self.merged_prompts(plugin_name))
         if not system_prompt:
             QMessageBox.critical(self._mw, tr('AI Translation'), tr('System prompt not defined in prompts.json.'))
             return None, None
@@ -186,17 +192,14 @@ class GlossaryPromptManager:
     def load_editor_review_prompt(self) -> Optional[str]:
         """Load system prompt for Editor Review / Lore Arbiter pass."""
         plugin_name = getattr(self._mw, "active_game_plugin", None)
-        prompts_path = self._resolve_file("prompts.json", plugin_name)
-        if not prompts_path or not prompts_path.exists():
-            return None
         try:
-            data = json.loads(prompts_path.read_text("utf-8"))
+            data = self.merged_prompts(plugin_name)
             prompt = data.get("editor_review", {}).get("system_prompt")
             if prompt:
                 target_lang = "Ukrainian"
                 if hasattr(self._main_handler, "prompt_composer") and hasattr(self._main_handler.prompt_composer, "_get_target_lang"):
                     target_lang = self._main_handler.prompt_composer._get_target_lang()
-                from core.translation.prompt_language import resolve_target_language_prompt
+                from utils.utils import resolve_target_language_prompt
                 return resolve_target_language_prompt(prompt, target_lang)
         except Exception as exc:
             log_debug(f"GlossaryPromptManager: failed to load editor review prompt: {exc}")
@@ -284,14 +287,12 @@ class GlossaryPromptManager:
                 self.current_prompts_path = prompts_path
 
             raw_template = _DEFAULT_GLOSSARY_PROMPT
-            if prompts_path:
-                try:
-                    prompt_data = json.loads(prompts_path.read_text("utf-8"))
-                    extracted = self._extract_glossary_prompt(prompt_data)
-                    if extracted:
-                        raw_template = extracted
-                except Exception as e:
-                    log_debug(f"Glossary prompt template read error: {e}")
+            try:
+                extracted = self._extract_glossary_prompt(self.merged_prompts(plugin_name))
+                if extracted:
+                    raw_template = extracted
+            except Exception as e:
+                log_debug(f"Glossary prompt template read error: {e}")
 
             self._cached_glossary_prompt_template = raw_template
             self._cached_glossary_prompt_plugin = plugin_name

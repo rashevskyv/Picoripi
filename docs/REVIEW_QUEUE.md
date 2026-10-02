@@ -209,4 +209,17 @@ in `docs/OPEN_ITEMS.md`, not here.
       a tag kind (square or curly) is a warning.
 - [ ] **`zelda_bmg/text_fixer.py` and `problem_analyzer.py` were kept (5.2)**, because three of your scripts in
       `scratch/` import `plugins.zelda_bmg.text_fixer`. They are four-line named subclasses now.
+- [ ] **The editor-review pass never ran, for any game (5.3).** Its prompt loader imported
+      `core.translation.prompt_language`, a module that does not exist; the error was swallowed and the pass
+      was skipped. On top of that, every shipped plugin's `prompts.json` hid the `editor_review` section. Both
+      are fixed, but the pass is now **off by default** behind `translation_config["editor_review_enabled"]`,
+      because it is a second request per chunk. Decide whether you want it: turn it on for one block and
+      compare.
+- [ ] **Glossary and MemPalace prompts now come from `plugins/common/defaults/prompts.json` (5.3).** For every
+      shipped plugin they used to come from constants in the code, because the plugin's `translation`-only
+      file replaced the common one as a whole. "Fill glossary entry with AI" and the MemPalace mining and
+      profile requests therefore use different wording than before. Check one of each.
+- [ ] **An override copy of `prompts.json` no longer freezes the other sections (5.3).** "Edit Prompts JSON"
+      copies the plugin file into the project; sections missing from that copy are now filled from the
+      common file instead of being absent.
 

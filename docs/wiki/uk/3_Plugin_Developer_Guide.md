@@ -38,6 +38,8 @@ plugins/<your_id>/
 
 `GameRules` описує свої частини атрибутами класу, а `BaseGameRules` збирає їх: `problem_prefix`, `problem_definitions`, `tag_manager_class`, `tag_style` (`"curly"` / `"square"`), `analyze_whole_string_first`, за потреби `problem_analyzer_class` / `text_fixer_class` для специфічних перевірок гри. Гачки, які лише передають виклик далі (визначення проблем, підсвічування, аналіз, автовиправлення, короткі назви проблем), писати не потрібно. Перевірка плагіна: `python -m plugins.validate <name>`.
 
+`translation_prompts/prompts.json` може містити лише розділи, які гра змінює (зазвичай `translation`): решта підмішується з `plugins/common/defaults/prompts.json`.
+
 `default_plugin.GameRules.get_display_name()` повертає `Default Plugin Template`. `get_capabilities()` навмисно повертає `set()`.
 
 ---

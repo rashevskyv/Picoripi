@@ -24,6 +24,9 @@ def build_default_translation_config() -> dict:
         "provider": "disabled",
         "session_mode": "auto",
         "workers": 6,
+        # A second request per chunk that polishes the draft (prompt section
+        # "editor_review"). Off unless switched on: it doubles the requests.
+        "editor_review_enabled": False,
         "providers": {
             "openai": {
                 "api_key": "",

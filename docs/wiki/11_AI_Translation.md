@@ -6,6 +6,10 @@ Picoripi talks to LLMs through **Settings → AI Translation**. Glossary builds 
 
 Handlers: `handlers/translation_handler.py`, `handlers/translation/`. Providers: `core/translation/providers.py`. Defaults: `core/translation/config.py`. Prompts: **Edit Prompts JSON** and plugin `translation_prompts/prompts.json`.
 
+Prompt files are merged **key by key**, later ones winning: `translation_prompts/prompts.json` → `plugins/common/defaults/prompts.json` → `plugins/<name>/translation_prompts/prompts.json` → the project's or user's override copy. A plugin file that holds only a `translation` section still gets the `glossary`, `glossary_occurrence_update`, `mempalace` and `editor_review` sections from the common file (`core/translation/prompt_files.py`).
+
+**Editor review** is an optional second request per chunk that polishes the draft with the `editor_review` prompt. It is off by default; set `"editor_review_enabled": true` in the translation config to turn it on. It doubles the number of requests.
+
 ---
 
 ## Turn a provider on
