@@ -503,18 +503,31 @@ class MutationMixin:
             if dry_run:
                 continue
             for entry in others:
-                if entry.translation and entry.translation != survivor.translation:
-                    # Keep the losing translation as a variant the user can switch back to.
-                    current = self.get_entry(survivor.original)
-                    variants = list(current.translation_variants)
-                    if all(v.translation != entry.translation for v in variants):
-                        variants.append(TranslationVariant(entry.translation, f"merged from '{entry.original}'"))
-                        self.update_entry(
-                            current.original, current.translation, current.notes,
-                            translation_variants=tuple(variants),
-                        )
-                self.rename_original(entry.original, survivor.original)
+                self.merge_into(survivor.original, entry.original)
         return report
+
+    def merge_into(self, survivor: str, absorbed: str) -> Optional[GlossaryEntry]:
+        """Merge the entry ``absorbed`` into the entry ``survivor``.
+
+        The absorbed spelling stays behind as an alias and its translation, when
+        it differs, as a variant the user can switch back to. ``None`` when
+        either entry is missing or they are already one entry -- so merging
+        twice is harmless.
+        """
+        survivor_index = self._index_of(survivor, fold=False)
+        absorbed_index = self._index_of(absorbed, fold=False)
+        if survivor_index is None or absorbed_index is None or survivor_index == absorbed_index:
+            return None
+        target, other = self._entries[survivor_index], self._entries[absorbed_index]
+        if other.translation and other.translation != target.translation:
+            variants = list(target.translation_variants)
+            if all(v.translation != other.translation for v in variants):
+                variants.append(TranslationVariant(other.translation, f"merged from '{other.original}'"))
+                self.update_entry(
+                    target.original, target.translation, target.notes,
+                    translation_variants=tuple(variants),
+                )
+        return self.rename_original(other.original, target.original)
 
 
 def _merge_rank(entry: GlossaryEntry) -> Tuple[int, int, int]:

@@ -1724,8 +1724,6 @@
   "Project: {name}": "Проєкт: {name}",
   "Connecting to Companion server…": "Підключення до сервера компаньйона…",
   "Skip & Work Offline": "Пропустити та працювати офлайн",
-  "Retry": "Повторити",
-  "Close": "Закрити",
   "Continue Offline": "Продовжити офлайн",
   "Resolving {count} collision(s) with Companion…": "Вирішення {count} конфлікту(ів) з компаньйоном…",
   "Synchronization cancelled due to unresolved conflicts.": "Синхронізацію скасовано через невирішені конфлікти.",
@@ -1742,5 +1740,7 @@
   "Synchronizing local glossary changes with Companion server before exit…": "Синхронізація локальних правок глосарію з сервером компаньйона перед виходом…",
   "Skip & Close": "Пропустити та закрити",
   "Close Anyway": "Все одно закрити",
-  "Closing Project — Synchronizing Glossary…": "Закриття проєкту — Синхронізація глосарію…"
+  "Closing Project — Synchronizing Glossary…": "Закриття проєкту — Синхронізація глосарію…",
+  "Reconcile related terms afterwards": "Після цього узгодити споріднені терміни",
+  "After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant.": "Після перекладу порівняти записи, які є тим самим терміном або мають спільне слово (Clawshot / Clawshots, Hylia / Lake Hylia), і узгодити їхні переклади. Підтверджені записи не змінюються; кожна зміна потрапляє у звіт, а попередній переклад лишається варіантом."
 }

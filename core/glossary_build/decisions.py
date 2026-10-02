@@ -57,7 +57,8 @@ def _stem(token: str) -> str:
     return token[:5] if len(token) > 5 else token
 
 
-def _tokens(text: str) -> Set[str]:
+def term_stems(text: str) -> Set[str]:
+    """The meaningful words of a term or text, cut to short stems."""
     return {
         _stem(token)
         for token in GlossaryManager.canonical_key(text or "").split()
@@ -81,7 +82,7 @@ def select_related(entries: Iterable[Any], text: str, limit: int = DEFAULT_LIMIT
     it -- that exact term only: "Clawshots" kept as its own entry is still shown
     what "Clawshot" got. Returns ``""`` when nothing is related.
     """
-    text_tokens = _tokens(text)
+    text_tokens = term_stems(text)
     if not text_tokens:
         return ""
     excluded = exclude.casefold()
@@ -92,7 +93,7 @@ def select_related(entries: Iterable[Any], text: str, limit: int = DEFAULT_LIMIT
         original = entry.original
         if excluded and original.casefold() == excluded:
             continue
-        overlap = len(_tokens(original) & text_tokens)
+        overlap = len(term_stems(original) & text_tokens)
         if not overlap:
             continue
         machine = 1 if getattr(entry, "status", "") == STATUS_TRANSLATED else 0
@@ -124,17 +125,19 @@ def _head_key(entry: Any) -> Tuple[int, str, str]:
     return (len(key.split()), key, entry.original)
 
 
-def families(entries: Iterable[Any]) -> List[List[Any]]:
+def families(entries: Iterable[Any], extra_pairs: Iterable[Iterable[str]] = ()) -> List[List[Any]]:
     """Group entries that share a distinctive word; in each group the head term comes first.
 
     "Hylia", "Lake Hylia" and "Hylian Shield" are one family; so are "Clawshot"
     and "Clawshots". A word that many entries share is ignored (see
-    ``MAX_FAMILY_WORD_SPREAD``). An entry related to nothing is a family of
-    one. The result is deterministic: members by (number of words, canonical
-    key), families by their head's canonical key.
+    ``MAX_FAMILY_WORD_SPREAD``), but two spellings of one term (the same
+    canonical key) always go together, and so do the terms of each pair in
+    ``extra_pairs``. An entry related to nothing is a family of one. The result
+    is deterministic: members by (number of words, canonical key), families by
+    their head's canonical key.
     """
     entries = list(entries)
-    stems = [_tokens(entry.original) for entry in entries]
+    stems = [term_stems(entry.original) for entry in entries]
     spread = Counter(stem for entry_stems in stems for stem in entry_stems)
     parent = list(range(len(entries)))
 
@@ -149,6 +152,11 @@ def families(entries: Iterable[Any]) -> List[List[Any]]:
         for stem in entry_stems:
             if 2 <= spread[stem] <= MAX_FAMILY_WORD_SPREAD:
                 sharing[stem].append(index)
+    for index, entry in enumerate(entries):
+        sharing["=" + GlossaryManager.canonical_key(entry.original)].append(index)
+    by_original = {entry.original: index for index, entry in enumerate(entries)}
+    for number, pair in enumerate(extra_pairs):
+        sharing[f"+{number}"] = [by_original[term] for term in pair if term in by_original]
     for members in sharing.values():
         for index in members[1:]:
             parent[find(index)] = find(members[0])

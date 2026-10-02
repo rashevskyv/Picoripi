@@ -29,18 +29,21 @@ from core.glossary_manager import (
     STATUS_SYNTHESIZED,
     STATUS_TRANSLATED,
     GlossaryManager,
+    TranslationVariant,
 )
 from .ai_adapters import (
     make_extract,
     make_fold,
     make_name_suggester,
     make_propose,
+    make_reconcile,
     make_synthesize_stack,
 )
 from .decisions import decided_block, families, is_decided, select_related
 from .describe_driver import DescribeResult, describe_term
 from .occurrence_bridge import occurrences_by_term
 from .parallel import DEFAULT_RETRY_DELAY, DEFAULT_WORKERS, run_with_retry_pass
+from .reconcile_driver import clusters, reconcile_cluster
 from .sweep_driver import AggregatedTerm, merge_raw_terms
 from .text_sweep import DEFAULT_CHUNK_SIZE, items_from_dataset, pack_chunks
 from .translate_driver import propose_translations
@@ -59,6 +62,9 @@ MODE_SEED = "seed"
 # immediately follows it with translation proposals, so the model never pauses
 # for decisions halfway through a long project.
 MODE_AUTO = "auto"
+# Reconcile only: no sweep, no describe, no translate -- compare related entries
+# that already have translations and make them agree (``run_reconcile``).
+MODE_RECONCILE = "reconcile"
 
 # Statuses whose entries still want a description (targets of the describe pass).
 _DESCRIBE_TARGETS = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS})
@@ -91,6 +97,11 @@ class BuildResult:
     # Placeholder terms the AI proposed a real name for, awaiting a person.
     names_suggested: int = 0
     translated: int = 0
+    # Reconcile pass: entries retranslated to agree with their family, entries
+    # merged into another spelling, and one line per change for the report.
+    reconciled: int = 0
+    merged: int = 0
+    reconcile_changes: list = field(default_factory=list)
     # Units still failing after the retry pass: their entries got nothing.
     failed: int = 0
     cancelled: bool = False
@@ -224,8 +235,8 @@ class GlossaryBuildCoordinator:
         """Run a build in the given mode."""
         result = BuildResult()
         self.last_result = result
-        if mode == MODE_TRANSLATE:
-            # Nothing to build; the caller runs the translate pass.
+        if mode in (MODE_TRANSLATE, MODE_RECONCILE):
+            # Nothing to build; the caller runs the translate / reconcile pass.
             return result
 
         # Structural seeding is its own mode and nothing else's prelude. Running
@@ -357,6 +368,56 @@ class GlossaryBuildCoordinator:
                         fresh.append(updated)
 
         self._pooled("translate", units, translate, store, result)
+        if self._cancelled():
+            result.cancelled = True
+        return result
+
+    def run_reconcile(self, result: Optional[BuildResult] = None) -> BuildResult:
+        """Make related entries agree: merge spellings of one term, align shared roots.
+
+        One request per cluster of related, translated entries that looks off
+        (see ``reconcile_driver.clusters``). Clusters do not overlap, so they
+        run in parallel; their changes are applied here, in cluster order.
+        Confirmed entries are anchors and are never changed. Every change is
+        logged and listed in ``result.reconcile_changes``; the translation an
+        entry had before stays among its variants.
+        """
+        result = result or self.last_result or BuildResult()
+        self.last_result = result
+        ask = make_reconcile(self.call, self.prompts, target_lang=self.target_lang)
+        groups = clusters(
+            e for e in self.manager.get_entries() if not is_unnamed_voice_term(e.original)
+        )
+
+        def store(cluster, changes):
+            for change in changes:
+                if change.kind == "merge":
+                    if self.manager.merge_into(change.into, change.term) is None:
+                        continue
+                    result.merged += 1
+                else:
+                    entry = self.manager.get_entry(change.term)
+                    # Gone, merged away or confirmed by a person since the request was sent.
+                    if entry is None or entry.original != change.term or entry.status == STATUS_CONFIRMED:
+                        continue
+                    variants = list(entry.translation_variants)
+                    known = {variant.translation for variant in variants}
+                    if entry.translation and entry.translation not in known:
+                        variants.append(TranslationVariant(entry.translation, "before reconcile"))
+                    if change.new not in known:
+                        variants.insert(0, TranslationVariant(change.new, change.reason or "reconciled"))
+                    self._update(
+                        entry.original,
+                        translation=change.new,
+                        notes=entry.notes,
+                        status=STATUS_TRANSLATED,
+                        translation_variants=tuple(variants),
+                    )
+                    result.reconciled += 1
+                result.reconcile_changes.append(change.describe())
+                self._log(f"Reconcile: {change.describe()}")
+
+        self._pooled("reconcile", groups, lambda cluster: reconcile_cluster(cluster, ask), store, result)
         if self._cancelled():
             result.cancelled = True
         return result

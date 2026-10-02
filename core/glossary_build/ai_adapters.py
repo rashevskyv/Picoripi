@@ -11,6 +11,7 @@ Placeholders in templates are substituted with ``str.replace`` rather than
 """
 from __future__ import annotations
 
+import json
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Sequence
 
 from utils.json_extract import ParseError, extract_json
@@ -239,6 +240,33 @@ def make_name_suggester(
         )
 
     return suggest
+
+
+def make_reconcile(
+    call: Call,
+    prompts: Dict[str, Any],
+    *,
+    target_lang: str = "Ukrainian",
+) -> Callable[[List[Dict[str, str]]], Dict[str, Any]]:
+    """Build the pass-4 ``reconcile(entries) -> verdict`` callable.
+
+    ``entries`` is one cluster as ``reconcile_driver.cluster_payload`` renders
+    it. A reply that is not an object, or was cut off, raises ``ParseError``:
+    half a verdict must not be applied, and the retry pass will ask again.
+    """
+    cfg = prompts["reconcile"]
+    system = _fill(cfg["system_prompt"], target_lang=target_lang)
+
+    def reconcile(entries: List[Dict[str, str]]) -> Dict[str, Any]:
+        listing = json.dumps(entries, ensure_ascii=False, indent=1)
+        user = _fill(cfg["user_prompt_template"], entries=listing, target_lang=target_lang)
+        reply = call(_messages(system, user))
+        value, notes = extract_json(reply, "object")
+        if "truncated" in notes:
+            raise ParseError("The reconcile reply was cut off before the JSON ended.", str(reply or ""))
+        return value
+
+    return reconcile
 
 
 def make_propose(

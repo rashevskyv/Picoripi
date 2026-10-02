@@ -156,6 +156,7 @@ class GlossaryBuildDialog(QDialog):
         self._full_rescan_check = None
         self._resume_pending_check = None
         self._force_retranslate_check = None
+        self._reconcile_check = None
         if target_step == "auto":
             area_box.hide()
             blocks_box = QGroupBox(tr('Project blocks'))
@@ -280,6 +281,12 @@ class GlossaryBuildDialog(QDialog):
             )
             layout.addWidget(self._force_retranslate_check)
 
+            self._reconcile_check = QCheckBox(tr('Reconcile related terms afterwards'))
+            self._reconcile_check.setToolTip(
+                tr('After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant.')
+            )
+            layout.addWidget(self._reconcile_check)
+
             self._mode_translate.toggled.connect(self._sync_translate_check)
             self._sync_translate_check(self._mode_translate.isChecked())
             self._mode_seed.toggled.connect(self._sync_seed_mode)
@@ -355,6 +362,10 @@ class GlossaryBuildDialog(QDialog):
             if seed_only:
                 self._force_retranslate_check.setChecked(False)
             self._force_retranslate_check.setEnabled(not seed_only)
+        if self._reconcile_check is not None:
+            if seed_only:
+                self._reconcile_check.setChecked(False)
+            self._reconcile_check.setEnabled(not seed_only)
         self._chunk_combo.setEnabled(not seed_only)
         for button in (self._area_project, self._area_selected, self._area_current):
             button.setEnabled(not seed_only and self._area_enabled(button))
@@ -411,6 +422,7 @@ class GlossaryBuildDialog(QDialog):
             "force_retranslate": bool(
                 self._force_retranslate_check and self._force_retranslate_check.isChecked()
             ),
+            "reconcile": bool(self._reconcile_check and self._reconcile_check.isChecked()),
         }
         if self._target_step == "auto":
             selected = self.selected_block_indices()

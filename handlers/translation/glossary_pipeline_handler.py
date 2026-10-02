@@ -502,6 +502,7 @@ class GlossaryPipelineHandler:
             chunk_size=options["chunk_size"],
             translate=options["translate"],
             force_retranslate=options.get("force_retranslate", False),
+            reconcile=options.get("reconcile", False),
             structural_seeds=structural_seeds,
             parent=self.mw,
             **self._concurrency_options(),

@@ -127,4 +127,19 @@ in `docs/OPEN_ITEMS.md`, not here.
       long block: nothing important should be missing from the table.
 - [ ] **A term inside a longer term is not listed separately (3.4).** "Go to Lake Hylia" gives the model
       `Lake Hylia` only. This also affects the source-side highlighting of translated terms.
+- [ ] **Reconcile pass — run it once on a copy of the real glossary (3.5).** Build dialog → "Reconcile related
+      terms afterwards" (with "Translate existing entries only" it runs alone). Read the "Reconciled:" list in
+      the report: every merge and every changed translation is there. The previous translation stays as a
+      variant, a merged spelling stays as an alias, so each change can be undone in the glossary editor.
+- [ ] **Reconcile may change entries that have no status (3.5).** Only `confirmed` entries are untouchable.
+      All 612 entries of `translation_prompts/glossary.json` have no status, so the pass is allowed to align
+      them (the prompt tells the model to prefer "existing" over "machine" renderings). If hand-written
+      entries must be anchors too, say so — it is one condition in `reconcile_driver.plan_changes`.
+- [ ] **Which clusters are asked about is a heuristic (3.5).** A cluster is sent when two of its members are one
+      term by spelling (plural/article/near-duplicate), or share a word while their translations share no
+      three-letter word start. A pair the model decided to keep separate is asked about again on the next
+      run (the answer is not stored). A family larger than 30 entries is asked in separate batches.
+- [ ] **The reconcile prompt is new and untested on a real model (3.5).** `reconcile` in
+      `translation_prompts/glossary_pipeline_prompts.json`. Check that it does not merge different things
+      (Clawshot / Clawshots as two items) and does not "fix" grammar forms.
 

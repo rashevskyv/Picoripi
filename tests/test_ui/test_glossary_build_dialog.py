@@ -228,3 +228,16 @@ class TestTargetStepViews:
         assert dialog.options()["force_retranslate"] is False
         dialog._force_retranslate_check.setChecked(True)
         assert dialog.options()["force_retranslate"] is True
+
+
+def test_reconcile_is_off_by_default_and_follows_its_checkbox(qtbot):
+    dialog = GlossaryBuildDialog(has_selection=False)
+    qtbot.addWidget(dialog)
+    assert dialog.options()["reconcile"] is False
+
+    dialog._reconcile_check.setChecked(True)
+    assert dialog.options()["reconcile"] is True
+
+    dialog._mode_seed.setChecked(True)      # seeding makes no AI call: nothing to reconcile
+    assert dialog.options()["reconcile"] is False
+    assert dialog._reconcile_check.isEnabled() is False

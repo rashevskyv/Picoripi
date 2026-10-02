@@ -42,7 +42,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 3.2 deterministic `run_pool` order; sorted seeding; majority spelling; family-ordered translate
 - [x] 3.3 `decisions.py::select_related` + `{decided}` in extract/translate prompts + in-pass shared dict; legacy builder too
 - [x] 3.4 injection hygiene (longest match, skip empty, cap 40 ranked, notes ≤300 chars, plural-tolerant matching)
-- [ ] 3.5 reconcile pass (driver, adapter, prompt, mode, UI toggle, report)
+- [x] 3.5 reconcile pass (driver, adapter, prompt, mode, UI toggle, report)
 - [ ] 3.6 storage hardening (transaction, atomic automaton swap, no re-seed reset, entry id, sync tombstones)
 - [ ] 3.7 regression gate test + wiki 8 (EN+UK)
 - [ ] WP3 exit: real build before/after numbers in walkthrough

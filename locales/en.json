@@ -1433,8 +1433,6 @@
   "Project: {name}": "Project: {name}",
   "Connecting to Companion server…": "Connecting to Companion server…",
   "Skip & Work Offline": "Skip & Work Offline",
-  "Retry": "Retry",
-  "Close": "Close",
   "Continue Offline": "Continue Offline",
   "Resolving {count} collision(s) with Companion…": "Resolving {count} collision(s) with Companion…",
   "Synchronization cancelled due to unresolved conflicts.": "Synchronization cancelled due to unresolved conflicts.",
@@ -1451,5 +1449,7 @@
   "Synchronizing local glossary changes with Companion server before exit…": "Synchronizing local glossary changes with Companion server before exit…",
   "Skip & Close": "Skip & Close",
   "Close Anyway": "Close Anyway",
-  "Closing Project — Synchronizing Glossary…": "Closing Project — Synchronizing Glossary…"
+  "Closing Project — Synchronizing Glossary…": "Closing Project — Synchronizing Glossary…",
+  "Reconcile related terms afterwards": "Reconcile related terms afterwards",
+  "After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant.": "After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant."
 }

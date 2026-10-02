@@ -16,6 +16,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from core.glossary_build.parallel import DEFAULT_RETRY_DELAY, DEFAULT_WORKERS, MAX_CONSECUTIVE_FAILURES
 from core.glossary_build.pipeline_coordinator import (
     MODE_AUTO,
+    MODE_RECONCILE,
     MODE_THOROUGH,
     BuildResult,
     GlossaryBuildCoordinator,
@@ -29,6 +30,8 @@ _PROMPTS_PATH = "translation_prompts/glossary_pipeline_prompts.json"
 # A normal reply takes 3-25s; with Parallel Requests the proxy may also pace
 # per IP/account (3-20s) before Gemini answers. 60s is too tight for that path.
 DEFAULT_TIMEOUT = 180
+# The report dialog shows this many reconcile changes; the log has every one.
+RECONCILE_REPORT_LINES = 40
 
 
 class GlossaryBuildWorker(QThread):
@@ -50,6 +53,7 @@ class GlossaryBuildWorker(QThread):
         chunk_size: Any = "balanced",
         translate: bool = False,
         force_retranslate: bool = False,
+        reconcile: bool = False,
         prompts: Optional[dict] = None,
         max_consecutive_failures: int = MAX_CONSECUTIVE_FAILURES,
         workers: int = DEFAULT_WORKERS,
@@ -68,6 +72,7 @@ class GlossaryBuildWorker(QThread):
         self.chunk_size = chunk_size
         self.translate = translate
         self.force_retranslate = force_retranslate
+        self.reconcile = reconcile
         self._prompts = prompts
         self.structural_seeds = list(structural_seeds or ())
         self._max_consecutive_failures = max(1, int(max_consecutive_failures))
@@ -140,12 +145,16 @@ class GlossaryBuildWorker(QThread):
             self.last_result = result
             if (self.translate or self.mode == MODE_AUTO) and not result.cancelled:
                 coordinator.run_translate(result, force=self.force_retranslate)
+            if (self.reconcile or self.mode == MODE_RECONCILE) and not result.cancelled:
+                coordinator.run_reconcile(result)
 
             # Losing some units is a partial result; losing *every* unit is a
             # failed run wearing a success message. Only report success when
             # something was produced, or when nothing failed in the first place
             # (an augment/translate pass with no pending entries is a fine no-op).
-            produced = result.seeded or result.described or result.translated
+            produced = (
+                result.seeded or result.described or result.translated or result.reconciled or result.merged
+            )
             success = not result.cancelled and bool(produced or not result.failed)
             self.build_finished.emit(success, self._summarize(result))
         except Exception as exc:  # provider / parse failures abort the run
@@ -184,6 +193,8 @@ class GlossaryBuildWorker(QThread):
             f"described {result.described}",
             f"translated {result.translated}",
         ]
+        if result.reconciled or result.merged:
+            parts.append(f"reconciled {result.reconciled}, merged {result.merged}")
         if result.names_suggested:
             parts.append(
                 f"{result.names_suggested} placeholder name(s) have a suggestion "
@@ -200,4 +211,10 @@ class GlossaryBuildWorker(QThread):
                 for name, count in sorted(result.offered_by_section.items())
             )
             summary += f"\n\nFound in the sources: {breakdown}"
+        if result.reconcile_changes:
+            shown = result.reconcile_changes[:RECONCILE_REPORT_LINES]
+            more = len(result.reconcile_changes) - len(shown)
+            summary += "\n\nReconciled:\n" + "\n".join(f"- {line}" for line in shown)
+            if more > 0:
+                summary += f"\n… and {more} more (all of them are in the log)"
         return summary
