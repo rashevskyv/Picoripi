@@ -54,7 +54,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `zelda_bmg` — Zelda: Twilight Princess BMG
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker
-   - `plain_text` — also labelled Zelda: The Wind Waker in its `config.json`
+   - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
 4. After open, the last session is restored (block, string, undo stack, most filters). **Show Unsaved Only** (tree and strings list) is always off after a restart (`core/data_store.py`).

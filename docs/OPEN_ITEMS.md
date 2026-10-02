@@ -57,11 +57,11 @@ the line when it is done or moved into a plan.
 ## Found during WP0
 
 - **WP0 exit is not ticked**: the suite is green on Windows only; the Linux run has not been done.
-- **Watch: the intermittent UI-lane hang of 2026-10-01** (one `-n 2` run printed an `F` at ~88 % and stalled
-  with idle workers). Most likely the same cause as the click/focus failures fixed on 2026-10-02:
-  `tests/conftest.py::_stop_lingering_qthreads` called `quit()` on the GUI thread, after which every
-  `QEventLoop.exec()` on that xdist worker returned at once. Not proven for the hang itself; delete this line
-  if it does not come back. WP6.4 removes that heap walk altogether.
+- **The intermittent test hang (one `F`, then idle workers) is explained and fixed** (2026-10-02, WP5.8):
+  `tests/test_core/test_i18n.py::test_missing_string_stays_english` switched the interface language to
+  Ukrainian and left it; later tests on that xdist worker failed on English strings and
+  `test_AIStatusDialog_cancel_no_keeps_running` waited on a real message box for ever. `tests/conftest.py`
+  now resets the language around every test (`english_interface`). Delete this line after a few clean weeks.
 - **JSON fence strippers not yet on `utils.json_extract`** (WP1.3 replaced the three the plan named):
   `core/mempalace/chapter_ai_analyzer.py:102`, `normalized_character_profiler.py:220`,
   `timeline_ai_analyzer.py:176`, `weaver_worker.py:15`, `core/script_markup/hierarchy_ai.py:187`,

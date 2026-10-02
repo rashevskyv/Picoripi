@@ -1,6 +1,6 @@
 # Picoripi Feature Reference
 
-This document describes the most important Picoripi functions at the product and engineering level. It complements `README.md`, the wiki pages in `docs/wiki/`, and the plugin authoring guide in `docs/PLUGIN_AUTHORING_GUIDE.md`.
+This document describes the most important Picoripi functions at the product and engineering level. It complements `README.md`, the wiki pages in `docs/wiki/`, and the plugin guide in `docs/wiki/3_Plugin_Developer_Guide.md`.
 
 ## 1. Project Workspace And Session Recovery
 
@@ -106,10 +106,8 @@ Important implementation areas:
 
 Developer docs:
 
-- `docs/PLUGIN_AUTHORING_GUIDE.md`
-- `docs/wiki/3_Plugin_Developer_Guide.md`
-- `plugins/DEVELOPER_GUIDE.md`
-- `plugins/default_plugin/README.md`
+- `docs/wiki/3_Plugin_Developer_Guide.md` (the plugin guide)
+- `docs/PLUGIN_CONTRACT.md` (every hook, generated from `plugins/spec.py`)
 
 ## 5. AI Translation And Prompt Orchestration
 
@@ -256,7 +254,7 @@ Safety constraints:
 When a feature changes, update documentation in the same change set:
 
 - User-facing capability changes: update `README.md` and this file.
-- Plugin API changes: update `docs/PLUGIN_AUTHORING_GUIDE.md`, `docs/wiki/3_Plugin_Developer_Guide.md`, and `plugins/default_plugin/README.md`.
+- Plugin API changes: update `plugins/spec.py`, regenerate `docs/PLUGIN_CONTRACT.md`, and update `docs/wiki/3_Plugin_Developer_Guide.md` (EN and UK).
 - Testing policy changes: update `docs/TESTING_STRATEGY_AND_AUDIT.md` and `AUDIT.md`.
 - Release-facing changes: update `CHANGELOG.md`, `README.md`, `GEMINI.md`, and `utils/constants.py` only when preparing a release.
 

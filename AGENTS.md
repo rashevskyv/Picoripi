@@ -66,9 +66,10 @@ Tests: focused unit tests for logic; real `pytest-qt` lifecycle tests for worker
 1. User-visible change? Patch the owning wiki page (EN and UK) and add one CHANGELOG line.
 2. New or moved module? Add a one-line module docstring.
 3. New `tr("…")`? The key is in `locales/uk.json`.
-4. New plugin hook or capability? Update `docs/PIPELINE_ROADMAP.md`, `docs/PLUGIN_AUTHORING_GUIDE.md` §4 and
-   `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` Q8 — describe the mechanism, not game constants — or
-   state "single-game" in the report.
+4. New plugin hook or capability? Add it to `plugins/base_game_rules.py` and `plugins/spec.py`, regenerate
+   `docs/PLUGIN_CONTRACT.md` (`python -m plugins.spec --write`), and update `docs/PIPELINE_ROADMAP.md`,
+   `docs/wiki/3_Plugin_Developer_Guide.md` (EN and UK) and `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md`
+   Q8 — describe the mechanism, not game constants — or state "single-game" in the report.
 5. Closed or opened a TODO? Update `docs/OPEN_ITEMS.md`.
 6. Tests added or updated, suite and `ruff check .` green, `git diff --check` clean.
 7. `graphify update .` last. Report what changed, what was verified and what risk remains.

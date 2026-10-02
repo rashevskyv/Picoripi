@@ -225,3 +225,36 @@ def test_a_main_window_attribute_outside_the_allowed_list_is_a_warning(tmp_path)
     assert report.errors == []
     assert [w.split("'")[1] for w in report.warnings] == ["another_internal", "secret_internal_cache"]
     assert "rules.py:4" in report.warnings[1]
+
+
+class TestTheContractPage:
+    def test_the_committed_page_is_what_the_spec_generates(self):
+        from plugins.spec import render_markdown
+
+        committed = Path("docs/PLUGIN_CONTRACT.md").read_text(encoding="utf-8")
+
+        assert committed == render_markdown(), "run: python -m plugins.spec --write"
+
+    def test_every_hook_is_on_the_page_once(self):
+        page = Path("docs/PLUGIN_CONTRACT.md").read_text(encoding="utf-8")
+
+        assert [hook.name for hook in HOOKS if page.count(f"| `{hook.name}` |") != 1] == []
+
+    def test_one_plugin_guide_remains(self):
+        assert not Path("docs/PLUGIN_AUTHORING_GUIDE.md").exists()
+        assert not Path("plugins/DEVELOPER_GUIDE.md").exists()
+        for guide in ("docs/wiki/3_Plugin_Developer_Guide.md", "docs/wiki/uk/3_Plugin_Developer_Guide.md"):
+            text = Path(guide).read_text(encoding="utf-8")
+            assert "PLUGIN_CONTRACT.md" in text and "tools/new_plugin.py" in text
+            assert "ui/settings/logging_mixin.py" in text and "project_action_handler" not in text
+
+
+def test_no_two_plugins_show_the_same_name_in_the_plugin_list():
+    import json
+
+    names = {}
+    for name in plugin_names():
+        config = json.loads((Path("plugins") / name / "config.json").read_text(encoding="utf-8"))
+        names.setdefault(config["display_name"], []).append(name)
+
+    assert {label: ids for label, ids in names.items() if len(ids) > 1} == {}

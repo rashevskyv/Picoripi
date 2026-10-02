@@ -62,7 +62,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 5.5 `get_file_formats()` + `core/formats.py` + `ContainerManager.register`; `bmg_tool.py` into zelda_bmg; `prepare_save_context`/`export_runtime_state` hooks; host reads no plugin privates
 - [x] 5.6 `safe_call`, prefix-based reload, drop zelda_mc fallback, `plugins_root()`
 - [x] 5.7 BFN preview decoupled from zelda_bmg
-- [ ] 5.8 generated `docs/PLUGIN_CONTRACT.md`; one plugin guide; fix discovery path
+- [x] 5.8 generated `docs/PLUGIN_CONTRACT.md`; one plugin guide; fix discovery path
 - [ ] WP5 exit
 
 ## WP6 — Stability

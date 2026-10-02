@@ -79,7 +79,8 @@ Check whether the changes warrant updates to `README.md`:
 
 If a plugin gained a new capability or hook (e.g. external wiki lookup, speaker attribution, custom preview mode):
 - Update `docs/PIPELINE_ROADMAP.md` (design of record).
-- Update `docs/PLUGIN_AUTHORING_GUIDE.md` Section 4.
+- Add the hook to `plugins/spec.py`, run `python -m plugins.spec --write` (regenerates `docs/PLUGIN_CONTRACT.md`)
+  and update `docs/wiki/3_Plugin_Developer_Guide.md` (EN and UK), section "Capabilities and the game's own data".
 - Update `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` Question 8.
 
 ### Step 6: Quality & Validation Checks

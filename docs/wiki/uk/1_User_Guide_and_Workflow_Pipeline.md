@@ -54,7 +54,7 @@
    - `zelda_bmg` — Zelda: Twilight Princess BMG
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker
-   - `plain_text` — у своєму `config.json` теж підписаний Zelda: The Wind Waker
+   - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
 4. Після відкриття відновлюється остання сесія (блок, рядок, undo, більшість фільтрів). **Show Unsaved Only** (дерево і список рядків) після перезапуску **завжди вимкнений** (`core/data_store.py`).

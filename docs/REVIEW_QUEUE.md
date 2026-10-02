@@ -261,4 +261,11 @@ in `docs/OPEN_ITEMS.md`, not here.
       `get_window_layout(kind)`, `get_window_frame(kind)`; the preview actually needed nine things (labels,
       the style of a forced preset, the item icon, the text offset, the Settings table), so there are nine
       hooks. The full list with descriptions is in `plugins/spec.py`.
+- [ ] **One plugin guide (5.8) — read it once.** `docs/wiki/3_Plugin_Developer_Guide.md` (and `uk/`) is now the
+      only guide; `docs/PLUGIN_AUTHORING_GUIDE.md` and `plugins/DEVELOPER_GUIDE.md` are deleted (their text is
+      in git history), `plugins/default_plugin/README.md` is a short pointer. The hook tables were dropped
+      from the wiki in favour of the generated `docs/PLUGIN_CONTRACT.md`. Tell me if something you relied on
+      in the old guides is missing.
+- [ ] **The plain-text plugin is labelled "Plain Text" (5.8).** Its `config.json` said "Zelda: The Wind
+      Waker", the same label as the Wind Waker plugin, so the plugin list could show only one of them.
 

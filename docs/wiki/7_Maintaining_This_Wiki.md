@@ -26,7 +26,7 @@ English files in `docs/wiki/` are the source of truth. `docs/wiki/uk/` is the Uk
 
 Do not copy a full how-to into README when a wiki page exists. README links here.
 
-**Authority:** current Python/UI source. If `docs/PLUGIN_AUTHORING_GUIDE.md`, plugin READMEs, or this wiki disagree with code, fix the wiki from code. Do not copy those files forward as truth.
+**Authority:** current Python/UI source. If plugin READMEs or this wiki disagree with code, fix the wiki from code. The list of plugin hooks is not written by hand: `docs/PLUGIN_CONTRACT.md` is generated from `plugins/spec.py` (`python -m plugins.spec --write`).
 
 ## When code changes
 

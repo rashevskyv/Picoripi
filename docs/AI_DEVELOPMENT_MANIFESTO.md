@@ -81,7 +81,7 @@ Every AI coding session should follow this sequence unless the user explicitly a
    - Update `docs/wiki/` for user-facing how-to (ownership: `docs/wiki/7_Maintaining_This_Wiki.md`). Invoke the `update-wiki` skill.
    - Update `docs/FEATURE_REFERENCE.md` for important user-facing behavior.
    - Update `docs/TESTING_STRATEGY_AND_AUDIT.md` for test policy or test infrastructure changes.
-   - Update `docs/PLUGIN_AUTHORING_GUIDE.md` and `plugins/default_plugin/` when plugin contracts change.
+   - Update `plugins/spec.py` (then `python -m plugins.spec --write`), `docs/wiki/3_Plugin_Developer_Guide.md` and `plugins/default_plugin/` when plugin contracts change.
    - Update `AUDIT.md` for audit findings, completed improvements, and active follow-ups.
 
 6. Verify and report.
@@ -119,7 +119,7 @@ Every AI coding session should follow this sequence unless the user explicitly a
 - Plugin-specific behavior belongs in plugin modules, not scattered through core UI code.
 - New plugin behavior should start from `plugins/default_plugin/`.
 - Shared rules belong in `plugins/common/problem_rules/`.
-- Plugin contracts must be documented in `docs/PLUGIN_AUTHORING_GUIDE.md`.
+- Plugin contracts are listed in `plugins/spec.py` (generated page: `docs/PLUGIN_CONTRACT.md`) and explained in `docs/wiki/3_Plugin_Developer_Guide.md`.
 - Any change to plugin loading, config discovery, save/load contracts, font maps, tags, or rule execution should update the default plugin tests.
 
 ### 3.5. AI And Network Features
@@ -278,8 +278,7 @@ Update:
 - `CHANGELOG.md` for release notes.
 - `docs/FEATURE_REFERENCE.md` for user-facing features.
 - `docs/TESTING_STRATEGY_AND_AUDIT.md` for test strategy.
-- `docs/PLUGIN_AUTHORING_GUIDE.md` for plugin authoring.
-- `plugins/default_plugin/README.md` for template-specific plugin instructions.
+- `docs/wiki/3_Plugin_Developer_Guide.md` for plugin authoring; `docs/PLUGIN_CONTRACT.md` for the list of hooks.
 
 ### 7.2. Documentation Quality Rules
 

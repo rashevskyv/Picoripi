@@ -64,7 +64,7 @@ First, ask me these questions:
    - Are there existing translation patches or external localizations in other languages that could serve as reference material (`load_reference_patch`, `load_multi_reference`, `get_reference_language_label`)?
    - Which of these should the first version include, and which can wait?
 
-   Answering "none" to all of these is fine. Picoripi then builds the glossary from the extracted text alone. Each answer maps to an opt-in hook documented in docs/PLUGIN_AUTHORING_GUIDE.md section 4; plugins/zelda_bmg/ is the reference implementation.
+   Answering "none" to all of these is fine. Picoripi then builds the glossary from the extracted text alone. Each answer maps to an opt-in hook documented in docs/wiki/3_Plugin_Developer_Guide.md ("Capabilities and the game's own data") and listed in docs/PLUGIN_CONTRACT.md; plugins/zelda_bmg/ is the reference implementation.
 
 9. Tests:
    - Give me at least 5 real sample strings and expected parsed output.

@@ -1,157 +1,148 @@
-# Посібник автора плагіна
+# Посібник розробника плагінів
 
 **Мова:** [English](../3_Plugin_Developer_Guide.md) · Українська
 
-Контракт плагіна, як він реалізований у коді. Джерело правди: `plugins/base_game_rules.py`, `ui/main_window/main_window_plugin_handler.py`, `handlers/project_action_handler.py` (discovery), `ui/settings/logging_mixin.py` (`find_plugins`).
+Плагін навчає Picoripi одної гри або текстового формату: як читати й записувати її файли, які в неї теги, якою може бути ширина рядка і — за бажанням — що власні дані гри кажуть про кожен рядок. Ця сторінка — єдиний посібник із плагінів. Перелік усіх гачків генерується з коду: [docs/PLUGIN_CONTRACT.md](../../PLUGIN_CONTRACT.md).
 
-Не вважайте `docs/PLUGIN_AUTHORING_GUIDE.md` або README плагінів актуальними, доки не звірили їх із цими файлами.
-
----
-
-## Discovery і завантаження
-
-**Discovery** (New Project і Settings → Global → Active Game Plugin): кожна **тека** в `plugins/`, де є `config.json`. `import_plugins` у Settings пропускається. `display_name` у JSON — підпис; ім’я теки — id плагіна.
-
-**Завантаження:** `importlib.import_module(f"plugins.{active_game_plugin}.rules")`. У модулі має бути `GameRules`, нащадок `BaseGameRules`. Конструктор: `GameRules(main_window_ref=self.mw)`.
-
-Якщо імпорт падає, користувач бачить **Plugin Load Error**, програма падає на сам `BaseGameRules`.
-
-Разом із плагіном примусово перезавантажуються: `config`, `tag_checker_handler`, `tag_manager`, `problem_analyzer`, `text_fixer`, `tag_logic`.
-
-**Аліаси:** `plugins/<id>/aliases.json` зливається в `default_tag_mappings` після завантаження.
-
-**Дії проєкту:** `get_plugin_actions()` може додати `QAction` у меню/тулбар (`text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`).
+Джерело істини: `plugins/base_game_rules.py` (гачки та їхні типові реалізації), `plugins/spec.py` (контракт як дані), `ui/main_window/main_window_plugin_handler.py` (завантаження), `ui/settings/logging_mixin.py` → `find_plugins` (пошук плагінів).
 
 ---
 
-## Мінімальна розкладка плагіна
+## Початок плагіна
 
-Скопіюйте `plugins/default_plugin/` у `plugins/<your_id>/`. Для discovery + load потрібно:
-
-```
-plugins/<your_id>/
-  config.json          # щонайменше "display_name"
-  rules.py             # class GameRules(BaseGameRules)
+```powershell
+.\venv\Scripts\python.exe tools/new_plugin.py <id> "<Display Name>" --prefix XX
 ```
 
-Типові додаткові файли (є в шаблоні): `config.py`, `tag_manager.py`, `font_map.json`, `fonts/`, `translation_prompts/prompts.json`, `aliases.json`.
+`<id>` — назва теки в `plugins/`; `--prefix` — короткий префікс великими літерами для ідентифікаторів проблем плагіна (`XX_WIDTH_EXCEEDED`). Команда копіює `plugins/default_plugin`, перейменовує префікс і відображувану назву та створює `tests/test_plugins/test_<id>/test_rules.py` із трьома перевірками, що вже проходять (плагін завантажується, зразок переживає завантаження і збереження, валідатор проходить). Застосунок одразу показує новий плагін у списку.
 
-`GameRules` описує свої частини атрибутами класу, а `BaseGameRules` збирає їх: `problem_prefix`, `problem_definitions`, `tag_manager_class`, `tag_style` (`"curly"` / `"square"`), `analyze_whole_string_first`, за потреби `problem_analyzer_class` / `text_fixer_class` для специфічних перевірок гри. Гачки, які лише передають виклик далі (визначення проблем, підсвічування, аналіз, автовиправлення, короткі назви проблем), писати не потрібно. Перевірка плагіна: `python -m plugins.validate <name>`.
+Далі в такому порядку:
 
-Новий плагін починається з `python tools/new_plugin.py <id> "<Display Name>" --prefix XX`: команда копіює `plugins/default_plugin`, перейменовує префікс ідентифікаторів проблем і відображувану назву та створює `tests/test_plugins/test_<id>/test_rules.py` із трьома готовими перевірками з `plugins/testing.py` (плагін завантажується, зразок переживає завантаження і збереження, валідатор проходить).
+1. Розбір: `load_data_from_json_obj` / `save_data_to_json_obj` у `rules.py`. Перш ніж чіпати щось інше, покладіть справжній зразок у `SAMPLE` у згенерованому тесті.
+2. Теги: `tag_manager.py`.
+3. Ширини: `fonts/*.json`, `font_map.json`, ліміти в `config.json`.
+4. Промпти: `translation_prompts/prompts.json` — наостанок.
 
-**Формати файлів.** `get_file_formats()` повертає елементи `core.formats.FileFormat(extensions, mode, label)`; `mode` — у якому вигляді вміст файлу потрапляє в `load_data_from_json_obj` і виходить із `save_data_to_json_obj`: `"json"` (розібраний), `"text"` (рядок) або `"bytes"`. Типово це `.json` + `.txt`. Гра з власною таблицею повертає, наприклад, `[FileFormat((".tbl",), "bytes", "Text tables"), *DEFAULT_FORMATS]` і сама розбирає байти — імпорт проєкту, завантаження, збереження й діалоги файлів працюють без змін у хості. Архівний формат гри додається через `ContainerManager.register(MyContainer, extensions=(".pak",))`.
+Перевірка і тести:
 
-**Стан, що супроводжує файли.** Якщо для збереження потрібне щось, чого немає в рядках (ключі таблиці, розібраний бінарний файл), тримайте це в плагіні й реалізуйте `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` (прості JSON-дані; хост зберігає їх між перезавантаженнями, відкатами й сесіями) та `prepare_save_context(context)` (викликається перед побудовою кожного файлу проєкту; `context.block_indices`, `context.runtime_state`, `context.existing_versions()` видає поточні байти файлу, спершу переклад). Хост ніколи не читає атрибути плагіна. Приклади: `plugins/pokemon_fr/rules.py` і `plugins/zelda_bmg/rules.py`.
+```powershell
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m plugins.validate <id>
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_plugins/test_<id>/
+```
 
-**Вікна повідомлень.** Плагін, що вказує `message_window_preview` у `get_capabilities()`, може навчити попередній перегляд своїх вікон: `get_preview_window_style(block_idx, string_idx)` (стиль повідомлення), `get_window_presets()` / `get_window_preset_label()` / `get_window_style_for_preset()` (панель примусового вибору типу вікна), `get_window_frame(style)` (геометрія й картинка з файлів гри), `get_window_item_icon()`, `get_window_text_offset_y()`, а для таблиці лімітів за типом вікна в Settings — `get_window_layout_groups()` / `get_window_layouts_document()` / `save_window_layouts_document()`. Хост не імпортує жодного ігрового плагіна; зразок реалізації — `plugins/zelda_bmg/rules.py`.
+`python -m plugins.validate` викликає кожен гачок із тестовими аргументами і повідомляє про гачок, що кидає виняток, про хибний тип результату, сигнатуру, яку хост не може викликати, зламаний JSON-файл, сесійні ключі в `config.json` і (попередженнями) про атрибути головного вікна поза дозволеним списком.
 
-`translation_prompts/prompts.json` може містити лише розділи, які гра змінює (зазвичай `translation`): решта підмішується з `plugins/common/defaults/prompts.json`.
+### Що зібрати до написання коду
 
-`default_plugin.GameRules.get_display_name()` повертає `Default Plugin Template`. `get_capabilities()` навмисно повертає `set()`.
-
----
-
-## `config.json`
-
-Читається для display name і як мішок типових налаштувань плагіна. У шаблоні (неповно): `display_name`, `newline_display_symbol`, прапорці wrap, `game_dialog_max_width_pixels`, `line_width_warning_threshold_pixels`, `lines_per_page`, `default_font_file`, `autofix_enabled`, `detection_enabled`, кольори тегів/нового рядка.
-
-Постачені id і підписи:
-
-| Тека | `display_name` |
-|------|----------------|
-| `zelda_bmg` | Zelda: Twilight Princess BMG |
-| `zelda_mc` | The Legend of Zelda: The Minish Cap |
-| `zelda_ww` | Zelda: The Wind Waker |
-| `plain_text` | Zelda: The Wind Waker |
-| `pokemon_fr` | Pokemon FireRed/LeafGreen |
-| `default_plugin` | Default Plugin Template |
+Точний формат файлу зі зразками вихідних і перекладених файлів та очікуваним результатом збереження; максимальну ширину й кількість рядків на сторінку; кожен тег і керівний код — які з них нульової ширини і яка ширина видимих; звідки беруться метрики шрифту; як розбиваються сторінки; метадані мовців або розділів; чи мають невідомі поля проходити збереження без змін. `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` ставить ці питання у формі, яку можна вставити AI-помічникові.
 
 ---
 
-## Capabilities
+## Пошук і завантаження
 
-`get_capabilities() -> Set[str]`. Порожня множина валідна: пайплайн усе одно пропонує markup, context, glossary і переклад тексту. Необов’язкові імена:
+**Пошук** (New Project і Settings → Global → Active Game Plugin): кожна тека в `plugins/`, що містить `config.json`, окрім `import_plugins`. `display_name` у цьому файлі — підпис у списку, він має бути унікальним; назва теки — ідентифікатор плагіна.
 
-| Ім’я | Хук | Хто споживає |
-|------|-----|--------------|
-| `glossary_seed` | `get_glossary_seed_entries()` | Автопрохід глосарія |
-| `external_lore` | `get_external_lore(term)` | Прохід describe |
-| `speaker_attribution` | `get_speaker_for_string()` | Крок пайплайну **Name the speakers**; поле Speaker |
-| `message_window_preview` | хром вікна / пагінація | Панель BFN-прев’ю |
+**Завантаження:** `importlib.import_module(f"plugins.{id}.rules")`. Модуль має визначати `GameRules` — підклас `BaseGameRules`, який створюється як `GameRules(main_window_ref=self.mw)`. Він також має створюватися без головного вікна (`GameRules()`): так роблять тести й валідатор. Жодної роботи з мережею, важким диском чи архівами в `__init__`.
 
-`zelda_bmg` повертає всі чотири. Типовий Settings `active_game_plugin` — `"zelda_mc"`, поки проєкт не скаже інакше (`core/settings/global_settings.py`).
+Якщо імпорт не вдався, користувач бачить **Plugin Load Error**, а застосунок повертається до `BaseGameRules`. Перемикання плагінів вивантажує всі завантажені модулі плагіна, тож кеші на рівні модулів починаються порожніми.
 
-Необов’язкові хуки **не** на базовому класі, але викликаються, якщо є: `get_preview_window_style(block, string)` (хром вікна при `message_window_preview`), `msg_to_editor_text`, `export_runtime_session_state` / `restore_runtime_session_state`, `replace_runtime_names_for_ai`. `zelda_bmg.prepare_preview_glyph_text` може повернути 4-кортеж `(text, colors, scales, icons)`; прев’ю приймає і базовий 2-кортеж.
+**Аліаси:** після завантаження в `default_tag_mappings` підмішуються `plugins/<id>/aliases.json` (постачені типові значення, лише для читання), а потім власний `aliases.json` користувача з теки плагіна в профілі користувача. Застосунок зберігає аліаси лише в теку користувача.
 
-Немає `get_plugin()` / `PluginManager`. Плагіни імпорту в `plugins/import_plugins/` (`BaseImportRules`) — окремий шлях вставки, не цей завантажувач.
-
-Ключі seed-словника: `term` (обов’язково), `description`, `section`, `icon`, `source_ref`.
-
-`is_placeholder_speaker(name)`: `True` (типово) = крок merge може замінити цю ідентичність ім’ям зі скрипта. Повертайте `False` для вже показуваних імен (`System`, куровані імена).
+**Дії меню:** `get_plugin_actions()` може додавати `QAction` (`name`, `text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`). Дії AI-перекладу належать застосунку і є для кожної гри.
 
 ---
 
-## Дані туди й назад
+## Файли плагіна
 
-Внутрішнє сховище — `List[List[str]]` (блоки рядків) плюс імена блоків.
+```
+plugins/<id>/
+  config.json                         # обов'язково: щонайменше "display_name"
+  rules.py                            # обов'язково: class GameRules(BaseGameRules)
+  config.py                           # ідентифікатори проблем і типові налаштування виявлення / автовиправлення
+  tag_manager.py                      # теги гри та їхнє підсвічування
+  font_map.json, fonts/*.json         # ширини
+  translation_prompts/prompts.json    # розділи промптів, які гра змінює
+```
 
-| Метод | Роль |
-|-------|------|
-| `load_data_from_json_obj(json_data)` | Байти/JSON/текст файлу → `(blocks, extra_dict)`. `zelda_bmg` приймає **bytes** через `bmg_tool.BMGFile` |
-| `save_data_to_json_obj(data, block_names)` | Обернене; може повернути текст **або запаковані байти** (BMG) |
-| `convert_editor_text_to_data(text)` | Редактор → сховище (типово: аліаси → теги) |
-| `get_text_representation_for_editor(subline)` | Сховище → редактор (типово: теги → аліаси) |
-| `get_text_representation_for_preview(data_string)` | Список прев’ю; нові рядки стають `newline_display_symbol` |
-| `prepare_preview_glyph_text(text)` | Візуальне BFN-прев’ю: зрізати теги, опційно колір по символах |
-| `get_enter_char` / `get_shift_enter_char` / `get_ctrl_enter_char` | Що вставляє Enter |
+**`config.json`** — типові значення для нового проєкту: `display_name`, `game_dialog_max_width_pixels`, `line_width_warning_threshold_pixels`, `lines_per_page`, `default_font_file`, `detection_enabled`, `autofix_enabled`, кольори та прапорці перенесення. Сесійні ключі (шляхи відкритих файлів, вибір, позиції прокрутки, історія пошуку) валідатор відхиляє; застосунок зберігає їх у `project_settings.json`.
 
-Базовий `load_data_from_json_obj` розуміє список, `{ "strings": [...] }` і текст Kruptar `{END}`.
+**`config.py`** — `PROBLEM_DEFINITIONS, DEFAULT_DETECTION_SETTINGS, DEFAULT_AUTOFIX_SETTINGS = generate_base_config(PREFIX, overrides=…, custom_problems=…)` із `plugins/common/config_factory.py`.
 
----
+**`rules.py`** — `GameRules` описує свої частини атрибутами класу, а `BaseGameRules` збирає їх:
 
-## Верстка, теги, проблеми
+```python
+class GameRules(BaseGameRules):
+    problem_prefix = "XX"
+    problem_definitions = PROBLEM_DEFINITIONS
+    tag_manager_class = TagManager        # типово: GenericTagManager
+    tag_style = "curly"                   # "square", якщо теги виглядають [ось так]
+    analyze_whole_string_first = True
+```
 
-| Метод | Роль |
-|-------|------|
-| `get_string_layout(block, string)` | Необов’язково `{warn_width, max_width, font_file, lines_per_page}`. Пріоритет: метадані рядка > цей хук > глобальні налаштування плагіна |
-| `get_problem_definitions()` | `{id: {name, …}}` для Detection / Auto-fix / фільтра Warnings |
-| `analyze_subline(...)` | Множина id проблем для одного візуального рядка |
-| `autofix_data_string(..., page_local=False)` | Повертає `(new_text, changed)` |
-| `get_short_problem_name(id)` | Підпис |
-| `get_default_tag_mappings()` | аліас → оригінальний тег |
-| `get_dynamic_name_tags()` | `{tag: display_name}` підставляється перед зіставленням зі скриптом |
-| `get_spellcheck_ignore_pattern()` | Regex тегів/кодів, які пропускає спелчек |
-| `get_legitimate_tags()` | Типово порожньо |
-| `get_syntax_highlighting_rules()` | `List[Tuple[pattern, QTextCharFormat]]` |
-| `get_tag_tooltip(tag)` | Текст при наведенні |
-| `get_tag_checker_handler()` | Необов’язковий чекер |
-| `get_custom_context_tags()` / `save_custom_context_tags` | Settings → Context Tags |
-| `get_context_menu_actions(editor, selected_text)` | Додаткові пункти меню редактора |
-| `get_editor_page_size()` | Типово 2 |
-| `calculate_string_width_override(...)` | Необов’язкова ширина в пікселях |
-| `process_pasted_segment(...)` | Санітайзер вставки |
+З цими атрибутами базовий клас створює менеджер тегів, аналізатор проблем і виправляч тексту та сам відповідає на гачки, які лише передають виклик далі (визначення проблем, підсвічування, аналіз, автовиправлення, короткі назви проблем). `problem_analyzer_class` / `text_fixer_class` вказуйте лише для специфічних перевірок чи виправлень гри (підкласи `GenericProblemAnalyzer` / `GenericTextFixer` із `plugins/common/`). `problem_ids = problem_ids(DEFINITIONS, PREFIX, without=(…))` прибирає стандартні перевірки, яких гра не використовує.
+
+**`font_map.json` і `fonts/*.json`** — `fonts/*.json` є картами шрифтів (`{символ: {"width": N}}`). Кореневий `font_map.json` перевизначає ширини видимих тегів та іконок: `{"[A]": {"width": 16}, "{COLOR_RED}": {"width": 0}}`. Видимий тег-іконка не має нульової ширини.
+
+**`translation_prompts/prompts.json`** — може містити лише розділи, які гра змінює (зазвичай `translation`); решта підмішується по ключах із `plugins/common/defaults/prompts.json`. Ніколи не додавайте інструкцію, що дозволяє змінювати теги.
 
 ---
 
-## Спікери, сцена, метадані AI
+## Формати файлів і стан, що їх супроводжує
 
-| Метод | Роль |
-|-------|------|
-| `get_speaker_for_string(block, string)` | Спікер з даних гри; рушій заповнює рядки, які користувач ще не задав; **ніколи** не перезаписує вибір користувача |
-| `get_addressee_for_string(block, string, speaker=)` | Звертання (ти/ви, рід) |
-| `should_auto_match_story_context(block, string)` | Типово True; False — пропустити автозіставлення діалогу |
-| `get_translation_context_for_string(block, string)` | Див. [11](11_AI_Translation.md). Рушій ніколи не порівнює значення з конкретною грою |
-| `get_ai_flow_context_for_string` / `get_ai_flow_overview` | Нотатки графа діалогу в промпті |
-| `get_scene_context_for_string` | Докази для Story Timeline (`resource`, `msg_group`, `flow_ids`, `candidate_actors`, …) |
+`get_file_formats()` повертає елементи `core.formats.FileFormat(extensions, mode, label)`. `mode` — у якому вигляді вміст файлу потрапляє в `load_data_from_json_obj` і виходить із `save_data_to_json_obj`: `"json"` (розібраний), `"text"` (рядок) або `"bytes"`. Типово це `.json` + `.txt`. Гра з власною таблицею повертає `[FileFormat((".tbl",), "bytes", "Text tables"), *DEFAULT_FORMATS]` і сама розбирає байти; імпорт проєкту, завантаження, збереження й діалоги відкриття/збереження працюють без змін у хості. Архівний формат додається через `ContainerManager.register(MyContainer, extensions=(".pak",))`.
+
+Усередині застосунку текст — це `List[List[str]]`, блоки рядків, плюс назви блоків. `load_data_from_json_obj` повертає `(blocks, block_names)`; `save_data_to_json_obj(blocks, block_names)` повертає те, що йде назад у файл. Невідомі поля формату мають пережити цей шлях туди й назад.
+
+Якщо для збереження потрібне щось, чого немає в рядках (ключі таблиці, розібраний бінарний файл), тримайте це в плагіні й реалізуйте `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` — прості JSON-дані, які хост зберігає між перезавантаженнями, відкатами й сесіями, — та `prepare_save_context(context)`, що викликається перед побудовою кожного файлу проєкту (`context.block_indices`, `context.runtime_state`, `context.existing_versions()` видає поточні байти файлу, спершу переклад). Хост ніколи не читає атрибути плагіна. Приклади: `plugins/pokemon_fr/rules.py` (ключі), `plugins/zelda_bmg/rules.py` (бінарний файл, що латається під час збереження).
+
+---
+
+## Можливості та власні дані гри
+
+Усе вище — обов'язковий мінімум. Понад нього плагін може добувати власні дані гри — атрибути повідомлень, графи діалогів, таблиці сцен — або зовнішнє джерело відомостей про світ гри і передавати це в AI-переклад, побудову глосарію та Story Timeline. Усе це за бажанням; кожен гачок має безпечну типову реалізацію.
+
+| Якщо у вас є | Що стає можливим |
+|---|---|
+| Декомпіляція або сирці гри | типи вікон, потік діалогів, таблиці сцен, розміщення акторів |
+| Сирі файли гри (архіви повідомлень, дані рівнів) | те саме, через розбір бінарних файлів |
+| Вікі спільноти | пошук відомостей для описів у глосарії |
+| Фанатський сценарій або проходження | структура сцен і мовців для MemPalace |
+| Лише витягнутий текст | нічого з цього не потрібно — прохід по тексту все одно збудує глосарій |
+
+`get_capabilities() -> Set[str]` каже Localization Pipeline, які кроки пропонувати. Не оголошувати нічого — повноцінна відповідь.
+
+| Назва | Гачок, який вона обіцяє | Що з'являється |
+|---|---|---|
+| `glossary_seed` | `get_glossary_seed_entries()` | Терміни глосарію з даних гри без AI-запиту (`term`, `description`, `section`, `icon`, `source_ref`, `blocks`) |
+| `external_lore` | `get_external_lore(term)` | Зовнішні відомості для описів у глосарії |
+| `speaker_attribution` | `get_speaker_for_string()` | Крок **Name the speakers** і поле Speaker |
+| `message_window_preview` | `get_preview_window_style()` та гачки `get_window_*` | Ігрові вікна повідомлень у попередньому перегляді, ліміти за типом вікна в Settings |
+
+Не оголошуйте можливість, якої плагін не може забезпечити.
+
+**Слоти, а не значення.** `get_translation_context_for_string` повертає метадані під ключами, які публікує рушій: `window_type`, `content_role`, `role_instruction`, `has_speaker`, `glossary_section`, `force_glossary`. Значення належать плагіну: `content_role` може бути `"BossName"` чи будь-чим, що потрібно грі, а `role_instruction` — речення, яке пояснює моделі, що ця роль означає. Рушій ніколи не порівнює значення з конкретною грою, і код рушія не повинен його знати.
+
+**Мовці.** `get_speaker_for_string` повертає ідентифікатор, записаний у даних гри; рушій заповнює рядки, яких користувач не задав, і ніколи не перезаписує вибір користувача. `is_placeholder_speaker(name)` каже, чи є цей ідентифікатор внутрішнім кодом, який крок злиття зі сценарієм може замінити справжнім іменем (типово — так).
+
+**Вікна повідомлень.** Із `message_window_preview`: `get_preview_window_style(block_idx, string_idx)` дає стиль повідомлення; `get_window_presets()` / `get_window_preset_label()` / `get_window_style_for_preset()` живлять панель примусового вибору типу вікна; `get_window_frame(style)` повертає геометрію й картинку з файлів гри; `get_window_item_icon()` і `get_window_text_offset_y()` відповідають за слот предмета й вертикальне центрування гри; `get_window_layout_groups()` / `get_window_layouts_document()` / `save_window_layouts_document()` керують таблицею лімітів за типом вікна в Settings. `get_string_layout(block, string)` дає ширину, шрифт і кількість рядків на сторінку для окремого рядка (пріоритет: перевизначення рядка > цей гачок > загальні налаштування).
+
+**Зразкова реалізація.** `plugins/zelda_bmg/` (Twilight Princess) читає файли гри та декомпіляцію: атрибути повідомлень, що визначають вікно, а отже й роль повідомлення (`window_kinds.py`), графи діалогів (`msg_flow.py`), таблиці сцен (`stage_data.py`), розмітку за типом вікна, попередній перегляд із кольорами, масштабом та іконками, рамки вікон із локального дампа (`window_frame_loader.py`). Копіюйте підхід — знайдіть у даних гри поле, яке вже кодує, чим є повідомлення, і віддайте його через гачок, — а не таблиці.
+
+---
+
+## Тести плагіна
+
+Згенерований файл тестів — це початок. Додайте на справжніх даних: зразок, що розбирається в очікувані блоки; збереження туди й назад, яке зберігає кожне поле; правильні й неправильні теги; попередження про ширину на навмисно довгому рядку; автовиправлення, що повертає `(str, bool)` і не псує теги. Спільні перевірки — у `plugins/testing.py` (`check_loads`, `check_round_trip`, `check_validator`).
 
 ---
 
 ## Чого не робити
 
-- Не кладіть у коміт плагіна дампи гри, `.arc` чи ассети Nintendo.
-- Не хардкодьте цілі kind вікон Twilight Princess у **рушії**. Кладіть їх у плагін (`zelda_bmg` уже так робить).
-- Не вчіть рушій новому рядку `content_role`; повертайте `role_instruction` з плагіна.
-- Не оголошуйте `speaker_attribution`, якщо `get_speaker_for_string` насправді нічого не повертає.
-- Не копіюйте таблиці `zelda_bmg` в плагін іншої гри; копіюйте **підхід** (читати файли цієї гри, рекламувати capabilities).
-- Не забувайте `config.json` — без нього плагін не з’явиться в New Project / Settings.
+- Не кладіть дампи гри, архіви чи ресурси видавця в плагін, який комітите.
+- Не імпортуйте PyQt5; застосунок працює на PyQt6.
+- Не пишіть специфічну для гри поведінку в `plugins/common/` чи в рушій. Типи вікон, ідентифікатори предметів і назви ролей належать плагіну.
+- Не перевіряйте в коді плагіна об'єкти `Mock`.
+- Не повертайте метадані, які неможливо серіалізувати: вони потрапляють у файл сесії.
+- Не викидайте й не переставляйте невідомі поля формату файлу під час збереження.
+- Не копіюйте таблиці `zelda_bmg` у плагін іншої гри.
+- Не забувайте `config.json` — без нього плагін ніколи не з'явиться.

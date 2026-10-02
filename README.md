@@ -33,7 +33,7 @@ Interface language: **Language** menu lists every `locales/*.json` that already 
 - [Testing Strategy](docs/TESTING_STRATEGY_AND_AUDIT.md)
 - [ChatMock (ChatGPT web proxy)](docs/chatmock_setup.md)
 
-Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin READMEs) may lag the code. Use the wiki, then the source.
+Older markdown under `docs/` (pipeline roadmap, plugin READMEs) may lag the code. Use the wiki, then the source. Plugin authors: [Plugin Developer Guide](docs/wiki/3_Plugin_Developer_Guide.md) and the generated [plugin contract](docs/PLUGIN_CONTRACT.md).
 
 ---
 
@@ -376,7 +376,6 @@ Picoripi/
 │   ├── zelda_ww/               # Zelda: The Wind Waker plugin
 │   ├── pokemon_fr/             # Pokemon FireRed plugin
 │   ├── plain_text/             # Generic ruleset
-│   ├── DEVELOPER_GUIDE.md      # AI-oriented developer guide for plugins
 │   └── script_template.md      # Template for markdown timeline scripts
 ├── utils/                      # Syntax Highlighters, constants, logging
 └── tests/                      # Pytest unit testing suite

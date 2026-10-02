@@ -2,156 +2,147 @@
 
 **Language:** English · [Українська](uk/3_Plugin_Developer_Guide.md)
 
-This page is the plugin contract as implemented in code. Source of truth: `plugins/base_game_rules.py`, `ui/main_window/main_window_plugin_handler.py`, `handlers/project_action_handler.py` (discovery), `ui/settings/logging_mixin.py` (`find_plugins`).
+A plugin teaches Picoripi one game or text format: how to read and write its files, what its tags are, how wide a line may be, and — optionally — what the game's own data says about each line. This page is the only plugin guide. The list of every hook is generated from the code: [docs/PLUGIN_CONTRACT.md](../PLUGIN_CONTRACT.md).
 
-Do not treat `docs/PLUGIN_AUTHORING_GUIDE.md` or plugin READMEs as current unless you have just checked them against those files.
+Source of truth: `plugins/base_game_rules.py` (the hooks and their defaults), `plugins/spec.py` (the contract as data), `ui/main_window/main_window_plugin_handler.py` (loading), `ui/settings/logging_mixin.py` → `find_plugins` (discovery).
+
+---
+
+## Start a plugin
+
+```powershell
+.\venv\Scripts\python.exe tools/new_plugin.py <id> "<Display Name>" --prefix XX
+```
+
+`<id>` is the folder name under `plugins/`; `--prefix` is the short uppercase tag of the plugin's problem ids (`XX_WIDTH_EXCEEDED`). The command copies `plugins/default_plugin`, renames the prefix and the display name, and writes `tests/test_plugins/test_<id>/test_rules.py` with three passing checks (the plugin loads, a sample survives load and save, the validator passes). The application lists the new plugin at once.
+
+Then, in this order:
+
+1. Parsing: `load_data_from_json_obj` / `save_data_to_json_obj` in `rules.py`. Put a real sample into `SAMPLE` in the generated test before touching anything else.
+2. Tags: `tag_manager.py`.
+3. Widths: `fonts/*.json`, `font_map.json`, the limits in `config.json`.
+4. Prompts: `translation_prompts/prompts.json`, last.
+
+Check and test:
+
+```powershell
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m plugins.validate <id>
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_plugins/test_<id>/
+```
+
+`python -m plugins.validate` calls every hook with dummy arguments and reports a hook that raises, a wrong return type, a signature the host cannot call, a broken JSON file, per-session keys in `config.json`, and (as warnings) main-window attributes outside the allowed list.
+
+### Collect before coding
+
+The exact file format with sample source and translated files and the expected save output; the maximum width and lines per page; every tag and control code, which are zero-width and how wide the visible ones are; where font metrics come from; how pages break; speaker or chapter metadata; whether unknown fields must round-trip unchanged. `plugins/default_plugin/AI_PLUGIN_ASSISTANT_PROMPT.md` asks these questions in a form you can paste to an AI assistant.
 
 ---
 
 ## Discovery and load
 
-**Discovery** (New Project and Settings → Global → Active Game Plugin): every **directory** under `plugins/` that contains `config.json`. `import_plugins` is skipped in Settings. `display_name` in that JSON is the label; the folder name is the plugin id.
+**Discovery** (New Project and Settings → Global → Active Game Plugin): every directory under `plugins/` that contains `config.json`, except `import_plugins`. `display_name` in that file is the label and must be unique; the folder name is the plugin id.
 
-**Load:** `importlib.import_module(f"plugins.{active_game_plugin}.rules")`. The module must define `GameRules`, a subclass of `BaseGameRules`. Constructor: `GameRules(main_window_ref=self.mw)`.
+**Load:** `importlib.import_module(f"plugins.{id}.rules")`. The module must define `GameRules`, a subclass of `BaseGameRules`, constructed as `GameRules(main_window_ref=self.mw)`. It must also build without a main window (`GameRules()`): tests and the validator do that. No network, disk-heavy or archive work in `__init__`.
 
-If import fails, the user gets **Plugin Load Error** and the app falls back to `BaseGameRules` itself.
+If the import fails, the user gets **Plugin Load Error** and the application falls back to `BaseGameRules`. Switching plugins drops every loaded module of the plugin, so module-level caches start empty.
 
-Related modules are force-reloaded with the plugin: `config`, `tag_checker_handler`, `tag_manager`, `problem_analyzer`, `text_fixer`, `tag_logic`.
+**Aliases:** after load, `plugins/<id>/aliases.json` (shipped defaults, read-only) and then the user's own `aliases.json` from the per-user plugin folder are merged into `default_tag_mappings`. The application saves aliases only to the per-user folder.
 
-**Aliases:** `plugins/<id>/aliases.json` is merged into `default_tag_mappings` after load.
-
-**Project actions:** `get_plugin_actions()` may add menu/toolbar `QAction`s (`text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`).
+**Menu actions:** `get_plugin_actions()` may add `QAction`s (`name`, `text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`). The AI translate actions belong to the application and are present for every game.
 
 ---
 
-## Minimal plugin layout
-
-Copy `plugins/default_plugin/` to `plugins/<your_id>/`. Required for discovery + load:
+## Files of a plugin
 
 ```
-plugins/<your_id>/
-  config.json          # at least "display_name"
-  rules.py             # class GameRules(BaseGameRules)
+plugins/<id>/
+  config.json                         # required: at least "display_name"
+  rules.py                            # required: class GameRules(BaseGameRules)
+  config.py                           # problem ids and default detection / autofix settings
+  tag_manager.py                      # the game's tags and their highlighting
+  font_map.json, fonts/*.json         # widths
+  translation_prompts/prompts.json    # prompt sections the game changes
 ```
 
-Typical extra files (template has them): `config.py`, `tag_manager.py`, `font_map.json`, `fonts/`, `translation_prompts/prompts.json`, `aliases.json`.
+**`config.json`** — defaults for a new project: `display_name`, `game_dialog_max_width_pixels`, `line_width_warning_threshold_pixels`, `lines_per_page`, `default_font_file`, `detection_enabled`, `autofix_enabled`, colours and wrap flags. Per-session keys (open file paths, selection, scroll positions, search history) are refused by the validator; the application stores those in `project_settings.json`.
 
-`GameRules` declares its parts with class attributes and `BaseGameRules` wires them: `problem_prefix`, `problem_definitions`, `tag_manager_class`, `tag_style` (`"curly"` / `"square"`), `analyze_whole_string_first`, optionally `problem_analyzer_class` / `text_fixer_class` for game-specific checks. The hooks that only pass a call on (problem definitions, highlighting, analysis, autofix, short problem names) need not be written. Check a plugin with `python -m plugins.validate <name>`.
+**`config.py`** — `PROBLEM_DEFINITIONS, DEFAULT_DETECTION_SETTINGS, DEFAULT_AUTOFIX_SETTINGS = generate_base_config(PREFIX, overrides=…, custom_problems=…)` from `plugins/common/config_factory.py`.
 
-Start a new plugin with `python tools/new_plugin.py <id> "<Display Name>" --prefix XX`: it copies `plugins/default_plugin`, renames the problem-id prefix and the display name, and writes `tests/test_plugins/test_<id>/test_rules.py` with three passing checks from `plugins/testing.py` (loads, a sample survives load and save, the validator passes).
+**`rules.py`** — `GameRules` declares its parts with class attributes and `BaseGameRules` wires them:
 
-**File formats.** `get_file_formats()` returns `core.formats.FileFormat(extensions, mode, label)` items; `mode` is the shape in which a file's content reaches `load_data_from_json_obj` and leaves `save_data_to_json_obj`: `"json"` (parsed), `"text"` (a string) or `"bytes"`. The default is `.json` + `.txt`. A game with its own table returns e.g. `[FileFormat((".tbl",), "bytes", "Text tables"), *DEFAULT_FORMATS]` and parses the bytes itself — project import, loading, saving and the file dialogs follow without host changes. An archive format of the game is added with `ContainerManager.register(MyContainer, extensions=(".pak",))`.
+```python
+class GameRules(BaseGameRules):
+    problem_prefix = "XX"
+    problem_definitions = PROBLEM_DEFINITIONS
+    tag_manager_class = TagManager        # default: GenericTagManager
+    tag_style = "curly"                   # "square" when tags look [like this]
+    analyze_whole_string_first = True
+```
 
-**State that goes with the files.** If saving needs something the strings do not carry (table keys, the parsed binary file), keep it in the plugin and implement `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` (plain JSON data; the host keeps it across reloads, reverts and sessions) and `prepare_save_context(context)` (called before each project file is built; `context.block_indices`, `context.runtime_state`, `context.existing_versions()` yields the file's current bytes, translation first). The host never reads plugin attributes. See `plugins/pokemon_fr/rules.py` and `plugins/zelda_bmg/rules.py`.
+With these the base class builds the tag manager, the problem analyzer and the text fixer and answers the hooks that only pass a call on (problem definitions, highlighting, analysis, autofix, short problem names). Name `problem_analyzer_class` / `text_fixer_class` only for game-specific checks or fixes (subclass `GenericProblemAnalyzer` / `GenericTextFixer` from `plugins/common/`). `problem_ids = problem_ids(DEFINITIONS, PREFIX, without=(…))` leaves out standard checks the game does not use.
 
-**Message windows.** A plugin that lists `message_window_preview` in `get_capabilities()` can teach the preview its windows: `get_preview_window_style(block_idx, string_idx)` (the style of a message), `get_window_presets()` / `get_window_preset_label()` / `get_window_style_for_preset()` (the bar that forces a window kind), `get_window_frame(style)` (geometry and picture from the game's files), `get_window_item_icon()`, `get_window_text_offset_y()`, and for the Settings table of per-window limits `get_window_layout_groups()` / `get_window_layouts_document()` / `save_window_layouts_document()`. The host imports no game plugin; `plugins/zelda_bmg/rules.py` is the reference implementation.
+**`font_map.json` and `fonts/*.json`** — `fonts/*.json` are font maps (`{character: {"width": N}}`). The root `font_map.json` overrides widths of visible tags and icons: `{"[A]": {"width": 16}, "{COLOR_RED}": {"width": 0}}`. A visible icon tag is not zero-width.
 
-`translation_prompts/prompts.json` may hold only the sections the game changes (usually `translation`): the rest is merged in from `plugins/common/defaults/prompts.json`.
-
-`default_plugin.GameRules.get_display_name()` returns `Default Plugin Template`. `get_capabilities()` returns `set()` on purpose.
-
----
-
-## `config.json`
-
-Loaded for the display name and as a bag of plugin defaults. The template includes (non-exhaustive): `display_name`, `newline_display_symbol`, wrap flags, `game_dialog_max_width_pixels`, `line_width_warning_threshold_pixels`, `lines_per_page`, `default_font_file`, `autofix_enabled`, `detection_enabled`, tag/newline colours.
-
-Shipped ids and labels:
-
-| Folder | `display_name` |
-|--------|----------------|
-| `zelda_bmg` | Zelda: Twilight Princess BMG |
-| `zelda_mc` | The Legend of Zelda: The Minish Cap |
-| `zelda_ww` | Zelda: The Wind Waker |
-| `plain_text` | Zelda: The Wind Waker |
-| `pokemon_fr` | Pokemon FireRed/LeafGreen |
-| `default_plugin` | Default Plugin Template |
+**`translation_prompts/prompts.json`** — may hold only the sections the game changes (usually `translation`); the rest is merged in key by key from `plugins/common/defaults/prompts.json`. Never add an instruction that permits changing tags.
 
 ---
 
-## Capabilities
+## File formats and the state that goes with them
 
-`get_capabilities() -> Set[str]`. Empty means: pipeline still offers markup, context, glossary, and text translation. Optional names:
+`get_file_formats()` returns `core.formats.FileFormat(extensions, mode, label)` items. `mode` is the shape in which a file's content reaches `load_data_from_json_obj` and leaves `save_data_to_json_obj`: `"json"` (parsed), `"text"` (a string) or `"bytes"`. The default is `.json` + `.txt`. A game with its own table returns `[FileFormat((".tbl",), "bytes", "Text tables"), *DEFAULT_FORMATS]` and parses the bytes itself; project import, loading, saving and the open/save dialogs follow without host changes. An archive format is added with `ContainerManager.register(MyContainer, extensions=(".pak",))`.
 
-| Name | Hook | Who uses it |
-|------|------|-------------|
-| `glossary_seed` | `get_glossary_seed_entries()` | Glossary auto-pass |
-| `external_lore` | `get_external_lore(term)` | Describe pass |
-| `speaker_attribution` | `get_speaker_for_string()` | Pipeline **Name the speakers**; Speaker field |
-| `message_window_preview` | preview chrome / pagination | BFN preview window bar |
+Inside the application the text is `List[List[str]]` — blocks of strings — plus block names. `load_data_from_json_obj` returns `(blocks, block_names)`; `save_data_to_json_obj(blocks, block_names)` returns what goes back to the file. Unknown fields of the format must survive the round trip.
 
-`zelda_bmg` returns all four. Settings default `active_game_plugin` is `"zelda_mc"` until a project says otherwise (`core/settings/global_settings.py`).
-
-Optional hooks **not** on the base class, used if present: `get_preview_window_style(block, string)` (window chrome when `message_window_preview` is set), `msg_to_editor_text`, `export_runtime_session_state` / `restore_runtime_session_state`, `replace_runtime_names_for_ai`. `zelda_bmg.prepare_preview_glyph_text` may return a 4-tuple `(text, colors, scales, icons)`; the preview accepts the base 2-tuple as well.
-
-There is no `get_plugin()` / `PluginManager`. Import plugins under `plugins/import_plugins/` (`BaseImportRules`) are a separate paste-import path, not this loader.
-
-Seed dict keys: `term` (required), `description`, `section`, `icon`, `source_ref`.
-
-`is_placeholder_speaker(name)`: `True` (default) = merge step may replace this identity with a script name. Return `False` for already-display names (`System`, curated names).
+If saving needs something the strings do not carry (table keys, the parsed binary file), keep it in the plugin and implement `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` — plain JSON data that the host keeps across reloads, reverts and sessions — and `prepare_save_context(context)`, called before each project file is built (`context.block_indices`, `context.runtime_state`, `context.existing_versions()` yields the file's current bytes, translation first). The host never reads plugin attributes. Examples: `plugins/pokemon_fr/rules.py` (keys), `plugins/zelda_bmg/rules.py` (a binary file patched on save).
 
 ---
 
-## Data in and out
+## Capabilities and the game's own data
 
-Internal store is `List[List[str]]` (blocks of strings) plus block names.
+Everything above is the required minimum. Beyond it a plugin can mine the game's own data — message attributes, dialogue graphs, scene tables — or an outside lore source, and feed that into AI translation, glossary building and the Story Timeline. All of it is opt-in; every hook has a safe default.
 
-| Method | Role |
-|--------|------|
-| `load_data_from_json_obj(json_data)` | File bytes/JSON/text → `(blocks, extra_dict)`. `zelda_bmg` accepts **bytes** via `bmg_tool.BMGFile` |
-| `save_data_to_json_obj(data, block_names)` | Inverse; may return text **or packed bytes** (BMG) |
-| `convert_editor_text_to_data(text)` | Editor → stored (default: aliases → tags) |
-| `get_text_representation_for_editor(subline)` | Stored → editor (default: tags → aliases) |
-| `get_text_representation_for_preview(data_string)` | Preview list; newlines become `newline_display_symbol` |
-| `prepare_preview_glyph_text(text)` | Visual BFN preview: strip tags, optional per-char colours |
-| `get_enter_char` / `get_shift_enter_char` / `get_ctrl_enter_char` | What Enter inserts |
+| If you have | What becomes possible |
+|---|---|
+| A decompilation or the game's source | window kinds, dialogue flow, scene tables, actor placement |
+| Raw game files (message archives, stage data) | the same, by parsing the binaries |
+| A community wiki | lore lookup for glossary descriptions |
+| A fan script or walkthrough | scene and speaker structure for MemPalace |
+| Only the extracted text | nothing here is needed — the text sweep still builds a glossary |
 
-Base `load_data_from_json_obj` understands a list, `{ "strings": [...] }`, and Kruptar `{END}` text.
+`get_capabilities() -> Set[str]` tells the Localization Pipeline which steps to offer. Declaring nothing is a complete answer.
 
----
+| Name | Hook it promises | What appears |
+|---|---|---|
+| `glossary_seed` | `get_glossary_seed_entries()` | Glossary terms taken from game data without an AI request (`term`, `description`, `section`, `icon`, `source_ref`, `blocks`) |
+| `external_lore` | `get_external_lore(term)` | Outside knowledge for glossary descriptions |
+| `speaker_attribution` | `get_speaker_for_string()` | The **Name the speakers** step and the Speaker field |
+| `message_window_preview` | `get_preview_window_style()` and the `get_window_*` hooks | In-game message windows in the preview, per-window limits in Settings |
 
-## Layout, tags, issues
+Do not declare a capability the plugin cannot deliver.
 
-| Method | Role |
-|--------|------|
-| `get_string_layout(block, string)` | Optional `{warn_width, max_width, font_file, lines_per_page}`. Priority: per-string metadata > this hook > global plugin settings |
-| `get_problem_definitions()` | `{id: {name, …}}` for Detection / Auto-fix / Warnings filter |
-| `analyze_subline(...)` | Return a set of problem ids for one visual line |
-| `autofix_data_string(..., page_local=False)` | Return `(new_text, changed)` |
-| `get_short_problem_name(id)` | Label |
-| `get_default_tag_mappings()` | alias → original tag |
-| `get_dynamic_name_tags()` | `{tag: display_name}` substituted before script matching |
-| `get_spellcheck_ignore_pattern()` | Regex of tags/control codes to skip |
-| `get_legitimate_tags()` | Default empty |
-| `get_syntax_highlighting_rules()` | `List[Tuple[pattern, QTextCharFormat]]` |
-| `get_tag_tooltip(tag)` | Hover text |
-| `get_tag_checker_handler()` | Optional checker object |
-| `get_custom_context_tags()` / `save_custom_context_tags` | Context Tags settings |
-| `get_context_menu_actions(editor, selected_text)` | Extra editor menu items |
-| `get_editor_page_size()` | Default 2 |
-| `calculate_string_width_override(...)` | Optional pixel width |
-| `process_pasted_segment(...)` | Paste sanitiser |
+**Slots, not values.** `get_translation_context_for_string` returns metadata under keys the engine publishes — `window_type`, `content_role`, `role_instruction`, `has_speaker`, `glossary_section`, `force_glossary`. The values are the plugin's: `content_role` may be `"BossName"` or anything the game needs, and `role_instruction` is the sentence that tells the model what the role means. The engine never compares a value to a specific game, and engine code must not learn one.
+
+**Speakers.** `get_speaker_for_string` returns the identity the game data records; the engine fills rows the user has not set and never overwrites a user's choice. `is_placeholder_speaker(name)` says whether that identity is an internal id the script-merge step may replace with a real name (default: yes).
+
+**Message windows.** With `message_window_preview`: `get_preview_window_style(block_idx, string_idx)` gives the style of a message; `get_window_presets()` / `get_window_preset_label()` / `get_window_style_for_preset()` feed the bar that forces a window kind; `get_window_frame(style)` returns geometry and picture read from the game's files; `get_window_item_icon()` and `get_window_text_offset_y()` cover the item slot and the game's vertical centring; `get_window_layout_groups()` / `get_window_layouts_document()` / `save_window_layouts_document()` drive the Settings table of per-window limits. `get_string_layout(block, string)` gives per-string width, font and lines per page (priority: per-string override > this hook > global settings).
+
+**Reference implementation.** `plugins/zelda_bmg/` (Twilight Princess) reads the game's files and a decompilation: message attributes that identify the window and therefore the role of a message (`window_kinds.py`), dialogue flow graphs (`msg_flow.py`), scene tables (`stage_data.py`), per-window layout, a preview with colours, scaling and icons, window frames from a local dump (`window_frame_loader.py`). Copy the approach — find the field in the game's data that already encodes what a message is, and expose it through a hook — not the tables.
 
 ---
 
-## Speakers, scene, AI metadata
+## Tests for a plugin
 
-| Method | Role |
-|--------|------|
-| `get_speaker_for_string(block, string)` | Game-data speaker; engine fills rows the user has not set; never overwrites a user choice |
-| `get_addressee_for_string(block, string, speaker=)` | T–V / gendered address |
-| `should_auto_match_story_context(block, string)` | Default True; skip automatic dialogue matching if False |
-| `get_translation_context_for_string(block, string)` | See [11](11_AI_Translation.md). Engine never compares values to a specific game |
-| `get_ai_flow_context_for_string` / `get_ai_flow_overview` | Dialogue-graph notes in the prompt |
-| `get_scene_context_for_string` | Story Timeline evidence (`resource`, `msg_group`, `flow_ids`, `candidate_actors`, …) |
+The generated test file is the start. Add, with real data: a sample that parses into the expected blocks; a save round trip that keeps every field; valid and invalid tags; a width warning on a deliberately long line; autofix returning `(str, bool)` without damaging tags. `plugins/testing.py` has the shared checks (`check_loads`, `check_round_trip`, `check_validator`).
 
 ---
 
 ## What not to do
 
-- Do not put game dumps, `.arc`, or Nintendo assets in a plugin you commit.
-- Do not hard-code Twilight Princess window kind integers in the **engine**. Put them in the plugin (`zelda_bmg` already does).
-- Do not teach the engine a new `content_role` string; return `role_instruction` from the plugin instead.
-- Do not declare `speaker_attribution` unless `get_speaker_for_string` actually returns identities.
-- Do not copy `zelda_bmg` tables into a new game plugin; copy the **approach** (read this game’s files, advertise capabilities).
-- Do not forget `config.json` — without it the plugin never appears in New Project / Settings.
+- Do not put game dumps, archives or the publisher's assets in a plugin you commit.
+- Do not import PyQt5; the application is PyQt6.
+- Do not write game-specific behaviour into `plugins/common/` or into the engine. Window kinds, item ids and role names belong to the plugin.
+- Do not check for `Mock` objects in plugin code.
+- Do not return metadata that cannot be serialised: it ends up in the session file.
+- Do not drop or reorder unknown fields of the file format on save.
+- Do not copy `zelda_bmg` tables into another game's plugin.
+- Do not forget `config.json` — without it the plugin never appears.

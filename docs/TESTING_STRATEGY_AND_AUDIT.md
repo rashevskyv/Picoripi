@@ -122,7 +122,7 @@ Recommended direction:
 
 ### T-R05. Documentation Drift Has A Testing Impact
 
-Outdated docs can cause contributors to write tests or plugins against old assumptions. One example found during this audit: `plugins/DEVELOPER_GUIDE.md` still referenced `PyQt5` even though the app uses `PyQt6`.
+Outdated docs can cause contributors to write tests or plugins against old assumptions. One example found during this audit: the old `plugins/DEVELOPER_GUIDE.md` (removed since; the plugin guide is `docs/wiki/3_Plugin_Developer_Guide.md`) still referenced `PyQt5` even though the app uses `PyQt6`.
 
 Risk:
 

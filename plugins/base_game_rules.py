@@ -252,7 +252,7 @@ class BaseGameRules:
         is a complete answer: the pipeline wizard still offers the whole path
         that works on extracted text alone.
 
-        Recognised names, documented in docs/PLUGIN_AUTHORING_GUIDE.md:
+        Recognised names, documented in docs/wiki/3_Plugin_Developer_Guide.md:
         ``glossary_seed`` (``get_glossary_seed_entries``),
         ``external_lore`` (``get_external_lore``),
         ``speaker_attribution`` (``get_speaker_for_string``),
