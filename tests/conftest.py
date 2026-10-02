@@ -14,7 +14,8 @@ Qt.FontRole = Qt.ItemDataRole.FontRole
 Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
 
 from unittest.mock import MagicMock, Mock
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtWidgets import QApplication, QWidget
 from core.data_store import ViewKind
 
 class MockMainWindow(MagicMock):
@@ -184,6 +185,58 @@ def _stop_lingering_qthreads():
         except RuntimeError:
             # The C++ object may already be gone; that's fine.
             pass
+
+
+def _describe_widget(widget) -> str:
+    if widget is None:
+        return "None"
+    try:
+        return f"{type(widget).__name__}(name={widget.objectName()!r}, title={widget.windowTitle()!r}, visible={widget.isVisible()})"
+    except RuntimeError:
+        return f"{type(widget).__name__}(deleted)"
+
+
+def _describe_window(window) -> str:
+    if window is None:
+        return "None"
+    try:
+        return (
+            f"{type(window).__name__}(name={window.objectName()!r}, visible={window.isVisible()}, "
+            f"active={window.isActive()}, exposed={window.isExposed()}, modality={window.modality().name})"
+        )
+    except RuntimeError:
+        return f"{type(window).__name__}(deleted)"
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Attach the Qt focus/window state to a failed test's report.
+
+    Click- and focus-dependent tests fail intermittently under xdist; what the
+    application looked like at that moment is the evidence that is otherwise lost.
+    """
+    outcome = yield
+    report = outcome.get_result()
+    if report.when != "call" or not report.failed:
+        return
+    app = QApplication.instance()
+    if app is None:
+        return
+    lines = [
+        f"focusWidget: {_describe_widget(app.focusWidget())}",
+        f"activeWindow: {_describe_widget(app.activeWindow())}",
+        f"activeModalWidget: {_describe_widget(app.activeModalWidget())}",
+        f"activePopupWidget: {_describe_widget(app.activePopupWidget())}",
+        f"mouseGrabber: {_describe_widget(QWidget.mouseGrabber())}",
+    ]
+    lines += [f"top-level: {_describe_widget(w)}" for w in app.topLevelWidgets()]
+    lines += [
+        f"applicationState: {app.applicationState().name}",
+        f"focusWindow: {_describe_window(QGuiApplication.focusWindow())}",
+        f"modalWindow: {_describe_window(QGuiApplication.modalWindow())}",
+    ]
+    lines += [f"window: {_describe_window(w)}" for w in QGuiApplication.topLevelWindows()]
+    report.sections.append(("Qt state at failure", "\n".join(lines)))
 
 
 @pytest.fixture(autouse=True)
