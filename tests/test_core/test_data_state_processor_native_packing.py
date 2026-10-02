@@ -60,6 +60,7 @@ def test_save_current_edits_native_packing():
     # Patch Path operations, BMGFile, and ContainerManager
     with patch("core.containers.ContainerManager.open") as mock_cm_open, \
          patch("core.formats.write_file", return_value=(True, None)) as mock_write_file, \
+         patch("core.data_processor.save_mixin.atomic_write_bytes") as mock_archive_write, \
          patch("core.data_state_processor.Path") as mock_path:
 
          # Mock path exists and writes
@@ -102,7 +103,7 @@ def test_save_current_edits_native_packing():
          
          # Verify packed bytes were written to the correct absolute destination archive path
          mock_path.assert_any_call("C:/Temp/project/translation/bmgres.arc")
-         mock_path_instance.write_bytes.assert_called_once_with(b"PACKED_ARC_BYTES")
+         mock_archive_write.assert_called_once_with(mock_path_instance, b"PACKED_ARC_BYTES")
          
          # Verify issues cache saving was triggered
          mw.issue_scan_handler._save_issues_cache.assert_called_once()
@@ -148,6 +149,7 @@ def test_save_current_edits_native_packing_exceeds_size():
 
     with patch("core.containers.ContainerManager.open") as mock_cm_open, \
          patch("core.formats.write_file", return_value=(True, None)), \
+         patch("core.data_processor.save_mixin.atomic_write_bytes"), \
          patch("core.data_state_processor.Path") as mock_path:
 
          mock_path_instance = MagicMock()

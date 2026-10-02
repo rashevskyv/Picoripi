@@ -269,3 +269,14 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **The plain-text plugin is labelled "Plain Text" (5.8).** Its `config.json` said "Zelda: The Wind
       Waker", the same label as the Wind Waker plugin, so the plugin list could show only one of them.
 
+## WP6 — stability
+
+- [ ] **Every save goes through a temporary file now (6.1).** Save a translation, a project with archives, the
+      glossary and the settings as usual; the files must be byte-for-byte what they were before (line endings
+      included — covered by a test, but look at one `.txt` game file in your diff tool). While a save runs you
+      may see a short-lived `name.ext.<random>.tmp` next to the file; it must be gone afterwards. If an
+      antivirus or a sync client locks the target, the save is retried three times and then reports an error
+      instead of leaving a half-written file.
+- [ ] **The session autosave is pickled in memory first (6.1).** For a very large project that is one extra
+      copy of the snapshot in RAM during the autosave. Tell me if autosave became noticeably slower.
+

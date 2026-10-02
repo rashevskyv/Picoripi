@@ -1,5 +1,6 @@
 """Project/template/recipe IO, export, progress, and autosave tick."""
 from __future__ import annotations
+from utils.atomic_io import atomic_write_json, atomic_write_text
 
 import os
 import json
@@ -35,8 +36,7 @@ class ProjectIoMixin:
         if not path:
             return False
         try:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(payload, f, indent=2, ensure_ascii=False)
+            atomic_write_json(path, payload, indent=2, ensure_ascii=False)
             self._last_json_payload_path = str(Path(path).resolve())
             log_info(f"ScriptMarkupStudio: saved {payload.get('format', 'json')} to {path}")
             QMessageBox.information(self, tr('Saved'), f"Saved to:\n{path}")
@@ -282,13 +282,7 @@ class ProjectIoMixin:
         self._record_history()
         try:
             resolved = str(Path(project_path).resolve())
-            with open(resolved, "w", encoding="utf-8") as project_file:
-                json.dump(
-                    self._hierarchy_project_payload(),
-                    project_file,
-                    indent=2,
-                    ensure_ascii=False,
-                )
+            atomic_write_json(resolved, self._hierarchy_project_payload(), indent=2, ensure_ascii=False)
         except OSError as exc:
             QMessageBox.warning(self, tr('Save failed'), f"Could not update the project:\n{exc}")
             return False
@@ -366,8 +360,7 @@ class ProjectIoMixin:
         if not path:
             return
         try:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(self._psm_text)
+            atomic_write_text(path, self._psm_text)
             QMessageBox.information(self, tr('Exported'), f"Saved standardized script to:\n{path}")
             log_info(f"ScriptMarkupStudio: exported standardized script to {path}")
         except Exception as e:
@@ -378,8 +371,7 @@ class ProjectIoMixin:
         if not path:
             return
         try:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(self.recipe.to_dict(), f, indent=2, ensure_ascii=False)
+            atomic_write_json(path, self.recipe.to_dict(), indent=2, ensure_ascii=False)
             log_info(f"ScriptMarkupStudio: saved recipe to {path}")
         except Exception as e:
             QMessageBox.warning(self, tr('Save failed'), f"Could not write recipe:\n{e}")
@@ -410,8 +402,7 @@ class ProjectIoMixin:
         if self.current_hierarchy_project_path:
             try:
                 payload = self._hierarchy_project_payload()
-                with open(self.current_hierarchy_project_path, "w", encoding="utf-8") as f:
-                    json.dump(payload, f, indent=2, ensure_ascii=False)
+                atomic_write_json(self.current_hierarchy_project_path, payload, indent=2, ensure_ascii=False)
                 self._last_json_payload_path = self.current_hierarchy_project_path
                 self._last_saved_state = copy.deepcopy(self._history_snapshot())
                 self._is_autosaved_dirty = False

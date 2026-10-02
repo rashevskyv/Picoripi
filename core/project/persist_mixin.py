@@ -1,5 +1,6 @@
 """Create/load/save and project settings persistence for ProjectManager."""
 from __future__ import annotations
+from utils.atomic_io import atomic_write_json
 
 import json
 from pathlib import Path
@@ -140,8 +141,7 @@ class PersistMixin:
 
             # Save project file
             p_file = Path(self.project_file_path)
-            with p_file.open('w', encoding='utf-8') as f:
-                json.dump(self.project.to_dict(), f, indent=4, ensure_ascii=False)
+            atomic_write_json(p_file, self.project.to_dict(), indent=4, ensure_ascii=False)
 
             log_debug(f"Saved project '{self.project.name}' to {self.project_file_path}")
             return True

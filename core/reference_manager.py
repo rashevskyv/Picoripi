@@ -8,6 +8,7 @@ delegated to the active plugin via the BaseGameRules contract:
 - game_rules.load_reference_patch(patch_path, block_names)
 """
 from __future__ import annotations
+from utils.atomic_io import atomic_write_json
 
 import json
 from pathlib import Path
@@ -42,8 +43,7 @@ class ReferenceManager:
                 with open(settings_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
             data["reference_patch_path"] = str(patch_path)
-            with open(settings_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            atomic_write_json(settings_path, data, ensure_ascii=False, indent=2)
             log_info(f"ReferenceManager: saved reference_patch_path='{patch_path}'")
         except Exception as e:
             log_error(f"ReferenceManager: failed to save reference_patch_path: {e}")

@@ -1,4 +1,5 @@
 """Save helpers for DataStateProcessor."""
+from utils.atomic_io import atomic_write_bytes
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -151,8 +152,8 @@ class SaveMixin:
                                     log_error(f"Error checking archive size: {size_err}", category="file_ops")
 
                                 dest_archive_path = Path(self.mw.project_manager.get_absolute_path(archive_rel_path, is_translation=True))
-                                dest_archive_path.parent.mkdir(parents=True, exist_ok=True)
-                                dest_archive_path.write_bytes(packed_bytes)
+                                # In one step: a crash while packing must not leave half an archive.
+                                atomic_write_bytes(dest_archive_path, packed_bytes)
                                 self.mw.project_manager.clear_archive_cache()
 
                             except Exception as archive_err:

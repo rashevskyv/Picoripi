@@ -1,3 +1,4 @@
+from utils.atomic_io import atomic_write_json
 import ast
 import json
 import os
@@ -251,8 +252,7 @@ class PluginSettings:
             aliases_path = user_plugin_dir(plugin_name) / "aliases.json"
             try:
                 aliases_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(aliases_path, 'w', encoding='utf-8') as f:
-                    json.dump(getattr(self.mw, 'default_tag_mappings', {}), f, indent=4, ensure_ascii=False)
+                atomic_write_json(aliases_path, getattr(self.mw, 'default_tag_mappings', {}), indent=4, ensure_ascii=False)
                 log_info(f"Saved default tag mappings to {aliases_path}")
             except Exception as e:
                 log_error(f"Failed to save aliases to {aliases_path}: {e}")
@@ -328,8 +328,7 @@ class PluginSettings:
         
         try:
             project_settings_path.parent.mkdir(parents=True, exist_ok=True)
-            with project_settings_path.open('w', encoding='utf-8') as f:
-                json.dump(project_data, f, indent=4, ensure_ascii=False)
+            atomic_write_json(project_settings_path, project_data, indent=4, ensure_ascii=False)
             log_debug(f"Project settings saved to '{project_settings_path}'.")
         except Exception as e:
             log_error(f"ERROR saving project settings to '{project_settings_path}': {e}", exc_info=True)
@@ -353,8 +352,7 @@ class PluginSettings:
 
         project_data["block_names"] = self.mw.data_store.block_names
         try:
-            with project_settings_path.open('w', encoding='utf-8') as f:
-                json.dump(project_data, f, indent=4, ensure_ascii=False)
+            atomic_write_json(project_settings_path, project_data, indent=4, ensure_ascii=False)
             log_debug(f"Block names saved successfully to '{project_settings_path}'.")
         except Exception as e:
             log_error(f"ERROR saving block names: {e}", exc_info=True)

@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- wp6 6.1: files that hold a user's work are written atomically (`utils/atomic_io.py`: temporary file in the same folder, flushed to disk, renamed over the target, three tries when the target is briefly locked) — translation files, packed game archives, the project file, project and global settings, the glossary, the session, saved translations, Script Markup projects, font maps, prompt overrides. A crash or a full disk in the middle of a save leaves the previous file intact. Line endings are unchanged.
 ## [0.3.146-dev] - 2026-10-02
 
 - wp5 5.8: one plugin guide — `docs/wiki/3_Plugin_Developer_Guide.md` (EN + UK) absorbs `docs/PLUGIN_AUTHORING_GUIDE.md` and `plugins/DEVELOPER_GUIDE.md` (both removed); the list of hooks is `docs/PLUGIN_CONTRACT.md`, generated from `plugins/spec.py` (`python -m plugins.spec --write`) and checked by a test. The plain-text plugin is now labelled "Plain Text" (it shared the label "Zelda: The Wind Waker" with the Wind Waker plugin, so only one of the two could be picked).

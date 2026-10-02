@@ -1,6 +1,6 @@
 from __future__ import annotations
+from utils.atomic_io import atomic_write_json
 from utils.constants import plugins_root
-import json
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QDialog, QApplication
 from PyQt6.QtCore import Qt
 from dialogs.tag_alias_dialog import TagAliasDialog, AliasUpdateWorker
@@ -248,8 +248,7 @@ class MainWindowTagAliasActionsMixin:
         override_path.parent.mkdir(parents=True, exist_ok=True)
         
         try:
-            with override_path.open('w', encoding='utf-8') as f:
-                json.dump(self.mw.font_map_overrides, f, indent=4, ensure_ascii=False)
+            atomic_write_json(override_path, self.mw.font_map_overrides, indent=4, ensure_ascii=False)
             log_info(f"Successfully saved {len(self.mw.font_map_overrides)} overrides to {override_path}")
         except Exception as e:
             log_error(f"Failed to save font_map.json to disk: {e}")

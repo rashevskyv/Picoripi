@@ -1,3 +1,4 @@
+from utils.atomic_io import atomic_write_text
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
@@ -433,7 +434,7 @@ class CompanionSyncClient:
 
                 if glossary_path:
                     raw_json = json.dumps(remote_glossary, ensure_ascii=False, indent=2) + "\n"
-                    glossary_path.write_text(raw_json, encoding="utf-8")
+                    atomic_write_text(glossary_path, raw_json)
                     log_info(f"CompanionSyncClient: Pulled and saved {changed_count} updated terms to {glossary_path}")
 
                 return True, f"Successfully pulled {changed_count} updated terms from Companion server.", changed_count
@@ -574,7 +575,7 @@ class CompanionSyncClient:
             if glossary_path:
                 try:
                     raw_json = json.dumps(merged_entries, ensure_ascii=False, indent=2) + "\n"
-                    glossary_path.write_text(raw_json, encoding="utf-8")
+                    atomic_write_text(glossary_path, raw_json)
                     log_info(f"CompanionSyncClient: Saved {pulled} pulled terms to {glossary_path}")
                 except Exception as exc:
                     log_error(f"CompanionSyncClient: Failed writing local glossary: {exc}")

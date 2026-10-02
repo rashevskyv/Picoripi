@@ -1,4 +1,5 @@
 # handlers/issue_scan_handler.py
+from utils.atomic_io import atomic_write_json
 import json
 from pathlib import Path
 from typing import Optional, Tuple
@@ -105,8 +106,7 @@ class IssueScanHandler(BaseHandler):
                 "problems": problems_by_block
             }
             
-            with cache_path.open('w', encoding='utf-8') as f:
-                json.dump(cache_data, f, indent=4, ensure_ascii=False)
+            atomic_write_json(cache_path, cache_data, indent=4, ensure_ascii=False)
                 
             log_debug(f"Saved issues cache to {cache_path}")
         except Exception as e:

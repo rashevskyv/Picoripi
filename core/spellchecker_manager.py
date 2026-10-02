@@ -1,4 +1,5 @@
 # /home/runner/work/RAG_project/RAG_project/core/spellchecker_manager.py
+from utils.atomic_io import atomic_write_json
 import re
 import threading
 from pathlib import Path
@@ -412,7 +413,6 @@ class SpellcheckerManager(QObject):
         if not self._spell_cache:
             return
         try:
-            import json
             # Save only entries with reasonable keys
             to_save = {k: v for k, v in self._spell_cache.items() if len(k) < 32}
             # Limit cache size to avoid huge files (e.g. 20k entries)
@@ -421,8 +421,7 @@ class SpellcheckerManager(QObject):
                 to_save = dict(list(to_save.items())[:20000])
                 
             self._cache_file.parent.mkdir(parents=True, exist_ok=True)
-            with self._cache_file.open('w', encoding='utf-8') as f:
-                json.dump(to_save, f, ensure_ascii=False, indent=0)
+            atomic_write_json(self._cache_file, to_save, ensure_ascii=False, indent=0)
             log_debug(f"Saved {len(to_save)} spell cache entries to disk.")
         except Exception as e:
             log_error(f"Failed to save persistent spell cache: {e}")

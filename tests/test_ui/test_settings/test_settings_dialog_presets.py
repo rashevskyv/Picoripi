@@ -191,7 +191,7 @@ def test_zelda_bmg_rules_show_per_window_controls(qapp):
     assert dialog.get_settings()["use_per_window_layouts"] is False
 
 
-def test_zelda_bmg_window_rules_save_grouped_kinds_only_on_accept(qapp, tmp_path):
+def test_zelda_bmg_window_rules_save_grouped_kinds_only_on_accept(qapp, tmp_path, monkeypatch):
     source = Path("plugins/zelda_bmg/window_layouts.json")
     before = source.read_text(encoding="utf-8")
     target = tmp_path / "window_layouts.json"
@@ -199,6 +199,8 @@ def test_zelda_bmg_window_rules_save_grouped_kinds_only_on_accept(qapp, tmp_path
     mw = _zelda_bmg_window(target)
     mw.current_game_rules._get_window_layouts()            # a cache the save has to drop
     dialog = SettingsDialog(mw)
+    # OK also stores the font map table in the plugin folder; keep that out of the repository.
+    monkeypatch.setattr("ui.settings.load_save_mixin.plugins_root", lambda: tmp_path / "plugins")
 
     sign_controls = dialog._zelda_window_layout_controls["signs"]
     sign_controls["warn_width"].setValue(261)

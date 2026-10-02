@@ -5,6 +5,7 @@ as the per-block AI Build Glossary action, runs GlossaryBuildWorker, and reports
 progress through the shared AIStatusDialog.
 """
 from __future__ import annotations
+from utils.atomic_io import atomic_write_text
 
 import hashlib
 import json
@@ -248,10 +249,7 @@ class GlossaryPipelineHandler:
         if path is None:
             return
         try:
-            path.write_text(
-                json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True),
-                encoding="utf-8",
-            )
+            atomic_write_text(path, json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True))
         except OSError as exc:
             log_error(f"GlossaryPipelineHandler: saving incremental scan state failed: {exc}")
 

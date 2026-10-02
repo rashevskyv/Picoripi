@@ -1,3 +1,4 @@
+from utils.atomic_io import atomic_write_json
 import json
 import base64
 from pathlib import Path
@@ -303,8 +304,7 @@ class GlobalSettings:
         except Exception as e: log_warning(f"Failed to save splitter state(s): {e}")
 
         try:
-            with p_file.open('w', encoding='utf-8') as f:
-                json.dump(global_data, f, indent=4, ensure_ascii=False)
+            atomic_write_json(p_file, global_data, indent=4, ensure_ascii=False)
             log_debug("Global settings saved.")
         except Exception as e:
             log_error(f"ERROR saving global settings: {e}", exc_info=True)

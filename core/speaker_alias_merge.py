@@ -15,6 +15,7 @@ Pure and Qt-free: callers supply plain rows, so the whole join is testable
 without a project, a plugin or a script parser.
 """
 from __future__ import annotations
+from utils.atomic_io import atomic_write_text
 
 import re
 from collections import Counter, defaultdict
@@ -262,11 +263,7 @@ def save_speaker_aliases(project_dir, aliases: Dict[str, str]) -> Optional[str]:
         return None
     path = Path(project_dir) / ALIAS_FILENAME
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps(dict(sorted(aliases.items())), ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        atomic_write_text(path, json.dumps(dict(sorted(aliases.items())), ensure_ascii=False, indent=2) + "\n")
     except OSError:
         return None
     return str(path)

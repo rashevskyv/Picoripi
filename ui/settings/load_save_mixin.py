@@ -1,5 +1,5 @@
+from utils.atomic_io import atomic_write_json
 from utils.constants import plugins_root
-import json
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
@@ -267,8 +267,7 @@ class SettingsLoadSaveMixin:
                 font_map_path = plugins_root() / selected_dir_name / "font_map.json"
                 try:
                     font_map_path.parent.mkdir(parents=True, exist_ok=True)
-                    with open(font_map_path, 'w', encoding='utf-8') as f:
-                        json.dump(new_font_map, f, indent=4, ensure_ascii=False)
+                    atomic_write_json(font_map_path, new_font_map, indent=4, ensure_ascii=False)
                     self.mw.current_font_map = new_font_map
                     self.rules_changed_requires_rescan = True
                 except Exception as e:

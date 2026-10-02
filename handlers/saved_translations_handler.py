@@ -1,4 +1,5 @@
 # handlers/saved_translations_handler.py
+from utils.atomic_io import atomic_write_json
 import json
 import datetime
 from collections.abc import Mapping
@@ -262,8 +263,7 @@ class SavedTranslationsHandler(BaseHandler):
                 export_data["files"][block_source_file][block_internal_key] = block_translations
 
         try:
-            with open(save_path, 'w', encoding='utf-8') as f:
-                json.dump(export_data, f, ensure_ascii=False, indent=2)
+            atomic_write_json(save_path, export_data, ensure_ascii=False, indent=2)
             QMessageBox.information(
                 self.ctx, tr('Export Translations'),
                 f'Successfully exported translations to:\n{save_path}'
@@ -320,8 +320,7 @@ class SavedTranslationsHandler(BaseHandler):
                 export_data["files"][block_source_file][block_internal_key] = block_originals
 
         try:
-            with open(save_path, 'w', encoding='utf-8') as f:
-                json.dump(export_data, f, ensure_ascii=False, indent=2)
+            atomic_write_json(save_path, export_data, ensure_ascii=False, indent=2)
             QMessageBox.information(
                 self.ctx, tr('Export Original Text'),
                 f'Successfully exported original text to:\n{save_path}'

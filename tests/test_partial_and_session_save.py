@@ -151,21 +151,21 @@ def test_dirty_flag_behavior(dsp, mock_mw, tmp_path):
     session_file = Path(tmp_path) / ".picoripi_session"
     dsp._session_dirty = False
     
-    # Mock pickle.dump to see if it is called
-    with patch("pickle.dump") as mock_dump:
+    # Mock pickle.dumps to see if it is called
+    with patch("pickle.dumps", return_value=b"snapshot") as mock_dump:
         dsp._autosave_session(force=False)
         mock_dump.assert_not_called()
         assert not session_file.exists()
         
     # 4. _autosave_session() with force=True should write even if dirty=False
-    with patch("pickle.dump") as mock_dump:
+    with patch("pickle.dumps", return_value=b"snapshot") as mock_dump:
         dsp._autosave_session(force=True)
         mock_dump.assert_called_once()
         assert dsp._session_dirty is False  # becomes clean after save
         
     # 5. _autosave_session() with dirty=True should write
     dsp._session_dirty = True
-    with patch("pickle.dump") as mock_dump:
+    with patch("pickle.dumps", return_value=b"snapshot") as mock_dump:
         dsp._autosave_session(force=False)
         mock_dump.assert_called_once()
         assert dsp._session_dirty is False  # becomes clean after save

@@ -75,7 +75,7 @@ def test_saved_translations_handler_save_translation_action(mock_ctx):
         mock_ctx.saved_translations_manager.save_translation.assert_called_with(0, 0, "Edited translation")
         mock_info.assert_called_once()
 
-def test_saved_translations_handler_export_translations(mock_ctx):
+def test_saved_translations_handler_export_translations(mock_ctx, tmp_path):
     data_processor = MagicMock()
     data_processor.is_string_translated.return_value = True
     data_processor.get_current_string_text.return_value = ("Translated String", None)
@@ -85,13 +85,12 @@ def test_saved_translations_handler_export_translations(mock_ctx):
     
     handler = SavedTranslationsHandler(mock_ctx, data_processor, MagicMock())
     
-    m_open = mock_open()
-    with patch('builtins.open', m_open):
-        with patch.object(QFileDialog, 'getSaveFileName', return_value=("/path/to/export.json", "json")):
-            with patch.object(QMessageBox, 'information') as mock_info:
-                handler.export_translations_to_json_action()
-                m_open.assert_called_once_with("/path/to/export.json", 'w', encoding='utf-8')
-                mock_info.assert_called_once()
+    target = tmp_path / "export.json"
+    with patch.object(QFileDialog, 'getSaveFileName', return_value=(str(target), "json")):
+        with patch.object(QMessageBox, 'information') as mock_info:
+            handler.export_translations_to_json_action()
+            mock_info.assert_called_once()
+    assert isinstance(json.loads(target.read_text(encoding='utf-8')), dict)
 
 def test_saved_translations_handler_import_translations(mock_ctx):
     data_processor = MagicMock()
@@ -118,7 +117,7 @@ def test_saved_translations_handler_import_translations(mock_ctx):
                     data_processor.update_edited_data.assert_called_with(0, 0, "Imported Translation", action_type="IMPORT", skip_ui_refresh=True)
                     mock_info.assert_called_once()
 
-def test_saved_translations_handler_export_original(mock_ctx):
+def test_saved_translations_handler_export_original(mock_ctx, tmp_path):
     data_processor = MagicMock()
     data_processor._get_string_from_source.side_effect = lambda b_idx, s_idx, data, name: data[b_idx][s_idx]
 
@@ -127,26 +126,23 @@ def test_saved_translations_handler_export_original(mock_ctx):
 
     handler = SavedTranslationsHandler(mock_ctx, data_processor, MagicMock())
 
-    m_open = mock_open()
-    with patch('builtins.open', m_open):
-        with patch.object(QFileDialog, 'getSaveFileName', return_value=("/path/to/export_original.json", "json")):
-            with patch.object(QMessageBox, 'information') as mock_info:
-                with patch('handlers.saved_translations_handler.json.dump') as mock_dump:
-                    handler.export_original_to_json_action()
-                    m_open.assert_called_once_with("/path/to/export_original.json", 'w', encoding='utf-8')
-                    mock_info.assert_called_once()
-                    exported = mock_dump.call_args.args[0]
-                    assert exported["project_name"] == "MyProject"
-                    assert exported["files"] == {
-                        "block_0": {
-                            "": {
-                                "0": "Line 1",
-                                "1": "Line 2",
-                            }
-                        }
-                    }
+    target = tmp_path / "export_original.json"
+    with patch.object(QFileDialog, 'getSaveFileName', return_value=(str(target), "json")):
+        with patch.object(QMessageBox, 'information') as mock_info:
+            handler.export_original_to_json_action()
+            mock_info.assert_called_once()
+    exported = json.loads(target.read_text(encoding='utf-8'))
+    assert exported["project_name"] == "MyProject"
+    assert exported["files"] == {
+        "block_0": {
+            "": {
+                "0": "Line 1",
+                "1": "Line 2",
+            }
+        }
+    }
 
-def test_saved_translations_handler_export_original_keeps_project_sub_blocks(mock_ctx):
+def test_saved_translations_handler_export_original_keeps_project_sub_blocks(mock_ctx, tmp_path):
     data_processor = MagicMock()
     data_processor._get_string_from_source.side_effect = lambda b_idx, s_idx, data, name: data[b_idx][s_idx]
 
@@ -160,18 +156,16 @@ def test_saved_translations_handler_export_original_keeps_project_sub_blocks(moc
 
     handler = SavedTranslationsHandler(mock_ctx, data_processor, MagicMock())
 
-    with patch('builtins.open', mock_open()):
-        with patch.object(QFileDialog, 'getSaveFileName', return_value=("/path/to/export_original.json", "json")):
-            with patch.object(QMessageBox, 'information'):
-                with patch('handlers.saved_translations_handler.json.dump') as mock_dump:
-                    handler.export_original_to_json_action()
-                    exported = mock_dump.call_args.args[0]
-                    assert exported["files"] == {
-                        "script.txt": {
-                            "Block A": {"0": "Block A line"},
-                            "Block B": {"0": "Block B line"},
-                        }
-                    }
+    target = tmp_path / "export_original.json"
+    with patch.object(QFileDialog, 'getSaveFileName', return_value=(str(target), "json")):
+        with patch.object(QMessageBox, 'information'):
+            handler.export_original_to_json_action()
+    assert json.loads(target.read_text(encoding='utf-8'))["files"] == {
+        "script.txt": {
+            "Block A": {"0": "Block A line"},
+            "Block B": {"0": "Block B line"},
+        }
+    }
 
 def test_export_original_action_menu_connection():
     from ui.main_window.main_window_event_handler import MainWindowEventHandler

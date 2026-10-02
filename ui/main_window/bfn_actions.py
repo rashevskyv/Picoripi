@@ -1,4 +1,5 @@
 # ui/main_window/bfn_actions.py
+from utils.atomic_io import atomic_write_bytes, atomic_write_json
 import json
 from pathlib import Path
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QInputDialog
@@ -91,7 +92,7 @@ class BfnActions:
                 try:
                     container.write_file(filename, new_bytes)
                     archive_abs = pm.get_absolute_path(archive_rel_path, is_translation=False)
-                    Path(archive_abs).write_bytes(container.pack())
+                    atomic_write_bytes(archive_abs, container.pack())
                     log_info(f"BFN Editor: saved '{filename}' back to archive '{archive_rel_path}'.")
                 except Exception as ex:
                     QMessageBox.critical(editor, tr('BFN Editor'), f'Failed to write back to archive:\n{ex}')
@@ -236,8 +237,7 @@ class BfnActions:
             return
 
         try:
-            with open(save_path, 'w', encoding='utf-8') as f:
-                json.dump(export_data, f, ensure_ascii=False, indent=2)
+            atomic_write_json(save_path, export_data, ensure_ascii=False, indent=2)
             QMessageBox.information(
                 self.mw, tr('Export BMG'),
                 f'Successfully exported BMG content to:\n{save_path}\n\n'

@@ -1,3 +1,4 @@
+from utils.atomic_io import atomic_write_text
 import os
 import re
 import json
@@ -1551,10 +1552,7 @@ class GameRules(BaseGameRules):
         return document if isinstance(document, dict) else {"default": {}, "kinds": {}}
 
     def save_window_layouts_document(self, document: Dict[str, Any]) -> None:
-        temporary = self.window_layouts_path + ".tmp"
-        with open(temporary, "w", encoding="utf-8") as stream:
-            stream.write(json.dumps(document, indent=4, ensure_ascii=False) + "\n")
-        os.replace(temporary, self.window_layouts_path)
+        atomic_write_text(self.window_layouts_path, json.dumps(document, indent=4, ensure_ascii=False) + "\n")
         self._window_layouts = None
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:

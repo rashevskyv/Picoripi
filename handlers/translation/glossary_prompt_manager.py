@@ -3,6 +3,7 @@
 Manages loading, caching, and saving of translation prompts and the glossary file.
 Isolated from AI request logic and dialog handling.
 """
+from utils.atomic_io import atomic_write_text
 import json
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -333,7 +334,7 @@ class GlossaryPromptManager:
         section_data[field] = value
 
         try:
-            target_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            atomic_write_text(target_path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
             self.current_prompts_path = target_path
         except Exception as exc:
             log_debug(f"Failed to write prompts file {target_path}: {exc}")

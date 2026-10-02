@@ -1,3 +1,4 @@
+from utils.atomic_io import atomic_write_bytes
 import json
 import pickle
 import time
@@ -379,8 +380,7 @@ class SessionManager:
                 self._attach_runtime_session_state(snapshot)
                 snapshot["saved_at"] = time.time()
                 snapshot["checkpoint_id"] = uuid.uuid4().hex
-                with session_path.open('wb') as f:
-                    pickle.dump(snapshot, f)
+                atomic_write_bytes(session_path, pickle.dumps(snapshot))
                 self._last_pickle_checkpoint_id = snapshot["checkpoint_id"]
                 self._last_pickle_saved_at = snapshot["saved_at"]
                 self._session_dirty = False

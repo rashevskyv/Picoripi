@@ -11,6 +11,18 @@ the line when it is done or moved into a plan.
 - UI command "Create plugin from template" (copy `plugins/default_plugin`, rename, open the prompt file).
   WP5.4 delivers the generator (`tools/new_plugin.py`); the menu entry is still unplanned.
 
+## Found during WP6
+
+- **Not atomic on purpose (6.1):** creating a new empty file (`translation_map.json` as `{}`, a new project
+  glossary as `[]`), `.bak` copies, the log file, the downloaded dictionary, command-line tools
+  (`plugins/zelda_bmg/bmg_tool.py`, `stage_data.py`), MemPalace helper outputs. None overwrites a user's work.
+- **Settings → OK writes the font map table into `plugins/<plugin>/font_map.json`** (`ui/settings/load_save_mixin.py`),
+  and `tag_alias_mixin` writes font-map overrides there too. User settings inside `plugins/` (audit C, P0-c);
+  move them to the per-user plugin folder together with `window_layouts.json`.
+- **Tests bypass `mock_open` now.** `utils.atomic_io` does not go through `builtins.open`, so a test that only
+  mocks `open` and passes a path outside `tmp_path` writes a real file. A traced full run (2026-10-02) found
+  none left; new tests should save into `tmp_path` or patch `atomic_write_*` in the module under test.
+
 ## Found during WP5
 
 - **`ui/main_window/bfn_actions.py` still imports the BMG parser** (`from bmg_tool import BMGFile, BMGMessage`,
@@ -51,9 +63,6 @@ the line when it is done or moved into a plan.
   about again on every run. Store the verdict on the entries if the pass is used regularly.
 - **Reconcile compares a family only within itself** (`Zora Guard` is in the guards family and is not compared
   with `Zora`). Add the head entries of a member's other words as read-only context if drift shows up there.
-- **`CompanionSyncClient.commit_merge` and `pull_project` still write the glossary non-atomically**
-  (`write_text`); the manager's own writes are atomic since WP3.6. WP6 covers user-data writes.
-
 ## Found during WP0
 
 - **WP0 exit is not ticked**: the suite is green on Windows only; the Linux run has not been done.

@@ -1,7 +1,7 @@
 """Markdown/JSON load, persist, and path helpers for GlossaryManager."""
 from __future__ import annotations
+from utils.atomic_io import atomic_write_text
 
-import os
 from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
@@ -312,9 +312,7 @@ class ParseMixin:
 
     def _write_file(self, raw_json: str) -> None:
         """Replace the glossary file in one step: a crash mid-write leaves the old file whole."""
-        temporary = self._glossary_path.with_name(self._glossary_path.name + ".tmp")
-        temporary.write_text(raw_json, encoding='utf-8')
-        os.replace(temporary, self._glossary_path)
+        atomic_write_text(self._glossary_path, raw_json)
 
     def _persist(self, write_only: bool = False, *, _now: bool = False) -> None:
         """Internal helper to persist."""

@@ -1,3 +1,4 @@
+from utils.atomic_io import atomic_write_json
 import json
 from pathlib import Path
 from typing import Dict, Any, Union
@@ -28,8 +29,7 @@ class SessionStateManager:
         """Save ."""
         try:
             p_file = Path(self.settings_file_path)
-            with p_file.open('w', encoding='utf-8') as f:
-                json.dump(self._state, f, indent=4, ensure_ascii=False)
+            atomic_write_json(p_file, self._state, indent=4, ensure_ascii=False)
         except Exception as e:
             log_error(f"Error saving session state: {e}")
 

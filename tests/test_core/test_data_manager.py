@@ -30,8 +30,9 @@ def test_save_json_file(tmp_path):
     
     # Simulate error saving (e.g. read-only dir or type error)
     # MagicMock trick to throw error
-    with patch('core.data_manager.Path.open', side_effect=PermissionError("Denied")):
+    with patch('core.data_manager.atomic_write_json', side_effect=PermissionError("Denied")):
         assert save_json_file(tmp_path / "fail.json", {}) is False
+    assert not (tmp_path / "fail.json").exists()
 
 def test_load_text_file(tmp_path):
     # File not found
@@ -69,6 +70,7 @@ def test_save_text_file(tmp_path):
     assert save_text_file(f, "Line 1") is True
     assert f.read_text(encoding='utf-8') == "Line 1"
     
-    with patch('core.data_manager.Path.open', side_effect=PermissionError("Denied")):
+    with patch('core.data_manager.atomic_write_text', side_effect=PermissionError("Denied")):
         assert save_text_file(tmp_path / "fail.txt", "abc") is False
+    assert not (tmp_path / "fail.txt").exists()
 

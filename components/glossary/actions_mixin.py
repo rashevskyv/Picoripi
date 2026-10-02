@@ -1,5 +1,6 @@
 """Glossary dialog actions, confirm flow, and window persistence."""
 from __future__ import annotations
+from utils.atomic_io import atomic_write_json
 
 import json
 from pathlib import Path
@@ -239,8 +240,7 @@ class ActionsMixin:
         try:
             if self._settings_path.parent and not self._settings_path.parent.exists():
                 self._settings_path.parent.mkdir(parents=True, exist_ok=True)
-            with self._settings_path.open('w', encoding='utf-8') as handle:
-                json.dump(data, handle, indent=4, ensure_ascii=False)
+            atomic_write_json(self._settings_path, data, indent=4, ensure_ascii=False)
         except Exception:
             pass
 

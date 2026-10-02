@@ -12,9 +12,9 @@ blocks of strings, and building it back, stays in the plugin's
 ``load_data_from_json_obj`` / ``save_data_to_json_obj``.
 """
 from __future__ import annotations
+from utils.atomic_io import atomic_write_bytes
 
 import json
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Sequence, Set, Tuple, Union
@@ -160,11 +160,8 @@ def write_file(rules: Any, path: PathLike, content: Any, unknown: str = UNKNOWN_
     if not isinstance(content, (bytes, bytearray)):
         return False, f"Plugin did not return bytes for {target.suffix.lower()} file."
     try:
-        target.parent.mkdir(parents=True, exist_ok=True)
         # In one step: a crash mid-write must not leave half a game file.
-        temporary = target.with_name(target.name + ".tmp")
-        temporary.write_bytes(bytes(content))
-        os.replace(temporary, target)
+        atomic_write_bytes(target, content)
         return True, None
     except OSError as error:
         log_debug(f"formats: failed to write {target}: {error}", category="file_ops")
