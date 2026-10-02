@@ -104,6 +104,7 @@ UI (auto mode):
 - Optional: **Re-scan every selected block with AI** (normally only new/changed blocks).
 - Optional: **Resume unfinished entries only** when some terms still need description or translation.
 - Optional: **Force re-translate already translated terms** to re-translate all entries using current rules, overwriting existing translations.
+- Optional: **Reconcile related terms afterwards** to compare related entries after translating and make them agree (see below).
 - Button: **Run automatic glossary pass**.
 
 Status: empty → “automatic pass not run”; else `N terms; M awaiting review` (unconfirmed entries). Partial until the review backlog is empty.
@@ -123,6 +124,15 @@ Other launch titles exist in `GlossaryBuildDialog` for non-auto routes (**Sweep 
 | Translate existing entries only | Propose translations for described-but-untranslated terms |
 
 Chunk size: Local / small (2000), Balanced (4000), Cloud / large (8000).
+
+#### How the glossary stays consistent
+
+- **One term, one entry.** A term a build finds is matched to existing entries by exact spelling, then case and spacing, then alias, then a canonical key that folds plurals, articles and possessives. `Rupees` found in a later chunk goes into `Rupee`; it does not become a second entry. A term you add by hand is added as written. Entries that already share a canonical key are listed in the log on load and are never merged automatically.
+- **Same input, same glossary.** Results are applied in a fixed order whatever order the requests answer in; a term is named by its most common spelling in the text.
+- **Requests know what is decided.** Each sweep chunk and each term translation is shown the settled entries that share a word with it (up to 40, a person's decisions first). Terms are translated family by family, head term first, so `Clawshots` is translated knowing what `Clawshot` got.
+- **Reconcile (optional).** After translating, entries that are one term spelled differently or that share a word are compared, one request per group that looks off. Spellings of one term are merged (the other spelling stays as an alias, its translation as a variant); translations are aligned to a shared root. Confirmed entries are never changed. Every change is listed in the report and in the log, and running the pass again changes nothing.
+- **What reaches a translation prompt.** Glossary rows for terms in the text, plurals included (`Rupees` finds `Rupee`). A term found only inside a longer term is not listed on its own (`Lake Hylia`, not also `Hylia`). Entries without a translation are left out. At most 40 rows: confirmed and hand-written entries first, then machine-translated ones; notes are cut to 300 characters in the prompt (the editor keeps the full note).
+- **Storage.** A build pass writes the glossary file every 20 results and at the end, replacing the file in one step. Every entry has a stable `id`. A deleted or merged entry leaves a `deleted_at` record in the file so that a Companion sync does not bring it back; a renamed entry is matched by id. A re-sweep adds evidence to a translated entry instead of resetting it.
 
 ### 5. Translate the text (`text`)
 

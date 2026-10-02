@@ -44,7 +44,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 3.4 injection hygiene (longest match, skip empty, cap 40 ranked, notes ≤300 chars, plural-tolerant matching)
 - [x] 3.5 reconcile pass (driver, adapter, prompt, mode, UI toggle, report)
 - [x] 3.6 storage hardening (transaction, atomic automaton swap, no re-seed reset, entry id, sync tombstones)
-- [ ] 3.7 regression gate test + wiki 8 (EN+UK)
+- [x] 3.7 regression gate test + wiki 8 (EN+UK)
 - [ ] WP3 exit: real build before/after numbers in walkthrough
 
 ## WP4 — Translation memory and in-run consistency

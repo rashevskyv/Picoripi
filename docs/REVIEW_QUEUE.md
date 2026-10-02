@@ -157,4 +157,11 @@ in `docs/OPEN_ITEMS.md`, not here.
       entries and a sync must not fold them.
 - [ ] **A build pass now writes the glossary every 20 results (3.6).** A hard crash (power loss) can lose up
       to 19 results of the running pass; a normal stop, cancel or error still saves everything.
+- [ ] **The consistency gate allows the 18 known duplicate groups (3.7).** The plan wanted zero canonical
+      collisions in `translation_prompts/glossary.json`; that needs the merge you have not approved yet (see
+      the 3.1 item above). The test fails if the number grows, and checks on a copy that the merge leaves no
+      collision and loses no translation. After you merge, lower `KNOWN_CANONICAL_GROUPS` to 0.
+- [ ] **37 families in the real glossary may render a shared word differently (3.7).** The gate prints them as a
+      warning (`pytest tests/test_core/test_glossary_consistency.py`). Some groups are chained through a
+      generic word ("castle") and are not real families — tell me if the grouping needs a stop-list.
 
