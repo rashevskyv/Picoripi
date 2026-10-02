@@ -85,7 +85,7 @@ Save it as a named preset (e.g. `Gemini Web2API`).
 3. Prefer **OpenAI Compatible + `/v1`** over native Google Gemini unless you really want Google’s paid API.
 4. For glossary / bulk translation use **Flash**. Use thinking models only when a single string needs a long reasoned pass.
 5. If Test Provider fails: confirm `run.bat` is still running, the port is 8081, and WebTOP shows Active — not Rate Limited.
-6. After a 429 wave, wait for cooldowns on WebTOP; Picoripi honors `Retry-After` from the proxy.
+6. After a 429 wave, wait for cooldowns on WebTOP; Picoripi honors `Retry-After` from the proxy. Translation retries one quick failure by itself (a timeout is never re-sent automatically); after that the retry dialog waits for the time the proxy asked for, and after five failures in a row requests pause for the cooldown instead of hitting the proxy again. The glossary pipeline keeps its single quiet retry pass.
 7. Cookie / XSRF refresh belongs in Web2API (dashboard login or cookie-sync extension), not in Picoripi settings.
 
 ---
@@ -101,5 +101,5 @@ Save it as a named preset (e.g. `Gemini Web2API`).
 ## Related code (for maintainers)
 
 - Settings UI: `ui/settings/ai_mixin.py` (`Parallel Requests`, Gemini Base URL placeholder `http://127.0.0.1:8081/v1`)
-- HTTP client: `core/translation/providers.py` (Retry-After, local-proxy connect timeout)
+- HTTP client: `core/translation/providers.py`; error classification, retry policy and circuit breaker: `core/translation/transport.py`
 - Glossary timeout floor: `handlers/translation/glossary_pipeline_handler.py`

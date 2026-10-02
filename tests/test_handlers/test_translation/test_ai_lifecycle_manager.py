@@ -157,6 +157,21 @@ def test_ailm_handle_task_error(mock_box, ailm):
     ailm._handle_task_error("Fatal", {'type': 'translate_preview', 'attempt': 3, 'max_retries': 3})
     mock_box.critical.assert_called_once()
 
+@pytest.mark.parametrize("retry_after, expected_ms", [(0.0, 3000), (41.2, 42000)])
+@patch('handlers.translation.ai_lifecycle_manager.QMessageBox')
+def test_ailm_retry_dialog_waits_for_the_servers_retry_after(mock_box, ailm, retry_after, expected_ms):
+    msg_box = mock_box.return_value
+    msg_box.clickedButton.return_value = msg_box.addButton.return_value
+    ailm._retry_delay_timer = MagicMock()
+    ctx = {'type': 'translate_preview', 'attempt': 1, 'max_retries': 3,
+           'error_kind': 'rate_limit', 'retry_after': retry_after}
+
+    ailm._handle_task_error("429 Client Error: Too Many Requests", ctx)
+
+    ailm._retry_delay_timer.start.assert_called_once_with(expected_ms)
+    assert f"{expected_ms // 1000}s" in msg_box.addButton.call_args_list[0][0][0]
+
+
 def test_ailm_clean_model_output(ailm):
     text = "```json\n{ \"a\": 1 }\n```"
     assert ailm._clean_model_output(ProviderResponse(text=text), expect_json=True) == '{ "a": 1 }'

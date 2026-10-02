@@ -85,7 +85,7 @@ curl.exe http://127.0.0.1:8081/v1/models
 3. Краще **OpenAI Compatible + `/v1`**, ніж нативний Google Gemini, якщо вам не потрібен платний API Google.
 4. Для глосарія / пакетного перекладу — **Flash**. Thinking-моделі лише коли один рядок потребує довгого міркування.
 5. Якщо Test Provider падає: переконайтесь, що `run.bat` ще працює, порт 8081, WebTOP показує Active, а не Rate Limited.
-6. Після хвилі 429 зачекайте кулдауни на WebTOP; Picoripi шанує `Retry-After` від проксі.
+6. Після хвилі 429 зачекайте кулдауни на WebTOP; Picoripi шанує `Retry-After` від проксі. Переклад сам повторює одну швидку помилку (запит, що завершився тайм-аутом, автоматично не надсилається вдруге); далі діалог повтору чекає стільки, скільки попросив проксі, а після п'яти помилок поспіль запити призупиняються на час кулдауну, а не б'ють у проксі знову. Пайплайн глосарія лишає свій єдиний тихий повторний прохід.
 7. Оновлення cookie / XSRF належить Web2API (логін на дашборді або розширення cookie-sync), не Settings Picoripi.
 
 ---
@@ -101,5 +101,5 @@ curl.exe http://127.0.0.1:8081/v1/models
 ## Пов’язаний код (для супроводу)
 
 - UI Settings: `ui/settings/ai_mixin.py` (`Parallel Requests`, плейсхолдер Gemini Base URL `http://127.0.0.1:8081/v1`)
-- HTTP-клієнт: `core/translation/providers.py` (Retry-After, таймаут конекту до локального проксі)
+- HTTP-клієнт: `core/translation/providers.py`; класифікація помилок, політика повторів і запобіжник: `core/translation/transport.py`
 - Нижня межа таймауту глосарія: `handlers/translation/glossary_pipeline_handler.py`

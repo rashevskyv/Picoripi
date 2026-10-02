@@ -19,6 +19,12 @@ the line when it is done or moved into a plan.
   fire. The output was piped through `tail`, so the test name was lost. The five later `-n 2` runs and the
   full `-n 8` runs were clean. If it recurs, rerun with `-v` into a log file — the last scheduled test per worker is
   the suspect.
+- **Intermittent click-select failures.** One full `-n 8` run out of five (2026-10-02) failed five tests in a
+  row on one worker: `tests/test_ui/test_ui_event_filters.py::test_speaker_click_selects_all_existing_text`
+  and four `test_all_search_fields_select_existing_text_on_click[...]` cases — `QTest.mouseClick` never
+  produced the selection (`waitUntil` 3 s). The file passes alone and in the other runs, so something an
+  earlier test left behind on that worker (a modal or popup widget is the first thing to check) blocks the
+  click. Probably the same family as the hang above.
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.

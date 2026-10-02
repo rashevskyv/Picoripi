@@ -17,7 +17,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 
 ## WP1 — Transport and JSON robustness
 - [x] 1.1 `core/translation/transport.py` (ErrorKind, TransportError, classify, TransportPolicy, semaphore, breaker); delete `retry.py`/`concurrency.py`
-- [ ] 1.2 wire policy into providers; fix Gemini compat path; strip `?key=`; EMPTY error; `think` only for web2api; 7×180 s → `policy.timeout`; modal after exhaustion
+- [x] 1.2 wire policy into providers; fix Gemini compat path; strip `?key=`; EMPTY error; `think` only for web2api; 7×180 s → `policy.timeout`; modal after exhaustion
 - [ ] 1.3 `utils/json_extract.py` + replace 3 cleaners; `ParseError` never swallowed
 - [ ] 1.4 parallel chunk path via `run_pool`; stop on error; map by `id` first
 - [ ] 1.5 provider `profile` + web2api defaults; unify `max_consecutive_failures`

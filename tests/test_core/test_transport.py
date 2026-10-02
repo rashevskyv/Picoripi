@@ -9,7 +9,6 @@ from core.translation.transport import (
     TransportError,
     TransportPolicy,
     classify,
-    gate_for,
     redact,
 )
 
@@ -276,12 +275,3 @@ class TestCircuitBreaker:
         with pytest.raises(TransportError):
             policy.run(down, breaker=breaker)
         assert calls == [1]
-
-
-def test_gate_is_shared_per_key_and_replaced_when_the_limit_changes():
-    assert gate_for("test://gate", 2) is gate_for("test://gate", 2)
-    assert gate_for("test://gate", 3) is not gate_for("test://gate-other", 3)
-    gate = gate_for("test://gate", 1)
-    assert gate.acquire(blocking=False) is True
-    assert gate.acquire(blocking=False) is False
-    gate.release()

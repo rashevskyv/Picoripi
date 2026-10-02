@@ -17,7 +17,7 @@ import threading
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 import requests
 
@@ -167,7 +167,9 @@ def classify(error: Any, message: Optional[str] = None) -> TransportError:
 
     if message is None:
         message = str(error) if isinstance(error, BaseException) else f"HTTP {getattr(response, 'status_code', '?')}"
-        if isinstance(error, requests.RequestException) or not isinstance(error, BaseException):
+        if isinstance(error, requests.Timeout) and not isinstance(error, requests.exceptions.ConnectTimeout):
+            message = f"Request timed out: {message}"
+        elif isinstance(error, requests.RequestException) or not isinstance(error, BaseException):
             message = f"API request failed: {message}" + (f" - {body[:200]}" if body else "")
     message = redact(message)
 
@@ -242,34 +244,6 @@ class CircuitBreaker:
             if self._consecutive >= self.threshold:
                 self._open_until = self._clock() + (error.retry_after or self.cooldown)
                 self._consecutive = 0
-
-
-_registry_lock = threading.Lock()
-_breakers: Dict[str, CircuitBreaker] = {}
-_gates: Dict[str, Tuple[int, threading.BoundedSemaphore]] = {}
-
-
-def breaker_for(key: str) -> CircuitBreaker:
-    """The shared breaker for one provider endpoint."""
-    with _registry_lock:
-        breaker = _breakers.get(key)
-        if breaker is None:
-            breaker = _breakers[key] = CircuitBreaker()
-        return breaker
-
-
-def gate_for(key: str, limit: int) -> threading.BoundedSemaphore:
-    """The shared concurrency cap for one provider endpoint.
-
-    A changed ``limit`` gets a fresh semaphore; requests already holding the old
-    one finish against it.
-    """
-    limit = max(1, int(limit))
-    with _registry_lock:
-        current = _gates.get(key)
-        if current is None or current[0] != limit:
-            current = _gates[key] = (limit, threading.BoundedSemaphore(limit))
-        return current[1]
 
 
 @dataclass

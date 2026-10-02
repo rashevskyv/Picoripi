@@ -35,6 +35,10 @@ class AIWorker(
         self._mw = mw
         self.is_cancelled = False
         self._last_messages = None
+        # This worker can interrupt a backoff wait, so it may ask for retries.
+        enable_retries = getattr(provider, "enable_retries", None)
+        if callable(enable_retries):
+            enable_retries(lambda: self.is_cancelled)
 
     @property
     def mw(self) -> Optional[Any]:

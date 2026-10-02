@@ -28,6 +28,12 @@ def handle_ai_error(
     elif 'raw_response_text' not in updated_details:
         updated_details['raw_response_text'] = ""
 
+    # What the retry dialog needs: how long the server asked us to wait, and
+    # what kind of failure this was (see core.translation.transport.ErrorKind).
+    kind = getattr(exc, 'kind', None)
+    updated_details['error_kind'] = getattr(kind, 'value', None)
+    updated_details['retry_after'] = float(getattr(exc, 'retry_after', 0.0) or 0.0)
+
     # Classify error message for display
     if isinstance(exc, json.JSONDecodeError):
         user_message = f"Failed to parse AI response as JSON: {error_str}"

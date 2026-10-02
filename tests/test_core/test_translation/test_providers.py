@@ -1,12 +1,124 @@
 import pytest
 from unittest.mock import MagicMock, patch
 import requests
-from core.translation.providers import OpenAIProvider, TranslationProviderError, _split_timeout
+from core.translation.providers import OpenAIProvider, TranslationProviderError
+from core.translation.transport import ErrorKind, TransportError
 
-def test_split_timeout_fails_fast_on_local_proxy():
-    assert _split_timeout(180, "http://localhost:8081/v1") == (10.0, 180.0)
-    assert _split_timeout(180, "http://127.0.0.1:8081/v1") == (10.0, 180.0)
-    assert _split_timeout(60, "https://api.openai.com/v1") == 60
+
+def _ok_response(payload):
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.headers = {"content-type": "application/json"}
+    resp.json.return_value = payload
+    return resp
+
+
+def _failed_response(status, body="", headers=None):
+    resp = requests.Response()
+    resp.status_code = status
+    resp._content = body.encode("utf-8")
+    resp.headers.update(headers or {})
+    resp.url = "http://localhost:20128/v1/chat/completions"
+    return resp
+
+
+def _local_provider(**settings):
+    return OpenAIProvider({"endpoint": "http://localhost:20128/v1", "model": "local-model", **settings})
+
+
+@patch('core.translation.providers.requests.post')
+def test_connect_timeout_is_short_for_any_host(mock_post):
+    mock_post.return_value = _ok_response({"choices": [{"message": {"content": "ok"}}]})
+    OpenAIProvider({"endpoint": "https://proxy.lan/v1", "model": "m", "timeout": 180}).translate([])
+    assert mock_post.call_args[1]["timeout"] == (10.0, 180.0)
+
+
+@pytest.mark.parametrize("payload", [{"choices": []}, {"choices": [{"message": {"content": "  "}}]}, {}])
+@patch('core.translation.providers.requests.post')
+def test_empty_response_is_an_error_not_a_silent_success(mock_post, payload):
+    mock_post.return_value = _ok_response(payload)
+    with pytest.raises(TransportError) as info:
+        _local_provider().translate([{"role": "user", "content": "Hi"}])
+    assert info.value.kind is ErrorKind.EMPTY
+
+
+@patch('core.translation.providers.requests.post')
+def test_rate_limit_carries_retry_after_and_is_not_retried_by_default(mock_post):
+    mock_post.return_value = _failed_response(429, "busy", {"Retry-After": "42"})
+    with pytest.raises(TransportError) as info:
+        _local_provider().translate([{"role": "user", "content": "Hi"}])
+    assert (info.value.kind, info.value.retry_after) == (ErrorKind.RATE_LIMIT, 42.0)
+    assert mock_post.call_count == 1
+
+
+@patch('core.translation.transport.TransportPolicy._wait')
+@patch('core.translation.providers.requests.post')
+def test_a_cancellable_caller_gets_one_automatic_retry(mock_post, mock_sleep):
+    mock_post.side_effect = [
+        _failed_response(503),
+        _ok_response({"choices": [{"message": {"content": "second try"}}]}),
+    ]
+    provider = _local_provider()
+    provider.enable_retries(lambda: False)
+    assert provider.translate([{"role": "user", "content": "Hi"}]).text == "second try"
+    assert mock_post.call_count == 2
+    assert mock_sleep.called
+
+
+@patch('core.translation.providers.requests.post')
+def test_fatal_status_is_never_retried(mock_post):
+    mock_post.return_value = _failed_response(401, "bad key")
+    provider = _local_provider()
+    provider.enable_retries(lambda: False, max_attempts=4)
+    with pytest.raises(TransportError) as info:
+        provider.translate([{"role": "user", "content": "Hi"}])
+    assert info.value.kind is ErrorKind.AUTH
+    assert mock_post.call_count == 1
+
+
+@patch('core.translation.providers.requests.post')
+def test_breaker_stops_calling_a_dead_backend(mock_post):
+    mock_post.return_value = _failed_response(503)
+    provider = _local_provider()
+    for _ in range(provider._breaker.threshold):
+        with pytest.raises(TransportError):
+            provider.translate([{"role": "user", "content": "Hi"}])
+    calls = mock_post.call_count
+    with pytest.raises(TransportError, match="cooling down"):
+        provider.translate([{"role": "user", "content": "Hi"}])
+    assert mock_post.call_count == calls
+
+
+@patch('core.translation.providers.requests.post')
+def test_gemini_native_error_does_not_leak_the_api_key(mock_post):
+    from core.translation.providers import GeminiProvider
+    mock_post.side_effect = requests.ConnectionError(
+        "Max retries exceeded with url: /v1beta/models/gemini:generateContent?key=SECRET123"
+    )
+    provider = GeminiProvider({"api_key": "SECRET123", "model": "gemini"})
+    with pytest.raises(TransportError) as info:
+        provider.translate([{"role": "user", "content": "Hi"}])
+    assert "SECRET123" not in str(info.value)
+    assert info.value.kind is ErrorKind.CONNECT
+
+
+@patch('core.translation.providers.requests.post')
+def test_gemini_compat_route_passes_think_and_rejects_non_json(mock_post):
+    from core.translation.providers import GeminiProvider
+    provider = GeminiProvider({"base_url": "http://127.0.0.1:8081", "model": "gemini-3.7-flash"})
+
+    mock_post.return_value = _ok_response({"choices": [{"message": {"content": "ok"}}]})
+    provider.translate([{"role": "user", "content": "Hi"}], settings_override={"think": 1})
+    assert mock_post.call_args[1]["json"]["think"] == 1
+    assert mock_post.call_args[1]["timeout"] == (10.0, 120.0)
+
+    broken = _ok_response(None)
+    broken.json.side_effect = ValueError("Expecting value")
+    broken.text = "<html>captcha</html>"
+    mock_post.return_value = broken
+    with pytest.raises(TransportError) as info:
+        provider.translate([{"role": "user", "content": "Hi"}])
+    assert info.value.kind is ErrorKind.PARSE
 
 
 def test_openai_provider_init_default_url_requires_key():

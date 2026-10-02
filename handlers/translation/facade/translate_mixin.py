@@ -9,7 +9,17 @@ from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_debug
 from core.i18n import tr
 from core.translation.block_classifier import classify_project_items
+from core.translation.providers import _extract_timeout
 from components.ai_status_dialog import AIStatusDialog
+
+# A block request waits on a proxy that paces its accounts and retries inside,
+# so the 60 s single-string default is too short for it.
+BLOCK_TIMEOUT_FLOOR = 180.0
+
+
+def block_timeout_for(provider: Any) -> float:
+    """Timeout for one block/chunk request: the floor, or the user's larger setting."""
+    return max(BLOCK_TIMEOUT_FLOOR, _extract_timeout(getattr(provider, 'settings', None), default=0.0))
 
 
 class TranslateMixin:
@@ -82,7 +92,7 @@ class TranslateMixin:
         is_chunked = len(source_items) > 12
 
         if is_chunked:
-            block_timeout = 180
+            block_timeout = block_timeout_for(provider)
             
             self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
             from components.ai_status_dialog import AIStatusDialog
@@ -272,7 +282,7 @@ class TranslateMixin:
                 return
 
 
-            block_timeout = 180
+            block_timeout = block_timeout_for(provider)
             log_debug(
                 f"Starting chapter AI translation with timeout {block_timeout}s; lines={len(source_items)}"
             )
@@ -323,7 +333,7 @@ class TranslateMixin:
                 self.ui_handler.finish_ai_operation()
                 return
 
-            block_timeout = 180
+            block_timeout = block_timeout_for(provider)
             log_debug(
                 f"Starting block AI translation for block {target_block_idx} with timeout {block_timeout}s; lines={len(source_items)}"
             )
@@ -375,7 +385,7 @@ class TranslateMixin:
         if not provider:
             return
 
-        block_timeout = 180
+        block_timeout = block_timeout_for(provider)
 
         operation_title = f"Resuming Translation (Block {target_block_idx + 1})"
         self.ui_handler.start_ai_operation(operation_title, is_chunked=True, model_name=self.ai_lifecycle_manager._active_model_name)
@@ -470,7 +480,7 @@ class TranslateMixin:
                 self.ui_handler.finish_ai_operation()
                 return
 
-            block_timeout = 180
+            block_timeout = block_timeout_for(provider)
             task_details = {
                 'type': 'translate_block_chunked',
                 'provider': provider,
@@ -553,7 +563,7 @@ class TranslateMixin:
             self.ui_handler.finish_ai_operation()
             return
 
-        block_timeout = 180
+        block_timeout = block_timeout_for(provider)
         task_details = {
             'type': 'translate_block_chunked',
             'provider': provider,
@@ -752,7 +762,7 @@ class TranslateMixin:
             self.ui_handler.finish_ai_operation()
             return
 
-        block_timeout = 180
+        block_timeout = block_timeout_for(provider)
         target_block_idx = 999999
         task_details = {
             'type': 'translate_block_chunked',

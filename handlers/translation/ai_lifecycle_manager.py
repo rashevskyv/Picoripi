@@ -1,4 +1,5 @@
 # handlers/translation/ai_lifecycle_manager.py
+import math
 from typing import Dict, Optional, Union, Callable
 from PyQt6.QtCore import QThread, QTimer
 from PyQt6.QtWidgets import QMessageBox
@@ -238,7 +239,10 @@ class AILifecycleManager(BaseTranslationHandler):
                 QMessageBox.warning(self.mw, tr('AI Glossary Notes'), message)
             return
 
-        is_timeout = 'timed out' in error_message.lower()
+        is_timeout = context.get('error_kind') == 'timeout' or 'timed out' in error_message.lower()
+        # The worker already retried what could be retried; by the time an
+        # error reaches this dialog the wait the server asked for still applies.
+        retry_wait_s = max(3, math.ceil(float(context.get('retry_after') or 0.0)))
         context['last_error'] = error_message
         next_attempt = attempt + 1
         context['attempt'] = next_attempt
@@ -287,7 +291,7 @@ class AILifecycleManager(BaseTranslationHandler):
                 if raw_output:
                     msg_box.setDetailedText(f"Raw AI Response:\n\n{raw_output}")
                 
-                retry_btn = msg_box.addButton("Retry (Wait 3s)", QMessageBox.ButtonRole.AcceptRole)
+                retry_btn = msg_box.addButton(f"Retry (Wait {retry_wait_s}s)", QMessageBox.ButtonRole.AcceptRole)
                 cancel_btn = msg_box.addButton("Stop/Cancel AI", QMessageBox.ButtonRole.RejectRole)
                 msg_box.setDefaultButton(retry_btn)
                 
@@ -301,11 +305,11 @@ class AILifecycleManager(BaseTranslationHandler):
                     
                     if hasattr(self.main_handler.ui_handler, 'status_dialog'):
                         dialog = self.main_handler.ui_handler.status_dialog
-                        dialog.subtitle_label.setText(f"Waiting 3s before retry ({next_attempt}/{max_attempts})...")
+                        dialog.subtitle_label.setText(f"Waiting {retry_wait_s}s before retry ({next_attempt}/{max_attempts})...")
                         dialog.subtitle_label.setStyleSheet("color: #d32f2f;")
                         dialog.subtitle_label.setVisible(True)
-                    
-                    self._schedule_retry_delay(3000)
+
+                    self._schedule_retry_delay(retry_wait_s * 1000)
                     return
                 else:
                     log_debug("User clicked Cancel in debug dialog.")

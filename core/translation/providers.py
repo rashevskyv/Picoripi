@@ -1,53 +1,18 @@
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 import requests
-from requests import Timeout
 import os
 
-from core.translation.transport import TranslationProviderError
+from core.translation.transport import (
+    CircuitBreaker,
+    ErrorKind,
+    TranslationProviderError,
+    TransportError,
+    TransportPolicy,
+    classify,
+)
 from utils.logging_utils import log_debug, log_info
-
-
-def provider_error(message: str, response=None) -> TranslationProviderError:
-    """A provider failure carrying the server's Retry-After, when it sent one.
-
-    A 429 from a pooled proxy means every account behind it is spent: there is
-    no other worker to hand the request to, and retrying at once only extends
-    the block. The header is the only place that number exists, so it travels
-    with the error instead of being flattened into the message text.
-    """
-    import re
-
-    error = TranslationProviderError(message)
-    header = None
-    if response is not None:
-        try:
-            header = response.headers.get('Retry-After')
-        except Exception:
-            header = None
-    try:
-        # ponytail: the HTTP-date form of Retry-After parses as 0 and falls back
-        # to the configured delay. Parse it if a server here ever sends one.
-        error.retry_after = max(0.0, float(header))
-    except (TypeError, ValueError):
-        error.retry_after = 0.0
-
-    if error.retry_after <= 0.0:
-        match = re.search(r"[Rr]etry after (\d+(?:\.\d+)?)s", message)
-        if match:
-            try:
-                error.retry_after = float(match.group(1))
-            except ValueError:
-                pass
-        elif response is not None and getattr(response, "text", None):
-            match_resp = re.search(r"[Rr]etry after (\d+(?:\.\d+)?)s", str(response.text))
-            if match_resp:
-                try:
-                    error.retry_after = float(match_resp.group(1))
-                except ValueError:
-                    pass
-    return error
 
 @dataclass
 class ProviderResponse:
@@ -66,6 +31,44 @@ class BaseTranslationProvider:
         """Initialize a new instance."""
         self.settings = settings
         self._active_stream_response = None
+        self._is_cancelled: Optional[Callable[[], bool]] = None
+        self._max_attempts = 1
+        # One breaker per provider instance: the threads of a chunked run share
+        # it, so a backend that stopped answering is noticed across all of them.
+        self._breaker = CircuitBreaker()
+
+    def enable_retries(self, is_cancelled: Callable[[], bool], max_attempts: int = 2) -> None:
+        """Let a cancellable caller opt into automatic retries.
+
+        Retries are off by default: the backoff sleeps on the calling thread, so
+        only a caller that can interrupt it may ask for them. The glossary
+        pipeline never does -- its endpoint already retries across accounts, and
+        a client-side loop on top of that is how addresses got blocked.
+        """
+        self._is_cancelled = is_cancelled
+        self._max_attempts = max(1, int(max_attempts))
+
+    def _policy(self, current_settings: Dict[str, Any], default_timeout: float) -> TransportPolicy:
+        """The retry/timeout policy for one request."""
+        timeout = _extract_timeout(current_settings, default=default_timeout)
+        try:
+            attempts = int(current_settings.get('max_attempts', self._max_attempts))
+        except (TypeError, ValueError):
+            attempts = self._max_attempts
+        # The whole call shares one timeout budget: a quick failure can be
+        # retried inside it, but a request that already timed out is not sent
+        # again while the server may still be working on the first one.
+        return TransportPolicy(timeout=timeout, max_attempts=attempts, total_deadline=timeout)
+
+    def _post(self, endpoint: str, headers: Dict[str, str], body: Dict[str, Any], policy: TransportPolicy) -> requests.Response:
+        """POST ``body`` under ``policy``. Raises ``TransportError``."""
+        def send() -> requests.Response:
+            response = requests.post(endpoint, headers=headers, json=body, timeout=policy.requests_timeout())
+            log_info(f"{self.__class__.__name__}: Response received. Status code: {response.status_code}", category="ai")
+            response.raise_for_status()
+            return response
+
+        return policy.run(send, self._is_cancelled, breaker=self._breaker)
 
     def translate(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
         """Translate."""
@@ -96,15 +99,6 @@ class BaseTranslationProvider:
             response.close()
         except Exception as e:
             log_debug(f"{self.__class__.__name__}: Failed to close active stream response: {e}")
-
-def _split_timeout(timeout: float, base_url: str = ""):
-    """(connect, read) so a dead local proxy fails in 10s, not the full read budget."""
-    read = float(timeout)
-    host = (base_url or "").lower()
-    if "localhost" in host or "127.0.0.1" in host:
-        return (min(10.0, read), read)
-    return read
-
 
 def _extract_timeout(settings: Dict[str, Any], default: float = 60.0) -> float:
     """Safely extracts timeout from settings dict, supporting int, float, or string values."""
@@ -190,23 +184,10 @@ class OpenAIProvider(BaseTranslationProvider):
             headers.update(extra_headers)
 
         body = self._prepare_body(messages, current_settings)
-        
-        timeout = _extract_timeout(current_settings, default=60.0)
-        post_timeout = _split_timeout(timeout, self.base_url)
 
-        try:
-            log_info(f"OpenAIProvider: Sending request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
-            response = requests.post(endpoint, headers=headers, json=body, timeout=post_timeout)
-            log_info(f"OpenAIProvider: Response received. Status code: {response.status_code}", category="ai")
-            response.raise_for_status()
-        except Timeout:
-            err = TranslationProviderError(f"Request timed out after {timeout} seconds.")
-            err.retry_after = 15.0
-            raise err
-        except requests.RequestException as e:
-            failed_response = getattr(e, 'response', None)
-            detail = f" - {failed_response.text[:200]}" if failed_response is not None else ""
-            raise provider_error(f"API request failed: {e}{detail}", failed_response)
+        policy = self._policy(current_settings, default_timeout=60.0)
+        log_info(f"OpenAIProvider: Sending request to {endpoint} with timeout {policy.timeout}s (model: {self.model})", category="ai")
+        response = self._post(endpoint, headers, body, policy)
 
         is_sse = response.headers.get('content-type', '').startswith('text/event-stream')
         if is_sse:
@@ -256,10 +237,26 @@ class OpenAIProvider(BaseTranslationProvider):
             try:
                 data = response.json()
             except ValueError:
-                raise TranslationProviderError(f"API returned non-JSON response (status {response.status_code}): {response.text[:200]}")
+                raise TransportError(
+                    f"API returned non-JSON response (status {response.status_code}): {response.text[:200]}",
+                    kind=ErrorKind.PARSE,
+                    status=response.status_code,
+                    raw_text=response.text,
+                )
 
         try:
-            text = data['choices'][0]['message']['content'] if data.get('choices') else None
+            text = None
+            if data.get('choices'):
+                first_choice = data['choices'][0]
+                message = first_choice.get('message')
+                if isinstance(message, dict):
+                    text = message.get('content')
+                if text is None:
+                    text = first_choice.get('text')
+            # A 200 with nothing in it is a failure, not a translation: left as
+            # text=None it reaches json.loads('') or is silently dropped.
+            if not (text or "").strip():
+                raise TransportError("AI returned an empty response.", kind=ErrorKind.EMPTY, status=response.status_code)
 
             message_id = None
             conversation_id = None
@@ -278,9 +275,11 @@ class OpenAIProvider(BaseTranslationProvider):
                 )
 
             return ProviderResponse(text=text, raw_payload=data, message_id=message_id, conversation_id=conversation_id)
+        except TransportError:
+            raise
         except Exception as e:
-            raise TranslationProviderError(f"Failed to parse provider response: {e}")
-    
+            raise TransportError(f"Failed to parse provider response: {e}", kind=ErrorKind.PARSE)
+
     def translate_stream(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None):
         """Translate stream."""
         endpoint = self._get_chat_endpoint()
@@ -296,12 +295,12 @@ class OpenAIProvider(BaseTranslationProvider):
         body = self._prepare_body(messages, current_settings)
         body['stream'] = True
 
-        timeout = _extract_timeout(current_settings, default=60.0)
-        post_timeout = _split_timeout(timeout, self.base_url)
-        
+        policy = self._policy(current_settings, default_timeout=60.0)
+        timeout = policy.timeout
+
         try:
             log_info(f"OpenAIProvider: Sending stream request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
-            with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=post_timeout) as response:
+            with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=policy.requests_timeout()) as response:
                 self._set_active_stream_response(response)
                 try:
                     log_info(f"OpenAIProvider: Stream response received. Status code: {response.status_code}", category="ai")
@@ -326,7 +325,7 @@ class OpenAIProvider(BaseTranslationProvider):
                 finally:
                     self._clear_active_stream_response(response)
         except requests.RequestException as e:
-            raise TranslationProviderError(f"API stream request failed: {e}")
+            raise classify(e) from e
 
 
 class OllamaChatProvider(BaseTranslationProvider):
@@ -397,9 +396,7 @@ class OllamaChatProvider(BaseTranslationProvider):
                 finally:
                     self._clear_active_stream_response(response)
         except requests.RequestException as e:
-            raise TranslationProviderError(f"API stream request failed: {e}")
-
-
+            raise classify(e) from e
 
 
 
@@ -463,27 +460,32 @@ class GeminiProvider(BaseTranslationProvider):
         if settings_override:
             current_settings.update(settings_override)
 
-        timeout = _extract_timeout(current_settings, default=120.0)
+        if self._use_openai_compat:
+            return self._compat_provider().translate(messages, session, settings_override)
 
         extra_headers = current_settings.get('extra_headers')
         headers = {"Content-Type": "application/json"}
         if isinstance(extra_headers, dict):
             headers.update(extra_headers)
+        return self._translate_via_native_api(messages, headers, current_settings)
 
-        try:
-            if self._use_openai_compat:
-                return self._translate_via_openai_compat(messages, headers, current_settings, timeout)
-            return self._translate_via_native_api(messages, headers, current_settings, timeout)
-        except Timeout:
-            raise TranslationProviderError(f"Request timed out after {timeout} seconds.")
-        except requests.RequestException as e:
-            failed_response = getattr(e, 'response', None)
-            error_details = ""
-            try:
-                error_details = failed_response.json()
-            except Exception:
-                error_details = failed_response.text if failed_response is not None else "No response body"
-            raise provider_error(f"API request failed: {e}\nDetails: {error_details}", failed_response)
+    def _compat_provider(self) -> "OpenAIProvider":
+        """The OpenAI-style provider behind a custom base URL.
+
+        One request path for both spellings of the same proxy: the compat route
+        gets the retry policy, the empty/non-JSON checks and ``think`` for free.
+        """
+        compat_settings = dict(self.settings)
+        compat_settings['base_url'] = self.base_url
+        compat_settings.setdefault('timeout', 120)
+        if not compat_settings.get('api_key'):
+            compat_settings['api_key'] = self.api_key
+        provider = OpenAIProvider(compat_settings)
+        # Share the breaker and the caller's retry opt-in with the delegate.
+        provider._breaker = self._breaker
+        provider._is_cancelled = self._is_cancelled
+        provider._max_attempts = self._max_attempts
+        return provider
 
     def translate_stream(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None):
         """Translate stream."""
@@ -501,9 +503,7 @@ class GeminiProvider(BaseTranslationProvider):
         try:
             if self._use_openai_compat:
                 # Assuming the compatible endpoint also supports OpenAI's stream format
-                compat_settings = dict(self.settings)
-                compat_settings['base_url'] = self.base_url
-                compat_provider = OpenAIProvider(compat_settings)
+                compat_provider = self._compat_provider()
                 self._compat_stream_provider = compat_provider
                 try:
                     yield from compat_provider.translate_stream(messages, session, settings_override)
@@ -512,12 +512,8 @@ class GeminiProvider(BaseTranslationProvider):
             else:
                 yield from self._translate_via_native_stream(messages, headers, current_settings, timeout)
         except requests.RequestException as e:
-            error_details = ""
-            try:
-                error_details = e.response.json()
-            except Exception:
-                error_details = e.response.text if e.response else "No response body"
-            raise TranslationProviderError(f"API request failed: {e}\nDetails: {error_details}")
+            # classify() also masks the ?key= the native URL carries.
+            raise classify(e) from e
 
     def cancel_active_stream(self):
         """Close any active Gemini stream, including OpenAI-compatible delegated streams."""
@@ -526,53 +522,7 @@ class GeminiProvider(BaseTranslationProvider):
         if compat_provider is not None:
             compat_provider.cancel_active_stream()
 
-    def _translate_via_openai_compat(self, messages: List[Dict[str, str]], headers: Dict[str, str], current_settings: Dict[str, Any], timeout: int) -> ProviderResponse:
-        """Internal helper to translate via openai compat."""
-        request_headers = dict(headers)
-        auth_token = self.api_key or "dummy"
-        request_headers["Authorization"] = f"Bearer {auth_token}"
-
-        body: Dict[str, Any] = {"model": self.model, "messages": messages}
-        if isinstance(current_settings.get('temperature'), (float, int)):
-            body['temperature'] = current_settings['temperature']
-        max_tokens = current_settings.get('max_output_tokens')
-        if isinstance(max_tokens, int) and max_tokens > 0:
-            body['max_tokens'] = max_tokens
-
-        endpoint = self._get_openai_compat_endpoint()
-        log_info(f"GeminiProvider (compat): Sending request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
-        response = requests.post(
-            endpoint, headers=request_headers, json=body,
-            timeout=_split_timeout(timeout, self.base_url),
-        )
-        response.raise_for_status()
-        data = response.json()
-        text = None
-        if data.get('choices'):
-            first_choice = data['choices'][0]
-            message = first_choice.get('message')
-            if isinstance(message, dict):
-                text = message.get('content')
-            if text is None:
-                text = first_choice.get('text')
-        message_id = None
-        conversation_id = None
-        if isinstance(data, dict):
-            message_id = data.get('id')
-            first_choice = data.get('choices')[0] if data.get('choices') else None
-            if isinstance(first_choice, dict):
-                message = first_choice.get('message') or {}
-                message_id = message.get('id') or message_id
-            conversation_id = (
-                data.get('conversation_id')
-                or data.get('conversationId')
-                or (data.get('conversation') or {}).get('id')
-                or (data.get('conversation') or {}).get('conversation_id')
-                or (data.get('meta') or {}).get('conversation_id')
-            )
-        return ProviderResponse(text=text, raw_payload=data, message_id=message_id, conversation_id=conversation_id)
-        
-    def _translate_via_native_api(self, messages: List[Dict[str, str]], headers: Dict[str, str], current_settings: Dict[str, Any], timeout: int) -> ProviderResponse:
+    def _translate_via_native_api(self, messages: List[Dict[str, str]], headers: Dict[str, str], current_settings: Dict[str, Any]) -> ProviderResponse:
         """Internal helper to translate via native api."""
         endpoint = f"{self.base_url}/{self.model}:generateContent?key={self.api_key}"
         system_prompt = next((m['content'] for m in messages if m['role'] == 'system'), "")
@@ -588,9 +538,16 @@ class GeminiProvider(BaseTranslationProvider):
         if generation_config:
             body['generationConfig'] = generation_config
 
-        response = requests.post(endpoint, headers=headers, json=body, timeout=timeout)
-        response.raise_for_status()
-        data = response.json()
+        response = self._post(endpoint, headers, body, self._policy(current_settings, default_timeout=120.0))
+        try:
+            data = response.json()
+        except ValueError:
+            raise TransportError(
+                f"API returned non-JSON response (status {response.status_code}): {response.text[:200]}",
+                kind=ErrorKind.PARSE,
+                status=response.status_code,
+                raw_text=response.text,
+            )
 
         text = None
         if data.get('candidates'):
@@ -598,6 +555,8 @@ class GeminiProvider(BaseTranslationProvider):
             parts = first_candidate.get('content', {}).get('parts')
             if parts:
                 text = parts[0].get('text')
+        if not (text or "").strip():
+            raise TransportError("AI returned an empty response.", kind=ErrorKind.EMPTY, status=response.status_code)
 
         return ProviderResponse(text=text, raw_payload=data)
 
