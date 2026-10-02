@@ -1,3 +1,10 @@
+---
+status: design
+updated: 2026-06-23
+owns: handlers/translation/prompt_composer
+tokens: 6.2k
+purpose: Target design of translation context and prompts (Ukrainian)
+---
 # Стратегія промптінгу та контекстного перекладу
 
 > Версія: чернетка 1.0 · Цільова модель: **Gemini 3 Flash** (із сумісністю для Claude / OpenAI / Ollama)

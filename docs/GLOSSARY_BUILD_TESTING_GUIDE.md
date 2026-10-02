@@ -1,3 +1,10 @@
+---
+status: merge
+updated: 2026-08-21
+owns: docs/wiki/8
+tokens: 1.5k
+purpose: The one glossary pass (Ukrainian); to be merged into wiki 8
+---
 # Єдиний автоматичний прохід глосарію
 
 Цей документ описує єдиний рекомендований користувацький маршрут. Внутрішні режими

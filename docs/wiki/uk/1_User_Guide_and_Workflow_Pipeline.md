@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-10-02
+owns: ui/, components/, dialogs/
+tokens: 7.7k
+---
 # Посібник: інтерфейс
 
 **Мова:** [English](../1_User_Guide_and_Workflow_Pipeline.md) · Українська

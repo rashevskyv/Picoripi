@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: ui/, components/, dialogs/
+tokens: 5.9k
+purpose: Main window, menus, filters, settings tabs, shortcuts
+---
 # User Guide: Interface
 
 **Language:** English · [Українська](uk/1_User_Guide_and_Workflow_Pipeline.md)

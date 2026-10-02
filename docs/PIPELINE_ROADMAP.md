@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: core/glossary_build, ui/pipeline_wizard_dialog.py
+tokens: 9.4k
+purpose: Localization pipeline design of record (Ukrainian)
+---
 # Road Map: наскрізний пайплайн локалізації та майстер-провідник
 
 Документ фіксує узгоджену архітектуру пайплайну: від порожнього проєкту до перекладеного

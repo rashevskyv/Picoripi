@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-10-02
+owns: core/translation/providers.py
+tokens: 2.4k
+---
 # Gemini Web2API (WebTOP)
 
 **Мова:** [English](../5_Gemini_Web2API.md) · Українська

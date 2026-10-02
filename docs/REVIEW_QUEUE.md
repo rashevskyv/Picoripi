@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: manual verification
+tokens: 9.1k
+purpose: What a person must check by hand, by work package
+---
 # Review queue — what to check by hand
 
 Changes made while executing `docs/audit/2026-10-01/PLAN.md` that automated tests cannot vouch for. Each item

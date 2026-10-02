@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: unfinished work
+tokens: 5.6k
+purpose: Everything left open, one line each, by work package
+---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete

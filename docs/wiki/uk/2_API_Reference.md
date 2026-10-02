@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-10-02
+owns: module map
+tokens: 0.9k
+---
 # Карта коду (для супроводу)
 
 **Мова:** [English](../2_API_Reference.md) · Українська

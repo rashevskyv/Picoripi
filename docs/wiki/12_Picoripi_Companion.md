@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: core/companion_sync.py, companion/
+tokens: 1.8k
+purpose: Companion server and glossary sync
+---
 # Picoripi Companion (Mobile PWA & Sync)
 
 **Language:** English · [Українська](uk/12_Picoripi_Companion.md)

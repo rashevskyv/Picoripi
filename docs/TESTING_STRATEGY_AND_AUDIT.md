@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: tests/
+tokens: 2.3k
+purpose: Shape of the test suite, lanes, known risks
+---
 # Testing Strategy And Test Audit
 
 Date: 2026-06-20

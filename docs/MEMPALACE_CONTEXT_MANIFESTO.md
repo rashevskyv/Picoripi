@@ -1,3 +1,10 @@
+---
+status: merge
+updated: 2026-07-16
+owns: core/mempalace, ui/mempalace
+tokens: 35.7k
+purpose: MemPalace design and a long progress log; to be cut to a contract
+---
 # MemPalace Context Manifesto
 
 > Живий план інтеграції розміченого сценарію Markup Studio з MemPalace та AI-перекладом.

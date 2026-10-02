@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-09-27
+owns: docs/wiki
+tokens: 0.6k
+---
 # Вікі Picoripi (українською)
 
 **Мова:** [English](../README.md) · Українська

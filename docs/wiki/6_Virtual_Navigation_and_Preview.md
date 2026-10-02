@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-09-26
+owns: ui/updaters/block_list
+tokens: 1.1k
+purpose: Virtual folders, story and speaker views, preview
+---
 # Virtual Navigation and Preview
 
 **Language:** English · [Українська](uk/6_Virtual_Navigation_and_Preview.md)

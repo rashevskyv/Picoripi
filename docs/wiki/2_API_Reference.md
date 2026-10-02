@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: module map
+tokens: 0.8k
+purpose: Which Python file implements which control
+---
 # Code map (maintainers)
 
 **Language:** English · [Українська](uk/2_API_Reference.md)

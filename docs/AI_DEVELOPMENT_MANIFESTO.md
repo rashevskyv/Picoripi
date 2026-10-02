@@ -1,3 +1,10 @@
+---
+status: merge
+updated: 2026-10-02
+owns: AGENTS.md, docs/ENGINEERING.md
+tokens: 3.9k
+purpose: Long-form agent rules; to be merged into AGENTS.md and ENGINEERING.md
+---
 # AI Development Manifesto For Picoripi
 
 This manifesto defines how AI agents should develop Picoripi. It is intentionally practical: every rule should help preserve correctness, performance, user trust, and long-term maintainability.

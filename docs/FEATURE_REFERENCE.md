@@ -1,3 +1,10 @@
+---
+status: merge
+updated: 2026-10-02
+owns: docs/wiki/1
+tokens: 3.1k
+purpose: Feature inventory with dead paths; to be merged into wiki 1
+---
 # Picoripi Feature Reference
 
 This document describes the most important Picoripi functions at the product and engineering level. It complements `README.md`, the wiki pages in `docs/wiki/`, and the plugin guide in `docs/wiki/3_Plugin_Developer_Guide.md`.

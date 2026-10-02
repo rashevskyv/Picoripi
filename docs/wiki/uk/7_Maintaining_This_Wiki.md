@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-09-27
+owns: docs/wiki
+tokens: 0.5k
+---
 # Як вести цю вікі
 
 **Мова:** [English](../7_Maintaining_This_Wiki.md) · Українська

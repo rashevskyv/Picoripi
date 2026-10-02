@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-10-02
+owns: core/settings
+tokens: 1.8k
+---
 # Налаштування
 
 **Мова:** [English](../4_Configuration_Guide.md) · Українська

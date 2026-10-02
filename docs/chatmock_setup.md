@@ -1,4 +1,10 @@
-# --- START OF FILE docs/chatmock_setup.md ---
+---
+status: merge
+updated: 2025-09-21
+owns: docs/wiki/5
+tokens: 0.9k
+purpose: ChatMock how-to (Ukrainian); to be merged into wiki 5
+---
 # Налаштування ChatMock для GPT-5
 
 ChatMock надає локальний сервер з OpenAI/Ollama-сумісним API, що пересилає запити до твого акаунта ChatGPT (потрібна передплата Plus/Pro). Нижче наведено кроки запуску у Python-режимі, сумісні з нашою системою AI-перекладу.

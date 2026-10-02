@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-10-02
+owns: handlers/translation, core/translation
+tokens: 5.3k
+---
 # AI-переклад
 
 **Мова:** [English](../11_AI_Translation.md) · Українська

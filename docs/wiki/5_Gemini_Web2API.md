@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: core/translation/providers.py
+tokens: 1.9k
+purpose: The local Gemini proxy: start, settings, errors
+---
 # Gemini Web2API (WebTOP)
 
 **Language:** English · [Українська](uk/5_Gemini_Web2API.md)

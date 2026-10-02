@@ -74,7 +74,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] WP6 exit
 
 ## WP7 — Documentation system
-- [ ] 7.1 `docs/INDEX.md` + front matter
+- [x] 7.1 `docs/INDEX.md` + front matter
 - [ ] 7.2 `docs/ARCHITECTURE.md` with Mermaid diagram
 - [ ] 7.3 README ≤3.5k tokens; stale claims fixed
 - [ ] 7.4 merges/archives per F §7 table; delete plain_text glossary copy; update-wiki ownership table

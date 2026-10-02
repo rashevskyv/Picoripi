@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-10-02
+owns: core/glossary_build, core/glossary
+tokens: 3.9k
+---
 # Пайплайн локалізації
 
 **Мова:** [English](../8_Localization_Pipeline.md) · Українська

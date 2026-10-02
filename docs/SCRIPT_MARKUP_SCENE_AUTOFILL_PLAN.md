@@ -1,3 +1,10 @@
+---
+status: merge
+updated: 2026-07-12
+owns: docs/wiki/9
+tokens: 0.7k
+purpose: Agreed scene auto-fill behaviour; to be merged into wiki 9
+---
 # Script Markup Studio: scene auto-fill plan
 
 ## Agreed behaviour

@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-09-02
+owns: core/script_markup, ui/script_markup
+tokens: 1.4k
+purpose: Script Markup Studio
+---
 # Script Markup Studio
 
 **Language:** English · [Українська](uk/9_Script_Markup.md)

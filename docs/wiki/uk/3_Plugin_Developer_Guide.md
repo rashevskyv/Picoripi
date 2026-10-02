@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-10-02
+owns: plugins/
+tokens: 4.5k
+---
 # Посібник розробника плагінів
 
 **Мова:** [English](../3_Plugin_Developer_Guide.md) · Українська

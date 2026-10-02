@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: core/settings
+tokens: 1.5k
+purpose: Settings files, project files, where data is stored
+---
 # Configuration
 
 **Language:** English · [Українська](uk/4_Configuration_Guide.md)

@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: core/glossary_build, core/glossary
+tokens: 2.9k
+purpose: Pipeline wizard: script, glossary build, reconcile
+---
 # Localization Pipeline
 
 **Language:** English · [Українська](uk/8_Localization_Pipeline.md)

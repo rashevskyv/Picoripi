@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: handlers/translation, core/translation
+tokens: 3.9k
+purpose: Providers, prompts, chunks, run memory, translation memory
+---
 # AI Translation
 
 **Language:** English · [Українська](uk/11_AI_Translation.md)

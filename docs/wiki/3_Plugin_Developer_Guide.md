@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: plugins/
+tokens: 3.3k
+purpose: The one plugin guide: files, hooks, capabilities, tests
+---
 # Plugin Developer Guide
 
 **Language:** English · [Українська](uk/3_Plugin_Developer_Guide.md)

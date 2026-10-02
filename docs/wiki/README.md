@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-01
+owns: docs/wiki
+tokens: 0.6k
+purpose: Wiki index and reading order
+---
 # Picoripi Wiki
 
 **Language:** English · [Українська](uk/README.md)

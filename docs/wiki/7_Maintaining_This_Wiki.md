@@ -1,3 +1,10 @@
+---
+status: current
+updated: 2026-10-02
+owns: docs/wiki
+tokens: 0.7k
+purpose: Which page owns which fact; how to update EN and UK
+---
 # Maintaining this wiki
 
 **Language:** English · [Українська](uk/7_Maintaining_This_Wiki.md)

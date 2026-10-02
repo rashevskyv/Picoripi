@@ -1,3 +1,9 @@
+---
+status: current
+updated: 2026-09-26
+owns: ui/updaters/block_list
+tokens: 1.6k
+---
 # Віртуальна навігація і прев’ю
 
 **Мова:** [English](../6_Virtual_Navigation_and_Preview.md) · Українська
