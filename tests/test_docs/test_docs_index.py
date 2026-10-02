@@ -65,7 +65,7 @@ def test_missing_fields_and_unknown_statuses_are_reported(tmp_path, monkeypatch)
     assert docs_index.problems("docs/odd.md") == [
         "docs/odd.md: header has no 'owns'",
         "docs/odd.md: header has no 'purpose'",
-        "docs/odd.md: status 'maybe' is not one of current, design, archive, merge, delete",
+        "docs/odd.md: status 'maybe' is not one of current, design, archive",
     ]
 
 

@@ -3,7 +3,7 @@ status: current
 updated: 2026-10-02
 owns: feature inventory
 tokens: 14.3k
-purpose: Every feature in detail (moved from README); the wiki wins on a conflict
+purpose: Every feature in detail; the wiki wins on a conflict
 ---
 # Picoripi features
 

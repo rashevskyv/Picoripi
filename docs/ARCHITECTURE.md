@@ -1,7 +1,7 @@
 ---
 status: current
 updated: 2026-10-02
-owns: layering, data flow, where to change what
+owns: layering, data flow
 tokens: 2.1k
 purpose: Layers, data flow, facades, and where to change what
 ---

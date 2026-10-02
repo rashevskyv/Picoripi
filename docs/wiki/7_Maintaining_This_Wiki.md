@@ -27,8 +27,10 @@ English files in `docs/wiki/` are the source of truth. `docs/wiki/uk/` is the Uk
 | AI Translate / Variation / Chat / providers | `11_AI_Translation.md` |
 | Picoripi Companion (mobile PWA and sync server) | `12_Picoripi_Companion.md` |
 | Short pitch + setup + doc map | repo `README.md` |
+| Every feature in one list | `docs/FEATURES.md` |
 | Dated list of shipped **code** changes | `CHANGELOG.md` |
-| Agent operating contract | `AGENTS.md` (extended rationale: `docs/AI_DEVELOPMENT_MANIFESTO.md`) |
+| Agent operating contract | `AGENTS.md` (the reasoning: `docs/ENGINEERING.md`; the code map: `docs/ARCHITECTURE.md`) |
+| Every document with its size and status | `docs/INDEX.md` (generated: `python tasks.py docs-index`) |
 | Planned architecture, not yet shipped | `docs/PIPELINE_ROADMAP.md` |
 
 Do not copy a full how-to into README when a wiki page exists. README links here.

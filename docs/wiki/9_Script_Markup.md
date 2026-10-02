@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-02
 owns: core/script_markup, ui/script_markup
-tokens: 1.4k
+tokens: 1.8k
 purpose: Script Markup Studio
 ---
 # Script Markup Studio
@@ -64,6 +64,30 @@ The window is staged **1. Source — 2. Markup — 3. Review — 4. MemPalace**.
 6. **Export** the standardized script.
 
 The pipeline wizard locates an existing markup project on disk and publishes `script_markup_studio_project_path` on the main window so the Context Builder does not ask you to browse the same file again.
+
+---
+
+## Scenes and Auto-fill
+
+A scene is a **Structure** child of a chapter. **Auto-fill ▾ → Continue from marked examples...** learns
+scenes from the tree you already marked, not from a number in a scene name:
+
+- Repeated child structures at the same depth in marked chapters are the examples.
+- A marked **Breaker** teaches the exact separator text (same characters, same length). A breaker belongs to
+  the scene that ends at it and sits one level below the scene, beside its speakers and text.
+- The next chapter also ends a scene, but never creates a breaker. Actions and narration inside a scene stay in it.
+- The learned pattern is applied to peer chapters that have no scenes yet. A chapter that is one scene-sized
+  block gets no scene container. Scene names continue the numbering of the existing siblings and restart in
+  every chapter. Existing structures are never renamed; running Auto-fill twice changes nothing.
+
+**Numbering names by hand.** In a structure name typed for `Ctrl+M`, `$` is a counter: `Scene $` starts at
+`Scene 1`, `Scene $4` at `Scene 4`. The number advances among siblings and resets under another parent. One
+`$` per name; the saved name holds the number, not the `$`.
+
+**Whose marks teach.** Every mark records its origin: manual, local Auto-fill or AI. Manual marks are approved
+examples. Auto-fill and AI marks start unapproved and are labelled in the tree; approve them from the tree
+context menu. Only approved marks teach the next Auto-fill or AI pass. Marks saved before this existed load as
+manual and approved.
 
 ---
 

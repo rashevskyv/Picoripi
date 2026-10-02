@@ -9,7 +9,7 @@ purpose: Shape of the test suite, lanes, known risks
 
 Date: 2026-06-20
 
-This document records the current test-suite shape, strengths, risks, and the next work items for Picoripi. Audit summary items are also mirrored in `AUDIT.md`.
+This document records the current test-suite shape, strengths, risks, and the next work items for Picoripi.
 
 ## 1. Current Test Shape
 

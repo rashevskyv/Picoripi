@@ -12,9 +12,6 @@ the line when it is done or moved into a plan.
 
 ## Carried over from the 2026 H1 audit (`docs/history/AUDIT-2026-H1.md`)
 
-- **DOC03** — feature docs as a release requirement: a changed feature updates its owning doc in the same
-  change. Superseded by the `AGENTS.md` checklist once WP7.4 merges `docs/FEATURE_REFERENCE.md` into wiki 1.
-- Keep `docs/FEATURE_REFERENCE.md` current for large features until WP7.4 removes it.
 - UI command "Create plugin from template" (copy `plugins/default_plugin`, rename, open the prompt file).
   WP5.4 delivers the generator (`tools/new_plugin.py`); the menu entry is still unplanned.
 
@@ -245,9 +242,6 @@ the line when it is done or moved into a plan.
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.
-- `docs/AI_DEVELOPMENT_MANIFESTO.md`, `docs/FEATURE_REFERENCE.md` and `docs/TESTING_STRATEGY_AND_AUDIT.md`
-  still tell agents to update `GEMINI.md` / `AUDIT.md`; both are gone as working files (WP7.4 merges these
-  docs).
 - Root `CHANGELOG.md` is ~38 KB after archiving: the last 14 days hold 17 verbose release entries. New
   entries are one line each; consider cutting the window to the current minor at the next release.
 
@@ -259,3 +253,10 @@ the line when it is done or moved into a plan.
   through the deploy skill. The version bump and the changelog insert were fixed in 7.3; the git part was left alone.
 - `docs/FEATURES.md` was moved from the README as written (14k tokens), with only the known stale claims fixed.
   Individual bullets (colours, pixel sizes, widget names) were not re-verified against the code.
+- `plugins/zelda_mc/translation_prompts/glossary.md` and `plugins/zelda_ww/translation_prompts/glossary.md` are
+  read by no code (the glossary is looked up only in the project folder). They are those games' own term
+  lists, so 7.4 left them; the `plain_text` copy of the Wind Waker list was deleted.
+- The copies of the `update-wiki` skill outside the repository (`~/.claude/skills/update-wiki/`, `.grok/`) were
+  not touched; `.agents/skills/update-wiki/SKILL.md` is the one that was brought up to date.
+- `docs/MEMPALACE_CONTEXT_MANIFESTO.md` takes the stage statuses from the archived plan (last entry
+  2026-07-16); nobody re-checked stages 3 and 4 against the code.

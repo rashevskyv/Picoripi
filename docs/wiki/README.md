@@ -29,8 +29,9 @@ When product behaviour changes, update the **owning** page in [7](7_Maintaining_
 
 **Recommended AI backend for glossary and bulk translation:** Gemini Web2API. See [page 5](5_Gemini_Web2API.md).
 
-Engineering notes outside this folder (may be stale; prefer code):
+Outside this folder (`docs/INDEX.md` lists every document with its size and status):
 
-- `docs/PIPELINE_ROADMAP.md` — planned, not shipped
-- `docs/FEATURE_REFERENCE.md` — engineering inventory
-- `AGENTS.md` — agent contract (rationale: `docs/AI_DEVELOPMENT_MANIFESTO.md`)
+- `docs/FEATURES.md` — every feature in one list
+- `docs/ARCHITECTURE.md` — layers, data flow, where to change what
+- `docs/PIPELINE_ROADMAP.md` — pipeline design; what is planned and not shipped
+- `AGENTS.md` — agent contract (the reasoning: `docs/ENGINEERING.md`)

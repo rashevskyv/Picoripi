@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/translation/providers.py
-tokens: 1.9k
+tokens: 2.1k
 purpose: The local Gemini proxy: start, settings, errors
 ---
 # Gemini Web2API (WebTOP)
@@ -126,7 +126,27 @@ Version 1.4.0 of the proxy is the result of the 2026-10 audit. Until it is merge
 
 - It does not start or update `gemini-web2api` for you.
 - It does not store Google cookies. Those stay in the proxy’s `accounts.json` / browser profiles.
-- It does not replace ChatMock. ChatMock is the ChatGPT-web equivalent; see `docs/chatmock_setup.md`. Web2API is the Gemini-web equivalent.
+- It does not replace ChatMock (below): Web2API is the Gemini-web proxy, ChatMock the ChatGPT-web one.
+
+---
+
+## ChatMock: the same idea for ChatGPT
+
+[ChatMock](https://github.com/RayBytes/ChatMock) is a local server with an OpenAI-compatible API that forwards
+requests to your ChatGPT account (a paid plan is required). It is not an OpenAI product; speed and limits are
+those of the web version. Picoripi has no separate provider for it — it is an **OpenAI Compatible** endpoint.
+
+```bash
+git clone https://github.com/RayBytes/ChatMock.git && cd ChatMock
+pip install -r requirements.txt
+python chatmock.py login      # sign in to ChatGPT; `python chatmock.py info` confirms it
+python chatmock.py serve --reasoning-effort low --reasoning-summary none    # port 8000
+```
+
+In Picoripi: **Settings → AI Translation**, Active Provider **OpenAI Compatible**, Endpoint
+`http://127.0.0.1:8000/v1`, any non-empty API key, Model `gpt-5` (or another one ChatMock lists).
+**Test Provider**, then **Save Preset**. If the test fails, check that `chatmock.py serve` is still running
+and that a firewall does not block the port.
 
 ---
 

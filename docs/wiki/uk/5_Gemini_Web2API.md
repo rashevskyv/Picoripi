@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/translation/providers.py
-tokens: 2.4k
+tokens: 2.7k
 ---
 # Gemini Web2API (WebTOP)
 
@@ -125,7 +125,27 @@ Picoripi вважає кожен власний (self-hosted) OpenAI-суміс�
 
 - Не запускає і не оновлює `gemini-web2api` за вас.
 - Не зберігає cookies Google. Вони лишаються в `accounts.json` / профілях браузера проксі.
-- Не замінює ChatMock. ChatMock — еквівалент ChatGPT у вебі; див. `docs/chatmock_setup.md`. Web2API — еквівалент Gemini у вебі.
+- Не замінює ChatMock (нижче): Web2API — проксі до вебверсії Gemini, ChatMock — до вебверсії ChatGPT.
+
+---
+
+## ChatMock: те саме для ChatGPT
+
+[ChatMock](https://github.com/RayBytes/ChatMock) — локальний сервер з OpenAI-сумісним API, що пересилає запити
+до вашого акаунта ChatGPT (потрібна платна підписка). Це не продукт OpenAI; швидкість і ліміти — як у
+вебверсії. Окремого провайдера в Picoripi для нього немає — це звичайна адреса **OpenAI Compatible**.
+
+```bash
+git clone https://github.com/RayBytes/ChatMock.git && cd ChatMock
+pip install -r requirements.txt
+python chatmock.py login      # вхід у ChatGPT; `python chatmock.py info` підтверджує його
+python chatmock.py serve --reasoning-effort low --reasoning-summary none    # порт 8000
+```
+
+У Picoripi: **Settings → AI Translation**, Active Provider **OpenAI Compatible**, Endpoint
+`http://127.0.0.1:8000/v1`, будь-який непорожній API-ключ, Model `gpt-5` (або інша зі списку ChatMock).
+**Test Provider**, потім **Save Preset**. Якщо перевірка не проходить — переконайтеся, що `chatmock.py serve`
+ще працює і що порт не блокує фаєрвол.
 
 ---
 

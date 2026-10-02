@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/glossary_build, core/glossary
-tokens: 2.9k
+tokens: 3.5k
 purpose: Pipeline wizard: script, glossary build, reconcile
 ---
 # Localization Pipeline
@@ -153,6 +153,41 @@ Translation can also be triggered from the editor (**AI Translate**, selection r
 Status: non-empty rows whose current text differs from the original. Lines kept identical (names, numbers) undercount on purpose.
 
 See [11. AI Translation](11_AI_Translation.md).
+
+---
+
+## Appendix: the automatic glossary pass in detail
+
+**Where it starts.** **Tools → Prepare Glossary…**, the wizard step **Prepare and enrich the glossary**, and the
+button inside the Glossary dialog all open the same route. The internal modes (`seed`, `thorough`, `augment`,
+`translate`) remain as building blocks; nobody has to run them in order.
+
+**Files.** The glossary is `<project folder>/glossary.json`. Beside it the pass keeps `glossary.scan.json`:
+fingerprints of the blocks already swept. It is bookkeeping for incremental runs, not a second glossary.
+
+**Scope.** With only part of the project ticked, global structural entries that belong to no block are not
+mixed into the partial pass. A block whose content did not change is not swept again; **Re-scan every selected
+block with AI** forces the long full sweep and still does not overwrite anything a person confirmed.
+
+**What merges.** An exact normalized match joins an existing entry without touching confirmed translations and
+descriptions. A fuzzy match never merges by itself — the pair is shown for a person to decide.
+
+**In the Glossary dialog** the data is kept apart: **Description** (the clean summary used for translation),
+**Proposed variants** (candidates with a rationale each), **AI notes and unresolved choices** (sweep
+observations, alternative translations, evidence of who a character is, possible duplicates), **Occurrences**.
+
+**The report** after a pass shows a remainder instead of "done": entries awaiting review, entries with several
+variants, entries without a translation or a description, possible duplicates. **Review glossary** opens the
+queue; **Continue in editor** returns to translating even when the queue is not empty.
+
+**Checking a pass by hand** (ten minutes, two small blocks):
+
+1. Run the pass for the two blocks only: seed → sweep → describe → translate go through without a pause.
+2. In the Glossary dialog, description and AI notes are in different panes; an ambiguous term has several
+   variants with different rationales.
+3. Run the same blocks again: nothing is swept. Change one string in one block and run again: only that block is swept.
+4. Confirm a translation by hand and run again: it stays. Tick the full re-scan: sources are read again, the
+   confirmed entry still stays.
 
 ---
 

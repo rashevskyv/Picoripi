@@ -62,6 +62,8 @@ Consult `docs/wiki/7_Maintaining_This_Wiki.md` for page ownership:
 | Localization Pipeline wizard & automated passes | `docs/wiki/8_Localization_Pipeline.md` |
 | Script Markup Studio | `docs/wiki/9_Script_Markup.md` |
 | AI Translation, variations, prompts, AI chat | `docs/wiki/11_AI_Translation.md` |
+| Picoripi Companion: phone review, glossary sync, server setup | `docs/wiki/12_Picoripi_Companion.md` |
+| The detailed feature inventory (English only) | `docs/FEATURES.md` |
 
 For each modified page:
 1. Update the English file (`docs/wiki/<Page>.md`).
@@ -91,7 +93,12 @@ If a plugin gained a new capability or hook (e.g. external wiki lookup, speaker 
    ```
 2. **Run Linter**:
    ```powershell
-   .\venv\Scripts\python.exe -m ruff check .
+   python tasks.py lint
    ```
-3. **Verify Links & Content**:
+3. **Check the documents** (headers, `docs/INDEX.md`, paths, EN/UK headings):
+   ```powershell
+   python tasks.py docs-index
+   python tasks.py docs-check
+   ```
+4. **Verify Links & Content**:
    Ensure all file/markdown links exist and no sensitive data (passwords, cookies, machine-local absolute paths) was introduced.

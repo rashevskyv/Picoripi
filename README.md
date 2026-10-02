@@ -59,7 +59,7 @@ that serves `http://127.0.0.1:8081/v1`:
 3. **Test Provider**, then **Save Preset**.
 
 Models, timeouts, parallel requests and error messages: [wiki 5](docs/wiki/5_Gemini_Web2API.md). Other providers
-(OpenAI-compatible endpoints, Google Gemini API, Ollama, Perplexity, ChatMock) are set up in the same tab; see
+(any OpenAI-compatible endpoint, Google Gemini API, Ollama, Perplexity) are set up in the same tab; see
 [wiki 11](docs/wiki/11_AI_Translation.md). API keys can be typed in Settings or put into a `.env` file copied
 from `.env.example` (`OPENAI_API_KEY`, `GEMINI_API_KEY`).
 

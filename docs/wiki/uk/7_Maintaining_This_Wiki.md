@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-27
 owns: docs/wiki
-tokens: 0.5k
+tokens: 0.6k
 ---
 # Як вести цю вікі
 
@@ -26,6 +26,9 @@ tokens: 0.5k
 | AI Translate / Variation / Chat | `11_AI_Translation.md` | `uk/11_…` |
 | Picoripi Companion (мобільний PWA та сервер синхронізації) | `12_Picoripi_Companion.md` | `uk/12_…` |
 | Короткий пітч + карта | кореневий `README.md` | посилання на `docs/wiki/uk/README.md` |
+| Усі можливості одним переліком | `docs/FEATURES.md` | лише англійською |
+| Правила для агентів | `AGENTS.md` (обґрунтування: `docs/ENGINEERING.md`; карта коду: `docs/ARCHITECTURE.md`) | лише англійською |
+| Усі документи з розміром і статусом | `docs/INDEX.md` (генерується: `python tasks.py docs-index`) | лише англійською |
 
 **Авторитет:** поточний Python/UI. Якщо старі `docs/*.md` розходяться з кодом — правити англійську вікі з коду, потім українську копію.
 
