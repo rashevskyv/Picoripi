@@ -5,12 +5,48 @@ from __future__ import annotations
 from typing import Any
 
 
+# Longest a field of a compact voice card may be, in words.
+CARD_FIELD_WORDS = 40
+
+
+def _clip(text: Any, words: int = CARD_FIELD_WORDS) -> str:
+    parts = str(text or "").split()
+    return " ".join(parts[:words]) + ("…" if len(parts) > words else "")
+
+
+def _voice_card(profile: dict[str, Any]) -> dict[str, Any]:
+    """What a translator needs about a character at a glance.
+
+    Everyone keeps ``role`` and ``address_and_grammar`` (gender and form of
+    address matter for the person spoken *to* as well); only a current speaker
+    keeps ``speech_style``. Empty fields are left out.
+    """
+    card: dict[str, Any] = {"name": profile["name"]}
+    if profile.get("is_current_speaker"):
+        card["is_current_speaker"] = True
+    fields = ["role", "address_and_grammar"]
+    if profile.get("is_current_speaker"):
+        fields.append("speech_style")
+    for field in fields:
+        value = _clip(profile.get(field))
+        if value:
+            card[field] = value
+    return card
+
+
 def build_story_context_bundle(
     client,
     game_block_id: str,
     string_index: int,
     wing_name: str = "",
+    compact: bool = False,
 ) -> dict[str, Any]:
+    """The MemPalace facts about one game string.
+
+    ``compact`` replaces the full character profiles (ten free-text fields per
+    participant, 1-4 KB per event) with short voice cards. Batch requests use
+    it; a single-string request keeps the full profiles.
+    """
     if client is None:
         return {}
     event = client.get_story_event_for_game_string(game_block_id, string_index)
@@ -87,7 +123,7 @@ def build_story_context_bundle(
     elif participants:
         bundle["participants"] = participants
     if profiles:
-        bundle["character_profiles"] = profiles
+        bundle["character_profiles"] = [_voice_card(p) for p in profiles] if compact else profiles
     if relationships:
         bundle["known_relationships"] = relationships
     return bundle

@@ -33,7 +33,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 2.3 no full-set composition at initiation; tuple fix
 - [x] 2.4 NarrativeLedger populated (or removed); session flag split fixed; wiki 11 updated
 - [x] 2.5 payload slimming (layout defaults, Unknown speaker, ref cap, single name replace, slim editor payload)
-- [ ] 2.6 chunk-only glossary relevance; compact voice cards
+- [x] 2.6 chunk-only glossary relevance; compact voice cards
 - [ ] 2.7 native JSON mode where supported
 - [ ] WP2 exit: AFTER numbers in walkthrough
 

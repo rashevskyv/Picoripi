@@ -77,3 +77,11 @@ in `docs/OPEN_ITEMS.md`, not here.
       translation still shows all of them.
 - [ ] **Editor review input** is now `{id, text, translation}` triples plus an output-format line. Check one
       story-first run with review on: the editor still returns a usable polished chunk.
+- [ ] **Glossary rows per chunk (2.6).** A chunk's glossary table now holds terms found in that chunk's own
+      text plus the entries of its speakers and story participants. The 60-line lookahead and the matching
+      against the whole story-context JSON are gone. Check on a long block that no term the lines actually
+      use is missing from the table.
+- [ ] **Compact character cards in batch requests (2.6).** With MemPalace, each participant is sent as
+      name + role + address_and_grammar (and speech_style for the current speaker), 40 words per field at
+      most, instead of the full ten-field profile. Single-string translation still gets full profiles. Check
+      that tone, gender agreement and ти/ви are still right in a story block.

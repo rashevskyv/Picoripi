@@ -204,7 +204,7 @@ class BatchMixin:
             structured_story_context = (
                 {}
                 if manual.get("structure_id") == "story:none"
-                else self._get_structured_story_context(real_b_idx, real_s_idx)
+                else self._get_structured_story_context(real_b_idx, real_s_idx, compact=True)
             )
 
             speaker, item_spk_candidates = self._resolve_prompt_speaker(
@@ -369,37 +369,18 @@ class BatchMixin:
         if not scene_context:
             scene_context = surrounding_rows
 
-        # 3. Find relevant glossary terms for the entire chunk and next chunks (Lookahead)
-        combined_chunk_text = " ".join(
+        # 3. Glossary rows for this chunk: terms in its own text, plus the entries
+        # of the speakers and story participants (added below by name). Terms of
+        # later chunks, and every word of the story catalog, used to be matched
+        # too -- rows the model could not use for these lines.
+        chunk_text = " ".join(
             (item.get('text', '') if isinstance(item, dict) else str(item))
             for item in source_items
         )
 
-        lookahead_text = combined_chunk_text
-        try:
-            if source_items and all_source_items:
-                first_item_id = source_items[0].get('id', 0)
-                start_idx = 0
-                for idx, item in enumerate(all_source_items):
-                    if isinstance(item, dict) and item.get('id') == first_item_id:
-                        start_idx = idx
-                        break
-
-                lookahead_items = all_source_items[start_idx:start_idx + 60]
-                lookahead_text = " ".join(
-                    (item.get('text', '') if isinstance(item, dict) else str(item))
-                    for item in lookahead_items
-                )
-        except Exception as e:
-            log_debug(f"AIPromptComposer: Error calculating lookahead glossary text: {e}")
-        if story_context_catalog:
-            lookahead_text += " " + json.dumps(
-                story_context_catalog, ensure_ascii=False
-            )
-
         relevant_glossary_entries = []
         if glossary_manager:
-            relevant_glossary_entries = list(glossary_manager.get_relevant_terms(lookahead_text))
+            relevant_glossary_entries = list(glossary_manager.get_relevant_terms(chunk_text))
             self._append_speaker_glossary_entries(relevant_glossary_entries, speaker_candidates)
         glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
 

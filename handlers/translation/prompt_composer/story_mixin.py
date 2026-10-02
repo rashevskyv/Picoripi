@@ -33,13 +33,14 @@ class StoryMixin:
             include_normalized=False,
         )
 
-    def _get_structured_story_context(self, block_idx: int, string_idx: int) -> Dict:
+    def _get_structured_story_context(self, block_idx: int, string_idx: int, compact: bool = False) -> Dict:
         try:
             return build_story_context_bundle(
                 self._get_mempalace_client(),
                 str(block_idx),
                 string_idx,
                 self._get_wing_name(),
+                compact=compact,
             )
         except Exception as exc:
             log_debug(f"AIPromptComposer: structured story context failed: {exc}")

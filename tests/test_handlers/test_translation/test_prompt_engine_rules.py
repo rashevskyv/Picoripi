@@ -215,3 +215,29 @@ def test_an_item_with_its_own_width_keeps_it(composer):
     assert [item["layout"] for item in items] == [
         {"line_count": 1}, {"line_count": 1}, {"line_count": 1, "max_line_width_px": 180},
     ]
+
+
+# --- glossary relevance (WP2 2.6) --------------------------------------------
+
+def test_glossary_is_matched_against_the_chunk_not_the_lines_after_it(composer):
+    items = [{"id": i, "text": f"line {i} mentions Term{i}"} for i in range(30)]
+    chunk = items[:3]
+    manager = composer.main_handler._glossary_manager
+
+    composer.compose_batch_request("SysPrompt", chunk, items, block_idx=0, mode_description="m")
+
+    matched_text = manager.get_relevant_terms.call_args[0][0]
+    assert "Term0" in matched_text and "Term2" in matched_text
+    assert "Term3" not in matched_text and "Term29" not in matched_text
+
+
+def test_batch_requests_ask_for_compact_story_context(composer):
+    composer._get_structured_story_context = MagicMock(return_value={})
+    items = [{"id": 0, "text": "Hello."}]
+
+    composer.compose_batch_request("SysPrompt", items, items, block_idx=0, mode_description="m")
+    composer.compose_messages("SysPrompt", "Hello.", block_idx=0, string_idx=0, expected_lines=1, mode_description="m")
+
+    batch_call, single_call = composer._get_structured_story_context.call_args_list
+    assert batch_call.kwargs == {"compact": True}
+    assert single_call.kwargs == {}       # a single string keeps the full profiles
