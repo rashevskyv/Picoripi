@@ -36,7 +36,6 @@
 | `handlers/speaker_merge_handler.py` | Merge Speakers |
 | `handlers/translation_handler.py` | AI Translate / Variation / фасад пакета |
 | `core/translation/block_classifier.py` | Класифікація тексту проєкту (Story First проти Remaining Blocks) |
-| `core/translation/narrative_ledger.py` | Накопичувальний канон і пам’ять персонажів між фазами пайплайну |
 | `core/translation/providers.py` | OpenAI-compatible / Ollama / Gemini / Perplexity |
 | `core/translation/config.py` | Типовий конфіг провайдера |
 | `handlers/translation/ai_prompt_composer.py` | Збірка промпта (референсні переклади, правила транскрипції) |

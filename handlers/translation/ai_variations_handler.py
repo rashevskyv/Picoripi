@@ -294,14 +294,7 @@ class AIVariationsHandler(BaseTranslationHandler):
             'parent': parent,
             'selected_text': selected_text,
         }
-        if not self.main_handler._attach_session_to_task(
-            task_details,
-            base_system_prompt=system_prompt,
-            full_system_prompt=edited_system,
-            user_prompt=edited_user,
-            task_type='generate_variation',
-        ):
-            task_details['precomposed_prompt'] = precomposed
+        task_details['precomposed_prompt'] = precomposed
         
         self.main_handler._run_ai_task(provider, task_details)
 

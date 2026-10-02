@@ -36,7 +36,6 @@ This is not a generated dump of every method. It points at the modules that impl
 | `handlers/speaker_merge_handler.py` | Merge Speakers |
 | `handlers/translation_handler.py` | AI Translate / Variation / batch facade |
 | `core/translation/block_classifier.py` | Classification of project text (Story First vs Remaining Blocks) |
-| `core/translation/narrative_ledger.py` | Rolling canon context and voice ledger across pipeline phases |
 | `core/translation/providers.py` | OpenAI-compatible / Ollama / Gemini / Perplexity |
 | `core/translation/config.py` | Default provider config |
 | `handlers/translation/ai_prompt_composer.py` | Prompt assembly (reference translations, transcription rules) |

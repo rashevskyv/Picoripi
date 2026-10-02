@@ -312,13 +312,6 @@ class AIBatchTranslator(BaseTranslationHandler):
         if context.get('system_prompt_override'):
             system_prompt = context['system_prompt_override']
 
-        narrative_ledger = getattr(self.main_handler, 'narrative_ledger', None)
-        if narrative_ledger is None:
-            from core.translation.narrative_ledger import NarrativeLedger
-            narrative_ledger = NarrativeLedger()
-            self.main_handler.narrative_ledger = narrative_ledger
-        context['narrative_ledger'] = narrative_ledger
-
         # Load editor review prompt if not explicitly disabled
         if context.get('enable_editor_review', True):
             try:
@@ -338,7 +331,6 @@ class AIBatchTranslator(BaseTranslationHandler):
             'mode_description': context['mode_description'],
             'session_state': session_state,
             'temp_id_map': context.get('temp_id_map'),
-            'narrative_ledger': narrative_ledger,
         }
         context['composer_args'] = composer_args
 

@@ -60,7 +60,6 @@ def test_ailm_prepare_provider(mock_create, mock_box, ailm):
     
     assert p == mock_provider
     assert ailm._active_provider_key == 'openai'
-    assert ailm._provider_supports_sessions is True
 
 @patch('handlers.translation.ai_lifecycle_manager.AIWorker')
 @patch('handlers.translation.ai_lifecycle_manager.QThread')

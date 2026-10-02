@@ -36,6 +36,10 @@ the line when it is done or moved into a plan.
   the composer on a bare `MagicMock` main window; the story-context code then finds and parses the real
   script at `e:\Emulators\RomHacking\ZELDA\TP_UA\zelda_tp_script.txt` and queries MemPalace (the file takes
   ~20 s and its "Story Context" sections come from that script). Stub `composer.story_context` in the fixture.
+- **Leftovers of the removed translation-session path.** `AIWorker.run` still has `session_info` /
+  `session_state` branches that can no longer be reached for translation tasks, the composers still accept
+  `session_state`, `_prepare_glossary_for_prompt` is a pass-through stub and `_record_session_exchange` is a
+  no-op for them. Remove when `run()` is split (WP6.5).
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.

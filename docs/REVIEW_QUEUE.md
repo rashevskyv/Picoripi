@@ -55,3 +55,15 @@ in `docs/OPEN_ITEMS.md`, not here.
       (the run still covers everything), and nothing is composed up front when the editor is off. Good: a
       large block or "translate all" starts sending requests without the old pause, and an edited header or
       system prompt still applies to every chunk.
+- [ ] **NarrativeLedger removed (2.4) — your call.** README and wiki said Phase 1 of the pipeline records
+      terms, character voices and story developments and Phase 2 reuses them. In the code nothing ever wrote
+      to the ledger, so nothing was ever injected. The plan's minimal fill (glossary terms seen in earlier
+      chunks, up to 30) would have added ~300 tok to every later request for terms that are not in the chunk,
+      so I removed the ledger and corrected README, wiki 2, 8 and 11 instead. If you want the feature for
+      real, it needs decisions extracted from the model's output (non-glossary names, chosen ти/ви per pair);
+      WP4.1 (in-run translation memory) covers the repeated-string part. Restore point: commit before
+      "wp2: 2.4".
+- [ ] **Translation sessions removed (2.4).** The session path for translation was unreachable (two copies of
+      one flag). Making it work would have turned parallel block translation into sequential requests with
+      growing history. AI Chat keeps its own sessions and is untouched. Say if you ever want conversational
+      (stateful) block translation.

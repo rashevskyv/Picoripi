@@ -128,14 +128,7 @@ class ApplyMixin:
             'block_idx': block_idx,
             'string_idx': string_idx,
         }
-        if not self._attach_session_to_task(
-            task_details,
-            base_system_prompt=system_prompt,
-            full_system_prompt=edited_system,
-            user_prompt=edited_user,
-            task_type='translate_single',
-        ):
-            task_details['precomposed_prompt'] = precomposed
+        task_details['precomposed_prompt'] = precomposed
         log_debug(f"_translate_and_apply: starting AI operation, task_type=translate_single, block={block_idx}, string={string_idx}")
         self.ui_handler.start_ai_operation("AI Translation", model_name=self.ai_lifecycle_manager._active_model_name)
         self._run_ai_task(provider, task_details)

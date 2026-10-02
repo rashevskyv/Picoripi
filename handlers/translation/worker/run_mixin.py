@@ -348,16 +348,12 @@ class AIWorkerRunMixin:
                     if not editor_prompt or self.is_cancelled:
                         return cleaned_draft
                     try:
-                        ledger = self.task_details.get('narrative_ledger')
-                        ledger_text = ledger.format_for_prompt() if ledger and hasattr(ledger, 'format_for_prompt') else ""
                         draft_payload = json.loads(cleaned_draft)
                         editor_input = {
                             "task": "Review, polish, and ensure terminology consistency for the draft translation.",
                             "source_strings": chunk_items,
                             "draft_translation": draft_payload,
                         }
-                        if ledger_text:
-                            editor_input["established_narrative_context"] = ledger_text
                         review_messages = [
                             {"role": "system", "content": editor_prompt},
                             {"role": "user", "content": json.dumps(editor_input, ensure_ascii=False, indent=2)}

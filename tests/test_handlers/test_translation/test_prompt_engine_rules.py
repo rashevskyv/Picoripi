@@ -60,7 +60,7 @@ def test_single_string_system_prompt_does_not_depend_on_the_string(composer):
 
 @pytest.mark.parametrize("rule", [
     "Translate the \"text\" field", "translated_strings", "LAYOUT PRIORITY", "GLOSSARY IS MANDATORY",
-    "story_context_ref", "role_instruction", "NARRATIVE CANON", "TRANSCRIPTION RULES", "DIALOGUE FLOW",
+    "story_context_ref", "role_instruction", "TRANSCRIPTION RULES", "DIALOGUE FLOW",
     "ADDRESSEE", "TAG ALIAS LEGEND", "ANCHORED TAGS", "REFERENCE TRANSLATIONS", "OUTPUT SHAPE IS IMMUTABLE",
 ])
 def test_batch_rules_cover_every_instruction_the_user_message_used_to_carry(rule):
@@ -69,7 +69,7 @@ def test_batch_rules_cover_every_instruction_the_user_message_used_to_carry(rule
 
 def test_optional_fields_are_only_mentioned_conditionally():
     rules = batch_rules("SysPrompt")
-    for field in ('"story_context_ref"', '"established_narrative_context"', '"dialogue_flow"',
+    for field in ('"story_context_ref"', '"dialogue_flow"',
                   '"addressee"', '"tag_alias_legend"', '"reference_translations"'):
         lines = [line for line in rules.splitlines() if field in line]
         assert any(" If " in line or "present" in line for line in lines), field

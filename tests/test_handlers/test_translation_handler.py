@@ -121,27 +121,6 @@ def test_th_maybe_edit_prompt(mock_is_pressed, mock_dialog, th):
     assert res == ("ns", "nu")
     assert th._cached_system_prompt == "ns"
 
-def test_th_session_preparation(th):
-    th._provider_supports_sessions = False
-    assert th._prepare_session_for_request(base_system_prompt="", full_system_prompt="", user_prompt="", task_type="translate_block_chunked") is None
-    
-    th._provider_supports_sessions = True
-    th._session_manager.ensure_session.return_value = "state"
-    
-    # Non-session task type should return None
-    assert th._prepare_session_for_request(base_system_prompt="bs", full_system_prompt="fs", user_prompt="u", task_type="translate_single") is None
-    
-    # Session-supported task type should return valid session info
-    res = th._prepare_session_for_request(base_system_prompt="bs", full_system_prompt="fs", user_prompt="u", task_type="translate_block_chunked")
-    assert res is not None
-    assert res['state'] == "state"
-    assert res['user_message']['content'] == "u"
-    assert th.start_new_session is False
-    
-    task_details = {}
-    assert th._attach_session_to_task(task_details, base_system_prompt="bs", full_system_prompt="fs", user_prompt="u", task_type="translate_block_chunked") is True
-    assert task_details['session_state'] == "state"
-
 @patch('handlers.translation_handler.QMessageBox')
 def test_th_prompt_for_revert_after_cancel(mock_box, th):
     # No worker

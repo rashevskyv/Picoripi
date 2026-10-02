@@ -67,8 +67,6 @@ _BATCH_RULES = (
     'plus "scene_context" (whichever of them are present), to determine whether text is dialogue, a caption, a '
     'name, an item, or another UI role and translate it accordingly.',
     'If an item has "role_instruction", follow it for that item.',
-    'NARRATIVE CANON: If "established_narrative_context" is present, strictly maintain consistency with the terms, '
-    'speaker voices, and decisions it lists.',
     'TRANSCRIPTION RULES: Strictly follow the proper name transcription and transliteration rules given above'
     + _TRANSCRIPTION_EXAMPLES + '.',
     'DIALOGUE FLOW: If "dialogue_flow" or a per-item "flow_context" is present, it describes the real in-game '

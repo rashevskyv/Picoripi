@@ -91,54 +91,6 @@ class SessionMixin:
                     self._cached_system_prompt = prompt_to_save
         return edited_system, edited_user
 
-    def _should_use_session(self, task_type: str) -> bool:
-        """Internal helper to check if should use session."""
-        if not self._provider_supports_sessions:
-            return False
-        return task_type in ('chat_message', 'chat_message_stream', 'translate_block_chunked')
-
-    def _prepare_session_for_request(self, *, base_system_prompt: str, full_system_prompt: str, user_prompt: str, task_type: str) -> Optional[dict]:
-        """Internal helper to prepare session for request."""
-        log_debug(f"Preparing session, start_new_session is {self.start_new_session}")
-        if not self._should_use_session(task_type):
-            return None
-        target_lang = getattr(self.mw, 'target_language', 'Ukrainian')
-        if not isinstance(target_lang, str):
-            target_lang = 'Ukrainian'
-        state = self._session_manager.ensure_session(
-            provider_key=self._active_provider_key or '',
-            base_system_prompt=base_system_prompt,
-            full_system_prompt=full_system_prompt,
-            supports_sessions=self._provider_supports_sessions,
-            start_new_session=self.start_new_session,
-            target_lang=target_lang,
-        )
-        if not state:
-            return None
-        
-        self.start_new_session = False
-        log_debug(f"Session established. start_new_session set to {self.start_new_session}")
-        
-        return {
-            'state': state,
-            'user_message': {'role': 'user', 'content': user_prompt},
-        }
-
-    def _attach_session_to_task(self, task_details: dict, *, base_system_prompt: str, full_system_prompt: str, user_prompt: str, task_type: str) -> bool:
-        """Internal helper to attach session to task."""
-        session_info = self._prepare_session_for_request(
-            base_system_prompt=base_system_prompt,
-            full_system_prompt=full_system_prompt,
-            user_prompt=user_prompt,
-            task_type=task_type,
-        )
-        if not session_info:
-            return False
-        task_details['session'] = session_info
-        task_details['session_state'] = session_info['state']
-        task_details['session_user_message'] = session_info['user_message']['content']
-        return True
-
     def _set_notes_dialog_busy(self, dialog_obj, busy: bool) -> None:
         """Internal helper to set the notes dialog busy."""
         if not dialog_obj:

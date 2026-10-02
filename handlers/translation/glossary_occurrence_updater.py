@@ -223,12 +223,7 @@ class GlossaryOccurrenceUpdater:
             "composer_args": composer_args, "attempt": 1, "max_retries": 1,
             "occurrence": occurrence, "dialog": dialog, "from_batch": from_batch,
         }
-        if not self._main_handler._attach_session_to_task(
-            task_details,
-            base_system_prompt=system_prompt, full_system_prompt=edited_system,
-            user_prompt=edited_user, task_type="glossary_occurrence_batch_update",
-        ):
-            task_details["precomposed_prompt"] = precomposed
+        task_details["precomposed_prompt"] = precomposed
 
         self._main_handler.ui_handler.start_ai_operation(
             "AI Glossary Update", model_name=self._main_handler.ai_lifecycle_manager._active_model_name
@@ -361,12 +356,7 @@ class GlossaryOccurrenceUpdater:
             task_details['custom_user_header'] = edited_user
             task_details['custom_user_label'] = 'JSON DATA TO UPDATE:'
 
-        if not self._main_handler._attach_session_to_task(
-            task_details,
-            base_system_prompt=system_prompt, full_system_prompt=edited_system,
-            user_prompt=edited_user, task_type="glossary_occurrence_batch_update",
-        ):
-            task_details["precomposed_prompt"] = precomposed
+        task_details["precomposed_prompt"] = precomposed
 
         self._main_handler.ui_handler.start_ai_operation(
             "AI Glossary Update (All)", model_name=self._main_handler.ai_lifecycle_manager._active_model_name
@@ -593,12 +583,7 @@ class GlossaryOccurrenceUpdater:
             "composer_args": composer_args, "attempt": 1, "max_retries": 1,
             "dialog": dialog, "term": term, "translation": translation, "current_notes": current_notes,
         }
-        if not self._main_handler._attach_session_to_task(
-            task_details,
-            base_system_prompt=system_prompt, full_system_prompt=edited_system,
-            user_prompt=edited_user, task_type="glossary_notes_variation",
-        ):
-            task_details["precomposed_prompt"] = precomposed
+        task_details["precomposed_prompt"] = precomposed
 
         self._main_handler.ui_handler.start_ai_operation(
             "AI Glossary Notes", model_name=self._main_handler.ai_lifecycle_manager._active_model_name

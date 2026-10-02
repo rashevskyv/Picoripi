@@ -149,10 +149,7 @@ class EditMixin:
             "attempt": 1, "max_retries": 1,
             "dialog": dialog, "term": term, "context_line": context,
         }
-        if not self.main_handler._attach_session_to_task(
-            task_details, base_system_prompt=edited_system, full_system_prompt=edited_system, user_prompt=edited_user, task_type="fill_glossary",
-        ):
-            task_details["precomposed_prompt"] = precomposed
+        task_details["precomposed_prompt"] = precomposed
 
         dialog.set_ai_busy(True)
         self.main_handler.ui_handler.start_ai_operation("AI Glossary Fill", model_name=self.main_handler.ai_lifecycle_manager._active_model_name)

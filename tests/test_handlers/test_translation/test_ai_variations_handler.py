@@ -85,7 +85,6 @@ def test_generate_variation_api_flow(mock_info, vh, mock_main_handler):
     provider = MagicMock()
     mock_main_handler.ai_lifecycle_manager._prepare_provider.return_value = provider
     mock_main_handler._maybe_edit_prompt.return_value = ("edited_sys", "edited_user")
-    mock_main_handler._attach_session_to_task.return_value = False
     
     vh.generate_variation_for_current_string(force=True)
     
@@ -151,7 +150,6 @@ def test_generate_variation_selected_text(vh, mock_main_handler):
     provider = MagicMock()
     mock_main_handler.ai_lifecycle_manager._prepare_provider.return_value = provider
     mock_main_handler._maybe_edit_prompt.return_value = ("edited_sys", "edited_user")
-    mock_main_handler._attach_session_to_task.return_value = False
     
     vh.generate_variation_for_current_string(force=True)
     
@@ -201,7 +199,6 @@ def test_generate_variation_explicit_selected_text(vh, mock_main_handler):
     provider = MagicMock()
     mock_main_handler.ai_lifecycle_manager._prepare_provider.return_value = provider
     mock_main_handler._maybe_edit_prompt.return_value = ("edited_sys", "edited_user")
-    mock_main_handler._attach_session_to_task.return_value = False
     
     vh.generate_variation_for_current_string(force=True, selected_text="explicit_segment")
     

@@ -169,7 +169,7 @@ Older markdown under `docs/` (PLUGIN_AUTHORING_GUIDE, pipeline roadmap, plugin R
   - The Arbiter verifies terminology against the active glossary, enforces narrative voice consistency, and refines phrasing while keeping layout constraints and control tag variations non-blocking (e.g. `[PLAYER]` being translated or replaced with the protagonist name like "Лінк").
 - **Two-Phase Chronological & Semantic Pipeline (Story First ➔ Remaining Blocks)**:
   - Intelligently classifies all project text items (`classify_project_items`) into chronological **Story Dialogue** (using MemePalace `script_line` mappings and story block heuristics) and **Semantic / System Blocks** (menus, UI, item descriptions, mini-games, shops).
-  - **Narrative Ledger Canon Context**: Phase 1 records translated terminology, character voices, and narrative developments into an in-memory `NarrativeLedger`. When Phase 2 executes, this accumulated canon context is automatically injected into prompts, guaranteeing that secondary and system texts remain 100% faithful to the main storyline.
+  - Phase 2 runs after the story text is settled; both phases use the same glossary and per-line context.
 - **Top AI Batch Translation Buttons & Interactive Modes Dialog**:
   - Added a prominent **AI** action button directly on the main toolbar (`main_toolbar`) and in the blocks panel header (`block_header_layout`) opening the comprehensive **AI Batch Translation Dialog** (`AIBatchTranslationDialog`).
   - The dialog clearly presents and explains each pipeline mode (Story First, Remaining Blocks, Full Pipeline, Chronological Legacy) with detailed cards, step badges, and non-blocking rules guidance.

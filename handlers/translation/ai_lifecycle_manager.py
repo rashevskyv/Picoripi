@@ -29,7 +29,6 @@ class AILifecycleManager(BaseTranslationHandler):
         self.is_ai_running = False
         self._active_provider_key: Optional[str] = None
         self._active_model_name: Optional[str] = None
-        self._provider_supports_sessions: bool = False
         
         # Callbacks for task types
         self._success_handlers: Dict[str, Callable] = {}
@@ -99,14 +98,9 @@ class AILifecycleManager(BaseTranslationHandler):
             if provider_key_override is None:
                 self._active_provider_key = provider_key
                 self._active_model_name = provider_settings.get('model') if isinstance(provider_settings, dict) else None
-                self._provider_supports_sessions = bool(getattr(provider, 'supports_sessions', False))
-                if not self._provider_supports_sessions:
-                    self.main_handler._session_manager.reset()
 
             return provider
         except TranslationProviderError as exc:
-            if provider_key_override is None:
-                self._provider_supports_sessions = False
             QMessageBox.critical(self.mw, tr('AI Translation'), str(exc))
             return None
 

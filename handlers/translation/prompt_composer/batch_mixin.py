@@ -119,7 +119,6 @@ class BatchMixin:
         mode_description: str,
         session_state: Optional[TranslationSessionState] = None,
         temp_id_map: Optional[Dict] = None,
-        narrative_ledger: Optional[Any] = None,
         **kwargs: Any,
     ) -> Tuple[str, str, Dict]:
         """Compose batch request."""
@@ -399,10 +398,6 @@ class BatchMixin:
             json_payload_for_ai['glossary'] = glossary_text
         if tag_alias_legend:
             json_payload_for_ai['tag_alias_legend'] = tag_alias_legend
-        if narrative_ledger and hasattr(narrative_ledger, "format_for_prompt"):
-            narrative_text = narrative_ledger.format_for_prompt()
-            if narrative_text:
-                json_payload_for_ai['established_narrative_context'] = narrative_text
 
         # The rules for this kind of request are fixed text appended to the system
         # prompt (see instructions.py): identical for every chunk, so cacheable.

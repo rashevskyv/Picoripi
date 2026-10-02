@@ -40,7 +40,6 @@ class TranslationHandler(
         self._cached_glossary: Optional[str] = None
         self._session_manager = TranslationSessionManager()
         self._session_mode: str = 'auto'
-        self._provider_supports_sessions: bool = False
         self._active_provider_key: Optional[str] = None
         self.thread: Optional[QThread] = None
         self.worker: Optional[AIWorker] = None

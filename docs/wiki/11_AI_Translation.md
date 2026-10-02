@@ -78,10 +78,10 @@ Bulk translation can be launched from the main toolbar **AI** button, the blocks
 
 1. **Translate Story First (Chronological)**:
    - Uses `core/translation/block_classifier.py` and MemePalace script mappings to isolate primary narrative dialogue.
-   - Translates lines chronologically, accumulating established terms, voice styles, and story revelations into an in-memory `NarrativeLedger` (`core/translation/narrative_ledger.py`).
+   - Translates lines chronologically, so the story text is settled before the auxiliary blocks.
 2. **Translate Remaining Blocks (Semantic & System)**:
    - Translates remaining UI, menu, inventory, shop, and mini-game blocks.
-   - Automatically injects the canon context established in the `NarrativeLedger` during Phase 1 into translation prompts, ensuring auxiliary text matches the storyline.
+   - Uses the same glossary and per-line context as any other run. Nothing else is carried over from Phase 1: consistency with the story comes from the glossary and from the neighbouring rows that are already translated.
 3. **Run Full Pipeline (Story ➔ Semantic)**:
    - Automatically runs Phase 1 followed immediately by Phase 2 in a single multi-stage run.
 4. **Translate All Blocks (Chronological Legacy)**:
