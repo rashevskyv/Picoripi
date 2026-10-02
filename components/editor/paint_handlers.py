@@ -1,3 +1,4 @@
+"""Paint events of the editor and of its gutter, delegated to the paint logic."""
 from PyQt6.QtGui import QPainter, QPaintEvent
 from utils.utils import calculate_string_width
 

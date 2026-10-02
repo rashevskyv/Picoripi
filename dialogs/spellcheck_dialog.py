@@ -1,3 +1,4 @@
+"""Interactive spellcheck of a text with suggestions and its analysis worker."""
 # Dialog for interactive spellchecking of selected text
 from utils import app_mode
 from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QPushButton, QListWidget, QApplication)

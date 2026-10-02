@@ -1,3 +1,4 @@
+"""BFN editor: a slider with a spin box and adjustable range."""
 from PyQt6 import QtCore, QtWidgets
 
 from core.i18n import tr

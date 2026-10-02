@@ -1,3 +1,4 @@
+"""Glossary: add and edit an entry, AI fill."""
 import json
 from typing import Dict, Optional
 

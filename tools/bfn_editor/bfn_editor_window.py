@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""BFN editor: the main window."""
 import os
 
 from PyQt6 import QtCore, QtGui, QtWidgets

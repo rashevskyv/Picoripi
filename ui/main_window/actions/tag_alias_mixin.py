@@ -1,3 +1,4 @@
+"""Main window actions: add, edit and remove tag aliases."""
 from __future__ import annotations
 from utils.atomic_io import atomic_write_json
 from utils.constants import plugins_root

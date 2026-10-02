@@ -1,3 +1,4 @@
+"""Settings dialog: font map table of the plugin."""
 from utils.constants import plugins_root
 import json
 from PyQt6.QtWidgets import (

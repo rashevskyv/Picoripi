@@ -1,3 +1,4 @@
+"""Keyboard handling of the line-numbered editor."""
 from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtGui import QKeyEvent, QKeySequence
 from PyQt6.QtCore import Qt

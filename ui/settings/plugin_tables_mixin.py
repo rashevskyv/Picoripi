@@ -1,3 +1,4 @@
+"""Settings dialog: context tag tables of the plugin."""
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QGroupBox, QTableWidget, QTableWidgetItem,
     QHeaderView, QMenu, QPushButton, QLineEdit

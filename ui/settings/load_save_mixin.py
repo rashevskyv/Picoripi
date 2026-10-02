@@ -1,3 +1,4 @@
+"""Settings dialog: load values, collect them, accept and reject."""
 from utils.atomic_io import atomic_write_json
 from utils.constants import plugins_root
 from PyQt6.QtGui import QColor

@@ -1,3 +1,4 @@
+"""ProjectContext and UIProvider protocols: what a handler may see of the application."""
 # core/context.py
 from typing import Protocol, Optional, Any, Dict, List, Tuple, TYPE_CHECKING
 from PyQt6.QtWidgets import QStatusBar, QWidget, QComboBox, QSpinBox, QPushButton

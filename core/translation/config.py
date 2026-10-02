@@ -1,3 +1,4 @@
+"""Default AI translation settings and merging them with saved ones."""
 
 from typing import Dict
 

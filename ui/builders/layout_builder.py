@@ -1,3 +1,4 @@
+"""Build the main window layout: tree, strings list, editors, header controls."""
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QSplitter,
     QLabel, QPushButton, QStyle, QSizePolicy, QComboBox, QSpinBox,

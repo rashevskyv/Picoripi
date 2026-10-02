@@ -1,3 +1,4 @@
+"""Text operations: auto-fix of one string and of all strings."""
 from __future__ import annotations
 import copy
 from typing import Optional, Set

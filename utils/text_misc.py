@@ -1,3 +1,4 @@
+"""Small helpers: Ctrl modifier check, target-language prompt, natural sort key."""
 import re
 from utils.logging_utils import log_debug
 

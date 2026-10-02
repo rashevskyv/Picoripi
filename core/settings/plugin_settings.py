@@ -1,3 +1,4 @@
+"""Per-plugin and per-project settings: load, migrate, save."""
 from utils.atomic_io import atomic_write_json
 import ast
 import json

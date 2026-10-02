@@ -1,3 +1,4 @@
+"""Tag checks and paste handling of the Minish Cap plugin."""
 import re
 from typing import Tuple
 from utils.logging_utils import log_debug

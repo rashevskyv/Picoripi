@@ -1,3 +1,4 @@
+"""Colour markers and unsaved state of blocks."""
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from utils.logging_utils import log_debug

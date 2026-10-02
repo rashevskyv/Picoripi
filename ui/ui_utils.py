@@ -1,3 +1,4 @@
+"""Small UI helpers."""
 from PyQt6.QtWidgets import QMenu, QStyle
 
 def prettify_standard_context_menu(menu: QMenu, style: QStyle):

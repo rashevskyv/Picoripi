@@ -1,3 +1,4 @@
+"""BFN editor: the glyph table and glyph previews."""
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.i18n import tr

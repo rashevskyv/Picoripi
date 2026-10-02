@@ -1,3 +1,4 @@
+"""GenericProblemAnalyzer: runs the shared problem rules for a plugin."""
 from typing import Optional, Set, List
 import re
 from plugins.common.problem_rules import (

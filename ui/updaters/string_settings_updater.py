@@ -1,3 +1,4 @@
+"""Refresh the header above the editor: font, width, speaker, story context."""
 import re
 import os
 from PyQt6.QtCore import QObject, QTimer

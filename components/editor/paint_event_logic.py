@@ -1,3 +1,4 @@
+"""Painting inside the editor viewport: width guide, markers."""
 from PyQt6.QtGui import QPainter, QColor, QPen, QPaintEvent
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow

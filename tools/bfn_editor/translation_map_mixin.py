@@ -1,3 +1,4 @@
+"""BFN editor: the map from original characters to translated glyphs."""
 import os
 from core.i18n import tr
 from utils.logging_utils import log_info, log_error

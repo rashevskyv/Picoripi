@@ -1,3 +1,4 @@
+"""BFN editor: copy and paste glyph values, jump between glyphs."""
 from PyQt6 import QtWidgets
 
 from core.i18n import tr

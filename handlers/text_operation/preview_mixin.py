@@ -1,3 +1,4 @@
+"""Text operations: editing, debounce and preview refresh."""
 from __future__ import annotations
 from PyQt6.QtGui import QTextCursor
 from utils.logging_utils import log_debug

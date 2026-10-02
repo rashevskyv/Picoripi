@@ -1,3 +1,4 @@
+"""Inline search panel with history and spellchecked input."""
 from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QComboBox, QPushButton, QCheckBox, QLabel, QSpacerItem, QSizePolicy, QLineEdit)
 from PyQt6.QtGui import (QAction)
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint

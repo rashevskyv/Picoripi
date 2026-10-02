@@ -1,3 +1,4 @@
+"""UIUpdater: one entry to the updaters that refresh the tree, preview, editors and status."""
 from core.glossary_manager import GlossaryOccurrence
 
 class UIUpdater:

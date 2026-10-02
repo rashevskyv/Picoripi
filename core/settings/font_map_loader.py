@@ -1,3 +1,4 @@
+"""Load font maps from plugin folders, the custom fonts directory, archives and BFN files."""
 from utils.constants import plugins_root
 import json
 from pathlib import Path

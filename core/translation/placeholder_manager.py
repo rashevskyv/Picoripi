@@ -1,3 +1,4 @@
+"""Replace tags with placeholders before an AI request and restore them after."""
 from __future__ import annotations
 import re
 from typing import Dict, Optional, Tuple

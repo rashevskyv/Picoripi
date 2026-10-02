@@ -1,3 +1,4 @@
+"""Logging setup: categories, rotating file handler, duplicate filter, AI traffic log."""
 import sys
 import logging
 import time

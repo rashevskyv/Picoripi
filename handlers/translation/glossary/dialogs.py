@@ -1,3 +1,4 @@
+"""Glossary: category selection dialog and the occurrence worker."""
 from typing import List, Optional, Any
 
 from PyQt6.QtWidgets import (

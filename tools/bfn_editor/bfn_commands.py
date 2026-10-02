@@ -1,3 +1,4 @@
+"""BFN editor: undo commands for metrics, mappings, sheets and glyphs."""
 from PyQt6 import QtCore, QtGui
 from utils.logging_utils import log_debug
 

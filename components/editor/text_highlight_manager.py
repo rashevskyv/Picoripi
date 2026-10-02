@@ -1,3 +1,4 @@
+"""Extra selections of an editor: current line, zebra, search matches, problems."""
 from PyQt6.QtWidgets import QTextEdit
 from PyQt6.QtGui import QColor, QTextFormat, QTextCursor, QTextBlock, QTextCharFormat
 from PyQt6.QtCore import QTimer, Qt

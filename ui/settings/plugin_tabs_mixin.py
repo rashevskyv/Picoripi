@@ -1,3 +1,4 @@
+"""Settings dialog: the plugin tab with display and rules sub-tabs."""
 from core.plugin_call import safe_call
 from utils.constants import plugins_root
 from pathlib import Path

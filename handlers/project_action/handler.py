@@ -1,3 +1,4 @@
+"""ProjectActionHandler: project lifecycle, blocks, session, recent projects, tree."""
 from typing import Any, Optional
 from core.project_manager import ProjectManager
 from handlers.base_handler import BaseHandler

@@ -1,3 +1,4 @@
+"""Problem definitions and defaults of the Twilight Princess plugin."""
 import os
 import json
 from PyQt6.QtGui import QColor

@@ -1,3 +1,4 @@
+"""AppDataStore: the shared in-memory state of the open project."""
 from typing import List, Dict, Set, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum

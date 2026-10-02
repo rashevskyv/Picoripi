@@ -1,3 +1,4 @@
+"""Main window actions: Script Markup, MemPalace, pipeline, BFN editor."""
 from __future__ import annotations
 
 

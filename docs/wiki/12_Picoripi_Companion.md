@@ -77,7 +77,7 @@ The companion opens in full-screen standalone mode without browser URL bars or n
 
 ## 4. Server Deployment
 
-The companion backend runs on Python 3.10+ (FastAPI + Uvicorn) and stores project glossaries under `companion/server/projects/` with automatic `.bak` backups before every modification.
+The companion backend runs on Python 3.10+ (FastAPI + Uvicorn) and stores project glossaries in a `projects/` folder it creates next to the server code (`companion/server/`), with automatic `.bak` backups before every modification.
 
 ### Option A: Docker Compose (Recommended)
 

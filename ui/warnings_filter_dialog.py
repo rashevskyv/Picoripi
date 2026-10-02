@@ -1,3 +1,4 @@
+"""Choose which warnings the preview is filtered by."""
 # ui/warnings_filter_dialog.py
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QPushButton,

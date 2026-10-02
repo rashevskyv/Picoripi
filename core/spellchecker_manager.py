@@ -1,3 +1,4 @@
+"""Spellchecking: dictionaries, a background suggestion worker and a disk cache."""
 # /home/runner/work/RAG_project/RAG_project/core/spellchecker_manager.py
 from utils import app_mode
 from utils.atomic_io import atomic_write_json

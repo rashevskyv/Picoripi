@@ -1,3 +1,4 @@
+"""Glossary: speaker names, aliases and variant discussion."""
 from typing import List
 
 from core.glossary_manager import GlossaryEntry

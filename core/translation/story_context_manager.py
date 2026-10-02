@@ -1,3 +1,4 @@
+"""Story, scene and room context of a string, read from MemPalace for prompts."""
 from __future__ import annotations
 import os
 import re

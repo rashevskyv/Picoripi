@@ -1,3 +1,4 @@
+"""Worker that loads chapters and chapter mappings from the MemPalace database."""
 from PyQt6.QtCore import pyqtSignal
 from core.mempalace_client import MemePalaceClient
 from core.mempalace.story_timeline import StoryVirtualProjection

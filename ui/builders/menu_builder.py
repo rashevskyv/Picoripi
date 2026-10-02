@@ -1,3 +1,4 @@
+"""Build the main menu."""
 from PyQt6.QtWidgets import QMenu, QStyle, QToolButton, QToolTip
 from PyQt6.QtGui import QAction
 from PyQt6.QtGui import QIcon, QKeySequence, QPixmap, QPainter, QColor, QFont

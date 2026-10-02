@@ -1,3 +1,4 @@
+"""Worker that sends one test request to an AI provider."""
 from PyQt6.QtCore import pyqtSignal
 from utils.thread_utils import WorkerThread
 

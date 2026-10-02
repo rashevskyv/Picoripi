@@ -1,3 +1,4 @@
+"""Text fixer of the Pokemon FireRed plugin."""
 import re
 from typing import Tuple, List, Optional, Set
 from plugins.common.text_fixer import GenericTextFixer

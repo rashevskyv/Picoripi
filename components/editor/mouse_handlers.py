@@ -1,3 +1,4 @@
+"""Mouse handling of the line-numbered editor: icon tags, tag insertion, colour wrapping."""
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStyle
 from PyQt6.QtGui import QTextCursor, QMouseEvent
 from PyQt6.QtCore import Qt, QPoint

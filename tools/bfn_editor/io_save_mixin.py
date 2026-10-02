@@ -1,3 +1,4 @@
+"""BFN editor: save the font; export and import sheets and glyphs as PNG."""
 import os
 import json
 import tempfile

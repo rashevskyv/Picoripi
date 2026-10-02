@@ -1,3 +1,4 @@
+"""Session autosave, durable JSON checkpoints and crash recovery."""
 from utils.atomic_io import atomic_write_bytes
 import json
 import pickle

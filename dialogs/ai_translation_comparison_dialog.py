@@ -1,3 +1,4 @@
+"""Old versus new translation, side by side, with in-place editing."""
 # dialogs/ai_translation_comparison_dialog.py
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHBoxLayout, QPushButton, QHeaderView, QMenu, QStyledItemDelegate, QTextEdit

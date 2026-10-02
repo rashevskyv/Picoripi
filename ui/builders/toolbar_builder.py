@@ -1,3 +1,4 @@
+"""Build the main toolbar."""
 from PyQt6.QtWidgets import QToolBar, QStyle, QWidget, QSizePolicy
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QSize, Qt

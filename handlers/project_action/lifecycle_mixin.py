@@ -1,3 +1,4 @@
+"""Project actions: create, open, close."""
 from utils.constants import plugins_root
 import json
 from pathlib import Path

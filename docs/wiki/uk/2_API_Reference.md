@@ -28,7 +28,7 @@ tokens: 0.9k
 | `components/project_dialogs.py` | New / Open project |
 | `components/tree_context_menu_mixin.py` | Правий клік по дереву |
 | `components/glossary/dialog.py` + `components/glossary/*` | Діалог огляду глосарія, паралельне редагування, огляд входжень |
-| `dialogs/ai_batch_translation_dialog.py` | Діалог AI Batch Translation (режими пайплайну) |
+| `components/ai_batch_translation_dialog.py` | Діалог AI Batch Translation (режими пайплайну) |
 | `ui/components/bfn_preview/` | Віджет BFN-прев’ю гри, синхронне пропорційне масштабування |
 
 ---

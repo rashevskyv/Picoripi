@@ -1,3 +1,4 @@
+"""Inline search: find next and previous across blocks."""
 # handlers/search_handler.py
 import re
 from typing import Any, List, Tuple

@@ -1,3 +1,4 @@
+"""Settings dialog: AI Translation and AI Glossary tabs."""
 from PyQt6.QtWidgets import (
     QVBoxLayout, QFormLayout, QLineEdit, QHBoxLayout, QComboBox, 
     QPushButton, QGroupBox, QDoubleSpinBox, QSpinBox, QStackedWidget,

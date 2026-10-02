@@ -1,3 +1,4 @@
+"""Signal connections and key events of the main window."""
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtGui import QTextCursor, QKeyEvent

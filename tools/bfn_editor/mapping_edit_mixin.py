@@ -1,3 +1,4 @@
+"""BFN editor: edit character mappings in the table."""
 from PyQt6 import QtWidgets
 from core.i18n import tr
 from tools.bfn_editor.bfn_widgets import FillRangeDialog

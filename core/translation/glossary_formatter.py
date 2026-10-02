@@ -1,3 +1,4 @@
+"""Format glossary entries and speaker terms as prompt text."""
 from __future__ import annotations
 import re
 from typing import List, Sequence, Iterable, Optional

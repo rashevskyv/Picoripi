@@ -1,3 +1,4 @@
+"""Problem analyzer of the Twilight Princess plugin."""
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 
 

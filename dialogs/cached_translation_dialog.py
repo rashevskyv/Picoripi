@@ -1,3 +1,4 @@
+"""Offer a saved or remembered translation for the current string."""
 # dialogs/cached_translation_dialog.py
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QTextEdit, QHBoxLayout, QPushButton

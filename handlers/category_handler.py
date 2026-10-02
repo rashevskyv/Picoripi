@@ -1,3 +1,4 @@
+"""Virtual blocks (categories) inside a project."""
 # handlers/category_handler.py
 from PyQt6.QtWidgets import QMessageBox, QInputDialog, QTreeWidget
 from PyQt6.QtCore import Qt

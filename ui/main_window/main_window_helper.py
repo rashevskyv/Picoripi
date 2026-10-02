@@ -1,3 +1,4 @@
+"""Main window helpers: font map of a string, restart, search shortcuts."""
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QMessageBox, QApplication

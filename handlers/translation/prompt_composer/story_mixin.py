@@ -1,3 +1,4 @@
+"""Story context from MemPalace and the layout contract for prompts."""
 from __future__ import annotations
 
 from typing import Dict, Optional

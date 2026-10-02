@@ -1,3 +1,4 @@
+"""Project actions: the recent projects menu."""
 from pathlib import Path
 from typing import List
 from PyQt6.QtWidgets import QMessageBox

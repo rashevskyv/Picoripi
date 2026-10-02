@@ -1,3 +1,4 @@
+"""Base class of the UI updaters."""
 class BaseUIUpdater:
     """Base u i updater implementation."""
     def __init__(self, main_window, data_processor):

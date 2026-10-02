@@ -1,3 +1,4 @@
+"""Problem definitions and defaults of the plugin template."""
 from plugins.common.config_factory import generate_base_config
 
 PLUGIN_PREFIX = "DEFAULT"

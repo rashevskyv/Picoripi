@@ -1,3 +1,4 @@
+"""One-off repository cleanup: delete and move stray files, fix imports, commit."""
 import shutil
 import subprocess
 from pathlib import Path

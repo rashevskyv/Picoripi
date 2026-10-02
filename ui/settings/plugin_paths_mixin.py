@@ -1,3 +1,4 @@
+"""Settings dialog: file paths of the project."""
 from pathlib import Path
 from PyQt6.QtWidgets import QFormLayout, QCheckBox, QLineEdit, QLabel
 from PyQt6.QtCore import Qt

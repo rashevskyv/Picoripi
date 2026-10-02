@@ -1,3 +1,4 @@
+"""Scan blocks for problems and cache the results."""
 # handlers/issue_scan_handler.py
 from utils import app_mode
 from utils.atomic_io import atomic_write_json

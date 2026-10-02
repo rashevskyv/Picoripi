@@ -1,3 +1,4 @@
+"""ProblemRuleRegistry: holds the rules and runs detection and fixing."""
 from typing import List, Set, Tuple
 from .context import RuleContext, GameProblemProfile
 from .base import ProblemRule

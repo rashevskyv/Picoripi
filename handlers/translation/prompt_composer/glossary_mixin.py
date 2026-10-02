@@ -1,3 +1,4 @@
+"""Glossary rows, placeholders and tag aliases for prompts."""
 from __future__ import annotations
 
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple

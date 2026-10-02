@@ -1,3 +1,4 @@
+"""List widget of blocks with colour markers and a context menu."""
 from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QMenu
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt, QPoint, QEvent

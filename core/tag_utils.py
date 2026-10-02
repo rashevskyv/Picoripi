@@ -1,3 +1,4 @@
+"""Strip, mask and split text around game tags."""
 import re
 
 from plugins.common.markers import P_VISUAL_EDITOR_MARKER, L_VISUAL_EDITOR_MARKER

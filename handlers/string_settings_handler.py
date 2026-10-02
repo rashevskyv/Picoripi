@@ -1,3 +1,4 @@
+"""Font and width overrides of a string."""
 # handlers/string_settings_handler.py
 from typing import Any, List, Optional, Tuple, Dict
 from .base_handler import BaseHandler

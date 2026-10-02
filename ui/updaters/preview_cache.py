@@ -1,3 +1,4 @@
+"""LRU cache and background pre-caching of preview text."""
 from typing import Optional, Any
 from collections import OrderedDict
 from PyQt6.QtCore import QTimer

@@ -1,3 +1,4 @@
+"""Glossary: update, delete, clear, global replace."""
 import time
 from typing import Optional
 

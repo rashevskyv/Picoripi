@@ -1,3 +1,4 @@
+"""Settings dialog: tag aliases of the plugin."""
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QPushButton, QMenu

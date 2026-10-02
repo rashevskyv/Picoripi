@@ -1,3 +1,4 @@
+"""MemePalaceClient: access to the project's local MemPalace SQLite database."""
 import os
 import json
 import sqlite3

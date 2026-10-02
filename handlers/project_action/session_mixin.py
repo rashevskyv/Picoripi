@@ -1,3 +1,4 @@
+"""Project actions: restore the session and fill the block list after loading."""
 from utils import app_mode
 from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import QMessageBox

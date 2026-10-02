@@ -1,3 +1,4 @@
+"""Context menu of the line-numbered editor."""
 import re
 from typing import Optional
 from PyQt6.QtWidgets import QMenu, QMainWindow, QWidget, QWidgetAction, QGridLayout, QStyle

@@ -1,3 +1,4 @@
+"""Glossary sync with the Companion server: diff, merge, conflicts, push/pull and the worker thread."""
 from utils.atomic_io import atomic_write_text
 from dataclasses import dataclass
 from datetime import datetime, timezone

@@ -1,3 +1,4 @@
+"""Results of a rule: a match and a fix."""
 from dataclasses import dataclass, field
 from typing import Set, Tuple, Dict, Any, Optional
 

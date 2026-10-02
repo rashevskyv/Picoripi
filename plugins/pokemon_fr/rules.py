@@ -1,3 +1,4 @@
+"""Pokemon FireRed plugin."""
 from typing import Dict, Any, Tuple, Set, Optional
 from collections import OrderedDict
 from plugins.base_game_rules import BaseGameRules

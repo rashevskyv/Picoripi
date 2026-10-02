@@ -1,3 +1,4 @@
+"""Settings dialog: file, folder and script pickers."""
 from pathlib import Path
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QPushButton, QLineEdit, QFileDialog, QMenu
 from core.i18n import tr

@@ -1,3 +1,4 @@
+"""Dialogs and controls of AI translation: status, variations, confirmation."""
 # handlers/translation/translation_ui_handler.py ---
 import json
 import re

@@ -1,3 +1,4 @@
+"""AI providers (OpenAI-compatible, Gemini, Ollama, Perplexity) behind one translate() contract."""
 import json
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional

@@ -1,3 +1,4 @@
+"""Style sheets of the light and dark themes."""
 DARK_THEME_STYLESHEET = """
 QWidget {
     background-color: #2E2E2E;

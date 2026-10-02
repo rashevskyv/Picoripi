@@ -1,3 +1,4 @@
+"""Painting of the line-number gutter: numbers, widths, problem markers."""
 from PyQt6.QtGui import QPainter, QColor, QPen
 from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtWidgets import QMainWindow

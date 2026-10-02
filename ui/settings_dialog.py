@@ -1,3 +1,4 @@
+"""SettingsDialog: the Settings window."""
 # /home/runner/work/RAG_project/RAG_project/ui/settings_dialog.py
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QDialogButtonBox, QWidget, QTabWidget,

@@ -1,3 +1,4 @@
+"""Project actions: import, delete and move blocks, folders."""
 from pathlib import Path
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QDialog
 from PyQt6.QtCore import Qt

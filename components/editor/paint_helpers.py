@@ -1,3 +1,4 @@
+"""Map an index in tag-less text back to the raw text."""
 import re
 from utils.utils import remove_all_tags, convert_dots_to_spaces_from_editor, SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN
 

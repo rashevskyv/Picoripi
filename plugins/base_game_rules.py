@@ -1,3 +1,4 @@
+"""BaseGameRules: every hook a game plugin may implement; the list is in plugins/spec.py."""
 from typing import List, Tuple, Dict, Optional, Any, Set
 from PyQt6.QtGui import QTextCharFormat
 import json

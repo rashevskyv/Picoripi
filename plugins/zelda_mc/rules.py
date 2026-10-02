@@ -1,3 +1,4 @@
+"""The Minish Cap plugin."""
 from typing import Any, Dict, List, Optional, Tuple
 
 from plugins.base_game_rules import BaseGameRules

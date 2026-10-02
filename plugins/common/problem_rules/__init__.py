@@ -1,3 +1,4 @@
+"""The shared rule engine: rules that detect and fix problems in text."""
 from .models import ProblemMatch, FixResult
 from .context import RuleContext, GameProblemProfile
 from .base import ProblemRule

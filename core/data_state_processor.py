@@ -1,3 +1,4 @@
+"""DataStateProcessor: the only writer of AppDataStore (edits, save, revert, session)."""
 from pathlib import Path
 from typing import List, Optional, Any, Set
 from utils.logging_utils import log_warning

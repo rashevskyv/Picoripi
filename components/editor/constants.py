@@ -1,3 +1,4 @@
+"""Colours and sizes of the text editors for the light and dark themes."""
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
 

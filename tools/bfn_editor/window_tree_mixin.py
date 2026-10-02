@@ -1,3 +1,4 @@
+"""BFN editor: the tree of fonts and sheets."""
 from PyQt6 import QtCore, QtWidgets
 
 from core.i18n import tr

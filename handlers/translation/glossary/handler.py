@@ -1,3 +1,4 @@
+"""GlossaryHandler: the glossary of the open project and its UI."""
 from pathlib import Path
 from typing import Optional, Tuple
 

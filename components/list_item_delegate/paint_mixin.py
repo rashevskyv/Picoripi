@@ -1,3 +1,4 @@
+"""Painting of the list item delegate."""
 import re
 
 from PyQt6.QtWidgets import QStyle, QStyleOptionViewItem

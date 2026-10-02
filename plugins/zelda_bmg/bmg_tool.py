@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Read and write BMG message files; also a command-line converter."""
 import sys
 import struct
 import json

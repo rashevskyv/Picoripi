@@ -1,3 +1,4 @@
+"""Scrollbars that widen while hovered or dragged."""
 from __future__ import annotations
 
 from PyQt6 import sip

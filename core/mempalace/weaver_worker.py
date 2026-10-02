@@ -1,3 +1,4 @@
+"""Worker that weaves game strings into scenes of the story and stores them in MemPalace."""
 import json
 import re
 import difflib

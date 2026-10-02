@@ -1,3 +1,4 @@
+"""Worker that calculates line widths for a block."""
 # handlers/width_calculation_worker.py
 from PyQt6.QtCore import pyqtSignal
 from typing import List, Dict, Any, Optional

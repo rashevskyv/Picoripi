@@ -1,3 +1,4 @@
+"""Text matching for search: tag-less comparison, fuzzy and punctuation-aware matches."""
 import re
 import difflib
 import string

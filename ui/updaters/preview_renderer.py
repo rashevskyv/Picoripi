@@ -1,3 +1,4 @@
+"""Render the preview: chunked loading and highlights."""
 from typing import Any
 import re
 from PyQt6.QtGui import QColor, QTextCursor

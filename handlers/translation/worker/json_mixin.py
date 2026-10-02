@@ -1,3 +1,4 @@
+"""AI worker: cleanup of a JSON answer."""
 from utils.json_extract import extract_json_text
 
 

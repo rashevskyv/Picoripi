@@ -1,3 +1,4 @@
+"""Step through tags that differ between the original and the translation (Minish Cap)."""
 import re
 from typing import Optional
 from PyQt6.QtWidgets import QMessageBox

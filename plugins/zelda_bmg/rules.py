@@ -1,3 +1,4 @@
+"""Twilight Princess plugin: BMG files, tags, windows, speakers, scenes."""
 from utils.atomic_io import atomic_write_text
 import os
 import re

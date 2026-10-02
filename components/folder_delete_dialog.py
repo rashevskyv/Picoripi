@@ -1,3 +1,4 @@
+"""Ask what to do with the contents of a virtual folder being deleted."""
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QStyle
 from PyQt6.QtCore import Qt
 from core.i18n import tr

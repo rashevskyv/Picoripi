@@ -1,3 +1,4 @@
+"""Batch and chunked AI translation: plan, apply results, resume."""
 # handlers/translation/batch_translator.py
 
 import json

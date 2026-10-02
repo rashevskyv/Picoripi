@@ -1,3 +1,4 @@
+"""Start, retry and finish AI worker threads."""
 # handlers/translation/ai_lifecycle_manager.py
 import math
 import re

@@ -1,3 +1,4 @@
+"""Benchmark of glossary term matching strategies on fake data."""
 import time
 import re
 

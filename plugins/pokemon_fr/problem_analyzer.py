@@ -1,3 +1,4 @@
+"""Problem analyzer of the Pokemon FireRed plugin."""
 import re
 from typing import Optional, Set, List
 from plugins.common.problem_analyzer import GenericProblemAnalyzer

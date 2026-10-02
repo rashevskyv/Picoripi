@@ -1,3 +1,4 @@
+"""BFN editor: zoomable view of a texture sheet."""
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.i18n import tr

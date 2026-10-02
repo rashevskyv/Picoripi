@@ -1,3 +1,4 @@
+"""BFN editor: the glyph grid drawn over a sheet."""
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 class GridItem(QtWidgets.QGraphicsItem):

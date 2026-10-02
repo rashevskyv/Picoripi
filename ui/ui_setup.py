@@ -1,3 +1,4 @@
+"""Build the main window: layout, menu, toolbar, status bar."""
 from PyQt6.QtGui import QIcon
 from pathlib import Path
 from ui.builders.layout_builder import LayoutBuilder

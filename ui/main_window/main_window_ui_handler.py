@@ -1,3 +1,4 @@
+"""Apply font size, wrapping, theme and highlighters to the main window."""
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QWidget, QApplication

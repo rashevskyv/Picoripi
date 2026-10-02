@@ -1,3 +1,4 @@
+"""BFN editor: open a font from a file, bytes or an extracted folder."""
 import os
 import json
 import shutil

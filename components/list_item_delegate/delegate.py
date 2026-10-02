@@ -1,3 +1,4 @@
+"""Delegate that draws a row of the strings list: number, markers, text."""
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtCore import Qt

@@ -1,3 +1,4 @@
+"""Theme colours, tag buttons and gutter widths of the line-numbered editor."""
 from PyQt6.QtWidgets import QMainWindow, QPushButton, QMenu
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt

@@ -1,3 +1,4 @@
+"""Main window actions for MemPalace: builder, viewer, story context."""
 # ui/main_window/mempalace_actions.py
 from PyQt6.QtWidgets import QMessageBox
 from core.i18n import tr

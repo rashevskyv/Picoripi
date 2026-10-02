@@ -1,3 +1,4 @@
+"""Revert strings, blocks and files to their original text."""
 from pathlib import Path
 from typing import List, Any
 from core import formats

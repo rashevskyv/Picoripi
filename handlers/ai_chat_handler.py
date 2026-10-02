@@ -1,3 +1,4 @@
+"""AI Chat: sessions, requests and the chat window."""
 import html
 import re
 from typing import Dict, Optional, List, Any

@@ -1,3 +1,4 @@
+"""Pixel width of a string from the active font map, with caches."""
 from collections import OrderedDict
 from typing import Optional, List, Tuple
 from utils.logging_utils import log_debug

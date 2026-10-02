@@ -1,3 +1,4 @@
+"""A spin box with a label."""
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox
 from PyQt6.QtGui import QFontMetrics
 

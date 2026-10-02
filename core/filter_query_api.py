@@ -1,3 +1,4 @@
+"""Index-based queries over strings: filters and problem counts for the preview and the tree."""
 from typing import List, Dict, Tuple, Optional, Any, Union
 
 class FilterQueryAPI:

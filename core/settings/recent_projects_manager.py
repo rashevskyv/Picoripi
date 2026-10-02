@@ -1,3 +1,4 @@
+"""The list of recently opened projects."""
 from pathlib import Path
 from typing import Any
 from utils.logging_utils import log_debug

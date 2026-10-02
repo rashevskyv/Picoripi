@@ -1,3 +1,4 @@
+"""Properties of a project block."""
 # components/block_properties_dialog.py
 import os
 from pathlib import Path

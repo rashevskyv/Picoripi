@@ -29,7 +29,7 @@ This is not a generated dump of every method. It points at the modules that impl
 | `components/project_dialogs.py` | New / Open project |
 | `components/tree_context_menu_mixin.py` | Tree right-click |
 | `components/glossary/dialog.py` + `components/glossary/*` | Glossary review dialog, side-by-side editing, occurrence review |
-| `dialogs/ai_batch_translation_dialog.py` | AI Batch Translation dialog (pipeline modes) |
+| `components/ai_batch_translation_dialog.py` | AI Batch Translation dialog (pipeline modes) |
 | `ui/components/bfn_preview/` | BFN in-game preview widget, lockstep proportional scaling |
 
 ---

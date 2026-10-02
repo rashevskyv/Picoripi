@@ -1,3 +1,4 @@
+"""Settings dialog: provider test, presets, translation config."""
 from PyQt6.QtWidgets import QMessageBox, QInputDialog
 from core.translation.config import build_default_translation_config, merge_translation_config
 from core.i18n import tr

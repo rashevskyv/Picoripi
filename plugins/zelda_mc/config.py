@@ -1,3 +1,4 @@
+"""Problem definitions and defaults of the Minish Cap plugin."""
 from PyQt6.QtGui import QColor
 from plugins.common.config_factory import generate_base_config
 

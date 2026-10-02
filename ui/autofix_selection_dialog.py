@@ -1,3 +1,4 @@
+"""Choose which auto-fix rules to run."""
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QPushButton,
     QLabel, QScrollArea, QWidget

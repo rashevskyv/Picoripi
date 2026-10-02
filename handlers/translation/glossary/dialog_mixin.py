@@ -1,3 +1,4 @@
+"""Glossary: menu actions and the Glossary dialog."""
 from typing import Dict, List, Optional, Tuple
 
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog

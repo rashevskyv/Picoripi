@@ -1,3 +1,4 @@
+"""Download and manage spellcheck dictionaries."""
 import requests
 from pathlib import Path
 from typing import List

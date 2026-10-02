@@ -1,3 +1,4 @@
+"""Event filters of the editors and of the main window."""
 from PyQt6.QtCore import QObject, QEvent, Qt, QTimer
 from PyQt6.QtGui import QKeySequence
 from PyQt6.QtWidgets import QLineEdit, QWidget

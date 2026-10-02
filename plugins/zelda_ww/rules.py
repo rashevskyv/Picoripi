@@ -1,3 +1,4 @@
+"""The Wind Waker plugin."""
 from typing import Optional, Tuple
 
 from plugins.base_game_rules import BaseGameRules

@@ -1,3 +1,4 @@
+"""BFN editor: sheet view, zoom, glyph selection, info panel."""
 from PyQt6 import QtCore
 
 from core.i18n import tr

@@ -1,3 +1,4 @@
+"""Tag manager of the Minish Cap plugin."""
 from typing import List, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor
 from plugins.common.tag_manager import GenericTagManager

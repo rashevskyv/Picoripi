@@ -1,3 +1,4 @@
+"""Tag manager of the Wind Waker plugin."""
 import re
 from typing import Set, List, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont

@@ -1,3 +1,4 @@
+"""BFN editor: unpack a BFN font into sheets and metrics and pack it back."""
 import os
 import struct
 import json

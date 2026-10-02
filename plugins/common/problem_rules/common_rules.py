@@ -1,3 +1,4 @@
+"""The standard rules: width, spacing, short lines, orphans, empty lines, icon spacing."""
 import re
 from typing import List, Tuple
 from core.tag_utils import ANY_TAG_PATTERN_STR

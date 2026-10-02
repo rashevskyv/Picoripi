@@ -1,3 +1,4 @@
+"""Turn an AI provider error into a message for the user."""
 import json
 from typing import Any, Dict, Optional, Tuple
 from core.translation.providers import TranslationProviderError

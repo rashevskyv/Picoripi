@@ -1,3 +1,4 @@
+"""Prompts for one string, variations and glossary occurrence updates."""
 from __future__ import annotations
 
 import json

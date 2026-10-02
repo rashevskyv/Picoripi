@@ -1,3 +1,4 @@
+"""BFN editor: fill a range of glyphs with character codes."""
 from PyQt6 import QtWidgets
 
 from core.i18n import tr

@@ -1,3 +1,4 @@
+"""Dialogs for setting a font or a width on many lines at once."""
 from core.i18n import tr
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QHBoxLayout, QSpinBox, QPushButton, QCheckBox
 

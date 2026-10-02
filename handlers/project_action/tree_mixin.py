@@ -1,3 +1,4 @@
+"""Project actions: expand and collapse the block tree."""
 from utils.logging_utils import log_debug
 
 

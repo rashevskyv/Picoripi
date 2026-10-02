@@ -1,3 +1,4 @@
+"""Settings dialog: detection and auto-fix checkboxes of the plugin."""
 from PyQt6.QtWidgets import (
     QFormLayout, QLabel, QWidget, QHBoxLayout, QCheckBox, QVBoxLayout, QGroupBox
 )

@@ -1,3 +1,4 @@
+"""Build glossary entries for one block with the AI (the older single-block route)."""
 # D:/git/dev/zeldamc/jsonreader/handlers/translation/glossary_builder_handler.py
 import json
 from typing import Dict, List, Optional

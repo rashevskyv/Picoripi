@@ -1,3 +1,4 @@
+"""BFN editor: live text simulation."""
 from PyQt6 import QtGui, QtWidgets
 
 from core.i18n import tr

@@ -1,3 +1,4 @@
+"""Text operations: paste, revert, width of a line."""
 from __future__ import annotations
 import re
 from PyQt6.QtWidgets import QMessageBox, QApplication, QPlainTextEdit

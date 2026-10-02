@@ -1,3 +1,4 @@
+"""BFN editor: the view and glyph items of the text simulation."""
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 class SimGlyphItem(QtWidgets.QGraphicsItem):

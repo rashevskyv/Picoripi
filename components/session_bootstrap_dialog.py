@@ -1,3 +1,4 @@
+"""Show the system prompt and collect optional instructions for an AI session."""
 from core.i18n import tr
 from PyQt6.QtWidgets import (
     QDialog,

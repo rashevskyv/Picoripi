@@ -1,3 +1,4 @@
+"""BFN editor: light and dark themes."""
 from PyQt6 import QtGui
 from utils.logging_utils import log_debug
 

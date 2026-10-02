@@ -1,3 +1,4 @@
+"""Interactive release helper: bump the version, write the changelog entry, archive the walkthrough, tag."""
 import re
 import subprocess
 from datetime import datetime

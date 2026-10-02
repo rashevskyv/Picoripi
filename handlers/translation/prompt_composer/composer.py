@@ -1,3 +1,4 @@
+"""AIPromptComposer: builds every AI translation prompt."""
 from __future__ import annotations
 
 from handlers.translation.base_translation_handler import BaseTranslationHandler

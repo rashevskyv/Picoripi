@@ -1,3 +1,4 @@
+"""Build the standard problem definitions of a plugin from a prefix."""
 from types import SimpleNamespace
 from typing import Dict, Iterable
 

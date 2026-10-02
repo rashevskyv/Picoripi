@@ -1,3 +1,4 @@
+"""Short non-blocking notification in a corner of the window."""
 # components/toast.py
 from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QGraphicsOpacityEffect, QApplication
 from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QPoint, QEasingCurve

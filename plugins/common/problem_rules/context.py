@@ -1,3 +1,4 @@
+"""What a rule is given: the game's problem profile and the context of a string."""
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 

@@ -1,3 +1,4 @@
+"""Application entry point: MainWindow wires handlers, updaters and plugins together and owns no logic."""
 from utils import app_mode
 import sys
 import json

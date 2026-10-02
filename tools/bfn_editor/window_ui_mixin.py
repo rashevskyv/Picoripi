@@ -1,3 +1,4 @@
+"""BFN editor: widgets, shortcuts and theme of the window."""
 from PyQt6 import QtCore, QtGui, QtWidgets, sip
 
 from core.i18n import tr

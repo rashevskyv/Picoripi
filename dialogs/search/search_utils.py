@@ -1,3 +1,4 @@
+"""Search helpers: forced aliases, tag-less text with index mapping, replacement case."""
 # dialogs/search/search_utils.py
 from typing import List, Tuple
 from utils.utils import ALL_TAGS_PATTERN, FORCED_ALIAS_PATTERN

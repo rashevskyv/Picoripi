@@ -1,3 +1,4 @@
+"""Load the game plugin of a project and set up its UI."""
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import sys

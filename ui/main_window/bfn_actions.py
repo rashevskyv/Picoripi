@@ -1,3 +1,4 @@
+"""Main window actions for the BFN font editor and BMG export/import."""
 # ui/main_window/bfn_actions.py
 from utils.atomic_io import atomic_write_bytes, atomic_write_json
 import json

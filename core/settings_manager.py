@@ -1,3 +1,4 @@
+"""SettingsManager: one facade over global, plugin, session and font-map settings."""
 import json
 from pathlib import Path
 from PyQt6.QtCore import QTimer

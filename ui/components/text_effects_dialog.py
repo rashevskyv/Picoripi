@@ -1,3 +1,4 @@
+"""Configure drop shadow or outer glow of the preview text."""
 import math
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,

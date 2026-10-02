@@ -1,3 +1,4 @@
+"""Worker that runs auto-fix rules over many strings."""
 from PyQt6.QtCore import pyqtSignal
 from typing import List, Tuple, Dict, Set, Optional, Any
 from core.tag_utils import iter_all_strings

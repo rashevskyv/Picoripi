@@ -1,3 +1,4 @@
+"""Application-wide settings: defaults, load, save."""
 from utils.atomic_io import atomic_write_json
 import json
 import base64

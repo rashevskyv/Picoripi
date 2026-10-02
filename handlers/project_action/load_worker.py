@@ -1,3 +1,4 @@
+"""Worker that reads the files of a project."""
 from pathlib import Path
 from PyQt6.QtCore import pyqtSignal
 from core import formats

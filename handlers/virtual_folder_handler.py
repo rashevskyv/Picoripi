@@ -1,3 +1,4 @@
+"""Virtual folders of the block tree and navigation between them."""
 # handlers/virtual_folder_handler.py
 
 from typing import Any, List, Dict, Optional

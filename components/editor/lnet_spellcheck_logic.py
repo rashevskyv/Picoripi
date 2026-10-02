@@ -1,3 +1,4 @@
+"""Open the spellcheck dialog for the selection of the editor."""
 from PyQt6.QtWidgets import QMainWindow
 from PyQt6.QtCore import QPoint, Qt
 

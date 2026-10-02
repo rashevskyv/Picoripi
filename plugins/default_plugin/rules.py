@@ -1,3 +1,4 @@
+"""Minimal, copy-ready game plugin."""
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 

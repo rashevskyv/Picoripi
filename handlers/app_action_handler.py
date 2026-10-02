@@ -1,3 +1,4 @@
+"""Open, save, reload and close files; the save worker."""
 # handlers/app_action_handler.py
 from pathlib import Path
 from typing import Optional, Any, Union, List, Dict, Tuple

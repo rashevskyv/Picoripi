@@ -1,3 +1,4 @@
+"""Find icon tag sequences in a block and keep the cursor outside them."""
 from typing import List, Optional, Tuple
 from PyQt6.QtGui import QTextCursor
 

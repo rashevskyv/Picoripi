@@ -1,3 +1,4 @@
+"""Editor data, size hint and geometry of the list item delegate."""
 from PyQt6.QtWidgets import QStyleOptionViewItem
 from PyQt6.QtGui import QFontMetrics, QFont
 from PyQt6.QtCore import QSize, QModelIndex, Qt, QRect

@@ -1,3 +1,4 @@
+"""MemPalace Builder: widgets and styles."""
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QProgressBar, QTextEdit, QTableWidget, QHeaderView,

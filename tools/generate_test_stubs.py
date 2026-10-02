@@ -1,3 +1,4 @@
+"""Generate empty test files for modules that have none."""
 import os
 import ast
 from utils.logging_utils import log_debug

@@ -1,3 +1,4 @@
+"""ProblemRule: the base class of a rule that detects and fixes one problem."""
 from abc import ABC, abstractmethod
 from typing import List
 from .models import ProblemMatch, FixResult

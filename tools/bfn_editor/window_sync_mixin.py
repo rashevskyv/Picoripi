@@ -1,3 +1,4 @@
+"""BFN editor: settings, column widths, auto-sync with the main window."""
 from PyQt6 import QtCore
 
 from core.i18n import tr

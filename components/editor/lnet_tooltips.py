@@ -1,3 +1,4 @@
+"""Tooltips for warnings and tags under the mouse in the editor."""
 from PyQt6.QtCore import QPoint
 from PyQt6.QtGui import QColor
 from typing import Optional

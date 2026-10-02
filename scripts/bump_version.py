@@ -1,3 +1,4 @@
+"""Bump the patch number of APP_VERSION in utils/constants.py."""
 import os
 import re
 

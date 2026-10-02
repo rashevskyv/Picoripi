@@ -1,3 +1,4 @@
+"""AIWorker: runs AI requests off the UI thread."""
 from PyQt6.QtCore import QObject, pyqtSignal
 from typing import Any, Dict, Optional
 from core.translation.providers import BaseTranslationProvider, ProviderResponse

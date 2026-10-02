@@ -1,3 +1,4 @@
+"""PreviewUpdater: caching, filtering and rendering of the strings preview."""
 from typing import Optional, Any
 from collections import OrderedDict
 from PyQt6.QtCore import QTimer

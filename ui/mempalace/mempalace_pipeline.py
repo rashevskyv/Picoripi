@@ -1,3 +1,4 @@
+"""MemPalace Builder: run the whole pipeline step by step."""
 import os
 from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_error

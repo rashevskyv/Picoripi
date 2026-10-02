@@ -1,3 +1,4 @@
+"""Merge Speakers dialog: inspector, name editing, apply."""
 from __future__ import annotations
 
 from typing import Optional

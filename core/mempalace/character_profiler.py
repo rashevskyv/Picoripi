@@ -1,3 +1,4 @@
+"""Worker that builds character profiles from their lines and the plugin's external lore."""
 import re
 from PyQt6.QtCore import pyqtSignal
 from typing import Any, Optional, Tuple

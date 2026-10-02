@@ -1,3 +1,4 @@
+"""Speaker of a string and the virtual speaker folders."""
 # handlers/speaker_handler.py
 from typing import Any, Optional, Tuple
 from PyQt6.QtWidgets import QMessageBox, QTreeWidgetItem

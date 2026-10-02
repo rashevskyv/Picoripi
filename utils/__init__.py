@@ -1,3 +1,4 @@
+"""Shared helpers; re-exports the logging functions."""
 
 # Import functions/classes from other modules within this package
 # to make them available when 'utils' is imported.

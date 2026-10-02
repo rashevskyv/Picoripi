@@ -1,3 +1,4 @@
+"""Cached sets of string states: empty, translated, unsaved, overridden."""
 from typing import Any, List, Set
 
 class SetCalculator:

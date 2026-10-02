@@ -1,3 +1,4 @@
+"""Progress and cancel dialog of a running AI operation."""
 # components/ai_status_dialog.py ---
 from utils import app_mode
 from typing import Optional

@@ -1,3 +1,4 @@
+"""Choose an AI batch translation mode: story first, remaining blocks, full pipeline, all blocks."""
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QDialogButtonBox, QWidget, QScrollArea

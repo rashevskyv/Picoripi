@@ -1,3 +1,4 @@
+"""Run an external script and show its output; accepts input."""
 import os
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QPlainTextEdit, QLabel, QMessageBox, QLineEdit
 from PyQt6.QtCore import QProcess, Qt

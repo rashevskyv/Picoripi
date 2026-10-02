@@ -1,3 +1,4 @@
+"""Worker that asks the AI to analyse a chapter of the story script."""
 from PyQt6.QtCore import pyqtSignal
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import ProviderResponse

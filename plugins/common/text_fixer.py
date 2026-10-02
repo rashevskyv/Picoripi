@@ -1,3 +1,4 @@
+"""GenericTextFixer: auto-fix through the shared rules, plus wrapping and pagination."""
 from typing import Tuple, Optional, Set
 import re
 from utils.utils import calculate_string_width

@@ -1,3 +1,4 @@
+"""Parse a walkthrough script in the Markdown template into chapters, cast and terms."""
 import os
 import re
 from typing import Dict, Any, Optional

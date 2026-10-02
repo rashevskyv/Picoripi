@@ -1,3 +1,4 @@
+"""Detect and fix missing spaces around icon tags and broken icon-hyphen pairs."""
 from typing import List, Tuple
 
 from core.tag_utils import ALL_TAGS_PATTERN

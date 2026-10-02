@@ -79,7 +79,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 7.3 README ≤3.5k tokens; stale claims fixed
 - [x] 7.4 merges/archives per F §7 table; delete plain_text glossary copy; update-wiki ownership table
 - [x] 7.5 `tasks.py` cross-platform runner; scripts use it
-- [ ] 7.6 `tests/test_docs/`; module docstrings + guard test; `docs/DECISIONS.md`
+- [x] 7.6 `tests/test_docs/`; module docstrings + guard test; `docs/DECISIONS.md`
 - [ ] WP7 exit
 
 ## WP8 — gemini-web2api

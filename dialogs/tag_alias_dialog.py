@@ -1,3 +1,4 @@
+"""Edit a tag alias; the worker that applies the change to the project."""
 # dialogs/tag_alias_dialog.py
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox, QMessageBox)
 from PyQt6.QtGui import QIntValidator

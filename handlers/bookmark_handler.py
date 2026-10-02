@@ -1,3 +1,4 @@
+"""Bookmarks of the open project."""
 import uuid
 from typing import Any, Optional
 from PyQt6.QtWidgets import QMessageBox, QInputDialog, QTreeWidgetItemIterator

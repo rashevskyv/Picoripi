@@ -1,3 +1,4 @@
+"""Show a long text report."""
 # components/report_dialog.py
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPlainTextEdit, QPushButton
 from core.i18n import tr

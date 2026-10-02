@@ -1,3 +1,4 @@
+"""Base class of the translation sub-handlers."""
 class BaseTranslationHandler:
     """Handler for base translation operations."""
     def __init__(self, main_handler):

@@ -1,3 +1,4 @@
+"""Worker that searches the current block or the whole project."""
 # dialogs/search/search_worker.py
 import re
 from PyQt6.QtCore import pyqtSignal

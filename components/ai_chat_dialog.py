@@ -1,3 +1,4 @@
+"""AI Chat window: tabs, message queue, streaming answers, stop and retry."""
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QTabWidget, QWidget, QTextBrowser,
     QPlainTextEdit, QComboBox, QPushButton, QHBoxLayout, QCheckBox, QLabel

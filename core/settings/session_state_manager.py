@@ -1,3 +1,4 @@
+"""UI session state per file: expanded nodes, selection."""
 from utils.atomic_io import atomic_write_json
 import json
 from pathlib import Path

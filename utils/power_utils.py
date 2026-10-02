@@ -1,3 +1,4 @@
+"""System idle time, keeping the computer awake, putting it to sleep."""
 # utils/power_utils.py ---
 import os
 import ctypes

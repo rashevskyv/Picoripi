@@ -1,3 +1,4 @@
+"""Put the computer to sleep after a long task finishes, unless the user is active."""
 # core/auto_sleep_manager.py ---
 from utils import app_mode
 import time

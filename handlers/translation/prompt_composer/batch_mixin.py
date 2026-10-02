@@ -1,3 +1,4 @@
+"""Prompt for a batch of strings: payload, context rows, run memory."""
 from __future__ import annotations
 
 import json

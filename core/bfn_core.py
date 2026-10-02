@@ -1,3 +1,4 @@
+"""Read, edit and write Nintendo BFN bitmap fonts; convert one to a font map."""
 import struct
 from typing import Dict, Any, List, Tuple, Optional
 from PyQt6.QtGui import QImage, QColor

@@ -1,3 +1,4 @@
+"""Find who speaks a line by searching the game script on disk."""
 from __future__ import annotations
 import os
 import re

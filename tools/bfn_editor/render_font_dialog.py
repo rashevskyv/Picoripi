@@ -1,3 +1,4 @@
+"""BFN editor: options for rendering a system font into the BFN."""
 from PyQt6 import QtCore, QtGui, QtWidgets
 from core.i18n import tr
 from tools.bfn_editor.scale_slider import ScaleSliderWidget

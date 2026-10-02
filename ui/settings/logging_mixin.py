@@ -1,3 +1,4 @@
+"""Settings dialog: Logging tab and plugin discovery."""
 from utils.constants import plugins_root
 import json
 from PyQt6.QtWidgets import QVBoxLayout, QGroupBox, QFormLayout, QCheckBox, QLineEdit

@@ -1,3 +1,4 @@
+"""Glossary: sort entries into categories with the AI."""
 import json
 
 from PyQt6.QtWidgets import QDialog, QMessageBox

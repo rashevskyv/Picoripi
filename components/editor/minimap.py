@@ -1,3 +1,4 @@
+"""Small overview of the document beside an editor."""
 from __future__ import annotations
 
 from PyQt6.QtCore import QEvent, Qt, QRect, QSize, QTimer

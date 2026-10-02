@@ -1,3 +1,4 @@
+"""BFN editor: detect glyph widths; load the original font bytes."""
 import os
 import json
 

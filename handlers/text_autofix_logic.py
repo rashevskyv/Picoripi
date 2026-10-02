@@ -1,3 +1,4 @@
+"""Auto-fix of the current string, delegated to the plugin's rules."""
 from typing import Any, Tuple
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtGui import QTextCursor

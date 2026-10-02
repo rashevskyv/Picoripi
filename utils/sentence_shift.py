@@ -1,3 +1,4 @@
+"""Move whole sentences between lines and pages to keep them together."""
 import re
 from typing import Optional, List, Tuple, Any
 

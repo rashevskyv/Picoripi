@@ -1,3 +1,4 @@
+"""Split a flat text script into chapters."""
 import re
 from typing import List, Dict, Any
 from utils.logging_utils import log_error

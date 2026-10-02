@@ -1,3 +1,4 @@
+"""Countdown shown before the computer goes to sleep, with a stay-awake button."""
 # components/auto_sleep_countdown_dialog.py ---
 from typing import Optional, Any
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QProgressBar, QHBoxLayout

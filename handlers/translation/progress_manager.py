@@ -1,3 +1,4 @@
+"""Save and load the progress of a translation run in project metadata."""
 # handlers/translation/progress_manager.py
 
 from .base_translation_handler import BaseTranslationHandler

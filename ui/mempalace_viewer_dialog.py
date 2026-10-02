@@ -1,3 +1,4 @@
+"""Browse the MemPalace database: wings, rooms, relations."""
 import os
 from PyQt6.QtWidgets import (
     QDialog, QAbstractItemView, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTextEdit, 

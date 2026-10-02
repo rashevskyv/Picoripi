@@ -1,3 +1,4 @@
+"""BFN editor: render a system font into glyphs."""
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.i18n import tr

@@ -1,3 +1,4 @@
+"""GenericTagManager: tag syntax highlighting and legitimacy checks shared by plugins."""
 import re
 from typing import List, Optional, Set, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont

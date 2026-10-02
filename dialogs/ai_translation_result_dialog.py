@@ -1,3 +1,4 @@
+"""Scrollable report of an AI translation run."""
 # dialogs/ai_translation_result_dialog.py
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QTextEdit, QHBoxLayout, QPushButton

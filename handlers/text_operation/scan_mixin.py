@@ -1,3 +1,4 @@
+"""Text operations: problem rescans after an edit."""
 from __future__ import annotations
 from typing import Tuple
 from PyQt6.QtGui import QTextCursor

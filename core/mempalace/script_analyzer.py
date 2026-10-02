@@ -1,3 +1,4 @@
+"""Worker that mines a story script for characters and terms and synthesizes glossary notes."""
 import os
 from PyQt6.QtCore import pyqtSignal
 from typing import Any, Optional, Tuple

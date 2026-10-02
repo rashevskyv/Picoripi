@@ -1,3 +1,4 @@
+"""Convert between stored text and what the editors display (spaces as dots, newline symbols)."""
 import re
 
 from core.tag_utils import ALL_TAGS_PATTERN

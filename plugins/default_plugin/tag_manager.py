@@ -1,3 +1,4 @@
+"""Tag manager of the plugin template."""
 from typing import Set
 
 from plugins.common.tag_manager import GenericTagManager

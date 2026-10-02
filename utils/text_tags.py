@@ -1,3 +1,4 @@
+"""Remove tags from text and tell visible tags from invisible ones."""
 import re
 from typing import Optional, List
 

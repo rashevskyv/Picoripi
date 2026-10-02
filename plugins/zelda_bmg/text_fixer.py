@@ -1,3 +1,4 @@
+"""Text fixer of the Twilight Princess plugin."""
 from plugins.common.text_fixer import GenericTextFixer
 
 

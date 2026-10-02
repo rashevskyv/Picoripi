@@ -1,3 +1,4 @@
+"""Main window actions: settings, save, revert, undo, tag mappings, widths."""
 from __future__ import annotations
 from pathlib import Path
 import json

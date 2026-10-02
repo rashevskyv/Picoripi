@@ -1,3 +1,4 @@
+"""Read and write JSON and text files."""
 from utils.atomic_io import atomic_write_json, atomic_write_text
 from typing import Any, Tuple, Optional, Union
 import json

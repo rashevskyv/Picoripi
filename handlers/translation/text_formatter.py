@@ -1,3 +1,4 @@
+"""Fit a translation into the layout of the original: wrapping, pages, tags."""
 # handlers/translation/text_formatter.py
 
 import re

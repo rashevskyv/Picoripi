@@ -1,3 +1,4 @@
+"""Tooltips of the list item delegate."""
 from PyQt6.QtWidgets import QToolTip
 from PyQt6.QtGui import QCursor
 from PyQt6.QtCore import QEvent, QRect, Qt

@@ -1,3 +1,4 @@
+"""Worker that maps game blocks to chapters of the story script."""
 import os
 from PyQt6.QtCore import pyqtSignal
 from core.mempalace_client import MemePalaceClient

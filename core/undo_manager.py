@@ -1,3 +1,4 @@
+"""Undo and redo: text, grouped and structural actions with compressed snapshots."""
 import time
 import zlib
 import pickle

@@ -1,3 +1,4 @@
+"""AppState flags and the StateManager that enters and leaves them."""
 from enum import Enum, auto
 from typing import Set, ContextManager
 from contextlib import contextmanager

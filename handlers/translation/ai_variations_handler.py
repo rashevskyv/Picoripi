@@ -1,3 +1,4 @@
+"""AI translation variations of a string."""
 # handlers/translation/ai_variations_handler.py
 
 from typing import Any, Dict, Optional
