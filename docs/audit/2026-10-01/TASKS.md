@@ -71,7 +71,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 6.3 companion push/pull/close off the GUI thread
 - [x] 6.4 remove `'pytest' in sys.modules` branches and `_ShimName` patches; delete conftest heap walk
 - [x] 6.5 split `run()` (746) and `populate_blocks` (542); enable F841; S110 warning; log in every `except: pass`
-- [ ] WP6 exit
+- [x] WP6 exit
 
 ## WP7 — Documentation system
 - [ ] 7.1 `docs/INDEX.md` + front matter
