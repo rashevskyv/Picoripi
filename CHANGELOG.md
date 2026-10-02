@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.145-dev] - 2026-10-02
+
 - wp3: term families are formed by the rarest shared word instead of by every shared word (which chained a third of the shipped glossary into one "family" and ignored the real big ones), and glossary translation runs in three tiers — one-word terms, two-word terms, longer ones — so a compound name is translated after its head term whatever family it is in.
 - wp3 3.7: regression gate `tests/test_core/test_glossary_consistency.py` on the shipped glossary (no entry stored twice, no new spelling variants of an existing term, a merge leaves no collision and loses nothing; diverging families are reported as a warning); wiki 8 describes how the glossary stays consistent (EN + UK).
 - wp3 3.6: glossary storage hardening — `GlossaryManager.transaction()` turns many changes into one file write (a build pass writes every 20 results instead of after every term); the file is replaced atomically; every entry has a stable `id`; deletions are recorded (`deleted_at`) so a Companion sync or pull no longer brings a deleted or merged entry back, and a renamed entry is matched by id instead of being duplicated; a re-sweep adds fragments to a translated entry instead of resetting it to "seeded".

@@ -11,6 +11,25 @@ the line when it is done or moved into a plan.
 - UI command "Create plugin from template" (copy `plugins/default_plugin`, rename, open the prompt file).
   WP5.4 delivers the generator (`tools/new_plugin.py`); the menu entry is still unplanned.
 
+## Found during WP3
+
+- **WP3 exit is not ticked**: no real glossary build was run on a live model (it spends account quota and
+  changes the working glossary). The numbers in `walkthrough.md` / `docs/audit/2026-10-01/wp3_glossary_numbers.json`
+  are measured on a copy of `translation_prompts/glossary.json` without AI calls. To close: run Prepare
+  Glossary with "Reconcile related terms afterwards" on a sample project and record requests, tokens,
+  collision groups and diverging families before/after.
+- **18 canonical duplicate groups are still in `translation_prompts/glossary.json`** (waiting for a decision,
+  see `docs/REVIEW_QUEUE.md`); `KNOWN_CANONICAL_GROUPS` in `tests/test_core/test_glossary_consistency.py`
+  goes to 0 after the merge.
+- **Deletion records (`deleted_at`) are never pruned** from the glossary file. Drop those older than a few
+  months once every device has synced, if the list ever grows.
+- **Reconcile does not remember "keep separate" answers**: a pair of spellings the model left apart is asked
+  about again on every run. Store the verdict on the entries if the pass is used regularly.
+- **Reconcile compares a family only within itself** (`Zora Guard` is in the guards family and is not compared
+  with `Zora`). Add the head entries of a member's other words as read-only context if drift shows up there.
+- **`CompanionSyncClient.commit_merge` and `pull_project` still write the glossary non-atomically**
+  (`write_text`); the manager's own writes are atomic since WP3.6. WP6 covers user-data writes.
+
 ## Found during WP0
 
 - **WP0 exit is not ticked**: the suite is green on Windows only; the Linux run has not been done.
