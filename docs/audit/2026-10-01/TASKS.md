@@ -52,7 +52,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 4.2 cross-run TM keyed by source text
 - [x] 4.3 flow-aware chunking hook + packing
 - [x] 4.4 fixed-output UI strings; `addressee` in single prompt
-- [ ] WP4 exit
+- [x] WP4 exit
 
 ## WP5 — Plugin platform
 - [x] 5.1 `plugins/spec.py` + `python -m plugins.validate` + `test_validate_all`

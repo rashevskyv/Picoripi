@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.148-dev] - 2026-10-02
+
 - wp4 4.4: fixed interface strings. A game string that is exactly a glossary term of the `UI` section (translation config `fixed_output_sections`) is filled with the glossary translation before a run starts — no request; rows already translated, texts that do not fit the layout and unconfirmed suggestions are left alone. A single-string request now carries the plugin's `Addressee:` like a batch item does.
 - wp4 4.3: a request to the model is packed from whole conversations. New plugin hook `get_ai_flow_group_for_string(block, string)` names the conversation of a line; lines that share it stay in one request when they fit (12 strings), and a conversation is cut only when it alone is longer. Twilight Princess reports the flow entry that reaches the message. Plugins without the hook, and translations in progress from an earlier version, keep the plain cut by count.
 - wp4 4.2: translation memory across runs. Saved translations are also indexed by source text (`translation_memory.json` next to `saved_translations.json`; built from the existing file on first use). A string whose text was translated elsewhere in the project is offered for restore in the Cached Translation window — marked "(same text elsewhere)", same layout check, no AI request — and a single-string translation request lists up to three saved translations of the same source as `TRANSLATION MEMORY (same source elsewhere)`.
