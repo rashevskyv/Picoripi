@@ -246,6 +246,39 @@ class CircuitBreaker:
                 self._consecutive = 0
 
 
+def run_cancellable(fn: Callable[[], Any], is_cancelled: Optional[Callable[[], bool]], poll: float = 0.1) -> Any:
+    """Run blocking ``fn`` so that a cancel does not have to wait for it.
+
+    A request that is waiting for the server's answer cannot be interrupted
+    from another thread: closing the ``requests`` session leaves the in-flight
+    read running (measured: a 4 s reply still took 4 s). So the call runs on a
+    helper thread and the caller polls ``is_cancelled``; on cancel the caller
+    raises ``CANCELLED`` at once and the helper is left to finish and be
+    discarded. The server still completes the abandoned request.
+
+    Without ``is_cancelled`` this is a plain call.
+    """
+    if is_cancelled is None:
+        return fn()
+    outcome: dict = {}
+
+    def target() -> None:
+        try:
+            outcome["value"] = fn()
+        except BaseException as exc:  # handed to the caller below
+            outcome["error"] = exc
+
+    thread = threading.Thread(target=target, name="ai-request", daemon=True)
+    thread.start()
+    while thread.is_alive():
+        thread.join(poll)
+        if thread.is_alive() and is_cancelled():
+            raise TransportError("Cancelled.", kind=ErrorKind.CANCELLED)
+    if "error" in outcome:
+        raise outcome["error"]
+    return outcome["value"]
+
+
 @dataclass
 class TransportPolicy:
     """How long to wait for a request, and how to retry it."""

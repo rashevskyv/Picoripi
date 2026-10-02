@@ -536,3 +536,21 @@ def test_parallel_run_logs_matching_request_and_response_ids_and_a_summary(worke
     summary = [r for r in records if r["event"] == "summary"][-1]["summary"]
     assert summary.startswith("3 request(s), p50 ") and "failed: server×1" in summary
     assert details[-1] == summary
+
+
+@pytest.mark.parametrize("workers", [1, 3])
+def test_a_cancelled_request_ends_as_cancelled_not_as_an_error(worker_deps, workers):
+    from core.translation.transport import ErrorKind, TransportError
+    provider, worker, chunks, errors = _parallel_worker(worker_deps, item_count=36, workers=workers)
+    cancelled = MagicMock()
+    worker.translation_cancelled.connect(cancelled)
+
+    def translate(messages, session=None, settings_override=None):
+        worker.cancel()
+        raise TransportError("Cancelled.", kind=ErrorKind.CANCELLED)
+
+    provider.translate.side_effect = translate
+    worker.run()
+
+    cancelled.assert_called_once()
+    assert errors == [] and chunks == []

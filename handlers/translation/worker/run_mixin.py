@@ -13,6 +13,11 @@ from core.translation.layout_contract import (
 from utils.logging_utils import log_debug
 
 
+def _is_cancel(exc: Exception) -> bool:
+    """Whether ``exc`` is the provider reporting that the user cancelled the request."""
+    return getattr(exc, 'kind', None) is ErrorKind.CANCELLED
+
+
 class AIWorkerRunMixin:
     """Main AIWorker.run() implementation."""
 
@@ -181,7 +186,9 @@ class AIWorkerRunMixin:
                         aggregated_terms.extend(json.loads(self._clean_json_response(response.text, "array")))
                     except (TranslationProviderError, json.JSONDecodeError) as exc:
                         self._log_ai_traffic(messages, error=exc)
-                        if not self.is_cancelled:
+                        if _is_cancel(exc):
+                            self.translation_cancelled.emit()
+                        elif not self.is_cancelled:
                             resp_t = response.text if response is not None else ""
                             err_msg, updated_details = handle_ai_error(exc, self.task_details, resp_t, f"Glossary chunk {idx + 1}")
                             self.error.emit(err_msg, updated_details)
@@ -544,6 +551,9 @@ class AIWorkerRunMixin:
 
                     except (TranslationProviderError, json.JSONDecodeError, ValueError) as e:
                         self._log_ai_traffic(messages, error=e, chunk=i)
+                        if _is_cancel(e):
+                            self.translation_cancelled.emit()
+                            return
                         resp_t = response.text if 'response' in locals() else ""
                         err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, f"chunk {i}")
                         self.error.emit(err_msg, updated_details)
@@ -763,7 +773,9 @@ class AIWorkerRunMixin:
 
 
         except (TranslationProviderError, ValueError, Exception) as e:
-            if not self.is_cancelled:
+            if _is_cancel(e):
+                self.translation_cancelled.emit()
+            elif not self.is_cancelled:
                 self._log_ai_traffic(getattr(self, '_last_messages', None) or [], error=e)
                 resp_t = response.text if 'response' in locals() and response is not None else None
                 err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, "worker thread exception")

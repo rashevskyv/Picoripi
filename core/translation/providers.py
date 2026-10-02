@@ -12,6 +12,7 @@ from core.translation.transport import (
     TransportError,
     TransportPolicy,
     classify,
+    run_cancellable,
 )
 from utils.logging_utils import log_debug, log_info
 
@@ -92,12 +93,25 @@ class BaseTranslationProvider:
     def _post(self, endpoint: str, headers: Dict[str, str], body: Dict[str, Any], policy: TransportPolicy) -> requests.Response:
         """POST ``body`` under ``policy``. Raises ``TransportError``."""
         def send() -> requests.Response:
-            response = requests.post(endpoint, headers=headers, json=body, timeout=policy.requests_timeout())
+            response = run_cancellable(
+                lambda: requests.post(endpoint, headers=headers, json=body, timeout=policy.requests_timeout()),
+                self._is_cancelled,
+            )
             log_info(f"{self.__class__.__name__}: Response received. Status code: {response.status_code}", category="ai")
             response.raise_for_status()
             return response
 
         return policy.run(send, self._is_cancelled, breaker=self._breaker)
+
+    def _stream_error(self, exc: Exception) -> TransportError:
+        """Classify a failed streaming request and tell the breaker.
+
+        Streams share the timeouts, the classification and the breaker, but are
+        never retried: a stream cannot be replayed from the middle.
+        """
+        error = classify(exc)
+        self._breaker.record_failure(error)
+        return error
 
     def clamp_workers(self, workers: int) -> int:
         """How many parallel requests are worth sending. Call off the UI thread."""
@@ -359,6 +373,7 @@ class OpenAIProvider(BaseTranslationProvider):
         policy = self._policy(current_settings, default_timeout=60.0)
         timeout = policy.timeout
 
+        self._breaker.check()
         try:
             log_info(f"OpenAIProvider: Sending stream request to {endpoint} with timeout {timeout}s (model: {self.model})", category="ai")
             with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=policy.requests_timeout()) as response:
@@ -385,8 +400,9 @@ class OpenAIProvider(BaseTranslationProvider):
                                     continue
                 finally:
                     self._clear_active_stream_response(response)
+            self._breaker.record_success()
         except requests.RequestException as e:
-            raise classify(e) from e
+            raise self._stream_error(e) from e
 
 
 class OllamaChatProvider(BaseTranslationProvider):
@@ -438,10 +454,11 @@ class OllamaChatProvider(BaseTranslationProvider):
         if current_settings.get('keep_alive'):
             body['keep_alive'] = current_settings['keep_alive']
 
-        timeout = _extract_timeout(current_settings, default=120.0)
+        policy = self._policy(current_settings, default_timeout=120.0)
 
+        self._breaker.check()
         try:
-            with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=timeout) as response:
+            with requests.post(endpoint, headers=headers, json=body, stream=True, timeout=policy.requests_timeout()) as response:
                 self._set_active_stream_response(response)
                 try:
                     response.raise_for_status()
@@ -457,8 +474,9 @@ class OllamaChatProvider(BaseTranslationProvider):
                                 continue
                 finally:
                     self._clear_active_stream_response(response)
+            self._breaker.record_success()
         except requests.RequestException as e:
-            raise classify(e) from e
+            raise self._stream_error(e) from e
 
 
 
@@ -561,27 +579,29 @@ class GeminiProvider(BaseTranslationProvider):
         if settings_override:
             current_settings.update(settings_override)
 
-        timeout = _extract_timeout(current_settings, default=120.0)
-
         extra_headers = current_settings.get('extra_headers')
         headers = {"Content-Type": "application/json"}
         if isinstance(extra_headers, dict):
             headers.update(extra_headers)
 
+        if self._use_openai_compat:
+            # Assuming the compatible endpoint also supports OpenAI's stream format
+            compat_provider = self._compat_provider()
+            self._compat_stream_provider = compat_provider
+            try:
+                yield from compat_provider.translate_stream(messages, session, settings_override)
+            finally:
+                self._compat_stream_provider = None
+            return
+
+        timeout = self._policy(current_settings, default_timeout=120.0).requests_timeout()
+        self._breaker.check()
         try:
-            if self._use_openai_compat:
-                # Assuming the compatible endpoint also supports OpenAI's stream format
-                compat_provider = self._compat_provider()
-                self._compat_stream_provider = compat_provider
-                try:
-                    yield from compat_provider.translate_stream(messages, session, settings_override)
-                finally:
-                    self._compat_stream_provider = None
-            else:
-                yield from self._translate_via_native_stream(messages, headers, current_settings, timeout)
+            yield from self._translate_via_native_stream(messages, headers, current_settings, timeout)
+            self._breaker.record_success()
         except requests.RequestException as e:
             # classify() also masks the ?key= the native URL carries.
-            raise classify(e) from e
+            raise self._stream_error(e) from e
 
     def cancel_active_stream(self):
         """Close any active Gemini stream, including OpenAI-compatible delegated streams."""

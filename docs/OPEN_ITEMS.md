@@ -19,6 +19,19 @@ the line when it is done or moved into a plan.
   `tests/conftest.py::_stop_lingering_qthreads` called `quit()` on the GUI thread, after which every
   `QEventLoop.exec()` on that xdist worker returned at once. Not proven for the hang itself; delete this line
   if it does not come back. WP6.4 removes that heap walk altogether.
+- **JSON fence strippers not yet on `utils.json_extract`** (WP1.3 replaced the three the plan named):
+  `core/mempalace/chapter_ai_analyzer.py:102`, `normalized_character_profiler.py:220`,
+  `timeline_ai_analyzer.py:176`, `weaver_worker.py:15`, `core/script_markup/hierarchy_ai.py:187`,
+  `handlers/translation/translation_ui_handler.py:164`, `handlers/translation/glossary_builder_handler.py:46`.
+- **Cancel text in the status dialog is now conservative for translation.** "The current request will stop
+  after the active network step" is still true for the glossary pipeline and MemPalace, which share the
+  dialog; translation requests stop at once since WP1.8. Give those callers the same cancel hook
+  (`provider.enable_retries`/`run_cancellable`), then reword the string (EN + `locales/uk.json`).
+- **Streaming and Ollama requests are not retried.** They share timeouts, error classification and the
+  breaker with the rest, but `TransportPolicy.run` wraps only non-stream requests — a stream cannot be
+  replayed half-way. Retrying the connection phase alone is possible if chat needs it.
+- **Provider profile has no settings-dialog control and no `/v1/models` probe** (WP1.5): the host rule plus
+  the `"profile"` settings key cover it. Add a combo in `ui/settings/ai_mixin.py` if users need it.
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.
