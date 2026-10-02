@@ -21,24 +21,6 @@ class AIWorkerRunMixin:
         from components.ai_status_dialog import AIStatusDialog
         log_debug(f"AIWorker: Thread started for task type '{self.task_details.get('type')}'.")
         
-        # Truncate the ai_traffic.log file at the very start of a new session (not retry or resume)
-        log_enabled = False
-        mw = self.mw
-        if mw:
-            log_enabled = getattr(mw, 'log_ai_traffic', False)
-        
-        if log_enabled:
-            is_retry = self.task_details.get('attempt', 1) > 1
-            is_resume = self.task_details.get('is_resume', False)
-            if not is_retry and not is_resume:
-                try:
-                    from utils.logging_utils import ai_traffic_log_path
-                    log_file = ai_traffic_log_path()
-                    with open(log_file, "w", encoding="utf-8") as f:
-                        pass # Truncate the file
-                except Exception as e:
-                    log_debug(f"AIWorker: Failed to truncate ai_traffic.log: {e}")
-        
         try:
             task_type = self.task_details.get('type')
             messages: List[Dict[str, str]] = []
@@ -198,7 +180,7 @@ class AIWorkerRunMixin:
                         # dropped chunk must stop the build, not shrink it quietly.
                         aggregated_terms.extend(json.loads(self._clean_json_response(response.text, "array")))
                     except (TranslationProviderError, json.JSONDecodeError) as exc:
-                        self._log_ai_traffic(messages, error=str(exc))
+                        self._log_ai_traffic(messages, error=exc)
                         if not self.is_cancelled:
                             resp_t = response.text if response is not None else ""
                             err_msg, updated_details = handle_ai_error(exc, self.task_details, resp_t, f"Glossary chunk {idx + 1}")
@@ -415,9 +397,13 @@ class AIWorkerRunMixin:
                                     msg['content'] = msg.get('content', '') + reminder
                                     break
                         self._last_messages = messages
-                        self._log_ai_traffic(messages)
-                        response = self.provider.translate(messages, session=None, settings_override=provider_override)
-                        self._log_ai_traffic(messages, response_text=response.text)
+                        self._log_ai_traffic(messages, chunk=idx)
+                        try:
+                            response = self.provider.translate(messages, session=None, settings_override=provider_override)
+                        except Exception as exc:
+                            self._log_ai_traffic(messages, error=exc, chunk=idx)
+                            raise
+                        self._log_ai_traffic(messages, response_text=response.text, chunk=idx)
                         cleaned = self._clean_json_response(response.text)
                         _validate_chunk_result(idx, chunk, cleaned)
                         return _maybe_run_editor_review(idx, chunk, cleaned)
@@ -451,7 +437,7 @@ class AIWorkerRunMixin:
                     if chunk_errors:
                         failed = sorted(chunk_errors)
                         first_error = (fatal_errors or [outcome.stop_error or chunk_errors[failed[0]]])[0]
-                        self._log_ai_traffic([{"role": "user", "content": f"Chunks {failed}"}], error=str(first_error))
+                        self._log_ai_traffic([{"role": "user", "content": f"Chunks {failed}"}], error=first_error)
                         resp_t = getattr(first_error, 'raw_text', '') or ''
                         err_msg, updated_details = handle_ai_error(first_error, self.task_details, resp_t, f"chunks {failed}")
                         updated_details['failed_chunks'] = failed
@@ -534,14 +520,14 @@ class AIWorkerRunMixin:
                                     msg['content'] = msg.get('content', '') + reminder
                                     break
                         self._last_messages = messages
-                        self._log_ai_traffic(messages)
+                        self._log_ai_traffic(messages, chunk=i)
                         response = self.provider.translate(messages, session=session_payload, settings_override=provider_override)
 
                         if self.is_cancelled:
                             log_debug("AIWorker: Translation cancelled during network request. Discarding response.")
                             break
 
-                        self._log_ai_traffic(messages, response_text=response.text)
+                        self._log_ai_traffic(messages, response_text=response.text, chunk=i)
                         cleaned_text = self._clean_json_response(response.text)
                         _validate_chunk_result(i, chunk, cleaned_text)
                         cleaned_text = _maybe_run_editor_review(i, chunk, cleaned_text)
@@ -557,7 +543,7 @@ class AIWorkerRunMixin:
                         self.chunk_translated.emit(i, cleaned_text, task_details_for_chunk)
 
                     except (TranslationProviderError, json.JSONDecodeError, ValueError) as e:
-                        self._log_ai_traffic(messages, error=str(e))
+                        self._log_ai_traffic(messages, error=e, chunk=i)
                         resp_t = response.text if 'response' in locals() else ""
                         err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, f"chunk {i}")
                         self.error.emit(err_msg, updated_details)
@@ -778,10 +764,11 @@ class AIWorkerRunMixin:
 
         except (TranslationProviderError, ValueError, Exception) as e:
             if not self.is_cancelled:
-                self._log_ai_traffic(getattr(self, '_last_messages', None) or [], error=str(e))
+                self._log_ai_traffic(getattr(self, '_last_messages', None) or [], error=e)
                 resp_t = response.text if 'response' in locals() and response is not None else None
                 err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, "worker thread exception")
                 self.error.emit(err_msg, updated_details)
         finally:
+            self._report_traffic_summary()
             log_debug("AIWorker: Task finished, emitting 'finished' signal.")
             self.finished.emit()

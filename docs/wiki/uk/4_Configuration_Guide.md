@@ -74,7 +74,7 @@ Enable spell checking · Dictionary Language · **Manage Dictionaries…** (за
 |----------|--|
 | Enable Console Logging | |
 | Enable File Logging | |
-| Log AI Traffic to File (`ai_traffic.log`) | |
+| Log AI Traffic to File (`ai_traffic.log`) | Пишеться в теку налаштувань (`~/.picoripi/ai_traffic.log`) у форматі JSON Lines: один запис на запит, відповідь чи помилку зі спільним `request_id`, номером фрагмента, спробою, розмірами й тривалістю, плюс підсумок на кожен запуск. При 8 МБ переноситься в `ai_traffic.log.1`, а не очищається |
 | Log File Path | порожньо → `app_debug.txt` |
 
 Категорії: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plugins.

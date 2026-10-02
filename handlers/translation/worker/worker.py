@@ -35,6 +35,10 @@ class AIWorker(
         self._mw = mw
         self.is_cancelled = False
         self._last_messages = None
+        # Requests in flight (id(messages) -> (request id, start)) and finished
+        # ones (duration ms, error kind, failed); see _log_ai_traffic.
+        self._traffic_open: Dict[int, tuple] = {}
+        self._traffic_done: list = []
         # This worker can interrupt a backoff wait, so it may ask for retries.
         enable_retries = getattr(provider, "enable_retries", None)
         if callable(enable_retries):

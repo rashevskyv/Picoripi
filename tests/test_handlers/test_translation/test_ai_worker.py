@@ -500,3 +500,39 @@ def test_parallel_reordered_ids_are_rejected(worker_deps):
     assert chunks == [1]
     assert errors[0][1]['failed_chunks'] == [0]
     assert "do not match the request" in errors[0][0]
+
+
+def test_parallel_run_logs_matching_request_and_response_ids_and_a_summary(worker_deps):
+    import utils.logging_utils as logging_utils
+    provider, worker, chunks, errors = _parallel_worker(worker_deps, item_count=36, workers=3)
+    worker._mw = MagicMock()
+    worker._mw.log_ai_traffic = True
+    worker._mw.current_game_rules = None
+    details = []
+    worker.detail_updated.connect(details.append)
+
+    def translate(messages, session=None, settings_override=None):
+        ids = _ids_in(messages)
+        if 12 in ids:
+            from core.translation.transport import ErrorKind, TransportError
+            raise TransportError("502 Server Error: Bad Gateway", kind=ErrorKind.SERVER, status=502)
+        return ProviderResponse(text=json.dumps(
+            {"translated_strings": [{"id": i, "translation": f"T{i}"} for i in ids]}
+        ))
+
+    provider.translate.side_effect = translate
+    path = logging_utils.ai_traffic_log_path()
+    start = len(path.read_text(encoding="utf-8").splitlines()) if path.exists() else 0
+    worker.run()
+
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()[start:]]
+    requests_by_id = {r["request_id"]: r for r in records if r["event"] == "request"}
+    answers = [r for r in records if r["event"] in ("response", "error") and r.get("request_id")]
+    assert len(requests_by_id) == 3 and len(answers) == 3
+    for answer in answers:
+        assert answer["chunk"] == requests_by_id[answer["request_id"]]["chunk"]
+        assert answer["duration_ms"] >= 0
+    assert [(r["chunk"], r["kind"], r["status"]) for r in answers if r["event"] == "error"] == [(1, "server", 502)]
+    summary = [r for r in records if r["event"] == "summary"][-1]["summary"]
+    assert summary.startswith("3 request(s), p50 ") and "failed: server×1" in summary
+    assert details[-1] == summary

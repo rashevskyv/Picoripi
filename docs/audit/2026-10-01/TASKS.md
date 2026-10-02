@@ -22,7 +22,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 1.4 parallel chunk path via `run_pool`; stop on error; map by `id` first
 - [x] 1.5 provider `profile` + web2api defaults; unify `max_consecutive_failures`
 - [x] 1.6 harden `handle_chunk_translated` + `:568` + glossary builder (`finally` undo group)
-- [ ] 1.7 `ai_traffic.log` → JSONL with lock/ids/sizes/durations in SETTINGS_DIR; run summary
+- [x] 1.7 `ai_traffic.log` → JSONL with lock/ids/sizes/durations in SETTINGS_DIR; run summary
 - [ ] 1.8 cancellable non-stream requests
 - [ ] WP1 exit
 

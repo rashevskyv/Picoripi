@@ -74,7 +74,7 @@ Connection to the mobile review backend. See [12. Picoripi Companion](12_Picorip
 |---------|--|
 | Enable Console Logging | |
 | Enable File Logging | |
-| Log AI Traffic to File (`ai_traffic.log`) | |
+| Log AI Traffic to File (`ai_traffic.log`) | Written to the settings folder (`~/.picoripi/ai_traffic.log`) as JSON Lines: one record per request, response or error with a shared `request_id`, chunk number, attempt, sizes and duration, plus a summary per run. Rolled over to `ai_traffic.log.1` at 8 MB instead of being cleared |
 | Log File Path | empty → `app_debug.txt` |
 
 Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plugins.

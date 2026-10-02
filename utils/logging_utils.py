@@ -11,9 +11,15 @@ log_file_path = default_log_file_path
 
 
 def ai_traffic_log_path() -> Path:
-    """Single place that decides where ai_traffic.log lives."""
-    import os
-    return Path(os.getcwd()) / "ai_traffic.log"
+    """Single place that decides where ai_traffic.log lives: the settings directory."""
+    import utils.constants as constants
+    return Path(constants.SETTINGS_DIR) / "ai_traffic.log"
+
+
+# One record per line; parallel requests write from several threads.
+_ai_traffic_lock = threading.Lock()
+# Past this size the log is rolled to ai_traffic.log.1 (one generation kept).
+AI_TRAFFIC_MAX_BYTES = 8 * 1024 * 1024
 
 class SafeRotatingFileHandler(RotatingFileHandler):
     """
@@ -130,15 +136,6 @@ def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: s
                     except Exception:
                         pass
                         
-                # Also truncate ai_traffic.log in workspace root upon startup
-                try:
-                    ai_log_path = ai_traffic_log_path()
-                    if ai_log_path.exists():
-                        with open(ai_log_path, 'w', encoding='utf-8') as f:
-                            f.truncate(0)
-                except Exception:
-                    pass
-                    
                 _cleared_paths.add(log_path)
             
             # Use a standard FileHandler in write mode to overwrite the log file at startup, as requested
@@ -216,60 +213,83 @@ def log_error(message: str, exc_info=False, category: str = "general"):
     """Log error."""
     _log_message(logging.ERROR, message, category, exc_info)
 
-def log_ai_traffic(mw, task_type: str, messages: list, response_text: str = None, error: str = None):
+def ai_traffic_enabled(mw) -> bool:
+    """Whether the 'Log AI Traffic to File' setting is on."""
+    if not mw:
+        return False
+    if getattr(mw, 'log_ai_traffic', False):
+        return True
+    settings_manager = getattr(mw, 'settings_manager', None)
+    return bool(settings_manager and settings_manager.get("log_ai_traffic", False))
+
+
+def write_ai_traffic_record(record: dict) -> None:
+    """Append one JSON line to ai_traffic.log. Safe to call from several threads."""
+    import json
+    import os
+
+    line = json.dumps(record, ensure_ascii=False, default=str)
+    with _ai_traffic_lock:
+        try:
+            path = ai_traffic_log_path()
+            path.parent.mkdir(parents=True, exist_ok=True)
+            # Roll over instead of truncating: the previous run is the evidence
+            # someone will want when this one fails.
+            if path.exists() and path.stat().st_size > AI_TRAFFIC_MAX_BYTES:
+                os.replace(path, path.with_name(path.name + ".1"))
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+        except OSError as e:
+            print(f"Failed to write to ai_traffic.log: {e}")
+
+
+def log_ai_traffic(mw, task_type: str, messages: list, response_text: str = None, error=None, **meta):
+    """Write one AI request, response or error to ai_traffic.log (JSON Lines).
+
+    Does nothing unless the 'Log AI Traffic to File' setting is on. ``error`` may
+    be the exception itself; its ``kind`` and HTTP ``status`` are then recorded.
+    ``meta`` carries what ties records together: ``request_id``, ``chunk``,
+    ``attempt``, ``duration_ms``. The request record holds the messages; the
+    response and error records refer to it by ``request_id``.
     """
-    Log AI request and response traffic dynamically to both the main debug log
-    (app_debug.txt) and a separate ai_traffic.log file in the workspace root
-    if the 'log_ai_traffic' setting is enabled.
-    """
-    log_enabled = False
-    if mw:
-        # Check standard attribute
-        log_enabled = getattr(mw, 'log_ai_traffic', False)
-        # Fallback to settings if available
-        if not log_enabled and hasattr(mw, 'settings_manager') and mw.settings_manager:
-            log_enabled = mw.settings_manager.get("log_ai_traffic", False)
-            
-    if not log_enabled:
+    if not ai_traffic_enabled(mw):
         return
 
-    import json
     import datetime
-    import os
-    
-    # 1. Log to app_debug.txt
-    log_msg = f"[AI Traffic] Task: {task_type}\n"
-    log_msg += f"--- MESSAGES SENT ---\n{json.dumps(messages, indent=2, ensure_ascii=False)}\n"
-    if response_text is not None:
-        log_msg += f"--- RESPONSE RECEIVED ---\n{response_text}\n"
+
     if error is not None:
-        log_msg += f"--- ERROR ---\n{error}\n"
-    
-    log_info(log_msg, category="ai")
-    
-    # 2. Log to a separate file ai_traffic.log in workspace root
-    try:
-        log_file = ai_traffic_log_path()
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-        with open(log_file, "a", encoding="utf-8") as f:
-            f.write(f"==================== {timestamp} ====================\n")
-            f.write(f"Task Type: {task_type}\n")
-            f.write("--- MESSAGES SENT ---\n")
-            f.write(json.dumps(messages, indent=2, ensure_ascii=False) + "\n")
-            if response_text is not None:
-                f.write("--- RESPONSE RECEIVED ---\n")
-                f.write(response_text + "\n")
-            if error is not None:
-                f.write("--- ERROR ---\n")
-                f.write(error + "\n")
-            f.write("="*60 + "\n\n")
-            f.flush()
-            try:
-                os.fsync(f.fileno())
-            except Exception:
-                pass
-    except Exception as e:
-        print(f"Failed to write to ai_traffic.log: {e}")
+        event = "error"
+    elif response_text is not None:
+        event = "response"
+    else:
+        event = "request"
+    record = {
+        "ts": datetime.datetime.now().isoformat(timespec="milliseconds"),
+        "task": task_type,
+        "event": event,
+    }
+    record.update({key: value for key, value in meta.items() if value is not None})
+    chars_in = sum(len(str(m.get("content", ""))) for m in (messages or []) if isinstance(m, dict))
+    if event == "request":
+        record["chars_in"] = chars_in
+        record["messages"] = messages
+    elif event == "response":
+        record["chars_out"] = len(response_text)
+        record["response"] = response_text
+    else:
+        kind = getattr(error, "kind", None)
+        record["kind"] = getattr(kind, "value", kind)
+        record["status"] = getattr(error, "status", None)
+        record["error"] = str(error)
+        if "request_id" not in record:
+            record["messages"] = messages  # nothing else says what failed
+
+    summary = " ".join(
+        f"{key}={record[key]}" for key in ("request_id", "chunk", "attempt", "chars_in", "chars_out", "duration_ms", "kind", "status")
+        if record.get(key) is not None
+    )
+    log_info(f"[AI Traffic] {task_type} {event} {summary}".rstrip(), category="ai")
+    write_ai_traffic_record(record)
 
 if __name__ == '__main__':
     log_debug("Test generic debug")

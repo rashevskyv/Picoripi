@@ -120,7 +120,7 @@ def isolate_user_files(_user_files_dir, monkeypatch):
     log_file = str(_user_files_dir / "app_debug.txt")
     monkeypatch.setattr(logging_utils, "default_log_file_path", log_file)
     monkeypatch.setattr(logging_utils, "log_file_path", log_file)
-    monkeypatch.setattr(logging_utils, "ai_traffic_log_path", lambda: _user_files_dir / "ai_traffic.log")
+    # ai_traffic.log follows constants.SETTINGS_DIR, patched above.
 
 
 @pytest.fixture(autouse=True)
