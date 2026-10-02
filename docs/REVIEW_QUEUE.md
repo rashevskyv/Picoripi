@@ -271,6 +271,18 @@ in `docs/OPEN_ITEMS.md`, not here.
 
 ## WP6 — stability
 
+- [ ] **One batch translation of a block, sequential and parallel (6.5).** `AIWorker.run()` was cut into
+      methods; the 23 worker tests pass, but run one real block with 1 worker and one with several: progress
+      text ("Translating chunk i/n"), the detail line (chapter / file / line), applying of each chunk, Cancel in
+      the middle, and an error on one chunk (the others are kept).
+- [ ] **Build Glossary (legacy one-shot), a glossary term update over many occurrences, a single-string
+      translation and a variation (6.5)** — the other four paths of the same worker.
+- [ ] **The block tree (6.5).** `populate_blocks` was cut into steps: project folders and root blocks, the
+      Story root (loading placeholder, then chapters), Speakers, Items / Notated / Windows / "None", selection
+      and scroll position kept after a rebuild, "show unsaved only".
+- [ ] **The log (6.5).** 166 places that used to swallow an exception silently now write a debug line
+      `module.function: ignored <exception>`. Look through `app_debug.log` after a normal session: a line that
+      repeats constantly is either noise to silence or a real fault that was hidden until now.
 - [ ] **The application behaves as before with the test switches gone (6.4).** What the tests used to skip now
       depends on `utils.app_mode.headless` being `False` in the real application — which it is by default.
       One pass over: save (Ctrl+S: progress window, then saved), project open (progress window), search

@@ -13,6 +13,24 @@ the line when it is done or moved into a plan.
 
 ## Found during WP6
 
+- **Results that were computed and never used (6.5, found by F841).** Removed as dead code, not wired in — each
+  may be a feature that was meant to work:
+  `core/translation/script_speaker_finder.py` computed whether the previous script line matches the previous
+  game string and the word-count difference, and used neither when choosing the speaker;
+  `components/editor/paint_event_logic.py` and `handlers/text_operation/edit_mixin.py` computed a
+  `max_allowed_width` (the per-string custom width) that nothing read;
+  `components/list_item_delegate/paint_mixin.py` fetched the block's colour markers and did not paint them;
+  `plugins/common/text_fixer.py` and `problem_rules/registry.py` tracked "changed" flags and returned a
+  comparison of the texts instead.
+- **`AIWorker` has a dead branch no more (6.5):** the one-request path had a
+  `glossary_occurrence_batch_update` case that the chunked path above always handled first; removed.
+- **A sequential block translation cancelled during a request ends without `translation_cancelled` (6.5).**
+  `_run_chunks_sequential` breaks out of the loop and only `finished` is emitted. Kept as it was; check whether
+  the status window relies on it.
+- **S110/S112 are gating, not a warning step (6.5).** The plan asked for a warning; with zero findings left in
+  product code the rule is in `select`, so `ruff check .` (and `tests/test_static_analysis.py`) fails on a new
+  silent broad `except`. Tests, `scripts/` and `tools/i18n-translate/` are exempt.
+
 - **Two more test switches remain in product code (6.4):** `_is_test_mode` on the parent window (17 mentions:
   search and spellcheck dialogs, tag aliases, preview cache, block list, report dialog) and `mw.is_testing`
   (close handler, issue scan, Companion on close). Both are attributes somebody sets, not detection, but they

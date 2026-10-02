@@ -588,3 +588,27 @@ def test_editor_review_gets_source_and_draft_side_by_side_and_nothing_else(worke
     ]
     assert "layout" not in review_messages[1]["content"] and "scene_context" not in review_messages[1]["content"]
     assert chunks == [polished]
+
+
+def test_a_failed_chunk_is_reported_with_its_own_reply_not_the_previous_chunk_s(worker_deps):
+    from core.translation.providers import TranslationProviderError
+
+    provider, prompt_composer = worker_deps
+    prompt_composer._get_mempalace_client.return_value = None
+    items = [{'id': index, 'text': 'A'} for index in range(13)]          # two chunks: 12 + 1
+    worker = AIWorker(provider, prompt_composer, {
+        'type': 'translate_block_chunked', 'source_items': items, 'composer_args': {},
+    })
+    first_reply = ProviderResponse(text=json.dumps(
+        {"translated_strings": [{"id": index, "translation": "T"} for index in range(12)]}
+    ))
+    provider.translate.side_effect = [first_reply, TranslationProviderError("the server went away")]
+    translated = MagicMock()
+    worker.chunk_translated.connect(translated)
+
+    with patch('handlers.translation.worker.run_mixin.handle_ai_error', return_value=("failed", {})) as report:
+        worker.run()
+
+    translated.assert_called_once()                     # the first chunk is kept
+    assert report.call_args.args[2] == ""               # the second chunk had no reply to quote
+    assert report.call_args.args[3] == "chunk 1"
