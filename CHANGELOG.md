@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- wp3 3.2: a glossary build is reproducible — the pool releases results in item order (bounded look-ahead), sweep terms are merged by canonical key and named by their most common spelling, seeding is sorted by section and key, translation runs family by family with the head term first.
 - wp3 3.1: glossary entries are found the same way by every operation (exact, case/spacing, alias, then a canonical key that folds plurals, articles and possessives) — a build no longer creates "Hylian shield" next to "Hylian Shield" or "Rupees" next to "Rupee", and updates no longer miss silently; new `aliases` field; text replace keeps status, variants and notes; forced re-translation leaves confirmed entries alone. Existing look-alike entries are reported, not merged.
 
 ## [0.3.144-dev] - 2026-10-02

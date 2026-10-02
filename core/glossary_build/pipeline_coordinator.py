@@ -297,6 +297,10 @@ class GlossaryBuildCoordinator:
             and (include_confirmed or e.status != STATUS_CONFIRMED)
             and not is_unnamed_voice_term(e.original)
         ]
+        # Families together, the head term first ("Hylian" before "Hylian
+        # Shield"): results are stored in this order, so a later pass over the
+        # glossary reads the same file whatever the answer order was.
+        targets.sort(key=self._family_order)
 
         def translate(entry):
             return propose_translations(
@@ -324,6 +328,12 @@ class GlossaryBuildCoordinator:
         return result
 
     # -- passes -------------------------------------------------------------
+
+    def _family_order(self, entry) -> tuple:
+        """Sort key that keeps a family of terms together, shortest name first."""
+        key = self.manager.canonical_key(entry.original)
+        tokens = key.split()
+        return (tokens[0] if tokens else "", len(tokens), key, entry.original)
 
     def _update(self, term: str, **fields):
         """``manager.update_entry`` that does not fail silently.
@@ -417,15 +427,22 @@ class GlossaryBuildCoordinator:
             "sweep",
             chunks,
             extract,
+            # Keyed by canonical key, so "Hylian Shields" in one chunk and
+            # "Hylian Shield" in another are one term with one set of fragments.
             lambda chunk, raws: merge_raw_terms(
-                aggregated, raws, normalize=self.manager.normalize_term
+                aggregated, raws, normalize=self.manager.canonical_key
             ),
             result,
         )
         return aggregated
 
     def _seed_all(self, aggregated: Dict[str, AggregatedTerm], mode: str, result: BuildResult) -> None:
-        terms = list(aggregated.values())
+        # Same input, same glossary: seed in a fixed order, not in the order the
+        # chunks happened to answer.
+        terms = sorted(
+            aggregated.values(),
+            key=lambda agg: (agg.section or "", self.manager.canonical_key(agg.term), agg.term),
+        )
         total = len(terms)
         status = STATUS_FRAGMENTS if mode == MODE_DRAFT else STATUS_SEEDED
         for index, agg in enumerate(terms):

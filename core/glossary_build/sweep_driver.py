@@ -38,10 +38,11 @@ class RawTerm:
 class AggregatedTerm:
     """A term merged across every chunk that mentioned it."""
 
-    term: str  # display form: the first spelling seen
+    term: str  # display form: the spelling seen most often (first seen on a tie)
     normalized: str
     mentions: int = 0
     _sections: Counter = field(default_factory=Counter)
+    _spellings: Counter = field(default_factory=Counter)
     fragments: List[DescriptionFragment] = field(default_factory=list)
 
     @property
@@ -82,6 +83,8 @@ def merge_raw_terms(
             aggregated[key] = entry
 
         entry.mentions += 1
+        entry._spellings[term] += 1
+        entry.term = entry._spellings.most_common(1)[0][0]
         section = (raw.section or "").strip()
         if section:
             entry._sections[section] += 1

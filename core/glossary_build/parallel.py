@@ -36,7 +36,7 @@ from __future__ import annotations
 import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
-from typing import Any, Callable, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 
 # One thread per account behind the proxy.
@@ -49,6 +49,10 @@ DEFAULT_RETRY_DELAY = 60.0
 # Failures in a row, across all threads, after which a pass gives up: the
 # backend is not coming back within this run.
 MAX_CONSECUTIVE_FAILURES = 3
+
+# How far past the next unit to be released the pool may run, in multiples of
+# the worker count. One slow early unit then delays at most this many results.
+LOOKAHEAD_FACTOR = 4
 
 # Marker for a unit that was never attempted (cancelled, or the run gave up).
 _SKIPPED = object()
@@ -95,8 +99,12 @@ def run_pool(
 
     ``on_result(item, result)`` and ``on_progress(done, total)`` run on the
     calling thread, in the order the items were given, so the caller can write
-    each finished unit as it arrives without locking anything. Writing as you go
-    is the point: a crash or a stop then costs the unit in flight, not the run.
+    each finished unit without locking anything and two runs over the same items
+    write the same things in the same order. A unit that finishes early waits
+    for the ones before it; to keep that wait bounded, no more than
+    ``workers * LOOKAHEAD_FACTOR`` units are ever ahead of the next one to be
+    released. Writing as you go is still the point: a crash or a stop costs the
+    units in that window, not the run.
 
     ``max_consecutive_failures`` (0 = never) stops the pass once that many units
     in a row have failed -- the backend is not coming back within this run, and
@@ -130,48 +138,72 @@ def run_pool(
 
     consecutive = 0
     done = 0
-    next_i = 0
+    next_i = 0   # next item to hand to a thread
+    emit_i = 0   # next item whose result is released
+    ready: Dict[int, tuple] = {}  # finished, waiting for the items before them
+    ahead = width * LOOKAHEAD_FACTOR
+
+    def _account(index: int, result: Any, error: Optional[BaseException]) -> None:
+        nonlocal done, consecutive, stopped
+        if result is _SKIPPED:
+            return
+        item = items[index]
+        done += 1
+        if error is not None:
+            outcome.failed.append(item)
+            outcome.retry_after = max(outcome.retry_after, retry_after_seconds(error))
+            consecutive += 1
+            if max_consecutive_failures and consecutive >= max_consecutive_failures:
+                outcome.stop_error = error
+                stopped = True
+        else:
+            consecutive = 0
+            outcome.completed += 1
+            if on_result is not None:
+                on_result(item, result)
+        if on_progress is not None:
+            on_progress(done, total)
+
     with ThreadPoolExecutor(max_workers=width) as pool:
-        pending = {}
+        pending: Dict[Any, int] = {}
 
         def _fill():
             nonlocal next_i
             while (
                 len(pending) < width
                 and next_i < total
+                and next_i - emit_i < ahead
                 and not stopped
                 and not (is_cancelled is not None and is_cancelled())
             ):
-                item = items[next_i]
+                pending[pool.submit(attempt, items[next_i])] = next_i
                 next_i += 1
-                pending[pool.submit(attempt, item)] = item
 
         _fill()
         while pending:
             finished, _ = wait(pending, return_when=FIRST_COMPLETED)
             for fut in finished:
-                pending.pop(fut, None)
-                item, result, error = fut.result()
-                if result is _SKIPPED:
-                    continue
-                done += 1
-                if error is not None:
-                    outcome.failed.append(item)
-                    outcome.retry_after = max(outcome.retry_after, retry_after_seconds(error))
-                    consecutive += 1
-                    if max_consecutive_failures and consecutive >= max_consecutive_failures:
-                        outcome.stop_error = error
-                        stopped = True
-                else:
-                    consecutive = 0
-                    outcome.completed += 1
-                    if on_result is not None:
-                        on_result(item, result)
-                if on_progress is not None:
-                    on_progress(done, total)
+                index = pending.pop(fut)
+                _, result, error = fut.result()
+                ready[index] = (result, error)
+            # Release in item order: what the caller writes, and in which order,
+            # must not depend on which request happened to answer first.
+            while emit_i in ready and not stopped:
+                _account(emit_i, *ready.pop(emit_i))
+                emit_i += 1
             if stopped or (is_cancelled is not None and is_cancelled()):
                 break
             _fill()
+
+    # A stop or a cancel can leave finished units behind one that never came
+    # back. They are done work: release them too, still in item order.
+    for index in sorted(ready):
+        result, error = ready[index]
+        if error is None:
+            _account(index, result, error)
+        elif result is not _SKIPPED:
+            # Reported as failed, but not fed to the stop logic: the run is over.
+            outcome.failed.append(items[index])
 
     outcome.cancelled = bool(is_cancelled is not None and is_cancelled())
     return outcome
