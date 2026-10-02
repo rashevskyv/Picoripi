@@ -4,7 +4,7 @@
 
 ## WP5 — платформа плагінів
 
-- [ ] 5.1 `plugins/spec.py` (контракт), `python -m plugins.validate`, `test_validate_all` для всіх плагінів
+- [x] 5.1 `plugins/spec.py` (контракт), `python -m plugins.validate`, `test_validate_all` для всіх плагінів
 - [ ] 5.2 повторюваний код — у базовий клас; нейтральний `common/tag_logic.py`; без файлів-прокладок і мертвих гачків
 - [ ] 5.3 злиття промптів по ключах (корінь → `common/defaults` → плагін)
 - [ ] 5.4 `plugins/_template/` + `tools/new_plugin.py` + спільний димовий тест

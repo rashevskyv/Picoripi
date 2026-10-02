@@ -173,3 +173,19 @@ in `docs/OPEN_ITEMS.md`, not here.
       every request lists the related entries decided so far. Check on a real build that compound names
       follow their head term.
 
+## WP5 — plugin platform
+
+- [ ] **The contract is a table, not a `typing.Protocol` (5.1).** The plan named `GameRulesProtocol(Protocol)`;
+      `plugins/spec.py` has `HOOKS` (name, summary, on the base class or looked for, dummy call, return type)
+      instead — one source for the validator and for the generated contract page (5.8). Two tests keep it
+      honest: every public method of `BaseGameRules` is listed, and every attribute host code reads on a
+      rules object is listed. Say if you want a real Protocol for type checkers as well.
+- [ ] **Session keys removed from the six shipped `config.json` files (5.1).** `original_file_path`,
+      `last_selected_*`, scroll positions, `search_history`, `string_metadata` — all were at their default
+      values, and the application writes them to `project_settings.json`, not to the plugin. Check that each
+      plugin still opens with its usual defaults.
+- [ ] **`pokemon_fr/config.json` carries test junk in `context_menu_tags`** (`{boba}`, `<biba>`, an emoji tag).
+      Left as is; delete it if it is not yours.
+- [ ] **Run `python -m plugins.validate`** and read the warnings: today every plugin gets one about prompt
+      sections that are not merged from the common defaults (5.3 removes the cause).
+

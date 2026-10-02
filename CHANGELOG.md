@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- wp5 5.1: the plugin contract is data (`plugins/spec.py`: every hook the host calls, the main-window attributes a plugin may use, the `config.json` keys) and `python -m plugins.validate [name]` checks a plugin against it — hooks are called with dummy arguments, signatures and return types are verified, JSON files are checked. All six shipped plugins pass; per-session keys were removed from their `config.json`.
 ## [0.3.145-dev] - 2026-10-02
 
 - wp3: term families are formed by the rarest shared word instead of by every shared word (which chained a third of the shipped glossary into one "family" and ignored the real big ones), and glossary translation runs in three tiers — one-word terms, two-word terms, longer ones — so a compound name is translated after its head term whatever family it is in.
