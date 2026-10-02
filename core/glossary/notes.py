@@ -186,4 +186,6 @@ def _entry_to_dict(entry: GlossaryEntry) -> Dict[str, Any]:
         out["user_notes"] = entry.user_notes
     if getattr(entry, "updated_at", ""):
         out["updated_at"] = entry.updated_at
+    if entry.aliases:
+        out["aliases"] = list(entry.aliases)
     return out

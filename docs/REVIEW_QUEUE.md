@@ -88,3 +88,18 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **Native JSON mode (2.7)** is sent only to api.openai.com (`response_format`), native Gemini
       (`responseMimeType`) and Ollama (`format: json`) — not to your Web2API proxy. If the proxy does honour
       `response_format`, say so and it can be enabled for the `web2api` profile too.
+
+## WP3 — glossary consistency
+
+- [ ] **Canonical key folds new variants, never existing entries (3.1).** A build that meets "Rupees" while
+      "Rupee" exists now writes into "Rupee" (keeps its translation, fills only gaps) instead of creating a
+      second entry. A term you add by hand is still added as written. Check with a short build that no
+      plural/article/possessive twin appears.
+- [ ] **18 groups in `translation_prompts/glossary.json` share a canonical key; nothing was merged.** The list
+      is in `docs/audit/2026-10-01/glossary_canonical_report.md`. The plan wanted an automatic merge when the
+      glossary loads; I did not do that, because some pairs are different things (Clawshot / Clawshots). For
+      each group say "merge" or "leave" — merging keeps the other spelling as an alias and the other
+      translation as a variant. `GlossaryManager.merge_canonical_duplicates(dry_run=False)` merges all groups.
+- [ ] **Forced re-translation skips confirmed entries (3.1).** "Re-translate all" no longer overwrites a
+      translation you confirmed. If you sometimes want that, the coordinator has `include_confirmed=True`,
+      but no UI switch yet.

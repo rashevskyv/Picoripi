@@ -75,6 +75,11 @@ class GlossaryEntry:
     suggested_name_evidence: str = ""
     user_notes: str = ""
     updated_at: str = ""
+    # Other spellings of the same term, left behind when entries are merged
+    # ("Twilight Mirror" on "Mirror of Twilight"). They find this entry and match
+    # in text; the plain plural, article or possessive of ``original`` needs no
+    # alias -- the canonical key already covers those.
+    aliases: Tuple[str, ...] = ()
 
     def is_valid(self) -> bool:
         """Whether the entry should load and appear.

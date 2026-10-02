@@ -17,6 +17,7 @@ from core.glossary_build.pipeline_coordinator import (
     GlossaryBuildCoordinator,
 )
 from core.glossary_manager import (
+    STATUS_CONFIRMED,
     STATUS_FRAGMENTS,
     STATUS_SYNTHESIZED,
     STATUS_TRANSLATED,
@@ -278,6 +279,37 @@ class TestTranslateOnly:
         result = coord.run_translate(force=True)
         assert result.translated == 1
         assert m.get_entry("Ordon").translation == "Ордон"
+
+    def test_force_retranslate_leaves_confirmed_entries_alone(self):
+        """A translation a person confirmed is not thrown away by a forced re-run."""
+        m = _manager()
+        m.add_entry("Ordon", "Мій Ордон", "a village")
+        m.update_entry("Ordon", "Мій Ордон", "a village", status=STATUS_CONFIRMED)
+        m.add_entry("Faron", "Старий Фарон", "a forest")
+        coord = GlossaryBuildCoordinator(m, FakeAI(), PROMPTS)
+
+        result = coord.run_translate(force=True)
+
+        assert result.translated == 1
+        confirmed = m.get_entry("Ordon")
+        assert (confirmed.translation, confirmed.status) == ("Мій Ордон", STATUS_CONFIRMED)
+        assert m.get_entry("Faron").translation == "Ордон"  # the fake's canned variant
+
+        coord.run_translate(force=True, include_confirmed=True)
+        assert m.get_entry("Ordon").status == STATUS_TRANSLATED
+
+    def test_a_sweep_variant_is_folded_into_the_existing_entry(self):
+        """"Ordons" from a chunk must land in the "Ordon" entry, not next to it."""
+        m = _manager()
+        m.add_entry("Ordon", "", "")
+        m.update_entry("Ordon", "", "", status=STATUS_FRAGMENTS)
+        ai = FakeAI(extract=[{"term": "Ordons", "section": "Places", "fragment": "a village"}])
+        coord = GlossaryBuildCoordinator(m, ai, PROMPTS)
+
+        coord.build(DATASET, MODE_DRAFT)
+
+        assert [e.original for e in m.get_entries()] == ["Ordon"]
+        assert m.get_entry("Ordon").fragments
 
     def test_entry_without_description_is_skipped(self):
         """Nothing to translate from — the term alone is not enough."""

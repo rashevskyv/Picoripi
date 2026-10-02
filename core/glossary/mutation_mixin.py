@@ -1,13 +1,16 @@
 """CRUD, seed/suggest, session changes, and global replace for GlossaryManager."""
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import re
 
 from core.glossary.models import (
+    STATUS_CONFIRMED,
     STATUS_SEEDED,
+    STATUS_TRANSLATED,
     DescriptionFragment,
     GlossaryEntry,
     GlossaryOccurrence,
@@ -50,15 +53,74 @@ class MutationMixin:
         """Clear the tracked session glossary modifications."""
         self._session_changes.clear()
 
-    def add_entry(self, original: str, translation: str, notes: str, section: Optional[str] = None, profiled: bool = False, user_notes: str = "") -> Optional[GlossaryEntry]:
-        """Add entry."""
+    def _index_of(self, original: str, *, fold: bool = True) -> Optional[int]:
+        """Index of the entry ``original`` refers to, or None.
+
+        The one lookup every mutator uses, so "found by one method, missed by
+        the next" cannot happen again: exact spelling, then case and spacing
+        (``normalize_term``), then an alias, then -- when ``fold`` -- the
+        canonical key (plural, article, possessive). An exact or normalized
+        match always wins, so two entries that share a canonical key are both
+        still reachable by their own spelling.
+        """
+        key = (original or '').strip()
+        if not key:
+            return None
+        for index, entry in enumerate(self._entries):
+            if entry.original == key:
+                return index
+        normalized = self.normalize_term(key)
+        for index, entry in enumerate(self._entries):
+            if self.normalize_term(entry.original) == normalized:
+                return index
+        for index, entry in enumerate(self._entries):
+            if any(self.normalize_term(alias) == normalized for alias in entry.aliases):
+                return index
+        if fold:
+            canonical = self.canonical_key(key)
+            if canonical:
+                for index, entry in enumerate(self._entries):
+                    if self.canonical_key(entry.original) == canonical:
+                        return index
+        return None
+
+    def add_entry(
+        self,
+        original: str,
+        translation: str,
+        notes: str,
+        section: Optional[str] = None,
+        profiled: bool = False,
+        user_notes: str = "",
+        *,
+        fold_variants: bool = True,
+    ) -> Optional[GlossaryEntry]:
+        """Add an entry, or update the one this term already has. Never appends a duplicate.
+
+        A term that differs from an existing entry only by case or spacing
+        updates that entry. With ``fold_variants`` (the default, used by every
+        automatic source) a plural, article or possessive variant of an existing
+        term is folded into it too: the existing translation and notes are kept
+        when they are set, and only gaps are filled -- a variant spelling is not
+        a reason to overwrite a decided translation. Pass ``fold_variants=False``
+        for a deliberate manual addition of a separate entry.
+        """
         original_key = (original or '').strip()
         if not original_key:
             return None
-        existing = next((entry for entry in self._entries if entry.original == original_key), None)
-        if existing:
+        index = self._index_of(original_key, fold=fold_variants)
+        if index is not None:
+            existing = self._entries[index]
+            same_term = self.normalize_term(existing.original) == self.normalize_term(original_key)
+            if same_term:
+                return self.update_entry(
+                    existing.original, translation, notes, section=section, profiled=profiled, user_notes=user_notes
+                )
             return self.update_entry(
-                original_key, translation, notes, section=section, profiled=profiled, user_notes=user_notes
+                existing.original,
+                existing.translation or translation,
+                existing.notes or notes,
+                section=existing.section if existing.section is not None else section,
             )
         new_entry = GlossaryEntry(
             original=original_key,
@@ -105,61 +167,62 @@ class MutationMixin:
         if not original_key:
             return None
 
-        for idx, entry in enumerate(self._entries):
-            if entry.original == original_key:
-                updated_entry = GlossaryEntry(
-                    original=entry.original,
-                    translation=updated_translation,
-                    notes=updated_notes,
-                    section=section if section is not None else entry.section,
-                    profiled=profiled if profiled is not None else entry.profiled,
-                    status=status if status is not None else entry.status,
-                    icon=icon if icon is not None else entry.icon,
-                    fragments=fragments if fragments is not None else entry.fragments,
-                    translation_variants=(
-                        translation_variants
-                        if translation_variants is not None
-                        else entry.translation_variants
-                    ),
-                    # Carried over like every other lifecycle field: a plain
-                    # edit of the translation must not quietly turn a
-                    # placeholder term into one that looks decided.
-                    provisional=entry.provisional,
-                    suggested_name=entry.suggested_name,
-                    suggested_name_evidence=entry.suggested_name_evidence,
-                    user_notes=user_notes if user_notes is not None else entry.user_notes,
-                    updated_at=datetime.now(timezone.utc).isoformat(),
-                )
-                if section and section not in self._section_order:
-                    self._section_order.append(section)
-                new_entries = list(self._entries)
-                new_entries[idx] = updated_entry
-                self._entries = new_entries
-                if self._occurrence_index and original_key in self._occurrence_index:
-                    target_section = section if section is not None else entry.section
-                    if target_section == entry.section:
-                        existing_occs = self._occurrence_index[original_key]
-                        self._occurrence_index[original_key] = [
-                            GlossaryOccurrence(
-                                entry=updated_entry,
-                                start=occ.start,
-                                end=occ.end,
-                                block_idx=occ.block_idx,
-                                string_idx=occ.string_idx,
-                                line_idx=occ.line_idx,
-                                line_text=occ.line_text,
-                                kind=occ.kind,
-                            )
-                            for occ in existing_occs
-                        ]
-                    else:
-                        self._occurrence_index.pop(original_key, None)
-                else:
-                    self._occurrence_index = {}
-                self._session_changes[original_key] = updated_entry
-                self._persist()
-                return updated_entry
-        return None
+        idx = self._index_of(original_key)
+        if idx is None:
+            return None
+        entry = self._entries[idx]
+        # The entry's own spelling is its key from here on, whatever the caller wrote.
+        original_key = entry.original
+        updated_entry = replace(
+            entry,
+            translation=updated_translation,
+            notes=updated_notes,
+            section=section if section is not None else entry.section,
+            profiled=profiled if profiled is not None else entry.profiled,
+            status=status if status is not None else entry.status,
+            icon=icon if icon is not None else entry.icon,
+            fragments=fragments if fragments is not None else entry.fragments,
+            translation_variants=(
+                translation_variants
+                if translation_variants is not None
+                else entry.translation_variants
+            ),
+            # Everything not named here (provisional, suggested name,
+            # aliases) is carried over: a plain edit of the translation
+            # must not quietly turn a placeholder term into one that
+            # looks decided.
+            user_notes=user_notes if user_notes is not None else entry.user_notes,
+            updated_at=datetime.now(timezone.utc).isoformat(),
+        )
+        if section and section not in self._section_order:
+            self._section_order.append(section)
+        new_entries = list(self._entries)
+        new_entries[idx] = updated_entry
+        self._entries = new_entries
+        if self._occurrence_index and original_key in self._occurrence_index:
+            target_section = section if section is not None else entry.section
+            if target_section == entry.section:
+                existing_occs = self._occurrence_index[original_key]
+                self._occurrence_index[original_key] = [
+                    GlossaryOccurrence(
+                        entry=updated_entry,
+                        start=occ.start,
+                        end=occ.end,
+                        block_idx=occ.block_idx,
+                        string_idx=occ.string_idx,
+                        line_idx=occ.line_idx,
+                        line_text=occ.line_text,
+                        kind=occ.kind,
+                    )
+                    for occ in existing_occs
+                ]
+            else:
+                self._occurrence_index.pop(original_key, None)
+        else:
+            self._occurrence_index = {}
+        self._session_changes[original_key] = updated_entry
+        self._persist()
+        return updated_entry
 
     def rename_original(self, old_original: str, new_original: str) -> Optional[GlossaryEntry]:
         """Rename an entry's original term, merging evidence on collision.
@@ -177,13 +240,18 @@ class MutationMixin:
         if old_key == new_key:
             return self.get_entry(old_key)
 
-        old_entry = next((e for e in self._entries if e.original == old_key), None)
-        if old_entry is None:
+        # A rename is an explicit request about two named entries: case and
+        # spacing are forgiven, but nothing is folded by canonical key.
+        old_index = self._index_of(old_key, fold=False)
+        if old_index is None:
             return None
+        old_entry = self._entries[old_index]
+        old_key = old_entry.original
 
-        from dataclasses import replace
-
-        target_entry = next((e for e in self._entries if e.original == new_key), None)
+        target_index = self._index_of(new_key, fold=False)
+        target_entry = self._entries[target_index] if target_index not in (None, old_index) else None
+        if target_entry is not None:
+            new_key = target_entry.original
 
         if target_entry is None:
             updated_entry = replace(
@@ -237,6 +305,7 @@ class MutationMixin:
             suggested_name="",
             suggested_name_evidence="",
             user_notes=target_entry.user_notes or old_entry.user_notes,
+            aliases=_merged_aliases(target_entry, old_entry, self.normalize_term),
         )
 
         new_entries = []
@@ -264,11 +333,10 @@ class MutationMixin:
         original_key = (original or "").strip()
         if not original_key:
             return None
-        for idx, entry in enumerate(self._entries):
-            if entry.original != original_key:
-                continue
-            from dataclasses import replace
-
+        idx = self._index_of(original_key, fold=False)
+        if idx is not None:
+            entry = self._entries[idx]
+            original_key = entry.original
             updated = replace(
                 entry,
                 suggested_name=(name or "").strip(),
@@ -302,9 +370,9 @@ class MutationMixin:
         if not original_key:
             return None
 
-        existing = next((e for e in self._entries if e.original == original_key), None)
-        if existing is not None:
-            return existing
+        existing_index = self._index_of(original_key)
+        if existing_index is not None:
+            return self._entries[existing_index]
 
         new_entry = GlossaryEntry(
             original=original_key,
@@ -327,9 +395,11 @@ class MutationMixin:
         original_key = (original or '').strip()
         if not original_key:
             return False
-        index = next((idx for idx, entry in enumerate(self._entries) if entry.original == original_key), None)
+        # Deleting never folds: only the entry that was named goes.
+        index = self._index_of(original_key, fold=False)
         if index is None:
             return False
+        original_key = self._entries[index].original
         new_entries = list(self._entries)
         del new_entries[index]
         self._entries = new_entries
@@ -380,13 +450,9 @@ class MutationMixin:
                 new_translation = replace_preserve_case(entry.translation, find_word, replace_word)
                 new_notes = replace_preserve_case(entry.notes, find_word, replace_word)
 
-                new_entry = GlossaryEntry(
-                    original=new_original,
-                    translation=new_translation,
-                    notes=new_notes,
-                    section=entry.section,
-                    profiled=entry.profiled
-                )
+                # replace(), not a fresh GlossaryEntry: status, variants,
+                # fragments, user notes and aliases must survive a text replace.
+                new_entry = replace(entry, original=new_original, translation=new_translation, notes=new_notes)
 
                 new_entries.append(new_entry)
 
@@ -408,3 +474,65 @@ class MutationMixin:
             self._persist()
 
         return modified_entries
+
+    def merge_canonical_duplicates(self, *, dry_run: bool = True) -> List[Dict[str, Any]]:
+        """Merge entries that share a canonical key. Returns what was (or would be) merged.
+
+        Never called automatically: two entries with one key can be two real
+        things ("Clawshot" / "Clawshots"), so this runs only when asked --
+        ``dry_run`` first, to show the report. In each group the survivor is
+        the confirmed entry, else a translated one, else the one with the most
+        notes; the others are merged into it through ``rename_original`` and
+        their spellings stay behind as aliases. ``diverging`` lists translations
+        that differ from the survivor's, so nothing disappears unseen.
+        """
+        report: List[Dict[str, Any]] = []
+        for group in self.canonical_groups():
+            survivor = max(group, key=_merge_rank)
+            others = [entry for entry in group if entry is not survivor]
+            report.append({
+                "canonical": self.canonical_key(survivor.original),
+                "survivor": survivor.original,
+                "merged": [entry.original for entry in others],
+                "diverging": {
+                    entry.original: entry.translation
+                    for entry in others
+                    if entry.translation and entry.translation != survivor.translation
+                },
+            })
+            if dry_run:
+                continue
+            for entry in others:
+                if entry.translation and entry.translation != survivor.translation:
+                    # Keep the losing translation as a variant the user can switch back to.
+                    current = self.get_entry(survivor.original)
+                    variants = list(current.translation_variants)
+                    if all(v.translation != entry.translation for v in variants):
+                        variants.append(TranslationVariant(entry.translation, f"merged from '{entry.original}'"))
+                        self.update_entry(
+                            current.original, current.translation, current.notes,
+                            translation_variants=tuple(variants),
+                        )
+                self.rename_original(entry.original, survivor.original)
+        return report
+
+
+def _merge_rank(entry: GlossaryEntry) -> Tuple[int, int, int]:
+    """Higher wins a merge: confirmed, then translated, then the fuller entry."""
+    return (
+        2 if entry.status == STATUS_CONFIRMED else 1 if (entry.status == STATUS_TRANSLATED or entry.translation) else 0,
+        len(entry.notes or ""),
+        len(entry.translation or ""),
+    )
+
+
+def _merged_aliases(target: GlossaryEntry, absorbed: GlossaryEntry, normalize) -> Tuple[str, ...]:
+    """Aliases of ``target`` after it absorbs ``absorbed``: both lists plus the absorbed spelling."""
+    seen = {normalize(target.original)}
+    result: List[str] = []
+    for alias in (*target.aliases, absorbed.original, *absorbed.aliases):
+        key = normalize(alias)
+        if key and key not in seen:
+            seen.add(key)
+            result.append(alias)
+    return tuple(result)

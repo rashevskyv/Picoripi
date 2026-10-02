@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional, Sequence
 
 from core.glossary_manager import (
+    STATUS_CONFIRMED,
     STATUS_FRAGMENTS,
     STATUS_SEEDED,
     STATUS_SYNTHESIZED,
@@ -272,8 +273,14 @@ class GlossaryBuildCoordinator:
         result: Optional[BuildResult] = None,
         *,
         force: bool = False,
+        include_confirmed: bool = False,
     ) -> BuildResult:
-        """Propose translations for entries that have a description, or force-retranslate all entries."""
+        """Propose translations for entries that have a description, or force-retranslate.
+
+        ``force`` re-translates entries that already have a translation -- except
+        confirmed ones: a translation a person picked is not thrown away by a
+        re-run unless ``include_confirmed`` says so explicitly.
+        """
         result = result or self.last_result or BuildResult()
         self.last_result = result
         propose = make_propose(self.call, self.prompts, target_lang=self.target_lang)
@@ -286,7 +293,9 @@ class GlossaryBuildCoordinator:
         targets = [
             e
             for e in self.manager.get_entries()
-            if (force or (e.notes and not e.translation)) and not is_unnamed_voice_term(e.original)
+            if (force or (e.notes and not e.translation))
+            and (include_confirmed or e.status != STATUS_CONFIRMED)
+            and not is_unnamed_voice_term(e.original)
         ]
 
         def translate(entry):
@@ -300,7 +309,7 @@ class GlossaryBuildCoordinator:
         def store(entry, tr):
             if not tr.active:
                 return
-            self.manager.update_entry(
+            self._update(
                 entry.original,
                 translation=tr.active,
                 notes=entry.notes,
@@ -315,6 +324,18 @@ class GlossaryBuildCoordinator:
         return result
 
     # -- passes -------------------------------------------------------------
+
+    def _update(self, term: str, **fields):
+        """``manager.update_entry`` that does not fail silently.
+
+        ``None`` means the entry this pass was working on is no longer in the
+        glossary (deleted or renamed meanwhile). That used to drop the unit's
+        result without a trace; now the build log says so and the run goes on.
+        """
+        updated = self.manager.update_entry(term, **fields)
+        if updated is None:
+            self._log(f"Glossary entry '{term}' is gone; its result from this pass was not stored.")
+        return updated
 
     def _seed_structural(self, result: BuildResult, block_indices=None) -> None:
         """Write the plugin's structural seeds into the glossary.
@@ -336,7 +357,7 @@ class GlossaryBuildCoordinator:
             # as already-decided must still answer yes to.
             label = section or "(no section)"
             result.offered_by_section[label] = result.offered_by_section.get(label, 0) + 1
-            existing = self.manager.get_entry(term)
+            existing = self.manager.find_entry(term)
             if existing is not None and existing.translation and not existing.is_unconfirmed:
                 continue
             description = str(seed.get("description") or "").strip()
@@ -357,7 +378,7 @@ class GlossaryBuildCoordinator:
                 result.seeded += 1
                 result.seeded_structural += 1
             elif description and not existing.notes:
-                self.manager.update_entry(
+                self._update(
                     term,
                     translation=existing.translation,
                     notes=description,
@@ -410,7 +431,7 @@ class GlossaryBuildCoordinator:
         for index, agg in enumerate(terms):
             if self._cancelled():
                 return
-            existing = self.manager.get_entry(agg.term)
+            existing = self.manager.find_entry(agg.term)
             # Never overwrite a real, already-decided entry; only fill gaps.
             if existing is not None and existing.translation and not existing.is_unconfirmed:
                 continue
@@ -427,12 +448,14 @@ class GlossaryBuildCoordinator:
     def _write_seed(self, agg: AggregatedTerm, *, status: str, description: str) -> None:
         term = agg.term
         section = agg.section or None
-        existing = self.manager.get_entry(term)
+        # find_entry folds plural/article/possessive variants into the entry the
+        # glossary already has, so "Rupees" from one chunk lands in "Rupee".
+        existing = self.manager.find_entry(term)
         if existing is None:
             self.manager.seed_entry(term, section=section, status=status, description=description)
-            existing = self.manager.get_entry(term)
-        self.manager.update_entry(
-            term,
+            existing = self.manager.find_entry(term)
+        self._update(
+            existing.original,
             translation=existing.translation,
             notes=description or existing.notes,
             section=section,
@@ -466,7 +489,7 @@ class GlossaryBuildCoordinator:
         def store(entry, described: DescribeResult) -> None:
             if not described.description:
                 return
-            self.manager.update_entry(
+            self._update(
                 entry.original,
                 translation=entry.translation,
                 notes=described.description,

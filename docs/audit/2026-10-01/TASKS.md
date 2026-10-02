@@ -38,7 +38,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] WP2 exit: AFTER numbers in walkthrough
 
 ## WP3 — Glossary consistency
-- [ ] 3.1 `canonical_key`, `aliases`, `_index_of` for all mutators, `global_replace` keeps lifecycle, `force` excludes confirmed, migration report
+- [x] 3.1 `canonical_key`, `aliases`, `_index_of` for all mutators, `global_replace` keeps lifecycle, `force` excludes confirmed, migration report
 - [ ] 3.2 deterministic `run_pool` order; sorted seeding; majority spelling; family-ordered translate
 - [ ] 3.3 `decisions.py::select_related` + `{decided}` in extract/translate prompts + in-pass shared dict; legacy builder too
 - [ ] 3.4 injection hygiene (longest match, skip empty, cap 40 ranked, notes ≤300 chars, plural-tolerant matching)

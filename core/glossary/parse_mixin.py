@@ -59,6 +59,9 @@ class ParseMixin:
                         ),
                         user_notes=str(item.get("user_notes", "") or ""),
                         updated_at=str(item.get("updated_at", "") or ""),
+                        aliases=tuple(
+                            str(alias).strip() for alias in (item.get("aliases") or ()) if str(alias).strip()
+                        ),
                     )
                     if entry.is_valid():
                         self._entries.append(entry)
@@ -77,6 +80,14 @@ class ParseMixin:
             f"GlossaryManager: loaded {len(self._entries)} entries for plugin "
             f"{plugin_name or '<global>'} from {str(glossary_path) if glossary_path else '<memory>'}"
         )
+        # Reported, never merged here: entries that share a canonical key may be
+        # the same term spelled twice or two real things (see merge_canonical_duplicates).
+        duplicate_groups = self.canonical_groups()
+        if duplicate_groups:
+            log_debug(
+                f"GlossaryManager: {len(duplicate_groups)} group(s) of entries share a canonical key, e.g. "
+                + "; ".join(" / ".join(e.original for e in group) for group in duplicate_groups[:5])
+            )
 
     def refresh_from_disk(self) -> None:
         """Update the from disk."""

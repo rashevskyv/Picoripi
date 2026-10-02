@@ -1,5 +1,9 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [Unreleased]
+
+- wp3 3.1: glossary entries are found the same way by every operation (exact, case/spacing, alias, then a canonical key that folds plurals, articles and possessives) — a build no longer creates "Hylian shield" next to "Hylian Shield" or "Rupees" next to "Rupee", and updates no longer miss silently; new `aliases` field; text replace keeps status, variants and notes; forced re-translation leaves confirmed entries alone. Existing look-alike entries are reported, not merged.
+
 ## [0.3.144-dev] - 2026-10-02
 
 - wp2 2.1: the request rules are fixed text appended to the system prompt (`prompt_composer/instructions.py`) instead of an `INSTRUCTIONS` block rebuilt into every user message — the system prompt is byte-identical for every chunk (cacheable prefix ~2100 → ~3065 tok) and the user message carries data only; a retry quotes the real error; the prompt editor shows the rules but saves only the user's prompt.

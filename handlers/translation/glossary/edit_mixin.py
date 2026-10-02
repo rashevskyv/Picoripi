@@ -45,7 +45,9 @@ class EditMixin:
             return
 
         if is_new:
-            updated_entry = self.glossary_manager.add_entry(term, new_translation, new_notes)
+            # A term typed in by hand is added as written, even next to its own
+            # plural: only automatic sources fold variants into an existing entry.
+            updated_entry = self.glossary_manager.add_entry(term, new_translation, new_notes, fold_variants=False)
         else:
             updated_entry = self.glossary_manager.update_entry(term, new_translation, new_notes)
 
