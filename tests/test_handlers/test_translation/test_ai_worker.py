@@ -420,3 +420,83 @@ def test_AIWorker_run_translate_block_chunked_parallel(worker_deps):
     assert len(chunk_signals) == 3
     assert provider.translate.call_count == 3
 
+
+
+def _parallel_worker(worker_deps, item_count, workers):
+    provider, prompt_composer = worker_deps
+    source_items = [{"id": i, "text": f"Line {i}"} for i in range(item_count)]
+    prompt_composer.compose_batch_request.side_effect = lambda **kwargs: (
+        "sys", json.dumps(kwargs.get("source_items", [])), "fmt"
+    )
+    worker = AIWorker(provider, prompt_composer, {
+        'type': 'translate_block_chunked',
+        'block_idx': 0,
+        'source_items': source_items,
+        'workers': workers,
+        'enable_editor_review': False,
+        'composer_args': {'system_prompt': 'sys', 'block_idx': 0, 'mode_description': 'block 1'},
+    })
+    chunks, errors = [], []
+    worker.chunk_translated.connect(lambda idx, text, ctx: chunks.append(idx))
+    worker.error.connect(lambda msg, ctx: errors.append((msg, ctx)))
+    return provider, worker, chunks, errors
+
+
+def _ids_in(messages):
+    import re
+    user_msg = next((m['content'] for m in messages if m.get('role') == 'user'), "")
+    return [int(i) for i in re.findall(r'"id":\s*(\d+)', user_msg)]
+
+
+def test_parallel_one_bad_chunk_keeps_the_other_seven(worker_deps):
+    provider, worker, chunks, errors = _parallel_worker(worker_deps, item_count=96, workers=4)
+
+    def translate(messages, session=None, settings_override=None):
+        ids = _ids_in(messages)
+        if 24 in ids:  # the third chunk of eight
+            return ProviderResponse(text="Sorry, I cannot translate this.")
+        return ProviderResponse(text=json.dumps(
+            {"translated_strings": [{"id": i, "translation": f"T{i}"} for i in ids]}
+        ))
+
+    provider.translate.side_effect = translate
+    worker.run()
+
+    assert sorted(chunks) == [0, 1, 3, 4, 5, 6, 7]
+    assert len(errors) == 1
+    message, details = errors[0]
+    assert details['failed_chunks'] == [2]
+    assert "1 of 8 chunks failed (chunk 3)" in message
+    assert details['error_kind'] == 'parse'
+
+
+def test_parallel_fatal_error_stops_handing_out_chunks(worker_deps):
+    from core.translation.transport import ErrorKind, TransportError
+    provider, worker, chunks, errors = _parallel_worker(worker_deps, item_count=96, workers=2)
+    provider.translate.side_effect = TransportError("401 Client Error: Unauthorized", kind=ErrorKind.AUTH, status=401)
+
+    worker.run()
+
+    assert chunks == []
+    assert len(errors) == 1 and "the run was stopped" in errors[0][0]
+    # Only what was already in the two-wide window was sent; the other chunks never were.
+    assert provider.translate.call_count <= 3
+
+
+def test_parallel_reordered_ids_are_rejected(worker_deps):
+    provider, worker, chunks, errors = _parallel_worker(worker_deps, item_count=24, workers=2)
+
+    def translate(messages, session=None, settings_override=None):
+        ids = _ids_in(messages)
+        if 0 in ids:
+            ids = list(reversed(ids))
+        return ProviderResponse(text=json.dumps(
+            {"translated_strings": [{"id": i, "translation": f"T{i}"} for i in ids]}
+        ))
+
+    provider.translate.side_effect = translate
+    worker.run()
+
+    assert chunks == [1]
+    assert errors[0][1]['failed_chunks'] == [0]
+    assert "do not match the request" in errors[0][0]

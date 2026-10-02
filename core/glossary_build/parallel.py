@@ -46,6 +46,9 @@ DEFAULT_WORKERS = 6
 RETRY_WORKERS = 2
 # How long to wait before the retry pass when the server named no delay itself.
 DEFAULT_RETRY_DELAY = 60.0
+# Failures in a row, across all threads, after which a pass gives up: the
+# backend is not coming back within this run.
+MAX_CONSECUTIVE_FAILURES = 3
 
 # Marker for a unit that was never attempted (cancelled, or the run gave up).
 _SKIPPED = object()

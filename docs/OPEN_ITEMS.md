@@ -30,6 +30,9 @@ the line when it is done or moved into a plan.
   `QGuiApplication.focusWindow()`, `modalWindow()` and every `QWindow` — read those on the next failure).
   These tests call `qtbot.waitExposed(mw)` without `with`, which waits for nothing; fixing that is the first
   thing to try. Probably the same family as the hang above.
+  The tree test also fails on its own with the application active and the dialog focused (seen once): the
+  snapshot then shows a hidden, unexposed `QWidgetClassWindow` from an earlier test still reported `active`.
+  That test depends on a real-time rename timer after the click, so it may simply be a second, separate race.
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.

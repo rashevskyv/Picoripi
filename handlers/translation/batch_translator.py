@@ -10,6 +10,7 @@ from core.translation.providers import BaseTranslationProvider, ProviderResponse
 from dialogs.cached_translation_dialog import CachedTranslationDialog
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import is_control_modifier_pressed
+from core.translation.chunk_result import verify_chunk_ids
 from core.translation.layout_contract import (
     editor_text_for_layout,
     resolve_lines_per_window,
@@ -408,6 +409,9 @@ class AIBatchTranslator(BaseTranslationHandler):
             chunks = context.get('calculated_chunks')
             current_chunk = chunks[chunk_index] if (chunks and chunk_index < len(chunks)) else None
             source_items_for_chunk = current_chunk or context.get('source_items', [])
+            # Rows below are resolved by position; refuse a reply whose ids say
+            # it is in another order or about other strings.
+            verify_chunk_ids(translated_strings, source_items_for_chunk)
             validated_translations = self._validate_batch_layouts(
                 translated_strings,
                 source_items_for_chunk,

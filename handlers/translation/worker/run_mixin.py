@@ -2,6 +2,9 @@ import json
 from typing import Any, Dict, List
 from core.translation.providers import ProviderResponse, TranslationProviderError
 from core.translation.ai_error_handler import handle_ai_error
+from core.translation.chunk_result import verify_chunk_ids
+from core.translation.transport import ErrorKind
+from core.glossary_build.parallel import MAX_CONSECUTIVE_FAILURES, run_pool
 from core.translation.layout_contract import (
     editor_text_for_layout,
     resolve_lines_per_window,
@@ -306,6 +309,7 @@ class AIWorkerRunMixin:
 
                     if len(translated_items) != len(chunk):
                         raise ValueError(f"Line count mismatch in chunk {i+1}. Expected {len(chunk)}, got {len(translated_items)}.")
+                    verify_chunk_ids(translated_items, chunk)
 
                     rules = getattr(self.mw, 'current_game_rules', None) if self.mw else None
                     for result_item, source_item in zip(translated_items, chunk):
@@ -379,12 +383,22 @@ class AIWorkerRunMixin:
 
                 # Parallel path when workers > 1 and stateless
                 if workers > 1 and not session_state:
-                    from concurrent.futures import ThreadPoolExecutor, as_completed
                     indices = [idx for idx in range(len(chunks)) if idx not in chunks_to_skip]
+                    chunk_errors: Dict[int, Exception] = {}
+                    fatal_errors: List[Exception] = []
 
-                    def _worker_call(idx: int):
-                        if self.is_cancelled:
-                            return idx, None, None
+                    def _worker_call(idx: int) -> str:
+                        try:
+                            return _translate_chunk(idx)
+                        except Exception as exc:
+                            chunk_errors[idx] = exc
+                            # A wrong key, model or URL fails every chunk the same
+                            # way: stop handing out the rest.
+                            if getattr(exc, 'kind', None) in (ErrorKind.AUTH, ErrorKind.BAD_REQUEST):
+                                fatal_errors.append(exc)
+                            raise
+
+                    def _translate_chunk(idx: int) -> str:
                         chunk = chunks[idx]
                         system, user = _build_chunk_request(idx)
                         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
@@ -398,41 +412,54 @@ class AIWorkerRunMixin:
                                     )
                                     msg['content'] = msg.get('content', '') + reminder
                                     break
+                        self._last_messages = messages
                         self._log_ai_traffic(messages)
                         response = self.provider.translate(messages, session=None, settings_override=provider_override)
-                        if self.is_cancelled:
-                            return idx, None, None
                         self._log_ai_traffic(messages, response_text=response.text)
                         cleaned = self._clean_json_response(response.text)
                         _validate_chunk_result(idx, chunk, cleaned)
-                        cleaned = _maybe_run_editor_review(idx, chunk, cleaned)
-                        return idx, cleaned, response.text
+                        return _maybe_run_editor_review(idx, chunk, cleaned)
 
                     completed_count = len(chunks_to_skip)
-                    pool_size = min(workers, max(1, len(indices)))
-                    with ThreadPoolExecutor(max_workers=pool_size) as pool:
-                        future_to_idx = {pool.submit(_worker_call, idx): idx for idx in indices}
-                        for future in as_completed(future_to_idx):
-                            if self.is_cancelled:
-                                break
-                            idx = future_to_idx[future]
-                            try:
-                                chunk_idx, cleaned_text, raw_text = future.result()
-                                if self.is_cancelled or chunk_idx is None:
-                                    break
-                                completed_count += 1
-                                self.progress_updated.emit(completed_count)
-                                self.step_updated.emit(1, f"Translating chunk {completed_count}/{len(chunks)} (Attempt {attempt})", AIStatusDialog.STATUS_IN_PROGRESS)
-                                task_details_for_chunk = self.task_details.copy()
-                                self.chunk_translated.emit(chunk_idx, cleaned_text, task_details_for_chunk)
-                            except (TranslationProviderError, json.JSONDecodeError, ValueError, Exception) as e:
-                                self._log_ai_traffic([{"role": "user", "content": f"Chunk {idx}"}], error=str(e))
-                                resp_t = getattr(e, 'response_text', '')
-                                err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, f"chunk {idx}")
-                                self.error.emit(err_msg, updated_details)
-                                return
+
+                    def _chunk_done(idx: int, cleaned_text: str) -> None:
+                        # Runs on this worker's thread, as each chunk finishes.
+                        nonlocal completed_count
+                        if self.is_cancelled:
+                            return
+                        completed_count += 1
+                        self.progress_updated.emit(completed_count)
+                        self.step_updated.emit(1, f"Translating chunk {completed_count}/{len(chunks)} (Attempt {attempt})", AIStatusDialog.STATUS_IN_PROGRESS)
+                        self.chunk_translated.emit(idx, cleaned_text, self.task_details.copy())
+
+                    # A rolling window instead of submitting everything up front:
+                    # after a stop or a cancel no further request is sent, and the
+                    # chunks that did finish are already applied.
+                    outcome = run_pool(
+                        indices,
+                        _worker_call,
+                        workers=min(workers, max(1, len(indices))),
+                        on_result=_chunk_done,
+                        is_cancelled=lambda: self.is_cancelled or bool(fatal_errors),
+                        max_consecutive_failures=MAX_CONSECUTIVE_FAILURES,
+                    )
                     if self.is_cancelled:
                         self.translation_cancelled.emit()
+                        return
+                    if chunk_errors:
+                        failed = sorted(chunk_errors)
+                        first_error = (fatal_errors or [outcome.stop_error or chunk_errors[failed[0]]])[0]
+                        self._log_ai_traffic([{"role": "user", "content": f"Chunks {failed}"}], error=str(first_error))
+                        resp_t = getattr(first_error, 'raw_text', '') or ''
+                        err_msg, updated_details = handle_ai_error(first_error, self.task_details, resp_t, f"chunks {failed}")
+                        updated_details['failed_chunks'] = failed
+                        numbers = ", ".join(str(i + 1) for i in failed)
+                        stopped = "; the run was stopped" if (fatal_errors or outcome.stop_error) else ""
+                        self.error.emit(
+                            f"{len(failed)} of {len(chunks)} chunks failed (chunk {numbers}){stopped}; "
+                            f"the finished chunks are kept. {err_msg}",
+                            updated_details,
+                        )
                     return
 
                 # Sequential path when workers == 1 or session_state is present

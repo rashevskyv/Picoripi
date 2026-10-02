@@ -404,6 +404,10 @@ class AILifecycleManager(BaseTranslationHandler):
             else:
                 self.main_handler.ui_handler.finish_ai_operation(success=False)
         elif task_type in ['translate_preview', 'translate_block_chunked']:
+            progress = self.main_handler.translation_progress.get(retry_context.get('block_idx'))
+            if isinstance(progress, dict) and progress.get('completed_chunks'):
+                # Chunks that already came back are applied; send only the rest again.
+                retry_context['is_resume'] = True
             # We must use 0-delay timer because we are likely in a callback/signal handler context
             def run_batch_retry() -> None:
                 self.main_handler._initiate_batch_translation(retry_context)

@@ -219,6 +219,20 @@ def test_ailm_perform_retry(ailm):
         ailm._perform_retry()
         mock_box.critical.assert_called_once()
 
+@pytest.mark.parametrize("completed, resumes", [({0, 1}, True), (set(), False)])
+def test_ailm_retry_of_a_chunked_block_keeps_finished_chunks(ailm, completed, resumes):
+    ailm.main_handler.translation_progress = {7: {'completed_chunks': completed, 'total_chunks': 4}}
+    context = {'type': 'translate_block_chunked', 'block_idx': 7}
+    ailm._retry_context = context
+    ailm._deferred_retry_timer = MagicMock()
+
+    ailm._perform_retry()
+    ailm._on_deferred_retry_timer_timeout()
+
+    assert context.get('is_resume', False) is resumes
+    ailm.main_handler._initiate_batch_translation.assert_called_once_with(context)
+
+
 def test_ailm_perform_retry_translate_single(ailm):
     mock_provider = MagicMock()
     ailm._retry_context = {'type': 'translate_single', 'provider': mock_provider}
