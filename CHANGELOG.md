@@ -1,5 +1,9 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+## [Unreleased]
+
+- wp2 2.0: `tools/measure_prompts.py` measures the single and batch translation prompts against a fixed fake project; baseline in `docs/audit/2026-10-01/measure_prompts_before.json` (single ~3010 tok, 12-item chunk ~5520 tok).
+
 ## [0.3.143-dev] - 2026-10-02
 
 - wp1 1.1: `core/translation/transport.py` — `ErrorKind`, `TransportError`, `classify`, `TransportPolicy` (backoff + jitter, honours `Retry-After`, total deadline, cancellable waits), per-endpoint circuit breaker and concurrency gate; dead `core/glossary_build/retry.py` and `concurrency.py` removed.

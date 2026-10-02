@@ -1,0 +1,33 @@
+{
+  "single": {
+    "system_tok": 2064,
+    "user_tok": 946,
+    "total_tok": 3010
+  },
+  "batch_chunk_12": {
+    "system_tok": 2106,
+    "user_tok": 3414,
+    "total_tok": 5520,
+    "payload_tok": {
+      "strings_to_translate": 1906,
+      "scene_context": 69,
+      "dialogue_flow": 49,
+      "glossary": 196,
+      "tag_alias_legend": 7
+    },
+    "per_item_tok": 156,
+    "glossary_rows": 10,
+    "glossary_rows_in_chunk_text": 10,
+    "user_has_instructions_block": true,
+    "system_identical_across_chunks": true
+  },
+  "batch_retry": {
+    "total_tok": 5315
+  },
+  "block_40_strings": {
+    "requests": 4,
+    "input_tok": 20615,
+    "source_tok": 372,
+    "overhead_x": 55.4
+  }
+}

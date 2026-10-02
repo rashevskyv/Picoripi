@@ -27,7 +27,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] WP1 exit
 
 ## WP2 — Prompt and context cost
-- [ ] 2.0 port measure harness to `tools/measure_prompts.py`; record BEFORE numbers
+- [x] 2.0 port measure harness to `tools/measure_prompts.py`; record BEFORE numbers
 - [ ] 2.1 all instructions → stable system prompt; remove duplicates/absent-field mentions; real retry reason
 - [ ] 2.2 `_surrounding_rows` helper; synthetic blocks get neighbours
 - [ ] 2.3 no full-set composition at initiation; tuple fix
