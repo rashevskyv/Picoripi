@@ -5,12 +5,8 @@ import requests
 from requests import Timeout
 import os
 
+from core.translation.transport import TranslationProviderError
 from utils.logging_utils import log_debug, log_info
-
-class TranslationProviderError(Exception):
-    """Custom exception for provider-related errors."""
-    # Seconds the server asked us to wait (its Retry-After), 0.0 if it named none.
-    retry_after: float = 0.0
 
 
 def provider_error(message: str, response=None) -> TranslationProviderError:

@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- wp1 1.1: `core/translation/transport.py` — `ErrorKind`, `TransportError`, `classify`, `TransportPolicy` (backoff + jitter, honours `Retry-After`, total deadline, cancellable waits), per-endpoint circuit breaker and concurrency gate; dead `core/glossary_build/retry.py` and `concurrency.py` removed.
 - Qt pins follow the environment the app is developed and tested on: `PyQt6==6.11.0`, `PyQt6-Qt6==6.11.1`, `PyQt6-sip>=13.11` (the 6.6.1 pin was never installed locally).
 
 ## [0.3.142-dev] - 2026-10-01
