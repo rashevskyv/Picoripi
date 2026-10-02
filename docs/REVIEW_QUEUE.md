@@ -142,4 +142,19 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **The reconcile prompt is new and untested on a real model (3.5).** `reconcile` in
       `translation_prompts/glossary_pipeline_prompts.json`. Check that it does not merge different things
       (Clawshot / Clawshots as two items) and does not "fix" grammar forms.
+- [ ] **The glossary file gains an `id` line per entry on its next save (3.6).** One-time churn in
+      `glossary.json` (612 entries → 612 new lines in the diff). Old files load unchanged; the id of an old
+      entry is derived from its term, so the desktop and the Companion server agree on it.
+- [ ] **Deleted entries stay in the file as small `deleted_at` records (3.6).** They are what stops a sync from
+      restoring the entry. They are never cleaned up. An older Picoripi build opening such a file would
+      show them as untranslated terms — do not mix versions on one glossary. Check with the real Companion
+      server: delete a term on the desktop, sync, confirm it is gone on the phone and does not return.
+- [ ] **Companion server must be updated together with the desktop (3.6).** `companion/server/storage.py`
+      now hides deletion records from its lists and keeps them through an edit. An old server would list
+      them as terms.
+- [ ] **Sync matches entries by id, then by exact term — not by canonical key (3.6).** The plan asked for
+      `id`/`canonical`; I left the canonical match out because "Clawshot" and "Clawshots" may be two real
+      entries and a sync must not fold them.
+- [ ] **A build pass now writes the glossary every 20 results (3.6).** A hard crash (power loss) can lose up
+      to 19 results of the running pass; a normal stop, cancel or error still saves everything.
 

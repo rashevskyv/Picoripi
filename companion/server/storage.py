@@ -59,7 +59,7 @@ class StorageManager:
             needs_review = 0
             if glossary_file.exists():
                 try:
-                    entries = json.loads(glossary_file.read_text(encoding="utf-8"))
+                    entries = [e for e in json.loads(glossary_file.read_text(encoding="utf-8")) if not e.get("deleted_at")]
                     total = len(entries)
                     for e in entries:
                         status = (e.get("status") or "").lower()
@@ -103,7 +103,7 @@ class StorageManager:
 
         now_iso = datetime.now(timezone.utc).isoformat()
         for entry in glossary:
-            if not entry.get("updated_at"):
+            if not entry.get("updated_at") and not entry.get("deleted_at"):
                 entry["updated_at"] = now_iso
 
         # Write new glossary atomically
@@ -129,6 +129,7 @@ class StorageManager:
             meta_data.update(metadata)
         meta_file.write_text(json.dumps(meta_data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
+        glossary = [e for e in glossary if not e.get("deleted_at")]   # counted below; already written whole
         total = len(glossary)
         confirmed = sum(1 for e in glossary if (e.get("status") or "").lower() == "confirmed")
         needs_review = sum(
@@ -150,16 +151,23 @@ class StorageManager:
             needs_review_terms=needs_review,
         )
 
-    def get_glossary(self, project_name: str) -> List[Dict[str, Any]]:
-        """Retrieve full glossary entries list for a project."""
+    def get_glossary(self, project_name: str, include_deleted: bool = False) -> List[Dict[str, Any]]:
+        """Retrieve the glossary entries of a project.
+
+        The stored list also holds deletion records (``deleted_at``) that the
+        desktop sync needs; they are not entries, so only sync asks for them.
+        """
         pdir = self._get_project_dir(project_name)
         glossary_file = pdir / "glossary.json"
         if not glossary_file.exists():
             return []
         try:
-            return json.loads(glossary_file.read_text(encoding="utf-8"))
+            entries = json.loads(glossary_file.read_text(encoding="utf-8"))
         except Exception:
             return []
+        if include_deleted:
+            return entries
+        return [e for e in entries if not (isinstance(e, dict) and e.get("deleted_at"))]
 
     def get_occurrences(self, project_name: str, term: str) -> List[Dict[str, Any]]:
         """Retrieve occurrences for a specific term."""
@@ -180,10 +188,11 @@ class StorageManager:
         if not glossary_file.exists():
             return None
 
-        entries = self.get_glossary(project_name)
+        # The whole stored list, deletion records included: it is written back below.
+        entries = self.get_glossary(project_name, include_deleted=True)
         target_entry = None
         for entry in entries:
-            if entry.get("original") == update.original:
+            if entry.get("original") == update.original and not entry.get("deleted_at"):
                 target_entry = entry
                 break
 

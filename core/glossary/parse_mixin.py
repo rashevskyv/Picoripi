@@ -1,12 +1,15 @@
 """Markdown/JSON load, persist, and path helpers for GlossaryManager."""
 from __future__ import annotations
 
+import os
+from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
 import re
 
-from core.glossary.models import GlossaryEntry
+from core.glossary.models import GlossaryEntry, legacy_entry_id
 from core.glossary.notes import _entry_to_dict, _fragments_from_raw, _variants_from_raw
 from utils.logging_utils import log_debug
 
@@ -26,7 +29,8 @@ class ParseMixin:
         self._glossary_path = glossary_path
         sanitized_text = (raw_text or "").replace('\uFEFF', '')
         self._raw_text = sanitized_text
-        
+        self._tombstones = []
+
         # Check if text is JSON
         is_json = False
         if glossary_path and glossary_path.suffix.lower() == '.json':
@@ -42,6 +46,13 @@ class ParseMixin:
                 self._section_order = []
                 sections_seen = set()
                 for item in data:
+                    if item.get("deleted_at"):
+                        self._tombstones.append({
+                            "original": str(item.get("original", "") or ""),
+                            "id": str(item.get("id", "") or ""),
+                            "deleted_at": str(item["deleted_at"]),
+                        })
+                        continue
                     entry = GlossaryEntry(
                         original=item.get("original", ""),
                         translation=item.get("translation", ""),
@@ -62,6 +73,7 @@ class ParseMixin:
                         aliases=tuple(
                             str(alias).strip() for alias in (item.get("aliases") or ()) if str(alias).strip()
                         ),
+                        id=str(item.get("id", "") or ""),
                     )
                     if entry.is_valid():
                         self._entries.append(entry)
@@ -74,7 +86,12 @@ class ParseMixin:
                 self._entries = []
         else:
             self._entries = self._parse_markdown(self._raw_text)
-            
+
+        # A file written before ids existed: give every entry the id its term implies.
+        self._entries = [
+            entry if entry.id else replace(entry, id=legacy_entry_id(entry.original))
+            for entry in self._entries
+        ]
         self._build_pattern_cache()
         log_debug(
             f"GlossaryManager: loaded {len(self._entries)} entries for plugin "
@@ -268,8 +285,42 @@ class ParseMixin:
         markdown = "\n".join(markdown_lines).strip("\n") + "\n"
         return markdown
 
-    def _persist(self, write_only: bool = False) -> None:
+    @contextmanager
+    def transaction(self):
+        """Many changes, one write.
+
+        Every mutator writes the whole file and rebuilds the match cache; a
+        thousand changes in a row did that a thousand times. Inside this block
+        the write is only noted as owed and happens once at the end. The block
+        yields ``flush``: call it to write what is owed so far (a long run does,
+        every few results, so a crash loses little). Lookups by term see the
+        changes immediately; matching in text (``find_matches``) sees them
+        after the next write.
+        """
+        self._transaction_depth += 1
+        try:
+            yield self._flush
+        finally:
+            self._transaction_depth -= 1
+            if not self._transaction_depth:
+                self._flush()
+
+    def _flush(self) -> None:
+        if self._persist_pending:
+            self._persist_pending = False
+            self._persist(_now=True)
+
+    def _write_file(self, raw_json: str) -> None:
+        """Replace the glossary file in one step: a crash mid-write leaves the old file whole."""
+        temporary = self._glossary_path.with_name(self._glossary_path.name + ".tmp")
+        temporary.write_text(raw_json, encoding='utf-8')
+        os.replace(temporary, self._glossary_path)
+
+    def _persist(self, write_only: bool = False, *, _now: bool = False) -> None:
         """Internal helper to persist."""
+        if self._transaction_depth and not _now:
+            self._persist_pending = True
+            return
         if self._glossary_path:
             # Migration logic: if current path is .md, migrate it to .json!
             if self._glossary_path.suffix.lower() == '.md':
@@ -290,11 +341,11 @@ class ParseMixin:
 
             # Serialize entries to JSON
             import json
-            data_to_save = [_entry_to_dict(entry) for entry in self._entries]
-            
+            data_to_save = [_entry_to_dict(entry) for entry in self._entries] + list(self._tombstones)
+
             try:
                 raw_json = json.dumps(data_to_save, ensure_ascii=False, indent=2) + "\n"
-                self._glossary_path.write_text(raw_json, encoding='utf-8')
+                self._write_file(raw_json)
                 self._raw_text = raw_json
                 log_debug(f"GlossaryManager: Persisted {len(self._entries)} entries to {self._glossary_path}")
             except Exception as e:

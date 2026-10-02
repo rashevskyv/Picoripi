@@ -188,4 +188,6 @@ def _entry_to_dict(entry: GlossaryEntry) -> Dict[str, Any]:
         out["updated_at"] = entry.updated_at
     if entry.aliases:
         out["aliases"] = list(entry.aliases)
+    if entry.id:
+        out["id"] = entry.id
     return out

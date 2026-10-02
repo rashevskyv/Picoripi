@@ -80,7 +80,7 @@ def create_api_router(storage: StorageManager, auth_token: str = AUTH_TOKEN) -> 
 
     @router.get("/sync/pull", response_model=SyncPullResponse, dependencies=[Depends(verify_auth)])
     def sync_pull(project: str = Query(..., min_length=1)):
-        glossary = storage.get_glossary(project)
+        glossary = storage.get_glossary(project, include_deleted=True)
         meta = storage.get_metadata(project)
         return SyncPullResponse(
             project_name=project,

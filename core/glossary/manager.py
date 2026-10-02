@@ -55,6 +55,12 @@ class GlossaryManager(
         self._header_lines: List[str] = []
         self._section_order: List[str] = []
         self._session_changes: Dict[str, Optional[GlossaryEntry]] = {}
+        # Deletions, kept so a sync does not bring the entry back from the other
+        # side: {"original", "id", "deleted_at"}. Stored in the glossary file.
+        self._tombstones: List[Dict[str, str]] = []
+        # transaction(): how deep we are, and whether a write is owed.
+        self._transaction_depth = 0
+        self._persist_pending = False
 
         # Optimization structures for fast pattern matching
         self._automaton: Optional[ahocorasick.Automaton] = None

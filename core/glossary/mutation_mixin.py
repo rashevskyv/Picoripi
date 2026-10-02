@@ -15,6 +15,7 @@ from core.glossary.models import (
     GlossaryEntry,
     GlossaryOccurrence,
     TranslationVariant,
+    new_entry_id,
 )
 from core.glossary.replace import replace_preserve_case
 
@@ -52,6 +53,21 @@ class MutationMixin:
     def clear_session_changes(self) -> None:
         """Clear the tracked session glossary modifications."""
         self._session_changes.clear()
+
+    def _bury(self, entry: GlossaryEntry) -> None:
+        """Remember that ``entry`` was deleted, so a sync does not bring it back."""
+        self._tombstones = [stone for stone in self._tombstones if stone.get("id") != entry.id] + [{
+            "original": entry.original,
+            "id": entry.id,
+            "deleted_at": datetime.now(timezone.utc).isoformat(),
+        }]
+
+    def _unbury(self, original: str) -> None:
+        """A term added again is no longer deleted."""
+        normalized = self.normalize_term(original)
+        self._tombstones = [
+            stone for stone in self._tombstones if self.normalize_term(stone.get("original", "")) != normalized
+        ]
 
     def _index_of(self, original: str, *, fold: bool = True) -> Optional[int]:
         """Index of the entry ``original`` refers to, or None.
@@ -130,7 +146,9 @@ class MutationMixin:
             profiled=profiled,
             user_notes=user_notes,
             updated_at=datetime.now(timezone.utc).isoformat(),
+            id=new_entry_id(),
         )
+        self._unbury(original_key)
         if section and section not in self._section_order:
             self._section_order.append(section)
         self._session_changes[original_key] = new_entry
@@ -318,6 +336,7 @@ class MutationMixin:
                 new_entries.append(e)
 
         self._entries = new_entries
+        self._bury(old_entry)
         self._session_changes[old_key] = None
         self._session_changes[new_key] = merged_entry
         self._occurrence_index = {}
@@ -383,7 +402,9 @@ class MutationMixin:
             icon=(icon or "").strip(),
             provisional=provisional,
             updated_at=datetime.now(timezone.utc).isoformat(),
+            id=new_entry_id(),
         )
+        self._unbury(original_key)
         self._session_changes[original_key] = new_entry
         self._entries = list(self._entries) + [new_entry]
         self._occurrence_index = {}
@@ -400,6 +421,7 @@ class MutationMixin:
         if index is None:
             return False
         original_key = self._entries[index].original
+        self._bury(self._entries[index])
         new_entries = list(self._entries)
         del new_entries[index]
         self._entries = new_entries
@@ -420,6 +442,7 @@ class MutationMixin:
         self.backup_file()
         for entry in self._entries:
             self._session_changes[entry.original] = None
+            self._bury(entry)
         self._entries = []
         self._occurrence_index = {}
         self._persist()

@@ -71,6 +71,9 @@ _DESCRIBE_TARGETS = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS})
 # A family is translated on one thread, member after member; a bigger one is
 # split so that one failed call does not send a long run of terms to the retry pass.
 FAMILY_BATCH = 8
+# Results of a pass are written to the glossary file in batches of this many,
+# not one file write per result. A crash loses at most one batch.
+STORE_BATCH = 20
 
 
 def is_unnamed_voice_term(term: str) -> bool:
@@ -186,21 +189,31 @@ class GlossaryBuildCoordinator:
         """Run one pass's AI calls in parallel and write results as they land.
 
         ``on_result`` runs on this thread, so the passes keep writing to the
-        manager exactly as they did when they were loops -- and since every
-        manager write persists immediately, a stopped run keeps what it finished.
+        manager exactly as they did when they were loops. The glossary file is
+        written every ``STORE_BATCH`` results and once more when the pass ends
+        or stops, so a stopped run keeps what it finished.
         """
-        outcome = run_with_retry_pass(
-            items,
-            work,
-            workers=self.workers,
-            retry_delay=self.retry_delay,
-            sleep=self.sleep,
-            on_result=on_result,
-            on_progress=lambda done, total: self._progress(stage, done, total),
-            is_cancelled=self._is_cancelled,
-            max_consecutive_failures=self.max_consecutive_failures,
-            on_log=self._log,
-        )
+        stored = 0
+        with self.manager.transaction() as flush:
+            def store(item, value):
+                nonlocal stored
+                on_result(item, value)
+                stored += 1
+                if stored % STORE_BATCH == 0:
+                    flush()
+
+            outcome = run_with_retry_pass(
+                items,
+                work,
+                workers=self.workers,
+                retry_delay=self.retry_delay,
+                sleep=self.sleep,
+                on_result=store,
+                on_progress=lambda done, total: self._progress(stage, done, total),
+                is_cancelled=self._is_cancelled,
+                max_consecutive_failures=self.max_consecutive_failures,
+                on_log=self._log,
+            )
         result.failed += len(outcome.failed)
         if outcome.stop_error is not None:
             completed_count = getattr(outcome, "completed", 0)
@@ -442,6 +455,10 @@ class GlossaryBuildCoordinator:
         Gap-filling only, like every other seed: an entry that already carries a
         decided translation is left exactly as it is.
         """
+        with self.manager.transaction():
+            self._seed_structural_entries(result, block_indices)
+
+    def _seed_structural_entries(self, result: BuildResult, block_indices=None) -> None:
         seeds = self._seeds_in_area(block_indices)
         total = len(seeds)
         for index, seed in enumerate(seeds):
@@ -533,6 +550,10 @@ class GlossaryBuildCoordinator:
         return aggregated
 
     def _seed_all(self, aggregated: Dict[str, AggregatedTerm], mode: str, result: BuildResult) -> None:
+        with self.manager.transaction():
+            self._seed_terms(aggregated, mode, result)
+
+    def _seed_terms(self, aggregated: Dict[str, AggregatedTerm], mode: str, result: BuildResult) -> None:
         # Same input, same glossary: seed in a fixed order, not in the order the
         # chunks happened to answer.
         terms = sorted(
@@ -547,6 +568,19 @@ class GlossaryBuildCoordinator:
             existing = self.manager.find_entry(agg.term)
             # Never overwrite a real, already-decided entry; only fill gaps.
             if existing is not None and existing.translation and not existing.is_unconfirmed:
+                continue
+            if existing is not None and existing.translation:
+                # Translated, not yet confirmed. A re-sweep adds what it found;
+                # it does not send the entry back to "seeded" to be described
+                # and translated all over again.
+                fragments = existing.fragments + tuple(f for f in agg.fragments if f not in existing.fragments)
+                if fragments != existing.fragments:
+                    self._update(
+                        existing.original,
+                        translation=existing.translation,
+                        notes=existing.notes,
+                        fragments=fragments,
+                    )
                 continue
             # A fragment is one chunk's impression of a term. It fills a gap; it
             # never replaces a description that is already there -- least of all

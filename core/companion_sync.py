@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import requests
 
-from core.glossary.models import GlossaryEntry, GlossaryOccurrence
+from core.glossary.models import GlossaryEntry, GlossaryOccurrence, legacy_entry_id
 from core.glossary.notes import _entry_to_dict
 from core.i18n import tr
 from utils.logging_utils import log_debug, log_info, log_error
@@ -59,7 +59,9 @@ class MergeResult:
 def entries_differ(e1: Dict[str, Any], e2: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """Determine whether significant fields between two glossary entries differ."""
     fields = [
+        "original",   # the same entry (by id) renamed on one side
         "translation",
+        "aliases",
         "status",
         "user_notes",
         "notes",
@@ -87,6 +89,34 @@ def entries_differ(e1: Dict[str, Any], e2: Dict[str, Any]) -> Tuple[bool, List[s
     return bool(differing), differing
 
 
+def entry_id(entry: Dict[str, Any]) -> str:
+    """The entry's id; for one stored before ids existed, the id its term implies."""
+    return str(entry.get("id") or "") or legacy_entry_id(str(entry.get("original") or ""))
+
+
+def _is_live(entry: Any) -> bool:
+    return isinstance(entry, dict) and bool(entry.get("original")) and not entry.get("deleted_at")
+
+
+def _tombstones(entries: Sequence[Any]) -> Dict[str, Dict[str, Any]]:
+    """Deletion records in a glossary list, by the id of the entry they deleted."""
+    return {entry_id(e): dict(e) for e in entries if isinstance(e, dict) and e.get("deleted_at")}
+
+
+def _buried(entry: Dict[str, Any], stones: Dict[str, Dict[str, Any]]) -> bool:
+    """Whether ``entry`` was deleted on the other side after it was last changed here."""
+    stone = stones.get(entry_id(entry))
+    return stone is not None and parse_timestamp(stone.get("deleted_at")) >= parse_timestamp(entry.get("updated_at"))
+
+
+def keep_local_deletions(local_entries: Sequence[Any], remote_entries: Sequence[Any]) -> List[Any]:
+    """``remote_entries`` as a plain pull may store them: without what was deleted here."""
+    stones = _tombstones(local_entries)
+    kept = [e for e in remote_entries if not (_is_live(e) and _buried(e, stones))]
+    known = {entry_id(e) for e in kept if isinstance(e, dict)}
+    return kept + [stone for stone_id, stone in stones.items() if stone_id not in known]
+
+
 def merge_glossaries(
     local_entries: List[Dict[str, Any]],
     remote_entries: List[Dict[str, Any]],
@@ -99,34 +129,30 @@ def merge_glossaries(
     whichever was updated more recently. Flags true collisions (same term modified
     differently within 2 seconds) as conflicts for user review.
     """
-    loc_map: Dict[str, Dict[str, Any]] = {
-        e.get("original", ""): dict(e)
-        for e in local_entries
-        if isinstance(e, dict) and e.get("original")
-    }
-    rem_map: Dict[str, Dict[str, Any]] = {
-        e.get("original", ""): dict(e)
-        for e in remote_entries
-        if isinstance(e, dict) and e.get("original")
-    }
+    # Deletions first. Without them a merge is a union, and every entry deleted
+    # on one side came back from the other on the next sync.
+    local_stones = _tombstones(local_entries)
+    remote_stones = _tombstones(remote_entries)
+    local_live = [e for e in local_entries if _is_live(e)]
+    remote_live = [e for e in remote_entries if _is_live(e)]
+    pulled_count = sum(1 for e in local_live if _buried(e, remote_stones))
+    pushed_count = sum(1 for e in remote_live if _buried(e, local_stones))
+    local_entries = [e for e in local_live if not _buried(e, remote_stones)]
+    remote_entries = [e for e in remote_live if not _buried(e, local_stones)]
+
+    loc_map: Dict[str, Dict[str, Any]] = {e["original"]: dict(e) for e in local_entries}
+    # A remote entry is the local entry with the same id, whatever either side
+    # calls it now (a rename); failing that, the one with the same term.
+    local_by_id = {entry_id(e): e["original"] for e in local_entries}
+    rem_map: Dict[str, Dict[str, Any]] = {}
+    for e in remote_entries:
+        key = e["original"] if e["original"] in loc_map else local_by_id.get(entry_id(e), e["original"])
+        rem_map[key] = dict(e)
 
     # Maintain existing order of local entries, then append remote-only entries
-    ordered_keys: List[str] = []
-    seen: set = set()
-    for e in local_entries:
-        orig = e.get("original") if isinstance(e, dict) else None
-        if orig and orig not in seen:
-            ordered_keys.append(orig)
-            seen.add(orig)
-    for e in remote_entries:
-        orig = e.get("original") if isinstance(e, dict) else None
-        if orig and orig not in seen:
-            ordered_keys.append(orig)
-            seen.add(orig)
+    ordered_keys: List[str] = list(dict.fromkeys([*loc_map, *rem_map]))
 
     merged: List[Dict[str, Any]] = []
-    pulled_count = 0
-    pushed_count = 0
     conflicts: List[ConflictRecord] = []
 
     for key in ordered_keys:
@@ -180,6 +206,11 @@ def merge_glossaries(
                     conflicts.append(conflict)
                     # Temporary entry pending resolution
                     merged.append(loc_e)
+
+    # The deletions travel with the glossary, so the other side learns of them
+    # -- except one whose entry came back newer than the deletion.
+    alive = {entry_id(e) for e in merged}
+    merged.extend(stone for stone_id, stone in {**remote_stones, **local_stones}.items() if stone_id not in alive)
 
     return MergeResult(
         merged_entries=merged,
@@ -368,6 +399,8 @@ class CompanionSyncClient:
                 except Exception:
                     local_entries = []
 
+            # A pull replaces the local file; what was deleted here stays deleted.
+            remote_glossary = keep_local_deletions(local_entries, remote_glossary)
             local_lookup = {e.get("original", ""): e for e in local_entries if isinstance(e, dict)}
             for remote_entry in remote_glossary:
                 orig = remote_entry.get("original", "")
@@ -468,14 +501,17 @@ class CompanionSyncClient:
             )
 
             local_entries_dict: List[Dict[str, Any]] = []
-            if entries:
-                local_entries_dict = [_entry_to_dict(e) for e in entries]
-            elif glossary_path and glossary_path.exists():
+            file_entries: List[Dict[str, Any]] = []
+            if glossary_path and glossary_path.exists():
                 try:
-                    local_entries_dict = json.loads(glossary_path.read_text(encoding="utf-8"))
+                    file_entries = json.loads(glossary_path.read_text(encoding="utf-8"))
                 except Exception as exc:
                     log_error(f"CompanionSyncClient: Failed reading local glossary: {exc}")
-                    local_entries_dict = []
+            if entries:
+                # Entry objects carry no deletions; those are in the file.
+                local_entries_dict = [_entry_to_dict(e) for e in entries] + list(_tombstones(file_entries).values())
+            else:
+                local_entries_dict = file_entries
 
             if on_status:
                 on_status(tr("Analyzing local and remote glossary changes…"))

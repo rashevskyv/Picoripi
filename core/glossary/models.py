@@ -1,7 +1,8 @@
 """Glossary status constants, placeholders, and dataclasses."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+import uuid
+from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
 
@@ -80,6 +81,10 @@ class GlossaryEntry:
     # in text; the plain plural, article or possessive of ``original`` needs no
     # alias -- the canonical key already covers those.
     aliases: Tuple[str, ...] = ()
+    # Stable identity. It survives a rename, so a sync can tell "renamed" from
+    # "one deleted, another added". Not part of equality: two entries that say
+    # the same thing are equal whatever their ids.
+    id: str = field(default="", compare=False)
 
     def is_valid(self) -> bool:
         """Whether the entry should load and appear.
@@ -94,6 +99,23 @@ class GlossaryEntry:
     def is_unconfirmed(self) -> bool:
         """True while the entry still awaits a confirmed human decision."""
         return self.status in UNCONFIRMED_STATUSES
+
+_ID_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "picoripi:glossary-entry")
+
+
+def new_entry_id() -> str:
+    """The id of an entry created now."""
+    return uuid.uuid4().hex
+
+
+def legacy_entry_id(original: str) -> str:
+    """The id of an entry stored before ids existed.
+
+    Derived from the term, so two copies of the same old glossary (this machine
+    and the Companion server) give the same entry the same id.
+    """
+    return uuid.uuid5(_ID_NAMESPACE, original or "").hex
+
 
 @dataclass(frozen=True)
 class GlossaryMatch:
