@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog
 from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_error, log_debug
-from core.data_manager import load_json_file, load_text_file
+from core import formats
 from plugins.base_game_rules import BaseGameRules
 from core.state_manager import AppState
 from .width_calculation_worker import WidthCalculationWorker
@@ -100,7 +100,7 @@ class AppActionHandler(BaseHandler):
         if self.mw.data_store.json_path:
             start_dir = str(Path(self.mw.data_store.json_path).parent)
             
-        path, _ = QFileDialog.getOpenFileName(self.mw, "Open Original File", start_dir, "Supported Files (*.json *.txt *.bmg *.bfn *.arc *.rarc);;BMG (*.bmg);;BFN (*.bfn);;ARC (*.arc *.rarc);;JSON (*.json);;Text files (*.txt);;All (*)")
+        path, _ = QFileDialog.getOpenFileName(self.mw, "Open Original File", start_dir, formats.dialog_filter(self.mw.current_game_rules))
         if path:
             self.load_all_data_for_path(path, manually_set_edited_path=None, is_initial_load_from_settings=False)
 
@@ -117,30 +117,14 @@ class AppActionHandler(BaseHandler):
         elif self.mw.data_store.json_path:
             start_dir = str(Path(self.mw.data_store.json_path).parent)
             
-        path, _ = QFileDialog.getOpenFileName(self.mw, "Open Changes (Edited) File", start_dir, "Supported Files (*.json *.txt *.bmg *.bfn *.arc *.rarc);;BMG Files (*.bmg);;BFN Files (*.bfn);;ARC Files (*.arc *.rarc);;JSON Files (*.json);;Text Files (*.txt);;All Files (*)")
+        path, _ = QFileDialog.getOpenFileName(self.mw, "Open Changes (Edited) File", start_dir, formats.dialog_filter(self.mw.current_game_rules))
         if path:
             if self.mw.data_store.unsaved_changes:
                  reply = QMessageBox.question(self.mw, tr('Unsaved Changes'), tr('Loading a new changes file will discard current unsaved edits. Proceed?'), QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
                  if reply == QMessageBox.StandardButton.No:
                      return
             
-            file_content = None
-            error = None
-            path_obj = Path(path)
-            file_extension = path_obj.suffix.lower()
-            
-            if file_extension == '.json':
-                file_content, error = load_json_file(path_obj)
-            elif file_extension == '.txt':
-                file_content, error = load_text_file(path_obj)
-            elif file_extension == '.bmg':
-                try:
-                    with path_obj.open('rb') as f:
-                        file_content = f.read()
-                except Exception as e:
-                    error = f"Failed to read BMG file: {e}"
-            else:
-                error = f"Unsupported file type: {file_extension}"
+            file_content, error = formats.read_file(self.mw.current_game_rules, path)
 
             if error:
                 QMessageBox.critical(self.mw, tr('Load Error'), f"Failed to load selected changes file:\n{path}\n\n{error}")
@@ -150,16 +134,10 @@ class AppActionHandler(BaseHandler):
                 QMessageBox.critical(self.mw, tr('Load Error'), tr('No game plugin active to parse the file.'))
                 return
 
-            # Backup authoritative original keys
-            plugin_keys_backup = None
-            if hasattr(self.mw.current_game_rules, 'original_keys'):
-                plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
-
+            # Parsing the changes file must not change what the plugin learned from the original.
+            plugin_state = formats.export_state(self.mw.current_game_rules)
             new_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(file_content)
-            
-            # Restore authoritative original keys
-            if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
-                self.mw.current_game_rules.original_keys = plugin_keys_backup
+            formats.restore_state(self.mw.current_game_rules, plugin_state)
             
             self.mw.data_store.edited_json_path = path
             self.mw.data_store.edited_file_data = new_edited_data
@@ -268,7 +246,7 @@ class AppActionHandler(BaseHandler):
         if not current_edited_path: 
             current_edited_path = str(Path(self.mw.data_store.json_path).parent / "untitled_edited.json") if self.mw.data_store.json_path else "untitled_edited.json"
             
-        new_edited_path, _ = QFileDialog.getSaveFileName(self.mw, "Save Changes As...", current_edited_path, "Supported Files (*.json *.txt *.bmg);;BMG (*.bmg);;JSON (*.json);;All (*)")
+        new_edited_path, _ = QFileDialog.getSaveFileName(self.mw, "Save Changes As...", current_edited_path, formats.dialog_filter(self.mw.current_game_rules))
         if new_edited_path:
             original_edited_path_backup = self.mw.data_store.edited_json_path
             self.mw.data_store.edited_json_path = new_edited_path
@@ -307,23 +285,7 @@ class AppActionHandler(BaseHandler):
                 QMessageBox.critical(self.mw, tr('Load Error'), tr('Cannot load file: No game plugin is active.'))
                 return
 
-            file_content = None
-            error = None
-            path_obj = Path(original_file_path)
-            file_extension = path_obj.suffix.lower()
-
-            if file_extension == '.json':
-                file_content, error = load_json_file(path_obj)
-            elif file_extension == '.txt':
-                file_content, error = load_text_file(path_obj)
-            elif file_extension == '.bmg':
-                try:
-                    with path_obj.open('rb') as f:
-                        file_content = f.read()
-                except Exception as e:
-                    error = f"Failed to read BMG file: {e}"
-            else:
-                error = f"Unsupported file type: {file_extension}"
+            file_content, error = formats.read_file(self.mw.current_game_rules, original_file_path)
 
             if error:
                 self.mw.data_store.json_path = None
@@ -339,10 +301,9 @@ class AppActionHandler(BaseHandler):
                 QMessageBox.critical(self.mw, tr('Load Error'), f"Failed to load: {original_file_path}\n{error}")
                 return
 
-            # Reset plugin state if it tracks keys (like pokemon_fr)
-            if hasattr(self.mw.current_game_rules, 'original_keys'):
-                self.mw.current_game_rules.original_keys = []
-                
+            # A plugin may keep what it learned from the file it loaded; start clean.
+            formats.reset_state(self.mw.current_game_rules)
+
             data, block_names_from_plugin = self.mw.current_game_rules.load_data_from_json_obj(file_content)
             if not data and file_content is not None:
                 QMessageBox.critical(self.mw, tr('Plugin Error'), f"The active plugin '{self.mw.current_game_rules.get_display_name()}' could not parse the file:\n{original_file_path}")
@@ -363,33 +324,16 @@ class AppActionHandler(BaseHandler):
             self.mw.data_store.edited_json_path = str(manually_set_edited_path) if manually_set_edited_path else self._derive_edited_path(self.mw.data_store.json_path)
             self.mw.data_store.edited_file_data = []
             if self.mw.data_store.edited_json_path and Path(self.mw.data_store.edited_json_path).exists():
-                edited_file_content = None
-                edit_error = None
-                edited_path_obj = Path(self.mw.data_store.edited_json_path)
-                edited_file_extension = edited_path_obj.suffix.lower()
-
-                if edited_file_extension == '.json':
-                    edited_file_content, edit_error = load_json_file(edited_path_obj)
-                elif edited_file_extension == '.txt':
-                    edited_file_content, edit_error = load_text_file(edited_path_obj)
-                elif edited_file_extension == '.bmg':
-                    try:
-                        with edited_path_obj.open('rb') as f:
-                            edited_file_content = f.read()
-                    except Exception as e:
-                        edit_error = f"Failed to read BMG changes file: {e}"
+                edited_file_content, edit_error = formats.read_file(
+                    self.mw.current_game_rules, self.mw.data_store.edited_json_path
+                )
 
                 if edit_error:
                     QMessageBox.warning(self.mw, tr('Edited Load Warning'), f"Could not load changes file: {self.mw.data_store.edited_json_path}\n{edit_error}")
                 else:
-                    plugin_keys_backup = None
-                    if hasattr(self.mw.current_game_rules, 'original_keys'):
-                        plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
-                        
+                    plugin_state = formats.export_state(self.mw.current_game_rules)
                     edited_data_from_file, _ = self.mw.current_game_rules.load_data_from_json_obj(edited_file_content)
-                    
-                    if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
-                        self.mw.current_game_rules.original_keys = plugin_keys_backup
+                    formats.restore_state(self.mw.current_game_rules, plugin_state)
                         
                     self.mw.data_store.edited_file_data = edited_data_from_file
             

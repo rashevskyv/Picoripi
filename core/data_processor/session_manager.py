@@ -6,6 +6,7 @@ import base64
 import uuid
 from pathlib import Path
 from typing import Any, Optional
+from core import formats
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 
 class SessionManager:
@@ -80,20 +81,17 @@ class SessionManager:
             except Exception as e:
                 log_warning(f"DSP: Failed to capture UI tree session state: {e}")
         game_rules = getattr(self.mw, 'current_game_rules', None)
-        original_keys = getattr(game_rules, 'original_keys', None)
-        if original_keys is not None:
-            try:
-                snapshot["plugin_original_keys"] = list(original_keys)
-            except TypeError:
-                pass
-        export_runtime_state = getattr(game_rules, 'export_runtime_session_state', None)
-        if callable(export_runtime_state):
-            try:
-                runtime_state = export_runtime_state()
-                if isinstance(runtime_state, dict) and runtime_state:
-                    snapshot["plugin_runtime_state"] = runtime_state
-            except Exception as e:
-                log_warning(f"DSP: Failed to export plugin runtime state: {e}")
+        try:
+            runtime_state = formats.export_state(game_rules)
+        except Exception as e:
+            runtime_state = None
+            log_warning(f"DSP: Failed to export plugin runtime state: {e}")
+        # A list goes into the slot session files have always used for the
+        # key lists; anything else into the general one.
+        if isinstance(runtime_state, list):
+            snapshot["plugin_original_keys"] = list(runtime_state)
+        elif isinstance(runtime_state, dict) and runtime_state:
+            snapshot["plugin_runtime_state"] = runtime_state
         return snapshot
 
     def _restore_runtime_session_state(self, snapshot: dict) -> None:
@@ -101,18 +99,13 @@ class SessionManager:
         game_rules = getattr(self.mw, 'current_game_rules', None)
         if game_rules is None:
             return
-        if "plugin_original_keys" in snapshot and hasattr(game_rules, 'original_keys'):
-            plugin_keys = snapshot.get("plugin_original_keys")
-            if plugin_keys is not None:
-                game_rules.original_keys = list(plugin_keys or [])
-
-        restore_runtime_state = getattr(game_rules, 'restore_runtime_session_state', None)
-        runtime_state = snapshot.get("plugin_runtime_state")
-        if callable(restore_runtime_state) and isinstance(runtime_state, dict) and runtime_state:
-            try:
-                restore_runtime_state(runtime_state)
-            except Exception as e:
-                log_warning(f"DSP: Failed to restore plugin runtime state: {e}")
+        runtime_state = snapshot.get("plugin_original_keys")
+        if runtime_state is None:
+            runtime_state = snapshot.get("plugin_runtime_state") or None
+        try:
+            formats.restore_state(game_rules, runtime_state)
+        except Exception as e:
+            log_warning(f"DSP: Failed to restore plugin runtime state: {e}")
 
     def _to_json_safe_value(self, value: Any) -> Any:
         """Convert nested session values to JSON-safe primitives."""

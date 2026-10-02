@@ -3,7 +3,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from components.toast import ToastNotification
-from core.data_manager import save_json_file, save_text_file
+from core import formats
+from core.containers import ContainerManager
 from core.state_manager import AppState
 from utils.logging_utils import log_debug, log_error, log_info, log_warning
 
@@ -40,14 +41,9 @@ class SaveMixin:
                         file_to_block_info[path] = block
                     file_to_data_indices[path].append(data_b_idx)
 
-                # Backup original keys for pokemon plugin logic
-                global_keys_backup = None
-                original_keys = getattr(self.mw.current_game_rules, 'original_keys', None)
-                if original_keys is not None:
-                    try:
-                        global_keys_backup = list(original_keys)
-                    except TypeError:
-                        global_keys_backup = None
+                # What the plugin learned while loading. It may narrow that to one
+                # file at a time (prepare_save_context); it gets the whole back at the end.
+                plugin_state = formats.export_state(self.mw.current_game_rules)
 
                 files_saved_in_this_transaction = set()
 
@@ -71,7 +67,7 @@ class SaveMixin:
                     prefix = ".extracted/translation/"
                     if trans_file_rel.startswith(prefix):
                         sub_path = trans_file_rel[len(prefix):]
-                        for _ext in ('.arc', '.rarc', '.ark'):
+                        for _ext in ContainerManager.extensions():
                             if _ext in sub_path.lower():
                                 _idx = sub_path.lower().find(_ext)
                                 archive_rel_path = sub_path[:_idx + len(_ext)]
@@ -93,99 +89,20 @@ class SaveMixin:
                     file_data_list = [output_data_list[d_idx] for d_idx in data_indices]
                     file_block_names = {str(i): self.mw.data_store.block_names.get(str(d_idx), 'Unknown') for i, d_idx in enumerate(data_indices)}
 
-                    # Override the plugins 'original_keys' array to only include keys for this specific file
-                    if global_keys_backup is not None:
-                        if all(0 <= d_idx < len(global_keys_backup) for d_idx in data_indices):
-                            sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
-                            self.mw.current_game_rules.original_keys = sliced_keys
-                        else:
-                            log_warning(
-                                "Project save skipped plugin original_keys slicing because the key snapshot is incomplete.",
-                                category="file_ops"
-                            )
-
-                    # For Zelda BMG plugin, pre-load the actual BMG file structure
-                    if hasattr(self.mw.current_game_rules, 'last_loaded_bmg'):
-                        from bmg_tool import BMGFile
-                        bmg = None
-                        _prefix_trans = '.extracted/translation/'
-                        _prefix_source = '.extracted/sources/'
-                        _arc_rel = None
-                        _inner_file = None
-
-                        if trans_file_rel.startswith(_prefix_trans):
-                            _sub = trans_file_rel[len(_prefix_trans):]
-                        elif trans_file_rel.startswith(_prefix_source):
-                            _sub = trans_file_rel[len(_prefix_source):]
-                        else:
-                            _sub = None
-
-                        if _sub:
-                            for _ext in ('.arc', '.rarc', '.ark'):
-                                _ext_with_slash = _ext + '/'
-                                if _ext_with_slash in _sub.lower():
-                                    _idx = _sub.lower().find(_ext_with_slash)
-                                    _arc_rel = _sub[:_idx + len(_ext)]
-                                    _inner_file = _sub[_idx + len(_ext) + 1:]
-                                    break
-
-                        if _arc_rel and _inner_file:
-                            try:
-                                container_trans = self.mw.project_manager.get_archive_container(_arc_rel, is_translation=True)
-                                bmg_bytes = container_trans.read_file(_inner_file)
-                                bmg_temp = BMGFile()
-                                bmg_temp.load(bmg_bytes)
-                                bmg = bmg_temp
-                            except Exception as e_trans:
-                                log_warning(f"Cannot pre-load BMG from translation archive {_arc_rel}/{_inner_file}: {e_trans}. Trying source.", category="file_ops")
-
-                            if bmg is None:
-                                try:
-                                    container_src = self.mw.project_manager.get_archive_container(_arc_rel, is_translation=False)
-                                    bmg_bytes = container_src.read_file(_inner_file)
-                                    bmg_temp = BMGFile()
-                                    bmg_temp.load(bmg_bytes)
-                                    bmg = bmg_temp
-                                except Exception as e_src:
-                                    log_error(f"Failed to pre-load BMG from source archive {_arc_rel}/{_inner_file}: {e_src}", category="file_ops")
-                        else:
-                            trans_path_bmg = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=True)
-                            source_path_bmg = self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=False)
-                            for _p in [trans_path_bmg, source_path_bmg]:
-                                if Path(_p).exists():
-                                    try:
-                                        bmg_temp = BMGFile()
-                                        bmg_temp.load(Path(_p).read_bytes())
-                                        bmg = bmg_temp
-                                        break
-                                    except Exception:
-                                        pass
-
-                        if bmg:
-                            self.mw.current_game_rules.last_loaded_bmg = bmg
+                    # The plugin prepares for this one file: which blocks go into it,
+                    # and -- for formats written by patching -- the file as it exists now.
+                    formats.prepare_save(self.mw.current_game_rules, formats.SaveContext(
+                        block_indices=list(data_indices),
+                        runtime_state=plugin_state,
+                        relative_path=trans_file_rel,
+                        existing_versions=lambda rel=trans_file_rel: self._existing_versions(rel),
+                    ))
 
                     final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)
 
-                    file_extension = Path(trans_path).suffix.lower()
-                    if file_extension == '.json':
-                        save_file_success = save_json_file(trans_path, final_obj_to_save)
-                    elif file_extension == '.txt':
-                        if isinstance(final_obj_to_save, str):
-                            save_file_success = save_text_file(trans_path, final_obj_to_save)
-                        else:
-                            save_file_success = False
-                    elif file_extension == '.bmg':
-                        try:
-                            p = Path(trans_path)
-                            p.parent.mkdir(parents=True, exist_ok=True)
-                            with p.open('wb') as f:
-                                f.write(final_obj_to_save)
-                            save_file_success = True
-                        except Exception as e:
-                            log_debug(f"Failed to write BMG: {e}", category="file_ops")
-                            save_file_success = False
-                    else:
-                        save_file_success = save_text_file(trans_path, str(final_obj_to_save))
+                    save_file_success, _save_error = formats.write_file(
+                        self.mw.current_game_rules, trans_path, final_obj_to_save, unknown=formats.UNKNOWN_IS_TEXT
+                    )
 
                     if not save_file_success:
                         success_all = False
@@ -242,8 +159,7 @@ class SaveMixin:
                                 log_error(f"Native packing failed for {archive_rel_path}: {archive_err}", exc_info=True, category="file_ops")
                                 errors.append(f"{archive_rel_path}: {archive_err}")
 
-                if global_keys_backup is not None:
-                    self.mw.current_game_rules.original_keys = global_keys_backup
+                formats.restore_state(self.mw.current_game_rules, plugin_state)
 
                 return success_all and len(errors) == 0, warnings, errors
 
@@ -253,42 +169,18 @@ class SaveMixin:
                     progress_callback(0, 1, "Saving file...")
 
                 final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(output_data_list, self.mw.data_store.block_names)
-                save_file_success = False
-                file_extension = Path(self.mw.data_store.edited_json_path).suffix.lower()
-
-                if file_extension == '.json':
-                    save_file_success = save_json_file(self.mw.data_store.edited_json_path, final_obj_to_save)
-                elif file_extension == '.txt':
-                    if isinstance(final_obj_to_save, str):
-                        save_file_success = save_text_file(self.mw.data_store.edited_json_path, final_obj_to_save)
-                    else:
-                        errors.append("Plugin did not return a string for .txt file.")
-                        return False, warnings, errors
-                elif file_extension == '.bmg':
-                    try:
-                        p = Path(self.mw.data_store.edited_json_path)
-                        p.parent.mkdir(parents=True, exist_ok=True)
-                        with p.open('wb') as f:
-                            f.write(final_obj_to_save)
-                        save_file_success = True
-                    except Exception as e:
-                        log_debug(f"Failed to write BMG: {e}", category="file_ops")
-                        errors.append(f"Failed to save BMG file: {e}")
-                        save_file_success = False
-
-                if not save_file_success and not errors:
-                    errors.append("Failed to write file to disk.")
+                save_file_success, save_error = formats.write_file(
+                    self.mw.current_game_rules, self.mw.data_store.edited_json_path, final_obj_to_save
+                )
+                if not save_file_success:
+                    errors.append(save_error or "Failed to write file to disk.")
 
                 if save_file_success:
-                    # Backup and restore keys since we are just re-parsing to update UI data
-                    plugin_keys_backup = None
-                    if hasattr(self.mw.current_game_rules, 'original_keys'):
-                        plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
-
+                    # Re-parsing what was written, to refresh the view, must not change
+                    # what the plugin learned on load.
+                    plugin_state = formats.export_state(self.mw.current_game_rules)
                     reloaded_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(final_obj_to_save)
-
-                    if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
-                        self.mw.current_game_rules.original_keys = plugin_keys_backup
+                    formats.restore_state(self.mw.current_game_rules, plugin_state)
 
                     self.mw.data_store.edited_file_data = reloaded_edited_data
 
@@ -298,6 +190,37 @@ class SaveMixin:
             log_error(f"Error during save implementation: {e}", exc_info=True)
             errors.append(str(e))
             return False, warnings, errors
+
+    def _existing_versions(self, trans_file_rel: str):
+        """The bytes of a project file as it exists now: the translation copy, then the source.
+
+        A file inside an archive is read from the archive; any other from disk.
+        A version that cannot be read is skipped, so the plugin gets the next one.
+        """
+        archive_rel = inner_file = None
+        for prefix in ('.extracted/translation/', '.extracted/sources/'):
+            if trans_file_rel.startswith(prefix):
+                sub_path = trans_file_rel[len(prefix):]
+                for extension in ContainerManager.extensions():
+                    position = sub_path.lower().find(extension + '/')
+                    if position != -1:
+                        archive_rel = sub_path[:position + len(extension)]
+                        inner_file = sub_path[position + len(extension) + 1:]
+                        break
+                break
+
+        for is_translation in (True, False):
+            side = "translation" if is_translation else "source"
+            try:
+                if archive_rel and inner_file:
+                    container = self.mw.project_manager.get_archive_container(archive_rel, is_translation=is_translation)
+                    yield container.read_file(inner_file)
+                else:
+                    path = Path(self.mw.project_manager.get_absolute_path(trans_file_rel, is_translation=is_translation))
+                    if path.exists():
+                        yield path.read_bytes()
+            except Exception as error:
+                log_warning(f"Cannot read the {side} version of {trans_file_rel}: {error}", category="file_ops")
 
     def save_current_edits(self, ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None) -> bool:
         """

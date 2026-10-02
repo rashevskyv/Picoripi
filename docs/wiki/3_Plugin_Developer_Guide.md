@@ -40,6 +40,10 @@ Typical extra files (template has them): `config.py`, `tag_manager.py`, `font_ma
 
 Start a new plugin with `python tools/new_plugin.py <id> "<Display Name>" --prefix XX`: it copies `plugins/default_plugin`, renames the problem-id prefix and the display name, and writes `tests/test_plugins/test_<id>/test_rules.py` with three passing checks from `plugins/testing.py` (loads, a sample survives load and save, the validator passes).
 
+**File formats.** `get_file_formats()` returns `core.formats.FileFormat(extensions, mode, label)` items; `mode` is the shape in which a file's content reaches `load_data_from_json_obj` and leaves `save_data_to_json_obj`: `"json"` (parsed), `"text"` (a string) or `"bytes"`. The default is `.json` + `.txt`. A game with its own table returns e.g. `[FileFormat((".tbl",), "bytes", "Text tables"), *DEFAULT_FORMATS]` and parses the bytes itself — project import, loading, saving and the file dialogs follow without host changes. An archive format of the game is added with `ContainerManager.register(MyContainer, extensions=(".pak",))`.
+
+**State that goes with the files.** If saving needs something the strings do not carry (table keys, the parsed binary file), keep it in the plugin and implement `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` (plain JSON data; the host keeps it across reloads, reverts and sessions) and `prepare_save_context(context)` (called before each project file is built; `context.block_indices`, `context.runtime_state`, `context.existing_versions()` yields the file's current bytes, translation first). The host never reads plugin attributes. See `plugins/pokemon_fr/rules.py` and `plugins/zelda_bmg/rules.py`.
+
 `translation_prompts/prompts.json` may hold only the sections the game changes (usually `translation`): the rest is merged in from `plugins/common/defaults/prompts.json`.
 
 `default_plugin.GameRules.get_display_name()` returns `Default Plugin Template`. `get_capabilities()` returns `set()` on purpose.

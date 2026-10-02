@@ -46,6 +46,30 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self.original_keys = []
 
+    # The keys of every loaded block, in load order. The game files are dicts of
+    # key -> string; the editor only sees the strings, so the keys are kept here
+    # and travel with the host as the plugin's runtime state.
+
+    def export_runtime_state(self) -> Any:
+        return list(self.original_keys)
+
+    def restore_runtime_state(self, state: Any) -> None:
+        if state is not None:
+            self.original_keys = list(state)
+
+    def reset_runtime_state(self) -> None:
+        self.original_keys = []
+
+    def prepare_save_context(self, context: Any) -> None:
+        """Narrow the keys to the blocks that go into the file being saved."""
+        all_keys = context.runtime_state
+        if all_keys is None:
+            return
+        if all(0 <= index < len(all_keys) for index in context.block_indices):
+            self.original_keys = [all_keys[index] for index in context.block_indices]
+        else:
+            log_debug("[PokemonFR Plugin] Key snapshot is incomplete; keys were not narrowed for this file.")
+
     def load_data_from_json_obj(self, json_data: Any) -> Tuple[list, dict]:
         """Load data from json obj."""
         if not isinstance(json_data, dict):

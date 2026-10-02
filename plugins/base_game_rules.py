@@ -146,6 +146,51 @@ class BaseGameRules:
             return "\n\n".join([str(line) + "\n{END}" for line in data[0]])
         return data
     
+    # -- files and the state that goes with them -------------------------------
+
+    def get_file_formats(self) -> List[Any]:
+        """The files this game's text lives in: a list of ``core.formats.FileFormat``.
+
+        Each says which extensions it covers and in what shape their content
+        reaches ``load_data_from_json_obj`` and leaves ``save_data_to_json_obj``:
+        ``"json"`` (parsed), ``"text"`` (a string) or ``"bytes"``. A game with
+        its own binary table returns
+        ``[FileFormat((".tbl",), "bytes", "Text tables")]`` and parses the bytes
+        itself. Default: ``.json`` as JSON and ``.txt`` as text.
+        """
+        from core.formats import DEFAULT_FORMATS
+        return list(DEFAULT_FORMATS)
+
+    def export_runtime_state(self) -> Any:
+        """What the plugin learned while loading and needs again to save.
+
+        Some formats cannot be rebuilt from the strings alone (the keys of a
+        table, say). The plugin keeps that in itself while files are loaded;
+        the host takes a copy with this hook before anything that re-parses a
+        file -- reloading the changes file, a revert, restoring a session --
+        and gives it back through ``restore_runtime_state``. It is also stored
+        in the session file, so it must be plain JSON data.
+        Default: nothing to keep (None).
+        """
+        return None
+
+    def restore_runtime_state(self, state: Any) -> None:
+        """Take back what ``export_runtime_state`` returned. ``None`` means there was nothing."""
+
+    def reset_runtime_state(self) -> None:
+        """Forget the loading state: a new file or project is about to be loaded."""
+
+    def prepare_save_context(self, context: Any) -> None:
+        """Called before ``save_data_to_json_obj`` for each file of a project.
+
+        ``context`` is a ``core.formats.SaveContext``: which data blocks go into
+        the file (``block_indices``), the state exported before the save began
+        (``runtime_state``), the file's path inside the project and
+        ``existing_versions()`` -- the bytes of the file as it exists now
+        (translation copy first, then the source), for formats that are
+        written by patching the existing file. Default: nothing to prepare.
+        """
+
     def get_enter_char(self) -> str:
         """Get the enter char."""
         return '\n'

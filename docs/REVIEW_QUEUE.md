@@ -229,4 +229,18 @@ in `docs/OPEN_ITEMS.md`, not here.
       template's `prompts.json` is not the full common file: since 5.3 the missing sections are merged in.
       Try it: `python tools/new_plugin.py demo "Demo" --prefix DM`, start the application, pick "Demo", then
       delete `plugins/demo` and `tests/test_plugins/test_demo`.
+- [ ] **Saving a Twilight Princess project goes through new plumbing (5.5) — check it first.** Before a BMG is
+      built the plugin itself now loads the existing file (`prepare_save_context`; translation archive first,
+      then the source); the host used to do that and set `last_loaded_bmg` on the plugin. Writing the `.bmg`
+      and packing the archive are unchanged, except that the `.bmg` is written to a temporary file and
+      renamed. Test on a copy of the project: edit one line, save, reopen, and compare the packed archive
+      with one saved by the previous build.
+- [ ] **Opening a file needs a plugin that claims its extension (5.5).** `.bmg` used to be readable with any
+      plugin active; now only `zelda_bmg` declares it. Other extensions behave as before (`.json`, `.txt`;
+      inside a project an unclaimed extension is still read as text).
+- [ ] **Files inside an archive are decoded by their extension (5.5).** A `.json` or `.txt` member used to be
+      handed to the plugin as raw bytes; it now arrives parsed / as text, like a file on disk. `.bmg`
+      members are unchanged (bytes).
+- [ ] **Pokémon FireRed key handling moved into the plugin (5.5).** Save, revert and session restore must still
+      produce files with the original keys. Check one save and one revert if you still use that plugin.
 

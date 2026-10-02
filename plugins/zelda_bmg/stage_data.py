@@ -213,7 +213,7 @@ def derive_speaker_ids(msg_root: str, flow_index: Dict[Tuple[int, int], str]) ->
     """``{speaker_id: {name, votes, agreement}}`` learned from resolved flows."""
     from collections import Counter, defaultdict
 
-    from bmg_tool import BMGFile
+    from .bmg_tool import BMGFile
 
     from .msg_flow import flow_context_from_bmg
     from .window_kinds import decode_message_attributes

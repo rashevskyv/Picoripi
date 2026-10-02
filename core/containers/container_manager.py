@@ -32,12 +32,39 @@ _CONTAINER_TYPES: list[type[BaseArchiveContainer]] = [
     U8Container,
 ]
 
+# File extensions that mean "this is an archive, look inside". The built-in
+# containers are found by their magic bytes; the extensions only tell the
+# project scan which files to open.
+_ARCHIVE_EXTENSIONS: list[str] = [".arc", ".rarc", ".ark"]
+
 
 class ContainerManager:
     """
     Factory that selects the appropriate archive container implementation
     based on the magic bytes of the given raw data.
     """
+
+    @staticmethod
+    def register(container_class: type[BaseArchiveContainer], extensions: tuple[str, ...] = ()) -> None:
+        """Add an archive format (a plugin does this for its game's own container).
+
+        ``container_class`` is a ``BaseArchiveContainer`` whose ``can_handle``
+        recognises the format by its bytes; it is tried before the built-in
+        ones. ``extensions`` are the file extensions such archives carry
+        (``(".dat",)``), so the project scan opens them. Registering the same
+        class twice changes nothing.
+        """
+        if container_class not in _CONTAINER_TYPES:
+            _CONTAINER_TYPES.insert(0, container_class)
+        for extension in extensions:
+            extension = extension.lower()
+            if extension not in _ARCHIVE_EXTENSIONS:
+                _ARCHIVE_EXTENSIONS.append(extension)
+
+    @staticmethod
+    def extensions() -> tuple[str, ...]:
+        """Extensions of the archive files the project scan looks into."""
+        return tuple(_ARCHIVE_EXTENSIONS)
 
     @staticmethod
     def open(data: bytes) -> BaseArchiveContainer | None:

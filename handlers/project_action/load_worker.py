@@ -1,6 +1,7 @@
 from pathlib import Path
 from PyQt6.QtCore import QThread, pyqtSignal
-from core.data_manager import load_json_file, load_text_file
+from core import formats
+from core.containers import ContainerManager
 from utils.logging_utils import log_error
 
 
@@ -15,6 +16,16 @@ class ProjectLoadWorker(QThread):
         self.current_game_rules = current_game_rules
         self.blocks = list(project_manager.project.blocks) if project_manager and project_manager.project else []
         self.error_occurred = None
+
+    def _read_project_file(self, path):
+        """``(content, error)``: in the shape the plugin's format asks for; a whole archive as bytes;
+        a file no format claims as text."""
+        if Path(path).suffix.lower() in ('.arc', '.rarc'):
+            try:
+                return Path(path).read_bytes(), None
+            except Exception as e:
+                return None, f"Failed to read binary file: {e}"
+        return formats.read_file(self.current_game_rules, path, unknown=formats.UNKNOWN_IS_TEXT)
 
     def run(self):
         try:
@@ -40,7 +51,7 @@ class ProjectLoadWorker(QThread):
                     parts = block.source_file.split('.extracted/sources/')
                     if len(parts) > 1:
                         sub_path = parts[1]
-                        for ext in ['.arc/', '.rarc/', '.ark/']:
+                        for ext in [extension + '/' for extension in ContainerManager.extensions()]:
                             if ext in sub_path:
                                 idx = sub_path.find(ext)
                                 archive_rel_path = sub_path[:idx + len(ext) - 1]
@@ -57,24 +68,13 @@ class ProjectLoadWorker(QThread):
                 if is_archive:
                     try:
                         container = self.project_manager.get_archive_container(archive_rel_path, is_translation=False)
-                        file_content = container.read_file(inner_path)
+                        file_content = formats.decode(self.current_game_rules, inner_path, container.read_file(inner_path))
                     except Exception as e:
                         error = f"Failed to read archive member {archive_rel_path}/{inner_path}: {e}"
                 else:
                     source_path = self.project_manager.get_absolute_path(block.source_file)
                     if Path(source_path).exists():
-                        file_extension = Path(source_path).suffix.lower()
-                        if file_extension == '.json':
-                            file_content, error = load_json_file(source_path)
-                        elif file_extension in {'.bmg', '.bfn', '.arc', '.rarc'}:
-                            try:
-                                file_content = Path(source_path).read_bytes()
-                                error = None
-                            except Exception as e:
-                                file_content = None
-                                error = f"Failed to read binary file: {e}"
-                        else:
-                            file_content, error = load_text_file(source_path)
+                        file_content, error = self._read_project_file(source_path)
                     else:
                         error = "File does not exist"
 
@@ -124,10 +124,9 @@ class ProjectLoadWorker(QThread):
                     block_to_project_file_map[data_block_idx] = project_block_idx
                     block_names[str(data_block_idx)] = block.name
 
-            # Backup authoritative original keys from source files
-            plugin_keys_backup = None
-            if hasattr(self.current_game_rules, 'original_keys'):
-                plugin_keys_backup = list(self.current_game_rules.original_keys)
+            # What the plugin learned from the source files. Parsing the
+            # translations below must not add to it; the caller restores this.
+            plugin_keys_backup = formats.export_state(self.current_game_rules)
 
             # Load edited_file_data
             edited_file_data = []
@@ -145,24 +144,13 @@ class ProjectLoadWorker(QThread):
                 if is_archive:
                     try:
                         container = self.project_manager.get_archive_container(archive_rel_path, is_translation=True)
-                        file_content = container.read_file(inner_path)
+                        file_content = formats.decode(self.current_game_rules, inner_path, container.read_file(inner_path))
                     except Exception as e:
                         error = f"Failed to read translation archive member {archive_rel_path}/{inner_path}: {e}"
                 else:
                     translation_path = self.project_manager.get_absolute_path(block.translation_file, is_translation=True)
                     if Path(translation_path).exists():
-                        file_extension = Path(translation_path).suffix.lower()
-                        if file_extension == '.json':
-                            file_content, error = load_json_file(translation_path)
-                        elif file_extension in {'.bmg', '.bfn', '.arc', '.rarc'}:
-                            try:
-                                file_content = Path(translation_path).read_bytes()
-                                error = None
-                            except Exception as e:
-                                file_content = None
-                                error = f"Failed to read binary file: {e}"
-                        else:
-                            file_content, error = load_text_file(translation_path)
+                        file_content, error = self._read_project_file(translation_path)
                     else:
                         error = "Translation file does not exist"
 

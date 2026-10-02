@@ -189,7 +189,7 @@ def test_ProjectActionHandler_populate_blocks_from_project(mock_exists, mock_mw)
 
     mock_exists.return_value = True
 
-    with patch('handlers.project_action_handler.load_json_file') as mock_load:
+    with patch('core.formats.load_json_file') as mock_load:
         mock_load.return_value = ("{}", False)
 
         h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
@@ -293,7 +293,7 @@ def test_ProjectActionHandler_populate_blocks_internal_key(mock_exists, mock_mw)
     mock_mw.current_game_rules.load_data_from_json_obj.return_value = (["data1", "data2"], {"0": "other_key", "1": "target_key"})
 
     mock_exists.return_value = True
-    with patch('handlers.project_action_handler.load_json_file') as mock_load:
+    with patch('core.formats.load_json_file') as mock_load:
         mock_load.return_value = ("{}", False)
 
         h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
@@ -317,7 +317,7 @@ def test_ProjectActionHandler_populate_blocks_internal_key_missing(mock_exists, 
     mock_mw.current_game_rules.load_data_from_json_obj.return_value = (["data1"], {"0": "other_key"})
 
     mock_exists.return_value = True
-    with patch('handlers.project_action_handler.load_json_file') as mock_load:
+    with patch('core.formats.load_json_file') as mock_load:
         mock_load.return_value = ("{}", False)
 
         h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
@@ -344,7 +344,7 @@ def test_ProjectActionHandler_populate_blocks_with_translations(mock_exists, moc
     ]
 
     mock_exists.return_value = True
-    with patch('handlers.project_action_handler.load_json_file') as mock_load:
+    with patch('core.formats.load_json_file') as mock_load:
         mock_load.return_value = ("{}", False)
 
         h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
@@ -431,7 +431,7 @@ def test_ProjectLoadWorker_run_and_emits(mock_mw):
     mock_pm.get_absolute_path.return_value = "C:/test/a.json"
 
     mock_rules = MagicMock()
-    mock_rules.original_keys = ['key1']
+    mock_rules.export_runtime_state.return_value = ['key1']
     mock_rules.load_data_from_json_obj.return_value = (["data"], {"0": "Block A"})
 
     worker = ProjectLoadWorker(mock_pm, mock_rules)
@@ -443,7 +443,7 @@ def test_ProjectLoadWorker_run_and_emits(mock_mw):
     worker.progress.connect(lambda current, total: emitted_progress.append((current, total)))
 
     with patch('handlers.project_action_handler.Path.exists', return_value=True), \
-         patch('handlers.project_action_handler.load_json_file', return_value=("{}", False)):
+         patch('core.formats.load_json_file', return_value=("{}", False)):
         worker.run()
 
     assert len(emitted_results) == 1

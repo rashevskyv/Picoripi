@@ -59,19 +59,15 @@ def test_save_current_edits_native_packing():
     
     # Patch Path operations, BMGFile, and ContainerManager
     with patch("core.containers.ContainerManager.open") as mock_cm_open, \
-         patch("bmg_tool.BMGFile") as mock_bmg_file, \
+         patch("core.formats.write_file", return_value=(True, None)) as mock_write_file, \
          patch("core.data_state_processor.Path") as mock_path:
-         
+
          # Mock path exists and writes
          mock_path_instance = MagicMock()
          mock_path_instance.exists.return_value = True
          mock_path_instance.read_bytes.return_value = b"NEW_BMG_BYTES"
          mock_path.return_value = mock_path_instance
-         
-         # Mock BMGFile instance
-         mock_bmg_instance = MagicMock()
-         mock_bmg_file.return_value = mock_bmg_instance
-         
+
          # Mock container opening
          mw.project_manager.get_archive_container.return_value = mock_container
          mock_container.read_file.return_value = b"ORIGINAL_BMG_BYTES_FROM_DISK"
@@ -82,10 +78,22 @@ def test_save_current_edits_native_packing():
          # 3. Assert success and correctness
          assert result is True
          
-         # Verify BMG pre-loading: BMGFile load was called with original bytes from disk
-         mock_bmg_instance.load.assert_called_once_with(b"ORIGINAL_BMG_BYTES_FROM_DISK")
-         assert mw.current_game_rules.last_loaded_bmg == mock_bmg_instance
-         
+         # The plugin is told which file is about to be built and can read it as it exists now
+         mw.current_game_rules.prepare_save_context.assert_called_once()
+         context = mw.current_game_rules.prepare_save_context.call_args[0][0]
+         assert context.block_indices == [0]
+         assert context.relative_path == ".extracted/translation/bmgres.arc/zel_unit.bmg"
+         assert next(iter(context.existing_versions())) == b"ORIGINAL_BMG_BYTES_FROM_DISK"
+         mw.project_manager.get_archive_container.assert_any_call("bmgres.arc", is_translation=True)
+
+         # What the plugin built goes to the extracted file through the format layer
+         mock_write_file.assert_called_once_with(
+             mw.current_game_rules,
+             "C:/Temp/project/.extracted/translation/bmgres.arc/zel_unit.bmg",
+             b"NEW_BMG_BYTES",
+             unknown="text",
+         )
+
          # Verify container overlay: write_file was called with BMG path inside archive and modified bytes
          mock_container.write_file.assert_called_once_with("zel_unit.bmg", b"NEW_BMG_BYTES")
          
@@ -139,7 +147,7 @@ def test_save_current_edits_native_packing_exceeds_size():
     dsp = DataStateProcessor(mw)
 
     with patch("core.containers.ContainerManager.open") as mock_cm_open, \
-         patch("bmg_tool.BMGFile") as mock_bmg_file, \
+         patch("core.formats.write_file", return_value=(True, None)), \
          patch("core.data_state_processor.Path") as mock_path:
 
          mock_path_instance = MagicMock()

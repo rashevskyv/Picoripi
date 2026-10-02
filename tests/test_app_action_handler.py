@@ -51,7 +51,7 @@ class TestAppActionHandler(unittest.TestCase):
             self.ctx.current_game_rules
         )
 
-    @patch('handlers.app_action_handler.load_json_file')
+    @patch('core.formats.load_json_file')
     @patch('handlers.app_action_handler.QFileDialog.getOpenFileName')
     @patch('handlers.app_action_handler.QMessageBox.question')
     def test_open_file_dialog_basic(self, mock_question, mock_get_open, mock_load):

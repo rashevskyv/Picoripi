@@ -13,6 +13,15 @@ the line when it is done or moved into a plan.
 
 ## Found during WP5
 
+- **File dialogs of the project wizard and the settings path picker still list fixed extensions**
+  (`components/project_dialogs.py:240,260,594,617`, `ui/settings/path_picker_mixin.py:73`,
+  `handlers/list_selection/physical_selection_mixin.py:384`). A plugin's own format is reachable through
+  "All Files"; the single-file open/save dialogs already use `core.formats.dialog_filter`.
+- **Test leftovers under `C:\Temp\project`** (`.extracted/translation/bmgres.arc/zel_unit.bmg`, …): written by
+  `tests/test_core/test_data_state_processor_native_packing.py` before WP5.5 (it mocked `Path` but not the
+  file writer). The tests no longer write there; the folder can be deleted.
+- **Watch: `tests/test_ui/test_bfn_preview_widget.py::test_preview_initial_scale_with_background_fits_viewport_proportionally`**
+  failed once under `-n 8` (scale 0.596 vs 0.510) and passed on three reruns alone and in the next full run.
 - **`editor_review_enabled` and `max_reference_languages` have no settings-dialog control** (translation
   config keys). Add a checkbox in the AI Translation settings tab if the editor-review pass is to be used.
 - **Three scripts in `scratch/` import `plugins.zelda_bmg.text_fixer`** — the reason that module and

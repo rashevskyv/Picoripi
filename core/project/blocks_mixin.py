@@ -7,6 +7,7 @@ from typing import Any, List, Optional, Union
 
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
+from core import formats
 from core.containers import ContainerManager
 from core.project_models import Block
 
@@ -108,14 +109,20 @@ class BlocksMixin:
             log_warning("Source path is invalid or missing during sync.")
             return
 
-        supported_extensions = {'.json', '.txt', '.bmg', '.arc', '.rarc', '.ark', '.bfn'}
+        # The files the plugin reads, plus the archives the host looks into. Without
+        # a plugin the scan keeps the set it has always used.
+        archive_extensions = set(ContainerManager.extensions())
+        text_extensions = (
+            formats.supported_extensions(plugin) if plugin is not None else {'.json', '.txt', '.bmg', '.bfn'}
+        )
+        supported_extensions = text_extensions | archive_extensions
         existing_blocks = {b.source_file: b for b in self.project.blocks}
         found_sources = set()
         
 
         def process_source_file(filepath: Path, rel_path: str):
             """Process source file."""
-            if filepath.suffix.lower() in {'.arc', '.rarc', '.ark'}:
+            if filepath.suffix.lower() in archive_extensions:
                 archive_rel_path = rel_path
                 try:
                     raw = filepath.read_bytes()
@@ -124,7 +131,7 @@ class BlocksMixin:
                         log_warning(f"Unsupported archive format during sync: {filepath}")
                         return
 
-                    inner_extensions = {'.json', '.txt', '.bmg', '.bfn'}
+                    inner_extensions = text_extensions
                     for inner_path in container.list_files():
                         if Path(inner_path).suffix.lower() in inner_extensions:
                             block_src_rel = f".extracted/sources/{archive_rel_path}/{inner_path}"

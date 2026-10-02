@@ -192,7 +192,7 @@ def test_save_and_load_durable_session_json(dsp, mock_mw, tmp_path):
     mock_mw.data_store.edited_file_data = [["translated_json"]]
     mock_mw.data_store.current_block_idx = 0
     mock_mw.data_store.current_string_idx = 0
-    mock_mw.current_game_rules.original_keys = ["project_key"]
+    mock_mw.current_game_rules.export_runtime_state.return_value = ["project_key"]
 
     dsp.schedule_autosave()
     assert dsp._session_dirty is True
@@ -212,7 +212,6 @@ def test_save_and_load_durable_session_json(dsp, mock_mw, tmp_path):
 
     # Clear current state
     mock_mw.data_store = AppDataStore()
-    mock_mw.current_game_rules.original_keys = []
 
     # Load session (should prefer JSON)
     loaded = dsp.load_session_file()
@@ -220,7 +219,7 @@ def test_save_and_load_durable_session_json(dsp, mock_mw, tmp_path):
     assert mock_mw.data_store.data == [["source_json"]]
     assert mock_mw.data_store.edited_file_data == [["translated_json"]]
     assert mock_mw.data_store.edited_data == {(0, 0): "test_json"}
-    assert mock_mw.current_game_rules.original_keys == ["project_key"]
+    mock_mw.current_game_rules.restore_runtime_state.assert_called_with(["project_key"])
     assert dsp._session_dirty is False
 
 def test_load_session_fallback_to_pickle(dsp, mock_mw, tmp_path):

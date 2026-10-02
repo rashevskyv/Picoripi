@@ -48,6 +48,14 @@ HOOKS: Tuple[Hook, ...] = (
     # Not called by the validator: a plugin may need the file it loaded first.
     Hook("save_data_to_json_obj", "Turn blocks back into what is written to the file.", required=True),
     Hook("get_display_name", "Game name shown in the UI.", required=True, call=(), returns=str),
+    Hook("get_file_formats", "The files the game's text lives in: core.formats.FileFormat(extensions, mode, label) "
+         "with mode json, text or bytes.", call=(), returns=list),
+    Hook("export_runtime_state", "What the plugin learned while loading and needs again to save (plain JSON data).",
+         call=()),
+    Hook("restore_runtime_state", "Take back what export_runtime_state returned.", call=(None,)),
+    Hook("reset_runtime_state", "Forget the loading state before a new file or project is loaded.", call=()),
+    Hook("prepare_save_context", "Called before save_data_to_json_obj for each project file, with a "
+         "core.formats.SaveContext."),
     Hook("get_text_representation_for_editor", "Stored text of one subline as shown in the editor (tags to aliases).",
          call=(_LINE,), returns=str),
     Hook("get_text_representation_for_preview", "Stored string as shown in the preview list (newline marker, aliases).",
@@ -127,12 +135,6 @@ HOOKS: Tuple[Hook, ...] = (
          kind="attribute"),
     Hook("PROBLEM_MISSING_ICON_SPACING", "Id of the 'missing space next to an icon' problem.",
          kind="attribute", on_base=False),
-    Hook("original_keys", "Keys of the loaded file, kept by the host across save, revert and session restore "
-         "(read and written).", kind="attribute", on_base=False),
-    Hook("last_loaded_bmg", "The parsed message file the host writes back on save (read and written).",
-         kind="attribute", on_base=False),
-    Hook("export_runtime_session_state", "Plugin state to keep in the session file.", on_base=False),
-    Hook("restore_runtime_session_state", "Restore what export_runtime_session_state returned.", on_base=False),
     Hook("replace_runtime_names_for_ai", "Replace runtime name escapes with names in AI prompt text.", on_base=False),
     Hook("msg_to_editor_text", "Text of one parsed message for the bitmap-font preview.", on_base=False),
     Hook("get_preview_window_style", "Message-window style of a string for the preview.", on_base=False),

@@ -96,7 +96,7 @@ def _load_from_arcs(
 ) -> None:
     """Parse BMG files from RARC archives."""
     from core.containers.rarc_container import RarcContainer
-    from bmg_tool import BMGFile
+    from .bmg_tool import BMGFile
 
     for arc_path in arc_files:
         try:
@@ -143,7 +143,7 @@ def _load_from_bmgs(
     encoding: str,
 ) -> None:
     """Parse standalone BMG files."""
-    from bmg_tool import BMGFile
+    from .bmg_tool import BMGFile
     import re
 
     for bmg_path in bmg_files:

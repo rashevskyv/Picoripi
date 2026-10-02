@@ -188,6 +188,24 @@ class GameRules(BaseGameRules):
         self._last_map_mtime = 0
         self.load_translation_map()
 
+    def get_file_formats(self) -> list:
+        """Message files (.bmg) and bitmap fonts (.bfn) are binary."""
+        from core.formats import DEFAULT_FORMATS, FileFormat
+        return [FileFormat((".bmg",), "bytes", "BMG"), FileFormat((".bfn",), "bytes", "BFN"), *DEFAULT_FORMATS]
+
+    def prepare_save_context(self, context) -> None:
+        """A BMG is saved by patching the existing file: load the newest version that parses."""
+        from .bmg_tool import BMGFile
+        for raw in context.existing_versions():
+            try:
+                bmg = BMGFile()
+                bmg.load(raw)
+            except Exception as error:
+                log_warning(f"Cannot pre-load BMG for {context.relative_path}: {error}. Trying the next version.")
+                continue
+            self.last_loaded_bmg = bmg
+            return
+
     def get_dynamic_name_tags(self) -> dict:
         """Twilight Princess BMG dynamic name escape tags.
 
@@ -410,7 +428,7 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
 
         log_info("Parsing BMG binary data in zelda_bmg plugin...")
-        from bmg_tool import BMGFile
+        from .bmg_tool import BMGFile
         
         bmg = BMGFile()
         try:
@@ -443,7 +461,7 @@ class GameRules(BaseGameRules):
                 return b""
 
             strings_list = data[0]
-            from bmg_tool import BMGFile, BMGMessage
+            from .bmg_tool import BMGFile, BMGMessage
 
             bmg = self.last_loaded_bmg
             if not bmg:
@@ -602,7 +620,7 @@ class GameRules(BaseGameRules):
 
     def _load_bmg_cached(self, cache_key, read_bytes):
         """Parse a BMG only when the cache key is new; read lazily."""
-        from bmg_tool import BMGFile
+        from .bmg_tool import BMGFile
         bmg_cache = getattr(self, "_bmg_block_cache", None)
         if bmg_cache is None:
             bmg_cache = {}

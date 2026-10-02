@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_info, log_warning
+from core import formats
 from core.i18n import tr
 from handlers.project_action.load_worker import ProjectLoadWorker
 
@@ -120,9 +121,8 @@ class SessionMixin:
         self.mw.data_store.block_names = {}
         self.mw.block_to_project_file_map = {} # Mapping data_block_idx -> project_block_idx
 
-        # Reset plugin state if it tracks keys (like pokemon_fr)
-        if hasattr(self.mw.current_game_rules, 'original_keys'):
-            self.mw.current_game_rules.original_keys = []
+        # A plugin may keep what it learned from the files it loaded; start clean.
+        formats.reset_state(self.mw.current_game_rules)
 
         # Setup loading thread and progress dialog
         worker = ProjectLoadWorker(self.mw.project_manager, self.mw.current_game_rules)
@@ -165,9 +165,8 @@ class SessionMixin:
             self.mw.block_to_project_file_map = result['block_to_project_file_map']
             self.mw.data_store.block_to_project_file_map = result['block_to_project_file_map']
 
-            plugin_keys_backup = result['plugin_keys_backup']
-            if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
-                self.mw.current_game_rules.original_keys = plugin_keys_backup
+            # The state as it was after the source files, before the translations were parsed.
+            formats.restore_state(self.mw.current_game_rules, result.get('plugin_keys_backup'))
 
             # Update paths for old-style save/load compatibility
             self._ensure_project_compat_paths()

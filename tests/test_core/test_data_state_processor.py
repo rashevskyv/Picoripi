@@ -162,7 +162,7 @@ def test_revert_blocks_to_original(dsp, mock_mw):
     mock_mw.undo_manager.end_group.assert_called_with("REVERT_BLOCKS")
 
 
-@patch("core.data_state_processor.save_json_file")
+@patch("core.formats.save_json_file")
 def test_save_current_edits_no_project(mock_save, dsp, mock_mw):
     mock_mw.unsaved_changes = True
     mock_mw.edited_data = {(0, 0): "edited_0_0"}
@@ -179,7 +179,7 @@ def test_save_current_edits_no_project(mock_save, dsp, mock_mw):
     mock_mw.current_game_rules.load_data_from_json_obj.assert_called()
 
 
-@patch("core.data_state_processor.save_json_file")
+@patch("core.formats.save_json_file")
 def test_save_current_edits_project_mode_without_edited_json_path(mock_save, dsp, mock_mw, tmp_path):
     mock_save.return_value = True
 
@@ -218,7 +218,7 @@ def test_save_current_edits_no_changes(dsp, mock_mw):
     mock_mw.ui_provider.show_message.assert_called_with("Save", "No changes to save.", "info")
 
 
-@patch("core.data_manager.save_json_file")
+@patch("core.formats.save_json_file")
 def test_revert_edited_file_to_original_single_file(mock_save, dsp, mock_mw):
     mock_mw.ui_provider.ask_yes_no.return_value = True
     mock_save.return_value = True
@@ -234,7 +234,7 @@ def test_revert_edited_file_to_original_single_file(mock_save, dsp, mock_mw):
     mock_mw.ui_provider.show_message.assert_called_once()
 
 
-@patch("core.data_state_processor.save_json_file")
+@patch("core.formats.save_json_file")
 def test_save_current_edits_triggers_issue_cache_save(mock_save, dsp, mock_mw):
     mock_mw.unsaved_changes = True
     mock_mw.edited_data = {(0, 0): "edited_0_0"}

@@ -223,7 +223,7 @@ def test_real_project_load_worker_lifecycle(qtbot):
     worker = ProjectLoadWorker(project_manager, current_game_rules)
     
     with patch("handlers.project_action_handler.Path.exists", return_value=True), \
-         patch("handlers.project_action_handler.load_json_file", return_value=("{}", False)):
+         patch("core.formats.load_json_file", return_value=("{}", False)):
         try:
             with qtbot.waitSignal(worker.finished, timeout=30000) as blocker:
                 worker.start()

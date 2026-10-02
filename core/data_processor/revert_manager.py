@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import List, Any
+from core import formats
 from utils.logging_utils import log_debug, log_error
 
 class RevertManager:
@@ -274,7 +275,6 @@ class RevertManager:
 
     def revert_edited_file_to_original(self) -> bool:
         """Revert edited file to original."""
-        from ..data_manager import save_json_file, save_text_file
         is_project_mode = hasattr(self.mw, 'project_manager') and self.mw.project_manager and self.mw.project_manager.project
 
         if not is_project_mode:
@@ -294,40 +294,23 @@ class RevertManager:
             try:
                 output_data = self.mw.current_game_rules.save_data_to_json_obj(self.mw.data_store.data, self.mw.data_store.block_names)
 
-                save_file_success = False
-                file_extension = Path(self.mw.data_store.edited_json_path).suffix.lower()
-
-                if file_extension == '.json':
-                    save_file_success = save_json_file(self.mw.data_store.edited_json_path, output_data)
-                elif file_extension == '.txt':
-                    if isinstance(output_data, str):
-                        save_file_success = save_text_file(self.mw.data_store.edited_json_path, output_data)
-                    else:
-                        log_debug("Revert Error: Plugin for .txt file did not return a string for saving.")
-                        self.dsp._show_message("Revert Error", "Plugin save format error: expected a string for .txt file.", type="error")
-                        return False
-                elif file_extension == '.bmg':
-                    try:
-                        with Path(self.mw.data_store.edited_json_path).open('wb') as f:
-                            f.write(output_data)
-                        save_file_success = True
-                    except Exception as e:
-                        log_debug(f"Failed to write BMG: {e}")
-                        save_file_success = False
+                save_file_success, save_error = formats.write_file(
+                    self.mw.current_game_rules, self.mw.data_store.edited_json_path, output_data
+                )
+                if not save_file_success and save_error and "did not return" in save_error:
+                    log_debug(f"Revert Error: {save_error}")
+                    self.dsp._show_message("Revert Error", f"Plugin save format error: {save_error}", type="error")
+                    return False
 
                 if save_file_success:
                     self.mw.data_store.unsaved_changes = False
                     self.mw.data_store.edited_data = {}
                     self.mw.data_store.edited_sublines.clear()
 
-                    plugin_keys_backup = None
-                    if hasattr(self.mw.current_game_rules, 'original_keys'):
-                        plugin_keys_backup = list(self.mw.current_game_rules.original_keys)
-
+                    # Re-parsing what was written must not change what the plugin learned on load.
+                    plugin_state = formats.export_state(self.mw.current_game_rules)
                     reverted_data_list, _ = self.mw.current_game_rules.load_data_from_json_obj(output_data)
-
-                    if plugin_keys_backup is not None and hasattr(self.mw.current_game_rules, 'original_keys'):
-                        self.mw.current_game_rules.original_keys = plugin_keys_backup
+                    formats.restore_state(self.mw.current_game_rules, plugin_state)
 
                     self.mw.data_store.edited_file_data = reverted_data_list
 
@@ -358,9 +341,7 @@ class RevertManager:
                         project_block_to_data_blocks[p_b_idx] = []
                     project_block_to_data_blocks[p_b_idx].append(data_b_idx)
 
-                global_keys_backup = None
-                if hasattr(self.mw.current_game_rules, 'original_keys'):
-                    global_keys_backup = list(self.mw.current_game_rules.original_keys)
+                plugin_state = formats.export_state(self.mw.current_game_rules)
 
                 for p_b_idx, data_indices in project_block_to_data_blocks.items():
                     if p_b_idx >= len(blocks): 
@@ -372,39 +353,26 @@ class RevertManager:
                     file_data_list = [self.mw.data_store.data[d_idx] for d_idx in data_indices]
                     file_block_names = {str(i): self.mw.data_store.block_names.get(str(d_idx), 'Unknown') for i, d_idx in enumerate(data_indices)}
 
-                    if global_keys_backup is not None:
-                        sliced_keys = [global_keys_backup[d_idx] for d_idx in data_indices]
-                        self.mw.current_game_rules.original_keys = sliced_keys
+                    formats.prepare_save(self.mw.current_game_rules, formats.SaveContext(
+                        block_indices=list(data_indices),
+                        runtime_state=plugin_state,
+                        relative_path=str(block.translation_file),
+                    ))
 
                     final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)
 
-                    file_extension = Path(trans_path).suffix.lower()
-                    if file_extension == '.json':
-                        save_file_success = save_json_file(trans_path, final_obj_to_save)
-                    elif file_extension == '.txt':
-                        if isinstance(final_obj_to_save, str):
-                            save_file_success = save_text_file(trans_path, final_obj_to_save)
-                        else:
-                            save_file_success = False
-                    elif file_extension == '.bmg':
-                        try:
-                            with Path(trans_path).open('wb') as f:
-                                f.write(final_obj_to_save)
-                            save_file_success = True
-                        except Exception:
-                            save_file_success = False
-                    else:
-                        save_file_success = save_text_file(trans_path, str(final_obj_to_save))
+                    save_file_success, _save_error = formats.write_file(
+                        self.mw.current_game_rules, trans_path, final_obj_to_save, unknown=formats.UNKNOWN_IS_TEXT
+                    )
 
                     if not save_file_success:
                         success_all = False
                         break
 
+                formats.restore_state(self.mw.current_game_rules, plugin_state)
                 if success_all:
                     self.mw.data_store.unsaved_changes = False
                     self.mw.data_store.edited_data = {}
-                    if global_keys_backup is not None:
-                        self.mw.current_game_rules.original_keys = global_keys_backup
 
                     if hasattr(self.mw, 'project_action_handler') and self.mw.project_action_handler:
                         self.mw.project_action_handler._populate_blocks_from_project()
@@ -412,8 +380,6 @@ class RevertManager:
                     self.dsp._show_message("Project Reverted", "All project translation files reverted successfully.", type="info")
                     return True
                 else:
-                    if global_keys_backup is not None:
-                        self.mw.current_game_rules.original_keys = global_keys_backup
                     return False
 
             except Exception as e:

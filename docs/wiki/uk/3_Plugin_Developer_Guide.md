@@ -40,6 +40,10 @@ plugins/<your_id>/
 
 Новий плагін починається з `python tools/new_plugin.py <id> "<Display Name>" --prefix XX`: команда копіює `plugins/default_plugin`, перейменовує префікс ідентифікаторів проблем і відображувану назву та створює `tests/test_plugins/test_<id>/test_rules.py` із трьома готовими перевірками з `plugins/testing.py` (плагін завантажується, зразок переживає завантаження і збереження, валідатор проходить).
 
+**Формати файлів.** `get_file_formats()` повертає елементи `core.formats.FileFormat(extensions, mode, label)`; `mode` — у якому вигляді вміст файлу потрапляє в `load_data_from_json_obj` і виходить із `save_data_to_json_obj`: `"json"` (розібраний), `"text"` (рядок) або `"bytes"`. Типово це `.json` + `.txt`. Гра з власною таблицею повертає, наприклад, `[FileFormat((".tbl",), "bytes", "Text tables"), *DEFAULT_FORMATS]` і сама розбирає байти — імпорт проєкту, завантаження, збереження й діалоги файлів працюють без змін у хості. Архівний формат гри додається через `ContainerManager.register(MyContainer, extensions=(".pak",))`.
+
+**Стан, що супроводжує файли.** Якщо для збереження потрібне щось, чого немає в рядках (ключі таблиці, розібраний бінарний файл), тримайте це в плагіні й реалізуйте `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` (прості JSON-дані; хост зберігає їх між перезавантаженнями, відкатами й сесіями) та `prepare_save_context(context)` (викликається перед побудовою кожного файлу проєкту; `context.block_indices`, `context.runtime_state`, `context.existing_versions()` видає поточні байти файлу, спершу переклад). Хост ніколи не читає атрибути плагіна. Приклади: `plugins/pokemon_fr/rules.py` і `plugins/zelda_bmg/rules.py`.
+
 `translation_prompts/prompts.json` може містити лише розділи, які гра змінює (зазвичай `translation`): решта підмішується з `plugins/common/defaults/prompts.json`.
 
 `default_plugin.GameRules.get_display_name()` повертає `Default Plugin Template`. `get_capabilities()` навмисно повертає `set()`.
