@@ -19,9 +19,6 @@ the line when it is done or moved into a plan.
   fire. The output was piped through `tail`, so the test name was lost. The five later `-n 2` runs and the
   full `-n 8` runs were clean. If it recurs, rerun with `-v` into a log file — the last scheduled test per worker is
   the suspect.
-- **Local Qt differs from the pins.** `requirements.txt` pins `PyQt6==6.6.1` / `PyQt6-Qt6==6.6.1`, but both
-  `venv/` and `.venv/` hold PyQt6 6.11.0 / Qt 6.11.1, so every local test run uses 6.11. Either reinstall the
-  environment from the pins or move the pins to 6.11.
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.
