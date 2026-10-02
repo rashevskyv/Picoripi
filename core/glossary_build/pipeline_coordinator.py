@@ -17,8 +17,9 @@ Translation (pass 3) is a separate step run on demand: ``run_translate``.
 """
 from __future__ import annotations
 
+import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Dict, Optional, Sequence
 
 from core.glossary_manager import (
@@ -36,6 +37,7 @@ from .ai_adapters import (
     make_propose,
     make_synthesize_stack,
 )
+from .decisions import decided_block, families, is_decided, select_related
 from .describe_driver import DescribeResult, describe_term
 from .occurrence_bridge import occurrences_by_term
 from .parallel import DEFAULT_RETRY_DELAY, DEFAULT_WORKERS, run_with_retry_pass
@@ -60,6 +62,9 @@ MODE_AUTO = "auto"
 
 # Statuses whose entries still want a description (targets of the describe pass).
 _DESCRIBE_TARGETS = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS})
+# A family is translated on one thread, member after member; a bigger one is
+# split so that one failed call does not send a long run of terms to the retry pass.
+FAMILY_BATCH = 8
 
 
 def is_unnamed_voice_term(term: str) -> bool:
@@ -297,43 +302,66 @@ class GlossaryBuildCoordinator:
             and (include_confirmed or e.status != STATUS_CONFIRMED)
             and not is_unnamed_voice_term(e.original)
         ]
-        # Families together, the head term first ("Hylian" before "Hylian
-        # Shield"): results are stored in this order, so a later pass over the
-        # glossary reads the same file whatever the answer order was.
-        targets.sort(key=self._family_order)
+        # What is already settled and is not being redone in this pass.
+        redone = {e.original for e in targets}
+        settled = [e for e in self.manager.get_entries() if is_decided(e) and e.original not in redone]
+        # Translations stored during this pass; read by the worker threads.
+        fresh: list = []
+        fresh_lock = threading.Lock()
 
-        def translate(entry):
-            return propose_translations(
-                entry.original,
-                entry.notes or "",
-                propose,
-                normalize=self.manager.normalize_term,
-            )
+        # The unit of work is a family, not a term: its members are translated
+        # one after another on one thread, each seeing what its siblings just
+        # got, so "Clawshots" is not decided without knowing "Clawshot". Families
+        # run in parallel and in a fixed order.
+        units = [
+            family[start:start + FAMILY_BATCH]
+            for family in families(targets)
+            for start in range(0, len(family), FAMILY_BATCH)
+        ]
 
-        def store(entry, tr):
-            if not tr.active:
-                return
-            self._update(
-                entry.original,
-                translation=tr.active,
-                notes=entry.notes,
-                status=STATUS_TRANSLATED,
-                translation_variants=tuple(tr.variants),
-            )
-            result.translated += 1
+        def translate(unit):
+            siblings: list = []
+            out = []
+            for entry in unit:
+                with fresh_lock:
+                    known = settled + fresh + siblings
+                block = decided_block(
+                    select_related(known, f"{entry.original}\n{entry.notes or ''}", exclude=entry.original),
+                    "translate",
+                )
+                tr = propose_translations(
+                    entry.original,
+                    entry.notes or "",
+                    lambda term, description, block=block: propose(term, description, block),
+                    normalize=self.manager.normalize_term,
+                )
+                out.append((entry, tr))
+                if tr.active:
+                    siblings.append(replace(entry, translation=tr.active, status=STATUS_TRANSLATED))
+            return out
 
-        self._pooled("translate", targets, translate, store, result)
+        def store(unit, translated):
+            for entry, tr in translated:
+                if not tr.active:
+                    continue
+                updated = self._update(
+                    entry.original,
+                    translation=tr.active,
+                    notes=entry.notes,
+                    status=STATUS_TRANSLATED,
+                    translation_variants=tuple(tr.variants),
+                )
+                result.translated += 1
+                if updated is not None:
+                    with fresh_lock:
+                        fresh.append(updated)
+
+        self._pooled("translate", units, translate, store, result)
         if self._cancelled():
             result.cancelled = True
         return result
 
     # -- passes -------------------------------------------------------------
-
-    def _family_order(self, entry) -> tuple:
-        """Sort key that keeps a family of terms together, shortest name first."""
-        key = self.manager.canonical_key(entry.original)
-        tokens = key.split()
-        return (tokens[0] if tokens else "", len(tokens), key, entry.original)
 
     def _update(self, term: str, **fields):
         """``manager.update_entry`` that does not fail silently.
@@ -423,10 +451,17 @@ class GlossaryBuildCoordinator:
             self.call, self.prompts, target_lang=self.target_lang, mask=self.mask
         )
         aggregated: Dict[str, AggregatedTerm] = {}
+        # The sweep is told what the glossary has already settled for the words
+        # in each chunk, so it does not re-propose those terms under new spellings.
+        settled = [e for e in self.manager.get_entries() if is_decided(e)]
+
+        def sweep(chunk):
+            return extract(chunk, decided_block(select_related(settled, chunk.text), "extract"))
+
         self._pooled(
             "sweep",
             chunks,
-            extract,
+            sweep,
             # Keyed by canonical key, so "Hylian Shields" in one chunk and
             # "Hylian Shield" in another are one term with one set of fragments.
             lambda chunk, raws: merge_raw_terms(

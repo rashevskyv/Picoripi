@@ -9,6 +9,7 @@ from core.tag_utils import mask_all_tags_including_visual_markers
 from components.ai_status_dialog import AIStatusDialog
 from handlers.translation.ai_worker import AIWorker
 from core.i18n import tr
+from core.glossary_build.decisions import is_decided
 
 class GlossaryBuilderHandler:
     """Handler for glossary builder operations."""
@@ -177,7 +178,10 @@ class GlossaryBuilderHandler:
             'string_contexts': string_contexts,
             'chunk_size': chunk_size,
             'dialog_steps': self._status_dialog.steps,
-            'block_id': block_id
+            'block_id': block_id,
+            'decided_entries': [
+                e for e in (self._glossary_manager.get_entries() if self._glossary_manager else []) if is_decided(e)
+            ],
         }
 
         self._worker = AIWorker(provider, prompt_composer, task_details)

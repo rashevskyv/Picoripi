@@ -77,6 +77,23 @@ def _fill(template: str, **fields: str) -> str:
     return out
 
 
+def _fill_with_decided(template: str, decided: str, **fields: str) -> str:
+    """Fill a user template that may carry a ``{decided}`` slot.
+
+    A template without the slot (an older or customised prompt file) still gets
+    the block, in front of everything else; an empty block leaves no hole.
+    """
+    if not decided:
+        # Take the slot out together with its blank line. The game text itself
+        # is never touched: its own blank lines must reach the model as they are.
+        for slot in ("{decided}\n\n", "\n\n{decided}", "{decided}"):
+            template = template.replace(slot, "")
+        return _fill(template, **fields)
+    if "{decided}" in template:
+        return _fill(template, decided=decided, **fields)
+    return f"{decided}\n\n{_fill(template, **fields)}"
+
+
 def _messages(system: str, user: str) -> list:
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
@@ -92,11 +109,14 @@ def make_extract(
     cfg = prompts["extract"]
     system = _fill(cfg["system_prompt"], target_lang=target_lang)
 
-    def extract(chunk) -> List[RawTerm]:
+    def extract(chunk, decided: str = "") -> List[RawTerm]:
+        """``decided``: the block of settled entries related to this chunk, if any."""
         text = chunk.text if hasattr(chunk, "text") else str(chunk)
         if mask:
             text = mask(text)
-        user = _fill(cfg["user_prompt_template"], text_chunk=text, target_lang=target_lang)
+        user = _fill_with_decided(
+            cfg["user_prompt_template"], decided, text_chunk=text, target_lang=target_lang
+        )
         data = parse_json_array(call(_messages(system, user)))
         out: List[RawTerm] = []
         for item in data:
@@ -231,9 +251,10 @@ def make_propose(
     cfg = prompts["translate"]
     system = _fill(cfg["system_prompt"], target_lang=target_lang)
 
-    def propose(term: str, description: str) -> List[Dict[str, str]]:
-        user = _fill(
-            cfg["user_prompt_template"], term=term, description=description, target_lang=target_lang
+    def propose(term: str, description: str, decided: str = "") -> List[Dict[str, str]]:
+        """``decided``: the block of settled renderings of related terms, if any."""
+        user = _fill_with_decided(
+            cfg["user_prompt_template"], decided, term=term, description=description, target_lang=target_lang
         )
         data = parse_json_array(call(_messages(system, user)))
         out: List[Dict[str, str]] = []

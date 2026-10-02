@@ -4,6 +4,7 @@ from core.translation.providers import BaseTranslationProvider, ProviderResponse
 from core.translation.ai_error_handler import handle_ai_error
 from core.translation.chunk_result import verify_chunk_ids
 from core.translation.transport import ErrorKind
+from core.glossary_build.decisions import decided_block, decided_from_reply, select_related
 from core.glossary_build.parallel import MAX_CONSECUTIVE_FAILURES, run_pool
 from core.translation.layout_contract import (
     editor_text_for_layout,
@@ -77,6 +78,8 @@ class AIWorkerRunMixin:
                 string_contexts = self.task_details.get('string_contexts', {}) or {}
                 raw_chunk_size = self.task_details.get('chunk_size', 8000)
                 dialog_steps = self.task_details.get('dialog_steps', [])
+                # What the glossary had settled when the build started.
+                decided_entries = list(self.task_details.get('decided_entries') or [])
 
                 # Normalize chunk_size
                 try:
@@ -170,6 +173,13 @@ class AIWorkerRunMixin:
                     self.step_updated.emit(1, step_text, AIStatusDialog.STATUS_IN_PROGRESS)
 
                     user_prompt = user_template.format(text_chunk=chunk)
+                    # Each chunk is told what is already settled for its words --
+                    # by the glossary and by the earlier chunks of this run.
+                    decided = decided_block(
+                        select_related(decided_entries + decided_from_reply(aggregated_terms), chunk), "build"
+                    )
+                    if decided:
+                        user_prompt = f"{decided}\n\n{user_prompt}"
                     messages = [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}

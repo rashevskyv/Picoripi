@@ -103,3 +103,15 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **Forced re-translation skips confirmed entries (3.1).** "Re-translate all" no longer overwrites a
       translation you confirmed. If you sometimes want that, the coordinator has `include_confirmed=True`,
       but no UI switch yet.
+- [ ] **Build requests carry "already decided" lines (3.3).** Translating `Clawshots` now shows the model
+      `Clawshot → Кігтемет`; a sweep chunk is shown the settled entries for the words it contains. Check on a
+      real build that (a) a family (`Hylia`, `Lake Hylia`, `Hylian Shield`) comes out with one root, and
+      (b) the sweep does not start skipping terms it should still report — the block says "do not list these
+      again unless this text shows a new sense".
+- [ ] **"Related" is a crude word match (3.3).** Two terms are related when they share a word of 3+ letters,
+      compared by its first 5 letters (`Hylia`/`Hylian`, `Twili`/`Twilight`). It can pull in an unrelated
+      term with the same opening letters. Look at a few prompts in `ai_traffic.log` and say whether the lists
+      are useful or noisy.
+- [ ] **The translate pass counts families, not terms (3.3).** Progress and the "failed" number in the build
+      dialog are now per family batch (up to 8 terms). One failed call sends its whole batch to the retry pass.
+
