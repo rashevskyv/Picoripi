@@ -12,9 +12,9 @@ Write-Host "==================================================" -ForegroundColor
 for ($i = 1; $i -le $TotalRuns; $i++) {
     Write-Host "`n--- RUN $i OF $TotalRuns ---" -ForegroundColor Yellow
     
-    # Run the parallel test suite script
+    # Run the full check (test_all.ps1 calls tasks.py: tests, performance lane, linter)
     $StartTime = Get-Date
-    powershell -ExecutionPolicy Bypass -File .\test_all.ps1
+    powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'test_all.ps1')
     $Duration = (Get-Date) - $StartTime
     
     if ($LASTEXITCODE -ne 0) {

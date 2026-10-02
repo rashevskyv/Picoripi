@@ -1,37 +1,33 @@
-# Run from the repository root even when invoked from another working directory.
+# The full check before a commit: tests, the performance lane, the linter.
+# The commands themselves live in tasks.py; it picks the project's Python environment.
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location -LiteralPath $RepoRoot
 
-$Python = Join-Path $RepoRoot "venv\Scripts\python.exe"
-if (-not (Test-Path -LiteralPath $Python)) {
-    Write-Host "`n[ERROR] Python executable not found: $Python" -ForegroundColor Red
+$Launcher = Get-Command python, py -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $Launcher) {
+    Write-Host "`n[ERROR] Python was not found on PATH." -ForegroundColor Red
     exit 1
 }
 
-$env:PYTHONPATH = $RepoRoot
+$Steps = @(
+    @{ Title = "Unit & Worker Tests (Parallel)"; Command = "test" },
+    @{ Title = "Performance Tests"; Command = "test-perf" },
+    @{ Title = "Ruff Linter Checks"; Command = "lint" }
+)
 
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host "Running Picoripi Test Suite & Verification" -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host "`n[1/3] Running Unit & Worker Tests (Parallel)..." -ForegroundColor Yellow
-& $Python -m pytest -n auto -m "not performance" tests/
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n[ERROR] Unit & Worker Tests Failed!" -ForegroundColor Red
-    exit $LASTEXITCODE
-}
 
-Write-Host "`n[2/3] Running Performance Tests (Parallel)..." -ForegroundColor Yellow
-& $Python -m pytest -n auto -m performance tests/test_performance.py
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n[ERROR] Performance Tests Failed!" -ForegroundColor Red
-    exit $LASTEXITCODE
-}
-
-Write-Host "`n[3/3] Running Ruff Linter Checks..." -ForegroundColor Yellow
-& $Python -m ruff check .
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n[ERROR] Ruff Linter Checks Failed!" -ForegroundColor Red
-    exit $LASTEXITCODE
+$Number = 0
+foreach ($Step in $Steps) {
+    $Number++
+    Write-Host "`n[$Number/$($Steps.Count)] Running $($Step.Title)..." -ForegroundColor Yellow
+    & $Launcher.Source tasks.py $Step.Command
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "`n[ERROR] $($Step.Title) Failed!" -ForegroundColor Red
+        exit $LASTEXITCODE
+    }
 }
 
 Write-Host "`n=========================================" -ForegroundColor Green

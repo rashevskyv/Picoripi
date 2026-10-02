@@ -1,19 +1,14 @@
 @echo off
+cd /d "%~dp0"
 
-:: Check if the virtual environment folder exists
-if not exist ".venv" (
-    echo [ERROR] Virtual environment '.venv' not found.
+:: tasks.py starts main.py in the project's environment (.venv, then venv).
+if not exist ".venv" if not exist "venv" (
+    echo [ERROR] No virtual environment ^('.venv' or 'venv'^) found.
     echo Please run setup.bat first.
     pause
     exit /b 1
 )
 
-:: Activate the environment
-echo Activating environment...
-call .venv\Scripts\activate.bat
-
-:: Run the main Python script
 echo Starting the program...
-python main.py
-
-echo.
+python tasks.py run %*
+if errorlevel 1 pause

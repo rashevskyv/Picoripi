@@ -32,7 +32,7 @@ fi
 
 if [ -f "$MAIN_FILE" ]; then
     echo "Запускається $MAIN_FILE..."
-    python "$MAIN_FILE"
+    python tasks.py run "$@"
 else
     echo "Файл $MAIN_FILE не знайдено!"
     exit 1

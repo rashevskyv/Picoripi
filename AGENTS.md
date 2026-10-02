@@ -42,17 +42,15 @@ Desktop translation editor (Python, PyQt6) with game plugins. This file is the o
 ## Commands
 
 ```powershell
-# test (parallel only; a serial run takes hours)
-$env:PYTHONPATH="."; $env:QT_QPA_PLATFORM="offscreen"; .\venv\Scripts\python.exe -m pytest -n auto -q tests/
-# lint
-.\venv\Scripts\python.exe -m ruff check .
-# graph
-graphify update .
-# smoke
-$env:QT_QPA_PLATFORM="offscreen"; .\venv\Scripts\python.exe -c "import main"
+python tasks.py test          # parallel only (a serial run takes hours); extra arguments go to pytest
+python tasks.py lint
+python tasks.py smoke         # import main offscreen + validate every plugin
+python tasks.py docs-check    # document headers, docs/INDEX.md, tests/test_docs
+python tasks.py graph
 ```
 
-Performance lane (excluded by default): add `-m performance tests/test_performance.py`.
+`tasks.py` picks the project's environment (`venv`/`.venv`) itself; `python tasks.py` lists every command
+(`test-perf` is the performance lane, excluded by default).
 Tests: focused unit tests for logic; real `pytest-qt` lifecycle tests for workers; `qtbot.waitSignal` /
 `waitUntil` instead of sleeps; explicit fakes over `MagicMock`.
 
