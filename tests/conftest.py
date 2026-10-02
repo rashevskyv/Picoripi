@@ -1,7 +1,13 @@
 import pytest
 import gc
+
+from utils import app_mode
+
+# Nobody is at the screen and most tests run no event loop: background work runs inline, nothing modal is shown.
+# A test of a threaded path switches this off for itself (monkeypatch.setattr(app_mode, "headless", False)).
+app_mode.headless = True
 from PyQt6 import sip
-from PyQt6.QtCore import QEvent, QThread, Qt
+from PyQt6.QtCore import QEvent, Qt
 # Monkeypatch Qt item roles for backwards compatibility
 Qt.EditRole = Qt.ItemDataRole.EditRole
 Qt.DisplayRole = Qt.ItemDataRole.DisplayRole
@@ -159,41 +165,6 @@ def qapp():
         app = QApplication([])
     yield app
 
-def _stop_lingering_qthreads():
-    """Best-effort: stop any still-running QThreads before gc tears them down.
-
-    Letting a running QThread be garbage-collected aborts the process with
-    "QThread: Destroyed while thread is still running". The SpellcheckerManager
-    in particular leaves a background worker thread alive across many tests,
-    which previously caused intermittent worker crashes under pytest-xdist.
-    We walk all live QObjects we can see and ask each running QThread to quit.
-    """
-    # Walk all live QObjects on the heap and find QThreads.
-    threads = [obj for obj in gc.get_objects() if isinstance(obj, QThread)]
-    # Never the thread this runs on. QThread.currentThread() hands out a wrapper
-    # for the GUI thread, and a mock that was compared with it keeps that wrapper
-    # alive until the next gc pass. quit() on it sets Qt's quitNow flag for the
-    # whole process: every later QEventLoop.exec() returns at once, so windows
-    # are never exposed, timers never fire and qtbot waits time out -- for the
-    # rest of that xdist worker's life.
-    current = QThread.currentThread()
-    for thread in threads:
-        try:
-            if thread is current or thread == current or not thread.isRunning():
-                continue
-            # Try the manager-provided cooperative shutdown hooks if any object
-            # holds the thread; we don't have a reference to its worker, so we
-            # rely on QThread.quit() + a short wait. Workers that watch
-            # threading.Event or check thread.isInterruptionRequested() will
-            # exit; otherwise we time out and move on.
-            thread.requestInterruption()
-            thread.quit()
-            thread.wait(500)
-        except RuntimeError:
-            # The C++ object may already be gone; that's fine.
-            pass
-
-
 def _describe_widget(widget) -> str:
     if widget is None:
         return "None"
@@ -270,10 +241,6 @@ def cleanup_qt(qapp):
     # flush, this test's deleteLater() runs inside a later test's event loop.
     QApplication.processEvents()
     QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-
-    # Stop any background QThreads before gc.collect() — destroying a running
-    # QThread aborts the process.
-    _stop_lingering_qthreads()
 
     # Force garbage collection
     gc.collect()

@@ -789,9 +789,10 @@ def get_companion_client_from_mw(mw: Any, timeout: int = 15) -> Optional[Compani
     if auto_sync is None:
         auto_sync = True
 
-    if not auto_sync or not server_url:
+    # Settings can hold anything; only a real address may start a network thread.
+    if not auto_sync or not isinstance(server_url, str) or not server_url.strip():
         return None
-    return CompanionSyncClient(server_url, token, timeout=timeout)
+    return CompanionSyncClient(server_url, token if isinstance(token, str) else "picoripi", timeout=timeout)
 
 
 def resolve_project_glossary_info(mw: Any) -> Tuple[Optional[str], Optional[Path], Optional[Any]]:

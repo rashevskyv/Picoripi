@@ -13,6 +13,22 @@ the line when it is done or moved into a plan.
 
 ## Found during WP6
 
+- **Two more test switches remain in product code (6.4):** `_is_test_mode` on the parent window (17 mentions:
+  search and spellcheck dialogs, tag aliases, preview cache, block list, report dialog) and `mw.is_testing`
+  (close handler, issue scan, Companion on close). Both are attributes somebody sets, not detection, but they
+  duplicate `utils.app_mode.headless`; fold them into it.
+- **`headless` is one switch for two things (6.4):** "run background work inline" and "show nothing modal".
+  A test of a threaded path switches it off for itself. Split it only if a caller needs one without the other.
+- **Mock tolerance in product code (6.4):** `ui/updaters/preview_renderer.py` and
+  `handlers/text_operation/preview_mixin.py` wrap `QTextCursor(...)` in `try/except TypeError` and probe with
+  `hasattr(cursor, 'beginEditBlock')` only because tests hand them mocks.
+- **The compatibility modules still re-export names nobody imports from them** (`Path`, `QMessageBox`, ... in
+  `handlers/project_action_handler.py`, `core/project_manager.py` and ten more). Tests patch class attributes
+  through some of those paths (`...project_action_handler.QFileDialog.getOpenFileName`). Remove with the shims
+  themselves once callers import from the real packages.
+- **`plugins/zelda_bmg/window_frame_loader.py::_KNOWN_DUMP` is a path on the author's machine** (`E:\Emulators\...`).
+  It should come from the project or the plugin settings.
+
 - **`sync_push_on_close` still syncs on the calling thread when there is no window (6.3)** — headless callers
   and `mw.is_testing` (a test switch in product code; 6.4 removes the `pytest` checks, this attribute stays
   until the close path gets an injected "show dialog" decision).

@@ -271,6 +271,15 @@ in `docs/OPEN_ITEMS.md`, not here.
 
 ## WP6 — stability
 
+- [ ] **The application behaves as before with the test switches gone (6.4).** What the tests used to skip now
+      depends on `utils.app_mode.headless` being `False` in the real application — which it is by default.
+      One pass over: save (Ctrl+S: progress window, then saved), project open (progress window), search
+      (results arrive after a moment, not instantly), spellcheck window, the AI "done" popup, global hotkeys
+      (Alt+Shift+…), spell-check underlines appearing while typing.
+- [ ] **Dialogs that the mixins open (6.4).** The mixins use the real `QMessageBox`, `Path`, `QTextCursor`
+      again instead of a proxy. Anything that compared types (`isinstance(x, Path)`) now works where it could
+      raise `TypeError` before; look for behaviour that *changed* in: project open/import/delete block, glossary
+      edit and delete confirmations, autofix confirmation, paste block.
 - [ ] **Companion Push / Pull / Test Connection from the glossary window and from Settings (6.3).** Each shows a
       progress window with Cancel; the result message appears after it. With a real server: push, then pull —
       the glossary view refreshes as before. With an unreachable server: Cancel returns at once.

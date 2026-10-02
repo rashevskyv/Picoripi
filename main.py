@@ -1,3 +1,4 @@
+from utils import app_mode
 import sys
 import json
 import importlib
@@ -215,7 +216,7 @@ class MainWindow(QMainWindow):
         self.current_game_rules: Optional[BaseGameRules] = None
         self.tag_checker_handler = None
         self.plugin_actions: Dict[str, Any] = {}
-        self.is_testing = 'pytest' in sys.modules
+        self.is_testing = app_mode.headless
         self.glossary_builder_handler = None
 
     def _init_visual_settings(self) -> None:

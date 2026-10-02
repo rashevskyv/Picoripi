@@ -1,7 +1,6 @@
 """Load TP message-window frames from a local retail dump (res/Layout)."""
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -10,6 +9,7 @@ from PyQt6.QtCore import QRectF, Qt
 from PyQt6.QtGui import QColor, QImage, QPainter
 
 from core.containers.rarc_container import RarcContainer
+from utils import app_mode
 
 from .bti_image import bti_to_qimage
 from .j2d_blo import parse_blo, J2DPane
@@ -119,8 +119,8 @@ def find_layout_root(mw=None) -> Optional[Path]:
                 if src:
                     candidates.append(Path(str(src)))
                     break
-    # The user's retail dump is used by the app, not by unit tests.
-    if not os.environ.get("PYTEST_CURRENT_TEST") and _KNOWN_DUMP.is_dir():
+    # The retail dump on this machine is for the interactive application only.
+    if not app_mode.headless and _KNOWN_DUMP.is_dir():
         candidates.append(_KNOWN_DUMP)
     seen = set()
     for start in candidates:

@@ -1,3 +1,4 @@
+from utils import app_mode
 import pytest
 pytestmark = pytest.mark.serial
 from unittest.mock import MagicMock, patch
@@ -260,8 +261,8 @@ def test_SpellcheckerManager_rehighlight_debounce(mock_mw):
     sm._rehighlight_timer = MagicMock()
     sm._trigger_rehighlight = MagicMock()
     
-    # Trigger results ready with cache updated under simulated production environment (no 'pytest' in modules)
-    with patch('sys.modules', {}):
+    # In the running application the rehighlight is debounced by the timer
+    with patch.object(app_mode, 'headless', False):
         sm._on_spellcheck_results_ready({"apple": True}, {})
         sm._rehighlight_timer.start.assert_called_once()
         sm._trigger_rehighlight.assert_not_called()
@@ -290,7 +291,6 @@ def test_SpellcheckerManager_load_dictionary_async(mock_from_files, mock_mw, tmp
 
 @patch('core.spellchecker_manager.Dictionary.from_files')
 def test_SpellcheckerManager_async_initialization_flow(mock_from_files, mock_mw, tmp_path, qtbot):
-    import sys
     
     dict_dir = tmp_path / "dict"
     dict_dir.mkdir()
@@ -300,10 +300,8 @@ def test_SpellcheckerManager_async_initialization_flow(mock_from_files, mock_mw,
     mock_dict = MagicMock()
     mock_from_files.return_value = mock_dict
     
-    # Construct a mock sys.modules without 'pytest' to force the async path
-    fake_modules = {k: v for k, v in sys.modules.items() if k != 'pytest'}
     
-    with patch('sys.modules', fake_modules):
+    with patch.object(app_mode, 'headless', False):
         sm = SpellcheckerManager(mock_mw, language='uk', custom_dict_path=dict_dir)
         
         # We wait for the dictionary_loaded signal using qtbot
@@ -489,14 +487,11 @@ def test_SpellcheckerManager_shutdown_mid_flight(mock_mw):
 
 
 def test_SpellcheckerManager_async_initialization_race_conditions(mock_mw, qtbot):
-    import sys
     import time
     
-    # Simulating async initialization by calling it in a separate thread
-    # but we must make sure 'pytest' is temporarily removed from sys.modules
-    fake_modules = {k: v for k, v in sys.modules.items() if k != 'pytest'}
+    # The threaded initialisation, as in the running application
     
-    with patch('sys.modules', fake_modules), \
+    with patch.object(app_mode, 'headless', False), \
          patch('core.spellchecker_manager.Dictionary.from_files') as mock_from_files:
          
         # Make Dictionary.from_files sleep a bit to simulate slow loading

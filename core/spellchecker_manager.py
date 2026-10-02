@@ -1,4 +1,5 @@
 # /home/runner/work/RAG_project/RAG_project/core/spellchecker_manager.py
+from utils import app_mode
 from utils.atomic_io import atomic_write_json
 import re
 import threading
@@ -135,8 +136,7 @@ class SpellcheckerManager(QObject):
         self._rehighlight_timer.setInterval(100)  # 100ms debounce interval
         self._rehighlight_timer.timeout.connect(self._trigger_rehighlight)
 
-        import sys
-        if 'pytest' in sys.modules:
+        if app_mode.headless:
             self._ensure_initialized()
 
     def _ensure_initialized(self):
@@ -180,8 +180,7 @@ class SpellcheckerManager(QObject):
         # Keep worker_thread attribute to preserve test compatibility
         self.worker_thread = self.worker
         
-        import sys
-        if 'pytest' in sys.modules:
+        if app_mode.headless:
             return
             
         self.worker.spellcheck_results_ready.connect(self._on_spellcheck_results_ready)
@@ -204,8 +203,7 @@ class SpellcheckerManager(QObject):
                 log_debug("SpellcheckerManager: suggestions_loaded.emit failed (object already deleted)")
                 
         if cache_updated:
-            import sys
-            if 'pytest' in sys.modules:
+            if app_mode.headless:
                 self._trigger_rehighlight()
             else:
                 self._rehighlight_timer.start()
@@ -232,8 +230,7 @@ class SpellcheckerManager(QObject):
 
     def _initialize_spellchecker(self):
         """Internal helper to initialize spellchecker."""
-        import sys
-        if 'pytest' in sys.modules:
+        if app_mode.headless:
             self._do_initialize_spellchecker()
         else:
             import threading
@@ -386,10 +383,9 @@ class SpellcheckerManager(QObject):
 
     def _load_persistent_cache(self):
         """Loads spell check results from a JSON file."""
-        # Skip persistent cache under pytest so test runs don't share state
+        # Headless runs do not share state
         # through resources/spellchecker/spell_cache.json.
-        import sys
-        if 'pytest' in sys.modules:
+        if app_mode.headless:
             return
         if not self._cache_file.exists():
             return
@@ -405,10 +401,9 @@ class SpellcheckerManager(QObject):
 
     def _save_persistent_cache(self):
         """Saves current memory spell cache to disk."""
-        # Skip persistent cache under pytest so test runs don't share state
+        # Headless runs do not share state
         # through resources/spellchecker/spell_cache.json.
-        import sys
-        if 'pytest' in sys.modules:
+        if app_mode.headless:
             return
         if not self._spell_cache:
             return
@@ -527,8 +522,7 @@ class SpellcheckerManager(QObject):
             return self._spell_cache[lower_word]
 
         # Enqueue word for background spellcheck to avoid GUI thread lock
-        import sys
-        if hasattr(self, 'worker') and self.worker and self.worker.isRunning() and 'pytest' not in sys.modules:
+        if hasattr(self, 'worker') and self.worker and self.worker.isRunning() and not app_mode.headless:
             self.enqueue_word(cleaned_word)
             return False
 

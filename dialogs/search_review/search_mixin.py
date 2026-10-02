@@ -1,6 +1,7 @@
 """Search worker lifecycle, find/highlight, and perform_search."""
 from __future__ import annotations
 
+from utils import app_mode
 import re
 
 from PyQt6.QtWidgets import QListWidgetItem
@@ -22,9 +23,8 @@ class SearchMixin:
             log_debug("SearchReviewDialog: _load_content started")
             self.status_label.setText(tr('Searching text...'))
 
-            import sys
             parent = self.parentWidget()
-            is_test = ('pytest' in sys.modules or parent is None or bool(getattr(parent, '_is_test_mode', False))) and not getattr(self, 'force_async', False)
+            is_test = (app_mode.headless or parent is None or bool(getattr(parent, '_is_test_mode', False))) and not getattr(self, 'force_async', False)
 
             if is_test:
                 log_debug("SearchReviewDialog: Running in test mode, using synchronous loading")
@@ -301,9 +301,8 @@ class SearchMixin:
         self.search_in_original = self.original_checkbox.isChecked()
         self.ignore_tags = self.no_tags_checkbox.isChecked()
 
-        import sys
         parent = self.parentWidget()
-        is_test = 'pytest' in sys.modules or parent is None or bool(getattr(parent, '_is_test_mode', False))
+        is_test = app_mode.headless or parent is None or bool(getattr(parent, '_is_test_mode', False))
 
         if is_test:
             log_debug("SearchReviewDialog.perform_search: running synchronously in test mode")

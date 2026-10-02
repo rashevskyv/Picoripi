@@ -166,3 +166,11 @@ def test_on_close_with_a_window_the_sync_never_falls_back_to_a_blocking_call(qtb
         assert sync_push_on_close(window) is False
 
     client.sync_project.assert_not_called()
+
+
+def test_settings_that_hold_no_address_start_no_client():
+    from core.companion_sync import get_companion_client_from_mw
+
+    window = MagicMock()        # every setting it returns is an object, not a string
+
+    assert get_companion_client_from_mw(window) is None

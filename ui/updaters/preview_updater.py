@@ -605,5 +605,3 @@ class PreviewUpdater(TextViewsMixin, BaseUIUpdater):
 
         if enabled:
             self.schedule_pre_cache()
-
-

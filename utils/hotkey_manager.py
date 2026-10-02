@@ -13,6 +13,7 @@ Usage:
 MainWindow must override nativeEvent() and delegate to manager.handle_native_event().
 """
 
+from utils import app_mode
 import sys
 import ctypes
 from ctypes import wintypes
@@ -76,11 +77,11 @@ class HotkeyManager:
         """Register all Alt+Shift hotkeys with Windows."""
         if sys.platform != 'win32':
             return
-        # Skip registering native hotkeys under pytest or headless environment to avoid Access Violation on winId() call
+        # No native hotkeys without a real window: winId() is an access violation there
         from PyQt6.QtWidgets import QApplication
         app = QApplication.instance()
-        if "pytest" in sys.modules or (app and app.platformName() == "offscreen"):
-            log_debug("HotkeyManager: Skipping registration in pytest/offscreen environment")
+        if app_mode.headless or (app and app.platformName() == "offscreen"):
+            log_debug("HotkeyManager: Skipping registration in a headless/offscreen environment")
             return
         try:
             self._hwnd = int(self.mw.winId())

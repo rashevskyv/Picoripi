@@ -1,3 +1,4 @@
+from utils import app_mode
 from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_info, log_warning
@@ -136,9 +137,8 @@ class SessionMixin:
         worker = ProjectLoadWorker(self.mw.project_manager, self.mw.current_game_rules)
         self.mw._project_loading_pending = True
 
-        import sys
         progress_dialog = None
-        if 'pytest' not in sys.modules and not startup_loading:
+        if not app_mode.headless and not startup_loading:
             from PyQt6.QtWidgets import QProgressDialog
             from PyQt6.QtCore import Qt
             total_steps = len(worker.blocks) * 2
@@ -152,7 +152,7 @@ class SessionMixin:
         def on_finished(result):
             if not result:
                 self.mw._project_loading_pending = False
-                if 'pytest' not in sys.modules and progress_dialog:
+                if not app_mode.headless and progress_dialog:
                     progress_dialog.close()
                 if worker.error_occurred:
                     QMessageBox.critical(self.mw, tr('Load Error'), f"An error occurred while loading project files:\n{worker.error_occurred}")
@@ -278,7 +278,7 @@ class SessionMixin:
                 self._report_startup(75 + int(ratio * 20), phase)
             worker.progress.connect(report_worker_progress)
 
-        if 'pytest' in sys.modules:
+        if app_mode.headless:
             worker.run()
         else:
             worker.start()

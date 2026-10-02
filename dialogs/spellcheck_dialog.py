@@ -1,4 +1,5 @@
 # Dialog for interactive spellchecking of selected text
+from utils import app_mode
 from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QPushButton, QListWidget, QApplication)
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor
@@ -184,9 +185,8 @@ class SpellcheckDialog(BaseTextReviewDialog):
             log_debug("SpellcheckDialog: _load_content started")
             self.status_label.setText(tr('Analyzing text...'))
 
-            import sys
             parent = self.parentWidget()
-            is_test = ('pytest' in sys.modules or parent is None or bool(getattr(parent, '_is_test_mode', False))) and not getattr(self, 'force_async', False)
+            is_test = (app_mode.headless or parent is None or bool(getattr(parent, '_is_test_mode', False))) and not getattr(self, 'force_async', False)
 
             if is_test:
                 log_debug("SpellcheckDialog: Running in test mode, using synchronous loading")

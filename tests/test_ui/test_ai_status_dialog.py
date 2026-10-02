@@ -1,3 +1,4 @@
+from utils import app_mode
 from components.ai_status_dialog import AIStatusDialog
 
 def test_AIStatusDialog_init(qapp):
@@ -159,7 +160,6 @@ def test_AIStatusDialog_cancel_prevents_sleep(qapp):
 
 def test_AIStatusDialog_finish_triggers_comparison(qapp):
     from unittest.mock import patch
-    import sys
     dialog = AIStatusDialog()
     
     translation_details = {
@@ -169,13 +169,11 @@ def test_AIStatusDialog_finish_triggers_comparison(qapp):
         0: [(0, "old1"), (1, "old2")]
     }
     
-    # Backup pytest module
-    pytest_module = sys.modules.get('pytest')
+    was_headless = app_mode.headless
     
     try:
         # 1. More than 1 line re-translated -> AITranslationComparisonDialog
-        if 'pytest' in sys.modules:
-            del sys.modules['pytest']
+        app_mode.headless = False
             
         with patch('dialogs.ai_translation_comparison_dialog.AITranslationComparisonDialog') as mock_comp_dialog, \
              patch('dialogs.ai_translation_result_dialog.AITranslationResultDialog') as mock_res_dialog:
@@ -191,8 +189,7 @@ def test_AIStatusDialog_finish_triggers_comparison(qapp):
             0: [(0, "old1")]
         }
         
-        if 'pytest' in sys.modules:
-            del sys.modules['pytest']
+        app_mode.headless = False
             
         with patch('dialogs.ai_translation_comparison_dialog.AITranslationComparisonDialog') as mock_comp_dialog, \
              patch('dialogs.ai_translation_result_dialog.AITranslationResultDialog') as mock_res_dialog:
@@ -203,8 +200,7 @@ def test_AIStatusDialog_finish_triggers_comparison(qapp):
             mock_comp_dialog.return_value.show.assert_called_once()
             mock_res_dialog.assert_not_called()
     finally:
-        if pytest_module:
-            sys.modules['pytest'] = pytest_module
+        app_mode.headless = was_headless
 
 
 def test_AIStatusDialog_captures_active_source_window(qapp):
@@ -274,7 +270,7 @@ def test_AIStatusDialog_finish_in_pytest_activates_source(qapp):
 
     dialog = AIStatusDialog()
     dialog.start("Test Pytest Fallback", source_window=win)
-    # When pytest is in sys.modules, popup is suppressed and source is directly activated
+    # Headless: the popup is suppressed and the source is activated directly
     dialog.finish(success=True, show_popup=True)
 
     win.raise_.assert_called()
@@ -337,7 +333,6 @@ def test_AIStatusDialog_deleted_source_window_safe(qapp):
 
 
 def test_AIStatusDialog_popup_dismissal_restores_source(qapp):
-    import sys
     from unittest.mock import patch, MagicMock
     from PyQt6.QtWidgets import QWidget, QMessageBox
 
@@ -349,10 +344,9 @@ def test_AIStatusDialog_popup_dismissal_restores_source(qapp):
     dialog = AIStatusDialog()
     dialog.start("Test Popup Dismissal", source_window=win)
 
-    pytest_module = sys.modules.get('pytest')
+    was_headless = app_mode.headless
     try:
-        if 'pytest' in sys.modules:
-            del sys.modules['pytest']
+        app_mode.headless = False
 
         with patch('PyQt6.QtWidgets.QMessageBox.show') as mock_msg_show:
             dialog.finish(success=True, show_popup=True)
@@ -369,8 +363,7 @@ def test_AIStatusDialog_popup_dismissal_restores_source(qapp):
             assert win.activateWindow.call_count >= 1
             assert win.raise_.call_count >= 1
     finally:
-        if pytest_module:
-            sys.modules['pytest'] = pytest_module
+        app_mode.headless = was_headless
         win.close()
 
 

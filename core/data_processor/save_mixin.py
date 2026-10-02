@@ -1,4 +1,5 @@
 """Save helpers for DataStateProcessor."""
+from utils import app_mode
 from utils.atomic_io import atomic_write_bytes
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -306,9 +307,8 @@ class SaveMixin:
                 else:
                     output_data_list.append(chosen_block)
 
-            # Check if running under pytest to preserve synchronous path
-            import sys
-            if 'pytest' in sys.modules:
+            # Headless callers have no event loop to deliver a worker's result: save inline
+            if app_mode.headless:
                 success, warnings, errors = self._perform_save_impl(output_data_list)
                 if not success:
                     if errors:
@@ -473,10 +473,9 @@ class SaveMixin:
                             chosen_block[s_idx] = text
                 output_data_list.append(chosen_block)
 
-            # Check if running under pytest to preserve synchronous path
-            import sys
+            # Headless callers have no event loop to deliver a worker's result: save inline
             success = False
-            if 'pytest' in sys.modules:
+            if app_mode.headless:
                 success, warnings, errors = self._perform_save_impl(output_data_list, edited_data_for_transaction=filtered_edited_data)
                 if not success:
                     if errors:

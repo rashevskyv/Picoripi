@@ -1,4 +1,5 @@
 # handlers/issue_scan_handler.py
+from utils import app_mode
 from utils.atomic_io import atomic_write_json
 import json
 from pathlib import Path
@@ -208,10 +209,9 @@ class IssueScanHandler(BaseHandler):
 
     def _show_scan_progress_dialog(self, pending_scan_indices: list):
         """Internal helper to show scan progress dialog."""
-        import sys
         from PyQt6.QtWidgets import QApplication
         is_test = (
-            'pytest' in sys.modules
+            app_mode.headless
             or not isinstance(QApplication.instance(), QApplication)
             or getattr(self.mw, 'is_testing', False)
         )
@@ -370,9 +370,8 @@ class IssueScanHandler(BaseHandler):
             self._scan_timer.setSingleShot(True)
             self._scan_timer.timeout.connect(self._scan_next_batch)
             
-            import sys
             from PyQt6.QtWidgets import QApplication
-            is_test = 'pytest' in sys.modules or not isinstance(QApplication.instance(), QApplication)
+            is_test = app_mode.headless or not isinstance(QApplication.instance(), QApplication)
             delay = 0 if is_test else 30
             self._scan_timer.start(delay)
         else:

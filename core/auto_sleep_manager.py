@@ -1,5 +1,5 @@
 # core/auto_sleep_manager.py ---
-import sys
+from utils import app_mode
 import time
 from typing import Optional, Any, Callable
 from PyQt6.QtCore import QObject, QTimer, QEvent, pyqtSignal
@@ -145,7 +145,7 @@ class AutoSleepManager(QObject):
         )
 
         # Show countdown UI if remaining time is significant (> 5s)
-        if show_dialog and remaining > 5 and "pytest" not in sys.modules:
+        if show_dialog and remaining > 5 and not app_mode.headless:
             try:
                 from components.auto_sleep_countdown_dialog import (
                     AutoSleepCountdownDialog,

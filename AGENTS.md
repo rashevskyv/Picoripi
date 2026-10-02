@@ -10,7 +10,9 @@ Desktop translation editor (Python, PyQt6) with game plugins. This file is the o
 2. **i18n pair.** UI text goes through `tr("English source")` (`core/i18n.py`) and the same key is added to
    `locales/uk.json` in the same change. All in-app text is English.
 3. **No Russian** — no locale, no UI strings, no comments.
-4. **No test hacks in product code**: no `Mock`/`MagicMock`, no `'pytest' in sys.modules`, no `_mock_*` checks.
+4. **No test hacks in product code**: no `Mock`/`MagicMock`, no `'pytest' in sys.modules`, no `_mock_*` checks,
+   no names injected into another module for tests to patch. Code that must run inline without an event loop
+   reads `utils.app_mode.headless` (set by `tests/conftest.py`); tests patch the module that uses a name.
 5. **Nothing slow on the UI thread**: no sync disk, network, AI, SQLite, archive parsing or heavy loops. Use a
    `QThread` worker with cooperative cancellation, bounded shutdown and cleanup.
 6. **No `QCoreApplication.processEvents()`** in product paths.

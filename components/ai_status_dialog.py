@@ -1,4 +1,5 @@
 # components/ai_status_dialog.py ---
+from utils import app_mode
 from typing import Optional
 from PyQt6.QtWidgets import (
     QApplication,
@@ -362,7 +363,6 @@ class AIStatusDialog(QDialog):
             AutoSleepManager.get_instance().cancel_sleep(reason="AI operation finished without sleep condition")
 
         # 2. Show structured popup notification to the user (suppressed during unit tests)
-        import sys
         popup_shown = False
 
         def attach_return_to_source(popup_widget: QWidget) -> None:
@@ -377,7 +377,7 @@ class AIStatusDialog(QDialog):
                 except Exception:
                     pass
 
-        if 'pytest' not in sys.modules and show_popup:
+        if not app_mode.headless and show_popup:
             from PyQt6.QtWidgets import QMessageBox, QMainWindow
 
             # Find MainWindow to store active dialog references
