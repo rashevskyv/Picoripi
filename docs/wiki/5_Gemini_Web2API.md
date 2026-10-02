@@ -67,10 +67,12 @@ Recommended preset for Web2API:
 | API Key | any dummy string if the proxy has no `api_keys`; otherwise a key from the proxy `config.json` |
 | Model | `gemini-3.7-flash` (or `gemini-3.5-flash-thinking` when you need long output) |
 | Temperature | `0.0`–`0.3` for glossary and in-game text |
-| Request Timeout | **180 s** (the proxy retries across accounts; 60 s is too short) |
-| Parallel Requests | **4–8** if several Active accounts; **1** if you only have one account |
+| Request Timeout | **180 s** (the proxy retries across accounts; 60 s is too short). For a self-hosted endpoint Picoripi raises a smaller value to 180 s by itself |
+| Parallel Requests | **4–8** if several Active accounts; **1** if you only have one account. When the proxy reports its accounts on `/healthz`, Picoripi never runs more requests at once than there are Active accounts |
 
 Save it as a named preset (e.g. `Gemini Web2API`).
+
+Picoripi treats every self-hosted OpenAI-style endpoint as a Web2API proxy and the hosted APIs (`api.openai.com`, `api.perplexity.ai`) as plain OpenAI: only a proxy receives the `think` request field. To override the guess, add `"profile": "web2api"` or `"profile": "openai"` to the provider block in the settings file.
 
 **Glossary** uses the same credentials when “use the AI Translation key” is on (Settings → AI Glossary). The glossary pipeline already raises timeout to at least 180 s when the translation timeout is smaller.
 

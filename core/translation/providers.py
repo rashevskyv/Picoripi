@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
+from urllib.parse import urlparse
 import requests
 import os
 
@@ -14,6 +15,31 @@ from core.translation.transport import (
 )
 from utils.logging_utils import log_debug, log_info
 
+PROFILES = ("web2api", "openai", "ollama", "gemini")
+# Hosted APIs: they reject request fields they do not know (`think`).
+_HOSTED_OPENAI_HOSTS = ("api.openai.com", "api.perplexity.ai")
+# A Web2API-style proxy paces its accounts and retries across them before it
+# answers; the 60 s default gives up while it is still working.
+WEB2API_TIMEOUT_FLOOR = 180.0
+
+
+def detect_profile(settings: Optional[Dict[str, Any]], base_url: str) -> str:
+    """Which kind of OpenAI-style endpoint this is.
+
+    ``settings['profile']`` wins when it names one. Otherwise the hosted APIs are
+    ``openai`` and every self-hosted endpoint is treated as a ``web2api`` proxy:
+    that is what a custom URL is here, and guessing ``openai`` for a proxy on an
+    unusual host would silently drop ``think``.
+    """
+    explicit = str((settings or {}).get('profile') or '').strip().lower()
+    if explicit in PROFILES:
+        return explicit
+    host = (urlparse(base_url or "").hostname or "").lower()
+    if any(host == hosted or host.endswith("." + hosted) for hosted in _HOSTED_OPENAI_HOSTS):
+        return "openai"
+    return "web2api"
+
+
 @dataclass
 class ProviderResponse:
     """Standardized response from a translation provider."""
@@ -26,6 +52,7 @@ class ProviderResponse:
 class BaseTranslationProvider:
     """Base translation provider implementation."""
     supports_sessions = False
+    profile = "openai"
     """Abstract base class for all translation providers."""
     def __init__(self, settings: Dict[str, Any]) -> None:
         """Initialize a new instance."""
@@ -51,6 +78,8 @@ class BaseTranslationProvider:
     def _policy(self, current_settings: Dict[str, Any], default_timeout: float) -> TransportPolicy:
         """The retry/timeout policy for one request."""
         timeout = _extract_timeout(current_settings, default=default_timeout)
+        if self.profile == "web2api":
+            timeout = max(timeout, WEB2API_TIMEOUT_FLOOR)
         try:
             attempts = int(current_settings.get('max_attempts', self._max_attempts))
         except (TypeError, ValueError):
@@ -69,6 +98,10 @@ class BaseTranslationProvider:
             return response
 
         return policy.run(send, self._is_cancelled, breaker=self._breaker)
+
+    def clamp_workers(self, workers: int) -> int:
+        """How many parallel requests are worth sending. Call off the UI thread."""
+        return max(1, int(workers))
 
     def translate(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
         """Translate."""
@@ -134,6 +167,32 @@ class OpenAIProvider(BaseTranslationProvider):
             raise TranslationProviderError("OpenAI API key is not set.")
         if not self.model:
             raise TranslationProviderError("OpenAI model is not set.")
+        self.profile = detect_profile(self.settings, self.base_url)
+        self._active_accounts: Optional[int] = None
+
+    def clamp_workers(self, workers: int) -> int:
+        """No more threads than the proxy has usable accounts.
+
+        Extra threads only queue inside the proxy on some account's cooldown and
+        push every request toward its timeout. The count comes from the proxy's
+        ``/healthz``; a proxy without one (or any other endpoint) keeps the
+        user's number. Does a short network call once -- call off the UI thread.
+        """
+        workers = max(1, int(workers))
+        if self.profile != "web2api":
+            return workers
+        if self._active_accounts is None:
+            self._active_accounts = -1
+            parsed = urlparse(self.base_url)
+            try:
+                reply = requests.get(f"{parsed.scheme}://{parsed.netloc}/healthz", timeout=3)
+                reply.raise_for_status()
+                self._active_accounts = int(reply.json()["accounts"]["active"])
+            except Exception as e:
+                log_debug(f"OpenAIProvider: no account count from /healthz ({e}); keeping {workers} worker(s).")
+        if self._active_accounts < 0:
+            return workers
+        return min(workers, max(1, self._active_accounts))
 
     def _get_chat_endpoint(self) -> str:
         """Resolve the full OpenAI chat completions endpoint."""
@@ -149,10 +208,12 @@ class OpenAIProvider(BaseTranslationProvider):
         model = current_settings.get('model') or self.model
         body: Dict[str, Any] = {"model": model, "messages": messages}
         
-        if 'think' in current_settings:
-            body['think'] = current_settings['think']
-        elif 'think_mode' in current_settings:
-            body['think_mode'] = current_settings['think_mode']
+        # `think` is a Web2API extension; a hosted API answers 400 to it.
+        if self.profile == "web2api":
+            if 'think' in current_settings:
+                body['think'] = current_settings['think']
+            elif 'think_mode' in current_settings:
+                body['think_mode'] = current_settings['think_mode']
 
         if current_settings.get('web_search_enabled'):
             if model.startswith('gpt-4'):
@@ -331,6 +392,7 @@ class OpenAIProvider(BaseTranslationProvider):
 class OllamaChatProvider(BaseTranslationProvider):
     """Ollama chat provider implementation."""
     supports_sessions = True
+    profile = "ollama"
     """Provider for Ollama chat APIs."""
     def __init__(self, settings: Dict[str, Any]) -> None:
         """Initialize a new instance."""
@@ -421,6 +483,12 @@ class GeminiProvider(BaseTranslationProvider):
             raise TranslationProviderError("Gemini API key is not set for native API usage.")
         if not self.model:
             raise TranslationProviderError("Gemini model is not set.")
+        self.profile = detect_profile(self.settings, self.base_url) if self._use_openai_compat else "gemini"
+
+    def clamp_workers(self, workers: int) -> int:
+        if self._use_openai_compat:
+            return self._compat_provider().clamp_workers(workers)
+        return super().clamp_workers(workers)
 
     def _get_openai_compat_endpoint(self) -> str:
         """Resolve the full OpenAI chat completions endpoint for custom base URL."""

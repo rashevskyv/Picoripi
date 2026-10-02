@@ -13,7 +13,7 @@ from typing import Any, Optional, Sequence
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from core.glossary_build.parallel import DEFAULT_RETRY_DELAY, DEFAULT_WORKERS
+from core.glossary_build.parallel import DEFAULT_RETRY_DELAY, DEFAULT_WORKERS, MAX_CONSECUTIVE_FAILURES
 from core.glossary_build.pipeline_coordinator import (
     MODE_AUTO,
     MODE_THOROUGH,
@@ -51,7 +51,7 @@ class GlossaryBuildWorker(QThread):
         translate: bool = False,
         force_retranslate: bool = False,
         prompts: Optional[dict] = None,
-        max_consecutive_failures: int = 3,
+        max_consecutive_failures: int = MAX_CONSECUTIVE_FAILURES,
         workers: int = DEFAULT_WORKERS,
         retry_delay: float = DEFAULT_RETRY_DELAY,
         timeout: int = DEFAULT_TIMEOUT,
@@ -114,6 +114,12 @@ class GlossaryBuildWorker(QThread):
         coordinator = None
         try:
             prompts = self._load_prompts()
+            clamp_workers = getattr(self.provider, "clamp_workers", None)
+            if callable(clamp_workers) and self._workers > 1:
+                clamped = clamp_workers(self._workers)
+                if isinstance(clamped, int) and clamped < self._workers:
+                    self.log.emit(f"The proxy has {clamped} usable account(s); running {clamped} request(s) at a time.")
+                    self._workers = clamped
             coordinator = GlossaryBuildCoordinator(
                 self.manager,
                 self._call,

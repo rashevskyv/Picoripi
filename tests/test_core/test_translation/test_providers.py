@@ -110,7 +110,7 @@ def test_gemini_compat_route_passes_think_and_rejects_non_json(mock_post):
     mock_post.return_value = _ok_response({"choices": [{"message": {"content": "ok"}}]})
     provider.translate([{"role": "user", "content": "Hi"}], settings_override={"think": 1})
     assert mock_post.call_args[1]["json"]["think"] == 1
-    assert mock_post.call_args[1]["timeout"] == (10.0, 120.0)
+    assert mock_post.call_args[1]["timeout"] == (10.0, 180.0)
 
     broken = _ok_response(None)
     broken.json.side_effect = ValueError("Expecting value")
@@ -334,9 +334,9 @@ def test_openai_provider_timeout_override(mock_post):
         "timeout": 60,
     })
 
-    # Default provider timeout. Local proxy: fail connect fast, keep the read budget.
+    # A self-hosted proxy paces and retries inside: 60 s is raised to the 180 s floor.
     provider.translate([{"role": "user", "content": "Hi"}])
-    assert mock_post.call_args[1]["timeout"] == (10.0, 60.0)
+    assert mock_post.call_args[1]["timeout"] == (10.0, 180.0)
 
     # Override timeout in settings_override
     provider.translate(
@@ -344,3 +344,63 @@ def test_openai_provider_timeout_override(mock_post):
         settings_override={"timeout": 300}
     )
     assert mock_post.call_args[1]["timeout"] == (10.0, 300.0)
+
+
+# --- provider profile ---------------------------------------------------------
+
+@pytest.mark.parametrize("settings, url, profile", [
+    ({}, "http://127.0.0.1:8081/v1", "web2api"),
+    ({}, "http://proxy.lan:9000/v1", "web2api"),
+    ({}, "https://api.openai.com/v1", "openai"),
+    ({}, "https://api.perplexity.ai", "openai"),
+    ({"profile": "auto"}, "https://api.openai.com/v1", "openai"),
+    ({"profile": "openai"}, "http://127.0.0.1:8081/v1", "openai"),
+    ({"profile": "web2api"}, "https://api.openai.com/v1", "web2api"),
+])
+def test_detect_profile(settings, url, profile):
+    from core.translation.providers import detect_profile
+    assert detect_profile(settings, url) == profile
+
+
+def test_think_is_sent_to_a_proxy_and_never_to_a_hosted_api():
+    proxy = OpenAIProvider({"endpoint": "http://127.0.0.1:8081/v1", "model": "gemini-3.7-flash"})
+    hosted = OpenAIProvider({"endpoint": "https://api.openai.com/v1", "model": "gpt-4o-mini", "api_key": "k"})
+    messages = [{"role": "user", "content": "Hi"}]
+
+    assert proxy._prepare_body(messages, {"think": 2})["think"] == 2
+    assert proxy._prepare_body(messages, {"think_mode": "x"})["think_mode"] == "x"
+    body = hosted._prepare_body(messages, {"think": 2, "think_mode": "x", "temperature": 0.2})
+    assert "think" not in body and "think_mode" not in body
+    assert body["temperature"] == 0.2
+
+
+@patch('core.translation.providers.requests.post')
+def test_hosted_api_keeps_the_users_timeout(mock_post):
+    mock_post.return_value = _ok_response({"choices": [{"message": {"content": "ok"}}]})
+    OpenAIProvider({"endpoint": "https://api.openai.com/v1", "model": "m", "api_key": "k", "timeout": 60}).translate([])
+    assert mock_post.call_args[1]["timeout"] == (10.0, 60.0)
+
+
+@pytest.mark.parametrize("health, asked, expected", [
+    ({"accounts": {"active": 2}}, 6, 2),
+    ({"accounts": {"active": 0}}, 6, 1),
+    ({"accounts": {"active": 9}}, 6, 6),
+    ({"status": "ok"}, 6, 6),          # a proxy that does not report accounts
+])
+@patch('core.translation.providers.requests.get')
+def test_workers_are_clamped_to_the_proxys_active_accounts(mock_get, health, asked, expected):
+    mock_get.return_value = _ok_response(health)
+    provider = _local_provider()
+    assert provider.clamp_workers(asked) == expected
+    assert provider.clamp_workers(asked) == expected
+    assert mock_get.call_count == 1  # asked once per provider
+    assert mock_get.call_args[0][0] == "http://localhost:20128/healthz"
+
+
+@patch('core.translation.providers.requests.get')
+def test_workers_are_left_alone_without_healthz_or_for_a_hosted_api(mock_get):
+    mock_get.side_effect = requests.ConnectionError("refused")
+    assert _local_provider().clamp_workers(6) == 6
+    hosted = OpenAIProvider({"endpoint": "https://api.openai.com/v1", "model": "m", "api_key": "k"})
+    assert hosted.clamp_workers(6) == 6
+    assert mock_get.call_count == 1

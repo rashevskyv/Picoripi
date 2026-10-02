@@ -29,6 +29,8 @@ def build_default_translation_config() -> dict:
                 "api_key": "",
                 "api_key_env": "OPENAI_API_KEY",
                 "endpoint": "",
+                # auto | web2api | openai -- see core.translation.providers.detect_profile
+                "profile": "auto",
                 "model": "gpt-4o-mini",
                 "temperature": 0.0,
                 "max_output_tokens": 0,

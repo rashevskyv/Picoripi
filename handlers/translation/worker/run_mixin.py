@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict, List
-from core.translation.providers import ProviderResponse, TranslationProviderError
+from core.translation.providers import BaseTranslationProvider, ProviderResponse, TranslationProviderError
 from core.translation.ai_error_handler import handle_ai_error
 from core.translation.chunk_result import verify_chunk_ids
 from core.translation.transport import ErrorKind
@@ -278,6 +278,8 @@ class AIWorkerRunMixin:
                 provider_override = self.task_details.get('provider_settings_override', {})
                 provider_override.setdefault('think', 1)
                 workers = int(self.task_details.get('workers', 1) or 1)
+                if workers > 1 and isinstance(self.provider, BaseTranslationProvider):
+                    workers = self.provider.clamp_workers(workers)
                 attempt = self.task_details.get('attempt', 1)
 
                 def _build_chunk_request(i: int):

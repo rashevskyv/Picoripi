@@ -19,6 +19,7 @@ from core.glossary_manager import (
     STATUS_SEEDED,
     possible_duplicate_pairs,
 )
+from core.glossary_build.parallel import MAX_CONSECUTIVE_FAILURES
 from core.translation.providers import get_provider_for_config
 from handlers.translation.glossary_ai_config import resolve_glossary_ai_config
 from handlers.translation.glossary_pipeline_worker import GlossaryBuildWorker
@@ -186,7 +187,7 @@ class GlossaryPipelineHandler:
             except (TypeError, ValueError):
                 pass  # a corrupt setting falls back to the worker's default
         if "max_consecutive_failures" not in options:
-            options["max_consecutive_failures"] = 5
+            options["max_consecutive_failures"] = MAX_CONSECUTIVE_FAILURES
         if "timeout" not in options:
             # The local proxy retries across accounts; 60s is not enough for
             # Parallel Requests > 1 plus the per-IP pace gap.
