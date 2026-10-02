@@ -8,11 +8,16 @@ import re
 from core.glossary.models import (
     OCC_MENTION,
     OCC_SPOKEN,
+    STATUS_CONFIRMED,
+    STATUS_TRANSLATED,
     GlossaryEntry,
     GlossaryMatch,
     GlossaryOccurrence,
 )
 from core.speaker_alias_merge import split_shared_speaker_names
+
+# More glossary rows than this in one prompt stop being read.
+RELEVANT_TERMS_LIMIT = 40
 
 
 class OccurrenceMixin:
@@ -58,9 +63,28 @@ class OccurrenceMixin:
             for match in pattern.finditer(text):
                 m_start, m_end = match.span()
                 if (m_start, m_end, entry.original) not in seen_ranges:
+                    seen_ranges.add((m_start, m_end, entry.original))
                     matches.append(GlossaryMatch(entry=entry, start=m_start, end=m_end))
-                
-        return sorted(matches, key=lambda m: m.start)
+
+        return sorted(self._prefer_exact_spelling(text, matches), key=lambda m: m.start)
+
+    def _prefer_exact_spelling(self, text: str, matches: List[GlossaryMatch]) -> List[GlossaryMatch]:
+        """Where two entries claim the same words, keep the one spelled exactly that way.
+
+        "Clawshots" is found both by the entry "Clawshots" and, through its
+        plural, by "Clawshot"; only the first is meant.
+        """
+        by_span: Dict[Tuple[int, int], List[GlossaryMatch]] = {}
+        for match in matches:
+            by_span.setdefault((match.start, match.end), []).append(match)
+        if len(by_span) == len(matches):
+            return matches
+        kept: List[GlossaryMatch] = []
+        for (start, end), claimants in by_span.items():
+            found = self.normalize_term(text[start:end])
+            exact = [m for m in claimants if self.normalize_term(m.entry.original) == found]
+            kept.extend(exact or claimants)
+        return kept
 
     def build_occurrence_index(self, dataset: Sequence, is_cancelled: Optional[Callable[[], bool]] = None) -> Dict[str, List[GlossaryOccurrence]]:
         """Create occurrence index."""
@@ -362,15 +386,49 @@ class OccurrenceMixin:
         """Get the occurrence map."""
         return {key: list(value) for key, value in self._occurrence_index.items()}
 
-    def get_relevant_terms(self, text: str) -> List[GlossaryEntry]:
-        """Find all glossary entries that appear in the given text."""
+    def get_relevant_terms(
+        self,
+        text: str,
+        *,
+        translated_only: bool = True,
+        limit: Optional[int] = RELEVANT_TERMS_LIMIT,
+    ) -> List[GlossaryEntry]:
+        """The glossary entries a translator of ``text`` needs, in order of appearance.
+
+        - A term found only inside a longer term is left out: "Go to Lake Hylia"
+          needs "Lake Hylia", not "Hylia" and "Lake" as well.
+        - An entry without a translation is left out (``translated_only``): its
+          empty cell tells the model nothing and reads like "leave it blank".
+        - At most ``limit`` entries: a person's decisions first, then machine
+          translations, then the rest; more mentions first; longer terms first.
+        """
         if not text:
             return []
-        matches = self.find_matches(text)
-        seen_originals = set()
-        relevant_entries = []
+        matches = [
+            match
+            for match in self.find_matches(text)
+            if not translated_only or (match.entry.translation or "").strip()
+        ]
+        spans = {(m.start, m.end) for m in matches}
+        mentions: Dict[str, int] = {}
+        entries: Dict[str, GlossaryEntry] = {}
         for match in matches:
-            if match.entry.original not in seen_originals:
-                relevant_entries.append(match.entry)
-                seen_originals.add(match.entry.original)
-        return relevant_entries
+            if any(
+                start <= match.start and match.end <= end and (end - start) > (match.end - match.start)
+                for start, end in spans
+            ):
+                continue
+            entry = match.entry
+            entries.setdefault(entry.original, entry)
+            mentions[entry.original] = mentions.get(entry.original, 0) + 1
+
+        relevant = list(entries.values())
+        if limit is not None and len(relevant) > limit:
+            def rank(entry: GlossaryEntry) -> Tuple[int, int, int]:
+                # No status means written by hand, before statuses existed.
+                decided_by = 0 if entry.status in ("", STATUS_CONFIRMED) else 1 if entry.status == STATUS_TRANSLATED else 2
+                return (decided_by, -mentions[entry.original], -len(entry.original))
+
+            keep = {entry.original for entry in sorted(relevant, key=rank)[:limit]}
+            relevant = [entry for entry in relevant if entry.original in keep]
+        return relevant

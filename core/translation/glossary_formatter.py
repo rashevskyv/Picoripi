@@ -3,6 +3,9 @@ import re
 from typing import List, Sequence, Iterable, Optional
 from core.glossary_manager import GlossaryEntry, render_notes
 
+NOTES_LIMIT = 300
+
+
 class GlossaryPromptFormatter:
     """Formats glossary entries and appends speaker terms for prompt context."""
 
@@ -17,6 +20,10 @@ class GlossaryPromptFormatter:
             notes = render_notes(
                 entry.notes, translation=entry.translation, original=entry.original
             )
+            # The prompt needs what the term is, not its whole biography; the
+            # full note stays in the glossary editor.
+            if len(notes) > NOTES_LIMIT:
+                notes = notes[:NOTES_LIMIT].rsplit(" ", 1)[0].rstrip(" ,;:—-") + "…"
             lines.append(f"| {entry.original} | {entry.translation} | {notes} |")
         return "\n".join(lines)
 

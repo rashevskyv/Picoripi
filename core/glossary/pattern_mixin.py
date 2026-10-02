@@ -27,36 +27,67 @@ class PatternMixin:
 
     def _build_pattern_cache(self) -> None:
         """Internal helper to create pattern cache."""
-        self._compiled_patterns.clear()
-        self._first_word_index.clear()
-        self._non_word_patterns.clear()
-        
-        # Use a fresh automaton
-        self._automaton = ahocorasick.Automaton()
-        
-        for entry in self._entries:
-            if not entry.original:
-                continue
-            
+        # Built aside and swapped in at the end: a reader on another thread sees
+        # either the old cache or the new one, never a half-filled automaton.
+        compiled: dict = {}
+        first_word_index: dict = {}
+        non_word_patterns: list = []
+        automaton = ahocorasick.Automaton()
+        entries = [entry for entry in self._entries if entry.original]
+
+        for entry in entries:
             pattern = self._build_regex(entry.original)
-            self._compiled_patterns[entry.original] = pattern
-            
+            compiled[entry.original] = pattern
+
             # 1. Add to Aho-Corasick for exact matching
-            # We use the lowercased version since we search in lowercase
+            # We use the lowercased version since we search in lowercase.
+            # Store (entry, length) so find_matches can reconstruct the match
             normalized = entry.original.lower()
-            if normalized:
-                # Store (entry, length) so find_matches can reconstruct the match
-                self._automaton.add_word(normalized, (entry, len(normalized)))
+            automaton.add_word(normalized, (entry, len(normalized)))
 
             # 2. Index optimization for regex (case with tags/extra spaces)
             words = self._word_finder.findall(entry.original)
             if words:
                 first_word = words[0].lower()
-                self._first_word_index.setdefault(first_word, []).append((entry, pattern))
+                first_word_index.setdefault(first_word, []).append((entry, pattern))
             else:
-                self._non_word_patterns.append((entry, pattern))
-        
-        self._automaton.make_automaton()
+                non_word_patterns.append((entry, pattern))
+
+        # Other spellings find the entry too, but never take a word away from
+        # the entry that is spelled that way itself: with both "Clawshot" and
+        # "Clawshots" in the glossary, "clawshots" stays the second one's.
+        for spellings in (
+            lambda entry: [alias.lower() for alias in entry.aliases],
+            lambda entry: [
+                form
+                for word in [entry.original.lower(), *(alias.lower() for alias in entry.aliases)]
+                for form in self._plural_forms(word)
+            ],
+        ):
+            for entry in entries:
+                for word in spellings(entry):
+                    if word and word not in automaton:
+                        automaton.add_word(word, (entry, len(word)))
+
+        automaton.make_automaton()
+        self._compiled_patterns = compiled
+        self._first_word_index = first_word_index
+        self._non_word_patterns = non_word_patterns
+        self._automaton = automaton
+
+    @staticmethod
+    def _plural_forms(word: str) -> Tuple[str, ...]:
+        """English plural spellings of a term that ends in a Latin letter.
+
+        Plural only: "Rupees" in the text finds the entry "Rupee". The other
+        way round is not done -- an entry "News" would start matching "new".
+        """
+        if len(word) < 3 or not (word[-1].isascii() and word[-1].isalpha()):
+            return ()
+        forms = [word + "s", word + "es"]
+        if word[-1] == "y" and word[-2] not in "aeiou":
+            forms.append(word[:-1] + "ies")
+        return tuple(forms)
 
     @staticmethod
     def _build_regex(term: str) -> re.Pattern[str]:
@@ -79,6 +110,10 @@ class PatternMixin:
             prefix = ''
         if not term[-1].isalnum():
             suffix = ''
+        elif term[-1].isascii() and term[-1].isalpha() and len(term) >= 3:
+            # The same plural tolerance as the automaton, for a term whose
+            # words are separated by tags.
+            suffix = r'(?:e?s)?' + suffix
 
         pattern = f"{prefix}{pattern_body}{suffix}"
         return re.compile(pattern, re.IGNORECASE)

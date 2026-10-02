@@ -114,4 +114,17 @@ in `docs/OPEN_ITEMS.md`, not here.
       are useful or noisy.
 - [ ] **The translate pass counts families, not terms (3.3).** Progress and the "failed" number in the build
       dialog are now per family batch (up to 8 terms). One failed call sends its whole batch to the retry pass.
+- [ ] **Plurals now match glossary terms everywhere (3.4).** `Rupees`, `foxes`, `fairies` in the source find
+      `Rupee`, `Fox`, `Fairy` — in prompts, in the source highlighting, in the occurrence list and in the
+      "term not translated" check. Look for false hits: a short entry such as `Link` now also matches `links`.
+      Only plural is added; an entry stored as a plural (`Rupees`) does not match `Rupee`.
+- [ ] **Entries without a translation no longer reach the prompt or the Story Inspector (3.4).** A seeded or
+      described-only term used to appear as a row with an empty translation; its description was the only
+      useful part. If you want the description shown for untranslated terms, say so —
+      `get_relevant_terms(text, translated_only=False)` already does it.
+- [ ] **At most 40 glossary rows per prompt, notes cut at 300 characters (3.4).** Order of preference:
+      confirmed or hand-written entries, then machine-translated, then the rest; more mentions first. Check a
+      long block: nothing important should be missing from the table.
+- [ ] **A term inside a longer term is not listed separately (3.4).** "Go to Lake Hylia" gives the model
+      `Lake Hylia` only. This also affects the source-side highlighting of translated terms.
 
