@@ -13,6 +13,16 @@ the line when it is done or moved into a plan.
 
 ## Found during WP4
 
+- **A restore from the translation memory ignores who speaks (4.2).** The duplicate fold of 4.1 compares
+  speaker, addressee and window; the cross-run memory has only the source text, so "I'm ready" saved for a
+  woman is offered for a man's identical line. The user sees every such row in the Cached Translation window
+  (marked "same text elsewhere") and can choose Translate Anew — but only for all rows at once. Storing the
+  fold key with each memory row would let the restore be as strict as the fold.
+- **Translations saved through `save_all_saved_translations` do not reach the memory (4.2)** — import of saved
+  translations and the delete actions write the positions file directly. The memory is rebuilt from scratch
+  only when its file is missing; an "update memory" pass after an import is not there.
+- **Deleting a saved translation leaves its memory row (4.2).**
+
 - **How much duplicate folding saves on the real project is not measured (4.1).** The audit estimated 10–30 %
   exact duplicates; the count depends on speakers and windows (a fold needs them equal). Measure on a copy:
   log line `BatchTranslator: N duplicate strings will take the translation of M others` at the start of a run.

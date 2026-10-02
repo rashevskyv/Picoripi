@@ -109,6 +109,9 @@ _SINGLE_CONTEXT_RULES = (
     'TAG ALIAS LEGEND: If a "TAG ALIAS LEGEND" section is present, refer to it to understand what tag aliases '
     'mean. Place them correctly in the translated text.',
     _ANCHORED_TAGS,
+    'TRANSLATION MEMORY: If a "TRANSLATION MEMORY" section is present, it lists translations already saved in '
+    'this project for the same source text at other places. Keep the same wording unless the speaker, the '
+    'addressee or the layout of this line requires a different one.',
     'REFERENCE TRANSLATIONS: If a REFERENCE TRANSLATIONS section is present, it is contextual evidence for '
     'meaning, speaker tone, and gender only. The original text is the primary translation source. Do NOT '
     'translate from any reference language into {target_lang}, and do NOT copy a reference translation as the '

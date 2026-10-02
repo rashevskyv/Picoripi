@@ -11,9 +11,30 @@ from utils.utils import resolve_target_language_prompt
 
 from .instructions import append_engine_rules, single_rules
 
+# Saved translations of the same source shown in a single-string request.
+TRANSLATION_MEMORY_ROWS = 3
+
 
 class MessagesMixin:
     """Single-string, variation, and glossary prompt composition."""
+
+    def _translation_memory_text(self, block_idx: Optional[int], string_idx: Optional[int]) -> str:
+        """What the project has saved for this row's source text at other places, as a prompt section."""
+        saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+        similar = getattr(saved_mgr, 'similar_by_source', None)
+        source_of = getattr(saved_mgr, '_source_text', None)
+        if not callable(similar) or not callable(source_of):
+            return ""
+        source = source_of(block_idx, string_idx)
+        rows = similar(source) if isinstance(source, str) else None
+        if not isinstance(rows, list) or not rows:
+            return ""
+        lines = []
+        for row in rows[:TRANSLATION_MEMORY_ROWS]:
+            original = self._item_text_for_ai({'id': 0, 'text': row.get('source', '')})[2].replace('\n', ' ')
+            translation = self._item_text_for_ai({'id': 0, 'text': row.get('translation', '')})[2].replace('\n', ' ')
+            lines.append(f'- "{original}" -> "{translation}"')
+        return "TRANSLATION MEMORY (same source elsewhere):\n" + "\n".join(lines)
 
     def _resolve_prompt_speaker(
         self,
@@ -337,6 +358,8 @@ class MessagesMixin:
             user_sections.append(f"GLOSSARY (use with absolute priority):\n{glossary_text}")
         if tag_alias_legend_text:
             user_sections.append(tag_alias_legend_text)
+        if request_type not in ('variation_list', 'glossary_notes_variation'):
+            user_sections.append(self._translation_memory_text(block_idx, string_idx))
 
         if request_type == 'variation_list' and current_translation:
             if selected_text:

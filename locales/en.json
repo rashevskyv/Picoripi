@@ -1462,5 +1462,7 @@
   "Synchronization cancelled.": "Synchronization cancelled.",
   "A save is already in progress.": "A save is already in progress.",
   "Contacting Companion server…": "Contacting Companion server…",
-  "The request failed; see the log.": "The request failed; see the log."
+  "The request failed; see the log.": "The request failed; see the log.",
+  "(same text elsewhere)": "(same text elsewhere)",
+  "Source: saved for the same text elsewhere in the project": "Source: saved for the same text elsewhere in the project"
 }

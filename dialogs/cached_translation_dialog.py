@@ -15,6 +15,7 @@ class CachedTranslationDialog(QDialog):
             - 'block_name': str
             - 'string_idx': int
             - 'text': str
+            - 'from_memory': bool, optional -- saved for the same source text at another place
         """
         from PyQt6.QtWidgets import QWidget
         parent_widget = parent if isinstance(parent, QWidget) else None
@@ -57,7 +58,10 @@ class CachedTranslationDialog(QDialog):
         layout.addWidget(self.info_label)
         
         # 2. Source Label
-        self.source_label = QLabel(tr('Source: Loaded from cache'), self)
+        if cached_count == 1 and cached_info[0].get('from_memory'):
+            self.source_label = QLabel(tr('Source: saved for the same text elsewhere in the project'), self)
+        else:
+            self.source_label = QLabel(tr('Source: Loaded from cache'), self)
         self.source_label.setStyleSheet("color: gray; font-style: italic;")
         layout.addWidget(self.source_label)
         
@@ -73,7 +77,8 @@ class CachedTranslationDialog(QDialog):
             # Multi-line overview
             lines_desc = []
             for item in cached_info:
-                lines_desc.append(f"[{item['block_name']}] Line {item['string_idx'] + 1}:\n{item['text']}\n" + "-"*40)
+                origin = " " + tr('(same text elsewhere)') if item.get('from_memory') else ""
+                lines_desc.append(f"[{item['block_name']}] Line {item['string_idx'] + 1}{origin}:\n{item['text']}\n" + "-"*40)
             self.text_edit.setPlainText("\n".join(lines_desc))
             
         layout.addWidget(self.text_edit)

@@ -322,6 +322,16 @@ in `docs/OPEN_ITEMS.md`, not here.
 
 ## WP4 — translation memory and in-run consistency
 
+- [ ] **Restore by source text (4.2).** Translate (or save with the editor action) a short line that occurs in
+      several blocks, then start an AI translation of another block that contains the same line. Expected: the
+      Cached Translation window lists that row with "(same text elsewhere)"; OK fills it without a request.
+      Look at what gets offered in a big block: if lines by different speakers are restored with the wrong
+      gender or tone, the restore needs the speaker in its key (`docs/OPEN_ITEMS.md`).
+- [ ] **`translation_memory.json` appears in the project folder (4.2)** after the first saved translation — a
+      new file next to `saved_translations.json`. Add it to whatever you sync or back up; it can be deleted at
+      any time (it is rebuilt from `saved_translations.json`).
+- [ ] **Single-string translation (4.2):** with "Log AI traffic" on, the request for a line whose text was
+      saved elsewhere has a `TRANSLATION MEMORY (same source elsewhere)` section; "Generate variation" has not.
 - [ ] **Duplicate folding in a real block (4.1).** Translate a block that has repeated lines (menu answers,
       "Yes"/"No", repeated barks). Expected: the progress window counts fewer chunks than before, every repeated
       row ends with the same translation, and the debug log has

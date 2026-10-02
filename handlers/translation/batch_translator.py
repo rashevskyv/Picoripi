@@ -122,6 +122,23 @@ class AIBatchTranslator(BaseTranslationHandler):
             return False
         return True
 
+    def _restorable_text(self, saved_mgr, saved_translations, item, block_idx, string_idx):
+        """``(saved text that fits the row, True when it comes from the same source elsewhere)`` or ``(None, False)``."""
+        def fits(text):
+            return (
+                isinstance(text, str) and bool(text.strip())
+                and self._cached_translation_matches_layout(item, text, block_idx, string_idx)
+            )
+
+        saved_text = saved_translations.get(saved_mgr._get_string_unique_key(block_idx, string_idx))
+        if fits(saved_text):
+            return saved_text, False
+        find_by_source = getattr(saved_mgr, 'find_by_source', None)
+        remembered = find_by_source(item.get("text", "")) if callable(find_by_source) else None
+        if fits(remembered):
+            return remembered, True
+        return None, False
+
     def _extract_single_translation(self, response: ProviderResponse) -> str:
         cleaned = self.main_handler.ai_lifecycle_manager._clean_model_output(
             response, expect_json=True
@@ -189,16 +206,8 @@ class AIBatchTranslator(BaseTranslationHandler):
                 except (ValueError, TypeError):
                     r_string_idx = item_id
 
-            key = saved_mgr._get_string_unique_key(r_block_idx, r_string_idx)
-            saved_text = saved_translations.get(key)
-            if (
-                saved_text
-                and isinstance(saved_text, str)
-                and saved_text.strip()
-                and self._cached_translation_matches_layout(
-                    item, saved_text, r_block_idx, r_string_idx
-                )
-            ):
+            saved_text, from_memory = self._restorable_text(saved_mgr, saved_translations, item, r_block_idx, r_string_idx)
+            if saved_text:
                 block_name = None
                 if hasattr(self.mw, 'data_store') and self.mw.data_store.block_names:
                     block_name = self.mw.data_store.block_names.get(str(r_block_idx))
@@ -208,7 +217,9 @@ class AIBatchTranslator(BaseTranslationHandler):
                     'block_idx': r_block_idx,
                     'block_name': block_name,
                     'string_idx': r_string_idx,
-                    'text': saved_text
+                    'text': saved_text,
+                    # saved for the same source text at another place, not for this row
+                    'from_memory': from_memory,
                 })
 
         if force_prompt:
@@ -241,17 +252,8 @@ class AIBatchTranslator(BaseTranslationHandler):
                 except (ValueError, TypeError):
                     r_string_idx = item_id
 
-            key = saved_mgr._get_string_unique_key(r_block_idx, r_string_idx)
-            saved_text = saved_translations.get(key)
-            
-            if (
-                saved_text
-                and isinstance(saved_text, str)
-                and saved_text.strip()
-                and self._cached_translation_matches_layout(
-                    item, saved_text, r_block_idx, r_string_idx
-                )
-            ):
+            saved_text, _from_memory = self._restorable_text(saved_mgr, saved_translations, item, r_block_idx, r_string_idx)
+            if saved_text:
                 restored_items.append((r_block_idx, r_string_idx, saved_text))
             else:
                 filtered_source_items.append(item)

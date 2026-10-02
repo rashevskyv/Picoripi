@@ -1753,5 +1753,7 @@
   "Synchronization cancelled.": "Синхронізацію скасовано.",
   "A save is already in progress.": "Збереження вже триває.",
   "Contacting Companion server…": "Звертаємося до сервера компаньйона…",
-  "The request failed; see the log.": "Запит не вдався; подробиці в журналі."
+  "The request failed; see the log.": "Запит не вдався; подробиці в журналі.",
+  "(same text elsewhere)": "(той самий текст в іншому місці)",
+  "Source: saved for the same text elsewhere in the project": "Джерело: збережено для того самого тексту в іншому місці проєкту"
 }
