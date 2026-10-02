@@ -1,8 +1,9 @@
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from typing import List, Tuple, Dict, Set, Optional, Any
 from core.tag_utils import iter_all_strings
+from utils.thread_utils import WorkerThread
 
-class AutofixWorker(QThread):
+class AutofixWorker(WorkerThread):
     """Background worker for executing autofix rules across multiple strings."""
     progress = pyqtSignal(int)
     completed = pyqtSignal(list)  # List of tuples: (block_idx, string_idx, original_text, fixed_text)

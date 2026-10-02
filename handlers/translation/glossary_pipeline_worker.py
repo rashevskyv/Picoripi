@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 
 from core.glossary_build.parallel import DEFAULT_RETRY_DELAY, DEFAULT_WORKERS, MAX_CONSECUTIVE_FAILURES
 from core.glossary_build.pipeline_coordinator import (
@@ -23,6 +23,7 @@ from core.glossary_build.pipeline_coordinator import (
 )
 from core.tag_utils import mask_all_tags_including_visual_markers
 from utils.logging_utils import log_error
+from utils.thread_utils import WorkerThread
 
 
 _PROMPTS_PATH = "translation_prompts/glossary_pipeline_prompts.json"
@@ -34,7 +35,7 @@ DEFAULT_TIMEOUT = 180
 RECONCILE_REPORT_LINES = 40
 
 
-class GlossaryBuildWorker(QThread):
+class GlossaryBuildWorker(WorkerThread):
     """Runs a glossary build (and optional translate pass) in the background."""
 
     progress = pyqtSignal(str, int, int)   # stage, done, total

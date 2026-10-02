@@ -1,8 +1,9 @@
 # dialogs/tag_alias_dialog.py
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox, QMessageBox)
 from PyQt6.QtGui import QIntValidator
-from PyQt6.QtCore import QThread, pyqtSignal, QTimer
+from PyQt6.QtCore import pyqtSignal, QTimer
 from core.i18n import tr
+from utils.thread_utils import WorkerThread
 
 FORCE_ALIAS_INFO = (
     "You have enabled the Force Alias option for this tag.\n\n"
@@ -160,7 +161,7 @@ class TagAliasDialog(QDialog):
         return alias, width
 
 
-class AliasUpdateWorker(QThread):
+class AliasUpdateWorker(WorkerThread):
     """Alias update worker implementation."""
     finished_signal = pyqtSignal(object, object, object)
 

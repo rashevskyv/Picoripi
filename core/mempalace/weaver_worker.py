@@ -2,12 +2,13 @@ import json
 import re
 import difflib
 import sqlite3
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from typing import List, Dict, Any, Optional
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider, ProviderResponse
 from utils.logging_utils import log_error, log_ai_traffic
 from utils.logging_utils import log_debug
+from utils.thread_utils import WorkerThread
 
 
 def robust_json_loads(text: str) -> dict:
@@ -30,7 +31,7 @@ def robust_json_loads(text: str) -> dict:
     return {}
 
 
-class MemePalaceWorker(QThread):
+class MemePalaceWorker(WorkerThread):
     """Meme palace worker implementation."""
     # Signals for UI communication
     progress = pyqtSignal(int, int, str)  # current_step, total_steps, status_text

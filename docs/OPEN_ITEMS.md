@@ -13,6 +13,16 @@ the line when it is done or moved into a plan.
 
 ## Found during WP6
 
+- **Five places still use a plain `QThread` with a worker object moved into it** (`handlers/ai_chat_handler.py`,
+  `handlers/translation/ai_lifecycle_manager.py`, `glossary_builder_handler.py`, two in
+  `ui/script_markup/mixins/hierarchy_ai_mixin.py`). Their threads are held by an attribute and stopped through
+  `safe_shutdown_thread`, so the "destroyed while running" race of `WorkerThread` does not apply as long as
+  nobody sets the attribute to `None` from a result slot; `ai_lifecycle_manager.py:158` does set `self.worker`
+  (the object, not the thread). Worth one look.
+- **One full run crashed a pytest worker once (2026-10-02)** in `test_search_worker_global_success`, right after
+  the conftest heap walk was removed. Cause found and fixed (`WorkerThread`); if a "worker crashed" line shows
+  up again, it is a new case, not noise — the test that was running names the thread.
+
 - **Results that were computed and never used (6.5, found by F841).** Removed as dead code, not wired in — each
   may be a feature that was meant to work:
   `core/translation/script_speaker_finder.py` computed whether the previous script line matches the previous

@@ -6,16 +6,17 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox, QLabel, QProgressBar, QLineEdit,
     QHBoxLayout
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from utils.logging_utils import log_debug, log_error
 import pycountry
 from core.i18n import tr
+from utils.thread_utils import WorkerThread
 
 DICTIONARY_API_URL = "https://api.github.com/repos/wooorm/dictionaries/contents/dictionaries"
 DICTIONARY_DOWNLOAD_URL_TEMPLATE = "https://raw.githubusercontent.com/wooorm/dictionaries/main/dictionaries/{lang_code}/index.{ext}"
 LOCAL_DICT_PATH = "resources/spellchecker"
 
-class DownloadThread(QThread):
+class DownloadThread(WorkerThread):
     """Download thread implementation with cooperative cancellation."""
     progress = pyqtSignal(str, int)
     finished_with_result = pyqtSignal(str, bool, str)
@@ -76,7 +77,7 @@ class DownloadThread(QThread):
         self.finished_with_result.emit("", True, "All files downloaded successfully.")
 
 
-class DictionaryListFetchWorker(QThread):
+class DictionaryListFetchWorker(WorkerThread):
     """Thread to fetch the list of remote dictionaries asynchronously."""
     finished_signal = pyqtSignal(bool, list, str)
 

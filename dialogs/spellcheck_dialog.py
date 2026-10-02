@@ -1,15 +1,16 @@
 # Dialog for interactive spellchecking of selected text
 from utils import app_mode
 from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QPushButton, QListWidget, QApplication)
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor
 from typing import List
 import re
 from utils.logging_utils import log_debug, log_error
 from dialogs.base_text_review_dialog import BaseTextReviewDialog
 from core.i18n import tr
+from utils.thread_utils import WorkerThread
 
-class SpellcheckAnalysisWorker(QThread):
+class SpellcheckAnalysisWorker(WorkerThread):
     progress = pyqtSignal(int)
     finished_with_result = pyqtSignal(list, dict) # items_to_review, new_cache_entries
     cancelled = pyqtSignal()

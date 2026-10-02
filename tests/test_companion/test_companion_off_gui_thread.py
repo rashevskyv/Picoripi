@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import QDialog, QProgressDialog, QPushButton, QWidget
 
-from components.companion import background_call
 from components.companion.background_call import run_companion_call
 from components.companion.sync_dialog import CompanionSyncDialog
 from core.companion_sync import ConflictRecord, MergeResult, sync_push_on_close
@@ -32,7 +31,7 @@ def test_a_call_runs_in_another_thread_and_its_result_arrives_on_the_gui_thread(
     assert seen["result"] == (True, "pong", False)
     assert seen["call_thread"] != gui_thread and seen["result_thread"] == gui_thread
     assert not parent.findChild(QProgressDialog).isVisible()
-    qtbot.waitUntil(lambda: not background_call._running, timeout=5000)
+    qtbot.waitUntil(lambda: not thread_utils._running, timeout=5000)
 
 
 def test_a_call_that_raises_reports_none_instead_of_hanging_the_progress_window(qtbot):
@@ -45,7 +44,7 @@ def test_a_call_that_raises_reports_none_instead_of_hanging_the_progress_window(
 
     run_companion_call(parent, call, results.append)
     qtbot.waitUntil(lambda: results == [None], timeout=5000)
-    qtbot.waitUntil(lambda: not background_call._running, timeout=5000)
+    qtbot.waitUntil(lambda: not thread_utils._running, timeout=5000)
 
 
 def test_cancelling_returns_at_once_and_the_result_is_dropped(qtbot):
@@ -65,7 +64,7 @@ def test_cancelling_returns_at_once_and_the_result_is_dropped(qtbot):
     try:
         assert started.wait(5)
         parent.findChild(QProgressDialog).findChild(QPushButton).click()      # the Cancel button
-        assert len(thread_utils._parked) == 1 and not background_call._running
+        assert len(thread_utils._parked) == 1 and not thread_utils._running
     finally:
         release.set()
     qtbot.waitUntil(lambda: not thread_utils._parked, timeout=5000)

@@ -632,9 +632,10 @@ class CompanionSyncClient:
 
 
 try:
-    from PyQt6.QtCore import QThread, pyqtSignal
+    from PyQt6.QtCore import pyqtSignal
+    from utils.thread_utils import WorkerThread
 except ImportError:
-    class QThread:  # type: ignore[no-redef]
+    class WorkerThread:  # type: ignore[no-redef]
         def __init__(self, *args, **kwargs):
             pass
 
@@ -655,7 +656,7 @@ except ImportError:
         return _MockSignal()
 
 
-class CompanionPullWorker(QThread):
+class CompanionPullWorker(WorkerThread):
     """Background worker for pulling glossary updates without blocking the UI."""
     finished_with_result = pyqtSignal(bool, str, int)
 
@@ -672,7 +673,7 @@ class CompanionPullWorker(QThread):
         self.finished_with_result.emit(ok, msg, count)
 
 
-class CompanionPushWorker(QThread):
+class CompanionPushWorker(WorkerThread):
     """Background worker for pushing glossary updates without blocking the UI."""
     finished_with_result = pyqtSignal(bool, str, int)
 
@@ -705,7 +706,7 @@ class CompanionPushWorker(QThread):
         self.finished_with_result.emit(ok, msg, count)
 
 
-class CompanionSyncWorker(QThread):
+class CompanionSyncWorker(WorkerThread):
     """Background worker for smart bidirectional synchronization with Companion server."""
 
     progress_status = pyqtSignal(str)

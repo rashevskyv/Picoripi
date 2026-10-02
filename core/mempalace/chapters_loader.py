@@ -1,10 +1,11 @@
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from core.mempalace_client import MemePalaceClient
 from core.mempalace.story_timeline import StoryVirtualProjection
 from utils.logging_utils import log_info, log_error
+from utils.thread_utils import WorkerThread
 
 
-class MemePalaceChaptersLoadWorker(QThread):
+class MemePalaceChaptersLoadWorker(WorkerThread):
     """Worker for loading chapters and chapter mappings asynchronously from MemePalace."""
     finished_signal = pyqtSignal(object, object)
     error_signal = pyqtSignal(str)

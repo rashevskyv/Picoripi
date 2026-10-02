@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 
 from core.mempalace.dialogue_alignment import (
     GameMessage,
@@ -12,9 +12,10 @@ from core.mempalace.dialogue_alignment import (
 )
 from core.mempalace.dialogue_mapping import DialogueMappingCancelled, GameString
 from core.mempalace.gpu_retrieval import retrieve_gpu_candidates
+from utils.thread_utils import WorkerThread
 
 
-class DialogueMappingWorker(QThread):
+class DialogueMappingWorker(WorkerThread):
     progress = pyqtSignal(int, int)
     completed = pyqtSignal(bool, object, str)
 
@@ -43,7 +44,7 @@ class DialogueMappingWorker(QThread):
             self.completed.emit(False, None, f"Dialogue matching failed: {exc}")
 
 
-class DialogueAlignmentWorker(QThread):
+class DialogueAlignmentWorker(WorkerThread):
     """Run the simulator-backed alignment engine without blocking the UI."""
 
     completed = pyqtSignal(bool, object, str)

@@ -1,11 +1,13 @@
-"""Qt thread helpers: owner-bound single-shot timers and a shutdown that never destroys a running thread."""
+"""Qt thread helpers: owner-bound single-shot timers, and threads that are never destroyed while they run."""
 import time
 from typing import Optional, Any
 from PyQt6.QtCore import QObject, QThread, QTimer
 from utils.logging_utils import log_debug, log_warning
 
-# Threads that did not stop in time, with their workers. Qt aborts the process
-# when a running QThread is destroyed, so these stay referenced until they end.
+# Qt aborts the process when a running QThread is destroyed. Two registries keep that from happening:
+# every started WorkerThread, until Qt reports it finished ...
+_running: set = set()
+# ... and the threads (with their workers) that were asked to stop and did not make it in time.
 _parked: list = []
 
 
@@ -26,6 +28,27 @@ def single_shot(msec: int, context: Any, fn) -> None:
     timer.start(msec)
 
 
+class WorkerThread(QThread):
+    """A ``QThread`` that stays referenced from ``start()`` until Qt reports it finished.
+
+    A worker emits its result from inside ``run()``. The slot that receives it
+    often drops the last reference (``self.worker = None``), and it can run
+    before ``run()`` has returned -- destroying a thread that still runs.
+    Subclass this instead of ``QThread`` and the owner may let go at any time.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.finished.connect(self._forget_self)
+
+    def start(self, *args):
+        _running.add(self)
+        super().start(*args)
+
+    def _forget_self(self) -> None:
+        _running.discard(self)
+
+
 def _attempt(action, what: str) -> None:
     try:
         action()
@@ -39,7 +62,7 @@ def safe_shutdown_thread(thread: Optional[QThread], worker: Optional[Any] = None
     Order: ask the worker to cancel, ask the thread to stop, wait up to
     ``timeout_ms``, cut the signals so that no late result reaches a closed
     window. Only a stopped thread is deleted; one that did not stop is parked
-    until it ends by itself (see ``wait_for_parked_threads``). A thread is
+    until it ends by itself (see ``wait_for_threads_at_exit``). A thread is
     never terminated: that leaves locks held and files half-written.
     """
     cancel = getattr(worker, 'cancel', None)
@@ -61,6 +84,7 @@ def safe_shutdown_thread(thread: Optional[QThread], worker: Optional[Any] = None
             _attempt(target.disconnect, "disconnect")
 
     if stopped:
+        _running.discard(thread)        # its own `finished` connection went with the disconnect above
         for target in (worker, thread):
             if target is not None:
                 _attempt(target.deleteLater, "deleteLater")
@@ -73,6 +97,7 @@ def safe_shutdown_thread(thread: Optional[QThread], worker: Optional[Any] = None
 def _park(thread: QThread, worker: Optional[Any]) -> None:
     entry = (thread, worker)
     _parked.append(entry)
+    _running.discard(thread)
 
     def release():
         if entry in _parked:
@@ -84,10 +109,13 @@ def _park(thread: QThread, worker: Optional[Any]) -> None:
     _attempt(lambda: thread.finished.connect(release), "watching a parked thread")
 
 
-def wait_for_parked_threads(timeout_ms: int = 8000) -> None:
-    """Give the threads that ignored a shutdown a last chance to end. Call once, when the application quits."""
+def wait_for_threads_at_exit(timeout_ms: int = 8000) -> None:
+    """Ask every thread that still runs to stop and give it a last chance to end. Call once, when the application quits."""
+    threads = list(_running) + [thread for thread, _worker in _parked]
+    for thread in threads:
+        _attempt(thread.requestInterruption, "requestInterruption")
     deadline = time.monotonic() + timeout_ms / 1000
-    for thread, _worker in list(_parked):
+    for thread in threads:
         remaining = max(0, int((deadline - time.monotonic()) * 1000))
         if not thread.wait(remaining):
-            log_warning(f"wait_for_parked_threads: {thread} is still running at exit.")
+            log_warning(f"wait_for_threads_at_exit: {thread} is still running at exit.")

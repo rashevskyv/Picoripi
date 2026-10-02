@@ -12,8 +12,9 @@ from core.state_manager import AppState
 from .width_calculation_worker import WidthCalculationWorker
 from components.report_dialog import LargeTextReportDialog
 from core.i18n import tr
+from utils.thread_utils import WorkerThread
 
-class SaveWorker(QThread):
+class SaveWorker(WorkerThread):
     """Save worker implementation."""
     progress_updated = pyqtSignal(int, int, str)  # current_step, total_steps, label_text
     finished_with_result = pyqtSignal(bool, list, list)  # success, warnings, errors

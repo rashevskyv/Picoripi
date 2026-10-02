@@ -1,7 +1,8 @@
-from PyQt6.QtCore import pyqtSignal, QThread
+from PyQt6.QtCore import pyqtSignal
+from utils.thread_utils import WorkerThread
 
 
-class ProviderTestWorker(QThread):
+class ProviderTestWorker(WorkerThread):
     """Provider test worker implementation."""
     finished_signal = pyqtSignal(bool, str)
 

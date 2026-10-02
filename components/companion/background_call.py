@@ -3,18 +3,15 @@ from __future__ import annotations
 
 from typing import Any, Callable, Optional
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QProgressDialog, QWidget
 
 from core.i18n import tr
 from utils.logging_utils import log_error
-from utils.thread_utils import safe_shutdown_thread
-
-# Workers that are running: a QThread must stay referenced until Qt says it has finished.
-_running: set = set()
+from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
 
-class CompanionCallWorker(QThread):
+class CompanionCallWorker(WorkerThread):
     """Calls ``call(cancelled)`` in a thread and reports what it returned (``None`` if it raised)."""
 
     finished_with_result = pyqtSignal(object)
@@ -41,6 +38,7 @@ def run_companion_call(
     """Start ``call`` in the background; ``on_result(result)`` runs on the GUI thread unless the user cancelled.
 
     ``call`` receives a ``cancelled()`` callable to pass on to the Companion client.
+    Nobody has to hold the returned worker: it keeps itself alive until it ends.
     """
     worker = CompanionCallWorker(call)
     progress = QProgressDialog(label or tr("Contacting Companion server…"), tr("Cancel"), 0, 0, parent)
@@ -60,16 +58,10 @@ def run_companion_call(
         if settled:
             return
         settled.append(True)
-        _running.discard(worker)        # safe_shutdown_thread keeps it alive from here on
         safe_shutdown_thread(worker, worker, timeout_ms=300)
 
-    def release():
-        _running.discard(worker)
-        worker.deleteLater()
-
-    _running.add(worker)
     worker.finished_with_result.connect(finish)
-    worker.finished.connect(release)
+    worker.finished.connect(worker.deleteLater)
     progress.canceled.connect(cancel)
     worker.start()
     progress.show()

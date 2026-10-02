@@ -3,10 +3,11 @@ from typing import List, Optional, Any
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QCheckBox, QLineEdit, QLabel, QScrollArea, QWidget, QDialogButtonBox,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 
 from core.glossary_manager import GlossaryManager
 from core.i18n import tr
+from utils.thread_utils import WorkerThread
 
 
 class CategorySelectionDialog(QDialog):
@@ -62,7 +63,7 @@ class CategorySelectionDialog(QDialog):
         return selected
 
 
-class GlossaryOccurrenceWorker(QThread):
+class GlossaryOccurrenceWorker(WorkerThread):
     """Glossary occurrence worker implementation."""
     finished_with_result = pyqtSignal(dict)
 

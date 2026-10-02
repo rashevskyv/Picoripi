@@ -1,11 +1,12 @@
 # dialogs/search/search_worker.py
 import re
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from utils.logging_utils import log_error
 from utils.utils import prepare_text_for_tagless_search, is_fuzzy_match, find_smart_matches
 from dialogs.search.search_utils import prepare_text_for_tagless_search_with_mapping
+from utils.thread_utils import WorkerThread
 
-class SearchWorker(QThread):
+class SearchWorker(WorkerThread):
     progress = pyqtSignal(int)
     finished_with_result = pyqtSignal(list, str, list, list, list) # items_to_review, current_text, line_numbers, block_indices, unique_string_indices
     cancelled = pyqtSignal()

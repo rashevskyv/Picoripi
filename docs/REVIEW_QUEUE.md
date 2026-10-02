@@ -271,6 +271,9 @@ in `docs/OPEN_ITEMS.md`, not here.
 
 ## WP6 — stability
 
+- [ ] **Exit while something runs in the background (WP6).** Start a search, a spellcheck analysis or a
+      glossary build and close the application at once: it may take a few seconds to leave the process list
+      (every running thread is asked to stop and waited for, 8 s at most) and must not show a crash dialog.
 - [ ] **One batch translation of a block, sequential and parallel (6.5).** `AIWorker.run()` was cut into
       methods; the 23 worker tests pass, but run one real block with 1 worker and one with several: progress
       text ("Translating chunk i/n"), the detail line (chapter / file / line), applying of each chunk, Cancel in

@@ -1,9 +1,10 @@
 # handlers/width_calculation_worker.py
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from typing import List, Dict, Any, Optional
 from utils.utils import calculate_string_width, remove_all_tags
+from utils.thread_utils import WorkerThread
 
-class WidthCalculationWorker(QThread):
+class WidthCalculationWorker(WorkerThread):
     """Width calculation worker implementation."""
     progress_updated = pyqtSignal(int)
     calculation_finished = pyqtSignal(dict)

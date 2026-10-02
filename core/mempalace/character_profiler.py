@@ -1,5 +1,5 @@
 import re
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from typing import Any, Optional, Tuple
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider
@@ -7,9 +7,10 @@ from utils.logging_utils import log_error, log_ai_traffic, log_warning, log_info
 from .weaver_worker import robust_json_loads
 from core.tag_utils import ANY_TAG_PATTERN
 from utils.logging_utils import log_debug
+from utils.thread_utils import WorkerThread
 
 
-class MemePalaceCharacterProfilerWorker(QThread):
+class MemePalaceCharacterProfilerWorker(WorkerThread):
     """Meme palace character profiler worker implementation."""
     # Signals for UI communication
     progress = pyqtSignal(int, int, str)  # current, total, status

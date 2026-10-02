@@ -1,10 +1,11 @@
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import ProviderResponse
 from utils.logging_utils import log_error, log_ai_traffic
+from utils.thread_utils import WorkerThread
 
 
-class MemePalaceChapterAIAnalyzerWorker(QThread):
+class MemePalaceChapterAIAnalyzerWorker(WorkerThread):
     """Meme palace chapter a i analyzer worker implementation."""
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)

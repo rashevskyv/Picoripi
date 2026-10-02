@@ -1,11 +1,12 @@
 import os
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from core.mempalace_client import MemePalaceClient
 from utils.logging_utils import log_error
 from utils.logging_utils import log_debug
+from utils.thread_utils import WorkerThread
 
 
-class MemePalaceChapterMapperWorker(QThread):
+class MemePalaceChapterMapperWorker(WorkerThread):
     """Meme palace chapter mapper worker implementation."""
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)

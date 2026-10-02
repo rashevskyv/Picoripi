@@ -1,10 +1,11 @@
 import os
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from typing import Any, Optional, Tuple
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider
 from utils.logging_utils import log_error, log_ai_traffic
 from .weaver_worker import robust_json_loads
+from utils.thread_utils import WorkerThread
 
 
 _OBJECT_TYPE_SECTIONS = {
@@ -35,7 +36,7 @@ def _object_section(item: dict) -> str:
     return _OBJECT_TYPE_SECTIONS.get(item_type, "Terms")
 
 
-class MemePalaceScriptAnalyzerWorker(QThread):
+class MemePalaceScriptAnalyzerWorker(WorkerThread):
     """Meme palace script analyzer worker implementation."""
     # Signals for UI communication
     progress = pyqtSignal(int, int, str)  # current, total, status

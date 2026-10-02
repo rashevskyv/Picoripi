@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import List, Optional, Dict
 from utils.logging_utils import log_debug, log_warning, log_error
 from spylls.hunspell import Dictionary
-from PyQt6.QtCore import QObject, QThread, pyqtSignal, QTimer
+from PyQt6.QtCore import QObject, pyqtSignal, QTimer
+from utils.thread_utils import WorkerThread
 
 CUSTOM_DICT_FILENAME = "custom_dictionary.txt"
 LOCAL_DICT_PATH = Path("resources/spellchecker")
@@ -15,7 +16,7 @@ MIN_WORD_LENGTH = 3
 WORD_PATTERN = re.compile(r"^[a-zA-Zа-яА-ЯіїІїЄєґҐ']+")
 SUGGESTION_LIMIT = 7
 
-class SpellcheckWorker(QThread):
+class SpellcheckWorker(WorkerThread):
     """Spellcheck worker implementation."""
     spellcheck_results_ready = pyqtSignal(dict, dict) # word -> is_misspelled, word -> suggestions
 

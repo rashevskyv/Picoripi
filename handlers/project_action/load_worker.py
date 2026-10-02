@@ -1,12 +1,13 @@
 from pathlib import Path
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from core import formats
 from core.containers import ContainerManager
 from utils.logging_utils import log_error
 from utils.logging_utils import log_debug
+from utils.thread_utils import WorkerThread
 
 
-class ProjectLoadWorker(QThread):
+class ProjectLoadWorker(WorkerThread):
     """Worker thread for loading project files asynchronously."""
     finished_with_result = pyqtSignal(dict)
     progress = pyqtSignal(int, int)

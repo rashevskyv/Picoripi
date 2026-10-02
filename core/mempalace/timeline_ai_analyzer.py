@@ -5,17 +5,18 @@ from __future__ import annotations
 import hashlib
 import json
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 
 from core.translation.providers import ProviderResponse
 from utils.logging_utils import log_ai_traffic, log_error
+from utils.thread_utils import WorkerThread
 
 
 TIMELINE_CHUNK_SIZE = 20
 TIMELINE_REQUEST_TIMEOUT = 300
 
 
-class StoryTimelineAIAnalyzerWorker(QThread):
+class StoryTimelineAIAnalyzerWorker(WorkerThread):
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)
     finished_with_result = pyqtSignal(bool, str)
