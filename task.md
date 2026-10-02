@@ -7,7 +7,7 @@
 - [x] 5.1 `plugins/spec.py` (контракт), `python -m plugins.validate`, `test_validate_all` для всіх плагінів
 - [x] 5.2 повторюваний код — у базовий клас; нейтральний `common/tag_logic.py`; без файлів-прокладок і мертвих гачків
 - [x] 5.3 злиття промптів по ключах (корінь → `common/defaults` → плагін)
-- [ ] 5.4 `plugins/_template/` + `tools/new_plugin.py` + спільний димовий тест
+- [x] 5.4 `plugins/_template/` + `tools/new_plugin.py` + спільний димовий тест
 - [ ] 5.5 `get_file_formats()` + `core/formats.py` + `ContainerManager.register`; `bmg_tool.py` у zelda_bmg; гачки `prepare_save_context` / `export_runtime_state`
 - [ ] 5.6 `safe_call`, перезавантаження плагіна за префіксом, без запасного zelda_mc, `plugins_root()`
 - [ ] 5.7 попередній перегляд вікон не залежить від zelda_bmg

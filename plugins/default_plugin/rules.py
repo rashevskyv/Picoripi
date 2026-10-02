@@ -13,9 +13,9 @@ class GameRules(BaseGameRules):
     """Minimal, copy-ready plugin template.
 
     This ruleset is intentionally generic: it accepts simple text, JSON string
-    lists, and basic bracket/curly tags. Copy this package under a new plugin
-    name, then replace the parser, tag rules, font metrics, and warnings with
-    game-specific behavior.
+    lists, and basic bracket/curly tags. Replace the parser, tag rules, font
+    metrics, and warnings with game-specific behavior. New plugins are created
+    from this package with ``python tools/new_plugin.py``.
 
     The class attributes below are all the wiring a plugin needs: the base
     class builds the tag manager, the problem analyzer and the text fixer from

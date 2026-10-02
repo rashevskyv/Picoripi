@@ -38,6 +38,8 @@ Typical extra files (template has them): `config.py`, `tag_manager.py`, `font_ma
 
 `GameRules` declares its parts with class attributes and `BaseGameRules` wires them: `problem_prefix`, `problem_definitions`, `tag_manager_class`, `tag_style` (`"curly"` / `"square"`), `analyze_whole_string_first`, optionally `problem_analyzer_class` / `text_fixer_class` for game-specific checks. The hooks that only pass a call on (problem definitions, highlighting, analysis, autofix, short problem names) need not be written. Check a plugin with `python -m plugins.validate <name>`.
 
+Start a new plugin with `python tools/new_plugin.py <id> "<Display Name>" --prefix XX`: it copies `plugins/default_plugin`, renames the problem-id prefix and the display name, and writes `tests/test_plugins/test_<id>/test_rules.py` with three passing checks from `plugins/testing.py` (loads, a sample survives load and save, the validator passes).
+
 `translation_prompts/prompts.json` may hold only the sections the game changes (usually `translation`): the rest is merged in from `plugins/common/defaults/prompts.json`.
 
 `default_plugin.GameRules.get_display_name()` returns `Default Plugin Template`. `get_capabilities()` returns `set()` on purpose.

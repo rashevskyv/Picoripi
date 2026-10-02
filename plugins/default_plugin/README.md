@@ -17,17 +17,25 @@ It is deliberately small but fully loadable:
 
 ## How To Use
 
-1. Copy `plugins/default_plugin/` to `plugins/<your_plugin_name>/`.
-2. Rename the display name in `config.json`.
-3. Replace file parsing in `rules.py`:
-   - `load_data_from_json_obj()`
-   - `save_data_to_json_obj()`
-4. Replace tag validation in `tag_manager.py`.
-5. Replace or extend font metrics in `fonts/default_font.json` and visible tag widths in `font_map.json`.
-6. Add plugin-specific tests under `tests/test_plugins/test_<your_plugin_name>/`.
-7. Run:
+1. Create the plugin and its test folder from this template:
 
 ```powershell
+.\venv\Scripts\python.exe tools/new_plugin.py <your_plugin_name> "<Display Name>" --prefix XX
+```
+
+   `--prefix` is the short uppercase tag of the plugin's problem ids (`XX_WIDTH_EXCEEDED`). The new plugin is
+   listed by the application at once and its generated tests pass.
+2. Replace file parsing in `rules.py`:
+   - `load_data_from_json_obj()`
+   - `save_data_to_json_obj()`
+3. Replace tag validation in `tag_manager.py`.
+4. Replace or extend font metrics in `fonts/default_font.json` and visible tag widths in `font_map.json`.
+5. Put a real piece of the game's text into `SAMPLE` in `tests/test_plugins/test_<your_plugin_name>/test_rules.py`
+   and add tests for the game's own rules.
+6. Check and run:
+
+```powershell
+$env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m plugins.validate <your_plugin_name>
 $env:PYTHONPATH = "."; .\venv\Scripts\python.exe -m pytest -n auto tests/test_plugins/test_<your_plugin_name>/
 ```
 

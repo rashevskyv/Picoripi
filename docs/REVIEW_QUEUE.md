@@ -222,4 +222,11 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **An override copy of `prompts.json` no longer freezes the other sections (5.3).** "Edit Prompts JSON"
       copies the plugin file into the project; sections missing from that copy are now filled from the
       common file instead of being absent.
+- [ ] **The plugin template stays `plugins/default_plugin`; there is no `plugins/_template/` (5.4).** The
+      generator copies the plugin that already exists, is tested and can be selected in the application —
+      a second copy would have to be kept in step with it. The shared smoke checks are in
+      `plugins/testing.py` rather than under `tests/` so that a generated test file can import them. The
+      template's `prompts.json` is not the full common file: since 5.3 the missing sections are merged in.
+      Try it: `python tools/new_plugin.py demo "Demo" --prefix DM`, start the application, pick "Demo", then
+      delete `plugins/demo` and `tests/test_plugins/test_demo`.
 
