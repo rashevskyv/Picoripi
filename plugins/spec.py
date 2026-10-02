@@ -121,6 +121,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=(0, 0), returns=dict, optional=True),
         Hook("get_ai_flow_context_for_string", "Dialogue-flow note for one line in an AI prompt.",
              call=(0, 0), **_STR_OR_NONE),
+        Hook("get_ai_flow_group_for_string", "Id of the line's conversation: lines that share it travel in one AI request.",
+             call=(0, 0), **_STR_OR_NONE),
         Hook("get_ai_flow_overview", "Conversation outline for the lines of one AI request.", call=(0, [0]), **_STR_OR_NONE),
         Hook("get_scene_context_for_string", "Scene evidence for the Story Timeline: resource, actors, locations.",
              call=(0, 0), returns=dict),

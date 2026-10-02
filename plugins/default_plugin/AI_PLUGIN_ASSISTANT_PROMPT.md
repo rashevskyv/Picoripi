@@ -58,7 +58,7 @@ First, ask me these questions:
    - Do I have the raw game files (message archives, stage/room/scene tables), or only text already extracted from them?
    - Does a message carry any attribute saying which on-screen window or box the game draws it in? That attribute usually identifies the message's role - item name, place name, boss name, speaker caption - and can seed the glossary directly.
    - Does the game data already pair a name with its own description or icon (for example an item-acquisition screen)? Those pairs are ready-made glossary entries that need no AI at all.
-   - Can conversations, branches, or scene membership be reconstructed from the data?
+   - Can conversations, branches, or scene membership be reconstructed from the data? (Knowing which lines form one conversation also lets Picoripi keep them in the same AI request.)
    - Is there a community wiki or reference source for this game that glossary descriptions could be grounded in (get_external_lore) or directly linked to in the glossary UI (get_external_reference_url)?
    - Is there a fan script or walkthrough transcript containing scenes and speakers?
    - Are there existing translation patches or external localizations in other languages that could serve as reference material (`load_reference_patch`, `load_multi_reference`, `get_reference_language_label`)?

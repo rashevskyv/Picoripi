@@ -19,6 +19,34 @@ from utils.logging_utils import log_debug
 ITEMS_PER_CHUNK = 12
 
 
+def pack_groups(items: list, group_of, limit: int = ITEMS_PER_CHUNK) -> List[list]:
+    """Chunks of at most ``limit`` items in which the items of one group stay together.
+
+    ``group_of(item)`` returns a hashable id or None (the item is on its own).
+    Members of a group are brought together at the place of its first member;
+    a group is cut only when it alone is larger than ``limit``. Without groups
+    this is the plain cut into runs of ``limit``.
+    """
+    groups: Dict[Any, list] = {}
+    for position, item in enumerate(items):
+        key = group_of(item) if group_of else None
+        groups.setdefault(("group", key) if key is not None else ("alone", position), []).append(item)
+
+    chunks: List[list] = []
+    current: list = []
+    for group in groups.values():
+        if len(current) + len(group) > limit and current:
+            chunks.append(current)
+            current = []
+        while len(group) > limit:
+            chunks.append(group[:limit])
+            group = group[limit:]
+        current = current + group
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 def _is_cancel(exc: Exception) -> bool:
     """Whether ``exc`` is the provider reporting that the user cancelled the request."""
     return getattr(exc, 'kind', None) is ErrorKind.CANCELLED
@@ -284,8 +312,37 @@ class AIWorkerRunMixin:
 
     # ------------------------------------------------- block translation
 
+    def _flow_group_of(self):
+        """``item -> conversation id`` from the plugin, or None when chunks are cut by count alone."""
+        # A run started before conversations were packed together resumes with the plan it had.
+        if not self.task_details.get('flow_chunks'):
+            return None
+        rules = getattr(self.mw, 'current_game_rules', None) if self.mw else None
+        group_for = getattr(rules, 'get_ai_flow_group_for_string', None)
+        if not callable(group_for):
+            return None
+        block_idx = self.task_details.get('block_idx')
+        temp_id_map = self.task_details.get('temp_id_map') or {}
+
+        def group_of(item):
+            if not isinstance(item, dict):
+                return None
+            item_id = item.get('id')
+            pair = temp_id_map.get(item_id) or temp_id_map.get(str(item_id)) or (block_idx, item_id)
+            try:
+                group = group_for(pair[0], pair[1])
+            except Exception as exc:
+                log_debug(f"AIWorker: no flow group for {pair}: {exc}")
+                return None
+            return group if isinstance(group, str) and group else None
+
+        return group_of
+
     def _plan_chunks(self, source_items: list, client: Any, block_label: Any) -> List[list]:
-        """Strings of one scene travel together; scenes in the order met, scene-less strings last."""
+        """Strings of one scene travel together; scenes in the order met, scene-less strings last.
+
+        Within a scene the strings of one conversation stay in one chunk when they fit.
+        """
         scene_items_by_room = {}
         scene_less_items = []
         rooms_order = []
@@ -313,13 +370,11 @@ class AIWorkerRunMixin:
             else:
                 scene_less_items.append(item)
 
+        group_of = self._flow_group_of()
         chunks = []
         for room in rooms_order:
-            room_items = scene_items_by_room[room]
-            for k in range(0, len(room_items), ITEMS_PER_CHUNK):
-                chunks.append(room_items[k:k+ITEMS_PER_CHUNK])
-        for k in range(0, len(scene_less_items), ITEMS_PER_CHUNK):
-            chunks.append(scene_less_items[k:k+ITEMS_PER_CHUNK])
+            chunks.extend(pack_groups(scene_items_by_room[room], group_of))
+        chunks.extend(pack_groups(scene_less_items, group_of))
         return chunks
 
     def _build_chunk_request(self, plan: _ChunkRun, i: int) -> Tuple[str, str]:

@@ -322,6 +322,12 @@ in `docs/OPEN_ITEMS.md`, not here.
 
 ## WP4 — translation memory and in-run consistency
 
+- [ ] **Conversations stay in one request (4.3).** Translate a Twilight Princess block with dialogue and look
+      at two or three requests in the AI traffic log: a choice prompt and its answers, or a question and the
+      reply, must be in the same `strings_to_translate` list. The number of chunks may differ slightly from
+      before (chunks are no longer always full).
+- [ ] **A block translation that was in progress before this update (4.3 / 4.1).** Resume it: it must continue
+      with the old chunk numbering (no duplicate folding, no regrouping) and finish without skipping rows.
 - [ ] **Restore by source text (4.2).** Translate (or save with the editor action) a short line that occurs in
       several blocks, then start an AI translation of another block that contains the same line. Expected: the
       Cached Translation window lists that row with "(same text elsewhere)"; OK fills it without a request.

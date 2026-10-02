@@ -13,6 +13,16 @@ the line when it is done or moved into a plan.
 
 ## Found during WP4
 
+- **A message reached by several flow entries is packed with the first one (4.3).** Shared greeting or farewell
+  lines therefore travel with the lowest-numbered conversation that uses them; the others get them only as
+  `dialogue_flow` context. Entries are deliberately not merged through shared messages (that produced
+  hundred-line "conversations").
+- **Packing reorders strings inside a scene (4.3):** the members of a conversation are gathered at its first
+  member. Rows are applied by id, so nothing depends on the order, but the request no longer lists a block's
+  strings strictly by index.
+- **How many conversations in Twilight Princess are longer than 12 lines — and are therefore still cut — is not
+  measured (4.3).**
+
 - **A restore from the translation memory ignores who speaks (4.2).** The duplicate fold of 4.1 compares
   speaker, addressee and window; the cross-run memory has only the source text, so "I'm ready" saved for a
   woman is offered for a man's identical line. The user sees every such row in the Cached Translation window

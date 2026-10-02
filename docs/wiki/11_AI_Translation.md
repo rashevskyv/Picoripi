@@ -118,6 +118,8 @@ The engine does **not** hard-code game vocabulary. The plugin may attach (`get_t
 
 Plus speaker (after Merge Speakers), glossary hits, MemePalace scene if built, optional `get_ai_flow_context_for_string` / `get_ai_flow_overview`.
 
+**How a run is cut into requests.** A request carries at most 12 strings. Strings of one MemePalace scene travel together; within a scene (and among the strings that have none) the lines of one conversation — as the plugin reports it through `get_ai_flow_group_for_string` — are kept in the same request whenever they fit, so a question is not separated from its answers or a choice from its options. A conversation is cut only when it alone is longer than 12 lines. Plugins without that hook get the plain cut by count. A translation that was in progress before this version resumes with the cut it was started with.
+
 ### Language-Specific Transcription Directives
 
 System and plugin prompts support language-conditional directive blocks:

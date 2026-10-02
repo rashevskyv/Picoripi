@@ -665,6 +665,17 @@ class GameRules(BaseGameRules):
         except (TypeError, ValueError):
             return None
 
+    def get_ai_flow_group_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """The conversation (flow entry) of a line, unique across blocks."""
+        ctx = self._get_flow_context_for_block(block_idx)
+        if ctx is None:
+            return None
+        try:
+            flow_id = ctx.group_for_message(int(string_idx))
+        except (TypeError, ValueError):
+            return None
+        return None if flow_id is None else f"{block_idx}:{flow_id}"
+
     def get_ai_flow_overview(self, block_idx: int, string_indices) -> Optional[str]:
         """Conversation outlines covering the given lines, for the AI prompt."""
         ctx = self._get_flow_context_for_block(block_idx)

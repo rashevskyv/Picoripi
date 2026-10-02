@@ -332,6 +332,15 @@ class MsgFlowContext:
         """Flow IDs of every conversation that reaches this message string."""
         return [conv.flow_id for conv in self._by_msg.get(msg_index, [])]
 
+    def group_for_message(self, msg_index: int) -> Optional[int]:
+        """The conversation a message is packed with: the first flow entry that reaches it.
+
+        A message reached by several entries stays with the first one; the
+        entries are never merged into one group through a shared message.
+        """
+        convs = self._by_msg.get(msg_index)
+        return convs[0].flow_id if convs else None
+
     def context_for_message(self, msg_index: int) -> Optional[str]:
         """Compact per-line context for the AI prompt."""
         convs = self._by_msg.get(msg_index)

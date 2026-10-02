@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- wp4 4.3: a request to the model is packed from whole conversations. New plugin hook `get_ai_flow_group_for_string(block, string)` names the conversation of a line; lines that share it stay in one request when they fit (12 strings), and a conversation is cut only when it alone is longer. Twilight Princess reports the flow entry that reaches the message. Plugins without the hook, and translations in progress from an earlier version, keep the plain cut by count.
 - wp4 4.2: translation memory across runs. Saved translations are also indexed by source text (`translation_memory.json` next to `saved_translations.json`; built from the existing file on first use). A string whose text was translated elsewhere in the project is offered for restore in the Cached Translation window — marked "(same text elsewhere)", same layout check, no AI request — and a single-string translation request lists up to three saved translations of the same source as `TRANSLATION MEMORY (same source elsewhere)`.
 - wp4 4.1: one source, one translation per run. Strings with exactly the same text — and the same speaker, addressee, window and row context — are sent to the model once and share the translation (`"fold_duplicates": false` in the translation config sends every string). A run memory (`core/translation/run_memory.py`) shows later chunks, as `already_translated_in_this_run`, what was chosen for sources that differ only in tags, case or spacing.
 

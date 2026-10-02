@@ -385,9 +385,14 @@ class AIBatchTranslator(BaseTranslationHandler):
                     'total_chunks': 0,
                     'source_items': context.get('source_items', []),
                     'duplicate_followers': context.get('duplicate_followers', {}),
+                    'flow_chunks': True,
                     'temp_id_map': context.get('temp_id_map', {})
                 }
+                context['flow_chunks'] = True
             else:
+                context.setdefault(
+                    'flow_chunks', bool(self.main_handler.translation_progress.get(block_idx, {}).get('flow_chunks'))
+                )
                 # The chunk numbers already done belong to the plan the run was started with.
                 context.setdefault(
                     'duplicate_followers',

@@ -674,6 +674,17 @@ class BaseGameRules:
         """
         return None
 
+    def get_ai_flow_group_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
+        """An id of the conversation the line belongs to, or None.
+
+        Lines with the same id are sent to the model in the same request
+        whenever they fit, so that a question stays with its answers and a
+        choice with its options. The id only has to be equal for lines of one
+        conversation and different for lines of another -- across all blocks.
+        Default: no grouping.
+        """
+        return None
+
     def get_ai_flow_overview(self, block_idx: int, string_indices) -> Optional[str]:
         """Conversation outlines covering the given string indices, used as a
         chunk-level context section in AI translation prompts. Default: None."""
