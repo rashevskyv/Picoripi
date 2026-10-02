@@ -1451,5 +1451,12 @@
   "Close Anyway": "Close Anyway",
   "Closing Project — Synchronizing Glossary…": "Closing Project — Synchronizing Glossary…",
   "Reconcile related terms afterwards": "Reconcile related terms afterwards",
-  "After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant.": "After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant."
+  "After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant.": "After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant.",
+  "AI Translate Current String": "AI Translate Current String",
+  "Translate the current string with AI": "Translate the current string with AI",
+  "AI Translate Selected Lines": "AI Translate Selected Lines",
+  "Translate the selected lines of the current string with AI": "Translate the selected lines of the current string with AI",
+  "AI Translate Entire Block": "AI Translate Entire Block",
+  "Translate every string in the current block with AI": "Translate every string in the current block with AI",
+  "Clear the current AI translation session": "Clear the current AI translation session"
 }

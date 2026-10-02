@@ -52,7 +52,7 @@ def test_GameRules_get_legitimate_tags(rules):
     assert isinstance(tags, set)
 
 def test_GameRules_is_tag_legitimate(rules):
-    assert isinstance(rules.is_tag_legitimate("[XXFAKE]"), bool)
+    assert isinstance(rules.tag_manager.is_tag_legitimate("[XXFAKE]"), bool)
 
 def test_GameRules_analyze_subline(rules):
     problems = rules.analyze_subline(

@@ -29,9 +29,9 @@ def test_ZeldaWW_display_name(rules):
     assert rules.get_display_name() == "Zelda: The Wind Waker"
 
 def test_ZeldaWW_tag_legitimacy(rules):
-    assert rules.is_tag_legitimate("[Color:Red]") is True
-    assert rules.is_tag_legitimate("[AnyTag]") is True
-    assert rules.is_tag_legitimate("{Curly}") is True
+    assert rules.tag_manager.is_tag_legitimate("[Color:Red]") is True
+    assert rules.tag_manager.is_tag_legitimate("[AnyTag]") is True
+    assert rules.tag_manager.is_tag_legitimate("{Curly}") is True
 
 def test_ZeldaWW_analyze_data_string_width(rules):
     # Mocking calculate_string_width - providing enough values

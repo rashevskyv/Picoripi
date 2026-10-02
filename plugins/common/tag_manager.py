@@ -1,12 +1,19 @@
 import re
-from typing import List, Set, Tuple
+from typing import List, Optional, Set, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 
 class GenericTagManager:
     """Manager class for generic tag."""
+
+    # True: the game's legitimate tags are the ones the user has aliases for
+    # (both sides of every alias mapping), plus ``extra_legitimate_tags``.
+    legitimate_tags_from_aliases = False
+    extra_legitimate_tags: Tuple[str, ...] = ()
+
     def __init__(self, main_window_ref=None):
         """Initialize a new instance."""
         self.mw = main_window_ref
+        self._legitimate_exact_tags_cache: Optional[Set[str]] = None
         self.curly_tag_format = QTextCharFormat()
         self.bracket_tag_format = QTextCharFormat()
         self.newline_symbol_format = QTextCharFormat()
@@ -76,4 +83,16 @@ class GenericTagManager:
 
     def get_legitimate_tags(self) -> Set[str]:
         """Get the legitimate tags."""
-        return set()
+        if not self.legitimate_tags_from_aliases:
+            return set(self.extra_legitimate_tags)
+        if self._legitimate_exact_tags_cache is None:
+            tags = set(self.extra_legitimate_tags)
+            for alias, tag in (getattr(self.mw, 'default_tag_mappings', None) or {}).items():
+                tags.add(alias)
+                tags.add(tag)
+            self._legitimate_exact_tags_cache = tags
+        return self._legitimate_exact_tags_cache
+
+    def forget_legitimate_tags(self) -> None:
+        """The alias mappings changed: collect the legitimate tags again on the next request."""
+        self._legitimate_exact_tags_cache = None

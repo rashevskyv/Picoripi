@@ -7,7 +7,9 @@ It is deliberately small but fully loadable:
 - `config.json` makes the plugin visible in Settings.
 - `rules.py` defines `GameRules`, the plugin entry point.
 - `config.py` defines the default warning IDs and settings.
-- `tag_manager.py`, `problem_analyzer.py`, and `text_fixer.py` connect to the shared rule engine in `plugins/common/`.
+- `tag_manager.py` describes the game's tags. The problem analyzer and the text fixer come from `plugins/common/`;
+  `GameRules` names them with class attributes (`problem_definitions`, `tag_manager_class`, `tag_style`, …) and the
+  base class wires them. Add your own `problem_analyzer.py` / `text_fixer.py` only for game-specific checks.
 - `fonts/default_font.json` provides a tiny working proportional font map.
 - `font_map.json` contains tag/icon width overrides.
 - `translation_prompts/prompts.json` provides local prompt overrides.

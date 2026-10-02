@@ -82,7 +82,6 @@ The most important methods are:
 - `save_data_to_json_obj()`
 - `get_display_name()`
 - `get_problem_definitions()`
-- `get_tag_pattern()`
 - `get_syntax_highlighting_rules()`
 - `get_legitimate_tags()`
 - `analyze_subline()`

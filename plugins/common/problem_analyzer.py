@@ -8,7 +8,18 @@ from plugins.common.problem_rules import (
 
 class GenericProblemAnalyzer:
     """Generic problem analyzer implementation acting as an adapter to Rule Engine."""
-    def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref):
+
+    # What a game's text looks like. Set them on a subclass, or pass them to the
+    # constructor (``BaseGameRules`` does, from its own attributes of the same
+    # names). Left as None they are guessed from module and class names, which
+    # is how plugins written before these attributes existed keep working.
+    tag_style: Optional[str] = None            # "curly" for {tag}, "square" for [tag]
+    star_section_mode: Optional[bool] = None   # sections of a string are opened by a star tag
+    # Line breaks are stored as backslash escapes (n, p, l) rather than as newlines.
+    escaped_line_breaks: bool = False
+
+    def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref,
+                 tag_style: Optional[str] = None, star_section_mode: Optional[bool] = None):
         """Initialize a new instance."""
         self.mw = main_window_ref
         self.tag_manager = tag_manager_ref
@@ -43,8 +54,13 @@ class GenericProblemAnalyzer:
 
         module_name = self.__class__.__module__.lower()
 
+        explicit_tag_style = tag_style or self.tag_style
+        explicit_star_section_mode = star_section_mode if star_section_mode is not None else self.star_section_mode
+
         tag_style = "curly"
-        if "ww" in module_name or "plain_text" in module_name:
+        if explicit_tag_style:
+            tag_style = explicit_tag_style
+        elif "ww" in module_name or "plain_text" in module_name:
             tag_style = "square"
         elif main_window_ref and hasattr(main_window_ref, 'current_game_rules') and main_window_ref.current_game_rules:
             # Detect tag style based on plugin type
@@ -53,7 +69,9 @@ class GenericProblemAnalyzer:
                 tag_style = "square"
 
         star_section_mode = False
-        if "bmg" in module_name or "bmg" in str(problem_ids_ref).lower():
+        if explicit_star_section_mode is not None:
+            star_section_mode = explicit_star_section_mode
+        elif "bmg" in module_name or "bmg" in str(problem_ids_ref).lower():
             star_section_mode = True
         elif main_window_ref and hasattr(main_window_ref, 'current_game_rules') and main_window_ref.current_game_rules:
             if "BMG" in main_window_ref.current_game_rules.__class__.__name__:

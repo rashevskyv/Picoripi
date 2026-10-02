@@ -30,7 +30,11 @@ class MainWindowPluginHandler:
         if self.mw.tag_checker_handler:
             log_info(f"TagCheckerHandler of type {type(self.mw.tag_checker_handler).__name__} was provided by the plugin.")
 
-        plugin_actions_data = self.mw.current_game_rules.get_plugin_actions()
+        plugin_actions_data = list(self.mw.current_game_rules.get_plugin_actions())
+        # The AI translation actions belong to the application, not to a game;
+        # a plugin that still registers them under the same names keeps its own.
+        taken = {action_data.get('name') for action_data in plugin_actions_data}
+        plugin_actions_data += [a for a in self._host_ai_actions() if a['name'] not in taken]
         for action_data in plugin_actions_data:
             action_name = action_data.get('name')
             if not action_name: continue
@@ -52,6 +56,46 @@ class MainWindowPluginHandler:
             if action_data.get('toolbar'):
                 if hasattr(self.mw, 'main_toolbar'):
                     self.mw.main_toolbar.addAction(action)
+
+    def _host_ai_actions(self):
+        """AI translation menu actions and shortcuts, the same for every game."""
+        translator = getattr(self.mw, 'translation_handler', None)
+        if not translator:
+            return []
+        return [
+            {
+                'name': 'ai_translate_current_string',
+                'text': tr('AI Translate Current String'),
+                'tooltip': tr('Translate the current string with AI'),
+                'shortcut': 'Ctrl+Alt+T',
+                'handler': translator.translate_current_string,
+                'menu': 'Tools',
+            },
+            {
+                'name': 'ai_translate_selected_lines',
+                'text': tr('AI Translate Selected Lines'),
+                'tooltip': tr('Translate the selected lines of the current string with AI'),
+                'shortcut': 'Ctrl+Alt+L',
+                'handler': translator.translate_selected_lines,
+                'menu': 'Tools',
+            },
+            {
+                'name': 'ai_translate_current_block',
+                'text': tr('AI Translate Entire Block'),
+                'tooltip': tr('Translate every string in the current block with AI'),
+                'shortcut': 'Ctrl+Alt+B',
+                'handler': translator.translate_current_block,
+                'menu': 'Tools',
+            },
+            {
+                'name': 'ai_reset_translation_session',
+                'text': tr('AI Reset Translation Session'),
+                'tooltip': tr('Clear the current AI translation session'),
+                'shortcut': None,
+                'handler': translator.reset_translation_session,
+                'menu': 'Tools',
+            },
+        ]
 
     def load_game_plugin(self):
         """Load game plugin."""

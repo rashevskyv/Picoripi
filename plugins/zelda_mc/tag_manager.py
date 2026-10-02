@@ -1,10 +1,13 @@
-from typing import Optional, Set, List, Tuple
+from typing import List, Tuple
 from PyQt6.QtGui import QTextCharFormat, QColor
 from plugins.common.tag_manager import GenericTagManager
-from utils.logging_utils import log_debug
 
 class TagManager(GenericTagManager):
     """Manager class for tag."""
+
+    legitimate_tags_from_aliases = True
+    extra_legitimate_tags = ("{Player}",)
+
     def __init__(self, main_window_ref=None):
         """Initialize a new instance."""
         self.literal_newline_format = QTextCharFormat()
@@ -13,7 +16,6 @@ class TagManager(GenericTagManager):
         self.color_blue_format = QTextCharFormat()
         self.color_default_format = QTextCharFormat()
         super().__init__(main_window_ref)
-        self._legitimate_exact_tags_cache: Optional[Set[str]] = None
         self.reconfigure_styles()
 
     def reconfigure_styles(self):
@@ -40,23 +42,3 @@ class TagManager(GenericTagManager):
             (r"(\\n)", self.literal_newline_format),
         ])
         return rules
-
-    def _ensure_exact_tags_loaded(self):
-        """Internal helper to ensure exact tags loaded."""
-        if self._legitimate_exact_tags_cache is None:
-            self._legitimate_exact_tags_cache = set()
-            if self.mw and hasattr(self.mw, 'default_tag_mappings'):
-                for key, value in self.mw.default_tag_mappings.items():
-                    self._legitimate_exact_tags_cache.add(key)
-                    self._legitimate_exact_tags_cache.add(value)
-            self._legitimate_exact_tags_cache.add("{Player}")
-            log_debug(f"Loaded {len(self._legitimate_exact_tags_cache)} exact legitimate tags.")
-
-    def get_legitimate_tags(self) -> Set[str]:
-        """Get the legitimate tags."""
-        self._ensure_exact_tags_loaded()
-        return self._legitimate_exact_tags_cache if self._legitimate_exact_tags_cache is not None else set()
-
-    def is_tag_legitimate(self, tag_to_check: str) -> bool:
-        """Check if is tag legitimate."""
-        return True

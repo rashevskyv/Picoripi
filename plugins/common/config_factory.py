@@ -1,4 +1,41 @@
+from types import SimpleNamespace
+from typing import Dict, Iterable
+
 from PyQt6.QtGui import QColor
+
+# Short labels for the standard problems, by the part of the id after the prefix.
+SHORT_PROBLEM_NAMES = {
+    "TAG_WARNING": "Tag",
+    "WIDTH_EXCEEDED": "Width",
+    "SHORT_LINE": "Short",
+    "EMPTY_ODD_SUBLINE_DISPLAY": "EmptyOdd",
+    "EMPTY_FIRST_LINE_OF_PAGE": "Empty1st",
+    "SINGLE_WORD_SUBLINE": "1Word",
+    "SINGLE_WORD_SUBLINE_NON_START": "1WordO",
+    "BAD_SPACING": "Spacing",
+    "MISSING_ICON_SPACING": "TagSpacing",
+    "BROKEN_ICON_HYPHEN": "IconHyphen",
+}
+
+
+def problem_suffix(problem_id: str, prefix: str) -> str:
+    """``WIDTH_EXCEEDED`` for ``ZMC_WIDTH_EXCEEDED`` with prefix ``ZMC``."""
+    return problem_id[len(prefix) + 1:] if prefix and problem_id.startswith(prefix + "_") else problem_id
+
+
+def problem_ids(problem_definitions: Dict[str, dict], prefix: str, without: Iterable[str] = ()) -> SimpleNamespace:
+    """The ids of a plugin's problems as a namespace: ``ids.PROBLEM_WIDTH_EXCEEDED == "ZMC_WIDTH_EXCEEDED"``.
+
+    ``without`` names the standard problems (by suffix) the plugin does not
+    check for; the rule engine leaves a problem it has no id for alone.
+    """
+    skipped = set(without)
+    return SimpleNamespace(**{
+        f"PROBLEM_{problem_suffix(problem_id, prefix)}": problem_id
+        for problem_id in problem_definitions
+        if problem_suffix(problem_id, prefix) not in skipped
+    })
+
 
 def generate_base_config(prefix: str, overrides: dict = None, custom_problems: dict = None):
     """

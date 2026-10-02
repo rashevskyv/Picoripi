@@ -1,6 +1,5 @@
-from typing import Dict, Any, Tuple, Set, Optional, List
+from typing import Dict, Any, Tuple, Set, Optional
 from collections import OrderedDict
-from PyQt6.QtGui import QTextCharFormat
 from plugins.base_game_rules import BaseGameRules
 from .config import (
     PROBLEM_DEFINITIONS,
@@ -18,7 +17,6 @@ from .config import (
     P_VISUAL_EDITOR_MARKER,
     L_VISUAL_EDITOR_MARKER
 )
-from .tag_manager import TagManager
 from .problem_analyzer import ProblemAnalyzer
 from .text_fixer import TextFixer
 from utils.logging_utils import log_debug
@@ -36,18 +34,17 @@ class ProblemIDs:
 
 class GameRules(BaseGameRules):
     """Game rules and translation logic for Game."""
+    problem_prefix = "PKFR"
+    problem_definitions = PROBLEM_DEFINITIONS
+    problem_ids = ProblemIDs
+    problem_analyzer_class = ProblemAnalyzer
+    text_fixer_class = TextFixer
+    PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
+
     def __init__(self, main_window_ref=None):
         """Initialize a new instance."""
         super().__init__(main_window_ref)
         self.original_keys = []
-        
-        self.tag_manager = TagManager(main_window_ref)
-        self.problem_analyzer = ProblemAnalyzer(main_window_ref, self.tag_manager, PROBLEM_DEFINITIONS, ProblemIDs)
-        self.text_fixer = TextFixer(main_window_ref, self.tag_manager, self.problem_analyzer)
-        self.problem_analyzer.game_rules = self
-        self.text_fixer.game_rules = self
-        self.PROBLEM_MISSING_ICON_SPACING = PROBLEM_MISSING_ICON_SPACING
-        self.problem_ids = self.problem_analyzer.problem_ids
 
     def load_data_from_json_obj(self, json_data: Any) -> Tuple[list, dict]:
         """Load data from json obj."""
@@ -149,29 +146,13 @@ class GameRules(BaseGameRules):
         actual_text = actual_text.replace('\n', '\\n')
         return actual_text
 
-    def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
-        """Get the syntax highlighting rules."""
-        return self.tag_manager.get_syntax_highlighting_rules()
-
     def get_display_name(self) -> str:
         """Get the display name."""
         return "Pokémon FireRed/LeafGreen"
 
-    def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
-        """Get the problem definitions."""
-        return PROBLEM_DEFINITIONS
-
     def get_default_tag_mappings(self) -> Dict[str, str]:
         """Get the default tag mappings."""
         return DEFAULT_TAG_MAPPINGS_POKEMON_FR
-
-    def get_short_problem_name(self, problem_id: str) -> str:
-        """Get the short problem name."""
-        if problem_id == PROBLEM_BAD_SPACING:
-            return "Spacing"
-        if problem_id == PROBLEM_MISSING_ICON_SPACING:
-            return "TagSpacing"
-        return super().get_short_problem_name(problem_id)
 
     def analyze_subline(self,
                         text: str,
@@ -197,12 +178,6 @@ class GameRules(BaseGameRules):
             return problems_per_subline[qtextblock_number_in_editor]
         
         return set()
-
-    def autofix_data_string(self, data_string: str, editor_font_map: dict, editor_line_width_threshold: int, logical_hard_limit: Optional[int] = None, allowed_problems: Optional[Set[str]] = None, block_idx: Optional[int] = None, string_idx: Optional[int] = None, page_local: bool = False, disable_pagination: bool = False) -> Tuple[str, bool]:
-        """Autofix data string."""
-        return self.text_fixer.autofix_data_string(
-            data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems, block_idx, string_idx, page_local, disable_pagination
-        )
 
     def process_pasted_segment(self, segment_to_insert: str, *args, **kwargs) -> Tuple[str, str, str]:
         """Process pasted segment."""

@@ -81,8 +81,9 @@ After I answer, produce:
    - plugins/<plugin_name>/config.py
    - plugins/<plugin_name>/rules.py
    - plugins/<plugin_name>/tag_manager.py
-   - plugins/<plugin_name>/problem_analyzer.py
-   - plugins/<plugin_name>/text_fixer.py
+   - plugins/<plugin_name>/problem_analyzer.py and text_fixer.py only when the game needs its own checks or fixes
+     (subclass plugins.common.problem_analyzer.GenericProblemAnalyzer / plugins.common.text_fixer.GenericTextFixer
+     and name the classes in GameRules.problem_analyzer_class / text_fixer_class)
    - plugins/<plugin_name>/font_map.json
    - plugins/<plugin_name>/fonts/default_font.json if needed
    - plugins/<plugin_name>/translation_prompts/prompts.json if needed

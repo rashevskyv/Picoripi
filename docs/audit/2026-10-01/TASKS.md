@@ -56,7 +56,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 
 ## WP5 — Plugin platform
 - [x] 5.1 `plugins/spec.py` + `python -m plugins.validate` + `test_validate_all`
-- [ ] 5.2 collapse boilerplate into base; neutral `common/tag_logic.py`; delete pass-throughs; remove dead hooks
+- [x] 5.2 collapse boilerplate into base; neutral `common/tag_logic.py`; delete pass-throughs; remove dead hooks
 - [ ] 5.3 key-level prompt merge
 - [ ] 5.4 `plugins/_template/` + `tools/new_plugin.py` + shared smoke test
 - [ ] 5.5 `get_file_formats()` + `core/formats.py` + `ContainerManager.register`; `bmg_tool.py` into zelda_bmg; `prepare_save_context`/`export_runtime_state` hooks; host reads no plugin privates

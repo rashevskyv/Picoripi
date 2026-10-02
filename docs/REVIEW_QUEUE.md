@@ -188,4 +188,25 @@ in `docs/OPEN_ITEMS.md`, not here.
       Left as is; delete it if it is not yours.
 - [ ] **Run `python -m plugins.validate`** and read the warnings: today every plugin gets one about prompt
       sections that are not merged from the common defaults (5.3 removes the cause).
+- [ ] **The "empty" plugin files were not empty: their module names decided behaviour (5.2).**
+      `GenericProblemAnalyzer` picked square or curly tags, and the star-tag mode, by looking for "ww",
+      "plain_text" or "bmg" in the module name of its subclass, and the text fixer looked for "pokemon". These
+      are now declared (`tag_style`, `star_section_mode`, `escaped_line_breaks`). The old guessing stays as a
+      fallback for plugins that declare nothing. Check each game: width warnings, autofix and short-line
+      merging must behave as before.
+- [ ] **AI translate actions are now in the Tools menu of every game (5.2).** `Ctrl+Alt+T` (string),
+      `Ctrl+Alt+L` (selected lines), `Ctrl+Alt+B` (block) and "AI Reset Translation Session" used to be added by
+      the Minish Cap plugin only; their labels no longer say "(UA)". Check they do not clash with a shortcut
+      you use in Twilight Princess.
+- [ ] **Minish Cap and the template plugin now expose `problem_ids` (5.2).** The preview therefore marks an
+      "empty odd subline" in them the way it already did for Wind Waker and Twilight Princess. One more
+      highlight for a problem that was already reported.
+- [ ] **Short problem labels were unified (5.2).** Missing ones now come from a common table ("Tag", "Empty1st",
+      "Width", …) instead of falling back to the long name. Nothing in the host calls
+      `get_short_problem_name`, so this is not visible today.
+- [ ] **Plain text checks pasted tags kind by kind (5.2).** It used a copy of the Wind Waker check (`[Name]`,
+      `[Color:…]`, `[/C]`); now `[Color:Red]` vs `[Color:Blue]` is fine, any other difference in the number of
+      a tag kind (square or curly) is a warning.
+- [ ] **`zelda_bmg/text_fixer.py` and `problem_analyzer.py` were kept (5.2)**, because three of your scripts in
+      `scratch/` import `plugins.zelda_bmg.text_fixer`. They are four-line named subclasses now.
 

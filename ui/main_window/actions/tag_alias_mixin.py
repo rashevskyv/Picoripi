@@ -219,9 +219,9 @@ class MainWindowTagAliasActionsMixin:
         """Internal helper to update the editors after alias change."""
         rules = getattr(self.mw, 'current_game_rules', None)
         if rules:
-            if hasattr(rules, 'tag_manager') and rules.tag_manager:
-                if hasattr(rules.tag_manager, '_legitimate_exact_tags_cache'):
-                    rules.tag_manager._legitimate_exact_tags_cache = None
+            forget = getattr(getattr(rules, 'tag_manager', None), 'forget_legitimate_tags', None)
+            if callable(forget):
+                forget()
                     
         if hasattr(self.mw, 'helper') and hasattr(self.mw.helper, 'reconfigure_all_highlighters'):
             self.mw.helper.reconfigure_all_highlighters()

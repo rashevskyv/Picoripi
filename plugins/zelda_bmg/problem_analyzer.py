@@ -1,7 +1,8 @@
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 
+
 class ProblemAnalyzer(GenericProblemAnalyzer):
-    """Problem analyzer implementation for Zelda BMG."""
-    def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref):
-        """Initialize a new instance."""
-        super().__init__(main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref)
+    """Problem analyzer for Zelda BMG: curly tags, star-tag sections."""
+
+    tag_style = "curly"
+    star_section_mode = True

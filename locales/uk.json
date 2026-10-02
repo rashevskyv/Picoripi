@@ -1742,5 +1742,12 @@
   "Close Anyway": "Все одно закрити",
   "Closing Project — Synchronizing Glossary…": "Закриття проєкту — Синхронізація глосарію…",
   "Reconcile related terms afterwards": "Після цього узгодити споріднені терміни",
-  "After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant.": "Після перекладу порівняти записи, які є тим самим терміном або мають спільне слово (Clawshot / Clawshots, Hylia / Lake Hylia), і узгодити їхні переклади. Підтверджені записи не змінюються; кожна зміна потрапляє у звіт, а попередній переклад лишається варіантом."
+  "After translating, compare entries that are the same term or share a word (Clawshot / Clawshots, Hylia / Lake Hylia) and make their translations agree. Confirmed entries are never changed; every change is listed in the report and the previous translation stays as a variant.": "Після перекладу порівняти записи, які є тим самим терміном або мають спільне слово (Clawshot / Clawshots, Hylia / Lake Hylia), і узгодити їхні переклади. Підтверджені записи не змінюються; кожна зміна потрапляє у звіт, а попередній переклад лишається варіантом.",
+  "AI Translate Current String": "AI: перекласти поточний рядок",
+  "Translate the current string with AI": "Перекласти поточний рядок за допомогою AI",
+  "AI Translate Selected Lines": "AI: перекласти виділені рядки",
+  "Translate the selected lines of the current string with AI": "Перекласти виділені рядки поточного рядка за допомогою AI",
+  "AI Translate Entire Block": "AI: перекласти весь блок",
+  "Translate every string in the current block with AI": "Перекласти кожен рядок поточного блока за допомогою AI",
+  "Clear the current AI translation session": "Очистити поточну AI-сесію перекладу"
 }

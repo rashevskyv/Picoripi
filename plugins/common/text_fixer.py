@@ -480,7 +480,7 @@ class GenericTextFixer:
         return self._fix_short_lines_zbmg(text, font_map, threshold)
 
     def _fix_short_lines(self, text: str, font_map: dict, threshold: int) -> Tuple[str, bool]:
-        is_pk = "pokemon" in self.problem_analyzer.__class__.__module__.lower()
+        is_pk = bool(getattr(self.problem_analyzer, "escaped_line_breaks", False))
         working_text = text
         if is_pk:
             working_text = text.replace('\\p', '\n').replace('\\l', '\n').replace('\\n', '\n')

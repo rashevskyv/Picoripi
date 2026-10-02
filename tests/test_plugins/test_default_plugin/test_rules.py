@@ -26,9 +26,9 @@ def test_default_plugin_loads_and_exposes_core_contract(qapp):
     assert rules.get_default_script_name() == "default_plugin_script.md"
     assert rules.get_problem_definitions()
     assert rules.get_editor_page_size() == 4
-    assert rules.is_tag_legitimate("[PLAYER]")
-    assert rules.is_tag_legitimate("{PAGE}")
-    assert not rules.is_tag_legitimate("[PLAYER")
+    assert rules.tag_manager.is_tag_legitimate("[PLAYER]")
+    assert rules.tag_manager.is_tag_legitimate("{PAGE}")
+    assert not rules.tag_manager.is_tag_legitimate("[PLAYER")
 
 
 def test_default_plugin_has_discovery_config_and_ai_prompt():

@@ -2,7 +2,6 @@ import os
 import re
 import json
 from typing import Any, Tuple, Dict, List, Set, Optional
-from PyQt6.QtGui import QTextCharFormat
 
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_info, log_warning, log_debug, log_error
@@ -167,17 +166,21 @@ class ProblemIDs:
 
 class GameRules(BaseGameRules):
     """Game rules and translation logic for Game."""
+
+    problem_prefix = "ZBMG"
+    problem_definitions = PROBLEM_DEFINITIONS
+    problem_ids = ProblemIDs
+    tag_manager_class = TagManager
+    problem_analyzer_class = ProblemAnalyzer
+    text_fixer_class = TextFixer
+    tag_style = "curly"
+    star_section_mode = True
+    analyze_whole_string_first = True
+    short_problem_names = {"EMPTY_ODD_SUBLINE_DISPLAY": "EmptyOddD", "STAR_TAG_RULES": "StarTag"}
+
     def __init__(self, main_window_ref=None):
         """Initialize a new instance."""
         super().__init__(main_window_ref)
-        self.problem_definitions_cache = PROBLEM_DEFINITIONS
-        self.problem_ids = ProblemIDs
-        self.tag_manager = TagManager(main_window_ref)
-        self.problem_analyzer = ProblemAnalyzer(main_window_ref, self.tag_manager,
-                                                self.problem_definitions_cache, ProblemIDs)
-        self.text_fixer = TextFixer(main_window_ref, self.tag_manager, self.problem_analyzer)
-        self.problem_analyzer.game_rules = self
-        self.text_fixer.game_rules = self
         self.last_loaded_bmg = None
         self.translation_map = {}
         self.reverse_translation_map = {}
@@ -747,35 +750,6 @@ class GameRules(BaseGameRules):
         """Get the display name."""
         return "Zelda: Twilight Princess BMG"
 
-    def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
-        """Get the problem definitions."""
-        return self.problem_definitions_cache
-
-    def get_short_problem_name(self, problem_id: str) -> str:
-        """Get the short problem name."""
-        if problem_id == PROBLEM_WIDTH_EXCEEDED: return "Width"
-        if problem_id == PROBLEM_SHORT_LINE: return "Short"
-        if problem_id == PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY: return "EmptyOddD"
-        if problem_id == PROBLEM_SINGLE_WORD_SUBLINE: return "1Word"
-        if problem_id == PROBLEM_SINGLE_WORD_SUBLINE_NON_START: return "1WordO"
-        if problem_id == PROBLEM_EMPTY_FIRST_LINE_OF_PAGE: return "Empty1st"
-        if problem_id == PROBLEM_BAD_SPACING: return "Spacing"
-        if problem_id == PROBLEM_MISSING_ICON_SPACING: return "TagSpacing"
-        if problem_id == PROBLEM_STAR_TAG_RULES: return "StarTag"
-        return super().get_short_problem_name(problem_id)
-
-    def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
-        """Get the syntax highlighting rules."""
-        return self.tag_manager.get_syntax_highlighting_rules()
-
-    def get_legitimate_tags(self) -> Set[str]:
-        """Get the legitimate tags."""
-        return self.tag_manager.get_legitimate_tags()
-
-    def is_tag_legitimate(self, tag_to_check: str) -> bool:
-        """Check if is tag legitimate."""
-        return self.tag_manager.is_tag_legitimate(tag_to_check)
-
     def get_spellcheck_ignore_pattern(self) -> str:
         # Ignore curly braces {...} which are used for tags and escape sequences
         """Get the spellcheck ignore pattern."""
@@ -784,50 +758,6 @@ class GameRules(BaseGameRules):
     def get_editor_page_size(self) -> int:
         """Get the editor page size."""
         return 1
-
-    def analyze_subline(self,
-                        text: str,
-                        next_text: Optional[str],
-                        subline_number_in_data_string: int,
-                        qtextblock_number_in_editor: int,
-                        is_last_subline_in_data_string: bool,
-                        editor_font_map: dict,
-                        editor_line_width_threshold: int,
-                        full_data_string_text_for_logical_check: str,
-                        is_target_for_debug: bool = False,
-                        logical_hard_limit: Optional[int] = None) -> Set[str]:
-        """Analyze subline."""
-        all_problems = self.problem_analyzer.analyze_data_string(full_data_string_text_for_logical_check, editor_font_map, editor_line_width_threshold, logical_hard_limit)
-
-        if subline_number_in_data_string < len(all_problems):
-            line_specific_problems = self.problem_analyzer.analyze_subline(
-                text, next_text, subline_number_in_data_string, qtextblock_number_in_editor, is_last_subline_in_data_string,
-                editor_font_map, editor_line_width_threshold, full_data_string_text_for_logical_check, is_target_for_debug,
-                logical_hard_limit=logical_hard_limit
-            )
-            all_problems[subline_number_in_data_string].update(line_specific_problems)
-            return all_problems[subline_number_in_data_string]
-
-        return self.problem_analyzer.analyze_subline(
-            text, next_text, subline_number_in_data_string, qtextblock_number_in_editor, is_last_subline_in_data_string,
-            editor_font_map, editor_line_width_threshold, full_data_string_text_for_logical_check, is_target_for_debug,
-            logical_hard_limit=logical_hard_limit
-        )
-
-    def autofix_data_string(self,
-                             data_string: str,
-                             editor_font_map: dict,
-                             editor_line_width_threshold: int,
-                             logical_hard_limit: Optional[int] = None,
-                             allowed_problems: Optional[Set[str]] = None,
-                             block_idx: Optional[int] = None,
-                             string_idx: Optional[int] = None,
-                             page_local: bool = False,
-                             disable_pagination: bool = False) -> Tuple[str, bool]:
-        """Autofix data string."""
-        return self.text_fixer.autofix_data_string(
-            data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems, block_idx, string_idx, page_local, disable_pagination
-        )
 
     def process_pasted_segment(self,
                                 segment_to_insert: str,

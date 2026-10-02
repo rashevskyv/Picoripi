@@ -8,11 +8,58 @@ class BaseGameRules:
     Base class for game-specific rules.
     Supports the 'Kruptar' format: strings delimited by {END} + empty line.
     """
+
+    # -- what a plugin declares instead of writing wiring code -----------------
+    # Give ``problem_definitions`` (and ``problem_prefix``) and the base builds
+    # the tag manager, the problem analyzer and the text fixer, and answers the
+    # hooks that only pass a call on to them. A plugin without problem
+    # definitions gets none of this and every hook keeps its plain default.
+    problem_definitions: Dict[str, Dict[str, Any]] = {}
+    problem_prefix: str = ""                 # "ZMC": ids are "ZMC_WIDTH_EXCEEDED", ...
+    problem_ids: Any = None                  # namespace of ids; derived from the definitions when None
+    tag_manager_class: Any = None            # default: plugins.common.tag_manager.GenericTagManager
+    problem_analyzer_class: Any = None       # default: plugins.common.problem_analyzer.GenericProblemAnalyzer
+    text_fixer_class: Any = None             # default: plugins.common.text_fixer.GenericTextFixer
+    tag_style: Optional[str] = None          # "curly" for {tag}, "square" for [tag]
+    star_section_mode: Optional[bool] = None
+    # True: a subline's problems are those of the whole string at that line plus
+    # the line's own; False: only the line's own.
+    analyze_whole_string_first: bool = False
+    short_problem_names: Dict[str, str] = {}     # by id suffix; overrides the common table
+    color_marker_definitions: Dict[str, str] = {}
+    # Shown when the main window has no "show spaces as dots" setting yet.
+    show_spaces_as_dots_default: bool = False
+
     def __init__(self, main_window_ref=None):
         """Initialize a new instance."""
         self.mw = main_window_ref
         self._alias_lookup_signature = None
         self._alias_lookup_cache = None
+        if self.problem_definitions:
+            self._wire_standard_components()
+
+    def _wire_standard_components(self) -> None:
+        """Build the tag manager, problem analyzer and text fixer the class attributes describe."""
+        from plugins.common.config_factory import problem_ids
+        from plugins.common.problem_analyzer import GenericProblemAnalyzer
+        from plugins.common.tag_manager import GenericTagManager
+        from plugins.common.text_fixer import GenericTextFixer
+
+        self.problem_definitions_cache = self.problem_definitions
+        if self.problem_ids is None:
+            self.problem_ids = problem_ids(self.problem_definitions, self.problem_prefix)
+        self.tag_manager = (self.tag_manager_class or GenericTagManager)(self.mw)
+        traits = {}
+        if self.tag_style is not None:
+            traits["tag_style"] = self.tag_style
+        if self.star_section_mode is not None:
+            traits["star_section_mode"] = self.star_section_mode
+        self.problem_analyzer = (self.problem_analyzer_class or GenericProblemAnalyzer)(
+            self.mw, self.tag_manager, self.problem_definitions, self.problem_ids, **traits
+        )
+        self.text_fixer = (self.text_fixer_class or GenericTextFixer)(self.mw, self.tag_manager, self.problem_analyzer)
+        self.problem_analyzer.game_rules = self
+        self.text_fixer.game_rules = self
 
     def _get_alias_lookup_tables(self, mappings: Dict[str, str]):
         """Build alias lookup tables once for the current mapping contents."""
@@ -294,11 +341,11 @@ class BaseGameRules:
 
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
         """Get the problem definitions."""
-        return {}
+        return self.problem_definitions
 
     def get_color_marker_definitions(self) -> Dict[str, str]:
         """Returns descriptions for manual color markers."""
-        return {}
+        return self.color_marker_definitions
 
     def get_spellcheck_ignore_pattern(self) -> str:
         """Returns a regex pattern of sequences to ignore during spellcheck (e.g. tags, control codes)."""
@@ -336,7 +383,24 @@ class BaseGameRules:
                         is_target_for_debug: bool = False,
                         logical_hard_limit: Optional[int] = None) -> Set[str]:
         """Analyze subline."""
-        return set()
+        analyzer = getattr(self, "problem_analyzer", None)
+        if analyzer is None:
+            return set()
+        own = analyzer.analyze_subline(
+            text, next_text, subline_number_in_data_string, qtextblock_number_in_editor,
+            is_last_subline_in_data_string, editor_font_map, editor_line_width_threshold,
+            full_data_string_text_for_logical_check, is_target_for_debug,
+            logical_hard_limit=logical_hard_limit,
+        )
+        if not self.analyze_whole_string_first:
+            return own
+        whole = analyzer.analyze_data_string(
+            full_data_string_text_for_logical_check, editor_font_map, editor_line_width_threshold, logical_hard_limit
+        )
+        if subline_number_in_data_string < len(whole):
+            whole[subline_number_in_data_string].update(own)
+            return whole[subline_number_in_data_string]
+        return own
 
     def autofix_data_string(self,
                              data_string: str,
@@ -349,7 +413,13 @@ class BaseGameRules:
                              page_local: bool = False,
                              disable_pagination: bool = False) -> Tuple[str, bool]:
         """Autofix data string."""
-        return data_string, False
+        fixer = getattr(self, "text_fixer", None)
+        if fixer is None:
+            return data_string, False
+        return fixer.autofix_data_string(
+            data_string, editor_font_map, editor_line_width_threshold, logical_hard_limit, allowed_problems,
+            block_idx, string_idx, page_local, disable_pagination,
+        )
 
     def process_pasted_segment(self,
                                 segment_to_insert: str,
@@ -382,6 +452,13 @@ class BaseGameRules:
         
     def get_short_problem_name(self, problem_id: str) -> str:
         """Get the short problem name."""
+        from plugins.common.config_factory import SHORT_PROBLEM_NAMES, problem_suffix
+
+        suffix = problem_suffix(problem_id, self.problem_prefix)
+        if self.problem_prefix and suffix != problem_id:
+            short = self.short_problem_names.get(suffix) or SHORT_PROBLEM_NAMES.get(suffix)
+            if short:
+                return short
         problem_definitions = self.get_problem_definitions()
         return problem_definitions.get(problem_id, {}).get("name", problem_id)
 
@@ -436,7 +513,14 @@ class BaseGameRules:
             if isinstance(val, str):
                 newline_symbol = val
         aliased = self.replace_tags_with_aliases(str(data_string))
-        return aliased.replace('\n', newline_symbol)
+        processed = aliased.replace('\n', newline_symbol)
+        show_dots = self.show_spaces_as_dots_default
+        if self.mw and isinstance(getattr(self.mw, "show_multiple_spaces_as_dots", None), bool):
+            show_dots = self.mw.show_multiple_spaces_as_dots
+        if show_dots:
+            from utils.utils import convert_spaces_to_dots_for_display
+            processed = convert_spaces_to_dots_for_display(processed, True)
+        return processed
 
     def prepare_preview_glyph_text(self, text: str) -> Tuple[str, Optional[List[Optional[str]]]]:
         """Prepare raw string text for the visual (BFN) preview renderer.
@@ -498,11 +582,13 @@ class BaseGameRules:
 
     def get_syntax_highlighting_rules(self) -> List[Tuple[str, QTextCharFormat]]:
         """Get the syntax highlighting rules."""
-        return []
+        tag_manager = getattr(self, "tag_manager", None)
+        return tag_manager.get_syntax_highlighting_rules() if tag_manager is not None else []
 
     def get_legitimate_tags(self) -> Set[str]:
         """Get the legitimate tags."""
-        return set()
+        tag_manager = getattr(self, "tag_manager", None)
+        return tag_manager.get_legitimate_tags() if tag_manager is not None else set()
 
     def get_tag_tooltip(self, tag: str) -> str:
         """Return an optional human-readable explanation for an editor tag."""

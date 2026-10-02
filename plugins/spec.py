@@ -123,7 +123,8 @@ HOOKS: Tuple[Hook, ...] = (
     Hook("problem_analyzer", "Analyzer object: analyze_data_string(), registry.get_prefixed_id().",
          kind="attribute", on_base=False),
     Hook("tag_manager", "Tag manager object (GenericTagManager or a subclass).", kind="attribute", on_base=False),
-    Hook("problem_ids", "Namespace of the plugin's problem ids.", kind="attribute", on_base=False),
+    Hook("problem_ids", "Namespace of the plugin's problem ids (None for a plugin without problem definitions).",
+         kind="attribute"),
     Hook("PROBLEM_MISSING_ICON_SPACING", "Id of the 'missing space next to an icon' problem.",
          kind="attribute", on_base=False),
     Hook("original_keys", "Keys of the loaded file, kept by the host across save, revert and session restore "

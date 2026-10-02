@@ -6,10 +6,6 @@ NEWLINE_TAGS_PATTERN = re.compile(r'(\\n|\\p|\\l)')
 
 class TextFixer(GenericTextFixer):
     """Text fixer implementation for Pokemon FR."""
-    def __init__(self, main_window_ref, tag_manager_ref, problem_analyzer_ref):
-        """Initialize a new instance."""
-        super().__init__(main_window_ref, tag_manager_ref, problem_analyzer_ref)
-
     def _get_sublines_with_tags(self, text: str) -> List[Tuple[str, str]]:
         if not text:
             return []
