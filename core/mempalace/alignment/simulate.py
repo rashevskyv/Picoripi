@@ -43,7 +43,6 @@ def simulate(
         if tags_omitted != expanded:
             variants.append(tags_omitted)
         game_token_variants.append(variants)
-    game_tokens = [variants[0] for variants in game_token_variants]
     # Retrieve by either interpretation. A name placeholder can add essential
     # semantic evidence (Link/Epona), while a trailing button/control tag may be
     # absent from a prose walkthrough and must not become required dialogue.

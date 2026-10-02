@@ -37,7 +37,6 @@ def save_json_file(file_path: Union[str, Path], data_to_save: Any) -> bool:
         atomic_write_json(p, data_to_save, ensure_ascii=False, indent=4)
         return True
     except Exception as e:
-        error_message = f"Failed to save data to file {file_path}.\n{e}"
         log_error(f"Error saving to '{file_path}': {e}", exc_info=True)
         return False
 
@@ -79,6 +78,5 @@ def save_text_file(file_path: Union[str, Path], text_content: str) -> bool:
         atomic_write_text(p, text_content)
         return True
     except Exception as e:
-        error_message = f"Failed to save text content to file {file_path}.\n{e}"
         log_error(f"Error saving to '{file_path}': {e}", exc_info=True)
         return False

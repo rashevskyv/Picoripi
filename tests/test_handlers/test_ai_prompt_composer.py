@@ -372,12 +372,12 @@ def test_AIPromptComposer_script_cache_invalidation(composer, tmp_path):
 
     # Case 1: Invalidation by size/content change (modifying size)
     script_file.write_text("RUSL\nHello, world!\nLine extra to increase size.\n", encoding="utf-8")
-    res3 = composer._find_speaker_in_script(block_idx=0, s_idx=0, text="Hello, world!")
+    composer._find_speaker_in_script(block_idx=0, s_idx=0, text="Hello, world!")
     assert composer._cached_size != cached_size
 
     # Case 2: Invalidation by plugin change
     composer.mw.current_game_rules.get_display_name.return_value = "Zelda: WW"
-    res4 = composer._find_speaker_in_script(block_idx=0, s_idx=0, text="Hello, world!")
+    composer._find_speaker_in_script(block_idx=0, s_idx=0, text="Hello, world!")
     assert composer._cached_plugin_name == "Zelda: WW"
 
 

@@ -140,7 +140,6 @@ class CustomListItemPaintMixin:
                 number_area_bg = self._color_light_normal_bg
                 number_text_color = self._color_dark_gray
         
-        active_color_markers_for_block = set()
         block_idx_data = index.data(Qt.ItemDataRole.UserRole)
         category_name = index.data(Qt.ItemDataRole.UserRole + 10)
         merged_folder_ids = index.data(Qt.ItemDataRole.UserRole + 2) # For compacted folders
@@ -203,9 +202,6 @@ class CustomListItemPaintMixin:
 
             # 2. Other indicators — counts are stamped on the item at populate.
             if block_idx_data is not None:
-                if hasattr(main_window, 'block_handler') and hasattr(main_window.block_handler, 'get_block_color_markers'):
-                    active_color_markers_for_block = main_window.block_handler.get_block_color_markers(block_idx_data)
-
                 if hasattr(main_window, 'current_game_rules') and main_window.current_game_rules:
                     problem_definitions = main_window.current_game_rules.get_problem_definitions()
 

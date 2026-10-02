@@ -288,7 +288,7 @@ class AILifecycleManager(BaseTranslationHandler):
                     msg_box.setDetailedText(f"Raw AI Response:\n\n{raw_output}")
                 
                 retry_btn = msg_box.addButton(f"Retry (Wait {retry_wait_s}s)", QMessageBox.ButtonRole.AcceptRole)
-                cancel_btn = msg_box.addButton("Stop/Cancel AI", QMessageBox.ButtonRole.RejectRole)
+                msg_box.addButton("Stop/Cancel AI", QMessageBox.ButtonRole.RejectRole)
                 msg_box.setDefaultButton(retry_btn)
                 
                 # If we have a status dialog, make sure we handle window modality

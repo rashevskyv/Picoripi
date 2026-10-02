@@ -188,7 +188,7 @@ def test_ListSelectionHandler_string_selected_from_preview(handler):
     handler.mw.data_store.current_block_idx = 0
     handler.mw.data_store.data = [["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7"]]
     
-    with patch('handlers.list_selection.physical_selection_mixin.QTextCursor') as mock_cursor:
+    with patch('handlers.list_selection.physical_selection_mixin.QTextCursor'):
         # Selecting preview line 1 corresponds to abs index 6
         handler.string_selected_from_preview(1)
         assert handler.mw.data_store.current_string_idx == 6

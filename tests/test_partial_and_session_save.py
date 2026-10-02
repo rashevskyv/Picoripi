@@ -211,7 +211,7 @@ def test_save_specific_edits_forces_autosave(dsp, mock_mw, tmp_path):
     mock_mw.data_store.edited_file_data = [["orig"]]
     mock_mw.data_store.edited_data = {(0, 0): "new"}
     
-    with patch.object(dsp, '_perform_save_impl', return_value=(True, [], [])) as mock_save, \
+    with patch.object(dsp, '_perform_save_impl', return_value=(True, [], [])), \
          patch.object(dsp, '_autosave_session') as mock_autosave:
         dsp.save_specific_edits([(0, 0)], ask_confirmation=False)
         mock_autosave.assert_called_once_with(force=True)

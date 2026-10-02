@@ -176,7 +176,6 @@ class EditMixin:
             string_meta, getattr(self.mw, 'current_game_rules', None),
             self.mw.data_store.physical_block_idx, data_line_idx,
             self.mw.line_width_warning_threshold_pixels, self.mw.game_dialog_max_width_pixels)
-        max_allowed_width = logical_hard_limit
 
         font_map_for_string = self.mw.helper.get_font_map_for_string(self.mw.data_store.physical_block_idx, data_line_idx)
         

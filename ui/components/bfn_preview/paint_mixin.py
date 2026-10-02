@@ -379,7 +379,7 @@ class BfnPreviewPaintMixin:
         painter = QPainter(self)
         try:
             self._paint_event_impl(painter, event)
-        except Exception as e:
+        except Exception:
             import traceback
             traceback.print_exc()
         finally:

@@ -28,12 +28,8 @@ select = ["F", "E9"]
 ignore = [
     "E701", "E702", "E402",
     "F403", "F405",
-    # F841 (unused local) still has ~68 hits; several look like dropped results
-    # rather than dead assignments, so they need reading one by one before the
-    # rule can be turned on.
-    "F841",
 ]
-# F401 and F811 are now enforced (test_static_analysis gates on `ruff check`).
+# F401, F811 and F841 are enforced (test_static_analysis gates on `ruff check`).
 # Modules that exist purely to re-export declare __all__ rather than being
 # exempted; F811 catches duplicate test names that silently shadow each other.
 

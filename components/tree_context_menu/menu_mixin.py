@@ -16,7 +16,6 @@ class MenuMixin:
         item = self.itemAt(pos)
         if item:
             text = item.text(0)
-            role_val = item.data(0, Qt.UserRole)
             ch_id = item.data(0, Qt.UserRole + 11)
             
             parent = item.parent()

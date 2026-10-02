@@ -84,7 +84,6 @@ class WidthRule(ProblemRule):
 
     def fix(self, context: RuleContext, matches: List[ProblemMatch]) -> FixResult:
         sublines = context.text.split('\n')
-        made_change = False
         final_lines = []
         under_star = False
         threshold = context.logical_hard_limit
@@ -98,14 +97,12 @@ class WidthRule(ProblemRule):
                     leading_spaces = line[:len(line) - len(stripped)]
                     line = leading_spaces + '{tab}' + stripped
                     stripped = line.lstrip()
-                    made_change = True
 
             if _get_string_width(line, context) <= threshold:
                 final_lines.append(line)
                 continue
 
             while _get_string_width(line, context) > threshold:
-                made_change = True
                 line_parts = re.findall(rf'((?:{ANY_TAG_PATTERN_STR})-\S+|{ANY_TAG_PATTERN_STR}|\S+|\s+)', line)
                 best_split_point = -1
                 punctuation_chars = {',', '.', '!', '?', ':', ';', '…', ')', ']', '}', '»', '”', '’', '"', "'", '—', '–'}
@@ -386,7 +383,6 @@ class ShortLineRule(ProblemRule):
         original_text = context.text
         made_change_overall = True
         lines_per_page = context.lines_per_page
-        threshold = context.width_threshold
         logical_hard_limit = context.logical_hard_limit
 
         while made_change_overall:
@@ -857,7 +853,6 @@ class StarTagRule(ProblemRule):
         return sections
 
     def _wrap_tab_lines(self, lines: List[str], context: RuleContext, is_first_line: bool) -> List[str]:
-        starts_with_star = is_first_line
         clean_parts: List[str] = []
         for i, line in enumerate(lines):
             stripped = line.strip()

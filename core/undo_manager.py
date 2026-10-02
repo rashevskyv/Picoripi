@@ -537,9 +537,7 @@ class UndoManager:
                     
                 saved_lines = str(text_from_saved_file).split('\n')
                 
-                # We need actual_text_with_spaces representation
-                actual_text_with_spaces = self.mw.utils.convert_dots_to_spaces_from_editor(text) if hasattr(self.mw, 'utils') else text
-                # Actually 'text' parameter in _apply_data is ALREADY the raw actual_text_with_spaces
+                # The 'text' parameter of _apply_data is already the raw text with spaces
                 curr_lines = text.split('\n')
                 
                 self.mw.data_store.edited_sublines.clear()

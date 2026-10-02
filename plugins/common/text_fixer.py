@@ -178,7 +178,6 @@ class GenericTextFixer:
             return False
 
         lines = list(text.split("\n"))
-        changed = False
 
         i = 0
         while i < len(lines):
@@ -257,7 +256,6 @@ class GenericTextFixer:
 
             new_segment = wrapped_lines + padding
             lines = lines[:i] + new_segment + lines[next_end + 1:]
-            changed = True
             continue
 
         final_text = "\n".join(lines)
@@ -284,7 +282,6 @@ class GenericTextFixer:
         pages_chunks = [lines[i:i + lines_per_page] for i in range(0, len(lines), lines_per_page)]
 
         fixed_pages = []
-        any_changed = False
 
         for idx, chunk in enumerate(pages_chunks):
             original_len = len(chunk)
@@ -308,8 +305,6 @@ class GenericTextFixer:
                 fixed_page_text = "\n".join(fixed_chunk_lines)
 
             fixed_pages.append(fixed_page_text)
-            if changed or fixed_page_text != page_text:
-                any_changed = True
 
         final_text = "\n".join(fixed_pages)
         return final_text, final_text != data_string

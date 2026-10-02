@@ -67,7 +67,6 @@ class ProblemRuleRegistry:
         If allowed_problems is None, checks main_window autofix settings.
         """
         original_text = context.text
-        changed_overall = False
 
         # Load autofix settings if allowed_problems is not provided
         if allowed_problems is None:
@@ -97,7 +96,6 @@ class ProblemRuleRegistry:
             res = rule.fix(context, matches)
             if res.changed:
                 context.text = res.text
-                changed_overall = True
 
         # 2. EMPTY_ODD_SUBLINE_DISPLAY
         if self.get_rule("EMPTY_ODD_SUBLINE_DISPLAY") and is_allowed("EMPTY_ODD_SUBLINE_DISPLAY"):
@@ -106,7 +104,6 @@ class ProblemRuleRegistry:
             res = rule.fix(context, matches)
             if res.changed:
                 context.text = res.text
-                changed_overall = True
 
         # 3. Iterative pass for SHORT_LINE and WIDTH_EXCEEDED (since they interact)
         max_iterations = 10
@@ -141,7 +138,6 @@ class ProblemRuleRegistry:
             res = rule.fix(context, matches)
             if res.changed:
                 context.text = res.text
-                changed_overall = True
 
         # 5. MISSING_ICON_SPACING
         if self.get_rule("MISSING_ICON_SPACING") and is_allowed("MISSING_ICON_SPACING"):
@@ -150,7 +146,6 @@ class ProblemRuleRegistry:
             res = rule.fix(context, matches)
             if res.changed:
                 context.text = res.text
-                changed_overall = True
 
         # 6. STAR_TAG_RULES (Zelda BMG specific star/tab sections formatting)
         if self.get_rule("STAR_TAG_RULES") and is_allowed("STAR_TAG_RULES"):
@@ -159,7 +154,6 @@ class ProblemRuleRegistry:
             res = rule.fix(context, matches)
             if res.changed:
                 context.text = res.text
-                changed_overall = True
 
         # Note: Sentence shifting and compaction are high-level document operations 
         # and are handled outside individual line-based rules, but they are driven by context limits.
@@ -173,6 +167,5 @@ class ProblemRuleRegistry:
             res = rule.fix(context, matches)
             if res.changed:
                 context.text = res.text
-                changed_overall = True
 
         return context.text, context.text != original_text

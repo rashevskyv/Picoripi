@@ -78,7 +78,7 @@ def test_chat_tab_scroll_and_text_operations(qtbot):
 
     dialog.scroll_to_response(0, end_pos // 2)
     # Scrollbar moved
-    sb = tab.history_view.verticalScrollBar()
+    tab.history_view.verticalScrollBar()
     dialog.scroll_to_bottom(0)
     assert dialog.is_tab_at_bottom(0)
     assert tab.is_at_bottom()

@@ -8,7 +8,7 @@ def test_ProjectActionHandler_init(mock_mw):
     if hasattr(mock_mw, 'project_manager'):
         delattr(mock_mw, 'project_manager')
 
-    h = ProjectActionHandler(mock_mw, MagicMock(), MagicMock())
+    ProjectActionHandler(mock_mw, MagicMock(), MagicMock())
     assert hasattr(mock_mw, 'project_manager')
     assert isinstance(mock_mw.project_manager, ProjectManager)
 

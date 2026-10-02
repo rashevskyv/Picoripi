@@ -64,7 +64,6 @@ def pre_filter_regex():
 # Method 3: Mega Regex
 def mega_regex():    
     # regex supports 100 groups in older CPython, but we don't need groups if we just pre-filter!
-    count = 0
     
     # Just a giant OR regex to check IF the line contains ANY term's basic text?
     # No, tags make it hard.

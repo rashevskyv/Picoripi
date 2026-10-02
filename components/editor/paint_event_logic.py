@@ -67,13 +67,10 @@ class LNETPaintEventLogic:
                 if block_idx != -1 and string_idx != -1:
                     font_map = main_window.helper.get_font_map_for_string(block_idx, string_idx)
 
-            # Calculate max allowed physical width (Game Dialog Limit)
-            max_allowed_width = getattr(main_window, 'game_dialog_max_width_pixels', limit_px)
             if block_idx != -1 and string_idx != -1:
                 string_meta = getattr(main_window, 'string_metadata', {}).get((block_idx, string_idx), {})
                 if "width" in string_meta:
                     custom_w = string_meta["width"]
-                    max_allowed_width = custom_w
                     global_max = getattr(main_window, 'game_dialog_max_width_pixels', limit_px)
                     standard_threshold = getattr(main_window, 'line_width_warning_threshold_pixels', limit_px)
                     if global_max > 0:
@@ -82,7 +79,6 @@ class LNETPaintEventLogic:
                         limit_px = custom_w
 
             sequences = getattr(main_window, 'icon_sequences', []) if main_window else []
-            left_margin = viewport_offset.x() + self.editor.document().documentMargin()
 
             while block.isValid() and block.layout():
                 layout = block.layout()

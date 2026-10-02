@@ -103,7 +103,7 @@ def test_translation_editor_spellcheck_highlighting(qapp):
 
     # Capture every setFormat call at the class level so Qt doesn't intercept
     captured = []
-    orig_sf = type(editor.highlighter).setFormat
+    type(editor.highlighter).setFormat
 
     def capturing_sf(self, start, length, fmt):
         captured.append((start, length, fmt.underlineStyle()))

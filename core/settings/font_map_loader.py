@@ -35,12 +35,10 @@ class FontMapLoader:
             if custom_dir.is_dir():
                 fonts_dirs.append(custom_dir)
 
-        loaded_any = False
         for fonts_dir in fonts_dirs:
             if not fonts_dir.is_dir():
                 continue
             log_debug(f"Loading all font maps from: {fonts_dir}")
-            loaded_any = True
             for font_file in fonts_dir.iterdir():
                 if not font_file.is_file():
                     continue

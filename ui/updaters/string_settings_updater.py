@@ -404,7 +404,6 @@ class StringSettingsUpdater(BaseUIUpdater):
 
     def update_string_settings_panel(self):
         """Update the string settings panel."""
-        default_style_sheet = self.mw.styleSheet() 
 
         block_idx = self.mw.data_store.physical_block_idx
         string_idx = self.mw.data_store.current_string_idx
@@ -586,7 +585,6 @@ class StringSettingsUpdater(BaseUIUpdater):
                 if not block_label:
                     block_label = f"Block_{block_idx}"
             
-            bmg_id = f"{block_label}_Str_{string_idx}"
             
             raw_text = ""
             try:

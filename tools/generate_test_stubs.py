@@ -63,7 +63,7 @@ def generate_stubs(src_dir, tests_dir):
                             if not safe_name: safe_name = "func"
                             tfile.write(f"def test_{safe_name}():\n    # TODO: Implement test\n    pytest.skip('Auto-generated stub')\n\n")
                     count += len(funcs)
-            except Exception as e:
+            except Exception:
                 pass
                 
     print(f"Generated {count} test stubs across the project.")

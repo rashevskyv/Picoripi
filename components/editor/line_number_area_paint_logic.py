@@ -184,7 +184,6 @@ class LNETLineNumberAreaPaintLogic:
                         display_number_for_line_area = f"* {display_number_for_line_area}"
 
                     # Check for custom settings changes if it is a preview line
-                    has_meta_changes = False
                     if is_preview:
                         string_meta = {}
                         if main_window_ref and hasattr(main_window_ref, 'string_metadata'):
@@ -198,7 +197,6 @@ class LNETLineNumberAreaPaintLogic:
                         
                         has_custom_font = "font_file" in string_meta and string_meta["font_file"] != default_font
                         has_custom_width = "width" in string_meta and string_meta["width"] != max_width
-                        has_meta_changes = has_custom_font or has_custom_width
 
                     # 4. Painting
                     number_part_rect = QRect(0, top, number_part_width, line_height)

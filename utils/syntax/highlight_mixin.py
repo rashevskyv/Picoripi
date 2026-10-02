@@ -321,7 +321,7 @@ class HighlightMixin:
             try:
                 for match in compiled_pattern.finditer(text):
                     self.setFormat(match.start(), match.end() - match.start(), fmt)
-            except Exception as e:
+            except Exception:
                 pass # Already precompiled, shouldn't fail runtime
                 
         hide_tags_enabled = False

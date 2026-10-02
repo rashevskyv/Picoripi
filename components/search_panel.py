@@ -45,8 +45,6 @@ class SearchLineEdit(QLineEdit):
             pen.setWidth(1)
             painter.setPen(pen)
             
-            # Font metrics for baseline calculation
-            fm = self.fontMetrics()
             # Draw wavy line near the bottom of QLineEdit client area (y_base relative to height)
             y = self.height() - 4
             

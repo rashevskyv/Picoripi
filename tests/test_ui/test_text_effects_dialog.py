@@ -49,7 +49,7 @@ def test_angle_picker_mouse_event(qapp):
     assert 0 in emitted_angles
     
     # 2. Drag/move to (50, 100) -> vector (0, 50) -> angle 90
-    move_event = QMouseEvent(QEvent.Type.MouseMove, QPointF(50.0, 100.0), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
+    QMouseEvent(QEvent.Type.MouseMove, QPointF(50.0, 100.0), Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
     # Move events usually check buttons mask
     picker.mouseMoveEvent(QMouseEvent(QEvent.Type.MouseMove, QPointF(50.0, 100.0), Qt.MouseButton.NoButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier))
     assert picker.angle() == 90

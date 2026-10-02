@@ -20,7 +20,7 @@ def test_AppActionHandler_load_all_data_success(mock_mw, mock_ui):
     handler = AppActionHandler(mock_mw, MagicMock(), mock_ui, mock_mw.current_game_rules)
     
     with patch("core.formats.load_json_file") as mock_load, \
-         patch("handlers.app_action_handler.QMessageBox") as mock_msg:
+         patch("handlers.app_action_handler.QMessageBox"):
         mock_load.return_value = ({"key": "value"}, None)
         mock_mw.current_game_rules.load_data_from_json_obj.return_value = ([["string1"]], {"0": "Block1"})
         

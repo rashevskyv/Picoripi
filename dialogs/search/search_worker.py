@@ -37,7 +37,6 @@ class SearchWorker(QThread):
         is_fuzzy = self.params['is_fuzzy']
         case_sensitive = self.params['case_sensitive']
         line_numbers = self.params.get('line_numbers', [])
-        block_idx = self.params.get('block_idx', -1)
         block_indices = self.params.get('block_indices', [])
 
         items_to_review = []

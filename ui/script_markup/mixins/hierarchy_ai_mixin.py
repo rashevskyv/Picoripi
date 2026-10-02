@@ -328,7 +328,6 @@ class HierarchyAiMixin:
                 tr('Mark at least one hierarchy example manually, then run this auto-fill again.'),
             )
             return
-        raw_lines = raw_text.splitlines()
         result = infer_hierarchy_marks_from_examples(raw_text, self.hierarchy_marks)
         added, skipped = self._apply_hierarchy_candidate_marks(result.marks)
         if added <= 0:

@@ -430,7 +430,6 @@ class MainWindow(QMainWindow):
         # Initialize spellchecker state
         log_info("Initializing spellchecker...")
         spellchecker_enabled = getattr(self, 'spellchecker_enabled', False)
-        spellchecker_language = getattr(self, 'spellchecker_language', 'uk')
         if self.spellchecker_manager.hunspell:
             log_info(f"Spellchecker dictionary language: {self.spellchecker_manager.language}")
         self.spellchecker_manager.set_enabled(spellchecker_enabled)

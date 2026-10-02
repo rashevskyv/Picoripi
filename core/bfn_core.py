@@ -304,7 +304,6 @@ class BfnCore:
         m1 = self.map1[0]
         mapping_type = m1["mapping_type"]
         first_char = m1["first_char"]
-        last_char = m1["last_char"]
         entries = m1["entries"]
         
         # 1. Base CP1252 Mapping

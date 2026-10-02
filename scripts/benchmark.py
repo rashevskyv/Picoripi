@@ -54,7 +54,7 @@ if SOURCES_DIR.exists():
                                 if line:
                                     all_texts.append(line)
             file_count += 1
-        except Exception as e:
+        except Exception:
             pass
 
 if not all_texts:

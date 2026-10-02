@@ -205,7 +205,6 @@ class MainWindowHelper:
                 QMessageBox.warning(self.mw, tr('Advanced Search'), tr('No project data loaded.'))
                 return
 
-            edited_data = self.mw.data_store.edited_data
             
             all_lines = []
             for b_idx in range(len(self.mw.data_store.data)):

@@ -260,7 +260,7 @@ class PalaceReadMixin:
                         "name": row[1],
                         "description": row[2] or ""
                     })
-            except Exception as e:
+            except Exception:
                 # Sibling fallback: if no rooms found under this exact wing name,
                 # fetch all rooms (similar to search context fallback)
                 try:

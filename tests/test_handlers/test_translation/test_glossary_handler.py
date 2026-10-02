@@ -104,7 +104,6 @@ def test_gh_initialize_glossary_highlighting(gh):
 @patch('handlers.translation.glossary.dialog_mixin.QMessageBox')
 def test_gh_show_glossary_dialog(mock_box, mock_dialog, mock_worker_cls, mock_progress, gh):
     mock_dialog_inst = mock_dialog.return_value
-    mock_pd_inst = mock_progress.return_value
     mock_worker_inst = mock_worker_cls.return_value
 
     mock_worker_inst.isInterruptionRequested.return_value = False

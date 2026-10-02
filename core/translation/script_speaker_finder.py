@@ -329,40 +329,13 @@ class ScriptSpeakerFinder:
                 remainder_chars.append(global_distilled_text[i])
             return "".join(remainder_chars)
 
-        def get_prev_script_text(l_num: int) -> str:
-            for idx in range(l_num - 2, -1, -1):
-                line_str = lines[idx].strip()
-                if not line_str or (line_str.startswith("[") and line_str.endswith("]")) or line_strip_is_speaker(line_str):
-                    continue
-                return line_str
-            return ""
-
-        # Get preceding and subsequent BMG strings for context check
-        preceding_strings = []
+        # The strings after this one: a query that runs past its script line must continue into them
         subsequent_strings = []
         if (hasattr(self.mw, 'data_store') and self.mw.data_store and
             block_idx is not None and 0 <= block_idx < len(self.mw.data_store.data)):
             block_strings = self.mw.data_store.data[block_idx]
-            for prev_idx in range(max(0, s_idx - 5), s_idx):
-                preceding_strings.append(block_strings[prev_idx])
             for next_idx in range(s_idx + 1, len(block_strings)):
                 subsequent_strings.append(block_strings[next_idx])
-
-        dist_prev_bmg = ""
-        if preceding_strings:
-            for s in reversed(preceding_strings):
-                d_s = distill(s)
-                if d_s:
-                    dist_prev_bmg = d_s
-                    break
-
-        dist_next_bmg = ""
-        if subsequent_strings:
-            for s in subsequent_strings:
-                d_s = distill(s)
-                if d_s:
-                    dist_next_bmg = d_s
-                    break
 
         # Search the query in the global distilled text
         start_pos = 0
@@ -404,23 +377,6 @@ class ScriptSpeakerFinder:
 
             if actual_pos < len(char_to_line_map) and (end_pos - 1) < len(char_to_line_map):
                 line_num = char_to_line_map[actual_pos]
-                L_start = char_to_line_map[actual_pos]
-                L_end = char_to_line_map[end_pos - 1]
-
-                # Word count diff
-                script_matched_text = " ".join(lines[l - 1].strip() for l in range(L_start, L_end + 1))
-                words_script = len(re.findall(r'\w+', script_matched_text))
-                words_bmg = len(re.findall(r'\w+', text))
-                word_diff = abs(words_script - words_bmg)
-
-                # Context Match
-                has_prev_match = False
-                if dist_prev_bmg:
-                    prev_script_text = get_prev_script_text(line_num)
-                    dist_prev_script = distill(prev_script_text)
-                    if dist_prev_script:
-                        if dist_prev_bmg in dist_prev_script or dist_prev_script in dist_prev_bmg:
-                            has_prev_match = True
 
                 # Speaker resolution by scanning backwards from line_num - 1
                 speaker = None

@@ -108,7 +108,7 @@ class TestDialog:
         delegate = tree.itemDelegate()
 
         # Child item index for Voice 41
-        child_item = tree.topLevelItem(0).child(0)
+        tree.topLevelItem(0).child(0)
         index_col0 = tree.model().index(0, 0, tree.model().index(0, 0))
         index_col1 = tree.model().index(0, 1, tree.model().index(0, 0))
         index_col2 = tree.model().index(0, 2, tree.model().index(0, 0))
@@ -326,7 +326,6 @@ class TestDialog:
     def test_apply_all_valid_applies_all_regardless_of_checks(self):
         applied = {}
         dialog = SpeakerMergeDialog(_result(), on_apply=applied.update)
-        tree = dialog.tree
 
         # Uncheck all
         dialog.uncheck_all_btn.click()

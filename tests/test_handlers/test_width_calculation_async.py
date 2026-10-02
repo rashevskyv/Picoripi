@@ -48,7 +48,7 @@ def test_calculate_widths_for_block_action_async_no_freeze(mock_mw, mock_ui, moc
 
     with patch("handlers.app_action_handler.QProgressDialog") as MockProgress, \
          patch("handlers.app_action_handler.LargeTextReportDialog") as MockReportDialog, \
-         patch("handlers.app_action_handler.QMessageBox.information") as MockMsgBox:
+         patch("handlers.app_action_handler.QMessageBox.information"):
         
         progress_mock = MockProgress.return_value
         progress_mock.exec.return_value = None  # Don't block event loop

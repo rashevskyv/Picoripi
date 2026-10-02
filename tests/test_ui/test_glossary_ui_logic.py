@@ -163,7 +163,7 @@ def test_glossary_translation_quick_replace_all(qapp):
     from core.glossary_manager import GlossaryOccurrence, GlossaryEntry
     from PyQt6.QtWidgets import QWidget
     
-    mock_parent = QWidget()
+    QWidget()
     entry = GlossaryEntry("t", "new")
     occ1 = GlossaryOccurrence(entry, 0, 0, 0, 0, 0, "This is old translation")
     occ2 = GlossaryOccurrence(entry, 0, 1, 0, 0, 0, "Another old value")
@@ -261,7 +261,7 @@ def test_glossary_dialog_profiled_checkbox(qapp):
     from core.glossary_manager import GlossaryEntry
     from PyQt6.QtWidgets import QWidget
     
-    mock_parent = QWidget()
+    QWidget()
     entry1 = GlossaryEntry("Link", "Лінк", "Hero", "Characters", profiled=True)
     entry2 = GlossaryEntry("Zelda", "Зельда", "Princess", "Characters", profiled=False)
     

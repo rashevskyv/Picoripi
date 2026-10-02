@@ -116,7 +116,7 @@ def test_tooltip_returns_none_when_no_problems(app):
     mw.data_store.edited_data = {}
 
     logic = LNETTooltipLogic(editor)
-    tooltip = logic.find_warning_tooltip_at(QPoint(5, 5))
+    logic.find_warning_tooltip_at(QPoint(5, 5))
     mw.close()
 
 def test_tooltip_preview_text_edit_sums_sublines(app):

@@ -90,7 +90,7 @@ class U8Container(BaseArchiveContainer):
 
         # Root node is first — its `size` field = total number of nodes
         root_type     = struct.unpack_from(">H", d, self._root_off)[0]
-        root_data_off = struct.unpack_from(">I", d, self._root_off + 4)[0]
+        # (+4: the root's data offset, not needed)
         root_size     = struct.unpack_from(">I", d, self._root_off + 8)[0]
 
         if root_type != _NODE_DIR:

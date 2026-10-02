@@ -234,7 +234,6 @@ class BMGFile:
                             parts.append(dat_data[curr_str_start:curr_pos].decode(full_enc))
 
                         # Parse escape tag
-                        esc_start_pos = curr_pos
                         esc_len = dat_data[curr_pos + len(esc_char)]
                         esc_type = dat_data[curr_pos + len(esc_char) + 1]
                         esc_data = dat_data[curr_pos + len(esc_char) + 2 : curr_pos + esc_len]

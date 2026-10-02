@@ -52,7 +52,7 @@ class TestRoleInstructionReachesThePrompt:
     def test_batch_prompt_includes_a_plugin_supplied_instruction(self):
         from handlers.translation.ai_prompt_composer import AIPromptComposer
 
-        composer = AIPromptComposer.__new__(AIPromptComposer)
+        AIPromptComposer.__new__(AIPromptComposer)
         items = [
             {"content_role": "TombstoneEpitaph",
              "role_instruction": "EPITAPHS: carve-style text, keep it terse."},

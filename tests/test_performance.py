@@ -161,10 +161,10 @@ def test_filter_toggle_performance():
     for _ in range(20): # 20 toggles
         # Retrieve already built filtering indexes
         unsaved = dp.get_unsaved_set(0)
-        translated = dp.get_translated_set(0)
+        dp.get_translated_set(0)
         empty = dp.get_empty_set(0)
         # Combine filters
-        displayed = [i for i in range(len(lines)) if i in unsaved or i not in empty]
+        [i for i in range(len(lines)) if i in unsaved or i not in empty]
     duration = time.perf_counter() - t0
     
     print(f"\nFilter toggle simulation duration (20 runs): {duration*1000:.2f}ms")
@@ -255,7 +255,7 @@ def test_ai_prompt_context_lookup_performance(qapp):
     translation_handler.ui_updater = MagicMock()
     mw.translation_handler = translation_handler
     
-    dp = DataStateProcessor(mw)
+    DataStateProcessor(mw)
     composer = AIPromptComposer(translation_handler)
     
     # Prepare batch request items
@@ -310,7 +310,7 @@ def test_glossary_builder_chunk_preparation_performance():
     
     from utils.utils import ALL_TAGS_PATTERN
     masked_text = ALL_TAGS_PATTERN.sub(' ', full_text or '')
-    chunks = [masked_text[i:i+8000] for i in range(0, len(masked_text), 8000)]
+    [masked_text[i:i+8000] for i in range(0, len(masked_text), 8000)]
     duration = time.perf_counter() - t0
     
     print(f"\nGlossary Builder chunk preparation for 5000 lines: {duration*1000:.2f}ms")

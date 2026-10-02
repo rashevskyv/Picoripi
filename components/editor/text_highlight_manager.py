@@ -446,7 +446,6 @@ class TextHighlightManager:
     def update_zebra_stripes(self):
         """Update the zebra stripes."""
         new_selections = []
-        doc = self.editor.document()
         odd_color = getattr(self.editor, 'zebra_odd_color', None)
         even_color = getattr(self.editor, 'zebra_even_color', None)
         

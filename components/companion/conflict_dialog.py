@@ -99,7 +99,7 @@ class CompanionConflictDialog(QDialog):
         button_box = QDialogButtonBox(self)
         apply_btn = button_box.addButton(tr("Apply Resolution"), QDialogButtonBox.ButtonRole.AcceptRole)
         apply_btn.setStyleSheet("QPushButton { background-color: #6366f1; color: white; font-weight: bold; padding: 6px 14px; }")
-        cancel_btn = button_box.addButton(tr("Cancel Sync"), QDialogButtonBox.ButtonRole.RejectRole)
+        button_box.addButton(tr("Cancel Sync"), QDialogButtonBox.ButtonRole.RejectRole)
 
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)

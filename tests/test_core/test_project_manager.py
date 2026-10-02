@@ -25,7 +25,7 @@ def pm(tmp_path):
 def test_ProjectManager_create_new_project(tmp_path):
     pm = ProjectManager()
     
-    with patch('core.project_manager.Path.mkdir') as mock_mkdir:
+    with patch('core.project_manager.Path.mkdir'):
         success = pm.create_new_project(
             project_dir=tmp_path,
             name="NewProj",
@@ -103,7 +103,7 @@ def test_ProjectManager_create_virtual_folder(pm):
     assert f1.id in [f.id for f in pm.project.virtual_folders]
     
     # Add block to it
-    b1 = pm.add_block("B1", "src/file.txt")
+    pm.add_block("B1", "src/file.txt")
     
     # Sub folder
     f2 = pm.create_virtual_folder("folder2", parent_id=f1.id)

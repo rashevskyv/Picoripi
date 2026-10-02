@@ -27,7 +27,6 @@ class MappingEditMixin:
                 orig_char = self.get_original_char_for_glyph(glyph_idx)
                 
                 # Synthetic key used when the glyph has no MAP1 entry (empty glyph)
-                synthetic_key = f"#g{glyph_idx}"
                 
                 # 2. Get the new virtual character typed by the user
                 new_virtual_char = val_str[0] if len(val_str) > 0 else ""
@@ -182,7 +181,6 @@ class MappingEditMixin:
             if m_type == 2:
                 entries = m.get("entries", [])
                 first_char = m.get("first_char", 0)
-                last_char = m.get("last_char", 0)
                 
                 # First, clear any other character mapping to this glyph_idx
                 for i in range(len(entries)):

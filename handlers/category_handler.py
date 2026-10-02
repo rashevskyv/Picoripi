@@ -166,8 +166,6 @@ class CategoryHandler(BaseHandler):
         if proj_b_idx >= len(pm.project.blocks):
             return
 
-        block = pm.project.blocks[proj_b_idx]
-
         # Simple input dialog for now
         name, ok = QInputDialog.getText(self.mw, "Move to Virtual Block", "Enter Category Name:", text="New Category")
         if not ok or not name.strip():

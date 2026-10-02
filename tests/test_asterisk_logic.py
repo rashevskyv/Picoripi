@@ -104,7 +104,7 @@ def test_folder_asterisk_propagation():
     from PyQt6.QtCore import QModelIndex, Qt
     
     mw = MockMainWindow()
-    dsp = DataStateProcessor(mw)
+    DataStateProcessor(mw)
     delegate = CustomListItemDelegate(None)
     delegate.list_widget = MagicMock()
     delegate.list_widget.window.return_value = mw
@@ -240,7 +240,7 @@ def test_line_number_area_paint_logic_data_store_access():
             
     mw = RealMainWindow()
     editor = MagicMock()
-    logic = LNETLineNumberAreaPaintLogic(editor, MagicMock(), mw)
+    LNETLineNumberAreaPaintLogic(editor, MagicMock(), mw)
     
     ds = getattr(mw, 'data_store', None)
     assert ds is not None

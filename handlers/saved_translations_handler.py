@@ -372,7 +372,6 @@ class SavedTranslationsHandler(BaseHandler):
             self.ctx.undo_manager.begin_group()
 
         try:
-            manager = self.ctx.saved_translations_manager
             for block_idx in range(len(self.data_store.data)):
                 block_source_file, block_internal_key = self._get_block_export_location(block_idx)
 

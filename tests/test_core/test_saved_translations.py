@@ -107,7 +107,7 @@ def test_saved_translations_caching(manager, temp_project_dir):
     # 3. Path changes: should invalidate cache and read from the new path
     mock_mw_for_saved_new = manager.mw
     mock_mw_for_saved_new.project_manager.project_dir = str(temp_project_dir / "new_project_dir")
-    new_path = manager._get_saved_translations_path()
+    manager._get_saved_translations_path()
     
     with patch.object(Path, 'exists', return_value=False) as mock_exists:
         loaded3 = manager.load_all_saved_translations()

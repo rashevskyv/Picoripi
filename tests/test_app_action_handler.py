@@ -141,7 +141,6 @@ class TestAppActionHandler(unittest.TestCase):
     @patch('handlers.app_action_handler.SaveWorker')
     @patch('handlers.app_action_handler.QMessageBox')
     def test_perform_async_save_flow_failure(self, mock_msg_box, mock_worker_cls, mock_progress):
-        mock_pd_inst = mock_progress.return_value
         mock_worker_inst = mock_worker_cls.return_value
         
         callback_results = []
