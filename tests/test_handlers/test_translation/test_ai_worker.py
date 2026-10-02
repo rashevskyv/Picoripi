@@ -557,3 +557,34 @@ def test_a_cancelled_request_ends_as_cancelled_not_as_an_error(worker_deps, work
 
     cancelled.assert_called_once()
     assert errors == [] and chunks == []
+
+
+def test_editor_review_gets_source_and_draft_side_by_side_and_nothing_else(worker_deps):
+    provider, prompt_composer = worker_deps
+    source_items = [
+        {"id": 5, "text": "Hello", "scene_context": "a long scene description " * 20, "layout": {"line_count": 1}},
+        {"id": 6, "text": "Bye"},
+    ]
+    prompt_composer.compose_batch_request.return_value = ("sys", "user", {})
+    worker = AIWorker(provider, prompt_composer, {
+        'type': 'translate_block_chunked', 'block_idx': 0, 'source_items': source_items, 'workers': 1,
+        'enable_editor_review': True, 'editor_system_prompt': 'EDITOR',
+        'composer_args': {'system_prompt': 'sys', 'block_idx': 0, 'mode_description': 'm'},
+    })
+    draft = {"translated_strings": [{"id": 5, "translation": "Привіт"}, {"id": 6, "translation": "Бувай"}]}
+    polished = {"translated_strings": [{"id": 5, "translation": "Вітаю"}, {"id": 6, "translation": "Бувай"}]}
+    provider.translate.side_effect = [ProviderResponse(text=json.dumps(draft)), ProviderResponse(text=json.dumps(polished))]
+    chunks = []
+    worker.chunk_translated.connect(lambda idx, text, ctx: chunks.append(json.loads(text)))
+
+    worker.run()
+
+    review_messages = provider.translate.call_args_list[1][0][0]
+    assert review_messages[0] == {"role": "system", "content": "EDITOR"}
+    review_input = json.loads(review_messages[1]["content"])
+    assert review_input["strings"] == [
+        {"id": 5, "text": "Hello", "translation": "Привіт"},
+        {"id": 6, "text": "Bye", "translation": "Бувай"},
+    ]
+    assert "layout" not in review_messages[1]["content"] and "scene_context" not in review_messages[1]["content"]
+    assert chunks == [polished]

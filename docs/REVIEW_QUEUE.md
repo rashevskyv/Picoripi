@@ -67,3 +67,13 @@ in `docs/OPEN_ITEMS.md`, not here.
       one flag). Making it work would have turned parallel block translation into sequential requests with
       growing history. AI Chat keeps its own sessions and is untouched. Say if you ever want conversational
       (stateful) block translation.
+- [ ] **Smaller batch payload (2.5).** Per item the model now gets `layout: {line_count}` plus only what
+      differs; widths and lines-per-window sit once in `layout_defaults`. Unresolved speakers are omitted
+      instead of `"Unknown"`. Check on a real block that line breaks, window counts and widths are still
+      respected (per-item ~156 → ~89 tok in the harness).
+- [ ] **Reference languages in batch requests: one per line by default** (the first loaded), none for one- or
+      two-word lines. If you rely on several references (e.g. RU + DE for gender and meaning), set
+      `"max_reference_languages"` in the translation settings, or tell me to change the default. Single-string
+      translation still shows all of them.
+- [ ] **Editor review input** is now `{id, text, translation}` triples plus an output-format line. Check one
+      story-first run with review on: the editor still returns a usable polished chunk.

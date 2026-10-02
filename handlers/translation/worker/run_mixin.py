@@ -348,11 +348,21 @@ class AIWorkerRunMixin:
                     if not editor_prompt or self.is_cancelled:
                         return cleaned_draft
                     try:
-                        draft_payload = json.loads(cleaned_draft)
+                        drafts = json.loads(cleaned_draft).get('translated_strings', [])
+                        # Source and draft side by side, nothing else: the editor
+                        # polishes wording, it does not need the layout or context blobs.
                         editor_input = {
                             "task": "Review, polish, and ensure terminology consistency for the draft translation.",
-                            "source_strings": chunk_items,
-                            "draft_translation": draft_payload,
+                            "strings": [
+                                {
+                                    "id": source.get('id') if isinstance(source, dict) else index,
+                                    "text": source.get('text', '') if isinstance(source, dict) else str(source),
+                                    "translation": draft.get('translation', '') if isinstance(draft, dict) else str(draft),
+                                }
+                                for index, (source, draft) in enumerate(zip(chunk_items, drafts))
+                            ],
+                            "output": 'Return {"translated_strings": [{"id": ..., "translation": "..."}]} with one '
+                                      'object per input string, in the same order.',
                         }
                         review_messages = [
                             {"role": "system", "content": editor_prompt},

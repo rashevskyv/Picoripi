@@ -126,6 +126,7 @@ The engine enforces strict translation boundaries:
 - **Primary Source**: The model always translates from the original source text (`Input text (Original source):` or the `"text"` field).
 - **Context Only**: Reference translations are contextual evidence only, helping disambiguate meaning, speaker tone, and character gender across official or community localizations.
 - **Strict Prohibition**: The prompt explicitly forbids translating from any reference language or copying a reference translation as the target result.
+- **How many**: A single-string request shows every loaded reference language. A batch request sends one language per line by default (the first one loaded) and none for one- or two-word lines; set `"max_reference_languages"` in the translation settings block to send more (0 sends none).
 
 ---
 

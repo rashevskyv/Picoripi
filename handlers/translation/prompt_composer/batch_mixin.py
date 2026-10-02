@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.story_context_overrides import get_story_context_override
@@ -12,8 +13,52 @@ from utils.utils import resolve_target_language_prompt
 from .instructions import append_engine_rules, batch_rules
 
 
+# Layout values that are normally the same for every item of a chunk.
+_SHARED_LAYOUT_KEYS = ('lines_per_window', 'warning_line_width_px', 'max_line_width_px')
+# Reference languages sent per item unless the translation config says otherwise.
+DEFAULT_MAX_REFERENCE_LANGUAGES = 1
+
+
+def _hoist_layout_defaults(items: List[Dict]) -> Dict:
+    """Move what the items' layouts share into one dict and drop what says nothing.
+
+    Every item used to repeat eight layout keys (~70 tokens), most of them equal
+    across the chunk or at their trivial value. An item keeps ``line_count`` plus
+    only what differs: non-empty ``blank_line_indices``, a true
+    ``ends_with_newline``, a ``window_count`` above 1, and any shared key whose
+    value is not the chunk's most common one.
+    """
+    defaults: Dict = {}
+    for key in _SHARED_LAYOUT_KEYS:
+        values = [item['layout'][key] for item in items if key in (item.get('layout') or {})]
+        if values:
+            defaults[key] = Counter(values).most_common(1)[0][0]
+    for item in items:
+        layout = item.get('layout') or {}
+        slim = {'line_count': layout.get('line_count')}
+        if layout.get('blank_line_indices'):
+            slim['blank_line_indices'] = layout['blank_line_indices']
+        if layout.get('ends_with_newline'):
+            slim['ends_with_newline'] = True
+        if isinstance(layout.get('window_count'), int) and layout['window_count'] > 1:
+            slim['window_count'] = layout['window_count']
+        for key in _SHARED_LAYOUT_KEYS:
+            if key in layout and layout[key] != defaults.get(key):
+                slim[key] = layout[key]
+        item['layout'] = slim
+    return defaults
+
+
 class BatchMixin:
     """Batch translation prompt composition."""
+
+    def _max_reference_languages(self) -> int:
+        """How many reference languages go into each item (translation config, default 1)."""
+        config = getattr(self.mw, 'translation_config', None)
+        value = config.get('max_reference_languages') if isinstance(config, dict) else None
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            return value
+        return DEFAULT_MAX_REFERENCE_LANGUAGES
 
     @staticmethod
     def _real_pair(item: Any, block_idx: Optional[int], temp_id_map: Optional[Dict]) -> Tuple[Any, Any]:
@@ -173,14 +218,12 @@ class BatchMixin:
                 glossary_names_from_story_bundle(structured_story_context)
             )
 
-            item_for_ai = {
-                'id': item_id,
-                'text': current_text_clean,
-                'speaker': speaker,
-                'layout': self._layout_contract_for_string(
-                    current_text_clean, real_b_idx, real_s_idx
-                ),
-            }
+            item_for_ai = {'id': item_id, 'text': current_text_clean}
+            if speaker != "Unknown":
+                item_for_ai['speaker'] = speaker
+            item_for_ai['layout'] = self._layout_contract_for_string(
+                current_text_clean, real_b_idx, real_s_idx
+            )
             # Reference translations for context
             ref_langs = getattr(self.mw.data_store, 'reference_languages_data', {})
             ref_translations: Dict[str, str] = {}
@@ -200,8 +243,9 @@ class BatchMixin:
                         ref_label = ReferenceManager.get_reference_language_label(game_rules)
                         ref_translations[ref_label] = single_ref.strip()
 
-            if ref_translations:
-                item_for_ai['reference_translations'] = ref_translations
+            ref_limit = self._max_reference_languages()
+            if ref_translations and ref_limit and len(current_text_clean.split()) > 2:
+                item_for_ai['reference_translations'] = dict(list(ref_translations.items())[:ref_limit])
 
             item_for_ai.update(translation_context)
             structure_path = [
@@ -385,9 +429,11 @@ class BatchMixin:
             *(str(it.get('text', '')) for it in items_with_context),
         )
 
-        json_payload_for_ai = {
-            'strings_to_translate': items_with_context
-        }
+        layout_defaults = _hoist_layout_defaults(items_with_context)
+        json_payload_for_ai = {}
+        if layout_defaults:
+            json_payload_for_ai['layout_defaults'] = layout_defaults
+        json_payload_for_ai['strings_to_translate'] = items_with_context
         if story_context_catalog:
             json_payload_for_ai['story_context_catalog'] = story_context_catalog
         if scene_context:

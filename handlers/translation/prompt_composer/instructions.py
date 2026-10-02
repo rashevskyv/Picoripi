@@ -55,6 +55,10 @@ _BATCH_RULES = (
     'line and prefer concise wording that stays within max_line_width_px. Never remove, merge, or reorder source '
     'lines. You may add the minimum necessary extra lines, and therefore an extra dialogue window, only when the '
     'translation cannot remain readable or fit the width otherwise.',
+    'LAYOUT VALUES: An item\'s "layout" lists only what is specific to it. lines_per_window, '
+    'warning_line_width_px and max_line_width_px come from "layout_defaults" unless the item overrides them; a '
+    'missing blank_line_indices means no blank lines, a missing ends_with_newline means no trailing newline, a '
+    'missing window_count means one window.',
     'GLOSSARY IS MANDATORY: Every term found in the "glossary" field (when present) MUST be translated exactly as '
     'specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only '
     'inflect the word endings to match {target_lang} grammar. Glossary overrides everything.',

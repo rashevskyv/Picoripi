@@ -161,3 +161,57 @@ def test_surrounding_rows_of_a_plain_block_run(composer):
     assert "--- Dialogue BEFORE" not in user          # nothing precedes row 0
     assert "--- Dialogue AFTER this chunk ---" in user
     assert "row 2" in user and "row 4" in user and "row 5" not in user
+
+
+# --- payload size (WP2 2.5) --------------------------------------------------
+
+def _payload(user):
+    import json
+    return json.loads(user.split("JSON DATA TO PROCESS:\n", 1)[1])
+
+
+def test_a_plain_item_carries_only_what_is_specific_to_it(composer):
+    composer.mw.lines_per_page = 3
+    composer.mw.string_metadata = {}
+    composer.mw.line_width_warning_threshold_pixels = 280
+    composer.mw.game_dialog_max_width_pixels = 300
+    composer.mw.current_game_rules.get_string_layout.return_value = None
+    composer.mw.current_game_rules.get_preview_window_style.return_value = None
+    composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+    composer.mw.current_game_rules.get_addressee_for_string.return_value = None
+    composer.mw.current_game_rules.get_ai_flow_context_for_string.return_value = None
+    composer.mw.current_game_rules.get_ai_flow_overview.return_value = None
+    composer._resolve_prompt_speaker = lambda *args, **kwargs: (None, set())
+    items = [
+        {"id": 0, "text": "First line\nsecond line"},
+        {"id": 1, "text": "One\n\nthree\nfour\nfive\n"},
+    ]
+
+    _, user, _ = composer.compose_batch_request("SysPrompt", items, items, block_idx=0, mode_description="m")
+    payload = _payload(user)
+
+    plain, busy = payload["strings_to_translate"]
+    assert plain == {"id": 0, "text": "First line\nsecond line", "layout": {"line_count": 2}}
+    assert busy["layout"] == {
+        "line_count": 6, "blank_line_indices": [1, 5], "ends_with_newline": True, "window_count": 2,
+    }
+    assert payload["layout_defaults"] == {
+        "lines_per_window": 3, "warning_line_width_px": 280, "max_line_width_px": 300,
+    }
+    assert list(payload)[0] == "layout_defaults"
+
+
+def test_an_item_with_its_own_width_keeps_it(composer):
+    from handlers.translation.prompt_composer.batch_mixin import _hoist_layout_defaults
+    items = [
+        {"id": 0, "layout": {"line_count": 1, "max_line_width_px": 300, "lines_per_window": 3}},
+        {"id": 1, "layout": {"line_count": 1, "max_line_width_px": 300, "lines_per_window": 3}},
+        {"id": 2, "layout": {"line_count": 1, "max_line_width_px": 180, "lines_per_window": 3}},
+    ]
+
+    defaults = _hoist_layout_defaults(items)
+
+    assert defaults == {"lines_per_window": 3, "max_line_width_px": 300}
+    assert [item["layout"] for item in items] == [
+        {"line_count": 1}, {"line_count": 1}, {"line_count": 1, "max_line_width_px": 180},
+    ]
