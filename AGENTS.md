@@ -59,6 +59,7 @@ Tests: focused unit tests for logic; real `pytest-qt` lifecycle tests for worker
 ## Read next
 
 - `docs/INDEX.md` — one line per document: what it is the home of, its size and status. Start here.
+- `docs/ARCHITECTURE.md` — layers, data flow, which modules are only compatibility re-exports, where to change what.
 - `docs/audit/2026-10-01/PLAN.md` + `TASKS.md` — current work packages (read one WP at a time).
 - `docs/wiki/README.md` — handbook; `docs/wiki/7_Maintaining_This_Wiki.md` — which page owns what.
 - Skills: `.agents/skills/update-wiki` (after user-visible or settings changes), `.agents/skills/deploy`

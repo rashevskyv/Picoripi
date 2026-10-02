@@ -7,6 +7,7 @@ Read the row, then open only the document you need.
 | Document | What it is the home of | ~tokens | Status | Owns |
 |---|---|---|---|---|
 | `docs/AI_DEVELOPMENT_MANIFESTO.md` | Long-form agent rules; to be merged into AGENTS.md and ENGINEERING.md | 3.9k | merge | AGENTS.md, docs/ENGINEERING.md |
+| `docs/ARCHITECTURE.md` | Layers, data flow, facades, and where to change what | 2.1k | current | layering, data flow, where to change what |
 | `docs/FEATURE_REFERENCE.md` | Feature inventory with dead paths; to be merged into wiki 1 | 3.1k | merge | docs/wiki/1 |
 | `docs/GLOSSARY_BUILD_TESTING_GUIDE.md` | The one glossary pass (Ukrainian); to be merged into wiki 8 | 1.5k | merge | docs/wiki/8 |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace design and a long progress log; to be cut to a contract | 35.7k | merge | core/mempalace, ui/mempalace |
