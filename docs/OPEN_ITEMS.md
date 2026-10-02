@@ -14,25 +14,11 @@ the line when it is done or moved into a plan.
 ## Found during WP0
 
 - **WP0 exit is not ticked**: the suite is green on Windows only; the Linux run has not been done.
-- **Intermittent hang in the UI lane.** One `pytest -n 2 tests/test_ui tests/test_tools` run out of six
-  printed one `F` at ~88 % (≈ item 551 of 580) and then stalled with both workers idle; `--timeout=180` did not
-  fire. The output was piped through `tail`, so the test name was lost. The five later `-n 2` runs and the
-  full `-n 8` runs were clean. If it recurs, rerun with `-v` into a log file — the last scheduled test per worker is
-  the suspect.
-- **Intermittent click/focus failures (about 1 full run in 3 on 2026-10-02).** Always the same tests, all on
-  one xdist worker in a row: `tests/test_ui/test_ui_event_filters.py::test_speaker_click_selects_all_existing_text`,
-  the four `test_all_search_fields_select_existing_text_on_click[...]` cases, and sometimes
-  `tests/test_ui/script_markup/test_tree_selection_and_nav.py::test_studio_tree_selected_click_renames_node`.
-  They pass alone. Evidence from the failure snapshot `tests/conftest.py` now attaches ("Qt state at
-  failure"): `activeWindow: None`, `focusWidget: None`, no modal, no popup, no mouse grabber, the test's own
-  window visible — the application on that worker has no active window, so the click never gives focus.
-  Ruled out: a leaked popup/modal/grab. Not yet known: why activation is lost (the snapshot now also prints
-  `QGuiApplication.focusWindow()`, `modalWindow()` and every `QWindow` — read those on the next failure).
-  These tests call `qtbot.waitExposed(mw)` without `with`, which waits for nothing; fixing that is the first
-  thing to try. Probably the same family as the hang above.
-  The tree test also fails on its own with the application active and the dialog focused (seen once): the
-  snapshot then shows a hidden, unexposed `QWidgetClassWindow` from an earlier test still reported `active`.
-  That test depends on a real-time rename timer after the click, so it may simply be a second, separate race.
+- **Watch: the intermittent UI-lane hang of 2026-10-01** (one `-n 2` run printed an `F` at ~88 % and stalled
+  with idle workers). Most likely the same cause as the click/focus failures fixed on 2026-10-02:
+  `tests/conftest.py::_stop_lingering_qthreads` called `quit()` on the GUI thread, after which every
+  `QEventLoop.exec()` on that xdist worker returned at once. Not proven for the hang itself; delete this line
+  if it does not come back. WP6.4 removes that heap walk altogether.
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.

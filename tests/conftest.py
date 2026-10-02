@@ -170,9 +170,16 @@ def _stop_lingering_qthreads():
     """
     # Walk all live QObjects on the heap and find QThreads.
     threads = [obj for obj in gc.get_objects() if isinstance(obj, QThread)]
+    # Never the thread this runs on. QThread.currentThread() hands out a wrapper
+    # for the GUI thread, and a mock that was compared with it keeps that wrapper
+    # alive until the next gc pass. quit() on it sets Qt's quitNow flag for the
+    # whole process: every later QEventLoop.exec() returns at once, so windows
+    # are never exposed, timers never fire and qtbot waits time out -- for the
+    # rest of that xdist worker's life.
+    current = QThread.currentThread()
     for thread in threads:
         try:
-            if not thread.isRunning():
+            if thread is current or thread == current or not thread.isRunning():
                 continue
             # Try the manager-provided cooperative shutdown hooks if any object
             # holds the thread; we don't have a reference to its worker, so we
