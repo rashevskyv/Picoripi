@@ -10,6 +10,7 @@ from core.story_context_overrides import (
 )
 from core.glossary_manager import render_notes
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 class StringSettingsUpdater(BaseUIUpdater):
     """String settings updater implementation."""
@@ -593,8 +594,8 @@ class StringSettingsUpdater(BaseUIUpdater):
                         block_data = self.mw.data_store.data[block_idx]
                         if 0 <= string_idx < len(block_data):
                             raw_text = block_data[string_idx] or ""
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"string_settings_updater.StringSettingsUpdater.update_string_settings_panel: ignored {exc!r}")
             
             composer = None
             if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
@@ -614,8 +615,8 @@ class StringSettingsUpdater(BaseUIUpdater):
                     if not hasattr(self.mw, '_temp_prompt_composer') or self.mw._temp_prompt_composer is None:
                         self.mw._temp_prompt_composer = AIPromptComposer(DummyHandler(self.mw))
                     composer = self.mw._temp_prompt_composer
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"string_settings_updater.StringSettingsUpdater.update_string_settings_panel: ignored {exc!r}")
                     
             if composer:
                 result = composer._find_speaker_in_script(block_idx, string_idx, raw_text)

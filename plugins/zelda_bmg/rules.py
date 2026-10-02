@@ -386,8 +386,8 @@ class GameRules(BaseGameRules):
                 try:
                     glyph_idx = int(val[2:])
                     val = chr(glyph_idx + 1)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"rules.GameRules.encode_string_with_mapping: ignored {exc!r}")
             result.append(val)
         return "".join(result)
 
@@ -1143,8 +1143,8 @@ class GameRules(BaseGameRules):
             try:
                 if not ctx.flows_for_message(int(string_idx)):
                     return self._SYSTEM_SPEAKER
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"rules.GameRules.get_speaker_for_string: ignored {exc!r}")
         return None
 
     def _speaker_from_voice_id(self, block_idx: int, string_idx: int) -> Optional[str]:
@@ -1380,7 +1380,8 @@ class GameRules(BaseGameRules):
             for string_idx, value in enumerate(block):
                 try:
                     name = self.get_speaker_for_string(block_idx, string_idx)
-                except Exception:
+                except Exception as exc:
+                    log_debug(f"rules.GameRules._lines_by_speaker: ignored {exc!r}")
                     continue
                 if not name or name == self._SYSTEM_SPEAKER:
                     continue

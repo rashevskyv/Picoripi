@@ -8,6 +8,7 @@ from core.mempalace.dialogue_mapping import DialogueMappingInput
 from core.mempalace.dialogue_mapping_worker import DialogueAlignmentWorker
 from ui.mempalace.mempalace_ui import SECONDARY_BUTTON_STYLE, WORKFLOW_BUTTON_STYLE
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 
 class MemePalaceDialogueMixin:
@@ -40,8 +41,8 @@ class MemePalaceDialogueMixin:
                     try:
                         if eligible(block_index, string_index) is False:
                             continue
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"dialogue_mixin.MemePalaceDialogueMixin._game_messages_for_story_alignment: ignored {exc!r}")
                 game_messages.append(GameMessage(
                     message_id=len(game_messages),
                     block_id=str(block_index),

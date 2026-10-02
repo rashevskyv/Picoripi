@@ -9,6 +9,7 @@ from utils.utils import convert_dots_to_spaces_from_editor
 from handlers.autofix_worker import AutofixWorker
 from core.tag_utils import iter_all_strings
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 
 class AutofixMixin:
@@ -266,8 +267,8 @@ class AutofixMixin:
         if worker:
             try:
                 worker.finished.disconnect(self._cleanup_active_autofix)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"autofix_mixin.AutofixMixin._cleanup_active_autofix: ignored {exc!r}")
             if worker.isRunning():
                 worker.cancel()
                 from utils.logging_utils import log_warning

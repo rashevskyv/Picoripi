@@ -353,8 +353,8 @@ class BatchMixin:
             relations = []
             try:
                 relations = client.get_relations(wing_name)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"batch_mixin.BatchMixin.compose_batch_request: ignored {exc!r}")
 
             context_parts = []
             clean_room = room_name.replace("_", " ")

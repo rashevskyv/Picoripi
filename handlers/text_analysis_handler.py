@@ -206,8 +206,8 @@ class TextAnalysisHandler(BaseHandler):
                             cursor.setPosition(block_obj.position())
                             original_editor.setTextCursor(cursor)
                             original_editor.ensureCursorVisible()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"text_analysis_handler.TextAnalysisHandler._activate_entry.select_string_and_scroll: ignored {exc!r}")
 
             def apply_focus():
                 """Apply focus."""

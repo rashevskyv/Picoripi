@@ -1,6 +1,7 @@
 from PyQt6 import QtCore, QtWidgets
 
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 ROLE_SHEET_IDX = QtCore.Qt.ItemDataRole.UserRole + 1
 ROLE_FONT_NAME = QtCore.Qt.ItemDataRole.UserRole + 2
@@ -57,8 +58,8 @@ class WindowTreeMixin:
                                     if Path(inner_path).suffix.lower() == ".bfn":
                                         try:
                                             files[Path(inner_path).name] = container.read_file(inner_path)
-                                        except Exception:
-                                            pass
+                                        except Exception as exc:
+                                            log_debug(f"window_tree_mixin.WindowTreeMixin.scan_fonts_directories: ignored {exc!r}")
                                 if files:
                                     self.font_sources[archive_name] = {
                                         "type": "disk_archive",

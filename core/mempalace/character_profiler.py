@@ -6,6 +6,7 @@ from core.translation.providers import BaseTranslationProvider
 from utils.logging_utils import log_error, log_ai_traffic, log_warning, log_info
 from .weaver_worker import robust_json_loads
 from core.tag_utils import ANY_TAG_PATTERN
+from utils.logging_utils import log_debug
 
 
 class MemePalaceCharacterProfilerWorker(QThread):
@@ -361,8 +362,8 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                                             profiled=False
                                         )
                                         self.glossary_manager.save_to_disk()
-                                    except Exception:
-                                        pass
+                                    except Exception as exc:
+                                        log_debug(f"character_profiler.MemePalaceCharacterProfilerWorker.run: ignored {exc!r}")
                                 skip = False  # запускаємо
                             else:
                                 # якщо більше або дорівнює трьох строк, помічаємо як Profiled і скіпаємо
@@ -390,8 +391,8 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                                         profiled=True
                                     )
                                     self.glossary_manager.save_to_disk()
-                                except Exception:
-                                    pass
+                                except Exception as exc:
+                                    log_debug(f"character_profiler.MemePalaceCharacterProfilerWorker.run: ignored {exc!r}")
                                     
                         if skip:
                             self.log.emit(f"Character '{char_name}' already has a completed speech profile. Skipping (incremental resume).")

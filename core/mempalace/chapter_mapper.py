@@ -2,6 +2,7 @@ import os
 from PyQt6.QtCore import QThread, pyqtSignal
 from core.mempalace_client import MemePalaceClient
 from utils.logging_utils import log_error
+from utils.logging_utils import log_debug
 
 
 class MemePalaceChapterMapperWorker(QThread):
@@ -85,8 +86,8 @@ class MemePalaceChapterMapperWorker(QThread):
                                     "script_line": first_line,
                                     "bmg_text": text
                                 })
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                log_debug(f"chapter_mapper.MemePalaceChapterMapperWorker.run: ignored {exc!r}")
 
             self.log.emit(f"Saving {len(mappings)} mappings to database...")
             self.client.save_mappings_to_db(self.wing_name, mappings)

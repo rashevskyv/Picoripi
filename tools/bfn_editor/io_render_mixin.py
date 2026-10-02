@@ -4,6 +4,7 @@ from core.i18n import tr
 
 from tools.bfn_editor.bfn_widgets import RenderFontDialog
 from tools.bfn_editor.bfn_commands import RenderFontCommand
+from utils.logging_utils import log_debug
 
 
 class IoRenderMixin:
@@ -24,8 +25,8 @@ class IoRenderMixin:
                     if m_first <= idx <= m_last:
                         try:
                             char_val = chr(idx)
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"io_render_mixin.IoRenderMixin.render_system_font_to_glyphs: ignored {exc!r}")
                         break
                 elif m_type == 2:
                     entries = m.get("entries", [])
@@ -34,8 +35,8 @@ class IoRenderMixin:
                             code = m_first + c_idx
                             try:
                                 char_val = chr(code)
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                log_debug(f"io_render_mixin.IoRenderMixin.render_system_font_to_glyphs: ignored {exc!r}")
                             break
                     if char_val:
                         break
@@ -47,8 +48,8 @@ class IoRenderMixin:
                             code = entries[k]
                             try:
                                 char_val = chr(code)
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                log_debug(f"io_render_mixin.IoRenderMixin.render_system_font_to_glyphs: ignored {exc!r}")
                             break
                     if char_val:
                         break

@@ -24,7 +24,8 @@ markers = [
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["F", "E9"]
+# S110/S112: a broad `except` that only passes or continues must say what it swallowed (log_debug at least).
+select = ["F", "E9", "S110", "S112"]
 ignore = [
     "E701", "E702", "E402",
     "F403", "F405",
@@ -33,5 +34,8 @@ ignore = [
 # Modules that exist purely to re-export declare __all__ rather than being
 # exempted; F811 catches duplicate test names that silently shadow each other.
 
-
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S110", "S112"]
+"scripts/**" = ["S110", "S112"]
+"tools/i18n-translate/**" = ["S110", "S112"]
 

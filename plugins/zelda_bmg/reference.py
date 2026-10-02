@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from utils.logging_utils import log_error, log_info, log_warning
+from utils.logging_utils import log_debug
 
 
 
@@ -231,8 +232,8 @@ def _try_extract_iso_messages(iso_path: Path) -> Optional[Path]:
                 cfg_wit = data.get("wit_tool_path", "").strip()
                 if cfg_wit and Path(cfg_wit).is_file():
                     wit_exe = cfg_wit
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"reference._try_extract_iso_messages: ignored {exc!r}")
 
     if not wit_exe:
         wit_exe = shutil.which("wit")
@@ -381,8 +382,8 @@ def load_zelda_bmg_multi_reference(
                 for match in sorted(p.glob(pat)):
                     if match.is_dir() and match not in discovered_dirs:
                         discovered_dirs.append(match)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"reference.load_zelda_bmg_multi_reference: ignored {exc!r}")
 
         # 2. Add standard direct candidate directories
         candidate_res_dirs = [
@@ -405,8 +406,8 @@ def load_zelda_bmg_multi_reference(
                     for entry in sorted(cdir.iterdir()):
                         if entry.is_dir() and entry not in discovered_dirs:
                             discovered_dirs.append(entry)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"reference.load_zelda_bmg_multi_reference: ignored {exc!r}")
 
     found_msg_dirs: Dict[str, Tuple[Path, str]] = {}  # label -> (dir_path, encoding)
 

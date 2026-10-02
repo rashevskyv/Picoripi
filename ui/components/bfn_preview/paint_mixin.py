@@ -25,6 +25,7 @@ from ui.components.bfn_preview.icons import (
     _icon_texture_cache,
     _tinted_icon_texture,
 )
+from utils.logging_utils import log_debug
 
 class BfnPreviewPaintMixin:
     """Mixin: paint pipeline and glyph/halo helpers."""
@@ -115,8 +116,8 @@ class BfnPreviewPaintMixin:
                     scales = result[2] if len(result) >= 3 else None
                     icons = result[3] if len(result) >= 4 else None
                     return clean, colors, scales, icons
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"paint_mixin.BfnPreviewPaintMixin._prepare_render_text: ignored {exc!r}")
 
         cleaned_text = self.text
         if rules and hasattr(rules, 'get_spellcheck_ignore_pattern'):
@@ -124,8 +125,8 @@ class BfnPreviewPaintMixin:
             if pattern:
                 try:
                     cleaned_text = re.sub(pattern, "", cleaned_text)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"paint_mixin.BfnPreviewPaintMixin._prepare_render_text: ignored {exc!r}")
         cleaned_text = re.sub(r'\{[^}]*\}', "", cleaned_text)
         cleaned_text = re.sub(r'\[[^\]]*\]', "", cleaned_text)
         return cleaned_text, None, None, None
@@ -144,8 +145,8 @@ class BfnPreviewPaintMixin:
                     style = rules.get_preview_window_style()
                 if isinstance(style, dict):
                     return style
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"paint_mixin.BfnPreviewPaintMixin._resolve_auto_window_style: ignored {exc!r}")
         return None
 
     def _get_game_window_style(self):

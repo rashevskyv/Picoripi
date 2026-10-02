@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 from core.mempalace_client import MemePalaceClient
 from core.translation.providers import BaseTranslationProvider, ProviderResponse
 from utils.logging_utils import log_error, log_ai_traffic
+from utils.logging_utils import log_debug
 
 
 def robust_json_loads(text: str) -> dict:
@@ -126,8 +127,8 @@ class MemePalaceWorker(QThread):
         if mw and hasattr(mw, 'current_game_rules') and mw.current_game_rules:
             try:
                 _dynamic_name_tags = mw.current_game_rules.get_dynamic_name_tags()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"weaver_worker.MemePalaceWorker._weave_strings: ignored {exc!r}")
 
         def clean_for_match(text: str) -> str:
             """Clean for match."""

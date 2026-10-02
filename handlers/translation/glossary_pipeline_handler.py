@@ -533,12 +533,12 @@ class GlossaryPipelineHandler:
             try:
                 self._prevent_sleep = self._status.prevent_sleep_checkbox.isChecked()
                 self._sleep_after = self._status.sleep_after_checkbox.isChecked()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"glossary_pipeline_handler.GlossaryPipelineHandler._on_finished: ignored {exc!r}")
             try:
                 self._status.finish(show_popup=False)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"glossary_pipeline_handler.GlossaryPipelineHandler._on_finished: ignored {exc!r}")
             self._status = None
 
         manager = self._glossary_manager()

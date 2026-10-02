@@ -23,6 +23,7 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+from utils.logging_utils import log_debug
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -231,8 +232,8 @@ class CoreCallbackBenchmark:
         if aliases_path.exists():
             try:
                 aliases = json.loads(aliases_path.read_text(encoding="utf-8"))
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"benchmark_glossary_variant.CoreCallbackBenchmark._run_simulation: ignored {exc!r}")
         gm.bind_project_rows(store, rules, speaker_aliases=aliases, speaker_pool=pool)
 
         # 3. Occurrence index build (cold)

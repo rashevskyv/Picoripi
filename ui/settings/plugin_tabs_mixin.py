@@ -92,8 +92,8 @@ class PluginTabsMixin:
                                             if font_key not in seen_fonts:
                                                 seen_fonts.add(font_key)
                                                 self.font_file_combo.addItem(font_key, font_key)
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"plugin_tabs_mixin.PluginTabsMixin._populate_font_list: ignored {exc!r}")
                     elif suffix in (".json", ".bfn"):
                         if font_path.name not in seen_fonts:
                             seen_fonts.add(font_path.name)

@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence, Tuple
 
 from core.tag_utils import ALL_TAGS_PATTERN
+from utils.logging_utils import log_debug
 
 
 Row = Tuple[int, int]
@@ -306,7 +307,8 @@ def find_markup_project(script_path=None, project_dir=None):
             project = load_hierarchy_project(path)
             _MARKUP_PROJECT_CACHE[key] = (stat.st_mtime_ns, stat.st_size, project)
             return project
-        except Exception:
+        except Exception as exc:
+            log_debug(f"speaker_alias_merge.find_markup_project: ignored {exc!r}")
             continue
     return None
 

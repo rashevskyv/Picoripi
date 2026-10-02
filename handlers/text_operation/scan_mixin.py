@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Tuple
 from PyQt6.QtGui import QTextCursor
 from handlers.async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
+from utils.logging_utils import log_debug
 
 
 class ScanMixin:
@@ -162,8 +163,8 @@ class ScanMixin:
                     if isinstance(text, str) and pos - 1 < len(text) and text[pos - 1] not in " \n\t.,!?;:·":
                         cursor.select(QTextCursor.SelectionType.WordUnderCursor)
                         active_word = cursor.selectedText().strip("'·").lower()
-            except BaseException:
-                pass
+            except BaseException as exc:
+                log_debug(f"scan_mixin.ScanMixin.launch_async_scanner_immediate: ignored {exc!r}")
 
         editor_text = str(current_text_raw)
         if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):

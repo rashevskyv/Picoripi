@@ -241,8 +241,8 @@ class ActionsMixin:
             if self._settings_path.parent and not self._settings_path.parent.exists():
                 self._settings_path.parent.mkdir(parents=True, exist_ok=True)
             atomic_write_json(self._settings_path, data, indent=4, ensure_ascii=False)
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"actions_mixin.ActionsMixin._write_settings_file: ignored {exc!r}")
 
     @staticmethod
     def _geometry_to_dict(rect: QRect) -> Dict[str, int]:
@@ -354,8 +354,8 @@ class ActionsMixin:
                         disk_data = json.load(f)
                         server_url = disk_data.get("companion_server_url", "")
                         token = disk_data.get("companion_api_token", token or "picoripi")
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"actions_mixin.ActionsMixin._on_companion_sync_clicked: ignored {exc!r}")
 
         if not server_url:
             ans = QMessageBox.question(
@@ -388,8 +388,8 @@ class ActionsMixin:
                                 disk_data = json.load(f)
                                 server_url = disk_data.get("companion_server_url", "")
                                 token = disk_data.get("companion_api_token", token or "picoripi")
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"actions_mixin.ActionsMixin._on_companion_sync_clicked: ignored {exc!r}")
                 if not server_url:
                     return
             else:

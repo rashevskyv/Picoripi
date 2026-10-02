@@ -94,7 +94,8 @@ class SpeakerMergeHandler:
                 rows[(block_idx, string_idx)] = text
                 try:
                     name = getter(block_idx, string_idx)
-                except Exception:
+                except Exception as exc:
+                    log_debug(f"speaker_merge_handler.SpeakerMergeHandler._game_rows_and_codes: ignored {exc!r}")
                     continue
                 if isinstance(name, str) and name.strip():
                     codes[(block_idx, string_idx)] = name.strip()

@@ -1,5 +1,6 @@
 """Cache invalidation and ready/notify callbacks for the block tree."""
 from __future__ import annotations
+from utils.logging_utils import log_debug
 
 
 class ReadyMixin:
@@ -43,8 +44,8 @@ class ReadyMixin:
             if prompt_composer is not None and hasattr(prompt_composer, attr):
                 try:
                     setattr(prompt_composer, attr, None)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"ready_mixin.ReadyMixin.force_refresh_virtual_folders: ignored {exc!r}")
 
         # Deep pass (button-only): resolve every remaining row against the marked
         # script the same way the editor field does, so live-fuzzy-only rows also
@@ -70,8 +71,8 @@ class ReadyMixin:
         if callable(status_bar):
             try:
                 status_bar().showMessage("Virtual folders rebuilt from current story data.", 4000)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"ready_mixin.ReadyMixin.force_refresh_virtual_folders: ignored {exc!r}")
 
     def refresh_virtual_folder_labels(self) -> None:
         """Rebuild folders so glossary-translated speaker names update.

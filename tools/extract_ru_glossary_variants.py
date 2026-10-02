@@ -11,6 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from utils.logging_utils import log_debug
 
 # Ensure repository root is on sys.path
 repo_root = Path(__file__).resolve().parent.parent
@@ -227,8 +228,8 @@ def run_extraction(
             with open(settings_file, "r", encoding="utf-8") as sf:
                 sdata = json.load(sf)
                 plugin_name = sdata.get("active_game_plugin", plugin_name)
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"extract_ru_glossary_variants.run_extraction: ignored {exc!r}")
 
     game_rules = None
     try:

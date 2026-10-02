@@ -27,8 +27,8 @@ class ScriptSpeakerFinder:
         if hasattr(self.mw, "current_game_rules") and self.mw.current_game_rules:
             try:
                 plugin_script_name = self.mw.current_game_rules.get_default_script_name()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"script_speaker_finder.ScriptSpeakerFinder.find_script_path: ignored {exc!r}")
 
         search_dirs = []
 
@@ -91,8 +91,8 @@ class ScriptSpeakerFinder:
                         p = os.path.join(d, f)
                         if os.path.exists(p):
                             return p
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"script_speaker_finder.ScriptSpeakerFinder.find_script_path: ignored {exc!r}")
 
         return None
 
@@ -138,8 +138,8 @@ class ScriptSpeakerFinder:
         if self.mw and getattr(self.mw, 'current_game_rules', None):
             try:
                 plugin_name = self.mw.current_game_rules.get_display_name()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"script_speaker_finder.ScriptSpeakerFinder.find_speaker_in_script: ignored {exc!r}")
 
         # Invalidate cache if file properties or active plugin changed
         if (self._cached_script_path != script_path or
@@ -166,8 +166,8 @@ class ScriptSpeakerFinder:
         if self.mw and hasattr(self.mw, 'current_game_rules') and self.mw.current_game_rules:
             try:
                 _dynamic_name_tags = self.mw.current_game_rules.get_dynamic_name_tags()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"script_speaker_finder.ScriptSpeakerFinder.find_speaker_in_script: ignored {exc!r}")
 
         def line_strip_is_speaker(s: str) -> bool:
             s_clean = re.sub(r'\(.*?\)', '', s).strip()

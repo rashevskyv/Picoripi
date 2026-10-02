@@ -1,5 +1,6 @@
 import os
 import ast
+from utils.logging_utils import log_debug
 
 def generate_stubs(src_dir, tests_dir):
     os.makedirs(tests_dir, exist_ok=True)
@@ -63,8 +64,8 @@ def generate_stubs(src_dir, tests_dir):
                             if not safe_name: safe_name = "func"
                             tfile.write(f"def test_{safe_name}():\n    # TODO: Implement test\n    pytest.skip('Auto-generated stub')\n\n")
                     count += len(funcs)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"generate_test_stubs.generate_stubs: ignored {exc!r}")
                 
     print(f"Generated {count} test stubs across the project.")
 

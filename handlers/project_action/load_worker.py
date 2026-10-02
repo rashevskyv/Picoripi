@@ -3,6 +3,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from core import formats
 from core.containers import ContainerManager
 from utils.logging_utils import log_error
+from utils.logging_utils import log_debug
 
 
 class ProjectLoadWorker(QThread):
@@ -175,8 +176,8 @@ class ProjectLoadWorker(QThread):
                                 source_path = self.project_manager.get_absolute_path(block.source_file)
                                 if Path(source_path).exists():
                                     file_content_src = Path(source_path).read_bytes()
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"load_worker.ProjectLoadWorker.run: ignored {exc!r}")
 
                         if file_content_src is not None:
                             try:

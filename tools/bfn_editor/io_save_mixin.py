@@ -8,6 +8,7 @@ from core.i18n import tr
 
 from tools.bfn_editor.bfn_engine import repack_bfn_logic
 from tools.bfn_editor.bfn_commands import ImportSheetCommand, ImportGlyphCommand
+from utils.logging_utils import log_debug
 
 
 class IoSaveMixin:
@@ -151,8 +152,8 @@ class IoSaveMixin:
                 
                 if hasattr(parent_mw, 'bfn_preview_widget') and parent_mw.bfn_preview_widget:
                     parent_mw.bfn_preview_widget.update()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"io_save_mixin.IoSaveMixin._sync_with_global_preview_cache: ignored {exc!r}")
 
     def export_sheet_png(self):
         if self.current_sheet_index < 0 or self.current_sheet_index >= len(self.sheet_images):

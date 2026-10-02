@@ -538,8 +538,8 @@ class TranslateMixin:
                             scene_context = f"Scene: {room.replace('_', ' ')}\n{visual}"
                         else:
                             scene_context = f"Scene: {room.replace('_', ' ')}"
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"translate_mixin.TranslateMixin._run_partitioned_translation: ignored {exc!r}")
 
             source_item = {
                 'id': item['id'],
@@ -737,8 +737,8 @@ class TranslateMixin:
                             scene_context = f"Scene: {room.replace('_', ' ')}\n{visual}"
                         else:
                             scene_context = f"Scene: {room.replace('_', ' ')}"
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"translate_mixin.TranslateMixin.translate_all_blocks_chronologically: ignored {exc!r}")
 
             source_item = {
                 'id': temp_id,

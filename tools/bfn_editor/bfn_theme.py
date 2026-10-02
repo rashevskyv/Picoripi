@@ -1,4 +1,5 @@
 from PyQt6 import QtGui
+from utils.logging_utils import log_debug
 
 def apply_premium_dark_theme(widget):
     dark_palette = QtGui.QPalette()
@@ -392,8 +393,8 @@ def apply_theme_by_settings(widget):
     try:
         from ui.adaptive_scrollbars import install_adaptive_scrollbars
         install_adaptive_scrollbars()
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"bfn_theme.apply_theme_by_settings: ignored {exc!r}")
 
     return is_dark
 

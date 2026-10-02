@@ -386,8 +386,8 @@ class PipelineWizardDialog(QDialog):
         try:
             manager = mw.translation_handler.glossary_handler.glossary_manager
             entries = list(manager.get_entries() or [])
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"pipeline_wizard_dialog.PipelineWizardDialog._probe: ignored {exc!r}")
         glossary = glossary_states(entries)
         review_backlog = sum(
             1 for entry in entries if bool(getattr(entry, "is_unconfirmed", False))

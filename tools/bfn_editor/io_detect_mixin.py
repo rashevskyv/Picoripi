@@ -2,6 +2,7 @@ import os
 import json
 
 from PyQt6 import QtGui
+from utils.logging_utils import log_debug
 
 
 class IoDetectMixin:
@@ -165,5 +166,5 @@ class IoDetectMixin:
             # Очистимо тимчасову папку для оригінального шрифту
             try:
                 shutil.rmtree(orig_temp_dir, ignore_errors=True)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"io_detect_mixin.IoDetectMixin.load_original_bfn_bytes: ignored {exc!r}")

@@ -277,8 +277,8 @@ class DialogMixin:
         if hasattr(self, 'glossary_progress') and self.glossary_progress:
             try:
                 self.glossary_progress.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"dialog_mixin.DialogMixin.prepare_to_close: ignored {exc!r}")
             self.glossary_progress = None
 
     def _get_original_string(self, block_idx: int, string_idx: int) -> Optional[str]:

@@ -10,6 +10,7 @@ from core.i18n import tr
 
 from tools.bfn_editor.bfn_engine import extract_bfn_logic
 from tools.bfn_editor.bfn_widgets import GridItem
+from utils.logging_utils import log_debug
 
 
 class IoLoadMixin:
@@ -193,13 +194,13 @@ class IoLoadMixin:
         if hasattr(self, 'auto_sync_timer') and self.auto_sync_timer:
             try:
                 self.auto_sync_timer.stop()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"io_load_mixin.IoLoadMixin.clear_temp: ignored {exc!r}")
         if self.temp_dir and os.path.exists(self.temp_dir):
             try:
                 shutil.rmtree(self.temp_dir)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"io_load_mixin.IoLoadMixin.clear_temp: ignored {exc!r}")
             self.temp_dir = ''
 
     def closeEvent(self, event):

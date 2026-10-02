@@ -281,8 +281,8 @@ class SessionManager:
                 parts = key_str.split(',')
                 if len(parts) == 2:
                     edited_data_deserialized[(int(parts[0]), int(parts[1]))] = text
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"session_manager.SessionManager.deserialize_session_from_json: ignored {exc!r}")
 
         unsaved_blocks = set(json_data.get("unsaved_block_indices", []))
 
@@ -292,8 +292,8 @@ class SessionManager:
                 parts = key_str.split(',')
                 if len(parts) == 3:
                     problems_deserialized[(int(parts[0]), int(parts[1]), int(parts[2]))] = set(val)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"session_manager.SessionManager.deserialize_session_from_json: ignored {exc!r}")
 
         block_to_file_deserialized = {}
         for key_str, val in json_data.get("block_to_project_file_map", {}).items():
@@ -423,8 +423,8 @@ class SessionManager:
                     f.flush()
                     try:
                         os.fsync(f.fileno())
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"session_manager.SessionManager._save_durable_session_json: ignored {exc!r}")
                 
                 tmp_path.replace(json_path)
                 self._durable_session_dirty = False
@@ -436,8 +436,8 @@ class SessionManager:
             if tmp_path and tmp_path.exists():
                 try:
                     tmp_path.unlink()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"session_manager.SessionManager._save_durable_session_json: ignored {exc!r}")
             return False
 
     def load_session_file(self) -> bool:

@@ -11,6 +11,7 @@ from PyQt6.QtGui import QColor, QImage, QPen
 
 from ui.components.bfn_preview.adapter import BfnEditorAdapter
 from ui.components.bfn_preview.helpers import _looks_like_bfn_editor
+from utils.logging_utils import log_debug
 
 class BfnPreviewGeometryMixin:
     """Mixin: translation map, preview activation, presets, geometry helpers."""
@@ -35,8 +36,8 @@ class BfnPreviewGeometryMixin:
                         else:
                             with proj_map_path.open('w', encoding='utf-8') as f:
                                 f.write("{}")
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"geometry_mixin.BfnPreviewGeometryMixin.load_translation_map: ignored {exc!r}")
             mapping_path = proj_map_path
         else:
             plugin_name = getattr(self.mw, 'active_game_plugin', None)

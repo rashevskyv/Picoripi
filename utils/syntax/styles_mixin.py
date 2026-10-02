@@ -110,8 +110,8 @@ class StylesMixin:
         icon_bg = QColor("#C8E6C9")
         try:
             icon_bg.setAlpha(180)
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"styles_mixin.StylesMixin.reconfigure_styles: ignored {exc!r}")
         self.icon_sequence_format.setBackground(icon_bg)
         self.icon_sequence_format.setFontWeight(QFont.Weight.Bold.value)
         
@@ -142,8 +142,8 @@ class StylesMixin:
             self.yellow_text_format.setForeground(QColor("#b58900"))
             try:
                 self.yellow_text_format.setBackground(QColor("#fff4c2"))
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"styles_mixin.StylesMixin.reconfigure_styles: ignored {exc!r}")
         self.lblue_text_format.setForeground(QColor("#ADD8E6"))
         self.purple_text_format.setForeground(QColor("#800080"))
         if current_theme == 'dark':
@@ -158,8 +158,8 @@ class StylesMixin:
         underline_color = QColor("#1a73e8") if current_theme != 'dark' else QColor("#8ab4f8")
         try:
             self._glossary_format.setUnderlineColor(underline_color)
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"styles_mixin.StylesMixin.reconfigure_styles: ignored {exc!r}")
 
         # Configure spellchecker format (red wavy underline)
         self._spellchecker_format = QTextCharFormat()
@@ -167,8 +167,8 @@ class StylesMixin:
         self._spellchecker_format.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
         try:
             self._spellchecker_format.setUnderlineColor(QColor("#FF0000"))
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"styles_mixin.StylesMixin.reconfigure_styles: ignored {exc!r}")
 
         # Configure bad spacing format (soft red background + red wavy underline)
         self.bad_spacing_format = QTextCharFormat()

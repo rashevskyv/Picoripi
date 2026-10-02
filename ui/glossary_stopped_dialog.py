@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 )
 from utils import power_utils
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 
 ACTION_RESUME = "resume"
@@ -268,8 +269,8 @@ class GlossaryStoppedDialog(QDialog):
         if self._timer is not None:
             try:
                 self._timer.stop()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"glossary_stopped_dialog.GlossaryStoppedDialog._stop_timer: ignored {exc!r}")
             self._timer = None
 
     def _on_resume_clicked(self) -> None:

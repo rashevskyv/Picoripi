@@ -152,20 +152,20 @@ class SpellcheckerManager(QObject):
         try:
             if hasattr(self, '_rehighlight_timer'):
                 self._rehighlight_timer.stop()
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"spellchecker_manager.SpellcheckerManager.prepare_to_close: ignored {exc!r}")
 
         try:
             self._save_persistent_cache()
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"spellchecker_manager.SpellcheckerManager.prepare_to_close: ignored {exc!r}")
             
         try:
             if hasattr(self, 'worker') and self.worker.isRunning():
                 self.worker.stop()
                 self.worker.wait(1000)
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"spellchecker_manager.SpellcheckerManager.prepare_to_close: ignored {exc!r}")
 
     def __del__(self):
         """Internal helper to  del  ."""

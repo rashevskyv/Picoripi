@@ -13,6 +13,7 @@ from utils.utils import (
 from ui.components.bfn_preview_widget import _looks_like_bfn_editor
 from core.data_store import store_is_virtual_view
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 
 class TextViewsMixin:
@@ -449,6 +450,6 @@ class TextViewsMixin:
                         editor.update_simulation()
             except RuntimeError:
                 self.mw._bfn_editor_window = None
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"text_views_mixin.TextViewsMixin._sync_bfn_previews: ignored {exc!r}")
 

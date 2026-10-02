@@ -1,4 +1,5 @@
 from PyQt6 import QtCore, QtGui
+from utils.logging_utils import log_debug
 
 class EditMetricsCommand(QtGui.QUndoCommand):
     def __init__(self, viewer, glyph_idx, old_kern, new_kern, old_width, new_width, description="Edit Metrics"):
@@ -281,8 +282,8 @@ class BatchVirtualMapCommand(QtGui.QUndoCommand):
         if self.viewer.font_sync_callback:
             try:
                 self.viewer.font_sync_callback()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"bfn_commands.BatchVirtualMapCommand.undo: ignored {exc!r}")
                 
         self.viewer.populate_glyph_table()
         if self.viewer.selected_cell:
@@ -297,8 +298,8 @@ class BatchVirtualMapCommand(QtGui.QUndoCommand):
         if self.viewer.font_sync_callback:
             try:
                 self.viewer.font_sync_callback()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"bfn_commands.BatchVirtualMapCommand.redo: ignored {exc!r}")
                 
         self.viewer.populate_glyph_table()
         if self.viewer.selected_cell:

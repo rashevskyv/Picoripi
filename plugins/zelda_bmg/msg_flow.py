@@ -17,6 +17,7 @@ outlines used as extra context in AI translation prompts.
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 import struct
+from utils.logging_utils import log_debug
 
 # Condition labels extracted from the debug strings of dMsgFlow_c::query001..053
 # (index = query_idx used by branch nodes, i.e. mQueryList[query_idx]).
@@ -241,8 +242,8 @@ def build_conversation(flow: FlowData, flow_id: int, msg_label=None,
                 text = msg_label(msg_index)
                 if text:
                     return text
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"msg_flow.build_conversation.label_for: ignored {exc!r}")
         return f"line #{msg_index}"
 
     visited: Set[int] = set()
@@ -395,8 +396,8 @@ def load_flow_actor_map(plugin_dir: Optional[str] = None) -> Dict[int, Dict[str,
                 result[int(key, 0)] = entry
             except (TypeError, ValueError):
                 continue
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"msg_flow.load_flow_actor_map: ignored {exc!r}")
     return result
 
 

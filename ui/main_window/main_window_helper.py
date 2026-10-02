@@ -181,8 +181,8 @@ class MainWindowHelper:
                             panel_query = params[0]
                             if isinstance(panel_query, str) and panel_query:
                                 query = panel_query
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"main_window_helper.MainWindowHelper.trigger_advanced_search: ignored {exc!r}")
                 
                 if not query:
                     handler = getattr(self.mw, 'search_handler', None)
@@ -350,53 +350,53 @@ class MainWindowHelper:
         if hasattr(self.mw, 'spellchecker_manager') and self.mw.spellchecker_manager:
             try:
                 self.mw.spellchecker_manager.prepare_to_close()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"main_window_helper.MainWindowHelper.prepare_to_close: ignored {exc!r}")
 
         if hasattr(self.mw, 'editor_operation_handler') and self.mw.editor_operation_handler:
             try:
                 self.mw.editor_operation_handler.preview_update_timer.stop()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"main_window_helper.MainWindowHelper.prepare_to_close: ignored {exc!r}")
 
         if hasattr(self.mw, 'issue_scan_handler') and self.mw.issue_scan_handler:
             try:
                 if hasattr(self.mw.issue_scan_handler, '_scan_timer') and self.mw.issue_scan_handler._scan_timer:
                     self.mw.issue_scan_handler._scan_timer.stop()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"main_window_helper.MainWindowHelper.prepare_to_close: ignored {exc!r}")
 
         try:
             from handlers.async_issue_scanner import get_scanner_thread_pool
             pool = get_scanner_thread_pool()
             pool.clear()
             pool.waitForDone(1000)
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"main_window_helper.MainWindowHelper.prepare_to_close: ignored {exc!r}")
 
         if hasattr(self.mw, 'ai_chat_handler') and self.mw.ai_chat_handler:
             try:
                 self.mw.ai_chat_handler.prepare_to_close()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"main_window_helper.MainWindowHelper.prepare_to_close: ignored {exc!r}")
 
         if hasattr(self.mw, 'glossary_builder_handler') and self.mw.glossary_builder_handler:
             try:
                 self.mw.glossary_builder_handler.prepare_to_close()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"main_window_helper.MainWindowHelper.prepare_to_close: ignored {exc!r}")
 
         if hasattr(self.mw, 'translation_handler') and self.mw.translation_handler:
             try:
                 if hasattr(self.mw.translation_handler, 'ai_lifecycle_manager') and self.mw.translation_handler.ai_lifecycle_manager:
                     self.mw.translation_handler.ai_lifecycle_manager.prepare_to_close()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"main_window_helper.MainWindowHelper.prepare_to_close: ignored {exc!r}")
             try:
                 if hasattr(self.mw.translation_handler, 'glossary_handler') and self.mw.translation_handler.glossary_handler:
                     self.mw.translation_handler.glossary_handler.prepare_to_close()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"main_window_helper.MainWindowHelper.prepare_to_close: ignored {exc!r}")
 
         self.mw.data_store.last_selected_block_index = self.mw.data_store.current_block_idx
         self.mw.data_store.last_selected_string_index = self.mw.data_store.current_string_idx

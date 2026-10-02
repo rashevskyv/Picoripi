@@ -1,6 +1,7 @@
 from PyQt6 import QtWidgets
 
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 _FILL_PRESETS = [
     ("Latin  A – Z",                       "la",    "A",      "Z",      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
@@ -165,8 +166,8 @@ class FillRangeDialog(QtWidgets.QDialog):
                     self.input_sequence.blockSignals(True)
                     self.input_sequence.setText(seq)
                     self.input_sequence.blockSignals(False)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"fill_range_dialog.FillRangeDialog._update_sequence_from_start_end: ignored {exc!r}")
 
     # ------------------------------------------------------------------
     def get_sequence_codes(self):

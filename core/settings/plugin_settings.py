@@ -232,7 +232,8 @@ class PluginSettings:
                 try:
                     hexpart = legacy_nl_css.split('#',1)[1].split(';',1)[0].strip()
                     if len(hexpart) >= 6: nl_color = f"#{hexpart[:6]}"
-                except Exception: pass
+                except Exception as exc:
+                    log_debug(f"plugin_settings.PluginSettings._migrate_legacy_styles: ignored {exc!r}")
             self.mw.newline_color_rgba = nl_color
         if not hasattr(self.mw, 'newline_bold'):
             legacy_nl_css = plugin_data.get('newline_css', '')

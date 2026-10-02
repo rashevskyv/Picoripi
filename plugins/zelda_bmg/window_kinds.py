@@ -24,6 +24,7 @@ the ``message_window_preview`` capability (see GameRules.get_capabilities).
 """
 from typing import Any, Dict, List, Optional, Union
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 # fuki_kind -> screen (dusklight dMsgObject_c::talkStartInit):
 #   9        dMsgScrnItem_c
@@ -383,8 +384,8 @@ def load_window_layouts(plugin_dir: Optional[str] = None) -> Dict[str, Any]:
                 result["kinds"][int(key, 0)] = entry
             except (TypeError, ValueError):
                 continue
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"window_kinds.load_window_layouts: ignored {exc!r}")
     return result
 
 

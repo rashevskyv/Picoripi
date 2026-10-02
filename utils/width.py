@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from typing import Optional, List, Tuple
+from utils.logging_utils import log_debug
 
 DEFAULT_CHAR_WIDTH_FALLBACK = 6
 
@@ -16,8 +17,8 @@ def get_active_font_map() -> dict:
             for widget in app.topLevelWidgets():
                 if widget.objectName() == "MainWindow" or widget.__class__.__name__ == "MainWindow":
                     return getattr(widget, "font_map", {})
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"width.get_active_font_map: ignored {exc!r}")
     return {}
 
 
@@ -33,8 +34,8 @@ def get_active_icon_sequences() -> list:
             for widget in app.topLevelWidgets():
                 if widget.objectName() == "MainWindow" or widget.__class__.__name__ == "MainWindow":
                     return getattr(widget, "icon_sequences", [])
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"width.get_active_icon_sequences: ignored {exc!r}")
     return []
 
 
@@ -50,8 +51,8 @@ def get_active_tag_mappings() -> dict:
             for widget in app.topLevelWidgets():
                 if widget.objectName() == "MainWindow" or widget.__class__.__name__ == "MainWindow":
                     return getattr(widget, "default_tag_mappings", {})
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"width.get_active_tag_mappings: ignored {exc!r}")
     return {}
 
 class TrieNode:

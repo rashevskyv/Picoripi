@@ -14,6 +14,7 @@ from components.ai_status_dialog import AIStatusDialog
 from utils.utils import convert_spaces_to_dots_for_display
 from core.state_manager import AppState
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 class TranslationUIHandler(BaseTranslationHandler):
     """Handler for translation u i operations."""
@@ -192,8 +193,8 @@ class TranslationUIHandler(BaseTranslationHandler):
                                 return res
                         except json.JSONDecodeError:
                             cursor = start_idx
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"translation_ui_handler.TranslationUIHandler.parse_variation_payload: ignored {exc!r}")
 
         # Strategy 3: Try parsing the entire text as JSON
         try:

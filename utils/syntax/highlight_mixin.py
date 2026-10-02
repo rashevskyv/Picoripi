@@ -9,6 +9,7 @@ from PyQt6.QtGui import QTextCharFormat, QFont
 
 from utils.utils import SPACE_DOT_SYMBOL, ALL_TAGS_PATTERN, get_tag_width
 from core.glossary_manager import GlossaryMatch, GlossaryEntry
+from utils.logging_utils import log_debug
 
 _COLOR_TAG_PATTERN = re.compile(
     r"(\[(Red|Green|Blue|Yellow|l_Blue|Purple|Silver|Orange|White|Gray|Grey)\])|"
@@ -321,8 +322,8 @@ class HighlightMixin:
             try:
                 for match in compiled_pattern.finditer(text):
                     self.setFormat(match.start(), match.end() - match.start(), fmt)
-            except Exception:
-                pass # Already precompiled, shouldn't fail runtime
+            except Exception as exc:
+                log_debug(f"highlight_mixin.HighlightMixin.highlightBlock: ignored {exc!r}")  # Already precompiled, shouldn't fail runtime
                 
         hide_tags_enabled = False
         if self.mw and hasattr(self.mw, 'data_store'):

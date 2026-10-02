@@ -332,7 +332,7 @@ class GlossaryBuilderHandler:
         if self._status_dialog:
             try:
                 self._status_dialog.finish()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"glossary_builder_handler.GlossaryBuilderHandler._cleanup_worker: ignored {exc!r}")
         self._status_dialog = None
         self._glossary_manager = None

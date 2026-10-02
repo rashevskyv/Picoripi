@@ -18,6 +18,7 @@ from tools.bfn_editor.window_tree_mixin import (
 )
 from tools.bfn_editor.window_sync_mixin import WindowSyncMixin
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 VERSION = "1.0.21"
 
@@ -172,5 +173,5 @@ class BfnEditorWindow(
         if not self._dirty and self.font_sync_callback:
             try:
                 self.font_sync_callback()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"bfn_editor_window.BfnEditorWindow.save_changes: ignored {exc!r}")

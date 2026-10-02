@@ -10,6 +10,7 @@ from core.story_context_overrides import (
 )
 from .base_handler import BaseHandler
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 class SpeakerHandler(BaseHandler):
     """Handles virtual speaker folder navigation, persistence, and pending row retention."""
@@ -74,8 +75,8 @@ class SpeakerHandler(BaseHandler):
                 try:
                     if editor and not is_qt_deleted(editor):
                         editor.setFocus()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"speaker_handler.SpeakerHandler._restore_editor_focus_after_speaker_save.focus_editor: ignored {exc!r}")
             except RuntimeError:
                 pass
 

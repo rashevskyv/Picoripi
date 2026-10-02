@@ -12,6 +12,7 @@ from core.translation.layout_contract import (
     validate_translation_layout,
 )
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 
 class AIVariationsHandler(BaseTranslationHandler):
@@ -310,8 +311,8 @@ class AIVariationsHandler(BaseTranslationHandler):
                         res_val = cursor.hasSelection()
                         if isinstance(res_val, bool):
                             has_selection = res_val
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"ai_variations_handler.AIVariationsHandler.generate_variation_for_current_string: ignored {exc!r}")
             
             if has_selection:
                 selected_text = edited_edit.textCursor().selectedText().replace('\u2029', '\n')

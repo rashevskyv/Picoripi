@@ -234,8 +234,8 @@ class PhysicalSelectionMixin:
 
             if hasattr(preview_edit, 'ensureCursorVisible') and callable(preview_edit.ensureCursorVisible):
                 preview_edit.ensureCursorVisible()
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"physical_selection_mixin.PhysicalSelectionMixin._on_cursor_visible_timeout: ignored {exc!r}")
 
     def _schedule_string_selection(self, line_number: int) -> None:
         """Schedule string selection via timer."""

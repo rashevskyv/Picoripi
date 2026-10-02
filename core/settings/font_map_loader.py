@@ -196,8 +196,8 @@ class FontMapLoader:
                                     self.mw.all_bfn_fonts[inner_file_name] = bfn
                                     font_key = f"{Path(archive_rel_path).name}/{inner_file_name}"
                                     self.mw.all_bfn_fonts[font_key] = bfn
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"font_map_loader.FontMapLoader.load_all_font_maps: ignored {exc!r}")
                 else:
                     source_file = getattr(block, 'source_file', '')
                     if source_file and source_file.lower().endswith(".bfn"):
@@ -208,8 +208,8 @@ class FontMapLoader:
                                 bfn = BfnCore()
                                 bfn.load_file(str(src_abs))
                                 self.mw.all_bfn_fonts[Path(source_file).name] = bfn
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"font_map_loader.FontMapLoader.load_all_font_maps: ignored {exc!r}")
 
         default_font_filename = getattr(self.mw, 'default_font_file', None)
         if default_font_filename and default_font_filename in self.mw.all_font_maps:

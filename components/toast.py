@@ -2,6 +2,7 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QGraphicsOpacityEffect, QApplication
 from PyQt6.QtCore import Qt, QPropertyAnimation, QTimer, QPoint, QEasingCurve
 from PyQt6.QtGui import QFont
+from utils.logging_utils import log_debug
 
 class ToastNotification(QWidget):
     """Toast notification implementation."""
@@ -119,8 +120,8 @@ class ToastNotification(QWidget):
                 y = global_pos.y() + parent_geom.height() - self.height() - 50 # 50px margin from the bottom
                 self.move(x, y)
                 return
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"toast.ToastNotification.position_toast: ignored {exc!r}")
         
         # Bottom-left of the screen fallback (or if parent is None or non-QWidget)
         screen_geom = QApplication.primaryScreen().geometry()

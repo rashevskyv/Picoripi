@@ -341,8 +341,8 @@ class MainWindowEventHandler:
             if hasattr(self.mw, 'list_selection_handler') and self.mw.list_selection_handler:
                 try:
                     self.mw.list_selection_handler.cleanup()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"main_window_event_handler.MainWindowEventHandler.closeEvent: ignored {exc!r}")
             if hasattr(self.mw, 'data_processor') and self.mw.data_processor:
                 self.mw.data_processor.finalize_clean_shutdown_checkpoint()
             self.disconnect_signals()

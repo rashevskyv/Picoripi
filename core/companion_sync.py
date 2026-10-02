@@ -783,8 +783,8 @@ def get_companion_client_from_mw(mw: Any, timeout: int = 15) -> Optional[Compani
                     token = disk_data.get("companion_api_token", token or "picoripi")
                     if auto_sync is None:
                         auto_sync = disk_data.get("companion_auto_sync", True)
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"companion_sync.get_companion_client_from_mw: ignored {exc!r}")
 
     if auto_sync is None:
         auto_sync = True
@@ -1085,20 +1085,20 @@ def smart_sync_in_background(mw: Any, on_completed: Optional[Any] = None) -> Opt
             if trans_handler and hasattr(trans_handler, "initialize_glossary_highlighting"):
                 try:
                     trans_handler.initialize_glossary_highlighting()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"companion_sync.smart_sync_in_background.on_finished: ignored {exc!r}")
             active_dialog = getattr(trans_handler, "_active_glossary_dialog", None) if trans_handler else None
             if active_dialog and hasattr(active_dialog, "reload_data"):
                 try:
                     active_dialog.reload_data()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"companion_sync.smart_sync_in_background.on_finished: ignored {exc!r}")
             glossary_handler = getattr(mw, "glossary_handler", None) or getattr(trans_handler, "glossary_handler", None)
             if glossary_handler and hasattr(glossary_handler, "refresh_open_dialog"):
                 try:
                     glossary_handler.refresh_open_dialog()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"companion_sync.smart_sync_in_background.on_finished: ignored {exc!r}")
 
         sb = mw.statusBar() if callable(getattr(mw, "statusBar", None)) else getattr(mw, "statusBar", None)
         if sb and hasattr(sb, "showMessage"):

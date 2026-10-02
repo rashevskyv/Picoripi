@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QMessageBox, QFileDialog, QInputDialog
 from utils.logging_utils import log_info
 from bmg_tool import BMGFile, BMGMessage
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 class BfnActions:
     """Helper class containing BFN Font Editor action methods for MainWindow."""
@@ -81,8 +82,8 @@ class BfnActions:
                     if path.lower().endswith(".bfn"):
                         try:
                             archive_files[path] = container.read_file(path)
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"bfn_actions.BfnActions.open_bfn_editor_for_block: ignored {exc!r}")
             except Exception as e:
                 QMessageBox.critical(self.mw, tr('BFN Editor'), f'Failed to read .bfn from archive:\n{e}')
                 return

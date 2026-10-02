@@ -42,6 +42,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import os
 import re
 import struct
+from utils.logging_utils import log_debug
 
 # --- chunk tag classification -------------------------------------------------
 
@@ -225,7 +226,8 @@ def derive_speaker_ids(msg_root: str, flow_index: Dict[Tuple[int, int], str]) ->
             continue
         try:
             arc = _load_rarc(arc_path)
-        except Exception:
+        except Exception as exc:
+            log_debug(f"stage_data.derive_speaker_ids: ignored {exc!r}")
             continue
         for entry in arc.list_files():
             if not entry.lower().endswith(".bmg"):
@@ -234,7 +236,8 @@ def derive_speaker_ids(msg_root: str, flow_index: Dict[Tuple[int, int], str]) ->
                 bmg = BMGFile()
                 bmg.load(arc.read_file(entry))
                 ctx = flow_context_from_bmg(bmg)
-            except Exception:
+            except Exception as exc:
+                log_debug(f"stage_data.derive_speaker_ids: ignored {exc!r}")
                 continue
             if ctx is None:
                 continue
@@ -341,7 +344,8 @@ def extract_stage(stage_dir: str) -> Dict[str, Any]:
         try:
             arc = _load_rarc(arc_path)
             files = arc.list_files()
-        except Exception:
+        except Exception as exc:
+            log_debug(f"stage_data.extract_stage: ignored {exc!r}")
             continue
         room = _room_label(arc_name)
         room_rec = rooms.setdefault(
@@ -367,7 +371,8 @@ def extract_stage(stage_dir: str) -> Dict[str, Any]:
                 elif low.endswith("event_list.dat"):
                     evs = [e for e in parse_event_list(arc.read_file(f)) if e["name"]]
                     room_rec["events"].extend(evs)
-            except Exception:
+            except Exception as exc:
+                log_debug(f"stage_data.extract_stage: ignored {exc!r}")
                 continue
 
     # collapse Counters to plain dicts + a per-stage union

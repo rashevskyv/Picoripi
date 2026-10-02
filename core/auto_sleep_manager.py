@@ -6,6 +6,7 @@ from PyQt6.QtCore import QObject, QTimer, QEvent, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
 from utils.logging_utils import log_info, log_error
 from utils.power_utils import get_system_idle_seconds, restore_sleep, put_to_sleep
+from utils.logging_utils import log_debug
 
 
 class UserActivityEventFilter(QObject):
@@ -185,8 +186,8 @@ class AutoSleepManager(QObject):
                 self._countdown_dialog._is_closing = True
                 self._countdown_dialog.close()
                 self._countdown_dialog.deleteLater()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"auto_sleep_manager.AutoSleepManager.cancel_sleep: ignored {exc!r}")
             self._countdown_dialog = None
 
         restore_sleep()
@@ -217,8 +218,8 @@ class AutoSleepManager(QObject):
         if self._countdown_dialog:
             try:
                 self._countdown_dialog.update_countdown(self.remaining_seconds)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"auto_sleep_manager.AutoSleepManager._on_tick: ignored {exc!r}")
 
         self.countdown_tick.emit(self.remaining_seconds)
 
@@ -241,8 +242,8 @@ class AutoSleepManager(QObject):
                 self._countdown_dialog._is_closing = True
                 self._countdown_dialog.close()
                 self._countdown_dialog.deleteLater()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"auto_sleep_manager.AutoSleepManager._trigger_sleep: ignored {exc!r}")
             self._countdown_dialog = None
 
         # Flush autosave before sleep

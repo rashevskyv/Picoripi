@@ -1,3 +1,4 @@
+import sys
 import logging
 import time
 import threading
@@ -21,6 +22,14 @@ _ai_traffic_lock = threading.Lock()
 # Past this size the log is rolled to ai_traffic.log.1 (one generation kept).
 AI_TRAFFIC_MAX_BYTES = 8 * 1024 * 1024
 
+def _note(exc: BaseException) -> None:
+    """The logger cannot log its own failures: say them on stderr, where there is a console."""
+    try:
+        print(f"logging_utils: ignored {exc!r}", file=sys.stderr)
+    except (OSError, ValueError, AttributeError):
+        return      # a windowed build has no stderr; then there is nobody to tell
+
+
 class SafeRotatingFileHandler(RotatingFileHandler):
     """
     A robust subclass of RotatingFileHandler that gracefully handles PermissionError
@@ -39,13 +48,13 @@ class SafeRotatingFileHandler(RotatingFileHandler):
             if self.stream:
                 try:
                     self.stream.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _note(exc)
             self.stream = None
             try:
                 self.stream = self._open()
-            except Exception:
-                pass
+            except Exception as exc:
+                _note(exc)
 
 class DuplicateFilter(logging.Filter):
     """
@@ -124,8 +133,8 @@ def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: s
                     if log_path.exists():
                         with open(log_path, 'w', encoding='utf-8') as f:
                             f.truncate(0)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _note(exc)
                 
                 # Clean up old backup files from previous RotatingFileHandler instances
                 for i in range(1, 6):
@@ -133,8 +142,8 @@ def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: s
                         backup_path = Path(str(log_path) + f".{i}")
                         if backup_path.exists():
                             backup_path.unlink()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        _note(exc)
                         
                 _cleared_paths.add(log_path)
             
@@ -158,8 +167,8 @@ def update_logger_handlers(enable_console: bool, enable_file: bool, file_path: s
         if hasattr(_console_handler.stream, 'reconfigure'):
             try:
                 _console_handler.stream.reconfigure(encoding='utf-8')
-            except Exception:
-                pass
+            except Exception as exc:
+                _note(exc)
         logger.addHandler(_console_handler)
     elif not enable_console and _console_handler:
         logger.removeHandler(_console_handler)

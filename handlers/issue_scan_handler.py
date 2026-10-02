@@ -261,8 +261,8 @@ class IssueScanHandler(BaseHandler):
             if cache_path and cache_path.exists():
                 try:
                     cache_path.unlink()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"issue_scan_handler.IssueScanHandler._perform_initial_silent_scan_all_issues: ignored {exc!r}")
             cache = None
         else:
             cache = self._load_issues_cache()

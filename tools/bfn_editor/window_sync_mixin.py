@@ -2,6 +2,7 @@ from PyQt6 import QtCore
 
 from core.i18n import tr
 from tools.bfn_editor.window_tree_mixin import ROLE_SHEET_IDX
+from utils.logging_utils import log_debug
 
 
 class WindowSyncMixin:
@@ -78,8 +79,8 @@ class WindowSyncMixin:
         if not self._dirty and self.font_sync_callback:
             try:
                 self.font_sync_callback()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"window_sync_mixin.WindowSyncMixin.force_sync_and_recalculate: ignored {exc!r}")
         self.status.showMessage(tr("Force recalculation complete. Picoripi widths updated."))
 
     def keyPressEvent(self, event):

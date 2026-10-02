@@ -1,6 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 _GLYPH_PREVIEW_PX = 28
 _GLYPH_PREVIEW_BG = QtGui.QColor("#000000")
@@ -20,8 +21,8 @@ class GlyphTableMixin:
                     except Exception:
                         try:
                             return chr(idx)
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"glyph_table_mixin.GlyphTableMixin._resolve_char_from_maps: ignored {exc!r}")
             elif m_type == 2:
                 entries = m.get("entries", [])
                 for c_idx, g_idx in enumerate(entries):
@@ -32,8 +33,8 @@ class GlyphTableMixin:
                         except Exception:
                             try:
                                 return chr(code)
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                log_debug(f"glyph_table_mixin.GlyphTableMixin._resolve_char_from_maps: ignored {exc!r}")
                         break
             elif m_type == 3:
                 entries = m.get("entries", [])
@@ -46,8 +47,8 @@ class GlyphTableMixin:
                         except Exception:
                             try:
                                 return chr(code)
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                log_debug(f"glyph_table_mixin.GlyphTableMixin._resolve_char_from_maps: ignored {exc!r}")
                         break
         return ""
 

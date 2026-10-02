@@ -2,6 +2,7 @@ from typing import List, Tuple, Dict, Optional, Any, Set
 from PyQt6.QtGui import QTextCharFormat
 import json
 import re
+from utils.logging_utils import log_debug
 
 class BaseGameRules:
     """
@@ -582,8 +583,8 @@ class BaseGameRules:
         if pattern:
             try:
                 cleaned = re.sub(pattern, "", cleaned)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"base_game_rules.BaseGameRules.prepare_preview_glyph_text: ignored {exc!r}")
         cleaned = re.sub(r'\{[^}]*\}', "", cleaned)
         cleaned = re.sub(r'\[[^\]]*\]', "", cleaned)
         return cleaned, None

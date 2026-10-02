@@ -66,8 +66,8 @@ def get_original_text(mw: Any, block_idx: int, string_idx: int) -> str:
             block = data[block_idx]
             if 0 <= string_idx < len(block):
                 return block[string_idx] or ""
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"speaker_resolution.get_original_text: ignored {exc!r}")
     return ""
 
 
@@ -76,15 +76,15 @@ def _resolve_block_label(mw: Any, block_idx: int, proj_b_idx: int, project: Any)
         blocks = project.blocks if project else []
         if proj_b_idx < len(blocks):
             return blocks[proj_b_idx].name
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"speaker_resolution._resolve_block_label: ignored {exc!r}")
     try:
         names = getattr(mw.data_store, "block_names", None) or {}
         desc = names.get(str(block_idx))
         if desc and "Message ID" in desc:
             return desc.partition("(")[0].strip()
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"speaker_resolution._resolve_block_label: ignored {exc!r}")
     return f"Block_{block_idx}"
 
 
@@ -203,8 +203,8 @@ def _script_line_to_speaker(composer: Any) -> dict:
     try:
         composer._line_to_speaker_cache = line_to_speaker
         composer._line_to_speaker_path = script_path
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"speaker_resolution._script_line_to_speaker: ignored {exc!r}")
     return line_to_speaker
 
 
@@ -346,8 +346,8 @@ def build_speaker_pool(
                     candidate = client.get_story_virtual_projection()
                     if isinstance(candidate, StoryVirtualProjection):
                         projection = candidate
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"speaker_resolution.build_speaker_pool: ignored {exc!r}")
 
     if script_raw_rows is None and mw is not None:
         ui_updater = getattr(mw, "ui_updater", None)
@@ -471,7 +471,8 @@ def _plugin_speaker_rows(mw: Any) -> dict:
                 continue
             try:
                 name = getter(block_idx, string_idx)
-            except Exception:
+            except Exception as exc:
+                log_debug(f"speaker_resolution._plugin_speaker_rows: ignored {exc!r}")
                 continue
             # Only a real string counts: a plugin that answers with something
             # else must not be able to fill the pool with nonsense.

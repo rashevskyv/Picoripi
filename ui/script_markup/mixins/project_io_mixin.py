@@ -26,6 +26,7 @@ from ui.script_markup.constants import (
     _OUTLINE_MARK_KEY_ROLE,
     _HIERARCHY_TEMPLATE_FORMAT,
 )
+from utils.logging_utils import log_debug
 
 
 class ProjectIoMixin:
@@ -345,8 +346,8 @@ class ProjectIoMixin:
                 name = self.mw.current_game_rules.get_display_name()
                 clean = "".join(c if c.isalnum() else "_" for c in name).strip("_").lower()
                 return f"{clean}_script.md"
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"project_io_mixin.ProjectIoMixin._default_export_name: ignored {exc!r}")
         return "game_script.md"
 
     def _export(self):

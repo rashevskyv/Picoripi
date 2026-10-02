@@ -3,6 +3,7 @@ from core.i18n import tr
 from tools.bfn_editor.bfn_widgets import FillRangeDialog
 from tools.bfn_editor.bfn_commands import EditMetricsCommand
 from utils.logging_utils import log_error
+from utils.logging_utils import log_debug
 
 
 class MappingEditMixin:
@@ -115,8 +116,8 @@ class MappingEditMixin:
                 if self.font_sync_callback:
                     try:
                         self.font_sync_callback()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"mapping_edit_mixin.MappingEditMixin.on_table_item_changed: ignored {exc!r}")
                 return
                     
             elif col == 7:

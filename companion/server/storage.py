@@ -6,6 +6,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from companion.server.models import GlossaryEntryUpdate, ProjectSummary
+import logging
 
 
 def sanitize_project_name(name: str) -> str:
@@ -47,8 +48,8 @@ class StorageManager:
                     meta = json.loads(meta_file.read_text(encoding="utf-8"))
                     name = meta.get("name", name)
                     updated_at = meta.get("updated_at", "")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logging.getLogger(__name__).debug("storage.StorageManager.list_projects: ignored %r", exc)
 
             if not updated_at and glossary_file.exists():
                 mtime = glossary_file.stat().st_mtime
@@ -67,8 +68,8 @@ class StorageManager:
                             confirmed += 1
                         elif status in {"seeded", "fragments", "synthesized", "translated"} or len(e.get("translation_variants", [])) > 1:
                             needs_review += 1
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logging.getLogger(__name__).debug("storage.StorageManager.list_projects: ignored %r", exc)
 
             summaries.append(
                 ProjectSummary(
@@ -98,8 +99,8 @@ class StorageManager:
             bak_file = pdir / "glossary.json.bak"
             try:
                 bak_file.write_bytes(glossary_file.read_bytes())
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.getLogger(__name__).debug("storage.StorageManager.save_project: ignored %r", exc)
 
         now_iso = datetime.now(timezone.utc).isoformat()
         for entry in glossary:
@@ -203,8 +204,8 @@ class StorageManager:
         bak_file = pdir / "glossary.json.bak"
         try:
             bak_file.write_bytes(glossary_file.read_bytes())
-        except Exception:
-            pass
+        except Exception as exc:
+            logging.getLogger(__name__).debug("storage.StorageManager.update_entry: ignored %r", exc)
 
         # Apply update
         if update.translation is not None:
@@ -231,8 +232,8 @@ class StorageManager:
         if meta_file.exists():
             try:
                 meta = json.loads(meta_file.read_text(encoding="utf-8"))
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.getLogger(__name__).debug("storage.StorageManager.update_entry: ignored %r", exc)
         meta["updated_at"] = datetime.now(timezone.utc).isoformat()
         meta_file.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -245,6 +246,6 @@ class StorageManager:
         if meta_file.exists():
             try:
                 return json.loads(meta_file.read_text(encoding="utf-8"))
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.getLogger(__name__).debug("storage.StorageManager.get_metadata: ignored %r", exc)
         return {"name": project_name, "updated_at": ""}

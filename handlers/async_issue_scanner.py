@@ -20,6 +20,7 @@ from PyQt6 import sip
 from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal
 
 from utils.logging_utils import log_error
+from utils.logging_utils import log_debug
 
 
 class _ScannerSignals(QObject):
@@ -266,8 +267,8 @@ class AsyncIssueScanner(QRunnable):
                                 "notes": entry.notes,
                             }
                         )
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"async_issue_scanner.AsyncIssueScanner._run_translation_matches: ignored {exc!r}")
         return translation_matches
 
     # 4. Spellcheck: walk word tokens, consult hunspell, cache results.
@@ -327,10 +328,10 @@ class AsyncIssueScanner(QRunnable):
                         else:
                             suggestions = list(res)[:7]
                         sm._suggestions_cache[lower_word] = suggestions
-                    except Exception:
-                        pass
-        except Exception:
-            pass
+                    except Exception as exc:
+                        log_debug(f"async_issue_scanner.AsyncIssueScanner._run_spellcheck: ignored {exc!r}")
+        except Exception as exc:
+            log_debug(f"async_issue_scanner.AsyncIssueScanner._run_spellcheck: ignored {exc!r}")
         return spellcheck_matches
 
 

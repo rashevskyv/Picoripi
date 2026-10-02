@@ -2,6 +2,7 @@ import os
 from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_error
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 class MemePalacePipelineMixin:
     """Orchestration pipeline execution mixin for MemePalaceBuilderDialog."""
@@ -153,8 +154,8 @@ class MemePalacePipelineMixin:
                 self.saved_pipeline_step = step
                 self.saved_pipeline_wing = self.wing_edit.text().strip()
                 self.saved_pipeline_script = self.file_path_edit.text().strip()
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"mempalace_pipeline.MemePalacePipelineMixin._abort_pipeline: ignored {exc!r}")
 
         self.pipeline_running = False
         self.pipeline_step = 0

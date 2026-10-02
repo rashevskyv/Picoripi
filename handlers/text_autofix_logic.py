@@ -39,8 +39,8 @@ class TextAutofixLogic:
             for attr, val in fallback_attrs.items():
                 try:
                     setattr(self.mw, attr, val)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"text_autofix_logic.TextAutofixLogic._get_rules: ignored {exc!r}")
             from plugins.common.generic_rules import GenericRules
             return GenericRules(self.mw)
         return rules

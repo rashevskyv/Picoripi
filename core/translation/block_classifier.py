@@ -102,8 +102,8 @@ def classify_project_items(data_source: list, mw: Any = None) -> ClassifiedProje
                     for idx, blk in enumerate(getattr(mw.project, "blocks", [])):
                         if getattr(blk, "id", None) == b_id or getattr(blk, "name", "") == b_id:
                             block_folder_names[idx] = folder_name
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"block_classifier.classify_project_items: ignored {exc!r}")
 
     story_scored: List[Tuple[Dict[str, Any], int, Tuple[int, int]]] = []
     semantic_raw: List[Tuple[Dict[str, Any], Tuple[int, int]]] = []
@@ -123,8 +123,8 @@ def classify_project_items(data_source: list, mw: Any = None) -> ClassifiedProje
                 if mapping and mapping.get("script_line") is not None:
                     script_line = int(mapping["script_line"])
                     has_any_script_line = True
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"block_classifier.classify_project_items: ignored {exc!r}")
 
         item_payload = {
             "block_idx": b_idx,

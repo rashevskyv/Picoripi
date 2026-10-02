@@ -294,8 +294,8 @@ class MainWindow(QMainWindow):
                     config_module = importlib.import_module(f"plugins.{plugin_name}.config")
                     plugin_defaults_autofix = getattr(config_module, 'DEFAULT_AUTOFIX_SETTINGS', {})
                     plugin_defaults_detection = getattr(config_module, 'DEFAULT_DETECTION_SETTINGS', {})
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"main.MainWindow._init_handlers: ignored {exc!r}")
 
             if not self.autofix_enabled and plugin_defaults_autofix:
                 self.autofix_enabled = plugin_defaults_autofix.copy()

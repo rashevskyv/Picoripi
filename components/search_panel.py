@@ -4,6 +4,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QPainter, QPen, QColor
 import collections
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 class SearchLineEdit(QLineEdit):
     """Search line edit implementation."""
@@ -135,8 +136,8 @@ class SearchLineEdit(QLineEdit):
                             else:
                                 suggestions = list(res)[:7]
                             sm._suggestions_cache[cleaned_word.lower()] = suggestions
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"search_panel.SearchLineEdit.contextMenuEvent: ignored {exc!r}")
                     
                     if suggestions:
                         first_action = menu.actions()[0] if menu.actions() else None

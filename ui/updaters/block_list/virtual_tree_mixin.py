@@ -11,6 +11,7 @@ from core.mempalace.story_timeline import (
     StoryVirtualProjection,
 )
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 class VirtualTreeMixin:
     """Build virtual projection roots and related tree helpers."""
@@ -320,8 +321,8 @@ class VirtualTreeMixin:
                         candidate = style.get("kind_name") if isinstance(style, dict) else None
                         if isinstance(candidate, str) and candidate.strip():
                             name = candidate.strip()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"virtual_tree_mixin.VirtualTreeMixin._window_kind_groups: ignored {exc!r}")
                 groups.setdefault(name, set()).add((block_idx, string_idx))
             self._window_kind_groups_cache = groups
         cleaned = {}
@@ -396,8 +397,8 @@ class VirtualTreeMixin:
                 from PyQt6.QtGui import QIcon
                 if isinstance(icon, QIcon) and not icon.isNull():
                     item.setIcon(column, icon)
-        except Exception:
-            pass
+        except Exception as exc:
+            log_debug(f"virtual_tree_mixin.VirtualTreeMixin._set_item_style_icon: ignored {exc!r}")
 
     def _register_item_in_cache(self, item: QTreeWidgetItem):
         """Internal helper to register item in cache."""
@@ -432,6 +433,6 @@ class VirtualTreeMixin:
                             ext = Path(orig_filename).suffix
                             if ext and not base_display_name.lower().endswith(ext.lower()):
                                 return f"{base_display_name}{ext}"
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"virtual_tree_mixin.VirtualTreeMixin._get_block_display_name_with_ext: ignored {exc!r}")
         return base_display_name

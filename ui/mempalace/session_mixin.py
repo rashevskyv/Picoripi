@@ -13,6 +13,7 @@ from ui.mempalace.constants import (
     _HIERARCHY_PATH_KEY,
     _HIERARCHY_VERSION_KEY,
 )
+from utils.logging_utils import log_debug
 
 
 class MemePalaceSessionMixin:
@@ -170,8 +171,8 @@ class MemePalaceSessionMixin:
                     cursor.execute("DELETE FROM script_mappings")
                     conn.commit()
                     conn.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"session_mixin.MemePalaceSessionMixin._clear_database: ignored {exc!r}")
                 
                 self.append_log("SUCCESS: Local database cleared successfully!")
                 QMessageBox.information(self, tr('Clear Database'), tr('Local database cleared successfully.'))
@@ -214,8 +215,8 @@ class MemePalaceSessionMixin:
                         self.saved_pipeline_step = self.pipeline_step
                         self.saved_pipeline_wing = self.wing_edit.text().strip()
                         self.saved_pipeline_script = self.file_path_edit.text().strip()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"session_mixin.MemePalaceSessionMixin._handle_close_or_cancel: ignored {exc!r}")
 
             self.analysis_queue = []
             self.analysis_total_count = 0

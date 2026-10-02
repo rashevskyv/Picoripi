@@ -2,6 +2,7 @@ from PyQt6 import QtGui, QtWidgets
 
 from core.i18n import tr
 from tools.bfn_editor.bfn_widgets import SimGlyphItem
+from utils.logging_utils import log_debug
 
 class BfnSimMixin:
     def on_sim_text_changed(self):
@@ -37,8 +38,8 @@ class BfnSimMixin:
                 result = rules.prepare_preview_glyph_text(text)
                 if isinstance(result, tuple) and result and isinstance(result[0], str):
                     text = result[0]
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"bfn_simulation.BfnSimMixin.update_simulation: ignored {exc!r}")
         if not text:
             return
 

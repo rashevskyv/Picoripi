@@ -1,6 +1,7 @@
 import os
 from core.i18n import tr
 from utils.logging_utils import log_info, log_error
+from utils.logging_utils import log_debug
 
 
 class TranslationMapMixin:
@@ -255,8 +256,8 @@ class TranslationMapMixin:
                 elif isinstance(v, str) and v.startswith("#g"):
                     try:
                         used_codes.add(int(v[2:]))
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"translation_map_mixin.TranslationMapMixin.get_next_free_char_code: ignored {exc!r}")
         
         # 2. Add ASCII printable characters to avoid overwriting them
         for code in range(32, 128):
@@ -289,8 +290,8 @@ class TranslationMapMixin:
                     except Exception:
                         try:
                             return chr(glyph_idx)
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"translation_map_mixin.TranslationMapMixin.get_original_char_for_glyph: ignored {exc!r}")
             elif m_type == 2:
                 entries = m.get("entries", [])
                 for c_idx, g_idx in enumerate(entries):
@@ -301,8 +302,8 @@ class TranslationMapMixin:
                         except Exception:
                             try:
                                 return chr(code)
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                log_debug(f"translation_map_mixin.TranslationMapMixin.get_original_char_for_glyph: ignored {exc!r}")
             elif m_type == 3:
                 entries = m.get("entries", [])
                 half = len(entries) // 2
@@ -314,8 +315,8 @@ class TranslationMapMixin:
                         except Exception:
                             try:
                                 return chr(code)
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                log_debug(f"translation_map_mixin.TranslationMapMixin.get_original_char_for_glyph: ignored {exc!r}")
         return ""
 
     def generate_translation_map(self) -> dict:
@@ -342,8 +343,8 @@ class TranslationMapMixin:
                         except Exception:
                             try:
                                 return chr(glyph_idx)
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                log_debug(f"translation_map_mixin.TranslationMapMixin.generate_translation_map.get_char_for_glyph: ignored {exc!r}")
                 elif m_type == 2:
                     entries = m.get("entries", [])
                     for c_idx, g_idx in enumerate(entries):
@@ -355,8 +356,8 @@ class TranslationMapMixin:
                                 except Exception:
                                     try:
                                         return chr(code)
-                                    except Exception:
-                                        pass
+                                    except Exception as exc:
+                                        log_debug(f"translation_map_mixin.TranslationMapMixin.generate_translation_map.get_char_for_glyph: ignored {exc!r}")
                             break
                 elif m_type == 3:
                     entries = m.get("entries", [])
@@ -370,8 +371,8 @@ class TranslationMapMixin:
                                 except Exception:
                                     try:
                                         return chr(code)
-                                    except Exception:
-                                        pass
+                                    except Exception as exc:
+                                        log_debug(f"translation_map_mixin.TranslationMapMixin.generate_translation_map.get_char_for_glyph: ignored {exc!r}")
             return ""
 
         for idx in range(self.start_glyph, self.end_glyph + 1):
@@ -388,8 +389,8 @@ class TranslationMapMixin:
                         if len(trans_char) == 1 and len(orig_char) == 1:
                             if ord(trans_char) >= 128 and ord(orig_char) >= 128:
                                 translation_map[trans_char] = orig_char
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"translation_map_mixin.TranslationMapMixin.generate_translation_map: ignored {exc!r}")
 
         return translation_map
 

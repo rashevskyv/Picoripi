@@ -1,4 +1,5 @@
 import re
+from utils.logging_utils import log_debug
 
 def is_control_modifier_pressed() -> bool:
     """Check if Ctrl key modifier is physically or logically pressed.
@@ -14,8 +15,8 @@ def is_control_modifier_pressed() -> bool:
                 return True
             if bool(ctypes.windll.user32.GetKeyState(0x11) & 0x8000):
                 return True
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"text_misc.is_control_modifier_pressed: ignored {exc!r}")
 
     try:
         from PyQt6.QtWidgets import QApplication
@@ -27,8 +28,8 @@ def is_control_modifier_pressed() -> bool:
             return bool(modifiers & Qt.KeyboardModifier.ControlModifier.value)
         else:
             return bool(modifiers & Qt.KeyboardModifier.ControlModifier)
-    except Exception:
-        pass
+    except Exception as exc:
+        log_debug(f"text_misc.is_control_modifier_pressed: ignored {exc!r}")
     return False
 
 def resolve_target_language_prompt(text: str, target_lang: str) -> str:

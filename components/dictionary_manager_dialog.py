@@ -69,8 +69,8 @@ class DownloadThread(QThread):
                 if save_path_obj.exists():
                     try:
                         save_path_obj.unlink()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log_debug(f"dictionary_manager_dialog.DownloadThread.run: ignored {exc!r}")
                 self.finished_with_result.emit(url, False, str(e))
                 return
         self.finished_with_result.emit("", True, "All files downloaded successfully.")

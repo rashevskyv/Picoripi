@@ -9,6 +9,7 @@ from utils.constants import DT_PREVIEW_SELECTED_LINE_COLOR, LT_PREVIEW_SELECTED_
 from utils.logging_utils import log_info
 from components.custom_list_widget import CustomListWidget
 from components.custom_list_item_delegate import CustomListItemDelegate
+from utils.logging_utils import log_debug
 
 if TYPE_CHECKING:
     from main import MainWindow
@@ -49,8 +50,8 @@ class MainWindowUIHandler:
                 try:
                     font_combobox.view().setFont(general_font)
                     font_combobox.view().viewport().update()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"main_window_ui_handler.MainWindowUIHandler.apply_font_size: ignored {exc!r}")
 
         editor_widgets = [self.mw.preview_text_edit, self.mw.original_text_edit, self.mw.edited_text_edit]
         general_ui_widgets = [
@@ -103,15 +104,15 @@ class MainWindowUIHandler:
                     if hasattr(editor, 'updateLineNumberAreaWidth'):
                         editor.updateLineNumberAreaWidth(0)
                     editor.viewport().update()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"main_window_ui_handler.MainWindowUIHandler.apply_font_size: ignored {exc!r}")
 
         if self.mw.block_list_widget:
             try:
                 self.mw.block_list_widget.setFont(tree_font)
                 self.mw.block_list_widget.viewport().update()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"main_window_ui_handler.MainWindowUIHandler.apply_font_size: ignored {exc!r}")
 
         if fast:
             if target == 'tree' and self.mw.block_list_widget:
@@ -128,8 +129,8 @@ class MainWindowUIHandler:
                     if hasattr(widget, 'adjustSize'): widget.adjustSize()
                     if isinstance(widget, CustomListWidget):
                         widget.viewport().update()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"main_window_ui_handler.MainWindowUIHandler.apply_font_size: ignored {exc!r}")
 
 
         if self.mw.block_list_widget and self.mw.block_list_widget.itemDelegate():
@@ -146,8 +147,8 @@ class MainWindowUIHandler:
                     needed_height = fm.height() + 10
                     line_edit.setMinimumHeight(needed_height)
                     self.mw.search_panel_widget.search_query_edit.setMinimumHeight(needed_height + 2)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"main_window_ui_handler.MainWindowUIHandler.apply_font_size: ignored {exc!r}")
 
         self.mw.ui_updater.update_text_views()
         self.mw.ui_updater.populate_blocks()

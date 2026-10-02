@@ -181,8 +181,8 @@ class CacheMixin:
                 val = block.text()
                 if isinstance(val, str):
                     block_text = val
-            except Exception:
-                pass
+            except Exception as exc:
+                log_debug(f"cache_mixin.CacheMixin._get_icon_matches_for_block: ignored {exc!r}")
                 
         if not block_text:
             doc = self.document()

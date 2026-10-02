@@ -18,6 +18,7 @@ from PyQt6.QtCore import Qt, QSize, pyqtSignal, QEvent
 from utils.power_utils import prevent_sleep, restore_sleep, put_to_sleep
 from core.auto_sleep_manager import AutoSleepManager
 from core.i18n import tr
+from utils.logging_utils import log_debug
 
 __all__ = ["AIStatusDialog", "prevent_sleep", "restore_sleep", "put_to_sleep"]
 
@@ -276,8 +277,8 @@ class AIStatusDialog(QDialog):
                 source.show()
             source.raise_()
             source.activateWindow()
-        except (RuntimeError, Exception):
-            pass
+        except (RuntimeError, Exception) as exc:
+            log_debug(f"ai_status_dialog.AIStatusDialog._activate_source_window: ignored {exc!r}")
 
     @property
     def source_window(self) -> Optional[QWidget]:
@@ -369,13 +370,13 @@ class AIStatusDialog(QDialog):
             if hasattr(popup_widget, 'finished'):
                 try:
                     popup_widget.finished.connect(lambda _res=0: self._activate_source_window())
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"ai_status_dialog.AIStatusDialog.finish.attach_return_to_source: ignored {exc!r}")
             if hasattr(popup_widget, 'destroyed'):
                 try:
                     popup_widget.destroyed.connect(lambda _obj=None: self._activate_source_window())
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"ai_status_dialog.AIStatusDialog.finish.attach_return_to_source: ignored {exc!r}")
 
         if not app_mode.headless and show_popup:
             from PyQt6.QtWidgets import QMessageBox, QMainWindow
@@ -398,8 +399,8 @@ class AIStatusDialog(QDialog):
             if mw and getattr(mw, 'active_info_msg_box', None) is not None:
                 try:
                     mw.active_info_msg_box.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_debug(f"ai_status_dialog.AIStatusDialog.finish: ignored {exc!r}")
                 mw.active_info_msg_box = None
 
             if getattr(self, 'user_cancelled', False):
@@ -422,8 +423,8 @@ class AIStatusDialog(QDialog):
                     if mw and getattr(mw, 'active_comparison_dialog', None) is not None:
                         try:
                             mw.active_comparison_dialog.close()
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"ai_status_dialog.AIStatusDialog.finish: ignored {exc!r}")
                     
                     from dialogs.ai_translation_comparison_dialog import AITranslationComparisonDialog
                     dialog = AITranslationComparisonDialog(self.parentWidget() or self, translation_details, previous_translations)
@@ -440,8 +441,8 @@ class AIStatusDialog(QDialog):
                     if mw and getattr(mw, 'active_result_dialog', None) is not None:
                         try:
                             mw.active_result_dialog.close()
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            log_debug(f"ai_status_dialog.AIStatusDialog.finish: ignored {exc!r}")
 
                     from dialogs.ai_translation_result_dialog import AITranslationResultDialog
                     dialog = AITranslationResultDialog(self.parentWidget() or self, translation_details)

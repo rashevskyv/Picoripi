@@ -301,8 +301,8 @@ class PreviewMixin:
                         if isinstance(text, str) and pos - 1 < len(text) and text[pos - 1] not in " \n\t.,!?;:·":
                             cursor.select(QTextCursor.SelectionType.WordUnderCursor)
                             active_word = cursor.selectedText().strip("'·").lower()
-                except BaseException:
-                    pass
+                except BaseException as exc:
+                    log_debug(f"preview_mixin.PreviewMixin._run_post_edit_analysis: ignored {exc!r}")
 
             editor_text = str(current_text_raw)
             if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
