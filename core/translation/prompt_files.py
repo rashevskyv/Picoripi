@@ -14,6 +14,7 @@ MemPalace prompts were never read: the code fell back to built-in constants or
 switched the feature off without saying so.
 """
 from __future__ import annotations
+from utils.constants import plugins_root
 
 import json
 from pathlib import Path
@@ -39,10 +40,10 @@ def prompt_layers(plugin_name: Optional[str], override_dirs: Iterable[Optional[P
     """The prompt files that exist for this plugin, lowest priority first."""
     candidates = [
         Path("translation_prompts") / FILE_NAME,
-        Path("plugins", "common", "defaults") / FILE_NAME,
+        plugins_root() / "common" / "defaults" / FILE_NAME,
     ]
     if plugin_name:
-        candidates.append(Path("plugins", plugin_name, "translation_prompts") / FILE_NAME)
+        candidates.append(plugins_root() / plugin_name / "translation_prompts" / FILE_NAME)
     candidates += [Path(directory) / FILE_NAME for directory in override_dirs if directory]
     return [path for path in candidates if path.exists()]
 

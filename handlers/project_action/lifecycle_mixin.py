@@ -1,3 +1,4 @@
+from utils.constants import plugins_root
 import json
 from pathlib import Path
 from typing import Dict
@@ -15,7 +16,7 @@ class LifecycleMixin:
 
         # Get available plugins
         plugins: Dict[str, str] = {}
-        plugins_dir = Path("plugins")
+        plugins_dir = plugins_root()
         if plugins_dir.is_dir():
             for item_path in plugins_dir.iterdir():
                 config_path = item_path / "config.json"

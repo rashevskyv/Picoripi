@@ -6,6 +6,7 @@ Dialog windows for project management:
 - ImportBlockDialog: Import a new block into the project
 """
 
+from utils.constants import plugins_root
 import json
 from pathlib import Path
 from PyQt6.QtWidgets import (
@@ -152,7 +153,7 @@ class NewProjectDialog(QDialog):
     def _scan_plugins(self):
         """Scan plugins directory to find available plugins."""
         plugins = {}
-        plugins_dir = Path("plugins")
+        plugins_dir = plugins_root()
 
         if not plugins_dir.is_dir():
             return plugins

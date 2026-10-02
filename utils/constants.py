@@ -24,6 +24,11 @@ SETTINGS_DIR = Path.home() / ".picoripi"
 SETTINGS_FILE_PATH = str(SETTINGS_DIR / "settings.json")
 
 
+def plugins_root() -> Path:
+    """The ``plugins/`` folder of this installation, whatever the current directory is."""
+    return Path(__file__).resolve().parents[1] / "plugins"
+
+
 def user_plugin_dir(plugin_name: str) -> Path:
     """Per-user writable data for a plugin. Never write into ``plugins/`` itself."""
     return SETTINGS_DIR / "plugins" / plugin_name

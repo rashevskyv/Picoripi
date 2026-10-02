@@ -1,5 +1,6 @@
 """Text-view update mixin for PreviewUpdater."""
 from __future__ import annotations
+from core.plugin_call import safe_call
 
 from utils.thread_utils import single_shot
 from PyQt6.QtCore import Qt
@@ -112,12 +113,15 @@ class TextViewsMixin:
                         preview_edit.lineNumberArea.update()
                     preview_edit.viewport().update()
 
-        if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
-            original_text_for_display_processed = str(self.mw.current_game_rules.get_text_representation_for_editor(str(original_text_raw)))
-            edited_text_for_display_processed = str(self.mw.current_game_rules.get_text_representation_for_editor(str(edited_text_raw)))
-        else:
-            original_text_for_display_processed = str(original_text_raw)
-            edited_text_for_display_processed = str(edited_text_raw)
+        # A plugin that fails here must not stop the editor from showing the string.
+        original_text_for_display_processed = str(safe_call(
+            self.mw.current_game_rules, 'get_text_representation_for_editor', str(original_text_raw),
+            default=str(original_text_raw),
+        ))
+        edited_text_for_display_processed = str(safe_call(
+            self.mw.current_game_rules, 'get_text_representation_for_editor', str(edited_text_raw),
+            default=str(edited_text_raw),
+        ))
 
         original_text_for_display = convert_spaces_to_dots_for_display(original_text_for_display_processed, self.mw.show_multiple_spaces_as_dots)
         edited_text_for_display_converted = convert_spaces_to_dots_for_display(edited_text_for_display_processed, self.mw.show_multiple_spaces_as_dots)

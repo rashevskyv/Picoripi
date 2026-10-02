@@ -1,5 +1,6 @@
 """Geometry, fonts, window presets, and handles for BFN preview."""
 from __future__ import annotations
+from utils.constants import plugins_root
 
 import json
 from pathlib import Path
@@ -25,7 +26,7 @@ class BfnPreviewGeometryMixin:
             if not proj_map_path.exists():
                 plugin_name = getattr(self.mw, 'active_game_plugin', None)
                 if plugin_name:
-                    plugin_map = Path("plugins") / plugin_name / 'translation_map.json'
+                    plugin_map = plugins_root() / plugin_name / 'translation_map.json'
                     try:
                         if plugin_map.exists():
                             import shutil
@@ -39,7 +40,7 @@ class BfnPreviewGeometryMixin:
         else:
             plugin_name = getattr(self.mw, 'active_game_plugin', None)
             if plugin_name:
-                mapping_path = Path("plugins") / plugin_name / 'translation_map.json'
+                mapping_path = plugins_root() / plugin_name / 'translation_map.json'
                 
         if mapping_path and mapping_path.exists():
             try:

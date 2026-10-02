@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pathlib import Path
+from utils.constants import plugins_root
 import json
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QDialog, QApplication
 from PyQt6.QtCore import Qt
@@ -244,7 +244,7 @@ class MainWindowTagAliasActionsMixin:
         if not plugin_name:
             return
         
-        override_path = Path('plugins') / plugin_name / 'font_map.json'
+        override_path = plugins_root() / plugin_name / 'font_map.json'
         override_path.parent.mkdir(parents=True, exist_ok=True)
         
         try:

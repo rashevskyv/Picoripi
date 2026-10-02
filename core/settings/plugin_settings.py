@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, Optional, Any
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
 from utils.constants import (
+    plugins_root,
     DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS,
     DEFAULT_LINE_WIDTH_WARNING_THRESHOLD,
     user_plugin_dir,
@@ -22,7 +23,7 @@ class PluginSettings:
         plugin_name = getattr(self.mw, 'active_game_plugin', None)
         if not plugin_name:
             return None
-        return Path("plugins") / plugin_name / "config.json"
+        return plugins_root() / plugin_name / "config.json"
 
     def _get_project_settings_path(self) -> Optional[Path]:
         """Internal helper to get the project settings path."""

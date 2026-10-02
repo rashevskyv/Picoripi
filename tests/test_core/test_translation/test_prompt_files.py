@@ -40,11 +40,9 @@ def test_the_layers_are_application_then_common_then_plugin_then_overrides(tmp_p
     layers = [path.as_posix() for path in prompt_layers("zelda_mc", [tmp_path, None])]
     merged = load_merged_prompts("zelda_mc", [tmp_path])
 
-    assert layers[:3] == [
-        "translation_prompts/prompts.json",
-        "plugins/common/defaults/prompts.json",
-        "plugins/zelda_mc/translation_prompts/prompts.json",
-    ]
+    assert layers[0] == "translation_prompts/prompts.json"
+    assert layers[1].endswith("plugins/common/defaults/prompts.json")
+    assert layers[2].endswith("plugins/zelda_mc/translation_prompts/prompts.json")
     assert layers[3].endswith("/prompts.json") and len(layers) == 4
     assert merged["translation"]["system_prompt"] == "mine" and merged["editor_review"] == COMMON["editor_review"]
 

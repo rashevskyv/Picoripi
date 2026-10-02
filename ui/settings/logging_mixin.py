@@ -1,4 +1,4 @@
-from pathlib import Path
+from utils.constants import plugins_root
 import json
 from PyQt6.QtWidgets import QVBoxLayout, QGroupBox, QFormLayout, QCheckBox, QLineEdit
 from utils.logging_utils import log_debug
@@ -9,7 +9,7 @@ class SettingsLoggingMixin:
 
     def find_plugins(self):
         """Find plugins."""
-        plugins_dir = Path("plugins")
+        plugins_dir = plugins_root()
         found_plugins = {}
         if not plugins_dir.is_dir():
             return found_plugins

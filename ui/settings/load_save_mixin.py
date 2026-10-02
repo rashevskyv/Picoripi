@@ -1,4 +1,4 @@
-from pathlib import Path
+from utils.constants import plugins_root
 import json
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
@@ -264,7 +264,7 @@ class SettingsLoadSaveMixin:
             
             # Save to active plugin's font_map.json
             if selected_dir_name:
-                font_map_path = Path("plugins") / selected_dir_name / "font_map.json"
+                font_map_path = plugins_root() / selected_dir_name / "font_map.json"
                 try:
                     font_map_path.parent.mkdir(parents=True, exist_ok=True)
                     with open(font_map_path, 'w', encoding='utf-8') as f:

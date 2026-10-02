@@ -1,3 +1,4 @@
+from utils.constants import plugins_root
 import json
 from pathlib import Path
 from typing import Dict, Optional, Any
@@ -27,7 +28,7 @@ class FontMapLoader:
             log_warning("No active plugin. Character width calculations will use fallback.")
             return
 
-        fonts_dirs = [Path("plugins") / plugin_name / "fonts"]
+        fonts_dirs = [plugins_root() / plugin_name / "fonts"]
         custom_fonts_path = getattr(self.mw, 'fonts_dir_path', None)
         if custom_fonts_path:
             custom_dir = Path(custom_fonts_path)
@@ -83,7 +84,7 @@ class FontMapLoader:
                                                 proj_map_path = Path(project_dir) / 'translation_map.json'
                                                 if not proj_map_path.exists():
                                                     try:
-                                                        plugin_map = Path("plugins") / plugin_name / 'translation_map.json'
+                                                        plugin_map = plugins_root() / plugin_name / 'translation_map.json'
                                                         if plugin_map.exists():
                                                             import shutil
                                                             shutil.copy2(plugin_map, proj_map_path)
@@ -95,7 +96,7 @@ class FontMapLoader:
                                                         log_warning(f"Failed to copy/create translation_map.json in project: {e}")
                                                 mapping_path = proj_map_path
                                             else:
-                                                plugin_dir = Path("plugins") / plugin_name
+                                                plugin_dir = plugins_root() / plugin_name
                                                 mapping_path = plugin_dir / 'translation_map.json'
                                                 
                                             if mapping_path and mapping_path.exists():
@@ -145,7 +146,7 @@ class FontMapLoader:
                             proj_map_path = Path(project_dir) / 'translation_map.json'
                             if not proj_map_path.exists():
                                 try:
-                                    plugin_map = Path("plugins") / plugin_name / 'translation_map.json'
+                                    plugin_map = plugins_root() / plugin_name / 'translation_map.json'
                                     if plugin_map.exists():
                                         import shutil
                                         shutil.copy2(plugin_map, proj_map_path)
@@ -157,7 +158,7 @@ class FontMapLoader:
                                     log_warning(f"Failed to copy/create translation_map.json in project: {e}")
                             mapping_path = proj_map_path
                         else:
-                            plugin_dir = Path("plugins") / plugin_name
+                            plugin_dir = plugins_root() / plugin_name
                             mapping_path = plugin_dir / 'translation_map.json'
                             
                         if mapping_path and mapping_path.exists():
@@ -247,9 +248,9 @@ class FontMapLoader:
         """Internal helper to load font overrides."""
         overrides: Dict[str, dict] = {}
         if not plugin_name: return overrides
-        override_path = Path('plugins') / plugin_name / 'font_map.json'
+        override_path = plugins_root() / plugin_name / 'font_map.json'
         if not override_path.is_file():
-            override_path = Path('plugins') / 'common' / 'defaults' / 'font_map.json'
+            override_path = plugins_root() / 'common' / 'defaults' / 'font_map.json'
         if not override_path.is_file(): return overrides
 
         try:

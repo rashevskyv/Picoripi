@@ -1,4 +1,4 @@
-from pathlib import Path
+from utils.constants import plugins_root
 import json
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTableWidget, QTableWidgetItem,
@@ -65,9 +65,9 @@ class PluginFontmapMixin:
         if not plugin_dir_name:
             return
             
-        font_map_path = Path("plugins") / plugin_dir_name / "font_map.json"
+        font_map_path = plugins_root() / plugin_dir_name / "font_map.json"
         if not font_map_path.exists():
-            font_map_path = Path("plugins") / "common" / "defaults" / "font_map.json"
+            font_map_path = plugins_root() / "common" / "defaults" / "font_map.json"
             
         font_map = {}
         if font_map_path.exists():

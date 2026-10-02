@@ -9,7 +9,7 @@
 - [x] 5.3 злиття промптів по ключах (корінь → `common/defaults` → плагін)
 - [x] 5.4 `plugins/_template/` + `tools/new_plugin.py` + спільний димовий тест
 - [x] 5.5 `get_file_formats()` + `core/formats.py` + `ContainerManager.register`; `bmg_tool.py` у zelda_bmg; гачки `prepare_save_context` / `export_runtime_state`
-- [ ] 5.6 `safe_call`, перезавантаження плагіна за префіксом, без запасного zelda_mc, `plugins_root()`
+- [x] 5.6 `safe_call`, перезавантаження плагіна за префіксом, без запасного zelda_mc, `plugins_root()`
 - [ ] 5.7 попередній перегляд вікон не залежить від zelda_bmg
 - [ ] 5.8 згенерований `docs/PLUGIN_CONTRACT.md`; один посібник для авторів плагінів (EN + UK)
 - [ ] Завершення WP5

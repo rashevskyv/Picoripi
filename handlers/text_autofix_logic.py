@@ -41,8 +41,8 @@ class TextAutofixLogic:
                     setattr(self.mw, attr, val)
                 except Exception:
                     pass
-            from plugins.zelda_mc.rules import GameRules as ZeldaMCRules
-            return ZeldaMCRules(self.mw)
+            from plugins.common.generic_rules import GenericRules
+            return GenericRules(self.mw)
         return rules
 
     def auto_fix_current_string(self) -> None:

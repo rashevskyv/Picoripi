@@ -15,6 +15,20 @@ from core.i18n import tr
 if TYPE_CHECKING:
     from main import MainWindow
 
+def forget_plugin_modules(plugin_name: str) -> list:
+    """Drop every loaded module of a plugin so the next import reads its files again.
+
+    Every module, by prefix: a fixed list of six names used to be dropped, which
+    left the other modules of a larger plugin (parsers, tables, caches) alive
+    with the state of the previous load.
+    """
+    prefix = f"plugins.{plugin_name}"
+    dropped = [name for name in sys.modules if name == prefix or name.startswith(prefix + ".")]
+    for name in dropped:
+        del sys.modules[name]
+    return dropped
+
+
 class MainWindowPluginHandler:
     """Handler for main window plugin operations."""
     def __init__(self, main_window: MainWindow):
@@ -109,20 +123,7 @@ class MainWindowPluginHandler:
 
         try:
             module_path = f"plugins.{self.mw.active_game_plugin}.rules"
-            if module_path in sys.modules:
-                del sys.modules[module_path]
-                # Force reload of related modules to ensure clean state
-                related_modules = [
-                    f"plugins.{self.mw.active_game_plugin}.config",
-                    f"plugins.{self.mw.active_game_plugin}.tag_checker_handler",
-                    f"plugins.{self.mw.active_game_plugin}.tag_manager",
-                    f"plugins.{self.mw.active_game_plugin}.problem_analyzer",
-                    f"plugins.{self.mw.active_game_plugin}.text_fixer",
-                    f"plugins.{self.mw.active_game_plugin}.tag_logic"
-                ]
-                for mod in related_modules:
-                    if mod in sys.modules:
-                        del sys.modules[mod]
+            forget_plugin_modules(self.mw.active_game_plugin)
 
             game_rules_module = importlib.import_module(module_path)
             
@@ -157,12 +158,11 @@ class MainWindowPluginHandler:
         """Internal helper to load custom aliases."""
         if not self.mw.active_game_plugin:
             return
-        from pathlib import Path
         import json
-        from utils.constants import user_plugin_dir
+        from utils.constants import plugins_root, user_plugin_dir
         # Shipped defaults first (read-only), then the user's saved aliases on top.
         for aliases_path in (
-            Path("plugins") / self.mw.active_game_plugin / "aliases.json",
+            plugins_root() / self.mw.active_game_plugin / "aliases.json",
             user_plugin_dir(self.mw.active_game_plugin) / "aliases.json",
         ):
             if not aliases_path.exists():

@@ -58,19 +58,13 @@ def test_FontMapLoader_load_fonts(mock_mw, tmp_path):
     
     # We must patch Path so it looks in tmp_path
     import core.settings.font_map_loader
-    original_path = core.settings.font_map_loader.Path
-    
-    def mock_path(*args, **kwargs):
-        if args and args[0] == "plugins":
-            return tmp_path / "plugins"
-        return original_path(*args, **kwargs)
-        
-    core.settings.font_map_loader.Path = mock_path
-    
+    original_root = core.settings.font_map_loader.plugins_root
+    core.settings.font_map_loader.plugins_root = lambda: tmp_path / "plugins"
+
     try:
         loader.load_all_font_maps()
     finally:
-        core.settings.font_map_loader.Path = original_path
+        core.settings.font_map_loader.plugins_root = original_root
         
     assert "default.json" in mock_mw.all_font_maps
     assert "new_style.json" in mock_mw.all_font_maps
@@ -114,19 +108,13 @@ def test_FontMapLoader_load_bfn_font(mock_mw, tmp_path):
     
     # We must patch Path so it looks in tmp_path
     import core.settings.font_map_loader
-    original_path = core.settings.font_map_loader.Path
-    
-    def mock_path(*args, **kwargs):
-        if args and args[0] == "plugins":
-            return tmp_path / "plugins"
-        return original_path(*args, **kwargs)
-        
-    core.settings.font_map_loader.Path = mock_path
-    
+    original_root = core.settings.font_map_loader.plugins_root
+    core.settings.font_map_loader.plugins_root = lambda: tmp_path / "plugins"
+
     try:
         loader.load_all_font_maps()
     finally:
-        core.settings.font_map_loader.Path = original_path
+        core.settings.font_map_loader.plugins_root = original_root
         
     assert "test_font.bfn" in mock_mw.all_font_maps
     # 32 (space) must have width 8

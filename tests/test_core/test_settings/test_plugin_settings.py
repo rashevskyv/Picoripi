@@ -2,6 +2,7 @@ import pytest
 import os
 import json
 from pathlib import Path
+from utils.constants import plugins_root
 from unittest.mock import MagicMock
 
 from core.settings.plugin_settings import PluginSettings
@@ -50,7 +51,7 @@ def test_PluginSettings_init(dummy_mw):
 def test_PluginSettings_get_plugin_config_path(dummy_mw):
     ps = PluginSettings(dummy_mw)
     p = ps._get_plugin_config_path()
-    assert str(p) == str(Path("plugins/test_plugin/config.json"))
+    assert p == plugins_root() / "test_plugin" / "config.json"
     
     ps.mw.active_game_plugin = ""
     assert ps._get_plugin_config_path() is None

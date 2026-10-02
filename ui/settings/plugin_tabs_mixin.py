@@ -1,3 +1,4 @@
+from utils.constants import plugins_root
 from pathlib import Path
 import json
 from PyQt6.QtWidgets import (
@@ -76,7 +77,7 @@ class PluginTabsMixin:
         if not plugin_dir_name:
             return
             
-        fonts_dirs = [Path("plugins") / plugin_dir_name / "fonts"]
+        fonts_dirs = [plugins_root() / plugin_dir_name / "fonts"]
         custom_fonts_path = getattr(self.mw, 'fonts_dir_path', None)
         if custom_fonts_path:
             custom_dir = Path(custom_fonts_path)
@@ -181,7 +182,7 @@ class PluginTabsMixin:
 
     def _setup_zelda_bmg_window_rules(self, layout):
         """Build the global/per-window rule mode switch for TP BMG."""
-        self._zelda_window_layouts_path = Path("plugins") / "zelda_bmg" / "window_layouts.json"
+        self._zelda_window_layouts_path = plugins_root() / "zelda_bmg" / "window_layouts.json"
         try:
             with self._zelda_window_layouts_path.open("r", encoding="utf-8") as stream:
                 document = json.load(stream)

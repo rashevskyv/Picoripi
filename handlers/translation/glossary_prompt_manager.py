@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 from core.translation.prompt_files import load_merged_prompts
-from utils.constants import user_plugin_dir
+from utils.constants import plugins_root, user_plugin_dir
 from utils.logging_utils import log_debug
 from core.i18n import tr
 
@@ -43,7 +43,7 @@ class GlossaryPromptManager:
 
     def _plugin_dir(self, plugin_name: Optional[str]) -> Optional[Path]:
         """Internal helper to plugin dir."""
-        return Path("plugins", plugin_name, "translation_prompts") if plugin_name else None
+        return plugins_root() / plugin_name / "translation_prompts" if plugin_name else None
 
     def _fallback_dir(self) -> Path:
         """Internal helper to fallback dir."""
@@ -82,7 +82,7 @@ class GlossaryPromptManager:
         candidates = [
             override and override / filename,
             self._plugin_dir(plugin_name) and self._plugin_dir(plugin_name) / filename,
-            Path("plugins", "common", "defaults") / filename,
+            plugins_root() / "common" / "defaults" / filename,
             self._fallback_dir() / filename,
         ]
         return next((p for p in candidates if p and p.exists()), None)

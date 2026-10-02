@@ -243,4 +243,13 @@ in `docs/OPEN_ITEMS.md`, not here.
       members are unchanged (bytes).
 - [ ] **Pokémon FireRed key handling moved into the plugin (5.5).** Save, revert and session restore must still
       produce files with the original keys. Check one save and one revert if you still use that plugin.
+- [ ] **The plugins folder is found from the program's location, not the current directory (5.6).**
+      `plugins_root()` is `<folder of the code>/plugins`. If you start Picoripi from another directory or
+      from a packaged build, check that the plugin list, fonts and prompts still load.
+- [ ] **A plugin that fails while opening a file shows "could not parse the file" (5.6)** instead of the
+      crash dialog; the reason is in the log (`Plugin hook load_data_from_json_obj() failed: …`). Saving is
+      not wrapped: a failing save still fails loudly.
+- [ ] **Switching plugins reloads all of the plugin's modules (5.6).** For Twilight Princess that is 15+
+      modules instead of 6, so caches kept in module variables start empty after a switch. Switch
+      zelda_bmg → another plugin → zelda_bmg and check the preview and the speaker data still work.
 

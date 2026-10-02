@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal
 from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_error, log_debug
 from core import formats
+from core.plugin_call import safe_call
 from plugins.base_game_rules import BaseGameRules
 from core.state_manager import AppState
 from .width_calculation_worker import WidthCalculationWorker
@@ -136,7 +137,9 @@ class AppActionHandler(BaseHandler):
 
             # Parsing the changes file must not change what the plugin learned from the original.
             plugin_state = formats.export_state(self.mw.current_game_rules)
-            new_edited_data, _ = self.mw.current_game_rules.load_data_from_json_obj(file_content)
+            new_edited_data, _ = safe_call(
+                self.mw.current_game_rules, 'load_data_from_json_obj', file_content, default=([], {})
+            )
             formats.restore_state(self.mw.current_game_rules, plugin_state)
             
             self.mw.data_store.edited_json_path = path
@@ -304,7 +307,10 @@ class AppActionHandler(BaseHandler):
             # A plugin may keep what it learned from the file it loaded; start clean.
             formats.reset_state(self.mw.current_game_rules)
 
-            data, block_names_from_plugin = self.mw.current_game_rules.load_data_from_json_obj(file_content)
+            # A plugin that cannot parse the file is reported below, not left to crash.
+            data, block_names_from_plugin = safe_call(
+                self.mw.current_game_rules, 'load_data_from_json_obj', file_content, default=([], {})
+            )
             if not data and file_content is not None:
                 QMessageBox.critical(self.mw, tr('Plugin Error'), f"The active plugin '{self.mw.current_game_rules.get_display_name()}' could not parse the file:\n{original_file_path}")
                 self.mw.data_store.json_path = None
@@ -332,7 +338,9 @@ class AppActionHandler(BaseHandler):
                     QMessageBox.warning(self.mw, tr('Edited Load Warning'), f"Could not load changes file: {self.mw.data_store.edited_json_path}\n{edit_error}")
                 else:
                     plugin_state = formats.export_state(self.mw.current_game_rules)
-                    edited_data_from_file, _ = self.mw.current_game_rules.load_data_from_json_obj(edited_file_content)
+                    edited_data_from_file, _ = safe_call(
+                        self.mw.current_game_rules, 'load_data_from_json_obj', edited_file_content, default=([], {})
+                    )
                     formats.restore_state(self.mw.current_game_rules, plugin_state)
                         
                     self.mw.data_store.edited_file_data = edited_data_from_file
