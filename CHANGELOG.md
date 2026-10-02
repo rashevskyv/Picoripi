@@ -1,6 +1,6 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [Unreleased]
+## [0.3.143-dev] - 2026-10-02
 
 - wp1 1.1: `core/translation/transport.py` — `ErrorKind`, `TransportError`, `classify`, `TransportPolicy` (backoff + jitter, honours `Retry-After`, total deadline, cancellable waits), per-endpoint circuit breaker and concurrency gate; dead `core/glossary_build/retry.py` and `concurrency.py` removed.
 - wp1 1.2: every provider request runs under `TransportPolicy` — classified errors, `Retry-After` carried to the retry dialog (which now waits that long), one automatic retry for quick failures in the translation worker (never for a request that timed out), a per-provider circuit breaker; an empty or non-JSON reply is an error instead of a silent empty success; the Gemini custom-URL route shares the OpenAI path (gets `think`); API keys are masked in error text; block timeout is `max(180 s, user setting)`.
