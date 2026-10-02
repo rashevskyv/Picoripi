@@ -10,7 +10,7 @@ tokens: 7.7k
 
 Карта головного вікна, як його збирають `ui/builders/menu_builder.py`, `toolbar_builder.py` і `layout_builder.py`. Підписи нижче — **як у англійському UI**.
 
-Рекомендований порядок роботи: [8. Пайплайн локалізації](8_Localization_Pipeline.md). Віртуальні теки і прев’ю: [6](6_Virtual_Navigation_and_Preview.md). Кнопки AI: [11](11_AI_Translation.md).
+Рекомендований порядок роботи: [8. Пайплайн локалізації](8_Localization_Pipeline.md). Віртуальні теки і прев’ю: [6](6_Virtual_Navigation_and_Preview.md). Кнопки AI: [11](11_AI_Translation.md). Усі можливості одним переліком (англійською): [docs/FEATURES.md](../../FEATURES.md).
 
 ---
 

@@ -100,7 +100,7 @@ Verify that all linters, formatting, and parallel test suites pass cleanly.
      `### 🔄 Changed`. Each entry is a bullet: `- **Focus Area**: active-voice description`, naming the
      component for complex fixes.
 3. **Update project documentation**:
-   - `README.md`: Update documentation maps and feature descriptions. Never add "New in vX.Y.Z" sections.
+   - `README.md`: the documentation map only; feature descriptions live in `docs/FEATURES.md`. The README carries no version. Never add "New in vX.Y.Z" sections.
    - `AGENTS.md`: Only when agent rules or commands changed. It carries no version string.
    - `docs/OPEN_ITEMS.md`: Remove closed items, add new follow-ups.
 4. **Update tracking files in Ukrainian**:

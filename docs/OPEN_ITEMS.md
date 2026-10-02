@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: unfinished work
-tokens: 5.6k
+tokens: 5.7k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -245,12 +245,17 @@ the line when it is done or moved into a plan.
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.
-- `scripts/deploy.py::bump_version` does not handle the `-dev` suffix (`0.3.141-dev` comes back unchanged)
-  and `update_changelog` expects a `# Changelog` heading the file no longer has. Releases are done by hand
-  through the deploy skill, so the script is effectively unused — fix it or delete it in WP7.5.
-- `AGENTS.md` "Read next" should point at `docs/INDEX.md` once WP7.1 creates it.
 - `docs/AI_DEVELOPMENT_MANIFESTO.md`, `docs/FEATURE_REFERENCE.md` and `docs/TESTING_STRATEGY_AND_AUDIT.md`
   still tell agents to update `GEMINI.md` / `AUDIT.md`; both are gone as working files (WP7.4 merges these
   docs).
 - Root `CHANGELOG.md` is ~38 KB after archiving: the last 14 days hold 17 verbose release entries. New
   entries are one line each; consider cutting the window to the current minor at the next release.
+
+## Found during WP7
+
+- **There is no `LICENSE` file.** The README said "MIT — see the LICENSE file" for a file that never existed; it
+  now says "MIT." Adding the licence text (and whose name goes into it) is the owner's decision.
+- `scripts/deploy.py` still runs `git add .` and offers to push; AGENTS.md forbids the first and releases go
+  through the deploy skill. The version bump and the changelog insert were fixed in 7.3; the git part was left alone.
+- `docs/FEATURES.md` was moved from the README as written (14k tokens), with only the known stale claims fixed.
+  Individual bullets (colours, pixel sizes, widget names) were not re-verified against the code.

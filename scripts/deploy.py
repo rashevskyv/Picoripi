@@ -6,7 +6,6 @@ from pathlib import Path
 # Налаштування шляхів
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CONSTANTS_PATH = ROOT_DIR / 'utils' / 'constants.py'
-README_PATH = ROOT_DIR / 'README.md'
 CHANGELOG_PATH = ROOT_DIR / 'CHANGELOG.md'
 WALKTHROUGH_PATH = ROOT_DIR / 'walkthrough.md'
 WALKTHROUGH_ARCHIVE_DIR = ROOT_DIR / 'docs' / 'history' / 'walkthroughs'
@@ -38,14 +37,11 @@ def get_current_version():
     return None
 
 def bump_version(version):
-    parts = version.split('.')
-    if len(parts) == 3:
-        try:
-            parts[2] = str(int(parts[2]) + 1)
-            return '.'.join(parts)
-        except ValueError:
-            pass
-    return version
+    match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)(-dev)?', version)
+    if not match:
+        return version
+    major, minor, patch, suffix = match.groups()
+    return f"{major}.{minor}.{int(patch) + 1}{suffix or ''}"
 
 def update_file(path, pattern, replacement):
     p = Path(path)
@@ -95,11 +91,10 @@ def update_changelog(new_version, added, fixed, improved):
         log(f"Error reading changelog: {e}", "\033[91m")
         return ""
     
-    header_pattern = r'(# Changelog\s+All notable changes to the \*\*Picoripi\*\* project[^\n]*\n)'
-    if not re.search(header_pattern, content):
-        new_content = "# Changelog\n\n" + new_entry + content
-    else:
-        new_content = re.sub(header_pattern, f'\\1\n{new_entry}', content, count=1)
+    # The new entry goes above the newest released version; '## [Unreleased]' stays on top.
+    released = re.search(r'^## \[\d', content, flags=re.MULTILINE)
+    position = released.start() if released else len(content)
+    new_content = content[:position] + new_entry + content[position:]
     
     try:
         CHANGELOG_PATH.write_text(new_content, encoding='utf-8')
@@ -157,7 +152,6 @@ def deploy():
 
     log("\n💾 Updating files...", "\033[94m")
     update_file(CONSTANTS_PATH, r'APP_VERSION = "[^"]+"', f'APP_VERSION = "{new_version}"')
-    update_file(README_PATH, r'# Picoripi v[\d\.]+', f'# Picoripi v{new_version}')
     release_body = update_changelog(new_version, added, fixed, improved)
     roll_walkthrough(new_version)
 

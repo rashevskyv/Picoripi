@@ -68,12 +68,12 @@ For each modified page:
 2. Update the Ukrainian twin file (`docs/wiki/uk/<Page>.md`), using approved terms from `locales/uk.json`.
 3. If an entirely new page is required, update `docs/wiki/7_Maintaining_This_Wiki.md` and `docs/wiki/README.md` (and Ukrainian twins) first.
 
-### Step 4: Update `README.md`
+### Step 4: Update `docs/FEATURES.md`; touch `README.md` only for a new area
 
-Check whether the changes warrant updates to `README.md`:
-- **Core Features**: If a new feature or user-visible workflow was added, add or update a descriptive bullet point in the "Core Features" section.
-- **UI & Components**: If major dialogs or widgets (such as the Glossary Dialog, Preview Widget, or Search Panel) were rearranged, reflect their current ergonomics and controls in the relevant component summary.
-- **Documentation Map**: If new wiki pages or workflow guides were added, add corresponding links to the map.
+- **`docs/FEATURES.md`** is the feature inventory: add or correct the bullet of the feature that changed.
+- **`README.md`** is the pitch, install, run and the documentation map, at most 3.5k tokens (a test checks it).
+  Change it only when a whole feature area, a start command or a document appears or goes away.
+- Run `python tasks.py docs-index` after editing documents under `docs/` (token counts in headers and `docs/INDEX.md`).
 
 ### Step 5: Propagate Plugin Capabilities (Mandatory)
 
