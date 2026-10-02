@@ -63,7 +63,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 5.6 `safe_call`, prefix-based reload, drop zelda_mc fallback, `plugins_root()`
 - [x] 5.7 BFN preview decoupled from zelda_bmg
 - [x] 5.8 generated `docs/PLUGIN_CONTRACT.md`; one plugin guide; fix discovery path
-- [ ] WP5 exit
+- [x] WP5 exit
 
 ## WP6 — Stability
 - [ ] 6.1 `utils/atomic_io.py` + 12 write sites

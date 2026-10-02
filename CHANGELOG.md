@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.146-dev] - 2026-10-02
+
 - wp5 5.8: one plugin guide — `docs/wiki/3_Plugin_Developer_Guide.md` (EN + UK) absorbs `docs/PLUGIN_AUTHORING_GUIDE.md` and `plugins/DEVELOPER_GUIDE.md` (both removed); the list of hooks is `docs/PLUGIN_CONTRACT.md`, generated from `plugins/spec.py` (`python -m plugins.spec --write`) and checked by a test. The plain-text plugin is now labelled "Plain Text" (it shared the label "Zelda: The Wind Waker" with the Wind Waker plugin, so only one of the two could be picked).
 - tests: the interface language is reset to English around every test — a test that switched it to Ukrainian left later tests on the same worker failing and one of them waiting on a message box for ever (the rare "one F, then the run stalls" hang).
 - wp5 5.7: the host imports no game plugin any more — the bitmap-font preview and the Settings table of per-window limits ask the active plugin through hooks on `BaseGameRules` (`get_window_presets`, `get_window_preset_label(s)`, `get_window_style_for_preset`, `get_window_frame`, `get_window_item_icon`, `get_window_text_offset_y`, `get_window_layout_groups`, `get_window_layouts_document`, `save_window_layouts_document`); Twilight Princess implements them. The item-id rule of the item window moved from the preview into the plugin; `core/mempalace/flow_validation.py` moved to `plugins/zelda_bmg/flow_validation.py`.
