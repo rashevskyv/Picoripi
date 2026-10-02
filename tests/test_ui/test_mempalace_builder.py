@@ -831,7 +831,7 @@ def test_mempalace_builder_dialog_passes_target_lang_to_chapter_analyzer(qapp):
 
     # Patch sqlite3 connect and query to return dummy row
     with patch("sqlite3.connect") as mock_connect, \
-         patch("ui.mempalace_builder_dialog.MemePalaceChapterAIAnalyzerWorker") as mock_worker_class:
+         patch("ui.mempalace.analysis_mixin.MemePalaceChapterAIAnalyzerWorker") as mock_worker_class:
 
         mock_conn = MagicMock()
         mock_cursor = MagicMock()

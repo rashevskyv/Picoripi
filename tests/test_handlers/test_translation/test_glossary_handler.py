@@ -20,9 +20,9 @@ def mock_main_handler():
 
 @pytest.fixture
 def gh(mock_main_handler):
-    with patch('handlers.translation.glossary_handler.GlossaryManager'), \
-         patch('handlers.translation.glossary_handler.GlossaryPromptManager'), \
-         patch('handlers.translation.glossary_handler.GlossaryOccurrenceUpdater'):
+    with patch('handlers.translation.glossary.handler.GlossaryManager'), \
+         patch('handlers.translation.glossary.handler.GlossaryPromptManager'), \
+         patch('handlers.translation.glossary.handler.GlossaryOccurrenceUpdater'):
         handler = GlossaryHandler(mock_main_handler)
         handler._prompt_manager = MagicMock()
         handler._occurrence_updater = MagicMock()
@@ -77,7 +77,7 @@ def test_gh_proxies(gh):
     gh._handle_glossary_occurrence_batch_success(3, 4)
     gh._occurrence_updater.handle_glossary_occurrence_batch_success.assert_called_with(3, 4)
 
-@patch('handlers.translation.glossary_handler.QAction')
+@patch('handlers.translation.glossary.dialog_mixin.QAction')
 def test_gh_install_menu_actions(mock_action, gh):
     gh.main_handler._reset_session_action = None
     gh.install_menu_actions()
@@ -98,10 +98,10 @@ def test_gh_initialize_glossary_highlighting(gh):
     gh.initialize_glossary_highlighting()
     gh._prompt_manager.initialize_highlighting.assert_called_once()
 
-@patch('handlers.translation.glossary_handler.QProgressDialog')
-@patch('handlers.translation.glossary_handler.GlossaryOccurrenceWorker')
-@patch('handlers.translation.glossary_handler.GlossaryDialog')
-@patch('handlers.translation.glossary_handler.QMessageBox')
+@patch('handlers.translation.glossary.dialog_mixin.QProgressDialog')
+@patch('handlers.translation.glossary.dialog_mixin.GlossaryOccurrenceWorker')
+@patch('handlers.translation.glossary.dialog_mixin.GlossaryDialog')
+@patch('handlers.translation.glossary.dialog_mixin.QMessageBox')
 def test_gh_show_glossary_dialog(mock_box, mock_dialog, mock_worker_cls, mock_progress, gh):
     mock_dialog_inst = mock_dialog.return_value
     mock_pd_inst = mock_progress.return_value
@@ -179,7 +179,7 @@ def test_glossary_occurrence_worker_exception():
     
     finished_mock.assert_called_once_with({})
 
-@patch('handlers.translation.glossary_handler.GlossaryEditDialog')
+@patch('handlers.translation.glossary.edit_mixin.GlossaryEditDialog')
 def test_gh_add_edit_glossary_entry(mock_dialog, gh):
     mock_dialog_inst = mock_dialog.return_value
     mock_dialog_inst.exec.return_value = QDialog.DialogCode.Rejected
@@ -210,7 +210,7 @@ def test_gh_add_edit_glossary_entry(mock_dialog, gh):
     gh.edit_glossary_entry("Test", is_new=False)
     gh.glossary_manager.update_entry.assert_called_with("Test", "Trans", "NewNotes")
 
-@patch('handlers.translation.glossary_handler.GlossaryEditDialog')
+@patch('handlers.translation.glossary.edit_mixin.GlossaryEditDialog')
 def test_gh_ai_fill_glossary_entry(mock_dialog, gh):
     d = mock_dialog.return_value
     
@@ -236,7 +236,7 @@ def test_gh_ai_fill_glossary_entry(mock_dialog, gh):
 
 from components.glossary_edit_dialog import GlossaryEditDialog
 
-@patch('handlers.translation.glossary_handler.QMessageBox')
+@patch('handlers.translation.glossary.edit_mixin.QMessageBox')
 def test_gh_handle_ai_fill(mock_box, gh):
     dialog = MagicMock(spec=GlossaryEditDialog)
     dialog.get_values.return_value = ("oldT", "oldN")
@@ -283,7 +283,7 @@ def test_gh_handle_notes_variation_from_dialog(gh):
     gh._handle_notes_variation_from_dialog(GlossaryEntry("t", "tr", "n"))
     gh._occurrence_updater.request_glossary_notes_variation.assert_called_once()
 
-@patch('handlers.translation.glossary_handler.QMessageBox')
+@patch('handlers.translation.glossary.edit_mixin.QMessageBox')
 def test_gh_handle_glossary_notes_variation_success(mock_box, gh):
     gh.main_handler.ai_lifecycle_manager._clean_model_output.return_value = "cleaned"
     gh.main_handler.ui_handler.parse_variation_payload.return_value = []
@@ -372,7 +372,7 @@ def test_gh_reassign_speaker_name_focuses_new_term_only_on_success(gh):
 def test_gh_confirmed_speaker_codes_includes_shared_voice_parts(gh):
     gh.mw.project_manager.project_dir = None
     with patch(
-        "handlers.translation.glossary_handler.load_speaker_aliases",
+        "handlers.translation.glossary.speaker_mixin.load_speaker_aliases",
         return_value={"Ash": "ASHEI", "Other": "ASHEI / TELMA"},
     ):
         assert gh._confirmed_speaker_codes("ASHEI") == ["Ash", "Other"]
@@ -383,17 +383,17 @@ def test_gh_placeholder_speaker_callback_recognizes_legacy_code_and_alias(gh):
     gh.mw.current_game_rules.is_placeholder_speaker.side_effect = lambda term: term == "Ash"
     gh.mw.project_manager.project_dir = None
 
-    with patch("handlers.translation.glossary_handler.load_speaker_aliases", return_value={}):
+    with patch("handlers.translation.glossary.speaker_mixin.load_speaker_aliases", return_value={}):
         callback = gh._placeholder_speaker_callback()
     assert callback("Ash") is True
     assert callback("Ashei") is False
 
-    with patch("handlers.translation.glossary_handler.load_speaker_aliases", return_value={"Ash": "Ashei"}):
+    with patch("handlers.translation.glossary.speaker_mixin.load_speaker_aliases", return_value={"Ash": "Ashei"}):
         callback = gh._placeholder_speaker_callback()
     assert callback("Ash") is False
 
     with patch(
-        "handlers.translation.glossary_handler.load_speaker_aliases",
+        "handlers.translation.glossary.speaker_mixin.load_speaker_aliases",
         return_value={"Ash": "ASHEI / TELMA"},
     ):
         callback = gh._placeholder_speaker_callback()

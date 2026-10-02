@@ -371,7 +371,7 @@ class TestPreviewUpdater:
 
         preview_edit.setPlainText.assert_called_once_with("Hello\nWorld")
 
-    @patch('ui.updaters.preview_updater.QTextCursor')
+    @patch('ui.updaters.preview_renderer.QTextCursor')
     @patch.object(PreviewUpdater, 'update_text_views')
     @patch.object(PreviewUpdater, '_apply_highlights_for_block')
     def test_populate_strings_chunked(self, mock_hl, mock_ut, mock_cursor, updater, mock_dp):
@@ -430,7 +430,7 @@ class TestPreviewUpdater:
 
         assert not updater._lazy_load_timer.isActive()
 
-    @patch('ui.updaters.preview_updater.QTextCursor')
+    @patch('ui.updaters.text_views_mixin.QTextCursor')
     @patch.object(PreviewUpdater, '_apply_highlights_for_block')
     def test_lazy_chunk_selects_physical_tuple_in_virtual_speaker_folder(self, mock_hl, mock_cursor, updater, mock_dp):
         preview_edit = MagicMock()

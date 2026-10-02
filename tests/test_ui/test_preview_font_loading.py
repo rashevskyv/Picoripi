@@ -4,8 +4,8 @@ from handlers.project_action_handler import ProjectActionHandler
 from ui.components.bfn_preview_widget import BfnPreviewWidget
 from core.bfn_core import BfnCore
 
-@patch('handlers.project_action_handler.ProjectManager')
-@patch('handlers.project_action_handler.QMessageBox')
+@patch('handlers.project_action.lifecycle_mixin.ProjectManager')
+@patch('handlers.project_action.blocks_mixin.QMessageBox')
 def test_project_font_loading_on_open(mock_msg_box, mock_pm_class, qapp, mock_mw):
     """
     Test that when a project is opened via open_project_action,
@@ -43,8 +43,8 @@ def test_project_font_loading_on_open(mock_msg_box, mock_pm_class, qapp, mock_mw
     mock_mw.string_settings_updater.update_font_combobox.assert_called_once()
 
 
-@patch('handlers.project_action_handler.ProjectManager')
-@patch('handlers.project_action_handler.QMessageBox')
+@patch('handlers.project_action.recent_mixin.ProjectManager')
+@patch('handlers.project_action.blocks_mixin.QMessageBox')
 def test_project_font_loading_on_open_recent(mock_msg_box, mock_pm_class, qapp, mock_mw):
     """
     Test that when a project is opened via _open_recent_project (e.g. on startup or history),

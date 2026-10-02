@@ -105,7 +105,7 @@ def test_remove_tag_alias_replaces_alias_with_tag_in_edited_data(mock_question, 
     mock_mw.ui_updater.update_text_views.assert_called_once()
 
 
-@patch('ui.main_window.main_window_actions.TagAliasDialog')
+@patch('ui.main_window.actions.tag_alias_mixin.TagAliasDialog')
 def test_edit_tag_alias_replaces_old_alias_in_edited_data(mock_dialog_class, mock_mw):
     mock_dialog = MagicMock()
     mock_dialog.exec.return_value = 1  # QDialog.Accepted
@@ -165,8 +165,8 @@ def test_tag_alias_dialog_focus_and_return_pressed(qtbot):
     assert accepted_calls == 2
 
 
-@patch('ui.main_window.main_window_actions.QProgressDialog')
-@patch('ui.main_window.main_window_actions.AliasUpdateWorker')
+@patch('ui.main_window.actions.tag_alias_mixin.QProgressDialog')
+@patch('ui.main_window.actions.tag_alias_mixin.AliasUpdateWorker')
 def test_edit_tag_alias_progress_dialog_modality(mock_worker_class, mock_progress_dialog_class, mock_mw):
     from ui.main_window.main_window_actions import MainWindowActions
     from PyQt6.QtCore import Qt
@@ -197,7 +197,7 @@ def test_edit_tag_alias_progress_dialog_modality(mock_worker_class, mock_progres
     actions = MainWindowActions(fake_mw)
     
     # Patch TagAliasDialog so it returns accepted new alias
-    with patch('ui.main_window.main_window_actions.TagAliasDialog') as mock_dialog_class, \
+    with patch('ui.main_window.actions.tag_alias_mixin.TagAliasDialog') as mock_dialog_class, \
          patch('PyQt6.QtWidgets.QApplication.instance') as mock_app_instance:
          
         from PyQt6.QtWidgets import QApplication

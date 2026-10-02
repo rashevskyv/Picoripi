@@ -151,7 +151,7 @@ def test_ListSelectionHandler_restore_block_selection(handler):
     handler.mw.data_store.current_block_idx = 0
     handler.mw.block_list_widget = MagicMock()
     
-    with patch('handlers.list_selection_handler.QTreeWidgetItemIterator') as mock_iter_class:
+    with patch('handlers.list_selection.physical_selection_mixin.QTreeWidgetItemIterator') as mock_iter_class:
         mock_iter = MagicMock()
         mock_iter_class.return_value = mock_iter
         vals = [mock_item, None]
@@ -188,7 +188,7 @@ def test_ListSelectionHandler_string_selected_from_preview(handler):
     handler.mw.data_store.current_block_idx = 0
     handler.mw.data_store.data = [["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7"]]
     
-    with patch('handlers.list_selection_handler.QTextCursor') as mock_cursor:
+    with patch('handlers.list_selection.physical_selection_mixin.QTextCursor') as mock_cursor:
         # Selecting preview line 1 corresponds to abs index 6
         handler.string_selected_from_preview(1)
         assert handler.mw.data_store.current_string_idx == 6
@@ -430,7 +430,7 @@ def test_ListSelectionHandler_string_selected_from_preview_uses_physical_tuple_i
     handler.mw.data_store.displayed_string_indices = [(5, 0), (7, 2)]
     handler.mw.data_store.data = [[], [], [], [], [], ["S0"], [], ["S0", "S1", "S2"]]
 
-    with patch('handlers.list_selection_handler.QTextCursor'):
+    with patch('handlers.list_selection.physical_selection_mixin.QTextCursor'):
         handler.string_selected_from_preview(1)
 
     assert handler.mw.data_store.current_block_idx == 7
@@ -1113,7 +1113,7 @@ def test_manual_preview_click_does_not_reanchor_scrollbar(handler):
     handler.mw.search_panel_widget = None
     handler._cursor_visible_timer.start = MagicMock()
 
-    with patch("handlers.list_selection_handler.QTextCursor", return_value=MagicMock()):
+    with patch("handlers.list_selection.physical_selection_mixin.QTextCursor", return_value=MagicMock()):
         handler.string_selected_from_preview(25, is_manual_click=True)
         handler._cursor_visible_timer.start.assert_not_called()
 

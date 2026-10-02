@@ -601,7 +601,7 @@ def test_UIUpdater_update_text_views_with_width_label(updater, mock_mw):
     mock_mw.helper.get_font_map_for_string.return_value = {}
     mock_mw.icon_sequences = []
 
-    with patch('ui.updaters.preview_updater.calculate_strict_string_width', return_value=42):
+    with patch('ui.updaters.text_views_mixin.calculate_strict_string_width', return_value=42):
         updater.update_text_views()
 
     mock_mw.original_width_label.setText.assert_called_with("42 px")
@@ -636,7 +636,7 @@ def test_update_text_views_light_skips_width_and_bfn(updater, mock_mw):
     mock_mw.bfn_preview_widget = MagicMock()
     mock_mw.bfn_preview_widget.isHidden.return_value = False
 
-    with patch('ui.updaters.preview_updater.calculate_strict_string_width', return_value=42) as mock_w:
+    with patch('ui.updaters.text_views_mixin.calculate_strict_string_width', return_value=42) as mock_w:
         updater.update_text_views(heavy=False)
 
     mock_mw.edited_text_edit.setPlainText.assert_called_with("edit")

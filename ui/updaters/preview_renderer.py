@@ -252,15 +252,8 @@ class PreviewRenderer:
 
             try:
                 doc = preview_edit.document()
-                import sys
-                cursor_cls = QTextCursor
-                if 'ui.updaters.preview_updater' in sys.modules:
-                    mod = sys.modules['ui.updaters.preview_updater']
-                    if hasattr(mod, 'QTextCursor'):
-                        cursor_cls = getattr(mod, 'QTextCursor')
-
                 try:
-                    cursor = cursor_cls(doc)
+                    cursor = QTextCursor(doc)
                 except (TypeError, Exception):
                     cursor = doc
                 if hasattr(cursor, 'beginEditBlock') and callable(cursor.beginEditBlock):

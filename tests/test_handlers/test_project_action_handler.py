@@ -21,9 +21,9 @@ def test_ProjectActionHandler_set_project_actions_enabled(mock_mw):
     h._set_project_actions_enabled(False)
     mock_mw.close_project_action.setEnabled.assert_called_with(False)
 
-@patch('handlers.project_action_handler.ProjectManager')
+@patch('handlers.project_action.lifecycle_mixin.ProjectManager')
 @patch('handlers.project_action_handler.Path.is_dir')
-@patch('handlers.project_action_handler.QMessageBox')
+@patch('handlers.project_action.lifecycle_mixin.QMessageBox')
 @patch('components.project_dialogs.NewProjectDialog')
 def test_ProjectActionHandler_create_new_project_action(mock_dialog_class, mock_msg_box, mock_is_dir, mock_pm_class, mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
@@ -48,8 +48,8 @@ def test_ProjectActionHandler_create_new_project_action(mock_dialog_class, mock_
     mock_mw.ui_updater.update_title.assert_called_once()
     mock_msg_box.information.assert_called_once()
 
-@patch('handlers.project_action_handler.ProjectManager')
-@patch('handlers.project_action_handler.QMessageBox')
+@patch('handlers.project_action.lifecycle_mixin.ProjectManager')
+@patch('handlers.project_action.blocks_mixin.QMessageBox')
 @patch('handlers.project_action_handler.QFileDialog.getOpenFileName')
 def test_ProjectActionHandler_open_project_action(mock_getOpen, mock_msg_box, mock_pm_class, mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
@@ -94,7 +94,7 @@ def test_ProjectActionHandler_close_project_action(mock_mw):
 
 from PyQt6.QtCore import Qt
 
-@patch('handlers.project_action_handler.QMessageBox')
+@patch('handlers.project_action.blocks_mixin.QMessageBox')
 @patch('components.project_dialogs.ImportBlockDialog')
 def test_ProjectActionHandler_import_block_action(mock_dialog_class, mock_msg_box, mock_mw):
     mock_mw.project_manager = MagicMock()
@@ -117,7 +117,7 @@ def test_ProjectActionHandler_import_block_action(mock_dialog_class, mock_msg_bo
     h._populate_blocks_from_project.assert_called_once()
     mock_msg_box.information.assert_called_once()
 
-@patch('handlers.project_action_handler.QMessageBox')
+@patch('handlers.project_action.blocks_mixin.QMessageBox')
 @patch('handlers.project_action_handler.QFileDialog.getExistingDirectory')
 def test_ProjectActionHandler_import_directory_action(mock_getDir, mock_msg_box, mock_mw):
     mock_mw.project_manager = MagicMock()
@@ -133,7 +133,7 @@ def test_ProjectActionHandler_import_directory_action(mock_getDir, mock_msg_box,
     h._populate_blocks_from_project.assert_called_once()
     mock_msg_box.information.assert_called_once()
 
-@patch('handlers.project_action_handler.QMessageBox')
+@patch('handlers.project_action.blocks_mixin.QMessageBox')
 def test_ProjectActionHandler_delete_block_action(mock_msg_box, mock_mw):
     mock_mw.project_manager = MagicMock()
     mock_block = MagicMock()
@@ -237,9 +237,9 @@ def test_ProjectActionHandler_delete_block_action_folder(mock_mw):
     mock_mw.virtual_folder_handler.delete_folder_action.assert_called_once_with("folder_1", mock_item)
 
 
-@patch('handlers.project_action_handler.ProjectManager')
-@patch('handlers.project_action_handler.QMessageBox')
-@patch('handlers.project_action_handler.Path')
+@patch('handlers.project_action.recent_mixin.ProjectManager')
+@patch('handlers.project_action.recent_mixin.QMessageBox')
+@patch('handlers.project_action.recent_mixin.Path')
 def test_ProjectActionHandler_open_recent_project(mock_Path, mock_msg_box, mock_pm_class, mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_mw.settings_manager = MagicMock()
@@ -355,7 +355,7 @@ def test_ProjectActionHandler_populate_blocks_with_translations(mock_exists, moc
         assert len(mock_mw.edited_file_data) == 1
         assert mock_mw.edited_file_data[0] == "trans_data"
 
-@patch('handlers.project_action_handler.QMessageBox')
+@patch('handlers.project_action.recent_mixin.QMessageBox')
 def test_ProjectActionHandler_clear_recent_projects(mock_msg_box, mock_mw):
     mock_msg_box.StandardButton = QMessageBox.StandardButton
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
@@ -375,9 +375,9 @@ def test_ProjectActionHandler_clear_recent_projects(mock_msg_box, mock_mw):
     h._update_recent_projects_menu.assert_called_once()
 
 
-@patch('handlers.project_action_handler.ProjectManager')
-@patch('handlers.project_action_handler.QMessageBox')
-@patch('handlers.project_action_handler.Path')
+@patch('handlers.project_action.handler.ProjectManager')
+@patch('handlers.project_action.recent_mixin.QMessageBox')
+@patch('handlers.project_action.blocks_mixin.Path')
 def test_ProjectActionHandler_open_recent_project_session_restore_avoid_timer(mock_Path, mock_msg_box, mock_pm_class, mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_mw.settings_manager = MagicMock()
@@ -397,9 +397,9 @@ def test_ProjectActionHandler_open_recent_project_session_restore_avoid_timer(mo
     h._open_recent_project("real_path.uiproj")
     h._restore_view_timer.start.assert_not_called()
 
-@patch('handlers.project_action_handler.ProjectManager')
-@patch('handlers.project_action_handler.QMessageBox')
-@patch('handlers.project_action_handler.Path')
+@patch('handlers.project_action.recent_mixin.ProjectManager')
+@patch('handlers.project_action.blocks_mixin.QMessageBox')
+@patch('handlers.project_action.recent_mixin.Path')
 def test_ProjectActionHandler_open_recent_project_no_session_restore_runs_timer(mock_Path, mock_msg_box, mock_pm_class, mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_mw.settings_manager = MagicMock()
@@ -476,7 +476,7 @@ def test_ProjectActionHandler_populate_blocks_from_project_session_restore(mock_
 
     on_completed_mock = MagicMock()
 
-    with patch('handlers.project_action_handler.ProjectLoadWorker') as mock_worker_class:
+    with patch('handlers.project_action.session_mixin.ProjectLoadWorker') as mock_worker_class:
         h._populate_blocks_from_project(on_completed=on_completed_mock)
 
         # Verify load_session_file was called
@@ -569,7 +569,7 @@ def test_ProjectActionHandler_populate_blocks_from_project_empty_session_falls_b
     h = ProjectActionHandler(mock_mw, mock_data_processor, mock_mw.ui_updater)
     on_completed_mock = MagicMock()
 
-    with patch('handlers.project_action_handler.ProjectLoadWorker') as mock_worker_class:
+    with patch('handlers.project_action.session_mixin.ProjectLoadWorker') as mock_worker_class:
         mock_worker = mock_worker_class.return_value
         callbacks = []
         mock_worker.finished_with_result.connect.side_effect = callbacks.append

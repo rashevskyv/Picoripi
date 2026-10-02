@@ -40,37 +40,7 @@ from ui.script_markup.constants import (
 )
 from ui.script_markup.widgets import _ClassificationHighlighter
 
-# Keep function patches on this shim path working for mixin method bodies.
-from ui.script_markup.mixins import search_view_mixin as _search_view_mixin
-from ui.script_markup.mixins import hierarchy_ai_mixin as _hierarchy_ai_mixin
 
-
-class _ShimName:
-    """Late-bound name that always reads from this shim module."""
-
-    __slots__ = ("_name",)
-
-    def __init__(self, name: str):
-        object.__setattr__(self, "_name", name)
-
-    def _resolve(self):
-        import sys
-        return getattr(sys.modules[__name__], object.__getattribute__(self, "_name"))
-
-    def __call__(self, *args, **kwargs):
-        return self._resolve()(*args, **kwargs)
-
-    def __getattr__(self, item):
-        return getattr(self._resolve(), item)
-
-    def __repr__(self):
-        return repr(self._resolve())
-
-
-_search_view_mixin.line_styles_for_marks = _ShimName("line_styles_for_marks")
-_hierarchy_ai_mixin.build_hierarchy_auto_markup_messages = _ShimName(
-    "build_hierarchy_auto_markup_messages"
-)
 
 __all__ = [
     "ScriptMarkupStudioDialog",

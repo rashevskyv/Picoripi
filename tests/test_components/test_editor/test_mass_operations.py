@@ -21,7 +21,7 @@ def test_handle_mass_set_width_with_displayed_string_indices(app, mock_mw):
     editor.window = MagicMock(return_value=mock_mw)
     editor.get_selected_lines = MagicMock(return_value=[0, 1])
     
-    with patch('components.editor.line_numbered_text_edit.MassWidthDialog') as MockDialog:
+    with patch('components.editor.line_edit.context_mixin.MassWidthDialog') as MockDialog:
         mock_dialog = MockDialog.return_value
         mock_dialog.exec.return_value = True
         mock_dialog.is_auto_width.return_value = False
@@ -39,7 +39,7 @@ def test_handle_mass_set_width_with_auto_width(app, mock_mw):
     editor.window = MagicMock(return_value=mock_mw)
     editor.get_selected_lines = MagicMock(return_value=[0, 1])
     
-    with patch('components.editor.line_numbered_text_edit.MassWidthDialog') as MockDialog:
+    with patch('components.editor.line_edit.context_mixin.MassWidthDialog') as MockDialog:
         mock_dialog = MockDialog.return_value
         mock_dialog.exec.return_value = True
         mock_dialog.is_auto_width.return_value = True
@@ -55,7 +55,7 @@ def test_handle_mass_set_font_with_displayed_string_indices(app, mock_mw):
     editor.window = MagicMock(return_value=mock_mw)
     editor.get_selected_lines = MagicMock(return_value=[0, 1])
     
-    with patch('components.editor.line_numbered_text_edit.MassFontDialog') as MockDialog:
+    with patch('components.editor.line_edit.context_mixin.MassFontDialog') as MockDialog:
         mock_dialog = MockDialog.return_value
         mock_dialog.exec.return_value = True
         mock_dialog.get_selected_font.return_value = "custom_font.bfn"

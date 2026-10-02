@@ -99,7 +99,7 @@ def test_check_tags_mismatch_normalizes_editor_aliases(main_window):
     # A genuinely missing non-exempt tag must still be reported.
     assert analyzer.check_tags_mismatch("Take {icon:heart}", "Take it") is True
 
-@patch('handlers.text_operation_handler.AsyncIssueScanner')
+@patch('handlers.text_operation.scan_mixin.AsyncIssueScanner')
 def test_immediate_async_scan_on_string_select(mock_async_scanner, main_window):
     dsp = DataStateProcessor(main_window)
     toh = TextOperationHandler(main_window, dsp, main_window.ui_updater)

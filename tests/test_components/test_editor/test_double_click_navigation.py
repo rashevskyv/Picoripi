@@ -85,7 +85,7 @@ def test_scroll_to_current_string_in_preview_logic(app):
     handler = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
     handler._cursor_visible_timer = MagicMock()
     
-    with patch("handlers.list_selection_handler.QTextCursor") as mock_cursor_class:
+    with patch("handlers.list_selection.physical_selection_mixin.QTextCursor") as mock_cursor_class:
         
         mock_cursor = MagicMock()
         mock_cursor_class.return_value = mock_cursor
@@ -127,7 +127,7 @@ def test_scroll_to_current_string_in_preview_uses_physical_tuple_in_virtual_view
     handler = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
     handler._cursor_visible_timer = MagicMock()
 
-    with patch("handlers.list_selection_handler.QTextCursor") as cursor_class:
+    with patch("handlers.list_selection.physical_selection_mixin.QTextCursor") as cursor_class:
         handler.scroll_to_current_string_in_preview()
 
     mock_doc.findBlockByNumber.assert_called_once_with(1)
@@ -155,7 +155,7 @@ def test_scroll_to_current_string_in_preview_keeps_index_based_category_view(app
     handler = ListSelectionHandler(mock_mw, MagicMock(), MagicMock())
     handler._cursor_visible_timer = MagicMock()
 
-    with patch("handlers.list_selection_handler.QTextCursor"):
+    with patch("handlers.list_selection.physical_selection_mixin.QTextCursor"):
         handler.scroll_to_current_string_in_preview()
 
     mock_preview.document().findBlockByNumber.assert_called_once_with(1)

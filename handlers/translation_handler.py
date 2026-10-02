@@ -22,65 +22,10 @@ from core.tag_utils import iter_all_strings
 from core.i18n import tr
 
 from handlers.translation.facade import TranslationHandler
-from handlers.translation.facade import handler as _handler
-from handlers.translation.facade import glossary_proxy_mixin as _glossary_proxy_mixin
-from handlers.translation.facade import session_mixin as _session_mixin
-from handlers.translation.facade import translate_mixin as _translate_mixin
-from handlers.translation.facade import apply_mixin as _apply_mixin
-
-
-class _ShimName:
-    """Late-bound name that always reads from this shim module."""
-
-    __slots__ = ("_name",)
-
-    def __init__(self, name: str):
-        object.__setattr__(self, "_name", name)
-
-    def _resolve(self):
-        import sys
-        return getattr(sys.modules[__name__], object.__getattribute__(self, "_name"))
-
-    def __call__(self, *args, **kwargs):
-        return self._resolve()(*args, **kwargs)
-
-    def __getattr__(self, item):
-        return getattr(self._resolve(), item)
-
-    def __repr__(self):
-        return repr(self._resolve())
 
 
 # Names tests patch on this module and that __init__/mixins use as globals.
-_handler.GlossaryHandler = _ShimName("GlossaryHandler")
-_handler.AIPromptComposer = _ShimName("AIPromptComposer")
-_handler.TranslationUIHandler = _ShimName("TranslationUIHandler")
-_handler.AILifecycleManager = _ShimName("AILifecycleManager")
-_handler.TranslationSessionManager = _ShimName("TranslationSessionManager")
-_handler.QTimer = _ShimName("QTimer")
-_handler.TextFormatter = _ShimName("TextFormatter")
-_handler.AIVariationsHandler = _ShimName("AIVariationsHandler")
-_handler.TranslationProgressManager = _ShimName("TranslationProgressManager")
-_handler.AIBatchTranslator = _ShimName("AIBatchTranslator")
 
-_glossary_proxy_mixin.QMessageBox = _ShimName("QMessageBox")
-_glossary_proxy_mixin.tr = _ShimName("tr")
-
-_session_mixin.GeminiProvider = _ShimName("GeminiProvider")
-_session_mixin.PromptEditorDialog = _ShimName("PromptEditorDialog")
-_session_mixin.is_control_modifier_pressed = _ShimName("is_control_modifier_pressed")
-_session_mixin.QMessageBox = _ShimName("QMessageBox")
-_session_mixin.QDialog = _ShimName("QDialog")
-_session_mixin.tr = _ShimName("tr")
-_session_mixin.log_debug = _ShimName("log_debug")
-
-_translate_mixin.QMessageBox = _ShimName("QMessageBox")
-_translate_mixin.QPoint = _ShimName("QPoint")
-_translate_mixin.tr = _ShimName("tr")
-_translate_mixin.log_debug = _ShimName("log_debug")
-_translate_mixin.iter_all_strings = _ShimName("iter_all_strings")
-
-_apply_mixin.log_debug = _ShimName("log_debug")
 
 __all__ = [
     "TranslationHandler",

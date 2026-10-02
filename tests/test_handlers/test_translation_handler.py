@@ -27,12 +27,12 @@ def th(mock_deps):
     mw.current_game_rules.convert_editor_text_to_data.side_effect = lambda x: x
     mw.current_game_rules.get_shift_enter_char.return_value = "\n"
     
-    with patch('handlers.translation_handler.GlossaryHandler'), \
-         patch('handlers.translation_handler.AIPromptComposer'), \
-         patch('handlers.translation_handler.TranslationUIHandler'), \
-         patch('handlers.translation_handler.AILifecycleManager'), \
-         patch('handlers.translation_handler.TranslationSessionManager'), \
-         patch('handlers.translation_handler.QTimer'):
+    with patch('handlers.translation.facade.handler.GlossaryHandler'), \
+         patch('handlers.translation.facade.handler.AIPromptComposer'), \
+         patch('handlers.translation.facade.handler.TranslationUIHandler'), \
+         patch('handlers.translation.facade.handler.AILifecycleManager'), \
+         patch('handlers.translation.facade.handler.TranslationSessionManager'), \
+         patch('handlers.translation.facade.handler.QTimer'):
         handler = TranslationHandler(mw, dp, ui)
         
         # We should NOT mock ai_lifecycle_manager again so we can verify its methods
@@ -68,7 +68,7 @@ def test_th_glossary_delegation(th):
 def test_th_append_selection_to_glossary(th):
     # No selection
     th.mw.preview_text_edit.get_selected_lines.return_value = []
-    with patch('handlers.translation_handler.QMessageBox') as mock_box:
+    with patch('handlers.translation.facade.glossary_proxy_mixin.QMessageBox') as mock_box:
         th.append_selection_to_glossary()
         mock_box.information.assert_called_once()
     
@@ -79,7 +79,7 @@ def test_th_append_selection_to_glossary(th):
     
     th.glossary_handler.add_glossary_entry.assert_called_with("line 0\nline 1", None, "")
 
-@patch('handlers.translation_handler.GeminiProvider')
+@patch('handlers.translation.facade.session_mixin.GeminiProvider')
 def test_th_reset_translation_session(mock_gemini, th):
     # Dict must have some key otherwise `if provider_settings:` will evaluate to False
     th.mw.translation_config = {'provider': 'gemini', 'providers': {'gemini': {'k': 'v'}}}
@@ -96,8 +96,8 @@ def test_th_resolve_base_timeout_uses_provider_settings(th):
 
     assert th._resolve_base_timeout(provider) == 47
 
-@patch('handlers.translation_handler.PromptEditorDialog')
-@patch('handlers.translation_handler.is_control_modifier_pressed')
+@patch('handlers.translation.facade.session_mixin.PromptEditorDialog')
+@patch('handlers.translation.facade.session_mixin.is_control_modifier_pressed')
 def test_th_maybe_edit_prompt(mock_is_pressed, mock_dialog, th):
     mock_is_pressed.return_value = False
     th.mw.prompt_editor_enabled = False
@@ -121,7 +121,7 @@ def test_th_maybe_edit_prompt(mock_is_pressed, mock_dialog, th):
     assert res == ("ns", "nu")
     assert th._cached_system_prompt == "ns"
 
-@patch('handlers.translation_handler.QMessageBox')
+@patch('handlers.translation.facade.session_mixin.QMessageBox')
 def test_th_prompt_for_revert_after_cancel(mock_box, th):
     # No worker
     th.worker = None
@@ -155,7 +155,7 @@ def test_th_prompt_for_revert_after_cancel(mock_box, th):
     assert 1 not in th.pre_translation_state
     th.ui_handler.finish_ai_operation.assert_called_once()
 
-@patch('handlers.translation_handler.QMessageBox')
+@patch('handlers.translation.facade.session_mixin.QMessageBox')
 def test_th_prompt_for_revert_after_cancel_chapter(mock_box, th):
     th.ui_handler.reset_mock()
     th.worker = MagicMock()
@@ -179,7 +179,7 @@ def test_th_prompt_for_revert_after_cancel_chapter(mock_box, th):
     th.ui_updater.populate_current_view.assert_called_with(force=True)
 
 
-@patch('handlers.translation_handler.QMessageBox')
+@patch('handlers.translation.facade.translate_mixin.QMessageBox')
 def test_th_translate_current_string(mock_box, th):
     th.is_ai_running = True
     th.translate_current_string()
@@ -266,7 +266,7 @@ def test_th_translate_current_block_chapter(mock_box, th):
         }
 
 
-@patch('handlers.translation_handler.QMessageBox')
+@patch('handlers.translation.facade.translate_mixin.QMessageBox')
 def test_th_resume_block_translation(mock_box, th):
     th.translation_progress = {}
     th.resume_block_translation(0)
@@ -427,7 +427,7 @@ def test_translate_all_blocks_chronologically(th):
         assert task_details['temp_id_map'][2] == (0, 1)
 
 
-@patch('handlers.translation_handler.QMessageBox')
+@patch('handlers.translation.facade.translate_mixin.QMessageBox')
 def test_translate_all_blocks_chronologically_resume_yes(mock_box, th):
     th.mw.data_store.data = [["s1"]]
     th.translation_progress = {
@@ -454,7 +454,7 @@ def test_translate_all_blocks_chronologically_resume_yes(mock_box, th):
         assert task_details['temp_id_map'] == {0: (0, 0)}
 
 
-@patch('handlers.translation_handler.QMessageBox')
+@patch('handlers.translation.facade.translate_mixin.QMessageBox')
 def test_translate_all_blocks_chronologically_resume_no(mock_box, th):
     th.mw.data_store.data = [["s1"]]
     th.translation_progress = {

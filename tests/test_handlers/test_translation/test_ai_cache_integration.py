@@ -60,8 +60,8 @@ def translation_handler(mock_mw):
     mock_mw.data_processor = dsp
     
     # Avoid doing QTimer single shot in unit tests if not needed
-    with patch('handlers.translation_handler.TranslationUIHandler'), \
-         patch('handlers.translation_handler.AIPromptComposer'), \
+    with patch('handlers.translation.facade.handler.TranslationUIHandler'), \
+         patch('handlers.translation.facade.handler.AIPromptComposer'), \
          patch('PyQt6.QtCore.QTimer.singleShot'):
         handler = TranslationHandler(mock_mw, dsp, mock_mw.ui_updater)
         handler.ui_handler = MagicMock()

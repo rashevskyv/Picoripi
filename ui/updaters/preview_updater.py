@@ -1,21 +1,15 @@
 from typing import Optional, Any
 from collections import OrderedDict
 from PyQt6.QtCore import QTimer
-# Re-exported so tests can patch these names on this module; late-bound into
-# text_views_mixin via _ShimName below. preview_renderer also looks up QTextCursor here.
-from PyQt6.QtGui import QTextCursor
-
-from utils.utils import calculate_strict_string_width
 from core.glossary_manager import GlossaryOccurrence
 from .base_ui_updater import BaseUIUpdater
 from utils.logging_utils import log_debug
 from .preview_cache import PreviewCache
 from .preview_renderer import PreviewRenderer
 from .text_views_mixin import TextViewsMixin
-import ui.updaters.text_views_mixin as _text_views_mixin
 from core.data_store import ViewKind, get_view_kind
 
-__all__ = ["PreviewUpdater", "QTextCursor", "calculate_strict_string_width"]
+__all__ = ["PreviewUpdater"]
 
 
 class PreviewUpdater(TextViewsMixin, BaseUIUpdater):
@@ -613,27 +607,3 @@ class PreviewUpdater(TextViewsMixin, BaseUIUpdater):
             self.schedule_pre_cache()
 
 
-class _ShimName:
-    """Late-bound name that always reads from this module."""
-
-    __slots__ = ("_name",)
-
-    def __init__(self, name: str):
-        object.__setattr__(self, "_name", name)
-
-    def _resolve(self):
-        import sys
-        return getattr(sys.modules[__name__], object.__getattribute__(self, "_name"))
-
-    def __call__(self, *args, **kwargs):
-        return self._resolve()(*args, **kwargs)
-
-    def __getattr__(self, item):
-        return getattr(self._resolve(), item)
-
-    def __repr__(self):
-        return repr(self._resolve())
-
-
-_text_views_mixin.QTextCursor = _ShimName("QTextCursor")
-_text_views_mixin.calculate_strict_string_width = _ShimName("calculate_strict_string_width")

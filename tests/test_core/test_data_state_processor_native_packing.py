@@ -61,7 +61,7 @@ def test_save_current_edits_native_packing():
     with patch("core.containers.ContainerManager.open") as mock_cm_open, \
          patch("core.formats.write_file", return_value=(True, None)) as mock_write_file, \
          patch("core.data_processor.save_mixin.atomic_write_bytes") as mock_archive_write, \
-         patch("core.data_state_processor.Path") as mock_path:
+         patch("core.data_processor.save_mixin.Path") as mock_path:
 
          # Mock path exists and writes
          mock_path_instance = MagicMock()
@@ -150,7 +150,7 @@ def test_save_current_edits_native_packing_exceeds_size():
     with patch("core.containers.ContainerManager.open") as mock_cm_open, \
          patch("core.formats.write_file", return_value=(True, None)), \
          patch("core.data_processor.save_mixin.atomic_write_bytes"), \
-         patch("core.data_state_processor.Path") as mock_path:
+         patch("core.data_processor.save_mixin.Path") as mock_path:
 
          mock_path_instance = MagicMock()
          mock_path_instance.exists.return_value = True

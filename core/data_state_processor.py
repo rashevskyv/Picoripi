@@ -7,38 +7,10 @@ from .data_manager import save_json_file, save_text_file
 from .data_processor.session_manager import SessionManager
 from .data_processor.revert_manager import RevertManager
 from .data_processor.set_calculator import SetCalculator
-from .data_processor import save_mixin as _save_mixin
 from .data_processor.ui_msg_mixin import UiMsgMixin
 from .data_processor.query_mixin import QueryMixin
 from .data_processor.save_mixin import SaveMixin
 
-
-class _ShimName:
-    """Late-bound name that always reads from this module."""
-
-    __slots__ = ("_name",)
-
-    def __init__(self, name: str):
-        object.__setattr__(self, "_name", name)
-
-    def _resolve(self):
-        import sys
-        return getattr(sys.modules[__name__], object.__getattribute__(self, "_name"))
-
-    def __call__(self, *args, **kwargs):
-        return self._resolve()(*args, **kwargs)
-
-    def __getattr__(self, item):
-        return getattr(self._resolve(), item)
-
-    def __repr__(self):
-        return repr(self._resolve())
-
-
-# Tests patch these on core.data_state_processor; SaveMixin uses them as globals.
-_save_mixin.Path = _ShimName("Path")
-_save_mixin.save_json_file = _ShimName("save_json_file")
-_save_mixin.save_text_file = _ShimName("save_text_file")
 
 __all__ = [
     "DataStateProcessor",

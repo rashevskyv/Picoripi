@@ -134,7 +134,7 @@ def test_studio_hierarchy_line_styles_are_cached_until_marks_change(qapp, monkey
         return {mark.start_line: (mark.type_id, "#ffffff") for mark in marks}
 
     monkeypatch.setattr(
-        "ui.script_markup_studio_dialog.line_styles_for_marks",
+        "ui.script_markup.mixins.search_view_mixin.line_styles_for_marks",
         fake_line_styles_for_marks,
     )
 
@@ -180,7 +180,7 @@ def test_studio_large_hierarchy_second_refresh_reuses_caches(qapp, monkeypatch):
         return original_make_tree_item(*args, **kwargs)
 
     monkeypatch.setattr(
-        "ui.script_markup_studio_dialog.line_styles_for_marks",
+        "ui.script_markup.mixins.search_view_mixin.line_styles_for_marks",
         fake_line_styles_for_marks,
     )
     monkeypatch.setattr(dialog, "_make_tree_item", counting_make_tree_item)
@@ -215,7 +215,7 @@ def test_studio_large_hierarchy_text_change_keeps_mark_dependent_caches(qapp, mo
         return {mark.start_line: (mark.type_id, "#ffffff") for mark in marks}
 
     monkeypatch.setattr(
-        "ui.script_markup_studio_dialog.line_styles_for_marks",
+        "ui.script_markup.mixins.search_view_mixin.line_styles_for_marks",
         fake_line_styles_for_marks,
     )
 

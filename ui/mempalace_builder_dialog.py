@@ -14,38 +14,11 @@ from ui.mempalace.hierarchy_mixin import MemePalaceHierarchyMixin
 from ui.mempalace.dialogue_mixin import MemePalaceDialogueMixin
 from ui.mempalace.analysis_mixin import MemePalaceAnalysisMixin
 from ui.mempalace.session_mixin import MemePalaceSessionMixin
-from ui.mempalace import analysis_mixin as _analysis_mixin
 from ui.mempalace.constants import (
     _HIERARCHY_HASH_KEY,
     _HIERARCHY_PATH_KEY,
     _HIERARCHY_VERSION_KEY,
 )
-
-
-class _ShimName:
-    """Late-bound name that always reads from this shim module."""
-
-    __slots__ = ("_name",)
-
-    def __init__(self, name: str):
-        object.__setattr__(self, "_name", name)
-
-    def _resolve(self):
-        import sys
-        return getattr(sys.modules[__name__], object.__getattribute__(self, "_name"))
-
-    def __call__(self, *args, **kwargs):
-        return self._resolve()(*args, **kwargs)
-
-    def __getattr__(self, item):
-        return getattr(self._resolve(), item)
-
-    def __repr__(self):
-        return repr(self._resolve())
-
-
-# Tests patch ui.mempalace_builder_dialog.MemePalaceChapterAIAnalyzerWorker
-_analysis_mixin.MemePalaceChapterAIAnalyzerWorker = _ShimName("MemePalaceChapterAIAnalyzerWorker")
 
 
 class MemePalaceBuilderDialog(

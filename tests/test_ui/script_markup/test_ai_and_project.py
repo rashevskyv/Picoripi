@@ -495,7 +495,7 @@ def test_studio_prepares_ai_markup_jobs_by_structure_when_full_prompt_is_too_lar
         )
 
     monkeypatch.setattr(
-        "ui.script_markup_studio_dialog.build_hierarchy_auto_markup_messages",
+        "ui.script_markup.mixins.hierarchy_ai_mixin.build_hierarchy_auto_markup_messages",
         fake_builder,
     )
 
@@ -513,7 +513,7 @@ def test_studio_ai_markup_reports_raw_line_when_even_single_scope_is_too_large(q
     dialog._refresh()
 
     monkeypatch.setattr(
-        "ui.script_markup_studio_dialog.build_hierarchy_auto_markup_messages",
+        "ui.script_markup.mixins.hierarchy_ai_mixin.build_hierarchy_auto_markup_messages",
         lambda _payload, max_prompt_chars=None: (_ for _ in ()).throw(
             HierarchyAIPromptTooLarge("full prompt too large")
         ),
@@ -552,7 +552,7 @@ def test_studio_ai_markup_prepares_unstructured_scope_outside_structures(qapp, m
         )
 
     monkeypatch.setattr(
-        "ui.script_markup_studio_dialog.build_hierarchy_auto_markup_messages",
+        "ui.script_markup.mixins.hierarchy_ai_mixin.build_hierarchy_auto_markup_messages",
         fake_builder,
     )
 

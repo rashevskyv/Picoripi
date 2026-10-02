@@ -215,7 +215,7 @@ def test_TextOperationHandler_text_edited_early_returns(handler, mock_mw):
     handler.text_edited()
     mock_mw.data_processor.update_edited_data.assert_not_called()
 
-@patch('handlers.text_operation_handler.QMessageBox')
+@patch('handlers.text_operation.edit_mixin.QMessageBox')
 def test_TextOperationHandler_paste_block_text_errors(mock_mbox, handler, mock_mw):
     mock_mw.current_block_idx = -1
     handler.paste_block_text()
@@ -227,7 +227,7 @@ def test_TextOperationHandler_paste_block_text_errors(mock_mbox, handler, mock_m
     handler.paste_block_text()
     mock_mbox.warning.assert_called_once()
 
-@patch('handlers.text_operation_handler.QMessageBox')
+@patch('handlers.text_operation.edit_mixin.QMessageBox')
 def test_TextOperationHandler_calculate_width(mock_mbox, handler, mock_mw):
     mock_mw.current_block_idx = -1
     handler.calculate_width_for_data_line_action(0)
@@ -250,12 +250,12 @@ def test_TextOperationHandler_calculate_width(mock_mbox, handler, mock_mw):
     analyzer.analyze_data_string.return_value = [{"P"}]
     mock_mw.current_game_rules.problem_analyzer = analyzer
     
-    with patch('handlers.text_operation_handler.QMessageBox') as mock_dlg:
-        with patch('handlers.text_operation_handler.calculate_string_width', return_value=120):
+    with patch('handlers.text_operation.edit_mixin.QMessageBox') as mock_dlg:
+        with patch('handlers.text_operation.edit_mixin.calculate_string_width', return_value=120):
             handler.calculate_width_for_data_line_action(0)
             mock_dlg.return_value.exec.assert_called_once()
 
-@patch('handlers.text_operation_handler.QMessageBox')
+@patch('handlers.text_operation.autofix_mixin.QMessageBox')
 def test_TextOperationHandler_autofix_errors(mock_mbox, handler, mock_mw):
     mock_mw.current_block_idx = -1
     handler.auto_fix_current_string()
@@ -278,7 +278,7 @@ def test_TextOperationHandler_autofix_errors(mock_mbox, handler, mock_mw):
     mock_mw.statusBar.showMessage.assert_called_with("Auto-fix: No changes made.", 2000)
 
 
-@patch('handlers.text_operation_handler.QTextCursor')
+@patch('handlers.text_operation.preview_mixin.QTextCursor')
 def test_TextOperationHandler_update_preview_content_partial(mock_cursor_cls, handler, mock_mw):
     mock_mw.data = [["str0", "str1"]]
     mock_mw.displayed_string_indices = [0, 1]
@@ -353,7 +353,7 @@ def test_TextOperationHandler_on_issue_scan_finished(handler, mock_mw):
     handler.ui_updater.update_block_item_text_with_problem_count.assert_called_with(0)
     handler.ui_updater.update_text_views.assert_not_called()
 
-@patch('handlers.text_operation_handler.AutofixSelectionDialog')
+@patch('handlers.text_operation.autofix_mixin.AutofixSelectionDialog')
 @patch('PyQt6.QtWidgets.QApplication.keyboardModifiers')
 @patch('handlers.text_operation_handler.convert_dots_to_spaces_from_editor', side_effect=lambda x: x)
 @patch('handlers.text_operation_handler.QTextCursor')

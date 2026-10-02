@@ -225,10 +225,10 @@ def test_maybe_edit_prompt_with_ctypes_ctrl_pressed(qapp):
     
     handler = TranslationHandler(mw, MagicMock(), MagicMock())
     
-    with patch('handlers.translation_handler.is_control_modifier_pressed', _ORIGINAL_IS_CONTROL_MODIFIER_PRESSED), \
+    with patch('handlers.translation.facade.session_mixin.is_control_modifier_pressed', _ORIGINAL_IS_CONTROL_MODIFIER_PRESSED), \
          patch('ctypes.windll.user32.GetAsyncKeyState') as mock_get_async_key_state, \
          patch('ctypes.windll.user32.GetKeyState') as mock_get_key_state, \
-         patch('handlers.translation_handler.PromptEditorDialog') as mock_dialog_class:
+         patch('handlers.translation.facade.session_mixin.PromptEditorDialog') as mock_dialog_class:
          
         # Simulate Ctrl is pressed (high-order bit set)
         mock_get_async_key_state.return_value = 0x8000

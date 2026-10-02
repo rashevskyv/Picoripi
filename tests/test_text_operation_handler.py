@@ -69,8 +69,8 @@ class MockContext(MagicMock):
     def update_title(self): pass
     def get_font_map_for_string(self, b, s): return {}
 
-@patch('handlers.text_operation_handler.get_scanner_thread_pool')
-@patch('handlers.text_operation_handler.AsyncIssueScanner')
+@patch('handlers.text_operation.preview_mixin.get_scanner_thread_pool')
+@patch('handlers.text_operation.preview_mixin.AsyncIssueScanner')
 def test_text_edited_basic(mock_async_scanner, mock_get_pool):
     ctx = MockContext()
     data_processor = MagicMock()
@@ -110,9 +110,9 @@ def test_revert_line():
     data_processor.update_edited_data.assert_called_with(0, 0, "Original line 1", action_type="REVERT")
 
 def test_fix_all_strings_target_strings():
-    with patch('handlers.text_operation_handler.AutofixSelectionDialog') as mock_dialog_class, \
-         patch('handlers.text_operation_handler.QProgressDialog') as mock_progress_class, \
-         patch('handlers.text_operation_handler.AutofixWorker') as mock_worker_class:
+    with patch('handlers.text_operation.autofix_mixin.AutofixSelectionDialog') as mock_dialog_class, \
+         patch('handlers.text_operation.autofix_mixin.QProgressDialog') as mock_progress_class, \
+         patch('handlers.text_operation.autofix_mixin.AutofixWorker') as mock_worker_class:
         mock_dialog = MagicMock()
         mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
         mock_dialog.get_selected_problems.return_value = ["some_problem"]
