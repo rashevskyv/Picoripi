@@ -219,7 +219,12 @@ class GlossaryBuilderHandler:
             try:
                 aggregated_terms = json.loads(response.text or '[]')
             except Exception:
-                aggregated_terms = []
+                aggregated_terms = None
+        if not isinstance(aggregated_terms, list):
+            # Anything but a list of terms is a failed build, not "no new terms".
+            QMessageBox.warning(self.mw, tr('AI Error'), tr('Could not parse AI response.'))
+            self._cleanup_worker()
+            return
 
         manager = self._glossary_manager
         if not manager:

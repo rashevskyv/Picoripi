@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QApplication
 from .base_translation_handler import BaseTranslationHandler
 from core.translation.providers import BaseTranslationProvider, ProviderResponse, GeminiProvider
 from dialogs.cached_translation_dialog import CachedTranslationDialog
-from utils.logging_utils import log_debug, log_warning
+from utils.logging_utils import log_debug, log_error, log_warning
 from utils.utils import is_control_modifier_pressed
 from core.translation.chunk_result import verify_chunk_ids
 from core.translation.layout_contract import (
@@ -27,6 +27,13 @@ class AIBatchTranslator(BaseTranslationHandler):
             if key in item and item[key] is not None:
                 return str(item[key])
         return ""
+
+    @staticmethod
+    def _translated_items(parsed_json: Any) -> List[Dict[str, Any]]:
+        """The reply's translated items; ValueError unless it is {translated_strings: [...]}."""
+        if not isinstance(parsed_json, dict) or not isinstance(parsed_json.get("translated_strings"), list):
+            raise ValueError("AI response is not {translated_strings: [...]}")
+        return [item for item in parsed_json["translated_strings"] if isinstance(item, dict)]
 
     def _validate_batch_layouts(
         self,
@@ -402,10 +409,10 @@ class AIBatchTranslator(BaseTranslationHandler):
     def handle_chunk_translated(self, chunk_index: int, chunk_text: str, context: Dict[str, Any]) -> None:
         """Internal helper to handle chunk translated."""
         log_debug(f"Received translated chunk {chunk_index}. Raw AI response:\n{chunk_text}")
+        group_open = False
         try:
             block_idx = context['block_idx']
-            parsed_json = json.loads(chunk_text)
-            translated_strings = parsed_json.get("translated_strings", [])
+            translated_strings = self._translated_items(json.loads(chunk_text))
             chunks = context.get('calculated_chunks')
             current_chunk = chunks[chunk_index] if (chunks and chunk_index < len(chunks)) else None
             source_items_for_chunk = current_chunk or context.get('source_items', [])
@@ -420,6 +427,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                 block_idx,
             )
             self.mw.undo_manager.begin_group()
+            group_open = True
 
             temp_id_map = context.get('temp_id_map')
             modified_blocks = set()
@@ -495,7 +503,8 @@ class AIBatchTranslator(BaseTranslationHandler):
                     self.main_handler.current_session_translations[real_block_idx].append((real_string_idx, final_text))
 
             self.mw.undo_manager.end_group("TRANSLATE")
-            
+            group_open = False
+
             saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
             if saved_mgr:
                 for b_idx, items in translations_by_block.items():
@@ -560,6 +569,15 @@ class AIBatchTranslator(BaseTranslationHandler):
                 
         except (json.JSONDecodeError, ValueError) as e:
             self.main_handler._handle_ai_error(f"Failed to process chunk {chunk_index + 1}: {e}", context)
+        except Exception as e:
+            # A reply of an unexpected shape must end as an AI error, not as an
+            # unhandled exception in a Qt slot.
+            log_error(f"BatchTranslator: chunk {chunk_index + 1} could not be applied: {e}", exc_info=True)
+            self.main_handler._handle_ai_error(f"Failed to process chunk {chunk_index + 1}: {e}", context)
+        finally:
+            if group_open:
+                # Never leave the undo group open: every later edit would join it.
+                self.mw.undo_manager.end_group("TRANSLATE")
 
     def handle_preview_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         """Internal helper to handle preview translation success."""
@@ -568,9 +586,9 @@ class AIBatchTranslator(BaseTranslationHandler):
         cleaned_text = self.main_handler.ai_lifecycle_manager._clean_model_output(response, expect_json=True)
         log_debug(f"handle_preview_translation_success: cleaned_text length={len(cleaned_text)}")
         
+        group_open = False
         try:
-            parsed_json = json.loads(cleaned_text)
-            translated_strings = parsed_json.get("translated_strings")
+            translated_strings = self._translated_items(json.loads(cleaned_text))
             source_items = context.get('source_items', [])
             validated_translations = self._validate_batch_layouts(
                 translated_strings,
@@ -581,7 +599,8 @@ class AIBatchTranslator(BaseTranslationHandler):
             )
 
             self.mw.undo_manager.begin_group()
-                
+            group_open = True
+
             self.main_handler.ui_handler.update_ai_operation_step(4, self.main_handler.ui_handler.status_dialog.steps[4], self.main_handler.ui_handler.status_dialog.STATUS_IN_PROGRESS)
             
             temp_id_map = context.get('temp_id_map')
@@ -667,6 +686,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                     translations_by_block[real_block_idx].append((real_string_idx, final_text))
 
             self.mw.undo_manager.end_group("TRANSLATE")
+            group_open = False
 
             saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
             if saved_mgr:
@@ -706,6 +726,12 @@ class AIBatchTranslator(BaseTranslationHandler):
 
         except (json.JSONDecodeError, ValueError) as e:
             self.main_handler._handle_ai_error(f"Validation failed: {e}", context)
+        except Exception as e:
+            log_error(f"BatchTranslator: translation could not be applied: {e}", exc_info=True)
+            self.main_handler._handle_ai_error(f"Validation failed: {e}", context)
+        finally:
+            if group_open:
+                self.mw.undo_manager.end_group("TRANSLATE")
 
     def handle_single_translation_success(self, response: ProviderResponse, context: Dict[str, Any]) -> None:
         """Internal helper to handle single translation success."""

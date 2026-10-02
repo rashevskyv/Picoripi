@@ -400,3 +400,20 @@ def test_ai_worker_build_glossary_exception_handling():
     assert len(emitted_errors) == 1
     err_msg, details = emitted_errors[0]
     assert "Provider connection failed" in err_msg
+
+
+@pytest.mark.parametrize("response", [
+    ProviderResponse(raw_payload=None, text='{"terms": "not a list"}'),
+    ProviderResponse(raw_payload=None, text='not json'),
+])
+@patch('handlers.translation.glossary_builder_handler.QMessageBox')
+def test_gbh_a_reply_that_is_not_a_term_list_is_an_error_not_no_new_terms(mock_box, gbh, response):
+    mock_mgr = MagicMock()
+    gbh._glossary_manager = mock_mgr
+
+    gbh._on_glossary_success(response, {}, MagicMock())
+
+    mock_box.warning.assert_called_once()
+    mock_box.information.assert_not_called()
+    mock_mgr.add_entry.assert_not_called()
+    mock_mgr.save_to_disk.assert_not_called()

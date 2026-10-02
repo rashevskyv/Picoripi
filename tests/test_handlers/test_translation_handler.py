@@ -898,3 +898,44 @@ def test_translation_ui_handler_activate_entry_resolves_physical_block_in_tree(q
     lsh.select_string_by_absolute_index.assert_called_once_with(7)
 
 
+
+
+@pytest.mark.parametrize("chunk_text", [
+    '[]',
+    'null',
+    '{"translated_strings": "x"}',
+    '{"translated_strings": [1, 2]}',
+])
+def test_th_handle_chunk_translated_rejects_a_reply_of_the_wrong_shape(th, chunk_text):
+    ctx = {'block_idx': 1, 'source_items': [{'id': 0, 'text': 's'}]}
+    th.translation_progress = {1: {'completed_chunks': set(), 'total_chunks': 1}}
+
+    th._handle_chunk_translated(0, chunk_text, ctx)
+
+    th.data_processor.update_edited_data.assert_not_called()
+    th.ai_lifecycle_manager._handle_task_error.assert_called_once()
+    th.mw.undo_manager.begin_group.assert_not_called()
+    assert th.translation_progress[1]['completed_chunks'] == set()
+
+
+def test_th_handle_chunk_translated_closes_the_undo_group_when_applying_fails(th):
+    ctx = {'block_idx': 1, 'source_items': [{'id': 0, 'text': 's'}]}
+    th.translation_progress = {1: {'completed_chunks': set(), 'total_chunks': 1}}
+    th.data_processor.is_string_translated.side_effect = RuntimeError("store is gone")
+
+    th._handle_chunk_translated(0, '{"translated_strings": [{"id": 0, "translation": "t"}]}', ctx)
+
+    th.mw.undo_manager.begin_group.assert_called_once()
+    th.mw.undo_manager.end_group.assert_called_once_with("TRANSLATE")
+    th.ai_lifecycle_manager._handle_task_error.assert_called_once()
+
+
+@pytest.mark.parametrize("cleaned", ['[]', 'null', '{"translated_strings": "x"}'])
+def test_th_handle_preview_translation_rejects_a_reply_of_the_wrong_shape(th, cleaned):
+    th.ai_lifecycle_manager._clean_model_output.return_value = cleaned
+
+    th._handle_preview_translation_success(ProviderResponse(), {'block_idx': 1, 'source_items': [{'id': 0, 'text': 's'}]})
+
+    th.data_processor.update_edited_data.assert_not_called()
+    th.ai_lifecycle_manager._handle_task_error.assert_called_once()
+    th.mw.undo_manager.begin_group.assert_not_called()
