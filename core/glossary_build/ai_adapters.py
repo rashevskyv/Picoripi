@@ -11,8 +11,9 @@ Placeholders in templates are substituted with ``str.replace`` rather than
 """
 from __future__ import annotations
 
-import json
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Sequence
+
+from utils.json_extract import ParseError, extract_json
 
 from .context_window import ContextWindow
 from .sweep_driver import RawTerm
@@ -34,53 +35,35 @@ def _strip_fences(text: str) -> str:
     return stripped
 
 
-def _first_json(text: str, opener: str, closer: str) -> Optional[str]:
-    """Slice the first balanced JSON array/object substring, or None."""
-    start = text.find(opener)
-    if start == -1:
-        return None
-    depth = 0
-    for i in range(start, len(text)):
-        ch = text[i]
-        if ch == opener:
-            depth += 1
-        elif ch == closer:
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-    return None
-
-
 def parse_json_array(text: str) -> List[Any]:
-    """Best-effort parse of a JSON array from a model reply."""
-    cleaned = _strip_fences(text)
-    for candidate in (cleaned, _first_json(cleaned, "[", "]")):
-        if not candidate:
-            continue
-        try:
-            data = json.loads(candidate)
-        except (ValueError, TypeError):
-            continue
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            return [data]
-    return []
+    """The JSON array in a model reply; a lone object counts as a one-item list.
+
+    Raises ``ParseError`` for a reply that holds neither. Returning ``[]`` there
+    made an unreadable reply look like "no terms in this chunk": the unit counted
+    as done and its terms were lost without a trace. Raised, the pool records a
+    failed unit and the retry pass picks it up.
+
+    A reply cut off mid-array keeps its complete items -- the next sweep of the
+    same chunk would be cut at the same place.
+    """
+    try:
+        return extract_json(text, "array")[0]
+    except ParseError:
+        return [extract_json(text, "object")[0]]
 
 
 def parse_json_object(text: str) -> Dict[str, Any]:
-    """Best-effort parse of a JSON object from a model reply."""
-    cleaned = _strip_fences(text)
-    for candidate in (cleaned, _first_json(cleaned, "{", "}")):
-        if not candidate:
-            continue
-        try:
-            data = json.loads(candidate)
-        except (ValueError, TypeError):
-            continue
-        if isinstance(data, dict):
-            return data
-    return {}
+    """The JSON object in a model reply, or ``{}`` when there is none.
+
+    Lenient on purpose: its callers accept a plain-prose answer (a description
+    written as text, "no name found"). A cut-off object is refused -- half a
+    description is not a description.
+    """
+    try:
+        value, notes = extract_json(text, "object")
+    except ParseError:
+        return {}
+    return {} if "truncated" in notes else value
 
 
 def _fill(template: str, **fields: str) -> str:

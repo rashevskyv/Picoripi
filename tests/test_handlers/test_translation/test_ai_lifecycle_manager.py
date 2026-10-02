@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -183,7 +185,8 @@ def test_ailm_clean_model_output(ailm):
     
     tag_text = "{Color:Red}Hello!"
     assert ailm._clean_model_output(tag_text, expect_json=False) == "{Color:Red}Hello!"
-    assert ailm._clean_model_output(tag_text, expect_json=True) == "{Color:Red}"
+    # A game tag is not JSON: the reply comes back whole instead of sliced to the tag.
+    assert ailm._clean_model_output(tag_text, expect_json=True) == "{Color:Red}Hello!"
     
     text3 = "No braces here"
     assert ailm._clean_model_output(text3, expect_json=False) == "No braces here"
@@ -191,7 +194,14 @@ def test_ailm_clean_model_output(ailm):
     
     array_with_tags = 'Some response [\n  "{Color:Red}Hello!",\n  "World!"\n] and text'
     assert ailm._clean_model_output(array_with_tags, expect_json=True) == '[\n  "{Color:Red}Hello!",\n  "World!"\n]'
-    
+
+    # Trailing prose with braces of its own, and a trailing comma: both used to
+    # come back as text json.loads rejects.
+    assert json.loads(ailm._clean_model_output('{"a": 1,}\nNote: {x} kept', expect_json=True)) == {"a": 1}
+    # A cut-off reply is handed back as it came, so the caller's json.loads fails loudly.
+    cut_off = '{"translated_strings": [{"id": 1}, {"id": 2'
+    assert ailm._clean_model_output(cut_off, expect_json=True) == cut_off
+
     assert ailm._trim_trailing_whitespace_from_lines("test  \nb  \n") == "test\nb\n"
 
 def test_ailm_perform_retry(ailm):

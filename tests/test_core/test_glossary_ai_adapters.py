@@ -6,6 +6,9 @@ robust parsing of messy JSON replies into typed driver inputs.
 import json
 from pathlib import Path
 
+import pytest
+
+from utils.json_extract import ParseError
 from core.glossary_build.ai_adapters import (
     make_extract,
     make_fold,
@@ -45,8 +48,20 @@ class TestParsing:
     def test_object_promoted_to_array(self):
         assert parse_json_array('{"term": "A"}') == [{"term": "A"}]
 
-    def test_garbage_returns_empty(self):
-        assert parse_json_array("not json at all") == []
+    def test_garbage_is_a_failed_unit_not_an_empty_result(self):
+        """An unreadable reply must not look like "no terms in this chunk"."""
+        with pytest.raises(ParseError):
+            parse_json_array("not json at all")
+
+    def test_an_empty_array_is_a_real_answer(self):
+        assert parse_json_array("[]") == []
+
+    def test_a_cut_off_array_keeps_its_complete_items(self):
+        assert parse_json_array('[{"term": "A"}, {"term": "B", "sec') == [{"term": "A"}, {"term": "B"}]
+
+    def test_object_parser_stays_lenient_for_prose_but_refuses_a_cut_off_object(self):
+        assert parse_json_object("just prose") == {}
+        assert parse_json_object('{"description": "half a sent') == {}
 
     def test_object_fenced(self):
         assert parse_json_object('```json\n{"description": "x"}\n```') == {"description": "x"}

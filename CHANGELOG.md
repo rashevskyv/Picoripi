@@ -4,6 +4,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 - wp1 1.1: `core/translation/transport.py` — `ErrorKind`, `TransportError`, `classify`, `TransportPolicy` (backoff + jitter, honours `Retry-After`, total deadline, cancellable waits), per-endpoint circuit breaker and concurrency gate; dead `core/glossary_build/retry.py` and `concurrency.py` removed.
 - wp1 1.2: every provider request runs under `TransportPolicy` — classified errors, `Retry-After` carried to the retry dialog (which now waits that long), one automatic retry for quick failures in the translation worker (never for a request that timed out), a per-provider circuit breaker; an empty or non-JSON reply is an error instead of a silent empty success; the Gemini custom-URL route shares the OpenAI path (gets `think`); API keys are masked in error text; block timeout is `max(180 s, user setting)`.
+- wp1 1.3: `utils/json_extract.py` replaces the three JSON cleaners — string-aware extraction, repairs (trailing commas, curly quotes, raw newlines), cut-off replies detected; an unreadable reply raises `ParseError` instead of becoming `[]`/`""` (legacy glossary build stops on a bad chunk; the pipeline counts it as a failed unit).
 - Qt pins follow the environment the app is developed and tested on: `PyQt6==6.11.0`, `PyQt6-Qt6==6.11.1`, `PyQt6-sip>=13.11` (the 6.6.1 pin was never installed locally).
 
 ## [0.3.142-dev] - 2026-10-01

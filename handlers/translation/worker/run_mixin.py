@@ -191,12 +191,9 @@ class AIWorkerRunMixin:
                         self._log_ai_traffic(messages)
                         response = self.provider.translate(messages, session=None, settings_override={"think": 1})
                         self._log_ai_traffic(messages, response_text=response.text)
-                        cleaned_text = self._clean_json_response(response.text)
-                        parsed = json.loads(cleaned_text) if cleaned_text else []
-                        if isinstance(parsed, list):
-                            aggregated_terms.extend(parsed)
-                        else:
-                            log_debug(f"AIWorker: Glossary chunk {idx + 1} returned non-list response: {parsed}")
+                        # ParseError when the chunk's reply is not a term list: a
+                        # dropped chunk must stop the build, not shrink it quietly.
+                        aggregated_terms.extend(json.loads(self._clean_json_response(response.text, "array")))
                     except (TranslationProviderError, json.JSONDecodeError) as exc:
                         self._log_ai_traffic(messages, error=str(exc))
                         if not self.is_cancelled:

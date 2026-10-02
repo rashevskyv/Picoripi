@@ -1,5 +1,6 @@
 # handlers/translation/ai_lifecycle_manager.py
 import math
+import re
 from typing import Dict, Optional, Union, Callable
 from PyQt6.QtCore import QThread, QTimer
 from PyQt6.QtWidgets import QMessageBox
@@ -14,6 +15,7 @@ from core.translation.providers import (
     GeminiProvider,
 )
 from core.translation.config import build_default_translation_config
+from utils.json_extract import ParseError, extract_json_text
 from utils.logging_utils import log_debug, log_warning, log_info
 from core.i18n import tr
 
@@ -340,33 +342,21 @@ class AILifecycleManager(BaseTranslationHandler):
         text = raw_output.text if isinstance(raw_output, ProviderResponse) else str(raw_output or '')
         if not text:
             return ""
-            
-        # 1. Try to find content inside triple backticks first
-        import re
+
+        if expect_json:
+            try:
+                return extract_json_text(text)
+            except ParseError:
+                # Not swallowed: the text goes back as it came, so the caller's
+                # own json.loads reports the failure in its own error path (and
+                # a plain-text reply still reaches the callers that accept one).
+                pass
+
         code_block_match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL | re.IGNORECASE)
         if code_block_match:
             return code_block_match.group(1).strip()
-            
-        if expect_json:
-            # 2. If no code blocks, find the outermost JSON structure (object or array)
-            first_bracket = text.find('[')
-            first_curly = text.find('{')
-            
-            start_idx = -1
-            if first_bracket != -1 and first_curly != -1:
-                start_idx = min(first_bracket, first_curly)
-            elif first_bracket != -1:
-                start_idx = first_bracket
-            elif first_curly != -1:
-                start_idx = first_curly
-                
-            if start_idx != -1:
-                end_char = ']' if text[start_idx] == '[' else '}'
-                last_idx = text.rfind(end_char)
-                if last_idx != -1 and last_idx > start_idx:
-                    return text[start_idx:last_idx + 1].strip()
-            
         return text.strip()
+
     def _trim_trailing_whitespace_from_lines(self, text: str) -> str:
         """Internal helper to trim trailing whitespace from lines."""
         if not text:

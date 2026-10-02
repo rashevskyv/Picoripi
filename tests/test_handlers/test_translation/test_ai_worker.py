@@ -43,13 +43,17 @@ def test_AIWorkerclean_json_response(worker_deps):
     
     assert worker._clean_json_response("```json\n{\"a\":1}\n```") == '{"a":1}'
     assert worker._clean_json_response("Some text { \"a\": 1 } more text") == '{ "a": 1 }'
-    assert worker._clean_json_response("Just text") == "Just text"
-    assert worker._clean_json_response("") == ""
-    
+    # No JSON at all is an error, not text handed on for json.loads to trip over.
+    for not_json in ("Just text", ""):
+        with pytest.raises(json.JSONDecodeError):
+            worker._clean_json_response(not_json)
+
     # Тести для видалення trailing commas
     invalid_json_object = '{"a": 1, "b": "hello",}'
-    assert worker._clean_json_response(invalid_json_object) == '{"a": 1, "b": "hello" }'
-    
+    assert json.loads(worker._clean_json_response(invalid_json_object)) == {"a": 1, "b": "hello"}
+    # An unfenced array keeps its brackets.
+    assert worker._clean_json_response('[{"a":1},{"b":2}]') == '[{"a":1},{"b":2}]'
+
     # Тест на ігнорування коми всередині лапок
     json_with_comma_in_string = '{"a": "привіт, }"}'
     assert worker._clean_json_response(json_with_comma_in_string) == '{"a": "привіт, }"}'
@@ -111,6 +115,28 @@ def test_AIWorker_run_build_glossary(worker_deps):
     mock_success.assert_called()
     emitted_response = mock_success.call_args[0][0]
     assert "test" in emitted_response.text
+
+def test_AIWorker_build_glossary_unreadable_chunk_is_an_error_not_a_silent_drop(worker_deps):
+    provider, prompt_composer = worker_deps
+    worker = AIWorker(provider, prompt_composer, {
+        'type': 'build_glossary',
+        'block_data': ['test'],
+        'target_indices': [0],
+        'chunk_size': 8000,
+        'dialog_steps': ['1', '2', '3', '4'],
+    })
+    mock_success = MagicMock()
+    mock_error = MagicMock()
+    worker.success.connect(mock_success)
+    worker.error.connect(mock_error)
+    provider.translate.return_value = ProviderResponse(text='{"note": "an object, not the term list"}')
+
+    worker.run()
+
+    mock_error.assert_called_once()
+    assert mock_error.call_args[0][1]['error_kind'] == 'parse'
+    mock_success.assert_not_called()
+
 
 def test_AIWorker_run_translate_block_chunked(worker_deps):
     provider, prompt_composer = worker_deps
