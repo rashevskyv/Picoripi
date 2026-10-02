@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QDialog, QMessageBox
 
 from core.translation.providers import BaseTranslationProvider, GeminiProvider
 from components.prompt_editor_dialog import PromptEditorDialog
+from handlers.translation.prompt_composer.instructions import strip_engine_rules
 from utils.logging_utils import log_debug
 from utils.utils import is_control_modifier_pressed
 from core.i18n import tr
@@ -82,9 +83,12 @@ class SessionMixin:
         edited_user = edited_user.rstrip()
 
         if save_requested and allow_save and save_section:
-            if self.glossary_handler.save_prompt_section(save_section, save_field, edited_system):
+            # Save the user's prompt only: the rules the engine appended for this
+            # kind of request would otherwise be frozen into every future prompt.
+            prompt_to_save = strip_engine_rules(edited_system)
+            if self.glossary_handler.save_prompt_section(save_section, save_field, prompt_to_save):
                 if save_section == 'translation' and save_field == 'system_prompt':
-                    self._cached_system_prompt = edited_system
+                    self._cached_system_prompt = prompt_to_save
         return edited_system, edited_user
 
     def _should_use_session(self, task_type: str) -> bool:

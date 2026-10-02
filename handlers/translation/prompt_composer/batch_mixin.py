@@ -9,6 +9,8 @@ from core.translation.story_context_bundle import glossary_names_from_story_bund
 from utils.logging_utils import log_debug
 from utils.utils import resolve_target_language_prompt
 
+from .instructions import append_engine_rules, batch_rules
+
 
 class BatchMixin:
     """Batch translation prompt composition."""
@@ -22,8 +24,6 @@ class BatchMixin:
         block_idx: Optional[int],
         mode_description: str,
         session_state: Optional[TranslationSessionState] = None,
-        is_retry: bool = False,
-        retry_reason: str = '',
         temp_id_map: Optional[Dict] = None,
         narrative_ledger: Optional[Any] = None,
         **kwargs: Any,
@@ -463,99 +463,12 @@ class BatchMixin:
             if narrative_text:
                 json_payload_for_ai['established_narrative_context'] = narrative_text
 
+        # The rules for this kind of request are fixed text appended to the system
+        # prompt (see instructions.py): identical for every chunk, so cacheable.
         target_lang = self._get_target_lang()
-        if not is_retry:
-            instructions = [
-                f'Translate the "text" field (original source) for each object in the "strings_to_translate" array into {target_lang}.',
-                'Return a single, valid JSON object with a "translated_strings" key.',
-                'The value of "translated_strings" must be an array of objects.',
-                'Each object in the returned array must have the original "id" (integer) and a "translation" (string) field.',
-                'The number of objects in the "translated_strings" array must exactly match the number of objects provided in the input.',
-                'LAYOUT PRIORITY: First try to preserve line_count, blank_line_indices, trailing-newline state, and window_count from each item\'s "layout" field. Translate each source line into the corresponding output line and prefer concise wording that stays within max_line_width_px. Never remove, merge, or reorder source lines. You may add the minimum necessary extra lines, and therefore an extra dialogue window, only when the translation cannot remain readable or fit the width otherwise.',
-                f'GLOSSARY IS MANDATORY: Every term found in the "glossary" field MUST be translated exactly as specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect the word endings to match {target_lang} grammar. Glossary overrides everything.',
-                'Carefully read the "Notes" column of the glossary for details about character gender, age, personality, speech style, and form of address (e.g. formal/informal). Apply this information to the entire translation.',
-                'Resolve each item\'s "story_context_ref" in "story_context_catalog". Use its event, location, participants, event-local interactions, character profiles, and known relationships. Apply only populated facts; do not invent missing context.',
-                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present), "speaker" and "addressee", to determine whether text is dialogue, a caption, a name, an item, or another UI role and translate it accordingly.',
-                'Follow the rules from the system prompt regarding tags.',
-                'NARRATIVE CANON: Strictly maintain consistency with any established terms, speaker voices, and decisions in "established_narrative_context".',
-                'TRANSCRIPTION RULES: Strictly follow proper name transcription and Japanese transliteration rules from the system prompt (e.g. G -> Ґ, H -> Г, Hyrule -> Гайрул, Hylia -> Гайлія, shi -> сі, chi -> ті, ji -> дзі, zero tolerance for Russianisms).',
-                'Do not add any explanations or text outside the JSON object.',
-            ]
-        else:
-            instructions = [
-                'Your previous response was invalid. Please correct it.',
-                f'Error: {retry_reason}',
-                'Follow these instructions carefully:',
-                f'Translate the "text" field (original source) for each object in the "strings_to_translate" array into {target_lang}.',
-                'Return a single, valid JSON object with a "translated_strings" key.',
-                'The value of "translated_strings" must be an array of objects.',
-                'Each object must have the original "id" and a "translation" field.',
-                'The number of objects must match the input.',
-                'LAYOUT PRIORITY: Try to match every item\'s "layout", including window_count, and translate source lines one-to-one. Never remove, merge, or reorder source lines. Prefer concise wording within max_line_width_px; add only the minimum necessary extra lines or dialogue windows when preserving the original count is not viable.',
-                'GLOSSARY IS MANDATORY: Every term in the "glossary" MUST be translated exactly as specified. No synonyms or alternatives allowed.',
-                'Resolve each item\'s "story_context_ref" in "story_context_catalog" and use it for event facts, location, participants, interactions, character voices, relationships, gender agreement, and forms of address. Do not invent missing facts.',
-                'Use per-item "window_type", "content_role", "story_structure", and "reference_item", plus "scene_context" (if present), "speaker" and "addressee", to determine the text role and tone.',
-                'Follow the rules from the system prompt regarding tags and proper name transcription.',
-                'NARRATIVE CANON: Strictly maintain consistency with any established terms, speaker voices, and decisions in "established_narrative_context".',
-                'Do not add any explanations or text outside the JSON object.',
-            ]
-
-        has_flow_items = any('flow_context' in it for it in items_with_context)
-        if dialogue_flow or has_flow_items:
-            instructions.append(
-                'DIALOGUE FLOW: The "dialogue_flow" field (and per-item "flow_context") describes the real '
-                'in-game conversation graphs extracted from the game data: the order lines are spoken in, '
-                'player choices, the conditions under which a line appears (e.g. wolf form, not enough rupees) '
-                'and game actions that follow it. Use this to keep replies coherent with their questions, '
-                'match choice answers to the choice prompt, and pick the correct tone and referents.'
-            )
-
-        # Role instructions come from the plugin verbatim: the engine inserts the
-        # text without knowing what the role means. Deduplicated in first-seen
-        # order so a role shared by many items is stated once.
-        seen_roles = set()
-        for item in items_with_context:
-            role = item.get('content_role')
-            instruction = item.get('role_instruction')
-            if not instruction or role in seen_roles:
-                continue
-            seen_roles.add(role)
-            instructions.append(str(instruction))
-
-        if any(it.get('addressee') for it in items_with_context):
-            instructions.append(
-                'ADDRESSEE: The "addressee" field names who the line is spoken TO. '
-                'Use it to choose the form of address the target language requires '
-                '(politeness level, formal vs familiar "you", gendered forms) and to '
-                'keep that choice consistent for the same pair of characters.'
-            )
-
-        if tag_alias_legend:
-            instructions.append('TAG ALIAS LEGEND: Use the "tag_alias_legend" field in the JSON payload to understand the meaning of tag aliases (e.g. colors, speed). Place these tag aliases correctly around the corresponding translated words.')
-        instructions.append('ANCHORED TAGS: Any tags not present in the "tag_alias_legend" are anchored system tags (e.g. {0}, {1}, [PLAYER]). Do NOT translate, modify, or delete them. Keep them exactly in their correct relative positions in the translation.')
-        has_ref_translations = any('reference_translations' in it for it in items_with_context)
-        if has_ref_translations:
-            instructions.append(
-                f'REFERENCE TRANSLATIONS CONTEXT: The "text" field is the primary original source text to translate. '
-                f'Loaded reference translations (in "reference_translations") '
-                f'are contextual evidence for meaning, speaker tone, and gender only. '
-                f'Do NOT translate from any reference language into {target_lang}, '
-                f'and do NOT copy a reference translation as the {target_lang} result.'
-            )
-
-        # Add a note about text unity to the system prompt
-        system_prompt_addition = (
-            "IMPORTANT: All text chunks you receive in a single request are part of a larger, "
-            "cohesive block of text. Ensure your translations are consistent in style, tone, "
-            "and terminology across all chunks. Context priority: preserve source meaning and tags; "
-            "obey glossary translations; use event/location/participant facts; apply relationship and "
-            "address rules; then preserve each current speaker's voice profile. Context describes the "
-            "source scene and must never be copied into the translation as extra text. OUTPUT SHAPE IS "
-            "IMMUTABLE: preserve every source line boundary and blank line; never reflow text."
+        final_system_prompt = resolve_target_language_prompt(
+            append_engine_rules(system_prompt, batch_rules(system_prompt)), target_lang
         )
-
-        final_system_prompt = f"{system_prompt}\n\n{system_prompt_addition}"
-        final_system_prompt = resolve_target_language_prompt(final_system_prompt, target_lang)
         combined_system = self._prepare_glossary_for_prompt(final_system_prompt, session_state, is_batch_translation=True)
 
         game_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else 'Unknown game'
@@ -568,7 +481,6 @@ class BatchMixin:
 
         user_sections = [
             '\n'.join(context_lines),
-            'INSTRUCTIONS:\n' + '\n'.join(f'- {instr}' for instr in instructions),
             'JSON DATA TO PROCESS:\n' + json.dumps(json_payload_for_ai, indent=2, ensure_ascii=False),
         ]
         user_content = '\n\n'.join(user_sections)

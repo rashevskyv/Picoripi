@@ -32,6 +32,10 @@ the line when it is done or moved into a plan.
   replayed half-way. Retrying the connection phase alone is possible if chat needs it.
 - **Provider profile has no settings-dialog control and no `/v1/models` probe** (WP1.5): the host rule plus
   the `"profile"` settings key cover it. Add a combo in `ui/settings/ai_mixin.py` if users need it.
+- **A test file depends on this machine's data.** `tests/test_handlers/test_ai_prompt_composer.py` builds
+  the composer on a bare `MagicMock` main window; the story-context code then finds and parses the real
+  script at `e:\Emulators\RomHacking\ZELDA\TP_UA\zelda_tp_script.txt` and queries MemPalace (the file takes
+  ~20 s and its "Story Context" sections come from that script). Stub `composer.story_context` in the fixture.
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.

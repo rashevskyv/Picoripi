@@ -287,7 +287,8 @@ def test_AIWorker_retry_adds_reminder(worker_deps):
         'type': 'translate_block_chunked',
         'source_items': ['A'],
         'composer_args': {},
-        'attempt': 2
+        'attempt': 2,
+        'last_error': 'Line count mismatch in chunk 1',
     }
     worker = AIWorker(provider, prompt_composer, task_details)
     
@@ -299,8 +300,10 @@ def test_AIWorker_retry_adds_reminder(worker_deps):
     call_messages = provider.translate.call_args[0][0]
     assert isinstance(call_messages, list)
     system_content = next(msg['content'] for msg in call_messages if msg.get('role') == 'system')
-    assert "IMPORTANT REMINDER FOR RETRY" in system_content
-    assert "trailing commas" in system_content
+    # The reminder quotes what was actually wrong, not a guess about trailing commas.
+    assert "RETRY: your previous response to this request was rejected." in system_content
+    assert "Reason: Line count mismatch in chunk 1" in system_content
+    assert "trailing commas" not in system_content
 
     # 2. Test other task attempt > 1 (e.g. translate_single)
     task_details_single = {
@@ -314,7 +317,7 @@ def test_AIWorker_retry_adds_reminder(worker_deps):
     
     call_messages_single = provider.translate.call_args[0][0]
     system_content_single = next(msg['content'] for msg in call_messages_single if msg.get('role') == 'system')
-    assert "IMPORTANT REMINDER FOR RETRY" in system_content_single
+    assert "RETRY: your previous response" in system_content_single
 
 
 def test_AIWorker_run_glossary_occurrence_batch_update_chunking(worker_deps):

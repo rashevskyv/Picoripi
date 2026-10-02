@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- wp2 2.1: the request rules are fixed text appended to the system prompt (`prompt_composer/instructions.py`) instead of an `INSTRUCTIONS` block rebuilt into every user message — the system prompt is byte-identical for every chunk (cacheable prefix ~2100 → ~3065 tok) and the user message carries data only; a retry quotes the real error; the prompt editor shows the rules but saves only the user's prompt.
 - wp2 2.0: `tools/measure_prompts.py` measures the single and batch translation prompts against a fixed fake project; baseline in `docs/audit/2026-10-01/measure_prompts_before.json` (single ~3010 tok, 12-item chunk ~5520 tok).
 
 ## [0.3.143-dev] - 2026-10-02

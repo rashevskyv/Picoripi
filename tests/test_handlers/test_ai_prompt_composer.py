@@ -401,7 +401,8 @@ def test_non_default_target_language_resolution(composer):
     # The helper replaces "Ukrainian" with target_language ("Spanish")
     assert "Spanish" in system
     assert "Ukrainian" not in system
-    assert "Spanish" in user
+    # The rules (and the target language in them) live in the system prompt now.
+    assert "into Spanish" in system
     assert "Ukrainian" not in user
 
     # 2. Single translation request
@@ -414,9 +415,8 @@ def test_non_default_target_language_resolution(composer):
         mode_description="Translate",
         request_type="translation"
     )
-    assert "Spanish" in system_single
+    assert "into Spanish" in system_single
     assert "Ukrainian" not in system_single
-    assert "Spanish" in user_single
     # "Ukrainian" should not be in the instructions
     assert "Ukrainian" not in user_single
 
@@ -432,7 +432,7 @@ def test_non_default_target_language_resolution(composer):
     )
     assert "Spanish" in system_var
     assert "Ukrainian" not in system_var
-    assert "Spanish" in user_var
+    assert "Spanish translation alternatives" in system_var
     assert "Ukrainian" not in user_var
 
     # 4. Glossary occurrence update request
@@ -791,8 +791,9 @@ def test_AIPromptComposer_tag_alias_legend_and_newlines(composer):
     assert "tag_alias_legend" in user
     assert "{Color:Red}" in user
     assert "{f:dummy}" not in user
-    assert "TAG ALIAS LEGEND" in user
-    assert "ANCHORED TAGS" in user
+    assert "TAG ALIAS LEGEND" in system
+    assert "ANCHORED TAGS" in system
+    assert "INSTRUCTIONS:" not in user
 
     # Test compose_messages collects tag_alias_legend
     system_msg, user_msg = composer.compose_messages(
@@ -810,7 +811,7 @@ def test_AIPromptComposer_tag_alias_legend_and_newlines(composer):
     assert "{f:dummy}" not in user_msg
     assert '"line_count": 2' in user
     assert "SOURCE LAYOUT TARGET" in user_msg
-    assert "add only the minimum necessary extra lines" in user_msg.lower()
+    assert "add only the minimum necessary extra lines" in system_msg.lower()
 
 
 def test_batch_prompt_keeps_source_whitespace_instead_of_reflowing(composer):
@@ -1054,26 +1055,27 @@ def test_prompts_include_reference_translations(composer):
     }
 
     # Test single string
-    _, single_user = composer.compose_messages(
+    single_system, single_user = composer.compose_messages(
         "SysPrompt", "Wake up!", block_idx=0, string_idx=0,
         expected_lines=1, mode_description="translation"
     )
     assert "REFERENCE TRANSLATIONS" in single_user
     assert "- Russian (RU): Проснись!" in single_user
     assert "- German (DE): Aufwachen!" in single_user
-    assert "The original text is the primary translation source" in single_user
-    assert "Do NOT translate from any reference language" in single_user
+    # How to use them is a fixed rule in the system prompt.
+    assert "The original text is the primary translation source" in single_system
+    assert "Do NOT translate from any reference language" in single_system
 
     # Test batch
-    _, batch_user, _ = composer.compose_batch_request(
+    batch_system, batch_user, _ = composer.compose_batch_request(
         "SysPrompt", [{"id": 0, "text": "Wake up!"}],
         [{"id": 0, "text": "Wake up!"}], block_idx=0, mode_description="translation"
     )
     assert "reference_translations" in batch_user
     assert "Проснись!" in batch_user
     assert "Aufwachen!" in batch_user
-    assert "The \"text\" field is the primary original source text" in batch_user
-    assert "Do NOT translate from any reference language" in batch_user
+    assert "The \"text\" field is the primary source" in batch_system
+    assert "Do NOT translate from any reference language" in batch_system
 
 
 def test_prompts_do_not_falsely_label_non_english_source_as_english(composer):
@@ -1088,7 +1090,7 @@ def test_prompts_do_not_falsely_label_non_english_source_as_english(composer):
     composer.main_handler._glossary_manager.get_entries.return_value = []
 
     # Single string translation
-    _, single_user = composer.compose_messages(
+    single_system, single_user = composer.compose_messages(
         "SysPrompt", "Guten Morgen!", block_idx=0, string_idx=0,
         expected_lines=1, mode_description="translation"
     )
@@ -1102,7 +1104,8 @@ def test_prompts_do_not_falsely_label_non_english_source_as_english(composer):
     assert "English" not in single_user
     assert "English" not in batch_user
     assert "Input text (Original source):" in single_user
-    assert "Translate the original source text into" in single_user
+    assert "Translate the original source text into" in single_system
+    assert "English" not in single_system
 
     # When legacy reference_data exists without multi-language map,
     # it must use the label from get_reference_language_label, not hardcoded Russian

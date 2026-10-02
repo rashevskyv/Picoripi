@@ -9,6 +9,8 @@ from core.translation.story_context_bundle import glossary_names_from_story_bund
 from utils.logging_utils import log_debug
 from utils.utils import resolve_target_language_prompt
 
+from .instructions import append_engine_rules, single_rules
+
 
 class MessagesMixin:
     """Single-string, variation, and glossary prompt composition."""
@@ -185,16 +187,12 @@ class MessagesMixin:
         if tag_alias_legend:
             tag_alias_legend_text = "TAG ALIAS LEGEND:\n" + "\n".join(f"- {alias} -> {orig}" for alias, orig in tag_alias_legend.items())
 
-        combined_system = resolve_target_language_prompt(system_prompt, target_lang)
-        if request_type != 'glossary_notes_variation':
-            combined_system += (
-                "\n\nCONTEXT PRIORITY: Preserve source meaning and tags first. Glossary "
-                "translations are mandatory lexical choices. Then apply factual story event, "
-                "location and participant context; relationship/address rules; and finally the "
-                "current speaker's character voice. Never invent absent facts or copy context "
-                "descriptions into the translation. OUTPUT SHAPE IS IMMUTABLE: preserve every "
-                "source line boundary and blank line; never reflow text."
-            )
+        # The rules for this kind of request are fixed text appended to the system
+        # prompt (see instructions.py), so the system prompt does not vary per string.
+        combined_system = resolve_target_language_prompt(
+            append_engine_rules(system_prompt, single_rules(request_type, has_selection=bool(selected_text))),
+            target_lang,
+        )
 
         context_lines: List[str] = []
         game_name = self.mw.current_game_rules.get_display_name() if self.mw.current_game_rules else 'Unknown game'
@@ -334,69 +332,7 @@ class MessagesMixin:
             except Exception as e:
                 log_debug(f"AIPromptComposer: Error fetching surrounding dialogue context: {e}")
 
-        if request_type == 'variation_list':
-            if selected_text:
-                instructions = [
-                    f'Generate 10 different {target_lang} translation alternatives specifically for the selected text segment, keeping the context of the full string in mind.',
-                    f'Each option should preferably keep {expected_lines} lines (including empty ones) in the same order.',
-                    'Follow the glossary and preserve all tags exactly as they appear.',
-                    'Prefer the SOURCE LAYOUT TARGET. Never remove, merge, or reorder source lines; add only the minimum necessary extra lines when readability or width requires it.',
-                    'Follow the tone of the original text and the surrounding translation.',
-                    'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
-                    'Do NOT wrap the array in an object. Return only valid JSON without any markdown or extra commentary.',
-                ]
-            else:
-                instructions = [
-                    f'Generate 10 different {target_lang} translation alternatives for the provided text.',
-                    f'Each option should preferably keep {expected_lines} lines (including empty ones) in the same order.',
-                    'Follow the glossary and preserve all tags exactly as they appear.',
-                    'Prefer the SOURCE LAYOUT TARGET. Never remove, merge, or reorder source lines; add only the minimum necessary extra lines when readability or width requires it.',
-                    'Follow the tone of the original text.',
-                    'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
-                    'Do NOT wrap the array in an object (e.g. do not use {"variations": [...]}). Return only valid JSON without any markdown or extra commentary.',
-                ]
-        elif request_type == 'glossary_notes_variation':
-            instructions = [
-                f'Generate 5 alternative {target_lang} glossary descriptions for the provided term.',
-                'Each description should be 1-2 sentences and stay under 60 words.',
-                'Preserve any tags/placeholders exactly as provided.',
-                'When the description refers to the term itself, always use the literal token {{TERM}} instead of writing out or transliterating the name (e.g. "{{TERM}} — персонаж, ...").',
-                'Keep the description informative and suitable for a glossary entry.',
-                'Return the response as a raw JSON array of strings, for example: ["option 1", "option 2", ...].',
-                'Do NOT wrap the array in an object. Return only valid JSON without any markdown or extra commentary.',
-            ]
-        else:
-            instructions = [
-                f'Translate the original source text into {target_lang} without altering the meaning.',
-                f'Prefer keeping {expected_lines} lines (including empty ones) and the original window_count.',
-                'Treat the SOURCE LAYOUT TARGET as the preferred layout, not an absolute prohibition. Translate each source line into its corresponding output line; never remove, merge, or reorder source lines. First use concise wording within max_line_width_px. If that would harm meaning or readability, add only the minimum necessary extra lines or dialogue windows.',
-                f'GLOSSARY IS MANDATORY: Every term found in the glossary MUST be translated exactly as specified in the "Translation" column. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only inflect word endings to match {target_lang} grammar.',
-                'Read the "Notes" column in the glossary carefully for character gender, age, personality, speech style, and form of address (e.g. formal/informal). Apply this to the full translation.',
-                'Use MEMORY PALACE CONTEXT for the event, location, participants, their event-local interactions, persistent relationships, and character voice profiles. Apply only facts that are present; do not invent missing information.',
-                'All tags must be preserved exactly as they appear.',
-                'Strictly follow system prompt transcription and orthography rules for proper names and Japanese terms (e.g. G -> Ґ, H -> Г, shi -> сі, chi -> ті, ji -> дзі).',
-                'Return only one valid JSON object in the form {"translation":"..."}. The translation string must preserve the source layout exactly. Do not add explanations or meta text.',
-            ]
-
-        if request_type not in ('glossary_notes_variation',):
-            if dialogue_flow_context:
-                instructions.append(
-                    'Use Dialogue Flow to keep this line coherent with the real in-game conversation order, '
-                    'choice branch, condition and following game action. It is structural context; do not treat '
-                    'the owning NPC/actor as proof that every line in the flow has that speaker.'
-                )
-            if tag_alias_legend:
-                instructions.append('TAG ALIAS LEGEND: Refer to the "TAG ALIAS LEGEND" section below to understand what tag aliases mean. Place them correctly in the translated text.')
-            instructions.append('ANCHORED TAGS: Any tags not present in the legend (e.g. {0}, {1}, [PLAYER]) are anchored system tags. Do NOT translate, modify, or delete them. Maintain them in their correct positions.')
-            if ref_texts:
-                instructions.append(
-                    f'REFERENCE TRANSLATIONS CONTEXT: The original text is the primary translation source. '
-                    f'Loaded reference translations are contextual evidence for meaning, '
-                    f'speaker tone, and gender only. Do NOT translate from any reference language into {target_lang}, '
-                    f'and do NOT copy a reference translation as the {target_lang} result.'
-                )
-
-        user_sections: List[str] = ['\n'.join(context_lines), '\n'.join(instructions)]
+        user_sections: List[str] = ['\n'.join(context_lines)]
         if glossary_text:
             user_sections.append(f"GLOSSARY (use with absolute priority):\n{glossary_text}")
         if tag_alias_legend_text:

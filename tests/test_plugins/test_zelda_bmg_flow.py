@@ -250,7 +250,7 @@ def test_flow_context_reaches_ai_translation_prompt(qapp):
     mw.block_to_project_file_map = {}
 
     source_items = [{"id": 1, "text": "Yes, exactly."}]
-    _, user_content, _ = composer.compose_batch_request(
+    system_content, user_content, _ = composer.compose_batch_request(
         "Translate into {target_lang}.",
         source_items, source_items,
         block_idx=0, mode_description="translation",
@@ -264,8 +264,8 @@ def test_flow_context_reaches_ai_translation_prompt(qapp):
     assert "[msg 402]" in user_content
     assert QUERY_LABELS[4] in user_content
     assert EVENT_LABELS[17] in user_content
-    # the model is told how to use it
-    assert "DIALOGUE FLOW" in user_content
+    # the model is told how to use it (a fixed rule in the system prompt)
+    assert "DIALOGUE FLOW" in system_content
 
 
 def test_flow_context_reaches_single_and_variation_prompts(qapp):
@@ -293,12 +293,12 @@ def test_flow_context_reaches_single_and_variation_prompts(qapp):
     ])
     mw.current_game_rules = rules
 
-    _, single_user = composer.compose_messages(
+    single_system, single_user = composer.compose_messages(
         "Translate into {target_lang}.", "Yes, exactly.",
         block_idx=0, string_idx=1, expected_lines=1,
         mode_description="translation", request_type="translation",
     )
-    _, variation_user = composer.compose_messages(
+    variation_system, variation_user = composer.compose_messages(
         "Translate into {target_lang}.", "Yes, exactly.",
         block_idx=0, string_idx=1, expected_lines=1,
         mode_description="variations", request_type="variation_list",
@@ -309,4 +309,5 @@ def test_flow_context_reaches_single_and_variation_prompts(qapp):
         assert "Dialogue Flow (from game data)" in prompt
         assert "line 2 of 3" in prompt
         assert "[msg 402]" in prompt
-        assert "owning NPC/actor" in prompt
+    for system in (single_system, variation_system):
+        assert "owning NPC/actor" in system

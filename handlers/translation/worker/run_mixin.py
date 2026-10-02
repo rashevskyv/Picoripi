@@ -393,16 +393,7 @@ class AIWorkerRunMixin:
                         chunk = chunks[idx]
                         system, user = _build_chunk_request(idx)
                         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
-                        if attempt > 1 and isinstance(messages, list):
-                            for msg in messages:
-                                if isinstance(msg, dict) and msg.get('role') == 'system':
-                                    reminder = (
-                                        "\n\nIMPORTANT REMINDER FOR RETRY:\n"
-                                        "Your previous response caused a JSON parsing error (likely due to illegal trailing commas before closing braces/brackets, or unescaped characters).\n"
-                                        "Please ensure your response is 100% valid, strictly compliant JSON. Do NOT include any trailing commas (e.g., no comma after the last field in an object or array, such as: `\"translation\": \"text\", }` which is illegal in JSON). Return ONLY the clean JSON block."
-                                    )
-                                    msg['content'] = msg.get('content', '') + reminder
-                                    break
+                        self._add_retry_reminder(messages)
                         self._last_messages = messages
                         self._log_ai_traffic(messages, chunk=idx)
                         try:
@@ -516,16 +507,7 @@ class AIWorkerRunMixin:
                     self.step_updated.emit(1, f"Translating chunk {i + 1}/{len(chunks)} (Attempt {attempt})", AIStatusDialog.STATUS_IN_PROGRESS)
 
                     try:
-                        if attempt > 1 and isinstance(messages, list):
-                            for msg in messages:
-                                if isinstance(msg, dict) and msg.get('role') == 'system':
-                                    reminder = (
-                                        "\n\nIMPORTANT REMINDER FOR RETRY:\n"
-                                        "Your previous response caused a JSON parsing error (likely due to illegal trailing commas before closing braces/brackets, or unescaped characters).\n"
-                                        "Please ensure your response is 100% valid, strictly compliant JSON. Do NOT include any trailing commas (e.g., no comma after the last field in an object or array, such as: `\"translation\": \"text\", }` which is illegal in JSON). Return ONLY the clean JSON block."
-                                    )
-                                    msg['content'] = msg.get('content', '') + reminder
-                                    break
+                        self._add_retry_reminder(messages)
                         self._last_messages = messages
                         self._log_ai_traffic(messages, chunk=i)
                         response = self.provider.translate(messages, session=session_payload, settings_override=provider_override)
@@ -628,16 +610,7 @@ class AIWorkerRunMixin:
                     else:
                         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
-                    if attempt > 1 and isinstance(messages, list):
-                        for msg in messages:
-                            if isinstance(msg, dict) and msg.get('role') == 'system':
-                                reminder = (
-                                    "\n\nIMPORTANT REMINDER FOR RETRY:\n"
-                                    "Your previous response caused a JSON parsing error (likely due to illegal trailing commas before closing braces/brackets, or unescaped characters).\n"
-                                    "Please ensure your response is 100% valid, strictly compliant JSON. Do NOT include any trailing commas (e.g., no comma after the last field in an object or array, such as: `\"translation\": \"text\", }` which is illegal in JSON). Return ONLY the clean JSON block."
-                                )
-                                msg['content'] = msg.get('content', '') + reminder
-                                break
+                    self._add_retry_reminder(messages)
 
                     self._last_messages = messages
                     self._log_ai_traffic(messages)
@@ -747,16 +720,7 @@ class AIWorkerRunMixin:
                 provider_settings_override.setdefault('think', 1)
 
             attempt = self.task_details.get('attempt', 1)
-            if attempt > 1 and isinstance(messages, list):
-                for msg in messages:
-                    if isinstance(msg, dict) and msg.get('role') == 'system':
-                        reminder = (
-                            "\n\nIMPORTANT REMINDER FOR RETRY:\n"
-                            "Your previous response caused a JSON parsing error (likely due to illegal trailing commas before closing braces/brackets, or unescaped characters).\n"
-                            "Please ensure your response is 100% valid, strictly compliant JSON. Do NOT include any trailing commas (e.g., no comma after the last field in an object or array, such as: `\"translation\": \"text\", }` which is illegal in JSON). Return ONLY the clean JSON block."
-                        )
-                        msg['content'] = msg.get('content', '') + reminder
-                        break
+            self._add_retry_reminder(messages)
 
             self._last_messages = messages
             self._log_ai_traffic(messages)

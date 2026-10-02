@@ -58,6 +58,25 @@ class AIWorkerControlMixin:
             text += "; failed: " + ", ".join(f"{kind}×{count}" for kind, count in sorted(failures.items()))
         return text
 
+    def _add_retry_reminder(self, messages: List[Dict[str, str]]) -> None:
+        """On a retry, tell the model what was actually wrong with its last answer.
+
+        Appended to the end of the system message, so the cacheable part of the
+        prompt before it stays unchanged.
+        """
+        if self.task_details.get('attempt', 1) <= 1 or not isinstance(messages, list):
+            return
+        reason = str(self.task_details.get('last_error') or '').strip() or "the response could not be used"
+        reminder = (
+            "\n\nRETRY: your previous response to this request was rejected.\n"
+            f"Reason: {reason[:600]}\n"
+            "Correct exactly that and return the complete response in the required JSON format."
+        )
+        for msg in messages:
+            if isinstance(msg, dict) and msg.get('role') == 'system':
+                msg['content'] = msg.get('content', '') + reminder
+                break
+
     def _report_traffic_summary(self) -> None:
         """Log the run's request statistics and, for a multi-request run, show them."""
         summary = self._traffic_summary()
