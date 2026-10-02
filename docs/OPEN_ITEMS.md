@@ -13,6 +13,17 @@ the line when it is done or moved into a plan.
 
 ## Found during WP4
 
+- **"Fixed output" is a property of the glossary section, not of an entry (4.4).** The plan spoke of
+  `fixed_output: true`; there is no such field. An entry is fixed when its section is listed in
+  `fixed_output_sections` (default `UI`). A per-entry switch would need a model field, its serialisation and a
+  checkbox in the glossary editor.
+- **Nothing in the application puts a term into the `UI` section by itself (4.4).** The user types the section
+  name in the glossary editor; the glossary build does not classify interface words into it.
+- **Fixed outputs are filled even on Ctrl+click "translate anew" (4.4)** — the glossary is the decision. They
+  are not written to the saved translations.
+- **WP4 was verified by tests only.** No request was sent to a live model: duplicate folding, the run memory
+  section, conversation packing and the new rule sentences have not been seen by a model yet.
+
 - **A message reached by several flow entries is packed with the first one (4.3).** Shared greeting or farewell
   lines therefore travel with the lowest-numbered conversation that uses them; the others get them only as
   `dialogue_flow` context. Entries are deliberately not merged through shared messages (that produced

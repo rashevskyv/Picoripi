@@ -225,6 +225,11 @@ class MessagesMixin:
             context_lines.append(f'Row: #{string_idx}')
         if speaker and speaker not in ("Unknown", "NONE"):
             context_lines.append(f'Speaker: {speaker}')
+        if block_idx is not None and string_idx is not None:
+            # Who the line is spoken TO (plugin-provided), as in a batch item.
+            addressee = self._plugin_addressee(block_idx, string_idx, speaker or "Unknown")
+            if addressee:
+                context_lines.append(f'Addressee: {self._translate_speaker(addressee)}')
         if mode_description:
             context_lines.append(f'Mode: {mode_description}')
         if translation_context.get('window_type'):

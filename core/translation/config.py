@@ -30,6 +30,9 @@ def build_default_translation_config() -> dict:
         # Identical strings (same text, speaker, addressee and window) are sent
         # once per run and share the translation.
         "fold_duplicates": True,
+        # Glossary sections whose entries are fixed outputs: a game string that
+        # is exactly such a term takes the glossary translation, without a request.
+        "fixed_output_sections": ["UI"],
         "providers": {
             "openai": {
                 "api_key": "",

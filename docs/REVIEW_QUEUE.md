@@ -322,6 +322,12 @@ in `docs/OPEN_ITEMS.md`, not here.
 
 ## WP4 — translation memory and in-run consistency
 
+- [ ] **Fixed interface strings (4.4).** Create (or move) the glossary entries for a few interface words into a
+      section named `UI`, with confirmed translations, and start a block translation where those words are
+      whole strings. Expected: they are filled at once (status bar: "Filled N lines from the glossary"), they
+      are not in the request, one Undo removes them all. A string like `OK!` or `ok` still goes to the model.
+- [ ] **`Addressee:` in a single-string request (4.4).** In Twilight Princess, translate one line of a dialogue
+      with "Log AI traffic" on: the context lines contain `Addressee: <name>` when the plugin knows it.
 - [ ] **Conversations stay in one request (4.3).** Translate a Twilight Princess block with dialogue and look
       at two or three requests in the AI traffic log: a choice prompt and its answers, or a question and the
       reply, must be in the same `strings_to_translate` list. The number of chunks may differ slightly from

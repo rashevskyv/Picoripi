@@ -11,6 +11,7 @@ from dialogs.cached_translation_dialog import CachedTranslationDialog
 from utils.logging_utils import log_debug, log_error, log_warning
 from utils.utils import is_control_modifier_pressed
 from core.translation.chunk_result import verify_chunk_ids
+from core.translation.fixed_output import fixed_output_sections, fixed_translation
 from core.translation.run_memory import RunMemory, fold_duplicates
 from core.translation.layout_contract import (
     editor_text_for_layout,
@@ -184,7 +185,14 @@ class AIBatchTranslator(BaseTranslationHandler):
         Filters out items that already have a saved translation in SavedTranslationsManager.
         Applies those saved translations immediately to the database and refreshes the UI.
         Returns the remaining source items and their corresponding temp_id_map.
+
+        Before that, strings the glossary fixes (``fixed_output_sections``) are
+        filled without asking: the user has already decided what they are.
         """
+        source_items, temp_id_map = self._fill_fixed_outputs(source_items, temp_id_map)
+        if not source_items:
+            return source_items, temp_id_map
+
         saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
         if not saved_mgr:
             return source_items, temp_id_map
@@ -260,44 +268,91 @@ class AIBatchTranslator(BaseTranslationHandler):
                 if temp_id_map and item_id in temp_id_map:
                     filtered_temp_id_map[item_id] = (r_block_idx, r_string_idx)
 
-        if restored_items:
-            has_undo = hasattr(self.mw, 'undo_manager')
-            if has_undo:
-                self.mw.undo_manager.begin_group()
-
-            try:
-                for r_block_idx, r_string_idx, saved_text in restored_items:
-                    final_text = self.main_handler._convert_translation_preserving_layout(saved_text)
-                    self.data_processor.update_edited_data(
-                        r_block_idx, r_string_idx, final_text, action_type="RESTORE", skip_ui_refresh=True
-                    )
-                    if hasattr(self.mw, 'text_operation_handler') and self.mw.text_operation_handler:
-                        self.mw.text_operation_handler._rescan_issues_for_current_string(r_block_idx, r_string_idx, final_text)
-            finally:
-                if has_undo:
-                    self.mw.undo_manager.end_group("RESTORE_SAVED")
-
-            modified_blocks = {b_idx for b_idx, _, _ in restored_items}
-            for m_block in modified_blocks:
-                self.ui_updater.update_block_item_text_with_problem_count(m_block)
-
-            self.ui_updater.populate_current_view(force=True)
-            self.ui_updater.update_text_views()
-            self.ui_updater.update_title()
-
-            if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
-                self.mw.statusBar.showMessage(f"Restored {len(restored_items)} lines from saved translations.", 3000)
-
-            # Refresh SearchReviewDialog if open
-            try:
-                from dialogs.search_review_dialog import SearchReviewDialog
-                for widget in QApplication.topLevelWidgets():
-                    if isinstance(widget, SearchReviewDialog):
-                        widget.refresh_from_project()
-            except Exception as e:
-                log_warning(f"Failed to refresh SearchReviewDialog in filter_already_saved_translations: {e}")
-
+        self._apply_rows_without_ai(
+            restored_items, "RESTORE", "RESTORE_SAVED",
+            f"Restored {len(restored_items)} lines from saved translations.",
+        )
         return filtered_source_items, filtered_temp_id_map
+
+    def _apply_rows_without_ai(self, rows, action_type: str, undo_label: str, message: str) -> None:
+        """Write ``(block, string, text)`` rows into the data as one undo step and refresh what shows them."""
+        if not rows:
+            return
+        has_undo = hasattr(self.mw, 'undo_manager')
+        if has_undo:
+            self.mw.undo_manager.begin_group()
+
+        try:
+            for r_block_idx, r_string_idx, saved_text in rows:
+                final_text = self.main_handler._convert_translation_preserving_layout(saved_text)
+                self.data_processor.update_edited_data(
+                    r_block_idx, r_string_idx, final_text, action_type=action_type, skip_ui_refresh=True
+                )
+                if hasattr(self.mw, 'text_operation_handler') and self.mw.text_operation_handler:
+                    self.mw.text_operation_handler._rescan_issues_for_current_string(r_block_idx, r_string_idx, final_text)
+        finally:
+            if has_undo:
+                self.mw.undo_manager.end_group(undo_label)
+
+        modified_blocks = {b_idx for b_idx, _, _ in rows}
+        for m_block in modified_blocks:
+            self.ui_updater.update_block_item_text_with_problem_count(m_block)
+
+        self.ui_updater.populate_current_view(force=True)
+        self.ui_updater.update_text_views()
+        self.ui_updater.update_title()
+
+        if hasattr(self.mw, 'statusBar') and self.mw.statusBar:
+            self.mw.statusBar.showMessage(message, 3000)
+
+        # Refresh SearchReviewDialog if open
+        try:
+            from dialogs.search_review_dialog import SearchReviewDialog
+            for widget in QApplication.topLevelWidgets():
+                if isinstance(widget, SearchReviewDialog):
+                    widget.refresh_from_project()
+        except Exception as e:
+            log_warning(f"Failed to refresh SearchReviewDialog after applying rows without AI: {e}")
+
+    def _fill_fixed_outputs(self, source_items, temp_id_map):
+        """Fill the strings that are, as a whole, a glossary term of a fixed-output section.
+
+        Returns what is left for the saved-translation check and the model. A
+        row that already has a translation, or that the glossary text does not
+        fit, is left in.
+        """
+        glossary_manager = getattr(self.main_handler, '_glossary_manager', None)
+        sections = fixed_output_sections(getattr(self.mw, 'translation_config', None))
+        if glossary_manager is None or not sections or not source_items:
+            return source_items, temp_id_map
+
+        fixed_rows = []
+        remaining_items = []
+        remaining_map = {}
+        for item in source_items:
+            item_id = item.get("id") if isinstance(item, dict) else None
+            text = fixed_translation(item.get("text") if isinstance(item, dict) else None, glossary_manager, sections)
+            pair = None
+            if text:
+                pair = self._real_pair(item_id, getattr(self.mw.data_store, 'physical_block_idx', None), temp_id_map)
+            if (
+                text and pair is not None
+                and not self.data_processor.is_string_translated(pair[0], pair[1])
+                and self._cached_translation_matches_layout(item, text, pair[0], pair[1])
+            ):
+                fixed_rows.append((pair[0], pair[1], text))
+                continue
+            remaining_items.append(item)
+            if temp_id_map and item_id in temp_id_map:
+                remaining_map[item_id] = temp_id_map[item_id]
+
+        if not fixed_rows:
+            return source_items, temp_id_map
+        self._apply_rows_without_ai(
+            fixed_rows, "TRANSLATE", "FIXED_OUTPUT",
+            f"Filled {len(fixed_rows)} lines from the glossary (fixed interface strings).",
+        )
+        return remaining_items, (remaining_map if temp_id_map else temp_id_map)
 
     def _run_memory(self) -> RunMemory:
         memory = getattr(self.main_handler, 'run_memory', None)

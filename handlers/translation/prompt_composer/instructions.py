@@ -109,6 +109,8 @@ _SINGLE_CONTEXT_RULES = (
     'TAG ALIAS LEGEND: If a "TAG ALIAS LEGEND" section is present, refer to it to understand what tag aliases '
     'mean. Place them correctly in the translated text.',
     _ANCHORED_TAGS,
+    'ADDRESSEE: If an "Addressee:" line is present, it names who the line is spoken TO. Use it to choose the '
+    'form of address the target language requires (politeness level, formal vs familiar "you", gendered forms).',
     'TRANSLATION MEMORY: If a "TRANSLATION MEMORY" section is present, it lists translations already saved in '
     'this project for the same source text at other places. Keep the same wording unless the speaker, the '
     'addressee or the layout of this line requires a different one.',

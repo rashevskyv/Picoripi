@@ -51,7 +51,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 4.1 in-run memory + duplicate folding + `already_translated_in_this_run`
 - [x] 4.2 cross-run TM keyed by source text
 - [x] 4.3 flow-aware chunking hook + packing
-- [ ] 4.4 fixed-output UI strings; `addressee` in single prompt
+- [x] 4.4 fixed-output UI strings; `addressee` in single prompt
 - [ ] WP4 exit
 
 ## WP5 — Plugin platform
