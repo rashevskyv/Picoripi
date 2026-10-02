@@ -24,9 +24,6 @@ from core.glossary_manager import (
 )
 
 DEFAULT_LIMIT = 40
-# A word shared by more entries than this relates none of them in particular
-# ("key", "great", a numbered speaker's base name).
-MAX_FAMILY_WORD_SPREAD = 12
 
 # An entry in one of these states has no translation anyone settled on.
 _UNDECIDED = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS, STATUS_SYNTHESIZED})
@@ -126,15 +123,19 @@ def _head_key(entry: Any) -> Tuple[int, str, str]:
 
 
 def families(entries: Iterable[Any], extra_pairs: Iterable[Iterable[str]] = ()) -> List[List[Any]]:
-    """Group entries that share a distinctive word; in each group the head term comes first.
+    """Group entries by the most distinctive word they share; the head term comes first.
 
-    "Hylia", "Lake Hylia" and "Hylian Shield" are one family; so are "Clawshot"
-    and "Clawshots". A word that many entries share is ignored (see
-    ``MAX_FAMILY_WORD_SPREAD``), but two spellings of one term (the same
-    canonical key) always go together, and so do the terms of each pair in
-    ``extra_pairs``. An entry related to nothing is a family of one. The result
-    is deterministic: members by (number of words, canonical key), families by
-    their head's canonical key.
+    Each entry joins exactly one family: that of the rarest word it shares
+    with any other entry. "Hylia" and "Hylian Shield" are one family, "Clawshot"
+    and "Clawshots" another, "Zora Guard #1" goes with the other guards rather
+    than with thirty Zora terms. Linking through *every* shared word instead
+    chains unrelated terms together -- on the shipped glossary a third of all
+    entries ended up in one "family".
+
+    Two spellings of one term (the same canonical key) always go together, and
+    so do the terms of each pair in ``extra_pairs``. An entry related to
+    nothing is a family of one. The result is deterministic: members by
+    (number of words, canonical key), families by their head's canonical key.
     """
     entries = list(entries)
     stems = [term_stems(entry.original) for entry in entries]
@@ -147,11 +148,24 @@ def families(entries: Iterable[Any], extra_pairs: Iterable[Iterable[str]] = ()) 
             index = parent[index]
         return index
 
-    sharing: Dict[str, List[int]] = defaultdict(list)
-    for index, entry_stems in enumerate(stems):
-        for stem in entry_stems:
-            if 2 <= spread[stem] <= MAX_FAMILY_WORD_SPREAD:
-                sharing[stem].append(index)
+    # Every entry's shared words, rarest first. An entry left alone under its
+    # rarest word (the other entries with that word went elsewhere) moves on to
+    # its next one.
+    candidates = [
+        [stem for _, stem in sorted((spread[stem], stem) for stem in entry_stems if spread[stem] > 1)]
+        for entry_stems in stems
+    ]
+    choice = [0] * len(entries)
+    while True:
+        sharing: Dict[str, List[int]] = defaultdict(list)
+        for index, words in enumerate(candidates):
+            if choice[index] < len(words):
+                sharing[words[choice[index]]].append(index)
+        alone = [members[0] for members in sharing.values() if len(members) == 1]
+        if not alone:
+            break
+        for index in alone:
+            choice[index] += 1
     for index, entry in enumerate(entries):
         sharing["=" + GlossaryManager.canonical_key(entry.original)].append(index)
     by_original = {entry.original: index for index, entry in enumerate(entries)}

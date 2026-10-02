@@ -135,7 +135,7 @@ def test_a_build_is_the_same_whatever_order_the_chunks_answer_in():
     assert shield[2] == ("a shield", "sturdy", "sold in Kakariko")   # one entry, all three fragments
 
 
-def test_translate_targets_are_ordered_by_family_head_first():
+def test_translate_targets_are_ordered_by_length_then_family_head_first():
     manager = GlossaryManager()
     manager.load_from_text(plugin_name=None, glossary_path=None, raw_text="")
     for term in ("Zora Armor", "Hylian Shield", "Zora", "Hylian", "The Zora Queen"):
@@ -148,4 +148,4 @@ def test_translate_targets_are_ordered_by_family_head_first():
 
     GlossaryBuildCoordinator(manager, call, PROMPTS, workers=1).run_translate()
 
-    assert order == ["Hylian", "Hylian Shield", "Zora", "Zora Armor", "The Zora Queen"]
+    assert order == ["Hylian", "Zora", "Hylian Shield", "Zora Armor", "The Zora Queen"]

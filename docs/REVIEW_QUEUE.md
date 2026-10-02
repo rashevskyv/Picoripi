@@ -138,7 +138,8 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **Which clusters are asked about is a heuristic (3.5).** A cluster is sent when two of its members are one
       term by spelling (plural/article/near-duplicate), or share a word while their translations share no
       three-letter word start. A pair the model decided to keep separate is asked about again on the next
-      run (the answer is not stored). A family larger than 30 entries is asked in separate batches.
+      run (the answer is not stored). A family larger than 30 entries is asked in separate batches. A family
+      is checked only within itself: `Zora Guard` (guards family) is not compared with `Zora`.
 - [ ] **The reconcile prompt is new and untested on a real model (3.5).** `reconcile` in
       `translation_prompts/glossary_pipeline_prompts.json`. Check that it does not merge different things
       (Clawshot / Clawshots as two items) and does not "fix" grammar forms.
@@ -161,7 +162,14 @@ in `docs/OPEN_ITEMS.md`, not here.
       collisions in `translation_prompts/glossary.json`; that needs the merge you have not approved yet (see
       the 3.1 item above). The test fails if the number grows, and checks on a copy that the merge leaves no
       collision and loses no translation. After you merge, lower `KNOWN_CANONICAL_GROUPS` to 0.
-- [ ] **37 families in the real glossary may render a shared word differently (3.7).** The gate prints them as a
-      warning (`pytest tests/test_core/test_glossary_consistency.py`). Some groups are chained through a
-      generic word ("castle") and are not real families — tell me if the grouping needs a stop-list.
+- [ ] **55 families in the real glossary may render a shared word differently (3.7).** The gate prints them as a
+      warning (`pytest tests/test_core/test_glossary_consistency.py`); a reconcile run would send 55 requests,
+      about 49k input tokens in total (`docs/audit/2026-10-01/wp3_glossary_numbers.json`). Look at the list:
+      groups built around a generic word ("power", "bar", "bag") are noise and may need a stop-list.
+- [ ] **How terms are grouped into families (3.3, reworked at the WP3 exit).** Each entry joins the family of the
+      rarest word it shares with another entry (161 families on the real glossary, the largest has 12
+      members). So `Zora Guard #1` sits with the other guards, not with the Zora terms. To still give it the
+      settled `Zora`, translation runs in three tiers — one-word terms, then two-word, then longer — and
+      every request lists the related entries decided so far. Check on a real build that compound names
+      follow their head term.
 

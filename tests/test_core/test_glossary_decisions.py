@@ -91,13 +91,30 @@ class TestFamilies:
 
         assert forward == backward
 
-    def test_a_word_shared_by_many_entries_joins_nothing(self):
-        entries = [_entry(f"Key {name}", "") for name in (
+    def test_a_big_family_stays_one_family(self):
+        entries = [_entry(f"Zora {name}", "") for name in (
             "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf",
             "Hotel", "India", "Juliet", "Kilo", "Lima", "Mike",
-        )]
+        )] + [_entry("Zora", "")]
 
-        assert all(len(family) == 1 for family in families(entries))
+        grouped = families(entries)
+
+        assert len(grouped) == 1 and grouped[0][0].original == "Zora"
+
+    def test_families_are_not_chained_through_every_shared_word(self):
+        entries = [_entry(t, "") for t in ("Zora Guard", "Goron Guard", "Zora", "Zora Armor", "Goron")]
+
+        grouped = [[e.original for e in family] for family in families(entries)]
+
+        # "Guard" links a Zora term to a Goron term; that does not make Zoras and Gorons one family.
+        assert grouped == [["Goron", "Goron Guard"], ["Zora", "Zora Armor", "Zora Guard"]]
+
+    def test_spellings_of_one_term_and_given_pairs_always_go_together(self):
+        entries = [_entry(t, "") for t in ("Postman", "The Postman", "Ooccoo", "Oocca", "Rupee")]
+
+        grouped = [[e.original for e in family] for family in families(entries, extra_pairs=[("Ooccoo", "Oocca")])]
+
+        assert grouped == [["Oocca", "Ooccoo"], ["Postman", "The Postman"], ["Rupee"]]
 
 
 class TestAdapters:
@@ -156,6 +173,31 @@ class TestCoordinator:
         assert "Settled renderings" not in prompts["Clawshot"]
         assert "- Clawshot → Кігтемет" in prompts["Clawshots"]
         assert "Кігтемет" not in prompts["Rupee"]
+
+    def test_one_word_terms_are_settled_before_the_longer_terms_that_contain_them(self):
+        manager = _manager()
+        # "Zora Guard" belongs to the Guard family, not the Zora one -- it must still see "Zora".
+        for term in ("Zora Guard", "Goron Guard", "Zora", "Goron", "Guard"):
+            manager.add_entry(term, "", "a description", fold_variants=False)
+        prompts = {}
+
+        def call(messages):
+            user = messages[1]["content"]
+            term = user.split("Term:", 1)[1].split("\n", 1)[0].strip()
+            prompts[term] = user
+            return json.dumps([{"translation": f"<{term}>", "rationale": ""}])
+
+        progress = []
+        coordinator = GlossaryBuildCoordinator(
+            manager, call, PROMPTS, workers=4, on_progress=lambda stage, done, total: progress.append((done, total)))
+        coordinator.run_translate()
+
+        assert list(prompts)[3:] == ["Goron Guard", "Zora Guard"] or list(prompts)[3:] == ["Zora Guard", "Goron Guard"]
+        assert "- Zora → <Zora>" in prompts["Zora Guard"] and "- Guard → <Guard>" in prompts["Zora Guard"]
+        assert "- Goron → <Goron>" in prompts["Goron Guard"]
+        # one progress scale across the tiers, never going back
+        assert progress[-1] == (len(progress), len(progress))
+        assert [done for done, _ in progress] == sorted(done for done, _ in progress)
 
     def test_a_term_translated_earlier_in_the_pass_reaches_other_families_too(self):
         manager = _manager()

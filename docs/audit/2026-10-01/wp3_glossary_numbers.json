@@ -1,0 +1,22 @@
+{
+  "entries": 612,
+  "canonical_groups_before": 18,
+  "families_of_2_or_more": 161,
+  "largest_family": 12,
+  "reconcile_requests": 55,
+  "reconcile_input_tok_total": 48930,
+  "reconcile_input_tok_max": 1563,
+  "reconcile_system_tok": 582,
+  "translate_requests_with_decided_block_pct": 83,
+  "decided_block_tok_avg": 166,
+  "decided_block_tok_max": 525,
+  "decided_block_lines_avg": 12.9,
+  "term_inside_longer_term_pairs": 348,
+  "notes_over_300_chars": 221,
+  "notes_tok_before": 145241,
+  "notes_tok_after_cut": 31941,
+  "entries_merged_away": 18,
+  "canonical_groups_after_merge": 0,
+  "entries_after_merge": 594,
+  "reconcile_requests_after_merge": 41
+}

@@ -71,6 +71,9 @@ _DESCRIBE_TARGETS = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS})
 # A family is translated on one thread, member after member; a bigger one is
 # split so that one failed call does not send a long run of terms to the retry pass.
 FAMILY_BATCH = 8
+# Translation runs in this many tiers by the number of words in a term: one
+# word, two words, three or more.
+TRANSLATE_TIERS = 3
 # Results of a pass are written to the glossary file in batches of this many,
 # not one file write per result. A crash loses at most one batch.
 STORE_BATCH = 20
@@ -185,7 +188,7 @@ class GlossaryBuildCoordinator:
         if self._on_log:
             self._on_log(message)
 
-    def _pooled(self, stage: str, items, work, on_result, result: BuildResult) -> None:
+    def _pooled(self, stage: str, items, work, on_result, result: BuildResult, *, on_progress=None) -> None:
         """Run one pass's AI calls in parallel and write results as they land.
 
         ``on_result`` runs on this thread, so the passes keep writing to the
@@ -209,7 +212,7 @@ class GlossaryBuildCoordinator:
                 retry_delay=self.retry_delay,
                 sleep=self.sleep,
                 on_result=store,
-                on_progress=lambda done, total: self._progress(stage, done, total),
+                on_progress=on_progress or (lambda done, total: self._progress(stage, done, total)),
                 is_cancelled=self._is_cancelled,
                 max_consecutive_failures=self.max_consecutive_failures,
                 on_log=self._log,
@@ -333,15 +336,27 @@ class GlossaryBuildCoordinator:
         fresh: list = []
         fresh_lock = threading.Lock()
 
-        # The unit of work is a family, not a term: its members are translated
-        # one after another on one thread, each seeing what its siblings just
-        # got, so "Clawshots" is not decided without knowing "Clawshot". Families
-        # run in parallel and in a fixed order.
-        units = [
-            family[start:start + FAMILY_BATCH]
-            for family in families(targets)
-            for start in range(0, len(family), FAMILY_BATCH)
+        # Shorter names first, in tiers: every one-word term ("Zora", "Hylia")
+        # is translated and stored before any two-word term that may contain
+        # it ("Zora Armor"), and those before the longer ones.
+        #
+        # Inside a tier the unit of work is a family, not a term: its members
+        # are translated one after another on one thread, each seeing what its
+        # siblings just got, so "Clawshots" is not decided without knowing
+        # "Clawshot". Families run in parallel and in a fixed order.
+        tiers: Dict[int, list] = {}
+        for entry in targets:
+            words = len(self.manager.canonical_key(entry.original).split())
+            tiers.setdefault(min(max(words, 1), TRANSLATE_TIERS), []).append(entry)
+        tier_units = [
+            [
+                family[start:start + FAMILY_BATCH]
+                for family in families(tiers[tier])
+                for start in range(0, len(family), FAMILY_BATCH)
+            ]
+            for tier in sorted(tiers)
         ]
+        total_units = sum(len(units) for units in tier_units)
 
         def translate(unit):
             siblings: list = []
@@ -380,7 +395,15 @@ class GlossaryBuildCoordinator:
                     with fresh_lock:
                         fresh.append(updated)
 
-        self._pooled("translate", units, translate, store, result)
+        finished = 0
+        for units in tier_units:
+            if self._cancelled():
+                break
+            self._pooled(
+                "translate", units, translate, store, result,
+                on_progress=lambda done, _total, base=finished: self._progress("translate", base + done, total_units),
+            )
+            finished += len(units)
         if self._cancelled():
             result.cancelled = True
         return result
