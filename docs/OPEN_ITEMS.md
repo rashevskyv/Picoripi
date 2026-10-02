@@ -11,6 +11,23 @@ the line when it is done or moved into a plan.
 - UI command "Create plugin from template" (copy `plugins/default_plugin`, rename, open the prompt file).
   WP5.4 delivers the generator (`tools/new_plugin.py`); the menu entry is still unplanned.
 
+## Found during WP8 (the proxy, `D:\git\dev\gemini-web2api`)
+
+- **WP8 is NOT in the proxy's working directory.** That directory had 16 modified, uncommitted files (the
+  v1.3.1-1.3.3 work) and the proxy is a live service, so nothing there was touched. WP8 lives on the branch
+  `audit/wp8`, checked out as a separate git worktree in `D:\git\dev\gemini-web2api-wp8`. Its first commit is a
+  snapshot of the uncommitted work (so that WP8 commits can be told apart); the rest are the WP8 tasks.
+  Nothing is pushed. To use it: commit your own work on `main`, then `git merge audit/wp8` (the snapshot commit
+  holds the same content, so the merge is clean) and delete the worktree with
+  `git worktree remove ../gemini-web2api-wp8`. To discard it: remove the worktree and `git branch -D audit/wp8`.
+- **A token-like string sits in the uncommitted `gemini_web2api/dashboard.html` of the proxy**: the placeholder
+  of the "Proxy API Key(s)" field is a 40-character lowercase string that looks like a real Webshare token,
+  not like a dummy. It was replaced with a dummy in the snapshot commit. Check it before that file is committed
+  or pushed from `main`; if it is a real token, rotate it.
+- **`run.bat` pulls from `upstream main` on every start.** The files WP8 rewrote are all listed in
+  `.gitattributes` as `merge=ours`, so upstream changes to them are never merged in — including upstream fixes
+  to `gemini_web2api.py`, which is now a shim.
+
 ## Found during WP4
 
 - **"Fixed output" is a property of the glossary section, not of an entry (4.4).** The plan spoke of
