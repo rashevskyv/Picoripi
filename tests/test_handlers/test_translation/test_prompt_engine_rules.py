@@ -107,3 +107,57 @@ def test_each_single_request_type_has_its_own_rules():
     assert "10 different" in variations and "selected text segment" in selection
     assert "{{TERM}}" in notes and "CONTEXT PRIORITY" not in notes
     assert len({translation, variations, selection, notes}) == 4
+
+
+# --- rows around the chunk --------------------------------------------------
+
+def _data_composer(composer, blocks):
+    composer.mw.data_store.data = blocks
+    composer.main_handler.data_processor.get_current_string_text.side_effect = (
+        lambda block, row: (f"T{block}.{row}" if row % 2 else "", False)
+    )
+    composer.data_processor = composer.main_handler.data_processor
+    return composer
+
+
+def test_surrounding_rows_follow_the_real_position_not_the_chunk_numbering(composer):
+    blocks = [[f"b{b} row {r}" for r in range(60)] for b in range(6)]
+    _data_composer(composer, blocks)
+    items = [{"id": i, "text": f"sel {i}"} for i in range(3)]
+    temp_id_map = {0: (5, 40), 1: (5, 41), 2: (5, 42)}
+
+    _, user, _ = composer.compose_batch_request(
+        "SysPrompt", items, items, block_idx=5, mode_description="selection", temp_id_map=temp_id_map)
+
+    for row in (37, 38, 39, 43, 44, 45):
+        assert f"[Row #{row}] (Original): \\\"b5 row {row}\\\"" in user
+    assert "(Translation): \\\"T5.37\\\"" in user          # a neighbour that is already translated
+    for row in (0, 1, 2, 3, 36, 40, 41, 42, 46):
+        assert f"[Row #{row}]" not in user
+
+
+def test_surrounding_rows_for_a_chunk_that_spans_two_blocks(composer):
+    blocks = [[f"b{b} row {r}" for r in range(20)] for b in range(3)]
+    _data_composer(composer, blocks)
+    items = [{"id": i, "text": f"sel {i}"} for i in range(2)]
+    # A project-wide run: synthetic block index, real places in the map (string keys as in saved progress).
+    temp_id_map = {"0": (0, 5), "1": (2, 10)}
+
+    _, user, _ = composer.compose_batch_request(
+        "SysPrompt", items, items, block_idx=999997, mode_description="story first", temp_id_map=temp_id_map)
+
+    assert user.count("--- Dialogue BEFORE this chunk (block ") == 2
+    assert "b0 row 4" in user and "b0 row 6" in user
+    assert "b2 row 9" in user and "b2 row 11" in user
+    assert "b1 row" not in user
+
+
+def test_surrounding_rows_of_a_plain_block_run(composer):
+    _data_composer(composer, [[f"row {r}" for r in range(10)]])
+    items = [{"id": 0, "text": "row 0"}, {"id": 1, "text": "row 1"}]
+
+    _, user, _ = composer.compose_batch_request("SysPrompt", items, items, block_idx=0, mode_description="block")
+
+    assert "--- Dialogue BEFORE" not in user          # nothing precedes row 0
+    assert "--- Dialogue AFTER this chunk ---" in user
+    assert "row 2" in user and "row 4" in user and "row 5" not in user
