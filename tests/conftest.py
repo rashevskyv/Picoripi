@@ -394,6 +394,24 @@ def clear_caches_before_test():
 
 
 @pytest.fixture(autouse=True)
+def english_interface():
+    """Every test starts and ends with the interface in English.
+
+    The language is one module-level setting. A test that switched it and did
+    not switch back left every later test on the same xdist worker with
+    Ukrainian strings: assertions on English text failed, and a test that
+    answers a real message box by its English button label waited for ever --
+    the "one F, then the run stalls at 99 %" hang.
+    """
+    from core import i18n
+    if i18n.current_language() != "en":
+        i18n.init("en")
+    yield
+    if i18n.current_language() != "en":
+        i18n.init("en")
+
+
+@pytest.fixture(autouse=True)
 def mock_keyboard_state():
     """Mock OS and QApplication keyboard state globally to prevent system-level leaks."""
     import ctypes
