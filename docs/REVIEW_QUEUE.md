@@ -320,3 +320,18 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **The session autosave is pickled in memory first (6.1).** For a very large project that is one extra
       copy of the snapshot in RAM during the autosave. Tell me if autosave became noticeably slower.
 
+## WP4 — translation memory and in-run consistency
+
+- [ ] **Duplicate folding in a real block (4.1).** Translate a block that has repeated lines (menu answers,
+      "Yes"/"No", repeated barks). Expected: the progress window counts fewer chunks than before, every repeated
+      row ends with the same translation, and the debug log has
+      `N duplicate strings will take the translation of M others`. Check two things by eye: a line said by two
+      different characters (it must NOT be folded if their gender or tone differs) and a repeated line in a
+      narrower window (item name vs dialogue) — each keeps its own translation.
+- [ ] **`already_translated_in_this_run` in the request (4.1).** With "Log AI traffic" on, a later chunk of the
+      same run that contains e.g. `[Color]Yes[/Color]` after a plain `Yes` shows the section with the earlier
+      pair. The model should keep the wording; if it starts copying translations where the context differs, say
+      so — the rule text is in `handlers/translation/prompt_composer/instructions.py` ("RUN MEMORY").
+- [ ] **The rules appended to the system prompt changed (4.1).** One sentence ("RUN MEMORY") was added to the
+      batch rules, so a provider-side prompt cache is rebuilt once. Saved prompt overrides are not affected.
+

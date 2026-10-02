@@ -48,7 +48,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [ ] WP3 exit: real build before/after numbers in walkthrough
 
 ## WP4 — Translation memory and in-run consistency
-- [ ] 4.1 in-run memory + duplicate folding + `already_translated_in_this_run`
+- [x] 4.1 in-run memory + duplicate folding + `already_translated_in_this_run`
 - [ ] 4.2 cross-run TM keyed by source text
 - [ ] 4.3 flow-aware chunking hook + packing
 - [ ] 4.4 fixed-output UI strings; `addressee` in single prompt

@@ -10,6 +10,8 @@ Prompt files are merged **key by key**, later ones winning: `translation_prompts
 
 **Editor review** is an optional second request per chunk that polishes the draft with the `editor_review` prompt. It is off by default; set `"editor_review_enabled": true` in the translation config to turn it on. It doubles the number of requests.
 
+**One source, one translation per run.** Before a block (or project) run starts, strings with exactly the same text are folded: one of them is sent, and the others receive its translation when the chunk returns. Two strings fold only when everything else that decides the wording is equal too — speaker, addressee, the window the text must fit, what the plugin says about the row and your manual story overrides; so a line spoken by two different characters is still translated twice. A string that already has a translation is not overwritten by a fold, exactly as it is not overwritten by the model. Set `"fold_duplicates": false` in the translation config to send every string. Each run also keeps a **run memory**: when a later chunk contains a string that differs from an already translated one only in tags, case or spacing, the request carries `already_translated_in_this_run` (at most 10 rows) and the model is told to keep the wording. The memory is emptied when a new run starts; the second phase of *Story first, then the rest* continues the first one's memory.
+
 ---
 
 ## Turn a provider on

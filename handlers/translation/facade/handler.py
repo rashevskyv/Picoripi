@@ -7,6 +7,7 @@ from PyQt6.QtCore import QTimer, QThread
 
 from handlers.base_handler import BaseHandler
 from core.translation.session_manager import TranslationSessionManager
+from core.translation.run_memory import RunMemory
 from handlers.translation.glossary_handler import GlossaryHandler
 from handlers.translation.ai_prompt_composer import AIPromptComposer
 from handlers.translation.translation_ui_handler import TranslationUIHandler
@@ -48,6 +49,8 @@ class TranslationHandler(
         self.pre_translation_state: Dict[int, List[str]] = {}
         self.current_session_translations: Dict[int, List[Tuple[int, str]]] = {}
         self.current_session_previous_translations: Dict[int, List[Tuple[int, str]]] = {}
+        # What the current run has translated, by source text (core/translation/run_memory.py).
+        self.run_memory = RunMemory()
 
         self.glossary_handler = GlossaryHandler(self)
         self.prompt_composer = AIPromptComposer(self)

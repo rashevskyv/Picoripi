@@ -5,6 +5,8 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.story_context_overrides import get_story_context_override
+from core.translation.layout_contract import resolve_lines_per_window
+from core.translation.run_memory import RunMemory
 from core.translation.session_manager import TranslationSessionState
 from core.translation.story_context_bundle import glossary_names_from_story_bundle
 from utils.logging_utils import log_debug
@@ -160,6 +162,64 @@ class BatchMixin:
         text_for_ai, force_maps = prepare_text_for_ai(text, getattr(self.mw, 'default_tag_mappings', {}))
         return item_id, text, self._replace_runtime_names_for_ai(text_for_ai), force_maps
 
+    def _plugin_translation_context(self, real_b_idx: Any, real_s_idx: Any) -> Dict:
+        """What the plugin says about the string (window type, content role, ...); ``{}`` when it says nothing."""
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules is not None and hasattr(rules, 'get_translation_context_for_string'):
+            try:
+                candidate = rules.get_translation_context_for_string(real_b_idx, real_s_idx)
+                if isinstance(candidate, dict):
+                    return candidate
+            except Exception as e:
+                log_debug(f"AIPromptComposer: translation context failed for ({real_b_idx},{real_s_idx}): {e}")
+        return {}
+
+    def _plugin_addressee(self, real_b_idx: Any, real_s_idx: Any, speaker: Optional[str]) -> str:
+        """Who the line is spoken TO, as the plugin reports it; ``""`` when unknown."""
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if rules is not None and hasattr(rules, 'get_addressee_for_string'):
+            try:
+                addressee = rules.get_addressee_for_string(real_b_idx, real_s_idx, speaker=speaker)
+                if isinstance(addressee, str) and addressee:
+                    return addressee
+            except Exception as e:
+                log_debug(f"AIPromptComposer: addressee failed for ({real_b_idx},{real_s_idx}): {e}")
+        return ""
+
+    def duplicate_context_key(self, item: Dict, block_idx: Optional[int], temp_id_map: Optional[Dict]) -> Tuple:
+        """Everything except the text that decides how a string is translated.
+
+        Two strings with the same text may share one translation only when this
+        is equal too: who says it and to whom (gender, politeness), what the
+        plugin and the user say about the row, and the window it must fit.
+        """
+        _, current_text, _, _ = self._item_text_for_ai(item)
+        real_b_idx, real_s_idx = self._real_pair(item, block_idx, temp_id_map)
+        translation_context = self._plugin_translation_context(real_b_idx, real_s_idx)
+        speaker, _ = self._resolve_prompt_speaker(real_b_idx, real_s_idx, current_text, translation_context)
+        manual = get_story_context_override(self.mw, real_b_idx, real_s_idx)
+        return (
+            str(speaker or ""),
+            self._plugin_addressee(real_b_idx, real_s_idx, speaker),
+            str(resolve_lines_per_window(self.mw, real_b_idx, real_s_idx)),
+            json.dumps(translation_context, ensure_ascii=False, sort_keys=True, default=str),
+            json.dumps(manual, ensure_ascii=False, sort_keys=True, default=str),
+        )
+
+    def _run_memory_rows(self, source_items: List[Any]) -> List[Dict[str, str]]:
+        """Earlier translations of this run whose source matches one of ``source_items``, as the model sees text."""
+        memory = getattr(self.main_handler, 'run_memory', None)
+        if not isinstance(memory, RunMemory):
+            return []
+        own_texts = [item.get('text', '') if isinstance(item, dict) else str(item) for item in source_items]
+        return [
+            {
+                'text': self._item_text_for_ai({'id': 0, 'text': row['text']})[2],
+                'translation': self._item_text_for_ai({'id': 0, 'text': row['translation']})[2],
+            }
+            for row in memory.similar(own_texts)
+        ]
+
     def build_placeholder_map(self, source_items: List[Dict]) -> Dict:
         """The forced-alias maps of ``source_items``, keyed by item id.
 
@@ -209,15 +269,8 @@ class BatchMixin:
             # Resolve real data-store coordinates for this item
             real_b_idx, real_s_idx = self._real_pair(item, block_idx, temp_id_map)
 
-            translation_context = {}
             rules = getattr(self.mw, 'current_game_rules', None)
-            if rules is not None and hasattr(rules, 'get_translation_context_for_string'):
-                try:
-                    candidate = rules.get_translation_context_for_string(real_b_idx, real_s_idx)
-                    if isinstance(candidate, dict):
-                        translation_context = candidate
-                except Exception as e:
-                    log_debug(f"AIPromptComposer: translation context failed for ({real_b_idx},{real_s_idx}): {e}")
+            translation_context = self._plugin_translation_context(real_b_idx, real_s_idx)
 
             manual = get_story_context_override(self.mw, real_b_idx, real_s_idx)
             structured_story_context = (
@@ -299,15 +352,9 @@ class BatchMixin:
             # Who the line is spoken TO (plugin-provided). Needed for languages
             # that mark politeness or gender in address; the speaker alone is
             # not enough to choose between them.
-            if rules is not None and hasattr(rules, 'get_addressee_for_string'):
-                try:
-                    addressee = rules.get_addressee_for_string(
-                        real_b_idx, real_s_idx, speaker=speaker
-                    )
-                    if isinstance(addressee, str) and addressee:
-                        item_for_ai['addressee'] = self._translate_speaker(addressee)
-                except Exception as e:
-                    log_debug(f"AIPromptComposer: addressee failed for ({real_b_idx},{real_s_idx}): {e}")
+            addressee = self._plugin_addressee(real_b_idx, real_s_idx, speaker)
+            if addressee:
+                item_for_ai['addressee'] = self._translate_speaker(addressee)
 
             # Game-script flow context (plugin-provided): conversation position,
             # branch conditions and follow-up game actions for this exact line
@@ -434,6 +481,9 @@ class BatchMixin:
         if layout_defaults:
             json_payload_for_ai['layout_defaults'] = layout_defaults
         json_payload_for_ai['strings_to_translate'] = items_with_context
+        memory_rows = self._run_memory_rows(source_items)
+        if memory_rows:
+            json_payload_for_ai['already_translated_in_this_run'] = memory_rows
         if story_context_catalog:
             json_payload_for_ai['story_context_catalog'] = story_context_catalog
         if scene_context:

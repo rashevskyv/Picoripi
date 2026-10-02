@@ -439,6 +439,7 @@ class TranslateMixin:
         operation_title: str,
         mode_description: str,
         on_complete=None,
+        continues_run: bool = False,
     ) -> None:
         """Helper to run a batch of classified items with scene context and resume support."""
         if self.is_ai_running:
@@ -580,6 +581,9 @@ class TranslateMixin:
         }
         if on_complete:
             task_details['on_complete'] = on_complete
+        if continues_run:
+            # Keeps what the first phase translated in the run memory.
+            task_details['continues_run'] = True
         self._initiate_batch_translation(task_details)
 
     def translate_story_first(self, on_complete=None) -> None:
@@ -599,7 +603,7 @@ class TranslateMixin:
             on_complete=on_complete,
         )
 
-    def translate_remaining_blocks(self, on_complete=None) -> None:
+    def translate_remaining_blocks(self, on_complete=None, continues_run: bool = False) -> None:
         """Phase 2: Translate remaining semantic & system blocks using established lore context."""
         data_source = self.mw.data_store.data
         classified = classify_project_items(data_source, self.mw)
@@ -614,6 +618,7 @@ class TranslateMixin:
             operation_title=tr("AI Translation (Remaining Blocks)"),
             mode_description="remaining semantic blocks",
             on_complete=on_complete,
+            continues_run=continues_run,
         )
 
     def translate_all_blocks_pipeline(self) -> None:
@@ -631,7 +636,7 @@ class TranslateMixin:
         if classified.has_story and classified.has_semantic:
             def _after_story():
                 log_debug("translate_all_blocks_pipeline: Story phase complete, proceeding to remaining blocks.")
-                self.translate_remaining_blocks()
+                self.translate_remaining_blocks(continues_run=True)
 
             self.translate_story_first(on_complete=_after_story)
         elif classified.has_story:

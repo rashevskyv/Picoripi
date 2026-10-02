@@ -78,6 +78,9 @@ _BATCH_RULES = (
     'conditions under which a line appears (e.g. wolf form, not enough rupees) and game actions that follow it. '
     'Use this to keep replies coherent with their questions, match choice answers to the choice prompt, and pick '
     'the correct tone and referents.',
+    'RUN MEMORY: If "already_translated_in_this_run" is present, it lists strings translated earlier in this run '
+    'whose source matches a string here apart from tags, case or spacing. Use the same wording for the same '
+    'source unless the speaker, the addressee or the layout of the item requires a different one.',
     'ADDRESSEE: If an item has "addressee", it names who the line is spoken TO. Use it to choose the form of '
     'address the target language requires (politeness level, formal vs familiar "you", gendered forms) and to '
     'keep that choice consistent for the same pair of characters.',

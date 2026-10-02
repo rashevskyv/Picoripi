@@ -11,6 +11,19 @@ the line when it is done or moved into a plan.
 - UI command "Create plugin from template" (copy `plugins/default_plugin`, rename, open the prompt file).
   WP5.4 delivers the generator (`tools/new_plugin.py`); the menu entry is still unplanned.
 
+## Found during WP4
+
+- **How much duplicate folding saves on the real project is not measured (4.1).** The audit estimated 10–30 %
+  exact duplicates; the count depends on speakers and windows (a fold needs them equal). Measure on a copy:
+  log line `BatchTranslator: N duplicate strings will take the translation of M others` at the start of a run.
+- **The fold key costs a speaker lookup per repeated string (4.1)**, on the interface thread before the run
+  starts. Only texts that occur more than once are looked up; if a project-wide run starts noticeably slower,
+  cache the speaker pool for the fold (`BlockListUpdater._speaker_pool_cache` already has it).
+- **A translation in progress saved before 4.1 resumes without folding (4.1)** — its chunk numbers belong to
+  the unfolded plan. Nothing to do; noted so that nobody "fixes" the resume path to fold again.
+- **The prompt preview shows the first folded chunk (4.1)**: with the prompt editor on, the JSON lists the
+  strings that are really sent, not the duplicates.
+
 ## Found during WP6
 
 - **Five places still use a plain `QThread` with a worker object moved into it** (`handlers/ai_chat_handler.py`,

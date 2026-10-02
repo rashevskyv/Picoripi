@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- wp4 4.1: one source, one translation per run. Strings with exactly the same text — and the same speaker, addressee, window and row context — are sent to the model once and share the translation (`"fold_duplicates": false` in the translation config sends every string). A run memory (`core/translation/run_memory.py`) shows later chunks, as `already_translated_in_this_run`, what was chosen for sources that differ only in tags, case or spacing.
+
 ## [0.3.147-dev] - 2026-10-02
 
 - wp6: a worker thread can no longer be destroyed while it runs. Every thread class (27) derives from `utils.thread_utils.WorkerThread`, which stays referenced from `start()` until Qt reports it finished; before, a result slot that dropped the last reference (`self.save_worker = None`) could run before `run()` had returned and Qt aborted the process — rarely in the application, and as a random "worker crashed" in the test suite. At exit every thread still running is asked to stop and waited for.

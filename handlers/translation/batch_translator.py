@@ -11,6 +11,7 @@ from dialogs.cached_translation_dialog import CachedTranslationDialog
 from utils.logging_utils import log_debug, log_error, log_warning
 from utils.utils import is_control_modifier_pressed
 from core.translation.chunk_result import verify_chunk_ids
+from core.translation.run_memory import RunMemory, fold_duplicates
 from core.translation.layout_contract import (
     editor_text_for_layout,
     resolve_lines_per_window,
@@ -296,6 +297,64 @@ class AIBatchTranslator(BaseTranslationHandler):
 
         return filtered_source_items, filtered_temp_id_map
 
+    def _run_memory(self) -> RunMemory:
+        memory = getattr(self.main_handler, 'run_memory', None)
+        if not isinstance(memory, RunMemory):
+            memory = self.main_handler.run_memory = RunMemory()
+        return memory
+
+    def _fold_duplicate_sources(self, context: Dict[str, Any]) -> None:
+        """Keep one of several identical strings in ``context['source_items']``.
+
+        The others are listed in ``context['duplicate_followers']`` under the id
+        of the one that is sent, and get its translation when the chunk returns.
+        """
+        config = getattr(self.mw, 'translation_config', None)
+        if isinstance(config, dict) and config.get('fold_duplicates', True) is False:
+            return
+        source_items = context.get('source_items') or []
+        composer = self.main_handler.prompt_composer
+        block_idx, temp_id_map = context.get('block_idx'), context.get('temp_id_map')
+
+        def context_key(item):
+            return composer.duplicate_context_key(item, block_idx, temp_id_map)
+
+        try:
+            kept, followers = fold_duplicates(source_items, context_key)
+        except Exception as exc:
+            # Folding saves requests; a run without it is still a correct run.
+            log_warning(f"BatchTranslator: duplicates were not folded: {exc}")
+            return
+        if followers:
+            folded = sum(len(ids) for ids in followers.values())
+            log_debug(f"BatchTranslator: {folded} duplicate strings will take the translation of {len(followers)} others.")
+            context['source_items'] = kept
+            context['duplicate_followers'] = followers
+
+    @staticmethod
+    def _followers_of(context: Dict[str, Any], item_id: Any) -> List[Any]:
+        """Ids of the strings that take the translation of ``item_id`` (keys are strings after a restart)."""
+        followers = context.get('duplicate_followers') or {}
+        return list(followers.get(item_id) or followers.get(str(item_id)) or [])
+
+    @staticmethod
+    def _real_pair(item_id: Any, block_idx: Any, temp_id_map: Any):
+        """``(block, string)`` of an item id, or ``None`` when it cannot be placed."""
+        if temp_id_map:
+            for key in (item_id, str(item_id)):
+                if key in temp_id_map:
+                    return tuple(temp_id_map[key])
+            try:
+                if int(item_id) in temp_id_map:
+                    return tuple(temp_id_map[int(item_id)])
+            except (ValueError, TypeError):
+                return None
+            return None
+        try:
+            return block_idx, int(item_id)
+        except (ValueError, TypeError):
+            return None
+
     def initiate_batch_translation(self, context: Dict[str, Any]) -> None:
         """Internal helper to initiate batch translation."""
         self.main_handler.translated_chunks_count = 0
@@ -316,12 +375,22 @@ class AIBatchTranslator(BaseTranslationHandler):
         if task_type == 'translate_block_chunked' and block_idx is not None:
             if not context.get('is_resume', False):
                 self.main_handler.reset_translation_session()
+                if not context.get('continues_run'):
+                    self._run_memory().clear()
+                self._fold_duplicate_sources(context)
                 self.main_handler.translation_progress[block_idx] = {
                     'completed_chunks': set(),
                     'total_chunks': 0,
                     'source_items': context.get('source_items', []),
+                    'duplicate_followers': context.get('duplicate_followers', {}),
                     'temp_id_map': context.get('temp_id_map', {})
                 }
+            else:
+                # The chunk numbers already done belong to the plan the run was started with.
+                context.setdefault(
+                    'duplicate_followers',
+                    self.main_handler.translation_progress.get(block_idx, {}).get('duplicate_followers', {}),
+                )
             
             context['chunks_to_skip'] = self.main_handler.translation_progress.get(block_idx, {}).get('completed_chunks', set())
 
@@ -438,6 +507,31 @@ class AIBatchTranslator(BaseTranslationHandler):
             modified_blocks = set()
             translations_by_block = {}
 
+            def apply_row(real_block_idx, real_string_idx, final_text):
+                modified_blocks.add(real_block_idx)
+                # A string that already has a translation is not overwritten: the old
+                # text is kept for the comparison shown when the run ends.
+                if self.data_processor.is_string_translated(real_block_idx, real_string_idx):
+                    res = self.data_processor.get_current_string_text(real_block_idx, real_string_idx)
+                    if isinstance(res, tuple) and len(res) == 2:
+                        old_val, _ = res
+                        if not hasattr(self.main_handler, 'current_session_previous_translations') or self.main_handler.current_session_previous_translations is None:
+                            self.main_handler.current_session_previous_translations = {}
+                        if real_block_idx not in self.main_handler.current_session_previous_translations:
+                            self.main_handler.current_session_previous_translations[real_block_idx] = []
+                        self.main_handler.current_session_previous_translations[real_block_idx].append((real_string_idx, old_val))
+                else:
+                    self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
+                    if real_block_idx not in translations_by_block:
+                        translations_by_block[real_block_idx] = []
+                    translations_by_block[real_block_idx].append((real_string_idx, final_text))
+
+                if not hasattr(self.main_handler, 'current_session_translations') or self.main_handler.current_session_translations is None:
+                    self.main_handler.current_session_translations = {}
+                if real_block_idx not in self.main_handler.current_session_translations:
+                    self.main_handler.current_session_translations[real_block_idx] = []
+                self.main_handler.current_session_translations[real_block_idx].append((real_string_idx, final_text))
+
             # Retrieve calculated chunks for robust sequential mapping in case AI returns sequential/reordered IDs
             for idx_in_response, item in enumerate(translated_strings):
                 temp_id = item.get("id")
@@ -482,30 +576,17 @@ class AIBatchTranslator(BaseTranslationHandler):
                             pass
 
                 if resolved:
-                    modified_blocks.add(real_block_idx)
                     final_text = self.main_handler._convert_translation_preserving_layout(translated_text)
-                    
-                    # Track previous translation if it was already translated
-                    if self.data_processor.is_string_translated(real_block_idx, real_string_idx):
-                        res = self.data_processor.get_current_string_text(real_block_idx, real_string_idx)
-                        if isinstance(res, tuple) and len(res) == 2:
-                            old_val, _ = res
-                            if not hasattr(self.main_handler, 'current_session_previous_translations') or self.main_handler.current_session_previous_translations is None:
-                                self.main_handler.current_session_previous_translations = {}
-                            if real_block_idx not in self.main_handler.current_session_previous_translations:
-                                self.main_handler.current_session_previous_translations[real_block_idx] = []
-                            self.main_handler.current_session_previous_translations[real_block_idx].append((real_string_idx, old_val))
-                    else:
-                        self.data_processor.update_edited_data(real_block_idx, real_string_idx, final_text, action_type="TRANSLATE", skip_ui_refresh=True)
-                        if real_block_idx not in translations_by_block:
-                            translations_by_block[real_block_idx] = []
-                        translations_by_block[real_block_idx].append((real_string_idx, final_text))
-                    
-                    if not hasattr(self.main_handler, 'current_session_translations') or self.main_handler.current_session_translations is None:
-                        self.main_handler.current_session_translations = {}
-                    if real_block_idx not in self.main_handler.current_session_translations:
-                        self.main_handler.current_session_translations[real_block_idx] = []
-                    self.main_handler.current_session_translations[real_block_idx].append((real_string_idx, final_text))
+                    apply_row(real_block_idx, real_string_idx, final_text)
+
+                    source_item = source_items_for_chunk[idx_in_response] if idx_in_response < len(source_items_for_chunk) else None
+                    if isinstance(source_item, dict):
+                        self._run_memory().remember(source_item.get('text', ''), final_text)
+                        # The identical strings that were not sent take the same translation.
+                        for follower_id in self._followers_of(context, source_item.get('id')):
+                            pair = self._real_pair(follower_id, block_idx, temp_id_map)
+                            if pair is not None:
+                                apply_row(pair[0], pair[1], final_text)
 
             self.mw.undo_manager.end_group("TRANSLATE")
             group_open = False

@@ -27,6 +27,9 @@ def build_default_translation_config() -> dict:
         # A second request per chunk that polishes the draft (prompt section
         # "editor_review"). Off unless switched on: it doubles the requests.
         "editor_review_enabled": False,
+        # Identical strings (same text, speaker, addressee and window) are sent
+        # once per run and share the translation.
+        "fold_duplicates": True,
         "providers": {
             "openai": {
                 "api_key": "",
