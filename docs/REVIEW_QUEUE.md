@@ -85,3 +85,6 @@ in `docs/OPEN_ITEMS.md`, not here.
       name + role + address_and_grammar (and speech_style for the current speaker), 40 words per field at
       most, instead of the full ten-field profile. Single-string translation still gets full profiles. Check
       that tone, gender agreement and ти/ви are still right in a story block.
+- [ ] **Native JSON mode (2.7)** is sent only to api.openai.com (`response_format`), native Gemini
+      (`responseMimeType`) and Ollama (`format: json`) — not to your Web2API proxy. If the proxy does honour
+      `response_format`, say so and it can be enabled for the `web2api` profile too.

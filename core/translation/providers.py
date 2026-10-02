@@ -237,6 +237,11 @@ class OpenAIProvider(BaseTranslationProvider):
             body['temperature'] = current_settings['temperature']
         if isinstance(current_settings.get('max_output_tokens'), int) and current_settings['max_output_tokens'] > 0:
             body['max_tokens'] = current_settings['max_output_tokens']
+        # Native JSON mode, when the caller expects one JSON object back. Only
+        # where it is known to exist: a proxy may reject the field, and
+        # Perplexity accepts only schema-typed formats.
+        if current_settings.get('json') and self.profile == "openai" and "perplexity" not in self.base_url.lower():
+            body['response_format'] = {"type": "json_object"}
         return body
 
     def translate(self, messages: List[Dict[str, str]], session: Optional[dict] = None, settings_override: Optional[Dict[str, Any]] = None) -> ProviderResponse:
@@ -450,7 +455,9 @@ class OllamaChatProvider(BaseTranslationProvider):
             options['temperature'] = current_settings['temperature']
         if options:
             body['options'] = options
-        
+        if current_settings.get('json'):
+            body['format'] = 'json'
+
         if current_settings.get('keep_alive'):
             body['keep_alive'] = current_settings['keep_alive']
 
@@ -623,6 +630,8 @@ class GeminiProvider(BaseTranslationProvider):
         generation_config: Dict[str, Any] = {}
         if isinstance(current_settings.get('temperature'), (float, int)):
             generation_config['temperature'] = current_settings['temperature']
+        if current_settings.get('json'):
+            generation_config['responseMimeType'] = 'application/json'
         if generation_config:
             body['generationConfig'] = generation_config
 

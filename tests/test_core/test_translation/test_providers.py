@@ -404,3 +404,31 @@ def test_workers_are_left_alone_without_healthz_or_for_a_hosted_api(mock_get):
     hosted = OpenAIProvider({"endpoint": "https://api.openai.com/v1", "model": "m", "api_key": "k"})
     assert hosted.clamp_workers(6) == 6
     assert mock_get.call_count == 1
+
+
+# --- native JSON mode (WP2 2.7) ---------------------------------------------
+
+def test_json_mode_is_requested_only_where_it_is_known_to_exist():
+    messages = [{"role": "user", "content": "Return JSON"}]
+    hosted = OpenAIProvider({"endpoint": "https://api.openai.com/v1", "model": "gpt-4o-mini", "api_key": "k"})
+    proxy = OpenAIProvider({"endpoint": "http://127.0.0.1:8081/v1", "model": "gemini-3.7-flash"})
+    perplexity = OpenAIProvider({"endpoint": "https://api.perplexity.ai", "model": "sonar", "api_key": "k"})
+
+    assert hosted._prepare_body(messages, {"json": True})["response_format"] == {"type": "json_object"}
+    assert "response_format" not in hosted._prepare_body(messages, {})
+    assert "response_format" not in proxy._prepare_body(messages, {"json": True})
+    assert "response_format" not in perplexity._prepare_body(messages, {"json": True})
+
+
+@patch('core.translation.providers.requests.post')
+def test_native_gemini_json_mode(mock_post):
+    from core.translation.providers import GeminiProvider
+    mock_post.return_value = _ok_response({"candidates": [{"content": {"parts": [{"text": "{}"}]}}]})
+    provider = GeminiProvider({"api_key": "k", "model": "gemini"})
+
+    provider.translate([{"role": "user", "content": "Hi"}], settings_override={"json": True, "temperature": 0.1})
+    assert mock_post.call_args[1]["json"]["generationConfig"] == {
+        "temperature": 0.1, "responseMimeType": "application/json"}
+
+    provider.translate([{"role": "user", "content": "Hi"}])
+    assert "generationConfig" not in mock_post.call_args[1]["json"]

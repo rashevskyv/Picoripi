@@ -266,6 +266,8 @@ class AIWorkerRunMixin:
                 session_state = self.task_details.get('session_state')
                 provider_override = self.task_details.get('provider_settings_override', {})
                 provider_override.setdefault('think', 1)
+                # A chunk reply is one JSON object; ask for JSON mode where it exists.
+                provider_override.setdefault('json', True)
                 workers = int(self.task_details.get('workers', 1) or 1)
                 if workers > 1 and isinstance(self.provider, BaseTranslationProvider):
                     workers = self.provider.clamp_workers(workers)
@@ -718,6 +720,9 @@ class AIWorkerRunMixin:
             
             provider_settings_override = self.task_details.get('provider_settings_override', {})
             provider_settings_override.update(settings_override)
+            if task_type in ['translate_single', 'translate_preview']:
+                # These replies are one JSON object; ask for JSON mode where it exists.
+                provider_settings_override.setdefault('json', True)
             if task_type in ['translate_single', 'generate_variation', 'glossary_notes_variation']:
                 provider_settings_override.setdefault('think', 2)
             elif task_type == 'fill_glossary':
