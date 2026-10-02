@@ -68,7 +68,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 ## WP6 — Stability
 - [x] 6.1 `utils/atomic_io.py` + 12 write sites
 - [x] 6.2 `safe_shutdown_thread` order; cancellation in 5 workers; no `terminate()`; rename custom `finished`; guard worker overwrite
-- [ ] 6.3 companion push/pull/close off the GUI thread
+- [x] 6.3 companion push/pull/close off the GUI thread
 - [ ] 6.4 remove `'pytest' in sys.modules` branches and `_ShimName` patches; delete conftest heap walk
 - [ ] 6.5 split `run()` (746) and `populate_blocks` (542); enable F841; S110 warning; log in every `except: pass`
 - [ ] WP6 exit

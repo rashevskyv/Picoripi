@@ -271,6 +271,14 @@ in `docs/OPEN_ITEMS.md`, not here.
 
 ## WP6 — stability
 
+- [ ] **Companion Push / Pull / Test Connection from the glossary window and from Settings (6.3).** Each shows a
+      progress window with Cancel; the result message appears after it. With a real server: push, then pull —
+      the glossary view refreshes as before. With an unreachable server: Cancel returns at once.
+- [ ] **Conflicts during a Companion sync (6.3).** Change the same term on the phone and on the desktop, sync,
+      resolve in the conflict window: the sync window must go back to its progress bar and finish with the
+      counts, not freeze while it pushes.
+- [ ] **Exit with Companion auto-sync on and the server off (6.3).** The "Closing Picoripi" window must close by
+      itself after about 6 s (or at once on "Skip & Close"); if it shows an error first, "Close Anyway" works.
 - [ ] **Companion sync to a server that does not answer, then "Skip" (6.2).** Point the Companion URL at an
       address that swallows packets (e.g. `http://10.255.255.1:8000`), open the glossary, start a sync and press
       "Skip & Work Offline": the window must close at once and the editor stay responsive. Do the same on exit

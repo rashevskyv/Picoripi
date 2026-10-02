@@ -72,10 +72,14 @@ class SettingsCompanionMixin:
         self.companion_status_label.setText(tr("Connecting..."))
         self.companion_status_label.setStyleSheet("color: #888;")
 
-        ok, msg = client.test_connection()
-        if ok:
-            self.companion_status_label.setText(f"✓ {msg}")
-            self.companion_status_label.setStyleSheet("color: #10b981; font-weight: bold;")
-        else:
-            self.companion_status_label.setText(f"✗ {msg}")
-            self.companion_status_label.setStyleSheet("color: #ef4444; font-weight: bold;")
+        def connection_tested(result):
+            ok, msg = result or (False, tr("The request failed; see the log."))
+            if ok:
+                self.companion_status_label.setText(f"✓ {msg}")
+                self.companion_status_label.setStyleSheet("color: #10b981; font-weight: bold;")
+            else:
+                self.companion_status_label.setText(f"✗ {msg}")
+                self.companion_status_label.setStyleSheet("color: #ef4444; font-weight: bold;")
+
+        from components.companion.background_call import run_companion_call
+        run_companion_call(self, lambda _cancelled: client.test_connection(), connection_tested)

@@ -720,7 +720,9 @@ class CompanionSyncWorker(QThread):
         entries: Optional[Sequence[GlossaryEntry]] = None,
         occurrence_map: Optional[Dict[str, List[GlossaryOccurrence]]] = None,
         reference_data: Optional[Dict[Tuple[int, int], str]] = None,
+        merge_result: Optional[MergeResult] = None,
     ):
+        """With ``merge_result`` (conflicts already resolved) the worker commits that merge instead of syncing."""
         super().__init__()
         self.client = client
         self.project_name = project_name
@@ -728,8 +730,21 @@ class CompanionSyncWorker(QThread):
         self.entries = entries
         self.occurrence_map = occurrence_map
         self.reference_data = reference_data
+        self.merge_result = merge_result
 
     def run(self):
+        if self.merge_result is not None:
+            ok, msg, pulled, pushed, _conflicts, _merge = self.client.commit_merge(
+                project_name=self.project_name,
+                glossary_path=self.glossary_path,
+                merge_result=self.merge_result,
+                occurrence_map=self.occurrence_map,
+                reference_data=self.reference_data,
+                on_status=self.progress_status.emit,
+                cancelled=self.isInterruptionRequested,
+            )
+            self.finished_with_result.emit(ok, msg, pulled, pushed)
+            return
         ok, msg, pulled, pushed, conflicts, merge_result = self.client.sync_project(
             project_name=self.project_name,
             glossary_path=self.glossary_path,
@@ -1004,6 +1019,7 @@ def sync_push_on_close(mw: Any, show_dialog: bool = True) -> bool:
                 return dlg.was_successful
             except Exception as exc:
                 log_debug(f"CompanionSyncDialog on close failed to display: {exc}")
+            return False
 
         ok, msg, pulled, pushed, conflicts, merge_res = client.sync_project(
             project_name=project_name,

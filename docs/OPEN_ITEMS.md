@@ -13,6 +13,12 @@ the line when it is done or moved into a plan.
 
 ## Found during WP6
 
+- **`sync_push_on_close` still syncs on the calling thread when there is no window (6.3)** — headless callers
+  and `mw.is_testing` (a test switch in product code; 6.4 removes the `pytest` checks, this attribute stays
+  until the close path gets an injected "show dialog" decision).
+- **Project close calls `sync_push_on_close` too** (`handlers/project_action/lifecycle_mixin.py`): the sync
+  window there is titled "Closing Picoripi" although only the project closes.
+
 - **A parked thread still finishes its network request (6.2).** `requests` cannot be interrupted from another
   thread, so a skipped Companion sync runs until the client's timeout (15 s, 6 s on close) and the process waits
   up to 8 s for it at exit (`utils.thread_utils.wait_for_parked_threads`). Closing the `requests.Session` from

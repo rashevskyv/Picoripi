@@ -27,6 +27,8 @@ When **Automatically sync on project open and close** is enabled:
 - **Auto-Push Fallback**: If the server has no terms for the current project while the local project has terms, Picoripi automatically pushes the initial glossary so terms become immediately available on mobile.
 - **Save & Exit Auto-Push**: Saving changes (`Ctrl+S`), closing a project, closing the glossary dialog, or exiting the application automatically launches a background `CompanionPushWorker` to send updated terms, context occurrences, and reference translations to the server.
 - **Debouncing & Safety**: All network sync requests use a 3-second debounce window and detect active workers (`existing_worker.isRunning()`) to prevent race conditions or duplicate requests. Network timeouts or offline servers never freeze the UI or show blocking modal errors.
+- **Manual actions run in the background too**: *Push*, *Pull* and *Test Server Connection* (glossary window and Settings) show a small progress window with **Cancel**; cancelling returns at once and a cancelled pull does not touch the local glossary. After you resolve conflicts, the merge is committed by the same background worker.
+- **Exit never waits for a silent server**: the sync window shown on exit gives up after 6 seconds without an answer and closes; **Skip** closes it immediately.
 
 ---
 

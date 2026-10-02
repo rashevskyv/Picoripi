@@ -1751,5 +1751,7 @@
   "Translate every string in the current block with AI": "Перекласти кожен рядок поточного блока за допомогою AI",
   "Clear the current AI translation session": "Очистити поточну AI-сесію перекладу",
   "Synchronization cancelled.": "Синхронізацію скасовано.",
-  "A save is already in progress.": "Збереження вже триває."
+  "A save is already in progress.": "Збереження вже триває.",
+  "Contacting Companion server…": "Звертаємося до сервера компаньйона…",
+  "The request failed; see the log.": "Запит не вдався; подробиці в журналі."
 }

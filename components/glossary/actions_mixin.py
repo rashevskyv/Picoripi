@@ -409,12 +409,17 @@ class ActionsMixin:
         if not selected:
             return
 
+        from components.companion.background_call import run_companion_call
+
         if selected == test_action:
-            ok, msg = client.test_connection()
-            if ok:
-                QMessageBox.information(self, tr("Companion Server"), f"✓ {msg}")
-            else:
-                QMessageBox.warning(self, tr("Companion Server"), f"✗ {msg}")
+            def connection_tested(result):
+                ok, msg = result or (False, tr("The request failed; see the log."))
+                if ok:
+                    QMessageBox.information(self, tr("Companion Server"), f"✓ {msg}")
+                else:
+                    QMessageBox.warning(self, tr("Companion Server"), f"✗ {msg}")
+
+            run_companion_call(self, lambda _cancelled: client.test_connection(), connection_tested)
             return
 
         project_mgr = getattr(parent, "project_manager", None)
@@ -442,33 +447,46 @@ class ActionsMixin:
                 self.reload_data()
             return
 
+        failed = (False, tr("The request failed; see the log."), 0)
+
         if selected == push_action:
-            ok, msg, count = client.push_project(
+            # The worker reads these while the window stays usable: hand it copies.
+            entries, occurrences = list(self._all_entries), dict(self._occurrences or {})
+
+            def pushed(result):
+                ok, msg, _count = result or failed
+                if ok:
+                    QMessageBox.information(self, tr("Companion Sync"), f"✓ {msg}")
+                else:
+                    QMessageBox.critical(self, tr("Companion Sync"), f"✗ {msg}")
+
+            run_companion_call(self, lambda cancelled: client.push_project(
                 project_name=project_name,
                 glossary_path=glossary_path,
-                entries=self._all_entries,
-                occurrence_map=self._occurrences,
+                entries=entries,
+                occurrence_map=occurrences,
                 reference_data=self._reference_data,
-            )
-            if ok:
-                QMessageBox.information(self, tr("Companion Sync"), f"✓ {msg}")
-            else:
-                QMessageBox.critical(self, tr("Companion Sync"), f"✗ {msg}")
+                cancelled=cancelled,
+            ), pushed)
         elif selected == pull_action:
-            ok, msg, count = client.pull_project(
+            def pulled(result):
+                ok, msg, _count = result or failed
+                if ok:
+                    if glossary_mgr:
+                        glossary_mgr.refresh_from_disk()
+                    glossary_handler = getattr(parent, "glossary_handler", None)
+                    if glossary_handler and hasattr(glossary_handler, "refresh_open_dialog"):
+                        glossary_handler.refresh_open_dialog()
+                    QMessageBox.information(
+                        self,
+                        tr("Companion Sync"),
+                        f"✓ {msg}\n\nLocal glossary updated and view refreshed.",
+                    )
+                else:
+                    QMessageBox.critical(self, tr("Companion Sync"), f"✗ {msg}")
+
+            run_companion_call(self, lambda cancelled: client.pull_project(
                 project_name=project_name,
                 glossary_path=glossary_path,
-            )
-            if ok:
-                if glossary_mgr:
-                    glossary_mgr.refresh_from_disk()
-                glossary_handler = getattr(parent, "glossary_handler", None)
-                if glossary_handler and hasattr(glossary_handler, "refresh_open_dialog"):
-                    glossary_handler.refresh_open_dialog()
-                QMessageBox.information(
-                    self,
-                    tr("Companion Sync"),
-                    f"✓ {msg}\n\nLocal glossary updated and view refreshed.",
-                )
-            else:
-                QMessageBox.critical(self, tr("Companion Sync"), f"✗ {msg}")
+                cancelled=cancelled,
+            ), pulled)
