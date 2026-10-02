@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Any, Iterable
 
-from plugins.zelda_bmg.msg_flow import (
+from .msg_flow import (
     NODE_BRANCH,
     NODE_MESSAGE,
     _branch_arity,
@@ -98,7 +98,7 @@ def validate_flow_alignment(
 
         conversation_rows: list[set[int]] = []
         flow_rows: set[int] = set()
-        from plugins.zelda_bmg.msg_flow import build_conversation
+        from .msg_flow import build_conversation
 
         for flow_id in sorted(flow.flows):
             flow_resources[flow_id].add(block_name)

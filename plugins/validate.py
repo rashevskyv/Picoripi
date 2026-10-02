@@ -139,6 +139,12 @@ def _describe(value: Any) -> str:
     return type(value).__name__
 
 
+def _type_name(expected: Any) -> str:
+    if isinstance(expected, tuple):
+        return " or ".join(item.__name__ for item in expected)
+    return expected.__name__
+
+
 def check_rules(rules_class: Any, report: Report) -> None:
     """Check a ``GameRules`` class: construction, signatures, a dummy call of every callable hook."""
     if not (inspect.isclass(rules_class) and issubclass(rules_class, BaseGameRules)):
@@ -176,9 +182,9 @@ def check_rules(rules_class: Any, report: Report) -> None:
             continue
         if result is None:
             if hook.returns is not None and not hook.optional:
-                report.errors.append(f"{hook.name}: returned None, expected {hook.returns.__name__}")
+                report.errors.append(f"{hook.name}: returned None, expected {_type_name(hook.returns)}")
         elif hook.returns is not None and not isinstance(result, hook.returns):
-            report.errors.append(f"{hook.name}: returned {_describe(result)}, expected {hook.returns.__name__}")
+            report.errors.append(f"{hook.name}: returned {_describe(result)}, expected {_type_name(hook.returns)}")
         elif hook.name == "get_spellcheck_ignore_pattern":
             try:
                 re.compile(result)

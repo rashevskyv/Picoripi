@@ -1,6 +1,6 @@
 import struct
 
-from core.mempalace.flow_validation import validate_flow_alignment
+from plugins.zelda_bmg.flow_validation import validate_flow_alignment
 from plugins.zelda_bmg.msg_flow import NODE_MESSAGE
 
 

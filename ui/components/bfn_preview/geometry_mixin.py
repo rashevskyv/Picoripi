@@ -1,5 +1,6 @@
 """Geometry, fonts, window presets, and handles for BFN preview."""
 from __future__ import annotations
+from core.plugin_call import safe_call
 from utils.constants import plugins_root
 
 import json
@@ -124,11 +125,8 @@ class BfnPreviewGeometryMixin:
 
     def cycle_window_preset(self, delta: int):
         """Cycle the ephemeral preview window preset (does not mutate BMG/info)."""
-        try:
-            from plugins.zelda_bmg.window_kinds import PREVIEW_WINDOW_PRESETS
-            presets = list(PREVIEW_WINDOW_PRESETS)
-        except Exception:
-            presets = [None]
+        rules = getattr(self.mw, 'current_game_rules', None)
+        presets = list(safe_call(rules, 'get_window_presets', default=None) or [None])
         self._sync_window_preset_scope()
         try:
             index = presets.index(self._window_preset_override)
@@ -151,13 +149,15 @@ class BfnPreviewGeometryMixin:
             bar.hide()
             return
         bar.show()
+        fallback = "Auto" if self._window_preset_override is None else str(self._window_preset_override)
         try:
-            from plugins.zelda_bmg.window_kinds import preset_label
             auto_style = self._resolve_auto_window_style()
-            bar.set_label(preset_label(self._window_preset_override, auto_style))
         except Exception:
-            bar.set_label("Auto" if self._window_preset_override is None else str(
-                self._window_preset_override))
+            auto_style = None
+        bar.set_label(safe_call(
+            getattr(self.mw, 'current_game_rules', None), 'get_window_preset_label',
+            self._window_preset_override, auto_style, default=fallback,
+        ) or fallback)
 
     def get_bg_top_left(self) -> QPoint:
         """Calculate the top-left position of the background image inside the widget."""

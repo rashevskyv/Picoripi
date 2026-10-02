@@ -598,6 +598,71 @@ class BaseGameRules:
         """
         return None
 
+    # -- message windows (capability "message_window_preview") ------------------
+    # A game that shows text in several kinds of window can teach the preview to
+    # draw them. All of it is optional and does nothing until the plugin lists
+    # "message_window_preview" in get_capabilities().
+
+    def get_window_presets(self) -> List[Any]:
+        """Window kinds the preview can be forced to show, for the user to cycle through.
+
+        ``None`` stands for "follow the message" and comes first. The other
+        values are the plugin's own keys; the host only hands them back.
+        Default: only ``None``.
+        """
+        return [None]
+
+    def get_window_preset_label(self, preset: Any, auto_style: Optional[Dict[str, Any]] = None) -> str:
+        """Short name of a preset for the bar under the preview.
+
+        ``auto_style`` is the style of the current message, given when
+        ``preset`` is None so the label can say what "Auto" resolved to.
+        """
+        return "Auto" if preset is None else str(preset)
+
+    def get_window_preset_labels(self) -> List[str]:
+        """Every label the bar may show; it is sized to the longest so it does not jump."""
+        return [self.get_window_preset_label(preset) for preset in self.get_window_presets()]
+
+    def get_window_style_for_preset(self, preset: Any) -> Optional[Dict[str, Any]]:
+        """The window style to paint when the user forces ``preset`` (same shape as
+        ``get_preview_window_style`` returns). None: the preset is not known."""
+        return None
+
+    def get_window_frame(self, style: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """The game's own window for a style, read from its files.
+
+        Returns ``{"geometry": {...}, "image": QImage}`` or None when the files
+        are not available; the preview then draws the plain frame of ``style``.
+        """
+        return None
+
+    def get_window_item_icon(self, block_idx: Optional[int], string_idx: Optional[int]) -> Optional[Any]:
+        """The picture (QImage) shown in the icon slot of an item window for this message, or None."""
+        return None
+
+    def get_window_text_offset_y(self, text_box_height: float, font_height: float, line_space: float,
+                                 max_lines: int, used_lines: int) -> float:
+        """How far down the game moves the first line inside the text box (its own
+        vertical centring), in game pixels. Default: no shift."""
+        return 0.0
+
+    def get_window_layout_groups(self) -> List[Tuple[str, str, Optional[Tuple[str, ...]]]]:
+        """Rows of the "limits by window type" table in Settings: ``(key, label, kinds)``.
+
+        ``kinds`` are the keys of the layouts document the row writes to; None
+        means its ``default`` entry. Default: no table.
+        """
+        return []
+
+    def get_window_layouts_document(self) -> Optional[Dict[str, Any]]:
+        """The stored per-window limits: ``{"default": {...}, "kinds": {key: {...}}}``, each entry
+        with ``warn_width``, ``max_width``, ``lines_per_page``. None: nothing to edit."""
+        return None
+
+    def save_window_layouts_document(self, document: Dict[str, Any]) -> None:
+        """Store the document edited in Settings. Raise to report a failure."""
+
     def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """Per-line game-script flow context for the AI translation prompt.
 

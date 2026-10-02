@@ -252,4 +252,13 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **Switching plugins reloads all of the plugin's modules (5.6).** For Twilight Princess that is 15+
       modules instead of 6, so caches kept in module variables start empty after a switch. Switch
       zelda_bmg → another plugin → zelda_bmg and check the preview and the speaker data still work.
+- [ ] **The game-like preview of Twilight Princess now gets everything through plugin hooks (5.7) — look at
+      it.** Open strings of several window kinds (dialogue, item with icon, sign, location plate, subtitles):
+      the frame, the icon in the item window, the vertical position of the text and the "Auto / forced
+      window" bar under the preview must look as before. Then Settings → the "limits by window type" table:
+      change a value, press OK, reopen — the value must be kept.
+- [ ] **Hooks differ from the three names in the plan (5.7).** The plan named `get_window_presets`,
+      `get_window_layout(kind)`, `get_window_frame(kind)`; the preview actually needed nine things (labels,
+      the style of a forced preset, the item icon, the text offset, the Settings table), so there are nine
+      hooks. The full list with descriptions is in `plugins/spec.py`.
 

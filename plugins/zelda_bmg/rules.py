@@ -182,6 +182,8 @@ class GameRules(BaseGameRules):
         """Initialize a new instance."""
         super().__init__(main_window_ref)
         self.last_loaded_bmg = None
+        # Per-window limits edited in Settings.
+        self.window_layouts_path = os.path.join(plugin_dir, "window_layouts.json")
         self.translation_map = {}
         self.reverse_translation_map = {}
         self._last_map_path = None
@@ -1471,9 +1473,89 @@ class GameRules(BaseGameRules):
         cached = getattr(self, "_window_layouts", None)
         if cached is None:
             from .window_kinds import load_window_layouts
-            cached = load_window_layouts(plugin_dir)
+            cached = load_window_layouts(os.path.dirname(self.window_layouts_path))
             self._window_layouts = cached
         return cached
+
+    # -- message windows for the preview and the Settings table -------------------
+
+    # Rows of the Settings table: (key, label, fuki kinds the row writes to; None = the default entry).
+    WINDOW_LAYOUT_GROUPS = (
+        ("dialog", "Dialogue (all talk variants)", None),
+        ("signs", "Wood / stone signs", ("2", "6")),
+        ("kanban_talk", "Dialogue (kanban)", ("15",)),
+        ("item", "Item window", ("9",)),
+        ("explain", "Descriptions / save", ("16",)),
+        ("subtitles", "Subtitles", ("1", "5")),
+        ("titles", "Location / boss name", ("12", "19")),
+        ("howling", "Howling", ("17",)),
+        ("credits", "Staff credits", ("7",)),
+    )
+
+    def get_window_presets(self) -> list:
+        from .window_kinds import PREVIEW_WINDOW_PRESETS
+        return list(PREVIEW_WINDOW_PRESETS)
+
+    def get_window_preset_label(self, preset, auto_style=None) -> str:
+        from .window_kinds import preset_label
+        return preset_label(preset, auto_style)
+
+    def get_window_preset_labels(self) -> list:
+        from .window_kinds import EXPLAIN_WINDOW_STYLE, PREVIEW_WINDOW_PRESETS, WINDOW_KIND_STYLES, preset_label
+        names = [preset_label(preset) for preset in PREVIEW_WINDOW_PRESETS]
+        names.extend("Auto: " + style.get("kind_name", "") for style in WINDOW_KIND_STYLES.values())
+        names.append("Auto: " + EXPLAIN_WINDOW_STYLE.get("kind_name", "Explain"))
+        return [name for name in names if name]
+
+    def get_window_style_for_preset(self, preset) -> Optional[Dict[str, Any]]:
+        from .window_kinds import EXPLAIN_PRESET_KEY, layout_for_kind, window_style_for_preset
+        kind = None if preset == EXPLAIN_PRESET_KEY else preset
+        return window_style_for_preset(preset, layout_for_kind(self._get_window_layouts(), kind))
+
+    def get_window_frame(self, style: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """BLO/BTI geometry and picture of the window from the local retail dump, when present."""
+        from .window_frame_loader import frame_to_geometry, load_window_frame, screen_class_for_kind
+        screen_class = screen_class_for_kind(style.get("fuki_kind"), style)
+        frame = load_window_frame(screen_class, self.mw) if screen_class else None
+        if frame is None:
+            return None
+        return {"geometry": frame_to_geometry(frame), "image": frame.image}
+
+    def get_window_item_icon(self, block_idx, string_idx):
+        from .window_frame_loader import load_item_icon
+        attrs = self.get_message_attributes(block_idx, string_idx)
+        item_no = (attrs or {}).get("item_no") or 0
+        if not item_no and attrs:
+            # Game: mItemIndex = messageID - 0x65, with 0x02A5 remapped to 0x40.
+            message_id = int(attrs.get("message_id") or 0)
+            if message_id == 0x02A5:
+                item_no = 0x40
+            elif 0 < message_id - 0x65 <= 0xFF:
+                item_no = message_id - 0x65
+        return load_item_icon(item_no, self.mw) if item_no else None
+
+    def get_window_text_offset_y(self, text_box_height, font_height, line_space, max_lines, used_lines) -> float:
+        from .window_frame_loader import textbox_height_center
+        return textbox_height_center(text_box_height, font_height, line_space, max_lines, used_lines)
+
+    def get_window_layout_groups(self) -> list:
+        return list(self.WINDOW_LAYOUT_GROUPS)
+
+    def get_window_layouts_document(self) -> Optional[Dict[str, Any]]:
+        try:
+            with open(self.window_layouts_path, encoding="utf-8") as stream:
+                document = json.load(stream)
+        except Exception as error:
+            log_debug(f"zelda_bmg: failed to load window_layouts.json: {error}")
+            return {"default": {}, "kinds": {}}
+        return document if isinstance(document, dict) else {"default": {}, "kinds": {}}
+
+    def save_window_layouts_document(self, document: Dict[str, Any]) -> None:
+        temporary = self.window_layouts_path + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as stream:
+            stream.write(json.dumps(document, indent=4, ensure_ascii=False) + "\n")
+        os.replace(temporary, self.window_layouts_path)
+        self._window_layouts = None
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         """Window-kind layout defaults for one string (widths, font,

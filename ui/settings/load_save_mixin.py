@@ -383,8 +383,8 @@ class SettingsLoadSaveMixin:
 
     def accept(self):
         """Validate and persist plugin-specific files only when OK is pressed."""
-        if (getattr(self.mw, "active_game_plugin", None) == "zelda_bmg"
-                and self.plugin_combo.currentData() == "zelda_bmg"):
+        if (getattr(self, "_zelda_window_layout_controls", None)
+                and self.plugin_combo.currentData() == getattr(self.mw, "active_game_plugin", None)):
             success, error = self.persist_zelda_bmg_window_rules()
             if not success:
                 QMessageBox.warning(self, tr('Invalid Window Layout'), error)

@@ -13,6 +13,14 @@ the line when it is done or moved into a plan.
 
 ## Found during WP5
 
+- **`ui/main_window/bfn_actions.py` still imports the BMG parser** (`from bmg_tool import BMGFile, BMGMessage`,
+  through the root shim) for the "Import / Export BMG JSON" actions and calls `msg_to_editor_text`. These are
+  Twilight Princess actions living in the main window; they belong in the plugin's `get_plugin_actions()`.
+- **The Settings table of per-window limits writes into the plugin folder**
+  (`plugins/zelda_bmg/window_layouts.json`). It is the last place where user settings are stored inside
+  `plugins/`; move it to the project or user override folder (audit C, P0-c).
+- **`get_preview_window_style` and `get_message_attributes` are still looked for with `hasattr`** in four host
+  places instead of being base-class hooks.
 - **File dialogs of the project wizard and the settings path picker still list fixed extensions**
   (`components/project_dialogs.py:240,260,594,617`, `ui/settings/path_picker_mixin.py:73`,
   `handlers/list_selection/physical_selection_mixin.py:384`). A plugin's own format is reachable through

@@ -44,6 +44,8 @@ plugins/<your_id>/
 
 **Стан, що супроводжує файли.** Якщо для збереження потрібне щось, чого немає в рядках (ключі таблиці, розібраний бінарний файл), тримайте це в плагіні й реалізуйте `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` (прості JSON-дані; хост зберігає їх між перезавантаженнями, відкатами й сесіями) та `prepare_save_context(context)` (викликається перед побудовою кожного файлу проєкту; `context.block_indices`, `context.runtime_state`, `context.existing_versions()` видає поточні байти файлу, спершу переклад). Хост ніколи не читає атрибути плагіна. Приклади: `plugins/pokemon_fr/rules.py` і `plugins/zelda_bmg/rules.py`.
 
+**Вікна повідомлень.** Плагін, що вказує `message_window_preview` у `get_capabilities()`, може навчити попередній перегляд своїх вікон: `get_preview_window_style(block_idx, string_idx)` (стиль повідомлення), `get_window_presets()` / `get_window_preset_label()` / `get_window_style_for_preset()` (панель примусового вибору типу вікна), `get_window_frame(style)` (геометрія й картинка з файлів гри), `get_window_item_icon()`, `get_window_text_offset_y()`, а для таблиці лімітів за типом вікна в Settings — `get_window_layout_groups()` / `get_window_layouts_document()` / `save_window_layouts_document()`. Хост не імпортує жодного ігрового плагіна; зразок реалізації — `plugins/zelda_bmg/rules.py`.
+
 `translation_prompts/prompts.json` може містити лише розділи, які гра змінює (зазвичай `translation`): решта підмішується з `plugins/common/defaults/prompts.json`.
 
 `default_plugin.GameRules.get_display_name()` повертає `Default Plugin Template`. `get_capabilities()` навмисно повертає `set()`.

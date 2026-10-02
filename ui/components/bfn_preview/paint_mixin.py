@@ -1,5 +1,6 @@
 """Glyph/halo rendering helpers and paintEvent for BFN preview."""
 from __future__ import annotations
+from core.plugin_call import safe_call
 
 import math
 import re
@@ -147,29 +148,6 @@ class BfnPreviewPaintMixin:
                 pass
         return None
 
-    def _layout_for_override_preset(self, preset):
-        rules = getattr(self.mw, 'current_game_rules', None)
-        layouts = None
-        if rules is not None and hasattr(rules, '_get_window_layouts'):
-            try:
-                layouts = rules._get_window_layouts()
-            except Exception:
-                layouts = None
-        if layouts is None:
-            try:
-                from plugins.zelda_bmg.window_kinds import load_window_layouts
-                layouts = load_window_layouts()
-            except Exception:
-                layouts = {"default": {}, "kinds": {}}
-        try:
-            from plugins.zelda_bmg.window_kinds import (
-                EXPLAIN_PRESET_KEY, layout_for_kind,
-            )
-            kind = None if preset == EXPLAIN_PRESET_KEY else preset
-            return layout_for_kind(layouts, kind)
-        except Exception:
-            return {}
-
     def _get_game_window_style(self):
         """Fetch the in-game message window style from the active plugin.
 
@@ -181,61 +159,32 @@ class BfnPreviewPaintMixin:
         override = self._window_preset_override
         if override is None:
             return self._with_dump_frame(auto_style)
-        try:
-            from plugins.zelda_bmg.window_kinds import window_style_for_preset
-            layout = self._layout_for_override_preset(override)
-            style = window_style_for_preset(override, layout)
-            if self.mw is not None and not getattr(self.mw, "use_per_window_layouts", True):
-                style = dict(style)
-                style["lines_per_page"] = getattr(self.mw, "lines_per_page", 4)
-            return self._with_dump_frame(style)
-        except Exception:
+        style = safe_call(getattr(self.mw, 'current_game_rules', None), 'get_window_style_for_preset', override)
+        if not isinstance(style, dict):
             return self._with_dump_frame(auto_style)
+        if self.mw is not None and not getattr(self.mw, "use_per_window_layouts", True):
+            style = dict(style)
+            style["lines_per_page"] = getattr(self.mw, "lines_per_page", 4)
+        return self._with_dump_frame(style)
 
     def _with_dump_frame(self, style):
-        """Overlay BLO/BTI geometry from the local retail dump when present."""
+        """Overlay the geometry and picture of the game's own window when the plugin can supply them."""
         if not isinstance(style, dict):
             self._window_frame_image = None
             return style
-        try:
-            from plugins.zelda_bmg.window_frame_loader import (
-                load_window_frame, screen_class_for_kind, frame_to_geometry,
-            )
-            cls = screen_class_for_kind(style.get("fuki_kind"), style)
-        except Exception:
+        frame = safe_call(getattr(self.mw, 'current_game_rules', None), 'get_window_frame', style)
+        if not isinstance(frame, dict) or frame.get("image") is None:
             self._window_frame_image = None
-            return style
-        cached_cls = getattr(self, '_dump_frame_cls', None)
-        cached_out = getattr(self, '_dump_frame_style', None)
-        if cls == cached_cls and cached_out is not None and self._window_frame_image is not None:
-            out = dict(style)
-            out["geometry"] = cached_out.get("geometry") or style.get("geometry")
-            if isinstance(cached_out.get("halo"), dict):
-                out["halo"] = cached_out["halo"]
-            return out
-        try:
-            frame = load_window_frame(cls, self.mw) if cls else None
-        except Exception:
-            self._window_frame_image = None
-            self._dump_frame_cls = cls
-            self._dump_frame_style = None
-            return style
-        if frame is None:
-            self._window_frame_image = None
-            self._dump_frame_cls = cls
-            self._dump_frame_style = None
             return style
         out = dict(style)
-        out["geometry"] = frame_to_geometry(frame)
+        out["geometry"] = frame.get("geometry") or style.get("geometry")
         # Per-glyph moya is drawn in screen space; at window-fit scale it
         # becomes a yellow fog over the box. Keep a light halo only.
         if isinstance(out.get("halo"), dict):
             halo = dict(out["halo"])
             halo["alpha"] = min(int(halo.get("alpha", 160)), 80)
             out["halo"] = halo
-        self._window_frame_image = frame.image
-        self._dump_frame_cls = cls
-        self._dump_frame_style = {"geometry": out["geometry"], "halo": out.get("halo")}
+        self._window_frame_image = frame["image"]
         return out
 
     def _draw_item_slot(self, painter, game_style, geom) -> bool:
@@ -246,28 +195,10 @@ class BfnPreviewPaintMixin:
         if sx <= 0 or sy <= 0:
             return False
         dest = self._map_game_xywh(slot, origin_x, origin_y, sx, sy)
-        item_img = None
-        try:
-            from plugins.zelda_bmg.window_frame_loader import load_item_icon
-            rules = getattr(self.mw, "current_game_rules", None)
-            ds = getattr(self.mw, "data_store", None)
-            b_idx = getattr(ds, "physical_block_idx", None) if ds is not None else None
-            s_idx = getattr(ds, "current_string_idx", None) if ds is not None else None
-            attrs = None
-            if rules is not None and hasattr(rules, "get_message_attributes"):
-                attrs = rules.get_message_attributes(b_idx, s_idx)
-            item_no = (attrs or {}).get("item_no") or 0
-            if not item_no and attrs:
-                # Game: mItemIndex = messageID - 0x65, with 0x02A5 remapped to 0x40.
-                mid = int(attrs.get("message_id") or 0)
-                if mid == 0x02A5:
-                    item_no = 0x40
-                elif 0 < mid - 0x65 <= 0xFF:
-                    item_no = mid - 0x65
-            if item_no:
-                item_img = load_item_icon(item_no, self.mw)
-        except Exception:
-            item_img = None
+        ds = getattr(self.mw, "data_store", None)
+        b_idx = getattr(ds, "physical_block_idx", None) if ds is not None else None
+        s_idx = getattr(ds, "current_string_idx", None) if ds is not None else None
+        item_img = safe_call(getattr(self.mw, "current_game_rules", None), 'get_window_item_icon', b_idx, s_idx)
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         if item_img is not None and not item_img.isNull():
@@ -689,12 +620,13 @@ class BfnPreviewPaintMixin:
                 text_dx = text_dy = 0
 
         if game_font_y and game_line_space is not None and used_preset:
-            from plugins.zelda_bmg.window_frame_loader import textbox_height_center
             tbox_h = float(geom["text"][3]) if isinstance(geom.get("text"), (list, tuple)) else 0.0
             line_max = self._lines_per_page(game_style) or 4
             now_lines = self._used_page_lines(cleaned_text)
-            text_dy += int(round(textbox_height_center(
-                tbox_h, game_font_y, game_line_space, line_max, now_lines) * fit))
+            text_dy += int(round(float(safe_call(
+                getattr(self.mw, 'current_game_rules', None), 'get_window_text_offset_y',
+                tbox_h, game_font_y, game_line_space, line_max, now_lines, default=0.0,
+            ) or 0.0) * fit))
 
         # ── 2-frame. Message window frame around the text area ───────────────
         # Preset geometry supplies a stable box; otherwise pad the text rect.

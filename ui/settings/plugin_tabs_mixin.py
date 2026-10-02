@@ -1,3 +1,4 @@
+from core.plugin_call import safe_call
 from utils.constants import plugins_root
 from pathlib import Path
 import json
@@ -14,18 +15,6 @@ from core.i18n import tr
 
 class PluginTabsMixin:
     """Plugin tab setup, display, and rules (including Zelda BMG window rules)."""
-
-    _ZELDA_BMG_WINDOW_GROUPS = (
-        ("dialog", "Dialogue (all talk variants)", None),
-        ("signs", "Wood / stone signs", ("2", "6")),
-        ("kanban_talk", "Dialogue (kanban)", ("15",)),
-        ("item", "Item window", ("9",)),
-        ("explain", "Descriptions / save", ("16",)),
-        ("subtitles", "Subtitles", ("1", "5")),
-        ("titles", "Location / boss name", ("12", "19")),
-        ("howling", "Howling", ("17",)),
-        ("credits", "Staff credits", ("7",)),
-    )
 
     def setup_plugin_tab(self):
         """Setup plugin tab."""
@@ -169,8 +158,13 @@ class PluginTabsMixin:
         self.lines_per_page_spinbox = LabeledSpinBox("Lines Per Page:", 1, 20, 4, parent=self)
         self.lines_per_page_spinbox.spin_box.valueChanged.connect(self.on_rules_changed)
 
-        if getattr(self.mw, "active_game_plugin", None) == "zelda_bmg":
-            self._setup_zelda_bmg_window_rules(layout)
+        # A plugin with several kinds of message window supplies the rows of a
+        # per-window limits table; any other gets the three shared limits.
+        rules = getattr(self.mw, "current_game_rules", None)
+        self._window_layout_groups = list(safe_call(rules, "get_window_layout_groups", default=None) or [])
+        document = safe_call(rules, "get_window_layouts_document") if self._window_layout_groups else None
+        if self._window_layout_groups and isinstance(document, dict):
+            self._setup_zelda_bmg_window_rules(layout, document)
         else:
             layout.addRow(self.game_dialog_width_spinbox)
             spinbox_layout = self.width_warning_spinbox.layout()
@@ -180,16 +174,8 @@ class PluginTabsMixin:
             layout.addRow(self.width_warning_spinbox)
             layout.addRow(self.lines_per_page_spinbox)
 
-    def _setup_zelda_bmg_window_rules(self, layout):
-        """Build the global/per-window rule mode switch for TP BMG."""
-        self._zelda_window_layouts_path = plugins_root() / "zelda_bmg" / "window_layouts.json"
-        try:
-            with self._zelda_window_layouts_path.open("r", encoding="utf-8") as stream:
-                document = json.load(stream)
-        except Exception as exc:
-            log_debug(f"SettingsDialog: Failed to load window_layouts.json: {exc}")
-            document = {"default": {}, "kinds": {}}
-
+    def _setup_zelda_bmg_window_rules(self, layout, document):
+        """Build the shared / per-window-type limits switch from the plugin's rows and stored limits."""
         self._zelda_window_layouts_document = document
         self._zelda_window_layout_controls = {}
 
@@ -255,7 +241,7 @@ class PluginTabsMixin:
 
         defaults = document.get("default") if isinstance(document.get("default"), dict) else {}
         kinds = document.get("kinds") if isinstance(document.get("kinds"), dict) else {}
-        for row, (key, label, target_kinds) in enumerate(self._ZELDA_BMG_WINDOW_GROUPS):
+        for row, (key, label, target_kinds) in enumerate(self._window_layout_groups):
             source = defaults
             if target_kinds:
                 candidate = kinds.get(target_kinds[0])
@@ -310,7 +296,7 @@ class PluginTabsMixin:
         defaults = document.setdefault("default", {})
         kinds = document.setdefault("kinds", {})
 
-        for key, _label, target_kinds in self._ZELDA_BMG_WINDOW_GROUPS:
+        for key, _label, target_kinds in self._window_layout_groups:
             controls = controls_by_group[key]
             values = {
                 "warn_width": controls["warn_width"].value(),
@@ -328,20 +314,11 @@ class PluginTabsMixin:
             return True, ""
 
         try:
-            path = self._zelda_window_layouts_path
-            temporary_path = path.with_suffix(path.suffix + ".tmp")
-            temporary_path.write_text(
-                json.dumps(document, indent=4, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-            temporary_path.replace(path)
+            self.mw.current_game_rules.save_window_layouts_document(document)
         except Exception as exc:
-            log_debug(f"SettingsDialog: Failed to save window_layouts.json: {exc}")
+            log_debug(f"SettingsDialog: Failed to save the window layouts: {exc}")
             return False, str(exc)
 
         self._zelda_window_layouts_document = document
-        rules = getattr(self.mw, "current_game_rules", None)
-        if rules is not None and hasattr(rules, "_window_layouts"):
-            rules._window_layouts = None
         self.rules_changed_requires_rescan = True
         return True, ""

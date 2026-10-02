@@ -44,6 +44,8 @@ Start a new plugin with `python tools/new_plugin.py <id> "<Display Name>" --pref
 
 **State that goes with the files.** If saving needs something the strings do not carry (table keys, the parsed binary file), keep it in the plugin and implement `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` (plain JSON data; the host keeps it across reloads, reverts and sessions) and `prepare_save_context(context)` (called before each project file is built; `context.block_indices`, `context.runtime_state`, `context.existing_versions()` yields the file's current bytes, translation first). The host never reads plugin attributes. See `plugins/pokemon_fr/rules.py` and `plugins/zelda_bmg/rules.py`.
 
+**Message windows.** A plugin that lists `message_window_preview` in `get_capabilities()` can teach the preview its windows: `get_preview_window_style(block_idx, string_idx)` (the style of a message), `get_window_presets()` / `get_window_preset_label()` / `get_window_style_for_preset()` (the bar that forces a window kind), `get_window_frame(style)` (geometry and picture from the game's files), `get_window_item_icon()`, `get_window_text_offset_y()`, and for the Settings table of per-window limits `get_window_layout_groups()` / `get_window_layouts_document()` / `save_window_layouts_document()`. The host imports no game plugin; `plugins/zelda_bmg/rules.py` is the reference implementation.
+
 `translation_prompts/prompts.json` may hold only the sections the game changes (usually `translation`): the rest is merged in from `plugins/common/defaults/prompts.json`.
 
 `default_plugin.GameRules.get_display_name()` returns `Default Plugin Template`. `get_capabilities()` returns `set()` on purpose.

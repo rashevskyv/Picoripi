@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from bmg_tool import BMGFile
-from core.mempalace.flow_validation import validate_flow_alignment
+from plugins.zelda_bmg.flow_validation import validate_flow_alignment
 from core.project_manager import ProjectManager
 
 

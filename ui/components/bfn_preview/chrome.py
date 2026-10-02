@@ -1,5 +1,6 @@
 """BFN preview chrome widgets (side button, window bar, sidebar)."""
 from __future__ import annotations
+from core.plugin_call import safe_call
 
 from typing import TYPE_CHECKING
 
@@ -127,23 +128,30 @@ class BfnPreviewWindowBar(QFrame):
         """Keep arrows still when the preset name changes length."""
         fm = self.label.fontMetrics()
         widest = fm.horizontalAdvance("Auto: Dialogue")
-        try:
-            from plugins.zelda_bmg.window_kinds import (
-                PREVIEW_WINDOW_PRESETS, preset_label, WINDOW_KIND_STYLES,
-                EXPLAIN_WINDOW_STYLE,
-            )
-            names = [preset_label(p) for p in PREVIEW_WINDOW_PRESETS]
-            names.extend("Auto: " + s.get("kind_name", "") for s in WINDOW_KIND_STYLES.values())
-            names.append("Auto: " + EXPLAIN_WINDOW_STYLE.get("kind_name", "Explain"))
+        names = self._plugin_labels()
+        # Sized from the plugin's own labels once they are known.
+        self._width_from_plugin = bool(names)
+        if names:
             for name in names:
                 if name:
-                    widest = max(widest, fm.horizontalAdvance(name))
-        except Exception:
+                    widest = max(widest, fm.horizontalAdvance(str(name)))
+        else:
             widest = max(widest, 160)
         self.label.setMinimumWidth(widest + 12)
 
+    def _plugin_labels(self):
+        """Every label the active plugin may put on the bar, or None when it has none to offer."""
+        rules = getattr(getattr(self.preview, 'mw', None), 'current_game_rules', None)
+        names = safe_call(rules, 'get_window_preset_labels', default=None)
+        return list(names) if isinstance(names, (list, tuple)) and names else None
+
     def set_label(self, text: str):
+        # The bar may have been built before a plugin was loaded: size it once the labels exist.
+        if not getattr(self, '_width_from_plugin', False) and self._plugin_labels():
+            self._lock_label_width()
         self.label.setText(text)
+
+
 class BfnPreviewSideBar(QFrame):
     """Vertical toolbar pinned to the left side of BfnPreviewWidget."""
     WIDTH = 38

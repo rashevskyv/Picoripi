@@ -122,6 +122,24 @@ HOOKS: Tuple[Hook, ...] = (
          call=(0, 0), returns=dict),
     Hook("get_default_script_name", "Default file name of the game script.", call=(), **_STR_OR_NONE),
     Hook("parse_walkthrough_transcript", "Parse a walkthrough or script file into dialogue cues."),
+    # --- message windows (capability "message_window_preview") -------------------
+    Hook("get_window_presets", "Window kinds the preview can be forced to show; None (first) follows the message.",
+         call=(), returns=list),
+    Hook("get_window_preset_label", "Short name of a preset for the bar under the preview.",
+         call=(None,), returns=str),
+    Hook("get_window_preset_labels", "Every label the preview bar may show.", call=(), returns=list),
+    Hook("get_window_style_for_preset", "Window style to paint for a forced preset.",
+         call=(None,), returns=dict, optional=True),
+    Hook("get_window_frame", "The game's own window for a style: {'geometry', 'image'}.",
+         call=({},), returns=dict, optional=True),
+    Hook("get_window_item_icon", "Picture for the icon slot of an item window.", call=(0, 0)),
+    Hook("get_window_text_offset_y", "Vertical shift of the first text line inside the window, in game pixels.",
+         call=(100.0, 20.0, 22.0, 4, 2), returns=(int, float)),
+    Hook("get_window_layout_groups", "Rows of the per-window limits table in Settings: (key, label, kinds).",
+         call=(), returns=list),
+    Hook("get_window_layouts_document", "Stored per-window limits: {'default': {...}, 'kinds': {...}}.",
+         call=(), returns=dict, optional=True),
+    Hook("save_window_layouts_document", "Store the per-window limits edited in Settings."),
     # --- reference translations -------------------------------------------------
     Hook("supports_reference_patch", "Whether a reference translation can be loaded.", call=(), returns=bool),
     Hook("get_reference_language_label", "Label of the reference tab.", call=(), returns=str),
@@ -139,10 +157,6 @@ HOOKS: Tuple[Hook, ...] = (
     Hook("msg_to_editor_text", "Text of one parsed message for the bitmap-font preview.", on_base=False),
     Hook("get_preview_window_style", "Message-window style of a string for the preview.", on_base=False),
     Hook("get_message_attributes", "Raw attributes of a message, for the preview.", on_base=False),
-    Hook("_get_window_layouts", "Per-window layout table (private; to be replaced by a public hook).",
-         on_base=False),
-    Hook("_window_layouts", "Cached per-window layout table (private; to be replaced by a public hook).",
-         kind="attribute", on_base=False),
 )
 
 HOOK_NAMES = frozenset(hook.name for hook in HOOKS)

@@ -156,9 +156,20 @@ def test_settings_dialog_delete_preset(qapp, monkeypatch):
     assert dialog.translation_preset_combo.currentIndex() == 0
 
 
-def test_zelda_bmg_rules_show_per_window_controls(qapp):
+def _zelda_bmg_window(layouts_path=None):
+    """A main window whose plugin is Twilight Princess; its layouts file may be redirected."""
+    from plugins.zelda_bmg.rules import GameRules
+
     mw = MockMainWindow()
     mw.active_game_plugin = "zelda_bmg"
+    mw.current_game_rules = GameRules()
+    if layouts_path is not None:
+        mw.current_game_rules.window_layouts_path = str(layouts_path)
+    return mw
+
+
+def test_zelda_bmg_rules_show_per_window_controls(qapp):
+    mw = _zelda_bmg_window()
 
     dialog = SettingsDialog(mw)
 
@@ -181,16 +192,13 @@ def test_zelda_bmg_rules_show_per_window_controls(qapp):
 
 
 def test_zelda_bmg_window_rules_save_grouped_kinds_only_on_accept(qapp, tmp_path):
-    mw = MockMainWindow()
-    mw.active_game_plugin = "zelda_bmg"
-    dialog = SettingsDialog(mw)
-
     source = Path("plugins/zelda_bmg/window_layouts.json")
-    document = json.loads(source.read_text(encoding="utf-8"))
+    before = source.read_text(encoding="utf-8")
     target = tmp_path / "window_layouts.json"
-    target.write_text(json.dumps(document), encoding="utf-8")
-    dialog._zelda_window_layouts_path = target
-    dialog._zelda_window_layouts_document = document
+    target.write_text(before, encoding="utf-8")
+    mw = _zelda_bmg_window(target)
+    mw.current_game_rules._get_window_layouts()            # a cache the save has to drop
+    dialog = SettingsDialog(mw)
 
     sign_controls = dialog._zelda_window_layout_controls["signs"]
     sign_controls["warn_width"].setValue(261)
@@ -212,19 +220,28 @@ def test_zelda_bmg_window_rules_save_grouped_kinds_only_on_accept(qapp, tmp_path
     assert saved["kinds"]["15"]["max_width"] == 421
     assert saved["kinds"]["15"]["lines_per_page"] == 7
     assert mw.current_game_rules._window_layouts is None
+    assert source.read_text(encoding="utf-8") == before        # the plugin's own file is untouched
 
 
 def test_zelda_bmg_window_rules_cancel_does_not_write(qapp, tmp_path):
-    mw = MockMainWindow()
-    mw.active_game_plugin = "zelda_bmg"
-    dialog = SettingsDialog(mw)
-
     target = tmp_path / "window_layouts.json"
     target.write_text('{"default": {"warn_width": 1, "max_width": 2}}', encoding="utf-8")
     before = target.read_text(encoding="utf-8")
-    dialog._zelda_window_layouts_path = target
+    dialog = SettingsDialog(_zelda_bmg_window(target))
     dialog._zelda_window_layout_controls["dialog"]["max_width"].setValue(999)
 
     dialog.reject()
 
     assert target.read_text(encoding="utf-8") == before
+
+
+def test_a_plugin_without_window_kinds_gets_the_three_shared_limits(qapp):
+    mw = MockMainWindow()
+    mw.active_game_plugin = "zelda_mc"
+
+    dialog = SettingsDialog(mw)
+
+    assert not hasattr(dialog, "zelda_window_layouts_grid")
+    assert not getattr(dialog, "_zelda_window_layout_controls", None)
+    assert dialog.persist_zelda_bmg_window_rules() == (True, "")
+
