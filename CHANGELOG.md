@@ -1,6 +1,6 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
-## [Unreleased]
+## [0.3.144-dev] - 2026-10-02
 
 - wp2 2.1: the request rules are fixed text appended to the system prompt (`prompt_composer/instructions.py`) instead of an `INSTRUCTIONS` block rebuilt into every user message — the system prompt is byte-identical for every chunk (cacheable prefix ~2100 → ~3065 tok) and the user message carries data only; a retry quotes the real error; the prompt editor shows the rules but saves only the user's prompt.
 - wp2 2.2: the rows shown before and after a chunk come from the strings' real position — selections and preview runs no longer show rows 0–3 of the first block, project-wide and story-first runs get neighbour rows at all, and a chunk spanning two blocks gets both sets.

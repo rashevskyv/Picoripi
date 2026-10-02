@@ -35,7 +35,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 2.5 payload slimming (layout defaults, Unknown speaker, ref cap, single name replace, slim editor payload)
 - [x] 2.6 chunk-only glossary relevance; compact voice cards
 - [x] 2.7 native JSON mode where supported
-- [ ] WP2 exit: AFTER numbers in walkthrough
+- [x] WP2 exit: AFTER numbers in walkthrough
 
 ## WP3 — Glossary consistency
 - [ ] 3.1 `canonical_key`, `aliases`, `_index_of` for all mutators, `global_replace` keeps lifecycle, `force` excludes confirmed, migration report
