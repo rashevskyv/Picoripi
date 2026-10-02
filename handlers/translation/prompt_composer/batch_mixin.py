@@ -75,6 +75,40 @@ class BatchMixin:
                         lines.append(f'- [Row #{i}] (Original): "{original}"')
         return "\n".join(lines)
 
+    def _item_text_for_ai(self, item: Any) -> Tuple[Any, str, str, Any]:
+        """(id, editor text, text as the model sees it, forced-alias maps) for one item."""
+        if isinstance(item, dict):
+            item_id = item.get('id', 0)
+            text = item.get('text', '')
+        else:
+            item_id = 0
+            text = str(item)
+
+        # Convert to editor representation to unify page/line breaks (e.g. \\n to \n)
+        rules = self.mw.current_game_rules
+        if rules and hasattr(rules, 'get_text_representation_for_editor'):
+            converted = rules.get_text_representation_for_editor(text)
+            if isinstance(converted, str):
+                text = converted
+
+        # Apply force-aliases
+        from utils.force_alias import prepare_text_for_ai
+        text_for_ai, force_maps = prepare_text_for_ai(text, getattr(self.mw, 'default_tag_mappings', {}))
+        return item_id, text, self._replace_runtime_names_for_ai(text_for_ai), force_maps
+
+    def build_placeholder_map(self, source_items: List[Dict]) -> Dict:
+        """The forced-alias maps of ``source_items``, keyed by item id.
+
+        Needed up front to restore tags in the replies. Cheap on purpose: no
+        speaker, story or plugin lookups -- those happen per chunk in the worker.
+        """
+        placeholder_map: Dict = {}
+        for item in source_items:
+            item_id, _, _, force_maps = self._item_text_for_ai(item)
+            if force_maps:
+                placeholder_map[item_id] = force_maps
+        return placeholder_map
+
     def compose_batch_request(
         self,
         system_prompt: str,
@@ -101,24 +135,7 @@ class BatchMixin:
         story_context_catalog = {}
         story_context_refs = {}
         for item in source_items:
-            if isinstance(item, dict):
-                item_id = item.get('id', 0)
-                current_text = item.get('text', '')
-            else:
-                item_id = 0
-                current_text = str(item)
-
-            # Convert to editor representation to unify page/line breaks (e.g. \\n to \n)
-            if self.mw.current_game_rules and hasattr(self.mw.current_game_rules, 'get_text_representation_for_editor'):
-                converted = self.mw.current_game_rules.get_text_representation_for_editor(current_text)
-                if isinstance(converted, str):
-                    current_text = converted
-
-            # Apply force-aliases
-            from utils.force_alias import prepare_text_for_ai
-            tag_mappings = getattr(self.mw, 'default_tag_mappings', {})
-            current_text_for_ai, force_maps = prepare_text_for_ai(current_text, tag_mappings)
-            current_text_for_ai = self._replace_runtime_names_for_ai(current_text_for_ai)
+            item_id, current_text, current_text_for_ai, force_maps = self._item_text_for_ai(item)
             if force_maps:
                 placeholder_map[item_id] = force_maps
 

@@ -939,3 +939,69 @@ def test_th_handle_preview_translation_rejects_a_reply_of_the_wrong_shape(th, cl
     th.data_processor.update_edited_data.assert_not_called()
     th.ai_lifecycle_manager._handle_task_error.assert_called_once()
     th.mw.undo_manager.begin_group.assert_not_called()
+
+
+# --- initiation of a chunked run (WP2 2.3) -----------------------------------
+
+def _chunked_context(count=40):
+    items = [{'id': i, 'text': f'Line {i}'} for i in range(count)]
+    return {
+        'type': 'translate_block_chunked', 'provider': MagicMock(), 'source_items': items,
+        'block_idx': 3, 'mode_description': 'block 4', 'attempt': 1, 'enable_editor_review': False,
+    }
+
+
+def _prepare_initiation(th, editor_enabled):
+    th.mw.prompt_editor_enabled = editor_enabled
+    th.glossary_handler.load_prompts.return_value = ("SYS", None)
+    th.prompt_composer.compose_batch_request.return_value = ("SYS+rules", "Game: G\n\nJSON DATA TO PROCESS:\n{}", {})
+    th.prompt_composer.build_placeholder_map.return_value = {7: "maps"}
+    th._run_ai_task = MagicMock()
+    th.save_progress_to_metadata = MagicMock()
+
+
+@patch('handlers.translation.batch_translator.is_control_modifier_pressed', return_value=False)
+def test_initiation_composes_nothing_when_the_prompt_editor_is_off(_pressed, th):
+    _prepare_initiation(th, editor_enabled=False)
+    context = _chunked_context()
+
+    th.batch_translator.initiate_batch_translation(context)
+
+    th.prompt_composer.compose_batch_request.assert_not_called()
+    th.prompt_composer.build_placeholder_map.assert_called_once_with(context['source_items'])
+    assert context['placeholder_map'] == {7: "maps"}
+    assert 'precomposed_prompt' not in context and 'custom_user_header' not in context
+    th._run_ai_task.assert_called_once_with(context['provider'], context)
+
+
+@patch('handlers.translation.batch_translator.is_control_modifier_pressed', return_value=False)
+def test_initiation_previews_one_chunk_not_the_whole_set(_pressed, th):
+    _prepare_initiation(th, editor_enabled=True)
+    th._maybe_edit_prompt = MagicMock(return_value=("EDITED SYS", "Game: G\n\nJSON DATA TO PROCESS:\n{}"))
+    context = _chunked_context()
+
+    th.batch_translator.initiate_batch_translation(context)
+
+    th.prompt_composer.compose_batch_request.assert_called_once()
+    kwargs = th.prompt_composer.compose_batch_request.call_args.kwargs
+    assert len(kwargs['source_items']) == 12 and len(kwargs['all_source_items']) == 40
+    assert context['composer_args']['system_prompt'] == "EDITED SYS"
+    assert len(context['composer_args']['source_items']) == 40  # the run itself still covers everything
+    assert context['custom_user_header'] == "Game: G\n\n"
+
+
+@patch('handlers.translation.batch_translator.is_control_modifier_pressed', return_value=False)
+def test_a_retry_reuses_the_prepared_context(_pressed, th):
+    _prepare_initiation(th, editor_enabled=False)
+    context = _chunked_context()
+    th.batch_translator.initiate_batch_translation(context)
+    th.translation_progress[3]['completed_chunks'].add(0)
+    th.prompt_composer.build_placeholder_map.reset_mock()
+    context['attempt'] = 2
+
+    th.batch_translator.initiate_batch_translation(context)
+
+    th.prompt_composer.build_placeholder_map.assert_not_called()
+    assert th.translation_progress[3]['completed_chunks'] == {0}      # progress was not reset
+    assert context['chunks_to_skip'] == {0}
+    assert th._run_ai_task.call_count == 2

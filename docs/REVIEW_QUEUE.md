@@ -51,3 +51,7 @@ in `docs/OPEN_ITEMS.md`, not here.
       may go.
 - [ ] **Retry reminder.** A retry now appends "RETRY: … Reason: <the real error>" to the system prompt instead
       of always blaming trailing commas. Watch one retry in `ai_traffic.log`.
+- [ ] **Start of a block translation (2.3).** The prompt editor preview now shows the first 12 lines only
+      (the run still covers everything), and nothing is composed up front when the editor is off. Good: a
+      large block or "translate all" starts sending requests without the old pause, and an edited header or
+      system prompt still applies to every chunk.

@@ -30,7 +30,7 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 - [x] 2.0 port measure harness to `tools/measure_prompts.py`; record BEFORE numbers
 - [x] 2.1 all instructions → stable system prompt; remove duplicates/absent-field mentions; real retry reason
 - [x] 2.2 `_surrounding_rows` helper; synthetic blocks get neighbours
-- [ ] 2.3 no full-set composition at initiation; tuple fix
+- [x] 2.3 no full-set composition at initiation; tuple fix
 - [ ] 2.4 NarrativeLedger populated (or removed); session flag split fixed; wiki 11 updated
 - [ ] 2.5 payload slimming (layout defaults, Unknown speaker, ref cap, single name replace, slim editor payload)
 - [ ] 2.6 chunk-only glossary relevance; compact voice cards

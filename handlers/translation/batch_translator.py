@@ -18,6 +18,10 @@ from core.translation.layout_contract import (
 )
 
 
+# How many items the prompt preview is built from: one chunk's worth.
+PREVIEW_ITEMS = 12
+
+
 class AIBatchTranslator(BaseTranslationHandler):
     """Handler for batch and chunked translation operations."""
 
@@ -282,7 +286,9 @@ class AIBatchTranslator(BaseTranslationHandler):
             cfg = getattr(self.mw, 'translation_config', {}) or {}
             context['workers'] = int(cfg.get('workers', 6) or 6)
 
-        if 'precomposed_prompt' in context:
+        # A precomposed request, or a retry of a context that was already prepared
+        # below, goes straight to the worker.
+        if 'precomposed_prompt' in context or context.get('prepared'):
             self.main_handler._run_ai_task(provider, context)
             return
 
@@ -342,9 +348,14 @@ class AIBatchTranslator(BaseTranslationHandler):
                 task_type == 'translate_block_chunked'
                 and block_idx is not None
                 and (force_prompt or not context.get('is_resume', False))
+                # Compose a preview only when the editor will really open.
+                and (force_prompt or bool(self.mw.prompt_editor_enabled))
             )
             if should_edit_prompt:
-                preview_system, preview_user, _ = self.main_handler.prompt_composer.compose_batch_request(**composer_args)
+                # The preview shows the first chunk; every chunk is composed again
+                # in the worker, so there is no reason to build the whole set here.
+                preview_args = dict(composer_args, source_items=context['source_items'][:PREVIEW_ITEMS])
+                preview_system, preview_user, _ = self.main_handler.prompt_composer.compose_batch_request(**preview_args)
                 title = "AI Block Translation Prompt"
                 if context.get('mode_description'):
                     desc = context['mode_description']
@@ -385,24 +396,14 @@ class AIBatchTranslator(BaseTranslationHandler):
         if task_type == 'translate_block_chunked' and block_idx is not None:
             self.main_handler.save_progress_to_metadata(block_idx)
 
-        final_system_prompt = context['composer_args']['system_prompt']
+        # Only the tag placeholders are needed before the run: the prompts are
+        # composed per chunk in the worker. Composing the whole set here cost a
+        # speaker, story and plugin lookup for every string before the first
+        # request, and its result was thrown away.
         context['composer_args']['all_source_items'] = context['source_items']
-        final_user_prompt, _, p_map = self.main_handler.prompt_composer.compose_batch_request(**context['composer_args'])
-        context['placeholder_map'] = p_map 
+        context['placeholder_map'] = self.main_handler.prompt_composer.build_placeholder_map(context['source_items'])
+        context['prepared'] = True
 
-        if not self.main_handler._attach_session_to_task(
-            context,
-            base_system_prompt=system_prompt,
-            full_system_prompt=final_system_prompt,
-            user_prompt=final_user_prompt,
-            task_type=task_type,
-        ):
-             if 'precomposed_prompt' not in context:
-                context['precomposed_prompt'] = [
-                    {"role": "system", "content": final_system_prompt},
-                    {"role": "user", "content": final_user_prompt}
-                ]
-        
         self.main_handler._run_ai_task(provider, context)
 
     def handle_chunk_translated(self, chunk_index: int, chunk_text: str, context: Dict[str, Any]) -> None:
