@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: manual verification
-tokens: 9.1k
+tokens: 9.8k
 purpose: What a person must check by hand, by work package
 ---
 # Review queue — what to check by hand
@@ -390,3 +390,31 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **Cancel in Picoripi during a long request**: the proxy log must show
       `client disconnected; the request was dropped` instead of going on to the next account.
 
+
+## WP7 — documentation
+
+- [ ] **Read the new `README.md`** (1.5k tokens instead of 16k). It is a pitch, install/run, development
+      commands and a document map; everything else moved to `docs/FEATURES.md`. Check that the pitch says what
+      you want a newcomer to read first, and that "MIT." is the licence you intend — there is no `LICENSE` file.
+- [ ] **`run.bat`, `run.sh`, `test_all.ps1` now go through `tasks.py`.** Start the application once with
+      `run.bat` (it needs `python` on PATH to start `tasks.py`; the application itself still runs from `.venv`,
+      then `venv`). Run `test_all.ps1` once: three steps, the same as before.
+- [ ] **`python tasks.py test` on Linux or macOS** was not run (no such machine here); the interpreter lookup is
+      covered by tests only.
+- [ ] **`docs/FEATURES.md`** is the old README feature text, moved as written. Skim it for claims that are no
+      longer true; only the ones the audit had listed were fixed.
+- [ ] **`docs/MEMPALACE_CONTEXT_MANIFESTO.md`** is now a 2.3k-token English contract; the 156 KB original with
+      the progress log is `docs/history/MEMPALACE_CONTEXT_MANIFESTO-2026-07.md`. Check the stage table: stage 3
+      is shown as "checklist complete, stage left open" and stage 4 as "partly", exactly as the original had it.
+- [ ] **`docs/DECISIONS.md`**: fourteen records written from the audit history and this audit. The dates of the
+      2026 H1 decisions are approximate (month); correct any record whose reason you remember differently.
+- [ ] **ChatMock** is described in wiki 5 as an OpenAI Compatible endpoint (`http://127.0.0.1:8000/v1`). The old
+      how-to named a separate "ChatMock" provider that the code does not have; if you still use ChatMock, check
+      that the described setup works.
+- [ ] **Module docstrings.** 266 modules got a one-line description written from their class and function names,
+      not from a full read. A wrong one is harmless to the program but misleading in the code graph — fix any
+      you notice.
+- [ ] **`plugins/plain_text/translation_prompts/glossary.md` was deleted** (a Wind Waker term list in the generic
+      plugin; no code read it). Restore it from git if it was kept on purpose.
+- [ ] **Copies of the `update-wiki` skill outside the repository** (`~/.claude/skills/update-wiki/`) still have
+      the old ownership table; copy `.agents/skills/update-wiki/SKILL.md` over them if you use them.
