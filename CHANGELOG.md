@@ -2,6 +2,10 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.149-dev] - 2026-10-02
+
+- wp8: the Gemini Web2API proxy, version 1.4.0, on branch `audit/wp8` of its own repository (a separate worktree, `D:\git\dev\gemini-web2api-wp8`; the proxy's working directory is untouched): one implementation instead of two, `429 + Retry-After` / `502` with a stable `error.type`, a 170 s total deadline per request, a concurrency gate, `GET /healthz`, a locked-down dashboard API, an offline test suite. Picoripi itself: wiki page 5 (EN + UK) gets the section "Proxy 1.4.0: what changes for Picoripi"; no code change.
+
 ## [0.3.148-dev] - 2026-10-02
 
 - wp4 4.4: fixed interface strings. A game string that is exactly a glossary term of the `UI` section (translation config `fixed_output_sections`) is filled with the glossary translation before a run starts — no request; rows already translated, texts that do not fit the layout and unconfirmed suggestions are left alone. A single-string request now carries the plugin's `Addressee:` like a batch item does.

@@ -92,6 +92,29 @@ Picoripi treats every self-hosted OpenAI-style endpoint as a Web2API proxy and t
 
 ---
 
+## Proxy 1.4.0: what changes for Picoripi
+
+Version 1.4.0 of the proxy is the result of the 2026-10 audit. Until it is merged it lives on the proxy's
+`audit/wp8` branch (see `docs/OPEN_ITEMS.md`); an older proxy keeps working with Picoripi unchanged.
+
+- **One program.** `run.bat`, `python gemini_web2api.py` and `python -m gemini_web2api` start the same server.
+  Before 1.4.0 `run.bat` started a second, older copy that ignored the thinking level Picoripi sends.
+- **Errors Picoripi can act on.** A request Gemini did not answer ends as `429` with `Retry-After`
+  (`error.type`: `no_account`, `rate_limited`, `server_busy`) or as `502` (`upstream_timeout`,
+  `upstream_blocked`, `upstream_error`) — never as a bare `500`. Picoripi already honours `Retry-After`.
+- **A request ends within 170 s** (`total_deadline_sec`), under Picoripi's 180 s timeout: the proxy answers
+  `502 upstream_timeout` itself instead of leaving Picoripi to time out while it tries every account. It also
+  stops working on a request whose client has disconnected (Cancel in Picoripi).
+- **`GET /healthz`** reports usable accounts without calling Google; this is the number Picoripi clamps
+  Parallel Requests to. More parallel requests than usable accounts are answered `429 server_busy` at once.
+- **`finish_reason: "length"`** when an answer was cut at the model's output ceiling.
+- **The dashboard (WebTOP) asks for the API key** when the proxy has `api_keys`; without keys it opens only
+  from this machine. The proxy listens on `127.0.0.1` unless told otherwise.
+- **Temporary chats by default**: a bulk translation no longer leaves thousands of chats in the Google
+  accounts' history. Set `"temporary_chats": false` in the proxy's `config.json` to keep them.
+
+---
+
 ## What Picoripi does not do
 
 - It does not start or update `gemini-web2api` for you.

@@ -13,6 +13,22 @@ the line when it is done or moved into a plan.
 
 ## Found during WP8 (the proxy, `D:\git\dev\gemini-web2api`)
 
+- **Nothing in proxy 1.4.0 has met Google.** Tests stub Gemini. Unverified against the real service: the
+  `f.req` body with raw UTF-8 instead of escaped text (it is what a browser sends, but it was not tried),
+  temporary chats as the default, the 170 s deadline and the gate under real load.
+- **`/api/proxy/status` returns the Webshare keys in clear text** (`key` next to `masked`). It is behind the
+  API key now; the dashboard only needs the masked form.
+- **`README_CN.md` of the proxy is not updated** for 1.4.0.
+- **Monolith behaviour that was not ported (8.1):** an unknown model name was a `400` (the package falls back
+  to the default model and logs it); the answer was the LAST non-empty text of the reply (the package takes
+  the LONGEST). The package's behaviour is what the Docker image always ran.
+- **`/v1/responses` still reports `status: "completed"`** for an answer cut at the output ceiling; only
+  `/v1/chat/completions` and the Google endpoints tell (`finish_reason: length` / `MAX_TOKENS`).
+- **The client-disconnect check runs between attempts**, not during one: an attempt already waiting on Gemini
+  (up to `request_timeout_sec`, or what is left of the deadline) finishes before the request is dropped.
+- **Three anonymous POSTs went to `gemini.google.com/u/0/app` during WP8**: the old `test_rotation.py` had a
+  redirect check that used the real host, and it ran in the baseline runs before the suite was isolated.
+
 - **WP8 is NOT in the proxy's working directory.** That directory had 16 modified, uncommitted files (the
   v1.3.1-1.3.3 work) and the proxy is a live service, so nothing there was touched. WP8 lives on the branch
   `audit/wp8`, checked out as a separate git worktree in `D:\git\dev\gemini-web2api-wp8`. Its first commit is a

@@ -84,8 +84,8 @@ Rule: a WP is closed only when its exit criteria in `PLAN.md` hold and the suite
 
 ## WP8 — gemini-web2api
 - [x] 8.1 monolith → shim; 429/502 mapping in package; one version; commit missing files
-- [ ] 8.2 client disconnect + total deadline
-- [ ] 8.3 concurrency gate + `/healthz` + truthful `finish_reason`
-- [ ] 8.4 lock down `/api/*`, bind 127.0.0.1, size cap, `temporary_chats` true, `ensure_ascii=False`
-- [ ] 8.5 `test_rotation.py` → pytest
-- [ ] WP8 exit
+- [x] 8.2 client disconnect + total deadline
+- [x] 8.3 concurrency gate + `/healthz` + truthful `finish_reason`
+- [x] 8.4 lock down `/api/*`, bind 127.0.0.1, size cap, `temporary_chats` true, `ensure_ascii=False`
+- [x] 8.5 `test_rotation.py` → pytest
+- [x] WP8 exit

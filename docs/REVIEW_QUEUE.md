@@ -357,3 +357,29 @@ in `docs/OPEN_ITEMS.md`, not here.
 - [ ] **The rules appended to the system prompt changed (4.1).** One sentence ("RUN MEMORY") was added to the
       batch rules, so a provider-side prompt cache is rebuilt once. Saved prompt overrides are not affected.
 
+## WP8 — the proxy (branch `audit/wp8`, worktree `D:\git\dev\gemini-web2api-wp8`)
+
+- [ ] **Decide what to do with the branch.** Your proxy working directory was not touched. Read
+      `docs/OPEN_ITEMS.md` → "Found during WP8" first (how to merge or discard, and the token-like string in
+      your uncommitted `dashboard.html`).
+- [ ] **Run the new proxy before merging.** From the worktree: copy your `config.json` and `accounts.json` into
+      `D:\git\dev\gemini-web2api-wp8`, stop the old proxy, start `python -m gemini_web2api` there. Expected
+      at start: the banner lists the accounts; `Listening: http://127.0.0.1:8081` unless your config sets
+      `host`.
+- [ ] **One real request.** Picoripi → Test Provider, then translate one Ukrainian string. This is the first
+      time Gemini sees the UTF-8 request body and a temporary chat from this code: if the answer is empty or an
+      error, set `"temporary_chats": false` first; if that does not help, the UTF-8 body is the suspect
+      (`gemini_web2api/gemini.py::_build_payload`).
+- [ ] **`http://127.0.0.1:8081/healthz`** in a browser: `accounts.active` equals what the dashboard shows.
+      Picoripi's Parallel Requests is then capped by that number.
+- [ ] **The dashboard with a key.** With `api_keys` in the proxy config, open the dashboard: it must ask for the
+      key once, then list the accounts. From another machine (or through your Cloudflare tunnel) the dashboard
+      must not work without the key.
+- [ ] **Anything that reaches the proxy from another machine** (a phone, Docker, the tunnel): `host` now
+      defaults to `127.0.0.1`. If your `config.json` has no `"host"`, add `"host": "0.0.0.0"` — and keep
+      `api_keys` set.
+- [ ] **A bulk translation with more workers than accounts**: the extra requests must come back as
+      `429 server_busy` with `Retry-After` and Picoripi must slow down instead of timing out.
+- [ ] **Cancel in Picoripi during a long request**: the proxy log must show
+      `client disconnected; the request was dropped` instead of going on to the next account.
+
