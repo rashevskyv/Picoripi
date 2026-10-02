@@ -183,6 +183,8 @@ class AliasUpdateWorker(QThread):
         # 2. Update data (original read-only text)
         if self.data_copy:
             for b_idx in range(len(self.data_copy)):
+                if self.isInterruptionRequested():
+                    return
                 if isinstance(self.data_copy[b_idx], list):
                     for s_idx in range(len(self.data_copy[b_idx])):
                         val = self.data_copy[b_idx][s_idx]
@@ -192,6 +194,8 @@ class AliasUpdateWorker(QThread):
         # 3. Update edited_file_data
         if self.edited_file_data_copy:
             for b_idx in range(len(self.edited_file_data_copy)):
+                if self.isInterruptionRequested():
+                    return
                 if isinstance(self.edited_file_data_copy[b_idx], list):
                     for s_idx in range(len(self.edited_file_data_copy[b_idx])):
                         val = self.edited_file_data_copy[b_idx][s_idx]

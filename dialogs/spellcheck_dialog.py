@@ -10,7 +10,7 @@ from core.i18n import tr
 
 class SpellcheckAnalysisWorker(QThread):
     progress = pyqtSignal(int)
-    finished = pyqtSignal(list, dict) # items_to_review, new_cache_entries
+    finished_with_result = pyqtSignal(list, dict) # items_to_review, new_cache_entries
     cancelled = pyqtSignal()
     error = pyqtSignal(str)
 
@@ -87,7 +87,7 @@ class SpellcheckAnalysisWorker(QThread):
                         self.progress.emit(int((line_idx + 1) / total_lines * 100))
 
             if not self._is_cancelled:
-                self.finished.emit(items_to_review, new_cache_entries)
+                self.finished_with_result.emit(items_to_review, new_cache_entries)
             else:
                 self.cancelled.emit()
         except Exception as e:
@@ -207,7 +207,7 @@ class SpellcheckDialog(BaseTextReviewDialog):
 
             self.analysis_worker = SpellcheckAnalysisWorker(self.current_text, self.spellchecker_manager, ignore_pattern)
             self.analysis_worker.progress.connect(self.progress_bar.setValue)
-            self.analysis_worker.finished.connect(self._on_analysis_finished)
+            self.analysis_worker.finished_with_result.connect(self._on_analysis_finished)
             self.analysis_worker.cancelled.connect(self._on_analysis_cancelled)
             self.analysis_worker.error.connect(self._on_analysis_error)
 

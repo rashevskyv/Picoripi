@@ -1749,5 +1749,7 @@
   "Translate the selected lines of the current string with AI": "Перекласти виділені рядки поточного рядка за допомогою AI",
   "AI Translate Entire Block": "AI: перекласти весь блок",
   "Translate every string in the current block with AI": "Перекласти кожен рядок поточного блока за допомогою AI",
-  "Clear the current AI translation session": "Очистити поточну AI-сесію перекладу"
+  "Clear the current AI translation session": "Очистити поточну AI-сесію перекладу",
+  "Synchronization cancelled.": "Синхронізацію скасовано.",
+  "A save is already in progress.": "Збереження вже триває."
 }

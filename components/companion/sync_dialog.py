@@ -26,6 +26,7 @@ from core.companion_sync import (
 from core.glossary.models import GlossaryEntry, GlossaryOccurrence
 from core.i18n import tr
 from utils.logging_utils import log_debug, log_info
+from utils.thread_utils import safe_shutdown_thread
 
 
 class CompanionSyncDialog(QDialog):
@@ -243,19 +244,21 @@ class CompanionSyncDialog(QDialog):
 
     def _on_skip_clicked(self) -> None:
         log_debug("CompanionSyncDialog: User skipped sync to work offline.")
-        if self._worker and self._worker.isRunning():
-            try:
-                self._worker.terminate()
-            except Exception:
-                pass
+        self._stop_worker()
         self.reject()
+
+    def _stop_worker(self) -> None:
+        """Ask the worker to stop and let go of it.
+
+        It cannot be interrupted inside a network request; it ends when the
+        request does (the client's timeout) and writes nothing after that.
+        """
+        worker, self._worker = self._worker, None
+        if worker is not None:
+            safe_shutdown_thread(worker, worker, timeout_ms=300)
 
     def closeEvent(self, event) -> None:
         if self._close_timer and self._close_timer.isActive():
             self._close_timer.stop()
-        if self._worker and self._worker.isRunning():
-            try:
-                self._worker.terminate()
-            except Exception:
-                pass
+        self._stop_worker()
         super().closeEvent(event)

@@ -588,7 +588,7 @@ def test_mempalace_character_profiler_worker_consecutive_failures():
     def on_finished(success, message):
         finished_called.append((success, message))
         
-    worker.finished.connect(on_finished)
+    worker.finished_with_result.connect(on_finished)
     
     worker.run()
     

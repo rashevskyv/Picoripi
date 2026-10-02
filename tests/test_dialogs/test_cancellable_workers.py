@@ -14,7 +14,7 @@ def test_spellcheck_worker_success(qtbot):
     text = "Hello world.\nThis is a test."
     worker = SpellcheckAnalysisWorker(text, spellchecker_manager)
 
-    with qtbot.waitSignal(worker.finished, timeout=30000) as blocker:
+    with qtbot.waitSignal(worker.finished_with_result, timeout=30000) as blocker:
         worker.start()
 
     items_to_review, new_cache_entries = blocker.args
@@ -56,7 +56,7 @@ def test_search_worker_local_success(qtbot):
 
     worker = SearchWorker('local', params)
 
-    with qtbot.waitSignal(worker.finished, timeout=30000) as blocker:
+    with qtbot.waitSignal(worker.finished_with_result, timeout=30000) as blocker:
         worker.start()
 
     items_to_review, text, line_numbers, block_indices, unique_string_indices = blocker.args
@@ -107,7 +107,7 @@ def test_search_worker_global_success(qtbot):
 
     worker = SearchWorker('global', params)
 
-    with qtbot.waitSignal(worker.finished, timeout=30000) as blocker:
+    with qtbot.waitSignal(worker.finished_with_result, timeout=30000) as blocker:
         worker.start()
 
     items_to_review, current_text, line_numbers, block_indices, unique_string_indices = blocker.args

@@ -13,7 +13,7 @@ class MemePalaceCharacterProfilerWorker(QThread):
     # Signals for UI communication
     progress = pyqtSignal(int, int, str)  # current, total, status
     log = pyqtSignal(str)                 # log message
-    finished = pyqtSignal(bool, str)      # success, message
+    finished_with_result = pyqtSignal(bool, str)      # success, message
 
     def __init__(self, 
                  client: MemePalaceClient, 
@@ -270,13 +270,13 @@ Do not output anything else but the synthesized {self.target_lang} text. Do not 
                 self.log.emit(f"Filtered out {filtered_count} minor characters with fewer than 3 dialogue lines to speed up profiling.")
 
             if not char_dialogues:
-                self.finished.emit(False, "No character dialogues found in database or active project workspace. Please map script chapters first.")
+                self.finished_with_result.emit(False, "No character dialogues found in database or active project workspace. Please map script chapters first.")
                 return
 
             self.log.emit(f"Found dialogues for {len(char_dialogues)} characters.")
             
             if self.is_cancelled:
-                self.finished.emit(False, "Process cancelled by user.")
+                self.finished_with_result.emit(False, "Process cancelled by user.")
                 return
 
             # Prepare prompts configuration
@@ -653,13 +653,13 @@ JSON Structure:
                     consecutive_failures += 1
                     if consecutive_failures >= 3:
                         self.log.emit("Too many consecutive AI errors. Stopping character speech profiling to prevent flooding.")
-                        self.finished.emit(False, f"Profiling stopped due to multiple consecutive AI errors (last error: {e_proc}).")
+                        self.finished_with_result.emit(False, f"Profiling stopped due to multiple consecutive AI errors (last error: {e_proc}).")
                         return
 
                 processed_count += 1
 
             if self.is_cancelled:
-                self.finished.emit(False, "Process cancelled by user.")
+                self.finished_with_result.emit(False, "Process cancelled by user.")
                 return
 
             # Save all glossary updates to disk
@@ -686,9 +686,9 @@ JSON Structure:
                 f"You can find the generated profiles directly in the Picoripi Glossary editor (Characters tab) "
                 f"or as tooltip previews when hovering over these character names in the main translation window."
             )
-            self.finished.emit(True, stat_msg)
+            self.finished_with_result.emit(True, stat_msg)
 
         except Exception as e:
             log_error(f"Error in MemePalaceCharacterProfilerWorker: {e}", exc_info=True)
             self.log.emit(f"FATAL ERROR: {str(e)}")
-            self.finished.emit(False, f"Error occurred: {str(e)}")
+            self.finished_with_result.emit(False, f"Error occurred: {str(e)}")

@@ -14,7 +14,7 @@ from utils.logging_utils import log_ai_traffic, log_error
 class NormalizedCharacterProfilerWorker(QThread):
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)
-    finished = pyqtSignal(bool, str)
+    finished_with_result = pyqtSignal(bool, str)
 
     def __init__(self, client, ai_provider, document_id: int, target_lang="Ukrainian", mw=None):
         super().__init__()
@@ -33,17 +33,17 @@ class NormalizedCharacterProfilerWorker(QThread):
             nodes = self.client.get_story_timeline(self.document_id)
             speakers = collect_character_dialogues(nodes)
             if not speakers:
-                self.finished.emit(False, "No normalized Speaker → Dialogue data was found.")
+                self.finished_with_result.emit(False, "No normalized Speaker → Dialogue data was found.")
                 return
             if not self.ai_provider:
-                self.finished.emit(False, "No AI provider is configured.")
+                self.finished_with_result.emit(False, "No AI provider is configured.")
                 return
 
             profiles = []
             ordered = sorted(speakers.items(), key=lambda item: item[0].casefold())
             for index, (speaker_name, lines) in enumerate(ordered, 1):
                 if self.is_cancelled:
-                    self.finished.emit(False, "Character profiling was cancelled.")
+                    self.finished_with_result.emit(False, "Character profiling was cancelled.")
                     return
                 self.progress.emit(
                     index - 1,
@@ -89,14 +89,14 @@ class NormalizedCharacterProfilerWorker(QThread):
                 self.document_id, profiles, source_hash
             )
             self.progress.emit(len(ordered), len(ordered), "Character voices are ready.")
-            self.finished.emit(
+            self.finished_with_result.emit(
                 True,
                 f"Built translation profiles for {saved} characters from "
                 f"{sum(len(lines) for lines in speakers.values())} dialogue lines.",
             )
         except Exception as exc:
             log_error(f"Normalized character profiling failed: {exc}", exc_info=True)
-            self.finished.emit(False, f"Character profiling failed: {exc}")
+            self.finished_with_result.emit(False, f"Character profiling failed: {exc}")
 
     def _request_profile(self, messages) -> dict:
         log_ai_traffic(self.mw, "mempalace_normalized_character_profile", messages)

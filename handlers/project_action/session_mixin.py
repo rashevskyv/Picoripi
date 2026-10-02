@@ -1,8 +1,10 @@
+from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import QMessageBox
 from utils.logging_utils import log_info, log_warning
 from core import formats
 from core.i18n import tr
 from handlers.project_action.load_worker import ProjectLoadWorker
+from utils.thread_utils import safe_shutdown_thread
 
 
 class SessionMixin:
@@ -123,6 +125,12 @@ class SessionMixin:
 
         # A plugin may keep what it learned from the files it loaded; start clean.
         formats.reset_state(self.mw.current_game_rules)
+
+        # A load that still reads files must not deliver its result into the project opened after it.
+        previous = getattr(self, "_active_load_worker", None)
+        if isinstance(previous, QThread) and previous.isRunning():
+            log_warning("ProjectActionHandler: a project load was still running; it is stopped.")
+            safe_shutdown_thread(previous, previous, timeout_ms=2000)
 
         # Setup loading thread and progress dialog
         worker = ProjectLoadWorker(self.mw.project_manager, self.mw.current_game_rules)
@@ -262,7 +270,7 @@ class SessionMixin:
 
         # Store worker reference to prevent garbage collection
         self._active_load_worker = worker
-        worker.finished.connect(on_finished)
+        worker.finished_with_result.connect(on_finished)
         if startup_loading:
             def report_worker_progress(current, total):
                 ratio = current / max(1, total)

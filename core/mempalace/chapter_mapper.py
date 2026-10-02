@@ -8,7 +8,7 @@ class MemePalaceChapterMapperWorker(QThread):
     """Meme palace chapter mapper worker implementation."""
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)
-    finished = pyqtSignal(bool, str)
+    finished_with_result = pyqtSignal(bool, str)
 
     def __init__(self, client: MemePalaceClient, composer, wing_name: str):
         """Initialize a new instance."""
@@ -28,7 +28,7 @@ class MemePalaceChapterMapperWorker(QThread):
             self.log.emit("Starting Chapter Mapping Process...")
             script_path = self.composer._find_script_path()
             if not script_path or not os.path.exists(script_path):
-                self.finished.emit(False, "Script file not found.")
+                self.finished_with_result.emit(False, "Script file not found.")
                 return
 
             self.log.emit(f"Parsing script file: {script_path}")
@@ -42,7 +42,7 @@ class MemePalaceChapterMapperWorker(QThread):
                 chapters = segment_script_file(script_path)
                 
             if not chapters:
-                self.finished.emit(False, "No chapters found in the script.")
+                self.finished_with_result.emit(False, "No chapters found in the script.")
                 return
 
             self.log.emit(f"Found {len(chapters)} chapters. Saving chapters to local DB...")
@@ -52,7 +52,7 @@ class MemePalaceChapterMapperWorker(QThread):
             mw = self.composer.mw
             store = getattr(mw, "data_store", None)
             if not store or not store.data:
-                self.finished.emit(False, "No project blocks loaded.")
+                self.finished_with_result.emit(False, "No project blocks loaded.")
                 return
 
             total_blocks = len(store.data)
@@ -61,7 +61,7 @@ class MemePalaceChapterMapperWorker(QThread):
             # Map BMG strings
             for b_idx in range(total_blocks):
                 if self.is_cancelled:
-                    self.finished.emit(False, "Process cancelled.")
+                    self.finished_with_result.emit(False, "Process cancelled.")
                     return
                     
                 block_label = self.composer._get_block_label(b_idx)
@@ -92,8 +92,8 @@ class MemePalaceChapterMapperWorker(QThread):
             self.client.save_mappings_to_db(self.wing_name, mappings)
             
             self.progress.emit(100, 100, "Mapping complete!")
-            self.finished.emit(True, f"Mapped {len(chapters)} chapters and {len(mappings)} dialogue lines successfully.")
+            self.finished_with_result.emit(True, f"Mapped {len(chapters)} chapters and {len(mappings)} dialogue lines successfully.")
             
         except Exception as e:
             log_error(f"Error in MemePalaceChapterMapperWorker: {e}", exc_info=True)
-            self.finished.emit(False, f"Error: {e}")
+            self.finished_with_result.emit(False, f"Error: {e}")

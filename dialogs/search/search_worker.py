@@ -7,7 +7,7 @@ from dialogs.search.search_utils import prepare_text_for_tagless_search_with_map
 
 class SearchWorker(QThread):
     progress = pyqtSignal(int)
-    finished = pyqtSignal(list, str, list, list, list) # items_to_review, current_text, line_numbers, block_indices, unique_string_indices
+    finished_with_result = pyqtSignal(list, str, list, list, list) # items_to_review, current_text, line_numbers, block_indices, unique_string_indices
     cancelled = pyqtSignal()
     error = pyqtSignal(str)
 
@@ -46,7 +46,7 @@ class SearchWorker(QThread):
             effective_query = prepare_text_for_tagless_search(query)
 
         if not effective_query:
-            self.finished.emit([], text, line_numbers, block_indices, [])
+            self.finished_with_result.emit([], text, line_numbers, block_indices, [])
             return
 
         lines = text.split('\n')
@@ -106,7 +106,7 @@ class SearchWorker(QThread):
                     self.progress.emit(int((line_idx + 1) / total_lines * 100))
 
         if not self._is_cancelled:
-            self.finished.emit(items_to_review, text, line_numbers, block_indices, [])
+            self.finished_with_result.emit(items_to_review, text, line_numbers, block_indices, [])
         else:
             self.cancelled.emit()
 
@@ -256,6 +256,6 @@ class SearchWorker(QThread):
                         self.progress.emit(50 + int((line_idx + 1) / total_lines * 50))
 
         if not self._is_cancelled:
-            self.finished.emit(items_to_review, current_text, line_numbers, block_indices, unique_string_indices)
+            self.finished_with_result.emit(items_to_review, current_text, line_numbers, block_indices, unique_string_indices)
         else:
             self.cancelled.emit()

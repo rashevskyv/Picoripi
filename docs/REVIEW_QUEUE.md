@@ -271,6 +271,14 @@ in `docs/OPEN_ITEMS.md`, not here.
 
 ## WP6 — stability
 
+- [ ] **Companion sync to a server that does not answer, then "Skip" (6.2).** Point the Companion URL at an
+      address that swallows packets (e.g. `http://10.255.255.1:8000`), open the glossary, start a sync and press
+      "Skip & Work Offline": the window must close at once and the editor stay responsive. Do the same on exit
+      ("Skip & Close"): the application may take up to ~6 s to leave the process list, without a crash dialog.
+- [ ] **Open a second project while the first is still loading (6.2).** The first load is stopped; the second
+      project must show its own blocks, not a mix.
+- [ ] **MemPalace builder: every analysis button still reports its result (6.2).** The seven workers emit
+      `finished_with_result` now; run one analysis that needs no AI (chapter mapping) and check the status line.
 - [ ] **Every save goes through a temporary file now (6.1).** Save a translation, a project with archives, the
       glossary and the settings as usual; the files must be byte-for-byte what they were before (line endings
       included — covered by a test, but look at one `.txt` game file in your diff tool). While a save runs you

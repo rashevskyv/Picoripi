@@ -18,7 +18,7 @@ LOCAL_DICT_PATH = "resources/spellchecker"
 class DownloadThread(QThread):
     """Download thread implementation with cooperative cancellation."""
     progress = pyqtSignal(str, int)
-    finished = pyqtSignal(str, bool, str)
+    finished_with_result = pyqtSignal(str, bool, str)
 
     def __init__(self, downloads: List[tuple[str, str]]):
         """Initialize a new instance."""
@@ -54,7 +54,7 @@ class DownloadThread(QThread):
                                     save_path_obj.unlink()
                                 except Exception as e:
                                     log_error(f"Failed to delete partial file: {e}")
-                            self.finished.emit(url, False, "Download cancelled.")
+                            self.finished_with_result.emit(url, False, "Download cancelled.")
                             return
                         if not chunk: continue
                         f.write(chunk)
@@ -71,9 +71,9 @@ class DownloadThread(QThread):
                         save_path_obj.unlink()
                     except Exception:
                         pass
-                self.finished.emit(url, False, str(e))
+                self.finished_with_result.emit(url, False, str(e))
                 return
-        self.finished.emit("", True, "All files downloaded successfully.")
+        self.finished_with_result.emit("", True, "All files downloaded successfully.")
 
 
 class DictionaryListFetchWorker(QThread):
@@ -233,7 +233,7 @@ class DictionaryManagerDialog(QDialog):
 
         self.download_thread = DownloadThread(downloads)
         self.download_thread.progress.connect(self.on_download_progress)
-        self.download_thread.finished.connect(self.on_download_finished)
+        self.download_thread.finished_with_result.connect(self.on_download_finished)
         self.download_thread.start()
         
     def on_download_progress(self, message, value):

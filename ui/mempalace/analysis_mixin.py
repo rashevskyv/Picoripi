@@ -46,7 +46,7 @@ class MemePalaceAnalysisMixin:
         )
         self.worker.progress.connect(self._handle_story_timeline_progress)
         self.worker.log.connect(self.append_log)
-        self.worker.finished.connect(self._handle_story_timeline_finished)
+        self.worker.finished_with_result.connect(self._handle_story_timeline_finished)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
@@ -96,7 +96,7 @@ class MemePalaceAnalysisMixin:
         )
         self.worker.progress.connect(self._handle_character_profiles_progress)
         self.worker.log.connect(self.append_log)
-        self.worker.finished.connect(self._handle_character_profiles_finished)
+        self.worker.finished_with_result.connect(self._handle_character_profiles_finished)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
@@ -180,7 +180,7 @@ class MemePalaceAnalysisMixin:
 
         self.worker.progress.connect(self._handle_worker_progress)
         self.worker.log.connect(self.append_log)
-        self.worker.finished.connect(self._handle_char_mining_finished)
+        self.worker.finished_with_result.connect(self._handle_char_mining_finished)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
@@ -262,7 +262,7 @@ class MemePalaceAnalysisMixin:
 
         self.worker.progress.connect(self._handle_worker_progress)
         self.worker.log.connect(self.append_log)
-        self.worker.finished.connect(self._handle_speech_profiling_finished)
+        self.worker.finished_with_result.connect(self._handle_speech_profiling_finished)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
@@ -333,7 +333,7 @@ class MemePalaceAnalysisMixin:
         )
         self.worker.progress.connect(self._handle_worker_progress)
         self.worker.log.connect(self.append_log)
-        self.worker.finished.connect(self._handle_chapters_mapping_finished)
+        self.worker.finished_with_result.connect(self._handle_chapters_mapping_finished)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
@@ -514,7 +514,7 @@ class MemePalaceAnalysisMixin:
         )
         self.worker.progress.connect(self._handle_worker_progress)
         self.worker.log.connect(self.append_log)
-        self.worker.finished.connect(self._handle_chapter_analysis_finished)
+        self.worker.finished_with_result.connect(self._handle_chapter_analysis_finished)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 

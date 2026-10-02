@@ -1458,5 +1458,7 @@
   "Translate the selected lines of the current string with AI": "Translate the selected lines of the current string with AI",
   "AI Translate Entire Block": "AI Translate Entire Block",
   "Translate every string in the current block with AI": "Translate every string in the current block with AI",
-  "Clear the current AI translation session": "Clear the current AI translation session"
+  "Clear the current AI translation session": "Clear the current AI translation session",
+  "Synchronization cancelled.": "Synchronization cancelled.",
+  "A save is already in progress.": "A save is already in progress."
 }

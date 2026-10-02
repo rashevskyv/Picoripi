@@ -13,6 +13,18 @@ the line when it is done or moved into a plan.
 
 ## Found during WP6
 
+- **A parked thread still finishes its network request (6.2).** `requests` cannot be interrupted from another
+  thread, so a skipped Companion sync runs until the client's timeout (15 s, 6 s on close) and the process waits
+  up to 8 s for it at exit (`utils.thread_utils.wait_for_parked_threads`). Closing the `requests.Session` from
+  `cancel()` (as `AIWorker` does since 1.8) would end it at once.
+- **`safe_shutdown_thread` has no `allow_terminate` any more (6.2).** No product code used it. The plan kept the
+  flag; it is gone because a terminated thread leaves locks held and files half-written.
+- **Seven MemPalace workers were renamed too (6.2)**, beyond the four the plan lists: every `QThread` subclass
+  that declared its own `finished`. Their `worker.finished.connect(worker.deleteLater)` lines now mean what they
+  say (Qt's signal, after the thread ended) instead of deleting a thread that was still inside `run()`.
+- **`AliasUpdateWorker` and `SaveWorker` have no caller that cancels them (6.2).** The alias worker checks for
+  interruption between blocks; a save is deliberately not cancellable. Nothing asks either to stop on exit.
+
 - **Not atomic on purpose (6.1):** creating a new empty file (`translation_map.json` as `{}`, a new project
   glossary as `[]`), `.bak` copies, the log file, the downloaded dictionary, command-line tools
   (`plugins/zelda_bmg/bmg_tool.py`, `stage_data.py`), MemPalace helper outputs. None overwrites a user's work.

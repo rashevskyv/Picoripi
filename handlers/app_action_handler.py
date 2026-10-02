@@ -4,7 +4,7 @@ from typing import Optional, Any, Union, List, Dict, Tuple
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QProgressDialog
 from PyQt6.QtCore import Qt, QEvent, QThread, pyqtSignal
 from .base_handler import BaseHandler
-from utils.logging_utils import log_info, log_error, log_debug
+from utils.logging_utils import log_info, log_error, log_debug, log_warning
 from core import formats
 from core.plugin_call import safe_call
 from plugins.base_game_rules import BaseGameRules
@@ -182,6 +182,14 @@ class AppActionHandler(BaseHandler):
 
     def perform_async_save_flow(self, output_data_list: List[Any], ask_confirmation: bool = True, on_finished_callback: Optional[Any] = None, edited_data_for_transaction: Optional[Dict[Tuple[int, int], str]] = None) -> None:
         """Perform async save flow."""
+        running = getattr(self, "save_worker", None)
+        if isinstance(running, QThread) and running.isRunning():
+            # Two threads writing the same files is how a save gets corrupted.
+            log_warning("AppActionHandler: a save is already running; the second request is dropped.", category="file_ops")
+            if on_finished_callback:
+                on_finished_callback(False, [], [tr("A save is already in progress.")])
+            return
+
         log_info("Starting async save flow...", category="file_ops")
         
         # Block interface by setting SAVING_DATA state

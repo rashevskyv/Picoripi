@@ -155,7 +155,7 @@ def test_story_timeline_worker_chunking_and_retry(tmp_path):
     )
 
     results = []
-    worker.finished.connect(lambda ok, msg: results.append((ok, msg)))
+    worker.finished_with_result.connect(lambda ok, msg: results.append((ok, msg)))
     worker.run()
 
     assert len(results) == 1

@@ -18,7 +18,7 @@ TIMELINE_REQUEST_TIMEOUT = 300
 class StoryTimelineAIAnalyzerWorker(QThread):
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)
-    finished = pyqtSignal(bool, str)
+    finished_with_result = pyqtSignal(bool, str)
 
     def __init__(self, client, ai_provider, document_id: int, target_lang="Ukrainian", mw=None):
         super().__init__()
@@ -37,10 +37,10 @@ class StoryTimelineAIAnalyzerWorker(QThread):
             nodes = self.client.get_story_timeline(self.document_id)
             dialogues = [node for node in nodes if node.node_type == "dialogue"]
             if not dialogues:
-                self.finished.emit(False, "No marked dialogue nodes were found.")
+                self.finished_with_result.emit(False, "No marked dialogue nodes were found.")
                 return
             if not self.ai_provider:
-                self.finished.emit(False, "No AI provider is configured.")
+                self.finished_with_result.emit(False, "No AI provider is configured.")
                 return
 
             aliases = {node.id: f"d{index:05d}" for index, node in enumerate(dialogues, 1)}
@@ -49,7 +49,7 @@ class StoryTimelineAIAnalyzerWorker(QThread):
             events = []
             for chunk_index, chunk in enumerate(chunks):
                 if self.is_cancelled:
-                    self.finished.emit(False, "Timeline analysis was cancelled.")
+                    self.finished_with_result.emit(False, "Timeline analysis was cancelled.")
                     return
                 current = chunk_index + 1
                 self.progress.emit(current - 1, len(chunks), f"Analyzing story part {current} of {len(chunks)}…")
@@ -70,7 +70,7 @@ class StoryTimelineAIAnalyzerWorker(QThread):
                 max_retries = 2
                 for attempt in range(max_retries):
                     if self.is_cancelled:
-                        self.finished.emit(False, "Timeline analysis was cancelled.")
+                        self.finished_with_result.emit(False, "Timeline analysis was cancelled.")
                         return
                     try:
                         log_ai_traffic(self.mw, "mempalace_semantic_timeline", messages)
@@ -117,13 +117,13 @@ class StoryTimelineAIAnalyzerWorker(QThread):
                 self.document_id, contexts, source_hash
             )
             self.progress.emit(len(chunks), len(chunks), "Timeline is ready.")
-            self.finished.emit(
+            self.finished_with_result.emit(
                 True,
                 f"Built {len(events)} story events for {saved} marked dialogue lines.",
             )
         except Exception as exc:
             log_error(f"Story timeline analysis failed: {exc}", exc_info=True)
-            self.finished.emit(False, f"Timeline analysis failed: {exc}")
+            self.finished_with_result.emit(False, f"Timeline analysis failed: {exc}")
 
 
 def _build_prompt(dialogues, aliases, node_by_id, ordered_nodes, target_lang: str) -> str:

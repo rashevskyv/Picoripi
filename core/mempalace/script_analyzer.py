@@ -40,7 +40,7 @@ class MemePalaceScriptAnalyzerWorker(QThread):
     # Signals for UI communication
     progress = pyqtSignal(int, int, str)  # current, total, status
     log = pyqtSignal(str)                 # log message
-    finished = pyqtSignal(bool, str)      # success, message
+    finished_with_result = pyqtSignal(bool, str)      # success, message
 
     def __init__(self, 
                  client: MemePalaceClient, 
@@ -317,7 +317,7 @@ JSON structure:
 
             # 1. Read first 2000 lines of the script (where cast/intro resides)
             if not os.path.exists(self.file_path):
-                self.finished.emit(False, f"Script file not found: {self.file_path}")
+                self.finished_with_result.emit(False, f"Script file not found: {self.file_path}")
                 return
 
             if self.file_path.lower().endswith(".md"):
@@ -439,7 +439,7 @@ JSON structure:
                     self.log.emit(f"Saved Relation: {rel['source']} -[{rel['relation']}]-> {rel['target']}")
 
                 self.progress.emit(100, 100, "Script pre-analysis and glossary synthesis completed!")
-                self.finished.emit(True, f"Successfully parsed Markdown script locally! Found {len(characters)} characters. Glossary has been synchronized.")
+                self.finished_with_result.emit(True, f"Successfully parsed Markdown script locally! Found {len(characters)} characters. Glossary has been synchronized.")
                 return
 
             # Read with cp1252 to handle special symbols in GameFAQ scripts
@@ -454,7 +454,7 @@ JSON structure:
             script_segment = "".join(intro_lines)
             
             if self.is_cancelled:
-                self.finished.emit(False, "Process cancelled by user.")
+                self.finished_with_result.emit(False, "Process cancelled by user.")
                 return
 
             self.progress.emit(25, 100, "Sending script segment to AI for terminology & character mining...")
@@ -480,7 +480,7 @@ JSON structure:
                 raise e_mining
             
             if self.is_cancelled:
-                self.finished.emit(False, "Process cancelled by user.")
+                self.finished_with_result.emit(False, "Process cancelled by user.")
                 return
 
             self.progress.emit(50, 100, "Processing AI response and writing to SQLite...")
@@ -715,9 +715,9 @@ JSON structure:
                 self.log.emit(f"Saved Relation: {source} -[{relation}]-> {target} ({reason})")
 
             self.progress.emit(100, 100, "Script pre-analysis and glossary synthesis completed!")
-            self.finished.emit(True, f"Successfully parsed script! Found {len(characters)} characters and {len(relations)} relations. Glossary has been synchronized and saved to disk.")
+            self.finished_with_result.emit(True, f"Successfully parsed script! Found {len(characters)} characters and {len(relations)} relations. Glossary has been synchronized and saved to disk.")
 
         except Exception as e:
             log_error(f"Error in MemePalaceScriptAnalyzerWorker: {e}", exc_info=True)
             self.log.emit(f"FATAL ERROR: {str(e)}")
-            self.finished.emit(False, f"Error occurred: {str(e)}")
+            self.finished_with_result.emit(False, f"Error occurred: {str(e)}")

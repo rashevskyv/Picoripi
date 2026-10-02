@@ -225,7 +225,7 @@ def test_real_project_load_worker_lifecycle(qtbot):
     with patch("handlers.project_action_handler.Path.exists", return_value=True), \
          patch("core.formats.load_json_file", return_value=("{}", False)):
         try:
-            with qtbot.waitSignal(worker.finished, timeout=30000) as blocker:
+            with qtbot.waitSignal(worker.finished_with_result, timeout=30000) as blocker:
                 worker.start()
         finally:
             _cleanup_worker(worker)
@@ -312,7 +312,7 @@ def test_real_mempalace_worker_lifecycle(qtbot, tmp_path):
         mapping_only=True
     )
     try:
-        with qtbot.waitSignal(worker.finished, timeout=30000):
+        with qtbot.waitSignal(worker.finished_with_result, timeout=30000):
             worker.start()
     finally:
         _cleanup_worker(worker)
@@ -330,7 +330,7 @@ def test_real_mempalace_script_analyzer_worker_lifecycle(qtbot, tmp_path):
     )
 
     try:
-        with qtbot.waitSignal(worker.finished, timeout=30000):
+        with qtbot.waitSignal(worker.finished_with_result, timeout=30000):
             worker.start()
     finally:
         _cleanup_worker(worker)
@@ -349,7 +349,7 @@ def test_real_mempalace_chapter_mapper_worker_lifecycle(qtbot, tmp_path):
 
     with patch("core.script_segmenter.segment_script_file", return_value=[{"num": "1", "title": "Ch1", "start_line": 1, "end_line": 2}]):
         try:
-            with qtbot.waitSignal(worker.finished, timeout=30000):
+            with qtbot.waitSignal(worker.finished_with_result, timeout=30000):
                 worker.start()
         finally:
             _cleanup_worker(worker)
@@ -368,7 +368,7 @@ def test_real_mempalace_chapter_ai_analyzer_worker_lifecycle(qtbot, tmp_path):
     )
 
     try:
-        with qtbot.waitSignal(worker.finished, timeout=30000):
+        with qtbot.waitSignal(worker.finished_with_result, timeout=30000):
             worker.start()
     finally:
         _cleanup_worker(worker)
@@ -384,7 +384,7 @@ def test_real_mempalace_character_profiler_worker_lifecycle(qtbot, tmp_path):
 
     with patch.object(client, "get_all_character_lines", return_value={}):
         try:
-            with qtbot.waitSignal(worker.finished, timeout=30000):
+            with qtbot.waitSignal(worker.finished_with_result, timeout=30000):
                 worker.start()
         finally:
             _cleanup_worker(worker)

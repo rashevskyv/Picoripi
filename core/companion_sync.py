@@ -258,6 +258,10 @@ def apply_conflict_resolutions(
     )
 
 
+def _never() -> bool:
+    return False
+
+
 class CompanionSyncClient:
     """Client for synchronizing glossaries and context with Picoripi Companion Server."""
 
@@ -303,10 +307,13 @@ class CompanionSyncClient:
         entries: Optional[Sequence[Union[GlossaryEntry, Dict[str, Any]]]] = None,
         occurrence_map: Optional[Dict[str, List[GlossaryOccurrence]]] = None,
         reference_data: Optional[Dict[Tuple[int, int], str]] = None,
+        cancelled: Callable[[], bool] = _never,
     ) -> Tuple[bool, str, int]:
         """Push glossary and occurrences context to the companion server."""
         if not self.is_configured:
             return False, "Companion server URL or API token is not configured.", 0
+        if cancelled():
+            return False, tr("Synchronization cancelled."), 0
 
         # Prepare glossary payload
         serialized_entries: List[Dict[str, Any]] = []
@@ -373,8 +380,13 @@ class CompanionSyncClient:
         self,
         project_name: str,
         glossary_path: Path,
+        cancelled: Callable[[], bool] = _never,
     ) -> Tuple[bool, str, int]:
-        """Pull updated glossary from the companion server and update local file."""
+        """Pull updated glossary from the companion server and update local file.
+
+        ``cancelled`` is asked after the request: a pull nobody waits for any
+        more must not rewrite the local glossary.
+        """
         if not self.is_configured:
             return False, "Companion server URL or API token is not configured.", 0
 
@@ -385,6 +397,9 @@ class CompanionSyncClient:
                 if resp.status_code == 401:
                     return False, "Authentication failed: invalid token or PIN.", 0
                 return False, f"Server error {resp.status_code}: {resp.text}", 0
+
+            if cancelled():
+                return False, tr("Synchronization cancelled."), 0
 
             data = resp.json()
             remote_glossary = data.get("glossary", [])
@@ -453,6 +468,7 @@ class CompanionSyncClient:
         occurrence_map: Optional[Dict[str, List[GlossaryOccurrence]]] = None,
         reference_data: Optional[Dict[Tuple[int, int], str]] = None,
         on_status: Optional[Callable[[str], None]] = None,
+        cancelled: Callable[[], bool] = _never,
     ) -> Tuple[bool, str, int, int, List[ConflictRecord], Optional[MergeResult]]:
         """Perform bidirectional diff & merge between local glossary and Companion server."""
         if not self.is_configured:
@@ -469,6 +485,8 @@ class CompanionSyncClient:
                 params={"project": project_name},
                 timeout=self.timeout,
             )
+            if cancelled():
+                return False, tr("Synchronization cancelled."), 0, 0, [], None
 
             # If project is not found or has no terms on server, push local if available
             if resp.status_code == 404 or (resp.status_code == 200 and not resp.json().get("glossary")):
@@ -482,6 +500,7 @@ class CompanionSyncClient:
                         entries=entries,
                         occurrence_map=occurrence_map,
                         reference_data=reference_data,
+                        cancelled=cancelled,
                     )
                     return ok, msg, 0, count, [], None
                 return True, "No glossary terms to synchronize.", 0, 0, [], None
@@ -541,6 +560,7 @@ class CompanionSyncClient:
                 occurrence_map=occurrence_map,
                 reference_data=reference_data,
                 on_status=on_status,
+                cancelled=cancelled,
             )
         except requests.exceptions.RequestException as e:
             log_error(f"CompanionSyncClient: Sync failed: {e}")
@@ -554,11 +574,15 @@ class CompanionSyncClient:
         occurrence_map: Optional[Dict[str, List[GlossaryOccurrence]]] = None,
         reference_data: Optional[Dict[Tuple[int, int], str]] = None,
         on_status: Optional[Callable[[str], None]] = None,
+        cancelled: Callable[[], bool] = _never,
     ) -> Tuple[bool, str, int, int, List[ConflictRecord], Optional[MergeResult]]:
         """Commit merged glossary locally and push necessary updates to Companion server."""
         pulled = merge_result.pulled_count
         pushed = merge_result.pushed_count
         merged_entries = merge_result.merged_entries
+
+        if cancelled():
+            return False, tr("Synchronization cancelled."), 0, 0, [], merge_result
 
         # 1. Update local file if pulled terms exist or if local file was missing
         if pulled > 0 or not (glossary_path and glossary_path.exists()):
@@ -591,6 +615,7 @@ class CompanionSyncClient:
                 entries=merged_entries,
                 occurrence_map=occurrence_map,
                 reference_data=reference_data,
+                cancelled=cancelled,
             )
 
             if not ok:
@@ -616,6 +641,9 @@ except ImportError:
         def start(self):
             pass
 
+        def isInterruptionRequested(self):
+            return False
+
     class _MockSignal:
         def emit(self, *args, **kwargs):
             pass
@@ -638,7 +666,9 @@ class CompanionPullWorker(QThread):
         self.glossary_path = glossary_path
 
     def run(self):
-        ok, msg, count = self.client.pull_project(self.project_name, self.glossary_path)
+        ok, msg, count = self.client.pull_project(
+            self.project_name, self.glossary_path, cancelled=self.isInterruptionRequested
+        )
         self.finished_with_result.emit(ok, msg, count)
 
 
@@ -670,6 +700,7 @@ class CompanionPushWorker(QThread):
             entries=self.entries,
             occurrence_map=self.occurrence_map,
             reference_data=self.reference_data,
+            cancelled=self.isInterruptionRequested,
         )
         self.finished_with_result.emit(ok, msg, count)
 
@@ -706,6 +737,7 @@ class CompanionSyncWorker(QThread):
             occurrence_map=self.occurrence_map,
             reference_data=self.reference_data,
             on_status=self.progress_status.emit,
+            cancelled=self.isInterruptionRequested,
         )
         if conflicts:
             self.conflicts_detected.emit(conflicts, merge_result)

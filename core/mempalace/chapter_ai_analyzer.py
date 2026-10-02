@@ -8,7 +8,7 @@ class MemePalaceChapterAIAnalyzerWorker(QThread):
     """Meme palace chapter a i analyzer worker implementation."""
     progress = pyqtSignal(int, int, str)
     log = pyqtSignal(str)
-    finished = pyqtSignal(bool, str)
+    finished_with_result = pyqtSignal(bool, str)
 
     def __init__(self, client: MemePalaceClient, ai_provider, chapter_id: int, num: str, title: str, content: str, start_line: int = 1, target_lang: str = "Ukrainian", mw=None):
         """Initialize a new instance."""
@@ -35,7 +35,7 @@ class MemePalaceChapterAIAnalyzerWorker(QThread):
             self.progress.emit(0, 100, "Preparing prompt...")
             
             if not self.ai_provider:
-                self.finished.emit(False, "No AI Provider configured.")
+                self.finished_with_result.emit(False, "No AI Provider configured.")
                 return
 
             # Number the lines of the content sequentially starting from start_line
@@ -89,12 +89,12 @@ Your output must be a valid JSON array of objects. Do not wrap the JSON in markd
                 raise e_ch
             
             if self.is_cancelled:
-                self.finished.emit(False, "Process cancelled.")
+                self.finished_with_result.emit(False, "Process cancelled.")
                 return
 
             summary = response.text.strip()
             if not summary:
-                self.finished.emit(False, "Received empty summary from AI.")
+                self.finished_with_result.emit(False, "Received empty summary from AI.")
                 return
 
             # Clean json formatting tags if any
@@ -111,8 +111,8 @@ Your output must be a valid JSON array of objects. Do not wrap the JSON in markd
             self.client.save_chapter_summary(self.chapter_id, cleaned_json)
 
             self.progress.emit(100, 100, "Analysis complete!")
-            self.finished.emit(True, f"Chapter {self.num} successfully analyzed and saved.")
+            self.finished_with_result.emit(True, f"Chapter {self.num} successfully analyzed and saved.")
 
         except Exception as e:
             log_error(f"Error in MemePalaceChapterAIAnalyzerWorker: {e}", exc_info=True)
-            self.finished.emit(False, f"Error: {e}")
+            self.finished_with_result.emit(False, f"Error: {e}")

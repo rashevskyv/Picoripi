@@ -784,6 +784,8 @@ if __name__ == '__main__':
         sys.exit(1)
     log_info("Starting Qt event loop...", category="lifecycle")
     exit_code = app.exec()
+    from utils.thread_utils import wait_for_parked_threads
+    wait_for_parked_threads()
     log_info(f"Qt event loop finished with exit code: {exit_code}", category="lifecycle")
     log_info("================= Application End =================")
     sys.exit(exit_code)

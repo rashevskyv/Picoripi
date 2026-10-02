@@ -7,7 +7,7 @@ from utils.logging_utils import log_error
 
 class ProjectLoadWorker(QThread):
     """Worker thread for loading project files asynchronously."""
-    finished = pyqtSignal(dict)
+    finished_with_result = pyqtSignal(dict)
     progress = pyqtSignal(int, int)
 
     def __init__(self, project_manager, current_game_rules):
@@ -40,6 +40,9 @@ class ProjectLoadWorker(QThread):
 
             # Load block source data
             for project_block_idx, block in enumerate(self.blocks):
+                if self.isInterruptionRequested():
+                    self.finished_with_result.emit({})
+                    return
                 self.progress.emit(project_block_idx, total_blocks * 2)
 
                 is_archive = block.metadata.get('is_archive_member', False)
@@ -131,6 +134,9 @@ class ProjectLoadWorker(QThread):
             # Load edited_file_data
             edited_file_data = []
             for project_block_idx, block in enumerate(self.blocks):
+                if self.isInterruptionRequested():
+                    self.finished_with_result.emit({})
+                    return
                 self.progress.emit(total_blocks + project_block_idx, total_blocks * 2)
 
                 is_archive = block.metadata.get('is_archive_member', False)
@@ -207,7 +213,7 @@ class ProjectLoadWorker(QThread):
 
             self.project_manager.clear_archive_cache()
 
-            self.finished.emit({
+            self.finished_with_result.emit({
                 'data': data,
                 'edited_file_data': edited_file_data,
                 'block_names': block_names,
@@ -217,5 +223,5 @@ class ProjectLoadWorker(QThread):
         except Exception as e:
             self.error_occurred = e
             log_error(f"ProjectLoadWorker error: {e}", exc_info=True)
-            self.finished.emit({})
+            self.finished_with_result.emit({})
 

@@ -439,7 +439,7 @@ def test_ProjectLoadWorker_run_and_emits(mock_mw):
     # Track signal emits
     emitted_results = []
     emitted_progress = []
-    worker.finished.connect(emitted_results.append)
+    worker.finished_with_result.connect(emitted_results.append)
     worker.progress.connect(lambda current, total: emitted_progress.append((current, total)))
 
     with patch('handlers.project_action_handler.Path.exists', return_value=True), \
@@ -572,7 +572,7 @@ def test_ProjectActionHandler_populate_blocks_from_project_empty_session_falls_b
     with patch('handlers.project_action_handler.ProjectLoadWorker') as mock_worker_class:
         mock_worker = mock_worker_class.return_value
         callbacks = []
-        mock_worker.finished.connect.side_effect = callbacks.append
+        mock_worker.finished_with_result.connect.side_effect = callbacks.append
 
         def run_mock():
             for cb in callbacks:

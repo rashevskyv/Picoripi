@@ -1,6 +1,13 @@
+"""Qt thread helpers: owner-bound single-shot timers and a shutdown that never destroys a running thread."""
+import time
 from typing import Optional, Any
 from PyQt6.QtCore import QObject, QThread, QTimer
-from utils.logging_utils import log_debug, log_warning, log_error
+from utils.logging_utils import log_debug, log_warning
+
+# Threads that did not stop in time, with their workers. Qt aborts the process
+# when a running QThread is destroyed, so these stay referenced until they end.
+_parked: list = []
+
 
 def single_shot(msec: int, context: Any, fn) -> None:
     """``QTimer.singleShot`` that never fires after *context* is destroyed.
@@ -19,74 +26,68 @@ def single_shot(msec: int, context: Any, fn) -> None:
     timer.start(msec)
 
 
-def safe_shutdown_thread(thread: Optional[QThread], worker: Optional[Any] = None, timeout_ms: int = 1000, allow_terminate: bool = False) -> None:
+def _attempt(action, what: str) -> None:
+    try:
+        action()
+    except Exception as exc:
+        log_debug(f"safe_shutdown_thread: {what} failed: {exc}")
+
+
+def safe_shutdown_thread(thread: Optional[QThread], worker: Optional[Any] = None, timeout_ms: int = 1000) -> None:
+    """Stop a QThread and its worker without ever destroying a thread that still runs.
+
+    Order: ask the worker to cancel, ask the thread to stop, wait up to
+    ``timeout_ms``, cut the signals so that no late result reaches a closed
+    window. Only a stopped thread is deleted; one that did not stop is parked
+    until it ends by itself (see ``wait_for_parked_threads``). A thread is
+    never terminated: that leaves locks held and files half-written.
     """
-    Safely shuts down a QThread and its associated worker.
-    Failsafe disconnects all signals, cancels the worker if it supports cancel,
-    requests interruption, quits the thread, and waits for completion.
-    """
-    if worker:
-        # 1. Call cancel if worker has it
-        if hasattr(worker, 'cancel') and callable(worker.cancel):
-            try:
-                log_debug(f"safe_shutdown_thread: Requesting cancellation on worker {worker}")
-                worker.cancel()
-            except Exception as e:
-                log_debug(f"safe_shutdown_thread: Failed to cancel worker: {e}")
-        
-        # 2. Failsafe disconnect signals to prevent crashes during GUI shutdown
-        try:
-            worker.disconnect()
-            log_debug(f"safe_shutdown_thread: Disconnected signals for worker {worker}")
-        except Exception:
-            pass
+    cancel = getattr(worker, 'cancel', None)
+    if callable(cancel):
+        _attempt(cancel, "cancel")
 
-        # 3. Schedule worker deletion
-        try:
-            worker.deleteLater()
-            log_debug(f"safe_shutdown_thread: Called deleteLater on worker {worker}")
-        except Exception:
-            pass
+    stopped = True
+    if thread and thread.isRunning():
+        _attempt(thread.requestInterruption, "requestInterruption")
+        thread.quit()
+        if QThread.currentThread() == thread:
+            # Waiting for oneself is a deadlock; the thread ends when this call returns.
+            stopped = False
+        else:
+            stopped = bool(thread.wait(timeout_ms))
 
-    if thread:
-        # Failsafe disconnect thread signals
-        try:
-            thread.disconnect()
-            log_debug(f"safe_shutdown_thread: Disconnected signals for thread {thread}")
-        except Exception:
-            pass
+    for target in (worker, thread):
+        if target is not None:
+            _attempt(target.disconnect, "disconnect")
 
-        if thread.isRunning():
-            try:
-                thread.requestInterruption()
-                log_debug(f"safe_shutdown_thread: Requested interruption on thread {thread}")
-            except Exception as e:
-                log_debug(f"safe_shutdown_thread: Failed to request interruption: {e}")
+    if stopped:
+        for target in (worker, thread):
+            if target is not None:
+                _attempt(target.deleteLater, "deleteLater")
+        return
 
-            thread.quit()
-            log_debug(f"safe_shutdown_thread: Sent quit signal to thread {thread}")
+    log_warning(f"safe_shutdown_thread: {thread} did not stop within {timeout_ms} ms; parked until it does.")
+    _park(thread, worker)
 
-            # Prevent self-waiting (deadlock) if called from within the thread itself
-            from PyQt6.QtCore import QThread
-            if QThread.currentThread() == thread:
-                log_warning("safe_shutdown_thread: safe_shutdown_thread called from within the target thread itself. Skipping wait.")
-            else:
-                if not thread.wait(timeout_ms):
-                    if allow_terminate:
-                        log_warning(f"safe_shutdown_thread: Thread {thread} did not stop within {timeout_ms}ms, terminating.")
-                        try:
-                            thread.terminate()
-                            thread.wait()
-                        except Exception as e:
-                            log_error(f"safe_shutdown_thread: Error terminating thread: {e}")
-                    else:
-                        log_warning(f"safe_shutdown_thread: Thread {thread} did not stop within {timeout_ms}ms. Terminate is disabled, skipping termination.")
-                else:
-                    log_debug(f"safe_shutdown_thread: Thread {thread} joined successfully.")
 
-        # 4. Schedule thread deletion
-        try:
-            thread.deleteLater()
-            log_debug(f"safe_shutdown_thread: Called deleteLater on thread {thread}")
-        except Exception:
-            pass
+def _park(thread: QThread, worker: Optional[Any]) -> None:
+    entry = (thread, worker)
+    _parked.append(entry)
+
+    def release():
+        if entry in _parked:
+            _parked.remove(entry)
+        for target in (worker, thread):
+            if target is not None:
+                _attempt(target.deleteLater, "deleteLater")
+
+    _attempt(lambda: thread.finished.connect(release), "watching a parked thread")
+
+
+def wait_for_parked_threads(timeout_ms: int = 8000) -> None:
+    """Give the threads that ignored a shutdown a last chance to end. Call once, when the application quits."""
+    deadline = time.monotonic() + timeout_ms / 1000
+    for thread, _worker in list(_parked):
+        remaining = max(0, int((deadline - time.monotonic()) * 1000))
+        if not thread.wait(remaining):
+            log_warning(f"wait_for_parked_threads: {thread} is still running at exit.")

@@ -53,7 +53,7 @@ class SearchMixin:
 
             self.search_worker = SearchWorker('local', params)
             self.search_worker.progress.connect(self.progress_bar.setValue)
-            self.search_worker.finished.connect(self._on_search_finished)
+            self.search_worker.finished_with_result.connect(self._on_search_finished)
             self.search_worker.cancelled.connect(self._on_search_cancelled)
             self.search_worker.error.connect(self._on_search_error)
 
@@ -332,7 +332,7 @@ class SearchMixin:
 
         self.search_worker = SearchWorker('global', params)
         self.search_worker.progress.connect(self.progress_bar.setValue)
-        self.search_worker.finished.connect(self._on_search_finished)
+        self.search_worker.finished_with_result.connect(self._on_search_finished)
         self.search_worker.cancelled.connect(self._on_search_cancelled)
         self.search_worker.error.connect(self._on_search_error)
 

@@ -158,7 +158,7 @@ class TestThroughTheHost:
         manager.sync_project_files(plugin=rules)
         results = []
         worker = ProjectLoadWorker(manager, rules)
-        worker.finished.connect(results.append)
+        worker.finished_with_result.connect(results.append)
 
         worker.run()
 

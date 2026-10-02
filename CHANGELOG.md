@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- wp6 6.2: background threads are never killed and never destroyed while running. `safe_shutdown_thread` asks the worker to cancel, waits, and deletes only a thread that stopped; one that did not is kept until it ends (and gets a last wait when the application quits). "Skip" in the Companion sync window returns at once instead of terminating the thread, and a cancelled sync writes nothing afterwards. Opening a project while another is still loading stops the first load; a second save while one runs is refused. Thread classes no longer redefine Qt's own `finished` signal (`finished_with_result` instead).
 - wp6 6.1: files that hold a user's work are written atomically (`utils/atomic_io.py`: temporary file in the same folder, flushed to disk, renamed over the target, three tries when the target is briefly locked) — translation files, packed game archives, the project file, project and global settings, the glossary, the session, saved translations, Script Markup projects, font maps, prompt overrides. A crash or a full disk in the middle of a save leaves the previous file intact. Line endings are unchanged.
 ## [0.3.146-dev] - 2026-10-02
 

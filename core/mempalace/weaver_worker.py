@@ -34,7 +34,7 @@ class MemePalaceWorker(QThread):
     # Signals for UI communication
     progress = pyqtSignal(int, int, str)  # current_step, total_steps, status_text
     log = pyqtSignal(str)                 # log message to display in UI
-    finished = pyqtSignal(bool, str)      # is_success, message
+    finished_with_result = pyqtSignal(bool, str)      # is_success, message
 
     def __init__(self, 
                  client: MemePalaceClient, 
@@ -79,7 +79,7 @@ class MemePalaceWorker(QThread):
             self.mapped_results = self._weave_strings()
             
             if self.is_cancelled:
-                self.finished.emit(False, "Process was cancelled by user.")
+                self.finished_with_result.emit(False, "Process was cancelled by user.")
                 return
 
             self.log.emit(f"Weaving completed. Mapped {len(self.mapped_results)} chunks/scenes to timeline.")
@@ -88,7 +88,7 @@ class MemePalaceWorker(QThread):
                 self.log.emit("Timeline Mapping Only is active. Saving mapped scenes directly to local database...")
                 self._save_mapped_data_to_local_palace(self.mapped_results)
                 self.progress.emit(100, 100, "Mapping completed successfully!")
-                self.finished.emit(True, f"Successfully mapped BMG strings. Found {len(self.mapped_results)} chronological scenes.")
+                self.finished_with_result.emit(True, f"Successfully mapped BMG strings. Found {len(self.mapped_results)} chronological scenes.")
                 return
 
             # --- PHASE 2: GENERATE MEMORY PALACE ---
@@ -96,22 +96,22 @@ class MemePalaceWorker(QThread):
                 self.log.emit("No AI Provider configured. Skipping LLM scene annotation phase.")
                 self._save_mapped_data_to_local_palace(self.mapped_results)
                 self.progress.emit(100, 100, "Local Memory Palace saved!")
-                self.finished.emit(True, "MemePalace built locally (mapping-only, no LLM descriptions).")
+                self.finished_with_result.emit(True, "MemePalace built locally (mapping-only, no LLM descriptions).")
                 return
 
             self._generate_palace_via_llm(self.mapped_results)
             
             if self.is_cancelled:
-                self.finished.emit(False, "Process was cancelled by user during LLM phase.")
+                self.finished_with_result.emit(False, "Process was cancelled by user during LLM phase.")
                 return
 
             self.progress.emit(100, 100, "MemePalace generation completed!")
-            self.finished.emit(True, "MemePalace built successfully with full AI annotations!")
+            self.finished_with_result.emit(True, "MemePalace built successfully with full AI annotations!")
 
         except Exception as e:
             log_error(f"Error in MemePalaceWorker: {e}", exc_info=True)
             self.log.emit(f"FATAL ERROR: {str(e)}")
-            self.finished.emit(False, f"Error occurred: {str(e)}")
+            self.finished_with_result.emit(False, f"Error occurred: {str(e)}")
 
     def _weave_strings(self) -> List[Dict[str, Any]]:
         """Map chronological transcript timeline to unordered BMG strings 
