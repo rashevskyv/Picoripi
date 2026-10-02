@@ -49,6 +49,25 @@ def _hoist_layout_defaults(items: List[Dict]) -> Dict:
     return defaults
 
 
+def _dump_payload(payload: Dict) -> str:
+    """The payload as JSON: sections indented, one string item per line.
+
+    Fully indented, each item spread a handful of fields over a dozen lines, and
+    the indentation alone was about a tenth of the request. One item per line is
+    the same JSON and easier to scan in the prompt editor.
+    """
+    sections = []
+    for key, value in payload.items():
+        if key == 'strings_to_translate' and isinstance(value, list):
+            rows = ",\n".join("    " + json.dumps(item, ensure_ascii=False) for item in value)
+            body = "[\n" + rows + "\n  ]"
+        else:
+            # Newlines inside string values are escaped, so this only re-indents structure.
+            body = json.dumps(value, indent=2, ensure_ascii=False).replace("\n", "\n  ")
+        sections.append(f"  {json.dumps(key)}: {body}")
+    return "{\n" + ",\n".join(sections) + "\n}"
+
+
 class BatchMixin:
     """Batch translation prompt composition."""
 
@@ -444,7 +463,7 @@ class BatchMixin:
 
         user_sections = [
             '\n'.join(context_lines),
-            'JSON DATA TO PROCESS:\n' + json.dumps(json_payload_for_ai, indent=2, ensure_ascii=False),
+            'JSON DATA TO PROCESS:\n' + _dump_payload(json_payload_for_ai),
         ]
         user_content = '\n\n'.join(user_sections)
         user_content = self._replace_runtime_names_for_ai(user_content)

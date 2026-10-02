@@ -241,3 +241,24 @@ def test_batch_requests_ask_for_compact_story_context(composer):
     batch_call, single_call = composer._get_structured_story_context.call_args_list
     assert batch_call.kwargs == {"compact": True}
     assert single_call.kwargs == {}       # a single string keeps the full profiles
+
+
+def test_payload_dump_is_the_same_json_with_one_item_per_line():
+    import json
+    from handlers.translation.prompt_composer.batch_mixin import _dump_payload
+    payload = {
+        "layout_defaults": {"lines_per_window": 3},
+        "strings_to_translate": [
+            {"id": 0, "text": "Two\nlines", "layout": {"line_count": 2}},
+            {"id": 1, "text": 'Quote " and {brace}', "layout": {"line_count": 1}, "speaker": "Мідна"},
+        ],
+        "glossary": "| Original | Translation |\n|---|---|\n| Link | Лінк |",
+        "tag_alias_legend": {"{Color:Red}": "{0}"},
+    }
+
+    text = _dump_payload(payload)
+
+    assert json.loads(text) == payload
+    item_lines = [line for line in text.splitlines() if line.strip().startswith('{"id"')]
+    assert len(item_lines) == 2
+    assert "Мідна" in text      # not escaped to \uXXXX

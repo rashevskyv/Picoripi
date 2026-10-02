@@ -42,6 +42,8 @@ Handlers: `handlers/translation_handler.py`, `handlers/translation/`. Providers:
 
 **Global → Show prompt editor before AI requests** opens the editor on every request.
 
+In the editor, the system prompt ends with a line `--- REQUEST RULES (added by Picoripi …) ---` followed by the fixed rules for that kind of request (output format, layout, glossary, tags, optional context fields). They are the same for every chunk of a run, which lets providers cache them; you may edit them for one run, but saving the prompt stores only the part above the line. The user message holds the header and the data: for a block, `layout_defaults` once and one line per string with only what is specific to it.
+
 Default config `provider` is `"disabled"` until you pick one.
 
 ---

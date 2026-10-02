@@ -23,3 +23,16 @@ def test_harness_reports_every_headline_number(sizes):
     assert sizes["batch_chunk_12"]["total_tok"] > 0
     assert sizes["block_40_strings"]["requests"] == 4
     assert set(sizes["batch_chunk_12"]["payload_tok"]) >= {"strings_to_translate", "glossary"}
+
+
+def test_prompts_stay_inside_the_budget_reached_in_wp2(sizes):
+    """A regression gate, not a target: raise a limit only with a reason in the commit."""
+    batch = sizes["batch_chunk_12"]
+    assert batch["system_identical_across_chunks"] is True
+    assert batch["user_has_instructions_block"] is False
+    assert batch["user_tok"] <= 1400          # was 3414 before WP2
+    assert batch["total_tok"] <= 4500         # was 5520
+    assert batch["per_item_tok"] <= 100       # was 156
+    assert batch["glossary_rows"] == batch["glossary_rows_in_chunk_text"]
+    assert sizes["single"]["user_tok"] <= 450  # was 946
+    assert sizes["block_40_strings"]["input_tok"] <= 17500  # was 20615
