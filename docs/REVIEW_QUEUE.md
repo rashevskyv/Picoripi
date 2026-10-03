@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: owner decisions and live checks
-tokens: 2.5k
+tokens: 3.0k
 purpose: What is left for the owner after the audit: decisions with evidence, live runs, environment
 ---
 # Review queue — decisions, live runs, environment
@@ -20,6 +20,22 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
 
 ## DECISION
 
+- **The line layout check loses whole chunks on the real model (live run 2026-10-03).** A reply whose item has
+  fewer lines than the source («Але в ту мить, коли Дарбус простягнув руку» — 43 characters on one line, the
+  source had three) fails the chunk; the retry resends all 12 lines and the model does it again, so after 4
+  attempts the chunk is lost (one chunk in 3 of 4 runs of the new build; the old build stopped the whole run).
+  Recommendation: keep the item if every line fits the window width and the window's line limit, and re-wrap
+  it with the game's wrapper when it does not; retry only the item, not the chunk.
+- **The player's name tag `{escape:0:0000}` becomes «Лінку» (live run 2026-10-03, both builds).** It is sent as
+  the word "Link" (a forced alias), the model declines it, and nothing maps «Лінку» back to the tag: the
+  translation shows «Лінку» even if the player named the hero differently. Ukrainian needs the vocative, which
+  a tag cannot give. Choose: keep the tag (a custom name stays, the case is wrong), or keep «Лінк» declined
+  (right case, the custom name is lost). Your own translations have no line with this tag yet.
+- **Russian reference lines leak into the translation (live run 2026-10-03).** Line 727 came back twice with
+  «Уговори Линка» taken from the Russian reference «Уговори Линка одолжить нам меч!», despite the "do NOT
+  translate from a reference" rule. Every reference language now goes with every line (your call of
+  2026-10-03), which makes this more likely. Options: leave Russian out of the references, put it last with
+  `max_reference_languages`, or add a check for Russian-only words and letters.
 - **Glossary duplicates (WP3 3.1 / 3.7).** 18 groups in `translation_prompts/glossary.json` share a canonical
   key (`docs/audit/2026-10-01/glossary_canonical_report.md`). Recommendation — merge 14: Rupee/Rupees,
   Goron/Gorons, Poe/Poes, Fused Shadow(s), Gate Key(s), Giant Bomb Bag(s) (pick «сумка» or «торба»),
@@ -72,13 +88,15 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
 
 ## LIVE
 
-Blocked until the owner either allows reading the proxy's `config.json` / `accounts.json` and
-`~/.picoripi/settings.json`, or starts the new proxy and gives the path of the Twilight Princess project.
-The owner's current proxy is the old build at `http://127.0.0.1:8081` (`D:\git\dev\gemini-web2api\run.bat`).
+The owner's working project is `E:\Emulators\RomHacking\ZELDA\TP_UA\TwilihhtPrincess`; runs use copies of it
+and of `ISO\ENG\root\res\Msgus` (the project's source and translation folder), never the originals.
 
-- **A Twilight Princess block, old build vs new build, on the real model.** Quality, gender, ти/ви, line breaks
-  and window counts (2.1 rules moved, 2.5 smaller payload, 2.6 compact character cards). Run memory (4.1):
-  does a later chunk keep an earlier wording, and does it arrive in time with parallel workers?
+- **Done 2026-10-03 — old build vs new build on the real model** (old proxy, `gemini-3.7-flash`, 4 workers,
+  48 lines each of `zel_01` 727– (Talo, Colin, Beth) and `zel_03` 101– (the Goron elder)). New: 45/48 lines
+  in 57 s and 36/48 in 127 s. Old: 22/48 in 140 s and 12/48 in 131 s, each run stopped after 4 attempts. Both
+  lose whole chunks to the line layout check (see DECISION). Quality is on a par — the model's noise is larger
+  than the difference: the new build wrote «ввімкни мійку», «ЖИВЬОМ», the old one «В Інструкція», «цій
+  рогатки»; gender (Beth: «Я певна») and ти between the children were right in both.
 - **The new proxy 1.4.0, one real request.** First time Gemini sees the UTF-8 body and a temporary chat: if
   the answer is empty, try `"temporary_chats": false`, then suspect `gemini.py::_build_payload`. Also
   `/healthz` (`accounts.active` matches the dashboard), the dashboard asking for the key once, and whether

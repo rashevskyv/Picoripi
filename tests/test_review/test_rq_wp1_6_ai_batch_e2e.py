@@ -280,3 +280,18 @@ def test_api_openai_com_is_detected_as_hosted_and_gets_no_think():
                                                     "api_key": "k"})
     body = hosted._prepare_body([{"role": "user", "content": "x"}], {"think": 1, "json": True, "timeout": 60})
     assert hosted.profile == "openai" and "think" not in body and "think_mode" not in body
+
+
+def test_a_refused_reply_is_logged_against_its_chunk(window, server, qtbot):
+    """A reply that comes back but is refused (no JSON here) gets an error record carrying its chunk number."""
+    configure(window, server, workers=3, max_attempts=1)
+    server.reply = lambda body: (200, {}, FakeAIServer.completion("no json at all")) if first_id(body) == 12 else echo(body)
+    answers = BoxAnswerer(lambda box: "Stop/Cancel AI" if box["title"] == "AI Translation Error (Debug)" else "OK")
+    try:
+        start(window)
+        qtbot.waitUntil(lambda: "AI Operation Failed" in answers.titles(), timeout=15000)
+    finally:
+        answers.stop()
+
+    refused = [r for r in traffic() if r["event"] == "error" and r.get("chunk") == 1]
+    assert refused and "JSON" in refused[0]["error"]

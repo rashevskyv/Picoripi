@@ -530,8 +530,13 @@ class AIWorkerRunMixin:
                 self._log_ai_traffic(messages, error=exc, chunk=idx)
                 raise
             self._log_ai_traffic(messages, response_text=response.text, chunk=idx)
-            cleaned = self._clean_json_response(response.text)
-            self._validate_chunk_result(idx, chunk, cleaned)
+            try:
+                cleaned = self._clean_json_response(response.text)
+                self._validate_chunk_result(idx, chunk, cleaned)
+            except (json.JSONDecodeError, ValueError) as exc:
+                # The reply came back but was refused (no JSON, a line layout change): say so for this chunk.
+                self._log_ai_traffic(messages, error=exc, chunk=idx)
+                raise
             return self._maybe_run_editor_review(plan, idx, chunk, cleaned)
 
         def _worker_call(idx: int) -> str:
