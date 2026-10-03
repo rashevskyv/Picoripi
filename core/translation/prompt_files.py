@@ -14,7 +14,7 @@ MemPalace prompts were never read: the code fell back to built-in constants or
 switched the feature off without saying so.
 """
 from __future__ import annotations
-from utils.constants import plugins_root
+from utils.constants import plugins_root, translation_prompts_dir
 
 import json
 from pathlib import Path
@@ -39,7 +39,7 @@ def deep_merge(base: Dict[str, Any], top: Dict[str, Any]) -> Dict[str, Any]:
 def prompt_layers(plugin_name: Optional[str], override_dirs: Iterable[Optional[Path]] = ()) -> List[Path]:
     """The prompt files that exist for this plugin, lowest priority first."""
     candidates = [
-        Path("translation_prompts") / FILE_NAME,
+        translation_prompts_dir() / FILE_NAME,
         plugins_root() / "common" / "defaults" / FILE_NAME,
     ]
     if plugin_name:

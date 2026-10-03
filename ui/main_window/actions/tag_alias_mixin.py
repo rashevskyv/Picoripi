@@ -1,7 +1,7 @@
 """Main window actions: add, edit and remove tag aliases."""
 from __future__ import annotations
 from utils.atomic_io import atomic_write_json
-from utils.constants import plugins_root
+from utils.constants import user_plugin_dir
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QDialog, QApplication
 from PyQt6.QtCore import Qt
 from dialogs.tag_alias_dialog import TagAliasDialog, AliasUpdateWorker
@@ -245,7 +245,7 @@ class MainWindowTagAliasActionsMixin:
         if not plugin_name:
             return
         
-        override_path = plugins_root() / plugin_name / 'font_map.json'
+        override_path = user_plugin_dir(plugin_name) / 'font_map.json'   # never into plugins/ (rule 8)
         override_path.parent.mkdir(parents=True, exist_ok=True)
         
         try:

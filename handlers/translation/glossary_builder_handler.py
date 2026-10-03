@@ -4,6 +4,7 @@ import json
 from typing import Dict, List, Optional
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QThread
+from utils.constants import translation_prompts_dir
 from utils.logging_utils import log_debug
 from core.translation.providers import get_provider_for_config, ProviderResponse
 from core.tag_utils import mask_all_tags_including_visual_markers
@@ -27,7 +28,7 @@ class GlossaryBuilderHandler:
     def _load_prompts(self):
         """Internal helper to load prompts."""
         try:
-            with open('translation_prompts/glossary_builder_prompts.json', 'r', encoding='utf-8') as f:
+            with open(translation_prompts_dir() / 'glossary_builder_prompts.json', 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
             log_debug(f"Error loading glossary builder prompts: {e}")

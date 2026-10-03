@@ -8,7 +8,6 @@ layer is only wiring.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any, Optional, Sequence
 
 from PyQt6.QtCore import pyqtSignal
@@ -22,11 +21,12 @@ from core.glossary_build.pipeline_coordinator import (
     GlossaryBuildCoordinator,
 )
 from core.tag_utils import mask_all_tags_including_visual_markers
+from utils.constants import translation_prompts_dir
 from utils.logging_utils import log_error
 from utils.thread_utils import WorkerThread
 
 
-_PROMPTS_PATH = "translation_prompts/glossary_pipeline_prompts.json"
+_PROMPTS_FILE = "glossary_pipeline_prompts.json"
 
 # A normal reply takes 3-25s; with Parallel Requests the proxy may also pace
 # per IP/account (3-20s) before Gemini answers. 60s is too tight for that path.
@@ -114,7 +114,7 @@ class GlossaryBuildWorker(WorkerThread):
     def _load_prompts(self) -> dict:
         if self._prompts is not None:
             return self._prompts
-        return json.loads(Path(_PROMPTS_PATH).read_text(encoding="utf-8"))
+        return json.loads((translation_prompts_dir() / _PROMPTS_FILE).read_text(encoding="utf-8"))
 
     def run(self) -> None:
         coordinator = None

@@ -1,6 +1,7 @@
 """BFN editor: the map from original characters to translated glyphs."""
 import os
 from core.i18n import tr
+from utils.constants import user_plugin_file_or_shipped
 from utils.logging_utils import log_info, log_error
 from utils.logging_utils import log_debug
 
@@ -22,9 +23,7 @@ class TranslationMapMixin:
         if project_dir:
             mapping_path = os.path.join(project_dir, "translation_map.json")
         elif active_plugin:
-            plugin_dir = os.path.join("plugins", active_plugin)
-            if os.path.exists(plugin_dir):
-                mapping_path = os.path.join(plugin_dir, "translation_map.json")
+            mapping_path = str(user_plugin_file_or_shipped(active_plugin, "translation_map.json"))
         return mapping_path
 
     def load_translation_map(self):

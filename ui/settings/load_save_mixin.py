@@ -1,6 +1,6 @@
 """Settings dialog: load values, collect them, accept and reject."""
 from utils.atomic_io import atomic_write_json
-from utils.constants import plugins_root
+from utils.constants import user_plugin_dir
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
@@ -263,9 +263,9 @@ class SettingsLoadSaveMixin:
                     except ValueError:
                         pass
             
-            # Save to active plugin's font_map.json
+            # Save as the user's font map for the plugin; the plugin's own file is never written (rule 8)
             if selected_dir_name:
-                font_map_path = plugins_root() / selected_dir_name / "font_map.json"
+                font_map_path = user_plugin_dir(selected_dir_name) / "font_map.json"
                 try:
                     font_map_path.parent.mkdir(parents=True, exist_ok=True)
                     atomic_write_json(font_map_path, new_font_map, indent=4, ensure_ascii=False)

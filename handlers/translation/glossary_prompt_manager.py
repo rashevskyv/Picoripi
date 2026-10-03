@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 from core.translation.prompt_files import load_merged_prompts
-from utils.constants import plugins_root, user_plugin_dir
+from utils.constants import plugins_root, translation_prompts_dir, user_plugin_dir
 from utils.logging_utils import log_debug
 from core.i18n import tr
 
@@ -48,7 +48,7 @@ class GlossaryPromptManager:
 
     def _fallback_dir(self) -> Path:
         """Internal helper to fallback dir."""
-        return Path("translation_prompts")
+        return translation_prompts_dir()
 
     def override_dir(self, plugin_name: Optional[str]) -> Optional[Path]:
         """Writable prompt overrides: per project when one is open, else per user."""

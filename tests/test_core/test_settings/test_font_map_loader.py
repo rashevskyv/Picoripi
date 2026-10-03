@@ -31,7 +31,7 @@ def test_FontMapLoader_load_no_plugin(mock_mw):
     loader.load_all_font_maps()
     assert mock_mw.font_map == {}
 
-def test_FontMapLoader_load_fonts(mock_mw, tmp_path):
+def test_FontMapLoader_load_fonts(mock_mw, tmp_path, monkeypatch):
     # Setup dummy plugin dir
     plugin_dir = tmp_path / "plugins" / "test_plugin"
     fonts_dir = plugin_dir / "fonts"
@@ -58,13 +58,10 @@ def test_FontMapLoader_load_fonts(mock_mw, tmp_path):
     
     # We must patch Path so it looks in tmp_path
     import core.settings.font_map_loader
-    original_root = core.settings.font_map_loader.plugins_root
-    core.settings.font_map_loader.plugins_root = lambda: tmp_path / "plugins"
-
-    try:
-        loader.load_all_font_maps()
-    finally:
-        core.settings.font_map_loader.plugins_root = original_root
+    import utils.constants
+    monkeypatch.setattr(core.settings.font_map_loader, "plugins_root", lambda: tmp_path / "plugins")
+    monkeypatch.setattr(utils.constants, "plugins_root", lambda: tmp_path / "plugins")
+    loader.load_all_font_maps()
         
     assert "default.json" in mock_mw.all_font_maps
     assert "new_style.json" in mock_mw.all_font_maps
@@ -86,7 +83,7 @@ def test_FontMapLoader_update_icon_sequences(mock_mw):
     assert "{Icon}" in mock_mw.icon_sequences
     assert "A" not in mock_mw.icon_sequences
 
-def test_FontMapLoader_load_bfn_font(mock_mw, tmp_path):
+def test_FontMapLoader_load_bfn_font(mock_mw, tmp_path, monkeypatch):
     # Setup dummy plugin dir
     plugin_dir = tmp_path / "plugins" / "test_plugin"
     fonts_dir = plugin_dir / "fonts"
@@ -108,13 +105,10 @@ def test_FontMapLoader_load_bfn_font(mock_mw, tmp_path):
     
     # We must patch Path so it looks in tmp_path
     import core.settings.font_map_loader
-    original_root = core.settings.font_map_loader.plugins_root
-    core.settings.font_map_loader.plugins_root = lambda: tmp_path / "plugins"
-
-    try:
-        loader.load_all_font_maps()
-    finally:
-        core.settings.font_map_loader.plugins_root = original_root
+    import utils.constants
+    monkeypatch.setattr(core.settings.font_map_loader, "plugins_root", lambda: tmp_path / "plugins")
+    monkeypatch.setattr(utils.constants, "plugins_root", lambda: tmp_path / "plugins")
+    loader.load_all_font_maps()
         
     assert "test_font.bfn" in mock_mw.all_font_maps
     # 32 (space) must have width 8

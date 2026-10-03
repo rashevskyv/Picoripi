@@ -30,6 +30,17 @@ def plugins_root() -> Path:
     return Path(__file__).resolve().parents[1] / "plugins"
 
 
+def translation_prompts_dir() -> Path:
+    """The shared ``translation_prompts/`` folder of this installation, whatever the current directory is."""
+    return Path(__file__).resolve().parents[1] / "translation_prompts"
+
+
 def user_plugin_dir(plugin_name: str) -> Path:
     """Per-user writable data for a plugin. Never write into ``plugins/`` itself."""
     return SETTINGS_DIR / "plugins" / plugin_name
+
+
+def user_plugin_file_or_shipped(plugin_name: str, filename: str) -> Path:
+    """The user's copy of a plugin data file (``user_plugin_dir``) if there is one, else the one the plugin ships."""
+    user_file = user_plugin_dir(plugin_name) / filename
+    return user_file if user_file.is_file() else plugins_root() / plugin_name / filename

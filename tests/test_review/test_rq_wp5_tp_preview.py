@@ -121,7 +121,6 @@ def test_window_limits_table_edit_ok_reopen_keeps_the_value(qapp, tmp_path, monk
     original = json.loads(source_text)
     target = tmp_path / "window_layouts.json"
     target.write_text(source_text, encoding="utf-8")
-    monkeypatch.setattr("ui.settings.load_save_mixin.plugins_root", lambda: tmp_path / "plugins")
     mw = _zelda_bmg_window(target)
     rules = mw.current_game_rules
     rules._get_window_layouts()  # the preview has already read the limits

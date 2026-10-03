@@ -306,9 +306,10 @@ def test_bfn_editor_window_save_changes_translation_map(qapp, tmp_path, dummy_bf
     # Call save_changes
     editor.save_changes()
     
-    # Verify that translation_map.json is created in mock plugin folder
-    map_file = plugin_dir / "translation_map.json"
-    assert map_file.exists()
+    # Without a project the map goes to the user's plugin folder, never into plugins/ (rule 8)
+    from utils.constants import user_plugin_dir
+    map_file = user_plugin_dir("mock_plugin") / "translation_map.json"
+    assert map_file.exists() and not (plugin_dir / "translation_map.json").exists()
     
     with open(map_file, "r", encoding="utf-8") as f:
         import json

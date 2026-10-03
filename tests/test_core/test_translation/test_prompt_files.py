@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 from core.translation.prompt_files import deep_merge, load_merged_prompts, prompt_layers
 from handlers.translation.batch_translator import AIBatchTranslator
 from handlers.translation.glossary_prompt_manager import _DEFAULT_GLOSSARY_PROMPT, GlossaryPromptManager
+from utils.constants import translation_prompts_dir
 
 COMMON = json.loads(Path("plugins/common/defaults/prompts.json").read_text(encoding="utf-8"))
 ZELDA_MC = json.loads(Path("plugins/zelda_mc/translation_prompts/prompts.json").read_text(encoding="utf-8"))
@@ -40,7 +41,7 @@ def test_the_layers_are_application_then_common_then_plugin_then_overrides(tmp_p
     layers = [path.as_posix() for path in prompt_layers("zelda_mc", [tmp_path, None])]
     merged = load_merged_prompts("zelda_mc", [tmp_path])
 
-    assert layers[0] == "translation_prompts/prompts.json"
+    assert layers[0] == (translation_prompts_dir() / "prompts.json").as_posix()   # not relative to the cwd
     assert layers[1].endswith("plugins/common/defaults/prompts.json")
     assert layers[2].endswith("plugins/zelda_mc/translation_prompts/prompts.json")
     assert layers[3].endswith("/prompts.json") and len(layers) == 4
@@ -123,3 +124,9 @@ class TestEditorReviewSwitch:
         translator._attach_editor_review(context)
 
         assert context == {"enable_editor_review": False}
+
+
+def test_the_application_layer_is_found_from_any_working_directory(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    assert prompt_layers(None)[0] == translation_prompts_dir() / "prompts.json"

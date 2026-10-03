@@ -9,6 +9,7 @@ from core.i18n import tr
 
 from tools.bfn_editor.bfn_engine import repack_bfn_logic
 from tools.bfn_editor.bfn_commands import ImportSheetCommand, ImportGlyphCommand
+from utils.constants import user_plugin_dir
 from utils.logging_utils import log_debug
 
 
@@ -95,10 +96,9 @@ class IoSaveMixin:
                     mapping_path = None
                     if project_dir:
                         mapping_path = os.path.join(project_dir, "translation_map.json")
-                    elif active_plugin:
-                        plugin_dir = os.path.join("plugins", active_plugin)
-                        if os.path.exists(plugin_dir):
-                            mapping_path = os.path.join(plugin_dir, "translation_map.json")
+                    elif active_plugin:   # the user's copy; never into plugins/ (rule 8)
+                        mapping_path = str(user_plugin_dir(active_plugin) / "translation_map.json")
+                        os.makedirs(os.path.dirname(mapping_path), exist_ok=True)
                     
                     if mapping_path:
                         with open(mapping_path, "w", encoding="utf-8") as f:

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: plugins/
-tokens: 3.3k
+tokens: 3.4k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -88,7 +88,7 @@ class GameRules(BaseGameRules):
 
 With these the base class builds the tag manager, the problem analyzer and the text fixer and answers the hooks that only pass a call on (problem definitions, highlighting, analysis, autofix, short problem names). Name `problem_analyzer_class` / `text_fixer_class` only for game-specific checks or fixes (subclass `GenericProblemAnalyzer` / `GenericTextFixer` from `plugins/common/`). `problem_ids = problem_ids(DEFINITIONS, PREFIX, without=(…))` leaves out standard checks the game does not use.
 
-**`font_map.json` and `fonts/*.json`** — `fonts/*.json` are font maps (`{character: {"width": N}}`). The root `font_map.json` overrides widths of visible tags and icons: `{"[A]": {"width": 16}, "{COLOR_RED}": {"width": 0}}`. A visible icon tag is not zero-width.
+**`font_map.json` and `fonts/*.json`** — `fonts/*.json` are font maps (`{character: {"width": N}}`). The root `font_map.json` overrides widths of visible tags and icons: `{"[A]": {"width": 16}, "{COLOR_RED}": {"width": 0}}`. A visible icon tag is not zero-width. Widths the user sets in the application (tag width dialog, Settings → font map) are saved to `~/.picoripi/plugins/<plugin>/font_map.json`, which wins over the plugin's file; the same holds for `translation_map.json` written by the BFN editor without a project. The application never writes into `plugins/`.
 
 **`translation_prompts/prompts.json`** — may hold only the sections the game changes (usually `translation`); the rest is merged in key by key from `plugins/common/defaults/prompts.json`. Never add an instruction that permits changing tags.
 

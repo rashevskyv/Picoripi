@@ -102,7 +102,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 - **Custom Fonts Directory**: Specify a custom folder path (`fonts_dir_path`) to dynamically load external `.json` font maps or `.bfn` Nintendo Binary Font files.
 - **Background Archive Font Extractor**: Automatically scans `.arc` or `.u8` containers inside the fonts directory, extracts nested fonts in memory, and registers them under `{archive}/{font_name}` for real-time width warning metrics.
 - **Autonomous Tag Aliases (`aliases.json`)**: Persistently saves user-defined tag mappings in the per-user plugin data folder (`SETTINGS_DIR/plugins/<plugin>/`), merging them with baseline defaults upon startup or plugin switch.
-- **Tag Custom Width Dialog**: Interactive input dialog with `QIntValidator` to assign custom pixel widths to game control codes. Saves directly to the active plugin's `font_map.json` and triggers instant layout updates.
+- **Tag Custom Width Dialog**: Interactive input dialog with `QIntValidator` to assign custom pixel widths to game control codes. Saves to the user's copy of the plugin's `font_map.json` (`~/.picoripi/plugins/<plugin>/`) and triggers instant layout updates.
 - **Standardized Script Parser**: Core support for structured transcripts with inline chapters, room locations, action notes, and speakers. Supports dynamic name tag substitutions (`get_dynamic_name_tags()`) before text distillation to map runtime placeholders.
 
 

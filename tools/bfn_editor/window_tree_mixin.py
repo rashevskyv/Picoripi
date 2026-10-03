@@ -2,6 +2,7 @@
 from PyQt6 import QtCore, QtWidgets
 
 from core.i18n import tr
+from utils.constants import plugins_root
 from utils.logging_utils import log_debug
 
 ROLE_SHEET_IDX = QtCore.Qt.ItemDataRole.UserRole + 1
@@ -28,7 +29,7 @@ class WindowTreeMixin:
         from pathlib import Path
         fonts_dirs = []
         if plugin_name:
-            fonts_dirs.append(Path("plugins") / plugin_name / "fonts")
+            fonts_dirs.append(plugins_root() / plugin_name / "fonts")
         if custom_fonts_path:
             custom_dir = Path(custom_fonts_path)
             if custom_dir.is_dir():
