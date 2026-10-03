@@ -20,6 +20,7 @@ class GlossaryBuilderHandler:
         self.prompt_data = self._load_prompts()
         self._thread: Optional[QThread] = None
         self._worker: Optional[AIWorker] = None
+        self._run: Optional[object] = None  # the live run's token, see _start_async_glossary_task
         self._status_dialog: Optional[AIStatusDialog] = None
         self._glossary_manager = None
 
@@ -189,19 +190,26 @@ class GlossaryBuilderHandler:
         self._thread = QThread(self.mw)
         self._worker.moveToThread(self._thread)
 
+        # Signals already queued when _cleanup_worker cut the connections are still delivered; this run's
+        # handlers ignore them once the run is over (a second popup, a 'cancelled' box on a closed window).
+        run = object()
+        self._run = run
+
+        def live(handler):
+            return lambda *args: handler(*args) if self._run is run else None
+
         self._thread.started.connect(self._worker.run)
         self._worker.finished.connect(self._thread.quit)
         self._worker.finished.connect(self._worker.deleteLater)
         self._thread.finished.connect(self._thread.deleteLater)
-        self._thread.finished.connect(lambda: setattr(self, '_thread', None))
-        self._worker.translation_cancelled.connect(lambda: self._on_glossary_cancelled(status_bar))
+        self._thread.finished.connect(live(lambda: setattr(self, '_thread', None)))
+        self._worker.translation_cancelled.connect(live(lambda: self._on_glossary_cancelled(status_bar)))
         self._worker.step_updated.connect(self._status_dialog.update_step)
         self._worker.total_chunks_calculated.connect(self._status_dialog.setup_progress_bar)
         self._worker.progress_updated.connect(self._status_dialog.update_progress)
-        self._worker.success.connect(lambda response, details: self._on_glossary_success(response, details, status_bar))
-        self._worker.error.connect(lambda message, details: self._on_glossary_error(message, status_bar))
-        self._worker.finished.connect(self._status_dialog.finish)
-        self._worker.finished.connect(lambda: setattr(self, '_worker', None))
+        self._worker.success.connect(live(lambda response, details: self._on_glossary_success(response, details, status_bar)))
+        self._worker.error.connect(live(lambda message, details: self._on_glossary_error(message, status_bar)))
+        self._worker.finished.connect(live(self._cleanup_worker))
 
         if status_bar:
             self._worker.total_chunks_calculated.connect(lambda total, skipped: setattr(self, '_current_total_chunks', total))
@@ -320,19 +328,20 @@ class GlossaryBuilderHandler:
         self._cleanup_worker()
 
     def prepare_to_close(self) -> None:
-        """Prepare to close."""
-        self._cleanup_worker()
+        """Prepare to close: stop the run without a popup on the closing window."""
+        self._cleanup_worker(show_popup=False)
 
-    def _cleanup_worker(self) -> None:
+    def _cleanup_worker(self, show_popup: bool = True) -> None:
         """Internal helper to cleanup worker."""
         from utils.thread_utils import safe_shutdown_thread
+        self._run = None
         safe_shutdown_thread(self._thread, self._worker)
         self._thread = None
         self._worker = None
         
         if self._status_dialog:
             try:
-                self._status_dialog.finish()
+                self._status_dialog.finish(show_popup=show_popup)
             except Exception as exc:
                 log_debug(f"glossary_builder_handler.GlossaryBuilderHandler._cleanup_worker: ignored {exc!r}")
         self._status_dialog = None

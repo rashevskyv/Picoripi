@@ -1,4 +1,4 @@
-"""Export saved translations and restore them into strings and blocks."""
+"""Save and restore per-string translations; export and import project text as JSON."""
 # handlers/saved_translations_handler.py
 from utils.atomic_io import atomic_write_json
 import json

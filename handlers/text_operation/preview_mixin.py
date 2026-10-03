@@ -164,6 +164,10 @@ class PreviewMixin:
     def text_edited(self) -> None:
         """Text edited."""
         if self.mw.is_programmatically_changing_text:
+            edited_edit = getattr(self.mw, 'edited_text_edit', None)
+            if edited_edit is not None:   # the baseline a real edit is told apart from (see below)
+                self._last_edited_text = (self.mw.data_store.physical_block_idx,
+                                          self.mw.data_store.current_string_idx, edited_edit.toPlainText())
             return
         # While data is loading the editor is emptied and refilled by the app, not
         # by the user. Treating that as an edit would schedule a save of the empty
@@ -178,6 +182,12 @@ class PreviewMixin:
         edited_edit = self.mw.edited_text_edit
         if not edited_edit:
             return
+        # textChanged also fires when only the formatting changes: every rehighlight (the post-edit one, the async
+        # spellcheck ranges arriving) would count as typing, drop those ranges and restart the timer for ever.
+        seen = (self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx, edited_edit.toPlainText())
+        if seen == getattr(self, '_last_edited_text', None):
+            return
+        self._last_edited_text = seen
 
         highlighter = getattr(edited_edit, 'highlighter', None)
         if highlighter is not None:

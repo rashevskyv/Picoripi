@@ -28,7 +28,13 @@ DEFAULT_LIMIT = 40
 # An entry in one of these states has no translation anyone settled on.
 _UNDECIDED = frozenset({STATUS_SEEDED, STATUS_FRAGMENTS, STATUS_SYNTHESIZED})
 # Words that relate nothing to anything.
-_STOP = frozenset({"of", "the", "and", "a", "an", "to", "in", "on", "for", "with", "at", "from", "by", "or", "is"})
+_STOP = frozenset({
+    "of", "the", "and", "a", "an", "to", "in", "on", "for", "with", "at", "from", "by", "or", "is",
+    "that", "this", "these", "those", "who", "what", "which", "you", "your", "his", "her", "its", "our",
+    "their", "them", "they", "are", "was", "were", "has", "have", "had", "not", "but", "all", "any", "can",
+    "will", "into", "out", "over", "just", "here", "there", "then", "than", "when", "where", "why", "how",
+    "one", "some", "more", "most", "other", "others",
+})
 
 _HEADINGS = {
     "extract": (

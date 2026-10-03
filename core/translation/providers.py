@@ -7,6 +7,7 @@ import requests
 import os
 
 from core.translation.transport import (
+    AbortableSession,
     CircuitBreaker,
     ErrorKind,
     TranslationProviderError,
@@ -94,10 +95,17 @@ class BaseTranslationProvider:
     def _post(self, endpoint: str, headers: Dict[str, str], body: Dict[str, Any], policy: TransportPolicy) -> requests.Response:
         """POST ``body`` under ``policy``. Raises ``TransportError``."""
         def send() -> requests.Response:
-            response = run_cancellable(
-                lambda: requests.post(endpoint, headers=headers, json=body, timeout=policy.requests_timeout()),
-                self._is_cancelled,
-            )
+            if self._is_cancelled is None:
+                response = requests.post(endpoint, headers=headers, json=body, timeout=policy.requests_timeout())
+            else:
+                # A session per request: a cancel shuts its socket down, so the
+                # server sees the client leave instead of finishing the request.
+                with AbortableSession() as session:
+                    response = run_cancellable(
+                        lambda: session.post(endpoint, headers=headers, json=body, timeout=policy.requests_timeout()),
+                        self._is_cancelled,
+                        on_cancel=session.abort,
+                    )
             log_info(f"{self.__class__.__name__}: Response received. Status code: {response.status_code}", category="ai")
             response.raise_for_status()
             return response

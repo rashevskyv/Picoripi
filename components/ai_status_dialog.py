@@ -202,7 +202,13 @@ class AIStatusDialog(QDialog):
         self.progress_bar.setValue(completed_chunks)
 
     def set_detail_text(self, text: str):
-        """Set the detail text."""
+        """Set the detail text; after finish() (the run's request summary), on the parent's status bar."""
+        if text and not self.is_running and not self.isVisible():
+            from PyQt6.QtWidgets import QStatusBar
+            status_bar = self.parentWidget().findChild(QStatusBar) if self.parentWidget() else None
+            if status_bar is not None:
+                status_bar.showMessage(text, 15000)
+                return
         self.detail_label.setText(text)
         self.detail_label.setVisible(bool(text))
 

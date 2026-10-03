@@ -1,0 +1,1203 @@
+{
+ "definitions": [
+  "DEFAULT_BAD_SPACING",
+  "DEFAULT_BROKEN_ICON_HYPHEN",
+  "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE",
+  "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY",
+  "DEFAULT_MISSING_ICON_SPACING",
+  "DEFAULT_SHORT_LINE",
+  "DEFAULT_SINGLE_WORD_SUBLINE",
+  "DEFAULT_SINGLE_WORD_SUBLINE_NON_START",
+  "DEFAULT_TAG_WARNING",
+  "DEFAULT_WIDTH_EXCEEDED"
+ ],
+ "short_names": {
+  "DEFAULT_BAD_SPACING": "Spacing",
+  "DEFAULT_BROKEN_ICON_HYPHEN": "IconHyphen",
+  "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": "Empty1st",
+  "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": "EmptyOdd",
+  "DEFAULT_MISSING_ICON_SPACING": "TagSpacing",
+  "DEFAULT_SHORT_LINE": "Short",
+  "DEFAULT_SINGLE_WORD_SUBLINE": "1Word",
+  "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": "1WordO",
+  "DEFAULT_TAG_WARNING": "Tag",
+  "DEFAULT_WIDTH_EXCEEDED": "Width"
+ },
+ "empty_odd_marker": null,
+ "strings": [
+  {
+   "text": "Hello there!",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Hello there!",
+    false
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Hello there!",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Hello there!",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hello there!",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Hello there!",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Hello there!",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Hello there!",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Hello there!",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hello there!",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Hello there!",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Hello there!",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Hello  there,friend !",
+   "whole": [
+    [
+     "DEFAULT_BAD_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "DEFAULT_BAD_SPACING"
+    ]
+   ],
+   "autofix": [
+    "Hello there,friend !",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Hello there,friend !",
+     true
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Hello  there,friend !",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Hello  there,friend !",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Hello  there,friend !",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hello  there,friend !",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Hello  there,friend !",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Hello  there,friend !",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Hi\n\nthere",
+   "whole": [
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "Hi\nthere",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Hi\nthere",
+     true
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Hi\nthere",
+     true
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hi\nthere",
+     true
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Hi\nthere",
+     true
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Hi\nthere",
+     true
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Hi\nthere",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Hi\nthere",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hi\nthere",
+     true
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Hi\nthere",
+     true
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Hi\nthere",
+     true
+    ]
+   }
+  },
+  {
+   "text": "\nStarts with an empty line.\nThen text.",
+   "whole": [
+    [
+     "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE",
+     "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    [],
+    []
+   ],
+   "sublines": [
+    [
+     "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE",
+     "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    [],
+    []
+   ],
+   "autofix": [
+    "Starts with an empty line.\nThen text.",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "A\nB\nC\nD\nE\nF\nG\nH\nI",
+   "whole": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "A\nB\nC\nD\nE\nF\nG\nH\nI",
+    false
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Word\nshort\nlines that could\nbe merged",
+   "whole": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    []
+   ],
+   "autofix": [
+    "Word short lines that could be merged",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Word short lines that could be merged",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ]
+   }
+  },
+  {
+   "text": "This line is deliberately far too long to fit into any of the game windows at all",
+   "whole": [
+    [
+     "DEFAULT_WIDTH_EXCEEDED"
+    ]
+   ],
+   "sublines": [
+    [
+     "DEFAULT_WIDTH_EXCEEDED"
+    ]
+   ],
+   "autofix": [
+    "This line is deliberately far too long\nto fit into any of the game windows\nat all",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "This line is deliberately far too long\nto fit into any of the game windows at\nall",
+     true
+    ]
+   }
+  },
+  {
+   "text": "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+   "whole": [
+    [
+     "DEFAULT_WIDTH_EXCEEDED"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "DEFAULT_WIDTH_EXCEEDED"
+    ],
+    []
+   ],
+   "autofix": [
+    "This line is deliberately far too long\nto fit into any of the game windows at\nall and a second line.",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "This line is deliberately far too long\nto fit into any of the game windows at\nall\nand a second line.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Some text [PLAYER]here{COLOR} and more text after it.",
+   "whole": [
+    [
+     "DEFAULT_MISSING_ICON_SPACING",
+     "DEFAULT_WIDTH_EXCEEDED"
+    ]
+   ],
+   "sublines": [
+    [
+     "DEFAULT_MISSING_ICON_SPACING",
+     "DEFAULT_WIDTH_EXCEEDED"
+    ]
+   ],
+   "autofix": [
+    "Some text [PLAYER] here {COLOR}and more text\nafter it.",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Some text [PLAYER]here{COLOR}and more text after it.",
+     true
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Some text [PLAYER]here{COLOR} and more text after it.",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Some text [PLAYER]here{COLOR} and more text after it.",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Some text [PLAYER]here{COLOR} and more text after it.",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Some text [PLAYER] here{COLOR} and more text after it.",
+     true
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Some text [PLAYER]here{COLOR} and more text after it.",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Some text [PLAYER]here{COLOR} and more text after it.",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Some text [PLAYER]here{COLOR} and more text after it.",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Some text [PLAYER]here{COLOR} and more text after it.",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Some text [PLAYER]here{COLOR} and more text after\nit.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "[PLAYER]Name{COLOR}, listen to me.",
+   "whole": [
+    [
+     "DEFAULT_MISSING_ICON_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "DEFAULT_MISSING_ICON_SPACING"
+    ]
+   ],
+   "autofix": [
+    "[PLAYER] Name{COLOR}, listen to me.",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "[PLAYER]Name{COLOR}, listen to me.",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "[PLAYER]Name{COLOR}, listen to me.",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "[PLAYER]Name{COLOR}, listen to me.",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "[PLAYER]Name{COLOR}, listen to me.",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "[PLAYER] Name{COLOR}, listen to me.",
+     true
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "[PLAYER]Name{COLOR}, listen to me.",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "[PLAYER]Name{COLOR}, listen to me.",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "[PLAYER]Name{COLOR}, listen to me.",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "[PLAYER]Name{COLOR}, listen to me.",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "[PLAYER]Name{COLOR}, listen to me.",
+     false
+    ]
+   }
+  },
+  {
+   "text": "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+   "whole": [
+    [],
+    [],
+    [
+     "DEFAULT_MISSING_ICON_SPACING"
+    ]
+   ],
+   "sublines": [
+    [],
+    [],
+    [
+     "DEFAULT_MISSING_ICON_SPACING"
+    ]
+   ],
+   "autofix": [
+    "{/COLOR}First section\n{/COLOR}Second section\n[A] Indented",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A] Indented",
+     true
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "{/COLOR}First section\n{/COLOR}Second section\n[A]Indented",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Ends with a single\nword",
+   "whole": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SINGLE_WORD_SUBLINE_NON_START"
+    ]
+   ],
+   "sublines": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SINGLE_WORD_SUBLINE_NON_START"
+    ]
+   ],
+   "autofix": [
+    "Ends with a single word",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Ends with a single\nword",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Ends with a single\nword",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Ends with a single\nword",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Ends with a single\nword",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Ends with a single\nword",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Ends with a single word",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Ends with a\nsingle word",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Ends with a\nsingle word",
+     true
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Ends with a single\nword",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Ends with a single\nword",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Line one\nlonely\nline three goes on and on and on and on and on.",
+   "whole": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_WIDTH_EXCEEDED"
+    ]
+   ],
+   "sublines": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_WIDTH_EXCEEDED"
+    ]
+   ],
+   "autofix": [
+    "Line one lonely line three goes on and\non and on and on and on.",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Line one lonely line three goes on and\non and on and on and on.",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Line one\nlonely\nline three goes on and on and on and on\nand on.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Icon:[PLAYER] -{COLOR}- text",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Icon:[PLAYER]-{COLOR}- text",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Icon:[PLAYER]-{COLOR}- text",
+     true
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Icon:[PLAYER] -{COLOR}- text",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Icon:[PLAYER] -{COLOR}- text",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Icon:[PLAYER] -{COLOR}- text",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Icon:[PLAYER] -{COLOR}- text",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Icon:[PLAYER] -{COLOR}- text",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Icon:[PLAYER] -{COLOR}- text",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Icon:[PLAYER] -{COLOR}- text",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Icon:[PLAYER] -{COLOR}- text",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Icon:[PLAYER] -{COLOR}- text",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Two pages here\nsecond line\nthird line\nfourth line\n\nfifth on page two",
+   "whole": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [],
+    [
+     "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE",
+     "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [],
+    [
+     "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE",
+     "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    []
+   ],
+   "autofix": [
+    "Two pages here second line third line\nfourth line fifth on page two",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Two pages here second line third line\nfourth line\nfifth on page two",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Trailing space \nand  double  spaces .",
+   "whole": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_BAD_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "DEFAULT_SHORT_LINE"
+    ],
+    [
+     "DEFAULT_BAD_SPACING"
+    ]
+   ],
+   "autofix": [
+    "Trailing space and double spaces .",
+    true
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "Trailing space\nand double spaces .",
+     true
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "Trailing space and double spaces .",
+     true
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ]
+   }
+  },
+  {
+   "text": "",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "",
+    false
+   ],
+   "autofix_each": {
+    "DEFAULT_BAD_SPACING": [
+     "",
+     false
+    ],
+    "DEFAULT_BROKEN_ICON_HYPHEN": [
+     "",
+     false
+    ],
+    "DEFAULT_EMPTY_FIRST_LINE_OF_PAGE": [
+     "",
+     false
+    ],
+    "DEFAULT_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "",
+     false
+    ],
+    "DEFAULT_MISSING_ICON_SPACING": [
+     "",
+     false
+    ],
+    "DEFAULT_SHORT_LINE": [
+     "",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE": [
+     "",
+     false
+    ],
+    "DEFAULT_SINGLE_WORD_SUBLINE_NON_START": [
+     "",
+     false
+    ],
+    "DEFAULT_TAG_WARNING": [
+     "",
+     false
+    ],
+    "DEFAULT_WIDTH_EXCEEDED": [
+     "",
+     false
+    ]
+   }
+  }
+ ],
+ "tag_checks": [
+  {
+   "original": "[PLAYER]x{COLOR} y",
+   "translation": "[PLAYER]x{COLOR} y",
+   "paste": [
+    "[PLAYER]x{COLOR} y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "DEFAULT_MISSING_ICON_SPACING"
+    ]
+   ],
+   "mismatch": false
+  },
+  {
+   "original": "[PLAYER]x{COLOR} y",
+   "translation": "x y",
+   "paste": [
+    "x y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "DEFAULT_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "[PLAYER]x{COLOR} y",
+   "translation": "[PLAYER]x[PLAYER]x{COLOR}{COLOR} y",
+   "paste": [
+    "[PLAYER]x[PLAYER]x{COLOR}{COLOR} y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "DEFAULT_MISSING_ICON_SPACING",
+     "DEFAULT_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "[A]x{COLOR} y",
+   "translation": "[PLAYER]x{COLOR} y",
+   "paste": [
+    "[PLAYER]x{COLOR} y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "DEFAULT_MISSING_ICON_SPACING",
+     "DEFAULT_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "{/COLOR} one",
+   "translation": "[A] one",
+   "paste": [
+    "[A] one",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "DEFAULT_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "plain",
+   "translation": "[PLAYER]plain{COLOR}",
+   "paste": [
+    "[PLAYER]plain{COLOR}",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "DEFAULT_MISSING_ICON_SPACING",
+     "DEFAULT_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  }
+ ]
+}

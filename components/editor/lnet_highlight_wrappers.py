@@ -1,4 +1,4 @@
-"""Thin wrappers that forward highlight calls to the highlight manager."""
+"""Thin wrappers that forward highlight calls to the editor's highlight interface."""
 class LNETHighlightWrappers:
     """L n e t highlight wrappers implementation."""
     def __init__(self, editor):

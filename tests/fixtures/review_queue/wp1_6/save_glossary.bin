@@ -1,0 +1,16 @@
+[
+  {
+    "original": "Link",
+    "translation": "Лінк",
+    "notes": "Hero",
+    "section": "Characters",
+    "profiled": false
+  },
+  {
+    "original": "Rupee",
+    "translation": "Рупія",
+    "notes": "Money, two lines\nsecond",
+    "section": "Items",
+    "profiled": true
+  }
+]

@@ -1,0 +1,1257 @@
+{
+ "definitions": [
+  "ZBMG_BAD_SPACING",
+  "ZBMG_BROKEN_ICON_HYPHEN",
+  "ZBMG_EMPTY_FIRST_LINE_OF_PAGE",
+  "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY",
+  "ZBMG_MISSING_ICON_SPACING",
+  "ZBMG_SHORT_LINE",
+  "ZBMG_SINGLE_WORD_SUBLINE",
+  "ZBMG_SINGLE_WORD_SUBLINE_NON_START",
+  "ZBMG_STAR_TAG_RULES",
+  "ZBMG_TAG_WARNING",
+  "ZBMG_WIDTH_EXCEEDED"
+ ],
+ "short_names": {
+  "ZBMG_BAD_SPACING": "Spacing",
+  "ZBMG_BROKEN_ICON_HYPHEN": "Broken Icon-Hyphen Wrap",
+  "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": "Empty1st",
+  "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": "EmptyOddD",
+  "ZBMG_MISSING_ICON_SPACING": "TagSpacing",
+  "ZBMG_SHORT_LINE": "Short",
+  "ZBMG_SINGLE_WORD_SUBLINE": "1Word",
+  "ZBMG_SINGLE_WORD_SUBLINE_NON_START": "1WordO",
+  "ZBMG_STAR_TAG_RULES": "StarTag",
+  "ZBMG_TAG_WARNING": "Tag Error",
+  "ZBMG_WIDTH_EXCEEDED": "Width"
+ },
+ "empty_odd_marker": "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY",
+ "strings": [
+  {
+   "text": "Hello there!",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Hello there!",
+    false
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Hello there!",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Hello there!",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Hello  there,friend !",
+   "whole": [
+    [
+     "ZBMG_BAD_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "ZBMG_BAD_SPACING"
+    ]
+   ],
+   "autofix": [
+    "Hello there,friend !",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Hello there,friend !",
+     true
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Hello  there,friend !",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Hi\n\nthere",
+   "whole": [
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "Hi\nthere",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Hi\nthere",
+     true
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Hi\nthere",
+     true
+    ]
+   }
+  },
+  {
+   "text": "\nStarts with an empty line.\nThen text.",
+   "whole": [
+    [
+     "ZBMG_EMPTY_FIRST_LINE_OF_PAGE",
+     "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    [],
+    []
+   ],
+   "sublines": [
+    [
+     "ZBMG_EMPTY_FIRST_LINE_OF_PAGE",
+     "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    [],
+    []
+   ],
+   "autofix": [
+    "Starts with an empty line.\nThen text.",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "A\nB\nC\nD\nE\nF\nG\nH\nI",
+   "whole": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "A\nB\nC\nD\nE\nF\nG\nH\nI",
+    false
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Word\nshort\nlines that could\nbe merged",
+   "whole": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    []
+   ],
+   "autofix": [
+    "Word short lines that could be merged",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Word short lines that could be merged",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ]
+   }
+  },
+  {
+   "text": "This line is deliberately far too long to fit into any of the game windows at all",
+   "whole": [
+    [
+     "ZBMG_WIDTH_EXCEEDED"
+    ]
+   ],
+   "sublines": [
+    [
+     "ZBMG_WIDTH_EXCEEDED"
+    ]
+   ],
+   "autofix": [
+    "This line is deliberately far too long to fit into any of the game\nwindows at all",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "This line is deliberately far too long to fit into any of the game\nwindows at all",
+     true
+    ]
+   }
+  },
+  {
+   "text": "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+   "whole": [
+    [
+     "ZBMG_WIDTH_EXCEEDED"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "ZBMG_WIDTH_EXCEEDED"
+    ],
+    []
+   ],
+   "autofix": [
+    "This line is deliberately far too long to fit into any of the game\nwindows at all and a second line.",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "This line is deliberately far too long to fit into any of the game\nwindows at all\nand a second line.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+    false
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Some text {COLOR_RED}here{COLOR_DEFAULT} and more text after it.",
+     false
+    ]
+   }
+  },
+  {
+   "text": "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+    false
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "{COLOR_RED}Name{COLOR_DEFAULT}, listen to me.",
+     false
+    ]
+   }
+  },
+  {
+   "text": "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+   "whole": [
+    [
+     "ZBMG_TAG_WARNING"
+    ],
+    [],
+    []
+   ],
+   "sublines": [
+    [
+     "ZBMG_TAG_WARNING"
+    ],
+    [],
+    []
+   ],
+   "autofix": [
+    "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     true
+    ],
+    "ZBMG_TAG_WARNING": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "{escape:6:000a}First section\n{escape:6:000a}Second section\n{escape:6:000b}Indented",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Ends with a single\nword",
+   "whole": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SINGLE_WORD_SUBLINE_NON_START"
+    ]
+   ],
+   "sublines": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SINGLE_WORD_SUBLINE_NON_START"
+    ]
+   ],
+   "autofix": [
+    "Ends with a single word",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Ends with a single word",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Ends with a\nsingle word",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Ends with a\nsingle word",
+     true
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Ends with a single\nword",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Line one\nlonely\nline three goes on and on and on and on and on.",
+   "whole": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    []
+   ],
+   "autofix": [
+    "Line one lonely line three goes on and on and on and on and on.",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Line one lonely line three goes on and on and on and on and on.",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Icon:{COLOR_RED}-{COLOR_DEFAULT}- text",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Icon:{COLOR_RED}-{COLOR_DEFAULT}- text",
+     true
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Icon:{COLOR_RED} -{COLOR_DEFAULT}- text",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Two pages here\nsecond line\nthird line\nfourth line\n\nfifth on page two",
+   "whole": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [],
+    [
+     "ZBMG_EMPTY_FIRST_LINE_OF_PAGE",
+     "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [],
+    [
+     "ZBMG_EMPTY_FIRST_LINE_OF_PAGE",
+     "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    []
+   ],
+   "autofix": [
+    "Two pages here second line third line fourth line fifth on page two",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Two pages here second line third line fourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Trailing space \nand  double  spaces .",
+   "whole": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_BAD_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "ZBMG_SHORT_LINE"
+    ],
+    [
+     "ZBMG_BAD_SPACING"
+    ]
+   ],
+   "autofix": [
+    "Trailing space and double spaces .",
+    true
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "Trailing space\nand double spaces .",
+     true
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "Trailing space and double spaces .",
+     true
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ]
+   }
+  },
+  {
+   "text": "",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "",
+    false
+   ],
+   "autofix_each": {
+    "ZBMG_BAD_SPACING": [
+     "",
+     false
+    ],
+    "ZBMG_BROKEN_ICON_HYPHEN": [
+     "",
+     false
+    ],
+    "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": [
+     "",
+     false
+    ],
+    "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "",
+     false
+    ],
+    "ZBMG_MISSING_ICON_SPACING": [
+     "",
+     false
+    ],
+    "ZBMG_SHORT_LINE": [
+     "",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE": [
+     "",
+     false
+    ],
+    "ZBMG_SINGLE_WORD_SUBLINE_NON_START": [
+     "",
+     false
+    ],
+    "ZBMG_STAR_TAG_RULES": [
+     "",
+     false
+    ],
+    "ZBMG_TAG_WARNING": [
+     "",
+     false
+    ],
+    "ZBMG_WIDTH_EXCEEDED": [
+     "",
+     false
+    ]
+   }
+  }
+ ],
+ "tag_checks": [
+  {
+   "original": "{COLOR_RED}x{COLOR_DEFAULT} y",
+   "translation": "{COLOR_RED}x{COLOR_DEFAULT} y",
+   "paste": [
+    "{COLOR_RED}x{COLOR_DEFAULT} y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    []
+   ],
+   "mismatch": false
+  },
+  {
+   "original": "{COLOR_RED}x{COLOR_DEFAULT} y",
+   "translation": "x y",
+   "paste": [
+    "x y",
+    "WARNING",
+    "Tag count mismatch. Processed: 0 ([]), Original: 2 (['{COLOR_RED}', '{COLOR_DEFAULT}'])."
+   ],
+   "whole": [
+    [
+     "ZBMG_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "{COLOR_RED}x{COLOR_DEFAULT} y",
+   "translation": "{COLOR_RED}x{COLOR_RED}x{COLOR_DEFAULT}{COLOR_DEFAULT} y",
+   "paste": [
+    "{COLOR_RED}x{COLOR_RED}x{COLOR_DEFAULT}{COLOR_DEFAULT} y",
+    "WARNING",
+    "Tag count mismatch. Processed: 4 (['{COLOR_RED}', '{COLOR_RED}', '{COLOR_DEFAULT}', '{COLOR_DEFAULT}']), Original: 2 (['{COLOR_RED}', '{COLOR_DEFAULT}'])."
+   ],
+   "whole": [
+    [
+     "ZBMG_MISSING_ICON_SPACING",
+     "ZBMG_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "{escape:6:000b}x{COLOR_DEFAULT} y",
+   "translation": "{COLOR_RED}x{COLOR_DEFAULT} y",
+   "paste": [
+    "{COLOR_RED}x{COLOR_DEFAULT} y",
+    "WARNING",
+    "Color tag '\\{COLOR[_:][^}]+\\}|\\{escape:255:[0-9a-fA-F]+\\}' count mismatch. Processed: 2, Original: 1."
+   ],
+   "whole": [
+    [
+     "ZBMG_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "{escape:6:000a} one",
+   "translation": "{escape:6:000b} one",
+   "paste": [
+    "{escape:6:000b}one",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "ZBMG_BAD_SPACING",
+     "ZBMG_STAR_TAG_RULES",
+     "ZBMG_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "plain",
+   "translation": "{COLOR_RED}plain{COLOR_DEFAULT}",
+   "paste": [
+    "{COLOR_RED}plain{COLOR_DEFAULT}",
+    "WARNING",
+    "Tag count mismatch. Processed: 2 (['{COLOR_RED}', '{COLOR_DEFAULT}']), Original: 0 ([])."
+   ],
+   "whole": [
+    [
+     "ZBMG_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  }
+ ]
+}

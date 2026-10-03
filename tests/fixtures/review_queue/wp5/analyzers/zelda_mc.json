@@ -1,0 +1,1186 @@
+{
+ "definitions": [
+  "ZMC_BAD_SPACING",
+  "ZMC_BROKEN_ICON_HYPHEN",
+  "ZMC_EMPTY_FIRST_LINE_OF_PAGE",
+  "ZMC_EMPTY_ODD_SUBLINE_DISPLAY",
+  "ZMC_MISSING_ICON_SPACING",
+  "ZMC_SHORT_LINE",
+  "ZMC_SINGLE_WORD_SUBLINE",
+  "ZMC_SINGLE_WORD_SUBLINE_NON_START",
+  "ZMC_TAG_WARNING",
+  "ZMC_WIDTH_EXCEEDED"
+ ],
+ "short_names": {
+  "ZMC_BAD_SPACING": "Spacing",
+  "ZMC_BROKEN_ICON_HYPHEN": "Broken Icon-Hyphen Wrap",
+  "ZMC_EMPTY_FIRST_LINE_OF_PAGE": "Empty First Line of Page",
+  "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": "EmptyPage",
+  "ZMC_MISSING_ICON_SPACING": "TagSpacing",
+  "ZMC_SHORT_LINE": "Short",
+  "ZMC_SINGLE_WORD_SUBLINE": "1Word",
+  "ZMC_SINGLE_WORD_SUBLINE_NON_START": "1WordO",
+  "ZMC_TAG_WARNING": "Tag",
+  "ZMC_WIDTH_EXCEEDED": "Width"
+ },
+ "empty_odd_marker": null,
+ "strings": [
+  {
+   "text": "Hello there!",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Hello there!",
+    false
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Hello there!",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Hello there!",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hello there!",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Hello there!",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Hello there!",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "Hello there!",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Hello there!",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hello there!",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "Hello there!",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Hello there!",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Hello  there,friend !",
+   "whole": [
+    [
+     "ZMC_BAD_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "ZMC_BAD_SPACING"
+    ]
+   ],
+   "autofix": [
+    "Hello there,friend !",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Hello there,friend !",
+     true
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "Hello  there,friend !",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Hello  there,friend !",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Hi\n\nthere",
+   "whole": [
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "Hi\nthere",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Hi\nthere",
+     true
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Hi\nthere",
+     true
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hi\nthere",
+     true
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Hi\nthere",
+     true
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Hi\nthere",
+     true
+    ],
+    "ZMC_SHORT_LINE": [
+     "Hi\nthere",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Hi\nthere",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hi\nthere",
+     true
+    ],
+    "ZMC_TAG_WARNING": [
+     "Hi\nthere",
+     true
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Hi\nthere",
+     true
+    ]
+   }
+  },
+  {
+   "text": "\nStarts with an empty line.\nThen text.",
+   "whole": [
+    [
+     "ZMC_EMPTY_FIRST_LINE_OF_PAGE",
+     "ZMC_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    [],
+    []
+   ],
+   "sublines": [
+    [
+     "ZMC_EMPTY_FIRST_LINE_OF_PAGE",
+     "ZMC_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    [],
+    []
+   ],
+   "autofix": [
+    "Starts with an empty line.\nThen text.",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZMC_SHORT_LINE": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZMC_TAG_WARNING": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Starts with an empty line.\nThen text.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "A\nB\nC\nD\nE\nF\nG\nH\nI",
+   "whole": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "A\nB\nC\nD\nE\nF\nG\nH\nI",
+    false
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "A\nB\nC\nD\nE\nF\nG\nH\nI",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Word\nshort\nlines that could\nbe merged",
+   "whole": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    []
+   ],
+   "autofix": [
+    "Word short lines that could be merged",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "Word short lines that could be merged",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Word\nshort\nlines that could\nbe merged",
+     false
+    ]
+   }
+  },
+  {
+   "text": "This line is deliberately far too long to fit into any of the game windows at all",
+   "whole": [
+    [
+     "ZMC_WIDTH_EXCEEDED"
+    ]
+   ],
+   "sublines": [
+    [
+     "ZMC_WIDTH_EXCEEDED"
+    ]
+   ],
+   "autofix": [
+    "This line is deliberately far too long to\nfit into any of the game windows at all",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "This line is deliberately far too long to\nfit into any of the game windows at all",
+     true
+    ]
+   }
+  },
+  {
+   "text": "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+   "whole": [
+    [
+     "ZMC_WIDTH_EXCEEDED"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "ZMC_WIDTH_EXCEEDED"
+    ],
+    []
+   ],
+   "autofix": [
+    "This line is deliberately far too long to\nfit into any of the game windows at all\nand a second line.",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\nand a second line.",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "This line is deliberately far too long to\nfit into any of the game windows at all\nand a second line.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Some text {Player}here{Color:Red} and more text after it.",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Some text {Player}here {Color:Red}and more text after it.",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Some text {Player}here{Color:Red}and more text after it.",
+     true
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Some text {Player}here{Color:Red} and more text after it.",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Some text {Player}here{Color:Red} and more text after it.",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Some text {Player}here{Color:Red} and more text after it.",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Some text {Player}here{Color:Red} and more text after it.",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "Some text {Player}here{Color:Red} and more text after it.",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Some text {Player}here{Color:Red} and more text after it.",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Some text {Player}here{Color:Red} and more text after it.",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "Some text {Player}here{Color:Red} and more text after it.",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Some text {Player}here{Color:Red} and more text after it.",
+     false
+    ]
+   }
+  },
+  {
+   "text": "{Player}Name{Color:Red}, listen to me.",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "{Player}Name{Color:Red}, listen to me.",
+    false
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "{Player}Name{Color:Red}, listen to me.",
+     false
+    ]
+   }
+  },
+  {
+   "text": "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+   "whole": [
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+    false
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "{Sound:01}First section\n{Sound:01}Second section\n{Color:White}Indented",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Ends with a single\nword",
+   "whole": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SINGLE_WORD_SUBLINE_NON_START"
+    ]
+   ],
+   "sublines": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SINGLE_WORD_SUBLINE_NON_START"
+    ]
+   ],
+   "autofix": [
+    "Ends with a single word",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "Ends with a single word",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Ends with a\nsingle word",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Ends with a\nsingle word",
+     true
+    ],
+    "ZMC_TAG_WARNING": [
+     "Ends with a single\nword",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Ends with a single\nword",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Line one\nlonely\nline three goes on and on and on and on and on.",
+   "whole": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_WIDTH_EXCEEDED"
+    ]
+   ],
+   "sublines": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_WIDTH_EXCEEDED"
+    ]
+   ],
+   "autofix": [
+    "Line one lonely line three goes on and on\nand on and on and on.",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "Line one lonely line three goes on and on\nand on and on and on.",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "Line one\nlonely\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Line one\nlonely\nline three goes on and on and on and on\nand on.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Icon:{Player} -{Color:Red}- text",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Icon:{Player}-{Color:Red}- text",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Icon:{Player}-{Color:Red}- text",
+     true
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Icon:{Player} -{Color:Red}- text",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Icon:{Player} -{Color:Red}- text",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Icon:{Player} -{Color:Red}- text",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Icon:{Player} -{Color:Red}- text",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "Icon:{Player} -{Color:Red}- text",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Icon:{Player} -{Color:Red}- text",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Icon:{Player} -{Color:Red}- text",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "Icon:{Player} -{Color:Red}- text",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Icon:{Player} -{Color:Red}- text",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Two pages here\nsecond line\nthird line\nfourth line\n\nfifth on page two",
+   "whole": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [],
+    [
+     "ZMC_EMPTY_FIRST_LINE_OF_PAGE",
+     "ZMC_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [],
+    [
+     "ZMC_EMPTY_FIRST_LINE_OF_PAGE",
+     "ZMC_EMPTY_ODD_SUBLINE_DISPLAY"
+    ],
+    []
+   ],
+   "autofix": [
+    "Two pages here second line third line\nfourth line fifth on page two",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZMC_SHORT_LINE": [
+     "Two pages here second line third line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZMC_TAG_WARNING": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Two pages here\nsecond line\nthird line\nfourth line\nfifth on page two",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Trailing space \nand  double  spaces .",
+   "whole": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_BAD_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "ZMC_SHORT_LINE"
+    ],
+    [
+     "ZMC_BAD_SPACING"
+    ]
+   ],
+   "autofix": [
+    "Trailing space and double spaces .",
+    true
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "Trailing space\nand double spaces .",
+     true
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "Trailing space and double spaces .",
+     true
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "Trailing space \nand  double  spaces .",
+     false
+    ]
+   }
+  },
+  {
+   "text": "",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "",
+    false
+   ],
+   "autofix_each": {
+    "ZMC_BAD_SPACING": [
+     "",
+     false
+    ],
+    "ZMC_BROKEN_ICON_HYPHEN": [
+     "",
+     false
+    ],
+    "ZMC_EMPTY_FIRST_LINE_OF_PAGE": [
+     "",
+     false
+    ],
+    "ZMC_EMPTY_ODD_SUBLINE_DISPLAY": [
+     "",
+     false
+    ],
+    "ZMC_MISSING_ICON_SPACING": [
+     "",
+     false
+    ],
+    "ZMC_SHORT_LINE": [
+     "",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE": [
+     "",
+     false
+    ],
+    "ZMC_SINGLE_WORD_SUBLINE_NON_START": [
+     "",
+     false
+    ],
+    "ZMC_TAG_WARNING": [
+     "",
+     false
+    ],
+    "ZMC_WIDTH_EXCEEDED": [
+     "",
+     false
+    ]
+   }
+  }
+ ],
+ "tag_checks": [
+  {
+   "original": "{Player}x{Color:Red} y",
+   "translation": "{Player}x{Color:Red} y",
+   "paste": [
+    "{Player}x{Color:Red} y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    []
+   ],
+   "mismatch": false
+  },
+  {
+   "original": "{Player}x{Color:Red} y",
+   "translation": "x y",
+   "paste": [
+    "x y",
+    "WARNING",
+    "Tag count mismatch for {...} tags. Processed (adj.): 0 (tags: []), Original (adj.): 2 (tags: ['{Player}', '{Color:Red}']).\nOriginal processed: 'x y...'\nOriginal original: '{Player}x{Color:Red} y...'"
+   ],
+   "whole": [
+    [
+     "ZMC_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "{Player}x{Color:Red} y",
+   "translation": "{Player}x{Player}x{Color:Red}{Color:Red} y",
+   "paste": [
+    "{Player}x{Player}x{Color:Red}{Color:Red} y",
+    "WARNING",
+    "Tag count mismatch for {...} tags. Processed (adj.): 4 (tags: ['{Player}', '{Player}', '{Color:Red}', '{Color:Red}']), Original (adj.): 2 (tags: ['{Player}', '{Color:Red}']).\nOriginal processed: '{Player}x{Player}x{Color:Red}{Color:Red} y...'\nOriginal original: '{Player}x{Color:Red} y...'"
+   ],
+   "whole": [
+    [
+     "ZMC_MISSING_ICON_SPACING",
+     "ZMC_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "{Color:White}x{Color:Red} y",
+   "translation": "{Player}x{Color:Red} y",
+   "paste": [
+    "{Player}x{Color:Red} y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "ZMC_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "{Sound:01} one",
+   "translation": "{Color:White} one",
+   "paste": [
+    "{Color:White}one",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "ZMC_BAD_SPACING",
+     "ZMC_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "plain",
+   "translation": "{Player}plain{Color:Red}",
+   "paste": [
+    "{Player}plain{Color:Red}",
+    "WARNING",
+    "Tag count mismatch for {...} tags. Processed (adj.): 2 (tags: ['{Player}', '{Color:Red}']), Original (adj.): 0 (tags: []).\nOriginal processed: '{Player}plain{Color:Red}...'\nOriginal original: 'plain...'"
+   ],
+   "whole": [
+    [
+     "ZMC_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  }
+ ]
+}

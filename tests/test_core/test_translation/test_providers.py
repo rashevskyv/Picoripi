@@ -52,7 +52,7 @@ def test_rate_limit_carries_retry_after_and_is_not_retried_by_default(mock_post)
 
 
 @patch('core.translation.transport.TransportPolicy._wait')
-@patch('core.translation.providers.requests.post')
+@patch('core.translation.providers.AbortableSession.post')
 def test_a_cancellable_caller_gets_one_automatic_retry(mock_post, mock_sleep):
     mock_post.side_effect = [
         _failed_response(503),
@@ -65,7 +65,7 @@ def test_a_cancellable_caller_gets_one_automatic_retry(mock_post, mock_sleep):
     assert mock_sleep.called
 
 
-@patch('core.translation.providers.requests.post')
+@patch('core.translation.providers.AbortableSession.post')
 def test_fatal_status_is_never_retried(mock_post):
     mock_post.return_value = _failed_response(401, "bad key")
     provider = _local_provider()

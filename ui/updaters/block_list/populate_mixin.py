@@ -77,7 +77,11 @@ class PopulateMixin:
             self.mw.block_list_widget._is_programmatic_expansion = False
             self.mw.block_list_widget.blockSignals(False)
             self.mw.block_list_widget.setUpdatesEnabled(True)
-            self.mw.block_list_widget.verticalScrollBar().setValue(v_scroll)
+            scroll_bar = self.mw.block_list_widget.verticalScrollBar()
+            if v_scroll > scroll_bar.maximum():
+                # The rebuilt tree gets its scroll range on the next layout; without it the value clamps to 0.
+                self.mw.block_list_widget.doItemsLayout()
+            scroll_bar.setValue(v_scroll)
 
         self.mw.block_list_widget.viewport().update()
         if not isinstance(self._story_projection_cache, StoryVirtualProjection):

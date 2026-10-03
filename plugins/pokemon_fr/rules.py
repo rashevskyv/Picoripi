@@ -46,6 +46,10 @@ class GameRules(BaseGameRules):
         """Initialize a new instance."""
         super().__init__(main_window_ref)
         self.original_keys = []
+        # The game's own block names, in load order. The editor may show a one-block file under the file's
+        # name; the file must still be written under the block's name.
+        self.original_block_names = []
+        self._save_block_names = None
 
     # The keys of every loaded block, in load order. The game files are dicts of
     # key -> string; the editor only sees the strings, so the keys are kept here
@@ -56,10 +60,20 @@ class GameRules(BaseGameRules):
 
     def restore_runtime_state(self, state: Any) -> None:
         if state is not None:
+            # The loaded block names are never narrowed: one per block after a load, more after a re-parse. A
+            # state longer than them is a session of an older build, which held a split file's keys twice; the
+            # keys just loaded are the right ones.
+            names = self.original_block_names
+            if self.original_keys and names and len(state) > len(names):
+                log_debug("[PokemonFR Plugin] Session keys do not match the loaded blocks; keeping the loaded keys.")
+                return
             self.original_keys = list(state)
+            # Parses after the snapshot (translation files, a revert) appended names the keys no longer have.
+            self.original_block_names = self.original_block_names[:len(self.original_keys)]
 
     def reset_runtime_state(self) -> None:
         self.original_keys = []
+        self.original_block_names = []
 
     def prepare_save_context(self, context: Any) -> None:
         """Narrow the keys to the blocks that go into the file being saved."""
@@ -68,6 +82,11 @@ class GameRules(BaseGameRules):
             return
         if all(0 <= index < len(all_keys) for index in context.block_indices):
             self.original_keys = [all_keys[index] for index in context.block_indices]
+            names = self.original_block_names
+            self._save_block_names = (
+                [names[index] for index in context.block_indices]
+                if len(names) == len(all_keys) else None
+            )
         else:
             log_debug("[PokemonFR Plugin] Key snapshot is incomplete; keys were not narrowed for this file.")
 
@@ -90,6 +109,7 @@ class GameRules(BaseGameRules):
                 
                 app_data.append(string_list)
                 self.original_keys.append(key_list)
+                self.original_block_names.append(block_name)
                 block_names[str(i)] = block_name
             else:
                 log_debug(f"[PokemonFR Plugin] Skipping block '{block_name}' because its value is not a dictionary.")
@@ -102,8 +122,9 @@ class GameRules(BaseGameRules):
             raise ValueError("Original keys for Pokemon data are missing or mismatched. Cannot save.")
             
         output_json = OrderedDict()
+        own_names, self._save_block_names = self._save_block_names, None
         for i, block_data in enumerate(data):
-            block_name = block_names.get(str(i))
+            block_name = own_names[i] if own_names and i < len(own_names) else block_names.get(str(i))
             if not block_name or i >= len(self.original_keys):
                 log_debug(f"[PokemonFR Plugin] Skipping block index {i} during save due to missing name or keys.")
                 continue 

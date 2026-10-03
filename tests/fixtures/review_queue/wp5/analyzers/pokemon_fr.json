@@ -1,0 +1,1189 @@
+{
+ "definitions": [
+  "PKFR_BAD_SPACING",
+  "PKFR_BROKEN_ICON_HYPHEN",
+  "PKFR_EMPTY_FIRST_LINE_OF_PAGE",
+  "PKFR_EMPTY_SUBLINE",
+  "PKFR_MISSING_ICON_SPACING",
+  "PKFR_SHORT_LINE",
+  "PKFR_SINGLE_WORD_SUBLINE",
+  "PKFR_SINGLE_WORD_SUBLINE_NON_START",
+  "PKFR_TAG_WARNING",
+  "PKFR_WIDTH_EXCEEDED"
+ ],
+ "short_names": {
+  "PKFR_BAD_SPACING": "Spacing",
+  "PKFR_BROKEN_ICON_HYPHEN": "Broken Icon-Hyphen Wrap",
+  "PKFR_EMPTY_FIRST_LINE_OF_PAGE": "Empty First Line of Page",
+  "PKFR_EMPTY_SUBLINE": "Empty Subline",
+  "PKFR_MISSING_ICON_SPACING": "TagSpacing",
+  "PKFR_SHORT_LINE": "Short Subline",
+  "PKFR_SINGLE_WORD_SUBLINE": "Single Word Subline",
+  "PKFR_SINGLE_WORD_SUBLINE_NON_START": "Single Word Subline (Non-Start)",
+  "PKFR_TAG_WARNING": "Tag Warning",
+  "PKFR_WIDTH_EXCEEDED": "Subline Width Exceeded"
+ },
+ "empty_odd_marker": null,
+ "strings": [
+  {
+   "text": "Hello there!",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Hello there!",
+    false
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Hello there!",
+     false
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Hello there!",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hello there!",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Hello there!",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Hello there!",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "Hello there!",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Hello there!",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hello there!",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "Hello there!",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Hello there!",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Hello  there,friend !",
+   "whole": [
+    [
+     "PKFR_BAD_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "PKFR_BAD_SPACING"
+    ]
+   ],
+   "autofix": [
+    "Hello there,friend !",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Hello there,friend !",
+     true
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Hello  there,friend !",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Hello  there,friend !",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Hello  there,friend !",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hello  there,friend !",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "Hello  there,friend !",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Hello  there,friend !",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Hi\\n\\nthere",
+   "whole": [
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "Hi\\nthere",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Hi\\nthere",
+     true
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Hi\\nthere",
+     true
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Hi\\nthere",
+     true
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Hi\\nthere",
+     true
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Hi\\nthere",
+     true
+    ],
+    "PKFR_SHORT_LINE": [
+     "Hi\\nthere",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Hi\\nthere",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Hi\\nthere",
+     true
+    ],
+    "PKFR_TAG_WARNING": [
+     "Hi\\nthere",
+     true
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Hi\\nthere",
+     true
+    ]
+   }
+  },
+  {
+   "text": "\\nStarts with an empty line.\\nThen text.",
+   "whole": [
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "Starts with an empty line.\\nThen text.",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ],
+    "PKFR_SHORT_LINE": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ],
+    "PKFR_TAG_WARNING": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Starts with an empty line.\\nThen text.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+   "whole": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+    false
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "A\\nB\\nC\\nD\\nE\\nF\\nG\\nH\\nI",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Word\\nshort\\nlines that could\\nbe merged",
+   "whole": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    []
+   ],
+   "autofix": [
+    "Word short lines that could be merged",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Word\\nshort\\nlines that could\\nbe merged",
+     false
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Word\\nshort\\nlines that could\\nbe merged",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Word\\nshort\\nlines that could\\nbe merged",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Word\\nshort\\nlines that could\\nbe merged",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Word\\nshort\\nlines that could\\nbe merged",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "Word short lines that could be merged",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Word\\nshort\\nlines that could\\nbe merged",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Word\\nshort\\nlines that could\\nbe merged",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "Word\\nshort\\nlines that could\\nbe merged",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Word\\nshort\\nlines that could\\nbe merged",
+     false
+    ]
+   }
+  },
+  {
+   "text": "This line is deliberately far too long to fit into any of the game windows at all",
+   "whole": [
+    [
+     "PKFR_WIDTH_EXCEEDED"
+    ]
+   ],
+   "sublines": [
+    [
+     "PKFR_WIDTH_EXCEEDED"
+    ]
+   ],
+   "autofix": [
+    "This line is deliberately far too long to fit\\ninto any of the game windows at all",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "This line is deliberately far too long to fit into any of the game windows at all",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "This line is deliberately far too long to fit\\ninto any of the game windows at all",
+     true
+    ]
+   }
+  },
+  {
+   "text": "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+   "whole": [
+    [
+     "PKFR_WIDTH_EXCEEDED"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "PKFR_WIDTH_EXCEEDED"
+    ],
+    []
+   ],
+   "autofix": [
+    "This line is deliberately far too long to fit\\ninto any of the game windows at all and\\na second line.",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+     false
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "This line is deliberately far too long to fit into any of the game windows at all\\nand a second line.",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "This line is deliberately far too long to fit\\ninto any of the game windows at all\\nand a second line.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Some text {PLAYER}here{COLOR RED} and more text after it.",
+   "whole": [
+    [
+     "PKFR_MISSING_ICON_SPACING",
+     "PKFR_WIDTH_EXCEEDED"
+    ]
+   ],
+   "sublines": [
+    [
+     "PKFR_MISSING_ICON_SPACING",
+     "PKFR_WIDTH_EXCEEDED"
+    ]
+   ],
+   "autofix": [
+    "Some text {PLAYER} here {COLOR RED}and more text\\nafter it.",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Some text {PLAYER}here{COLOR RED}and more text after it.",
+     true
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Some text {PLAYER}here{COLOR RED} and more text after it.",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Some text {PLAYER}here{COLOR RED} and more text after it.",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Some text {PLAYER}here{COLOR RED} and more text after it.",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Some text {PLAYER} here{COLOR RED} and more text after it.",
+     true
+    ],
+    "PKFR_SHORT_LINE": [
+     "Some text {PLAYER}here{COLOR RED} and more text after it.",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Some text {PLAYER}here{COLOR RED} and more text after it.",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Some text {PLAYER}here{COLOR RED} and more text after it.",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "Some text {PLAYER}here{COLOR RED} and more text after it.",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Some text {PLAYER}here{COLOR RED} and more text after\\nit.",
+     true
+    ]
+   }
+  },
+  {
+   "text": "{PLAYER}Name{COLOR RED}, listen to me.",
+   "whole": [
+    [
+     "PKFR_MISSING_ICON_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "PKFR_MISSING_ICON_SPACING"
+    ]
+   ],
+   "autofix": [
+    "{PLAYER} Name{COLOR RED}, listen to me.",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "{PLAYER}Name{COLOR RED}, listen to me.",
+     false
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "{PLAYER}Name{COLOR RED}, listen to me.",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "{PLAYER}Name{COLOR RED}, listen to me.",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "{PLAYER}Name{COLOR RED}, listen to me.",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "{PLAYER} Name{COLOR RED}, listen to me.",
+     true
+    ],
+    "PKFR_SHORT_LINE": [
+     "{PLAYER}Name{COLOR RED}, listen to me.",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "{PLAYER}Name{COLOR RED}, listen to me.",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "{PLAYER}Name{COLOR RED}, listen to me.",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "{PLAYER}Name{COLOR RED}, listen to me.",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "{PLAYER}Name{COLOR RED}, listen to me.",
+     false
+    ]
+   }
+  },
+  {
+   "text": "\\pFirst section\\n\\pSecond section\\n{RIVAL}Indented",
+   "whole": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "PKFR_MISSING_ICON_SPACING"
+    ]
+   ],
+   "sublines": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "PKFR_MISSING_ICON_SPACING"
+    ]
+   ],
+   "autofix": [
+    "\\pFirst section\\pSecond section\\n{RIVAL} Indented",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "\\pFirst section\\pSecond section\\n{RIVAL}Indented",
+     true
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "\\pFirst section\\pSecond section\\n{RIVAL}Indented",
+     true
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "\\pFirst section\\pSecond section\\n{RIVAL}Indented",
+     true
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "\\pFirst section\\pSecond section\\n{RIVAL}Indented",
+     true
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "\\pFirst section\\pSecond section\\n{RIVAL} Indented",
+     true
+    ],
+    "PKFR_SHORT_LINE": [
+     "\\pFirst section\\pSecond section\\n{RIVAL}Indented",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "\\pFirst section\\pSecond section\\n{RIVAL}Indented",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "\\pFirst section\\pSecond section\\n{RIVAL}Indented",
+     true
+    ],
+    "PKFR_TAG_WARNING": [
+     "\\pFirst section\\pSecond section\\n{RIVAL}Indented",
+     true
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "\\pFirst section\\pSecond section\\n{RIVAL}Indented",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Ends with a single\\nword",
+   "whole": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SINGLE_WORD_SUBLINE_NON_START"
+    ]
+   ],
+   "sublines": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SINGLE_WORD_SUBLINE_NON_START"
+    ]
+   ],
+   "autofix": [
+    "Ends with a single word",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Ends with a single\\nword",
+     false
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Ends with a single\\nword",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Ends with a single\\nword",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Ends with a single\\nword",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Ends with a single\\nword",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "Ends with a single word",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Ends with a\\nsingle word",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Ends with a\\nsingle word",
+     true
+    ],
+    "PKFR_TAG_WARNING": [
+     "Ends with a single\\nword",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Ends with a single\\nword",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+   "whole": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    []
+   ],
+   "sublines": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    []
+   ],
+   "autofix": [
+    "Line one lonely line three goes on and on and\\non and on and on.",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "Line one lonely line three goes on and on and\\non and on and on.",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Line one\\nlonely\\nline three goes on and on and on and on and on.",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Icon:{PLAYER} -{COLOR RED}- text",
+   "whole": [
+    []
+   ],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "Icon:{PLAYER}-{COLOR RED}- text",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Icon:{PLAYER}-{COLOR RED}- text",
+     true
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Icon:{PLAYER} -{COLOR RED}- text",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Icon:{PLAYER} -{COLOR RED}- text",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Icon:{PLAYER} -{COLOR RED}- text",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Icon:{PLAYER} -{COLOR RED}- text",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "Icon:{PLAYER} -{COLOR RED}- text",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Icon:{PLAYER} -{COLOR RED}- text",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Icon:{PLAYER} -{COLOR RED}- text",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "Icon:{PLAYER} -{COLOR RED}- text",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Icon:{PLAYER} -{COLOR RED}- text",
+     false
+    ]
+   }
+  },
+  {
+   "text": "Two pages here\\nsecond line\\nthird line\\nfourth line\\n\\nfifth on page two",
+   "whole": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [],
+    [],
+    []
+   ],
+   "sublines": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [],
+    [],
+    []
+   ],
+   "autofix": [
+    "Two pages here second line third line\\nfourth line\\nfifth on page two",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Two pages here\\nsecond line\\nthird line\\nfourth line\\nfifth on page two",
+     true
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Two pages here\\nsecond line\\nthird line\\nfourth line\\nfifth on page two",
+     true
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Two pages here\\nsecond line\\nthird line\\nfourth line\\nfifth on page two",
+     true
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Two pages here\\nsecond line\\nthird line\\nfourth line\\nfifth on page two",
+     true
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Two pages here\\nsecond line\\nthird line\\nfourth line\\nfifth on page two",
+     true
+    ],
+    "PKFR_SHORT_LINE": [
+     "Two pages here second line third line\\nfourth line\\nfifth on page two",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Two pages here\\nsecond line\\nthird line\\nfourth line\\nfifth on page two",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Two pages here\\nsecond line\\nthird line\\nfourth line\\nfifth on page two",
+     true
+    ],
+    "PKFR_TAG_WARNING": [
+     "Two pages here\\nsecond line\\nthird line\\nfourth line\\nfifth on page two",
+     true
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Two pages here\\nsecond line\\nthird line\\nfourth line\\nfifth on page two",
+     true
+    ]
+   }
+  },
+  {
+   "text": "Trailing space \\nand  double  spaces .",
+   "whole": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_BAD_SPACING"
+    ]
+   ],
+   "sublines": [
+    [
+     "PKFR_SHORT_LINE"
+    ],
+    [
+     "PKFR_BAD_SPACING"
+    ]
+   ],
+   "autofix": [
+    "Trailing space and double spaces .",
+    true
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "Trailing space\\nand double spaces .",
+     true
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "Trailing space \\nand  double  spaces .",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "Trailing space \\nand  double  spaces .",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "Trailing space \\nand  double  spaces .",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "Trailing space \\nand  double  spaces .",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "Trailing space and double spaces .",
+     true
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "Trailing space \\nand  double  spaces .",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "Trailing space \\nand  double  spaces .",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "Trailing space \\nand  double  spaces .",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "Trailing space \\nand  double  spaces .",
+     false
+    ]
+   }
+  },
+  {
+   "text": "",
+   "whole": [],
+   "sublines": [
+    []
+   ],
+   "autofix": [
+    "",
+    false
+   ],
+   "autofix_each": {
+    "PKFR_BAD_SPACING": [
+     "",
+     false
+    ],
+    "PKFR_BROKEN_ICON_HYPHEN": [
+     "",
+     false
+    ],
+    "PKFR_EMPTY_FIRST_LINE_OF_PAGE": [
+     "",
+     false
+    ],
+    "PKFR_EMPTY_SUBLINE": [
+     "",
+     false
+    ],
+    "PKFR_MISSING_ICON_SPACING": [
+     "",
+     false
+    ],
+    "PKFR_SHORT_LINE": [
+     "",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE": [
+     "",
+     false
+    ],
+    "PKFR_SINGLE_WORD_SUBLINE_NON_START": [
+     "",
+     false
+    ],
+    "PKFR_TAG_WARNING": [
+     "",
+     false
+    ],
+    "PKFR_WIDTH_EXCEEDED": [
+     "",
+     false
+    ]
+   }
+  }
+ ],
+ "tag_checks": [
+  {
+   "original": "{PLAYER}x{COLOR RED} y",
+   "translation": "{PLAYER}x{COLOR RED} y",
+   "paste": [
+    "{PLAYER}x{COLOR RED} y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "PKFR_MISSING_ICON_SPACING"
+    ]
+   ],
+   "mismatch": false
+  },
+  {
+   "original": "{PLAYER}x{COLOR RED} y",
+   "translation": "x y",
+   "paste": [
+    "x y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "PKFR_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "{PLAYER}x{COLOR RED} y",
+   "translation": "{PLAYER}x{PLAYER}x{COLOR RED}{COLOR RED} y",
+   "paste": [
+    "{PLAYER}x{PLAYER}x{COLOR RED}{COLOR RED} y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "PKFR_MISSING_ICON_SPACING",
+     "PKFR_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "{RIVAL}x{COLOR RED} y",
+   "translation": "{PLAYER}x{COLOR RED} y",
+   "paste": [
+    "{PLAYER}x{COLOR RED} y",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "PKFR_MISSING_ICON_SPACING",
+     "PKFR_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "\\p one",
+   "translation": "{RIVAL} one",
+   "paste": [
+    "{RIVAL}one",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "PKFR_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  },
+  {
+   "original": "plain",
+   "translation": "{PLAYER}plain{COLOR RED}",
+   "paste": [
+    "{PLAYER}plain{COLOR RED}",
+    "OK",
+    ""
+   ],
+   "whole": [
+    [
+     "PKFR_MISSING_ICON_SPACING",
+     "PKFR_TAG_WARNING"
+    ]
+   ],
+   "mismatch": true
+  }
+ ]
+}

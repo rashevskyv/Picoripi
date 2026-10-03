@@ -44,7 +44,7 @@ class ScriptSpeakerFinder:
         # Candidate near project directory
         project_dir = getattr(self.story_context_manager, "_mempalace_project_dir", None)
         if not project_dir and hasattr(self.mw, "project_manager") and self.mw.project_manager and self.mw.project_manager.project:
-            project_dir = self.mw.project_manager.project.project_dir
+            project_dir = self.mw.project_manager.project_dir
 
         if project_dir:
             search_dirs.append(project_dir)

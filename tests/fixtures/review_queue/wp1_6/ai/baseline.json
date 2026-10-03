@@ -1,0 +1,477 @@
+{
+ "glossary_pipeline_without_healthz": {
+  "entries": [
+   [
+    "Epona",
+    "Переклад",
+    "translated",
+    "Names",
+    "a described thing"
+   ],
+   [
+    "Kakariko Village",
+    "Переклад",
+    "translated",
+    "Names",
+    "a described thing"
+   ],
+   [
+    "Master Sword",
+    "Переклад",
+    "translated",
+    "Names",
+    "a described thing"
+   ],
+   [
+    "Ordon",
+    "Переклад",
+    "translated",
+    "Names",
+    "a described thing"
+   ],
+   [
+    "Rusl",
+    "Переклад",
+    "translated",
+    "Names",
+    "a described thing"
+   ]
+  ],
+  "finished": [
+   [
+    true,
+    "seeded 5, described 5, translated 5"
+   ]
+  ],
+  "healthz_asked": false,
+  "logs_about_accounts": [],
+  "requests": 11,
+  "workers": 4
+ },
+ "legacy_glossary_array_after_prose": {
+  "calls": [
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nLink meets Ordon villager number 0.\nLink meets Ordon villager number 1.\nLink meets Ordon villager number 2.\nLink meets Ordon villager number 3.\nLink meets Ordon villager number 4.\nLink meets Ordon villager number 5.\nLink meets Ordon villager number 6.\nLink meets Ordon villager number 7.\nLink meets Ordon villager number 8.\nLink meets Ordon villager number 9.\nLink meets Ordon villager number 10.\nLink meets Ordon villager number 11.\nLink meets Ordon villager number 12.\nLink meets Ordon villager number 13.\nLink meets Ordon villager number 14.\nLink meets Ordon villager number 15.\nLink meets Ordon villager number 16.\nLink meets Ordon villager number 17.\nLink meets Ordon villager number 18.\nLink meets Ordon villager number 19.\nLink meets Ordon villager number 20.\nLink meets Ordon villager number 21.\nLink meets Ordon villager number 22.\nLink meets Ordon villager number 23.\nLink meets Ordon villager number 24.\nLink meets Ordon villager number 25.\nLink meets Ordon villager number 26.\nLink meets ",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   },
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nOrdon villager number 27.\nLink meets Ordon villager number 28.\nLink meets Ordon villager number 29.\nLink meets Ordon villager number 30.\nLink meets Ordon villager number 31.\nLink meets Ordon villager number 32.\nLink meets Ordon villager number 33.\nLink meets Ordon villager number 34.\nLink meets Ordon villager number 35.\nLink meets Ordon villager number 36.\nLink meets Ordon villager number 37.\nLink meets Ordon villager number 38.\nLink meets Ordon villager number 39.\nLink meets Ordon villager number 40.\nLink meets Ordon villager number 41.\nLink meets Ordon villager number 42.\nLink meets Ordon villager number 43.\nLink meets Ordon villager number 44.\nLink meets Ordon villager number 45.\nLink meets Ordon villager number 46.\nLink meets Ordon villager number 47.\nLink meets Ordon villager number 48.\nLink meets Ordon villager number 49.\nLink meets Ordon villager number 50.\nLink meets Ordon villager number 51.\nLink meets Ordon villager number 52.\nLink meets Ordon villager number 53.\nLink meets O",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   },
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nrdon villager number 54.\nLink meets Ordon villager number 55.\nLink meets Ordon villager number 56.\nLink meets Ordon villager number 57.\nLink meets Ordon villager number 58.\nLink meets Ordon villager number 59.",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   }
+  ],
+  "events": [
+   [
+    "total",
+    3,
+    0
+   ],
+   [
+    "step",
+    0,
+    "Preparing",
+    1
+   ],
+   [
+    "progress",
+    1
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 1/3",
+    1
+   ],
+   [
+    "progress",
+    2
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 2/3",
+    1
+   ],
+   [
+    "progress",
+    3
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 3/3",
+    1
+   ],
+   [
+    "step",
+    1,
+    "Sending",
+    2
+   ],
+   [
+    "step",
+    2,
+    "Waiting",
+    2
+   ],
+   [
+    "step",
+    3,
+    "Applying",
+    2
+   ],
+   [
+    "success",
+    "[]"
+   ],
+   [
+    "finished"
+   ]
+  ]
+ },
+ "legacy_glossary_empty": {
+  "calls": [
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nLink meets Ordon villager number 0.\nLink meets Ordon villager number 1.\nLink meets Ordon villager number 2.\nLink meets Ordon villager number 3.\nLink meets Ordon villager number 4.\nLink meets Ordon villager number 5.\nLink meets Ordon villager number 6.\nLink meets Ordon villager number 7.\nLink meets Ordon villager number 8.\nLink meets Ordon villager number 9.\nLink meets Ordon villager number 10.\nLink meets Ordon villager number 11.\nLink meets Ordon villager number 12.\nLink meets Ordon villager number 13.\nLink meets Ordon villager number 14.\nLink meets Ordon villager number 15.\nLink meets Ordon villager number 16.\nLink meets Ordon villager number 17.\nLink meets Ordon villager number 18.\nLink meets Ordon villager number 19.\nLink meets Ordon villager number 20.\nLink meets Ordon villager number 21.\nLink meets Ordon villager number 22.\nLink meets Ordon villager number 23.\nLink meets Ordon villager number 24.\nLink meets Ordon villager number 25.\nLink meets Ordon villager number 26.\nLink meets ",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   },
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nOrdon villager number 27.\nLink meets Ordon villager number 28.\nLink meets Ordon villager number 29.\nLink meets Ordon villager number 30.\nLink meets Ordon villager number 31.\nLink meets Ordon villager number 32.\nLink meets Ordon villager number 33.\nLink meets Ordon villager number 34.\nLink meets Ordon villager number 35.\nLink meets Ordon villager number 36.\nLink meets Ordon villager number 37.\nLink meets Ordon villager number 38.\nLink meets Ordon villager number 39.\nLink meets Ordon villager number 40.\nLink meets Ordon villager number 41.\nLink meets Ordon villager number 42.\nLink meets Ordon villager number 43.\nLink meets Ordon villager number 44.\nLink meets Ordon villager number 45.\nLink meets Ordon villager number 46.\nLink meets Ordon villager number 47.\nLink meets Ordon villager number 48.\nLink meets Ordon villager number 49.\nLink meets Ordon villager number 50.\nLink meets Ordon villager number 51.\nLink meets Ordon villager number 52.\nLink meets Ordon villager number 53.\nLink meets O",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   },
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nrdon villager number 54.\nLink meets Ordon villager number 55.\nLink meets Ordon villager number 56.\nLink meets Ordon villager number 57.\nLink meets Ordon villager number 58.\nLink meets Ordon villager number 59.",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   }
+  ],
+  "events": [
+   [
+    "total",
+    3,
+    0
+   ],
+   [
+    "step",
+    0,
+    "Preparing",
+    1
+   ],
+   [
+    "progress",
+    1
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 1/3",
+    1
+   ],
+   [
+    "progress",
+    2
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 2/3",
+    1
+   ],
+   [
+    "progress",
+    3
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 3/3",
+    1
+   ],
+   [
+    "step",
+    1,
+    "Sending",
+    2
+   ],
+   [
+    "step",
+    2,
+    "Waiting",
+    2
+   ],
+   [
+    "step",
+    3,
+    "Applying",
+    2
+   ],
+   [
+    "success",
+    "[]"
+   ],
+   [
+    "finished"
+   ]
+  ]
+ },
+ "legacy_glossary_object": {
+  "calls": [
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nLink meets Ordon villager number 0.\nLink meets Ordon villager number 1.\nLink meets Ordon villager number 2.\nLink meets Ordon villager number 3.\nLink meets Ordon villager number 4.\nLink meets Ordon villager number 5.\nLink meets Ordon villager number 6.\nLink meets Ordon villager number 7.\nLink meets Ordon villager number 8.\nLink meets Ordon villager number 9.\nLink meets Ordon villager number 10.\nLink meets Ordon villager number 11.\nLink meets Ordon villager number 12.\nLink meets Ordon villager number 13.\nLink meets Ordon villager number 14.\nLink meets Ordon villager number 15.\nLink meets Ordon villager number 16.\nLink meets Ordon villager number 17.\nLink meets Ordon villager number 18.\nLink meets Ordon villager number 19.\nLink meets Ordon villager number 20.\nLink meets Ordon villager number 21.\nLink meets Ordon villager number 22.\nLink meets Ordon villager number 23.\nLink meets Ordon villager number 24.\nLink meets Ordon villager number 25.\nLink meets Ordon villager number 26.\nLink meets ",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   },
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nOrdon villager number 27.\nLink meets Ordon villager number 28.\nLink meets Ordon villager number 29.\nLink meets Ordon villager number 30.\nLink meets Ordon villager number 31.\nLink meets Ordon villager number 32.\nLink meets Ordon villager number 33.\nLink meets Ordon villager number 34.\nLink meets Ordon villager number 35.\nLink meets Ordon villager number 36.\nLink meets Ordon villager number 37.\nLink meets Ordon villager number 38.\nLink meets Ordon villager number 39.\nLink meets Ordon villager number 40.\nLink meets Ordon villager number 41.\nLink meets Ordon villager number 42.\nLink meets Ordon villager number 43.\nLink meets Ordon villager number 44.\nLink meets Ordon villager number 45.\nLink meets Ordon villager number 46.\nLink meets Ordon villager number 47.\nLink meets Ordon villager number 48.\nLink meets Ordon villager number 49.\nLink meets Ordon villager number 50.\nLink meets Ordon villager number 51.\nLink meets Ordon villager number 52.\nLink meets Ordon villager number 53.\nLink meets O",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   },
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nrdon villager number 54.\nLink meets Ordon villager number 55.\nLink meets Ordon villager number 56.\nLink meets Ordon villager number 57.\nLink meets Ordon villager number 58.\nLink meets Ordon villager number 59.",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   }
+  ],
+  "events": [
+   [
+    "total",
+    3,
+    0
+   ],
+   [
+    "step",
+    0,
+    "Preparing",
+    1
+   ],
+   [
+    "progress",
+    1
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 1/3",
+    1
+   ],
+   [
+    "progress",
+    2
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 2/3",
+    1
+   ],
+   [
+    "progress",
+    3
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 3/3",
+    1
+   ],
+   [
+    "step",
+    1,
+    "Sending",
+    2
+   ],
+   [
+    "step",
+    2,
+    "Waiting",
+    2
+   ],
+   [
+    "step",
+    3,
+    "Applying",
+    2
+   ],
+   [
+    "success",
+    "[]"
+   ],
+   [
+    "finished"
+   ]
+  ]
+ },
+ "legacy_glossary_prose": {
+  "calls": [
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nLink meets Ordon villager number 0.\nLink meets Ordon villager number 1.\nLink meets Ordon villager number 2.\nLink meets Ordon villager number 3.\nLink meets Ordon villager number 4.\nLink meets Ordon villager number 5.\nLink meets Ordon villager number 6.\nLink meets Ordon villager number 7.\nLink meets Ordon villager number 8.\nLink meets Ordon villager number 9.\nLink meets Ordon villager number 10.\nLink meets Ordon villager number 11.\nLink meets Ordon villager number 12.\nLink meets Ordon villager number 13.\nLink meets Ordon villager number 14.\nLink meets Ordon villager number 15.\nLink meets Ordon villager number 16.\nLink meets Ordon villager number 17.\nLink meets Ordon villager number 18.\nLink meets Ordon villager number 19.\nLink meets Ordon villager number 20.\nLink meets Ordon villager number 21.\nLink meets Ordon villager number 22.\nLink meets Ordon villager number 23.\nLink meets Ordon villager number 24.\nLink meets Ordon villager number 25.\nLink meets Ordon villager number 26.\nLink meets ",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   },
+   {
+    "messages": [
+     {
+      "content": "GLOSSARY-SYS",
+      "role": "system"
+     },
+     {
+      "content": "Find terms:\nOrdon villager number 27.\nLink meets Ordon villager number 28.\nLink meets Ordon villager number 29.\nLink meets Ordon villager number 30.\nLink meets Ordon villager number 31.\nLink meets Ordon villager number 32.\nLink meets Ordon villager number 33.\nLink meets Ordon villager number 34.\nLink meets Ordon villager number 35.\nLink meets Ordon villager number 36.\nLink meets Ordon villager number 37.\nLink meets Ordon villager number 38.\nLink meets Ordon villager number 39.\nLink meets Ordon villager number 40.\nLink meets Ordon villager number 41.\nLink meets Ordon villager number 42.\nLink meets Ordon villager number 43.\nLink meets Ordon villager number 44.\nLink meets Ordon villager number 45.\nLink meets Ordon villager number 46.\nLink meets Ordon villager number 47.\nLink meets Ordon villager number 48.\nLink meets Ordon villager number 49.\nLink meets Ordon villager number 50.\nLink meets Ordon villager number 51.\nLink meets Ordon villager number 52.\nLink meets Ordon villager number 53.\nLink meets O",
+      "role": "user"
+     }
+    ],
+    "override": {
+     "think": 1
+    }
+   }
+  ],
+  "events": [
+   [
+    "total",
+    3,
+    0
+   ],
+   [
+    "step",
+    0,
+    "Preparing",
+    1
+   ],
+   [
+    "progress",
+    1
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 1/3",
+    1
+   ],
+   [
+    "progress",
+    2
+   ],
+   [
+    "step",
+    1,
+    "Processing chunk 2/3",
+    1
+   ],
+   [
+    "error",
+    "Failed to parse AI response as JSON: Expecting value: line 1 column 1 (char 0)",
+    null
+   ],
+   [
+    "finished"
+   ]
+  ]
+ }
+}

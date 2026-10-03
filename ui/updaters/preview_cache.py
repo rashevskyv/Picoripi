@@ -2,6 +2,7 @@
 from typing import Optional, Any
 from collections import OrderedDict
 from PyQt6.QtCore import QTimer
+from utils.thread_utils import single_shot
 
 class PreviewCache:
     """Manages LRU caching and background pre-caching of text representation lines for preview."""
@@ -187,6 +188,11 @@ class PreviewCache:
 
     def _cache_next_idle_block(self):
         """Cache next block in background using time-slicing (10ms budget)."""
+        from PyQt6 import sip
+        if self._idle_timer is not None and sip.isdeleted(self._idle_timer):
+            # The window that owned the timer is gone: nothing left to cache for.
+            self._idle_timer = None
+            return
         if not getattr(self.mw, 'preview_enabled', True):
             self.cancel_idle_caching()
             return
@@ -205,14 +211,14 @@ class PreviewCache:
 
             if block_idx < 0 or block_idx >= len(self.mw.data_store.data):
                 # Skip invalid blocks
-                QTimer.singleShot(0, self._cache_next_idle_block)
+                single_shot(0, self.mw, self._cache_next_idle_block)
                 return
 
             cache_key = self.get_cache_key(block_idx, None)
             block_data = self.mw.data_store.data[block_idx]
             if not isinstance(block_data, list):
                 # Skip invalid data
-                QTimer.singleShot(0, self._cache_next_idle_block)
+                single_shot(0, self.mw, self._cache_next_idle_block)
                 return
 
             # Check if already fully cached
@@ -221,7 +227,7 @@ class PreviewCache:
                 if cache_val.get('next_index', 0) >= len(block_data):
                     self.cache.move_to_end(cache_key)
                     # Proceed to the next block immediately
-                    QTimer.singleShot(0, self._cache_next_idle_block)
+                    single_shot(0, self.mw, self._cache_next_idle_block)
                     return
 
             # Initialize state for this block

@@ -249,12 +249,20 @@ def run_with_retry_pass(
         first.cancelled = True
         return first
 
+    # The first pass already counted its failures as done, so the bar stands at
+    # the end; the retry pass reports from there instead of starting again at 1.
+    already = first.total - len(first.failed)
+    retry_progress = None
+    if on_progress is not None:
+        def retry_progress(done: int, _total: int) -> None:
+            on_progress(already + done, first.total)
+
     second = run_pool(
         first.failed,
         work,
         workers=retry_workers,
         on_result=on_result,
-        on_progress=on_progress,
+        on_progress=retry_progress,
         is_cancelled=is_cancelled,
         max_consecutive_failures=max_consecutive_failures,
     )

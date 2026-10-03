@@ -143,6 +143,13 @@ class GlossaryPromptManager:
 
         h = self._main_handler
         if h._cached_system_prompt and h._cached_glossary is not None:
+            current_path = self._current_glossary_path
+            if current_path is not None and self._glossary_manager.glossary_path == current_path:
+                # The manager already holds this file and is the authority: a Companion pull or another
+                # refresh_from_disk() updates it, not the cached copy, and reloading the copy would undo that.
+                h._cached_glossary = self._glossary_manager.get_raw_text()
+                self._update_glossary_highlighting()
+                return h._cached_system_prompt, h._cached_glossary
             self._ensure_glossary_loaded(
                 glossary_text=h._cached_glossary,
                 plugin_name=self._current_plugin_name,

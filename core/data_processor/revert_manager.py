@@ -336,19 +336,21 @@ class RevertManager:
                 blocks = self.mw.project_manager.project.blocks
                 success_all = True
 
-                project_block_to_data_blocks = {}
+                # One write per translation file, with every block in it (as the save does): several project
+                # blocks can share a file, and writing it once per block would keep only the last one.
+                file_to_data_indices = {}
+                file_to_block = {}
                 for data_b_idx, p_b_idx in self.mw.block_to_project_file_map.items():
-                    if p_b_idx not in project_block_to_data_blocks:
-                        project_block_to_data_blocks[p_b_idx] = []
-                    project_block_to_data_blocks[p_b_idx].append(data_b_idx)
+                    if p_b_idx >= len(blocks):
+                        continue
+                    path = blocks[p_b_idx].translation_file
+                    file_to_data_indices.setdefault(path, []).append(data_b_idx)
+                    file_to_block.setdefault(path, blocks[p_b_idx])
 
                 plugin_state = formats.export_state(self.mw.current_game_rules)
 
-                for p_b_idx, data_indices in project_block_to_data_blocks.items():
-                    if p_b_idx >= len(blocks): 
-                        continue
-
-                    block = blocks[p_b_idx]
+                for path, data_indices in file_to_data_indices.items():
+                    block = file_to_block[path]
                     trans_path = self.mw.project_manager.get_absolute_path(block.translation_file, is_translation=True)
 
                     file_data_list = [self.mw.data_store.data[d_idx] for d_idx in data_indices]

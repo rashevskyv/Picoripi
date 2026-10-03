@@ -1,4 +1,4 @@
-"""Replace tags with placeholders before an AI request and restore them after."""
+"""Restore force aliases and tag aliases in AI output; the prepare step is a no-op kept for compatibility."""
 from __future__ import annotations
 import re
 from typing import Dict, Optional, Tuple

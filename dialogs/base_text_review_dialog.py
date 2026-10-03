@@ -1,4 +1,4 @@
-"""Base three-panel dialog for reviewing text (spellcheck, search review)."""
+"""Base three-panel dialog for reviewing text item by item; SpellcheckDialog builds on it."""
 # Base class for specialized text review dialogs (Spellcheck, Search, Glossary)
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QSplitter, QDialogButtonBox, QWidget, QApplication, QProgressBar)

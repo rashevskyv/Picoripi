@@ -425,7 +425,9 @@ class ActionsMixin:
         project_mgr = getattr(parent, "project_manager", None)
         project_obj = getattr(project_mgr, "project", None)
         project_name = getattr(project_obj, "name", "DefaultProject") if project_obj else "DefaultProject"
-        glossary_mgr = getattr(parent, "glossary_manager", None)
+        # The project's glossary lives on the translation handler, not on MainWindow itself.
+        glossary_handler = getattr(getattr(parent, "translation_handler", None), "glossary_handler", None)
+        glossary_mgr = getattr(glossary_handler, "glossary_manager", None)
         glossary_path = getattr(glossary_mgr, "glossary_path", None)
 
         if selected == smart_sync_action:
@@ -474,7 +476,6 @@ class ActionsMixin:
                 if ok:
                     if glossary_mgr:
                         glossary_mgr.refresh_from_disk()
-                    glossary_handler = getattr(parent, "glossary_handler", None)
                     if glossary_handler and hasattr(glossary_handler, "refresh_open_dialog"):
                         glossary_handler.refresh_open_dialog()
                     QMessageBox.information(

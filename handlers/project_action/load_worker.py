@@ -41,6 +41,10 @@ class ProjectLoadWorker(WorkerThread):
 
             total_blocks = len(self.blocks)
 
+            # Each source file is parsed once: the blocks of a file split into several project blocks share
+            # it, and a plugin that records something per parsed block (Pokemon keys) must see every block once.
+            parsed_sources = {}
+
             # Load block source data
             for project_block_idx, block in enumerate(self.blocks):
                 if self.isInterruptionRequested():
@@ -70,8 +74,13 @@ class ProjectLoadWorker(WorkerThread):
 
                 file_content = None
                 error = None
+                source_key = (archive_rel_path, inner_path) if is_archive else block.source_file
 
-                if is_archive:
+                cached = parsed_sources.get(source_key)
+
+                if cached is not None:
+                    file_content = cached
+                elif is_archive:
                     try:
                         container = self.project_manager.get_archive_container(archive_rel_path, is_translation=False)
                         file_content = formats.decode(self.current_game_rules, inner_path, container.read_file(inner_path))
@@ -85,10 +94,13 @@ class ProjectLoadWorker(WorkerThread):
                         error = "File does not exist"
 
                 if not error and file_content is not None:
-                    if not self.current_game_rules:
+                    if cached is not None:
+                        parsed_data, names = cached
+                    elif not self.current_game_rules:
                         parsed_data, names = [], {}
                     else:
                         parsed_data, names = self.current_game_rules.load_data_from_json_obj(file_content)
+                    parsed_sources[source_key] = (parsed_data, names)
 
                     if block.internal_key:
                         sub_idx = -1

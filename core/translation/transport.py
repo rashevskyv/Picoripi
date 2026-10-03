@@ -246,15 +246,70 @@ class CircuitBreaker:
                 self._consecutive = 0
 
 
-def run_cancellable(fn: Callable[[], Any], is_cancelled: Optional[Callable[[], bool]], poll: float = 0.1) -> Any:
+class AbortableSession(requests.Session):
+    """A session whose open sockets can be shut down from another thread.
+
+    Closing a ``requests`` session leaves an in-flight read running (measured:
+    a 4 s reply still took 4 s), and the server never learns the client left.
+    Shutting the socket down ends the read at once and closes the connection,
+    which a server such as the Web2API proxy sees and stops working on.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._sockets: list = []
+        self._sockets_lock = threading.Lock()
+        sockets, lock = self._sockets, self._sockets_lock
+
+        from urllib3.connection import HTTPConnection, HTTPSConnection
+        from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+
+        def tracked(base):
+            class Tracked(base):
+                def connect(self):
+                    super().connect()
+                    with lock:
+                        sockets.append(self.sock)
+            return Tracked
+
+        class Pool(HTTPConnectionPool):
+            ConnectionCls = tracked(HTTPConnection)
+
+        class SecurePool(HTTPSConnectionPool):
+            ConnectionCls = tracked(HTTPSConnection)
+
+        for adapter in self.adapters.values():
+            adapter.poolmanager.pool_classes_by_scheme = {"http": Pool, "https": SecurePool}
+
+    def abort(self) -> None:
+        """Shut down every socket this session opened; safe from any thread."""
+        import socket
+        with self._sockets_lock:
+            sockets, self._sockets[:] = list(self._sockets), []
+        for sock in sockets:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                sock.close()
+            except OSError:
+                pass
+
+
+def run_cancellable(
+    fn: Callable[[], Any],
+    is_cancelled: Optional[Callable[[], bool]],
+    poll: float = 0.1,
+    on_cancel: Optional[Callable[[], None]] = None,
+) -> Any:
     """Run blocking ``fn`` so that a cancel does not have to wait for it.
 
-    A request that is waiting for the server's answer cannot be interrupted
-    from another thread: closing the ``requests`` session leaves the in-flight
-    read running (measured: a 4 s reply still took 4 s). So the call runs on a
-    helper thread and the caller polls ``is_cancelled``; on cancel the caller
-    raises ``CANCELLED`` at once and the helper is left to finish and be
-    discarded. The server still completes the abandoned request.
+    The call runs on a helper thread and the caller polls ``is_cancelled``; on
+    cancel the caller raises ``CANCELLED`` at once and the helper is discarded.
+    ``on_cancel`` (e.g. ``AbortableSession.abort``) is called first, so the
+    request's connection is closed and the server stops working on it;
+    without it the server still completes the abandoned request.
 
     Without ``is_cancelled`` this is a plain call.
     """
@@ -273,6 +328,8 @@ def run_cancellable(fn: Callable[[], Any], is_cancelled: Optional[Callable[[], b
     while thread.is_alive():
         thread.join(poll)
         if thread.is_alive() and is_cancelled():
+            if on_cancel is not None:
+                on_cancel()
             raise TransportError("Cancelled.", kind=ErrorKind.CANCELLED)
     if "error" in outcome:
         raise outcome["error"]

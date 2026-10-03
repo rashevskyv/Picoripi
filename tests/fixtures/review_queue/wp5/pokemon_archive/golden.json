@@ -1,0 +1,83 @@
+{
+ "two_files": {
+  "names": [
+   "A_lab",
+   "Z_town",
+   "text_b"
+  ],
+  "after_save": {
+   "text_b.json": "{\n    \"text_b\": {\n        \"l9\": \"Welcome, trainer!\",\n        \"l2\": \"Thank you!\"\n    }\n}"
+  },
+  "snapshot": {
+   "plugin_original_keys": [
+    [
+     "l9",
+     "l2"
+    ],
+    [
+     "t3",
+     "t1"
+    ],
+    [
+     "l9",
+     "l2"
+    ],
+    [
+     "t3",
+     "t1"
+    ],
+    [
+     "m5",
+     "m0"
+    ]
+   ]
+  },
+  "after_session": {
+   "text_a.json": "{\n    \"A_lab\": {\n        \"l9\": \"PROF. OAK: Hello there!\\\\nWelcome to the world of POKeMON!\",\n        \"l2\": \"Edited after the session restore\"\n    },\n    \"Z_town\": {\n        \"t3\": \"Welcome to PALLET TOWN!\",\n        \"t1\": \"Shades of your journey await!\"\n    }\n}",
+   "text_b.json": "{\n    \"text_b\": {\n        \"l9\": \"Welcome, trainer!\",\n        \"l2\": \"Thank you!\"\n    }\n}"
+  },
+  "after_revert": {
+   "text_a.json": "{\n    \"Z_town\": {\n        \"t3\": \"Welcome to PALLET TOWN!\",\n        \"t1\": \"Shades of your journey await!\"\n    }\n}",
+   "text_b.json": "{\n    \"text_b\": {\n        \"l9\": \"Welcome!\\\\nMay I help you?\",\n        \"l2\": \"Thank you!\"\n    }\n}"
+  }
+ },
+ "single_block": {
+  "names": [
+   "text_c"
+  ],
+  "after_save": {
+   "text_c.json": "{\n    \"text_c\": {\n        \"r7\": \"Welcome, trainer!\",\n        \"r2\": \"Tall grass\\\\nahead.\"\n    }\n}"
+  },
+  "snapshot": {
+   "plugin_original_keys": [
+    [
+     "r7",
+     "r2"
+    ]
+   ]
+  },
+  "after_session": {
+   "text_c.json": "{\n    \"text_c\": {\n        \"r7\": \"Welcome, trainer!\",\n        \"r2\": \"Edited after the session restore\"\n    }\n}"
+  },
+  "after_revert": {
+   "text_c.json": "{\n    \"text_c\": {\n        \"r7\": \"Route 1\",\n        \"r2\": \"Tall grass\\\\nahead.\"\n    }\n}"
+  }
+ },
+ "archive_members": {
+  "zelda_mc:strings.json": [],
+  "plain_text:strings.txt": [
+   []
+  ],
+  "pokemon_fr:p.json": [],
+  "zelda_bmg:zel_rq.bmg": [
+   [
+    "",
+    "Hello there, traveller!\nWelcome to the village.",
+    "This is the line\nthat {escape:255:000001}will{escape:255:000000} be edited.",
+    "Sign: Ordon Spring",
+    "You got the {escape:255:000001}Slingshot{escape:255:000000}!\nUse it with care.",
+    "Last message."
+   ]
+  ]
+ }
+}

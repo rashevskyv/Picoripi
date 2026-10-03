@@ -36,9 +36,6 @@ class EditMixin:
         if edited_edit and hasattr(edited_edit, 'highlightManager'):
             edited_edit.highlightManager.clearAllProblemHighlights()
         
-        if hasattr(self.mw, 'undo_manager'):
-            self.mw.undo_manager.begin_group()
-            
         self.ui_updater.update_block_item_text_with_problem_count(block_idx)
 
             
@@ -58,6 +55,10 @@ class EditMixin:
             parsed_strings.pop()
             
         if not parsed_strings: QMessageBox.information(self.mw, tr('Paste'), tr('No valid segments found.')); return
+
+        # Opened only now: the early returns above must not leave a group that swallows every later edit.
+        if hasattr(self.mw, 'undo_manager'):
+            self.mw.undo_manager.begin_group()
         
         original_block_len = len(self.mw.data_store.data[block_idx])
         successfully_processed_count = 0

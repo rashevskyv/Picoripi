@@ -1,0 +1,99 @@
+{
+ "_physical_block_idx": -1,
+ "active_warning_filters": [],
+ "block_names": {
+  "0": "a_lf",
+  "1": "b_crlf"
+ },
+ "block_to_project_file_map": {
+  "0": 0,
+  "1": 1
+ },
+ "chapter_mappings": [],
+ "current_block_idx": -1,
+ "current_category_name": null,
+ "current_chapter_id": null,
+ "current_character_name": null,
+ "current_string_idx": -1,
+ "current_view_kind": "physical",
+ "data": [
+  [
+   "Hello there",
+   "World",
+   "Good bye"
+  ],
+  [
+   "First line",
+   "Second line",
+   "Third line"
+  ]
+ ],
+ "edited_data": {},
+ "edited_file_data": [
+  [
+   "Hello there",
+   "Світ",
+   "Good bye"
+  ],
+  [
+   "Перший рядок",
+   "Second line",
+   "Third line"
+  ]
+ ],
+ "edited_json_path": "<ROOT>/text/translation/a_lf.txt",
+ "hide_categorized": false,
+ "hide_empty_strings": false,
+ "hide_original_tags": false,
+ "hide_translated": false,
+ "hide_translation_tags": false,
+ "highlight_categorized": false,
+ "json_path": "<ROOT>/text/source/a_lf.txt",
+ "last_selected_block_index": -1,
+ "last_selected_string_index": -1,
+ "problems_per_subline": {},
+ "redo_stack": [],
+ "selected_string_indices": [],
+ "show_overrides_only": false,
+ "show_unsaved_blocks_only": false,
+ "show_unsaved_only": false,
+ "show_warnings_only": false,
+ "ui_tree_state": {
+  "expanded_ids": [],
+  "expanded_locators": [],
+  "selected_id": null,
+  "selected_locator": null,
+  "selected_physical_block_idx": -1,
+  "selected_string_idx": -1,
+  "selected_type": null
+ },
+ "undo_stack": [
+  {
+   "__class__": "UndoAction",
+   "_new_data": "Світ",
+   "_old_data": "World",
+   "action_type": "TEXT_EDIT",
+   "block_idx": 0,
+   "cursor_pos": null,
+   "metadata": null,
+   "string_idx": 1
+  },
+  {
+   "__class__": "UndoAction",
+   "_new_data": "Перший рядок",
+   "_old_data": "First line",
+   "action_type": "TEXT_EDIT",
+   "block_idx": 1,
+   "cursor_pos": null,
+   "metadata": null,
+   "string_idx": 0
+  }
+ ],
+ "unsaved_block_indices": [
+  0,
+  1
+ ],
+ "unsaved_changes": false,
+ "version": 1,
+ "virtual_block_cache": {}
+}

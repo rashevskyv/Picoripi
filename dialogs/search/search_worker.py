@@ -17,10 +17,15 @@ class SearchWorker(WorkerThread):
         super().__init__()
         self.mode = mode
         self.params = params
-        self._is_cancelled = False
+        self._cancel_requested = False
 
     def cancel(self):
-        self._is_cancelled = True
+        self._cancel_requested = True
+
+    @property
+    def _is_cancelled(self) -> bool:
+        # The exit wait asks every thread with requestInterruption(), not cancel().
+        return self._cancel_requested or self.isInterruptionRequested()
 
     def run(self):
         try:

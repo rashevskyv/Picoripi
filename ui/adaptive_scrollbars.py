@@ -273,6 +273,10 @@ class AdaptiveScrollBarManager(QObject):
     def __init__(self, app: QApplication):
         super().__init__(app)
         self.app = app
+        # Areas waiting for the next event-loop turn, by id. An area Qt destroys
+        # in the meantime leaves through its ``destroyed`` signal: sip cannot
+        # tell that a Qt-owned widget is gone, so ``_is_deleted`` is not enough.
+        self._pending: dict = {}
 
     def refresh(self) -> None:
         for widget in QApplication.topLevelWidgets():
@@ -291,7 +295,27 @@ class AdaptiveScrollBarManager(QObject):
         return super().eventFilter(obj, event)
 
     def _configure_later(self, area: QAbstractScrollArea) -> None:
-        single_shot(0, area, lambda area=area: self._configure_area(area))
+        # The timer belongs to the manager, not to the area: this runs from the
+        # area's ChildAdded/Polish, possibly while it is still being built, and
+        # a timer parented to it then broke the first event-loop turn (a
+        # TypeError, or an access violation).
+        key = id(area)
+        if key in self._pending:
+            return
+        self._pending[key] = area
+
+        def forget(*_args) -> None:
+            if self._pending.get(key) is area:
+                del self._pending[key]
+
+        area.destroyed.connect(forget)
+        if len(self._pending) == 1:
+            single_shot(0, self, self._configure_pending)
+
+    def _configure_pending(self) -> None:
+        pending, self._pending = self._pending, {}
+        for area in pending.values():
+            self._configure_area(area)
 
     def _configure_tree(self, root: QWidget) -> None:
         if _is_deleted(root):

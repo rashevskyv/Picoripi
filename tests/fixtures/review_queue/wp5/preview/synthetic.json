@@ -1,0 +1,120 @@
+{
+ "auto_00_dialogue": {
+  "label": "Auto: Dialogue",
+  "bar_visible": true
+ },
+ "auto_01_wood_sign": {
+  "label": "Auto: Wooden sign",
+  "bar_visible": true
+ },
+ "auto_02_stone_sign": {
+  "label": "Auto: Stone sign",
+  "bar_visible": true
+ },
+ "auto_03_item": {
+  "label": "Auto: Item get",
+  "bar_visible": true
+ },
+ "auto_04_item_no": {
+  "label": "Auto: Item get",
+  "bar_visible": true
+ },
+ "auto_05_place": {
+  "label": "Auto: Location name",
+  "bar_visible": true
+ },
+ "auto_06_subtitles": {
+  "label": "Auto: Subtitles",
+  "bar_visible": true
+ },
+ "auto_07_boss": {
+  "label": "Auto: Boss name",
+  "bar_visible": true
+ },
+ "auto_08_howl": {
+  "label": "Auto: Howling stone",
+  "bar_visible": true
+ },
+ "auto_09_staff": {
+  "label": "Auto: Staff credits",
+  "bar_visible": true
+ },
+ "auto_10_midna": {
+  "label": "Auto: Midna",
+  "bar_visible": true
+ },
+ "auto_11_spirit": {
+  "label": "Auto: Light spirit",
+  "bar_visible": true
+ },
+ "forced_01_0": {
+  "label": "Dialogue",
+  "bar_visible": true
+ },
+ "forced_02_2": {
+  "label": "Wooden sign",
+  "bar_visible": true
+ },
+ "forced_03_6": {
+  "label": "Stone sign",
+  "bar_visible": true
+ },
+ "forced_04_9": {
+  "label": "Item get",
+  "bar_visible": true
+ },
+ "forced_05_11": {
+  "label": "Item info",
+  "bar_visible": true
+ },
+ "forced_06_7": {
+  "label": "Staff credits",
+  "bar_visible": true
+ },
+ "forced_07_12": {
+  "label": "Location name",
+  "bar_visible": true
+ },
+ "forced_08_19": {
+  "label": "Boss name",
+  "bar_visible": true
+ },
+ "forced_09_17": {
+  "label": "Howling stone",
+  "bar_visible": true
+ },
+ "forced_10_1": {
+  "label": "Subtitles",
+  "bar_visible": true
+ },
+ "forced_11_8": {
+  "label": "Light spirit",
+  "bar_visible": true
+ },
+ "forced_12_13": {
+  "label": "Midna",
+  "bar_visible": true
+ },
+ "forced_13_14": {
+  "label": "Dialogue (green)",
+  "bar_visible": true
+ },
+ "forced_14_15": {
+  "label": "Dialogue (kanban)",
+  "bar_visible": true
+ },
+ "forced_15_16": {
+  "label": "Descriptions / save",
+  "bar_visible": true
+ },
+ "forced_16_explain": {
+  "label": "Explain",
+  "bar_visible": true
+ },
+ "wrapped": {
+  "label": "Auto: Dialogue"
+ },
+ "bar": {
+  "label_min_width": 312
+ }
+}

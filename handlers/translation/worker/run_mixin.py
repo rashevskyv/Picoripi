@@ -685,6 +685,8 @@ class AIWorkerRunMixin:
                 # The reply of this chunk, never the one left over from the chunk before.
                 resp_t = response.text if response is not None else ""
                 err_msg, updated_details = handle_ai_error(e, self.task_details, resp_t, f"chunk {i}")
+                if len(chunks) > 1:   # name the chunk as the parallel path does
+                    err_msg = f"1 of {len(chunks)} chunks failed (chunk {i + 1}); the finished chunks are kept. {err_msg}"
                 self.error.emit(err_msg, updated_details)
                 return
 

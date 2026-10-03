@@ -1,0 +1,331 @@
+{
+ "block": [
+  "Yes",
+  "Line number 1.",
+  "Line number 2.",
+  "Line number 3.",
+  "Line number 4.",
+  "Yes",
+  "Line number 6.",
+  "No",
+  "Line number 8.",
+  "Line number 9.",
+  "Yes",
+  "Line number 11.",
+  "Line number 12.",
+  "Line number 13.",
+  "No",
+  "Yes",
+  "Line number 16.",
+  "Line number 17.",
+  "Line number 18.",
+  "Line number 19.",
+  "Yes",
+  "No",
+  "Line number 22.",
+  "Line number 23.",
+  "Line number 24.",
+  "Yes",
+  "Line number 26.",
+  "Line number 27.",
+  "No",
+  "Line number 29."
+ ],
+ "chunks": [
+  [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  [
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23
+  ],
+  [
+   24,
+   25,
+   26,
+   27,
+   28,
+   29
+  ]
+ ],
+ "chunks_sent": [
+  0,
+  1,
+  2
+ ],
+ "progress_metadata": {
+  "completed_chunks": [
+   0
+  ],
+  "total_chunks": 3,
+  "source_items": [
+   {
+    "id": 0,
+    "text": "Yes"
+   },
+   {
+    "id": 1,
+    "text": "Line number 1."
+   },
+   {
+    "id": 2,
+    "text": "Line number 2."
+   },
+   {
+    "id": 3,
+    "text": "Line number 3."
+   },
+   {
+    "id": 4,
+    "text": "Line number 4."
+   },
+   {
+    "id": 5,
+    "text": "Yes"
+   },
+   {
+    "id": 6,
+    "text": "Line number 6."
+   },
+   {
+    "id": 7,
+    "text": "No"
+   },
+   {
+    "id": 8,
+    "text": "Line number 8."
+   },
+   {
+    "id": 9,
+    "text": "Line number 9."
+   },
+   {
+    "id": 10,
+    "text": "Yes"
+   },
+   {
+    "id": 11,
+    "text": "Line number 11."
+   },
+   {
+    "id": 12,
+    "text": "Line number 12."
+   },
+   {
+    "id": 13,
+    "text": "Line number 13."
+   },
+   {
+    "id": 14,
+    "text": "No"
+   },
+   {
+    "id": 15,
+    "text": "Yes"
+   },
+   {
+    "id": 16,
+    "text": "Line number 16."
+   },
+   {
+    "id": 17,
+    "text": "Line number 17."
+   },
+   {
+    "id": 18,
+    "text": "Line number 18."
+   },
+   {
+    "id": 19,
+    "text": "Line number 19."
+   },
+   {
+    "id": 20,
+    "text": "Yes"
+   },
+   {
+    "id": 21,
+    "text": "No"
+   },
+   {
+    "id": 22,
+    "text": "Line number 22."
+   },
+   {
+    "id": 23,
+    "text": "Line number 23."
+   },
+   {
+    "id": 24,
+    "text": "Line number 24."
+   },
+   {
+    "id": 25,
+    "text": "Yes"
+   },
+   {
+    "id": 26,
+    "text": "Line number 26."
+   },
+   {
+    "id": 27,
+    "text": "Line number 27."
+   },
+   {
+    "id": 28,
+    "text": "No"
+   },
+   {
+    "id": 29,
+    "text": "Line number 29."
+   }
+  ],
+  "temp_id_map": {
+   "0": [
+    0,
+    0
+   ],
+   "1": [
+    0,
+    1
+   ],
+   "2": [
+    0,
+    2
+   ],
+   "3": [
+    0,
+    3
+   ],
+   "4": [
+    0,
+    4
+   ],
+   "5": [
+    0,
+    5
+   ],
+   "6": [
+    0,
+    6
+   ],
+   "7": [
+    0,
+    7
+   ],
+   "8": [
+    0,
+    8
+   ],
+   "9": [
+    0,
+    9
+   ],
+   "10": [
+    0,
+    10
+   ],
+   "11": [
+    0,
+    11
+   ],
+   "12": [
+    0,
+    12
+   ],
+   "13": [
+    0,
+    13
+   ],
+   "14": [
+    0,
+    14
+   ],
+   "15": [
+    0,
+    15
+   ],
+   "16": [
+    0,
+    16
+   ],
+   "17": [
+    0,
+    17
+   ],
+   "18": [
+    0,
+    18
+   ],
+   "19": [
+    0,
+    19
+   ],
+   "20": [
+    0,
+    20
+   ],
+   "21": [
+    0,
+    21
+   ],
+   "22": [
+    0,
+    22
+   ],
+   "23": [
+    0,
+    23
+   ],
+   "24": [
+    0,
+    24
+   ],
+   "25": [
+    0,
+    25
+   ],
+   "26": [
+    0,
+    26
+   ],
+   "27": [
+    0,
+    27
+   ],
+   "28": [
+    0,
+    28
+   ],
+   "29": [
+    0,
+    29
+   ]
+  },
+  "custom_user_header": null,
+  "custom_user_label": null,
+  "system_prompt_override": null,
+  "session_reset_attempted": false
+ }
+}

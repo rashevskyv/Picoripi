@@ -1,0 +1,120 @@
+{
+ "auto_00_dialogue": {
+  "pixels": "a0e2c7f093e7e54a27878ba3fbacd3edec42e2d0129786616ad1b4c1f35be4ad",
+  "label": "Auto: Dialogue"
+ },
+ "auto_01_wood_sign": {
+  "pixels": "b03b27cba41c3dab7ca9885fe3691256d6b5421465113220ba9a18d0676a5cc1",
+  "label": "Auto: Wooden sign"
+ },
+ "auto_02_stone_sign": {
+  "pixels": "17a14b265d2b7598c88eb80ce8a8b1133cee15f69f5ee8ca38a07fbf8901b225",
+  "label": "Auto: Stone sign"
+ },
+ "auto_03_item": {
+  "pixels": "4cb3e0c37a896e51fef7ca478ca1b90362e6420957c34907ae78131c653b1efd",
+  "label": "Auto: Item get"
+ },
+ "auto_04_item_no": {
+  "pixels": "4ddfb29813ec46aa544c2c6b1a17b211065f6d8597bec8ef728b130bd0fdee67",
+  "label": "Auto: Item get"
+ },
+ "auto_05_place": {
+  "pixels": "319b18f8be98d62ec374e0de0418841f612cf03a8e1153f41e6fb8c65c5d812c",
+  "label": "Auto: Location name"
+ },
+ "auto_06_subtitles": {
+  "pixels": "ec856dcdb14a576df0ea4d8e823ca6dcaef31f5ae64c0abccf3e2a9c1022ac47",
+  "label": "Auto: Subtitles"
+ },
+ "auto_07_boss": {
+  "pixels": "18d8ff691b9cc9baa6f39be197813115fe06466503c036f7bb9c429fa7afa336",
+  "label": "Auto: Boss name"
+ },
+ "auto_08_howl": {
+  "pixels": "6f81157454c66921cb29bbf9a26c4a67303d700b1408afec22b0c52b9ebda186",
+  "label": "Auto: Howling stone"
+ },
+ "auto_09_staff": {
+  "pixels": "5682b2e1ff833a40f262faeb90e23a4f6ec6ed0fa176e6e18b4da13f96661ae7",
+  "label": "Auto: Staff credits"
+ },
+ "auto_10_midna": {
+  "pixels": "4d3e22c4f6051be883102a06a7c1b61f553bfcc045d78648dfa57cf37a8982ea",
+  "label": "Auto: Midna"
+ },
+ "auto_11_spirit": {
+  "pixels": "4177436208c3a066b5b596bed5642cc17c11db1e7b90f69e0a680040f9b21327",
+  "label": "Auto: Light spirit"
+ },
+ "forced_01_0": {
+  "pixels": "a0e2c7f093e7e54a27878ba3fbacd3edec42e2d0129786616ad1b4c1f35be4ad",
+  "label": "Dialogue"
+ },
+ "forced_02_2": {
+  "pixels": "be041d8ff8b4799a6fd56bb0a91c2b32b93399223a37c3ba2da039f12bdecc3d",
+  "label": "Wooden sign"
+ },
+ "forced_03_6": {
+  "pixels": "03576233fc6e47518d4c6b2d1b0b7b6d715d2d289e55776241dab1413f7db2b1",
+  "label": "Stone sign"
+ },
+ "forced_04_9": {
+  "pixels": "a5b4b596025e39ea054a43cc7b221dcae0fa7607e5c7d0468942978905e5f0ad",
+  "label": "Item get"
+ },
+ "forced_05_11": {
+  "pixels": "0375f5a408e05819b29c66a3d7937e5264844becb1ebbd37af707363ec069ca5",
+  "label": "Item info"
+ },
+ "forced_06_7": {
+  "pixels": "9d2cee3c3947395e9603249d3a635c6784eddf9d5ca990540c3a917b6297f8eb",
+  "label": "Staff credits"
+ },
+ "forced_07_12": {
+  "pixels": "bad98360408b5ca8ced4364bfdca0fbc247fb80021542a2aaa822f190a3f347b",
+  "label": "Location name"
+ },
+ "forced_08_19": {
+  "pixels": "cf980125363aeda5f98741e7c49245e548d64783f26a7395d3d22a36b433c6a7",
+  "label": "Boss name"
+ },
+ "forced_09_17": {
+  "pixels": "4c7ed189f4385538e1ca90eb6ebb60cb8c8530025fe6c1564492512ebcd8cea6",
+  "label": "Howling stone"
+ },
+ "forced_10_1": {
+  "pixels": "7d1dcbd561f55d7014c28472233b556279ff584b01276adfdbe8524df90ffe64",
+  "label": "Subtitles"
+ },
+ "forced_11_8": {
+  "pixels": "a565fc9738f18aec2295016fc5a32ef29c034fe5d5fe763174a7402e60a287f8",
+  "label": "Light spirit"
+ },
+ "forced_12_13": {
+  "pixels": "73bc75a312c5b45de53aa47d1d3fd9d745adcc16650beea9c7099bf2227bc54e",
+  "label": "Midna"
+ },
+ "forced_13_14": {
+  "pixels": "d51fa6491f8e15403041d4b801333104942e813ccf58656df9427e58619c17f4",
+  "label": "Dialogue (green)"
+ },
+ "forced_14_15": {
+  "pixels": "9eb96cb800261972ed40de44f11a77a8474eedea4b14371211fcc1269a7763d0",
+  "label": "Dialogue (kanban)"
+ },
+ "forced_15_16": {
+  "pixels": "e191ef3a9e5e27b618f933840e6b804279458f666d58a912c98df65edcab9b93",
+  "label": "Descriptions / save"
+ },
+ "forced_16_explain": {
+  "pixels": "c48149c87632b24529b07d360307d04d75babe48f89aa9799c00bbb0a132c946",
+  "label": "Explain"
+ },
+ "wrapped": {
+  "label": "Auto: Dialogue"
+ },
+ "bar": {
+  "label_min_width": 312
+ }
+}

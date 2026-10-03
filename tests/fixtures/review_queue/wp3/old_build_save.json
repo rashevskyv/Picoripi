@@ -1,0 +1,36 @@
+{
+  "input": [
+    {
+      "original": "Rupee",
+      "translation": "Рупія",
+      "notes": "",
+      "section": "Items",
+      "profiled": false,
+      "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "original": "Zora",
+      "id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "deleted_at": "2026-10-02T10:00:00+00:00"
+    }
+  ],
+  "entries_shown": [
+    "Rupee"
+  ],
+  "saved_after_one_addition": [
+    {
+      "original": "Rupee",
+      "translation": "Рупія",
+      "notes": "",
+      "section": "Items",
+      "profiled": false
+    },
+    {
+      "original": "Goron",
+      "translation": "Ґорон",
+      "notes": "",
+      "section": null,
+      "profiled": false
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-"""Highlight API of the line-numbered editor: problems, warnings, tags, search matches."""
+"""Highlight API of the line-numbered editor: problem, warning and width lines, tags, preview selection."""
 from PyQt6.QtGui import QTextBlock
 from typing import Optional
 
