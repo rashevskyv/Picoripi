@@ -75,3 +75,14 @@ def test_a_reflow_may_merge_lines_the_translation_does_not_need():
 def test_a_reflow_keeps_page_breaks_and_the_trailing_newline(translated):
     with pytest.raises(TranslationLayoutError):
         validate_translation_layout("First line\n\nThird line\n", translated, allow_reflow=True)
+
+
+def test_a_line_left_in_the_source_language_is_refused():
+    from core.translation.layout_contract import check_translated
+
+    source = "You bought a {Color:Red}slice of pie{Color:White}! One bite,\nand you're in heaven!"
+    with pytest.raises(TranslationLayoutError, match="item 12 is not translated"):
+        check_translated(source, "You bought a {Color:Red}шматочок пирога{Color:White}! One bite,\nand you're in heaven!",
+                         item_id=12)
+    check_translated(source, "Ти купив {Color:Red}шматочок пирога{Color:White}! Один шматок,\nі ти в раю!")
+    check_translated("Hello, Link!", "Hello, Link!")            # too short to judge: names, greetings, codes

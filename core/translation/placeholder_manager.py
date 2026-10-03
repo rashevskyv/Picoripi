@@ -44,7 +44,9 @@ class AIPlaceholderManager:
         if default_tag_mappings:
             sorted_mappings = sorted(default_tag_mappings.items(), key=lambda item: len(item[0]), reverse=True)
             for alias, original_tag in sorted_mappings:
-                if alias and original_tag:
+                # Only aliases that are tags themselves. A bare word ("player", which Minish Cap maps to
+                # "original" for its tag checker) would be replaced inside words and tags: {Player} -> {original}.
+                if alias and original_tag and alias[0] in "{[" and alias[-1] in "}]":
                     pattern = re.compile(re.escape(alias), re.IGNORECASE)
                     translated_text = pattern.sub(original_tag, translated_text)
 

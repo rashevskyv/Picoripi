@@ -152,7 +152,9 @@ def test_with_the_editor_off_nothing_is_composed_before_the_run(qtbot, monkeypat
 
 def test_the_editor_review_pass_gets_id_text_translation_triples_and_its_reply_is_applied(
         qtbot, monkeypatch, tmp_path, server):
-    project = make_project(tmp_path, {"a": ["Hello there.", "Second line\nwith two lines."]})
+    # Short lines: the fake "UA ..." translation keeps the English words, which a longer line would have
+    # refused as untranslated (check_translated).
+    project = make_project(tmp_path, {"a": ["Hello there.", "Second line\nbelow."]})
     mw = open_window(qtbot, monkeypatch, project, server, editor_review_enabled=True)
     review = {}
 
@@ -171,11 +173,11 @@ def test_the_editor_review_pass_gets_id_text_translation_triples_and_its_reply_i
         {"id": 0, "text": "Hello there.", "translation": "UA Hello there."},
         # The source as the run holds it (the data form, as before the audit), not the editor form the
         # draft request showed.
-        {"id": 1, "text": "Second line\\nwith two lines.", "translation": "UA Second line\nUA with two lines."},
+        {"id": 1, "text": "Second line\\nbelow.", "translation": "UA Second line\nUA below."},
     ]
     assert review["data"]["output"].startswith('Return {"translated_strings": [{"id": ..., "translation": "..."}]}')
     assert review["system"] == mw.translation_handler.glossary_handler.load_editor_review_prompt()
-    assert [row(mw, 0, 0), row(mw, 0, 1)] == ["ED Hello there.", "ED Second line\\nED with two lines."]
+    assert [row(mw, 0, 0), row(mw, 0, 1)] == ["ED Hello there.", "ED Second line\\nED below."]
 
 
 def test_an_unusable_editor_review_keeps_the_draft(qtbot, monkeypatch, tmp_path, server):

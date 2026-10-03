@@ -122,7 +122,7 @@ class BatchMixin:
             rows = data[block]
             label = f" (block {self._get_block_label(block)})" if len(spans) > 1 else ""
             for title, indices in (
-                ("BEFORE", range(max(0, first - k), first)),
+                ("BEFORE", range(max(0, first - k), min(first, len(rows)))),
                 ("AFTER", range(last + 1, min(len(rows), last + k + 1))),
             ):
                 if not indices:

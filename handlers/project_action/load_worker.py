@@ -8,6 +8,15 @@ from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread
 
 
+def _sub_block_index(names, count, internal_key) -> int:
+    """Which parsed block a project block split from a file is. The sync names the blocks a plugin leaves
+    unnamed "Block {i}" (``core/project/blocks_mixin.py``), so the lookup does the same."""
+    for index in range(count):
+        if names.get(str(index), f"Block {index}") == internal_key:
+            return index
+    return -1
+
+
 class ProjectLoadWorker(WorkerThread):
     """Worker thread for loading project files asynchronously."""
     finished_with_result = pyqtSignal(dict)
@@ -103,11 +112,7 @@ class ProjectLoadWorker(WorkerThread):
                     parsed_sources[source_key] = (parsed_data, names)
 
                     if block.internal_key:
-                        sub_idx = -1
-                        for i, name in names.items():
-                            if name == block.internal_key:
-                                sub_idx = int(i)
-                                break
+                        sub_idx = _sub_block_index(names, len(parsed_data), block.internal_key)
 
                         if sub_idx != -1 and sub_idx < len(parsed_data):
                             data_block_idx = len(data)
@@ -206,10 +211,7 @@ class ProjectLoadWorker(WorkerThread):
                             _, trans_names = self.current_game_rules.load_data_from_json_obj(file_content)
                         except Exception:
                             trans_names = {}
-                        for i_n, name_n in trans_names.items():
-                            if name_n == block.internal_key:
-                                sub_idx_edit = int(i_n)
-                                break
+                        sub_idx_edit = _sub_block_index(trans_names, len(parsed_edited_data), block.internal_key)
                         if sub_idx_edit != -1 and sub_idx_edit < len(parsed_edited_data):
                             edited_file_data.append(parsed_edited_data[sub_idx_edit])
                         elif parsed_edited_data:

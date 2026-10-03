@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from math import ceil
 from typing import Any, Optional
 
@@ -115,3 +116,25 @@ def validate_translation_layout(
             f"received {actual['window_count']}"
         )
     return translated
+
+
+_WORD = re.compile(r"[^\W\d_]{3,}")
+_TAG = re.compile(r"\{[^}]*\}|\[[^\]]*\]")
+
+
+def check_translated(source_text: Any, translation: Any, *, item_id: Any = None) -> None:
+    """Raise when a reply leaves a line in the source language (live run 2026-10-03: "You bought a шматочок
+    пирога! One bite, and you're in heaven!" -- only the glossary term was translated).
+
+    Untranslated = the line has at least four source words of 3+ letters and more than half of them are still
+    there word for word. Tags are left out; a line of names or codes is too short to count.
+    """
+    source_words = [w.casefold() for w in _WORD.findall(_TAG.sub(" ", str(source_text or "")))]
+    if len(source_words) < 4:
+        return
+    kept = set(w.casefold() for w in _WORD.findall(_TAG.sub(" ", str(translation or ""))))
+    left = sum(1 for word in source_words if word in kept)
+    if left * 2 > len(source_words):
+        label = f"item {item_id}" if item_id is not None else "a line"
+        raise TranslationLayoutError(
+            f"{label} is not translated: {left} of {len(source_words)} source words are still in it")

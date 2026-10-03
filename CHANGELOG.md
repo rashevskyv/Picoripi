@@ -2,6 +2,10 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- AI translation refuses a reply that leaves a line in the source language (more than half of four or more source words still there): the model sometimes translated only the glossary term («You bought a шматочок пирога! One bite…»); the chunk is retried with that reason.
+- Minish Cap: `{Player}` in a reply no longer turns into `{original}` — restoring tag aliases now skips aliases that are bare words (the plugin maps "player" → "original" for its tag checker, and the case-insensitive restore hit "Player" inside the tag).
+- Projects: a file split into blocks the plugin leaves unnamed (Minish Cap's list of lists) loads every block instead of 80 empty "(Missing)" ones; the prompt's neighbouring-rows section no longer raises for a row past the end of its block.
+
 - AI translation accepts a reply that uses more or fewer lines than the source, as long as page breaks and the trailing newline stay; a reflowed reply with a line wider than the window has its page re-wrapped by the game's width rules. The strict line count lost a whole chunk per merged line (four attempts each) on the real model; two Twilight Princess sections now finish 84/87 and 48/48 lines with no error.
 
 - Glossary rows for a request are found in the text the model gets, after force aliases: a line with the hero's tag now brings the `Link → Лінк` row. Without it the model spelled the name after the Russian reference («Линка» in 10 of 48 lines in one live run; 0–2 lines after the fix).

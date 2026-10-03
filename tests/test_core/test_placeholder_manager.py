@@ -48,3 +48,14 @@ def test_placeholder_manager_restore_placeholders_force_aliases():
             [mock_mapping],
             {"sword": "Меч"}
         )
+
+
+def test_a_bare_word_alias_does_not_rewrite_tags_or_words():
+    """Minish Cap maps "player" -> "original" for its tag checker; restoring it turned {Player} into {original}."""
+    from core.translation.placeholder_manager import AIPlaceholderManager
+
+    restored = AIPlaceholderManager().restore_placeholders(
+        "Гей! {Player}! Player one, {color:red}ready{color:white}.", None,
+        default_tag_mappings={"player": "original", "{color:red}": "{Color:Red}", "{color:white}": "{Color:White}"})
+
+    assert restored == "Гей! {Player}! Player one, {Color:Red}ready{Color:White}."
