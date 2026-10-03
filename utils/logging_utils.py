@@ -1,4 +1,5 @@
 """Logging setup: categories, rotating file handler, duplicate filter, AI traffic log."""
+import os
 import sys
 import logging
 import time
@@ -8,7 +9,8 @@ from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
 project_root = Path(__file__).resolve().parent.parent
-default_log_file_path = str(project_root / 'app_debug.txt')
+# PICORIPI_LOG_FILE moves the log elsewhere (the test suite does, before the import below truncates the file).
+default_log_file_path = os.environ.get("PICORIPI_LOG_FILE") or str(project_root / 'app_debug.txt')
 log_file_path = default_log_file_path
 
 

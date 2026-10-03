@@ -97,6 +97,7 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 | `locales/uk.json` | Ukrainian UI catalog. Add a key here whenever you add `tr("...")` in code |
 | `.env` | Optional `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | UI filters, navigation, unsaved edits, undo. **Show Unsaved Only** is forced off on restore |
+| `~/.picoripi/session_state.json` | Tree expansion, selection and cursor per project (read once from the old `session_state.json` in the program folder) |
 | `project.uiproj` | Project record: name, plugin folder, source/translation paths, bookmarks, `reference_patch_path` |
 | plugin `config.json` | Defaults for that game |
 | plugin `aliases.json` | Extra tag aliases |

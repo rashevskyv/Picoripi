@@ -2,20 +2,24 @@
 from utils.atomic_io import atomic_write_json
 import json
 from pathlib import Path
-from typing import Dict, Any, Union
+from typing import Dict, Any, Optional, Union
 from utils.logging_utils import log_error
 
 class SessionStateManager:
     """Manages the UI session state (expanded nodes, selection, etc.)"""
-    def __init__(self, settings_file_path: Union[str, Path] = "session_state.json"):
-        """Initialize a new instance."""
+    def __init__(self, settings_file_path: Union[str, Path] = "session_state.json",
+                 legacy_file_path: Optional[Union[str, Path]] = None):
+        """``legacy_file_path`` is read once when ``settings_file_path`` does not exist yet; saves go to the new path."""
         self.settings_file_path = settings_file_path
+        self.legacy_file_path = legacy_file_path
         self._state: Dict[str, Any] = {}
         self.load()
 
     def load(self) -> None:
         """Load ."""
         p_file = Path(self.settings_file_path)
+        if not p_file.exists() and self.legacy_file_path is not None:
+            p_file = Path(self.legacy_file_path)
         if not p_file.exists():
             self._state = {}
             return

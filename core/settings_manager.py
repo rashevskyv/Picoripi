@@ -11,6 +11,9 @@ from core.settings.recent_projects_manager import RecentProjectsManager
 from core.settings.session_state_manager import SessionStateManager
 from utils.constants import SETTINGS_FILE_PATH, SETTINGS_DIR
 
+# Before 0.3.150 the session state was written to the working directory, which run.bat sets to the repository root.
+LEGACY_SESSION_STATE_PATH = Path(__file__).resolve().parent.parent / "session_state.json"
+
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
@@ -32,7 +35,7 @@ class SettingsManager:
         self.plugin_settings = PluginSettings(main_window)
         self.font_map_loader = FontMapLoader(main_window)
         self.recent_projects_manager = RecentProjectsManager(main_window)
-        self.session_state = SessionStateManager()
+        self.session_state = SessionStateManager(SETTINGS_DIR / "session_state.json", LEGACY_SESSION_STATE_PATH)
 
     def get(self, key, default=None):
         """Get a setting value from the centralized storage."""

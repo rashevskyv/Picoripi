@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/settings
-tokens: 1.8k
+tokens: 1.9k
 ---
 # Налаштування
 
@@ -96,6 +96,7 @@ Enable spell checking · Dictionary Language · **Manage Dictionaries…** (за
 | `locales/uk.json` | Український каталог UI. Новий `tr("...")` у коді одразу додає сюди той самий ключ |
 | `.env` | Необов’язково `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | Фільтри UI, навігація, незбережені правки, undo. **Show Unsaved Only** при відновленні примусово вимикається |
+| `~/.picoripi/session_state.json` | Розгорнуті вузли дерева, вибір і курсор для кожного проєкту (старий `session_state.json` у теці програми читається один раз) |
 | `project.uiproj` | Запис проєкту: ім’я, тека плагіна, шляхи source/translation, закладки, `reference_patch_path` |
 | `config.json` плагіна | Типові значення для цієї гри |
 | `aliases.json` плагіна | Додаткові аліаси тегів |

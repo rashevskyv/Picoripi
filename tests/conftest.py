@@ -1,7 +1,13 @@
-import pytest
-import gc
+import os
+import tempfile
 
-from utils import app_mode
+# Before any project import: utils.logging_utils opens (and truncates) its log file when imported.
+os.environ["PICORIPI_LOG_FILE"] = os.path.join(tempfile.gettempdir(), "picoripi_tests", f"app_debug_{os.getpid()}.txt")
+
+import pytest  # noqa: E402
+import gc  # noqa: E402
+
+from utils import app_mode  # noqa: E402
 
 # Nobody is at the screen and most tests run no event loop: background work runs inline, nothing modal is shown.
 # A test of a threaded path switches this off for itself (monkeypatch.setattr(app_mode, "headless", False)).
@@ -102,31 +108,39 @@ class MockMainWindow(MagicMock):
         self.current_view_kind = kind if isinstance(kind, ViewKind) else ViewKind(kind)
 
 
-@pytest.fixture(scope="session")
-def _user_files_dir(tmp_path_factory):
-    return tmp_path_factory.mktemp("user_files")
-
-
-@pytest.fixture(autouse=True)
-def isolate_user_files(_user_files_dir, monkeypatch):
-    """Keep the suite out of ~/.picoripi and the repo root (settings, logs)."""
+def _point_user_files_at(monkeypatch, user_files_dir) -> None:
     import utils.constants as constants
     import utils.logging_utils as logging_utils
     import core.settings_manager as settings_manager
 
-    settings_dir = _user_files_dir / "settings"
+    settings_dir = user_files_dir / "settings"
     settings_file = str(settings_dir / "settings.json")
     monkeypatch.setattr(constants, "SETTINGS_DIR", settings_dir)
     monkeypatch.setattr(constants, "SETTINGS_FILE_PATH", settings_file)
     monkeypatch.setattr(settings_manager, "SETTINGS_DIR", settings_dir)
     monkeypatch.setattr(settings_manager, "SETTINGS_FILE_PATH", settings_file)
+    monkeypatch.setattr(settings_manager, "LEGACY_SESSION_STATE_PATH", user_files_dir / "legacy_session_state.json")
     import sys
     if "main" in sys.modules:  # main.py binds the path by name at import time
         monkeypatch.setattr(sys.modules["main"], "SETTINGS_FILE_PATH", settings_file, raising=False)
-    log_file = str(_user_files_dir / "app_debug.txt")
+    log_file = str(user_files_dir / "app_debug.txt")
     monkeypatch.setattr(logging_utils, "default_log_file_path", log_file)
     monkeypatch.setattr(logging_utils, "log_file_path", log_file)
-    # ai_traffic.log follows constants.SETTINGS_DIR, patched above.
+    # ai_traffic.log and user_plugin_dir() follow constants.SETTINGS_DIR, patched above.
+
+
+@pytest.fixture(scope="session", autouse=True)
+def isolate_user_files_for_the_session(tmp_path_factory):
+    """Backstop: a window closed after a test's teardown or at exit still writes into a temp folder, not ~/.picoripi."""
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        _point_user_files_at(monkeypatch, tmp_path_factory.mktemp("session_user_files"))
+        yield
+
+
+@pytest.fixture(autouse=True)
+def isolate_user_files(tmp_path_factory, monkeypatch):
+    """Keep each test out of ~/.picoripi, the repo root and the settings an earlier test saved."""
+    _point_user_files_at(monkeypatch, tmp_path_factory.mktemp("user_files"))
 
 
 @pytest.fixture(autouse=True)
