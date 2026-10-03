@@ -68,7 +68,7 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
   `plugins/spec.py`, kept honest by two tests. Recommendation: no Protocol unless a type checker is used.
 - **The proxy branch `audit/wp8`** (worktree `D:\git\dev\gemini-web2api-wp8`). Tested with a stubbed Gemini
   (`test_rq_wp078_proxy_e2e.py`, 12 tests in the worktree's `tests/test_rq_wp078_proxy.py`, uncommitted).
-  Recommendation: merge after one live request (below); set `"host": "0.0.0.0"` first if a phone, Docker or
+  It also passed the live run (LIVE below). Recommendation: merge now; set `"host": "0.0.0.0"` first if a phone, Docker or
   the tunnel reaches it, keep `api_keys`; check the token-like placeholder in the uncommitted
   `dashboard.html` (`docs/OPEN_ITEMS.md` → "Found during WP8").
 - **Documents to skim once.** `README.md` (what a newcomer reads first), `AGENTS.md` (12 rules, language
@@ -87,10 +87,11 @@ and of `ISO\ENG\root\res\Msgus` (the project's source and translation folder), n
   lose whole chunks to the line layout check (see DECISION). Quality is on a par — the model's noise is larger
   than the difference: the new build wrote «ввімкни мійку», «ЖИВЬОМ», the old one «В Інструкція», «цій
   рогатки»; gender (Beth: «Я певна») and ти between the children were right in both.
-- **The new proxy 1.4.0, one real request.** First time Gemini sees the UTF-8 body and a temporary chat: if
-  the answer is empty, try `"temporary_chats": false`, then suspect `gemini.py::_build_payload`. Also
-  `/healthz` (`accounts.active` matches the dashboard), the dashboard asking for the key once, and whether
-  the proxy honours `response_format` (then native JSON mode can be enabled for the `web2api` profile).
+- **Done 2026-10-03 — the new proxy 1.4.0 with the owner's accounts.** `/healthz` reports 6 active accounts and
+  100 usable egresses; a Ukrainian request (UTF-8 body, temporary chat) answered in 4.5 s; a 96-line Twilight
+  Princess run with 8 Parallel Requests went out at most 6 at a time (capped by `/healthz`), 16 requests and
+  16 responses with no transport error, p50 5.3 s — every failure was Picoripi's line layout check. Not checked:
+  the dashboard with `api_keys` (none needed on loopback here) and whether the proxy honours `response_format`.
 - **A short glossary build and a reconcile run on a copy of the real glossary (WP3 3.3 / 3.5).** One root per
   family (`Hylia`, `Lake Hylia`, `Hylian Shield`), compounds follow their head term, the sweep does not drop
   terms it should report; reconcile does not merge different things (Clawshot / Clawshots) or "fix" grammar
