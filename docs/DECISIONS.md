@@ -124,12 +124,11 @@ owner, size); `docs/INDEX.md` is generated from them; `tests/test_docs/` checks 
 and size budgets. Process logs live in `docs/history/` and are not read, only searched.
 **Cost.** A document change ends with `python tasks.py docs-index`.
 
-## D15. Twilight Princess: the hero is «Лінк», the horse stays a tag (2026-10-03, owner)
+## D15. Twilight Princess: the hero is «Лінк» and the horse «Епона», fixed and declined (2026-10-03, owner)
 
 **Context.** The game fills in the names the player typed (`{escape:0:0000}` hero, `{escape:0:0022}` horse), and a
 tag cannot take a Ukrainian case ending. A live run showed «Лінку» in the vocative.
-**Decision.** The hero's tag is a force alias (`{F:Link}`): the model sees "Link", declines it, and the
-translation keeps «Лінк» in the right case as plain text. The horse's tag is an ordinary alias (`{Epona}`): it stays
-in the translation, and the prompt asks for sentences where it is in the nominative case («твоя кобила …»).
-Disabling horse renaming in a recompiled game is the alternative, not done.
-**Cost.** A hero renamed by the player is still called Лінк; horse lines are worded around the nominative.
+**Decision.** Both tags are force aliases (`{F:Link}`, `{F:Epona}`): the model sees the name, declines it, and the
+translation keeps «Лінк» / «Епона» in the right case as plain text. The names are fixed: the translation does not
+support renaming (the glossary says so for Link). A nominative-only `{Epona}` tag was tried and rejected.
+**Cost.** A hero or horse renamed by the player keeps the Ukrainian default name.

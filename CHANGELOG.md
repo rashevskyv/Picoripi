@@ -5,7 +5,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - Glossary rows for a request are found in the text the model gets, after force aliases: a line with the hero's tag now brings the `Link → Лінк` row. Without it the model spelled the name after the Russian reference («Линка» in 10 of 48 lines in one live run; 0–2 lines after the fix).
 
 - Reference languages: Russian, when loaded, always goes last and the prompt calls it the least trusted reference (a live run took «Уговори Линка» from it); a `max_reference_languages` cap drops it first.
-- Twilight Princess: the horse's name tag is an ordinary alias `{Epona}` again, kept in the translation, and the prompt asks for sentences that leave it in the nominative case; the hero stays the declined «Лінк» (`docs/DECISIONS.md` D15).
+- Twilight Princess: the hero and the horse keep fixed, declined names — «Лінк» and «Епона» through their force aliases (`docs/DECISIONS.md` D15); a short-lived ordinary `{Epona}` alias and its nominative-only prompt rule were taken back.
 
 - AI traffic log: a chunk reply that comes back but is refused (no JSON, a changed line layout) now gets an error record with its chunk number; it used to appear only in the run's summary, unlinked to any reply. Found in the first live run against the real model (`docs/REVIEW_QUEUE.md`).
 

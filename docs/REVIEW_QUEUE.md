@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: owner decisions and live checks
-tokens: 2.8k
+tokens: 2.7k
 purpose: What is left for the owner after the audit: decisions with evidence, live runs, environment
 ---
 # Review queue — decisions, live runs, environment
@@ -100,10 +100,6 @@ and of `ISO\ENG\root\res\Msgus` (the project's source and translation folder), n
 
 ## ENV
 
-- **Your own alias copies still make Epona a force alias** (`docs/DECISIONS.md` D15). The plugin now ships
-  `{Epona}`, but `~/.picoripi/plugins/zelda_bmg/aliases.json` and the project's `project_settings.json`
-  (`default_tag_mappings`) override it with `{F:Epona}` / `{F:Epona's}`; rename those two keys there (the agent
-  was not allowed to edit files outside the repository).
 - **Linux run of the suite** (`python tasks.py test`; WP0 exit and WP7 are open until then). WSL Ubuntu-24.04
   with Python 3.12 is installed; installing the requirements needs PyPI access.
 - **Old builds on a glossary this build saved (WP3 3.6).** The old build does not show deletion records as
