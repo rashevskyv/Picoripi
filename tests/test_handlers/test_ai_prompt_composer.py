@@ -1067,26 +1067,25 @@ def test_prompts_include_reference_translations(composer):
     assert "The original text is the primary translation source" in single_system
     assert "Do NOT translate from any reference language" in single_system
 
-    # Test batch: one reference language per item by default (the first one loaded)
-    long_item = [{"id": 0, "text": "Wake up, you sleepyhead!"}]
+    # Test batch: every reference language by default, short strings included
+    short_item = [{"id": 0, "text": "Wake up!"}]
     batch_system, batch_user, _ = composer.compose_batch_request(
-        "SysPrompt", long_item, long_item, block_idx=0, mode_description="translation"
+        "SysPrompt", short_item, short_item, block_idx=0, mode_description="translation"
     )
     assert "reference_translations" in batch_user
-    assert "Проснись!" in batch_user
-    assert "Aufwachen!" not in batch_user
+    assert "Проснись!" in batch_user and "Aufwachen!" in batch_user
     assert "The \"text\" field is the primary source" in batch_system
     assert "Do NOT translate from any reference language" in batch_system
 
-    # ... more when the translation config asks for them
-    composer.mw.translation_config = {"max_reference_languages": 2}
+    # ... fewer when the translation config caps them (the first loaded come first)
+    composer.mw.translation_config = {"max_reference_languages": 1}
     _, batch_user, _ = composer.compose_batch_request(
-        "SysPrompt", long_item, long_item, block_idx=0, mode_description="translation"
+        "SysPrompt", short_item, short_item, block_idx=0, mode_description="translation"
     )
-    assert "Проснись!" in batch_user and "Aufwachen!" in batch_user
+    assert "Проснись!" in batch_user and "Aufwachen!" not in batch_user
 
-    # ... and none for a one- or two-word string, whose references add nothing
-    short_item = [{"id": 0, "text": "Wake up!"}]
+    # ... and none at 0
+    composer.mw.translation_config = {"max_reference_languages": 0}
     _, batch_user, _ = composer.compose_batch_request(
         "SysPrompt", short_item, short_item, block_idx=0, mode_description="translation"
     )

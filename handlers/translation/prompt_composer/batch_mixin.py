@@ -18,8 +18,8 @@ from .instructions import append_engine_rules, batch_rules
 
 # Layout values that are normally the same for every item of a chunk.
 _SHARED_LAYOUT_KEYS = ('lines_per_window', 'warning_line_width_px', 'max_line_width_px')
-# Reference languages sent per item unless the translation config says otherwise.
-DEFAULT_MAX_REFERENCE_LANGUAGES = 1
+# Reference languages sent per item unless the translation config says otherwise: None is every one.
+DEFAULT_MAX_REFERENCE_LANGUAGES: Optional[int] = None
 
 
 def _hoist_layout_defaults(items: List[Dict]) -> Dict:
@@ -74,8 +74,8 @@ def _dump_payload(payload: Dict) -> str:
 class BatchMixin:
     """Batch translation prompt composition."""
 
-    def _max_reference_languages(self) -> int:
-        """How many reference languages go into each item (translation config, default 1)."""
+    def _max_reference_languages(self) -> Optional[int]:
+        """How many reference languages go into each item (translation config; default every one, 0 none)."""
         config = getattr(self.mw, 'translation_config', None)
         value = config.get('max_reference_languages') if isinstance(config, dict) else None
         if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
@@ -317,7 +317,7 @@ class BatchMixin:
                         ref_translations[ref_label] = single_ref.strip()
 
             ref_limit = self._max_reference_languages()
-            if ref_translations and ref_limit and len(current_text_clean.split()) > 2:
+            if ref_translations and ref_limit != 0:
                 item_for_ai['reference_translations'] = dict(list(ref_translations.items())[:ref_limit])
 
             item_for_ai.update(translation_context)

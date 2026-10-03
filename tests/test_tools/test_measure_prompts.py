@@ -30,9 +30,10 @@ def test_prompts_stay_inside_the_budget_reached_in_wp2(sizes):
     batch = sizes["batch_chunk_12"]
     assert batch["system_identical_across_chunks"] is True
     assert batch["user_has_instructions_block"] is False
-    assert batch["user_tok"] <= 1400          # was 3414 before WP2
-    assert batch["total_tok"] <= 4500         # was 5520
+    # Raised 2026-10-03 (1400/4500/17500): every reference language for every line again, the owner's call.
+    assert batch["user_tok"] <= 1450          # was 3414 before WP2
+    assert batch["total_tok"] <= 4650         # was 5520
     assert batch["per_item_tok"] <= 100       # was 156
     assert batch["glossary_rows"] == batch["glossary_rows_in_chunk_text"]
     assert sizes["single"]["user_tok"] <= 450  # was 946
-    assert sizes["block_40_strings"]["input_tok"] <= 17500  # was 20615
+    assert sizes["block_40_strings"]["input_tok"] <= 17800  # was 20615
