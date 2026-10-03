@@ -1,4 +1,5 @@
-"""Review queue WP7: the application starts through tasks.py the way run.bat / run.sh start it.
+"""Review queue WP7 / WP5 5.6: the application starts through tasks.py the way run.bat / run.sh start it, and
+from another working directory (``python <repo>/main.py``): the plugins are found from the code's location.
 
 The real ``python tasks.py run`` in a subprocess, offscreen, with the home directory (and with it
 SETTINGS_DIR) pointed at a temporary folder so the owner's settings are never read or written.
@@ -27,8 +28,8 @@ def _kill_tree(process):
     process.wait(10)
 
 
-@pytest.fixture
-def started_app(tmp_path):
+@pytest.fixture(params=["tasks_run", "main_from_elsewhere"])
+def started_app(request, tmp_path):
     if (ROOT / "settings.json").exists():
         pytest.skip("a settings.json in the repository would be migrated (renamed) by main.py")
     home = tmp_path / "home"
@@ -37,8 +38,14 @@ def started_app(tmp_path):
     env = dict(os.environ, QT_QPA_PLATFORM="offscreen", HOME=str(home), USERPROFILE=str(home),
                PYTHONIOENCODING="utf-8")
     env.pop("VIRTUAL_ENV", None)
+    if request.param == "tasks_run":
+        command, cwd = [sys.executable, "tasks.py", "run"], ROOT
+    else:
+        cwd = tmp_path / "elsewhere"
+        cwd.mkdir()
+        command = [sys.executable, str(ROOT / "main.py")]
     with open(log_path, "w", encoding="utf-8") as log:
-        process = subprocess.Popen([sys.executable, "tasks.py", "run"], cwd=ROOT, stdin=subprocess.DEVNULL,
+        process = subprocess.Popen(command, cwd=cwd, stdin=subprocess.DEVNULL,
                                    stdout=log, stderr=subprocess.STDOUT, env=env,
                                    start_new_session=sys.platform != "win32")
     try:
@@ -62,3 +69,5 @@ def test_the_application_starts_and_runs_its_event_loop_without_an_error(started
     assert process.poll() is None, log[-3000:]                            # still running
     assert (home / ".picoripi").is_dir()                                 # its settings went to the temporary home
     assert "Uncaught exception" not in log, [line for line in log.splitlines() if "Uncaught" in line]
+    assert "Successfully loaded and instantiated game rules" in log, log[-3000:]   # the plugin was found
+    assert "Could not import game plugin" not in log

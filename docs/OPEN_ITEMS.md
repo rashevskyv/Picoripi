@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: unfinished work
-tokens: 6.2k
+tokens: 5.9k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -12,31 +12,20 @@ the line when it is done or moved into a plan.
 
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 
-- Flakiness pass: `tests/test_review/test_rq_wp1_6_ai_*`, `_ui_*` and `test_rq_wp5_*` three times each, also
-  with `-n 4`. `tests/test_ui/test_glossary_review_ui.py::…width_constraints` failed once under xdist
-  (28 ≠ 26 px), then passed twice.
 - Real-window tests for single-string translation, variation and the legacy build (the attempt hung on
   teardown); the same for global hotkeys (Alt+Shift+…).
-- MemPalace builder: every analysis button reports its result (6.2; one no-AI analysis such as chapter mapping).
-- Mixin dialogs not yet driven: delete block, glossary edit / delete confirmations, autofix confirmation (6.4).
-- WP5: a test that reads `settings/effective.json`; starting the application from another folder (5.6);
-  selecting a generated plugin (`tools/new_plugin.py`) in the real window (5.4).
-- `run.bat` and `test_all.ps1` through `tasks.py` (WP7).
-- `tests/test_review/` reads `E:\…\TP_UA\zelda_tp_script.txt` through a path hard-coded in product code,
-  outside the settings.
+- WP5: a test that reads `settings/effective.json`; selecting a generated plugin (`tools/new_plugin.py`) in the
+  real window (5.4).
+- `run.bat` itself and `test_all.ps1` (WP7); `tasks.py run` is covered by `test_rq_wp078_app_start.py`.
 
 ## Found by the review tests (2026-10-03, not fixed)
 
-- BFN editor builds plugin paths from the current directory (`tools/bfn_editor/window_tree_mixin.py:31`,
-  `translation_map_mixin.py:25`, `io_save_mixin.py:99` — the last one also writes into `plugins/`, rule 8);
-  `core/translation/prompt_files.py:42` (prompt layer 1) also resolves from the current directory.
-- `ui/main_window/actions/tag_alias_mixin.py:246` writes `plugins/<plugin>/font_map.json` at runtime (rule 8).
-- `ui/settings/ai_mixin.py:32-36` wraps provider keys in `tr()`.
-- `IndexingDict` docstring in `core/data_store.py` is mojibake.
 - `zelda_mc` and `zelda_ww` ship a `glossary.md` that nothing reads.
 - ChatMock on loopback is taken for the `web2api` profile (sends `think`, 180 s timeout); there is no UI for
   the profile.
-- Editor review gets the source raw (`\n`, tags without aliases), not as the draft shows it.
+- Editor review gets the source raw (escaped `\n`, tags without aliases), not as the draft shows it.
+- A settings file saved from the Ukrainian interface may hold `"provider": "вимкнено"` (the provider ids went
+  through `tr()` until 2026-10-03); it loads as an unknown provider.
 
 ## Carried over from the 2026 H1 audit (`docs/history/AUDIT-2026-H1.md`)
 

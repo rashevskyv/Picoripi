@@ -203,7 +203,13 @@ def test_a_bulk_run_that_meets_429_server_busy_backs_off_and_finishes(start):
 
     chunks, errors = run_chunked(provider, item_count=48, workers=2)
 
-    assert '" 429 ' in proxy.log() or "HTTP/1.1\" 429" in proxy.log()
+    def saw_429():
+        return '" 429 ' in proxy.log() or "HTTP/1.1\" 429" in proxy.log()
+
+    deadline = time.monotonic() + 10                              # the proxy's log reaches the file a bit later
+    while not saw_429() and time.monotonic() < deadline:
+        time.sleep(0.1)
+    assert saw_429(), proxy.log()
     assert errors == []
     assert translated_ids(chunks) == list(range(48))
 

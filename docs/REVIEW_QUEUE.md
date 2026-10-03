@@ -30,7 +30,7 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
 - **Editor review (WP2 2.5 / WP5 5.3).** Off by default; the pass is tested (`test_rq_wp2_4_run.py`,
   `test_rq_wp5_prompts_review.py`). It is a second request per chunk (doubles proxy quota) and sees only
   source → draft pairs: no glossary, speakers or scene, so its "check the glossary / the tone" rules cannot be
-  followed, and it gets the source raw (`\\n`, tags without aliases). Recommendation: remove it; if a fix-up
+  followed, and it gets the source raw (escaped `\n`, tags without aliases). Recommendation: remove it; if a fix-up
   pass is wanted, send only the lines that failed a deterministic check, with the reason.
 - **NarrativeLedger (WP2 2.4).** Removed; nothing ever wrote to it. Terms are covered by the glossary (WP3/WP4),
   events by scene context and MemPalace. Recommendation: do not revive; if a live run shows ти/ви drifting

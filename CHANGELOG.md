@@ -2,6 +2,10 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Nothing is written into `plugins/` at runtime any more (rule 8): widths set in the tag width dialog or Settings go to `~/.picoripi/plugins/<plugin>/font_map.json`, the BFN editor's `translation_map.json` without a project likewise; both win over the plugin's own file. The shared `translation_prompts/` folder and the BFN editor's plugin fonts are found from the code's location, so the application also works when started from another folder.
+- Delete Block no longer crashes when the block tree is rebuilt while it asks for confirmation (chapters arriving); the speaker finder no longer looks at a path of the developer's machine; in the Ukrainian interface the provider ids stay English (Disabled was stored as `вимкнено`).
+- Review tests: MemPalace builder results, the delete / glossary / autofix confirmations, starting from another folder; the proxy 429 test waits for the proxy's log.
+
 ## [0.3.151-dev] - 2026-10-03
 
 - Review-queue tests: `tests/test_review/` turns the manual checks of `docs/REVIEW_QUEUE.md` into end-to-end tests (fake OpenAI/Ollama/Gemini server, the real Companion server, the WP8 proxy with a stubbed Gemini, golden outputs from the pre-audit code in `tests/fixtures/review_queue/`). Bugs they found are fixed: an uncaught `TypeError` (sometimes an access violation) on the first event-loop turn of every start (`ui/adaptive_scrollbars.py`: the deferred configure timer is owned by the manager, areas Qt destroys meanwhile are dropped through `destroyed`); Cancel now shuts the request's socket down so the Web2API proxy stops instead of trying the next account (`transport.AbortableSession`); the glossary translate progress no longer goes back after a retry pass; preview pre-caching no longer runs after its window is gone; `ScriptSpeakerFinder` read a `project_dir` that `Project` does not have.
