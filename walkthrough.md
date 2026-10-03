@@ -1,7 +1,7 @@
 # Walkthrough: WP7 — система документації (Picoripi v0.3.150-dev)
 
 План: `docs/audit/2026-10-01/PLAN.md`, розділ WP7; звіт аудиту — `docs/audit/2026-10-01/F_docs.md`.
-Що перевірити вручну: `docs/REVIEW_QUEUE.md`, розділ «WP7 — documentation».
+Рішення власника, живі прогони й середовище: `docs/REVIEW_QUEUE.md`.
 
 ## Показники
 

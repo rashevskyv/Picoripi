@@ -1,14 +1,42 @@
 ---
 status: current
-updated: 2026-10-02
+updated: 2026-10-03
 owns: unfinished work
-tokens: 5.7k
+tokens: 6.2k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
+
+- Flakiness pass: `tests/test_review/test_rq_wp1_6_ai_*`, `_ui_*` and `test_rq_wp5_*` three times each, also
+  with `-n 4`. `tests/test_ui/test_glossary_review_ui.py::…width_constraints` failed once under xdist
+  (28 ≠ 26 px), then passed twice.
+- Real-window tests for single-string translation, variation and the legacy build (the attempt hung on
+  teardown); the same for global hotkeys (Alt+Shift+…).
+- MemPalace builder: every analysis button reports its result (6.2; one no-AI analysis such as chapter mapping).
+- Mixin dialogs not yet driven: delete block, glossary edit / delete confirmations, autofix confirmation (6.4).
+- WP5: a test that reads `settings/effective.json`; starting the application from another folder (5.6);
+  selecting a generated plugin (`tools/new_plugin.py`) in the real window (5.4).
+- `run.bat` and `test_all.ps1` through `tasks.py` (WP7).
+- `tests/test_review/` reads `E:\…\TP_UA\zelda_tp_script.txt` through a path hard-coded in product code,
+  outside the settings.
+
+## Found by the review tests (2026-10-03, not fixed)
+
+- BFN editor builds plugin paths from the current directory (`tools/bfn_editor/window_tree_mixin.py:31`,
+  `translation_map_mixin.py:25`, `io_save_mixin.py:99` — the last one also writes into `plugins/`, rule 8);
+  `core/translation/prompt_files.py:42` (prompt layer 1) also resolves from the current directory.
+- `ui/main_window/actions/tag_alias_mixin.py:246` writes `plugins/<plugin>/font_map.json` at runtime (rule 8).
+- `ui/settings/ai_mixin.py:32-36` wraps provider keys in `tr()`.
+- `IndexingDict` docstring in `core/data_store.py` is mojibake.
+- `zelda_mc` and `zelda_ww` ship a `glossary.md` that nothing reads.
+- ChatMock on loopback is taken for the `web2api` profile (sends `think`, 180 s timeout); there is no UI for
+  the profile.
+- Editor review gets the source raw (`\n`, tags without aliases), not as the draft shows it.
 
 ## Carried over from the 2026 H1 audit (`docs/history/AUDIT-2026-H1.md`)
 
@@ -238,7 +266,7 @@ the line when it is done or moved into a plan.
 - **Runtime-name replacement still runs over the whole user message** (WP2.5 left it): besides the item
   text it also turns `{PLAYER}`-style escapes into names in neighbour rows and reference lines, which is
   useful. Applying it per section instead of to the final string would be the tidy version.
-- **`max_reference_languages` has no settings-dialog control** (translation config key, default 1).
+- **`max_reference_languages` has no settings-dialog control** (translation config key; default every language, 0 none).
 - **Holding folder to delete**: `D:\git\dev\Picoripi_local_cleanup_2026-10-01` (562 MB: `gemini/`, `.grok/`,
   `.tmp_audit/`, 35 `graphify-out` snapshots, `stderr_output.log`, `image.png`, `settings.json.migrated`).
   Task 0.9 moved these out of the workspace instead of deleting them.
@@ -247,8 +275,6 @@ the line when it is done or moved into a plan.
 
 ## Found during WP7
 
-- **There is no `LICENSE` file.** The README said "MIT — see the LICENSE file" for a file that never existed; it
-  now says "MIT." Adding the licence text (and whose name goes into it) is the owner's decision.
 - `scripts/deploy.py` still runs `git add .` and offers to push; AGENTS.md forbids the first and releases go
   through the deploy skill. The version bump and the changelog insert were fixed in 7.3; the git part was left alone.
 - `docs/FEATURES.md` was moved from the README as written (14k tokens), with only the known stale claims fixed.

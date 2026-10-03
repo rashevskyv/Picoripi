@@ -16,4 +16,4 @@
 WP4 (v0.3.148-dev), WP5 (v0.3.146-dev), WP6 (v0.3.147-dev), WP7 (v0.3.150-dev),
 WP8 (v0.3.149-dev; проксі 1.4.0 у гілці `audit/wp8`).
 WP0 — окрім прогону на Linux (`docs/OPEN_ITEMS.md`).
-Що перевірити вручну — `docs/REVIEW_QUEUE.md`.
+Рішення власника, живі прогони й середовище — `docs/REVIEW_QUEUE.md`.
