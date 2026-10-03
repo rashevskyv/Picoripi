@@ -1138,3 +1138,25 @@ def test_prompts_do_not_falsely_label_non_english_source_as_english(composer):
         assert "- French (FR): Bonjour!" in single_ref_user
         assert "Russian" not in single_ref_user
         assert "English" not in single_ref_user
+
+
+def test_glossary_terms_are_matched_on_the_force_alias_words_the_model_gets(composer):
+    """{escape:0:0000} reaches the model as "Link"; the glossary lookup must see "Link" too (live run 2026-10-03)."""
+    composer.mw.current_game_rules.get_display_name.return_value = "Test Game"
+    composer.mw.current_game_rules.get_translation_context_for_string.return_value = {}
+    composer.mw.data_store.block_names = {"0": "Block 0"}
+    composer.mw.data_store.data = [["{escape:0:0000}! You're so close!"]]
+    composer.mw.data_store.reference_languages_data = {}
+    composer.mw.default_tag_mappings = {"{F:Link}": "{escape:0:0000}"}
+    manager = MagicMock()
+    manager.get_relevant_terms.return_value = []
+    manager.get_entries.return_value = []
+    composer.main_handler._glossary_manager = manager
+    item = [{"id": 0, "text": "{escape:0:0000}! You're so close!"}]
+
+    composer.compose_batch_request("SysPrompt", item, item, block_idx=0, mode_description="translation")
+    assert "Link" in manager.get_relevant_terms.call_args_list[-1].args[0]
+
+    composer.compose_messages("SysPrompt", item[0]["text"], block_idx=0, string_idx=0, expected_lines=1,
+                              mode_description="translation")
+    assert "Link" in manager.get_relevant_terms.call_args_list[-1].args[0]

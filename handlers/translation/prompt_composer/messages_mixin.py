@@ -190,7 +190,10 @@ class MessagesMixin:
         )
 
         if glossary_manager and source_text:
-            text_for_glossary = f"{source_text} {selected_text}" if selected_text else source_text
+            # As the model gets it: a force alias is a word there ("Link"), with a glossary row of its own.
+            from utils.force_alias import prepare_text_for_ai
+            source_for_ai = prepare_text_for_ai(source_text, getattr(self.mw, 'default_tag_mappings', {}) or {})[0]
+            text_for_glossary = f"{source_for_ai} {selected_text}" if selected_text else source_for_ai
             if structured_story_context:
                 text_for_glossary += " " + json.dumps(
                     structured_story_context, ensure_ascii=False

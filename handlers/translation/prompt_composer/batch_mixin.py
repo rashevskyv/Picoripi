@@ -441,8 +441,12 @@ class BatchMixin:
         # of the speakers and story participants (added below by name). Terms of
         # later chunks, and every word of the story catalog, used to be matched
         # too -- rows the model could not use for these lines.
+        # Matched on the text the model gets: a force alias turns a tag into a word ({escape:0:0000} -> "Link"),
+        # and that word needs its glossary row, or the model spells the name after a reference language.
+        from utils.force_alias import prepare_text_for_ai
+        tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) or {}
         chunk_text = " ".join(
-            (item.get('text', '') if isinstance(item, dict) else str(item))
+            prepare_text_for_ai(item.get('text', '') if isinstance(item, dict) else str(item), tag_mappings)[0]
             for item in source_items
         )
 
