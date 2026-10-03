@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: unfinished work
-tokens: 5.9k
+tokens: 6.0k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -20,6 +20,8 @@ the line when it is done or moved into a plan.
 
 ## Found by the review tests (2026-10-03, not fixed)
 
+- Watch: `tests/test_review/test_rq_wp2_4_run.py::test_a_single_string_request_shows_the_translation_memory_and_a_variation_request_does_not`
+  crashed its xdist worker once under `-n 8` (2026-10-03); passed alone and in four parallel reruns.
 - `zelda_mc` and `zelda_ww` ship a `glossary.md` that nothing reads.
 - ChatMock on loopback is taken for the `web2api` profile (sends `think`, 180 s timeout); there is no UI for
   the profile.

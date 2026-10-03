@@ -1063,6 +1063,9 @@ def test_prompts_include_reference_translations(composer):
     assert "REFERENCE TRANSLATIONS" in single_user
     assert "- Russian (RU): Проснись!" in single_user
     assert "- German (DE): Aufwachen!" in single_user
+    # Russian is loaded first but listed last: the least trusted reference
+    assert single_user.index("- German (DE)") < single_user.index("- Russian (RU)")
+    assert "lowest priority" in single_system
     # How to use them is a fixed rule in the system prompt.
     assert "The original text is the primary translation source" in single_system
     assert "Do NOT translate from any reference language" in single_system
@@ -1074,15 +1077,17 @@ def test_prompts_include_reference_translations(composer):
     )
     assert "reference_translations" in batch_user
     assert "Проснись!" in batch_user and "Aufwachen!" in batch_user
+    assert batch_user.index("Aufwachen!") < batch_user.index("Проснись!")
+    assert "lowest priority" in batch_system
     assert "The \"text\" field is the primary source" in batch_system
     assert "Do NOT translate from any reference language" in batch_system
 
-    # ... fewer when the translation config caps them (the first loaded come first)
+    # ... fewer when the translation config caps them: the least trusted (Russian) goes first
     composer.mw.translation_config = {"max_reference_languages": 1}
     _, batch_user, _ = composer.compose_batch_request(
         "SysPrompt", short_item, short_item, block_idx=0, mode_description="translation"
     )
-    assert "Проснись!" in batch_user and "Aufwachen!" not in batch_user
+    assert "Aufwachen!" in batch_user and "Проснись!" not in batch_user
 
     # ... and none at 0
     composer.mw.translation_config = {"max_reference_languages": 0}

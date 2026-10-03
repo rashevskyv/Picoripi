@@ -289,7 +289,9 @@ class MessagesMixin:
                     if isinstance(lang_dict, dict):
                         t = lang_dict.get((block_idx, string_idx), "")
                         if isinstance(t, str) and t.strip():
-                            ref_texts.append(f"- {lang_name}: {t.strip()}")
+                            ref_texts.append((lang_name, t.strip()))
+                from core.reference_manager import least_trusted_last
+                ref_texts = [f"- {lang_name}: {text}" for lang_name, text in least_trusted_last(ref_texts)]
             else:
                 raw_ref = getattr(self.mw.data_store, 'reference_data', {})
                 if isinstance(raw_ref, dict):

@@ -89,7 +89,9 @@ _BATCH_RULES = (
     _ANCHORED_TAGS,
     'REFERENCE TRANSLATIONS: If an item has "reference_translations", they are contextual evidence for meaning, '
     'speaker tone, and gender only. The "text" field is the primary source. Do NOT translate from any reference '
-    'language into {target_lang}, and do NOT copy a reference translation as the {target_lang} result.',
+    'language into {target_lang}, and do NOT copy a reference translation as the {target_lang} result. They are '
+    'listed from most to least trusted: the last one (Russian, when present) has the lowest priority; never take '
+    'its wording or word forms.',
     'Do not add any explanations or text outside the JSON object.',
 )
 
@@ -117,7 +119,8 @@ _SINGLE_CONTEXT_RULES = (
     'REFERENCE TRANSLATIONS: If a REFERENCE TRANSLATIONS section is present, it is contextual evidence for '
     'meaning, speaker tone, and gender only. The original text is the primary translation source. Do NOT '
     'translate from any reference language into {target_lang}, and do NOT copy a reference translation as the '
-    '{target_lang} result.',
+    '{target_lang} result. They are listed from most to least trusted: the last one (Russian, when present) has '
+    'the lowest priority; never take its wording or word forms.',
 )
 
 _SINGLE_TRANSLATION_RULES = (

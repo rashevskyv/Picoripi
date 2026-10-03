@@ -16,6 +16,15 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from utils.logging_utils import log_error, log_info, log_warning
 
+# Reference languages the prompt trusts least: they go last, after every other one. Russian wording leaks into
+# Ukrainian translations as calques (live run 2026-10-03: «Уговори Линка» taken from the Russian line).
+LEAST_TRUSTED_REFERENCE_LANGUAGES = ("russian",)
+
+
+def least_trusted_last(references):
+    """``(label, text)`` pairs in their order, the least trusted languages moved to the end."""
+    return sorted(references, key=lambda pair: str(pair[0]).casefold().startswith(LEAST_TRUSTED_REFERENCE_LANGUAGES))
+
 
 class ReferenceManager:
     """Manages loading, persisting settings, and coordinating reference translations."""

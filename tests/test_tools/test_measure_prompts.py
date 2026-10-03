@@ -36,4 +36,4 @@ def test_prompts_stay_inside_the_budget_reached_in_wp2(sizes):
     assert batch["per_item_tok"] <= 100       # was 156
     assert batch["glossary_rows"] == batch["glossary_rows_in_chunk_text"]
     assert sizes["single"]["user_tok"] <= 450  # was 946
-    assert sizes["block_40_strings"]["input_tok"] <= 17800  # was 20615
+    assert sizes["block_40_strings"]["input_tok"] <= 17900  # was 20615; +reference priority rule 2026-10-03

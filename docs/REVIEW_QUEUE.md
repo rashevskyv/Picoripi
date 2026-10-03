@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: owner decisions and live checks
-tokens: 3.0k
+tokens: 2.8k
 purpose: What is left for the owner after the audit: decisions with evidence, live runs, environment
 ---
 # Review queue — decisions, live runs, environment
@@ -26,16 +26,6 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
   attempts the chunk is lost (one chunk in 3 of 4 runs of the new build; the old build stopped the whole run).
   Recommendation: keep the item if every line fits the window width and the window's line limit, and re-wrap
   it with the game's wrapper when it does not; retry only the item, not the chunk.
-- **The player's name tag `{escape:0:0000}` becomes «Лінку» (live run 2026-10-03, both builds).** It is sent as
-  the word "Link" (a forced alias), the model declines it, and nothing maps «Лінку» back to the tag: the
-  translation shows «Лінку» even if the player named the hero differently. Ukrainian needs the vocative, which
-  a tag cannot give. Choose: keep the tag (a custom name stays, the case is wrong), or keep «Лінк» declined
-  (right case, the custom name is lost). Your own translations have no line with this tag yet.
-- **Russian reference lines leak into the translation (live run 2026-10-03).** Line 727 came back twice with
-  «Уговори Линка» taken from the Russian reference «Уговори Линка одолжить нам меч!», despite the "do NOT
-  translate from a reference" rule. Every reference language now goes with every line (your call of
-  2026-10-03), which makes this more likely. Options: leave Russian out of the references, put it last with
-  `max_reference_languages`, or add a check for Russian-only words and letters.
 - **Glossary duplicates (WP3 3.1 / 3.7).** 18 groups in `translation_prompts/glossary.json` share a canonical
   key (`docs/audit/2026-10-01/glossary_canonical_report.md`). Recommendation — merge 14: Rupee/Rupees,
   Goron/Gorons, Poe/Poes, Fused Shadow(s), Gate Key(s), Giant Bomb Bag(s) (pick «сумка» or «торба»),
@@ -110,6 +100,10 @@ and of `ISO\ENG\root\res\Msgus` (the project's source and translation folder), n
 
 ## ENV
 
+- **Your own alias copies still make Epona a force alias** (`docs/DECISIONS.md` D15). The plugin now ships
+  `{Epona}`, but `~/.picoripi/plugins/zelda_bmg/aliases.json` and the project's `project_settings.json`
+  (`default_tag_mappings`) override it with `{F:Epona}` / `{F:Epona's}`; rename those two keys there (the agent
+  was not allowed to edit files outside the repository).
 - **Linux run of the suite** (`python tasks.py test`; WP0 exit and WP7 are open until then). WSL Ubuntu-24.04
   with Python 3.12 is installed; installing the requirements needs PyPI access.
 - **Old builds on a glossary this build saved (WP3 3.6).** The old build does not show deletion records as

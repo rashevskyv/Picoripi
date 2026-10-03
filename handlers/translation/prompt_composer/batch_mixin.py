@@ -318,7 +318,8 @@ class BatchMixin:
 
             ref_limit = self._max_reference_languages()
             if ref_translations and ref_limit != 0:
-                item_for_ai['reference_translations'] = dict(list(ref_translations.items())[:ref_limit])
+                from core.reference_manager import least_trusted_last
+                item_for_ai['reference_translations'] = dict(least_trusted_last(ref_translations.items())[:ref_limit])
 
             item_for_ai.update(translation_context)
             structure_path = [

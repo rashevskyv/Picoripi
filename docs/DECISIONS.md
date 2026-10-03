@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 2.1k
+tokens: 2.3k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -123,3 +123,13 @@ they disagreed; an agent read 60k tokens before starting.
 owner, size); `docs/INDEX.md` is generated from them; `tests/test_docs/` checks paths, links, EN/UK structure
 and size budgets. Process logs live in `docs/history/` and are not read, only searched.
 **Cost.** A document change ends with `python tasks.py docs-index`.
+
+## D15. Twilight Princess: the hero is «Лінк», the horse stays a tag (2026-10-03, owner)
+
+**Context.** The game fills in the names the player typed (`{escape:0:0000}` hero, `{escape:0:0022}` horse), and a
+tag cannot take a Ukrainian case ending. A live run showed «Лінку» in the vocative.
+**Decision.** The hero's tag is a force alias (`{F:Link}`): the model sees "Link", declines it, and the
+translation keeps «Лінк» in the right case as plain text. The horse's tag is an ordinary alias (`{Epona}`): it stays
+in the translation, and the prompt asks for sentences where it is in the nominative case («твоя кобила …»).
+Disabling horse renaming in a recompiled game is the alternative, not done.
+**Cost.** A hero renamed by the player is still called Лінк; horse lines are worded around the nominative.

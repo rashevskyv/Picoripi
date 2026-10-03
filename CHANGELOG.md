@@ -2,6 +2,9 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Reference languages: Russian, when loaded, always goes last and the prompt calls it the least trusted reference (a live run took «Уговори Линка» from it); a `max_reference_languages` cap drops it first.
+- Twilight Princess: the horse's name tag is an ordinary alias `{Epona}` again, kept in the translation, and the prompt asks for sentences that leave it in the nominative case; the hero stays the declined «Лінк» (`docs/DECISIONS.md` D15).
+
 - AI traffic log: a chunk reply that comes back but is refused (no JSON, a changed line layout) now gets an error record with its chunk number; it used to appear only in the run's summary, unlinked to any reply. Found in the first live run against the real model (`docs/REVIEW_QUEUE.md`).
 
 - Nothing is written into `plugins/` at runtime any more (rule 8): widths set in the tag width dialog or Settings go to `~/.picoripi/plugins/<plugin>/font_map.json`, the BFN editor's `translation_map.json` without a project likewise; both win over the plugin's own file. The shared `translation_prompts/` folder and the BFN editor's plugin fonts are found from the code's location, so the application also works when started from another folder.
