@@ -68,12 +68,8 @@ class ScriptSpeakerFinder:
                 if os.path.exists(p):
                     return p
 
-        # 4. Fallback search: look for hardcoded TP script
-        candidates = [
-            r"e:\Emulators\RomHacking\ZELDA\TP_UA\zelda_tp_script.txt",
-        ]
-        for d in unique_dirs:
-            candidates.append(os.path.join(d, "zelda_tp_script.txt"))
+        # 4. Fallback search: the TP script by its usual name, next to the project or one folder up
+        candidates = [os.path.join(d, "zelda_tp_script.txt") for d in unique_dirs]
 
         for path in candidates:
             if path and os.path.exists(path):

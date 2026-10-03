@@ -5,7 +5,7 @@ from enum import Enum
 from utils.logging_utils import log_debug
 
 class IndexingDict(dict):
-    """Словник, який автоматично сповіщає про свої зміни (мутації)."""
+    """A dict that calls back on every change (mutation)."""
     def __init__(self, *args, on_change_callback=None, **kwargs):
         super().__init__(*args, **kwargs)
         self._on_change_callback = on_change_callback

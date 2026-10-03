@@ -1,6 +1,6 @@
 """Project actions: import, delete and move blocks, folders."""
 from pathlib import Path
-from PyQt6.QtWidgets import QMessageBox, QFileDialog, QDialog
+from PyQt6.QtWidgets import QMessageBox, QFileDialog, QDialog, QTreeWidgetItemIterator
 from PyQt6.QtCore import Qt
 from utils.logging_utils import log_info, log_warning
 from core.i18n import tr
@@ -109,14 +109,16 @@ class BlocksMixin:
             undo_mgr = getattr(self.mw, 'undo_manager', None)
             before = undo_mgr.get_project_snapshot() if undo_mgr else None
 
-            # PREPARE SELECTION RECOVERY
-            parent_item = current_item.parent() or self.mw.block_list_widget.invisibleRootItem()
-            idx = parent_item.indexOfChild(current_item)
+            # PREPARE SELECTION RECOVERY. The tree may have been rebuilt while the question was open (chapters
+            # arriving, for one), which deletes the item clicked: find the block's item again.
+            current_item = self._block_tree_item(block_idx)
+            parent_item = (current_item.parent() if current_item else None) or self.mw.block_list_widget.invisibleRootItem()
+            idx = parent_item.indexOfChild(current_item) if current_item else -1
             neighbor = None
-            if parent_item.childCount() > 1:
+            if current_item is not None and parent_item.childCount() > 1:
                 if idx < parent_item.childCount() - 1: neighbor = parent_item.child(idx + 1)
                 else: neighbor = parent_item.child(idx - 1)
-            else:
+            elif current_item is not None:
                 neighbor = parent_item if parent_item != self.mw.block_list_widget.invisibleRootItem() else None
 
             success = pm.project.remove_block(block.id)
@@ -135,6 +137,16 @@ class BlocksMixin:
 
         elif folder_id is not None:
             self.mw.virtual_folder_handler.delete_folder_action(folder_id, current_item)
+
+    def _block_tree_item(self, block_idx: int):
+        """The tree item of a project block (not a virtual folder), or None."""
+        iterator = QTreeWidgetItemIterator(self.mw.block_list_widget)
+        while iterator.value():
+            item = iterator.value()
+            if item.data(0, Qt.UserRole) == block_idx and item.data(0, Qt.UserRole + 1) is None:
+                return item
+            iterator += 1
+        return None
 
     def move_block_action(self, direction: int) -> None:
         """direction: -1 for up, +1 for down."""

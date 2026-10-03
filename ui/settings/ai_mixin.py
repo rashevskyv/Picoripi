@@ -29,11 +29,11 @@ class SettingsAiMixin:
 
         provider_layout = QHBoxLayout()
         self.translation_provider_combo = QComboBox(self)
-        self.translation_provider_combo.addItem(tr('Disabled'), tr('disabled'))
-        self.translation_provider_combo.addItem(tr('OpenAI Compatible'), tr('openai'))
-        self.translation_provider_combo.addItem(tr('Ollama Chat'), tr('ollama_chat'))
-        self.translation_provider_combo.addItem(tr('Gemini'), tr('gemini'))
-        self.translation_provider_combo.addItem(tr('Perplexity'), tr('perplexity'))
+        self.translation_provider_combo.addItem(tr('Disabled'), 'disabled')
+        self.translation_provider_combo.addItem(tr('OpenAI Compatible'), 'openai')
+        self.translation_provider_combo.addItem(tr('Ollama Chat'), 'ollama_chat')
+        self.translation_provider_combo.addItem(tr('Gemini'), 'gemini')
+        self.translation_provider_combo.addItem(tr('Perplexity'), 'perplexity')
         provider_layout.addWidget(self.translation_provider_combo)
 
         self.test_provider_btn = QPushButton(tr('Test Provider'), self)

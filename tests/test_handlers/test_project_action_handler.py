@@ -153,6 +153,7 @@ def test_ProjectActionHandler_delete_block_action(mock_msg_box, mock_mw):
     mock_msg_box.question.return_value = QMessageBox.StandardButton.Yes
     mock_mw.project_manager.project.remove_block.return_value = True
     h._populate_blocks_from_project = MagicMock()
+    h._block_tree_item = lambda block_idx: mock_item       # the tree is a stand-in; the item is found again after asking
 
     h.delete_block_action()
 

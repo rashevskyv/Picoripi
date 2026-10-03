@@ -176,3 +176,15 @@ def test_try_extract_iso_messages_uses_configured_wit_tool(tmp_path):
             assert dest is not None
             # Check that mock_run was called with custom_wit as command executable
             assert mock_run.call_args[0][0][0] == str(custom_wit)
+
+
+def test_provider_ids_stay_english_in_a_translated_interface(fake_main_window, qtbot):
+    """The combo's data is the provider id the settings store; only the label is translated."""
+    from core import i18n
+
+    i18n.init("uk")      # conftest's english_interface puts English back afterwards
+    dialog = SettingsDialog(fake_main_window)
+    qtbot.addWidget(dialog)
+    combo = dialog.translation_provider_combo
+
+    assert [combo.itemData(i) for i in range(combo.count())] == ["disabled", "openai", "ollama_chat", "gemini", "perplexity"]

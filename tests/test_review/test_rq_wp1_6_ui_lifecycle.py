@@ -32,7 +32,7 @@ def interactive(qtbot, tmp_path, monkeypatch):
     if "main" in sys.modules:
         monkeypatch.setattr(sys.modules["main"], "SETTINGS_FILE_PATH", settings_file, raising=False)
     monkeypatch.setattr(app_mode, "headless", False)
-    # No game script of this machine (a fixed E: path is searched) may feed speakers or chapters.
+    # No game script of this machine (the working directory is searched too) may feed speakers or chapters.
     monkeypatch.setattr(ScriptSpeakerFinder, "find_script_path", lambda self: None)
     windows = []
     boxes = BoxAnswerer()
