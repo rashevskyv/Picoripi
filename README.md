@@ -103,4 +103,5 @@ Wiki pages: [interface](docs/wiki/1_User_Guide_and_Workflow_Pipeline.md) ·
 
 ## License
 
-MIT.
+GPL-3.0-or-later — see [LICENSE](LICENSE). Anyone who distributes a modified Picoripi must publish its source
+under the same licence. PyQt6 is itself GPL v3.
