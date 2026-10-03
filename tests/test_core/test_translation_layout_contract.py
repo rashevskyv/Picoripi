@@ -54,21 +54,24 @@ def test_resolve_lines_per_window_prefers_per_string_layout():
     assert resolve_lines_per_window(Window(), 2, 3) == 4
 
 
-def test_layout_contract_can_allow_minimal_line_and_window_expansion():
+def test_layout_contract_can_allow_line_and_window_expansion():
     translated = "one\ntwo\nthree\nfour\nfive"
-    assert validate_translation_layout(
-        "one\ntwo\nthree",
-        translated,
-        4,
-        allow_line_expansion=True,
-    ) == translated
+    assert validate_translation_layout("one\ntwo\nthree", translated, 4, allow_reflow=True) == translated
 
 
-def test_layout_contract_still_rejects_merged_lines_when_expansion_is_allowed():
+def test_a_reflow_may_merge_lines_the_translation_does_not_need():
+    """Live run 2026-10-03: a three-line source rendered in two lines cost a whole chunk four times."""
+    source = "But the moment Darbus reached out\nand touched the treasure...everything\nwent wrong."
+    translated = "Але в ту мить, коли Дарбус простягнув руку\nі торкнувся скарбу... все пішло шкереберть."
+    assert validate_translation_layout(source, translated, 3, allow_reflow=True) == translated
     with pytest.raises(TranslationLayoutError):
-        validate_translation_layout(
-            "one\ntwo\nthree",
-            "one two\nthree",
-            4,
-            allow_line_expansion=True,
-        )
+        validate_translation_layout(source, translated, 3)
+
+
+@pytest.mark.parametrize("translated", [
+    "Перший рядок Третій рядок\n",          # the page break is gone
+    "Перший рядок\n\nТретій рядок",         # the trailing newline is gone
+])
+def test_a_reflow_keeps_page_breaks_and_the_trailing_newline(translated):
+    with pytest.raises(TranslationLayoutError):
+        validate_translation_layout("First line\n\nThird line\n", translated, allow_reflow=True)

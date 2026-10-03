@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: handlers/translation, core/translation
-tokens: 3.9k
+tokens: 4.0k
 purpose: Providers, prompts, chunks, run memory, translation memory
 ---
 # AI Translation
@@ -22,6 +22,8 @@ Prompt files are merged **key by key**, later ones winning: `translation_prompts
 **Translation memory across runs.** Every translation Picoripi saves as a backup (`saved_translations.json` in the project folder, keyed by position) is also remembered by its source text in `translation_memory.json` next to it. When a run is about to translate a string whose own position has no saved translation but whose text was translated and saved somewhere else in the project, the *Cached Translation* window offers that translation too — marked *(same text elsewhere)* — after the same layout check as a positional restore: **OK** fills the row without a request, **Translate Anew** sends it to the model. Only exactly the same text is restored. A single-string translation request additionally lists, as `TRANSLATION MEMORY (same source elsewhere)`, up to three saved translations of the same text — including spellings that differ only in tags, case or spacing — so that the model keeps the wording; a request for variations does not get the list. A project saved before this feature builds its memory from the existing saved translations the first time it is needed.
 
 **Fixed interface strings.** Put the recurring interface words — *OK*, *Yes*, *No*, *Back* — into the glossary section named **UI**. A game string that is, as a whole, exactly such a term (or one of its aliases; same case, no extra characters) is filled with the glossary translation before the run starts: no request, no question. A row that already has a translation is not touched, a translation that does not fit the row's layout is not forced in, and an entry whose translation is still an unconfirmed AI suggestion fixes nothing. Other sections can be named in the translation config: `"fixed_output_sections": ["UI", "Menu"]`; an empty list switches the feature off.
+
+**Line layout of a reply.** The model may break a translation into more or fewer lines than the source — a Ukrainian line is often longer or shorter. Such a reply is accepted as long as the blank lines (page breaks) and the trailing newline are kept; if a line then comes out wider than the window, the whole page is re-wrapped by the game's width rules. A reply that keeps the source's line count is applied as it is, as before. A reply that loses a page break still fails its chunk.
 
 A single-string request also carries an `Addressee:` line when the plugin knows who the line is spoken to — the same information a batch item has.
 

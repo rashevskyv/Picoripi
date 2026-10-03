@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- AI translation accepts a reply that uses more or fewer lines than the source, as long as page breaks and the trailing newline stay; a reflowed reply with a line wider than the window has its page re-wrapped by the game's width rules. The strict line count lost a whole chunk per merged line (four attempts each) on the real model; two Twilight Princess sections now finish 84/87 and 48/48 lines with no error.
+
 - Glossary rows for a request are found in the text the model gets, after force aliases: a line with the hero's tag now brings the `Link → Лінк` row. Without it the model spelled the name after the Russian reference («Линка» in 10 of 48 lines in one live run; 0–2 lines after the fix).
 
 - Reference languages: Russian, when loaded, always goes last and the prompt calls it the least trusted reference (a live run took «Уговори Линка» from it); a `max_reference_languages` cap drops it first.

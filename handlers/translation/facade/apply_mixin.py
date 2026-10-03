@@ -38,6 +38,9 @@ class ApplyMixin:
     def _convert_translation_preserving_layout(self, text: str) -> str:
         return self.text_formatter.convert_translation_preserving_layout(text)
 
+    def _fit_translation_to_window(self, text: str, block_idx: int, string_idx: int) -> str:
+        return self.text_formatter.fit_translation_to_window(text, block_idx, string_idx)
+
     def _initiate_batch_translation(self, context: Dict[str, Any]) -> None:
         """Internal helper to initiate batch translation."""
         self.batch_translator.initiate_batch_translation(context)

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: owner decisions and live checks
-tokens: 2.7k
+tokens: 2.6k
 purpose: What is left for the owner after the audit: decisions with evidence, live runs, environment
 ---
 # Review queue — decisions, live runs, environment
@@ -20,12 +20,6 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
 
 ## DECISION
 
-- **The line layout check loses whole chunks on the real model (live run 2026-10-03).** A reply whose item has
-  fewer lines than the source («Але в ту мить, коли Дарбус простягнув руку» — 43 characters on one line, the
-  source had three) fails the chunk; the retry resends all 12 lines and the model does it again, so after 4
-  attempts the chunk is lost (one chunk in 3 of 4 runs of the new build; the old build stopped the whole run).
-  Recommendation: keep the item if every line fits the window width and the window's line limit, and re-wrap
-  it with the game's wrapper when it does not; retry only the item, not the chunk.
 - **Glossary duplicates (WP3 3.1 / 3.7).** 18 groups in `translation_prompts/glossary.json` share a canonical
   key (`docs/audit/2026-10-01/glossary_canonical_report.md`). Recommendation — merge 14: Rupee/Rupees,
   Goron/Gorons, Poe/Poes, Fused Shadow(s), Gate Key(s), Giant Bomb Bag(s) (pick «сумка» or «торба»),
@@ -84,7 +78,8 @@ and of `ISO\ENG\root\res\Msgus` (the project's source and translation folder), n
 - **Done 2026-10-03 — old build vs new build on the real model** (old proxy, `gemini-3.7-flash`, 4 workers,
   48 lines each of `zel_01` 727– (Talo, Colin, Beth) and `zel_03` 101– (the Goron elder)). New: 45/48 lines
   in 57 s and 36/48 in 127 s. Old: 22/48 in 140 s and 12/48 in 131 s, each run stopped after 4 attempts. Both
-  lose whole chunks to the line layout check (see DECISION). Quality is on a par — the model's noise is larger
+  lost whole chunks to the line layout check; with reflow allowed (owner's call, same day) the new build finished
+  84/87 and 48/48 lines through the new proxy with no error. Quality is on a par — the model's noise is larger
   than the difference: the new build wrote «ввімкни мійку», «ЖИВЬОМ», the old one «В Інструкція», «цій
   рогатки»; gender (Beth: «Я певна») and ти between the children were right in both.
 - **Done 2026-10-03 — the new proxy 1.4.0 with the owner's accounts.** `/healthz` reports 6 active accounts and

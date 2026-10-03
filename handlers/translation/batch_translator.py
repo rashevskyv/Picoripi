@@ -96,7 +96,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                 resolve_lines_per_window(
                     self.mw, real_block_idx, real_string_idx
                 ),
-                allow_line_expansion=True,
+                allow_reflow=True,
             ))
         return validated
 
@@ -118,7 +118,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                 source_editor,
                 saved_editor,
                 lines_per_window,
-                allow_line_expansion=True,
+                allow_reflow=True,
             )
         except ValueError:
             return False
@@ -639,7 +639,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                             pass
 
                 if resolved:
-                    final_text = self.main_handler._convert_translation_preserving_layout(translated_text)
+                    final_text = self.main_handler._fit_translation_to_window(translated_text, real_block_idx, real_string_idx)
                     apply_row(real_block_idx, real_string_idx, final_text)
 
                     source_item = source_items_for_chunk[idx_in_response] if idx_in_response < len(source_items_for_chunk) else None
@@ -809,7 +809,7 @@ class AIBatchTranslator(BaseTranslationHandler):
                         real_string_idx = temp_id
 
                 modified_blocks.add(real_block_idx)
-                final_text = self.main_handler._convert_translation_preserving_layout(translated_text)
+                final_text = self.main_handler._fit_translation_to_window(translated_text, real_block_idx, real_string_idx)
                 
                 if not hasattr(self.main_handler, 'current_session_translations') or self.main_handler.current_session_translations is None:
                     self.main_handler.current_session_translations = {}
@@ -904,12 +904,12 @@ class AIBatchTranslator(BaseTranslationHandler):
                     source_editor,
                     cleaned_translation,
                     resolve_lines_per_window(self.mw, block_idx, string_idx),
-                    allow_line_expansion=True,
+                    allow_reflow=True,
                 )
             except ValueError as exc:
                 self.main_handler._handle_ai_error(f"Validation failed: {exc}", context)
                 return
-        final_text = self.main_handler._convert_translation_preserving_layout(cleaned_translation)
+        final_text = self.main_handler._fit_translation_to_window(cleaned_translation, block_idx, string_idx)
         self.main_handler.ai_lifecycle_manager._record_session_exchange(context=context, assistant_content=cleaned_translation, response=response)
         
         self.main_handler.ui_handler.update_ai_operation_step(4, self.main_handler.ui_handler.status_dialog.steps[4], self.main_handler.ui_handler.status_dialog.STATUS_IN_PROGRESS)

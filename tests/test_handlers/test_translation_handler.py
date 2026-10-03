@@ -295,10 +295,11 @@ def test_th_handle_chunk_translated(th):
     assert 1 not in th.translation_progress
 
 
-def test_th_handle_chunk_translated_rejects_changed_line_layout(th):
+def test_th_handle_chunk_translated_rejects_a_lost_page_break(th):
+    # More or fewer lines are allowed (the model reflows); the blank line between pages is not.
     ctx = {
         'block_idx': 1,
-        'source_items': [{'id': 0, 'text': 'line one\nline two'}],
+        'source_items': [{'id': 0, 'text': 'line one\n\nline two'}],
     }
     th.translation_progress = {1: {'completed_chunks': set(), 'total_chunks': 1}}
 
@@ -351,11 +352,11 @@ def test_th_handle_single_translation_success(th):
     th.ui_handler.finish_ai_operation.assert_called_once()
 
 
-def test_th_handle_single_translation_rejects_changed_line_layout(th):
+def test_th_handle_single_translation_rejects_a_lost_page_break(th):
     ctx = {
         'block_idx': 1,
         'string_idx': 2,
-        'composer_args': {'source_text': 'line one\nline two'},
+        'composer_args': {'source_text': 'line one\n\nline two'},
     }
     th.ai_lifecycle_manager._clean_model_output.return_value = (
         '{"translation":"merged line"}'

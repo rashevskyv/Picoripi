@@ -115,7 +115,7 @@ class AIVariationsHandler(BaseTranslationHandler):
                         layout_source,
                         restored_v,
                         lines_per_window,
-                        allow_line_expansion=True,
+                        allow_reflow=True,
                     )
                 )
             except ValueError:

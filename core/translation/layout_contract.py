@@ -74,23 +74,27 @@ def validate_translation_layout(
     translation: Any,
     lines_per_window: Optional[int] = None,
     *,
-    allow_line_expansion: bool = False,
+    allow_reflow: bool = False,
 ) -> str:
+    """The translation, if its line layout is one the game can show; raises TranslationLayoutError otherwise.
+
+    ``allow_reflow``: the model may break the text into more or fewer lines than the source (a translation is
+    longer or shorter); blank lines (page breaks) and the trailing newline must stay. Lines wider than the window
+    are re-wrapped when the translation is applied (``TextFormatter.fit_translation_to_window``).
+    """
     source = normalize_newlines(source_text)
     translated = normalize_newlines(translation)
     expected = layout_signature(source, lines_per_window)
     actual = layout_signature(translated, lines_per_window)
-    expanded = actual["line_count"] > expected["line_count"]
-    if actual["line_count"] != expected["line_count"] and not (
-        allow_line_expansion and expanded
-    ):
+    reflowed = actual["line_count"] != expected["line_count"]
+    if reflowed and not allow_reflow:
         raise TranslationLayoutError(
             f"line layout mismatch: expected {expected['line_count']} lines, "
             f"received {actual['line_count']}; do not remove or merge source lines"
         )
     blank_layout_changed = (
         len(actual["blank_line_indices"]) < len(expected["blank_line_indices"])
-        if expanded
+        if reflowed
         else actual["blank_line_indices"] != expected["blank_line_indices"]
     )
     if blank_layout_changed:
@@ -103,7 +107,7 @@ def validate_translation_layout(
             "trailing-newline layout mismatch"
         )
     if (
-        not expanded
+        not reflowed
         and actual.get("window_count") != expected.get("window_count")
     ):
         raise TranslationLayoutError(

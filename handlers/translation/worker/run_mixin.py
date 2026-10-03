@@ -428,7 +428,7 @@ class AIWorkerRunMixin:
                     real_block_idx,
                     real_string_idx,
                 ),
-                allow_line_expansion=True,
+                allow_reflow=True,
             )
         return parsed_response
 
