@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: ui/, components/, dialogs/
-tokens: 8.0k
+tokens: 8.3k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -58,7 +58,12 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - **Game Plugin:** folder under `plugins/` that has `config.json`
    - **Description** (optional)
 3. Plugins currently discovered that way (folder name → **display_name** in `config.json`):
-   - `zelda_bmg` — Zelda: Twilight Princess BMG
+   - `zelda_bmg` — Zelda: Twilight Princess BMG. GameCube, Wii and Wii U (HD) alike: **Source** is the folder with
+     `bmgres*.arc` (`res/Msgus` on GameCube and in the Wii disc's DATA partition, `content/res/Msguk` or `Msgus` in
+     HD); the three share message ids, so speakers, scenes and conversations work the same. HD text adds Wii U
+     control icons (`{U:ZL}`, `{U:L stick}`, `{U:+}`…). Point **Fonts folder** at `res/Fontus` (HD: `res/Fonteu`).
+     HD draws its letters from the textures in `*.pack.gz`, not from the BFN: the workspace build
+     (`TPHD_UA\2_build.bat`) redraws them from the edited BFN sheets
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker HD (Wii U): the `Message/*.msbt` and `Font/*.bffnt` taken out of `content/Common/Pack/permanent_2d_UsEnglish.pack` (one block per MSBT). Tags come from the game's `CKing.msbp` (`[Red]…[/C]`, `[Name]`, `[Wait:10]`, `[A]`); speakers, box width (875 font units in a talk box, 812 in signs and item boxes, 4 lines a page), conversations and glossary terms come from each message's attributes. An unedited file saves byte for byte. Older projects of Kruptar `.txt` dumps still open
    - `zelda_sshd` — Zelda: Skyward Sword HD (Switch) and the Wii original (one plugin; the version is told by the source folder): the English `*.msbt` that `1_unpack.bat` takes out of the `.arc` archives (`US/Object/en_US/<area>/`, interface text `Layout/<name>/text/`), one block per file. Tags are named from the text (`{heroName}`, `{color:Red}`, `{item:11}`, `{icon:41}`, `{wait:15}`, `{choice1:65535}`); an unedited file saves byte for byte and `2_build.bat` packs the files back into the archives. Speakers (the HD's speaker byte, Fi's window, one-character files), conversations (the MSBF flows), line limits per window kind (the game breaks an over-long line mid-word, so keep within them; 4 lines a page) and glossary terms come from the game data. Load Reference Patch with the HD `romfs` folder shows the official Russian first and 12 more languages — also for a Wii project, matched by label

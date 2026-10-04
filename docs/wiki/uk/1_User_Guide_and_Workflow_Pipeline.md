@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: ui/, components/, dialogs/
-tokens: 10.3k
+tokens: 10.8k
 ---
 # Посібник: інтерфейс
 
@@ -57,7 +57,12 @@ tokens: 10.3k
    - **Game Plugin:** тека в `plugins/` з `config.json`
    - **Description** (необов’язково)
 3. Плагіни, які зараз так знаходяться (ім’я теки → **display_name** у `config.json`):
-   - `zelda_bmg` — Zelda: Twilight Princess BMG
+   - `zelda_bmg` — Zelda: Twilight Princess BMG. Однаково для GameCube, Wii і Wii U (HD): **Source** — тека з
+     `bmgres*.arc` (`res/Msgus` на GameCube і в розділі DATA диска Wii, `content/res/Msguk` або `Msgus` у HD);
+     ідентифікатори повідомлень ті самі, тож мовці, сцени й розмови працюють однаково. У тексті HD є ще іконки
+     керування Wii U (`{U:ZL}`, `{U:L stick}`, `{U:+}`…). **Тека шрифтів** — `res/Fontus` (HD: `res/Fonteu`).
+     HD малює літери з текстур у `*.pack.gz`, а не з BFN: збирання робочої теки (`TPHD_UA\2_build.bat`)
+     перемальовує їх з відредагованих аркушів BFN
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker HD (Wii U): `Message/*.msbt` і `Font/*.bffnt`, витягнуті з `content/Common/Pack/permanent_2d_UsEnglish.pack` (один блок на MSBT). Теги взяті з `CKing.msbp` самої гри (`[Red]…[/C]`, `[Name]`, `[Wait:10]`, `[A]`); мовці, ширина вікна (875 одиниць шрифту у вікні розмови, 812 — у табличках і вікнах предметів, 4 рядки на сторінку), розмови й терміни глосарію — з атрибутів кожного повідомлення. Незмінений файл зберігається байт у байт. Старі проєкти з `.txt` Kruptar теж відкриваються
    - `zelda_sshd` — Zelda: Skyward Sword HD (Switch) і оригінал для Wii (один плагін; версію видно з теки джерела): англійські `*.msbt`, які `1_unpack.bat` дістає з архівів `.arc` (`US/Object/en_US/<область>/`, текст інтерфейсу `Layout/<назва>/text/`), один блок на файл. Теги названо за текстом (`{heroName}`, `{color:Red}`, `{item:11}`, `{icon:41}`, `{wait:15}`, `{choice1:65535}`); незмінений файл зберігається байт у байт, а `2_build.bat` пакує файли назад в архіви. Мовці (байт мовця в HD, вікно Фай, файли одного персонажа), розмови (потоки MSBF), межі рядка для кожного типу вікна (гра сама рве задовгий рядок посеред слова, тож тримайтеся меж; 4 рядки на сторінку) і терміни глосарія беруться з даних гри. Load Reference Patch з текою `romfs` HD показує офіційну російську першою і ще 12 мов — і для проєкту Wii, за міткою повідомлення

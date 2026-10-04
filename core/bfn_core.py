@@ -10,6 +10,75 @@ def align_to(value: int, alignment: int) -> int:
         return value
     return value + (alignment - (value % alignment))
 
+# GX texture formats with a byte per channel: format -> (tile width, tile height, bytes per texel).
+# I8 is one intensity byte drawn as white with that alpha; IA8 is an alpha byte, then an intensity byte.
+# Twilight Princess HD's fonts are I8; GameCube and Wii fonts are I4 or IA4.
+GX_8BIT = {1: (8, 4, 1), 3: (4, 4, 2)}
+
+
+def _gx8_order(texture_format: int, width: int, height: int):
+    """Texel coordinates in the order an I8/IA8 texture stores them (tile by tile, row by row)."""
+    tw, th, _ = GX_8BIT[texture_format]
+    for ty in range(0, height, th):
+        for tx in range(0, width, tw):
+            for y in range(ty, ty + th):
+                for x in range(tx, tx + tw):
+                    yield x, y
+
+
+def gx8_texels(texture_format: int, width: int, height: int, data: bytes):
+    """((x, y), (intensity, alpha)) for every texel of an I8/IA8 texture."""
+    size = GX_8BIT[texture_format][2]
+    for n, (x, y) in enumerate(_gx8_order(texture_format, width, height)):
+        at = n * size
+        if at + size > len(data):
+            return
+        if x < width and y < height:
+            yield (x, y), ((data[at], data[at]) if size == 1 else (data[at + 1], data[at]))
+
+
+def gx8_encode(texture_format: int, width: int, height: int, pixels) -> bytearray:
+    """I8/IA8 bytes of an RGBA image (``pixels[x, y]``; intensity from red, alpha from alpha)."""
+    size = GX_8BIT[texture_format][2]
+    out = bytearray()
+    for x, y in _gx8_order(texture_format, width, height):
+        r, _g, _b, a = pixels[x, y] if (x < width and y < height) else (0, 0, 0, 0)
+        out += bytes([r]) if size == 1 else bytes([a, r])
+    return out
+
+
+def map_pairs_to_lists(raw) -> List[int]:
+    """A MAP1 type-3 block stores (code, glyph) pairs; the editor keeps all codes, then all glyphs."""
+    raw = list(raw)
+    return raw[0::2] + raw[1::2]
+
+
+def map_lists_to_pairs(entries) -> List[int]:
+    """Back to the file's (code, glyph) pairs."""
+    half = len(entries) // 2
+    return [value for pair in zip(entries[:half], entries[half:]) for value in pair]
+
+
+def char_to_glyph(map1: List[Dict[str, Any]]) -> Dict[int, int]:
+    """Character code -> glyph index over every MAP1 block; like JUTResFont, the first block with the code wins."""
+    found: Dict[int, int] = {}
+    for block in map1:
+        m_type, first, last = block["mapping_type"], block["first_char"], block["last_char"]
+        entries = block.get("entries", [])
+        if m_type == 0:
+            pairs = ((code, code - first) for code in range(first, last + 1))
+        elif m_type == 2:
+            pairs = ((first + i, glyph) for i, glyph in enumerate(entries) if glyph != 0xFFFF)
+        elif m_type == 3:
+            half = len(entries) // 2
+            pairs = zip(entries[:half], entries[half:])
+        else:
+            continue
+        for code, glyph in pairs:
+            found.setdefault(code, glyph)
+    return found
+
+
 class BfnCore:
     """Bfn core implementation."""
     def __init__(self):
@@ -120,8 +189,8 @@ class BfnCore:
                     entries = list(struct.unpack(f'>{entry_count}H', entry_data))
                 elif mapping_type == 3:
                     entry_data = chunk_body[8:8+entry_count*4]
-                    entries = list(struct.unpack(f'>{entry_count*2}H', entry_data))
-                    
+                    entries = map_pairs_to_lists(struct.unpack(f'>{entry_count*2}H', entry_data))
+
                 self.map1.append({
                     "mapping_type": int(mapping_type),
                     "first_char": int(first_char),
@@ -229,7 +298,7 @@ class BfnCore:
             if mapping_type == 0:
                 writer_buf.extend(b'\x00' * 16)
             elif mapping_type in (2, 3):
-                for entry in entries:
+                for entry in (map_lists_to_pairs(entries) if mapping_type == 3 else entries):
                     writer_buf.extend(struct.pack('>H', entry))
                     
             while len(writer_buf) % 32 != 0:
@@ -301,31 +370,19 @@ class BfnCore:
         last_code = wid["last_code_included"]
         packets = wid["packets"]
         
-        # Parse MAP1 maps
-        m1 = self.map1[0]
-        mapping_type = m1["mapping_type"]
-        first_char = m1["first_char"]
-        entries = m1["entries"]
-        
-        # 1. Base CP1252 Mapping
-        if mapping_type == 2:
-            for idx, glyph_idx in enumerate(entries):
-                char_code = first_char + idx
-                
-                # Get width for glyph_idx
-                char_width = default_width
-                if first_code <= glyph_idx < last_code:
-                    p_idx = glyph_idx - first_code
-                    if p_idx < len(packets):
-                        char_width = packets[p_idx]["width"]
-                        
-                # Translate CP1252 char_code to Unicode character
-                try:
-                    char_str = bytes([char_code]).decode('cp1252')
-                except Exception:
-                    char_str = chr(char_code)
-                    
-                font_map[char_str] = {"width": char_width}
+        # 1. Base CP1252 Mapping, over every MAP1 block (Twilight Princess HD splits its map into seven)
+        for char_code, glyph_idx in char_to_glyph(self.map1).items():
+            char_width = default_width
+            if first_code <= glyph_idx < last_code:
+                p_idx = glyph_idx - first_code
+                if p_idx < len(packets):
+                    char_width = packets[p_idx]["width"]
+            # Translate CP1252 char_code to Unicode character
+            try:
+                char_str = bytes([char_code]).decode('cp1252')
+            except Exception:
+                char_str = chr(char_code)
+            font_map[char_str] = {"width": char_width}
                 
         # 2. Add mappings based on translation map overrides (e.g. mapping Ukrainian 'і' to CP1252 'ì')
         if translation_map:
@@ -407,6 +464,9 @@ class BfnCore:
                                 
                                 if px < texture_width and py < texture_height:
                                     img.setPixel(px, py, QColor(intensity, intensity, intensity, alpha).rgba())
+            elif texture_format in GX_8BIT:
+                for (px, py), (intensity, alpha) in gx8_texels(texture_format, texture_width, texture_height, sheet_bin):
+                    img.setPixel(px, py, QColor(intensity, intensity, intensity, alpha).rgba())
             else:
                 log_error(f"Unsupported BFN texture format during QImage conversion: {texture_format}")
 
@@ -491,26 +551,9 @@ class BfnCore:
             except Exception:
                 return chr(code)
 
-        char_to_glyph = {}
-        m1 = self.map1[0]
-        m_type = m1["mapping_type"]
-        m_first = m1["first_char"]
-        m_last = m1["last_char"]
-        entries = m1["entries"]
-
-        if m_type == 0:
-            for idx in range(m_first, m_last + 1):
-                char_to_glyph[code_to_char(idx)] = idx - m_first
-        elif m_type == 2:
-            for c_idx, g_idx in enumerate(entries):
-                char_code = m_first + c_idx
-                char_to_glyph[code_to_char(char_code)] = g_idx
-        elif m_type == 3:
-            half = len(entries) // 2
-            for k in range(half):
-                code = entries[k]
-                g_idx = entries[half + k]
-                char_to_glyph[code_to_char(code)] = g_idx
+        glyph_of = {}
+        for code, g_idx in char_to_glyph(self.map1).items():
+            glyph_of.setdefault(code_to_char(code), g_idx)
 
         pad = 15  # Match simulator's padding of 15px
         line_advance = leading + line_spacing
@@ -574,11 +617,11 @@ class BfnCore:
                     current_x = pad + tab_size * (int(rel / tab_size) + 1)
                     continue
 
-                glyph_idx = char_to_glyph.get(char, -1)
+                glyph_idx = glyph_of.get(char, -1)
                 if glyph_idx == -1 and translation_map:
                     fallback_char = translation_map.get(char)
                     if fallback_char:
-                        glyph_idx = char_to_glyph.get(fallback_char, -1)
+                        glyph_idx = glyph_of.get(fallback_char, -1)
 
                 # A scaled glyph is vertically centered on the normal line box
                 # (game: do_scale shifts by half the font height difference)
