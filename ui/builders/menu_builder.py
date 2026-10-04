@@ -298,7 +298,7 @@ class MenuBuilder:
         tools_menu.addAction(self.mw.pipeline_wizard_action)
         tools_menu.addSeparator()
 
-        # Create a dynamic beautiful icon for BFN Font Editor with letter 'A'
+        # Create a dynamic beautiful icon for Font Editor with letter 'A'
         pixmap = QPixmap(32, 32)
         pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
@@ -314,11 +314,11 @@ class MenuBuilder:
 
         self.mw.bfn_editor_action = QAction(
             bfn_editor_icon,
-            tr('BFN &Font Editor...'),
+            tr('&Font Editor...'),
             self.mw
         )
         self.mw.bfn_editor_action.setToolTip(
-            tr('<b>BFN Font Editor</b><br>Click — open the editor for Nintendo BFN binary fonts in a separate window; the project stays open.')
+            tr('<b>Font Editor</b><br>Click — open the game font editor (BFN, N64 ROM, G1T, BFFNT) in a separate window; the project stays open.')
         )
         tools_menu.addAction(self.mw.bfn_editor_action)
 

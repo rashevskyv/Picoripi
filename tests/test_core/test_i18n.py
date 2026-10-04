@@ -42,7 +42,7 @@ def test_uk_catalog_covers_main_window_chrome():
 
 def test_uk_catalog_covers_bfn_editor_chrome():
     i18n.init("uk")
-    assert i18n.tr("BFN Font Editor v{0}", "1.0.21").startswith("Редактор шрифтів BFN")
+    assert i18n.tr("Font Editor v{0}", "1.0.21").startswith("Редактор шрифтів v")
     assert i18n.tr("Font Editor") == "Редактор шрифту"
     assert i18n.tr("Glyph Table") == "Таблиця гліфів"
     assert i18n.tr("Texture Sheets:") == "Текстурні аркуші:"

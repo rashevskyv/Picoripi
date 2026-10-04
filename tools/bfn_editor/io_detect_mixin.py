@@ -144,6 +144,7 @@ class IoDetectMixin:
                 maps = self.original_font_metadata.get("MAP1", [])
                 for m in maps:
                     if m.get("mapping_type", 0) == 0:
+                        m["linear_count"] = m.get("mapping_entry_count", 0)
                         m["mapping_type"] = 2
                         first_char = m.get("first_char", 0)
                         last_char = m.get("last_char", 0)

@@ -10,7 +10,7 @@ from core.i18n import tr
 from utils.logging_utils import log_debug
 
 class BfnActions:
-    """Helper class containing BFN Font Editor action methods for MainWindow."""
+    """Helper class containing Font Editor action methods for MainWindow."""
     def __init__(self, main_window):
         self.mw = main_window
 
@@ -19,13 +19,15 @@ class BfnActions:
         return self.mw.helper
 
     def open_bfn_editor_standalone(self):
-        """Open BFN Font Editor as a standalone window (no archive binding)."""
+        """Open Font Editor as a standalone window (no archive binding)."""
         from tools.bfn_editor import BfnEditorWindow
         if not hasattr(self.mw, '_bfn_editor_window') or self.mw._bfn_editor_window is None:
             self.mw._bfn_editor_window = BfnEditorWindow(parent=self.mw)
         
         editor = self.mw._bfn_editor_window
-        
+        # Saved widths reach the width checks also when the editor was opened from the menu
+        editor.font_sync_callback = editor.font_sync_callback or self._bfn_font_sync
+
         # Initialize simulation input with current text from Picoripi translation editor
         current_text = ""
         ds = getattr(self.mw, 'data_store', None)
@@ -46,7 +48,7 @@ class BfnActions:
 
     def open_bfn_editor_for_block(self, block_idx: int):
         """
-        Open BFN Font Editor bound to a specific .bfn block (may be inside an archive).
+        Open Font Editor bound to a specific .bfn block (may be inside an archive).
         After saving, updates the archive in RAM and reloads font metrics.
         """
         from tools.bfn_editor import BfnEditorWindow
@@ -55,13 +57,13 @@ class BfnActions:
 
         pm = getattr(self.mw, 'project_manager', None)
         if not pm or not pm.project:
-            QMessageBox.warning(self.mw, tr('BFN Editor'), tr('No project is open.'))
+            QMessageBox.warning(self.mw, tr('Font Editor'), tr('No project is open.'))
             return
 
         block_map = getattr(self.mw, 'block_to_project_file_map', {})
         proj_b_idx = block_map.get(block_idx, block_idx)
         if proj_b_idx >= len(pm.project.blocks):
-            QMessageBox.warning(self.mw, tr('BFN Editor'), tr('Could not resolve block file.'))
+            QMessageBox.warning(self.mw, tr('Font Editor'), tr('Could not resolve block file.'))
             return
 
         block = pm.project.blocks[proj_b_idx]
@@ -86,7 +88,7 @@ class BfnActions:
                         except Exception as exc:
                             log_debug(f"bfn_actions.BfnActions.open_bfn_editor_for_block: ignored {exc!r}")
             except Exception as e:
-                QMessageBox.critical(self.mw, tr('BFN Editor'), f'Failed to read .bfn from archive:\n{e}')
+                QMessageBox.critical(self.mw, tr('Font Editor'), f'Failed to read .bfn from archive:\n{e}')
                 return
 
             def save_callback(filename: str, new_bytes: bytes):
@@ -95,9 +97,9 @@ class BfnActions:
                     container.write_file(filename, new_bytes)
                     archive_abs = pm.get_absolute_path(archive_rel_path, is_translation=False)
                     atomic_write_bytes(archive_abs, container.pack())
-                    log_info(f"BFN Editor: saved '{filename}' back to archive '{archive_rel_path}'.")
+                    log_info(f"Font Editor: saved '{filename}' back to archive '{archive_rel_path}'.")
                 except Exception as ex:
-                    QMessageBox.critical(editor, tr('BFN Editor'), f'Failed to write back to archive:\n{ex}')
+                    QMessageBox.critical(editor, tr('Font Editor'), f'Failed to write back to archive:\n{ex}')
 
             editor.open_from_bytes(
                 bfn_bytes,
@@ -152,7 +154,7 @@ class BfnActions:
         if hasattr(self.mw, 'issue_scan_handler'):
             self.mw.issue_scan_handler._perform_initial_silent_scan_all_issues()
             
-        log_info("BFN Editor: font metrics reloaded and silent full project recalculation started.")
+        log_info("Font Editor: font metrics reloaded and silent full project recalculation started.")
 
     def export_current_bmg_to_json(self):
         """Export the currently selected BMG file's text content to a JSON file for inspection."""

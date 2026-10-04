@@ -46,7 +46,14 @@ class IoSaveMixin:
             for s in range(len(self.sheet_images)):
                 png_path = os.path.join(target_dir, f"sheet_{s}.png")
                 self.sheet_images[s].save(png_path)
-                
+
+            if self.bfn_path and getattr(self, "font_format", "bfn") != "bfn":
+                # Packed and written in a job; it reports and refreshes the widths when done.
+                if hasattr(self, 'translation_map') and self.translation_map:
+                    self.save_translation_map()
+                self.save_formatted_font(silent=silent)
+                return
+
             if self.bfn_path:
                 repack_bfn_logic(target_dir, self.bfn_path)
                 self.status.showMessage(tr("Successfully saved and compiled BFN: {0}", os.path.basename(self.bfn_path)))
@@ -66,6 +73,8 @@ class IoSaveMixin:
                 key = self.archive_name if self.archive_name else self.current_bfn_name
                 if key in self.font_sources:
                     self.font_sources[key]["files"][self.current_bfn_name] = saved_bytes
+                if getattr(self, "font_source", None) is not None:   # a font the game plugin described: its widths feed the checks
+                    self.write_project_font_map()
             else:
                 self.status.showMessage(tr("Successfully saved files in folder: {0}", os.path.basename(target_dir)))
                 
@@ -124,7 +133,8 @@ class IoSaveMixin:
         elif hasattr(self, 'mw'):
             parent_mw = self.mw
 
-        if parent_mw:
+        # Only a BFN feeds the main window's bitmap preview; other formats would replace its font.
+        if parent_mw and getattr(self, "font_format", "bfn") == "bfn":
             try:
                 from core.bfn_core import BfnCore
                 bfn_cache = BfnCore()

@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-02
+updated: 2026-10-03
 owns: plugins/
-tokens: 3.6k
+tokens: 3.8k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -70,6 +70,7 @@ plugins/<id>/
   config.py                           # problem ids and default detection / autofix settings
   tag_manager.py                      # the game's tags and their highlighting
   font_map.json, fonts/*.json         # widths
+  font_sources.json                   # the game's fonts for the font editor (optional)
   translation_prompts/prompts.json    # prompt sections the game changes
 ```
 
@@ -91,6 +92,8 @@ class GameRules(BaseGameRules):
 With these the base class builds the tag manager, the problem analyzer and the text fixer and answers the hooks that only pass a call on (problem definitions, highlighting, analysis, autofix, short problem names). Name `problem_analyzer_class` / `text_fixer_class` only for game-specific checks or fixes (subclass `GenericProblemAnalyzer` / `GenericTextFixer` from `plugins/common/`). `problem_ids = problem_ids(DEFINITIONS, PREFIX, without=(…))` leaves out standard checks the game does not use.
 
 **`font_map.json` and `fonts/*.json`** — `fonts/*.json` are font maps (`{character: {"width": N}}`). The root `font_map.json` overrides widths of visible tags and icons: `{"[A]": {"width": 16}, "{COLOR_RED}": {"width": 0}}`. A visible icon tag is not zero-width. Widths the user sets in the application (tag width dialog, Settings → font map) are saved to `~/.picoripi/plugins/<plugin>/font_map.json`, which wins over the plugin's file; the same holds for `translation_map.json` written by the BFN editor without a project. The application never writes into `plugins/`.
+
+**`font_sources.json`** (or the hook `get_font_sources()`) — the game's own bitmap fonts, so the font editor lists them for a project and saves them back. Each entry: `label`, `format` (`bfn`, `n64`, `g1t` or `bffnt`), `path` (a path or glob relative to the project's source folder, or a list of candidates — the first that matches wins; `../` may climb out; a single-file project's file is used as it is), optional `member` (a glob of files inside the archive at `path`), `font_map` (the width map the font feeds; the editor writes it to `<project>/font_maps/` on save and the width checks read it) and `params` (the format's game constants: the cell grid and code page of a G1T atlas, the ROM id, dmadata files and width-table offset of an N64 font; BFN and BFFNT describe themselves). The format code in `core/font_formats/` holds no game constants. A file that holds both text and a font (an N64 ROM) keeps the font edits when the text is saved: the host carries them from the translation copy into the rebuilt file. A `translation_map.json` in the plugin folder (`{"Ж": "Æ"}`: the translated letter is drawn with that slot's glyph) seeds the editor's map for a project that has none.
 
 **`translation_prompts/prompts.json`** — may hold only the sections the game changes (usually `translation`); the rest is merged in key by key from `plugins/common/defaults/prompts.json`. Never add an instruction that permits changing tags.
 

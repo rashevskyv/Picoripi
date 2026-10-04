@@ -1,0 +1,19 @@
+[
+  {
+    "label": "Message font (nes_font_static)",
+    "format": "n64",
+    "path": "*.z64",
+    "font_map": "oot_font.json",
+    "params": {
+      "rom_id": "CZLE",
+      "rom_version": 0,
+      "font_file": 21,
+      "glyph_count": 139,
+      "first_code": "0x20",
+      "widths_file": 27,
+      "widths_offset": "0x101EA0",
+      "widths_count": 144,
+      "extra_chars": {"0x80": "ÀîÂÄÇÈÉÊËÏÔÖÙÛÜßàáâäçèéêëïôöùûü"}
+    }
+  }
+]

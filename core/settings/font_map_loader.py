@@ -173,8 +173,19 @@ class FontMapLoader:
                 except Exception as e:
                     log_error(f"Error reading or parsing font map file '{font_file.name}': {e}.", exc_info=True)
 
-        # Dynamically load BFN fonts from all active project blocks (including inside archives)
+        # Width maps the font editor wrote for the game's own fonts (core/font_formats); a map with
+        # the name of one the plugin ships replaces it.
         pm = getattr(self.mw, 'project_manager', None)
+        project_maps = Path(pm.project_dir) / "font_maps" if pm and getattr(pm, 'project_dir', None) else None
+        if project_maps is not None and project_maps.is_dir():
+            for map_file in sorted(project_maps.glob("*.json")):
+                try:
+                    with map_file.open('r', encoding='utf-8') as f:
+                        self.mw.all_font_maps[map_file.name] = json.load(f)
+                except (OSError, ValueError) as e:
+                    log_warning(f"Could not read the font editor's width map '{map_file}': {e}")
+
+        # Dynamically load BFN fonts from all active project blocks (including inside archives)
         if pm and pm.project:
             for block in pm.project.blocks:
                 is_archive_member = block.metadata.get('is_archive_member', False)

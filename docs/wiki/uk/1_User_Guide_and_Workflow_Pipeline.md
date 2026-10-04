@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-02
+updated: 2026-10-03
 owns: ui/, components/, dialogs/
-tokens: 7.7k
+tokens: 7.8k
 ---
 # Посібник: інтерфейс
 
@@ -143,7 +143,7 @@ tokens: 7.7k
 | Команда | Шорткат | Роль |
 |---------|---------|------|
 | Localization Pipeline… | | Кроки по порядку + статус. Тонкий: кожна кнопка запускає ту саму дію, що й меню |
-| BFN Font Editor… | | Nintendo `.bfn` в окремому вікні; проєкт лишається відкритим. Та сама **мова інтерфейсу**, що й у решті програми |
+| Font Editor… | | Растрові шрифти в окремому вікні; проєкт лишається відкритим. Відкриває Nintendo `.bfn` (Twilight Princess, Wind Waker), шрифт повідомлень у ROM N64 Zelda (OoT, MM), атласи `.g1t` Hyrule Warriors і `.bffnt` Switch. Шрифти самої гри, які називає її плагін, є в дереві шрифтів і відкриваються з проєкту (з копії перекладу, щойно вона є); Save пише копію перекладу, а ширини шрифту разом із мапою перекладу — у `<проєкт>/font_maps/`, звідки їх беруть перевірки ширини. Та сама **мова інтерфейсу**, що й у решті програми |
 | Script Markup Studio… | | Розмітити вокзру (фаза 0 для MemePalace). Див. [9](9_Script_Markup.md) |
 | MemePalace Context Builder… | Ctrl+M | Записати розмічений скрипт у пам’ять сюжету |
 | Prepare Glossary… | | Один автоматичний прохід глосарія |
@@ -185,7 +185,7 @@ tokens: 7.7k
 
 **Language** показує кожен `locales/<code>.json`, у якому вже є переклад. Підпис — поле `@language_name` у тому файлі. Зміна записує `ui_language` і просить перезапуск.
 
-Якщо рядка в каталозі немає, показується англійська. Російської в меню немає. Нові каталоги з’являються після `tools/i18n-translate/run.bat` і перезапуску. **Редактор шрифтів BFN** теж використовує цю мову.
+Якщо рядка в каталозі немає, показується англійська. Російської в меню немає. Нові каталоги з’являються після `tools/i18n-translate/run.bat` і перезапуску. **Редактор шрифтів** теж використовує цю мову.
 
 ---
 
@@ -233,7 +233,7 @@ tokens: 7.7k
 
 Зліва направо (`toolbar_builder.py`):
 
-Save · Undo · Redo · Find · Preview · **AI Batch Translation** (відкриває вікно вибору конвеєра перекладу) · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (розпірка) · **Run External Script** (`>_`) · Shortcuts Help.
+Save · Undo · Redo · Find · Preview · **AI Batch Translation** (відкриває вікно вибору конвеєра перекладу) · **Open AI Chat** (`Ctrl+Shift+C`) · Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (розпірка) · **Run External Script** (`>_`) · Shortcuts Help.
 
 **AI Translate** і **AI Variation** на цьому тулбарі **немає**. Вони над Editable.
 
