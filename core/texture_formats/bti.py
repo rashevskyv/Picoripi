@@ -104,4 +104,3 @@ def _new_palette(out: bytearray, head: Dict[str, int], mips: List[Image.Image]) 
     values = [encode(*c) for c in colours] + [0] * (head["pal_count"] - len(colours))
     struct.pack_into(f">{head['pal_count']}H", out, head["pal_offset"], *values)
     return [decode(v) for v in values]
-
