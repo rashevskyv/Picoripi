@@ -110,7 +110,7 @@ def test_categories_and_layout_keys():
     assert category("data/res/text/chara_text_en.cfg.bin", "TEXT_INFO", 2) == "medallium"
     assert layout_key("data/res/map/t101g00/t101g00_npc_text_en.cfg.bin", "TEXT_INFO", 2) == "dialogue|TEXT_INFO|2"
     assert layout_key("data/res/text/menu/shopmenu_text_en.cfg.bin", "TEXT_INFO", 2) == "shopmenu|TEXT_INFO|2"
-    layout = load_rules("yokai_watch")._layouts()
+    layout = load_rules("yokai_watch")._layouts("yw1")
     assert layout["dialogue|TEXT_INFO|2"]["lines"] == 2 and layout["dialogue|TEXT_INFO|2"]["max"] >= 300
 
 
@@ -133,3 +133,21 @@ def test_real_files_round_trip_byte_for_byte():
         assert all(tags.from_editor(t) == r.text for t, r in zip(texts, text_file.rows)), path
         rows += len(texts)
     assert rows > 40000
+
+
+SOURCE_3 = Path(r"E:\Emulators\RomHacking\YOKAI_WATCH_3\source")
+
+
+@pytest.mark.skipif(not SOURCE_3.is_dir(), reason="needs the Yo-kai Watch 3 workspace (YOKAI_WATCH_3)")
+def test_yokai_watch_3_files_round_trip_byte_for_byte():
+    files = sorted(SOURCE_3.rglob("*_en.cfg.bin"))
+    assert len(files) == 5641
+    rows = 0
+    for path in files:
+        data = path.read_bytes()
+        text_file = TextFile(data, path.name)
+        assert text_file.build(text_file.texts()) == data, path
+        rows += len(text_file.rows)
+    assert rows > 130000
+    layout = load_rules("yokai_watch")._layouts("yw3")
+    assert layout["dialogue|TEXT_INFO|2"]["lines"] == 2

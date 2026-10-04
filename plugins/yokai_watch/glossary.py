@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 from utils.logging_utils import log_debug
 
 from .cfgbin import CfgBin, FormatError, u32
+from .speakers import GAMES, game_of
 
 _PLACE = re.compile(r"^[A-Z][\w'’.&é -]{1,38}$")
 
@@ -55,12 +56,14 @@ def seed_entries(source_root: Path, meta_root: Path, lang: str = "_en") -> List[
 
     def add(term: str, section: str, description: str, source: str) -> None:
         term = term.strip()
-        if term and term not in seen and not re.search(r"[぀-ヿ一-鿿]", term) and term != "dummy":
+        if term and term not in seen and "<" not in term and not re.search(r"[぀-ヿ一-鿿]", term) and term != "dummy":
             seen.add(term)
             entries.append({"term": term, "section": section, "description": description, "source_ref": source})
 
     chara = _table(text_dir / f"chara_text{lang}.cfg.bin")
-    names, medallium = _nouns(chara), _texts(chara)
+    renamed = GAMES[game_of(Path(source_root))]["names"]          # Yo-kai Watch 3: the heroes' nouns are name tags
+    names = {noun: renamed.get(name, name) for noun, name in _nouns(chara).items()}
+    medallium = _texts(chara)
     yokai, people = {}, set()
     for path in sorted((Path(meta_root) / "data/res/character").glob("chara_base*.cfg.bin")):
         table = _table(path)

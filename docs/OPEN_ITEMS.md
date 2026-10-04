@@ -66,6 +66,9 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - 32 % of map NPC lines have no speaker: their talk is started from event scripts (`.xq`), not the talk tables.
 - Text textures: 594 listed (`texture_sources.json`), none redrawn yet; 15 skill banners still show Japanese.
 - The mod is the whole `yw1_a.fa` (~390 MB); a loose-file override was not tried.
+- Yo-kai Watch 3 (EUR): the dump has English only (`yw_lg_en.fa`), so no reference languages; its 3,368 English
+  textures are not catalogued (the YW1 `texture_sources.json` globs do not match); no script markup yet;
+  15 % of event lines and 27 % of NPC lines have no speaker.
 
 ## Metal Gear Solid: The Twin Snakes (2026-10-04)
 

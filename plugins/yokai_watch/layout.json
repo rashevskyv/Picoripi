@@ -1,249 +1,757 @@
 {
- "addmembermenu|TEXT_INFO|2": {
-  "count": 236,
-  "lines": 2,
-  "max": 318,
-  "warn": 312
+ "yw1": {
+  "addmembermenu|TEXT_INFO|2": {
+   "count": 236,
+   "lines": 2,
+   "max": 318,
+   "warn": 312
+  },
+  "battle|NOUN_INFO|5": {
+   "count": 3,
+   "max": 55,
+   "warn": 30
+  },
+  "battle|TEXT_INFO|2": {
+   "count": 948,
+   "max": 251,
+   "warn": 150
+  },
+  "capsule|TEXT_INFO|2": {
+   "count": 224,
+   "lines": 2,
+   "max": 320,
+   "warn": 319
+  },
+  "chara_ability|NOUN_INFO|5": {
+   "count": 99,
+   "max": 175,
+   "warn": 146
+  },
+  "chara_ability|TEXT_INFO|2": {
+   "count": 115,
+   "lines": 2,
+   "max": 385,
+   "warn": 346
+  },
+  "charamakemenu|TEXT_INFO|2": {
+   "count": 1,
+   "max": 168,
+   "warn": 168
+  },
+  "chara|NOUN_INFO|5": {
+   "count": 466,
+   "max": 118,
+   "warn": 112
+  },
+  "chara|TEXT_INFO|2": {
+   "count": 245,
+   "lines": 6,
+   "max": 213,
+   "warn": 211
+  },
+  "combinemenu|TEXT_INFO|2": {
+   "count": 7,
+   "lines": 2,
+   "max": 293,
+   "warn": 291
+  },
+  "configmenu|TEXT_INFO|2": {
+   "count": 17,
+   "max": 279,
+   "warn": 278
+  },
+  "dialogue|NOUN_INFO|5": {
+   "count": 92,
+   "max": 121,
+   "warn": 116
+  },
+  "dialogue|TEXT_INFO|2": {
+   "count": 31289,
+   "lines": 2,
+   "max": 337,
+   "warn": 316
+  },
+  "downloadmenu|TEXT_INFO|2": {
+   "count": 25,
+   "lines": 3,
+   "max": 287,
+   "warn": 280
+  },
+  "equipmenu|TEXT_INFO|2": {
+   "count": 11,
+   "lines": 2,
+   "max": 260,
+   "warn": 246
+  },
+  "evolutionmenu|TEXT_INFO|2": {
+   "count": 2,
+   "lines": 2,
+   "max": 159,
+   "warn": 147
+  },
+  "facemenu|TEXT_INFO|2": {
+   "count": 22,
+   "lines": 2,
+   "max": 320,
+   "warn": 314
+  },
+  "face|TEXT_INFO|2": {
+   "count": 241,
+   "lines": 2,
+   "max": 298,
+   "warn": 285
+  },
+  "helpmenu|TEXT_INFO|2": {
+   "count": 48,
+   "max": 250,
+   "warn": 238
+  },
+  "help|TEXT_INFO|2": {
+   "count": 211,
+   "lines": 2,
+   "max": 323,
+   "warn": 315
+  },
+  "infomenu|TEXT_INFO|2": {
+   "count": 27,
+   "lines": 3,
+   "max": 269,
+   "warn": 263
+  },
+  "itemmenu|TEXT_INFO|2": {
+   "count": 6,
+   "lines": 2,
+   "max": 253,
+   "warn": 247
+  },
+  "item|NOUN_INFO|5": {
+   "count": 381,
+   "max": 160,
+   "warn": 144
+  },
+  "item|NOUN_INFO|9": {
+   "count": 252,
+   "max": 153,
+   "warn": 151
+  },
+  "item|TEXT_INFO|2": {
+   "count": 484,
+   "lines": 2,
+   "max": 276,
+   "warn": 274
+  },
+  "matchingmenu|TEXT_INFO|2": {
+   "count": 41,
+   "lines": 2,
+   "max": 283,
+   "warn": 275
+  },
+  "membermenu|TEXT_INFO|2": {
+   "count": 27,
+   "lines": 2,
+   "max": 286,
+   "warn": 277
+  },
+  "movie|TEXT_INFO|2": {
+   "count": 8,
+   "lines": 2,
+   "max": 276,
+   "warn": 276
+  },
+  "namechangemenu|TEXT_INFO|2": {
+   "count": 4,
+   "max": 299,
+   "warn": 192
+  },
+  "namemenu|TEXT_INFO|2": {
+   "count": 906,
+   "max": 272,
+   "warn": 87
+  },
+  "objective|TEXT_INFO|2": {
+   "count": 98,
+   "max": 284,
+   "warn": 274
+  },
+  "phase|TEXT_INFO|2": {
+   "count": 37,
+   "lines": 2,
+   "max": 305,
+   "warn": 305
+  },
+  "quest_title|TEXT_INFO|2": {
+   "count": 150,
+   "max": 182,
+   "warn": 179
+  },
+  "quest|TEXT_INFO|2": {
+   "count": 1382,
+   "lines": 4,
+   "max": 331,
+   "warn": 320
+  },
+  "saveloadmenu|TEXT_INFO|2": {
+   "count": 22,
+   "lines": 3,
+   "max": 274,
+   "warn": 270
+  },
+  "shopmenu|TEXT_INFO|2": {
+   "count": 24,
+   "lines": 2,
+   "max": 270,
+   "warn": 263
+  },
+  "skill|NOUN_INFO|5": {
+   "count": 638,
+   "max": 166,
+   "warn": 144
+  },
+  "skill|TEXT_INFO|2": {
+   "count": 3034,
+   "lines": 3,
+   "max": 381,
+   "warn": 290
+  },
+  "system|NOUN_INFO|5": {
+   "count": 1,
+   "max": 30,
+   "warn": 30
+  },
+  "system|TEXT_INFO|2": {
+   "count": 747,
+   "lines": 2,
+   "max": 379,
+   "warn": 317
+  },
+  "wanted_npc|TEXT_INFO|2": {
+   "count": 442,
+   "lines": 2,
+   "max": 320,
+   "warn": 317
+  },
+  "winposemenu|TEXT_INFO|2": {
+   "count": 7,
+   "max": 181,
+   "warn": 88
+  },
+  "winposeshopmenu|TEXT_INFO|2": {
+   "count": 13,
+   "lines": 2,
+   "max": 309,
+   "warn": 288
+  },
+  "yspotmenu|TEXT_INFO|2": {
+   "count": 94,
+   "lines": 4,
+   "max": 271,
+   "warn": 269
+  }
  },
- "battle|NOUN_INFO|5": {
-  "count": 3,
-  "max": 55,
-  "warn": 30
- },
- "battle|TEXT_INFO|2": {
-  "count": 948,
-  "max": 251,
-  "warn": 150
- },
- "capsule|TEXT_INFO|2": {
-  "count": 224,
-  "lines": 2,
-  "max": 320,
-  "warn": 319
- },
- "chara_ability|NOUN_INFO|5": {
-  "count": 99,
-  "max": 175,
-  "warn": 146
- },
- "chara_ability|TEXT_INFO|2": {
-  "count": 115,
-  "lines": 2,
-  "max": 385,
-  "warn": 346
- },
- "charamakemenu|TEXT_INFO|2": {
-  "count": 1,
-  "max": 168,
-  "warn": 168
- },
- "chara|NOUN_INFO|5": {
-  "count": 466,
-  "max": 118,
-  "warn": 112
- },
- "chara|TEXT_INFO|2": {
-  "count": 245,
-  "lines": 6,
-  "max": 213,
-  "warn": 211
- },
- "combinemenu|TEXT_INFO|2": {
-  "count": 7,
-  "lines": 2,
-  "max": 293,
-  "warn": 291
- },
- "configmenu|TEXT_INFO|2": {
-  "count": 17,
-  "max": 279,
-  "warn": 278
- },
- "dialogue|NOUN_INFO|5": {
-  "count": 92,
-  "max": 121,
-  "warn": 116
- },
- "dialogue|TEXT_INFO|2": {
-  "count": 31289,
-  "lines": 2,
-  "max": 337,
-  "warn": 316
- },
- "downloadmenu|TEXT_INFO|2": {
-  "count": 25,
-  "lines": 3,
-  "max": 287,
-  "warn": 280
- },
- "equipmenu|TEXT_INFO|2": {
-  "count": 11,
-  "lines": 2,
-  "max": 260,
-  "warn": 246
- },
- "evolutionmenu|TEXT_INFO|2": {
-  "count": 2,
-  "lines": 2,
-  "max": 159,
-  "warn": 147
- },
- "facemenu|TEXT_INFO|2": {
-  "count": 22,
-  "lines": 2,
-  "max": 320,
-  "warn": 314
- },
- "face|TEXT_INFO|2": {
-  "count": 241,
-  "lines": 2,
-  "max": 298,
-  "warn": 285
- },
- "helpmenu|TEXT_INFO|2": {
-  "count": 48,
-  "max": 250,
-  "warn": 238
- },
- "help|TEXT_INFO|2": {
-  "count": 211,
-  "lines": 2,
-  "max": 323,
-  "warn": 315
- },
- "infomenu|TEXT_INFO|2": {
-  "count": 27,
-  "lines": 3,
-  "max": 269,
-  "warn": 263
- },
- "itemmenu|TEXT_INFO|2": {
-  "count": 6,
-  "lines": 2,
-  "max": 253,
-  "warn": 247
- },
- "item|NOUN_INFO|5": {
-  "count": 381,
-  "max": 160,
-  "warn": 144
- },
- "item|NOUN_INFO|9": {
-  "count": 252,
-  "max": 153,
-  "warn": 151
- },
- "item|TEXT_INFO|2": {
-  "count": 484,
-  "lines": 2,
-  "max": 276,
-  "warn": 274
- },
- "matchingmenu|TEXT_INFO|2": {
-  "count": 41,
-  "lines": 2,
-  "max": 283,
-  "warn": 275
- },
- "membermenu|TEXT_INFO|2": {
-  "count": 27,
-  "lines": 2,
-  "max": 286,
-  "warn": 277
- },
- "movie|TEXT_INFO|2": {
-  "count": 8,
-  "lines": 2,
-  "max": 276,
-  "warn": 276
- },
- "namechangemenu|TEXT_INFO|2": {
-  "count": 4,
-  "max": 299,
-  "warn": 192
- },
- "namemenu|TEXT_INFO|2": {
-  "count": 906,
-  "max": 272,
-  "warn": 87
- },
- "objective|TEXT_INFO|2": {
-  "count": 98,
-  "max": 284,
-  "warn": 274
- },
- "phase|TEXT_INFO|2": {
-  "count": 37,
-  "lines": 2,
-  "max": 305,
-  "warn": 305
- },
- "quest_title|TEXT_INFO|2": {
-  "count": 150,
-  "max": 182,
-  "warn": 179
- },
- "quest|TEXT_INFO|2": {
-  "count": 1382,
-  "lines": 4,
-  "max": 331,
-  "warn": 320
- },
- "saveloadmenu|TEXT_INFO|2": {
-  "count": 22,
-  "lines": 3,
-  "max": 274,
-  "warn": 270
- },
- "shopmenu|TEXT_INFO|2": {
-  "count": 24,
-  "lines": 2,
-  "max": 270,
-  "warn": 263
- },
- "skill|NOUN_INFO|5": {
-  "count": 638,
-  "max": 166,
-  "warn": 144
- },
- "skill|TEXT_INFO|2": {
-  "count": 3034,
-  "lines": 3,
-  "max": 381,
-  "warn": 290
- },
- "system|NOUN_INFO|5": {
-  "count": 1,
-  "max": 30,
-  "warn": 30
- },
- "system|TEXT_INFO|2": {
-  "count": 747,
-  "lines": 2,
-  "max": 379,
-  "warn": 317
- },
- "wanted_npc|TEXT_INFO|2": {
-  "count": 442,
-  "lines": 2,
-  "max": 320,
-  "warn": 317
- },
- "winposemenu|TEXT_INFO|2": {
-  "count": 7,
-  "max": 181,
-  "warn": 88
- },
- "winposeshopmenu|TEXT_INFO|2": {
-  "count": 13,
-  "lines": 2,
-  "max": 309,
-  "warn": 288
- },
- "yspotmenu|TEXT_INFO|2": {
-  "count": 94,
-  "lines": 4,
-  "max": 271,
-  "warn": 269
+ "yw3": {
+  "addmembermenu|TEXT_INFO|2": {
+   "count": 706,
+   "lines": 2,
+   "max": 370,
+   "warn": 361
+  },
+  "alarmclockmenu|TEXT_INFO|2": {
+   "count": 9,
+   "max": 259,
+   "warn": 245
+  },
+  "battle|NOUN_INFO|5": {
+   "count": 4,
+   "max": 61,
+   "warn": 39
+  },
+  "battle|TEXT_INFO|2": {
+   "count": 12969,
+   "max": 444,
+   "warn": 354
+  },
+  "capsule|TEXT_INFO|2": {
+   "count": 739,
+   "lines": 2,
+   "max": 491,
+   "warn": 429
+  },
+  "chara_ability|NOUN_INFO|5": {
+   "count": 384,
+   "max": 175,
+   "warn": 156
+  },
+  "chara_ability|TEXT_INFO|2": {
+   "count": 578,
+   "lines": 2,
+   "max": 461,
+   "warn": 418
+  },
+  "chara_desc|TEXT_INFO|2": {
+   "count": 753,
+   "lines": 7,
+   "max": 239,
+   "warn": 229
+  },
+  "charamakemenu|TEXT_INFO|2": {
+   "count": 10,
+   "lines": 3,
+   "max": 369,
+   "warn": 318
+  },
+  "chara|NOUN_INFO|5": {
+   "count": 1158,
+   "max": 131,
+   "warn": 125
+  },
+  "chat|TEXT_INFO|2": {
+   "count": 42,
+   "max": 162,
+   "warn": 156
+  },
+  "cleanermenu|TEXT_INFO|2": {
+   "count": 82,
+   "lines": 2,
+   "max": 367,
+   "warn": 352
+  },
+  "combinemenu|TEXT_INFO|2": {
+   "count": 17,
+   "lines": 3,
+   "max": 336,
+   "warn": 307
+  },
+  "configmenu|TEXT_INFO|2": {
+   "count": 57,
+   "lines": 2,
+   "max": 367,
+   "warn": 367
+  },
+  "creaturedictionarymenu|TEXT_INFO|2": {
+   "count": 37,
+   "lines": 2,
+   "max": 292,
+   "warn": 275
+  },
+  "dartsmenu|TEXT_INFO|2": {
+   "count": 10,
+   "lines": 3,
+   "max": 304,
+   "warn": 293
+  },
+  "dialogue|NOUN_INFO|5": {
+   "count": 514,
+   "max": 132,
+   "warn": 131
+  },
+  "dialogue|TEXT_INFO|2": {
+   "count": 102725,
+   "lines": 2,
+   "max": 390,
+   "warn": 360
+  },
+  "downloadmenu|TEXT_INFO|2": {
+   "count": 32,
+   "lines": 4,
+   "max": 319,
+   "warn": 309
+  },
+  "drillmenu|TEXT_INFO|2": {
+   "count": 13,
+   "lines": 3,
+   "max": 331,
+   "warn": 292
+  },
+  "elevatormenu|TEXT_INFO|2": {
+   "count": 2,
+   "max": 30,
+   "warn": 21
+  },
+  "equipmenu|TEXT_INFO|2": {
+   "count": 33,
+   "lines": 2,
+   "max": 301,
+   "warn": 290
+  },
+  "evidence_name|TEXT_INFO|2": {
+   "count": 78,
+   "max": 311,
+   "warn": 288
+  },
+  "friendbookmenu|TEXT_INFO|2": {
+   "count": 72,
+   "lines": 2,
+   "max": 348,
+   "warn": 348
+  },
+  "friendbook|TEXT_INFO|2": {
+   "count": 321,
+   "max": 281,
+   "warn": 263
+  },
+  "gymmenu|TEXT_INFO|2": {
+   "count": 79,
+   "lines": 3,
+   "max": 352,
+   "warn": 351
+  },
+  "gym|TEXT_INFO|2": {
+   "count": 75,
+   "max": 253,
+   "warn": 245
+  },
+  "hackslash_chara_ability_desc|TEXT_INFO|2": {
+   "count": 184,
+   "lines": 2,
+   "max": 233,
+   "warn": 229
+  },
+  "hackslash_chara_ability|NOUN_INFO|5": {
+   "count": 250,
+   "max": 167,
+   "warn": 155
+  },
+  "hackslash_chara_ability|TEXT_INFO|2": {
+   "count": 44,
+   "max": 424,
+   "warn": 396
+  },
+  "hackslash_technic_desc|TEXT_INFO|2": {
+   "count": 150,
+   "lines": 2,
+   "max": 224,
+   "warn": 222
+  },
+  "hackslash_technic|NOUN_INFO|5": {
+   "count": 996,
+   "max": 168,
+   "warn": 164
+  },
+  "hackslashitem|TEXT_INFO|2": {
+   "count": 12,
+   "lines": 2,
+   "max": 271,
+   "warn": 205
+  },
+  "hackslashmember|TEXT_INFO|2": {
+   "count": 21,
+   "max": 305,
+   "warn": 297
+  },
+  "hackslashresult|TEXT_INFO|2": {
+   "count": 11,
+   "lines": 3,
+   "max": 257,
+   "warn": 251
+  },
+  "hackslash|TEXT_INFO|2": {
+   "count": 126,
+   "max": 428,
+   "warn": 407
+  },
+  "helpmenu|TEXT_INFO|2": {
+   "count": 125,
+   "max": 289,
+   "warn": 280
+  },
+  "help|TEXT_INFO|2": {
+   "count": 739,
+   "lines": 2,
+   "max": 372,
+   "warn": 367
+  },
+  "hiddentreasuremenu|TEXT_INFO|2": {
+   "count": 25,
+   "lines": 3,
+   "max": 284,
+   "warn": 284
+  },
+  "itemmenu|TEXT_INFO|2": {
+   "count": 9,
+   "lines": 2,
+   "max": 320,
+   "warn": 269
+  },
+  "item|NOUN_INFO|5": {
+   "count": 1872,
+   "max": 163,
+   "warn": 158
+  },
+  "item|TEXT_INFO|2": {
+   "count": 1099,
+   "lines": 2,
+   "max": 376,
+   "warn": 322
+  },
+  "linkagemenu|TEXT_INFO|2": {
+   "count": 25,
+   "lines": 4,
+   "max": 309,
+   "warn": 308
+  },
+  "mainmenu|TEXT_INFO|2": {
+   "count": 53,
+   "lines": 3,
+   "max": 316,
+   "warn": 280
+  },
+  "matchingmenu|TEXT_INFO|2": {
+   "count": 218,
+   "lines": 3,
+   "max": 359,
+   "warn": 349
+  },
+  "membermenu|TEXT_INFO|2": {
+   "count": 81,
+   "lines": 3,
+   "max": 356,
+   "warn": 324
+  },
+  "membertalk|TEXT_INFO|2": {
+   "count": 700,
+   "lines": 2,
+   "max": 367,
+   "warn": 359
+  },
+  "mission_common|TEXT_INFO|2": {
+   "count": 96,
+   "max": 275,
+   "warn": 254
+  },
+  "missionmenu|TEXT_INFO|2": {
+   "count": 19,
+   "lines": 3,
+   "max": 369,
+   "warn": 308
+  },
+  "movieappmenu|TEXT_INFO|2": {
+   "count": 112,
+   "max": 307,
+   "warn": 209
+  },
+  "movie|TEXT_INFO|2": {
+   "count": 115,
+   "lines": 6,
+   "max": 463,
+   "warn": 381
+  },
+  "musicappmenu|TEXT_INFO|2": {
+   "count": 122,
+   "max": 296,
+   "warn": 281
+  },
+  "mynyanmenu|TEXT_INFO|2": {
+   "count": 263,
+   "lines": 2,
+   "max": 376,
+   "warn": 357
+  },
+  "namechangemenu|TEXT_INFO|2": {
+   "count": 1,
+   "lines": 2,
+   "max": 272,
+   "warn": 272
+  },
+  "namemenu|TEXT_INFO|2": {
+   "count": 2820,
+   "max": 315,
+   "warn": 84
+  },
+  "nazonazomenu|TEXT_INFO|2": {
+   "count": 223,
+   "max": 290,
+   "warn": 247
+  },
+  "objective|TEXT_INFO|2": {
+   "count": 428,
+   "max": 359,
+   "warn": 338
+  },
+  "ogretime|TEXT_INFO|2": {
+   "count": 9,
+   "max": 244,
+   "warn": 201
+  },
+  "osirasetter|TEXT_INFO|2": {
+   "count": 383,
+   "lines": 2,
+   "max": 366,
+   "warn": 337
+  },
+  "phase|TEXT_INFO|2": {
+   "count": 115,
+   "lines": 2,
+   "max": 335,
+   "warn": 326
+  },
+  "quest_mistery|TEXT_INFO|2": {
+   "count": 58,
+   "lines": 2,
+   "max": 312,
+   "warn": 307
+  },
+  "quest_navi_text_ex_en|TEXT_INFO|2": {
+   "count": 144,
+   "max": 340,
+   "warn": 340
+  },
+  "quest_navi|TEXT_INFO|2": {
+   "count": 723,
+   "lines": 2,
+   "max": 372,
+   "warn": 344
+  },
+  "quest_title|TEXT_INFO|2": {
+   "count": 144,
+   "max": 307,
+   "warn": 299
+  },
+  "questmenu|TEXT_INFO|2": {
+   "count": 15,
+   "lines": 4,
+   "max": 292,
+   "warn": 290
+  },
+  "quest|TEXT_INFO|2": {
+   "count": 379,
+   "lines": 7,
+   "max": 264,
+   "warn": 259
+  },
+  "raftmenu|TEXT_INFO|2": {
+   "count": 7,
+   "max": 264,
+   "warn": 162
+  },
+  "recoverpointmenu|TEXT_INFO|2": {
+   "count": 3,
+   "max": 257,
+   "warn": 253
+  },
+  "rpg_general_talk|TEXT_INFO|2": {
+   "count": 68,
+   "lines": 2,
+   "max": 180,
+   "warn": 178
+  },
+  "saveloadmenu|TEXT_INFO|2": {
+   "count": 59,
+   "lines": 5,
+   "max": 317,
+   "warn": 315
+  },
+  "selectguestmenu|TEXT_INFO|2": {
+   "count": 7,
+   "max": 247,
+   "warn": 166
+  },
+  "sessionmembermenu|TEXT_INFO|2": {
+   "count": 26,
+   "lines": 3,
+   "max": 269,
+   "warn": 263
+  },
+  "shopmenu|TEXT_INFO|2": {
+   "count": 47,
+   "lines": 3,
+   "max": 312,
+   "warn": 271
+  },
+  "skill_desc|TEXT_INFO|2": {
+   "count": 1380,
+   "lines": 3,
+   "max": 233,
+   "warn": 223
+  },
+  "skill|NOUN_INFO|5": {
+   "count": 1843,
+   "max": 183,
+   "warn": 163
+  },
+  "song_medal_config_0.01_en|SONG_MEDAL_CONFIG_INFO|3": {
+   "count": 10,
+   "max": 124,
+   "warn": 124
+  },
+  "system|NOUN_INFO|5": {
+   "count": 1,
+   "max": 10,
+   "warn": 10
+  },
+  "system|TEXT_INFO|2": {
+   "count": 1538,
+   "lines": 2,
+   "max": 351,
+   "warn": 319
+  },
+  "trademenu|TEXT_INFO|2": {
+   "count": 721,
+   "lines": 2,
+   "max": 369,
+   "warn": 364
+  },
+  "tresuremenu|TEXT_INFO|2": {
+   "count": 47,
+   "lines": 3,
+   "max": 372,
+   "warn": 330
+  },
+  "trophymenu|TEXT_INFO|2": {
+   "count": 159,
+   "lines": 2,
+   "max": 290,
+   "warn": 282
+  },
+  "wantedmenu|TEXT_INFO|2": {
+   "count": 175,
+   "max": 292,
+   "warn": 261
+  },
+  "watchanalyze|TEXT_INFO|2": {
+   "count": 31,
+   "lines": 2,
+   "max": 345,
+   "warn": 326
+  },
+  "weathermenu|TEXT_INFO|2": {
+   "count": 25,
+   "lines": 6,
+   "max": 221,
+   "warn": 217
+  },
+  "winposemenu|TEXT_INFO|2": {
+   "count": 7,
+   "max": 156,
+   "warn": 88
+  },
+  "winposeshopmenu|TEXT_INFO|2": {
+   "count": 13,
+   "lines": 2,
+   "max": 324,
+   "warn": 288
+  },
+  "yokaicirclemenu|TEXT_INFO|2": {
+   "count": 69,
+   "lines": 3,
+   "max": 325,
+   "warn": 313
+  },
+  "yspotmenu|TEXT_INFO|2": {
+   "count": 204,
+   "lines": 6,
+   "max": 283,
+   "warn": 275
+  },
+  "zombienight|TEXT_INFO|2": {
+   "count": 29,
+   "max": 350,
+   "warn": 343
+  },
+  "zombieselect|TEXT_INFO|2": {
+   "count": 27,
+   "lines": 2,
+   "max": 223,
+   "warn": 201
+  }
  }
 }

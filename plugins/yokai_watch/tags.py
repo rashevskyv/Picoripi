@@ -25,12 +25,13 @@ _DESCRIPTIONS = [
     (r"C[RGNYB]", "Text colour: R red (warnings, keywords), G green (items, places), N name colour, Y yellow, "
                   "until {/C}"),
     (r"C\d+|C\".*\"", "Text colour by number or RGB value, until {/C}"),
-    (r"PNAME\d*\??", "The player's name (Nate / Katie, or what the player typed)"),
+    (r"PNAME[MF]?\d*\??", "The player's name (Nate / Katie / Hailey, or what the player typed)"),
     (r"SEL.*", "Answer choice shown after this line (choice list id / default / cancel)"),
     (r"A\d+/\d+", "Speaker animation (zero width)"),
     (r"O\d+", "Message window option (zero width)"),
     (r"ML#.*", "Speaker motion (zero width)"),
     (r"J\".*\"", "Sound / jingle cue (zero width)"),
+    (r"PV#.*|V#.*", "Voice clip of the speaker (zero width; the model name tells who speaks)"),
     (r"X[\d.]+f?", "Horizontal position of the following text"),
     (r"VAL#.*|VALUE\d*|NUM\d*|STR\d*|QVAL#.*|QPARAM#.*", "A number or word the game fills in"),
 ]

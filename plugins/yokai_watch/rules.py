@@ -11,7 +11,7 @@ from utils.utils import clean_spaces
 from . import tags
 from .cfgbin import FormatError
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
-from .speakers import Speakers
+from .speakers import Speakers, game_of
 from .tag_manager import TagManager
 from .textfile import TextFile
 
@@ -46,11 +46,12 @@ def category(rel_path: str, kind: str, param: int) -> str:
         return "objective"
     if rel.startswith("data/txt/"):
         return "movie"
-    if name.startswith("chara_text"):
+    if name.startswith(("chara_text", "chara_desc_text")):
         return "medallium"
     if name.startswith("battle_text"):
         return "battle"
-    if name.startswith(("item_text", "skill_text", "chara_ability_text", "quest_text", "help_text")):
+    if name.startswith(("item_text", "skill_text", "skill_desc_text", "chara_ability_text", "quest_text", "quest_navi_text",
+                        "quest_mistery_text", "help_text", "friendbook_text", "watchanalyze_text")):
         return "description"
     if name.startswith(("face_text", "capsule_text", "wanted_npc_text")):
         return "dialogue"
@@ -75,7 +76,7 @@ def layout_key(rel_path: str, kind: str, param: int) -> str:
 
 
 class GameRules(BaseGameRules):
-    """Yo-kai Watch (3DS, USA).
+    """Yo-kai Watch (3DS, USA) and Yo-kai Watch 3 (3DS, EUR; its English is in ``data/txt/ev/en`` and ``yw_lg_en.fa``).
 
     The project's source folder is the workspace's ``source`` folder: every English text table
     (``*_en.cfg.bin``) at its path inside ``yw1_a.fa``, the fonts ``fnt/*.xf`` and the English menu
@@ -194,7 +195,7 @@ class GameRules(BaseGameRules):
         if not found or found[1].kind != "TEXT_INFO":
             return None
         rel, row, root = found
-        name = self._speaker_index(root).speaker(rel, row.text_id, row.number)
+        name = self._speaker_index(root).speaker(rel, row.text_id, row.number, row.text)
         return None if not name or _JAPANESE.search(name) else name
 
     def is_placeholder_speaker(self, name: str) -> bool:
@@ -244,14 +245,27 @@ class GameRules(BaseGameRules):
 
     # -- editor ----------------------------------------------------------------
 
-    def _layouts(self) -> Dict[str, Dict[str, int]]:
+    def _game(self, root: Optional[Path] = None) -> str:
+        """``yw1`` or ``yw3`` (``speakers.game_of``: the layout of the source folder)."""
+        root = root or self._source_root()
+        return game_of(root) if root else "yw1"
+
+    def _layouts(self, game: str = "yw1") -> Dict[str, Dict[str, int]]:
         if self._layout is None:
             try:
                 self._layout = json.loads((_PLUGIN_DIR / "layout.json").read_text(encoding="utf-8"))
             except (OSError, ValueError) as error:
                 log_warning(f"yokai_watch: layout.json: {error}")
                 self._layout = {}
-        return self._layout
+        return self._layout.get(game, {})
+
+    def get_font_sources(self) -> List[Dict[str, Any]]:
+        """``font_sources.json``; a game's own width maps are ``<game>_<font>.json`` (Yo-kai Watch 1 has none)."""
+        sources = self._plugin_json_list("font_sources.json")
+        game = self._game()
+        if game != "yw1":
+            sources = [dict(s, font_map=f"{game}_{s['font_map']}") if s.get("font_map") else s for s in sources]
+        return sources
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         """The widest English row of the same kind of text (measured with the game's font, ``layout.json``):
@@ -259,11 +273,13 @@ class GameRules(BaseGameRules):
         found = self._row(block_idx, string_idx)
         if not found:
             return None
-        rel, row, _root = found
-        measured = self._layouts().get(layout_key(rel, row.kind, row.param))
+        rel, row, root = found
+        game = self._game(root)
+        measured = self._layouts(game).get(layout_key(rel, row.kind, row.param))
         if not measured:
             return None
-        result = {"warn_width": measured["warn"], "max_width": measured["max"]}
+        result = {"warn_width": measured["warn"], "max_width": measured["max"],
+                  "font_file": "ft_nrm.json" if game == "yw1" else f"{game}_ft_nrm.json"}
         if measured.get("lines"):
             result["lines_per_page"] = measured["lines"]
         return result

@@ -91,3 +91,24 @@ def test_glossary_seed_sections(workspace):
     assert entries["Brave Tribe"]["section"] == "Tribes"
     assert entries["Uptown Springdale"]["section"] == "Places" and "Street Aa" in entries
     assert "Save?" not in entries
+
+
+def test_yokai_watch_3_heroes_by_voice_clip_and_language_folder(tmp_path):
+    import zlib
+    from plugins.yokai_watch.speakers import GAMES, game_of
+    source, meta = tmp_path / "source", tmp_path / "meta"
+    nate, mermaid = 0x900, 0x901
+    _write(source / "data/res/text/chara_text_en.cfg.bin", cfg_file([noun_info(nate, "<PNAMEM>"),
+                                                                     noun_info(mermaid, "Mermadonna")]))
+    _write(source / "data/txt/ev/en/ev01_0010_en.cfg.bin", cfg_file([text_info(0x11, 0, "<PV#pv_c001000_23>Yeah.")]))
+    _write(meta / "data/res/character/chara_base_0.03.25.cfg.bin", cfg_file([
+        ("CHARA_BASE_INFO", [zlib.crc32(b"c001000"), 0, 1, 0, nate, 0]),
+        ("CHARA_BASE_YOKAI_INFO", [zlib.crc32(b"y327000"), 6, 1, 0, mermaid, 0])]))
+    _write(meta / "data/txt/ev/ev01_0010_map.cfg.bin", cfg_file([("TEXT_WASHA_MAP", [0x11, 0, GAMES["yw3"]["player"], 1, -1, 0])]))
+    assert game_of(source) == "yw3"
+    speakers = Speakers(source, meta)
+    rel = "data/txt/ev/en/ev01_0010_en.cfg.bin"
+    assert speakers.speaker(rel, 0x11, 0, "<PV#pv_c001000_23>Yeah.") == "Nate"
+    assert speakers.speaker(rel, 0x99, 0, "<V#y327000>Let us begin!") == "Mermadonna"
+    assert speakers.speaker(rel, 0x99, 0, "No clip.") is None
+    assert {e["term"] for e in seed_entries(source, meta)} >= {"Nate", "Mermadonna"}

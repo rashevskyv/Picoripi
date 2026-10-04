@@ -1,8 +1,9 @@
 """Who says a line, from the game's own tables (the workspace's ``meta`` folder next to ``source``).
 
-  event text ``data/txt/ev/<event>_<m|f>_en.cfg.bin``
-      -> ``<event>_map_<m|f>.cfg.bin``: ``TEXT_WASHA_MAP`` (text id, page, speaker id, -, -, name noun override)
-  map NPC text ``data/res/map/<map>/<map>_npc_text_en.cfg.bin`` (and ``_npc_base_text_<chapter>...``)
+  event text ``data/txt/ev/<event>_<m|f>_en.cfg.bin`` (Yo-kai Watch 3: ``data/txt/ev/en/<event>_en.cfg.bin``)
+      -> ``data/txt/ev/<event>_map[_<m|f>].cfg.bin``: ``TEXT_WASHA_MAP`` (text id, page, speaker id, -, -, name
+         noun override)
+  map NPC text ``data/res/map/<map>/<map>_npc_text[_a]_en.cfg.bin`` (and ``_npc_base_text_<chapter>...``)
       -> ``<map>_npc_talk_*.cfg.bin``: ``TALK_INFO`` (speaker id, first row, row count) + ``TALK_CONFIG``
          (-, text id, ...); ``<map>_npc_base_talk_<chapter>...``: ``BASE_TALK_INFO`` (NPC id, then first row and
          row count per time slot) + ``BASE_TALK_CONFIG`` (text id, ...)
@@ -10,11 +11,16 @@
   ``CHARA_BASE_YOKAI_INFO``, one parameter is the name noun) or a map NPC (``<map>_npc_set_*``:
   ``NPC_BASE`` npc id -> character), and the name is that noun in ``chara_text_en``.
 
-``GAME`` holds what is particular to one game: the ids of the player and of the narrator.
+A line that names no one in the tables but plays a voice clip (``<PV#pv_c001000_23>``, ``<V#y327000>``,
+Yo-kai Watch 3) is said by that model: in Yo-kai Watch 3 a character id is the CRC32 of its model name.
+
+``GAMES`` holds what is particular to one game (the ids of the hero and the narrator; how the hero is told
+apart); ``game_of`` tells the games apart by the layout of the source folder.
 """
 from __future__ import annotations
 
 import re
+import zlib
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -22,13 +28,29 @@ from utils.logging_utils import log_debug
 
 from .cfgbin import CfgBin, FormatError, u32
 
-GAME = {
-    "player": 3575866430,                  # TEXT_WASHA_MAP id of the hero: Nate in *_m files, Katie in *_f
-    "player_nouns": {"m": 3851587295, "f": 2090590053},
-    "narrator": 4108050209,                # system messages and narration: no name box
+GAMES = {
+    "yw1": {
+        "player": 3575866430,              # TEXT_WASHA_MAP id of the hero: Nate in *_m files, Katie in *_f
+        "player_nouns": {"m": 3851587295, "f": 2090590053},
+        "narrator": 4108050209,            # system messages and narration: no name box
+        "names": {},
+    },
+    "yw3": {
+        "player": 2947951939,              # CRC32 of "c000000": whichever hero plays; the voice clip tells who
+        "player_nouns": {},
+        "narrator": 4108050209,
+        "names": {"<PNAMEM>": "Nate", "<PNAMEF>": "Hailey"},   # the heroes' nouns are the name tags
+    },
 }
+GAME = GAMES["yw1"]
 _EVENT = re.compile(r"^(?P<base>ev\d+_\d+[a-z]?)_(?:(?P<g>[mf])_)?en\.cfg\.bin$")
-_NPC = re.compile(r"^(?P<map>[a-z0-9]+)_npc(?P<base>_base)?_text(?P<rest>_c\d+_[\d.]+)?_en\.cfg\.bin$")
+_NPC = re.compile(r"^(?P<map>[a-z0-9]+)_npc(?P<base>_base)?_text(?P<rest>_[a-z0-9_.]+?)?_en\.cfg\.bin$")
+_VOICE = re.compile(r"<(?:PV#(?:g_)?(?:pv|voice)_|V#)([a-z]+\d{6})")
+
+
+def game_of(source_root: Path) -> str:
+    """``yw3`` when the English event text sits in a language folder (``data/txt/ev/en``), else ``yw1``."""
+    return "yw3" if (Path(source_root) / "data/txt/ev/en").is_dir() else "yw1"
 
 
 def _table(path: Path) -> Optional[CfgBin]:
@@ -44,9 +66,10 @@ class Speakers:
 
     def __init__(self, source_root: Path, meta_root: Path, lang: str = "_en"):
         self.source_root, self.meta_root, self.lang = Path(source_root), Path(meta_root), lang
+        self.game = GAMES[game_of(self.source_root)]
         self._nouns: Optional[Dict[int, str]] = None
         self._chara: Optional[Dict[int, int]] = None
-        self._files: Dict[str, Dict[Tuple[int, int], int]] = {}
+        self._files: Dict[str, Dict[Tuple[int, int], object]] = {}
         self._npcs: Dict[str, Dict[int, int]] = {}
 
     # -- names -----------------------------------------------------------------------------
@@ -60,7 +83,8 @@ class Speakers:
                 for entry in table.entries if table else []:
                     if entry.name == "NOUN_INFO" and len(entry.values) > 5 and entry.values[1] == 0 \
                             and isinstance(entry.values[5], str):
-                        self._nouns.setdefault(u32(entry.values[0]), entry.values[5])
+                        noun = entry.values[5]
+                        self._nouns.setdefault(u32(entry.values[0]), self.game["names"].get(noun, noun))
         return self._nouns
 
     def characters(self) -> Dict[int, int]:
@@ -79,14 +103,22 @@ class Speakers:
 
     def name_of(self, speaker: int, gender: str = "m", map_id: str = "") -> Optional[str]:
         nouns, chara = self.nouns(), self.characters()
-        if speaker == GAME["player"]:
-            return nouns.get(GAME["player_nouns"].get(gender, GAME["player_nouns"]["m"]))
+        if speaker == self.game["player"] and self.game["player_nouns"]:
+            return nouns.get(self.game["player_nouns"].get(gender, self.game["player_nouns"]["m"]))
         if speaker in chara:
             return nouns.get(chara[speaker])
         npc = self._npc_characters(map_id).get(speaker) if map_id else None
         if npc is not None and npc in chara:
             return nouns.get(chara[npc])
         return nouns.get(speaker)
+
+    def voice_of(self, text: str) -> Optional[str]:
+        """The character whose voice clip the line plays (``<PV#pv_c001000_23>`` -> model c001000), or None."""
+        match = _VOICE.search(text or "")
+        if not match:
+            return None
+        noun = self.characters().get(zlib.crc32(match.group(1).encode()))
+        return self.nouns().get(noun) if noun is not None else None
 
     def _npc_characters(self, map_id: str) -> Dict[int, int]:
         if map_id not in self._npcs:
@@ -101,23 +133,24 @@ class Speakers:
 
     # -- lines -----------------------------------------------------------------------------
 
-    def speaker(self, rel_path: str, text_id: int, number: int) -> Optional[str]:
-        """The name of who says text ``text_id`` page ``number`` of the file ``rel_path`` (``/`` separators)."""
+    def speaker(self, rel_path: str, text_id: int, number: int, text: str = "") -> Optional[str]:
+        """The name of who says text ``text_id`` page ``number`` of the file ``rel_path`` (``/`` separators);
+        ``text`` (the line as stored) for its voice clip."""
         rel_path = rel_path.replace("\\", "/")
         ids = self._speaker_ids(rel_path)
         speaker = ids.get((text_id, number), ids.get((text_id, -1)))
-        if speaker is None:
-            return None
         if isinstance(speaker, tuple):                       # (speaker id, name noun override)
             speaker, override = speaker
             if override and override in self.nouns():
                 return self.nouns()[override]
-        if speaker == GAME["narrator"] or speaker == 0:
+        if speaker == self.game["narrator"] or speaker == 0:
             return None
-        name = Path(rel_path).name
-        gender = "f" if re.search(r"_f_en\.cfg\.bin$", name) else "m"
-        map_id = rel_path.split("/")[3] if rel_path.startswith("data/res/map/") else ""
-        return self.name_of(speaker, gender, map_id)
+        name = None
+        if speaker is not None:
+            gender = "f" if re.search(r"_f_en\.cfg\.bin$", rel_path) else "m"
+            map_id = rel_path.split("/")[3] if rel_path.startswith("data/res/map/") else ""
+            name = self.name_of(speaker, gender, map_id)
+        return name or self.voice_of(text)
 
     def _speaker_ids(self, rel_path: str) -> Dict[Tuple[int, int], object]:
         if rel_path not in self._files:
@@ -130,6 +163,9 @@ class Speakers:
 
     def _read_ids(self, rel_path: str) -> Dict[Tuple[int, int], object]:
         folder, name = rel_path.rsplit("/", 1) if "/" in rel_path else ("", rel_path)
+        language_folder = "/" + self.lang.strip("_")
+        if folder.endswith(language_folder):
+            folder = folder[:-len(language_folder)]           # Yo-kai Watch 3: data/txt/ev/en, the maps in data/txt/ev
         out: Dict[Tuple[int, int], object] = {}
         event = _EVENT.match(name)
         if event and folder == "data/txt/ev":
@@ -150,8 +186,7 @@ class Speakers:
             if npc.group("base"):
                 rest = npc.group("rest") or ""
                 chapter = rest.rsplit("_", 1)[0] if rest else ""
-                paths = sorted(meta.glob(f"{map_id}_npc_base_talk{chapter}_*.cfg.bin"))
-                for path in paths:
+                for path in sorted(meta.glob(f"{map_id}_npc_base_talk{chapter}_*.cfg.bin")):
                     _base_talk(path, out)
             else:
                 for path in sorted(meta.glob(f"{map_id}_npc_talk_*.cfg.bin")):
