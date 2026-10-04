@@ -107,6 +107,60 @@ def test_aoc_g1n_descriptor_round_trips(index):
     assert font_formats.pack("g1n", metadata, sheets, data, params) == data
 
 
+def _lz4_block(src: bytes, size: int) -> bytes:
+    out, at = bytearray(), 0
+
+    def length(value):
+        nonlocal at
+        if value == 15:                  # 15 means: more length bytes follow, until one below 255
+            while True:
+                value += src[at]
+                at += 1
+                if src[at - 1] != 255:
+                    break
+        return value
+
+    while at < len(src):
+        token = src[at]
+        at += 1
+        literal = length(token >> 4)
+        out += src[at:at + literal]
+        at += literal
+        if at >= len(src):
+            break
+        back = src[at] | src[at + 1] << 8
+        at += 2
+        for _ in range(length(token & 15) + 4):
+            out.append(out[-back])
+    assert len(out) == size
+    return bytes(out)
+
+
+def _nso_image(data: bytes) -> bytes:
+    """The executable as loaded: the three segments of an NSO at their memory offsets, decompressed."""
+    assert data[:4] == b"NSO0"
+    flags = struct.unpack_from("<I", data, 0x0C)[0]
+    image = bytearray()
+    for index in range(3):
+        file_offset, memory_offset, size, _ = struct.unpack_from("<4I", data, 0x10 + 16 * index)
+        stored = data[file_offset:file_offset + struct.unpack_from("<I", data, 0x60 + 4 * index)[0]]
+        segment = _lz4_block(stored, size) if flags >> index & 1 else stored
+        image[len(image):] = bytes(memory_offset - len(image)) + segment
+    return bytes(image)
+
+
+def test_hwde_width_tables_are_the_executables():
+    """The advances the game draws with: f32 tables in exefs/main, named by its build id."""
+    data = _need(HWDE_UI.parents[2] / "exefs" / "main")
+    image = _nso_image(data)
+    build = data[0x40:0x60].hex().upper()                                     # patch files are named by it
+    for index in (0, 1):
+        table = _descriptor("zelda_hwde", index)["params"]["widths"]
+        (address,) = [address for rel, address in table["patches"].items() if Path(rel).stem == build]
+        values = table["values"]
+        assert list(struct.unpack_from(f"<{len(values)}f", image, int(address, 0))) == values
+
+
 def test_hwde_translation_map_covers_the_cyrillic_slots():
     mapping = json.loads((ROOT / "plugins" / "zelda_hwde" / "translation_map.json").read_text(encoding="utf-8"))
     assert len(mapping) == 67                     # 66 Ukrainian letters and №; no Russian-only letters

@@ -63,3 +63,45 @@ def test_the_shipped_maps_are_the_plugins_own_files():
         path = Path(__file__).resolve().parents[2] / "plugins" / plugin / "translation_map.json"
         data = json.loads(path.read_text(encoding="utf-8"))
         assert set(UKRAINIAN) <= set(data), plugin
+
+
+ROMS = {"oot64": Path(r"E:\Emulators\RomHacking\ZELDA\OOT64_UA\rom\Legend of Zelda, The - Ocarina of Time (USA).z64"),
+        "mm64": Path(r"E:\Emulators\RomHacking\ZELDA\MM64_UA\rom\Legend of Zelda, The - Majora's Mask (USA).z64")}
+
+
+def _font_codes(fmt, body):
+    """The font characters of a message body (control codes and their arguments skipped)."""
+    codes, i = [], 0
+    while i < len(body):
+        control = fmt.controls.get(body[i])
+        if body[i] != fmt.newline and control is None:
+            codes.append(body[i])
+        i += 1 + (control.args if control else 0)
+    return codes
+
+
+def test_no_english_message_or_credit_uses_a_cell_a_ukrainian_letter_takes(rules, request):
+    """The maps are confirmed against the US ROMs: Latin stays fully usable (see translation_map.md)."""
+    from plugins.common import z64_text
+    from plugins.common.n64_rom import N64Rom
+    from plugins.zelda_oot64.msg_codec import CONTROLS as NES_CONTROLS
+
+    path = ROMS[request.node.callspec.id]
+    if not path.is_file():
+        pytest.skip(f"{path} is not on this machine")
+    rom = N64Rom(path.read_bytes())
+    layout = next(iter(rules.layouts.values()))
+    code = rom.read_file(layout.code_file)
+    fmt = rules.text_format
+    taken = {slot for letter, slot in rules.letter_slots().items()
+             if not (rules.translation_map()[letter].isascii()
+                     and (rules.translation_map()[letter].isalnum() or rules.translation_map()[letter] == "'"))}
+    messages = z64_text.read_messages(fmt, code, layout.table_offset, rom.read_file(layout.text_file))
+    # the credits: the next table in `code`, the next file; OoT's control codes in both games
+    credits_fmt = z64_text.TextFormat(controls=NES_CONTROLS, newline=1, end=2, charmap=fmt.charmap)
+    credits_table = layout.table_offset + 8 * len(z64_text.read_table(code, layout.table_offset))
+    credits = z64_text.read_messages(credits_fmt, code, credits_table, rom.read_file(layout.text_file + 1))
+    assert len(messages) > 2000 and len(credits) > 40
+    used = {c for m in messages for c in _font_codes(fmt, m.body)}
+    used |= {c for m in credits for c in _font_codes(credits_fmt, m.body)}
+    assert len(taken) >= 45 and not taken & used
