@@ -172,4 +172,3 @@ def replace_program(original: bytes, new_program: bytes, params: Dict[str, Any])
     for offset in pointers:
         struct.pack_into("<I", out, offset, struct.unpack_from("<I", out, offset)[0] + shift)
     return bytes(out)
-

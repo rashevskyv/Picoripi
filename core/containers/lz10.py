@@ -111,4 +111,3 @@ def compress(data: bytes, vram: bool = False) -> bytes:
             i += length
     out += bytes(-len(out) % 4)
     return bytes(out)
-
