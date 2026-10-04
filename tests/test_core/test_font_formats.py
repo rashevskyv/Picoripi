@@ -93,6 +93,34 @@ def test_g1t_round_trip_and_block_only_edit():
     assert again[0].getchannel("A").crop((1, 1, 4, 4)).getextrema() == (255, 255)
 
 
+WIDTHS = dict(scale=0.75, patches={"exefs/ABCD.ips": "0x1000"}, values=[12, 26, 15, 9])
+G1T_TABLE_PARAMS = dict(G1T_PARAMS, widths=WIDTHS)
+
+
+def test_g1t_widths_come_from_the_game_table_and_go_into_an_exefs_patch():
+    from core.font_formats import g1t
+    data = _g1t(_letters_atlas())
+    metadata, sheets = font_formats.extract("g1t", data, G1T_TABLE_PARAMS)
+    packets = metadata["WID1"][0]["packets"]
+    assert [packets[g] for g in (4, 5, 6, 7)] == [{"kerning": 0, "width": w} for w in (16, 35, 20, 12)]  # value / 0.75
+    assert g1t.widths_patch(metadata, G1T_TABLE_PARAMS, "0x1000") == b"IPS32EEOF"     # unedited: nothing to patch
+    assert font_formats.pack("g1t", metadata, sheets, data, G1T_TABLE_PARAMS) == data
+
+    other = struct.pack(">IH", 0x10, 2) + b" "                         # another table's record stays
+    packets[5]["width"] = 40                                                   # B: 30 game units
+    patch = g1t.widths_patch(metadata, G1T_TABLE_PARAMS, "0x1000", b"IPS32" + other + b"EEOF")
+    assert patch == (b"IPS32" + other + struct.pack(">IH", 0x1100, 16)
+                     + struct.pack("<4f", 12, 30, 15, 9) + b"EEOF")            # offsets count the 0x100 NSO header
+
+    again, _sheets = font_formats.extract("g1t", data, G1T_TABLE_PARAMS)
+    g1t.apply_widths_patch(again, G1T_TABLE_PARAMS, "0x1000", patch)
+    assert [again["WID1"][0]["packets"][g]["width"] for g in (4, 5, 6, 7)] == [16, 40, 20, 12]
+    packets[5]["width"] = 35                                                   # back to the game's width
+    assert g1t.widths_patch(metadata, G1T_TABLE_PARAMS, "0x1000", patch) == b"IPS32" + other + b"EEOF"
+    with pytest.raises(ValueError):
+        g1t.apply_widths_patch(again, G1T_TABLE_PARAMS, "0x1000", b"PATCH")
+
+
 # -- Zelda 64 ROM -----------------------------------------------------------------------------
 
 N64_PARAMS = dict(rom_id="TEST", rom_version=0, font_file=2, glyph_count=40, first_code="0x20",

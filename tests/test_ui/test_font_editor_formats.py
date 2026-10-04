@@ -112,6 +112,34 @@ def test_g1t_font_from_a_project_is_edited_saved_and_reopened(qtbot, tmp_path):
     assert again.original_font_metadata is not None                          # the game's font for comparison
 
 
+def test_g1t_widths_of_the_game_table_are_saved_as_an_exefs_patch_and_reopened(qtbot, tmp_path):
+    font = tmp_path / "source" / "data" / "font.g1t"
+    font.parent.mkdir(parents=True)
+    font.write_bytes(_g1t())
+    widths = dict(scale=0.75, patches={"exefs/BASE.ips": "0x2000", "exefs/UPDATE.ips": "0x2020"},
+                  values=[12, 15, 18, 21])
+    descriptors = [{"label": "Text font", "format": "g1t", "path": "data/font.g1t", "font_map": "game.json",
+                    "params": dict(G1T_PARAMS, widths=widths)}]
+    window = _MainWindow(tmp_path, descriptors)
+    qtbot.addWidget(window)
+
+    editor = _open(window, "Text font")
+    glyph = font_formats.char_map(editor.metadata)["Á"]
+    assert editor.metadata["WID1"][0]["packets"][glyph] == {"kerning": 0, "width": 20}     # 15 game units
+    editor.metadata["WID1"][0]["packets"][glyph]["width"] = 24
+    editor.save_changes(silent=True)
+
+    table = struct.pack("<4f", 12, 18, 18, 21)                   # one patch per game build, each at its address
+    assert (tmp_path / "mod" / "exefs" / "BASE.ips").read_bytes() == \
+        b"IPS32" + struct.pack(">IH", 0x2100, 16) + table + b"EEOF"
+    assert (tmp_path / "mod" / "exefs" / "UPDATE.ips").read_bytes() == \
+        b"IPS32" + struct.pack(">IH", 0x2120, 16) + table + b"EEOF"
+    assert json.loads((tmp_path / "project" / "font_maps" / "game.json").read_text(encoding="utf-8"))["Á"] == {"width": 24}
+    again = _open(window, "Text font")
+    assert again.metadata["WID1"][0]["packets"][glyph]["width"] == 24                     # read from the patch
+    assert again.original_font_metadata["WID1"][0]["packets"][glyph]["width"] == 20       # the game's for comparison
+
+
 def test_bfn_font_inside_an_archive_is_written_back_into_the_archive(qtbot, tmp_path):
     archive = tmp_path / "source" / "res" / "fontres.arc"
     archive.parent.mkdir(parents=True)

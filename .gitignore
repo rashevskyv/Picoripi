@@ -1,6 +1,8 @@
 fonts
 # Glyph widths measured from the game's atlas (no font data): shipped with the plugin.
 !plugins/zelda_hwde/fonts/
+# TotK dialogue widths (hmtx advances of the game's font at 45 px; no glyph data): shipped with the plugin.
+!plugins/zelda_totk/fonts/
 # Python cache
 __pycache__/
 *.pyc

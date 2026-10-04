@@ -7,7 +7,7 @@ import pytest
 from plugins.zelda_totk import sarc as sarc_module
 from plugins.zelda_totk.font_tool import font_map
 from plugins.zelda_totk.msbt import EndTag, Msbt, Tag
-from plugins.zelda_totk.restbl import Restbl, scaled_size
+from plugins.zelda_totk.restbl import Restbl, grown_size, required_size
 from plugins.zelda_totk.tags import from_editor, parse_tag, render_tag, to_editor
 
 from . import samples
@@ -77,6 +77,12 @@ class TestTags:
         (Tag(0, 3, b"\x02"), "{tag:0:3:02}"),                # too short for its argument
         (EndTag(0, 3), "{/color}"),
         (EndTag(9, 9), "{/tag:9:9}"),
+        # group 1 as the real game text has it: 4-byte frame counts and a float speed
+        (Tag(1, 0, struct.pack("<I", 30)), "{pause:30}"),
+        (Tag(1, 1, bytes.fromhex("9a99193f")), "{textSpeed:0.6}"),
+        (Tag(1, 1, struct.pack("<f", 1.0)), "{textSpeed:1}"),
+        (Tag(1, 3, struct.pack("<I", 90)), "{autoAdvance:90}"),
+        (Tag(1, 2), "{tag:1:2}"),                            # meaning not shown by the data: stays raw
     ])
     def test_each_tag_shows_readably_and_encodes_back(self, tag, shown):
         assert render_tag(tag) == shown
@@ -204,7 +210,7 @@ def test_font_widths_come_from_cwdh_through_cmap():
 
 class TestRestbl:
     def _table(self) -> bytes:
-        key = zlib.crc32(b"Mals/USen.Product.121.sarc")
+        key = zlib.crc32(b"Mals/USen.Product.140.sarc")
         crc = sorted([(key, 1000), (5, 7)])
         name = b"Collided/Path.bin".ljust(0xA0, b"\x00")
         return (b"RESTBL" + struct.pack("<IIII", 1, 0xA0, len(crc), 1)
@@ -214,13 +220,16 @@ class TestRestbl:
         raw = self._table()
         table = Restbl(raw)
         assert table.build() == raw
-        assert (table.size("Mals/USen.Product.121.sarc"), table.size("Collided/Path.bin")) == (1000, 55)
-        assert table.size("Mals/EUfr.Product.121.sarc") is None
+        assert (table.size("Mals/USen.Product.140.sarc"), table.size("Collided/Path.bin")) == (1000, 55)
+        assert table.size("Mals/EUfr.Product.140.sarc") is None
 
-        table.set_size("Mals/USen.Product.121.sarc", 4096)
-        assert Restbl(table.build()).size("Mals/USen.Product.121.sarc") == 4096
+        table.set_size("Mals/USen.Product.140.sarc", 4096)
+        assert Restbl(table.build()).size("Mals/USen.Product.140.sarc") == 4096
 
-    def test_an_entry_only_grows_in_proportion(self):
-        assert scaled_size(1000, 800, 800) == 1000
-        assert scaled_size(1000, 800, 700) == 1000
-        assert scaled_size(1000, 800, 1200) == 1536    # 1500 rounded up to 0x100
+    def test_the_entry_follows_the_games_rule_and_never_shrinks(self):
+        # USen.Product.140.sarc of 1.4.0: 11,442,936 bytes -> entry 11,443,328 in the game's own table
+        assert required_size(11442936) == 11443328
+        assert required_size(6738768, ".bfarc") == 6739040     # Font/Font.Nin_NX_NVN.bfarc
+        assert grown_size(11443328, 11442936) == 11443328
+        assert grown_size(11443328, 11000000) == 11443328
+        assert grown_size(11443328, 11500001) == 11500032 + 0x180

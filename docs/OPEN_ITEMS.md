@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 9.2k
+tokens: 9.3k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -20,9 +20,6 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   alias table. The parser writes aliases into `mw.default_tag_mappings`, so a worker needs that split first.
 - **The block tree is built on the UI thread** (`populate_blocks`, Twilight Princess ~1.3 s): the speaker pool
   walks every message flow (`build_speaker_pool` → `get_speaker_for_string`).
-- **Hyrule Warriors DE opens in 39 s, every time**: `get_speaker_for_string` parses each of the 776 text files
-  on the UI thread (`TextFile.__init__` also rebuilds the table while reading), and the second start takes no
-  session checkpoint. Handed to the plugin's branch (`feat/hwde-widths`).
 - **The issue scan runs one whole block per UI-thread step** (`issue_scan_handler._scan_next_batch`): a game
   whose text is one block (N64: 4589 strings) freezes the window for ~2 s at the first open.
 - **An enabled spellchecker parses its dictionary in a Python thread** (pure-Python `spylls`, 2–3 s of CPU
@@ -32,31 +29,48 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - **`SettingsManager.load_unsaved_session` uses `eval` on keys read from `settings.json`**
   (`core/settings_manager.py`); `ast.literal_eval` is enough.
 
+## Metal Gear Solid: The Twin Snakes (2026-10-04)
+
+- Which strings of a GCX table are English is detected (voice clips settle ~92 % of codec lines, the rest by
+  stopwords and run lengths): a few unvoiced menu/briefing strings may be misfiled; check `stage/n_title.gcx`
+  and `stage/r_cmmn.gcx` in the editor.
+- Text drawn into textures (title menu, NEW GAME / OPTIONS labels, item icons) and the item names in
+  `shared/mgso.rel` (`RATION`, `SOCOM`…) are not handled.
+- Five speaker hashes are unnamed (`0x663ee3`, `0x28dce6`, `0x1932cc`, and two guessed in
+  `plugins/mgs_ts/speakers.json`: `#9331f5` Snake, `#388785` Psycho Mantis).
+- The clean ISOs are NKit (DolphinTool cannot undo NKit); patches made against them need the same NKit images.
+- Only the opening cutscene and the font were seen on screen (Dolphin); codec calls, briefing and play
+  were not played through.
+
 ## Font editor formats (2026-10-03)
 
 - Ukrainian glyphs drawn and shown on screen 2026-10-04 (Dolphin WW, SoH, 2Ship, Eden HWDE, Azahar for the 3DS
   fonts, Eden for Cadence of Hyrule's `LoveBug.bffnt` with a new sheet of Cyrillic; contact sheets and screenshots
   in each workspace's `reports\fonts\`): the letter shapes are rough, a hand touch-up is the owner's. Not shown in
   ares (keyboard input could not reach OoT's name-entry screen); the ROM font bytes equal the SoH/2Ship textures.
-  TotK font still never run.
+  TotK: Eden shows Ukrainian in the title menu (Rodin, already Cyrillic); the glyphs added to its other fonts are
+  not yet seen on screen.
 - 3DS fonts: the future text plugins (`zelda_oot3d`, `zelda_mm3d`, `zelda_albw`, `zelda_tfh`) should list them in
   `font_sources.json` (formats `qbf`, `gzf`, `bcfnt`; ALBW/TFH: `EU/RegionBoot.szs` / `Archive/EU/RegionBoot.szs`
   member `EU/Font/MessageFont.bffnt`); until then they open with File → Open. A 3DS font cannot change or drop a
   character it has; adding codes to a CMAP scan list that is not the file's last block leaves its old copy as
   dead bytes (a few hundred per save). Outlined fonts (ALBW/TFH) need the outline drawn by hand or by script:
   Render Font draws the letter only.
-- HWDE: the game does not take advances from the atlas ink: М Н О П on the narrow Ì Í Î Ï cells overlap their
-  neighbours. Find the advance table (executable?) or choose cp1251-independent slots by width.
-- The N64 slot maps (`plugins/zelda_oot64|zelda_mm64/translation_map.json`) are provisional: owner review. Letters
-  on ASCII punctuation slots (OoT) decode back as letters, so a `#`, `<`, `[`… in English text would too.
-- TotK: no real font on disk; BFFNT was verified on Cadence of Hyrule and Pokémon SV (Switch, BC4). Its
-  `Font/*.bfarc.zs` needs the TotK plugin's SARC container (registered when that plugin is active) and the
-  project pointing at the romfs (or `Mals`). Texture formats other than BC4 open empty (widths only).
+- HWDE widths are the executable's `f32` tables (`font_eu` / `font_eu_p`, 224 codes each), patched by
+  `translation\exefs\<build id>.ips` for 1.0.0 (`0C869F41…`, what Eden runs from the base NSP) and the update
+  (`815A2C19…`); shown in Eden 2026-10-04 (`HWDE_UA\reports\fonts\screen_eden_widths.png`, before:
+  `screen_eden_widths_before.png`). Not run on a Switch (Atmosphere `exefs_patches`) or in Ryujinx; another game
+  version needs its build id and table address in `font_sources.json`. The Cyrillic advances are ink + the Latin
+  median gap (rough, like the shapes).
+- The N64 slot maps are confirmed (2026-10-04): no English message, credit, code-printed text, name entry or
+  SoH/2Ship text uses a cell a Ukrainian letter takes, and every glyph fits its cell
+  (`plugins/zelda_oot64|zelda_mm64/translation_map.md`).
+- TotK's fonts are scalable OpenType (`bfotf`): the editor shows them, outlines are edited outside (FontForge on
+  the unscrambled OTF) or by `plugins/zelda_totk/font_glyphs.py`. Opening needs the TotK plugin's SARC container.
 - BFFNT (Switch): new characters get a CMAP block and new sheets a texture layer (`min_sheets`); the kerning table
   (KRNG) is kept as it is, and a removed character outside the changed code range still resolves.
-- HWDE: widths are measured from the ink (+4 px) — whether the game has its own table is unknown; edited
-  widths live in the project's `font_maps/hwde_eu.json`. The `../romfs/...` candidate assumes the
-  workspace layout `source/` next to `romfs/` and a translation folder named `romfs`.
+- HWDE: the `../romfs/...` candidate assumes the workspace layout `source/` next to `romfs/` and a translation
+  folder named `romfs`.
 - Opening a font and listing archive members still reads the archive on the UI thread (small files);
   the old BFN paths (`load_bfn`, saving a BFN) are synchronous as before.
 - Next formats: Tingle Tuner (GBA), Wii U BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already
@@ -111,8 +125,8 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 
 - Owner decision: also write the translation into the English-EU section (default, `MIRROR_SECTIONS`)?
   Other languages stay as they are.
-- Ran in Eden 2026-10-04 (text + redrawn `font_eu*.g1t` show Ukrainian); not on a Switch. The game's advances do
-  not follow the ink (`fonts/hwde_eu.json`, ink + 4 px, is wrong for redrawn cells); where it keeps them is unknown.
+- Ran in Eden 2026-10-04 (text, redrawn `font_eu*.g1t` and the patched width tables show Ukrainian without
+  overlaps); not on a Switch.
 - Voice-line speakers for character ids 18-99 are `chara_NNN` (the names table disagrees there); event and
   movie scene ids are not tied to story chapters; text inside textures (`ui/caption`, `still_*`) and the
   executable is not covered.
@@ -393,6 +407,19 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   run time and Bombers' Notebook entries without a placed actor get no speaker. Report:
   `E:\Emulators\RomHacking\ZELDA\MM64_UA\reports\context_report.md`.
 
+## The Wind Waker HD plugin (`plugins/zelda_ww`, Wii U)
+
+- **Text in textures** is not handled: the title logo, the sea-chart island names (`MapIsland_*`, the 116
+  `MapScreen` messages are empty), quadrant titles and the boot screen (`Boot_00.szs`) are BFLIM images; there is
+  no BFLIM backend. List: `E:\Emulators\RomHacking\ZELDA\WWHD_UA\reports\format_report.md`.
+- **Box widths by BalloonType** come from two layouts (700 px / 650 px panes) and the English 99th percentile; which
+  layout each balloon type uses was not traced in `cking.rpx`.
+- **Ukrainian letters in CKingMain / CKingMainL** are rough Rubik Black shapes on a new sheet each (+512 KB of
+  texture per font in memory); they showed in Cemu on the title screen, but were not checked in every menu or on a
+  console. CKingPic (RGBA8 button pictures) opens for viewing only.
+- **The entered player name** is typed on a Latin keyboard; `[Name]` shows it undeclined. The Russian translation
+  replaced `[Name]` with a fixed «Линк».
+
 ## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
 
 - **Runtime suffixes are in the executable**, not in BMG: " Rupee(s)", " bomb(s)", " yard(s)", timers
@@ -408,23 +435,21 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 
 ## Zelda: Tears of the Kingdom plugin (`plugins/zelda_totk`)
 
-- **Never run on TotK's own files.** No TotK romfs was on disk; the formats were checked on synthetic files and
-  on another game's `Mals/USen.Product.100.sarc.zs` (Tomodachi Life, same LMS/SARC/zstd stack: 262 MSBTs and the
-  SARC rebuild byte for byte), the font reader on Switch BFFNTs of another game. First real check: open the
-  dumped romfs, save one edited line, load the mod in an emulator.
-- **No speakers or scenes.** TotK's event flows (`.bfevfl` under `romfs/Event`) name who says each message; an
-  offline extractor (like `plugins/zelda_bmg/msg_flow.py` for TP) needs the romfs to be written against. Today a
-  line's context is its MSBT file and label only.
-- **Width limits are placeholders** (900/880 px, 3 lines per page, icon 36 px, `{playerName}` 64 px). Calibrate
-  them against the dialogue font map made by `font_tool` and the game's message window.
-- **RESTBL growth rule is a guess**: the entry grows in proportion to the decompressed archive. Check the value
-  the game needs (crash or not) with a translation that is much longer than English.
-- **Tag catalogue** comes from MSBT Editor's `TotK.gcf`; most group 2 (numbers/strings) and 201 (grammar) tags
-  have no confirmed argument meaning. A tag whose bytes do not fit the catalogue shows as `{tag:G:T:hex}`.
-- **Hero-name colour unknown.** `{playerName}` maps to the `{F:Link}` force alias; whether the engine draws the
-  name in a colour is unchecked. With the romfs, count `{playerName}` lines with and without colour tags around
-  them; if the engine colours it, return the tags from `get_force_alias_wrapping()` (see Plugin Developer Guide,
-  "Force aliases and names drawn in colour").
+Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited title menu shown in Eden).
+- **Speakers ~69%** of the event lines (22,926 of 33,263): the rest are lines no flow gives one character
+  (system flows started by an unknown `Npc_EventStarter`, shared lines). About 1,570 lines keep an actor id as speaker
+  (`Npc_UMiiVillage031`, `Npc_ZoraFencer` = Yona, whose name is a `{yonaName}` tag). No addressee yet.
+- **Width limits are measured from the English text**, not from the window layout (talk lines reach 993 px,
+  cutscene lines 1279 px at Rodin B 45 px); icons count 45 px. A layout-based limit needs the `UI/LayoutArchive`
+  BFLYT text panes.
+- **Tag `{tag:1:2}`** (no arguments; at the start of shop prompts and the end of shouted lines) has no name.
+- **Reference languages load on the UI thread** (the host's reference loading is synchronous): about 0.6 s per
+  language, ~8 s for TotK's 14.
+- **Added glyphs are unproven in game:** the title menu shown in Eden uses Rodin, which already had Ukrainian;
+  the glyphs drawn into RaglanPunch, NTLG-DB and ZeldaGlyphs (titles, small text, location banners) still need a
+  screen that uses those fonts, and a hand touch-up.
+- **RESTBL** follows the game's own rule (measured on every text and font archive); a translation far longer than
+  English has not been played.
 
 ## Found during the series glossary feature
 

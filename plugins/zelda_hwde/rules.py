@@ -11,7 +11,8 @@ from . import ktbin
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 from .tags import PLACEHOLDER_RE, TAG_RE, describe
-from .textfile import SUBTITLE_SPEAKER_ROW, FormatError, TextFile, decode_cell, subtitle_speaker_rows, table_role
+from .textfile import (SUBTITLE_SPEAKER_ROW, FormatError, TextFile, decode_cell, english_tables,
+                       subtitle_speaker_rows, table_role)
 
 # msgdata.bin, English section, table 6: unit and character names; row = character id of VoiceInf.
 NAMES_TABLE = 6
@@ -53,7 +54,10 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._file: Optional[TextFile] = None
         self._located: Dict[int, Optional[Tuple[str, TextFile, int]]] = {}
+        self._parsed: Dict[str, TextFile] = {}   # absolute path -> the file, parsed once per load
+        self._english: Dict[str, List[ktbin.XlTable]] = {}   # absolute path -> its English tables only
         self._speakers: Dict[str, List[Optional[str]]] = {}
+        self._block_speakers: Dict[int, List[Optional[str]]] = {}
         self._widest: Dict[int, int] = {}
 
     def get_display_name(self) -> str:
@@ -90,7 +94,7 @@ class GameRules(BaseGameRules):
         """The file is rebuilt from its current version (translation first): load the newest that parses."""
         for raw in context.existing_versions():
             try:
-                self._file = TextFile(raw)
+                self._file = TextFile(raw, verify=True)
                 return
             except (FormatError, ValueError) as error:
                 log_warning(f"zelda_hwde: cannot read {context.relative_path}: {error}; trying the next version")
@@ -98,7 +102,10 @@ class GameRules(BaseGameRules):
     def reset_runtime_state(self) -> None:
         self._file = None
         self._located.clear()
+        self._parsed.clear()
+        self._english.clear()
         self._speakers.clear()
+        self._block_speakers.clear()
         self._widest.clear()
 
     # -- where a block comes from ---------------------------------------------
@@ -107,19 +114,38 @@ class GameRules(BaseGameRules):
         pm = getattr(self.mw, "project_manager", None) if self.mw else None
         return pm, getattr(pm, "project", None)
 
+    def _text_file(self, path: Path) -> TextFile:
+        """The parsed file at ``path``: one parse per load, shared by all its blocks."""
+        key = str(path)
+        if key not in self._parsed:
+            self._parsed[key] = TextFile(path.read_bytes())
+        return self._parsed[key]
+
+    def _english_tables(self, path: Path) -> List[ktbin.XlTable]:
+        """The English tables of the file at ``path`` (a twelfth of a full parse), cached per load."""
+        key = str(path)
+        if key not in self._english:
+            self._english[key] = (self._parsed[key].tables if key in self._parsed
+                                  else english_tables(path.read_bytes()))
+        return self._english[key]
+
+    def _source(self, block_idx: int) -> Tuple[str, Path, int]:
+        """``(relative path, absolute path, block index inside the file)`` of a data block."""
+        pm, project = self._project()
+        block_map = getattr(self.mw, "block_to_project_file_map", None) or {}
+        project_idx = block_map.get(block_idx, block_idx)
+        sub = sum(1 for d, p in block_map.items() if p == project_idx and d < block_idx)
+        block = project.blocks[project_idx]
+        return str(block.source_file).replace("\\", "/"), Path(pm.get_absolute_path(block.source_file)), sub
+
     def _locate(self, block_idx: int) -> Optional[Tuple[str, TextFile, int]]:
         """``(relative path, parsed source file, block index inside the file)``; cached per load."""
         if block_idx in self._located:
             return self._located[block_idx]
         found = None
         try:
-            pm, project = self._project()
-            block_map = getattr(self.mw, "block_to_project_file_map", None) or {}
-            project_idx = block_map.get(block_idx, block_idx)
-            sub = sum(1 for d, p in block_map.items() if p == project_idx and d < block_idx)
-            block = project.blocks[project_idx]
-            path = Path(pm.get_absolute_path(block.source_file))
-            found = (str(block.source_file).replace("\\", "/"), TextFile(path.read_bytes()), sub)
+            rel, path, sub = self._source(block_idx)
+            found = (rel, self._text_file(path), sub)
         except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
             log_debug(f"zelda_hwde: no text file behind block {block_idx}: {error}")
         self._located[block_idx] = found
@@ -200,8 +226,7 @@ class GameRules(BaseGameRules):
             pm, _project = self._project()
             base = Path(pm.get_absolute_path(voice_rel)).parent
             info = ktbin.parse_xl((base / "VoiceInf.bin.gz").read_bytes())
-            msgdata = TextFile((base / "msgdata.bin").read_bytes())
-            table = msgdata.tables[NAMES_TABLE]
+            table = self._english_tables(base / "msgdata.bin")[NAMES_TABLE]
             for row in info.rows:
                 chara = row[0]
                 if chara in _UNVERIFIED_SPEAKER_IDS:
@@ -217,17 +242,39 @@ class GameRules(BaseGameRules):
 
     def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """Subtitles: the name row with the same timing. Voice lines: VoiceInf -> names table."""
-        found = self._cell(block_idx, string_idx)
-        if not found:
-            return None
-        rel, _file, _sub, table, row, _column = found
-        speaker_row = subtitle_speaker_rows(table).get(row)
-        if speaker_row is not None:
-            return decode_cell(table.rows[speaker_row][5], False) or None
+        if block_idx not in self._block_speakers:
+            self._block_speakers[block_idx] = self._speakers_of_block(block_idx)
+        speakers = self._block_speakers[block_idx]
+        return speakers[string_idx] if 0 <= string_idx < len(speakers) else None
+
+    def _speakers_of_block(self, block_idx: int) -> List[Optional[str]]:
+        """The speaker of every string of a block (empty when the table names nobody).
+
+        Only subtitle tables and the voice files name speakers; a file with neither is told apart by
+        its English tables alone, so opening a project does not parse every language of every file.
+        """
+        try:
+            rel, path, _sub = self._source(block_idx)
+            if (Path(rel).name not in _VOICE_FILES
+                    and not any(table_role(t) == "Subtitles" for t in self._english_tables(path))):
+                return []
+        except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
+            log_debug(f"zelda_hwde: no text file behind block {block_idx}: {error}")
+            return []
+        located = self._locate(block_idx)
+        if not located:
+            return []
+        rel, text_file, sub = located
+        block = text_file.blocks[sub]
+        table = text_file.tables[block.table]
+        by_timing = subtitle_speaker_rows(table)
+        if by_timing:
+            return [decode_cell(table.rows[by_timing[row]][5], False) or None if row in by_timing else None
+                    for row, _column in block.cells]
         if Path(rel).name not in _VOICE_FILES:
-            return None
+            return []
         names = self._speaker_names(rel)
-        return names[row] if row < len(names) else None
+        return [names[row] if row < len(names) else None for row, _column in block.cells]
 
     def is_placeholder_speaker(self, name: str) -> bool:
         """Raw character ids, and the "???" the game shows before a character is revealed."""
@@ -239,11 +286,10 @@ class GameRules(BaseGameRules):
             pm, project = self._project()
             for block in project.blocks:
                 if str(block.source_file).replace("\\", "/").endswith("common/msgdata.bin"):
-                    data = Path(pm.get_absolute_path(block.source_file)).read_bytes()
+                    table = self._english_tables(Path(pm.get_absolute_path(block.source_file)))[NAMES_TABLE]
                     break
             else:
                 return []
-            table = TextFile(data).tables[NAMES_TABLE]
         except (AttributeError, OSError, IndexError, TypeError, ValueError) as error:
             log_debug(f"zelda_hwde: no names table for the glossary seed: {error}")
             return []

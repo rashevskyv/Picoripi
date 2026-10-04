@@ -4,7 +4,8 @@ The plugin's ``get_font_sources()`` names the game's font files; they appear in 
 open from the project (the translation copy when there is one). Reading, decoding, encoding and
 writing run in a worker thread, one job after another, so a save is on disk before the next read
 of the same file; headless runs do the job inline. After a save the font's widths, with the
-translation map, are written to ``<project>/font_maps/<font map>.json`` for the width checks.
+translation map, are written to ``<project>/font_maps/<font map>.json`` for the width checks; a G1T
+whose widths are the game executable's table also writes them as an exefs patch (``core.font_formats.g1t``).
 """
 import copy
 import json
@@ -16,6 +17,7 @@ from PIL import Image
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core import font_formats
+from core.font_formats import g1t
 from core.i18n import tr
 from utils import app_mode
 from utils.atomic_io import atomic_write_bytes, atomic_write_json
@@ -173,11 +175,18 @@ class IoFormatMixin:
 
         def work():
             metadata, sheets = font_formats.extract(fmt, data, params)
-            if saved_map_path and os.path.isfile(saved_map_path):
+            patch = b""
+            if source is not None and source.widths_patches:        # the widths are the executable's table
+                for path, address in source.widths_patches.items():  # one patch per game build, all alike
+                    patch = source.read_widths_patch(path)
+                    if patch:
+                        g1t.apply_widths_patch(metadata, params, address, patch)
+                        break
+            elif saved_map_path and os.path.isfile(saved_map_path):
                 with open(saved_map_path, encoding="utf-8") as stream:
                     apply_saved_widths(metadata, json.load(stream))
             font_formats.write_folder(temp_dir, metadata, sheets)
-            if original is not None and original != data:
+            if original is not None and (original != data or patch):
                 return font_formats.extract(fmt, original, params)
             return None
 
@@ -197,7 +206,9 @@ class IoFormatMixin:
                 self.original_font_metadata = original_model[0]
                 self.original_sheet_images = [pil_to_qimage(sheet) for sheet in original_model[1]]
             self.load_from_extracted_dir(temp_dir)
-            if not self.metadata.get("header", {}).get("textures_editable", True):
+            if self.metadata.get("header", {}).get("outline"):
+                self.status.showMessage(tr("Loaded {0}: a scalable font; its glyphs are shown, not edited here.", name))
+            elif not self.metadata.get("header", {}).get("textures_editable", True):
                 self.status.showMessage(tr("Loaded {0}: this texture format is shown empty; widths can be edited.", name))
             else:
                 self.status.showMessage(tr("Successfully loaded font: {0}", name))
@@ -221,6 +232,9 @@ class IoFormatMixin:
             data = font_formats.pack(fmt, metadata, sheets, original, params)
             if source is not None:
                 source.write(data)
+                for path, address in source.widths_patches.items():
+                    source.write_widths_patch(path, g1t.widths_patch(metadata, params, address,
+                                                                     source.read_widths_patch(path)))
             else:
                 atomic_write_bytes(write_path, data)
             if map_path:

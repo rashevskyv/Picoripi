@@ -1,0 +1,22 @@
+[
+  {
+    "label": "Dialogue font (CKingMsg)",
+    "format": "bffnt_wiiu",
+    "path": "Font/CKingMsg.bffnt",
+    "font_map": "CKingMsg.json"
+  },
+  {
+    "label": "Title and menu font (CKingMain)",
+    "format": "bffnt_wiiu",
+    "path": "Font/CKingMain.bffnt",
+    "font_map": "CKingMain.json",
+    "params": {"min_sheets": 3}
+  },
+  {
+    "label": "Large title font (CKingMainL)",
+    "format": "bffnt_wiiu",
+    "path": "Font/CKingMainL.bffnt",
+    "font_map": "CKingMainL.json",
+    "params": {"min_sheets": 5}
+  }
+]

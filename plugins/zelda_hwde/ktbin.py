@@ -121,10 +121,8 @@ def parse_xl(data: bytes) -> XlTable:
     ends = starts[1:] + [len(data)]
     for (r, c), a, b in zip(cells, starts, ends):
         rows[r][c] = data[a:b]
-    table = XlTable(version, types, rows, b"" if starts else data[pool_start:])
-    if build_xl(table) != data:
-        raise FormatError("XL table does not rebuild byte-exact")
-    return table
+    # Not rebuilt here to check it (that doubled the read time): TextFile(verify=True) checks the whole file.
+    return XlTable(version, types, rows, b"" if starts else data[pool_start:])
 
 
 def build_xl(t: XlTable) -> bytes:

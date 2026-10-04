@@ -62,6 +62,10 @@ class Msbt:
         self.messages: List[List[Token]] = self._read_texts(self._section(b"TXT2"))
         self.labels: Dict[int, str] = self._read_labels(self._section(b"LBL1"))
 
+    def section(self, magic: bytes) -> bytes:
+        """The body of a section as read (``ATR1`` attributes...); empty when the file has none."""
+        return self._section(magic)
+
     def _section(self, magic: bytes) -> bytes:
         for name, body in self.sections:
             if name == magic:
@@ -96,35 +100,45 @@ class Msbt:
             messages.append(self._read_text(body, start, end))
         return messages
 
+    def _next_control(self, body: bytes, position: int, end: int) -> int:
+        """Offset of the next 0x00 / 0x0E / 0x0F code unit from ``position`` on (``end`` when none).
+
+        Found with ``bytes.find`` (a reference load parses every language, ~48,000 texts each); a hit at
+        an odd distance lies across two code units and is skipped.
+        """
+        best = end
+        units = (b"\x00\x00", b"\x0e\x00", b"\x0f\x00") if self.little else (b"\x00\x00", b"\x00\x0e", b"\x00\x0f")
+        for unit in units:
+            at = body.find(unit, position, best)
+            while at != -1 and (at - position) % 2:
+                at = body.find(unit, at + 1, best)
+            if at != -1:
+                best = at
+        return best
+
     def _read_text(self, body: bytes, position: int, end: int) -> List[Token]:
         e = self.endian
         codec = "utf-16-le" if self.little else "utf-16-be"
         tokens: List[Token] = []
-        chars = bytearray()
-
-        def flush():
-            if chars:
-                tokens.append(chars.decode(codec, "surrogatepass"))
-                chars.clear()
-
-        while position + 2 <= end:
+        end -= (end - position) % 2
+        while position < end:
+            control = self._next_control(body, position, end)
+            if control > position:
+                tokens.append(body[position:control].decode(codec, "surrogatepass"))
+                position = control
+            if position >= end:
+                break
             unit = struct.unpack_from(e + "H", body, position)[0]
             if unit == 0:
                 break
             if unit == 0x0E:
-                flush()
                 group, kind, size = struct.unpack_from(e + "HHH", body, position + 2)
                 tokens.append(Tag(group, kind, bytes(body[position + 8:position + 8 + size])))
                 position += 8 + size
-            elif unit == 0x0F:
-                flush()
+            else:
                 group, kind = struct.unpack_from(e + "HH", body, position + 2)
                 tokens.append(EndTag(group, kind))
                 position += 6
-            else:
-                chars += body[position:position + 2]
-                position += 2
-        flush()
         return tokens
 
     def encode_text(self, tokens: List[Token]) -> bytes:
