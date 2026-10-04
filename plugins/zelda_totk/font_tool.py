@@ -1,11 +1,13 @@
-"""Character widths from TotK's fonts (BFFNT), as Picoripi font maps. Offline tool.
+"""Character widths from TotK's fonts, as Picoripi font maps. Offline tool.
 
-    python -m plugins.zelda_totk.font_tool <romfs>/Font/<name>.bfarc.zs <output folder>
+    python -m plugins.zelda_totk.font_tool <romfs>/Font/Font.Nin_NX_NVN.bfarc.zs <output folder> [--size 45]
 
-Accepts a ``.bffnt`` or a font archive (``.bfarc`` / ``.bfarc.zs``, a SARC of BFFNTs) and writes one
-``<font>.json`` per font: ``{"A": {"width": 21}, ...}`` with the advance width from the font's CWDH
-table, looked up through its CMAP. Put the output into ``plugins/zelda_totk/fonts/`` or the custom
-fonts folder from Settings. zstd archives need ``ZsDic.pack.zs`` (see ``sarc.py``).
+Accepts a font or a font archive (``.bfarc`` / ``.bfarc.zs``, a SARC) and writes one ``<font>.json`` per
+font: ``{"A": {"width": 33}, ...}``. TotK 1.4.0 ships scalable fonts (``scft/*.bfotf``, scrambled
+OpenType): the width is the ``hmtx`` advance at ``--size`` pixels per em -- the dialogue (``Normal_00.bfcpx``)
+draws ``ninP_RodinNTLG-B`` at 45. A bitmap ``.bffnt`` gives its CWDH advance through its CMAP. Put the
+output into ``plugins/zelda_totk/fonts/`` or the custom fonts folder from Settings. zstd archives need
+``ZsDic.pack.zs`` (see ``sarc.py``).
 """
 from __future__ import annotations
 
@@ -16,6 +18,7 @@ import sys
 from pathlib import Path
 from typing import Dict
 
+from core.font_formats import bfotf
 from utils.atomic_io import atomic_write_text
 
 from . import sarc
@@ -89,14 +92,25 @@ def font_map(raw: bytes) -> Dict[str, Dict[str, int]]:
     return {chr(code): {"width": widths[index]} for code, index in sorted(glyphs.items()) if index in widths}
 
 
+def _is_font(data: bytes) -> bool:
+    return data[:4] == b"FFNT" or bfotf.is_bfotf(data)
+
+
 def fonts_in(path: Path) -> Dict[str, bytes]:
-    """``{font name: BFFNT bytes}`` of a font file or font archive."""
+    """``{font name: bytes}`` of a font file or font archive (BFFNT and scrambled OpenType fonts)."""
     raw = path.read_bytes()
-    if raw[:4] == b"FFNT":
-        return {path.stem: raw}
+    if _is_font(raw):
+        return {path.name.split(".")[0]: raw}
     if raw[:4] == sarc.ZSTD_MAGIC:
         raw = sarc.decompress(raw)[0]
-    return {Path(name).stem: data for name, data in sarc.Sarc(raw).files.items() if data[:4] == b"FFNT"}
+    return {Path(name).name.split(".")[0]: data for name, data in sarc.Sarc(raw).files.items() if _is_font(data)}
+
+
+def width_map(raw: bytes, size: float) -> Dict[str, Dict[str, int]]:
+    """The font map of a BFFNT (its own pixel widths) or a scalable font at ``size`` pixels per em."""
+    if raw[:4] == b"FFNT":
+        return font_map(raw)
+    return {char: {"width": width} for char, width in bfotf.widths(raw, size).items()}
 
 
 def main(argv=None) -> int:
@@ -104,12 +118,13 @@ def main(argv=None) -> int:
     parser.add_argument("font", type=Path, help=".bffnt, .bfarc or .bfarc.zs")
     parser.add_argument("output", type=Path, help="folder for the font maps")
     parser.add_argument("--dictionaries", type=Path, help="folder with Pack/ZsDic.pack.zs (default: near the font)")
+    parser.add_argument("--size", type=float, default=45, help="pixels per em for scalable fonts (dialogue: 45)")
     args = parser.parse_args(argv)
     sarc.dictionary_dirs = lambda: [args.dictionaries or args.font.parent]
     args.output.mkdir(parents=True, exist_ok=True)
     for name, raw in fonts_in(args.font).items():
         target = args.output / f"{name}.json"
-        mapping = font_map(raw)
+        mapping = width_map(raw, args.size)
         atomic_write_text(target, json.dumps(mapping, ensure_ascii=False, indent=1))
         print(f"{target}: {len(mapping)} characters")
     return 0

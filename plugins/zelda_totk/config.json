@@ -11,8 +11,8 @@
     "space_dot_color_hex": "#808080",
     "preview_wrap_lines": false,
     "editors_wrap_lines": false,
-    "game_dialog_max_width_pixels": 900,
-    "line_width_warning_threshold_pixels": 880,
+    "game_dialog_max_width_pixels": 1000,
+    "line_width_warning_threshold_pixels": 990,
     "autofix_enabled": {
         "ZTK_TAG_WARNING": false,
         "ZTK_WIDTH_EXCEEDED": false,
@@ -38,7 +38,7 @@
         "ZTK_BROKEN_ICON_HYPHEN": true
     },
     "lines_per_page": 3,
-    "default_font_file": "",
+    "default_font_file": "RodinNTLG-B_45.json",
     "tag_color_rgba": "#ffff8c00",
     "tag_bold": true,
     "tag_italic": false,
