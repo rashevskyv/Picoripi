@@ -1,0 +1,7 @@
+{
+    "{ITEM}": {"width": 130},
+    "{AN_ITEM}": {"width": 160},
+    "{NUM}": {"width": 30},
+    "{S}": {"width": 9},
+    "{AN}": {"width": 22}
+}

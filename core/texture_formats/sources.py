@@ -35,7 +35,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from PIL import Image
 
 from core import texture_formats
-from core.containers import ContainerManager, grezzo, sarc, yaz0
+from core.containers import ContainerManager, grezzo, level5, sarc, yaz0
 from core.containers.base_container import BaseArchiveContainer
 from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
@@ -201,7 +201,7 @@ class N64RomContainer(BaseArchiveContainer):
 
 
 def open_container(data: bytes) -> Optional[BaseArchiveContainer]:
-    """An archive this version can open (RARC, U8, SARC, Grezzo ZAR/GAR, N64 ROM, a plugin's), or None."""
+    """An archive this version can open (RARC, U8, SARC, Grezzo ZAR/GAR, N64 ROM, Level-5 XPCK, a plugin's), or None."""
     container = ContainerManager.open(data)
     if container is None and data[:4] == b"SARC":
         container = sarc.SarcContainer(data)
@@ -209,6 +209,8 @@ def open_container(data: bytes) -> Optional[BaseArchiveContainer]:
         container = grezzo.ZarContainer(data)
     if container is None and N64RomContainer.can_handle(data):
         container = N64RomContainer(data)
+    if container is None and level5.XpckContainer.can_handle(data):
+        container = level5.XpckContainer(data)
     return container
 
 

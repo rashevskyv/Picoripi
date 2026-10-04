@@ -851,6 +851,13 @@ def test_mempalace_builder_dialog_passes_target_lang_to_chapter_analyzer(qapp):
         kwargs = mock_worker_class.call_args[1]
         assert kwargs.get("target_lang") == "Spanish"
 
+    # The fake worker reports itself as running, so closing at teardown would open the real
+    # "Stop current AI operation?" question on screen and block the worker process.
+    dialog.worker = None
+    dialog.close()
+    dialog.deleteLater()
+    parent_widget.deleteLater()
+
 
 def test_mempalace_builder_stop_no_keeps_running(qapp):
     from PyQt6.QtWidgets import QMessageBox
