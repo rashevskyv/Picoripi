@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: ui/, components/, dialogs/
-tokens: 6.7k
+tokens: 7.4k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -61,7 +61,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `zelda_bmg` — Zelda: Twilight Princess BMG
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker
-   - `zelda_mm64` — Zelda: Majora's Mask (N64): the US ROM itself (`.z64`, `.n64`, `.v64`) is the source file and the translated ROM the translation file. All 4,589 messages in one block; control codes as `{tags}` (zeldaret/mm); line width per textbox type, from the Font Editor's map of the game font once it is saved in the project, else from the game's own width table. Saving rebuilds the text file and the message table from the source ROM and fixes the header checksum. Speakers (one actor per line when the decompilation shows exactly one), scenes and seed glossary terms come from `context.json`, generated offline from zeldaret/mm and the ROM by `python -m plugins.common.zelda64_context`. Only characters the N64 font already has can be saved yet. Load Reference Patch with the folder that holds `mm3d_seed.json` (Ukrainian carried over from Majora's Mask 3D, keyed by N64 message id) shows it as the "Ukrainian (MM3D)" reference
+   - `zelda_mm64` — Zelda: Majora's Mask (N64): the US ROM itself (`.z64`, `.n64`, `.v64`) is the source file and the translated ROM the translation file. All 4,589 messages in one block; control codes as `{tags}` (zeldaret/mm); line width per textbox type, from the Font Editor's map of the game font once it is saved in the project, else from the game's own width table. Saving rebuilds the text file and the message table from the source ROM and fixes the header checksum. Speakers (one actor per line when the decompilation shows exactly one), scenes and seed glossary terms come from `context.json`, generated offline from zeldaret/mm and the ROM by `python -m plugins.common.zelda64_context`. Ukrainian letters are saved into the font slots of `translation_map.json` (the project's, else the plugin's): look-alike letters share the Latin glyph (А = A, і = i, Ї = Ï…), the rest take accented and unused punctuation slots chosen by width, so English stays readable; Ocarina of Time uses the same map. Load Reference Patch with the folder that holds `mm3d_seed.json` (Ukrainian carried over from Majora's Mask 3D, keyed by N64 message id) shows it as the "Ukrainian (MM3D)" reference
    - `zelda_oot64` — Zelda: Ocarina of Time (N64): the US 1.0 ROM, the same way as `zelda_mm64` (2,115 messages; codes from zeldaret/oot)
    - `zelda_tww` — Zelda: The Wind Waker (GameCube BMG): `res/Msg/bmgres.arc` of the US or a European disc (`data0`–`data4` are English, German, French, Spanish, Italian). Shares the Twilight Princess machinery; tags, colours and line widths come from the zeldaret/tww decompilation, line width and lines per page follow each message's box type. No speakers or window frames yet
    - `zelda_totk` — Zelda: Tears of the Kingdom (Switch). **Source:** the game's dumped `romfs` (at least its
@@ -74,6 +74,18 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      makes font maps from the game's fonts. When a translated archive grows, run
      `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>` so the game reserves enough memory for it.
    - `zelda_hwde` — Zelda: Hyrule Warriors Definitive Edition
+   - `zelda_coh` — Zelda: Cadence of Hyrule (Switch). **Source:** a folder with the game's `localization.xml`
+     (base + update romfs) and `fonts_bin`; **Translation:** the mod's `romfs`
+     (`atmosphere/contents/01000B900D8B0000/romfs`, the base game's Title ID). All 1,809 strings, one block per id
+     range (menus, dialogue, tutorials, items, enemies, places, cutscenes, credits, achievements); only the English
+     strings are shown and saved, an unedited file stays byte for byte. Tags are the game's own (`[c:b]`, `[/c]`,
+     `[i:button_a]`, `[s:9]`); `[n]` shows as a line break, `[p]` (next page) as `[p]` plus a line break. Speakers
+     come from the string keys (`zora4_1` → Zora). The Font Editor opens the six `.bffnt` fonts; the text font
+     `LoveBug` has no Cyrillic, so it opens with a spare sheet for the Ukrainian letters
+   - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Source is the workspace's `source` folder
+     (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
+     with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs
+     the changed files and the edited font (`font\latin.g1n`) into the LayeredFS mod.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
@@ -144,7 +156,7 @@ This is the localization pipeline plus utilities. Prefer **Localization Pipeline
 | Command | Shortcut | Role |
 |---------|----------|------|
 | Localization Pipeline… | | Ordered steps + status. Thin: every button runs the same action as the menu |
-| Font Editor… | | Bitmap fonts in a separate window; the project stays open. Opens Nintendo `.bfn` (Twilight Princess, Wind Waker), the message font inside an N64 Zelda ROM (OoT, MM), Hyrule Warriors `.g1t` atlases and Switch `.bffnt`. The game's own fonts, named by its plugin, are listed in the font tree and open from the project (the translation copy once there is one); Save writes the translation copy and the font's widths with the translation map to `<project>/font_maps/`, which the width checks read. Uses the same **Language** as the rest of the app |
+| Font Editor… | | Bitmap fonts in a separate window; the project stays open. Opens Nintendo `.bfn` (Twilight Princess, Wind Waker), the message font inside an N64 Zelda ROM (OoT, MM), Hyrule Warriors `.g1t` atlases, Age of Calamity `.g1n` fonts, Switch `.bffnt` and the 3DS fonts: `.bcfnt` / 3DS `.bffnt` (A Link Between Worlds, Tri Force Heroes), Grezzo `.qbf` (Ocarina of Time 3D) and `.gzf` (Majora's Mask 3D) — open them with **Open** (no project needed; Save writes the file back). In a font that maps Unicode characters (`.bffnt`, `.g1n` and the 3DS fonts), typing a letter into an empty cell's character column adds that real character to the font (no translation slot; a character the font already has is refused): draw the glyph in a free cell and give it its letter. The game's own fonts, named by its plugin, are listed in the font tree and open from the project (the translation copy once there is one); Save writes the translation copy and the font's widths with the translation map to `<project>/font_maps/`, which the width checks read. Wind Waker also lists its name-entry and system fonts. **Render System Font to Glyphs** takes a TTF/OTF through **Font File...** (no install needed) and can **Thicken** strokes for small heavy fonts; **Move glyph** (◀ ▲ ▼ ▶ or Ctrl+Arrow keys) shifts the selected glyphs' pixels 1 px inside their cells, with undo, in every format. Uses the same **Language** as the rest of the app |
 | Script Markup Studio… | | Mark a walkthrough (Phase 0 for MemePalace). See [9](9_Script_Markup.md) |
 | MemePalace Context Builder… | Ctrl+M | Weave the marked script into story memory |
 | Prepare Glossary… | | One automatic glossary pass |

@@ -1,6 +1,7 @@
 """Twilight Princess plugin: BMG files, tags, windows, speakers, scenes."""
 from utils.atomic_io import atomic_write_text
 import os
+import time
 import re
 import json
 from typing import Any, Tuple, Dict, List, Set, Optional
@@ -191,6 +192,10 @@ class GameRules(BaseGameRules):
         self.reverse_translation_map = {}
         self._last_map_path = None
         self._last_map_mtime = 0
+        self._map_checked_at = 0.0
+        self._map_checked_for = None
+        self._aliased_raw_tags: set = set()
+        self._aliased_raw_tags_signature = None
         self.load_translation_map()
 
     def get_file_formats(self) -> list:
@@ -273,17 +278,24 @@ class GameRules(BaseGameRules):
         if mappings is None:
             mappings = {}
             self.mw.default_tag_mappings = mappings
+        # The raw tags that already have an alias; rebuilt when the mapping is replaced or changes size.
+        signature = (id(mappings), len(mappings))
+        if signature != self._aliased_raw_tags_signature:
+            self._aliased_raw_tags = set(mappings.values())
+        known = self._aliased_raw_tags
         for match in _ESCAPE_ANY_RE.finditer(str(text)):
             raw_tag = match.group(0)
             # Existing project/user aliases win.  This is important because
             # Edit Alias persists through project settings.
-            if any(original == raw_tag for original in mappings.values()):
+            if raw_tag in known:
                 continue
             alias = self.escape_catalog.editor_alias(raw_tag)
             if alias in mappings and mappings[alias] != raw_tag:
                 group, data = match.group(1), match.group(2).lower()
                 alias = f"{alias[:-1]}:{group}-{data}}}"
             mappings[alias] = raw_tag
+            known.add(raw_tag)
+        self._aliased_raw_tags_signature = (id(mappings), len(mappings))
 
     def replace_tags_with_aliases(self, text: str) -> str:
         """Register missing semantic aliases, then use the standard alias engine."""
@@ -301,6 +313,12 @@ class GameRules(BaseGameRules):
         project_dir = None
         if self.mw and hasattr(self.mw, 'project_manager') and self.mw.project_manager:
             project_dir = self.mw.project_manager.project_dir
+
+        # Every decoded string comes through here: look at the disk at most once a second.
+        now = time.monotonic()
+        if project_dir == self._map_checked_for and self._last_map_path and now - self._map_checked_at < 1.0:
+            return
+        self._map_checked_for, self._map_checked_at = project_dir, now
 
         path = None
         if project_dir:

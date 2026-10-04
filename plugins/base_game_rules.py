@@ -65,9 +65,10 @@ class BaseGameRules:
 
     def _get_alias_lookup_tables(self, mappings: Dict[str, str]):
         """Build alias lookup tables once for the current mapping contents."""
-        signature = (id(mappings), tuple(mappings.items()))
-        if signature == self._alias_lookup_signature and self._alias_lookup_cache is not None:
+        # Called for every string: comparing with a copy is exact and twice as fast as hashing the items.
+        if self._alias_lookup_cache is not None and mappings == self._alias_lookup_signature:
             return self._alias_lookup_cache
+        signature = dict(mappings)
 
         tag_pattern = re.compile(r'(?:\{[^{}]*\}|\[[^\[\]]*\])')
         reverse: Dict[str, str] = {}
@@ -758,7 +759,8 @@ class BaseGameRules:
     def get_font_sources(self) -> List[Dict[str, Any]]:
         """The game's bitmap fonts, for the font editor to open from a project and save back.
 
-        Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t`` or ``bffnt``); ``path`` -- a
+        Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
+        BCFNT / BFFNT), ``qbf`` or ``gzf``); ``path`` -- a
         path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); ``font_map`` (name of the width map the font

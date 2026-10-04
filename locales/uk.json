@@ -1754,7 +1754,13 @@
   "The request failed; see the log.": "Запит не вдався; подробиці в журналі.",
   "(same text elsewhere)": "(той самий текст в іншому місці)",
   "Source: saved for the same text elsewhere in the project": "Джерело: збережено для того самого тексту в іншому місці проєкту",
-  "Fonts (*.bfn *.bffnt *.g1t *.gz);;All Files (*)": "Шрифти (*.bfn *.bffnt *.g1t *.gz);;Усі файли (*)",
+  "Fonts (*.bfn *.bffnt *.bcfnt *.qbf *.gzf *.g1t *.g1n *.gz);;All Files (*)": "Шрифти (*.bfn *.bffnt *.bcfnt *.qbf *.gzf *.g1t *.g1n *.gz);;Усі файли (*)",
+  "Font File...": "Файл шрифту...",
+  "Use a .ttf / .otf file (for example a downloaded free font) without installing it": "Використати файл .ttf / .otf (наприклад, завантажений вільний шрифт) без встановлення в систему",
+  "Choose a font file": "Виберіть файл шрифту",
+  "Font files (*.ttf *.otf *.ttc);;All Files (*)": "Файли шрифтів (*.ttf *.otf *.ttc);;Усі файли (*)",
+  "Cannot load the font file: {0}": "Не вдалося завантажити файл шрифту: {0}",
+  "'{0}' is already in the font.": "«{0}» уже є в шрифті.",
   "A G1T texture has no character grid of its own; open it from a project whose game plugin describes it.": "Текстура G1T не має власної сітки символів; відкрийте її з проєкту, плагін гри якого її описує.",
   "Loading font: {0}...": "Завантаження шрифту: {0}...",
   "Failed to open font: {0}": "Не вдалося відкрити шрифт: {0}",
@@ -1783,5 +1789,9 @@
   "Glossary JSON (*.json)": "Глосарій JSON (*.json)",
   "Link or Import Series Glossary": "Пов'язати або імпортувати глосарій серії",
   "Cannot read this glossary: {error}": "Не вдалося прочитати цей глосарій: {error}",
-  "{path} already exists. Replace it with a fresh import of {source}?": "{path} уже існує. Замінити його новим імпортом із {source}?"
+  "{path} already exists. Replace it with a fresh import of {source}?": "{path} уже існує. Замінити його новим імпортом із {source}?",
+  "Move glyph:": "Зсунути гліф:",
+  "Move the selected glyphs 1 px (Ctrl+Arrow keys)": "Зсунути виділені гліфи на 1 пкс (Ctrl+стрілки)",
+  "Thicken (px):": "Потовщення (пкс):",
+  "Widen every stroke by this many pixels (for small heavy game fonts)": "Потовщити кожен штрих на стільки пікселів (для дрібних жирних ігрових шрифтів)"
 }

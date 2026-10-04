@@ -6,6 +6,13 @@ from utils.logging_utils import log_info, log_error
 from utils.logging_utils import log_debug
 
 
+def is_slot_char(char: str) -> bool:
+    """A character a translated letter may be drawn with: printable ASCII (an N64 font reuses
+    punctuation and look-alike Latin letters) or a character above the cp1252 control range."""
+    code = ord(char)
+    return 0x20 <= code < 0x7F or code > 0xA0
+
+
 class TranslationMapMixin:
     def get_translation_map_path(self):
         import os
@@ -133,8 +140,8 @@ class TranslationMapMixin:
                     if len(k) == 1 and len(v) == 1:
                         k_code = ord(k)
                         v_code = ord(v)
-                        # Key must be non-ASCII (Cyrillic etc.), value must be printable CP1252 range 161-255
-                        if k_code >= 128 and 161 <= v_code <= 255:
+                        # Key must be non-ASCII (Cyrillic etc.), value a printable font character
+                        if k_code >= 128 and is_slot_char(v):
                             self.translation_map[k] = v
                         elif k_code >= 128 and v_code >= 128:
                             # Borderline case: both non-ASCII, allow but mark for heal next time
@@ -230,16 +237,14 @@ class TranslationMapMixin:
                 import json
                 # Filter out corrupt entries before saving:
                 # - key must be 1 char, non-ASCII (ord >= 128)
-                # - value must be 1 char, printable CP1252 (161-255)
+                # - value must be 1 char, a printable font character (is_slot_char)
                 # Synthetic keys (#g...) are never saved to disk
                 clean_map = {}
                 for k, v in self.translation_map.items():
                     if k.startswith("#g") or (isinstance(v, str) and v.startswith("#g")):
                         continue  # skip synthetic entries
                     if len(k) == 1 and len(v) == 1:
-                        k_code = ord(k)
-                        v_code = ord(v)
-                        if k_code >= 128 and 161 <= v_code <= 255:
+                        if ord(k) >= 128 and is_slot_char(v):
                             clean_map[k] = v
                         # skip entries with control/invalid value codes
                     # skip entries with non-single-char keys/values
@@ -248,6 +253,20 @@ class TranslationMapMixin:
                 self.status.showMessage(tr("Updated translation_map.json with {0} characters!", len(clean_map)))
         except Exception as e:
             log_error(f"Failed to save translation map: {e}")
+
+    def adds_real_characters(self):
+        """The font's format takes real characters (``font_formats.adds_glyphs``: BFFNT, the 3DS fonts, G1N)."""
+        from core import font_formats
+        return font_formats.adds_glyphs(getattr(self, "font_format", ""))
+
+    def physical_code_for(self, char, temp_translation_map=None):
+        """The font code an empty glyph gets for ``char``. A font that takes real characters gets the
+        character itself, or None when it already has it (one glyph per character); any other font gets
+        a free cp1252 slot that the translation map points the letter at."""
+        from core import font_formats
+        if char and self.adds_real_characters():
+            return None if char in font_formats.char_map(self.metadata) else font_formats.char_code(char)
+        return self.get_next_free_char_code(temp_translation_map)
 
     def get_next_free_char_code(self, temp_translation_map=None):
         used_codes = set()

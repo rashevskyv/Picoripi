@@ -32,8 +32,14 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import bffnt, g1t, mgs, n64
-    return {"n64": n64, "g1t": g1t, "bffnt": bffnt, "mgs": mgs}
+    from core.font_formats import bcfnt, bffnt, g1n, g1t, gzf, mgs, n64, qbf
+    return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "mgs": mgs}
+
+
+def adds_glyphs(fmt: str) -> bool:
+    """The format maps Unicode characters to glyphs and saves new mappings (``ADDS_GLYPHS``): a letter typed
+    into an empty cell becomes that real character, not a translation-map slot (BFFNT, 3DS fonts, G1N)."""
+    return bool(getattr(_backends().get(fmt), "ADDS_GLYPHS", False))
 
 
 def is_supported(fmt: str) -> bool:
@@ -42,14 +48,20 @@ def is_supported(fmt: str) -> bool:
 
 
 def detect(data: bytes) -> Optional[str]:
-    """The format of a font file by its magic: ``bfn``, ``g1t``, ``bffnt`` or None."""
+    """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
+    BCFNT or BFFNT), ``qbf``, ``gzf`` or None."""
     head = bytes(data[:8])
-    if head[:4] == b"FFNT" and head[4:6] in (b"\xff\xfe", b"\xfe\xff"):
-        return "bffnt"
+    if head[:4] in (b"QBF1", b"GZFX"):
+        return head[:3].decode("ascii").lower()
+    if head[:4] in (b"FFNT", b"CFNT") and head[4:6] in (b"\xff\xfe", b"\xfe\xff"):
+        from core.font_formats.bcfnt import is_ctr_font
+        return "bcfnt" if is_ctr_font(data) else "bffnt"
     if head[:4] in (b"FONT", b"FFNT"):
         return "bfn"
     if head[:4] == b"GT1G":
         return "g1t"
+    if head == b"_N1G0000":
+        return "g1n"
     return None
 
 

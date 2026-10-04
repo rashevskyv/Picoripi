@@ -1,0 +1,9 @@
+[
+  {"label": "Text 40 px (font 0)", "format": "g1n", "path": "font/latin.g1n", "font_map": "aoc_latin.json", "params": {"font": 0}},
+  {"label": "Text 40 px (font 1)", "format": "g1n", "path": "font/latin.g1n", "params": {"font": 1}},
+  {"label": "Text 68 px (font 4)", "format": "g1n", "path": "font/latin.g1n", "params": {"font": 4}},
+  {"label": "Text 68 px (font 5)", "format": "g1n", "path": "font/latin.g1n", "params": {"font": 5}},
+  {"label": "Titles 90 px (font 2)", "format": "g1n", "path": "font/latin.g1n", "params": {"font": 2}},
+  {"label": "Titles 90 px (font 3)", "format": "g1n", "path": "font/latin.g1n", "params": {"font": 3}},
+  {"label": "Titles 124 px (font 6)", "format": "g1n", "path": "font/latin.g1n", "params": {"font": 6}}
+]

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 8.0k
+tokens: 9.2k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -10,23 +10,70 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Startup speed (2026-10-04)
+
+Measured offscreen from process start to "open sequence complete"; Twilight Princess 5 s, Minish Cap 1.7 s,
+The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
+
+- **Reference languages are parsed on the UI thread at every open** (Twilight Princess: 5 languages, ~3 s of
+  the 5 s). Parse in a worker, or keep the parsed result on disk keyed by the archives' time and size and the
+  alias table. The parser writes aliases into `mw.default_tag_mappings`, so a worker needs that split first.
+- **The block tree is built on the UI thread** (`populate_blocks`, Twilight Princess ~1.3 s): the speaker pool
+  walks every message flow (`build_speaker_pool` → `get_speaker_for_string`).
+- **Hyrule Warriors DE opens in 39 s, every time**: `get_speaker_for_string` parses each of the 776 text files
+  on the UI thread (`TextFile.__init__` also rebuilds the table while reading), and the second start takes no
+  session checkpoint. Handed to the plugin's branch (`feat/hwde-widths`).
+- **The issue scan runs one whole block per UI-thread step** (`issue_scan_handler._scan_next_batch`): a game
+  whose text is one block (N64: 4589 strings) freezes the window for ~2 s at the first open.
+- **An enabled spellchecker parses its dictionary in a Python thread** (pure-Python `spylls`, 2–3 s of CPU
+  that the UI thread shares). Keep the parsed dictionary on disk, or parse in a process.
+- **A project without its own MemPalace database gets one in the working directory**
+  (`mempalace_local.db` next to where the application was started), not in the project folder.
+- **`SettingsManager.load_unsaved_session` uses `eval` on keys read from `settings.json`**
+  (`core/settings_manager.py`); `ast.literal_eval` is enough.
+
 ## Font editor formats (2026-10-03)
 
-- Nothing edited has run in a game or emulator: an N64 ROM with a redrawn glyph, a HWDE `font_eu.g1t` in the
-  LayeredFS mod, a TotK font.
+- Ukrainian glyphs drawn and shown on screen 2026-10-04 (Dolphin WW, SoH, 2Ship, Eden HWDE, Azahar for the 3DS
+  fonts, Eden for Cadence of Hyrule's `LoveBug.bffnt` with a new sheet of Cyrillic; contact sheets and screenshots
+  in each workspace's `reports\fonts\`): the letter shapes are rough, a hand touch-up is the owner's. Not shown in
+  ares (keyboard input could not reach OoT's name-entry screen); the ROM font bytes equal the SoH/2Ship textures.
+  TotK font still never run.
+- 3DS fonts: the future text plugins (`zelda_oot3d`, `zelda_mm3d`, `zelda_albw`, `zelda_tfh`) should list them in
+  `font_sources.json` (formats `qbf`, `gzf`, `bcfnt`; ALBW/TFH: `EU/RegionBoot.szs` / `Archive/EU/RegionBoot.szs`
+  member `EU/Font/MessageFont.bffnt`); until then they open with File → Open. A 3DS font cannot change or drop a
+  character it has; adding codes to a CMAP scan list that is not the file's last block leaves its old copy as
+  dead bytes (a few hundred per save). Outlined fonts (ALBW/TFH) need the outline drawn by hand or by script:
+  Render Font draws the letter only.
+- HWDE: the game does not take advances from the atlas ink: М Н О П on the narrow Ì Í Î Ï cells overlap their
+  neighbours. Find the advance table (executable?) or choose cp1251-independent slots by width.
+- The N64 slot maps (`plugins/zelda_oot64|zelda_mm64/translation_map.json`) are provisional: owner review. Letters
+  on ASCII punctuation slots (OoT) decode back as letters, so a `#`, `<`, `[`… in English text would too.
 - TotK: no real font on disk; BFFNT was verified on Cadence of Hyrule and Pokémon SV (Switch, BC4). Its
   `Font/*.bfarc.zs` needs the TotK plugin's SARC container (registered when that plugin is active) and the
   project pointing at the romfs (or `Mals`). Texture formats other than BC4 open empty (widths only).
-- BFFNT: the character map (CMAP) and the kerning table are kept, not edited; a glyph with no character
-  cannot get one (the translation map assigns letters to existing glyphs).
+- BFFNT (Switch): new characters get a CMAP block and new sheets a texture layer (`min_sheets`); the kerning table
+  (KRNG) is kept as it is, and a removed character outside the changed code range still resolves.
 - HWDE: widths are measured from the ink (+4 px) — whether the game has its own table is unknown; edited
   widths live in the project's `font_maps/hwde_eu.json`. The `../romfs/...` candidate assumes the
   workspace layout `source/` next to `romfs/` and a translation folder named `romfs`.
 - Opening a font and listing archive members still reads the archive on the UI thread (small files);
   the old BFN paths (`load_bfn`, saving a BFN) are synchronous as before.
-- Next formats: the 3DS fonts (decrypted 2026-10-04): BFFNT 4.0 with A4 textures (A Link Between Worlds,
-  Tri Force Heroes), Grezzo QBF (Ocarina of Time 3D) and GZF (Majora's Mask 3D); Tingle Tuner (GBA), Wii U
-  BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already opens.
+- Next formats: Tingle Tuner (GBA), Wii U BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already
+  opens; the 3DS fonts are done.
+
+## Cadence of Hyrule plugin (`plugins/zelda_coh`, 2026-10-04)
+
+- Owner decision: the Ukrainian glyphs of `LoveBug.bffnt` (the menu and text font, no Cyrillic; the second
+  sheet is free for them) and the four missing letters Є є Ґ ґ of `ZeldaGlyph`/`ZeldaGlyphSmall` must be drawn
+  in the Font Editor. Which screens use ZeldaGlyph and the Asian fonts in English mode was not mapped.
+- Text in images is not covered: `textures_bin/texture_pack.bin` (zlib of BNTX textures) holds the title logo and
+  the four menu tab names (`UI_BorderNames_English_*`); the Russian mod redrew exactly those five.
+- Speakers come from string keys; 20 keys (`mellan`, `gerudo_leader`, `zora_leader`...) stay `npc:<key>` until
+  someone names them. Dialogue box limits (lines per page, wrap width) are not known; only short labels get a
+  width limit (1.3x / 1.6x the English).
+- `credits.xml` (names and some English headings) is not opened; the translated credits headings live in
+  `localization.xml` (ids 8000+).
 
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 
@@ -46,14 +93,26 @@ the line when it is done or moved into a plan.
 - A settings file saved from the Ukrainian interface may hold `"provider": "вимкнено"` (the provider ids went
   through `tr()` until 2026-10-03); it loads as an unknown provider.
 
+## Age of Calamity plugin (`plugins/zelda_aoc`, 2026-10-04)
+
+- Font work for the owner: the G1N Latin font (`font/latin.g1n`, sizes 0-6) has no Cyrillic; the glyphs have
+  to be drawn (Font Editor adds them). `fonts/aoc_latin.json` holds estimated Cyrillic widths until then.
+- Speaker ids not tied to a name show as `chara_NNN` (1 mission voice, 14-17 Great Fairies, 20/21, 48+);
+  cutscene subtitles carry no speaker. The id -> actor table was not found.
+- Which English table (EN or EN2 of the battle dialogue) and which of the six Latin font ids a console
+  language uses is unknown; the build writes both tables and all six fonts.
+- Line limits are the widest English line per table; the real box widths are not measured.
+- Not covered: text in textures (logos, UI art), the executable, movies.
+- Watch: `tests/test_ui/test_font_editor_formats.py::test_font_jobs_run_in_a_worker_thread_one_after_another`
+  crashed its xdist worker (access violation) every time it ran first in a worker while that module had a
+  fourth test; the G1N editor test therefore lives in `test_font_editor_g1n.py`. Cause not found.
+
 ## Hyrule Warriors DE plugin (`plugins/zelda_hwde`, 2026-10-03)
 
-- Owner decision: the font. `font_eu.g1t` / `font_eu_p.g1t` are cp1252 glyph grids without Cyrillic; the
-  plugin writes Ukrainian into the cp1251 slots, so the atlas must be redrawn there (the Font Editor opens and saves `font_eu*.g1t`).
 - Owner decision: also write the translation into the English-EU section (default, `MIRROR_SECTIONS`)?
   Other languages stay as they are.
-- Not verified in the game: the mod has not run on a Switch or an emulator; the glyph advance widths
-  (`fonts/hwde_eu.json` is measured ink + 4 px) and where the game keeps them are unknown.
+- Ran in Eden 2026-10-04 (text + redrawn `font_eu*.g1t` show Ukrainian); not on a Switch. The game's advances do
+  not follow the ink (`fonts/hwde_eu.json`, ink + 4 px, is wrong for redrawn cells); where it keeps them is unknown.
 - Voice-line speakers for character ids 18-99 are `chara_NNN` (the names table disagrees there); event and
   movie scene ids are not tied to story chapters; text inside textures (`ui/caption`, `still_*`) and the
   executable is not covered.
@@ -310,9 +369,6 @@ the line when it is done or moved into a plan.
 
 ## Majora's Mask N64 plugin (`plugins/zelda_mm64`)
 
-- **Ukrainian letters**: the codec only knows the N64 font's characters. A translation map (letter -> font
-  slot) and redrawn glyph textures (`file 28`, 16x16 I4) plus widths (`sNESFontWidths` in `code`) are needed
-  before Cyrillic can be saved. SoH-style ports keep the widths fixed, so slots should be chosen by width.
 - **Relocated text is unverified in a running game**: a save whose text outgrows its 0x6A000-byte range moves
   `message_data_static` to free address space and rewrites the four `lui`/`addiu` pairs in `z_message.c`
   (checked statically only). Test ROMs: `MM64_UA\rom\test_edit_blue_rupee.z64`, `test_text_grown_40pct.z64`.
@@ -325,7 +381,7 @@ the line when it is done or moved into a plan.
 
 ## Ocarina of Time N64 plugin (`plugins/zelda_oot64`)
 
-- Same open items as Majora's Mask (Ukrainian letters, exports, credits, characters per box). Relocated text
+- Same open items as Majora's Mask (exports, credits, characters per box). Relocated text
   rewrites the single `lui`/`addiu` pair that loads the English text on NTSC; untested in a running game
   (`OOT64_UA\rom\test_edit_green_rupee.z64`, `test_text_grown_40pct.z64`).
 - Only NTSC-U 1.0 is supported; Europe 1.0 (English/German/French) could serve as reference languages.
@@ -339,9 +395,6 @@ the line when it is done or moved into a plan.
 
 ## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
 
-- **Ukrainian letters in the font**: the US game reads bytes 0x80–0x9F as Shift-JIS lead bytes, so a
-  translation map must not put letters there (Europe: only Hylian boxes do this). Pick the slots before
-  drawing the font.
 - **Runtime suffixes are in the executable**, not in BMG: " Rupee(s)", " bomb(s)", " yard(s)", timers
   (`tag_*` in `f_op_msg_mng.cpp`). A Ukrainian build needs them patched in `main.dol`, or the text rewritten
   around a bare number.

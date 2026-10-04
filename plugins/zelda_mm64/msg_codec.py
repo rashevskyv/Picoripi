@@ -59,9 +59,13 @@ for _index, _color in enumerate(COLORS):
 for _code, _label in BUTTONS.items():
     CONTROL[_code] = (f"btn:{_label}", 0)
 
+# The font's characters beyond ASCII (assets/text/charmap.nes.txt; the same as font_sources.json).
+CHARMAP = {0x7F: "º", **dict(enumerate("ÀÁÂÄÇÈÉÊËÌÍÎÏÑÒÓÔÖÙÚÛÜßàáâäçèéêëìíîïñòóôöùúûü¡¿ª", start=0x80))}
+
 FORMAT = TextFormat(
     controls={code: Control(name, args) for code, (name, args) in CONTROL.items()},
     newline=NEWLINE, end=END, box_breaks=frozenset({0x10, 0x12, 0x1B}), header_size=HEADER_SIZE,
+    charmap=CHARMAP,
 )
 
 

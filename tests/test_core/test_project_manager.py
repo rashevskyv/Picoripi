@@ -284,3 +284,32 @@ def test_ProjectManager_does_not_migrate_when_project_has_bookmarks(pm, tmp_path
     mw = _BookmarkWindow(settings_file)
     pm.load_settings_from_project(mw)
     assert mw.bookmarks == [{"id": "project", "name": "Local"}]
+
+
+def test_an_unchanged_archive_is_not_opened_again_at_the_next_sync(tmp_path, monkeypatch):
+    """The archive listing is kept in the project folder; a changed archive is read again."""
+    from core.containers import ContainerManager
+    from core.project_manager import ProjectManager
+
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "a.arc").write_bytes(b"first")
+    opened = []
+
+    class FakeArchive:
+        def list_files(self):
+            return ["msg/one.bmg", "tex/skip.bti"]
+
+    monkeypatch.setattr(ContainerManager, "open", staticmethod(lambda raw: opened.append(raw) or FakeArchive()))
+    manager = ProjectManager()
+    assert manager.create_new_project(tmp_path / "project", "p", "zelda_bmg", source_path=str(source),
+                                      translation_path=str(source), is_directory_mode=True)
+    manager.sync_project_files()
+    manager.sync_project_files()
+    assert len(opened) == 1
+    assert [b.metadata["archive_file_name"] for b in manager.project.blocks] == ["msg/one.bmg"]
+
+    (source / "a.arc").write_bytes(b"second, longer")
+    manager.sync_project_files()
+    assert opened == [b"first", b"second, longer"]
+    assert len(manager.project.blocks) == 1

@@ -1,6 +1,7 @@
 """BFN editor: copy and paste glyph values, jump between glyphs."""
 from PyQt6 import QtWidgets
 
+from core import font_formats
 from core.i18n import tr
 
 
@@ -68,11 +69,13 @@ class GlyphNavMixin:
             
             orig_char = self.get_original_char_for_glyph(glyph_idx)
             if not orig_char:
-                physical_code = self.get_next_free_char_code(new_translation_map)
+                physical_code = self.physical_code_for(lines[i][:1], new_translation_map)
+                if physical_code is None and lines[i][:1] and self.adds_real_characters():
+                    continue                                    # the font already has this character
                 if physical_code is None:
                     physical_code = glyph_idx
                 self.update_char_mapping(glyph_idx, physical_code)
-                orig_char = chr(physical_code)
+                orig_char = font_formats.code_char(physical_code)
                 
             new_char = lines[i]
             new_virtual_char = new_char[0] if new_char else ""
@@ -85,7 +88,7 @@ class GlyphNavMixin:
                     del new_translation_map[old_virtual_char]
                 del new_reverse_map[orig_char]
             
-            if new_virtual_char:
+            if new_virtual_char and new_virtual_char != orig_char:   # a real character needs no slot
                 # Clear any duplicate mapping to prevent conflict
                 duplicate_orig = new_translation_map.get(new_virtual_char)
                 if duplicate_orig:

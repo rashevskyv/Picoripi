@@ -4,7 +4,8 @@ A plugin describes its fonts with ``BaseGameRules.get_font_sources()`` (or ``fon
 in its folder): ``label``, ``format``, ``path`` (a path or glob relative to the project's source
 folder, or a list of them -- the first that matches wins; its folder part may start with ``../``;
 ignored in a single-file project, whose file is the font file), optional ``member`` (a glob of
-files inside the archive at ``path``),
+files inside the archive at ``path``; a Yaz0-compressed member is read decompressed and written
+compressed again),
 ``font_map`` (the width map the font feeds) and ``params`` (the format's game constants).
 
 Reading takes the translation copy when it exists, else the source; writing always goes to the
@@ -19,6 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+from core.containers import yaz0
 from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
 
@@ -54,7 +56,8 @@ class FontSource:
         raw = Path(path).read_bytes()
         if not self.member:
             return raw
-        return _open_archive(raw, path).read_file(self.member)
+        data = _open_archive(raw, path).read_file(self.member)
+        return yaz0.decompress(data) if data[:4] == b"Yaz0" else data
 
     def read_current(self) -> bytes:
         """The font as the translation has it now (the source until it was first written)."""
@@ -71,6 +74,8 @@ class FontSource:
         if self.member:
             base = self._current_path()
             container = _open_archive(Path(base).read_bytes(), base)
+            if container.read_file(self.member)[:4] == b"Yaz0":
+                data = yaz0.compress(bytes(data))
             container.write_file(self.member, bytes(data))
             data = container.pack()
         atomic_write_bytes(self.translation_path, data)

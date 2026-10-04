@@ -1,5 +1,6 @@
 """BFN editor: edit character mappings in the table."""
 from PyQt6 import QtWidgets
+from core import font_formats
 from core.i18n import tr
 from tools.bfn_editor.bfn_widgets import FillRangeDialog
 from tools.bfn_editor.bfn_commands import EditMetricsCommand
@@ -61,12 +62,18 @@ class MappingEditMixin:
                 else:
                     # Empty glyph case: no MAP1 entry.
                     # Automatically initialize a physical mapping in MAP1 for this empty glyph!
-                    physical_code = self.get_next_free_char_code()
+                    physical_code = self.physical_code_for(new_virtual_char)
+                    if physical_code is None and new_virtual_char and self.adds_real_characters():
+                        # A font that takes real characters already has this one
+                        self.status.showMessage(tr("'{0}' is already in the font.", new_virtual_char))
+                        item.setText("")
+                        self.table_glyphs.blockSignals(False)
+                        return
                     if physical_code is None:
                         physical_code = glyph_idx
                         
                     self.update_char_mapping(glyph_idx, physical_code)
-                    orig_char = chr(physical_code)
+                    orig_char = font_formats.code_char(physical_code)
                     _empty_glyph_registered = True
                     
                     # Update table row to reflect physical mapping instantly in Font Char column (col 4)
@@ -86,7 +93,7 @@ class MappingEditMixin:
                     if old_virtual_char in self.translation_map:
                         del self.translation_map[old_virtual_char]
                         
-                    if new_virtual_char:
+                    if new_virtual_char and new_virtual_char != orig_char:
                         duplicate_orig = self.translation_map.get(new_virtual_char)
                         if duplicate_orig:
                             if duplicate_orig in self.reverse_translation_map:
@@ -432,16 +439,18 @@ class MappingEditMixin:
                 # Get the original CP1252 character for this glyph
                 orig_char = self.get_original_char_for_glyph(glyph_idx)
                 if not orig_char:
-                    physical_code = self.get_next_free_char_code(new_translation_map)
+                    physical_code = self.physical_code_for(chr(codes[i]) if codes[i] > 0 else "", new_translation_map)
+                    if physical_code is None and codes[i] > 0 and self.adds_real_characters():
+                        continue                                    # the font already has this character
                     if physical_code is None:
                         physical_code = glyph_idx
                     self.update_char_mapping(glyph_idx, physical_code)
-                    orig_char = chr(physical_code)
-                
+                    orig_char = font_formats.code_char(physical_code)
+
                 # Get new virtual character
                 new_char_code = codes[i]
                 new_virtual_char = chr(new_char_code) if new_char_code > 0 else ""
-                
+
                 # Update maps in memory
                 # Remove old mapping from reverse
                 if orig_char in new_reverse_map:
@@ -449,8 +458,8 @@ class MappingEditMixin:
                     if old_virtual_char in new_translation_map:
                         del new_translation_map[old_virtual_char]
                     del new_reverse_map[orig_char]
-                
-                if new_virtual_char:
+
+                if new_virtual_char and new_virtual_char != orig_char:   # a real character needs no slot
                     # Clear any duplicate mapping to prevent conflict
                     duplicate_orig = new_translation_map.get(new_virtual_char)
                     if duplicate_orig:
