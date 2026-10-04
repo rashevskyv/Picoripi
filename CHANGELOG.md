@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Series glossary: a project can link one glossary shared by a game series (`project.metadata["series_glossary"]`, files in `~/.picoripi/series_glossaries/`). **Glossary… → Series Glossary...** creates, links or imports one (a `{"terms": [...]}` multi-source document is converted, keeping per-source variants and status); the Glossary window shows it as a **Series: <name>** tab with the same editing and search, **Copy to Project Glossary** / **Promote to Series Glossary** for the selected terms, and terms the two glossaries translate differently marked red in both. AI prompts add series rows, marked lower priority, only for terms the project glossary does not translate; glossary builds never write the series file.
+
 ## [0.3.150-dev] - 2026-10-02
 
 - wp7 7.6: `tests/test_docs/` checks that backticked repository paths and relative links in the README, AGENTS.md, the wiki, ARCHITECTURE, ENGINEERING, DECISIONS, FEATURES and INDEX exist, that every Ukrainian wiki page has the same section structure as the English one, that the version is not repeated outside `utils/constants.py`, that the entry documents stay within their token budgets and that `docs/PLUGIN_CONTRACT.md` is what the spec generates (it found a moved dialog path in wiki 2, a run-time folder named as a repository path in wiki 12 and a section missing from the Ukrainian wiki 7 — fixed). All 266 modules without a module docstring got a one-line one; `tests/test_architecture/test_module_docstrings.py` fails on a new bare module. New `docs/DECISIONS.md`: fourteen short records of why the code is the way it is.

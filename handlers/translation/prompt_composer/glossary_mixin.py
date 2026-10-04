@@ -3,8 +3,17 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+from core.glossary.series import series_rows_for
 from core.glossary_manager import GlossaryEntry
 from core.translation.session_manager import TranslationSessionState
+
+# Says what the series rows are wherever they are sent, so the system prompt
+# (fixed text, cached) does not grow for projects without a series glossary.
+SERIES_GLOSSARY_LEAD = (
+    "lower priority than the project glossary: renderings shared across this game series, "
+    "listed only for terms the project glossary does not have; follow them unless the context "
+    "clearly requires otherwise"
+)
 
 
 class GlossaryMixin:
@@ -22,6 +31,15 @@ class GlossaryMixin:
 
     def _glossary_entries_to_text(self, entries: Sequence[GlossaryEntry]) -> str:
         return self.glossary_formatter.glossary_entries_to_text(entries)
+
+    def _series_glossary_text(self, text: str) -> str:
+        """Linked series glossary rows for terms in ``text`` the project glossary does not translate."""
+        rows = series_rows_for(
+            text,
+            getattr(self.main_handler, "_series_glossary_manager", None),
+            getattr(self.main_handler, "_glossary_manager", None),
+        )
+        return self._glossary_entries_to_text(rows)
 
     def _prepare_glossary_for_prompt(
         self,

@@ -10,6 +10,7 @@ from handlers.translation.glossary.edit_mixin import EditMixin
 from handlers.translation.glossary.crud_mixin import CrudMixin
 from handlers.translation.glossary.classify_mixin import ClassifyMixin
 from handlers.translation.glossary.speaker_mixin import SpeakerMixin
+from handlers.translation.glossary.series_mixin import SeriesMixin
 from core.glossary_manager import GlossaryManager
 from components.glossary_dialog import GlossaryDialog
 from PyQt6.QtGui import QAction
@@ -21,6 +22,7 @@ class GlossaryHandler(
     CrudMixin,
     ClassifyMixin,
     SpeakerMixin,
+    SeriesMixin,
     BaseTranslationHandler,
 ):
     """Handler for glossary operations."""
@@ -29,6 +31,8 @@ class GlossaryHandler(
         """Initialize a new instance."""
         super().__init__(main_handler)
         self.glossary_manager = GlossaryManager()
+        # The series glossary the open project links to (empty when it links none).
+        self.series_glossary_manager = GlossaryManager()
         self._open_glossary_action: Optional[QAction] = None
         self.dialog: Optional[GlossaryDialog] = None
         # Snapshot of (original, translation) pairs taken when the dialog opens,
@@ -60,7 +64,9 @@ class GlossaryHandler(
 
     def load_prompts(self) -> Tuple[Optional[str], Optional[str]]:
         """Load prompts."""
-        return self._prompt_manager.load_prompts()
+        result = self._prompt_manager.load_prompts()
+        self.sync_series_glossary()
+        return result
 
     def load_editor_review_prompt(self) -> Optional[str]:
         """Load editor review prompt."""
@@ -125,4 +131,5 @@ class GlossaryHandler(
     def initialize_glossary_highlighting(self) -> None:
         """Initialize glossary highlighting."""
         self._prompt_manager.initialize_highlighting()
+        self.sync_series_glossary()
 

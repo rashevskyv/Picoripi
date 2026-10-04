@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 from core.glossary_manager import (
     STATUS_CONFIRMED,
     GlossaryEntry,
+    GlossaryManager,
     GlossaryOccurrence,
     possible_duplicate_pairs,
     render_notes,
@@ -22,6 +23,7 @@ from core.i18n import tr
 
 from components.glossary.widgets import (
     _GlossaryTermTable,
+    _CONFLICT_BRUSH,
     _MULTI_VARIANT_BRUSH,
     _PROVISIONAL_FOREGROUND,
     _UNREVIEWED_BRUSH,
@@ -104,6 +106,7 @@ class TableMixin:
                     str(len(occurrences)),
                 ]
                 review_brush = self._review_brush(entry)
+                conflict = getattr(self, "_conflicts", {}).get(GlossaryManager.canonical_key(entry.original))
                 provisional = self._is_provisional_character(entry)
                 for col, value in enumerate(values):
                     item = table.item(row, col)
@@ -123,6 +126,9 @@ class TableMixin:
                     if review_brush is not None:
                         item.setBackground(review_brush)
                         item.setToolTip(self._review_reason(entry))
+                    if conflict:
+                        item.setBackground(_CONFLICT_BRUSH)
+                        item.setToolTip(conflict)
                     if provisional:
                         item.setForeground(_PROVISIONAL_FOREGROUND)
                         item.setToolTip(
@@ -153,7 +159,8 @@ class TableMixin:
             tr('Notes'),
             tr('Count'),
         ])
-        table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        # Several rows can be selected for copying into the other (series/project) glossary.
+        table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         header = table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)

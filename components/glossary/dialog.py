@@ -82,11 +82,23 @@ class GlossaryDialog(
         reference_data: Optional[Dict[Tuple[int, int], str]] = None,
         reference_language: Optional[str] = None,
         source_data: Optional[Any] = None,
+        transfer_callback: Optional[Callable[[List[GlossaryEntry]], None]] = None,
+        transfer_label: str = "",
+        series_menu_callback: Optional[Callable[[], None]] = None,
+        embedded: bool = False,
     ) -> None:
-        """Initialize a new instance."""
+        """Initialize a new instance.
+
+        ``embedded`` builds the dialog as a page for another dialog's tab (the
+        series glossary): no window of its own, no Close or Companion buttons.
+        ``transfer_callback`` receives the selected entries for the button
+        labelled ``transfer_label`` (copy to / promote into the other glossary).
+        """
         super().__init__(None)
+        self._embedded = embedded
         self.setWindowTitle(tr('Glossary'))
-        show_as_independent_window(self)
+        if not embedded:
+            show_as_independent_window(self)
         self.resize(840, 520)
 
         self._force_retranslate_callback = force_retranslate_callback
@@ -107,10 +119,13 @@ class GlossaryDialog(
         # rendered against the current translation.
         self._notes_template = ""
 
-        self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-        self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
-        self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
-        self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
+        if embedded:
+            self.setWindowFlags(Qt.WindowType.Widget)
+        else:
+            self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+            self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
+            self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
+            self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
 
         self._all_entries = list(entries)
         self._duplicate_pairs = possible_duplicate_pairs(self._all_entries)
@@ -130,6 +145,11 @@ class GlossaryDialog(
         self._placeholder_speaker_callback = placeholder_speaker_callback
         self._discuss_variant_callback = discuss_variant_callback
         self._external_reference_callback = external_reference_callback
+        self._transfer_callback = transfer_callback
+        # Canonical term key -> tooltip for terms the other glossary translates differently.
+        self._conflicts: Dict[str, str] = {}
+        self._series_page: Optional["GlossaryDialog"] = None
+        self._series_tabs: Optional[QTabWidget] = None
         self._reference_data: Dict[Tuple[int, int], str] = dict(reference_data) if reference_data else {}
         self._reference_language: Optional[str] = reference_language
         self._source_data = source_data
@@ -146,7 +166,13 @@ class GlossaryDialog(
         self._tables: Dict[str, QTableWidget] = {}
         self._entry_table: Optional[QTableWidget] = None # Legacy compatibility
 
-        layout = QVBoxLayout(self)
+        # The content sits in its own widget so a linked series glossary can put
+        # it in a tab next to its own page (set_series_page).
+        self._outer_layout = QVBoxLayout(self)
+        self._content = QWidget(self)
+        self._outer_layout.addWidget(self._content)
+        layout = QVBoxLayout(self._content)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         header = QLabel(tr('Select a term to review occurrences. Double-click an occurrence to jump to the editor.'), self)
         header.setWordWrap(True)
@@ -581,6 +607,20 @@ class GlossaryDialog(
         self._companion_sync_button.clicked.connect(self._on_companion_sync_clicked)
         button_box.addButton(self._companion_sync_button, QDialogButtonBox.ButtonRole.ActionRole)
             
+        self._transfer_button = QPushButton(transfer_label, self)
+        self._transfer_button.setToolTip(tr('Copy the selected terms into the other glossary. A term it already has takes this translation.'))
+        self._transfer_button.clicked.connect(self._on_transfer_clicked)
+        button_box.addButton(self._transfer_button, QDialogButtonBox.ButtonRole.ActionRole)
+        self._transfer_button.setVisible(transfer_callback is not None and embedded)
+
+        self._series_menu_button = QPushButton(tr('Series Glossary...'), self)
+        self._series_menu_button.setToolTip(
+            tr('Link this project to a glossary shared by the games of a series, create one, or import one from a JSON file.')
+        )
+        self._series_menu_button.clicked.connect(lambda: series_menu_callback and series_menu_callback())
+        button_box.addButton(self._series_menu_button, QDialogButtonBox.ButtonRole.ActionRole)
+        self._series_menu_button.setVisible(series_menu_callback is not None)
+
         self._clear_button = QPushButton(tr('Clear Glossary'), self)
         self._clear_button.setStyleSheet("QPushButton { background-color: #b91c1c; color: white; font-weight: bold; }")
         self._clear_button.setToolTip(tr('Remove every entry. The glossary file is backed up first.'))
@@ -591,6 +631,11 @@ class GlossaryDialog(
 
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
+        if embedded:
+            if close_btn is not None:
+                close_btn.setVisible(False)
+            self._companion_sync_button.setVisible(False)
+            self._save_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self._translation_edit.textChanged.connect(self._on_editor_content_changed)
         self._notes_edit.textChanged.connect(self._on_editor_content_changed)
         self._ai_notes_edit.textChanged.connect(self._on_editor_content_changed)
@@ -598,6 +643,8 @@ class GlossaryDialog(
         self._category_combo.currentTextChanged.connect(self._on_editor_content_changed)
         self._update_editor_enabled_state()
         self._load_dialog_state()
+        if embedded:
+            self._restore_maximized_on_show = False
         self._populate_entries(self._filtered_entries)
 
         if initial_term:
@@ -726,3 +773,38 @@ class GlossaryDialog(
 
     def _toggle_occ(self) -> None:
         self._set_section_collapsed("occurrences", not getattr(self, "_occurrences_collapsed", False))
+
+    # ── Series glossary ────────────────────────────────────────────────
+
+    def set_series_page(self, page: Optional["GlossaryDialog"], label: str = "") -> None:
+        """Show ``page`` (the linked series glossary) as a tab next to this glossary; None removes it."""
+        if self._series_page is not None and self._series_tabs is not None:
+            self._series_tabs.removeTab(self._series_tabs.indexOf(self._series_page))
+            self._series_page.deleteLater()
+        self._series_page = page
+        self._transfer_button.setVisible(self._transfer_callback is not None and page is not None)
+        if page is None:
+            return
+        if self._series_tabs is None:
+            self._outer_layout.removeWidget(self._content)
+            self._series_tabs = QTabWidget(self)
+            self._series_tabs.addTab(self._content, tr('Project Glossary'))
+            self._outer_layout.addWidget(self._series_tabs)
+        self._series_tabs.addTab(page, label)
+
+    def set_conflicts(self, conflicts: Dict[str, str]) -> None:
+        """Mark terms the other glossary translates differently: canonical key -> tooltip."""
+        self._conflicts = dict(conflicts)
+        self._populate_entries(self._filtered_entries)
+
+    def _selected_entries(self) -> List[GlossaryEntry]:
+        """Entries of the selected rows of the visible table, else the current entry."""
+        table = self._active_table()
+        rows = sorted({index.row() for index in table.selectionModel().selectedRows()}) if table.selectionModel() else []
+        entries = [entry for entry in (self._entry_for_row(row) for row in rows) if entry is not None]
+        return entries or ([self._current_entry] if self._current_entry else [])
+
+    def _on_transfer_clicked(self) -> None:
+        entries = self._selected_entries()
+        if self._transfer_callback and entries:
+            self._transfer_callback(entries)

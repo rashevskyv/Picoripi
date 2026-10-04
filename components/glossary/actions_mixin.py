@@ -261,9 +261,17 @@ class ActionsMixin:
             self._restore_maximized_on_show = False
             self.showMaximized()
 
+    def _series_page_settled(self) -> bool:
+        """The series glossary tab, if any, has no unsaved edit (or the user resolved it)."""
+        page = getattr(self, "_series_page", None)
+        return page is None or page._maybe_prompt_unsaved_changes()
+
     def closeEvent(self, event) -> None:
         """Closeevent."""
         if hasattr(self, '_maybe_prompt_unsaved_changes') and not self._maybe_prompt_unsaved_changes():
+            event.ignore()
+            return
+        if not self._series_page_settled():
             event.ignore()
             return
         self._save_dialog_state()
@@ -278,7 +286,15 @@ class ActionsMixin:
 
     def reject(self) -> None:
         """Reject (Close/Esc)."""
+        if getattr(self, "_embedded", False):
+            # A series glossary tab: Esc closes the window it sits in.
+            top = self.window()
+            if top is not self:
+                top.reject()
+            return
         if hasattr(self, '_maybe_prompt_unsaved_changes') and not self._maybe_prompt_unsaved_changes():
+            return
+        if not self._series_page_settled():
             return
         self._save_dialog_state()
         parent = getattr(self, "_parent", None)

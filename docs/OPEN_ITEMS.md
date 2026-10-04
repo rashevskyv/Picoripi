@@ -260,3 +260,11 @@ the line when it is done or moved into a plan.
   not touched; `.agents/skills/update-wiki/SKILL.md` is the one that was brought up to date.
 - `docs/MEMPALACE_CONTEXT_MANIFESTO.md` takes the stage statuses from the archived plan (last entry
   2026-07-16); nobody re-checked stages 3 and 4 against the code.
+
+## Found during the series glossary feature
+
+- The series tab shows no occurrences (Count 0): its occurrence index is not built over the open project.
+- Glossary builds do not consult the series glossary: a term the series already decided is seeded and
+  translated again in the project (the series file itself is never written by a build).
+- Series and project glossary files are read and written on the UI thread, as the project glossary is today.
+- Two programs (or two projects open at once) editing the same series file: the last write wins.
