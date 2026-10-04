@@ -1,6 +1,7 @@
 """BFN editor: render a system font into glyphs."""
 from PyQt6 import QtCore, QtGui, QtWidgets
 
+from core import font_formats
 from core.i18n import tr
 
 from tools.bfn_editor.bfn_widgets import RenderFontDialog
@@ -35,7 +36,7 @@ class IoRenderMixin:
                         if g_idx == idx:
                             code = m_first + c_idx
                             try:
-                                char_val = chr(code)
+                                char_val = font_formats.code_char(code)
                             except Exception as exc:
                                 log_debug(f"io_render_mixin.IoRenderMixin.render_system_font_to_glyphs: ignored {exc!r}")
                             break
@@ -48,7 +49,7 @@ class IoRenderMixin:
                         if entries[half + k] == idx:
                             code = entries[k]
                             try:
-                                char_val = chr(code)
+                                char_val = font_formats.code_char(code)
                             except Exception as exc:
                                 log_debug(f"io_render_mixin.IoRenderMixin.render_system_font_to_glyphs: ignored {exc!r}")
                             break

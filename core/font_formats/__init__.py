@@ -32,8 +32,8 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import bffnt, g1t, n64
-    return {"n64": n64, "g1t": g1t, "bffnt": bffnt}
+    from core.font_formats import bffnt, g1t, mgs, n64
+    return {"n64": n64, "g1t": g1t, "bffnt": bffnt, "mgs": mgs}
 
 
 def is_supported(fmt: str) -> bool:
