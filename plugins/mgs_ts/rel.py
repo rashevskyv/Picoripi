@@ -6,10 +6,41 @@ string can change only in place: ASCII, at most its slot minus one byte (the slo
 next non-NUL byte), the rest NUL. ``SLOTS`` lists the visible strings of the USA module (offset in
 the file, original text, slot), from the relocation tables (see the workspace's
 ``reports/visible_text_inventory.md``).
+
+Ukrainian: ``HUD_LETTERS`` writes each capital letter as one byte. Letters shaped like Latin ones use
+those (А -> A); the others use ASCII codes no HUD string uses (lowercase b d f..., symbols), whose
+atlas cells the workspace redraws as those letters (``tools\\hud_font.py``). Small letters are
+written as capitals: the HUD has no others.
 """
 from __future__ import annotations
 
 from typing import Dict, List, Sequence, Tuple
+
+HUD_LETTERS: Dict[str, str] = {
+    **dict(zip("АВЕІКМНОРСТХ", "ABEIKMHOPCTX")),
+    **dict(zip("БГДЖЗИЙЛПУФЦЧШЩЬЮЯЄЇҐ", "bdfgjpquxz[\\]^_`{|}~@")),
+}
+_HUD_READ = {code: letter for letter, code in HUD_LETTERS.items() if not "A" <= code <= "Z"}
+_HUD_SHARED = {code: letter for letter, code in HUD_LETTERS.items() if "A" <= code <= "Z"}
+
+
+def encode(text: str) -> bytes:
+    """HUD bytes of ``text``: ASCII as is, Ukrainian letters through ``HUD_LETTERS``."""
+    out = bytearray()
+    for char in text:
+        code = HUD_LETTERS.get(char.upper(), char) if not 0x20 <= ord(char) < 0x7F else char
+        if not 0x20 <= ord(code) < 0x7F:
+            raise ValueError(f"the HUD font has no {char!r}")
+        out.append(ord(code))
+    return bytes(out)
+
+
+def decode(raw: bytes) -> str:
+    """The text of HUD bytes: a word with a redrawn cell is Ukrainian, so its A, B, E... are too."""
+    text = raw.decode("latin-1")
+    if not any(char in _HUD_READ for char in text):
+        return text
+    return "".join(_HUD_READ.get(char) or _HUD_SHARED.get(char, char) for char in text)
 
 SIZE = 5_729_024
 HEADER = bytes.fromhex("00000001000000000000000000000014000000"

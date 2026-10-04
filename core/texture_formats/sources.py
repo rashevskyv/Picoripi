@@ -13,7 +13,7 @@ A plugin describes its textures with ``BaseGameRules.get_texture_sources()`` (or
 - ``params`` -- what the format needs (``pixel_format``, ``offset``...), plus ``compression`` of the
   file at ``path`` (``zlib``, ``gzip``; Yaz0 and zstd are found by their magic, also on members),
   ``file_offset`` + ``file_size`` (the texture file is that byte range of the file or member) and ``texture``
-  (a glob of texture names, for a file that holds several).
+  (a glob of texture names, for a file that holds several; ``{2,5,7}`` picks several).
 
 Reading takes the translation copy when it exists, else the source; writing always goes to the
 translation copy (atomically), archives repacked and compressed again around the member. The source
@@ -365,14 +365,14 @@ def _sources_in(descriptor: Dict[str, Any], source_path: str, translation_path: 
     else:
         members = [""]
     label = str(descriptor.get("label") or "")
-    name_glob = str(params.get("texture") or "")
+    name_globs = [glob.lower() for glob in expand_braces(str(params.get("texture") or ""))]
     found = []
     for member in members:
         data, _ = unwrap(raw, member, params)
         textures = texture_formats.read(fmt, data, params)
         many = len(textures) > 1
         for index, texture in enumerate(textures):
-            if name_glob and not fnmatch.fnmatchcase(texture.name.lower(), name_glob.lower()):
+            if name_globs != [""] and not any(fnmatch.fnmatchcase(texture.name.lower(), g) for g in name_globs):
                 continue
             title = texture.name or (PurePosixPath(member).name if member else Path(source_path).name)
             found.append(TextureSource(

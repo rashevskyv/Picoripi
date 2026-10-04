@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.containers import ContainerManager
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_info, log_warning
 from utils.utils import clean_spaces
@@ -12,6 +13,7 @@ from utils.utils import clean_spaces
 from . import doc as docs
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .gcx import FormatError as GcxError
+from .stage_dat import StageDatContainer
 from .subtitles import FormatError as SubsError
 from .tag_manager import TagManager
 from .textcodec import TAG_RE
@@ -26,8 +28,8 @@ _ROLES = {
     "cutscene": ("Cutscene subtitle", "One subtitle of a real-time cutscene, timed to the voice."),
     "voice": ("In-game voice subtitle", "A voiced line said during play (enemies, bosses, radio)."),
     "movie": ("Movie subtitle", "One subtitle of a pre-rendered movie (briefing videos)."),
-    "hud": ("HUD word", "A short HUD label (life bar, weapon or item box, boss name). The HUD font has only "
-            "ASCII letters and the game has a fixed number of bytes for it: keep it Latin and short."),
+    "hud": ("HUD word", "A short HUD label (life bar, weapon or item box, boss name). Capital letters only, "
+            "and the game has a fixed number of bytes for it (one per letter): keep it short."),
 }
 _ITEM_NAME_RE = re.compile(r"^([^\n]{2,24})\n")
 # Measured in Dolphin: a 509-wide row fits the codec text box, a 514-wide one wraps (font units).
@@ -44,6 +46,8 @@ class GameRules(BaseGameRules):
     ``common/movie.subs`` (subtitles of cutscenes, in-game voices and movies), ``common/mgso.rel``
     (the HUD words of the game module, ASCII in fixed slots) and the font in ``font/``. Every string exists in six languages; only the English ones are shown. Saving
     writes the same files into the translation folder; the build step packs them into the discs.
+    ``texture/<stage>.stage`` are stages of stage.dat with text textures (``texture_sources.json``,
+    opened by ``stage_dat.StageDatContainer``).
     """
 
     problem_prefix = PLUGIN_PREFIX
@@ -65,6 +69,7 @@ class GameRules(BaseGameRules):
         self._map_mtime = 0.0
         self.translation_map: Dict[str, str] = {}
         self.reverse_translation_map: Dict[str, str] = {}
+        ContainerManager.register(StageDatContainer)     # the textures of stage.dat (Tools -> Textures)
 
     def get_display_name(self) -> str:
         return "Metal Gear Solid: The Twin Snakes"

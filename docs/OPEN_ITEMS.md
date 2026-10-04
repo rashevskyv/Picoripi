@@ -60,10 +60,12 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Which strings of a GCX table are English is detected (voice clips settle ~92 % of codec lines, the rest by
   stopwords and run lengths): a few unvoiced menu/briefing strings may be misfiled; check `stage/n_title.gcx`
   and `stage/r_cmmn.gcx` in the editor.
-- Text drawn into textures is not handled by the plugin: about 450 images (credits, titles, place-name cards,
-  HUD plates, menus, results), listed in `TWIN_SNAKES\reports\visible_text_inventory.md` and the texture
-  draft `ZELDA\_textures\drafts\mgs_ts.json`. The HUD words of `shared/mgso.rel` are a text block now, but
-  the HUD atlas has only ASCII cells: Cyrillic there needs new atlas cells and a code change.
+- Text textures (Tools → Textures, `texture_sources.json`): the title/menu pictures of `n_title` are drawn in
+  Ukrainian (workspace `tools\menu_textures.py`); still English: credits, intro titles, place-name cards, HUD
+  plates (ALERT, EVASION…), game over, the mission results of `ending`, the item-window and photo/memory-card
+  labels of the `r_*` packs that differ from `n_title`'s, the pause EXIT of the area stages, the briefing's
+  Japanese labels. The HUD font has Ukrainian letters in unused ASCII cells (`rel.HUD_LETTERS`, workspace
+  `tools\hud_font.py`; not redrawn in the demo14a copy of the sheet); only LIFE is translated.
 - Five speaker hashes are unnamed (`0x663ee3`, `0x28dce6`, `0x1932cc`, and two guessed in
   `plugins/mgs_ts/speakers.json`: `#9331f5` Snake, `#388785` Psycho Mantis).
 - The clean ISOs are NKit (DolphinTool cannot undo NKit); patches made against them need the same NKit images.

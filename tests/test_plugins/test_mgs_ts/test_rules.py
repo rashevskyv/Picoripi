@@ -186,7 +186,20 @@ def test_hud_words_of_the_module_save_in_place():
     assert load_rules("mgs_ts").load_data_from_json_obj(out)[0][0][1] == "SOKOM"
 
 
-@pytest.mark.parametrize("text, message", [("M9XX", "room for 3"), ("СОКОМ", "only ASCII")])
+def test_ukrainian_hud_words_use_the_redrawn_cells():
+    rules = load_rules("mgs_ts")
+    source = rel_file()
+    blocks, names = rules.load_data_from_json_obj(source)
+    life = [text for _offset, text, _slot in rel.SLOTS].index("LIFE")
+    blocks[0][life] = "Життя"
+    out = rules.save_data_to_json_obj(blocks, names)
+    offset = rel.SLOTS[life][0]
+    assert out[offset:offset + 8] == b"gpTT|\0\0\0"
+    assert load_rules("mgs_ts").load_data_from_json_obj(out)[0][0][life] == "ЖИТТЯ"
+    assert set(rel.HUD_LETTERS.values()).isdisjoint(set("".join(text for _o, text, _s in rel.SLOTS)) - set("ABCEHIKMOPTX"))
+
+
+@pytest.mark.parametrize("text, message", [("M9XX", "room for 3"), ("SÖKOM", "no 'Ö'")])
 def test_hud_word_too_long_or_not_ascii_is_refused(text, message):
     rules = load_rules("mgs_ts")
     blocks, names = rules.load_data_from_json_obj(rel_file())

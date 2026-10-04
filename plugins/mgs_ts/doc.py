@@ -65,6 +65,8 @@ class Doc:
     english: List[List[int]] = field(default_factory=list)
 
     def texts(self, reverse_map: Optional[Dict[str, str]] = None) -> List[List[str]]:
+        if self.kind == "rel":
+            return [[rel.decode(line.raw) for line in block] for block in self.blocks]
         return [[textcodec.decode(line.raw, reverse_map) for line in block] for block in self.blocks]
 
 
@@ -157,10 +159,13 @@ def build(source: bytes, doc: Doc, data: List[List[str]], translation_map: Optio
     if doc.kind == "rel":
         changes = {}
         for line, text in enumerate(data[0] if data else []):
-            if text is not None and any(not 0x20 <= ord(char) < 0x7F for char in str(text)):
-                raise ValueError(f"mgso.rel line {line + 1}: the HUD font has only ASCII letters ({text!r})")
-            new = encoded(0, line)
-            if new is not None:
+            if text is None or line >= len(doc.blocks[0]):
+                continue
+            try:
+                new = rel.encode(str(text))
+            except ValueError as error:
+                raise ValueError(f"mgso.rel line {line + 1}: {error} ({text!r})") from None
+            if new != doc.blocks[0][line].raw:
                 changes[line] = new
         return rel.write(source, changes) if changes else bytes(source)
 

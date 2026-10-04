@@ -115,11 +115,14 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      The game breaks a row that is too wide by itself, in the middle of a word, so the width check has no
      slack: a codec row may be 509 font units wide (measured in the game's codec box), a menu or item text row
      as wide as the widest English row of the neighbouring strings (one script mixes option help, item
-     descriptions and memory-card dialogs, each in its own window). Credits, titles, HUD labels and menu words
-     are pictures, not text (`TWIN_SNAKES\reports\visible_text_inventory.md`). `common\mgso.rel` (the game
-     module) gives one block of HUD words — LIFE, O2, the item and weapon box labels, boss names: the HUD font
-     has only ASCII letters and each word has a fixed number of bytes, so a save refuses Cyrillic or a word
-     longer than its slot.
+     descriptions and memory-card dialogs, each in its own window). Credits, titles, HUD plates and menu words
+     are pictures, not text (`TWIN_SNAKES\reports\visible_text_inventory.md`): **Tools → Textures…** lists
+     them from `texture\<stage>.stage` (stages of `stage.dat` the workspace copies out; the texture packs read
+     as TPL) and writes the translation copy; the build puts each changed pack into every stage of both discs
+     that has it. `common\mgso.rel` (the game module) gives one block of HUD words — LIFE, O2, the item and
+     weapon box labels, boss names: capital letters only, one byte each and never longer than the word's slot.
+     Ukrainian letters shaped like Latin ones use those; the others use ASCII cells no HUD word uses, which the
+     workspace redraws as Ukrainian letters in the HUD font (`tools\hud_font.py`).
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
