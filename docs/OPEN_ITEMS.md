@@ -2,13 +2,35 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 8.7k
+tokens: 9.2k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Startup speed (2026-10-04)
+
+Measured offscreen from process start to "open sequence complete"; Twilight Princess 5 s, Minish Cap 1.7 s,
+The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
+
+- **Reference languages are parsed on the UI thread at every open** (Twilight Princess: 5 languages, ~3 s of
+  the 5 s). Parse in a worker, or keep the parsed result on disk keyed by the archives' time and size and the
+  alias table. The parser writes aliases into `mw.default_tag_mappings`, so a worker needs that split first.
+- **The block tree is built on the UI thread** (`populate_blocks`, Twilight Princess ~1.3 s): the speaker pool
+  walks every message flow (`build_speaker_pool` → `get_speaker_for_string`).
+- **Hyrule Warriors DE opens in 39 s, every time**: `get_speaker_for_string` parses each of the 776 text files
+  on the UI thread (`TextFile.__init__` also rebuilds the table while reading), and the second start takes no
+  session checkpoint. Handed to the plugin's branch (`feat/hwde-widths`).
+- **The issue scan runs one whole block per UI-thread step** (`issue_scan_handler._scan_next_batch`): a game
+  whose text is one block (N64: 4589 strings) freezes the window for ~2 s at the first open.
+- **An enabled spellchecker parses its dictionary in a Python thread** (pure-Python `spylls`, 2–3 s of CPU
+  that the UI thread shares). Keep the parsed dictionary on disk, or parse in a process.
+- **A project without its own MemPalace database gets one in the working directory**
+  (`mempalace_local.db` next to where the application was started), not in the project folder.
+- **`SettingsManager.load_unsaved_session` uses `eval` on keys read from `settings.json`**
+  (`core/settings_manager.py`); `ast.literal_eval` is enough.
 
 ## Font editor formats (2026-10-03)
 

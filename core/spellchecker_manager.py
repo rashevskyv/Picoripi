@@ -9,7 +9,7 @@ from typing import List, Optional, Dict
 from utils.logging_utils import log_debug, log_warning, log_error
 from spylls.hunspell import Dictionary
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
-from utils.thread_utils import WorkerThread
+from utils.thread_utils import WorkerThread, single_shot
 
 CUSTOM_DICT_FILENAME = "custom_dictionary.txt"
 LOCAL_DICT_PATH = Path("resources/spellchecker")
@@ -143,6 +143,8 @@ class SpellcheckerManager(QObject):
 
     def _ensure_initialized(self):
         """Ensure the dictionary loading is started."""
+        if not self.enabled and not app_mode.headless:
+            return   # parsing the dictionary takes seconds of CPU; a disabled spellchecker never reads it
         if not hasattr(self, '_dictionary_initialized'):
             self._dictionary_initialized = True
             self._initialize_spellchecker()
@@ -235,8 +237,9 @@ class SpellcheckerManager(QObject):
         if app_mode.headless:
             self._do_initialize_spellchecker()
         else:
-            import threading
-            threading.Thread(target=self._load_dictionary_async, daemon=True).start()
+            # Start from the event loop: the parser is pure Python and would share the interpreter with the
+            # window construction and the project load, slowing both.
+            single_shot(0, self, lambda: threading.Thread(target=self._load_dictionary_async, daemon=True).start())
 
     def _load_dictionary_async(self):
         """Internal helper to load dictionary async."""
