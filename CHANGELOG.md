@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- New plugin `zelda_tww`: The Wind Waker (GameCube) `bmgres.arc` on the Twilight Princess BMG code — a tag catalogue from the zeldaret/tww decompilation (75 control codes, sound/camera/animation groups, `color.bmc` colours, scale), the game's own button icons, INF1 box types with per-box line width and lines per page, item windows as glossary seeds. The escape-tag engine moved to `plugins/common/escape_catalog.py` (TP output unchanged). The BMG writer keeps empty messages on the shared DAT1 null and no longer adds a MID1 section to a file that had none: all 16 retail TP and WW message files now save back byte for byte.
+
 ## [0.3.150-dev] - 2026-10-02
 
 - wp7 7.6: `tests/test_docs/` checks that backticked repository paths and relative links in the README, AGENTS.md, the wiki, ARCHITECTURE, ENGINEERING, DECISIONS, FEATURES and INDEX exist, that every Ukrainian wiki page has the same section structure as the English one, that the version is not repeated outside `utils/constants.py`, that the entry documents stay within their token budgets and that `docs/PLUGIN_CONTRACT.md` is what the spec generates (it found a moved dialog path in wiki 2, a run-time folder named as a repository path in wiki 12 and a section missing from the Ukrainian wiki 7 — fixed). All 266 modules without a module docstring got a one-line one; `tests/test_architecture/test_module_docstrings.py` fails on a new bare module. New `docs/DECISIONS.md`: fourteen short records of why the code is the way it is.

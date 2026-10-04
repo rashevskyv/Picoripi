@@ -60,6 +60,7 @@ tokens: 7.7k
    - `zelda_bmg` — Zelda: Twilight Princess BMG
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker
+   - `zelda_tww` — Zelda: The Wind Waker (GameCube BMG): `res/Msg/bmgres.arc` з американського чи європейського диска (`data0`–`data4` — англійська, німецька, французька, іспанська, італійська). Працює на механізмі Twilight Princess; теги, кольори й ширина рядка взяті з декомпіляції zeldaret/tww, ширина рядка й кількість рядків на сторінці залежать від типу вікна кожного повідомлення. Мовців і рамок вікон поки немає
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

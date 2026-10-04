@@ -31,12 +31,8 @@ from .text_fixer import TextFixer
 from .tag_logic import process_segment_tags_aggressively_zbmg
 from .tag_catalog import (
     ESCAPE_ICON_SPECS,
-    ESCAPE_TAGS,
     ICON_TAG_WIDTH as CATALOG_ICON_TAG_WIDTH,
-    describe_escape_tag,
-    build_static_escape_aliases,
-    escape_tag_to_editor_alias,
-    get_escape_tag_spec,
+    TP_CATALOG,
 )
 
 # In-game text color table from the Twilight Princess message renderer
@@ -179,13 +175,18 @@ class GameRules(BaseGameRules):
     star_section_mode = True
     analyze_whole_string_first = True
     short_problem_names = {"EMPTY_ODD_SUBLINE_DISPLAY": "EmptyOddD", "STAR_TAG_RULES": "StarTag"}
+    # Game data this class reads; another BMG game (zelda_tww) overrides these.
+    escape_catalog = TP_CATALOG
+    color_table = TP_COLOR_TABLE
+    color_names = TP_COLOR_NAMES
+    data_dir = plugin_dir
 
     def __init__(self, main_window_ref=None):
         """Initialize a new instance."""
         super().__init__(main_window_ref)
         self.last_loaded_bmg = None
         # Per-window limits edited in Settings.
-        self.window_layouts_path = os.path.join(plugin_dir, "window_layouts.json")
+        self.window_layouts_path = os.path.join(self.data_dir, "window_layouts.json")
         self.translation_map = {}
         self.reverse_translation_map = {}
         self._last_map_path = None
@@ -257,7 +258,7 @@ class GameRules(BaseGameRules):
         match = _ESCAPE_ANY_RE.fullmatch(str(tag))
         if not match:
             return ""
-        return describe_escape_tag(int(match.group(1)), match.group(2))
+        return self.escape_catalog.describe(int(match.group(1)), match.group(2))
 
     def get_tag_tooltip(self, tag: str) -> str:
         """Explain a raw or aliased TP tag shown under the mouse cursor."""
@@ -278,7 +279,7 @@ class GameRules(BaseGameRules):
             # Edit Alias persists through project settings.
             if any(original == raw_tag for original in mappings.values()):
                 continue
-            alias = escape_tag_to_editor_alias(raw_tag)
+            alias = self.escape_catalog.editor_alias(raw_tag)
             if alias in mappings and mappings[alias] != raw_tag:
                 group, data = match.group(1), match.group(2).lower()
                 alias = f"{alias[:-1]}:{group}-{data}}}"
@@ -291,7 +292,7 @@ class GameRules(BaseGameRules):
 
     def get_escape_tag_catalog(self) -> Dict[Tuple[int, int], Any]:
         """Expose a copy of the documented Zelda BMG tag catalogue to UI tools."""
-        return dict(ESCAPE_TAGS)
+        return dict(self.escape_catalog.tags)
 
 
 
@@ -306,7 +307,7 @@ class GameRules(BaseGameRules):
             proj_path = os.path.join(project_dir, 'translation_map.json')
             if not os.path.exists(proj_path):
                 # Автоматично копіюємо з папки плагіна або створюємо порожній
-                plugin_map_path = os.path.join(plugin_dir, 'translation_map.json')
+                plugin_map_path = os.path.join(self.data_dir, 'translation_map.json')
                 try:
                     if os.path.exists(plugin_map_path):
                         import shutil
@@ -320,7 +321,7 @@ class GameRules(BaseGameRules):
                     log_warning(f"Failed to copy/create translation_map.json in project: {e}")
             path = proj_path
         else:
-            path = os.path.join(plugin_dir, 'translation_map.json')
+            path = os.path.join(self.data_dir, 'translation_map.json')
 
         try:
             mtime = os.path.getmtime(path) if os.path.exists(path) else 0
@@ -483,7 +484,10 @@ class GameRules(BaseGameRules):
                 is_null = getattr(orig_msg, 'is_null', False) if orig_msg else False
                 
                 msg = BMGMessage(info=info, parts=self.editor_text_to_msg_content(text), is_null=is_null)
-                msg.id = msg_id
+                # Only files with a MID1 section carry ids; an id here would add one.
+                if orig_msg is None or hasattr(orig_msg, 'id'):
+                    msg.id = msg_id
+                msg.shares_null = getattr(orig_msg, 'shares_null', False)
                 new_messages.append(msg)
 
             bmg.messages = new_messages
@@ -519,7 +523,7 @@ class GameRules(BaseGameRules):
         cached = getattr(self, "_flow_actor_map", None)
         if cached is None:
             from .msg_flow import load_flow_actor_map
-            cached = load_flow_actor_map(plugin_dir)
+            cached = load_flow_actor_map(self.data_dir)
             self._flow_actor_map = cached
         return cached
 
@@ -693,7 +697,7 @@ class GameRules(BaseGameRules):
         cached = getattr(self, "_stage_scene_data", None)
         if cached is None:
             from .stage_data import load_stage_scene_data
-            cached = load_stage_scene_data(plugin_dir)
+            cached = load_stage_scene_data(self.data_dir)
             self._stage_scene_data = cached
         return cached
 
@@ -818,7 +822,7 @@ class GameRules(BaseGameRules):
         for index, char in enumerate(clean_text):
             scale = scales[index] if index < len(scales) else 1.0
             if index in icons:
-                total += float(icons[index].get("width", ICON_TAG_WIDTH)) * scale
+                total += float(icons[index].get("width", self.escape_catalog.icon_width)) * scale
             else:
                 total += calculate_string_width(
                     char, font_map, default_char_width, icon_sequences=icon_sequences
@@ -876,25 +880,34 @@ class GameRules(BaseGameRules):
             m = tag_re.match(raw, pos)
             if m:
                 tag = m.group(0)
+                any_m = _ESCAPE_ANY_RE.fullmatch(tag)
+                tag_spec = (self.escape_catalog.get_spec(int(any_m.group(1)), any_m.group(2))
+                            if any_m else None)
+                argument = any_m.group(2)[4:] if any_m else ""
                 color_idx = None
-                esc_m = _ESCAPE_COLOR_RE.fullmatch(tag)
-                if esc_m:
-                    color_idx = int(esc_m.group(1), 16)
+                if tag_spec is not None and tag_spec.render == "color":
+                    if len(argument) >= 2:
+                        color_idx = int(argument[:2], 16)
+                    else:
+                        pos = m.end()
+                        continue
                 else:
                     name_m = _COLOR_TAG_RE.fullmatch(tag)
                     if name_m:
-                        color_idx = TP_COLOR_NAMES.get(name_m.group(1).lower())
+                        color_idx = self.color_names.get(name_m.group(1).lower())
                 if color_idx is not None:
-                    current_color = TP_COLOR_TABLE.get(color_idx)
+                    current_color = self.color_table.get(color_idx)
                     if current_color:
                         has_color = True
                     pos = m.end()
                     continue
 
-                scale_m = _ESCAPE_SCALE_RE.fullmatch(tag)
                 percent = None
-                if scale_m:
-                    percent = int(scale_m.group(1), 16)
+                if tag_spec is not None and tag_spec.render == "scale":
+                    percent = self.scale_percent(tag_spec, argument)
+                    if percent is None:
+                        pos = m.end()
+                        continue
                 else:
                     friendly_m = _SCALE_TAG_RE.fullmatch(tag)
                     if friendly_m:
@@ -908,23 +921,21 @@ class GameRules(BaseGameRules):
 
                 # Icon tags (do_outfont): replace with a placeholder character
                 # carrying a drawing spec; advance = 24px like in game
-                any_m = _ESCAPE_ANY_RE.fullmatch(tag)
                 if any_m:
                     group = int(any_m.group(1))
                     data = any_m.group(2)
                     code = int(data[:4], 16)
-                    spec = _ICON_SPECS.get((group, code))
+                    spec = self.escape_catalog.icon_specs.get((group, code))
                     if spec is not None:
                         out_chars.append('\ufffc')
                         out_colors.append(current_color)
                         out_scales.append(current_scale)
                         icon_spec = dict(spec)
-                        icon_spec.setdefault("width", ICON_TAG_WIDTH)
+                        icon_spec.setdefault("width", self.escape_catalog.icon_width)
                         out_icons[len(out_chars) - 1] = icon_spec
                         pos = m.end()
                         continue
 
-                    tag_spec = get_escape_tag_spec(group, data)
                     if tag_spec is not None:
                         if tag_spec.render in {"text", "dynamic"}:
                             append_preview_text(tag_spec.preview_text)
@@ -950,6 +961,14 @@ class GameRules(BaseGameRules):
                 (out_colors if has_color else None),
                 (out_scales if has_scale else None),
                 (out_icons if out_icons else None))
+
+    def scale_percent(self, spec: Any, argument: str) -> Optional[int]:
+        """Text scale in percent carried by a scale tag's argument hex, or None.
+
+        TP stores a u16 percent (``0096`` = 150%)."""
+        if len(argument) < 4:
+            return None
+        return int(argument[:4], 16)
 
     def get_message_attributes(self, block_idx: int, string_idx: int) -> Optional[Dict[str, int]]:
         """Decoded INF1 attributes of a message (window kind, speaker SE,
@@ -1730,4 +1749,4 @@ class GameRules(BaseGameRules):
 
     def get_default_tag_mappings(self) -> Dict[str, str]:
         """Canonical aliases generated from the authoritative escape catalogue."""
-        return build_static_escape_aliases()
+        return self.escape_catalog.static_aliases()

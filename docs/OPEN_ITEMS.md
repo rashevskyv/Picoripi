@@ -260,3 +260,19 @@ the line when it is done or moved into a plan.
   not touched; `.agents/skills/update-wiki/SKILL.md` is the one that was brought up to date.
 - `docs/MEMPALACE_CONTEXT_MANIFESTO.md` takes the stage statuses from the archived plan (last entry
   2026-07-16); nobody re-checked stages 3 and 4 against the code.
+
+## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
+
+- **Ukrainian letters in the font**: the US game reads bytes 0x80–0x9F as Shift-JIS lead bytes, so a
+  translation map must not put letters there (Europe: only Hylian boxes do this). Pick the slots before
+  drawing the font.
+- **Runtime suffixes are in the executable**, not in BMG: " Rupee(s)", " bomb(s)", " yard(s)", timers
+  (`tag_*` in `f_op_msg_mng.cpp`). A Ukrainian build needs them patched in `main.dol`, or the text rewritten
+  around a bare number.
+- **No speakers yet**: NPCs pick message ids in code (`getMsg` / `next_msgStatus` per actor), cutscenes through
+  `event_list.dat` `msgNo`. TP's flow-based attribution does not apply.
+- **No window frames** in the preview (`hukidashi_*.blo` in `res/Msg/msgres.arc`) and no `message_window_preview`.
+- **`bmgresh.arc/zel_01.bmg`** (15 Hylian-language messages, Shift-JIS) does not load: the BMG reader maps
+  Shift-JIS to cp1252 for Twilight Princess.
+- **Rebuilding the disc**: the images were extracted with DolphinTool (`files/` + `sys/`); `gcr` packs a
+  `root/` tree, so the pack script in the user's workspace does not work yet.
