@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: ui/, components/, dialogs/
-tokens: 7.4k
+tokens: 8.0k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -95,6 +95,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
      with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs
      the changed files and the edited font (`font\latin.g1n`) into the LayeredFS mod.
+   - `mgs_ts` — Metal Gear Solid: The Twin Snakes (GameCube, USA). **Source:** the workspace's `source\text`
+     folder (`common\codec.dat` — every codec call; `stage\*.gcx` — menus, briefing files, item descriptions,
+     memory-card messages, credits; `*\demo.subs`, `common\vox.subs`, `common\movie.subs` — subtitles of
+     cutscenes, in-game voices and movies, taken out of the disc's stream files); **Translation:**
+     `translation\text`. Every string is stored in six languages; only the English ones are shown (found by
+     the voice clip a codec line plays, else by language detection), identical codec tables are one block and
+     a save writes all their copies. Longer text takes the room of the French–Spanish strings the US game never
+     shows; an unedited file stays byte for byte. Speakers come from the game data (codec `talk` commands and
+     subtitle records name the character). The Font Editor opens the text font (`font\*.fnt`, format `mgs`);
+     Ukrainian letters live in its upper half through the plugin's `translation_map.json`. The workspace's
+     `2_build.bat` puts the pieces back into `stage.dat`, `demo.dat`, `vox.dat`, `movie.dat`, `codec.dat`.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
@@ -165,7 +176,7 @@ This is the localization pipeline plus utilities. Prefer **Localization Pipeline
 | Command | Shortcut | Role |
 |---------|----------|------|
 | Localization Pipeline… | | Ordered steps + status. Thin: every button runs the same action as the menu |
-| Font Editor… | | Bitmap fonts in a separate window; the project stays open. Opens Nintendo `.bfn` (Twilight Princess, Wind Waker), the message font inside an N64 Zelda ROM (OoT, MM), Hyrule Warriors `.g1t` atlases, Age of Calamity `.g1n` fonts, Switch `.bffnt` and the 3DS fonts: `.bcfnt` / 3DS `.bffnt` (A Link Between Worlds, Tri Force Heroes), Grezzo `.qbf` (Ocarina of Time 3D) and `.gzf` (Majora's Mask 3D), and the Switch scalable fonts `.bfotf` (Tears of the Kingdom: all their glyphs are shown; outlines and widths are not edited here) — open them with **Open** (no project needed; Save writes the file back). In a font that maps Unicode characters (`.bffnt`, `.g1n` and the 3DS fonts), typing a letter into an empty cell's character column adds that real character to the font (no translation slot; a character the font already has is refused): draw the glyph in a free cell and give it its letter. The game's own fonts, named by its plugin, are listed in the font tree and open from the project (the translation copy once there is one); Save writes the translation copy and the font's widths with the translation map to `<project>/font_maps/`, which the width checks read. Wind Waker also lists its name-entry and system fonts. **Render System Font to Glyphs** takes a TTF/OTF through **Font File...** (no install needed) and can **Thicken** strokes for small heavy fonts; **Move glyph** (◀ ▲ ▼ ▶ or Ctrl+Arrow keys) shifts the selected glyphs' pixels 1 px inside their cells, with undo, in every format. Uses the same **Language** as the rest of the app |
+| Font Editor… | | Bitmap fonts in a separate window; the project stays open. Opens Nintendo `.bfn` (Twilight Princess, Wind Waker), the message font inside an N64 Zelda ROM (OoT, MM), Hyrule Warriors `.g1t` atlases, Age of Calamity `.g1n` fonts, Switch `.bffnt` and the 3DS fonts: `.bcfnt` / 3DS `.bffnt` (A Link Between Worlds, Tri Force Heroes), Grezzo `.qbf` (Ocarina of Time 3D) and `.gzf` (Majora's Mask 3D), and the Switch scalable fonts `.bfotf` (Tears of the Kingdom: all their glyphs are shown; outlines and widths are not edited here), 2bpp text font of Metal Gear Solid: The Twin Snakes (from its project only) — open them with **Open** (no project needed; Save writes the file back). In a font that maps Unicode characters (`.bffnt`, `.g1n` and the 3DS fonts), typing a letter into an empty cell's character column adds that real character to the font (no translation slot; a character the font already has is refused): draw the glyph in a free cell and give it its letter. The game's own fonts, named by its plugin, are listed in the font tree and open from the project (the translation copy once there is one); Save writes the translation copy and the font's widths with the translation map to `<project>/font_maps/`, which the width checks read. Wind Waker also lists its name-entry and system fonts. **Render System Font to Glyphs** takes a TTF/OTF through **Font File...** (no install needed) and can **Thicken** strokes for small heavy fonts; **Move glyph** (◀ ▲ ▼ ▶ or Ctrl+Arrow keys) shifts the selected glyphs' pixels 1 px inside their cells, with undo, in every format. Uses the same **Language** as the rest of the app |
 | Script Markup Studio… | | Mark a walkthrough (Phase 0 for MemePalace). See [9](9_Script_Markup.md) |
 | MemePalace Context Builder… | Ctrl+M | Weave the marked script into story memory |
 | Prepare Glossary… | | One automatic glossary pass |

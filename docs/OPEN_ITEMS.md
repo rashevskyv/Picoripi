@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 9.2k
+tokens: 9.3k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -31,6 +31,19 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   (`mempalace_local.db` next to where the application was started), not in the project folder.
 - **`SettingsManager.load_unsaved_session` uses `eval` on keys read from `settings.json`**
   (`core/settings_manager.py`); `ast.literal_eval` is enough.
+
+## Metal Gear Solid: The Twin Snakes (2026-10-04)
+
+- Which strings of a GCX table are English is detected (voice clips settle ~92 % of codec lines, the rest by
+  stopwords and run lengths): a few unvoiced menu/briefing strings may be misfiled; check `stage/n_title.gcx`
+  and `stage/r_cmmn.gcx` in the editor.
+- Text drawn into textures (title menu, NEW GAME / OPTIONS labels, item icons) and the item names in
+  `shared/mgso.rel` (`RATION`, `SOCOM`…) are not handled.
+- Five speaker hashes are unnamed (`0x663ee3`, `0x28dce6`, `0x1932cc`, and two guessed in
+  `plugins/mgs_ts/speakers.json`: `#9331f5` Snake, `#388785` Psycho Mantis).
+- The clean ISOs are NKit (DolphinTool cannot undo NKit); patches made against them need the same NKit images.
+- Only the opening cutscene and the font were seen on screen (Dolphin); codec calls, briefing and play
+  were not played through.
 
 ## Font editor formats (2026-10-03)
 

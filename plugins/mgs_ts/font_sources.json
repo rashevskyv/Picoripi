@@ -1,0 +1,15 @@
+[
+  {
+    "label": "Codec and menu font",
+    "format": "mgs",
+    "path": ["font/*.fnt", "text/font/*.fnt", "../text/font/*.fnt"],
+    "font_map": "mgs_ts_font.json",
+    "params": {
+      "height": 24,
+      "first_code": 32,
+      "upper_codepage": "mac_roman",
+      "ascent": 21,
+      "columns": 16
+    }
+  }
+]
