@@ -33,7 +33,9 @@ def test_the_validator_has_no_warning(plugin, capsys):
 def test_the_validator_command_prints_only_ok(capsys):
     assert validate_main([]) == 0
     lines = [line for line in capsys.readouterr().out.splitlines() if line.strip()]
-    assert sorted(lines) == sorted(f"{plugin}: OK" for plugin in h.PLUGINS)
+    shipped = [p.parent.name for p in h.REPO_PLUGINS.glob("*/config.json") if p.parent.name != "import_plugins"]
+    assert set(h.PLUGINS) <= set(shipped)
+    assert sorted(lines) == sorted(f"{plugin}: OK" for plugin in shipped)
 
 
 @pytest.mark.parametrize("plugin", h.PLUGINS)
