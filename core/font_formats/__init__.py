@@ -32,8 +32,13 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import bffnt, g1t, n64
-    return {"n64": n64, "g1t": g1t, "bffnt": bffnt}
+    from core.font_formats import bffnt, g1n, g1t, n64
+    return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt}
+
+
+def adds_glyphs(fmt: str) -> bool:
+    """The format maps any Unicode character and packs glyphs added after the font's own (``ADDS_GLYPHS``)."""
+    return bool(getattr(_backends().get(fmt), "ADDS_GLYPHS", False))
 
 
 def is_supported(fmt: str) -> bool:
@@ -42,7 +47,7 @@ def is_supported(fmt: str) -> bool:
 
 
 def detect(data: bytes) -> Optional[str]:
-    """The format of a font file by its magic: ``bfn``, ``g1t``, ``bffnt`` or None."""
+    """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` or None."""
     head = bytes(data[:8])
     if head[:4] == b"FFNT" and head[4:6] in (b"\xff\xfe", b"\xfe\xff"):
         return "bffnt"
@@ -50,6 +55,8 @@ def detect(data: bytes) -> Optional[str]:
         return "bfn"
     if head[:4] == b"GT1G":
         return "g1t"
+    if head == b"_N1G0000":
+        return "g1n"
     return None
 
 

@@ -249,6 +249,16 @@ class TranslationMapMixin:
         except Exception as e:
             log_error(f"Failed to save translation map: {e}")
 
+    def physical_code_for(self, char, temp_translation_map=None):
+        """The font code an empty glyph gets for ``char``: the character itself when the format adds
+        glyphs for any Unicode character (G1N) and the font does not have it yet; else a free cp1252 slot."""
+        from core import font_formats
+        if char and font_formats.adds_glyphs(getattr(self, "font_format", "")):
+            code = font_formats.char_code(char)
+            if char not in font_formats.char_map(self.metadata):
+                return code
+        return self.get_next_free_char_code(temp_translation_map)
+
     def get_next_free_char_code(self, temp_translation_map=None):
         used_codes = set()
         

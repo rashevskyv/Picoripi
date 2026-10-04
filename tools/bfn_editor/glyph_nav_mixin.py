@@ -68,7 +68,7 @@ class GlyphNavMixin:
             
             orig_char = self.get_original_char_for_glyph(glyph_idx)
             if not orig_char:
-                physical_code = self.get_next_free_char_code(new_translation_map)
+                physical_code = self.physical_code_for(lines[i][:1], new_translation_map)
                 if physical_code is None:
                     physical_code = glyph_idx
                 self.update_char_mapping(glyph_idx, physical_code)

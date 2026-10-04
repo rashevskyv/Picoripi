@@ -74,6 +74,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      makes font maps from the game's fonts. When a translated archive grows, run
      `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>` so the game reserves enough memory for it.
    - `zelda_hwde` — Zelda: Hyrule Warriors Definitive Edition
+   - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Source is the workspace's `source` folder
+     (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
+     with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs
+     the changed files and the edited font (`font\latin.g1n`) into the LayeredFS mod.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
@@ -144,7 +148,7 @@ This is the localization pipeline plus utilities. Prefer **Localization Pipeline
 | Command | Shortcut | Role |
 |---------|----------|------|
 | Localization Pipeline… | | Ordered steps + status. Thin: every button runs the same action as the menu |
-| Font Editor… | | Bitmap fonts in a separate window; the project stays open. Opens Nintendo `.bfn` (Twilight Princess, Wind Waker), the message font inside an N64 Zelda ROM (OoT, MM), Hyrule Warriors `.g1t` atlases and Switch `.bffnt`. The game's own fonts, named by its plugin, are listed in the font tree and open from the project (the translation copy once there is one); Save writes the translation copy and the font's widths with the translation map to `<project>/font_maps/`, which the width checks read. Uses the same **Language** as the rest of the app |
+| Font Editor… | | Bitmap fonts in a separate window; the project stays open. Opens Nintendo `.bfn` (Twilight Princess, Wind Waker), the message font inside an N64 Zelda ROM (OoT, MM), Hyrule Warriors `.g1t` atlases, Age of Calamity `.g1n` fonts (a character missing from the font gets a new glyph: draw it in a free cell and give it that character) and Switch `.bffnt`. The game's own fonts, named by its plugin, are listed in the font tree and open from the project (the translation copy once there is one); Save writes the translation copy and the font's widths with the translation map to `<project>/font_maps/`, which the width checks read. Uses the same **Language** as the rest of the app |
 | Script Markup Studio… | | Mark a walkthrough (Phase 0 for MemePalace). See [9](9_Script_Markup.md) |
 | MemePalace Context Builder… | Ctrl+M | Weave the marked script into story memory |
 | Prepare Glossary… | | One automatic glossary pass |

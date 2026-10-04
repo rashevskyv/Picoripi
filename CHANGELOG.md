@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- New plugin `zelda_aoc` (Hyrule Warriors: Age of Calamity, Switch): opens the game's text as per-table bundles cut out of `data/LinkData2.bin` (12 or 13 languages, UTF-8, the game's `[tags]` with `[es:1_5_1]` for name-form codes), shows and saves the English table byte-exact when unchanged (battle dialogue also into the second English table), speakers from the battle-dialogue speaker ids, glossary seed from the names/places/items tables, per-table width limits; the Font Editor opens, edits and saves the game's G1N fonts and adds glyphs for characters the font lacks (a new glyph typed as «Ж» gets the code of «Ж»).
 - The review pass is on by default (new key `review_enabled`; `false` turns it off). The old `editor_review_enabled`, saved as `false` in existing settings, belonged to the removed editor review and is no longer read.
 - Ocarina of Time / Majora's Mask (N64): line widths take a character's width from the Font Editor's map of the game font (`<project>/font_maps/oot_font.json` / `mm_font.json`) when the project has one, so redrawn or Ukrainian letters are measured; the game's table stays the fallback.
 - Player names, per game: Ocarina of Time, Majora's Mask (`{name}`) and Tears of the Kingdom (`{playerName}`) send the hero's tag as the declined name «Лінк» through a `{F:Link}` force alias, like Twilight Princess and The Wind Waker; Hyrule Warriors has no player-named hero.

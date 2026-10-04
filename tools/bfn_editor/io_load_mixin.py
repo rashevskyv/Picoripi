@@ -19,7 +19,7 @@ class IoLoadMixin:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             tr('Open BFN Font or choose Cancel for extracted folder'),
-            filter=tr('Fonts (*.bfn *.bffnt *.g1t *.gz);;All Files (*)')
+            filter=tr('Fonts (*.bfn *.bffnt *.g1t *.g1n *.gz);;All Files (*)')
         )
         if path:
             self.open_font_file(path)

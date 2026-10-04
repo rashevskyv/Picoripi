@@ -1754,7 +1754,7 @@
   "The request failed; see the log.": "Запит не вдався; подробиці в журналі.",
   "(same text elsewhere)": "(той самий текст в іншому місці)",
   "Source: saved for the same text elsewhere in the project": "Джерело: збережено для того самого тексту в іншому місці проєкту",
-  "Fonts (*.bfn *.bffnt *.g1t *.gz);;All Files (*)": "Шрифти (*.bfn *.bffnt *.g1t *.gz);;Усі файли (*)",
+  "Fonts (*.bfn *.bffnt *.g1t *.g1n *.gz);;All Files (*)": "Шрифти (*.bfn *.bffnt *.g1t *.g1n *.gz);;Усі файли (*)",
   "A G1T texture has no character grid of its own; open it from a project whose game plugin describes it.": "Текстура G1T не має власної сітки символів; відкрийте її з проєкту, плагін гри якого її описує.",
   "Loading font: {0}...": "Завантаження шрифту: {0}...",
   "Failed to open font: {0}": "Не вдалося відкрити шрифт: {0}",
