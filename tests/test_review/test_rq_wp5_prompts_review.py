@@ -147,11 +147,12 @@ def _run_block(qapp, config, tmp_path, plugin="zelda_bmg"):
         server.close()
 
 
-def test_the_editor_review_pass_is_off_by_default(qapp, tmp_path):
-    from core.translation.config import build_default_translation_config
+def test_the_review_pass_is_on_by_default_and_a_config_can_switch_it_off(qapp, tmp_path):
+    import core.translation.config as translation_config
 
-    assert build_default_translation_config()["editor_review_enabled"] is False
-    requests, chunks, context = _run_block(qapp, {}, tmp_path)
+    # Shipped on (tests/conftest.py switches the default off for the request-counting fakes).
+    assert "DEFAULT_REVIEW_ENABLED = True" in Path(translation_config.__file__).read_text(encoding="utf-8")
+    requests, chunks, context = _run_block(qapp, {"review_enabled": False}, tmp_path)
 
     assert context["enable_editor_review"] is False
     assert len(requests) == 1 and requests[0]["messages"][0]["content"] == "TRANSLATE SYSTEM"
@@ -162,7 +163,7 @@ def test_the_editor_review_pass_is_off_by_default(qapp, tmp_path):
 def test_switched_on_each_chunk_gets_a_review_turn_in_its_own_conversation(qapp, tmp_path, plugin):
     from handlers.translation.prompt_composer.instructions import REVIEW_REQUEST
 
-    requests, chunks, context = _run_block(qapp, {"editor_review_enabled": True}, tmp_path, plugin)
+    requests, chunks, context = _run_block(qapp, {"review_enabled": True}, tmp_path, plugin)
 
     assert context == {"enable_editor_review": True}
     assert len(requests) == 2

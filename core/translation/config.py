@@ -19,6 +19,11 @@ def merge_translation_config(base: Dict, custom: Dict) -> Dict:
             
     return merged
 
+# The review pass runs unless the translation config says otherwise (owner's call after the Minish Cap
+# measurement, 2026-10-04). Read when the default config is built.
+DEFAULT_REVIEW_ENABLED = True
+
+
 def build_default_translation_config() -> dict:
     """Create default translation config."""
     return {
@@ -26,8 +31,9 @@ def build_default_translation_config() -> dict:
         "session_mode": "auto",
         "workers": 6,
         # The review pass: a second request per chunk in the translation's own conversation
-        # (REVIEW_REQUEST); "review_model" may name another model for it. Off unless switched on.
-        "editor_review_enabled": False,
+        # (REVIEW_REQUEST); "review_model" may name another model for it. On by default since 2026-10-04;
+        # the old "editor_review_enabled" belonged to the removed editor review and is not read.
+        "review_enabled": DEFAULT_REVIEW_ENABLED,
         # Identical strings (same text, speaker, addressee and window) are sent
         # once per run and share the translation.
         "fold_duplicates": True,

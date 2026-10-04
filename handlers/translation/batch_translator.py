@@ -29,7 +29,7 @@ class AIBatchTranslator(BaseTranslationHandler):
     """Handler for batch and chunked translation operations."""
 
     def _attach_editor_review(self, context: dict) -> None:
-        """Switch the review pass on for the run: ``translation_config["editor_review_enabled"]``.
+        """Switch the review pass on for the run: ``translation_config["review_enabled"]`` (on by default).
 
         The pass is a second request per chunk in the translation's own conversation (``REVIEW_REQUEST``);
         ``translation_config["review_model"]`` names another model for it (a stronger one), otherwise the
@@ -37,7 +37,8 @@ class AIBatchTranslator(BaseTranslationHandler):
         """
         translation_config = getattr(self.mw, 'translation_config', None)
         config = translation_config if isinstance(translation_config, dict) else {}
-        wanted = bool(config.get('editor_review_enabled', False))
+        from core.translation import config as translation_defaults
+        wanted = bool(config.get('review_enabled', translation_defaults.DEFAULT_REVIEW_ENABLED))
         context['enable_editor_review'] = wanted and context.get('enable_editor_review', True)
         if context['enable_editor_review'] and config.get('review_model'):
             context['review_model'] = str(config['review_model'])

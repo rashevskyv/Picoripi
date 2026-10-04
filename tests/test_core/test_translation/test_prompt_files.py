@@ -99,16 +99,16 @@ class TestReviewSwitch:
 
     def test_switched_on_it_runs_with_the_translation_model_or_the_review_model(self):
         context = {"enable_editor_review": True}
-        self._translator({"editor_review_enabled": True})._attach_editor_review(context)
+        self._translator({"review_enabled": True})._attach_editor_review(context)
         assert context == {"enable_editor_review": True}
 
         context = {}
-        self._translator({"editor_review_enabled": True, "review_model": "gemini-3.1-pro"})._attach_editor_review(context)
+        self._translator({"review_enabled": True, "review_model": "gemini-3.1-pro"})._attach_editor_review(context)
         assert context == {"enable_editor_review": True, "review_model": "gemini-3.1-pro"}
 
     def test_a_run_that_declined_the_pass_keeps_it_off(self):
         context = {"enable_editor_review": False}
-        self._translator({"editor_review_enabled": True})._attach_editor_review(context)
+        self._translator({"review_enabled": True})._attach_editor_review(context)
 
         assert context == {"enable_editor_review": False}
 

@@ -138,6 +138,13 @@ def isolate_user_files_for_the_session(tmp_path_factory):
 
 
 @pytest.fixture(autouse=True)
+def review_pass_off_unless_a_test_asks(monkeypatch):
+    """The shipped default runs a review request after every chunk; the fake servers count requests per chunk."""
+    import core.translation.config as translation_config
+    monkeypatch.setattr(translation_config, "DEFAULT_REVIEW_ENABLED", False)
+
+
+@pytest.fixture(autouse=True)
 def isolate_user_files(tmp_path_factory, monkeypatch):
     """Keep each test out of ~/.picoripi, the repo root and the settings an earlier test saved."""
     _point_user_files_at(monkeypatch, tmp_path_factory.mktemp("user_files"))

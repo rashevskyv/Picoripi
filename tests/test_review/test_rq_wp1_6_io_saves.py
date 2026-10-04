@@ -59,7 +59,7 @@ def test_translation_archive_glossary_settings_and_session_are_written_as_before
     assert out["glossary"] == expected_glossary
 
     # Settings: the run's folders are placeholders. The only change is the AI defaults added on purpose by the
-    # audit (WP1 provider "profile"; WP4 fold_duplicates / fixed_output_sections; editor_review_enabled).
+    # audit (WP1 provider "profile"; WP4 fold_duplicates / fixed_output_sections; review_enabled).
     settings = scenario.normalize_settings(out["settings"], root)
     old_bytes = _golden("save_settings.json.bin")
 
@@ -69,7 +69,7 @@ def test_translation_archive_glossary_settings_and_session_are_written_as_before
     old, new = json.loads(old_bytes), json.loads(settings)
     assert dump(old) == old_bytes
     added = set(new["translation_config"]) - set(old["translation_config"])
-    assert added == {"editor_review_enabled", "fold_duplicates", "fixed_output_sections"}
+    assert added == {"review_enabled", "fold_duplicates", "fixed_output_sections"}
     assert set(new["translation_config"]["providers"]["openai"]) - set(old["translation_config"]["providers"]["openai"]) == {"profile"}
     assert settings == dump({**old, "translation_config": new["translation_config"]})
 

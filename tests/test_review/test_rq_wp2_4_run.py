@@ -157,7 +157,7 @@ def test_the_review_pass_sees_the_translation_conversation_and_its_fixes_are_app
     from handlers.translation.prompt_composer.instructions import REVIEW_REQUEST
 
     project = make_project(tmp_path, {"a": ["Hello there.", "Second line\nbelow."]})
-    mw = open_window(qtbot, monkeypatch, project, server, editor_review_enabled=True)
+    mw = open_window(qtbot, monkeypatch, project, server, review_enabled=True)
     review = {}
 
     def fix_one(body):
@@ -179,7 +179,7 @@ def test_the_review_pass_sees_the_translation_conversation_and_its_fixes_are_app
 
 def test_an_unusable_editor_review_keeps_the_draft(qtbot, monkeypatch, tmp_path, server):
     project = make_project(tmp_path, {"a": ["Hello there.", "Second line."]})
-    mw = open_window(qtbot, monkeypatch, project, server, editor_review_enabled=True)
+    mw = open_window(qtbot, monkeypatch, project, server, review_enabled=True)
     server.script[:] = [lambda body: None, lambda body: json.dumps({"translated_strings": []})]
 
     mw.translation_handler.translate_current_block(0)
