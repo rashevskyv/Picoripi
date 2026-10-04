@@ -10,7 +10,7 @@ from core.project_manager import ProjectManager
 from core.project_models import Project
 from handlers.project_action.load_worker import ProjectLoadWorker
 from plugins.testing import check_round_trip
-from plugins.zelda_totk.msbt import Msbt
+from plugins.common.msbt import Msbt
 from plugins.zelda_ww import messages, tags
 from plugins.zelda_ww.rules import GameRules
 

@@ -191,3 +191,23 @@ def test_u8_directories_hold_the_nodes_after_them():
     archive = U8Container(head + bytes(data_off - len(head)) + blob)
     assert sorted(archive.list_files()) == ["arc/timg/a.tpl", "b.bin"]
     assert archive.read_file("arc/timg/a.tpl") == b"AAA"
+
+
+def test_u8_folders_list_their_children_and_an_unedited_repack_keeps_every_byte():
+    # As Nintendo writes it: a folder's data_off is its parent index, its children follow it; no padding
+    # after the last file (Skyward Sword's archives).
+    names = b"\x00dir\x00a.txt\x00b.txt\x00"
+    nodes = struct.pack(">III", 0x01000000, 0, 4)                   # root, 4 nodes
+    nodes += struct.pack(">III", 0x01000000 | 1, 0, 4)              # dir/ (parent 0, ends at 4)
+    nodes += struct.pack(">III", 5, 0x80, 3)                        # dir/a.txt
+    nodes += struct.pack(">III", 11, 0xA0, 2)                       # dir/b.txt
+    head = struct.pack(">IIII", 0x55AA382D, 0x20, len(nodes) + len(names), 0x80) + b"\x00" * 16
+    data = head + nodes + names
+    data += b"\x00" * (0x80 - len(data)) + b"one" + b"\x00" * 29 + b"tw"
+    container = U8Container(data)
+    assert container.list_files() == ["dir/a.txt", "dir/b.txt"]
+    container.write_file("dir/a.txt", b"one")
+    assert container.pack() == data
+    container.write_file("dir/a.txt", b"longer than one")
+    again = U8Container(container.pack())
+    assert again.read_file("dir/a.txt") == b"longer than one" and again.read_file("dir/b.txt") == b"tw"

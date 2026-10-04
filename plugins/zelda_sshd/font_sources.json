@@ -1,0 +1,21 @@
+[
+  {
+    "label": "Dialogue font (normal_00)",
+    "format": "brfnt",
+    "path": ["US/Font/en_US/normal_00.brfnt", "EU/Font/en_GB/normal_00.brfnt"],
+    "font_map": "normal_00_hd.json"
+  },
+  {
+    "label": "Title font (special_00)",
+    "format": "brfnt",
+    "path": ["US/Font/en_US/special_00.brfnt", "EU/Font/en_GB/special_00.brfnt"],
+    "font_map": "special_00_hd.json",
+    "params": {"min_sheets": 2}
+  },
+  {
+    "label": "Small dialogue font (normal_02, Wii)",
+    "format": "brfnt",
+    "path": ["US/Font/en_US/normal_02.brfnt", "EU/Font/en_GB/normal_02.brfnt"],
+    "font_map": "normal_02_wii.json"
+  }
+]

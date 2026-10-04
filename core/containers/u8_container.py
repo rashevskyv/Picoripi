@@ -18,7 +18,7 @@ Binary format (big-endian):
     Nodes (12 bytes each, starting at root_off = 0x20):
         0x00  u16   type        0x0000=file, 0x0100=directory
         0x02  u16   name_off    offset into string table
-        0x04  u32   data_off    for file: offset from file start; for dir: first child index
+        0x04  u32   data_off    for file: offset from file start; for dir: parent index (children follow it)
         0x08  u32   size        for file: bytes; for dir: one-past-last child index
 
     String table: immediately after node array
@@ -203,8 +203,10 @@ class U8Container(BaseArchiveContainer):
             new_data += content
             new_info[node_idx] = (abs_off, len(content))
 
-        pad = (_DATA_ALIGN - len(new_data) % _DATA_ALIGN) % _DATA_ALIGN
-        new_data += b"\x00" * pad
+        # What followed the last file (alignment padding, or nothing) stays as it was.
+        last_end = max((self._nodes[i]["data_off"] + self._nodes[i]["size"] for _, _, i in ordered),
+                       default=self._data_off)
+        new_data += self._raw[last_end:]
 
         # Patch prefix (header + node list + string table)
         prefix = bytearray(self._raw[: self._data_off])

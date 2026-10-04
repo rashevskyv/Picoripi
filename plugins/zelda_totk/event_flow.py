@@ -232,7 +232,7 @@ def display_names(romfs: Path, actors) -> Dict[str, str]:
     An actor variant without its own name (``Npc_Kakariko002_01``) takes the name of the shortest
     prefix that has one (``Npc_Kakariko002`` -> Paya).
     """
-    from .msbt import Msbt
+    from plugins.common.msbt import Msbt
     from .tags import to_editor
     archives = sorted((romfs / "Mals").glob("USen.Product.*.sarc.zs"))
     if not archives:

@@ -15,7 +15,7 @@ from utils.utils import clean_spaces
 
 from . import reference
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
-from .msbt import Msbt
+from plugins.common.msbt import Msbt
 from .tag_manager import TagManager
 from .tags import describe, from_editor, to_editor
 

@@ -10,7 +10,7 @@ from core.project_models import Project
 from handlers.project_action.load_worker import ProjectLoadWorker
 from plugins.testing import check_loads, check_round_trip, check_validator
 from core.containers import sarc as sarc_module
-from plugins.zelda_totk.msbt import Msbt
+from plugins.common.msbt import Msbt
 from plugins.zelda_totk.rules import GameRules
 
 from . import samples

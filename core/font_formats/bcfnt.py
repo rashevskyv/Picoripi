@@ -1,5 +1,6 @@
-"""Nintendo 3DS and Wii U bitmap fonts: BCFNT (``CFNT``), the 3DS flavour of BFFNT 4.0 (``FFNT``, little
-endian, raw sheets) and Wii U BFFNT 3.0 (``FFNT``, big endian, GX2 sheets; format id ``bffnt_wiiu``).
+"""Nintendo 3DS, Wii U and Wii bitmap fonts: BCFNT (``CFNT``), the 3DS flavour of BFFNT 4.0 (``FFNT``, little
+endian, raw sheets), Wii U BFFNT 3.0 (``FFNT``, big endian, GX2 sheets; format id ``bffnt_wiiu``) and Wii
+BRFNT (``RFNT``, big endian, GX sheets; format id ``brfnt``, also Skyward Sword HD on Switch).
 
 Layout: header, ``FINF`` (metrics and the offsets of the other blocks), ``TGLP`` (cell grid; the sheets
 are raw PICA textures), chains of ``CWDH`` (left, glyph width, advance per glyph) and ``CMAP`` (16-bit
@@ -10,6 +11,11 @@ column on the top and left; the model shows the cells without them, so cell pixe
 Wii U: the same blocks in big endian; a sheet is a GX2 surface (BC4, ``2D_TILED_THIN1``, see ``gx2``)
 stored upside down. Only the 4x4 blocks of a redrawn cell are encoded again, so the rest of the sheet
 keeps its bytes. RGBA8 sheets (the button-icon font) open for viewing; editing their pixels is refused.
+
+Wii (NW4R): the 3DS block layout in big endian under a ``RFNT`` header (version, file size at 0x08, header
+size at 0x0C, block count at 0x0E); a sheet is a GX texture in tiles (I4 8x8, high nibble first; I8 and IA4
+8x4; IA8 4x4, alpha byte first), cells ``cell + 1`` apart as on the 3DS. ``min_sheets`` adds blank sheets at
+the end of TGLP, as for Wii U fonts.
 
 Editing: cell pixels, left offsets and advances are written in place; a redrawn glyph's glyph width is
 measured from its ink. New characters are added: a glyph after the last ``CWDH`` range gets a new
@@ -40,8 +46,84 @@ CAFE_RGBA8, CAFE_BC4, CAFE_RGBA8_SRGB = 0, 12, 14
 CAFE_FORMATS = {CAFE_RGBA8: "RGBA8", CAFE_BC4: "BC4", CAFE_RGBA8_SRGB: "RGBA8_SRGB"}
 
 
+# Wii (NW4R GX) sheet formats
+RVL_I4, RVL_I8, RVL_IA4, RVL_IA8 = 0, 1, 2, 3
+RVL_FORMATS = {RVL_I4: "I4", RVL_I8: "I8", RVL_IA4: "IA4", RVL_IA8: "IA8"}
+_RVL_TILES = {RVL_I4: (8, 8, 4), RVL_I8: (8, 4, 8), RVL_IA4: (8, 4, 8), RVL_IA8: (4, 4, 16)}
+
+
 def _endian(data: bytes) -> str:
     return ">" if data[4:6] == b"\xfe\xff" else "<"
+
+
+def _header(data: bytes) -> Tuple[int, int, int]:
+    """``(FINF offset, file size field, block count field)`` of the font header."""
+    if data[:4] == b"RFNT":
+        return struct.unpack_from(">H", data, 0x0C)[0], 0x08, 0x0E
+    return struct.unpack_from(_endian(data) + "H", data, 6)[0], 0x0C, 0x10
+
+
+# -- GX textures (Wii) ---------------------------------------------------------------------------
+
+
+@lru_cache(maxsize=8)
+def _gx_order(width: int, height: int, tile_w: int, tile_h: int) -> Tuple[int, ...]:
+    """The pixel index of every texel of a GX texture in storage order (tiles row by row, rows in a tile)."""
+    return tuple((ty + y) * width + tx + x for ty in range(0, height, tile_h) for tx in range(0, width, tile_w)
+                 for y in range(tile_h) for x in range(tile_w))
+
+
+def _gx_place(texels: bytes, order: Tuple[int, ...], size: int) -> bytes:
+    pixels = bytearray(size)
+    for texel, pixel in zip(texels, order):
+        pixels[pixel] = texel
+    return bytes(pixels)
+
+
+def gx_decode(raw: bytes, fmt: int, width: int, height: int) -> Image.Image:
+    """An RGBA image of a GX I4 / I8 / IA4 / IA8 texture: intensity as grey ink, IA as grey + alpha."""
+    if fmt not in _RVL_TILES:
+        raise ValueError(f"Wii font sheet format {fmt} is not supported (I4, I8, IA4, IA8 are)")
+    tile_w, tile_h, bits = _RVL_TILES[fmt]
+    order, size, dims = _gx_order(width, height, tile_w, tile_h), width * height, (width, height)
+    raw = bytes(raw[:size * bits // 8])
+    if fmt == RVL_I4:
+        nibbles = bytearray(size)
+        nibbles[0::2] = raw.translate(bytes((b >> 4) * 17 for b in range(256)))
+        nibbles[1::2] = raw.translate(bytes((b & 15) * 17 for b in range(256)))
+        return grey_sheet(Image.frombytes("L", dims, _gx_place(bytes(nibbles), order, size)))
+    if fmt == RVL_I8:
+        return grey_sheet(Image.frombytes("L", dims, _gx_place(raw, order, size)))
+    if fmt == RVL_IA4:
+        alpha = _gx_place(raw.translate(bytes((b >> 4) * 17 for b in range(256))), order, size)
+        lum = _gx_place(raw.translate(bytes((b & 15) * 17 for b in range(256))), order, size)
+    else:
+        alpha, lum = _gx_place(raw[0::2], order, size), _gx_place(raw[1::2], order, size)
+    lum_image = Image.frombytes("L", dims, lum)
+    return Image.merge("RGBA", (lum_image, lum_image, lum_image, Image.frombytes("L", dims, alpha)))
+
+
+def gx_encode(image: Image.Image, fmt: int) -> bytes:
+    """The GX texture of an RGBA image (the inverse of ``gx_decode``)."""
+    width, height = image.size
+    tile_w, tile_h, _bits = _RVL_TILES[fmt]
+    order = _gx_order(width, height, tile_w, tile_h)
+    if fmt in (RVL_I4, RVL_I8):
+        ink = coverage(image).tobytes()
+        texels = bytes(ink[pixel] for pixel in order)
+        if fmt == RVL_I8:
+            return texels
+        quantized = texels.translate(bytes(_four_bit(v) for v in range(256)))
+        return bytes(high << 4 | low for high, low in zip(quantized[0::2], quantized[1::2]))
+    red, green, blue, alpha = image.convert("RGBA").split()
+    lum = ImageChops.lighter(ImageChops.lighter(red, green), blue).tobytes()
+    alpha_bytes = alpha.tobytes()
+    lum_texels, alpha_texels = bytes(lum[p] for p in order), bytes(alpha_bytes[p] for p in order)
+    if fmt == RVL_IA4:
+        return bytes(_four_bit(a) << 4 | _four_bit(v) for a, v in zip(alpha_texels, lum_texels))
+    out = bytearray(len(lum_texels) * 2)
+    out[0::2], out[1::2] = alpha_texels, lum_texels
+    return bytes(out)
 
 
 # -- PICA textures (also used by the GZF backend) ------------------------------------------
@@ -143,18 +225,19 @@ def _info(data: bytes) -> Dict[str, Any]:
     """FINF and TGLP fields (offsets are block starts, not the +8 pointers); ``e`` is the byte order."""
     magic = bytes(data[:4])
     cafe = magic == b"FFNT" and data[4:6] == b"\xfe\xff"
-    if magic not in (b"CFNT", b"FFNT") or not (cafe or data[4:6] == b"\xff\xfe"):
-        raise ValueError("Not a 3DS (CFNT / FFNT) or Wii U (FFNT) font")
-    e = ">" if cafe else "<"
-    at = struct.unpack_from(e + "H", data, 6)[0]
+    rvl = magic == b"RFNT" and data[4:6] == b"\xfe\xff"
+    if not rvl and (magic not in (b"CFNT", b"FFNT") or not (cafe or data[4:6] == b"\xff\xfe")):
+        raise ValueError("Not a 3DS (CFNT / FFNT), Wii U (FFNT) or Wii (RFNT) font")
+    e = ">" if cafe or rvl else "<"
+    at = _header(data)[0]
     if data[at:at + 4] != b"FINF":
         raise ValueError("Font without FINF")
-    if magic == b"CFNT":
+    if magic in (b"CFNT", b"RFNT"):
         (_kind, line_feed, _alter, left, glyph_w, char_w, _enc, tglp, cwdh, cmap, height, _width,
-         ascent, _pad) = struct.unpack_from("<BbHbBBBIIIBBBB", data, at + 8)
+         ascent, _pad) = struct.unpack_from(e + "BbHbBBBIIIBBBB", data, at + 8)
         t = tglp - 8
         (cell_w, cell_h, baseline, _max_w, sheet_size, sheets, fmt, columns, rows, sheet_w, sheet_h,
-         sheet_at) = struct.unpack_from("<BBbBIHHHHHHI", data, t + 8)
+         sheet_at) = struct.unpack_from(e + "BBbBIHHHHHHI", data, t + 8)
     else:
         (_kind, height, _width, ascent, line_feed, _alter, left, glyph_w, char_w, _enc,
          tglp, cwdh, cmap) = struct.unpack_from(e + "BBBBHHbBBBIII", data, at + 8)
@@ -163,7 +246,7 @@ def _info(data: bytes) -> Dict[str, Any]:
          sheet_at) = struct.unpack_from(e + "BBBBIHHHHHHI", data, t + 8)
     if data[t:t + 4] != b"TGLP":
         raise ValueError("Font without TGLP")
-    return {"e": e, "cafe": cafe, "height": height, "ascent": ascent, "line_feed": line_feed, "left": left,
+    return {"e": e, "cafe": cafe, "rvl": rvl, "tglp": t, "height": height, "ascent": ascent, "line_feed": line_feed, "left": left,
             "glyph_width": glyph_w, "char_width": char_w, "cwdh": cwdh - 8 if cwdh else 0,
             "cmap": cmap - 8 if cmap else 0, "finf": at, "cell_width": cell_w, "cell_height": cell_h,
             "baseline": baseline, "sheet_size": sheet_size, "sheets": sheets, "format": fmt & 0x7FFF,
@@ -245,6 +328,9 @@ def _model_box(info: Dict[str, int], cell: int) -> Tuple[int, int, int, int]:
 def _textures(data: bytes, info: Dict[str, int]) -> List[Image.Image]:
     if info["cafe"]:
         return [_cafe_decode(data, info, index) for index in range(info["sheets"])]
+    if info["rvl"]:
+        return [gx_decode(data[info["data"] + index * info["sheet_size"]:][:info["sheet_size"]], info["format"],
+                          info["sheet_width"], info["sheet_height"]) for index in range(info["sheets"])]
     size = texture_size(info["format"], info["sheet_width"], info["sheet_height"])
     return [decode(data[info["data"] + index * info["sheet_size"]:][:size], info["format"],
                    info["sheet_width"], info["sheet_height"]) for index in range(info["sheets"])]
@@ -318,7 +404,7 @@ def _model_sheets(info: Dict[str, int], textures: List[Image.Image]) -> List[Ima
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     info = _info(data)
     sheets = _model_sheets(info, _textures(data, info))
-    if info["cafe"] and info["format"] == CAFE_BC4:   # blank sheets for new glyphs (``min_sheets``)
+    if _grows(info):   # blank sheets for new glyphs (``min_sheets``)
         size = (info["columns"] * info["cell_width"], info["rows"] * info["cell_height"])
         sheets += [Image.new("RGBA", size) for _ in range(int(params.get("min_sheets", 0)) - len(sheets))]
     count = info["columns"] * info["rows"] * len(sheets)
@@ -333,7 +419,8 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
              if glyph < count]
     metadata = {
         "header": {"signature": bytes(data[:4]).decode("ascii"), "num_chunks": 4,
-                   "texture_format": (CAFE_FORMATS if info["cafe"] else FORMATS).get(info["format"], info["format"])},
+                   "texture_format": (CAFE_FORMATS if info["cafe"] else RVL_FORMATS if info["rvl"] else FORMATS)
+                   .get(info["format"], info["format"])},
         "INF1": [{"encoding": 1, "ascent": info["baseline"], "descent": max(0, info["height"] - info["ascent"]),
                   "width": info["char_width"], "leading": info["line_feed"], "fallback_code": 0x3F, "unk1": 0}],
         "GLY1": [{"start_glyph": 0, "end_glyph": count - 1, "cell_width": info["cell_width"],
@@ -391,13 +478,17 @@ def _cwdh_block(first: int, entries: List[Tuple[int, int, int]], e: str = "<") -
 
 def _finf_pointer_offsets(data: bytes) -> Tuple[int, int]:
     """Offsets in FINF of the CWDH and CMAP pointers."""
-    return (0x14, 0x18) if data[:4] == b"CFNT" else (0x18, 0x1C)
+    return (0x14, 0x18) if data[:4] in (b"CFNT", b"RFNT") else (0x18, 0x1C)
 
 
-def _cafe_add_sheets(data: bytes, info: Dict[str, Any], extra: int) -> bytes:
+def _grows(info: Dict[str, Any]) -> bool:
+    """Blank sheets can be added (``min_sheets``): Wii U BC4 and Wii GX fonts."""
+    return (info["cafe"] and info["format"] == CAFE_BC4) or info["rvl"]
+
+
+def _add_sheets(data: bytes, info: Dict[str, Any], extra: int) -> bytes:
     """``data`` with ``extra`` blank sheets after the last one (inside TGLP); every offset behind them moves."""
-    e, finf = info["e"], info["finf"]
-    tglp = struct.unpack_from(e + "I", data, finf + 0x14)[0] - 8
+    e, finf, tglp = info["e"], info["finf"], info["tglp"]
     insert_at = info["data"] + info["sheets"] * info["sheet_size"]
     if tglp + struct.unpack_from(e + "I", data, tglp + 4)[0] != insert_at:
         raise ValueError("Cannot add sheets: the font's sheet data does not end its TGLP block")
@@ -405,26 +496,29 @@ def _cafe_add_sheets(data: bytes, info: Dict[str, Any], extra: int) -> bytes:
     links = ([at + 12 for at in _chain(data, info["cwdh"], b"CWDH", 12)]
              + [at + 16 for at in _chain(data, info["cmap"], b"CMAP", 16)])
     out = bytearray(data[:insert_at]) + bytes(delta) + bytearray(data[insert_at:])
-    for at in [finf + 0x18, finf + 0x1C] + [link + delta for link in links]:
+    for at in [finf + offset for offset in _finf_pointer_offsets(data)] + [link + delta for link in links]:
         pointer = struct.unpack_from(e + "I", out, at)[0]
         if pointer > insert_at:
             struct.pack_into(e + "I", out, at, pointer + delta)
     struct.pack_into(e + "I", out, tglp + 4, insert_at + delta - tglp)
-    out[tglp + 10] += extra
-    struct.pack_into(e + "I", out, 0x0C, len(out))
+    if info["cafe"]:
+        out[tglp + 10] += extra
+    else:
+        struct.pack_into(e + "H", out, tglp + 16, info["sheets"] + extra)
+    struct.pack_into(e + "I", out, _header(data)[1], len(out))
     return bytes(out)
 
 
 def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, Any]) -> bytes:
     info = _info(original)
     e = info["e"]
-    if info["cafe"] and len(sheets) > info["sheets"]:
+    if _grows(info) and len(sheets) > info["sheets"]:
         # Blank sheets (``min_sheets``) become part of the file only when they got ink or a character.
         per_sheet = info["columns"] * info["rows"]
         inked = [index for index in range(info["sheets"], len(sheets)) if coverage(sheets[index]).getbbox()]
         top = max([info["sheets"] - 1, *inked, *(glyph // per_sheet for glyph in char_map(metadata).values())])
         if top >= info["sheets"]:
-            original = _cafe_add_sheets(original, info, top + 1 - info["sheets"])
+            original = _add_sheets(original, info, top + 1 - info["sheets"])
             info = _info(original)
         sheets = sheets[:info["sheets"]]
     out = bytearray(original)
@@ -453,7 +547,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
             _cafe_write(out, info, index, before, texture)
             continue
         start = info["data"] + index * info["sheet_size"]
-        raw = encode(texture, info["format"])
+        raw = gx_encode(texture, info["format"]) if info["rvl"] else encode(texture, info["format"])
         out[start:start + len(raw)] = raw
 
     def entry(glyph: int, glyph_width: int) -> Tuple[int, int, int]:
@@ -535,6 +629,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         _set_pointer(out, chain[-1] if chain else None, 12 if chain else cwdh_ptr, at, info)
         added_blocks += 1
 
-    struct.pack_into(e + "I", out, 0x0C, len(out))
-    struct.pack_into(e + "H", out, 0x10, struct.unpack_from(e + "H", original, 0x10)[0] + added_blocks)
+    _finf_at, size_at, blocks_at = _header(original)
+    struct.pack_into(e + "I", out, size_at, len(out))
+    struct.pack_into(e + "H", out, blocks_at, struct.unpack_from(e + "H", original, blocks_at)[0] + added_blocks)
     return bytes(out)

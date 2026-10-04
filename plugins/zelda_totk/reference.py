@@ -11,7 +11,7 @@ from typing import Dict, Tuple
 from utils.logging_utils import log_warning
 
 from core.containers import sarc
-from .msbt import Msbt
+from plugins.common.msbt import Msbt
 from .tags import to_editor
 
 # Archive prefix -> reference label. Russian keeps "Russian (RU)": the host shows it first.

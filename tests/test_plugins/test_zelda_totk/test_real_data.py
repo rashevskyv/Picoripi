@@ -7,7 +7,7 @@ from core import font_formats
 from core.font_formats import bfotf
 from core.containers import sarc
 from plugins.zelda_totk import event_flow, font_glyphs, restbl
-from plugins.zelda_totk.msbt import Msbt, Tag
+from plugins.common.msbt import Msbt, Tag
 from plugins.zelda_totk.tags import from_editor, to_editor
 
 ROMFS = Path(r"E:\Emulators\RomHacking\ZELDA\TOTK_UA\romfs")

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 10.4k
+tokens: 10.7k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -114,6 +114,20 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   width limit (1.3x / 1.6x the English).
 - `credits.xml` (names and some English headings) is not opened; the translated credits headings live in
   `localization.xml` (ids 8000+).
+
+## Skyward Sword plugin (`plugins/zelda_sshd`, HD and Wii, 2026-10-04)
+
+- Owner decision: the Ukrainian glyphs are machine drafts (HD `special_00` from the official Russian font; every
+  Wii font scaled from the HD ones, Wii `normal_02` turned into plain fill; Є mirrored from Э, Ґ an upturn on Г)
+  — polish them in the Font Editor; the widths and baselines are already set from the fonts' Latin letters.
+- Eleven control tags keep neutral names (`{ctl7}` `{ctl10}`…`{ctl19}`): their effect was not identified from the
+  text; they round-trip byte for byte.
+- Speakers: 49 % of talk/Fi-window lines; the town files (`100-Town`, `115-Town2`, `118-Town3`…) have many NPCs and
+  no speaker data (the flow an NPC starts is chosen in the executable, not in `room.bzs`).
+- Line limits: HD windows 0, 27, 29, 31 (options, quest log, system) have English lines the HD wraps itself — no limit
+  is set there; lines after `{textSize:-1/-2}` are measured at normal size (they may hold more).
+- The fonts `normal_01`/`special_01` the layouts name are mapped by the executable to the `_00` files (seen working on
+  the title screen); not traced in the code.
 
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 
