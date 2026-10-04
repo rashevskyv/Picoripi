@@ -1,0 +1,18 @@
+[
+  {
+    "label": "Tingle Tuner font (GBA)",
+    "format": "gba_tiles",
+    "path": ["client_u.bin", "res/Gba/client_u.bin", "files/res/Gba/client_u.bin", "../client_u.bin"],
+    "font_map": "tingle_font.json",
+    "params": {
+      "program_offset": "0x1A4",
+      "program_address": "0x0201B000",
+      "tail_pointers": ["0x190", "0x198"],
+      "tiles_address": "0x0202B224",
+      "tiles_room": "0x222C",
+      "glyph_offset": "0x2000",
+      "glyph_count": 256,
+      "advance": 6
+    }
+  }
+]

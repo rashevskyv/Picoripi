@@ -10,6 +10,13 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Tingle Tuner (`plugins/zelda_tingle`, 2026-10-04)
+
+- The GBA keeps 67,584 bytes for the unpacked USA text, only ~1,800 more than the English needs; a longer translation needs the client's buffers moved (the 0x02010800 literals in `client_u.bin`, see `WW_UA\reports\tingle_tuner_report.md`).
+- Text drawn as graphics on the GBA is not translated: the help screen (tiles 0xA0-0xEF of the font block, editable as glyph cells in the Font Editor), "Call", "Please wait...", N/E/S/W on the main screen (OBJ/BG tiles).
+- The Ukrainian glyphs in `WW_UA\translation\files\res\Gba\client_u.bin` are a rough render (Press Start 2P squeezed to 5 px); Б Ґ Ї Й і й need hand drawing.
+- European clients (`client_0`..`4.bin`) have other addresses: no font source or program strings for them yet; their accent codes show as `{xNN}`.
+
 ## Textures window (`core/texture_formats`, 2026-10-04)
 
 - Not encoded yet: ASTC (TotK logo colour/outline layers: 5 textures), BC6H. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), the Wii channel banner (`opening.bnr`: IMET > U8 > LZ77 > U8 > TPL, LZ77 not handled).
