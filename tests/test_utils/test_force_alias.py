@@ -7,6 +7,8 @@ Covers:
 - restore_force_aliases_in_translation: restoring original tags in translated text
 - Edge cases: empty inputs, missing glossary, multiple Force aliases, mixed tags
 """
+import pytest
+
 from utils.force_alias import (
     ForceAliasMapping,
     apply_aliases_to_text,
@@ -391,3 +393,16 @@ def test_the_tag_warning_accepts_the_coloured_name_in_place_of_the_tag():
 
     assert not warns("Hey! {Player}!", "Гей! {Color:Green}Лінку{Color:White}!")
     assert warns("Hey! {Player}, {Color:Red}take it{Color:White}!", "Гей! {Color:Green}Лінку{Color:White}, бери!")
+
+
+@pytest.mark.parametrize("plugin, tag", [("zelda_oot64", "{name}"), ("zelda_mm64", "{name}"),
+                                         ("zelda_totk", "{playerName}")])
+def test_the_hero_tag_of_each_game_goes_out_as_the_declinable_name(plugin, tag):
+    import json
+
+    from utils.constants import plugins_root
+    from utils.force_alias import prepare_text_for_ai
+
+    aliases = json.loads((plugins_root() / plugin / "aliases.json").read_text(encoding="utf-8"))
+    text, maps = prepare_text_for_ai(f"Hey, {tag}!", aliases)
+    assert text == "Hey, Link!" and maps[0].original_tag == tag
