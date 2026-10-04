@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: ui/, components/, dialogs/
-tokens: 8.0k
+tokens: 8.3k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -58,7 +58,12 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - **Game Plugin:** folder under `plugins/` that has `config.json`
    - **Description** (optional)
 3. Plugins currently discovered that way (folder name → **display_name** in `config.json`):
-   - `zelda_bmg` — Zelda: Twilight Princess BMG
+   - `zelda_bmg` — Zelda: Twilight Princess BMG. GameCube, Wii and Wii U (HD) alike: **Source** is the folder with
+     `bmgres*.arc` (`res/Msgus` on GameCube and in the Wii disc's DATA partition, `content/res/Msguk` or `Msgus` in
+     HD); the three share message ids, so speakers, scenes and conversations work the same. HD text adds Wii U
+     control icons (`{U:ZL}`, `{U:L stick}`, `{U:+}`…). Point **Fonts folder** at `res/Fontus` (HD: `res/Fonteu`).
+     HD draws its letters from the textures in `*.pack.gz`, not from the BFN: the workspace build
+     (`TPHD_UA\2_build.bat`) redraws them from the edited BFN sheets
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker HD (Wii U): the `Message/*.msbt` and `Font/*.bffnt` taken out of `content/Common/Pack/permanent_2d_UsEnglish.pack` (one block per MSBT). Tags come from the game's `CKing.msbp` (`[Red]…[/C]`, `[Name]`, `[Wait:10]`, `[A]`); speakers, box width (875 font units in a talk box, 812 in signs and item boxes, 4 lines a page), conversations and glossary terms come from each message's attributes. An unedited file saves byte for byte. Older projects of Kruptar `.txt` dumps still open
    - `zelda_mm64` — Zelda: Majora's Mask (N64): the US ROM itself (`.z64`, `.n64`, `.v64`) is the source file and the translated ROM the translation file. All 4,589 messages in one block; control codes as `{tags}` (zeldaret/mm); line width per textbox type, from the Font Editor's map of the game font once it is saved in the project, else from the game's own width table. Saving rebuilds the text file and the message table from the source ROM and fixes the header checksum. Speakers (one actor per line when the decompilation shows exactly one), scenes and seed glossary terms come from `context.json`, generated offline from zeldaret/mm and the ROM by `python -m plugins.common.zelda64_context`. Ukrainian letters are saved into the font slots of `translation_map.json` (the project's, else the plugin's): look-alike letters share the Latin glyph (А = A, і = i, Ї = Ï…), the rest take accented and unused punctuation slots chosen by width, so English stays readable; Ocarina of Time uses the same map. Load Reference Patch with the folder that holds `mm3d_seed.json` (Ukrainian carried over from Majora's Mask 3D, keyed by N64 message id) shows it as the "Ukrainian (MM3D)" reference

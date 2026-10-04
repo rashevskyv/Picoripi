@@ -4,6 +4,9 @@ import struct
 import json
 from PIL import Image
 
+from core.bfn_core import (GX_8BIT, gx8_encode as _gx8_encode, gx8_texels as _gx8_texels, map_lists_to_pairs,
+                           map_pairs_to_lists)
+
 def align_to(value, alignment):
     if value % alignment == 0:
         return value
@@ -157,7 +160,11 @@ def extract_bfn_logic(bfn_path, output_dir):
                                     
                                     if px < texture_width and py < texture_height:
                                         pixels[px, py] = (intensity, intensity, intensity, alpha)
-                                        
+
+                elif texture_format in GX_8BIT:  # I8 / IA8 (Twilight Princess HD)
+                    for (px, py), (intensity, alpha) in _gx8_texels(texture_format, texture_width, texture_height, sheet_data):
+                        pixels[px, py] = (intensity, intensity, intensity, alpha)
+
                 img.save(os.path.join(output_dir, f"sheet_{s}.png"))
                 
         elif chunk_sig_str == 'MAP1':
@@ -173,8 +180,8 @@ def extract_bfn_logic(bfn_path, output_dir):
                 entries = list(struct.unpack(f'>{entry_count}H', entry_data))
             elif mapping_type == 3:
                 entry_data = chunk_body[8:8+entry_count*4]
-                entries = list(struct.unpack(f'>{entry_count*2}H', entry_data))
-                
+                entries = map_pairs_to_lists(struct.unpack(f'>{entry_count*2}H', entry_data))
+
             map1 = {
                 "mapping_type": int(mapping_type),
                 "first_char": int(first_char),
@@ -331,6 +338,8 @@ def repack_bfn_logic(input_dir, output_bfn_path):
                                 alpha = min(15, max(0, int(round(a / 17.0))))
                                 
                                 sheet_data.append((alpha << 4) | intensity)
+            elif texture_format in GX_8BIT:
+                sheet_data = _gx8_encode(texture_format, texture_width, texture_height, pixels)
             else:
                 raise ValueError(f"Unsupported texture format: {texture_format}")
                 
@@ -377,7 +386,7 @@ def repack_bfn_logic(input_dir, output_bfn_path):
             for entry in entries:
                 writer_buf.extend(struct.pack('>H', entry))
         elif mapping_type == 3:
-            for entry in entries:
+            for entry in map_lists_to_pairs(entries):
                 writer_buf.extend(struct.pack('>H', entry))
         if mapping_type != 0:
             writer_buf.extend(bytes.fromhex(map1.get("tail", ""))[:-len(writer_buf) % 32])

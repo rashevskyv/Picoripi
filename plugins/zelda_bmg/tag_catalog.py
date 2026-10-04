@@ -165,6 +165,25 @@ _GROUP_3 = [
 ]
 
 
+# Group 7: Wii U controls, only in Twilight Princess HD (never in GameCube or Wii text, so these
+# rows change nothing there). Meanings are read from the English HD lines that use them; the HD
+# button textures need an HD dump, so the preview draws vector icons.
+WIIU_BODY = "#5a5a5a"
+_GROUP_7 = [
+    (0x01, "WIIU_LSTICK", "Wii U left stick (move, aim)", "icon", "", _icon("stick", "L", WIIU_BODY)),
+    (0x02, "WIIU_RSTICK", "Wii U right stick (camera, aim)", "icon", "", _icon("stick", "R", WIIU_BODY)),
+    (0x04, "WIIU_RSTICK_PRESS", "Wii U right stick press (first-person view)", "icon", "",
+     _icon("stick", "R", "#7a7a7a")),
+    (0x05, "WIIU_GYRO", "Wii U GamePad motion aiming", "icon", "", _icon("rect", "≋", WIIU_BODY)),
+    (0x06, "WIIU_TARGET", "Wii U targeting button (ZL)", "icon", "", _icon("trigger", "ZL", WIIU_BODY)),
+    (0x07, "WIIU_SHIELD", "Wii U shield / lock-on button (R)", "icon", "", _icon("trigger", "R", WIIU_BODY)),
+    (0x08, "WIIU_MAP", "Wii U map button (−)", "icon", "", _icon("circle", "−", WIIU_BODY)),
+    (0x09, "WIIU_MENU", "Wii U Collection screen button (+)", "icon", "", _icon("circle", "+", WIIU_BODY)),
+    (0x0D, "WIIU_NFC", "Wii U GamePad NFC touch point (amiibo)", "icon", "", _icon("rect", "NFC", WIIU_BODY)),
+    (0x0E, "WIIU_AMIIBO", "amiibo icon", "icon", "", _icon("circle", "a", WIIU_BODY)),
+]
+
+
 _GROUP_4_TEXT = {
     0x00: ("DOLLAR", "Dollar sign", "$"),
     0x01: ("BACKSLASH", "Backslash", "\\"),
@@ -218,7 +237,7 @@ _GROUP_6 = [
 
 
 ESCAPE_TAGS: dict[tuple[int, int], EscapeTagSpec] = {}
-for group, rows in ((0, _GROUP_0), (3, _GROUP_3), (6, _GROUP_6)):
+for group, rows in ((0, _GROUP_0), (3, _GROUP_3), (6, _GROUP_6), (7, _GROUP_7)):
     for code, name, meaning, render, preview_text, icon in rows:
         ESCAPE_TAGS[(group, code)] = EscapeTagSpec(
             group, code, name, meaning, render, preview_text, icon
@@ -274,6 +293,11 @@ TP_CATALOG = EscapeCatalog(
             "WII_NUNCHUK": "Nunchuk", "WII_RETICULE": "pointer",
             "WII_FAIRY": "fairy pointer", "WII_CBTN": "Nunchuk C",
             "WII_ZBTN": "Nunchuk Z",
+        }, True),
+        7: ("U", {
+            "WIIU_LSTICK": "L stick", "WIIU_RSTICK": "R stick", "WIIU_RSTICK_PRESS": "R stick press",
+            "WIIU_GYRO": "motion", "WIIU_TARGET": "ZL", "WIIU_SHIELD": "R", "WIIU_MAP": "−",
+            "WIIU_MENU": "+", "WIIU_NFC": "NFC", "WIIU_AMIIBO": "amiibo",
         }, True),
     },
     name_aliases={

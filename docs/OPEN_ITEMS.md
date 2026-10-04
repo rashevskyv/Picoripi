@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 9.3k
+tokens: 10.0k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -28,6 +28,23 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   (`mempalace_local.db` next to where the application was started), not in the project folder.
 - **`SettingsManager.load_unsaved_session` uses `eval` on keys read from `settings.json`**
   (`core/settings_manager.py`); `ast.literal_eval` is enough.
+
+## Twilight Princess Wii / HD (2026-10-04)
+
+- **No clean English TP HD dump on this PC.** `TPHD_UA\source` is a stand-in: the UK English archives of the
+  Kruptar project (compressed again) with the Russian patch's fonts and size tables, matching the installed
+  Russian build Cemu runs. A decrypted USA/EUR folder (`tphd_game` in `_tools\zelda_env.ini`) gives the real
+  `Msgus`/`Msguk`, `Fontus`/`Fonteu` and size tables.
+- **HD glyph textures live in `res/Font*/*.pack.gz`** (GX2 R8, 2D tiled) and the game draws from them. The
+  workspace build redraws them from the BFN sheets; the Font Editor itself only writes the BFN.
+- **HD width checks use the GameCube font map** (`zelda_bmg/font_map.json`); HD glyph widths are in 54-px cells.
+  Confirm the HD box widths against the game, or measure from the HD font.
+- **HD Wii U icon textures**: group 7 (`{U:…}`) previews are vector icons; take the real ones from an HD dump.
+- **The last glyph's width in a BFN is not editable**: `WID1` holds `last - first + 1` entries, the editor reads
+  `last - first` and keeps the last one as padding (TP HD: `щ` of the Ukrainian map sits on glyph 220).
+- **Carry the GameCube translation over**: Wii and HD share message ids with GameCube; 8,915 Wii and 8,111 HD
+  English lines are word-for-word the GameCube ones. A one-shot copy of the GameCube Ukrainian lines into the Wii
+  and HD projects needs the owner to say which GameCube state is current (the session or `TP_UA\ISO\UA`).
 
 ## Metal Gear Solid: The Twin Snakes (2026-10-04)
 

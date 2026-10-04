@@ -508,5 +508,65 @@
     },
     "{(Nunchuk Z)}": {
         "width": 24
+    },
+    "{escape:7:0001}": {
+        "width": 24
+    },
+    "{U:L stick}": {
+        "width": 24
+    },
+    "{escape:7:0002}": {
+        "width": 24
+    },
+    "{U:R stick}": {
+        "width": 24
+    },
+    "{escape:7:0004}": {
+        "width": 24
+    },
+    "{U:R stick press}": {
+        "width": 24
+    },
+    "{escape:7:0005}": {
+        "width": 24
+    },
+    "{U:motion}": {
+        "width": 24
+    },
+    "{escape:7:0006}": {
+        "width": 24
+    },
+    "{U:ZL}": {
+        "width": 24
+    },
+    "{escape:7:0007}": {
+        "width": 24
+    },
+    "{U:R}": {
+        "width": 24
+    },
+    "{escape:7:0008}": {
+        "width": 24
+    },
+    "{U:−}": {
+        "width": 24
+    },
+    "{escape:7:0009}": {
+        "width": 24
+    },
+    "{U:+}": {
+        "width": 24
+    },
+    "{escape:7:000d}": {
+        "width": 24
+    },
+    "{U:NFC}": {
+        "width": 24
+    },
+    "{escape:7:000e}": {
+        "width": 24
+    },
+    "{U:amiibo}": {
+        "width": 24
     }
 }
