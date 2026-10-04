@@ -78,6 +78,7 @@ class TranslationHandler(
                                                     chunk_cb=self.batch_translator.handle_chunk_translated)
 
         self._glossary_manager = self.glossary_handler.glossary_manager
+        self._series_glossary_manager = self.glossary_handler.series_glossary_manager
         
         self.start_new_session = True
         log_debug(f"TranslationHandler.__init__: start_new_session initialized to {self.start_new_session}")

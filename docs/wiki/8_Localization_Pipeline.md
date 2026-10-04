@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-02
+updated: 2026-10-03
 owns: core/glossary_build, core/glossary
-tokens: 3.5k
+tokens: 4.0k
 purpose: Pipeline wizard: script, glossary build, reconcile
 ---
 # Localization Pipeline
@@ -140,6 +140,15 @@ Chunk size: Local / small (2000), Balanced (4000), Cloud / large (8000).
 - **Reconcile (optional).** After translating, entries that are one term spelled differently or that share a word are compared, one request per group that looks off. Spellings of one term are merged (the other spelling stays as an alias, its translation as a variant); translations are aligned to a shared root. Confirmed entries are never changed. Every change is listed in the report and in the log, and running the pass again changes nothing.
 - **What reaches a translation prompt.** Glossary rows for terms in the text, plurals included (`Rupees` finds `Rupee`). A term found only inside a longer term is not listed on its own (`Lake Hylia`, not also `Hylia`). Entries without a translation are left out. At most 40 rows: confirmed and hand-written entries first, then machine-translated ones; notes are cut to 300 characters in the prompt (the editor keeps the full note).
 - **Storage.** A build pass writes the glossary file every 20 results and at the end, replacing the file in one step. Every entry has a stable `id`. A deleted or merged entry leaves a `deleted_at` record in the file so that a Companion sync does not bring it back; a renamed entry is matched by id. A re-sweep adds evidence to a translated entry instead of resetting it.
+
+#### Series glossary (shared by the games of a series)
+
+One glossary for several projects of the same series (for example every Zelda game). It is a separate `glossary.json`-shaped file, by default in `~/.picoripi/series_glossaries/` (`core/glossary/series.py`); the project keeps only the link (`series_glossary` in the `.uiproj` metadata; a project without it has no series glossary).
+
+- **Link it:** **Glossary…** (`Ctrl+G`) → **Series Glossary...** → **New Empty Series Glossary...**, **Link or Import Series Glossary...** or **Unlink Series Glossary**. A file in the `glossary.json` shape is linked where it is and edited in place. Any other glossary JSON — a `{"terms": [...]}` series document with per-source `renderings`, `recommended`, `status`, `options`, `note`, `aliases` — is converted into the series folder first: `recommended` becomes the translation, each distinct rendering a variant (its sources and extra forms as the rationale), `options` more variants, `category` the category; `agreed`/`resolved` terms are confirmed, `decision`/`proposed` ones stay under review, and the original status, games and reason go to the AI-notes field.
+- **The tab:** the Glossary window shows **Project Glossary** and **Series: <file name>** side by side, with the same table, search, category tabs and editor. Select terms (`Ctrl`/`Shift`+click) and press **Copy to Project Glossary** in the series tab or **Promote to Series Glossary** in the project tab; a term the other glossary already has takes the copied translation and keeps its own fragments and notes. A term both glossaries translate differently is red in both tabs, with the other translation in the tooltip.
+- **In AI prompts:** the project glossary comes first and wins. Series rows are added only for terms of the text the project glossary does not translate, in a separate `series_glossary` field (batch) or **SERIES GLOSSARY** section (single line) marked as lower priority.
+- **Builds** write only the project glossary; the series file changes only through the series tab or **Promote to Series Glossary**.
 
 ### 5. Translate the text (`text`)
 

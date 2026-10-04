@@ -34,7 +34,7 @@ class RenderFontDialog(QtWidgets.QDialog):
         self.orig_glyph_img = None
         self._font_combo_just_focused = False
         
-        # Try to find ascent from BFN Editor metadata for smart default forecasting
+        # Try to find ascent from Font Editor metadata for smart default forecasting
         ascent = 0
         v = parent
         while v and not hasattr(v, 'metadata'):

@@ -1,0 +1,22 @@
+[
+  {
+    "label": "Message font (nes_font_static)",
+    "format": "n64",
+    "path": "*.z64",
+    "font_map": "mm_font.json",
+    "params": {
+      "rom_id": "NZSE",
+      "rom_version": 0,
+      "font_file": 28,
+      "glyph_count": 156,
+      "first_code": "0x20",
+      "widths_file": 31,
+      "widths_offset": "0x12A9B0",
+      "widths_count": 160,
+      "extra_chars": {
+        "0x7F": "º",
+        "0x80": "ÀÁÂÄÇÈÉÊËÌÍÎÏÑÒÓÔÖÙÚÛÜßàáâäçèéêëìíîïñòóôöùúûü¡¿ª"
+      }
+    }
+  }
+]

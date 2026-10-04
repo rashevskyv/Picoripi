@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: feature inventory
-tokens: 14.3k
+tokens: 14.5k
 purpose: Every feature in detail; the wiki wins on a conflict
 ---
 # Picoripi features
@@ -153,6 +153,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 - **Backlog Report Instead of “Done”**: Completion reports show review, ambiguity, untranslated, undescribed, and duplicate counts with direct actions to review the glossary or continue in the editor.
 - **High-Performance Highlighting**: Evaluates text for glossary occurrences instantly using the **Aho-Corasick** algorithm.
 - **Slavic Morphological Matcher**: Uses stemming algorithms to highlight inflected forms of terms (e.g. matching "Меча", "Мечем" for "Меч").
+- **Series Glossary**: one glossary shared by the projects of a game series, linked per project and shown as its own tab of the Glossary window; terms are copied or promoted between it and the project glossary, conflicting translations are marked, and AI prompts use it at lower priority for terms the project glossary lacks ([wiki 8](wiki/8_Localization_Pipeline.md)).
 - **Dynamic Tabbed Interface (`QTabWidget`)**: Categorizes glossary databases into separate semantic tabs ("Characters", "Items", "Locations", etc.) with an "All" master index.
 - **Organize via AI Wizard**:
   - Stage 1: Scans terms and suggests 4 to 7 thematic categories.
@@ -220,6 +221,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 
 ## Nintendo Binary Font (BFN) Editor
 - **Integrated Visual Suite**: Opens, edits, and recompiles `.bfn` fonts embedded within U8/RARC archives.
+- **Every game's font**: The same editor opens the N64 Zelda message font inside the ROM, Hyrule Warriors G1T atlases and Switch BFFNT fonts (`core/font_formats/`). The fonts a plugin names (`get_font_sources`) are listed in the tree for the open project; saving writes the translation copy and `<project>/font_maps/` for the width checks.
 - **Texture Sheet Operations**: Exports/imports sheet PNGs with alpha transparency.
 - **Spreadsheet Glyph Grid**: Edits mapping ranges, Unicode offsets, widths, and kerning. Modifying values automatically triggers font map reloading and text editor guideline recalculations instantly.
 - **Live Simulator**: Renders real-time text layouts to test custom kerning.

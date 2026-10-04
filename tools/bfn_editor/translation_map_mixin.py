@@ -31,6 +31,11 @@ class TranslationMapMixin:
         self.reverse_translation_map = {}
         try:
             mapping_path = self.get_translation_map_path()
+            if mapping_path and not os.path.exists(mapping_path):
+                # A project without its own map starts from the plugin's (saving writes the project's)
+                plugin = getattr(self._main_window(), "active_game_plugin", None) if hasattr(self, "_main_window") else None
+                if plugin:
+                    mapping_path = str(user_plugin_file_or_shipped(plugin, "translation_map.json"))
             if mapping_path and os.path.exists(mapping_path):
                 import json
                 with open(mapping_path, "r", encoding="utf-8") as f:
@@ -198,9 +203,9 @@ class TranslationMapMixin:
                             registered_codes.add(phys_code)
                             mapped_glyphs.add(empty_glyph)
                             orphan_codes_found = True
-                            log_info(f"BFN Editor: Re-registered orphan code {phys_code} ('{virtual_char}') to glyph {empty_glyph}")
+                            log_info(f"Font Editor: Re-registered orphan code {phys_code} ('{virtual_char}') to glyph {empty_glyph}")
                         except StopIteration:
-                            log_error(f"BFN Editor: No empty glyphs left to re-register code {phys_code} ('{virtual_char}')")
+                            log_error(f"Font Editor: No empty glyphs left to re-register code {phys_code} ('{virtual_char}')")
                 
                 if orphan_codes_found:
                     needs_save = True
@@ -214,7 +219,7 @@ class TranslationMapMixin:
                     except Exception as e:
                         log_error(f"Failed to auto-save BFN font during migration: {e}")
                     
-                log_info(f"BFN Editor: Loaded {len(self.translation_map)} characters from translation_map.json.")
+                log_info(f"Font Editor: Loaded {len(self.translation_map)} characters from translation_map.json.")
         except Exception as e:
             log_error(f"Failed to load translation map: {e}")
 

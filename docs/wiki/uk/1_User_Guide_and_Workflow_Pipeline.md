@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-02
+updated: 2026-10-03
 owns: ui/, components/, dialogs/
-tokens: 7.7k
+tokens: 8.7k
 ---
 # Посібник: інтерфейс
 
@@ -60,6 +60,18 @@ tokens: 7.7k
    - `zelda_bmg` — Zelda: Twilight Princess BMG
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker
+   - `zelda_mm64` — Zelda: Majora's Mask (N64): вихідний файл — сам американський ROM (`.z64`, `.n64`, `.v64`), файл перекладу — перекладений ROM. Усі 4589 повідомлень в одному блоці; коди керування як `{теги}` (zeldaret/mm); ширина рядка за мапою шрифту гри з Font Editor, коли її збережено в проєкті, інакше за таблицею ширин самої гри, і за типом вікна. Збереження перебудовує файл тексту й таблицю повідомлень із вихідного ROM і виправляє контрольну суму заголовка. Мовці (один актор на рядок, коли декомпіляція показує рівно одного), сцени й терміни для глосарію беруться з `context.json`, який офлайн створює з zeldaret/mm і ROM команда `python -m plugins.common.zelda64_context`. Зберегти поки можна лише символи, які вже є в шрифті N64. Load Reference Patch із текою, де лежить `mm3d_seed.json` (український текст, перенесений із Majora's Mask 3D за ідентифікаторами повідомлень N64), показує його як референс «Ukrainian (MM3D)»
+   - `zelda_oot64` — Zelda: Ocarina of Time (N64): американський ROM 1.0, так само як `zelda_mm64` (2115 повідомлень; коди з zeldaret/oot)
+   - `zelda_tww` — Zelda: The Wind Waker (GameCube BMG): `res/Msg/bmgres.arc` з американського чи європейського диска (`data0`–`data4` — англійська, німецька, французька, іспанська, італійська). Працює на механізмі Twilight Princess; теги, кольори й ширина рядка взяті з декомпіляції zeldaret/tww, ширина рядка й кількість рядків на сторінці залежать від типу вікна кожного повідомлення. Мовців і рамок вікон поки немає
+   - `zelda_totk` — Zelda: Tears of the Kingdom (Switch). **Source:** здампований `romfs` гри (щонайменше теки
+     `Mals` і `Pack`); **Translation:** `romfs` мода, наприклад `atmosphere/contents/0100F2C0115B6000/romfs`.
+     Кожен `Mals/<Lang>.Product.<ver>.sarc.zs` відкривається як архів, кожен MSBT у ньому — блок; збереження
+     записує архів назад, стиснутий власним zstd-словником гри, — готовий мод для Atmosphere чи емулятора.
+     Потрібні Python 3.14+ і `Pack/ZsDic.pack.zs` з того ж romfs (або його копія в
+     `~/.picoripi/plugins/zelda_totk`). Теги виглядають як `{color:2}`, `{icon:AButton0}`, `{playerName}`; невідомі —
+     `{tag:group:type:hex}`. Ширина рядків: `python -m plugins.zelda_totk.font_tool <font.bfarc.zs> <folder>` робить
+     мапи шрифтів зі шрифтів гри. Коли перекладений архів більшає, запустіть
+     `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>`, щоб гра виділила під нього досить пам’яті.
    - `zelda_hwde` — Zelda: Hyrule Warriors Definitive Edition
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
@@ -131,7 +143,7 @@ tokens: 7.7k
 | Команда | Шорткат | Роль |
 |---------|---------|------|
 | Localization Pipeline… | | Кроки по порядку + статус. Тонкий: кожна кнопка запускає ту саму дію, що й меню |
-| BFN Font Editor… | | Nintendo `.bfn` в окремому вікні; проєкт лишається відкритим. Та сама **мова інтерфейсу**, що й у решті програми |
+| Font Editor… | | Растрові шрифти в окремому вікні; проєкт лишається відкритим. Відкриває Nintendo `.bfn` (Twilight Princess, Wind Waker), шрифт повідомлень у ROM N64 Zelda (OoT, MM), атласи `.g1t` Hyrule Warriors і `.bffnt` Switch. Шрифти самої гри, які називає її плагін, є в дереві шрифтів і відкриваються з проєкту (з копії перекладу, щойно вона є); Save пише копію перекладу, а ширини шрифту разом із мапою перекладу — у `<проєкт>/font_maps/`, звідки їх беруть перевірки ширини. Та сама **мова інтерфейсу**, що й у решті програми |
 | Script Markup Studio… | | Розмітити вокзру (фаза 0 для MemePalace). Див. [9](9_Script_Markup.md) |
 | MemePalace Context Builder… | Ctrl+M | Записати розмічений скрипт у пам’ять сюжету |
 | Prepare Glossary… | | Один автоматичний прохід глосарія |
@@ -173,7 +185,7 @@ tokens: 7.7k
 
 **Language** показує кожен `locales/<code>.json`, у якому вже є переклад. Підпис — поле `@language_name` у тому файлі. Зміна записує `ui_language` і просить перезапуск.
 
-Якщо рядка в каталозі немає, показується англійська. Російської в меню немає. Нові каталоги з’являються після `tools/i18n-translate/run.bat` і перезапуску. **Редактор шрифтів BFN** теж використовує цю мову.
+Якщо рядка в каталозі немає, показується англійська. Російської в меню немає. Нові каталоги з’являються після `tools/i18n-translate/run.bat` і перезапуску. **Редактор шрифтів** теж використовує цю мову.
 
 ---
 
@@ -221,7 +233,7 @@ tokens: 7.7k
 
 Зліва направо (`toolbar_builder.py`):
 
-Save · Undo · Redo · Find · Preview · **AI Batch Translation** (відкриває вікно вибору конвеєра перекладу) · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (розпірка) · **Run External Script** (`>_`) · Shortcuts Help.
+Save · Undo · Redo · Find · Preview · **AI Batch Translation** (відкриває вікно вибору конвеєра перекладу) · **Open AI Chat** (`Ctrl+Shift+C`) · Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (розпірка) · **Run External Script** (`>_`) · Shortcuts Help.
 
 **AI Translate** і **AI Variation** на цьому тулбарі **немає**. Вони над Editable.
 

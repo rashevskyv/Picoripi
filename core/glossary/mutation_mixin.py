@@ -411,6 +411,45 @@ class MutationMixin:
         self._persist()
         return new_entry
 
+    def import_entry(self, source: GlossaryEntry) -> Optional[GlossaryEntry]:
+        """Copy an entry from another glossary (project <-> series glossary).
+
+        A term this glossary lacks arrives whole under a new id, without the
+        description fragments (their row coordinates belong to the other
+        project). A term it already has takes the source's translation and
+        status, and its notes, category, variants and aliases where the source
+        has them; fragments, user notes, speaker state and id stay its own.
+        """
+        key = (source.original or "").strip()
+        if not key:
+            return None
+        now = datetime.now(timezone.utc).isoformat()
+        index = self._index_of(key)
+        entries = list(self._entries)
+        if index is None:
+            entry = replace(source, original=key, fragments=(), id=new_entry_id(), updated_at=now)
+            self._unbury(key)
+            entries.append(entry)
+        else:
+            old = entries[index]
+            entry = replace(
+                old,
+                translation=source.translation,
+                status=source.status,
+                notes=source.notes or old.notes,
+                section=source.section or old.section,
+                translation_variants=source.translation_variants or old.translation_variants,
+                aliases=tuple(dict.fromkeys(old.aliases + source.aliases)),
+                updated_at=now,
+            )
+            entries[index] = entry
+        self._entries = entries
+        if entry.section and entry.section not in self._section_order:
+            self._section_order.append(entry.section)
+        self._session_changes[entry.original] = entry
+        self._persist()
+        return entry
+
     def delete_entry(self, original: str) -> bool:
         """Remove entry."""
         original_key = (original or '').strip()

@@ -55,7 +55,7 @@ def dummy_bfn_bytes():
 def test_bfn_editor_window_init(qapp):
     """Test that BfnEditorWindow initializes properly."""
     editor = BfnEditorWindow()
-    assert editor.windowTitle().startswith("BFN Font Editor")
+    assert editor.windowTitle().startswith("Font Editor")
     assert editor.bfn_path == ""
     assert editor.sheet_images == []
     assert editor.selected_cell is None
@@ -624,7 +624,7 @@ def test_bfn_editor_window_column_widths_persistence(qapp, dummy_bfn_bytes):
 
 
 def test_bfn_editor_window_autosync_and_force_recalculation(qapp, dummy_bfn_bytes):
-    """Test that Auto-sync and Force Recalculation features in BFN Editor window work correctly."""
+    """Test that Auto-sync and Force Recalculation features in the Font Editor window work correctly."""
     from PyQt6 import QtCore
     editor = BfnEditorWindow()
     editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
@@ -685,7 +685,7 @@ def test_bfn_editor_window_autosync_and_force_recalculation(qapp, dummy_bfn_byte
 
 
 def test_bfn_editor_window_dynamic_temp_dir_recreation(qapp, dummy_bfn_bytes):
-    """Test that BFN Editor successfully recreates temp_dir on-the-fly if it was deleted or cleared before save."""
+    """Test that the Font Editor successfully recreates temp_dir on-the-fly if it was deleted or cleared before save."""
     editor = BfnEditorWindow()
     editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")
     
@@ -763,7 +763,7 @@ from unittest.mock import patch
 
 @patch('PyQt6.QtWidgets.QApplication.clipboard')
 def test_bfn_editor_window_copy_paste_chain(mock_clipboard, qapp, dummy_bfn_bytes):
-    """Test that copy and paste chain features in BFN Editor window work correctly with undo/redo."""
+    """Test that copy and paste chain features in the Font Editor window work correctly with undo/redo."""
     clipboard_mock = MagicMock()
     clipboard_text_store = [""]
     def mock_text():

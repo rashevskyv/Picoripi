@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/glossary_build, ui/pipeline_wizard_dialog.py
-tokens: 10.1k
+tokens: 10.3k
 purpose: Pipeline design of record (Ukrainian); shipped vs planned on top
 ---
 # Road Map: наскрізний пайплайн локалізації та майстер-провідник
@@ -65,6 +65,7 @@ purpose: Pipeline design of record (Ukrainian); shipped vs planned on top
 | `get_ai_flow_overview` | те саме для набору рядків — конспект розмов на рівні чанка | те саме |
 | `get_ai_flow_group_for_string` | ідентифікатор розмови, до якої належить рядок; рядки з однаковим ідентифікатором рушій надсилає моделі одним запитом, якщо вони вміщаються | перший запис таблиці потоків (FLI1), що досягає повідомлення, з номером блока |
 | `get_scene_context_for_string` | свідчення про сцену: джерело рядка, ймовірні дійові особи, ймовірні локації, конспект розмови | сценні таблиці етапів + потік |
+| `get_font_sources` | які растрові шрифти гри є в проєкті: шлях або glob, член архіву, формат (`bfn`, `n64`, `g1t`, `bffnt`) і його константи; спільний редактор шрифтів (`core/font_formats`) відкриває, редагує й зберігає їх, а ширини йдуть у перевірки ширини | не потрібен: шрифти TP беруться з теки шрифтів плагіна й блоків проєкту (`font_sources.json` мають WW, OoT/MM N64, HWDE, TotK) |
 | `parse_walkthrough_transcript` | розбір зовнішнього скрипту на сцени, спікерів і репліки | власний парсер формату |
 
 ### 2.2 Хуки можливостей (зроблено в M3–M4)

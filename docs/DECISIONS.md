@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 2.3k
+tokens: 2.5k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -132,3 +132,14 @@ tag cannot take a Ukrainian case ending. A live run showed «Лінку» in the
 translation keeps «Лінк» / «Епона» in the right case as plain text. The names are fixed: the translation does not
 support renaming (the glossary says so for Link). A nominative-only `{Epona}` tag was tried and rejected.
 **Cost.** A hero or horse renamed by the player keeps the Ukrainian default name.
+
+## D16. One font editor; every font format becomes the BFN-shaped model (2026-10)
+
+**Context.** Each new game came with its own font file (N64 ROM font, G1T atlas, BFFNT), and a tool per game
+would have repeated the glyph grid, the width table and the translation map that the BFN editor already has.
+**Decision.** `core/font_formats/` turns each format into the editor's existing model (`data.json` with the BFN
+section names + sheet images) and packs it back into the original bytes; only edited glyphs are encoded again,
+so an unedited font saves byte-exact. A plugin names its fonts with `get_font_sources()` / `font_sources.json`;
+game constants stay in that file. Widths reach the checks through `<project>/font_maps/*.json`.
+**Cost.** The model keeps BFN names (`GLY1`, `MAP1`, `WID1`) for formats that are not BFN; a format whose
+character map is fixed by the game cannot give a new glyph a character (the translation map does that).

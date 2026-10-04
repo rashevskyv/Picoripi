@@ -16,6 +16,8 @@ from PyQt6.QtGui import QPalette, QTextDocument, QAbstractTextDocumentLayout, QC
 _UNREVIEWED_BRUSH = QBrush(QColor("#fff3b0"))
 _MULTI_VARIANT_BRUSH = QBrush(QColor("#e67e22"))
 _NEEDS_REVIEW_BRUSH = _UNREVIEWED_BRUSH
+# A term the project and the series glossary translate differently.
+_CONFLICT_BRUSH = QBrush(QColor("#f8b4b4"))
 # Foreground color for provisional game-code character rows, matching
 # Merge Speakers "Unmatched manual rows".
 _PROVISIONAL_FOREGROUND = QBrush(QColor("#6a1b9a"))

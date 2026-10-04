@@ -1,0 +1,60 @@
+{
+    "display_name": "Zelda: The Wind Waker (GameCube BMG)",
+    "PROBLEM_DEFINITIONS": {
+        "PROBLEM_TAG_WARNING": {
+            "name": "Tag Error",
+            "description": "Mismatch or malformed escape tags in translated text.",
+            "severity": "CRITICAL"
+        },
+        "PROBLEM_WIDTH_EXCEEDED": {
+            "name": "Width Exceeded",
+            "description": "The line width in pixels exceeds the maximum warning threshold.",
+            "severity": "WARNING"
+        }
+    },
+    "CONTROL_CODES": [],
+    "default_tag_mappings": {},
+    "block_names": {},
+    "block_color_markers": {},
+    "newline_display_symbol": "↵",
+    "newline_css": "color: #A020F0; font-weight: bold;",
+    "tag_css": "color: rgba(128, 128, 128, 128); font-style: italic;",
+    "bracket_tag_color_hex": "#ffa500",
+    "preview_wrap_lines": true,
+    "editors_wrap_lines": false,
+    "game_dialog_max_width_pixels": 523,
+    "line_width_warning_threshold_pixels": 507,
+    "use_per_window_layouts": false,
+    "lines_per_page": 4,
+    "autofix_enabled": {
+        "ZBMG_TAG_WARNING": false,
+        "ZBMG_WIDTH_EXCEEDED": false,
+        "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": false,
+        "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": false,
+        "ZBMG_SINGLE_WORD_SUBLINE": false,
+        "ZBMG_SINGLE_WORD_SUBLINE_NON_START": false,
+        "ZBMG_SHORT_LINE": true,
+        "ZBMG_BAD_SPACING": true,
+        "ZBMG_STAR_TAG_RULES": true
+    },
+    "detection_enabled": {
+        "ZBMG_TAG_WARNING": true,
+        "ZBMG_WIDTH_EXCEEDED": true,
+        "ZBMG_EMPTY_ODD_SUBLINE_DISPLAY": true,
+        "ZBMG_EMPTY_FIRST_LINE_OF_PAGE": true,
+        "ZBMG_SINGLE_WORD_SUBLINE": true,
+        "ZBMG_SINGLE_WORD_SUBLINE_NON_START": true,
+        "ZBMG_SHORT_LINE": true,
+        "ZBMG_BAD_SPACING": true,
+        "ZBMG_STAR_TAG_RULES": true
+    },
+    "translation_config": {},
+    "context_menu_tags": {
+        "single_tags": [],
+        "wrap_tags": []
+    },
+    "is_directory_mode": true,
+    "auto_generate_translation_path": false,
+    "fonts_dir_path": "",
+    "orig_fonts_dir_path": ""
+}

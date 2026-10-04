@@ -254,6 +254,7 @@ class BMGFile:
                     parts.append(dat_data[curr_str_start:curr_pos].decode(full_enc))
 
                 msg = BMGMessage(attribs, parts)
+                msg.shares_null = str_offset == 0
                 # Associate ID if MID1 section exists
                 if idx < len(mid_entries):
                     msg.id = mid_entries[idx]
@@ -393,6 +394,15 @@ class BMGFile:
                 if has_ids:
                     # Write a zero ID for null messages to maintain index alignment
                     mid1.extend(struct.pack(se + 'I', 0))
+                continue
+
+            if not msg.parts and getattr(msg, 'shares_null', False):
+                # Read from DAT1 offset 0 (the shared leading null, as in the
+                # retail Wind Waker files): keep pointing there.
+                inf1.extend(struct.pack(se + 'I', 0))
+                inf1.extend(msg.info)
+                if has_ids:
+                    mid1.extend(struct.pack(se + 'I', getattr(msg, 'id', idx)))
                 continue
 
             # Offset is relative to the start of DAT1 data section (after its 8-byte header)

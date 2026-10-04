@@ -2,13 +2,36 @@
 status: current
 updated: 2026-10-03
 owns: unfinished work
-tokens: 6.0k
+tokens: 8.2k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Font editor formats (branch `feat/font-formats`, 2026-10-03)
+
+- **Merge order:** the `font_sources.json` files of `zelda_oot64`, `zelda_mm64`, `zelda_hwde`, `zelda_totk` and
+  `zelda_tww` (and `zelda_hwde/translation_map.json`) sit in folders that only the other branches fill;
+  `plugins/common/n64_rom.py` is a byte-identical copy of the `feat/zelda64` file.
+- **N64 widths do not reach the checks yet:** `Zelda64Rules.calculate_string_width_override` reads its own
+  `FONT_WIDTHS`; after the merge it should take `font_map` widths when given (the editor writes
+  `oot_font.json` / `mm_font.json`). Ukrainian on N64 still needs the user's slot decision and an encoder map.
+- Nothing edited has run in a game or emulator: an N64 ROM with a redrawn glyph, a HWDE `font_eu.g1t` in the
+  LayeredFS mod, a TotK font.
+- TotK: no real font on disk; BFFNT was verified on Cadence of Hyrule and Pokémon SV (Switch, BC4). Its
+  `Font/*.bfarc.zs` needs the TotK plugin's SARC container (registered when that plugin is active) and the
+  project pointing at the romfs (or `Mals`). Texture formats other than BC4 open empty (widths only).
+- BFFNT: the character map (CMAP) and the kerning table are kept, not edited; a glyph with no character
+  cannot get one (the translation map assigns letters to existing glyphs).
+- HWDE: widths are measured from the ink (+4 px) — whether the game has its own table is unknown; edited
+  widths live in the project's `font_maps/hwde_eu.json`. The `../romfs/...` candidate assumes the
+  workspace layout `source/` next to `romfs/` and a translation folder named `romfs`.
+- Opening a font and listing archive members still reads the archive on the UI thread (small files);
+  the old BFN paths (`load_bfn`, saving a BFN) are synchronous as before.
+- Next formats: 3DS BCFNT (CIAs still encrypted), Tingle Tuner (GBA), Cadence of Hyrule (its BFFNT already
+  opens), Wii U BFFNT (big endian, GX2 tiling).
 
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 
@@ -27,6 +50,18 @@ the line when it is done or moved into a plan.
   the profile.
 - A settings file saved from the Ukrainian interface may hold `"provider": "вимкнено"` (the provider ids went
   through `tr()` until 2026-10-03); it loads as an unknown provider.
+
+## Hyrule Warriors DE plugin (`plugins/zelda_hwde`, 2026-10-03)
+
+- Owner decision: the font. `font_eu.g1t` / `font_eu_p.g1t` are cp1252 glyph grids without Cyrillic; the
+  plugin writes Ukrainian into the cp1251 slots, so the atlas must be redrawn there (no font builder yet).
+- Owner decision: also write the translation into the English-EU section (default, `MIRROR_SECTIONS`)?
+  Other languages stay as they are.
+- Not verified in the game: the mod has not run on a Switch or an emulator; the glyph advance widths
+  (`fonts/hwde_eu.json` is measured ink + 4 px) and where the game keeps them are unknown.
+- Voice-line speakers for character ids 18-99 are `chara_NNN` (the names table disagrees there); event and
+  movie scene ids are not tied to story chapters; text inside textures (`ui/caption`, `still_*`) and the
+  executable is not covered.
 
 ## Carried over from the 2026 H1 audit (`docs/history/AUDIT-2026-H1.md`)
 
@@ -277,3 +312,76 @@ the line when it is done or moved into a plan.
   not touched; `.agents/skills/update-wiki/SKILL.md` is the one that was brought up to date.
 - `docs/MEMPALACE_CONTEXT_MANIFESTO.md` takes the stage statuses from the archived plan (last entry
   2026-07-16); nobody re-checked stages 3 and 4 against the code.
+
+## Majora's Mask N64 plugin (`plugins/zelda_mm64`)
+
+- **Ukrainian letters**: the codec only knows the N64 font's characters. A translation map (letter -> font
+  slot) and redrawn glyph textures (`file 28`, 16x16 I4) plus widths (`sNESFontWidths` in `code`) are needed
+  before Cyrillic can be saved. SoH-style ports keep the widths fixed, so slots should be chosen by width.
+- **Relocated text is unverified in a running game**: a save whose text outgrows its 0x6A000-byte range moves
+  `message_data_static` to free address space and rewrites the four `lui`/`addiu` pairs in `z_message.c`
+  (checked statically only). Test ROMs: `MM64_UA\rom\test_edit_blue_rupee.z64`, `test_text_grown_40pct.z64`.
+- **Characters per text box**: `Font.charBuf` holds 120 glyphs per box (`include/z64font.h`); longer Ukrainian
+  boxes may run out. Not checked by the plugin yet.
+- **Credits** (`staff_message_data_static`) are not in the project.
+- **Exports**: a 2Ship2Harkinian `.o2r` (TextMM file) and a Zelda64Recomp `.nrm` (EZ Text Replacer code)
+  from the same project; the Ukrainian MM3D table (`translation_majora.csv`) as a seed for the N64 ids.
+- **Width of runtime values** (`{rupees-total}`, timers) counts as zero.
+
+## Ocarina of Time N64 plugin (`plugins/zelda_oot64`)
+
+- Same open items as Majora's Mask (Ukrainian letters, exports, credits, characters per box). Relocated text
+  rewrites the single `lui`/`addiu` pair that loads the English text on NTSC; untested in a running game
+  (`OOT64_UA\rom\test_edit_green_rupee.z64`, `test_text_grown_40pct.z64`).
+- Only NTSC-U 1.0 is supported; Europe 1.0 (English/German/French) could serve as reference languages.
+
+## Context mined from the N64 decompilations (`plugins/common/zelda64_context.py`)
+
+- Speaker names are decomp descriptions ("Clock Town - Gate-Blocking Soldier", OoT actor names like `En_Go2`
+  where no description exists); a curated name table would read better. Cutscene-only lines, ids computed at
+  run time and Bombers' Notebook entries without a placed actor get no speaker. Report:
+  `E:\Emulators\RomHacking\ZELDA\MM64_UA\reports\context_report.md`.
+
+## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
+
+- **Ukrainian letters in the font**: the US game reads bytes 0x80–0x9F as Shift-JIS lead bytes, so a
+  translation map must not put letters there (Europe: only Hylian boxes do this). Pick the slots before
+  drawing the font.
+- **Runtime suffixes are in the executable**, not in BMG: " Rupee(s)", " bomb(s)", " yard(s)", timers
+  (`tag_*` in `f_op_msg_mng.cpp`). A Ukrainian build needs them patched in `main.dol`, or the text rewritten
+  around a bare number.
+- **No speakers yet**: NPCs pick message ids in code (`getMsg` / `next_msgStatus` per actor), cutscenes through
+  `event_list.dat` `msgNo`. TP's flow-based attribution does not apply.
+- **No window frames** in the preview (`hukidashi_*.blo` in `res/Msg/msgres.arc`) and no `message_window_preview`.
+- **`bmgresh.arc/zel_01.bmg`** (15 Hylian-language messages, Shift-JIS) does not load: the BMG reader maps
+  Shift-JIS to cp1252 for Twilight Princess.
+- **Rebuilding the disc**: the images were extracted with DolphinTool (`files/` + `sys/`); `gcr` packs a
+  `root/` tree, so the pack script in the user's workspace does not work yet.
+
+## Zelda: Tears of the Kingdom plugin (`plugins/zelda_totk`, branch `feat/zelda-totk`)
+
+- **Never run on TotK's own files.** No TotK romfs was on disk; the formats were checked on synthetic files and
+  on another game's `Mals/USen.Product.100.sarc.zs` (Tomodachi Life, same LMS/SARC/zstd stack: 262 MSBTs and the
+  SARC rebuild byte for byte), the font reader on Switch BFFNTs of another game. First real check: open the
+  dumped romfs, save one edited line, load the mod in an emulator.
+- **No speakers or scenes.** TotK's event flows (`.bfevfl` under `romfs/Event`) name who says each message; an
+  offline extractor (like `plugins/zelda_bmg/msg_flow.py` for TP) needs the romfs to be written against. Today a
+  line's context is its MSBT file and label only.
+- **Width limits are placeholders** (900/880 px, 3 lines per page, icon 36 px, `{playerName}` 64 px). Calibrate
+  them against the dialogue font map made by `font_tool` and the game's message window.
+- **RESTBL growth rule is a guess**: the entry grows in proportion to the decompressed archive. Check the value
+  the game needs (crash or not) with a translation that is much longer than English.
+- **Tag catalogue** comes from MSBT Editor's `TotK.gcf`; most group 2 (numbers/strings) and 201 (grammar) tags
+  have no confirmed argument meaning. A tag whose bytes do not fit the catalogue shows as `{tag:G:T:hex}`.
+- **Hero-name colour unknown.** `{playerName}` maps to the `{F:Link}` force alias; whether the engine draws the
+  name in a colour is unchecked. With the romfs, count `{playerName}` lines with and without colour tags around
+  them; if the engine colours it, return the tags from `get_force_alias_wrapping()` (see Plugin Developer Guide,
+  "Force aliases and names drawn in colour").
+
+## Found during the series glossary feature
+
+- The series tab shows no occurrences (Count 0): its occurrence index is not built over the open project.
+- Glossary builds do not consult the series glossary: a term the series already decided is seeded and
+  translated again in the project (the series file itself is never written by a build).
+- Series and project glossary files are read and written on the UI thread, as the project glossary is today.
+- Two programs (or two projects open at once) editing the same series file: the last write wins.

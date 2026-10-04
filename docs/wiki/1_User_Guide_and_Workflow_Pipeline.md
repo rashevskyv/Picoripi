@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-02
+updated: 2026-10-03
 owns: ui/, components/, dialogs/
-tokens: 6.0k
+tokens: 6.7k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -61,6 +61,18 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `zelda_bmg` — Zelda: Twilight Princess BMG
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker
+   - `zelda_mm64` — Zelda: Majora's Mask (N64): the US ROM itself (`.z64`, `.n64`, `.v64`) is the source file and the translated ROM the translation file. All 4,589 messages in one block; control codes as `{tags}` (zeldaret/mm); line width per textbox type, from the Font Editor's map of the game font once it is saved in the project, else from the game's own width table. Saving rebuilds the text file and the message table from the source ROM and fixes the header checksum. Speakers (one actor per line when the decompilation shows exactly one), scenes and seed glossary terms come from `context.json`, generated offline from zeldaret/mm and the ROM by `python -m plugins.common.zelda64_context`. Only characters the N64 font already has can be saved yet. Load Reference Patch with the folder that holds `mm3d_seed.json` (Ukrainian carried over from Majora's Mask 3D, keyed by N64 message id) shows it as the "Ukrainian (MM3D)" reference
+   - `zelda_oot64` — Zelda: Ocarina of Time (N64): the US 1.0 ROM, the same way as `zelda_mm64` (2,115 messages; codes from zeldaret/oot)
+   - `zelda_tww` — Zelda: The Wind Waker (GameCube BMG): `res/Msg/bmgres.arc` of the US or a European disc (`data0`–`data4` are English, German, French, Spanish, Italian). Shares the Twilight Princess machinery; tags, colours and line widths come from the zeldaret/tww decompilation, line width and lines per page follow each message's box type. No speakers or window frames yet
+   - `zelda_totk` — Zelda: Tears of the Kingdom (Switch). **Source:** the game's dumped `romfs` (at least its
+     `Mals` and `Pack` folders); **Translation:** the mod's `romfs`, e.g. `atmosphere/contents/0100F2C0115B6000/romfs`.
+     Every `Mals/<Lang>.Product.<ver>.sarc.zs` opens as an archive and every MSBT inside is a block; saving
+     writes that archive back, compressed with the game's own zstd dictionary, ready for Atmosphere or an
+     emulator mod. Needs Python 3.14+ and `Pack/ZsDic.pack.zs` from the same romfs (or a copy in
+     `~/.picoripi/plugins/zelda_totk`). Tags read `{color:2}`, `{icon:AButton0}`, `{playerName}`; tags it does
+     not know read `{tag:group:type:hex}`. Line widths: `python -m plugins.zelda_totk.font_tool <font.bfarc.zs> <folder>`
+     makes font maps from the game's fonts. When a translated archive grows, run
+     `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>` so the game reserves enough memory for it.
    - `zelda_hwde` — Zelda: Hyrule Warriors Definitive Edition
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
@@ -132,7 +144,7 @@ This is the localization pipeline plus utilities. Prefer **Localization Pipeline
 | Command | Shortcut | Role |
 |---------|----------|------|
 | Localization Pipeline… | | Ordered steps + status. Thin: every button runs the same action as the menu |
-| BFN Font Editor… | | Nintendo `.bfn` in a separate window; the project stays open. Uses the same **Language** as the rest of the app |
+| Font Editor… | | Bitmap fonts in a separate window; the project stays open. Opens Nintendo `.bfn` (Twilight Princess, Wind Waker), the message font inside an N64 Zelda ROM (OoT, MM), Hyrule Warriors `.g1t` atlases and Switch `.bffnt`. The game's own fonts, named by its plugin, are listed in the font tree and open from the project (the translation copy once there is one); Save writes the translation copy and the font's widths with the translation map to `<project>/font_maps/`, which the width checks read. Uses the same **Language** as the rest of the app |
 | Script Markup Studio… | | Mark a walkthrough (Phase 0 for MemePalace). See [9](9_Script_Markup.md) |
 | MemePalace Context Builder… | Ctrl+M | Weave the marked script into story memory |
 | Prepare Glossary… | | One automatic glossary pass |
@@ -174,7 +186,7 @@ The menu lists only bookmarks for the **open project**. They are stored in that 
 
 **Language** lists every `locales/<code>.json` that already has UI translations. The label is `@language_name` inside that file (English, Українська, …). Changing it writes `ui_language` and asks for a restart.
 
-A missing string in the chosen catalog is shown in English. Russian is never listed. Fill more catalogs with `tools/i18n-translate/run.bat`; they appear in the menu after a restart. **BFN Font Editor** uses this language too.
+A missing string in the chosen catalog is shown in English. Russian is never listed. Fill more catalogs with `tools/i18n-translate/run.bat`; they appear in the menu after a restart. **Font Editor** uses this language too.
 
 ---
 
@@ -222,7 +234,7 @@ Shortcuts listed in F1:
 
 Left to right (`toolbar_builder.py`):
 
-Save · Undo · Redo · Find · Preview · **AI Batch Translation** (opens pipeline mode chooser) · **Open AI Chat** (`Ctrl+Shift+C`) · BFN Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (spacer) · **Run External Script** (`>_`) · Shortcuts Help.
+Save · Undo · Redo · Find · Preview · **AI Batch Translation** (opens pipeline mode chooser) · **Open AI Chat** (`Ctrl+Shift+C`) · Font Editor · **Rescan All** (`Ctrl+Shift+R`) · Settings · (spacer) · **Run External Script** (`>_`) · Shortcuts Help.
 
 **AI Translate** and **AI Variation** are **not** on this toolbar. They sit above Editable.
 

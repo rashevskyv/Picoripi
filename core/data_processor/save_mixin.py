@@ -101,6 +101,7 @@ class SaveMixin:
                     ))
 
                     final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)
+                    final_obj_to_save = self._keep_edited_fonts(trans_path, final_obj_to_save)
 
                     save_file_success, _save_error = formats.write_file(
                         self.mw.current_game_rules, trans_path, final_obj_to_save, unknown=formats.UNKNOWN_IS_TEXT
@@ -192,6 +193,32 @@ class SaveMixin:
             log_error(f"Error during save implementation: {e}", exc_info=True)
             errors.append(str(e))
             return False, warnings, errors
+
+    def _keep_edited_fonts(self, trans_path: str, saved: Any) -> Any:
+        """A text file that also holds a game font (an N64 ROM) keeps the font edited in the font editor.
+
+        Such a plugin rebuilds the file from its source, while the font editor wrote its glyphs
+        and widths into the translation copy; they are carried into the rebuilt bytes.
+        """
+        rules = self.mw.current_game_rules
+        if not isinstance(saved, (bytes, bytearray)) or not hasattr(rules, "get_font_sources"):
+            return saved
+        if not Path(trans_path).is_file():
+            return saved
+        try:
+            from core import font_formats
+            from core.font_formats.sources import resolve
+            whole_files = [d for d in rules.get_font_sources() if not d.get("member")]
+            for source in resolve(whole_files, self.mw.project_manager.project.metadata):
+                if not font_formats.is_supported(source.format) or not source.translation_path:
+                    continue
+                if Path(source.translation_path).resolve() != Path(trans_path).resolve():
+                    continue
+                saved = font_formats.carry_over(source.format, Path(trans_path).read_bytes(), bytes(saved),
+                                                source.params)
+        except Exception as error:
+            log_warning(f"Could not keep the edited font in {trans_path}: {error}", category="file_ops")
+        return saved
 
     def _existing_versions(self, trans_file_rel: str):
         """The bytes of a project file as it exists now: the translation copy, then the source.
