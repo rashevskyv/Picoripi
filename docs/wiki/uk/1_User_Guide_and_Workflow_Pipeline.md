@@ -60,6 +60,15 @@ tokens: 7.7k
    - `zelda_bmg` — Zelda: Twilight Princess BMG
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker
+   - `zelda_totk` — Zelda: Tears of the Kingdom (Switch). **Source:** здампований `romfs` гри (щонайменше теки
+     `Mals` і `Pack`); **Translation:** `romfs` мода, наприклад `atmosphere/contents/0100F2C0115B6000/romfs`.
+     Кожен `Mals/<Lang>.Product.<ver>.sarc.zs` відкривається як архів, кожен MSBT у ньому — блок; збереження
+     записує архів назад, стиснутий власним zstd-словником гри, — готовий мод для Atmosphere чи емулятора.
+     Потрібні Python 3.14+ і `Pack/ZsDic.pack.zs` з того ж romfs (або його копія в
+     `~/.picoripi/plugins/zelda_totk`). Теги виглядають як `{color:2}`, `{icon:AButton0}`, `{playerName}`; невідомі —
+     `{tag:group:type:hex}`. Ширина рядків: `python -m plugins.zelda_totk.font_tool <font.bfarc.zs> <folder>` робить
+     мапи шрифтів зі шрифтів гри. Коли перекладений архів більшає, запустіть
+     `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>`, щоб гра виділила під нього досить пам’яті.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

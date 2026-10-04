@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- New plugin `zelda_totk` (Zelda: Tears of the Kingdom): opens `romfs/Mals/*.sarc.zs` (zstd SARC of MSBTs, game dictionary from `Pack/ZsDic.pack.zs`, Python 3.14 `compression.zstd`), shows tags readably (`{color:2}`, `{icon:AButton0}`, raw `{tag:G:T:hex}` otherwise), saves a drop-in mod archive (unchanged input is byte-identical), gives each line its MSBT file and label as context; offline tools for font widths from BFFNT (`font_tool`) and the resource size table (`restbl`).
+
 ## [0.3.150-dev] - 2026-10-02
 
 - wp7 7.6: `tests/test_docs/` checks that backticked repository paths and relative links in the README, AGENTS.md, the wiki, ARCHITECTURE, ENGINEERING, DECISIONS, FEATURES and INDEX exist, that every Ukrainian wiki page has the same section structure as the English one, that the version is not repeated outside `utils/constants.py`, that the entry documents stay within their token budgets and that `docs/PLUGIN_CONTRACT.md` is what the spec generates (it found a moved dialog path in wiki 2, a run-time folder named as a repository path in wiki 12 and a section missing from the Ukrainian wiki 7 — fixed). All 266 modules without a module docstring got a one-line one; `tests/test_architecture/test_module_docstrings.py` fails on a new bare module. New `docs/DECISIONS.md`: fourteen short records of why the code is the way it is.

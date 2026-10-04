@@ -61,6 +61,15 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `zelda_bmg` — Zelda: Twilight Princess BMG
    - `zelda_mc` — The Legend of Zelda: The Minish Cap
    - `zelda_ww` — Zelda: The Wind Waker
+   - `zelda_totk` — Zelda: Tears of the Kingdom (Switch). **Source:** the game's dumped `romfs` (at least its
+     `Mals` and `Pack` folders); **Translation:** the mod's `romfs`, e.g. `atmosphere/contents/0100F2C0115B6000/romfs`.
+     Every `Mals/<Lang>.Product.<ver>.sarc.zs` opens as an archive and every MSBT inside is a block; saving
+     writes that archive back, compressed with the game's own zstd dictionary, ready for Atmosphere or an
+     emulator mod. Needs Python 3.14+ and `Pack/ZsDic.pack.zs` from the same romfs (or a copy in
+     `~/.picoripi/plugins/zelda_totk`). Tags read `{color:2}`, `{icon:AButton0}`, `{playerName}`; tags it does
+     not know read `{tag:group:type:hex}`. Line widths: `python -m plugins.zelda_totk.font_tool <font.bfarc.zs> <folder>`
+     makes font maps from the game's fonts. When a translated archive grows, run
+     `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>` so the game reserves enough memory for it.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
