@@ -38,6 +38,17 @@ def test_yaz0_back_reference_decompression():
     decompressed = decompress(compressed_data)
     assert decompressed == b"A" * 20
 
+
+def test_yaz0_run_that_overlaps_itself_and_is_cut_by_the_size():
+    # Two literals "AB", then a run of 19 bytes at distance 2 into a 12-byte output.
+    header = b"Yaz0" + struct.pack(">I", 12) + b"\x00" * 8
+    assert decompress(header + b"\xC0" + b"AB" + b"\x00\x01\x01") == b"AB" * 6
+
+
+def test_yaz0_group_of_eight_literals():
+    header = b"Yaz0" + struct.pack(">I", 9) + b"\x00" * 8
+    assert decompress(header + b"\xFF" + b"ABCDEFGH" + b"\x80" + b"I") == b"ABCDEFGHI"
+
 def test_container_manager_autodetect():
     # Test RARC detection
     rarc_data = b"RARC" + b"\x00" * 28
@@ -154,3 +165,10 @@ def test_yaz0_compression_ratio_against_original():
     # Ensure it is 100% losslessly decompressible back to the same data
     decompressed_new = decompress(compressed_new)
     assert decompressed_new == decompressed
+
+
+def test_yaz0_limit_decompresses_only_the_first_bytes():
+    data = b"RARC" + bytes(range(256)) * 40
+    assert decompress(compress(data), limit=4) == b"RARC"
+    assert RarcContainer.can_handle(compress(data)) is True
+    assert U8Container.can_handle(compress(data)) is False

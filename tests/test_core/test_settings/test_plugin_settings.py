@@ -298,3 +298,32 @@ def test_PluginSettings_load_merges_autofix_and_detection_with_defaults(dummy_mw
     # ZMC_SHORT_LINE detection should be True (from plugin defaults)
     assert dummy_mw.detection_enabled.get("ZMC_SHORT_LINE") is True
 
+
+
+def test_reading_the_settings_again_reuses_the_loaded_reference(dummy_mw, tmp_path):
+    """Opening a project reads its settings more than once; the reference archives are parsed once."""
+    class CountingRules:
+        loads = 0
+
+        def supports_reference_patch(self):
+            return True
+
+        def load_multi_reference(self, patch_path, block_names=None):
+            self.loads += 1
+            return {"German (DE)": {(0, 0): "Hallo"}}
+
+    project_settings = tmp_path / "project_settings.json"
+    project_settings.write_text(json.dumps({"reference_patch_path": str(tmp_path)}), encoding="utf-8")
+    dummy_mw.current_game_rules = CountingRules()
+    ps = PluginSettings(dummy_mw)
+    ps._get_plugin_config_path = lambda: None
+    ps._get_project_settings_path = lambda: project_settings
+
+    ps.load({})
+    ps.load({})
+    assert dummy_mw.current_game_rules.loads == 1
+    assert dummy_mw.reference_languages_data == {"German (DE)": {(0, 0): "Hallo"}}
+
+    dummy_mw.current_game_rules = CountingRules()          # another plugin instance: parsed again
+    ps.load({})
+    assert dummy_mw.current_game_rules.loads == 1

@@ -91,7 +91,7 @@ class RarcContainer(BaseArchiveContainer):
             # Peek inside: decompress only enough to check inner magic.
             # For small archives this is fast; for large ones Yaz0 is O(n) but still fast.
             try:
-                inner = yaz0.decompress(data)
+                inner = yaz0.decompress(data, limit=4)
                 return inner[:4] == _RARC_MAGIC
             except Exception:
                 return False

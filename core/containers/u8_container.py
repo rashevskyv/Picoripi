@@ -58,7 +58,7 @@ class U8Container(BaseArchiveContainer):
             return True
         if data[:4] == _YAZ0_MAGIC:
             try:
-                inner = yaz0.decompress(data)
+                inner = yaz0.decompress(data, limit=4)
                 return inner[:4] == _U8_MAGIC
             except Exception:
                 return False
