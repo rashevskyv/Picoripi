@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 2.5k
+tokens: 2.8k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -132,6 +132,12 @@ tag cannot take a Ukrainian case ending. A live run showed «Лінку» in the
 translation keeps «Лінк» / «Епона» in the right case as plain text. The names are fixed: the translation does not
 support renaming (the glossary says so for Link). A nominative-only `{Epona}` tag was tried and rejected.
 **Cost.** A hero or horse renamed by the player keeps the Ukrainian default name.
+
+## D17. Text textures: one window, the game's own format, only changed blocks re-encoded (2026-10)
+
+**Context.** Every game bakes some words into textures (title cards, menu labels, logos), in a dozen formats inside nested archives. The translator redraws them in an image editor of their choice.
+**Decision.** `core/texture_formats/` reads a texture file into RGBA images and writes images of the same size back in place: a pixel format is a `Codec` over elements (a GX/PICA tile, a 4x4 block or a pixel), the console tilings give the element offsets, and only elements whose pixels changed are encoded again, so an unedited texture writes byte-exact and an edit costs no quality elsewhere. A plugin names its textures in `texture_sources.json`; containers and compression are found by their bytes, the rest are descriptor params. No PNG round trip through Picoripi's own drawing: the user's image editor does the redraw.
+**Cost.** A texture cannot change size or format; formats without an encoder here (ASTC) or inside models (BMD/BDL/BFRES) are listed as next work. Pure-Python ETC1/BC7 encoding takes seconds for a large texture (in a worker).
 
 ## D16. One font editor; every font format becomes the BFN-shaped model (2026-10)
 

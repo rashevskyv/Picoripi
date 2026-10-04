@@ -7,13 +7,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import utils.utils as width_utils
-from core.containers import ContainerManager
+from core.containers import ContainerManager, sarc
 from plugins.base_game_rules import BaseGameRules
 from utils.constants import SETTINGS_DIR
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import reference, sarc
+from . import reference
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .msbt import Msbt
 from .tag_manager import TagManager

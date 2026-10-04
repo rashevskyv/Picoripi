@@ -79,6 +79,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_font_sources", "The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, "
              "g1n, bffnt, bcfnt, bffnt_wiiu, qbf, gzf, bfotf, mgs), path, member, font_map, params}]. Default: font_sources.json in the plugin folder.",
              call=(), returns=list),
+        Hook("get_texture_sources", "The game's textures with text for the Textures window: [{label, kind, format (bti, "
+             "bflim, ctpk, bntx, raw), path, member, params}]. Default: texture_sources.json in the plugin folder.",
+             call=(), returns=list),
     )),
     ('Problems and autofix', (
         Hook("get_problem_definitions", "Problem id -> {name, color, priority, description}.",

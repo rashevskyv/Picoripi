@@ -4,7 +4,7 @@ import zlib
 
 import pytest
 
-from plugins.zelda_totk import sarc as sarc_module
+from core.containers import sarc as sarc_module
 from plugins.zelda_totk.font_tool import font_map
 from plugins.zelda_totk.msbt import EndTag, Msbt, Tag
 from plugins.zelda_totk.restbl import Restbl, grown_size, required_size

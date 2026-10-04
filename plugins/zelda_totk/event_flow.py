@@ -22,7 +22,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from utils.atomic_io import atomic_write_text
 
-from . import sarc
+from core.containers import sarc
 
 _ACTION, _SWITCH, _FORK, _JOIN, _SUBFLOW = range(5)
 # Actors that are not a character: the message comes from the game, a sign, an item window.

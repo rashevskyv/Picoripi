@@ -21,7 +21,7 @@ from typing import Dict
 from core.font_formats import bfotf
 from utils.atomic_io import atomic_write_text
 
-from . import sarc
+from core.containers import sarc
 
 
 def _sections(raw: bytes, e: str):

@@ -2,13 +2,22 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 9.3k
+tokens: 9.9k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Textures window (`core/texture_formats`, 2026-10-04)
+
+- Not encoded yet: ASTC (TotK logo colour/outline layers: 5 textures), BC6H. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), TPL (Wii channel banner, HOME menu), GC `opening.bnr` (could be a `raw` source at 0x20, `gx:RGB5A3` 96x32).
+- No container yet: Koei RDB (Age of Calamity: 4 groups of BC3/BC1 sprites), Grezzo ZAR/GAR + LZS (OoT3D/MM3D: area/boss cards, day cards — CTXB), TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` tex13/TPL, 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\ZELDA\_textures\drafts`.
+- 3DS games have no plugin: their textures open with File → Open (BFLIM, CTPK, SARC/SZS archives) and are edited in place; a plugin with `texture_sources.json` (drafts `zelda_albw`, `zelda_tfh`) would list them.
+- Majora's Mask `yar` archives have no room to grow in the ROM: an edit that compresses worse than the original is fitted by recompressing every block of the archive optimally; if even that does not fit, the save is refused with the file's size.
+- An archive around an edited texture is laid out anew by its container code (SARC, RARC); Revert restores the texture file byte for byte, not necessarily the archive.
+- Helper to erase the English and render Ukrainian with the game font (later).
 
 ## Startup speed (2026-10-04)
 

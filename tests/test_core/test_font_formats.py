@@ -192,7 +192,7 @@ def _bffnt(ink: Image.Image, cell=7):
     linear = Image.merge("RGBA", (ink, ink, ink, ink.transpose(Image.Transpose.FLIP_TOP_BOTTOM)))
     linear_bc4 = linear.tobytes("bcn", 3)
     blocks = [linear_bc4[i * 16:i * 16 + 8] for i in range(len(linear_bc4) // 16)]
-    addresses = bffnt._block_addresses(w // 4, h // 4, 8, 1)
+    addresses = bffnt.block_addresses(w // 4, h // 4, 8, 1)
     texture = bytearray(max(addresses) + 8)
     for address, block in zip(addresses, blocks):
         texture[address:address + 8] = block

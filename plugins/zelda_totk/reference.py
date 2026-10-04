@@ -10,7 +10,7 @@ from typing import Dict, Tuple
 
 from utils.logging_utils import log_warning
 
-from . import sarc
+from core.containers import sarc
 from .msbt import Msbt
 from .tags import to_editor
 

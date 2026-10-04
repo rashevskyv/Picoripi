@@ -1,5 +1,7 @@
-"""Main window actions: Script Markup, MemPalace, pipeline, BFN editor."""
+"""Main window actions: Script Markup, MemPalace, pipeline, BFN editor, Textures window."""
 from __future__ import annotations
+
+from PyQt6.QtCore import Qt
 
 
 class MainWindowToolsActionsMixin:
@@ -85,6 +87,20 @@ class MainWindowToolsActionsMixin:
     def open_bfn_editor_standalone(self):
         """Open Font Editor as a standalone window (no archive binding)."""
         self.bfn_actions.open_bfn_editor_standalone()
+
+    def open_texture_window(self):
+        """Open the Textures window (one per main window) and list the project's textures."""
+        from ui.texture_window import TextureWindow
+        window = getattr(self.mw, 'texture_window', None)
+        if window is None:
+            window = TextureWindow(self.mw, parent=self.mw)
+            window.setWindowFlag(Qt.WindowType.Window, True)
+            self.mw.texture_window = window
+            window.load_project()
+        window.show()
+        window.raise_()
+        window.activateWindow()
+        return window
 
     def open_bfn_editor_for_block(self, block_idx: int):
         """

@@ -322,6 +322,12 @@ class MenuBuilder:
         )
         tools_menu.addAction(self.mw.bfn_editor_action)
 
+        self.mw.texture_window_action = QAction(tr('&Textures...'), self.mw)
+        self.mw.texture_window_action.setToolTip(
+            tr("<b>Textures</b><br>Click — the game's textures with text (title cards, menu labels): export PNG, redraw, import back into the translation.")
+        )
+        tools_menu.addAction(self.mw.texture_window_action)
+
         # Create a dynamic beautiful icon for Script Markup Studio with letter 'R'
         pixmap_r2 = QPixmap(32, 32)
         pixmap_r2.fill(Qt.GlobalColor.transparent)

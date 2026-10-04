@@ -25,7 +25,7 @@ from typing import Dict, List, Tuple
 from core.font_formats import bfotf
 from utils.atomic_io import atomic_write_bytes
 
-from . import sarc
+from core.containers import sarc
 
 # letter -> (how, source letter)
 UKRAINIAN = {"І": ("map", "I"), "і": ("map", "i"), "Ї": ("map", "Ï"), "ї": ("map", "ï"),

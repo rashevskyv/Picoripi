@@ -19,7 +19,7 @@ from typing import Dict, List, Tuple
 
 from utils.atomic_io import atomic_write_bytes
 
-from . import sarc
+from core.containers import sarc
 
 _HEADER = 0x16
 

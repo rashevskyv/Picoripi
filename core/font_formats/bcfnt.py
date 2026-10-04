@@ -25,7 +25,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageChops
 
-from core.font_formats import Metadata, Sheets, char_map, coverage, gx2, grey_sheet, map_entries, char_code
+from core.font_formats import Metadata, Sheets, char_map, coverage, grey_sheet, map_entries, char_code
+from core.texture_formats import gx2
 
 ADDS_GLYPHS = True  # a typed character gets its own CMAP code (an empty cell, a new CWDH block)
 
