@@ -760,8 +760,8 @@ class BaseGameRules:
         """The game's bitmap fonts, for the font editor to open from a project and save back.
 
         Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
-        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf`` or ``bfotf``); ``path`` -- a
-        path or glob relative to the project's source folder, or a list of them (the first that
+        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``mgs``
+        or ``nftr`` (DS NFTR)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); ``font_map`` (name of the width map the font
         feeds, written to the project's ``font_maps`` folder on save); ``params`` (the format's

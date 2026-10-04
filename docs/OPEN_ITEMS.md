@@ -43,7 +43,11 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - **No clean English TP HD dump on this PC.** `TPHD_UA\source` is a stand-in: the UK English archives of the
   Kruptar project (compressed again) with the Russian patch's fonts and size tables, matching the installed
   Russian build Cemu runs. A decrypted USA/EUR folder (`tphd_game` in `_tools\zelda_env.ini`) gives the real
-  `Msgus`/`Msguk`, `Fontus`/`Fonteu` and size tables.
+  `Msgus`/`Msguk`, `Fontus`/`Fonteu` and size tables. The clean USA disc is now on disk
+  (`TPHD_UA\iso\…(USA) (En,Fr,Es) (Rev 2).wux`, WUP-P-AZAE; WW HD: `WWHD_UA\iso\…`, WUP-P-BCZE), but it cannot be
+  decrypted here: neither the disc keys nor the Wii U common key (`otp.bin`) are on this PC. Needed from the
+  user's own console and discs: `otp.bin` (in `%APPDATA%\Cemu\`) and each disc's `game.key` next to its `.wux`
+  (or hex lines in Cemu's `keys.txt`).
 - **HD glyph textures live in `res/Font*/*.pack.gz`** (GX2 R8, 2D tiled) and the game draws from them. The
   workspace build redraws them from the BFN sheets; the Font Editor itself only writes the BFN.
 - **HD width checks use the GameCube font map** (`zelda_bmg/font_map.json`); HD glyph widths are in 54-px cells.
@@ -54,6 +58,17 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - **Carry the GameCube translation over**: Wii and HD share message ids with GameCube; 8,915 Wii and 8,111 HD
   English lines are word-for-word the GameCube ones. A one-shot copy of the GameCube Ukrainian lines into the Wii
   and HD projects needs the owner to say which GameCube state is current (the session or `TP_UA\ISO\UA`).
+
+## Yo-kai Watch plugin (`plugins/yokai_watch`, 2026-10-04)
+
+- The fonts' new Ukrainian glyphs: seen in Azahar in the main font (ft_nrm); the small font (ft_sml) grew from 405
+  to 417 rows to fit them and no small-font line with Є / Ґ was seen in the game yet.
+- 32 % of map NPC lines have no speaker: their talk is started from event scripts (`.xq`), not the talk tables.
+- Text textures: 594 listed (`texture_sources.json`), none redrawn yet; 15 skill banners still show Japanese.
+- The mod is the whole `yw1_a.fa` (~390 MB); a loose-file override was not tried.
+- Yo-kai Watch 3 (EUR): the dump has English only (`yw_lg_en.fa`), so no reference languages; its 3,368 English
+  textures are not catalogued (the YW1 `texture_sources.json` globs do not match); no script markup yet;
+  15 % of event lines and 27 % of NPC lines have no speaker.
 
 ## Metal Gear Solid: The Twin Snakes (2026-10-04)
 
@@ -123,6 +138,17 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   the old BFN paths (`load_bfn`, saving a BFN) are synchronous as before.
 - Next formats: Tingle Tuner (GBA), Wii U BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already
   opens; the 3DS fonts are done.
+
+## Four Swords Anniversary Edition plugin (`plugins/zelda_fsae`, 2026-10-04)
+
+- Not seen in a game: no DSi emulator on the PC (melonDS + DSi BIOS/firmware/NAND needed; no$gba has no BIOS) and
+  no console run yet. Proven only by `FSAE_UA	oolsender_proof.py` (text through plugin, SRL build and the font).
+- Picture widths (`[icon:N]`, `[button:N]`) are guessed 12 px; the code meanings (`[next:N]`, `[event:N]`,
+  `[player:N]`, colours) are read from the English text, not from the game code.
+- The base is the Russian build: its menu and area-name graphics (`subtask_eu_en.cmp`, `zeldat_eu_en.bin`: NCGR
+  tiles) are Russian; no texture source for them yet, and a clean EU dump is needed for the English ones.
+- `eu.kmsg` may have a size limit in the game (the Russian build shares texts to stay under the original size);
+  `2_build` warns when the Ukrainian file is larger than the Russian one.
 
 ## Cadence of Hyrule plugin (`plugins/zelda_coh`, 2026-10-04)
 
@@ -481,6 +507,10 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   console. CKingPic (RGBA8 button pictures) opens for viewing only.
 - **The entered player name** is typed on a Latin keyboard; `[Name]` shows it undeclined. The Russian translation
   replaced `[Name]` with a fixed «Линк».
+- **French/Spanish references come from the user's Cemu `.wua`**, not from the disc: the `.wua`'s English pack has
+  the original MD5, so its packs are taken as clean, but the WUX (`WWHD_UA\iso`) stays undecrypted (no keys here).
+- **Cemu 2.6 here crashes at boot** (0xc0000409 after "can't initialize tv audio") with Audio API XAudio 2.7, which is
+  not installed; Cubeb works. `3_run.bat` leaves Cemu's settings as they are, so the user switches the audio API once.
 
 ## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
 
