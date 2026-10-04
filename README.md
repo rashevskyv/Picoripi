@@ -22,7 +22,7 @@ The current version is in `utils/constants.py`; what changed is in [CHANGELOG.md
   in a dialog or from a phone through the Companion server.
 - **Tools.** Search and replace with undo, spellcheck, Script Markup Studio, a BFN font editor, in-memory
   repacking of U8/RARC archives with Yaz0.
-- **Plugins.** Zelda: Twilight Princess, The Wind Waker, The Minish Cap, Pokémon FireRed, plain text; a new game
+- **Plugins.** Zelda: Twilight Princess, The Wind Waker, Tears of the Kingdom, The Minish Cap, Pokémon FireRed, plain text; a new game
   is a folder under `plugins/`.
 
 Every feature in detail: [docs/FEATURES.md](docs/FEATURES.md).

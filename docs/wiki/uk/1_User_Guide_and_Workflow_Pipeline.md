@@ -63,6 +63,15 @@ tokens: 7.7k
    - `zelda_mm64` — Zelda: Majora's Mask (N64): вихідний файл — сам американський ROM (`.z64`, `.n64`, `.v64`), файл перекладу — перекладений ROM. Усі 4589 повідомлень в одному блоці; коди керування як `{теги}` (zeldaret/mm); ширина рядка за таблицею ширин самої гри й за типом вікна. Збереження перебудовує файл тексту й таблицю повідомлень із вихідного ROM і виправляє контрольну суму заголовка. Мовці (один актор на рядок, коли декомпіляція показує рівно одного), сцени й терміни для глосарію беруться з `context.json`, який офлайн створює з zeldaret/mm і ROM команда `python -m plugins.common.zelda64_context`. Зберегти поки можна лише символи, які вже є в шрифті N64. Load Reference Patch із текою, де лежить `mm3d_seed.json` (український текст, перенесений із Majora's Mask 3D за ідентифікаторами повідомлень N64), показує його як референс «Ukrainian (MM3D)»
    - `zelda_oot64` — Zelda: Ocarina of Time (N64): американський ROM 1.0, так само як `zelda_mm64` (2115 повідомлень; коди з zeldaret/oot)
    - `zelda_tww` — Zelda: The Wind Waker (GameCube BMG): `res/Msg/bmgres.arc` з американського чи європейського диска (`data0`–`data4` — англійська, німецька, французька, іспанська, італійська). Працює на механізмі Twilight Princess; теги, кольори й ширина рядка взяті з декомпіляції zeldaret/tww, ширина рядка й кількість рядків на сторінці залежать від типу вікна кожного повідомлення. Мовців і рамок вікон поки немає
+   - `zelda_totk` — Zelda: Tears of the Kingdom (Switch). **Source:** здампований `romfs` гри (щонайменше теки
+     `Mals` і `Pack`); **Translation:** `romfs` мода, наприклад `atmosphere/contents/0100F2C0115B6000/romfs`.
+     Кожен `Mals/<Lang>.Product.<ver>.sarc.zs` відкривається як архів, кожен MSBT у ньому — блок; збереження
+     записує архів назад, стиснутий власним zstd-словником гри, — готовий мод для Atmosphere чи емулятора.
+     Потрібні Python 3.14+ і `Pack/ZsDic.pack.zs` з того ж romfs (або його копія в
+     `~/.picoripi/plugins/zelda_totk`). Теги виглядають як `{color:2}`, `{icon:AButton0}`, `{playerName}`; невідомі —
+     `{tag:group:type:hex}`. Ширина рядків: `python -m plugins.zelda_totk.font_tool <font.bfarc.zs> <folder>` робить
+     мапи шрифтів зі шрифтів гри. Коли перекладений архів більшає, запустіть
+     `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>`, щоб гра виділила під нього досить пам’яті.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

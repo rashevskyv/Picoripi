@@ -321,3 +321,19 @@ the line when it is done or moved into a plan.
   Shift-JIS to cp1252 for Twilight Princess.
 - **Rebuilding the disc**: the images were extracted with DolphinTool (`files/` + `sys/`); `gcr` packs a
   `root/` tree, so the pack script in the user's workspace does not work yet.
+
+## Zelda: Tears of the Kingdom plugin (`plugins/zelda_totk`, branch `feat/zelda-totk`)
+
+- **Never run on TotK's own files.** No TotK romfs was on disk; the formats were checked on synthetic files and
+  on another game's `Mals/USen.Product.100.sarc.zs` (Tomodachi Life, same LMS/SARC/zstd stack: 262 MSBTs and the
+  SARC rebuild byte for byte), the font reader on Switch BFFNTs of another game. First real check: open the
+  dumped romfs, save one edited line, load the mod in an emulator.
+- **No speakers or scenes.** TotK's event flows (`.bfevfl` under `romfs/Event`) name who says each message; an
+  offline extractor (like `plugins/zelda_bmg/msg_flow.py` for TP) needs the romfs to be written against. Today a
+  line's context is its MSBT file and label only.
+- **Width limits are placeholders** (900/880 px, 3 lines per page, icon 36 px, `{playerName}` 64 px). Calibrate
+  them against the dialogue font map made by `font_tool` and the game's message window.
+- **RESTBL growth rule is a guess**: the entry grows in proportion to the decompressed archive. Check the value
+  the game needs (crash or not) with a translation that is much longer than English.
+- **Tag catalogue** comes from MSBT Editor's `TotK.gcf`; most group 2 (numbers/strings) and 201 (grammar) tags
+  have no confirmed argument meaning. A tag whose bytes do not fit the catalogue shows as `{tag:G:T:hex}`.

@@ -64,6 +64,15 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `zelda_mm64` — Zelda: Majora's Mask (N64): the US ROM itself (`.z64`, `.n64`, `.v64`) is the source file and the translated ROM the translation file. All 4,589 messages in one block; control codes as `{tags}` (zeldaret/mm); line width from the game's own width table per textbox type. Saving rebuilds the text file and the message table from the source ROM and fixes the header checksum. Speakers (one actor per line when the decompilation shows exactly one), scenes and seed glossary terms come from `context.json`, generated offline from zeldaret/mm and the ROM by `python -m plugins.common.zelda64_context`. Only characters the N64 font already has can be saved yet. Load Reference Patch with the folder that holds `mm3d_seed.json` (Ukrainian carried over from Majora's Mask 3D, keyed by N64 message id) shows it as the "Ukrainian (MM3D)" reference
    - `zelda_oot64` — Zelda: Ocarina of Time (N64): the US 1.0 ROM, the same way as `zelda_mm64` (2,115 messages; codes from zeldaret/oot)
    - `zelda_tww` — Zelda: The Wind Waker (GameCube BMG): `res/Msg/bmgres.arc` of the US or a European disc (`data0`–`data4` are English, German, French, Spanish, Italian). Shares the Twilight Princess machinery; tags, colours and line widths come from the zeldaret/tww decompilation, line width and lines per page follow each message's box type. No speakers or window frames yet
+   - `zelda_totk` — Zelda: Tears of the Kingdom (Switch). **Source:** the game's dumped `romfs` (at least its
+     `Mals` and `Pack` folders); **Translation:** the mod's `romfs`, e.g. `atmosphere/contents/0100F2C0115B6000/romfs`.
+     Every `Mals/<Lang>.Product.<ver>.sarc.zs` opens as an archive and every MSBT inside is a block; saving
+     writes that archive back, compressed with the game's own zstd dictionary, ready for Atmosphere or an
+     emulator mod. Needs Python 3.14+ and `Pack/ZsDic.pack.zs` from the same romfs (or a copy in
+     `~/.picoripi/plugins/zelda_totk`). Tags read `{color:2}`, `{icon:AButton0}`, `{playerName}`; tags it does
+     not know read `{tag:group:type:hex}`. Line widths: `python -m plugins.zelda_totk.font_tool <font.bfarc.zs> <folder>`
+     makes font maps from the game's fonts. When a translated archive grows, run
+     `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>` so the game reserves enough memory for it.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

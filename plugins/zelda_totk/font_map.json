@@ -1,0 +1,140 @@
+{
+    "{playerName}": {
+        "width": 64
+    },
+    "{icon:LStickUp}": {
+        "width": 36
+    },
+    "{icon:LStickDown}": {
+        "width": 36
+    },
+    "{icon:LStickLeft}": {
+        "width": 36
+    },
+    "{icon:LStickRight}": {
+        "width": 36
+    },
+    "{icon:RStickUpDown}": {
+        "width": 36
+    },
+    "{icon:RStickRightLeft}": {
+        "width": 36
+    },
+    "{icon:DPadUp}": {
+        "width": 36
+    },
+    "{icon:DPadDown}": {
+        "width": 36
+    },
+    "{icon:DPadLeft}": {
+        "width": 36
+    },
+    "{icon:DPadRight}": {
+        "width": 36
+    },
+    "{icon:AButton0}": {
+        "width": 36
+    },
+    "{icon:AButton1}": {
+        "width": 36
+    },
+    "{icon:JumpButton0}": {
+        "width": 36
+    },
+    "{icon:YButton}": {
+        "width": 36
+    },
+    "{icon:ZLTrigger0}": {
+        "width": 36
+    },
+    "{icon:ZLTrigger1}": {
+        "width": 36
+    },
+    "{icon:SprintButton0}": {
+        "width": 36
+    },
+    "{icon:SprintButton1}": {
+        "width": 36
+    },
+    "{icon:SprintButton2}": {
+        "width": 36
+    },
+    "{icon:SprintButton3}": {
+        "width": 36
+    },
+    "{icon:SprintButton4}": {
+        "width": 36
+    },
+    "{icon:RBumper0}": {
+        "width": 36
+    },
+    "{icon:LBumper}": {
+        "width": 36
+    },
+    "{icon:PlusButton}": {
+        "width": 36
+    },
+    "{icon:MinusButton}": {
+        "width": 36
+    },
+    "{icon:RightArrow}": {
+        "width": 36
+    },
+    "{icon:LeftArrow}": {
+        "width": 36
+    },
+    "{icon:UpArrow}": {
+        "width": 36
+    },
+    "{icon:DownArrow}": {
+        "width": 36
+    },
+    "{icon:UpRightArrow}": {
+        "width": 36
+    },
+    "{icon:UpLeftArrow}": {
+        "width": 36
+    },
+    "{icon:DownLeftArrow}": {
+        "width": 36
+    },
+    "{icon:DownRightArrow}": {
+        "width": 36
+    },
+    "{icon:LStick}": {
+        "width": 36
+    },
+    "{icon:RStick}": {
+        "width": 36
+    },
+    "{icon:LStickLeftRight}": {
+        "width": 36
+    },
+    "{icon:NintendoSwitch}": {
+        "width": 36
+    },
+    "{icon:JumpButton1}": {
+        "width": 36
+    },
+    "{icon:XButton2}": {
+        "width": 36
+    },
+    "{icon:BButton}": {
+        "width": 36
+    },
+    "{icon:XButton1}": {
+        "width": 36
+    },
+    "{icon:PristineWeaponSparkle}": {
+        "width": 36
+    },
+    "{icon:RBumper1}": {
+        "width": 36
+    },
+    "{icon:DPadUpDown}": {
+        "width": 36
+    },
+    "{icon:RoyalCrest}": {
+        "width": 36
+    }
+}
