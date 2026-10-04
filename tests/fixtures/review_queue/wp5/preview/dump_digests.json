@@ -12,11 +12,11 @@
   "label": "Auto: Stone sign"
  },
  "auto_03_item": {
-  "pixels": "4cb3e0c37a896e51fef7ca478ca1b90362e6420957c34907ae78131c653b1efd",
+  "pixels": "19ab0a7c40ff8aa504af1876ded3fb7fc0e2c8a87ddf3982cf26c971a9db630f",
   "label": "Auto: Item get"
  },
  "auto_04_item_no": {
-  "pixels": "4ddfb29813ec46aa544c2c6b1a17b211065f6d8597bec8ef728b130bd0fdee67",
+  "pixels": "387b84a78fab56dcb7e86dbbf5f41a2b7bf50bbb5f7f28479e5e4e0be54360e5",
   "label": "Auto: Item get"
  },
  "auto_05_place": {

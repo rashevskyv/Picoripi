@@ -1844,7 +1844,7 @@
   "Status": "Статус",
   "Texture": "Текстура",
   "Textures": "Текстури",
-  "Textures and archives (*.bti *.bflim *.bclim *.ctpk *.ctxb *.bntx *.g1t *.gz *.arc *.szs *.sarc *.pack *.zs *.zar *.gar *.lzs);;All Files (*)": "Текстури й архіви (*.bti *.bflim *.bclim *.ctpk *.ctxb *.bntx *.g1t *.gz *.arc *.szs *.sarc *.pack *.zs *.zar *.gar *.lzs);;Усі файли (*)",
+  "Textures and archives (*.bti *.tpl *.bflim *.bclim *.ctpk *.ctxb *.bntx *.g1t *.gz *.arc *.szs *.sarc *.pack *.zs *.zar *.gar *.lzs);;All Files (*)": "Текстури й архіви (*.bti *.tpl *.bflim *.bclim *.ctpk *.ctxb *.bntx *.g1t *.gz *.arc *.szs *.sarc *.pack *.zs *.zar *.gar *.lzs);;Усі файли (*)",
   "The image is {0}x{1}, the texture {2}x{3}. Resize the image to fit?": "Зображення {0}x{1}, а текстура {2}x{3}. Змінити розмір зображення?",
   "This game's plugin names no textures: open a texture file (Ctrl+O).": "Плагін цієї гри не називає текстур: відкрийте файл текстури (Ctrl+O).",
   "Translated": "Переклад",

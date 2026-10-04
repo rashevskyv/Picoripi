@@ -131,3 +131,11 @@ def test_majoras_mask_3d_boss_card_through_lzs_and_gar():
     data, rewrap = sources.unwrap(raw, "tex/boss_name_odoruwa_euen.ctxb", {})
     assert rewrap(data) == raw
     assert _round_trip("ctxb", data)[0].image.size == (256, 64)
+
+
+def test_wii_home_menu_labels_in_tpl_inside_u8():
+    path = _first(str(ZELDA / "TPWII_UA" / "source" / "files" / "res" / "HomeBtn" / "homeBtn_ENG.arc"))
+    raw = path.read_bytes()
+    data, rewrap = sources.unwrap(raw, "arc/timg/tx_btn_00.tpl", {})
+    assert rewrap(data) == raw
+    _round_trip("tpl", data)

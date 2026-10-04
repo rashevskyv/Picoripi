@@ -57,24 +57,20 @@ def _levels(head: Dict[str, int], codec: pixels.Codec):
     return out
 
 
-def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
-    head = _header(data)
+def read_image(data: bytes, head: Dict[str, int]) -> Image.Image:
+    """Level 0 of the GX image ``head`` describes (``format``, ``width``, ``height``, ``data``, ``mips`` and,
+    for a palette format, ``pal_format``, ``pal_count``, ``pal_offset``); TPL uses it too."""
     codec = _codec(head, _palette(data, head) if head["format"] in _PALETTE else None)
-    image = surface.read(data, head["data"], codec, head["width"], head["height"])
-    return [Texture("", image, FORMATS[head["format"]], head["mips"])]
+    return surface.read(data, head["data"], codec, head["width"], head["height"])
 
 
-def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -> bytes:
-    image = images.get(0)
-    if image is None:
-        return data
-    out = bytearray(data)
-    head = _header(data)
+def write_image(out: bytearray, head: Dict[str, int], image: Image.Image) -> bool:
+    """Store ``image`` and its mip levels into ``out``; False when nothing changes."""
     force = False
     palette = None
+    mips = surface.mip_levels(image.convert("RGBA"), head["mips"])
     if head["format"] in _PALETTE:
-        palette = _palette(data, head)
-        mips = surface.mip_levels(image.convert("RGBA"), head["mips"])
+        palette = _palette(out, head)
         used = {colour for level in mips for _n, colour in level.getcolors(maxcolors=1 << 20)}
         if not used <= set(palette):
             palette = _new_palette(out, head, mips)
@@ -82,10 +78,22 @@ def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -
     codec = _codec(head, palette)
     levels = _levels(head, codec)
     if not force and surface.write(bytearray(out), levels[0][0], codec, levels[0][1], levels[0][2], image) == 0:
-        return data
-    for (at, width, height), level_image in zip(levels, surface.mip_levels(image.convert("RGBA"), head["mips"])):
+        return False
+    for (at, width, height), level_image in zip(levels, mips):
         surface.write(out, at, codec, width, height, level_image, force=force)
-    return bytes(out)
+    return True
+
+
+def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
+    head = _header(data)
+    return [Texture("", read_image(data, head), FORMATS[head["format"]], head["mips"])]
+
+
+def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -> bytes:
+    if 0 not in images:
+        return data
+    out = bytearray(data)
+    return bytes(out) if write_image(out, _header(data), images[0]) else data
 
 
 def _new_palette(out: bytearray, head: Dict[str, int], mips: List[Image.Image]) -> List[tuple]:

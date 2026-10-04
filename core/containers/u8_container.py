@@ -135,7 +135,7 @@ class U8Container(BaseArchiveContainer):
         node = self._nodes[node_idx]
         assert node["type"] == _NODE_DIR
 
-        first_child = node["data_off"]   # index of first child node
+        first_child = node_idx + 1       # a directory's children follow it (its data_off is the parent index)
         last_child  = node["size"]       # one-past-last child index
 
         i = first_child

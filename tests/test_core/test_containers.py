@@ -172,3 +172,22 @@ def test_yaz0_limit_decompresses_only_the_first_bytes():
     assert decompress(compress(data), limit=4) == b"RARC"
     assert RarcContainer.can_handle(compress(data)) is True
     assert U8Container.can_handle(compress(data)) is False
+
+
+def test_u8_directories_hold_the_nodes_after_them():
+    # root (0) -> dir "arc" (1, parent 0) -> dir "timg" (2, parent 1) -> file "a.tpl" (3); file "b.bin" (4) in root.
+    names = b"\x00arc\x00timg\x00a.tpl\x00b.bin\x00"
+    nodes = [(0x0100, 0, 0, 5), (0x0100, 1, 0, 4), (0x0100, 5, 1, 4), (0x0000, 10, 0, 3), (0x0000, 16, 0, 2)]
+    header_size = 12 * len(nodes) + len(names)
+    data_off = (0x20 + header_size + 31) & ~31
+    contents = {3: b"AAA", 4: b"BB"}
+    blob, offsets = b"", {}
+    for index in (3, 4):
+        offsets[index] = data_off + len(blob)
+        blob += contents[index] + bytes(-len(contents[index]) % 32)
+    table = b"".join(struct.pack(">HHII", typ | 0, name, offsets.get(i, start), size)
+                     for i, (typ, name, start, size) in enumerate(nodes))
+    head = struct.pack(">IIII", 0x55AA382D, 0x20, header_size, data_off) + bytes(16) + table + names
+    archive = U8Container(head + bytes(data_off - len(head)) + blob)
+    assert sorted(archive.list_files()) == ["arc/timg/a.tpl", "b.bin"]
+    assert archive.read_file("arc/timg/a.tpl") == b"AAA"

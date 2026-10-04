@@ -641,3 +641,31 @@ def test_ctxb_formats_round_trip():
     textures = ctxb.read(data, {})
     assert [(t.name, t.pixel_format) for t in textures] == [("a", "LA8"), ("b", "ETC1")]
     assert ctxb.write(data, {0: textures[0].image, 1: textures[1].image}, {}) == data
+
+
+def make_tpl(images):
+    """``[(gx format id, image)]`` (no palettes) -> a TPL."""
+    table = 0x0C
+    heads_at = table + 8 * len(images)
+    data_at = heads_at + 0x24 * len(images)
+    data_at += -data_at % 0x20
+    heads, blobs, table_bytes = b"", b"", b""
+    for fmt, image in images:
+        codec = pixels.codec(f"gx:{bti.FORMATS[fmt]}")
+        table_bytes += struct.pack(">II", heads_at + len(heads), 0)
+        heads += struct.pack(">HHII", image.height, image.width, fmt, data_at + len(blobs)) + bytes(0x24 - 12)
+        blobs += codec.encode(_padded(image, codec))
+    body = b"\x00\x20\xaf\x30" + struct.pack(">II", len(images), table) + table_bytes + heads
+    return body + bytes(data_at - len(body)) + blobs
+
+
+def test_tpl_images_read_and_write():
+    from core.texture_formats import tpl
+    data = make_tpl([(2, picture(16, 8)), (14, picture(16, 16, 5))])
+    assert texture_formats.detect(data) == "tpl"
+    textures = tpl.read(data, {})
+    assert [(t.pixel_format, t.image.size) for t in textures] == [("IA4", (16, 8)), ("CMPR", (16, 16))]
+    assert tpl.write(data, {0: textures[0].image, 1: textures[1].image}, {}) == data
+    new = tpl.write(data, {1: Image.new("RGBA", (16, 16), (0, 0, 255, 255))}, {})
+    assert tpl.read(new, {})[1].image.getpixel((9, 9))[2] > 240
+    assert tpl.read(new, {})[0].image.tobytes() == textures[0].image.tobytes()
