@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-03
+updated: 2026-10-04
 owns: unfinished work
-tokens: 8.2k
+tokens: 8.0k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -10,14 +10,8 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
-## Font editor formats (branch `feat/font-formats`, 2026-10-03)
+## Font editor formats (2026-10-03)
 
-- **Merge order:** the `font_sources.json` files of `zelda_oot64`, `zelda_mm64`, `zelda_hwde`, `zelda_totk` and
-  `zelda_tww` (and `zelda_hwde/translation_map.json`) sit in folders that only the other branches fill;
-  `plugins/common/n64_rom.py` is a byte-identical copy of the `feat/zelda64` file.
-- **N64 widths do not reach the checks yet:** `Zelda64Rules.calculate_string_width_override` reads its own
-  `FONT_WIDTHS`; after the merge it should take `font_map` widths when given (the editor writes
-  `oot_font.json` / `mm_font.json`). Ukrainian on N64 still needs the user's slot decision and an encoder map.
 - Nothing edited has run in a game or emulator: an N64 ROM with a redrawn glyph, a HWDE `font_eu.g1t` in the
   LayeredFS mod, a TotK font.
 - TotK: no real font on disk; BFFNT was verified on Cadence of Hyrule and Pokémon SV (Switch, BC4). Its
@@ -30,8 +24,9 @@ the line when it is done or moved into a plan.
   workspace layout `source/` next to `romfs/` and a translation folder named `romfs`.
 - Opening a font and listing archive members still reads the archive on the UI thread (small files);
   the old BFN paths (`load_bfn`, saving a BFN) are synchronous as before.
-- Next formats: 3DS BCFNT (CIAs still encrypted), Tingle Tuner (GBA), Cadence of Hyrule (its BFFNT already
-  opens), Wii U BFFNT (big endian, GX2 tiling).
+- Next formats: the 3DS fonts (decrypted 2026-10-04): BFFNT 4.0 with A4 textures (A Link Between Worlds,
+  Tri Force Heroes), Grezzo QBF (Ocarina of Time 3D) and GZF (Majora's Mask 3D); Tingle Tuner (GBA), Wii U
+  BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already opens.
 
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 
@@ -54,7 +49,7 @@ the line when it is done or moved into a plan.
 ## Hyrule Warriors DE plugin (`plugins/zelda_hwde`, 2026-10-03)
 
 - Owner decision: the font. `font_eu.g1t` / `font_eu_p.g1t` are cp1252 glyph grids without Cyrillic; the
-  plugin writes Ukrainian into the cp1251 slots, so the atlas must be redrawn there (no font builder yet).
+  plugin writes Ukrainian into the cp1251 slots, so the atlas must be redrawn there (the Font Editor opens and saves `font_eu*.g1t`).
 - Owner decision: also write the translation into the English-EU section (default, `MIRROR_SECTIONS`)?
   Other languages stay as they are.
 - Not verified in the game: the mod has not run on a Switch or an emulator; the glyph advance widths
@@ -358,7 +353,7 @@ the line when it is done or moved into a plan.
 - **Rebuilding the disc**: the images were extracted with DolphinTool (`files/` + `sys/`); `gcr` packs a
   `root/` tree, so the pack script in the user's workspace does not work yet.
 
-## Zelda: Tears of the Kingdom plugin (`plugins/zelda_totk`, branch `feat/zelda-totk`)
+## Zelda: Tears of the Kingdom plugin (`plugins/zelda_totk`)
 
 - **Never run on TotK's own files.** No TotK romfs was on disk; the formats were checked on synthetic files and
   on another game's `Mals/USen.Product.100.sarc.zs` (Tomodachi Life, same LMS/SARC/zstd stack: 262 MSBTs and the
