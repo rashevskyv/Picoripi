@@ -136,4 +136,3 @@ def _encode_char(char: str, missing: Optional[Set[str]]) -> bytes:
         if missing is not None:
             missing.add(char)
         return b"?"
-
