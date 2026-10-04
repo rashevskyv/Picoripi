@@ -1,0 +1,16 @@
+[
+  {
+    "label": "Dialog font (italic)",
+    "format": "vagrant",
+    "path": ["FONT/VSFONT.FNT", "../FONT/VSFONT.FNT"],
+    "font_map": "vagrant_story_font.json",
+    "params": {"set": 1}
+  },
+  {
+    "label": "Menu font (regular)",
+    "format": "vagrant",
+    "path": ["FONT/VSFONT.FNT", "../FONT/VSFONT.FNT"],
+    "font_map": "vagrant_story_menu_font.json",
+    "params": {"set": 0}
+  }
+]

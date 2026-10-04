@@ -55,6 +55,22 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   English lines are word-for-word the GameCube ones. A one-shot copy of the GameCube Ukrainian lines into the Wii
   and HD projects needs the owner to say which GameCube state is current (the session or `TP_UA\ISO\UA`).
 
+## Vagrant Story (2026-10-04)
+
+- The USA disc (SLUS-01040) is the base. The European disc (SLES-02754) is LibCrypt-protected (DuckStation
+  refuses it without `Vagrant Story (Europe).sbi`) and its executable is compressed: not supported.
+- Balloon sizes are fixed by the scripts' DialogShow opcodes (characters per line, lines). The Russian build
+  widened or narrowed 530 balloons; the plugin shows the width as the limit but cannot change it yet.
+- Files keep their size except events (6144-byte slots) and rooms (to the end of their last CD sector). Help
+  pages, item help and menus have no spare room: Ukrainian has to fit the English bytes (a space is one byte,
+  `FA 06` indents can go). Growing them needs the file sizes in the executable's load tables.
+- Names in program and zone data are found by their shape (`program.py`) and edited in place; a few short
+  fragments of record data may still show as lines.
+- The Ukrainian letters in `FONT\VSFONT.FNT` are a rough draft (Arimo, both sets): polish them by hand.
+- Text in textures (HUD sheet in `SYSTEM.DAT`, title menu, GIM cards, DIS screens, help pictures) is not
+  edited by the plugin: catalogued in `ZELDA\_textures\drafts\vagrant_story.json`.
+- No speaker data: a balloon points at a character on screen; scene context gives area and room only.
+
 ## Metal Gear Solid: The Twin Snakes (2026-10-04)
 
 - Which strings of a GCX table are English is detected (voice clips settle ~92 % of codec lines, the rest by
