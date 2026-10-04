@@ -22,6 +22,28 @@ from PIL import Image
 
 from core.font_formats import Metadata, Sheets, char_code, coverage, grey_sheet, map_entries
 
+# Character of each cell (both sets): the game's own table of codes. It is the text codec's table too
+# (plugins.vagrant_story.codec); 0xAB/0xAC ('{' '}') are shown full width so they never read as a tag.
+_LATIN_EXTRA = "ŒÀÁÂÄÇÈÉÊËÌÍÎÏÒÓÔÖÙÚÛÜßœàáâäçèéêëìíîïòóôöùúûü"
+_SYMBOLS = "„‼≠≦≧÷·—⋯ !\"#$%&'()=@[];:,./\\<>?_-+*`｛｝♪△□○×←→↑↓"
+
+CHARACTERS: Dict[int, str] = {}
+for _i in range(10):
+    CHARACTERS[_i] = chr(48 + _i)
+for _i in range(26):
+    CHARACTERS[0x0A + _i] = chr(65 + _i)
+    CHARACTERS[0x24 + _i] = chr(97 + _i)
+for _i, _c in enumerate(_LATIN_EXTRA):
+    CHARACTERS[0x3E + _i] = _c
+for _i, _c in enumerate(_SYMBOLS):
+    CHARACTERS[0x86 + _i] = _c
+CHARACTERS[0xB7], CHARACTERS[0xB8], CHARACTERS[0xB9] = "★", "◼", "~"
+# The 27 cells after ü are empty in the game's font. They are named with Latin-1 letters the game
+# does not have, so the translation map and the font editor can put Ukrainian letters on them.
+EMPTY_CELLS = range(0x6B, 0x86)
+for _i, _c in enumerate("ÅåØøÃãÕõÝýÞþÐð¿¡ªº°±²³µ¶¹¼½"):
+    CHARACTERS[EMPTY_CELLS[0] + _i] = _c
+
 MAGIC = b"VSFN"
 HEADER = 16
 CELL, COLUMNS, ROWS = 12, 21, 9          # one set: 189 cells
@@ -47,9 +69,8 @@ def _set(params: Dict[str, Any]) -> int:
 
 
 def characters() -> Dict[int, str]:
-    """Character of each cell of a set (the plugin's codec)."""
-    from plugins.vagrant_story.codec import CHARS
-    return dict(CHARS)
+    """Character of each cell of a set."""
+    return dict(CHARACTERS)
 
 
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:

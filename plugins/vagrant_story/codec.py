@@ -25,7 +25,7 @@ other      ``{xNN}`` / ``{xNN:pp}``           raw byte (and its parameter)
 
 Ukrainian letters reach the game through the translation map: ``{"Б": "À"}`` draws Б with the
 glyph of À, so it is written as À's code. The empty cells 0x6B-0x85 are named ``Å å Ø ø ...``
-(``EMPTY_CELLS``) so a letter can be put there the same way.
+(``core.font_formats.vagrant.EMPTY_CELLS``) so a letter can be put there the same way.
 A space is written as 0x8F (one byte; the game draws it 6 pixels wide like ``FA 06``).
 """
 from __future__ import annotations
@@ -33,30 +33,13 @@ from __future__ import annotations
 import re
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
+from core.font_formats.vagrant import CHARACTERS
+
 END, NEWLINE, PAD, SPACE = 0xE7, 0xE8, 0xEB, 0x8F
 PARAM_FIRST = 0xEC                       # codes from here take one parameter byte
 JAPANESE = range(0xEC, 0xF8)             # font pages of the Japanese build (never in English text)
 
-_LATIN_EXTRA = "ŒÀÁÂÄÇÈÉÊËÌÍÎÏÒÓÔÖÙÚÛÜßœàáâäçèéêëìíîïòóôöùúûü"
-# 0xAB/0xAC are '{' '}' in the font; the editor shows them full width so they never read as a tag.
-_SYMBOLS = "„‼≠≦≧÷·—⋯ !\"#$%&'()=@[];:,./\\<>?_-+*`｛｝♪△□○×←→↑↓"
-
-CHARS: Dict[int, str] = {}
-for _i in range(10):
-    CHARS[_i] = chr(48 + _i)
-for _i in range(26):
-    CHARS[0x0A + _i] = chr(65 + _i)
-    CHARS[0x24 + _i] = chr(97 + _i)
-for _i, _c in enumerate(_LATIN_EXTRA):
-    CHARS[0x3E + _i] = _c
-for _i, _c in enumerate(_SYMBOLS):
-    CHARS[0x86 + _i] = _c
-CHARS[0xB7], CHARS[0xB8], CHARS[0xB9] = "★", "◼", "~"
-# The 27 cells after ü are empty in the game's font. They are named with Latin-1 letters the game
-# does not have, so the translation map and the font editor can put Ukrainian letters on them.
-EMPTY_CELLS = range(0x6B, 0x86)
-for _i, _c in enumerate("ÅåØøÃãÕõÝýÞþÐð¿¡ªº°±²³µ¶¹¼½"):
-    CHARS[EMPTY_CELLS[0] + _i] = _c
+CHARS: Dict[int, str] = dict(CHARACTERS)     # the font's cells (core.font_formats.vagrant)
 LV = 0xB6                                 # one glyph "Lv."
 CODES: Dict[str, int] = {char: code for code, char in CHARS.items()}
 
