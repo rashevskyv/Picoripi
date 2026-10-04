@@ -1,0 +1,188 @@
+{
+    "{escape:0:0001}": {
+        "width": 0
+    },
+    "{ctrl:instant-on}": {
+        "width": 0
+    },
+    "{escape:0:0002}": {
+        "width": 0
+    },
+    "{ctrl:instant-off}": {
+        "width": 0
+    },
+    "{escape:0:0006}": {
+        "width": 0
+    },
+    "{ctrl:dummy}": {
+        "width": 0
+    },
+    "{escape:0:0008}": {
+        "width": 0
+    },
+    "{ctrl:select-two}": {
+        "width": 0
+    },
+    "{escape:0:0009}": {
+        "width": 0
+    },
+    "{ctrl:select-three}": {
+        "width": 0
+    },
+    "{escape:0:000a}": {
+        "width": 24
+    },
+    "{GC:A}": {
+        "width": 24
+    },
+    "{escape:0:000b}": {
+        "width": 24
+    },
+    "{GC:B}": {
+        "width": 24
+    },
+    "{escape:0:000c}": {
+        "width": 24
+    },
+    "{GC:C-stick}": {
+        "width": 24
+    },
+    "{escape:0:000d}": {
+        "width": 24
+    },
+    "{GC:L}": {
+        "width": 24
+    },
+    "{escape:0:000e}": {
+        "width": 24
+    },
+    "{GC:R}": {
+        "width": 24
+    },
+    "{escape:0:000f}": {
+        "width": 24
+    },
+    "{GC:X}": {
+        "width": 24
+    },
+    "{escape:0:0010}": {
+        "width": 24
+    },
+    "{GC:Y}": {
+        "width": 24
+    },
+    "{escape:0:0011}": {
+        "width": 24
+    },
+    "{GC:Z}": {
+        "width": 24
+    },
+    "{escape:0:0012}": {
+        "width": 24
+    },
+    "{GC:D-pad}": {
+        "width": 24
+    },
+    "{escape:0:0013}": {
+        "width": 24
+    },
+    "{GC:stick}": {
+        "width": 24
+    },
+    "{escape:0:0014}": {
+        "width": 24
+    },
+    "{icon:arrow-left}": {
+        "width": 24
+    },
+    "{escape:0:0015}": {
+        "width": 24
+    },
+    "{icon:arrow-right}": {
+        "width": 24
+    },
+    "{escape:0:0016}": {
+        "width": 24
+    },
+    "{icon:arrow-up}": {
+        "width": 24
+    },
+    "{escape:0:0017}": {
+        "width": 24
+    },
+    "{icon:arrow-down}": {
+        "width": 24
+    },
+    "{escape:0:0018}": {
+        "width": 24
+    },
+    "{GC:stick ↑}": {
+        "width": 24
+    },
+    "{escape:0:0019}": {
+        "width": 24
+    },
+    "{GC:stick ↓}": {
+        "width": 24
+    },
+    "{escape:0:001a}": {
+        "width": 24
+    },
+    "{GC:stick ←}": {
+        "width": 24
+    },
+    "{escape:0:001b}": {
+        "width": 24
+    },
+    "{GC:stick →}": {
+        "width": 24
+    },
+    "{escape:0:001c}": {
+        "width": 24
+    },
+    "{GC:stick ↕}": {
+        "width": 24
+    },
+    "{escape:0:001d}": {
+        "width": 24
+    },
+    "{GC:stick ↔}": {
+        "width": 24
+    },
+    "{escape:0:001e}": {
+        "width": 24
+    },
+    "{ctrl:select-yoko-left}": {
+        "width": 24
+    },
+    "{escape:0:001f}": {
+        "width": 24
+    },
+    "{ctrl:select-yoko-right}": {
+        "width": 24
+    },
+    "{escape:0:0027}": {
+        "width": 24
+    },
+    "{GC:A★}": {
+        "width": 24
+    },
+    "{escape:0:002a}": {
+        "width": 24
+    },
+    "{icon:starburst}": {
+        "width": 24
+    },
+    "{escape:0:0039}": {
+        "width": 24
+    },
+    "{icon:heart}": {
+        "width": 24
+    },
+    "{escape:0:003a}": {
+        "width": 24
+    },
+    "{icon:music-note}": {
+        "width": 24
+    }
+}
