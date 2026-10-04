@@ -393,6 +393,19 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   run time and Bombers' Notebook entries without a placed actor get no speaker. Report:
   `E:\Emulators\RomHacking\ZELDA\MM64_UA\reports\context_report.md`.
 
+## The Wind Waker HD plugin (`plugins/zelda_ww`, Wii U)
+
+- **Text in textures** is not handled: the title logo, the sea-chart island names (`MapIsland_*`, the 116
+  `MapScreen` messages are empty), quadrant titles and the boot screen (`Boot_00.szs`) are BFLIM images; there is
+  no BFLIM backend. List: `E:\Emulators\RomHacking\ZELDA\WWHD_UA\reports\format_report.md`.
+- **Box widths by BalloonType** come from two layouts (700 px / 650 px panes) and the English 99th percentile; which
+  layout each balloon type uses was not traced in `cking.rpx`.
+- **Ukrainian letters in CKingMain / CKingMainL** are rough Rubik Black shapes on a new sheet each (+512 KB of
+  texture per font in memory); they showed in Cemu on the title screen, but were not checked in every menu or on a
+  console. CKingPic (RGBA8 button pictures) opens for viewing only.
+- **The entered player name** is typed on a Latin keyboard; `[Name]` shows it undeclined. The Russian translation
+  replaced `[Name]` with a fixed «Линк».
+
 ## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
 
 - **Runtime suffixes are in the executable**, not in BMG: " Rupee(s)", " bomb(s)", " yard(s)", timers

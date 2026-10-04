@@ -1,0 +1,131 @@
+{
+ "[Name]": {
+  "width": 75
+ },
+ "[A]": {
+  "width": 54
+ },
+ "[B]": {
+  "width": 54
+ },
+ "[C]": {
+  "width": 54
+ },
+ "[L]": {
+  "width": 54
+ },
+ "[R]": {
+  "width": 54
+ },
+ "[X]": {
+  "width": 54
+ },
+ "[Y]": {
+  "width": 54
+ },
+ "[Z]": {
+  "width": 54
+ },
+ "[LS]": {
+  "width": 54
+ },
+ "[L-Arrow]": {
+  "width": 54
+ },
+ "[R-Arrow]": {
+  "width": 54
+ },
+ "[U-Arrow]": {
+  "width": 54
+ },
+ "[D-Arrow]": {
+  "width": 54
+ },
+ "[LS-Up]": {
+  "width": 54
+ },
+ "[LS-Down]": {
+  "width": 54
+ },
+ "[LS-Left]": {
+  "width": 54
+ },
+ "[LS-Right]": {
+  "width": 54
+ },
+ "[LS-UpDown]": {
+  "width": 54
+ },
+ "[LS-LeftRight]": {
+  "width": 54
+ },
+ "[A-Burst]": {
+  "width": 54
+ },
+ "[TargetIcon]": {
+  "width": 54
+ },
+ "[HeartIcon]": {
+  "width": 54
+ },
+ "[MusicalNote]": {
+  "width": 54
+ },
+ "[Plus]": {
+  "width": 54
+ },
+ "[Minus]": {
+  "width": 54
+ },
+ "[ZL]": {
+  "width": 54
+ },
+ "[ZR]": {
+  "width": 54
+ },
+ "[RS]": {
+  "width": 54
+ },
+ "[RS-Up]": {
+  "width": 54
+ },
+ "[RS-Down]": {
+  "width": 54
+ },
+ "[RS-Left]": {
+  "width": 54
+ },
+ "[RS-Right]": {
+  "width": 54
+ },
+ "[RS-UpDown]": {
+  "width": 54
+ },
+ "[RS-LeftRight]": {
+  "width": 54
+ },
+ "[Juuji]": {
+  "width": 54
+ },
+ "[JuujiUp]": {
+  "width": 54
+ },
+ "[JuujiDown]": {
+  "width": 54
+ },
+ "[JuujiLeft]": {
+  "width": 54
+ },
+ "[juujiRight]": {
+  "width": 54
+ },
+ "[PageTri]": {
+  "width": 54
+ },
+ "[sail1]": {
+  "width": 54
+ },
+ "[sail2]": {
+  "width": 54
+ }
+}

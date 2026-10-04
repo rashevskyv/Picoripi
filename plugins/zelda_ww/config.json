@@ -11,8 +11,8 @@
     "space_dot_color_hex": "#808080",
     "preview_wrap_lines": false,
     "editors_wrap_lines": false,
-    "game_dialog_max_width_pixels": 869,
-    "line_width_warning_threshold_pixels": 869,
+    "game_dialog_max_width_pixels": 875,
+    "line_width_warning_threshold_pixels": 875,
     "autofix_enabled": {
         "ZWW_TAG_WARNING": false,
         "ZWW_WIDTH_EXCEEDED": true,
@@ -29,7 +29,7 @@
         "ZWW_SINGLE_WORD_SUBLINE": true,
         "ZWW_SHORT_LINE": true
     },
-    "default_font_file": "",
+    "default_font_file": "CKingMsg.json",
     "tag_color_rgba": "#ffa7a7b6",
     "tag_bold": false,
     "tag_italic": false,
