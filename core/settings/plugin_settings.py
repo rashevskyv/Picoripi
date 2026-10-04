@@ -19,6 +19,8 @@ class PluginSettings:
     def __init__(self, main_window: Any):
         """Initialize a new instance."""
         self.mw = main_window
+        self._reference_request = None
+        self._reference_result = None
 
     def _get_plugin_config_path(self) -> Optional[Path]:
         """Internal helper to get the plugin config path."""
@@ -199,11 +201,18 @@ class PluginSettings:
                 try:
                     from core.reference_manager import ReferenceManager
                     game_rules = getattr(self.mw, "current_game_rules", None)
-                    ref_langs = ReferenceManager.load_multi_reference(
-                        ref_path,
-                        self.mw.data_store.block_names,
-                        game_rules=game_rules
-                    )
+                    # Opening a project reads the settings more than once; parsing the reference
+                    # archives takes seconds, so the same request reuses the last result.
+                    request = (ref_path, game_rules, repr(self.mw.data_store.block_names))
+                    if request == self._reference_request and self._reference_result:
+                        ref_langs = self._reference_result
+                    else:
+                        ref_langs = ReferenceManager.load_multi_reference(
+                            ref_path,
+                            self.mw.data_store.block_names,
+                            game_rules=game_rules
+                        )
+                        self._reference_request, self._reference_result = request, ref_langs
                     self.mw.data_store.reference_languages_data = ref_langs
                     self.mw.data_store.reference_data = (
                         ref_langs.get("Russian (RU)")

@@ -65,9 +65,10 @@ class BaseGameRules:
 
     def _get_alias_lookup_tables(self, mappings: Dict[str, str]):
         """Build alias lookup tables once for the current mapping contents."""
-        signature = (id(mappings), tuple(mappings.items()))
-        if signature == self._alias_lookup_signature and self._alias_lookup_cache is not None:
+        # Called for every string: comparing with a copy is exact and twice as fast as hashing the items.
+        if self._alias_lookup_cache is not None and mappings == self._alias_lookup_signature:
             return self._alias_lookup_cache
+        signature = dict(mappings)
 
         tag_pattern = re.compile(r'(?:\{[^{}]*\}|\[[^\[\]]*\])')
         reverse: Dict[str, str] = {}

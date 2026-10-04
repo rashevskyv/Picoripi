@@ -102,9 +102,10 @@ def _load_from_arcs(
     for arc_path in arc_files:
         try:
             raw_bytes = arc_path.read_bytes()
-            if not RarcContainer.can_handle(raw_bytes):
+            try:
+                arc = RarcContainer(raw_bytes)   # can_handle would decompress the archive a second time
+            except ValueError:
                 continue
-            arc = RarcContainer(raw_bytes)
             import re
             for inner_file in arc.list_files():
                 if inner_file.lower().endswith(".bmg"):

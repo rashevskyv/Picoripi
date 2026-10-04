@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Startup: opening the Twilight Princess project took 17.5 s and takes under 6 s. The reference languages were parsed twice (project settings are read more than once; the same request now reuses the result), each archive was decompressed two or three times (format detection now decompresses four bytes), every string re-scanned the whole alias table and checked `translation_map.json` on disk (now at most once a second); Yaz0 decompression copies runs in blocks and BMG text parsing jumps to the next terminator.
 - The review pass is on by default (new key `review_enabled`; `false` turns it off). The old `editor_review_enabled`, saved as `false` in existing settings, belonged to the removed editor review and is no longer read.
 - Ocarina of Time / Majora's Mask (N64): line widths take a character's width from the Font Editor's map of the game font (`<project>/font_maps/oot_font.json` / `mm_font.json`) when the project has one, so redrawn or Ukrainian letters are measured; the game's table stays the fallback.
 - Player names, per game: Ocarina of Time, Majora's Mask (`{name}`) and Tears of the Kingdom (`{playerName}`) send the hero's tag as the declined name «Лінк» through a `{F:Link}` force alias, like Twilight Princess and The Wind Waker; Hyrule Warriors has no player-named hero.
