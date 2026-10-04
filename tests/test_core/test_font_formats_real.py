@@ -298,3 +298,26 @@ def test_aoc_descriptors_find_the_font_in_the_workspace_source():
                                           "is_directory_mode": True})
     assert len(found) == 7 and {source.name for source in found} == {"latin.g1n"}
     assert font_formats.detect(found[0].read_current()) == "g1n"
+
+
+FSAE = ZELDA / "FSAE_UA"
+
+
+def test_four_swords_nftr_round_trips_through_the_plugin_source(tmp_path):
+    _need(FSAE / "source" / "font_ltn.nftr")
+    found = sources.resolve([_descriptor("zelda_fsae")], {"source_path": str(FSAE / "source"),
+                                                         "translation_path": str(tmp_path), "is_directory_mode": True})
+    assert [source.name for source in found] == ["font_ltn.nftr"]
+    data, params = found[0].read_original(), found[0].params
+    metadata, sheets = font_formats.extract("nftr", data, params)
+    assert len(font_formats.char_map(metadata)) == 95 + 95 + 66 + 24
+    assert _has_ink(metadata, sheets, "Ж") and font_formats.font_map(metadata)["A"] == {"width": 9}
+    assert font_formats.pack("nftr", metadata, sheets, data, params) == data
+
+
+def test_four_swords_ukrainian_font_has_the_letters_and_the_plugin_map_matches():
+    data = _need(FSAE / "translation" / "font_ltn.nftr")
+    metadata, sheets = font_formats.extract("nftr", data, _descriptor("zelda_fsae")["params"])
+    assert all(_has_ink(metadata, sheets, char) for char in "ЄІЇҐєіїґ’")
+    shipped = json.loads((ROOT / "plugins" / "zelda_fsae" / "fonts" / "fsae_ltn.json").read_text(encoding="utf-8"))
+    assert font_formats.font_map(metadata) == shipped
