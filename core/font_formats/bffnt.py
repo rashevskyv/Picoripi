@@ -27,6 +27,8 @@ from PIL import Image
 
 from core.font_formats import Metadata, Sheets, char_code, char_map, code_char, coverage, grey_sheet, map_entries
 
+ADDS_GLYPHS = True  # a typed character gets its own code in a new CMAP block (an empty or ``min_sheets`` cell)
+
 BC4 = 0x1D
 
 

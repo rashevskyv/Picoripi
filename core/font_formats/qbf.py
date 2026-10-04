@@ -19,6 +19,8 @@ from PIL import Image, ImageChops
 
 from core.font_formats import Metadata, Sheets, char_map, char_code, coverage, grey_sheet, map_entries
 
+ADDS_GLYPHS = True  # a typed character gets its own table record (an empty or spare cell)
+
 COLUMNS = 16
 SPARE_CELLS = 128   # ponytail: a fixed reserve for new letters; raise it if a font needs more
 
@@ -112,7 +114,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
             packets[glyph] = {"kerning": kerning, "width": advance}
     space = next((advance for code, _cell, _left, advance in entries if code == 0x20), width // 2)
     metadata = {
-        "header": {"signature": "QBF1", "num_chunks": 4, "unicode_map": True, "bits_per_pixel": bpp},
+        "header": {"signature": "QBF1", "num_chunks": 4, "bits_per_pixel": bpp},
         "INF1": [{"encoding": 1, "ascent": height * 3 // 4, "descent": height - height * 3 // 4, "width": space,
                   "leading": height, "fallback_code": 0x3F, "unk1": 0}],
         "GLY1": [{"start_glyph": 0, "end_glyph": capacity - 1, "cell_width": width, "cell_height": height,

@@ -22,6 +22,7 @@ SWITCH = Path(r"D:\Downloads\switch")
 OOT_ROM = ZELDA / "OOT64_UA" / "rom" / "Legend of Zelda, The - Ocarina of Time (USA).z64"
 MM_ROM = ZELDA / "MM64_UA" / "rom" / "Legend of Zelda, The - Majora's Mask (USA).z64"
 HWDE_UI = ZELDA / "HWDE_UA" / "romfs" / "data" / "ui"
+AOC_FONT = ZELDA / "HWAOC_UA" / "source" / "font" / "latin.g1n"
 WW_FILES = ZELDA / "WW_UA" / "ISO" / "ENG" / "files"
 TP_FONTS = ZELDA / "TP_UA" / "ISO" / "ENG" / "root" / "res" / "Fontus"
 COH_SOURCE = ZELDA / "COH_UA" / "source"
@@ -94,6 +95,16 @@ def test_hwde_g1t_descriptor_matches_the_atlas(name, index):
     assert len(font_formats.char_map(metadata)) == 224
     assert _has_ink(metadata, sheets, "A") and _has_ink(metadata, sheets, "é")
     assert font_formats.pack("g1t", metadata, sheets, data, params) == data
+
+
+@pytest.mark.parametrize("index", range(7))
+def test_aoc_g1n_descriptor_round_trips(index):
+    data = _need(AOC_FONT)
+    params = _descriptor("zelda_aoc", index)["params"]
+    metadata, sheets = font_formats.extract("g1n", data, params)
+    assert _has_ink(metadata, sheets, "A") and _has_ink(metadata, sheets, "é")
+    assert "Ж" not in font_formats.char_map(metadata)          # no Cyrillic in the game's Latin font
+    assert font_formats.pack("g1n", metadata, sheets, data, params) == data
 
 
 def test_hwde_translation_map_covers_the_cyrillic_slots():
@@ -223,3 +234,13 @@ def test_3ds_fonts_show_every_character_and_pack_back_unchanged(path, fmt, count
         assert font_formats.detect(data) == fmt
         metadata, sheets = font_formats.extract(fmt, data)
         assert font_formats.pack(fmt, metadata, sheets, data) == data
+
+
+
+def test_aoc_descriptors_find_the_font_in_the_workspace_source():
+    _need(AOC_FONT)
+    descriptors = json.loads((ROOT / "plugins" / "zelda_aoc" / "font_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(AOC_FONT.parents[1]), "translation_path": "",
+                                          "is_directory_mode": True})
+    assert len(found) == 7 and {source.name for source in found} == {"latin.g1n"}
+    assert font_formats.detect(found[0].read_current()) == "g1n"

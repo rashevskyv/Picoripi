@@ -65,7 +65,7 @@ First, ask me these questions:
    - Does the text insert names the player can change (hero, horse)? Should the translation keep the tag, or a
      fixed declined name through a force alias (`{F:Name}` in aliases.json)? Does the game draw that name in a
      colour by itself? Then `get_force_alias_wrapping` returns the colour tags so the translated name keeps them.
-   - Where are the game's bitmap fonts, and in which format (BFN, an N64 ROM font, a G1T atlas, BFFNT, a 3DS BCFNT/BFFNT, Grezzo QBF/GZF)? Describe them in `font_sources.json` (`get_font_sources`): the file path or glob relative to the project, the archive member, and the format's constants (cell grid, code page, ROM offsets). The shared font editor then opens, edits and saves them, and their widths feed the width checks.
+   - Where are the game's bitmap fonts, and in which format (BFN, an N64 ROM font, a G1T atlas, a Koei Tecmo G1N font, BFFNT, a 3DS BCFNT/BFFNT, Grezzo QBF/GZF)? Describe them in `font_sources.json` (`get_font_sources`): the file path or glob relative to the project, the archive member, and the format's constants (cell grid, code page, ROM offsets). The shared font editor then opens, edits and saves them, and their widths feed the width checks.
    - Which of these should the first version include, and which can wait?
 
    Answering "none" to all of these is fine. Picoripi then builds the glossary from the extracted text alone. Each answer maps to an opt-in hook documented in docs/wiki/3_Plugin_Developer_Guide.md ("Capabilities and the game's own data") and listed in docs/PLUGIN_CONTRACT.md; plugins/zelda_bmg/ is the reference implementation.

@@ -254,6 +254,20 @@ class TranslationMapMixin:
         except Exception as e:
             log_error(f"Failed to save translation map: {e}")
 
+    def adds_real_characters(self):
+        """The font's format takes real characters (``font_formats.adds_glyphs``: BFFNT, the 3DS fonts, G1N)."""
+        from core import font_formats
+        return font_formats.adds_glyphs(getattr(self, "font_format", ""))
+
+    def physical_code_for(self, char, temp_translation_map=None):
+        """The font code an empty glyph gets for ``char``. A font that takes real characters gets the
+        character itself, or None when it already has it (one glyph per character); any other font gets
+        a free cp1252 slot that the translation map points the letter at."""
+        from core import font_formats
+        if char and self.adds_real_characters():
+            return None if char in font_formats.char_map(self.metadata) else font_formats.char_code(char)
+        return self.get_next_free_char_code(temp_translation_map)
+
     def get_next_free_char_code(self, temp_translation_map=None):
         used_codes = set()
         

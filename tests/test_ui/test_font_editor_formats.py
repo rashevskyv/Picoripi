@@ -167,7 +167,7 @@ def test_a_character_typed_into_an_empty_cell_of_a_unicode_font_is_added_to_the_
     editor = BfnEditorWindow()
     qtbot.addWidget(editor)
     editor.open_font_file(str(path))
-    assert editor.font_format == "qbf" and editor.metadata["header"]["unicode_map"]
+    assert editor.font_format == "qbf" and font_formats.adds_glyphs(editor.font_format)
 
     table = editor.table_glyphs
     row = next(r for r in range(table.rowCount()) if table.verticalHeaderItem(r).text() == "2")

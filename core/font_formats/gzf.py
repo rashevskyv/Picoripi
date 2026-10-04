@@ -21,6 +21,8 @@ from core.font_formats import Metadata, Sheets, char_code, map_entries
 from core.font_formats.bcfnt import A4, decode, encode, texture_size
 from core.font_formats.qbf import edited_entries, primary_metrics
 
+ADDS_GLYPHS = True  # a typed character gets its own table record (an empty cell)
+
 HEADER = 0x30
 RECORD = 12
 ALIGN = 0x80
@@ -63,7 +65,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
             packets[glyph] = {"kerning": kerning, "width": advance}
     space = next((advance for code, _g, _left, advance in entries if code == 0x20), font["cell_w"] // 2)
     metadata = {
-        "header": {"signature": "GZFX", "num_chunks": 4, "unicode_map": True},
+        "header": {"signature": "GZFX", "num_chunks": 4},
         "INF1": [{"encoding": 1, "ascent": font["cell_h"] * 2 // 3, "descent": font["cell_h"] - font["cell_h"] * 2 // 3,
                   "width": space, "leading": font["cell_h"], "fallback_code": 0x3F, "unk1": 0}],
         "GLY1": [{"start_glyph": 0, "end_glyph": count - 1, "cell_width": font["cell_w"], "cell_height": font["cell_h"],

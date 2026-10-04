@@ -71,6 +71,20 @@ the line when it is done or moved into a plan.
 - A settings file saved from the Ukrainian interface may hold `"provider": "вимкнено"` (the provider ids went
   through `tr()` until 2026-10-03); it loads as an unknown provider.
 
+## Age of Calamity plugin (`plugins/zelda_aoc`, 2026-10-04)
+
+- Font work for the owner: the G1N Latin font (`font/latin.g1n`, sizes 0-6) has no Cyrillic; the glyphs have
+  to be drawn (Font Editor adds them). `fonts/aoc_latin.json` holds estimated Cyrillic widths until then.
+- Speaker ids not tied to a name show as `chara_NNN` (1 mission voice, 14-17 Great Fairies, 20/21, 48+);
+  cutscene subtitles carry no speaker. The id -> actor table was not found.
+- Which English table (EN or EN2 of the battle dialogue) and which of the six Latin font ids a console
+  language uses is unknown; the build writes both tables and all six fonts.
+- Line limits are the widest English line per table; the real box widths are not measured.
+- Not covered: text in textures (logos, UI art), the executable, movies.
+- Watch: `tests/test_ui/test_font_editor_formats.py::test_font_jobs_run_in_a_worker_thread_one_after_another`
+  crashed its xdist worker (access violation) every time it ran first in a worker while that module had a
+  fourth test; the G1N editor test therefore lives in `test_font_editor_g1n.py`. Cause not found.
+
 ## Hyrule Warriors DE plugin (`plugins/zelda_hwde`, 2026-10-03)
 
 - Owner decision: also write the translation into the English-EU section (default, `MIRROR_SECTIONS`)?

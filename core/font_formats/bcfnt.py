@@ -22,6 +22,8 @@ from PIL import Image, ImageChops
 
 from core.font_formats import Metadata, Sheets, char_map, coverage, grey_sheet, map_entries, char_code
 
+ADDS_GLYPHS = True  # a typed character gets its own CMAP code (an empty cell, a new CWDH block)
+
 LA8, L8, A8, LA4, L4, A4 = 5, 7, 8, 9, 10, 11
 FORMATS = {LA8: "LA8", L8: "L8", A8: "A8", LA4: "LA4", L4: "L4", A4: "A4"}
 _BITS = {LA8: 16, L8: 8, A8: 8, LA4: 8, L4: 4, A4: 4}
@@ -254,7 +256,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     pairs = [(char_code(chr(code)), glyph) for code, glyph in _codes(_cmap_blocks(data, info)).items()
              if glyph < count]
     metadata = {
-        "header": {"signature": bytes(data[:4]).decode("ascii"), "num_chunks": 4, "unicode_map": True,
+        "header": {"signature": bytes(data[:4]).decode("ascii"), "num_chunks": 4,
                    "texture_format": FORMATS.get(info["format"], info["format"])},
         "INF1": [{"encoding": 1, "ascent": info["baseline"], "descent": max(0, info["height"] - info["ascent"]),
                   "width": info["char_width"], "leading": info["line_feed"], "fallback_code": 0x3F, "unk1": 0}],

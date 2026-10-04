@@ -1754,7 +1754,7 @@
   "The request failed; see the log.": "Запит не вдався; подробиці в журналі.",
   "(same text elsewhere)": "(той самий текст в іншому місці)",
   "Source: saved for the same text elsewhere in the project": "Джерело: збережено для того самого тексту в іншому місці проєкту",
-  "Fonts (*.bfn *.bffnt *.bcfnt *.qbf *.gzf *.g1t *.gz);;All Files (*)": "Шрифти (*.bfn *.bffnt *.bcfnt *.qbf *.gzf *.g1t *.gz);;Усі файли (*)",
+  "Fonts (*.bfn *.bffnt *.bcfnt *.qbf *.gzf *.g1t *.g1n *.gz);;All Files (*)": "Шрифти (*.bfn *.bffnt *.bcfnt *.qbf *.gzf *.g1t *.g1n *.gz);;Усі файли (*)",
   "Font File...": "Файл шрифту...",
   "Use a .ttf / .otf file (for example a downloaded free font) without installing it": "Використати файл .ttf / .otf (наприклад, завантажений вільний шрифт) без встановлення в систему",
   "Choose a font file": "Виберіть файл шрифту",
