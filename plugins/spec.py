@@ -90,6 +90,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
     )),
     ('Tags and editor', (
         Hook("get_default_tag_mappings", "Alias -> tag pairs offered by default.", call=(), returns=dict),
+        Hook("get_force_alias_wrapping", "Force alias -> (open, close) tags for a name the game draws coloured.",
+             call=(), returns=dict),
         Hook("get_dynamic_name_tags", "Tag -> name it stands for, used when matching against a script.",
              call=(), returns=dict),
         Hook("get_syntax_highlighting_rules", "List of (regex, QTextCharFormat) for the editor.", call=(), returns=list),

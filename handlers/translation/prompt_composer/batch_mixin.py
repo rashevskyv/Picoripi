@@ -159,8 +159,9 @@ class BatchMixin:
                 text = converted
 
         # Apply force-aliases
-        from utils.force_alias import prepare_text_for_ai
-        text_for_ai, force_maps = prepare_text_for_ai(text, getattr(self.mw, 'default_tag_mappings', {}))
+        from utils.force_alias import force_alias_wrapping, prepare_text_for_ai
+        text_for_ai, force_maps = prepare_text_for_ai(
+            text, getattr(self.mw, 'default_tag_mappings', {}), force_alias_wrapping(self.mw))
         return item_id, text, self._replace_runtime_names_for_ai(text_for_ai), force_maps
 
     def _plugin_translation_context(self, real_b_idx: Any, real_s_idx: Any) -> Dict:

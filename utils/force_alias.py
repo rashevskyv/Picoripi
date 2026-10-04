@@ -50,6 +50,7 @@ def apply_aliases_to_text(text: str, tag_mappings: Dict[str, str]) -> str:
 def extract_force_aliases(
     text_with_aliases: str,
     tag_mappings: Dict[str, str],
+    wrapping: Dict[str, Tuple[str, str]] = None,
 ) -> Tuple[str, List[ForceAliasMapping]]:
     """Find Force aliases in *text_with_aliases* and replace them with plain words.
 
@@ -81,15 +82,24 @@ def extract_force_aliases(
             original_tag=original_tag,
             alias=full_alias,
         ))
-        return word
+        opening, closing = (wrapping or {}).get(full_alias, ("", ""))
+        return f"{opening}{word}{closing}"
 
     cleaned = _FORCE_ALIAS_RE.sub(_replace, text_with_aliases)
     return cleaned, mappings
 
 
+def force_alias_wrapping(main_window) -> Dict[str, Tuple[str, str]]:
+    """The active plugin's ``get_force_alias_wrapping()``; ``{}`` when there is none."""
+    hook = getattr(getattr(main_window, "current_game_rules", None), "get_force_alias_wrapping", None)
+    wrapping = hook() if callable(hook) else {}
+    return wrapping if isinstance(wrapping, dict) else {}
+
+
 def prepare_text_for_ai(
     original_text: str,
     tag_mappings: Dict[str, str],
+    wrapping: Dict[str, Tuple[str, str]] = None,
 ) -> Tuple[str, List[ForceAliasMapping]]:
     """Full pipeline: apply aliases, then extract Force aliases into plain words.
 
@@ -98,7 +108,7 @@ def prepare_text_for_ai(
     tag stripping is the responsibility of the caller or downstream logic).
     """
     aliased = apply_aliases_to_text(original_text, tag_mappings)
-    return extract_force_aliases(aliased, tag_mappings)
+    return extract_force_aliases(aliased, tag_mappings, wrapping)
 
 
 def restore_force_aliases_in_translation(

@@ -768,6 +768,20 @@ class TagWarningRule(ProblemRule):
                     return True
             return False
 
+        # A force alias the game draws coloured comes back wrapped in colour tags (Minish Cap: «Лінк» in green
+        # where the source has {Player}); those tags belong to the name, not to the line.
+        wrapping = {}
+        if mw_ref and getattr(mw_ref, 'current_game_rules', None) is not None:
+            hook = getattr(mw_ref.current_game_rules, 'get_force_alias_wrapping', None)
+            wrapping = hook() if callable(hook) else {}
+        for alias, pair in (wrapping if isinstance(wrapping, dict) else {}).items():
+            raw = str(mappings.get(alias, alias))
+            occurrences = sum(1 for tag in orig_tags if tag in (raw, alias))
+            for wrap_tag in pair:
+                for _ in range(occurrences):
+                    if wrap_tag in trans_tags:
+                        trans_tags.remove(wrap_tag)
+
         def clean_tags(tags_list):
             cleaned = []
             for tag in tags_list:

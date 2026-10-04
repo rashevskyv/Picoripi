@@ -483,6 +483,15 @@ class BaseGameRules:
         """Get the default tag mappings."""
         return {}
 
+    def get_force_alias_wrapping(self) -> Dict[str, Tuple[str, str]]:
+        """``{force alias: (opening tag, closing tag)}`` for a name the game itself draws in a colour.
+
+        A force alias (``{F:Link}``) reaches the model as a plain word it can inflect; when the game renders that
+        name coloured (Minish Cap draws the player's name green), the word is sent wrapped in these tags so the
+        translation keeps the colour around the declined form. Empty: the word is sent bare.
+        """
+        return {}
+
     def get_dynamic_name_tags(self) -> Dict[str, str]:
         """Return a mapping of {tag_string: replacement_name} for dynamic in-game names.
 

@@ -362,3 +362,32 @@ class TestGlossaryIntegration:
         relevant = gm.get_relevant_terms(prepared)
         originals = [e.original for e in relevant]
         assert "Epona" in originals
+
+
+def test_a_force_alias_the_game_draws_coloured_is_sent_wrapped():
+    from utils.force_alias import prepare_text_for_ai
+
+    text, maps = prepare_text_for_ai("Hey! {Player}!", {"{F:Link}": "{Player}"},
+                                     {"{F:Link}": ("{Color:Green}", "{Color:White}")})
+    assert text == "Hey! {Color:Green}Link{Color:White}!" and maps[0].original_tag == "{Player}"
+    assert prepare_text_for_ai("Hey! {Player}!", {"{F:Link}": "{Player}"})[0] == "Hey! Link!"
+
+
+def test_the_tag_warning_accepts_the_coloured_name_in_place_of_the_tag():
+    from types import SimpleNamespace
+
+    from plugins.common.problem_rules.common_rules import TagWarningRule
+    from plugins.common.problem_rules.context import RuleContext
+    from plugins.zelda_mc.rules import GameRules
+
+    window = SimpleNamespace(current_game_rules=GameRules())
+    mappings = {"{F:Link}": "{Player}"}
+
+    def warns(original, translated):
+        context = RuleContext(text=translated, font_map={}, width_threshold=1000, logical_hard_limit=1000,
+                              lines_per_page=4, default_tag_mappings=mappings, icon_sequences=[],
+                              original_text=original, game_profile=SimpleNamespace(main_window=window))
+        return bool(TagWarningRule().detect(context))
+
+    assert not warns("Hey! {Player}!", "Гей! {Color:Green}Лінку{Color:White}!")
+    assert warns("Hey! {Player}, {Color:Red}take it{Color:White}!", "Гей! {Color:Green}Лінку{Color:White}, бери!")

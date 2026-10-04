@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Player names, per game: Minish Cap and The Wind Waker send the hero's tag as the declined name «Лінк» (force alias, as Twilight Princess already did); Minish Cap draws that name green, so it goes out and comes back as `{Color:Green}…{Color:White}` — the new plugin hook `get_force_alias_wrapping`. The tag warning no longer counts those colour tags as extra. Twilight Princess and The Wind Waker do not colour the name (checked on their game text and the Russian translations).
+
 - AI translation refuses a reply that leaves a line in the source language (more than half of four or more source words still there): the model sometimes translated only the glossary term («You bought a шматочок пирога! One bite…»); the chunk is retried with that reason.
 - Minish Cap: `{Player}` in a reply no longer turns into `{original}` — restoring tag aliases now skips aliases that are bare words (the plugin maps "player" → "original" for its tag checker, and the case-insensitive restore hit "Player" inside the tag).
 - Projects: a file split into blocks the plugin leaves unnamed (Minish Cap's list of lists) loads every block instead of 80 empty "(Missing)" ones; the prompt's neighbouring-rows section no longer raises for a row past the end of its block.

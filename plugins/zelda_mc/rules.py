@@ -42,6 +42,10 @@ class GameRules(BaseGameRules):
             return mappings
         return {}
 
+    def get_force_alias_wrapping(self) -> Dict[str, Tuple[str, str]]:
+        """The game draws the player's name green: «Лінк» is sent and kept in the same colour tags."""
+        return {"{F:Link}": ("{Color:Green}", "{Color:White}")}
+
     def get_tag_checker_handler(self) -> Optional[TagCheckerHandler]:
         """Get the tag checker handler."""
         return TagCheckerHandler(self.mw)

@@ -56,6 +56,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | Hook | What it is for | Notes |
 |---|---|---|
 | `get_default_tag_mappings` | Alias -> tag pairs offered by default. |  |
+| `get_force_alias_wrapping` | Force alias -> (open, close) tags for a name the game draws coloured. |  |
 | `get_dynamic_name_tags` | Tag -> name it stands for, used when matching against a script. |  |
 | `get_syntax_highlighting_rules` | List of (regex, QTextCharFormat) for the editor. |  |
 | `get_legitimate_tags` | Tags that may appear in a translation. |  |

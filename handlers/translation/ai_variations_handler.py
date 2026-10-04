@@ -239,9 +239,9 @@ class AIVariationsHandler(BaseTranslationHandler):
             return
         
         # Apply force-aliases
-        from utils.force_alias import prepare_text_for_ai
+        from utils.force_alias import force_alias_wrapping, prepare_text_for_ai
         tag_mappings = self.mw.default_tag_mappings
-        original_text_for_ai, force_maps = prepare_text_for_ai(original_text, tag_mappings)
+        original_text_for_ai, force_maps = prepare_text_for_ai(original_text, tag_mappings, force_alias_wrapping(self.mw))
         p_map = {0: force_maps} if force_maps else {}
 
         session_state = self.main_handler._session_manager.get_state()

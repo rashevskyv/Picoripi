@@ -93,9 +93,9 @@ class ApplyMixin:
         if not system_prompt:
             log_debug("_translate_and_apply: no system_prompt, returning")
             return        # Apply force-aliases
-        from utils.force_alias import prepare_text_for_ai
+        from utils.force_alias import force_alias_wrapping, prepare_text_for_ai
         tag_mappings = self.mw.default_tag_mappings
-        source_text_for_ai, force_maps = prepare_text_for_ai(source_text, tag_mappings)
+        source_text_for_ai, force_maps = prepare_text_for_ai(source_text, tag_mappings, force_alias_wrapping(self.mw))
         p_map = {0: force_maps} if force_maps else {}
 
         session_state = self._session_manager.get_state()

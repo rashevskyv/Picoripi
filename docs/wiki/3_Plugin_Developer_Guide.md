@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: plugins/
-tokens: 3.4k
+tokens: 3.6k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -54,6 +54,8 @@ The exact file format with sample source and translated files and the expected s
 If the import fails, the user gets **Plugin Load Error** and the application falls back to `BaseGameRules`. Switching plugins drops every loaded module of the plugin, so module-level caches start empty.
 
 **Aliases:** after load, `plugins/<id>/aliases.json` (shipped defaults, read-only) and then the user's own `aliases.json` from the per-user plugin folder are merged into `default_tag_mappings`. The application saves aliases only to the per-user folder.
+
+**Force aliases and names drawn in colour:** an alias whose name starts with `F:` (`"{F:Link}": "{Player}"`) reaches the model as the plain word, which it declines; the translation keeps that word and not the tag, so a renamed hero still reads «Лінк». If the game itself draws that name in a colour, return the colour tags from `get_force_alias_wrapping()` (`{"{F:Link}": ("{Color:Green}", "{Color:White}")}` in Minish Cap): the word is sent wrapped and the declined form comes back in the same colour; the tag warning does not count those tags as extra. Find out per game whether the engine colours the name — Twilight Princess and The Wind Waker do not, Minish Cap does.
 
 **Menu actions:** `get_plugin_actions()` may add `QAction`s (`name`, `text`, `tooltip`, `shortcut`, `handler`, `menu`, `toolbar`). The AI translate actions belong to the application and are present for every game.
 
