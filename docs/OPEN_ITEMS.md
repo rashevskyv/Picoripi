@@ -108,6 +108,17 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Next formats: Tingle Tuner (GBA), Wii U BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already
   opens; the 3DS fonts are done.
 
+## Four Swords Anniversary Edition plugin (`plugins/zelda_fsae`, 2026-10-04)
+
+- Not seen in a game: no DSi emulator on the PC (melonDS + DSi BIOS/firmware/NAND needed; no$gba has no BIOS) and
+  no console run yet. Proven only by `FSAE_UA	oolsender_proof.py` (text through plugin, SRL build and the font).
+- Picture widths (`[icon:N]`, `[button:N]`) are guessed 12 px; the code meanings (`[next:N]`, `[event:N]`,
+  `[player:N]`, colours) are read from the English text, not from the game code.
+- The base is the Russian build: its menu and area-name graphics (`subtask_eu_en.cmp`, `zeldat_eu_en.bin`: NCGR
+  tiles) are Russian; no texture source for them yet, and a clean EU dump is needed for the English ones.
+- `eu.kmsg` may have a size limit in the game (the Russian build shares texts to stay under the original size);
+  `2_build` warns when the Ukrainian file is larger than the Russian one.
+
 ## Cadence of Hyrule plugin (`plugins/zelda_coh`, 2026-10-04)
 
 - Owner decision: the Ukrainian glyphs of `LoveBug.bffnt` (the menu and text font, no Cyrillic; the second
