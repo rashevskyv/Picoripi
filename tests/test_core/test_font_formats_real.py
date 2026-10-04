@@ -22,8 +22,10 @@ SWITCH = Path(r"D:\Downloads\switch")
 OOT_ROM = ZELDA / "OOT64_UA" / "rom" / "Legend of Zelda, The - Ocarina of Time (USA).z64"
 MM_ROM = ZELDA / "MM64_UA" / "rom" / "Legend of Zelda, The - Majora's Mask (USA).z64"
 HWDE_UI = ZELDA / "HWDE_UA" / "romfs" / "data" / "ui"
+AOC_FONT = ZELDA / "HWAOC_UA" / "source" / "font" / "latin.g1n"
 WW_FILES = ZELDA / "WW_UA" / "ISO" / "ENG" / "files"
 TP_FONTS = ZELDA / "TP_UA" / "ISO" / "ENG" / "root" / "res" / "Fontus"
+COH_SOURCE = ZELDA / "COH_UA" / "source"
 NX_FONTS = [
     SWITCH / "Cadence of Hyrule [NSP]" / "Russian Language Mod (30.09.2020)" / "atmosphere" / "contents"
     / "01000B900D8B0000" / "romfs" / "fonts_bin" / "PixelMPlus.bffnt",
@@ -95,9 +97,19 @@ def test_hwde_g1t_descriptor_matches_the_atlas(name, index):
     assert font_formats.pack("g1t", metadata, sheets, data, params) == data
 
 
+@pytest.mark.parametrize("index", range(7))
+def test_aoc_g1n_descriptor_round_trips(index):
+    data = _need(AOC_FONT)
+    params = _descriptor("zelda_aoc", index)["params"]
+    metadata, sheets = font_formats.extract("g1n", data, params)
+    assert _has_ink(metadata, sheets, "A") and _has_ink(metadata, sheets, "é")
+    assert "Ж" not in font_formats.char_map(metadata)          # no Cyrillic in the game's Latin font
+    assert font_formats.pack("g1n", metadata, sheets, data, params) == data
+
+
 def test_hwde_translation_map_covers_the_cyrillic_slots():
     mapping = json.loads((ROOT / "plugins" / "zelda_hwde" / "translation_map.json").read_text(encoding="utf-8"))
-    assert len(mapping) == 73
+    assert len(mapping) == 67                     # 66 Ukrainian letters and №; no Russian-only letters
     assert mapping["А"] == "À" and mapping["і"] == "³" and mapping["ґ"] == "´" and mapping["№"] == "¹"
 
 
@@ -114,6 +126,39 @@ def test_switch_bffnt_round_trip_and_edit(path):
     again, again_sheets = font_formats.extract("bffnt", edited, {})
     assert again["WID1"][0]["packets"][glyph]["width"] == metadata["WID1"][0]["packets"][glyph]["width"]
     assert [s.tobytes() for s in again_sheets] == [s.tobytes() for s in sheets]
+
+
+def test_cadence_of_hyrule_fonts_round_trip_through_the_plugin_sources():
+    _need(COH_SOURCE / "fonts_bin" / "LoveBug.bffnt")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_coh" / "font_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(COH_SOURCE), "translation_path": ""})
+    assert len(found) == 6
+    for source in found:
+        data = source.read_original()
+        assert font_formats.pack("bffnt", *font_formats.extract("bffnt", data, source.params), data,
+                                 source.params) == data, source.name
+
+
+def test_cadence_of_hyrule_text_font_gets_ukrainian_letters_on_a_new_sheet():
+    """LoveBug has no Cyrillic and 5 free cells: the second sheet (``min_sheets``) takes the alphabet."""
+    data = _need(COH_SOURCE / "fonts_bin" / "LoveBug.bffnt")
+    params = _descriptor("zelda_coh")["params"]
+    metadata, sheets = font_formats.extract("bffnt", data, params)
+    gly = metadata["GLY1"][0]
+    per_sheet = gly["glyph_horizontal_count"] * gly["glyph_vertical_count"]
+    pairs = [(font_formats.char_code(c), g) for c, g in font_formats.char_map(metadata).items()]
+    for index, char in enumerate("ЄІЇҐєіїґ"):
+        pairs.append((ord(char), per_sheet + index))
+        metadata["WID1"][0]["packets"][per_sheet + index] = {"kerning": 0, "width": 8}
+        x, y = index * gly["cell_width"], 0
+        ImageDraw.Draw(sheets[1]).rectangle((x + 1, y + 1, x + 6, y + 10), fill=(255, 255, 255, 255))
+    metadata["MAP1"] = [font_formats.map_entries(pairs)]
+    grown = font_formats.pack("bffnt", metadata, sheets, data, params)
+    again, again_sheets = font_formats.extract("bffnt", grown, params)
+    assert len(again_sheets) == 2 and font_formats.font_map(again)["Ї"] == {"width": 8}
+    assert font_formats.font_map(again)["A"] == font_formats.font_map(metadata)["A"]
+    assert _has_ink(again, again_sheets, "ґ") and _has_ink(again, again_sheets, "A")
+    assert font_formats.pack("bffnt", again, again_sheets, grown, params) == grown
 
 
 def _bfn_round_trip(data, folder):
@@ -153,5 +198,49 @@ def test_wind_waker_descriptor_finds_the_fonts_in_a_project():
     _need(WW_FILES / "res" / "Msg" / "fontres.arc")
     descriptors = json.loads((ROOT / "plugins" / "zelda_tww" / "font_sources.json").read_text(encoding="utf-8"))
     found = sources.resolve(descriptors, {"source_path": str(WW_FILES), "translation_path": "", "is_directory_mode": True})
-    assert [source.name for source in found] == ["rock_24_20_4i_usa.bfn", "hyrule.bfn"]
-    assert found[0].read_current()[:8] == b"FONTbfn1"
+    assert [source.name for source in found] == ["rock_24_20_4i_usa.bfn", "hyrule.bfn", "rock_24_20_ia4_e.bfn",
+                                                 "kanfont_fix16.bfn"]
+    assert all(source.read_current()[:8] == b"FONTbfn1" for source in found)   # the name font is Yaz0 in its archive
+
+
+# -- 3DS (Ocarina of Time 3D, Majora's Mask 3D, A Link Between Worlds, Tri Force Heroes) ---------
+
+def _ctr_fonts(archive):
+    """The FFNT files inside a Yaz0 SARC (found by magic; the names are hashed in ALBW)."""
+    from core.containers import yaz0
+    data = yaz0.decompress(_need(archive))
+    fonts, at = [], data.find(b"FFNT\xff\xfe")
+    while at >= 0:
+        fonts.append(data[at:at + struct.unpack_from("<I", data, at + 0x0C)[0]])
+        at = data.find(b"FFNT\xff\xfe", at + 4)
+    return fonts
+
+
+THREE_DS = [  # (file or archive, format, characters per font)
+    (ZELDA / "OOT3D_UA" / "romfs" / "message" / "eu" / "ltn16.qbf", "qbf", [199]),
+    (ZELDA / "OOT3D_UA" / "romfs" / "message" / "sys8.qbf", "qbf", [288]),
+    (ZELDA / "OOT3D_UA" / "RU" / "romfs" / "message" / "eu" / "ltn16.qbf", "qbf", [265]),
+    (ZELDA / "MM3D_UA" / "romfs" / "message" / "ltn16.gzf", "gzf", [468]),
+    (ZELDA / "ALBW_UA" / "romfs" / "EU" / "RegionBoot.szs", "bcfnt", [49, 687]),
+    (ZELDA / "TFH_UA" / "romfs" / "Archive" / "EU" / "RegionBoot.szs", "bcfnt", [49, 740]),
+]
+
+
+@pytest.mark.parametrize("path,fmt,counts", THREE_DS, ids=lambda v: v.parts[-4] + "-" + v.name if isinstance(v, Path) else None)
+def test_3ds_fonts_show_every_character_and_pack_back_unchanged(path, fmt, counts):
+    fonts = _ctr_fonts(path) if path.suffix == ".szs" else [_need(path)]
+    assert sorted(len(font_formats.char_map(font_formats.extract(fmt, data)[0])) for data in fonts) == counts
+    for data in fonts:
+        assert font_formats.detect(data) == fmt
+        metadata, sheets = font_formats.extract(fmt, data)
+        assert font_formats.pack(fmt, metadata, sheets, data) == data
+
+
+
+def test_aoc_descriptors_find_the_font_in_the_workspace_source():
+    _need(AOC_FONT)
+    descriptors = json.loads((ROOT / "plugins" / "zelda_aoc" / "font_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(AOC_FONT.parents[1]), "translation_path": "",
+                                          "is_directory_mode": True})
+    assert len(found) == 7 and {source.name for source in found} == {"latin.g1n"}
+    assert font_formats.detect(found[0].read_current()) == "g1n"

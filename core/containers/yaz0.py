@@ -24,13 +24,16 @@ Compressed output format:
 
 import struct
 
+_GROUP_MASKS = (0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01)
 
-def decompress(data: bytes) -> bytes:
+
+def decompress(data: bytes, limit: int | None = None) -> bytes:
     """
     Decompress Yaz0-encoded data.
 
     Args:
         data: Raw Yaz0-compressed bytes (must start with b"Yaz0").
+        limit: Stop after this many decompressed bytes (to look at the inner header only).
 
     Returns:
         Decompressed bytes.
@@ -44,29 +47,40 @@ def decompress(data: bytes) -> bytes:
         raise ValueError(f"Invalid Yaz0 magic: {data[:4]!r}")
 
     uncompressed_size: int = struct.unpack_from(">I", data, 4)[0]
+    if limit is not None:
+        uncompressed_size = min(uncompressed_size, limit)
     src: int = 16  # skip 16-byte header
     dst: bytearray = bytearray(uncompressed_size)
     dst_pos: int = 0
 
+    data_len: int = len(data)
+
     while dst_pos < uncompressed_size:
-        if src >= len(data):
+        if src >= data_len:
             break
 
         group_header: int = data[src]
         src += 1
 
-        for bit in range(8):
+        if group_header == 0xFF and dst_pos + 8 <= uncompressed_size and src + 8 <= data_len:
+            # Eight literal bytes in a row
+            dst[dst_pos : dst_pos + 8] = data[src : src + 8]
+            src += 8
+            dst_pos += 8
+            continue
+
+        for mask in _GROUP_MASKS:
             if dst_pos >= uncompressed_size:
                 break
 
-            if group_header & (0x80 >> bit):
+            if group_header & mask:
                 # Literal byte
                 dst[dst_pos] = data[src]
                 src += 1
                 dst_pos += 1
             else:
                 # Back-reference
-                if src + 1 >= len(data):
+                if src + 1 >= data_len:
                     break
                 b1: int = data[src]
                 b2: int = data[src + 1]
@@ -82,11 +96,21 @@ def decompress(data: bytes) -> bytes:
                     count = data[src] + 18
                     src += 1
 
-                for _ in range(count):
-                    if dst_pos >= uncompressed_size:
-                        break
-                    dst[dst_pos] = dst[dst_pos - dist]
-                    dst_pos += 1
+                count = min(count, uncompressed_size - dst_pos)
+                start: int = dst_pos - dist
+                if start < 0:
+                    # Malformed distance: keep the byte-by-byte behaviour
+                    for _ in range(count):
+                        dst[dst_pos] = dst[dst_pos - dist]
+                        dst_pos += 1
+                elif dist >= count:
+                    dst[dst_pos : dst_pos + count] = dst[start : start + count]
+                    dst_pos += count
+                else:
+                    # The run overlaps itself: the copied bytes repeat with period ``dist``
+                    run = bytes(dst[start:dst_pos]) * (count // dist + 1)
+                    dst[dst_pos : dst_pos + count] = run[:count]
+                    dst_pos += count
 
     return bytes(dst)
 

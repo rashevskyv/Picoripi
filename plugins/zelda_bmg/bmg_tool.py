@@ -225,6 +225,14 @@ class BMGFile:
                 curr_str_start = str_offset
 
                 while curr_pos < len(dat_data):
+                    if len(null_char) == 1:
+                        # Single-byte text: jump straight to the next terminator or escape
+                        nul = dat_data.find(null_char, curr_pos)
+                        esc = dat_data.find(esc_char, curr_pos)
+                        if esc == -1 or (nul != -1 and nul < esc):
+                            curr_pos = len(dat_data) if nul == -1 else nul
+                            break
+                        curr_pos = esc
                     next_bytes = dat_data[curr_pos : curr_pos + len(null_char)]
                     if next_bytes == null_char:
                         break

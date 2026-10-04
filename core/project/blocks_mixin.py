@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
+from utils.atomic_io import atomic_write_json
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
 from core import formats
@@ -118,6 +119,9 @@ class BlocksMixin:
         supported_extensions = text_extensions | archive_extensions
         existing_blocks = {b.source_file: b for b in self.project.blocks}
         found_sources = set()
+        scan_key = sorted(text_extensions)
+        scan_cache = self._read_archive_scan(scan_key)
+        new_scan_cache: dict = {}
         
 
         def process_source_file(filepath: Path, rel_path: str):
@@ -125,34 +129,43 @@ class BlocksMixin:
             if filepath.suffix.lower() in archive_extensions:
                 archive_rel_path = rel_path
                 try:
-                    raw = filepath.read_bytes()
-                    container = ContainerManager.open(raw)
-                    if container is None:
-                        log_warning(f"Unsupported archive format during sync: {filepath}")
-                        return
+                    # Reading and unpacking every archive at each project open takes seconds
+                    # (a GameCube disc has over a thousand): an unchanged archive keeps its listing.
+                    stat = filepath.stat()
+                    stamp = [stat.st_mtime_ns, stat.st_size]
+                    known = scan_cache.get(rel_path)
+                    if isinstance(known, list) and known[:2] == stamp:
+                        inner_files = known[2]
+                    else:
+                        container = ContainerManager.open(filepath.read_bytes())
+                        if container is None:
+                            log_warning(f"Unsupported archive format during sync: {filepath}")
+                            inner_files = []
+                        else:
+                            inner_files = [inner for inner in container.list_files()
+                                           if Path(inner).suffix.lower() in text_extensions]
+                    new_scan_cache[rel_path] = stamp + [inner_files]
 
-                    inner_extensions = text_extensions
-                    for inner_path in container.list_files():
-                        if Path(inner_path).suffix.lower() in inner_extensions:
-                            block_src_rel = f".extracted/sources/{archive_rel_path}/{inner_path}"
-                            block_trans_rel = f".extracted/translation/{archive_rel_path}/{inner_path}"
-                            found_sources.add(block_src_rel)
+                    for inner_path in inner_files:
+                        block_src_rel = f".extracted/sources/{archive_rel_path}/{inner_path}"
+                        block_trans_rel = f".extracted/translation/{archive_rel_path}/{inner_path}"
+                        found_sources.add(block_src_rel)
 
-                            if block_src_rel not in existing_blocks:
-                                block = self.add_block(
-                                    name=Path(inner_path).stem,
-                                    source_file_path=block_src_rel,
-                                    translation_file_path=block_trans_rel
-                                )
-                                if block:
-                                    block.metadata['is_archive_member'] = True
-                                    block.metadata['archive_rel_path'] = archive_rel_path
-                                    block.metadata['archive_file_name'] = inner_path
-                            else:
-                                block = existing_blocks[block_src_rel]
+                        if block_src_rel not in existing_blocks:
+                            block = self.add_block(
+                                name=Path(inner_path).stem,
+                                source_file_path=block_src_rel,
+                                translation_file_path=block_trans_rel
+                            )
+                            if block:
                                 block.metadata['is_archive_member'] = True
                                 block.metadata['archive_rel_path'] = archive_rel_path
                                 block.metadata['archive_file_name'] = inner_path
+                        else:
+                            block = existing_blocks[block_src_rel]
+                            block.metadata['is_archive_member'] = True
+                            block.metadata['archive_rel_path'] = archive_rel_path
+                            block.metadata['archive_file_name'] = inner_path
                 except Exception as e:
                     log_error(f"Failed to process archive {filepath}: {e}", exc_info=True)
             else:
@@ -200,6 +213,9 @@ class BlocksMixin:
                 rel_path = filepath.name
                 process_source_file(filepath, rel_path)
                     
+        if new_scan_cache != scan_cache:
+            self._write_archive_scan(scan_key, new_scan_cache)
+
         # Remove blocks that no longer exist
         blocks_to_remove = [b.id for b in self.project.blocks if b.source_file not in found_sources]
         for bid in blocks_to_remove:
@@ -210,6 +226,28 @@ class BlocksMixin:
                 self._migrate_file_structure_to_virtual_folders()
             else:
                 self.save()
+
+    def _archive_scan_path(self) -> Optional[Path]:
+        return Path(self.project_dir) / "archive_scan.json" if self.project_dir else None
+
+    def _read_archive_scan(self, extensions: List[str]) -> dict:
+        """The text files each source archive holds, as of the last scan: {relative path: [mtime_ns, size, [files]]}."""
+        path = self._archive_scan_path()
+        try:
+            stored = json.loads(path.read_text(encoding="utf-8")) if path and path.exists() else {}
+        except (OSError, ValueError):
+            return {}
+        archives = stored.get("archives") if isinstance(stored, dict) else None
+        return archives if isinstance(archives, dict) and stored.get("extensions") == extensions else {}
+
+    def _write_archive_scan(self, extensions: List[str], archives: dict) -> None:
+        path = self._archive_scan_path()
+        if path is None:
+            return
+        try:
+            atomic_write_json(path, {"extensions": extensions, "archives": archives})
+        except OSError as exc:
+            log_debug(f"Sync: the archive scan cache was not written: {exc}")
 
     def import_directory(self, root_dir_path: Union[str, Path]) -> List[Block]:
         """

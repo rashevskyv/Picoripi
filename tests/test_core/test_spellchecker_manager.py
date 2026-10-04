@@ -305,6 +305,9 @@ def test_SpellcheckerManager_async_initialization_flow(mock_from_files, mock_mw,
         sm = SpellcheckerManager(mock_mw, language='uk', custom_dict_path=dict_dir)
         
         # We wait for the dictionary_loaded signal using qtbot
+        sm._ensure_initialized()
+        assert not hasattr(sm, '_dictionary_initialized')      # disabled: the dictionary is not parsed
+        sm.enabled = True
         with qtbot.waitSignal(sm.dictionary_loaded, timeout=20000):
             sm._ensure_initialized()
         

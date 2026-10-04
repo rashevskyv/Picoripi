@@ -375,6 +375,19 @@ class WindowUiMixin:
         actions.addWidget(self.btn_render_font, 2, 0, 1, 2)
         right_layout.addLayout(actions)
 
+        move_row = QtWidgets.QHBoxLayout()
+        move_row.addWidget(QtWidgets.QLabel(tr('Move glyph:')))
+        self.btn_move_glyph = {}
+        for arrow, (dx, dy) in (("◀", (-1, 0)), ("▲", (0, -1)), ("▼", (0, 1)), ("▶", (1, 0))):
+            button = QtWidgets.QToolButton()
+            button.setText(arrow)
+            button.setToolTip(tr('Move the selected glyphs 1 px (Ctrl+Arrow keys)'))
+            button.clicked.connect(lambda _checked=False, x=dx, y=dy: self.move_glyph_pixels(x, y))
+            move_row.addWidget(button)
+            self.btn_move_glyph[(dx, dy)] = button
+        move_row.addStretch()
+        right_layout.addLayout(move_row)
+
         right_layout.addStretch()
 
         right_widget = QtWidgets.QWidget()
@@ -451,6 +464,12 @@ class WindowUiMixin:
         self.sc_up.activated.connect(lambda: self.navigate_grid(0, -1))
         self.sc_down = QtGui.QShortcut(QtGui.QKeySequence("Down"), self)
         self.sc_down.activated.connect(lambda: self.navigate_grid(0, 1))
+
+        self.sc_move = []
+        for keys, dx, dy in (("Ctrl+Left", -1, 0), ("Ctrl+Right", 1, 0), ("Ctrl+Up", 0, -1), ("Ctrl+Down", 0, 1)):
+            shortcut = QtGui.QShortcut(QtGui.QKeySequence(keys), self)
+            shortcut.activated.connect(lambda x=dx, y=dy: self.move_glyph_pixels(x, y))
+            self.sc_move.append(shortcut)
 
         self.sc_close = QtGui.QShortcut(QtGui.QKeySequence("Esc"), self)
         self.sc_close.activated.connect(self.on_esc_pressed)
