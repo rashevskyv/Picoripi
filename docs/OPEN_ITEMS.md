@@ -39,8 +39,12 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Five speaker hashes are unnamed (`0x663ee3`, `0x28dce6`, `0x1932cc`, and two guessed in
   `plugins/mgs_ts/speakers.json`: `#9331f5` Snake, `#388785` Psycho Mantis).
 - The clean ISOs are NKit (DolphinTool cannot undo NKit); patches made against them need the same NKit images.
-- Only the opening cutscene and the font were seen on screen (Dolphin); codec calls, briefing and play
-  were not played through.
+- Seen in Dolphin 2026-10-04 (input movies, no keyboard): the options help, the first codec call after the
+  intro, the codec opened in play (Start + A). Measured: codec rows wrap above 509 font units (509 fits, 514
+  wraps), the options help row at the screen edge (711 fits, 725 wraps). The item-description, memory-card,
+  briefing and photo windows were not measured: their limit is the widest English row of the neighbouring
+  strings (`get_string_layout`), a guess from the English layout. Subtitles keep the block's widest row + 5 %.
+- The codec box shows four rows; a fifth row (a long line the game wrapped) is not shown.
 
 ## Font editor formats (2026-10-03)
 

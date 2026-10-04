@@ -106,6 +106,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      subtitle records name the character). The Font Editor opens the text font (`font\*.fnt`, format `mgs`);
      Ukrainian letters live in its upper half through the plugin's `translation_map.json`. The workspace's
      `2_build.bat` puts the pieces back into `stage.dat`, `demo.dat`, `vox.dat`, `movie.dat`, `codec.dat`.
+     The game breaks a row that is too wide by itself, in the middle of a word, so the width check has no
+     slack: a codec row may be 509 font units wide (measured in the game's codec box), a menu or item text row
+     as wide as the widest English row of the neighbouring strings (one script mixes option help, item
+     descriptions and memory-card dialogs, each in its own window). Credits, titles, HUD labels and menu words
+     are pictures, not text (`TWIN_SNAKESeportsisible_text_inventory.md`).
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

@@ -7,6 +7,7 @@ import pytest
 from core.formats import SaveContext
 from plugins.mgs_ts import doc as docs
 from plugins.mgs_ts import gcx, subtitles
+from plugins.mgs_ts.rules import CODEC_TEXT_WIDTH, SCRIPT_NEIGHBOURS
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 from .samples import codec_file, gcx_file, subs_file
@@ -110,8 +111,28 @@ def test_glossary_seed_has_characters_and_items(project):
 
 def test_string_layout_and_width(project):
     assert project.calculate_string_width_override("Sn{x02}", project.mw.font_map) == 23
-    layout = project.get_string_layout(0, 0)
+    # the codec box is a measured width, whatever the English lines are
+    assert project.get_string_layout(0, 0) == {"warn_width": CODEC_TEXT_WIDTH, "max_width": CODEC_TEXT_WIDTH}
+    layout = project.get_string_layout(2, 0)
     assert layout["warn_width"] > 0 and layout["max_width"] >= layout["warn_width"]
+
+
+def test_script_width_comes_from_the_neighbouring_strings(tmp_path):
+    """A script table mixes windows: item descriptions must not get the width of a far wide dialog."""
+    narrow = [b"Ration\nYou eat the ration.\nIt is the food."] * 3
+    filler = [b"It is the one you have to find."] * (SCRIPT_NEIGHBOURS + 1)
+    wide = [b"This is the very long line of the memory card dialog that you see and read"]
+    (tmp_path / "s.gcx").write_bytes(gcx_file(narrow + filler + wide))
+    manager = SimpleNamespace(project=SimpleNamespace(blocks=[SimpleNamespace(source_file="s.gcx")]),
+                              project_dir=None, get_absolute_path=lambda rel, is_translation=False: str(tmp_path / rel))
+    rules = load_rules("mgs_ts", SimpleNamespace(project_manager=manager, block_to_project_file_map={0: 0},
+                                                 font_map={"~": {"width": 1}}))
+    width = lambda text: rules.calculate_string_width_override(text, {})  # noqa: E731
+    first = rules.get_string_layout(0, 0)
+    assert first == {"warn_width": width("It is the one you have to find."),
+                     "max_width": width("It is the one you have to find.")}
+    last = rules.get_string_layout(0, len(narrow + filler))
+    assert last["max_width"] == width(wide[0].decode())
 
 
 # -- the game's own files ------------------------------------------------------

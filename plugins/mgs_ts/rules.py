@@ -28,6 +28,9 @@ _ROLES = {
     "movie": ("Movie subtitle", "One subtitle of a pre-rendered movie (briefing videos)."),
 }
 _ITEM_NAME_RE = re.compile(r"^([^\n]{2,24})\n")
+# Measured in Dolphin: a 509-wide row fits the codec text box, a 514-wide one wraps (font units).
+CODEC_TEXT_WIDTH = 509
+SCRIPT_NEIGHBOURS = 8      # strings on each side that count as the same window
 
 
 class GameRules(BaseGameRules):
@@ -272,20 +275,35 @@ class GameRules(BaseGameRules):
     # -- editor ----------------------------------------------------------------
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
-        """Width limit: the widest English line of the same kind in the block (lines are broken by hand)."""
+        """Width limit of one string. The game breaks a row that is too wide by itself, in the middle
+        of a word, so the limit is the box, with no slack.
+
+        Codec: the measured box (``CODEC_TEXT_WIDTH``). Script text: one table mixes windows of
+        different widths (option help, item descriptions, memory-card dialogs, briefing), and the
+        strings of one window sit together, so the limit is the widest English row among the
+        neighbouring strings. Subtitles: the widest English row of the block.
+        """
         found = self._line(block_idx, string_idx)
         font_map = getattr(self.mw, "font_map", None) if self.mw else None
         if not found or not font_map:
             return None
         _rel, parsed, sub, line = found
-        key = (block_idx, line.kind)
+        if line.kind == "codec":
+            return {"warn_width": CODEC_TEXT_WIDTH, "max_width": CODEC_TEXT_WIDTH}
+        index = int(string_idx)
+        key = (block_idx, index if line.kind == "script" else line.kind)
         if key not in self._widest:
-            widths = [self._width(text, font_map) for other in parsed.blocks[sub] if other.kind == line.kind
+            lines = parsed.blocks[sub]
+            if line.kind == "script":
+                lines = lines[max(0, index - SCRIPT_NEIGHBOURS):index + SCRIPT_NEIGHBOURS + 1]
+            widths = [self._width(text, font_map) for other in lines if other.kind == line.kind
                       for text in docs.textcodec.decode(other.raw).split("\n")]
             self._widest[key] = max(widths, default=0)
         widest = self._widest[key]
         if widest <= 0:
             return None
+        if line.kind == "script":
+            return {"warn_width": widest, "max_width": widest}
         return {"warn_width": widest, "max_width": round(widest * 1.05)}
 
     @staticmethod
