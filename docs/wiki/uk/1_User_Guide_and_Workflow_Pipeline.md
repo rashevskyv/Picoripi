@@ -73,6 +73,14 @@ tokens: 8.7k
      мапи шрифтів зі шрифтів гри. Коли перекладений архів більшає, запустіть
      `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>`, щоб гра виділила під нього досить пам’яті.
    - `zelda_hwde` — Zelda: Hyrule Warriors Definitive Edition
+   - `zelda_coh` — Zelda: Cadence of Hyrule (Switch). **Source:** тека з `localization.xml` гри (romfs гри з
+     оновленням) і `fonts_bin`; **Translation:** `romfs` мода (`atmosphere/contents/01000B900D8B0000/romfs`, Title ID
+     базової гри). Усі 1809 рядків, блок на діапазон id (меню, діалоги, підказки, предмети, вороги, місця, катсцени,
+     титри, досягнення); показуються й зберігаються лише англійські рядки, незмінений файл лишається байт у байт.
+     Теги — власні теги гри (`[c:b]`, `[/c]`, `[i:button_a]`, `[s:9]`); `[n]` видно як перенесення рядка, `[p]`
+     (наступна сторінка) — як `[p]` і перенесення. Мовця визначає ключ рядка (`zora4_1` → Zora). Font Editor відкриває
+     шість шрифтів `.bffnt`; текстовий шрифт `LoveBug` не має кирилиці, тому відкривається із запасним аркушем для
+     українських літер
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

@@ -24,6 +24,7 @@ MM_ROM = ZELDA / "MM64_UA" / "rom" / "Legend of Zelda, The - Majora's Mask (USA)
 HWDE_UI = ZELDA / "HWDE_UA" / "romfs" / "data" / "ui"
 WW_FILES = ZELDA / "WW_UA" / "ISO" / "ENG" / "files"
 TP_FONTS = ZELDA / "TP_UA" / "ISO" / "ENG" / "root" / "res" / "Fontus"
+COH_SOURCE = ZELDA / "COH_UA" / "source"
 NX_FONTS = [
     SWITCH / "Cadence of Hyrule [NSP]" / "Russian Language Mod (30.09.2020)" / "atmosphere" / "contents"
     / "01000B900D8B0000" / "romfs" / "fonts_bin" / "PixelMPlus.bffnt",
@@ -114,6 +115,39 @@ def test_switch_bffnt_round_trip_and_edit(path):
     again, again_sheets = font_formats.extract("bffnt", edited, {})
     assert again["WID1"][0]["packets"][glyph]["width"] == metadata["WID1"][0]["packets"][glyph]["width"]
     assert [s.tobytes() for s in again_sheets] == [s.tobytes() for s in sheets]
+
+
+def test_cadence_of_hyrule_fonts_round_trip_through_the_plugin_sources():
+    _need(COH_SOURCE / "fonts_bin" / "LoveBug.bffnt")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_coh" / "font_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(COH_SOURCE), "translation_path": ""})
+    assert len(found) == 6
+    for source in found:
+        data = source.read_original()
+        assert font_formats.pack("bffnt", *font_formats.extract("bffnt", data, source.params), data,
+                                 source.params) == data, source.name
+
+
+def test_cadence_of_hyrule_text_font_gets_ukrainian_letters_on_a_new_sheet():
+    """LoveBug has no Cyrillic and 5 free cells: the second sheet (``min_sheets``) takes the alphabet."""
+    data = _need(COH_SOURCE / "fonts_bin" / "LoveBug.bffnt")
+    params = _descriptor("zelda_coh")["params"]
+    metadata, sheets = font_formats.extract("bffnt", data, params)
+    gly = metadata["GLY1"][0]
+    per_sheet = gly["glyph_horizontal_count"] * gly["glyph_vertical_count"]
+    pairs = [(font_formats.char_code(c), g) for c, g in font_formats.char_map(metadata).items()]
+    for index, char in enumerate("ЄІЇҐєіїґ"):
+        pairs.append((ord(char), per_sheet + index))
+        metadata["WID1"][0]["packets"][per_sheet + index] = {"kerning": 0, "width": 8}
+        x, y = index * gly["cell_width"], 0
+        ImageDraw.Draw(sheets[1]).rectangle((x + 1, y + 1, x + 6, y + 10), fill=(255, 255, 255, 255))
+    metadata["MAP1"] = [font_formats.map_entries(pairs)]
+    grown = font_formats.pack("bffnt", metadata, sheets, data, params)
+    again, again_sheets = font_formats.extract("bffnt", grown, params)
+    assert len(again_sheets) == 2 and font_formats.font_map(again)["Ї"] == {"width": 8}
+    assert font_formats.font_map(again)["A"] == font_formats.font_map(metadata)["A"]
+    assert _has_ink(again, again_sheets, "ґ") and _has_ink(again, again_sheets, "A")
+    assert font_formats.pack("bffnt", again, again_sheets, grown, params) == grown
 
 
 def _bfn_round_trip(data, folder):

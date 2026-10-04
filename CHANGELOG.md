@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- New plugin `zelda_coh` — Cadence of Hyrule (Switch): the 1,809 strings of `localization.xml`, one block per id range, saved as a LayeredFS mod with only the edited English strings replaced (an unedited file stays byte for byte); speakers and glossary terms from the string keys and id ranges; the six `.bffnt` fonts in the Font Editor.
+- Font Editor, Switch BFFNT: a font can get new characters — a `min_sheets` font source opens with spare sheets, and saving adds the used ones as texture layers with their widths and character map (`LoveBug.bffnt` of Cadence of Hyrule showed Cyrillic in Eden this way).
 - The review pass is on by default (new key `review_enabled`; `false` turns it off). The old `editor_review_enabled`, saved as `false` in existing settings, belonged to the removed editor review and is no longer read.
 - Ocarina of Time / Majora's Mask (N64): line widths take a character's width from the Font Editor's map of the game font (`<project>/font_maps/oot_font.json` / `mm_font.json`) when the project has one, so redrawn or Ukrainian letters are measured; the game's table stays the fallback.
 - Player names, per game: Ocarina of Time, Majora's Mask (`{name}`) and Tears of the Kingdom (`{playerName}`) send the hero's tag as the declined name «Лінк» through a `{F:Link}` force alias, like Twilight Princess and The Wind Waker; Hyrule Warriors has no player-named hero.

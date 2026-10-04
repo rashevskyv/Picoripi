@@ -12,13 +12,13 @@ the line when it is done or moved into a plan.
 
 ## Font editor formats (2026-10-03)
 
-- Nothing edited has run in a game or emulator: an N64 ROM with a redrawn glyph, a HWDE `font_eu.g1t` in the
-  LayeredFS mod, a TotK font.
+- Not run in a game or emulator yet: an N64 ROM with a redrawn glyph, a HWDE `font_eu.g1t` in the LayeredFS
+  mod, a TotK font. (Cadence of Hyrule's `LoveBug.bffnt` with a new sheet of Cyrillic did, in Eden, 2026-10-04.)
 - TotK: no real font on disk; BFFNT was verified on Cadence of Hyrule and Pokémon SV (Switch, BC4). Its
   `Font/*.bfarc.zs` needs the TotK plugin's SARC container (registered when that plugin is active) and the
   project pointing at the romfs (or `Mals`). Texture formats other than BC4 open empty (widths only).
-- BFFNT: the character map (CMAP) and the kerning table are kept, not edited; a glyph with no character
-  cannot get one (the translation map assigns letters to existing glyphs).
+- BFFNT: new characters get a CMAP block and new sheets a texture layer (`min_sheets`); the kerning table
+  (KRNG) is kept as it is, and a removed character outside the changed code range still resolves.
 - HWDE: widths are measured from the ink (+4 px) — whether the game has its own table is unknown; edited
   widths live in the project's `font_maps/hwde_eu.json`. The `../romfs/...` candidate assumes the
   workspace layout `source/` next to `romfs/` and a translation folder named `romfs`.
@@ -27,6 +27,19 @@ the line when it is done or moved into a plan.
 - Next formats: the 3DS fonts (decrypted 2026-10-04): BFFNT 4.0 with A4 textures (A Link Between Worlds,
   Tri Force Heroes), Grezzo QBF (Ocarina of Time 3D) and GZF (Majora's Mask 3D); Tingle Tuner (GBA), Wii U
   BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already opens.
+
+## Cadence of Hyrule plugin (`plugins/zelda_coh`, 2026-10-04)
+
+- Owner decision: the Ukrainian glyphs of `LoveBug.bffnt` (the menu and text font, no Cyrillic; the second
+  sheet is free for them) and the four missing letters Є є Ґ ґ of `ZeldaGlyph`/`ZeldaGlyphSmall` must be drawn
+  in the Font Editor. Which screens use ZeldaGlyph and the Asian fonts in English mode was not mapped.
+- Text in images is not covered: `textures_bin/texture_pack.bin` (zlib of BNTX textures) holds the title logo and
+  the four menu tab names (`UI_BorderNames_English_*`); the Russian mod redrew exactly those five.
+- Speakers come from string keys; 20 keys (`mellan`, `gerudo_leader`, `zora_leader`...) stay `npc:<key>` until
+  someone names them. Dialogue box limits (lines per page, wrap width) are not known; only short labels get a
+  width limit (1.3x / 1.6x the English).
+- `credits.xml` (names and some English headings) is not opened; the translated credits headings live in
+  `localization.xml` (ids 8000+).
 
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 

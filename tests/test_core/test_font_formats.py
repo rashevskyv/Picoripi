@@ -229,6 +229,61 @@ def test_bffnt_refuses_big_endian():
         font_formats.extract("bffnt", b"FFNT\xfe\xff" + bytes(64), {})
 
 
+def _bffnt_with_rlt(ink: Image.Image):
+    """``_bffnt`` plus what a new sheet has to move in a real NX BNTX: BRTD, ``_RLT`` and their sizes."""
+    data = bytearray(_bffnt(ink))
+    bntx = bffnt._tglp(bytes(data), 0x34)["data"]
+    texture_end = bntx + 0x200 + 32 * 32 // 2
+    rlt = b"_RLT" + struct.pack("<III", texture_end - bntx, 2, 0)
+    rlt += struct.pack("<QIIII", 0, 0, 0x1F0, 0, 0) + struct.pack("<QIIII", 0, 0x1F0, texture_end - bntx - 0x1F0, 0, 0)
+    data[texture_end:texture_end] = rlt
+    struct.pack_into("<II", data, bntx + 0x18, texture_end - bntx, texture_end + len(rlt) - bntx)
+    struct.pack_into("<Q", data, bntx + 0x30, 0x1F0)                                  # -> BRTD
+    data[bntx + 0x1F0:bntx + 0x1F4] = b"BRTD"
+    struct.pack_into("<Q", data, bntx + 0x1F8, 0x10 + 32 * 32 // 2)
+    for field in (0x14 + 8 + 16, 0x14 + 8 + 20):                                     # FINF -> CWDH, CMAP
+        struct.pack_into("<I", data, field, struct.unpack_from("<I", data, field)[0] + len(rlt))
+    struct.pack_into("<I", data, 0x34 + 12, texture_end + len(rlt) - bntx)            # TGLP: BNTX size
+    struct.pack_into("<I", data, 0x0C, len(data))
+    return bytes(data)
+
+
+def test_bffnt_new_characters_go_to_a_new_sheet_and_cmap():
+    data = _bffnt_with_rlt(_ink_with_a())
+    assert font_formats.pack("bffnt", *font_formats.extract("bffnt", data, {}), data, {}) == data
+    metadata, sheets = font_formats.extract("bffnt", data, {"min_sheets": 2})
+    assert len(sheets) == 2 and len(metadata["WID1"][0]["packets"]) == 32
+    assert font_formats.pack("bffnt", metadata, sheets, data, {"min_sheets": 2}) == data   # spare sheet unused
+
+    metadata["MAP1"] = [font_formats.map_entries([(0x41, 0), (0x42, 1), (0x43, 2), (ord("Є"), 17), (ord("Ї"), 18)])]
+    metadata["WID1"][0]["packets"][17] = {"kerning": 0, "width": 5}
+    sheet, box = _paint(sheets, metadata, 17)
+    assert sheet == 1
+    grown = font_formats.pack("bffnt", metadata, sheets, data, {"min_sheets": 2})
+
+    again, again_sheets = font_formats.extract("bffnt", grown, {})
+    assert len(again_sheets) == 2 and bffnt._bntx(grown, bffnt._tglp(grown, 0x34))["layers"] == 2
+    assert font_formats.char_map(again) == {"A": 0, "B": 1, "C": 2, "Є": 17, "Ї": 18}
+    assert font_formats.font_map(again)["Є"] == {"width": 5}
+    assert again["WID1"][0]["packets"][:3] == metadata["WID1"][0]["packets"][:3]
+    assert again_sheets[1].getchannel("A").crop(box).getextrema() == (255, 255)
+    assert again_sheets[0].tobytes() == sheets[0].tobytes()
+    rlt = grown.index(b"_RLT")
+    assert struct.unpack_from("<I", grown, rlt + 4)[0] == rlt - 0x100                  # moved, and says so
+    assert struct.unpack_from("<I", grown, 0x0C)[0] == len(grown)
+    # the grown file is a font like any other: unedited, it packs back as it is
+    assert font_formats.pack("bffnt", *font_formats.extract("bffnt", grown, {"min_sheets": 2}), grown,
+                             {"min_sheets": 2}) == grown
+
+
+def test_bffnt_remapped_character_wins_over_the_old_cmap():
+    data = _bffnt(_ink_with_a())
+    metadata, sheets = font_formats.extract("bffnt", data, {})
+    metadata["MAP1"] = [font_formats.map_entries([(0x41, 2), (0x42, 1), (0x43, 0)])]
+    swapped = font_formats.pack("bffnt", metadata, sheets, data, {})
+    assert font_formats.char_map(font_formats.extract("bffnt", swapped, {})[0]) == {"A": 2, "B": 1, "C": 0}
+
+
 # -- BFN (the editor's own engine) --------------------------------------------------------------
 
 
