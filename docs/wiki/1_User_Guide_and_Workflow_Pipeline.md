@@ -101,6 +101,14 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
      with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs
      the changed files and the edited font (`font\latin.g1n`) into the LayeredFS mod.
+   - `yokai_watch` — Yo-kai Watch (3DS, USA). **Source:** the workspace's `source` folder (every English text
+     table `*_en.cfg.bin` at its path inside the game archive `yw1_a.fa`, the fonts `fnt\*.xf`, the English menu
+     textures); **Translation:** `translation`. The game's codes show in curly brackets (`{PAGE}` — next page of
+     the 2-line message window, `{PNAME01}` — the hero's name, `{CG}…{/C}` — colour); story files exist twice,
+     `_m` (Nate) and `_f` (Katie). Japanese leftovers and passwords are not shown; an unedited file stays byte for
+     byte. Speakers come from the game's speaker tables in the workspace's `meta` folder. The Font Editor opens
+     `ft_nrm` and `ft_sml` (format `xf`, real Ukrainian letters); the Textures window lists 594 English textures
+     (`imgc`). The workspace's `2_build.bat` rebuilds `yw1_a.fa` into the LayeredFS mod.
    - `mgs_ts` — Metal Gear Solid: The Twin Snakes (GameCube, USA). **Source:** the workspace's `source\text`
      folder (`common\codec.dat` — every codec call; `stage\*.gcx` — menus, briefing files, item descriptions,
      memory-card messages, credits; `*\demo.subs`, `common\vox.subs`, `common\movie.subs` — subtitles of

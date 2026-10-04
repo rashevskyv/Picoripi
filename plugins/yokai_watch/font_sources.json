@@ -1,0 +1,20 @@
+[
+  {
+    "label": "Main text font (ft_nrm)",
+    "format": "xf",
+    "path": [
+      "fnt/ft_nrm.xf",
+      "../romfs/fnt/ft_nrm.xf"
+    ],
+    "font_map": "ft_nrm.json"
+  },
+  {
+    "label": "Small text font (ft_sml)",
+    "format": "xf",
+    "path": [
+      "fnt/ft_sml.xf",
+      "../romfs/fnt/ft_sml.xf"
+    ],
+    "font_map": "ft_sml.json"
+  }
+]

@@ -55,6 +55,14 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   English lines are word-for-word the GameCube ones. A one-shot copy of the GameCube Ukrainian lines into the Wii
   and HD projects needs the owner to say which GameCube state is current (the session or `TP_UA\ISO\UA`).
 
+## Yo-kai Watch plugin (`plugins/yokai_watch`, 2026-10-04)
+
+- The fonts' new Ukrainian glyphs: seen in Azahar in the main font (ft_nrm); the small font (ft_sml) grew from 405
+  to 417 rows to fit them and no small-font line with Є / Ґ was seen in the game yet.
+- 32 % of map NPC lines have no speaker: their talk is started from event scripts (`.xq`), not the talk tables.
+- Text textures: 594 listed (`texture_sources.json`), none redrawn yet; 15 skill banners still show Japanese.
+- The mod is the whole `yw1_a.fa` (~390 MB); a loose-file override was not tried.
+
 ## Metal Gear Solid: The Twin Snakes (2026-10-04)
 
 - Which strings of a GCX table are English is detected (voice clips settle ~92 % of codec lines, the rest by
