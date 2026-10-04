@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Review pass replaces the editor review: a second request per chunk in the translation's own conversation (rules, glossary rows, speakers, addressees, scene) asks the model to fix only real errors in its draft and return the corrected lines with a reason; corrections pass the draft's checks or the draft stays. `review_model` may name another model. The context-blind editor review and its `editor_review` prompt section are gone. Off by default (`editor_review_enabled`); on the proofread Minish Cap its changes were better in 13 of 20 blind comparisons.
+
 - Player names, per game: Minish Cap and The Wind Waker send the hero's tag as the declined name «Лінк» (force alias, as Twilight Princess already did); Minish Cap draws that name green, so it goes out and comes back as `{Color:Green}…{Color:White}` — the new plugin hook `get_force_alias_wrapping`. The tag warning no longer counts those colour tags as extra. Twilight Princess and The Wind Waker do not colour the name (checked on their game text and the Russian translations).
 
 - AI translation refuses a reply that leaves a line in the source language (more than half of four or more source words still there): the model sometimes translated only the glossary term («You bought a шматочок пирога! One bite…»); the chunk is retried with that reason.

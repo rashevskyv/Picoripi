@@ -146,7 +146,7 @@ Refused in a plugin's `config.json` (they describe one session or project and ar
 
 ## Sections of `translation_prompts/prompts.json`
 
-`translation`, `glossary`, `glossary_occurrence_update`, `mempalace`, `editor_review`
+`translation`, `glossary`, `glossary_occurrence_update`, `mempalace`
 
 A plugin file may hold any subset; the rest is merged in key by key from
 `plugins/common/defaults/prompts.json`.

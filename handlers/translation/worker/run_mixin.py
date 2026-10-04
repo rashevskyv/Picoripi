@@ -434,42 +434,44 @@ class AIWorkerRunMixin:
             check_translated(source_value, translated_value, item_id=source_id)
         return parsed_response
 
-    def _maybe_run_editor_review(self, plan: _ChunkRun, chunk_i: int, chunk_items: list, cleaned_draft: str) -> str:
-        """The optional second pass that polishes a draft; any failure keeps the draft."""
-        if not self.task_details.get('enable_editor_review', False):
+    def _maybe_run_editor_review(self, plan: _ChunkRun, chunk_i: int, chunk_items: list, cleaned_draft: str,
+                                 messages: Optional[list] = None) -> str:
+        """The optional review pass: the model sees the same conversation it translated in (rules, glossary,
+        speakers, scene), its draft, and REVIEW_REQUEST, and returns only the lines it corrects, each with a reason.
+        Corrections pass the same checks as a draft; any failure keeps the draft."""
+        if not self.task_details.get('enable_editor_review', False) or not messages or self.is_cancelled:
             return cleaned_draft
-        editor_prompt = self.task_details.get('editor_system_prompt')
-        if not editor_prompt or self.is_cancelled:
-            return cleaned_draft
+        from handlers.translation.prompt_composer.instructions import REVIEW_REQUEST
+        review_messages = [m for m in messages if m.get("role") in ("system", "user")] + [
+            {"role": "assistant", "content": cleaned_draft},
+            {"role": "user", "content": REVIEW_REQUEST},
+        ]
+        override = dict(plan.provider_override)
+        if self.task_details.get('review_model'):
+            override['model'] = self.task_details['review_model']
         try:
-            drafts = json.loads(cleaned_draft).get('translated_strings', [])
-            # Source and draft side by side, nothing else: the editor
-            # polishes wording, it does not need the layout or context blobs.
-            editor_input = {
-                "task": "Review, polish, and ensure terminology consistency for the draft translation.",
-                "strings": [
-                    {
-                        "id": source.get('id') if isinstance(source, dict) else index,
-                        "text": source.get('text', '') if isinstance(source, dict) else str(source),
-                        "translation": draft.get('translation', '') if isinstance(draft, dict) else str(draft),
-                    }
-                    for index, (source, draft) in enumerate(zip(chunk_items, drafts))
-                ],
-                "output": 'Return {"translated_strings": [{"id": ..., "translation": "..."}]} with one '
-                          'object per input string, in the same order.',
-            }
-            review_messages = [
-                {"role": "system", "content": editor_prompt},
-                {"role": "user", "content": json.dumps(editor_input, ensure_ascii=False, indent=2)}
-            ]
-            review_resp = self.provider.translate(review_messages, session=None, settings_override=plan.provider_override)
+            self._log_ai_traffic(review_messages, chunk=chunk_i)
+            review_resp = self.provider.translate(review_messages, session=None, settings_override=override)
+            self._log_ai_traffic(review_messages, response_text=review_resp.text if review_resp else "", chunk=chunk_i)
             if self.is_cancelled or not review_resp or not review_resp.text:
                 return cleaned_draft
-            polished_cleaned = self._clean_json_response(review_resp.text)
-            self._validate_chunk_result(chunk_i, chunk_items, polished_cleaned)
-            return polished_cleaned
+            fixes = json.loads(self._clean_json_response(review_resp.text)).get('translated_strings', [])
+            draft = json.loads(cleaned_draft)
+            by_id = {str(fix.get('id')): fix for fix in fixes if isinstance(fix, dict) and fix.get('translation')}
+            changed = []
+            for item in draft.get('translated_strings', []):
+                fix = by_id.get(str(item.get('id'))) if isinstance(item, dict) else None
+                if fix and fix['translation'] != item.get('translation'):
+                    changed.append(f"{item.get('id')}: {fix.get('reason', '')}")
+                    item['translation'] = fix['translation']
+            if not changed:
+                return cleaned_draft
+            reviewed = json.dumps(draft, ensure_ascii=False)
+            self._validate_chunk_result(chunk_i, chunk_items, reviewed)
+            log_debug(f"AIWorker: review changed {len(changed)} line(s) of chunk {chunk_i}: {'; '.join(changed)}")
+            return reviewed
         except Exception as e:
-            log_debug(f"AIWorker: Editor review for chunk {chunk_i} skipped/failed, keeping draft: {e}")
+            log_debug(f"AIWorker: review of chunk {chunk_i} failed, keeping the draft: {e}")
             return cleaned_draft
 
     def _run_translate_block_chunked(self) -> None:
@@ -539,7 +541,7 @@ class AIWorkerRunMixin:
                 # The reply came back but was refused (no JSON, a line layout change): say so for this chunk.
                 self._log_ai_traffic(messages, error=exc, chunk=idx)
                 raise
-            return self._maybe_run_editor_review(plan, idx, chunk, cleaned)
+            return self._maybe_run_editor_review(plan, idx, chunk, cleaned, messages)
 
         def _worker_call(idx: int) -> str:
             try:
@@ -672,7 +674,7 @@ class AIWorkerRunMixin:
                 self._log_ai_traffic(messages, response_text=response.text, chunk=i)
                 cleaned_text = self._clean_json_response(response.text)
                 self._validate_chunk_result(i, chunk, cleaned_text)
-                cleaned_text = self._maybe_run_editor_review(plan, i, chunk, cleaned_text)
+                cleaned_text = self._maybe_run_editor_review(plan, i, chunk, cleaned_text, messages)
 
                 if session_state and not session_state.bootstrapped:
                     log_debug(f"AIWorker: First chunk (index {i}) of block translation successful. Marking session as bootstrapped.")

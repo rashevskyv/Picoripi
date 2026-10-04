@@ -20,8 +20,7 @@ from . import _rq_wp5_helpers as h
 
 COMMON = json.loads((h.REPO_PLUGINS / "common" / "defaults" / "prompts.json").read_text(encoding="utf-8"))
 SECTIONS = {"translation": "system_prompt", "glossary": "prompt_template",
-            "glossary_occurrence_update": "system_prompt",
-            "editor_review": "system_prompt"}
+            "glossary_occurrence_update": "system_prompt"}
 
 
 @pytest.mark.parametrize("plugin", h.PLUGINS)
@@ -83,9 +82,8 @@ def test_an_override_copy_does_not_freeze_the_other_sections(tmp_path, plugin):
     merged = manager.merged_prompts(plugin)
 
     assert merged["translation"]["system_prompt"] == "MY OWN TRANSLATION PROMPT"
-    for section in ("glossary", "glossary_occurrence_update", "mempalace", "editor_review"):
+    for section in ("glossary", "glossary_occurrence_update", "mempalace"):
         assert merged[section] == COMMON[section]
-    assert manager.load_editor_review_prompt()
 
 
 # --- editor review over a fake server -------------------------------------------------------------------
@@ -117,11 +115,10 @@ class _Translator:
 
 
 def _reply(body):
-    """Echo every string back as its translation; the editor marks its copy."""
-    system = body["messages"][0]["content"]
+    """Echo every string back as its translation; the review turn (four messages) marks every line fixed."""
     payload = json.loads(body["messages"][1]["content"].split("JSON DATA TO PROCESS:")[-1].strip())
-    mark = " (edited)" if system != "TRANSLATE SYSTEM" else ""
-    return json.dumps({"translated_strings": [{"id": s["id"], "translation": s.get("translation", s["text"]) + mark}
+    mark = " (edited)" if len(body["messages"]) == 4 else ""
+    return json.dumps({"translated_strings": [{"id": s["id"], "translation": s["text"] + mark, "reason": "test"}
                                               for s in payload["strings"]]})
 
 
@@ -162,15 +159,16 @@ def test_the_editor_review_pass_is_off_by_default(qapp, tmp_path):
 
 
 @pytest.mark.parametrize("plugin", h.PLUGINS)
-def test_switched_on_each_chunk_gets_a_second_request_with_the_editor_prompt(qapp, tmp_path, plugin):
-    requests, chunks, context = _run_block(qapp, {"editor_review_enabled": True}, tmp_path, plugin)
-    expected_prompt = _manager(plugin, tmp_path).load_editor_review_prompt()
+def test_switched_on_each_chunk_gets_a_review_turn_in_its_own_conversation(qapp, tmp_path, plugin):
+    from handlers.translation.prompt_composer.instructions import REVIEW_REQUEST
 
-    assert context["enable_editor_review"] is True and context["editor_system_prompt"] == expected_prompt
+    requests, chunks, context = _run_block(qapp, {"editor_review_enabled": True}, tmp_path, plugin)
+
+    assert context == {"enable_editor_review": True}
     assert len(requests) == 2
     review = requests[1]["messages"]
-    assert review[0] == {"role": "system", "content": expected_prompt}
-    assert [s["translation"] for s in json.loads(review[1]["content"])["strings"]] == ["Line 0", "Line 1", "Line 2"]
+    assert [m["role"] for m in review] == ["system", "user", "assistant", "user"]
+    assert review[:2] == requests[0]["messages"] and review[3]["content"] == REVIEW_REQUEST
     # The polished reply is what the block gets.
     assert [s["translation"] for s in chunks[0]["translated_strings"]] == [f"Line {i} (edited)" for i in range(3)]
     assert Path(tmp_path / "plugin_overrides").exists() is False      # nothing was written for the user

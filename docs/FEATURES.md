@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: feature inventory
-tokens: 14.3k
+tokens: 14.4k
 purpose: Every feature in detail; the wiki wins on a conflict
 ---
 # Picoripi features
@@ -133,7 +133,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
   - Enforces the Ukrainian practical transcription of Japanese (Kovalenko system): **shi** -> **сі** (*Yoshi* -> **Йосі**), **chi** -> **ті** (*Hitachi* -> **Хітаті**), **tsu** -> **цу**, **ji** -> **дзі** (*Fuji* -> **Фудзі**), plosive g -> **ґ**, and zero tolerance for Russian-style Polivanov forms (*ши*, *чи*, *джи*).
   - Integrated into global prompts, all individual game plugins (*The Minish Cap*, *The Wind Waker*, *Twilight Princess*, *Pokémon FireRed*, *Plain Text*, *Default Plugin*), batch/single translation instructions, and AI Chat via dynamic language blocks (`[IF_TARGET_LANG: Ukrainian]`).
 - **Multi-Agent Translation Consilium (Translator + Inline Arbiter/Editor)**:
-  - Integrates an opt-in (`editor_review_enabled` in the translation config, off by default) multi-agent translation workflow: the primary translator generates the target text while an inline Editor/Arbiter supervisor reviews and polishes the draft.
+  - Integrates an opt-in (`editor_review_enabled` in the translation config, off by default) review pass: in the translation's own conversation (same rules, glossary, speakers and scene) the model fixes only real errors in its draft and returns the corrected lines with a reason; `review_model` may name another model.
   - The Arbiter verifies terminology against the active glossary, enforces narrative voice consistency, and refines phrasing while keeping layout constraints and control tag variations non-blocking (e.g. `[PLAYER]` being translated or replaced with the protagonist name like "Лінк").
 - **Two-Phase Chronological & Semantic Pipeline (Story First ➔ Remaining Blocks)**:
   - Intelligently classifies all project text items (`classify_project_items`) into chronological **Story Dialogue** (using MemePalace `script_line` mappings and story block heuristics) and **Semantic / System Blocks** (menus, UI, item descriptions, mini-games, shops).

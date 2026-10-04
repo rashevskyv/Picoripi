@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: handlers/translation, core/translation
-tokens: 4.0k
+tokens: 4.2k
 purpose: Providers, prompts, chunks, run memory, translation memory
 ---
 # AI Translation
@@ -13,9 +13,9 @@ Picoripi talks to LLMs through **Settings → AI Translation**. Glossary builds 
 
 Handlers: `handlers/translation_handler.py`, `handlers/translation/`. Providers: `core/translation/providers.py`. Defaults: `core/translation/config.py`. Prompts: **Edit Prompts JSON** and plugin `translation_prompts/prompts.json`.
 
-Prompt files are merged **key by key**, later ones winning: `translation_prompts/prompts.json` → `plugins/common/defaults/prompts.json` → `plugins/<name>/translation_prompts/prompts.json` → the project's or user's override copy. A plugin file that holds only a `translation` section still gets the `glossary`, `glossary_occurrence_update`, `mempalace` and `editor_review` sections from the common file (`core/translation/prompt_files.py`).
+Prompt files are merged **key by key**, later ones winning: `translation_prompts/prompts.json` → `plugins/common/defaults/prompts.json` → `plugins/<name>/translation_prompts/prompts.json` → the project's or user's override copy. A plugin file that holds only a `translation` section still gets the `glossary`, `glossary_occurrence_update` and `mempalace` sections from the common file (`core/translation/prompt_files.py`).
 
-**Editor review** is an optional second request per chunk that polishes the draft with the `editor_review` prompt. It is off by default; set `"editor_review_enabled": true` in the translation config to turn it on. It doubles the number of requests.
+**Review pass** is an optional second request per chunk in the translation's own conversation: the model sees the same rules, glossary rows, speakers, addressees and scene, its draft, and a request to fix only real errors (meaning, untranslated words, glossary terms, gender and case, ти/ви, typos, calques). It returns only the lines it corrects, each with a reason (in the debug log); a correction passes the same checks as a draft, and anything that fails keeps the draft. Off by default; `"editor_review_enabled": true` in the translation config turns it on, and `"review_model"` names another model for it. Measured on the proofread Minish Cap (2026-10-04): it changes about one line in twelve and makes it better in two cases out of three.
 
 **One source, one translation per run.** Before a block (or project) run starts, strings with exactly the same text are folded: one of them is sent, and the others receive its translation when the chunk returns. Two strings fold only when everything else that decides the wording is equal too — speaker, addressee, the window the text must fit, what the plugin says about the row and your manual story overrides; so a line spoken by two different characters is still translated twice. A string that already has a translation is not overwritten by a fold, exactly as it is not overwritten by the model. Set `"fold_duplicates": false` in the translation config to send every string. Each run also keeps a **run memory**: when a later chunk contains a string that differs from an already translated one only in tags, case or spacing, the request carries `already_translated_in_this_run` (at most 10 rows) and the model is told to keep the wording. The memory is emptied when a new run starts; the second phase of *Story first, then the rest* continues the first one's memory.
 

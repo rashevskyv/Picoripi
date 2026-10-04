@@ -222,7 +222,7 @@ KNOWN_CONFIG_KEYS = frozenset({
 
 # Sections of ``translation_prompts/prompts.json``. A plugin file may hold any
 # subset; the rest comes from ``plugins/common/defaults/prompts.json``.
-PROMPT_SECTIONS = ("translation", "glossary", "glossary_occurrence_update", "mempalace", "editor_review")
+PROMPT_SECTIONS = ("translation", "glossary", "glossary_occurrence_update", "mempalace")
 
 
 def render_markdown() -> str:

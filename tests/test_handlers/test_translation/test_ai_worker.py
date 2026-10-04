@@ -559,35 +559,51 @@ def test_a_cancelled_request_ends_as_cancelled_not_as_an_error(worker_deps, work
     assert errors == [] and chunks == []
 
 
-def test_editor_review_gets_source_and_draft_side_by_side_and_nothing_else(worker_deps):
+def test_the_review_sees_the_translation_conversation_and_fixes_only_what_it_returns(worker_deps):
+    """The reviewer gets the translation request itself (rules, glossary, context), its own draft, then
+    REVIEW_REQUEST; it returns only the corrected lines, each with a reason."""
+    from handlers.translation.prompt_composer.instructions import REVIEW_REQUEST
+
     provider, prompt_composer = worker_deps
-    source_items = [
-        {"id": 5, "text": "Hello", "scene_context": "a long scene description " * 20, "layout": {"line_count": 1}},
-        {"id": 6, "text": "Bye"},
-    ]
-    prompt_composer.compose_batch_request.return_value = ("sys", "user", {})
+    source_items = [{"id": 5, "text": "Hello"}, {"id": 6, "text": "Bye"}]
+    prompt_composer.compose_batch_request.return_value = ("sys with glossary", "user with context", {})
     worker = AIWorker(provider, prompt_composer, {
         'type': 'translate_block_chunked', 'block_idx': 0, 'source_items': source_items, 'workers': 1,
-        'enable_editor_review': True, 'editor_system_prompt': 'EDITOR',
+        'enable_editor_review': True, 'review_model': 'stronger-model',
         'composer_args': {'system_prompt': 'sys', 'block_idx': 0, 'mode_description': 'm'},
     })
     draft = {"translated_strings": [{"id": 5, "translation": "Привіт"}, {"id": 6, "translation": "Бувай"}]}
-    polished = {"translated_strings": [{"id": 5, "translation": "Вітаю"}, {"id": 6, "translation": "Бувай"}]}
-    provider.translate.side_effect = [ProviderResponse(text=json.dumps(draft)), ProviderResponse(text=json.dumps(polished))]
+    fixes = {"translated_strings": [{"id": 5, "translation": "Вітаю", "reason": "formal greeting"}]}
+    provider.translate.side_effect = [ProviderResponse(text=json.dumps(draft)), ProviderResponse(text=json.dumps(fixes))]
     chunks = []
     worker.chunk_translated.connect(lambda idx, text, ctx: chunks.append(json.loads(text)))
 
     worker.run()
 
-    review_messages = provider.translate.call_args_list[1][0][0]
-    assert review_messages[0] == {"role": "system", "content": "EDITOR"}
-    review_input = json.loads(review_messages[1]["content"])
-    assert review_input["strings"] == [
-        {"id": 5, "text": "Hello", "translation": "Привіт"},
-        {"id": 6, "text": "Bye", "translation": "Бувай"},
-    ]
-    assert "layout" not in review_messages[1]["content"] and "scene_context" not in review_messages[1]["content"]
-    assert chunks == [polished]
+    review_call = provider.translate.call_args_list[1]
+    messages = review_call[0][0]
+    assert [m["role"] for m in messages] == ["system", "user", "assistant", "user"]
+    assert "sys with glossary" in messages[0]["content"] and messages[1]["content"] == "user with context"
+    assert json.loads(messages[2]["content"]) == draft and messages[3]["content"] == REVIEW_REQUEST
+    assert review_call[1]["settings_override"]["model"] == "stronger-model"
+    assert chunks == [{"translated_strings": [{"id": 5, "translation": "Вітаю"}, {"id": 6, "translation": "Бувай"}]}]
+
+
+def test_a_review_that_changes_nothing_or_breaks_keeps_the_draft(worker_deps):
+    provider, prompt_composer = worker_deps
+    prompt_composer.compose_batch_request.return_value = ("sys", "user", {})
+    draft = {"translated_strings": [{"id": 0, "translation": "Привіт"}]}
+    for reply in ('{"translated_strings": []}', "not json at all"):
+        provider.translate.side_effect = [ProviderResponse(text=json.dumps(draft)), ProviderResponse(text=reply)]
+        worker = AIWorker(provider, prompt_composer, {
+            'type': 'translate_block_chunked', 'block_idx': 0, 'source_items': [{"id": 0, "text": "Hello"}],
+            'workers': 1, 'enable_editor_review': True,
+            'composer_args': {'system_prompt': 'sys', 'block_idx': 0, 'mode_description': 'm'},
+        })
+        chunks = []
+        worker.chunk_translated.connect(lambda idx, text, ctx: chunks.append(json.loads(text)))
+        worker.run()
+        assert chunks == [draft]
 
 
 def test_a_failed_chunk_is_reported_with_its_own_reply_not_the_previous_chunk_s(worker_deps):

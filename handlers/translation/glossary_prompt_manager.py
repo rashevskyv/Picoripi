@@ -197,22 +197,6 @@ class GlossaryPromptManager:
         h._cached_glossary = glossary_text
         return system_prompt, glossary_text
 
-    def load_editor_review_prompt(self) -> Optional[str]:
-        """Load system prompt for Editor Review / Lore Arbiter pass."""
-        plugin_name = getattr(self._mw, "active_game_plugin", None)
-        try:
-            data = self.merged_prompts(plugin_name)
-            prompt = data.get("editor_review", {}).get("system_prompt")
-            if prompt:
-                target_lang = "Ukrainian"
-                if hasattr(self._main_handler, "prompt_composer") and hasattr(self._main_handler.prompt_composer, "_get_target_lang"):
-                    target_lang = self._main_handler.prompt_composer._get_target_lang()
-                from utils.utils import resolve_target_language_prompt
-                return resolve_target_language_prompt(prompt, target_lang)
-        except Exception as exc:
-            log_debug(f"GlossaryPromptManager: failed to load editor review prompt: {exc}")
-        return None
-
     def bind_glossary_for_write(self) -> Optional[Path]:
         """Bind the manager to the project glossary file, creating it if absent.
 

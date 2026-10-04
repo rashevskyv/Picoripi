@@ -222,3 +222,19 @@ def append_engine_rules(system_prompt: str, rules: str) -> str:
 def strip_engine_rules(system_prompt: str) -> str:
     """``system_prompt`` without the engine's rules -- what may be saved as the user's prompt."""
     return system_prompt.split(ENGINE_MARKER, 1)[0].rstrip()
+
+
+# The reviewer's turn: the same conversation as the translation (rules, glossary, speakers, scene), the draft as
+# the model's own answer, then this. Only real errors are fixed; correct lines are not restyled.
+REVIEW_REQUEST = (
+    "Review the translation you just gave against the source, the glossary table, the speakers and addressees, "
+    "the story context and every rule above. Fix only real errors:\n"
+    "- wrong or missing meaning, or words left untranslated;\n"
+    "- a glossary term not rendered as the glossary says;\n"
+    "- wrong gender, number or case agreement, including the speaker's and the addressee's gender;\n"
+    "- ти/ви (or the target language's address form) inconsistent with who speaks to whom;\n"
+    "- typos and words that do not exist; unnatural word-for-word calques.\n"
+    "Do not change a line that is already correct, do not restyle, keep every tag and line break rule.\n"
+    'Return JSON only: {"translated_strings": [{"id": ..., "translation": "...", "reason": "..."}]} with ONLY '
+    'the items you changed, "reason" naming the error; {"translated_strings": []} when everything is correct.'
+)

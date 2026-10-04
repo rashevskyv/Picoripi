@@ -150,34 +150,31 @@ def test_with_the_editor_off_nothing_is_composed_before_the_run(qtbot, monkeypat
     assert all([m["role"] for m in body["messages"]] == ["system", "user"] for body in bodies)
 
 
-def test_the_editor_review_pass_gets_id_text_translation_triples_and_its_reply_is_applied(
+def test_the_review_pass_sees_the_translation_conversation_and_its_fixes_are_applied(
         qtbot, monkeypatch, tmp_path, server):
-    # Short lines: the fake "UA ..." translation keeps the English words, which a longer line would have
-    # refused as untranslated (check_translated).
+    """The reviewer gets the chunk's own request (rules, glossary, context), the draft, then REVIEW_REQUEST,
+    and returns only the lines it fixes (live design 2026-10-04, replacing the context-blind editor review)."""
+    from handlers.translation.prompt_composer.instructions import REVIEW_REQUEST
+
     project = make_project(tmp_path, {"a": ["Hello there.", "Second line\nbelow."]})
     mw = open_window(qtbot, monkeypatch, project, server, editor_review_enabled=True)
     review = {}
 
-    def polish(body):
-        review.update(system=system_of(body), data=json.loads(user_of(body)))
-        return json.dumps({"translated_strings": [
-            {"id": s["id"], "translation": s["translation"].replace("UA ", "ED ")} for s in review["data"]["strings"]
-        ]})
+    def fix_one(body):
+        review.update(roles=[m["role"] for m in body["messages"]], messages=body["messages"])
+        return json.dumps({"translated_strings": [{"id": 1, "translation": "UA Another line\nUA below.",
+                                                   "reason": "meaning"}]})
 
-    server.script[:] = [lambda body: None, polish]
+    server.script[:] = [lambda body: None, fix_one]
     mw.translation_handler.translate_current_block(0)
     wait_idle(qtbot, mw)
 
     assert len(server.requests) == 2
-    assert review["data"]["strings"] == [
-        {"id": 0, "text": "Hello there.", "translation": "UA Hello there."},
-        # The source as the run holds it (the data form, as before the audit), not the editor form the
-        # draft request showed.
-        {"id": 1, "text": "Second line\\nbelow.", "translation": "UA Second line\nUA below."},
-    ]
-    assert review["data"]["output"].startswith('Return {"translated_strings": [{"id": ..., "translation": "..."}]}')
-    assert review["system"] == mw.translation_handler.glossary_handler.load_editor_review_prompt()
-    assert [row(mw, 0, 0), row(mw, 0, 1)] == ["ED Hello there.", "ED Second line\\nED below."]
+    draft_request = server.requests[0][1]["messages"]
+    assert review["roles"] == ["system", "user", "assistant", "user"]
+    assert review["messages"][:2] == draft_request                      # the same rules, glossary and context
+    assert review["messages"][3]["content"] == REVIEW_REQUEST
+    assert [row(mw, 0, 0), row(mw, 0, 1)] == ["UA Hello there.", "UA Another line\\nUA below."]
 
 
 def test_an_unusable_editor_review_keeps_the_draft(qtbot, monkeypatch, tmp_path, server):

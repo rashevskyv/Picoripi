@@ -30,7 +30,6 @@ def test_a_plugin_with_a_translation_only_file_still_gets_the_other_sections():
     merged = load_merged_prompts("zelda_mc")
 
     assert merged["translation"]["system_prompt"] == ZELDA_MC["translation"]["system_prompt"]
-    assert merged["editor_review"] == COMMON["editor_review"]
     assert merged["glossary"] == COMMON["glossary"]
     assert merged["mempalace"] == COMMON["mempalace"]
 
@@ -45,7 +44,7 @@ def test_the_layers_are_application_then_common_then_plugin_then_overrides(tmp_p
     assert layers[1].endswith("plugins/common/defaults/prompts.json")
     assert layers[2].endswith("plugins/zelda_mc/translation_prompts/prompts.json")
     assert layers[3].endswith("/prompts.json") and len(layers) == 4
-    assert merged["translation"]["system_prompt"] == "mine" and merged["editor_review"] == COMMON["editor_review"]
+    assert merged["translation"]["system_prompt"] == "mine" and merged["mempalace"] == COMMON["mempalace"]
 
 
 def test_an_unreadable_file_is_skipped_and_an_unknown_plugin_gets_the_defaults(tmp_path):
@@ -66,12 +65,6 @@ def _manager(tmp_path, plugin="zelda_mc"):
     return GlossaryPromptManager(mw, main_handler, MagicMock())
 
 
-def test_the_editor_review_prompt_is_found_for_a_translation_only_plugin(tmp_path):
-    prompt = _manager(tmp_path).load_editor_review_prompt()
-
-    assert prompt and "{target_lang}" not in prompt
-
-
 def test_the_glossary_template_comes_from_the_common_file_not_from_the_built_in_text(tmp_path):
     template, _path = _manager(tmp_path).get_glossary_prompt_template()
 
@@ -83,20 +76,19 @@ def test_a_project_override_wins_for_its_own_keys_only(tmp_path):
     override = tmp_path / "plugin_overrides" / "zelda_mc"
     override.mkdir(parents=True)
     (override / "prompts.json").write_text(
-        json.dumps({"editor_review": {"system_prompt": "PROJECT EDITOR"}}), encoding="utf-8")
+        json.dumps({"glossary": {"prompt_template": "PROJECT GLOSSARY {term}"}}), encoding="utf-8")
     manager = _manager(tmp_path)
 
-    assert manager.load_editor_review_prompt() == "PROJECT EDITOR"
+    assert manager.merged_prompts("zelda_mc")["glossary"]["prompt_template"] == "PROJECT GLOSSARY {term}"
     assert manager.merged_prompts("zelda_mc")["translation"] == ZELDA_MC["translation"]
 
 
-class TestEditorReviewSwitch:
+class TestReviewSwitch:
     def _translator(self, config):
         translator = AIBatchTranslator.__new__(AIBatchTranslator)
         translator.mw = MagicMock()
         translator.mw.translation_config = config
         translator.main_handler = MagicMock()
-        translator.main_handler.glossary_handler.load_editor_review_prompt.return_value = "EDITOR PROMPT"
         return translator
 
     def test_the_pass_is_off_unless_switched_on(self):
@@ -105,23 +97,18 @@ class TestEditorReviewSwitch:
 
         assert context == {"enable_editor_review": False}
 
-    def test_switched_on_it_gets_its_prompt(self):
+    def test_switched_on_it_runs_with_the_translation_model_or_the_review_model(self):
         context = {"enable_editor_review": True}
         self._translator({"editor_review_enabled": True})._attach_editor_review(context)
+        assert context == {"enable_editor_review": True}
 
-        assert context == {"enable_editor_review": True, "editor_system_prompt": "EDITOR PROMPT"}
+        context = {}
+        self._translator({"editor_review_enabled": True, "review_model": "gemini-3.1-pro"})._attach_editor_review(context)
+        assert context == {"enable_editor_review": True, "review_model": "gemini-3.1-pro"}
 
     def test_a_run_that_declined_the_pass_keeps_it_off(self):
         context = {"enable_editor_review": False}
         self._translator({"editor_review_enabled": True})._attach_editor_review(context)
-
-        assert context == {"enable_editor_review": False}
-
-    def test_no_prompt_means_no_pass(self):
-        translator = self._translator({"editor_review_enabled": True})
-        translator.main_handler.glossary_handler.load_editor_review_prompt.side_effect = RuntimeError("boom")
-        context = {}
-        translator._attach_editor_review(context)
 
         assert context == {"enable_editor_review": False}
 

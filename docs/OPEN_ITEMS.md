@@ -25,7 +25,6 @@ the line when it is done or moved into a plan.
 - `zelda_mc` and `zelda_ww` ship a `glossary.md` that nothing reads.
 - ChatMock on loopback is taken for the `web2api` profile (sends `think`, 180 s timeout); there is no UI for
   the profile.
-- Editor review gets the source raw (escaped `\n`, tags without aliases), not as the draft shows it.
 - A settings file saved from the Ukrainian interface may hold `"provider": "вимкнено"` (the provider ids went
   through `tr()` until 2026-10-03); it loads as an unknown provider.
 

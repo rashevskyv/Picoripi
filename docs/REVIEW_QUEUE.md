@@ -27,11 +27,11 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
   Tear(s) of Light; merge The Postman/POSTMAN (pick «Листоноша» or «Поштар»); keep Clawshot/Clawshots (two
   items); keep MONKEY/Monkeys and Zora/Zoras but fix their notes. A merge keeps the other spelling as an alias
   and the other translation as a variant. Afterwards `KNOWN_CANONICAL_GROUPS` drops to what is left.
-- **Editor review (WP2 2.5 / WP5 5.3).** Off by default; the pass is tested (`test_rq_wp2_4_run.py`,
-  `test_rq_wp5_prompts_review.py`). It is a second request per chunk (doubles proxy quota) and sees only
-  source → draft pairs: no glossary, speakers or scene, so its "check the glossary / the tone" rules cannot be
-  followed, and it gets the source raw (escaped `\n`, tags without aliases). Recommendation: remove it; if a fix-up
-  pass is wanted, send only the lines that failed a deterministic check, with the reason.
+- **Turn the review pass on by default? (2026-10-04)** The context-blind editor review was replaced by a review
+  turn in the translation's own conversation (wiki 11). On the proofread Minish Cap it changed about one line in
+  twelve; judged blind against your translation, the change was better in 13 cases and worse in 7 (same model:
+  8–2, `gemini-3.1-pro`: 5–5 — a stronger reviewer did not help). The whole-sample score moved within noise
+  (4.50 / 4.45 / 4.51). Cost: one more request per chunk (+20–40 % time). Recommendation: on, with the same model.
 - **NarrativeLedger (WP2 2.4).** Removed; nothing ever wrote to it. Terms are covered by the glossary (WP3/WP4),
   events by scene context and MemPalace. Recommendation: do not revive; if a live run shows ти/ви drifting
   between scenes, add a small editable table "speaker → addressee: ти/ви".

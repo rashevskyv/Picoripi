@@ -29,25 +29,18 @@ class AIBatchTranslator(BaseTranslationHandler):
     """Handler for batch and chunked translation operations."""
 
     def _attach_editor_review(self, context: dict) -> None:
-        """Give the run its editor-review prompt when the pass is switched on.
+        """Switch the review pass on for the run: ``translation_config["editor_review_enabled"]``.
 
-        The pass is a second request per chunk. Its prompt used to be unreachable
-        for every shipped plugin, which kept the pass off; now that prompts are
-        merged by key the prompt is always found, so the pass has its own switch:
-        ``translation_config["editor_review_enabled"]``.
+        The pass is a second request per chunk in the translation's own conversation (``REVIEW_REQUEST``);
+        ``translation_config["review_model"]`` names another model for it (a stronger one), otherwise the
+        translation's model reviews.
         """
         translation_config = getattr(self.mw, 'translation_config', None)
-        wanted = isinstance(translation_config, dict) and bool(translation_config.get('editor_review_enabled', False))
-        if not wanted or not context.get('enable_editor_review', True):
-            context['enable_editor_review'] = False
-            return
-        try:
-            editor_system_prompt = self.main_handler.glossary_handler.load_editor_review_prompt()
-        except Exception:
-            editor_system_prompt = None
-        context['enable_editor_review'] = bool(editor_system_prompt)
-        if editor_system_prompt:
-            context['editor_system_prompt'] = editor_system_prompt
+        config = translation_config if isinstance(translation_config, dict) else {}
+        wanted = bool(config.get('editor_review_enabled', False))
+        context['enable_editor_review'] = wanted and context.get('enable_editor_review', True)
+        if context['enable_editor_review'] and config.get('review_model'):
+            context['review_model'] = str(config['review_model'])
 
     @staticmethod
     def _translation_value(item: Dict[str, Any]) -> str:
