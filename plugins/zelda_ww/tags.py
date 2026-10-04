@@ -20,7 +20,7 @@ import re
 import struct
 from typing import Dict, List, Optional, Tuple
 
-from plugins.zelda_totk.msbt import EndTag, Tag, Token
+from plugins.common.msbt import EndTag, Tag, Token
 
 _PAD = 0xCD
 COLOR_GROUP, COLOR_TYPE = 0, 3

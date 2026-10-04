@@ -5,7 +5,7 @@ import pytest
 
 from core.font_formats import bfotf
 from plugins.zelda_totk import event_flow, reference
-from plugins.zelda_totk.msbt import Msbt
+from plugins.common.msbt import Msbt
 from plugins.zelda_totk.rules import CUTSCENE_WIDTH, GameRules
 
 from . import samples
@@ -80,5 +80,5 @@ def test_a_scrambled_font_unscrambles_and_scrambles_back():
 
 @pytest.mark.parametrize("value, shown", [(0.6, "0.6"), (1.5, "1.5"), (5.0, "5")])
 def test_floats_show_their_shortest_exact_form(value, shown):
-    from plugins.zelda_totk.tags import _float_text
+    from plugins.common.lms_tags import float_text as _float_text
     assert _float_text(struct.unpack("<f", struct.pack("<f", value))[0]) == shown

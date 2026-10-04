@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import utils.utils as uu
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.config_factory import problem_ids
-from plugins.zelda_totk.msbt import Msbt
+from plugins.common.msbt import Msbt
 from utils.logging_utils import log_debug, log_warning
 
 from . import messages
