@@ -260,3 +260,32 @@ the line when it is done or moved into a plan.
   not touched; `.agents/skills/update-wiki/SKILL.md` is the one that was brought up to date.
 - `docs/MEMPALACE_CONTEXT_MANIFESTO.md` takes the stage statuses from the archived plan (last entry
   2026-07-16); nobody re-checked stages 3 and 4 against the code.
+
+## Majora's Mask N64 plugin (`plugins/zelda_mm64`)
+
+- **Ukrainian letters**: the codec only knows the N64 font's characters. A translation map (letter -> font
+  slot) and redrawn glyph textures (`file 28`, 16x16 I4) plus widths (`sNESFontWidths` in `code`) are needed
+  before Cyrillic can be saved. SoH-style ports keep the widths fixed, so slots should be chosen by width.
+- **Relocated text is unverified in a running game**: a save whose text outgrows its 0x6A000-byte range moves
+  `message_data_static` to free address space and rewrites the four `lui`/`addiu` pairs in `z_message.c`
+  (checked statically only). Test ROMs: `MM64_UA\rom\test_edit_blue_rupee.z64`, `test_text_grown_40pct.z64`.
+- **Characters per text box**: `Font.charBuf` holds 120 glyphs per box (`include/z64font.h`); longer Ukrainian
+  boxes may run out. Not checked by the plugin yet.
+- **Credits** (`staff_message_data_static`) are not in the project.
+- **Exports**: a 2Ship2Harkinian `.o2r` (TextMM file) and a Zelda64Recomp `.nrm` (EZ Text Replacer code)
+  from the same project; the Ukrainian MM3D table (`translation_majora.csv`) as a seed for the N64 ids.
+- **Width of runtime values** (`{rupees-total}`, timers) counts as zero.
+
+## Ocarina of Time N64 plugin (`plugins/zelda_oot64`)
+
+- Same open items as Majora's Mask (Ukrainian letters, exports, credits, characters per box). Relocated text
+  rewrites the single `lui`/`addiu` pair that loads the English text on NTSC; untested in a running game
+  (`OOT64_UA\rom\test_edit_green_rupee.z64`, `test_text_grown_40pct.z64`).
+- Only NTSC-U 1.0 is supported; Europe 1.0 (English/German/French) could serve as reference languages.
+
+## Context mined from the N64 decompilations (`plugins/common/zelda64_context.py`)
+
+- Speaker names are decomp descriptions ("Clock Town - Gate-Blocking Soldier", OoT actor names like `En_Go2`
+  where no description exists); a curated name table would read better. Cutscene-only lines, ids computed at
+  run time and Bombers' Notebook entries without a placed actor get no speaker. Report:
+  `E:\Emulators\RomHacking\ZELDA\MM64_UA\reports\context_report.md`.
