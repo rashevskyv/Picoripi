@@ -533,9 +533,10 @@ def test_tp_icon_textures_exist_and_cover_every_outfont_icon():
         assert os.path.exists(spec["texture"]), (key, spec["texture"])
         assert spec.get("tint", "").startswith("#"), key
     # Every drawing icon except the metric-only bullet indent has a real
-    # game texture decoded from main2D.arc / itemicon.arc.
+    # game texture decoded from main2D.arc / itemicon.arc; the Wii U icons of
+    # Twilight Princess HD (group 7) stay vector icons until an HD dump gives theirs.
     untextured = {key for key, spec in ESCAPE_ICON_SPECS.items()
-                  if not spec.get("texture")}
+                  if not spec.get("texture") and key[0] != 7}
     assert untextured == {(6, 0x0B)}  # BULLET_SPACE draws nothing
 
 

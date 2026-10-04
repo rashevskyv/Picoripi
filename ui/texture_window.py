@@ -260,7 +260,7 @@ class TextureWindow(QtWidgets.QMainWindow):
     def open_file_dialog(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, tr("Open Texture File"), self.last_folder,
-            tr("Textures and archives (*.bti *.bflim *.bclim *.ctpk *.bntx *.g1t *.gz *.arc *.szs *.sarc *.pack *.zs);;All Files (*)"))
+            tr("Textures and archives (*.bti *.bflim *.bclim *.ctpk *.ctxb *.bntx *.g1t *.gz *.arc *.szs *.sarc *.pack *.zs *.zar *.gar *.lzs);;All Files (*)"))
         if path:
             self.last_folder = os.path.dirname(path)
             self.open_path(path)

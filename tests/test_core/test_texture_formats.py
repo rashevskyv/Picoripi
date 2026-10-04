@@ -562,3 +562,82 @@ def test_every_plugin_texture_list_is_well_formed(path):
             assert all("offset" in t for t in params.get("textures") or [params])
         if "compression" in params:
             assert params["compression"] in ("zlib", "gzip", "yar", "yaz0", "zstd", "none")
+
+
+# -- Grezzo (OoT3D / MM3D): CTXB textures in ZAR/GAR archives, LzS compression ----------------------------
+
+
+def make_ctxb(entries):
+    """``[(name, (gl_format, gl_type), image)]`` -> a CTXB."""
+    from core.texture_formats import ctxb
+    chunk, count = 0x18, len(entries)
+    data_at = chunk + 12 + 36 * count
+    table, blobs = b"", b""
+    for name, key, image in entries:
+        blob = pixels.codec("pica:" + ctxb.FORMATS[key]).encode(image)
+        table += struct.pack("<IHBBHHHHI", len(blob), 1, 0, 0, image.width, image.height, key[0], key[1], len(blobs))
+        table += name.encode().ljust(16, b"\0")
+        blobs += blob
+    head = b"ctxb" + struct.pack("<IIIII", data_at + len(blobs), 1, 0, chunk, data_at)
+    return head + b"tex " + struct.pack("<II", 12 + 36 * count, count) + table + blobs
+
+
+def make_gar(files):
+    """A GAR v2 of ``{name: bytes}`` (one type, data 0x80-aligned)."""
+    names = list(files)
+    info_at = 0x20
+    names_at = info_at + 12 * len(names)
+    name_blob, name_offsets = b"", []
+    for name in names:
+        name_offsets.append(names_at + len(name_blob))
+        name_blob += name.encode() + b"\0"
+    offsets_at = names_at + len(name_blob)
+    offsets_at += -offsets_at % 4
+    data_at = offsets_at + 4 * len(names)
+    data_at += -data_at % 0x80
+    body, starts = b"", []
+    for name in names:
+        body += bytes(-len(body) % 0x80)
+        starts.append(data_at + len(body))
+        body += files[name]
+    head = bytearray(data_at)
+    head[:4] = b"GAR\x02"
+    struct.pack_into("<IHHIII", head, 4, data_at + len(body), 1, len(names), 0x1C, info_at, offsets_at)
+    for i, name in enumerate(names):
+        struct.pack_into("<III", head, info_at + 12 * i, len(files[name]), name_offsets[i], name_offsets[i])
+        struct.pack_into("<I", head, offsets_at + 4 * i, starts[i])
+    head[names_at:names_at + len(name_blob)] = name_blob
+    return bytes(head) + body
+
+
+def test_lzs_round_trip_with_back_references():
+    from core.containers import grezzo
+    rng = random.Random(9)
+    for data in (b"", b"abc", bytes(rng.randrange(3) for _ in range(5000)), b"0123456789" * 700):
+        packed = grezzo.lzs_compress(data)
+        assert packed[:4] == grezzo.LZS_MAGIC and grezzo.lzs_decompress(packed) == data
+    assert len(grezzo.lzs_compress(b"0123456789" * 700)) < 1000
+
+
+def test_ctxb_in_a_compressed_gar_opens_and_writes_back(tmp_path):
+    from core.containers import grezzo
+    card = make_ctxb([("boss", (0x675B, 0x1401), picture(32, 16))])
+    path = tmp_path / "boss.gar.lzs"
+    path.write_bytes(grezzo.lzs_compress(make_gar({"tex/boss_euen.ctxb": card, "model/x.cmb": b"cmb" * 50})))
+    found = sources.open_file(str(path))
+    assert [(s.member, s.pixel_format, s.size) for s in found] == [("tex/boss_euen.ctxb", "ETC1A4", (32, 16))]
+    container = grezzo.ZarContainer(grezzo.lzs_decompress(path.read_bytes()))
+    assert container.pack() == grezzo.lzs_decompress(path.read_bytes())
+    assert found[0].write(Image.new("RGBA", (32, 16), (255, 255, 255, 255)))
+    archive = grezzo.ZarContainer(grezzo.lzs_decompress(path.read_bytes()))
+    assert archive.read_file("model/x.cmb") == b"cmb" * 50
+    assert found[0].read_current().image.getpixel((4, 4))[3] == 255
+    assert found[0].read_original().image.getpixel((4, 4)) != (255, 255, 255, 255)
+
+
+def test_ctxb_formats_round_trip():
+    from core.texture_formats import ctxb
+    data = make_ctxb([("a", (0x6758, 0x1401), picture(16, 8)), ("b", (0x675A, 0x1401), picture(8, 8))])
+    textures = ctxb.read(data, {})
+    assert [(t.name, t.pixel_format) for t in textures] == [("a", "LA8"), ("b", "ETC1")]
+    assert ctxb.write(data, {0: textures[0].image, 1: textures[1].image}, {}) == data

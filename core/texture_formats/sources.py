@@ -35,7 +35,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from PIL import Image
 
 from core import texture_formats
-from core.containers import ContainerManager, sarc, yaz0
+from core.containers import ContainerManager, grezzo, sarc, yaz0
 from core.containers.base_container import BaseArchiveContainer
 from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
@@ -117,7 +117,8 @@ def _decompress(data: bytes, scheme: str = "auto") -> Tuple[bytes, Rewrap]:
     """``(plain bytes, plain -> stored bytes)``; an unchanged payload gets its original bytes back."""
     scheme = (scheme or "auto").lower()
     if scheme == "auto":
-        scheme = "yaz0" if data[:4] == b"Yaz0" else "zstd" if data[:4] == sarc.ZSTD_MAGIC else "none"
+        scheme = ("yaz0" if data[:4] == b"Yaz0" else "zstd" if data[:4] == sarc.ZSTD_MAGIC
+                  else "lzs" if data[:4] == grezzo.LZS_MAGIC else "none")
     if scheme == "none":
         return data, lambda new: new
     if scheme == "yaz0":
@@ -131,8 +132,10 @@ def _decompress(data: bytes, scheme: str = "auto") -> Tuple[bytes, Rewrap]:
         plain, pack = gzip.decompress(data), lambda new: gzip.compress(new, 9, mtime=0)
     elif scheme == "yar":
         plain, pack = _unyar(data)
+    elif scheme == "lzs":
+        plain, pack = grezzo.lzs_decompress(data), lambda new: grezzo.lzs_compress(new, data[:8])
     else:
-        raise ValueError(f"Compression {scheme!r} is not supported (yaz0, zstd, zlib, gzip, yar are)")
+        raise ValueError(f"Compression {scheme!r} is not supported (yaz0, zstd, zlib, gzip, yar, lzs are)")
     return plain, lambda new: data if new == plain else pack(new)
 
 
@@ -198,10 +201,12 @@ class N64RomContainer(BaseArchiveContainer):
 
 
 def open_container(data: bytes) -> Optional[BaseArchiveContainer]:
-    """An archive this version can open (RARC, U8, SARC, N64 ROM, a plugin's), or None."""
+    """An archive this version can open (RARC, U8, SARC, Grezzo ZAR/GAR, N64 ROM, a plugin's), or None."""
     container = ContainerManager.open(data)
     if container is None and data[:4] == b"SARC":
         container = sarc.SarcContainer(data)
+    if container is None and grezzo.ZarContainer.can_handle(data):
+        container = grezzo.ZarContainer(data)
     if container is None and N64RomContainer.can_handle(data):
         container = N64RomContainer(data)
     return container

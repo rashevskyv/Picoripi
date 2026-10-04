@@ -123,3 +123,11 @@ def test_a_decoded_texture_is_an_rgba_image():
     data = _need(ZELDA / "ALBW_UA" / "romfs" / "EU_English" / "Layout" / "TheEnd_00.bflim").read_bytes()
     image = texture_formats.read("bflim", data)[0].image
     assert isinstance(image, Image.Image) and image.mode == "RGBA"
+
+
+def test_majoras_mask_3d_boss_card_through_lzs_and_gar():
+    path = _need(ZELDA / "MM3D_UA" / "romfs" / "actors" / "zelda2_boss01.gar.lzs")
+    raw = path.read_bytes()
+    data, rewrap = sources.unwrap(raw, "tex/boss_name_odoruwa_euen.ctxb", {})
+    assert rewrap(data) == raw
+    assert _round_trip("ctxb", data)[0].image.size == (256, 64)
