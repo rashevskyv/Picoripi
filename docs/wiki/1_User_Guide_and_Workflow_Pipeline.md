@@ -157,7 +157,8 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
      `MENU\*.PRG` (menus), `SMALL\HELP*.HF0` (Quick Manual), `SMALL\MON.BIN` (Monster Book), `SMALL\SCEN*.ARM`
      (room names), `MAP\ZONE*.ZND`, `BATTLE\*.PRG`, `TITLE\TITLE.PRG`, `SLUS_010.40` (names in program and zone
-     data: spells, arts, enemies, their equipment) and the font `FONT\VSFONT.FNT`; **Translation:**
+     data: spells, arts, enemies, their equipment; ASCII HUD words such as `#WEAPON`, kept ASCII) and the
+     font `FONT\VSFONT.FNT`; **Translation:**
      `translation`. Tags are readable: `{down 13}` / `{>12}` place the text in the balloon, `{color 1}`,
      `{num 0}`, `{wait}`, `{page}`; Japanese leftovers and empty strings are not shown; an unedited file stays
      byte for byte. A dialog line's width limit is its balloon (`chars_per_line` × 12 px of the italic font,

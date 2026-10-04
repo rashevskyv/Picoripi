@@ -155,7 +155,8 @@ tokens: 11.7k
      (катсцени), `MAP\*.MPD` (події кімнат), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
      `MENU\*.PRG` (меню), `SMALL\HELP*.HF0` (Quick Manual), `SMALL\MON.BIN` (Monster Book), `SMALL\SCEN*.ARM`
      (назви кімнат), `MAP\ZONE*.ZND`, `BATTLE\*.PRG`, `TITLE\TITLE.PRG`, `SLUS_010.40` (назви в даних програми
-     й зон: закляття, прийоми, вороги та їхнє спорядження) і шрифт `FONT\VSFONT.FNT`; **Translation:**
+     й зон: закляття, прийоми, вороги та їхнє спорядження; слова HUD в ASCII на кшталт `#WEAPON`, лише ASCII)
+     і шрифт `FONT\VSFONT.FNT`; **Translation:**
      `translation`. Теги читабельні: `{down 13}` / `{>12}` ставлять текст у бульбашці, `{color 1}`, `{num 0}`,
      `{wait}`, `{page}`; японські залишки й порожні рядки не показуються; незмінений файл лишається байт у байт.
      Межа ширини рядка діалогу — його бульбашка (`chars_per_line` × 12 пкс курсивного шрифту, з команди
