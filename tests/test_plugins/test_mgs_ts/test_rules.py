@@ -6,7 +6,7 @@ import pytest
 
 from core.formats import SaveContext
 from plugins.mgs_ts import doc as docs
-from plugins.mgs_ts import gcx, subtitles
+from plugins.mgs_ts import gcx, rel, subtitles
 from plugins.mgs_ts.rules import CODEC_TEXT_WIDTH, SCRIPT_NEIGHBOURS
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
@@ -162,3 +162,43 @@ def test_real_codec_lines_have_speakers():
     lines = [line for block in parsed.blocks for line in block]
     assert len(lines) > 8000
     assert sum(1 for line in lines if line.speaker) > 0.99 * len(lines)
+
+
+def rel_file():
+    """A module of the real size and header with every HUD word in its slot."""
+    data = bytearray(rel.SIZE)
+    data[:len(rel.HEADER)] = rel.HEADER
+    for offset, text, slot in rel.SLOTS:
+        data[offset:offset + len(text)] = text.encode("ascii")
+        data[offset + slot] = 0xFF          # the next data after the slot
+    return bytes(data)
+
+
+def test_hud_words_of_the_module_save_in_place():
+    rules = load_rules("mgs_ts")
+    source = rel_file()
+    blocks, names = rules.load_data_from_json_obj(source)
+    assert names == {"0": "HUD words (mgso.rel)"} and blocks[0][:3] == ["M9", "SOCOM", "PSG1"]
+    assert rules.save_data_to_json_obj(blocks, names) == source
+    blocks[0][1] = "SOKOM"
+    out = rules.save_data_to_json_obj(blocks, names)
+    assert len(out) == len(source) and out[0x467E88:0x467E90] == b"SOKOM\0\0\0"
+    assert load_rules("mgs_ts").load_data_from_json_obj(out)[0][0][1] == "SOKOM"
+
+
+@pytest.mark.parametrize("text, message", [("M9XX", "room for 3"), ("СОКОМ", "only ASCII")])
+def test_hud_word_too_long_or_not_ascii_is_refused(text, message):
+    rules = load_rules("mgs_ts")
+    blocks, names = rules.load_data_from_json_obj(rel_file())
+    blocks[0][0 if text == "M9XX" else 1] = text
+    with pytest.raises(ValueError, match=message):
+        rules.save_data_to_json_obj(blocks, names)
+
+
+@pytest.mark.skipif(not (TEXT / "common" / "mgso.rel").exists(), reason="Twin Snakes module not unpacked here")
+def test_real_module_hud_words_match_their_slots():
+    data = (TEXT / "common" / "mgso.rel").read_bytes()
+    assert rel.is_rel(data)
+    assert [raw.decode() for raw in rel.read(data)] == [text for _offset, text, _slot in rel.SLOTS]
+    for offset, text, slot in rel.SLOTS:
+        assert not any(data[offset + len(text):offset + slot])    # the slot is NUL after the word

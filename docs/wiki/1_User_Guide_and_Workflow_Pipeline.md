@@ -115,7 +115,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      slack: a codec row may be 509 font units wide (measured in the game's codec box), a menu or item text row
      as wide as the widest English row of the neighbouring strings (one script mixes option help, item
      descriptions and memory-card dialogs, each in its own window). Credits, titles, HUD labels and menu words
-     are pictures, not text (`TWIN_SNAKESeportsisible_text_inventory.md`).
+     are pictures, not text (`TWIN_SNAKES\reports\visible_text_inventory.md`). `common\mgso.rel` (the game
+     module) gives one block of HUD words — LIFE, O2, the item and weapon box labels, boss names: the HUD font
+     has only ASCII letters and each word has a fixed number of bytes, so a save refuses Cyrillic or a word
+     longer than its slot.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

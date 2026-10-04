@@ -26,6 +26,8 @@ _ROLES = {
     "cutscene": ("Cutscene subtitle", "One subtitle of a real-time cutscene, timed to the voice."),
     "voice": ("In-game voice subtitle", "A voiced line said during play (enemies, bosses, radio)."),
     "movie": ("Movie subtitle", "One subtitle of a pre-rendered movie (briefing videos)."),
+    "hud": ("HUD word", "A short HUD label (life bar, weapon or item box, boss name). The HUD font has only "
+            "ASCII letters and the game has a fixed number of bytes for it: keep it Latin and short."),
 }
 _ITEM_NAME_RE = re.compile(r"^([^\n]{2,24})\n")
 # Measured in Dolphin: a 509-wide row fits the codec text box, a 514-wide one wraps (font units).
@@ -39,8 +41,8 @@ class GameRules(BaseGameRules):
     The project's source folder is the ``text`` folder the workspace's unpack step fills:
     ``common/codec.dat`` (every codec call), ``stage/*.gcx`` (scripts taken out of stage.dat:
     menus, briefing, item descriptions, credits), ``*/demo.subs``, ``common/vox.subs`` and
-    ``common/movie.subs`` (subtitles of cutscenes, in-game voices and movies) and the font in
-    ``font/``. Every string exists in six languages; only the English ones are shown. Saving
+    ``common/movie.subs`` (subtitles of cutscenes, in-game voices and movies), ``common/mgso.rel``
+    (the HUD words of the game module, ASCII in fixed slots) and the font in ``font/``. Every string exists in six languages; only the English ones are shown. Saving
     writes the same files into the translation folder; the build step packs them into the discs.
     """
 
@@ -69,7 +71,7 @@ class GameRules(BaseGameRules):
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat((".dat", ".gcx", ".subs"), "bytes", "Twin Snakes text"), *DEFAULT_FORMATS]
+        return [FileFormat((".dat", ".gcx", ".subs", ".rel"), "bytes", "Twin Snakes text"), *DEFAULT_FORMATS]
 
     # -- translation map ---------------------------------------------------------
 
@@ -288,6 +290,8 @@ class GameRules(BaseGameRules):
         if not found or not font_map:
             return None
         _rel, parsed, sub, line = found
+        if line.kind == "hud":
+            return None         # an ASCII atlas, not this font; the byte limit is checked on save
         if line.kind == "codec":
             return {"warn_width": CODEC_TEXT_WIDTH, "max_width": CODEC_TEXT_WIDTH}
         index = int(string_idx)

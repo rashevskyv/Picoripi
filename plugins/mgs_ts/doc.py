@@ -1,7 +1,8 @@
 """One Twin Snakes text file as Picoripi blocks: which game string each line is, and how to save it.
 
-A file is either GCX script text (``codec.dat``, the ``*.gcx`` scripts the unpack step takes out
-of stage.dat) or a ``.subs`` file of cutscene / voice / movie subtitles. Only English strings
+A file is GCX script text (``codec.dat``, the ``*.gcx`` scripts the unpack step takes out of
+stage.dat), a ``.subs`` file of cutscene / voice / movie subtitles, or the game module
+``mgso.rel`` (its HUD words, ``rel``). Only English strings
 become lines. Identical string tables (codec.dat repeats some calls up to eight times) are one
 block; a save writes the block into every copy.
 
@@ -17,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-from . import gcx, subtitles, textcodec
+from . import gcx, rel, subtitles, textcodec
 
 _SPEAKERS_FILE = Path(__file__).with_name("speakers.json")
 
@@ -43,7 +44,7 @@ class Line:
     """One English game string shown in the editor."""
 
     raw: bytes
-    kind: str                         # codec, script, cutscene, voice, movie
+    kind: str                         # codec, script, cutscene, voice, movie, hud
     speaker: Optional[int] = None     # name hash
     timing: Optional[Tuple[int, int]] = None
     where: str = ""
@@ -52,7 +53,7 @@ class Line:
 
 @dataclass
 class Doc:
-    kind: str                                         # "gcx" or "subs"
+    kind: str                                         # "gcx", "subs" or "rel"
     blocks: List[List[Line]] = field(default_factory=list)
     names: Dict[str, str] = field(default_factory=dict)
     # gcx: per block, the section numbers that share its table, and the English string indices
@@ -78,6 +79,9 @@ def parse(data: bytes, file_name: str = "", known: Optional[Dict[str, List[List[
     """Read a file; ``known`` maps layout keys to the English indices of each section."""
     if data[:len(subtitles.MAGIC)] == subtitles.MAGIC:
         return _parse_subs(data, file_name)
+    if rel.is_rel(data):
+        lines = [Line(raw, "hud", where=f"mgso.rel {offset:#x}") for raw, (offset, _t, _s) in zip(rel.read(data), rel.SLOTS)]
+        return Doc("rel", blocks=[lines], names={"0": "HUD words (mgso.rel)"})
     return _parse_gcx(data, file_name, known)
 
 
@@ -149,6 +153,16 @@ def build(source: bytes, doc: Doc, data: List[List[str]], translation_map: Optio
         original = doc.blocks[block][line]
         new = textcodec.encode(str(data[block][line]), original.newline, translation_map, missing)
         return None if new == original.raw else new
+
+    if doc.kind == "rel":
+        changes = {}
+        for line, text in enumerate(data[0] if data else []):
+            if text is not None and any(not 0x20 <= ord(char) < 0x7F for char in str(text)):
+                raise ValueError(f"mgso.rel line {line + 1}: the HUD font has only ASCII letters ({text!r})")
+            new = encoded(0, line)
+            if new is not None:
+                changes[line] = new
+        return rel.write(source, changes) if changes else bytes(source)
 
     if doc.kind == "subs":
         records = subtitles.read(source)
