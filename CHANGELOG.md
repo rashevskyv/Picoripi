@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- The Wind Waker HD (`zelda_ww`): reference languages — Load Reference Patch with a folder of `permanent_2d_<Region><Language>.pack` files shows the game's French and Spanish and the Russian patch (as `permanent_2d_RuRussian.pack`), Russian first, matched by file and label (all 5,040 messages of the USA game in each).
 - Twin Snakes (`mgs_ts`): the HUD words of the game module `mgso.rel` (LIFE, O2, item and weapon box labels, boss names; 80 strings) open as one block and save in place — ASCII only, never longer than the game's slot (seen in Dolphin: a changed LIFE on the life bar); the workspace unpacks it to `common\mgso.rel`.
 - Twin Snakes (`mgs_ts`): checked in the game (Dolphin, input movies): codec, options help and Ukrainian letters show; the game wraps a too-wide row mid-word, so the width limit is now the codec box (509 font units, measured) for codec lines and the widest English row of the neighbouring strings (no slack) for menu and item text, instead of the widest row of the whole file + 5 % (item descriptions were allowed twice their window).
 - Twilight Princess / Wind Waker layout previews: GX textures are decoded by the shared codecs — IA8, RGB565 and RGB5A3 used 8x4 tiles instead of 4x4, C14X2 was missing, and a BTI's palette format was read from the wrong byte.

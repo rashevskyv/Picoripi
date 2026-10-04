@@ -4,7 +4,8 @@ A Wind Waker HD project points at the files ``1_unpack.bat`` takes out of ``perm
 (``Message/*.msbt``, ``Font/*.bffnt``): every MSBT is one block, every message one string, its tags
 readable (``tags.py``). Saving writes the whole MSBT with only the edited messages re-encoded; an
 unedited file is written back byte for byte. Speakers, box types and conversations come from the
-messages' own attributes (``messages.py``). A project of Kruptar ``.txt`` dumps opens as before.
+messages' own attributes (``messages.py``); the game's other language packs and the Russian patch are
+reference languages (``reference.py``). A project of Kruptar ``.txt`` dumps opens as before.
 """
 import math
 import urllib.parse
@@ -17,7 +18,7 @@ from plugins.common.config_factory import problem_ids
 from plugins.common.msbt import Msbt
 from utils.logging_utils import log_debug, log_warning
 
-from . import messages
+from . import messages, reference
 from .config import PROBLEM_DEFINITIONS
 from .tag_logic import process_segment_tags_aggressively_zww
 from .tag_manager import TagManager
@@ -230,6 +231,27 @@ class GameRules(BaseGameRules):
 
     def get_capabilities(self) -> Set[str]:
         return {"speaker_attribution", "glossary_seed", "external_reference"}
+
+    # -- reference languages -------------------------------------------------------
+
+    def supports_reference_patch(self) -> bool:
+        """The game's other languages (USA: French, Spanish) and the Russian patch are the references."""
+        return True
+
+    def get_reference_language_label(self) -> str:
+        return reference.RUSSIAN
+
+    def load_reference_patch(self, patch_path: str, block_names=None) -> Dict[Tuple[int, int], str]:
+        return self.load_multi_reference(patch_path, block_names).get(self.get_reference_language_label(), {})
+
+    def load_multi_reference(self, patch_path: str, block_names=None) -> Dict[str, Dict[Tuple[int, int], str]]:
+        """Every ``permanent_2d_<Region><Language>.pack`` under ``patch_path``, matched by file and label."""
+        blocks: Dict[int, Tuple[str, Dict[int, str]]] = {}
+        for key in (block_names or {}):
+            name, msbt = self._member(int(key))
+            if msbt is not None:
+                blocks[int(key)] = (name, msbt.labels)
+        return reference.load_languages(Path(patch_path), blocks)
 
     def get_external_reference_url(self, term: str) -> Optional[str]:
         """Return a Zelda Wiki search or reference URL for ``term``."""
