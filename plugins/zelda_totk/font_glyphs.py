@@ -20,7 +20,7 @@ import math
 import struct
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from core.font_formats import bfotf
 from utils.atomic_io import atomic_write_bytes
@@ -587,7 +587,7 @@ def _new_cmap(old: bytes, mapping: Dict[int, int]) -> bytes:
     count = struct.unpack_from(">H", old, 2)[0]
     records = [struct.unpack_from(">HHI", old, 4 + 8 * i) for i in range(count)]
     unicode = _cmap_format4(mapping)
-    bodies, out_records = [], []
+    out_records = []
     for platform, encoding, offset in records:
         if (platform, encoding) in ((0, 3), (3, 1)):
             body = unicode

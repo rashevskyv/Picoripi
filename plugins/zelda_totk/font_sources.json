@@ -2,7 +2,7 @@
   {
     "label": "Font archive",
     "format": "bfotf",
-    "path": ["Font/*.bfarc.zs", "../Font/*.bfarc.zs", "Font/*.bfarc", "../Font/*.bfarc"],
+    "path": ["Font/Font.Nin_NX_NVN.bfarc.zs", "../Font/Font.Nin_NX_NVN.bfarc.zs", "Font/*.bfarc.zs", "../Font/*.bfarc.zs"],
     "member": "*.bfotf",
     "params": {"size": 45}
   }
