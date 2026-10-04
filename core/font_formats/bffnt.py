@@ -27,7 +27,7 @@ def _finf(data: bytes) -> Dict[str, int]:
     if data[:4] != b"FFNT":
         raise ValueError("Not a BFFNT font")
     if data[4:6] != b"\xff\xfe":
-        raise ValueError("Big-endian (Wii U / 3DS) BFFNT fonts are not supported; Switch fonts are")
+        raise ValueError("Big-endian (Wii U) BFFNT fonts are not supported; Switch and 3DS fonts are")
     at = struct.unpack_from("<H", data, 6)[0]
     if data[at:at + 4] != b"FINF":
         raise ValueError("BFFNT without FINF")

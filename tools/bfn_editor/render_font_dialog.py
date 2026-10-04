@@ -127,7 +127,13 @@ class RenderFontDialog(QtWidgets.QDialog):
         
         if _LAST_RENDER_PARAMS["font_family"] is not None:
             self.font_combo.setCurrentFont(QtGui.QFont(_LAST_RENDER_PARAMS["font_family"]))
-        form.addRow(tr("Font Family:"), self.font_combo)
+        family_row = QtWidgets.QHBoxLayout()
+        family_row.addWidget(self.font_combo, 1)
+        self.btn_font_file = QtWidgets.QPushButton(tr("Font File..."))
+        self.btn_font_file.setToolTip(tr("Use a .ttf / .otf file (for example a downloaded free font) without installing it"))
+        self.btn_font_file.clicked.connect(self._choose_font_file)
+        family_row.addWidget(self.btn_font_file)
+        form.addRow(tr("Font Family:"), family_row)
         
         # Install event filter to select all text when lineEdit gets focus
         self.font_combo.installEventFilter(self)
@@ -415,58 +421,8 @@ class RenderFontDialog(QtWidgets.QDialog):
             return
             
         params = self.get_params()
-        font = params["font"]
-        h_scale = params["h_scale"]
-        v_scale = params["v_scale"]
-        x_offset = params["x_offset"]
-        y_offset = params["y_offset"]
-        align_h = params["align_h"]
-        align_v = params["align_v"]
-        antialiasing = params["antialiasing"]
-        
-        new_glyph = QtGui.QImage(self.cell_w, self.cell_h, QtGui.QImage.Format.Format_ARGB32)
-        new_glyph.fill(QtGui.QColor(0, 0, 0, 0))
-        
-        painter = QtGui.QPainter(new_glyph)
-        try:
-            if antialiasing:
-                painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing, True)
-                painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
-            painter.setFont(font)
-            painter.setPen(QtGui.QColor(255, 255, 255, 255))
-            
-            ascent_val = self.ascent if self.ascent > 0 else int(self.cell_h * 0.75)
-            
-            # Apply scaling relative to the cell center
-            painter.save()
-            cx = self.cell_w / 2.0
-            cy = self.cell_h / 2.0
-            painter.translate(cx, cy)
-            painter.scale(h_scale / 100.0, v_scale / 100.0)
-            painter.translate(-cx, -cy)
-            
-            if align_v == "baseline":
-                font_metrics = QtGui.QFontMetrics(font)
-                text_width = font_metrics.horizontalAdvance(self.char_str)
-                x = x_offset
-                if align_h == QtCore.Qt.AlignmentFlag.AlignHCenter:
-                    x = max(0, (self.cell_w - text_width) // 2) + x_offset
-                elif align_h == QtCore.Qt.AlignmentFlag.AlignRight:
-                    x = self.cell_w - text_width + x_offset
-                
-                painter.drawText(x, ascent_val + y_offset, self.char_str)
-            else:
-                alignment = QtCore.Qt.AlignmentFlag(0)
-                if align_h is not None:
-                    alignment |= align_h
-                if align_v != "baseline" and align_v is not None:
-                    alignment |= align_v
-                rect = QtCore.QRect(x_offset, y_offset, self.cell_w, self.cell_h)
-                painter.drawText(rect, alignment, self.char_str)
-                
-            painter.restore()
-        finally:
-            painter.end()
+        ascent_val = self.ascent if self.ascent > 0 else int(self.cell_h * 0.75)
+        new_glyph = render_glyph(self.char_str, params, self.cell_w, self.cell_h, ascent_val)
         
         new_pix = QtGui.QPixmap.fromImage(new_glyph)
         self.lbl_preview_new.setPixmap(new_pix.scaled(128, 128, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.FastTransformation))
@@ -561,6 +517,22 @@ class RenderFontDialog(QtWidgets.QDialog):
         if not view.isVisible():
             self.font_combo.showPopup()
 
+    def _choose_font_file(self):
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, tr("Choose a font file"), filter=tr("Font files (*.ttf *.otf *.ttc);;All Files (*)"))
+        if path:
+            self.use_font_file(path)
+
+    def use_font_file(self, path):
+        """Load a font file for this session (not installed in the system) and select its family."""
+        families = load_font_file(path)
+        if not families:
+            QtWidgets.QMessageBox.warning(self, tr("Error"), tr("Cannot load the font file: {0}", path))
+            return False
+        self.font_combo.setCurrentFont(QtGui.QFont(families[0]))
+        self._update_preview()
+        return True
+
     def _on_font_activated(self, index):
         self._reset_font_filter()
 
@@ -571,3 +543,82 @@ class RenderFontDialog(QtWidgets.QDialog):
         for i in range(total):
             view.setRowHidden(i, False)
 
+
+_LOADED_FONT_FILES = {}
+
+
+def load_font_file(path):
+    """The families of a .ttf / .otf file, loaded for this session only (``QFontDatabase``, no system install).
+
+    ponytail: Qt reads the file on the calling (UI) thread -- one small file the user picked; move it to a
+    worker if fonts ever come in bulk.
+    """
+    if path not in _LOADED_FONT_FILES:
+        font_id = QtGui.QFontDatabase.addApplicationFont(path)
+        _LOADED_FONT_FILES[path] = QtGui.QFontDatabase.applicationFontFamilies(font_id) if font_id >= 0 else []
+    return _LOADED_FONT_FILES[path]
+
+
+def render_glyph(char, params, cell_w, cell_h, ascent):
+    """One character drawn white on a transparent cell, as the Render Font dialog sets it up.
+
+    ``params`` is ``RenderFontDialog.get_params()`` (font, scales, offsets, alignment, antialiasing);
+    ``ascent`` is the baseline's row for the "baseline" vertical alignment.
+    """
+    image = QtGui.QImage(cell_w, cell_h, QtGui.QImage.Format.Format_ARGB32)
+    image.fill(QtGui.QColor(0, 0, 0, 0))
+    font, align_h, align_v = params["font"], params["align_h"], params["align_v"]
+    x_offset, y_offset = params["x_offset"], params["y_offset"]
+    painter = QtGui.QPainter(image)
+    try:
+        if params["antialiasing"]:
+            painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing, True)
+            painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
+        painter.setFont(font)
+        painter.setPen(QtGui.QColor(255, 255, 255, 255))
+        cx, cy = cell_w / 2.0, cell_h / 2.0      # scaling is relative to the cell centre
+        painter.translate(cx, cy)
+        painter.scale(params.get("h_scale", 100) / 100.0, params.get("v_scale", 100) / 100.0)
+        painter.translate(-cx, -cy)
+        if align_v == "baseline":
+            text_width = QtGui.QFontMetrics(font).horizontalAdvance(char)
+            x = x_offset
+            if align_h == QtCore.Qt.AlignmentFlag.AlignHCenter:
+                x = max(0, (cell_w - text_width) // 2) + x_offset
+            elif align_h == QtCore.Qt.AlignmentFlag.AlignRight:
+                x = cell_w - text_width + x_offset
+            painter.drawText(x, ascent + y_offset, char)
+        else:
+            alignment = QtCore.Qt.AlignmentFlag(0)
+            if align_h is not None:
+                alignment |= align_h
+            if align_v is not None:
+                alignment |= align_v
+            painter.drawText(QtCore.QRect(x_offset, y_offset, cell_w, cell_h), alignment, char)
+    finally:
+        painter.end()
+    return image
+
+
+def ink_metrics(image, threshold=15):
+    """``(kerning, width)`` of a glyph image from its ink, as the editor's width detection measures it.
+
+    The kerning is the first inked column (one less when that column is a tall stroke) and the width
+    runs to the last inked column (one more for a tall stroke); an empty glyph is half a cell wide.
+    """
+    cell_w, cell_h = image.width(), image.height()
+    inked = [x for x in range(cell_w) if any(image.pixelColor(x, y).alpha() > threshold for y in range(cell_h))]
+    if not inked:
+        return 0, cell_w // 2
+
+    def longest_run(x):
+        best = run = 0
+        for y in range(cell_h):
+            run = run + 1 if image.pixelColor(x, y).alpha() > threshold else 0
+            best = max(best, run)
+        return best
+
+    min_x, max_x = inked[0], inked[-1]
+    kerning = min_x if longest_run(min_x) < 5 else max(0, min_x - 1)
+    right = max_x if longest_run(max_x) < 5 else max_x + 1
+    return kerning, max(1, min(cell_w - kerning, right - kerning + 1))

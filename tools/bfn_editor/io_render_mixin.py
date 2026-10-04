@@ -1,9 +1,10 @@
 """BFN editor: render a system font into glyphs."""
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 from core.i18n import tr
 
 from tools.bfn_editor.bfn_widgets import RenderFontDialog
+from tools.bfn_editor.render_font_dialog import ink_metrics, render_glyph
 from tools.bfn_editor.bfn_commands import RenderFontCommand
 from utils.logging_utils import log_debug
 
@@ -157,28 +158,11 @@ class IoRenderMixin:
         pixel_changes = []
         metrics_changes = []
         
-        # Prepare QFont
-        font = params["font"]
-        h_scale = params.get("h_scale", 100)
-        v_scale = params.get("v_scale", 100)
-        x_offset = params["x_offset"]
-        y_offset = params["y_offset"]
-        align_h = params["align_h"]
-        align_v = params["align_v"]
         auto_metrics = params["auto_metrics"]
-        antialiasing = params["antialiasing"]
-        
-        # Alignment flags
-        alignment = QtCore.Qt.AlignmentFlag(0)
-        if align_h is not None:
-            alignment |= align_h
-        if align_v != "baseline" and align_v is not None:
-            alignment |= align_v
-            
-        ascent = 0
         inf_list = self.metadata.get("INF1", [])
-        if inf_list:
-            ascent = inf_list[0].get("ascent", 0)
+        ascent = inf_list[0].get("ascent", 0) if inf_list else 0
+        if ascent <= 0:
+            ascent = int(self.cell_h * 0.75)
             
         wid = self.metadata.get("WID1", [{}])[0]
         packets = wid.get("packets", [])
@@ -207,114 +191,13 @@ class IoRenderMixin:
             sheet_img = self.sheet_images[sheet_idx]
             old_glyph_crop = sheet_img.copy(cell_x, cell_y, self.cell_w, self.cell_h)
             
-            # Render new glyph image
-            new_glyph = QtGui.QImage(self.cell_w, self.cell_h, QtGui.QImage.Format.Format_ARGB32)
-            new_glyph.fill(QtGui.QColor(0, 0, 0, 0))
-            
-            painter = QtGui.QPainter(new_glyph)
-            try:
-                if antialiasing:
-                    painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing, True)
-                    painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
-                painter.setFont(font)
-                painter.setPen(QtGui.QColor(255, 255, 255, 255))
-                
-                # Apply scaling relative to the cell center
-                painter.save()
-                cx = self.cell_w / 2.0
-                cy = self.cell_h / 2.0
-                painter.translate(cx, cy)
-                painter.scale(h_scale / 100.0, v_scale / 100.0)
-                painter.translate(-cx, -cy)
-                
-                if align_v == "baseline":
-                    # Draw text aligned on baseline
-                    font_metrics = QtGui.QFontMetrics(font)
-                    text_width = font_metrics.horizontalAdvance(char_str)
-                    x = x_offset
-                    if align_h == QtCore.Qt.AlignmentFlag.AlignHCenter:
-                        x = max(0, (self.cell_w - text_width) // 2) + x_offset
-                    elif align_h == QtCore.Qt.AlignmentFlag.AlignRight:
-                        x = self.cell_w - text_width + x_offset
-                    
-                    painter.drawText(x, ascent + y_offset, char_str)
-                else:
-                    rect = QtCore.QRect(x_offset, y_offset, self.cell_w, self.cell_h)
-                    painter.drawText(rect, alignment, char_str)
-                    
-                painter.restore()
-            finally:
-                painter.end()
+            new_glyph = render_glyph(char_str, params, self.cell_w, self.cell_h, ascent)
             
             pixel_changes.append((sheet_idx, cell_x, cell_y, old_glyph_crop, new_glyph))
             
             # Recalculate metrics if requested
             if auto_metrics:
-                min_x = -1
-                max_x = -1
-                for x in range(self.cell_w):
-                    has_pixel = False
-                    for y in range(self.cell_h):
-                        color = new_glyph.pixelColor(x, y)
-                        if color.alpha() > 15:
-                            has_pixel = True
-                            break
-                    if has_pixel:
-                        min_x = x
-                        break
-                        
-                for x in range(self.cell_w - 1, -1, -1):
-                    has_pixel = False
-                    for y in range(self.cell_h):
-                        color = new_glyph.pixelColor(x, y)
-                        if color.alpha() > 15:
-                            has_pixel = True
-                            break
-                    if has_pixel:
-                        max_x = x
-                        break
-                        
-                if min_x == -1 or max_x == -1:
-                    new_kern = 0
-                    new_width = self.cell_w // 2
-                else:
-                    max_block_left = 0
-                    current_block = 0
-                    for y in range(self.cell_h):
-                        color = new_glyph.pixelColor(min_x, y)
-                        if color.alpha() > 15:
-                            current_block += 1
-                        else:
-                            if current_block > max_block_left:
-                                max_block_left = current_block
-                            current_block = 0
-                    if current_block > max_block_left:
-                        max_block_left = current_block
-                        
-                    max_block_right = 0
-                    current_block = 0
-                    for y in range(self.cell_h):
-                        color = new_glyph.pixelColor(max_x, y)
-                        if color.alpha() > 15:
-                            current_block += 1
-                        else:
-                            if current_block > max_block_right:
-                                max_block_right = current_block
-                            current_block = 0
-                    if current_block > max_block_right:
-                        max_block_right = current_block
-                        
-                    if max_block_left < 5:
-                        new_kern = min_x
-                    else:
-                        new_kern = max(0, min_x - 1)
-                        
-                    if max_block_right < 5:
-                        right_boundary = max_x
-                    else:
-                        right_boundary = max_x + 1
-                        
-                    new_width = right_boundary - new_kern + 1
+                new_kern, new_width = ink_metrics(new_glyph)
                     
                 wid_idx = idx - self.first_code
                 if 0 <= wid_idx:

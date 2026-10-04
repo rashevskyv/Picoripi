@@ -3,6 +3,8 @@ import os
 import json
 
 from PyQt6 import QtGui
+
+from tools.bfn_editor.render_font_dialog import ink_metrics
 from utils.logging_utils import log_debug
 
 
@@ -14,81 +16,7 @@ class IoDetectMixin:
         gx, gy = self.selected_cell
         sheet_img = self.sheet_images[self.current_sheet_index]
         
-        cell_x = gx * self.cell_w
-        cell_y = gy * self.cell_h
-        
-        min_x = -1
-        max_x = -1
-        
-        # 1. Scan left-to-right for first pixel with alpha > 15
-        for x in range(self.cell_w):
-            has_pixel = False
-            for y in range(self.cell_h):
-                color = sheet_img.pixelColor(cell_x + x, cell_y + y)
-                if color.alpha() > 15:
-                    has_pixel = True
-                    break
-            if has_pixel:
-                min_x = x
-                break
-                
-        # 2. Scan right-to-left for last pixel with alpha > 15
-        for x in range(self.cell_w - 1, -1, -1):
-            has_pixel = False
-            for y in range(self.cell_h):
-                color = sheet_img.pixelColor(cell_x + x, cell_y + y)
-                if color.alpha() > 15:
-                    has_pixel = True
-                    break
-            if has_pixel:
-                max_x = x
-                break
-                
-        if min_x == -1 or max_x == -1:
-            new_kern = 0
-            new_width = self.cell_w // 2
-        else:
-            # Find maximum continuous block in first column (min_x)
-            max_block_left = 0
-            current_block = 0
-            for y in range(self.cell_h):
-                color = sheet_img.pixelColor(cell_x + min_x, cell_y + y)
-                if color.alpha() > 15:
-                    current_block += 1
-                else:
-                    if current_block > max_block_left:
-                        max_block_left = current_block
-                    current_block = 0
-            if current_block > max_block_left:
-                max_block_left = current_block
-                
-            # Find maximum continuous block in last column (max_x)
-            max_block_right = 0
-            current_block = 0
-            for y in range(self.cell_h):
-                color = sheet_img.pixelColor(cell_x + max_x, cell_y + y)
-                if color.alpha() > 15:
-                    current_block += 1
-                else:
-                    if current_block > max_block_right:
-                        max_block_right = current_block
-                    current_block = 0
-            if current_block > max_block_right:
-                max_block_right = current_block
-                
-            if max_block_left < 5:
-                new_kern = min_x
-            else:
-                new_kern = max(0, min_x - 1)
-                
-            if max_block_right < 5:
-                right_boundary = max_x
-            else:
-                right_boundary = max_x + 1
-                
-            new_width = right_boundary - new_kern + 1
-            # clamp width
-            new_width = max(1, min(self.cell_w - new_kern, new_width))
+        new_kern, new_width = ink_metrics(sheet_img.copy(gx * self.cell_w, gy * self.cell_h, self.cell_w, self.cell_h))
             
         # Get old values
         idx = self.get_selected_glyph_index()
