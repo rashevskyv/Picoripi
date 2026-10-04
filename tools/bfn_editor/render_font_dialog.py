@@ -1,4 +1,4 @@
-"""BFN editor: options for rendering a system font into the BFN."""
+"""BFN editor: options for rendering a system font, or a TTF/OTF file, into the font's glyphs."""
 from PyQt6 import QtCore, QtGui, QtWidgets
 from core.i18n import tr
 from tools.bfn_editor.scale_slider import ScaleSliderWidget
@@ -15,8 +15,63 @@ _LAST_RENDER_PARAMS = {
     "bold": False,
     "italic": False,
     "stretch": 100,
-    "v_scale": 100
+    "v_scale": 100,
+    "thicken": 0.0,
 }
+
+
+def render_glyph(char_str, params, cell_w, cell_h, ascent):
+    """One character drawn white on a transparent cell, as the Render Font dialog sets it up.
+
+    ``params`` is ``RenderFontDialog.get_params()`` (font, scales, offsets, alignment, antialiasing,
+    thicken); ``ascent`` is the baseline's row for the "baseline" vertical alignment (0: 3/4 of the cell).
+    """
+    font = params["font"]
+    image = QtGui.QImage(cell_w, cell_h, QtGui.QImage.Format.Format_ARGB32)
+    image.fill(QtGui.QColor(0, 0, 0, 0))
+    painter = QtGui.QPainter(image)
+    try:
+        if params.get("antialiasing", True):
+            painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing, True)
+            painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
+        painter.setFont(font)
+        painter.setPen(QtGui.QColor(255, 255, 255, 255))
+        # Scaling is relative to the cell centre
+        cx, cy = cell_w / 2.0, cell_h / 2.0
+        painter.translate(cx, cy)
+        painter.scale(params.get("h_scale", 100) / 100.0, params.get("v_scale", 100) / 100.0)
+        painter.translate(-cx, -cy)
+        align_h, align_v = params.get("align_h"), params.get("align_v")
+        x_offset, y_offset = params.get("x_offset", 0), params.get("y_offset", 0)
+        metrics = QtGui.QFontMetrics(font)
+        if align_v == "baseline":
+            text_width = metrics.horizontalAdvance(char_str)
+            x = x_offset
+            if align_h == QtCore.Qt.AlignmentFlag.AlignHCenter:
+                x = max(0, (cell_w - text_width) // 2) + x_offset
+            elif align_h == QtCore.Qt.AlignmentFlag.AlignRight:
+                x = cell_w - text_width + x_offset
+            y = (ascent if ascent > 0 else int(cell_h * 0.75)) + y_offset
+        else:
+            alignment = QtCore.Qt.AlignmentFlag(0)
+            if align_h is not None:
+                alignment |= align_h
+            if align_v is not None:
+                alignment |= align_v
+            box = metrics.boundingRect(QtCore.QRect(x_offset, y_offset, cell_w, cell_h), alignment, char_str)
+            x, y = box.left(), box.top() + metrics.ascent()
+        thicken = float(params.get("thicken", 0) or 0)
+        if thicken > 0:
+            # Small bitmap fonts are often heavier than any face: widen the outline by `thicken` pixels
+            path = QtGui.QPainterPath()
+            path.addText(QtCore.QPointF(x, y), font, char_str)
+            painter.fillPath(path, QtGui.QColor(255, 255, 255, 255))
+            painter.strokePath(path, QtGui.QPen(QtGui.QColor(255, 255, 255, 255), thicken))
+        else:
+            painter.drawText(x, y, char_str)
+    finally:
+        painter.end()
+    return image
 
 
 class RenderFontDialog(QtWidgets.QDialog):
@@ -182,6 +237,13 @@ class RenderFontDialog(QtWidgets.QDialog):
             max_val=400
         )
         form.addRow(tr("Vertical Scale:"), self.scale_v)
+
+        self.spin_thicken = QtWidgets.QDoubleSpinBox()
+        self.spin_thicken.setRange(0.0, 4.0)
+        self.spin_thicken.setSingleStep(0.1)
+        self.spin_thicken.setValue(_LAST_RENDER_PARAMS.get("thicken", 0.0))
+        self.spin_thicken.setToolTip(tr("Widen every stroke by this many pixels (for small heavy game fonts)"))
+        form.addRow(tr("Thicken (px):"), self.spin_thicken)
         
         # 3. Offsets X & Y
         self.spin_x = QtWidgets.QSpinBox()
@@ -289,6 +351,7 @@ class RenderFontDialog(QtWidgets.QDialog):
         self.combo_align_h.currentIndexChanged.connect(self._update_preview)
         self.combo_align_v.currentIndexChanged.connect(self._update_preview)
         self.chk_antialiasing.stateChanged.connect(self._update_preview)
+        self.spin_thicken.valueChanged.connect(self._update_preview)
 
         # Setup and load first preview item
         self._update_preview_item()
@@ -310,6 +373,7 @@ class RenderFontDialog(QtWidgets.QDialog):
         _LAST_RENDER_PARAMS["italic"] = self.chk_italic.isChecked()
         _LAST_RENDER_PARAMS["stretch"] = self.scale_h.value()
         _LAST_RENDER_PARAMS["v_scale"] = self.scale_v.value()
+        _LAST_RENDER_PARAMS["thicken"] = self.spin_thicken.value()
         
         super().accept()
 
@@ -420,10 +484,7 @@ class RenderFontDialog(QtWidgets.QDialog):
             self.lbl_preview_new.setText(tr("Empty"))
             return
             
-        params = self.get_params()
-        ascent_val = self.ascent if self.ascent > 0 else int(self.cell_h * 0.75)
-        new_glyph = render_glyph(self.char_str, params, self.cell_w, self.cell_h, ascent_val)
-        
+        new_glyph = render_glyph(self.char_str, self.get_params(), self.cell_w, self.cell_h, self.ascent)
         new_pix = QtGui.QPixmap.fromImage(new_glyph)
         self.lbl_preview_new.setPixmap(new_pix.scaled(128, 128, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.FastTransformation))
 
@@ -454,7 +515,8 @@ class RenderFontDialog(QtWidgets.QDialog):
             "start_glyph": self.spin_start_glyph.value(),
             "end_glyph": self.spin_end_glyph.value(),
             "auto_metrics": self.chk_auto_metrics.isChecked(),
-            "antialiasing": self.chk_antialiasing.isChecked()
+            "antialiasing": self.chk_antialiasing.isChecked(),
+            "thicken": self.spin_thicken.value(),
         }
 
     def eventFilter(self, obj, event):
@@ -557,47 +619,6 @@ def load_font_file(path):
         font_id = QtGui.QFontDatabase.addApplicationFont(path)
         _LOADED_FONT_FILES[path] = QtGui.QFontDatabase.applicationFontFamilies(font_id) if font_id >= 0 else []
     return _LOADED_FONT_FILES[path]
-
-
-def render_glyph(char, params, cell_w, cell_h, ascent):
-    """One character drawn white on a transparent cell, as the Render Font dialog sets it up.
-
-    ``params`` is ``RenderFontDialog.get_params()`` (font, scales, offsets, alignment, antialiasing);
-    ``ascent`` is the baseline's row for the "baseline" vertical alignment.
-    """
-    image = QtGui.QImage(cell_w, cell_h, QtGui.QImage.Format.Format_ARGB32)
-    image.fill(QtGui.QColor(0, 0, 0, 0))
-    font, align_h, align_v = params["font"], params["align_h"], params["align_v"]
-    x_offset, y_offset = params["x_offset"], params["y_offset"]
-    painter = QtGui.QPainter(image)
-    try:
-        if params["antialiasing"]:
-            painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing, True)
-            painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
-        painter.setFont(font)
-        painter.setPen(QtGui.QColor(255, 255, 255, 255))
-        cx, cy = cell_w / 2.0, cell_h / 2.0      # scaling is relative to the cell centre
-        painter.translate(cx, cy)
-        painter.scale(params.get("h_scale", 100) / 100.0, params.get("v_scale", 100) / 100.0)
-        painter.translate(-cx, -cy)
-        if align_v == "baseline":
-            text_width = QtGui.QFontMetrics(font).horizontalAdvance(char)
-            x = x_offset
-            if align_h == QtCore.Qt.AlignmentFlag.AlignHCenter:
-                x = max(0, (cell_w - text_width) // 2) + x_offset
-            elif align_h == QtCore.Qt.AlignmentFlag.AlignRight:
-                x = cell_w - text_width + x_offset
-            painter.drawText(x, ascent + y_offset, char)
-        else:
-            alignment = QtCore.Qt.AlignmentFlag(0)
-            if align_h is not None:
-                alignment |= align_h
-            if align_v is not None:
-                alignment |= align_v
-            painter.drawText(QtCore.QRect(x_offset, y_offset, cell_w, cell_h), alignment, char)
-    finally:
-        painter.end()
-    return image
 
 
 def ink_metrics(image, threshold=15):

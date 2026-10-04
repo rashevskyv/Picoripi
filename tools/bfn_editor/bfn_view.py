@@ -21,7 +21,7 @@ class BfnViewMixin:
         gx = int(p.x() // self.real_w)
         gy = int(p.y() // self.real_h)
         
-        if gx < 0 or gy < 0 or gx >= self.cols or gy >= self.rows:
+        if gx < 0 or gy < 0 or gx >= self.rows or gy >= self.cols:   # rows = cells across, cols = cells down
             self.selected_cell = None
             self.selected_char_index = -1
             self.selected_sim_item = None
@@ -54,20 +54,20 @@ class BfnViewMixin:
         gy += dy
         
         if gx < 0:
-            gx = self.cols - 1
+            gx = self.rows - 1
             gy -= 1
-        elif gx >= self.cols:
+        elif gx >= self.rows:
             gx = 0
             gy += 1
             
         if gy < 0:
-            gy = self.rows - 1
+            gy = self.cols - 1
             # Wrap sheet index back
             if self.current_sheet_index > 0:
                 self.set_current_sheet_row(self.current_sheet_index - 1)
             else:
                 self.set_current_sheet_row(len(self.sheet_images) - 1)
-        elif gy >= self.rows:
+        elif gy >= self.cols:
             gy = 0
             # Wrap sheet index forward
             if self.current_sheet_index < len(self.sheet_images) - 1:
@@ -83,7 +83,7 @@ class BfnViewMixin:
         if self.selected_cell is None or self.current_sheet_index < 0:
             return -1
         gx, gy = self.selected_cell
-        rem = gy * self.cols + gx
+        rem = gy * self.rows + gx
         idx = self.start_glyph + self.current_sheet_index * (self.rows * self.cols) + rem
         if idx > self.end_glyph:
             return -1
