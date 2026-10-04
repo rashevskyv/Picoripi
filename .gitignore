@@ -1,4 +1,6 @@
 fonts
+# Glyph widths measured from the game's atlas (no font data): shipped with the plugin.
+!plugins/zelda_hwde/fonts/
 # Python cache
 __pycache__/
 *.pyc

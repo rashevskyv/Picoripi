@@ -28,6 +28,18 @@ the line when it is done or moved into a plan.
 - A settings file saved from the Ukrainian interface may hold `"provider": "вимкнено"` (the provider ids went
   through `tr()` until 2026-10-03); it loads as an unknown provider.
 
+## Hyrule Warriors DE plugin (`plugins/zelda_hwde`, 2026-10-03)
+
+- Owner decision: the font. `font_eu.g1t` / `font_eu_p.g1t` are cp1252 glyph grids without Cyrillic; the
+  plugin writes Ukrainian into the cp1251 slots, so the atlas must be redrawn there (no font builder yet).
+- Owner decision: also write the translation into the English-EU section (default, `MIRROR_SECTIONS`)?
+  Other languages stay as they are.
+- Not verified in the game: the mod has not run on a Switch or an emulator; the glyph advance widths
+  (`fonts/hwde_eu.json` is measured ink + 4 px) and where the game keeps them are unknown.
+- Voice-line speakers for character ids 18-99 are `chara_NNN` (the names table disagrees there); event and
+  movie scene ids are not tied to story chapters; text inside textures (`ui/caption`, `still_*`) and the
+  executable is not covered.
+
 ## Carried over from the 2026 H1 audit (`docs/history/AUDIT-2026-H1.md`)
 
 - UI command "Create plugin from template" (copy `plugins/default_plugin`, rename, open the prompt file).

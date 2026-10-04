@@ -72,6 +72,7 @@ tokens: 7.7k
      `{tag:group:type:hex}`. Ширина рядків: `python -m plugins.zelda_totk.font_tool <font.bfarc.zs> <folder>` робить
      мапи шрифтів зі шрифтів гри. Коли перекладений архів більшає, запустіть
      `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>`, щоб гра виділила під нього досить пам’яті.
+   - `zelda_hwde` — Zelda: Hyrule Warriors Definitive Edition
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

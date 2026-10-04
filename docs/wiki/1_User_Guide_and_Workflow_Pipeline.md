@@ -73,6 +73,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      not know read `{tag:group:type:hex}`. Line widths: `python -m plugins.zelda_totk.font_tool <font.bfarc.zs> <folder>`
      makes font maps from the game's fonts. When a translated archive grows, run
      `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>` so the game reserves enough memory for it.
+   - `zelda_hwde` — Zelda: Hyrule Warriors Definitive Edition
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
