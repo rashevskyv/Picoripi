@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: core/glossary_build, core/glossary
-tokens: 4.7k
+tokens: 5.4k
 ---
 # Пайплайн локалізації
 

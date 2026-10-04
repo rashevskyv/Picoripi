@@ -7,25 +7,25 @@ Read the row, then open only the document you need.
 | Document | What it is the home of | ~tokens | Status | Owns |
 |---|---|---|---|---|
 | `docs/ARCHITECTURE.md` | Layers, data flow, facades, and where to change what | 2.1k | current | layering, data flow |
-| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 2.3k | current | decisions and their reasons |
+| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 2.5k | current | decisions and their reasons |
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 1.5k | current | engineering practice |
-| `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.4k | current | feature inventory |
+| `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.5k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
-| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 6.4k | current | unfinished work |
+| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 8.1k | current | unfinished work |
 | `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 10.3k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
-| `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.5k | current | owner decisions and live checks |
+| `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.6k | current | owner decisions and live checks |
 | `docs/TESTING_STRATEGY_AND_AUDIT.md` | Shape of the test suite, lanes, known risks | 2.3k | current | tests/ |
 | `docs/TRANSLATION_PROMPTING_STRATEGY.md` | Target design of translation context and prompts (Ukrainian) | 6.2k | design | handlers/translation/prompt_composer |
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 4.2k | current | handlers/translation, core/translation |
 | `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.8k | current | core/companion_sync.py, companion/ |
-| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 6.1k | current | ui/, components/, dialogs/ |
+| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 6.7k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
-| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 3.8k | current | plugins/ |
+| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 3.9k | current | plugins/ |
 | `docs/wiki/4_Configuration_Guide.md` (+uk) | Settings files, project files, where data is stored | 1.5k | current | core/settings |
 | `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.1k | current | core/translation/providers.py |
 | `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.1k | current | ui/updaters/block_list |
 | `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 0.7k | current | docs/wiki |
-| `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 3.5k | current | core/glossary_build, core/glossary |
+| `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.0k | current | core/glossary_build, core/glossary |
 | `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.8k | current | core/script_markup, ui/script_markup |
 | `docs/wiki/README.md` (+uk) | Wiki index and reading order | 0.6k | current | docs/wiki |
 | `AGENTS.md` | Agent entry: hard rules, commands, checklist |  | current | everything |

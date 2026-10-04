@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: core/glossary_build, core/glossary
-tokens: 3.5k
+tokens: 4.0k
 purpose: Pipeline wizard: script, glossary build, reconcile
 ---
 # Localization Pipeline
