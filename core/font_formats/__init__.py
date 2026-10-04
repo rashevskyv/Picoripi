@@ -32,8 +32,8 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import bffnt, g1t, n64
-    return {"n64": n64, "g1t": g1t, "bffnt": bffnt}
+    from core.font_formats import bffnt, bfotf, g1t, n64
+    return {"n64": n64, "g1t": g1t, "bffnt": bffnt, "bfotf": bfotf}
 
 
 def is_supported(fmt: str) -> bool:
@@ -42,7 +42,8 @@ def is_supported(fmt: str) -> bool:
 
 
 def detect(data: bytes) -> Optional[str]:
-    """The format of a font file by its magic: ``bfn``, ``g1t``, ``bffnt`` or None."""
+    """The format of a font file by its magic: ``bfn``, ``g1t``, ``bffnt``, ``bfotf`` or None."""
+    from core.font_formats import bfotf
     head = bytes(data[:8])
     if head[:4] == b"FFNT" and head[4:6] in (b"\xff\xfe", b"\xfe\xff"):
         return "bffnt"
@@ -50,6 +51,8 @@ def detect(data: bytes) -> Optional[str]:
         return "bfn"
     if head[:4] == b"GT1G":
         return "g1t"
+    if bfotf.is_bfotf(bytes(data[:16])):
+        return "bfotf"
     return None
 
 

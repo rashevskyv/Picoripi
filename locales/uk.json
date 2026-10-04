@@ -1760,6 +1760,7 @@
   "Failed to open font: {0}": "Не вдалося відкрити шрифт: {0}",
   "Failed to load font.": "Не вдалося завантажити шрифт.",
   "Loaded {0}: this texture format is shown empty; widths can be edited.": "Завантажено {0}: цей формат текстури показано порожнім; ширини можна редагувати.",
+  "Loaded {0}: a scalable font; its glyphs are shown, not edited here.": "Завантажено {0}: масштабований шрифт; гліфи тут лише показано, не редагуються.",
   "Successfully loaded font: {0}": "Шрифт завантажено: {0}",
   "This font has no file to be saved to.": "Для цього шрифту немає файлу, куди його зберегти.",
   "Saved font: {0}": "Шрифт збережено: {0}",

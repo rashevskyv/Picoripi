@@ -3,10 +3,10 @@
     python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>
 
 TotK reserves memory for a file from ``System/Resource/ResourceSizeTable.Product.<ver>.rsizetable.zs``.
-A translated ``Mals/*.sarc.zs`` that decompresses to more bytes than the game's own may not fit, so for
-every archive in the mod this scales its entry by how much the archive grew (never lowers it) and
-writes the table into the mod. Entries are keyed by the path without ``.zs``
-(``Mals/USen.Product.121.sarc``): a CRC32 table, plus a name table for colliding paths.
+A translated ``Mals/*.sarc.zs`` that decompresses to more bytes than the game's own does not fit, so for
+every archive in the mod this sets its entry by the game's own rule (``required_size``; never lowers it)
+and writes the table into the mod. Entries are keyed by the path without ``.zs``
+(``Mals/USen.Product.140.sarc``): a CRC32 table, plus a name table for colliding paths.
 """
 from __future__ import annotations
 
@@ -57,16 +57,23 @@ class Restbl:
         return bytes(self.raw)
 
 
-def scaled_size(entry: int, original_size: int, new_size: int) -> int:
-    """The entry grown in proportion to the file, rounded up to 0x100; never smaller than before."""
-    if new_size <= original_size or original_size <= 0:
-        return entry
-    grown = -(-entry * new_size // original_size)
-    return max(entry, (grown + 0xFF) & ~0xFF)
+# Bytes the game adds to an archive's size, by kind. Measured on TotK 1.4.0: every one of the 15
+# ``Mals/*.Product.140.sarc`` and 4 ``Font/*.bfarc`` entries is exactly the size rounded up to 32 plus this.
+OVERHEAD = {".sarc": 0x180, ".bfarc": 0x100}
+
+
+def required_size(decompressed_size: int, kind: str = ".sarc") -> int:
+    """The entry the game gives an archive of ``decompressed_size`` bytes (``kind``: ``.sarc``, ``.bfarc``)."""
+    return ((decompressed_size + 0x1F) & ~0x1F) + OVERHEAD[kind]
+
+
+def grown_size(entry: int, new_size: int, kind: str = ".sarc") -> int:
+    """The entry for an archive that now decompresses to ``new_size``; never smaller than before."""
+    return max(entry, required_size(new_size, kind))
 
 
 def update(game_romfs: Path, mod_romfs: Path) -> List[Tuple[str, int, int]]:
-    """Update the mod's size table for its Mals archives; ``[(path, old, new)]`` of the changed entries."""
+    """Update the mod's size table for its text and font archives; ``[(path, old, new)]`` of changed entries."""
     tables = sorted((game_romfs / "System" / "Resource").glob("ResourceSizeTable.Product.*.rsizetable.zs"))
     if not tables:
         raise FileNotFoundError(f"No ResourceSizeTable.Product.*.rsizetable.zs under {game_romfs}/System/Resource")
@@ -75,15 +82,16 @@ def update(game_romfs: Path, mod_romfs: Path) -> List[Tuple[str, int, int]]:
     table_data, dict_id = sarc.decompress(source_table.read_bytes())
     table = Restbl(table_data)
     changes = []
-    for archive in sorted((mod_romfs / "Mals").glob("*.sarc.zs")):
-        game_archive = game_romfs / "Mals" / archive.name
-        key = f"Mals/{archive.name[:-3]}"
+    archives = sorted((mod_romfs / "Mals").glob("*.sarc.zs")) + sorted((mod_romfs / "Font").glob("*.bfarc.zs"))
+    for archive in archives:
+        folder = archive.parent.name
+        game_archive = game_romfs / folder / archive.name
+        key = f"{folder}/{archive.name[:-3]}"
         entry = table.size(key)
         if entry is None or not game_archive.is_file():
             continue
-        original_size = len(sarc.decompress(game_archive.read_bytes())[0])
-        new_size = len(sarc.decompress(archive.read_bytes())[0])
-        value = scaled_size(entry, original_size, new_size)
+        kind = ".bfarc" if archive.name.endswith(".bfarc.zs") else ".sarc"
+        value = grown_size(entry, len(sarc.decompress(archive.read_bytes())[0]), kind)
         if value != entry:
             table.set_size(key, value)
             changes.append((key, entry, value))

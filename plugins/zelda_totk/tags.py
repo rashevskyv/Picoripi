@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 import struct
+from functools import lru_cache
 from typing import Dict, List, Optional, Tuple
 
 from .msbt import EndTag, Tag, Token
@@ -49,8 +50,10 @@ TAGS: Dict[Tuple[int, int], Tuple[str, Tuple[str, ...], str]] = {
     (0, 2): ("size", ("u16",), "Text size in percent"),
     (0, 3): ("color", ("s16",), "Text colour by id; -1 or 65535 = default"),
     (0, 4): ("pageBreak", (), "Starts a new dialogue page"),
-    (1, 0): ("delay", ("u16",), "Pause in frames"),
-    (1, 3): ("sound", ("u16",), "Plays a sound"),
+    # Group 1 as the real 1.4.0 text uses it (the .gcf had u16 "delay"/"sound"; every real one is 4 bytes):
+    (1, 0): ("pause", ("u32",), "Pause in frames before the rest of the text is typed"),
+    (1, 1): ("textSpeed", ("f32",), "Typing speed from here on (1 = normal, 0.5 = half speed)"),
+    (1, 3): ("autoAdvance", ("u32",), "The message closes by itself this many frames after it is shown"),
     (1, 4): ("icon", ("u8",), "Button or symbol icon"),
     (2, 1): ("string1", _REF, "Inserted string"),
     (2, 2): ("number2", _NUM, "Inserted number"),
@@ -108,7 +111,17 @@ _BY_NAME = {name: key for key, (name, _types, _description) in TAGS.items()}
 
 TAG_RE = re.compile(r"\{/?[A-Za-z][A-Za-z0-9_]*(?::[^{}:]*)*\}")
 _TAG_PARTS_RE = re.compile(r"\{(/?)([A-Za-z][A-Za-z0-9_]*)((?::[^{}:]*)*)\}")
-_INT_FORMATS = {"u8": "B", "bool": "B", "u16": "H", "s16": "h"}
+_INT_FORMATS = {"u8": "B", "bool": "B", "u16": "H", "s16": "h", "u32": "I", "f32": "f"}
+
+
+def _float_text(value: float) -> str:
+    """The shortest text that reads back as the same 32-bit float (``0.6``, not ``0.6000000238418579``)."""
+    packed = struct.pack("<f", value)
+    for digits in range(1, 10):
+        text = f"{value:.{digits}g}"
+        if struct.pack("<f", float(text)) == packed:
+            return text
+    return repr(value)
 
 
 def _decode_args(types: Tuple[str, ...], params: bytes, e: str) -> Optional[List]:
@@ -159,7 +172,10 @@ def _readable(tag: Tag, e: str) -> Optional[str]:
     shown = []
     for index, value in enumerate(values):
         names = VALUE_NAMES.get((name, index))
-        shown.append(names.get(value, str(value)) if names and isinstance(value, int) else str(value))
+        if isinstance(value, float):
+            shown.append(_float_text(value))
+        else:
+            shown.append(names.get(value, str(value)) if names and isinstance(value, int) else str(value))
     text = "{" + ":".join([name, *shown]) + "}"
     try:
         if parse_tag(text, e) != tag:
@@ -169,8 +185,9 @@ def _readable(tag: Tag, e: str) -> Optional[str]:
     return text
 
 
+@lru_cache(maxsize=8192)
 def render_tag(token, little: bool = True) -> str:
-    """The editor form of one ``Tag`` / ``EndTag``."""
+    """The editor form of one ``Tag`` / ``EndTag`` (cached: a game has a few thousand distinct tags)."""
     e = "<" if little else ">"
     if isinstance(token, EndTag):
         known = TAGS.get((token.group, token.type))
@@ -212,7 +229,7 @@ def parse_tag(text: str, e: str = "<"):
             continue
         names = {label: value for value, label in VALUE_NAMES.get((name, index), {}).items()}
         try:
-            values.append(names[arg] if arg in names else int(arg))
+            values.append(float(arg) if kind == "f32" else names[arg] if arg in names else int(arg))
         except ValueError as error:
             raise ValueError(f"{text}: argument {index + 1} must be a number") from error
     try:

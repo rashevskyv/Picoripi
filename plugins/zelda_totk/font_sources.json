@@ -1,13 +1,9 @@
 [
   {
     "label": "Font archive",
-    "format": "bffnt",
+    "format": "bfotf",
     "path": ["Font/*.bfarc.zs", "../Font/*.bfarc.zs", "Font/*.bfarc", "../Font/*.bfarc"],
-    "member": "*.bffnt"
-  },
-  {
-    "label": "Font",
-    "format": "bffnt",
-    "path": ["Font/*.bffnt", "../Font/*.bffnt"]
+    "member": "*.bfotf",
+    "params": {"size": 45}
   }
 ]
