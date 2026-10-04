@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-03
+updated: 2026-10-04
 owns: ui/, components/, dialogs/
 tokens: 9.0k
 purpose: Main window, menus, filters, settings tabs, shortcuts
@@ -120,6 +120,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      module) gives one block of HUD words — LIFE, O2, the item and weapon box labels, boss names: the HUD font
      has only ASCII letters and each word has a fixed number of bytes, so a save refuses Cyrillic or a word
      longer than its slot.
+   - `paper_mario_gc` — Paper Mario: The Thousand-Year Door (GameCube, USA). **Source:** the workspace's
+     `source\files\msg\US` (one `.txt` per area, `global.txt` for menus, items, badges, battle text and
+     tattles); **Translation:** `translation\files\msg\US`. Tags show in braces (`{k}`, `{p}`,
+     `{wait 250}`, `{col c00000ff}`); `global.txt` opens as blocks by kind (item and badge names, enemy
+     names, battle tattles, descriptions, menus); Japanese leftovers in the US files are left out and saved
+     unchanged; an unedited file stays byte for byte. Speakers come from the game's event scripts (the NPC
+     each `evt_msg_print` points at, plugin `context.json`), tattles are Goombella's; width limits per window
+     kind are the widest English line of that kind in font units. The Font Editor opens the text font
+     `f\papermarioset_US.bfn`; Ukrainian letters use Latin-1 slots no English text draws
+     (`translation_map.json`, `translation_map.md`). The Textures window lists the title, file-select,
+     pause-menu, battle and sign textures with English text.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

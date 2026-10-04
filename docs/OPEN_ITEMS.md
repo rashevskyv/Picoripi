@@ -74,6 +74,22 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   strings (`get_string_layout`), a guess from the English layout. Subtitles keep the block's widest row + 5 %.
 - The codec box shows four rows; a fifth row (a long line the game wrapped) is not shown.
 
+## Paper Mario: The Thousand-Year Door (`plugins/paper_mario_gc`, 2026-10-04)
+
+- Window limits are the widest English line of each window kind (`LAYOUTS`), not measured in the game; the
+  icon advance (`ICON_WIDTH` 36 × scale) and the placeholder widths (`{ITEM}` 130, `{NUM}` 30) are estimates.
+- The game skips the line feed after a tag-only line; the editor still counts such a line as a line.
+- Speakers: 3,472 of 13,018 messages (event-script `evt_msg_print` calls); messages chosen at run time by
+  a variable, `evt_msg_print_party` and the 431 calls of the other message function (0x800d23c4) carry no
+  speaker yet. A few NPCs keep their Japanese internal name (`乱`, `キノシチョフ`, `ダミー`).
+- Growth: `global.txt` at +40 % (335 KB) boots to the file menu in Dolphin; the big area files (map heap,
+  `gor_02.txt` 129 KB) were not grown in the game.
+- The Ukrainian glyphs are drawn from Balsamiq Sans Bold: the game's face is Fontworks PopJoy, and no Cyrillic
+  PopJoy exists on this machine (Switch TTYD and Origami King PopJoy have none) nor a Russian fan build.
+- 188 text textures are listed (`texture_sources.json`, draft `ZELDA\_textures\drafts\paper_mario_gc.json`);
+  which of two English pause-tab sets (`icon.tpl` or `w/us/win.tpl`) and which sign variants the US game
+  draws is not confirmed.
+
 ## Font editor formats (2026-10-03)
 
 - Ukrainian glyphs drawn and shown on screen 2026-10-04 (Dolphin WW, SoH, 2Ship, Eden HWDE, Azahar for the 3DS
