@@ -6,7 +6,9 @@ folder, or a list of them -- the first that matches wins; its folder part may st
 ignored in a single-file project, whose file is the font file), optional ``member`` (a glob of
 files inside the archive at ``path``; a Yaz0-compressed member is read decompressed and written
 compressed again),
-``font_map`` (the width map the font feeds) and ``params`` (the format's game constants).
+``font_map`` (the width map the font feeds) and ``params`` (the format's game constants). A G1T
+whose widths live in the game's executable (``params.widths.patches``) also has exefs patch files in
+the translation folder, one per build of the game (``widths_patches``: file -> table address).
 
 Reading takes the translation copy when it exists, else the source; writing always goes to the
 translation copy (atomically; an archive is repacked around the member). The source is never
@@ -36,6 +38,7 @@ class FontSource:
     member: str = ""
     font_map: str = ""
     params: Dict[str, Any] = field(default_factory=dict)
+    widths_patches: Dict[str, str] = field(default_factory=dict)
 
     @property
     def name(self) -> str:
@@ -80,6 +83,16 @@ class FontSource:
             data = container.pack()
         atomic_write_bytes(self.translation_path, data)
 
+    @staticmethod
+    def read_widths_patch(path: str) -> bytes:
+        """An exefs patch of ``widths_patches``, or b"" before the first save."""
+        return Path(path).read_bytes() if Path(path).is_file() else b""
+
+    def write_widths_patch(self, path: str, data: bytes) -> None:
+        if path not in self.widths_patches:
+            raise ValueError(f"Not a widths patch of this font: {path}")
+        atomic_write_bytes(path, data)
+
 
 def _open_archive(raw: bytes, path: str):
     from core.containers import ContainerManager
@@ -108,7 +121,7 @@ def resolve(descriptors: Iterable[Dict[str, Any]], project_metadata: Dict[str, A
         try:
             files = _match_files(descriptor, source_root, translation_root, directory_mode)
             for source_path, translation_path in files:
-                found.extend(_sources_for(descriptor, source_path, translation_path))
+                found.extend(_sources_for(descriptor, source_path, translation_path, translation_root))
         except (OSError, ValueError, KeyError, TypeError) as error:
             log_warning(f"Font source {descriptor.get('label') or descriptor.get('path')!r}: {error}")
     return found
@@ -130,9 +143,14 @@ def _match_files(descriptor: Dict[str, Any], source_root: str, translation_root:
     return []
 
 
-def _sources_for(descriptor: Dict[str, Any], source_path: str, translation_path: str) -> List[FontSource]:
+def _sources_for(descriptor: Dict[str, Any], source_path: str, translation_path: str,
+                 translation_root: str = "") -> List[FontSource]:
+    params = dict(descriptor.get("params") or {})
+    patches = (params.get("widths") or {}).get("patches") or {}
     common = dict(format=str(descriptor["format"]), source_path=source_path, translation_path=translation_path,
-                  font_map=str(descriptor.get("font_map") or ""), params=dict(descriptor.get("params") or {}))
+                  font_map=str(descriptor.get("font_map") or ""), params=params,
+                  widths_patches={os.path.normpath(os.path.join(translation_root, rel)): str(address)
+                                  for rel, address in patches.items()} if translation_root else {})
     label = str(descriptor.get("label") or "")
     member_glob = descriptor.get("member")
     if not member_glob:

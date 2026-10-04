@@ -32,9 +32,9 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import bcfnt, bffnt, g1n, g1t, gzf, n64, qbf
-    return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "bffnt_wiiu": bcfnt, "qbf": qbf,
-            "gzf": gzf}
+    from core.font_formats import bcfnt, bffnt, bfotf, g1n, g1t, gzf, mgs, n64, qbf
+    return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
+            "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -50,7 +50,9 @@ def is_supported(fmt: str) -> bool:
 
 def detect(data: bytes) -> Optional[str]:
     """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
-    BCFNT or BFFNT), ``bffnt_wiiu`` (Wii U BFFNT, big endian), ``qbf``, ``gzf`` or None."""
+    BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font), ``bffnt_wiiu``
+    (Wii U BFFNT, big endian) or None."""
+    from core.font_formats import bfotf
     head = bytes(data[:8])
     if head[:4] in (b"QBF1", b"GZFX"):
         return head[:3].decode("ascii").lower()
@@ -65,6 +67,8 @@ def detect(data: bytes) -> Optional[str]:
         return "g1t"
     if head == b"_N1G0000":
         return "g1n"
+    if bfotf.is_bfotf(bytes(data[:16])):
+        return "bfotf"
     return None
 
 

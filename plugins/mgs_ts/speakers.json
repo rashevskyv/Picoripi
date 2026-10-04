@@ -1,0 +1,20 @@
+{
+  "_note": "Speaker of a line = 24-bit StrCode hash of a character name in the game data. Keys are those names (checked: their hash is the one the game stores); keys '#xxxxxx' are hashes whose name is not known, named by the lines they speak.",
+  "solid_snake": "Snake",
+  "campbell": "Roy Campbell",
+  "naomi": "Naomi Hunter",
+  "mei_ling": "Mei Ling",
+  "master_miller": "Master Miller",
+  "nastasha": "Nastasha Romanenko",
+  "otacon": "Otacon",
+  "meryl": "Meryl Silverburgh",
+  "wolf": "Sniper Wolf",
+  "liquid_snake": "Liquid Snake",
+  "ocelot": "Revolver Ocelot",
+  "ninja": "Cyborg Ninja",
+  "johnny": "Johnny Sasaki",
+  "enemy": "Genome Soldier",
+  "secretary": "Jim Houseman",
+  "#9331f5": "Snake",
+  "#388785": "Psycho Mantis"
+}
