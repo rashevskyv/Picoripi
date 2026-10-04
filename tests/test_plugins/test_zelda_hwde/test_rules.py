@@ -99,6 +99,21 @@ def test_speakers_come_from_voice_info_and_the_names_table(project):
     assert project.get_speaker_for_string(6, 0) is None              # not a voice file
 
 
+def test_speakers_of_every_line_parse_each_file_once_and_never_rebuild(project, monkeypatch):
+    """Opening a project asks the speaker of every line: each file is parsed once, nothing is rebuilt."""
+    parse, build = ktbin.parse_xl, ktbin.build_xl
+    parsed, built = [], []
+    monkeypatch.setattr(ktbin, "parse_xl", lambda data: parsed.append(1) or parse(data))
+    monkeypatch.setattr(ktbin, "build_xl", lambda table: built.append(1) or build(table))
+    for _round in range(2):
+        speakers = [project.get_speaker_for_string(b, s) for b in range(9) for s in range(12)]
+    assert "Link" in speakers and "Impa" in speakers
+    # msgdata: English only (7 tables, no speakers there; its names table is English too); VoiceMes: all 12
+    # languages; EventSubtitle: English to find the subtitles, then all 12; VoiceInf: one table
+    assert len(parsed) == 7 + 12 + (1 + 12) + 1
+    assert built == []
+
+
 def test_subtitle_speaker_is_the_name_row_with_the_same_timing(project):
     assert project.get_speaker_for_string(8, 0) == "Impa"
     assert project.get_speaker_for_string(8, 1) is None              # no name row for 30..40

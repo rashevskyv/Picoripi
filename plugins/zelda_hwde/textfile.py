@@ -78,6 +78,16 @@ def leaves(node: Node) -> List[ktbin.XlTable]:
     return []
 
 
+def english_tables(data: bytes) -> List[ktbin.XlTable]:
+    """The English section's tables (``TextFile(data).tables``) without parsing the other 11 languages."""
+    if not ktbin.looks_like_container(data):
+        raise FormatError("not a 12-language text file")
+    payloads, _gaps = ktbin.split_container(data)
+    if len(payloads) != len(LANGUAGES):
+        raise FormatError("not a 12-language text file")
+    return leaves(parse_tree(payloads[SECTION_EN]))
+
+
 def is_japanese(raw: bytes) -> bool:
     s = re.sub(rb"\x1b.[0-9]?|%[0-9]?[sd]", b"", raw.split(b"\0", 1)[0])
     if not s or sum(ch >= 0x80 for ch in s) / len(s) < 0.2:
@@ -139,10 +149,13 @@ class FormatError(ValueError):
 
 
 class TextFile:
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes, verify: bool = False):
+        """``verify``: also check that the file rebuilds byte-exact (before a save writes it back)."""
         tree = parse_tree(data)
         if not isinstance(tree, list) or len(tree) != len(LANGUAGES):
             raise FormatError("not a 12-language text file")
+        if verify and build_tree(tree) != data:
+            raise FormatError("the file does not rebuild byte-exact")
         self.tree = tree
         self.sections = [leaves(s) for s in tree]
         self.tables = self.sections[SECTION_EN]

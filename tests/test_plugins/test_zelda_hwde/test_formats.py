@@ -139,3 +139,12 @@ def test_not_a_text_file():
     from plugins.zelda_hwde.textfile import FormatError
     with pytest.raises(FormatError):
         TextFile(ktbin.build_container([b"abcd"] * 12))
+
+
+def test_verify_rejects_a_file_that_would_not_rebuild_byte_exact():
+    from plugins.zelda_hwde.textfile import FormatError
+    odd = sample_file() + b"\0" * 8                 # a tail the container builder would not write back
+    assert TextFile(odd).texts() == TextFile(sample_file()).texts()      # reading does not rebuild
+    TextFile(sample_file(), verify=True)
+    with pytest.raises(FormatError):
+        TextFile(odd, verify=True)
