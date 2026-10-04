@@ -153,3 +153,80 @@ def test_font_jobs_run_in_a_worker_thread_one_after_another(qtbot, monkeypatch):
     assert seen[0] == ((1, True), "") and seen[2] == ((3, True), "")
     assert seen[1][0] is None and "division" in seen[1][1]
     qtbot.waitUntil(lambda: editor._font_job is None, timeout=5000)
+
+def _wide_g1t():
+    """A 64x32 G1T: 4 cells across, 2 down; cell 5 (second row) has a dot at (2, 3)."""
+    image = Image.new("RGBA", (64, 32), (255, 255, 255, 0))
+    ImageDraw.Draw(image).rectangle((16 + 2, 16 + 3, 16 + 5, 16 + 6), fill=(255, 255, 255, 255))
+    entry = bytes([0x10, 0x5B, 6 | 5 << 4, 0, 0, 0, 0, 0])
+    data = bytearray(b"GT1G0600" + struct.pack("<IIIII", 0, 0x20, 1, 0x10, 0) + bytes(4) + struct.pack("<I", 4)
+                     + entry + image.tobytes("bcn", 3))
+    struct.pack_into("<I", data, 8, len(data))
+    return bytes(data)
+
+
+def _open_wide(qtbot, tmp_path):
+    font = tmp_path / "source" / "font.g1t"
+    font.parent.mkdir(parents=True)
+    font.write_bytes(_wide_g1t())
+    params = dict(cell_width=16, cell_height=16, columns=4, first_cell=0, first_code=0x41, last_code=0x48)
+    window = _MainWindow(tmp_path, [{"label": "Wide", "format": "g1t", "path": "font.g1t", "params": params}])
+    qtbot.addWidget(window)
+    return window, _open(window, "Wide")
+
+
+def test_a_cell_on_the_second_row_of_a_wide_sheet_is_the_right_glyph(qtbot, tmp_path):
+    _window, editor = _open_wide(qtbot, tmp_path)
+    editor.current_sheet_index = 0
+    editor.selected_cell = (1, 1)                    # 4 cells across: row 1, column 1 is glyph 5
+    assert editor.get_selected_glyph_index() == 5
+
+
+def test_moving_a_glyph_shifts_its_pixels_inside_the_cell_and_undo_restores_them(qtbot, tmp_path):
+    _window, editor = _open_wide(qtbot, tmp_path)
+    assert editor.sheet_images[0].pixelColor(16 + 2, 16 + 3).alpha() == 255
+    assert editor.move_glyph_pixels(1, -1, [5]) == 1
+    moved = editor.sheet_images[0]
+    assert moved.pixelColor(16 + 3, 16 + 2).alpha() == 255       # one right, one up
+    assert moved.pixelColor(16 + 2, 16 + 6).alpha() == 0          # the bottom-left corner left the old place
+    assert moved.pixelColor(0, 0).alpha() == 0                     # the neighbouring cell is untouched
+    editor.undo_stack.undo()
+    assert editor.sheet_images[0].pixelColor(16 + 2, 16 + 6).alpha() == 255
+    editor.undo_stack.redo()
+    assert editor.sheet_images[0].pixelColor(16 + 3, 16 + 2).alpha() == 255
+
+
+def test_rendering_from_a_font_file_draws_the_letter_and_thickening_adds_ink(qtbot, tmp_path):
+    from PyQt6 import QtCore
+    from tools.bfn_editor.render_font_dialog import load_font_file, render_glyph_image
+    family = load_font_file(r"C:\Windows\Fonts\arial.ttf") or "Arial"
+    font = QtGui.QFont(family)
+    font.setPixelSize(14)
+    base = dict(font=font, align_h=QtCore.Qt.AlignmentFlag.AlignLeft, align_v="baseline", x_offset=1)
+
+    def ink(image):
+        return sum(image.pixelColor(x, y).alpha() for x in range(16) for y in range(16))
+    thin = render_glyph_image("Ж", base, 16, 16, 12)
+    thick = render_glyph_image("Ж", dict(base, thicken=1.0), 16, 16, 12)
+    assert 0 < ink(thin) < ink(thick)
+
+    _window, editor = _open_wide(qtbot, tmp_path)
+    assert editor.render_glyphs([0], dict(base, auto_metrics=False), {0: "Ж"}) == 1
+    assert ink(editor.sheet_images[0].copy(0, 0, 16, 16)) > 0
+
+
+def test_a_yaz0_compressed_font_inside_an_archive_is_read_plain_and_written_compressed(tmp_path):
+    from core.containers import ContainerManager, yaz0
+    archive = tmp_path / "source" / "res" / "nameres.arc"
+    archive.parent.mkdir(parents=True)
+    archive.write_bytes(_u8("name.bfn", yaz0.compress(_bfn())))
+    descriptors = [{"label": "Name font", "format": "bfn", "path": "res/nameres.arc", "member": "*.bfn"}]
+    metadata = {"source_path": str(tmp_path / "source"), "translation_path": str(tmp_path / "mod"),
+                "is_directory_mode": True}
+    (source,) = sources.resolve(descriptors, metadata)
+    assert source.read_current() == _bfn()
+    edited = _bfn()[:-1] + b""
+    source.write(edited)
+    member = ContainerManager.open((tmp_path / "mod" / "res" / "nameres.arc").read_bytes()).read_file("name.bfn")
+    assert member[:4] == b"Yaz0" and yaz0.decompress(member) == edited
+    assert source.read_current() == edited

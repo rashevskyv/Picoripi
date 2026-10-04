@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Font Editor: Render System Font takes a TTF/OTF file without installing it and can thicken strokes; Move glyph (arrow buttons, Ctrl+Arrow) shifts glyph pixels with undo in every format; selecting a cell on a non-square sheet (N64, G1T) picks the right glyph; Wind Waker's name-entry (Yaz0 inside `nameres.arc`) and system fonts are listed; Ocarina of Time / Majora's Mask save Ukrainian through a reviewable `translation_map.json` (look-alikes on Latin glyphs, other letters on accented/punctuation slots by width) and The Wind Waker ships one (cp1251 positions, never 0x80–0x9F).
 - The review pass is on by default (new key `review_enabled`; `false` turns it off). The old `editor_review_enabled`, saved as `false` in existing settings, belonged to the removed editor review and is no longer read.
 - Ocarina of Time / Majora's Mask (N64): line widths take a character's width from the Font Editor's map of the game font (`<project>/font_maps/oot_font.json` / `mm_font.json`) when the project has one, so redrawn or Ukrainian letters are measured; the game's table stays the fallback.
 - Player names, per game: Ocarina of Time, Majora's Mask (`{name}`) and Tears of the Kingdom (`{playerName}`) send the hero's tag as the declined name «Лінк» through a `{F:Link}` force alias, like Twilight Princess and The Wind Waker; Hyrule Warriors has no player-named hero.

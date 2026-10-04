@@ -12,8 +12,14 @@ the line when it is done or moved into a plan.
 
 ## Font editor formats (2026-10-03)
 
-- Nothing edited has run in a game or emulator: an N64 ROM with a redrawn glyph, a HWDE `font_eu.g1t` in the
-  LayeredFS mod, a TotK font.
+- Ukrainian glyphs drawn and shown on screen 2026-10-04 (Dolphin WW, SoH, 2Ship, Eden HWDE; contact sheets and
+  screenshots in each workspace's `reports\fonts\`): the letter shapes are rough, a hand touch-up is the owner's.
+  Not shown in ares (keyboard input could not reach OoT's name-entry screen); the ROM font bytes equal the SoH/2Ship
+  textures. TotK font still never run.
+- HWDE: the game does not take advances from the atlas ink: М Н О П on the narrow Ì Í Î Ï cells overlap their
+  neighbours. Find the advance table (executable?) or choose cp1251-independent slots by width.
+- The N64 slot maps (`plugins/zelda_oot64|zelda_mm64/translation_map.json`) are provisional: owner review. Letters
+  on ASCII punctuation slots (OoT) decode back as letters, so a `#`, `<`, `[`… in English text would too.
 - TotK: no real font on disk; BFFNT was verified on Cadence of Hyrule and Pokémon SV (Switch, BC4). Its
   `Font/*.bfarc.zs` needs the TotK plugin's SARC container (registered when that plugin is active) and the
   project pointing at the romfs (or `Mals`). Texture formats other than BC4 open empty (widths only).
@@ -48,12 +54,10 @@ the line when it is done or moved into a plan.
 
 ## Hyrule Warriors DE plugin (`plugins/zelda_hwde`, 2026-10-03)
 
-- Owner decision: the font. `font_eu.g1t` / `font_eu_p.g1t` are cp1252 glyph grids without Cyrillic; the
-  plugin writes Ukrainian into the cp1251 slots, so the atlas must be redrawn there (the Font Editor opens and saves `font_eu*.g1t`).
 - Owner decision: also write the translation into the English-EU section (default, `MIRROR_SECTIONS`)?
   Other languages stay as they are.
-- Not verified in the game: the mod has not run on a Switch or an emulator; the glyph advance widths
-  (`fonts/hwde_eu.json` is measured ink + 4 px) and where the game keeps them are unknown.
+- Ran in Eden 2026-10-04 (text + redrawn `font_eu*.g1t` show Ukrainian); not on a Switch. The game's advances do
+  not follow the ink (`fonts/hwde_eu.json`, ink + 4 px, is wrong for redrawn cells); where it keeps them is unknown.
 - Voice-line speakers for character ids 18-99 are `chara_NNN` (the names table disagrees there); event and
   movie scene ids are not tied to story chapters; text inside textures (`ui/caption`, `still_*`) and the
   executable is not covered.
@@ -310,9 +314,6 @@ the line when it is done or moved into a plan.
 
 ## Majora's Mask N64 plugin (`plugins/zelda_mm64`)
 
-- **Ukrainian letters**: the codec only knows the N64 font's characters. A translation map (letter -> font
-  slot) and redrawn glyph textures (`file 28`, 16x16 I4) plus widths (`sNESFontWidths` in `code`) are needed
-  before Cyrillic can be saved. SoH-style ports keep the widths fixed, so slots should be chosen by width.
 - **Relocated text is unverified in a running game**: a save whose text outgrows its 0x6A000-byte range moves
   `message_data_static` to free address space and rewrites the four `lui`/`addiu` pairs in `z_message.c`
   (checked statically only). Test ROMs: `MM64_UA\rom\test_edit_blue_rupee.z64`, `test_text_grown_40pct.z64`.
@@ -325,7 +326,7 @@ the line when it is done or moved into a plan.
 
 ## Ocarina of Time N64 plugin (`plugins/zelda_oot64`)
 
-- Same open items as Majora's Mask (Ukrainian letters, exports, credits, characters per box). Relocated text
+- Same open items as Majora's Mask (exports, credits, characters per box). Relocated text
   rewrites the single `lui`/`addiu` pair that loads the English text on NTSC; untested in a running game
   (`OOT64_UA\rom\test_edit_green_rupee.z64`, `test_text_grown_40pct.z64`).
 - Only NTSC-U 1.0 is supported; Europe 1.0 (English/German/French) could serve as reference languages.
@@ -339,9 +340,6 @@ the line when it is done or moved into a plan.
 
 ## The Wind Waker GameCube plugin (`plugins/zelda_tww`)
 
-- **Ukrainian letters in the font**: the US game reads bytes 0x80–0x9F as Shift-JIS lead bytes, so a
-  translation map must not put letters there (Europe: only Hylian boxes do this). Pick the slots before
-  drawing the font.
 - **Runtime suffixes are in the executable**, not in BMG: " Rupee(s)", " bomb(s)", " yard(s)", timers
   (`tag_*` in `f_op_msg_mng.cpp`). A Ukrainian build needs them patched in `main.dol`, or the text rewritten
   around a bare number.

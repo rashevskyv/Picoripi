@@ -97,7 +97,7 @@ def test_hwde_g1t_descriptor_matches_the_atlas(name, index):
 
 def test_hwde_translation_map_covers_the_cyrillic_slots():
     mapping = json.loads((ROOT / "plugins" / "zelda_hwde" / "translation_map.json").read_text(encoding="utf-8"))
-    assert len(mapping) == 73
+    assert len(mapping) == 67                     # 66 Ukrainian letters and №; no Russian-only letters
     assert mapping["А"] == "À" and mapping["і"] == "³" and mapping["ґ"] == "´" and mapping["№"] == "¹"
 
 
@@ -153,5 +153,6 @@ def test_wind_waker_descriptor_finds_the_fonts_in_a_project():
     _need(WW_FILES / "res" / "Msg" / "fontres.arc")
     descriptors = json.loads((ROOT / "plugins" / "zelda_tww" / "font_sources.json").read_text(encoding="utf-8"))
     found = sources.resolve(descriptors, {"source_path": str(WW_FILES), "translation_path": "", "is_directory_mode": True})
-    assert [source.name for source in found] == ["rock_24_20_4i_usa.bfn", "hyrule.bfn"]
-    assert found[0].read_current()[:8] == b"FONTbfn1"
+    assert [source.name for source in found] == ["rock_24_20_4i_usa.bfn", "hyrule.bfn", "rock_24_20_ia4_e.bfn",
+                                                 "kanfont_fix16.bfn"]
+    assert all(source.read_current()[:8] == b"FONTbfn1" for source in found)   # the name font is Yaz0 in its archive

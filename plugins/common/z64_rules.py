@@ -1,7 +1,9 @@
 """Shared rules of the N64 Zelda plugins: open a ROM, save a translated ROM, line widths.
 
 A game plugin subclasses ``Zelda64Rules`` and fills in its text format, the
-ROM layouts it supports, the font width table and the line limits.  Every
+ROM layouts it supports, the font width table and the line limits.  Translated
+letters are written into the font slots of ``translation_map.json`` (the
+project's, else the plugin's): ``{"Б": "À"}`` saves Б as the byte of À.  Every
 save is rebuilt from the SOURCE ROM, so repeated saves do not grow the file;
 text that outgrows its range moves to free address space and the code that
 loads it is retargeted.
@@ -16,6 +18,7 @@ from plugins.base_game_rules import BaseGameRules
 from plugins.common import z64_text
 from plugins.common.n64_rom import N64Rom, retarget_constant
 from plugins.common.z64_text import Message, TextFormat
+from utils.constants import user_plugin_file_or_shipped
 from utils.logging_utils import log_warning
 from utils.utils import clean_spaces
 
@@ -154,7 +157,48 @@ class Zelda64Rules(BaseGameRules):
         rom, messages = self._read_rom(bytes(json_obj))
         if self.source_rom is None:
             self.source_rom, self.messages = rom, messages
-        return [[self.text_format.decode(m.body) for m in messages]], {"0": f"{self.game_name} messages"}
+        return [[self.decode_text(m.body) for m in messages]], {"0": f"{self.game_name} messages"}
+
+    # -- translated letters ---------------------------------------------------------------
+
+    def translation_map(self) -> Dict[str, str]:
+        """``{letter: font character}`` from ``<project>/translation_map.json``, else the plugin's."""
+        project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        path = os.path.join(project_dir, "translation_map.json") if project_dir else ""
+        if not path or not os.path.isfile(path):
+            path = str(user_plugin_file_or_shipped(os.path.basename(self.data_dir), "translation_map.json"))
+        try:
+            stamp = (path, os.path.getmtime(path))
+        except OSError:
+            return {}
+        if getattr(self, "_translation_map_stamp", None) != stamp:
+            try:
+                with open(path, encoding="utf-8") as stream:
+                    raw = json.load(stream)
+            except (OSError, ValueError) as error:
+                log_warning(f"{self.game_name}: cannot read {path}: {error}")
+                raw = {}
+            self._translation_map_cache = {k: v for k, v in raw.items()
+                                           if isinstance(v, str) and len(k) == 1 and len(v) == 1}
+            self._translation_map_stamp = stamp
+        return self._translation_map_cache
+
+    def letter_slots(self) -> Dict[str, int]:
+        """``{letter: font byte}``: the translation map with each font character as its byte."""
+        slots = {}
+        for letter, char in self.translation_map().items():
+            code = self.text_format.by_char.get(char, ord(char))
+            if code < 0x100:
+                slots[letter] = code
+        return slots
+
+    def decode_text(self, body: bytes) -> str:
+        """Body bytes -> editor text, a slot read back as the letter drawn there.  Look-alike slots (a Latin
+        letter or digit, the apostrophe) stay as they are: the English text shares them."""
+        text = self.text_format.decode(body)
+        reverse = {char: letter for letter, char in self.translation_map().items()
+                   if not (char.isascii() and (char.isalnum() or char == "'"))}
+        return "".join(reverse.get(ch, ch) for ch in text) if reverse else text
 
     def prepare_save_context(self, context) -> None:
         """Build every save from the source ROM: it is the last version offered."""
@@ -173,7 +217,8 @@ class Zelda64Rules(BaseGameRules):
             raise ValueError(f"Expected {len(self.messages)} messages, got {len(texts)}")
         rom = self.source_rom
         layout = self.layout_of(rom)
-        edited = [Message(m.message_id, m.header, self.text_format.encode(str(text)), m.info)
+        slots = self.letter_slots()
+        edited = [Message(m.message_id, m.header, self.text_format.encode(str(text), slots), m.info)
                   for m, text in zip(self.messages, texts)]
         for message in edited:
             size = len(message.header) + len(message.body) + 1
@@ -216,13 +261,14 @@ class Zelda64Rules(BaseGameRules):
         # ponytail: runtime values ({rupees-total}, timers) count as zero width; give them a sample if lines overflow.
         text = str(text)
         editor = self._editor_widths()
+        slots = self.letter_slots()
         total = sum(self._button_widths.get(tag, 0) for tag in _TAG_RE.findall(text))
         for ch in _TAG_RE.sub("", text):
             entry = editor.get(ch)
             if isinstance(entry, dict) and "width" in entry:
                 total += int(entry["width"])
                 continue
-            code = self.text_format.by_char.get(ch, ord(ch))
+            code = slots[ch] if ch in slots else self.text_format.by_char.get(ch, ord(ch))
             total += self._char_width(code) if 0x20 <= code < 0x20 + len(self.font_widths) else default_char_width
         return total
 

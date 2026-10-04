@@ -12,5 +12,18 @@
     "path": ["res/Msg/rubyres.arc", "files/res/Msg/rubyres.arc", "rubyres.arc", "../rubyres.arc"],
     "member": "*.bfn",
     "font_map": "hyrule.json"
+  },
+  {
+    "label": "Name entry font",
+    "format": "bfn",
+    "path": ["res/Msg/nameres.arc", "files/res/Msg/nameres.arc", "nameres.arc", "../nameres.arc"],
+    "member": "*.bfn",
+    "font_map": "rock_24_20_ia4_e.json"
+  },
+  {
+    "label": "System font",
+    "format": "bfn",
+    "path": ["res/Menu/kanfont_fix16.bfn", "files/res/Menu/kanfont_fix16.bfn", "kanfont_fix16.bfn"],
+    "font_map": "kanfont_fix16.json"
   }
 ]

@@ -1783,5 +1783,14 @@
   "Glossary JSON (*.json)": "Глосарій JSON (*.json)",
   "Link or Import Series Glossary": "Пов'язати або імпортувати глосарій серії",
   "Cannot read this glossary: {error}": "Не вдалося прочитати цей глосарій: {error}",
-  "{path} already exists. Replace it with a fresh import of {source}?": "{path} уже існує. Замінити його новим імпортом із {source}?"
+  "{path} already exists. Replace it with a fresh import of {source}?": "{path} уже існує. Замінити його новим імпортом із {source}?",
+  "Cannot read the font file: {0}": "Не вдалося прочитати файл шрифту: {0}",
+  "Choose a font file": "Виберіть файл шрифту",
+  "Font file...": "Файл шрифту...",
+  "Fonts (*.ttf *.otf *.ttc);;All Files (*)": "Шрифти (*.ttf *.otf *.ttc);;Усі файли (*)",
+  "Move glyph:": "Зсунути гліф:",
+  "Move the selected glyphs 1 px (Ctrl+Arrow keys)": "Зсунути виділені гліфи на 1 пкс (Ctrl+стрілки)",
+  "Thicken (px):": "Потовщення (пкс):",
+  "Use a TTF or OTF file without installing it in the system": "Узяти файл TTF або OTF, не встановлюючи його в систему",
+  "Widen every stroke by this many pixels (for small heavy game fonts)": "Потовщити кожен штрих на стільки пікселів (для дрібних жирних ігрових шрифтів)"
 }

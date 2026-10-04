@@ -77,7 +77,7 @@ class TestCodec:
         body = MESSAGES[0][1][11:] + b"\xb0\x10after\x14\x05\x99\x1b\x00\x1e\x11"
         text = decode_body(body)
         assert text == ("{quicktext-on}You got a {color:blue}Blue Rupee{color:default}!{quicktext-off}\n"
-                        "{delay:10}It's worth 5!{btn:A}{box-break}\nafter{shift:5}{x:99}"
+                        "{delay:10}It's worth 5!{btn:A}{box-break}\nafter{shift:5}â"
                         "{box-break-delayed:30}\n\n")
         assert encode_body(text) == body
 
