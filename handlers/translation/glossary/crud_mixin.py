@@ -68,6 +68,7 @@ class CrudMixin:
             log_debug(
                 f"Glossary: entry update for term length={len(original)} completed in {elapsed:.3f}s (occurrences: {len(occurrences)})"
             )
+            self._refresh_series_conflicts()
             return entries, occurrence_map
         return None
 
@@ -86,6 +87,7 @@ class CrudMixin:
             self.main_handler._cached_glossary = self.glossary_manager.get_raw_text()
             if self.mw.statusBar:
                 self.mw.statusBar.showMessage(f"Glossary deleted: {original}", 4000)
+            self._refresh_series_conflicts()
             return entries, occurrence_map
         return None
 

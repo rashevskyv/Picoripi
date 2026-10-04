@@ -10,6 +10,7 @@ from core.translation.layout_contract import resolve_lines_per_window
 from core.translation.run_memory import RunMemory
 from core.translation.session_manager import TranslationSessionState
 from core.translation.story_context_bundle import glossary_names_from_story_bundle
+from handlers.translation.prompt_composer.glossary_mixin import SERIES_GLOSSARY_LEAD
 from utils.logging_utils import log_debug
 from utils.utils import resolve_target_language_prompt
 
@@ -456,6 +457,7 @@ class BatchMixin:
             relevant_glossary_entries = list(glossary_manager.get_relevant_terms(chunk_text))
             self._append_speaker_glossary_entries(relevant_glossary_entries, speaker_candidates)
         glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
+        series_glossary_text = self._series_glossary_text(chunk_text)
 
         # 3b. Game-script dialogue flow outlines for the whole chunk: the actual
         # in-game conversation graphs (order, player choices, conditions) that
@@ -499,6 +501,8 @@ class BatchMixin:
             json_payload_for_ai['dialogue_flow'] = dialogue_flow
         if glossary_text:
             json_payload_for_ai['glossary'] = glossary_text
+        if series_glossary_text:
+            json_payload_for_ai['series_glossary'] = f"{SERIES_GLOSSARY_LEAD.capitalize()}.\n{series_glossary_text}"
         if tag_alias_legend:
             json_payload_for_ai['tag_alias_legend'] = tag_alias_legend
 

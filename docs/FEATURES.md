@@ -153,6 +153,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 - **Backlog Report Instead of “Done”**: Completion reports show review, ambiguity, untranslated, undescribed, and duplicate counts with direct actions to review the glossary or continue in the editor.
 - **High-Performance Highlighting**: Evaluates text for glossary occurrences instantly using the **Aho-Corasick** algorithm.
 - **Slavic Morphological Matcher**: Uses stemming algorithms to highlight inflected forms of terms (e.g. matching "Меча", "Мечем" for "Меч").
+- **Series Glossary**: one glossary shared by the projects of a game series, linked per project and shown as its own tab of the Glossary window; terms are copied or promoted between it and the project glossary, conflicting translations are marked, and AI prompts use it at lower priority for terms the project glossary lacks ([wiki 8](wiki/8_Localization_Pipeline.md)).
 - **Dynamic Tabbed Interface (`QTabWidget`)**: Categorizes glossary databases into separate semantic tabs ("Characters", "Items", "Locations", etc.) with an "All" master index.
 - **Organize via AI Wizard**:
   - Stage 1: Scans terms and suggests 4 to 7 thematic categories.

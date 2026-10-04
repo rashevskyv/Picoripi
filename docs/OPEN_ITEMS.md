@@ -372,3 +372,11 @@ the line when it is done or moved into a plan.
   the game needs (crash or not) with a translation that is much longer than English.
 - **Tag catalogue** comes from MSBT Editor's `TotK.gcf`; most group 2 (numbers/strings) and 201 (grammar) tags
   have no confirmed argument meaning. A tag whose bytes do not fit the catalogue shows as `{tag:G:T:hex}`.
+
+## Found during the series glossary feature
+
+- The series tab shows no occurrences (Count 0): its occurrence index is not built over the open project.
+- Glossary builds do not consult the series glossary: a term the series already decided is seeded and
+  translated again in the project (the series file itself is never written by a build).
+- Series and project glossary files are read and written on the UI thread, as the project glossary is today.
+- Two programs (or two projects open at once) editing the same series file: the last write wins.

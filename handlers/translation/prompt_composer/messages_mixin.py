@@ -10,6 +10,7 @@ from core.translation.story_context_bundle import glossary_names_from_story_bund
 from utils.logging_utils import log_debug
 from utils.utils import resolve_target_language_prompt
 
+from .glossary_mixin import SERIES_GLOSSARY_LEAD
 from .instructions import append_engine_rules, single_rules
 
 # Saved translations of the same source shown in a single-string request.
@@ -157,6 +158,7 @@ class MessagesMixin:
 
         target_lang = self._get_target_lang()
         glossary_text = ""
+        series_glossary_text = ""
         glossary_manager = self.main_handler._glossary_manager
 
         manual = (
@@ -202,6 +204,7 @@ class MessagesMixin:
             self._append_speaker_glossary_entries(relevant_glossary_entries, speaker_candidates)
             if relevant_glossary_entries:
                 glossary_text = self._glossary_entries_to_text(relevant_glossary_entries)
+            series_glossary_text = self._series_glossary_text(text_for_glossary)
 
         tag_alias_legend = self._relevant_tag_aliases(
             getattr(self.mw, 'default_tag_mappings', {}),
@@ -367,6 +370,8 @@ class MessagesMixin:
         user_sections: List[str] = ['\n'.join(context_lines)]
         if glossary_text:
             user_sections.append(f"GLOSSARY (use with absolute priority):\n{glossary_text}")
+        if series_glossary_text:
+            user_sections.append(f"SERIES GLOSSARY ({SERIES_GLOSSARY_LEAD}):\n{series_glossary_text}")
         if tag_alias_legend_text:
             user_sections.append(tag_alias_legend_text)
         if request_type not in ('variation_list', 'glossary_notes_variation'):

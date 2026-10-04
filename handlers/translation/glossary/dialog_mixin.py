@@ -52,6 +52,7 @@ class DialogMixin:
     def _on_glossary_dialog_closed(self):
         """Internal helper to handle the glossary dialog closed event."""
         self.dialog = None
+        self.series_page = None
         log_debug("Glossary dialog closed and reference cleared.")
         # A changed translation renames speaker folders — but only rebuild them
         # when a name actually changed, not on a view-only visit.
@@ -168,7 +169,11 @@ class DialogMixin:
                 reference_data=ref_data,
                 reference_language=ref_lang,
                 source_data=data_source,
+                transfer_callback=self._promote_to_series,
+                transfer_label=tr('Promote to Series Glossary'),
+                series_menu_callback=self._show_series_glossary_menu,
             )
+            self._attach_series_page()
             self.dialog.finished.connect(self._on_glossary_dialog_closed)
             self.dialog.show()
 
@@ -238,6 +243,7 @@ class DialogMixin:
             reference_language=ref_lang,
             source_data=data_source,
         )
+        self._refresh_series_conflicts()
 
     def _resolve_reference_data_and_label(
         self,
