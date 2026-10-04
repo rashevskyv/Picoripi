@@ -34,12 +34,12 @@ Sheets = List[Image.Image]
 def _backends() -> Dict[str, Any]:
     from core.font_formats import bcfnt, bffnt, bfotf, g1n, g1t, gzf, mgs, n64, qbf
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
-            "bfotf": bfotf, "mgs": mgs}
+            "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt}
 
 
 def adds_glyphs(fmt: str) -> bool:
     """The format maps Unicode characters to glyphs and saves new mappings (``ADDS_GLYPHS``): a letter typed
-    into an empty cell becomes that real character, not a translation-map slot (BFFNT, 3DS fonts, G1N)."""
+    into an empty cell becomes that real character, not a translation-map slot (BFFNT, 3DS and Wii U fonts, G1N)."""
     return bool(getattr(_backends().get(fmt), "ADDS_GLYPHS", False))
 
 
@@ -50,11 +50,14 @@ def is_supported(fmt: str) -> bool:
 
 def detect(data: bytes) -> Optional[str]:
     """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
-    BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font) or None."""
+    BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font), ``bffnt_wiiu``
+    (Wii U BFFNT, big endian) or None."""
     from core.font_formats import bfotf
     head = bytes(data[:8])
     if head[:4] in (b"QBF1", b"GZFX"):
         return head[:3].decode("ascii").lower()
+    if head[:6] == b"FFNT\xfe\xff":
+        return "bffnt_wiiu"
     if head[:4] in (b"FFNT", b"CFNT") and head[4:6] in (b"\xff\xfe", b"\xfe\xff"):
         from core.font_formats.bcfnt import is_ctr_font
         return "bcfnt" if is_ctr_font(data) else "bffnt"

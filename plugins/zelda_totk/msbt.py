@@ -62,6 +62,10 @@ class Msbt:
         self.messages: List[List[Token]] = self._read_texts(self._section(b"TXT2"))
         self.labels: Dict[int, str] = self._read_labels(self._section(b"LBL1"))
 
+    def section(self, magic: bytes) -> bytes:
+        """The body of a section as read (``ATR1`` attributes...); empty when the file has none."""
+        return self._section(magic)
+
     def _section(self, magic: bytes) -> bytes:
         for name, body in self.sections:
             if name == magic:

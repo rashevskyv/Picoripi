@@ -8,7 +8,8 @@ down; cells are ``cell + 1`` pixels apart.
 
 Editing: advances and left offsets are written back in place; sheet pixels are written back for
 BC4 textures (the common font format), only for the 4x4 blocks that changed. Other texture formats
-open with empty sheets and keep their texture. Wii U (big-endian) fonts are refused.
+open with empty sheets and keep their texture. Wii U (big-endian) fonts are the ``bffnt_wiiu`` format
+(``bcfnt.py``).
 
 New characters: the font source's ``min_sheets`` param opens a BC4 font with blank sheets up to that
 count, so a font without room (a Latin-only font that needs Cyrillic) gets free cells. On save, a
