@@ -74,6 +74,14 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      makes font maps from the game's fonts. When a translated archive grows, run
      `python -m plugins.zelda_totk.restbl <game romfs> <mod romfs>` so the game reserves enough memory for it.
    - `zelda_hwde` — Zelda: Hyrule Warriors Definitive Edition
+   - `zelda_coh` — Zelda: Cadence of Hyrule (Switch). **Source:** a folder with the game's `localization.xml`
+     (base + update romfs) and `fonts_bin`; **Translation:** the mod's `romfs`
+     (`atmosphere/contents/01000B900D8B0000/romfs`, the base game's Title ID). All 1,809 strings, one block per id
+     range (menus, dialogue, tutorials, items, enemies, places, cutscenes, credits, achievements); only the English
+     strings are shown and saved, an unedited file stays byte for byte. Tags are the game's own (`[c:b]`, `[/c]`,
+     `[i:button_a]`, `[s:9]`); `[n]` shows as a line break, `[p]` (next page) as `[p]` plus a line break. Speakers
+     come from the string keys (`zora4_1` → Zora). The Font Editor opens the six `.bffnt` fonts; the text font
+     `LoveBug` has no Cyrillic, so it opens with a spare sheet for the Ukrainian letters
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
