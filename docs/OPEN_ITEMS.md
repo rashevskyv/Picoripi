@@ -372,6 +372,10 @@ the line when it is done or moved into a plan.
   the game needs (crash or not) with a translation that is much longer than English.
 - **Tag catalogue** comes from MSBT Editor's `TotK.gcf`; most group 2 (numbers/strings) and 201 (grammar) tags
   have no confirmed argument meaning. A tag whose bytes do not fit the catalogue shows as `{tag:G:T:hex}`.
+- **Hero-name colour unknown.** `{playerName}` maps to the `{F:Link}` force alias; whether the engine draws the
+  name in a colour is unchecked. With the romfs, count `{playerName}` lines with and without colour tags around
+  them; if the engine colours it, return the tags from `get_force_alias_wrapping()` (see Plugin Developer Guide,
+  "Force aliases and names drawn in colour").
 
 ## Found during the series glossary feature
 
