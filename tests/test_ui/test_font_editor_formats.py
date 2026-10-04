@@ -153,3 +153,48 @@ def test_font_jobs_run_in_a_worker_thread_one_after_another(qtbot, monkeypatch):
     assert seen[0] == ((1, True), "") and seen[2] == ((3, True), "")
     assert seen[1][0] is None and "division" in seen[1][1]
     qtbot.waitUntil(lambda: editor._font_job is None, timeout=5000)
+
+def _qbf_two_letters():
+    """A QBF1 font (4 bpp, 4x4 cells): A in cell 0, B in cell 1."""
+    out = bytearray(b"QBF1" + struct.pack("<HHI", 2, 2, 42) + bytes([4, 4, 4, 2]))
+    out += struct.pack("<HHBBH", 0x41, 0, 0, 4, 0) + struct.pack("<HHBBH", 0x42, 1, 0, 4, 0)
+    return bytes(out + b"\xf0" + bytes(15))
+
+
+def test_a_character_typed_into_an_empty_cell_of_a_unicode_font_is_added_to_the_file(qtbot, tmp_path):
+    path = tmp_path / "ltn16.qbf"
+    path.write_bytes(_qbf_two_letters())
+    editor = BfnEditorWindow()
+    qtbot.addWidget(editor)
+    editor.open_font_file(str(path))
+    assert editor.font_format == "qbf" and editor.metadata["header"]["unicode_map"]
+
+    table = editor.table_glyphs
+    row = next(r for r in range(table.rowCount()) if table.verticalHeaderItem(r).text() == "2")
+    table.item(row, 3).setText("Є")                                      # a free cell gets a real character
+
+    metadata, _sheets = font_formats.extract("qbf", path.read_bytes())    # saved into the font file at once
+    assert font_formats.char_map(metadata) == {"A": 0, "B": 1, "Є": 2}
+    assert "Є" not in (editor.translation_map or {})                      # no translation slot for it
+
+    other = next(r for r in range(table.rowCount()) if table.verticalHeaderItem(r).text() == "3")
+    table.item(other, 3).setText("A")                                     # already in the font: refused
+    assert font_formats.char_map(editor.metadata).get("A") == 0
+    assert 3 not in font_formats.char_map(editor.metadata).values()
+
+
+def test_render_font_helpers_draw_and_measure_a_glyph(qtbot):
+    from tools.bfn_editor.render_font_dialog import ink_metrics, render_glyph
+    image = QtGui.QImage(10, 10, QtGui.QImage.Format.Format_ARGB32)
+    image.fill(QtGui.QColor(0, 0, 0, 0))
+    for y in range(7):
+        image.setPixelColor(2, y, QtGui.QColor(255, 255, 255, 255))        # a tall stroke: one column of room
+    image.setPixelColor(5, 3, QtGui.QColor(255, 255, 255, 255))
+    assert ink_metrics(image) == (1, 5)
+
+    font = QtGui.QFont()
+    font.setPixelSize(12)
+    params = dict(font=font, align_h=None, align_v="baseline", x_offset=1, y_offset=0, antialiasing=True)
+    drawn = render_glyph("H", params, 16, 16, 12)
+    assert ink_metrics(drawn)[1] > 1
+    assert all(drawn.pixelColor(x, 15).alpha() == 0 for x in range(16))       # nothing below the baseline

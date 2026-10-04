@@ -155,3 +155,36 @@ def test_wind_waker_descriptor_finds_the_fonts_in_a_project():
     found = sources.resolve(descriptors, {"source_path": str(WW_FILES), "translation_path": "", "is_directory_mode": True})
     assert [source.name for source in found] == ["rock_24_20_4i_usa.bfn", "hyrule.bfn"]
     assert found[0].read_current()[:8] == b"FONTbfn1"
+
+
+# -- 3DS (Ocarina of Time 3D, Majora's Mask 3D, A Link Between Worlds, Tri Force Heroes) ---------
+
+def _ctr_fonts(archive):
+    """The FFNT files inside a Yaz0 SARC (found by magic; the names are hashed in ALBW)."""
+    from core.containers import yaz0
+    data = yaz0.decompress(_need(archive))
+    fonts, at = [], data.find(b"FFNT\xff\xfe")
+    while at >= 0:
+        fonts.append(data[at:at + struct.unpack_from("<I", data, at + 0x0C)[0]])
+        at = data.find(b"FFNT\xff\xfe", at + 4)
+    return fonts
+
+
+THREE_DS = [  # (file or archive, format, characters per font)
+    (ZELDA / "OOT3D_UA" / "romfs" / "message" / "eu" / "ltn16.qbf", "qbf", [199]),
+    (ZELDA / "OOT3D_UA" / "romfs" / "message" / "sys8.qbf", "qbf", [288]),
+    (ZELDA / "OOT3D_UA" / "RU" / "romfs" / "message" / "eu" / "ltn16.qbf", "qbf", [265]),
+    (ZELDA / "MM3D_UA" / "romfs" / "message" / "ltn16.gzf", "gzf", [468]),
+    (ZELDA / "ALBW_UA" / "romfs" / "EU" / "RegionBoot.szs", "bcfnt", [49, 687]),
+    (ZELDA / "TFH_UA" / "romfs" / "Archive" / "EU" / "RegionBoot.szs", "bcfnt", [49, 740]),
+]
+
+
+@pytest.mark.parametrize("path,fmt,counts", THREE_DS, ids=lambda v: v.parts[-4] + "-" + v.name if isinstance(v, Path) else None)
+def test_3ds_fonts_show_every_character_and_pack_back_unchanged(path, fmt, counts):
+    fonts = _ctr_fonts(path) if path.suffix == ".szs" else [_need(path)]
+    assert sorted(len(font_formats.char_map(font_formats.extract(fmt, data)[0])) for data in fonts) == counts
+    for data in fonts:
+        assert font_formats.detect(data) == fmt
+        metadata, sheets = font_formats.extract(fmt, data)
+        assert font_formats.pack(fmt, metadata, sheets, data) == data

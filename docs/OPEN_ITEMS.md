@@ -13,20 +13,25 @@ the line when it is done or moved into a plan.
 ## Font editor formats (2026-10-03)
 
 - Nothing edited has run in a game or emulator: an N64 ROM with a redrawn glyph, a HWDE `font_eu.g1t` in the
-  LayeredFS mod, a TotK font.
+  LayeredFS mod, a TotK font. (The 3DS fonts did: Ukrainian letters shown in Azahar on 2026-10-04.)
+- 3DS fonts: the future text plugins (`zelda_oot3d`, `zelda_mm3d`, `zelda_albw`, `zelda_tfh`) should list them in
+  `font_sources.json` (formats `qbf`, `gzf`, `bcfnt`; ALBW/TFH: `EU/RegionBoot.szs` / `Archive/EU/RegionBoot.szs`
+  member `EU/Font/MessageFont.bffnt`); until then they open with File → Open. A 3DS font cannot change or drop a
+  character it has; adding codes to a CMAP scan list that is not the file's last block leaves its old copy as
+  dead bytes (a few hundred per save). Outlined fonts (ALBW/TFH) need the outline drawn by hand or by script:
+  Render Font draws the letter only.
 - TotK: no real font on disk; BFFNT was verified on Cadence of Hyrule and Pokémon SV (Switch, BC4). Its
   `Font/*.bfarc.zs` needs the TotK plugin's SARC container (registered when that plugin is active) and the
   project pointing at the romfs (or `Mals`). Texture formats other than BC4 open empty (widths only).
-- BFFNT: the character map (CMAP) and the kerning table are kept, not edited; a glyph with no character
+- BFFNT (Switch): the character map (CMAP) and the kerning table are kept, not edited; a glyph with no character
   cannot get one (the translation map assigns letters to existing glyphs).
 - HWDE: widths are measured from the ink (+4 px) — whether the game has its own table is unknown; edited
   widths live in the project's `font_maps/hwde_eu.json`. The `../romfs/...` candidate assumes the
   workspace layout `source/` next to `romfs/` and a translation folder named `romfs`.
 - Opening a font and listing archive members still reads the archive on the UI thread (small files);
   the old BFN paths (`load_bfn`, saving a BFN) are synchronous as before.
-- Next formats: the 3DS fonts (decrypted 2026-10-04): BFFNT 4.0 with A4 textures (A Link Between Worlds,
-  Tri Force Heroes), Grezzo QBF (Ocarina of Time 3D) and GZF (Majora's Mask 3D); Tingle Tuner (GBA), Wii U
-  BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already opens.
+- Next formats: Tingle Tuner (GBA), Wii U BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already
+  opens; the 3DS fonts are done.
 
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 
