@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 3.9k
+tokens: 4.1k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
