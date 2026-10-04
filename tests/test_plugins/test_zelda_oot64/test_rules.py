@@ -96,6 +96,17 @@ def test_line_width_uses_the_game_table(raw_rom):
     assert rules.get_string_layout(0, 0)["max_width"] == MAX_LINE_WIDTH
 
 
+def test_line_width_prefers_the_font_editors_map():
+    class Window:
+        all_font_maps = {"oot_font.json": {"É": {"width": 3}, "Ж": {"width": 11}}}
+
+    rules = GameRules(Window())
+    # É from the editor's map, é and the A button from the table, Ж (only in the map) from the map
+    expected = 3 + FONT_WIDTHS[0x96 - 0x20] + FONT_WIDTHS[0x9F - 0x20] + 11
+    assert rules.calculate_string_width_override("Éé{btn:A}Ж", {}) == expected
+    assert GameRules().calculate_string_width_override("É", {}) == FONT_WIDTHS[0x86 - 0x20]
+
+
 def test_the_majoras_mask_rom_is_refused(raw_rom):
     raw = bytearray(raw_rom)
     raw[0x3B:0x3F] = b"NZSE"

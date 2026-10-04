@@ -57,6 +57,7 @@ class Zelda64Rules(BaseGameRules):
             f"{{{control.name}}}": self._char_width(code)
             for code, control in self.text_format.controls.items() if not control.args and code >= 0x20
         }
+        self._font_map_names = [source["font_map"] for source in self.get_font_sources() if source.get("font_map")]
 
     def get_display_name(self) -> str:
         return self.game_name
@@ -201,12 +202,26 @@ class Zelda64Rules(BaseGameRules):
         index = code - 0x20
         return self.font_widths[index] if 0 <= index < len(self.font_widths) else 0
 
+    def _editor_widths(self) -> Dict[str, Any]:
+        """The Font Editor's width map for this game's font (``<project>/font_maps/<name>.json``), once saved."""
+        maps = getattr(self.mw, "all_font_maps", None) or {}
+        for name in self._font_map_names:
+            if maps.get(name):
+                return maps[name]
+        return {}
+
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 8) -> Optional[int]:
-        """Width in font units: the game's table for characters and buttons; other tags take none."""
+        """Width in font units: the Font Editor's map, else the game's table, for characters; the table for
+        buttons; other tags take none."""
         # ponytail: runtime values ({rupees-total}, timers) count as zero width; give them a sample if lines overflow.
         text = str(text)
+        editor = self._editor_widths()
         total = sum(self._button_widths.get(tag, 0) for tag in _TAG_RE.findall(text))
         for ch in _TAG_RE.sub("", text):
+            entry = editor.get(ch)
+            if isinstance(entry, dict) and "width" in entry:
+                total += int(entry["width"])
+                continue
             code = self.text_format.by_char.get(ch, ord(ch))
             total += self._char_width(code) if 0x20 <= code < 0x20 + len(self.font_widths) else default_char_width
         return total
