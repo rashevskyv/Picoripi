@@ -1,0 +1,14 @@
+[
+  {
+    "label": "Text font (font_ltn)",
+    "format": "nftr",
+    "path": [
+      "font_ltn.nftr"
+    ],
+    "font_map": "fsae_ltn.json",
+    "params": {
+      "columns": 16,
+      "spare": 32
+    }
+  }
+]

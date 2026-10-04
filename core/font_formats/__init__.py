@@ -32,15 +32,16 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import bcfnt, bffnt, bfotf, g1n, g1t, gba_tiles, gzf, mgs, n64, qbf
+    from core.font_formats import bcfnt, bffnt, bfotf, g1n, g1t, gba_tiles, gzf, mgs, n64, nftr, qbf, vagrant, xf
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
-            "bfotf": bfotf, "mgs": mgs, "gba_tiles": gba_tiles, "bffnt_wiiu": bcfnt, "brfnt": bcfnt}
+            "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
+            "vagrant": vagrant, "gba_tiles": gba_tiles}
 
 
 def adds_glyphs(fmt: str) -> bool:
     """The format maps Unicode characters to glyphs and saves new mappings (``ADDS_GLYPHS``): a letter typed
     into an empty cell becomes that real character, not a translation-map slot (BFFNT, 3DS, Wii U and Wii fonts,
-    G1N)."""
+    G1N, NFTR)."""
     return bool(getattr(_backends().get(fmt), "ADDS_GLYPHS", False))
 
 
@@ -52,11 +53,14 @@ def is_supported(fmt: str) -> bool:
 def detect(data: bytes) -> Optional[str]:
     """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
     BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font), ``bffnt_wiiu``
-    (Wii U BFFNT, big endian), ``brfnt`` (Wii RFNT) or None."""
+    (Wii U BFFNT, big endian), ``brfnt`` (Wii RFNT), ``nftr`` (DS NFTR), ``xf`` (Level-5 XPCK font),
+    ``vagrant`` (Vagrant Story) or None."""
     from core.font_formats import bfotf
     head = bytes(data[:8])
     if head[:4] in (b"QBF1", b"GZFX"):
         return head[:3].decode("ascii").lower()
+    if head[:6] == b"RTFN\xff\xfe":
+        return "nftr"
     if head[:6] == b"FFNT\xfe\xff":
         return "bffnt_wiiu"
     if head[:6] == b"RFNT\xfe\xff":
@@ -68,6 +72,11 @@ def detect(data: bytes) -> Optional[str]:
         return "bfn"
     if head[:4] == b"GT1G":
         return "g1t"
+    if head[:4] == b"VSFN":
+        return "vagrant"
+    if head[:4] == b"XPCK":
+        from core.font_formats import xf
+        return "xf" if xf.is_xf(bytes(data)) else None
     if head == b"_N1G0000":
         return "g1n"
     if bfotf.is_bfotf(bytes(data[:16])):

@@ -1,0 +1,8 @@
+[
+  {
+    "label": "Text font (papermarioset_US)",
+    "format": "bfn",
+    "path": ["../../f/papermarioset_US.bfn", "f/papermarioset_US.bfn", "files/f/papermarioset_US.bfn"],
+    "font_map": "papermarioset_US.json"
+  }
+]
