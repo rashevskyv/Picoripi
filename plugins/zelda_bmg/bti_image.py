@@ -1,4 +1,4 @@
-"""BTI (JUTTexture) reader. Files in TP layouts are often Yaz0-wrapped."""
+"""BTI (JUTTexture) reader for layout previews. Files in TP layouts are often Yaz0-wrapped."""
 from __future__ import annotations
 
 import struct
@@ -21,7 +21,7 @@ def bti_to_qimage(data: bytes) -> QImage:
     if len(raw) < 0x20:
         return QImage()
     fmt, _alpha, width, height = struct.unpack_from(">BBHH", raw, 0)
-    pal_fmt, ncolors, pal_off = struct.unpack_from(">HHI", raw, 8)
+    pal_fmt, ncolors, pal_off = struct.unpack_from(">BHI", raw, 9)   # palette format is the byte at 0x09
     data_off = struct.unpack_from(">I", raw, 0x1C)[0]
     if data_off <= 0 or data_off >= len(raw):
         data_off = 0x20

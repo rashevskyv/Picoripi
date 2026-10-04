@@ -178,7 +178,7 @@ def compress(data: bytes, max_candidates: int | None = 100) -> bytes:
 
         # Scan candidates in reverse (most recent first)
         for cand_idx in reversed(candidates):
-            if checked >= max_candidates:
+            if max_candidates is not None and checked >= max_candidates:
                 break
             checked += 1
 
@@ -253,4 +253,59 @@ def compress(data: bytes, max_candidates: int | None = 100) -> bytes:
             i += 1
 
     flush_group()
+    return bytes(out)
+
+
+def compress_smallest(data: bytes) -> bytes:
+    """Yaz0 with an optimal parse: the smallest stream this encoding allows (slower; for small files
+    that must fit the room the original had)."""
+    n = len(data)
+    chains: dict[bytes, list[int]] = {}
+    longest = [(0, 0)] * n                       # longest match at each position: (length, distance)
+    for pos in range(n - 2):
+        chain = chains.setdefault(data[pos:pos + 3], [])
+        limit = min(273, n - pos)
+        best_len = best_dist = 0
+        for candidate in reversed(chain):
+            dist = pos - candidate
+            if dist > 4096:
+                break
+            length = 3
+            while length < limit and data[candidate + length] == data[pos + length]:
+                length += 1
+            if length > best_len:
+                best_len, best_dist = length, dist
+                if length == limit:
+                    break
+        chain.append(pos)
+        longest[pos] = (best_len, best_dist)
+    cost = [0] * (n + 1)                         # bits from here to the end
+    take = [0] * (n + 1)
+    for pos in range(n - 1, -1, -1):
+        best, choice = 9 + cost[pos + 1], 0
+        for length in range(3, longest[pos][0] + 1):
+            bits = (17 if length <= 17 else 25) + cost[pos + length]
+            if bits < best:
+                best, choice = bits, length
+        cost[pos], take[pos] = best, choice
+    out = bytearray(b"Yaz0" + struct.pack(">I", n) + b"\x00" * 8)
+    pos = 0
+    while pos < n:
+        header_at = len(out)
+        out.append(0)
+        for bit in range(8):
+            if pos >= n:
+                break
+            length = take[pos]
+            if not length:
+                out[header_at] |= 0x80 >> bit
+                out.append(data[pos])
+                pos += 1
+                continue
+            d = longest[pos][1] - 1
+            if length <= 17:
+                out += bytes((((length - 2) << 4) | (d >> 8), d & 0xFF))
+            else:
+                out += bytes((d >> 8, d & 0xFF, length - 18))
+            pos += length
     return bytes(out)

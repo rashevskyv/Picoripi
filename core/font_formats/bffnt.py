@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Tuple
 from PIL import Image
 
 from core.font_formats import Metadata, Sheets, char_code, char_map, code_char, coverage, grey_sheet, map_entries
+from core.texture_formats.tegra import block_addresses
 
 ADDS_GLYPHS = True  # a typed character gets its own code in a new CMAP block (an empty or ``min_sheets`` cell)
 
@@ -121,21 +122,6 @@ def _bntx(data: bytes, tglp: Dict[str, int]) -> Dict[str, int]:
             "block_height": 1 << (layout & 7), "start": start, "layer_size": image_size // max(1, layers)}
 
 
-def _block_addresses(blocks_wide: int, blocks_high: int, bpp: int, block_height: int) -> List[int]:
-    """Byte offset of every 4x4 block (row by row) in a block-linear surface (Tegra X1 GOBs)."""
-    gobs_wide = (blocks_wide * bpp + 63) // 64
-    rows_per_block = 8 * block_height
-    out = []
-    for y in range(blocks_high):
-        row_base = (y // rows_per_block) * 512 * block_height * gobs_wide + (y % rows_per_block // 8) * 512
-        row_in_gob = ((y % 8) // 2) * 64 + (y % 2) * 16
-        for x in range(blocks_wide):
-            xb = x * bpp
-            out.append(row_base + (xb // 64) * 512 * block_height + ((xb % 64) // 32) * 256
-                       + ((xb % 32) // 16) * 32 + row_in_gob + (xb % 16))
-    return out
-
-
 def _layer_bc4(data: bytes, texture: Dict[str, int], layer: int, addresses: List[int]) -> bytes:
     """Linear BC4 blocks of one layer."""
     at = texture["start"] + layer * texture["layer_size"]
@@ -145,7 +131,7 @@ def _layer_bc4(data: bytes, texture: Dict[str, int], layer: int, addresses: List
 def _texture_images(data: bytes, texture: Dict[str, int]) -> List[Image.Image]:
     """One channel per layer, in texture orientation (upside down)."""
     w, h = texture["width"], texture["height"]
-    addresses = _block_addresses((w + 3) // 4, (h + 3) // 4, 8, texture["block_height"])
+    addresses = block_addresses((w + 3) // 4, (h + 3) // 4, 8, texture["block_height"])
     return [Image.frombytes("L", (w, h), _layer_bc4(data, texture, layer, addresses), "bcn", 4)
             for layer in range(texture["layers"])]
 
@@ -240,7 +226,7 @@ def _write_pixels(out: bytearray, original: bytes, texture: Dict[str, int], shee
     """Sheet pixels of the layers the file has, only the 4x4 blocks that changed."""
     w, h = texture["width"], texture["height"]
     blocks_wide, blocks_high = (w + 3) // 4, (h + 3) // 4
-    addresses = _block_addresses(blocks_wide, blocks_high, 8, texture["block_height"])
+    addresses = block_addresses(blocks_wide, blocks_high, 8, texture["block_height"])
     for layer, old_image in enumerate(_texture_images(original, texture)):
         if layer >= len(sheets):
             break
@@ -301,7 +287,7 @@ def _add_layers(out: bytearray, texture: Dict[str, int], new_sheets: Sheets) -> 
     if insert_at != rlt or out[rlt:rlt + 4] != b"_RLT":
         raise ValueError("Cannot add sheets: the BNTX texture data does not end at its relocation table")
     w, h = texture["width"], texture["height"]
-    addresses = _block_addresses((w + 3) // 4, (h + 3) // 4, 8, texture["block_height"])
+    addresses = block_addresses((w + 3) // 4, (h + 3) // 4, 8, texture["block_height"])
     data = bytearray()
     for sheet in new_sheets:
         ink = coverage(sheet).transpose(Image.Transpose.FLIP_TOP_BOTTOM)

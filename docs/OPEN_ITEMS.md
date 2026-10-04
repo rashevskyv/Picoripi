@@ -2,13 +2,22 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 10.0k
+tokens: 10.7k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Textures window (`core/texture_formats`, 2026-10-04)
+
+- Not encoded yet: ASTC (TotK logo colour/outline layers: 5 textures), BC6H. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), the Wii channel banner (`opening.bnr`: IMET > U8 > LZ77 > U8 > TPL, LZ77 not handled).
+- No container yet: Koei RDB (Age of Calamity: 4 groups of BC3/BC1 sprites), TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\ZELDA\_textures\drafts`.
+- 3DS games have no plugin: their textures open with File → Open (BFLIM, CTPK, CTXB; SARC/SZS, ZAR/GAR, LzS archives) and are edited in place; a plugin with `texture_sources.json` (drafts `zelda_albw`, `zelda_tfh`, `zelda_oot3d`, `zelda_mm3d`) would list them. OoT3D title logo letters are in a CMB model (not handled).
+- Majora's Mask `yar` archives have no room to grow in the ROM: an edit that compresses worse than the original is fitted by recompressing every block of the archive optimally; if even that does not fit, the save is refused with the file's size.
+- An archive around an edited texture is laid out anew by its container code (SARC, RARC); Revert restores the texture file byte for byte, not necessarily the archive.
+- Helper to erase the English and render Ukrainian with the game font (later).
 
 ## Startup speed (2026-10-04)
 
@@ -111,6 +120,20 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   width limit (1.3x / 1.6x the English).
 - `credits.xml` (names and some English headings) is not opened; the translated credits headings live in
   `localization.xml` (ids 8000+).
+
+## Skyward Sword plugin (`plugins/zelda_sshd`, HD and Wii, 2026-10-04)
+
+- Owner decision: the Ukrainian glyphs are machine drafts (HD `special_00` from the official Russian font; every
+  Wii font scaled from the HD ones, Wii `normal_02` turned into plain fill; Є mirrored from Э, Ґ an upturn on Г)
+  — polish them in the Font Editor; the widths and baselines are already set from the fonts' Latin letters.
+- Eleven control tags keep neutral names (`{ctl7}` `{ctl10}`…`{ctl19}`): their effect was not identified from the
+  text; they round-trip byte for byte.
+- Speakers: 49 % of talk/Fi-window lines; the town files (`100-Town`, `115-Town2`, `118-Town3`…) have many NPCs and
+  no speaker data (the flow an NPC starts is chosen in the executable, not in `room.bzs`).
+- Line limits: HD windows 0, 27, 29, 31 (options, quest log, system) have English lines the HD wraps itself — no limit
+  is set there; lines after `{textSize:-1/-2}` are measured at normal size (they may hold more).
+- The fonts `normal_01`/`special_01` the layouts name are mapped by the executable to the `_00` files (seen working on
+  the title screen); not traced in the code.
 
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 

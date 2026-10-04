@@ -22,7 +22,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from utils.atomic_io import atomic_write_text
 
-from . import sarc
+from core.containers import sarc
 
 _ACTION, _SWITCH, _FORK, _JOIN, _SUBFLOW = range(5)
 # Actors that are not a character: the message comes from the game, a sign, an item window.
@@ -232,7 +232,7 @@ def display_names(romfs: Path, actors) -> Dict[str, str]:
     An actor variant without its own name (``Npc_Kakariko002_01``) takes the name of the shortest
     prefix that has one (``Npc_Kakariko002`` -> Paya).
     """
-    from .msbt import Msbt
+    from plugins.common.msbt import Msbt
     from .tags import to_editor
     archives = sorted((romfs / "Mals").glob("USen.Product.*.sarc.zs"))
     if not archives:

@@ -2,7 +2,9 @@
 
 ``render_glyph`` (in ``render_font_dialog``) draws one character into a cell and ``ink_metrics`` measures it;
 the dialog's preview and ``render_glyphs`` (one undo step for a list of glyphs) both use them, so a script
-can render exactly what the dialog would.
+can render exactly what the dialog would. With baseline alignment each rendered letter is then moved to stand
+like the font's own Latin letters (``core.font_formats.align_to_latin``: baseline, descenders, short tails),
+so letters of a different face do not jump up and down in a line.
 """
 from PyQt6 import QtGui, QtWidgets
 
@@ -12,6 +14,7 @@ from core.i18n import tr
 from tools.bfn_editor.bfn_widgets import RenderFontDialog
 from tools.bfn_editor.render_font_dialog import ink_metrics, render_glyph
 from tools.bfn_editor.bfn_commands import RenderFontCommand
+from tools.bfn_editor.io_format_mixin import pil_to_qimage, qimage_to_pil
 
 
 class IoRenderMixin:
@@ -29,6 +32,22 @@ class IoRenderMixin:
             elif translation.get(f"#g{idx}"):
                 result[idx] = translation[f"#g{idx}"]   # a glyph with no MAP1 entry, mapped by index
         return result
+
+    def latin_metrics(self, chars=None):
+        """Baseline, cap height, x-height and descender rows of the font's Latin letters as they are now
+        (``core.font_formats.latin_metrics``), or None when it has none."""
+        by_char = {char: idx for idx, char in (chars or self.glyph_characters()).items()}
+
+        def cell_of(char):
+            idx = by_char.get(char)
+            if idx is None:
+                return None
+            sheet_idx, cell_x, cell_y = self._glyph_cell(idx)
+            if not 0 <= sheet_idx < len(self.sheet_images):
+                return None
+            return qimage_to_pil(self.sheet_images[sheet_idx].copy(cell_x, cell_y, self.cell_w, self.cell_h))
+
+        return font_formats.latin_metrics(cell_of)
 
     def _glyph_cell(self, idx):
         rem = idx - self.start_glyph
@@ -79,6 +98,7 @@ class IoRenderMixin:
         """
         chars = chars if chars is not None else self.glyph_characters()
         ascent = (self.metadata.get("INF1") or [{}])[0].get("ascent", 0)
+        metrics = self.latin_metrics(chars) if params.get("align_v") == "baseline" else None
         wid = self.metadata.get("WID1", [{}])[0]
         packets = wid.get("packets", [])
         pixel_changes, metrics_changes = [], []
@@ -89,6 +109,8 @@ class IoRenderMixin:
             sheet_idx, cell_x, cell_y = self._glyph_cell(idx)
             old = self.sheet_images[sheet_idx].copy(cell_x, cell_y, self.cell_w, self.cell_h)
             new = render_glyph(char_str, params, self.cell_w, self.cell_h, ascent)
+            if metrics:
+                new = pil_to_qimage(font_formats.align_to_latin(qimage_to_pil(new), char_str, metrics))
             pixel_changes.append((sheet_idx, cell_x, cell_y, old, new))
             wid_idx = idx - self.first_code
             if params.get("auto_metrics") and wid_idx >= 0:

@@ -5,7 +5,8 @@ import struct
 from PIL import Image, ImageDraw
 
 from core import font_formats
-from core.font_formats import bcfnt, gx2
+from core.font_formats import bcfnt
+from core.texture_formats import gx2
 
 SHEET_W, SHEET_H, CELL, COLS, ROWS = 128, 64, 15, 8, 4
 SHEET_SIZE = (SHEET_W // 4) * (SHEET_H // 4) * 8

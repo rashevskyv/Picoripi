@@ -34,12 +34,13 @@ Sheets = List[Image.Image]
 def _backends() -> Dict[str, Any]:
     from core.font_formats import bcfnt, bffnt, bfotf, g1n, g1t, gzf, mgs, n64, qbf
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
-            "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt}
+            "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt}
 
 
 def adds_glyphs(fmt: str) -> bool:
     """The format maps Unicode characters to glyphs and saves new mappings (``ADDS_GLYPHS``): a letter typed
-    into an empty cell becomes that real character, not a translation-map slot (BFFNT, 3DS and Wii U fonts, G1N)."""
+    into an empty cell becomes that real character, not a translation-map slot (BFFNT, 3DS, Wii U and Wii fonts,
+    G1N)."""
     return bool(getattr(_backends().get(fmt), "ADDS_GLYPHS", False))
 
 
@@ -51,13 +52,15 @@ def is_supported(fmt: str) -> bool:
 def detect(data: bytes) -> Optional[str]:
     """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
     BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font), ``bffnt_wiiu``
-    (Wii U BFFNT, big endian) or None."""
+    (Wii U BFFNT, big endian), ``brfnt`` (Wii RFNT) or None."""
     from core.font_formats import bfotf
     head = bytes(data[:8])
     if head[:4] in (b"QBF1", b"GZFX"):
         return head[:3].decode("ascii").lower()
     if head[:6] == b"FFNT\xfe\xff":
         return "bffnt_wiiu"
+    if head[:6] == b"RFNT\xfe\xff":
+        return "brfnt"
     if head[:4] in (b"FFNT", b"CFNT") and head[4:6] in (b"\xff\xfe", b"\xfe\xff"):
         from core.font_formats.bcfnt import is_ctr_font
         return "bcfnt" if is_ctr_font(data) else "bffnt"
@@ -192,3 +195,61 @@ def coverage(sheet: Image.Image) -> Image.Image:
 def grey_sheet(ink: Image.Image) -> Image.Image:
     """An RGBA sheet from one channel of ink: grey equal to alpha, as the BFN I4 decoder draws it."""
     return Image.merge("RGBA", (ink, ink, ink, ink))
+
+
+# -- lining new letters up with the font's own ---------------------------------------
+# A letter drawn or rendered into a font must stand where the font's Latin letters stand: its baseline row,
+# cap height and x-height are read from their ink (the font header's ascent is not always that row).
+
+INK_THRESHOLD = 100
+DESCENDERS = set("руф")                  # letters whose tail goes below the baseline as p / y do
+SHORT_TAILS = set("дцщДЦЩ")             # letters with a short tail: they line up by their top instead
+
+
+def _ink_box(cell: Image.Image):
+    return coverage(cell).point(lambda value: 255 if value > INK_THRESHOLD else 0).getbbox()
+
+
+def latin_metrics(cell_of) -> Optional[Dict[str, int]]:
+    """``{"baseline", "cap_top", "x_top", "descender"}`` rows measured on the font's Latin letters.
+
+    ``cell_of(char)`` gives the RGBA cell of a character or None. The baseline is the ink bottom of H (else
+    Н, I), the cap top H's top, the x-height top that of x (else х, o, о), the descender p's bottom (else y).
+    None when the font has none of the capitals.
+    """
+    def box(chars):
+        for char in chars:
+            cell = cell_of(char)
+            found = _ink_box(cell) if cell is not None else None
+            if found:
+                return found
+        return None
+
+    capital, small, tail = box("HНIE"), box("xхoо"), box("pрyу")
+    if capital is None:
+        return None
+    baseline = capital[3]
+    return {"baseline": baseline, "cap_top": capital[1], "x_top": small[1] if small else capital[1],
+            "descender": tail[3] if tail else baseline}
+
+
+def align_to_latin(cell: Image.Image, char: str, metrics: Dict[str, int]) -> Image.Image:
+    """``cell`` moved up or down so ``char`` stands like the font's Latin letters (``latin_metrics``).
+
+    A letter (punctuation is left as it is) rests its ink bottom on the baseline row; р у ф hang down to the descender row like p / y; the
+    short tails of д ц щ (Д Ц Щ) hang below, so those line up by their top with the x-height (cap height).
+    """
+    found = _ink_box(cell)
+    if not found or not metrics or not char.isalpha():      # punctuation (’ , .) keeps its own height
+        return cell
+    if char in SHORT_TAILS:
+        shift = (metrics["cap_top"] if char.isupper() else metrics["x_top"]) - found[1]
+    elif char in DESCENDERS:
+        shift = metrics["descender"] - found[3]
+    else:
+        shift = metrics["baseline"] - found[3]
+    if not shift:
+        return cell
+    moved = Image.new(cell.mode, cell.size)
+    moved.paste(cell, (0, shift))
+    return moved

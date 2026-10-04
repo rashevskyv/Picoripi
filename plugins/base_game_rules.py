@@ -760,7 +760,7 @@ class BaseGameRules:
         """The game's bitmap fonts, for the font editor to open from a project and save back.
 
         Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
-        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``qbf``, ``gzf`` or ``bfotf``); ``path`` -- a
+        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf`` or ``bfotf``); ``path`` -- a
         path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); ``font_map`` (name of the width map the font
@@ -768,18 +768,35 @@ class BaseGameRules:
         game constants: cell grid, ROM offsets... -- see ``core/font_formats``).
         Default: the list in ``font_sources.json`` next to the plugin's rules, or none.
         """
+        return self._plugin_json_list("font_sources.json")
+
+    def get_texture_sources(self) -> List[Dict[str, Any]]:
+        """The game's textures with text in them (title cards, menu labels...), for the Textures window.
+
+        Each entry: ``label``; ``kind`` (``title_screen``, ``area_card``, ``menu_label``...); ``format``
+        (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t`` or ``raw``); ``path`` -- as
+        in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
+        archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``
+        (``compression``, ``file_offset``/``file_size``, ``texture`` and what the format needs -- see
+        ``core/texture_formats/sources.py``). Default: the list in ``texture_sources.json`` next to the
+        plugin's rules, or none.
+        """
+        return self._plugin_json_list("texture_sources.json")
+
+    def _plugin_json_list(self, name: str) -> List[Dict[str, Any]]:
+        """The list of objects in the JSON file ``name`` next to the plugin's rules, or []."""
         import os
         import sys
         module = sys.modules.get(self.__class__.__module__)
         folder = os.path.dirname(getattr(module, "__file__", "") or "")
-        path = os.path.join(folder, "font_sources.json")
+        path = os.path.join(folder, name)
         if not folder or not os.path.isfile(path):
             return []
         try:
             with open(path, encoding="utf-8") as stream:
                 sources = json.load(stream)
         except (OSError, ValueError) as error:
-            log_debug(f"BaseGameRules.get_font_sources: cannot read {path}: {error}")
+            log_debug(f"BaseGameRules: cannot read {path}: {error}")
             return []
         return [entry for entry in sources if isinstance(entry, dict)] if isinstance(sources, list) else []
 

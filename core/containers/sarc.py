@@ -2,7 +2,7 @@
 
 TotK compresses most files with zstd against dictionaries kept in ``romfs/Pack/ZsDic.pack.zs`` (itself
 a zstd SARC without a dictionary). A frame names its dictionary by id, so the dictionaries are found by
-looking for ``ZsDic.pack.zs`` in the places ``dictionary_dirs`` lists (the project folders and
+looking for ``ZsDic.pack.zs`` in the places ``dictionary_dirs`` lists (the TotK plugin sets it: the project folders and
 ``~/.picoripi/plugins/zelda_totk``) and loaded once.
 
 ``SarcContainer`` plugs these archives into the project's archive support: each ``.msbt`` inside

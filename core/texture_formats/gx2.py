@@ -6,14 +6,16 @@ compressed format (BC1-BC5) tiles its 4x4 blocks as elements. ``element_offsets`
 offset of every element, row by row, so a caller can gather the elements into linear order
 (``linear = b"".join(raw[o:o + size] for o in offsets)``) or scatter them back.
 
-Only what the Wii U fonts need is here: ``1D_TILED_THIN1`` (2) and ``2D_TILED_THIN1`` (4), one sample,
-no depth. Source: AMD's addrlib (R600 ``ComputeSurfaceAddrFromCoordMacroTiled`` / ``MicroTiled``).
+Only what 2D textures need is here: linear (0, 1), ``1D_TILED_THIN1`` (2) and ``2D_TILED_THIN1`` (4),
+one sample, no depth. Source: AMD's addrlib (R600 ``ComputeSurfaceAddrFromCoordMacroTiled`` / ``MicroTiled``).
 """
 from __future__ import annotations
 
 from functools import lru_cache
 from typing import Tuple
 
+TILE_LINEAR_GENERAL = 0
+TILE_LINEAR_ALIGNED = 1
 TILE_1D_THIN1 = 2
 TILE_2D_THIN1 = 4
 
@@ -68,19 +70,25 @@ def _macro_tiled(x: int, y: int, bpp: int, pitch: int, swizzle: int, slice_index
     return (bank << (_PIPE_BITS + _GROUP_BITS)) | (pipe << _GROUP_BITS) | (total & group_mask) | high
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=32)
 def element_offsets(width: int, height: int, bpp: int, tile_mode: int = TILE_2D_THIN1,
                     swizzle: int = 0, slice_index: int = 0) -> Tuple[int, ...]:
     """Byte offset of every element (row by row) of a ``width`` x ``height`` element surface.
 
     ``bpp`` is bits per element (64 for BC1/BC4, 128 for BC2/BC3/BC5). The pitch is the width rounded
-    up to the tile mode's alignment (8 for 1D, 32 for 2D). ``slice_index`` is the layer of a texture array
-    (the offsets are relative to that layer's start)."""
+    up to the tile mode's alignment (8 for 1D; 32 for 2D, more for 8- and 16-bit elements so that a row
+    of macro tiles fills the 256-byte pipe interleave; 64 or more for linear). ``slice_index`` is the layer
+    of a texture array (the offsets are relative to that layer's start)."""
     if tile_mode == TILE_2D_THIN1:
-        pitch = -(-width // 32) * 32
+        align = 32 * max(1, 256 // bpp // 8)
+        pitch = -(-width // align) * align
         return tuple(_macro_tiled(x, y, bpp, pitch, swizzle, slice_index)
                      for y in range(height) for x in range(width))
     if tile_mode == TILE_1D_THIN1:
         pitch = -(-width // 8) * 8
         return tuple(_micro_tiled(x, y, bpp, pitch) for y in range(height) for x in range(width))
+    if tile_mode in (TILE_LINEAR_GENERAL, TILE_LINEAR_ALIGNED):
+        align = 1 if tile_mode == TILE_LINEAR_GENERAL else max(64, 2048 // bpp)
+        pitch = -(-width // align) * align
+        return tuple((y * pitch + x) * bpp // 8 for y in range(height) for x in range(width))
     raise ValueError(f"GX2 tile mode {tile_mode} is not supported")

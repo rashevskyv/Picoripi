@@ -1,0 +1,19 @@
+[
+  {"label": "Boot health warning + footer (US)", "kind": "notice", "format": "bti", "path": ["files/res/Object/LogoUs.arc", "res/Object/LogoUs.arc", "root/res/Object/LogoUs.arc"], "member": "dat/warning*.bti"},
+  {"label": "Progressive-scan prompt and results (US)", "kind": "popup", "format": "bti", "path": ["files/res/Object/LogoUs.arc", "res/Object/LogoUs.arc", "root/res/Object/LogoUs.arc"], "member": "dat/progressive_{choice,inter,pro}.bti"},
+  {"label": "Progressive-scan Yes/No buttons (US)", "kind": "popup", "format": "bti", "path": ["files/res/Object/LogoUs.arc", "res/Object/LogoUs.arc", "root/res/Object/LogoUs.arc"], "member": "dat/progressive_{yes,no}.bti"},
+  {"label": "Dolby Pro Logic II logo", "kind": "logo", "format": "bti", "path": ["files/res/Object/LogoUs.arc", "res/Object/LogoUs.arc", "root/res/Object/LogoUs.arc"], "member": "dat/dolby_p2_232_112.bti"},
+  {"label": "Nintendo boot logo", "kind": "logo", "format": "bti", "path": ["files/res/Object/LogoUs.arc", "res/Object/LogoUs.arc", "root/res/Object/LogoUs.arc"], "member": "dat/nintendo_376x104.bti"},
+  {"label": "PAL 50/60Hz + health screens (EU English; Fr/Gm/It/Sp in sibling archives)", "kind": "notice", "format": "bti", "path": ["files/res/Layout/LogoPal*.arc", "res/Layout/LogoPal*.arc", "root/res/Layout/LogoPal*.arc"], "member": "dat/*.bti"},
+  {"label": "Store-demo warnings and ESRB card", "kind": "notice", "format": "bti", "path": ["files/res/Object/Wran{Us,Pal}.arc", "res/Object/Wran{Us,Pal}.arc", "root/res/Object/Wran{Us,Pal}.arc"], "member": "dat/{zelda_esrb_01,store_warning_ver2,store_warning_pstart_ver2}.bti"},
+  {"label": "Memory-card banner and icon", "kind": "banner", "format": "bti", "path": ["files/res/CardIcon/cardicon.arc", "res/CardIcon/cardicon.arc", "root/res/CardIcon/cardicon.arc"], "member": "zelda2_gc_{banner,icon}.bti"},
+  {"label": "Disc banner", "kind": "banner", "format": "raw", "path": ["files/opening.bnr", "opening.bnr", "root/opening.bnr"], "params": {"pixel_format": "gx:RGB5A3", "width": 96, "height": 32, "offset": "0x20"}},
+  {"label": "E3 2006 demo logo (unused)", "kind": "logo", "format": "bti", "path": ["files/res/Object/E3_2006.arc", "res/Object/E3_2006.arc", "root/res/Object/E3_2006.arc"], "member": "timg/tt_zelda2_title_.bti"},
+  {"label": "Wrist-strap warning (US English; Uk/Du/Fr/Gm/It/Sp/Jp siblings)", "kind": "", "format": "bti", "path": ["files/res/Object/Logo*Wii.arc", "res/Object/Logo*Wii.arc", "root/res/Object/Logo*Wii.arc"], "member": "dat/strap_*.bti"},
+  {"label": "Progressive-scan prompt (Wii wording)", "kind": "popup", "format": "bti", "path": ["files/res/Object/LogoUs.arc", "res/Object/LogoUs.arc", "root/res/Object/LogoUs.arc"], "member": "dat/progressive_choice.bti"},
+  {"label": "Progressive-scan results (Wii wording)", "kind": "popup", "format": "bti", "path": ["files/res/Object/LogoUs.arc", "res/Object/LogoUs.arc", "root/res/Object/LogoUs.arc"], "member": "dat/progressive_{inter,pro}.bti"},
+  {"label": "Progressive-scan Yes/No + Dolby logo", "kind": "notice", "format": "bti", "path": ["files/res/Object/LogoUs.arc", "res/Object/LogoUs.arc", "root/res/Object/LogoUs.arc"], "member": "dat/{progressive_yes,progressive_no,dolby_p2_232_112}.bti"},
+  {"label": "Wii save banner and icon", "kind": "", "format": "bti", "path": ["files/res/WiiBannerIcon/bannerIcon.arc", "res/WiiBannerIcon/bannerIcon.arc", "root/res/WiiBannerIcon/bannerIcon.arc"], "member": "zelda2_wii_{banner,icon}.bti"},
+  {"label": "Nunchuk connection picture (JP callout)", "kind": "", "format": "bti", "path": ["files/res/LayoutRevo/logoR.arc", "res/LayoutRevo/logoR.arc", "root/res/LayoutRevo/logoR.arc"], "member": "timg/zelda_wii_contoroller_info_00.bti"},
+  {"label": "HOME Menu labels (system UI)", "kind": "", "format": "tpl", "path": ["files/res/HomeBtn/homeBtn_{ENG,FRA,SPA}.arc", "res/HomeBtn/homeBtn_{ENG,FRA,SPA}.arc", "root/res/HomeBtn/homeBtn_{ENG,FRA,SPA}.arc"], "member": "arc/timg/tx_*.tpl"}
+]

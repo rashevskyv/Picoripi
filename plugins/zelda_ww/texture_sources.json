@@ -1,0 +1,5 @@
+[
+  {"label": "Title screen logo (THE LEGEND OF ZELDA, the Wind Waker, mask, HD)", "kind": "title_screen", "format": "bflim", "path": "Common/Layout/Title_00.szs", "member": "timg/TitleLogo{Zelda,Windwaker,WindwakerMask,HD}_00^?.bflim"},
+  {"label": "Boot screen decoration (RU put its credit here)", "kind": "other", "format": "bflim", "path": "Common/Layout/Boot_00.szs", "member": "timg/BootDeco_00^s.bflim"},
+  {"label": "Sea chart cursive label", "kind": "map", "format": "bflim", "path": "Pack/permanent_2d_UsEnglish.pack", "member": "{Map_00,MenuMap_00}.szs/timg/MapFontHairal_00^t.bflim"}
+]
