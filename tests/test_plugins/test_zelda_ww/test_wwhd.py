@@ -11,8 +11,10 @@ from core.project_models import Project
 from handlers.project_action.load_worker import ProjectLoadWorker
 from plugins.testing import check_round_trip
 from plugins.common.msbt import Msbt
-from plugins.zelda_ww import messages, tags
+from core.containers import yaz0
+from plugins.zelda_ww import messages, reference, tags
 from plugins.zelda_ww.rules import GameRules
+from ..test_zelda_totk.samples import sarc
 
 PLUGIN = "zelda_ww"
 
@@ -137,6 +139,23 @@ def test_a_source_folder_project_gives_context_and_saves_only_the_edit(tmp_path)
     assert rules.get_ai_flow_group_for_string(block, 0) is None
     assert rules.get_scene_context_for_string(block, 1)["label"] == "03001"
     assert [(entry["term"], entry["section"]) for entry in rules.get_glossary_seed_entries()] == [("Telescope", "Items")]
+
+    # Reference languages: other language packs, matched by file and label (Russian first, English skipped).
+    def pack(lines: dict) -> bytes:
+        entries = [(label, text(shown), attribute("-", "Text")) for label, shown in lines.items()]
+        return sarc({"message_msbt.szs": yaz0.compress(sarc({"message.msbt": msbt(entries)}))})
+    refs = tmp_path / "reference"
+    (refs / "nested").mkdir(parents=True)
+    (refs / "permanent_2d_UsFrench.pack").write_bytes(pack({"03002": "Attends-moi !", "00102": "Rubis vert"}))
+    (refs / "nested" / "permanent_2d_RuRussian.pack").write_bytes(pack({"03002": "Подожди меня!"}))
+    (refs / "permanent_2d_UsEnglish.pack").write_bytes(pack({"03002": "Wait for me!"}))
+    (refs / "permanent_2d_UsSpanish.pack").write_bytes(b"not a pack")
+    found = rules.load_multi_reference(str(refs), loaded["block_names"])
+    assert list(found) == ["Russian (RU)", "French (US)"]
+    assert found["Russian (RU)"] == {(block, 2): "Подожди меня!"}
+    assert found["French (US)"] == {(block, 0): "Rubis vert", (block, 2): "Attends-moi !"}
+    assert rules.load_reference_patch(str(refs), loaded["block_names"]) == found["Russian (RU)"]
+    assert reference.label("permanent_2d_EuGerman.pack") == "German (EU)" and reference.label("other.pack") == ""
 
     output = [list(rows) for rows in loaded["data"]]
     output[block][2] = "Зачекай на мене!"
