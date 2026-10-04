@@ -86,6 +86,17 @@ class WindowTreeMixin:
                     except Exception as e:
                         print(f"Error scanning loose font {font_file}: {e}")
 
+        # Fonts the game plugin describes (get_font_sources), found in the open project; read when chosen.
+        # ponytail: a font archive is opened here, on the UI thread, to list its members (font archives are
+        # small); move the listing into a font job if one gets large.
+        try:
+            for source in self.plugin_font_sources():
+                self.font_sources.setdefault(source.label, {
+                    "type": "plugin", "path": source.source_path, "files": {source.label: None}, "font_source": source,
+                })
+        except Exception as exc:
+            log_debug(f"window_tree_mixin.WindowTreeMixin.scan_fonts_directories: plugin fonts skipped: {exc!r}")
+
     def rebuild_tree_widget(self, active_sheet_count=0, expanded_keys=None):
         """Populate the left tree widget with all found font sources, BFN files and sheets."""
         # Save expanded state of items to avoid collapsing on rebuild
@@ -266,7 +277,11 @@ class WindowTreeMixin:
         source_info = self.font_sources.get(key)
         if not source_info:
             return
-            
+        if source_info.get("type") == "plugin":
+            self.undo_stack.clear()
+            self.load_font_source(source_info["font_source"])
+            return
+
         bfn_bytes = source_info["files"].get(bfn_name)
         if not bfn_bytes:
             return
@@ -293,9 +308,9 @@ class WindowTreeMixin:
                         Path(disk_path).write_bytes(updated_archive)
                         # Update our local source files cache
                         source_info["files"][filename] = new_bytes
-                        print(f"BFN Editor: Saved and packed '{filename}' to disk archive '{disk_path}'.")
+                        print(f"Font Editor: Saved and packed '{filename}' to disk archive '{disk_path}'.")
                 except Exception as ex:
-                    QtWidgets.QMessageBox.critical(self, tr('BFN Editor'), tr('Failed to write back to disk archive:\n{0}', ex))
+                    QtWidgets.QMessageBox.critical(self, tr('Font Editor'), tr('Failed to write back to disk archive:\n{0}', ex))
             self.archive_save_callback = dynamic_save_callback
             self.archive_files = source_info["files"]
         elif source_type == "disk_loose":
@@ -306,9 +321,9 @@ class WindowTreeMixin:
                     Path(disk_path).write_bytes(new_bytes)
                     # Update local source cache
                     source_info["files"][filename] = new_bytes
-                    print(f"BFN Editor: Saved loose font '{filename}' to '{disk_path}'.")
+                    print(f"Font Editor: Saved loose font '{filename}' to '{disk_path}'.")
                 except Exception as ex:
-                    QtWidgets.QMessageBox.critical(self, tr('BFN Editor'), tr('Failed to save loose BFN to disk:\n{0}', ex))
+                    QtWidgets.QMessageBox.critical(self, tr('Font Editor'), tr('Failed to save loose BFN to disk:\n{0}', ex))
             self.archive_save_callback = dynamic_save_callback
             self.archive_files = {}
             
@@ -353,7 +368,7 @@ class WindowTreeMixin:
                     if orig_bytes:
                         try:
                             self.load_original_bfn_bytes(orig_bytes, bfn_name)
-                            print(f"BFN Editor: Successfully loaded original comparison font '{bfn_name}'.")
+                            print(f"Font Editor: Successfully loaded original comparison font '{bfn_name}'.")
                         except Exception as ex:
                             print(f"Failed to parse original font: {ex}")
         

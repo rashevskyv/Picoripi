@@ -25,30 +25,34 @@ def extract_bfn_logic(bfn_path, output_dir):
     metadata = {
         "header": {
             "signature": sig_str,
-            "num_chunks": num_chunks
+            "num_chunks": num_chunks,
+            # Wind Waker files keep WID1 and MAP1 before GLY1; repacking keeps the order.
+            "chunk_order": []
         },
         "INF1": [],
         "GLY1": [],
         "MAP1": [],
         "WID1": []
     }
-    
+
     offset = 32
     for chunk_idx in range(num_chunks):
         offset = align_to(offset, 32)
         if offset >= len(file_data):
             break
-            
+
         chunk_start = offset
         if chunk_start + 8 > len(file_data):
             break
-            
+
         chunk_sig, chunk_size = struct.unpack('>4sI', file_data[chunk_start:chunk_start+8])
         chunk_sig_str = chunk_sig.decode('ascii', errors='ignore')
         chunk_data_end = chunk_start + chunk_size
-        
+
         chunk_body = file_data[chunk_start+8:chunk_data_end]
-        
+        if chunk_sig_str in ('INF1', 'GLY1', 'MAP1', 'WID1'):
+            metadata["header"]["chunk_order"].append(chunk_sig_str)
+
         if chunk_sig_str == 'INF1':
             if len(chunk_body) < 12:
                 raise ValueError("INF1 chunk body is too small.")
@@ -56,8 +60,8 @@ def extract_bfn_logic(bfn_path, output_dir):
             unk1 = 0
             if len(chunk_body) >= 16:
                 unk1 = struct.unpack('>I', chunk_body[12:16])[0]
-                
-            metadata["INF1"].append({
+
+            inf1 = {
                 "encoding": int(encoding),
                 "ascent": int(ascent),
                 "descent": int(descent),
@@ -65,7 +69,11 @@ def extract_bfn_logic(bfn_path, output_dir):
                 "leading": int(leading),
                 "fallback_code": int(fallback_code),
                 "unk1": int(unk1)
-            })
+            }
+            tail = chunk_body[16:24]
+            if any(tail):
+                inf1["tail"] = tail.hex()  # padding that is not zero in some files
+            metadata["INF1"].append(inf1)
             
         elif chunk_sig_str == 'GLY1':
             if len(chunk_body) < 22:
@@ -167,13 +175,17 @@ def extract_bfn_logic(bfn_path, output_dir):
                 entry_data = chunk_body[8:8+entry_count*4]
                 entries = list(struct.unpack(f'>{entry_count*2}H', entry_data))
                 
-            metadata["MAP1"].append({
+            map1 = {
                 "mapping_type": int(mapping_type),
                 "first_char": int(first_char),
                 "last_char": int(last_char),
                 "mapping_entry_count": int(entry_count),
                 "entries": [int(e) for e in entries]
-            })
+            }
+            tail = chunk_body[8 + len(entries) * 2:]
+            if mapping_type != 0 and any(tail):  # padding, or the data of a type the editor does not read
+                map1["tail"] = tail.hex()
+            metadata["MAP1"].append(map1)
             
         elif chunk_sig_str == 'WID1':
             if len(chunk_body) < 4:
@@ -195,12 +207,16 @@ def extract_bfn_logic(bfn_path, output_dir):
                     "width": int(width)
                 })
                 
-            metadata["WID1"].append({
+            wid1 = {
                 "first_code_included": int(first_code),
                 "last_code_included": int(last_code),
                 "packets": packets
-            })
-            
+            }
+            tail = chunk_body[4 + len(packets) * 2:]
+            if any(tail):
+                wid1["tail"] = tail.hex()  # padding that is not zero in Wind Waker and Twilight Princess files
+            metadata["WID1"].append(wid1)
+
         offset = chunk_data_end
         
     with open(os.path.join(output_dir, "data.json"), 'w') as json_f:
@@ -214,11 +230,11 @@ def repack_bfn_logic(input_dir, output_bfn_path):
     with open(json_path, 'r') as json_file:
         metadata = json.load(json_file)
         
-    writer_buf = bytearray()
-    chunk_counts = 0
+    chunks = {'INF1': [], 'GLY1': [], 'MAP1': [], 'WID1': []}
     
     # 1. WRITE INF1
     for inf in metadata.get("INF1", []):
+        writer_buf = bytearray()
         chunk_start = len(writer_buf)
         writer_buf.extend(struct.pack('>4sI', b'INF1', 32))
         writer_buf.extend(struct.pack('>HHHHHH', 
@@ -230,11 +246,12 @@ def repack_bfn_logic(input_dir, output_bfn_path):
             inf["fallback_code"]
         ))
         writer_buf.extend(struct.pack('>I', inf.get("unk1", 0)))
-        writer_buf.extend(b'\x00' * 8)  # Padding
-        chunk_counts += 1
+        writer_buf.extend(bytes.fromhex(inf.get("tail", "")).ljust(8, b'\x00')[:8])  # Padding
+        chunks['INF1'].append(writer_buf)
         
     # 2. WRITE GLY1
     for gly in metadata.get("GLY1", []):
+        writer_buf = bytearray()
         chunk_start = len(writer_buf)
         writer_buf.extend(struct.pack('>4sI', b'GLY1', 0))
         
@@ -327,10 +344,11 @@ def repack_bfn_logic(input_dir, output_bfn_path):
             
         gly_size = len(writer_buf) - chunk_start
         struct.pack_into('>I', writer_buf, chunk_start + 4, gly_size)
-        chunk_counts += 1
+        chunks['GLY1'].append(writer_buf)
         
     # 3. WRITE MAP1
     for map1 in metadata.get("MAP1", []):
+        writer_buf = bytearray()
         while len(writer_buf) % 32 != 0:
             writer_buf.append(0)
             
@@ -342,6 +360,9 @@ def repack_bfn_logic(input_dir, output_bfn_path):
         last_char = map1["last_char"]
         entry_count = map1["mapping_entry_count"]
         entries = map1.get("entries", [])
+        # A linear map the editor expanded to a table goes back as written, while still linear.
+        if "linear_count" in map1 and entries == list(range(last_char - first_char + 1)):
+            mapping_type, entry_count = 0, map1["linear_count"]
         
         writer_buf.extend(struct.pack('>HHHH',
             mapping_type,
@@ -358,16 +379,19 @@ def repack_bfn_logic(input_dir, output_bfn_path):
         elif mapping_type == 3:
             for entry in entries:
                 writer_buf.extend(struct.pack('>H', entry))
-                
+        if mapping_type != 0:
+            writer_buf.extend(bytes.fromhex(map1.get("tail", ""))[:-len(writer_buf) % 32])
+
         while len(writer_buf) % 32 != 0:
             writer_buf.append(0)
-            
+
         map_size = len(writer_buf) - chunk_start
         struct.pack_into('>I', writer_buf, chunk_start + 4, map_size)
-        chunk_counts += 1
+        chunks['MAP1'].append(writer_buf)
         
     # 4. WRITE WID1
     for wid in metadata.get("WID1", []):
+        writer_buf = bytearray()
         while len(writer_buf) % 32 != 0:
             writer_buf.append(0)
             
@@ -386,13 +410,23 @@ def repack_bfn_logic(input_dir, output_bfn_path):
                 k = (k + 256) & 0xFF
             writer_buf.append(k)
             writer_buf.append(pack["width"])
-            
+
+        writer_buf.extend(bytes.fromhex(wid.get("tail", ""))[:-len(writer_buf) % 32])
         while len(writer_buf) % 32 != 0:
             writer_buf.append(0)
-            
+
         wid_size = len(writer_buf) - chunk_start
         struct.pack_into('>I', writer_buf, chunk_start + 4, wid_size)
-        chunk_counts += 1
+        chunks['WID1'].append(writer_buf)
+
+    order = metadata.get("header", {}).get("chunk_order") or []
+    order = order + [kind for kind in ('INF1', 'GLY1', 'MAP1', 'WID1') for _ in range(len(chunks[kind]) - order.count(kind))]
+    writer_buf = bytearray()
+    chunk_counts = 0
+    for kind in order:
+        if chunks.get(kind):
+            writer_buf.extend(chunks[kind].pop(0))
+            chunk_counts += 1
         
     while len(writer_buf) % 32 != 0:
         writer_buf.append(0)

@@ -1,0 +1,16 @@
+[
+  {
+    "label": "Message font",
+    "format": "bfn",
+    "path": ["res/Msg/fontres.arc", "files/res/Msg/fontres.arc", "fontres.arc", "../fontres.arc"],
+    "member": "*.bfn",
+    "font_map": "rock_24_20_4i_usa.json"
+  },
+  {
+    "label": "Hylian font",
+    "format": "bfn",
+    "path": ["res/Msg/rubyres.arc", "files/res/Msg/rubyres.arc", "rubyres.arc", "../rubyres.arc"],
+    "member": "*.bfn",
+    "font_map": "hyrule.json"
+  }
+]

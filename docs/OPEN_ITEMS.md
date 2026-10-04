@@ -2,13 +2,36 @@
 status: current
 updated: 2026-10-03
 owns: unfinished work
-tokens: 5.9k
+tokens: 6.4k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Font editor formats (branch `feat/font-formats`, 2026-10-03)
+
+- **Merge order:** the `font_sources.json` files of `zelda_oot64`, `zelda_mm64`, `zelda_hwde`, `zelda_totk` and
+  `zelda_tww` (and `zelda_hwde/translation_map.json`) sit in folders that only the other branches fill;
+  `plugins/common/n64_rom.py` is a byte-identical copy of the `feat/zelda64` file.
+- **N64 widths do not reach the checks yet:** `Zelda64Rules.calculate_string_width_override` reads its own
+  `FONT_WIDTHS`; after the merge it should take `font_map` widths when given (the editor writes
+  `oot_font.json` / `mm_font.json`). Ukrainian on N64 still needs the user's slot decision and an encoder map.
+- Nothing edited has run in a game or emulator: an N64 ROM with a redrawn glyph, a HWDE `font_eu.g1t` in the
+  LayeredFS mod, a TotK font.
+- TotK: no real font on disk; BFFNT was verified on Cadence of Hyrule and Pokémon SV (Switch, BC4). Its
+  `Font/*.bfarc.zs` needs the TotK plugin's SARC container (registered when that plugin is active) and the
+  project pointing at the romfs (or `Mals`). Texture formats other than BC4 open empty (widths only).
+- BFFNT: the character map (CMAP) and the kerning table are kept, not edited; a glyph with no character
+  cannot get one (the translation map assigns letters to existing glyphs).
+- HWDE: widths are measured from the ink (+4 px) — whether the game has its own table is unknown; edited
+  widths live in the project's `font_maps/hwde_eu.json`. The `../romfs/...` candidate assumes the
+  workspace layout `source/` next to `romfs/` and a translation folder named `romfs`.
+- Opening a font and listing archive members still reads the archive on the UI thread (small files);
+  the old BFN paths (`load_bfn`, saving a BFN) are synchronous as before.
+- Next formats: 3DS BCFNT (CIAs still encrypted), Tingle Tuner (GBA), Cadence of Hyrule (its BFFNT already
+  opens), Wii U BFFNT (big endian, GX2 tiling).
 
 ## Review-queue test gaps (agent work; `docs/REVIEW_QUEUE.md` keeps only owner items)
 

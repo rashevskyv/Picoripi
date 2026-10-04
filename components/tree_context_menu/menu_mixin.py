@@ -411,7 +411,7 @@ class MenuMixin:
                     )
                     rs.triggered.connect(self._restore_selected_translations)
 
-            # BFN Editor for .bfn files
+            # Font Editor for .bfn files
             is_bfn = False
             if pm and pm.project:
                 block_map = getattr(main_window, 'block_to_project_file_map', {})

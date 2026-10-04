@@ -1,0 +1,40 @@
+[
+  {
+    "label": "Text font (font_eu)",
+    "format": "g1t",
+    "path": ["data/ui/font_eu.g1t.gz", "../romfs/data/ui/font_eu.g1t.gz"],
+    "font_map": "hwde_eu.json",
+    "params": {
+      "cell_width": 48,
+      "cell_height": 64,
+      "columns": 85,
+      "first_cell": 340,
+      "first_code": 32,
+      "last_code": 255,
+      "codepage": "cp1252",
+      "spacing": 4,
+      "space_width": 16,
+      "ink_threshold": 64,
+      "ascent": 48
+    }
+  },
+  {
+    "label": "Second text font (font_eu_p)",
+    "format": "g1t",
+    "path": ["data/ui/font_eu_p.g1t.gz", "../romfs/data/ui/font_eu_p.g1t.gz"],
+    "font_map": "hwde_eu_p.json",
+    "params": {
+      "cell_width": 48,
+      "cell_height": 64,
+      "columns": 85,
+      "first_cell": 340,
+      "first_code": 32,
+      "last_code": 255,
+      "codepage": "cp1252",
+      "spacing": 4,
+      "space_width": 16,
+      "ink_threshold": 64,
+      "ascent": 48
+    }
+  }
+]

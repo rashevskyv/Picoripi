@@ -62,6 +62,7 @@ First, ask me these questions:
    - Is there a community wiki or reference source for this game that glossary descriptions could be grounded in (get_external_lore) or directly linked to in the glossary UI (get_external_reference_url)?
    - Is there a fan script or walkthrough transcript containing scenes and speakers?
    - Are there existing translation patches or external localizations in other languages that could serve as reference material (`load_reference_patch`, `load_multi_reference`, `get_reference_language_label`)?
+   - Where are the game's bitmap fonts, and in which format (BFN, an N64 ROM font, a G1T atlas, BFFNT)? Describe them in `font_sources.json` (`get_font_sources`): the file path or glob relative to the project, the archive member, and the format's constants (cell grid, code page, ROM offsets). The shared font editor then opens, edits and saves them, and their widths feed the width checks.
    - Which of these should the first version include, and which can wait?
 
    Answering "none" to all of these is fine. Picoripi then builds the glossary from the extracted text alone. Each answer maps to an opt-in hook documented in docs/wiki/3_Plugin_Developer_Guide.md ("Capabilities and the game's own data") and listed in docs/PLUGIN_CONTRACT.md; plugins/zelda_bmg/ is the reference implementation.

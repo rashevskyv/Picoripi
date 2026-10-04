@@ -76,6 +76,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=("text", {}, 6), returns=int, optional=True),
         Hook("get_font_for_block", "Font override for a block: {'original_font_name', 'font_name'}.",
              call=(0,), returns=dict, optional=True),
+        Hook("get_font_sources", "The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, "
+             "bffnt), path, member, font_map, params}]. Default: font_sources.json in the plugin folder.",
+             call=(), returns=list),
     )),
     ('Problems and autofix', (
         Hook("get_problem_definitions", "Problem id -> {name, color, priority, description}.",

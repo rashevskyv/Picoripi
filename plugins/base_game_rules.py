@@ -746,6 +746,32 @@ class BaseGameRules:
         """Returns a dict with 'original_font_name' and 'font_name' if block has specific font overrides."""
         return None
 
+    def get_font_sources(self) -> List[Dict[str, Any]]:
+        """The game's bitmap fonts, for the font editor to open from a project and save back.
+
+        Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t`` or ``bffnt``); ``path`` -- a
+        path or glob relative to the project's source folder, or a list of them (the first that
+        matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
+        of files inside the archive at ``path``); ``font_map`` (name of the width map the font
+        feeds, written to the project's ``font_maps`` folder on save); ``params`` (the format's
+        game constants: cell grid, ROM offsets... -- see ``core/font_formats``).
+        Default: the list in ``font_sources.json`` next to the plugin's rules, or none.
+        """
+        import os
+        import sys
+        module = sys.modules.get(self.__class__.__module__)
+        folder = os.path.dirname(getattr(module, "__file__", "") or "")
+        path = os.path.join(folder, "font_sources.json")
+        if not folder or not os.path.isfile(path):
+            return []
+        try:
+            with open(path, encoding="utf-8") as stream:
+                sources = json.load(stream)
+        except (OSError, ValueError) as error:
+            log_debug(f"BaseGameRules.get_font_sources: cannot read {path}: {error}")
+            return []
+        return [entry for entry in sources if isinstance(entry, dict)] if isinstance(sources, list) else []
+
     def get_default_script_name(self) -> Optional[str]:
         """
         Return the default script file name for this game.

@@ -106,7 +106,7 @@ class MappingEditMixin:
                     try:
                         self.save_changes(silent=True)
                     except Exception as _e:
-                        log_error(f"BFN Editor: Failed to auto-save BFN after empty glyph registration: {_e}")
+                        log_error(f"Font Editor: Failed to auto-save BFN after empty glyph registration: {_e}")
                 
                 # 6. Refresh UI
                 self.table_glyphs.blockSignals(False)

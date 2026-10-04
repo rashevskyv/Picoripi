@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: feature inventory
-tokens: 14.3k
+tokens: 14.4k
 purpose: Every feature in detail; the wiki wins on a conflict
 ---
 # Picoripi features
@@ -220,6 +220,7 @@ page and a wiki page disagree, the wiki page is right and this page needs the fi
 
 ## Nintendo Binary Font (BFN) Editor
 - **Integrated Visual Suite**: Opens, edits, and recompiles `.bfn` fonts embedded within U8/RARC archives.
+- **Every game's font**: The same editor opens the N64 Zelda message font inside the ROM, Hyrule Warriors G1T atlases and Switch BFFNT fonts (`core/font_formats/`). The fonts a plugin names (`get_font_sources`) are listed in the tree for the open project; saving writes the translation copy and `<project>/font_maps/` for the width checks.
 - **Texture Sheet Operations**: Exports/imports sheet PNGs with alpha transparency.
 - **Spreadsheet Glyph Grid**: Edits mapping ranges, Unicode offsets, widths, and kerning. Modifying values automatically triggers font map reloading and text editor guideline recalculations instantly.
 - **Live Simulator**: Renders real-time text layouts to test custom kerning.

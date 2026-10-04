@@ -83,12 +83,12 @@ class MainWindowToolsActionsMixin:
         return dialog
 
     def open_bfn_editor_standalone(self):
-        """Open BFN Font Editor as a standalone window (no archive binding)."""
+        """Open Font Editor as a standalone window (no archive binding)."""
         self.bfn_actions.open_bfn_editor_standalone()
 
     def open_bfn_editor_for_block(self, block_idx: int):
         """
-        Open BFN Font Editor bound to a specific .bfn block (may be inside an archive).
+        Open Font Editor bound to a specific .bfn block (may be inside an archive).
         After saving, updates the archive in RAM and reloads font metrics.
         """
         self.bfn_actions.open_bfn_editor_for_block(block_idx)

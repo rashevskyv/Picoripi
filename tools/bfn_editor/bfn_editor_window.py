@@ -45,7 +45,7 @@ class BfnEditorWindow(
     QtWidgets.QMainWindow,
 ):
     """
-    BFN Font Editor Window — embedded into Picoripi as a standalone tool window.
+    Font Editor Window — embedded into Picoripi as a standalone tool window.
 
     Integration points:
       - open_from_bytes(bfn_bytes, bfn_name, save_callback, font_sync_callback):
@@ -58,7 +58,7 @@ class BfnEditorWindow(
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(tr('BFN Font Editor v{0}', VERSION))
+        self.setWindowTitle(tr('Font Editor v{0}', VERSION))
         self.resize(1300, 850)
 
         # State
@@ -86,6 +86,15 @@ class BfnEditorWindow(
         self.archive_files = {}
         self.current_bfn_name = ""
         self.font_sources = {}
+
+        # Fonts of other formats and the plugin's font sources (IoFormatMixin)
+        self.font_format = "bfn"
+        self.font_params = {}
+        self.font_source = None
+        self.font_original = b""
+        self.font_write_path = ""
+        self._font_job = None
+        self._font_job_queue = []
 
         self.undo_stack = QtGui.QUndoStack(self)
         self.undo_stack.cleanChanged.connect(lambda clean: self._set_dirty(not clean))
@@ -170,8 +179,8 @@ class BfnEditorWindow(
         if super_save:
             super_save(self, silent=silent)
 
-        # After successful save, trigger Picoripi font sync
-        if not self._dirty and self.font_sync_callback:
+        # After successful save, trigger Picoripi font sync (other formats do it once their job has written)
+        if not self._dirty and self.font_sync_callback and self.font_format == "bfn":
             try:
                 self.font_sync_callback()
             except Exception as exc:

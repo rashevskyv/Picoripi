@@ -17,14 +17,39 @@ from utils.logging_utils import log_debug
 class IoLoadMixin:
     def choose_source(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, 
+            self,
             tr('Open BFN Font or choose Cancel for extracted folder'),
-            filter=tr('BFN Fonts (*.bfn);;All Files (*)')
+            filter=tr('Fonts (*.bfn *.bffnt *.g1t *.gz);;All Files (*)')
         )
         if path:
-            self.load_bfn(path)
+            self.open_font_file(path)
         else:
             self.choose_folder()
+
+    def open_font_file(self, path):
+        """Open a font file from disk; it is saved back in place. G1T needs the grid from the plugin."""
+        from core import font_formats
+        with open(path, 'rb') as f:
+            data = f.read()
+        fmt = font_formats.detect(data)
+        if fmt in (None, "bfn"):
+            self.load_bfn(path)
+            return
+        params = {}
+        if fmt == "g1t":
+            rules = getattr(self._main_window(), "current_game_rules", None)
+            described = [s for s in (rules.get_font_sources() if rules else []) if s.get("format") == "g1t"]
+            if not described:
+                QtWidgets.QMessageBox.critical(self, tr('Error'), tr(
+                    'A G1T texture has no character grid of its own; open it from a project whose game plugin describes it.'))
+                return
+            params = dict(described[0].get("params") or {})
+        self.font_source = None
+        self.archive_save_callback = None
+        self.archive_name = ""
+        self.archive_files = {}
+        self.current_bfn_name = os.path.basename(path)
+        self.load_formatted_bytes(data, os.path.basename(path), fmt, params, write_path=path)
 
     def choose_folder(self):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self, tr('Select folder containing data.json and sheet_*.png'))
@@ -39,7 +64,8 @@ class IoLoadMixin:
         self.status.showMessage(tr("Loading BFN file: {0}...", os.path.basename(path)))
         self.clear_temp()
         self.temp_dir = tempfile.mkdtemp(prefix="bfn_viewer_")
-        
+        self.font_format, self.font_source, self.font_write_path = "bfn", None, ""
+
         try:
             extract_bfn_logic(path, self.temp_dir)
             self.bfn_path = path
@@ -55,7 +81,8 @@ class IoLoadMixin:
         self.status.showMessage(tr("Loading BFN from archive: {0}...", bfn_name))
         self.clear_temp()
         self.temp_dir = tempfile.mkdtemp(prefix="bfn_viewer_")
-        
+        self.font_format, self.font_source, self.font_write_path = "bfn", None, ""
+
         try:
             # Створимо тимчасовий bfn файл
             temp_bfn_path = os.path.join(self.temp_dir, bfn_name)
@@ -92,6 +119,7 @@ class IoLoadMixin:
         maps = self.metadata.get("MAP1", [])
         for m in maps:
             if m.get("mapping_type", 0) == 0:
+                m["linear_count"] = m.get("mapping_entry_count", 0)  # saved as linear again while unchanged
                 m["mapping_type"] = 2
                 first_char = m.get("first_char", 0)
                 last_char = m.get("last_char", 0)
