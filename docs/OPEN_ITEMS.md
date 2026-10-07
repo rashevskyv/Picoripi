@@ -554,6 +554,8 @@ ender_proof.py` (text through plugin, SRL build and the font).
   game with Dolphin's GBA only the text and font were shown (2026-10-04).
 - **A session with unsaved edits keeps its old block list** when the folder sync adds project files
   (`SessionMixin._session_misses_project_blocks` falls back to a full load only without unsaved edits).
+- **Removed project blocks stay in virtual folders**: `Project.remove_block` (used by the folder sync) leaves the
+  block id in its folder, so empty folders remain in the block tree (the WW project was cleaned by hand).
 
 ## Zelda: Tears of the Kingdom plugin (`plugins/zelda_totk`)
 
