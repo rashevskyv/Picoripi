@@ -1,0 +1,22 @@
+[
+  {"label": "Title screen logo", "kind": "title_screen", "format": "tpl",
+   "path": ["Layout/Title2D/timg/*.tpl", "US/Layout/Title2D/timg/*.tpl", "EU/Layout/Title2D/timg/*.tpl"]},
+  {"label": "Opening captions and 25th anniversary logo", "kind": "title_screen", "format": "tpl",
+   "path": ["Layout/DemoTitle/timg/*.tpl", "US/Layout/DemoTitle/timg/*.tpl", "EU/Layout/DemoTitle/timg/*.tpl"]},
+  {"label": "Ending logos", "kind": "ending", "format": "tpl",
+   "path": ["Layout/EndRoll/timg/*.tpl", "US/Layout/EndRoll/timg/*.tpl", "EU/Layout/EndRoll/timg/*.tpl"]},
+  {"label": "The End", "kind": "ending", "format": "tpl",
+   "path": ["Layout/endFinish_03/timg/*.tpl", "US/Layout/endFinish_03/timg/*.tpl"]},
+  {"label": "Game Over", "kind": "popup", "format": "tpl",
+   "path": ["Layout/GameOver/timg/*.tpl", "US/Layout/GameOver/timg/*.tpl", "EU/Layout/GameOver/timg/*.tpl"]},
+  {"label": "Game Over (English layout)", "kind": "popup", "format": "tpl",
+   "path": ["Layout/gameOver_01/timg/*.tpl", "US/Layout/gameOver_01/timg/*.tpl"]},
+  {"label": "Save file banner and icon (Wii)", "kind": "banner", "format": "tpl",
+   "path": ["US/Layout/saveBannerU/tmp/*.tpl"]},
+  {"label": "Wrist strap notice (Wii)", "kind": "notice", "format": "tpl",
+   "path": ["US/Layout/strapU/timg/*.tpl"]},
+  {"label": "Disc channel banner and icon (Wii Menu)", "kind": "banner", "format": "tpl", "path": ["opening.bnr"],
+   "member": "meta/{banner.bin/arc/timg/th_rogo_03,icon.bin/arc/timg/th_iconRogo*}.tpl"},
+  {"label": "HOME Menu labels (Wii)", "kind": "menu_label", "format": "tpl",
+   "path": ["US/HomeButton2/homeBtn_ENG/arc/timg/*.tpl", "EU/HomeButton2/homeBtn_ENG/arc/timg/*.tpl"]}
+]

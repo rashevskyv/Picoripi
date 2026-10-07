@@ -17,5 +17,16 @@
     "format": "brfnt",
     "path": ["US/Font/en_US/normal_02.brfnt", "EU/Font/en_GB/normal_02.brfnt"],
     "font_map": "normal_02_wii.json"
-  }
+  },
+  {"label": "Button icons (picture_00)", "format": "brfnt", "path": ["Font/picture_00.brfnt"]},
+  {"label": "Options menu font (MenuOptions normal_00, HD)", "format": "brfnt",
+   "path": ["Layout/MenuOptions/font/normal_00.brfnt"]},
+  {"label": "Options menu font (MenuOptions normal_01, HD)", "format": "brfnt",
+   "path": ["Layout/MenuOptions/font/normal_01.brfnt"]},
+  {"label": "Game Over font (gameOver_04 normal_00, HD)", "format": "brfnt",
+   "path": ["Layout/gameOver_04/font/normal_00.brfnt"]},
+  {"label": "HOME Menu font (Wii)", "format": "brfnt",
+   "path": ["US/HomeButton2/homeBtn_ENG/arc/font/*.brfnt", "EU/HomeButton2/homeBtn_ENG/arc/font/*.brfnt"]},
+  {"label": "Wii MotionPlus video font (wbf1_mp)", "format": "brfnt", "path": ["sys/mpls_movie/font/us/wbf1_mp.brfnt"]},
+  {"label": "Wii MotionPlus video font (wbf2_mp)", "format": "brfnt", "path": ["sys/mpls_movie/font/us/wbf2_mp.brfnt"]}
 ]

@@ -225,9 +225,44 @@ def test_a_wii_source_folder_uses_the_wii_widths_and_fonts(tmp_path):
     assert rules.version() == WII
     assert rules.get_string_layout(blocks["105-Terry"], 0)["max_width"] == BOX_WIDTHS[WII][1] == 650
     assert rules.calculate_string_width_override("Yes{choice1:65535}No way{choice2:0}No", {"Y": {"width": 9}, "e": {"width": 5}, "s": {"width": 5}, "N": {"width": 10}, "o": {"width": 5}, " ": {"width": 3}, "w": {"width": 7}, "a": {"width": 5}, "y": {"width": 5}}) == 35
-    sources = {entry["font_map"]: entry.get("params", {}) for entry in rules.get_font_sources()}
+    sources = {entry["font_map"]: entry.get("params", {}) for entry in rules.get_font_sources() if "font_map" in entry}
     assert sources == {"normal_00_wii.json": {"min_sheets": 29}, "special_00_wii.json": {"min_sheets": 17},
                        "normal_02_wii.json": {"min_sheets": 3}}
+    others = [entry for entry in rules.get_font_sources() if "font_map" not in entry]
+    assert others and all("params" not in entry for entry in others)     # icons, HOME Menu...: sheets as they are
+
+
+HOME_CSV = ('"接続"\t"Press ① and ②\r\non each Wii Remote."\t"Bitte"\r\n'
+            '"リセット"\t"Reset the software?"\t"Zurücksetzen?"\r\n')
+BOM = b"\xfe\xff"
+
+
+def test_the_wii_home_menu_table_edits_only_the_english_cell(tmp_path):
+    raw = BOM + HOME_CSV.encode("utf-16-be")
+    rules = GameRules()
+    blocks, names = rules.load_data_from_json_obj(raw)
+    assert blocks == [["Press ① and ②\non each Wii Remote.", "Reset the software?"]]
+    assert rules.save_data_to_json_obj(blocks, names) == raw
+    edited = rules.save_data_to_json_obj([['UA "TEST"\nline', "Reset the software?"]], names)
+    assert edited == BOM + HOME_CSV.replace("Press ① and ②\r\non each Wii Remote.",
+                                            'UA ""TEST""\r\nline').encode("utf-16-be")
+    # in a project: the table is a block, the save keeps the other languages of the file
+    home = tmp_path / "source" / "HomeButton2"
+    home.mkdir(parents=True)
+    (home / "home.csv").write_bytes(raw)
+    rules, manager, loaded, blocks = _project(tmp_path, layout="US/Layout")
+    index = blocks["home"]
+    assert loaded["data"][index][1] == "Reset the software?"
+    output = [list(rows) for rows in loaded["data"]]
+    output[index][1] = "UA TEST"
+    mw = SimpleNamespace(state=None, project_manager=manager, current_game_rules=rules,
+                         block_to_project_file_map=loaded["block_to_project_file_map"],
+                         data_store=SimpleNamespace(block_names=loaded["block_names"],
+                                                    edited_data={(index, 1): "UA TEST"}))
+    saved, _warnings, errors = DataStateProcessor(mw)._perform_save_impl(output)
+    assert (saved, errors) == (True, [])
+    written = (tmp_path / "translation" / "HomeButton2" / "home.csv").read_bytes()
+    assert written == raw.replace("Reset the software?".encode("utf-16-be"), "UA TEST".encode("utf-16-be"))
 
 
 def test_reference_languages_match_by_label_and_put_russian_first(tmp_path):
@@ -243,3 +278,30 @@ def test_reference_languages_match_by_label_and_put_russian_first(tmp_path):
     assert list(found) == ["Russian (RU)", "French (US)"]
     assert found["Russian (RU)"] == {(terry, 0): "Эй, {heroName}!", (terry, 1): "Спасибо!"}
     assert found["French (US)"] == {(terry, 0): "Salut !"}
+
+
+def test_the_wii_channel_banner_shows_its_members_decompressed_and_hashes_them_again():
+    import hashlib
+
+    from core.containers import lz10
+    from plugins.zelda_sshd.banner import WiiBannerContainer
+
+    def imd5(plain: bytes) -> bytes:
+        payload = b"LZ77" + lz10.compress(plain)
+        return b"IMD5" + struct.pack(">I", len(payload)) + bytes(8) + hashlib.md5(payload).digest() + payload
+
+    inner = u8({"arc/a.tpl": b"\x00\x20\xaf\x30" + bytes(60)})
+    head = bytes(0x40) + b"IMET" + bytes(0x600 - 0x44)
+    raw = head + u8({"meta/banner.bin": imd5(inner), "meta/sound.bin": b"BNS " + bytes(28)})
+    container = WiiBannerContainer(raw)
+    assert WiiBannerContainer.can_handle(raw) and not WiiBannerContainer.can_handle(inner)
+    assert container.read_file("meta/banner.bin") == inner
+    container.write_file("meta/banner.bin", inner)
+    assert container.pack() == raw                      # an unchanged member keeps its stored bytes
+    changed = inner.replace(bytes(60), b"\x11" * 60)
+    container.write_file("meta/banner.bin", changed)
+    again = WiiBannerContainer(container.pack())
+    assert again.read_file("meta/banner.bin") == changed
+    stored = again._u8.read_file("meta/banner.bin")
+    assert stored[16:32] == hashlib.md5(stored[32:]).digest()
+    assert again.pack()[:0x600] == head
