@@ -100,6 +100,10 @@ class GameRules(BaseGameRules):
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
+    plugin_dir = _PLUGIN_DIR                        # translation_map.json, context.json
+    areas = AREAS                                   # file name prefix -> (place, chapter)
+    global_groups = GLOBAL_GROUPS                   # the blocks a file with ``global_markers`` keys splits into
+    global_markers = ("btl_un_", "msg_menu_")
     tag_style = "curly"
     show_spaces_as_dots_default = True
 
@@ -131,7 +135,7 @@ class GameRules(BaseGameRules):
         project_dir = getattr(pm, "project_dir", None)
         path = os.path.join(project_dir, "translation_map.json") if project_dir else ""
         if not path or not os.path.isfile(path):
-            path = str(user_plugin_file_or_shipped(_PLUGIN_DIR.name, "translation_map.json"))
+            path = str(user_plugin_file_or_shipped(self.plugin_dir.name, "translation_map.json"))
         try:
             stamp = (path, os.path.getmtime(path))
         except OSError:
@@ -163,13 +167,13 @@ class GameRules(BaseGameRules):
             self._leftovers[layout] = [e.key.hex() for e in entries if msgfile.is_leftover(e.text)]
         skip = set(self._leftovers[layout])
         shown = [e for e in entries if e.key.hex() not in skip]
-        if not any(e.name.startswith(("btl_un_", "msg_menu_")) for e in shown):
+        if not any(e.name.startswith(self.global_markers) for e in shown):
             return [("Messages", "", shown)]
         groups: Dict[str, Tuple[str, List[msgfile.Entry]]] = {}
         for entry in shown:
-            name, kind = next((n, k) for prefix, n, k in GLOBAL_GROUPS if entry.name.startswith(prefix))
+            name, kind = next((n, k) for prefix, n, k in self.global_groups if entry.name.startswith(prefix))
             groups.setdefault(name, (kind, []))[1].append(entry)
-        order = [n for _p, n, _k in GLOBAL_GROUPS]
+        order = [n for _p, n, _k in self.global_groups]
         return [(name, groups[name][0], groups[name][1]) for name in sorted(groups, key=order.index)]
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
@@ -206,14 +210,14 @@ class GameRules(BaseGameRules):
             if len(block) != len(group):
                 raise ValueError(f"Expected {len(group)} messages in block '{name}', got {len(block)}")
             for entry, text in zip(group, block):
-                texts[entry.key] = str(text)
+                texts[id(entry)] = str(text)          # by entry: a key may occur twice (SPM global.txt)
         missing: Set[str] = set()
-        out = [msgfile.Entry(e.key, msgfile.encode(texts[e.key], self.translation_map, missing))
-               if e.key in texts else e for e in entries]
+        out = [msgfile.Entry(e.key, msgfile.encode(texts[id(e)], self.translation_map, missing))
+               if id(e) in texts else e for e in entries]
         if missing:
             log_warning("paper_mario_gc: characters the font has no glyph for were written as '?': "
                         f"{''.join(sorted(missing))}")
-        return msgfile.build(out)
+        return msgfile.build(out) + msgfile.padding(source)
 
     def export_runtime_state(self) -> Any:
         return {"leftovers": self._leftovers}
@@ -272,7 +276,7 @@ class GameRules(BaseGameRules):
     def _context_data(self) -> dict:
         if self._context is None:
             try:
-                self._context = json.loads((_PLUGIN_DIR / "context.json").read_text(encoding="utf-8"))
+                self._context = json.loads((self.plugin_dir / "context.json").read_text(encoding="utf-8"))
             except (OSError, ValueError) as error:
                 log_warning(f"paper_mario_gc: cannot read context.json: {error}")
                 self._context = {}
@@ -316,7 +320,7 @@ class GameRules(BaseGameRules):
         if not found:
             return {}
         name, area, _kind, entry = found
-        place, chapter = AREAS.get(area, (area, ""))
+        place, chapter = self.areas.get(area, (area, ""))
         stage = re.match(r"(?:peach_|kpa_)?(stg\d)", entry.name)
         if stage:
             chapter = _CHAPTER_OF_STAGE.get(stage.group(1), chapter)
@@ -361,7 +365,7 @@ class GameRules(BaseGameRules):
                 add(text, section, {"Badges": "Badge", "Key items": "Key item"}.get(section, "Item"), entry.name)
             elif entry.name.startswith("btl_un_"):
                 add(text, "Enemies", "Enemy (battle name)", entry.name)
-        for area, (place, chapter) in AREAS.items():
+        for area, (place, chapter) in self.areas.items():
             if area not in ("global", "kpa", "yuu", "dmo", "end"):
                 add(place, "Places", f"Place ({chapter})", f"msg/US/{area}_*.txt")
         for name in sorted({n for area in context.get("speakers", {}).values() for n in area.values()

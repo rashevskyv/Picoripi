@@ -162,6 +162,15 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   error) are drawn with the console's ROM font, which has no Cyrillic; the disc banner `opening.bnr` is shown
   only by the console menu. Every TPL on the disc (1,263 files, 8 GX formats) reads and writes back byte-exact.
 
+## Super Paper Mario (`plugins/super_paper_mario`, 2026-10-07)
+
+- Not opened: the disc-error messages in `sys/main.dol` (2_build writes only `files/`) and the channel title
+  in the `opening.bnr` IMET header. No speakers, glossary seed or measured window widths yet (the
+  Thousand-Year Door widths are the default); no `papermarioset_EU.json` width map until the Font Editor saves one.
+- No font has Ukrainian letters: `papermarioset_EU`/`_US` and the HOME Menu font have no Cyrillic,
+  `papermarioset_JPN` lacks Ґ Є І Ї ґ є і ї. `translation_map.json` is the Thousand-Year Door one (Latin-1
+  slots); the PAL disc's French, German, Spanish and Italian text use those slots too.
+
 ## Font editor formats (2026-10-03)
 
 - Ukrainian glyphs drawn and shown on screen 2026-10-04 (Dolphin WW, SoH, 2Ship, Eden HWDE, Azahar for the 3DS
