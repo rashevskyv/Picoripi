@@ -19,7 +19,9 @@ the line when it is done or moved into a plan.
 
 ## Textures window (`core/texture_formats`, 2026-10-04)
 
-- Not encoded yet: ASTC (TotK logo colour/outline layers: 5 textures), BC6H. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), the Wii channel banner (`opening.bnr`: IMET > U8 > LZ77 > U8 > TPL, LZ77 not handled).
+- Not encoded yet: BC6H; ASTC other than 4x4 (TotK map tiles ASTC 8x8 / 12x12 only read; ASTC encoding writes
+  one RGBA line per block, BC1-like). TotK layout archives are copied into `source/UI/LayoutArchive` by hand: `zt/nx.py`
+  `TOTK_PARTS` does not unpack them yet. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), the Wii channel banner (`opening.bnr`: IMET > U8 > LZ77 > U8 > TPL, LZ77 not handled).
 - No container yet: Koei RDB (Age of Calamity: 4 groups of BC3/BC1 sprites), TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\_shared\textures\drafts`.
 - 3DS games have no plugin: their textures open with File → Open (BFLIM, CTPK, CTXB; SARC/SZS, ZAR/GAR, LzS archives) and are edited in place; a plugin with `texture_sources.json` (drafts `zelda_albw`, `zelda_tfh`, `zelda_oot3d`, `zelda_mm3d`) would list them. OoT3D title logo letters are in a CMB model (not handled).
 - Majora's Mask `yar` archives have no room to grow in the ROM: an edit that compresses worse than the original is fitted by recompressing every block of the archive optimally; if even that does not fit, the save is refused with the file's size.
@@ -152,8 +154,9 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - The N64 slot maps are confirmed (2026-10-04): no English message, credit, code-printed text, name entry or
   SoH/2Ship text uses a cell a Ukrainian letter takes, and every glyph fits its cell
   (`plugins/zelda_oot64|zelda_mm64/translation_map.md`).
-- TotK's fonts are scalable OpenType (`bfotf`): the editor shows them, outlines are edited outside (FontForge on
-  the unscrambled OTF) or by `plugins/zelda_totk/font_glyphs.py`. Opening needs the TotK plugin's SARC container.
+- TotK's fonts are scalable OpenType (`bfotf`): the editor saves widths and redrawn glyphs (traced as squares:
+  drafts only); finished outlines are made outside (FontForge on the unscrambled OTF) or by
+  `plugins/zelda_totk/font_glyphs.py`. TrueType `.bfttf` (the Asian archives) is view-only.
 - BFFNT (Switch): new characters get a CMAP block and new sheets a texture layer (`min_sheets`); the kerning table
   (KRNG) is kept as it is, and a removed character outside the changed code range still resolves.
 - HWDE: the `../romfs/...` candidate assumes the workspace layout `source/` next to `romfs/` and a translation
