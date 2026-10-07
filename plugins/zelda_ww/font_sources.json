@@ -18,5 +18,8 @@
     "path": "Font/CKingMainL.bffnt",
     "font_map": "CKingMainL.json",
     "params": {"min_sheets": 5}
-  }
+  },
+  {"label": "Button pictures (CKingPic)", "format": "bffnt_wiiu", "path": "Font/CKingPic.bffnt"},
+  {"label": "Japanese ruby (CKingRuby)", "format": "bffnt_wiiu", "path": "Font/CKingRuby.bffnt"},
+  {"label": "Hylian script (CKingZelda)", "format": "bffnt_wiiu", "path": "Font/CKingZelda.bffnt"}
 ]
