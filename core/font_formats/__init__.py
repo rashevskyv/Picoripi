@@ -32,13 +32,14 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import (bcfnt, bffnt, bfotf, g1n, g1t, gba_tiles, gzf, m2, mgs, mgs1, mgs1_hd, n64, nftr, pgf,
-                                   policenauts, qbf, retro_font, retro_font_gx, texture_grid, twewy, vagrant, xf, zelda3)
+    from core.font_formats import (bcfnt, bffnt, bfotf, g1n, g1t, gba_tiles, gzf, lunar, m2, mgs, mgs1, mgs1_hd, n64, nftr,
+                                   pgf, policenauts, qbf, retro_font, retro_font_gx, texture_grid, twewy, vagrant, xf, zelda3)
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
             "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
-            "texture_grid": texture_grid, "zelda3": zelda3, "mgs1": mgs1, "mgs1_hd": mgs1_hd, "m2": m2}
+            "texture_grid": texture_grid, "zelda3": zelda3, "mgs1": mgs1, "mgs1_hd": mgs1_hd, "m2": m2,
+            "lunar": lunar}
 
 
 def adds_glyphs(fmt: str) -> bool:

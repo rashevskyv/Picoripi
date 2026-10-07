@@ -1,0 +1,92 @@
+[
+ {
+  "label": "Title menu: NEW GAME, CONTINUE, OPTION",
+  "kind": "title",
+  "format": "tim",
+  "path": "LUNADATA/OPEN1.BIN/12_0002.tim"
+ },
+ {
+  "label": "Title: PRESS START BUTTON",
+  "kind": "title",
+  "format": "tim",
+  "path": "LUNADATA/OPEN1.BIN/13_0002.tim"
+ },
+ {
+  "label": "Title logo and copyright line",
+  "kind": "title",
+  "format": "tim",
+  "path": "LUNADATA/OPEN1.BIN/11_0002.tim"
+ },
+ {
+  "label": "Copyright screen",
+  "kind": "credits",
+  "format": "tim",
+  "path": "LUNADATA/OPEN1.BIN/06_0102.tim"
+ },
+ {
+  "label": "Kadokawa Shoten logo",
+  "kind": "logo",
+  "format": "tim",
+  "path": "LUNADATA/OPEN1.BIN/07_0202.tim"
+ },
+ {
+  "label": "ESP logo",
+  "kind": "logo",
+  "format": "tim",
+  "path": "LUNADATA/OPEN1.BIN/08_0302.tim"
+ },
+ {
+  "label": "Game Arts logo",
+  "kind": "logo",
+  "format": "tim",
+  "path": "LUNADATA/OPEN1.BIN/09_0402.tim"
+ },
+ {
+  "label": "JAM logo",
+  "kind": "logo",
+  "format": "tim",
+  "path": "LUNADATA/OPEN1.BIN/10_0502.tim"
+ },
+ {
+  "label": "Please insert DISC 1",
+  "kind": "system",
+  "format": "tim",
+  "path": "LUNADATA/INSERT.TIM/00_0102.tim"
+ },
+ {
+  "label": "Please insert DISC 2",
+  "kind": "system",
+  "format": "tim",
+  "path": "LUNADATA/INSERT.TIM/01_0202.tim"
+ },
+ {
+  "label": "Please insert DISC 1 (incorrect disc)",
+  "kind": "system",
+  "format": "tim",
+  "path": "LUNADATA/INSERT.TIM/02_0302.tim"
+ },
+ {
+  "label": "Please insert DISC 2 (incorrect disc)",
+  "kind": "system",
+  "format": "tim",
+  "path": "LUNADATA/INSERT.TIM/03_0402.tim"
+ },
+ {
+  "label": "Outtakes title",
+  "kind": "credits",
+  "format": "tim",
+  "path": "LUNADATA/INSERT.TIM/04_0502.tim"
+ },
+ {
+  "label": "That's All, Thanks for Playing!",
+  "kind": "credits",
+  "format": "tim",
+  "path": "LUNADATA/INSERT.TIM/05_0602.tim"
+ },
+ {
+  "label": "HUD digits and party names (4-bit; the game sets the palette)",
+  "kind": "hud",
+  "format": "tim",
+  "path": "LUNADATA/SYSTEM.DAT/01_0002.tim"
+ }
+]

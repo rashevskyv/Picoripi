@@ -1,0 +1,38 @@
+[
+ {
+  "label": "Game Arts logo",
+  "kind": "title",
+  "format": "tim",
+  "path": "DATA/SYSTEM/2500/00.tim"
+ },
+ {
+  "label": "ESP, Kadokawa Shoten and Vanguard Works logos",
+  "kind": "title",
+  "format": "tim",
+  "path": "DATA/SYSTEM/2500/01.tim"
+ },
+ {
+  "label": "Title: LUNAR 2 logo, New Game / Continue / Epilogue, copyright, PRESS START BUTTON",
+  "kind": "title",
+  "format": "tim",
+  "path": "DATA/SYSTEM/2500/02.tim"
+ },
+ {
+  "label": "Battle status page: Attack, Defense, names (4-bit; the game picks the palette)",
+  "kind": "hud",
+  "format": "tim",
+  "path": "DATA/SYSTEM/2498/00.tim"
+ },
+ {
+  "label": "Card game words (Odd, Even, In order)",
+  "kind": "minigame",
+  "format": "tim",
+  "path": "DATA/MAPTEX/1379/00.tim"
+ },
+ {
+  "label": "Full-screen pictures (epilogue, letters, credits)",
+  "kind": "picture",
+  "format": "tim",
+  "path": "DATA/PICTURE/*.tim"
+ }
+]

@@ -6,6 +6,7 @@ tokens: 14.3k
 tokens: 11.4k
 tokens: 11.3k
 tokens: 11.5k
+tokens: 11.4k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -298,6 +299,20 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `_US`, `_JPN.bfn` and the HOME Menu font; the Textures window lists the title, pause, file-select,
      name-entry, chapter captions, HOME Menu and channel banner textures. `2_build.bat` packs every changed file
      back into its archive and the disc image.
+   - `lunar_sssc` — Lunar: Silver Star Story Complete (PlayStation, USA, 2 discs). **Source:** the workspace's
+     `source` folder (`1_unpack.bat`): `LUNADATA\TEXT*.DAT` (event scripts: messages and yes/no answers),
+     `LUNADATA\SYSTEM.DAT\00_0001.bin` (items, spells, monsters, places, menus; fixed room), the unpacked program
+     `SLUS_006.28` (Font Editor: text font and symbol font) and 15 TIM pictures (Textures: title menu, logos,
+     insert-disc screens). Tags: `{wait}`, `{page}`, `{clear}`, `{close}`, `{end}`, `{FA:39}`-style codes.
+     A longer message moves the script code after it; `2_build.bat` rebuilds both discs.
+   - `lunar_ebc` — Lunar 2: Eternal Blue Complete (PlayStation, USA, 3 discs). **Source:** the workspace's
+     `source` folder (`1_unpack.bat`, files of `DATA.PAK`): `DATA\EVENT` (event scripts), `DATA\PEOPLE` (what
+     people on a map say), `DATA\SYSTEM\2499\05-12.bin` (items, spells, menus, memory-card messages),
+     `DATA\BATTLE` (monster names, 21 letters), `DATA\MAP` (place names, fixed length),
+     `DATA\SYSTEM\0003.bin`. Font Editor: the text font `DATA\SYSTEM\2499\18_font.bin` (94 glyphs and their
+     widths). Textures: title screen and logos, battle status page, card game words, 50 full-screen pictures.
+     Tags: `\n` next line, `{2000}` new page, `{3007}` the 'more' arrow, `{B2C9}` speaker, `{XXXX}` other codes.
+     A longer text moves the messages; a file that outgrows its place goes to the end of the disc.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
