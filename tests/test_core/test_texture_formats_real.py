@@ -53,15 +53,15 @@ def test_wind_waker_title_textures(member):
 
 
 def test_link_between_worlds_banner_and_logo():
-    banner = _need(ZELDA / "A Link Between Worlds" / "3DS" / "romfs" / "EU_English" / "Layout" / "Finish_00.bflim").read_bytes()
+    banner = _need(ZELDA / "A Link Between Worlds" / "romfs" / "EU_English" / "Layout" / "Finish_00.bflim").read_bytes()
     assert _round_trip("bflim", banner)[0].image.size == (256, 64)
-    archive = _need(ZELDA / "A Link Between Worlds" / "3DS" / "romfs" / "Archive" / "Lyt_Menu.arc").read_bytes()
+    archive = _need(ZELDA / "A Link Between Worlds" / "romfs" / "Archive" / "Lyt_Menu.arc").read_bytes()
     logo, _ = sources.unwrap(archive, "timg/TitleLogoUSEU_00.bflim", {})
     _round_trip("bflim", logo)
 
 
 def test_tri_force_heroes_billboards():
-    data = _need(ZELDA / "Tri Force Heroes" / "3DS" / "romfs" / "Common" / "Icon" / "billboardCommon.ctpk").read_bytes()
+    data = _need(ZELDA / "Tri Force Heroes" / "romfs" / "Common" / "Icon" / "billboardCommon.ctpk").read_bytes()
     assert _round_trip("ctpk", data)[0].name == "Arena1st.tga"
 
 
@@ -72,7 +72,7 @@ def test_wind_waker_hd_sea_chart_label():
 
 
 def test_cadence_title_logo_in_the_zlib_pack():
-    pack = _need(ZELDA / "Cadence of Hyrule" / "Switch" / "romfs" / "textures_bin" / "texture_pack.bin")
+    pack = _need(ZELDA / "Cadence of Hyrule" / "romfs" / "textures_bin" / "texture_pack.bin")
     descriptor = next(d for d in json.loads((ROOT / "plugins" / "zelda_coh" / "texture_sources.json")
                                             .read_text(encoding="utf-8")) if d["label"].startswith("Title"))
     data, _ = sources.unwrap(pack.read_bytes(), "", descriptor["params"])
@@ -120,7 +120,7 @@ def test_plugin_texture_lists_find_their_textures():
 
 
 def test_a_decoded_texture_is_an_rgba_image():
-    data = _need(ZELDA / "A Link Between Worlds" / "3DS" / "romfs" / "EU_English" / "Layout" / "TheEnd_00.bflim").read_bytes()
+    data = _need(ZELDA / "A Link Between Worlds" / "romfs" / "EU_English" / "Layout" / "TheEnd_00.bflim").read_bytes()
     image = texture_formats.read("bflim", data)[0].image
     assert isinstance(image, Image.Image) and image.mode == "RGBA"
 

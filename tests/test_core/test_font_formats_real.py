@@ -21,11 +21,11 @@ ZELDA = Path(r"E:\Emulators\RomHacking\Zelda")
 SWITCH = Path(r"D:\Downloads\switch")
 OOT_ROM = ZELDA / "Ocarina of Time" / "N64" / "rom" / "Legend of Zelda, The - Ocarina of Time (USA).z64"
 MM_ROM = ZELDA / "Majoras Mask" / "N64" / "rom" / "Legend of Zelda, The - Majora's Mask (USA).z64"
-HWDE_UI = ZELDA / "Hyrule Warriors DE" / "Switch" / "romfs" / "data" / "ui"
-AOC_FONT = ZELDA / "Hyrule Warriors Age of Calamity" / "Switch" / "source" / "font" / "latin.g1n"
+HWDE_UI = ZELDA / "Hyrule Warriors DE" / "romfs" / "data" / "ui"
+AOC_FONT = ZELDA / "Hyrule Warriors Age of Calamity" / "source" / "font" / "latin.g1n"
 WW_FILES = ZELDA / "Wind Waker" / "GC" / "ISO" / "ENG" / "files"
 TP_FONTS = ZELDA / "Twilight Princess" / "GC + Wii" / "ISO" / "ENG" / "root" / "res" / "Fontus"
-COH_SOURCE = ZELDA / "Cadence of Hyrule" / "Switch" / "source"
+COH_SOURCE = ZELDA / "Cadence of Hyrule" / "source"
 NX_FONTS = [
     SWITCH / "Cadence of Hyrule [NSP]" / "Russian Language Mod (30.09.2020)" / "atmosphere" / "contents"
     / "01000B900D8B0000" / "romfs" / "fonts_bin" / "PixelMPlus.bffnt",
@@ -275,8 +275,8 @@ THREE_DS = [  # (file or archive, format, characters per font)
     (ZELDA / "Ocarina of Time" / "3D - 3DS" / "romfs" / "message" / "sys8.qbf", "qbf", [288]),
     (ZELDA / "Ocarina of Time" / "3D - 3DS" / "RU" / "romfs" / "message" / "eu" / "ltn16.qbf", "qbf", [265]),
     (ZELDA / "Majoras Mask" / "3D - 3DS" / "romfs" / "message" / "ltn16.gzf", "gzf", [468]),
-    (ZELDA / "A Link Between Worlds" / "3DS" / "romfs" / "EU" / "RegionBoot.szs", "bcfnt", [49, 687]),
-    (ZELDA / "Tri Force Heroes" / "3DS" / "romfs" / "Archive" / "EU" / "RegionBoot.szs", "bcfnt", [49, 740]),
+    (ZELDA / "A Link Between Worlds" / "romfs" / "EU" / "RegionBoot.szs", "bcfnt", [49, 687]),
+    (ZELDA / "Tri Force Heroes" / "romfs" / "Archive" / "EU" / "RegionBoot.szs", "bcfnt", [49, 740]),
 ]
 
 
@@ -300,7 +300,7 @@ def test_aoc_descriptors_find_the_font_in_the_workspace_source():
     assert font_formats.detect(found[0].read_current()) == "g1n"
 
 
-FSAE = ZELDA / "Four Swords Anniversary" / "DSi"
+FSAE = ZELDA / "Four Swords Anniversary"
 
 
 def test_four_swords_nftr_round_trips_through_the_plugin_source(tmp_path):

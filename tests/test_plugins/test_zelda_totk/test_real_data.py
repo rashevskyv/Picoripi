@@ -10,7 +10,7 @@ from plugins.zelda_totk import event_flow, font_glyphs, restbl
 from plugins.common.msbt import Msbt, Tag
 from plugins.zelda_totk.tags import from_editor, to_editor
 
-ROMFS = Path(r"E:\Emulators\RomHacking\Zelda\Tears of the Kingdom\Switch\romfs")
+ROMFS = Path(r"E:\Emulators\RomHacking\Zelda\Tears of the Kingdom\romfs")
 pytestmark = pytest.mark.skipif(not (ROMFS / "Pack" / "ZsDic.pack.zs").is_file(), reason="no TotK romfs on disk")
 
 

@@ -135,7 +135,7 @@ def test_real_files_round_trip_byte_for_byte():
     assert rows > 40000
 
 
-SOURCE_3 = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch 3\3DS\source")
+SOURCE_3 = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch 3\source")
 
 
 @pytest.mark.skipif(not SOURCE_3.is_dir(), reason="needs the Yo-kai Watch 3 workspace (YOKAI_WATCH_3)")

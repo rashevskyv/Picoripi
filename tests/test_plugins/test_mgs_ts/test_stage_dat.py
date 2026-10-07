@@ -11,7 +11,7 @@ from core.containers import ContainerManager
 from core.texture_formats import bti, pixels, sources
 from plugins.mgs_ts.stage_dat import SECTOR, StageDatContainer
 
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Metal Gear\Twin Snakes\GC")
+WORKSPACE = Path(r"E:\Emulators\RomHacking\Metal Gear\Twin Snakes")
 
 
 def picture(width, height, seed=1):

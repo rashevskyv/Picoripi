@@ -11,7 +11,7 @@ from plugins.zelda_hwde.textfile import LANGUAGES, TextFile
 
 from .test_formats import sample_file, xl
 
-ROMFS = Path(r"E:\Emulators\RomHacking\Zelda\Hyrule Warriors DE\Switch\romfs\data")
+ROMFS = Path(r"E:\Emulators\RomHacking\Zelda\Hyrule Warriors DE\romfs\data")
 REAL_FILES = (
     "common/msgdata.bin", "common/MovieSubtitle.bin", "common/VoiceMes.bin", "common/VoiceMesChange.bin",
     "event/EventSubtitle.bin", "intermission/IMSubtitle.bin", "battle/btlmessage.bin",
