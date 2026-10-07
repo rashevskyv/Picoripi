@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: ui/, components/, dialogs/
-tokens: 9.0k
+tokens: 11.6k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -109,6 +109,20 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      in-game messages, 240 px in menus). **Load Reference Patch** with the Russian build's `nitrofs` folder shows
      its Russian and the game's other languages. The Font Editor opens `font_ltn.nftr` with spare cells: a letter
      typed into one becomes a new character
+   - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Europe). **Source:** the workspace's `source` folder
+     (`1_unpack.bat` copies `romfs\message\eu\eu.qm`, the fonts, the name-entry keyboards
+     `romfs\menu\ltn16_*.list`, the text textures and `exefs\code.bin` there); **Translation:** `translation`
+     (whole files at their romfs paths; `2_build.bat` makes the LayeredFS mod). All 2,510 messages of `eu.qm`
+     (dialogue, items, signs, Navi, menus, file select, credits, Sheikah Stone visions, area names), one block per
+     id range; only the English slot is shown and saved, an unedited file stays byte for byte. The control codes
+     are tags named as in the N64 plugin: `{color:red}`, `{box-break}` (followed by a line break), `{item-icon:45}`,
+     `{button:A}`, `{name}`, `{two-choice}`, `{center}`, `{textid:0x0205}`, `{mq}…{mq-else}…{mq-end}` (normal and
+     Master Quest text), `{plural:1}…{plural-else}…{plural-end}`. The four keyboard pages are one string each (keep
+     the number of keys); the default player name `Link` (`code.bin`) holds at most 4 letters. **Load Reference
+     Patch** with the Russian build's `eu.qm` (or its folder) shows its Russian and the game's German, French,
+     Spanish and Italian. The Font Editor opens `ltn16.qbf` (dialogue) and `sys8.qbf`; the Textures window lists
+     137 text textures: menus, title, Boss Challenge, logo, area and boss title cards inside the scene and actor
+     `.zar` archives, and the SOLD OUT sign and title models (textures inside `.cmb` models)
    - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Source is the workspace's `source` folder
      (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
      with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs

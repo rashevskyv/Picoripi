@@ -321,3 +321,26 @@ def test_four_swords_ukrainian_font_has_the_letters_and_the_plugin_map_matches()
     assert all(_has_ink(metadata, sheets, char) for char in "ЄІЇҐєіїґ’")
     shipped = json.loads((ROOT / "plugins" / "zelda_fsae" / "fonts" / "fsae_ltn.json").read_text(encoding="utf-8"))
     assert font_formats.font_map(metadata) == shipped
+
+
+OOT3D = ZELDA / "Ocarina of Time" / "3D - 3DS"
+
+
+def test_ocarina_3d_fonts_edit_and_save_through_the_plugin_sources(tmp_path):
+    _need(OOT3D / "source" / "romfs" / "message" / "sys8.qbf")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_oot3d" / "font_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(OOT3D / "source"), "translation_path": str(tmp_path),
+                                          "is_directory_mode": True})
+    assert [source.name for source in found] == ["ltn16.qbf", "sys8.qbf"]
+    for source in found:
+        data = source.read_original()
+        metadata, sheets = font_formats.extract("qbf", data)
+        shipped = json.loads((ROOT / "plugins" / "zelda_oot3d" / "fonts" / source.font_map).read_text(encoding="utf-8"))
+        assert font_formats.font_map(metadata) == shipped
+        cell = font_formats.char_map(metadata)["e"]
+        width, height = metadata["GLY1"][0]["cell_width"], metadata["GLY1"][0]["cell_height"]
+        x, y = (cell % 16) * width, (cell // 16) * height
+        sheets[0].paste((255, 255, 255, 255), (x, y, x + width, y + height))
+        source.write(font_formats.pack("qbf", metadata, sheets, data))
+        assert source.read_current() != data and len(source.read_current()) == len(data)
+        assert source.read_original() == data                              # the source is never written

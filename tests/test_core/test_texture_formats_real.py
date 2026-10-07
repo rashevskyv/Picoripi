@@ -105,7 +105,8 @@ def test_ocarina_boss_card():
 
 def test_plugin_texture_lists_find_their_textures():
     roots = {"zelda_tww": ZELDA / "Wind Waker" / "GC" / "source", "zelda_oot64": ZELDA / "Ocarina of Time" / "N64" / "source",
-             "zelda_mm64": ZELDA / "Majoras Mask" / "N64" / "source"}
+             "zelda_mm64": ZELDA / "Majoras Mask" / "N64" / "source",
+             "zelda_oot3d": ZELDA / "Ocarina of Time" / "3D - 3DS" / "source"}
     checked = 0
     for plugin, root in roots.items():
         if not root.is_dir():
@@ -123,6 +124,29 @@ def test_a_decoded_texture_is_an_rgba_image():
     data = _need(ZELDA / "A Link Between Worlds" / "romfs" / "EU_English" / "Layout" / "TheEnd_00.bflim").read_bytes()
     image = texture_formats.read("bflim", data)[0].image
     assert isinstance(image, Image.Image) and image.mode == "RGBA"
+
+
+def test_ocarina_3d_every_listed_texture_writes_back_through_its_archive():
+    """CTXB files, CTXB members of scene/actor ZARs and the textures of the CMB models (SOLD OUT, title)."""
+    root = _need(ZELDA / "Ocarina of Time" / "3D - 3DS" / "source")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_oot3d" / "texture_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(root), "translation_path": ""})
+    assert len(found) >= 130
+    assert {"RGBA4", "RGBA8", "LA8", "ETC1A4"} <= {s.pixel_format for s in found}
+    assert any(s.member.endswith(".cmb") for s in found)
+    for source in found:
+        raw = Path(source.source_path).read_bytes()
+        data, rewrap = sources.unwrap(raw, source.member, source.params)
+        textures = texture_formats.read("ctxb", data)
+        assert texture_formats.write("ctxb", data, {i: t.image for i, t in enumerate(textures)}) == data, source.key
+        assert rewrap(data) == raw
+    card = next(s for s in found if s.member.endswith("spot00_euen.ctxb"))
+    data, rewrap = sources.unwrap(Path(card.source_path).read_bytes(), card.member, {})
+    _round_trip("ctxb", data)
+    white = Image.new("RGBA", card.size, (255, 255, 255, 255))
+    archive = rewrap(texture_formats.write("ctxb", data, {0: white}))       # the scene ZAR repacked
+    again, _ = sources.unwrap(archive, card.member, {})
+    assert texture_formats.read("ctxb", again)[0].image.getpixel((5, 5))[3] == 255
 
 
 def test_majoras_mask_3d_boss_card_through_lzs_and_gar():
