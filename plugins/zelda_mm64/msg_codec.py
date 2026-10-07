@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Tuple
 
 from plugins.common import z64_text
 from plugins.common.z64_text import Control, Message, TextFormat
+from plugins.zelda_oot64.msg_codec import CONTROLS as OOT_CONTROLS, END as OOT_END, NEWLINE as OOT_NEWLINE
 
 END = 0xBF
 NEWLINE = 0x11
@@ -83,3 +84,11 @@ def read_messages(code: bytes, table_offset: int, data: bytes) -> List[Message]:
 
 def build_messages(messages: List[Message], code: bytes, table_offset: int) -> Tuple[bytes, bytes]:
     return z64_text.build_messages(FORMAT, messages, code, table_offset, SEGMENT)
+
+
+# The credits (staff_message_data_static) keep Ocarina of Time's codes: no header, newline 0x01, end 0x02
+# (include/message_data_fmt_staff.h). They draw with this game's font, so its characters stay.
+CREDITS_FORMAT = TextFormat(
+    controls={code: control for code, control in OOT_CONTROLS.items() if code < 0x20},
+    newline=OOT_NEWLINE, end=OOT_END, box_breaks=frozenset({0x04, 0x0C}), charmap=CHARMAP,
+)

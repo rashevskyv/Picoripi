@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 10.7k
+tokens: 12.7k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -501,7 +501,8 @@ ender_proof.py` (text through plugin, SRL build and the font).
   (checked statically only). Test ROMs: `MM64_UA\rom\test_edit_blue_rupee.z64`, `test_text_grown_40pct.z64`.
 - **Characters per text box**: `Font.charBuf` holds 120 glyphs per box (`include/z64font.h`); longer Ukrainian
   boxes may run out. Not checked by the plugin yet.
-- **Credits** (`staff_message_data_static`) are not in the project.
+- **Credits** (`staff_message_data_static`), the code's own strings and PRESS START open since 2026-10-07. The credits draw with their own width table (`sCreditsFontWidths` in `code`), which the Font Editor does not edit. PRESS START can use only the ordered font's cells (digits, Latin, a few accented cells: no Cyrillic slot of `translation_map.json` except the look-alikes).
+- **Exports carry the messages and the message font only**: the 2Ship `.o2r` and the Recomp source leave out credits, interface strings, PRESS START and textures.
 - **Exports**: a 2Ship2Harkinian `.o2r` (TextMM file) and a Zelda64Recomp `.nrm` (EZ Text Replacer code)
   from the same project; the Ukrainian MM3D table (`translation_majora.csv`) as a seed for the N64 ids.
 - **Width of runtime values** (`{rupees-total}`, timers) counts as zero.
