@@ -1,0 +1,122 @@
+[
+ {
+  "label": "Prime 1: GGuiSys",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP1/texture/GGuiSys/*.txtr"
+ },
+ {
+  "label": "Prime 1: MiscData",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP1/texture/MiscData/*.txtr"
+ },
+ {
+  "label": "Prime 1: NoARAM",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP1/texture/NoARAM/*.txtr"
+ },
+ {
+  "label": "Prime 1: RS5",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP1/texture/RS5/*.txtr"
+ },
+ {
+  "label": "Prime 2: FrontEnd",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP2/texture/FrontEnd/*.txtr"
+ },
+ {
+  "label": "Prime 2: GGuiSys",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP2/texture/GGuiSys/*.txtr"
+ },
+ {
+  "label": "Prime 2: MiscData",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP2/texture/MiscData/*.txtr"
+ },
+ {
+  "label": "Prime 2: NoARAM",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP2/texture/NoARAM/*.txtr"
+ },
+ {
+  "label": "Prime 2: RS5",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP2/texture/RS5/*.txtr"
+ },
+ {
+  "label": "Prime 2: Strings",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP2/texture/Strings/*.txtr"
+ },
+ {
+  "label": "Prime 3: GuiDVD",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP3/texture/GuiDVD/*.txtr"
+ },
+ {
+  "label": "Prime 3: GuiNAND",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP3/texture/GuiNAND/*.txtr"
+ },
+ {
+  "label": "Prime 3: MiscData",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP3/texture/MiscData/*.txtr"
+ },
+ {
+  "label": "Prime 3: NoARAM",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP3/texture/NoARAM/*.txtr"
+ },
+ {
+  "label": "Prime 3: RS5",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "MP3/texture/RS5/*.txtr"
+ },
+ {
+  "label": "Menu: GuiDVD",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "Menu/texture/GuiDVD/*.txtr"
+ },
+ {
+  "label": "Menu: GuiNAND",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "Menu/texture/GuiNAND/*.txtr"
+ },
+ {
+  "label": "Menu: MiscData",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "Menu/texture/MiscData/*.txtr"
+ },
+ {
+  "label": "Menu: NoARAM",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "Menu/texture/NoARAM/*.txtr"
+ },
+ {
+  "label": "Menu: RS5FE",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "Menu/texture/RS5FE/*.txtr"
+ }
+]

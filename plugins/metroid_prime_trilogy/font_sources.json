@@ -1,0 +1,297 @@
+[
+ {
+  "label": "Prime 1: Deface (9BB52E75)",
+  "format": "retro_font_gx",
+  "path": "MP1/font/Deface.9BB52E75.font"
+ },
+ {
+  "label": "Prime 1: Deface (B5BC844E)",
+  "format": "retro_font_gx",
+  "path": "MP1/font/Deface.B5BC844E.font"
+ },
+ {
+  "label": "Prime 1: Deface (B7BBD0B4)",
+  "format": "retro_font_gx",
+  "path": "MP1/font/Deface.B7BBD0B4.font"
+ },
+ {
+  "label": "Prime 1: Deface14B (C29C51F1)",
+  "format": "retro_font_gx",
+  "path": "MP1/font/Deface14B.C29C51F1.font"
+ },
+ {
+  "label": "Prime 1: Deface18O (0B25C36A)",
+  "format": "retro_font_gx",
+  "path": "MP1/font/Deface18O.0B25C36A.font"
+ },
+ {
+  "label": "Prime 1: Deface_Head (192BB274)",
+  "format": "retro_font_gx",
+  "path": "MP1/font/Deface_Head.192BB274.font"
+ },
+ {
+  "label": "Prime 1: DefaceLarge (FE94BD23)",
+  "format": "retro_font_gx",
+  "path": "MP1/font/DefaceLarge.FE94BD23.font"
+ },
+ {
+  "label": "Prime 1: MetroidPrime_JPN (5D696116)",
+  "format": "retro_font_gx",
+  "path": "MP1/font/MetroidPrime_JPN.5D696116.font"
+ },
+ {
+  "label": "Prime 2: Deface (0D940479)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface.0D940479.font"
+ },
+ {
+  "label": "Prime 2: Deface (0F935083)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface.0F935083.font"
+ },
+ {
+  "label": "Prime 2: Deface (23B0A3FA)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface.23B0A3FA.font"
+ },
+ {
+  "label": "Prime 2: Deface (86631BF3)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface.86631BF3.font"
+ },
+ {
+  "label": "Prime 2: Deface (93E909C1)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface.93E909C1.font"
+ },
+ {
+  "label": "Prime 2: Deface (B10A17A7)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface.B10A17A7.font"
+ },
+ {
+  "label": "Prime 2: Deface (B7BBD0B4)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface.B7BBD0B4.font"
+ },
+ {
+  "label": "Prime 2: Deface14B (BF23CACD)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface14B.BF23CACD.font"
+ },
+ {
+  "label": "Prime 2: Deface18BIO (92A4A9B1)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface18BIO.92A4A9B1.font"
+ },
+ {
+  "label": "Prime 2: Deface18O (B30D435D)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface18O.B30D435D.font"
+ },
+ {
+  "label": "Prime 2: Deface32BIO (037FF312)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Deface32BIO.037FF312.font"
+ },
+ {
+  "label": "Prime 2: DefaceLarge (46BC3D14)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/DefaceLarge.46BC3D14.font"
+ },
+ {
+  "label": "Prime 2: MetroidPrime2 Japanese (B4C5757A)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/MetroidPrime2 Japanese.B4C5757A.font"
+ },
+ {
+  "label": "Prime 2: ResultsLabel (E3EB4C9B)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/ResultsLabel.E3EB4C9B.font"
+ },
+ {
+  "label": "Prime 2: Vox Metroid (7CD9AD66)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/Vox Metroid.7CD9AD66.font"
+ },
+ {
+  "label": "Prime 2: VoxBox14 (CFFE6B6F)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/VoxBox14.CFFE6B6F.font"
+ },
+ {
+  "label": "Prime 2: VoxBox18O (35F6C0F1)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/VoxBox18O.35F6C0F1.font"
+ },
+ {
+  "label": "Prime 2: VoxBox32O (D3A398C2)",
+  "format": "retro_font_gx",
+  "path": "MP2/font/VoxBox32O.D3A398C2.font"
+ },
+ {
+  "label": "Prime 3: _Wii NTLG PGothic Regular (F9FFE07AD46DB7F8)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/_Wii NTLG PGothic Regular.F9FFE07AD46DB7F8.font"
+ },
+ {
+  "label": "Prime 3: Deface (073A875DB4D51CE9)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface.073A875DB4D51CE9.font"
+ },
+ {
+  "label": "Prime 3: Deface (3D964165578C3990)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface.3D964165578C3990.font"
+ },
+ {
+  "label": "Prime 3: Deface (4AFB0CDAE17E6613)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface.4AFB0CDAE17E6613.font"
+ },
+ {
+  "label": "Prime 3: Deface (823A7F490543154C)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface.823A7F490543154C.font"
+ },
+ {
+  "label": "Prime 3: Deface (FC1BE4F13D86CE52)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface.FC1BE4F13D86CE52.font"
+ },
+ {
+  "label": "Prime 3: Deface14B (8E959CB18B3E28C1)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface14B.8E959CB18B3E28C1.font"
+ },
+ {
+  "label": "Prime 3: Deface18B (FBD151503699BA89)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface18B.FBD151503699BA89.font"
+ },
+ {
+  "label": "Prime 3: Deface18BIO (ACF822A2AD69FFAC)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface18BIO.ACF822A2AD69FFAC.font"
+ },
+ {
+  "label": "Prime 3: Deface18O (7A25B1397F7690A7)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface18O.7A25B1397F7690A7.font"
+ },
+ {
+  "label": "Prime 3: Deface32BIO (7D69ABB59FA59761)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/Deface32BIO.7D69ABB59FA59761.font"
+ },
+ {
+  "label": "Prime 3: DefaceLarge (8016515418B39F05)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/DefaceLarge.8016515418B39F05.font"
+ },
+ {
+  "label": "Prime 3: MetroidPrime1 Japanese for MP3 (5FFF70A70E7C34D7)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/MetroidPrime1 Japanese for MP3.5FFF70A70E7C34D7.font"
+ },
+ {
+  "label": "Prime 3: MetroidPrime2 Japanese for MP3 (C4A72A398E17CAFA)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/MetroidPrime2 Japanese for MP3.C4A72A398E17CAFA.font"
+ },
+ {
+  "label": "Prime 3: ResultsLabel (D6A0C8745226A09A)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/ResultsLabel.D6A0C8745226A09A.font"
+ },
+ {
+  "label": "Prime 3: VoxBox18O (1ED53E36F44F7769)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/VoxBox18O.1ED53E36F44F7769.font"
+ },
+ {
+  "label": "Prime 3: VoxBox24O (E19122B4832734B1)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/VoxBox24O.E19122B4832734B1.font"
+ },
+ {
+  "label": "Prime 3: VoxBox32O (77642093029686B0)",
+  "format": "retro_font_gx",
+  "path": "MP3/font/VoxBox32O.77642093029686B0.font"
+ },
+ {
+  "label": "Menu: _Wii NTLG PGothic Regular (F9FFE07AD46DB7F8)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/_Wii NTLG PGothic Regular.F9FFE07AD46DB7F8.font"
+ },
+ {
+  "label": "Menu: Deface (073A875DB4D51CE9)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/Deface.073A875DB4D51CE9.font"
+ },
+ {
+  "label": "Menu: Deface (3D964165578C3990)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/Deface.3D964165578C3990.font"
+ },
+ {
+  "label": "Menu: Deface14B (8E959CB18B3E28C1)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/Deface14B.8E959CB18B3E28C1.font"
+ },
+ {
+  "label": "Menu: Deface18B (FBD151503699BA89)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/Deface18B.FBD151503699BA89.font"
+ },
+ {
+  "label": "Menu: Deface18BIO (ACF822A2AD69FFAC)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/Deface18BIO.ACF822A2AD69FFAC.font"
+ },
+ {
+  "label": "Menu: Deface18O (7A25B1397F7690A7)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/Deface18O.7A25B1397F7690A7.font"
+ },
+ {
+  "label": "Menu: Deface32BIO (7D69ABB59FA59761)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/Deface32BIO.7D69ABB59FA59761.font"
+ },
+ {
+  "label": "Menu: DefaceLarge (8016515418B39F05)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/DefaceLarge.8016515418B39F05.font"
+ },
+ {
+  "label": "Menu: DFSoGei-W5_18 (C4A72A398E17CAFA)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/DFSoGei-W5_18.C4A72A398E17CAFA.font"
+ },
+ {
+  "label": "Menu: MetroidPrime1 Japanese for MP3 (5FFF70A70E7C34D7)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/MetroidPrime1 Japanese for MP3.5FFF70A70E7C34D7.font"
+ },
+ {
+  "label": "Menu: ResultsLabel (D6A0C8745226A09A)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/ResultsLabel.D6A0C8745226A09A.font"
+ },
+ {
+  "label": "Menu: VoxBox18O (1ED53E36F44F7769)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/VoxBox18O.1ED53E36F44F7769.font"
+ },
+ {
+  "label": "Menu: VoxBox24O (E19122B4832734B1)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/VoxBox24O.E19122B4832734B1.font"
+ },
+ {
+  "label": "Menu: VoxBox32O (77642093029686B0)",
+  "format": "retro_font_gx",
+  "path": "Menu/font/VoxBox32O.77642093029686B0.font"
+ }
+]
