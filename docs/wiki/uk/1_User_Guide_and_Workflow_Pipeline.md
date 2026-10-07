@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: ui/, components/, dialogs/
-tokens: 11.7k
+tokens: 14.8k
 ---
 # Посібник: інтерфейс
 
@@ -154,6 +154,12 @@ tokens: 11.7k
      відкриває шрифт тексту `f\papermarioset_US.bfn`; українські літери займають слоти Latin-1, яких не
      малює жоден англійський текст (`translation_map.json`, `translation_map.md`). Вікно Textures показує
      текстури титульного екрана, вибору файлу, меню паузи, бою та вивісок з англійським текстом.
+   - `lunar_sssc` — Lunar: Silver Star Story Complete (PlayStation, USA, 2 диски). **Source:** тека `source`
+     робочої теки (`1_unpack.bat`): `LUNADATA\TEXT*.DAT` (сценарії подій: репліки й відповіді так/ні),
+     `LUNADATA\SYSTEM.DAT\00_0001.bin` (предмети, чари, монстри, місця, меню; місце обмежене), розпакована
+     програма `SLUS_006.28` (Редактор шрифтів: шрифт тексту і шрифт символів) і 15 картинок TIM (Текстури: меню
+     заставки, логотипи, екрани «вставте диск»). Теги: `{wait}`, `{page}`, `{clear}`, `{close}`, `{end}`, коди `{FA:39}`.
+     Довша репліка зсуває код сценарію після неї; `2_build.bat` збирає обидва диски.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** тека `source` робочої теки,
      яку `1_unpack.bat` заповнює текстовими файлами диска за їхніми шляхами на диску: `EVENT\*.EVT`
      (катсцени), `MAP\*.MPD` (події кімнат), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

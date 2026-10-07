@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: ui/, components/, dialogs/
-tokens: 9.0k
+tokens: 11.4k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -156,6 +156,12 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `f\papermarioset_US.bfn`; Ukrainian letters use Latin-1 slots no English text draws
      (`translation_map.json`, `translation_map.md`). The Textures window lists the title, file-select,
      pause-menu, battle and sign textures with English text.
+   - `lunar_sssc` — Lunar: Silver Star Story Complete (PlayStation, USA, 2 discs). **Source:** the workspace's
+     `source` folder (`1_unpack.bat`): `LUNADATA\TEXT*.DAT` (event scripts: messages and yes/no answers),
+     `LUNADATA\SYSTEM.DAT\00_0001.bin` (items, spells, monsters, places, menus; fixed room), the unpacked program
+     `SLUS_006.28` (Font Editor: text font and symbol font) and 15 TIM pictures (Textures: title menu, logos,
+     insert-disc screens). Tags: `{wait}`, `{page}`, `{clear}`, `{close}`, `{end}`, `{FA:39}`-style codes.
+     A longer message moves the script code after it; `2_build.bat` rebuilds both discs.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

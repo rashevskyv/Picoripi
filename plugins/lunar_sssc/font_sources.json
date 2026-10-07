@@ -1,0 +1,22 @@
+[
+ {
+  "label": "Text font (dialogue, names, menus)",
+  "format": "lunar",
+  "path": "SLUS_006.28",
+  "font_map": "lunar_font.json",
+  "params": {
+   "offset": "0xA197C",
+   "count": 91,
+   "chars": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz"
+  }
+ },
+ {
+  "label": "Symbol font (two-byte codes 9908-99F8)",
+  "format": "lunar",
+  "path": "SLUS_006.28",
+  "params": {
+   "offset": "0x9FB5C",
+   "count": 241
+  }
+ }
+]
