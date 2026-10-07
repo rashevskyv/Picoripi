@@ -83,6 +83,16 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      every package that holds the table (the update's `Patch\Z_198_NXPatch.pak.patch` wins in the game) and
      changed fonts and textures with their metadata into a LayeredFS mod. The workspace starts from BakAI's
      Ukrainian translation (text and fonts with Ukrainian letters).
+   - `metroid_other_m` — Metroid: Other M (Wii, USA). **Source:** the workspace's `source` (`1_unpack.bat` puts
+     there, at the disc paths, `message\message_all.dat`, the fonts `font\*.brfnt`, the Wii HOME Menu messages
+     `hbm\HomeButton2\home*.csv` and every 2D layout as a folder `<number>\<layout>\timg\*.tpl`);
+     **Translation:** `translation`. `message_all.dat` holds every message of the game in eight languages; the
+     project shows the US English one in groups (menus, chapter summaries, system messages, area names, tutorials,
+     item and personnel files, 1,393 voice and cutscene subtitles) and keeps the other seven on save. Control
+     codes read `{FONT_SYSTEM}`, `{COLOR_GREEN}`, `{ICON_A}`, `{IMG_ADAM}`; a line break is `^` in the file. The
+     Font Editor opens the four game fonts and the HOME Menu font; the Textures window lists every layout
+     (each exists once per language: the second of eight copies is English). `2_build.bat` packs the changes
+     back into the disc image.
    - `zelda_totk` — Zelda: Tears of the Kingdom (Switch, checked on 1.4.0). **Source:** the game's dumped `romfs`
      with only the language you replace in `Mals` (`USen.Product.140.sarc.zs`), plus `Pack`; **Translation:** the
      mod's `romfs`, e.g. `atmosphere/contents/0100F2C0115B6000/romfs`. Every MSBT in the archive is a block (1,511

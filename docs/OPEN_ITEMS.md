@@ -10,6 +10,19 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
+
+- Not opened: the disc-error messages in `sys/main.dol` (2_build writes only `files/`) and the channel title in
+  the `opening.bnr` IMET header. No speakers, scenes or measured window widths yet.
+- No font has Ukrainian letters (the global fonts map codes 32–255 only, the game draws `Œ — ’` through
+  CP1252 slots); where Ukrainian letters go (free slots or new codes) is not decided.
+- The game reads `message_all.dat` into a buffer of its own ("msg buffer size deficiency"); how much longer the
+  file may grow is not measured.
+- Not in the Textures window: the TEX0 textures inside the 2,234 BRRES model files (3D scenes and effects; a few
+  effect letters such as `EFF_tutorial_target_*_word_*`). Same GX formats as TPL.
+- The ICON names C..J and TEXT_END come from the game's tables; no English message uses them.
+- `plugins/common/wii_home_menu.py` is a byte-identical copy of the one on `feat/ready-spm` (not merged yet).
+
 ## Tingle Tuner (`plugins/zelda_tingle`, 2026-10-04)
 
 - The GBA keeps 67,584 bytes for the unpacked USA text, only ~1,800 more than the English needs; a longer translation needs the client's buffers moved (the 0x02010800 literals in `client_u.bin`, see `WW_UA\reports\tingle_tuner_report.md`).

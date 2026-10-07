@@ -274,7 +274,9 @@ class ProblemsMixin:
         if len(curr_for_children.children) == 0 and len(curr_for_children.block_ids) == 1:
             b_id = curr_for_children.block_ids[0]
             idx = id_to_idx.get(b_id)
-            if idx is not None:
+            data_blocks = self._data_blocks_of(idx) if idx is not None else []
+            if len(data_blocks) == 1:        # a file that opens into several blocks keeps them as children
+                idx = data_blocks[0]
                 block_name = self.mw.data_store.block_names.get(str(idx), f"Block {idx}")
                 block_name_with_ext = self._get_block_display_name_with_ext(idx, block_name)
                 display_name += f" / {block_name_with_ext}"
