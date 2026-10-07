@@ -68,6 +68,17 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   English lines are word-for-word the GameCube ones. A one-shot copy of the GameCube Ukrainian lines into the Wii
   and HD projects needs the owner to say which GameCube state is current (the session or `TP_UA\ISO\UA`).
 
+## Lunar: Silver Star Harmony (`plugins/lunar_ssh`, 2026-10-07)
+
+- The game draws all text with the PSP's built-in font (`libfont.prx` + firmware `ltn*.pgf`, Latin only): no
+  font on the UMD. Ukrainian needs a PGF with Cyrillic on the disc and a program patch that loads it (the
+  Russian fan build ships `ltn12.pgf`, a replaced `libfont.prx` and a re-encrypted EBOOT). No PGF codec yet.
+- Script words U+0400-04FF are control codes: Ukrainian letters must be mapped to free code points (the Russian
+  build used cp1251 codes in the Latin-1 range) together with that font. Until then they are saved as `?`.
+- Not opened: the program's own strings (EBOOT is encrypted; the decrypted dump holds only the save-data titles),
+  subtitles burned into the `PMF_US` movies (the Russian build re-encoded 30 of them), Japanese-only tables
+  (`PLACE`, `PRESS`, `MAKESHIFTSYSTEM`), sprite and map packs (no text).
+
 ## Vagrant Story (2026-10-04)
 
 - The USA disc (SLUS-01040) is the base. The European disc (SLES-02754) is LibCrypt-protected (DuckStation

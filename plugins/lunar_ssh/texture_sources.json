@@ -1,0 +1,5 @@
+[
+  {"label": "Title screen (logo, menu, Press Start)", "kind": "title_screen", "format": "gim", "path": "StationedPack/TITLEGIM.FCHA"},
+  {"label": "Menus and labels (icons, Now Loading, buttons, numbers)", "kind": "menu_label", "format": "gim", "path": "StationedPack/SYSMENUGIM.FCHA"},
+  {"label": "Message window parts", "kind": "menu_label", "format": "gim", "path": "StationedPack/entry03.FCHA"}
+]
