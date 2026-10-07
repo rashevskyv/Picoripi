@@ -7,7 +7,8 @@ encoding with bits, trits and quints. HDR modes and illegal blocks decode to mag
 Colours are interpolated as UNORM (an sRGB texture decodes the same stored values).
 
 Encoding writes, per block: a void-extent block when all texels are the same colour, else one RGBA
-line (endpoint mode 12, 8-bit endpoints) with a 4x4 grid of 2-bit weights. That is BC1-like quality
+line (endpoint mode 12, 8-bit endpoints) with a 4x4 grid of 2-bit weights (any block size: a bigger block's
+grid is filled in by the decoder). That is BC1-like quality
 with alpha, enough for lettering; ``surface`` re-encodes only the blocks an edit changed.
 """
 from __future__ import annotations
@@ -417,12 +418,17 @@ def _void_extent(color: Sequence[int]) -> bytes:
     return v.to_bytes(16, "little")
 
 
-def encode_block(texels: Sequence[Sequence[int]]) -> bytes:
-    """16 RGBA texels (4x4, row by row) -> one block."""
+def encode_block(texels: Sequence[Sequence[int]], bw: int = 4, bh: int = 4) -> bytes:
+    """``bw`` x ``bh`` RGBA texels (row by row) -> one block.
+
+    The weight grid is always 4x4: a larger block (8x8, 12x12) gets each grid weight from the mean of the
+    texels it covers, and the decoder's infill spreads it back.
+    """
     texels = [tuple(t) for t in texels]
     if len(set(texels)) == 1:
         return _void_extent(texels[0])
-    e0, e1 = max(((a, b) for i, a in enumerate(texels) for b in texels[i + 1:]),
+    distinct = list(dict.fromkeys(texels))
+    e0, e1 = max(((a, b) for i, a in enumerate(distinct) for b in distinct[i + 1:]),
                  key=lambda pair: sum((x - y) ** 2 for x, y in zip(*pair)))
     if sum(e1[:3]) < sum(e0[:3]):
         e0, e1 = e1, e0                           # no blue contraction: e1 must not be darker in RGB sum
@@ -431,22 +437,25 @@ def encode_block(texels: Sequence[Sequence[int]]) -> bytes:
     v = _MODE | 12 << 13
     for channel in range(4):
         v |= e0[channel] << (17 + 16 * channel) | e1[channel] << (25 + 16 * channel)
-    for index, texel in enumerate(texels):
-        t = sum((p - q) * a for p, q, a in zip(texel, e0, axis)) * 64 / length
+    for index in range(16):
+        gx, gy = index % 4, index // 4
+        cover = [texels[y * bw + x] for y in range(gy * bh // 4, (gy + 1) * bh // 4)
+                 for x in range(gx * bw // 4, (gx + 1) * bw // 4)]
+        t = sum(sum((p - q) * a for p, q, a in zip(texel, e0, axis)) for texel in cover) * 64 / length / len(cover)
         weight = min(range(4), key=lambda k: abs(_LEVELS[k] - t))
         v |= (weight & 1) << (127 - 2 * index) | (weight >> 1) << (126 - 2 * index)
     return v.to_bytes(16, "little")
 
 
-def encode(image: Image.Image) -> bytes:
-    """An RGBA image (multiples of 4 pixels) -> 4x4 blocks in row order."""
+def encode(image: Image.Image, bw: int = 4, bh: int = 4) -> bytes:
+    """An RGBA image (multiples of the block size) -> ``bw`` x ``bh`` blocks in row order."""
     image = image.convert("RGBA")
     width, height = image.size
     raw = image.tobytes()
     out = bytearray()
-    for by in range(0, height, 4):
-        for bx in range(0, width, 4):
+    for by in range(0, height, bh):
+        for bx in range(0, width, bw):
             texels = [tuple(raw[((by + y) * width + bx + x) * 4:((by + y) * width + bx + x) * 4 + 4])
-                      for y in range(4) for x in range(4)]
-            out += encode_block(texels)
+                      for y in range(bh) for x in range(bw)]
+            out += encode_block(texels, bw, bh)
     return bytes(out)
