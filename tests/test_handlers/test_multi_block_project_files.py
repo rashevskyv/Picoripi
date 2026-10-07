@@ -1,5 +1,5 @@
-"""A project file that opens into several blocks (an N64 ROM: messages, credits, title strings): the Blocks tree
-shows each block, and a session older than the plugin's code is not restored when it holds no edits."""
+"""A project file that opens into several blocks (a KMSG file split by id range; an N64 ROM: messages, credits,
+title strings): the Blocks tree shows each block, and a session older than the plugin's code is not restored when it holds no edits."""
 import os
 from types import SimpleNamespace
 
