@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: ui/, components/, dialogs/
-tokens: 9.0k
+tokens: 11.3k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -144,7 +144,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      that has it. `common\mgso.rel` (the game module) gives one block of HUD words — LIFE, O2, the item and
      weapon box labels, boss names: capital letters only, one byte each and never longer than the word's slot.
      Ukrainian letters shaped like Latin ones use those; the others use ASCII cells no HUD word uses, which the
-     workspace redraws as Ukrainian letters in the HUD font (`tools\hud_font.py`).
+     workspace redraws as Ukrainian letters in the HUD font (`tools\hud_font.py`). The Font Editor also opens
+     the glyph grids the game draws HUD words, menu values, results and codec digits from (HUD font in three
+     sizes, menu and results fonts, digit strips; format `texture_grid`, saved into their texture packs).
+     `disc1\opening.bnr`, `disc2\opening.bnr` give the disc banner texts (the name in the GameCube menu and
+     Dolphin: Latin letters only) and the banner picture in the Textures window.
    - `paper_mario_gc` — Paper Mario: The Thousand-Year Door (GameCube, USA). **Source:** the workspace's
      `source\files\msg\US` (one `.txt` per area, `global.txt` for menus, items, badges, battle text and
      tattles); **Translation:** `translation\files\msg\US`. Tags show in braces (`{k}`, `{p}`,

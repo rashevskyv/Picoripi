@@ -114,5 +114,6 @@
   {"label": "Place-name card: Communication Tower A Wall", "kind": "place_name", "format": "tpl", "path": "texture/area17b.stage", "member": "area17b/13715d80.tpl", "params": {"texture": "5"}},
   {"label": "Place-name card: Communication Tower A", "kind": "place_name", "format": "tpl", "path": "texture/area15a.stage", "member": "area15a/13715d80.tpl", "params": {"texture": "6"}},
   {"label": "Place-name card: Communication Tower Corridor", "kind": "place_name", "format": "tpl", "path": "texture/area17a.stage", "member": "area17a/13715d80.tpl", "params": {"texture": "6"}},
-  {"label": "Place-name card: Insert Level Name Here (placeholder, 52 copies, never shown)", "kind": "place_name", "format": "tpl", "path": "texture/area02a.stage", "member": "area02a/13715d80.tpl", "params": {"texture": "12"}}
+  {"label": "Place-name card: Insert Level Name Here (placeholder, 52 copies, never shown)", "kind": "place_name", "format": "tpl", "path": "texture/area02a.stage", "member": "area02a/13715d80.tpl", "params": {"texture": "12"}},
+  {"label": "Disc banner", "kind": "banner", "format": "raw", "path": "disc*/opening.bnr", "params": {"pixel_format": "gx:RGB5A3", "width": 96, "height": 32, "offset": "0x20"}}
 ]

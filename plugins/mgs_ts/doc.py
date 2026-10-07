@@ -2,7 +2,7 @@
 
 A file is GCX script text (``codec.dat``, the ``*.gcx`` scripts the unpack step takes out of
 stage.dat), a ``.subs`` file of cutscene / voice / movie subtitles, or the game module
-``mgso.rel`` (its HUD words, ``rel``). Only English strings
+``mgso.rel`` (its HUD words, ``rel``), or the disc banner ``opening.bnr`` (``bnr``). Only English strings
 become lines. Identical string tables (codec.dat repeats some calls up to eight times) are one
 block; a save writes the block into every copy.
 
@@ -17,6 +17,8 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
+
+from plugins.common import gc_banner
 
 from . import gcx, rel, subtitles, textcodec
 
@@ -53,7 +55,7 @@ class Line:
 
 @dataclass
 class Doc:
-    kind: str                                         # "gcx", "subs" or "rel"
+    kind: str                                         # "gcx", "subs", "rel" or "bnr"
     blocks: List[List[Line]] = field(default_factory=list)
     names: Dict[str, str] = field(default_factory=dict)
     # gcx: per block, the section numbers that share its table, and the English string indices
@@ -67,6 +69,8 @@ class Doc:
     def texts(self, reverse_map: Optional[Dict[str, str]] = None) -> List[List[str]]:
         if self.kind == "rel":
             return [[rel.decode(line.raw) for line in block] for block in self.blocks]
+        if self.kind == "bnr":
+            return [[line.raw.decode("cp1252", "replace") for line in block] for block in self.blocks]
         return [[textcodec.decode(line.raw, reverse_map) for line in block] for block in self.blocks]
 
 
@@ -84,6 +88,10 @@ def parse(data: bytes, file_name: str = "", known: Optional[Dict[str, List[List[
     if rel.is_rel(data):
         lines = [Line(raw, "hud", where=f"mgso.rel {offset:#x}") for raw, (offset, _t, _s) in zip(rel.read(data), rel.SLOTS)]
         return Doc("rel", blocks=[lines], names={"0": "HUD words (mgso.rel)"})
+    if gc_banner.is_banner(data):
+        lines = [Line(text.encode("cp1252", "replace"), "banner", where=f"opening.bnr {label}")
+                 for text, (_at, _size, label) in zip(gc_banner.read(data), gc_banner.FIELDS)]
+        return Doc("bnr", blocks=[lines], names={"0": "Disc banner"})
     return _parse_gcx(data, file_name, known)
 
 
@@ -168,6 +176,9 @@ def build(source: bytes, doc: Doc, data: List[List[str]], translation_map: Optio
             if new != doc.blocks[0][line].raw:
                 changes[line] = new
         return rel.write(source, changes) if changes else bytes(source)
+
+    if doc.kind == "bnr":
+        return gc_banner.write(source, data[0] if data else [])
 
     if doc.kind == "subs":
         records = subtitles.read(source)
