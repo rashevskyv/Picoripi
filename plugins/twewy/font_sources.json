@@ -1,0 +1,10 @@
+[
+  {"label": "Text font 10x10 (Grp_Font #6)", "format": "twewy", "path": ["Apl_Fuk/Grp_Font.bin"],
+   "font_map": "twewy_text.json", "params": {"pages": 6, "widths": 2, "cell": [10, 10], "columns": 25, "chars": "main"}},
+  {"label": "Font 10x12 (Grp_Font #9)", "format": "twewy", "path": ["Apl_Fuk/Grp_Font.bin"],
+   "params": {"pages": 9, "widths": 8, "cell": [10, 12], "columns": 25, "chars": "main"}},
+  {"label": "Font 16x16 A (Grp_Font #5)", "format": "twewy", "path": ["Apl_Fuk/Grp_Font.bin"],
+   "params": {"pages": 5, "widths": 1, "cell": [16, 16], "columns": 16, "chars": "big"}},
+  {"label": "Font 16x16 B (Grp_Font #7)", "format": "twewy", "path": ["Apl_Fuk/Grp_Font.bin"],
+   "params": {"pages": 7, "widths": 3, "cell": [16, 16], "columns": 16, "chars": "big"}}
+]

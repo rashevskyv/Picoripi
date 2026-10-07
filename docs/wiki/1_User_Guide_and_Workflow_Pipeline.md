@@ -227,6 +227,15 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      silhouette); the Textures window lists the title logos and every UI texture (BC1, BC3, BC4, BC5, BC7,
      ASTC 8x8). `2_build.bat` puts edited text into both English folders (EU and US) of the LayeredFS mod and
      compresses fonts and textures back.
+   - `twewy` — The World Ends with You (Nintendo DS, Europe AWLP). **Source:** the workspace's `source` folder,
+     filled by `1_unpack.bat` with every game file but the sound under its NitroFS path; the text is
+     `Apl_Fuk/mestxt.mes` (the game's `mestxt.bin`: all 25,233 messages, 500 a block); **Translation:**
+     `translation`. Codes are glyphs of the text font (ASCII, accented Latin and symbols show as characters,
+     other glyphs as `[g:XXX]`); tags `[color:1]`…`[color:4]`, `[/color]`, `[num]`, `[value]`, `[name]`; an
+     unedited file stays byte for byte. The Font Editor lists the four fonts of `Apl_Fuk/Grp_Font.bin` (format
+     `twewy`: 10x10 text font, 10x12, two 16x16); the Textures window lists ~300 tile sheets of menus, titles,
+     credits, location titles and copyright screens in the game's `pack` archives (sprites shown as a plain tile
+     sheet). `2_build.bat` makes the message index `mestable.bin` again and rebuilds the ROM.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

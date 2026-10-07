@@ -220,6 +220,19 @@ omfs`) could be
   (`hint/slide/*.jslide`, stereo screenshots), the language-neutral layouts (story intro, ocarina, ending images), the
   debug `ascii_8x16.ctxb`; the French, German, Spanish and Italian layouts and title cards (other console languages).
 
+## The World Ends with You plugin (`plugins/twewy`, 2026-10-07)
+
+- Seen in NO$GBA (hidden desktop) only up to the title screen: input posted to the emulator window does not
+  reach the game, so the text (`UA TEST`) and font (filled `e`) edits are proven by machine only
+  (`tools\proof_edits.py` of the workspace: plugin save, build, read back from the ROM).
+- Sprites (most text pictures) show as a plain tile sheet in storage order, and a pack's palette is guessed
+  (first plain member of whole banks); the cell tables that place the tiles are not read yet.
+- Not opened: `Static/Font_Funakosi.bin` and `UsrLib/FontData.bin` (Shift-JIS system/debug fonts with their
+  own glyph coding, not used by the message text), `Apl_Suy/staff_font.bin` (credits table), `Apl_Mot/*.nsbtx`
+  (3D textures, no text seen). No font has Cyrillic letters.
+- Control codes `FFB6`-`FFBE` (colours) and `FFD0`-`FFD2` (values the game fills in) are named from how the
+  English text uses them.
+
 ## Four Swords Anniversary Edition plugin (`plugins/zelda_fsae`, 2026-10-04)
 
 - Not seen in a game: no DSi emulator on the PC (melonDS + DSi BIOS/firmware/NAND needed; no$gba has no BIOS) and
