@@ -1,4 +1,5 @@
-"""Level-5 IMGC textures (``.xi``; Yo-kai Watch, Inazuma Eleven, Layton on 3DS), alone or inside XPCK packs.
+"""Level-5 IMGC / IMGN textures (``.xi``; Yo-kai Watch, Inazuma Eleven, Layton on 3DS; IMGN on Switch), alone or
+inside XPCK packs.
 
 Header (0x48 bytes, little endian; Kuriimu2 ``Imgx.cs``): ``IMGC``, version, u8 pixel format at 0x0A, u8
 mip count at 0x0C, u8 bits per pixel at 0x0D, u16 bytes per 8x8 tile at 0x0E, u16 width and height at 0x10,
@@ -10,6 +11,10 @@ starts with 0x0453 has an 8-byte head and 32-bit indices, else 16-bit; -1 is a b
 Inside a tile the texels are those of a PICA tile transposed (x and y swapped), ETC blocks included, so a
 tile is decoded with the 3DS codec and flipped over its diagonal. Pixel formats (format byte -> PICA): the
 Yo-kai Watch mapping, checked on the fonts (RGBA5551 with the glyphs in R, G and B) and the menus.
+
+IMGN (Switch; checked on Yo-kai Watch 1) has the same header and tables; a tile is 8x8 pixels row by row, or,
+for a BC format, four 4x4 blocks side by side (16x4 pixels), so the blocks of the image are in plain order. Its
+format bytes are ``NX_FORMATS``.
 
 Writing keeps the size and re-encodes only the tiles whose pixels changed; the tables are compressed with
 LZ10. Writing the image that was read gives the original bytes.
@@ -26,26 +31,31 @@ from core.texture_formats import Texture, pixels
 
 FORMATS = {0x00: "RGBA8", 0x01: "RGBA4", 0x02: "RGBA5551", 0x03: "RGB8", 0x04: "RGB565", 0x0A: "LA8", 0x0B: "LA4",
            0x0C: "L8", 0x0D: "L4", 0x0E: "A8", 0x0F: "A4", 0x1B: "ETC1", 0x1C: "ETC1A4"}
+NX_FORMATS = {0x00: "RGBA8", 0x01: "RGBA4", 0x03: "RGB8", 0x04: "RGB565", 0x0A: "LA8", 0x0C: "L8", 0x0E: "A8", 0x1D: "BC1",
+              0x1F: "BC3"}
 HEADER = 0x48
 LEGACY = 0x453
 
 
 def detect(data: bytes) -> bool:
-    return data[:4] == b"IMGC"
+    return data[:4] in (b"IMGC", b"IMGN")
 
 
 def _info(data: bytes) -> Dict[str, Any]:
-    if data[:4] != b"IMGC":
+    if not detect(data):
         raise ValueError("Not a Level-5 IMGC texture")
+    nx = data[:4] == b"IMGN"
     fmt, bpp = data[0x0A], data[0x0D]
     width, height = struct.unpack_from("<HH", data, 0x10)
     table_at = struct.unpack_from("<I", data, 0x1C)[0]
     tile_size, tile_padded, image_size = struct.unpack_from("<III", data, 0x34)
-    if fmt not in FORMATS:
-        raise ValueError(f"IMGC pixel format {fmt:#04x} is not supported")
-    codec = pixels.codec("pica:" + FORMATS[fmt])
-    return {"format": FORMATS[fmt], "codec": codec, "bpp": bpp, "width": width, "height": height,
-            "padded": ((width + 7) & ~7, (height + 7) & ~7), "tile_bytes": 64 * bpp // 8,
+    names = NX_FORMATS if nx else FORMATS
+    if fmt not in names:
+        raise ValueError(f"{data[:4].decode()} pixel format {fmt:#04x} is not supported")
+    codec = pixels.codec(names[fmt] if nx else "pica:" + names[fmt])
+    tw, th = (16, 4) if nx and codec.block != (1, 1) else (8, 8)
+    return {"format": names[fmt], "codec": codec, "nx": nx, "bpp": bpp, "width": width, "height": height,
+            "tile": (tw, th), "padded": (-(-width // tw) * tw, -(-height // th) * th), "tile_bytes": 64 * bpp // 8,
             "table_at": table_at, "table": data[table_at:table_at + tile_size],
             "image": data[table_at + tile_padded:table_at + tile_padded + image_size]}
 
@@ -67,25 +77,53 @@ def _flip_tiles(image: Image.Image) -> Image.Image:
     return out
 
 
+def _decode_tiles(info: Dict[str, Any], tiles: List[bytes]) -> Image.Image:
+    """The padded image of the level-0 ``tiles``."""
+    codec = info["codec"]
+    width, height = info["padded"]
+    if not info["nx"]:
+        return _flip_tiles(codec.decode(b"".join(tiles), width, height))
+    if codec.block != (1, 1):                       # 16x4 tiles of blocks: the blocks are in plain order
+        return codec.decode(b"".join(tiles), width, height)
+    line = 8 * codec.size                           # one row of a tile
+    per_row, row_bytes = width // 8, width * codec.size
+    out = bytearray(row_bytes * height)
+    for n, tile in enumerate(tiles):
+        base = n // per_row * 8 * row_bytes + n % per_row * line
+        for row in range(8):
+            out[base + row * row_bytes:base + row * row_bytes + line] = tile[row * line:(row + 1) * line]
+    return codec.decode(bytes(out), width, height)
+
+
+def _encode_tile(info: Dict[str, Any], tile: Image.Image) -> bytes:
+    codec = info["codec"]
+    if not info["nx"]:
+        return codec.encode(tile.transpose(Image.Transpose.TRANSPOSE))
+    return codec.encode(tile)
+
+
 def _stored_tiles(info: Dict[str, Any]) -> Tuple[bytes, List[bytes]]:
     head, indices = _tiles(info)
     store = level5.decompress(info["image"])
     size = info["tile_bytes"]
-    width, height = info["padded"]
-    count = width // 8 * (height // 8)
+    count = _count(info)
     tiles = [store[i * size:(i + 1) * size] if i >= 0 else bytes(size) for i in indices]
     if len(tiles) < count or any(len(t) != size for t in tiles):
         raise ValueError("IMGC tile table is shorter than the image")
     return head, tiles
 
 
+def _count(info: Dict[str, Any], height: int = 0) -> int:
+    """Tiles of level 0 (of the padded ``height`` when given)."""
+    (tw, th), (width, padded) = info["tile"], info["padded"]
+    return width // tw * ((height or padded) // th)
+
+
 def decode(data: bytes) -> Image.Image:
     """The texture (level 0) as an RGBA image of its own size."""
     info = _info(data)
     _head, tiles = _stored_tiles(info)
-    width, height = info["padded"]
-    count = width // 8 * (height // 8)
-    image = _flip_tiles(info["codec"].decode(b"".join(tiles[:count]), width, height))
+    image = _decode_tiles(info, tiles[:_count(info)])
     return image if image.size == (info["width"], info["height"]) else image.crop((0, 0, info["width"], info["height"]))
 
 
@@ -101,12 +139,12 @@ def encode(data: bytes, image: Image.Image, taller: bool = False) -> bytes:
         raise ValueError(f"The image is {image.size[0]}x{image.size[1]}, the texture {info['width']}x{info['height']}")
     head, tiles = _stored_tiles(info)
     width, height = info["padded"]
-    codec = info["codec"]
-    count = width // 8 * (height // 8)          # level 0; the mip levels' tiles follow and are kept
-    old = _flip_tiles(codec.decode(b"".join(tiles[:count]), width, height))
+    tw, th = info["tile"]
+    count = _count(info)                        # level 0; the mip levels' tiles follow and are kept
+    old = _decode_tiles(info, tiles[:count])
     if grow:
-        height = (image.height + 7) & ~7
-        tiles = tiles[:count] + [bytes(info["tile_bytes"])] * (width // 8 * (height // 8) - count)
+        height = -(-image.height // th) * th
+        tiles = tiles[:count] + [bytes(info["tile_bytes"])] * (_count(info, height) - count)
         count = len(tiles)
         taller_old = Image.new("RGBA", (width, height))
         taller_old.paste(old, (0, 0))
@@ -114,13 +152,13 @@ def encode(data: bytes, image: Image.Image, taller: bool = False) -> bytes:
     new = old.copy()
     new.paste(image.convert("RGBA"), (0, 0))
     changed = False
-    per_row = width // 8
+    per_row = width // tw
     for index in range(count):
-        x, y = index % per_row * 8, index // per_row * 8
-        box = (x, y, x + 8, y + 8)
+        x, y = index % per_row * tw, index // per_row * th
+        box = (x, y, x + tw, y + th)
         tile = new.crop(box)
         if tile.tobytes() != old.crop(box).tobytes():
-            tiles[index] = codec.encode(tile.transpose(Image.Transpose.TRANSPOSE))
+            tiles[index] = _encode_tile(info, tile)
             changed = True
     if not changed:
         return bytes(data)
@@ -147,8 +185,12 @@ def encode(data: bytes, image: Image.Image, taller: bool = False) -> bytes:
     return bytes(out)
 
 
+def pixel_format(data: bytes) -> str:
+    return _info(data)["format"]
+
+
 def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
-    return [Texture("", decode(data), _info(data)["format"], max(1, data[0x0C]))]
+    return [Texture("", decode(data), pixel_format(data), max(1, data[0x0C]))]
 
 
 def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -> bytes:

@@ -1,4 +1,4 @@
-"""Yo-kai Watch (3DS) plugin: Level-5 cfg.bin text, speakers from the game's tables, XF fonts, IMGC textures."""
+"""Yo-kai Watch (3DS, Switch) plugin: Level-5 cfg.bin text, speakers from the game's tables, XF fonts, IMGC/IMGN textures."""
 import json
 import re
 from pathlib import Path
@@ -11,7 +11,7 @@ from utils.utils import clean_spaces
 from . import tags
 from .cfgbin import FormatError
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
-from .speakers import Speakers, game_of
+from .speakers import GAMES, Speakers, game_of
 from .tag_manager import TagManager
 from .textfile import TextFile
 
@@ -76,7 +76,8 @@ def layout_key(rel_path: str, kind: str, param: int) -> str:
 
 
 class GameRules(BaseGameRules):
-    """Yo-kai Watch (3DS, USA) and Yo-kai Watch 3 (3DS, EUR; its English is in ``data/txt/ev/en`` and ``yw_lg_en.fa``).
+    """Yo-kai Watch (3DS, USA), Yo-kai Watch 3 (3DS, EUR; its English is in ``data/txt/ev/en`` and ``yw_lg_en.fa``)
+    and Yo-kai Watch 1 on Switch (``ywnx``: the Japanese files ``*_ja.cfg.bin``, English from the fan mod).
 
     The project's source folder is the workspace's ``source`` folder: every English text table
     (``*_en.cfg.bin``) at its path inside ``yw1_a.fa``, the fonts ``fnt/*.xf`` and the English menu
@@ -236,7 +237,7 @@ class GameRules(BaseGameRules):
         if root is None:
             return []
         from .glossary import seed_entries
-        return seed_entries(root, root.parent / "meta")
+        return seed_entries(root, root.parent / "meta", GAMES[game_of(root)]["lang"])
 
     def _source_root(self) -> Optional[Path]:
         pm, project = self._project()

@@ -568,6 +568,7 @@ def _build() -> Dict[str, Codec]:
     add(value_codec("A8", 8, *_alpha(8), **le))
     add(value_codec("LA8", 16, *_two(("a", 8), ("i", 8)), **le))   # bytes L, A
     add(value_codec("RGB565", 16, *_packed((("b", 5), ("g", 6), ("r", 5))), **le))   # R in the low bits
+    add(value_codec("RGB8", 24, *_packed((("b", 8), ("g", 8), ("r", 8))), **le))     # bytes R, G, B
     add(value_codec("RGBA4", 16, *_packed((("a", 4), ("b", 4), ("g", 4), ("r", 4))), **le))
     add(value_codec("RGB5A1", 16, *_packed((("a", 1), ("b", 5), ("g", 5), ("r", 5))), **le))
     for n in _BC_SIZE:

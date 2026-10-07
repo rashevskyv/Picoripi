@@ -18,6 +18,15 @@
     "font_map": "ft_sml.json"
   },
   {
+    "label": "Large text font (ft_lrg, Switch)",
+    "format": "xf",
+    "path": [
+      "fnt/ft_lrg.xf",
+      "../romfs/fnt/ft_lrg.xf"
+    ],
+    "font_map": "ft_lrg.json"
+  },
+  {
     "label": "Debug font (dbg, not seen in the retail game)",
     "format": "xf",
     "path": "fnt/dbg.xf"

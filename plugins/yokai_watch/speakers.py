@@ -15,7 +15,9 @@ A line that names no one in the tables but plays a voice clip (``<PV#pv_c001000_
 Yo-kai Watch 3) is said by that model: in Yo-kai Watch 3 a character id is the CRC32 of its model name.
 
 ``GAMES`` holds what is particular to one game (the ids of the hero and the narrator; how the hero is told
-apart); ``game_of`` tells the games apart by the layout of the source folder.
+apart; the language suffix of its text files); ``game_of`` tells the games apart by the layout of the source
+folder. Yo-kai Watch 1 on Switch (``ywnx``) keeps the 3DS ids; its files end in ``_ja`` (the English fan mod
+writes English into the Japanese files).
 """
 from __future__ import annotations
 
@@ -34,23 +36,30 @@ GAMES = {
         "player_nouns": {"m": 3851587295, "f": 2090590053},
         "narrator": 4108050209,            # system messages and narration: no name box
         "names": {},
+        "lang": "_en",
     },
     "yw3": {
         "player": 2947951939,              # CRC32 of "c000000": whichever hero plays; the voice clip tells who
         "player_nouns": {},
         "narrator": 4108050209,
         "names": {"<PNAMEM>": "Nate", "<PNAMEF>": "Hailey"},   # the heroes' nouns are the name tags
+        "lang": "_en",
     },
 }
+GAMES["ywnx"] = dict(GAMES["yw1"], lang="_ja")
 GAME = GAMES["yw1"]
-_EVENT = re.compile(r"^(?P<base>ev\d+_\d+[a-z]?)_(?:(?P<g>[mf])_)?en\.cfg\.bin$")
-_NPC = re.compile(r"^(?P<map>[a-z0-9]+)_npc(?P<base>_base)?_text(?P<rest>_[a-z0-9_.]+?)?_en\.cfg\.bin$")
+_EVENT = r"^(?P<base>ev\d+_\d+[a-z]?)_(?:(?P<g>[mf])_)?{lang}\.cfg\.bin$"
+_NPC = r"^(?P<map>[a-z0-9]+)_npc(?P<base>_base)?_text(?P<rest>_[a-z0-9_.]+?)?_{lang}\.cfg\.bin$"
 _VOICE = re.compile(r"<(?:PV#(?:g_)?(?:pv|voice)_|V#)([a-z]+\d{6})")
 
 
 def game_of(source_root: Path) -> str:
-    """``yw3`` when the English event text sits in a language folder (``data/txt/ev/en``), else ``yw1``."""
-    return "yw3" if (Path(source_root) / "data/txt/ev/en").is_dir() else "yw1"
+    """``yw3`` when the English event text sits in a language folder (``data/txt/ev/en``), ``ywnx`` when the
+    text files are the Japanese ones (Switch), else ``yw1``."""
+    root = Path(source_root)
+    if (root / "data/txt/ev/en").is_dir():
+        return "yw3"
+    return "ywnx" if (root / "data/res/text/system_text_ja.cfg.bin").is_file() else "yw1"
 
 
 def _table(path: Path) -> Optional[CfgBin]:
@@ -64,9 +73,12 @@ def _table(path: Path) -> Optional[CfgBin]:
 class Speakers:
     """Speaker names per (text file, text id, page); everything is read once, on first use."""
 
-    def __init__(self, source_root: Path, meta_root: Path, lang: str = "_en"):
-        self.source_root, self.meta_root, self.lang = Path(source_root), Path(meta_root), lang
+    def __init__(self, source_root: Path, meta_root: Path, lang: str = ""):
+        self.source_root, self.meta_root = Path(source_root), Path(meta_root)
         self.game = GAMES[game_of(self.source_root)]
+        self.lang = lang or self.game["lang"]
+        code = self.lang.strip("_")
+        self._event, self._npc = (re.compile(p.replace("{lang}", code)) for p in (_EVENT, _NPC))
         self._nouns: Optional[Dict[int, str]] = None
         self._chara: Optional[Dict[int, int]] = None
         self._files: Dict[str, Dict[Tuple[int, int], object]] = {}
@@ -147,7 +159,7 @@ class Speakers:
             return None
         name = None
         if speaker is not None:
-            gender = "f" if re.search(r"_f_en\.cfg\.bin$", rel_path) else "m"
+            gender = "f" if rel_path.endswith(f"_f{self.lang}.cfg.bin") else "m"
             map_id = rel_path.split("/")[3] if rel_path.startswith("data/res/map/") else ""
             name = self.name_of(speaker, gender, map_id)
         return name or self.voice_of(text)
@@ -167,7 +179,7 @@ class Speakers:
         if folder.endswith(language_folder):
             folder = folder[:-len(language_folder)]           # Yo-kai Watch 3: data/txt/ev/en, the maps in data/txt/ev
         out: Dict[Tuple[int, int], object] = {}
-        event = _EVENT.match(name)
+        event = self._event.match(name)
         if event and folder == "data/txt/ev":
             base, gender = event.group("base"), event.group("g")
             candidates = [f"{base}_map_{gender}.cfg.bin"] if gender else []
@@ -179,7 +191,7 @@ class Speakers:
                         out[(u32(v[0]), v[1])] = (u32(v[2]), override)
                     break
             return out
-        npc = _NPC.match(name)
+        npc = self._npc.match(name)
         if npc and folder.startswith("data/res/map/"):
             map_id = npc.group("map")
             meta = self.meta_root / folder

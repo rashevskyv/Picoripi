@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-04
+updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 9.0k
+tokens: 11.4k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -124,6 +124,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `YOKAI_WATCH_3`) opens with the same plugin: its English text is in `data/txt/ev/en` and the archive
      `yw_lg_en.fa`; the hero of a line comes from its voice clip (`{PV#pv_c001000_23}`: Nate). Its Textures window lists all 5,817
      English textures (title logo, menus, telops, help, captions, signs; loading them takes several minutes).
+     Yo-kai Watch 1 for Switch (Japanese game, workspace `YO_KAI_WATCH_SWITCH`) opens with the same plugin: the
+     source text is the English fan mod written into the Japanese tables (`*_ja.cfg.bin`, 2,014 files, about
+     48,000 lines; lines the mod left Japanese are hidden like the 3DS leftovers); the Font Editor opens
+     `ft_nrm`, `ft_lrg`, `ft_sml` and `dbg` (Switch XF: A8 texture); the Textures window lists the menu,
+     title, telop, help and caption images (IMGN, the Switch IMGC: RGBA8, RGBA4, LA8, A8, BC3).
    - `mgs_ts` — Metal Gear Solid: The Twin Snakes (GameCube, USA). **Source:** the workspace's `source\text`
      folder (`common\codec.dat` — every codec call; `stage\*.gcx` — menus, briefing files, item descriptions,
      memory-card messages, credits; `*\demo.subs`, `common\vox.subs`, `common\movie.subs` — subtitles of

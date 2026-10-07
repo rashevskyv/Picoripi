@@ -12,6 +12,7 @@ PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "yokai_watch"
 WORKSPACES = Path(r"E:\Emulators\RomHacking\Yo-kai Watch")
 SOURCE = WORKSPACES / "Yo-kai Watch" / "3DS" / "source"
 SOURCE_3 = WORKSPACES / "Yo-kai Watch 3" / "source"
+SOURCE_NX = WORKSPACES / "Yo-kai Watch" / "Switch" / "source"
 
 
 def _project(source, tmp_path):
@@ -23,7 +24,7 @@ def _needs(source):
         pytest.skip(f"needs the workspace {source.parent}")
 
 
-@pytest.mark.parametrize("source", [SOURCE, SOURCE_3], ids=["yw1", "yw3"])
+@pytest.mark.parametrize("source", [SOURCE, SOURCE_3, SOURCE_NX], ids=["yw1", "yw3", "ywnx"])
 def test_every_game_font_opens_and_packs_back_unchanged(source, tmp_path):
     _needs(source)
     found = font_sources.resolve(json.loads((PLUGIN / "font_sources.json").read_text(encoding="utf-8")),
@@ -42,7 +43,8 @@ def test_every_game_font_opens_and_packs_back_unchanged(source, tmp_path):
     (SOURCE, "texture_sources.json", 594, {"RGBA8", "RGBA4", "ETC1", "ETC1A4"}),
     (SOURCE_3, "yw3_texture_sources.json", 5817,
      {"ETC1A4", "RGBA4", "ETC1", "RGB565", "RGBA8", "L8", "A8", "LA8", "LA4", "RGB8"}),
-], ids=["yw1", "yw3"])
+    (SOURCE_NX, "ywnx_texture_sources.json", 679, {"RGBA8", "RGBA4", "BC3"}),
+], ids=["yw1", "yw3", "ywnx"])
 def test_every_text_texture_reads_and_writes_back_unchanged(source, listing, least, formats, tmp_path):
     _needs(source)
     found = texture_sources.resolve(json.loads((PLUGIN / listing).read_text(encoding="utf-8")),
@@ -63,5 +65,9 @@ def test_each_game_has_its_own_texture_list(tmp_path, monkeypatch):
     (tmp_path / "data/txt/ev/en").mkdir(parents=True)
     monkeypatch.setattr(GameRules, "_source_root", lambda self: tmp_path)
     assert rules.get_texture_sources()[0]["path"] == "data/menu/title_*_en.xa"
+    (tmp_path / "data/txt/ev/en").rmdir()
+    (tmp_path / "data/res/text").mkdir(parents=True)
+    (tmp_path / "data/res/text/system_text_ja.cfg.bin").write_bytes(b"")
+    assert rules.get_texture_sources()[0]["path"] == "data/menu/*.xa"
     monkeypatch.setattr(GameRules, "_source_root", lambda self: None)
     assert rules.get_texture_sources()[0]["path"] == "data/menu/skill_telop/en/*.xi"

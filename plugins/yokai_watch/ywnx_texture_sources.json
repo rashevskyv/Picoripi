@@ -1,0 +1,12 @@
+[
+  {"label": "Title and menu screens", "kind": "menu_label", "format": "imgc", "path": "data/menu/*.xa", "member": "*.xi"},
+  {"label": "Full-screen images, manga strips, photo frames", "kind": "notice", "format": "imgc", "path": "data/menu/img/*.xi"},
+  {"label": "Soultimate move name telops", "kind": "banner", "format": "imgc", "path": "data/menu/skill_telop/*.xi"},
+  {"label": "Battle / minigame telops", "kind": "banner", "format": "imgc", "path": "data/menu/battle_telop/*.xi"},
+  {"label": "Chapter title cards", "kind": "banner", "format": "imgc", "path": "data/menu/ev_pic/*.xi"},
+  {"label": "Chapter end cards", "kind": "ending", "format": "imgc", "path": "data/menu/ev_pic/*.xa", "member": "*.xi"},
+  {"label": "Help pages", "kind": "tutorial", "format": "imgc", "path": "data/menu/help/*.xa", "member": "*.xi"},
+  {"label": "Area name captions", "kind": "area_card", "format": "imgc", "path": "data/menu/map_caption/*.xa", "member": "*.xi"},
+  {"label": "Versus rank badges", "kind": "menu_label", "format": "imgc", "path": "data/menu/vs_rank/*.xi"},
+  {"label": "Speech bubble picture", "kind": "other", "format": "imgc", "path": "data/menu/bustup/c103020.xa", "member": "*.xi"}
+]

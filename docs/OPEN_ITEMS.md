@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 10.7k
+tokens: 12.6k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -91,6 +91,9 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Yo-kai Watch 3 (EUR): the dump has English only (`yw_lg_en.fa`), so no reference languages; its 3,368 English
   textures are not catalogued (the YW1 `texture_sources.json` globs do not match); no script markup yet;
   15 % of event lines and 27 % of NPC lines have no speaker.
+- Yo-kai Watch 1 (Switch, 2026-10-07): 13,866 lines the English fan mod left Japanese (mostly maps t151g00–t156g00)
+  are hidden like the 3DS leftovers; the game has no width limits measured yet (`layout.json` has no `ywnx`
+  section); the L4 texture format (one effect test texture) is not supported.
 
 ## Metal Gear Solid: The Twin Snakes (2026-10-04)
 
