@@ -522,14 +522,16 @@ ender_proof.py` (text through plugin, SRL build and the font).
 
 ## The Wind Waker HD plugin (`plugins/zelda_ww`, Wii U)
 
-- **Text in textures** is not handled: the title logo, the sea-chart island names (`MapIsland_*`, the 116
-  `MapScreen` messages are empty), quadrant titles and the boot screen (`Boot_00.szs`) are BFLIM images; there is
-  no BFLIM backend. List: `E:\Emulators\RomHacking\Zelda\Wind Waker\HD - Wii U\reports\format_report.md`.
+- **Textures**: the Textures window lists ~100 BFLIM images (title logo, boot screen, button and controller
+  screens, map / quadrant titles, the sea-chart label). All 1 683 BFLIM of the pack and `Common/Layout` read and
+  write back byte for byte, but the other ~1 580 (art, Hylian-only frames) are not listed.
+  `Common/Object/Tlogo.szs` (BFRES FTEX: PRESS START, © 2002, ZELDA) has no backend; it is probably the unused
+  GameCube 3D title (the HD title is `Layout/Title_00.szs`, proved in Cemu).
 - **Box widths by BalloonType** come from two layouts (700 px / 650 px panes) and the English 99th percentile; which
   layout each balloon type uses was not traced in `cking.rpx`.
 - **Ukrainian letters in CKingMain / CKingMainL** are rough Rubik Black shapes on a new sheet each (+512 KB of
   texture per font in memory); they showed in Cemu on the title screen, but were not checked in every menu or on a
-  console. CKingPic (RGBA8 button pictures) opens for viewing only.
+  console.
 - **The entered player name** is typed on a Latin keyboard; `[Name]` shows it undeclined. The Russian translation
   replaced `[Name]` with a fixed «Линк».
 - **French/Spanish references come from the user's Cemu `.wua`**, not from the disc: the `.wua`'s English pack has

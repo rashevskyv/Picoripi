@@ -123,7 +123,8 @@ def _decompress(data: bytes, scheme: str = "auto") -> Tuple[bytes, Rewrap]:
     if scheme == "none":
         return data, lambda new: new
     if scheme == "yaz0":
-        plain, pack = yaz0.decompress(data), yaz0.compress
+        # Bytes 8-15 of the header stay: Wii U keeps the data alignment there (0x2000 for layouts).
+        plain, pack = yaz0.decompress(data), lambda new: (lambda out: out[:8] + data[8:16] + out[16:])(yaz0.compress(new))
     elif scheme == "zstd":
         plain, dict_id = sarc.decompress(data)
         pack = lambda new: sarc.compress(new, dict_id)  # noqa: E731
@@ -285,30 +286,32 @@ def expand_braces(pattern: str) -> List[str]:
 
 
 def list_members(data: bytes, pattern: str, prefix: str = "") -> List[str]:
-    """Members of the archive ``data`` matching ``pattern`` (``{a,b}`` allowed), walking into archives inside it."""
-    if "{" in pattern:
-        found: List[str] = []
-        for single in expand_braces(pattern):
-            found.extend(m for m in list_members(data, single, prefix) if m not in found)
-        return found
+    """Members of the archive ``data`` matching ``pattern`` (``{a,b}`` allowed), walking into archives inside it.
+
+    The members of the first ``{}`` choice come first; every archive is opened once for all choices."""
+    patterns = [single.lower() for single in expand_braces(pattern)]
+    return [full for _index, full in sorted(_walk_members(data, patterns, prefix), key=lambda pair: pair[0])]
+
+
+def _walk_members(data: bytes, patterns: List[str], prefix: str) -> List[Tuple[int, str]]:
+    """``(index of the first matching pattern, member)`` for the members of ``data`` matching ``patterns``."""
     container = open_container(data)
     if container is None:
         return []
-    pattern_l = pattern.lower()
-    nested = "/" in pattern
-    segments = pattern_l.split("/")
-    out = []
+    out: List[Tuple[int, str]] = []
     for name in container.list_files():
         full = prefix + name
-        probe = full.lower() if nested else PurePosixPath(name).name.lower()
-        if fnmatch.fnmatchcase(probe, pattern_l):
-            out.append(full)
-            continue
         depth = full.count("/") + 1
-        if nested and depth < len(segments) and fnmatch.fnmatchcase(full.lower(), "/".join(segments[:depth])):
+        hit = next((index for index, single in enumerate(patterns) if fnmatch.fnmatchcase(
+            full.lower() if "/" in single else PurePosixPath(name).name.lower(), single)), None)
+        if hit is not None:
+            out.append((hit, full))
+            continue
+        if any("/" in single and depth < single.count("/") + 1
+               and fnmatch.fnmatchcase(full.lower(), "/".join(single.split("/")[:depth])) for single in patterns):
             try:
                 plain, _ = _decompress(container.read_file(name))
-                out.extend(list_members(plain, pattern, full + "/"))
+                out.extend(_walk_members(plain, patterns, full + "/"))
             except (ValueError, KeyError, OSError) as error:
                 log_warning(f"Texture sources: cannot look into {full}: {error}")
     return out
