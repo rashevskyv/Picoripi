@@ -11,6 +11,9 @@ from plugins.zelda_mm64.rules import TYPE_LINE_WIDTH, GameRules
 
 PLUGIN = "zelda_mm64"
 TABLE = 0x1210D8
+CREDITS_TABLE = 0x12A048
+# One credits message in Ocarina of Time's codes: quicktext-on, shift 60, newline, end.
+CREDITS = b"\x08\x06\x3cProducer\x01SHIGERU MIYAMOTO\x02"
 
 
 def _header(textbox_type=0):
@@ -25,12 +28,15 @@ MESSAGES = [
 
 
 def _rom():
-    """A 2 MB image shaped like the US ROM: dmadata, file 29 = text, file 31 = Yaz0 code."""
+    """A 2 MB image shaped like the US ROM: dmadata, file 29 = text, 30 = credits, file 31 = Yaz0 code."""
     rom = bytearray(0x200000)
     rom[0:4] = b"\x80\x37\x12\x40"
     rom[0x3B:0x3F] = b"NZSE"
     text = bytearray()
-    code = bytearray(TABLE + 8 * (len(MESSAGES) + 1) + 0x20)
+    code = bytearray(CREDITS_TABLE + 16 + 0x20)
+    credits = CREDITS + b"\0" * (-len(CREDITS) % 16)
+    struct.pack_into(">HBBIHBBI", code, CREDITS_TABLE, 0x4E20, 0xB0, 0, 0x07000000,
+                     0xFFFF, 0, 0, 0x07000000 | len(credits))
     for n, (message_id, raw) in enumerate(MESSAGES):
         struct.pack_into(">HBBI", code, TABLE + 8 * n, message_id, 0, 0, 0x08000000 | len(text))
         text += raw + b"\xbf"
@@ -42,11 +48,12 @@ def _rom():
     files += [(0x2000 + i * 0x10, 0x2000 + i * 0x10, 0x2000 + i * 0x10, 0) for i in range(1, 29)]
     # As in the retail ROM, the next file starts just after the text: little room to grow.
     after_text = 0x100000 + len(text) + 0x40
-    files += [(0x100000, 0x100000 + len(text), 0x100000, 0), (after_text, after_text, 0x180000, 0)]
+    files += [(0x100000, 0x100000 + len(text), 0x100000, 0), (after_text, after_text + len(credits), 0x180000, 0)]
     files += [(0x200000, 0x200000 + len(code), 0x110000, 0x110000 + len(stored_code))]
     for n, entry in enumerate(files):
         struct.pack_into(">IIII", rom, 0x1A500 + 16 * n, *entry)
     rom[0x100000:0x100000 + len(text)] = text
+    rom[0x180000:0x180000 + len(credits)] = credits
     rom[0x110000:0x110000 + len(stored_code)] = stored_code
     struct.pack_into(">II", rom, 0x10, *compute_crc(bytes(rom)))
     return bytes(rom)
@@ -131,10 +138,21 @@ class TestRom:
 
 
 class TestRules:
-    def test_the_rom_opens_as_one_block_of_messages(self, loaded):
+    def test_the_rom_opens_as_messages_and_credits(self, loaded):
         rules, _raw, blocks = loaded
         assert blocks[0][1] == "Press {btn:A} to talk.{box-break}\nNext box{sfx:27001}"
         assert rules.get_message_attributes(0, 2)["message_id"] == 0x21CC
+        assert blocks[1] == ["{quicktext-on}{shift:60}Producer\nSHIGERU MIYAMOTO"]
+
+    def test_a_credits_edit_keeps_the_credits_codes_and_segment(self, loaded):
+        rules, _raw, blocks = loaded
+        blocks[1][0] = blocks[1][0].replace("SHIGERU MIYAMOTO", "UA TEST")
+        saved = N64Rom(rules.save_data_to_json_obj(blocks, {}))
+        assert saved.read_file(30).startswith(b"\x08\x06\x3cProducer\x01UA TEST\x02")
+        code = saved.read_file(31)
+        assert struct.unpack_from(">I", code, CREDITS_TABLE + 4)[0] == 0x07000000
+        assert struct.unpack_from(">I", code, TABLE + 4)[0] == 0x08000000
+        assert GameRules().load_data_from_json_obj(bytes(saved.data))[0] == blocks
 
     def test_an_unchanged_project_saves_the_identical_rom(self, loaded):
         rules, raw, blocks = loaded

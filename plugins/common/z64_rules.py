@@ -9,7 +9,9 @@ text that outgrows its range moves to free address space and the code that
 loads it is retargeted.  Every other file the translation ROM changed (textures,
 fonts written by the Textures window and the Font Editor) is carried into the
 rebuilt ROM.  A layout may list more message tables (credits); a plugin may add
-blocks of fixed-length strings outside the tables (``fixed_strings``).
+blocks of fixed-length strings outside the tables (``fixed_strings``); a table
+may use its own text format (``table_format``).  Font width tables in ``code``
+edited by the Font Editor are carried into the rebuilt ``code``.
 """
 import json
 import os
@@ -160,19 +162,24 @@ class Zelda64Rules(BaseGameRules):
         rom = N64Rom(raw)
         layout = self.layout_of(rom)
         code = rom.read_file(layout.code_file)
-        tables = [z64_text.read_messages(self.text_format, code, offset, rom.read_file(text_file))
-                  for _name, text_file, offset, _refs in layout.tables()]
+        tables = [z64_text.read_messages(self.table_format(i), code, offset, rom.read_file(text_file))
+                  for i, (_name, text_file, offset, _refs) in enumerate(layout.tables())]
         return rom, tables
 
     def _use_base(self, rom: N64Rom, tables: List[List[Message]]) -> None:
         self.source_rom, self.tables, self.messages = rom, tables, tables[0]
+
+    def table_format(self, table: int) -> TextFormat:
+        """The text format of message table ``table`` (0 = the main one). The game's format by default."""
+        return self.text_format
 
     def fixed_strings(self, rom: N64Rom) -> List[Tuple[str, List[str]]]:
         """Blocks of text outside the message tables: ``[(block name, strings)]``. None by default."""
         return []
 
     def write_fixed_strings(self, rom: N64Rom, blocks: List[List[str]], changes: Dict[int, bytes]) -> None:
-        """Encode the blocks of ``fixed_strings`` into ``changes`` (dmadata index -> new file)."""
+        """Encode the blocks of ``fixed_strings`` into ``changes`` (dmadata index -> new file; ``code`` is
+        already there when the save changed it)."""
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):
@@ -181,7 +188,8 @@ class Zelda64Rules(BaseGameRules):
         if self.source_rom is None:
             self._use_base(rom, tables)
         names = [f"{self.game_name} messages"] + [name for name, *_rest in self.layout_of(rom).extra_tables]
-        blocks = [[self.decode_text(m.body) for m in messages] for messages in tables]
+        blocks = [[self.decode_text(m.body, self.table_format(i)) for m in messages]
+                  for i, messages in enumerate(tables)]
         for name, strings in self.fixed_strings(rom):
             names.append(name)
             blocks.append(strings)
@@ -220,10 +228,10 @@ class Zelda64Rules(BaseGameRules):
                 slots[letter] = code
         return slots
 
-    def decode_text(self, body: bytes) -> str:
+    def decode_text(self, body: bytes, fmt: Optional[TextFormat] = None) -> str:
         """Body bytes -> editor text, a slot read back as the letter drawn there.  Look-alike slots (a Latin
         letter or digit, the apostrophe) stay as they are: the English text shares them."""
-        text = self.text_format.decode(body)
+        text = (fmt or self.text_format).decode(body)
         reverse = {char: letter for letter, char in self.translation_map().items()
                    if not (char.isascii() and (char.isalnum() or char == "'"))}
         return "".join(reverse.get(ch, ch) for ch in text) if reverse else text
@@ -276,17 +284,19 @@ class Zelda64Rules(BaseGameRules):
         free = rom.free_vrom()
         if len(data) < len(tables):
             raise ValueError(f"Expected {len(tables)} message blocks, got {len(data)}")
-        for (_name, text_index, offset, references), messages, texts in zip(tables, self.tables, data):
+        for number, ((_name, text_index, offset, references), messages, texts) in enumerate(
+                zip(tables, self.tables, data)):
             if len(texts) != len(messages):
                 raise ValueError(f"Expected {len(messages)} messages, got {len(texts)}")
-            edited = [Message(m.message_id, m.header, self.text_format.encode(str(text), slots), m.info)
+            fmt = self.table_format(number)
+            edited = [Message(m.message_id, m.header, fmt.encode(str(text), slots), m.info)
                       for m, text in zip(messages, texts)]
             for message in edited:
                 size = len(message.header) + len(message.body) + 1
                 if size > self.message_buffer_size:
                     raise ValueError(f"Message {message.message_id:#06x} is {size} bytes; the game reads at most "
                                      f"{self.message_buffer_size}")
-            text_file, code = z64_text.build_messages(self.text_format, edited, code, offset, self.segment)
+            text_file, code = z64_text.build_messages(fmt, edited, code, offset, self.segment)
             text_file += b"\0" * (-len(text_file) % 16)
             if len(text_file) > rom.file_capacity(text_index):
                 moved[text_index] = free
@@ -294,10 +304,30 @@ class Zelda64Rules(BaseGameRules):
                 code = retarget_constant(code, rom.files[text_index][0], moved[text_index], references)
             if text_file != rom.read_file(text_index):
                 changes[text_index] = text_file
-        self.write_fixed_strings(rom, list(data[len(tables):]), changes)
+        code = self._carry_font_widths(code, layout.code_file)
         if code != original_code:
             changes[layout.code_file] = code
+        self.write_fixed_strings(rom, list(data[len(tables):]), changes)
         return rom.replace_files(changes, moved) if changes else bytes(rom.data)
+
+    def _carry_font_widths(self, code: bytes, code_file: int) -> bytes:
+        """``code`` with the font width tables (``font_sources.json``, ``widths_file`` = ``code``) of the
+        translation ROM: the Font Editor writes widths there, and the text save rebuilds ``code``."""
+        edited = self.edited_rom
+        if edited is None or len(edited.files) != len(self.source_rom.files):
+            return code
+        regions = []
+        for source in self.get_font_sources():
+            params = source.get("params") or {}
+            if source.get("format") == "n64" and "widths_file" in params and int(str(params["widths_file"]), 0) == code_file:
+                regions.append((int(str(params["widths_offset"]), 0), 4 * int(str(params["widths_count"]), 0)))
+        if not regions or edited.files[code_file] == self.source_rom.files[code_file]:
+            return code
+        edited_code = edited.read_file(code_file)
+        out = bytearray(code)
+        for start, size in regions:
+            out[start:start + size] = edited_code[start:start + size]
+        return bytes(out)
 
     # -- width and editing --------------------------------------------------------------
 
