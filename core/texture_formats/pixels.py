@@ -570,6 +570,10 @@ def _build() -> Dict[str, Codec]:
     add(value_codec("RGB565", 16, *_packed((("b", 5), ("g", 6), ("r", 5))), **le))   # R in the low bits
     add(value_codec("RGBA4", 16, *_packed((("a", 4), ("b", 4), ("g", 4), ("r", 4))), **le))
     add(value_codec("RGB5A1", 16, *_packed((("a", 1), ("b", 5), ("g", 5), ("r", 5))), **le))
+    # Plain channels (GX2 R8, R4G4, R8G8): what they show depends on the texture's channel selection (``gtx``)
+    add(value_codec("R8", 8, *_packed((("r", 8),)), **le))
+    add(value_codec("RG4", 8, *_packed((("g", 4), ("r", 4))), **le))
+    add(value_codec("RG8", 16, *_packed((("g", 8), ("r", 8))), **le))
     for n in _BC_SIZE:
         add(_bc_codec(n))
     add(_bc_codec(4, "L"))

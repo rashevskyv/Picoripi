@@ -29,6 +29,9 @@ def _header(data: bytes, at: int = 0) -> Dict[str, int]:
     offset = struct.unpack_from(">I", data, at + 0x1C)[0] or 0x20
     if fmt not in FORMATS:
         raise ValueError(f"BTI pixel format {fmt} is not supported")
+    if at + offset >= len(data) or (fmt in _PALETTE and at + pal_offset + 2 * pal_count > len(data)):
+        # Twilight Princess HD keeps only the header in the archive; the pixels are a GTX in X.pack.gz
+        raise ValueError("BTI header without its pixels")
     return {"format": fmt, "width": width, "height": height, "pal_format": pal_format, "pal_count": pal_count,
             "pal_offset": at + pal_offset, "mips": mips, "data": at + offset}
 

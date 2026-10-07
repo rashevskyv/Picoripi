@@ -754,3 +754,115 @@ def test_tpl_images_read_and_write():
     new = tpl.write(data, {1: Image.new("RGBA", (16, 16), (0, 0, 255, 255))}, {})
     assert tpl.read(new, {})[1].image.getpixel((9, 9))[2] > 240
     assert tpl.read(new, {})[0].image.tobytes() == textures[0].image.tobytes()
+
+
+def make_bmd(textures):
+    """``[(name, bti bytes)]`` -> a J3D model with an empty INF1 section and a TEX1 section holding them."""
+    count = len(textures)
+    names = b"".join(name.encode() + b"\0" for name, _ in textures)
+    table = struct.pack(">HH", count, 0xFFFF)
+    at = 4 + 4 * count
+    for name, _ in textures:
+        table += struct.pack(">HH", 0, at)
+        at += len(name) + 1
+    table += names
+    heads_at = 0x20
+    blobs_at = heads_at + 0x20 * count
+    heads, blobs = b"", b""
+    for index, (_name, data) in enumerate(textures):
+        head = bytearray(data[:0x20])
+        struct.pack_into(">I", head, 0x1C, blobs_at + len(blobs) - (heads_at + 0x20 * index))
+        heads += bytes(head)
+        blobs += data[0x20:]
+    names_at = blobs_at + len(blobs)
+    body = struct.pack(">HHII", count, 0xFFFF, heads_at, names_at) + bytes(heads_at - 0x14) + heads + blobs + table
+    tex1 = b"TEX1" + struct.pack(">I", 8 + len(body)) + body
+    tex1 += bytes(-len(tex1) % 32)
+    inf1 = b"INF1" + struct.pack(">I", 0x20) + bytes(0x18)
+    return b"J3D2bmd3" + struct.pack(">II", 0x20 + len(inf1) + len(tex1), 2) + b"SVR3" + bytes(12) + inf1 + tex1
+
+
+def test_j3d_model_textures_read_and_write():
+    from core.texture_formats import j3d
+    data = make_bmd([("Logo", make_bti(6, 16, 8, picture(16, 8))), ("Shadow", make_bti(1, 8, 8, picture(8, 8, 3)))])
+    assert texture_formats.detect(data) == "j3d"
+    textures = j3d.read(data, {})
+    assert [(t.name, t.pixel_format, t.image.size) for t in textures] == [("Logo", "RGBA8", (16, 8)),
+                                                                          ("Shadow", "I8", (8, 8))]
+    assert j3d.write(data, {0: textures[0].image, 1: textures[1].image}, {}) == data
+    new = j3d.write(data, {0: Image.new("RGBA", (16, 8), (255, 0, 0, 255))}, {})
+    assert len(new) == len(data)
+    assert j3d.read(new, {})[0].image.getpixel((3, 3)) == (255, 0, 0, 255)
+    assert j3d.read(new, {})[1].image.tobytes() == textures[1].image.tobytes()
+
+
+def _blk(kind, body):
+    return b"BLK{" + struct.pack(">IIIIIII", 0x20, 1, 0, kind, len(body), 0, 0) + body
+
+
+def make_gtx(fmt, codec_name, image, select=b"\x00\x01\x02\x03", mips=2):
+    """A GTX with one 2D-tiled surface (``fmt``) and its mip levels, laid out as gtx.py reads them."""
+    codec = pixels.codec(codec_name)
+    bpp = codec.size * 8
+    levels = surface.mip_levels(image, mips)
+    blobs = []
+    for level, picture_ in enumerate(levels):
+        if level == 0:
+            offsets = gx2.element_offsets(picture_.width, picture_.height, bpp, gx2.TILE_2D_THIN1)
+        else:
+            wide, high = 1 << (picture_.width - 1).bit_length(), 1 << (picture_.height - 1).bit_length()
+            tile = gx2.TILE_1D_THIN1 if wide < 32 * max(1, 256 // bpp // 8) or high < 16 else gx2.TILE_2D_THIN1
+            full = gx2.element_offsets(wide, high, bpp, tile)
+            offsets = [full[y * wide + x] for y in range(picture_.height) for x in range(picture_.width)]
+        out = bytearray(max(offsets) + codec.size)
+        surface.write(out, 0, codec, picture_.width, picture_.height, picture_, offsets)
+        blobs.append(bytes(out))
+    mip_offsets = [0] * 13
+    at = 0
+    for level in range(1, mips):
+        if level > 1:
+            mip_offsets[level - 1] = at
+        at += len(blobs[level])
+    info = struct.pack(">16I", 1, image.width, image.height, 1, mips, fmt, 0, 1, len(blobs[0]), 0, at, 0,
+                       gx2.TILE_2D_THIN1, 0, 0, image.width)
+    info += struct.pack(">13I", *mip_offsets) + struct.pack(">IIII", 0, mips, 0, 1) + select + bytes(0x9C - 0x88)
+    body = _blk(0x0B, info) + _blk(0x0C, blobs[0]) + _blk(0x0D, b"".join(blobs[1:])) + _blk(0x01, b"")
+    return b"Gfx2" + struct.pack(">IIIIIII", 0x20, 7, 1, 2, 1, 0, 0) + body
+
+
+def test_gtx_round_trip_redraws_the_mip_levels():
+    from core.texture_formats import gtx
+    data = make_gtx(0x1A, "RGBA8", picture(64, 32), mips=3)
+    assert texture_formats.detect(data) == "gtx"
+    texture = gtx.read(data, {})[0]
+    assert (texture.pixel_format, texture.image.size, texture.mipmaps) == ("RGBA8", (64, 32), 3)
+    assert gtx.write(data, {0: texture.image}, {}) == data
+    red = Image.new("RGBA", (64, 32), (255, 0, 0, 255))
+    new = gtx.write(data, {0: red}, {})
+    assert len(new) == len(data) and new == make_gtx(0x1A, "RGBA8", red, mips=3)
+
+
+def test_gtx_channel_selection_shows_r8_as_grey_with_alpha_and_writes_it_back():
+    from core.texture_formats import gtx
+    grey = Image.new("RGBA", (32, 16), (200, 0, 0, 255))
+    data = make_gtx(0x01, "R8", grey, select=b"\x00\x00\x00\x00", mips=1)
+    texture = gtx.read(data, {})[0]
+    assert texture.image.getpixel((3, 3)) == (200, 200, 200, 200)
+    new = gtx.write(data, {0: Image.new("RGBA", (32, 16), (90, 90, 90, 90))}, {})
+    assert gtx.read(new, {})[0].image.getpixel((5, 5)) == (90, 90, 90, 90)
+
+
+def test_tmpk_pack_members_are_written_in_place():
+    from core.containers.tmpk import TmpkContainer
+    name = b"tex/a.bti.gtx\0"
+    head = b"TMPK" + struct.pack(">III", 1, 0x20, 0) + struct.pack(">IIII", 0x20, 0x40, 4, 0)
+    data = head + name + bytes(0x40 - len(head) - len(name)) + b"abcd"
+    pack = TmpkContainer(data)
+    assert pack.list_files() == ["tex/a.bti.gtx"] and pack.read_file("tex/a.bti.gtx") == b"abcd"
+    pack.write_file("tex/a.bti.gtx", b"wxyz")
+    assert pack.pack() == data[:-4] + b"wxyz"
+    with pytest.raises(ValueError):
+        pack.write_file("tex/a.bti.gtx", b"longer")
+    gz = __import__("gzip").compress(data, mtime=0)
+    member, rewrap = sources.unwrap(gz, "tex/a.bti.gtx", {})
+    assert member == b"abcd" and rewrap(member) == gz

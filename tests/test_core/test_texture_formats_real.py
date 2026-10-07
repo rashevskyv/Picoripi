@@ -187,3 +187,55 @@ def test_wii_home_menu_labels_in_tpl_inside_u8():
     data, rewrap = sources.unwrap(raw, "arc/timg/tx_btn_00.tpl", {})
     assert rewrap(data) == raw
     _round_trip("tpl", data)
+
+
+TP_RES = ZELDA / "Twilight Princess" / "GC + Wii" / "ISO" / "ENG" / "root" / "res"
+
+
+def test_twilight_princess_title_logo_is_a_j3d_model_in_its_archive():
+    raw = _need(TP_RES / "Object" / "Title.arc").read_bytes()
+    data, rewrap = sources.unwrap(raw, "bmdr/titlelogo_r.bmd", {})
+    assert rewrap(data) == raw
+    names = [texture.name for texture in _round_trip("j3d", data)]
+    assert {"Zelda2_R", "TwilightPrincess", "Nintendo"} <= set(names)
+
+
+def test_twilight_princess_project_reads_and_writes_every_texture_format_the_game_uses():
+    # The TP project's source folder is res/Msgus; the plugin's paths climb out of it.
+    _need(TP_RES / "Msgus")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_bmg" / "texture_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(TP_RES / "Msgus"), "translation_path": ""})
+    assert len(found) > 800
+    first = {}
+    for source in found:
+        first.setdefault((source.format, source.pixel_format), source)
+    assert {pixel for _fmt, pixel in first} >= {"I4", "I8", "IA4", "IA8", "RGB565", "RGB5A3", "RGBA8", "C4", "C8", "CMPR"}
+    for (fmt, _pixel), source in first.items():
+        data, _rewrap = sources.unwrap(Path(source.source_path).read_bytes(), source.member, source.params)
+        _round_trip(fmt, data, source.params)
+
+
+TPHD_RES = ZELDA / "Twilight Princess" / "HD - Wii U" / "source" / "content" / "res"
+
+
+@pytest.mark.parametrize("pack", ["Layout/Title2D.pack.gz", "Layout/button.pack.gz", "CardIcon/cardicon.pack.gz"])
+def test_twilight_princess_hd_gx2_textures_in_their_packs_round_trip(pack):
+    raw = _need(TPHD_RES / pack).read_bytes()
+    plain, _ = sources._decompress(raw)
+    members = sources.list_members(plain, "*.gtx")
+    assert members
+    for member in members:
+        data, rewrap = sources.unwrap(raw, member, {})
+        assert rewrap(data) == raw
+        _round_trip("gtx", data)
+
+
+def test_twilight_princess_hd_project_finds_its_gx2_textures():
+    _need(TPHD_RES / "Layout")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_bmg" / "texture_sources.json").read_text(encoding="utf-8"))
+    layouts = next(d for d in descriptors if d["format"] == "gtx" and d["path"][0] == "../Layout/*.pack.gz")
+    # two packs of the glob are enough to check the paths (all of them take a minute)
+    layouts = dict(layouts, path=[p.replace("*.pack.gz", "[bT]*.pack.gz") for p in layouts["path"]])
+    found = sources.resolve([layouts], {"source_path": str(TPHD_RES / "Msguk"), "translation_path": ""})
+    assert len(found) > 20
+    assert {s.pixel_format for s in found} >= {"R8", "R4G4", "R8G8", "RGBA8"}

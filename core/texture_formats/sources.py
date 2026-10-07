@@ -11,7 +11,7 @@ A plugin describes its textures with ``BaseGameRules.get_texture_sources()`` (or
   walked: ``Layout/Title.szs/timg/*.bflim``. Without a ``/`` the glob matches the file name only.
   An N64 ROM is an archive of its dmadata files, named ``#<index>``;
 - ``params`` -- what the format needs (``pixel_format``, ``offset``...), plus ``compression`` of the
-  file at ``path`` (``zlib``, ``gzip``; Yaz0 and zstd are found by their magic, also on members),
+  file at ``path`` (``zlib``, ``gzip``; Yaz0, zstd and gzip are found by their magic, also on members),
   ``file_offset`` + ``file_size`` (the texture file is that byte range of the file or member) and ``texture``
   (a glob of texture names, for a file that holds several; ``{2,5,7}`` picks several).
 
@@ -35,7 +35,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from PIL import Image
 
 from core import texture_formats
-from core.containers import ContainerManager, grezzo, level5, sarc, yaz0
+from core.containers import ContainerManager, grezzo, level5, sarc, tmpk, yaz0
 from core.containers.base_container import BaseArchiveContainer
 from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
@@ -118,7 +118,8 @@ def _decompress(data: bytes, scheme: str = "auto") -> Tuple[bytes, Rewrap]:
     scheme = (scheme or "auto").lower()
     if scheme == "auto":
         scheme = ("yaz0" if data[:4] == b"Yaz0" else "zstd" if data[:4] == sarc.ZSTD_MAGIC
-                  else "lzs" if data[:4] == grezzo.LZS_MAGIC else "none")
+                  else "lzs" if data[:4] == grezzo.LZS_MAGIC
+                  else "gzip" if data[:3] == b"\x1f\x8b\x08" else "none")
     if scheme == "none":
         return data, lambda new: new
     if scheme == "yaz0":
@@ -202,7 +203,7 @@ class N64RomContainer(BaseArchiveContainer):
 
 
 def open_container(data: bytes) -> Optional[BaseArchiveContainer]:
-    """An archive this version can open (RARC, U8, SARC, Grezzo ZAR/GAR, N64 ROM, Level-5 XPCK, a plugin's), or None."""
+    """An archive this version can open (RARC, U8, SARC, Grezzo ZAR/GAR, N64 ROM, TMPK, Level-5 XPCK, a plugin's), or None."""
     container = ContainerManager.open(data)
     if container is None and data[:4] == b"SARC":
         container = sarc.SarcContainer(data)
@@ -210,6 +211,8 @@ def open_container(data: bytes) -> Optional[BaseArchiveContainer]:
         container = grezzo.ZarContainer(data)
     if container is None and N64RomContainer.can_handle(data):
         container = N64RomContainer(data)
+    if container is None and tmpk.TmpkContainer.can_handle(data):
+        container = tmpk.TmpkContainer(data)
     if container is None and level5.XpckContainer.can_handle(data):
         container = level5.XpckContainer(data)
     return container

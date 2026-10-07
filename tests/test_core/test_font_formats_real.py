@@ -374,3 +374,19 @@ def test_majoras_mask_3d_font_edits_and_saves_through_the_plugin_source(tmp_path
     edited = found[0].read_current()
     assert edited != data and len(edited) == len(data)
     assert _has_ink(*font_formats.extract("gzf", edited), "e") and found[0].read_original() == data
+
+
+def test_twilight_princess_descriptor_finds_the_fonts_from_the_message_folder_and_writes_them(tmp_path):
+    _need(TP_FONTS / "fontres.arc")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_bmg" / "font_sources.json").read_text(encoding="utf-8"))
+    project = {"source_path": str(TP_FONTS.parent / "Msgus"), "translation_path": str(tmp_path / "Msgus"),
+               "is_directory_mode": True}
+    found = sources.resolve(descriptors, project)
+    assert [source.name for source in found] == ["rodan_b_24_22.bfn", "reishotai_24_22.bfn"]
+    font = found[0]
+    data = bytearray(font.read_current())
+    assert data[:8] == b"FONTbfn1"
+    data[-1] ^= 0xFF                                   # one texel of the last sheet
+    font.write(bytes(data))
+    assert Path(font.translation_path) == tmp_path / "Fontus" / "fontres.arc"
+    assert font.read_current() == bytes(data) and font.read_original() != bytes(data)
