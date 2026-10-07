@@ -1,0 +1,2546 @@
+{
+ "source": "snesrev/zelda3 45a149d",
+ "messages": {
+  "1": {
+   "refs": [
+    "src/messaging.c:2595"
+   ],
+   "functions": [
+    "RenderText_Draw_Choose2LowOr3"
+   ],
+   "role": "Menu"
+  },
+  "3": {
+   "refs": [
+    "src/messaging.c:2126"
+   ],
+   "functions": [
+    "RenderText_PostDeathSaveOptions"
+   ],
+   "role": "Menu"
+  },
+  "5": {
+   "refs": [
+    "src/overworld.c:3275"
+   ],
+   "functions": [
+    "Overworld_UseEntrance"
+   ]
+  },
+  "6": {
+   "refs": [
+    "src/messaging.c:2689"
+   ],
+   "functions": [
+    "RenderText_Draw_Choose3"
+   ],
+   "role": "Menu"
+  },
+  "9": {
+   "refs": [
+    "src/messaging.c:2709"
+   ],
+   "functions": [
+    "RenderText_Draw_Choose1Or2"
+   ],
+   "role": "Menu"
+  },
+  "11": {
+   "refs": [
+    "src/messaging.c:2667"
+   ],
+   "functions": [
+    "RenderText_Draw_Choose2HiOr3"
+   ],
+   "role": "Menu"
+  },
+  "13": {
+   "refs": [
+    "src/sprite_main.c:5689"
+   ],
+   "functions": [
+    "Uncle_AtHouse"
+   ],
+   "speakers": [
+    "Uncle"
+   ]
+  },
+  "14": {
+   "refs": [
+    "src/sprite_main.c:5726"
+   ],
+   "functions": [
+    "Uncle_InPassage"
+   ],
+   "speakers": [
+    "Uncle"
+   ]
+  },
+  "15": {
+   "refs": [
+    "src/sprite_main.c:10946"
+   ],
+   "functions": [
+    "Sprite_TutorialGuardOrBarrier"
+   ],
+   "speakers": [
+    "TutorialGuardOrBarrier"
+   ]
+  },
+  "22": {
+   "refs": [
+    "src/sprite_main.c:5637"
+   ],
+   "functions": [
+    "Priest_RunRescueCutscene"
+   ],
+   "speakers": [
+    "Priest"
+   ]
+  },
+  "23": {
+   "refs": [
+    "src/sprite_main.c:5613"
+   ],
+   "functions": [
+    "Priest_RunRescueCutscene"
+   ],
+   "speakers": [
+    "Priest"
+   ]
+  },
+  "24": {
+   "refs": [
+    "src/sprite_main.c:5623"
+   ],
+   "functions": [
+    "Priest_RunRescueCutscene"
+   ],
+   "speakers": [
+    "Priest"
+   ]
+  },
+  "27": {
+   "refs": [
+    "src/sprite_main.c:5585"
+   ],
+   "functions": [
+    "Priest_Dying"
+   ],
+   "speakers": [
+    "Priest"
+   ]
+  },
+  "28": {
+   "refs": [
+    "src/sprite_main.c:6281"
+   ],
+   "functions": [
+    "Zelda_InCell"
+   ],
+   "speakers": [
+    "Zelda"
+   ]
+  },
+  "29": {
+   "refs": [
+    "src/sprite_main.c:6337"
+   ],
+   "functions": [
+    "Zelda_EnteringSanctuary"
+   ],
+   "speakers": [
+    "Zelda"
+   ]
+  },
+  "30": {
+   "refs": [
+    "src/sprite_main.c:6347"
+   ],
+   "functions": [
+    "Zelda_EnteringSanctuary"
+   ],
+   "speakers": [
+    "Zelda"
+   ]
+  },
+  "31": {
+   "refs": [
+    "src/sprite_main.c:5671"
+   ],
+   "functions": [
+    "Uncle_AtHouse"
+   ],
+   "speakers": [
+    "Uncle"
+   ]
+  },
+  "36": {
+   "refs": [
+    "src/sprite_main.c:6297"
+   ],
+   "functions": [
+    "Zelda_InCell"
+   ],
+   "speakers": [
+    "Zelda"
+   ]
+  },
+  "37": {
+   "refs": [
+    "src/sprite_main.c:6290"
+   ],
+   "functions": [
+    "Zelda_InCell"
+   ],
+   "speakers": [
+    "Zelda"
+   ]
+  },
+  "43": {
+   "refs": [
+    "src/sprite_main.c:11160"
+   ],
+   "functions": [
+    "Sprite_78_MrsSahasrahla"
+   ],
+   "speakers": [
+    "MrsSahasrahla"
+   ]
+  },
+  "44": {
+   "refs": [
+    "src/sprite_main.c:11168"
+   ],
+   "functions": [
+    "Sprite_78_MrsSahasrahla"
+   ],
+   "speakers": [
+    "MrsSahasrahla"
+   ]
+  },
+  "45": {
+   "refs": [
+    "src/sprite_main.c:11174"
+   ],
+   "functions": [
+    "Sprite_78_MrsSahasrahla"
+   ],
+   "speakers": [
+    "MrsSahasrahla"
+   ]
+  },
+  "46": {
+   "refs": [
+    "src/sprite_main.c:11163"
+   ],
+   "functions": [
+    "Sprite_78_MrsSahasrahla"
+   ],
+   "speakers": [
+    "MrsSahasrahla"
+   ]
+  },
+  "47": {
+   "refs": [
+    "src/sprite_main.c:5998"
+   ],
+   "functions": [
+    "Sprite_OldSnitchLady"
+   ],
+   "speakers": [
+    "OldSnitchLady"
+   ]
+  },
+  "48": {
+   "refs": [
+    "src/sprite_main.c:6570"
+   ],
+   "functions": [
+    "Sasha_Idle"
+   ],
+   "speakers": [
+    "Sasha"
+   ]
+  },
+  "49": {
+   "refs": [
+    "src/sprite_main.c:6572"
+   ],
+   "functions": [
+    "Sasha_Idle"
+   ],
+   "speakers": [
+    "Sasha"
+   ]
+  },
+  "50": {
+   "refs": [
+    "src/sprite_main.c:6559"
+   ],
+   "functions": [
+    "Sasha_Idle"
+   ],
+   "speakers": [
+    "Sasha"
+   ]
+  },
+  "51": {
+   "refs": [
+    "src/sprite_main.c:6540"
+   ],
+   "functions": [
+    "Sprite_Sahasrahla"
+   ],
+   "speakers": [
+    "Sahasrahla"
+   ]
+  },
+  "52": {
+   "refs": [
+    "src/sprite_main.c:6568"
+   ],
+   "functions": [
+    "Sasha_Idle"
+   ],
+   "speakers": [
+    "Sasha"
+   ]
+  },
+  "53": {
+   "refs": [
+    "src/misc.c:266"
+   ],
+   "functions": [
+    "KillAghanim_Func5"
+   ]
+  },
+  "54": {
+   "refs": [
+    "src/misc.c:289"
+   ],
+   "functions": [
+    "KillAghanim_Func7"
+   ]
+  },
+  "55": {
+   "refs": [
+    "src/sprite_main.c:6551",
+    "src/sprite_main.c:6566"
+   ],
+   "functions": [
+    "Sprite_Sahasrahla",
+    "Sasha_Idle"
+   ],
+   "speakers": [
+    "Sahasrahla",
+    "Sasha"
+   ]
+  },
+  "58": {
+   "refs": [
+    "src/player.c:3789"
+   ],
+   "functions": [
+    "Link_PerformRead"
+   ]
+  },
+  "74": {
+   "refs": [
+    "src/sprite_main.c:5854"
+   ],
+   "functions": [
+    "Sprite_Witch"
+   ],
+   "speakers": [
+    "Witch"
+   ]
+  },
+  "75": {
+   "refs": [
+    "src/sprite_main.c:5852",
+    "src/sprite_main.c:5878"
+   ],
+   "functions": [
+    "Sprite_Witch",
+    "Witch_AcceptShroom"
+   ],
+   "speakers": [
+    "Witch"
+   ]
+  },
+  "76": {
+   "refs": [
+    "src/sprite_main.c:5857"
+   ],
+   "functions": [
+    "Sprite_Witch"
+   ],
+   "speakers": [
+    "Witch"
+   ]
+  },
+  "79": {
+   "refs": [
+    "src/sprite_main.c:6813",
+    "src/sprite_main.c:6853",
+    "src/sprite_main.c:6894"
+   ],
+   "functions": [
+    "Sprite_GreenCauldron",
+    "Sprite_BlueCauldron",
+    "Sprite_RedCauldron"
+   ],
+   "speakers": [
+    "BlueCauldron",
+    "GreenCauldron",
+    "RedCauldron"
+   ]
+  },
+  "80": {
+   "refs": [
+    "src/sprite_main.c:6825",
+    "src/sprite_main.c:6865",
+    "src/sprite_main.c:6906"
+   ],
+   "functions": [
+    "Sprite_GreenCauldron",
+    "Sprite_BlueCauldron",
+    "Sprite_RedCauldron"
+   ],
+   "speakers": [
+    "BlueCauldron",
+    "GreenCauldron",
+    "RedCauldron"
+   ]
+  },
+  "111": {
+   "refs": [
+    "src/sprite_main.c:6400"
+   ],
+   "functions": [
+    "Sprite_E8_FakeSword"
+   ],
+   "speakers": [
+    "FakeSword"
+   ]
+  },
+  "122": {
+   "refs": [
+    "src/dungeon.c:5084",
+    "src/dungeon.c:5718"
+   ],
+   "functions": [
+    "Dungeon_ProcessTorchesAndDoors",
+    "OpenChestForItem"
+   ]
+  },
+  "123": {
+   "refs": [
+    "src/player.c:3232",
+    "src/player.c:3461"
+   ],
+   "functions": [
+    "LinkItem_Cape",
+    "LinkCheckMagicCost"
+   ]
+  },
+  "137": {
+   "refs": [
+    "src/sprite_main.c:11388"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "138": {
+   "refs": [
+    "src/sprite_main.c:1149"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "139": {
+   "refs": [
+    "src/sprite_main.c:1193"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "140": {
+   "refs": [
+    "src/sprite_main.c:1242"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "141": {
+   "refs": [
+    "src/sprite_main.c:1279"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "142": {
+   "refs": [
+    "src/sprite_main.c:1289"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "143": {
+   "refs": [
+    "src/sprite_main.c:1271"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "144": {
+   "refs": [
+    "src/sprite_main.c:1271"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "145": {
+   "refs": [
+    "src/sprite_main.c:1271"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "146": {
+   "refs": [
+    "src/sprite_main.c:1271"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "147": {
+   "refs": [
+    "src/sprite_main.c:1271"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "148": {
+   "refs": [
+    "src/sprite_main.c:11439"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "149": {
+   "refs": [
+    "src/sprite_main.c:11464"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "150": {
+   "refs": [
+    "src/sprite_main.c:11485"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "151": {
+   "refs": [
+    "src/sprite_main.c:11522"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "152": {
+   "refs": [
+    "src/sprite_main.c:11488"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "156": {
+   "refs": [
+    "src/sprite_main.c:24661"
+   ],
+   "functions": [
+    "Sprite_AD_OldMan"
+   ],
+   "speakers": [
+    "OldMan"
+   ]
+  },
+  "158": {
+   "refs": [
+    "src/sprite_main.c:24650"
+   ],
+   "functions": [
+    "Sprite_AD_OldMan"
+   ],
+   "speakers": [
+    "OldMan"
+   ]
+  },
+  "159": {
+   "refs": [
+    "src/sprite_main.c:24650"
+   ],
+   "functions": [
+    "Sprite_AD_OldMan"
+   ],
+   "speakers": [
+    "OldMan"
+   ]
+  },
+  "160": {
+   "refs": [
+    "src/sprite_main.c:24650"
+   ],
+   "functions": [
+    "Sprite_AD_OldMan"
+   ],
+   "speakers": [
+    "OldMan"
+   ]
+  },
+  "161": {
+   "refs": [
+    "src/sprite_main.c:12672"
+   ],
+   "functions": [
+    "Sprite_FluteDad"
+   ],
+   "speakers": [
+    "FluteDad"
+   ]
+  },
+  "162": {
+   "refs": [
+    "src/sprite_main.c:12675"
+   ],
+   "functions": [
+    "Sprite_FluteDad"
+   ],
+   "speakers": [
+    "FluteDad"
+   ]
+  },
+  "163": {
+   "refs": [
+    "src/sprite_main.c:12669"
+   ],
+   "functions": [
+    "Sprite_FluteDad"
+   ],
+   "speakers": [
+    "FluteDad"
+   ]
+  },
+  "164": {
+   "refs": [
+    "src/sprite_main.c:12673"
+   ],
+   "functions": [
+    "Sprite_FluteDad"
+   ],
+   "speakers": [
+    "FluteDad"
+   ]
+  },
+  "165": {
+   "refs": [
+    "src/sprite_main.c:12723"
+   ],
+   "functions": [
+    "Sprite_SweepingLady"
+   ],
+   "speakers": [
+    "SweepingLady"
+   ]
+  },
+  "166": {
+   "refs": [
+    "src/sprite_main.c:6126"
+   ],
+   "functions": [
+    "Sprite_RunningMan"
+   ],
+   "speakers": [
+    "RunningMan"
+   ]
+  },
+  "173": {
+   "refs": [
+    "src/sprite_main.c:5970"
+   ],
+   "functions": [
+    "Sprite_OldSnitchLady"
+   ],
+   "speakers": [
+    "OldSnitchLady"
+   ]
+  },
+  "178": {
+   "refs": [
+    "src/sprite_main.c:10944"
+   ],
+   "functions": [
+    "Sprite_TutorialGuardOrBarrier"
+   ],
+   "speakers": [
+    "TutorialGuardOrBarrier"
+   ]
+  },
+  "179": {
+   "refs": [
+    "src/sprite_main.c:10944"
+   ],
+   "functions": [
+    "Sprite_TutorialGuardOrBarrier"
+   ],
+   "speakers": [
+    "TutorialGuardOrBarrier"
+   ]
+  },
+  "182": {
+   "refs": [
+    "src/sprite_main.c:24186"
+   ],
+   "functions": [
+    "Sprite_B3_PedestalPlaque"
+   ],
+   "speakers": [
+    "PedestalPlaque"
+   ]
+  },
+  "183": {
+   "refs": [
+    "src/sprite_main.c:24191"
+   ],
+   "functions": [
+    "Sprite_B3_PedestalPlaque"
+   ],
+   "speakers": [
+    "PedestalPlaque"
+   ]
+  },
+  "188": {
+   "refs": [
+    "src/sprite_main.c:24199"
+   ],
+   "functions": [
+    "Sprite_B3_PedestalPlaque"
+   ],
+   "speakers": [
+    "PedestalPlaque"
+   ]
+  },
+  "189": {
+   "refs": [
+    "src/sprite_main.c:24207"
+   ],
+   "functions": [
+    "Sprite_B3_PedestalPlaque"
+   ],
+   "speakers": [
+    "PedestalPlaque"
+   ]
+  },
+  "200": {
+   "refs": [
+    "src/sprite_main.c:24036",
+    "src/sprite_main.c:24099"
+   ],
+   "functions": [
+    "Bee_Main",
+    "Sprite_B2_PlayerBee"
+   ],
+   "speakers": [
+    "Bee",
+    "PlayerBee"
+   ]
+  },
+  "201": {
+   "refs": [
+    "src/sprite_main.c:11819"
+   ],
+   "functions": [
+    "Sprite_E3_Fairy"
+   ],
+   "speakers": [
+    "Fairy"
+   ]
+  },
+  "202": {
+   "refs": [
+    "src/sprite_main.c:1438",
+    "src/sprite_main.c:11840"
+   ],
+   "functions": [
+    "Bee_PutInBottle",
+    "Sprite_E3_Fairy"
+   ],
+   "speakers": [
+    "Bee",
+    "Fairy"
+   ]
+  },
+  "203": {
+   "refs": [
+    "src/sprite_main.c:12952"
+   ],
+   "functions": [
+    "Sprite_MazeGameGuy"
+   ],
+   "speakers": [
+    "MazeGameGuy"
+   ]
+  },
+  "204": {
+   "refs": [
+    "src/sprite_main.c:12898"
+   ],
+   "functions": [
+    "Sprite_MazeGameLady"
+   ],
+   "speakers": [
+    "MazeGameLady"
+   ]
+  },
+  "205": {
+   "refs": [
+    "src/sprite_main.c:12964"
+   ],
+   "functions": [
+    "Sprite_MazeGameGuy"
+   ],
+   "speakers": [
+    "MazeGameGuy"
+   ]
+  },
+  "206": {
+   "refs": [
+    "src/sprite_main.c:12968"
+   ],
+   "functions": [
+    "Sprite_MazeGameGuy"
+   ],
+   "speakers": [
+    "MazeGameGuy"
+   ]
+  },
+  "207": {
+   "refs": [
+    "src/sprite_main.c:12961"
+   ],
+   "functions": [
+    "Sprite_MazeGameGuy"
+   ],
+   "speakers": [
+    "MazeGameGuy"
+   ]
+  },
+  "208": {
+   "refs": [
+    "src/sprite_main.c:12908",
+    "src/sprite_main.c:12936"
+   ],
+   "functions": [
+    "Sprite_MazeGameLady",
+    "Sprite_MazeGameGuy"
+   ],
+   "speakers": [
+    "MazeGameGuy",
+    "MazeGameLady"
+   ]
+  },
+  "209": {
+   "refs": [
+    "src/sprite_main.c:6181"
+   ],
+   "functions": [
+    "Sprite_BottleVendor"
+   ],
+   "speakers": [
+    "BottleVendor"
+   ]
+  },
+  "210": {
+   "refs": [
+    "src/sprite_main.c:6186"
+   ],
+   "functions": [
+    "Sprite_BottleVendor"
+   ],
+   "speakers": [
+    "BottleVendor"
+   ]
+  },
+  "211": {
+   "refs": [
+    "src/sprite_main.c:6189"
+   ],
+   "functions": [
+    "Sprite_BottleVendor"
+   ],
+   "speakers": [
+    "BottleVendor"
+   ]
+  },
+  "212": {
+   "refs": [
+    "src/sprite_main.c:6180"
+   ],
+   "functions": [
+    "Sprite_BottleVendor"
+   ],
+   "speakers": [
+    "BottleVendor"
+   ]
+  },
+  "213": {
+   "refs": [
+    "src/sprite_main.c:6202"
+   ],
+   "functions": [
+    "Sprite_BottleVendor"
+   ],
+   "speakers": [
+    "BottleVendor"
+   ]
+  },
+  "214": {
+   "refs": [
+    "src/sprite_main.c:6204"
+   ],
+   "functions": [
+    "Sprite_BottleVendor"
+   ],
+   "speakers": [
+    "BottleVendor"
+   ]
+  },
+  "215": {
+   "refs": [
+    "src/sprite_main.c:10728"
+   ],
+   "functions": [
+    "Sprite_Hobo_Bum"
+   ],
+   "speakers": [
+    "Hobo"
+   ]
+  },
+  "216": {
+   "refs": [
+    "src/sprite_main.c:10112"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "217": {
+   "refs": [
+    "src/sprite_main.c:10129"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "218": {
+   "refs": [
+    "src/sprite_main.c:10139"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "219": {
+   "refs": [
+    "src/sprite_main.c:10142"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "220": {
+   "refs": [
+    "src/sprite_main.c:10132"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "221": {
+   "refs": [
+    "src/sprite_main.c:10156"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "222": {
+   "refs": [
+    "src/sprite_main.c:10172"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "223": {
+   "refs": [
+    "src/sprite_main.c:10117"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "224": {
+   "refs": [
+    "src/sprite_main.c:10121"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "225": {
+   "refs": [
+    "src/sprite_main.c:10038"
+   ],
+   "functions": [
+    "Smithy_Frog"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "226": {
+   "refs": [
+    "src/sprite_main.c:10177"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "227": {
+   "refs": [
+    "src/sprite_main.c:10017",
+    "src/sprite_main.c:10206"
+   ],
+   "functions": [
+    "Smithy_Homecoming",
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "228": {
+   "refs": [
+    "src/sprite_main.c:10108"
+   ],
+   "functions": [
+    "Smithy_Main"
+   ],
+   "speakers": [
+    "Smithy"
+   ]
+  },
+  "229": {
+   "refs": [
+    "src/sprite_main.c:9895"
+   ],
+   "functions": [
+    "Sprite_FluteKid_Stumpy"
+   ],
+   "speakers": [
+    "FluteKid"
+   ]
+  },
+  "230": {
+   "refs": [
+    "src/sprite_main.c:9913"
+   ],
+   "functions": [
+    "Sprite_FluteKid_Stumpy"
+   ],
+   "speakers": [
+    "FluteKid"
+   ]
+  },
+  "231": {
+   "refs": [
+    "src/sprite_main.c:9916"
+   ],
+   "functions": [
+    "Sprite_FluteKid_Stumpy"
+   ],
+   "speakers": [
+    "FluteKid"
+   ]
+  },
+  "232": {
+   "refs": [
+    "src/sprite_main.c:9899"
+   ],
+   "functions": [
+    "Sprite_FluteKid_Stumpy"
+   ],
+   "speakers": [
+    "FluteKid"
+   ]
+  },
+  "233": {
+   "refs": [
+    "src/sprite_main.c:9903"
+   ],
+   "functions": [
+    "Sprite_FluteKid_Stumpy"
+   ],
+   "speakers": [
+    "FluteKid"
+   ]
+  },
+  "242": {
+   "refs": [
+    "src/sprite_main.c:1034"
+   ],
+   "functions": [
+    "FortuneTeller_LightOrDarkWorld"
+   ],
+   "speakers": [
+    "FortuneTeller"
+   ]
+  },
+  "243": {
+   "refs": [
+    "src/sprite_main.c:1037"
+   ],
+   "functions": [
+    "FortuneTeller_LightOrDarkWorld"
+   ],
+   "speakers": [
+    "FortuneTeller"
+   ]
+  },
+  "244": {
+   "refs": [
+    "src/sprite_main.c:1063"
+   ],
+   "functions": [
+    "FortuneTeller_LightOrDarkWorld"
+   ],
+   "speakers": [
+    "FortuneTeller"
+   ]
+  },
+  "245": {
+   "refs": [
+    "src/sprite_main.c:1049"
+   ],
+   "functions": [
+    "FortuneTeller_LightOrDarkWorld"
+   ],
+   "speakers": [
+    "FortuneTeller"
+   ]
+  },
+  "254": {
+   "refs": [
+    "src/sprite_main.c:9782"
+   ],
+   "functions": [
+    "DarkWorldHintNPC_Idle"
+   ],
+   "speakers": [
+    "DarkWorldHintNPC"
+   ]
+  },
+  "255": {
+   "refs": [
+    "src/sprite_main.c:9709"
+   ],
+   "functions": [
+    "Sprite_28_DarkWorldHintNPC"
+   ],
+   "speakers": [
+    "DarkWorldHintNPC"
+   ]
+  },
+  "256": {
+   "refs": [
+    "src/sprite_main.c:9712"
+   ],
+   "functions": [
+    "Sprite_28_DarkWorldHintNPC"
+   ],
+   "speakers": [
+    "DarkWorldHintNPC"
+   ]
+  },
+  "257": {
+   "refs": [
+    "src/sprite_main.c:9724"
+   ],
+   "functions": [
+    "Sprite_28_DarkWorldHintNPC"
+   ],
+   "speakers": [
+    "DarkWorldHintNPC"
+   ]
+  },
+  "258": {
+   "refs": [
+    "src/sprite_main.c:9739"
+   ],
+   "functions": [
+    "Sprite_28_DarkWorldHintNPC"
+   ],
+   "speakers": [
+    "DarkWorldHintNPC"
+   ]
+  },
+  "259": {
+   "refs": [
+    "src/sprite_main.c:9768"
+   ],
+   "functions": [
+    "Sprite_28_DarkWorldHintNPC"
+   ],
+   "speakers": [
+    "DarkWorldHintNPC"
+   ]
+  },
+  "260": {
+   "refs": [
+    "src/sprite_main.c:10415"
+   ],
+   "functions": [
+    "Sprite_1F_SickKid"
+   ],
+   "speakers": [
+    "SickKid"
+   ]
+  },
+  "261": {
+   "refs": [
+    "src/sprite_main.c:10430"
+   ],
+   "functions": [
+    "Sprite_1F_SickKid"
+   ],
+   "speakers": [
+    "SickKid"
+   ]
+  },
+  "262": {
+   "refs": [
+    "src/sprite_main.c:10442"
+   ],
+   "functions": [
+    "Sprite_1F_SickKid"
+   ],
+   "speakers": [
+    "SickKid"
+   ]
+  },
+  "263": {
+   "refs": [
+    "src/sprite_main.c:10609"
+   ],
+   "functions": [
+    "Sprite_39_Locksmith"
+   ],
+   "speakers": [
+    "Locksmith"
+   ]
+  },
+  "265": {
+   "refs": [
+    "src/sprite_main.c:10634"
+   ],
+   "functions": [
+    "Sprite_39_Locksmith"
+   ],
+   "speakers": [
+    "Locksmith"
+   ]
+  },
+  "266": {
+   "refs": [
+    "src/sprite_main.c:10654"
+   ],
+   "functions": [
+    "Sprite_39_Locksmith"
+   ],
+   "speakers": [
+    "Locksmith"
+   ]
+  },
+  "267": {
+   "refs": [
+    "src/sprite_main.c:10659"
+   ],
+   "functions": [
+    "Sprite_39_Locksmith"
+   ],
+   "speakers": [
+    "Locksmith"
+   ]
+  },
+  "268": {
+   "refs": [
+    "src/sprite_main.c:10644"
+   ],
+   "functions": [
+    "Sprite_39_Locksmith"
+   ],
+   "speakers": [
+    "Locksmith"
+   ]
+  },
+  "272": {
+   "refs": [
+    "src/sprite_main.c:11084"
+   ],
+   "functions": [
+    "Sprite_3A_MagicBat"
+   ],
+   "speakers": [
+    "MagicBat"
+   ]
+  },
+  "273": {
+   "refs": [
+    "src/sprite_main.c:11106"
+   ],
+   "functions": [
+    "Sprite_3A_MagicBat"
+   ],
+   "speakers": [
+    "MagicBat"
+   ]
+  },
+  "274": {
+   "refs": [
+    "src/attract.c:424"
+   ],
+   "functions": [
+    "Attract_InitGraphics"
+   ],
+   "role": "Narration"
+  },
+  "275": {
+   "refs": [
+    "src/attract.c:535"
+   ],
+   "functions": [
+    "AttractScene_ThroneRoom"
+   ],
+   "role": "Narration"
+  },
+  "276": {
+   "refs": [
+    "src/attract.c:571"
+   ],
+   "functions": [
+    "Attract_PrepZeldaPrison"
+   ],
+   "role": "Narration"
+  },
+  "277": {
+   "refs": [
+    "src/attract.c:609"
+   ],
+   "functions": [
+    "Attract_PrepMaidenWarp"
+   ],
+   "role": "Narration"
+  },
+  "278": {
+   "refs": [
+    "src/sprite_main.c:24217"
+   ],
+   "functions": [
+    "Sprite_B4_PurpleChest"
+   ],
+   "speakers": [
+    "PurpleChest"
+   ]
+  },
+  "279": {
+   "refs": [
+    "src/sprite_main.c:24256"
+   ],
+   "functions": [
+    "Sprite_BombShop_Clerk"
+   ],
+   "speakers": [
+    "BombShop"
+   ]
+  },
+  "280": {
+   "refs": [
+    "src/sprite_main.c:24256"
+   ],
+   "functions": [
+    "Sprite_BombShop_Clerk"
+   ],
+   "speakers": [
+    "BombShop"
+   ]
+  },
+  "281": {
+   "refs": [
+    "src/sprite_main.c:24275"
+   ],
+   "functions": [
+    "Sprite_BombShop_Bomb"
+   ],
+   "speakers": [
+    "BombShop"
+   ]
+  },
+  "282": {
+   "refs": [
+    "src/sprite_main.c:24299"
+   ],
+   "functions": [
+    "Sprite_BombShop_SuperBomb"
+   ],
+   "speakers": [
+    "BombShop"
+   ]
+  },
+  "283": {
+   "refs": [
+    "src/sprite_main.c:24453"
+   ],
+   "functions": [
+    "Kiki_OfferEntranceService"
+   ],
+   "speakers": [
+    "Kiki"
+   ]
+  },
+  "284": {
+   "refs": [
+    "src/sprite_main.c:24458"
+   ],
+   "functions": [
+    "Kiki_OfferEntranceService"
+   ],
+   "speakers": [
+    "Kiki"
+   ]
+  },
+  "285": {
+   "refs": [
+    "src/sprite_main.c:24461"
+   ],
+   "functions": [
+    "Kiki_OfferEntranceService"
+   ],
+   "speakers": [
+    "Kiki"
+   ]
+  },
+  "286": {
+   "refs": [
+    "src/sprite_main.c:24399"
+   ],
+   "functions": [
+    "Kiki_OfferInitialService"
+   ],
+   "speakers": [
+    "Kiki"
+   ]
+  },
+  "287": {
+   "refs": [
+    "src/sprite_main.c:24404"
+   ],
+   "functions": [
+    "Kiki_OfferInitialService"
+   ],
+   "speakers": [
+    "Kiki"
+   ]
+  },
+  "288": {
+   "refs": [
+    "src/sprite_main.c:24408"
+   ],
+   "functions": [
+    "Kiki_OfferInitialService"
+   ],
+   "speakers": [
+    "Kiki"
+   ]
+  },
+  "289": {
+   "refs": [
+    "src/player.c:2916"
+   ],
+   "functions": [
+    "LinkItem_Mirror"
+   ]
+  },
+  "290": {
+   "refs": [
+    "src/sprite_main.c:24620"
+   ],
+   "functions": [
+    "Sprite_B7_BlindMaiden"
+   ],
+   "speakers": [
+    "BlindMaiden"
+   ]
+  },
+  "291": {
+   "refs": [
+    "src/sprite_main.c:15582"
+   ],
+   "functions": [
+    "Sprite_Blind_Blind_Blind"
+   ],
+   "speakers": [
+    "Blind"
+   ]
+  },
+  "293": {
+   "refs": [
+    "src/sprite_main.c:6529"
+   ],
+   "functions": [
+    "Sprite_Aginah"
+   ],
+   "speakers": [
+    "Aginah"
+   ]
+  },
+  "294": {
+   "refs": [
+    "src/sprite_main.c:6521"
+   ],
+   "functions": [
+    "Sprite_Aginah"
+   ],
+   "speakers": [
+    "Aginah"
+   ]
+  },
+  "295": {
+   "refs": [
+    "src/sprite_main.c:6525"
+   ],
+   "functions": [
+    "Sprite_Aginah"
+   ],
+   "speakers": [
+    "Aginah"
+   ]
+  },
+  "296": {
+   "refs": [
+    "src/sprite_main.c:6519"
+   ],
+   "functions": [
+    "Sprite_Aginah"
+   ],
+   "speakers": [
+    "Aginah"
+   ]
+  },
+  "297": {
+   "refs": [
+    "src/sprite_main.c:6523"
+   ],
+   "functions": [
+    "Sprite_Aginah"
+   ],
+   "speakers": [
+    "Aginah"
+   ]
+  },
+  "298": {
+   "refs": [
+    "src/sprite_main.c:18282"
+   ],
+   "functions": [
+    "Catfish_BigFish"
+   ],
+   "speakers": [
+    "Catfish"
+   ]
+  },
+  "299": {
+   "refs": [
+    "src/sprite_main.c:18282"
+   ],
+   "functions": [
+    "Catfish_BigFish"
+   ],
+   "speakers": [
+    "Catfish"
+   ]
+  },
+  "303": {
+   "refs": [
+    "src/sprite_main.c:5752"
+   ],
+   "functions": [
+    "Sprite_QuarrelBros"
+   ],
+   "speakers": [
+    "QuarrelBros"
+   ]
+  },
+  "304": {
+   "refs": [
+    "src/sprite_main.c:5754"
+   ],
+   "functions": [
+    "Sprite_QuarrelBros"
+   ],
+   "speakers": [
+    "QuarrelBros"
+   ]
+  },
+  "305": {
+   "refs": [
+    "src/sprite_main.c:5750"
+   ],
+   "functions": [
+    "Sprite_QuarrelBros"
+   ],
+   "speakers": [
+    "QuarrelBros"
+   ]
+  },
+  "306": {
+   "refs": [
+    "src/sprite_main.c:23307"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "307": {
+   "refs": [
+    "src/sprite_main.c:23307"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "308": {
+   "refs": [
+    "src/sprite_main.c:23307"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "309": {
+   "refs": [
+    "src/sprite_main.c:23307"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "310": {
+   "refs": [
+    "src/sprite_main.c:23307"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "311": {
+   "refs": [
+    "src/sprite_main.c:23307"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "312": {
+   "refs": [
+    "src/sprite_main.c:23307"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "313": {
+   "refs": [
+    "src/sprite_main.c:23327"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "314": {
+   "refs": [
+    "src/sprite_main.c:23320"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "315": {
+   "refs": [
+    "src/ancilla.c:3862"
+   ],
+   "functions": [
+    "Ancilla43_GanonsTowerCutscene"
+   ],
+   "role": "ItemGet"
+  },
+  "316": {
+   "refs": [
+    "src/sprite_main.c:23307"
+   ],
+   "functions": [
+    "CrystalMaiden_RunCutscene"
+   ],
+   "speakers": [
+    "CrystalMaiden"
+   ]
+  },
+  "317": {
+   "refs": [
+    "src/sprite_main.c:17711"
+   ],
+   "functions": [
+    "CutsceneAgahnim_Agahnim"
+   ],
+   "speakers": [
+    "CutsceneAgahnim"
+   ]
+  },
+  "318": {
+   "refs": [
+    "src/sprite_main.c:17756"
+   ],
+   "functions": [
+    "CutsceneAgahnim_Agahnim"
+   ],
+   "speakers": [
+    "CutsceneAgahnim"
+   ]
+  },
+  "319": {
+   "refs": [
+    "src/sprite_main.c:23546"
+   ],
+   "functions": [
+    "Sprite_7A_Agahnim"
+   ],
+   "speakers": [
+    "Agahnim"
+   ]
+  },
+  "320": {
+   "refs": [
+    "src/sprite.c:780"
+   ],
+   "functions": [
+    "Sprite_HitTimer31"
+   ],
+   "speakers": [
+    "HitTimer31"
+   ]
+  },
+  "321": {
+   "refs": [
+    "src/sprite_main.c:23626"
+   ],
+   "functions": [
+    "Sprite_7A_Agahnim"
+   ],
+   "speakers": [
+    "Agahnim"
+   ]
+  },
+  "322": {
+   "refs": [
+    "src/sprite_main.c:3012"
+   ],
+   "functions": [
+    "Sprite_52_KingZora"
+   ],
+   "speakers": [
+    "KingZora"
+   ]
+  },
+  "323": {
+   "refs": [
+    "src/sprite_main.c:3016"
+   ],
+   "functions": [
+    "Sprite_52_KingZora"
+   ],
+   "speakers": [
+    "KingZora"
+   ]
+  },
+  "324": {
+   "refs": [
+    "src/sprite_main.c:3026"
+   ],
+   "functions": [
+    "Sprite_52_KingZora"
+   ],
+   "speakers": [
+    "KingZora"
+   ]
+  },
+  "325": {
+   "refs": [
+    "src/sprite_main.c:3030"
+   ],
+   "functions": [
+    "Sprite_52_KingZora"
+   ],
+   "speakers": [
+    "KingZora"
+   ]
+  },
+  "326": {
+   "refs": [
+    "src/sprite_main.c:3019"
+   ],
+   "functions": [
+    "Sprite_52_KingZora"
+   ],
+   "speakers": [
+    "KingZora"
+   ]
+  },
+  "327": {
+   "refs": [
+    "src/sprite_main.c:7171"
+   ],
+   "functions": [
+    "Sprite_TroughBoy"
+   ],
+   "speakers": [
+    "TroughBoy"
+   ]
+  },
+  "328": {
+   "refs": [
+    "src/sprite_main.c:7174"
+   ],
+   "functions": [
+    "Sprite_TroughBoy"
+   ],
+   "speakers": [
+    "TroughBoy"
+   ]
+  },
+  "329": {
+   "refs": [
+    "src/sprite_main.c:9756"
+   ],
+   "functions": [
+    "Sprite_28_DarkWorldHintNPC"
+   ],
+   "speakers": [
+    "DarkWorldHintNPC"
+   ]
+  },
+  "330": {
+   "refs": [
+    "src/sprite_main.c:1140"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "331": {
+   "refs": [
+    "src/sprite_main.c:1153"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "332": {
+   "refs": [
+    "src/sprite_main.c:11405"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "333": {
+   "refs": [
+    "src/sprite_main.c:1222"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "334": {
+   "refs": [
+    "src/sprite_main.c:11400"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "335": {
+   "refs": [
+    "src/sprite_main.c:1229"
+   ],
+   "functions": [
+    "Sprite_WishPond3"
+   ],
+   "speakers": [
+    "WishPond3"
+   ]
+  },
+  "336": {
+   "refs": [
+    "src/sprite_main.c:11535"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "337": {
+   "refs": [
+    "src/sprite_main.c:11535"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "338": {
+   "refs": [
+    "src/sprite_main.c:11535"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "339": {
+   "refs": [
+    "src/sprite_main.c:11535"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "340": {
+   "refs": [
+    "src/sprite_main.c:11531"
+   ],
+   "functions": [
+    "Sprite_HappinessPond"
+   ],
+   "speakers": [
+    "HappinessPond"
+   ]
+  },
+  "346": {
+   "refs": [
+    "src/sprite_main.c:17050"
+   ],
+   "functions": [
+    "Sprite_BigFairy"
+   ],
+   "speakers": [
+    "BigFairy"
+   ]
+  },
+  "352": {
+   "refs": [
+    "src/sprite_main.c:25025"
+   ],
+   "functions": [
+    "ChestGameGuy"
+   ],
+   "speakers": [
+    "ChestGameGuy"
+   ]
+  },
+  "353": {
+   "refs": [
+    "src/sprite_main.c:25034"
+   ],
+   "functions": [
+    "ChestGameGuy"
+   ],
+   "speakers": [
+    "ChestGameGuy"
+   ]
+  },
+  "354": {
+   "refs": [
+    "src/dungeon.c:5836"
+   ],
+   "functions": [
+    "OpenMiniGameChest"
+   ]
+  },
+  "355": {
+   "refs": [
+    "src/dungeon.c:5831",
+    "src/sprite_main.c:25040",
+    "src/sprite_main.c:25105",
+    "src/sprite_main.c:25132"
+   ],
+   "functions": [
+    "OpenMiniGameChest",
+    "ChestGameGuy",
+    "MiniChestGameGuy",
+    "LostWoodsChestGameGuy"
+   ],
+   "speakers": [
+    "ChestGameGuy",
+    "LostWoodsChestGameGuy",
+    "MiniChestGameGuy"
+   ]
+  },
+  "356": {
+   "refs": [
+    "src/sprite_main.c:25031"
+   ],
+   "functions": [
+    "ChestGameGuy"
+   ],
+   "speakers": [
+    "ChestGameGuy"
+   ]
+  },
+  "358": {
+   "refs": [
+    "src/sprite_main.c:25183",
+    "src/sprite_main.c:25206"
+   ],
+   "functions": [
+    "ShopItem_FighterShield",
+    "ShopItem_FireShield"
+   ],
+   "speakers": [
+    "ShopItem"
+   ]
+  },
+  "365": {
+   "refs": [
+    "src/sprite_main.c:25152",
+    "src/sprite_main.c:25293"
+   ],
+   "functions": [
+    "ShopItem_RedPotion150",
+    "ShopItem_Bee"
+   ],
+   "speakers": [
+    "ShopItem"
+   ]
+  },
+  "366": {
+   "refs": [
+    "src/sprite_main.c:24279",
+    "src/sprite_main.c:25255",
+    "src/sprite_main.c:25274"
+   ],
+   "functions": [
+    "Sprite_BombShop_Bomb",
+    "ShopItem_Arrows",
+    "ShopItem_Bombs"
+   ],
+   "speakers": [
+    "BombShop",
+    "ShopItem"
+   ]
+  },
+  "367": {
+   "refs": [
+    "src/sprite_main.c:14661"
+   ],
+   "functions": [
+    "Sprite_D6_Ganon"
+   ],
+   "speakers": [
+    "Ganon"
+   ]
+  },
+  "368": {
+   "refs": [
+    "src/sprite_main.c:14921"
+   ],
+   "functions": [
+    "Sprite_D6_Ganon"
+   ],
+   "speakers": [
+    "Ganon"
+   ]
+  },
+  "369": {
+   "refs": [
+    "src/sprite_main.c:12657"
+   ],
+   "functions": [
+    "Sprite_ThiefHideoutGuy"
+   ],
+   "speakers": [
+    "ThiefHideoutGuy"
+   ]
+  },
+  "370": {
+   "refs": [
+    "src/sprite_main.c:12640"
+   ],
+   "functions": [
+    "Sprite_BlindsHutGuy"
+   ],
+   "speakers": [
+    "BlindsHutGuy"
+   ]
+  },
+  "371": {
+   "refs": [
+    "src/ending.c:416"
+   ],
+   "functions": [
+    "Module19_TriforceRoom"
+   ],
+   "role": "Narration"
+  },
+  "372": {
+   "refs": [
+    "src/sprite_main.c:18887"
+   ],
+   "functions": [
+    "Toppo_Flustered"
+   ],
+   "speakers": [
+    "Toppo"
+   ]
+  },
+  "373": {
+   "refs": [
+    "src/sprite_main.c:25445"
+   ],
+   "functions": [
+    "Sprite_BC_Drunkard"
+   ],
+   "speakers": [
+    "Drunkard"
+   ]
+  },
+  "374": {
+   "refs": [
+    "src/sprite_main.c:14030",
+    "src/sprite_main.c:25064"
+   ],
+   "functions": [
+    "Sprite_D2_FloppingFish",
+    "NiceThiefWithGift"
+   ],
+   "speakers": [
+    "FloppingFish",
+    "NiceThiefWithGift"
+   ]
+  },
+  "375": {
+   "refs": [
+    "src/sprite_main.c:25142"
+   ],
+   "functions": [
+    "NiceThiefUnderRock"
+   ],
+   "speakers": [
+    "NiceThiefUnderRock"
+   ]
+  },
+  "376": {
+   "refs": [
+    "src/sprite_main.c:25142"
+   ],
+   "functions": [
+    "NiceThiefUnderRock"
+   ],
+   "speakers": [
+    "NiceThiefUnderRock"
+   ]
+  },
+  "378": {
+   "refs": [
+    "src/sprite_main.c:13714"
+   ],
+   "functions": [
+    "Sprite_Cukeman"
+   ],
+   "speakers": [
+    "Cukeman"
+   ]
+  },
+  "380": {
+   "refs": [
+    "src/sprite_main.c:6820",
+    "src/sprite_main.c:6860",
+    "src/sprite_main.c:6901",
+    "src/sprite_main.c:24270",
+    "src/sprite_main.c:24292",
+    "src/sprite_main.c:25158",
+    "src/sprite_main.c:25188",
+    "src/sprite_main.c:25211",
+    "src/sprite_main.c:25242",
+    "src/sprite_main.c:25261",
+    "src/sprite_main.c:25280",
+    "src/sprite_main.c:25299"
+   ],
+   "functions": [
+    "Sprite_GreenCauldron",
+    "Sprite_BlueCauldron",
+    "Sprite_RedCauldron",
+    "Sprite_BombShop_Bomb",
+    "Sprite_BombShop_SuperBomb",
+    "ShopItem_RedPotion150",
+    "ShopItem_FighterShield",
+    "ShopItem_FireShield",
+    "ShopItem_Heart",
+    "ShopItem_Arrows",
+    "ShopItem_Bombs",
+    "ShopItem_Bee"
+   ],
+   "speakers": [
+    "BlueCauldron",
+    "BombShop",
+    "GreenCauldron",
+    "RedCauldron",
+    "ShopItem"
+   ]
+  },
+  "381": {
+   "refs": [
+    "src/sprite_main.c:13847"
+   ],
+   "functions": [
+    "Sprite_ChickenLady"
+   ],
+   "speakers": [
+    "ChickenLady"
+   ]
+  },
+  "382": {
+   "refs": [
+    "src/sprite_main.c:25091"
+   ],
+   "functions": [
+    "MiniChestGameGuy"
+   ],
+   "speakers": [
+    "MiniChestGameGuy"
+   ]
+  },
+  "383": {
+   "refs": [
+    "src/sprite_main.c:25042",
+    "src/sprite_main.c:25097",
+    "src/sprite_main.c:25124"
+   ],
+   "functions": [
+    "ChestGameGuy",
+    "MiniChestGameGuy",
+    "LostWoodsChestGameGuy"
+   ],
+   "speakers": [
+    "ChestGameGuy",
+    "LostWoodsChestGameGuy",
+    "MiniChestGameGuy"
+   ]
+  },
+  "384": {
+   "refs": [
+    "src/sprite_main.c:25100",
+    "src/sprite_main.c:25127"
+   ],
+   "functions": [
+    "MiniChestGameGuy",
+    "LostWoodsChestGameGuy"
+   ],
+   "speakers": [
+    "LostWoodsChestGameGuy",
+    "MiniChestGameGuy"
+   ]
+  },
+  "385": {
+   "refs": [
+    "src/sprite_main.c:25118"
+   ],
+   "functions": [
+    "LostWoodsChestGameGuy"
+   ],
+   "speakers": [
+    "LostWoodsChestGameGuy"
+   ]
+  },
+  "386": {
+   "refs": [
+    "src/sprite_main.c:5817"
+   ],
+   "functions": [
+    "Sprite_InnKeeper"
+   ],
+   "speakers": [
+    "InnKeeper"
+   ]
+  },
+  "387": {
+   "refs": [
+    "src/sprite_main.c:5817"
+   ],
+   "functions": [
+    "Sprite_InnKeeper"
+   ],
+   "speakers": [
+    "InnKeeper"
+   ]
+  },
+  "388": {
+   "refs": [
+    "src/misc.c:584"
+   ],
+   "functions": [
+    "Module05_LoadFile"
+   ]
+  },
+  "389": {
+   "refs": [
+    "src/misc.c:584"
+   ],
+   "functions": [
+    "Module05_LoadFile"
+   ]
+  },
+  "390": {
+   "refs": [
+    "src/messaging.c:2927"
+   ],
+   "functions": [
+    "DisplaySelectMenu"
+   ],
+   "role": "Menu"
+  },
+  "391": {
+   "refs": [
+    "src/sprite_main.c:19167"
+   ],
+   "functions": [
+    "Sprite_D5_DigGameGuy"
+   ],
+   "speakers": [
+    "DigGameGuy"
+   ]
+  },
+  "392": {
+   "refs": [
+    "src/sprite_main.c:19177"
+   ],
+   "functions": [
+    "Sprite_D5_DigGameGuy"
+   ],
+   "speakers": [
+    "DigGameGuy"
+   ]
+  },
+  "393": {
+   "refs": [
+    "src/sprite_main.c:19187"
+   ],
+   "functions": [
+    "Sprite_D5_DigGameGuy"
+   ],
+   "speakers": [
+    "DigGameGuy"
+   ]
+  },
+  "394": {
+   "refs": [
+    "src/sprite_main.c:19213"
+   ],
+   "functions": [
+    "Sprite_D5_DigGameGuy"
+   ],
+   "speakers": [
+    "DigGameGuy"
+   ]
+  },
+  "395": {
+   "refs": [
+    "src/sprite_main.c:19218"
+   ],
+   "functions": [
+    "Sprite_D5_DigGameGuy"
+   ],
+   "speakers": [
+    "DigGameGuy"
+   ]
+  },
+  "396": {
+   "refs": [
+    "src/sprite_main.c:19170"
+   ],
+   "functions": [
+    "Sprite_D5_DigGameGuy"
+   ],
+   "speakers": [
+    "DigGameGuy"
+   ]
+  }
+ }
+}

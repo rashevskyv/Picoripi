@@ -1,0 +1,18 @@
+[
+ {"label": "HUD and menu: MAP, digits, item labels (sprite sheet 105)", "kind": "menu_label", "format": "raw", "path": "gfx/spr105.bin",
+  "params": {"pixel_format": "snes:2bpp", "offset": 0, "width": 128, "height": 64}},
+ {"label": "Menu: item names, DUNGEON ITEM, EQUIPMENT (sprite sheet 106)", "kind": "menu_label", "format": "raw", "path": "gfx/spr106.bin",
+  "params": {"pixel_format": "snes:2bpp", "offset": 0, "width": 128, "height": 64}},
+ {"label": "HUD and menu: LIFE, item icons (sprite sheet 107)", "kind": "menu_label", "format": "raw", "path": "gfx/spr107.bin",
+  "params": {"pixel_format": "snes:2bpp", "offset": 0, "width": 128, "height": 64}},
+ {"label": "GAME OVER (sprite sheet 5)", "kind": "menu_label", "format": "raw", "path": "gfx/spr005.bin",
+  "params": {"pixel_format": "snes:3bpp", "offset": 0, "width": 128, "height": 32}},
+ {"label": "Title: Nintendo copyright (sprite sheet 8)", "kind": "title_screen", "format": "raw", "path": "gfx/spr008.bin",
+  "params": {"pixel_format": "snes:3bpp", "offset": 0, "width": 128, "height": 32}},
+ {"label": "Ending: The End (sprite sheet 45)", "kind": "title_screen", "format": "raw", "path": "gfx/spr045.bin",
+  "params": {"pixel_format": "snes:3bpp", "offset": 0, "width": 128, "height": 32}},
+ {"label": "Title logo, part 1 (background sheet 64)", "kind": "title_screen", "format": "raw", "path": "gfx/bg064.bin",
+  "params": {"pixel_format": "snes:3bpp", "offset": 0, "width": 128, "height": 32}},
+ {"label": "Title logo: A LINK TO THE PAST (background sheet 65)", "kind": "title_screen", "format": "raw", "path": "gfx/bg065.bin",
+  "params": {"pixel_format": "snes:3bpp", "offset": 0, "width": 128, "height": 32}}
+]

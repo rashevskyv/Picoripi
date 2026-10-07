@@ -3,6 +3,7 @@ status: current
 updated: 2026-10-07
 owns: unfinished work
 tokens: 14.6k
+tokens: 12.7k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -21,6 +22,11 @@ the line when it is done or moved into a plan.
 - Not in the Textures window: the TEX0 textures inside the 2,234 BRRES model files (3D scenes and effects; a few
   effect letters such as `EFF_tutorial_target_*_word_*`). Same GX formats as TPL.
 - The ICON names C..J and TEXT_END come from the game's tables; no English message uses them.
+## A Link to the Past (`plugins/zelda_lttp`, 2026-10-07)
+
+- The Ukrainian letters have empty cells in the workspace font (б–я 95–119, Б–Я 128–148); nobody has drawn them yet. The file-select screen, name entry and credits keep the English font and words.
+- Not opened: credits and file-select / name-entry text (tilemaps in the port's C code and ROM tables).
+- `font_sources.json` `chars` and `UK_LOWER`/`UK_UPPER` in the workspace's `zt\lttp.py` must agree (`test_font_cells_match_the_workspace_build`).
 
 ## Tingle Tuner (`plugins/zelda_tingle`, 2026-10-04)
 

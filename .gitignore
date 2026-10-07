@@ -5,6 +5,8 @@ fonts
 !plugins/zelda_totk/fonts/
 # Four Swords Anniversary Edition widths (font_ltn.nftr with the Ukrainian letters): shipped with the plugin.
 !plugins/zelda_fsae/fonts/
+# A Link to the Past (zelda3 port) dialogue widths, read from the port's font.png: shipped with the plugin.
+!plugins/zelda_lttp/fonts/
 # Python cache
 __pycache__/
 *.pyc
