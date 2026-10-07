@@ -28,14 +28,15 @@ class Texture:
 
 
 def _backends() -> Dict[str, Any]:
-    from core.texture_formats import bntx, bti, ctpk, ctxb, flim, g1t, imgc, pcx, raw, tpl
+    from core.texture_formats import bntx, bti, ctpk, ctxb, flim, g1t, imgc, m2, pcx, raw, tpl
     return {"bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "bntx": bntx, "g1t": g1t, "imgc": imgc,
-            "pcx": pcx, "raw": raw}
+            "pcx": pcx, "raw": raw, "m2": m2}
 
 
 # File name extension -> format, for files opened directly.
 EXTENSIONS = {".bti": "bti", ".bflim": "bflim", ".bclim": "bflim", ".bntx": "bntx", ".ctpk": "ctpk", ".ctxb": "ctxb", ".tpl": "tpl", ".g1t": "g1t",
-              ".xi": "imgc", ".pcx": "pcx"}
+              ".xi": "imgc", ".pcx": "pcx",
+              ".psb": "m2", ".m2tex": "m2"}
 
 
 def formats() -> List[str]:

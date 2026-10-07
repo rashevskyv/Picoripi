@@ -186,6 +186,14 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      are `#N` in codec calls and `|` in subtitles (shown as new lines); other game codes read `{901B}`. A codec call
      or script line may grow; a subtitle block may grow up to the end of its stream sector, a program string only
      inside its slot. `2_build.bat` builds both discs (`STAGE.DIR`, codec call offsets, subtitles, program).
+   - `metal_gear_solid_mc` — Metal Gear Solid, Master Collection Version (PC Steam and Switch; the USA game in
+     M2's emulator). **Source:** the workspace's `source` folder (`1_unpack.bat`): the same PlayStation files as
+     `metal_gear_solid_ps1` (`SLUS_005.94` is the program from M2's RAM image) plus M2's own text in
+     `m2\text\**\*.psb` (menus, messages, credits, Master Book; English lines, saved as UTF-8), M2's fonts
+     (`m2\font`, Font Editor formats `m2` and `mgs1_hd`) and pictures (`m2\texture\*.pcx`, `m2\image\*.m2tex`,
+     Textures format `m2`). `2_build.bat` writes M2's patch archive `patchdata.psb.m` + `patchdata.bin`
+     (PC: `build\windata`; Switch: a LayeredFS mod) and drops M2's own small fixes where the translation changed
+     their bytes.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

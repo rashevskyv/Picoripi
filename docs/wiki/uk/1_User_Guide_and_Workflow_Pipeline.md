@@ -183,6 +183,14 @@ tokens: 14.9k
      `#N` у дзвінках кодека і `|` у субтитрах (показано як новий рядок); інші коди гри читаються як `{901B}`.
      Рядок дзвінка чи скрипту може рости; блок субтитрів — до кінця сектора свого потоку, рядок програми — лише в
      межах свого місця. `2_build.bat` збирає обидва диски (`STAGE.DIR`, адреси дзвінків, субтитри, програму).
+   - `metal_gear_solid_mc` — Metal Gear Solid, Master Collection Version (PC Steam і Switch; гра USA в емуляторі
+     M2). **Source:** тека `source` робочої теки (`1_unpack.bat`): ті самі файли PlayStation, що й у
+     `metal_gear_solid_ps1` (`SLUS_005.94` — програма з образу пам’яті M2), плюс власний текст M2 у
+     `m2\text\**\*.psb` (меню, повідомлення, титри, Master Book; англійські рядки, зберігаються як UTF-8),
+     шрифти M2 (`m2\font`, формати Font Editor `m2` і `mgs1_hd`) і картинки (`m2\texture\*.pcx`,
+     `m2\image\*.m2tex`, формат Textures `m2`). `2_build.bat` пише архів виправлень M2 `patchdata.psb.m` +
+     `patchdata.bin` (PC: `build\windata`; Switch: мод LayeredFS) і прибирає власні дрібні виправлення M2 там, де
+     переклад змінив їхні байти.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

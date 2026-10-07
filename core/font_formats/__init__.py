@@ -32,10 +32,11 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import bcfnt, bffnt, bfotf, g1n, g1t, gba_tiles, gzf, mgs, mgs1, n64, nftr, qbf, vagrant, xf
+    from core.font_formats import (bcfnt, bffnt, bfotf, g1n, g1t, gba_tiles, gzf, m2, mgs, mgs1, mgs1_hd, n64, nftr,
+                                   qbf, vagrant, xf)
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
-            "vagrant": vagrant, "gba_tiles": gba_tiles, "mgs1": mgs1}
+            "vagrant": vagrant, "gba_tiles": gba_tiles, "mgs1": mgs1, "mgs1_hd": mgs1_hd, "m2": m2}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -77,6 +78,9 @@ def detect(data: bytes) -> Optional[str]:
     if head[:4] == b"XPCK":
         from core.font_formats import xf
         return "xf" if xf.is_xf(bytes(data)) else None
+    if head[:3] == b"PSB" and head[3:4] == bytes(1):
+        from core.font_formats import m2
+        return "m2" if m2.is_m2_font(bytes(data)) else None
     if head == b"_N1G0000":
         return "g1n"
     if bfotf.is_bfotf(bytes(data[:16])):
