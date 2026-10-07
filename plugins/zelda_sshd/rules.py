@@ -29,7 +29,7 @@ from utils.utils import clean_spaces
 from . import messages, msbf, reference
 from .banner import WiiBannerContainer
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
-from .home_menu import HomeCsv, is_home_csv
+from plugins.common.wii_home_menu import HomeCsv, is_home_csv
 from .tag_manager import TagManager
 from .tags import TAG_RE, describe, from_editor, to_editor
 

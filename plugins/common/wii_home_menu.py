@@ -1,6 +1,7 @@
 """Wii HOME Menu messages (``HomeButton2/home.csv``, ``home_nosave.csv``): UTF-16 with a BOM, one message a row,
 one quoted cell a language separated by tabs (Japanese, English, German, French, Spanish, Italian, Dutch,
-Chinese, English again, Korean). The project edits the English cell; every other byte stays as it is."""
+Chinese, English again, Korean). A plugin edits the English cell; every other byte stays as it is. Shared by
+the Wii plugins (Skyward Sword HD, Super Paper Mario, Metroid: Other M)."""
 import re
 from typing import List, Tuple
 

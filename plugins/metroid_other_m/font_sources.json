@@ -1,0 +1,7 @@
+[
+  {"label": "Text font (global_font)", "format": "brfnt", "path": "font/global_font.brfnt"},
+  {"label": "System font (global_system_font)", "format": "brfnt", "path": "font/global_system_font.brfnt"},
+  {"label": "Japanese text font", "format": "brfnt", "path": "font/japanese_font.brfnt"},
+  {"label": "Japanese system font", "format": "brfnt", "path": "font/japanese_system_font.brfnt"},
+  {"label": "HOME Menu font (Wii)", "format": "brfnt", "path": "hbm/HomeButton2/homeBtn_ENG.arc/arc/font/*.brfnt"}
+]
