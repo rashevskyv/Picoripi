@@ -82,6 +82,12 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      every package that holds the table (the update's `Patch\Z_198_NXPatch.pak.patch` wins in the game) and
      changed fonts and textures with their metadata into a LayeredFS mod. The workspace starts from BakAI's
      Ukrainian translation (text and fonts with Ukrainian letters).
+   - `metroid_prime_remastered` — Metroid Prime Remastered (Switch, base game). The same formats and rules as
+     `metroid_prime4`. **Source:** the workspace's `source` (`text\TEXT_*.msbt`: 27 tables, 3,132 messages,
+     named as in Metroid Prime 1, e.g. `TEXT_ScansChozoRuins`; `font\FONT_*.rfont`: Geneva, Deface and the
+     title-screen Deface; `texture\<package>\*.txtr`: 771 textures); **Translation:** `translation`. Extra tag
+     `{image:TXTR_RStickIdle:1}` (a picture by texture name). `2_build.bat` writes USEN and EUEN and every
+     package that holds a changed asset into a LayeredFS mod.
    - `zelda_totk` — Zelda: Tears of the Kingdom (Switch, checked on 1.4.0). **Source:** the game's dumped `romfs`
      with only the language you replace in `Mals` (`USen.Product.140.sarc.zs`), plus `Pack`; **Translation:** the
      mod's `romfs`, e.g. `atmosphere/contents/0100F2C0115B6000/romfs`. Every MSBT in the archive is a block (1,511

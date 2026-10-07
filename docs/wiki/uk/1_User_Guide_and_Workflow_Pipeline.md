@@ -81,6 +81,12 @@ tokens: 15.0k
      змінений текст у USEN і EUEN кожного пакета з цією таблицею (у грі перемагає `Patch\Z_198_NXPatch.pak.patch`
      оновлення), а змінені шрифти й текстури з їхніми метаданими — у мод LayeredFS. Робоча тека починається з
      українського перекладу BakAI (текст і шрифти з українськими літерами).
+   - `metroid_prime_remastered` — Metroid Prime Remastered (Switch, базова гра). Ті самі формати й правила, що
+     в `metroid_prime4`. **Source:** `source` робочої теки (`text\TEXT_*.msbt`: 27 таблиць, 3132 повідомлення,
+     з назвами як у Metroid Prime 1, наприклад `TEXT_ScansChozoRuins`; `font\FONT_*.rfont`: Geneva, Deface і
+     Deface титульного екрана; `texture\<пакет>\*.txtr`: 771 текстура); **Translation:** `translation`.
+     Додатковий тег `{image:TXTR_RStickIdle:1}` (картинка за назвою текстури). `2_build.bat` пише USEN і EUEN
+     і кожен пакет зі зміненим ресурсом у мод LayeredFS.
    - `zelda_totk` — Zelda: Tears of the Kingdom (Switch, перевірено на 1.4.0). **Source:** здампований `romfs` гри,
      де в `Mals` лише мова, яку замінюєте (`USen.Product.140.sarc.zs`), плюс `Pack`; **Translation:** `romfs`
      мода, наприклад `atmosphere/contents/0100F2C0115B6000/romfs`. Кожен MSBT в архіві — блок (1511 файлів,
