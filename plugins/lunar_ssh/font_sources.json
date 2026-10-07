@@ -1,0 +1,4 @@
+[
+  {"label": "Text font (on the disc of the built game; Ukrainian letters on their cp1251 codes)", "format": "pgf",
+   "path": "MODULE/font.pgf", "font_map": "lunar_ssh_font.json"}
+]

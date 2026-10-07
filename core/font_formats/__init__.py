@@ -56,9 +56,11 @@ def detect(data: bytes) -> Optional[str]:
     """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
     BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font), ``bffnt_wiiu``
     (Wii U BFFNT, big endian), ``brfnt`` (Wii RFNT), ``nftr`` (DS NFTR), ``xf`` (Level-5 XPCK font),
-    ``vagrant`` (Vagrant Story), ``retro_font`` (Metroid Prime 4 FONT bundle) or None."""
+    ``vagrant`` (Vagrant Story), ``retro_font`` (Metroid Prime 4 FONT bundle), ``pgf`` (PSP) or None."""
     from core.font_formats import bfotf
     head = bytes(data[:8])
+    if head[4:8] == b"PGF0":
+        return "pgf"
     if head[:4] == b"RFRM" and bytes(data[20:24]) == b"FONT":
         return "retro_font"
     if head[:4] in (b"QBF1", b"GZFX"):

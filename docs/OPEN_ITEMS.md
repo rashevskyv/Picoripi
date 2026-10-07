@@ -75,6 +75,15 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   English lines are word-for-word the GameCube ones. A one-shot copy of the GameCube Ukrainian lines into the Wii
   and HD projects needs the owner to say which GameCube state is current (the session or `TP_UA\ISO\UA`).
 
+## Lunar: Silver Star Harmony (`plugins/lunar_ssh`, 2026-10-07)
+
+- The built image carries a disc font (Liberation Sans Bold from PPSSPP, not the retail FTT-NewRodin) and a
+  decrypted, patched EBOOT (plain ELF). Checked in PPSSPP only; a real PSP needs a custom firmware that runs
+  plain EBOOTs. Ukrainian letters use cp1251 codes (script words U+0400-04FF are control codes).
+- Not opened: the program's own strings (EBOOT is encrypted; the decrypted dump holds only the save-data titles),
+  subtitles burned into the `PMF_US` movies (the Russian build re-encoded 30 of them), Japanese-only tables
+  (`PLACE`, `PRESS`, `MAKESHIFTSYSTEM`), sprite and map packs (no text).
+
 ## Vagrant Story (2026-10-04)
 
 - The USA disc (SLUS-01040) is the base. The European disc (SLES-02754) is LibCrypt-protected (DuckStation
