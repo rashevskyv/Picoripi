@@ -585,7 +585,7 @@ def _build() -> Dict[str, Codec]:
     add(_bc_codec(4, "L"))
     add(_bc_codec(4, "A"))
     add(_bc_codec(5, "LA"))
-    for bw, bh in ((4, 4), (8, 8), (12, 12)):
+    for bw, bh in ((4, 4), (8, 8), (10, 10), (12, 12)):
         add(_astc_codec(bw, bh))
     return codecs
 

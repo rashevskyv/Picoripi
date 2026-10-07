@@ -689,8 +689,8 @@ def test_astc_two_colour_blocks_round_trip_exactly_and_edits_touch_only_their_bl
     assert sum(a != b for a, b in zip(new, bntx_data)) <= 16          # one block re-encoded
 
 
-def test_astc_8x8_and_12x12_blocks_encode_two_colour_lettering():
-    for size in (8, 12):
+def test_astc_8x8_10x10_and_12x12_blocks_encode_two_colour_lettering():
+    for size in (8, 10, 12):
         image = Image.new("RGBA", (size * 2, size), (0, 0, 0, 255))
         ImageDraw.Draw(image).rectangle((0, 0, size - 1, size - 1), fill=(255, 0, 0, 255))   # a whole block
         data = astc.encode(image, size, size)

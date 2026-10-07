@@ -1,0 +1,961 @@
+{
+ "endian": "little",
+ "colors": [
+  {
+   "name": "RED",
+   "rgba": "cf2c12ff"
+  },
+  {
+   "name": "BLUE",
+   "rgba": "0677ebff"
+  },
+  {
+   "name": "GREEN",
+   "rgba": "2e7611ff"
+  },
+  {
+   "name": "YELLOW",
+   "rgba": "d6b918ff"
+  },
+  {
+   "name": "PURPLE",
+   "rgba": "7a44a9ff"
+  },
+  {
+   "name": "PINK",
+   "rgba": "d55eccff"
+  },
+  {
+   "name": "ORANGE",
+   "rgba": "e67928ff"
+  },
+  {
+   "name": "BROWN",
+   "rgba": "795c1dff"
+  },
+  {
+   "name": "LIGHT_BLUE",
+   "rgba": "65c3c9ff"
+  },
+  {
+   "name": "LIGHT_GREEN",
+   "rgba": "8aae3bff"
+  },
+  {
+   "name": "LIGHT_ORANGE",
+   "rgba": "e2b972ff"
+  },
+  {
+   "name": "BLACK",
+   "rgba": "404040ff"
+  },
+  {
+   "name": "GRAY",
+   "rgba": "929292ff"
+  },
+  {
+   "name": "WHITE",
+   "rgba": "ffffffff"
+  },
+  {
+   "name": "BtlCaption_RED",
+   "rgba": "ff2e11ff"
+  },
+  {
+   "name": "BtlCaption_YELLOW",
+   "rgba": "eed538ff"
+  },
+  {
+   "name": "BtlCaption_WHITE",
+   "rgba": "e7e7e7ff"
+  },
+  {
+   "name": "LABO_GREEN",
+   "rgba": "00ff00ff"
+  },
+  {
+   "name": "HELP",
+   "rgba": "51421cff"
+  }
+ ],
+ "attributes": [
+  {
+   "name": "holder",
+   "type": "list",
+   "offset": 0,
+   "items": [
+    "default",
+    "system",
+    "select",
+    "read",
+    "hint",
+    "Speaker",
+    "Origami",
+    "OrigamiOh",
+    "Origami_Peach",
+    "Peach",
+    "Luigi",
+    "Tree",
+    "TreeGirl",
+    "DekuG",
+    "Bomhei",
+    "Kinopio",
+    "Kinopio_Museum",
+    "Kinopio_BattleLab",
+    "Kinopio_heart",
+    "Kinopio_Cave",
+    "Kinopio_ShipMaster",
+    "Kinopio_Boatman",
+    "Kinopio_Chief",
+    "Kinopio_Researcher",
+    "Kinopio_Staff",
+    "Kinopio_Chairman",
+    "KInopio_SailorCaptain",
+    "Kinopio_Sailor",
+    "Kinopio_engineer",
+    "Kinopio_Archeology",
+    "Kinopio_DJ",
+    "Kinopio_Captain",
+    "Kinopio_Heaven",
+    "Kinopio_Heaven_Image",
+    "Kinopio_Craftsman",
+    "Army_Koopa",
+    "Koopa",
+    "Kameck",
+    "KoopaJr",
+    "Heiho_Chairmanship",
+    "Catherine",
+    "Kuribo",
+    "Kuribo_Country",
+    "Nokonoko",
+    "Heiho",
+    "Heiho_Sombrero",
+    "Mucho",
+    "Mucho_Hotel",
+    "MontyMole",
+    "Hammer_Bros",
+    "Gabon",
+    "Togezo",
+    "Karon",
+    "Hone_Kuribo",
+    "Hakkun",
+    "PataPata",
+    "Metto",
+    "Kuribo_Cosplay",
+    "Nokonoko_Cosplay",
+    "Mucho_Cosplay",
+    "Boss_PEN",
+    "Boss_GOM",
+    "Boss_HPC",
+    "Boss_TAP",
+    "Boss_SCS",
+    "Boss_STP",
+    "OrigamiHei",
+    "Origami_Heiho",
+    "Origami_Kuribo",
+    "Origami_Nokonoko",
+    "Origami_Buru",
+    "Origami_Bros",
+    "Origami_KK",
+    "Acce_Kinopio",
+    "Acce_Mucho",
+    "Acce_MontyMole",
+    "Koopa_PeraPera",
+    "Mole",
+    "Lamp_Mucho",
+    "Mega_Bros"
+   ]
+  },
+  {
+   "name": "fix",
+   "type": "list",
+   "offset": 1,
+   "items": [
+    "Edit",
+    "Fix",
+    "PreFix",
+    "PendingVerification"
+   ]
+  },
+  {
+   "name": "mob",
+   "type": "list",
+   "offset": 2,
+   "items": [
+    "none",
+    "must",
+    "important",
+    "branch",
+    "mob"
+   ]
+  },
+  {
+   "name": "pic",
+   "type": "list",
+   "offset": 3,
+   "items": [
+    "none",
+    "kudo",
+    "yasumatu",
+    "igata",
+    "nagaya",
+    "morimoto",
+    "aoyama",
+    "kita",
+    "sekigawa",
+    "toguchi",
+    "hirosawa",
+    "kishi",
+    "sp_taniguchi",
+    "t_suzuki",
+    "sp_nakahara",
+    "t_hino",
+    "kobayashi",
+    "fujisawa"
+   ]
+  },
+  {
+   "name": "reference",
+   "type": "list",
+   "offset": 4,
+   "items": [
+    "OK",
+    "NG"
+   ]
+  }
+ ],
+ "tag_groups": [
+  {
+   "id": 0,
+   "name": "System",
+   "tags": [
+    {
+     "name": "Ruby",
+     "params": [
+      {
+       "name": "rt",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Font",
+     "params": [
+      {
+       "name": "face",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Size",
+     "params": [
+      {
+       "name": "percent",
+       "type": "u16"
+      },
+      {
+       "name": "size",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Color",
+     "params": [
+      {
+       "name": "r",
+       "type": "u8"
+      },
+      {
+       "name": "g",
+       "type": "u8"
+      },
+      {
+       "name": "b",
+       "type": "u8"
+      },
+      {
+       "name": "a",
+       "type": "u8"
+      },
+      {
+       "name": "name",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "PageBreak",
+     "params": []
+    },
+    {
+     "name": "Reference",
+     "params": [
+      {
+       "name": "mstxt",
+       "type": "str"
+      },
+      {
+       "name": "label",
+       "type": "str"
+      },
+      {
+       "name": "lang",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "name": "Control",
+   "tags": [
+    {
+     "name": "wait",
+     "params": [
+      {
+       "name": "msec",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "once_stop",
+     "params": []
+    },
+    {
+     "name": "signal",
+     "params": [
+      {
+       "name": "param",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "speed",
+     "params": [
+      {
+       "name": "time",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "select",
+     "params": [
+      {
+       "name": "label",
+       "type": "str"
+      },
+      {
+       "name": "cancel",
+       "type": "s32"
+      },
+      {
+       "name": "default",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "key_wait",
+     "params": []
+    },
+    {
+     "name": "next_pose",
+     "params": [
+      {
+       "name": "label",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "help",
+     "params": [
+      {
+       "name": "label",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "name": "Layout",
+   "tags": [
+    {
+     "name": "center",
+     "params": []
+    },
+    {
+     "name": "left",
+     "params": []
+    },
+    {
+     "name": "right",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "name": "Text",
+   "tags": [
+    {
+     "name": "value",
+     "params": [
+      {
+       "name": "no",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "italic",
+     "params": [
+      {
+       "name": "ratio",
+       "type": "f32"
+      }
+     ]
+    },
+    {
+     "name": "dialect",
+     "params": []
+    },
+    {
+     "name": "colorful",
+     "params": []
+    },
+    {
+     "name": "shadow",
+     "params": []
+    },
+    {
+     "name": "particle",
+     "params": [
+      {
+       "name": "no",
+       "type": "s32"
+      },
+      {
+       "name": "batchim_on",
+       "type": "str"
+      },
+      {
+       "name": "batchim_off",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "Private",
+   "tags": [
+    {
+     "name": "layout_separator",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "Karaoke",
+   "tags": [
+    {
+     "name": "lyric",
+     "params": [
+      {
+       "name": "start",
+       "type": "s32"
+      },
+      {
+       "name": "end",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "wait",
+     "params": [
+      {
+       "name": "time",
+       "type": "s32"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "styles": [
+  {
+   "name": "Talk",
+   "region_width": 768,
+   "lines": 4,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "SmallTalk",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Signboard",
+   "region_width": 840,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "System",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Scrap",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Shout",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Telepathy",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Lyric",
+   "region_width": 768,
+   "lines": 2,
+   "font": 14,
+   "color": 13
+  },
+  {
+   "name": "Balloon",
+   "region_width": 324,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "UI",
+   "region_width": 800,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "ItemName",
+   "region_width": 546,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "ItemHelp",
+   "region_width": 462,
+   "lines": 4,
+   "font": 10,
+   "color": 18
+  },
+  {
+   "name": "MuseumHelp",
+   "region_width": 840,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Gion",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Echo",
+   "region_width": 720,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Instruction",
+   "region_width": 1372,
+   "lines": 1,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "Speaker",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Whisper",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Trial",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Narration",
+   "region_width": 768,
+   "lines": 2,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "ShoutTilt",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "PeachLetter",
+   "region_width": 706,
+   "lines": 4,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Origami",
+   "region_width": 768,
+   "lines": 4,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "OrigamiShout",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "GodHandHelp",
+   "region_width": 493,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Ancient",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Announce",
+   "region_width": 2000,
+   "lines": 1,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "System1Line",
+   "region_width": 840,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "SmallTelepathy",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "CarSpec",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "FaceSmallTalk",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "NarrationKey",
+   "region_width": 768,
+   "lines": 2,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "Ending",
+   "region_width": 768,
+   "lines": 2,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "Book",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Memo",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "SmallShout",
+   "region_width": 504,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "NarrationCafe",
+   "region_width": 768,
+   "lines": 3,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "GodHandBalloon",
+   "region_width": 196,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Audience",
+   "region_width": 630,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "KeyGuide",
+   "region_width": 1300,
+   "lines": 1,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "KeyGuideRaw",
+   "region_width": 1300,
+   "lines": 1,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "Caption",
+   "region_width": 1200,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "BtlCaption",
+   "region_width": 1600,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "BtlAction",
+   "region_width": 576,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "BtlActionNpc",
+   "region_width": 592,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "EyeCatchTitle",
+   "region_width": 1080,
+   "lines": 1,
+   "font": 4,
+   "color": 13
+  },
+  {
+   "name": "EyeCatchName",
+   "region_width": 1093,
+   "lines": 1,
+   "font": 4,
+   "color": 13
+  },
+  {
+   "name": "ShortcutTitle",
+   "region_width": 288,
+   "lines": 1,
+   "font": 2,
+   "color": 11
+  },
+  {
+   "name": "Select",
+   "region_width": 407,
+   "lines": 7,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "QuizTitle",
+   "region_width": 1700,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "QuizBoard",
+   "region_width": 380,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "QuizBoardResult",
+   "region_width": 340,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "JunkenResult",
+   "region_width": 1300,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "KeyGuideShort",
+   "region_width": 334,
+   "lines": 1,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "BtlLaboMode",
+   "region_width": 486,
+   "lines": 1,
+   "font": 2,
+   "color": 11
+  },
+  {
+   "name": "AnnounceTitle",
+   "region_width": 768,
+   "lines": 1,
+   "font": 10,
+   "color": 13
+  },
+  {
+   "name": "TapeTitle",
+   "region_width": 1204,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "TapeSubTitle",
+   "region_width": 2032,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "QuizActorTitle",
+   "region_width": 525,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "QuizActorName",
+   "region_width": 525,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "QuizCreditTitle",
+   "region_width": 525,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "QuizCreditName",
+   "region_width": 700,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "QuizInfo",
+   "region_width": 1400,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "QuizLogo",
+   "region_width": 1000,
+   "lines": 3,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "GalleryName",
+   "region_width": 750,
+   "lines": 1,
+   "font": 10,
+   "color": 11
+  },
+  {
+   "name": "Copyright",
+   "region_width": 900,
+   "lines": 2,
+   "font": 10,
+   "color": 11
+  }
+ ]
+}

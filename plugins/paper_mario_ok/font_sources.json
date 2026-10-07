@@ -1,0 +1,14 @@
+[
+  {"label": "FOT-PopJoyStd-B", "format": "bffnt", "path": "font/FOT-PopJoyStd-B.bffnt"},
+  {"label": "FOT-PopJoyStd-B (blur)", "format": "bffnt", "path": "font/FOT-PopJoyStd-B_blur.bffnt", "params": {"min_sheets": 2}},
+  {"label": "FOT-SuraPro_B", "format": "bffnt", "path": "font/FOT-SuraPro_B.bffnt"},
+  {"label": "FOT-SuraPro_B (blur)", "format": "bffnt", "path": "font/FOT-SuraPro_B_blur.bffnt", "params": {"min_sheets": 2}},
+  {"label": "MARIO-Outline", "format": "bffnt", "path": "font/MARIO-Outline.bffnt"},
+  {"label": "MARIO-Outline (shadow)", "format": "bffnt", "path": "font/MARIO-Outline_shadow.bffnt"},
+  {"label": "MARIO-OutlineL", "format": "bffnt", "path": "font/MARIO-OutlineL.bffnt", "params": {"min_sheets": 6}},
+  {"label": "MARIO-Solid", "format": "bffnt", "path": "font/MARIO-Solid.bffnt"},
+  {"label": "MARIO-Solid (blur)", "format": "bffnt", "path": "font/MARIO-Solid_blur.bffnt"},
+  {"label": "Button icons (nintendo_ext_003)", "format": "bffnt", "path": "font/nintendo_ext_003.bffnt"},
+  {"label": "Button icons (nintendo_ext_003, blur)", "format": "bffnt", "path": "font/nintendo_ext_003_blur.bffnt"},
+  {"label": "Button icons (nintendo_ext_003_L)", "format": "bffnt", "path": "font/nintendo_ext_003_L.bffnt"}
+]

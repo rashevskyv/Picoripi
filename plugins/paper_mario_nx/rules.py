@@ -18,7 +18,7 @@ from utils.utils import clean_spaces
 
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
-from .tags import describe, from_editor, to_editor
+from .tags import CODEC
 
 
 class GameRules(BaseGameRules):
@@ -30,6 +30,7 @@ class GameRules(BaseGameRules):
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+    codec = CODEC                                   # the game's MSBP tag catalogue (tags.py)
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
@@ -50,7 +51,7 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         msbt = Msbt(json_obj)
         self._msbt = msbt
-        return [[to_editor(tokens, msbt.little) for tokens in msbt.messages]], {}
+        return [[self.codec.to_editor(tokens, msbt.little) for tokens in msbt.messages]], {}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         if self._msbt is None:
@@ -61,10 +62,10 @@ class GameRules(BaseGameRules):
         for index, original in enumerate(msbt.messages):
             text = texts[index] if index < len(texts) else None
             # An untouched message keeps its exact tokens, whatever the editor form would re-encode to.
-            if text is None or text == to_editor(original, msbt.little):
+            if text is None or text == self.codec.to_editor(original, msbt.little):
                 rebuilt.append(original)
             else:
-                rebuilt.append(from_editor(str(text), msbt.little))
+                rebuilt.append(self.codec.from_editor(str(text), msbt.little))
         return msbt.build(rebuilt)
 
     def prepare_save_context(self, context) -> None:
@@ -77,7 +78,8 @@ class GameRules(BaseGameRules):
                 self._msbt = Msbt(raw)
                 return
             except (ValueError, IndexError) as error:
-                log_warning(f"paper_mario_nx: cannot read {context.relative_path}: {error}; trying the next version")
+                log_warning(f"{type(self).__module__}: cannot read {context.relative_path}: {error}; "
+                            "trying the next version")
 
     def reset_runtime_state(self) -> None:
         self._msbt = None
@@ -85,7 +87,7 @@ class GameRules(BaseGameRules):
     # -- editor ----------------------------------------------------------------
 
     def get_tag_tooltip(self, tag: str) -> str:
-        return describe(self.replace_aliases_with_tags(str(tag)))
+        return self.codec.describe(self.replace_aliases_with_tags(str(tag)))
 
     def process_pasted_segment(self, segment_to_insert: str, original_text_for_tags: str,
                                editor_player_tag_const: str) -> Tuple[str, str, str]:
