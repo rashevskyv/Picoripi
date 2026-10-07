@@ -70,11 +70,9 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 
 ## Lunar: Silver Star Harmony (`plugins/lunar_ssh`, 2026-10-07)
 
-- The game draws all text with the PSP's built-in font (`libfont.prx` + firmware `ltn*.pgf`, Latin only): no
-  font on the UMD. Ukrainian needs a PGF with Cyrillic on the disc and a program patch that loads it (the
-  Russian fan build ships `ltn12.pgf`, a replaced `libfont.prx` and a re-encrypted EBOOT). No PGF codec yet.
-- Script words U+0400-04FF are control codes: Ukrainian letters must be mapped to free code points (the Russian
-  build used cp1251 codes in the Latin-1 range) together with that font. Until then they are saved as `?`.
+- The built image carries a disc font (Liberation Sans Bold from PPSSPP, not the retail FTT-NewRodin) and a
+  decrypted, patched EBOOT (plain ELF). Checked in PPSSPP only; a real PSP needs a custom firmware that runs
+  plain EBOOTs. Ukrainian letters use cp1251 codes (script words U+0400-04FF are control codes).
 - Not opened: the program's own strings (EBOOT is encrypted; the decrypted dump holds only the save-data titles),
   subtitles burned into the `PMF_US` movies (the Russian build re-encoded 30 of them), Japanese-only tables
   (`PLACE`, `PRESS`, `MAKESHIFTSYSTEM`), sprite and map packs (no text).

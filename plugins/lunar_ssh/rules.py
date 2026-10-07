@@ -8,8 +8,10 @@ The project's source folder is the workspace's ``source`` (``1_unpack.bat``):
   first ``;`` (the whole line when it has none); the comment stays.
 
 Pictures with text are GIM / FCHN files under ``StationedPack`` (``texture_sources.json``). The game draws
-text with the PSP's built-in font, so there is no font file to edit. Script text cannot hold Cyrillic as it
-is (its code range is the script's control codes); such characters are saved as ``?`` with a warning.
+text with the PSP's built-in font; the workspace build gives it a font on the disc (``MODULE/font.pgf``, Font
+Editor format ``pgf``) and a program that loads it. Ukrainian letters are stored with their cp1251 codes
+(``translation_map.json``; the script's U+0400-04FF range holds its control codes) and shown back as letters;
+other characters the script cannot hold are saved as ``?`` with a warning.
 """
 from typing import Any, List, Optional, Set, Tuple
 
@@ -20,7 +22,7 @@ from . import ltcv
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
-BOM = "﻿"
+BOM = chr(0xFEFF)
 EOF_MARK = "\x1a"
 
 
@@ -37,7 +39,7 @@ def table_texts(data: bytes) -> List[str]:
     lines = table_lines(data)
     if lines and lines[-1] in ("", EOF_MARK):
         lines = lines[:-1]
-    return [line.lstrip(BOM).split(";", 1)[0] for line in lines]
+    return [ltcv.render_letters(line.lstrip(BOM).split(";", 1)[0]) for line in lines]
 
 
 def build_table(data: bytes, texts: List[Optional[str]]) -> bytes:
@@ -49,7 +51,7 @@ def build_table(data: bytes, texts: List[Optional[str]]) -> bytes:
         line = lines[index]
         bom = BOM if line.startswith(BOM) else ""
         old, sep, rest = line[len(bom):].partition(";")
-        new = str(text).replace("\r", "").replace("\n", " ").replace(";", ",")
+        new = ltcv.store_letters(str(text).replace("\r", "").replace("\n", " ").replace(";", ","))
         if new != old:
             lines[index] = bom + new + sep + rest
             changed = True

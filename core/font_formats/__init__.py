@@ -32,11 +32,11 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import (bcfnt, bffnt, bfotf, g1n, g1t, gba_tiles, gzf, mgs, n64, nftr, qbf, retro_font,
-                                   vagrant, xf)
+    from core.font_formats import (bcfnt, bffnt, bfotf, g1n, g1t, gba_tiles, gzf, mgs, n64, nftr, pgf, qbf,
+                                   retro_font, vagrant, xf)
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
-            "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font}
+            "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font, "pgf": pgf}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -55,9 +55,11 @@ def detect(data: bytes) -> Optional[str]:
     """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
     BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font), ``bffnt_wiiu``
     (Wii U BFFNT, big endian), ``brfnt`` (Wii RFNT), ``nftr`` (DS NFTR), ``xf`` (Level-5 XPCK font),
-    ``vagrant`` (Vagrant Story), ``retro_font`` (Metroid Prime 4 FONT bundle) or None."""
+    ``vagrant`` (Vagrant Story), ``retro_font`` (Metroid Prime 4 FONT bundle), ``pgf`` (PSP) or None."""
     from core.font_formats import bfotf
     head = bytes(data[:8])
+    if head[4:8] == b"PGF0":
+        return "pgf"
     if head[:4] == b"RFRM" and bytes(data[20:24]) == b"FONT":
         return "retro_font"
     if head[:4] in (b"QBF1", b"GZFX"):

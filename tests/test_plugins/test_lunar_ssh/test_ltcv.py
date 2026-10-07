@@ -51,9 +51,16 @@ def test_longer_text_moves_the_labels():
 
 def test_characters_the_script_cannot_hold_become_question_marks():
     missing = set()
-    new = ltcv.build(_data(), ["Привіт", "", "No"], missing)
-    assert missing == set("Привіт")
-    assert ltcv.texts(ltcv.parse(new)) == ["??????", " ", "No"]
+    new = ltcv.build(_data(), ["Ыэ漢", "", "No"], missing)
+    assert missing == set("Ыэ漢")
+    assert ltcv.texts(ltcv.parse(new)) == ["???", " ", "No"]
+
+
+def test_ukrainian_letters_are_stored_with_their_cp1251_codes():
+    new = ltcv.build(_data(), ["{speaker:41}Привіт, Ґанно!{wait}", "Так", "Ні"])
+    script = ltcv.parse(new)
+    assert ltcv.texts(script) == ["{speaker:41}Привіт, Ґанно!{wait}", "Так", "Ні"]
+    assert script.code[script.spans[1].start:script.spans[1].end] == list("Так".encode("cp1251"))
 
 
 def test_text_table_keeps_comments_and_end_mark():
@@ -61,7 +68,9 @@ def test_text_table_keeps_comments_and_end_mark():
     assert table_texts(raw) == ["Dummy", "Knife", "Credits line"]
     assert build_table(raw, table_texts(raw)) == raw
     new = build_table(raw, ["Пусто", "Ніж; гострий", "Титри"])
-    assert new.decode("utf-16-le") == "﻿Пусто;\t\tダミー\r\nНіж, гострий;\t\tナイフ\r\nТитри\r\n\x1a"
+    expected = "﻿Пусто;\t\tダミー\r\nНіж, гострий;\t\tナイフ\r\nТитри\r\n\x1a"
+    assert new == ltcv.store_letters(expected).encode("utf-16-le")
+    assert table_texts(new) == ["Пусто", "Ніж, гострий", "Титри"]
 
 
 def test_rules_load_and_save_both_kinds():

@@ -79,9 +79,12 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      comment stays) and `StationedPack\*` (interface pictures); **Translation:** `translation`. Tags are
      readable: `{speaker:41}`, `{wait}`, `{page}`, `{pause:30}`; a line break is a new line. A script string
      may grow; the labels of the script are counted again on save, and an unedited file stays byte for byte.
-     The game draws text with the PSP's built-in font (Latin only, not on the UMD): there is no font to edit, and
-     a script character in the Cyrillic code range is saved as `?` (that range holds the script's control
-     codes). The Textures window opens the title screen, menu and message-window pictures (`gim`: GIM in FCHN
+     The retail game draws text with the PSP's built-in font; the build gives it a font on the disc:
+     `source\MODULE\font.pgf` (Font Editor format `pgf`: PPSSPP's open Liberation Sans Bold, Latin and
+     Cyrillic) and the decrypted program (`source\SYSDIR\EBOOT.ELF`, dumped by PPSSPP during `1_unpack.bat`)
+     patched to open it. Ukrainian letters are stored with their cp1251 codes (the script's U+0400–04FF range
+     holds its control codes; `translation_map.json`), which the disc font maps to the Cyrillic glyphs; the
+     editor shows the letters. The Textures window opens the title screen, menu and message-window pictures (`gim`: GIM in FCHN
      packs, 8-bit index and RGBA8888). `2_build.bat` zips changed files back into their packs and writes a
      copy of the image with them (`build\Lunar - Silver Star Harmony (UA).iso`); `3_run.bat` starts PPSSPP.
    - `metroid_prime4` — Metroid Prime 4: Beyond (Switch, update 1.1.0). **Source:** the workspace's `source`

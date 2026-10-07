@@ -7,7 +7,9 @@ no gap); the code, 16-bit words. Text is UTF-16 inside the code:
 - a message: opcode ``0x0002``, then text up to ``0x0416`` (end) or ``0x0417`` (end, window stays);
 - a choice: opcode ``0x0007``, one word, then two or more strings each ended by ``0xFFFF``.
 
-Inside a message ``0x04xx`` words are control codes (so Cyrillic, U+0400-04FF, cannot be stored as it is):
+Inside a message ``0x04xx`` words are control codes, so Cyrillic (U+0400-04FF) cannot be stored as it is:
+Ukrainian letters are written with their cp1251 codes (``translation_map.json``, shown back as the letters).
+The codes:
 ``0x0401`` new line, ``0x0414`` wait for a button, ``0x0419`` new page, ``0x042E n`` / ``0x044E n``
 speaker, ``0x042A n``, ``0x0411 n`` pause, ``0x0413 n``. No jump in the code points into text, so a
 longer or shorter text only moves the labels: their offsets and lengths are counted again on save.
@@ -16,9 +18,11 @@ text keeps to the characters that pass that test, so the translated file reads b
 """
 from __future__ import annotations
 
+import json
 import re
 import struct
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
 MAGIC = b"LTCV"
@@ -30,6 +34,10 @@ TAGS = {0x0414: "wait", 0x0419: "page"}                       # no argument
 ARG_TAGS = {0x042E: "speaker", 0x044E: "speaker2", 0x042A: "voice", 0x0411: "pause", 0x0413: "face"}
 CODES = {name: code for code, name in {**TAGS, **ARG_TAGS}.items()}
 TAG_RE = re.compile(r"\{([a-z0-9]+)(?::(\d+))?\}")
+# Ukrainian letter -> the Latin-1 character whose code stores it (cp1251 codes; the built game's font draws
+# the Cyrillic glyph there). The same map serves the TEXT_US tables and the Font Editor.
+LETTER_SLOTS = json.loads((Path(__file__).with_name("translation_map.json")).read_text(encoding="utf-8"))
+SLOT_LETTERS = {ord(slot): letter for letter, slot in LETTER_SLOTS.items()}
 
 
 def is_char(word: int) -> bool:
@@ -130,7 +138,7 @@ def render(words: List[int]) -> str:
             out.append("{%s:%d}" % (ARG_TAGS[word], words[i + 1]))
             i += 1
         else:
-            out.append(chr(word))
+            out.append(SLOT_LETTERS.get(word) or chr(word))
         i += 1
     return "".join(out)
 
@@ -160,6 +168,8 @@ def _chars(text: str, kind: str, missing: Optional[Set[str]]) -> List[int]:
     for char in text:
         if char == "\n" and kind == "message":
             out.append(NEWLINE)
+        elif char in LETTER_SLOTS:
+            out.append(ord(LETTER_SLOTS[char]))
         elif len(char) == 1 and is_char(ord(char)):
             out.append(ord(char))
         else:
@@ -209,3 +219,13 @@ def build(data: bytes, new_texts: List[Optional[str]], missing: Optional[Set[str
             raise ValueError(f"LTCV label {ident}: more than 64 KB of code and text")
         struct.pack_into("<HHI", head, 16 + 8 * number, ident, 2 * (end - start), 2 * start)
     return bytes(head) + struct.pack(f"<{len(out)}H", *out)
+
+
+def render_letters(text: str) -> str:
+    """Stored text with the Ukrainian letters' codes shown as the letters."""
+    return "".join(SLOT_LETTERS.get(ord(char), char) for char in text)
+
+
+def store_letters(text: str) -> str:
+    """Editor text with the Ukrainian letters on their storage codes."""
+    return "".join(LETTER_SLOTS.get(char, char) for char in text)

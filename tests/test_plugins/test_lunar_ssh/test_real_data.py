@@ -113,3 +113,44 @@ def test_unpack_gives_the_source_folder_and_build_packs_edits_back():
     assert edited in scripts and script not in scripts
     pictures = [lunarssh.unzip(m) for m in lunarssh.pack_members(out[f"{lunarssh.DATA}PACK/StationedPack.dat"])]
     assert title_edit in pictures and title not in pictures
+
+
+def test_disc_font_opens_packs_back_and_keeps_an_edit():
+    from core import font_formats
+    from core.font_formats import sources as font_sources
+    descriptors = json.loads((ROOT / "plugins" / "lunar_ssh" / "font_sources.json").read_text(encoding="utf-8"))
+    [source] = font_sources.resolve(descriptors, {"source_path": str(_need(SOURCE / "MODULE" / "font.pgf").parents[1]),
+                                                   "translation_path": "", "is_directory_mode": True})
+    data = source.read_current()
+    assert font_formats.detect(data) == "pgf"
+    metadata, sheets = font_formats.extract("pgf", data)
+    assert font_formats.pack("pgf", metadata, sheets, data) == data
+    chars = font_formats.char_map(metadata)
+    for letter, slot in ltcv.LETTER_SLOTS.items():        # every Ukrainian letter, on its own code and its slot
+        assert chars[letter] == chars[font_formats.code_char(ord(slot))], letter
+    gly = metadata["GLY1"][0]
+    glyph = chars["T"]
+    x, y = (glyph % 16) * gly["cell_width"], (glyph // 16) * gly["cell_height"]
+    ImageDraw.Draw(sheets[0]).rectangle((x + 2, y + 2, x + 8, y + 12), fill=(255, 255, 255, 255))
+    edited = font_formats.pack("pgf", metadata, sheets, data)
+    again, again_sheets = font_formats.extract("pgf", edited)
+    box = (x, y, x + gly["cell_width"], y + gly["cell_height"])
+    assert font_formats.coverage(again_sheets[0]).crop(box).tobytes() == font_formats.coverage(sheets[0]).crop(box).tobytes()
+    assert font_formats.char_map(again) == chars
+
+
+def test_build_adds_the_disc_font_and_the_program_that_opens_it():
+    import hashlib
+    import struct
+    lunarssh, _umd = _zt()
+    elf = _need(SOURCE / "SYSDIR" / "EBOOT.ELF").read_bytes()
+    assert hashlib.md5(elf).hexdigest() == lunarssh.PROGRAM_MD5
+    program = lunarssh.patch_program(elf)
+    call = struct.unpack_from("<I", program, 0x60 + lunarssh.FONT_CALL)[0]
+    cave = (call & 0x3FFFFFF) << 2
+    words = struct.unpack_from("<10I", program, 0x60 + cave)
+    hi, lo = words[3] & 0xFFFF, words[4] & 0xFFFF
+    assert ((hi << 16) + (lo - 0x10000 if lo & 0x8000 else lo) + cave + 12) & 0xFFFFFFFF == lunarssh.FONT_INIT
+    assert program[0x60 + cave + 40:].startswith(lunarssh.FONT_PATH.encode("ascii") + b"\0")
+    base = Path(r"E:\Emulators\Sony\PSP\Emulators\ppsspp\flash0\font\ltn12.pgf")
+    assert lunarssh.disc_font(_need(base).read_bytes()) == (SOURCE / "MODULE" / "font.pgf").read_bytes()
