@@ -5,7 +5,7 @@ import struct
 from pathlib import Path
 
 import pytest
-from PIL import Image, ImageDraw
+from PIL import ImageDraw
 
 from core import font_formats, texture_formats
 from core.font_formats import retro_font
