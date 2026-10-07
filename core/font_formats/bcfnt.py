@@ -10,7 +10,7 @@ column on the top and left; the model shows the cells without them, so cell pixe
 
 Wii U: the same blocks in big endian; a sheet is a GX2 surface (BC4, ``2D_TILED_THIN1``, see ``gx2``)
 stored upside down. Only the 4x4 blocks of a redrawn cell are encoded again, so the rest of the sheet
-keeps its bytes. RGBA8 sheets (the button-icon font) open for viewing; editing their pixels is refused.
+keeps its bytes. RGBA8 sheets (the button-icon font) are written back pixel for pixel.
 
 Wii (NW4R): the 3DS block layout in big endian under a ``RFNT`` header (version, file size at 0x08, header
 size at 0x0C, block count at 0x0E); a sheet is a GX texture in tiles (I4 8x8, high nibble first; I8 and IA4
@@ -366,10 +366,14 @@ def _cafe_decode(data: bytes, info: Dict[str, Any], index: int) -> Image.Image:
 
 
 def _cafe_write(out: bytearray, info: Dict[str, Any], index: int, old: Image.Image, new: Image.Image) -> None:
-    """Encode again only the 4x4 blocks of sheet ``index`` whose ink changed (BC4)."""
-    if info["format"] != CAFE_BC4:
-        raise ValueError("Only BC4 sheets of a Wii U font can be redrawn")
+    """Encode again only the 4x4 blocks of sheet ``index`` whose ink changed (BC4); RGBA8 is written as is."""
     wide, high, _size, offsets = _cafe_layout(info, index)
+    if info["format"] != CAFE_BC4:
+        pixels = new.convert("RGBA").transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes()
+        base = info["data"] + index * info["sheet_size"]
+        for element, offset in enumerate(offsets):
+            out[base + offset:base + offset + 4] = pixels[element * 4:element * 4 + 4]
+        return
     old_ink = coverage(old).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     new_ink = coverage(new).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     width = info["sheet_width"]

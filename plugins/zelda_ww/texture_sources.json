@@ -1,5 +1,9 @@
 [
-  {"label": "Title screen logo (THE LEGEND OF ZELDA, the Wind Waker, mask, HD)", "kind": "title_screen", "format": "bflim", "path": "Common/Layout/Title_00.szs", "member": "timg/TitleLogo{Zelda,Windwaker,WindwakerMask,HD}_00^?.bflim"},
-  {"label": "Boot screen decoration (RU put its credit here)", "kind": "other", "format": "bflim", "path": "Common/Layout/Boot_00.szs", "member": "timg/BootDeco_00^s.bflim"},
-  {"label": "Sea chart cursive label", "kind": "map", "format": "bflim", "path": "Pack/permanent_2d_UsEnglish.pack", "member": "{Map_00,MenuMap_00}.szs/timg/MapFontHairal_00^t.bflim"}
+  {"label": "Title screen logo (THE LEGEND OF ZELDA, the Wind Waker, mask, HD)", "kind": "title_screen", "format": "bflim", "path": "Layout/Title_00.szs", "member": "timg/*.bflim"},
+  {"label": "Boot screen (RU put its credit here)", "kind": "other", "format": "bflim", "path": "Layout/Boot_00.szs", "member": "timg/*.bflim"},
+  {"label": "Buttons and controller pictures", "kind": "button", "format": "bflim", "path": "Layout/Btn*.szs", "member": "timg/*.bflim"},
+  {"label": "Controller selection", "kind": "button", "format": "bflim", "path": "Layout/SelectController_00.szs", "member": "timg/*.bflim"},
+  {"label": "File select", "kind": "menu_label", "format": "bflim", "path": "Layout/SaveData_00.szs", "member": "timg/*.bflim"},
+  {"label": "Sea chart cursive label", "kind": "map", "format": "bflim", "path": "Pack/permanent_2d_UsEnglish.pack", "member": "{Map_00,MenuMap_00}.szs/timg/MapFontHairal_00^t.bflim"},
+  {"label": "Maps, titles and button pictures in the pack", "kind": "map", "format": "bflim", "path": "Pack/permanent_2d_UsEnglish.pack", "member": "*.szs/timg/{MapIsland,MapFont,TincleName,*Title,*Text,LStick,RStick,CrossKeyBtn,ControlPadIcon,Contoroller,KeyIcon,MapBtn}_*.bflim"}
 ]

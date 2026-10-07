@@ -115,10 +115,13 @@ class Sarc:
         self.files: Dict[str, bytes] = {
             name: raw[self.data_offset + start:self.data_offset + end] for name, start, end in self._nodes
         }
-        # Every file start is a multiple of this (capped); new layouts keep to it.
+        # Every file start is a multiple of this (capped); new layouts keep to it. A file whose start is
+        # aligned more (a Wii U layout's GX2 images at 0x800-0x2000) keeps its own alignment.
         starts = [start for _name, start, _end in self._nodes if start]
         self.alignment = min((start & -start for start in starts), default=8)
         self.alignment = min(self.alignment, 0x2000)
+        self._aligns = [max(self.alignment, min(start & -start, 0x2000)) if start else self.alignment
+                        for _name, start, _end in self._nodes]
 
     def build(self) -> bytes:
         """The archive with the current ``files``: same names and order, offsets moved as sizes changed."""
@@ -129,7 +132,7 @@ class Sarc:
         data = bytearray()
         for index in order:
             name = self._nodes[index][0]
-            data += b"\x00" * (-len(data) % self.alignment)
+            data += b"\x00" * (-len(data) % self._aligns[index])
             start = len(data)
             data += self.files[name]
             struct.pack_into(e + "II", head, node_table + index * 16 + 8, start, len(data))
