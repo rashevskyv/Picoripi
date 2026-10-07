@@ -122,7 +122,8 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `ft_nrm` and `ft_sml` (format `xf`, real Ukrainian letters); the Textures window lists 594 English textures
      (`imgc`). The workspace's `2_build.bat` rebuilds `yw1_a.fa` into the LayeredFS mod. Yo-kai Watch 3 (EUR, workspace
      `YOKAI_WATCH_3`) opens with the same plugin: its English text is in `data/txt/ev/en` and the archive
-     `yw_lg_en.fa`; the hero of a line comes from its voice clip (`{PV#pv_c001000_23}`: Nate).
+     `yw_lg_en.fa`; the hero of a line comes from its voice clip (`{PV#pv_c001000_23}`: Nate). Its Textures window lists all 5,817
+     English textures (title logo, menus, telops, help, captions, signs; loading them takes several minutes).
    - `mgs_ts` — Metal Gear Solid: The Twin Snakes (GameCube, USA). **Source:** the workspace's `source\text`
      folder (`common\codec.dat` — every codec call; `stage\*.gcx` — menus, briefing files, item descriptions,
      memory-card messages, credits; `*\demo.subs`, `common\vox.subs`, `common\movie.subs` — subtitles of

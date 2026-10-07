@@ -1,4 +1,4 @@
-"""Yo-kai Watch (3DS) plugin: Level-5 cfg.bin text, speakers from the game's tables, XF fonts."""
+"""Yo-kai Watch (3DS) plugin: Level-5 cfg.bin text, speakers from the game's tables, XF fonts, IMGC textures."""
 import json
 import re
 from pathlib import Path
@@ -266,6 +266,11 @@ class GameRules(BaseGameRules):
         if game != "yw1":
             sources = [dict(s, font_map=f"{game}_{s['font_map']}") if s.get("font_map") else s for s in sources]
         return sources
+
+    def get_texture_sources(self) -> List[Dict[str, Any]]:
+        """``texture_sources.json``; another game has its own list, ``<game>_texture_sources.json`` (other paths)."""
+        game = self._game()
+        return self._plugin_json_list("texture_sources.json" if game == "yw1" else f"{game}_texture_sources.json")
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         """The widest English row of the same kind of text (measured with the game's font, ``layout.json``):
