@@ -7,7 +7,8 @@ A plugin gives a catalogue ``{(group, type): (name, argument types, description)
   ``{/name}`` / ``{/tag:G:T}``     a closing tag
 A tag is only shown by name when its readable form encodes back to the same bytes, so a file always
 round-trips. Arguments with an odd byte length are padded with 0xCD, as Nintendo's files are.
-Argument types: u8, s8, bool, u16, s16, u32, f32, str (u16 byte length + UTF-16).
+Argument types: u8, s8, bool, u16, s16, u32, s32, f32, str (u16 byte length + UTF-16).
+``catalogue_from_msbp`` builds the catalogue from a game's own MSBP (``plugins.common.msbp.read``).
 """
 from __future__ import annotations
 
@@ -21,9 +22,40 @@ from plugins.common.msbt import EndTag, Tag, Token
 PAD = 0xCD
 TAG_RE = re.compile(r"\{/?[A-Za-z][A-Za-z0-9_]*(?::[^{}:]*)*\}")
 _TAG_PARTS_RE = re.compile(r"\{(/?)([A-Za-z][A-Za-z0-9_]*)((?::[^{}:]*)*)\}")
-_INT_FORMATS = {"u8": "B", "s8": "b", "bool": "B", "u16": "H", "s16": "h", "u32": "I", "f32": "f"}
+_INT_FORMATS = {"u8": "B", "s8": "b", "bool": "B", "u16": "H", "s16": "h", "u32": "I", "s32": "i", "f32": "f"}
 
 Catalogue = Dict[Tuple[int, int], Tuple[str, Tuple[str, ...], str]]
+ValueNames = Dict[Tuple[str, int], Dict[int, str]]
+COLOR_RESET = 0xFFFF
+
+
+def catalogue_from_msbp(project: Dict) -> Tuple[Catalogue, ValueNames]:
+    """The catalogue and value names of every tag a game's MSBP declares (``msbp.read`` output).
+
+    A ``list`` parameter is a u8 index shown by its item name. ``System`` Color (0:3) is stored as a 16-bit
+    index into the CLR1 palette (``COLOR_RESET`` = back to the default colour), whatever parameters the MSBP
+    lists for it, so it is shown by the palette's colour names.
+    """
+    tags: Catalogue = {}
+    names: ValueNames = {}
+    for group in project.get("tag_groups", []):
+        for number, tag in enumerate(group["tags"]):
+            params = tag["params"]
+            types = tuple("u8" if p["type"] == "list" else p["type"] for p in params)
+            if any(kind not in _INT_FORMATS and kind != "str" for kind in types):
+                continue  # a type the codec cannot encode: the tag stays raw ({tag:G:T:hex})
+            described = ", ".join(p["name"] for p in params)
+            tags[(group["id"], number)] = (tag["name"], types,
+                                           f"{group['name']}: {tag['name']}" + (f" ({described})" if described else ""))
+            for index, param in enumerate(params):
+                if param["type"] == "list":
+                    names[(tag["name"], index)] = dict(enumerate(param["items"]))
+    colors = project.get("colors", [])
+    if colors and (0, 3) in tags:
+        name = tags[(0, 3)][0]
+        tags[(0, 3)] = (name, ("u16",), "Text colour from the palette; Reset goes back to the default colour")
+        names[(name, 0)] = {**{index: color["name"] for index, color in enumerate(colors)}, COLOR_RESET: "Reset"}
+    return tags, names
 
 
 def float_text(value: float) -> str:

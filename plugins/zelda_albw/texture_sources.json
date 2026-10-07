@@ -1,0 +1,5 @@
+[
+  {"label": "Minigame and ending banners", "kind": "menu_label", "format": "bflim", "path": "romfs/EU_English/Layout/*.bflim"},
+  {"label": "Title logo", "kind": "title_screen", "format": "bflim", "path": "romfs/Archive/Lyt_Menu.arc/timg/TitleLogoUSEU_00.bflim"},
+  {"label": "Title logo glow", "kind": "title_screen", "format": "bflim", "path": "romfs/Archive/Lyt_Menu.arc/timg/TitleLogoLight_0?.bflim"}
+]

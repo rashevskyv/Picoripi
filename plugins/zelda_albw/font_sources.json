@@ -1,0 +1,5 @@
+[
+  {"label": "Message font", "format": "bcfnt", "path": "romfs/EU/RegionBoot.szs/EU/Font/MessageFont.bffnt",
+   "font_map": "MessageFont.json"},
+  {"label": "Hylian font", "format": "bcfnt", "path": "romfs/EU/RegionBoot.szs/EU/Font/HyliaFont.bffnt"}
+]

@@ -109,6 +109,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      in-game messages, 240 px in menus). **Load Reference Patch** with the Russian build's `nitrofs` folder shows
      its Russian and the game's other languages. The Font Editor opens `font_ltn.nftr` with spare cells: a letter
      typed into one becomes a new character
+   - `zelda_albw` — Zelda: A Link Between Worlds (3DS, Europe). **Source:** the workspace's `source` folder;
+     **Translation:** `translation`. `1_unpack.bat` writes each Yaz0 SARC archive as a folder of its members
+     (`romfs\EU_English\FieldLight.szs\EU_English\Field.msbt`), the path a translated member is saved to;
+     `2_build.bat` repacks the archives into the LayeredFS mod. All 190 English MSBT files (4,956 messages:
+     dialogue, items, places, characters, menus, HUD, credits), one block per file. A file that several archives hold
+     with the same bytes (`Field.msbt` is in 7) appears once and the build writes it into each of them. Tags are named
+     by the game's own message project `CTRJack.msbp`: `{PlayerName}`, `{Color:Name}…{Color:Reset}`, `{Wait:30}`,
+     `{ChoiceN:2}`, `{IntNumberN:2:0:-1:None}`, `{ItemName:hammer:Yes:No}`; an unedited file saves byte for byte.
+     Menu and HUD texts (`Gm_*`, `Mn_*`, `Cm_*`, `Ed_*`) take the width and line count of their text box from the
+     message project; dialogue keeps to 344 px, 3 lines a page. The Font Editor opens `MessageFont.bffnt` and
+     `HyliaFont.bffnt`; the Textures window lists the 10 minigame and ending banners and the title logo
    - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Source is the workspace's `source` folder
      (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
      with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs

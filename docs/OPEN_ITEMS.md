@@ -166,6 +166,19 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Next formats: Tingle Tuner (GBA), Wii U BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already
   opens; the 3DS fonts are done.
 
+## A Link Between Worlds plugin (`plugins/zelda_albw`, 2026-10-07)
+
+- No speakers or scenes yet: labels name the NPC (`lgt_NpcSahasrahla_Field1B_00`) and the MSBF flows give
+  conversations (`reports/flow_refs.tsv` in the workspace); not used.
+- Dialogue width (344 px) is the widest retail English line, not a measured box. 96 layout texts have no style in
+  the message project and get no width limit.
+- No reference languages: the game's French, German, Italian, Spanish and the Russian build (`RUomfs`) could be
+  matched by archive, file and label.
+- Not opened: the Home Menu title (`exefs/icon.bin`, a LayeredFS mod cannot replace it), the e-manual
+  (`EU/Manual`), code.bin (only debug strings). BCH model textures and CTPK are language-neutral (the same bytes in
+  all five languages), so they hold no text to translate.
+- Azahar takes the foreground when it starts; the proof run needs Vulkan for PrintWindow.
+
 ## Four Swords Anniversary Edition plugin (`plugins/zelda_fsae`, 2026-10-04)
 
 - Not seen in a game: no DSi emulator on the PC (melonDS + DSi BIOS/firmware/NAND needed; no$gba has no BIOS) and
