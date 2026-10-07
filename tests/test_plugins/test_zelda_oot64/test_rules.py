@@ -18,27 +18,35 @@ MESSAGES = [
 ]
 
 
+CREDITS_TABLE = 0x101C0C
+CREDITS = b"\x08Producer\x09"
+
+
 def _rom():
-    """A 2 MB image shaped like the US 1.0 ROM: file 22 = English text, file 27 = Yaz0 code."""
+    """A 2 MB image shaped like the US 1.0 ROM: file 22 = English text, 23 = credits, 27 = Yaz0 code."""
     rom = bytearray(0x200000)
     rom[0:4] = b"\x80\x37\x12\x40"
     rom[0x3B:0x3F] = b"CZLE"
     text = bytearray()
-    code = bytearray(TABLE + 8 * (len(MESSAGES) + 1) + 0x20)
+    code = bytearray(CREDITS_TABLE + 16 + 0x20)
     for n, (message_id, info, body) in enumerate(MESSAGES):
         struct.pack_into(">HBBI", code, TABLE + 8 * n, message_id, info, 0, 0x07000000 | len(text))
         text += body + b"\x02"
         text += b"\0" * (-len(text) % 4)
     struct.pack_into(">HBBI", code, TABLE + 8 * len(MESSAGES), 0xFFFF, 0, 0, 0)
+    struct.pack_into(">HBBIHBBI", code, CREDITS_TABLE, 0x0500, 0, 0, 0x07000000, 0xFFFF, 0, 0, 0)
     text += b"\0" * (-len(text) % 16)
+    credits = CREDITS + b"\x02" + bytes(-(len(CREDITS) + 1) % 16)
     stored = yaz0.compress(bytes(code))
     after = 0x100000 + len(text) + 0x40
     files = [(0, 0x1060, 0, 0)] + [(0x2000 + i * 0x10,) * 3 + (0,) for i in range(1, 22)]
     files += [(0x100000, 0x100000 + len(text), 0x100000, 0)]
-    files += [(after + i * 0x10,) * 2 + (0x180000, 0) for i in range(4)]
+    files += [(after, after + len(credits), 0x108000, 0)]
+    files += [(after + 0x1000 + i * 0x10,) * 2 + (0x180000, 0) for i in range(3)]
     files += [(0x200000, 0x200000 + len(code), 0x110000, 0x110000 + len(stored))]
     for n, entry in enumerate(files):
         struct.pack_into(">IIII", rom, 0x7430 + 16 * n, *entry)
+    rom[0x108000:0x108000 + len(credits)] = credits
     rom[0x100000:0x100000 + len(text)] = text
     rom[0x110000:0x110000 + len(stored)] = stored
     struct.pack_into(">II", rom, 0x10, *compute_crc(bytes(rom)))

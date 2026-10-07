@@ -6,7 +6,10 @@ letters are written into the font slots of ``translation_map.json`` (the
 project's, else the plugin's): ``{"Б": "À"}`` saves Б as the byte of À.  Every
 save is rebuilt from the SOURCE ROM, so repeated saves do not grow the file;
 text that outgrows its range moves to free address space and the code that
-loads it is retargeted.
+loads it is retargeted.  Every other file the translation ROM changed (textures,
+fonts written by the Textures window and the Font Editor) is carried into the
+rebuilt ROM.  A layout may list more message tables (credits); a plugin may add
+blocks of fixed-length strings outside the tables (``fixed_strings``).
 """
 import json
 import os
@@ -33,6 +36,12 @@ class RomLayout:
     text_file: int          # dmadata index of the English message_data_static
     table_offset: int       # message table offset in decompressed `code`
     text_references: int    # lui/addiu pairs in `code` that load the text file's address
+    # More message tables in `code`, one block each: (block name, text file, table offset, references).
+    extra_tables: Tuple[Tuple[str, int, int, int], ...] = ()
+
+    def tables(self) -> List[Tuple[str, int, int, int]]:
+        """Every message table, the main one first (its block name comes from the game)."""
+        return [("", self.text_file, self.table_offset, self.text_references), *self.extra_tables]
 
 
 class Zelda64Rules(BaseGameRules):
@@ -56,6 +65,8 @@ class Zelda64Rules(BaseGameRules):
         super().__init__(main_window_ref)
         self.source_rom: Optional[N64Rom] = None
         self.messages: List[Message] = []
+        self.tables: List[List[Message]] = []     # every table's messages; tables[0] is self.messages
+        self.edited_rom: Optional[N64Rom] = None  # the translation ROM a save keeps other edits from
         self._button_widths = {
             f"{{{control.name}}}": self._char_width(code)
             for code, control in self.text_format.controls.items() if not control.args and code >= 0x20
@@ -144,20 +155,37 @@ class Zelda64Rules(BaseGameRules):
             raise ValueError(f"Unsupported ROM {key[0]!r} v{key[1]}: {self.game_name} supports {supported}")
         return layout
 
-    def _read_rom(self, raw: bytes) -> Tuple[N64Rom, List[Message]]:
+    def _read_rom(self, raw: bytes) -> Tuple[N64Rom, List[List[Message]]]:
+        """The ROM and the messages of each of its tables."""
         rom = N64Rom(raw)
         layout = self.layout_of(rom)
-        messages = z64_text.read_messages(self.text_format, rom.read_file(layout.code_file),
-                                          layout.table_offset, rom.read_file(layout.text_file))
-        return rom, messages
+        code = rom.read_file(layout.code_file)
+        tables = [z64_text.read_messages(self.text_format, code, offset, rom.read_file(text_file))
+                  for _name, text_file, offset, _refs in layout.tables()]
+        return rom, tables
+
+    def _use_base(self, rom: N64Rom, tables: List[List[Message]]) -> None:
+        self.source_rom, self.tables, self.messages = rom, tables, tables[0]
+
+    def fixed_strings(self, rom: N64Rom) -> List[Tuple[str, List[str]]]:
+        """Blocks of text outside the message tables: ``[(block name, strings)]``. None by default."""
+        return []
+
+    def write_fixed_strings(self, rom: N64Rom, blocks: List[List[str]], changes: Dict[int, bytes]) -> None:
+        """Encode the blocks of ``fixed_strings`` into ``changes`` (dmadata index -> new file)."""
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):
             return super().load_data_from_json_obj(json_obj)
-        rom, messages = self._read_rom(bytes(json_obj))
+        rom, tables = self._read_rom(bytes(json_obj))
         if self.source_rom is None:
-            self.source_rom, self.messages = rom, messages
-        return [[self.decode_text(m.body) for m in messages]], {"0": f"{self.game_name} messages"}
+            self._use_base(rom, tables)
+        names = [f"{self.game_name} messages"] + [name for name, *_rest in self.layout_of(rom).extra_tables]
+        blocks = [[self.decode_text(m.body) for m in messages] for messages in tables]
+        for name, strings in self.fixed_strings(rom):
+            names.append(name)
+            blocks.append(strings)
+        return blocks, {str(i): name for i, name in enumerate(names)}
 
     # -- translated letters ---------------------------------------------------------------
 
@@ -201,44 +229,74 @@ class Zelda64Rules(BaseGameRules):
         return "".join(reverse.get(ch, ch) for ch in text) if reverse else text
 
     def prepare_save_context(self, context) -> None:
-        """Build every save from the source ROM: it is the last version offered."""
-        for raw in reversed(list(context.existing_versions())):
+        """Build every save from the source ROM (the last version offered); keep the translation copy
+        (the first one) for the files the text save does not rebuild: textures, fonts."""
+        versions = list(context.existing_versions())
+        self.edited_rom = None
+        for raw in reversed(versions):
             try:
-                self.source_rom, self.messages = self._read_rom(raw)
-                return
+                self._use_base(*self._read_rom(raw))
+                break
             except ValueError as error:
                 log_warning(f"{self.game_name}: cannot use a ROM version as the save base: {error}")
+        if len(versions) > 1:
+            try:
+                self.edited_rom = N64Rom(versions[0])
+            except ValueError as error:
+                log_warning(f"{self.game_name}: cannot read the translated ROM: {error}")
+
+    def _edited_files(self, rebuilt: Set[int]) -> Dict[int, bytes]:
+        """Files of the translation ROM that differ from the source, except the ones the save rebuilds."""
+        rom, edited = self.source_rom, self.edited_rom
+        if edited is None or len(edited.files) != len(rom.files):
+            return {}
+        changes = {}
+        for index, (entry, old) in enumerate(zip(rom.files, edited.files)):
+            if index in rebuilt or entry[2] == 0xFFFFFFFF:
+                continue
+            size = (entry[3] or entry[2] + entry[1] - entry[0]) - entry[2]
+            old_size = (old[3] or old[2] + old[1] - old[0]) - old[2]
+            if entry == old and rom.data[entry[2]:entry[2] + size] == edited.data[old[2]:old[2] + old_size]:
+                continue
+            content = edited.read_file(index)
+            if content != rom.read_file(index):
+                changes[index] = content
+        return changes
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         if self.source_rom is None:
             raise ValueError(f"Open the {self.game_name} ROM before saving")
-        texts = data[0] if data else []
-        if len(texts) != len(self.messages):
-            raise ValueError(f"Expected {len(self.messages)} messages, got {len(texts)}")
         rom = self.source_rom
         layout = self.layout_of(rom)
+        tables = layout.tables()
         slots = self.letter_slots()
-        edited = [Message(m.message_id, m.header, self.text_format.encode(str(text), slots), m.info)
-                  for m, text in zip(self.messages, texts)]
-        for message in edited:
-            size = len(message.header) + len(message.body) + 1
-            if size > self.message_buffer_size:
-                raise ValueError(f"Message {message.message_id:#06x} is {size} bytes; the game reads at most "
-                                 f"{self.message_buffer_size}")
-        code = rom.read_file(layout.code_file)
-        text_file, code_file = z64_text.build_messages(self.text_format, edited, code, layout.table_offset,
-                                                       self.segment)
-        text_file += b"\0" * (-len(text_file) % 16)
-        moved = {}
-        if len(text_file) > rom.file_capacity(layout.text_file):
-            moved[layout.text_file] = rom.free_vrom()
-            code_file = retarget_constant(code_file, rom.files[layout.text_file][0], moved[layout.text_file],
-                                          layout.text_references)
-        changes = {}
-        if text_file != rom.read_file(layout.text_file):
-            changes[layout.text_file] = text_file
-        if code_file != code:
-            changes[layout.code_file] = code_file
+        code = original_code = rom.read_file(layout.code_file)
+        changes = self._edited_files({layout.code_file} | {table[1] for table in tables})
+        moved: Dict[int, int] = {}
+        free = rom.free_vrom()
+        if len(data) < len(tables):
+            raise ValueError(f"Expected {len(tables)} message blocks, got {len(data)}")
+        for (_name, text_index, offset, references), messages, texts in zip(tables, self.tables, data):
+            if len(texts) != len(messages):
+                raise ValueError(f"Expected {len(messages)} messages, got {len(texts)}")
+            edited = [Message(m.message_id, m.header, self.text_format.encode(str(text), slots), m.info)
+                      for m, text in zip(messages, texts)]
+            for message in edited:
+                size = len(message.header) + len(message.body) + 1
+                if size > self.message_buffer_size:
+                    raise ValueError(f"Message {message.message_id:#06x} is {size} bytes; the game reads at most "
+                                     f"{self.message_buffer_size}")
+            text_file, code = z64_text.build_messages(self.text_format, edited, code, offset, self.segment)
+            text_file += b"\0" * (-len(text_file) % 16)
+            if len(text_file) > rom.file_capacity(text_index):
+                moved[text_index] = free
+                free = (free + len(text_file) + 0xF) & ~0xF
+                code = retarget_constant(code, rom.files[text_index][0], moved[text_index], references)
+            if text_file != rom.read_file(text_index):
+                changes[text_index] = text_file
+        self.write_fixed_strings(rom, list(data[len(tables):]), changes)
+        if code != original_code:
+            changes[layout.code_file] = code
         return rom.replace_files(changes, moved) if changes else bytes(rom.data)
 
     # -- width and editing --------------------------------------------------------------

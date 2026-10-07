@@ -1,4 +1,8 @@
 """Project actions: restore the session and fill the block list after loading."""
+import inspect
+import os
+from pathlib import Path
+
 from utils import app_mode
 from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import QMessageBox
@@ -10,6 +14,23 @@ from utils.thread_utils import safe_shutdown_thread
 
 
 class SessionMixin:
+    def _session_predates_plugin_code(self) -> bool:
+        """The plugin's own code changed after the session was written and the session holds no edits:
+        the blocks a file opens into may have changed (a new text group), and loading the files loses
+        nothing."""
+        store = self.mw.data_store
+        project_dir = getattr(getattr(self.mw, 'project_manager', None), 'project_dir', None)
+        rules = getattr(self.mw, 'current_game_rules', None)
+        if not project_dir or rules is None or store.edited_data or getattr(store, "unsaved_changes", False):
+            return False
+        try:
+            session = max(path.stat().st_mtime for path in Path(project_dir).glob(".picoripi_session*"))
+            code = max(os.path.getmtime(inspect.getfile(cls)) for cls in type(rules).__mro__
+                       if cls.__module__.startswith("plugins.") and cls.__module__ != "plugins.base_game_rules")
+        except (OSError, TypeError, ValueError):
+            return False
+        return code > session
+
     def _restore_project_session_fast_path(self, on_completed=None) -> bool:
         """Restore a project from the session checkpoint before starting the full loader."""
         if not hasattr(self.data_processor, 'load_session_file'):
@@ -29,6 +50,11 @@ class SessionMixin:
                 "Project session restored no block data; falling back to full project load.",
                 category="file_ops"
             )
+            return False
+
+        if self._session_predates_plugin_code():
+            log_warning("Project session predates the game plugin's code; loading the project files instead.",
+                        category="file_ops")
             return False
 
         if hasattr(self.mw.data_store, 'block_to_project_file_map'):
