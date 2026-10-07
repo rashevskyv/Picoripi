@@ -18,6 +18,10 @@ from tools.bfn_editor.bfn_engine import extract_bfn_logic, repack_bfn_logic
 
 ZELDA = Path(r"E:\Emulators\RomHacking\Zelda")
 WII_MSG = ZELDA / "Twilight Princess" / "_archive" / "Wii workspace (agent 2026-10-04)" / "source" / "files" / "res" / "Msgus"
+GC_ISO = ZELDA / "Twilight Princess" / "GC + Wii" / "ISO"
+GC_MSG = GC_ISO / "ENG" / "root" / "res" / "Msgus"
+UA_MSG = GC_ISO / "UA" / "root" / "res" / "Msgus"          # the owner's Ukrainian translation
+WII_DUMP_MSG = GC_ISO / "UNP_WII" / "DATA" / "files" / "res" / "Msgus"
 HD_MSG = ZELDA / "Twilight Princess" / "_reference" / "HD RU 1.0 (Zelda64Rus)" / "_TP_HD_Kruptar+Fonts_(EN)_(PAL)" / "Original" / "Msguk"
 HD_FONTS = ZELDA / "Twilight Princess" / "HD - Wii U" / "source" / "content" / "res" / "Fonteu"
 
@@ -98,8 +102,9 @@ def _bmgs(folder: Path, pattern: str):
                 yield path, container, member
 
 
-@pytest.mark.parametrize("folder, pattern", [(WII_MSG, "bmgres*.arc"), (HD_MSG, "bmgres*.rarc")],
-                         ids=["wii", "hd"])
+@pytest.mark.parametrize("folder, pattern", [(GC_MSG, "bmgres*.arc"), (UA_MSG, "bmgres*.arc"), (WII_MSG, "bmgres*.arc"),
+                                             (WII_DUMP_MSG, "bmgres*.arc"), (HD_MSG, "bmgres*.rarc")],
+                         ids=["gc", "gc-ua", "wii", "wii-dump", "hd"])
 def test_every_message_file_saves_back_byte_for_byte(folder, pattern):
     count = 0
     for _path, container, member in _bmgs(folder, pattern):
@@ -111,8 +116,9 @@ def test_every_message_file_saves_back_byte_for_byte(folder, pattern):
     assert count == 10
 
 
-def test_a_wii_archive_with_its_own_files_written_back_is_unchanged():
-    for path, container, member in _bmgs(WII_MSG, "bmgres*.arc"):
+@pytest.mark.parametrize("folder", [GC_MSG, UA_MSG, WII_MSG, WII_DUMP_MSG], ids=["gc", "gc-ua", "wii", "wii-dump"])
+def test_a_gamecube_or_wii_archive_with_its_own_files_written_back_is_unchanged(folder):
+    for path, container, member in _bmgs(folder, "bmgres*.arc"):
         container.write_file(member, container.read_file(member))
         assert yaz0.decompress(container.pack()) == yaz0.decompress(path.read_bytes()), path.name
 

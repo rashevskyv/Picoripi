@@ -669,3 +669,43 @@ def test_tpl_images_read_and_write():
     new = tpl.write(data, {1: Image.new("RGBA", (16, 16), (0, 0, 255, 255))}, {})
     assert tpl.read(new, {})[1].image.getpixel((9, 9))[2] > 240
     assert tpl.read(new, {})[0].image.tobytes() == textures[0].image.tobytes()
+
+
+def make_bmd(textures):
+    """``[(name, bti bytes)]`` -> a J3D model with an empty INF1 section and a TEX1 section holding them."""
+    count = len(textures)
+    names = b"".join(name.encode() + b"\0" for name, _ in textures)
+    table = struct.pack(">HH", count, 0xFFFF)
+    at = 4 + 4 * count
+    for name, _ in textures:
+        table += struct.pack(">HH", 0, at)
+        at += len(name) + 1
+    table += names
+    heads_at = 0x20
+    blobs_at = heads_at + 0x20 * count
+    heads, blobs = b"", b""
+    for index, (_name, data) in enumerate(textures):
+        head = bytearray(data[:0x20])
+        struct.pack_into(">I", head, 0x1C, blobs_at + len(blobs) - (heads_at + 0x20 * index))
+        heads += bytes(head)
+        blobs += data[0x20:]
+    names_at = blobs_at + len(blobs)
+    body = struct.pack(">HHII", count, 0xFFFF, heads_at, names_at) + bytes(heads_at - 0x14) + heads + blobs + table
+    tex1 = b"TEX1" + struct.pack(">I", 8 + len(body)) + body
+    tex1 += bytes(-len(tex1) % 32)
+    inf1 = b"INF1" + struct.pack(">I", 0x20) + bytes(0x18)
+    return b"J3D2bmd3" + struct.pack(">II", 0x20 + len(inf1) + len(tex1), 2) + b"SVR3" + bytes(12) + inf1 + tex1
+
+
+def test_j3d_model_textures_read_and_write():
+    from core.texture_formats import j3d
+    data = make_bmd([("Logo", make_bti(6, 16, 8, picture(16, 8))), ("Shadow", make_bti(1, 8, 8, picture(8, 8, 3)))])
+    assert texture_formats.detect(data) == "j3d"
+    textures = j3d.read(data, {})
+    assert [(t.name, t.pixel_format, t.image.size) for t in textures] == [("Logo", "RGBA8", (16, 8)),
+                                                                          ("Shadow", "I8", (8, 8))]
+    assert j3d.write(data, {0: textures[0].image, 1: textures[1].image}, {}) == data
+    new = j3d.write(data, {0: Image.new("RGBA", (16, 8), (255, 0, 0, 255))}, {})
+    assert len(new) == len(data)
+    assert j3d.read(new, {})[0].image.getpixel((3, 3)) == (255, 0, 0, 255)
+    assert j3d.read(new, {})[1].image.tobytes() == textures[1].image.tobytes()
