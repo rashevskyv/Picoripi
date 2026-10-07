@@ -416,6 +416,41 @@ def resolve(descriptors: Iterable[Dict[str, Any]], project_metadata: Dict[str, A
     return found
 
 
+def resolve_for_file(descriptors: Iterable[Dict[str, Any]], project_metadata: Dict[str, Any],
+                     translation_path: str) -> List[TextureSource]:
+    """The textures a project keeps directly in one translation file (no archive member)."""
+    root = str(project_metadata.get("translation_path") or "")
+    if not root:
+        return []
+    try:
+        rel = os.path.relpath(translation_path, root).replace("\\", "/")
+    except ValueError:
+        return []
+    mine = [d for d in descriptors or [] if not d.get("member") and any(
+        fnmatch.fnmatchcase(rel.lower(), os.path.normpath(single).replace("\\", "/").lower())
+        for path in _candidates(d.get("path")) for single in expand_braces(path))]
+    target = os.path.normcase(os.path.abspath(translation_path))
+    return [s for s in resolve(mine, project_metadata)
+            if os.path.normcase(os.path.abspath(s.translation_path)) == target] if mine else []
+
+
+def carry_over(sources: Iterable[TextureSource], edited: bytes, rebuilt: bytes) -> bytes:
+    """``rebuilt`` with the pictures of ``edited``: for a file the text save rebuilds from its source.
+    Returns ``rebuilt`` unchanged when both hold the same pictures."""
+    out = bytes(rebuilt)
+    if out == edited:
+        return out
+    for source in sources:
+        params = source.params
+        if "file_offset" in params or "compression" in params:
+            continue
+        before = texture_formats.read(source.format, edited, params)[source.index].image
+        now = texture_formats.read(source.format, out, params)[source.index].image
+        if before.tobytes() != now.tobytes():
+            out = texture_formats.write(source.format, out, {source.index: before}, params)
+    return out
+
+
 def open_file(path: str, fmt: str = "", params: Optional[Dict[str, Any]] = None) -> List[TextureSource]:
     """The textures of a file opened directly: a texture file, or an archive of them (written in place)."""
     raw = Path(path).read_bytes()

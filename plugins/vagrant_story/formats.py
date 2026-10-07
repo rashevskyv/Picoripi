@@ -258,6 +258,62 @@ def mpd_header(data: bytes) -> Optional[List[Tuple[int, int]]]:
     return sections
 
 
+DOOR_SECTION, TREASURE_SECTION = 3, 5
+DOOR_SLOTS = 16                   # the door section starts with 16 u16 offsets of its scripts
+TREASURE_SIZE, TREASURE_NAME, TREASURE_NAME_SIZE = 544, 0x94, 24     # a weapon's name in the treasure section
+
+
+def door_scripts(data: bytes, sections: List[Tuple[int, int]]) -> List[Tuple[int, Script]]:
+    """``[(slot, script)]`` of a room's door section that have a dialog table.
+
+    The section is 16 ``u16`` offsets (0 or past the end: no script), then the scripts back to
+    back, each with the header of a room script."""
+    start, length = sections[DOOR_SECTION]
+    if length < DOOR_SLOTS * 2:
+        return []
+    offsets = struct.unpack_from(f"<{DOOR_SLOTS}H", data, start)
+    out, seen = [], set()
+    for slot, offset in enumerate(offsets):
+        if not DOOR_SLOTS * 2 <= offset < length or offset in seen:
+            continue
+        seen.add(offset)
+        script = read_script(data, start + offset, struct.unpack_from("<H", data, start + offset)[0])
+        if script is not None and script.table is not None:
+            out.append((slot, script))
+    return out
+
+
+def treasure_name(data: bytes, sections: List[Tuple[int, int]]) -> Optional[int]:
+    """Offset of the weapon name in a room's treasure section, or None."""
+    start, length = sections[TREASURE_SECTION]
+    at = start + TREASURE_NAME
+    if length != TREASURE_SIZE or valid_string(data, at, at + TREASURE_NAME_SIZE) is None:
+        return None
+    return at
+
+
+CREDIT_MIN = 100                  # ENDING.PRG has 300 staff-roll lines; nothing else has such records
+
+
+def credit_lines(data: bytes) -> Optional[List[Tuple[int, int]]]:
+    """``[(offset, length)]`` of the staff-roll lines (``ENDING/ENDING.PRG``), or None.
+
+    The staff roll is a command stream; a line is ``02 n`` and ``n`` bytes: style bytes (below 0x10)
+    and the ASCII text, drawn with the credits font (``>`` is ç, ``@`` ©, 0x7F ü, 0x1F a kerning
+    pair). The next command (01 or 02) follows at once, so a line is rewritten in place."""
+    out = []
+    at = data.find(b"\x02")
+    while 0 <= at < len(data) - 2:
+        n = data[at + 1]
+        text = data[at + 2:at + 2 + n]
+        body = text.lstrip(bytes(range(16)))
+        if (0 < n <= 0x60 and len(text) == n and body and at + 2 + n < len(data) and data[at + 2 + n] in (1, 2)
+                and all(0x1F <= c <= 0x7F for c in body) and sum(chr(c).isalpha() for c in body) >= 2):
+            out.append((at + 2 + n - len(body), len(body)))
+        at = data.find(b"\x02", at + 1)
+    return out if len(out) >= CREDIT_MIN else None
+
+
 def is_event(data: bytes) -> bool:
     if len(data) != EVENT_SIZE:
         return False

@@ -102,6 +102,7 @@ class SaveMixin:
 
                     final_obj_to_save = self.mw.current_game_rules.save_data_to_json_obj(file_data_list, file_block_names)
                     final_obj_to_save = self._keep_edited_fonts(trans_path, final_obj_to_save)
+                    final_obj_to_save = self._keep_edited_textures(trans_path, final_obj_to_save)
 
                     save_file_success, _save_error = formats.write_file(
                         self.mw.current_game_rules, trans_path, final_obj_to_save, unknown=formats.UNKNOWN_IS_TEXT
@@ -218,6 +219,24 @@ class SaveMixin:
                                                 source.params)
         except Exception as error:
             log_warning(f"Could not keep the edited font in {trans_path}: {error}", category="file_ops")
+        return saved
+
+    def _keep_edited_textures(self, trans_path: str, saved: Any) -> Any:
+        """A text file that also holds game pictures (a program with its title screen) keeps the pictures
+        edited in the Textures window, the way ``_keep_edited_fonts`` keeps a font."""
+        rules = self.mw.current_game_rules
+        if not isinstance(saved, (bytes, bytearray)) or not hasattr(rules, "get_texture_sources"):
+            return saved
+        if not Path(trans_path).is_file():
+            return saved
+        try:
+            from core.texture_formats.sources import carry_over, resolve_for_file
+            sources = resolve_for_file(rules.get_texture_sources(), self.mw.project_manager.project.metadata,
+                                       trans_path)
+            if sources:
+                saved = carry_over(sources, Path(trans_path).read_bytes(), bytes(saved))
+        except Exception as error:
+            log_warning(f"Could not keep the edited pictures in {trans_path}: {error}", category="file_ops")
         return saved
 
     def _existing_versions(self, trans_file_rel: str):
