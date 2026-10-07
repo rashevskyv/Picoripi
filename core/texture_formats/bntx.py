@@ -6,8 +6,8 @@ layers and layout (block height log2 in the low bits) at 0x24, u64 name at 0x60,
 mip-level pointer table at 0x70. Offsets count from the start of the BNTX. A mip level shorter than
 a block uses smaller blocks (the block height halves once per such level).
 
-ASTC 4x4 reads and writes; ASTC 8x8 and 12x12 (TotK's map tiles) only read; BC6H and the other ASTC
-block sizes are listed but cannot be decoded yet.
+ASTC 4x4, 8x8 and 12x12 read and write; BC6H and the other ASTC block sizes are listed but cannot be
+decoded yet.
 """
 from __future__ import annotations
 

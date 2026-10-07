@@ -19,8 +19,8 @@ the line when it is done or moved into a plan.
 
 ## Textures window (`core/texture_formats`, 2026-10-04)
 
-- Not encoded yet: BC6H; ASTC other than 4x4 (TotK map tiles ASTC 8x8 / 12x12 only read; ASTC encoding writes
-  one RGBA line per block, BC1-like). TotK layout archives are copied into `source/UI/LayoutArchive` by hand: `zt/nx.py`
+- Not encoded yet: BC6H; ASTC block sizes other than 4x4, 8x8 and 12x12 (ASTC encoding writes one RGBA line per
+  block with a 4x4 weight grid, BC1-like). TotK layout archives are copied into `source/UI/LayoutArchive` by hand: `zt/nx.py`
   `TOTK_PARTS` does not unpack them yet. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), the Wii channel banner (`opening.bnr`: IMET > U8 > LZ77 > U8 > TPL, LZ77 not handled).
 - No container yet: Koei RDB (Age of Calamity: 4 groups of BC3/BC1 sprites), TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\_shared\textures\drafts`.
 - 3DS games have no plugin: their textures open with File → Open (BFLIM, CTPK, CTXB; SARC/SZS, ZAR/GAR, LzS archives) and are edited in place; a plugin with `texture_sources.json` (drafts `zelda_albw`, `zelda_tfh`, `zelda_oot3d`, `zelda_mm3d`) would list them. OoT3D title logo letters are in a CMB model (not handled).

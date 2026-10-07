@@ -1,0 +1,12 @@
+[
+  {"label": "Title logo", "kind": "title_screen", "format": "bntx", "path": "ui/demo/Title_Logo.bfres.bntx", "params": {"texture": "TitleLogo*"}},
+  {"label": "UI (battle)", "kind": "ui", "format": "bntx", "path": "ui/battle/*.bntx"},
+  {"label": "UI (cmn)", "kind": "ui", "format": "bntx", "path": "ui/cmn/*.bntx"},
+  {"label": "UI (demo)", "kind": "ui", "format": "bntx", "path": "ui/demo/*.bntx"},
+  {"label": "UI (event)", "kind": "ui", "format": "bntx", "path": "ui/event/*.bntx"},
+  {"label": "UI (gallery)", "kind": "ui", "format": "bntx", "path": "ui/gallery/*.bntx"},
+  {"label": "UI (icon)", "kind": "ui", "format": "bntx", "path": "ui/icon/*.bntx"},
+  {"label": "UI (menu)", "kind": "ui", "format": "bntx", "path": "ui/menu/*.bntx"},
+  {"label": "UI (shop)", "kind": "ui", "format": "bntx", "path": "ui/shop/*.bntx"},
+  {"label": "UI (tutorial)", "kind": "ui", "format": "bntx", "path": "ui/tutorial/*.bntx"}
+]

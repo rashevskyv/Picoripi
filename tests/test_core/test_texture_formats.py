@@ -689,6 +689,20 @@ def test_astc_two_colour_blocks_round_trip_exactly_and_edits_touch_only_their_bl
     assert sum(a != b for a, b in zip(new, bntx_data)) <= 16          # one block re-encoded
 
 
+def test_astc_8x8_and_12x12_blocks_encode_two_colour_lettering():
+    for size in (8, 12):
+        image = Image.new("RGBA", (size * 2, size), (0, 0, 0, 255))
+        ImageDraw.Draw(image).rectangle((0, 0, size - 1, size - 1), fill=(255, 0, 0, 255))   # a whole block
+        data = astc.encode(image, size, size)
+        assert len(data) == 2 * 16
+        assert astc.decode(data, size * 2, size, size, size).tobytes() == image.tobytes()
+        half = Image.new("RGBA", (size, size), (0, 0, 0, 255))
+        ImageDraw.Draw(half).rectangle((0, 0, size // 2 - 1, size - 1), fill=(255, 255, 255, 255))
+        decoded = astc.decode(astc.encode(half, size, size), size, size, size, size)
+        assert decoded.getpixel((0, size // 2))[:3] == (255, 255, 255)
+        assert decoded.getpixel((size - 1, size // 2))[:3] == (0, 0, 0)
+
+
 def test_astc_decodes_void_extent_and_marks_illegal_blocks():
     block = (0x1FC | 3 << 10 | ((1 << 52) - 1) << 12 | 0x1234 << 64 | 0x5678 << 80 | 0x9ABC << 96 | 0xFFFF << 112)
     assert astc.decode_block(block.to_bytes(16, "little"), 4, 4)[0] == (0x12, 0x56, 0x9A, 0xFF)

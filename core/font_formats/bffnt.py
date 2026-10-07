@@ -7,11 +7,13 @@ block-linear (Tegra X1 GOBs of 512 bytes, ``2^layout`` GOBs per block) and the s
 down; cells are ``cell + 1`` pixels apart.
 
 Editing: advances and left offsets are written back in place; sheet pixels are written back for
-BC4 textures (the common font format), only for the 4x4 blocks that changed. Other texture formats
+BC4 textures (the common font format) and BC5 (two-channel outline fonts: red the fill, green the whole
+silhouette with its outline; the sheet shows them as red/green ink with alpha = green), only for the 4x4
+blocks that changed. Other texture formats
 open with empty sheets and keep their texture. Wii U (big-endian) fonts are the ``bffnt_wiiu`` format
 (``bcfnt.py``).
 
-New characters: the font source's ``min_sheets`` param opens a BC4 font with blank sheets up to that
+New characters: the font source's ``min_sheets`` param opens a BC4 or BC5 font with blank sheets up to that
 count, so a font without room (a Latin-only font that needs Cyrillic) gets free cells. On save, a
 blank sheet that got ink or a character becomes a new layer of the BNTX texture array (inserted
 before its relocation table; every offset behind it is moved), its glyphs get a new CWDH block, and
@@ -31,7 +33,8 @@ from core.texture_formats.tegra import block_addresses
 
 ADDS_GLYPHS = True  # a typed character gets its own code in a new CMAP block (an empty or ``min_sheets`` cell)
 
-BC4 = 0x1D
+BC4, BC5 = 0x1D, 0x1E
+_BLOCK = {BC4: 8, BC5: 16}     # bytes per 4x4 block of the editable formats
 
 
 def _finf(data: bytes) -> Dict[str, int]:
@@ -122,18 +125,51 @@ def _bntx(data: bytes, tglp: Dict[str, int]) -> Dict[str, int]:
             "block_height": 1 << (layout & 7), "start": start, "layer_size": image_size // max(1, layers)}
 
 
-def _layer_bc4(data: bytes, texture: Dict[str, int], layer: int, addresses: List[int]) -> bytes:
-    """Linear BC4 blocks of one layer."""
+def _layer_blocks(data: bytes, texture: Dict[str, int], layer: int, addresses: List[int]) -> bytes:
+    """Linear BC4 / BC5 blocks of one layer."""
     at = texture["start"] + layer * texture["layer_size"]
-    return b"".join(data[at + a:at + a + 8] for a in addresses)
+    size = _BLOCK[texture["format"]]
+    return b"".join(data[at + a:at + a + size] for a in addresses)
+
+
+def _addresses(texture: Dict[str, int]) -> List[int]:
+    w, h = texture["width"], texture["height"]
+    return block_addresses((w + 3) // 4, (h + 3) // 4, _BLOCK[texture["format"]], texture["block_height"])
 
 
 def _texture_images(data: bytes, texture: Dict[str, int]) -> List[Image.Image]:
-    """One channel per layer, in texture orientation (upside down)."""
-    w, h = texture["width"], texture["height"]
-    addresses = block_addresses((w + 3) // 4, (h + 3) // 4, 8, texture["block_height"])
-    return [Image.frombytes("L", (w, h), _layer_bc4(data, texture, layer, addresses), "bcn", 4)
-            for layer in range(texture["layers"])]
+    """Each layer in texture orientation (upside down): ``L`` for BC4, ``RGB`` (red, green, 0) for BC5."""
+    w, h, addresses = texture["width"], texture["height"], _addresses(texture)
+    bc5 = texture["format"] == BC5
+    return [Image.frombytes("RGB" if bc5 else "L", (w, h), _layer_blocks(data, texture, layer, addresses), "bcn",
+                            5 if bc5 else 4) for layer in range(texture["layers"])]
+
+
+def _sheet(layer: Image.Image) -> Image.Image:
+    """An editor sheet of one decoded layer (still upside down)."""
+    if layer.mode == "L":
+        return grey_sheet(layer)
+    red, green, blue = layer.split()
+    return Image.merge("RGBA", (red, green, blue, green))
+
+
+def _channels(sheet: Image.Image, fmt: int) -> Image.Image:
+    """What a sheet stores: BC4 the ink; BC5 red = fill (red within the ink), green = the ink."""
+    ink = coverage(sheet)
+    if fmt != BC5:
+        return ink
+    from PIL import ImageChops
+    return Image.merge("RGB", (ImageChops.darker(sheet.convert("RGBA").getchannel("R"), ink), ink,
+                               Image.new("L", ink.size, 0)))
+
+
+def _encode(image: Image.Image, fmt: int) -> bytes:
+    """Linear blocks of ``_channels`` output."""
+    if fmt == BC5:
+        return image.convert("RGBA").tobytes("bcn", 5)
+    white = Image.new("L", image.size, 255)
+    bc3 = Image.merge("RGBA", (white, white, white, image)).tobytes("bcn", 3)  # BC3 alpha halves = BC4
+    return b"".join(bc3[i:i + 8] for i in range(0, len(bc3), 16))
 
 
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
@@ -144,10 +180,9 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     size = (tglp["sheet_width"], tglp["sheet_height"])
 
     texture = _bntx(data, tglp)
-    editable = texture["format"] == BC4
+    editable = texture["format"] in _BLOCK
     if editable:
-        sheets = [grey_sheet(layer.transpose(Image.Transpose.FLIP_TOP_BOTTOM))
-                  for layer in _texture_images(data, texture)]
+        sheets = [_sheet(layer.transpose(Image.Transpose.FLIP_TOP_BOTTOM)) for layer in _texture_images(data, texture)]
         sheets += [Image.new("RGBA", size, (0, 0, 0, 0))
                    for _ in range(int(params.get("min_sheets", 0)) - len(sheets))]
     else:
@@ -197,7 +232,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
             out[at + 2] = width
 
     texture = _bntx(original, tglp)
-    editable = texture["format"] == BC4 and metadata.get("header", {}).get("textures_editable", True)
+    editable = texture["format"] in _BLOCK and metadata.get("header", {}).get("textures_editable", True)
     if editable:
         _write_pixels(out, original, texture, sheets)
 
@@ -224,30 +259,29 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
 
 def _write_pixels(out: bytearray, original: bytes, texture: Dict[str, int], sheets: Sheets) -> None:
     """Sheet pixels of the layers the file has, only the 4x4 blocks that changed."""
-    w, h = texture["width"], texture["height"]
+    w, h, fmt = texture["width"], texture["height"], texture["format"]
     blocks_wide, blocks_high = (w + 3) // 4, (h + 3) // 4
-    addresses = block_addresses(blocks_wide, blocks_high, 8, texture["block_height"])
+    addresses, size = _addresses(texture), _BLOCK[fmt]
     for layer, old_image in enumerate(_texture_images(original, texture)):
         if layer >= len(sheets):
             break
-        new_image = coverage(sheets[layer]).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        new_image = _channels(sheets[layer], fmt).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         if new_image.size != (w, h):
             raise ValueError(f"Sheet {layer} is {new_image.size}, the texture {w}x{h}")
-        old, new = old_image.tobytes(), new_image.tobytes()
+        old, new, bpp = old_image.tobytes(), new_image.tobytes(), len(new_image.getbands())
+        row = w * bpp
         base = texture["start"] + layer * texture["layer_size"]
         for by in range(blocks_high):
-            band = slice(by * 4 * w, (by * 4 + 4) * w)
+            band = slice(by * 4 * row, (by * 4 + 4) * row)
             if old[band] == new[band]:
                 continue
             for bx in range(blocks_wide):
-                if all(old[(by * 4 + y) * w + bx * 4:(by * 4 + y) * w + bx * 4 + 4]
-                       == new[(by * 4 + y) * w + bx * 4:(by * 4 + y) * w + bx * 4 + 4] for y in range(4)):
+                cells = [slice((by * 4 + y) * row + bx * 4 * bpp, (by * 4 + y) * row + (bx * 4 + 4) * bpp)
+                         for y in range(4)]
+                if all(old[c] == new[c] for c in cells):
                     continue
-                ink = new_image.crop((bx * 4, by * 4, bx * 4 + 4, by * 4 + 4))
-                white = Image.new("L", (4, 4), 255)
-                block = Image.merge("RGBA", (white, white, white, ink)).tobytes("bcn", 3)[:8]  # BC3 alpha = BC4
                 at = base + addresses[by * blocks_wide + bx]
-                out[at:at + 8] = block
+                out[at:at + size] = _encode(new_image.crop((bx * 4, by * 4, bx * 4 + 4, by * 4 + 4)), fmt)
 
 
 # -- growing the file ---------------------------------------------------------------
@@ -286,16 +320,14 @@ def _add_layers(out: bytearray, texture: Dict[str, int], new_sheets: Sheets) -> 
     insert_at = texture["start"] + layers * layer_size
     if insert_at != rlt or out[rlt:rlt + 4] != b"_RLT":
         raise ValueError("Cannot add sheets: the BNTX texture data does not end at its relocation table")
-    w, h = texture["width"], texture["height"]
-    addresses = block_addresses((w + 3) // 4, (h + 3) // 4, 8, texture["block_height"])
+    addresses, size = _addresses(texture), _BLOCK[texture["format"]]
     data = bytearray()
     for sheet in new_sheets:
-        ink = coverage(sheet).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        white = Image.new("L", ink.size, 255)
-        linear = Image.merge("RGBA", (white, white, white, ink)).tobytes("bcn", 3)  # BC3 alpha halves = BC4
+        linear = _encode(_channels(sheet, texture["format"]).transpose(Image.Transpose.FLIP_TOP_BOTTOM),
+                         texture["format"])
         layer = bytearray(layer_size)
         for index, address in enumerate(addresses):
-            layer[address:address + 8] = linear[index * 16:index * 16 + 8]
+            layer[address:address + size] = linear[index * size:index * size + size]
         data += layer
     delta = len(data)
 

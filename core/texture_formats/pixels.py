@@ -454,13 +454,11 @@ def _pica_etc(alpha: bool) -> Codec:
 
 
 def _astc_codec(bw: int, bh: int) -> Codec:
-    """ASTC blocks of ``bw`` x ``bh`` texels (``astc``); only 4x4 blocks are encoded."""
+    """ASTC blocks of ``bw`` x ``bh`` texels (``astc``)."""
     from core.texture_formats import astc
 
     def enc(image: Image.Image) -> bytes:
-        if (bw, bh) != (4, 4):
-            raise ValueError(f"Writing ASTC {bw}x{bh} blocks is not supported")
-        return astc.encode(image)
+        return astc.encode(image, bw, bh)
 
     return Codec(f"ASTC{bw}x{bh}", (bw, bh), 16, lambda data, w, h: astc.decode(data, w, h, bw, bh), enc)
 
