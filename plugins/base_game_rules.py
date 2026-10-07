@@ -776,7 +776,8 @@ class BaseGameRules:
         Each entry: ``label``; ``kind`` (``title_screen``, ``area_card``, ``menu_label``...); ``format``
         (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t``, ``imgc``,
         ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed multiboot program),
-        ``gtx`` (Wii U GX2), ``txtr`` (Retro TXTR), ``raw`` or ``tiles`` (GBA / DS character tiles)); ``path`` -- as
+        ``gtx`` (Wii U GX2), ``txtr`` (Retro TXTR), ``tim`` (PlayStation TIM), ``vs_gim`` / ``vs_hf1`` / ``vs_rle``
+        (Vagrant Story pictures), ``raw`` or ``tiles`` (GBA / DS character tiles)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``
         (``compression``, ``file_offset``/``file_size``, ``texture`` and what the format needs -- see

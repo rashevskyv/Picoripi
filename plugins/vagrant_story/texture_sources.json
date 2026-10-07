@@ -1,0 +1,811 @@
+[
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF001.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF002.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF003.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF004.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF005.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF006.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF007.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF008.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF009.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF010.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF011.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF012.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff credits",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/STAFF013.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Opening briefing card",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DEMO_001.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Opening briefing card",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DEMO_002.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Opening briefing card",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DEMO_003.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Opening briefing card",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DEMO_004.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Opening briefing card",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DEMO_005.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Opening briefing card",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DEMO_006.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Opening briefing card",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DEMO_007.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Opening briefing card",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DEMO_008.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Time caption",
+  "kind": "area_card",
+  "format": "vs_gim",
+  "path": "GIM/1142.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Place and time caption",
+  "kind": "area_card",
+  "format": "vs_gim",
+  "path": "GIM/DEMOENK.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Place and time caption",
+  "kind": "area_card",
+  "format": "vs_gim",
+  "path": "GIM/ENKEI2.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Place and time caption",
+  "kind": "area_card",
+  "format": "vs_gim",
+  "path": "GIM/HEADQUAT.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Place and time caption",
+  "kind": "area_card",
+  "format": "vs_gim",
+  "path": "GIM/EPI_INF.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Place and time caption",
+  "kind": "area_card",
+  "format": "vs_gim",
+  "path": "GIM/ENKEI.GIM",
+  "params": {
+   "texture": "layer2"
+  }
+ },
+ {
+  "label": "Caption",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DADDY.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Caption",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/JO.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Story page",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/VKP_0.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Story page",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/VKP_2.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Story page",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/EPILOGUE.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Story page",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/VKP_0.GIM",
+  "params": {
+   "texture": "layer2"
+  }
+ },
+ {
+  "label": "Story page",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/VKP_2.GIM",
+  "params": {
+   "texture": "layer2"
+  }
+ },
+ {
+  "label": "Story page",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/EPILOGUE.GIM",
+  "params": {
+   "texture": "layer2"
+  }
+ },
+ {
+  "label": "Story page",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/VKP_1.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Epilogue line",
+  "kind": "ending",
+  "format": "vs_gim",
+  "path": "GIM/EPI_E01B.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Game over",
+  "kind": "popup",
+  "format": "vs_gim",
+  "path": "GIM/GAMEOVER.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Lea Monde card",
+  "kind": "area_card",
+  "format": "vs_gim",
+  "path": "GIM/N_LEA.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Logo",
+  "kind": "logo",
+  "format": "vs_gim",
+  "path": "GIM/DEMOFIN.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Staff summary",
+  "kind": "credits",
+  "format": "vs_gim",
+  "path": "GIM/DEMOFIN.GIM",
+  "params": {
+   "texture": "layer1"
+  }
+ },
+ {
+  "label": "Season caption",
+  "kind": "other",
+  "format": "vs_gim",
+  "path": "GIM/DEMOFIN.GIM",
+  "params": {
+   "texture": "layer2"
+  }
+ },
+ {
+  "label": "Logo",
+  "kind": "logo",
+  "format": "vs_gim",
+  "path": "GIM/LOGO_28.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Logo",
+  "kind": "logo",
+  "format": "vs_gim",
+  "path": "GIM/LOGO_29.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Logo",
+  "kind": "logo",
+  "format": "vs_gim",
+  "path": "GIM/LOGO_30.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Logo",
+  "kind": "logo",
+  "format": "vs_gim",
+  "path": "GIM/LOGO_31.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Logo",
+  "kind": "logo",
+  "format": "vs_gim",
+  "path": "GIM/LOGO_G22.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Logo",
+  "kind": "logo",
+  "format": "vs_gim",
+  "path": "GIM/MAIN03.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Logo",
+  "kind": "logo",
+  "format": "vs_gim",
+  "path": "GIM/SQUARE.GIM",
+  "params": {
+   "texture": "layer0"
+  }
+ },
+ {
+  "label": "Results and ranks",
+  "kind": "menu_label",
+  "format": "tim",
+  "path": "SMALL/ATTACK.DIS"
+ },
+ {
+  "label": "Results and ranks",
+  "kind": "menu_label",
+  "format": "tim",
+  "path": "SMALL/END.DIS"
+ },
+ {
+  "label": "Results and ranks",
+  "kind": "menu_label",
+  "format": "tim",
+  "path": "SMALL/ESC.DIS"
+ },
+ {
+  "label": "Results and ranks",
+  "kind": "menu_label",
+  "format": "tim",
+  "path": "SMALL/IQ.DIS"
+ },
+ {
+  "label": "Results and ranks",
+  "kind": "menu_label",
+  "format": "tim",
+  "path": "SMALL/RANK.DIS"
+ },
+ {
+  "label": "Results and ranks",
+  "kind": "menu_label",
+  "format": "tim",
+  "path": "SMALL/TIME.DIS"
+ },
+ {
+  "label": "Quick Manual picture",
+  "kind": "tutorial",
+  "format": "vs_hf1",
+  "path": "SMALL/HELP02.HF1",
+  "params": {
+   "sprites": [
+    {
+     "name": "sprite2",
+     "width": 74,
+     "height": 10,
+     "clut": 1,
+     "blocks": [
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "label": "Quick Manual picture",
+  "kind": "tutorial",
+  "format": "vs_hf1",
+  "path": "SMALL/HELP03.HF1",
+  "params": {
+   "sprites": [
+    {
+     "name": "sprite13",
+     "width": 16,
+     "height": 16,
+     "clut": 7,
+     "blocks": [
+      34,
+      35
+     ]
+    },
+    {
+     "name": "sprite14",
+     "width": 16,
+     "height": 16,
+     "clut": 8,
+     "blocks": [
+      36,
+      37
+     ]
+    },
+    {
+     "name": "sprite15",
+     "width": 16,
+     "height": 16,
+     "clut": 9,
+     "blocks": [
+      38,
+      39
+     ]
+    },
+    {
+     "name": "sprite16",
+     "width": 16,
+     "height": 16,
+     "clut": 10,
+     "blocks": [
+      40,
+      41
+     ]
+    },
+    {
+     "name": "sprite17",
+     "width": 16,
+     "height": 16,
+     "clut": 8,
+     "blocks": [
+      42,
+      43
+     ]
+    },
+    {
+     "name": "sprite18",
+     "width": 16,
+     "height": 16,
+     "clut": 7,
+     "blocks": [
+      44,
+      45
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "label": "Quick Manual picture",
+  "kind": "tutorial",
+  "format": "vs_hf1",
+  "path": "SMALL/HELP13.HF1",
+  "params": {
+   "sprites": [
+    {
+     "name": "sprite1",
+     "width": 42,
+     "height": 8,
+     "clut": 1,
+     "blocks": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ]
+    },
+    {
+     "name": "sprite2",
+     "width": 44,
+     "height": 8,
+     "clut": 2,
+     "blocks": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+     ]
+    },
+    {
+     "name": "sprite3",
+     "width": 22,
+     "height": 8,
+     "clut": 1,
+     "blocks": [
+      14,
+      15,
+      16
+     ]
+    },
+    {
+     "name": "sprite4",
+     "width": 18,
+     "height": 8,
+     "clut": 3,
+     "blocks": [
+      17,
+      18,
+      19
+     ]
+    },
+    {
+     "name": "sprite6",
+     "width": 40,
+     "height": 24,
+     "clut": 5,
+     "blocks": [
+      22,
+      23,
+      24,
+      25,
+      22,
+      26,
+      27,
+      28,
+      29,
+      30
+     ]
+    },
+    {
+     "name": "sprite7",
+     "width": 26,
+     "height": 24,
+     "clut": 6,
+     "blocks": [
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "label": "Battle HUD",
+  "kind": "hud",
+  "format": "raw",
+  "path": "BATTLE/SYSTEM.DAT",
+  "params": {
+   "pixel_format": "psx:CI4",
+   "tlut_offset": "0x1a870",
+   "width": 256,
+   "height": 224,
+   "textures": [
+    {
+     "name": "HUD sheet",
+     "offset": "0x28",
+     "width": 256,
+     "height": 224
+    },
+    {
+     "name": "battle mode sheet",
+     "offset": "0x7030",
+     "width": 256,
+     "height": 240
+    }
+   ]
+  }
+ },
+ {
+  "label": "Title",
+  "kind": "title_screen",
+  "format": "vs_rle",
+  "path": "TITLE/TITLE.PRG",
+  "params": {
+   "offset": "0xE2D4",
+   "end": "0x449A8",
+   "width": 544,
+   "height": 576,
+   "textures": [
+    {
+     "name": "title screen",
+     "pixel_format": "psx:RGB555"
+    },
+    {
+     "name": "menu words",
+     "pixel_format": "psx:4bpp",
+     "x": 64,
+     "y": 480,
+     "width": 1280,
+     "height": 32
+    }
+   ]
+  }
+ },
+ {
+  "label": "Title",
+  "kind": "logo",
+  "format": "raw",
+  "path": "TITLE/TITLE.PRG",
+  "params": {
+   "pixel_format": "psx:CI4",
+   "width": 256,
+   "height": 48,
+   "textures": [
+    {
+     "name": "publisher",
+     "offset": "0xA72C",
+     "tlut_offset": "0xA70C"
+    },
+    {
+     "name": "developer",
+     "offset": "0xBF2C",
+     "tlut_offset": "0xc26c",
+     "width": 128,
+     "height": 13
+    },
+    {
+     "name": "copyright",
+     "pixel_format": "psx:RGB555",
+     "offset": "0x449A8",
+     "width": 180,
+     "height": 24
+    },
+    {
+     "name": "HUD sheets (copy of SYSTEM.DAT)",
+     "offset": "0x59A68",
+     "tlut_offset": "0x59868",
+     "height": 480
+    }
+   ]
+  }
+ },
+ {
+  "label": "Menu",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "MENU/GAMEOVER.BIN",
+  "params": {
+   "pixel_format": "psx:4bpp",
+   "offset": 0,
+   "width": 96,
+   "height": 128
+  }
+ },
+ {
+  "label": "Menu",
+  "kind": "map",
+  "format": "raw",
+  "path": "MENU/MAPBG.BIN",
+  "params": {
+   "pixel_format": "psx:CI8",
+   "offset": 512,
+   "tlut_offset": 0,
+   "width": 320,
+   "height": 240
+  }
+ },
+ {
+  "label": "Menu",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "MENU/SPMCIMG.BIN",
+  "params": {
+   "pixel_format": "psx:8bpp",
+   "offset": 0,
+   "width": 448,
+   "height": 256
+  }
+ },
+ {
+  "label": "Loading",
+  "kind": "popup",
+  "format": "raw",
+  "path": "SLUS_010.40",
+  "params": {
+   "pixel_format": "psx:RGB555",
+   "name": "NOW LOADING",
+   "offset": "0x39954",
+   "width": 126,
+   "height": 20
+  }
+ }
+]

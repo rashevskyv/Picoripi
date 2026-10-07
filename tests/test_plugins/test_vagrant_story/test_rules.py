@@ -150,7 +150,7 @@ def test_russian_letters_follow_the_fan_font():
 
 REAL = ["EVENT/0004.EVT", "MAP/MAP001.MPD", "MENU/ITEMNAME.BIN", "MENU/ITEMHELP.BIN", "MENU/MCMAN.BIN",
         "MENU/MENU12.BIN", "MENU/MENU9.PRG", "SMALL/HELP01.HF0", "SMALL/MON.BIN", "SMALL/SCEN001.ARM",
-        "MAP/ZONE009.ZND", "BATTLE/BATTLE.PRG", "SLUS_010.40"]
+        "MAP/ZONE009.ZND", "BATTLE/BATTLE.PRG", "SLUS_010.40", "MAP/MAP020.MPD", "MAP/MAP026.MPD"]
 needs_disc = pytest.mark.skipif(not (SOURCE / "SLUS_010.40").exists(), reason="Vagrant Story not unpacked here")
 
 
@@ -178,13 +178,14 @@ def test_real_text_uses_no_code_the_translation_map_takes():
     taken = {code for letter, code in rules.char_codes.items() if letter.isalpha() and not codec.CHARS[code].isascii()}
     used = {}
     for path in sorted(SOURCE.rglob("*")):
-        if not path.is_file() or path.suffix.upper() in (".FNT", ".JSON"):
-            continue
+        if not path.is_file() or path.suffix.upper() in (".FNT", ".JSON", ".GIM", ".DIS", ".HF1", ".DAT") or (
+                path.name in ("GAMEOVER.BIN", "MAPBG.BIN", "SPMCIMG.BIN")):
+            continue                            # pictures (Tools -> Textures), not text
         parsed = docs.parse(path.read_bytes())
         for group in parsed.groups:
             for line in group.lines:
-                if line.kind == docs.HUD:
-                    continue                    # ASCII words of the HUD sheet, not the text font
+                if line.kind in (docs.HUD, docs.CREDITS):
+                    continue                    # ASCII words of the HUD sheet and the staff roll, not the text font
                 for code, param in codec.tokens(line.raw):
                     if param is None and code in taken:
                         used.setdefault(code, path.name)

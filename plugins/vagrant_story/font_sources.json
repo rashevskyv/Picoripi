@@ -12,5 +12,17 @@
     "path": ["FONT/VSFONT.FNT", "../FONT/VSFONT.FNT"],
     "font_map": "vagrant_story_menu_font.json",
     "params": {"set": 0}
+  },
+  {
+    "label": "Staff roll font (italic)",
+    "format": "vagrant",
+    "path": ["ENDING/ENDING.PRG", "../ENDING/ENDING.PRG"],
+    "params": {"layout": "credits", "set": 0, "texture": "0x789C", "widths": "0x777C"}
+  },
+  {
+    "label": "Staff roll font (bold capitals)",
+    "format": "vagrant",
+    "path": ["ENDING/ENDING.PRG", "../ENDING/ENDING.PRG"],
+    "params": {"layout": "credits", "set": 1, "texture": "0x789C", "widths": "0x777C"}
   }
 ]

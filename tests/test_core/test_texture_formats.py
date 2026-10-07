@@ -559,7 +559,10 @@ def test_every_plugin_texture_list_is_well_formed(path):
         assert entry["label"] and entry["path"] and entry["format"] in known, entry
         params = entry.get("params") or {}
         if entry["format"] == "raw":
-            pixels.codec(params["pixel_format"])
+            from core.texture_formats import raw
+            for texture in params.get("textures") or [params]:
+                fmt = texture.get("pixel_format", params["pixel_format"])
+                assert fmt in raw._TLUT or pixels.codec(fmt)
             assert all("offset" in t for t in params.get("textures") or [params])
         if "compression" in params:
             assert params["compression"] in ("zlib", "gzip", "yar", "yaz0", "zstd", "none")

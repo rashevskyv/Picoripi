@@ -36,6 +36,9 @@ _ROLES = {
                                      "enemy, equipment). It is edited in place: never longer than the English."),
     docs.HUD: ("HUD word", "A short capitalised label drawn with the HUD sheet's letters (body part, timing result, "
                            "menu header). ASCII only and never longer than the English; keep a leading # or $."),
+    docs.CREDITS: ("Staff roll line", "A line of the closing credits: a team title or a person's name, drawn with "
+                                      "the credits font. ASCII only, never longer than the English (a shorter "
+                                      "line is padded with spaces); keep {xNN} codes."),
 }
 
 
@@ -44,8 +47,8 @@ class GameRules(BaseGameRules):
 
     The project's source folder is the ``source`` folder the workspace's unpack step fills with the
     disc's text files under their disc paths (``EVENT/*.EVT``, ``MAP/*.MPD``, ``MAP/*.ZND``,
-    ``MENU/*``, ``SMALL/*``, ``BATTLE/*.PRG``, ``TITLE/TITLE.PRG``, ``SLUS_010.40``) and the font
-    ``FONT/VSFONT.FNT``. Saving writes the same files into the translation folder; the build step
+    ``MENU/*``, ``SMALL/*``, ``BATTLE/*.PRG``, ``TITLE/TITLE.PRG``, ``ENDING/ENDING.PRG``, ``SLUS_010.40``), the
+    font ``FONT/VSFONT.FNT`` and the pictures with text (``texture_sources.json``). Saving writes the same files into the translation folder; the build step
     puts them back on the disc.
     """
 
@@ -467,6 +470,10 @@ def _reference_strings(ru: bytes, parsed: docs.Doc, sub: int) -> List[Optional[b
             if parsed.kind != "event":
                 sections = formats.mpd_header(ru)
                 start = sections[2][0] if sections and sections[2][1] else -1
+                if sections and group.name.startswith("Door "):     # "Door <slot> dialog"
+                    slot = int(group.name.split()[1])
+                    start = next((script.start for number, script in formats.door_scripts(ru, sections)
+                                  if number == slot), -1)
             if 0 <= start and start + 4 <= len(ru):
                 # the dialog table where the header says; a few Russian tables run past their region
                 text = int.from_bytes(ru[start + 2:start + 4], "little")
@@ -481,7 +488,7 @@ def _reference_strings(ru: bytes, parsed: docs.Doc, sub: int) -> List[Optional[b
         return [table.string_at(ru, line.place)[:-1] for line in group.lines]
     out: List[Optional[bytes]] = []
     for line in group.lines:                 # in place: the Russian string sits where the English one is
-        if line.kind == docs.HUD:            # the Russian HUD words are Latin letters redrawn as Cyrillic
+        if line.kind in (docs.HUD, docs.CREDITS):    # Russian HUD words and credits: Latin letters redrawn
             out.append(None)
             continue
         end = codec.string_end(ru, line.place)

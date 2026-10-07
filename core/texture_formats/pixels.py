@@ -8,6 +8,8 @@ family:
 - ``gx:*`` -- GameCube / Wii: a GX tile (8x8, 8x4 or 4x4 pixels, row by row inside), big endian;
 - ``pica:*`` -- 3DS: an 8x8 tile in Morton order, little endian, 4-bit texels low nibble first;
 - ``n64:*`` -- N64: linear rows, big endian, 4-bit texels high nibble first;
+- ``psx:*`` -- PlayStation: linear rows, little endian, 4-bit texels low nibble first; colour 0x0000
+  is transparent (``psx_clut``); ``psx:4bpp`` / ``psx:8bpp`` are indices without their CLUT (grey);
 - plain names (``RGBA8``, ``BC3``...) -- Wii U / Switch: one pixel, or one 4x4 block of a block
   compressed format, in linear order (the surface layout -- ``gx2``, ``tegra`` -- places them).
 
@@ -477,7 +479,7 @@ def _astc_codec(bw: int, bh: int) -> Codec:
 
 
 def palette_codec(name: str, bits: int, palette: Sequence[RGBA], *, tile: Optional[Tuple[int, int]] = None,
-                  endian: str = ">") -> Codec:
+                  endian: str = ">", low_first: bool = False) -> Codec:
     """Indices into ``palette`` (GX C4/C8/C14X2 in tiles, N64 CI4/CI8 in rows).
 
     Encoding picks, for each colour, the palette entry nearest to it."""
@@ -497,7 +499,7 @@ def palette_codec(name: str, bits: int, palette: Sequence[RGBA], *, tile: Option
         exact[key] = best
         return best
 
-    return value_codec(name, bits, dec, enc, endian=endian, tile=tile)
+    return value_codec(name, bits, dec, enc, endian=endian, tile=tile, low_first=low_first)
 
 
 def gx_palette_format(fmt: int):
@@ -514,6 +516,21 @@ def gx_palette_format(fmt: int):
 def n64_tlut():
     """``(decode, encode)`` of an N64 palette entry (RGBA16)."""
     return _packed((("r", 5), ("g", 5), ("b", 5), ("a", 1)))
+
+
+def psx_clut():
+    """``(decode, encode)`` of a PlayStation colour (u16: R in the low 5 bits, then G, B and the STP bit).
+    0x0000 is transparent; opaque black is stored as 0x8000."""
+    def dec(v):
+        if not v & 0x7FFF:
+            return (0, 0, 0, 255 if v else 0)
+        return _x(v & 31, 5), _x(v >> 5 & 31, 5), _x(v >> 10 & 31, 5), 255
+
+    def enc(r, g, b, a):
+        if a < 128:
+            return 0
+        return (_q(r, 5) | _q(g, 5) << 5 | _q(b, 5) << 10) or 0x8000
+    return dec, enc
 
 
 def nearest_palette(image: Image.Image, count: int) -> List[RGBA]:
@@ -583,6 +600,10 @@ def _build() -> Dict[str, Codec]:
     # GBA / DS: palette indices in 8x8 tiles (rows of a tile, low nibble first), shown as grey levels
     add(value_codec("nds:4bpp", 4, *_index(4), endian="<", low_first=True, tile=(8, 8)))
     add(value_codec("nds:8bpp", 8, *_index(8), endian="<", tile=(8, 8)))
+    # PlayStation (rows, little endian)
+    add(value_codec("psx:RGB555", 16, *psx_clut(), endian="<"))
+    add(value_codec("psx:4bpp", 4, *_index(4), endian="<", low_first=True))
+    add(value_codec("psx:8bpp", 8, *_index(8), endian="<"))
     # Wii U / Switch: one pixel per element, little endian
     le = dict(endian="<")
     add(_raw_codec("RGBA8", "RGBA"))    # bytes R, G, B, A
