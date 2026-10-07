@@ -8,7 +8,7 @@
   {"label": "Brightness screen (n_title)", "kind": "menu", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/13a3f141.tpl", "params": {"texture": "{0,1,2,3,4}"}},
   {"label": "Unlockables (costume, exorcise) (n_title)", "kind": "menu", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/13147e44.tpl", "params": {"texture": "{0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18,19,20,21,22,26,27,28,30,31,32,33,38,39,40,42,43,44,45}"}},
   {"label": "Chapter select (n_title)", "kind": "menu", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/13231384.tpl", "params": {"texture": "{0,1,4,6}"}},
-  {"label": "Title screen (PRESS START) (n_title)", "kind": "title", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/13927bc4.tpl", "params": {"texture": "{1}"}},
+  {"label": "Title screen: copyright, PRESS START, title logo copy, Licensed by Nintendo (n_title)", "kind": "title", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/13927bc4.tpl"},
   {"label": "Briefing menu (n_title)", "kind": "briefing", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/13dd8453.tpl", "params": {"texture": "{0,4,7,10,13,16,19,22,25,28,31,34,37,40,43,46,49,52,55,58,61,64}"}},
   {"label": "Boss survival results (n_title)", "kind": "results", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/1346e47e.tpl", "params": {"texture": "{0,5,6,8,9,10,12,13,14,15,17,18,19,20,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,47,48,49,50,51,52,54,55,56,57,58,62,63,64,66,67,68,70,71,72,73,74,75,76,77}"}},
   {"label": "Opening cast names (New Game cutscene)", "kind": "credits", "format": "tpl", "path": "texture/demo01a.stage", "member": "demo01a/13573de0.tpl", "params": {"texture": "{0,4,6,8,9,10,13,14,17,18,19,20,22,26,27}"}},
@@ -41,7 +41,7 @@
   {"label": "Item window state labels", "kind": "menu", "format": "tpl", "path": "texture/r_cmmn.stage", "member": "r_cmmn/13899c71.tpl", "params": {"texture": "{13,15,28}"}},
   {"label": "Photo / memory card (r_*)", "kind": "menu", "format": "tpl", "path": "texture/r_cmmn.stage", "member": "r_cmmn/139e6fd4.tpl", "params": {"texture": "{0,1,2,3,4,5,10,11,13,14,18,19,20}"}},
   {"label": "Overwrite prompt", "kind": "menu", "format": "tpl", "path": "texture/r_cmmn.stage", "member": "r_cmmn/1367dde6.tpl", "params": {"texture": "3"}},
-  {"label": "Title logo", "kind": "title", "format": "tpl", "path": "texture/disk1.stage", "member": "disk1/13883ef4.tpl", "params": {"texture": "{0,1}"}},
+  {"label": "Title logo TACTICAL ESPIONAGE ACTION / METAL GEAR SOLID / THE TWIN SNAKES (sharp + 2 blur layers; also in disk1, disk2)", "kind": "title", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/13883ef4.tpl"},
   {"label": "Title logo (small)", "kind": "title", "format": "tpl", "path": "texture/demo02a.stage", "member": "demo02a/1314852e.tpl", "params": {"texture": "0"}},
   {"label": "Memory card banner logo", "kind": "title", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/111b4f4d.bin", "params": {"texture": "0"}},
   {"label": "Briefing menu (Japanese)", "kind": "briefing", "format": "tpl", "path": "texture/n_title.stage", "member": "n_title/13115ba0.tpl", "params": {"texture": "{4,7,10,16,19,22,25,28,31,34,37,40,43,46,49,52,55,58,61,64}"}},
@@ -115,5 +115,6 @@
   {"label": "Place-name card: Communication Tower A", "kind": "place_name", "format": "tpl", "path": "texture/area15a.stage", "member": "area15a/13715d80.tpl", "params": {"texture": "6"}},
   {"label": "Place-name card: Communication Tower Corridor", "kind": "place_name", "format": "tpl", "path": "texture/area17a.stage", "member": "area17a/13715d80.tpl", "params": {"texture": "6"}},
   {"label": "Place-name card: Insert Level Name Here (placeholder, 52 copies, never shown)", "kind": "place_name", "format": "tpl", "path": "texture/area02a.stage", "member": "area02a/13715d80.tpl", "params": {"texture": "12"}},
-  {"label": "Disc banner", "kind": "banner", "format": "raw", "path": "disc*/opening.bnr", "params": {"pixel_format": "gx:RGB5A3", "width": 96, "height": 32, "offset": "0x20"}}
+  {"label": "Disc banner (disc 1)", "kind": "banner", "format": "raw", "path": "disc1/opening.bnr", "params": {"pixel_format": "gx:RGB5A3", "width": 96, "height": 32, "offset": "0x20"}},
+  {"label": "Disc banner (disc 2)", "kind": "banner", "format": "raw", "path": "disc2/opening.bnr", "params": {"pixel_format": "gx:RGB5A3", "width": 96, "height": 32, "offset": "0x20"}}
 ]

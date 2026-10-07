@@ -199,3 +199,21 @@ def test_every_real_font_source_opens_and_packs_back_byte_for_byte():
         metadata, sheets = font_formats.extract(font.format, original, font.params)
         assert metadata["GLY1"][0]["end_glyph"] + 1 >= 10, font.label
         assert font_formats.pack(font.format, metadata, sheets, original, font.params) == original, font.label
+
+
+@pytest.mark.skipif(not (WORKSPACE / "source" / "text" / "disc1" / "opening.bnr").is_file(),
+                    reason="Twin Snakes texture stages and banners not unpacked here")
+def test_every_real_texture_source_opens_and_writes_back_unchanged():
+    import json
+    from core import texture_formats
+    ContainerManager.register(StageDatContainer)
+    descriptors = json.loads((Path(__file__).parents[3] / "plugins" / "mgs_ts" / "texture_sources.json")
+                             .read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(WORKSPACE / "source" / "text")})
+    labels = {s.label.split(": ")[0] for s in found}
+    assert {"Disc banner (disc 1)", "Disc banner (disc 2)"} <= labels
+    assert sum(1 for s in found if "13883ef4" in s.key or "13927bc4.tpl#2" in s.key) == 4   # every title logo layer
+    for s in found:
+        data, _rewrap = sources.unwrap(Path(s.source_path).read_bytes(), s.member, s.params)
+        image = texture_formats.read(s.format, data, s.params)[s.index].image
+        assert texture_formats.write(s.format, data, {s.index: image}, s.params) == data, s.key
