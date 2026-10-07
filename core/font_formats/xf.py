@@ -194,12 +194,14 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     room = _Atlas(atlas.size, [(chars[g]["x"], chars[g]["y"], sizes[chars[g]["size"]][2], sizes[chars[g]["size"]][3],
                                 chars[g]["channel"]) for g in in_use])
     shared: Dict[bytes, Tuple[int, int, int]] = {}     # identical glyphs share one box, as the game's own do
+    kept = set()                                       # boxes an unedited glyph still draws from: never redrawn
     for g in in_use - changed:
         c = chars[g]
         _ox, _oy, w, h = sizes[c["size"]]
         if w and h and c["channel"] < 3:
             ink = planes[c["channel"]].crop((c["x"], c["y"], c["x"] + w, c["y"] + h))
             shared.setdefault(bytes((w, h)) + ink.tobytes(), (c["x"], c["y"], c["channel"]))
+            kept.add((c["x"], c["y"], c["channel"]))
     placed: Dict[int, Dict[str, int]] = {}
     for g in sorted(changed):
         ink = new_ink.crop(box(g))
@@ -219,13 +221,15 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
             placed[g] = {"size": _size_index(sizes, (found[0] - PAD, found[1], w, h)), "x": x, "y": y,
                          "channel": channel}
             continue
-        if old and old["channel"] < 3 and w <= old_w and h <= old_h:
+        if (old and old["channel"] < 3 and w <= old_w and h <= old_h
+                and (old["x"], old["y"], old["channel"]) not in kept):
             x, y, channel = old["x"], old["y"], old["channel"]
             planes[channel].paste(0, (x, y, x + old_w, y + old_h))
         else:
             x, y, channel = _place(room, planes, w, h)
         planes[channel].paste(stored, (x, y))
         shared[key] = (x, y, channel)
+        kept.add((x, y, channel))
         placed[g] = {"size": _size_index(sizes, (found[0] - PAD, found[1], w, h)), "x": x, "y": y, "channel": channel}
 
     records = []

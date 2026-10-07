@@ -203,6 +203,21 @@ def test_xf_new_letter_in_a_spare_cell_becomes_a_real_character():
         assert new.crop(new.getbbox()).tobytes() == old.crop(old.getbbox()).tobytes()
 
 
+def test_xf_edit_of_a_glyph_that_shares_its_box_leaves_the_other_character_alone():
+    atlas = Image.new("RGBA", (32, 16), (0, 0, 0, 255))
+    ImageDraw.Draw(atlas).line((3, 1, 3, 10), fill=(255, 0, 0, 255))
+    stem = (0, 1, 1, 10)
+    data = make_xf(atlas, [(ord("I"), 4, stem, (3, 1, 0)), (ord("І"), 4, stem, (3, 1, 0))])   # Latin I, Cyrillic І
+    metadata, sheets = font_formats.extract("xf", data)
+    _, (x, y) = _cell(metadata, sheets, "І")
+    sheets[0].paste((0, 0, 0, 0), (x, y, x + metadata["GLY1"][0]["cell_width"], y + metadata["GLY1"][0]["cell_height"]))
+    sheets[0].paste((255, 255, 255, 255), (x + xf.PAD, y + 1, x + xf.PAD + 1, y + 6))    # a shorter stem
+    again, again_sheets = font_formats.extract("xf", font_formats.pack("xf", metadata, sheets, data))
+    for char in "IІ":
+        assert font_formats.coverage(_cell(again, again_sheets, char)[0]).tobytes() == \
+            font_formats.coverage(_cell(metadata, sheets, char)[0]).tobytes(), char
+
+
 def test_xf_width_edit_and_full_texture_grows_to_the_power_of_two():
     data = _font()
     metadata, sheets = font_formats.extract("xf", data)
@@ -222,10 +237,10 @@ def test_xf_width_edit_and_full_texture_grows_to_the_power_of_two():
 
 @pytest.mark.skipif(not (WORKSPACE / "source/fnt/ft_nrm.xf").is_file(), reason="needs the Yo-kai Watch workspace")
 def test_real_fonts_and_textures_write_back_byte_for_byte():
-    for name in ("ft_nrm", "ft_sml"):
+    for name in ("ft_nrm", "ft_sml", "dbg", "dbg_int"):
         data = (WORKSPACE / f"source/fnt/{name}.xf").read_bytes()
         metadata, sheets = font_formats.extract("xf", data)
-        assert len(font_formats.char_map(metadata)) == 8000
+        assert len(font_formats.char_map(metadata)) >= 8000
         assert font_formats.pack("xf", metadata, sheets, data) == data
     title = level5.Xpck((WORKSPACE / "source/data/menu/title_u00_en.xa").read_bytes())
     for blob in title.files.values():
