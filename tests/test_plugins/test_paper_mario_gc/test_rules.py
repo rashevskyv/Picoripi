@@ -214,3 +214,42 @@ def test_context_names_speakers_in_english():
     assert sum(not n.isascii() for n in names) < 20
     assert {"item", "badge", "key_item"} == set(context["items"].values())
     assert not any(re.search(r"\.\s+[A-Z]", n) or n in ("Mr", "Ms") for n in names if n != "Ms. Mowz")
+
+
+@pytest.mark.skipif(not (MSG / "global.txt").exists(), reason="Paper Mario TTYD not unpacked here")
+def test_every_font_on_the_disc_opens_and_writes_into_the_translation(tmp_path):
+    from core.font_formats import sources
+    from tools.bfn_editor.bfn_engine import extract_bfn_logic, repack_bfn_logic
+    descriptors = json.loads((PLUGIN_DIR / "font_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(MSG), "translation_path": str(tmp_path / "files" / "msg" / "US")})
+    assert sorted(s.name for s in found) == sorted(p.name for p in (WORKSPACE / "files" / "f").glob("*.bfn"))
+    for source in found:
+        data = source.read_original()
+        folder = tmp_path / source.name
+        extract_bfn_logic(source.source_path, str(folder))
+        repack_bfn_logic(str(folder), str(folder / "out.bfn"))
+        assert (folder / "out.bfn").read_bytes() == data, source.name
+        source.write(data)
+        assert (tmp_path / "files" / "f" / source.name).read_bytes() == data   # where 2_build picks it up
+
+
+@pytest.mark.skipif(not (MSG / "global.txt").exists(), reason="Paper Mario TTYD not unpacked here")
+def test_texture_list_round_trips_and_an_edit_lands_in_the_translation(tmp_path):
+    from PIL import ImageDraw
+    from core import texture_formats
+    from core.texture_formats import sources
+    descriptors = json.loads((PLUGIN_DIR / "texture_sources.json").read_text(encoding="utf-8"))
+    trans = tmp_path / "files" / "msg" / "US"
+    found = sources.resolve(descriptors, {"source_path": str(MSG), "translation_path": str(trans)})
+    assert len(found) >= len(descriptors)
+    for path in {s.source_path for s in found}:
+        data = Path(path).read_bytes()
+        textures = texture_formats.read("tpl", data, {})
+        assert texture_formats.write("tpl", data, {i: t.image for i, t in enumerate(textures)}, {}) == data, path
+    logo = next(s for s in found if "title logo" in s.label)
+    image = logo.read_current().image.copy()
+    ImageDraw.Draw(image).rectangle((0, 0, 31, 31), fill=(255, 0, 0, 255))
+    assert logo.write(image)
+    written = tmp_path / "files" / "mariost.tpl"
+    assert written.stat().st_size == (WORKSPACE / "files" / "mariost.tpl").stat().st_size
+    assert logo.read_current().image.getpixel((8, 8))[:3] == (255, 0, 0)

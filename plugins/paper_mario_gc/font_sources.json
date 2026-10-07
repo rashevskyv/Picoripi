@@ -4,5 +4,15 @@
     "format": "bfn",
     "path": ["../../f/papermarioset_US.bfn", "f/papermarioset_US.bfn", "files/f/papermarioset_US.bfn"],
     "font_map": "papermarioset_US.json"
+  },
+  {
+    "label": "European text font (papermarioset_EU)",
+    "format": "bfn",
+    "path": ["../../f/papermarioset_EU.bfn", "f/papermarioset_EU.bfn", "files/f/papermarioset_EU.bfn"]
+  },
+  {
+    "label": "Japanese text font (papermarioset_JPN)",
+    "format": "bfn",
+    "path": ["../../f/papermarioset_JPN.bfn", "f/papermarioset_JPN.bfn", "files/f/papermarioset_JPN.bfn"]
   }
 ]

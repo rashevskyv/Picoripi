@@ -128,6 +128,9 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - 188 text textures are listed (`texture_sources.json`, draft `ZELDA\_textures\drafts\paper_mario_gc.json`);
   which of two English pause-tab sets (`icon.tpl` or `w/us/win.tpl`) and which sign variants the US game
   draws is not confirmed.
+- Not opened (2026-10-07): the system messages in `sys/main.dol` (progressive scan, disc cover, disc read
+  error) are drawn with the console's ROM font, which has no Cyrillic; the disc banner `opening.bnr` is shown
+  only by the console menu. Every TPL on the disc (1,263 files, 8 GX formats) reads and writes back byte-exact.
 
 ## Font editor formats (2026-10-03)
 
