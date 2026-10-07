@@ -1,5 +1,5 @@
 [
-  {"label": "Text font (rodan_b_24_22)", "format": "bfn", "path": ["../Fontus/fontres.arc", "files/res/Fontus/fontres.arc", "res/Fontus/fontres.arc", "root/res/Fontus/fontres.arc"], "member": "*.bfn"},
-  {"label": "Ruby font (reishotai_24_22; furigana, unused in English)", "format": "bfn", "path": ["../Fontus/rubyres.arc", "files/res/Fontus/rubyres.arc", "res/Fontus/rubyres.arc", "root/res/Fontus/rubyres.arc"], "member": "*.bfn"},
+  {"label": "Text font (rodan_b_24_22)", "format": "bfn", "path": ["../Fonteu/fontres.arc", "../Fontus/fontres.arc", "files/res/Fontus/fontres.arc", "res/Fontus/fontres.arc", "root/res/Fontus/fontres.arc"], "member": "*.bfn"},
+  {"label": "Ruby font (reishotai_24_22; furigana, unused in English)", "format": "bfn", "path": ["../Fonteu/rubyres.arc", "../Fontus/rubyres.arc", "files/res/Fontus/rubyres.arc", "res/Fontus/rubyres.arc", "root/res/Fontus/rubyres.arc"], "member": "*.bfn"},
   {"label": "HOME Menu font (Wii system UI)", "format": "brfnt", "path": ["../HomeBtn/homeBtn_ENG.arc", "files/res/HomeBtn/homeBtn_ENG.arc", "res/HomeBtn/homeBtn_ENG.arc", "root/res/HomeBtn/homeBtn_ENG.arc"], "member": "*.brfnt"}
 ]

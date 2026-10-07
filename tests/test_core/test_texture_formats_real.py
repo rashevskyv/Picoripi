@@ -165,3 +165,29 @@ def test_twilight_princess_project_reads_and_writes_every_texture_format_the_gam
     for (fmt, _pixel), source in first.items():
         data, _rewrap = sources.unwrap(Path(source.source_path).read_bytes(), source.member, source.params)
         _round_trip(fmt, data, source.params)
+
+
+TPHD_RES = ZELDA / "Twilight Princess" / "HD - Wii U" / "source" / "content" / "res"
+
+
+@pytest.mark.parametrize("pack", ["Layout/Title2D.pack.gz", "Layout/button.pack.gz", "CardIcon/cardicon.pack.gz"])
+def test_twilight_princess_hd_gx2_textures_in_their_packs_round_trip(pack):
+    raw = _need(TPHD_RES / pack).read_bytes()
+    plain, _ = sources._decompress(raw)
+    members = sources.list_members(plain, "*.gtx")
+    assert members
+    for member in members:
+        data, rewrap = sources.unwrap(raw, member, {})
+        assert rewrap(data) == raw
+        _round_trip("gtx", data)
+
+
+def test_twilight_princess_hd_project_finds_its_gx2_textures():
+    _need(TPHD_RES / "Layout")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_bmg" / "texture_sources.json").read_text(encoding="utf-8"))
+    layouts = next(d for d in descriptors if d["format"] == "gtx" and d["path"][0] == "../Layout/*.pack.gz")
+    # two packs of the glob are enough to check the paths (all of them take a minute)
+    layouts = dict(layouts, path=[p.replace("*.pack.gz", "[bT]*.pack.gz") for p in layouts["path"]])
+    found = sources.resolve([layouts], {"source_path": str(TPHD_RES / "Msguk"), "translation_path": ""})
+    assert len(found) > 20
+    assert {s.pixel_format for s in found} >= {"R8", "R4G4", "R8G8", "RGBA8"}
