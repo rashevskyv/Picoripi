@@ -12,7 +12,7 @@ from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import doc, script
+from . import doc
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -40,6 +40,8 @@ class GameRules(BaseGameRules):
     tag_manager_class = TagManager
     tag_style = "curly"
     show_spaces_as_dots_default = True
+    display_name = "Lunar: Silver Star Story Complete"
+    text_doc = doc                  # read/write of one text file; lunar_ebc (Lunar 2) swaps in its own
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
@@ -48,7 +50,7 @@ class GameRules(BaseGameRules):
         self._save_name = ""
 
     def get_display_name(self) -> str:
-        return "Lunar: Silver Star Story Complete"
+        return self.display_name
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
@@ -62,9 +64,9 @@ class GameRules(BaseGameRules):
         data = bytes(json_obj)
         self._last_loaded = data
         try:
-            blocks, names = doc.read(data)
-        except (ValueError, IndexError, script.ScriptError) as error:
-            log_debug(f"lunar_sssc: not a Lunar text file ({error})")
+            blocks, names = self.text_doc.read(data)
+        except (ValueError, IndexError) as error:       # the script errors are ValueErrors
+            log_debug(f"{self.problem_prefix}: not a Lunar text file ({error})")
             return [[]], {}
         return (blocks or [[]]), names
 
@@ -79,9 +81,9 @@ class GameRules(BaseGameRules):
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
         missing: Set[str] = set()
-        out = doc.write(source, data or [], missing)
+        out = self.text_doc.write(source, data or [], missing)
         if missing:
-            log_warning(f"lunar_sssc: {self._save_name or 'file'}: characters the game cannot write were saved "
+            log_warning(f"{self.problem_prefix}: {self._save_name or 'file'}: characters the game cannot write were saved "
                         f"as '?': {''.join(sorted(missing))}")
         return out
 

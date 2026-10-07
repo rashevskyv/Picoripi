@@ -1,0 +1,17 @@
+[
+ {
+  "label": "Text font (dialogue, menus, names)",
+  "format": "lunar",
+  "path": "DATA/SYSTEM/2499/18_font.bin",
+  "font_map": "lunar2_font.json",
+  "params": {
+   "offset": 0,
+   "count": 94,
+   "rows": 15,
+   "row_order": "little",
+   "widths_offset": "0xB04",
+   "widths_first": 1,
+   "chars": "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz“|”~"
+  }
+ }
+]

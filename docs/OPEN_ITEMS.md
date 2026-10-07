@@ -568,6 +568,15 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - **RESTBL** follows the game's own rule (measured on every text and font archive); a translation far longer than
   English has not been played.
 
+## Lunar 2: Eternal Blue Complete plugin (`plugins/lunar_ebc`)
+
+- The font has 94 glyphs and no Ukrainian letters; codes 0x60-0x7F have no glyph yet (the font section can grow).
+- Room limits are estimates from the program's buffers: event script + data 0x34000, people file 0x45000,
+  system messages 0x80, menu file 2499 its own sectors. Not checked in the game.
+- A grown file is written after the end of the disc; the 5,004 free sectors inside DATA.PAK are not reused.
+- Not opened: text burned into the FMV movies (`*.STR`), icon glyphs drawn from units 0x3xxx/0x8xxx.
+- In-game check of the text and font edits not done (two runs reached the title texture only).
+
 ## Found during the series glossary feature
 
 - The series tab shows no occurrences (Count 0): its occurrence index is not built over the open project.
