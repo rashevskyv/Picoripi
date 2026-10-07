@@ -156,7 +156,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      unchanged; an unedited file stays byte for byte. Speakers come from the game's event scripts (the NPC
      each `evt_msg_print` points at, plugin `context.json`), tattles are Goombella's; width limits per window
      kind are the widest English line of that kind in font units. The Font Editor opens the text font
-     `f\papermarioset_US.bfn`; Ukrainian letters use Latin-1 slots no English text draws
+     `f\papermarioset_US.bfn` (and the disc's other two, `_EU` and `_JPN`); Ukrainian letters use Latin-1 slots no English text draws
      (`translation_map.json`, `translation_map.md`). The Textures window lists the title, file-select,
      pause-menu, battle and sign textures with English text.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
