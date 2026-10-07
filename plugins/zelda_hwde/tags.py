@@ -19,7 +19,8 @@ A parameter that is not a plain printable character is written ``#HH``. Any othe
 Characters: the EU/US languages are single-byte cp1252 and the font atlas ``font_eu.g1t`` is a cp1252
 grid. Ukrainian needs Cyrillic glyphs, so this plugin reads and writes the cp1251 positions of the
 Cyrillic letters (0xC0-0xFF, Ґ ґ Є є І і Ї ї №) on top of cp1252 -- the font must be redrawn to match
-(see the format report). Wide (UTF-16) cells use the same glyph slots: a character is stored as the
+(see the format report) -- except × ç é ñ, which the game shows in English and in its language list:
+Ч з й с use the free slots of Ъ ъ ы э (0xDA 0xFA 0xFB 0xFD) instead. Wide (UTF-16) cells use the same glyph slots: a character is stored as the
 Unicode character cp1252 gives for its byte.
 """
 
@@ -62,9 +63,17 @@ def _cp1252(b: int) -> str:
         return chr(b)  # the five holes of cp1252 keep their Latin-1 value
 
 
+# The English text and the language list (shown in every language) use × ç é ñ: those slots stay Latin, and
+# their Cyrillic letters Ч з й с take the slots of Russian-only letters (Ъ ъ ы э), which Ukrainian never uses.
+_LATIN_KEPT = (0xD7, 0xE7, 0xE9, 0xF1)
+MOVED = {0xDA: "Ч", 0xFA: "з", 0xFB: "й", 0xFD: "с"}
+
 DECODE = [_cp1252(b) for b in range(256)]
 for _b in _CYRILLIC_SLOTS:
-    DECODE[_b] = bytes([_b]).decode("cp1251")
+    if _b not in _LATIN_KEPT:
+        DECODE[_b] = bytes([_b]).decode("cp1251")
+for _b, _ch in MOVED.items():
+    DECODE[_b] = _ch
 ENCODE = {ch: b for b, ch in enumerate(DECODE)}
 _CP1252_BYTE = {_cp1252(b): b for b in range(256)}
 

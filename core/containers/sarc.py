@@ -122,6 +122,9 @@ class Sarc:
         self.alignment = min(self.alignment, 0x2000)
         self._aligns = [max(self.alignment, min(start & -start, 0x2000)) if start else self.alignment
                         for _name, start, _end in self._nodes]
+        # A file that started on a larger boundary keeps it (a BNTX is used in place and needs 0x1000).
+        self._aligns = [max(self.alignment, min(start & -start, 0x2000)) if start else self.alignment
+                        for _name, start, _end in self._nodes]
 
     def build(self) -> bytes:
         """The archive with the current ``files``: same names and order, offsets moved as sizes changed."""
