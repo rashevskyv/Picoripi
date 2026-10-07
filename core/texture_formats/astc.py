@@ -389,20 +389,23 @@ def decode_block(block: bytes, bw: int, bh: int) -> List[RGBA]:
 
 
 def decode(data: bytes, width: int, height: int, bw: int = 4, bh: int = 4) -> Image.Image:
-    """Blocks in row order -> an RGBA image (``width``, ``height`` are multiples of the block)."""
-    wide = width // bw
-    pixels = bytearray(width * height * 4)
+    """Blocks in row order -> an RGBA image; a size that is not a multiple of the block is cropped from the
+    padded block grid."""
+    wide, high = -(-width // bw), -(-height // bh)
+    full = wide * bw
+    pixels = bytearray(full * high * bh * 4)
     cache = {}
-    for index in range(wide * (height // bh)):
+    for index in range(wide * high):
         block = bytes(data[index * 16:index * 16 + 16])
         texels = cache.get(block)
         if texels is None:
             texels = cache[block] = bytes(c for texel in decode_block(block, bw, bh) for c in texel)
         bx, by = (index % wide) * bw, (index // wide) * bh
         for row in range(bh):
-            at = ((by + row) * width + bx) * 4
+            at = ((by + row) * full + bx) * 4
             pixels[at:at + bw * 4] = texels[row * bw * 4:(row + 1) * bw * 4]
-    return Image.frombytes("RGBA", (width, height), bytes(pixels))
+    image = Image.frombytes("RGBA", (full, high * bh), bytes(pixels))
+    return image if image.size == (width, height) else image.crop((0, 0, width, height))
 
 
 # -- encoding -----------------------------------------------------------------------------------------
