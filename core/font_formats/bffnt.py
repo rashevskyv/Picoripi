@@ -258,17 +258,22 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
 
 
 def _write_pixels(out: bytearray, original: bytes, texture: Dict[str, int], sheets: Sheets) -> None:
-    """Sheet pixels of the layers the file has, only the 4x4 blocks that changed."""
+    """Sheet pixels of the layers the file has, only the 4x4 blocks that changed.
+
+    A block counts as changed when the editor sheet differs from the sheet the file opened as: a BC5 font
+    whose red reaches past its green (Origami King's MARIO-Outline) shows the same sheet, yet ``_channels``
+    would store it clipped."""
     w, h, fmt = texture["width"], texture["height"], texture["format"]
     blocks_wide, blocks_high = (w + 3) // 4, (h + 3) // 4
     addresses, size = _addresses(texture), _BLOCK[fmt]
     for layer, old_image in enumerate(_texture_images(original, texture)):
         if layer >= len(sheets):
             break
-        new_image = _channels(sheets[layer], fmt).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        if new_image.size != (w, h):
-            raise ValueError(f"Sheet {layer} is {new_image.size}, the texture {w}x{h}")
-        old, new, bpp = old_image.tobytes(), new_image.tobytes(), len(new_image.getbands())
+        sheet = sheets[layer].convert("RGBA").transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        if sheet.size != (w, h):
+            raise ValueError(f"Sheet {layer} is {sheet.size}, the texture {w}x{h}")
+        new_image = _channels(sheet, fmt)
+        old, new, bpp = _sheet(old_image).tobytes(), sheet.tobytes(), 4
         row = w * bpp
         base = texture["start"] + layer * texture["layer_size"]
         for by in range(blocks_high):

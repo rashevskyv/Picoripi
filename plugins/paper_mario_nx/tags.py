@@ -24,9 +24,9 @@ _TYPES = {"u8": "u8", "u16": "u16", "u32": "u32", "s8": "s8", "s16": "s16", "s32
 _STORED = {(0, 2): ("u16",), (0, 3): ("u8", "u8", "u8", "u8")}
 
 
-def _catalogue():
-    """``(tags, value names)``: list parameters show their MSBP item names."""
-    project = json.loads(Path(__file__).with_name("msbp.json").read_text(encoding="utf-8"))
+def _catalogue(msbp_json: Path, stored=None):
+    """``(tags, value names)`` of a ``msbp.json``: list parameters show their MSBP item names."""
+    project = json.loads(msbp_json.read_text(encoding="utf-8"))
     groups = project["tag_groups"]
     taken = set()
     tags: Dict[Tuple[int, int], Tuple[str, Tuple[str, ...], str]] = {}
@@ -36,7 +36,7 @@ def _catalogue():
             key = (group["id"], index)
             name = tag["name"] if tag["name"] not in taken else f"{group['name']}_{tag['name']}"
             taken.add(tag["name"])
-            types = _STORED.get(key) or tuple(_TYPES.get(p["type"], "u8") for p in tag["params"])
+            types = (stored or _STORED).get(key) or tuple(_TYPES.get(p["type"], "u8") for p in tag["params"])
             params = ", ".join(p["name"] for p in tag["params"])
             tags[key] = (name, types, f"{group['name']} tag {tag['name']}" + (f" ({params})" if params else ""))
             for position, param in enumerate(tag["params"]):
@@ -45,7 +45,12 @@ def _catalogue():
     return tags, value_names
 
 
-TAGS, VALUE_NAMES = _catalogue()
+def load_codec(msbp_json: Path, stored=None) -> TagCodec:
+    """The codec of another game's ``msbp.json``; ``stored`` adds its own {(group, type): stored types}."""
+    return TagCodec(*_catalogue(msbp_json, {**_STORED, **(stored or {})}))
+
+
+TAGS, VALUE_NAMES = _catalogue(Path(__file__).with_name("msbp.json"))
 CODEC = TagCodec(TAGS, VALUE_NAMES)
 render_tag = CODEC.render_tag
 to_editor = CODEC.to_editor

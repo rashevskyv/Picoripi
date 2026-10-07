@@ -1,0 +1,12 @@
+[
+  {"label": "Title logo (English)", "kind": "title_screen", "format": "bntx", "path": "ui/title/TitleLogo.bfres.en.bntx"},
+  {"label": "End credits logo (English)", "kind": "title_screen", "format": "bntx", "path": "ui/title/TitleLogo_EndCredit.bfres.en.bntx"},
+  {"label": "UI (battle)", "kind": "ui", "format": "bntx", "path": "ui/battle/*.bntx"},
+  {"label": "UI (cmn)", "kind": "ui", "format": "bntx", "path": "ui/cmn/*.bntx"},
+  {"label": "UI (event)", "kind": "ui", "format": "bntx", "path": "ui/event/*.bntx"},
+  {"label": "UI (field)", "kind": "ui", "format": "bntx", "path": "ui/field/*.bntx"},
+  {"label": "UI (itemicon)", "kind": "ui", "format": "bntx", "path": "ui/itemicon/*.bntx"},
+  {"label": "UI (menu)", "kind": "ui", "format": "bntx", "path": "ui/menu/*.bntx"},
+  {"label": "UI (title)", "kind": "ui", "format": "bntx", "path": "ui/title/*.bntx"},
+  {"label": "UI (item icons, museum, thumbnail)", "kind": "ui", "format": "bntx", "path": "ui/*.bntx"}
+]
