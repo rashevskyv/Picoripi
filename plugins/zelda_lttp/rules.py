@@ -3,9 +3,10 @@
 ``1_unpack.bat`` runs the port's own extractor (``assets/restool.py``): ``source/dialogue.txt`` holds the
 397 messages as ``N: text`` lines, control codes as named tags (``[Name]``, ``[Waitkey]``, ``[Color 02]``).
 The editor shows a line break before ``[2]``, ``[3]`` and ``[Scroll]`` (the codes that start the next
-line); a break typed without one gets the code of its position. Letters the font lacks are saved as the
-glyph of ``translation_map.json`` (the project's, else this plugin's). ``2_build.bat`` compiles the
-translation into the port's ``zelda3_assets.dat``.
+line); a break typed without one gets the code of its position. Ukrainian letters are saved as they are:
+the workspace font (``source/font.png``, 256 cells) has a cell for each (``font_sources.json`` ``chars``); the
+look-alikes of ``translation_map.json`` (the project's, else this plugin's) are saved as their Latin letter.
+``2_build.bat`` compiles the translation as the port language ``uk`` of ``zelda3_assets.dat``.
 
 Context comes from the port's C code (``port_context.py`` -> ``context.json``): the sprite that shows a
 message (speaker), the function and source line (scene, link), so lines of one NPC are translated together.

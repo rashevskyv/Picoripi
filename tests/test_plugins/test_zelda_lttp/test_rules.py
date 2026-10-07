@@ -92,3 +92,25 @@ def test_real_font_and_text_sheets_write_back_byte_exact():
         data = (SOURCE / entry["path"]).read_bytes()
         textures = texture_formats.read(entry["format"], data, entry["params"])
         assert texture_formats.write(entry["format"], data, {0: textures[0].image}, entry["params"]) == data
+
+
+ZT = Path(r"E:\Emulators\RomHacking\_shared\scripts\zt\lttp.py")
+
+
+@pytest.mark.skipif(not ZT.is_file(), reason="workspace scripts not on disk")
+def test_font_cells_match_the_workspace_build():
+    import importlib.util
+    import sys
+    sys.path.insert(0, str(ZT.parent.parent))
+    try:
+        spec = importlib.util.spec_from_file_location("zt.lttp", ZT, submodule_search_locations=None)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.remove(str(ZT.parent.parent))
+    chars = json.loads((Path(lttp.__file__).parent / "font_sources.json").read_text(encoding="utf-8"))[0]["params"]["chars"]
+    lower, upper = module.FIRST_LOWER, module.FIRST_UPPER
+    assert "".join(chars[lower:lower + len(module.UK_LOWER)]) == module.UK_LOWER
+    assert "".join(chars[upper:upper + len(module.UK_UPPER)]) == module.UK_UPPER
+    covered = set(module.UK_LOWER + module.UK_UPPER) | set(lttp.LOOKALIKES)
+    assert set("абвгґдеєжзиіїйклмнопрстуфхцчшщьюяАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ") <= covered

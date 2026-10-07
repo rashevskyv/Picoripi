@@ -12,9 +12,9 @@ the line when it is done or moved into a plan.
 
 ## A Link to the Past (`plugins/zelda_lttp`, 2026-10-07)
 
-- `zelda3.exe` is not built on this PC: the port needs SDL2 for development (headers + `SDL2.lib`), not on disk; `2_build.bat` builds it with MSVC once a `SDL2-*-VC` folder is in `port\zelda3\third_party`. No boot proof until then; the built `zelda3_assets.dat` is checked by machine (text, font glyph, sheet).
-- Ukrainian letters: the US encoding has 99 glyph slots (95 used), so only look-alikes are mapped (`translation_map.json`). More letters need Latin slots given up or the port's EU-style encoding (127 slots, widths for all glyphs) — owner decision.
-- Not opened: credits and file-select / name-entry text (tilemaps in the port's C code and ROM tables), item and menu text drawn from tile graphics beyond the 8 listed sheets.
+- The Ukrainian letters have empty cells in the workspace font (б–я 95–119, Б–Я 128–148); nobody has drawn them yet. The file-select screen, name entry and credits keep the English font and words.
+- Not opened: credits and file-select / name-entry text (tilemaps in the port's C code and ROM tables).
+- `font_sources.json` `chars` and `UK_LOWER`/`UK_UPPER` in the workspace's `zt\lttp.py` must agree (`test_font_cells_match_the_workspace_build`).
 
 ## Tingle Tuner (`plugins/zelda_tingle`, 2026-10-04)
 

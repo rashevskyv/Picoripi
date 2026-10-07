@@ -425,9 +425,9 @@ def _zelda3_font_png() -> bytes:
     """A port font.png: glyph 0 a 2x2 block of colour 3 with a width marker at 5, the rest blank."""
     import io
     from core.font_formats import zelda3
-    image = Image.new("P", zelda3.SIZE, 0)
+    image = Image.new("P", (zelda3.WIDTH, 17 * 8), 0)
     image.putpalette([v for i in range(256) for v in (i, i, i)])
-    for glyph in range(zelda3.GLYPHS):
+    for glyph in range(128):
         x0, y0 = zelda3._cell(glyph)
         for y in range(16):
             for x in range(8):
