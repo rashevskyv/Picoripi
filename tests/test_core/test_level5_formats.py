@@ -56,24 +56,53 @@ def make_imgc(image: Image.Image, fmt: int = 0x02) -> bytes:
     return bytes(head) + table + b"\0" * (-len(table) % 4) + store
 
 
-def make_xf(atlas: Image.Image, chars) -> bytes:
-    """``chars``: [(code, advance, (ox, oy, w, h), (x, y, channel))], sorted by code."""
+def make_imgn(image: Image.Image, fmt: int) -> bytes:
+    """A Switch IMGN texture: 8x8 tiles of pixels row by row, or 16x4 tiles of BC blocks."""
+    codec = pixels.codec(imgc.NX_FORMATS[fmt])
+    tw, th = (8, 8) if codec.block == (1, 1) else (16, 4)
+    width, height = image.size
+    padded = Image.new("RGBA", (-(-width // tw) * tw, -(-height // th) * th))
+    padded.paste(image, (0, 0))
+    tiles = [codec.encode(padded.crop((x, y, x + tw, y + th)))
+             for y in range(0, padded.height, th) for x in range(0, padded.width, tw)]
+    table = level5.compress(struct.pack(f"<{len(tiles)}h", *range(len(tiles))), level5.STORED)
+    store = level5.compress(b"".join(tiles), level5.STORED)
+    bpp = len(tiles[0]) * 8 // 64
+    head = bytearray(0x48)
+    head[:4] = b"IMGN"
+    head[0x0A], head[0x0C], head[0x0D] = fmt, 1, bpp
+    struct.pack_into("<HHHI", head, 0x0E, 64 * bpp // 8, width, height, 0)
+    struct.pack_into("<I", head, 0x1C, 0x48)
+    struct.pack_into("<III", head, 0x34, len(table), (len(table) + 3) & ~3, len(store))
+    return bytes(head) + table + b"\0" * (-len(table) % 4) + store
+
+
+def make_xf(atlas: Image.Image, chars, switch_small=None) -> bytes:
+    """``chars``: [(code, advance, (ox, oy, w, h), (x, y, channel))], sorted by code. ``switch_small``: chars of
+    the small table of a Switch font (``FNTN01``, an A8 IMGN texture with the glyphs in its alpha)."""
     sizes = []
-    records = []
-    for code, advance, size, (x, y, channel) in chars:
-        if size not in sizes:
-            sizes.append(size)
-        records.append(struct.pack("<HHI", code, advance << 10 | sizes.index(size), y << 18 | x << 4 | channel))
+
+    def records(rows):
+        out = []
+        for code, advance, size, (x, y, channel) in rows:
+            if size not in sizes:
+                sizes.append(size)
+            out.append(struct.pack("<HHI", code, advance << 10 | sizes.index(size), y << 18 | x << 4 | channel))
+        return out
+
+    large_rows, small_rows = records(chars), records(switch_small or [])
     sizes_blob = level5.compress(b"".join(struct.pack("<bbBB", *s) for s in sizes), level5.LZ10)
     sizes_blob += b"\0" * (-len(sizes_blob) % 4)
-    large = level5.compress(b"".join(records), level5.LZ10)
+    large = level5.compress(b"".join(large_rows), level5.LZ10)
     large += b"\0" * (-len(large) % 4)
-    small = level5.compress(b"", level5.STORED)
+    small = level5.compress(b"".join(small_rows), level5.LZ10 if small_rows else level5.STORED)
     size_off, large_off = 0x28, 0x28 + len(sizes_blob)
     small_off = large_off + len(large)
-    head = b"FNTC01\0\0" + struct.pack("<ihhhhq6h", 1, 12, 0, 0, -1, 0, size_off >> 2, len(sizes), large_off >> 2,
-                                      len(records), small_off >> 2, 0)
-    return make_xpck({"000.xi": make_imgc(atlas), "FNT.bin": head + sizes_blob + large + small})
+    magic = b"FNTN01\0\0" if switch_small is not None else b"FNTC01\0\0"
+    head = magic + struct.pack("<ihhhhq6h", 1, 12, 0, 0, -1, 0, size_off >> 2, len(sizes), large_off >> 2,
+                               len(large_rows), small_off >> 2, len(small_rows))
+    texture = make_imgn(atlas, 0x0E) if switch_small is not None else make_imgc(atlas)
+    return make_xpck({"000.xi": texture, "FNT.bin": head + sizes_blob + large + small})
 
 
 def _font():
@@ -164,6 +193,23 @@ def test_imgc_edit_changes_only_that_tile_and_can_grow_taller():
         imgc.encode(data, taller)
 
 
+@pytest.mark.parametrize("fmt", [0x00, 0x03, 0x0E, 0x1D, 0x1F])
+def test_imgn_decodes_what_was_encoded_and_an_edit_changes_one_tile(fmt):
+    image = Image.new("RGBA", (40, 20), (0, 0, 0, 255))
+    ImageDraw.Draw(image).rectangle((2, 1, 25, 14), fill=(255, 255, 255, 255))
+    data = make_imgn(image, fmt)
+    decoded = imgc.decode(data)
+    assert decoded.size == (40, 20) and imgc.pixel_format(data) == imgc.NX_FORMATS[fmt]
+    if fmt in (0x00, 0x03):                      # lossless colour formats
+        assert decoded.tobytes() == image.tobytes()
+    assert imgc.encode(data, decoded) == data
+    edited = decoded.copy()
+    edited.paste((255, 255, 255, 255), (32, 12, 40, 20))
+    again = imgc.decode(imgc.encode(data, edited))
+    assert again.crop((0, 0, 32, 20)).tobytes() == decoded.crop((0, 0, 32, 20)).tobytes()
+    assert again.getpixel((35, 15))[3 if fmt == 0x0E else 0] == 255
+
+
 # -- XF fonts ------------------------------------------------------------------------------------
 
 
@@ -203,6 +249,21 @@ def test_xf_new_letter_in_a_spare_cell_becomes_a_real_character():
         assert new.crop(new.getbbox()).tobytes() == old.crop(old.getbbox()).tobytes()
 
 
+def test_xf_edit_of_a_glyph_that_shares_its_box_leaves_the_other_character_alone():
+    atlas = Image.new("RGBA", (32, 16), (0, 0, 0, 255))
+    ImageDraw.Draw(atlas).line((3, 1, 3, 10), fill=(255, 0, 0, 255))
+    stem = (0, 1, 1, 10)
+    data = make_xf(atlas, [(ord("I"), 4, stem, (3, 1, 0)), (ord("І"), 4, stem, (3, 1, 0))])   # Latin I, Cyrillic І
+    metadata, sheets = font_formats.extract("xf", data)
+    _, (x, y) = _cell(metadata, sheets, "І")
+    sheets[0].paste((0, 0, 0, 0), (x, y, x + metadata["GLY1"][0]["cell_width"], y + metadata["GLY1"][0]["cell_height"]))
+    sheets[0].paste((255, 255, 255, 255), (x + xf.PAD, y + 1, x + xf.PAD + 1, y + 6))    # a shorter stem
+    again, again_sheets = font_formats.extract("xf", font_formats.pack("xf", metadata, sheets, data))
+    for char in "IІ":
+        assert font_formats.coverage(_cell(again, again_sheets, char)[0]).tobytes() == \
+            font_formats.coverage(_cell(metadata, sheets, char)[0]).tobytes(), char
+
+
 def test_xf_width_edit_and_full_texture_grows_to_the_power_of_two():
     data = _font()
     metadata, sheets = font_formats.extract("xf", data)
@@ -217,15 +278,33 @@ def test_xf_width_edit_and_full_texture_grows_to_the_power_of_two():
         xf._place(room, planes, 2, 3)
 
 
+def test_switch_xf_keeps_the_small_table_s_glyph_when_a_glyph_on_its_box_is_edited():
+    atlas = Image.new("RGBA", (32, 16), (255, 255, 255, 0))
+    ImageDraw.Draw(atlas).rectangle((1, 1, 6, 10), outline=(255, 255, 255, 255))
+    box = (0, 1, 6, 10)
+    data = make_xf(atlas, [(ord("H"), 8, box, (1, 1, 0))], switch_small=[(ord("H"), 6, box, (1, 1, 0))])
+    assert xf.is_xf(data)
+    metadata, sheets = font_formats.extract("xf", data)
+    assert font_formats.pack("xf", metadata, sheets, data) == data
+    _, (x, y) = _cell(metadata, sheets, "H")
+    sheets[0].paste((0, 0, 0, 0), (x, y, x + metadata["GLY1"][0]["cell_width"], y + metadata["GLY1"][0]["cell_height"]))
+    sheets[0].paste((255, 255, 255, 255), (x + xf.PAD, y + 1, x + xf.PAD + 3, y + 4))   # a smaller box
+    out = font_formats.pack("xf", metadata, sheets, data)
+    texture = imgc.decode(level5.Xpck(out).files["000.xi"])
+    assert texture.crop((1, 1, 7, 11)).tobytes() == atlas.crop((1, 1, 7, 11)).tobytes()   # the small glyph stays
+    again, again_sheets = font_formats.extract("xf", out)
+    assert font_formats.coverage(_cell(again, again_sheets, "H")[0]).getbbox() == (xf.PAD, 1, xf.PAD + 3, 4)
+
+
 # -- the game's files ------------------------------------------------------------------------------
 
 
 @pytest.mark.skipif(not (WORKSPACE / "source/fnt/ft_nrm.xf").is_file(), reason="needs the Yo-kai Watch workspace")
 def test_real_fonts_and_textures_write_back_byte_for_byte():
-    for name in ("ft_nrm", "ft_sml"):
+    for name in ("ft_nrm", "ft_sml", "dbg", "dbg_int"):
         data = (WORKSPACE / f"source/fnt/{name}.xf").read_bytes()
         metadata, sheets = font_formats.extract("xf", data)
-        assert len(font_formats.char_map(metadata)) == 8000
+        assert len(font_formats.char_map(metadata)) >= 8000
         assert font_formats.pack("xf", metadata, sheets, data) == data
     title = level5.Xpck((WORKSPACE / "source/data/menu/title_u00_en.xa").read_bytes())
     for blob in title.files.values():

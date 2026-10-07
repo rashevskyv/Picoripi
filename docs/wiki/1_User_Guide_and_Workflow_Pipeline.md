@@ -7,6 +7,7 @@ tokens: 11.4k
 tokens: 11.3k
 tokens: 11.5k
 tokens: 11.4k
+tokens: 11.6k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -226,7 +227,20 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `ft_nrm` and `ft_sml` (format `xf`, real Ukrainian letters); the Textures window lists 594 English textures
      (`imgc`). The workspace's `2_build.bat` rebuilds `yw1_a.fa` into the LayeredFS mod. Yo-kai Watch 3 (EUR, workspace
      `YOKAI_WATCH_3`) opens with the same plugin: its English text is in `data/txt/ev/en` and the archive
-     `yw_lg_en.fa`; the hero of a line comes from its voice clip (`{PV#pv_c001000_23}`: Nate).
+     `yw_lg_en.fa`; the hero of a line comes from its voice clip (`{PV#pv_c001000_23}`: Nate). Its Textures window lists all 5,817
+     English textures (title logo, menus, telops, help, captions, signs; loading them takes several minutes).
+     Yo-kai Watch 1 for Switch (Japanese game, workspace `YO_KAI_WATCH_SWITCH`) opens with the same plugin: the
+     source text is the English fan mod written into the Japanese tables (`*_ja.cfg.bin`, 2,014 files, about
+     48,000 lines; lines the mod left Japanese are hidden like the 3DS leftovers); the Font Editor opens
+     `ft_nrm`, `ft_lrg`, `ft_sml` and `dbg` (Switch XF: A8 texture); the Textures window lists the menu,
+     title, telop, help and caption images (IMGN, the Switch IMGC: RGBA8, RGBA4, LA8, A8, BC3).
+     Yo-kai Watch 4++ and Yo-kai Academy Y for Switch (Japanese games, workspaces `YO_KAI_WATCH_4_SWITCH`,
+     `YO_KAI_ACADEMY_Y_SWITCH`) open with the same plugin: the source text is each game's English fan mod in
+     the Japanese tables `data/common/text/ja` (2,316 tables, about 38,500 lines; 1,672 tables, about 19,600
+     lines — Academy Y's mod is unfinished, about 12,300 lines stay Japanese and hidden); colour codes `[CR1]`…`[C]`
+     and pictures `[$gaiji_…]` are tags; the Font Editor opens the G4 fonts (`font_ja`, `font_def`, Academy Y
+     also `font_ja2` and a second style; each with its furigana font); the Textures window lists the menu,
+     title, telop, help, caption and button pictures (G4TX: RGBA8, BC1, BC3, BC7).
    - `mgs_ts` — Metal Gear Solid: The Twin Snakes (GameCube, USA). **Source:** the workspace's `source\text`
      folder (`common\codec.dat` — every codec call; `stage\*.gcx` — menus, briefing files, item descriptions,
      memory-card messages, credits; `*\demo.subs`, `common\vox.subs`, `common\movie.subs` — subtitles of

@@ -136,6 +136,7 @@ def test_real_files_round_trip_byte_for_byte():
 
 
 SOURCE_3 = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch 3\source")
+SOURCE_NX = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch\Switch\source")
 
 
 @pytest.mark.skipif(not SOURCE_3.is_dir(), reason="needs the Yo-kai Watch 3 workspace (YOKAI_WATCH_3)")
@@ -151,3 +152,70 @@ def test_yokai_watch_3_files_round_trip_byte_for_byte():
     assert rows > 130000
     layout = load_rules("yokai_watch")._layouts("yw3")
     assert layout["dialogue|TEXT_INFO|2"]["lines"] == 2
+
+
+@pytest.mark.skipif(not SOURCE_NX.is_dir(), reason="needs the Yo-kai Watch Switch workspace (YO_KAI_WATCH_SWITCH)")
+def test_switch_files_round_trip_byte_for_byte_and_an_edit_keeps_the_other_lines():
+    """Yo-kai Watch 1 (Switch): the Japanese tables with the English fan mod's text, some of them Shift-JIS under a
+    UTF-8 footer, the mod's own tables with repeated strings."""
+    from plugins.yokai_watch.speakers import Speakers, game_of
+    assert game_of(SOURCE_NX) == "ywnx"
+    files = sorted(SOURCE_NX.rglob("*_ja.cfg.bin"))
+    assert len(files) == 2014
+    rows = 0
+    for path in files:
+        data = path.read_bytes()
+        text_file = TextFile(data, path.name)
+        assert text_file.build(text_file.texts()) == data, path
+        rows += len(text_file.rows)
+    assert rows > 47000
+    path = SOURCE_NX / "data/res/map/t101g00/t101g00_npc_text_ja.cfg.bin"      # the mod repeats strings here
+    text_file = TextFile(path.read_bytes(), path.name)
+    texts = text_file.texts()
+    texts[0] = UKRAINIAN
+    again = TextFile(text_file.build(texts), path.name)
+    assert again.texts() == texts
+    speakers = Speakers(SOURCE_NX, SOURCE_NX.parent / "meta")
+    event = SOURCE_NX / "data/txt/ev/ev01_0010_ja.cfg.bin"
+    named = [speakers.speaker(event.relative_to(SOURCE_NX).as_posix(), r.text_id, r.number, r.text)
+             for r in TextFile(event.read_bytes(), event.name).rows]
+    assert "Whisper" in named or "Nate" in named
+
+
+SOURCE_YW4 = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch 4\source")
+SOURCE_YAY = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Academy Y\source")
+
+
+def test_square_bracket_colours_and_pictures_of_the_switch_sequels_are_tags():
+    assert tags.TAG_RE.fullmatch("[CR1]") and tags.TAG_RE.fullmatch("[C]") and tags.TAG_RE.fullmatch("[$gaiji_c1_2]")
+    assert not tags.TAG_RE.fullmatch("[Mani]")
+    assert tags.describe("[CG2]") == "Text colour until [C]"
+    assert tags.describe("[$gaiji_c1_2]") == "Inline picture 'gaiji_c1_2'"
+    assert category("data/common/text/ja/event/ev01_0300.cfg.bin", "TEXT_INFO", 2) == "dialogue"
+    assert category("data/common/text/ja/purpose/c02_purpose_text.cfg.bin", "TEXT_INFO", 2) == "objective"
+
+
+@pytest.mark.parametrize("source, game, tables, least_rows", [
+    (SOURCE_YW4, "yw4", 2316, 38000), (SOURCE_YAY, "yay", 1672, 19000)], ids=["yw4", "yay"])
+def test_switch_sequel_files_round_trip_byte_for_byte_and_an_edit_keeps_the_other_lines(source, game, tables,
+                                                                                         least_rows):
+    """Yo-kai Watch 4++ / Yo-kai Academy Y (Switch): data/common/text/ja with the English fan mods' text."""
+    if not (source / "data/common/text/ja").is_dir():
+        pytest.skip(f"needs the workspace {source.parent}")
+    from plugins.yokai_watch.speakers import game_of
+    assert game_of(source) == game
+    files = sorted((source / "data/common/text/ja").rglob("*.cfg.bin"))
+    assert len(files) == tables
+    rows = 0
+    for path in files:
+        data = path.read_bytes()
+        text_file = TextFile(data, path.name)
+        assert text_file.build(text_file.texts()) == data, path
+        rows += len(text_file.rows)
+    assert rows > least_rows
+    path = source / "data/common/text/ja/system_text.cfg.bin"
+    text_file = TextFile(path.read_bytes(), path.name)
+    texts = text_file.texts()
+    texts[0] = UKRAINIAN
+    again = TextFile(text_file.build(texts), path.name)
+    assert again.texts() == texts

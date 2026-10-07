@@ -7,6 +7,8 @@ fallback character, then offset / 4 and count of three Level-5-compressed tables
 character table and the (empty) small one. A character record, sorted by code point: u16 UTF-16 code,
 u16 ``advance << 10 | size index``, u32 ``y << 18 | x << 4 | channel`` -- the glyph is the box at (x, y) of
 one colour channel of the texture (R, G or B; the fonts hold three layers of glyphs in one RGBA5551 image).
+Switch fonts (``FNTN01``, Yo-kai Watch 1) have the same tables, an A8 texture (IMGN) with one layer of glyphs in
+its alpha, and a small character table (other glyph sizes in the same texture); boxes it uses are never redrawn.
 
 The model shows one cell per character, 64 to a row, with ``SPARE_CELLS`` empty ones after them; a cell is
 the glyph's channel as grey ink, drawn ``PAD`` pixels right of the pen (``kerning`` = ``PAD``). Packing an
@@ -30,12 +32,14 @@ COLUMNS = 64
 SPARE_CELLS = 64
 PAD = 2              # the fonts draw some glyphs up to 2 pixels left of the pen
 HEADER = 0x28
+MAGICS = (b"FNTC", b"FNTN")
+SINGLE_LAYER = ("A8",)   # texture formats that hold one layer of glyphs, in the alpha channel
 
 
 def is_xf(data: bytes) -> bool:
     """An XPCK pack that holds an ``FNTC`` table."""
     try:
-        return any(blob[:4] == b"FNTC" for blob in level5.Xpck(data).files.values())
+        return any(blob[:4] in MAGICS for blob in level5.Xpck(data).files.values())
     except (ValueError, IndexError, UnicodeDecodeError):
         return False
 
@@ -52,10 +56,10 @@ def _parse(data: bytes) -> Dict[str, Any]:
     pack = level5.Xpck(data)
     texture_name, table_name = _members(pack)
     fnt = pack.files[table_name]
-    if fnt[:4] != b"FNTC":
+    if fnt[:4] not in MAGICS:
         raise ValueError("XF font table is not FNTC")
     head = struct.unpack_from("<8sihhhhq6h", fnt, 0)
-    _magic, _version, large_h, _small_h, escape, _se, _z, size_off, size_n, large_off, large_n, small_off, _sn = head
+    _magic, _version, large_h, _small_h, escape, _se, _z, size_off, size_n, large_off, large_n, small_off, small_n = head
     sizes_blob = fnt[size_off << 2:large_off << 2]
     large_blob = fnt[large_off << 2:small_off << 2]
     sizes_raw = level5.decompress(sizes_blob)
@@ -64,11 +68,29 @@ def _parse(data: bytes) -> Dict[str, Any]:
     chars = []
     for i in range(large_n):
         code, info, image = struct.unpack_from("<HHI", large_raw, i * 8)
-        chars.append({"code": code, "advance": info >> 10, "size": info & 0x3FF,
-                      "x": (image >> 4) & 0x3FFF, "y": image >> 18, "channel": image & 0xF})
+        chars.append(_record(code, info, image))
+    small_raw = level5.decompress(fnt[small_off << 2:]) if small_n > 0 else b""
+    small = [_record(*struct.unpack_from("<HHI", small_raw, i * 8)) for i in range(small_n)]
     return {"pack": pack, "texture": texture_name, "table": table_name, "fnt": fnt, "height": large_h,
-            "escape": escape, "sizes": sizes, "chars": chars, "small": fnt[small_off << 2:],
+            "escape": escape, "sizes": sizes, "chars": chars, "small": fnt[small_off << 2:], "small_chars": small,
             "methods": (level5.method_of(sizes_blob), level5.method_of(large_blob))}
+
+
+def _record(code: int, info: int, image: int) -> Dict[str, int]:
+    return {"code": code, "advance": info >> 10, "size": info & 0x3FF,
+            "x": (image >> 4) & 0x3FFF, "y": image >> 18, "channel": image & 0xF}
+
+
+def _layers(atlas: Image.Image, fmt: str) -> List[Image.Image]:
+    """The texture's planes; the glyph layers come first (R, G, B; or the alpha of a one-layer font)."""
+    return [atlas.getchannel("A")] if fmt in SINGLE_LAYER else list(atlas.split())
+
+
+def _merge(planes: List[Image.Image], fmt: str) -> Image.Image:
+    if fmt in SINGLE_LAYER:
+        white = Image.new("L", planes[0].size, 255)
+        return Image.merge("RGBA", (white, white, white, planes[0]))
+    return Image.merge("RGBA", planes)
 
 
 def _cell_size(font: Dict[str, Any]) -> Tuple[int, int]:
@@ -77,14 +99,14 @@ def _cell_size(font: Dict[str, Any]) -> Tuple[int, int]:
     return width, height
 
 
-def _cells(font: Dict[str, Any], atlas: Image.Image) -> List[Image.Image]:
+def _cells(font: Dict[str, Any], atlas: Image.Image, fmt: str) -> List[Image.Image]:
     cw, ch = _cell_size(font)
-    planes = atlas.split()[:3]
+    planes = _layers(atlas, fmt)[:3]
     cells = []
     for char in font["chars"]:
         ox, oy, w, h = font["sizes"][char["size"]]
         ink = Image.new("L", (cw, ch))
-        if w and h and char["channel"] < 3:
+        if w and h and char["channel"] < len(planes):
             ink.paste(planes[char["channel"]].crop((char["x"], char["y"], char["x"] + w, char["y"] + h)),
                       (PAD + ox, oy))
         cells.append(ink)
@@ -93,9 +115,9 @@ def _cells(font: Dict[str, Any], atlas: Image.Image) -> List[Image.Image]:
 
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     font = _parse(data)
-    atlas = imgc.decode(font["pack"].files[font["texture"]])
+    xi = font["pack"].files[font["texture"]]
     cw, ch = _cell_size(font)
-    cells = _cells(font, atlas)
+    cells = _cells(font, imgc.decode(xi), imgc.pixel_format(xi))
     capacity = -(-(len(cells) + SPARE_CELLS) // COLUMNS) * COLUMNS
     rows = capacity // COLUMNS
     ink = Image.new("L", (COLUMNS * cw, rows * ch))
@@ -126,11 +148,11 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
 class _Atlas:
     """Free room in the three glyph layers of the texture: one byte per pixel, 1 where a glyph's box lies."""
 
-    def __init__(self, size: Tuple[int, int], boxes: List[Tuple[int, int, int, int, int]]):
+    def __init__(self, size: Tuple[int, int], boxes: List[Tuple[int, int, int, int, int]], layers: int = 3):
         self.width, self.height = size
-        self.taken = [bytearray(self.width * self.height) for _ in range(3)]
+        self.taken = [bytearray(self.width * self.height) for _ in range(layers)]
         for x, y, w, h, channel in boxes:
-            if w and h and channel < 3:
+            if w and h and channel < layers:
                 self.take(channel, x, y, w, h)
 
     def take(self, channel: int, x: int, y: int, w: int, h: int) -> None:
@@ -146,7 +168,7 @@ class _Atlas:
         """``(x, y, channel)`` of a free ``w`` x ``h`` box with a free column and row after it (as the game's
         own glyphs have), searched from the bottom of the layers B, G, R."""
         W = self.width
-        for channel in (2, 1, 0):
+        for channel in reversed(range(len(self.taken))):
             taken = self.taken[channel]
             for y in range(self.height - h, -1, -1):
                 x = 0
@@ -187,19 +209,24 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     pack_ = font["pack"]
     xi = pack_.files[font["texture"]]
     atlas = imgc.decode(xi)
-    planes = list(atlas.split())
-    bits = {"RGBA8": 8, "RGB8": 8, "RGBA4": 4}.get(imgc.read(xi, {})[0].pixel_format, 5)
+    fmt = imgc.pixel_format(xi)
+    planes = _layers(atlas, fmt)
+    layers = min(3, len(planes))
+    bits = {"RGBA8": 8, "RGB8": 8, "RGBA4": 4, "A8": 8}.get(fmt, 5)
     sizes = list(font["sizes"])
     in_use = {g for g in glyphs if g < len(chars)}     # boxes of edited glyphs stay taken: they may be redrawn in place
-    room = _Atlas(atlas.size, [(chars[g]["x"], chars[g]["y"], sizes[chars[g]["size"]][2], sizes[chars[g]["size"]][3],
-                                chars[g]["channel"]) for g in in_use])
+    small = font["small_chars"]
+    room = _Atlas(atlas.size, [(c["x"], c["y"], sizes[c["size"]][2], sizes[c["size"]][3], c["channel"])
+                               for c in [chars[g] for g in in_use] + small], layers)
     shared: Dict[bytes, Tuple[int, int, int]] = {}     # identical glyphs share one box, as the game's own do
+    kept = {(c["x"], c["y"], c["channel"]) for c in small}   # boxes an unedited glyph still draws from: never redrawn
     for g in in_use - changed:
         c = chars[g]
         _ox, _oy, w, h = sizes[c["size"]]
-        if w and h and c["channel"] < 3:
+        if w and h and c["channel"] < layers:
             ink = planes[c["channel"]].crop((c["x"], c["y"], c["x"] + w, c["y"] + h))
             shared.setdefault(bytes((w, h)) + ink.tobytes(), (c["x"], c["y"], c["channel"]))
+            kept.add((c["x"], c["y"], c["channel"]))
     placed: Dict[int, Dict[str, int]] = {}
     for g in sorted(changed):
         ink = new_ink.crop(box(g))
@@ -219,13 +246,15 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
             placed[g] = {"size": _size_index(sizes, (found[0] - PAD, found[1], w, h)), "x": x, "y": y,
                          "channel": channel}
             continue
-        if old and old["channel"] < 3 and w <= old_w and h <= old_h:
+        if (old and old["channel"] < layers and w <= old_w and h <= old_h
+                and (old["x"], old["y"], old["channel"]) not in kept):
             x, y, channel = old["x"], old["y"], old["channel"]
             planes[channel].paste(0, (x, y, x + old_w, y + old_h))
         else:
             x, y, channel = _place(room, planes, w, h)
         planes[channel].paste(stored, (x, y))
         shared[key] = (x, y, channel)
+        kept.add((x, y, channel))
         placed[g] = {"size": _size_index(sizes, (found[0] - PAD, found[1], w, h)), "x": x, "y": y, "channel": channel}
 
     records = []
@@ -248,7 +277,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     fallback = chars[font["escape"]]["code"] if 0 <= font["escape"] < len(chars) else 0x3F
     escape = codes.index(fallback) if fallback in codes else 0
 
-    new_xi = imgc.encode(xi, Image.merge("RGBA", planes), taller=True)
+    new_xi = imgc.encode(xi, _merge(planes, fmt), taller=True)
     pack_.files[font["texture"]] = new_xi
     pack_.files[font["table"]] = _fnt(font, sizes, records, escape)
     return pack_.build()

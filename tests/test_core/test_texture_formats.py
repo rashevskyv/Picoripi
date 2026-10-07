@@ -485,6 +485,16 @@ def test_sources_find_nested_members_globs_and_slices(project):
     assert found[2].name == "Name"
 
 
+def test_a_glob_in_the_folder_part_finds_files_in_every_matching_folder(project):
+    meta, _descriptors, source, translation, _ = project
+    for town in ("t101", "t102"):
+        (source / "map" / town).mkdir(parents=True)
+        (source / "map" / town / "sign.bti").write_bytes(make_bti(5, 8, 8, picture(8, 8)))
+    found = sources.resolve([{"label": "Signs", "format": "bti", "path": "map/*/*.bti"}], meta)
+    assert [s.key for s in found] == ["map/t101/sign.bti", "map/t102/sign.bti"]
+    assert found[1].translation_path == str(translation / "map" / "t102" / "sign.bti")
+
+
 def test_writing_goes_to_the_translation_copy_and_revert_restores_the_texture_bytes(project):
     meta, descriptors, source, translation, _ = project
     found = sources.resolve(descriptors, meta)
@@ -562,7 +572,8 @@ def test_plugin_hook_reads_texture_sources_json_next_to_the_rules(tmp_path, monk
     assert BaseGameRules().get_texture_sources() == []
 
 
-@pytest.mark.parametrize("path", sorted((ROOT / "plugins").glob("*/texture_sources.json")), ids=lambda p: p.parent.name)
+@pytest.mark.parametrize("path", sorted((ROOT / "plugins").glob("*/*texture_sources.json")),
+                         ids=lambda p: f"{p.parent.name}/{p.name}")
 def test_every_plugin_texture_list_is_well_formed(path):
     entries = json.loads(path.read_text(encoding="utf-8"))
     assert entries and isinstance(entries, list)

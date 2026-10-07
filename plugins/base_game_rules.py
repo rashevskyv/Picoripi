@@ -763,7 +763,9 @@ class BaseGameRules:
         BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``mgs``
         ``nftr`` (DS NFTR) or ``zelda3`` (the zelda3 PC port's ``font.png``)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
-        of files inside the archive at ``path``); ``font_map`` (name of the width map the font
+        of files inside the archive at ``path``); optional ``companion`` (a second file the font needs,
+        relative to the source folder, read and saved with it: the texture of a Level-5 ``g4font``);
+        ``font_map`` (name of the width map the font
         feeds, written to the project's ``font_maps`` folder on save); ``params`` (the format's
         game constants: cell grid, ROM offsets... -- see ``core/font_formats``).
         Default: the list in ``font_sources.json`` next to the plugin's rules, or none.

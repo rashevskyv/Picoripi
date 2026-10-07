@@ -59,4 +59,5 @@ class TextFile:
             new = tags.from_editor(text)
             if new != row.text:
                 changes[(row.entry, row.param)] = new
-        return self.table.build(changes)
+        # the English fan mod of the Switch game writes repeated strings again: an unedited file stays as it is
+        return self.table.build(changes) if changes else self.table.raw

@@ -1,4 +1,4 @@
-"""Yo-kai Watch (3DS) plugin: Level-5 cfg.bin text, speakers from the game's tables, XF fonts."""
+"""Yo-kai Watch (3DS, Switch) plugin: Level-5 cfg.bin text, speakers from the game's tables, XF fonts, IMGC/IMGN textures."""
 import json
 import re
 from pathlib import Path
@@ -11,7 +11,7 @@ from utils.utils import clean_spaces
 from . import tags
 from .cfgbin import FormatError
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
-from .speakers import Speakers, game_of
+from .speakers import GAMES, Speakers, game_of
 from .tag_manager import TagManager
 from .textfile import TextFile
 
@@ -40,6 +40,10 @@ def category(rel_path: str, kind: str, param: int) -> str:
     name = rel.rsplit("/", 1)[-1]
     if kind == "NOUN_INFO":
         return "plural" if param == 9 else "name"
+    if rel.startswith(("data/common/text/ja/event/", "data/common/text/ja/map/", "data/common/text/ja/phase/")):
+        return "dialogue"
+    if rel.startswith(("data/common/text/ja/purpose/", "data/common/text/ja/mission/")):
+        return "objective"
     if rel.startswith(("data/txt/ev/", "data/res/map/", "data/res/text/phs/")):
         return "dialogue"
     if rel.startswith("data/txt/pps/"):
@@ -76,7 +80,10 @@ def layout_key(rel_path: str, kind: str, param: int) -> str:
 
 
 class GameRules(BaseGameRules):
-    """Yo-kai Watch (3DS, USA) and Yo-kai Watch 3 (3DS, EUR; its English is in ``data/txt/ev/en`` and ``yw_lg_en.fa``).
+    """Yo-kai Watch (3DS, USA), Yo-kai Watch 3 (3DS, EUR; its English is in ``data/txt/ev/en`` and ``yw_lg_en.fa``)
+    Yo-kai Watch 1 on Switch (``ywnx``: the Japanese files ``*_ja.cfg.bin``, English from the fan mod), and
+    Yo-kai Watch 4++ / Yo-kai Academy Y on Switch (``yw4`` / ``yay``: ``data/common/text/ja/**.cfg.bin``, English
+    from the fan mods; G4 fonts and G4TX textures, each game's own ``<game>_font_sources.json``).
 
     The project's source folder is the workspace's ``source`` folder: every English text table
     (``*_en.cfg.bin``) at its path inside ``yw1_a.fa``, the fonts ``fnt/*.xf`` and the English menu
@@ -236,7 +243,7 @@ class GameRules(BaseGameRules):
         if root is None:
             return []
         from .glossary import seed_entries
-        return seed_entries(root, root.parent / "meta")
+        return seed_entries(root, root.parent / "meta", GAMES[game_of(root)]["lang"])
 
     def _source_root(self) -> Optional[Path]:
         pm, project = self._project()
@@ -261,11 +268,18 @@ class GameRules(BaseGameRules):
 
     def get_font_sources(self) -> List[Dict[str, Any]]:
         """``font_sources.json``; a game's own width maps are ``<game>_<font>.json`` (Yo-kai Watch 1 has none)."""
-        sources = self._plugin_json_list("font_sources.json")
         game = self._game()
+        if game in ("yw4", "yay"):
+            return self._plugin_json_list(f"{game}_font_sources.json")
+        sources = self._plugin_json_list("font_sources.json")
         if game != "yw1":
             sources = [dict(s, font_map=f"{game}_{s['font_map']}") if s.get("font_map") else s for s in sources]
         return sources
+
+    def get_texture_sources(self) -> List[Dict[str, Any]]:
+        """``texture_sources.json``; another game has its own list, ``<game>_texture_sources.json`` (other paths)."""
+        game = self._game()
+        return self._plugin_json_list("texture_sources.json" if game == "yw1" else f"{game}_texture_sources.json")
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         """The widest English row of the same kind of text (measured with the game's font, ``layout.json``):

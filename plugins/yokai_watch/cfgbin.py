@@ -44,6 +44,10 @@ class CfgBin:
         count, self.string_offset, self.string_length, _string_count = struct.unpack_from("<4I", raw)
         footer = raw.rindex(b"\x01t2b\xfe")
         self.encoding = "utf-8" if raw[footer + 6] else "shift-jis"
+        try:
+            raw[self.string_offset:self.string_offset + self.string_length].decode(self.encoding)
+        except UnicodeDecodeError:
+            self.encoding = "cp932"      # Yo-kai Watch 1 (Switch): some Japanese tables say UTF-8 but hold Shift-JIS
         keys = self._keys()
         self.entries: List[Entry] = []
         pos = 0x10
@@ -57,7 +61,7 @@ class CfgBin:
             for kind in types:
                 value = struct.unpack_from("<f" if kind == FLOAT else "<i", raw, at)[0]
                 if kind == STRING:
-                    value = None if value == -1 else self._string(value)
+                    value = None if value < 0 else self._string(value)   # -1 (one table: -2): no string
                 entry.values.append(value)
                 entry.value_at.append(at)
                 at += 4

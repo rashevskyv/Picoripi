@@ -1,0 +1,12 @@
+[
+  {"label": "Title screen", "kind": "title_screen", "format": "g4tx", "path": "data/nx/menu/50_title/**/*.g4tx"},
+  {"label": "Event telops and captions", "kind": "banner", "format": "g4tx", "path": "data/nx/menu/600_event/**/*.g4tx"},
+  {"label": "Pictures: area names, help pages, event pictures, bosses, clubs", "kind": "notice", "format": "g4tx",
+   "path": "data/nx/menu/220_img/**/*.g4tx"},
+  {"label": "Battle screens", "kind": "menu_label", "format": "g4tx", "path": "data/nx/menu/00_btl/**/*.g4tx"},
+  {"label": "Field screens and logs", "kind": "menu_label", "format": "g4tx", "path": "data/nx/menu/0[1-9]_*/**/*.g4tx"},
+  {"label": "Menu screens", "kind": "menu_label", "format": "g4tx", "path": "data/nx/menu/1*/**/*.g4tx"},
+  {"label": "Common windows", "kind": "menu_label", "format": "g4tx", "path": "data/nx/menu/20_cmn/**/*.g4tx"},
+  {"label": "Minimaps", "kind": "other", "format": "g4tx", "path": "data/nx/menu/210_minimap/**/*.g4tx"},
+  {"label": "Button and symbol pictures in text (gaiji)", "kind": "other", "format": "g4tx", "path": "data/nx/font/gaiji_*.g4tx"}
+]

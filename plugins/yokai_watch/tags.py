@@ -10,12 +10,15 @@ are already ``[g_coin]``-style and stay as they are.
   ``{PNAME01}`` ``{PNAME}``  the player's name; ``{CHARA_NAME}``, ``{ITEM_NAME}``, ``{VAL#...}``... values
   ``{SEL2/1/3}``        the answer choice that follows the line
   ``{A01/02}`` ``{O34}`` ``{ML#...}``  the speaker's animation / window options (zero width)
+
+Yo-kai Watch 4++ and Yo-kai Academy Y (Switch) colour text with square brackets (``[CR1]`` ... ``[C]``) and put
+pictures in with ``[$gaiji_...]``; both stay as they are and count as tags.
 """
 from __future__ import annotations
 
 import re
 
-TAG_RE = re.compile(r"\{[^{}\n]+\}|\[[a-z_0-9]+\]")
+TAG_RE = re.compile(r"\{[^{}\n]+\}|\[(?:[a-z_0-9]+|C[A-Z]?\d*|\$[A-Za-z_0-9]+)\]")
 GAME_TAG_RE = re.compile(r"<([^<>\n]+)>")
 NEWLINE = "\\n"
 
@@ -52,8 +55,10 @@ def describe(tag: str) -> str:
     """A tooltip for a tag, or "" for text that is not one."""
     if not TAG_RE.fullmatch(str(tag)):
         return ""
+    if re.fullmatch(r"\[C[A-Z]?\d*\]", tag):
+        return "Back to the normal text colour" if tag == "[C]" else "Text colour until [C]"
     if tag.startswith("["):
-        return f"Inline picture '{tag[1:-1]}'"
+        return f"Inline picture '{tag[1:-1].lstrip('$')}'"
     body = tag[1:-1]
     for pattern, text in _DESCRIPTIONS:
         if re.fullmatch(pattern, body):

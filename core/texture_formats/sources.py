@@ -6,7 +6,7 @@ A plugin describes its textures with ``BaseGameRules.get_texture_sources()`` (or
 - ``label`` -- what the list shows; ``kind`` -- what the texture is (``title_screen``, ``area_card``...);
 - ``format`` -- the texture file format (``core.texture_formats``: ``bti``, ``bntx``, ``raw``...);
 - ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first
-  that matches wins; the folder part may start with ``../``);
+  that matches wins; the folder part may start with ``../`` or hold a glob, ``data/map/*/*.xc``);
 - ``member`` -- optional glob of the file inside the archive at ``path``. Archives inside archives are
   walked: ``Layout/Title.szs/timg/*.bflim``. Without a ``/`` the glob matches the file name only.
   An N64 ROM is an archive of its dmadata files, named ``#<index>``;
@@ -338,7 +338,10 @@ def _match_files(descriptor: Dict[str, Any], source_root: str, translation_root:
     root = Path(source_root)
     for pattern in [single for path in _candidates(descriptor.get("path")) for single in expand_braces(path)]:
         folder = Path(os.path.normpath(root / os.path.dirname(pattern)))
-        matches = sorted(p for p in folder.glob(os.path.basename(pattern)) if p.is_file()) if folder.is_dir() else []
+        if any(c in os.path.dirname(pattern) for c in "*?["):        # a glob in the folder part: data/map/*/*.xc
+            matches = sorted(p for p in root.glob(pattern) if p.is_file())
+        else:
+            matches = sorted(p for p in folder.glob(os.path.basename(pattern)) if p.is_file()) if folder.is_dir() else []
         if matches:
             return [(str(p), os.path.normpath(os.path.join(translation_root, os.path.relpath(p, root)))
                      if translation_root else "") for p in matches]
