@@ -370,6 +370,14 @@ def decompress(blob: bytes, size: int, tables: Optional[HuffmanTables] = None) -
 # the inner sizes, raw bytes again (``_split_buffer``). ``unpack_texture`` turns a form into its "exploded"
 # copy (one mode-0 buffer, all data in order) and ``texture_meta`` writes the metadata of such a copy (the
 # 94-byte form with one buffer, also for a texture that was streamed).
+#
+# Prime Remastered (metadata version 5) lists its buffers instead::
+#
+#     u32 5, u32 0, u32 allocation, u32 offset of the GPU chunk header, u32 alignment, u32 data size,
+#     u32 n, n x (u8 read, u32 offset in the form, u32 size)   -- the ranges the game reads
+#     u32 m, m x (u32 range, u32 offset in the range, u32 stored size, u32 data offset, u32 data size)
+#
+# each buffer a compressed stream (u32 mode first); its exploded copy has one range and one mode-0 buffer.
 
 
 def _texture_ranges(meta: bytes) -> List[Tuple[int, int, int]]:
@@ -383,6 +391,8 @@ def unpack_texture(form: bytes, meta: bytes, tables: Optional[HuffmanTables] = N
         raise ValueError("Not a TXTR form")
     size = struct.unpack_from("<I", meta, 20)[0]
     ranges = _texture_ranges(meta)
+    if struct.unpack_from("<I", meta)[0] == 5:
+        return _unpack_texture_v5(form, meta, size, ranges, tables)
     header_end = ranges[0][2]
     data = bytearray(size)
     first = 28 + 9 * len(ranges)
@@ -397,6 +407,17 @@ def unpack_texture(form: bytes, meta: bytes, tables: Optional[HuffmanTables] = N
         raise ValueError(f"Texture with {len(ranges)} read ranges is not supported")
     gpu = struct.pack("<I", 0) + bytes(data)
     return _with_gpu(form, header_end, gpu)
+
+
+def _unpack_texture_v5(form: bytes, meta: bytes, size: int, ranges, tables) -> bytes:
+    data = bytearray(size)
+    first = 28 + 9 * len(ranges)
+    for i in range(struct.unpack_from("<I", meta, first)[0]):
+        read, offset, stored, target, length = struct.unpack_from("<5I", meta, first + 4 + 20 * i)
+        at = ranges[read][1] + offset
+        data[target:target + length] = decompress(form[at:at + stored], length, tables)
+    header_end = struct.unpack_from("<I", meta, 12)[0] + CHUNK.size
+    return _with_gpu(form, header_end, struct.pack("<I", 0) + bytes(data))
 
 
 def _split_buffer(stream: bytes, length: int, inner: int, inner_stored: int, head: int, tables) -> bytes:
@@ -424,6 +445,13 @@ def _with_gpu(form: bytes, header_end: int, gpu: bytes) -> bytes:
 
 def texture_meta(form: bytes, meta: bytes) -> bytes:
     """Metadata for an exploded TXTR form (one mode-0 buffer), keeping the original's other fields."""
+    if struct.unpack_from("<I", meta)[0] == 5:
+        header_end = next(body for kind, _at, body, _size in chunks(form) if kind == "GPU ")
+        size = len(form) - header_end - 4
+        out = bytearray(meta[:24])
+        struct.pack_into("<I", out, 12, header_end - CHUNK.size)
+        struct.pack_into("<I", out, 20, size)
+        return bytes(out + struct.pack("<IBII", 1, 0, 0, len(form)) + struct.pack("<6I", 1, 0, header_end, size + 4, 0, size))
     ranges = _texture_ranges(meta)
     header_end = ranges[0][2]
     gpu = len(form) - header_end

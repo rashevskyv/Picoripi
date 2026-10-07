@@ -156,3 +156,21 @@ def test_game_tables_decode_every_font():
             assert asset.compressed
             data = pak.read(asset, tables)
             assert rp.form_header(data)[0] == "FONT" and len(data) == asset.size
+
+
+def test_remastered_texture_buffers_unpack_and_get_metadata():
+    """Metadata version 5 (Prime Remastered): a list of compressed buffers placed at their data offsets."""
+    head = _chunk(b"HEAD", b"h" * 46)
+    literal = bytes([0]) + b"abcdefgh"                      # mode 1: eight literal bytes
+    buffers = struct.pack("<I", 1) + literal, struct.pack("<I", 0) + b"XYZW"
+    form = _form(b"TXTR", head + _chunk(b"GPU ", b"".join(buffers)))
+    header_end = len(form) - sum(map(len, buffers))
+    meta = struct.pack("<6I", 5, 0, 0, header_end - 24, 512, 12) + struct.pack("<I", 1)
+    meta += struct.pack("<BII", 0, 0, len(form)) + struct.pack("<I", 2)
+    meta += struct.pack("<5I", 0, header_end, len(buffers[0]), 4, 8)
+    meta += struct.pack("<5I", 0, header_end + len(buffers[0]), len(buffers[1]), 0, 4)
+    exploded = rp.unpack_texture(form, meta)
+    assert exploded[header_end:] == struct.pack("<I", 0) + b"XYZWabcdefgh"
+    again = rp.texture_meta(exploded, meta)
+    assert struct.unpack_from("<I", again)[0] == 5 and len(again) == 61
+    assert rp.unpack_texture(exploded, again) == exploded

@@ -1,0 +1,50 @@
+[
+ {
+  "label": "Title screen and menus",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/PreloadFrontEndMPT/*.txtr"
+ },
+ {
+  "label": "Front-end extras (gallery)",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/UI_FrontEnd/*.txtr"
+ },
+ {
+  "label": "Loading screens",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/StartupUI/*.txtr"
+ },
+ {
+  "label": "HUD and pause screen",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/GuiSysMP1/*.txtr"
+ },
+ {
+  "label": "Scan pictures",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/ScannableObjectsMP1/*.txtr"
+ },
+ {
+  "label": "Interface (game)",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/UIMP1/*.txtr"
+ },
+ {
+  "label": "Common (game)",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/PreloadMP1/*.txtr"
+ },
+ {
+  "label": "Common (front end)",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/PreloadMPT/*.txtr"
+ }
+]

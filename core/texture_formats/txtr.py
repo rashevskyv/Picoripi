@@ -1,7 +1,8 @@
-"""Retro Studios TXTR textures (Metroid Prime 4: Beyond), as ``1_unpack`` writes them: decompressed.
+"""Retro Studios TXTR textures (Metroid Prime 4: Beyond, Prime Remastered), as ``1_unpack`` writes them.
 
 A TXTR is an ``RFRM`` form with a ``HEAD`` chunk (u32 kind, u32 format, width, height, layers,
-u32 channel swizzle, u32 mip count, one u32 linear size per mip, sampler bytes) and a ``GPU `` chunk.
+u32 channel swizzle, u32 mip count, one u32 linear size per mip, sampler bytes; Prime Remastered has a
+u32 tile mode before the swizzle) and a ``GPU `` chunk.
 In the game the GPU chunk holds compressed buffers (``core.containers.retro_pak.unpack_texture`` opens
 them); here it is u32 0 and the whole surface: Tegra block-linear, mip after mip, each with the standard
 block height for its size. Formats (``FORMATS``): R8, RGBA8, BC1-BC5, BC7 are read and written in place;
@@ -49,6 +50,12 @@ class _Txtr:
             raise ValueError("TXTR without HEAD or GPU chunk")
         (self.kind, self.format, self.width, self.height, self.layers, _swizzle,
          self.mips) = struct.unpack_from("<7I", data, self.head_at)
+        self.sizes_at = 28                                  # the mip sizes in HEAD
+        if self.head_size != 28 + 4 * self.mips + 10:       # Prime Remastered: a tile mode before the swizzle
+            self.mips = struct.unpack_from("<I", data, self.head_at + 28)[0]
+            self.sizes_at = 32
+            if self.head_size != 32 + 4 * self.mips + 10:
+                raise ValueError("TXTR header of an unknown layout")
         if struct.unpack_from("<I", data, self.gpu_at)[0] != 0:
             raise ValueError("The texture data is still compressed (unpack it with 1_unpack.bat)")
         self.data_at = self.gpu_at + 4
@@ -153,7 +160,7 @@ def _as_rgba8(data: bytes, texture: _Txtr, image: Image.Image) -> bytes:
     head = bytearray(data[texture.head_at:texture.head_at + texture.head_size])
     struct.pack_into("<I", head, 4, fmt)
     for level, (_offset, w, h, _block, _size) in enumerate(levels):
-        struct.pack_into("<I", head, 28 + 4 * level, w * h * 4)
+        struct.pack_into("<I", head, texture.sizes_at + 4 * level, w * h * 4)
     out = bytearray(data[:texture.head_at]) + head + bytearray(data[texture.head_at + texture.head_size:texture.gpu_at])
     out += struct.pack("<I", 0) + surface_data
     struct.pack_into("<Q", out, texture.gpu_at - 24 + 4, 4 + len(surface_data))
