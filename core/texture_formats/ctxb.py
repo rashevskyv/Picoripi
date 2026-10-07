@@ -4,11 +4,14 @@
 u32 size, u32 count, then 36 bytes per texture: u32 data size, u16 mips, u8 is ETC, u8 cube, u16
 width, u16 height, u16 GL format, u16 GL type, u32 data offset (from the data offset), 16-byte name.
 Rows are stored top first (unlike BFLIM).
+
+A CMB model (``cmb ``) keeps its textures the same way: its header's chunk offsets end with the
+texture data offset (the u32 before the first chunk, ``skl ``), and one of them points at ``tex ``.
 """
 from __future__ import annotations
 
 import struct
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from PIL import Image
 
@@ -21,13 +24,25 @@ FORMATS = {(0x6752, 0x1401): "RGBA8", (0x6752, 0x8033): "RGBA4", (0x6752, 0x8034
 
 
 def detect(data: bytes) -> bool:
-    return data[:4] == b"ctxb"
+    return data[:4] in (b"ctxb", b"cmb ")
+
+
+def _chunks(data: bytes) -> Tuple[int, int]:
+    """``(tex chunk offset, texture data offset)`` of a CTXB file or a CMB model."""
+    if data[:4] == b"ctxb":
+        return struct.unpack_from("<II", data, 0x10)
+    if data[:4] != b"cmb ":
+        raise ValueError("Not a CTXB texture file or CMB model")
+    first = struct.unpack_from("<I", data, 0x24)[0]     # the skeleton chunk follows the header
+    header = struct.unpack_from(f"<{(first - 0x24) // 4}I", data, 0x24)
+    chunk = next((at for at in header if data[at:at + 4] == b"tex "), None)
+    if chunk is None:
+        raise ValueError("CMB model without a texture chunk")
+    return chunk, header[-1]
 
 
 def _entries(data: bytes) -> List[Dict[str, Any]]:
-    if data[:4] != b"ctxb":
-        raise ValueError("Not a CTXB texture file")
-    chunk, base = struct.unpack_from("<II", data, 0x10)
+    chunk, base = _chunks(data)
     count = struct.unpack_from("<I", data, chunk + 8)[0]
     out = []
     for index in range(count):

@@ -1,0 +1,14 @@
+[
+  {
+    "label": "Dialogue font (ltn16)",
+    "format": "qbf",
+    "path": "romfs/message/eu/ltn16.qbf",
+    "font_map": "ltn16.json"
+  },
+  {
+    "label": "System font (sys8)",
+    "format": "qbf",
+    "path": "romfs/message/sys8.qbf",
+    "font_map": "sys8.json"
+  }
+]

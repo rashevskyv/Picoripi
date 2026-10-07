@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 10.7k
+tokens: 12.8k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -190,6 +190,18 @@ omfs`) could be
   (`EU/Manual`), code.bin (only debug strings). BCH model textures and CTPK are language-neutral (the same bytes in
   all five languages), so they hold no text to translate.
 - Azahar takes the foreground when it starts; the proof run needs Vulkan for PrintWindow.
+
+## Ocarina of Time 3D plugin (`plugins/zelda_oot3d`, 2026-10-07)
+
+- No speakers or scenes yet: the message ids equal N64 Ocarina of Time, so `plugins/zelda_oot64/context.json`
+  could give speakers for about 2,000 of the 2,510 messages.
+- Box width (285 px) is the widest retail English line, not a measured box; `{mq}…{mq-else}…` lines count both
+  branches. Meanings of `{xpos}`, `{record}`, `{credits}`, `{plural:N}` and box types 6-12 are guesses.
+- Not opened: the HOME menu title and banner (`exefs/icon.bin`, `banner.bin`; a LayeredFS mod cannot replace
+  them), the re-made hint video `misc/hint/movie/hint183.moflex` (video), the name-entry keyboard textures of the
+  German, French, Spanish and Italian menus (shared keyboards; only needed when the console runs in those languages).
+- Azahar takes the foreground when it starts even with `SW_SHOWMINNOACTIVE`; the proof run needs Vulkan
+  (PrintWindow gives black frames with OpenGL).
 
 ## Four Swords Anniversary Edition plugin (`plugins/zelda_fsae`, 2026-10-04)
 

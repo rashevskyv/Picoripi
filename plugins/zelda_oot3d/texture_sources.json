@@ -1,0 +1,10 @@
+[
+  {"label": "Menus", "kind": "menu_label", "format": "ctxb", "path": "romfs/menu/02_EU_ENGLISH/*.ctxb"},
+  {"label": "Title, Boss Challenge, hint movies", "kind": "title_screen", "format": "ctxb", "path": "romfs/misc/eu/english/*.ctxb"},
+  {"label": "Nintendo / Grezzo logo", "kind": "logo", "format": "ctxb", "path": "romfs/misc/logo00.ctxb"},
+  {"label": "Area title cards", "kind": "area_card", "format": "ctxb", "path": "romfs/scene/*.zar", "member": "*_euen.ctxb"},
+  {"label": "Boss title cards", "kind": "area_card", "format": "ctxb", "path": "romfs/actor/*.zar", "member": "*_euen.ctxb"},
+  {"label": "Ending", "kind": "ending", "format": "ctxb", "path": "romfs/actor/zelda_keep.zar", "member": "end_title/tex/acto_end_*.ctxb"},
+  {"label": "SOLD OUT sign", "kind": "sign", "format": "ctxb", "path": "romfs/actor/zelda_gi_soldout.zar", "member": "Model/zelda_gi_soldout.cmb"},
+  {"label": "Title screen models", "kind": "title_screen", "format": "ctxb", "path": "romfs/actor/zelda_mag.zar", "member": "Model/{copy_nintendo,title_logo_jpeu}.cmb"}
+]

@@ -643,6 +643,30 @@ def test_ctxb_formats_round_trip():
     assert ctxb.write(data, {0: textures[0].image, 1: textures[1].image}, {}) == data
 
 
+def test_cmb_model_textures_read_and_write_back():
+    """A CMB model (OoT3D v6 header: 8 chunk offsets, the last = texture data) keeps its textures like a CTXB."""
+    from core.texture_formats import ctxb
+    image = picture(16, 8)
+    blob = pixels.codec("pica:LA8").encode(image)
+    skl = b"skl " + struct.pack("<I", 8)
+    tex = b"tex " + struct.pack("<II", 12 + 36, 1) + struct.pack(
+        "<IHBBHHHHI", len(blob), 1, 0, 0, 16, 8, 0x6758, 0x1401, 0) + b"soldout_01".ljust(16, b"\0")
+    skl_at = 0x44
+    tex_at = skl_at + len(skl)
+    data_at = tex_at + len(tex)
+    offsets = [skl_at, skl_at, tex_at, skl_at, skl_at, skl_at, skl_at, data_at]
+    data = (b"cmb " + struct.pack("<III", data_at + len(blob), 6, 0) + b"model".ljust(16, b"\0")
+            + struct.pack("<I8I", 0, *offsets) + skl + tex + blob)
+    assert texture_formats.detect(data) == "ctxb"
+    textures = ctxb.read(data, {})
+    assert [(t.name, t.pixel_format, t.image.size) for t in textures] == [("soldout_01", "LA8", (16, 8))]
+    assert ctxb.write(data, {0: textures[0].image}, {}) == data
+    edited = ctxb.write(data, {0: Image.new("RGBA", (16, 8), (255, 255, 255, 255))}, {})
+    assert len(edited) == len(data) and edited[:data_at] == data[:data_at]
+    with pytest.raises(ValueError):
+        ctxb.read(data.replace(b"tex ", b"txe "), {})
+
+
 def make_tpl(images):
     """``[(gx format id, image)]`` (no palettes) -> a TPL."""
     table = 0x0C
