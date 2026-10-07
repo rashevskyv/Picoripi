@@ -220,12 +220,20 @@ omfs`) could be
 ## Four Swords Anniversary Edition plugin (`plugins/zelda_fsae`, 2026-10-04)
 
 - Not seen in a game: no DSi emulator on the PC (melonDS + DSi BIOS/firmware/NAND needed; no$gba has no BIOS) and
-  no console run yet. Proven only by `FSAE_UA	ools
-ender_proof.py` (text through plugin, SRL build and the font).
+  no console run yet. Proven by machine only: the workspace's `tools\proof_edits.py` saves a text, manual, texture
+  and font edit through the plugin, builds the SRL and CIA and reads the edits back (hashes valid).
 - Picture widths (`[icon:N]`, `[button:N]`) are guessed 12 px; the code meanings (`[next:N]`, `[event:N]`,
   `[player:N]`, colours) are read from the English text, not from the game code.
-- The base is the Russian build: its menu and area-name graphics (`subtask_eu_en.cmp`, `zeldat_eu_en.bin`: NCGR
-  tiles) are Russian; no texture source for them yet, and a clean EU dump is needed for the English ones.
+- (2026-10-07) Text picture colours: proven from the game files for the subtask sheets #0-#2 (sprite cells +
+  NCLR), the title logo and copyright line (BG maps + palette) and CHOOSE A STAGE; the engine sprites (area
+  plates, GAME OVER letters, PLEASE WAIT, player marks, Back, script lettering) and subtask #3/#4 take a bank
+  chosen by eye from the palette their screen loads: check them in an emulator (`plugins/zelda_fsae/palettes.py`).
+- GAME OVER (block `game_over`, `main.arm9`): the English letter table has 16 entries (7 used) and the letter
+  sheet 128 tiles (the eighth 32x32 cell empty, narrow letters as 16x32 / 8x32 free more); the sheet cannot grow
+  (the next graphics follow it in VRAM). Ukrainian letter sprites are still to be drawn by a person. The
+  name-entry keyboard (`main.arm9` 0xDAC1C) is Latin and not opened (no decision yet).
+- The manual is drawn with the console's shared font (`nand:/<sharedFont>`), not a game font: whether it has
+  Cyrillic is unknown; manual line widths of new lines are estimated (the font is not on disk).
 - `eu.kmsg` may have a size limit in the game (the Russian build shares texts to stay under the original size);
   `2_build` warns when the Ukrainian file is larger than the Russian one.
 

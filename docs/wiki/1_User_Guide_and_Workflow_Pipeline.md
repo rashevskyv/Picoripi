@@ -103,8 +103,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Tools → Textures lists the five text pictures of `textures_bin/texture_pack.bin` (the title logo and the four
      pause-menu tab names; BNTX RGBA8 inside one zlib stream, written back into the pack)
    - `zelda_fsae` — Zelda: Four Swords Anniversary Edition (DSiWare, Europe). **Source:** the workspace's `source`
-     folder (`eu.kmsg` with the English text, `font_ltn.nftr`); **Translation:** `translation` (whole files; the
-     workspace's `2_build.bat` rebuilds the DSi SRL and a CIA). All 220 messages, one block per id range (prologue,
+     folder (`1_unpack.bat` takes it from the clean European dump: `eu.kmsg`, `font_ltn.nftr`, the manual
+     `manpages_narc_eu.blz` and the graphics); **Translation:** `translation` (whole files; the workspace's
+     `2_build.bat` rebuilds the DSi SRL and a CIA). The manual opens one block per page (`Manual: page_01_00`…;
+     a line break is the page's own line break, `[pic:N]` a picture, `[color:N]` a colour; the manual is drawn
+     with the console's font). All 220 messages, one block per id range (prologue,
      Chambers of Insight, items, Great Fairies, Vaati and the ending, in-game messages, system, credits); only the
      English (EU) slot is shown and saved, an unedited file stays byte for byte. The game's control codes are tags:
      `[speaker:1]`, `[wait:120]`, `[next:90]`, `[close]`, `[choice]`, `[center]`, `[icon:N]`, `[button:N]`, `[num:N]`,
@@ -112,7 +115,12 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `[speaker:N]` (Zelda, Vaati) and the Great Fairy messages; widths from the font (225 px in dialogue, 168 px in
      in-game messages, 240 px in menus). **Load Reference Patch** with the Russian build's `nitrofs` folder shows
      its Russian and the game's other languages. The Font Editor opens `font_ltn.nftr` with spare cells: a letter
-     typed into one becomes a new character
+     typed into one becomes a new character. The Textures window lists the menus and buttons
+     (`subtask_eu_en.cmp`), the stage-select plates, GAME OVER letters, copyright line (`zeldat_eu_en.bin`) and
+     the title logo (`zeldat.bin`) in the game's colours; an imported colour that is not in the picture's
+     palette becomes the nearest one. The block `game_over` (`main.arm9`) holds the GAME OVER word, one line per
+     letter (`<character> <first tile> <W>x<H>`, tiles of the GAME OVER letters picture) and the x of each
+     letter; the letters picture also shows as 16 slots of 16x32 for narrow letters
    - `zelda_albw` — Zelda: A Link Between Worlds (3DS, Europe). **Source:** the workspace's `source` folder;
      **Translation:** `translation`. `1_unpack.bat` writes each Yaz0 SARC archive as a folder of its members
      (`romfs\EU_English\FieldLight.szs\EU_English\Field.msbt`), the path a translated member is saved to;
