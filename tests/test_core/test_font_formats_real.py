@@ -345,3 +345,31 @@ def test_ocarina_3d_fonts_edit_and_save_through_the_plugin_sources(tmp_path):
         source.write(font_formats.pack("qbf", metadata, sheets, data))
         assert source.read_current() != data and len(source.read_current()) == len(data)
         assert source.read_original() == data                              # the source is never written
+
+
+MM3D = ZELDA / "Majoras Mask" / "3D - 3DS"
+
+
+def test_majoras_mask_3d_font_edits_and_saves_through_the_plugin_source(tmp_path):
+    _need(MM3D / "source" / "romfs" / "message" / "ltn16.gzf")
+    found = sources.resolve(json.loads((ROOT / "plugins" / "zelda_mm3d" / "font_sources.json").read_text(encoding="utf-8")),
+                            {"source_path": str(MM3D / "source"), "translation_path": str(tmp_path),
+                             "is_directory_mode": True})
+    assert [source.name for source in found] == ["ltn16.gzf"]
+    data = found[0].read_original()
+    metadata, sheets = font_formats.extract("gzf", data)
+    shipped = json.loads((ROOT / "plugins" / "zelda_mm3d" / "fonts" / "ltn16.json").read_text(encoding="utf-8"))
+    assert font_formats.font_map(metadata) == shipped
+    # the retail font has Russian Cyrillic but not the Ukrainian letters
+    chars = font_formats.char_map(metadata)
+    assert "Ж" in chars and not set("ҐЄІЇґєії") & set(chars)
+    assert font_formats.pack("gzf", metadata, sheets, data) == data
+    grid = metadata["GLY1"][0]
+    per_sheet = grid["glyph_horizontal_count"] * grid["glyph_vertical_count"]
+    sheet, cell = divmod(chars["e"], per_sheet)
+    x, y = (cell % grid["glyph_horizontal_count"]) * grid["cell_width"], (cell // grid["glyph_horizontal_count"]) * grid["cell_height"]
+    sheets[sheet].paste((255, 255, 255, 255), (x, y, x + grid["cell_width"], y + grid["cell_height"]))
+    found[0].write(font_formats.pack("gzf", metadata, sheets, data))
+    edited = found[0].read_current()
+    assert edited != data and len(edited) == len(data)
+    assert _has_ink(*font_formats.extract("gzf", edited), "e") and found[0].read_original() == data

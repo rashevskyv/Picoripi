@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-04
+updated: 2026-10-07
 owns: unfinished work
 tokens: 12.8k
 purpose: Everything left open, one line each, by work package
@@ -202,6 +202,20 @@ omfs`) could be
   German, French, Spanish and Italian menus (shared keyboards; only needed when the console runs in those languages).
 - Azahar takes the foreground when it starts even with `SW_SHOWMINNOACTIVE`; the proof run needs Vulkan
   (PrintWindow gives black frames with OpenGL).
+
+## Majora's Mask 3D plugin (`plugins/zelda_mm3d`, 2026-10-07)
+
+- No speakers or scenes yet: 4,472 of the 6,152 message ids equal N64 Majora's Mask, so `plugins/zelda_mm64/context.json`
+  could give speakers for most of them; the 3DS-only ids need scene or actor analysis.
+- Box width (280 px) is the widest retail English line, not a measured box. Meanings of `{chest-flags}`, `{owl-warp}`,
+  `{lottery-code:N}`, `{layout}`, `{ordinal}`, `{event:N}`, the 3DS button numbers of `{btn:N}` and bit 15 of
+  `{delay}` are guesses; codes 0x1A, 0x1F and 0x30 never occur and are refused (argument size unknown).
+- The retail font `ltn16.gzf` has no Ґ Є І Ї ґ є і ї; the draft `translation\romfs\message\ltn16.gzf` has them (476
+  glyphs, not polished).
+- Not opened: the HOME menu title and banner (`exefs/icon.bin`, `banner.bin`; a LayeredFS mod cannot replace them).
+  Checked and left out as they hold no text: the Sheikah Stone hint videos (`hint/movie/*.moflex`) and slides
+  (`hint/slide/*.jslide`, stereo screenshots), the language-neutral layouts (story intro, ocarina, ending images), the
+  debug `ascii_8x16.ctxb`; the French, German, Spanish and Italian layouts and title cards (other console languages).
 
 ## Four Swords Anniversary Edition plugin (`plugins/zelda_fsae`, 2026-10-04)
 

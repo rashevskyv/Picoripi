@@ -1,0 +1,8 @@
+[
+  {
+    "label": "Dialogue and menu font (ltn16)",
+    "format": "gzf",
+    "path": "romfs/message/ltn16.gzf",
+    "font_map": "ltn16.json"
+  }
+]

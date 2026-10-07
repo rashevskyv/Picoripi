@@ -106,7 +106,8 @@ def test_ocarina_boss_card():
 def test_plugin_texture_lists_find_their_textures():
     roots = {"zelda_tww": ZELDA / "Wind Waker" / "GC" / "source", "zelda_oot64": ZELDA / "Ocarina of Time" / "N64" / "source",
              "zelda_mm64": ZELDA / "Majoras Mask" / "N64" / "source",
-             "zelda_oot3d": ZELDA / "Ocarina of Time" / "3D - 3DS" / "source"}
+             "zelda_oot3d": ZELDA / "Ocarina of Time" / "3D - 3DS" / "source",
+             "zelda_mm3d": ZELDA / "Majoras Mask" / "3D - 3DS" / "source"}
     checked = 0
     for plugin, root in roots.items():
         if not root.is_dir():
@@ -155,6 +156,29 @@ def test_majoras_mask_3d_boss_card_through_lzs_and_gar():
     data, rewrap = sources.unwrap(raw, "tex/boss_name_odoruwa_euen.ctxb", {})
     assert rewrap(data) == raw
     assert _round_trip("ctxb", data)[0].image.size == (256, 64)
+
+
+def test_majoras_mask_3d_every_listed_texture_writes_back_through_its_archive():
+    """Loose CTXB, CTXB in GAR and in LzS GAR, the title logo CMB (v10 header) and the copyright CMAB."""
+    root = _need(ZELDA / "Majoras Mask" / "3D - 3DS" / "source")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_mm3d" / "texture_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(root), "translation_path": ""})
+    assert len(found) >= 129
+    assert {"ETC1", "ETC1A4", "RGBA4", "RGBA8", "LA8", "L8", "RGB565"} <= {s.pixel_format for s in found}
+    for source in found:
+        raw = Path(source.source_path).read_bytes()
+        data, rewrap = sources.unwrap(raw, source.member, source.params)
+        textures = texture_formats.read("ctxb", data)
+        assert texture_formats.write("ctxb", data, {i: t.image for i, t in enumerate(textures)}) == data, source.key
+        assert rewrap(data) == raw
+    for member, name in (("Model/title_logo.cmb", "title_sub_00"), ("Misc/title_logo_tex_pt.cmab", "copy_nintendo_GREZZO")):
+        data, rewrap = sources.unwrap((root / "romfs" / "actors" / "zelda2_mag.gar.lzs").read_bytes(), member, {})
+        textures = texture_formats.read("ctxb", data)
+        index = [t.name for t in textures].index(name)
+        assert textures[index].image.getpixel((0, 0))[3] < 255           # decoded at the right offset: clear margin
+        white = Image.new("RGBA", textures[index].image.size, (255, 255, 255, 255))
+        again, _ = sources.unwrap(rewrap(texture_formats.write("ctxb", data, {index: white})), member, {})
+        assert texture_formats.read("ctxb", again)[index].image.getpixel((5, 5))[:3] == (255, 255, 255)
 
 
 def test_wii_home_menu_labels_in_tpl_inside_u8():

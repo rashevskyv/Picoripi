@@ -667,6 +667,67 @@ def test_cmb_model_textures_read_and_write_back():
         ctxb.read(data.replace(b"tex ", b"txe "), {})
 
 
+def test_cmb_model_textures_read_and_write_back():
+    """A CMB model (OoT3D v6 header: 8 chunk offsets, the last = texture data) keeps its textures like a CTXB."""
+    from core.texture_formats import ctxb
+    image = picture(16, 8)
+    blob = pixels.codec("pica:LA8").encode(image)
+    skl = b"skl " + struct.pack("<I", 8)
+    tex = b"tex " + struct.pack("<II", 12 + 36, 1) + struct.pack(
+        "<IHBBHHHHI", len(blob), 1, 0, 0, 16, 8, 0x6758, 0x1401, 0) + b"soldout_01".ljust(16, b"\0")
+    skl_at = 0x44
+    tex_at = skl_at + len(skl)
+    data_at = tex_at + len(tex)
+    offsets = [skl_at, skl_at, tex_at, skl_at, skl_at, skl_at, skl_at, data_at]
+    data = (b"cmb " + struct.pack("<III", data_at + len(blob), 6, 0) + b"model".ljust(16, b"\0")
+            + struct.pack("<I8I", 0, *offsets) + skl + tex + blob)
+    assert texture_formats.detect(data) == "ctxb"
+    textures = ctxb.read(data, {})
+    assert [(t.name, t.pixel_format, t.image.size) for t in textures] == [("soldout_01", "LA8", (16, 8))]
+    assert ctxb.write(data, {0: textures[0].image}, {}) == data
+    edited = ctxb.write(data, {0: Image.new("RGBA", (16, 8), (255, 255, 255, 255))}, {})
+    assert len(edited) == len(data) and edited[:data_at] == data[:data_at]
+    with pytest.raises(ValueError):
+        ctxb.read(data.replace(b"tex ", b"txe "), {})
+
+
+def test_mm3d_cmb_v10_header_and_cmab_texture_pattern():
+    """MM3D: a v10 CMB header ends with a 0 after the texture data offset; a CMAB keeps its textures in txpt."""
+    from core.texture_formats import ctxb
+    image = picture(16, 8)
+    blob = pixels.codec("pica:LA8").encode(image)
+    skl = b"skl " + struct.pack("<I", 8)
+    tex = b"tex " + struct.pack("<II", 12 + 36, 1) + struct.pack(
+        "<IHBBHHHHI", len(blob), 1, 0, 0, 16, 8, 0x6758, 0x1401, 0) + b"title_sub_00".ljust(16, b"\0")
+    skl_at = 0x24 + 4 * 10
+    tex_at = skl_at + len(skl)
+    data_at = tex_at + len(tex)
+    offsets = [skl_at, skl_at, tex_at, skl_at, skl_at, skl_at, skl_at, skl_at, data_at, 0]
+    cmb = (b"cmb " + struct.pack("<III", data_at + len(blob), 10, 0) + b"title".ljust(16, b"\0")
+           + struct.pack("<I10I", 0, *offsets) + skl + tex + blob)
+    model = ctxb.read(cmb, {})
+    assert [(t.name, t.image.size) for t in model] == [("title_sub_00", (16, 8))]
+    white = ctxb.write(cmb, {0: Image.new("RGBA", (16, 8), (255, 255, 255, 255))}, {})
+    assert white[:data_at] == cmb[:data_at] and white != cmb      # the data offset is the largest, not the last
+    # cmab: header (data offset at 0x1C), txpt with 2 textures (24-byte entries), strt names, then the data
+    names = b"copy_a\0copy_b\0"
+    txpt = b"txpt" + struct.pack("<I", 2) + b"".join(
+        struct.pack("<IHBBHHHHII", len(blob), 1, 0, 0, 16, 8, 0x6758, 0x1401, i * len(blob), i) for i in range(2))
+    strt = b"strt" + struct.pack("<I2I", 2, 0, 7) + names
+    body = txpt + strt
+    base = 0x20 + len(body) + (-(0x20 + len(body)) % 0x10)
+    head = b"cmab" + struct.pack("<IIIIIII", 1, base + 2 * len(blob), 0, 1, 0x20, 0x20 + len(txpt), base)
+    cmab = (head + body).ljust(base, b"\0") + blob + blob
+    assert texture_formats.detect(cmab) == "ctxb"
+    textures = ctxb.read(cmab, {})
+    assert [(t.name, t.pixel_format) for t in textures] == [("copy_a", "LA8"), ("copy_b", "LA8")]
+    assert ctxb.write(cmab, {0: textures[0].image, 1: textures[1].image}, {}) == cmab
+    assert textures[0].image.tobytes() == model[0].image.tobytes()
+    white = ctxb.write(cmab, {1: Image.new("RGBA", (16, 8), (255, 255, 255, 255))}, {})
+    assert white[:base + len(blob)] == cmab[:base + len(blob)] and white != cmab
+    assert texture_formats.detect(b"cmab" + bytes(0x40)) != "ctxb"     # an animation without textures
+
+
 def make_tpl(images):
     """``[(gx format id, image)]`` (no palettes) -> a TPL."""
     table = 0x0C
