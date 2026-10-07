@@ -159,10 +159,11 @@ class PopulateMixin:
             if idx is not None:
                 if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is not True or
                         self._is_project_block_unsaved(idx)):
-                    block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
-                    root_item.addChild(block_item)
-                    if idx == current_selection_block_idx:
-                        self._select_block_item(block_item)
+                    for data_idx in self._data_blocks_of(idx):
+                        block_item = self._create_block_tree_item(data_idx, problem_definitions, pre_aggregated_counts)
+                        root_item.addChild(block_item)
+                        if data_idx == current_selection_block_idx:
+                            self._select_block_item(block_item)
 
     def _add_physical_structure(self, problem_definitions, pre_aggregated_counts, current_selection_block_idx) -> None:
         """Legacy / physical fallback: blocks under the folders their source files are in."""
