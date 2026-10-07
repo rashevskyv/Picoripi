@@ -160,10 +160,12 @@ def build_messages(fmt: TextFormat, messages: List[Message], code: bytes, table_
     new_code = bytearray(code)
     offset = table_offset
     for message in messages:
-        message_id, info, pad, _address = struct.unpack_from(">HBBI", code, offset)
+        message_id, info, pad, address = struct.unpack_from(">HBBI", code, offset)
         if message_id != message.message_id:
             raise ValueError(f"Message order changed at table entry {(offset - table_offset) // 8}")
-        struct.pack_into(">HBBI", new_code, offset, message_id, info, pad, (segment << 24) | len(data))
+        # A table keeps its own segment (MM: messages 0x08, credits 0x07); ``segment`` fills an empty one.
+        struct.pack_into(">HBBI", new_code, offset, message_id, info, pad,
+                         ((address >> 24 or segment) << 24) | len(data))
         data += message.header + message.body + bytes([fmt.end])
         data += b"\0" * (-len(data) % 4)
         offset += 8
