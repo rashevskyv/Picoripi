@@ -760,8 +760,11 @@ class BaseGameRules:
         """The game's bitmap fonts, for the font editor to open from a project and save back.
 
         Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
-        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``mgs``
-        ``nftr`` (DS NFTR) or ``zelda3`` (the zelda3 PC port's ``font.png``)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
+        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``mgs``,
+        ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation font), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``xf`` and
+        ``g4font`` (Level-5), ``vagrant`` (Vagrant Story), ``gba_tiles``, ``retro_font`` / ``retro_font_gx`` (Retro
+        Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture)
+        or ``zelda3`` (the zelda3 PC port's ``font.png``)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); optional ``companion`` (a second file the font needs,
         relative to the source folder, read and saved with it: the texture of a Level-5 ``g4font``);
@@ -776,10 +779,11 @@ class BaseGameRules:
         """The game's textures with text in them (title cards, menu labels...), for the Textures window.
 
         Each entry: ``label``; ``kind`` (``title_screen``, ``area_card``, ``menu_label``...); ``format``
-        (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t``, ``imgc``,
-        ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed multiboot program),
-        ``gtx`` (Wii U GX2), ``txtr`` (Retro TXTR), ``tim`` (PlayStation TIM), ``vs_gim`` / ``vs_hf1`` / ``vs_rle``
-        (Vagrant Story pictures), ``raw`` or ``tiles`` (GBA / DS character tiles)); ``path`` -- as
+        (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
+        and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
+        multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``txtr`` / ``txtr_gx`` (Retro TXTR),
+        ``gim`` (PSP), ``tim`` (PlayStation TIM), ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant
+        Story pictures), ``pcx``, ``m2`` (M2 PSB pictures), ``raw`` or ``tiles`` (GBA / DS character tiles)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``
         (``compression``, ``file_offset``/``file_size``, ``texture`` and what the format needs -- see
