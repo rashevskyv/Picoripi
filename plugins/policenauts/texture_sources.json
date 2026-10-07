@@ -1,0 +1,119 @@
+[
+ {
+  "label": "Title screen (logo, copyright)",
+  "kind": "title_screen",
+  "format": "policenauts_pak",
+  "path": "PAK/PNTITLE.PAK"
+ },
+ {
+  "label": "Title menu pictures",
+  "kind": "menu",
+  "format": "policenauts_pak",
+  "path": "PAK/SELECT.PAK"
+ },
+ {
+  "label": "Story pages of the English patch",
+  "kind": "menu",
+  "format": "policenauts_pak",
+  "path": "PAK/ENGLISH.PAK"
+ },
+ {
+  "label": "Warning screens (insert disc, demo end)",
+  "kind": "menu",
+  "format": "policenauts_pak",
+  "path": "PAK/WARNING.PAK"
+ },
+ {
+  "label": "Demo disc warning",
+  "kind": "menu",
+  "format": "policenauts_pak",
+  "path": "PAK/SAMPLE.PAK"
+ },
+ {
+  "label": "Prologue title card",
+  "kind": "area_card",
+  "format": "policenauts_pak",
+  "path": "PAK/PROLOGUE.PAK"
+ },
+ {
+  "label": "Act 1 title card",
+  "kind": "area_card",
+  "format": "policenauts_pak",
+  "path": "PAK/ACT1.PAK"
+ },
+ {
+  "label": "Act 2 title card",
+  "kind": "area_card",
+  "format": "policenauts_pak",
+  "path": "PAK/ACT2.PAK"
+ },
+ {
+  "label": "Act 3 title card",
+  "kind": "area_card",
+  "format": "policenauts_pak",
+  "path": "PAK/ACT3.PAK"
+ },
+ {
+  "label": "Act 4 title card",
+  "kind": "area_card",
+  "format": "policenauts_pak",
+  "path": "PAK/ACT4.PAK"
+ },
+ {
+  "label": "Act 5 title card",
+  "kind": "area_card",
+  "format": "policenauts_pak",
+  "path": "PAK/ACT5.PAK"
+ },
+ {
+  "label": "Act 6 title card",
+  "kind": "area_card",
+  "format": "policenauts_pak",
+  "path": "PAK/ACT6.PAK"
+ },
+ {
+  "label": "Act 7 title card",
+  "kind": "area_card",
+  "format": "policenauts_pak",
+  "path": "PAK/ACT7.PAK"
+ },
+ {
+  "label": "Developed and published by Konami",
+  "kind": "credits",
+  "format": "policenauts_pak",
+  "path": "PAK/LASTPIC.PAK"
+ },
+ {
+  "label": "Logo screen",
+  "kind": "logo",
+  "format": "policenauts_pak",
+  "path": "PAK/DNAUTS.PAK"
+ },
+ {
+  "label": "Staff roll (disc 1 copy)",
+  "kind": "credits",
+  "format": "policenauts_pak",
+  "path": "PAK/CREDITPS.PAK"
+ },
+ {
+  "label": "Staff roll (disc 2)",
+  "kind": "credits",
+  "format": "policenauts_pak",
+  "path": "CD2/PAK/CREDITPS.PAK"
+ },
+ {
+  "label": "Shooting game: LIFE bar",
+  "kind": "hud",
+  "format": "policenauts_pak",
+  "path": "PAK/SHOTPACK.CPK",
+  "params": {
+   "texture": "017"
+  }
+ },
+ {
+  "label": "Konami logo",
+  "kind": "logo",
+  "format": "tim",
+  "path": "PAK/KONAMI.TIM"
+ }
+]

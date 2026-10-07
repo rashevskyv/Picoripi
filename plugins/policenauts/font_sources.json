@@ -1,0 +1,8 @@
+[
+ {"label": "Text font KANJIFNT.MDB (serif; ASCII + half-width katakana)", "format": "policenauts", "path": "FONT/KANJIFNT.MDB"},
+ {"label": "Text font KANJIFNT.RB (sans; ASCII)", "format": "policenauts", "path": "FONT/KANJIFNT.RB"},
+ {"label": "Font KPRFONT.MDB (sans; the same as KPRFONT.RB)", "format": "policenauts", "path": "FONT/KPRFONT.MDB"},
+ {"label": "Font KPRFONT.RB (sans; the same as KPRFONT.MDB)", "format": "policenauts", "path": "FONT/KPRFONT.RB"},
+ {"label": "Shooting game font KANJIFNT.MDB (the same as its .RB)", "format": "policenauts", "path": "SHOTPAC/KANJIFNT.MDB"},
+ {"label": "Shooting game font KANJIFNT.RB (the same as its .MDB)", "format": "policenauts", "path": "SHOTPAC/KANJIFNT.RB"}
+]

@@ -251,6 +251,14 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `twewy`: 10x10 text font, 10x12, two 16x16); the Textures window lists ~300 tile sheets of menus, titles,
      credits, location titles and copyright screens in the game's `pack` archives (sprites shown as a plain tile
      sheet). `2_build.bat` makes the message index `mestable.bin` again and rebuilds the ROM.
+   - `policenauts` — Policenauts (PlayStation, Japanese discs SLPS-00215/00216 with the English fan patch, as the
+     PSP PS1-Classic `EBOOT.PBP` files; disc 3 is not in the release). **Source:** the workspace's `source` folder
+     (`1_unpack.bat` reads the PSISOIMG disc of each EBOOT): `PN_VOX1.PNV` / `PN_VOX2.PNV` (the dialogue of discs
+     1 and 2: the subtitle text the patch keeps in each voice chunk, one group per chunk; lines of spaces are
+     hidden), `FONT\*` and `SHOTPAC\KANJIFNT.*` (Font Editor, format `policenauts`), `PAK\*` (Textures: title,
+     menu, act cards, story pages, staff roll; formats `policenauts_pak` and `tim`). Tags: `{dash}`, `{xHH}`.
+     A chunk's text must fit its header sector; `2_build.bat` writes `build\CD1\EBOOT.PBP` and
+     `build\CD2\EBOOT.PBP` (only the changed 16-sector blocks are compressed again).
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
