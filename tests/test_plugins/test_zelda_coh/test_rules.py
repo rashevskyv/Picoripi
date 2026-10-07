@@ -86,6 +86,28 @@ def test_other_files_give_one_empty_block():
     assert load_rules("zelda_coh").load_data_from_json_obj(b"<?xml version='1.0'?><credits/>") == ([[]], {})
 
 
+CREDITS = ('﻿<?xml version="1.0"?>\r\n<credits>\r\n  <line type="header">Brace Yourself Games</line>\r\n'
+           '  <line type="header2">GAME DESIGN</line>\r\n  <line type="name">Álex &amp; Co</line>\r\n'
+           '  <line type="header"></line>\r\n'
+           '  <line type="header" textKey="credits_job27">Thanks for grooving!</line>\r\n</credits>\r\n').encode("utf-8")
+
+
+def test_credits_roll_is_one_block_of_the_drawn_lines():
+    check_round_trip("zelda_coh", CREDITS)
+    rules = load_rules("zelda_coh")
+    blocks, names = rules.load_data_from_json_obj(CREDITS)
+    # empty spacer lines and lines whose text comes from localization.xml (textKey) are not strings
+    assert names == {"0": "Credits roll"} and blocks == [["Brace Yourself Games", "GAME DESIGN", "Álex & Co"]]
+    assert rules.save_data_to_json_obj(blocks, names) == CREDITS
+    blocks[0][1] = "ДИЗАЙН ГРИ"
+    saved = rules.save_data_to_json_obj(blocks, names)
+    assert saved == CREDITS.replace(b"GAME DESIGN", "ДИЗАЙН ГРИ".encode("utf-8"))
+    rules.reset_runtime_state()
+    rules.prepare_save_context(SaveContext(existing_versions=lambda: iter([saved, CREDITS])))
+    blocks[0][2] = "Алекс & Ко"
+    assert b"\xd0\x94\xd0\x98" in rules.save_data_to_json_obj(blocks, names)    # built on the newest version
+
+
 @pytest.mark.parametrize("text", ["a[n]b[p]c", "[p][n]x", "x[p]", "tail\r\n", "[n][n]", "plain"])
 def test_editor_form_is_reversible(text):
     assert from_editor(to_editor(text)) == text
@@ -115,7 +137,8 @@ def test_speaker_and_addressee_from_the_string_key(key, speaker, addressee):
 class _ProjectManager:
     def __init__(self, root: Path):
         self.root = root
-        self.project = SimpleNamespace(blocks=[SimpleNamespace(source_file="localization.xml")])
+        self.project = SimpleNamespace(blocks=[SimpleNamespace(source_file="localization.xml"),
+                                               SimpleNamespace(source_file="credits.xml")])
 
     def get_absolute_path(self, rel, is_translation=False):
         return str(self.root / rel)
@@ -124,7 +147,9 @@ class _ProjectManager:
 @pytest.fixture
 def project(tmp_path):
     (tmp_path / "localization.xml").write_bytes(sample())
-    mw = SimpleNamespace(project_manager=_ProjectManager(tmp_path), block_to_project_file_map={i: 0 for i in range(5)},
+    (tmp_path / "credits.xml").write_bytes(CREDITS)
+    mw = SimpleNamespace(project_manager=_ProjectManager(tmp_path),
+                         block_to_project_file_map={**{i: 0 for i in range(5)}, 5: 1},
                          font_map={"N": {"width": 10}, "E": {"width": 9}, "W": {"width": 12}, " ": {"width": 5},
                                    "G": {"width": 10}, "A": {"width": 10}, "M": {"width": 12}})
     return load_rules("zelda_coh", mw)
@@ -138,6 +163,9 @@ def test_dialogue_hooks(project):
     assert project.get_message_attributes(1, 2) == {"id": 1170, "key": "error_1", "block": "NPC dialogue"}
     assert project.get_scene_context_for_string(1, 0)["label"] == "zora_0"
     assert project.is_placeholder_speaker("npc:mellan") and not project.is_placeholder_speaker("Zora")
+    assert project.get_message_attributes(5, 1) == {"id": 1, "key": "header2", "block": "Credits roll"}
+    assert project.get_scene_context_for_string(5, 1)["resource"] == "credits.xml"
+    assert project.get_speaker_for_string(5, 0) is None
 
 
 def test_context_layout_and_glossary_seed(project):
@@ -165,3 +193,41 @@ def test_real_file_round_trips_byte_exact():
     edited = rules.save_data_to_json_obj(blocks, names)
     assert load_rules("zelda_coh").load_data_from_json_obj(edited)[0] == blocks
     assert len(edited) != len(data) and edited.count(b'<string lang="ja">') == data.count(b'<string lang="ja">')
+
+
+@pytest.mark.skipif(not (REAL.parent / "credits.xml").exists(), reason="Cadence of Hyrule credits.xml not here")
+def test_real_credits_round_trip_byte_exact():
+    data = (REAL.parent / "credits.xml").read_bytes()
+    rules = load_rules("zelda_coh")
+    blocks, names = rules.load_data_from_json_obj(data)
+    assert names == {"0": "Credits roll"} and "GAME DESIGN" in blocks[0] and len(blocks[0]) > 300
+    assert rules.save_data_to_json_obj(blocks, names) == data
+    blocks[0][blocks[0].index("GAME DESIGN")] = "ДИЗАЙН ГРИ"
+    assert load_rules("zelda_coh").load_data_from_json_obj(rules.save_data_to_json_obj(blocks, names))[0] == blocks
+
+
+@pytest.mark.skipif(not (REAL.parent / "textures_bin" / "texture_pack.bin").exists(),
+                    reason="Cadence of Hyrule texture_pack.bin not in source")
+def test_real_text_textures_write_into_the_zlib_pack(tmp_path):
+    import json
+    import zlib
+
+    from core.texture_formats import sources
+    descriptors = json.loads((Path(coh_rules.__file__).parent / "texture_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(REAL.parent), "translation_path": str(tmp_path)})
+    assert [s.name for s in found] == ["TitleLogo"] + [f"UI_BorderNames_English_{n}"
+                                                       for n in ("Charms", "Items", "Map", "Weapons")]
+    assert all(s.pixel_format == "RGBA8" for s in found)
+    logo = found[0]
+    image = logo.read_original().image.convert("RGBA")
+    image.paste((255, 0, 255, 255), (0, 0, 40, 40))
+    assert logo.write(image)
+    written = tmp_path / "textures_bin" / "texture_pack.bin"
+    original = zlib.decompress((REAL.parent / "textures_bin" / "texture_pack.bin").read_bytes())
+    plain = zlib.decompress(written.read_bytes())
+    start, size = logo.params["file_offset"], logo.params["file_size"]
+    assert len(plain) == len(original) and plain[:start] == original[:start]
+    assert plain[start + size:] == original[start + size:] and plain[start:start + size] != original[start:start + size]
+    assert logo.read_current().image.getpixel((5, 5)) == (255, 0, 255, 255)
+    sources.write_many([(logo, None)])                     # revert: the pack holds the game's own textures again
+    assert zlib.decompress(written.read_bytes()) == original

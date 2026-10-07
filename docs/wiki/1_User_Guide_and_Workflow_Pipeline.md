@@ -98,7 +98,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      strings are shown and saved, an unedited file stays byte for byte. Tags are the game's own (`[c:b]`, `[/c]`,
      `[i:button_a]`, `[s:9]`); `[n]` shows as a line break, `[p]` (next page) as `[p]` plus a line break. Speakers
      come from the string keys (`zora4_1` → Zora). The Font Editor opens the six `.bffnt` fonts; the text font
-     `LoveBug` has no Cyrillic, so it opens with a spare sheet for the Ukrainian letters
+     `LoveBug` has no Cyrillic, so it opens with a spare sheet for the Ukrainian letters. `credits.xml` (the credits
+     roll: headings, companies and names, the same in every language) opens as one more block, "Credits roll".
+     Tools → Textures lists the five text pictures of `textures_bin/texture_pack.bin` (the title logo and the four
+     pause-menu tab names; BNTX RGBA8 inside one zlib stream, written back into the pack)
    - `zelda_fsae` — Zelda: Four Swords Anniversary Edition (DSiWare, Europe). **Source:** the workspace's `source`
      folder (`eu.kmsg` with the English text, `font_ltn.nftr`); **Translation:** `translation` (whole files; the
      workspace's `2_build.bat` rebuilds the DSi SRL and a CIA). All 220 messages, one block per id range (prologue,

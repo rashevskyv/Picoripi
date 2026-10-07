@@ -220,10 +220,11 @@ class ProblemsMixin:
 
     def _data_blocks_of(self, project_block_idx: int) -> list:
         """The data blocks of a project block: several when its file opens into several (a ROM: messages,
-        credits...), else the block itself."""
+        credits...). A file after such a file has a data index past its project index, so the map decides; without
+        a map the two are the same."""
         block_map = getattr(self.mw, 'block_to_project_file_map', None) or {}
         found = sorted(int(data_idx) for data_idx, proj_idx in block_map.items() if int(proj_idx) == project_block_idx)
-        return found if len(found) > 1 else [project_block_idx]
+        return found or [project_block_idx]
 
     def _is_project_block_unsaved(self, project_block_idx: int) -> bool:
         """Check if project block index is unsaved using central FilterQueryAPI."""

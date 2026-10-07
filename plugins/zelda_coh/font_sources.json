@@ -2,10 +2,7 @@
   {
     "label": "Text font (LoveBug)",
     "format": "bffnt",
-    "path": [
-      "fonts_bin/LoveBug.bffnt",
-      "../romfs/fonts_bin/LoveBug.bffnt"
-    ],
+    "path": "fonts_bin/LoveBug.bffnt",
     "font_map": "coh_lovebug.json",
     "params": {
       "min_sheets": 2
@@ -14,43 +11,28 @@
   {
     "label": "Title font (ZeldaGlyph)",
     "format": "bffnt",
-    "path": [
-      "fonts_bin/ZeldaGlyph.bffnt",
-      "../romfs/fonts_bin/ZeldaGlyph.bffnt"
-    ],
+    "path": "fonts_bin/ZeldaGlyph.bffnt",
     "font_map": "coh_zeldaglyph.json"
   },
   {
     "label": "Small title font (ZeldaGlyphSmall)",
     "format": "bffnt",
-    "path": [
-      "fonts_bin/ZeldaGlyphSmall.bffnt",
-      "../romfs/fonts_bin/ZeldaGlyphSmall.bffnt"
-    ],
+    "path": "fonts_bin/ZeldaGlyphSmall.bffnt",
     "font_map": "coh_zeldaglyphsmall.json"
   },
   {
     "label": "Japanese font (PixelMPlus)",
     "format": "bffnt",
-    "path": [
-      "fonts_bin/PixelMPlus.bffnt",
-      "../romfs/fonts_bin/PixelMPlus.bffnt"
-    ]
+    "path": "fonts_bin/PixelMPlus.bffnt"
   },
   {
     "label": "Chinese font (ZPix)",
     "format": "bffnt",
-    "path": [
-      "fonts_bin/ZPix.bffnt",
-      "../romfs/fonts_bin/ZPix.bffnt"
-    ]
+    "path": "fonts_bin/ZPix.bffnt"
   },
   {
     "label": "Korean font (AsiaKGD13)",
     "format": "bffnt",
-    "path": [
-      "fonts_bin/AsiaKGD13.bffnt",
-      "../romfs/fonts_bin/AsiaKGD13.bffnt"
-    ]
+    "path": "fonts_bin/AsiaKGD13.bffnt"
   }
 ]
