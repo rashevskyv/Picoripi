@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: ui/, components/, dialogs/
-tokens: 11.7k
+tokens: 15.0k
 ---
 # Посібник: інтерфейс
 
@@ -107,6 +107,17 @@ tokens: 11.7k
      повідомленнях у грі, 240 px у меню). **Load Reference Patch** з текою `nitrofs` російської збірки показує
      російський текст та інші мови гри. Font Editor відкриває `font_ltn.nftr` із запасними клітинками: літера,
      введена в таку клітинку, стає новим символом
+   - `zelda_albw` — Zelda: A Link Between Worlds (3DS, Європа). **Source:** тека `source` робочої теки;
+     **Translation:** `translation`. `1_unpack.bat` записує кожен архів Yaz0 SARC як теку його файлів
+     (`romfs\EU_English\FieldLight.szs\EU_English\Field.msbt`) — за цим шляхом зберігається перекладений файл;
+     `2_build.bat` перепаковує архіви в мод LayeredFS. Усі 190 англійських файлів MSBT (4 956 повідомлень: діалоги,
+     предмети, місця, персонажі, меню, HUD, титри), блок на файл. Файл, який кілька архівів мають з тими самими
+     байтами (`Field.msbt` є у 7), показано один раз, а збірка записує його в кожен із них. Теги названо за власним
+     проєктом повідомлень гри `CTRJack.msbp`: `{PlayerName}`, `{Color:Name}…{Color:Reset}`, `{Wait:30}`,
+     `{ChoiceN:2}`, `{IntNumberN:2:0:-1:None}`, `{ItemName:hammer:Yes:No}`; незмінений файл зберігається байт у байт.
+     Тексти меню й HUD (`Gm_*`, `Mn_*`, `Cm_*`, `Ed_*`) беруть ширину й кількість рядків свого текстового поля з
+     проєкту повідомлень; діалоги — до 344 px, 3 рядки на сторінку. Font Editor відкриває `MessageFont.bffnt` і
+     `HyliaFont.bffnt`; вікно Textures показує 10 банерів мініігор і фіналу та логотип на титульному екрані
    - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Джерело — тека `source` робочої теки
      (`text\*.bin`, `battle\*.bin`: текст гри, вирізаний з `data/LinkData2.bin`, один файл на таблицю з усіма
      її мовами); показується й зберігається англійська таблиця, а `2_build.bat` робочої теки пакує змінені файли

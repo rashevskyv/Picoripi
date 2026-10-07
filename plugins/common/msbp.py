@@ -103,8 +103,12 @@ def read(raw: bytes) -> Dict[str, Any]:
         indices = struct.unpack_from(f"{e}{n}H", tag, o + 2)
         tags.append({"name": _cstr(tag, o + 2 + 2 * n), "params": [params[i] for i in indices]})
     groups = []
-    for o in (_table(tgg, e) if tgg else []):
-        group_id, n = struct.unpack_from(e + "HH", tgg, o)
+    for number, o in enumerate(_table(tgg, e) if tgg else []):
+        if raw[0x0D] < 4:   # version 3 (3DS): no group id; a group's id is its position
+            group_id, o = number, o - 2
+            n = struct.unpack_from(e + "H", tgg, o + 2)[0]
+        else:
+            group_id, n = struct.unpack_from(e + "HH", tgg, o)
         indices = struct.unpack_from(f"{e}{n}H", tgg, o + 4)
         groups.append({"id": group_id, "name": _cstr(tgg, o + 4 + 2 * n), "tags": [tags[i] for i in indices]})
     result["tag_groups"] = groups
