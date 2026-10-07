@@ -117,6 +117,15 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Text in textures (HUD sheet in `SYSTEM.DAT`, title menu, GIM cards, DIS screens, help pictures) is not
   edited by the plugin: catalogued in `ZELDA\_textures\drafts\vagrant_story.json`.
 - No speaker data: a balloon points at a character on screen; scene context gives area and room only.
+## Metal Gear Solid, PlayStation (2026-10-07)
+
+- The font `font.res` has only the 96 ASCII glyphs (no free cell): no Ukrainian letter yet. The game draws codes
+  `80 xx` above 0x80 from the same table, so the table could grow; not tried.
+- A subtitle block may grow only into the rest of its stream's last sector (about 1 KB on average): moving
+  streams needs the stream codes in the scripts and codec calls. Program and overlay strings keep their slot.
+- Textures: the Textures window lists the PCX of 15 menu, title and briefing stages; the build puts any changed PCX
+  back into every stage that holds it. Briefing pictures (`BRF.DAT`, `.pll`) and codec faces (`FACE.DAT`) are not opened.
+- Codec call speaker names are character codes (`character 21ca`), not names.
 ## Yo-kai Watch plugin (`plugins/yokai_watch`, 2026-10-04)
 
 - The fonts' new Ukrainian glyphs: seen in Azahar in the main font (ft_nrm); the small font (ft_sml) grew from 405

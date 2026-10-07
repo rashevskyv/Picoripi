@@ -1,0 +1,18 @@
+[
+  {"label": "Title screen and main menu (title)", "kind": "title", "format": "pcx", "path": "texture/title/*.pcx"},
+  {"label": "HUD, menus, codec frame (resident) (init)", "kind": "hud", "format": "pcx", "path": "texture/init/*.pcx"},
+  {"label": "Options menu (option)", "kind": "menu", "format": "pcx", "path": "texture/option/*.pcx"},
+  {"label": "Results / rank screen (rank)", "kind": "results", "format": "pcx", "path": "texture/rank/*.pcx"},
+  {"label": "Briefing (brf)", "kind": "briefing", "format": "pcx", "path": "texture/brf/*.pcx"},
+  {"label": "Previous operations (mission log) (abst)", "kind": "menu", "format": "pcx", "path": "texture/abst/*.pcx"},
+  {"label": "Pre-operation screen (preope)", "kind": "menu", "format": "pcx", "path": "texture/preope/*.pcx"},
+  {"label": "Photo album (camera)", "kind": "menu", "format": "pcx", "path": "texture/camera/*.pcx"},
+  {"label": "Demo theater (demosel)", "kind": "menu", "format": "pcx", "path": "texture/demosel/*.pcx"},
+  {"label": "VR training menu (selectvr)", "kind": "menu", "format": "pcx", "path": "texture/selectvr/*.pcx"},
+  {"label": "Ending (ending)", "kind": "credits", "format": "pcx", "path": "texture/ending/*.pcx"},
+  {"label": "Opening (opening)", "kind": "credits", "format": "pcx", "path": "texture/opening/*.pcx"},
+  {"label": "M2's redrawn pictures (the game shows them instead of the disc ones)", "kind": "menu", "format": "pcx", "path": "m2/texture/*.pcx"},
+  {"label": "M2 menu labels and headings (pictures)", "kind": "menu_label", "format": "m2", "path": "m2/image/txt_en.m2tex"},
+  {"label": "M2 digital manual pages", "kind": "menu", "format": "m2", "path": "m2/image/manual_open_mgs1_us.m2tex"},
+  {"label": "M2 keyboard and controller help", "kind": "menu", "format": "m2", "path": "m2/image/direct_input_en.m2tex"}
+]
