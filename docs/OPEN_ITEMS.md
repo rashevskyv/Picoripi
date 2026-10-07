@@ -20,7 +20,7 @@ the line when it is done or moved into a plan.
 ## Textures window (`core/texture_formats`, 2026-10-04)
 
 - Not encoded yet: ASTC (TotK logo colour/outline layers: 5 textures), BC6H. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), the Wii channel banner (`opening.bnr`: IMET > U8 > LZ77 > U8 > TPL, LZ77 not handled).
-- No container yet: Koei RDB (Age of Calamity: 4 groups of BC3/BC1 sprites), TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\_shared\textures\drafts`.
+- No container yet: TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\_shared\textures\drafts`.
 - 3DS games have no plugin: their textures open with File → Open (BFLIM, CTPK, CTXB; SARC/SZS, ZAR/GAR, LzS archives) and are edited in place; a plugin with `texture_sources.json` (drafts `zelda_albw`, `zelda_tfh`, `zelda_oot3d`, `zelda_mm3d`) would list them. OoT3D title logo letters are in a CMB model (not handled).
 - Majora's Mask `yar` archives have no room to grow in the ROM: an edit that compresses worse than the original is fitted by recompressing every block of the archive optimally; if even that does not fit, the save is refused with the file's size.
 - An archive around an edited texture is laid out anew by its container code (SARC, RARC); Revert restores the texture file byte for byte, not necessarily the archive.
@@ -229,7 +229,9 @@ ender_proof.py` (text through plugin, SRL build and the font).
 - Which English table (EN or EN2 of the battle dialogue) and which of the six Latin font ids a console
   language uses is unknown; the build writes both tables and all six fonts.
 - Line limits are the widest English line per table; the real box widths are not measured.
-- Not covered: text in textures (logos, UI art), the executable, movies.
+- Not covered: movies (`movie/*.webm`). The executable has no player text (checked 2026-10-07: only
+  zlib/shader debug strings). Text pictures (33 G1T, BC1/BC3, linear) open and build since 2026-10-07; an
+  edited picture was not yet seen in the game (the title logo needs a save past the first battle).
 - Watch: `tests/test_ui/test_font_editor_formats.py::test_font_jobs_run_in_a_worker_thread_one_after_another`
   crashed its xdist worker (access violation) every time it ran first in a worker while that module had a
   fourth test; the G1N editor test therefore lives in `test_font_editor_g1n.py`. Cause not found.

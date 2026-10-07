@@ -112,7 +112,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Source is the workspace's `source` folder
      (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
      with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs
-     the changed files and the edited font (`font\latin.g1n`) into the LayeredFS mod.
+     the changed files into the LayeredFS mod. The Font Editor opens every game font (`font\latin.g1n`, 11
+     sizes; the Japanese, Korean and both Chinese fonts); Tools → Textures lists the 33 pictures with English
+     words (`texture\0x<id>.g1t`: logos, Victory/Defeat/Complete pop-ups, tutorial screenshots, language
+     names). `2_build.bat` writes edited fonts and pictures into the mod as well.
    - `yokai_watch` — Yo-kai Watch (3DS, USA). **Source:** the workspace's `source` folder (every English text
      table `*_en.cfg.bin` at its path inside the game archive `yw1_a.fa`, the fonts `fnt\*.xf`, the English menu
      textures); **Translation:** `translation`. The game's codes show in curly brackets (`{PAGE}` — next page of
