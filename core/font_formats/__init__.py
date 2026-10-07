@@ -33,11 +33,12 @@ Sheets = List[Image.Image]
 
 def _backends() -> Dict[str, Any]:
     from core.font_formats import (bcfnt, bffnt, bfotf, g1n, g1t, gba_tiles, gzf, mgs, n64, nftr, pgf, policenauts, qbf,
-                                   retro_font, retro_font_gx, twewy, vagrant, xf)
+                                   retro_font, retro_font_gx, texture_grid, twewy, vagrant, xf)
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
-            "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts}
+            "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
+            "texture_grid": texture_grid}
 
 
 def adds_glyphs(fmt: str) -> bool:

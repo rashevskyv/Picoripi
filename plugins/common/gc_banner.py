@@ -1,8 +1,9 @@
-"""The disc banner ``opening.bnr`` (BNR1): the game's name and description in the GameCube menu and Dolphin.
+"""The GameCube disc banner ``opening.bnr`` (BNR1): the game's name and description in the console menu and Dolphin.
 
 After the 0x20-byte header and the 96x32 RGB5A3 picture (0x1800 bytes): short name (32 bytes), short maker
 (32), long name (64), long maker (64), description (128, may hold one line break); NUL-padded Windows-1252
-text. The console's menu font has Latin letters only, so text that does not fit Windows-1252 is refused.
+text. The console's menu font has Latin letters only, so text that does not fit Windows-1252 is refused. Shared by
+The Wind Waker and Metal Gear Solid: The Twin Snakes.
 """
 from __future__ import annotations
 
@@ -22,9 +23,10 @@ def read(data: bytes) -> List[str]:
 
 
 def write(data: bytes, texts: Sequence[str]) -> bytes:
+    """``data`` with the changed texts; a field that did not change keeps its bytes."""
     out = bytearray(data)
     for (at, size, label), text, old in zip(FIELDS, texts, read(data)):
-        if text == old:
+        if text is None or text == old:
             continue
         try:
             raw = str(text).encode("cp1252")

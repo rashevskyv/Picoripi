@@ -156,3 +156,64 @@ def test_the_game_files_round_trip_byte_for_byte():
     assert tpl[:4] == b"\x00\x20\xaf\x30"
     archive.write_file(member, tpl)
     assert archive.pack() is data
+
+
+def test_a_grid_font_in_a_texture_pack_opens_packs_back_and_takes_a_glyph(stage_dat, tmp_path):
+    from core import font_formats
+    from core.font_formats import sources as font_sources
+    data, _tpl = stage_dat
+    ContainerManager.register(StageDatContainer)
+    source, translation = tmp_path / "source", tmp_path / "translation"
+    (source / "texture").mkdir(parents=True)
+    (source / "texture" / "n_title.stage").write_bytes(data)
+    descriptor = {"label": "Grid", "format": "texture_grid", "path": "texture/n_title.stage",
+                  "member": "13abcdef.tpl", "params": {"image": 0, "cell": [8, 8], "first_code": 0x41}}
+    font = font_sources.resolve([descriptor], {"source_path": str(source), "translation_path": str(translation)})[0]
+    assert font.member == "n_title/13abcdef.tpl"
+    original = font.read_original()
+    metadata, sheets = font_formats.extract("texture_grid", original, font.params)
+    assert font_formats.char_map(metadata)["B"] == 1 and metadata["WID1"][0]["packets"][1]["width"] == 8
+    assert font_formats.pack("texture_grid", metadata, sheets, original, font.params) == original
+    sheets[0].paste((255, 255, 255, 255), (8, 0, 16, 8))           # glyph "B" becomes a box
+    font.write(font_formats.pack("texture_grid", metadata, sheets, original, font.params))
+    again = font_formats.extract("texture_grid", font.read_current(), font.params)[1][0]
+    assert again.crop((8, 0, 16, 8)).getcolors() == [(64, (255, 255, 255, 255))]
+    assert (source / "texture" / "n_title.stage").read_bytes() == data
+    written = StageDatContainer((translation / "texture" / "n_title.stage").read_bytes())
+    assert written.read_file("r_cmmn/0a000001.bin") == StageDatContainer(data).read_file("r_cmmn/0a000001.bin")
+
+
+@pytest.mark.skipif(not (WORKSPACE / "source" / "text" / "texture" / "r_cmmn.stage").is_file(),
+                    reason="Twin Snakes texture stages not unpacked here")
+def test_every_real_font_source_opens_and_packs_back_byte_for_byte():
+    import json
+    from core import font_formats
+    from core.font_formats import sources as font_sources
+    ContainerManager.register(StageDatContainer)
+    descriptors = json.loads((Path(__file__).parents[3] / "plugins" / "mgs_ts" / "font_sources.json")
+                             .read_text(encoding="utf-8"))
+    found = font_sources.resolve(descriptors, {"source_path": str(WORKSPACE / "source" / "text")})
+    assert len(found) == len(descriptors)
+    for font in found:
+        original = font.read_original()
+        metadata, sheets = font_formats.extract(font.format, original, font.params)
+        assert metadata["GLY1"][0]["end_glyph"] + 1 >= 10, font.label
+        assert font_formats.pack(font.format, metadata, sheets, original, font.params) == original, font.label
+
+
+@pytest.mark.skipif(not (WORKSPACE / "source" / "text" / "disc1" / "opening.bnr").is_file(),
+                    reason="Twin Snakes texture stages and banners not unpacked here")
+def test_every_real_texture_source_opens_and_writes_back_unchanged():
+    import json
+    from core import texture_formats
+    ContainerManager.register(StageDatContainer)
+    descriptors = json.loads((Path(__file__).parents[3] / "plugins" / "mgs_ts" / "texture_sources.json")
+                             .read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(WORKSPACE / "source" / "text")})
+    labels = {s.label.split(": ")[0] for s in found}
+    assert {"Disc banner (disc 1)", "Disc banner (disc 2)"} <= labels
+    assert sum(1 for s in found if "13883ef4" in s.key or "13927bc4.tpl#2" in s.key) == 4   # every title logo layer
+    for s in found:
+        data, _rewrap = sources.unwrap(Path(s.source_path).read_bytes(), s.member, s.params)
+        image = texture_formats.read(s.format, data, s.params)[s.index].image
+        assert texture_formats.write(s.format, data, {s.index: image}, s.params) == data, s.key

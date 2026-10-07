@@ -11,5 +11,27 @@
       "ascent": 21,
       "columns": 16
     }
-  }
+  },
+  {"label": "HUD font 8x16 (area stages)", "format": "texture_grid", "path": "texture/area01a.stage", "member": "13382235.tpl", "params": {"image": 1, "cell": [8, 16], "first_code": 32}},
+  {"label": "HUD font 12x16 (area stages)", "format": "texture_grid", "path": "texture/area01a.stage", "member": "13382235.tpl", "params": {"image": 2, "cell": [12, 16], "first_code": 32}},
+  {"label": "HUD font 10x14 (area stages)", "format": "texture_grid", "path": "texture/area01a.stage", "member": "13382235.tpl", "params": {"image": 3, "cell": [10, 14], "first_code": 32}},
+  {"label": "HUD font 8x16 (boss stages)", "format": "texture_grid", "path": "texture/area06b.stage", "member": "13382235.tpl", "params": {"image": 1, "cell": [8, 16], "first_code": 32}},
+  {"label": "HUD font 12x16 (boss stages)", "format": "texture_grid", "path": "texture/area06b.stage", "member": "13382235.tpl", "params": {"image": 3, "cell": [12, 16], "first_code": 32}},
+  {"label": "HUD font 10x14 (boss stages)", "format": "texture_grid", "path": "texture/area06b.stage", "member": "13382235.tpl", "params": {"image": 4, "cell": [10, 14], "first_code": 32}},
+  {"label": "HUD font 8x16 (demo10a)", "format": "texture_grid", "path": "texture/demo10a.stage", "member": "13382235.tpl", "params": {"image": 1, "cell": [8, 16], "first_code": 32}},
+  {"label": "HUD font 12x16 (demo10a)", "format": "texture_grid", "path": "texture/demo10a.stage", "member": "13382235.tpl", "params": {"image": 3, "cell": [12, 16], "first_code": 32}},
+  {"label": "HUD font 10x14 (demo10a)", "format": "texture_grid", "path": "texture/demo10a.stage", "member": "13382235.tpl", "params": {"image": 4, "cell": [10, 14], "first_code": 32}},
+  {"label": "Menu font, stylised (r_*)", "format": "texture_grid", "path": "texture/r_cmmn.stage", "member": "139e6fd4.tpl", "params": {"image": 6, "cell": [18, 14], "chars": " !\"#$%&'()*+,-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}},
+  {"label": "Menu font, stylised glow (r_*)", "format": "texture_grid", "path": "texture/r_cmmn.stage", "member": "139e6fd4.tpl", "params": {"image": 7, "cell": [18, 14], "chars": " !\"#$%&'()*+,-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}},
+  {"label": "Menu font, stylised digits (r_*)", "format": "texture_grid", "path": "texture/r_cmmn.stage", "member": "139e6fd4.tpl", "params": {"image": 8, "cell": [18, 14], "chars": " !\"#$%&'()*+,-./0123456789"}},
+  {"label": "Menu font, plain (r_*)", "format": "texture_grid", "path": "texture/r_cmmn.stage", "member": "139e6fd4.tpl", "params": {"image": 12, "cell": [14, 14], "chars": " !\"#$%&'()*+,-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}},
+  {"label": "Menu font, plain (save/load, n_title)", "format": "texture_grid", "path": "texture/n_title.stage", "member": "13980cf4.tpl", "params": {"image": 21, "cell": [14, 14], "chars": " !\"#$%&'()*+,-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}},
+  {"label": "Menu font with symbols (main menu, n_title)", "format": "texture_grid", "path": "texture/n_title.stage", "member": "13984557.tpl", "params": {"image": 19, "cell": [18, 14], "first_code": 32}},
+  {"label": "Menu font with symbols (special menu, n_title)", "format": "texture_grid", "path": "texture/n_title.stage", "member": "136b0f12.tpl", "params": {"image": 29, "cell": [18, 14], "first_code": 32}},
+  {"label": "Results font, stylised digits (ending)", "format": "texture_grid", "path": "texture/ending.stage", "member": "1367a098.tpl", "params": {"image": 36, "cell": [18, 14], "chars": " !\"#$%&'()*+,-./0123456789"}},
+  {"label": "Results font, stylised digits glow (ending)", "format": "texture_grid", "path": "texture/ending.stage", "member": "1367a098.tpl", "params": {"image": 37, "cell": [18, 14], "chars": " !\"#$%&'()*+,-./0123456789"}},
+  {"label": "Results font, plain (ending)", "format": "texture_grid", "path": "texture/ending.stage", "member": "1367a098.tpl", "params": {"image": 45, "cell": [14, 14], "chars": " !\"#$%&'()*+,-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}},
+  {"label": "Results font, plain blur (ending)", "format": "texture_grid", "path": "texture/ending.stage", "member": "1367a098.tpl", "params": {"image": 46, "cell": [14, 14], "chars": " !\"#$%&'()*+,-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}},
+  {"label": "Screen adjust digits (n_title)", "format": "texture_grid", "path": "texture/n_title.stage", "member": "133ac4c7.tpl", "params": {"image": 3, "cell": [14, 14], "chars": "0123456789+-"}},
+  {"label": "Codec frequency digits", "format": "texture_grid", "path": "texture/demo51a.stage", "member": "138491a6.tpl", "params": {"image": 7, "cell": [18, 12], "chars": "0123456789"}}
 ]

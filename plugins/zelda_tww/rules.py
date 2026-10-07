@@ -1,5 +1,5 @@
 """The Wind Waker (GameCube) plugin: zel_00.bmg in res/Msg/bmgres.arc, the Hylian lines (zel_01.bmg in
-bmgresh.arc), the disc-error messages inside sys/main.dol (``dol``) and the disc banner (``banner``).
+bmgresh.arc), the disc-error messages inside sys/main.dol (``dol``) and the disc banner (``plugins/common/gc_banner``).
 
 Wind Waker and Twilight Princess share the JSystem BMG format, so this class reuses
 the Twilight Princess rules for reading, saving, aliases, preview and checks, and
@@ -11,9 +11,9 @@ import os
 from typing import Any, Dict, Optional
 
 from core.containers import ContainerManager
+from plugins.common import gc_banner as banner
 from plugins.zelda_bmg.rules import GameRules as TwilightPrincessRules
 
-from . import banner
 from .dol import DolResources
 from .tag_catalog import COLOR_NAMES, COLOR_TABLE, WW_CATALOG
 

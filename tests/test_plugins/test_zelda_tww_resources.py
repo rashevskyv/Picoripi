@@ -10,8 +10,8 @@ from core.containers import ContainerManager
 from core.containers.base_container import BaseArchiveContainer
 from core.font_formats import sources as font_sources
 from handlers.project_action.session_mixin import SessionMixin
+from plugins.common import gc_banner as banner
 from plugins.zelda_bmg.bmg_tool import BMGFile
-from plugins.zelda_tww import banner
 from plugins.zelda_tww.dol import DolResources
 from plugins.zelda_tww.rules import GameRules
 

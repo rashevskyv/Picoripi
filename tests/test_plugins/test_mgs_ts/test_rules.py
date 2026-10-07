@@ -215,3 +215,36 @@ def test_real_module_hud_words_match_their_slots():
     assert [raw.decode() for raw in rel.read(data)] == [text for _offset, text, _slot in rel.SLOTS]
     for offset, text, slot in rel.SLOTS:
         assert not any(data[offset + len(text):offset + slot])    # the slot is NUL after the word
+
+
+def banner_file():
+    data = bytearray(b"BNR1" + bytes(0x195C))
+    for (at, _size, _label), text in zip(docs.gc_banner.FIELDS, (b"MGS: The Twin Snakes", b"Disc 1    Konami",
+                                                                 b"MGS: The Twin Snakes Disc 1", b"Konami",
+                                                                 b"Copyright 2004 Konami.")):
+        data[at:at + len(text)] = text
+    return bytes(data)
+
+
+def test_disc_banner_texts_save_in_place_and_refuse_cyrillic():
+    rules = load_rules("mgs_ts")
+    source = banner_file()
+    blocks, names = rules.load_data_from_json_obj(source)
+    assert names == {"0": "Disc banner"} and blocks[0][2] == "MGS: The Twin Snakes Disc 1"
+    assert rules.save_data_to_json_obj(blocks, names) == source
+    blocks[0][0] = "UA TEST"
+    out = rules.save_data_to_json_obj(blocks, names)
+    assert len(out) == len(source) and out[0x1820:0x1840] == b"UA TEST".ljust(32, b"\0")
+    assert out[0x1840:] == source[0x1840:]
+    blocks[0][0] = "Метал"
+    with pytest.raises(ValueError, match="Latin letters only"):
+        rules.save_data_to_json_obj(blocks, names)
+
+
+@pytest.mark.skipif(not (TEXT / "disc1" / "opening.bnr").exists(), reason="Twin Snakes banner not unpacked here")
+@pytest.mark.parametrize("disc", ["disc1", "disc2"])
+def test_real_disc_banner_round_trips(disc):
+    data = (TEXT / disc / "opening.bnr").read_bytes()
+    rules = load_rules("mgs_ts")
+    blocks, names = rules.load_data_from_json_obj(data)
+    assert blocks[0][2].endswith(disc[-1]) and rules.save_data_to_json_obj(blocks, names) == data
