@@ -28,18 +28,19 @@ class Texture:
 
 
 def _backends() -> Dict[str, Any]:
-    from core.texture_formats import (bntx, bti, ctpk, ctxb, flim, g1t, g4tx, gba, gim, gtx, imgc, j3d, m2, pcx,
+    from core.texture_formats import (bfres, bntx, bti, ctpk, ctxb, flim, g1t, g4tx, gba, gim, gtx, imgc, j3d, m2, pcx,
                                       policenauts_pak, raw, tiles, tim, tpl, txtr, txtr_gx, vagrant)
     return {"bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
             "imgc": imgc, "j3d": j3d, "gba": gba, "gtx": gtx, "txtr": txtr, "gim": gim, "raw": raw, "tiles": tiles,
             "txtr_gx": txtr_gx, "tim": tim, "policenauts_pak": policenauts_pak,
-            "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2}
+            "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
+            "bfres": bfres}
 
 
 # File name extension -> format, for files opened directly.
 EXTENSIONS = {".bti": "bti", ".bflim": "bflim", ".bclim": "bflim", ".bntx": "bntx", ".ctpk": "ctpk", ".ctxb": "ctxb", ".tpl": "tpl", ".g1t": "g1t",
               ".xi": "imgc", ".bmd": "j3d", ".bdl": "j3d", ".gtx": "gtx", ".ncgr": "tiles", ".txtr": "txtr", ".gim": "gim", ".fcha": "gim",
-              ".tim": "tim", ".pcx": "pcx", ".psb": "m2", ".m2tex": "m2", ".g4tx": "g4tx"}
+              ".tim": "tim", ".pcx": "pcx", ".psb": "m2", ".m2tex": "m2", ".g4tx": "g4tx", ".bfres": "bfres"}
 
 
 def formats() -> List[str]:

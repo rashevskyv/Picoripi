@@ -119,17 +119,27 @@ def _shown(stored: Image.Image, head: Dict[str, Any]) -> Image.Image:
 
 
 def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
+    return read_surfaces(data, _surfaces(data))
+
+
+def read_surfaces(data: bytes, heads: List[Dict[str, Any]]) -> List[Texture]:
+    """The textures of GX2 surfaces found in ``data`` (also by other containers, e.g. BFRES ``FTEX``): a head
+    holds width, height, mips, format, tile, swizzle, select, data, mip_offsets, mip_data and an optional name."""
     textures = []
-    for index, head in enumerate(_surfaces(data)):
+    for index, head in enumerate(heads):
         codec, _bands, _grey = _codec(head)
-        textures.append(Texture(str(index), _shown(_stored(data, head, codec), head),
+        textures.append(Texture(head.get("name", str(index)), _shown(_stored(data, head, codec), head),
                                 _NAMES.get(head["format"], hex(head["format"])), head["mips"]))
     return textures
 
 
 def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -> bytes:
+    return write_surfaces(data, _surfaces(data), images)
+
+
+def write_surfaces(data: bytes, heads: List[Dict[str, Any]], images: Dict[int, Image.Image]) -> bytes:
+    """``data`` with the surfaces ``heads[index]`` redrawn from ``images`` (mip levels drawn again)."""
     out = bytearray(data)
-    heads = _surfaces(data)
     changed = False
     for index, image in images.items():
         head = heads[index]

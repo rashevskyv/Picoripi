@@ -1,0 +1,7 @@
+[
+  {"label": "Text font (mario)", "format": "bffnt_wiiu", "path": "fonts/mario.bffnt", "font_map": "mario.json"},
+  {"label": "Large text font (marioL)", "format": "bffnt_wiiu", "path": "fonts/marioL.bffnt", "font_map": "marioL.json"},
+  {"label": "Pop font (pop)", "format": "bffnt_wiiu", "path": "fonts/pop.bffnt", "font_map": "pop.json"},
+  {"label": "Large pop font (popL)", "format": "bffnt_wiiu", "path": "fonts/popL.bffnt", "font_map": "popL.json"},
+  {"label": "Outlined pop font (popO)", "format": "bffnt_wiiu", "path": "fonts/popO.bffnt", "font_map": "popO.json"}
+]

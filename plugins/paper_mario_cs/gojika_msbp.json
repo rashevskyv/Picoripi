@@ -1,0 +1,670 @@
+{
+ "endian": "big",
+ "colors": [
+  {
+   "name": "TalkFont",
+   "rgba": "3c3c3cff"
+  },
+  {
+   "name": "SignboardFont",
+   "rgba": "2c1005ff"
+  },
+  {
+   "name": "Black",
+   "rgba": "3c3c3cff"
+  },
+  {
+   "name": "Yellow",
+   "rgba": "feff00ff"
+  },
+  {
+   "name": "Red",
+   "rgba": "ff0000ff"
+  },
+  {
+   "name": "Blue",
+   "rgba": "0000ffff"
+  },
+  {
+   "name": "Green",
+   "rgba": "008a00ff"
+  },
+  {
+   "name": "RoyalRed",
+   "rgba": "bf0000ff"
+  },
+  {
+   "name": "IMBrown",
+   "rgba": "5d3a17ff"
+  },
+  {
+   "name": "White",
+   "rgba": "f4f4f4ff"
+  },
+  {
+   "name": "MSBlue",
+   "rgba": "00535fff"
+  },
+  {
+   "name": "MSRed",
+   "rgba": "871000ff"
+  },
+  {
+   "name": "Orange",
+   "rgba": "ff5b0aff"
+  }
+ ],
+ "attributes": [],
+ "tag_groups": [
+  {
+   "id": 0,
+   "name": "System",
+   "tags": [
+    {
+     "name": "Ruby",
+     "params": [
+      {
+       "name": "rt",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Font",
+     "params": [
+      {
+       "name": "face",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Size",
+     "params": [
+      {
+       "name": "percent",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "Color",
+     "params": [
+      {
+       "name": "r",
+       "type": "u8"
+      },
+      {
+       "name": "g",
+       "type": "u8"
+      },
+      {
+       "name": "b",
+       "type": "u8"
+      },
+      {
+       "name": "a",
+       "type": "u8"
+      },
+      {
+       "name": "name",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "PageBreak",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "name": "control",
+   "tags": [
+    {
+     "name": "dkey",
+     "params": []
+    },
+    {
+     "name": "end",
+     "params": []
+    },
+    {
+     "name": "signal",
+     "params": [
+      {
+       "name": "val",
+       "type": "s16"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "name": "layout",
+   "tags": [
+    {
+     "name": "anim",
+     "params": [
+      {
+       "name": "group",
+       "type": "str"
+      },
+      {
+       "name": "name",
+       "type": "str"
+      },
+      {
+       "name": "scale",
+       "type": "s32"
+      },
+      {
+       "name": "flag",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "center",
+     "params": [
+      {
+       "name": "reserved",
+       "type": "s16"
+      }
+     ]
+    },
+    {
+     "name": "icon",
+     "params": [
+      {
+       "name": "name",
+       "type": "str"
+      },
+      {
+       "name": "mojiwidth",
+       "type": "s16"
+      },
+      {
+       "name": "yoffset",
+       "type": "s16"
+      },
+      {
+       "name": "width",
+       "type": "s16"
+      },
+      {
+       "name": "height",
+       "type": "s16"
+      }
+     ]
+    },
+    {
+     "name": "pos",
+     "params": [
+      {
+       "name": "x",
+       "type": "s16"
+      },
+      {
+       "name": "y",
+       "type": "s16"
+      }
+     ]
+    },
+    {
+     "name": "wpos",
+     "params": [
+      {
+       "name": "x",
+       "type": "s32"
+      },
+      {
+       "name": "y",
+       "type": "s32"
+      },
+      {
+       "name": "width",
+       "type": "u32"
+      },
+      {
+       "name": "height",
+       "type": "u32"
+      }
+     ]
+    },
+    {
+     "name": "scaleH",
+     "params": [
+      {
+       "name": "H",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "vtab",
+     "params": [
+      {
+       "name": "lines",
+       "type": "u16"
+      },
+      {
+       "name": "dots",
+       "type": "s16"
+      }
+     ]
+    },
+    {
+     "name": "align",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "left",
+        "right"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "name": "option",
+   "tags": [
+    {
+     "name": "select",
+     "params": [
+      {
+       "name": "default",
+       "type": "s16"
+      },
+      {
+       "name": "cancel",
+       "type": "s16"
+      },
+      {
+       "name": "width",
+       "type": "s16"
+      },
+      {
+       "name": "height",
+       "type": "s16"
+      },
+      {
+       "name": "select",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "ItemName",
+     "params": [
+      {
+       "name": "ID",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "num",
+     "params": [
+      {
+       "name": "index",
+       "type": "s16"
+      },
+      {
+       "name": "format",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "PushY",
+     "params": []
+    },
+    {
+     "name": "reference",
+     "params": [
+      {
+       "name": "label",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "price",
+     "params": []
+    },
+    {
+     "name": "DJB",
+     "params": [
+      {
+       "name": "id",
+       "type": "list",
+       "items": [
+        "MENU",
+        "SAVE",
+        "FLD_MAP",
+        "BTL_AC",
+        "BTL01",
+        "BTL02",
+        "BTL03",
+        "BTL04",
+        "BTL05",
+        "FLD001",
+        "FLD002",
+        "FLD003",
+        "FLD004",
+        "FLD005",
+        "FLD006",
+        "FLD007"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "DJB_CLOSE",
+     "params": [
+      {
+       "name": "delay",
+       "type": "s32"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "scroll",
+   "tags": [
+    {
+     "name": "auto",
+     "params": []
+    },
+    {
+     "name": "key",
+     "params": []
+    },
+    {
+     "name": "once_stop",
+     "params": []
+    },
+    {
+     "name": "speed",
+     "params": [
+      {
+       "name": "time",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "wait",
+     "params": [
+      {
+       "name": "time",
+       "type": "u16"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "sound",
+   "tags": [
+    {
+     "name": "nowinse",
+     "params": []
+    },
+    {
+     "name": "se",
+     "params": [
+      {
+       "name": "no",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "se_3d_on",
+     "params": [
+      {
+       "name": "label",
+       "type": "str"
+      },
+      {
+       "name": "x",
+       "type": "s32"
+      },
+      {
+       "name": "y",
+       "type": "s32"
+      },
+      {
+       "name": "z",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "se_on",
+     "params": [
+      {
+       "name": "label",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "vol",
+     "params": [
+      {
+       "name": "vol",
+       "type": "s32"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "name": "text",
+   "tags": [
+    {
+     "name": "dynamic",
+     "params": [
+      {
+       "name": "scale",
+       "type": "u32"
+      }
+     ]
+    },
+    {
+     "name": "edge",
+     "params": []
+    },
+    {
+     "name": "noise",
+     "params": []
+    },
+    {
+     "name": "shake",
+     "params": [
+      {
+       "name": "reserved",
+       "type": "s16"
+      }
+     ]
+    },
+    {
+     "name": "wave",
+     "params": [
+      {
+       "name": "reserved",
+       "type": "s32"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "name": "window",
+   "tags": [
+    {
+     "name": "kanban",
+     "params": []
+    },
+    {
+     "name": "system",
+     "params": []
+    },
+    {
+     "name": "shout",
+     "params": []
+    },
+    {
+     "name": "talk",
+     "params": []
+    },
+    {
+     "name": "ghost",
+     "params": []
+    },
+    {
+     "name": "scrap",
+     "params": []
+    },
+    {
+     "name": "shout_normal",
+     "params": []
+    },
+    {
+     "name": "talk_kpa",
+     "params": []
+    },
+    {
+     "name": "shout_kpa",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "name": "chr",
+   "tags": [
+    {
+     "name": "anime",
+     "params": [
+      {
+       "name": "talk",
+       "type": "str"
+      },
+      {
+       "name": "wait",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "styles": [
+  {
+   "name": "Talk",
+   "region_width": 560,
+   "lines": 4,
+   "font": 1,
+   "color": 0
+  },
+  {
+   "name": "SmallTalk",
+   "region_width": 140,
+   "lines": 1,
+   "font": 1,
+   "color": 0
+  },
+  {
+   "name": "Signboard",
+   "region_width": 560,
+   "lines": 3,
+   "font": 1,
+   "color": 1
+  },
+  {
+   "name": "System",
+   "region_width": 560,
+   "lines": 2,
+   "font": 1,
+   "color": 0
+  },
+  {
+   "name": "ItemName",
+   "region_width": 350,
+   "lines": 1,
+   "font": 1,
+   "color": 2
+  },
+  {
+   "name": "ItemHelp",
+   "region_width": 600,
+   "lines": 4,
+   "font": 1,
+   "color": 2
+  },
+  {
+   "name": "UI",
+   "region_width": 800,
+   "lines": 1,
+   "font": 1,
+   "color": 0
+  },
+  {
+   "name": "Balloon",
+   "region_width": 130,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "BattleTalk",
+   "region_width": 392,
+   "lines": 1,
+   "font": 1,
+   "color": 0
+  },
+  {
+   "name": "EnemyName",
+   "region_width": 240,
+   "lines": 1,
+   "font": 1,
+   "color": 0
+  },
+  {
+   "name": "SmallTalk_S",
+   "region_width": 65,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "ErrorViewer",
+   "region_width": 900,
+   "lines": 10,
+   "font": 6,
+   "color": 0
+  },
+  {
+   "name": "Scrap",
+   "region_width": 600,
+   "lines": 4,
+   "font": 1,
+   "color": 0
+  }
+ ]
+}
