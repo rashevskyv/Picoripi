@@ -248,6 +248,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Scene context names the area and room of a room file (`vs_index.json`); the game data names no
      speakers. `2_build.bat` writes the changed files over their own sectors of the disc image (EDC/ECC
      recomputed) and splits the font back into `SYSTEM.DAT` and `BATTLE.PRG`.
+   - `metroid_prime_trilogy` — Metroid Prime Trilogy (Wii, USA R3ME01): Prime 1, 2, 3 and the Trilogy menu.
+     **Source:** the workspace's `source` made by `1_unpack.bat` from the game's Retro packages, one folder per
+     game (`MP1`, `MP2`, `MP3`, `Menu`): `text\<package>\<name>.<id>.strg` (every string table once per game,
+     5,473 tables, 16,211 strings), `font\*.font` (59 fonts), `texture\<package>\*.txtr` (2,088 interface
+     textures); **Translation:** `translation`. Every table is a block of its English strings; the game's
+     `&push;` / `&main-color=#…;` / `&image=…;` tags read `{push}`, `{main-color=#…}`, `{image=…}`. A saved table
+     carries the edited text as every language of the table (the game shows it whatever the console language);
+     an unedited table stays byte for byte. The Font Editor opens every font (`retro_font_gx`: glyphs are edited
+     in place, none added; no font has Ukrainian letters); the Textures window opens the interface textures
+     (`txtr_gx`: every GX format). `2_build.bat` writes changed files into every package of that game that holds
+     them and the packages into a copy of the ISO
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

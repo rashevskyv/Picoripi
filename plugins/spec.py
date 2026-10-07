@@ -77,10 +77,10 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_font_for_block", "Font override for a block: {'original_font_name', 'font_name'}.",
              call=(0,), returns=dict, optional=True),
         Hook("get_font_sources", "The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, "
-             "g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, mgs, nftr, vagrant, retro_font), path, member, font_map, params}]. Default: font_sources.json in the plugin folder.",
+             "g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, mgs, nftr, vagrant, retro_font, retro_font_gx), path, member, font_map, params}]. Default: font_sources.json in the plugin folder.",
              call=(), returns=list),
         Hook("get_texture_sources", "The game's textures with text for the Textures window: [{label, kind, format (bti, tpl, "
-             "bflim, ctpk, ctxb (also CMB models), bntx, g1t, txtr, imgc, j3d, gba, gtx, raw, tiles), path, member, params}]. Default: texture_sources.json in the plugin folder.",
+             "bflim, ctpk, ctxb (also CMB models), bntx, g1t, txtr, imgc, j3d, gba, gtx, txtr_gx, raw, tiles), path, member, params}]. Default: texture_sources.json in the plugin folder.",
              call=(), returns=list),
     )),
     ('Problems and autofix', (

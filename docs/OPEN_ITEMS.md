@@ -17,6 +17,13 @@ the line when it is done or moved into a plan.
 - The Ukrainian glyphs in `WW_UA\translation\files\res\Gba\client_u.bin` are a rough render (Press Start 2P squeezed to 5 px); Б Ґ Ї Й і й need hand drawing.
 - European clients (`client_0`..`4.bin`) have other addresses: no font source or program strings for them yet; their accent codes show as `{xNN}`.
 
+## Metroid Prime Trilogy (`plugins/metroid_prime_trilogy`, 2026-10-07)
+
+- Not opened: strings in the executables (`rs5*.dol`), the HOME Menu (`rhbm\homeBtn_ENG.arc` per game), the Wii menu banner (`opening.bnr`), videos (`.thp`).
+- No font has Ukrainian letters and `retro_font_gx` cannot add glyphs (no room in the C4 texture): letters go over unused accented glyphs (a translation map) or the texture must grow.
+- The workspace LZO packs about 3 % worse than Retro's: a package whose edited resources no longer fit gets the English text of unchanged tables as every language, biggest saving first; the disc has only 232 MB free, so a world package of Prime 3 (up to 743 MB) can never move.
+- Seen in Dolphin only for the menu (STRG version 3); shared-language tables of Prime 1 (version 0) and Prime 2 (version 1) are checked by machine, not in the game.
+
 ## Textures window (`core/texture_formats`, 2026-10-04)
 
 - Not encoded yet: BC6H; ASTC block sizes other than 4x4, 8x8 and 12x12 (ASTC encoding writes one RGBA line per

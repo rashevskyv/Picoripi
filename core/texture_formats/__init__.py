@@ -28,9 +28,10 @@ class Texture:
 
 
 def _backends() -> Dict[str, Any]:
-    from core.texture_formats import bntx, bti, ctpk, ctxb, flim, g1t, gba, gtx, imgc, j3d, raw, tiles, tpl, txtr
+    from core.texture_formats import bntx, bti, ctpk, ctxb, flim, g1t, gba, gtx, imgc, j3d, raw, tiles, tpl, txtr, txtr_gx
     return {"bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "bntx": bntx, "g1t": g1t, "imgc": imgc,
-            "j3d": j3d, "gba": gba, "gtx": gtx, "txtr": txtr, "raw": raw, "tiles": tiles}
+            "j3d": j3d, "gba": gba, "gtx": gtx, "txtr": txtr, "raw": raw, "tiles": tiles,
+            "txtr_gx": txtr_gx}
 
 
 # File name extension -> format, for files opened directly.
