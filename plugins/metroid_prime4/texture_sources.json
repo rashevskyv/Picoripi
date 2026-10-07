@@ -1,0 +1,44 @@
+[
+ {
+  "label": "Start-up screens",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/StartupUI/*.txtr"
+ },
+ {
+  "label": "Title screen and menus",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/FrontEnd/*.txtr"
+ },
+ {
+  "label": "HUD",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/UI_HUD/*.txtr"
+ },
+ {
+  "label": "Pause menu",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/UI_PauseMenu/*.txtr"
+ },
+ {
+  "label": "Common interface",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/PreloadMP4/*.txtr"
+ },
+ {
+  "label": "Misc",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/MiscData/*.txtr"
+ },
+ {
+  "label": "Update 1.1.0",
+  "kind": "interface",
+  "format": "txtr",
+  "path": "texture/Patch/*.txtr"
+ }
+]

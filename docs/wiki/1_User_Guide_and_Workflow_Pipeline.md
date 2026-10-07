@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-04
+updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 9.0k
+tokens: 11.5k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -71,6 +71,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `zelda_oot64` — Zelda: Ocarina of Time (N64): the US 1.0 ROM, the same way as `zelda_mm64` (2,115 messages; codes from zeldaret/oot)
    - `zelda_tww` — Zelda: The Wind Waker (GameCube BMG): `res/Msg/bmgres.arc` of the US or a European disc (`data0`–`data4` are English, German, French, Spanish, Italian). Shares the Twilight Princess machinery; tags, colours and line widths come from the zeldaret/tww decompilation, line width and lines per page follow each message's box type. No speakers or window frames yet
    - `zelda_tingle` — Zelda: The Wind Waker, Tingle Tuner (the text a linked Game Boy Advance shows). **Source:** the disc's `files\res\Gba` folder (`msg_LZ.bin`, USA; `msg_LZ0`–`4` of a European disc: English, German, French, Spanish, Italian); **Translation:** the same folder under `translation`. One block of 1,086 messages with readable codes (`{color:2}`, `{wait:30}`, `{icon:1}`, `{choice2:0}`, `{anim:13}`…); the GBA draws every letter 6 px wide and breaks a line itself after 16 letters, 6 lines a page, so the width check is 96 px. Saving packs the file again (GBA LZ77) and refuses a text bigger than the GBA keeps room for (USA: 67,584 bytes unpacked, about 3 % more than the English); an unchanged file stays byte for byte. `client_u.bin` opens as a second block with the GBA program's own two lines ("Calling...", the no-link screen), changed in place. The Font Editor opens the GBA font inside `client_u.bin` (format `gba_tiles`): Ukrainian letters have their own codes (look-alikes share the Latin glyphs). Checked in Dolphin with its built-in GBA (`WW_UA\3_run_tingle.bat`)
+   - `metroid_prime4` — Metroid Prime 4: Beyond (Switch, update 1.1.0). **Source:** the workspace's `source`
+     made by `1_unpack.bat` from the game's Retro packages (`text\*.msbt`: the English USEN messages of every
+     MSBT table, 98 tables, 5,792 messages; `font\FONT_*.rfont`; `texture\<package>\*.txtr`, decompressed);
+     **Translation:** `translation`. Every table is a block; tags read `{icon:123}`, `{color:255:197:41:255}`,
+     `{size:150}`, `{pageBreak}`, `{column}`; `{0}` placeholders are plain text. The Font Editor opens the three
+     fonts (`retro_font`: distance-field atlases, one language set per page; glyphs are edited in place, none
+     added). The Textures window opens the interface textures (`txtr`: R8, RGBA8, BC1–BC5, BC7 written in place;
+     ASTC read, an edited ASTC texture is stored as RGBA8). `2_build.bat` puts changed text into USEN and EUEN of
+     every package that holds the table (the update's `Patch\Z_198_NXPatch.pak.patch` wins in the game) and
+     changed fonts and textures with their metadata into a LayeredFS mod. The workspace starts from BakAI's
+     Ukrainian translation (text and fonts with Ukrainian letters).
    - `zelda_totk` — Zelda: Tears of the Kingdom (Switch, checked on 1.4.0). **Source:** the game's dumped `romfs`
      with only the language you replace in `Mals` (`USen.Product.140.sarc.zs`), plus `Pack`; **Translation:** the
      mod's `romfs`, e.g. `atmosphere/contents/0100F2C0115B6000/romfs`. Every MSBT in the archive is a block (1,511

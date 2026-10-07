@@ -1,0 +1,90 @@
+[
+ {
+  "label": "Primary font, page 0 (Latin)",
+  "format": "retro_font",
+  "path": "font/FONT_Primary.rfont",
+  "params": {
+   "page": 0
+  }
+ },
+ {
+  "label": "Primary font, page 1 (Japanese)",
+  "format": "retro_font",
+  "path": "font/FONT_Primary.rfont",
+  "params": {
+   "page": 1
+  }
+ },
+ {
+  "label": "Primary font, page 2 (Chinese (simplified))",
+  "format": "retro_font",
+  "path": "font/FONT_Primary.rfont",
+  "params": {
+   "page": 2
+  }
+ },
+ {
+  "label": "Primary font, page 3 (Chinese (traditional))",
+  "format": "retro_font",
+  "path": "font/FONT_Primary.rfont",
+  "params": {
+   "page": 3
+  }
+ },
+ {
+  "label": "Primary font, page 4 (Korean)",
+  "format": "retro_font",
+  "path": "font/FONT_Primary.rfont",
+  "params": {
+   "page": 4
+  }
+ },
+ {
+  "label": "Small font, page 0 (Latin)",
+  "format": "retro_font",
+  "path": "font/FONT_Small.rfont",
+  "params": {
+   "page": 0
+  }
+ },
+ {
+  "label": "Small font, page 1 (Japanese)",
+  "format": "retro_font",
+  "path": "font/FONT_Small.rfont",
+  "params": {
+   "page": 1
+  }
+ },
+ {
+  "label": "Small font, page 2 (Chinese (simplified))",
+  "format": "retro_font",
+  "path": "font/FONT_Small.rfont",
+  "params": {
+   "page": 2
+  }
+ },
+ {
+  "label": "Small font, page 3 (Chinese (traditional))",
+  "format": "retro_font",
+  "path": "font/FONT_Small.rfont",
+  "params": {
+   "page": 3
+  }
+ },
+ {
+  "label": "Small font, page 4 (Korean)",
+  "format": "retro_font",
+  "path": "font/FONT_Small.rfont",
+  "params": {
+   "page": 4
+  }
+ },
+ {
+  "label": "Geneva font, page 0 (Latin)",
+  "format": "retro_font",
+  "path": "font/FONT_Geneva.rfont",
+  "params": {
+   "page": 0
+  }
+ }
+]
