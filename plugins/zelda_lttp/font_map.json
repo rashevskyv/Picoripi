@@ -1,0 +1,68 @@
+{
+ "[...]": {
+  "width": 6
+ },
+ "[Ankh]": {
+  "width": 6
+ },
+ "[Waves]": {
+  "width": 6
+ },
+ "[Snake]": {
+  "width": 6
+ },
+ "[LinkL]": {
+  "width": 8
+ },
+ "[LinkR]": {
+  "width": 8
+ },
+ "[Up]": {
+  "width": 7
+ },
+ "[Down]": {
+  "width": 7
+ },
+ "[Left]": {
+  "width": 7
+ },
+ "[Right]": {
+  "width": 7
+ },
+ "[1HeartL]": {
+  "width": 8
+ },
+ "[1HeartR]": {
+  "width": 8
+ },
+ "[2HeartL]": {
+  "width": 8
+ },
+ "[3HeartL]": {
+  "width": 8
+ },
+ "[3HeartR]": {
+  "width": 8
+ },
+ "[4HeartL]": {
+  "width": 8
+ },
+ "[4HeartR]": {
+  "width": 8
+ },
+ "[A]": {
+  "width": 8
+ },
+ "[B]": {
+  "width": 8
+ },
+ "[X]": {
+  "width": 8
+ },
+ "[Y]": {
+  "width": 8
+ },
+ "[Name]": {
+  "width": 42
+ }
+}

@@ -420,3 +420,38 @@ def test_text_save_keeps_the_font_edited_in_the_translation_rom(tmp_path):
     assert font_formats.extract("n64", rebuilt, N64_PARAMS)[0]["WID1"] == metadata["WID1"]
     assert saver._keep_edited_fonts(str(translation), "text") == "text"
     assert saver._keep_edited_fonts(str(tmp_path / "other.z64"), original) == original
+
+def _zelda3_font_png() -> bytes:
+    """A port font.png: glyph 0 a 2x2 block of colour 3 with a width marker at 5, the rest blank."""
+    import io
+    from core.font_formats import zelda3
+    image = Image.new("P", zelda3.SIZE, 0)
+    image.putpalette([v for i in range(256) for v in (i, i, i)])
+    for glyph in range(zelda3.GLYPHS):
+        x0, y0 = zelda3._cell(glyph)
+        for y in range(16):
+            for x in range(8):
+                image.putpixel((x0 + x, y0 + y), 96)
+    for x, y in ((1, 3), (2, 3), (1, 4), (2, 4)):
+        image.putpixel((x, 1 + y), 99)
+    image.putpixel((4, 0), 255)
+    stream = io.BytesIO()
+    image.save(stream, "PNG")
+    return stream.getvalue()
+
+
+def test_zelda3_font_png_round_trip_glyph_and_width_edit():
+    original = _zelda3_font_png()
+    params = {"chars": ["A", "B", "[Ankh]"]}
+    metadata, sheets = font_formats.extract("zelda3", original, params)
+    assert font_formats.pack("zelda3", metadata, sheets, original, params) == original
+    assert metadata["WID1"][0]["packets"][0]["width"] == 5 and metadata["WID1"][0]["packets"][1]["width"] == 8
+    assert sheets[0].getpixel((1, 3)) == (255, 255, 255, 255) and font_formats.char_map(metadata) == {"A": 0, "B": 1}
+
+    ImageDraw.Draw(sheets[0]).rectangle((8, 0, 15, 15), fill=(255, 255, 255, 255))   # glyph 1 filled
+    metadata["WID1"][0]["packets"][1]["width"] = 3
+    edited = font_formats.pack("zelda3", metadata, sheets, original, params)
+    again, again_sheets = font_formats.extract("zelda3", edited, params)
+    assert again["WID1"][0]["packets"][1]["width"] == 3
+    assert again_sheets[0].tobytes() == sheets[0].tobytes()
+    assert Image.open(__import__("io").BytesIO(edited)).getpixel((9, 1)) == 99     # stored as base 96 + colour 3

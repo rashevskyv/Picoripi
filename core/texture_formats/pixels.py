@@ -8,6 +8,7 @@ family:
 - ``gx:*`` -- GameCube / Wii: a GX tile (8x8, 8x4 or 4x4 pixels, row by row inside), big endian;
 - ``pica:*`` -- 3DS: an 8x8 tile in Morton order, little endian, 4-bit texels low nibble first;
 - ``n64:*`` -- N64: linear rows, big endian, 4-bit texels high nibble first;
+- ``snes:*`` -- SNES: a planar 8x8 tile (``snes_codec``), colour indices shown as grey;
 - plain names (``RGBA8``, ``BC3``...) -- Wii U / Switch: one pixel, or one 4x4 block of a block
   compressed format, in linear order (the surface layout -- ``gx2``, ``tegra`` -- places them).
 
@@ -507,6 +508,55 @@ def nearest_palette(image: Image.Image, count: int) -> List[RGBA]:
     return [tuple(flat[i:i + 4]) for i in range(0, len(flat), 4)]
 
 
+def snes_codec(bpp: int, name: str = "") -> Codec:
+    """SNES planar 8x8 tiles, row by row across the image: ``bpp`` 2 or 4 (bitplane pairs, 16 bytes each), or 3
+    (Zelda: A Link to the Past: planes 0+1 as in 2bpp, then 8 bytes of plane 2). Colour index ``v`` shows as grey
+    ``v / (2**bpp - 1)``, index 0 transparent; the game's palettes are not stored with the tiles."""
+    top = (1 << bpp) - 1
+    size = 8 * bpp
+
+    def planes(y: int):
+        if bpp == 3:
+            return (y * 2, y * 2 + 1, 16 + y)
+        return tuple(pair * 16 + y * 2 + bit for pair in range(bpp // 2) for bit in (0, 1))
+
+    rows = [planes(y) for y in range(8)]
+
+    def dec(data: bytes, width: int, height: int) -> Image.Image:
+        out = bytearray(width * height * 4)
+        tiles_wide = width // 8
+        for tile in range(tiles_wide * (height // 8)):
+            base, tx, ty = tile * size, tile % tiles_wide * 8, tile // tiles_wide * 8
+            for y, offsets in enumerate(rows):
+                stored = [data[base + o] for o in offsets]
+                for x in range(8):
+                    value = sum(((b >> (7 - x)) & 1) << plane for plane, b in enumerate(stored))
+                    if value:
+                        grey = value * 255 // top
+                        at = ((ty + y) * width + tx + x) * 4
+                        out[at:at + 4] = bytes((grey, grey, grey, 255))
+        return Image.frombytes("RGBA", (width, height), bytes(out))
+
+    def enc(image: Image.Image) -> bytes:
+        width, height = image.size
+        px = image.convert("RGBA").tobytes()
+        out = bytearray()
+        for ty in range(0, height, 8):
+            for tx in range(0, width, 8):
+                tile = bytearray(size)
+                for y, offsets in enumerate(rows):
+                    for x in range(8):
+                        at = ((ty + y) * width + tx + x) * 4
+                        r, g, b, a = px[at:at + 4]
+                        value = 0 if a < 128 else max(1, (max(r, g, b) * top + 127) // 255)
+                        for plane, o in enumerate(offsets):
+                            tile[o] |= ((value >> plane) & 1) << (7 - x)
+                out += tile
+        return bytes(out)
+
+    return Codec(name or f"snes:{bpp}bpp", (8, 8), size, dec, enc)
+
+
 def _raw_codec(name: str, raw_mode: str) -> Codec:
     """A 32-bit linear format Pillow reads and writes as it is."""
     def dec(data: bytes, width: int, height: int) -> Image.Image:
@@ -560,6 +610,9 @@ def _build() -> Dict[str, Codec]:
     add(value_codec("n64:IA16", 16, *_two(("i", 8), ("a", 8))))
     add(value_codec("n64:RGBA16", 16, *_packed((("r", 5), ("g", 5), ("b", 5), ("a", 1)))))
     add(value_codec("n64:RGBA32", 32, *_bytes_order("rgba")))
+    # SNES (planar 8x8 tiles)
+    for bpp in (2, 3, 4):
+        add(snes_codec(bpp))
     # Wii U / Switch: one pixel per element, little endian
     le = dict(endian="<")
     add(_raw_codec("RGBA8", "RGBA"))    # bytes R, G, B, A

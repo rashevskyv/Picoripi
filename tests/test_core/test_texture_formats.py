@@ -123,6 +123,18 @@ def test_cmpr_tiles_hold_four_dxt1_blocks_in_z_order():
     assert decoded.getpixel((5, 1))[2] > 200 and decoded.getpixel((1, 5))[0] > 200
 
 
+def test_snes_tiles_are_planar_and_alttp_3bpp_keeps_plane_two_apart():
+    two = bytes([0x80, 0x00] + [0] * 14)                       # top-left pixel: plane 0 only = colour 1
+    assert pixels.codec("snes:2bpp").decode(two, 8, 8).getpixel((0, 0)) == (85, 85, 85, 255)
+    three = bytearray(24)
+    three[16] = 0x01                                             # plane 2 of row 0, rightmost pixel = colour 4
+    image = pixels.codec("snes:3bpp").decode(bytes(three), 8, 8)
+    assert image.getpixel((7, 0)) == (145, 145, 145, 255) and image.getpixel((0, 0))[3] == 0
+    four = bytearray(32)
+    four[17] = 0x80                                              # plane 3 of row 0 = colour 8
+    assert pixels.codec("snes:4bpp").encode(pixels.codec("snes:4bpp").decode(bytes(four), 8, 8)) == bytes(four)
+
+
 def test_unknown_pixel_format_is_refused():
     with pytest.raises(ValueError):
         pixels.codec("gx:NOPE")
