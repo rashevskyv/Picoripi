@@ -10,12 +10,12 @@ from PIL import Image, ImageDraw
 
 from core import texture_formats
 from core.containers import yaz0
-from core.texture_formats import bc7, bntx, bti, ctpk, etc1, flim, g1t, gx2, pixels, raw, sources, surface, tegra
+from core.texture_formats import astc, bc7, bntx, bti, ctpk, etc1, flim, g1t, gx2, pixels, raw, sources, surface, tegra
 
 ROOT = Path(__file__).resolve().parents[2]
 LOSSLESS = [name for name in pixels.names()
-            if not name.startswith(("BC", "pica:ETC")) and name != "gx:CMPR"]
-LOSSY = ["BC1", "BC2", "BC3", "BC4", "BC4L", "BC4A", "BC5", "BC5LA", "BC7", "gx:CMPR", "pica:ETC1", "pica:ETC1A4"]
+            if not name.startswith(("BC", "pica:ETC", "ASTC")) and name != "gx:CMPR"]
+LOSSY = ["BC1", "BC2", "BC3", "BC4", "BC4L", "BC4A", "BC5", "BC5LA", "BC7", "gx:CMPR", "pica:ETC1", "pica:ETC1A4", "ASTC4x4"]
 
 
 def sarc(files: dict) -> bytes:
@@ -344,12 +344,12 @@ def make_bntx(textures):
 
 def test_bntx_textures_by_name_and_unsupported_formats_listed():
     data = make_bntx([("Logo", 0x0B, picture(40, 20)), ("Mask", 0x1D, picture(32, 16))])
-    astc = bytearray(make_bntx([("Astc", 0x0B, picture(8, 8))]))
-    struct.pack_into("<I", astc, struct.unpack_from("<Q", astc, struct.unpack_from("<Q", astc, 0x28)[0])[0] + 0x1C,
-                     0x2D << 8 | 1)
-    assert "not supported" in bntx.read(bytes(astc), {})[0].pixel_format
+    bc6 = bytearray(make_bntx([("Bc6", 0x0B, picture(8, 8))]))
+    struct.pack_into("<I", bc6, struct.unpack_from("<Q", bc6, struct.unpack_from("<Q", bc6, 0x28)[0])[0] + 0x1C,
+                     0x1F << 8 | 1)
+    assert "not supported" in bntx.read(bytes(bc6), {})[0].pixel_format
     with pytest.raises(ValueError):
-        bntx.write(bytes(astc), {0: picture(8, 8)}, {})
+        bntx.write(bytes(bc6), {0: picture(8, 8)}, {})
     textures = bntx.read(data, {})
     assert [t.name for t in textures] == ["Logo", "Mask"]
     assert textures[0].image.tobytes() == picture(40, 20).tobytes()
@@ -669,3 +669,48 @@ def test_tpl_images_read_and_write():
     new = tpl.write(data, {1: Image.new("RGBA", (16, 16), (0, 0, 255, 255))}, {})
     assert tpl.read(new, {})[1].image.getpixel((9, 9))[2] > 240
     assert tpl.read(new, {})[0].image.tobytes() == textures[0].image.tobytes()
+
+
+def test_astc_two_colour_blocks_round_trip_exactly_and_edits_touch_only_their_blocks():
+    image = Image.new("RGBA", (16, 8), (0, 0, 0, 0))
+    ImageDraw.Draw(image).rectangle((2, 1, 9, 6), fill=(255, 255, 255, 255))
+    ImageDraw.Draw(image).rectangle((12, 0, 15, 7), fill=(200, 30, 10, 255))
+    data = astc.encode(image)
+    assert len(data) == 8 * 16
+    assert astc.decode(data, 16, 8).tobytes() == image.tobytes()
+    bntx_data = make_bntx([("Logo", 0x2D, image)])
+    texture = bntx.read(bntx_data, {})[0]
+    assert (texture.pixel_format, texture.image.tobytes()) == ("ASTC4x4", image.tobytes())
+    assert bntx.write(bntx_data, {0: texture.image}, {}) == bntx_data
+    edited = image.copy()
+    ImageDraw.Draw(edited).rectangle((0, 4, 3, 7), fill=(10, 200, 10, 255))
+    new = bntx.write(bntx_data, {0: edited}, {})
+    assert bntx.read(new, {})[0].image.tobytes() == edited.tobytes()
+    assert sum(a != b for a, b in zip(new, bntx_data)) <= 16          # one block re-encoded
+
+
+def test_astc_decodes_void_extent_and_marks_illegal_blocks():
+    block = (0x1FC | 3 << 10 | ((1 << 52) - 1) << 12 | 0x1234 << 64 | 0x5678 << 80 | 0x9ABC << 96 | 0xFFFF << 112)
+    assert astc.decode_block(block.to_bytes(16, "little"), 4, 4)[0] == (0x12, 0x56, 0x9A, 0xFF)
+    assert astc.decode_block(bytes(16), 4, 4) == [astc.ERROR] * 16       # block mode 0 is reserved
+    assert astc.block_mode(0x42) == (4, 4, False, 2)
+
+
+def test_astc_integer_sequences_with_trits_and_quints():
+    assert astc.ise_bits(8, 20) == 64 and astc.ise_bits(5, 4) == 13 and astc.ise_bits(3, 3) == 7
+    # five trits 0..2 with one low bit each: values 2*t + b
+    values = [(2, 1), (0, 0), (1, 1), (2, 0), (1, 0)]
+    packed = 0
+    for index, digits in enumerate(astc._TRITS):
+        if list(digits) == [t for t, _b in values]:
+            packed = index
+            break
+    stream, pos = 0, 0
+    for (length, (_t, low)), shift in zip(zip((2, 2, 1, 2, 1), values), (0, 2, 4, 5, 7)):
+        stream |= low << pos
+        pos += 1
+        stream |= ((packed >> shift) & ((1 << length) - 1)) << pos
+        pos += length
+    assert astc.ise_decode(stream, 5, 4) == values
+    assert sorted({astc.unquantize_weight(2, 0, low) for low in range(4)}) == [0, 21, 43, 64]
+    assert [astc.unquantize_color(4, t, b) for t, b in ((0, 0), (0, 1), (2, 1))][0] == 0

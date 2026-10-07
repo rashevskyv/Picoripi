@@ -5,8 +5,10 @@ every 32-bit little-endian word XORed with the key (as Switch shared fonts are, 
 ``DecryptSharedFont``). Tears of the Kingdom keeps its fonts this way in ``Font/*.bfarc.zs``.
 
 The editor model renders every mapped character with FreeType (PIL) at ``params["size"]`` pixels; the
-advance widths come from ``hmtx`` at that size. A scalable font's outlines and metrics are not edited
-here: packing an unedited model gives the original bytes, an edited one is refused with the reason.
+advance widths come from ``hmtx`` at that size. Packing an unedited model gives the original bytes. A
+changed width becomes the glyph's ``hmtx`` advance; a redrawn cell replaces the glyph's outline with its
+ink traced as squares, one rectangle per run of pixels (``core.font_formats.cff`` rebuilds the font). A
+drawn glyph is as blocky as its pixels: a test mark or a draft letter, not a finished outline.
 """
 from __future__ import annotations
 
@@ -21,6 +23,7 @@ from core.font_formats import Metadata, Sheets, char_code, grey_sheet, map_entri
 _MAGIC = 0x18029A7F
 _COLUMNS = 32
 DEFAULT_SIZE = 40
+_INK = 128          # a drawn pixel at least this opaque is part of the new outline
 
 
 def is_bfotf(data: bytes) -> bool:
@@ -156,8 +159,8 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     packets = [{"kerning": 0, "width": round(font.advance(glyph) * scale)} for glyph in glyphs]
     pairs = [(char_code(chr(code)), cell_of[glyph]) for code, glyph in mapping.items()]
     metadata = {
-        "header": {"signature": "BFOTF", "textures_editable": False, "outline": True,
-                   "units_per_em": font.units_per_em, "glyph_ids": glyphs},
+        "header": {"signature": "BFOTF", "textures_editable": True, "units_per_em": font.units_per_em,
+                   "glyph_ids": glyphs, "baseline": 1 + pil_font.getmetrics()[0]},
         "INF1": [{"encoding": 1, "ascent": ascent, "descent": descent, "width": size // 2, "leading": cell_h,
                   "fallback_code": 0x3F, "unk1": 0}],
         "GLY1": [{"start_glyph": 0, "end_glyph": len(glyphs) - 1, "cell_width": cell_w, "cell_height": cell_h,
@@ -169,16 +172,77 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     return metadata, [grey_sheet(ink) for ink in inks]
 
 
+def _cells(metadata: Metadata, sheets: Sheets):
+    """``(cell index, box)`` of every glyph cell, sheet by sheet."""
+    grid = metadata["GLY1"][0]
+    cell_w, cell_h, rows = grid["cell_width"], grid["cell_height"], grid["glyph_vertical_count"]
+    for cell in range(len(metadata["header"]["glyph_ids"])):
+        sheet, slot = divmod(cell, _COLUMNS * rows)
+        row, column = divmod(slot, _COLUMNS)
+        yield cell, sheet, (column * cell_w, row * cell_h, (column + 1) * cell_w, (row + 1) * cell_h)
+
+
+def _traced(ink: Image.Image, baseline: int, scale: float) -> List[list]:
+    """Rectangle contours (font units, counter-clockwise) covering the ink of one cell; the pen starts at x = 1."""
+    width, height = ink.size
+    pixels = ink.load()
+    open_runs: Dict[Tuple[int, int], int] = {}      # (x0, x1) -> first row
+    boxes = []
+    for y in range(height + 1):
+        runs, x = set(), 0
+        while y < height and x < width:
+            if pixels[x, y] >= _INK:
+                x0 = x
+                while x < width and pixels[x, y] >= _INK:
+                    x += 1
+                runs.add((x0, x))
+            x += 1
+        for run in [r for r in open_runs if r not in runs]:
+            boxes.append((run[0], open_runs.pop(run), run[1], y))
+        for run in runs:
+            open_runs.setdefault(run, y)
+
+    def point(px: int, py: int):
+        return round((px - 1) / scale), round((baseline - py) / scale)
+    return [[("M", point(x0, y1)), ("L", point(x1, y1)), ("L", point(x1, y0)), ("L", point(x0, y0))]
+            for x0, y0, x1, y1 in boxes]
+
+
 def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, Any]) -> bytes:
-    """The original bytes; a changed width or drawn pixel is refused (outlines are not edited here)."""
+    """The original bytes when nothing changed; else the font with the changed widths and redrawn glyphs."""
+    from core.font_formats import cff as cff_format, coverage
     again, again_sheets = extract(original, params)
-    if metadata.get("WID1") != again.get("WID1"):
-        raise ValueError("The widths of a scalable (OpenType) font are its outlines' metrics and are not "
-                         "edited here; edit the font in a font editor (FontForge) instead.")
-    if [sheet.convert("RGBA").tobytes() for sheet in sheets] != [sheet.tobytes() for sheet in again_sheets]:
-        raise ValueError("The glyphs of a scalable (OpenType) font are outlines and are not drawn here; edit "
-                         "the font in a font editor (FontForge) instead.")
-    return bytes(original)
+    old_widths = [packet["width"] for packet in again["WID1"][0]["packets"]]
+    new_widths = [packet["width"] for packet in metadata["WID1"][0]["packets"]]
+    drawn = [sheet.convert("RGBA") for sheet in sheets]
+    redrawn = [(cell, sheet, box) for cell, sheet, box in _cells(again, again_sheets)
+               if sheet < len(drawn) and drawn[sheet].crop(box).tobytes() != again_sheets[sheet].crop(box).tobytes()]
+    resized = [cell for cell, (old, new) in enumerate(zip(old_widths, new_widths)) if old != new]
+    if not redrawn and not resized:
+        return bytes(original)
+    plain, key = decrypt(original)
+    font = OpenType(plain)
+    if "CFF " not in font.tables:
+        raise ValueError("Only OpenType fonts with CFF outlines (.bfotf) can be edited here, not TrueType (.bfttf)")
+    scale = int(params.get("size") or DEFAULT_SIZE) / font.units_per_em
+    glyph_ids = again["header"]["glyph_ids"]
+    at, length = font.tables["CFF "]
+    cff = cff_format.Cff(plain[at:at + length])
+    hmtx = font.table("hmtx")
+    metrics = {}
+    for cell in resized:
+        glyph = glyph_ids[cell]
+        long = font.long_metrics
+        lsb_at = hmtx + 4 * glyph + 2 if glyph < long else hmtx + 4 * long + 2 * (glyph - long)
+        metrics[glyph] = (round(new_widths[cell] / scale), struct.unpack_from(">h", plain, lsb_at)[0])
+    baseline = again["header"]["baseline"]
+    for cell, sheet, box in redrawn:
+        glyph = glyph_ids[cell]
+        contours = _traced(coverage(drawn[sheet].crop(box)), baseline, scale)
+        advance = round(new_widths[cell] / scale)
+        cff.charstrings[glyph] = cff_format.charstring(advance, cff.widths_x(glyph), contours)
+        metrics[glyph] = (advance, min((p[1][0] for contour in contours for p in contour), default=0))
+    return encrypt(cff_format.rebuild_font(plain, cff, font.cmap(), [], metrics), key)
 
 
 def contact_sheet(data: bytes, size: int = 32, columns: int = 32, label: str = "") -> Image.Image:
