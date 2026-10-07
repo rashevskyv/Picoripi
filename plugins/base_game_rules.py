@@ -760,7 +760,7 @@ class BaseGameRules:
         """The game's bitmap fonts, for the font editor to open from a project and save back.
 
         Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
-        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``mgs``
+        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``mgs``, ``mgs1``
         or ``nftr`` (DS NFTR)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); ``font_map`` (name of the width map the font
@@ -774,7 +774,7 @@ class BaseGameRules:
         """The game's textures with text in them (title cards, menu labels...), for the Textures window.
 
         Each entry: ``label``; ``kind`` (``title_screen``, ``area_card``, ``menu_label``...); ``format``
-        (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t`` or ``raw``); ``path`` -- as
+        (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t``, ``pcx`` or ``raw``); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``
         (``compression``, ``file_offset``/``file_size``, ``texture`` and what the format needs -- see
