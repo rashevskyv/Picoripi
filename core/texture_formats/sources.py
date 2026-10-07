@@ -398,15 +398,18 @@ def resolve(descriptors: Iterable[Dict[str, Any]], project_metadata: Dict[str, A
     translation_root = str(project_metadata.get("translation_path") or "")
     directory_mode = project_metadata.get("is_directory_mode", True)
     found: List[TextureSource] = []
-    seen = set()
+    seen: Dict[str, str] = {}   # key -> texture name
     for descriptor in descriptors or []:
         try:
             for source_path, translation_path in _match_files(descriptor, source_root, translation_root,
                                                               directory_mode):
                 for source in _sources_in(descriptor, source_path, translation_path,
                                           source_root if directory_mode else ""):
+                    if source.key in seen and source.name and source.name != seen[source.key]:
+                        # Another single-texture descriptor of the same member: a different texture.
+                        source.key += f"#{source.name}"
                     if source.key not in seen:
-                        seen.add(source.key)
+                        seen[source.key] = source.name
                         found.append(source)
         except (OSError, ValueError, KeyError, TypeError, IndexError) as error:
             log_warning(f"Texture source {descriptor.get('label') or descriptor.get('path')!r}: {error}")
