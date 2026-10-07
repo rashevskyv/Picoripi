@@ -3,6 +3,7 @@ import struct
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from core.containers import nitro
 from core.formats import SaveContext
@@ -113,17 +114,39 @@ def test_real_graphics_packs_round_trip():
     assert not ZeldatPack.can_handle(_need(FSAE / "source" / "font_ltn.nftr"))
 
 
-def test_real_texture_sources_resolve(tmp_path):
-    _need(FSAE / "source" / "zeldat.bin")
+def test_real_texture_sources_resolve_in_colour_and_round_trip(tmp_path):
+    _need(FSAE / "source" / "subtask.cmp")
     rules = load_rules("zelda_fsae")
     found = tex_sources.resolve(rules.get_texture_sources(), {
         "source_path": str(FSAE / "source"), "translation_path": str(tmp_path), "is_directory_mode": True})
     keys = {source.key for source in found}
-    assert len(found) == 5 + 8 + 7 and "zeldat.bin/#502" in keys and "subtask_eu_en.cmp/#4" in keys
-    assert next(s for s in found if s.key == "zeldat_eu_en.bin/#10").size == (256, 32)   # GAME OVER letters
+    assert len(found) == 21 and "zeldat.bin/#502" in keys and "subtask_eu_en.cmp/#4" in keys
+    assert next(s for s in found if s.key == "zeldat_eu_en.bin/#10#32x32").size == (256, 32)   # GAME OVER letters
+    assert next(s for s in found if s.key == "zeldat_eu_en.bin/#10#16x32").size == (256, 32)   # as 16 slots
+    for source in found:                                    # every picture: its own PNG writes nothing back
+        image = Image.open(_png(source.read_original().image)).convert("RGBA")
+        assert source.write(image) is False, source.key
+    logo = next(s for s in found if s.key == "zeldat.bin/#502").read_original().image
+    assert any(c[3] and c[0] > 150 and max(c[1], c[2]) < 80 for _n, c in logo.getcolors(1 << 16))   # red, not grey
     plate = next(s for s in found if s.key == "zeldat_eu_en.bin/#2")
     image = plate.read_original().image
-    assert plate.write(image) is False                      # the same picture writes nothing
-    image.paste((255, 255, 255, 255), (0, 0, 8, 8))
+    colour = image.getpixel((20, 4))
+    image.paste((250, 250, 250, 255), (0, 0, 8, 8))         # an off-palette white: the bank's nearest colour
     assert plate.write(image) and (tmp_path / "zeldat_eu_en.bin").is_file()
-    assert plate.read_current().image.getpixel((3, 3)) == (255, 255, 255, 255)
+    redrawn = plate.read_current().image
+    assert redrawn.getpixel((3, 3))[3] == 255 and redrawn.getpixel((3, 3)) != colour
+    assert redrawn.crop((8, 0, 256, 16)).tobytes() == image.crop((8, 0, 256, 16)).tobytes()
+
+
+def _png(image):
+    import io
+    out = io.BytesIO()
+    image.save(out, "PNG")
+    out.seek(0)
+    return out
+
+
+def test_real_texture_sources_match_the_game_palettes():
+    _need(FSAE / "source" / "subtask.cmp")
+    from plugins.zelda_fsae import palettes
+    assert palettes.build(FSAE / "source") == load_rules("zelda_fsae").get_texture_sources()

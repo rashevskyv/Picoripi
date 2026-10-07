@@ -1,4 +1,4 @@
-"""GBA / DS character tiles (``tiles``): NCGR sheets and headerless sprite cells, shown as grey indices."""
+"""GBA / DS character tiles (``tiles``): NCGR sheets, headerless sprite cells, game palettes or grey indices."""
 import struct
 
 import pytest
@@ -50,6 +50,30 @@ def test_headerless_sprite_cells_are_laid_out_side_by_side():
     image = Image.new("RGBA", (64, 16), (0, 0, 0, 0))
     blank = tiles.write(data, {0: image}, params)
     assert blank == bytes(512)
+
+
+def _palette(*colours) -> str:
+    return b"".join(struct.pack("<H", r >> 3 | (g >> 3) << 5 | (b >> 3) << 10) for r, g, b in colours).hex()
+
+
+def test_palette_banks_colour_each_tile_and_import_keeps_indices():
+    # bank 0: (unused), red, red again, white; bank 1: (unused), green, blue, white
+    palette = _palette((0, 0, 0), (248, 0, 0), (248, 0, 0), (248, 248, 248), *[(0, 0, 0)] * 12,
+                       (0, 0, 0), (0, 248, 0), (0, 0, 248), (248, 248, 248), *[(0, 0, 0)] * 12)
+    data = bytes([0x21]) + bytes(31) + bytes([0x21]) + bytes(31)      # each tile: pixel 0 index 1, pixel 1 index 2
+    params = {"palette": palette, "bank": 0, "banks": ".1"}
+    [texture] = tiles.read(data, params)
+    image = texture.image
+    assert image.getpixel((0, 0)) == (255, 0, 0, 255) and image.getpixel((1, 0)) == (255, 0, 0, 255)
+    assert image.getpixel((8, 0)) == (0, 255, 0, 255) and image.getpixel((9, 0)) == (0, 0, 255, 255)
+    assert image.getpixel((2, 0)) == (0, 0, 0, 0)                     # index 0 is transparent
+    assert tiles.write(data, {0: image}, params) == data              # index 2 stays 2 though it is red like 1
+    image = image.copy()
+    image.putpixel((2, 0), (250, 240, 235, 255))                      # off the palette: the nearest colour (white)
+    image.putpixel((8, 0), (0, 0, 255, 255))                          # blue in bank 1 = index 2
+    out = tiles.write(data, {0: image}, params)
+    assert out[1] == 0x03 and out[32] == 0x22
+    assert tiles.read(out, params)[0].image.getpixel((2, 0)) == (255, 255, 255, 255)
 
 
 def test_paint_outside_the_tiles_is_refused_not_lost():

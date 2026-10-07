@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: ui/, components/, dialogs/
-tokens: 11.3k
+tokens: 11.4k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -113,8 +113,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      its Russian and the game's other languages. The Font Editor opens `font_ltn.nftr` with spare cells: a letter
      typed into one becomes a new character. The Textures window lists the menus and buttons
      (`subtask_eu_en.cmp`), the stage-select plates, GAME OVER letters, copyright line (`zeldat_eu_en.bin`) and
-     the title logo (`zeldat.bin`); the pictures are palette indices shown as grey levels (redraw with the same
-     greys)
+     the title logo (`zeldat.bin`) in the game's colours; an imported colour that is not in the picture's
+     palette becomes the nearest one. The block `game_over` (`main.arm9`) holds the GAME OVER word, one line per
+     letter (`<character> <first tile> <W>x<H>`, tiles of the GAME OVER letters picture) and the x of each
+     letter; the letters picture also shows as 16 slots of 16x32 for narrow letters
    - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Source is the workspace's `source` folder
      (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
      with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs

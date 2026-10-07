@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 12.7k
+tokens: 12.8k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -170,13 +170,14 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   and font edit through the plugin, builds the SRL and CIA and reads the edits back (hashes valid).
 - Picture widths (`[icon:N]`, `[button:N]`) are guessed 12 px; the code meanings (`[next:N]`, `[event:N]`,
   `[player:N]`, colours) are read from the English text, not from the game code.
-- (2026-10-07) The base is the clean European dump; the menu, stage-select and title graphics are in the
-  Textures window (`tiles`) as grey palette indices: the palettes (NCLR in `subtask.cmp`, `zeldat*.bin` entries)
-  are not read yet, so the window shows no real colours.
-- GAME OVER is drawn from letter sprites (`zeldat_eu_en.bin` #10: G A M E O V R) placed by a table in the ARM9
-  (`arm9.bin` 0xD9D8C: the word per language, 0xD9ECC / 0xDA25C: letters and x positions); a Ukrainian word
-  needs new letter sprites and that table patched (the Russian build did this). The name-entry keyboard
-  (`arm9.bin` 0xDAC1C) is Latin. Not opened in Picoripi.
+- (2026-10-07) Text picture colours: proven from the game files for the subtask sheets #0-#2 (sprite cells +
+  NCLR), the title logo and copyright line (BG maps + palette) and CHOOSE A STAGE; the engine sprites (area
+  plates, GAME OVER letters, PLEASE WAIT, player marks, Back, script lettering) and subtask #3/#4 take a bank
+  chosen by eye from the palette their screen loads: check them in an emulator (`plugins/zelda_fsae/palettes.py`).
+- GAME OVER (block `game_over`, `main.arm9`): the English letter table has 16 entries (7 used) and the letter
+  sheet 128 tiles (the eighth 32x32 cell empty, narrow letters as 16x32 / 8x32 free more); the sheet cannot grow
+  (the next graphics follow it in VRAM). Ukrainian letter sprites are still to be drawn by a person. The
+  name-entry keyboard (`main.arm9` 0xDAC1C) is Latin and not opened (no decision yet).
 - The manual is drawn with the console's shared font (`nand:/<sharedFont>`), not a game font: whether it has
   Cyrillic is unknown; manual line widths of new lines are estimated (the font is not on disk).
 - `eu.kmsg` may have a size limit in the game (the Russian build shares texts to stay under the original size);
