@@ -1,0 +1,21 @@
+[
+  {"label": "Timers, chat stickers, billboards (English)", "kind": "popup", "format": "ctpk",
+   "path": "romfs/Archive/EU/RegionBoot.szs/EU/Layout/EUen/*.ctpk"},
+  {"label": "Arena placings and stickers", "kind": "hud", "format": "ctpk", "path": "romfs/Common/Icon/billboardCommon.ctpk"},
+  {"label": "Promo image with the logo", "kind": "logo", "format": "ctpk", "path": "romfs/Archive/EU/RegionBoot.szs/EU/Layout/PREU.ctpk"},
+  {"label": "The End", "kind": "ending", "format": "bflim", "path": "romfs/Archive/Common/Lyt_Ending.arc/timg/TheEnd_00.bflim"},
+  {"label": "30 seconds left", "kind": "popup", "format": "bflim", "path": "romfs/Archive/Common/Lyt_Game.arc/timg/After30seconds*.bflim"},
+  {"label": "Time's up", "kind": "popup", "format": "bflim", "path": "romfs/Archive/Common/Lyt_Game.arc/timg/TimeUp_JP_Japanese_00.bflim"},
+  {"label": "VS", "kind": "hud", "format": "bflim", "path": "romfs/Archive/Common/Lyt_Load.arc/timg/TextVS00.bflim"},
+  {"label": "Boss title cards", "kind": "boss_card", "format": "raw",
+   "path": "romfs/Archive/EU/EUen/LanguageGame.szs/EU/Effect/EUen/Telop.ptcl",
+   "params": {"pixel_format": "pica:ETC1A4", "width": 256, "height": 64, "textures": [
+     {"name": "BossTelop_Cyclops", "offset": "0x10080"}, {"name": "BossTelop_DegTail", "offset": "0x18380"},
+     {"name": "BossTelop_DonIkana", "offset": "0x1C380"}, {"name": "BossTelop_IceVolvagia", "offset": "0x20380"},
+     {"name": "BossTelop_Lady", "offset": "0x24380"}, {"name": "BossTelop_Ladygyles", "offset": "0x28380"},
+     {"name": "BossTelop_Medamago", "offset": "0x2C380"}, {"name": "BossTelop_Wort", "offset": "0x30380"}]}},
+  {"label": "Title logo (opening storybook)", "kind": "title_screen", "format": "raw", "path": "romfs/EU/Demo/PictureStory_EU.bch",
+   "params": {"pixel_format": "pica:RGBA4", "width": 512, "height": 256, "textures": [
+     {"name": "Title_USen", "offset": "0x16B00"},
+     {"name": "book_USen", "offset": "0x56B00", "pixel_format": "pica:ETC1", "width": 1024, "height": 1024}]}}
+]

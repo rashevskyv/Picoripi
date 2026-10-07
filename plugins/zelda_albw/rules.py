@@ -14,7 +14,7 @@ LayeredFS mod replaces one member with (``2_build.bat`` repacks the archive arou
 
 Layout texts (``Gm_*``, ``Mn_*``, ``Cm_*``, ``Ed_*`` files) take the width and line count of their text box
 from the message project's styles (``<file>_<label>``); dialogue lines keep to the widest English line.
-A Tri Force Heroes plugin can subclass ``GameRules`` with its own ``msbp.json`` and JSON lists.
+``plugins/zelda_tfh`` (Tri Force Heroes) subclasses ``GameRules`` with its own tags, files and widths.
 """
 import math
 import urllib.parse
@@ -42,7 +42,6 @@ ROLES = {"ItemName": "Item name (inserted into sentences, lower case)", "ItemNam
          "NPCName": "Character name", "LocationName": "Place name", "LocationNameUpper": "Place name (capitalised)",
          "ExtraName": "Character name", "StaffCredit": "Staff credits", "System": "System message",
          "Action": "Action button label", "EventItemGet": "Item get message", "Collect": "Item description"}
-_STYLES = {style["name"]: style for style in tags.PROJECT.get("styles", [])}
 _LABEL_MAX_CHARS = 40
 
 
@@ -55,11 +54,23 @@ class GameRules(BaseGameRules):
     tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
+    # What another game of the engine (Tri Force Heroes) replaces in a subclass.
+    tags = tags                         # the tag codec module: to_editor, from_editor, describe, PROJECT
+    layout_prefixes = LAYOUT_PREFIXES   # message files of layouts (no speaker; box from the project's styles)
+    name_files = NAME_FILES
+    roles = ROLES
+    dialogue_width = DIALOGUE_WIDTH
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._msbt: Optional[Msbt] = None        # the file loaded or about to be saved
         self._members: Dict[int, Tuple[Optional[str], Optional[Msbt]]] = {}
+        self._style_map: Optional[Dict[str, Dict[str, Any]]] = None
+
+    def _styles(self) -> Dict[str, Dict[str, Any]]:
+        if self._style_map is None:
+            self._style_map = {style["name"]: style for style in self.tags.PROJECT.get("styles", [])}
+        return self._style_map
 
     def get_display_name(self) -> str:
         return "Zelda: A Link Between Worlds"
@@ -76,7 +87,7 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         msbt = Msbt(json_obj)
         self._msbt = msbt
-        return [[tags.to_editor(tokens, msbt.little) for tokens in msbt.messages]], {}
+        return [[self.tags.to_editor(tokens, msbt.little) for tokens in msbt.messages]], {}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         if self._msbt is None:
@@ -87,10 +98,10 @@ class GameRules(BaseGameRules):
         for index, original in enumerate(msbt.messages):
             text = texts[index] if index < len(texts) else None
             # An untouched message keeps its exact tokens, whatever the editor form would re-encode to.
-            if text is None or text == tags.to_editor(original, msbt.little):
+            if text is None or text == self.tags.to_editor(original, msbt.little):
                 rebuilt.append(original)
             else:
-                rebuilt.append(tags.from_editor(str(text), msbt.little))
+                rebuilt.append(self.tags.from_editor(str(text), msbt.little))
         return msbt.build(rebuilt)
 
     def prepare_save_context(self, context) -> None:
@@ -140,8 +151,8 @@ class GameRules(BaseGameRules):
         archive = next((Path(part).stem for part in parts if part.lower().endswith(".szs")), "")
         stem = Path(rel_path).stem
         return {"path": rel_path, "file": Path(rel_path).name, "stem": stem, "archive": archive,
-                "label": msbt.labels.get(index, ""), "text": tags.to_editor(msbt.messages[index], msbt.little),
-                "layout": stem.startswith(LAYOUT_PREFIXES)}
+                "label": msbt.labels.get(index, ""), "text": self.tags.to_editor(msbt.messages[index], msbt.little),
+                "layout": stem.startswith(self.layout_prefixes)}
 
     # -- AI and story context ------------------------------------------------------
 
@@ -151,11 +162,11 @@ class GameRules(BaseGameRules):
             return {}
         if found["layout"]:
             return {"content_role": f"Interface text ({found['stem']}, {found['label']})", "has_speaker": False}
-        role = ROLES.get(found["stem"])
+        role = self.roles.get(found["stem"])
         if role:
             context = {"content_role": role, "has_speaker": False}
-            if found["stem"] in NAME_FILES:
-                context["glossary_section"] = NAME_FILES[found["stem"]][0]
+            if found["stem"] in self.name_files:
+                context["glossary_section"] = self.name_files[found["stem"]][0]
             return context
         return {}
 
@@ -178,11 +189,11 @@ class GameRules(BaseGameRules):
         blocks = getattr(getattr(getattr(self.mw, "project_manager", None), "project", None), "blocks", None) or []
         for block_idx in range(len(blocks)):
             rel_path, msbt = self._member(block_idx)
-            if msbt is None or Path(rel_path).stem not in NAME_FILES:
+            if msbt is None or Path(rel_path).stem not in self.name_files:
                 continue
-            section, description = NAME_FILES[Path(rel_path).stem]
+            section, description = self.name_files[Path(rel_path).stem]
             for index, tokens in enumerate(msbt.messages):
-                term = " ".join(tags.TAG_RE.sub("", tags.to_editor(tokens, msbt.little)).split())
+                term = " ".join(self.tags.TAG_RE.sub("", self.tags.to_editor(tokens, msbt.little)).split())
                 if term and term not in seen and len(term) <= _LABEL_MAX_CHARS:
                     seen.add(term)
                     entries.append({"term": term, "section": section, "description": description,
@@ -205,27 +216,31 @@ class GameRules(BaseGameRules):
         if not found:
             return None
         if found["layout"]:
-            style = _STYLES.get(f"{found['stem']}_{found['label']}")
+            style = self._styles().get(f"{found['stem']}_{found['label']}")
             if not style:
                 return {"font_file": FONT_FILE}
             return {"warn_width": style["region_width"], "max_width": math.ceil(style["region_width"] * LAYOUT_SLACK),
                     "lines_per_page": max(1, style["lines"]), "font_file": FONT_FILE}
-        return {"warn_width": DIALOGUE_WIDTH, "max_width": DIALOGUE_WIDTH, "lines_per_page": DEFAULT_LINES_PER_PAGE,
-                "font_file": FONT_FILE}
+        return {"warn_width": self.dialogue_width, "max_width": self.dialogue_width,
+                "lines_per_page": DEFAULT_LINES_PER_PAGE, "font_file": FONT_FILE}
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 10) -> Optional[int]:
-        """Widest line in font advances: ``{PlayerName}`` as "Link", a number as its digits, other tags nothing."""
-        widest = 0
+        """Widest line in font advances: ``{PlayerName}`` as "Link", a number as its digits, ``{Size:N}`` scales
+        what follows (also on the next lines), other tags nothing."""
+        widest, scale = 0.0, 1.0
         for line in str(text).split("\n"):
-            total = 0
-            for match_or_char in _drawn(line):
-                entry = (font_map or {}).get(match_or_char)
-                total += entry.get("width", default_char_width) if isinstance(entry, dict) else default_char_width
+            total = 0.0
+            for char, scale in _drawn(line, scale):
+                if not char:
+                    continue
+                entry = (font_map or {}).get(char)
+                width = entry.get("width", default_char_width) if isinstance(entry, dict) else default_char_width
+                total += width * scale
             widest = max(widest, total)
-        return widest
+        return math.ceil(widest - 1e-9)
 
     def get_tag_tooltip(self, tag: str) -> str:
-        return tags.describe(str(tag))
+        return self.tags.describe(str(tag))
 
     def get_dynamic_name_tags(self) -> dict:
         return {"{PlayerName}": PLAYER_NAME}
@@ -238,16 +253,21 @@ class GameRules(BaseGameRules):
         return DEFAULT_LINES_PER_PAGE
 
 
-def _drawn(line: str) -> str:
-    """The characters a line draws: the player's name and numbers in place of their tags, no other tags."""
-    out, position = [], 0
+def _drawn(line: str, scale: float = 1.0) -> List[Tuple[str, float]]:
+    """The characters a line draws, each with its ``{Size}`` scale: the player's name and numbers in place of their
+    tags, no other tags. The last item is ``("", scale)``: the scale the next line starts with."""
+    out: List[Tuple[str, float]] = []
+    position = 0
     for match in tags.TAG_RE.finditer(line):
-        out.append(line[position:match.start()])
+        out.extend((char, scale) for char in line[position:match.start()])
         name, *args = match.group(0)[1:-1].split(":")
         if name == "PlayerName":
-            out.append(PLAYER_NAME)
+            out.extend((char, scale) for char in PLAYER_NAME)
         elif name == "IntNumberN" and args and args[0].isdigit():
-            out.append("0" * int(args[0]))
+            out.extend(("0", scale) for _ in range(int(args[0])))
+        elif name == "Size" and args and args[0].isdigit():
+            scale = int(args[0]) / 100
         position = match.end()
-    out.append(line[position:])
-    return "".join(out)
+    out.extend((char, scale) for char in line[position:])
+    out.append(("", scale))
+    return out

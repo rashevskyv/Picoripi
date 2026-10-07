@@ -120,6 +120,16 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Menu and HUD texts (`Gm_*`, `Mn_*`, `Cm_*`, `Ed_*`) take the width and line count of their text box from the
      message project; dialogue keeps to 344 px, 3 lines a page. The Font Editor opens `MessageFont.bffnt` and
      `HyliaFont.bffnt`; the Textures window lists the 10 minigame and ending banners and the title logo
+   - `zelda_tfh` — Zelda: Tri Force Heroes (3DS, Europe; the A Link Between Worlds plugin with this game's tags).
+     **Source:** `source`; **Translation:** `translation`, archive members as folders the same way
+     (`romfs\Archive\EU\EUen\LanguageGame.szs\EU\Message\EUen\NpcKing.msbt`). All 100 English MSBT files
+     (3,382 messages: dialogue, signs, credits in `LanguageGame.szs`; menus, items, outfits, system in
+     `RegionBoot.szs`), tags named by the game's `Alice.msbp` (`{CostumeName:EightBit:No}`, `{InsertMark:0}`,
+     `{Size:90}`). Dialogue keeps to 344 px, 3 lines a page, `{Size:90}` text measured at 90 %; layout texts
+     (`Layout*`), the opening story, credits, error and news screens have no width limit. The Font Editor opens
+     `MessageFont.bffnt` and `HyliaFont.bffnt`; the Textures window lists 63 images with text: timers, chat stickers
+     and billboards (CTPK), layout banners (BFLIM), the boss title cards in `Telop.ptcl` and the title logo in
+     `PictureStory_EU.bch` (PICA textures at fixed offsets, format `raw`)
    - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Source is the workspace's `source` folder
      (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
      with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs
