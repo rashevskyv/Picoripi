@@ -21,6 +21,20 @@
     "font_map": "rock_24_20_ia4_e.json"
   },
   {
+    "label": "File select font (a copy of the name entry font)",
+    "format": "bfn",
+    "path": ["res/Stage/Name/Stage.arc", "files/res/Stage/Name/Stage.arc"],
+    "member": "dat/file_select.arc/font/*.bfn",
+    "font_map": "rock_24_20_ia4_e.json"
+  },
+  {
+    "label": "Disc error font (in main.dol)",
+    "format": "bfn",
+    "path": ["sys/main.dol", "../sys/main.dol"],
+    "member": "*.bfn",
+    "font_map": "rock_24_20_4i_usa.json"
+  },
+  {
     "label": "System font",
     "format": "bfn",
     "path": ["res/Menu/kanfont_fix16.bfn", "files/res/Menu/kanfont_fix16.bfn", "kanfont_fix16.bfn"],

@@ -4,8 +4,8 @@ A plugin describes its fonts with ``BaseGameRules.get_font_sources()`` (or ``fon
 in its folder): ``label``, ``format``, ``path`` (a path or glob relative to the project's source
 folder, or a list of them -- the first that matches wins; its folder part may start with ``../``;
 ignored in a single-file project, whose file is the font file), optional ``member`` (a glob of
-files inside the archive at ``path``; a Yaz0-compressed member is read decompressed and written
-compressed again),
+files inside the archive at ``path``, or a path through archives inside it: ``dat/inner.arc/font/*.bfn``;
+a compressed archive or member is read decompressed and written compressed again),
 ``font_map`` (the width map the font feeds) and ``params`` (the format's game constants). A G1T
 whose widths live in the game's executable (``params.widths.patches``) also has exefs patch files in
 the translation folder, one per build of the game (``widths_patches``: file -> table address).
@@ -16,13 +16,12 @@ written.
 """
 from __future__ import annotations
 
-import fnmatch
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from core.containers import yaz0
+from core.texture_formats.sources import list_members, unwrap
 from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
 
@@ -57,10 +56,7 @@ class FontSource:
 
     def _read(self, path: str) -> bytes:
         raw = Path(path).read_bytes()
-        if not self.member:
-            return raw
-        data = _open_archive(raw, path).read_file(self.member)
-        return yaz0.decompress(data) if data[:4] == b"Yaz0" else data
+        return unwrap(raw, self.member, {})[0] if self.member else raw
 
     def read_current(self) -> bytes:
         """The font as the translation has it now (the source until it was first written)."""
@@ -75,12 +71,7 @@ class FontSource:
         if not self.translation_path or Path(self.translation_path).resolve() == Path(self.source_path).resolve():
             raise ValueError("The project has no translation folder to write the font to")
         if self.member:
-            base = self._current_path()
-            container = _open_archive(Path(base).read_bytes(), base)
-            if container.read_file(self.member)[:4] == b"Yaz0":
-                data = yaz0.compress(bytes(data))
-            container.write_file(self.member, bytes(data))
-            data = container.pack()
+            data = unwrap(Path(self._current_path()).read_bytes(), self.member, {})[1](bytes(data))
         atomic_write_bytes(self.translation_path, data)
 
     @staticmethod
@@ -156,9 +147,9 @@ def _sources_for(descriptor: Dict[str, Any], source_path: str, translation_path:
     if not member_glob:
         return [FontSource(label=label or Path(source_path).name, **common)]
     current = translation_path if translation_path and Path(translation_path).is_file() else source_path
-    container = _open_archive(Path(current).read_bytes(), current)
-    members = [name for name in container.list_files()
-               if fnmatch.fnmatch(Path(name).name.lower(), str(member_glob).lower())]
+    plain = unwrap(Path(current).read_bytes(), "", {})[0]
+    _open_archive(plain, current)
+    members = list_members(plain, str(member_glob))
     return [FontSource(label=f"{label or Path(source_path).name}: {Path(name).name}", member=name, **common)
             for name in members]
 

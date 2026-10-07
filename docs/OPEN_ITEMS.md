@@ -603,10 +603,17 @@ ender_proof.py` (text through plugin, SRL build and the font).
 - **No speakers yet**: NPCs pick message ids in code (`getMsg` / `next_msgStatus` per actor), cutscenes through
   `event_list.dat` `msgNo`. TP's flow-based attribution does not apply.
 - **No window frames** in the preview (`hukidashi_*.blo` in `res/Msg/msgres.arc`) and no `message_window_preview`.
-- **`bmgresh.arc/zel_01.bmg`** (15 Hylian-language messages, Shift-JIS) does not load: the BMG reader maps
-  Shift-JIS to cp1252 for Twilight Princess.
-- **Rebuilding the disc**: the images were extracted with DolphinTool (`files/` + `sys/`); `gcr` packs a
-  `root/` tree, so the pack script in the user's workspace does not work yet.
+- **Two copies of the name-entry font**: `nameres.arc` (name entry) and `Stage/Name/Stage.arc` →
+  `file_select.arc` (the two player-name panes of the file-select screen keep it; the other 13 panes are switched
+  to the message font). The Font Editor lists both; Ukrainian letters drawn in one must be drawn in the other.
+- **Tingle Tuner sprites have little room**: the OBJ tile block packs back into 7,468 of its 7,596 bytes, so
+  only small redraws fit (a bigger one is refused). More room needs the OBJ palette after it moved.
+- **The Tingle Tuner client was checked alone in mGBA** (no-link screen: text, font and sprite edits); inside the
+  game with Dolphin's GBA only the text and font were shown (2026-10-04).
+- **A session with unsaved edits keeps its old block list** when the folder sync adds project files
+  (`SessionMixin._session_misses_project_blocks` falls back to a full load only without unsaved edits).
+- **Removed project blocks stay in virtual folders**: `Project.remove_block` (used by the folder sync) leaves the
+  block id in its folder, so empty folders remain in the block tree (the WW project was cleaned by hand).
 
 ## Zelda: Tears of the Kingdom plugin (`plugins/zelda_totk`)
 

@@ -1,0 +1,21 @@
+[
+  {
+    "label": "Tingle Tuner graphics (GBA)",
+    "kind": "hud",
+    "format": "gba",
+    "path": ["client_u.bin", "res/Gba/client_u.bin", "files/res/Gba/client_u.bin", "../client_u.bin"],
+    "params": {
+      "program_offset": "0x1A4",
+      "program_address": "0x0201B000",
+      "tail_pointers": ["0x190", "0x198"],
+      "textures": [
+        {"name": "Sprites (Please wait..., digits, Tingle)", "block": "0x02030418", "room": "0x1DAC", "offset": 0,
+         "tiles": 512, "columns": 32, "palette": "0x020321C4", "bank": 0},
+        {"name": "Screen tiles (Call, Check, Mark, compass)", "block": "0x0202B224", "room": "0x222C", "offset": 0,
+         "tiles": 256, "columns": 32, "palette": "0x0202D450", "bank": 0},
+        {"name": "Help screen text (font tiles 0xA0-0xEF)", "block": "0x0202B224", "room": "0x222C", "offset": "0x3400",
+         "tiles": 80, "columns": 16, "palette": "0x0202D450", "bank": 0}
+      ]
+    }
+  }
+]
