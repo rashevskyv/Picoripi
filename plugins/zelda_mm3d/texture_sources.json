@@ -1,0 +1,10 @@
+[
+  {"label": "Menus, file select, HUD, map, notebook", "kind": "menu_label", "format": "ctxb", "path": "romfs/layout/EU_English/*.gar", "member": "*.ctxb"},
+  {"label": "Area title cards", "kind": "area_card", "format": "ctxb", "path": "romfs/layout/map/genbamap/EU_English/*.ctxb"},
+  {"label": "Day titles (Dawn of the First Day...)", "kind": "title_card", "format": "ctxb", "path": "romfs/menu/daytelop/eu-en/*.ctxb"},
+  {"label": "Boss title cards", "kind": "area_card", "format": "ctxb", "path": "romfs/actors/zelda2_boss*.gar.lzs", "member": "tex/*_euen.ctxb"},
+  {"label": "Title screen logo and copyright", "kind": "title_screen", "format": "ctxb", "path": "romfs/actors/zelda2_mag.gar.lzs", "member": "{Model/title_logo.cmb,Misc/title_logo_tex_pt.cmab}", "params": {"texture": "{copy_nintendo_G*,title_00,title_sub_00}"}},
+  {"label": "Save data notice", "kind": "menu_label", "format": "ctxb", "path": "romfs/menu/savedata_maintainer/eu/english/guideline_parts00.ctxb"},
+  {"label": "Version label (update)", "kind": "title_screen", "format": "ctxb", "path": "romfs/version.ctxb"},
+  {"label": "Version label (without the update)", "kind": "title_screen", "format": "ctxb", "path": "romfs/os/patch/version.ctxb"}
+]
