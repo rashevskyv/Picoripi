@@ -13,7 +13,7 @@ from PIL import Image
 
 from core.texture_formats.pixels import Codec
 
-_SLOW = frozenset({"pica:ETC1", "pica:ETC1A4", "BC7"})
+_SLOW = frozenset({"pica:ETC1", "pica:ETC1A4", "BC7", "ASTC4x4", "ASTC8x8", "ASTC12x12"})
 
 
 def _padded(codec: Codec, width: int, height: int):

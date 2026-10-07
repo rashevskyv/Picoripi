@@ -463,6 +463,16 @@ def _pica_etc(alpha: bool) -> Codec:
     return Codec("pica:ETC1A4" if alpha else "pica:ETC1", (8, 8), 4 * block_bytes, dec, enc)
 
 
+def _astc_codec(bw: int, bh: int) -> Codec:
+    """ASTC blocks of ``bw`` x ``bh`` texels (``astc``)."""
+    from core.texture_formats import astc
+
+    def enc(image: Image.Image) -> bytes:
+        return astc.encode(image, bw, bh)
+
+    return Codec(f"ASTC{bw}x{bh}", (bw, bh), 16, lambda data, w, h: astc.decode(data, w, h, bw, bh), enc)
+
+
 # -- palettes -------------------------------------------------------------------------------------
 
 
@@ -592,6 +602,8 @@ def _build() -> Dict[str, Codec]:
     add(_bc_codec(4, "L"))
     add(_bc_codec(4, "A"))
     add(_bc_codec(5, "LA"))
+    for bw, bh in ((4, 4), (8, 8), (12, 12)):
+        add(_astc_codec(bw, bh))
     return codecs
 
 

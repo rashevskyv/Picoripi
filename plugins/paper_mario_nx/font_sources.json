@@ -1,0 +1,10 @@
+[
+  {"label": "Dialogue font (FOT-PopJoy_Std)", "format": "bffnt", "path": "font/FOT-PopJoy_Std.bffnt"},
+  {"label": "Title font (FOT-SuraCapiePro_B)", "format": "bffnt", "path": "font/FOT-SuraCapiePro_B.bffnt"},
+  {"label": "Outlined heading font (MARIO-Outline)", "format": "bffnt", "path": "font/MARIO-Outline.bffnt"},
+  {"label": "Large outlined heading font (MARIO-OutlineL)", "format": "bffnt", "path": "font/MARIO-OutlineL.bffnt", "params": {"min_sheets": 8}},
+  {"label": "Heading font (MARIO-Solid)", "format": "bffnt", "path": "font/MARIO-Solid.bffnt"},
+  {"label": "Button icons (nintendo_ext_003)", "format": "bffnt", "path": "font/nintendo_ext_003.bffnt"},
+  {"label": "Main text font (YoshiFont_EN)", "format": "bfotf", "path": "font/YoshiFont_EN.bfotf", "params": {"size": 45}},
+  {"label": "Japanese text font (YoshiFont_JP)", "format": "bfotf", "path": "font/YoshiFont_JP.bfotf", "params": {"size": 45}}
+]

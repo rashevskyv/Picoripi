@@ -206,9 +206,7 @@ class IoFormatMixin:
                 self.original_font_metadata = original_model[0]
                 self.original_sheet_images = [pil_to_qimage(sheet) for sheet in original_model[1]]
             self.load_from_extracted_dir(temp_dir)
-            if self.metadata.get("header", {}).get("outline"):
-                self.status.showMessage(tr("Loaded {0}: a scalable font; its glyphs are shown, not edited here.", name))
-            elif not self.metadata.get("header", {}).get("textures_editable", True):
+            if not self.metadata.get("header", {}).get("textures_editable", True):
                 self.status.showMessage(tr("Loaded {0}: this texture format is shown empty; widths can be edited.", name))
             else:
                 self.status.showMessage(tr("Successfully loaded font: {0}", name))
