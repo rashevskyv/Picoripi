@@ -79,3 +79,58 @@ def test_the_hd_russian_fills_a_wii_project_by_label():
     assert next(iter(found)) == "Russian (RU)"
     lines = sum(len(labels) for _path, labels in blocks.values())
     assert len(found["Russian (RU)"]) / lines > 0.99
+
+
+def _metadata(workspace: Path, translation: Path) -> dict:
+    return {"source_path": str(_need(workspace / "source")), "translation_path": str(translation),
+            "is_directory_mode": True}
+
+
+@pytest.mark.parametrize("workspace, count, formats", [
+    (HD, 13, {"I4", "I8", "IA4", "RGBA8"}),
+    (WII, 33, {"I4", "I8", "IA4", "IA8", "RGB565", "RGB5A3", "RGBA8"}),
+], ids=["hd", "wii"])
+def test_every_text_texture_reads_and_writes_back(workspace, count, formats, tmp_path):
+    """Tools -> Textures: the English text textures (tools/ss_extra_sources.py puts them in source/) re-encode to
+    the same bytes, and an edited image goes into the translation copy and reads back."""
+    from PIL import ImageDraw
+
+    from core import texture_formats
+    from core.texture_formats import sources as texture_sources
+
+    if not (workspace / "source" / ("US/Layout" if workspace == WII else "Layout") / "Title2D" / "timg").is_dir():
+        pytest.skip("tools/ss_extra_sources.py has not been run")
+    found = texture_sources.resolve(GameRules().get_texture_sources(), _metadata(workspace, tmp_path))
+    assert len(found) == count
+    assert {source.pixel_format for source in found} == formats
+    for source in found:
+        raw, _rewrap = texture_sources.unwrap(Path(source.source_path).read_bytes(), source.member, source.params)
+        assert texture_formats.write("tpl", raw, {source.index: source.read_original().image}) == raw, source.key
+    edited = found[0].read_original().image.convert("RGBA")
+    ImageDraw.Draw(edited).rectangle((0, 0, 7, 7), fill=(255, 0, 0, 255))
+    assert found[0].write(edited)
+    assert found[0].read_current().image.convert("RGBA").getpixel((2, 2))[0] > 200
+
+
+@pytest.mark.parametrize("workspace, count", [(HD, 6), (WII, 7)], ids=["hd", "wii"])
+def test_every_font_source_opens_packs_back_and_saves(workspace, count, tmp_path):
+    """Tools -> Font Editor: every font of the plugin (also the ones inside archives) packs back byte for byte;
+    a saved font lands in the translation copy."""
+    from core.font_formats import sources as font_sources
+
+    rules = GameRules()
+    rules._version = "wii" if workspace == WII else "hd"
+    found = font_sources.resolve(rules.get_font_sources(), _metadata(workspace, tmp_path))
+    if len(found) < count:
+        pytest.skip("tools/ss_extra_sources.py has not been run")
+    assert len(found) == count
+    for source in found:
+        raw = source.read_original()
+        metadata, sheets = font_formats.extract("brfnt", raw, source.params)
+        assert font_formats.pack("brfnt", metadata, sheets, raw, source.params) == raw, source.label
+    source = found[-1]
+    metadata, sheets = font_formats.extract("brfnt", source.read_original(), source.params)
+    sheets[0].paste((255, 255, 255, 255), (0, 0, 3, 3))
+    source.write(font_formats.pack("brfnt", metadata, sheets, source.read_original(), source.params))
+    assert Path(source.translation_path).is_file()
+    assert font_formats.extract("brfnt", source.read_current())[1][0].getpixel((1, 1))[3] == 255

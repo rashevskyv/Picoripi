@@ -6,6 +6,8 @@ takes them out into a source folder that mirrors the game's paths with each arch
 HD, ``US/Layout/...`` on Wii); a project opens every MSBT there as one block. Saving writes the MSBT with
 only the edited messages re-encoded, so an unedited file is written back byte for byte; ``2_build.bat``
 packs the changed files into the archives (HD: a LayeredFS romfs mod, Wii: a patched disc image).
+The Wii HOME Menu messages (``HomeButton2/home.csv``) are a block too (``home_menu``); textures and fonts are
+listed in ``texture_sources.json`` / ``font_sources.json`` (the Wii channel banner: ``banner``).
 
 The version is told by the folder: the HD has ``Layout`` at the top, the Wii ``<REGION>/Layout``.
 Speakers come from ``speakers.json`` (HD ATR1, matched by file and label, so the Wii gets them too),
@@ -18,13 +20,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import utils.utils as uu
+from core.containers import ContainerManager
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.msbt import Msbt
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
 from . import messages, msbf, reference
+from .banner import WiiBannerContainer
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .home_menu import HomeCsv, is_home_csv
 from .tag_manager import TagManager
 from .tags import TAG_RE, describe, from_editor, to_editor
 
@@ -71,28 +76,40 @@ class GameRules(BaseGameRules):
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._msbt: Optional[Msbt] = None          # the file loaded or about to be saved
+        self._home: Optional[HomeCsv] = None       # ... when it is a Wii HOME Menu table
         self._members: Dict[int, Tuple[Optional[str], Optional[Msbt]]] = {}
         self._conversations: Dict[int, Dict[int, str]] = {}
         self._version: Optional[str] = None
+        ContainerManager.register(WiiBannerContainer)    # the Wii channel banner's textures (Tools -> Textures)
 
     def get_display_name(self) -> str:
         return "Zelda: Skyward Sword"
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat((".msbt",), "bytes", "MSBT"), *DEFAULT_FORMATS]
+        return [FileFormat((".msbt",), "bytes", "MSBT"), FileFormat((".csv",), "bytes", "Wii HOME Menu messages"),
+                *DEFAULT_FORMATS]
 
     # -- load and save ---------------------------------------------------------
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
+        self._home = None
         if not isinstance(json_obj, (bytes, bytearray)):
             self._msbt = None
             return super().load_data_from_json_obj(json_obj)
+        if is_home_csv(json_obj):
+            self._msbt, self._home = None, HomeCsv(json_obj)
+            return [self._home.messages], {}
         msbt = Msbt(json_obj)
         self._msbt = msbt
         return [[to_editor(tokens, msbt.little) for tokens in msbt.messages]], {}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        if self._home is not None:
+            texts = data[0] if data and isinstance(data[0], list) else []
+            old = self._home.messages
+            return self._home.build([str(texts[i]) if i < len(texts) and texts[i] is not None else old[i]
+                                     for i in range(len(old))])
         if self._msbt is None:
             return super().save_data_to_json_obj(data, block_names)
         msbt = self._msbt
@@ -108,8 +125,18 @@ class GameRules(BaseGameRules):
         return msbt.build(rebuilt)
 
     def prepare_save_context(self, context) -> None:
-        """An MSBT is rebuilt from the existing file (labels, attributes): load the newest that parses."""
-        if not str(getattr(context, "relative_path", "")).lower().endswith(".msbt"):
+        """An MSBT is rebuilt from the existing file (labels, attributes): load the newest that parses.
+        A HOME Menu table likewise keeps every language but English from the existing file."""
+        path = str(getattr(context, "relative_path", "")).lower()
+        self._home = None
+        if path.endswith(".csv"):
+            self._msbt = None
+            for raw in context.existing_versions():
+                if is_home_csv(raw):
+                    self._home = HomeCsv(raw)
+                    return
+            return
+        if not path.endswith(".msbt"):
             self._msbt = None
             return
         for raw in context.existing_versions():
@@ -121,6 +148,7 @@ class GameRules(BaseGameRules):
 
     def reset_runtime_state(self) -> None:
         self._msbt = None
+        self._home = None
         self._members.clear()
         self._conversations.clear()
         self._version = None
@@ -366,8 +394,9 @@ class GameRules(BaseGameRules):
             return [entry for entry in sources if "normal_02" not in entry.get("font_map", "")]
         wii = []
         for entry in sources:
-            entry = dict(entry, font_map=entry.get("font_map", "").replace("_hd", "_wii"))
-            entry["params"] = {"min_sheets": WII_MIN_SHEETS[entry["font_map"].split("_wii")[0]]}
+            if entry.get("font_map"):     # the text fonts; the others (icons, HOME Menu...) keep their sheets
+                entry = dict(entry, font_map=entry["font_map"].replace("_hd", "_wii"))
+                entry["params"] = {"min_sheets": WII_MIN_SHEETS[entry["font_map"].split("_wii")[0]]}
             wii.append(entry)
         return wii
 
