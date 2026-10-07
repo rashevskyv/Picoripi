@@ -163,13 +163,25 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Next formats: Tingle Tuner (GBA), Wii U BFFNT (big endian, GX2 tiling). Cadence of Hyrule's BFFNT already
   opens; the 3DS fonts are done.
 
+## Tri Force Heroes plugin (`plugins/zelda_tfh`, 2026-10-07)
+
+- No speakers or scenes: the file names the NPC (`NpcKing`), the MSBF flows (`Common/Message/FlowChart`) are not
+  decoded.
+- Layout texts (`Layout*`) have no width limit: the message project's styles name layout panes, not messages.
+- Boss title cards (`Telop.ptcl`) and the title logo (`PictureStory_EU.bch`) are listed by fixed offsets (format
+  `raw`); a game update that moves them needs new offsets (the real-data test reads them).
+- Not opened: the Download Play child (not in the workspace), code.bin (only debug and network strings), the other
+  BCH textures (models, the storybook pages without text).
+- Azahar takes the foreground when it starts, also when started through WMI.
+
 ## A Link Between Worlds plugin (`plugins/zelda_albw`, 2026-10-07)
 
 - No speakers or scenes yet: labels name the NPC (`lgt_NpcSahasrahla_Field1B_00`) and the MSBF flows give
   conversations (`reports/flow_refs.tsv` in the workspace); not used.
 - Dialogue width (344 px) is the widest retail English line, not a measured box. 96 layout texts have no style in
   the message project and get no width limit.
-- No reference languages: the game's French, German, Italian, Spanish and the Russian build (`RUomfs`) could be
+- No reference languages: the game's French, German, Italian, Spanish and the Russian build (`RU
+omfs`) could be
   matched by archive, file and label.
 - Not opened: the Home Menu title (`exefs/icon.bin`, a LayeredFS mod cannot replace it), the e-manual
   (`EU/Manual`), code.bin (only debug strings). BCH model textures and CTPK are language-neutral (the same bytes in

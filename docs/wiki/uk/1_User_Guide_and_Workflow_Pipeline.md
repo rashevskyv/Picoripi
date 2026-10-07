@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-04
+updated: 2026-10-07
 owns: ui/, components/, dialogs/
 tokens: 15.0k
 ---
@@ -118,6 +118,16 @@ tokens: 15.0k
      Тексти меню й HUD (`Gm_*`, `Mn_*`, `Cm_*`, `Ed_*`) беруть ширину й кількість рядків свого текстового поля з
      проєкту повідомлень; діалоги — до 344 px, 3 рядки на сторінку. Font Editor відкриває `MessageFont.bffnt` і
      `HyliaFont.bffnt`; вікно Textures показує 10 банерів мініігор і фіналу та логотип на титульному екрані
+   - `zelda_tfh` — Zelda: Tri Force Heroes (3DS, Європа; плагін A Link Between Worlds з тегами цієї гри).
+     **Source:** `source`; **Translation:** `translation`, файли архівів так само лежать у теках
+     (`romfs\Archive\EU\EUen\LanguageGame.szs\EU\Message\EUen\NpcKing.msbt`). Усі 100 англійських файлів MSBT
+     (3 382 повідомлення: діалоги, таблички, титри в `LanguageGame.szs`; меню, предмети, одяг, системні тексти в
+     `RegionBoot.szs`), теги названо за `Alice.msbp` гри (`{CostumeName:EightBit:No}`, `{InsertMark:0}`,
+     `{Size:90}`). Діалоги — до 344 px, 3 рядки на сторінку, текст `{Size:90}` міряється як 90 %; тексти макетів
+     (`Layout*`), вступна історія, титри, екрани помилок і новин — без обмеження ширини. Font Editor відкриває
+     `MessageFont.bffnt` і `HyliaFont.bffnt`; вікно Textures показує 63 картинки з текстом: таймери, наліпки чату
+     й табло (CTPK), банери макетів (BFLIM), імена босів у `Telop.ptcl` і логотип у `PictureStory_EU.bch`
+     (текстури PICA за сталими зсувами, формат `raw`)
    - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Джерело — тека `source` робочої теки
      (`text\*.bin`, `battle\*.bin`: текст гри, вирізаний з `data/LinkData2.bin`, один файл на таблицю з усіма
      її мовами); показується й зберігається англійська таблиця, а `2_build.bat` робочої теки пакує змінені файли
