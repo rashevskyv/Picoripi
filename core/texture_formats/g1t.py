@@ -3,7 +3,7 @@
 Header: ``GT1G`` + version, u32 file size, u32 offset of the texture table, u32 texture count. A
 texture: u8 mip count (high nibble), u8 format, u8 size (log2 width | log2 height << 4), flags; when
 the last flag byte has 0x01 or 0x10 an extended header follows (u32 size first). Mip levels follow
-level 0. Formats: BC1-BC5, BC7 and RGBA8.
+level 0. Formats: BC1-BC5, BC7, RGBA8 and 0x01 = bytes B, G, R, A (Hyrule Warriors DE title_ENG: seen in Eden).
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from PIL import Image
 
 from core.texture_formats import Texture, pixels, surface
 
-FORMATS = {0x01: "RGBA8", 0x09: "RGBA8", 0x59: "BC1", 0x5A: "BC2", 0x5B: "BC3", 0x5C: "BC4", 0x5D: "BC5",
+FORMATS = {0x01: "BGRA8", 0x09: "RGBA8", 0x59: "BC1", 0x5A: "BC2", 0x5B: "BC3", 0x5C: "BC4", 0x5D: "BC5",
            0x5F: "BC7"}
 
 

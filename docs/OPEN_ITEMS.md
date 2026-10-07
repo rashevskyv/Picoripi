@@ -241,8 +241,12 @@ ender_proof.py` (text through plugin, SRL build and the font).
 - Ran in Eden 2026-10-04 (text, redrawn `font_eu*.g1t` and the patched width tables show Ukrainian without
   overlaps); not on a Switch.
 - Voice-line speakers for character ids 18-99 are `chara_NNN` (the names table disagrees there); event and
-  movie scene ids are not tied to story chapters; text inside textures (`ui/caption`, `still_*`) and the
-  executable is not covered.
+  movie scene ids are not tied to story chapters. The executable has no game text (only debug and shader
+  strings, checked 2026-10-07).
+- 2026-10-07: Ч з й с moved to the slots 0xDA 0xFA 0xFB 0xFD (× ç é ñ are used by the English text and the
+  language list). The draft fonts in the workspace's `translation\` still have those four letters in the old
+  slots; their cells must be copied to the new slots and the game's × ç é ñ put back.
+- Mirroring into the English-EU section also fills cells that are empty there (e.g. the language list).
 
 ## Carried over from the 2026 H1 audit (`docs/history/AUDIT-2026-H1.md`)
 

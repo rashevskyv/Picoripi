@@ -54,8 +54,8 @@ def _hash(name: str) -> int:
     return value
 
 
-def sarc(files: dict, alignment: int = 8) -> bytes:
-    """A little-endian SARC of ``{name: bytes}``, nodes sorted by name hash."""
+def sarc(files: dict, alignment: int = 8, aligns: dict = None) -> bytes:
+    """A little-endian SARC of ``{name: bytes}``, nodes sorted by name hash (``aligns``: per-file alignment)."""
     names = sorted(files, key=_hash)
     name_table, name_offsets = b"", {}
     for name in names:
@@ -64,7 +64,7 @@ def sarc(files: dict, alignment: int = 8) -> bytes:
         name_table += entry + b"\x00" * (-len(entry) % 4)
     data, ranges = b"", {}
     for name in names:
-        data += b"\x00" * (-len(data) % alignment)
+        data += b"\x00" * (-len(data) % (aligns or {}).get(name, alignment))
         ranges[name] = (len(data), len(data) + len(files[name]))
         data += files[name]
     nodes = b"".join(

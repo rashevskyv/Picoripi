@@ -119,6 +119,9 @@ class Sarc:
         starts = [start for _name, start, _end in self._nodes if start]
         self.alignment = min((start & -start for start in starts), default=8)
         self.alignment = min(self.alignment, 0x2000)
+        # A file that started on a larger boundary keeps it (a BNTX is used in place and needs 0x1000).
+        self._aligns = [max(self.alignment, min(start & -start, 0x2000)) if start else self.alignment
+                        for _name, start, _end in self._nodes]
 
     def build(self) -> bytes:
         """The archive with the current ``files``: same names and order, offsets moved as sizes changed."""
@@ -129,7 +132,7 @@ class Sarc:
         data = bytearray()
         for index in order:
             name = self._nodes[index][0]
-            data += b"\x00" * (-len(data) % self.alignment)
+            data += b"\x00" * (-len(data) % self._aligns[index])
             start = len(data)
             data += self.files[name]
             struct.pack_into(e + "II", head, node_table + index * 16 + 8, start, len(data))

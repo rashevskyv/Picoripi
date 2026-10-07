@@ -2,10 +2,7 @@
   {
     "label": "Text font (font_eu)",
     "format": "g1t",
-    "path": [
-      "data/ui/font_eu.g1t.gz",
-      "../romfs/data/ui/font_eu.g1t.gz"
-    ],
+    "path": "data/ui/font_eu.g1t.gz",
     "font_map": "hwde_eu.json",
     "params": {
       "cell_width": 48,
@@ -32,10 +29,7 @@
   {
     "label": "Second text font (font_eu_p)",
     "format": "g1t",
-    "path": [
-      "data/ui/font_eu_p.g1t.gz",
-      "../romfs/data/ui/font_eu_p.g1t.gz"
-    ],
+    "path": "data/ui/font_eu_p.g1t.gz",
     "font_map": "hwde_eu_p.json",
     "params": {
       "cell_width": 48,

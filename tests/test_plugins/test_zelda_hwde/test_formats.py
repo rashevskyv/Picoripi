@@ -67,7 +67,8 @@ def test_container_pads_payloads_to_four_bytes():
     (b"\x1bK!\x1bL?\x1bN11/2\x1bN0", "{K:!}{L:?}{N:1}1/2{N:0}"),
     (b"\x1bT\x1bZ\x1bQ{a}\x01", "{ruby}{/ruby}{esc:Q}{lb}a{rb}{x:01}"),
     (b"\x1bK:", "{K:#3A}"),
-    (b"line\nnext \xe9\x92", "line\nnext й’"),
+    (b"line\nnext \xe9\x92", "line\nnext é’"),
+    (b"\xfa\xfb\xfd\xda", "зйсЧ"),
 ])
 def test_tags_round_trip(raw, editor):
     assert tags.to_editor(list(raw)) == editor
@@ -77,6 +78,13 @@ def test_tags_round_trip(raw, editor):
 def test_ukrainian_letters_use_cp1251_slots():
     units = tags.from_editor("Ґанон їжак Є №")
     assert bytes(units) == "Ґанон їжак Є №".encode("cp1251")
+
+
+def test_latin_letters_the_game_shows_keep_their_slots():
+    """× ç é ñ (English text, the language list) stay; Ч з й с use the free slots of Ъ ъ ы э."""
+    assert bytes(tags.from_editor("×çéñ")) == b"\xd7\xe7\xe9\xf1"
+    assert bytes(tags.from_editor("Чзйс")) == b"\xda\xfa\xfb\xfd"
+    assert tags.to_editor(list(b"Fran\xe7ais Espa\xf1ol")) == "Français Español"
 
 
 def test_unknown_tag_is_refused():
@@ -92,7 +100,7 @@ def test_exposes_english_text_only():
     f = TextFile(sample_file())
     assert [b.name for b in f.blocks] == ["000 Messages", "001 Table", "002 Text"]
     texts = f.texts()
-    assert texts[0] == ["Defeat {c:0}%1s{form:2}{/c}!", "Café {btn:H} {lb}x{rb}".replace("é", "й")]
+    assert texts[0] == ["Defeat {c:0}%1s{form:2}{/c}!", "Café {btn:H} {lb}x{rb}"]
     assert texts[1] == ["Link", "Links", "Link", "Zelda", "Zelda"]
     assert texts[2] == ["Mr. Fairy"]
 

@@ -17,7 +17,7 @@ from PIL import Image
 
 from core.texture_formats import Texture, pixels, surface, tegra
 
-FORMATS = {0x02: "L8", 0x09: "LA8", 0x0B: "RGBA8", 0x0C: "BGRA8", 0x1A: "BC1", 0x1B: "BC2", 0x1C: "BC3",
+FORMATS = {0x02: "L8", 0x03: "RGBA4", 0x09: "LA8", 0x0B: "RGBA8", 0x0C: "BGRA8", 0x1A: "BC1", 0x1B: "BC2", 0x1C: "BC3",
            0x1D: "BC4", 0x1E: "BC5", 0x20: "BC7"}
 _UNSUPPORTED = {0x07: "RGB565", 0x1F: "BC6H", **{0x2D + i: f"ASTC{w}x{h}" for i, (w, h) in enumerate(
     ((4, 4), (5, 4), (5, 5), (6, 5), (6, 6), (8, 5), (8, 6), (8, 8), (10, 5), (10, 6), (10, 8), (10, 10),

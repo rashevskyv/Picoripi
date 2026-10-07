@@ -128,6 +128,18 @@ class TestSarc:
         assert again.files == archive.files
         assert all(start % again.alignment == 0 for _name, start, _end in again._nodes)
 
+    def test_a_file_on_a_larger_boundary_keeps_it(self):
+        files = {"A.bflyt": b"a" * 40, "B.bflyt": b"b" * 40, "timg/__Combined.bntx": b"t" * 16}
+        archive = sarc_module.Sarc(samples.sarc(files, aligns={"timg/__Combined.bntx": 0x1000}))
+        for name in ("A.bflyt", "B.bflyt"):
+            archive.files[name] = archive.files[name][:-8]
+
+        again = sarc_module.Sarc(archive.build())
+
+        assert again.files == archive.files
+        start = next(start for name, start, _end in again._nodes if name.endswith(".bntx"))
+        assert start and start % 0x1000 == 0
+
     def test_a_plain_sarc_container_writes_back_and_untouched_returns_the_input(self):
         raw = samples.sarc({"A.msbt": _talk()})
         container = sarc_module.SarcContainer(raw)

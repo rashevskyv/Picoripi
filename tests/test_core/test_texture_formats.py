@@ -373,10 +373,11 @@ def make_g1t(textures):
 def test_g1t_textures_read_and_write():
     data = make_g1t([(0x5F, picture(16, 8)), (0x01, picture(8, 8)), (0x5B, picture(8, 4))])
     textures = g1t.read(data, {})
-    assert [(t.pixel_format, t.image.size) for t in textures] == [("BC7", (16, 8)), ("RGBA8", (8, 8)), ("BC3", (8, 4))]
+    assert [(t.pixel_format, t.image.size) for t in textures] == [("BC7", (16, 8)), ("BGRA8", (8, 8)), ("BC3", (8, 4))]
     assert g1t.write(data, {0: textures[0].image, 2: textures[2].image}, {}) == data
     new = g1t.write(data, {1: Image.new("RGBA", (8, 8), (9, 8, 7, 6))}, {})
     assert g1t.read(new, {})[1].image.getpixel((0, 0)) == (9, 8, 7, 6)
+    assert bytes([7, 8, 9, 6]) * 64 in new                       # format 0x01 stores B, G, R, A
 
 
 def test_raw_textures_at_offsets():
