@@ -242,6 +242,15 @@ tokens: 18.6k
      Textures показує логотипи титульного екрана й усі текстури інтерфейсу (BC1, BC3, BC4, BC5, BC7, ASTC 8x8).
      `2_build.bat` кладе змінений текст в обидві англійські теки мода LayeredFS (EU і US), а шрифти й текстури
      знову стискає.
+   - `twewy` — The World Ends with You (Nintendo DS, Європа AWLP). **Source:** тека `source` робочої теки, яку
+     `1_unpack.bat` заповнює всіма файлами гри, крім звуку, за їхніми шляхами NitroFS; текст —
+     `Apl_Fuk/mestxt.mes` (`mestxt.bin` гри: усі 25 233 повідомлення, по 500 у блоці); **Translation:**
+     `translation`. Коди — гліфи текстового шрифту (ASCII, латиниця з діакритикою й символи видно як літери,
+     інші гліфи — `[g:XXX]`); теги `[color:1]`…`[color:4]`, `[/color]`, `[num]`, `[value]`, `[name]`; незмінений
+     файл лишається байт у байт. Font Editor показує чотири шрифти `Apl_Fuk/Grp_Font.bin` (формат `twewy`:
+     текстовий 10x10, 10x12, два 16x16); вікно Textures — ~300 аркушів тайлів меню, заголовків, титрів, назв
+     місць і екранів копірайту в архівах `pack` гри (спрайти — простим аркушем тайлів). `2_build.bat` заново
+     робить індекс повідомлень `mestable.bin` і перебудовує ROM.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** тека `source` робочої теки,
      яку `1_unpack.bat` заповнює текстовими файлами диска за їхніми шляхами на диску: `EVENT\*.EVT`
      (катсцени), `MAP\*.MPD` (події кімнат), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
