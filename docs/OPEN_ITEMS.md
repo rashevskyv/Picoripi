@@ -508,7 +508,10 @@ ender_proof.py` (text through plugin, SRL build and the font).
 
 ## Ocarina of Time N64 plugin (`plugins/zelda_oot64`)
 
-- Same open items as Majora's Mask (exports, credits, characters per box). Relocated text
+- Same open items as Majora's Mask (exports, characters per box); the credits and the title screen strings
+  open since 2026-10-07. The title / file-select font has no Ukrainian letters (free kana cells could take them),
+  and the SoH export carries only the messages and the message font (not credits, title strings, textures).
+  Relocated text
   rewrites the single `lui`/`addiu` pair that loads the English text on NTSC; untested in a running game
   (`OOT64_UA\rom\test_edit_green_rupee.z64`, `test_text_grown_40pct.z64`).
 - Only NTSC-U 1.0 is supported; Europe 1.0 (English/German/French) could serve as reference languages.
