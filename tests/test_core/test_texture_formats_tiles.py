@@ -1,6 +1,8 @@
 """GBA / DS character tiles (``tiles``): NCGR sheets and headerless sprite cells, shown as grey indices."""
 import struct
 
+import pytest
+
 from PIL import Image
 
 from core import texture_formats
@@ -48,3 +50,13 @@ def test_headerless_sprite_cells_are_laid_out_side_by_side():
     image = Image.new("RGBA", (64, 16), (0, 0, 0, 0))
     blank = tiles.write(data, {0: image}, params)
     assert blank == bytes(512)
+
+
+def test_paint_outside_the_tiles_is_refused_not_lost():
+    data = bytes(32 * 6)                                              # 6 tiles on rows of 4: the last 2 cells empty
+    [texture] = tiles.read(data, {"per_row": 4})
+    assert texture.image.size == (32, 16)
+    image = texture.image.copy()
+    image.putpixel((30, 12), (255, 255, 255, 255))
+    with pytest.raises(ValueError):
+        tiles.write(data, {0: image}, {"per_row": 4})

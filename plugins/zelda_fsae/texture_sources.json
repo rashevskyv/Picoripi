@@ -5,7 +5,7 @@
   {"label": "GAME OVER letters", "kind": "menu", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#10", "params": {"cell": [4, 4], "per_row": 8}},
   {"label": "Player marks (P1-P4, YOU)", "kind": "hud", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#11", "params": {"per_row": 16}},
   {"label": "Copyright line (title screen)", "kind": "title_screen", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#14", "params": {"per_row": 32}},
-  {"label": "Back button", "kind": "menu", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#16", "params": {"cell": [4, 4], "per_row": 8}},
+  {"label": "Back button", "kind": "menu", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#16", "params": {"cell": [4, 4], "per_row": 6}},
   {"label": "Script lettering", "kind": "title_screen", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#17", "params": {"cell": [8, 4], "per_row": 4}},
   {"label": "Title logo (ANNIVERSARY)", "kind": "title_screen", "format": "tiles", "path": "zeldat.bin", "member": "#502", "params": {"per_row": 32}}
 ]

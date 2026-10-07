@@ -87,6 +87,11 @@ def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -
         codec = pixels.codec(f"nds:{entry['bpp']}bpp")
         span = entry["bpp"] * 8
         image = image.convert("RGBA")
+        unused = image.getchannel("A")
+        for _tile, x, y in _places(entry):
+            unused.paste(0, (x, y, x + 8, y + 8))
+        if unused.getbbox():
+            raise ValueError("The picture is drawn where the sheet has no tiles (the empty end of the last row)")
         for tile, x, y in _places(entry):
             at = entry["offset"] + tile * span
             old = bytes(out[at:at + span])
