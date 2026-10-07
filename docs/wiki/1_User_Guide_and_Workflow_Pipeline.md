@@ -227,6 +227,14 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      silhouette); the Textures window lists the title logos and every UI texture (BC1, BC3, BC4, BC5, BC7,
      ASTC 8x8). `2_build.bat` puts edited text into both English folders (EU and US) of the LayeredFS mod and
      compresses fonts and textures back.
+   - `policenauts` — Policenauts (PlayStation, Japanese discs SLPS-00215/00216 with the English fan patch, as the
+     PSP PS1-Classic `EBOOT.PBP` files; disc 3 is not in the release). **Source:** the workspace's `source` folder
+     (`1_unpack.bat` reads the PSISOIMG disc of each EBOOT): `PN_VOX1.PNV` / `PN_VOX2.PNV` (the dialogue of discs
+     1 and 2: the subtitle text the patch keeps in each voice chunk, one group per chunk; lines of spaces are
+     hidden), `FONT\*` and `SHOTPAC\KANJIFNT.*` (Font Editor, format `policenauts`), `PAK\*` (Textures: title,
+     menu, act cards, story pages, staff roll; formats `policenauts_pak` and `tim`). Tags: `{dash}`, `{xHH}`.
+     A chunk's text must fit its header sector; `2_build.bat` writes `build\CD1\EBOOT.PBP` and
+     `build\CD2\EBOOT.PBP` (only the changed 16-sector blocks are compressed again).
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

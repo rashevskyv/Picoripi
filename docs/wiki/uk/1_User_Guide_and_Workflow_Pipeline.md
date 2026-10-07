@@ -226,6 +226,14 @@ tokens: 18.6k
      Textures показує логотипи титульного екрана й усі текстури інтерфейсу (BC1, BC3, BC4, BC5, BC7, ASTC 8x8).
      `2_build.bat` кладе змінений текст в обидві англійські теки мода LayeredFS (EU і US), а шрифти й текстури
      знову стискає.
+   - `policenauts` — Policenauts (PlayStation, японські диски SLPS-00215/00216 з англійським фанатським
+     перекладом, у вигляді PSP-файлів `EBOOT.PBP` PS1 Classic; диска 3 в релізі немає). **Source:** тека `source`
+     робочої теки (`1_unpack.bat` читає диск PSISOIMG кожного EBOOT): `PN_VOX1.PNV` / `PN_VOX2.PNV` (діалоги дисків
+     1 і 2: текст субтитрів, який переклад тримає в кожному голосовому блоці, одна група на блок; рядки з самих
+     пробілів приховано), `FONT\*` і `SHOTPAC\KANJIFNT.*` (Font Editor, формат `policenauts`), `PAK\*` (Текстури:
+     заставка, меню, картки актів, сторінки історії, титри; формати `policenauts_pak` і `tim`). Теги: `{dash}`,
+     `{xHH}`. Текст блоку має вміститися в його сектор-заголовок; `2_build.bat` пише `build\CD1\EBOOT.PBP` і
+     `build\CD2\EBOOT.PBP` (стискаються заново лише змінені блоки по 16 секторів).
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** тека `source` робочої теки,
      яку `1_unpack.bat` заповнює текстовими файлами диска за їхніми шляхами на диску: `EVENT\*.EVT`
      (катсцени), `MAP\*.MPD` (події кімнат), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
