@@ -10,7 +10,8 @@ column on the top and left; the model shows the cells without them, so cell pixe
 
 Wii U: the same blocks in big endian; a sheet is a GX2 surface (BC4, ``2D_TILED_THIN1``, see ``gx2``)
 stored upside down. Only the 4x4 blocks of a redrawn cell are encoded again, so the rest of the sheet
-keeps its bytes. RGBA8 sheets (the button-icon font) are written back pixel for pixel.
+keeps its bytes. RGBA8 sheets (the button-icon font) are written back pixel for pixel. BC5 sheets (two-tone
+fonts: R = the letter, G = the shape behind it) show as (R, R, R, G) and are written back per changed 4x4 block.
 
 Wii (NW4R): the 3DS block layout in big endian under a ``RFNT`` header (version, file size at 0x08, header
 size at 0x0C, block count at 0x0E); a sheet is a GX texture in tiles (I4 8x8, high nibble first; I8 and IA4
@@ -42,8 +43,8 @@ _BITS = {LA8: 16, L8: 8, A8: 8, LA4: 8, L4: 4, A4: 4}
 _NO_GLYPH = 0xFFFF
 
 # Wii U (NW4F) sheet formats
-CAFE_RGBA8, CAFE_BC4, CAFE_RGBA8_SRGB = 0, 12, 14
-CAFE_FORMATS = {CAFE_RGBA8: "RGBA8", CAFE_BC4: "BC4", CAFE_RGBA8_SRGB: "RGBA8_SRGB"}
+CAFE_RGBA8, CAFE_BC4, CAFE_BC5, CAFE_RGBA8_SRGB = 0, 12, 13, 14
+CAFE_FORMATS = {CAFE_RGBA8: "RGBA8", CAFE_BC4: "BC4", CAFE_BC5: "BC5", CAFE_RGBA8_SRGB: "RGBA8_SRGB"}
 
 
 # Wii (NW4R GX) sheet formats
@@ -345,21 +346,26 @@ def _cafe_layout(info: Dict[str, Any], index: int) -> Tuple[int, int, int, Tuple
     fmt, w, h = info["format"], info["sheet_width"], info["sheet_height"]
     if fmt == CAFE_BC4:
         wide, high, size = (w + 3) // 4, (h + 3) // 4, 8
+    elif fmt == CAFE_BC5:
+        wide, high, size = (w + 3) // 4, (h + 3) // 4, 16
     elif fmt in (CAFE_RGBA8, CAFE_RGBA8_SRGB):
         wide, high, size = w, h, 4
     else:
-        raise ValueError(f"Wii U font sheet format {fmt} is not supported (BC4 and RGBA8 are)")
+        raise ValueError(f"Wii U font sheet format {fmt} is not supported (BC4, BC5 and RGBA8 are)")
     return wide, high, size, gx2.element_offsets(wide, high, size * 8, slice_index=index)
 
 
 def _cafe_decode(data: bytes, info: Dict[str, Any], index: int) -> Image.Image:
-    """An RGBA image of sheet ``index``, right side up: BC4 as grey ink, RGBA8 as is."""
+    """An RGBA image of sheet ``index``, right side up: BC4 as grey ink, BC5 as (R, R, R, G), RGBA8 as is."""
     _wide, _high, size, offsets = _cafe_layout(info, index)
     raw = data[info["data"] + index * info["sheet_size"]:][:info["sheet_size"]]
     linear = b"".join(raw[offset:offset + size] for offset in offsets)
     dimensions = (info["sheet_width"], info["sheet_height"])
     if info["format"] == CAFE_BC4:
         image = grey_sheet(Image.frombytes("L", dimensions, linear, "bcn", 4))
+    elif info["format"] == CAFE_BC5:
+        red, green, _blue = Image.frombytes("RGB", dimensions, linear, "bcn", 5).split()
+        image = Image.merge("RGBA", (red, red, red, green))
     else:
         image = Image.frombytes("RGBA", dimensions, linear)
     return image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
@@ -368,6 +374,9 @@ def _cafe_decode(data: bytes, info: Dict[str, Any], index: int) -> Image.Image:
 def _cafe_write(out: bytearray, info: Dict[str, Any], index: int, old: Image.Image, new: Image.Image) -> None:
     """Encode again only the 4x4 blocks of sheet ``index`` whose ink changed (BC4); RGBA8 is written as is."""
     wide, high, _size, offsets = _cafe_layout(info, index)
+    if info["format"] == CAFE_BC5:
+        _cafe_write_bc5(out, info, index, old, new, wide, high, offsets)
+        return
     if info["format"] != CAFE_BC4:
         pixels = new.convert("RGBA").transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes()
         base = info["data"] + index * info["sheet_size"]
@@ -392,6 +401,28 @@ def _cafe_write(out: bytearray, info: Dict[str, Any], index: int, old: Image.Ima
             block = Image.merge("RGBA", (white, white, white, ink)).tobytes("bcn", 3)[:8]  # BC3 alpha = BC4
             at = base + offsets[by * wide + bx]
             out[at:at + 8] = block
+
+
+def _cafe_write_bc5(out: bytearray, info: Dict[str, Any], index: int, old: Image.Image, new: Image.Image,
+                    wide: int, high: int, offsets) -> None:
+    """BC5 sheets (two-tone fonts: R = the letter, G = the shape behind it, shown as R, R, R, G): encode again
+    only the 4x4 blocks whose pixels changed, R from the picture's red, G from its alpha."""
+    before = old.convert("RGBA").transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+    after = new.convert("RGBA").transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+    if before.tobytes() == after.tobytes():
+        return
+    red, _g, _b, alpha = after.split()
+    white = Image.new("L", (4, 4), 255)
+    base = info["data"] + index * info["sheet_size"]
+    for by in range(high):
+        for bx in range(wide):
+            box = (bx * 4, by * 4, bx * 4 + 4, by * 4 + 4)
+            if before.crop(box).tobytes() == after.crop(box).tobytes():
+                continue
+            block = b"".join(Image.merge("RGBA", (white, white, white, channel.crop(box))).tobytes("bcn", 3)[:8]
+                             for channel in (red, alpha))    # BC3 alpha = BC4 = one BC5 channel
+            at = base + offsets[by * wide + bx]
+            out[at:at + 16] = block
 
 
 def _model_sheets(info: Dict[str, int], textures: List[Image.Image]) -> List[Image.Image]:
@@ -486,8 +517,8 @@ def _finf_pointer_offsets(data: bytes) -> Tuple[int, int]:
 
 
 def _grows(info: Dict[str, Any]) -> bool:
-    """Blank sheets can be added (``min_sheets``): Wii U BC4 and Wii GX fonts."""
-    return (info["cafe"] and info["format"] == CAFE_BC4) or info["rvl"]
+    """Blank sheets can be added (``min_sheets``): Wii U BC4 / BC5 and Wii GX fonts."""
+    return (info["cafe"] and info["format"] in (CAFE_BC4, CAFE_BC5)) or info["rvl"]
 
 
 def _add_sheets(data: bytes, info: Dict[str, Any], extra: int) -> bytes:

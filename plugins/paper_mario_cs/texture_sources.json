@@ -1,0 +1,13 @@
+[
+  {"label": "Title screen (logo, Press A)", "kind": "title_screen", "format": "bfres", "path": "Graphics/UI/Title/*.EUR_en.bfres"},
+  {"label": "Common screens (game over, HP, skip, next)", "kind": "other", "format": "bfres", "path": "Graphics/UI/Cmn/*.EUR_en.bfres"},
+  {"label": "Battle words", "kind": "other", "format": "bfres", "path": "Graphics/UI/Btl/*.EUR_en.bfres"},
+  {"label": "Event words (Ready, Go, End)", "kind": "other", "format": "bfres", "path": "Graphics/UI/Event/*.EUR_en.bfres"},
+  {"label": "Chapter title cards", "kind": "area_card", "format": "bfres", "path": "Graphics/UI/Eyecatch/*.EUR_en.bfres"},
+  {"label": "Field status and icons", "kind": "other", "format": "bfres", "path": "Graphics/UI/Fld/*.EUR_en.bfres"},
+  {"label": "Roshambo Temple", "kind": "other", "format": "bfres", "path": "Graphics/UI/Janken/*.EUR_en.bfres"},
+  {"label": "Quiz show", "kind": "other", "format": "bfres", "path": "Graphics/UI/Quiz/*.EUR_en.bfres"},
+  {"label": "Staff roll", "kind": "other", "format": "bfres", "path": "Graphics/UI/Staff/*.EUR_en.bfres"},
+  {"label": "Big Paint Star / Mini Paint Star", "kind": "other", "format": "bfres", "path": "Graphics/UI/Star/*.EUR_en.bfres"},
+  {"label": "Port Prisma buttons and icons", "kind": "other", "format": "bfres", "path": "Graphics/UI/Town/*.EUR_en.bfres"}
+]

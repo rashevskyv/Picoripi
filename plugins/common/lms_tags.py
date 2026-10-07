@@ -7,7 +7,7 @@ A plugin gives a catalogue ``{(group, type): (name, argument types, description)
   ``{/name}`` / ``{/tag:G:T}``     a closing tag
 A tag is only shown by name when its readable form encodes back to the same bytes, so a file always
 round-trips. Arguments with an odd byte length are padded with 0xCD, as Nintendo's files are.
-Argument types: u8, s8, bool, u16, s16, u32, f32, str (u16 byte length + UTF-16).
+Argument types: u8, s8, bool, u16, s16, u32, s32, f32, str (u16 byte length + UTF-16).
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from plugins.common.msbt import EndTag, Tag, Token
 PAD = 0xCD
 TAG_RE = re.compile(r"\{/?[A-Za-z][A-Za-z0-9_]*(?::[^{}:]*)*\}")
 _TAG_PARTS_RE = re.compile(r"\{(/?)([A-Za-z][A-Za-z0-9_]*)((?::[^{}:]*)*)\}")
-_INT_FORMATS = {"u8": "B", "s8": "b", "bool": "B", "u16": "H", "s16": "h", "u32": "I", "f32": "f"}
+_INT_FORMATS = {"u8": "B", "s8": "b", "bool": "B", "u16": "H", "s16": "h", "u32": "I", "s32": "i", "f32": "f"}
 
 Catalogue = Dict[Tuple[int, int], Tuple[str, Tuple[str, ...], str]]
 

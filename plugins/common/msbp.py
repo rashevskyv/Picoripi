@@ -55,6 +55,17 @@ def _table(body: bytes, e: str) -> List[int]:
     return list(struct.unpack_from(f"{e}{count}I", body, 4))
 
 
+def _groups(tgg: bytes, e: str, tags: List[Dict[str, Any]], with_id: bool) -> List[Dict[str, Any]]:
+    """TGG2 entries: ``u16 id, u16 count`` (or only ``u16 count``), count tag indices, then the name."""
+    groups = []
+    for position, o in enumerate(_table(tgg, e) if tgg else []):
+        group_id, n = struct.unpack_from(e + "HH", tgg, o) if with_id else (position, struct.unpack_from(e + "H", tgg, o)[0])
+        start = o + (4 if with_id else 2)
+        indices = struct.unpack_from(f"{e}{n}H", tgg, start)
+        groups.append({"id": group_id, "name": _cstr(tgg, start + 2 * n), "tags": [tags[i] for i in indices]})
+    return groups
+
+
 def read(raw: bytes) -> Dict[str, Any]:
     raw = bytes(raw)
     if raw[:8] != MAGIC:
@@ -102,11 +113,10 @@ def read(raw: bytes) -> Dict[str, Any]:
         n = struct.unpack_from(e + "H", tag, o)[0]
         indices = struct.unpack_from(f"{e}{n}H", tag, o + 2)
         tags.append({"name": _cstr(tag, o + 2 + 2 * n), "params": [params[i] for i in indices]})
-    groups = []
-    for o in (_table(tgg, e) if tgg else []):
-        group_id, n = struct.unpack_from(e + "HH", tgg, o)
-        indices = struct.unpack_from(f"{e}{n}H", tgg, o + 4)
-        groups.append({"id": group_id, "name": _cstr(tgg, o + 4 + 2 * n), "tags": [tags[i] for i in indices]})
+    try:
+        groups = _groups(tgg, e, tags, with_id=True)
+    except (IndexError, struct.error):
+        groups = _groups(tgg, e, tags, with_id=False)   # Wii U era (Color Splash): no group id, id = position
     result["tag_groups"] = groups
 
     syl = s.get(b"SYL3", b"")
