@@ -180,13 +180,16 @@ ender_proof.py` (text through plugin, SRL build and the font).
 - Owner decision: the Ukrainian glyphs of `LoveBug.bffnt` (the menu and text font, no Cyrillic; the second
   sheet is free for them) and the four missing letters Є є Ґ ґ of `ZeldaGlyph`/`ZeldaGlyphSmall` must be drawn
   in the Font Editor. Which screens use ZeldaGlyph and the Asian fonts in English mode was not mapped.
-- Text in images is not covered: `textures_bin/texture_pack.bin` (zlib of BNTX textures) holds the title logo and
-  the four menu tab names (`UI_BorderNames_English_*`); the Russian mod redrew exactly those five.
+- Text in images: the five pictures with English text (title logo, four pause-menu tab names) open in Tools →
+  Textures from `textures_bin/texture_pack.bin` (all 8,700 game and DLC textures are BNTX RGBA8; the boss packs and
+  DLC packs hold no text). They still have to be redrawn by a person. `bosses/Vaalni_Splash_Anim` (the word
+  "Octavo") is not referenced by the game's executable and is left out. The mp4 videos (intro, victory) are not
+  opened. A reverted texture leaves the pack recompressed (same content, other zlib bytes).
 - Speakers come from string keys; 20 keys (`mellan`, `gerudo_leader`, `zora_leader`...) stay `npc:<key>` until
   someone names them. Dialogue box limits (lines per page, wrap width) are not known; only short labels get a
   width limit (1.3x / 1.6x the English).
-- `credits.xml` (names and some English headings) is not opened; the translated credits headings live in
-  `localization.xml` (ids 8000+).
+- `credits.xml` opens as the "Credits roll" block (lines with `textKey` take their text from `localization.xml`
+  and are not shown). Whether names should be transliterated is the translator's choice.
 
 ## Skyward Sword plugin (`plugins/zelda_sshd`, HD and Wii, 2026-10-04)
 

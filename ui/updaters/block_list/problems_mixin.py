@@ -218,6 +218,13 @@ class ProblemsMixin:
 
         return item
 
+    def _data_blocks_of(self, project_block_idx: int) -> list:
+        """The data blocks of a project block (a file may open into several: a ROM gives messages,
+        credits...); the block itself when the map does not know it."""
+        block_map = getattr(self.mw, 'block_to_project_file_map', None) or {}
+        found = sorted(int(data_idx) for data_idx, proj_idx in block_map.items() if int(proj_idx) == project_block_idx)
+        return found or [project_block_idx]
+
     def _is_project_block_unsaved(self, project_block_idx: int) -> bool:
         """Check if project block index is unsaved using central FilterQueryAPI."""
         return self.mw.filter_query_api.is_project_block_unsaved(project_block_idx)
@@ -342,13 +349,14 @@ class ProblemsMixin:
                 if idx is not None:
                     if (getattr(self.mw.data_store, 'show_unsaved_blocks_only', False) is not True or
                             self._is_project_block_unsaved(idx)):
-                        block_item = self._create_block_tree_item(idx, problem_definitions, pre_aggregated_counts)
-                        folder_item.addChild(block_item)
-                        if idx == current_selection_block_idx:
-                            self.mw.block_list_widget.setCurrentItem(block_item)
-                            block_item.setSelected(True)
-                            if block_item.childCount() > 0:
-                                block_item.setExpanded(True)
+                        for data_idx in self._data_blocks_of(idx):
+                            block_item = self._create_block_tree_item(data_idx, problem_definitions, pre_aggregated_counts)
+                            folder_item.addChild(block_item)
+                            if data_idx == current_selection_block_idx:
+                                self.mw.block_list_widget.setCurrentItem(block_item)
+                                block_item.setSelected(True)
+                                if block_item.childCount() > 0:
+                                    block_item.setExpanded(True)
         else:
             # For compaction Type 2 (Folder/Block), the folder_item itself represents the block.
             if block_idx_for_icon is not None and block_idx_for_icon == current_selection_block_idx:

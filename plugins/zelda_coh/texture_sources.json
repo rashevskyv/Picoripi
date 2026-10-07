@@ -1,7 +1,7 @@
 [
-  {"label": "Title logo: TitleLogo", "kind": "title_screen", "format": "bntx", "path": ["textures_bin/texture_pack.bin", "../romfs/textures_bin/texture_pack.bin"], "params": {"compression": "zlib", "file_offset": 144584704, "file_size": 299112}},
-  {"label": "Pause-menu tab names (English): UI_BorderNames_English_Charms", "kind": "menu_label", "format": "bntx", "path": ["textures_bin/texture_pack.bin", "../romfs/textures_bin/texture_pack.bin"], "params": {"compression": "zlib", "file_offset": 148283392, "file_size": 8296}},
-  {"label": "Pause-menu tab names (English): UI_BorderNames_English_Items", "kind": "menu_label", "format": "bntx", "path": ["textures_bin/texture_pack.bin", "../romfs/textures_bin/texture_pack.bin"], "params": {"compression": "zlib", "file_offset": 148295680, "file_size": 8296}},
-  {"label": "Pause-menu tab names (English): UI_BorderNames_English_Map", "kind": "menu_label", "format": "bntx", "path": ["textures_bin/texture_pack.bin", "../romfs/textures_bin/texture_pack.bin"], "params": {"compression": "zlib", "file_offset": 148307968, "file_size": 8296}},
-  {"label": "Pause-menu tab names (English): UI_BorderNames_English_Weapons", "kind": "menu_label", "format": "bntx", "path": ["textures_bin/texture_pack.bin", "../romfs/textures_bin/texture_pack.bin"], "params": {"compression": "zlib", "file_offset": 148320256, "file_size": 8296}}
+  {"label": "Title logo: TitleLogo", "kind": "title_screen", "format": "bntx", "path": "textures_bin/texture_pack.bin", "params": {"compression": "zlib", "file_offset": 144584704, "file_size": 299112}},
+  {"label": "Pause-menu tab names (English): UI_BorderNames_English_Charms", "kind": "menu_label", "format": "bntx", "path": "textures_bin/texture_pack.bin", "params": {"compression": "zlib", "file_offset": 148283392, "file_size": 8296}},
+  {"label": "Pause-menu tab names (English): UI_BorderNames_English_Items", "kind": "menu_label", "format": "bntx", "path": "textures_bin/texture_pack.bin", "params": {"compression": "zlib", "file_offset": 148295680, "file_size": 8296}},
+  {"label": "Pause-menu tab names (English): UI_BorderNames_English_Map", "kind": "menu_label", "format": "bntx", "path": "textures_bin/texture_pack.bin", "params": {"compression": "zlib", "file_offset": 148307968, "file_size": 8296}},
+  {"label": "Pause-menu tab names (English): UI_BorderNames_English_Weapons", "kind": "menu_label", "format": "bntx", "path": "textures_bin/texture_pack.bin", "params": {"compression": "zlib", "file_offset": 148320256, "file_size": 8296}}
 ]

@@ -5,6 +5,10 @@ The file is UTF-8 XML written by the game's tools: ``<text description="key" id=
 (CRLF and LF) and a few strings end in a raw line break, so the file is never re-serialised: it is
 read as text, the English strings are located by their spans, and saving splices only the strings
 that changed. An unedited file is written back byte for byte.
+
+``credits.xml`` (the credits roll) is read the same way: ``<line type="header">GAME DESIGN</line>``. The game
+draws these lines as they are in every language; a line with ``textKey`` takes its text from
+``localization.xml`` instead, so only non-empty lines without ``textKey`` are strings.
 """
 from __future__ import annotations
 
@@ -48,31 +52,18 @@ def escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-class LocalizationFile:
-    """The parsed file; ``entries`` in file order (one per ``<text>`` with an English string)."""
+def _decode(data: bytes) -> str:
+    try:
+        return bytes(data).decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise FormatError(f"not UTF-8: {error}") from error
 
-    def __init__(self, data: bytes, lang: str = LANG):
-        if b"<strings>" not in data[:400] or b"<text " not in data:
-            raise FormatError("not a localization.xml (no <strings> root)")
-        try:
-            self.document = bytes(data).decode("utf-8")
-        except UnicodeDecodeError as error:
-            raise FormatError(f"not UTF-8: {error}") from error
-        string_re = re.compile(r'<string lang="%s"(?: */>|>(.*?)</string>)' % re.escape(lang), re.S)
-        self.entries: List[Entry] = []
-        for match in _TEXT_RE.finditer(self.document):
-            string = string_re.search(match.group(3))
-            if string is None:
-                continue
-            base = match.start(3)
-            if string.group(1) is None:
-                start, end, text, closing = base + string.start(), base + string.end(), "", True
-            else:
-                start, end, text, closing = base + string.start(1), base + string.end(1), unescape(string.group(1)), False
-            self.entries.append(Entry(int(match.group(2)), match.group(1), text, start, end, closing))
-        if not self.entries:
-            raise FormatError(f"no <string lang=\"{lang}\"> entries")
-        self.by_id: Dict[int, Entry] = {entry.id: entry for entry in self.entries}
+
+class _Spliced:
+    """A file whose strings are replaced in place by their spans."""
+
+    document: str
+    entries: List["Entry"]
 
     def build(self, texts: Sequence[Optional[str]], lang: str = LANG) -> bytes:
         """The file with ``texts[i]`` as the string of ``entries[i]``; None or an equal text keeps it."""
@@ -89,3 +80,42 @@ class LocalizationFile:
             position = entry.end
         parts.append(self.document[position:])
         return "".join(parts).encode("utf-8")
+
+
+class CreditsFile(_Spliced):
+    """``credits.xml``: ``entries`` are the drawn lines (``description`` is the line type)."""
+
+    _LINE_RE = re.compile(r'<line type="([^"]*)">([^<]+)</line>')
+
+    def __init__(self, data: bytes):
+        if b"<credits>" not in data[:400]:
+            raise FormatError("not a credits.xml (no <credits> root)")
+        self.document = _decode(data)
+        self.entries = [Entry(n, match.group(1), unescape(match.group(2)), match.start(2), match.end(2), False)
+                        for n, match in enumerate(self._LINE_RE.finditer(self.document))]
+        if not self.entries:
+            raise FormatError("no <line> entries")
+
+
+class LocalizationFile(_Spliced):
+    """The parsed file; ``entries`` in file order (one per ``<text>`` with an English string)."""
+
+    def __init__(self, data: bytes, lang: str = LANG):
+        if b"<strings>" not in data[:400] or b"<text " not in data:
+            raise FormatError("not a localization.xml (no <strings> root)")
+        self.document = _decode(data)
+        string_re = re.compile(r'<string lang="%s"(?: */>|>(.*?)</string>)' % re.escape(lang), re.S)
+        self.entries: List[Entry] = []
+        for match in _TEXT_RE.finditer(self.document):
+            string = string_re.search(match.group(3))
+            if string is None:
+                continue
+            base = match.start(3)
+            if string.group(1) is None:
+                start, end, text, closing = base + string.start(), base + string.end(), "", True
+            else:
+                start, end, text, closing = base + string.start(1), base + string.end(1), unescape(string.group(1)), False
+            self.entries.append(Entry(int(match.group(2)), match.group(1), text, start, end, closing))
+        if not self.entries:
+            raise FormatError(f"no <string lang=\"{lang}\"> entries")
+        self.by_id: Dict[int, Entry] = {entry.id: entry for entry in self.entries}

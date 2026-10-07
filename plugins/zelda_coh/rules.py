@@ -3,14 +3,14 @@ import math
 import re
 import urllib.parse
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
-from .locxml import FormatError, LocalizationFile
+from .locxml import CreditsFile, FormatError, LocalizationFile
 from .tag_manager import TagManager
 from .tags import TAG_RE, describe, from_editor, to_editor
 
@@ -67,12 +67,32 @@ def block_of(string_id: int) -> int:
     return index
 
 
-def split_blocks(loc: LocalizationFile) -> List[List[int]]:
-    """Entry indices per block (file order inside a block); empty blocks are dropped."""
+CREDITS = ("credits", "Credits roll", "Credits roll line: a heading, company or person name", None, False)
+GameFile = Union[LocalizationFile, CreditsFile]
+
+
+def parse(data: bytes) -> GameFile:
+    """``localization.xml`` or ``credits.xml``; FormatError for anything else."""
+    try:
+        return LocalizationFile(data)
+    except FormatError:
+        return CreditsFile(data)
+
+
+def groups_of(game_file: GameFile) -> List[Tuple[tuple, List[int]]]:
+    """``(kind, entry indices)`` per block (file order inside a block); empty blocks are dropped.
+    ``kind`` is a BLOCKS row (or CREDITS)."""
+    if isinstance(game_file, CreditsFile):
+        return [(CREDITS, list(range(len(game_file.entries))))]
     groups: List[List[int]] = [[] for _ in BLOCKS]
-    for index, entry in enumerate(loc.entries):
+    for index, entry in enumerate(game_file.entries):
         groups[block_of(entry.id)].append(index)
-    return [group for group in groups if group]
+    return [(BLOCKS[n], group) for n, group in enumerate(groups) if group]
+
+
+def split_blocks(game_file: GameFile) -> List[List[int]]:
+    """Entry indices per block."""
+    return [group for _kind, group in groups_of(game_file)]
 
 
 def speaker_of(description: str) -> Optional[str]:
@@ -106,7 +126,8 @@ class GameRules(BaseGameRules):
     A project points at a folder with the game's ``localization.xml`` (and ``fonts_bin``). The English
     strings are shown, one block per id range; saving writes the whole file with only the edited
     English strings replaced -- into a LayeredFS ``romfs`` when the translation folder is
-    ``atmosphere/contents/01000B900D8B0000/romfs``.
+    ``atmosphere/contents/01000B900D8B0000/romfs``. ``credits.xml`` (the credits roll, the same in
+    every language) opens as one more block.
     """
 
     problem_prefix = PLUGIN_PREFIX
@@ -118,15 +139,15 @@ class GameRules(BaseGameRules):
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
-        self._file: Optional[LocalizationFile] = None
-        self._located: Dict[int, Optional[Tuple[LocalizationFile, int, List[int]]]] = {}
+        self._file: Optional[GameFile] = None
+        self._located: Dict[int, Optional[Tuple[GameFile, tuple, List[int]]]] = {}
 
     def get_display_name(self) -> str:
         return "Zelda: Cadence of Hyrule"
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat((".xml",), "bytes", "Cadence of Hyrule localization.xml"), *DEFAULT_FORMATS]
+        return [FileFormat((".xml",), "bytes", "Cadence of Hyrule localization.xml, credits.xml"), *DEFAULT_FORMATS]
 
     # -- load and save ---------------------------------------------------------
 
@@ -134,15 +155,15 @@ class GameRules(BaseGameRules):
         if not isinstance(json_obj, (bytes, bytearray)):
             return super().load_data_from_json_obj(json_obj)
         try:
-            loc = LocalizationFile(bytes(json_obj))
+            loc = parse(bytes(json_obj))
         except FormatError as error:
-            log_debug(f"zelda_coh: not a localization file ({error})")
+            log_debug(f"zelda_coh: not a localization or credits file ({error})")
             self._file = None
             return [[]], {}
         self._file = loc
-        groups = split_blocks(loc)
-        blocks = [[to_editor(loc.entries[i].text) for i in group] for group in groups]
-        names = {str(n): BLOCKS[block_of(loc.entries[group[0]].id)][1] for n, group in enumerate(groups)}
+        groups = groups_of(loc)
+        blocks = [[to_editor(loc.entries[i].text) for i in group] for _kind, group in groups]
+        names = {str(n): kind[1] for n, (kind, _group) in enumerate(groups)}
         return blocks, names
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
@@ -161,7 +182,7 @@ class GameRules(BaseGameRules):
         """The file is rebuilt from its current version (translation first): load the newest that parses."""
         for raw in context.existing_versions():
             try:
-                self._file = LocalizationFile(raw)
+                self._file = parse(raw)
                 return
             except FormatError as error:
                 log_warning(f"zelda_coh: cannot read {context.relative_path}: {error}; trying the next version")
@@ -172,8 +193,8 @@ class GameRules(BaseGameRules):
 
     # -- where a string comes from -----------------------------------------------
 
-    def _locate(self, block_idx: int) -> Optional[Tuple[LocalizationFile, int, List[int]]]:
-        """``(parsed source file, BLOCKS index, entry indices)`` of a data block; cached per load."""
+    def _locate(self, block_idx: int) -> Optional[Tuple[GameFile, tuple, List[int]]]:
+        """``(parsed source file, BLOCKS row or CREDITS, entry indices)`` of a data block; cached per load."""
         if block_idx in self._located:
             return self._located[block_idx]
         found = None
@@ -183,9 +204,9 @@ class GameRules(BaseGameRules):
             project_idx = block_map.get(block_idx, block_idx)
             sub = sum(1 for d, p in block_map.items() if p == project_idx and d < block_idx)
             block = pm.project.blocks[project_idx]
-            loc = LocalizationFile(Path(pm.get_absolute_path(block.source_file)).read_bytes())
-            group = split_blocks(loc)[sub]
-            found = (loc, block_of(loc.entries[group[0]].id), group)
+            loc = parse(Path(pm.get_absolute_path(block.source_file)).read_bytes())
+            kind, group = groups_of(loc)[sub]
+            found = (loc, kind, group)
         except (AttributeError, IndexError, KeyError, OSError, TypeError, FormatError) as error:
             log_debug(f"zelda_coh: no localization file behind block {block_idx}: {error}")
         self._located[block_idx] = found
@@ -197,7 +218,7 @@ class GameRules(BaseGameRules):
             return None
         loc, kind, group = located
         try:
-            return loc.entries[group[int(string_idx)]], BLOCKS[kind]
+            return loc.entries[group[int(string_idx)]], kind
         except (IndexError, TypeError, ValueError):
             return None
 
@@ -227,7 +248,8 @@ class GameRules(BaseGameRules):
         if not found:
             return {}
         entry, kind = found
-        return {"resource": "localization.xml", "label": entry.description, "msg_group": kind[1]}
+        return {"resource": "credits.xml" if kind is CREDITS else "localization.xml", "label": entry.description,
+                "msg_group": kind[1]}
 
     def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         found = self._entry(block_idx, string_idx)
