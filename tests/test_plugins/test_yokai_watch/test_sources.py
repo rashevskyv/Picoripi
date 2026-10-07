@@ -71,3 +71,67 @@ def test_each_game_has_its_own_texture_list(tmp_path, monkeypatch):
     assert rules.get_texture_sources()[0]["path"] == "data/menu/*.xa"
     monkeypatch.setattr(GameRules, "_source_root", lambda self: None)
     assert rules.get_texture_sources()[0]["path"] == "data/menu/skill_telop/en/*.xi"
+
+
+SOURCE_YW4 = WORKSPACES / "Yo-kai Watch 4" / "source"
+SOURCE_YAY = WORKSPACES / "Yo-kai Academy Y" / "source"
+
+
+@pytest.mark.parametrize("source, listing, count", [
+    (SOURCE_YW4, "yw4_font_sources.json", 4), (SOURCE_YAY, "yay_font_sources.json", 7)], ids=["yw4", "yay"])
+def test_g4_fonts_open_pack_back_unchanged_and_save_both_files(source, listing, count, tmp_path):
+    """Yo-kai Watch 4++ / Academy Y: font.cfg.bin with its font.g4tx (the companion) in one model."""
+    if not (source / "data/common/font/font/font_ja/font.cfg.bin").is_file():
+        pytest.skip(f"needs the workspace {source.parent}")
+    found = font_sources.resolve(json.loads((PLUGIN / listing).read_text(encoding="utf-8")),
+                                 _project(source, tmp_path))
+    assert len(found) == count and all(s.companion_source for s in found)
+    for font in found:
+        raw = font.read_original()
+        metadata, sheets = font_formats.extract(font.format, raw, font.params)
+        assert font_formats.pack(font.format, metadata, sheets, raw, font.params) == raw, font.label
+    main = found[0]
+    raw = main.read_original()
+    metadata, sheets = font_formats.extract(main.format, raw, main.params)
+    gly = metadata["GLY1"][0]
+    glyph = font_formats.char_map(metadata)["A"]
+    x, y = (glyph % gly["glyph_horizontal_count"]) * gly["cell_width"], (glyph // gly["glyph_horizontal_count"]) * gly["cell_height"]
+    sheet = sheets[0].copy()
+    sheet.paste((255, 255, 255, 255), (x + 6, y + 10, x + 16, y + 30))
+    main.write(font_formats.pack(main.format, metadata, [sheet], raw, main.params))
+    assert Path(main.companion_translation).is_file() and Path(main.translation_path).is_file()
+    again, again_sheets = font_formats.extract(main.format, main.read_current(), main.params)
+    cell = (x, y, x + gly["cell_width"], y + gly["cell_height"])
+    assert font_formats.coverage(again_sheets[0]).crop(cell).tobytes() == font_formats.coverage(sheet).crop(cell).tobytes()
+
+
+# Resolving decodes every listed texture (985 / 721 files, BC7 and RGBA8 up to 4096x2048).
+@pytest.mark.performance
+@pytest.mark.timeout(3600)
+@pytest.mark.parametrize("source, listing, least", [
+    (SOURCE_YW4, "yw4_texture_sources.json", 985), (SOURCE_YAY, "yay_texture_sources.json", 721)], ids=["yw4", "yay"])
+def test_g4tx_text_textures_read_and_write_back_unchanged(source, listing, least, tmp_path):
+    if not (source / "data/nx/menu").is_dir():
+        pytest.skip(f"needs the workspace {source.parent}")
+    found = texture_sources.resolve(json.loads((PLUGIN / listing).read_text(encoding="utf-8")),
+                                    _project(source, tmp_path))
+    assert len({s.source_path for s in found}) >= least
+    seen = set()
+    for texture_source in found:
+        texture = texture_source.read_original()
+        seen.add(texture.pixel_format)
+        assert texture_source.write(texture.image) is False, texture_source.label
+    assert {"RGBA8", "BC7"} <= seen
+    assert not any(tmp_path.iterdir())
+
+
+def test_switch_sequels_have_their_own_font_and_texture_lists(tmp_path, monkeypatch):
+    from plugins.yokai_watch.rules import GameRules
+    rules = GameRules()
+    monkeypatch.setattr(GameRules, "_source_root", lambda self: tmp_path)
+    (tmp_path / "data/common/text/ja").mkdir(parents=True)
+    assert rules.get_font_sources()[0]["companion"] == "data/nx/font/font_ja/font.g4tx"
+    assert len(rules.get_font_sources()) == 4
+    assert rules.get_texture_sources()[0]["format"] == "g4tx"
+    (tmp_path / "data/common/font/font/font_ja2").mkdir(parents=True)
+    assert len(rules.get_font_sources()) == 7

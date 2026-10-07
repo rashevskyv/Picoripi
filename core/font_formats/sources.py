@@ -9,6 +9,8 @@ compressed again),
 ``font_map`` (the width map the font feeds) and ``params`` (the format's game constants). A G1T
 whose widths live in the game's executable (``params.widths.patches``) also has exefs patch files in
 the translation folder, one per build of the game (``widths_patches``: file -> table address).
+``companion`` (a path relative to the source folder) is a second file the font needs, e.g. the texture
+of a Level-5 G4 font: the format then gets both files as one ``join_pair`` blob and saves both.
 
 Reading takes the translation copy when it exists, else the source; writing always goes to the
 translation copy (atomically; an archive is repacked around the member). The source is never
@@ -18,13 +20,28 @@ from __future__ import annotations
 
 import fnmatch
 import os
+import struct
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from core.containers import yaz0
 from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
+
+_PAIR = b"PAIR"
+
+
+def join_pair(main: bytes, companion: bytes) -> bytes:
+    """A font file and its companion as the one blob a format reads (``split_pair`` takes it apart)."""
+    return _PAIR + struct.pack("<I", len(main)) + bytes(main) + bytes(companion)
+
+
+def split_pair(data: bytes) -> Tuple[bytes, bytes]:
+    if data[:4] != _PAIR:
+        raise ValueError("Not a font file with its companion file")
+    size = struct.unpack_from("<I", data, 4)[0]
+    return bytes(data[8:8 + size]), bytes(data[8 + size:])
 
 
 @dataclass
@@ -39,6 +56,8 @@ class FontSource:
     font_map: str = ""
     params: Dict[str, Any] = field(default_factory=dict)
     widths_patches: Dict[str, str] = field(default_factory=dict)
+    companion_source: str = ""
+    companion_translation: str = ""
 
     @property
     def name(self) -> str:
@@ -64,16 +83,28 @@ class FontSource:
 
     def read_current(self) -> bytes:
         """The font as the translation has it now (the source until it was first written)."""
-        return self._read(self._current_path())
+        data = self._read(self._current_path())
+        if not self.companion_source:
+            return data
+        companion = self.companion_translation
+        if not (companion and Path(companion).is_file()):
+            companion = self.companion_source
+        return join_pair(data, Path(companion).read_bytes())
 
     def read_original(self) -> bytes:
         """The game's own font."""
-        return self._read(self.source_path)
+        data = self._read(self.source_path)
+        return join_pair(data, Path(self.companion_source).read_bytes()) if self.companion_source else data
 
     def write(self, data: bytes) -> None:
         """Write the edited font into the translation copy."""
         if not self.translation_path or Path(self.translation_path).resolve() == Path(self.source_path).resolve():
             raise ValueError("The project has no translation folder to write the font to")
+        if self.companion_source:
+            data, companion = split_pair(data)
+            if not self.companion_translation:
+                raise ValueError("The project has no translation folder to write the font to")
+            atomic_write_bytes(self.companion_translation, companion)
         if self.member:
             base = self._current_path()
             container = _open_archive(Path(base).read_bytes(), base)
@@ -121,7 +152,7 @@ def resolve(descriptors: Iterable[Dict[str, Any]], project_metadata: Dict[str, A
         try:
             files = _match_files(descriptor, source_root, translation_root, directory_mode)
             for source_path, translation_path in files:
-                found.extend(_sources_for(descriptor, source_path, translation_path, translation_root))
+                found.extend(_sources_for(descriptor, source_path, translation_path, translation_root, source_root))
         except (OSError, ValueError, KeyError, TypeError) as error:
             log_warning(f"Font source {descriptor.get('label') or descriptor.get('path')!r}: {error}")
     return found
@@ -144,13 +175,21 @@ def _match_files(descriptor: Dict[str, Any], source_root: str, translation_root:
 
 
 def _sources_for(descriptor: Dict[str, Any], source_path: str, translation_path: str,
-                 translation_root: str = "") -> List[FontSource]:
+                 translation_root: str = "", source_root: str = "") -> List[FontSource]:
     params = dict(descriptor.get("params") or {})
+    companion = str(descriptor.get("companion") or "")
+    pair = {}
+    if companion:
+        if not Path(source_root, companion).is_file():
+            raise ValueError(f"companion file {companion} is missing")
+        pair = dict(companion_source=os.path.normpath(os.path.join(source_root, companion)),
+                    companion_translation=os.path.normpath(os.path.join(translation_root, companion))
+                    if translation_root else "")
     patches = (params.get("widths") or {}).get("patches") or {}
     common = dict(format=str(descriptor["format"]), source_path=source_path, translation_path=translation_path,
                   font_map=str(descriptor.get("font_map") or ""), params=params,
                   widths_patches={os.path.normpath(os.path.join(translation_root, rel)): str(address)
-                                  for rel, address in patches.items()} if translation_root else {})
+                                  for rel, address in patches.items()} if translation_root else {}, **pair)
     label = str(descriptor.get("label") or "")
     member_glob = descriptor.get("member")
     if not member_glob:

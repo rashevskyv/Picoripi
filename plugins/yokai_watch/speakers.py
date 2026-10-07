@@ -47,6 +47,9 @@ GAMES = {
     },
 }
 GAMES["ywnx"] = dict(GAMES["yw1"], lang="_ja")
+# Yo-kai Watch 4++ and Yo-kai Academy Y (Switch): text in data/common/text/ja, no speaker tables read yet.
+GAMES["yw4"] = dict(GAMES["yw1"], lang="_ja")
+GAMES["yay"] = dict(GAMES["yw1"], lang="_ja")
 GAME = GAMES["yw1"]
 _EVENT = r"^(?P<base>ev\d+_\d+[a-z]?)_(?:(?P<g>[mf])_)?{lang}\.cfg\.bin$"
 _NPC = r"^(?P<map>[a-z0-9]+)_npc(?P<base>_base)?_text(?P<rest>_[a-z0-9_.]+?)?_{lang}\.cfg\.bin$"
@@ -55,8 +58,11 @@ _VOICE = re.compile(r"<(?:PV#(?:g_)?(?:pv|voice)_|V#)([a-z]+\d{6})")
 
 def game_of(source_root: Path) -> str:
     """``yw3`` when the English event text sits in a language folder (``data/txt/ev/en``), ``ywnx`` when the
-    text files are the Japanese ones (Switch), else ``yw1``."""
+    text files are the Japanese ones (Switch), ``yw4`` / ``yay`` for Yo-kai Watch 4++ / Yo-kai Academy Y
+    (``data/common/text/ja``; Academy Y has a second Japanese font, ``font_ja2``), else ``yw1``."""
     root = Path(source_root)
+    if (root / "data/common/text/ja").is_dir():
+        return "yay" if (root / "data/common/font/font/font_ja2").is_dir() else "yw4"
     if (root / "data/txt/ev/en").is_dir():
         return "yw3"
     return "ywnx" if (root / "data/res/text/system_text_ja.cfg.bin").is_file() else "yw1"

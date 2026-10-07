@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 14.8k
+tokens: 15.1k
 ---
 # Посібник: інтерфейс
 
@@ -128,6 +128,14 @@ tokens: 14.8k
      Editor відкриває `ft_nrm`, `ft_lrg`, `ft_sml` і `dbg` (XF для Switch: текстура A8); вікно текстур
      показує зображення меню, титульного екрана, заставок, довідки й підписів (IMGN — IMGC для Switch:
      RGBA8, RGBA4, LA8, A8, BC3).
+     Yo-kai Watch 4++ і Yo-kai Academy Y для Switch (японські ігри, робочі теки `YO_KAI_WATCH_4_SWITCH`,
+     `YO_KAI_ACADEMY_Y_SWITCH`) відкриваються тим самим плагіном: текст-оригінал — англійський фанатський мод
+     кожної гри в японських таблицях `data/common/text/ja` (2 316 таблиць, близько 38 500 рядків; 1 672
+     таблиці, близько 19 600 рядків — мод Academy Y незавершений, близько 12 300 рядків лишаються японськими й
+     сховані); коди кольору `[CR1]`…`[C]` і картинки `[$gaiji_…]` — теги; Font Editor відкриває шрифти G4
+     (`font_ja`, `font_def`, у Academy Y ще `font_ja2` і другий стиль; кожен зі своїм шрифтом фуріґани);
+     вікно текстур показує зображення меню, титульного екрана, заставок, довідки, підписів і кнопок (G4TX:
+     RGBA8, BC1, BC3, BC7).
    - `mgs_ts` — Metal Gear Solid: The Twin Snakes (GameCube, USA). **Source:** тека `source\text` робочої теки
      (`common\codec.dat` — усі кодек-розмови; `stage\*.gcx` — меню, файли брифінгу, описи предметів,
      повідомлення карти пам’яті, титри; `*\demo.subs`, `common\vox.subs`, `common\movie.subs` — субтитри

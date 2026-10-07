@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 12.6k
+tokens: 12.7k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -94,6 +94,10 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Yo-kai Watch 1 (Switch, 2026-10-07): 13,866 lines the English fan mod left Japanese (mostly maps t151g00–t156g00)
   are hidden like the 3DS leftovers; the game has no width limits measured yet (`layout.json` has no `ywnx`
   section); the L4 texture format (one effect test texture) is not supported.
+- Yo-kai Watch 4++ / Yo-kai Academy Y (Switch, 2026-10-07): no speakers, glossary seed or width limits yet (the
+  new `data/common` layout); Academy Y's English mod leaves about 12,300 lines Japanese (hidden); 551 in YW4;
+  the opening staff roll (`gamedata/staffroll/*.cfg.bin`, RDBN format) and the 200_icon pictures are not in
+  the editor (the mod's English staff roll is built as it is); the G4 fonts lack Ґ Є І Ї ґ є і ї.
 
 ## Metal Gear Solid: The Twin Snakes (2026-10-04)
 
