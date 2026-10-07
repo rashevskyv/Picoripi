@@ -310,8 +310,9 @@ def test_four_swords_nftr_round_trips_through_the_plugin_source(tmp_path):
     assert [source.name for source in found] == ["font_ltn.nftr"]
     data, params = found[0].read_original(), found[0].params
     metadata, sheets = font_formats.extract("nftr", data, params)
-    assert len(font_formats.char_map(metadata)) == 95 + 95 + 66 + 24
-    assert _has_ink(metadata, sheets, "Ж") and font_formats.font_map(metadata)["A"] == {"width": 9}
+    # The clean European font: Latin only (the Ukrainian letters are in translationont_ltn.nftr).
+    assert len(font_formats.char_map(metadata)) == 95 + 95 + 24
+    assert "Ж" not in font_formats.char_map(metadata) and font_formats.font_map(metadata)["A"] == {"width": 9}
     assert font_formats.pack("nftr", metadata, sheets, data, params) == data
 
 

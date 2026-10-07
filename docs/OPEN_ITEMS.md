@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: unfinished work
-tokens: 10.7k
+tokens: 12.7k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -166,12 +166,19 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 ## Four Swords Anniversary Edition plugin (`plugins/zelda_fsae`, 2026-10-04)
 
 - Not seen in a game: no DSi emulator on the PC (melonDS + DSi BIOS/firmware/NAND needed; no$gba has no BIOS) and
-  no console run yet. Proven only by `FSAE_UA	ools
-ender_proof.py` (text through plugin, SRL build and the font).
+  no console run yet. Proven by machine only: the workspace's `tools\proof_edits.py` saves a text, manual, texture
+  and font edit through the plugin, builds the SRL and CIA and reads the edits back (hashes valid).
 - Picture widths (`[icon:N]`, `[button:N]`) are guessed 12 px; the code meanings (`[next:N]`, `[event:N]`,
   `[player:N]`, colours) are read from the English text, not from the game code.
-- The base is the Russian build: its menu and area-name graphics (`subtask_eu_en.cmp`, `zeldat_eu_en.bin`: NCGR
-  tiles) are Russian; no texture source for them yet, and a clean EU dump is needed for the English ones.
+- (2026-10-07) The base is the clean European dump; the menu, stage-select and title graphics are in the
+  Textures window (`tiles`) as grey palette indices: the palettes (NCLR in `subtask.cmp`, `zeldat*.bin` entries)
+  are not read yet, so the window shows no real colours.
+- GAME OVER is drawn from letter sprites (`zeldat_eu_en.bin` #10: G A M E O V R) placed by a table in the ARM9
+  (`arm9.bin` 0xD9D8C: the word per language, 0xD9ECC / 0xDA25C: letters and x positions); a Ukrainian word
+  needs new letter sprites and that table patched (the Russian build did this). The name-entry keyboard
+  (`arm9.bin` 0xDAC1C) is Latin. Not opened in Picoripi.
+- The manual is drawn with the console's shared font (`nand:/<sharedFont>`), not a game font: whether it has
+  Cyrillic is unknown; manual line widths of new lines are estimated (the font is not on disk).
 - `eu.kmsg` may have a size limit in the game (the Russian build shares texts to stay under the original size);
   `2_build` warns when the Ukrainian file is larger than the Russian one.
 

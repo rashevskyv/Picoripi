@@ -1,0 +1,11 @@
+[
+  {"label": "Menus, buttons, file select, multiplayer (subtask_eu_en)", "kind": "menu", "format": "tiles", "path": "subtask_eu_en.cmp", "member": "{#0,#1,#2,#3,#4}"},
+  {"label": "Stage select: area name plates", "kind": "area_card", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "{#1,#2,#3,#4,#5,#6,#8,#9}", "params": {"cell": [4, 2], "per_row": 8}},
+  {"label": "Stage select: CHOOSE A STAGE", "kind": "menu", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#7", "params": {"per_row": 32}},
+  {"label": "GAME OVER letters", "kind": "menu", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#10", "params": {"cell": [4, 4], "per_row": 8}},
+  {"label": "Player marks (P1-P4, YOU)", "kind": "hud", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#11", "params": {"per_row": 16}},
+  {"label": "Copyright line (title screen)", "kind": "title_screen", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#14", "params": {"per_row": 32}},
+  {"label": "Back button", "kind": "menu", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#16", "params": {"cell": [4, 4], "per_row": 8}},
+  {"label": "Script lettering", "kind": "title_screen", "format": "tiles", "path": "zeldat_eu_en.bin", "member": "#17", "params": {"cell": [8, 4], "per_row": 4}},
+  {"label": "Title logo (ANNIVERSARY)", "kind": "title_screen", "format": "tiles", "path": "zeldat.bin", "member": "#502", "params": {"per_row": 32}}
+]

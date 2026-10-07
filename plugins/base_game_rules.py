@@ -774,7 +774,8 @@ class BaseGameRules:
         """The game's textures with text in them (title cards, menu labels...), for the Textures window.
 
         Each entry: ``label``; ``kind`` (``title_screen``, ``area_card``, ``menu_label``...); ``format``
-        (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t`` or ``raw``); ``path`` -- as
+        (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t``, ``imgc``, ``raw`` or
+        ``tiles`` (GBA / DS character tiles)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``
         (``compression``, ``file_offset``/``file_size``, ``texture`` and what the format needs -- see

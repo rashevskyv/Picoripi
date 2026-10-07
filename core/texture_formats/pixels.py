@@ -213,6 +213,16 @@ def _alpha(bits: int):
     return (lambda v: (255, 255, 255, _x(v, bits))), (lambda r, g, b, a: _q(_ink(r, g, b, a), bits))
 
 
+def _index(bits: int):
+    """Palette indices without their palette (GBA / DS tiles): index 0 transparent, the others grey levels."""
+    top = (1 << bits) - 1
+
+    def dec(v):
+        e = v * 255 // top
+        return (e, e, e, 255) if v else (0, 0, 0, 0)
+    return dec, lambda r, g, b, a: 0 if a < 128 else max(1, round(_grey(r, g, b, a) * top / 255))
+
+
 def _packed(layout: Sequence[Tuple[str, int]]):
     """A texel of channels packed high bits first, e.g. ``(("r", 5), ("g", 6), ("b", 5))``."""
     total = sum(bits for _c, bits in layout)
@@ -560,6 +570,9 @@ def _build() -> Dict[str, Codec]:
     add(value_codec("n64:IA16", 16, *_two(("i", 8), ("a", 8))))
     add(value_codec("n64:RGBA16", 16, *_packed((("r", 5), ("g", 5), ("b", 5), ("a", 1)))))
     add(value_codec("n64:RGBA32", 32, *_bytes_order("rgba")))
+    # GBA / DS: palette indices in 8x8 tiles (rows of a tile, low nibble first), shown as grey levels
+    add(value_codec("nds:4bpp", 4, *_index(4), endian="<", low_first=True, tile=(8, 8)))
+    add(value_codec("nds:8bpp", 8, *_index(8), endian="<", tile=(8, 8)))
     # Wii U / Switch: one pixel per element, little endian
     le = dict(endian="<")
     add(_raw_codec("RGBA8", "RGBA"))    # bytes R, G, B, A

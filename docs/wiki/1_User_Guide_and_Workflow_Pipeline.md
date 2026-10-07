@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-04
 owns: ui/, components/, dialogs/
-tokens: 9.0k
+tokens: 11.3k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -99,8 +99,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      come from the string keys (`zora4_1` → Zora). The Font Editor opens the six `.bffnt` fonts; the text font
      `LoveBug` has no Cyrillic, so it opens with a spare sheet for the Ukrainian letters
    - `zelda_fsae` — Zelda: Four Swords Anniversary Edition (DSiWare, Europe). **Source:** the workspace's `source`
-     folder (`eu.kmsg` with the English text, `font_ltn.nftr`); **Translation:** `translation` (whole files; the
-     workspace's `2_build.bat` rebuilds the DSi SRL and a CIA). All 220 messages, one block per id range (prologue,
+     folder (`1_unpack.bat` takes it from the clean European dump: `eu.kmsg`, `font_ltn.nftr`, the manual
+     `manpages_narc_eu.blz` and the graphics); **Translation:** `translation` (whole files; the workspace's
+     `2_build.bat` rebuilds the DSi SRL and a CIA). The manual opens one block per page (`Manual: page_01_00`…;
+     a line break is the page's own line break, `[pic:N]` a picture, `[color:N]` a colour; the manual is drawn
+     with the console's font). All 220 messages, one block per id range (prologue,
      Chambers of Insight, items, Great Fairies, Vaati and the ending, in-game messages, system, credits); only the
      English (EU) slot is shown and saved, an unedited file stays byte for byte. The game's control codes are tags:
      `[speaker:1]`, `[wait:120]`, `[next:90]`, `[close]`, `[choice]`, `[center]`, `[icon:N]`, `[button:N]`, `[num:N]`,
@@ -108,7 +111,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `[speaker:N]` (Zelda, Vaati) and the Great Fairy messages; widths from the font (225 px in dialogue, 168 px in
      in-game messages, 240 px in menus). **Load Reference Patch** with the Russian build's `nitrofs` folder shows
      its Russian and the game's other languages. The Font Editor opens `font_ltn.nftr` with spare cells: a letter
-     typed into one becomes a new character
+     typed into one becomes a new character. The Textures window lists the menus and buttons
+     (`subtask_eu_en.cmp`), the stage-select plates, GAME OVER letters, copyright line (`zeldat_eu_en.bin`) and
+     the title logo (`zeldat.bin`); the pictures are palette indices shown as grey levels (redraw with the same
+     greys)
    - `zelda_aoc` — Zelda: Hyrule Warriors Age of Calamity. Source is the workspace's `source` folder
      (`text\*.bin`, `battle\*.bin`: the game's text cut out of `data/LinkData2.bin`, one file per table
      with all its languages); the English table is shown and saved, and the workspace's `2_build.bat` packs

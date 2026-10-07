@@ -3,11 +3,13 @@
 A project's source folder holds ``eu.kmsg`` with the English text in its English (EU) slot (``1_unpack.bat``
 of the workspace builds it from the game's ``all.kmsg``) and the font ``font_ltn.nftr``. The 220 messages are
 shown one block per id range; saving writes the file with only the edited English texts encoded again (an
-unedited file is written back byte for byte). Speakers come from the ``[speaker:N]`` code of cutscene lines
+unedited file is written back byte for byte). The manual (``manpages_narc_eu.blz``, ``manual``) opens one block
+per page. The graphics packs (``*.cmp``, ``zeldat*.bin``) are archives for the Textures window (``packs``). Speakers come from the ``[speaker:N]`` code of cutscene lines
 and the Great Fairy messages; widths from the NFTR font; the Russian build's ``eu.kmsg`` (and the game's other
 languages) are the reference texts.
 """
 import re
+import struct
 import urllib.parse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -16,8 +18,11 @@ from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import kmsg
+from core.containers import ContainerManager
+
+from . import kmsg, manual
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .packs import CmpPack, ZeldatPack
 from .tag_manager import TagManager
 from .tags import SPEAKERS, TAG_RE, describe, from_editor, to_editor
 
@@ -91,19 +96,26 @@ class GameRules(BaseGameRules):
         self._file: Optional[kmsg.Kmsg] = None
         self._original = b""
         self._located: Dict[int, Optional[Tuple[kmsg.Kmsg, List[int]]]] = {}
+        self._manual: Optional[manual.Manual] = None
+        ContainerManager.register(CmpPack)       # the graphics packs (Tools -> Textures)
+        ContainerManager.register(ZeldatPack)
 
     def get_display_name(self) -> str:
         return "Zelda: Four Swords Anniversary Edition"
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat((".kmsg",), "bytes", "Four Swords Anniversary Edition KMSG"), *DEFAULT_FORMATS]
+        return [FileFormat((".kmsg", ".blz"), "bytes", "Four Swords Anniversary Edition KMSG and manual"),
+                *DEFAULT_FORMATS]
 
     # -- load and save ---------------------------------------------------------
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):
             return super().load_data_from_json_obj(json_obj)
+        if bytes(json_obj[:4]) != b"KMSG":
+            return self._load_manual(bytes(json_obj))
+        self._manual = None
         try:
             messages = kmsg.Kmsg(bytes(json_obj))
             groups = split_blocks(messages.ids)
@@ -116,7 +128,20 @@ class GameRules(BaseGameRules):
         names = {str(n): BLOCKS[block_of(messages.ids[group[0]])][1] for n, group in enumerate(groups)}
         return blocks, names
 
+    def _load_manual(self, raw: bytes) -> Tuple[List[List[str]], Dict[str, str]]:
+        try:
+            self._manual = manual.Manual(raw)
+        except (manual.FormatError, ValueError, KeyError, IndexError, struct.error) as error:
+            log_debug(f"zelda_fsae: not a KMSG file or the manual ({error})")
+            self._file = self._manual = None
+            return [[]], {}
+        self._file = None
+        names = {str(n): manual.Manual.block_name(member) for n, member in enumerate(self._manual.members)}
+        return [page.texts() for page in self._manual.pages], names
+
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        if self._manual is not None:
+            return self._manual.build(data or [])
         if self._file is None:
             return super().save_data_to_json_obj(data, block_names)
         messages, changed = self._file, False
@@ -133,13 +158,17 @@ class GameRules(BaseGameRules):
         """The file is rebuilt from its current version (translation first): load the newest that parses."""
         for raw in context.existing_versions():
             try:
-                self._file, self._original = kmsg.Kmsg(raw), bytes(raw)
+                if bytes(raw[:4]) != b"KMSG":
+                    self._file, self._manual = None, manual.Manual(raw)
+                    return
+                self._file, self._original, self._manual = kmsg.Kmsg(raw), bytes(raw), None
                 return
-            except kmsg.FormatError as error:
+            except (kmsg.FormatError, manual.FormatError, ValueError, KeyError, struct.error) as error:
                 log_warning(f"zelda_fsae: cannot read {context.relative_path}: {error}; trying the next version")
 
     def reset_runtime_state(self) -> None:
         self._file = None
+        self._manual = None
         self._original = b""
         self._located.clear()
 
