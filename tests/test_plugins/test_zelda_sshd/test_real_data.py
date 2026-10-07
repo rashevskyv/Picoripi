@@ -12,8 +12,8 @@ from plugins.common.msbt import Msbt
 from plugins.zelda_sshd import reference
 from plugins.zelda_sshd.rules import GameRules
 
-HD = Path(r"E:\Emulators\RomHacking\ZELDA\SSHD_UA")
-WII = Path(r"E:\Emulators\RomHacking\ZELDA\SS_UA")
+HD = Path(r"E:\Emulators\RomHacking\Zelda\Skyward Sword\HD - Switch")
+WII = Path(r"E:\Emulators\RomHacking\Zelda\Skyward Sword\Wii")
 
 
 def _need(path: Path) -> Path:

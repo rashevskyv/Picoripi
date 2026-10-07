@@ -10,7 +10,7 @@ from plugins.zelda_coh import rules as coh_rules
 from plugins.zelda_coh.locxml import LocalizationFile
 from plugins.zelda_coh.tags import TAG_RE, describe, from_editor, to_editor
 
-REAL = Path(r"E:\Emulators\RomHacking\ZELDA\COH_UA\source\localization.xml")
+REAL = Path(r"E:\Emulators\RomHacking\Zelda\Cadence of Hyrule\Switch\source\localization.xml")
 
 
 def _text(string_id, key, en, ja="ja"):

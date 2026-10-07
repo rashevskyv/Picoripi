@@ -12,7 +12,7 @@ from plugins.vagrant_story import doc as docs
 
 from .samples import area_file, event_file, item_names, program_file, room_file
 
-WS = Path(r"E:\Emulators\RomHacking\VAGRANT_STORY")
+WS = Path(r"E:\Emulators\RomHacking\Vagrant Story\PS1")
 SOURCE, REFERENCE = WS / "source", WS / "reference" / "RU"
 UKRAINIAN = "Ґанок і їжак — «є» п’ять"
 

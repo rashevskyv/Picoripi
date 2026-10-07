@@ -12,8 +12,8 @@ from plugins.zelda_tingle import tuner
 
 from .samples import message_file
 
-GBA = Path(r"E:\Emulators\RomHacking\ZELDA\WW_UA\source\files\res\Gba")
-PAL_GBA = Path(r"E:\Emulators\RomHacking\ZELDA\WW_UA\ISO\PAL\files\res\Gba")
+GBA = Path(r"E:\Emulators\RomHacking\Zelda\Wind Waker\GC\source\files\res\Gba")
+PAL_GBA = Path(r"E:\Emulators\RomHacking\Zelda\Wind Waker\GC\ISO\PAL\files\res\Gba")
 needs_disc = pytest.mark.skipif(not (GBA / "msg_LZ.bin").is_file(), reason="Wind Waker disc files not on this disk")
 
 

@@ -11,7 +11,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 from plugins.zelda_fsae import kmsg
 from plugins.zelda_fsae.tags import TAG_RE, describe, from_editor, to_editor
 
-FSAE = Path(r"E:\Emulators\RomHacking\ZELDA\FSAE_UA")
+FSAE = Path(r"E:\Emulators\RomHacking\Zelda\Four Swords Anniversary\DSi")
 
 
 def _text(*parts) -> bytes:

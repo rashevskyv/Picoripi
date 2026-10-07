@@ -65,8 +65,8 @@ def test_the_shipped_maps_are_the_plugins_own_files():
         assert set(UKRAINIAN) <= set(data), plugin
 
 
-ROMS = {"oot64": Path(r"E:\Emulators\RomHacking\ZELDA\OOT64_UA\rom\Legend of Zelda, The - Ocarina of Time (USA).z64"),
-        "mm64": Path(r"E:\Emulators\RomHacking\ZELDA\MM64_UA\rom\Legend of Zelda, The - Majora's Mask (USA).z64")}
+ROMS = {"oot64": Path(r"E:\Emulators\RomHacking\Zelda\Ocarina of Time\N64\rom\Legend of Zelda, The - Ocarina of Time (USA).z64"),
+        "mm64": Path(r"E:\Emulators\RomHacking\Zelda\Majoras Mask\N64\rom\Legend of Zelda, The - Majora's Mask (USA).z64")}
 
 
 def _font_codes(fmt, body):

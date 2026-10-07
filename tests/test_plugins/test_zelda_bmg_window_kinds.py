@@ -600,7 +600,7 @@ def test_dump_talk_frame_loads_when_msgres_present(qapp, tmp_path):
     layout = find_layout_root()
     if layout is None:
         from pathlib import Path
-        known = Path(r"E:\Emulators\RomHacking\ZELDA\TP_UA\ISO\ENG\root\res\Layout")
+        known = Path(r"E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\ISO\ENG\root\res\Layout")
         if not (known / "msgres01.arc").is_file():
             pytest.skip("retail Layout dump not available")
         loader._LAYOUT_ROOT = known

@@ -49,7 +49,7 @@ _HIO = {
     "explain": (1.2, 1.0),
 }
 
-_KNOWN_DUMP = Path(r"E:\Emulators\RomHacking\ZELDA\TP_UA\ISO\ENG\root")
+_KNOWN_DUMP = Path(r"E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\ISO\ENG\root")
 
 # dItem_data::item_resource[i].mTexture — itemicon.arc file_id
 _ITEM_TEXTURE = (

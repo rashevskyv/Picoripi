@@ -149,7 +149,7 @@ def test_u8_container_with_files():
 
 def test_yaz0_compression_ratio_against_original():
     # If the original file exists, let's check our compression ratio.
-    original_path = Path(r"e:\Emulators\RomHacking\ZELDA\TP_UA\ISO\ENG\root\res\Msgus\bmgres.arc")
+    original_path = Path(r"E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\ISO\ENG\root\res\Msgus\bmgres.arc")
     if not original_path.exists():
         pytest.skip("Original ENG bmgres.arc not found. Skipping ratio test.")
 

@@ -20,7 +20,7 @@ the line when it is done or moved into a plan.
 ## Textures window (`core/texture_formats`, 2026-10-04)
 
 - Not encoded yet: ASTC (TotK logo colour/outline layers: 5 textures), BC6H. Textures inside models (TP title logo in `titlelogo_r.bmd`, WW subtitle in two BDLs, WW HD `Tlogo.bfres`), the Wii channel banner (`opening.bnr`: IMET > U8 > LZ77 > U8 > TPL, LZ77 not handled).
-- No container yet: Koei RDB (Age of Calamity: 4 groups of BC3/BC1 sprites), TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\ZELDA\_textures\drafts`.
+- No container yet: Koei RDB (Age of Calamity: 4 groups of BC3/BC1 sprites), TPHD TMPK/GTX (needs a decrypted dump), MGS `stage.dat` (zlib folders > tex13 packs > TPL: 449 textures; the TPL itself is handled — needs the stage.dat container or loose packs from the workspace unpack), 3DS BCH and SPBD particles (TFH boss cards). Drafts: `E:\Emulators\RomHacking\_shared\textures\drafts`.
 - 3DS games have no plugin: their textures open with File → Open (BFLIM, CTPK, CTXB; SARC/SZS, ZAR/GAR, LzS archives) and are edited in place; a plugin with `texture_sources.json` (drafts `zelda_albw`, `zelda_tfh`, `zelda_oot3d`, `zelda_mm3d`) would list them. OoT3D title logo letters are in a CMB model (not handled).
 - Majora's Mask `yar` archives have no room to grow in the ROM: an edit that compresses worse than the original is fitted by recompressing every block of the archive optimally; if even that does not fit, the save is refused with the file's size.
 - An archive around an edited texture is laid out anew by its container code (SARC, RARC); Revert restores the texture file byte for byte, not necessarily the archive.
@@ -464,7 +464,7 @@ ender_proof.py` (text through plugin, SRL build and the font).
   the `"profile"` settings key cover it. Add a combo in `ui/settings/ai_mixin.py` if users need it.
 - **A test file depends on this machine's data.** `tests/test_handlers/test_ai_prompt_composer.py` builds
   the composer on a bare `MagicMock` main window; the story-context code then finds and parses the real
-  script at `e:\Emulators\RomHacking\ZELDA\TP_UA\zelda_tp_script.txt` and queries MemPalace (the file takes
+  script at `E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\zelda_tp_script.txt` and queries MemPalace (the file takes
   ~20 s and its "Story Context" sections come from that script). Stub `composer.story_context` in the fixture.
 - **Leftovers of the removed translation-session path.** `AIWorker.run` still has `session_info` /
   `session_state` branches that can no longer be reached for translation tasks, the composers still accept
@@ -518,13 +518,13 @@ ender_proof.py` (text through plugin, SRL build and the font).
 - Speaker names are decomp descriptions ("Clock Town - Gate-Blocking Soldier", OoT actor names like `En_Go2`
   where no description exists); a curated name table would read better. Cutscene-only lines, ids computed at
   run time and Bombers' Notebook entries without a placed actor get no speaker. Report:
-  `E:\Emulators\RomHacking\ZELDA\MM64_UA\reports\context_report.md`.
+  `E:\Emulators\RomHacking\Zelda\Majoras Mask\N64\reports\context_report.md`.
 
 ## The Wind Waker HD plugin (`plugins/zelda_ww`, Wii U)
 
 - **Text in textures** is not handled: the title logo, the sea-chart island names (`MapIsland_*`, the 116
   `MapScreen` messages are empty), quadrant titles and the boot screen (`Boot_00.szs`) are BFLIM images; there is
-  no BFLIM backend. List: `E:\Emulators\RomHacking\ZELDA\WWHD_UA\reports\format_report.md`.
+  no BFLIM backend. List: `E:\Emulators\RomHacking\Zelda\Wind Waker\HD - Wii U\reports\format_report.md`.
 - **Box widths by BalloonType** come from two layouts (700 px / 650 px panes) and the English 99th percentile; which
   layout each balloon type uses was not traced in `cking.rpx`.
 - **Ukrainian letters in CKingMain / CKingMainL** are rough Rubik Black shapes on a new sheet each (+512 KB of

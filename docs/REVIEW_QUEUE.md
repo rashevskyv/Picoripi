@@ -67,7 +67,7 @@ Automatable checks that are not written yet are agent work and live in `docs/OPE
 
 ## LIVE
 
-The owner's working project is `E:\Emulators\RomHacking\ZELDA\TP_UA\TwilihhtPrincess`; runs use copies of it
+The owner's working project is `E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\picoripi`; runs use copies of it
 and of `ISO\ENG\root\res\Msgus` (the project's source and translation folder), never the originals.
 
 - **Done 2026-10-03 — old build vs new build on the real model** (old proxy, `gemini-3.7-flash`, 4 workers,

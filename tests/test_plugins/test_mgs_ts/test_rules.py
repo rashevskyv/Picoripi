@@ -12,7 +12,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 from .samples import codec_file, gcx_file, subs_file
 
-TEXT = Path(r"E:\Emulators\RomHacking\TWIN_SNAKES\source\text")
+TEXT = Path(r"E:\Emulators\RomHacking\Metal Gear\Twin Snakes\GC\source\text")
 UKRAINIAN = "Ґанок і їжак — «є» п’ять"
 
 

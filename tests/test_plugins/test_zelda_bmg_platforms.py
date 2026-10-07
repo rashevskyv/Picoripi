@@ -16,10 +16,10 @@ from plugins.zelda_bmg.rules import GameRules
 from plugins.zelda_bmg.tag_catalog import TP_CATALOG, fixed_escape_widths
 from tools.bfn_editor.bfn_engine import extract_bfn_logic, repack_bfn_logic
 
-ZELDA = Path(r"E:\Emulators\RomHacking\ZELDA")
-WII_MSG = ZELDA / "TPWII_UA" / "source" / "files" / "res" / "Msgus"
-HD_MSG = ZELDA / "Twilight_Princess_HD" / "_TP_HD_Kruptar+Fonts_(EN)_(PAL)" / "Original" / "Msguk"
-HD_FONTS = ZELDA / "TPHD_UA" / "source" / "content" / "res" / "Fonteu"
+ZELDA = Path(r"E:\Emulators\RomHacking\Zelda")
+WII_MSG = ZELDA / "Twilight Princess" / "_archive" / "Wii workspace (agent 2026-10-04)" / "source" / "files" / "res" / "Msgus"
+HD_MSG = ZELDA / "Twilight Princess" / "_reference" / "HD RU 1.0 (Zelda64Rus)" / "_TP_HD_Kruptar+Fonts_(EN)_(PAL)" / "Original" / "Msguk"
+HD_FONTS = ZELDA / "Twilight Princess" / "HD - Wii U" / "source" / "content" / "res" / "Fonteu"
 
 
 # ------------------------------------------------------------------ Wii U control tags

@@ -11,7 +11,7 @@ from core.containers import level5
 from core.font_formats import xf
 from core.texture_formats import imgc, pixels
 
-WORKSPACE = Path(r"E:\Emulators\RomHacking\YOKAI_WATCH")
+WORKSPACE = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch\3DS")
 
 
 # -- builders ---------------------------------------------------------------------------------

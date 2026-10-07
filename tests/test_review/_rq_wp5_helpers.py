@@ -12,7 +12,7 @@ import struct
 from pathlib import Path
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "review_queue" / "wp5"
-TP_DUMP_MSG = Path(r"E:\Emulators\RomHacking\ZELDA\TP_UA\ISO\ENG\root\res\Msgus")
+TP_DUMP_MSG = Path(r"E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\ISO\ENG\root\res\Msgus")
 REAL_ARC = "bmgres3.arc"
 REAL_MEMBER = "zel_03.bmg"
 

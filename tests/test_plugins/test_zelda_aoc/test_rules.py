@@ -10,7 +10,7 @@ from plugins.zelda_aoc.aoctext import TextBundle
 
 from .test_formats import bundle, sample_battle, sample_text, table
 
-SOURCE = Path(r"E:\Emulators\RomHacking\ZELDA\HWAOC_UA\source")
+SOURCE = Path(r"E:\Emulators\RomHacking\Zelda\Hyrule Warriors Age of Calamity\Switch\source")
 
 
 def test_plugin_loads_and_validates():

@@ -12,7 +12,7 @@ from plugins.yokai_watch.textfile import TextFile
 
 from .samples import cfg_file, dialogue_file, noun_info
 
-SOURCE = Path(r"E:\Emulators\RomHacking\YOKAI_WATCH\source")
+SOURCE = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch\3DS\source")
 UKRAINIAN = "Ґанок і їжак — «є» п’ять"
 
 
@@ -120,7 +120,7 @@ def test_width_ignores_tags():
     assert rules.calculate_string_width_override("a{PNAME01}б[g_coin]", widths) == 17
 
 
-@pytest.mark.skipif(not SOURCE.is_dir(), reason="needs the Yo-kai Watch workspace (E:\\Emulators\\RomHacking\\YOKAI_WATCH)")
+@pytest.mark.skipif(not SOURCE.is_dir(), reason="needs the Yo-kai Watch workspace (E:\\Emulators\\RomHacking\\Yo-kai Watch\\Yo-kai Watch\\3DS)")
 def test_real_files_round_trip_byte_for_byte():
     files = sorted(SOURCE.rglob("*_en.cfg.bin"))
     assert len(files) == 2005
@@ -135,7 +135,7 @@ def test_real_files_round_trip_byte_for_byte():
     assert rows > 40000
 
 
-SOURCE_3 = Path(r"E:\Emulators\RomHacking\YOKAI_WATCH_3\source")
+SOURCE_3 = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch 3\3DS\source")
 
 
 @pytest.mark.skipif(not SOURCE_3.is_dir(), reason="needs the Yo-kai Watch 3 workspace (YOKAI_WATCH_3)")

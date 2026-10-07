@@ -240,7 +240,7 @@ def _try_extract_iso_messages(iso_path: Path) -> Optional[Path]:
         wit_exe = shutil.which("wit")
     if not wit_exe:
         candidates = [
-            Path("E:/Emulators/RomHacking/ZELDA/TP_UA/soft/wit-v3.05a-r8638-cygwin64/bin/wit.exe"),
+            Path("E:/Emulators/RomHacking/Zelda/Twilight Princess/GC + Wii/soft/wit-v3.05a-r8638-cygwin64/bin/wit.exe"),
             iso_path.parent / "soft" / "wit-v3.05a-r8638-cygwin64" / "bin" / "wit.exe",
             iso_path.parent.parent / "soft" / "wit-v3.05a-r8638-cygwin64" / "bin" / "wit.exe",
         ]
