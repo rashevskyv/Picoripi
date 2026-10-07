@@ -1,4 +1,5 @@
-"""The Wind Waker (GameCube) plugin: zel_00.bmg in res/Msg/bmgres.arc.
+"""The Wind Waker (GameCube) plugin: zel_00.bmg in res/Msg/bmgres.arc, the Hylian lines (zel_01.bmg in
+bmgresh.arc), the disc-error messages inside sys/main.dol (``dol``) and the disc banner (``banner``).
 
 Wind Waker and Twilight Princess share the JSystem BMG format, so this class reuses
 the Twilight Princess rules for reading, saving, aliases, preview and checks, and
@@ -9,8 +10,11 @@ INF1 attributes and the per-window line width.  Sources: zeldaret/tww
 import os
 from typing import Any, Dict, Optional
 
+from core.containers import ContainerManager
 from plugins.zelda_bmg.rules import GameRules as TwilightPrincessRules
 
+from . import banner
+from .dol import DolResources
 from .tag_catalog import COLOR_NAMES, COLOR_TABLE, WW_CATALOG
 
 plugin_dir = os.path.dirname(os.path.abspath(__file__))
@@ -69,9 +73,41 @@ class GameRules(TwilightPrincessRules):
     _SYSTEM_VOICE_KINDS = {2, 6, 9, 11, 13, 14}
     _WINDOW_SPEAKERS: Dict[int, str] = {}
 
+    def __init__(self, main_window_ref=None):
+        super().__init__(main_window_ref)
+        self._banner: Optional[bytes] = None          # the banner file being saved (None: a BMG)
+        self._banner_loaded: Optional[bytes] = None
+        ContainerManager.register(DolResources, (".dol",))   # disc-error messages and font in main.dol
+
     def get_display_name(self) -> str:
         """Get the display name."""
         return "Zelda: The Wind Waker (GameCube BMG)"
+
+    def get_file_formats(self) -> list:
+        """Message files and the disc banner; the fonts (.bfn) open in Tools -> Font Editor, not as text."""
+        from core.formats import FileFormat
+        return [FileFormat((".bnr",), "bytes", "Disc banner"),
+                *(item for item in super().get_file_formats() if ".bfn" not in item.extensions)]
+
+    def load_data_from_json_obj(self, json_obj: Any):
+        """A BMG, or the disc banner's five texts."""
+        if isinstance(json_obj, bytes) and banner.is_banner(json_obj):
+            self._banner_loaded = json_obj
+            return [banner.read(json_obj)], {"0": "Disc banner"}
+        return super().load_data_from_json_obj(json_obj)
+
+    def prepare_save_context(self, context) -> None:
+        """The banner is written over its current file; a BMG as the Twilight Princess rules do it."""
+        self._banner = None
+        if str(context.relative_path).lower().endswith(".bnr"):
+            self._banner = next(iter(context.existing_versions()), None) or self._banner_loaded
+            return
+        super().prepare_save_context(context)
+
+    def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        if self._banner is not None:
+            return banner.write(self._banner, data[0])
+        return super().save_data_to_json_obj(data, block_names)
 
     def get_capabilities(self):
         """Lore from the wiki and terms from item windows; no speakers or window chrome yet."""

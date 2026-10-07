@@ -250,10 +250,11 @@ def test_wind_waker_and_twilight_princess_bfn_round_trip(archive, tmp_path):
 
 def test_wind_waker_descriptor_finds_the_fonts_in_a_project():
     _need(WW_FILES / "res" / "Msg" / "fontres.arc")
-    descriptors = json.loads((ROOT / "plugins" / "zelda_tww" / "font_sources.json").read_text(encoding="utf-8"))
+    from plugins.zelda_tww.rules import GameRules
+    descriptors = GameRules().get_font_sources()      # the plugin also opens main.dol as a container
     found = sources.resolve(descriptors, {"source_path": str(WW_FILES), "translation_path": "", "is_directory_mode": True})
     assert [source.name for source in found] == ["rock_24_20_4i_usa.bfn", "hyrule.bfn", "rock_24_20_ia4_e.bfn",
-                                                 "kanfont_fix16.bfn"]
+                                                 "rock_24_20_ia4_e.bfn", "disc_error_font.bfn", "kanfont_fix16.bfn"]
     assert all(source.read_current()[:8] == b"FONTbfn1" for source in found)   # the name font is Yaz0 in its archive
 
 

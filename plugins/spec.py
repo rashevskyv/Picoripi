@@ -80,7 +80,7 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              "g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, mgs, nftr, vagrant), path, member, font_map, params}]. Default: font_sources.json in the plugin folder.",
              call=(), returns=list),
         Hook("get_texture_sources", "The game's textures with text for the Textures window: [{label, kind, format (bti, tpl, "
-             "bflim, ctpk, ctxb, bntx, g1t, raw), path, member, params}]. Default: texture_sources.json in the plugin folder.",
+             "bflim, ctpk, ctxb, bntx, g1t, j3d, gba, raw), path, member, params}]. Default: texture_sources.json in the plugin folder.",
              call=(), returns=list),
     )),
     ('Problems and autofix', (

@@ -73,6 +73,15 @@ class BMGFile:
         return self.encoding
 
     def load(self, data: bytes, override_encoding: str = None):
+        try:
+            self._load(data, override_encoding)
+        except UnicodeDecodeError:
+            if override_encoding or self.encoding != 'cp1252':
+                raise
+            # Wind Waker's zel_01.bmg (the Hylian lines) is Shift-JIS katakana under encoding byte 1.
+            self._load(data, 'shift_jis')
+
+    def _load(self, data: bytes, override_encoding: str = None):
         if data[:8] != b'MESGbmg1':
             raise ValueError("Invalid magic header. Not a BMG file!")
 

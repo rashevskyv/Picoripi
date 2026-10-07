@@ -43,6 +43,7 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._last_loaded: Optional[bytes] = None
         self._save_source: Optional[bytes] = None
+        self._save_newest: Optional[bytes] = None
         self._save_name = "msg_LZ.bin"
 
     def get_display_name(self) -> str:
@@ -80,10 +81,12 @@ class GameRules(BaseGameRules):
             return None
 
     def prepare_save_context(self, context) -> None:
-        """A save rebuilds the file from its source (the oldest version offered); the file name picks the
-        GBA's room for it."""
+        """A message file is rebuilt from its source (the oldest version offered); the file name picks the
+        GBA's room for it. The client program takes its strings in place in its newest version, so fonts and
+        graphics edited in the Font Editor or the Textures window stay."""
         versions = list(context.existing_versions())
         self._save_source = versions[-1] if versions else None
+        self._save_newest = versions[0] if versions else None
         self._save_name = os.path.basename(str(context.relative_path or "")) or "msg_LZ.bin"
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
@@ -95,7 +98,7 @@ class GameRules(BaseGameRules):
         try:
             original = tuner.parse(source)
         except tuner.FormatError:
-            return self._save_program(source, texts, missing)
+            return self._save_program(self._save_newest or source, texts, missing)
         messages = list(original.messages)
         for index, text in enumerate(texts[:len(messages)]):
             messages[index] = tuner.encode(text, original.usa, missing)
@@ -117,7 +120,7 @@ class GameRules(BaseGameRules):
         return gba_tiles.replace_program(source, program, params)
 
     def reset_runtime_state(self) -> None:
-        self._last_loaded = self._save_source = None
+        self._last_loaded = self._save_source = self._save_newest = None
 
     # -- context ---------------------------------------------------------------
 

@@ -21,5 +21,7 @@
   {"label": "Boat race 'Go!' letter tiles", "kind": "popup", "format": "bti", "path": ["files/res/Object/Mgst.arc", "res/Object/Mgst.arc"], "member": "timg/ms_shipfont_{g_big,o,ex}.bti"},
   {"label": "Boat race result letter tiles", "kind": "popup", "format": "bti", "path": ["files/res/Object/Mgtem.arc", "res/Object/Mgtem.arc"], "member": "timg/mt_shipfont_*.bti"},
   {"label": "Sploosh Kaboom High Score", "kind": "hud", "format": "bti", "path": ["files/res/Object/Kaisen_e.arc", "res/Object/Kaisen_e.arc"], "member": "tex/game_best_record.bti"},
-  {"label": "Memory card banner", "kind": "logo", "format": "bti", "path": ["files/res/CardIcon/cardicon.arc", "res/CardIcon/cardicon.arc"], "member": "ipl_banner.bti"}
+  {"label": "Memory card banner", "kind": "logo", "format": "bti", "path": ["files/res/CardIcon/cardicon.arc", "res/CardIcon/cardicon.arc"], "member": "ipl_banner.bti"},
+  {"label": "Title screen subtitle 'The Wind Waker' (two models)", "kind": "title_screen", "format": "j3d", "path": ["files/res/Object/TlogoE.arc", "res/Object/TlogoE.arc"], "member": "bdlm/subtitle_{start_anim,kirari}_e.bdl", "params": {"texture": "logo_sub_e"}},
+  {"label": "Disc banner", "kind": "logo", "format": "raw", "path": ["files/opening.bnr", "opening.bnr"], "params": {"pixel_format": "gx:RGB5A3", "width": 96, "height": 32, "offset": "0x20"}}
 ]

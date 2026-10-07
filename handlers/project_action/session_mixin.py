@@ -10,6 +10,17 @@ from utils.thread_utils import safe_shutdown_thread
 
 
 class SessionMixin:
+    def _session_misses_project_blocks(self) -> bool:
+        """The restored session knows fewer project files than the project has now (the folder sync added
+        some) and holds no unsaved edits, so loading the files loses nothing."""
+        store = self.mw.data_store
+        project = getattr(getattr(self.mw, 'project_manager', None), 'project', None)
+        mapping = getattr(store, 'block_to_project_file_map', None)
+        if project is None or not isinstance(mapping, dict) or store.edited_data or getattr(store, "unsaved_changes", False):
+            return False
+        known = {int(index) for index in mapping.values()}
+        return any(index not in known for index in range(len(project.blocks)))
+
     def _restore_project_session_fast_path(self, on_completed=None) -> bool:
         """Restore a project from the session checkpoint before starting the full loader."""
         if not hasattr(self.data_processor, 'load_session_file'):
@@ -29,6 +40,11 @@ class SessionMixin:
                 "Project session restored no block data; falling back to full project load.",
                 category="file_ops"
             )
+            return False
+
+        if self._session_misses_project_blocks():
+            log_warning("Project session predates files added to the project; loading the project files instead.",
+                        category="file_ops")
             return False
 
         if hasattr(self.mw.data_store, 'block_to_project_file_map'):

@@ -123,3 +123,24 @@ def test_real_client_program_text_and_font():
     assert load_rules("zelda_tingle").load_data_from_json_obj(kept)[0][0][0] == "Дзвоню..."
     assert font_formats.extract("gba_tiles", kept, params)[1][0].tobytes() == \
         font_formats.extract("gba_tiles", with_font, params)[1][0].tobytes()
+
+
+@needs_disc
+def test_real_client_text_save_keeps_graphics_edited_in_the_textures_window():
+    from PIL import ImageDraw
+
+    from core import texture_formats
+    raw = (GBA / "client_u.bin").read_bytes()
+    rules = load_rules("zelda_tingle")
+    (descriptor,) = rules.get_texture_sources()
+    params = descriptor["params"]
+    sprites = texture_formats.read("gba", raw, params)[0].image.copy()
+    ImageDraw.Draw(sprites).rectangle((160, 24, 170, 30), fill=(255, 255, 255, 255))
+    newest = texture_formats.write("gba", raw, {0: sprites}, params)
+    blocks, names = rules.load_data_from_json_obj(raw)
+    blocks[0][0] = "UA TEST"
+    rules.prepare_save_context(SaveContext(existing_versions=lambda: iter([newest, raw]),
+                                           relative_path="res/Gba/client_u.bin"))
+    out = rules.save_data_to_json_obj(blocks, names)
+    assert load_rules("zelda_tingle").load_data_from_json_obj(out)[0][0][0] == "UA TEST"
+    assert texture_formats.read("gba", out, params)[0].image.tobytes() == sprites.tobytes()
