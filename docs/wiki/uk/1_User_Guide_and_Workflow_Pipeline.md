@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-04
+updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 11.7k
+tokens: 14.9k
 ---
 # Посібник: інтерфейс
 
@@ -154,6 +154,14 @@ tokens: 11.7k
      відкриває шрифт тексту `f\papermarioset_US.bfn`; українські літери займають слоти Latin-1, яких не
      малює жоден англійський текст (`translation_map.json`, `translation_map.md`). Вікно Textures показує
      текстури титульного екрана, вибору файлу, меню паузи, бою та вивісок з англійським текстом.
+   - `super_paper_mario` — Super Paper Mario (Wii, PAL, англійська UK). **Source:** тека `source` робочої
+     теки (`1_unpack.bat` кладе туди текст `msg\UK\*.txt`, шрифти, текстури з текстом і повідомлення меню
+     HOME Wii `hbm\HomeButton2_en.bin\home.csv`; архів — тека з назвою файлу архіву); **Translation:**
+     `translation`. Файли повідомлень мають формат і теги Thousand-Year Door; `global.txt` відкривається
+     блоками (місця, назви розділів, предмети, вороги, картки, довідки Тіппі, описи, меню); незмінений файл
+     лишається байт у байт. Font Editor відкриває `font\papermarioset_EU`, `_US`, `_JPN.bfn` і шрифт меню
+     HOME; вікно Textures показує текстури титульного екрана, паузи, вибору файлу, введення імені, заставок
+     розділів, меню HOME і банера каналу. `2_build.bat` пакує кожен змінений файл назад в архів і образ диска.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** тека `source` робочої теки,
      яку `1_unpack.bat` заповнює текстовими файлами диска за їхніми шляхами на диску: `EVENT\*.EVT`
      (катсцени), `MAP\*.MPD` (події кімнат), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

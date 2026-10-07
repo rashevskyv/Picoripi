@@ -1,0 +1,15 @@
+[
+  {"label": "Title screen", "kind": "title_screen", "format": "tpl", "path": "lyt/title.bin.uk/arc/timg/*.tpl"},
+  {"label": "Boot screen", "kind": "title_screen", "format": "tpl", "path": "spmario.tpl"},
+  {"label": "Pause menu", "kind": "menu_label", "format": "tpl", "path": "win/uk/pause.tpl"},
+  {"label": "File select", "kind": "menu_label", "format": "tpl", "path": "win/uk/filesel.tpl"},
+  {"label": "Name entry", "kind": "keyboard", "format": "tpl", "path": "win/uk/nameent.tpl"},
+  {"label": "Interface", "kind": "menu_label", "format": "tpl", "path": "win/*.tpl"},
+  {"label": "Chapter and level captions", "kind": "popup", "format": "tpl", "path": "eff/uk/*.tpl"},
+  {"label": "HOME Menu labels (Wii)", "kind": "menu_label", "format": "tpl",
+   "path": "hbm/HomeButton2_en.bin/homeBtn_ENG.arc/arc/timg/tx_*.tpl"},
+  {"label": "Disc channel banner (Wii Menu)", "kind": "banner", "format": "tpl",
+   "path": "opening.bnr/meta/banner.bin/arc/timg/*.tpl"},
+  {"label": "Disc channel icon (Wii Menu)", "kind": "banner", "format": "tpl",
+   "path": "opening.bnr/meta/icon.bin/arc/timg/*.tpl"}
+]

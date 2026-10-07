@@ -1,0 +1,7 @@
+[
+  {"label": "Text font (papermarioset_EU)", "format": "bfn", "path": "font/papermarioset_EU.bfn",
+   "font_map": "papermarioset_EU.json"},
+  {"label": "Text font (papermarioset_US)", "format": "bfn", "path": "font/papermarioset_US.bfn"},
+  {"label": "Japanese text font (papermarioset_JPN)", "format": "bfn", "path": "font/papermarioset_JPN.bfn"},
+  {"label": "HOME Menu font (Wii)", "format": "brfnt", "path": "hbm/HomeButton2_en.bin/homeBtn_ENG.arc/arc/font/*.brfnt"}
+]

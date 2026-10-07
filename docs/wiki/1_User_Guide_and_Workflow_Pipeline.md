@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-04
+updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 9.0k
+tokens: 11.4k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -156,6 +156,15 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `f\papermarioset_US.bfn`; Ukrainian letters use Latin-1 slots no English text draws
      (`translation_map.json`, `translation_map.md`). The Textures window lists the title, file-select,
      pause-menu, battle and sign textures with English text.
+   - `super_paper_mario` — Super Paper Mario (Wii, PAL, English UK). **Source:** the workspace's `source`
+     (`1_unpack.bat` puts there the text `msg\UK\*.txt`, the fonts, the text textures and the Wii HOME Menu
+     messages `hbm\HomeButton2_en.bin\home.csv`; an archive is a folder named like the archive file);
+     **Translation:** `translation`. The message files have the Thousand-Year Door format and tags;
+     `global.txt` opens as blocks (places, chapter titles, items, enemies, Catch Cards, Tippi's tattles,
+     descriptions, menus); an unedited file stays byte for byte. The Font Editor opens `font\papermarioset_EU`,
+     `_US`, `_JPN.bfn` and the HOME Menu font; the Textures window lists the title, pause, file-select,
+     name-entry, chapter captions, HOME Menu and channel banner textures. `2_build.bat` packs every changed file
+     back into its archive and the disc image.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

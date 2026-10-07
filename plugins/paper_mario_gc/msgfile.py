@@ -1,6 +1,7 @@
 """Paper Mario: The Thousand-Year Door message files (``msg/<region>/<area>.txt``).
 
-A file is ``key\\0text\\0`` pairs ended by an empty key (one more ``\\0``); the game sorts the keys itself
+A file is ``key\\0text\\0`` pairs ended by an empty key (one more ``\\0``, then zero padding in Super Paper
+Mario, ``padding``); the game sorts the keys itself
 when it loads the file, so the order is free. English text is single-byte: ASCII, the font's Latin-1
 letters (only the credits use them) and a few symbols the font keeps in Latin-1 slots (``SYMBOLS``).
 Control tags are ``<k>``, ``<p>``, ``<wait 250>``, ``<col c00000ff>`` ...; the editor shows them in braces
@@ -49,13 +50,18 @@ def parse(data: bytes) -> List[Entry]:
             raise ValueError(f"message {key!r} has no end")
         entries.append(Entry(key, data[pos:end]))
         pos = end + 1
-    if pos != len(data):
+    if data[pos:].strip(b"\0"):
         raise ValueError(f"{len(data) - pos} bytes after the closing empty key")
     return entries
 
 
 def build(entries: List[Entry]) -> bytes:
     return b"".join(e.key + b"\0" + e.text + b"\0" for e in entries) + b"\0"
+
+
+def padding(data: bytes) -> bytes:
+    """The zero bytes after the closing empty key (Super Paper Mario ends its files with one more)."""
+    return data[len(build(parse(data))):]
 
 
 def is_leftover(text: bytes) -> bool:

@@ -129,6 +129,16 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   which of two English pause-tab sets (`icon.tpl` or `w/us/win.tpl`) and which sign variants the US game
   draws is not confirmed.
 
+## Super Paper Mario (`plugins/super_paper_mario`, 2026-10-07)
+
+- Not opened: the disc-error messages in `sys/main.dol` (2_build writes only `files/`) and the channel title
+  in the `opening.bnr` IMET header. No speakers, glossary seed or measured window widths yet (the
+  Thousand-Year Door widths are the default); no `papermarioset_EU.json` width map until the Font Editor saves one.
+- No font has Ukrainian letters: `papermarioset_EU`/`_US` and the HOME Menu font have no Cyrillic,
+  `papermarioset_JPN` lacks Ґ Є І Ї ґ є і ї. `translation_map.json` is the Thousand-Year Door one (Latin-1
+  slots); the PAL disc's French, German, Spanish and Italian text use those slots too.
+- `plugins/common/wii_home_menu.py` duplicates `plugins/zelda_sshd/home_menu.py` of `feat/ready-ss`; one should go.
+
 ## Font editor formats (2026-10-03)
 
 - Ukrainian glyphs drawn and shown on screen 2026-10-04 (Dolphin WW, SoH, 2Ship, Eden HWDE, Azahar for the 3DS
