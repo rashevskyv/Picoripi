@@ -321,3 +321,19 @@ def test_four_swords_ukrainian_font_has_the_letters_and_the_plugin_map_matches()
     assert all(_has_ink(metadata, sheets, char) for char in "ЄІЇҐєіїґ’")
     shipped = json.loads((ROOT / "plugins" / "zelda_fsae" / "fonts" / "fsae_ltn.json").read_text(encoding="utf-8"))
     assert font_formats.font_map(metadata) == shipped
+
+
+def test_twilight_princess_descriptor_finds_the_fonts_from_the_message_folder_and_writes_them(tmp_path):
+    _need(TP_FONTS / "fontres.arc")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_bmg" / "font_sources.json").read_text(encoding="utf-8"))
+    project = {"source_path": str(TP_FONTS.parent / "Msgus"), "translation_path": str(tmp_path / "Msgus"),
+               "is_directory_mode": True}
+    found = sources.resolve(descriptors, project)
+    assert [source.name for source in found] == ["rodan_b_24_22.bfn", "reishotai_24_22.bfn"]
+    font = found[0]
+    data = bytearray(font.read_current())
+    assert data[:8] == b"FONTbfn1"
+    data[-1] ^= 0xFF                                   # one texel of the last sheet
+    font.write(bytes(data))
+    assert Path(font.translation_path) == tmp_path / "Fontus" / "fontres.arc"
+    assert font.read_current() == bytes(data) and font.read_original() != bytes(data)

@@ -139,3 +139,29 @@ def test_wii_home_menu_labels_in_tpl_inside_u8():
     data, rewrap = sources.unwrap(raw, "arc/timg/tx_btn_00.tpl", {})
     assert rewrap(data) == raw
     _round_trip("tpl", data)
+
+
+TP_RES = ZELDA / "Twilight Princess" / "GC + Wii" / "ISO" / "ENG" / "root" / "res"
+
+
+def test_twilight_princess_title_logo_is_a_j3d_model_in_its_archive():
+    raw = _need(TP_RES / "Object" / "Title.arc").read_bytes()
+    data, rewrap = sources.unwrap(raw, "bmdr/titlelogo_r.bmd", {})
+    assert rewrap(data) == raw
+    names = [texture.name for texture in _round_trip("j3d", data)]
+    assert {"Zelda2_R", "TwilightPrincess", "Nintendo"} <= set(names)
+
+
+def test_twilight_princess_project_reads_and_writes_every_texture_format_the_game_uses():
+    # The TP project's source folder is res/Msgus; the plugin's paths climb out of it.
+    _need(TP_RES / "Msgus")
+    descriptors = json.loads((ROOT / "plugins" / "zelda_bmg" / "texture_sources.json").read_text(encoding="utf-8"))
+    found = sources.resolve(descriptors, {"source_path": str(TP_RES / "Msgus"), "translation_path": ""})
+    assert len(found) > 800
+    first = {}
+    for source in found:
+        first.setdefault((source.format, source.pixel_format), source)
+    assert {pixel for _fmt, pixel in first} >= {"I4", "I8", "IA4", "IA8", "RGB565", "RGB5A3", "RGBA8", "C4", "C8", "CMPR"}
+    for (fmt, _pixel), source in first.items():
+        data, _rewrap = sources.unwrap(Path(source.source_path).read_bytes(), source.member, source.params)
+        _round_trip(fmt, data, source.params)
