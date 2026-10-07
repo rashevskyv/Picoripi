@@ -296,7 +296,8 @@ def test_aoc_descriptors_find_the_font_in_the_workspace_source():
     descriptors = json.loads((ROOT / "plugins" / "zelda_aoc" / "font_sources.json").read_text(encoding="utf-8"))
     found = sources.resolve(descriptors, {"source_path": str(AOC_FONT.parents[1]), "translation_path": "",
                                           "is_directory_mode": True})
-    assert len(found) == 7 and {source.name for source in found} == {"latin.g1n"}
+    assert len(found) == 59 and {source.name for source in found} == {
+        "latin.g1n", "japanese.g1n", "korean.g1n", "chinese_simplified.g1n", "chinese_traditional.g1n"}
     assert font_formats.detect(found[0].read_current()) == "g1n"
 
 
