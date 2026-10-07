@@ -23,6 +23,7 @@ def workspace(tmp_path, monkeypatch):
     tests_dir.mkdir(parents=True)
     shutil.copytree(REPO_PLUGINS / "default_plugin", plugins_dir / "default_plugin",
                     ignore=shutil.ignore_patterns("__pycache__"))
+    (plugins_dir / "default_plugin" / "fonts").mkdir(exist_ok=True)   # git keeps no empty folder: a fresh clone lacks it
     monkeypatch.setattr(plugins, "__path__", [*plugins.__path__, str(plugins_dir)])
     yield plugins_dir, tests_dir
     for name in [name for name in sys.modules if name.startswith("plugins.demo_game")]:
