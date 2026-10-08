@@ -10,6 +10,14 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Castlevania: Circle of the Moon (`plugins/castlevania_cotm`, 2026-10-08)
+
+- The 66 Ukrainian cells (0x29A-0x2DB) are empty: nobody has drawn them; the text shows them only when drawn.
+- The menu item names are pre-drawn in the font (0x74-0x299, ten cells a name): translated names are redrawn
+  there (Tools -> Textures, "Item names in menus"); the text table's names are a second copy (pick-up messages).
+- Texture palettes come from the screens' code; sheets whose bank is not known show the first bank or grey.
+- No speakers yet: `{1E xx}` in the story looks like the portrait; not mapped to names.
+
 ## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
 
 - Not opened: the disc-error messages in `sys/main.dol` (2_build writes only `files/`) and the channel title in
