@@ -179,6 +179,29 @@ def test_the_build_puts_changed_archives_into_the_mod(tmp_path):
 
 
 @needs_game
+def test_the_build_refuses_a_font_archive_that_grew(tmp_path):
+    """In Eden the game stopped at start with a bigger Font/ScalableFont.sarc.zs; the same size builds."""
+    from compression import zstd
+    acnh = _zt("acnh")
+    rel = "Font/ScalableFont.sarc.zs"
+    for folder in ("source", "translation"):
+        (tmp_path / folder / "Font").mkdir(parents=True)
+    original = (SOURCE / rel).read_bytes()
+    (tmp_path / "source" / rel).write_bytes(original)
+    data, _ = sarc.decompress(original)
+    archive = sarc.Sarc(data)
+    name = "ParkExt.bfttf"
+    archive.files[name] = archive.files[name][:-16] + bytes(16)                       # same size: builds
+    (tmp_path / "translation" / rel).write_bytes(zstd.compress(archive.build()))
+    acnh.build(tmp_path, {})
+    assert (tmp_path / "build" / "atmosphere" / "contents" / acnh.TID / "romfs" / rel).is_file()
+    archive.files[name] += bytes(0x4000)                                               # bigger: refused
+    (tmp_path / "translation" / rel).write_bytes(zstd.compress(archive.build()))
+    with pytest.raises(acnh.Fail, match="ScalableFont"):
+        acnh.build(tmp_path, {})
+
+
+@needs_game
 def test_unreadable_update_files_are_told_from_readable_ones():
     acnh = _zt("acnh")
     good = (SOURCE / "Font" / "BmpFont_US.sarc.zs").read_bytes()
