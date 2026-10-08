@@ -1,0 +1,7 @@
+[
+  {"label": "Text font (EFonts.tpl image 0; widths in EBootPak.bin)", "format": "eternal_darkness",
+   "path": "EFonts.tpl", "companion": "EBootPak.bin", "font_map": "eternal_darkness_font.json",
+   "params": {"image": 0, "width_table": 0}},
+  {"label": "Second font (EFonts.tpl image 1; widths in EBootPak.bin)", "format": "eternal_darkness",
+   "path": "EFonts.tpl", "companion": "EBootPak.bin", "params": {"image": 1, "width_table": 1}}
+]
