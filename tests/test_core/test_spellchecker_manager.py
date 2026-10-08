@@ -4,6 +4,13 @@ pytestmark = pytest.mark.serial
 from unittest.mock import MagicMock, patch
 from pathlib import Path
 from core.spellchecker_manager import SpellcheckerManager, LOCAL_DICT_PATH, CUSTOM_DICT_FILENAME
+import core.spellchecker_cache as spellchecker_cache
+
+
+@pytest.fixture(autouse=True)
+def own_dictionary_cache(tmp_path, monkeypatch):
+    """Tests here replace the parser with a mock; a dictionary cached by another test would bypass it."""
+    monkeypatch.setattr(spellchecker_cache, "_cache_dir", lambda: tmp_path / "spellchecker_cache")
 
 @pytest.fixture
 def mock_mw():

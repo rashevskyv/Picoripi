@@ -97,6 +97,7 @@ Enable spell checking · Dictionary Language · **Manage Dictionaries…** (за
 | `.env` | Необов’язково `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | Фільтри UI, навігація, незбережені правки, undo. **Show Unsaved Only** при відновленні примусово вимикається |
 | `~/.picoripi/session_state.json` | Розгорнуті вузли дерева, вибір і курсор для кожного проєкту (старий `session_state.json` у теці програми читається один раз) |
+| `~/.picoripi/cache/spellchecker/` | Розібраний словник перевірки правопису (~36 МБ на мову), щоб наступний запуск не розбирав `.dic`/`.aff` знову. Створюється знову, коли словник змінився; теку можна видалити |
 | `project.uiproj` | Запис проєкту: ім’я, тека плагіна, шляхи source/translation, закладки, `reference_patch_path` |
 | `config.json` плагіна | Типові значення для цієї гри |
 | `aliases.json` плагіна | Додаткові аліаси тегів |

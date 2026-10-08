@@ -98,6 +98,7 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 | `.env` | Optional `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | UI filters, navigation, unsaved edits, undo. **Show Unsaved Only** is forced off on restore |
 | `~/.picoripi/session_state.json` | Tree expansion, selection and cursor per project (read once from the old `session_state.json` in the program folder) |
+| `~/.picoripi/cache/spellchecker/` | The parsed spellchecker dictionary (~36 MB per language), so a later start does not parse the `.dic`/`.aff` again. Made again when the dictionary changes; safe to delete |
 | `project.uiproj` | Project record: name, plugin folder, source/translation paths, bookmarks, `reference_patch_path` |
 | plugin `config.json` | Defaults for that game |
 | plugin `aliases.json` | Extra tag aliases |
