@@ -270,32 +270,38 @@ def _simple_glyph(contours: List[list]) -> bytes:
         for value in values:
             out += struct.pack(">h", value - last)
             last = value
-    return bytes(out + b"\x00" * (-len(out) % 4))
+    return bytes(out + b"\x00" * (-len(out) % 2))
 
 
 def _truetype_glyphs(plain: bytes, font: "OpenType", outlines: Dict[int, List[list]]) -> Dict[str, bytes]:
-    """New ``glyf`` / ``loca`` (long offsets), ``head`` and ``maxp`` with ``outlines`` replacing those glyphs."""
+    """New ``glyf`` / ``loca``, ``head`` and ``maxp`` with ``outlines`` replacing those glyphs.
+
+    The other glyphs keep their bytes, the font its glyph alignment and loca format (long when it no longer fits).
+    """
     head = bytearray(plain[font.table("head"):font.table("head") + font.tables["head"][1]])
     long_offsets = struct.unpack_from(">h", head, 50)[0] == 1
     loca_at, glyf_at = font.table("loca"), font.table("glyf")
     count = font.glyph_count
     starts = (struct.unpack_from(f">{count + 1}I", plain, loca_at) if long_offsets
               else [2 * v for v in struct.unpack_from(f">{count + 1}H", plain, loca_at)])
+    align = 4 if all(start % 4 == 0 for start in starts) else 2      # the font's own glyph alignment
     glyf, offsets = bytearray(), []
     for glyph in range(count):
         offsets.append(len(glyf))
         data = (_simple_glyph(outlines[glyph]) if glyph in outlines
                 else plain[glyf_at + starts[glyph]:glyf_at + starts[glyph + 1]])
-        glyf += data + b"\x00" * (-len(data) % 4)
+        glyf += data + b"\x00" * (-len(data) % align)
     offsets.append(len(glyf))
-    struct.pack_into(">h", head, 50, 1)
+    long_offsets = long_offsets or len(glyf) >= 0x20000
+    struct.pack_into(">h", head, 50, 1 if long_offsets else 0)
+    loca = (struct.pack(f">{count + 1}I", *offsets) if long_offsets
+            else struct.pack(f">{count + 1}H", *(offset // 2 for offset in offsets)))
     maxp = bytearray(plain[font.table("maxp"):font.table("maxp") + font.tables["maxp"][1]])
     if len(maxp) >= 10:
         points = max((sum(len(c) for c in contours) for contours in outlines.values()), default=0)
         struct.pack_into(">HH", maxp, 6, max(struct.unpack_from(">H", maxp, 6)[0], points),
                          max(struct.unpack_from(">H", maxp, 8)[0], max(map(len, outlines.values()), default=0)))
-    return {"glyf": bytes(glyf), "loca": struct.pack(f">{count + 1}I", *offsets), "head": bytes(head),
-            "maxp": bytes(maxp)}
+    return {"glyf": bytes(glyf), "loca": loca, "head": bytes(head), "maxp": bytes(maxp)}
 
 
 def contact_sheet(data: bytes, size: int = 32, columns: int = 32, label: str = "") -> Image.Image:

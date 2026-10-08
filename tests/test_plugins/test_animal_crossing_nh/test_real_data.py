@@ -107,6 +107,9 @@ def test_the_text_fonts_have_every_ukrainian_letter_and_take_a_glyph_edit(tmp_pa
     ImageDraw.Draw(sheets[sheet]).rectangle((box[0] + 3, box[1] + 6, box[0] + 26, box[1] + 30),
                                             fill=(255, 255, 255, 255))
     font.write(font_formats.pack(font.format, metadata, sheets, data, font.params))
+    # The archive keeps its size (the font grows only by the glyph): in Eden the game stopped at start when it grew.
+    sizes = [len(sarc.decompress(Path(p).read_bytes())[0]) for p in (font.source_path, font.translation_path)]
+    assert sizes[0] == sizes[1]
     again, again_sheets = font_formats.extract(font.format, font.read_current(), font.params)
     assert font_formats.coverage(again_sheets[sheet]).getpixel((box[0] + 14, box[1] + 18)) > 200
     a_sheet, a_box = _cell_box(again, "A")

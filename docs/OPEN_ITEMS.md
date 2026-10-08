@@ -221,6 +221,7 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - TotK's fonts are scalable OpenType (`bfotf`): the editor saves widths and redrawn glyphs (traced as squares:
   drafts only); finished outlines are made outside (FontForge on the unscrambled OTF) or by
   `plugins/zelda_totk/font_glyphs.py`. TrueType `.bfttf` takes drawn glyphs the same way (simple glyphs in `glyf`; composite glyphs that use an edited glyph change with it).
+- Animal Crossing: New Horizons stopped at start in Eden (crash 3-4 s after the mod loaded) when `Font/ScalableFont.sarc.zs` grew; with text and texture edits only it ran. The font rebuild now keeps the archive's size for a glyph edit (test); an in-game run with an edited glyph is still to do.
 - BFFNT (Switch): new characters get a CMAP block and new sheets a texture layer (`min_sheets`); the kerning table
   (KRNG) is kept as it is, and a removed character outside the changed code range still resolves.
 - HWDE: the `../romfs/...` candidate assumes the workspace layout `source/` next to `romfs/` and a translation
