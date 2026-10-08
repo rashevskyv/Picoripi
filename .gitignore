@@ -7,6 +7,8 @@ fonts
 !plugins/zelda_fsae/fonts/
 # A Link to the Past (zelda3 port) dialogue widths, read from the port's font.png: shipped with the plugin.
 !plugins/zelda_lttp/fonts/
+# Super Metroid tile-font widths (8 px a cell): shipped with the plugin.
+!plugins/super_metroid/fonts/
 # Python cache
 __pycache__/
 *.pyc
