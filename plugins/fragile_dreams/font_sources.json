@@ -1,0 +1,17 @@
+[
+  {"label": "Font 6000108D (22 px)", "format": "fragile_dreams", "path": "font/6000108D.font"},
+  {"label": "Font 6000108F (32 px)", "format": "fragile_dreams", "path": "font/6000108F.font"},
+  {"label": "Font 60001090 (glow, 2 pages)", "format": "fragile_dreams", "path": "font/60001090.font"},
+  {"label": "Font 60001091 (glow, 2 pages)", "format": "fragile_dreams", "path": "font/60001091.font"},
+  {"label": "Font set 6000108A: 0 (28 px, with Japanese)", "format": "fragile_dreams", "path": "font/6000108A/0.font"},
+  {"label": "Font set 6000108A: 1 (26 px, with Japanese)", "format": "fragile_dreams", "path": "font/6000108A/1.font"},
+  {"label": "Font set 6000108A: 2 (small)", "format": "fragile_dreams", "path": "font/6000108A/2.font"},
+  {"label": "Font set 6000108A: 3 (small)", "format": "fragile_dreams", "path": "font/6000108A/3.font"},
+  {"label": "Font set 6000108A: 4 (small)", "format": "fragile_dreams", "path": "font/6000108A/4.font"},
+  {"label": "Font set 6000108B: 0 (28 px, with Japanese)", "format": "fragile_dreams", "path": "font/6000108B/0.font"},
+  {"label": "Font set 6000108B: 1 (28 px, with Japanese)", "format": "fragile_dreams", "path": "font/6000108B/1.font"},
+  {"label": "Font set 6000108B: 2 (32 px)", "format": "fragile_dreams", "path": "font/6000108B/2.font"},
+  {"label": "Font set 6000108B: 3 (glow, 2 pages)", "format": "fragile_dreams", "path": "font/6000108B/3.font"},
+  {"label": "Font set 6000108B: 4 (glow, 2 pages)", "format": "fragile_dreams", "path": "font/6000108B/4.font"},
+  {"label": "Wii HOME Menu font", "format": "brfnt", "path": "hbm/10000083.arc/arc/font/*.brfnt"}
+]
