@@ -24,7 +24,7 @@ the line when it is done or moved into a plan.
 
 ## Super Metroid (`plugins/super_metroid`, 2026-10-08)
 
-- No boot proof yet: two hidden-desktop runs of the built `sm.exe` captured only a blank window (PrintWindow, SDL and SDL-Software output); the build is checked by machine (ROM text, sheets, C tables).
+- sm_rewrite's HEAD opens a new window every frame (`main_loop()`, commit e55088a); the workspace build fixes its copy of `src/main.c` (`MAIN_PATCH` in `zt\sm.py`) and fails loudly if the port changes. Boot proof: the file select shows a text, a font and a texture edit.
 - Ukrainian letters have cells only in the message-box font (21 unused BG3 tiles). The menu, pause, intro and credits fonts have no free cells; the intro font has 4. Japanese-only glyph cells could be reused if the Japanese text option may go (question to the user).
 - The big menu and credits letters are built from shared top/bottom tiles: new letters need new tiles and a pair table; the Font Editor shows only the cells whose halves are a whole letter.
 - Text pictures (pause item names, button words, title logo, PLANET ZEBES, SEE YOU NEXT MISSION) are tile graphics in the Textures window, not text. Not opened: the Russian fan patch's changes to level data in banks C2/C3 (not text).
