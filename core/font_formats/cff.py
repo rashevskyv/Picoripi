@@ -532,17 +532,21 @@ def _new_cmap(old: bytes, mapping: Dict[int, int]) -> bytes:
     return head + data
 
 
-def rebuild_font(font: bytes, cff: Cff, mapping: Dict[int, int], new_metrics: List[Tuple[int, int]],
-                 metrics: Optional[Dict[int, Tuple[int, int]]] = None) -> bytes:
+def rebuild_font(font: bytes, cff: Optional[Cff], mapping: Dict[int, int], new_metrics: List[Tuple[int, int]],
+                 metrics: Optional[Dict[int, Tuple[int, int]]] = None,
+                 replaced: Optional[Dict[str, bytes]] = None) -> bytes:
     """The OpenType file with a new CFF, character map and metrics for ``new_metrics`` appended glyphs.
 
-    ``metrics`` gives existing glyphs a new ``(advance, left side bearing)``."""
+    ``metrics`` gives existing glyphs a new ``(advance, left side bearing)``. ``cff`` None keeps the outlines;
+    ``replaced`` gives whole new tables (a TrueType font's ``glyf``, ``loca``, ``head``, ``maxp``)."""
     from core.font_formats.bfotf import OpenType
     ot = OpenType(font)
     tables = {tag: font[offset:offset + length] for tag, (offset, length) in ot.tables.items()}
     old_count = ot.glyph_count
     total = old_count + len(new_metrics)
-    tables["CFF "] = cff.build()
+    tables.update(replaced or {})
+    if cff is not None:
+        tables["CFF "] = cff.build()
     tables["cmap"] = _new_cmap(tables["cmap"], mapping)
     long_count = ot.long_metrics
     hmtx = tables["hmtx"]
@@ -564,7 +568,7 @@ def rebuild_font(font: bytes, cff: Cff, mapping: Dict[int, int], new_metrics: Li
     if "vmtx" in tables and "vhea" in tables:
         long_v = struct.unpack_from(">H", tables["vhea"], 34)[0]
         tables["vmtx"] = tables["vmtx"][:4 * long_v + 2 * (old_count - long_v)] + b"\x00\x00" * len(new_metrics)
-    if "post" in tables and struct.unpack_from(">I", tables["post"], 0)[0] == 0x00020000:
+    if new_metrics and "post" in tables and struct.unpack_from(">I", tables["post"], 0)[0] == 0x00020000:
         raise ValueError("post format 2 (glyph names) is not supported")
     head = bytearray(tables["head"])
     struct.pack_into(">I", head, 8, 0)

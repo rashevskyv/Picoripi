@@ -370,6 +370,28 @@ def test_bntx_textures_by_name_and_unsupported_formats_listed():
     assert bntx.read(new, {})[0].image.getpixel((39, 19)) == (1, 2, 3, 4)
 
 
+def test_a_bntx_inside_a_switch_bfres_reads_and_writes_in_place():
+    inner = bytearray(make_bntx([("Sign", 0x0B, picture(16, 8))]))
+    struct.pack_into("<I", inner, 0x1C, len(inner))
+    model = b"FRES    " + bytes(0x38) + bytes(inner) + b"tail"
+    assert bntx.read(model, {})[0].image.tobytes() == picture(16, 8).tobytes()
+    assert bntx.write(model, {0: picture(16, 8)}, {}) == model
+    edited = bntx.write(model, {0: Image.new("RGBA", (16, 8), (9, 8, 7, 255))}, {})
+    assert len(edited) == len(model) and edited[:0x40] == model[:0x40] and edited.endswith(b"tail")
+    assert bntx.read(edited, {})[0].image.getpixel((3, 3)) == (9, 8, 7, 255)
+
+
+def test_every_astc_block_size_has_a_codec_and_bntx_format():
+    # Animal Crossing uses 5x4, 5x5, 6x5 and 6x6 besides the square sizes.
+    assert {bntx.FORMATS[0x2D + i] for i in range(14)} == {f"ASTC{w}x{h}" for w, h in pixels.ASTC_BLOCKS}
+    for w, h in ((5, 4), (5, 5), (6, 5), (6, 6)):
+        image = Image.new("RGBA", (w * 2, h), (0, 0, 0, 255))
+        ImageDraw.Draw(image).rectangle((0, 0, w - 1, h - 1), fill=(255, 0, 0, 255))
+        codec = pixels.codec(f"ASTC{w}x{h}")
+        assert codec.block == (w, h)
+        assert codec.decode(codec.encode(image), w * 2, h).tobytes() == image.tobytes()
+
+
 def make_g1t(textures):
     """``[(format byte, image)]`` (power-of-two sizes) -> a G1T with one level each."""
     table = 0x20

@@ -466,6 +466,11 @@ def _pica_etc(alpha: bool) -> Codec:
     return Codec("pica:ETC1A4" if alpha else "pica:ETC1", (8, 8), 4 * block_bytes, dec, enc)
 
 
+# Every 2D ASTC block size (Switch BNTX formats 0x2D...0x3A in this order).
+ASTC_BLOCKS = ((4, 4), (5, 4), (5, 5), (6, 5), (6, 6), (8, 5), (8, 6), (8, 8), (10, 5), (10, 6), (10, 8), (10, 10),
+               (12, 10), (12, 12))
+
+
 def _astc_codec(bw: int, bh: int) -> Codec:
     """ASTC blocks of ``bw`` x ``bh`` texels (``astc``)."""
     from core.texture_formats import astc
@@ -677,7 +682,7 @@ def _build() -> Dict[str, Codec]:
     add(_bc_codec(4, "L"))
     add(_bc_codec(4, "A"))
     add(_bc_codec(5, "LA"))
-    for bw, bh in ((4, 4), (8, 8), (10, 10), (12, 12)):
+    for bw, bh in ASTC_BLOCKS:
         add(_astc_codec(bw, bh))
     return codecs
 
