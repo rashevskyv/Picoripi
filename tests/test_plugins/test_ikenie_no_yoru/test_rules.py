@@ -134,6 +134,25 @@ def test_the_real_main_dol_strings_fit_their_slots():
 
 
 @real
+def test_the_workspace_boot_fix_changes_only_the_save_check_and_keeps_the_strings():
+    """2_build patches main.dol so the game boots without the English patch's save (zt/ikenie.py ``boot_fix``)."""
+    import sys
+    scripts = SOURCE.parents[1] / "_shared" / "scripts"
+    if not (scripts / "zt" / "ikenie.py").is_file():
+        pytest.skip("workspace scripts not here")
+    sys.path.insert(0, str(scripts))
+    try:
+        from zt import ikenie
+    finally:
+        sys.path.remove(str(scripts))
+    raw = (SOURCE / "sys" / "main.dol").read_bytes()
+    fixed = ikenie.boot_fix(raw)
+    changed = [i for i, (a, b) in enumerate(zip(raw, fixed)) if a != b]
+    assert len(fixed) == len(raw) and ikenie.BOOT_FIX_AT <= changed[0] and changed[-1] < ikenie.BOOT_FIX_AT + 40
+    assert ikenie.boot_fix(fixed) == fixed and rules.texts_of(fixed) == rules.texts_of(raw)
+
+
+@real
 def test_every_font_opens_packs_byte_exact_and_writes_into_the_translation(tmp_path):
     from core import font_formats
     from core.font_formats import sources

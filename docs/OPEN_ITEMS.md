@@ -17,8 +17,8 @@ the line when it is done or moved into a plan.
 - No font has Cyrillic; the Japanese glyph cells (font_game 968) are where Ukrainian letters would go.
 - How much a package (`package\*.bin`) may grow before the game's buffer overflows is not measured (a 3.4 KB longer
   `ch04_01` builds; only the title screen was booted).
-- The English patch needs its own save in the Wii memory (`english_patch\0001000053454b4a`), else it stops at
-  "Please remember to import the savefile".
+- The workspace's boot fix (a fresh Wii memory without the patch's save) is proved in Dolphin only, not on a
+  real Wii.
 
 ## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
 
