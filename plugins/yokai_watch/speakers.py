@@ -47,6 +47,9 @@ GAMES = {
     },
 }
 GAMES["ywnx"] = dict(GAMES["yw1"], lang="_ja")
+# Yo-kai Watch 2: Psychic Specters (3DS, EUR): the British English files (*_engb), event text in data/txt/ev/engb.
+# The hero is the CRC32 of "c000000" (as in Yo-kai Watch 3); the _m / _f file tells Nate from Katie.
+GAMES["yw2"] = dict(GAMES["yw1"], lang="_engb", player=2947951939, player_nouns={"m": 526454680, "f": 232038518})
 # Yo-kai Watch 4++ and Yo-kai Academy Y (Switch): text in data/common/text/ja, no speaker tables read yet.
 GAMES["yw4"] = dict(GAMES["yw1"], lang="_ja")
 GAMES["yay"] = dict(GAMES["yw1"], lang="_ja")
@@ -59,12 +62,15 @@ _VOICE = re.compile(r"<(?:PV#(?:g_)?(?:pv|voice)_|V#)([a-z]+\d{6})")
 def game_of(source_root: Path) -> str:
     """``yw3`` when the English event text sits in a language folder (``data/txt/ev/en``), ``ywnx`` when the
     text files are the Japanese ones (Switch), ``yw4`` / ``yay`` for Yo-kai Watch 4++ / Yo-kai Academy Y
-    (``data/common/text/ja``; Academy Y has a second Japanese font, ``font_ja2``), else ``yw1``."""
+    (``data/common/text/ja``; Academy Y has a second Japanese font, ``font_ja2``), ``yw2`` when it sits in
+    ``data/txt/ev/engb``, else ``yw1``."""
     root = Path(source_root)
     if (root / "data/common/text/ja").is_dir():
         return "yay" if (root / "data/common/font/font/font_ja2").is_dir() else "yw4"
     if (root / "data/txt/ev/en").is_dir():
         return "yw3"
+    if (root / "data/txt/ev/engb").is_dir():
+        return "yw2"
     return "ywnx" if (root / "data/res/text/system_text_ja.cfg.bin").is_file() else "yw1"
 
 

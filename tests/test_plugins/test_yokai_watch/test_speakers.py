@@ -112,3 +112,27 @@ def test_yokai_watch_3_heroes_by_voice_clip_and_language_folder(tmp_path):
     assert speakers.speaker(rel, 0x99, 0, "<V#y327000>Let us begin!") == "Mermadonna"
     assert speakers.speaker(rel, 0x99, 0, "No clip.") is None
     assert {e["term"] for e in seed_entries(source, meta)} >= {"Nate", "Mermadonna"}
+
+
+def test_yokai_watch_2_hero_by_file_and_the_russian_reference(tmp_path):
+    """Yo-kai Watch 2: *_engb files in data/txt/ev/engb, the hero is c000000 (Nate in _m, Katie in _f); the Russian
+    fan text built into the game (reference/.../ru/*_ru.cfg.bin) is read row by row as the reference."""
+    from plugins.yokai_watch.speakers import GAMES, game_of
+    source, meta, reference = tmp_path / "source", tmp_path / "meta", tmp_path / "reference"
+    game = GAMES["yw2"]
+    _write(source / "data/res/text/chara_text_engb.cfg.bin", cfg_file([
+        noun_info(game["player_nouns"]["m"], "Nate"), noun_info(game["player_nouns"]["f"], "Katie")]))
+    rel = "data/txt/ev/engb/ev01_0010_f_engb.cfg.bin"
+    _write(source / rel, cfg_file([text_info(0x11, 0, "Hi!"), text_info(0x12, 0, "Bye.")]))
+    _write(reference / "data/txt/ev/ru/ev01_0010_f_ru.cfg.bin", cfg_file([text_info(0x12, 0, "Пока.")]))
+    _write(meta / "data/txt/ev/ev01_0010_map_f.cfg.bin", cfg_file([("TEXT_WASHA_MAP", [0x11, 0, game["player"], 1, -1, 0])]))
+    assert game_of(source) == "yw2"
+    assert Speakers(source, meta).speaker(rel, 0x11, 0) == "Katie"
+    block = SimpleNamespace(source_file=rel)
+    pm = SimpleNamespace(project=SimpleNamespace(blocks=[block], metadata={"source_path": str(source)}),
+                         get_absolute_path=lambda rel_path: str(source / rel_path))
+    rules = load_rules("yokai_watch", SimpleNamespace(project_manager=pm, block_to_project_file_map={0: 0}))
+    assert rules.supports_reference_patch() and rules.get_reference_language_label() == "Russian (RU)"
+    assert rules.load_multi_reference(str(reference), {"0": "ev01_0010_f_engb.cfg"}) == {"Russian (RU)": {(0, 1): "Пока."}}
+    assert rules.get_texture_sources()[0]["path"] == "data/menu/title_*_engb.xa"
+    assert rules.get_font_sources()[0]["font_map"] == "yw2_ft_nrm.json"

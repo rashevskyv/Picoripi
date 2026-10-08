@@ -42,6 +42,12 @@ class SessionMixin:
             return False
         return code > session
 
+    def _load_reference(self) -> None:
+        """The reference translation needs the block names: the settings were read before the files."""
+        settings = getattr(getattr(self.mw, 'settings_manager', None), 'plugin_settings', None)
+        if settings is not None:
+            settings.load_reference()
+
     def _restore_project_session_fast_path(self, on_completed=None) -> bool:
         """Restore a project from the session checkpoint before starting the full loader."""
         if not hasattr(self.data_processor, 'load_session_file'):
@@ -75,6 +81,7 @@ class SessionMixin:
 
         if hasattr(self.mw.data_store, 'block_to_project_file_map'):
             self.mw.block_to_project_file_map = self.mw.data_store.block_to_project_file_map
+        self._load_reference()
 
         self._ensure_project_compat_paths()
 
@@ -215,6 +222,7 @@ class SessionMixin:
             self.mw.data_store.block_names = result['block_names']
             self.mw.block_to_project_file_map = result['block_to_project_file_map']
             self.mw.data_store.block_to_project_file_map = result['block_to_project_file_map']
+            self._load_reference()
 
             # The state as it was after the source files, before the translations were parsed.
             formats.restore_state(self.mw.current_game_rules, result.get('plugin_keys_backup'))

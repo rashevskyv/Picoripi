@@ -195,35 +195,42 @@ class PluginSettings:
             elif not hasattr(self.mw, "translation_config") or not self.mw.translation_config:
                 self.mw.translation_config = build_default_translation_config()
 
-            ref_path = combined_data.get("reference_patch_path")
-            if ref_path:
-                self.mw.reference_patch_path = ref_path
-                try:
-                    from core.reference_manager import ReferenceManager
-                    game_rules = getattr(self.mw, "current_game_rules", None)
-                    # Opening a project reads the settings more than once; parsing the reference
-                    # archives takes seconds, so the same request reuses the last result.
-                    request = (ref_path, game_rules, repr(self.mw.data_store.block_names))
-                    if request == self._reference_request and self._reference_result:
-                        ref_langs = self._reference_result
-                    else:
-                        ref_langs = ReferenceManager.load_multi_reference(
-                            ref_path,
-                            self.mw.data_store.block_names,
-                            game_rules=game_rules
-                        )
-                        self._reference_request, self._reference_result = request, ref_langs
-                    self.mw.data_store.reference_languages_data = ref_langs
-                    self.mw.data_store.reference_data = (
-                        ref_langs.get("Russian (RU)")
-                        or (next(iter(ref_langs.values())) if ref_langs else {})
-                    )
-                except Exception as err:
-                    log_error(f"Failed to load reference from {ref_path}: {err}")
+            # None when this project has none: another project's path must not carry over
+            self.mw.reference_patch_path = combined_data.get("reference_patch_path") or None
+            self.load_reference()
 
             log_debug("Merged settings loaded successfully.")
         except Exception as e:
             log_error(f"Error applying merged settings: {e}", exc_info=True)
+
+    def load_reference(self) -> None:
+        """Read the reference translation (``reference_patch_path``) for the loaded blocks. The settings load
+        before the project's files, so the project load calls this again once the block names are known."""
+        ref_path = getattr(self.mw, "reference_patch_path", None)
+        if not ref_path or not hasattr(self.mw, "data_store"):
+            return
+        try:
+            from core.reference_manager import ReferenceManager
+            game_rules = getattr(self.mw, "current_game_rules", None)
+            # Opening a project reads the settings more than once; parsing the reference
+            # archives takes seconds, so the same request reuses the last result.
+            request = (ref_path, game_rules, repr(self.mw.data_store.block_names))
+            if request == self._reference_request and self._reference_result:
+                ref_langs = self._reference_result
+            else:
+                ref_langs = ReferenceManager.load_multi_reference(
+                    ref_path,
+                    self.mw.data_store.block_names,
+                    game_rules=game_rules
+                )
+                self._reference_request, self._reference_result = request, ref_langs
+            self.mw.data_store.reference_languages_data = ref_langs
+            self.mw.data_store.reference_data = (
+                ref_langs.get("Russian (RU)")
+                or (next(iter(ref_langs.values())) if ref_langs else {})
+            )
+        except Exception as err:
+            log_error(f"Failed to load reference from {ref_path}: {err}")
 
     def _migrate_legacy_styles(self, plugin_data: Dict[str, Any]) -> None:
         # Implementation of style migration from SettingsManager
