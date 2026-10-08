@@ -109,6 +109,16 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Font Editor opens the four game fonts and the HOME Menu font; the Textures window lists every layout
      (each exists once per language: the second of eight copies is English). `2_build.bat` packs the changes
      back into the disc image.
+   - `ikenie_no_yoru` — Ikenie no Yoru (Wii, Japan) with the English fan translation "Night of the Sacrifice".
+     `1_unpack.bat` writes the English patch (Riivolution files) into the Japanese disc and puts into the
+     workspace's `source` every message table `package\<package>\<id>.mes` (88 tables, 1,944 messages), the
+     layouts with text boxes (`*.brlyt`), the strings of `sys\main.dol` (save title, disc and memory errors,
+     default names; each fits its slot) and the HOME Menu `hbm\HomeButton*\*.csv` (the game shows the Japanese
+     column); **Translation:** `translation`. Control codes read `{NAME:1}` (the name of girl 1..5), `{PAGE}`,
+     `{COLOR:FF0000FF}`, `{SIZE:3F800000}`, `{U0008}`. Lines the English patch left Japanese are in the category
+     "Japanese source". A table that several packages share is in `source` once (the block's description names
+     the others); `2_build.bat` writes it into each of them. The Font Editor opens the four BRFNT fonts and the
+     HOME Menu font; the Textures window lists every TPL (title logo, layouts, banners).
    - `zelda_lttp` — Zelda: A Link to the Past (SNES) through its PC port snesrev/zelda3. **Source:** the workspace's `source` (`1_unpack.bat` runs the port's own `restool.py` on the USA ROM): `dialogue.txt` (397 messages, the port's `[Name]`, `[Waitkey]`, `[Color 02]` codes; a line break shows before `[2]`, `[3]` and `[Scroll]`, and a break typed without one gets the code of its line), `font.png` (the Ukrainian dialogue font, format `zelda3` in the Font Editor: the English glyphs plus empty cells 95–119 for б–я and 128–148 for Б–Я, 114 cells more free; look-alikes use the Latin glyphs) and `gfx\*.bin` (8 graphics sheets with text — menu labels, item names, GAME OVER, title logo — in Tools → Textures as `snes:2bpp`/`snes:3bpp`); **Translation:** the same files under `translation`. Speakers, conversations and source lines come from the port's C code (`context.json`). `2_build.bat` compiles the translation as the port language `uk` of `build\zelda3\zelda3_assets.dat` with the port's own compiler (English stays as it is; `zelda3.ini` gets `Language = uk`) and builds `zelda3.exe` with Visual Studio Build Tools and SDL2 (one 2-line change to a copy of `messaging.c`: glyphs 128–255 through the escape code 0x86). Seen in the game: an edited intro line, font cells and the title logo.
    - `metroid_prime_remastered` — Metroid Prime Remastered (Switch, base game). The same formats and rules as
      `metroid_prime4`. **Source:** the workspace's `source` (`text\TEXT_*.msbt`: 27 tables, 3,132 messages,

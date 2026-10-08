@@ -10,6 +10,16 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Ikenie no Yoru (`plugins/ikenie_no_yoru`, 2026-10-08)
+
+- Not opened: the channel title in the `opening.bnr` IMET header, TEX0 textures of the BRRES models, text in the
+  THP movies. No speakers or window widths yet; `{U0008}`-style codes (debug text) have no names.
+- No font has Cyrillic; the Japanese glyph cells (font_game 968) are where Ukrainian letters would go.
+- How much a package (`package\*.bin`) may grow before the game's buffer overflows is not measured (a 3.4 KB longer
+  `ch04_01` builds; only the title screen was booted).
+- The English patch needs its own save in the Wii memory (`english_patch\0001000053454b4a`), else it stops at
+  "Please remember to import the savefile".
+
 ## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
 
 - Not opened: the disc-error messages in `sys/main.dol` (2_build writes only `files/`) and the channel title in

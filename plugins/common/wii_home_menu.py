@@ -1,11 +1,12 @@
 """Wii HOME Menu messages (``HomeButton2/home.csv``, ``home_nosave.csv``): UTF-16 with a BOM, one message a row,
 one quoted cell a language separated by tabs (Japanese, English, German, French, Spanish, Italian, Dutch,
-Chinese, English again, Korean). A plugin edits the English cell; every other byte stays as it is. Shared by
-the Wii plugins (Skyward Sword HD, Super Paper Mario, Metroid: Other M)."""
+Chinese, English again, Korean). A plugin edits the English cell (a Japanese game: the Japanese one); every other
+byte stays as it is. Shared by the Wii plugins (Skyward Sword HD, Super Paper Mario, Metroid: Other M, Ikenie no
+Yoru)."""
 import re
 from typing import List, Tuple
 
-ENGLISH = 1
+JAPANESE, ENGLISH = 0, 1
 _CELL = re.compile(r'"((?:[^"]|"")*)"')
 _BOMS = {b"\xfe\xff": "utf-16-be", b"\xff\xfe": "utf-16-le"}
 
@@ -15,9 +16,9 @@ def is_home_csv(raw: bytes) -> bool:
 
 
 class HomeCsv:
-    """The file's text and the spans of its English cells."""
+    """The file's text and the spans of its cells in ``language`` (a column: ``ENGLISH``, ``JAPANESE``)."""
 
-    def __init__(self, raw: bytes):
+    def __init__(self, raw: bytes, language: int = ENGLISH):
         if not is_home_csv(raw):
             raise ValueError("Not a HOME Menu message table")
         self.bom, self.codec = bytes(raw[:2]), _BOMS[bytes(raw[:2])]
@@ -27,7 +28,7 @@ class HomeCsv:
         for match in _CELL.finditer(self.text):
             if self.text[at:match.start()].count("\n"):
                 column = 0
-            if column == ENGLISH:
+            if column == language:
                 self.spans.append(match.span(1))
             column, at = column + 1, match.end()
 
