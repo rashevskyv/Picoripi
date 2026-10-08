@@ -10,6 +10,17 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Spore Hero (`plugins/spore_hero`, 2026-10-08)
+
+- The three game fonts (`fntg`) have no Cyrillic: Ukrainian letters need glyphs drawn over unused accented letters
+  (the Font Editor's translation map; the plugin then writes the letter as that glyph's character) — `fntg` cannot
+  add glyphs (no room on the C4 page).
+- The game decodes its RefPack packages with a 16 KiB window; the workspace's `zt/spore.py` keeps every command of the
+  original stream except around a change. Its own compressor is ~6 % worse than EA's: a package rebuilt in full grows.
+- Not opened: the Apt UI files (`.uix`, their text is `~KEY` references to the LOCBIN strings), the credits names
+  (`credits.txt`, names only), the disc banner title (`opening.bnr` header), 3D model and effect textures.
+- `main.dol` messages are fallbacks before the text loads; each must fit its own bytes (cp1252, no Cyrillic).
+
 ## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
 
 - Not opened: the disc-error messages in `sys/main.dol` (2_build writes only `files/`) and the channel title in
