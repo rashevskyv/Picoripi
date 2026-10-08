@@ -275,7 +275,9 @@ class ProblemsMixin:
             b_id = curr_for_children.block_ids[0]
             idx = id_to_idx.get(b_id)
             data_blocks = self._data_blocks_of(idx) if idx is not None else []
-            if len(data_blocks) == 1:        # a file that opens into several blocks keeps them as children
+            # a file that opens into several blocks keeps them as children; a block with categories keeps its own
+            # item (its categories are that item's children)
+            if len(data_blocks) == 1 and not project.blocks[idx].categories:
                 idx = data_blocks[0]
                 block_name = self.mw.data_store.block_names.get(str(idx), f"Block {idx}")
                 block_name_with_ext = self._get_block_display_name_with_ext(idx, block_name)

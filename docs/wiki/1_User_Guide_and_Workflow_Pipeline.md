@@ -221,13 +221,16 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      English textures (title logo, menus, telops, help, captions, signs; loading them takes several minutes).
      Yo-kai Watch 1 for Switch (Japanese game, workspace `YO_KAI_WATCH_SWITCH`) opens with the same plugin: the
      source text is the English fan mod written into the Japanese tables (`*_ja.cfg.bin`, 2,014 files, about
-     48,000 lines; lines the mod left Japanese are hidden like the 3DS leftovers); the Font Editor opens
+     48,000 lines, and the 13,800 lines the mod left Japanese, to translate from Japanese: each block that has
+     them lists them under its category "Japanese source"; a Shift-JIS table that gets Ukrainian text is saved
+     as UTF-8); the Font Editor opens
      `ft_nrm`, `ft_lrg`, `ft_sml` and `dbg` (Switch XF: A8 texture); the Textures window lists the menu,
      title, telop, help and caption images (IMGN, the Switch IMGC: RGBA8, RGBA4, LA8, A8, BC3).
      Yo-kai Watch 4++ and Yo-kai Academy Y for Switch (Japanese games, workspaces `YO_KAI_WATCH_4_SWITCH`,
      `YO_KAI_ACADEMY_Y_SWITCH`) open with the same plugin: the source text is each game's English fan mod in
      the Japanese tables `data/common/text/ja` (2,316 tables, about 38,500 lines; 1,672 tables, about 19,600
-     lines — Academy Y's mod is unfinished, about 12,300 lines stay Japanese and hidden); colour codes `[CR1]`…`[C]`
+     lines — the lines the mods left Japanese, about 550 and 12,300, are shown too, under each block's category
+     "Japanese source"); colour codes `[CR1]`…`[C]`
      and pictures `[$gaiji_…]` are tags; the Font Editor opens the G4 fonts (`font_ja`, `font_def`, Academy Y
      also `font_ja2` and a second style; each with its furigana font); the Textures window lists the menu,
      title, telop, help, caption and button pictures (G4TX: RGBA8, BC1, BC3, BC7).

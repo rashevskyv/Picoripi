@@ -734,11 +734,13 @@ def test_BlockListUpdater_populate_blocks_show_unsaved_only(updater):
     block0 = MagicMock()
     block0.id = "b0"
     block0.source_file = "src/block0.txt"
+    block0.categories = []
     pm.project.blocks.append(block0)
 
     block1 = MagicMock()
     block1.id = "b1"
     block1.source_file = "src/block1.txt"
+    block1.categories = []
     pm.project.blocks.append(block1)
 
     # Clean folder (should be filtered out because it only has clean block 1)
