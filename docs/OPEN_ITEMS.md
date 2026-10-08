@@ -281,6 +281,15 @@ omfs`) could be
   (`hint/slide/*.jslide`, stereo screenshots), the language-neutral layouts (story intro, ocarina, ending images), the
   debug `ascii_8x16.ctxb`; the French, German, Spanish and Italian layouts and title cards (other console languages).
 
+## Castlevania GBA plugin (`plugins/castlevania_gba`, 2026-10-08)
+
+- Text pictures show in grey (palette indices): the palettes are set per screen by the game and are not read yet.
+- The text pictures listed are the English ones the Russian fan translation also changed, plus the AoS staff roll
+  and the HoD title logo; other sprites with text may exist. The AoS ROM's French and German pictures are left out.
+- HoD: the second set of narrow letters (`8566`-`858B`) is not used by the text and shows as `[xHHHH]`; the
+  width table of the narrow letters is not edited (the Font Editor shows those widths only).
+- Control codes are named from how the English text uses them (`[fx:XX]` meaning unknown).
+
 ## The World Ends with You plugin (`plugins/twewy`, 2026-10-07)
 
 - Seen in NO$GBA (hidden desktop) only up to the title screen: input posted to the emulator window does not
