@@ -283,8 +283,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      lore and tutorials `.brt`, airship talks `.hscd`, characters, items and abilities `.bch` / `.bit` / `.bsk`,
      the world map `.bmw`, the opening scroll `.bst`, event dialogue and mission objectives in `.dpk` packs:
      14,398 strings), the fonts `data/FontPack.dpk` and the English pictures; **Translation:** `translation`.
-     Text is Windows-1252: `
-` is a line break, `[page]` a new box, `[xNN]` a colour or icon byte; a longer text
+     Text is Windows-1252: `\n` is a line break, `[page]` a new box, `[xNN]` a colour or icon byte; a longer text
      lays its file out again, an unedited file stays byte for byte. The Font Editor lists the four NFTR fonts
      of `FontPack.dpk`; the Textures window lists ~200 tile sheets (title logo, company logos, mission and chapter
      titles, menus, mini maps, tutorials). `2_build.bat` puts every file of `translation` back into the ROM.
@@ -293,8 +292,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      out of `master/pc.bin` as `.a2msg` files (menus, names and descriptions in 55 tables, quests, rumours, notices,
      event dialogue: 33,198 strings), the font `menu/font/UseMoji_image.bin` with `FontWidthTable.bin`, the menu
      pictures `menu/nc_rom/us/nc.a2pak` and the title logo `effect/common/c_all_title_eu.efx`; **Translation:**
-     `translation`. Codes are glyphs (ASCII, accented Latin, symbols); `
-` breaks the line, `[page]` and `[end]`
+     `translation`. Codes are glyphs (ASCII, accented Latin, symbols); `\n` breaks the line, `[page]` and `[end]`
      end a page or text, `[CA:01]`-style tags insert values, icons and choices, `[xNN]` is a glyph without a
      character. The Font Editor lists the font (format `ffta2`); the Textures window lists the title and company
      logos and the auction and world map effects (format `ffta2_efx`) and 11 menu tile sheets. `2_build.bat`
