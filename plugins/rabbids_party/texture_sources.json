@@ -2,7 +2,7 @@
   {"label": "Menu: title", "kind": "title_screen", "format": "tpl", "path": "files/title.tpl"},
   {"label": "Menu: game pictures", "kind": "menu_label", "format": "tpl", "path": "files/M_RRR*.tpl"},
   {"label": "Menu: game names", "kind": "menu_label", "format": "tpl", "path": "files/menuRRR*.tpl"},
-  {"label": "Menu: start, background, cursors", "kind": "menu_label", "format": "tpl", "path": ["files/M_Start_*.tpl"]},
+  {"label": "Menu: start screen", "kind": "menu_label", "format": "tpl", "path": "files/M_Start_*.tpl"},
   {"label": "Menu: background", "kind": "menu_label", "format": "tpl", "path": "files/M_Bkg.tpl"},
   {"label": "Menu: cursors", "kind": "menu_label", "format": "tpl", "path": "files/M_Cur*.tpl"},
   {"label": "Health and safety screens", "kind": "title_screen", "format": "tpl", "path": "files/strap*.tpl"},
@@ -18,5 +18,7 @@
   {"label": "Rabbids 1: main credits", "kind": "menu_label", "format": "jade", "path": "rrr1.bf/textures/_main_credits/*.jtex"},
   {"label": "Rabbids 1: main logo", "kind": "menu_label", "format": "jade", "path": "rrr1.bf/textures/_main_logo/*.jtex"},
   {"label": "Rabbids 2: Compil", "kind": "menu_label", "format": "jade", "path": "rrr2.bf/textures/Compil/*.jtex"},
-  {"label": "Rabbids 2: Menu LD", "kind": "menu_label", "format": "jade", "path": "rrr2.bf/textures/Menu_LD/*.jtex"}
+  {"label": "Rabbids 2: Menu LD", "kind": "menu_label", "format": "jade", "path": "rrr2.bf/textures/Menu_LD/*.jtex"},
+  {"label": "Rabbids TV Party: Base", "kind": "menu_label", "format": "jade_jtx", "path": "rrr3_bin_wii.bf/textures/Base/*.jtx"},
+  {"label": "Rabbids TV Party: Interface", "kind": "menu_label", "format": "jade_jtx", "path": "rrr3_bin_wii.bf/textures/Interface/*.jtx"}
 ]

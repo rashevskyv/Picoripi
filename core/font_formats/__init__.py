@@ -34,13 +34,14 @@ Sheets = List[Image.Image]
 def _backends() -> Dict[str, Any]:
     from core.font_formats import (bcfnt, bffnt, bfotf, brfna, g1n, g1t, g4font, gba_tiles, gzf, jade, lunar, m2, mgs,
                                    mgs1, mgs1_hd, n64, nftr, pgf, policenauts, qbf, retro_font, retro_font_gx,
-                                   rrr_errfont, texture_grid, twewy, vagrant, xf, zelda3)
+                                   rrr_errfont, swf_font, texture_grid, twewy, vagrant, xf, zelda3)
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
             "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
             "texture_grid": texture_grid, "zelda3": zelda3, "mgs1": mgs1, "mgs1_hd": mgs1_hd, "m2": m2,
-            "lunar": lunar, "g4font": g4font, "jade": jade, "brfna": brfna, "rrr_errfont": rrr_errfont}
+            "lunar": lunar, "g4font": g4font, "jade": jade, "brfna": brfna, "rrr_errfont": rrr_errfont,
+            "swf_font": swf_font}
 
 
 def adds_glyphs(fmt: str) -> bool:

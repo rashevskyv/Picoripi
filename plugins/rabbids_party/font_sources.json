@@ -19,5 +19,14 @@
   {"label": "Rabbids 2: font 4C001280 (22 glyphs, 512x512)", "format": "jade", "path": "rrr2.bf/fonts/4c001280_4c00127e.jfnt"},
   {"label": "Rabbids 2: font 4C001285 (179 glyphs, 512x512)", "format": "jade", "path": "rrr2.bf/fonts/4c001285_4c001283.jfnt"},
   {"label": "Rabbids 2: font 5E0000A4 (62 glyphs, 256x256)", "format": "jade", "path": "rrr2.bf/fonts/5e0000a4_5e00009e.jfnt"},
-  {"label": "Rabbids 2: font 91000C25 (10 glyphs, 64x64)", "format": "jade", "path": "rrr2.bf/fonts/91000c25_91000c23.jfnt"}
+  {"label": "Rabbids 2: font 91000C25 (10 glyphs, 64x64)", "format": "jade", "path": "rrr2.bf/fonts/91000c25_91000c23.jfnt"},
+  {"label": "Rabbids TV Party: font MoTenacity AOE (fonts_enext_fr, 484 glyphs)", "format": "swf_font", "path": "rrr3_bin_wii.bf/flash/fonts_enext_fr.gfx", "params": {"font": "MoTenacity AOE"}},
+  {"label": "Rabbids TV Party: font Billy (fonts_enext_fr, 484 glyphs)", "format": "swf_font", "path": "rrr3_bin_wii.bf/flash/fonts_enext_fr.gfx", "params": {"font": "Billy"}},
+  {"label": "Rabbids TV Party: font DFGPOP1-W9 (fonts_enext_jp, 3923 glyphs)", "format": "swf_font", "path": "rrr3_bin_wii.bf/flash/fonts_enext_jp.gfx", "params": {"font": "DFGPOP1-W9"}},
+  {"label": "Rabbids TV Party: font DFGSMGothic-Lt (fonts_enext_jp, 3923 glyphs)", "format": "swf_font", "path": "rrr3_bin_wii.bf/flash/fonts_enext_jp.gfx", "params": {"font": "DFGSMGothic-Lt"}},
+  {"label": "Rabbids TV Party: font Times New Roman (gfxfontlib, 1110 glyphs)", "format": "swf_font", "path": "rrr3_bin_wii.bf/flash/gfxfontlib.gfx", "params": {"font": "Times New Roman"}},
+  {"label": "Rabbids TV Party: font Arial Unicode MS (gfxfontlib, 1110 glyphs)", "format": "swf_font", "path": "rrr3_bin_wii.bf/flash/gfxfontlib.gfx", "params": {"font": "Arial Unicode MS"}},
+  {"label": "Rabbids TV Party: font Arial (HUD_final, 72 glyphs)", "format": "swf_font", "path": "rrr3_bin_wii.bf/flash/HUD_final.gfx", "params": {"font": "Arial"}},
+  {"label": "Rabbids TV Party: font AdLib Wd (weatherV3-soleil, 72 glyphs)", "format": "swf_font", "path": "rrr3_bin_wii.bf/flash/weatherV3-soleil.gfx", "params": {"font": "AdLib Wd"}},
+  {"label": "Rabbids TV Party: font AdLib Wd (weatherV3, 72 glyphs)", "format": "swf_font", "path": "rrr3_bin_wii.bf/flash/weatherV3.gfx", "params": {"font": "AdLib Wd"}}
 ]

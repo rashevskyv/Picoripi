@@ -12,8 +12,9 @@ The workspace's ``1_unpack.bat`` fills the project's source folder:
 
 Jade text is single bytes: a letter the fonts have no glyph for is written as the character of its glyph slot
 in the project's ``translation_map.json`` (the Font Editor's translation map) and shown back as the letter; a
-character with no byte at all is written as ``?`` (logged). TV Party text is UTF-16. The workspace's
-``2_build.bat`` packs everything back into the disc.
+character with no byte at all is written as ``?`` (logged). TV Party text is UTF-16; a letter of the translation
+map is written as its glyph slot there too (the Flash fonts have no Cyrillic). The workspace's ``2_build.bat``
+packs everything back into the disc.
 """
 import json
 import os
@@ -100,11 +101,13 @@ class GameRules(BaseGameRules):
         self._kind, self._loaded = self._kind_of(raw), raw
         if self._kind == "home":
             return [HomeCsv(raw).messages], {"0": "HOME Menu"}
+        self.load_translation_map()
         if self._kind == "tv":
-            english = [values[text_packages.ENGLISH] for _ident, values in text_packages.rows(raw)]
+            shown = self._shown()
+            english = ["".join(shown.get(ch, ch) for ch in values[text_packages.ENGLISH])
+                       for _ident, values in text_packages.rows(raw)]
             blocks = [english[i:i + BLOCK] for i in range(0, len(english), BLOCK)]
             return blocks, {str(i): f"Rows {i * BLOCK + 1}-{i * BLOCK + len(b)}" for i, b in enumerate(blocks)}
-        self.load_translation_map()
         shown = self._shown()
         if self._kind == "dol":
             return [dol_text.texts(raw, shown)], {"0": dol_text.name(raw)}
@@ -136,9 +139,15 @@ class GameRules(BaseGameRules):
             old = home.messages
             return home.build([str(texts[i]) if i < len(texts) and texts[i] is not None else old[i]
                                for i in range(len(old))])
-        if self._kind == "tv":
-            return text_packages.build(base, [str(t) for block in data for t in block])
         self.load_translation_map()
+        if self._kind == "tv":
+            shown = self._shown()
+            old = [values[text_packages.ENGLISH] for _ident, values in text_packages.rows(base)]
+            new = [str(t) for block in data for t in block]
+            return text_packages.build(base, [
+                was if i < len(old) and "".join(shown.get(ch, ch) for ch in was) == text
+                else "".join(self.translation_map.get(ch, ch) for ch in text) for i, (was, text) in
+                enumerate(zip(old + [""] * (len(new) - len(old)), new))])
         missing: Set[str] = set()
         if self._kind == "dol":
             out = dol_text.build(base, [str(t) for t in data[0]], self.translation_map, missing)
