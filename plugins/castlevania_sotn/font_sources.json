@@ -1,0 +1,23 @@
+[
+ {
+  "label": "8x8 font (menus, item and enemy names, cutscene dialogue)",
+  "format": "texture_grid",
+  "path": "BIN/F_GAME.BIN.pic",
+  "font_map": "castlevania_sotn_font.json",
+  "params": {
+   "texture": "raw",
+   "cell": [
+    8,
+    8
+   ],
+   "chars": " !\"#$%&'()男+,-./0123456789:人手=玉?石ABCDEFGHIJKLMNOPQRSTUVWXYZ[剣]盾_書abcdefghijklmnopqrstuvwxyz炎氷雷~女力。「」、・ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワンﾞﾟ子悪魔妖精をぁぃぅぇぉゃゅょっ金あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん指輪←↖↑↗→↘↓↙○×□△名刀聖血✈★☀☁☃♂♀©®§¶∑大光邪月",
+   "texture_params": {
+    "pixel_format": "psx:CI4",
+    "width": 128,
+    "height": 128,
+    "offset": "0x30000",
+    "tlut_offset": "0x412C0"
+   }
+  }
+ }
+]

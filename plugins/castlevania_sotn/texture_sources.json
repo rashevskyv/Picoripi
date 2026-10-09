@@ -1,0 +1,291 @@
+[
+ {
+  "label": "Title logo (Castlevania: Symphony of the Night)",
+  "kind": "title_screen",
+  "format": "sotn_blocks",
+  "path": "BIN/F_TITLE0.BIN.pic",
+  "params": {
+   "bpp": 8,
+   "blocks": [
+    16,
+    16
+   ],
+   "palette": "ff7fbd775977597758773877387738773877377737773777177717771777177717771677f676f676f676f676f676f676f676f576f576f576d576d576d576d576d576d476d476d476d476b476b476b476b476b376b376b372b372b372937293729372937292729272926e926e926e726e726e716e716e716e716e716a716a716a716a506a506a506a506a506a50665066506630662f662f662f662f662f662f622f622f620f620e620e620e620e620e5e0e5e0e5e0e5eed5ded5ded5ded5ded5ded59ed59ed59ec59cc59cc59cc59cc59cc55cc55cc55cc55cc55ab55ab55ab55ab51ab51ab51ab51ab51ab518a518a518a518a4d8a4d8a4d8a4d8a4d8a4d8a4d6a496949694969496949694969496949694549454945484548454845484548414841484148412841284128412841273d273d273d273d273d073d0739073907390739063906390639063906350635e634e634e634e634e630e630e630e530e530c530c530c52cc52cc52cc52cc52cc52cc528c528a528a428a428a428a424a424a424a424a424a420a4208420842084208420841c841c831c831c8318831863186318631463146314420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c420c0080"
+  }
+ },
+ {
+  "label": "Title screen: PRESS START, copyright, prologue captions, 8x8 font",
+  "kind": "title_screen",
+  "format": "sotn_blocks",
+  "path": "BIN/F_TITLE1.BIN.pic",
+  "params": {
+   "bpp": 4,
+   "blocks": [
+    0,
+    32
+   ]
+  }
+ },
+ {
+  "label": "Prologue: CASTLEVANIA letters",
+  "kind": "title_screen",
+  "format": "sotn_blocks",
+  "path": "BIN/F_PROLO0.BIN.pic",
+  "params": {
+   "bpp": 4,
+   "blocks": [
+    0,
+    16
+   ]
+  }
+ },
+ {
+  "label": "HUD words (CRITICAL, GUARD, status), Now Loading",
+  "kind": "hud",
+  "format": "sotn_blocks",
+  "path": "BIN/F_GAME.BIN.pic",
+  "params": {
+   "bpp": 4,
+   "blocks": [
+    8,
+    4
+   ]
+  }
+ },
+ {
+  "label": "Small logo (pause and save screens)",
+  "kind": "menu_label",
+  "format": "sotn_blocks",
+  "path": "BIN/F_GAME.BIN.pic",
+  "params": {
+   "bpp": 8,
+   "blocks": [
+    20,
+    4
+   ],
+   "clut": {
+    "offset": "0x41A00"
+   }
+  }
+ },
+ {
+  "label": "HUD words, Now Loading, RICHTER / PAUSE (Richter mode)",
+  "kind": "hud",
+  "format": "sotn_blocks",
+  "path": "BIN/F_GAME2.BIN.pic",
+  "params": {
+   "bpp": 4,
+   "blocks": [
+    8,
+    4
+   ]
+  }
+ },
+ {
+  "label": "Small logo (Richter mode)",
+  "kind": "menu_label",
+  "format": "sotn_blocks",
+  "path": "BIN/F_GAME2.BIN.pic",
+  "params": {
+   "bpp": 8,
+   "blocks": [
+    20,
+    4
+   ],
+   "clut": {
+    "offset": "0x41A00"
+   }
+  }
+ },
+ {
+  "label": "GAME OVER letters",
+  "kind": "title_screen",
+  "format": "raw",
+  "path": "BIN/F_GO.BIN.pic",
+  "params": {
+   "pixel_format": "psx:4bpp",
+   "width": 128,
+   "height": 256,
+   "offset": 0
+  }
+ },
+ {
+  "label": "File select: menu words and name entry letters",
+  "kind": "menu_label",
+  "format": "sotn_blocks",
+  "path": "ST/SEL/F_SEL.BIN.pic",
+  "params": {
+   "bpp": 4,
+   "blocks": [
+    0,
+    8
+   ]
+  }
+ },
+ {
+  "label": "File select: menu words and name entry letters (second set)",
+  "kind": "menu_label",
+  "format": "sotn_blocks",
+  "path": "ST/SEL/F_SEL.BIN.pic",
+  "params": {
+   "bpp": 4,
+   "blocks": [
+    16,
+    8
+   ]
+  }
+ },
+ {
+  "label": "Life max up / Heart max up / Level up / Got an item",
+  "kind": "hud",
+  "format": "sotn_cmp",
+  "path": "DRA.BIN",
+  "params": {
+   "offset": "0x2217C"
+  }
+ },
+ {
+  "label": "Elevator activated.",
+  "kind": "hud",
+  "format": "sotn_cmp",
+  "path": "ST/NO1/NO1.BIN",
+  "params": {
+   "offset": "0x14E14"
+  }
+ },
+ {
+  "label": "Prologue: Final Stage \"Bloodlines\"",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/ST0/ST0.BIN",
+  "params": {
+   "offset": "0x1A40C"
+  }
+ },
+ {
+  "label": "Prologue HUD: RICHTER, PAUSE PUSH START",
+  "kind": "hud",
+  "format": "sotn_cmp",
+  "path": "ST/ST0/ST0.BIN",
+  "params": {
+   "offset": "0x14448"
+  }
+ },
+ {
+  "label": "Area name (ARE)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/ARE/ARE.BIN",
+  "params": {
+   "offset": "0x521C"
+  }
+ },
+ {
+  "label": "Area name (CAT)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/CAT/CAT.BIN",
+  "params": {
+   "offset": "0x80D0"
+  }
+ },
+ {
+  "label": "Area name (CHI)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/CHI/CHI.BIN",
+  "params": {
+   "offset": "0x9B38"
+  }
+ },
+ {
+  "label": "Area name (DAI)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/DAI/DAI.BIN",
+  "params": {
+   "offset": "0x16554"
+  }
+ },
+ {
+  "label": "Area name (DRE)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/DRE/DRE.BIN",
+  "params": {
+   "offset": "0xA88C"
+  }
+ },
+ {
+  "label": "Area name (LIB)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/LIB/LIB.BIN",
+  "params": {
+   "offset": "0x15388"
+  }
+ },
+ {
+  "label": "Area name (NO0)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/NO0/NO0.BIN",
+  "params": {
+   "offset": "0x48A0"
+  }
+ },
+ {
+  "label": "Area name (NO1)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/NO1/NO1.BIN",
+  "params": {
+   "offset": "0x1519C"
+  }
+ },
+ {
+  "label": "Area name (NO2)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/NO2/NO2.BIN",
+  "params": {
+   "offset": "0x14014"
+  }
+ },
+ {
+  "label": "Area name (NO4)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/NO4/NO4.BIN",
+  "params": {
+   "offset": "0x5400"
+  }
+ },
+ {
+  "label": "Area name (NZ0)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/NZ0/NZ0.BIN",
+  "params": {
+   "offset": "0x156A4"
+  }
+ },
+ {
+  "label": "Area name (NZ1)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/NZ1/NZ1.BIN",
+  "params": {
+   "offset": "0x6530"
+  }
+ },
+ {
+  "label": "Area name (TOP)",
+  "kind": "area_card",
+  "format": "sotn_cmp",
+  "path": "ST/TOP/TOP.BIN",
+  "params": {
+   "offset": "0x10714"
+  }
+ }
+]
