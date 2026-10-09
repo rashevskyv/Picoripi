@@ -1,0 +1,217 @@
+[
+ {
+  "label": "Basic_E_Regular 16 px",
+  "format": "texture_grid",
+  "path": "font/basic_e_regular_16.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    15,
+    18
+   ],
+   "columns": 16,
+   "chars": " !$'(),-./0123456789:?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoprstuvwxyzⅠⅡⅢАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "BT 12G LCD Bold 14 px",
+  "format": "texture_grid",
+  "path": "font/bt_12g_lcd_bold_14.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    8,
+    15
+   ],
+   "columns": 16,
+   "chars": " \"'()+,-.123?ABCDEGHIJKLMNOPRSTUWYZabcdefghijklmnopqrstuvwxyАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "BT 12G LCD Bold 16 px",
+  "format": "texture_grid",
+  "path": "font/bt_12g_lcd_bold_16.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    9,
+    17
+   ],
+   "columns": 16,
+   "chars": " !\"#%',-.0123456789:?ABCDEFGHIJKLMNOPRSTUVWYZabcdefghijklmnopqrstuvwxyzАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "BT 12G LCD Bold 18 px",
+  "format": "texture_grid",
+  "path": "font/bt_12g_lcd_bold_18.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    19,
+    38
+   ],
+   "columns": 16,
+   "chars": " !\"#&'(),-./0123456789:<>?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz　・＜＞シツャАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "BT 12G LCD Bold 25 px",
+  "format": "texture_grid",
+  "path": "font/bt_12g_lcd_bold_25.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    24,
+    26
+   ],
+   "columns": 16,
+   "chars": " !\"#$'*+,-./0123456789:<>?@ABCDEFGHIJKLMNOPQRSTUWYZabcdefghijklmnopqrstuvwxyz’＄１７ＴＺｊАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "BT 12G LCD Bold 27 px",
+  "format": "texture_grid",
+  "path": "font/bt_12g_lcd_bold_27.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    14,
+    27
+   ],
+   "columns": 16,
+   "chars": " !\"'*,-.0123456789:?ABCDEFGHIJKLMNOPRSTUWYabcdefghijklmnopqrstuvwxyzАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "BT 12G LCD Bold 30 px",
+  "format": "texture_grid",
+  "path": "font/bt_12g_lcd_bold_30.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    15,
+    30
+   ],
+   "columns": 16,
+   "chars": " '+-.0123456789?ABCDEFGHIJKLMNOPRSTUVWXYabcdefghiklmnoprstuvwxyzАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "DF POP Mix W5 18 px",
+  "format": "texture_grid",
+  "path": "font/df_pop_mix_w5_18.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    17,
+    20
+   ],
+   "columns": 16,
+   "chars": " !',-.01234579:ABCDEFGHIJKLMNOPRSTUWYabcdefghiklmnopqrstuvwxyz＄АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "Unnamed font 8 px (1)",
+  "format": "texture_grid",
+  "path": "font/font_8_1.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    8,
+    10
+   ],
+   "columns": 16,
+   "chars": " !&'()-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abefikmnorsyzАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "GenevaNrw 25 px",
+  "format": "texture_grid",
+  "path": "font/genevanrw_25.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    19,
+    26
+   ],
+   "columns": 16,
+   "chars": " \"#&'(),-./0123456789:<>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoprstuvwxyz６АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "GenevaNrw 27 px",
+  "format": "texture_grid",
+  "path": "font/genevanrw_27.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    20,
+    28
+   ],
+   "columns": 16,
+   "chars": " \"#&'(),-./0123456789:<>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoprstuvwxyz６АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "GMYP Metal Gothic B 16 px",
+  "format": "texture_grid",
+  "path": "font/gmyp_metal_gothic_b_16.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    10,
+    18
+   ],
+   "columns": 16,
+   "chars": " $,.0123456789ABCEILNOPRTUVabdefghiklmnoprstuvwxyАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "GMYP Metal Gothic B 25 px",
+  "format": "texture_grid",
+  "path": "font/gmyp_metal_gothic_b_25.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    23,
+    27
+   ],
+   "columns": 16,
+   "chars": " !\"%',-.024?ABCDEFGIJKLMNOSTWYabcdefghiklmnopqrstuvwxy～АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "GMYP Metal Gothic B 27 px",
+  "format": "texture_grid",
+  "path": "font/gmyp_metal_gothic_b_27.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    28,
+    29
+   ],
+   "columns": 16,
+   "chars": " !\"#%',-.0123456789:?ABCDEFGHIJKLMNOPQRSTUVWYZabcdefghijklmnopqrstuvwxyz~…１５７９ＤＦＨＬＯＰＴＶＺｃｈｊｌｎАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "Hiragino Kaku Gothic (mono) 25 px",
+  "format": "texture_grid",
+  "path": "font/hiragino_kaku_gothic_mono_25.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    22,
+    52
+   ],
+   "columns": 16,
+   "chars": " !\"#$&'(),-./0123456789:<>?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoprstuvwxyz　…’＄АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "Wii HOME Menu font",
+  "format": "brfnt",
+  "path": "hbm/homeBtn_ENG.arc/arc/font/*.brfnt"
+ }
+]
