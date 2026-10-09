@@ -180,6 +180,24 @@ def test_yokai_watch_3_files_round_trip_byte_for_byte():
     assert layout["dialogue|TEXT_INFO|2"]["lines"] == 2
 
 
+SOURCE_2 = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch 2\source")
+
+
+@pytest.mark.skipif(not SOURCE_2.is_dir(), reason="needs the Yo-kai Watch 2 workspace (YOKAI_WATCH_2)")
+def test_yokai_watch_2_files_round_trip_byte_for_byte_with_the_russian_reference():
+    files = sorted(SOURCE_2.rglob("*_engb.cfg.bin"))
+    assert len(files) == 4737
+    rows = 0
+    for path in files:
+        data = path.read_bytes()
+        text_file = TextFile(data, path.name)
+        assert text_file.build(text_file.texts()) == data, path
+        rows += len(text_file.rows)
+    assert rows > 100000
+    reference = SOURCE_2.parent / "reference"
+    assert len(list(reference.rglob("*_ru.cfg.bin"))) == len(files)
+
+
 @pytest.mark.skipif(not SOURCE_NX.is_dir(), reason="needs the Yo-kai Watch Switch workspace (YO_KAI_WATCH_SWITCH)")
 def test_switch_files_round_trip_byte_for_byte_and_an_edit_keeps_the_other_lines():
     """Yo-kai Watch 1 (Switch): the Japanese tables with the English fan mod's text, some of them Shift-JIS under a

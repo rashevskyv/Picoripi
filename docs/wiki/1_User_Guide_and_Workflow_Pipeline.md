@@ -231,6 +231,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `YOKAI_WATCH_3`) opens with the same plugin: its English text is in `data/txt/ev/en` and the archive
      `yw_lg_en.fa`; the hero of a line comes from its voice clip (`{PV#pv_c001000_23}`: Nate). Its Textures window lists all 5,817
      English textures (title logo, menus, telops, help, captions, signs; loading them takes several minutes).
+     Yo-kai Watch 2: Psychic Specters (EUR cartridge, workspace `YOKAI_WATCH_2`) opens with the same plugin: the
+     British English tables `*_engb.cfg.bin` (4,737 files, about 104,600 lines; event text in `data/txt/ev/engb`,
+     archive `yw2_lg_engb.fa`), Nate or Katie by the `_m` / `_f` file; the Russian fan translation built into that
+     image (the workspace's `reference` folder) shows in the **Russian (RU)** reference tab, never as the source.
+     The Textures window lists its 2,683 English textures (11 IMGC pixel formats).
      Yo-kai Watch 1 for Switch (Japanese game, workspace `YO_KAI_WATCH_SWITCH`) opens with the same plugin: the
      source text is the English fan mod written into the Japanese tables (`*_ja.cfg.bin`, 2,014 files, about
      48,000 lines, and the 13,800 lines the mod left Japanese, to translate from Japanese: each block that has

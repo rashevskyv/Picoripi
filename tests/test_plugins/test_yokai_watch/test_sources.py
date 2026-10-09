@@ -13,6 +13,7 @@ WORKSPACES = Path(r"E:\Emulators\RomHacking\Yo-kai Watch")
 SOURCE = WORKSPACES / "Yo-kai Watch" / "3DS" / "source"
 SOURCE_3 = WORKSPACES / "Yo-kai Watch 3" / "source"
 SOURCE_NX = WORKSPACES / "Yo-kai Watch" / "Switch" / "source"
+SOURCE_2 = WORKSPACES / "Yo-kai Watch 2" / "source"
 
 
 def _project(source, tmp_path):
@@ -24,7 +25,7 @@ def _needs(source):
         pytest.skip(f"needs the workspace {source.parent}")
 
 
-@pytest.mark.parametrize("source", [SOURCE, SOURCE_3, SOURCE_NX], ids=["yw1", "yw3", "ywnx"])
+@pytest.mark.parametrize("source", [SOURCE, SOURCE_2, SOURCE_3, SOURCE_NX], ids=["yw1", "yw2", "yw3", "ywnx"])
 def test_every_game_font_opens_and_packs_back_unchanged(source, tmp_path):
     _needs(source)
     found = font_sources.resolve(json.loads((PLUGIN / "font_sources.json").read_text(encoding="utf-8")),
@@ -36,7 +37,8 @@ def test_every_game_font_opens_and_packs_back_unchanged(source, tmp_path):
         assert font_formats.pack(font.format, metadata, sheets, raw) == raw, font.label
 
 
-# Resolving decodes every texture: YW1's 594 take over a minute, YW3's 5817 about seven, writing back twice that.
+# Resolving decodes every texture: YW1's 594 take over a minute, YW3's 5817 about seven, YW2's 2683 about five,
+# writing back twice that.
 @pytest.mark.performance
 @pytest.mark.timeout(3600)
 @pytest.mark.parametrize("source, listing, least, formats", [
@@ -44,7 +46,9 @@ def test_every_game_font_opens_and_packs_back_unchanged(source, tmp_path):
     (SOURCE_3, "yw3_texture_sources.json", 5817,
      {"ETC1A4", "RGBA4", "ETC1", "RGB565", "RGBA8", "L8", "A8", "LA8", "LA4", "RGB8"}),
     (SOURCE_NX, "ywnx_texture_sources.json", 679, {"RGBA8", "RGBA4", "BC3"}),
-], ids=["yw1", "yw3", "ywnx"])
+    (SOURCE_2, "yw2_texture_sources.json", 2683,
+     {"RGBA8", "RGBA4", "ETC1A4", "LA8", "RGB565", "LA4", "ETC1", "RGB8", "L8", "A8", "L4"}),
+], ids=["yw1", "yw3", "ywnx", "yw2"])
 def test_every_text_texture_reads_and_writes_back_unchanged(source, listing, least, formats, tmp_path):
     _needs(source)
     found = texture_sources.resolve(json.loads((PLUGIN / listing).read_text(encoding="utf-8")),

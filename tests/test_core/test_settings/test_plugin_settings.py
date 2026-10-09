@@ -327,3 +327,29 @@ def test_reading_the_settings_again_reuses_the_loaded_reference(dummy_mw, tmp_pa
     dummy_mw.current_game_rules = CountingRules()          # another plugin instance: parsed again
     ps.load({})
     assert dummy_mw.current_game_rules.loads == 1
+
+
+def test_the_reference_is_read_again_once_the_block_names_are_known(dummy_mw, tmp_path):
+    """The settings load before the project's files; the project load asks again with the block names."""
+    class NamedRules:
+        def supports_reference_patch(self):
+            return True
+
+        def load_multi_reference(self, patch_path, block_names=None):
+            return {"Russian (RU)": {(int(k), 0): "Привет" for k in block_names or {}}}
+
+    project_settings = tmp_path / "project_settings.json"
+    project_settings.write_text(json.dumps({"reference_patch_path": str(tmp_path)}), encoding="utf-8")
+    dummy_mw.current_game_rules = NamedRules()
+    ps = PluginSettings(dummy_mw)
+    ps._get_plugin_config_path = lambda: None
+    ps._get_project_settings_path = lambda: project_settings
+    ps.load({})
+    assert dummy_mw.reference_data == {}
+    dummy_mw.block_names = {"0": "system_text"}
+    ps.load_reference()
+    assert dummy_mw.reference_data == {(0, 0): "Привет"}
+
+    project_settings.write_text(json.dumps({"lines_per_page": 2}), encoding="utf-8")   # no reference: none carried over
+    ps.load({})
+    assert dummy_mw.reference_patch_path is None

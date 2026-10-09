@@ -82,7 +82,9 @@ def layout_key(rel_path: str, kind: str, param: int) -> str:
 
 
 class GameRules(BaseGameRules):
-    """Yo-kai Watch (3DS, USA), Yo-kai Watch 3 (3DS, EUR; its English is in ``data/txt/ev/en`` and ``yw_lg_en.fa``)
+    """Yo-kai Watch (3DS, USA), Yo-kai Watch 3 (3DS, EUR; its English is in ``data/txt/ev/en`` and ``yw_lg_en.fa``),
+    Yo-kai Watch 2: Psychic Specters (3DS, EUR; ``*_engb`` files in ``yw2_lg_engb.fa``, the Russian fan text built
+    into the image as the reference),
     Yo-kai Watch 1 on Switch (``ywnx``: the Japanese files ``*_ja.cfg.bin``, English from the fan mod), and
     Yo-kai Watch 4++ / Yo-kai Academy Y on Switch (``yw4`` / ``yay``: ``data/common/text/ja/**.cfg.bin``, English
     from the fan mods; G4 fonts and G4TX textures, each game's own ``<game>_font_sources.json``). On the Switch
@@ -236,6 +238,36 @@ class GameRules(BaseGameRules):
             return None
         rel, row, _root = found
         return f"{_ROLES[category(rel, row.kind, row.param)][0]} -- {Path(rel).name.split('.')[0]}"
+
+    # -- reference ---------------------------------------------------------------
+
+    def supports_reference_patch(self) -> bool:
+        return True
+
+    def get_reference_language_label(self) -> str:
+        return "Russian (RU)"
+
+    def load_reference_patch(self, patch_path: str, block_names=None) -> Dict[Tuple[int, int], str]:
+        """A translation built into the game (Yo-kai Watch 2: the Russian fan text, ``reference`` in the workspace):
+        the same table with ``ru`` for the source language in its path, matched by entry, text id and page."""
+        out: Dict[Tuple[int, int], str] = {}
+        code = GAMES[self._game()]["lang"].strip("_")
+        for key in block_names or {}:
+            located = self._locate(int(key))
+            if not located:
+                continue
+            rel, text_file, _root = located
+            path = Path(patch_path) / rel.replace(f"/{code}/", "/ru/").replace(f"_{code}.cfg.bin", "_ru.cfg.bin")
+            try:
+                reference = TextFile(path.read_bytes(), path.name)
+            except (OSError, FormatError, UnicodeDecodeError, ValueError):
+                continue
+            texts = {(r.kind, r.text_id, r.number, r.param): r.text for r in reference.rows}
+            for string_idx, row in enumerate(text_file.rows):
+                text = texts.get((row.kind, row.text_id, row.number, row.param))
+                if text:
+                    out[(int(key), string_idx)] = tags.to_editor(text)
+        return out
 
     def get_capabilities(self) -> Set[str]:
         return {"speaker_attribution", "glossary_seed"}
