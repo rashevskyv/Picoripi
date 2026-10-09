@@ -610,7 +610,7 @@ def test_every_plugin_texture_list_is_well_formed(path):
                 assert fmt in raw._TLUT or pixels.codec(fmt)
             assert all("offset" in t for t in params.get("textures") or [params])
         if "compression" in params:
-            assert params["compression"] in ("zlib", "gzip", "yar", "yaz0", "zstd", "none")
+            assert params["compression"] in ("zlib", "gzip", "yar", "yaz0", "zstd", "lzs", "lz11", "none")
 
 
 # -- Grezzo (OoT3D / MM3D): CTXB textures in ZAR/GAR archives, LzS compression ----------------------------

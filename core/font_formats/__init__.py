@@ -32,7 +32,7 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import (bcfnt, bffnt, bfotf, eternal_darkness, fragile_dreams, g1n, g1t, g4font, gba_tiles, gzf, lunar, m2, mgs,
+    from core.font_formats import (bcfnt, bffnt, bfotf, eternal_darkness, fragile_dreams, fntg, g1n, g1t, g4font, gba_tiles, gzf, lunar, m2, mgs,
                                    mgs1, mgs1_hd, n64, nftr, pgf, policenauts, qbf, retro_font, retro_font_gx, texture_grid,
                                    twewy, vagrant, xf, zelda3)
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
@@ -40,7 +40,7 @@ def _backends() -> Dict[str, Any]:
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
             "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
             "texture_grid": texture_grid, "zelda3": zelda3, "mgs1": mgs1, "mgs1_hd": mgs1_hd, "m2": m2,
-            "lunar": lunar, "g4font": g4font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams}
+            "lunar": lunar, "g4font": g4font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams, "fntg": fntg}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -59,7 +59,7 @@ def detect(data: bytes) -> Optional[str]:
     """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
     BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font), ``bffnt_wiiu``
     (Wii U BFFNT, big endian), ``brfnt`` (Wii RFNT), ``nftr`` (DS NFTR), ``xf`` (Level-5 XPCK font),
-    ``vagrant`` (Vagrant Story), ``retro_font`` (Metroid Prime 4 FONT bundle), ``pgf`` (PSP) or None."""
+    ``vagrant`` (Vagrant Story), ``retro_font`` (Metroid Prime 4 FONT bundle), ``pgf`` (PSP), ``fntg`` (EA FntG) or None."""
     from core.font_formats import bfotf
     head = bytes(data[:8])
     if head[4:8] == b"PGF0":
@@ -79,6 +79,8 @@ def detect(data: bytes) -> Optional[str]:
         return "bcfnt" if is_ctr_font(data) else "bffnt"
     if head[:4] in (b"FONT", b"FFNT"):
         return "bfn"
+    if head[:4] == b"FntG":
+        return "fntg"
     if head[:4] == b"GT1G":
         return "g1t"
     if head[:4] == b"VSFN":

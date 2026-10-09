@@ -1,0 +1,6 @@
+[
+  {"label": "Komika Axis (dialogue, titles)", "format": "fntg", "path": "Game.rpk/Komikax.gfn"},
+  {"label": "Helvetica Rounded Bold (menus, HUD)", "format": "fntg", "path": "Game.rpk/HelveticaRoundedLTStd-Bd.gfn"},
+  {"label": "Comic Sans Bold", "format": "fntg", "path": "Game.rpk/ComicSansBd.gfn"},
+  {"label": "HOME Menu font (Wii)", "format": "brfnt", "path": "localised_system/Localised_system_ENG.rpk/homeBtn_ENG.arc/arc/font/*.brfnt"}
+]

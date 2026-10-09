@@ -11,7 +11,7 @@ A plugin describes its textures with ``BaseGameRules.get_texture_sources()`` (or
   walked: ``Layout/Title.szs/timg/*.bflim``. Without a ``/`` the glob matches the file name only.
   An N64 ROM is an archive of its dmadata files, named ``#<index>``;
 - ``params`` -- what the format needs (``pixel_format``, ``offset``...), plus ``compression`` of the
-  file at ``path`` (``zlib``, ``gzip``; Yaz0, zstd and gzip are found by their magic, also on members),
+  file at ``path`` (``zlib``, ``gzip``, ``lz11``; Yaz0, zstd and gzip are found by their magic, also on members),
   ``file_offset`` + ``file_size`` (the texture file is that byte range of the file or member) and ``texture``
   (a glob of texture names, for a file that holds several; ``{2,5,7}`` picks several).
 
@@ -35,7 +35,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from PIL import Image
 
 from core import texture_formats
-from core.containers import ContainerManager, grezzo, level5, sarc, tmpk, yaz0
+from core.containers import ContainerManager, grezzo, level5, nitro, sarc, tmpk, yaz0
 from core.containers.base_container import BaseArchiveContainer
 from utils.atomic_io import atomic_write_bytes
 from utils.logging_utils import log_warning
@@ -136,8 +136,10 @@ def _decompress(data: bytes, scheme: str = "auto") -> Tuple[bytes, Rewrap]:
         plain, pack = _unyar(data)
     elif scheme == "lzs":
         plain, pack = grezzo.lzs_decompress(data), lambda new: grezzo.lzs_compress(new, data[:8])
+    elif scheme == "lz11":
+        plain, pack = nitro.lz11_decompress(data)[0], nitro.lz11_compress
     else:
-        raise ValueError(f"Compression {scheme!r} is not supported (yaz0, zstd, zlib, gzip, yar, lzs are)")
+        raise ValueError(f"Compression {scheme!r} is not supported (yaz0, zstd, zlib, gzip, yar, lzs, lz11 are)")
     return plain, lambda new: data if new == plain else pack(new)
 
 

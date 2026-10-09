@@ -99,6 +99,20 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      every package that holds the table (the update's `Patch\Z_198_NXPatch.pak.patch` wins in the game) and
      changed fonts and textures with their metadata into a LayeredFS mod. The workspace starts from BakAI's
      Ukrainian translation (text and fonts with Ukrainian letters).
+   - `spore_hero` — Spore Hero (Wii, Europe). **Source:** the workspace's `source` (`1_unpack.bat` makes a plain
+     ISO from the RVZ once and puts there, at the disc paths, the English text
+     `game\localization\localization\ENG_US.rpk` (the EA package decompressed), `sys\main.dol`, the three game
+     fonts `Game.rpk\*.gfn`, the HOME Menu messages `Game.rpk\home*.csv` and every UI texture of the packages as
+     `<package>.rpk\<name>.gsh` / `.lsi`); **Translation:** `translation`. The project shows the 2,285 English
+     strings (menus, quests, dialogue, creature and part names, credits headings, save and disc messages) in the
+     order they were written, a hundred to a block; `&` breaks the line, `<c>…</c>` colours, `[PLAYER_NAME]` is the
+     creature's name, `\[A]`-style codes are icons. A character the text has no byte for gets a free byte and the
+     game's character table is updated on save, so Ukrainian letters can be typed; the fonts must have the glyphs.
+     A letter drawn over an unused glyph with the Font Editor's translation map is saved as that glyph's character. `main.dol` holds the
+     early disc and Wii memory messages (each within its own bytes). The Font Editor opens the three fonts (`fntg`)
+     and the HOME Menu font; the Textures window lists 2,126 UI textures (`shpg`, the title logo of every language
+     included). `2_build.bat` packs the changes back into the packages (the same texture in every zone),
+     compresses them again and writes them into the disc image.
    - `metroid_other_m` — Metroid: Other M (Wii, USA). **Source:** the workspace's `source` (`1_unpack.bat` puts
      there, at the disc paths, `message\message_all.dat`, the fonts `font\*.brfnt`, the Wii HOME Menu messages
      `hbm\HomeButton2\home*.csv` and every 2D layout as a folder `<number>\<layout>\timg\*.tpl`);

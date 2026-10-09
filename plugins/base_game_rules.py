@@ -762,7 +762,7 @@ class BaseGameRules:
         Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
         BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``mgs``,
         ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation font), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``xf`` and
-        ``g4font`` (Level-5), ``vagrant`` (Vagrant Story), ``gba_tiles``, ``retro_font`` / ``retro_font_gx`` (Retro
+        ``g4font`` (Level-5), ``fntg`` (EA FntG, Wii), ``vagrant`` (Vagrant Story), ``gba_tiles``, ``retro_font`` / ``retro_font_gx`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture),
         ``zelda3`` (the zelda3 PC port's ``font.png``) or ``eternal_darkness`` (glyph grid in a TPL, widths in a
         companion pack) or ``fragile_dreams`` (Fragile Dreams FONT: glyph
@@ -783,7 +783,7 @@ class BaseGameRules:
         Each entry: ``label``; ``kind`` (``title_screen``, ``area_card``, ``menu_label``...); ``format``
         (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
         and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
-        multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``txtr`` / ``txtr_gx`` (Retro TXTR),
+        multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``shpg`` (EA SHPG, Wii), ``txtr`` / ``txtr_gx`` (Retro TXTR),
         ``gim`` (PSP), ``tim`` (PlayStation TIM), ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant
         Story pictures), ``pcx``, ``m2`` (M2 PSB pictures), ``raw`` or ``tiles`` (GBA / DS character tiles)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
