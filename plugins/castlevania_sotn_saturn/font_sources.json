@@ -1,0 +1,41 @@
+[
+ {
+  "label": "Title and menu font 8x16 (ASCII.FON)",
+  "format": "texture_grid",
+  "path": "fonts/ASCII.FON",
+  "params": {
+   "texture": "tiles",
+   "cell": [
+    8,
+    16
+   ],
+   "first_code": 0,
+   "texture_params": {
+    "bpp": 1,
+    "cell": [
+     1,
+     2
+    ],
+    "per_row": 32
+   }
+  }
+ },
+ {
+  "label": "In-game font 8x8 (menus, names, HUD; copied into every stage .CHR)",
+  "format": "texture_grid",
+  "path": "fonts/SYSTEM_8x8.BIN",
+  "params": {
+   "texture": "tiles",
+   "cell": [
+    8,
+    8
+   ],
+   "first_code": 32,
+   "texture_params": {
+    "bpp": 4,
+    "nibble": "high",
+    "per_row": 16
+   }
+  }
+ }
+]

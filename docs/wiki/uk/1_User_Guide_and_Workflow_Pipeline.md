@@ -322,6 +322,14 @@ tokens: 23.8k
      `font\*.bffnt` (12 шрифтів) і `ui\...\*.bntx`; картинка, яку гра тримає окремо для кожної мови,
      відкривається як англійська копія `*.bfres.en.bntx`, а `2_build.bat` пише її в обидві англійські версії
      (en-GB, en-US). Теги — з `msg.msbp` цієї гри (`{Font:4}`…`{Font:-1}` перемикає шрифт).
+   - `castlevania_sotn_saturn` — Castlevania: Symphony of the Night для Sega Saturn, англійська збірка
+     «Dracula X Ultimate» v1.1. **Source:** тека `source` робочої теки, яку заповнює `1_unpack.bat`:
+     `text\<FILE>.sotnstext` (1 130 рядків з 38 програмних файлів: предмети, реліквії, закляття, вороги,
+     бібліотекар, меню, екрани збережень, назви зон, повідомлення в кімнатах, імена мовців у сценах),
+     `fonts\ASCII.FON` і `fonts\SYSTEM_8x8.BIN` (Tools → Font Editor), `dialogue\*.BIN` (діалоги сцен —
+     це картинки рядків, 20 файлів) і `title\TITLE_LOGO.BIN` (Tools → Textures). Довший рядок зсуває сусідні
+     рядки та їхні вказівники; ім'я мовця зберігає кількість літер. Першу клітинку картинки діалогу лишайте
+     порожньою: гра заповнює нею вікно діалогу.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** тека `source` робочої теки,
      яку `1_unpack.bat` заповнює текстовими файлами диска за їхніми шляхами на диску: `EVENT\*.EVT`
      (катсцени), `MAP\*.MPD` (події кімнат), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

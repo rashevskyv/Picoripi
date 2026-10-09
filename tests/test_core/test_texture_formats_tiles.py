@@ -84,3 +84,22 @@ def test_paint_outside_the_tiles_is_refused_not_lost():
     image.putpixel((30, 12), (255, 255, 255, 255))
     with pytest.raises(ValueError):
         tiles.write(data, {0: image}, {"per_row": 4})
+
+
+def test_saturn_high_nibble_and_one_bit_tiles_read_and_write_back():
+    raw = bytes((0x12, 0x30) + (0,) * 30)
+    [texture] = texture_formats.read("tiles", raw, {"bpp": 4, "nibble": "high", "per_row": 1})
+    image = texture.image
+    assert image.getpixel((0, 0))[:3] == (17, 17, 17) and image.getpixel((1, 0))[:3] == (34, 34, 34)
+    assert image.getpixel((2, 0))[:3] == (51, 51, 51) and image.getpixel((3, 0))[3] == 0
+    assert texture_formats.write("tiles", raw, {0: image}, {"bpp": 4, "nibble": "high", "per_row": 1}) == raw
+    glyph = bytes((0x80, 0x01) + (0,) * 14)                        # 8x16 cell = two 1 bpp tiles
+    params = {"bpp": 1, "cell": [1, 2], "per_row": 1}
+    [texture] = texture_formats.read("tiles", glyph, params)
+    assert texture.image.size == (8, 16)
+    assert texture.image.getpixel((0, 0))[3] == 255 and texture.image.getpixel((7, 1))[3] == 255
+    assert texture.image.getpixel((1, 0))[3] == 0
+    edited = texture.image.copy()
+    edited.putpixel((3, 9), (255, 255, 255, 255))
+    out = texture_formats.write("tiles", glyph, {0: edited}, params)
+    assert out[9] == 0x10 and out[:2] == glyph[:2]
