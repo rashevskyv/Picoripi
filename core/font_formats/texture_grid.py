@@ -7,8 +7,8 @@ one is encoded again in the texture's own format. Widths are the cell width (the
 are not stored.
 
 Params: ``texture`` (the texture format, default ``tpl``), ``image`` (index of the image in the file,
-default 0), ``cell`` (``[width, height]``), ``chars`` (the characters of the cells, row by row; a cell
-past the end has no character) or ``first_code`` (cell i is character ``first_code + i``), optional ``columns`` (default: image width // cell width) and
+default 0), ``cell`` (``[width, height]``), ``chars`` (the characters of the cells, row by row: a string, or a
+list of single characters in which "" is a cell without one; a cell past the end has no character) or ``first_code`` (cell i is character ``first_code + i``), optional ``columns`` (default: image width // cell width) and
 ``texture_params`` (passed to the texture format).
 """
 from __future__ import annotations
@@ -35,10 +35,11 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     rows = sheet.height // height
     count = columns * rows
     if "chars" in params:
-        chars = str(params["chars"])[:count]
+        chars = params["chars"]
+        chars = list(chars if isinstance(chars, list) else str(chars))[:count]
     else:
-        chars = "".join(chr(_int(params.get("first_code", 0x20)) + glyph) for glyph in range(count))
-    pairs = [(char_code(char), glyph) for glyph, char in enumerate(chars)]
+        chars = [chr(_int(params.get("first_code", 0x20)) + glyph) for glyph in range(count)]
+    pairs = [(char_code(char), glyph) for glyph, char in enumerate(chars) if char]
     metadata = {
         "header": {"signature": "Texture grid font", "num_chunks": 4},
         "INF1": [{"encoding": 0, "ascent": height, "descent": 0, "width": width, "leading": height,

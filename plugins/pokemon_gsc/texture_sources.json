@@ -1,0 +1,146 @@
+[
+ {
+  "label": "Title logo (Crystal)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/logo.png"
+ },
+ {
+  "label": "Title logo, top (Gold)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/logo_top_gold.png"
+ },
+ {
+  "label": "Title logo, bottom: GOLD VERSION (Gold)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/logo_bottom_gold.png"
+ },
+ {
+  "label": "Title logo, top (Silver)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/logo_top_silver.png"
+ },
+ {
+  "label": "Title logo, bottom: SILVER VERSION (Silver)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/logo_bottom_silver.png"
+ },
+ {
+  "label": "Copyright line (splash)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/splash/copyright.png"
+ },
+ {
+  "label": "GAME FREAK presents (splash)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/splash/gamefreak_presents.png"
+ },
+ {
+  "label": "THE END (credits)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/credits/theend.png"
+ },
+ {
+  "label": "Diploma: CONGRATULATIONS, DIPLOMA",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/diploma/diploma.png"
+ },
+ {
+  "label": "Pack menu: Items, Balls, Key Items, TM/HM, POCKET",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/pack/pack_menu.png"
+ },
+ {
+  "label": "Pokedex: START, OPTION, SELECT, SEARCH",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/pokedex/pokedex.png"
+ },
+ {
+  "label": "Pokedex (Super Game Boy): START, OPTION, SELECT, SEARCH",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/pokedex/pokedex_sgb.png"
+ },
+ {
+  "label": "Pokegear: TUNING",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/pokegear/pokegear.png"
+ },
+ {
+  "label": "Town map: JOHTO, KANTO",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/pokegear/town_map.png"
+ },
+ {
+  "label": "Slot machine: CREDIT, BET, PAYOUT",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/slots/slots_1.png"
+ },
+ {
+  "label": "Trainer card: STATUS",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/trainer_card/card_status.png"
+ },
+ {
+  "label": "Trainer card: BADGES",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/trainer_card/leaders.png"
+ },
+ {
+  "label": "Trainer card: ID No",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/trainer_card/trainer_card.png"
+ },
+ {
+  "label": "Trade: CABLE TRADE, MOBILE TRADE",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/trade/border_tiles.png"
+ },
+ {
+  "label": "MYSTERY GIFT",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/mystery_gift/mystery_gift.png"
+ },
+ {
+  "label": "Mystery Gift: PRESENT (Gold/Silver)",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/mystery_gift/mystery_gift_2.png"
+ },
+ {
+  "label": "Mystery Gift card: CARD NAME (Crystal)",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/mystery_gift/card_trade.png"
+ },
+ {
+  "label": "Printer: HP",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/printer/hp.png"
+ },
+ {
+  "label": "Printer: Lv",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/printer/lv.png"
+ }
+]
