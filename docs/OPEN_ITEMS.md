@@ -10,6 +10,17 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Raving Rabbids: Party Collection (`plugins/rabbids_party`, 2026-10-09)
+
+- TV Party menu pictures inside its Flash movies (CLIP texture keys such as `0x00029580`) were not found in any
+  world bin of `rrr3_bin_wii.bf`; the Textures window lists only the interface-world JTX textures.
+- The menu prompt ("Press the A Button…") is drawn with a font that is not on the disc (a filled `e` in both
+  `wbf1/wbf2.brfna` did not show there in Dolphin; they are the HOME Menu fonts): its Cyrillic needs a user
+  decision (Latin letters or leave English).
+- Fonts cannot grow: Jade, BRFNA and Flash fonts take new letters only by redrawing unused glyphs (translation map).
+- Rabbids 1/2 textures are listed for the menu worlds only (`_main_*`, `Menu_LD`, `RRR2_Boot`, `Compil`); the same
+  key in a smaller size elsewhere gets the edit scaled down (nearest neighbour).
+
 ## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
 
 - Not opened: the disc-error messages in `sys/main.dol` (2_build writes only `files/`) and the channel title in

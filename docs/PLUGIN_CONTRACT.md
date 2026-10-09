@@ -39,8 +39,8 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `prepare_preview_glyph_text` | Text for the bitmap-font preview: (clean_text, per-character colours or None). |  |
 | `calculate_string_width_override` | Pixel width of a string when the game measures it its own way. |  |
 | `get_font_for_block` | Font override for a block: {'original_font_name', 'font_name'}. |  |
-| `get_font_sources` | The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, mgs, mgs1, mgs1_hd, m2, nftr, xf, g4font, vagrant, gba_tiles, retro_font, retro_font_gx, pgf, twewy, policenauts, texture_grid, zelda3, lunar), path, member, companion, font_map, params}]. Default: font_sources.json in the plugin folder. |  |
-| `get_texture_sources` | The game's textures with text for the Textures window: [{label, kind, format (bti, tpl, bflim, ctpk, ctxb (also CMB models), bntx, g1t, g4tx, imgc, j3d, gba, gtx, bfres, txtr, txtr_gx, gim, tim, policenauts_pak, vs_gim, vs_hf1, vs_rle, pcx, m2, raw, tiles), path, member, params}]. Default: texture_sources.json in the plugin folder. |  |
+| `get_font_sources` | The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, mgs, mgs1, mgs1_hd, m2, nftr, xf, g4font, vagrant, gba_tiles, retro_font, retro_font_gx, pgf, twewy, policenauts, texture_grid, zelda3, lunar, jade, brfna, swf_font, rrr_errfont), path, member, companion, font_map, params}]. Default: font_sources.json in the plugin folder. |  |
+| `get_texture_sources` | The game's textures with text for the Textures window: [{label, kind, format (bti, tpl, bflim, ctpk, ctxb (also CMB models), bntx, g1t, g4tx, imgc, j3d, gba, gtx, bfres, txtr, txtr_gx, gim, tim, policenauts_pak, vs_gim, vs_hf1, vs_rle, pcx, m2, jade, jade_jtx, raw, tiles), path, member, params}]. Default: texture_sources.json in the plugin folder. |  |
 
 ## Problems and autofix
 

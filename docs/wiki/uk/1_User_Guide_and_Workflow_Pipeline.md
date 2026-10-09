@@ -99,6 +99,20 @@ tokens: 23.8k
      змінений текст у USEN і EUEN кожного пакета з цією таблицею (у грі перемагає `Patch\Z_198_NXPatch.pak.patch`
      оновлення), а змінені шрифти й текстури з їхніми метаданими — у мод LayeredFS. Робоча тека починається з
      українського перекладу BakAI (текст і шрифти з українськими літерами).
+   - `rabbids_party` — Raving Rabbids: Party Collection (Wii, Європа): меню й три гри на одному диску.
+     **Source:** тека `source` робочої теки (`1_unpack.bat` один раз робить звичайний ISO з RVZ і читає файли
+     просто з нього: `files\*.dol` меню, картинки `files\*.tpl`, меню HOME і банер; англійський текст Rabbids 1 і 2
+     `rrr1.bf\text_english.jtxt` / `rrr2.bf\...`, шрифти `fonts\*.jfnt` і текстури меню `textures\<світ>\*.jtex`;
+     `rrr3_bin_wii.bf\TextPackages.bin` TV Party, ролики Flash зі шрифтами `flash\*.gfx` і текстури інтерфейсу
+     `textures\*.jtx`); **Translation:** `translation`. Проєкт показує Rabbids 1 і 2 як блок на кожен список
+     тексту (коди зі зворотною скісною: `\cFF7FFF\` колір, `\p16\a` кнопка), англійську колонку TV Party по сто
+     рядків у блоці (`<font color=…>`) і назви, підказку та повідомлення про диск кожного виконуваного файлу (кожне
+     в межах своїх байтів). Текст Rabbids 1/2 однобайтовий: літеру, якої немає у шрифтах, малюють поверх
+     невживаного гліфа й прив'язують у карті перекладу Font Editor (текст TV Party теж іде через карту). Font Editor
+     відкриває шрифти Jade (`jade`), архівні шрифти Wii меню (`brfna`), векторні шрифти Flash TV Party
+     (`swf_font`), шрифт дискових помилок Rabbids 2 і шрифт меню HOME; вікно «Текстури» показує картинки меню
+     (`tpl`), текстури світів меню Jade (`jade`) і інтерфейсу TV Party (`jade_jtx`). `2_build.bat` пакує зміни назад
+     (наново стискає лише змінені блоки LZO, більший файл — у кінець bigfile) і записує в образ диска.
    - `metroid_other_m` — Metroid: Other M (Wii, USA). **Source:** `source` робочої теки (`1_unpack.bat` кладе
      туди за шляхами диска `message\message_all.dat`, шрифти `font\*.brfnt`, повідомлення меню HOME Wii
      `hbm\HomeButton2\home*.csv` і кожен 2D-макет як теку `<номер>\<макет>\timg\*.tpl`); **Translation:**
