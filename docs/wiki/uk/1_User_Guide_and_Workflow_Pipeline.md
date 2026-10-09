@@ -451,6 +451,25 @@ tokens: 23.8k
      це картинки рядків, 20 файлів) і `title\TITLE_LOGO.BIN` (Tools → Textures). Довший рядок зсуває сусідні
      рядки та їхні вказівники; ім'я мовця зберігає кількість літер. Першу клітинку картинки діалогу лишайте
      порожньою: гра заповнює нею вікно діалогу.
+   - `pokemon_nx` — Pokémon Sword/Shield (з обома доповненнями) і Pokémon Legends: Arceus (Switch). **Source:**
+     тека `source` робочої теки (`1_unpack.bat`: гра + останнє оновлення): `bin\message\English\common` і
+     `script` `*.dat` (один блок на файл; `.tbl` поруч дає назву кожного рядка), `bin\font` (`.BFOTF`,
+     `bmp\*.bffnt`) і `bin\appli\*\bin\*_eng.arc` (англійські картинки меню); у Legends: Arceus також
+     `bin\archive\appli\*_eng.gfpak.d\*.arc` (макети бою й HUD з паків Oodle, `2_build.bat` пакує їх назад). Теги (ті самі, що в `pokemon_trinity`):
+     `{PAGE}` наступне вікно тексту, `{COLOR 0002}` колір, `{VAR 0100 0000}` вставлене ім'я,
+     `M{GENDER 00FF|aster|iss}` форми слова (їхні довжини записуються заново під час збереження), `{CHAR E305}` —
+     значок кнопки. У шрифтах тексту немає Ґ Є І Ї ґ є і ї: `translation_map.json` пише І і Ї ї як латинські I i Ï ï,
+     а Є є Ґ ґ — як Э э Ъ ъ, чиї гліфи перемальовують у Редакторі шрифтів. Sword і Shield мають спільний romfs:
+     `2_build.bat` пише мод для обох title id.
+   - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), один проєкт для обох ігор.
+     **Source:** тека `source` робочої теки (`1_unpack.bat`: гра + оновлення 1.3.0; бандли Unity стають
+     простими файлами): `message\english_*.bdmsg` (128 таблиць, 42 946 рядків: сюжет, Покедекс обох ігор,
+     назви, меню, бій), `font\<бандл>\` (шрифти TextMesh Pro SDF: формат редактора шрифтів `tmp_sdf`, таблиця
+     гліфів + атлас; файли шрифтів динамічного запасного шрифту відкриваються як `bfotf`) і `texture\...\*.png`
+     (24 англійські картинки: логотипи, «Press any button», слова меню й бою; формат вікна текстур `png`).
+     `2_build.bat` записує кожен змінений файл назад у його бандл для обох ігор. Теги: `\n` новий рядок,
+     `{scroll}` / `{clear}` + новий рядок (чекати кнопку), `{wait:0.5}`, `{tag:A:G:T…}` ім'я, число чи форма
+     слова, яку підставляє гра (аргумент A; форми слова після `|`), теги TextMesh Pro `<color=…>` лишаються як є.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** тека `source` робочої теки,
      яку `1_unpack.bat` заповнює текстовими файлами диска за їхніми шляхами на диску: `EVENT\*.EVT`
      (катсцени), `MAP\*.MPD` (події кімнат), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
@@ -537,6 +556,19 @@ tokens: 23.8k
      знову стискає змінені файли.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
+   - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) і Pokémon Legends: Z-A
+     (+ Mega Dimension) (Switch, рушій Trinity від Game Freak). **Source:** тека `source` робочої теки
+     (`1_unpack.bat` читає лише потрібні паки з `arc\data.trpfs` і кладе туди, за шляхами гри, англійський текст
+     `message\dat\English\{common,script}\*.dat` — у Z-A `ik_message\...` — шрифти `appli\font\bin` /
+     `ui\font\bin` і англійські архіви макетів `*_eng.arc`); **Translation:** `translation`. Один блок на файл
+     повідомлень (Scarlet/Violet: 913 файлів, 85 331 рядок; Z-A: 427 файлів, 76 810 рядків); змінні мають вигляд
+     `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, значки `{CHAR E300}`; граматичні розгалуження несуть обидва тексти,
+     `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), а їхні довжини записуються
+     заново під час збереження. Font Editor відкриває шрифти `.bfotf` і `.bffnt`; вікно Textures — BNTX-картинки
+     англійських макетів (логотип, меню). `2_build.bat` записує змінені файли в мод LayeredFS разом з
+     `arc\data.trpfd`, який більше не відсилає гру до запакованих оригіналів (змінений англійський макет
+     `X_eng.arc` іде в мод ще й як `X.arc`: мовні макети гра бере лише зі своїх паків); Scarlet і Violet мають один проєкт
+     і однаковий мод.
    - `default_plugin` — Default Plugin Template
 4. Після відкриття відновлюється остання сесія (блок, рядок, undo, більшість фільтрів). **Show Unsaved Only** (дерево і список рядків) після перезапуску **завжди вимкнений** (`core/data_store.py`).
 5. `File → Close Project` вивантажує робочий простір. Picoripi при цьому не закривається.

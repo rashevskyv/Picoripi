@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-07
+updated: 2026-10-09
 owns: unfinished work
 tokens: 16.4k
 purpose: Everything left open, one line each, by work package
@@ -38,6 +38,15 @@ the line when it is done or moved into a plan.
   there (Tools -> Textures, "Item names in menus"); the text table's names are a second copy (pick-up messages).
 - Texture palettes come from the screens' code; sheets whose bank is not known show the first bank or grey.
 - No speakers yet: `{1E xx}` in the story looks like the portrait; not mapped to names.
+
+## Pokémon Scarlet/Violet, Legends: Z-A (`plugins/pokemon_trinity`, 2026-10-09)
+
+- The English HUD pictures of Z-A (`ui/tex/hud_spmg/tga_eng/*.bntx`) are not checked in the game; English layouts
+  (`*_eng.arc`) are (the build also writes them as the base `X.arc`, which the game reads from the romfs).
+- The scalable fonts (FOT-UDKakugo, FOT-Rodin) lack Ґ Є І Ї ґ є і ї and the Font Editor cannot add a character to
+  an OpenType font; the bitmap `.bffnt` fonts, UniversNextPro and `or_font` have no Cyrillic.
+- Not opened: the `.tbl` line labels (shown nowhere), `message/sort` and `messagegrammarEnglish.dat` (sort and
+  article tables), the font settings `.bfcpx` / `TextFontSetting.bin`; the executable was not searched.
 
 ## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
 
@@ -78,6 +87,14 @@ the line when it is done or moved into a plan.
 - No font has Ukrainian letters and `retro_font_gx` cannot add glyphs (no room in the C4 texture): letters go over unused accented glyphs (a translation map) or the texture must grow.
 - The workspace LZO packs about 3 % worse than Retro's: a package whose edited resources no longer fit gets the English text of unchanged tables as every language, biggest saving first; the disc has only 232 MB free, so a world package of Prime 3 (up to 743 MB) can never move.
 - Seen in Dolphin only for the menu (STRG version 3); shared-language tables of Prime 1 (version 0) and Prime 2 (version 1) are checked by machine, not in the game.
+
+## Pokémon Sword/Shield + Legends: Arceus (`plugins/pokemon_nx`, 2026-10-09)
+
+- Not opened: the `grammar/*.dat` and `sort_string` tables (binary, not text), strings in `main`.
+- The donor glyphs of `translation_map.json` (Э э Ъ ъ for Є є Ґ ґ) are not redrawn yet; the bitmap fonts (`bmp/*.bffnt`) have no Cyrillic at all (free cells: 25-181 per font, `font_fs_150_bold_00` opens with 2 spare sheets).
+- The title screen logos are checked by machine only (the "white screen" after the photo select in Eden is the name
+  entry: Eden's own software keyboard window, which an emulator run on a hidden desktop does not show).
+- The two Legends: Arceus `*_eng.gfpak` packs (battle menu, HUD) are checked by machine only, not in the game.
 
 ## Textures window (`core/texture_formats`, 2026-10-04)
 

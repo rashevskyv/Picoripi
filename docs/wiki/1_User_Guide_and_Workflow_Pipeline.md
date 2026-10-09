@@ -449,6 +449,26 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      lines, 20 files) and `title\TITLE_LOGO.BIN` (Tools → Textures). A longer string moves its neighbours and
      their pointers; a speaker name keeps its letter count. Keep the first cell of a dialogue picture empty: the
      game fills the dialogue box with it.
+   - `pokemon_nx` — Pokémon Sword/Shield (with both DLC) and Pokémon Legends: Arceus (Switch). **Source:** the
+     workspace's `source` (`1_unpack.bat`: base + newest update): `bin\message\English\common` and `script`
+     `*.dat` (one block per file; the `.tbl` next to it names each line), `bin\font` (`.BFOTF`, `bmp\*.bffnt`)
+     and `bin\appli\*\bin\*_eng.arc` (English layout pictures); Legends: Arceus also
+     `bin\archive\appli\*_eng.gfpak.d\*.arc` (the battle and HUD layouts of the Oodle packs, packed back by
+     `2_build.bat`). Tags (the same as `pokemon_trinity`): `{PAGE}`
+     next text box, `{COLOR 0002}` colour, `{VAR 0100 0000}` an inserted name, `M{GENDER 00FF|aster|iss}` word forms
+     (their lengths are written again on save), `{CHAR E305}` a button icon.
+     The text fonts lack Ґ Є І Ї ґ є і ї: `translation_map.json` writes І і Ї ї as Latin I i Ï ï and Є є Ґ ґ as
+     Э э Ъ ъ, whose glyphs are redrawn in the Font Editor. Sword and Shield share one romfs: `2_build.bat` writes
+     the mod for both title ids.
+   - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), one project for both games.
+     **Source:** the workspace's `source` (`1_unpack.bat`: base + update 1.3.0; the Unity bundles become plain
+     files): `message\english_*.bdmsg` (128 tables, 42,946 lines: story, Pokédex of both games, names,
+     menus, battle), `font\<bundle>\` (TextMesh Pro SDF fonts: Font Editor format `tmp_sdf`, glyph table +
+     atlas; the font files of the dynamic fallback open as `bfotf`) and `texture\...\*.png` (24 English
+     pictures: title logos, "Press any button", menu and battle words; Textures window format `png`).
+     `2_build.bat` writes every edited file back into its bundle for both games. Tags: `\n` new line,
+     `{scroll}` / `{clear}` + new line (wait for the button), `{wait:0.5}`, `{tag:A:G:T…}` a name, number or
+     word form the game fills in (argument A; word forms after `|`), TextMesh Pro `<color=…>` stay as they are.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
@@ -535,6 +555,19 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      health and safety screens, HOME Menu, disc banner). `2_build.bat` compresses the changed files again.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
+   - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) and Pokémon Legends: Z-A
+     (+ Mega Dimension) (Switch, Game Freak's Trinity engine). **Source:** the workspace's `source`
+     (`1_unpack.bat` reads only the needed packs of `arc\data.trpfs` and puts there, at the game's paths, the
+     English text `message\dat\English\{common,script}\*.dat` — Z-A: `ik_message\...` — the fonts
+     `appli\font\bin` / `ui\font\bin` and the English layout archives `*_eng.arc`); **Translation:**
+     `translation`. One block per message file (Scarlet/Violet 913 files, 85,331 lines; Z-A 427 files, 76,810
+     lines); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, icons `{CHAR E300}`; grammar branches carry their
+     two texts, `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), and their lengths are
+     written again on save. The Font Editor opens the `.bfotf` and `.bffnt` fonts; the Textures window opens the
+     BNTX pictures of the English layouts (title logo, menus). `2_build.bat` writes the changed files into a
+     LayeredFS mod with an `arc\data.trpfd` that no longer points the game to the packed originals (a changed
+     English layout `X_eng.arc` also goes in as `X.arc`: the game reads language layouts only from its packs); Scarlet and
+     Violet share one project and get the same mod.
    - `default_plugin` — Default Plugin Template
 4. After open, the last session is restored (block, string, undo stack, most filters). **Show Unsaved Only** (tree and strings list) is always off after a restart (`core/data_store.py`).
 5. `File → Close Project` unloads the workspace. It does not quit Picoripi.
