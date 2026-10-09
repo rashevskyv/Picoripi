@@ -32,10 +32,10 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import (bcfnt, bffnt, bfotf, cv_gba, cv_nds, eternal_darkness, ffta2, fntg, fragile_dreams, g1n,
-                                   g1t, g4font, gba_tiles, gzf, lunar, m2, mgs, mgs1, mgs1_hd, n64, nftr, pgf, policenauts, qbf,
-                                   retro_font, retro_font_gx, texture_grid, tmp_sdf, twewy, vagrant, xf, zelda3)
-    return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
+    from core.font_formats import (bcfnt, bffnt, bfotf, cells, cv_gba, cv_nds, eternal_darkness, ffta2, fntg, fragile_dreams,
+                                   g1n, g1t, g4font, gba_tiles, gzf, lunar, m2, mgs, mgs1, mgs1_hd, n64, nftr, pgf, policenauts,
+                                   qbf, retro_font, retro_font_gx, texture_grid, tmp_sdf, twewy, vagrant, xf, zelda3)
+    return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
             "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,

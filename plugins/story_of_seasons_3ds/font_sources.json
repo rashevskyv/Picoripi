@@ -1,0 +1,12 @@
+[
+  {"label": "Maru Gothic (dialogue and menus; A New Beginning)", "format": "bcfnt", "path": "romfs/Font/marugothic.bcfnt"},
+  {"label": "Debug font (A New Beginning)", "format": "bcfnt", "path": "romfs/Font/DebugFont.bcfnt"},
+  {"label": "Layout sample font (A New Beginning)", "format": "bcfnt", "path": "romfs/layout.arc/font/sample.bcfnt"},
+  {"label": "Other BCFNT fonts (Story of Seasons, Trio of Towns)", "format": "bcfnt", "path": "romfs/**/*.bcfnt"},
+  {"label": "Text font 8x16 (The Tale of Two Towns)", "format": "cells", "path": "romfs/font_data.bin",
+   "params": {"offset": "0x2C0", "count": 256, "cell": [8, 16], "bpp": 4, "columns": 16, "advance": 8,
+              "chars": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[¥]^_`abcdefghijklmnopqrstuvwxyz{|}~。「」、・ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜáíóúñÑ¿¡ÂÀÊËÈÎÏßÔÕÙÍÒãÓÕõõÚÎÁœŒÃАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя«»–—"}},
+  {"label": "Japanese font 16x16 (The Tale of Two Towns, unused in English)", "format": "cells", "path": "romfs/font_data.bin",
+   "params": {"offset": "0x42C0", "count": 1499, "cell": [16, 16], "bpp": 4, "columns": 32, "advance": 16, "tiles": true}},
+  {"label": "Demo font (The Tale of Two Towns)", "format": "bcfnt", "path": "romfs/demo_font.bcfnt"}
+]

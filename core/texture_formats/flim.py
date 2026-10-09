@@ -99,6 +99,8 @@ def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
         width, height = _pica_geometry(info)
         full = _to_display(surface.read(data, 0, codec, width, height), info["flags"])
         image = full.crop((0, 0, info["width"], info["height"]))
+    if params.get("flip"):   # a game whose layouts draw the picture upside down (the Marvelous farm games)
+        image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     return [Texture("", image, info["name"])]
 
 
@@ -108,6 +110,8 @@ def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -
         return data
     info = _info(data)
     out = bytearray(data)
+    if params.get("flip"):
+        image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     if info["cafe"]:
         codec = pixels.codec(info["format"])
         surface.write(out, 0, codec, info["width"], info["height"], image, _cafe_layout(info, codec))
