@@ -122,3 +122,40 @@ def test_real_ttt_tables_round_trip_and_hold_the_game_text():
     assert tables >= 550 and strings >= 30000
     menu = ttt.Table((TTT / "mes_data.bin" / "0042.mes").read_bytes()).texts()
     assert menu[1:4] == ["New Game", "Continue", "Multiplayer"]
+
+
+SOS = Path(r"E:\Emulators\RomHacking\Story of Seasons\Story of Seasons\source\romfs")
+TRIO = Path(r"E:\Emulators\RomHacking\Story of Seasons\Trio of Towns\source\romfs")
+
+
+@pytest.mark.skipif(not (SOS / "MsgGB.xbb").is_dir(), reason="Story of Seasons not unpacked here")
+def test_real_sos_tables_round_trip_and_hold_the_english_text():
+    rules = load_rules(PLUGIN)
+    files = sorted(SOS.rglob("*.papa"))
+    strings = 0
+    for path in files:
+        raw = path.read_bytes()
+        blocks, _names = rules.load_data_from_json_obj(raw)
+        assert rules.save_data_to_json_obj(blocks, {}) == raw, path.name
+        strings += len(blocks[0])
+    assert len(files) >= 420 and strings >= 42000
+    assert not list(SOS.glob("MsgDE.xbb")) and not list(SOS.glob("Layout/de"))      # the English set only
+    menu = papa.Table((SOS / "MsgGB.xbb" / "GameInitSetting.papa").read_bytes())
+    assert "New Game" in menu.texts() and "MSG_NEW_GAME" in menu.ids()
+
+
+@pytest.mark.skipif(not (TRIO / "en" / "Msg.xbb").is_dir(), reason="Trio of Towns not unpacked here")
+def test_real_trio_tables_round_trip_including_the_nested_data_text():
+    rules = load_rules(PLUGIN)
+    files = sorted(TRIO.rglob("*.papa"))
+    strings = 0
+    for path in files:
+        raw = path.read_bytes()
+        blocks, _names = rules.load_data_from_json_obj(raw)
+        assert rules.save_data_to_json_obj(blocks, {}) == raw, path.name
+        strings += len(blocks[0])
+    assert len(files) >= 840 and strings >= 43000
+    nested = sorted((TRIO / "en" / "DataText.xbb.gz").rglob("*.papa"))
+    assert nested and all(p.parent.name.endswith(".xbb") for p in nested)
+    menu = papa.Table((TRIO / "en" / "Msg.xbb" / "OtherScreen.papa").read_bytes())
+    assert "New Game" in menu.texts() and "TitleNewGame" in menu.ids()
