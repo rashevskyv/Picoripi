@@ -322,6 +322,15 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `font\*.bffnt` (12 fonts) and `ui\...\*.bntx`; a picture the game keeps once per language opens as its
      English copy `*.bfres.en.bntx` and `2_build.bat` writes it into both English versions (en-GB, en-US).
      Tags come from this game's `msg.msbp` (`{Font:4}`…`{Font:-1}` switches the font).
+   - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), one project for both games.
+     **Source:** the workspace's `source` (`1_unpack.bat`: base + update 1.3.0; the Unity bundles become plain
+     files): `message\english_*.bdmsg` (128 tables, 42,946 lines: story, Pokédex of both games, names,
+     menus, battle), `font\<bundle>\` (TextMesh Pro SDF fonts: Font Editor format `tmp_sdf`, glyph table +
+     atlas; the font files of the dynamic fallback open as `bfotf`) and `texture\...\*.png` (24 English
+     pictures: title logos, "Press any button", menu and battle words; Textures window format `png`).
+     `2_build.bat` writes every edited file back into its bundle for both games. Tags: `\n` new line,
+     `{scroll}` / `{clear}` + new line (wait for the button), `{wait:0.5}`, `{tag:A:G:T…}` a name, number or
+     word form the game fills in (argument A; word forms after `|`), TextMesh Pro `<color=…>` stay as they are.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

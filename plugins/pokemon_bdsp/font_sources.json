@@ -1,0 +1,108 @@
+[
+ {
+  "label": "English and European: efigs_font (SDF atlas)",
+  "format": "tmp_sdf",
+  "path": "font/efigs_font/efigs_font.json",
+  "companion": "font/efigs_font/efigs_font.png"
+ },
+ {
+  "label": "English and European: or_font (SDF symbols)",
+  "format": "tmp_sdf",
+  "path": "font/efigs_font/or_font.json",
+  "companion": "font/efigs_font/or_font.png"
+ },
+ {
+  "label": "English and European: FOT-UDKakugoC80Pro-DB (font file of the dynamic fallback)",
+  "format": "bfotf",
+  "path": "font/efigs_font/FOT-UDKakugoC80Pro-DB.otf",
+  "params": {
+   "size": 32
+  }
+ },
+ {
+  "label": "Japanese: jpn_font (SDF atlas)",
+  "format": "tmp_sdf",
+  "path": "font/jpn_font/jpn_font.json",
+  "companion": "font/jpn_font/jpn_font.png"
+ },
+ {
+  "label": "Japanese: or_font (SDF symbols)",
+  "format": "tmp_sdf",
+  "path": "font/jpn_font/or_font.json",
+  "companion": "font/jpn_font/or_font.png"
+ },
+ {
+  "label": "Japanese: FOT-RodinNTLGPro-DB (font file of the dynamic fallback)",
+  "format": "bfotf",
+  "path": "font/jpn_font/FOT-RodinNTLGPro-DB.otf",
+  "params": {
+   "size": 32
+  }
+ },
+ {
+  "label": "Korean: kor_font (SDF atlas)",
+  "format": "tmp_sdf",
+  "path": "font/kor_font/kor_font.json",
+  "companion": "font/kor_font/kor_font.png"
+ },
+ {
+  "label": "Korean: or_font (SDF symbols)",
+  "format": "tmp_sdf",
+  "path": "font/kor_font/or_font.json",
+  "companion": "font/kor_font/or_font.png"
+ },
+ {
+  "label": "Korean: nintendo_udsg-r_ko_003 (font file of the dynamic fallback)",
+  "format": "bfotf",
+  "path": "font/kor_font/nintendo_udsg-r_ko_003.ttf",
+  "params": {
+   "size": 32
+  }
+ },
+ {
+  "label": "Chinese (simplified): sch_font (SDF atlas)",
+  "format": "tmp_sdf",
+  "path": "font/sch_font/sch_font.json",
+  "companion": "font/sch_font/sch_font.png"
+ },
+ {
+  "label": "Chinese (simplified): or_font (SDF symbols)",
+  "format": "tmp_sdf",
+  "path": "font/sch_font/or_font.json",
+  "companion": "font/sch_font/or_font.png"
+ },
+ {
+  "label": "Chinese (simplified): sch_ext_font (SDF atlas)",
+  "format": "tmp_sdf",
+  "path": "font/sch_font/sch_ext_font.json",
+  "companion": "font/sch_font/sch_ext_font.png"
+ },
+ {
+  "label": "Chinese (simplified): nintendo_udsg-r_org_zh-cn_003 (font file of the dynamic fallback)",
+  "format": "bfotf",
+  "path": "font/sch_font/nintendo_udsg-r_org_zh-cn_003.ttf",
+  "params": {
+   "size": 32
+  }
+ },
+ {
+  "label": "Chinese (traditional): tch_font (SDF atlas)",
+  "format": "tmp_sdf",
+  "path": "font/tch_font/tch_font.json",
+  "companion": "font/tch_font/tch_font.png"
+ },
+ {
+  "label": "Chinese (traditional): or_font (SDF symbols)",
+  "format": "tmp_sdf",
+  "path": "font/tch_font/or_font.json",
+  "companion": "font/tch_font/or_font.png"
+ },
+ {
+  "label": "Chinese (traditional): nintendo_udjxh-db_zh-tw_003 (font file of the dynamic fallback)",
+  "format": "bfotf",
+  "path": "font/tch_font/nintendo_udjxh-db_zh-tw_003.ttf",
+  "params": {
+   "size": 32
+  }
+ }
+]

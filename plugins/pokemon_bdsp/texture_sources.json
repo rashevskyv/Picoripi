@@ -1,0 +1,146 @@
+[
+ {
+  "label": "contestgraphictexture.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/Contest/textures/graphictext/contestgraphictexture.en/sactx-1024x1024-ASTC 6x6-ContestGraphicTexture-1b717c52.png"
+ },
+ {
+  "label": "Ending text",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/Dpr/movie/common/text/text_ed_en/text_ed_en.png"
+ },
+ {
+  "label": "Title logo: Brilliant Diamond",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/Dpr/movie/dia/logo/logo_dia_en/logo_dia_en.png"
+ },
+ {
+  "label": "Title: Press any button (Brilliant Diamond)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/Dpr/movie/dia/text/text_dia_en_op_pushbutton/text_dia_en_op_pushbutton.png"
+ },
+ {
+  "label": "Title logo: Shining Pearl",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/Dpr/movie/pea/logo/logo_pea_en/logo_pea_en.png"
+ },
+ {
+  "label": "Title: Press any button (Shining Pearl)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/Dpr/movie/pea/text/text_pea_en_op_pushbutton/text_pea_en_op_pushbutton.png"
+ },
+ {
+  "label": "gms_marked_100.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/GMS/textures/graphictext/gms_marked_100.en/GMS_Marked_100.png"
+ },
+ {
+  "label": "gms_marked_200.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/GMS/textures/graphictext/gms_marked_200.en/GMS_Marked_200.png"
+ },
+ {
+  "label": "gms_marked_300.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/GMS/textures/graphictext/gms_marked_300.en/GMS_Marked_300.png"
+ },
+ {
+  "label": "gms_marked_400.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/GMS/textures/graphictext/gms_marked_400.en/GMS_Marked_400.png"
+ },
+ {
+  "label": "gms_marked_500.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/GMS/textures/graphictext/gms_marked_500.en/GMS_Marked_500.png"
+ },
+ {
+  "label": "gms_marked_600.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/GMS/textures/graphictext/gms_marked_600.en/GMS_Marked_600.png"
+ },
+ {
+  "label": "gms_marked_comp.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/GMS/textures/graphictext/gms_marked_comp.en/GMS_Marked_Comp.png"
+ },
+ {
+  "label": "gms_tittlelogo_01.en",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/GMS/textures/graphictext/gms_tittlelogo_01.en/GMS_TittleLogo_01.png"
+ },
+ {
+  "label": "gms_tittlelogo_02.en",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/GMS/textures/graphictext/gms_tittlelogo_02.en/GMS_TittleLogo_02.png"
+ },
+ {
+  "label": "gmsgraphictext.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/UIs/gms/graphictext/gmsgraphictext.en/sactx-2048x2048-ASTC 6x6-GMSGraphicText-9a616fe5.png"
+ },
+ {
+  "label": "battle_lang.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/UIs/shareduiassets/battle_lang.en/sactx-1024x256-ASTC 4x4-Battle_Lang-246d0d22.png"
+ },
+ {
+  "label": "sharedui_lang.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/UIs/shareduiassets/sharedui_lang.en/sactx-1024x512-ASTC 6x6-SharedUI_Lang-b3c39543.png"
+ },
+ {
+  "label": "common_lang.en",
+  "kind": "ui",
+  "format": "png",
+  "path": "texture/UIs/textures/common_lang.en/sactx-1024x1024-ASTC 6x6-Common_Lang-23fe17d7.png"
+ },
+ {
+  "label": "fame_champ_logo_f.en",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/UIs/textures/halloffame/langdatas/fame_champ_logo_f.en/fame_champ_logo_f.png"
+ },
+ {
+  "label": "fame_champ_logo_m.en",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/UIs/textures/halloffame/langdatas/fame_champ_logo_m.en/fame_champ_logo_m.png"
+ },
+ {
+  "label": "fame_cograts_logo.en",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/UIs/textures/halloffame/langdatas/fame_cograts_logo.en/fame_cograts_logo.png"
+ },
+ {
+  "label": "fame_title_logo_d.en",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/UIs/textures/halloffame/langdatas/fame_title_logo_d.en/fame_title_logo_d.png"
+ },
+ {
+  "label": "fame_title_logo_p.en",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "texture/UIs/textures/halloffame/langdatas/fame_title_logo_p.en/fame_title_logo_p.png"
+ }
+]

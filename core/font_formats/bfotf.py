@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import io
 import struct
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -35,8 +35,14 @@ def is_bfotf(data: bytes) -> bool:
     return struct.pack("<I", head) in (b"OTTO", b"\x00\x01\x00\x00", b"true")
 
 
-def decrypt(data: bytes) -> Tuple[bytes, int]:
-    """``(OpenType bytes, key)`` of a scrambled font."""
+PLAIN_HEADS = (b"OTTO", bytes([0, 1, 0, 0]), b"true")
+
+
+def decrypt(data: bytes) -> Tuple[bytes, Optional[int]]:
+    """``(OpenType bytes, key)`` of a scrambled font; a plain .otf / .ttf (a Unity Font's data) comes back as it
+    is, with the key None."""
+    if bytes(data[:4]) in PLAIN_HEADS:
+        return bytes(data), None
     if not is_bfotf(data):
         raise ValueError("Not a Switch scalable font (bfotf/bfttf)")
     key = struct.unpack_from("<I", data, 0)[0] ^ _MAGIC
@@ -46,8 +52,10 @@ def decrypt(data: bytes) -> Tuple[bytes, int]:
     return plain[8:8 + size], key
 
 
-def encrypt(font: bytes, key: int) -> bytes:
-    """The scrambled file of an OpenType font (the inverse of ``decrypt``)."""
+def encrypt(font: bytes, key: Optional[int]) -> bytes:
+    """The scrambled file of an OpenType font (the inverse of ``decrypt``); the font itself when key is None."""
+    if key is None:
+        return bytes(font)
     body = font + b"\x00" * (-len(font) % 4)
     plain = struct.pack("<I", _MAGIC) + struct.pack(">I", len(font)) + body
     words = len(plain) // 4
