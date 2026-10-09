@@ -469,6 +469,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `2_build.bat` writes every edited file back into its bundle for both games. Tags: `\n` new line,
      `{scroll}` / `{clear}` + new line (wait for the button), `{wait:0.5}`, `{tag:A:G:T…}` a name, number or
      word form the game fills in (argument A; word forms after `|`), TextMesh Pro `<color=…>` stay as they are.
+   - `xenoblade_3` — Xenoblade Chronicles 3 + the 4 DLC waves incl. Future Redeemed (Switch). **Source:** the
+     workspace's `source` folder (`1_unpack.bat` reads only the needed entries of the game's `bf3.ard` and DLC
+     `bf3_dlc0N.ard` archives — one copy per path, the newest wave's — and puts there, at the archive paths, the
+     English text tables `bdat\gb\game\*.bdat` and `bdat\gb\evt\<kind>\*.bdat`, the fonts `menu\font\*.wifnt`
+     and the layouts `menu\image\*.wilay`); **Translation:** `translation`. One block per table file (4,118 files,
+     117,513 text cells); the game's codes stay in the text as `[ML:icon icon=btn_a ]`-style tags. The Font Editor
+     opens the six LAFT fonts (none has a Cyrillic letter; 8 free rows of cells are shown for new letters and the
+     atlas grows on save); the Textures window lists the English title logo (`mnu001_cont01_en`), the title
+     layouts and the English tutorial pictures (BC7 textures written back in place, JPEG pictures re-encoded).
+     `2_build.bat` writes changed files as loose romfs files for the game and every DLC that holds them and hides
+     their entries in each archive index.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
