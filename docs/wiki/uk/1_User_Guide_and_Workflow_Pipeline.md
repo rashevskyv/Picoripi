@@ -495,6 +495,20 @@ tokens: 32.8k
      картинки з англійським текстом (`*_us`: текстури BC1/BC3/BC4/BC7 записуються на місце). `2_build.bat`
      кладе змінені файли окремими файлами romfs для того title id, де вони є, і ховає їхні записи в індексі
      `bf2.arh` / `aoc1.arh`.
+   - `xenoblade_x_de` — Xenoblade Chronicles X: Definitive Edition (Switch, оновлення 1.0.2). **Source:** тека
+     `source` робочої теки (`1_unpack.bat` читає лише потрібні записи архіву гри `sts.ard` — його індекс `sts.arh`
+     зберігає хеші шляхів, імена беруться з публічного списку — і кладе туди, за шляхами архіву, англійські таблиці
+     тексту `bdat\us\*.bdat`, титри `ui\credit\endroll.crt`, шрифти `ui\font\*.wifnt`, макети `ui\image\*.wilay`
+     і англійські картинки `ui\stream\us\*.wilay`); **Translation:** `translation`. Один блок на файл (1 801
+     таблиця зі 121 843 текстовими клітинками + 654 рядки титрів), теки за видом (`common_ms` = меню, система,
+     назви й описи; сюжетні події `xs`, події квестів `qev`, розмови `tev`, титри); коди гри лишаються в тексті як
+     теги `[ST:wait ]` / `[ST:icon p1=a ]` / `[ST:col p1=red ]`. Font Editor відкриває шість шрифтів LAFT
+     (у `standard`, `caption`, `standard_kr`, `standard_tw` є російська кирилиця, бракує лише Ґ Є І Ї ґ є і ї;
+     `numeric` і `unique` — цифри та знаки; 99 вільних клітинок і ще 8 вільних рядків для нових літер); вікно
+     Textures показує англійський логотип (`ui\stream\us\strm_title_thumb001`), макети титульного екрана
+     (`10010_*`), англійські макети (`*_en`) і картинки (BC7 / RGBA8 записуються на місце, JPEG кодується заново).
+     `2_build.bat` кладе змінені файли в `romfs\mod\` мода LayeredFS разом із завантажувачем XCXDE-ModLoader
+     (masagrator, `exefs`), який змушує гру читати їх замість записів архіву.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** тека `source` робочої теки,
      яку `1_unpack.bat` заповнює текстовими файлами диска за їхніми шляхами на диску: `EVENT\*.EVT`
      (катсцени), `MAP\*.MPD` (події кімнат), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

@@ -1,0 +1,8 @@
+[
+  {"label": "Standard font (menus, dialogue)", "format": "laft", "path": "ui/font/standard.wifnt"},
+  {"label": "Caption font (subtitles)", "format": "laft", "path": "ui/font/caption.wifnt"},
+  {"label": "Numeric font (digits)", "format": "laft", "path": "ui/font/numeric.wifnt"},
+  {"label": "Unique font (special glyphs)", "format": "laft", "path": "ui/font/unique.wifnt"},
+  {"label": "Standard font (Korean)", "format": "laft", "path": "ui/font/standard_kr.wifnt", "params": {"free_rows": 0}},
+  {"label": "Standard font (Taiwanese)", "format": "laft", "path": "ui/font/standard_tw.wifnt", "params": {"free_rows": 0}}
+]
