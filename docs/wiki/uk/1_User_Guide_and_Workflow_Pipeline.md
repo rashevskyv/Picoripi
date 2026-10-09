@@ -382,6 +382,18 @@ tokens: 23.8k
      переклад змінив їхні байти.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
+   - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) і Pokémon Legends: Z-A
+     (+ Mega Dimension) (Switch, рушій Trinity від Game Freak). **Source:** тека `source` робочої теки
+     (`1_unpack.bat` читає лише потрібні паки з `arc\data.trpfs` і кладе туди, за шляхами гри, англійський текст
+     `message\dat\English\{common,script}\*.dat` — у Z-A `ik_message\...` — шрифти `appli\font\bin` /
+     `ui\font\bin` і англійські архіви макетів `*_eng.arc`); **Translation:** `translation`. Один блок на файл
+     повідомлень (Scarlet/Violet: 913 файлів, 85 331 рядок; Z-A: 427 файлів, 76 810 рядків); змінні мають вигляд
+     `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`; граматичні розгалуження несуть обидва тексти,
+     `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), а їхні довжини записуються
+     заново під час збереження. Font Editor відкриває шрифти `.bfotf` і `.bffnt`; вікно Textures — BNTX-картинки
+     англійських макетів (логотип, меню). `2_build.bat` записує змінені файли в мод LayeredFS разом з
+     `arc\data.trpfd`, який більше не відсилає гру до запакованих оригіналів; Scarlet і Violet мають один проєкт
+     і однаковий мод.
    - `default_plugin` — Default Plugin Template
 4. Після відкриття відновлюється остання сесія (блок, рядок, undo, більшість фільтрів). **Show Unsaved Only** (дерево і список рядків) після перезапуску **завжди вимкнений** (`core/data_store.py`).
 5. `File → Close Project` вивантажує робочий простір. Picoripi при цьому не закривається.

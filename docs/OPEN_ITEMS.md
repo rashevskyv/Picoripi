@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-07
+updated: 2026-10-09
 owns: unfinished work
 tokens: 16.4k
 purpose: Everything left open, one line each, by work package
@@ -9,6 +9,16 @@ purpose: Everything left open, one line each, by work package
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Pokémon Scarlet/Violet, Legends: Z-A (`plugins/pokemon_trinity`, 2026-10-09)
+
+- A changed English layout archive (`*_eng.arc`) as a loose LayeredFS file: Z-A stopped with a userspace panic on
+  the language screen when `language_select_00_eng.arc` was changed (text and fonts from the same mod load fine);
+  the layout loader may not fall back from `data.trpfd` to romfs. Not seen in Scarlet/Violet (title not reached).
+- The scalable fonts (FOT-UDKakugo, FOT-Rodin) lack Ґ Є І Ї ґ є і ї and the Font Editor cannot add a character to
+  an OpenType font; the bitmap `.bffnt` fonts, UniversNextPro and `or_font` have no Cyrillic.
+- Not opened: the `.tbl` line labels (shown nowhere), `message/sort` and `messagegrammarEnglish.dat` (sort and
+  article tables), the font settings `.bfcpx` / `TextFontSetting.bin`; the executable was not searched.
 
 ## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
 
