@@ -1,0 +1,7 @@
+[
+  {"label": "Default font", "format": "bcfnt", "path": "romfs/rom/Font/FontDefault.bffnt", "font_map": "FontDefault.json"},
+  {"label": "Default font 13", "format": "bcfnt", "path": "romfs/rom/Font/FontDefault_13.bffnt"},
+  {"label": "Ruby font", "format": "bcfnt", "path": "romfs/rom/Font/FontRuby.bffnt"},
+  {"label": "ASCII font", "format": "bcfnt", "path": "romfs/rom/Font/FontAscii.bffnt"},
+  {"label": "Debug font", "format": "bcfnt", "path": "romfs/rom/Font/DebugFont.bffnt"}
+]

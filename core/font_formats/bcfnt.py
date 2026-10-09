@@ -33,13 +33,15 @@ from typing import Any, Dict, List, Optional, Tuple
 from PIL import Image, ImageChops
 
 from core.font_formats import Metadata, Sheets, char_map, coverage, grey_sheet, map_entries, char_code
-from core.texture_formats import gx2
+from core.texture_formats import gx2, pixels, surface
 
 ADDS_GLYPHS = True  # a typed character gets its own CMAP code (an empty cell, a new CWDH block)
 
 LA8, L8, A8, LA4, L4, A4 = 5, 7, 8, 9, 10, 11
-FORMATS = {LA8: "LA8", L8: "L8", A8: "A8", LA4: "LA4", L4: "L4", A4: "A4"}
-_BITS = {LA8: 16, L8: 8, A8: 8, LA4: 8, L4: 4, A4: 4}
+# colour sheets (Dragon Quest Monsters: Joker 3's damage-number font is RGBA4) go through the PICA codecs
+_COLOUR = {0: "RGBA8", 1: "RGB8", 2: "RGBA5551", 3: "RGB565", 4: "RGBA4"}
+FORMATS = {LA8: "LA8", L8: "L8", A8: "A8", LA4: "LA4", L4: "L4", A4: "A4", **_COLOUR}
+_BITS = {LA8: 16, L8: 8, A8: 8, LA4: 8, L4: 4, A4: 4, 0: 32, 1: 24, 2: 16, 3: 16, 4: 16}
 _NO_GLYPH = 0xFFFF
 
 # Wii U (NW4F) sheet formats
@@ -173,6 +175,8 @@ def decode(raw: bytes, fmt: int, width: int, height: int) -> Image.Image:
     """An RGBA image of a PICA texture: alpha and luminance formats as grey ink, LA as grey + alpha."""
     raw = bytes(raw[:texture_size(fmt, width, height)])
     size = (width, height)
+    if fmt in _COLOUR:
+        return surface.read(raw, 0, pixels.codec("pica:" + _COLOUR[fmt]), width, height)
     if fmt in (A4, L4):
         return grey_sheet(Image.frombytes("L", size, _unswizzle(_nibbles(raw), width, height)))
     if fmt in (A8, L8):
@@ -189,7 +193,11 @@ def decode(raw: bytes, fmt: int, width: int, height: int) -> Image.Image:
 def encode(image: Image.Image, fmt: int) -> bytes:
     """The PICA texture of an RGBA image (the inverse of ``decode``)."""
     width, height = image.size
-    texture_size(fmt, width, height)
+    size = texture_size(fmt, width, height)
+    if fmt in _COLOUR:
+        out = bytearray(size)
+        surface.write(out, 0, pixels.codec("pica:" + _COLOUR[fmt]), width, height, image.convert("RGBA"))
+        return bytes(out)
     if fmt in (A4, L4, A8, L8):
         texels = _swizzle(coverage(image).tobytes(), width, height)
         if fmt in (A8, L8):

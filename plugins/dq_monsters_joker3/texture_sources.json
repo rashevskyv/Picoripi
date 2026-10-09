@@ -1,0 +1,12 @@
+[
+  {"label": "Title", "kind": "title_screen", "format": "bflim", "path": "romfs/data/Layout/title/*.arc", "member": "timg/*.bflim"},
+  {"label": "Menus", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/menu/*.arc", "member": "timg/*.bflim"},
+  {"label": "Battle", "kind": "hud", "format": "bflim", "path": "romfs/data/Layout/battle/*.arc", "member": "timg/*.bflim"},
+  {"label": "Battle (sub-folders)", "kind": "hud", "format": "bflim", "path": "romfs/data/Layout/battle/*/*.arc", "member": "timg/*.bflim"},
+  {"label": "Synthesis", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/mix/*.arc", "member": "timg/*.bflim"},
+  {"label": "Common", "kind": "hud", "format": "bflim", "path": "romfs/data/Layout/common/*.arc", "member": "timg/*.bflim"},
+  {"label": "Events, quests, ending", "kind": "popup", "format": "bflim", "path": "romfs/data/Layout/{event,quest,ending,flag}/*.arc", "member": "timg/*.bflim"},
+  {"label": "Other layouts", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/*/*.arc", "member": "timg/*.bflim"},
+  {"label": "Other layouts (sub-folders)", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/*/*/*.arc", "member": "timg/*.bflim"},
+  {"label": "Other layouts (deep)", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/*/*/*/*.arc", "member": "timg/*.bflim"}
+]

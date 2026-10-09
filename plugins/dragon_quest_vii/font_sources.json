@@ -1,0 +1,18 @@
+[
+  {"label": "Main font (Font.bcfnt)", "format": "bcfnt", "path": "romfs/Font.bcfnt", "font_map": "Font.json"},
+  {"label": "Demo font", "format": "bcfnt", "path": "romfs/demox/demo_font.bcfnt"},
+  {"label": "System fonts (LAYOUT/system_font.arc)", "format": "bcfnt", "path": "romfs/LAYOUT/system_font.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 8", "format": "bcfnt", "path": "romfs/LAYOUT/system_font08.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 12", "format": "bcfnt", "path": "romfs/LAYOUT/system_font12.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 13", "format": "bcfnt", "path": "romfs/LAYOUT/system_font13.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 14", "format": "bcfnt", "path": "romfs/LAYOUT/system_font14.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 14 (variant 1)", "format": "bcfnt", "path": "romfs/LAYOUT/system_font14_.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 14 (variant 2)", "format": "bcfnt", "path": "romfs/LAYOUT/system_font14__.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 15", "format": "bcfnt", "path": "romfs/LAYOUT/system_font15.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 16", "format": "bcfnt", "path": "romfs/LAYOUT/system_font16.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 16 (variant 1)", "format": "bcfnt", "path": "romfs/LAYOUT/system_font16_.arc", "member": "font/*.bcfnt"},
+  {"label": "System font 16 (variant 2)", "format": "bcfnt", "path": "romfs/LAYOUT/system_font16__.arc", "member": "font/*.bcfnt"},
+  {"label": "Window font 14", "format": "bcfnt", "path": "romfs/LAYOUT/m7_win_p14.arc", "member": "font/*.bcfnt"},
+  {"label": "Window font 16", "format": "bcfnt", "path": "romfs/LAYOUT/m7_win_p16.arc", "member": "font/*.bcfnt"},
+  {"label": "Layout font (iwamaru 15)", "format": "bcfnt", "path": "romfs/LAYOUT/layout.arc", "member": "font/*.bcfnt"}
+]

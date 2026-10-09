@@ -1,0 +1,15 @@
+[
+  {"label": "Title and menus", "kind": "title_screen", "format": "bflim", "path": "romfs/data/Layout/menu/*.arc", "member": "timg/*.bflim"},
+  {"label": "Battle", "kind": "hud", "format": "bflim", "path": "romfs/data/Layout/battle/*.arc", "member": "timg/*.bflim"},
+  {"label": "Battle road", "kind": "hud", "format": "bflim", "path": "romfs/data/Layout/btlload/*.arc", "member": "timg/*.bflim"},
+  {"label": "Casino", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/casino/*.arc", "member": "timg/*.bflim"},
+  {"label": "Church", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/church/*.arc", "member": "timg/*.bflim"},
+  {"label": "Common", "kind": "hud", "format": "bflim", "path": "romfs/data/Layout/common/*.arc", "member": "timg/*.bflim"},
+  {"label": "Signs", "kind": "map", "format": "bflim", "path": "romfs/data/Layout/homesign/*.arc", "member": "timg/*.bflim"},
+  {"label": "Map", "kind": "map", "format": "bflim", "path": "romfs/data/Layout/map/*.arc", "member": "timg/*.bflim"},
+  {"label": "Photo studio", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/photostudio/*.arc", "member": "timg/*.bflim"},
+  {"label": "Alchemy pot", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/renkin/*.arc", "member": "timg/*.bflim"},
+  {"label": "Other layouts", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/*/*.arc", "member": "timg/*.bflim"},
+  {"label": "Other layouts (sub-folders)", "kind": "menu", "format": "bflim", "path": "romfs/data/Layout/*/*/*.arc", "member": "timg/*.bflim"},
+  {"label": "Backgrounds (texPG)", "kind": "background", "format": "bflim", "path": "romfs/data/Layout/texPG/*.bflim"}
+]
