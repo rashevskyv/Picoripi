@@ -782,7 +782,8 @@ class BaseGameRules:
         (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
         and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
         multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``txtr`` / ``txtr_gx`` (Retro TXTR),
-        ``gim`` (PSP), ``tim`` (PlayStation TIM), ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant
+        ``gim`` (PSP), ``tim`` (PlayStation TIM), ``tim2`` (PS2 / PSP TIM2),
+        ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant
         Story pictures), ``pcx``, ``m2`` (M2 PSB pictures), ``raw`` or ``tiles`` (GBA / DS character tiles)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``

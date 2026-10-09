@@ -8,7 +8,7 @@ are not stored.
 
 Params: ``texture`` (the texture format, default ``tpl``), ``image`` (index of the image in the file,
 default 0), ``cell`` (``[width, height]``), ``chars`` (the characters of the cells, row by row; a cell
-past the end has no character) or ``first_code`` (cell i is character ``first_code + i``), optional ``columns`` (default: image width // cell width) and
+past the end, or marked "\\0", has no character) or ``first_code`` (cell i is character ``first_code + i``), optional ``columns`` (default: image width // cell width) and
 ``texture_params`` (passed to the texture format).
 """
 from __future__ import annotations
@@ -38,7 +38,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
         chars = str(params["chars"])[:count]
     else:
         chars = "".join(chr(_int(params.get("first_code", 0x20)) + glyph) for glyph in range(count))
-    pairs = [(char_code(char), glyph) for glyph, char in enumerate(chars)]
+    pairs = [(char_code(char), glyph) for glyph, char in enumerate(chars) if char != "\0"]
     metadata = {
         "header": {"signature": "Texture grid font", "num_chunks": 4},
         "INF1": [{"encoding": 0, "ascent": height, "descent": 0, "width": width, "leading": height,

@@ -1,0 +1,656 @@
+[
+ {
+  "label": "Remake title logo: Castlevania",
+  "kind": "title_screen",
+  "format": "gim",
+  "path": "remake/pictures/en_opening/*_castle.gim"
+ },
+ {
+  "label": "Remake title logo: The Dracula X Chronicles",
+  "kind": "title_screen",
+  "format": "gim",
+  "path": "remake/pictures/en_opening/*_chronic.gim"
+ },
+ {
+  "label": "Title screen and options (PRESS START, key config, sound test, copyright)",
+  "kind": "title_screen",
+  "format": "gim",
+  "path": "remake/pictures/en_opening/*.gim"
+ },
+ {
+  "label": "Main menu, stage select, music titles, boss rush",
+  "kind": "menu_label",
+  "format": "gim",
+  "path": "remake/pictures/en_title/*.gim"
+ },
+ {
+  "label": "In game: stage clear, game over, pause, help, save notices, name entry letters",
+  "kind": "menu_label",
+  "format": "gim",
+  "path": "remake/pictures/en_gl_pack/*.gim"
+ },
+ {
+  "label": "Ending and staff roll",
+  "kind": "menu_label",
+  "format": "gim",
+  "path": "remake/pictures/en_ending/*.gim"
+ },
+ {
+  "label": "Ad hoc (network) menus",
+  "kind": "menu_label",
+  "format": "gim",
+  "path": "remake/pictures/en_net/*.gim"
+ },
+ {
+  "label": "Opening movie subtitles",
+  "kind": "menu_label",
+  "format": "gim",
+  "path": "remake/pictures/en_moviestr_*/*.gim"
+ },
+ {
+  "label": "Stage names",
+  "kind": "area_card",
+  "format": "gim",
+  "path": "remake/pictures/st_pack_*/*_stage*.gim"
+ },
+ {
+  "label": "Speaker names in the dialogue window",
+  "kind": "menu_label",
+  "format": "gim",
+  "path": "remake/pictures/st_pack_*/*_msname.gim"
+ },
+ {
+  "label": "Signs and speech in the stages",
+  "kind": "menu_label",
+  "format": "gim",
+  "path": "remake/pictures/st_pack_*/*_o06_msg.gim"
+ },
+ {
+  "label": "Signs and speech in the stages",
+  "kind": "menu_label",
+  "format": "gim",
+  "path": "remake/pictures/st_pack_*/*_sh186.gim"
+ },
+ {
+  "label": "SotN: title logo (Castlevania: Symphony of the Night)",
+  "kind": "title_screen",
+  "format": "raw",
+  "path": "sotn/hdbin/f_title0.bin.pic",
+  "params": {
+   "pixel_format": "psx:8bpp",
+   "width": 64,
+   "height": 128,
+   "textures": [
+    {
+     "name": "block 16",
+     "offset": "0x20000"
+    },
+    {
+     "name": "block 17",
+     "offset": "0x22000"
+    },
+    {
+     "name": "block 18",
+     "offset": "0x24000"
+    },
+    {
+     "name": "block 19",
+     "offset": "0x26000"
+    },
+    {
+     "name": "block 20",
+     "offset": "0x28000"
+    },
+    {
+     "name": "block 21",
+     "offset": "0x2a000"
+    },
+    {
+     "name": "block 22",
+     "offset": "0x2c000"
+    },
+    {
+     "name": "block 23",
+     "offset": "0x2e000"
+    },
+    {
+     "name": "block 24",
+     "offset": "0x30000"
+    },
+    {
+     "name": "block 25",
+     "offset": "0x32000"
+    },
+    {
+     "name": "block 26",
+     "offset": "0x34000"
+    },
+    {
+     "name": "block 27",
+     "offset": "0x36000"
+    },
+    {
+     "name": "block 28",
+     "offset": "0x38000"
+    },
+    {
+     "name": "block 29",
+     "offset": "0x3a000"
+    },
+    {
+     "name": "block 30",
+     "offset": "0x3c000"
+    },
+    {
+     "name": "block 31",
+     "offset": "0x3e000"
+    }
+   ]
+  }
+ },
+ {
+  "label": "SotN: title screen (PRESS START, copyright, prologue captions)",
+  "kind": "title_screen",
+  "format": "raw",
+  "path": "sotn/hdbin/f_title1.bin.pic",
+  "params": {
+   "pixel_format": "psx:4bpp",
+   "width": 128,
+   "height": 128,
+   "textures": [
+    {
+     "name": "block 0",
+     "offset": "0x0"
+    },
+    {
+     "name": "block 1",
+     "offset": "0x2000"
+    },
+    {
+     "name": "block 2",
+     "offset": "0x4000"
+    },
+    {
+     "name": "block 3",
+     "offset": "0x6000"
+    },
+    {
+     "name": "block 4",
+     "offset": "0x8000"
+    },
+    {
+     "name": "block 5",
+     "offset": "0xa000"
+    },
+    {
+     "name": "block 6",
+     "offset": "0xc000"
+    },
+    {
+     "name": "block 7",
+     "offset": "0xe000"
+    },
+    {
+     "name": "block 8",
+     "offset": "0x10000"
+    },
+    {
+     "name": "block 9",
+     "offset": "0x12000"
+    },
+    {
+     "name": "block 10",
+     "offset": "0x14000"
+    },
+    {
+     "name": "block 11",
+     "offset": "0x16000"
+    },
+    {
+     "name": "block 12",
+     "offset": "0x18000"
+    },
+    {
+     "name": "block 13",
+     "offset": "0x1a000"
+    },
+    {
+     "name": "block 14",
+     "offset": "0x1c000"
+    },
+    {
+     "name": "block 15",
+     "offset": "0x1e000"
+    },
+    {
+     "name": "block 16",
+     "offset": "0x20000"
+    },
+    {
+     "name": "block 17",
+     "offset": "0x22000"
+    },
+    {
+     "name": "block 18",
+     "offset": "0x24000"
+    },
+    {
+     "name": "block 19",
+     "offset": "0x26000"
+    },
+    {
+     "name": "block 20",
+     "offset": "0x28000"
+    },
+    {
+     "name": "block 21",
+     "offset": "0x2a000"
+    },
+    {
+     "name": "block 22",
+     "offset": "0x2c000"
+    },
+    {
+     "name": "block 23",
+     "offset": "0x2e000"
+    },
+    {
+     "name": "block 24",
+     "offset": "0x30000"
+    },
+    {
+     "name": "block 25",
+     "offset": "0x32000"
+    },
+    {
+     "name": "block 26",
+     "offset": "0x34000"
+    },
+    {
+     "name": "block 27",
+     "offset": "0x36000"
+    },
+    {
+     "name": "block 28",
+     "offset": "0x38000"
+    },
+    {
+     "name": "block 29",
+     "offset": "0x3a000"
+    },
+    {
+     "name": "block 30",
+     "offset": "0x3c000"
+    },
+    {
+     "name": "block 31",
+     "offset": "0x3e000"
+    }
+   ]
+  }
+ },
+ {
+  "label": "SotN: prologue CASTLEVANIA letters",
+  "kind": "title_screen",
+  "format": "raw",
+  "path": "sotn/hdbin/f_prolo0.bin.pic",
+  "params": {
+   "pixel_format": "psx:4bpp",
+   "width": 128,
+   "height": 128,
+   "textures": [
+    {
+     "name": "block 0",
+     "offset": "0x0"
+    },
+    {
+     "name": "block 1",
+     "offset": "0x2000"
+    },
+    {
+     "name": "block 2",
+     "offset": "0x4000"
+    },
+    {
+     "name": "block 3",
+     "offset": "0x6000"
+    },
+    {
+     "name": "block 4",
+     "offset": "0x8000"
+    },
+    {
+     "name": "block 5",
+     "offset": "0xa000"
+    },
+    {
+     "name": "block 6",
+     "offset": "0xc000"
+    },
+    {
+     "name": "block 7",
+     "offset": "0xe000"
+    },
+    {
+     "name": "block 8",
+     "offset": "0x10000"
+    },
+    {
+     "name": "block 9",
+     "offset": "0x12000"
+    },
+    {
+     "name": "block 10",
+     "offset": "0x14000"
+    },
+    {
+     "name": "block 11",
+     "offset": "0x16000"
+    },
+    {
+     "name": "block 12",
+     "offset": "0x18000"
+    },
+    {
+     "name": "block 13",
+     "offset": "0x1a000"
+    },
+    {
+     "name": "block 14",
+     "offset": "0x1c000"
+    },
+    {
+     "name": "block 15",
+     "offset": "0x1e000"
+    }
+   ]
+  }
+ },
+ {
+  "label": "SotN: HUD words, Now Loading",
+  "kind": "hud",
+  "format": "raw",
+  "path": "sotn/hdbin/f_game.bin.pic",
+  "params": {
+   "pixel_format": "psx:4bpp",
+   "width": 128,
+   "height": 128,
+   "textures": [
+    {
+     "name": "block 8",
+     "offset": "0x10000"
+    },
+    {
+     "name": "block 9",
+     "offset": "0x12000"
+    },
+    {
+     "name": "block 10",
+     "offset": "0x14000"
+    },
+    {
+     "name": "block 11",
+     "offset": "0x16000"
+    }
+   ]
+  }
+ },
+ {
+  "label": "SotN: HUD words, Now Loading",
+  "kind": "hud",
+  "format": "raw",
+  "path": "sotn/hdbin/f_game2.bin.pic",
+  "params": {
+   "pixel_format": "psx:4bpp",
+   "width": 128,
+   "height": 128,
+   "textures": [
+    {
+     "name": "block 8",
+     "offset": "0x10000"
+    },
+    {
+     "name": "block 9",
+     "offset": "0x12000"
+    },
+    {
+     "name": "block 10",
+     "offset": "0x14000"
+    },
+    {
+     "name": "block 11",
+     "offset": "0x16000"
+    }
+   ]
+  }
+ },
+ {
+  "label": "SotN: small logo (pause and save screens)",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "sotn/hdbin/f_game.bin.pic",
+  "params": {
+   "pixel_format": "psx:CI8",
+   "width": 64,
+   "height": 128,
+   "textures": [
+    {
+     "name": "block 20",
+     "offset": "0x28000"
+    },
+    {
+     "name": "block 21",
+     "offset": "0x2a000"
+    },
+    {
+     "name": "block 22",
+     "offset": "0x2c000"
+    },
+    {
+     "name": "block 23",
+     "offset": "0x2e000"
+    }
+   ],
+   "tlut_offset": "0x41A00"
+  }
+ },
+ {
+  "label": "SotN: small logo (pause and save screens)",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "sotn/hdbin/f_game2.bin.pic",
+  "params": {
+   "pixel_format": "psx:CI8",
+   "width": 64,
+   "height": 128,
+   "textures": [
+    {
+     "name": "block 20",
+     "offset": "0x28000"
+    },
+    {
+     "name": "block 21",
+     "offset": "0x2a000"
+    },
+    {
+     "name": "block 22",
+     "offset": "0x2c000"
+    },
+    {
+     "name": "block 23",
+     "offset": "0x2e000"
+    }
+   ],
+   "tlut_offset": "0x41A00"
+  }
+ },
+ {
+  "label": "SotN: GAME OVER letters",
+  "kind": "title_screen",
+  "format": "raw",
+  "path": "sotn/hdbin/f_go.bin.pic",
+  "params": {
+   "pixel_format": "psx:4bpp",
+   "width": 128,
+   "height": 256,
+   "offset": 0
+  }
+ },
+ {
+  "label": "SotN: file select menu words and name entry letters",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "sotn/hdbin/f_sel.bin.pic",
+  "params": {
+   "pixel_format": "psx:4bpp",
+   "width": 128,
+   "height": 128,
+   "textures": [
+    {
+     "name": "block 0",
+     "offset": "0x0"
+    },
+    {
+     "name": "block 1",
+     "offset": "0x2000"
+    },
+    {
+     "name": "block 2",
+     "offset": "0x4000"
+    },
+    {
+     "name": "block 3",
+     "offset": "0x6000"
+    },
+    {
+     "name": "block 4",
+     "offset": "0x8000"
+    },
+    {
+     "name": "block 5",
+     "offset": "0xa000"
+    },
+    {
+     "name": "block 6",
+     "offset": "0xc000"
+    },
+    {
+     "name": "block 7",
+     "offset": "0xe000"
+    },
+    {
+     "name": "block 8",
+     "offset": "0x10000"
+    },
+    {
+     "name": "block 9",
+     "offset": "0x12000"
+    },
+    {
+     "name": "block 10",
+     "offset": "0x14000"
+    },
+    {
+     "name": "block 11",
+     "offset": "0x16000"
+    },
+    {
+     "name": "block 12",
+     "offset": "0x18000"
+    },
+    {
+     "name": "block 13",
+     "offset": "0x1a000"
+    },
+    {
+     "name": "block 14",
+     "offset": "0x1c000"
+    },
+    {
+     "name": "block 15",
+     "offset": "0x1e000"
+    },
+    {
+     "name": "block 16",
+     "offset": "0x20000"
+    },
+    {
+     "name": "block 17",
+     "offset": "0x22000"
+    },
+    {
+     "name": "block 18",
+     "offset": "0x24000"
+    },
+    {
+     "name": "block 19",
+     "offset": "0x26000"
+    },
+    {
+     "name": "block 20",
+     "offset": "0x28000"
+    },
+    {
+     "name": "block 21",
+     "offset": "0x2a000"
+    },
+    {
+     "name": "block 22",
+     "offset": "0x2c000"
+    },
+    {
+     "name": "block 23",
+     "offset": "0x2e000"
+    }
+   ]
+  }
+ },
+ {
+  "label": "SotN: save notice",
+  "kind": "menu_label",
+  "format": "tim2",
+  "path": "sotn/save00.tm2"
+ },
+ {
+  "label": "SotN: save notice",
+  "kind": "menu_label",
+  "format": "tim2",
+  "path": "sotn/ms_en_save00.tm2"
+ },
+ {
+  "label": "SotN: warning screen",
+  "kind": "title_screen",
+  "format": "tim",
+  "path": "sotn/WARNING.TIM.pic"
+ },
+ {
+  "label": "Rondo of Blood (PC Engine): menus, notices, logo, music and stage names, song titles",
+  "kind": "menu_label",
+  "format": "tim2",
+  "path": "pce/USA.BIN.pic"
+ },
+ {
+  "label": "Rondo of Blood (PC Engine): cutscene subtitles",
+  "kind": "menu_label",
+  "format": "tim2",
+  "path": "pce/eng/*.pic"
+ },
+ {
+  "label": "Rondo of Blood (PC Engine): Now Loading",
+  "kind": "hud",
+  "format": "tim2",
+  "path": "pce/PCE.ELF.pic"
+ },
+ {
+  "label": "Akumajo Dracula Peke: menus and save notice",
+  "kind": "menu_label",
+  "format": "tim2",
+  "path": "peke/RESOUCE_USA.BIN.pic"
+ },
+ {
+  "label": "Akumajo Dracula Peke: Now Loading",
+  "kind": "hud",
+  "format": "tim2",
+  "path": "peke/PEKE.ELF.pic"
+ }
+]
