@@ -42,6 +42,12 @@ the line when it is done or moved into a plan.
 - The workspace LZO packs about 3 % worse than Retro's: a package whose edited resources no longer fit gets the English text of unchanged tables as every language, biggest saving first; the disc has only 232 MB free, so a world package of Prime 3 (up to 743 MB) can never move.
 - Seen in Dolphin only for the menu (STRG version 3); shared-language tables of Prime 1 (version 0) and Prime 2 (version 1) are checked by machine, not in the game.
 
+## Pokémon Sword/Shield + Legends: Arceus (`plugins/pokemon_nx`, 2026-10-09)
+
+- Not opened: Legends: Arceus `bin/archive/appli/battle_menu_eng.gfpak` and `resident_hud_arc01_eng.gfpak` (GFPAK, Oodle-compressed; no Oodle decoder on this machine), the `grammar/*.dat` and `sort_string` tables (binary, not text), strings in `main`.
+- The donor glyphs of `translation_map.json` (Э э Ъ ъ for Є є Ґ ґ) are not redrawn yet; the bitmap fonts (`bmp/*.bffnt`) have no Cyrillic at all (free cells: 25-181 per font, `font_fs_150_bold_00` opens with 2 spare sheets).
+- Eden stops on a white screen after the new-game photo select in Sword (with the fonts unchanged too, so not the font edit); the title screen logos are checked by machine only.
+
 ## Textures window (`core/texture_formats`, 2026-10-04)
 
 - ASTC decoding is pure Python: Origami King's 8640x8640 ASTC 10x10 sea chart (`ui/event/W4G1_Charts`) takes ~2.5 min to

@@ -322,6 +322,14 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `font\*.bffnt` (12 fonts) and `ui\...\*.bntx`; a picture the game keeps once per language opens as its
      English copy `*.bfres.en.bntx` and `2_build.bat` writes it into both English versions (en-GB, en-US).
      Tags come from this game's `msg.msbp` (`{Font:4}`…`{Font:-1}` switches the font).
+   - `pokemon_nx` — Pokémon Sword/Shield (with both DLC) and Pokémon Legends: Arceus (Switch). **Source:** the
+     workspace's `source` (`1_unpack.bat`: base + newest update): `bin\message\English\common` and `script`
+     `*.dat` (one block per file; the `.tbl` next to it names each line), `bin\font` (`.BFOTF`, `bmp\*.bffnt`)
+     and `bin\appli\*\bin\*_eng.arc` (English layout pictures). Tags: `[VAR XXXX(...)]` game commands
+     (`[VAR BE01]` next text box, `[VAR FF00(n)]` colour, `[VAR 0100(n)]` an inserted name) and `[XXXX]` icons.
+     The text fonts lack Ґ Є І Ї ґ є і ї: `translation_map.json` writes І і Ї ї as Latin I i Ï ï and Є є Ґ ґ as
+     Э э Ъ ъ, whose glyphs are redrawn in the Font Editor. Sword and Shield share one romfs: `2_build.bat` writes
+     the mod for both title ids.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
