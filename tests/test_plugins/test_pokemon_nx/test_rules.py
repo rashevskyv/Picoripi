@@ -1,5 +1,7 @@
 """Pokémon Sword/Shield + Legends: Arceus plugin: the shared gfmsg codec, translation map; real-data round trips."""
 import json
+import importlib
+import sys
 import struct
 from pathlib import Path
 
@@ -130,7 +132,7 @@ def test_every_english_layout_texture_writes_back_and_a_logo_edit_lands_in_the_a
     entries = json.loads((PLUGIN_DIR / "texture_sources.json").read_text(encoding="utf-8"))
     found = texture_sources.resolve(entries, {"source_path": str(source), "translation_path": str(tmp_path),
                                               "is_directory_mode": True})
-    assert len(found) == {"Sword and Shield": 1250, "Legends Arceus": 211}[game]
+    assert len(found) == {"Sword and Shield": 1250, "Legends Arceus": 211 + 239}[game]
     assert all("not supported" not in item.pixel_format for item in found)
     for item in found[::25]:
         assert not item.write(item.read_current().image)            # an unchanged picture writes nothing
@@ -142,3 +144,30 @@ def test_every_english_layout_texture_writes_back_and_a_logo_edit_lands_in_the_a
     changed = [name for name in original.files if edited.files[name] != original.files[name]]
     assert changed == [n for n in original.files if n.endswith(".bntx")]
     assert logo.read_current().image.getpixel((8, 8)) != logo.read_original().image.getpixel((8, 8))
+
+
+SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+
+
+def test_legends_arceus_gfpak_packs_rebuild_byte_exact_and_take_an_edited_layout():
+    """1_unpack puts the files of bin/archive/appli/*_eng.gfpak (Oodle) in <pack>.d; 2_build packs a changed one back."""
+    source = _need("Legends Arceus")
+    if not (SCRIPTS / "zt" / "pokemon_nx.py").is_file():
+        pytest.skip("workspace scripts not found")
+    sys.path.insert(0, str(SCRIPTS))
+    try:
+        nx = importlib.import_module("zt.pokemon_nx")
+    finally:
+        sys.path.remove(str(SCRIPTS))
+    packs = sorted((source / "bin" / "archive" / "appli").glob("*_eng.gfpak"))
+    assert len(packs) == 2
+    for pack in packs:
+        data = pack.read_bytes()
+        files = nx.gfpak_read(data)
+        assert nx.gfpak_write(data, {}) == data
+        unpacked = sorted(pack.with_name(pack.name + ".d").iterdir())
+        assert [p.read_bytes() for p in unpacked] == files
+        index = next(i for i, raw in enumerate(files) if raw[:4] == b"SARC")
+        edited = files[index][:-1] + bytes([files[index][-1] ^ 0xFF])
+        back = nx.gfpak_read(nx.gfpak_write(data, {index: edited}))
+        assert back[index] == edited and back[:index] + back[index + 1:] == files[:index] + files[index + 1:]

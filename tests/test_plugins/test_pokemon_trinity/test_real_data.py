@@ -106,3 +106,15 @@ def test_the_patched_index_drops_exactly_the_changed_files(key):
     assert len(patched) == len(original)
     left = trinity._Fb(patched).u64s(trinity._Fb(patched).root(), 0)
     assert left == sorted(left) and not hashes & set(left) and len(set(left) ^ known) == 2 * len(hashes)
+
+
+@pytest.mark.parametrize("key", list(GAMES))
+def test_every_english_layout_has_the_base_layout_the_build_also_writes(key):
+    """The game reads X_eng.arc only from its pack; 2_build writes a changed one as X.arc too (seen in Eden)."""
+    ws, _text, *_rest, layouts, _count = _game(key)
+    trinity = _trinity()
+    index = trinity._Fb(next((ws / "romfs").glob("*/arc/data.trpfd")).read_bytes())
+    known = set(index.u64s(index.root(), 0))
+    rels = [p.relative_to(ws / "source").as_posix() for p in sorted((ws / "source").glob(layouts))]
+    assert rels and trinity.base_layout("a/b_00_eng.arc") == ["a/b_00.arc"] and trinity.base_layout("a/b.dat") == []
+    assert all(trinity.fnv(base) in known for rel in rels for base in trinity.base_layout(rel))

@@ -4,5 +4,6 @@
   {"label": "Opening logo (Pokémon Sword)", "kind": "title_screen", "format": "bntx", "path": "bin/appli/titledemo/bin/titledemo_k_00_eng.arc", "member": "*.bntx", "params": {"texture": "grptext_*"}},
   {"label": "Opening logo (Pokémon Shield)", "kind": "title_screen", "format": "bntx", "path": "bin/appli/titledemo/bin/titledemo_t_00_eng.arc", "member": "*.bntx", "params": {"texture": "grptext_*"}},
   {"label": "Title screen logo (Legends: Arceus)", "kind": "title_screen", "format": "bntx", "path": "bin/appli/title_demo/bin/title_demo_0[01]_eng.arc", "member": "*.bntx", "params": {"texture": "grptxt_*"}},
-  {"label": "English menu, battle and screen pictures", "kind": "ui", "format": "bntx", "path": "bin/appli/*/bin/*_eng.arc", "member": "*.bntx"}
+  {"label": "English menu, battle and screen pictures", "kind": "ui", "format": "bntx", "path": "bin/appli/*/bin/*_eng.arc", "member": "*.bntx"},
+  {"label": "Legends: Arceus: English battle and HUD pictures (gfpak)", "kind": "ui", "format": "bntx", "path": "bin/archive/appli/*_eng.gfpak.d/*.arc", "member": "*.bntx"}
 ]
