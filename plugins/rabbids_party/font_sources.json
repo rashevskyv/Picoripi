@@ -1,0 +1,23 @@
+[
+  {"label": "Menu: Wii system font (wbf1.brfna)", "format": "brfna", "path": "files/fonts/wbf1.brfna"},
+  {"label": "Menu: Wii system font 2 (wbf2.brfna)", "format": "brfna", "path": "files/fonts/wbf2.brfna"},
+  {"label": "HOME Menu font (Wii)", "format": "brfnt", "path": "files/HomeButton2/homeBtn_ENG.arc/arc/font/*.brfnt"},
+  {"label": "Rabbids 2: disc error font (err_msg)", "format": "rrr_errfont", "path": "files/rrr2/misc/err_msg.fnt", "companion": "files/rrr2/misc/err_msg_8bits.tex"},
+  {"label": "Rabbids 1: font 1E003FF4 (51 glyphs, 256x256)", "format": "jade", "path": "rrr1.bf/fonts/1e003ff4_1e003ff2.jfnt"},
+  {"label": "Rabbids 1: font 20009E95 (178 glyphs, 512x256)", "format": "jade", "path": "rrr1.bf/fonts/20009e95_20009ea2.jfnt"},
+  {"label": "Rabbids 1: font 20009EAE (178 glyphs, 512x256)", "format": "jade", "path": "rrr1.bf/fonts/20009eae_20009eac.jfnt"},
+  {"label": "Rabbids 1: font 20009EB2 (206 glyphs, 256x256)", "format": "jade", "path": "rrr1.bf/fonts/20009eb2_20009eb0.jfnt"},
+  {"label": "Rabbids 1: font 5E0000A4 (62 glyphs, 256x256)", "format": "jade", "path": "rrr1.bf/fonts/5e0000a4_5e00009e.jfnt"},
+  {"label": "Rabbids 2: font 1E003FF4 (51 glyphs, 256x256)", "format": "jade", "path": "rrr2.bf/fonts/1e003ff4_1e003ff2.jfnt"},
+  {"label": "Rabbids 2: font 20009E95 (178 glyphs, 512x256)", "format": "jade", "path": "rrr2.bf/fonts/20009e95_20009ea2.jfnt"},
+  {"label": "Rabbids 2: font 20009EAE (179 glyphs, 512x256)", "format": "jade", "path": "rrr2.bf/fonts/20009eae_20009eac.jfnt"},
+  {"label": "Rabbids 2: font 20009EB2 (206 glyphs, 256x256)", "format": "jade", "path": "rrr2.bf/fonts/20009eb2_20009eb0.jfnt"},
+  {"label": "Rabbids 2: font 440008A7 (138 glyphs, 512x512)", "format": "jade", "path": "rrr2.bf/fonts/440008a7_440008a5.jfnt"},
+  {"label": "Rabbids 2: font 44000A5E (13 glyphs, 512x256)", "format": "jade", "path": "rrr2.bf/fonts/44000a5e_44000a4e.jfnt"},
+  {"label": "Rabbids 2: font 44000B49 (51 glyphs, 256x256)", "format": "jade", "path": "rrr2.bf/fonts/44000b49_91000866.jfnt"},
+  {"label": "Rabbids 2: font 4C000F34 (37 glyphs, 512x256)", "format": "jade", "path": "rrr2.bf/fonts/4c000f34_4c000f31.jfnt"},
+  {"label": "Rabbids 2: font 4C001280 (22 glyphs, 512x512)", "format": "jade", "path": "rrr2.bf/fonts/4c001280_4c00127e.jfnt"},
+  {"label": "Rabbids 2: font 4C001285 (179 glyphs, 512x512)", "format": "jade", "path": "rrr2.bf/fonts/4c001285_4c001283.jfnt"},
+  {"label": "Rabbids 2: font 5E0000A4 (62 glyphs, 256x256)", "format": "jade", "path": "rrr2.bf/fonts/5e0000a4_5e00009e.jfnt"},
+  {"label": "Rabbids 2: font 91000C25 (10 glyphs, 64x64)", "format": "jade", "path": "rrr2.bf/fonts/91000c25_91000c23.jfnt"}
+]

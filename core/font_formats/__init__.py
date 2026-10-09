@@ -32,14 +32,15 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import (bcfnt, bffnt, bfotf, g1n, g1t, g4font, gba_tiles, gzf, lunar, m2, mgs, mgs1, mgs1_hd, n64,
-                                   nftr, pgf, policenauts, qbf, retro_font, retro_font_gx, texture_grid, twewy, vagrant, xf, zelda3)
+    from core.font_formats import (bcfnt, bffnt, bfotf, brfna, g1n, g1t, g4font, gba_tiles, gzf, jade, lunar, m2, mgs,
+                                   mgs1, mgs1_hd, n64, nftr, pgf, policenauts, qbf, retro_font, retro_font_gx,
+                                   rrr_errfont, texture_grid, twewy, vagrant, xf, zelda3)
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
             "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
             "texture_grid": texture_grid, "zelda3": zelda3, "mgs1": mgs1, "mgs1_hd": mgs1_hd, "m2": m2,
-            "lunar": lunar, "g4font": g4font}
+            "lunar": lunar, "g4font": g4font, "jade": jade, "brfna": brfna, "rrr_errfont": rrr_errfont}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -58,11 +59,16 @@ def detect(data: bytes) -> Optional[str]:
     """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
     BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font), ``bffnt_wiiu``
     (Wii U BFFNT, big endian), ``brfnt`` (Wii RFNT), ``nftr`` (DS NFTR), ``xf`` (Level-5 XPCK font),
-    ``vagrant`` (Vagrant Story), ``retro_font`` (Metroid Prime 4 FONT bundle), ``pgf`` (PSP) or None."""
+    ``vagrant`` (Vagrant Story), ``retro_font`` (Metroid Prime 4 FONT bundle), ``pgf`` (PSP), ``jade`` (Jade
+    FONTDESC + texture, Rayman Raving Rabbids), ``brfna`` (Wii archived RFNA) or None."""
     from core.font_formats import bfotf
     head = bytes(data[:8])
     if head[4:8] == b"PGF0":
         return "pgf"
+    if bytes(data[4:12]) == b"FONTDESC":
+        return "jade"
+    if head[:6] == b"RFNA\xfe\xff":
+        return "brfna"
     if head[:4] == b"RFRM" and bytes(data[20:24]) == b"FONT":
         return "retro_font"
     if head[:4] in (b"QBF1", b"GZFX"):
