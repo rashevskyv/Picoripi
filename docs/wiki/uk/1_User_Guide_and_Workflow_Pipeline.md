@@ -569,6 +569,13 @@ tokens: 32.8k
      `arc\data.trpfd`, який більше не відсилає гру до запакованих оригіналів (змінений англійський макет
      `X_eng.arc` іде в мод ще й як `X.arc`: мовні макети гра бере лише зі своїх паків); Scarlet і Violet мають один проєкт
      і однаковий мод.
+   - `wii_sysfont` — системні растрові шрифти Wii `wbf1.brfna` / `wbf2.brfna` (архівні шрифти NW4R системного
+     меню; їхні копії лежать на дисках, які малюють ними підказки, наприклад Raving Rabbids: Party Collection).
+     **Source:** тека `source` робочої теки (`1_unpack.bat` бере шрифти з NAND Dolphin (`shared1`) або з копій на
+     диску Rabbids і готує українські літери: І і Ї ї отримують гліфи I i Ï ï, Є є Ґ ґ — порожні клітинки в
+     кінці аркуша ASCII); **Translation:** `translation`. Font Editor відкриває обидва шрифти (`brfna`);
+     `2_build.bat` пише шрифти для диска (`build\disc\fonts`) і, коли джерелом був NAND, спільний вміст для NAND
+     (`build\nand\shared1`).
    - `default_plugin` — Default Plugin Template
 4. Після відкриття відновлюється остання сесія (блок, рядок, undo, більшість фільтрів). **Show Unsaved Only** (дерево і список рядків) після перезапуску **завжди вимкнений** (`core/data_store.py`).
 5. `File → Close Project` вивантажує робочий простір. Picoripi при цьому не закривається.
