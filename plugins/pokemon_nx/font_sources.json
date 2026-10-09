@@ -1,0 +1,10 @@
+[
+  {"label": "Main text font (FOT-UDKakugoC80Pro-DB)", "format": "bfotf", "path": "bin/font/FOT-UDKakugoC80Pro-DB.BFOTF", "params": {"size": 40}},
+  {"label": "Second text font (FOT-RodinNTLGPro-DB)", "format": "bfotf", "path": "bin/font/FOT-RodinNTLGPro-DB.BFOTF", "params": {"size": 40}},
+  {"label": "Small extra font (or_font)", "format": "bfotf", "path": "bin/font/or_font.BFOTF", "params": {"size": 40}},
+  {"label": "Bitmap font 32 px (font_fs_32_00, Sword/Shield)", "format": "bffnt", "path": "bin/font/bmp/font_fs_32_00.bffnt"},
+  {"label": "Bitmap font 42 px (font_fs_42_00, Sword/Shield)", "format": "bffnt", "path": "bin/font/bmp/font_fs_42_00.bffnt"},
+  {"label": "Bitmap font 72 px (font_fs_72_00, Sword/Shield)", "format": "bffnt", "path": "bin/font/bmp/font_fs_72_00.bffnt"},
+  {"label": "Bitmap font 150 px bold (font_fs_150_bold_00, Sword/Shield)", "format": "bffnt", "path": "bin/font/bmp/font_fs_150_bold_00.bffnt", "params": {"min_sheets": 10}},
+  {"label": "Bitmap font 24 px bold (font_24_bold, Legends: Arceus)", "format": "bffnt", "path": "bin/font/bmp/font_24_bold.bffnt"}
+]

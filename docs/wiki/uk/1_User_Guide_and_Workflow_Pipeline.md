@@ -322,6 +322,14 @@ tokens: 23.8k
      `font\*.bffnt` (12 шрифтів) і `ui\...\*.bntx`; картинка, яку гра тримає окремо для кожної мови,
      відкривається як англійська копія `*.bfres.en.bntx`, а `2_build.bat` пише її в обидві англійські версії
      (en-GB, en-US). Теги — з `msg.msbp` цієї гри (`{Font:4}`…`{Font:-1}` перемикає шрифт).
+   - `pokemon_nx` — Pokémon Sword/Shield (з обома доповненнями) і Pokémon Legends: Arceus (Switch). **Source:**
+     тека `source` робочої теки (`1_unpack.bat`: гра + останнє оновлення): `bin\message\English\common` і
+     `script` `*.dat` (один блок на файл; `.tbl` поруч дає назву кожного рядка), `bin\font` (`.BFOTF`,
+     `bmp\*.bffnt`) і `bin\appli\*\bin\*_eng.arc` (англійські картинки меню). Теги: `[VAR XXXX(...)]` — команди
+     гри (`[VAR BE01]` наступне вікно тексту, `[VAR FF00(n)]` колір, `[VAR 0100(n)]` вставлене ім'я) і `[XXXX]` —
+     значки. У шрифтах тексту немає Ґ Є І Ї ґ є і ї: `translation_map.json` пише І і Ї ї як латинські I i Ï ï,
+     а Є є Ґ ґ — як Э э Ъ ъ, чиї гліфи перемальовують у Редакторі шрифтів. Sword і Shield мають спільний romfs:
+     `2_build.bat` пише мод для обох title id.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** тека `source` робочої теки,
      яку `1_unpack.bat` заповнює текстовими файлами диска за їхніми шляхами на диску: `EVENT\*.EVT`
      (катсцени), `MAP\*.MPD` (події кімнат), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
