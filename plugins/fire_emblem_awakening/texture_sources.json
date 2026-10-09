@@ -1,0 +1,15 @@
+[
+  {"label": "Title logo (upper and lower screen)", "kind": "title_screen", "format": "ctpk", "path": "romfs/ui/title_U.ctpk"},
+  {"label": "Press Start", "kind": "title_screen", "format": "ctpk", "path": "romfs/bs/press_U.tp"},
+  {"label": "Title telops (Fire Emblem / Awakening)", "kind": "title_screen", "format": "cgfx", "path": "romfs/telop/Tlp_Title_0*_U.r"},
+  {"label": "Phase, level up, mission, win / lose telops", "kind": "popup", "format": "cgfx", "path": "romfs/telop/Tlp_*_U.r"},
+  {"label": "Battle intro texts", "kind": "popup", "format": "ctpk", "path": "romfs/bs/*_U.tp"},
+  {"label": "Chapter title cards", "kind": "area_card", "format": "ctpk", "path": "romfs/chapter/title/U/*.ctpk"},
+  {"label": "Class names (class intro)", "kind": "hud", "format": "ctpk", "path": "romfs/jobintro/jobname_U.ctpk"},
+  {"label": "File menu, status, system, unit edit, tutorial, ending, movie recall", "kind": "menu", "format": "ctpk", "path": "romfs/ui/*_U.ctpk"},
+  {"label": "Game over", "kind": "popup", "format": "ctpk", "path": "romfs/ui/gameover.ctpk"},
+  {"label": "Tutorial pages", "kind": "help", "format": "ctpk", "path": "romfs/tut/U/*.ctpk"},
+  {"label": "Barracks (My Room)", "kind": "menu", "format": "ctpk", "path": "romfs/room/system_U.ctpk"},
+  {"label": "World map buttons and spots", "kind": "map", "format": "ctpk", "path": "romfs/gmap/gmap_U.ctpk"},
+  {"label": "Menu icons with words", "kind": "hud", "format": "ctpk", "path": "romfs/systems/icon_U.ctpk"}
+]

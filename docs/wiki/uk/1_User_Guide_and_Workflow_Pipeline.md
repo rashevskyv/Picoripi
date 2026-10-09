@@ -554,6 +554,21 @@ tokens: 32.8k
      `fragile_dreams`; японські гліфи лишаються як є); **Tools → Textures…** показує близько 2 800 картинок
      TPL (логотип, навчальні сторінки, меню, мапи, екрани безпеки, меню HOME, банер диска). `2_build.bat`
      знову стискає змінені файли.
+   - `fire_emblem_awakening` — Fire Emblem Awakening (3DS, Європа, англійський слот). **Source:** тека `source` робочої
+     теки (`1_unpack.bat` розшифровує .cia і розпаковує туди англійські файли): `romfs\m\U\*.bin` (854 архіви повідомлень
+     LZ11: сюжет і розмови підтримки, назви й описи бійців, класів, предметів, умінь, меню, навчання, текст DLC-розділів;
+     15 817 повідомлень), шість шрифтів-атласів `romfs\fonts\*.bfnt` (`fe13_bfnt`) та англійські картинки CTPK / CGFX з
+     текстом (`ui\*_U`, `bs\*_U`, `chapter\title\U`, `tut\U`, `telop\*_U.r`, логотип `ui\title_U.ctpk`). Керівні коди
+     лишаються в тексті (`$k`, `$Wmクロム|0`, `$E通常,|`…); мовець із `$Wm` / `$Ws` названий англійською з `GameData.bin`.
+     `2_build.bat` знову стискає змінені файли (LZ11 / LZ13) у мод Luma `romfs`.
+   - `smt_iv` — Shin Megami Tensei IV і IV: Apocalypse (3DS, Європа). **Source:** тека `source` робочої теки: усі
+     `romfs\**\*.mbm` (таблиці Atlus MSG2: події, квести, бій і розмови з демонами, меню, назви, описи), таблиці DLC у
+     `dlc\content_NN\romfs\`, `exefs\code.bin` (назви умінь, місць і меню всередині програми; пишуться на місці),
+     шрифти `romfs\font\*.bcfnt` з кодами Shift-JIS і текстури інтерфейсу STEX (`tex\stex\<тека>`, логотип
+     `title\rogo.stex`). Повноширинні літери гри показано як ASCII, керівні коди — як теги `{F8xx 0001}`; українські
+     літери отримують вільні коди Shift-JIS 0x8492–0x8499 (`core/font_formats/sjis.py`). `2_build.bat` пише змінені файли
+     (текстури `.cmp` Apocalypse знову стиснені) у мод Luma `romfs`; файли DLC ідуть під title id DLC (Azahar їх
+     застосовує; Luma на консолі DLC не латає).
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) і Pokémon Legends: Z-A

@@ -553,6 +553,21 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Ґ Є І Ї. The Font Editor opens all 14 FONT fonts (format `fragile_dreams`; Japanese glyphs are kept as
      they are); **Tools → Textures…** lists about 2,800 TPL pictures (title logo, tutorials, menus, maps,
      health and safety screens, HOME Menu, disc banner). `2_build.bat` compresses the changed files again.
+   - `fire_emblem_awakening` — Fire Emblem Awakening (3DS, EUR, English slot). **Source:** the workspace's `source` folder
+     (`1_unpack.bat` decrypts the .cia and decompresses the English files there): `romfs\m\U\*.bin` (854 LZ11 message
+     archives: story and support conversations, unit / class / item / skill names and descriptions, menus, tutorials, DLC
+     chapter text; 15,817 messages), the six `romfs\fonts\*.bfnt` atlas fonts (`fe13_bfnt`) and the English CTPK / CGFX
+     images with text (`ui\*_U`, `bs\*_U`, `chapter\title\U`, `tut\U`, `telop\*_U.r`, the title logo `ui\title_U.ctpk`).
+     Control codes stay in the text (`$k`, `$Wmクロム|0`, `$E通常,|`...); the speaker of `$Wm` / `$Ws` is named in English
+     from `GameData.bin`. `2_build.bat` compresses the changed files again (LZ11 / LZ13) into a Luma `romfs` mod.
+   - `smt_iv` — Shin Megami Tensei IV and IV: Apocalypse (3DS, EUR). **Source:** the workspace's `source` folder: every
+     `romfs\**\*.mbm` (Atlus MSG2 tables: events, quests, battle and demon talk, menus, names, descriptions), the DLC
+     tables under `dlc\content_NN\romfs\`, `exefs\code.bin` (skill, place and menu names inside the executable, edited in
+     place), the Shift-JIS keyed `romfs\font\*.bcfnt` fonts and the UI STEX textures (`tex\stex\<folder>`, the title logo
+     `title\rogo.stex`). The text shows the game's full-width letters as ASCII and its control codes as `{F8xx 0001}` tags;
+     Ukrainian letters get the free Shift-JIS codes 0x8492–0x8499 (`core/font_formats/sjis.py`). `2_build.bat` writes the
+     changed files (Apocalypse's `.cmp` textures compressed again) into a Luma `romfs` mod; the DLC's files go under the
+     DLC title id (Azahar applies them; Luma on a console does not patch DLC).
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) and Pokémon Legends: Z-A

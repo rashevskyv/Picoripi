@@ -251,7 +251,23 @@ def _info(data: bytes) -> Dict[str, Any]:
             "glyph_width": glyph_w, "char_width": char_w, "cwdh": cwdh - 8 if cwdh else 0,
             "cmap": cmap - 8 if cmap else 0, "finf": at, "cell_width": cell_w, "cell_height": cell_h,
             "baseline": baseline, "sheet_size": sheet_size, "sheets": sheets, "format": fmt & 0x7FFF,
-            "columns": columns, "rows": rows, "sheet_width": sheet_w, "sheet_height": sheet_h, "data": sheet_at}
+            "columns": columns, "rows": rows, "sheet_width": sheet_w, "sheet_height": sheet_h, "data": sheet_at,
+            "encoding": _enc}
+
+
+def _char(info: Dict[str, Any], code: int) -> str:
+    """The character of a CMAP code: a Shift-JIS font (FINF encoding 2, Atlus) decodes through ``sjis``."""
+    if info.get("encoding") == 2:
+        from core.font_formats import sjis
+        return sjis.decode(code)
+    return chr(code)
+
+
+def _code(info: Dict[str, Any], char: str) -> int:
+    if info.get("encoding") == 2:
+        from core.font_formats import sjis
+        return sjis.encode(char)
+    return ord(char)
 
 
 def _chain(data: bytes, at: int, magic: bytes, next_at: int) -> List[int]:
@@ -450,7 +466,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
         if glyph < count:
             packets[glyph] = {"kerning": -left, "width": advance}
             glyph_widths[glyph] = glyph_w
-    pairs = [(char_code(chr(code)), glyph) for code, glyph in _codes(_cmap_blocks(data, info)).items()
+    pairs = [(char_code(_char(info, code)), glyph) for code, glyph in _codes(_cmap_blocks(data, info)).items()
              if glyph < count]
     metadata = {
         "header": {"signature": bytes(data[:4]).decode("ascii"), "num_chunks": 4,
@@ -605,7 +621,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     existing = _codes(blocks)
     wanted: Dict[int, int] = {}
     for char, glyph in char_map(metadata).items():
-        wanted[ord(char)] = glyph
+        wanted[_code(info, char)] = glyph
     changed = [code for code, glyph in existing.items() if glyph < count and wanted.get(code) != glyph]
     if changed:
         raise ValueError("This font keeps the characters it has; changed or removed: "
