@@ -1,0 +1,182 @@
+[
+ {
+  "label": "Title: POKéMON logo",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/pokemon_logo.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Title: Red / Green Version (Red)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/red_version.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Title: Blue Version",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/blue_version.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Title: Japanese logo (unused in the USA game)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/pokemon_logo_japan.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Title: GAME FREAK inc.",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/title/gamefreak_inc.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Intro: copyright line",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/splash/copyright.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Intro: GAME FREAK PRESENTS",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/splash/gamefreak_presents.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Super Game Boy border (POKéMON + version)",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "gfx/sgb/*border.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Credits: THE END",
+  "kind": "ending",
+  "format": "png",
+  "path": "gfx/credits/the_end.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Battle: HP bar, status, Lv, No (font_battle_extra)",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/font/font_battle_extra.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Battle HUD: level marks",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/battle/battle_hud_*.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Naming screen: A / B",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/font/AB.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Naming screen: ED",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/font/ED.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Bold P",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/font/P.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Pokédex frame",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/pokedex/pokedex.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Trainer card: badge numbers",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/trainer_card/badge_numbers.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Slot machine: CREDIT PAY OUT",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/slots/*slots_1.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Diploma: CONGRATULATIONS!",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/diploma/diploma.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Game Boy Printer: HP, Lv, digits",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/printer/*.png",
+  "params": {
+   "levels": 4
+  }
+ },
+ {
+  "label": "Surfing Pikachu minigame: words and digits",
+  "kind": "menu_label",
+  "format": "png",
+  "path": "gfx/surfing_pikachu/*.png",
+  "params": {
+   "levels": 4
+  }
+ }
+]
