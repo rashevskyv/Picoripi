@@ -1,6 +1,6 @@
 [
-  {"label": "Menu: Wii system font (wbf1.brfna)", "format": "brfna", "path": "files/fonts/wbf1.brfna"},
-  {"label": "Menu: Wii system font 2 (wbf2.brfna)", "format": "brfna", "path": "files/fonts/wbf2.brfna"},
+  {"label": "Menu: Wii system font copy wbf1 (loaded by the launcher; not the A-button prompt)", "format": "brfna", "path": "files/fonts/wbf1.brfna"},
+  {"label": "Menu: Wii system font copy wbf2 (loaded by the launcher; not the A-button prompt)", "format": "brfna", "path": "files/fonts/wbf2.brfna"},
   {"label": "HOME Menu font (Wii)", "format": "brfnt", "path": "files/HomeButton2/homeBtn_ENG.arc/arc/font/*.brfnt"},
   {"label": "Rabbids 2: disc error font (err_msg)", "format": "rrr_errfont", "path": "files/rrr2/misc/err_msg.fnt", "companion": "files/rrr2/misc/err_msg_8bits.tex"},
   {"label": "Rabbids 1: font 1E003FF4 (51 glyphs, 256x256)", "format": "jade", "path": "rrr1.bf/fonts/1e003ff4_1e003ff2.jfnt"},

@@ -12,8 +12,12 @@ the line when it is done or moved into a plan.
 
 ## Raving Rabbids: Party Collection (`plugins/rabbids_party`, 2026-10-09)
 
-- TV Party menu pictures inside its Flash movies (CLIP texture keys such as `0x00029580`) were not found in any
-  world bin of `rrr3_bin_wii.bf`; the Textures window lists only the interface-world JTX textures.
+- TV Party's Flash movies hold no pictures: 0 bitmap tags and 0 bitmap fills in 31,720 shapes; the menus, logos
+  and the title logo are vector art (Dolphin uploads no texture for the title logo). Their `DefineExternalImage`
+  key pairs match no file on the disc (the per-movie `Flash_<id>.pk` sound packages are the only `Flash_` files).
+  A vector logo cannot be replaced by a PNG in the Textures window.
+- The TV Party static captions (`gfx` blocks) take only glyphs the movie's own font has (A-Z and a few symbols);
+  other letters need the translation map, like every other font of the game.
 - The menu prompt ("Press the A Button…") is drawn with a font that is not on the disc (a filled `e` in both
   `wbf1/wbf2.brfna` did not show there in Dolphin; they are the HOME Menu fonts): its Cyrillic needs a user
   decision (Latin letters or leave English).

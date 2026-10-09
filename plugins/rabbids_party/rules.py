@@ -25,7 +25,7 @@ from plugins.common.tag_manager import GenericTagManager
 from plugins.common.wii_home_menu import HomeCsv, is_home_csv
 from utils.logging_utils import log_warning
 
-from . import dol_text, jade_text, text_packages
+from . import dol_text, gfx_text, jade_text, text_packages
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 BLOCK = 100
@@ -79,7 +79,8 @@ class GameRules(BaseGameRules):
         return [FileFormat((".jtxt",), "bytes", "Rayman Raving Rabbids 1/2 text (Jade text lists)"),
                 FileFormat((".bin",), "bytes", "Rayman Raving Rabbids TV Party text (TextPackages.bin)"),
                 FileFormat((".dol",), "bytes", "Raving Rabbids executables (titles, disc messages)"),
-                FileFormat((".csv",), "bytes", "Wii HOME Menu messages")]
+                FileFormat((".csv",), "bytes", "Wii HOME Menu messages"),
+                FileFormat((".gfx",), "bytes", "Rayman Raving Rabbids TV Party Flash movie (static captions)")]
 
     @staticmethod
     def _kind_of(raw: bytes) -> Optional[str]:
@@ -87,6 +88,8 @@ class GameRules(BaseGameRules):
             return "home"
         if jade_text.is_jtxt(raw):
             return "jade"
+        if gfx_text.is_gfx(raw):
+            return "gfx"
         if dol_text.is_dol(raw):
             return "dol"
         if text_packages.is_text_packages(raw):
@@ -109,6 +112,9 @@ class GameRules(BaseGameRules):
             blocks = [english[i:i + BLOCK] for i in range(0, len(english), BLOCK)]
             return blocks, {str(i): f"Rows {i * BLOCK + 1}-{i * BLOCK + len(b)}" for i, b in enumerate(blocks)}
         shown = self._shown()
+        if self._kind == "gfx":
+            return [["".join(shown.get(ch, ch) for ch in text) for _i, _j, text in gfx_text.texts(raw)]], \
+                {"0": "Static captions"}
         if self._kind == "dol":
             return [dol_text.texts(raw, shown)], {"0": dol_text.name(raw)}
         if self._kind == "jade":
@@ -148,6 +154,15 @@ class GameRules(BaseGameRules):
                 was if i < len(old) and "".join(shown.get(ch, ch) for ch in was) == text
                 else "".join(self.translation_map.get(ch, ch) for ch in text) for i, (was, text) in
                 enumerate(zip(old + [""] * (len(new) - len(old)), new))])
+        if self._kind == "gfx":
+            captions = gfx_text.texts(base)
+            texts = [str(t) for block in data for t in block]
+            if len(texts) != len(captions):
+                raise ValueError(f"the movie has {len(captions)} captions, the project {len(texts)}")
+            shown = self._shown()
+            return gfx_text.build(base, {
+                (i, j): "".join(self.translation_map.get(ch, ch) for ch in text)
+                for (i, j, was), text in zip(captions, texts) if "".join(shown.get(ch, ch) for ch in was) != text})
         missing: Set[str] = set()
         if self._kind == "dol":
             out = dol_text.build(base, [str(t) for t in data[0]], self.translation_map, missing)

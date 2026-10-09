@@ -148,3 +148,69 @@ def test_every_listed_texture_path_resolves_and_a_menu_picture_round_trips(tmp_p
     data = (SOURCE / "files" / "M_RRR1_0.tpl").read_bytes()
     textures = texture_formats.read("tpl", data, {})
     assert texture_formats.write("tpl", data, {i: t.image for i, t in enumerate(textures)}, {}) == data
+
+
+def movie_with_caption(text: str) -> bytes:
+    """A GFX movie: one DefineFont3 (A-Z, layout advances) and one DefineText of ``text``."""
+    from core.font_formats import swf_font
+    from plugins.rabbids_party import gfx_text
+    shapes = [swf_font._rectangles_shape([(1000, -15000, 9000, 0)]) for _ in range(26)]
+    name = b"Caps\0"
+    font = struct.pack("<HBBB", 7, 0x8C, 1, len(name)) + name + struct.pack("<H", 26)
+    offsets, pos = [], (26 + 1) * 4
+    for s in shapes:
+        offsets.append(pos)
+        pos += len(s)
+    font += struct.pack("<26I", *offsets) + struct.pack("<I", pos) + b"".join(shapes)
+    font += struct.pack("<26H", *range(0x41, 0x5B)) + struct.pack("<HHh", 16000, 4000, 0) + struct.pack("<26h", *([10000] * 26))
+    font += b"".join(swf_font._rect_bytes(1000, 9000, -15000, 0) for _ in range(26)) + struct.pack("<H", 0)
+    glyphs = [(ord(c) - 0x41, 500) for c in text]
+    body = struct.pack("<H", 9) + swf_font._rect_bytes(0, 2000, 0, 400) + b"\x00" + bytes((5, 10))   # id, bounds, matrix
+    w = swf_font._Writer()
+    for g, adv in glyphs:
+        w.u(g, 5)
+        w.s(adv, 10)
+    body += b"\x08" + struct.pack("<HH", 7, 400) + bytes((len(glyphs),)) + w.bytes() + b"\0"
+    tags = struct.pack("<HI", (75 << 6) | 0x3F, len(font)) + font
+    tags += struct.pack("<HI", (11 << 6) | 0x3F, len(body)) + body + struct.pack("<H", 0)
+    movie_body = swf_font._rect_bytes(0, 100, 0, 100) + struct.pack("<HH", 30 << 8, 1) + tags
+    movie = b"GFX\x08" + struct.pack("<I", len(movie_body) + 8) + movie_body
+    assert gfx_text.texts(movie) == [(1, 0, text)]
+    return movie
+
+
+def test_flash_captions_decode_through_the_font_and_an_edit_is_encoded_back():
+    from plugins.rabbids_party import gfx_text
+    movie = movie_with_caption("NEXT")
+    assert gfx_text.build(movie, {(1, 0): "NEXT"}) == movie
+    rules = load_rules(PLUGIN)
+    blocks, names = rules.load_data_from_json_obj(movie)
+    assert blocks == [["NEXT"]] and names == {"0": "Static captions"}
+    assert rules.save_data_to_json_obj(blocks, names) == movie
+    blocks[0][0] = "GO ON"
+    saved = rules.save_data_to_json_obj(blocks, names)
+    assert gfx_text.texts(saved) == [(1, 0, "GOON")] and struct.unpack_from("<I", saved, 4)[0] == len(saved)
+    blocks[0][0] = "далі"
+    with pytest.raises(ValueError):
+        rules.save_data_to_json_obj(blocks, names)
+
+
+@real
+def test_the_real_flash_captions_round_trip_and_an_edit_lands():
+    from plugins.rabbids_party import gfx_text
+    movies = sorted((SOURCE / "rrr3_bin_wii.bf" / "flash").glob("*.gfx"))
+    assert len(movies) >= 9
+    captions = 0
+    for path in movies:
+        raw = path.read_bytes()
+        found = gfx_text.texts(raw)
+        captions += len(found)
+        assert gfx_text.build(raw, {(i, j): s for i, j, s in found}) == raw, path
+    assert captions >= 27
+    raw = (SOURCE / "rrr3_bin_wii.bf" / "flash" / "weatherV3.gfx").read_bytes()
+    rules = load_rules(PLUGIN)
+    blocks, names = rules.load_data_from_json_obj(raw)
+    assert "NEXT" in blocks[0] and "OK" in blocks[0]
+    blocks[0][blocks[0].index("NEXT")] = "UA NEXT"
+    saved = rules.save_data_to_json_obj(blocks, names)
+    assert "UANEXT" in [t for _i, _j, t in gfx_text.texts(saved)]

@@ -112,6 +112,9 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      The Font Editor opens the Jade fonts (`jade`), the menu's Wii archived fonts (`brfna`), TV Party's vector Flash
      fonts (`swf_font`), the Rabbids 2 disc error font and the HOME Menu font; the Textures window lists the menu
      pictures (`tpl`), the Jade menu-world textures (`jade`) and TV Party's interface textures (`jade_jtx`).
+     The few captions baked into TV Party's Flash movies (`flash\*.gfx`: "NEXT", "OK", "WARNING!" of the
+     minigame screens) are blocks too; a saved caption is encoded through the movie's own font, so it takes only
+     the letters that font has. The movies hold no pictures (the menus and logos are vector art).
      `2_build.bat` packs every change back (only the changed LZO blocks again, a grown file at the end of its
      bigfile) and writes it into the disc image.
    - `metroid_other_m` — Metroid: Other M (Wii, USA). **Source:** the workspace's `source` (`1_unpack.bat` puts
