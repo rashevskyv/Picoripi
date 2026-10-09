@@ -7,8 +7,9 @@ every 32-bit little-endian word XORed with the key (as Switch shared fonts are, 
 The editor model renders every mapped character with FreeType (PIL) at ``params["size"]`` pixels; the
 advance widths come from ``hmtx`` at that size. Packing an unedited model gives the original bytes. A
 changed width becomes the glyph's ``hmtx`` advance; a redrawn cell replaces the glyph's outline with its
-ink traced as squares, one rectangle per run of pixels (``core.font_formats.cff`` rebuilds the font). A
-drawn glyph is as blocky as its pixels: a test mark or a draft letter, not a finished outline.
+ink traced as squares, one rectangle per run of pixels (``core.font_formats.cff`` rebuilds the font): CFF
+charstrings in a .bfotf, a simple glyph in the ``glyf`` table of a TrueType .bfttf (Animal Crossing's text
+font). A drawn glyph is as blocky as its pixels: a test mark or a draft letter, not a finished outline.
 """
 from __future__ import annotations
 
@@ -222,12 +223,15 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         return bytes(original)
     plain, key = decrypt(original)
     font = OpenType(plain)
-    if "CFF " not in font.tables:
-        raise ValueError("Only OpenType fonts with CFF outlines (.bfotf) can be edited here, not TrueType (.bfttf)")
+    if "CFF " not in font.tables and "glyf" not in font.tables:
+        raise ValueError("The font has neither CFF nor TrueType outlines")
     scale = int(params.get("size") or DEFAULT_SIZE) / font.units_per_em
     glyph_ids = again["header"]["glyph_ids"]
-    at, length = font.tables["CFF "]
-    cff = cff_format.Cff(plain[at:at + length])
+    cff = None
+    if "CFF " in font.tables:
+        at, length = font.tables["CFF "]
+        cff = cff_format.Cff(plain[at:at + length])
+    outlines = {}
     hmtx = font.table("hmtx")
     metrics = {}
     for cell in resized:
@@ -240,9 +244,64 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         glyph = glyph_ids[cell]
         contours = _traced(coverage(drawn[sheet].crop(box)), baseline, scale)
         advance = round(new_widths[cell] / scale)
-        cff.charstrings[glyph] = cff_format.charstring(advance, cff.widths_x(glyph), contours)
+        if cff is not None:
+            cff.charstrings[glyph] = cff_format.charstring(advance, cff.widths_x(glyph), contours)
+        outlines[glyph] = contours
         metrics[glyph] = (advance, min((p[1][0] for contour in contours for p in contour), default=0))
-    return encrypt(cff_format.rebuild_font(plain, cff, font.cmap(), [], metrics), key)
+    replaced = _truetype_glyphs(plain, font, outlines) if cff is None else None
+    return encrypt(cff_format.rebuild_font(plain, cff, font.cmap(), [], metrics, replaced), key)
+
+
+def _simple_glyph(contours: List[list]) -> bytes:
+    """A TrueType simple glyph of straight contours (points on the curve, clockwise)."""
+    if not contours:
+        return b""
+    contours = [[point for _op, point in reversed(contour)] for contour in contours]
+    points = [point for contour in contours for point in contour]
+    xs, ys = [x for x, _y in points], [y for _x, y in points]
+    out = bytearray(struct.pack(">h4h", len(contours), min(xs), min(ys), max(xs), max(ys)))
+    end = -1
+    for contour in contours:
+        end += len(contour)
+        out += struct.pack(">H", end)
+    out += struct.pack(">H", 0) + b"\x01" * len(points)          # no instructions; every point on the curve
+    for values in (xs, ys):
+        last = 0
+        for value in values:
+            out += struct.pack(">h", value - last)
+            last = value
+    return bytes(out + b"\x00" * (-len(out) % 2))
+
+
+def _truetype_glyphs(plain: bytes, font: "OpenType", outlines: Dict[int, List[list]]) -> Dict[str, bytes]:
+    """New ``glyf`` / ``loca``, ``head`` and ``maxp`` with ``outlines`` replacing those glyphs.
+
+    The other glyphs keep their bytes, the font its glyph alignment and loca format (long when it no longer fits).
+    """
+    head = bytearray(plain[font.table("head"):font.table("head") + font.tables["head"][1]])
+    long_offsets = struct.unpack_from(">h", head, 50)[0] == 1
+    loca_at, glyf_at = font.table("loca"), font.table("glyf")
+    count = font.glyph_count
+    starts = (struct.unpack_from(f">{count + 1}I", plain, loca_at) if long_offsets
+              else [2 * v for v in struct.unpack_from(f">{count + 1}H", plain, loca_at)])
+    align = 4 if all(start % 4 == 0 for start in starts) else 2      # the font's own glyph alignment
+    glyf, offsets = bytearray(), []
+    for glyph in range(count):
+        offsets.append(len(glyf))
+        data = (_simple_glyph(outlines[glyph]) if glyph in outlines
+                else plain[glyf_at + starts[glyph]:glyf_at + starts[glyph + 1]])
+        glyf += data + b"\x00" * (-len(data) % align)
+    offsets.append(len(glyf))
+    long_offsets = long_offsets or len(glyf) >= 0x20000
+    struct.pack_into(">h", head, 50, 1 if long_offsets else 0)
+    loca = (struct.pack(f">{count + 1}I", *offsets) if long_offsets
+            else struct.pack(f">{count + 1}H", *(offset // 2 for offset in offsets)))
+    maxp = bytearray(plain[font.table("maxp"):font.table("maxp") + font.tables["maxp"][1]])
+    if len(maxp) >= 10:
+        points = max((sum(len(c) for c in contours) for contours in outlines.values()), default=0)
+        struct.pack_into(">HH", maxp, 6, max(struct.unpack_from(">H", maxp, 6)[0], points),
+                         max(struct.unpack_from(">H", maxp, 8)[0], max(map(len, outlines.values()), default=0)))
+    return {"glyf": bytes(glyf), "loca": loca, "head": bytes(head), "maxp": bytes(maxp)}
 
 
 def contact_sheet(data: bytes, size: int = 32, columns: int = 32, label: str = "") -> Image.Image:

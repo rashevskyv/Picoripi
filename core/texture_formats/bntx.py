@@ -6,8 +6,9 @@ layers and layout (block height log2 in the low bits) at 0x24, u64 name at 0x60,
 mip-level pointer table at 0x70. Offsets count from the start of the BNTX. A mip level shorter than
 a block uses smaller blocks (the block height halves once per such level).
 
-ASTC 4x4, 8x8, 10x10 and 12x12 read and write; BC6H and the other ASTC block sizes are listed but cannot be
-decoded yet.
+Every 2D ASTC block size reads and writes (Animal Crossing uses 4x4, 5x4, 5x5, 6x5, 6x6, 8x8 and 12x12); BC6H is
+listed but cannot be decoded yet. A Switch BFRES (``FRES``, a model) is read and written through the first BNTX embedded in it (its
+size at 0x1C of the BNTX): Animal Crossing's signs keep their English words there.
 """
 from __future__ import annotations
 
@@ -18,17 +19,25 @@ from PIL import Image
 
 from core.texture_formats import Texture, pixels, surface, tegra
 
-_ASTC = {0x2D + i: f"ASTC{w}x{h}" for i, (w, h) in enumerate(
-    ((4, 4), (5, 4), (5, 5), (6, 5), (6, 6), (8, 5), (8, 6), (8, 8), (10, 5), (10, 6), (10, 8), (10, 10),
-     (12, 10), (12, 12)))}
+_ASTC = {0x2D + i: f"ASTC{w}x{h}" for i, (w, h) in enumerate(pixels.ASTC_BLOCKS)}
 FORMATS = {0x02: "L8", 0x03: "RGBA4", 0x07: "RGB565", 0x09: "LA8", 0x0B: "RGBA8", 0x0C: "BGRA8", 0x1A: "BC1", 0x1B: "BC2",
            0x1C: "BC3", 0x1D: "BC4", 0x1E: "BC5", 0x20: "BC7",
-           **{fmt: name for fmt, name in _ASTC.items() if name in ("ASTC4x4", "ASTC8x8", "ASTC10x10", "ASTC12x12")}}
+           **_ASTC}
 _UNSUPPORTED = {0x1F: "BC6H", **{fmt: name for fmt, name in _ASTC.items() if fmt not in FORMATS}}
 
 
 def detect(data: bytes) -> bool:
     return data[:4] == b"BNTX"
+
+
+def _span(data: bytes):
+    """``(offset, size)`` of the BNTX: the whole data, or the one embedded in a BFRES."""
+    if data[:4] == b"FRES":
+        at = data.find(b"BNTX\x00\x00\x00\x00")
+        if at < 0:
+            raise ValueError("The BFRES holds no BNTX textures")
+        return at, struct.unpack_from("<I", data, at + 0x1C)[0]
+    return 0, len(data)
 
 
 def _textures(data: bytes) -> List[Dict[str, Any]]:
@@ -73,6 +82,8 @@ def _layouts(texture: Dict[str, Any], codec: pixels.Codec):
 
 
 def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
+    at, size = _span(data)
+    data = data[at:at + size]
     out = []
     for texture in _textures(data):
         fmt = texture["format"]
@@ -89,6 +100,10 @@ def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
 
 
 def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -> bytes:
+    start, size = _span(data)
+    if start or size != len(data):
+        inner = write(data[start:start + size], images, params)
+        return data[:start] + inner + data[start + size:]
     out = bytearray(data)
     textures = _textures(data)
     for index, image in images.items():

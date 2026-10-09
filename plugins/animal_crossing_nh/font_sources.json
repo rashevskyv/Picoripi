@@ -1,0 +1,5 @@
+[
+  {"label": "Text fonts (OpenType CFF)", "format": "bfotf", "path": "Font/ScalableFont.sarc.zs", "member": "*.bfotf", "params": {"size": 40}},
+  {"label": "Text fonts (TrueType)", "format": "bfotf", "path": "Font/ScalableFont.sarc.zs", "member": "*.bfttf", "params": {"size": 40}},
+  {"label": "Number fonts (bitmap)", "format": "bffnt", "path": "Font/BmpFont_US.sarc.zs", "member": "*.bffnt"}
+]

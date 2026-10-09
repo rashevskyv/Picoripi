@@ -203,7 +203,7 @@ class Cff:
             head += write_index(self.strings) + write_index(self.gsubrs)
             return head
 
-        charset = b"\x00" + b"".join(struct.pack(">H", sid) for sid in self.charset[1:])
+        charset = self._charset_bytes()
         fdselect = self._fdselect_bytes() if self.cid else b""
         charstrings = write_index(self.charstrings)
         # Private dicts + local subrs, each private followed by its subrs.
@@ -243,6 +243,19 @@ class Cff:
             raise ValueError("CFF header changed size while laying out")
         privates = b"".join(body + subrs for body, subrs in private_blobs)
         return head + charset + fdselect + charstrings + fdarray + privates
+
+    def _charset_bytes(self) -> bytes:
+        """The charset in format 2 (runs of consecutive ids) or 0, whichever is shorter: a font that grows by a
+        two-byte id per glyph may no longer fit the space its game keeps for it (Animal Crossing)."""
+        listed = b"\x00" + b"".join(struct.pack(">H", sid) for sid in self.charset[1:])
+        runs: List[List[int]] = []
+        for sid in self.charset[1:]:
+            if runs and sid == runs[-1][0] + runs[-1][1] + 1 and runs[-1][1] < 0xFFFF:
+                runs[-1][1] += 1
+            else:
+                runs.append([sid, 0])
+        ranged = b"\x02" + b"".join(struct.pack(">HH", first, left) for first, left in runs)
+        return ranged if len(ranged) < len(listed) else listed
 
     def _fdselect_bytes(self) -> bytes:
         ranges = []
@@ -532,31 +545,52 @@ def _new_cmap(old: bytes, mapping: Dict[int, int]) -> bytes:
     return head + data
 
 
-def rebuild_font(font: bytes, cff: Cff, mapping: Dict[int, int], new_metrics: List[Tuple[int, int]],
-                 metrics: Optional[Dict[int, Tuple[int, int]]] = None) -> bytes:
+def rebuild_font(font: bytes, cff: Optional[Cff], mapping: Dict[int, int], new_metrics: List[Tuple[int, int]],
+                 metrics: Optional[Dict[int, Tuple[int, int]]] = None,
+                 replaced: Optional[Dict[str, bytes]] = None) -> bytes:
     """The OpenType file with a new CFF, character map and metrics for ``new_metrics`` appended glyphs.
 
-    ``metrics`` gives existing glyphs a new ``(advance, left side bearing)``."""
+    ``metrics`` gives existing glyphs a new ``(advance, left side bearing)``. ``cff`` None keeps the outlines;
+    ``replaced`` gives whole new tables (a TrueType font's ``glyf``, ``loca``, ``head``, ``maxp``)."""
     from core.font_formats.bfotf import OpenType
     ot = OpenType(font)
     tables = {tag: font[offset:offset + length] for tag, (offset, length) in ot.tables.items()}
     old_count = ot.glyph_count
     total = old_count + len(new_metrics)
-    tables["CFF "] = cff.build()
-    tables["cmap"] = _new_cmap(tables["cmap"], mapping)
+    tables.update(replaced or {})
+    if cff is not None:
+        tables["CFF "] = cff.build()
+    # Tables are kept byte for byte where nothing in them changes (a game's font engine may expect their layout:
+    # Animal Crossing did not start with a rebuilt cmap and hmtx).
+    if mapping != ot.cmap():
+        tables["cmap"] = _new_cmap(tables["cmap"], mapping)
     long_count = ot.long_metrics
     hmtx = tables["hmtx"]
     advances = [struct.unpack_from(">H", hmtx, 4 * min(g, long_count - 1))[0] for g in range(old_count)]
     lsbs = [struct.unpack_from(">h", hmtx, 4 * g + 2)[0] if g < long_count
             else struct.unpack_from(">h", hmtx, 4 * long_count + 2 * (g - long_count))[0] for g in range(old_count)]
-    for glyph, (advance, lsb) in (metrics or {}).items():
-        advances[glyph], lsbs[glyph] = advance, lsb
-    advances += [advance for advance, _lsb in new_metrics]
-    lsbs += [lsb for _advance, lsb in new_metrics]
-    tables["hmtx"] = b"".join(struct.pack(">Hh", a, b) for a, b in zip(advances, lsbs))
+    shared = advances[long_count - 1] if long_count else 0
+    if not new_metrics and all(g < long_count or advance == shared for g, (advance, _l) in (metrics or {}).items()):
+        patched = bytearray(hmtx)
+        for glyph, (advance, lsb) in (metrics or {}).items():
+            if glyph < long_count:
+                struct.pack_into(">Hh", patched, 4 * glyph, advance, lsb)
+            else:
+                struct.pack_into(">h", patched, 4 * long_count + 2 * (glyph - long_count), lsb)
+        tables["hmtx"] = bytes(patched)
+        total_long = long_count
+    else:
+        for glyph, (advance, lsb) in (metrics or {}).items():
+            advances[glyph], lsbs[glyph] = advance, lsb
+        advances += [advance for advance, _lsb in new_metrics]
+        lsbs += [lsb for _advance, lsb in new_metrics]
+        tables["hmtx"] = b"".join(struct.pack(">Hh", a, b) for a, b in zip(advances, lsbs))
+        total_long = total
     hhea = bytearray(tables["hhea"])
-    struct.pack_into(">H", hhea, 34, total)
-    struct.pack_into(">H", hhea, 10, max(struct.unpack_from(">H", hhea, 10)[0], max(advances)))
+    struct.pack_into(">H", hhea, 34, total_long)
+    struct.pack_into(">H", hhea, 10, max(struct.unpack_from(">H", hhea, 10)[0],
+                                         max(advance for advance, _l in (metrics or {}).values()) if metrics else 0,
+                                         max((advance for advance, _l in new_metrics), default=0)))
     tables["hhea"] = bytes(hhea)
     maxp = bytearray(tables["maxp"])
     struct.pack_into(">H", maxp, 4, total)
@@ -564,7 +598,7 @@ def rebuild_font(font: bytes, cff: Cff, mapping: Dict[int, int], new_metrics: Li
     if "vmtx" in tables and "vhea" in tables:
         long_v = struct.unpack_from(">H", tables["vhea"], 34)[0]
         tables["vmtx"] = tables["vmtx"][:4 * long_v + 2 * (old_count - long_v)] + b"\x00\x00" * len(new_metrics)
-    if "post" in tables and struct.unpack_from(">I", tables["post"], 0)[0] == 0x00020000:
+    if new_metrics and "post" in tables and struct.unpack_from(">I", tables["post"], 0)[0] == 0x00020000:
         raise ValueError("post format 2 (glyph names) is not supported")
     head = bytearray(tables["head"])
     struct.pack_into(">I", head, 8, 0)

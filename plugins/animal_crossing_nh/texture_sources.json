@@ -1,0 +1,11 @@
+[
+  {"label": "Title logo (US / EU English)", "kind": "title_screen", "format": "bntx", "path": "Layout/LTitleUSEU.Nin_NX_NVN.zs", "member": "*.arc/timg/*.bntx"},
+  {"label": "Title logo, edition (US / EU English)", "kind": "title_screen", "format": "bntx", "path": "Layout/LTitleEditionUSEU.Nin_NX_NVN.zs", "member": "*.arc/timg/*.bntx"},
+  {"label": "Happy Home Paradise logo (US English)", "kind": "title_screen", "format": "bntx", "path": "Layout/LTitleWherearenUS.Nin_NX_NVN.zs", "member": "*.arc/timg/*.bntx"},
+  {"label": "Happy Home Paradise logo (EU English)", "kind": "title_screen", "format": "bntx", "path": "Layout/LTitleWherearenEU.Nin_NX_NVN.zs", "member": "*.arc/timg/*.bntx"},
+  {"label": "Title movie logo", "kind": "title_screen", "format": "bntx", "path": "Layout/MovieTitleLogo.Nin_NX_NVN.zs", "member": "*.arc/timg/*.bntx"},
+  {"label": "Nook Inc. logo", "kind": "title_screen", "format": "bntx", "path": "Layout/LNookLogo.Nin_NX_NVN.zs", "member": "*.arc/timg/*.bntx"},
+  {"label": "Nook Inc. logo (movie)", "kind": "title_screen", "format": "bntx", "path": "Layout/MovieNookIncLogo.Nin_NX_NVN.zs", "member": "*.arc/timg/*.bntx"},
+  {"label": "Signs and boards with English words (models)", "kind": "ui", "format": "bntx", "path": "Model/*_USen.Nin_NX_NVN.zs", "member": "*.bfres"},
+  {"label": "UI layouts (all)", "kind": "ui", "format": "bntx", "path": "Layout/*.Nin_NX_NVN.zs", "member": "*.arc/timg/*.bntx"}
+]
