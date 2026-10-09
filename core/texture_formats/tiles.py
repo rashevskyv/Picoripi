@@ -129,9 +129,9 @@ def _pack(indices: Sequence[int], bpp: int, high: bool = False) -> bytes:
     if bpp == 8:
         return bytes(indices)
     if bpp == 1:
-        return bytes(sum((indices[i + bit] & 1) << (7 - bit) for bit in range(8)) for i in range(0, 64, 8))
+        return bytes(sum((indices[i + bit] & 1) << (7 - bit) for bit in range(8)) for i in range(0, len(indices), 8))
     if high:
-        return bytes(indices[i] << 4 | indices[i + 1] for i in range(0, 64, 2))
+        return bytes(indices[i] << 4 | indices[i + 1] for i in range(0, len(indices), 2))
     return bytes(indices[i] | indices[i + 1] << 4 for i in range(0, len(indices), 2))
 
 
