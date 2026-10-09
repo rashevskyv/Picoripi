@@ -375,6 +375,18 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      their bytes.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
+   - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) and Pokémon Legends: Z-A
+     (+ Mega Dimension) (Switch, Game Freak's Trinity engine). **Source:** the workspace's `source`
+     (`1_unpack.bat` reads only the needed packs of `arc\data.trpfs` and puts there, at the game's paths, the
+     English text `message\dat\English\{common,script}\*.dat` — Z-A: `ik_message\...` — the fonts
+     `appli\font\bin` / `ui\font\bin` and the English layout archives `*_eng.arc`); **Translation:**
+     `translation`. One block per message file (Scarlet/Violet 913 files, 85,331 lines; Z-A 427 files, 76,810
+     lines); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`; grammar branches carry their
+     two texts, `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), and their lengths are
+     written again on save. The Font Editor opens the `.bfotf` and `.bffnt` fonts; the Textures window opens the
+     BNTX pictures of the English layouts (title logo, menus). `2_build.bat` writes the changed files into a
+     LayeredFS mod with an `arc\data.trpfd` that no longer points the game to the packed originals; Scarlet and
+     Violet share one project and get the same mod.
    - `default_plugin` — Default Plugin Template
 4. After open, the last session is restored (block, string, undo stack, most filters). **Show Unsaved Only** (tree and strings list) is always off after a restart (`core/data_store.py`).
 5. `File → Close Project` unloads the workspace. It does not quit Picoripi.

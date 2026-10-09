@@ -1,0 +1,7 @@
+[
+  {"label": "Scarlet/Violet: title logo (English)", "kind": "title_screen", "format": "bntx", "path": "appli/data/title/*_eng.arc", "member": "timg/*.bntx"},
+  {"label": "Scarlet/Violet: English layouts", "kind": "ui", "format": "bntx", "path": "appli/data/*/*_eng.arc", "member": "timg/*.bntx"},
+  {"label": "Legends: Z-A: title menu (English)", "kind": "title_screen", "format": "bntx", "path": "ui/data/title_menu/*_eng.arc", "member": "timg/*.bntx"},
+  {"label": "Legends: Z-A: English layouts", "kind": "ui", "format": "bntx", "path": "ui/data/*/*_eng.arc", "member": "timg/*.bntx"},
+  {"label": "Legends: Z-A: English HUD pictures", "kind": "ui", "format": "bntx", "path": "ui/tex/hud_spmg/tga_eng/*/*.bntx"}
+]

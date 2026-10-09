@@ -1,0 +1,6 @@
+[
+  {"label": "Scarlet/Violet: scalable fonts", "format": "bfotf", "path": "appli/font/bin/*.bfotf"},
+  {"label": "Scarlet/Violet: bitmap fonts", "format": "bffnt", "path": "appli/font/bin/*.bffnt"},
+  {"label": "Legends: Z-A: scalable fonts", "format": "bfotf", "path": "ui/font/bin/*.bfotf"},
+  {"label": "Legends: Z-A: bitmap fonts", "format": "bffnt", "path": "ui/font/bin/*.bffnt"}
+]
