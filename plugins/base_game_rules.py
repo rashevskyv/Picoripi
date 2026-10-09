@@ -785,7 +785,8 @@ class BaseGameRules:
         and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
         multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``shpg`` (EA SHPG, Wii), ``txtr`` / ``txtr_gx`` (Retro TXTR),
         ``gim`` (PSP), ``tim`` (PlayStation TIM), ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant
-        Story pictures), ``pcx``, ``png`` (a PNG used as it is: a decomp's graphics source), ``m2`` (M2 PSB pictures), ``png`` (a PNG the build converts itself), ``raw`` or ``tiles`` (GBA / DS character tiles)); ``path`` -- as
+        Story pictures), ``sotn_blocks`` / ``sotn_cmp`` (Symphony of the Night VRAM tile blocks and nibble-packed
+        pictures), ``pcx``, ``png`` (a PNG used as it is: a decomp's graphics source), ``m2`` (M2 PSB pictures), ``png`` (a PNG the build converts itself), ``raw`` or ``tiles`` (GBA / DS character tiles)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``
         (``compression``, ``file_offset``/``file_size``, ``texture`` and what the format needs -- see

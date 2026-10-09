@@ -413,6 +413,29 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Scene context names the area and room of a room file (`vs_index.json`); the game data names no
      speakers. `2_build.bat` writes the changed files over their own sectors of the disc image (EDC/ECC
      recomputed) and splits the font back into `SYSTEM.DAT` and `BATTLE.PRG`.
+   - `castlevania_sotn` — Castlevania: Symphony of the Night (PlayStation, USA SLUS-00067) and its PC port
+     SymphonyRecomp. **Source:** the workspace's `source` (`1_unpack.bat`): the program files under their disc
+     paths — `DRA.BIN` (item, relic, spell and enemy names and descriptions, menus, memory card messages),
+     `ST\SEL\SEL.BIN` (title and file select, endings, staff roll) and the stage and boss overlays
+     `ST\*\*.BIN`, `BOSS\*\*.BIN` (cutscenes, the librarian's shop and bestiary, pick-up messages) — and the
+     picture files `BIN\F_*.BIN.pic`, `ST\SEL\F_SEL.BIN.pic` (the disc files with `.pic` added, so they are not
+     listed as text); **Translation:** `translation`. Where each string is comes from the decompilation
+     (`layout_us.json`, made by the workspace's `tools\sotn_layout.py`), so no text is guessed. Two fonts: the
+     8x8 font (menus, names, cutscene dialogue; Tools → Font Editor, `F_GAME.BIN`, format `texture_grid`; the
+     build copies it into `F_GAME2` and `F_TITLE1`) and the console's BIOS font (descriptions, messages:
+     Shift-JIS, it has Cyrillic but no Ґ Є Ї; І і are written as Latin). Ukrainian letters of the 8x8 font go
+     through `translation_map.json` to free katakana cells (look-alike letters use the Latin cells). Cutscene
+     lines show timing commands as tags (`{WAIT 30}`, `{SPEED 02}`) and the speaker from the portrait; a
+     staff-roll line starts with its tag (`{ENTRY 10}`). Text may grow: a string only data points at moves
+     inside its pool (pointers rewritten) or into a range the decompilation marks unused; a cutscene that
+     outgrows its room continues there through a jump command; a string code points at keeps its slot; a
+     save that does not fit says which file and group. Tools → Textures (formats `sotn_blocks`: VRAM tile
+     blocks, and `sotn_cmp`: the game's nibble-packed pictures, packed again into their room) lists the title
+     logo (with its palette), title, prologue, HUD, game-over and file-select pictures and the area names.
+     Saving keeps pictures already edited in the same file. `2_build.bat` writes the changed files over
+     their sectors (sizes unchanged, EDC/ECC recomputed; nothing changed = the USA disc byte for byte) and
+     builds the PC port once; `3_run_pc.bat` starts it with the translated disc (the port reads the game data
+     from the disc, only the code is recompiled).
    - `metroid_prime_trilogy` — Metroid Prime Trilogy (Wii, USA R3ME01): Prime 1, 2, 3 and the Trilogy menu.
      **Source:** the workspace's `source` made by `1_unpack.bat` from the game's Retro packages, one folder per
      game (`MP1`, `MP2`, `MP3`, `Menu`): `text\<package>\<name>.<id>.strg` (every string table once per game,
