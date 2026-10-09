@@ -411,6 +411,16 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Textures format `m2`). `2_build.bat` writes M2's patch archive `patchdata.psb.m` + `patchdata.bin`
      (PC: `build\windata`; Switch: a LayeredFS mod) and drops M2's own small fixes where the translation changed
      their bytes.
+   - `fragile_dreams` — Fragile Dreams: Farewell Ruins of the Moon (Wii, Europe). **Source:** the workspace's
+     `source` folder (`1_unpack.bat` unpacks the disc's compressed `FILE_<id>` files there): `text\60001061.msg`
+     (every dialogue, subtitle, item description, memory and the title menu), `text\40003100\1\*.msg`,
+     `text\60001083\0.msg`, `text\600010AF\0.msg` (end credits), `sys\main.dol` (the save check, Wii Remote and
+     disc messages, written in place, each block in its room) and `hbm\10000081.csv` (HOME Menu). Each message
+     block is one Picoripi block (about 3,900 strings); `<w>`, `<v1>`, `<p>`, `<c#404040ff>` and `[Value]` stay
+     as they are; text is written in cp1251, so Ukrainian letters use the font cells 0xC0–0xFF and those of
+     Ґ Є І Ї. The Font Editor opens all 14 FONT fonts (format `fragile_dreams`; Japanese glyphs are kept as
+     they are); **Tools → Textures…** lists about 2,800 TPL pictures (title logo, tutorials, menus, maps,
+     health and safety screens, HOME Menu, disc banner). `2_build.bat` compresses the changed files again.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

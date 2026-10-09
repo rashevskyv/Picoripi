@@ -765,7 +765,8 @@ class BaseGameRules:
         ``g4font`` (Level-5), ``vagrant`` (Vagrant Story), ``gba_tiles``, ``retro_font`` / ``retro_font_gx`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture),
         ``zelda3`` (the zelda3 PC port's ``font.png``) or ``eternal_darkness`` (glyph grid in a TPL, widths in a
-        companion pack)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
+        companion pack) or ``fragile_dreams`` (Fragile Dreams FONT: glyph
+        boxes in TPL pages)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); optional ``companion`` (a second file the font needs,
         relative to the source folder, read and saved with it: the texture of a Level-5 ``g4font``);

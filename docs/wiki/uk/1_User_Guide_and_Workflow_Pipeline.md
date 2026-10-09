@@ -410,6 +410,17 @@ tokens: 23.8k
      `m2\image\*.m2tex`, формат Textures `m2`). `2_build.bat` пише архів виправлень M2 `patchdata.psb.m` +
      `patchdata.bin` (PC: `build\windata`; Switch: мод LayeredFS) і прибирає власні дрібні виправлення M2 там, де
      переклад змінив їхні байти.
+   - `fragile_dreams` — Fragile Dreams: Farewell Ruins of the Moon (Wii, Європа). **Source:** тека `source`
+     робочої теки (`1_unpack.bat` розпаковує туди стиснені файли диска `FILE_<id>`): `text\60001061.msg`
+     (усі діалоги, субтитри, описи предметів, спогади й меню титульного екрана), `text\40003100\1\*.msg`,
+     `text\60001083\0.msg`, `text\600010AF\0.msg` (кінцеві титри), `sys\main.dol` (перевірка збереження,
+     повідомлення пульта й диска; пишуться на місці, кожен блок у своєму місці) і `hbm\10000081.csv` (меню
+     HOME). Кожен блок повідомлень — окремий блок Picoripi (близько 3 900 рядків); `<w>`, `<v1>`, `<p>`,
+     `<c#404040ff>` і `[Value]` лишаються як є; текст пишеться в cp1251, тож українські літери стають у
+     клітинки шрифту 0xC0–0xFF і клітинки Ґ Є І Ї. Font Editor відкриває всі 14 шрифтів FONT (формат
+     `fragile_dreams`; японські гліфи лишаються як є); **Tools → Textures…** показує близько 2 800 картинок
+     TPL (логотип, навчальні сторінки, меню, мапи, екрани безпеки, меню HOME, банер диска). `2_build.bat`
+     знову стискає змінені файли.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template

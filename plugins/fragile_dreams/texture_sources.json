@@ -1,0 +1,12 @@
+[
+  {"label": "Title logo FRAGILE DREAMS and moon icons", "kind": "title_screen", "format": "tpl", "path": "ui/600010A5.tpl"},
+  {"label": "Health and safety screens (all languages)", "kind": "notice", "format": "tpl", "path": "ui/6000109?.tpl"},
+  {"label": "Tutorial pages (English)", "kind": "menu_label", "format": "tpl", "path": "ui/400035??/**/*.tpl"},
+  {"label": "Menus, save, items, extras", "kind": "menu_label", "format": "tpl", "path": "ui/4000300?/**/*.tpl"},
+  {"label": "Maps and the memory book", "kind": "map", "format": "tpl", "path": "ui/40003[89ABC]??*.tpl"},
+  {"label": "Extras: concept art", "kind": "menu_label", "format": "tpl", "path": "ui/40003E??.tpl"},
+  {"label": "System message icons and credits logos", "kind": "credits", "format": "tpl", "path": "text/**/*.tpl"},
+  {"label": "Wii HOME Menu (English)", "kind": "menu_label", "format": "tpl", "path": "hbm/**/*.tpl"},
+  {"label": "Disc channel banner (Wii Menu)", "kind": "banner", "format": "tpl", "path": "opening.bnr/**/*.tpl"},
+  {"label": "Other screens (loading, boot logos, effects, other languages)", "kind": "menu_label", "format": "tpl", "path": "ui/**/*.tpl"}
+]
