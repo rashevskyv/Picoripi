@@ -1,0 +1,4 @@
+[
+  {"label": "Text font 16x16 (menu/font/UseMoji_image.bin)", "format": "ffta2", "path": ["menu/font/UseMoji_image.bin"],
+   "companion": "menu/font/FontWidthTable.bin", "font_map": "ffta2_text.json", "params": {}}
+]

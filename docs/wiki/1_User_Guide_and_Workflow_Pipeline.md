@@ -341,6 +341,26 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      silhouette); the Textures window lists the title logos and every UI texture (BC1, BC3, BC4, BC5, BC7,
      ASTC 8x8). `2_build.bat` puts edited text into both English folders (EU and US) of the LayeredFS mod and
      compresses fonts and textures back.
+   - `ff12rw` — Final Fantasy XII: Revenant Wings (Nintendo DS, Europe AXFP; the English set is translated, the
+     other four languages stay). **Source:** the workspace's `source` folder, filled by `1_unpack.bat` with the
+     English text files `data/**/E/` under their NitroFS paths (menus `.btx`, crafting talk `.btk`, reports, log,
+     lore and tutorials `.brt`, airship talks `.hscd`, characters, items and abilities `.bch` / `.bit` / `.bsk`,
+     the world map `.bmw`, the opening scroll `.bst`, event dialogue and mission objectives in `.dpk` packs:
+     14,398 strings), the fonts `data/FontPack.dpk` and the English pictures; **Translation:** `translation`.
+     Text is Windows-1252: `\n` is a line break, `[page]` a new box, `[xNN]` a colour or icon byte; a longer text
+     lays its file out again, an unedited file stays byte for byte. The Font Editor lists the four NFTR fonts
+     of `FontPack.dpk`; the Textures window lists ~200 tile sheets (title logo, company logos, mission and chapter
+     titles, menus, mini maps, tutorials). `2_build.bat` puts every file of `translation` back into the ROM.
+   - `ffta2` — Final Fantasy Tactics A2: Grimoire of the Rift (Nintendo DS, Europe A6FP; the English set is
+     translated). **Source:** the workspace's `source` folder: `1_unpack.bat` takes the five English message packs
+     out of `master/pc.bin` as `.a2msg` files (menus, names and descriptions in 55 tables, quests, rumours, notices,
+     event dialogue: 33,198 strings), the font `menu/font/UseMoji_image.bin` with `FontWidthTable.bin`, the menu
+     pictures `menu/nc_rom/us/nc.a2pak` and the title logo `effect/common/c_all_title_eu.efx`; **Translation:**
+     `translation`. Codes are glyphs (ASCII, accented Latin, symbols); `\n` breaks the line, `[page]` and `[end]`
+     end a page or text, `[CA:01]`-style tags insert values, icons and choices, `[xNN]` is a glyph without a
+     character. The Font Editor lists the font (format `ffta2`); the Textures window lists the title and company
+     logos and the auction and world map effects (format `ffta2_efx`) and 11 menu tile sheets. `2_build.bat`
+     writes changed members into `pc.bin` (in place when they fit, else at its end) and rebuilds the ROM.
    - `twewy` — The World Ends with You (Nintendo DS, Europe AWLP). **Source:** the workspace's `source` folder,
      filled by `1_unpack.bat` with every game file but the sound under its NitroFS path; the text is
      `Apl_Fuk/mestxt.mes` (the game's `mestxt.bin`: all 25,233 messages, 500 a block); **Translation:**

@@ -1,0 +1,6 @@
+[
+  {"label": "Text font 11x12 (FontPack #0)", "format": "nftr", "path": ["data/FontPack.dpk"], "member": "#0", "params": {"spare": 72}, "font_map": "ff12rw_text.json"},
+  {"label": "Font 12x12 (FontPack #1)", "format": "nftr", "path": ["data/FontPack.dpk"], "member": "#1", "params": {"spare": 72}},
+  {"label": "Big font 15x16 (FontPack #2)", "format": "nftr", "path": ["data/FontPack.dpk"], "member": "#2", "params": {"spare": 72}},
+  {"label": "Font 12x12, no accents (FontPack #3)", "format": "nftr", "path": ["data/FontPack.dpk"], "member": "#3", "params": {"spare": 72}}
+]

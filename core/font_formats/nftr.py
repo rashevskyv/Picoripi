@@ -134,6 +134,29 @@ class Font:
                 result.setdefault(first + offset, entry)
         return result
 
+    @property
+    def cp1252(self) -> bool:
+        """FNIF encoding 3: the codes are Windows-1252 bytes (0x80-0x9F are typographic marks, not C1 controls)."""
+        return len(self.finf) > 15 and self.finf[15] == 3
+
+    def to_char(self, code: int) -> str:
+        if self.cp1252 and code < 256:
+            try:
+                return bytes([code]).decode("cp1252")
+            except UnicodeDecodeError:
+                pass
+        return chr(code)
+
+    def to_code(self, char: str) -> int:
+        if self.cp1252:
+            try:
+                encoded = char.encode("cp1252")
+                if len(encoded) == 1:
+                    return encoded[0]
+            except UnicodeEncodeError:
+                pass
+        return ord(char)
+
     def defaults(self) -> Tuple[int, int, int]:
         """FNIF's ``(left, glyph width, advance)`` for glyphs without an HDWC entry."""
         return struct.unpack_from("bBB", self.finf, 12)
@@ -242,7 +265,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
         entry = widths.get(index, (left, glyph_width, advance))
         packets.append({"kerning": -entry[0], "width": entry[2]})
         glyph_widths.append(entry[1])
-    pairs = [(char_code(chr(code)), glyph) for code, glyph in font.codes().items() if glyph < columns * rows]
+    pairs = [(char_code(font.to_char(code)), glyph) for code, glyph in font.codes().items() if glyph < columns * rows]
     line_feed = font.finf[9]
     metadata = {
         "header": {"signature": "RTFN", "num_chunks": len(font.order), "texture_format": f"{font.bpp} bpp"},
@@ -276,7 +299,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     count = len(font.glyphs)
 
     existing = font.codes()
-    wanted = {ord(char): glyph for char, glyph in char_map(metadata).items()}
+    wanted = {font.to_code(char): glyph for char, glyph in char_map(metadata).items()}
     changed = [code for code, glyph in existing.items() if wanted.get(code) != glyph]
     if changed:
         raise ValueError("This font keeps the characters it has; changed or removed: "
