@@ -8,7 +8,8 @@ are not stored.
 
 Params: ``texture`` (the texture format, default ``tpl``), ``image`` (index of the image in the file,
 default 0), ``cell`` (``[width, height]``), ``chars`` (the characters of the cells, row by row, as a
-string or a list; an entry that is not one character ("" for a free cell, a game token) or is "\\0" leaves
+string or a list: a string, or a
+list of single characters in which "" is a cell without one; an entry that is not one character ("" for a free cell, a game token) or is "\\0" leaves
 its cell without a character, as does a cell past the end) or ``first_code`` (cell i is character ``first_code + i``), optional ``columns`` (default: image width // cell width) and
 ``texture_params`` (passed to the texture format).
 """
@@ -40,7 +41,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
         chars = list(chars if isinstance(chars, list) else str(chars))[:count]
     else:
         chars = [chr(_int(params.get("first_code", 0x20)) + glyph) for glyph in range(count)]
-    pairs = [(char_code(char), glyph) for glyph, char in enumerate(chars) if len(char) == 1 and char != "\0"]
+    pairs = [(char_code(char), glyph) for glyph, char in enumerate(chars) if len(char) == 1 and char != "\0" if char]
     metadata = {
         "header": {"signature": "Texture grid font", "num_chunks": 4},
         "INF1": [{"encoding": 0, "ascent": height, "descent": 0, "width": width, "leading": height,
