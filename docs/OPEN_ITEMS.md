@@ -281,6 +281,29 @@ omfs`) could be
   (`hint/slide/*.jslide`, stereo screenshots), the language-neutral layouts (story intro, ocarina, ending images), the
   debug `ascii_8x16.ctxb`; the French, German, Spanish and Italian layouts and title cards (other console languages).
 
+## Final Fantasy XII: Revenant Wings plugin (`plugins/ff12rw`, 2026-10-09)
+
+- Seen in NO$GBA (hidden desktop, keys posted to every emulator window): striped title and company logos, and
+  the first event line made 40 characters longer with a filled `e`. The opening scroll edit, the menus and the
+  airship talks are proven by machine only (`tools\proof_edits.py`: plugin save, build, read back from the ROM).
+- A longer mission objective (`Stage.dpk`) moves the stage member's later sections and fixes their offsets;
+  nothing else in those members is known to point into them. Event and airship talk records keep their unknown
+  fields (box size?) as they are.
+- The fonts are Windows-1252 and have no Cyrillic: Ukrainian letters need codes the English text does not use
+  (each font has 117+ such codes, `spare` 72 empty cells for new ones); the mapping is not made yet.
+- Sprite sheets show in storage order; colours come from the NCLR of the same name (a guess where an archive
+  has several). The 3D model textures (`.nsbmd`) and the videos (`.vx`) are not opened.
+
+## Final Fantasy Tactics A2 plugin (`plugins/ffta2`, 2026-10-09)
+
+- Seen in NO$GBA: striped title logo and the first line of the opening made longer with a filled `e`; the
+  menu packs grew and moved to the end of `pc.bin` (the game reads them there).
+- Not found: the file with the title menu words (New Game, Load, Continue, Trade, Language, Difficulty); 421
+  effect files (`EFX0010`) are in `pc.bin` and only three have known names; the battle title pictures
+  (`battle/bt_title/us/*.ebn` / `.obn`) are in a format not read yet.
+- A glyph added to the font gets a text code from 0xA9 to 0xBF; whether the game draws codes beyond its 168
+  glyphs is not tested. The name-entry keyboard (table 20) holds all accented letters.
+
 ## The World Ends with You plugin (`plugins/twewy`, 2026-10-07)
 
 - Seen in NO$GBA (hidden desktop) only up to the title screen: input posted to the emulator window does not
