@@ -325,7 +325,9 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `pokemon_nx` — Pokémon Sword/Shield (with both DLC) and Pokémon Legends: Arceus (Switch). **Source:** the
      workspace's `source` (`1_unpack.bat`: base + newest update): `bin\message\English\common` and `script`
      `*.dat` (one block per file; the `.tbl` next to it names each line), `bin\font` (`.BFOTF`, `bmp\*.bffnt`)
-     and `bin\appli\*\bin\*_eng.arc` (English layout pictures). Tags (the same as `pokemon_trinity`): `{PAGE}`
+     and `bin\appli\*\bin\*_eng.arc` (English layout pictures); Legends: Arceus also
+     `bin\archive\appli\*_eng.gfpak.d\*.arc` (the battle and HUD layouts of the Oodle packs, packed back by
+     `2_build.bat`). Tags (the same as `pokemon_trinity`): `{PAGE}`
      next text box, `{COLOR 0002}` colour, `{VAR 0100 0000}` an inserted name, `M{GENDER 00FF|aster|iss}` word forms
      (their lengths are written again on save), `{CHAR E305}` a button icon.
      The text fonts lack Ґ Є І Ї ґ є і ї: `translation_map.json` writes І і Ї ї as Latin I i Ï ï and Є є Ґ ґ as
@@ -403,7 +405,8 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      two texts, `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), and their lengths are
      written again on save. The Font Editor opens the `.bfotf` and `.bffnt` fonts; the Textures window opens the
      BNTX pictures of the English layouts (title logo, menus). `2_build.bat` writes the changed files into a
-     LayeredFS mod with an `arc\data.trpfd` that no longer points the game to the packed originals; Scarlet and
+     LayeredFS mod with an `arc\data.trpfd` that no longer points the game to the packed originals (a changed
+     English layout `X_eng.arc` also goes in as `X.arc`: the game reads language layouts only from its packs); Scarlet and
      Violet share one project and get the same mod.
    - `default_plugin` — Default Plugin Template
 4. After open, the last session is restored (block, string, undo stack, most filters). **Show Unsaved Only** (tree and strings list) is always off after a restart (`core/data_store.py`).

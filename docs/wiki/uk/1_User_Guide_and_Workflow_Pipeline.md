@@ -325,7 +325,8 @@ tokens: 23.8k
    - `pokemon_nx` — Pokémon Sword/Shield (з обома доповненнями) і Pokémon Legends: Arceus (Switch). **Source:**
      тека `source` робочої теки (`1_unpack.bat`: гра + останнє оновлення): `bin\message\English\common` і
      `script` `*.dat` (один блок на файл; `.tbl` поруч дає назву кожного рядка), `bin\font` (`.BFOTF`,
-     `bmp\*.bffnt`) і `bin\appli\*\bin\*_eng.arc` (англійські картинки меню). Теги (ті самі, що в `pokemon_trinity`):
+     `bmp\*.bffnt`) і `bin\appli\*\bin\*_eng.arc` (англійські картинки меню); у Legends: Arceus також
+     `bin\archive\appli\*_eng.gfpak.d\*.arc` (макети бою й HUD з паків Oodle, `2_build.bat` пакує їх назад). Теги (ті самі, що в `pokemon_trinity`):
      `{PAGE}` наступне вікно тексту, `{COLOR 0002}` колір, `{VAR 0100 0000}` вставлене ім'я,
      `M{GENDER 00FF|aster|iss}` форми слова (їхні довжини записуються заново під час збереження), `{CHAR E305}` —
      значок кнопки. У шрифтах тексту немає Ґ Є І Ї ґ є і ї: `translation_map.json` пише І і Ї ї як латинські I i Ï ï,
@@ -402,7 +403,8 @@ tokens: 23.8k
      `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), а їхні довжини записуються
      заново під час збереження. Font Editor відкриває шрифти `.bfotf` і `.bffnt`; вікно Textures — BNTX-картинки
      англійських макетів (логотип, меню). `2_build.bat` записує змінені файли в мод LayeredFS разом з
-     `arc\data.trpfd`, який більше не відсилає гру до запакованих оригіналів; Scarlet і Violet мають один проєкт
+     `arc\data.trpfd`, який більше не відсилає гру до запакованих оригіналів (змінений англійський макет
+     `X_eng.arc` іде в мод ще й як `X.arc`: мовні макети гра бере лише зі своїх паків); Scarlet і Violet мають один проєкт
      і однаковий мод.
    - `default_plugin` — Default Plugin Template
 4. Після відкриття відновлюється остання сесія (блок, рядок, undo, більшість фільтрів). **Show Unsaved Only** (дерево і список рядків) після перезапуску **завжди вимкнений** (`core/data_store.py`).
