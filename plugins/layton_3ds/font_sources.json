@@ -1,0 +1,4 @@
+[
+  {"label": "Main text font (nrm)", "format": "xf", "path": "fnt/[eu]/nrm.xf", "font_map": "nrm.json"},
+  {"label": "Small text font (sml)", "format": "xf", "path": "fnt/[eu]/sml.xf", "font_map": "sml.json"}
+]
