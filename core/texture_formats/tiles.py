@@ -14,8 +14,11 @@ gives a changed pixel the nearest colour of its tile's bank (a redrawn PNG often
 every off-palette pixel would make most redraws fail, and the window shows the result at once). Painting where
 the sheet has no tiles is refused.
 
+``linear``: the data is a plain bitmap instead of tiles (rows of ``per_row`` x 8 pixels, the low nibble first),
+as Konami's DS Castlevania games keep their sprite pictures; its "tiles" are 8 x 1 strips.
+
 Params (all optional for an NCGR): ``bpp`` (4 / 8), ``offset`` (first tile), ``tiles`` (count), ``cell``,
-``per_row``, ``name``, ``palette``, ``bank``, ``banks``; or ``textures``: a list of such entries.
+``per_row``, ``name``, ``palette``, ``bank``, ``banks``, ``linear``; or ``textures``: a list of such entries.
 """
 from __future__ import annotations
 
@@ -60,14 +63,15 @@ def _entries(data: bytes, params: Dict[str, Any]) -> List[Dict[str, Any]]:
         merged = {**base, **params, **entry}
         bpp = _int(merged.get("bpp", 4))
         offset = _int(merged.get("offset", 0))
-        tiles = _int(merged.get("tiles", (len(data) - offset) * 8 // bpp // 64))
+        height = 1 if merged.get("linear") else 8
+        tiles = _int(merged.get("tiles", (len(data) - offset) * 8 // bpp // (8 * height)))
         cell_w, cell_h = (_int(v) for v in merged.get("cell", (1, 1)))
         per_row = _int(merged.get("per_row", max(1, 32 // cell_w)))
         cells = -(-tiles // (cell_w * cell_h))
         rows = -(-cells // per_row)
         out.append({"name": str(merged.get("name") or ""), "bpp": bpp, "offset": offset, "tiles": tiles,
-                    "cell": (cell_w, cell_h), "per_row": per_row,
-                    "size": (per_row * cell_w * 8, rows * cell_h * 8), "banks": _banks(merged, bpp, tiles)})
+                    "cell": (cell_w, cell_h), "per_row": per_row, "height": height,
+                    "size": (per_row * cell_w * 8, rows * cell_h * height), "banks": _banks(merged, bpp, tiles)})
     return out
 
 
@@ -98,11 +102,11 @@ def _banks(params: Dict[str, Any], bpp: int, tiles: int) -> List[List[RGBA]]:
 def _places(entry: Dict[str, Any]):
     """``(tile index, x, y)`` of every tile of a sheet."""
     cell_w, cell_h = entry["cell"]
-    per_cell = cell_w * cell_h
+    per_cell, height = cell_w * cell_h, entry["height"]
     for tile in range(entry["tiles"]):
         cell, inner = divmod(tile, per_cell)
         x = (cell % entry["per_row"]) * cell_w * 8 + (inner % cell_w) * 8
-        y = (cell // entry["per_row"]) * cell_h * 8 + (inner // cell_w) * 8
+        y = (cell // entry["per_row"]) * cell_h * height + (inner // cell_w) * height
         yield tile, x, y
 
 
@@ -118,17 +122,17 @@ def _indices(raw: bytes, bpp: int) -> List[int]:
 def _pack(indices: Sequence[int], bpp: int) -> bytes:
     if bpp == 8:
         return bytes(indices)
-    return bytes(indices[i] | indices[i + 1] << 4 for i in range(0, 64, 2))
+    return bytes(indices[i] | indices[i + 1] << 4 for i in range(0, len(indices), 2))
 
 
 def _tile_image(indices: Sequence[int], colours: Sequence[RGBA]) -> Image.Image:
-    return Image.frombytes("RGBA", (8, 8), b"".join(bytes(colours[i]) for i in indices))
+    return Image.frombytes("RGBA", (8, len(indices) // 8), b"".join(bytes(colours[i]) for i in indices))
 
 
 def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
     out = []
     for entry in _entries(data, params):
-        span = entry["bpp"] * 8
+        span = entry["bpp"] * entry["height"]
         image = Image.new("RGBA", entry["size"], (0, 0, 0, 0))
         for tile, x, y in _places(entry):
             at = entry["offset"] + tile * span
@@ -157,16 +161,16 @@ def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -
         image = image.convert("RGBA")
         unused = image.getchannel("A")
         for _tile, x, y in _places(entry):
-            unused.paste(0, (x, y, x + 8, y + 8))
+            unused.paste(0, (x, y, x + 8, y + entry["height"]))
         if unused.getbbox():
             raise ValueError("The picture is drawn where the sheet has no tiles (the empty end of the last row)")
-        span = entry["bpp"] * 8
+        span = entry["bpp"] * entry["height"]
         cache: Dict[Tuple, int] = {}
         for tile, x, y in _places(entry):
             at = entry["offset"] + tile * span
             old = _indices(out[at:at + span], entry["bpp"])
             colours = entry["banks"][tile]
-            piece = image.crop((x, y, x + 8, y + 8))
+            piece = image.crop((x, y, x + 8, y + entry["height"]))
             if piece.tobytes() == _tile_image(old, colours).tobytes():
                 continue
             pixels = list(piece.getdata())
