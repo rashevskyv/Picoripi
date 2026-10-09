@@ -363,6 +363,21 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      8x12 text font, 8x8 small font; AoS widths are editable); the Textures window lists the text pictures (title
      logo, menus, area names, staff roll; unpacked 4bpp tiles, shown in grey). `2_build.bat` writes a longer
      string or picture into the free end of the 8 MB ROM and moves its pointer.
+   - `castlevania_ds` — Castlevania: Dawn of Sorrow (ACVE), Portrait of Ruin (ACBE) and Order of Ecclesia (YR9E),
+     Nintendo DS, USA; one plugin for the three. **Source:** the workspace's `source` folder, filled by
+     `1_unpack.bat` under a folder per game (`dos`, `por`, `ooe`): `<game>/strings.cvdstext` (the game's whole
+     string table as raw bytes: 1,291 / 1,865 / 1,893 strings), shown in blocks by kind (character, item, enemy,
+     soul / skill names and descriptions, system, menus, quests, music and area names, library or term list,
+     events = dialogue); **Translation:** `translation`. Tags: `[name:XX]` speaker, `[face:XX]` portrait, `[wait]`,
+     `[box]` (new text box) and `[same]` (new page, same speaker) — both shown with a line break after them —,
+     `[next]`, `[choice]`, `[endchoice:XXXX]`, `[color:XX]`, `[cmd:XX]`, buttons `[L]` `[R]` `[A]` `[B]` `[X]` `[Y]`
+     `[LEFT]` `[RIGHT]` `[UP]` `[DOWN]`, `[xHH]` a code with no letter; `[` `]` of the text show as `［` `］`. An
+     unedited string keeps its bytes. Ukrainian letters: the fonts have none; each of the 66 takes the cell of an
+     accented letter the English text never uses (draw them in the Font Editor; Order of Ecclesia's French text
+     uses those cells too). The Font Editor lists two fonts per game (format `cv_nds`: 16x12 text font, 8x8 small
+     font, fixed advance); the Textures window lists the title logo, menus, area names, credits and game-over
+     pictures (OoE: both the `_e` and `_u` English sets). `2_build.bat` lays all strings out again when one
+     changed (as DSVEdit does); what does not fit goes into a new overlay that the patched game loads at start.
    - `policenauts` — Policenauts (PlayStation, Japanese discs SLPS-00215/00216 with the English fan patch, as the
      PSP PS1-Classic `EBOOT.PBP` files; disc 3 is not in the release). **Source:** the workspace's `source` folder
      (`1_unpack.bat` reads the PSISOIMG disc of each EBOOT): `PN_VOX1.PNV` / `PN_VOX2.PNV` (the dialogue of discs

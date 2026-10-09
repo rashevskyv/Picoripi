@@ -340,6 +340,18 @@ omfs`) could be
   width table of the narrow letters is not edited (the Font Editor shows those widths only).
 - Control codes are named from how the English text uses them (`[fx:XX]` meaning unknown).
 
+## Castlevania DS plugin (`plugins/castlevania_ds`, 2026-10-09)
+
+- Order of Ecclesia keeps its French text (overlay 1) as it is; the Ukrainian letters take accented-letter cells,
+  so a redrawn letter also changes the French text. The `_e` and `_u` picture sets of OoE are both listed (the US
+  game was seen using the `_e` title logo).
+- Pictures: colours come from DSVEdit's palettes (one bank per sheet; background sheets whose tiles use several
+  banks show some tiles in the wrong colours). Pictures DSVEdit keeps in overlay RAM (DoS/PoR info screen, HUD,
+  map backgrounds) are not listed; the 3D model textures (`.nsbtx`) are not opened.
+- Dawn of Sorrow: the free-space overlay holds 48 KB; if a translation moves more than that out of the old string
+  area, the build stops with a message.
+- The fonts advance by a fixed step (8 px); the width check uses that step.
+
 ## The World Ends with You plugin (`plugins/twewy`, 2026-10-07)
 
 - Seen in NO$GBA (hidden desktop) only up to the title screen: input posted to the emulator window does not
