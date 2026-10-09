@@ -1,0 +1,20 @@
+[
+  {"label": "Title screen: logo, Start Game / Load Game / Options, (c) 2002 Nintendo", "kind": "title_screen", "format": "tpl", "path": "EMnMenu.cmp", "params": {"texture": "1"}},
+  {"label": "Main menu, options, memory card and character pictures", "kind": "menu_label", "format": "tpl", "path": "EMnMenu.cmp"},
+  {"label": "Boot screens: Nintendo, Silicon Knights, Poe quote, Dolby", "kind": "title_screen", "format": "tpl", "path": "Nintendo.tpl"},
+  {"label": "Loading screen (The Darkness Comes...)", "kind": "notice", "format": "tpl", "path": "Eloading.tpl"},
+  {"label": "E3 demo menu", "kind": "menu_label", "format": "tpl", "path": "EE3Menu.cmp"},
+  {"label": "Kiosk demo menu", "kind": "menu_label", "format": "tpl", "path": "EKioskMenu.cmp"},
+  {"label": "Insanity effects", "kind": "notice", "format": "tpl", "path": "EInsane.cmp"},
+  {"label": "End credits", "kind": "credits", "format": "tpl", "path": "credits/*.cmp"},
+  {"label": "Tome of Eternal Darkness pages", "kind": "menu_label", "format": "tpl", "path": "EBook.tpl"},
+  {"label": "Tome: autoplay pages", "kind": "menu_label", "format": "tpl", "path": "EBookAut.tpl"},
+  {"label": "Tome: inventory", "kind": "menu_label", "format": "tpl", "path": "EBookInv.tpl"},
+  {"label": "Inventory (wide screen)", "kind": "menu_label", "format": "tpl", "path": "EWideInv.tpl"},
+  {"label": "Tome textures in EBookPak.bin", "kind": "menu_label", "format": "tpl", "path": "EBookPak.bin", "member": "*.tpl"},
+  {"label": "Icons and windows in EBootPak.bin", "kind": "hud", "format": "tpl", "path": "EBootPak.bin", "member": "*.tpl"},
+  {"label": "Maps", "kind": "map", "format": "tpl", "path": ["Map0*.tpl", "map015.tpl"]},
+  {"label": "Room 5 pictures", "kind": "notice", "format": "tpl", "path": "rm5spl*.tpl"},
+  {"label": "Fonts (EFonts.tpl) as pictures", "kind": "font", "format": "tpl", "path": "EFonts.tpl"},
+  {"label": "Button icons and box (FontBack.tpl)", "kind": "font", "format": "tpl", "path": "FontBack.tpl"}
+]

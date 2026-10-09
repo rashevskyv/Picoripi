@@ -235,6 +235,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      and pictures `[$gaiji_…]` are tags; the Font Editor opens the G4 fonts (`font_ja`, `font_def`, Academy Y
      also `font_ja2` and a second style; each with its furigana font); the Textures window lists the menu,
      title, telop, help, caption and button pictures (G4TX: RGBA8, BC1, BC3, BC7).
+   - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** the workspace's
+     `source\game` (`1_unpack.bat` decompresses the disc's `*SK_ASC*` files there): `EBootPak.bin` (menus,
+     items, spells, runes, system messages), `EBookPak.bin` (Tome pages, save menu), `EMemcardText.bin`,
+     `RmTxt*.cmp` (room texts), `Chars\cin*\cin*.bin` (cinematic subtitles) and `sys\main.dol` (chapter
+     titles of the cinematics list, written in place, each in its slot); **Translation:** `translation\game`.
+     Each string table with text is one block (about 4,270 strings); control codes show as `{ay}` (colour),
+     `{i21}` (button), `{s0.6}` (scale), `{~p}` (the player's character); text is written in cp1251, so
+     Ukrainian letters use the free font cells 0x80–0xFF (the build patches the game to read them). The Font
+     Editor opens both fonts of `EFonts.tpl` with their widths in `EBootPak.bin` (format `eternal_darkness`);
+     **Tools → Textures…** lists the title screen with the logo, menus, credits, Tome, maps and boot screens
+     (TPL CMPR, I4, I8; the game stores them upside down). `2_build.bat` compresses the changed files again.
    - `mgs_ts` — Metal Gear Solid: The Twin Snakes (GameCube, USA). **Source:** the workspace's `source\text`
      folder (`common\codec.dat` — every codec call; `stage\*.gcx` — menus, briefing files, item descriptions,
      memory-card messages, credits; `*\demo.subs`, `common\vox.subs`, `common\movie.subs` — subtitles of
