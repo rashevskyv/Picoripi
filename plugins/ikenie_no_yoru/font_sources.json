@@ -1,0 +1,8 @@
+[
+  {"label": "Game text font (font_game)", "format": "brfnt", "path": "package/game_common/09b9/font_game/font/font_game.brfnt"},
+  {"label": "Mail font (font_mail)", "format": "brfnt", "path": "package/game_common/09ba/font_mail/font/font_mail.brfnt"},
+  {"label": "Menu font (font_menu)", "format": "brfnt", "path": "package/game_common/09bb/font_menu/font/font_menu.brfnt"},
+  {"label": "Name font (font_name)", "format": "brfnt", "path": "package/game_common/09bc/font_name/font/font_name.brfnt"},
+  {"label": "HOME Menu font (Wii)", "format": "brfnt", "path": "hbm/HomeButton2/homeBtn.arc/arc/font/*.brfnt"},
+  {"label": "HOME Menu 3 font (Wii)", "format": "brfnt", "path": "hbm/HomeButton3/homeBtn.arc/arc/font/*.brfnt"}
+]
