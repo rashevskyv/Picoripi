@@ -332,6 +332,19 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `twewy`: 10x10 text font, 10x12, two 16x16); the Textures window lists ~300 tile sheets of menus, titles,
      credits, location titles and copyright screens in the game's `pack` archives (sprites shown as a plain tile
      sheet). `2_build.bat` makes the message index `mestable.bin` again and rebuilds the ROM.
+   - `castlevania_gba` — Castlevania: Harmony of Dissonance (GBA, Europe ACHP) and Aria of Sorrow (GBA, USA A2CE),
+     one plugin for both. **Source:** the workspace's `source` folder, filled by `1_unpack.bat` from the ROM (the
+     trimmed dump in `ISO` plus its cut padding, checked against No-Intro): `text/strings.cvtext` (every English
+     string as raw bytes: HoD 683, AoS 965 -- the French and German text of the AoS ROM stays as it is), shown in
+     blocks by kind (story, item, enemy and soul names and descriptions, menus, sound mode, area names);
+     **Translation:** `translation`. Tags: `[face:XX]` portrait, `[name:XX]` speaker, `[insert:XXXX]` a name the
+     game fills in, `[page]` / `[box]` / `[wait]` / `[clear]` / `[scroll]` text-box steps, `[A]` `[B]` `[L]` `[R]`
+     `[UP]` `[DOWN]` buttons, `[num]`, `[xHH]` a code with no letter; an unedited string keeps its bytes. Ukrainian
+     letters: AoS has none, each of the 66 gets a blank font cell; HoD has the Russian letters, Ґ Є І Ї ґ є і ї get
+     blank cells (draw them in the Font Editor). The Font Editor lists two 1-bit fonts per game (format `cv_gba`:
+     8x12 text font, 8x8 small font; AoS widths are editable); the Textures window lists the text pictures (title
+     logo, menus, area names, staff roll; unpacked 4bpp tiles, shown in grey). `2_build.bat` writes a longer
+     string or picture into the free end of the 8 MB ROM and moves its pointer.
    - `policenauts` — Policenauts (PlayStation, Japanese discs SLPS-00215/00216 with the English fan patch, as the
      PSP PS1-Classic `EBOOT.PBP` files; disc 3 is not in the release). **Source:** the workspace's `source` folder
      (`1_unpack.bat` reads the PSISOIMG disc of each EBOOT): `PN_VOX1.PNV` / `PN_VOX2.PNV` (the dialogue of discs

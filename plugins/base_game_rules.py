@@ -762,7 +762,7 @@ class BaseGameRules:
         Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
         BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``mgs``,
         ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation font), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``xf`` and
-        ``g4font`` (Level-5), ``fntg`` (EA FntG, Wii), ``vagrant`` (Vagrant Story), ``gba_tiles``, ``retro_font`` / ``retro_font_gx`` (Retro
+        ``g4font`` (Level-5), ``fntg`` (EA FntG, Wii), ``vagrant`` (Vagrant Story), ``gba_tiles``, ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture),
         ``zelda3`` (the zelda3 PC port's ``font.png``) or ``eternal_darkness`` (glyph grid in a TPL, widths in a
         companion pack) or ``fragile_dreams`` (Fragile Dreams FONT: glyph
