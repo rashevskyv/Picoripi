@@ -1,0 +1,49 @@
+[
+ {
+  "label": "Headings (italic)",
+  "format": "texture_grid",
+  "path": "font/font_heading.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    26,
+    24
+   ],
+   "columns": 16,
+   "chars": "!\"'*-.01234568=?ABCDEFGHIKLMNOPRSTUVWY…АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "Subtitles and messages",
+  "format": "texture_grid",
+  "path": "font/font_subtitle.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    28,
+    29
+   ],
+   "columns": 16,
+   "chars": "!$%&()+,./0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]_abcdefghijklmnopqrstuvwxyz}あきでとイトポン空АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+  }
+ },
+ {
+  "label": "System font (ASCII)",
+  "format": "texture_grid",
+  "path": "font/system.tpl",
+  "params": {
+   "texture": "tpl",
+   "cell": [
+    13,
+    20
+   ],
+   "columns": 16,
+   "first_code": 32
+  }
+ },
+ {
+  "label": "Wii HOME Menu font",
+  "format": "brfnt",
+  "path": "hbm/homeBtn_ENG.arc/arc/font/*.brfnt"
+ }
+]

@@ -373,6 +373,24 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Textures format `m2`). `2_build.bat` writes M2's patch archive `patchdata.psb.m` + `patchdata.bin`
      (PC: `build\windata`; Switch: a LayeredFS mod) and drops M2's own small fixes where the translation changed
      their bytes.
+   - `no_more_heroes` — No More Heroes (Wii, Europe). **Source:** the workspace's `source` folder
+     (`1_unpack.bat` reads the disc's RMHG resource files, unpacking the game's LZ): `text\<disc file>.nmt` — the
+     English lines of every text box of one game file (cut-scenes, stages and the city, side jobs, items, menus;
+     about 12,000 lines in 1,064 files), `text\main.dol.nmt` (menu words kept in the program: title copyright,
+     save screen, map and shop key guides, job board; written in place) and `hbm\home.csv` (HOME Menu). The game
+     draws no text from a font: each box carries a picture of its own glyphs, which `2_build.bat` draws anew from
+     the old picture and the fonts. The Font Editor opens 15 fonts as glyph grids (format `texture_grid`, I4;
+     each has empty cells for the 66 Ukrainian letters, written as Shift-JIS Cyrillic codes) and the HOME Menu
+     font; **Tools → Textures…** lists about 1,080 pictures (boot logos, menus, loading and safety screens, item
+     cards). The title logo is a 3D model, not a picture.
+   - `madworld` — MadWorld (Wii, Europe). **Source:** the workspace's `source` folder: `text\<disc file>.mwt`
+     — the English message tables (cut-scene subtitles `event\*`, mission and tutorial messages `case*\idpac_*`,
+     system and save messages `subscr\*`; about 1,630 messages in 68 files) and `hbm\home.csv`. The tables keep
+     glyph numbers, not character codes; the characters are known from the glyph pictures. `<8010:0064>`,
+     `<8002>` and `<#0003>` are the game's codes and stay as they are. The Font Editor opens the subtitle and the
+     heading font (`texture_grid`, IA8; empty cells for the Ukrainian letters), the ASCII system font and the
+     HOME Menu font; **Tools → Textures…** lists about 500 pictures with text (the MADWORLD logo, menus, HUD,
+     tutorials, safety screen). `2_build.bat` draws each changed table's glyph picture anew.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `default_plugin` — Default Plugin Template
