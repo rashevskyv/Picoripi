@@ -88,6 +88,14 @@ the line when it is done or moved into a plan.
 - The workspace LZO packs about 3 % worse than Retro's: a package whose edited resources no longer fit gets the English text of unchanged tables as every language, biggest saving first; the disc has only 232 MB free, so a world package of Prime 3 (up to 743 MB) can never move.
 - Seen in Dolphin only for the menu (STRG version 3); shared-language tables of Prime 1 (version 0) and Prime 2 (version 1) are checked by machine, not in the game.
 
+## Pokémon X/Y + Omega Ruby/Alpha Sapphire (`plugins/pokemon_gen6`, 2026-10-09)
+
+- Not opened: the name sort-order tables (`a/1/9/4` X/Y, `a/1/7/4` ORAS: u16 arrays per language; a translated Pokédex sort needs them regenerated), strings in `code.bin`, the e-manual (CIA content 1).
+- The fonts have no Cyrillic at all (free cells: 3 / 0 / 46 / 1, ORAS large font 10): every Ukrainian letter is a new glyph the Font Editor adds (3DS fonts now grow by sheets; a grown font is checked by machine, not yet in the game).
+- The English pictures (title logos, battle buttons, gym names, Pokédex) are checked by machine only: the first boot goes straight to the language screen, which shows no text picture; the title screen needs save data.
+- The title updates (X/Y 1.5, ORAS 1.4) are not on disk; their text differences, if any, are unknown.
+- Alpha Sapphire's CIA is not on disk; the scripts handle it once it is in `ISO\` (title id 000400000011C500).
+
 ## Pokémon Sword/Shield + Legends: Arceus (`plugins/pokemon_nx`, 2026-10-09)
 
 - Not opened: the `grammar/*.dat` and `sort_string` tables (binary, not text), strings in `main`.

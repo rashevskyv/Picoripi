@@ -460,6 +460,16 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      The text fonts lack Ґ Є І Ї ґ є і ї: `translation_map.json` writes І і Ї ї as Latin I i Ï ï and Є є Ґ ґ as
      Э э Ъ ъ, whose glyphs are redrawn in the Font Editor. Sword and Shield share one romfs: `2_build.bat` writes
      the mod for both title ids.
+   - `pokemon_gen6` — Pokémon X / Y and Omega Ruby / Alpha Sapphire (3DS), one project per pair (X and Y share
+     every text, font and picture file; so do Omega Ruby and Alpha Sapphire). **Source:** the workspace's
+     `source` (`1_unpack.bat` takes the English members out of the GARC archives): `romfs\a\0\7\4\NNN.dat`
+     game text and `romfs\a\0\8\2\NNN.dat` story (X/Y; ORAS `a\0\7\3`, `a\0\8\1`; one block per table,
+     named after its content: `080 Species names`, `Story 012`), `romfs\a\0\2\0\NNN.2.bin` name-entry keyboard
+     rows (one line, keep the character count), `romfs\a\1\8\5\*.bcfnt` fonts (ORAS `a\1\6\7`) and
+     `romfs\a\*\*\*\000.2\timg\*.bclim` English layout pictures (plus the title logos and Press Start of each
+     game). Tags are the same as `pokemon_nx`: `{PAGE}`, `{COLOR 0002}`, `{VAR 0100 0000}`,
+     `Master Ball{PLURAL 00FE||s}`, `{CHAR E08E}`. The fonts have no Cyrillic: the Font Editor adds letters
+     (`min_sheets` leaves room). `2_build.bat` rebuilds the GARCs into a Luma / Azahar mod for every CIA in `ISO\`.
    - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), one project for both games.
      **Source:** the workspace's `source` (`1_unpack.bat`: base + update 1.3.0; the Unity bundles become plain
      files): `message\english_*.bdmsg` (128 tables, 42,946 lines: story, Pokédex of both games, names,

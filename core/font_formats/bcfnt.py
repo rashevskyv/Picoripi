@@ -517,8 +517,8 @@ def _finf_pointer_offsets(data: bytes) -> Tuple[int, int]:
 
 
 def _grows(info: Dict[str, Any]) -> bool:
-    """Blank sheets can be added (``min_sheets``): Wii U BC4 / BC5 and Wii GX fonts."""
-    return (info["cafe"] and info["format"] in (CAFE_BC4, CAFE_BC5)) or info["rvl"]
+    """Blank sheets can be added (``min_sheets``): 3DS, Wii GX and Wii U BC4 / BC5 fonts."""
+    return not info["cafe"] or info["format"] in (CAFE_BC4, CAFE_BC5)
 
 
 def _add_sheets(data: bytes, info: Dict[str, Any], extra: int) -> bytes:
