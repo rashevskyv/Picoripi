@@ -38,7 +38,7 @@
         "SOS_BROKEN_ICON_HYPHEN": true
     },
     "lines_per_page": 3,
-    
+
     "tag_color_rgba": "#ffff8c00",
     "tag_bold": true,
     "tag_italic": false,
