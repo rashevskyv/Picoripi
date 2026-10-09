@@ -1,0 +1,4 @@
+[
+  {"label": "Text and system fonts (New Leaf)", "format": "bcfnt", "path": "romfs/Font/*.bcfnt"},
+  {"label": "Text and ruby fonts (Happy Home Designer)", "format": "bcfnt", "path": "romfs/Font/*.bffnt"}
+]

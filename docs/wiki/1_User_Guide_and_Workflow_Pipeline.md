@@ -441,6 +441,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      into either), `Font\BmpFont_US.sarc.zs` (number fonts), `Layout\*.zs` and `Model\*_USen.*.zs` (BNTX
      textures, also inside a model's BFRES; every ASTC block size). Tags are named from the text itself:
      `{Color:Npc}`, `{Item7:He:She}`, `{Item8:512:years:year:years}` (an item's gender and plural forms).
+   - `animal_crossing_3ds` — Animal Crossing: New Leaf - Welcome amiibo and Animal Crossing: Happy Home Designer
+     (3DS, EUR), one plugin for both. **Source:** the workspace's `source` (`1_unpack.bat`: game + update):
+     `romfs\Script\**\*.umsbt` (New Leaf 3,299 files, 87,425 messages; Happy Home Designer 507 files, 57,737
+     messages; a UMSBT holds one MSBT per language — English, Spanish, French, Italian, German — and opens as its
+     English one; saving writes the other languages back untouched), `romfs\Layout\Swkbd\message\EU_English\swkbd.msbt`
+     (the keyboard), `romfs\Font\*.bcfnt` / `*.bffnt` (3DS fonts) and the layout archives as folders of their
+     pictures (`romfs\Layout\<x>\<y>.arc	img\*.bclim` darc in New Leaf, `*.bflim` SARC in Happy Home Designer;
+     the title logos are letters in `Layout\Title`). Tags are named from the text per game (`tags_new_leaf.json`,
+     `tags_happy_home.json`: `{Color:NPC}`, `{PageBreak}`, `{G5_0:3}`…; the two games give the same tag numbers
+     different arguments, so a file picks the catalogue that names its tags). The three `*_ASR` name tables are
+     one-byte MSBT files (UTF-8 / Latin-1) and open too.
    - `castlevania_sotn_saturn` — Castlevania: Symphony of the Night for the Sega Saturn, in the "Dracula X
      Ultimate" v1.1 English build. **Source:** the workspace's `source` folder, filled by `1_unpack.bat`:
      `text\<FILE>.sotnstext` (1,130 strings of 38 program files: items, relics, spells, enemies, the librarian,

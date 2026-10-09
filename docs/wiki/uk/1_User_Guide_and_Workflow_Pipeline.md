@@ -442,6 +442,17 @@ tokens: 32.8k
      зберігається в обидва), `Font\BmpFont_US.sarc.zs` (шрифти цифр), `Layout\*.zs` і `Model\*_USen.*.zs`
      (текстури BNTX, також усередині BFRES моделі; усі розміри блоків ASTC). Теги названо за самим текстом:
      `{Color:Npc}`, `{Item7:He:She}`, `{Item8:512:years:year:years}` (рід і множина назви предмета).
+   - `animal_crossing_3ds` — Animal Crossing: New Leaf - Welcome amiibo та Animal Crossing: Happy Home Designer
+     (3DS, EUR), один плагін на обидві гри. **Source:** тека `source` робочої теки (`1_unpack.bat`: гра + оновлення):
+     `romfs\Script\**\*.umsbt` (New Leaf 3 299 файлів, 87 425 повідомлень; Happy Home Designer 507 файлів, 57 737
+     повідомлень; UMSBT тримає по одному MSBT на мову — англійська, іспанська, французька, італійська, німецька —
+     і відкривається як англійський; інші мови записуються назад без змін), `romfs\Layout\Swkbd\message\EU_English\swkbd.msbt`
+     (клавіатура), `romfs\Font\*.bcfnt` / `*.bffnt` (шрифти 3DS) і архіви розмітки як теки з малюнками
+     (`romfs\Layout\<x>\<y>.arc	img\*.bclim` darc у New Leaf, `*.bflim` SARC у Happy Home Designer; логотипи
+     титулу — літери в `Layout\Title`). Теги названо за текстом окремо для кожної гри (`tags_new_leaf.json`,
+     `tags_happy_home.json`: `{Color:NPC}`, `{PageBreak}`, `{G5_0:3}`…; ті самі номери тегів мають у двох іграх
+     різні аргументи, тож файл бере той каталог, що називає його теги). Три таблиці імен `*_ASR` — однобайтові
+     MSBT (UTF-8 / Latin-1), вони теж відкриваються.
    - `castlevania_sotn_saturn` — Castlevania: Symphony of the Night для Sega Saturn, англійська збірка
      «Dracula X Ultimate» v1.1. **Source:** тека `source` робочої теки, яку заповнює `1_unpack.bat`:
      `text\<FILE>.sotnstext` (1 130 рядків з 38 програмних файлів: предмети, реліквії, закляття, вороги,
