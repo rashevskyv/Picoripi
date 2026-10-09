@@ -330,6 +330,15 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      The text fonts lack Ґ Є І Ї ґ є і ї: `translation_map.json` writes І і Ї ї as Latin I i Ï ï and Є є Ґ ґ as
      Э э Ъ ъ, whose glyphs are redrawn in the Font Editor. Sword and Shield share one romfs: `2_build.bat` writes
      the mod for both title ids.
+   - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), one project for both games.
+     **Source:** the workspace's `source` (`1_unpack.bat`: base + update 1.3.0; the Unity bundles become plain
+     files): `message\english_*.bdmsg` (128 tables, 42,946 lines: story, Pokédex of both games, names,
+     menus, battle), `font\<bundle>\` (TextMesh Pro SDF fonts: Font Editor format `tmp_sdf`, glyph table +
+     atlas; the font files of the dynamic fallback open as `bfotf`) and `texture\...\*.png` (24 English
+     pictures: title logos, "Press any button", menu and battle words; Textures window format `png`).
+     `2_build.bat` writes every edited file back into its bundle for both games. Tags: `\n` new line,
+     `{scroll}` / `{clear}` + new line (wait for the button), `{wait:0.5}`, `{tag:A:G:T…}` a name, number or
+     word form the game fills in (argument A; word forms after `|`), TextMesh Pro `<color=…>` stay as they are.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
