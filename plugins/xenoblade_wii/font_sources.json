@@ -1,0 +1,11 @@
+[
+  {"label": "Game font 0 (font.pkb)", "format": "brfnt", "path": "font/00_0000.brfna"},
+  {"label": "Game font 1 (font.pkb)", "format": "brfnt", "path": "font/01_0001.brfna"},
+  {"label": "Game font 2, large set (font.pkb)", "format": "brfnt", "path": "font/02_0002.brfna"},
+  {"label": "Game font 3 (font.pkb)", "format": "brfnt", "path": "font/03_0003.brfna"},
+  {"label": "Game font 6, largest set (font.pkb)", "format": "brfnt", "path": "font/04_0006.brfna"},
+  {"label": "Battle font 1 (menu layouts)", "format": "brfnt", "path": "menu/*/arc/fnta/battle_font01.brfna"},
+  {"label": "Battle font 2 (menu layouts)", "format": "brfnt", "path": "menu/*/arc/fnta/battle_font02.brfna"},
+  {"label": "Battle font 3 (menu layouts)", "format": "brfnt", "path": "menu/*/arc/fnta/battle_font03.brfna"},
+  {"label": "Wii HOME Menu font", "format": "brfnt", "path": "hbm/hbm.arc/hbm/homeBtn.arc/arc/font/*.brfnt"}
+]

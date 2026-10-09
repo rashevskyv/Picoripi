@@ -1,0 +1,9 @@
+[
+  {"label": "Title logo XENOBLADE CHRONICLES", "kind": "title_screen", "format": "tpl", "path": "menu/*/arc/timg/mf99_logo*.tpl"},
+  {"label": "Title screen pictures", "kind": "title_screen", "format": "tpl", "path": "menu/*/arc/timg/mf99_*.tpl"},
+  {"label": "Menu pictures (all layouts)", "kind": "menu_label", "format": "tpl", "path": "menu/*/arc/timg/*.tpl"},
+  {"label": "Loose menu pictures", "kind": "menu_label", "format": "tpl", "path": "menu/*.tpl"},
+  {"label": "Disc channel banner and icon (Wii Menu)", "kind": "banner", "format": "tpl", "path": "opening.bnr/meta/*/arc/timg/*.tpl"},
+  {"label": "Save file banner and icons", "kind": "banner", "format": "tpl", "path": "banner/*.tpl"},
+  {"label": "Wii HOME Menu pictures", "kind": "menu_label", "format": "tpl", "path": "hbm/hbm.arc/hbm/homeBtn.arc/arc/timg/*.tpl"}
+]

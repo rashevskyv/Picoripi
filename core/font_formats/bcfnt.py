@@ -18,6 +18,12 @@ size at 0x0C, block count at 0x0E); a sheet is a GX texture in tiles (I4 8x8, hi
 8x4; IA8 4x4, alpha byte first), cells ``cell + 1`` apart as on the 3DS. ``min_sheets`` adds blank sheets at
 the end of TGLP, as for Wii U fonts.
 
+Wii archived font (``RFNA``: Xenoblade Chronicles ``font.pkb``, the console's ``wbf1.brfna``): a ``GLGR``
+glyph-group block between the header and FINF, and the TGLP sheets stored as Nintendo Huffman streams
+(``u32 size`` + ``0x28`` 8-bit or ``0x24`` 4-bit stream each). It is edited as the plain RFNT it unpacks to
+(``rfna_to_rfnt``); the file written back (``rfnt_to_rfna``) compresses the sheets again as 4-bit Huffman
+(a 16-leaf tree always fits the format's 6-bit node offsets) and keeps GLGR with the new sheet sizes.
+
 Editing: cell pixels, left offsets and advances are written in place; a redrawn glyph's glyph width is
 measured from its ink. New characters are added: a glyph after the last ``CWDH`` range gets a new
 ``CWDH`` block; a new code goes into a ``CMAP`` table that covers it, else into a scan list (the one
@@ -437,6 +443,8 @@ def _model_sheets(info: Dict[str, int], textures: List[Image.Image]) -> List[Ima
 
 
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
+    if data[:4] == b"RFNA":
+        data = rfna_to_rfnt(data)[0]
     info = _info(data)
     sheets = _model_sheets(info, _textures(data, info))
     if _grows(info):   # blank sheets for new glyphs (``min_sheets``)
@@ -545,6 +553,10 @@ def _add_sheets(data: bytes, info: Dict[str, Any], extra: int) -> bytes:
 
 
 def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, Any]) -> bytes:
+    if original[:4] == b"RFNA":
+        plain, glgr = rfna_to_rfnt(original)
+        packed = pack(metadata, sheets, plain, params)
+        return original if packed == plain else rfnt_to_rfna(packed, glgr)   # untouched: the original bytes
     info = _info(original)
     e = info["e"]
     if _grows(info) and len(sheets) > info["sheets"]:
@@ -668,3 +680,177 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     struct.pack_into(e + "I", out, size_at, len(out))
     struct.pack_into(e + "H", out, blocks_at, struct.unpack_from(e + "H", original, blocks_at)[0] + added_blocks)
     return bytes(out)
+
+
+# -- RFNA: Wii archived fonts (GLGR block, Huffman-compressed sheets) ---------------------------
+
+
+def _rfnt_blocks(data: bytes, at: int, count: int) -> List[Tuple[int, bytes]]:
+    out = []
+    for _ in range(count):
+        size = struct.unpack_from(">I", data, at + 4)[0]
+        out.append((at, bytes(data[at:at + size])))
+        at += size
+    return out
+
+
+def _relink(out: bytearray, moved: Dict[int, int], tglp_data: int) -> None:
+    """Point every FINF / CWDH / CMAP / TGLP pointer of ``out`` at the moved blocks (``moved``: old -> new)."""
+    def fix(pos: int) -> None:
+        old = struct.unpack_from(">I", out, pos)[0]
+        if old:
+            struct.pack_into(">I", out, pos, moved[old - 8] + 8)
+
+    for new in moved.values():
+        magic = bytes(out[new:new + 4])
+        if magic == b"FINF":
+            for field in (0x10, 0x14, 0x18):
+                fix(new + field)
+        elif magic == b"CWDH":
+            fix(new + 12)
+        elif magic == b"CMAP":
+            fix(new + 16)
+        elif magic == b"TGLP":
+            struct.pack_into(">I", out, new + 0x1C, tglp_data)
+    struct.pack_into(">I", out, 0x08, len(out))
+
+
+def rfna_to_rfnt(data: bytes) -> Tuple[bytes, bytes]:
+    """``(the same font as a plain RFNT with raw sheets, its GLGR block)``."""
+    hdr, count = struct.unpack_from(">HH", data, 0x0C)
+    blocks = _rfnt_blocks(data, hdr, count)
+    glgr = next(block for _at, block in blocks if block[:4] == b"GLGR")
+    out = bytearray(b"RFNT" + data[4:8] + bytes(4) + struct.pack(">HH", 0x10, count - 1))
+    moved: Dict[int, int] = {}
+    tglp_data = 0
+    for at, block in blocks:
+        if block[:4] == b"GLGR":
+            continue
+        if block[:4] == b"TGLP":
+            sheet_size, sheets = struct.unpack_from(">IH", block, 0x0C)
+            cursor = struct.unpack_from(">I", block, 0x1C)[0]
+            pad = cursor - (at + 0x20)
+            raw = bytearray()
+            for _ in range(sheets):
+                size = struct.unpack_from(">I", data, cursor)[0]
+                sheet = huffman_decode(data[cursor + 4:cursor + 4 + size])
+                if len(sheet) != sheet_size:
+                    raise ValueError(f"RFNA sheet unpacks to {len(sheet)} bytes, not {sheet_size}")
+                raw += sheet
+                cursor += 4 + size
+            block = block[:0x20] + bytes(pad) + bytes(raw)
+            block = block[:4] + struct.pack(">I", len(block)) + block[8:]
+            tglp_data = len(out) + 0x20 + pad
+        moved[at] = len(out)
+        out += block
+    _relink(out, moved, tglp_data)
+    return bytes(out), glgr
+
+
+def rfnt_to_rfna(data: bytes, glgr: bytes) -> bytes:
+    """The RFNT of ``rfna_to_rfnt`` written back as an RFNA: sheets as 4-bit Huffman streams, GLGR with their sizes."""
+    hdr, count = struct.unpack_from(">HH", data, 0x0C)
+    blocks = _rfnt_blocks(data, hdr, count)
+    out = bytearray(b"RFNA" + data[4:8] + bytes(4) + struct.pack(">HH", 0x10, count + 1))
+    glgr_at = len(out)
+    out += glgr
+    moved: Dict[int, int] = {}
+    tglp_data = 0
+    for at, block in blocks:
+        if block[:4] == b"TGLP":
+            sheet_size, sheets = struct.unpack_from(">IH", block, 0x0C)
+            start = struct.unpack_from(">I", block, 0x1C)[0] - at
+            pad = start - 0x20
+            chunks = [huffman_encode4(block[start + i * sheet_size:start + (i + 1) * sheet_size]) for i in range(sheets)]
+            block = block[:0x20] + bytes(pad) + b"".join(struct.pack(">I", len(c)) + c for c in chunks)
+            block = block[:4] + struct.pack(">I", len(block)) + block[8:]
+            tglp_data = len(out) + 0x20 + pad
+            sets, listed = struct.unpack_from(">HH", glgr, 0x0E)
+            sizes_at = 8 + 14 + sets * 2
+            sizes_at += -(glgr_at + sizes_at) % 4
+            for i, chunk in enumerate(chunks[:listed]):
+                struct.pack_into(">I", out, glgr_at + sizes_at + 4 * i, len(chunk))
+        moved[at] = len(out)
+        out += block
+    _relink(out, moved, tglp_data)
+    return bytes(out)
+
+
+def huffman_decode(stream: bytes) -> bytes:
+    """Nintendo CX Huffman (type 0x24 / 0x28): 6-bit node offsets, 32-bit words MSB first, 4-bit low nibble first."""
+    bits, size = stream[0] & 0xF, int.from_bytes(stream[1:4], "little")
+    if stream[0] >> 4 != 2 or bits not in (4, 8):
+        raise ValueError("not a Nintendo Huffman stream")
+    root, pos = 5, 4 + (stream[4] + 1) * 2
+    out, node, low = bytearray(), 5, None
+    while len(out) < size:
+        word = int.from_bytes(stream[pos:pos + 4], "little")
+        pos += 4
+        for i in range(31, -1, -1):
+            direction = (word >> i) & 1
+            flags = stream[node]
+            child = (node & ~1) + (flags & 0x3F) * 2 + 2 + direction
+            if flags & (0x80 >> direction):
+                value = stream[child]
+                if bits == 8:
+                    out.append(value)
+                elif low is None:
+                    low = value & 0xF
+                else:
+                    out.append(low | (value & 0xF) << 4)
+                    low = None
+                node = root
+                if len(out) >= size:
+                    break
+            else:
+                node = child
+    return bytes(out[:size])
+
+
+def huffman_encode4(raw: bytes) -> bytes:
+    """``raw`` as a 4-bit Nintendo Huffman stream (type 0x24): at most 16 leaves, so every node offset fits."""
+    import heapq
+    nibbles = [n for b in raw for n in (b & 0xF, b >> 4)]
+    counts: Dict[int, int] = {}
+    for n in nibbles:
+        counts[n] = counts.get(n, 0) + 1
+    if len(counts) == 1:
+        counts[(next(iter(counts)) + 1) & 0xF] = 0
+    heap = [(count, sym, ("leaf", sym)) for sym, count in sorted(counts.items())]
+    heapq.heapify(heap)
+    tick = 16
+    while len(heap) > 1:
+        a, b = heapq.heappop(heap), heapq.heappop(heap)
+        heapq.heappush(heap, (a[0] + b[0], tick, ("node", a[2], b[2])))
+        tick += 1
+    root = heap[0][2]
+    codes: Dict[int, str] = {}
+
+    def walk(node, prefix: str) -> None:
+        if node[0] == "leaf":
+            codes[node[1]] = prefix or "0"
+        else:
+            walk(node[1], prefix + "0")
+            walk(node[2], prefix + "1")
+
+    walk(root, "")
+    table = bytearray([0])                                  # node 0 = the root, filled below
+    queue = [(0, root)]
+    while queue:
+        index, node = queue.pop(0)
+        pair = len(table)
+        table.extend((0, 0))
+        flags = (pair + 5 - ((index + 5) & ~1) - 2) // 2         # node addresses count from the tree start (5)
+        for side, child in enumerate(node[1:]):
+            if child[0] == "leaf":
+                table[pair + side] = child[1]
+                flags |= 0x80 >> side
+            else:
+                queue.append((pair + side, child))
+        table[index] = flags
+    tree = bytes([(len(table) + 2) // 2 - 1]) + bytes(table)
+    tree += bytes(-len(tree) % 2)
+    bits = "".join(codes[n] for n in nibbles)
+    bits += "0" * (-len(bits) % 32)
+    body = b"".join(int(bits[i:i + 32], 2).to_bytes(4, "little") for i in range(0, len(bits), 32))
+    return bytes([0x24]) + len(raw).to_bytes(3, "little") + tree + body

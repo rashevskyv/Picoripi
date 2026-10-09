@@ -554,6 +554,17 @@ tokens: 32.8k
      `fragile_dreams`; японські гліфи лишаються як є); **Tools → Textures…** показує близько 2 800 картинок
      TPL (логотип, навчальні сторінки, меню, мапи, екрани безпеки, меню HOME, банер диска). `2_build.bat`
      знову стискає змінені файли.
+   - `xenoblade_wii` — Xenoblade Chronicles (Wii, США) і Xenoblade Chronicles 3D (New 3DS, Європа): один плагін,
+     один переклад. **Source:** тека `source` робочої теки (`1_unpack.bat`): англійські таблиці BDAT
+     `bdat\bdat_common.bin` (120 таблиць: меню, предмети, мистецтва, вміння, вороги, імена, системні
+     повідомлення, бойові репліки), `bdat\common\*.bdat` (квести, описи, підказки, досягнення, журнал
+     сюжету), `bdat\map\*.bdat` (репліки NPC, обмін, повідомлення механізмів по локаціях) і
+     `bdat\code_mes_en.bdat` (повідомлення про диск із `main.dol`, пишуться на місці); `hbm\hbm.arc\hbm\home.csv`
+     (меню HOME). Кожна таблиця з текстом — окремий блок Picoripi (161 блок, близько 38 000 клітинок); `<n>`,
+     `<col=s2>`, `<wait=key>` лишаються як є, `@` переносить рядок у меню. Ролики на Wii субтитрів не мають, тому
+     тексту подій немає. Font Editor відкриває 5 шрифтів гри, 3 бойові (архівні шрифти `RFNA`, формат `brfnt`) і
+     шрифт меню HOME; **Tools → Textures…** показує близько 3 100 картинок TPL (логотип і слова титульного
+     меню, усі макети меню, банери диска й збереження, меню HOME). `2_build.bat` пише змінені пакети в копію WBFS.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) і Pokémon Legends: Z-A

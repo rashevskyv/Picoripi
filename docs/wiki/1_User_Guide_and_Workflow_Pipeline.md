@@ -553,6 +553,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Ґ Є І Ї. The Font Editor opens all 14 FONT fonts (format `fragile_dreams`; Japanese glyphs are kept as
      they are); **Tools → Textures…** lists about 2,800 TPL pictures (title logo, tutorials, menus, maps,
      health and safety screens, HOME Menu, disc banner). `2_build.bat` compresses the changed files again.
+   - `xenoblade_wii` — Xenoblade Chronicles (Wii, USA) and Xenoblade Chronicles 3D (New 3DS, EUR): one plugin,
+     one translation. **Source:** the workspace's `source` folder (`1_unpack.bat`): the English BDAT table files
+     `bdat\bdat_common.bin` (120 tables: menus, items, arts, skills, enemies, names, system messages, battle
+     chatter), `bdat\common\*.bdat` (quests, descriptions, tutorials, achievements, story log), `bdat\map\*.bdat`
+     (NPC auto-talk, trade talk, gimmick messages per map) and `bdat\code_mes_en.bdat` (the disc messages of
+     `main.dol`, written in place); `hbm\hbm.arc\hbm\home.csv` (HOME Menu). Each table with text is one Picoripi
+     block (161 blocks, about 38,000 cells); `<n>`, `<col=s2>`, `<wait=key>` stay as they are and `@` breaks a
+     line in menu text. The Wii cutscenes have no subtitles, so there is no event text. The Font Editor opens
+     the 5 game fonts, the 3 battle fonts (`RFNA` archived fonts, format `brfnt`) and the HOME Menu font;
+     **Tools → Textures…** lists about 3,100 TPL pictures (title logo and title menu words, every menu layout,
+     disc and save banners, HOME Menu). `2_build.bat` writes the changed packs into a copy of the WBFS.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) and Pokémon Legends: Z-A
