@@ -1,0 +1,673 @@
+[
+ {
+  "label": "Title screen: logo and copyright (8 bpp)",
+  "kind": "title_screen",
+  "format": "tiles",
+  "path": "gfx/title_logo.bin",
+  "params": {
+   "bpp": 8,
+   "per_row": 32,
+   "tiles": 190,
+   "palette": "ff7f000038103510110c0c080704df2fbe2b7e233a23f822b61e531a3e1b1f0f1e13de0edf06be0a9d027a0a5b023902b301ad114e01290dca00a604ff7f314ae003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Title screen: Press Start, Yes / No",
+  "kind": "title_screen",
+  "format": "tiles",
+  "path": "gfx/title_sprites.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 160,
+   "palette": "39460000ff7f366f7156ed51df173f0a1a004c7e617d07374002d52d5311cc2c8a40ff7ff75293422f32cc2168110501f75e734e1042ad352925c61884100000"
+  }
+ },
+ {
+  "label": "Prologue picture 1",
+  "kind": "title_screen",
+  "format": "tiles",
+  "path": "gfx/prologue_bg_1.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 256,
+   "palette": "c003620c0a3509354d5d0a49ae39cf41114a5352955ad65e18675a6f9c77de7fc00366180a350b354d5d0a49b13d144e114a5352955ad65e18675a6f9c77de7fc003620c54390b352c592b4db13d8d28114a5352955ad65e18675a6f9528de7ff24d15201d43e003e003e003e0030c04e00314000c00e003e003e003e0030000"
+  }
+ },
+ {
+  "label": "Prologue picture 2",
+  "kind": "title_screen",
+  "format": "tiles",
+  "path": "gfx/prologue_bg_2.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 253,
+   "palette": "c003620c0a3509354d5d0a49ae39cf41114a5352955ad65e18675a6f9c77de7fc00366180a350b354d5d0a49b13d144e114a5352955ad65e18675a6f9c77de7fc003620c54390b352c592b4db13d8d28114a5352955ad65e18675a6f9528de7ff24d15201d43e003e003e003e0030c04e00314000c00e003e003e003e0030000"
+  }
+ },
+ {
+  "label": "Prologue words",
+  "kind": "title_screen",
+  "format": "tiles",
+  "path": "gfx/prologue_sprites.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 52,
+   "palette": "c003620c0a3509354d5d0a49ae39cf41114a5352955ad65e18675a6f9c77de7fc00366180a350b354d5d0a49b13d144e114a5352955ad65e18675a6f9c77de7fc003620c54390b352c592b4db13d8d28114a5352955ad65e18675a6f9528de7ff24d15201d43e003e003e003e0030c04e00314000c00e003e003e003e0030000"
+  }
+ },
+ {
+  "label": "File menu: Crossroads, Data Select, Name Change...",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/file_menu_words.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 256,
+   "palette": "404dfd77586bb3620e5a694d0645a4404238002c0024001c0014000c00040000404d524a1046ce456b352929e720a5206320002c0024001c0014000c00040000404dfd779f19b3620e5a694d0645a4400f00df17e003e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Name entry letters and mode words",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/file_menu_letters.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 160,
+   "palette": "404dfd77586bb3620e5a694d0645a4404238002c0024001c0014000c00040000404d524a1046ce456b352929e720a5206320002c0024001c0014000c00040000404dfd779f19b3620e5a694d0645a4400f00df17e003e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "File menu sprites",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/file_menu_sprites.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 48,
+   "palette": "0c09fd773f537f36be19fe00b60050000a003f23581a9015e003e003e003e003"
+  }
+ },
+ {
+  "label": "Pause menu words 1",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/pause_menu_1.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 178,
+   "palette": "404dfd77586bb3620e5a694dc444203c0034002c0024001c0014000c000400001f7c3f43ff7f9d635963f65a7346103e8e310c21ba363726d32132112a0c0000404d067ee003e003e003e003e003e003e003e003e003e003e003e003e003e003404dfd77586bb3620e5a694dc444203c0034002c0024001c0014000c000400001f7c0000cb1005514b1d0a36531d4b5db045b915f32d7166792e1863bc67ff7f1f7cff7fbd77196b7846545a1256f33d2b528e490a39f63132190e1dab100000"
+  }
+ },
+ {
+  "label": "Pause menu words 2 (DSS, Attribute, Action)",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/pause_menu_2.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 190,
+   "palette": "404dfd77586bb3620e5a694dc444203c0034002c0024001c0014000c000400001f7c3f43ff7f9d635963f65a7346103e8e310c21ba363726d32132112a0c0000404d067ee003e003e003e003e003e003e003e003e003e003e003e003e003e003404dfd77586bb3620e5a694dc444203c0034002c0024001c0014000c000400001f7c0000cb1005514b1d0a36531d4b5db045b915f32d7166792e1863bc67ff7f1f7cff7fbd77196b7846545a1256f33d2b528e490a39f63132190e1dab100000"
+  }
+ },
+ {
+  "label": "Pause menu sprites",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/pause_menu_sprites.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 191,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Word 640450",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/word_640450.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 4,
+   "tiles": 4,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Word 640490",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/word_640490.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 4,
+   "tiles": 4,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Word 6404d4",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/word_6404d4.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 4,
+   "tiles": 4,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Word 64051c",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/word_64051c.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 4,
+   "tiles": 4,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Salamander",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_salamander.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Serpent",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_serpent.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Mandragora",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_mandragora.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Golem",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_golem.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Cockatrice",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_cockatrice.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Manticore",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_manticore.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Griffin",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_griffin.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Thunderbird",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_thunderbird.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Unicorn",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_unicorn.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Black Dog",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_black_dog.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Mercury",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_mercury.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Venus",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_venus.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Jupiter",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_jupiter.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Mars",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_mars.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Diana",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_diana.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Apollo",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_apollo.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Neptune",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_neptune.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Saturn",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_saturn.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Uranus",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_uranus.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "DSS card name: Pluto",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/dss_pluto.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 8,
+   "tiles": 8,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Status good",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/status_good.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 4,
+   "tiles": 4,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Status poison",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/status_poison.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 4,
+   "tiles": 4,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Status freeze",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/status_freeze.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 4,
+   "tiles": 4,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Status curse",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/status_curse.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 4,
+   "tiles": 4,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Status stone",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/status_stone.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 4,
+   "tiles": 4,
+   "palette": "e003fd773f537f36be19fe00b6003000de2257229015f77b0d7f897e447d007ce003fd77586bb3620e5a694dc444203c5722f3199015e003e003e003e003e003"
+  }
+ },
+ {
+  "label": "Mode shooter",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/mode_shooter.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 24,
+   "tiles": 24
+  }
+ },
+ {
+  "label": "Mode crossbow",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/mode_crossbow.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 28,
+   "tiles": 28
+  }
+ },
+ {
+  "label": "Mode magician",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/mode_magician.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 24,
+   "tiles": 24
+  }
+ },
+ {
+  "label": "Mode fighter",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/mode_fighter.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 24,
+   "tiles": 24
+  }
+ },
+ {
+  "label": "Mode thief",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/mode_thief.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 24,
+   "tiles": 24
+  }
+ },
+ {
+  "label": "Mode fireball",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/mode_fireball.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 28,
+   "tiles": 28
+  }
+ },
+ {
+  "label": "Mode gradius",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/mode_gradius.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 28,
+   "tiles": 28
+  }
+ },
+ {
+  "label": "Mode dagger",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/mode_dagger.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 28,
+   "tiles": 28
+  }
+ },
+ {
+  "label": "Ending message 1 (Congratulations)",
+  "kind": "ending",
+  "format": "tiles",
+  "path": "gfx/ending_1.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 193,
+   "palette": "00008518ff7f5a6fd4627052ed3d6a290819ff7fbf577f2b3f037806d1092a1100009f190f00e003e003e003e003e003ff7f3d639c42da211805d108ab108518"
+  }
+ },
+ {
+  "label": "Ending message 2",
+  "kind": "ending",
+  "format": "tiles",
+  "path": "gfx/ending_2.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 146,
+   "palette": "00008518ff7f5a6fd4627052ed3d6a290819ff7fbf577f2b3f037806d1092a1100009f190f00e003e003e003e003e003ff7f3d639c42da211805d108ab108518"
+  }
+ },
+ {
+  "label": "Staff roll 1",
+  "kind": "ending",
+  "format": "tiles",
+  "path": "gfx/credits_1.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 256
+  }
+ },
+ {
+  "label": "Staff roll 2",
+  "kind": "ending",
+  "format": "tiles",
+  "path": "gfx/credits_2.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 256
+  }
+ },
+ {
+  "label": "Staff roll 3",
+  "kind": "ending",
+  "format": "tiles",
+  "path": "gfx/credits_3.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 256
+  }
+ },
+ {
+  "label": "Staff roll 4",
+  "kind": "ending",
+  "format": "tiles",
+  "path": "gfx/credits_4.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 227
+  }
+ },
+ {
+  "label": "HUD words (uncompressed)",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/hud_words.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 13,
+   "tiles": 13
+  }
+ },
+ {
+  "label": "Game mode names: Vampire Killer, Magician... (uncompressed)",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "gfx/mode_words.bin",
+  "params": {
+   "bpp": 4,
+   "per_row": 32,
+   "tiles": 77
+  }
+ },
+ {
+  "label": "Item names in menus (pre-drawn in the font, one name per row of 10 cells)",
+  "kind": "menu_label",
+  "format": "tiles",
+  "path": "font/font.bin",
+  "params": {
+   "bpp": 4,
+   "offset": 2432,
+   "tiles": 550,
+   "per_row": 10,
+   "palette": "0000ff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7f"
+  }
+ }
+]
