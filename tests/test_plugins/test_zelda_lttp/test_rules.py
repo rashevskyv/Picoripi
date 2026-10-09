@@ -94,6 +94,16 @@ def test_real_font_and_text_sheets_write_back_byte_exact():
         assert texture_formats.write(entry["format"], data, {0: textures[0].image}, entry["params"]) == data
 
 
+@pytest.mark.skipif(not (SOURCE / "nx_ui.txt").is_file(), reason="Switch port menu words not unpacked")
+def test_real_switch_port_menu_words_save_back_unchanged():
+    rules = check_loads(PLUGIN)
+    text = (SOURCE / "nx_ui.txt").read_text(encoding="utf-8")
+    blocks, _names = rules.load_data_from_json_obj(text)
+    assert "BACK" in blocks[0] and len(blocks[0]) > 100
+    assert rules.save_data_to_json_obj(blocks, {}) == text
+    assert rules.get_string_layout(1, 0) is None and rules.get_speaker_for_string(1, 0) is None
+
+
 ZT = Path(r"E:\Emulators\RomHacking\_shared\scripts\zt\lttp.py")
 
 
@@ -114,3 +124,26 @@ def test_font_cells_match_the_workspace_build():
     assert "".join(chars[upper:upper + len(module.UK_UPPER)]) == module.UK_UPPER
     covered = set(module.UK_LOWER + module.UK_UPPER) | set(lttp.LOOKALIKES)
     assert set("абвгґдеєжзиіїйклмнопрстуфхцчшщьюяАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ") <= covered
+
+
+DAT = WORKSPACE / "build" / "zelda3" / "zelda3_assets.dat"
+
+
+@pytest.mark.skipif(not (ZT.parent / "lttp_nx.py").is_file() or not DAT.is_file(), reason="workspace build not on disk")
+def test_switch_port_language_pack_holds_the_uk_dialogue_and_font():
+    import sys
+    sys.path.insert(0, str(ZT.parent.parent))
+    try:
+        from zt import lttp_nx
+    finally:
+        sys.path.remove(str(ZT.parent.parent))
+    dat = DAT.read_bytes()
+    blobs = lttp_nx.assets(dat)
+    names = [lttp_nx.unpack_arr(entry)[0] for entry in lttp_nx.unpack_arr(blobs[lttp_nx.MAP])]
+    assert names == [b"us", b"uk"]
+    pack = lttp_nx.uk_pack(dat)
+    dialogue, font = lttp_nx.unpack_arr(blobs[lttp_nx.DIALOGUE])[1], lttp_nx.unpack_arr(blobs[lttp_nx.FONT])[1]
+    assert pack[:4] == b"AZL3" and pack[12:15] == b"uk\0" and pack[48] == 1      # EU text encoding
+    assert pack[52:] == dialogue + font
+    assert lttp_nx.patch_ui('a("BACK"); b("BACKUP"); c("BACK")', {"BACK": "NAZAD"}) == \
+        'a("NAZAD"); b("BACKUP"); c("NAZAD")'
