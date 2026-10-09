@@ -17,6 +17,8 @@ from .textfile import TextFile
 
 _PLUGIN_DIR = Path(__file__).resolve().parent
 _JAPANESE = re.compile(r"[぀-ヿ㐀-鿿]")
+# The Switch games show the lines the English fan mods left Japanese (they are translated from Japanese).
+JAPANESE_SHOWN = ("ywnx", "yw4", "yay")
 
 # category -> (role, instruction). The category of a string comes from its file and entry (``category``).
 _ROLES = {
@@ -83,7 +85,8 @@ class GameRules(BaseGameRules):
     """Yo-kai Watch (3DS, USA), Yo-kai Watch 3 (3DS, EUR; its English is in ``data/txt/ev/en`` and ``yw_lg_en.fa``)
     Yo-kai Watch 1 on Switch (``ywnx``: the Japanese files ``*_ja.cfg.bin``, English from the fan mod), and
     Yo-kai Watch 4++ / Yo-kai Academy Y on Switch (``yw4`` / ``yay``: ``data/common/text/ja/**.cfg.bin``, English
-    from the fan mods; G4 fonts and G4TX textures, each game's own ``<game>_font_sources.json``).
+    from the fan mods; G4 fonts and G4TX textures, each game's own ``<game>_font_sources.json``). On the Switch
+    games the lines the fan mods left Japanese are shown too (``JAPANESE_SHOWN``), to translate from Japanese.
 
     The project's source folder is the workspace's ``source`` folder: every English text table
     (``*_en.cfg.bin``) at its path inside ``yw1_a.fa``, the fonts ``fnt/*.xf`` and the English menu
@@ -103,6 +106,7 @@ class GameRules(BaseGameRules):
         self._located: Dict[int, Optional[Tuple[str, TextFile, Path]]] = {}
         self._speakers: Optional[Speakers] = None
         self._layout: Optional[Dict[str, Dict[str, int]]] = None
+        self._japanese_for: Optional[Tuple[Optional[Path], bool]] = None
 
     def get_display_name(self) -> str:
         return "Yo-kai Watch"
@@ -118,7 +122,7 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         self._last_loaded = bytes(json_obj)
         try:
-            return [TextFile(self._last_loaded).texts()], {}
+            return [TextFile(self._last_loaded, japanese=self._japanese_shown()).texts()], {}
         except (FormatError, UnicodeDecodeError, ValueError) as error:
             log_debug(f"yokai_watch: not a text table ({error})")
             return [[]], {}
@@ -133,7 +137,7 @@ class GameRules(BaseGameRules):
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
         strings = data[0] if data else []
-        return TextFile(source).build([str(s) for s in strings])
+        return TextFile(source, japanese=self._japanese_shown()).build([str(s) for s in strings])
 
     def reset_runtime_state(self) -> None:
         self._located.clear()
@@ -158,7 +162,7 @@ class GameRules(BaseGameRules):
             rel = str(block.source_file).replace("\\", "/")
             path = Path(pm.get_absolute_path(block.source_file))
             root = Path(str(path)[:-len(rel)]) if str(path).replace("\\", "/").endswith(rel) else path.parent
-            found = (rel, TextFile(path.read_bytes(), path.name), root)
+            found = (rel, TextFile(path.read_bytes(), path.name, self._japanese_shown()), root)
         except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
             log_debug(f"yokai_watch: no text file behind block {block_idx}: {error}")
         self._located[block_idx] = found
@@ -256,6 +260,13 @@ class GameRules(BaseGameRules):
         """``yw1`` or ``yw3`` (``speakers.game_of``: the layout of the source folder)."""
         root = root or self._source_root()
         return game_of(root) if root else "yw1"
+
+    def _japanese_shown(self) -> bool:
+        """Per source folder, once (every file of a project loads through here)."""
+        root = self._source_root()
+        if self._japanese_for is None or self._japanese_for[0] != root:
+            self._japanese_for = (root, self._game(root) in JAPANESE_SHOWN)
+        return self._japanese_for[1]
 
     def _layouts(self, game: str = "yw1") -> Dict[str, Dict[str, int]]:
         if self._layout is None:

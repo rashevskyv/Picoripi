@@ -35,9 +35,9 @@ def test_a_session_older_than_the_plugin_code_is_not_restored_unless_it_holds_ed
 class _Tree(ProblemsMixin):
     """The Blocks tree's folder walk over a fake window: blocks render as plain items named by data index."""
 
-    def __init__(self, block_map):
+    def __init__(self, block_map, categories=()):
         from PyQt6.QtWidgets import QTreeWidget
-        blocks = [SimpleNamespace(id="file0"), SimpleNamespace(id="file1")]
+        blocks = [SimpleNamespace(id="file0", categories=[]), SimpleNamespace(id="file1", categories=list(categories))]
         self.mw = SimpleNamespace(
             project_manager=SimpleNamespace(project=SimpleNamespace(blocks=blocks)),
             data_store=SimpleNamespace(block_names={"3": "credits"}, show_unsaved_blocks_only=False),
@@ -72,3 +72,8 @@ def test_a_one_file_folder_lists_every_block_its_file_opens_into(qtbot):
     assert tree.folder("messages", "file0") == ("messages", ["block 0", "block 1", "block 2"], None)
     assert tree.folder("staff", "file1") == ("staff / credits", [], 3)    # compacted onto its own data block
     assert _Tree({}).folder("plain", "file1")[2] == 1                     # no map: data index = project index
+
+
+def test_a_one_file_folder_keeps_the_block_item_when_the_block_has_categories(qtbot):
+    """The categories hang under the block's own item (Yo-kai Watch's "Japanese source" lines)."""
+    assert _Tree({}, categories=["Japanese source"]).folder("map", "file1") == ("map", ["block 1"], None)

@@ -138,11 +138,12 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
 - Yo-kai Watch 3 (EUR): the dump has English only (`yw_lg_en.fa`), so no reference languages; its 3,368 English
   textures are not catalogued (the YW1 `texture_sources.json` globs do not match); no script markup yet;
   15 % of event lines and 27 % of NPC lines have no speaker.
-- Yo-kai Watch 1 (Switch, 2026-10-07): 13,866 lines the English fan mod left Japanese (mostly maps t151g00–t156g00)
-  are hidden like the 3DS leftovers; the game has no width limits measured yet (`layout.json` has no `ywnx`
+- Yo-kai Watch 1 (Switch, 2026-10-07): the 13,820 lines the English fan mod left Japanese (mostly maps t151g00–t156g00)
+  are shown since 2026-10-08 (category "Japanese source"); whether the game reads a Shift-JIS table saved as UTF-8
+  (footer byte 1) was not seen in the emulator; the game has no width limits measured yet (`layout.json` has no `ywnx`
   section); the L4 texture format (one effect test texture) is not supported.
 - Yo-kai Watch 4++ / Yo-kai Academy Y (Switch, 2026-10-07): no speakers, glossary seed or width limits yet (the
-  new `data/common` layout); Academy Y's English mod leaves about 12,300 lines Japanese (hidden); 551 in YW4;
+  new `data/common` layout); the lines the English mods left Japanese (Academy Y about 12,300, YW4 551) are shown since 2026-10-08;
   the opening staff roll (`gamedata/staffroll/*.cfg.bin`, RDBN format) and the 200_icon pictures are not in
   the editor (the mod's English staff roll is built as it is); the G4 fonts lack Ґ Є І Ї ґ є і ї.
 

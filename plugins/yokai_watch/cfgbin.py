@@ -97,11 +97,14 @@ class CfgBin:
     def build(self, texts: Optional[Dict[tuple, str]] = None) -> bytes:
         """The table with ``texts`` ({(entry, parameter): new text}) in place of those strings."""
         texts = texts or {}
+        encoding = self.encoding
+        if encoding != "utf-8" and not all(text.isascii() for text in texts.values()):
+            encoding = "utf-8"      # Ukrainian is not in Shift-JIS: the whole table becomes UTF-8 (footer says so)
         body = bytearray(self.raw[:self.entries_end])
         table = bytearray()
         offsets: Dict[bytes, int] = {}
         for e, p, value in self.strings():
-            encoded = texts.get((e, p), value).encode(self.encoding)
+            encoded = texts.get((e, p), value).encode(encoding)
             if b"\0" in encoded:
                 raise FormatError("A string cannot contain a NUL character")
             if encoded not in offsets:
@@ -112,6 +115,8 @@ class CfgBin:
         out = body + b"\xff" * (string_offset - len(body)) + table
         out += b"\xff" * (-len(out) % 16)
         out += self.raw[(self.string_offset + self.string_length + 15) & ~15:]
+        if encoding != self.encoding:
+            out[out.rindex(b"\x01t2b\xfe") + 6] = 1
         struct.pack_into("<4I", out, 0, len(self.entries), string_offset, len(table), len(offsets))
         return bytes(out)
 

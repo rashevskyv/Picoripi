@@ -10,7 +10,7 @@ from plugins.yokai_watch.cfgbin import CfgBin
 from plugins.yokai_watch.rules import category, layout_key
 from plugins.yokai_watch.textfile import TextFile
 
-from .samples import cfg_file, dialogue_file, noun_info
+from .samples import cfg_file, dialogue_file, noun_info, text_info
 
 SOURCE = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch\3DS\source")
 UKRAINIAN = "Ґанок і їжак — «є» п’ять"
@@ -47,6 +47,32 @@ def test_japanese_leftovers_are_hidden_and_written_back_unchanged():
     saved = rules.save_data_to_json_obj(blocks, names)
     texts = [e.values[2] for e in CfgBin(saved).entries if e.name == "TEXT_INFO"]
     assert texts == [UKRAINIAN, "Рядок 1\\nрядок 2<PAGE>Готово?", "ダミー", "Привіт, <PNAME01>!"]
+
+
+def test_switch_games_show_the_japanese_lines_and_translate_them(tmp_path, monkeypatch):
+    data = dialogue_file()
+    text_file = TextFile(data, japanese=True)
+    assert text_file.texts()[2] == "ダミー" and text_file.japanese_rows() == [2]
+    rules = load_rules("yokai_watch")
+    (tmp_path / "data/res/text").mkdir(parents=True)
+    (tmp_path / "data/res/text/system_text_ja.cfg.bin").write_bytes(data)      # a Yo-kai Watch 1 (Switch) source
+    monkeypatch.setattr(rules, "_source_root", lambda: tmp_path)
+    blocks, names = rules.load_data_from_json_obj(data)
+    assert len(blocks[0]) == 4 and rules.save_data_to_json_obj(blocks, names) == data
+    blocks[0][2] = "Манекен"
+    saved = rules.save_data_to_json_obj(blocks, names)
+    assert [e.values[2] for e in CfgBin(saved).entries if e.name == "TEXT_INFO"][2] == "Манекен"
+
+
+def test_a_shift_jis_table_becomes_utf8_when_ukrainian_goes_in():
+    data = cfg_file([("TEXT_INFO_BEGIN", [2]), text_info(1, 0, "ダミー"), text_info(2, 0, "テスト"), ("TEXT_INFO_END", [])],
+                    utf8=False)
+    table = CfgBin(data)
+    assert table.encoding == "shift-jis" and table.build() == data
+    assert CfgBin(table.build({(1, 2): "Test"})).encoding == "shift-jis"     # ASCII fits: the table stays as it is
+    again = CfgBin(table.build({(1, 2): UKRAINIAN}))
+    assert again.encoding == "utf-8"
+    assert [e.values[2] for e in again.entries if e.name == "TEXT_INFO"] == [UKRAINIAN, "テスト"]
 
 
 def test_identical_strings_share_one_slot_until_one_is_translated():
@@ -169,6 +195,19 @@ def test_switch_files_round_trip_byte_for_byte_and_an_edit_keeps_the_other_lines
         assert text_file.build(text_file.texts()) == data, path
         rows += len(text_file.rows)
     assert rows > 47000
+    japanese = shift_jis = 0
+    for path in files:
+        data = path.read_bytes()
+        text_file = TextFile(data, path.name, japanese=True)
+        assert text_file.build(text_file.texts()) == data, path
+        japanese += len(text_file.japanese_rows())
+        if text_file.japanese_rows() and text_file.table.encoding != "utf-8" and not shift_jis:
+            texts = text_file.texts()                       # a Japanese line of a Shift-JIS table translated
+            texts[text_file.japanese_rows()[0]] = UKRAINIAN
+            again = TextFile(text_file.build(texts), path.name, japanese=True)
+            assert again.table.encoding == "utf-8" and again.texts() == texts, path
+            shift_jis += 1
+    assert japanese > 13000 and shift_jis
     path = SOURCE_NX / "data/res/map/t101g00/t101g00_npc_text_ja.cfg.bin"      # the mod repeats strings here
     text_file = TextFile(path.read_bytes(), path.name)
     texts = text_file.texts()
@@ -195,10 +234,10 @@ def test_square_bracket_colours_and_pictures_of_the_switch_sequels_are_tags():
     assert category("data/common/text/ja/purpose/c02_purpose_text.cfg.bin", "TEXT_INFO", 2) == "objective"
 
 
-@pytest.mark.parametrize("source, game, tables, least_rows", [
-    (SOURCE_YW4, "yw4", 2316, 38000), (SOURCE_YAY, "yay", 1672, 19000)], ids=["yw4", "yay"])
+@pytest.mark.parametrize("source, game, tables, least_rows, least_japanese", [
+    (SOURCE_YW4, "yw4", 2316, 38000, 500), (SOURCE_YAY, "yay", 1672, 19000, 12000)], ids=["yw4", "yay"])
 def test_switch_sequel_files_round_trip_byte_for_byte_and_an_edit_keeps_the_other_lines(source, game, tables,
-                                                                                         least_rows):
+                                                                                         least_rows, least_japanese):
     """Yo-kai Watch 4++ / Yo-kai Academy Y (Switch): data/common/text/ja with the English fan mods' text."""
     if not (source / "data/common/text/ja").is_dir():
         pytest.skip(f"needs the workspace {source.parent}")
@@ -213,6 +252,13 @@ def test_switch_sequel_files_round_trip_byte_for_byte_and_an_edit_keeps_the_othe
         assert text_file.build(text_file.texts()) == data, path
         rows += len(text_file.rows)
     assert rows > least_rows
+    japanese = 0
+    for path in files:
+        data = path.read_bytes()
+        text_file = TextFile(data, path.name, japanese=True)
+        assert text_file.build(text_file.texts()) == data, path
+        japanese += len(text_file.japanese_rows())
+    assert japanese > least_japanese
     path = source / "data/common/text/ja/system_text.cfg.bin"
     text_file = TextFile(path.read_bytes(), path.name)
     texts = text_file.texts()
