@@ -1,0 +1,37 @@
+[
+ {
+  "label": "Remake dialogue font (msgfont.gim; the build copies it into every event pack; Ukrainian letters have empty cells and codes ready)",
+  "format": "texture_grid",
+  "path": "remake/font/msgfont.gim",
+  "font_map": "castlevania_dxc_font.json",
+  "params": {
+   "texture": "gim",
+   "cell": [
+    16,
+    16
+   ],
+   "chars": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\u0000\u0000,-.:?!\"'()[]{}<>=\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000+/¢£;\u0080\u0081\u0082\u0083\u0084\u0085\u0086\u0087\u0088\u0089\u008a\u008b\u008c\u008d\u008e\u008f\u0090\u0091\u0092\u0093\u0094\u0095\u0096\u0097\u0098@±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜ¦Ý§¨©ª«¯¬­®#$\u0099\u009a\u009b\u009c\u009d\u009e\u009f\u00a0Þßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþ\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+  }
+ },
+ {
+  "label": "Symphony of the Night 8x8 font (menus, names, dialogue; hdbin/f_game.bin, the build copies it into f_game2 and f_title1)",
+  "format": "texture_grid",
+  "path": "sotn/hdbin/f_game.bin.pic",
+  "font_map": "castlevania_dxc_sotn_font.json",
+  "params": {
+   "texture": "raw",
+   "cell": [
+    8,
+    8
+   ],
+   "chars": " !\"#$%&'()男+,-./0123456789:人手=玉?石ABCDEFGHIJKLMNOPQRSTUVWXYZ[剣]盾_書abcdefghijklmnopqrstuvwxyz炎氷雷~女力。「」、・ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワンﾞﾟ子悪魔妖精をぁぃぅぇぉゃゅょっ金あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん指輪←↖↑↗→↘↓↙○×□△名刀聖血✈★☀☁☃♂♀©®§¶∑大光邪月",
+   "texture_params": {
+    "pixel_format": "psx:CI4",
+    "width": 128,
+    "height": 128,
+    "offset": "0x30000",
+    "tlut_offset": "0x412C0"
+   }
+  }
+ }
+]

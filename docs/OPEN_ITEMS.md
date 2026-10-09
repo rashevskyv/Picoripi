@@ -131,6 +131,18 @@ The Wind Waker (GameCube) 1.2 s, Ocarina of Time / Majora's Mask 0.5 s.
   English lines are word-for-word the GameCube ones. A one-shot copy of the GameCube Ukrainian lines into the Wii
   and HD projects needs the owner to say which GameCube state is current (the session or `TP_UA\ISO\UA`).
 
+## Castlevania: The Dracula X Chronicles (`plugins/castlevania_dxc`, 2026-10-09)
+
+- The disc is the English Asian release ULKS-46155 (named USA in the workspace). The built image's EBOOT is the
+  plain BOOT.BIN ELF when the program changes (as fan translations do): checked in PPSSPP only.
+- Symphony of the Night strings are found by pattern (some false hits, e.g. code names) and keep their room;
+  growing them needs the overlays' pointers (`.rel` relocation data) moved. Its Ukrainian letters need the 8x8
+  font's kana cells and a cell map; the description font of the PSP port was not located.
+- Not opened: the PC Engine game data (`DRACX_02.DAT`, the Japanese disc; English parts are pictures),
+  `PSP_GIM.BIN` (unknown `GDT` format), Japanese-only TIM2 font sheets (`pce/arc/*font*.tm2`), movies.
+- Not seen in the emulator: the dialogue text and the dialogue font (stage 1 needs the prologue boss beaten);
+  checked by machine in the built image.
+
 ## Lunar: Silver Star Harmony (`plugins/lunar_ssh`, 2026-10-07)
 
 - The built image carries a disc font (Liberation Sans Bold from PPSSPP, not the retail FTT-NewRodin) and a
