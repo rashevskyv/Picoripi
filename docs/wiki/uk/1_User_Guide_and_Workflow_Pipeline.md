@@ -230,6 +230,17 @@ tokens: 32.8k
      `MessageFont.bffnt` і `HyliaFont.bffnt`; вікно Textures показує 63 картинки з текстом: таймери, наліпки чату
      й табло (CTPK), банери макетів (BFLIM), імена босів у `Telop.ptcl` і логотип у `PictureStory_EU.bch`
      (текстури PICA за сталими зсувами, формат `raw`)
+   - `mii_3ds` — Tomodachi Life і Miitopia (3DS, Європа; рушій плагіна A Link Between Worlds з тегами Tomodachi
+     Life). **Source:** `source`; **Translation:** `translation`; `1_unpack.bat` кладе кожен архів як теку з його
+     файлами, `2_build.bat` перепаковує архів навколо змінених. Tomodachi Life: 1 038 англійських MSBT в архівах
+     LZ11 darc `romfs\message\<Набір>\<Набір>_EU_English_LZ.bin` (53 195 повідомлень; `ArcBase` — текст, який гра
+     показує, `ArcVoice` — ті самі повідомлення так, як їх читає синтезатор мови), теги названо за `Game.msbp` гри
+     (`{Nickname:...}`, `{Food:0:Name:Singular}`, `{SingularPluralFood:...}`, `{CS_Pause:500}`; `Color` — R:G:B:A);
+     вікно Textures показує 2 467 малюнків меню BCLIM і логотип титулу. Miitopia: 388 MSBT у
+     `romfs\eu\svn_message\EU_English.sarc` (14 979 повідомлень; `LayoutMsg\` — написи інтерфейсу; власні теги гри
+     лишаються сирими `{tag:G:T:hex}`), Font Editor відкриває 4 шрифти BFFNT із `svn_font\EU_English.sarc`, вікно
+     Textures — 1 212 малюнків макетів BFLIM і логотип титулу. Основний текст обидві гри малюють системним шрифтом
+     консолі, тому обмеження ширини немає
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Європа). **Source:** тека `source` робочої теки
      (`1_unpack.bat` копіює туди `romfs\message\eu\eu.qm`, шрифти, клавіатури введення імені
      `romfs\menu\ltn16_*.list`, текстури з текстом і `exefs\code.bin`); **Translation:** `translation` (цілі файли

@@ -1,0 +1,8 @@
+[
+  {"label": "Tomodachi Life title logo", "kind": "title_screen", "format": "bflim",
+   "path": "romfs/layout/layout_title_LZ.bin.en/timg/Title_Bg_*.bclim"},
+  {"label": "Tomodachi Life menus (English)", "kind": "menu", "format": "bflim", "path": "romfs/layout/*_LZ.bin.en/timg/*.bclim"},
+  {"label": "Tomodachi Life menus (all languages)", "kind": "menu", "format": "bflim", "path": "romfs/layout/*_LZ.bin/timg/*.bclim"},
+  {"label": "Miitopia title logo", "kind": "title_screen", "format": "bflim", "path": "romfs/cmn/lyt/title.arc.szs/timg/Logo*.bflim"},
+  {"label": "Miitopia menus", "kind": "menu", "format": "bflim", "path": "romfs/cmn/lyt/*.arc.szs/timg/*.bflim"}
+]

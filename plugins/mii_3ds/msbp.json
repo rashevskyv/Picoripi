@@ -1,0 +1,7986 @@
+{
+ "endian": "little",
+ "colors": [
+  {
+   "name": "Strong",
+   "rgba": "ff0000ff"
+  },
+  {
+   "name": "Mii",
+   "rgba": "00ffffff"
+  },
+  {
+   "name": "MiiDialog",
+   "rgba": "001effff"
+  },
+  {
+   "name": "MiiTarget",
+   "rgba": "00ff00ff"
+  },
+  {
+   "name": "Item",
+   "rgba": "00ff00ff"
+  },
+  {
+   "name": "ItemDialog",
+   "rgba": "00aa3cff"
+  },
+  {
+   "name": "ItemLvUp",
+   "rgba": "ffff00ff"
+  },
+  {
+   "name": "Male",
+   "rgba": "32c8ffff"
+  },
+  {
+   "name": "Female",
+   "rgba": "ff6464ff"
+  },
+  {
+   "name": "Phrase",
+   "rgba": "00ff00ff"
+  }
+ ],
+ "attributes": [],
+ "tag_groups": [
+  {
+   "id": 0,
+   "name": "System",
+   "tags": [
+    {
+     "name": "Ruby",
+     "params": [
+      {
+       "name": "rt",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Font",
+     "params": [
+      {
+       "name": "face",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Size",
+     "params": [
+      {
+       "name": "percent",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "Color",
+     "params": [
+      {
+       "name": "r",
+       "type": "u8"
+      },
+      {
+       "name": "g",
+       "type": "u8"
+      },
+      {
+       "name": "b",
+       "type": "u8"
+      },
+      {
+       "name": "a",
+       "type": "u8"
+      },
+      {
+       "name": "name",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "PageBreak",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "name": "Mii",
+   "tags": [
+    {
+     "name": "Nickname",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Lastname",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Firstname",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Creator",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Character",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "suffix",
+       "type": "list",
+       "items": [
+        "true",
+        "false"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Character16",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "suffix",
+       "type": "list",
+       "items": [
+        "true",
+        "false"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "LongPhrase",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "ShortPhrase",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "situation",
+       "type": "list",
+       "items": [
+        "Good",
+        "Nerves",
+        "Despond",
+        "Worry"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "FirstPerson",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "FirstPersonW",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "MyNickname",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "BloodType",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "FavoriteColor",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "name": "MiiTalk",
+   "tags": [
+    {
+     "name": "Speaker",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "FriendA",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "FriendB",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "FriendC",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "FriendD",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Lovers",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Couple",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "BestFriend",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Child",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "ChildApart",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Father",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Mother",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "ExLovers",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Divorce",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "BrotherSister",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "conversion",
+       "type": "list",
+       "items": [
+        "None",
+        "Kana"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "name": "Date",
+   "tags": [
+    {
+     "name": "N_Year",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "zero",
+       "type": "list",
+       "items": [
+        "False",
+        "True"
+       ]
+      },
+      {
+       "name": "format",
+       "type": "list",
+       "items": [
+        "YYYY",
+        "YY"
+       ]
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "N_Month",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "zero",
+       "type": "list",
+       "items": [
+        "False",
+        "True"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "N_Day",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "zero",
+       "type": "list",
+       "items": [
+        "False",
+        "True"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "N_Hour",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "zero",
+       "type": "list",
+       "items": [
+        "False",
+        "True"
+       ]
+      },
+      {
+       "name": "format",
+       "type": "list",
+       "items": [
+        "12-hour",
+        "24-hour"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "N_Minute",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "zero",
+       "type": "list",
+       "items": [
+        "False",
+        "True"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "N_Second",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "zero",
+       "type": "list",
+       "items": [
+        "False",
+        "True"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "S_Month",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "S_MonthSh",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "S_Day",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "S_Hour",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      },
+      {
+       "name": "format",
+       "type": "list",
+       "items": [
+        "12-hour",
+        "24-hour"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "S_Week",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "S_WeekSh",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "S_Season",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "S_AMPM",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Text",
+        "Voice"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "Reference",
+   "tags": [
+    {
+     "name": "Body",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "set",
+       "type": "list",
+       "items": [
+        "False",
+        "True"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Headwear",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Room",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Food",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Tool",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Treasure",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Equip",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "SpecialProduct",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Item",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Number",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "info",
+       "type": "list",
+       "items": [
+        "Num",
+        "Price",
+        "NoMark"
+       ]
+      },
+      {
+       "name": "zero",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "News",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "info",
+       "type": "list",
+       "items": [
+        "Month",
+        "Day",
+        "Hour",
+        "DateDiff"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Island",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "info",
+       "type": "list",
+       "items": [
+        "Mine",
+        "Others"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Player",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "s32"
+      },
+      {
+       "name": "info",
+       "type": "list",
+       "items": [
+        "Country"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Age",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "SongGenre",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "Counter(JP)",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "counter",
+       "type": "list",
+       "items": [
+        "None",
+        "D_ConsonantEuphony",
+        "Normal"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "IslandAddress",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "info",
+       "type": "list",
+       "items": [
+        "Mine",
+        "Others"
+       ]
+      },
+      {
+       "name": "kind",
+       "type": "list",
+       "items": [
+        "Sea",
+        "Islands",
+        "Num0",
+        "Num1"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "IslandSub",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Name",
+        "Voice"
+       ]
+      },
+      {
+       "name": "info",
+       "type": "list",
+       "items": [
+        "Mine",
+        "Others"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Currency",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "Song",
+   "tags": [
+    {
+     "name": "Note",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "pitch",
+       "type": "list",
+       "items": [
+        "G1",
+        "G#1",
+        "A1",
+        "A#1",
+        "B1",
+        "C2",
+        "C#2",
+        "D2",
+        "D#2",
+        "E2",
+        "F2",
+        "F#2",
+        "G2",
+        "G#2",
+        "A2",
+        "A#2",
+        "B2",
+        "C3",
+        "C#3",
+        "D3",
+        "D#3",
+        "E3",
+        "F3",
+        "F#3",
+        "G3",
+        "G#3",
+        "A3",
+        "A#3",
+        "B3",
+        "C4",
+        "C#4",
+        "D4",
+        "D#4",
+        "E4",
+        "F4",
+        "F#4",
+        "G4",
+        "G#4",
+        "A4",
+        "A#4",
+        "B4",
+        "C5",
+        "C#5",
+        "D5",
+        "D#5",
+        "E5",
+        "F5",
+        "F#5",
+        "G5",
+        "G#5",
+        "A5",
+        "A#5",
+        "B5",
+        "C6"
+       ]
+      },
+      {
+       "name": "length",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "Rest",
+     "params": [
+      {
+       "name": "length",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "Text",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "Pitch",
+     "params": [
+      {
+       "name": "pitch",
+       "type": "list",
+       "items": [
+        "G1",
+        "G#1",
+        "A1",
+        "A#1",
+        "B1",
+        "C2",
+        "C#2",
+        "D2",
+        "D#2",
+        "E2",
+        "F2",
+        "F#2",
+        "G2",
+        "G#2",
+        "A2",
+        "A#2",
+        "B2",
+        "C3",
+        "C#3",
+        "D3",
+        "D#3",
+        "E3",
+        "F3",
+        "F#3",
+        "G3",
+        "G#3",
+        "A3",
+        "A#3",
+        "B3",
+        "C4",
+        "C#4",
+        "D4",
+        "D#4",
+        "E4",
+        "F4",
+        "F#4",
+        "G4",
+        "G#4",
+        "A4",
+        "A#4",
+        "B4",
+        "C5",
+        "C#5",
+        "D5",
+        "D#5",
+        "E5",
+        "F5",
+        "F#5",
+        "G5",
+        "G#5",
+        "A5",
+        "A#5",
+        "B5",
+        "C6"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "name": "Fixed",
+   "tags": [
+    {
+     "name": "Width",
+     "params": [
+      {
+       "name": "pixel",
+       "type": "u16"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "name": "Article",
+   "tags": [
+    {
+     "name": "Def",
+     "params": []
+    },
+    {
+     "name": "Indef",
+     "params": []
+    },
+    {
+     "name": "DefGE",
+     "params": [
+      {
+       "name": "case",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "IndefGE",
+     "params": [
+      {
+       "name": "case",
+       "type": "u8"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "name": "Gender",
+   "tags": [
+    {
+     "name": "Mii",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "male",
+       "type": "str"
+      },
+      {
+       "name": "female",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "MyMii",
+     "params": [
+      {
+       "name": "male",
+       "type": "str"
+      },
+      {
+       "name": "female",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "MiiTalk",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "Speaker",
+        "FriendA",
+        "FriendB",
+        "FriendC",
+        "FriendD",
+        "Lovers",
+        "Couple",
+        "BestFriend",
+        "Child",
+        "ChildApart",
+        "ExLovers",
+        "Divorce",
+        "BrotherSister"
+       ]
+      },
+      {
+       "name": "male",
+       "type": "str"
+      },
+      {
+       "name": "female",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "MiiSpeaker",
+     "params": [
+      {
+       "name": "male",
+       "type": "str"
+      },
+      {
+       "name": "female",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Body",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "masculine",
+       "type": "str"
+      },
+      {
+       "name": "feminine",
+       "type": "str"
+      },
+      {
+       "name": "neuter",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Headwear",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "masculine",
+       "type": "str"
+      },
+      {
+       "name": "feminine",
+       "type": "str"
+      },
+      {
+       "name": "neuter",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Room",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "masculine",
+       "type": "str"
+      },
+      {
+       "name": "feminine",
+       "type": "str"
+      },
+      {
+       "name": "neuter",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Food",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "masculine",
+       "type": "str"
+      },
+      {
+       "name": "feminine",
+       "type": "str"
+      },
+      {
+       "name": "neuter",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Tool",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "masculine",
+       "type": "str"
+      },
+      {
+       "name": "feminine",
+       "type": "str"
+      },
+      {
+       "name": "neuter",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Treasure",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "masculine",
+       "type": "str"
+      },
+      {
+       "name": "feminine",
+       "type": "str"
+      },
+      {
+       "name": "neuter",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Equip",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "masculine",
+       "type": "str"
+      },
+      {
+       "name": "feminine",
+       "type": "str"
+      },
+      {
+       "name": "neuter",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "SpecialProduct",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "masculine",
+       "type": "str"
+      },
+      {
+       "name": "feminine",
+       "type": "str"
+      },
+      {
+       "name": "neuter",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Item",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "masculine",
+       "type": "str"
+      },
+      {
+       "name": "feminine",
+       "type": "str"
+      },
+      {
+       "name": "neuter",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "name": "SingularPlural",
+   "tags": [
+    {
+     "name": "Body",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Headwear",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Room",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Food",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Tool",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Treasure",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Equip",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "SpecialProduct",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Item",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Number",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Hour",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "singular",
+       "type": "str"
+      },
+      {
+       "name": "plural",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "name": "GenderSingularPlural",
+   "tags": [
+    {
+     "name": "Body",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "masculineSingular",
+       "type": "str"
+      },
+      {
+       "name": "masculinePlural",
+       "type": "str"
+      },
+      {
+       "name": "feminineSingular",
+       "type": "str"
+      },
+      {
+       "name": "femininePlural",
+       "type": "str"
+      },
+      {
+       "name": "neuterSingular",
+       "type": "str"
+      },
+      {
+       "name": "neuterPlural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Headwear",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "masculineSingular",
+       "type": "str"
+      },
+      {
+       "name": "masculinePlural",
+       "type": "str"
+      },
+      {
+       "name": "feminineSingular",
+       "type": "str"
+      },
+      {
+       "name": "femininePlural",
+       "type": "str"
+      },
+      {
+       "name": "neuterSingular",
+       "type": "str"
+      },
+      {
+       "name": "neuterPlural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Room",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "masculineSingular",
+       "type": "str"
+      },
+      {
+       "name": "masculinePlural",
+       "type": "str"
+      },
+      {
+       "name": "feminineSingular",
+       "type": "str"
+      },
+      {
+       "name": "femininePlural",
+       "type": "str"
+      },
+      {
+       "name": "neuterSingular",
+       "type": "str"
+      },
+      {
+       "name": "neuterPlural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Food",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "masculineSingular",
+       "type": "str"
+      },
+      {
+       "name": "masculinePlural",
+       "type": "str"
+      },
+      {
+       "name": "feminineSingular",
+       "type": "str"
+      },
+      {
+       "name": "femininePlural",
+       "type": "str"
+      },
+      {
+       "name": "neuterSingular",
+       "type": "str"
+      },
+      {
+       "name": "neuterPlural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Tool",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "masculineSingular",
+       "type": "str"
+      },
+      {
+       "name": "masculinePlural",
+       "type": "str"
+      },
+      {
+       "name": "feminineSingular",
+       "type": "str"
+      },
+      {
+       "name": "femininePlural",
+       "type": "str"
+      },
+      {
+       "name": "neuterSingular",
+       "type": "str"
+      },
+      {
+       "name": "neuterPlural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Treasure",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "masculineSingular",
+       "type": "str"
+      },
+      {
+       "name": "masculinePlural",
+       "type": "str"
+      },
+      {
+       "name": "feminineSingular",
+       "type": "str"
+      },
+      {
+       "name": "femininePlural",
+       "type": "str"
+      },
+      {
+       "name": "neuterSingular",
+       "type": "str"
+      },
+      {
+       "name": "neuterPlural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Equip",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "masculineSingular",
+       "type": "str"
+      },
+      {
+       "name": "masculinePlural",
+       "type": "str"
+      },
+      {
+       "name": "feminineSingular",
+       "type": "str"
+      },
+      {
+       "name": "femininePlural",
+       "type": "str"
+      },
+      {
+       "name": "neuterSingular",
+       "type": "str"
+      },
+      {
+       "name": "neuterPlural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "SpecialProduct",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "masculineSingular",
+       "type": "str"
+      },
+      {
+       "name": "masculinePlural",
+       "type": "str"
+      },
+      {
+       "name": "feminineSingular",
+       "type": "str"
+      },
+      {
+       "name": "femininePlural",
+       "type": "str"
+      },
+      {
+       "name": "neuterSingular",
+       "type": "str"
+      },
+      {
+       "name": "neuterPlural",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Item",
+     "params": [
+      {
+       "name": "buffer",
+       "type": "u8"
+      },
+      {
+       "name": "sp",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      },
+      {
+       "name": "masculineSingular",
+       "type": "str"
+      },
+      {
+       "name": "masculinePlural",
+       "type": "str"
+      },
+      {
+       "name": "feminineSingular",
+       "type": "str"
+      },
+      {
+       "name": "femininePlural",
+       "type": "str"
+      },
+      {
+       "name": "neuterSingular",
+       "type": "str"
+      },
+      {
+       "name": "neuterPlural",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "name": "Format",
+   "tags": [
+    {
+     "name": "InitialCap",
+     "params": []
+    },
+    {
+     "name": "InitialCapSP",
+     "params": []
+    },
+    {
+     "name": "Elision",
+     "params": [
+      {
+       "name": "normal",
+       "type": "str"
+      },
+      {
+       "name": "elision",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Particle",
+     "params": [
+      {
+       "name": "char",
+       "type": "list",
+       "items": [
+        "none",
+        "ha",
+        "wo",
+        "ga",
+        "to",
+        "ni",
+        "ya",
+        "san"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Patchim",
+     "params": [
+      {
+       "name": "patchim",
+       "type": "str"
+      },
+      {
+       "name": "nopatchim",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "AndSP",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "name": "Nuance",
+   "tags": [
+    {
+     "name": "CS_Rate",
+     "params": [
+      {
+       "name": "rate",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "CS_Vol",
+     "params": [
+      {
+       "name": "Vol",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "CS_Pause",
+     "params": [
+      {
+       "name": "len",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "CS_Reset",
+     "params": []
+    },
+    {
+     "name": "Echo",
+     "params": [
+      {
+       "name": "gain",
+       "type": "u8"
+      },
+      {
+       "name": "delay",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "Preset",
+     "params": [
+      {
+       "name": "param",
+       "type": "list",
+       "items": [
+        "Default",
+        "Idol",
+        "Scream",
+        "No_Intonation",
+        "Subdued_Voice"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Song_Chorus",
+     "params": [
+      {
+       "name": "target",
+       "type": "list",
+       "items": [
+        "0",
+        "1",
+        "2"
+       ]
+      },
+      {
+       "name": "ratio",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "CS_Toi",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "orth",
+        "lhp",
+        "nts",
+        "pyt",
+        "diacritized"
+       ]
+      },
+      {
+       "name": "orth_text",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "CS_Mw",
+     "params": []
+    },
+    {
+     "name": "CS_Tn",
+     "params": [
+      {
+       "name": "tn",
+       "type": "list",
+       "items": [
+        "normal",
+        "spell",
+        "address",
+        "sms"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "CS_Wait",
+     "params": [
+      {
+       "name": "time",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "CS_Spell",
+     "params": [
+      {
+       "name": "time",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "CS_Eos",
+     "params": [
+      {
+       "name": "eos",
+       "type": "list",
+       "items": [
+        "false",
+        "true"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "CS_ReadMode",
+     "params": [
+      {
+       "name": "mode",
+       "type": "list",
+       "items": [
+        "sentence",
+        "character",
+        "word",
+        "line",
+        "explicit"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Song_WordStretch",
+     "params": [
+      {
+       "name": "mode",
+       "type": "list",
+       "items": [
+        "Only_Vowel",
+        "Only_Top",
+        "Only_Last",
+        "Whole_Word"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "LenAdjust_First",
+     "params": [
+      {
+       "name": "val",
+       "type": "s8"
+      }
+     ]
+    },
+    {
+     "name": "LenAdjust_Second",
+     "params": [
+      {
+       "name": "val",
+       "type": "s8"
+      }
+     ]
+    },
+    {
+     "name": "LenAdjust_SecondLast",
+     "params": [
+      {
+       "name": "val",
+       "type": "s8"
+      }
+     ]
+    },
+    {
+     "name": "LenAdjust_Last",
+     "params": [
+      {
+       "name": "val",
+       "type": "s8"
+      }
+     ]
+    },
+    {
+     "name": "Pitch_Smooth",
+     "params": [
+      {
+       "name": "val",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "Pitch_Mod_Width",
+     "params": [
+      {
+       "name": "val",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "Pitch_Mod_Rate",
+     "params": [
+      {
+       "name": "val",
+       "type": "u8"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "styles": [
+  {
+   "name": "Caption_U",
+   "region_width": 384,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "MiniGame_Rule",
+   "region_width": 400,
+   "lines": 5,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_Top",
+   "region_width": 80,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_Numerator",
+   "region_width": 32,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_Denominator",
+   "region_width": 32,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_Name",
+   "region_width": 200,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_Intro",
+   "region_width": 270,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_Price",
+   "region_width": 125,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_Present_U_PU_Name",
+   "region_width": 200,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_Present_U_PU_Intro",
+   "region_width": 285,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_Cityhall_BtnFList_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_Cityhall_BtnOpt",
+   "region_width": 90,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_Cityhall_BtnEntry_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_Cityhall_BtnAlbum_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_Cityhall_BtnCom_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_Cityhall_BtnCDis_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_Cityhall_BtnQR",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_Dialog_Illust_DialogIllust",
+   "region_width": 280,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_MenuQR_BtnQR_Read",
+   "region_width": 210,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_MenuQR_BtnQR_Make",
+   "region_width": 210,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_QR_MessageQR",
+   "region_width": 260,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "common_BtnCmn_00_BtnCmn_00",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "common_BtnCmn_00_BtnCmn_00S",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "common_BtnCmn_01_BtnCmn_01S",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "common_BtnCmn_01_BtnCmn_01",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "common_Caption_Caption_00",
+   "region_width": 308,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "common_Caption_U_Caption_00",
+   "region_width": 384,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "common_Caption_U_Caption_00_Big",
+   "region_width": 384,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "common_WinCmnMoney_WinCmnMoney",
+   "region_width": 126,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_WinCha_00",
+   "region_width": 84,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_WinCha_00S",
+   "region_width": 84,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_00",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_01",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_02",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_03",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_04",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_05",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_06",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_07",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_08",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_09",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_10",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_11",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBir_12",
+   "region_width": 22,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnGen_00",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnGen_01",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBlood_00",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBlood_01",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBlood_02",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBlood_03",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_CommonFL_BtnBlood_04",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_DialogFL_BtnName",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_DialogFL_BtnNickname",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_DialogFL_BtnGender",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_DialogFL_BtnYear",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_DialogFL_BtnBirthday",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_DialogFL_BtnBlood",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonFList_DialogFL_BtnCharacter",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Number_00",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Message_01",
+   "region_width": 272,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Message_02",
+   "region_width": 272,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Message_03",
+   "region_width": 272,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Message_04",
+   "region_width": 272,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Message_05",
+   "region_width": 272,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Message_00",
+   "region_width": 267,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Number_01",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Number_02",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Number_03",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Number_04",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Number_05",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Message_06",
+   "region_width": 272,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Number_06",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Tag_00",
+   "region_width": 34,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Tag_01",
+   "region_width": 34,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Tag_02",
+   "region_width": 34,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Tag_03",
+   "region_width": 34,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Tag_04",
+   "region_width": 34,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Tag_05",
+   "region_width": 34,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonList_CommonList_Tag_06",
+   "region_width": 34,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "communication_Communication_U_Cap_Have",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "communication_Communication_U_Cap_Have_Value",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "communication_DialogCommunication_WhichColors",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "communication_DialogCommunication_Have_Value",
+   "region_width": 32,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "communication_DialogCommunication_Have",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialog_Dialog_00_Dialog",
+   "region_width": 270,
+   "lines": 7,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialog_Dialog_00_BaseShadow_01",
+   "region_width": 135,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialog_Dialog_00_Base_01",
+   "region_width": 135,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialog_Dialog_00_BaseShadow_02",
+   "region_width": 135,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialog_Dialog_00_Base_02",
+   "region_width": 135,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialog_Dialog_00_BaseShadow_00",
+   "region_width": 280,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialog_Dialog_00_Base_00",
+   "region_width": 280,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialog_Dialog_U_00_Dialog_U",
+   "region_width": 350,
+   "lines": 9,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialogSub_Dialog_2Button_Btn2B_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialogSub_Dialog_2Button_Btn2B_Top",
+   "region_width": 280,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialogSub_Dialog_2Button_Btn2B_01",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialogSub_Dialog_3Button_Btn3B_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialogSub_Dialog_3Button_Btn3B_Top",
+   "region_width": 280,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialogSub_Dialog_3Button_Btn3B_01",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "dialogSub_Dialog_3Button_Btn3B_02",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_BoxColor",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_12",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_13",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_08",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_09",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_14",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_15",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_10",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_11",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_04",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_05",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_00",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_01",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_06",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_07",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_02",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_Color_03",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_U_CapA_Intro",
+   "region_width": 346,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_U_CapB_Intro",
+   "region_width": 320,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_U_CapA_TitleS",
+   "region_width": 110,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_U_CapA_Title",
+   "region_width": 210,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_U_CapB_TitleS",
+   "region_width": 110,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_U_CapB_Title",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogGender_BtnGender",
+   "region_width": 274,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoColor_Camera_6Color",
+   "region_width": 280,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoColor_Camera_8Color",
+   "region_width": 280,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoOperation_Title",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoOperation_Ope03",
+   "region_width": 255,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoOperation_Ope02",
+   "region_width": 255,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoOperation_Ope01",
+   "region_width": 255,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoOperation_Ope00",
+   "region_width": 255,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoOperation_00",
+   "region_width": 16,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoOperation_01",
+   "region_width": 16,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoOperation_02",
+   "region_width": 16,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoOperation_03",
+   "region_width": 16,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoPoint_U_Title",
+   "region_width": 274,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoPoint_U_Dialog_01",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoPoint_U_Dialog_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_DialogPhotoPoint_U_Dialog_02",
+   "region_width": 240,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditAutoPhoto_U_Base_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditAutoPhoto_U_Base_01",
+   "region_width": 50,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditAutoPhoto_U_Photo_02",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditAutoPhoto_U_Photo_01",
+   "region_width": 253,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditAutoPhoto_U_PhotoShadow_01",
+   "region_width": 253,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditAutoPhoto_U_PhotoShadow_02",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditAutoSelect_Auto",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditHair_Page_00",
+   "region_width": 28,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditHair_Page_Slash_00",
+   "region_width": 24,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditHair_Page_01",
+   "region_width": 28,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editPhoto_EditPhotoPos_PhotoPos",
+   "region_width": 270,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Action",
+   "region_width": 210,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Action_L",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Action_R",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Words_L",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Words",
+   "region_width": 210,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Words_R",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Express_L",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Express",
+   "region_width": 210,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Express_R",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Thought",
+   "region_width": 210,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Thought_L",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Thought_R",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Chara",
+   "region_width": 210,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Chara_L",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Character_Chara_R",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogAdmission_BtnAdm_00",
+   "region_width": 180,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogAdmission_BtnAdm_01",
+   "region_width": 180,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogAdmission_Admission",
+   "region_width": 279,
+   "lines": 4,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogBirthday_Month",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogBirthday_Day",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogBirthday_Slash",
+   "region_width": 32,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogBloodType_BtnBlood_A",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogBloodType_BtnBlood_B",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogBloodType_BtnBlood_O",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogBloodType_BtnBlood_AB",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogCameraColor_Camera_6Color",
+   "region_width": 280,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogCameraColor_Camera_8Color",
+   "region_width": 280,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogGender_BtnGender",
+   "region_width": 274,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogRelation_BtnCouple",
+   "region_width": 220,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogRelation_BtnParent",
+   "region_width": 220,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogRelation_BtnChild",
+   "region_width": 220,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogRelation_BtnBrother",
+   "region_width": 220,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogRelation_BtnAnother",
+   "region_width": 220,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Dialog_Camera2Btn_Btn2B_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Dialog_Camera2Btn_Btn2B_Top",
+   "region_width": 279,
+   "lines": 4,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Dialog_Camera2Btn_Btn2B_01",
+   "region_width": 170,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditBase_BtnEnter_S",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditBase_BtnEnter",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEye_Page_00",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEye_Page_Slash_00",
+   "region_width": 24,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEye_Page_01",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEye_ChangeReset",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEye_ChangeReset_S",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEyebrow_Page_00",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEyebrow_Page_Slash_00",
+   "region_width": 24,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEyebrow_Page_01",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEyebrow_ChangeReset",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditEyebrow_ChangeReset_S",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditGlasses_ChangeReset",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditGlasses_ChangeReset_S",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditHair_Page_00",
+   "region_width": 28,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditHair_Page_Slash_00",
+   "region_width": 24,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditHair_Page_01",
+   "region_width": 28,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditMole_ChangeReset",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditMole_ChangeReset_S",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditMouth_Page_00",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditMouth_Page_Slash_00",
+   "region_width": 24,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditMouth_Page_01",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditMouth_ChangeReset",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditMouth_ChangeReset_S",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditMustache_ChangeReset",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditMustache_ChangeReset_S",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditNose_Page_00",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditNose_Page_Slash_00",
+   "region_width": 24,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditNose_Page_01",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditNose_ChangeReset",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_EditNose_ChangeReset_S",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Edit_U_Caption",
+   "region_width": 310,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Nickname",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Birthday",
+   "region_width": 140,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Makeup",
+   "region_width": 130,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Color",
+   "region_width": 106,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_NicknameIn",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_BirthdaySlash",
+   "region_width": 18,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_CopyAdmin",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_BirthdayMonth",
+   "region_width": 24,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_BirthdayDay",
+   "region_width": 24,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_GenderIn",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Gender",
+   "region_width": 102,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_MakeupIn",
+   "region_width": 144,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Name_00",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_NameIn_00",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Name_01",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_NameIn_01",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_BloodIn",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Blood",
+   "region_width": 58,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_RelationIn",
+   "region_width": 144,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Relation",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_AdminSlash",
+   "region_width": 18,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_CopyAdminIn_R",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_CopyAdminIn_L",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Required",
+   "region_width": 84,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Voice_SettingEasy",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Voice_SettingVoice",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Voice_SettingRandom",
+   "region_width": 129,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Voice_SettingCustum",
+   "region_width": 129,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Voice_BtnDetail",
+   "region_width": 82,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Voice_BtnDetail_S",
+   "region_width": 82,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_VoiceDetail_control_00",
+   "region_width": 115,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_VoiceDetail_control_01",
+   "region_width": 115,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_VoiceDetail_control_02",
+   "region_width": 115,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_VoiceDetail_control_03",
+   "region_width": 115,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_VoiceDetail_control_04",
+   "region_width": 115,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_VoiceDetail_BtnSwitch",
+   "region_width": 115,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Title",
+   "region_width": 140,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Name",
+   "region_width": 90,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_IconPageL",
+   "region_width": 6,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_IconPageR",
+   "region_width": 6,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_IconPage",
+   "region_width": 58,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BoxName_00",
+   "region_width": 202,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Type",
+   "region_width": 90,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Nickname",
+   "region_width": 170,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BoxName_01",
+   "region_width": 202,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Birthday",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Another",
+   "region_width": 173,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BoxType",
+   "region_width": 173,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Made",
+   "region_width": 90,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BoxMade",
+   "region_width": 202,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation",
+   "region_width": 160,
+   "lines": 11,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BirthdayMonth",
+   "region_width": 30,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BirthdayDay",
+   "region_width": 30,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BirthdayYear",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Age",
+   "region_width": 68,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Gender",
+   "region_width": 28,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Blood",
+   "region_width": 50,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BirthdayS_00",
+   "region_width": 18,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BirthdayS_01",
+   "region_width": 18,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BoxType_00",
+   "region_width": 102,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BoxType_01",
+   "region_width": 102,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_00",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_01",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_02",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_03",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_04",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_05",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_06",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_07",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_08",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_09",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_Save_00",
+   "region_width": 54,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Apart",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Cityhall",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Dome",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Fountain",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_News",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Ranking",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_SFood",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_SRoom",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_SCostume",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_STreasure",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Scribble_Scribble_BtnReset",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Scribble_Scribble_BtnResetS",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_DialogPresent_WhichColors",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_DialogPresent_Have",
+   "region_width": 64,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_List_00",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_List_00S",
+   "region_width": 72,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnSelect_00S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnSelect_00",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnSelect_01S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnSelect_01",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnSelect_02S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnSelect_02",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnSelect_03S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnSelect_03",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchPresent_U_PU_Name",
+   "region_width": 264,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchPresent_U_PU_Intro",
+   "region_width": 278,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchPresent_U_PU_HaveColor",
+   "region_width": 80,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_01",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_02",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_03",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_04",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_05",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_06",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_07",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_08",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_09",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_10",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Title_11",
+   "region_width": 180,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_01",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_02",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_03",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_04",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_05",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_06",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_07",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_08",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_09",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_10",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Name_11",
+   "region_width": 180,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_01",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_02",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_03",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_04",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_05",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_06",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_07",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_08",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_09",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_10",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Level_11",
+   "region_width": 180,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_None_00",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_Sa_Cap",
+   "region_width": 77,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_Sa_Level",
+   "region_width": 50,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoBest_Cap",
+   "region_width": 206,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoHate_Cap",
+   "region_width": 185,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoFavorite_Cap",
+   "region_width": 185,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_Fu_Cap",
+   "region_width": 92,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_ReLove",
+   "region_width": 132,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_ReFriend_Cap",
+   "region_width": 95,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_ReFriend",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_ReLove_Cap",
+   "region_width": 130,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoBest00",
+   "region_width": 172,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoBest01",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoFavorite00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoFavorite01",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoFavorite02",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoHate00",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_U_FoHate01",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiWatch_MiiWatch_U_Room",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiWatch_MiiWatch_U_Name",
+   "region_width": 170,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_CommonMiniGame_MGCmnBS_00S",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_CommonMiniGame_MGCmnBS_00",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_CommonMiniGame_U_MGCmnT_Cap",
+   "region_width": 280,
+   "lines": 5,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QCloseUp_QCloseUp_BtnQCU_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QCloseUp_QCloseUp_BtnQCU_01",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QCloseUp_QCloseUp_BtnQCU_02",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_BtnOption_00",
+   "region_width": 152,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_BtnOption_01",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_BtnOption_02",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_BtnOption_03",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_BtnOption_04",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_BtnOption_05",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_BtnOption_06",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_BtnAdm_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_BtnAdm_01",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_BtnAdm_02",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopCategory_ShopFoods_BtnFoods_00",
+   "region_width": 48,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopCategory_ShopFoods_BtnFoods_01",
+   "region_width": 48,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopCategory_ShopFoods_BtnFoods_02",
+   "region_width": 48,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopCategory_ShopFoods_BtnFoods_03",
+   "region_width": 48,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopDialog_DialogShop_Price",
+   "region_width": 180,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopDialog_DialogShop_quantity",
+   "region_width": 24,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopDialog_DialogShop_HowMany",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopDialog_DialogShop_WhichColors_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapF_Intro_00",
+   "region_width": 278,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapF_Have_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapCo_Intro_00",
+   "region_width": 278,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapCo_Have_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapI_Intro_00",
+   "region_width": 278,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapI_Have_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapH_Intro_00",
+   "region_width": 278,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapH_Have_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapT_Intro_00",
+   "region_width": 278,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapT_Have_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_IconY",
+   "region_width": 86,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_IconPad",
+   "region_width": 86,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Voice_SettingCustom",
+   "region_width": 129,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_Relation_None",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "propose_propose_BtnProS",
+   "region_width": 140,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "propose_propose_BtnPro",
+   "region_width": 140,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_DialogDay_Year",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_DialogDay_Month",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_DialogDay_Day",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_DialogTime_Hour",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_DialogTime_Minute",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_DialogTime_AM_PM",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_IslandName_IName_00",
+   "region_width": 180,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapIm_Intro_00",
+   "region_width": 278,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_CapIm_Have_00",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_BtnCallS",
+   "region_width": 182,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_BtnCall",
+   "region_width": 182,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonEvent_CommonEvent_BtnEvent_00S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonEvent_CommonEvent_BtnEvent_00",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonEvent_CommonEvent_BtnEvent_01S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonEvent_CommonEvent_BtnEvent_01",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonEvent_CommonEvent_BtnEvent_02S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonEvent_CommonEvent_BtnEvent_02",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonEvent_CommonEvent_BtnEvent_03S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "commonEvent_CommonEvent_BtnEvent_03",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_DialogBirthYear_Year",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_AdultIn",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Adult",
+   "region_width": 92,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_BirthYear",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_OpenIn",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_CopyIn",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Open",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Profile_Copy",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "mapHouse_MapHouse_U_Name",
+   "region_width": 384,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Stomach_Stomach_Stomach",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_DialogConfession_BtnCon_00",
+   "region_width": 135,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoKind_KindFrame_00",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoKind_KindFrame_01",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoKind_KindFrame_02",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoKind_PhotoKind",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoStudio_List_ListMessage",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoStudio_Title_U_TitleCap",
+   "region_width": 280,
+   "lines": 5,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_Ranking_U_TitleCap",
+   "region_width": 190,
+   "lines": 5,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_RankingList_Rank_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_RankingList_Name_00",
+   "region_width": 136,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_RankingList_Point_00",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_RankingList_PointRate_00",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_RankingList_Rank_01",
+   "region_width": 50,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_RankingList_Name_01A",
+   "region_width": 136,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_RankingList_Percentage_01",
+   "region_width": 44,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_RankingList_Name_01B",
+   "region_width": 136,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ranking_RankingList_Name_01_and",
+   "region_width": 12,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_SongEdit_U",
+   "region_width": 390,
+   "lines": 5,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_Song_U",
+   "region_width": 390,
+   "lines": 6,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_SongGe_0",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_SongGe_1",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_SongGe_2",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_SongGe_3",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_SongGe_4",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_SongGe_5",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_IconCross",
+   "region_width": 110,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_IconA",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_Name",
+   "region_width": 380,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerBack_Letter_Caption_U_Caption_00",
+   "region_width": 384,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_Cap",
+   "region_width": 310,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_Number_00",
+   "region_width": 30,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_History_NameT",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_History_DayT",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_History_PlaceT",
+   "region_width": 122,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_CapMi_00T",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_CapMi_00",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_CapMi_01",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_InfoHis_00L",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_InfoHis_00R",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_CapMi_02T",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_Cap",
+   "region_width": 310,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapIs_00T",
+   "region_width": 312,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapIs_00",
+   "region_width": 312,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapIs_01T",
+   "region_width": 300,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapIs_01",
+   "region_width": 300,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_Number_00",
+   "region_width": 30,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_History_NameT",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_History_DayT",
+   "region_width": 70,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_History_PlaceT",
+   "region_width": 122,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapMi_00T",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapMi_00",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapMi_01",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapManP0_00T",
+   "region_width": 312,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapManP0_00",
+   "region_width": 312,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapManP0_01T",
+   "region_width": 108,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapManP0_01",
+   "region_width": 108,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapManP0_04T",
+   "region_width": 182,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapManP0_04",
+   "region_width": 182,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_InfoHis_00L",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_InfoHis_00R",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapManP0_06T",
+   "region_width": 368,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapManP0_06",
+   "region_width": 368,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_EditFirst_BtnEFirst_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_EditFirst_EditFirst_Top",
+   "region_width": 265,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_EditFirst_BtnEFirst_01",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "cityhall_EditFirst_BtnEFirst_02",
+   "region_width": 240,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "confession_Confession4_BtnSelect_00S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "confession_Confession4_BtnSelect_00",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "confession_Confession4_BtnSelect_01S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "confession_Confession4_BtnSelect_01",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Dialog_2Button_Btn2B_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Dialog_2Button_Btn2B_Top",
+   "region_width": 280,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Dialog_2Button_Btn2B_01",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "friendList_FriendList_U_00_BirthdayAdult",
+   "region_width": 68,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "market_Market_BtnBuyS",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "market_Market_BtnBuy",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_GameCoin",
+   "region_width": 32,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Sound_BGM",
+   "region_width": 122,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Sound_Stereo_00",
+   "region_width": 122,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Kaleidoscope_Kaleidoscope_Top",
+   "region_width": 300,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Mobile_Mobile_Top",
+   "region_width": 300,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "MusicBox_MusicBox_BtnCenter_S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "MusicBox_MusicBox_BtnCenter",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Travel_Travel_BtnCenter_S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Travel_Travel_BtnCenter",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Travel_Travel_Title_U_Name",
+   "region_width": 320,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Travel_Travel_Title_U_Destination",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_BtnLU_So",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_BtnLU_Mo",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_LvUp_Top",
+   "region_width": 300,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_BtnLU_To",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_BtnLU_In",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_BtnLU_Wo",
+   "region_width": 90,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ARCamera_ARCamera_BtnStopS",
+   "region_width": 182,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ARCamera_ARCamera_BtnStop",
+   "region_width": 182,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ARCamera_DialogARCamera_DialogARCard",
+   "region_width": 270,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_Adm_00Top",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_Adm_01Top",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_Adm_00",
+   "region_width": 260,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_Adm_01",
+   "region_width": 260,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_Adm_02",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_Adm_02Top",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_BtnJust",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_Admission_BtnJustS",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ARCamera_ARCamera_BtnSceS",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ARCamera_ARCamera_BtnSce",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ARCamera_DialogScenery_BtnSce_00",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_SHeadWear",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_SImport",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_PhotoStudio",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Affinity",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_House",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Hall",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Wharf",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_VacantLand",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "FryingPan_FryingPan_BtnSelect_00S",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "FryingPan_FryingPan_BtnSelect_01",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "FryingPan_FryingPan_BtnSelect_01S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "FryingPan_FryingPan_BtnSelect_00",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Machine_Machine_BtnSelect_00S",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Machine_Machine_BtnSelect_01",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Machine_Machine_BtnSelect_01S",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Machine_Machine_BtnSelect_00",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_Cap",
+   "region_width": 310,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP0_00T",
+   "region_width": 364,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP0_00",
+   "region_width": 364,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP0_01T",
+   "region_width": 108,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP0_01",
+   "region_width": 108,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP0_04T",
+   "region_width": 176,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP0_04",
+   "region_width": 176,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP1_00T",
+   "region_width": 364,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP1_00",
+   "region_width": 364,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP0_06T",
+   "region_width": 176,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP0_06",
+   "region_width": 176,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_BoxName_00",
+   "region_width": 148,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_BoxName_01",
+   "region_width": 148,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_Name",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_Birthday",
+   "region_width": 84,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_BoxBirthday",
+   "region_width": 118,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_Made",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_BoxMade",
+   "region_width": 148,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_Gen_Blo",
+   "region_width": 84,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_BoxGender",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_Self",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_BoxSelf",
+   "region_width": 122,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_BoxBlood",
+   "region_width": 60,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_Word",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_BoxAddress",
+   "region_width": 208,
+   "lines": 4,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_BoxWord",
+   "region_width": 208,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_Address",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_Nickname",
+   "region_width": 170,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "QR_QRList_U_Top",
+   "region_width": 152,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "birthdayPlayer_BirthdayPlayer_Explanation",
+   "region_width": 280,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "birthdayPlayer_DialogBirthdayPlayer_DialogBirP",
+   "region_width": 270,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_EditFirst_CapA_Intro",
+   "region_width": 286,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_EditFirst_CapB_Intro",
+   "region_width": 256,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_EditFirst_CapA_Title",
+   "region_width": 190,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "distribution_Distribution_EditFirst_CapB_Title",
+   "region_width": 146,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_PublicHall",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Tent",
+   "region_width": 230,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Explanation",
+   "region_width": 1160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_BtnAsk_00T",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_Top",
+   "region_width": 270,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_WinAsk_00",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_BtnAsk_00E",
+   "region_width": 116,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_U_CapAsk_UT",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_U_CapAsk_U",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_U_CapAsk_UE",
+   "region_width": 116,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_7",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_8",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_9",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_4",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_5",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_6",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_1",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_2",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_3",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_0",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_BtnCal_Clear",
+   "region_width": 110,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_TextBox_11",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_2BtnSelect_BtnS_00",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_2BtnSelect_BtnS_01",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_3BtnSelect_BtnS_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_3BtnSelect_BtnS_01",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_3BtnSelect_BtnS_02",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_BtnSelect_BtnS_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_BtnSelect_BtnS_01",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_BtnSelect_BtnS_02",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_BtnSelect_BtnS_03",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CommonMiniGame_Q_BtnSelect_BtnS_04",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Qsame_QSameBoard_Answer_00",
+   "region_width": 244,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Qsame_QSameBoard_Answer_01",
+   "region_width": 244,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Qsame_QSameBoard_Answer_02",
+   "region_width": 270,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "news_News_Caption_00",
+   "region_width": 308,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "news_News_BtnNextS",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "news_News_BtnNext",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoAlbum_AU_Numerator",
+   "region_width": 42,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoAlbum_AU_Denominator",
+   "region_width": 42,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "saveImport_SaveImport_U_Possibility",
+   "region_width": 180,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_DialogGenre_BtnGenre_00",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_DialogGenre_Genre_Top",
+   "region_width": 274,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_DialogName_Name_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_DialogName_Name_Top",
+   "region_width": 274,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_SongListG_Top",
+   "region_width": 300,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_SongPurpose_BtnPur_00",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_SongPurpose_BtnPur_02",
+   "region_width": 296,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_SongPurpose_BtnPur_03",
+   "region_width": 144,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_SongPurpose_BtnPur_01",
+   "region_width": 240,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_SongEdit_U_T",
+   "region_width": 250,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerBack_TravelerBack_Island",
+   "region_width": 244,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerBack_TravelerBack_Product",
+   "region_width": 200,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wandererTalk_WandererTalk_BtnSelect_00S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wandererTalk_WandererTalk_BtnSelect_00",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wandererTalk_WandererTalk_BtnSelect_01S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wandererTalk_WandererTalk_BtnSelect_01",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderWatch_WanderLetter_To",
+   "region_width": 300,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderWatch_WanderLetter_Message",
+   "region_width": 216,
+   "lines": 4,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderWatch_WanderLetter_From",
+   "region_width": 200,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "proposeToWedding_ProposeToWedding_BtnSelect_00S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "proposeToWedding_ProposeToWedding_BtnSelect_00",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "proposeToWedding_ProposeToWedding_BtnSelect_01S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "proposeToWedding_ProposeToWedding_BtnSelect_01",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_U_Forwarding",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_U_Coming",
+   "region_width": 130,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP1_03",
+   "region_width": 350,
+   "lines": 4,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_U_Construction",
+   "region_width": 300,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_BtnSelect_00S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_BtnSelect_00",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_BtnSelect_01S",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_BtnSelect_01",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_Numerato_C",
+   "region_width": 32,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_Denomina_C",
+   "region_width": 32,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_Color",
+   "region_width": 44,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_AU_All",
+   "region_width": 44,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP2_00T",
+   "region_width": 364,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ApartInfo_ApartInfo_U_CapManP2_00",
+   "region_width": 368,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "map_Map_Save_00S",
+   "region_width": 54,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnPreS",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_BtnPre",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchPresent_U_AU_Price",
+   "region_width": 125,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchRelation_U_Re_Top",
+   "region_width": 310,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouchLvUp_Money_GiveMoney",
+   "region_width": 150,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiWatch_MiiWatch_U_Roof",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiWatch_MiiWatch_U_Manager",
+   "region_width": 128,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_IslandName_Top",
+   "region_width": 290,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "option_Option_IslandName_Tail",
+   "region_width": 20,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoKind_KindFrame4_00",
+   "region_width": 130,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoKind_KindFrame4_01",
+   "region_width": 130,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoKind_KindFrame4_02",
+   "region_width": 130,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "photostudio_PhotoKind_KindFrame4_03",
+   "region_width": 130,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "shopList_ShopList_U_Cap_Limitation",
+   "region_width": 132,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ARCamera_ARCamera_ExplanationLR",
+   "region_width": 200,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ARCamera_ARCamera_MessageSave",
+   "region_width": 160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "travelerList_TravelerList_U_Non",
+   "region_width": 310,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapMi_00S",
+   "region_width": 862,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_CapIs_00S",
+   "region_width": 862,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_Non",
+   "region_width": 310,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_Sa_Cap",
+   "region_width": 114,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_Sa_Level",
+   "region_width": 40,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wanderList_WanderList_U_Sa_LevelCap",
+   "region_width": 80,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_BtnNextS",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_BtnNext",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_U_Message_M",
+   "region_width": 390,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_U_Name_M",
+   "region_width": 154,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_U_Message_I",
+   "region_width": 390,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_U_Name_I",
+   "region_width": 190,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_U_Message_Leave",
+   "region_width": 390,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_U_Message_Top",
+   "region_width": 320,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "wharf_wharf_U_Count",
+   "region_width": 50,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_BalloonGe_0",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_BalloonGe_1",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_BalloonGe_2",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_BalloonGe_3",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_BalloonGe_4",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "song_Song_U_BalloonGe_5",
+   "region_width": 100,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "albumList_AlbumList_U_Ex_Room",
+   "region_width": 350,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "propose_propose_Top",
+   "region_width": 310,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_Word_BtnWord_00",
+   "region_width": 216,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_Word_Word_00Top",
+   "region_width": 274,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiTouch_MiiTouch_Word_Top",
+   "region_width": 310,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "screenShotError_ScreenShotError_U_ScreenSError",
+   "region_width": 340,
+   "lines": 3,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "affinity_Affinity_Result_U_Top",
+   "region_width": 350,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "affinity_Affinity_Result_U_Diagnosis",
+   "region_width": 390,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "affinity_Affinity_Result_U_Diagnosis_S",
+   "region_width": 390,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "affinity_Affinity_Result_U_Top_S",
+   "region_width": 350,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_BtnAsk_01T",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_BtnAsk_01E",
+   "region_width": 116,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_BtnAsk_02T",
+   "region_width": 256,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "miiAsk_MiiAsk_BtnAsk_02E",
+   "region_width": 116,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "editor_Edit_U_Dist_00",
+   "region_width": 256,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "affinity_BtnSelect_BtnS_00",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "affinity_BtnSelect_BtnS_01",
+   "region_width": 120,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "affinity_Weather_Commentary_U_Commentary",
+   "region_width": 1160,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "affinity_Weather_Commentary_U_Attention",
+   "region_width": 400,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  }
+ ]
+}

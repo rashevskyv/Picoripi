@@ -1,0 +1,6 @@
+[
+  {"label": "Miitopia: info font", "format": "bcfnt", "path": "romfs/eu/svn_font/EU_English.sarc/FontInfo.bffnt"},
+  {"label": "Miitopia: caption font", "format": "bcfnt", "path": "romfs/eu/svn_font/EU_English.sarc/FontCaption.bffnt"},
+  {"label": "Miitopia: caption outline font", "format": "bcfnt", "path": "romfs/eu/svn_font/EU_English.sarc/FontCaptionOutline.bffnt"},
+  {"label": "Miitopia: cut-in font", "format": "bcfnt", "path": "romfs/eu/svn_font/EU_English.sarc/FontCutIn.bffnt"}
+]
