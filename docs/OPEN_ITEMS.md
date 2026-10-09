@@ -27,6 +27,7 @@ the line when it is done or moved into a plan.
 - The Ukrainian letters have empty cells in the workspace font (б–я 95–119, Б–Я 128–148); nobody has drawn them yet. The file-select screen, name entry and credits keep the English font and words.
 - Not opened: credits and file-select / name-entry text (tilemaps in the port's C code and ROM tables).
 - `font_sources.json` `chars` and `UK_LOWER`/`UK_UPPER` in the workspace's `zt\lttp.py` must agree (`test_font_cells_match_the_workspace_build`).
+- Switch port (Alek NX, `nx_ui.txt`): its menu font has only A-Z; Ukrainian menu words need Cyrillic cells in sprite sheets 105-107 and a change to `draw_text` in the port's `second_screen_sdl.c`. The port's in-app updater would replace our NRO with the author's (no escape code 0x86).
 
 ## Tingle Tuner (`plugins/zelda_tingle`, 2026-10-04)
 

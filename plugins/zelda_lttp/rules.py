@@ -8,6 +8,10 @@ the workspace font (``source/font.png``, 256 cells) has a cell for each (``font_
 look-alikes of ``translation_map.json`` (the project's, else this plugin's) are saved as their Latin letter.
 ``2_build.bat`` compiles the translation as the port language ``uk`` of ``zelda3_assets.dat``.
 
+The second file, ``nx_ui.txt`` (same ``N: text`` lines), holds the menu words of the Switch port "Alek's Ultimate
+NX Edition" (``port/alek-nx``): ``2_build.bat`` writes the edited ones into that port's C code and builds its NRO.
+Its menu font draws only A-Z, 0-9 and a little punctuation, so it has no dialogue layout or context.
+
 Context comes from the port's C code (``port_context.py`` -> ``context.json``): the sprite that shows a
 message (speaker), the function and source line (scene, link), so lines of one NPC are translated together.
 """
@@ -164,6 +168,8 @@ class GameRules(BaseGameRules):
     # -- width and editing ----------------------------------------------------------------
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        if block_idx != 0:          # nx_ui.txt: one-line menu words, not dialogue windows
+            return None
         return {"max_width": MAX_LINE_WIDTH, "warn_width": MAX_LINE_WIDTH, "lines_per_page": LINES_PER_WINDOW}
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 8) -> Optional[int]:
