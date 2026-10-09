@@ -101,6 +101,8 @@ def pica_order(width: int, height: int) -> Tuple[int, ...]:
 
 
 def _read_values(data: bytes, count: int, bits: int, endian: str, low_first: bool) -> Sequence[int]:
+    if bits == 1:                                    # first pixel in the high bit
+        return [(byte >> (7 - bit)) & 1 for byte in bytes(data[:(count + 7) // 8]) for bit in range(8)][:count]
     if bits == 4:
         raw = bytes(data[:(count + 1) // 2])
         high = raw.translate(bytes(b >> 4 for b in range(256)))
@@ -118,6 +120,9 @@ def _read_values(data: bytes, count: int, bits: int, endian: str, low_first: boo
 
 
 def _write_values(values: Sequence[int], bits: int, endian: str, low_first: bool) -> bytes:
+    if bits == 1:
+        padded = list(values) + [0] * (-len(values) % 8)
+        return bytes(sum((padded[i + bit] & 1) << (7 - bit) for bit in range(8)) for i in range(0, len(padded), 8))
     if bits == 4:
         first, second = values[0::2], values[1::2]
         if low_first:
@@ -654,6 +659,8 @@ def _build() -> Dict[str, Codec]:
     add(value_codec("psx:RGB555", 16, *psx_clut(), endian="<"))
     add(value_codec("psx:4bpp", 4, *_index(4), endian="<", low_first=True))
     add(value_codec("psx:8bpp", 8, *_index(8), endian="<"))
+    # Sega Saturn: 1 bit 12x12 glyphs one after another (the menu font of Symphony of the Night)
+    add(value_codec("saturn:1bpp_12x12", 1, *_index(1), tile=(12, 12)))
     # SNES (planar 8x8 tiles)
     for bpp in (2, 3, 4):
         add(snes_codec(bpp))

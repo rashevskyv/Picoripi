@@ -103,3 +103,16 @@ def test_saturn_high_nibble_and_one_bit_tiles_read_and_write_back():
     edited.putpixel((3, 9), (255, 255, 255, 255))
     out = texture_formats.write("tiles", glyph, {0: edited}, params)
     assert out[9] == 0x10 and out[:2] == glyph[:2]
+
+
+def test_saturn_one_bit_12x12_glyphs_read_and_write_back():
+    from core.texture_formats import raw as raw_format
+    data = bytes(range(18)) * 3
+    params = {"pixel_format": "saturn:1bpp_12x12", "width": 36, "height": 12}
+    [texture] = raw_format.read(data, params)
+    assert texture.image.size == (36, 12)
+    assert texture.image.getpixel((11, 0))[3] == 0 and texture.image.getpixel((3, 1))[3] == 255  # bit 15: row 1, x 3
+    assert raw_format.write(data, {0: texture.image}, params) == data
+    edited = texture.image.copy()
+    edited.putpixel((12, 0), (255, 255, 255, 255))                 # first pixel of the second glyph
+    assert raw_format.write(data, {0: edited}, params)[18] == 0x80

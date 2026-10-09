@@ -325,8 +325,8 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `castlevania_sotn_saturn` — Castlevania: Symphony of the Night for the Sega Saturn, in the "Dracula X
      Ultimate" v1.1 English build. **Source:** the workspace's `source` folder, filled by `1_unpack.bat`:
      `text\<FILE>.sotnstext` (1,130 strings of 38 program files: items, relics, spells, enemies, the librarian,
-     menus, save screens, area names, room messages, cutscene speaker names), `fonts\ASCII.FON` and
-     `fonts\SYSTEM_8x8.BIN` (Tools → Font Editor), `dialogue\*.BIN` (the cutscene dialogue is pictures of its
+     menus, save screens, area names, room messages, cutscene speaker names), `fonts\MENU_12x12.BIN` (the font
+     of the title, data-select and save menus), `fonts\SYSTEM_8x8.BIN` and `fonts\ASCII.FON` (Tools → Font Editor), `dialogue\*.BIN` (the cutscene dialogue is pictures of its
      lines, 20 files) and `title\TITLE_LOGO.BIN` (Tools → Textures). A longer string moves its neighbours and
      their pointers; a speaker name keeps its letter count. Keep the first cell of a dialogue picture empty: the
      game fills the dialogue box with it.

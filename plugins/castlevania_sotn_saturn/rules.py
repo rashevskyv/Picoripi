@@ -8,8 +8,9 @@ A project's source folder holds what ``1_unpack.bat`` of the workspace takes off
   offset ``o``, encoding ``e``, bytes ``hex``). The plugin shows them through ``codec`` and saves an edited
   string as bytes again; an unedited string keeps its bytes. The build puts a changed string in place or packs
   its group of strings again and moves their pointers.
-- ``fonts/ASCII.FON`` (title and menu font, 1 bit 8x16) and ``fonts/SYSTEM_8x8.BIN`` (the in-game font, 4 bit
-  8x8; ``font_sources.json``, read through the ``tiles`` texture format).
+- ``fonts/MENU_12x12.BIN`` (the title, data-select and save menus: 1 bit 12x12 from ``GAME.PRG``; the game
+  shrinks it to 8 px with grey edges), ``fonts/SYSTEM_8x8.BIN`` (the in-game font, 4 bit 8x8) and
+  ``fonts/ASCII.FON`` (1 bit 8x16); ``font_sources.json``, read through the ``raw`` and ``tiles`` texture formats.
 - ``dialogue/<EVENT>.BIN`` -- the cutscene dialogue is pictures of its lines (4 bit 8x16 cells, 32 a line), and
   ``title/TITLE_LOGO.BIN`` -- the title logo pieces (8 bit 8x8 cells); ``texture_sources.json``.
 """

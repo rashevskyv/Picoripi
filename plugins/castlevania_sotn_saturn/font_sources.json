@@ -1,6 +1,25 @@
 [
  {
-  "label": "Title and menu font 8x16 (ASCII.FON)",
+  "label": "Menu font 12x12 (title, data select, save screens; GAME.PRG)",
+  "format": "texture_grid",
+  "path": "fonts/MENU_12x12.BIN",
+  "params": {
+   "texture": "raw",
+   "cell": [
+    12,
+    12
+   ],
+   "first_code": 32,
+   "texture_params": {
+    "pixel_format": "saturn:1bpp_12x12",
+    "width": 192,
+    "height": 72,
+    "offset": 0
+   }
+  }
+ },
+ {
+  "label": "8x16 font (ASCII.FON; loaded at the title)",
   "format": "texture_grid",
   "path": "fonts/ASCII.FON",
   "params": {

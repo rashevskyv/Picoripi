@@ -88,7 +88,7 @@ def test_every_string_bank_loads_and_saves_unchanged():
 def test_every_font_packs_back_and_a_box_glyph_reads_back(tmp_path):
     descriptors = json.loads((PLUGIN_DIR / "font_sources.json").read_text(encoding="utf-8"))
     found = font_sources.resolve(descriptors, {"source_path": str(SOURCE), "translation_path": str(tmp_path)})
-    assert len(found) == 2
+    assert len(found) == 3
     for font in found:
         original = font.read_original()
         metadata, sheets = font_formats.extract(font.format, original, font.params)
