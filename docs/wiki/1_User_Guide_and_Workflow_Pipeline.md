@@ -390,6 +390,14 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      into either), `Font\BmpFont_US.sarc.zs` (number fonts), `Layout\*.zs` and `Model\*_USen.*.zs` (BNTX
      textures, also inside a model's BFRES; every ASTC block size). Tags are named from the text itself:
      `{Color:Npc}`, `{Item7:He:She}`, `{Item8:512:years:year:years}` (an item's gender and plural forms).
+   - `castlevania_sotn_saturn` — Castlevania: Symphony of the Night for the Sega Saturn, in the "Dracula X
+     Ultimate" v1.1 English build. **Source:** the workspace's `source` folder, filled by `1_unpack.bat`:
+     `text\<FILE>.sotnstext` (1,130 strings of 38 program files: items, relics, spells, enemies, the librarian,
+     menus, save screens, area names, room messages, cutscene speaker names), `fonts\MENU_12x12.BIN` (the font
+     of the title, data-select and save menus), `fonts\SYSTEM_8x8.BIN` and `fonts\ASCII.FON` (Tools → Font Editor), `dialogue\*.BIN` (the cutscene dialogue is pictures of its
+     lines, 20 files) and `title\TITLE_LOGO.BIN` (Tools → Textures). A longer string moves its neighbours and
+     their pointers; a speaker name keeps its letter count. Keep the first cell of a dialogue picture empty: the
+     game fills the dialogue box with it.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

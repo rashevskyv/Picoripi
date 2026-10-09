@@ -1,0 +1,60 @@
+[
+ {
+  "label": "Menu font 12x12 (title, data select, save screens; GAME.PRG)",
+  "format": "texture_grid",
+  "path": "fonts/MENU_12x12.BIN",
+  "params": {
+   "texture": "raw",
+   "cell": [
+    12,
+    12
+   ],
+   "first_code": 32,
+   "texture_params": {
+    "pixel_format": "saturn:1bpp_12x12",
+    "width": 192,
+    "height": 72,
+    "offset": 0
+   }
+  }
+ },
+ {
+  "label": "8x16 font (ASCII.FON; loaded at the title)",
+  "format": "texture_grid",
+  "path": "fonts/ASCII.FON",
+  "params": {
+   "texture": "tiles",
+   "cell": [
+    8,
+    16
+   ],
+   "first_code": 0,
+   "texture_params": {
+    "bpp": 1,
+    "cell": [
+     1,
+     2
+    ],
+    "per_row": 32
+   }
+  }
+ },
+ {
+  "label": "In-game font 8x8 (menus, names, HUD; copied into every stage .CHR)",
+  "format": "texture_grid",
+  "path": "fonts/SYSTEM_8x8.BIN",
+  "params": {
+   "texture": "tiles",
+   "cell": [
+    8,
+    8
+   ],
+   "first_code": 32,
+   "texture_params": {
+    "bpp": 4,
+    "nibble": "high",
+    "per_row": 16
+   }
+  }
+ }
+]

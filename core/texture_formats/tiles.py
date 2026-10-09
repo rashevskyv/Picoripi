@@ -1,4 +1,4 @@
-"""GBA / Nintendo DS character tiles: 8x8 tiles of 4 or 8 bit palette indices, as one sheet image.
+"""GBA / Nintendo DS (and Sega Saturn) character tiles: 8x8 tiles of 1, 4 or 8 bit palette indices, as one sheet image.
 
 The file is a NITRO NCGR (``RGCN``: depth, tile counts and the data offset come from its ``RAHC`` block) or
 headerless tile data. Sprites stored one after another ("1D" mapping) are drawn as cells of ``cell`` =
@@ -14,8 +14,10 @@ gives a changed pixel the nearest colour of its tile's bank (a redrawn PNG often
 every off-palette pixel would make most redraws fail, and the window shows the result at once). Painting where
 the sheet has no tiles is refused.
 
-Params (all optional for an NCGR): ``bpp`` (4 / 8), ``offset`` (first tile), ``tiles`` (count), ``cell``,
-``per_row``, ``name``, ``palette``, ``bank``, ``banks``; or ``textures``: a list of such entries.
+Params (all optional for an NCGR): ``bpp`` (1 / 4 / 8), ``offset`` (first tile), ``tiles`` (count), ``cell``,
+``per_row``, ``name``, ``palette``, ``bank``, ``banks``, ``nibble`` (``high``: the first pixel of a 4 bpp byte is
+its high nibble, as on the Saturn; default low, as on the GBA/DS); or ``textures``: a list of such entries.
+1 bpp tiles are 8 bytes, a row a byte, the first pixel in the high bit (Saturn ASCII.FON).
 """
 from __future__ import annotations
 
@@ -66,7 +68,7 @@ def _entries(data: bytes, params: Dict[str, Any]) -> List[Dict[str, Any]]:
         cells = -(-tiles // (cell_w * cell_h))
         rows = -(-cells // per_row)
         out.append({"name": str(merged.get("name") or ""), "bpp": bpp, "offset": offset, "tiles": tiles,
-                    "cell": (cell_w, cell_h), "per_row": per_row,
+                    "cell": (cell_w, cell_h), "per_row": per_row, "high": merged.get("nibble") == "high",
                     "size": (per_row * cell_w * 8, rows * cell_h * 8), "banks": _banks(merged, bpp, tiles)})
     return out
 
@@ -106,18 +108,26 @@ def _places(entry: Dict[str, Any]):
         yield tile, x, y
 
 
-def _indices(raw: bytes, bpp: int) -> List[int]:
+def _indices(raw: bytes, bpp: int, high: bool = False) -> List[int]:
     if bpp == 8:
         return list(raw)
     out = []
+    if bpp == 1:
+        for byte in raw:
+            out += ((byte >> (7 - bit)) & 1 for bit in range(8))
+        return out
     for byte in raw:
-        out += (byte & 15, byte >> 4)
+        out += (byte >> 4, byte & 15) if high else (byte & 15, byte >> 4)
     return out
 
 
-def _pack(indices: Sequence[int], bpp: int) -> bytes:
+def _pack(indices: Sequence[int], bpp: int, high: bool = False) -> bytes:
     if bpp == 8:
         return bytes(indices)
+    if bpp == 1:
+        return bytes(sum((indices[i + bit] & 1) << (7 - bit) for bit in range(8)) for i in range(0, 64, 8))
+    if high:
+        return bytes(indices[i] << 4 | indices[i + 1] for i in range(0, 64, 2))
     return bytes(indices[i] | indices[i + 1] << 4 for i in range(0, 64, 2))
 
 
@@ -132,7 +142,8 @@ def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
         image = Image.new("RGBA", entry["size"], (0, 0, 0, 0))
         for tile, x, y in _places(entry):
             at = entry["offset"] + tile * span
-            image.paste(_tile_image(_indices(data[at:at + span], entry["bpp"]), entry["banks"][tile]), (x, y))
+            image.paste(_tile_image(_indices(data[at:at + span], entry["bpp"], entry["high"]), entry["banks"][tile]),
+                        (x, y))
         out.append(Texture(entry["name"], image, f"{entry['bpp']}bpp tiles"))
     return out
 
@@ -164,7 +175,7 @@ def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -
         cache: Dict[Tuple, int] = {}
         for tile, x, y in _places(entry):
             at = entry["offset"] + tile * span
-            old = _indices(out[at:at + span], entry["bpp"])
+            old = _indices(out[at:at + span], entry["bpp"], entry["high"])
             colours = entry["banks"][tile]
             piece = image.crop((x, y, x + 8, y + 8))
             if piece.tobytes() == _tile_image(old, colours).tobytes():
@@ -172,5 +183,5 @@ def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -
             pixels = list(piece.getdata())
             new = [i if colours[i] == pixel or (i == 0 and pixel[3] < 128) else _nearest(pixel, colours, cache)
                    for i, pixel in zip(old, pixels)]
-            out[at:at + span] = _pack(new, entry["bpp"])
+            out[at:at + span] = _pack(new, entry["bpp"], entry["high"])
     return bytes(out)
