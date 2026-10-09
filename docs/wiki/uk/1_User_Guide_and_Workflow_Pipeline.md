@@ -325,9 +325,10 @@ tokens: 23.8k
    - `pokemon_nx` — Pokémon Sword/Shield (з обома доповненнями) і Pokémon Legends: Arceus (Switch). **Source:**
      тека `source` робочої теки (`1_unpack.bat`: гра + останнє оновлення): `bin\message\English\common` і
      `script` `*.dat` (один блок на файл; `.tbl` поруч дає назву кожного рядка), `bin\font` (`.BFOTF`,
-     `bmp\*.bffnt`) і `bin\appli\*\bin\*_eng.arc` (англійські картинки меню). Теги: `[VAR XXXX(...)]` — команди
-     гри (`[VAR BE01]` наступне вікно тексту, `[VAR FF00(n)]` колір, `[VAR 0100(n)]` вставлене ім'я) і `[XXXX]` —
-     значки. У шрифтах тексту немає Ґ Є І Ї ґ є і ї: `translation_map.json` пише І і Ї ї як латинські I i Ï ï,
+     `bmp\*.bffnt`) і `bin\appli\*\bin\*_eng.arc` (англійські картинки меню). Теги (ті самі, що в `pokemon_trinity`):
+     `{PAGE}` наступне вікно тексту, `{COLOR 0002}` колір, `{VAR 0100 0000}` вставлене ім'я,
+     `M{GENDER 00FF|aster|iss}` форми слова (їхні довжини записуються заново під час збереження), `{CHAR E305}` —
+     значок кнопки. У шрифтах тексту немає Ґ Є І Ї ґ є і ї: `translation_map.json` пише І і Ї ї як латинські I i Ï ï,
      а Є є Ґ ґ — як Э э Ъ ъ, чиї гліфи перемальовують у Редакторі шрифтів. Sword і Shield мають спільний romfs:
      `2_build.bat` пише мод для обох title id.
    - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), один проєкт для обох ігор.
@@ -397,7 +398,7 @@ tokens: 23.8k
      `message\dat\English\{common,script}\*.dat` — у Z-A `ik_message\...` — шрифти `appli\font\bin` /
      `ui\font\bin` і англійські архіви макетів `*_eng.arc`); **Translation:** `translation`. Один блок на файл
      повідомлень (Scarlet/Violet: 913 файлів, 85 331 рядок; Z-A: 427 файлів, 76 810 рядків); змінні мають вигляд
-     `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`; граматичні розгалуження несуть обидва тексти,
+     `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, значки `{CHAR E300}`; граматичні розгалуження несуть обидва тексти,
      `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), а їхні довжини записуються
      заново під час збереження. Font Editor відкриває шрифти `.bfotf` і `.bffnt`; вікно Textures — BNTX-картинки
      англійських макетів (логотип, меню). `2_build.bat` записує змінені файли в мод LayeredFS разом з

@@ -12,7 +12,7 @@ from PIL import ImageDraw
 from core import font_formats
 from core.texture_formats import bntx
 from core.texture_formats.sources import list_members, unwrap
-from plugins.pokemon_trinity import gfmsg
+from plugins.common import gfmsg
 from plugins.pokemon_trinity.rules import GameRules
 
 ROOT = Path(r"E:\Emulators\RomHacking\Pokemon")

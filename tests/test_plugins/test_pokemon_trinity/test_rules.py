@@ -3,7 +3,7 @@ variables as tags, grammar branches whose lengths are written again, and a save 
 import struct
 
 from core.formats import SaveContext
-from plugins.pokemon_trinity import gfmsg
+from plugins.common import gfmsg
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "pokemon_trinity"

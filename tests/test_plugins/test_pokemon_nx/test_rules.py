@@ -1,4 +1,4 @@
-"""Pokémon Sword/Shield + Legends: Arceus plugin: gfmsg codec, translation map; real-data round trips."""
+"""Pokémon Sword/Shield + Legends: Arceus plugin: the shared gfmsg codec, translation map; real-data round trips."""
 import json
 import struct
 from pathlib import Path
@@ -9,8 +9,7 @@ from PIL import Image
 from core import font_formats
 from core.containers.sarc import Sarc
 from core.texture_formats import sources as texture_sources
-from plugins.pokemon_nx import gfmsg
-from plugins.pokemon_nx.tags import describe
+from plugins.common import gfmsg
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "pokemon_nx"
@@ -19,25 +18,13 @@ GAMES = {name: Path(r"E:\Emulators\RomHacking\Pokemon") / name / "source" for na
 LINES = {"Sword and Shield": (1106, 60588), "Legends Arceus": (322, 43704)}
 
 
-def _dat(lines, flags=None) -> bytes:
-    """A message file of ``lines`` (lists of UTF-16 words without the terminator), laid out as the game's."""
-    table, body = bytearray(), bytearray()
-    start = 4 + 8 * len(lines)
-    for index, words in enumerate(lines):
-        table += struct.pack("<iHH", start + len(body), len(words) + 1, (flags or [0] * len(lines))[index])
-        key = (gfmsg.KEY_BASE + gfmsg.KEY_ADVANCE * index) & 0xFFFF
-        body += struct.pack(f"<{len(words) + 1}H", *gfmsg._crypt([*words, 0], key))
-        body += b"\0" * (-len(body) % 4)
-    section = struct.pack("<I", start + len(body)) + table + body
-    return struct.pack("<HHIII", 1, len(lines), len(section), 0, 0x10) + section
-
-
 def _words(text: str):
     return list(struct.unpack(f"<{len(text)}H", text.encode("utf-16-le")))
 
 
-SAMPLE = _dat([_words("Hello, ") + [0x10, 2, 0x0100, 0] + _words("!") + [0x10, 1, 0xBE01] + _words("\nBye"),
-               [0xE305] + _words(" [x]"), [0x10, 2, 0xBDFF, 2]], flags=[4, 0, 0])
+SAMPLE_LINES = [(_words("Hello, ") + [0x10, 2, 0x0100, 0] + _words("!") + [0x10, 1, 0xBE01] + _words("\nBye"), 4),
+         ([0xE305] + _words(" [x]\tz"), 0), ([0x10, 2, 0xBDFF, 2], 0)]
+SAMPLE = gfmsg.write(SAMPLE_LINES)
 
 
 def test_the_plugin_loads():
@@ -52,24 +39,24 @@ def test_the_validator_passes():
     check_validator(PLUGIN)
 
 
-def test_commands_icons_and_brackets_become_tags_and_back():
-    message = gfmsg.MessageFile(SAMPLE)
-    assert message.texts() == ["Hello, [VAR 0100(0000)]![VAR BE01]\nBye", "[E305] [005B]x[005D]", "[VAR BDFF(0002)]"]
-    assert message.pack(message.words) == SAMPLE and message.build(message.texts()) == SAMPLE
-    assert describe("[VAR BE01]").startswith("Next text box") and describe("[E305]")
+def test_commands_and_icons_become_tags_and_back():
+    texts = [gfmsg.to_editor(units) for units, _flags in gfmsg.read(SAMPLE)]
+    assert texts == ["Hello, {VAR 0100 0000}!{PAGE}\nBye", "{CHAR E305} [x]{CHAR 0009}z", "{NULL 0002}"]
+    assert gfmsg.write([(gfmsg.from_editor(t), f) for t, (_u, f) in zip(texts, gfmsg.read(SAMPLE))]) == SAMPLE
+    assert gfmsg.describe("{PAGE}").startswith("Next text box") and gfmsg.describe("{CHAR E305}").startswith("Button")
 
 
 def test_a_longer_line_moves_the_lines_after_it_and_keeps_the_flags():
-    message = gfmsg.MessageFile(SAMPLE)
-    texts = message.texts()
-    texts[0] = texts[0].replace("Bye", "Goodbye, see you soon")
-    again = gfmsg.MessageFile(message.build(texts))
-    assert again.texts() == texts and again.flags == [4, 0, 0]
+    rules = load_rules(PLUGIN)
+    blocks, names = rules.load_data_from_json_obj(SAMPLE)
+    blocks[0][0] = blocks[0][0].replace("Bye", "Goodbye, see you soon")
+    again = rules.load_data_from_json_obj(rules.save_data_to_json_obj(blocks, names))[0]
+    assert again == blocks
+    assert [f for _u, f in gfmsg.read(rules.save_data_to_json_obj(blocks, names))] == [4, 0, 0]
 
 
 def test_other_files_are_not_taken_for_messages():
-    with pytest.raises(gfmsg.FormatError):
-        gfmsg.MessageFile(b"\x04\x00\x00\x00" + bytes(32))
+    assert not gfmsg.is_gfmsg(b"\x04\x00\x00\x00" + bytes(32))
     rules = load_rules(PLUGIN)
     assert rules.load_data_from_json_obj(b"AHTB" + bytes(16)) == ([[]], {})
 
@@ -86,7 +73,7 @@ def test_letters_the_fonts_lack_are_saved_as_their_font_slots():
     blocks, names = rules.load_data_from_json_obj(SAMPLE)
     blocks[0][1] = "Їжак і Ґава: Є, ґ, є"
     saved = rules.save_data_to_json_obj(blocks, names)
-    assert gfmsg.MessageFile(saved).texts()[1] == "Ïжак i Ъава: Э, ъ, э"
+    assert gfmsg.to_editor(gfmsg.read(saved)[1][0]) == "Ïжак i Ъава: Э, ъ, э"
     again, _ = rules.load_data_from_json_obj(saved)
     assert again[0][1] == "Ïжак i Ґава: Є, ґ, є"       # look-alike Latin letters stay Latin when read back
 
@@ -108,12 +95,12 @@ def test_every_english_message_file_rebuilds_byte_exact(game):
     lines = 0
     for path in files:
         raw = path.read_bytes()
-        message = gfmsg.MessageFile(raw)
-        assert message.pack(message.words) == raw, path.name
+        message = gfmsg.read(raw)
+        assert gfmsg.write(message) == raw, path.name
         blocks, names = rules.load_data_from_json_obj(raw)
         assert rules.save_data_to_json_obj(blocks, names) == raw, path.name
-        assert len(gfmsg.read_labels(path.with_suffix(".tbl").read_bytes())) >= len(message.words)
-        lines += len(message.words)
+        assert len(gfmsg.read_labels(path.with_suffix(".tbl").read_bytes())) >= len(message)
+        lines += len(message)
     assert (len(files), lines) == LINES[game]
 
 

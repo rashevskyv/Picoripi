@@ -1,4 +1,5 @@
-"""Game Freak message files (``.dat``) of Pokémon Scarlet/Violet and Legends: Z-A (the same since Sword/Shield).
+"""Game Freak message files (``.dat`` + ``.tbl``) of the Switch Pokémon games, one codec for ``pokemon_nx``
+(Sword/Shield, Legends: Arceus) and ``pokemon_trinity`` (Scarlet/Violet, Legends: Z-A).
 
 Layout: u16 sections (1), u16 line count, u32 section size, u32 initial key (0), u32 section offset (0x10);
 the section: u32 size, then per line {i32 offset, u16 length in UTF-16 units with the terminator, u16 flags},
@@ -9,7 +10,10 @@ Editor text: ``\\n`` is a line break; a variable (``0x0010``, count, code, argum
 ``{SCROLL}`` (BE00, the window scrolls), ``{PAGE}`` (BE01, a new window), ``{WAIT 0010}``, ``{NULL 0018}``,
 ``{COLOR 0001}``, and ``{VAR 0102 0000}`` for the rest (hex). Grammar branches carry their two texts, whose lengths
 the game reads from the last argument: ``M{GENDER 00FF|aster|iss}`` (the player's gender), ``point{PLURAL 0001||s}``,
-``{VERSION 00FF|Ko|Mi}raidon`` (Scarlet | Violet); the lengths are written again on save.
+``{VERSION 00FF|Ko|Mi}raidon`` (Scarlet | Violet); the lengths are written again on save. A character that is not
+plain text (a button icon of the font's private-use area, a tab) reads ``{CHAR E305}``.
+
+``.tbl`` (``AHTB``): u32 count, then per line a u64 FNV-1a hash, a u16 name length and the zero-terminated label.
 """
 from __future__ import annotations
 
@@ -48,8 +52,10 @@ def read(data: bytes) -> List[Tuple[List[int], int]]:
     lines = []
     for i in range(count):
         offset, length, flags = struct.unpack_from("<iHH", data, 0x14 + 8 * i)
+        if length < 1 or 0x10 + offset + 2 * length > len(data):
+            raise ValueError(f"line {i} is outside the file")
         units = _crypt(struct.unpack_from(f"<{length}H", data, 0x10 + offset), i)
-        if not units or units[-1] != 0:
+        if units[-1] != 0:
             raise ValueError(f"line {i} has no terminator")
         lines.append((units[:-1], flags))
     return lines
@@ -66,6 +72,10 @@ def write(lines: List[Tuple[List[int], int]]) -> bytes:
         body += b"\0" * (-len(body) % 4)
     size = 4 + len(table) + len(body)
     return struct.pack("<HHIIII", 1, len(lines), size, 0, 0x10, size) + bytes(table) + bytes(body)
+
+
+def _plain(unit: int) -> bool:
+    return unit == 0x0A or unit >= 0x20 and not 0xE000 <= unit <= 0xF8FF
 
 
 def to_editor(units: List[int]) -> str:
@@ -89,7 +99,7 @@ def to_editor(units: List[int]) -> str:
             out.append("{" + " ".join([name] if name else ["VAR", f"{code:04X}"]) +
                        "".join(f" {a:04X}" for a in args) + "}")
             continue
-        out.append(chr(unit))
+        out.append(chr(unit) if _plain(unit) else f"{{CHAR {unit:04X}}}")
         k += 1
     return "".join(out)
 
@@ -102,6 +112,9 @@ def from_editor(text: str) -> List[int]:
         pos = m.end()
         body, *texts = m.group(0)[1:-1].split("|")
         words = body.split()
+        if words[0] == "CHAR" and len(words) == 2 and not texts:
+            units.append(int(words[1], 16))
+            continue
         if words[0] == "VAR":
             code, args = int(words[1], 16), [int(w, 16) for w in words[2:]]
         else:
@@ -119,3 +132,43 @@ def from_editor(text: str) -> List[int]:
 def _chars(text: str) -> List[int]:
     data = text.replace("\r\n", "\n").encode("utf-16-le", "surrogatepass")
     return list(struct.unpack(f"<{len(data) // 2}H", data))
+
+
+def read_labels(data: bytes) -> List[str]:
+    """Labels of a ``.tbl`` (``AHTB``), one per line; empty when the data is not one."""
+    if data[:4] != b"AHTB":
+        return []
+    count = struct.unpack_from("<I", data, 4)[0]
+    out, at = [], 8
+    for _ in range(count):
+        if at + 10 > len(data):
+            break
+        length = struct.unpack_from("<H", data, at + 8)[0]
+        out.append(data[at + 10:at + 10 + length].split(b"\0", 1)[0].decode("utf-8", "replace"))
+        at += 10 + length
+    return out
+
+
+_DESCRIPTIONS = (
+    (r"\{PAGE\}", "Next text box: the text so far is cleared"),
+    (r"\{SCROLL\}", "Scroll: the text moves up one line"),
+    (r"\{WAIT .*", "Wait (frames)"),
+    (r"\{VAR BE05 .*", "Text speed / timing"),
+    (r"\{NULL .*", "Empty line"),
+    (r"\{COLOR 0000\}", "End of the coloured text"),
+    (r"\{COLOR .*", "Coloured text until {COLOR 0000}"),
+    (r"\{GENDER .*", "Word form by gender: masculine|feminine"),
+    (r"\{PLURAL .*", "Word form by count: one|many"),
+    (r"\{VERSION .*", "Word by game version: first|second"),
+    (r"\{VAR 11.*", "Word form chosen by the gender or count of an inserted value"),
+    (r"\{VAR 01.*", "A name the game inserts (player, Pokémon, move, item...)"),
+    (r"\{VAR 02.*", "A number the game inserts"),
+    (r"\{CHAR E[0-9A-F]{3}\}", "Button or symbol icon of the font"),
+    (r"\{CHAR .*", "Special character"),
+)
+
+
+def describe(tag: str) -> str:
+    """Tooltip of an editor tag."""
+    return next((text for pattern, text in _DESCRIPTIONS if re.fullmatch(pattern, tag or "")),
+                "Game command" if (tag or "").startswith("{VAR ") else "")

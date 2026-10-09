@@ -7,14 +7,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
+from plugins.common import gfmsg
 from utils.constants import user_plugin_file_or_shipped
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
-from .gfmsg import FormatError, MessageFile, read_labels
 from .tag_manager import TagManager
-from .tags import describe
 
 _PLUGIN = "pokemon_nx"
 # file name (without .dat) -> (content role, instruction, glossary section); the first match wins
@@ -60,14 +59,14 @@ class GameRules(BaseGameRules):
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
-    tag_style = "square"
+    tag_style = "curly"
     analyze_whole_string_first = True
     show_spaces_as_dots_default = True
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
-        self._file: Optional[MessageFile] = None
-        self._located: Dict[int, Optional[Tuple[str, MessageFile, List[str]]]] = {}
+        self._file: Optional[bytes] = None        # the message file a save writes over (line flags)
+        self._located: Dict[int, Optional[Tuple[str, List[int], List[str]]]] = {}
         self._map_stamp: Optional[tuple] = None
         self.translation_map: Dict[str, str] = {}
         self.reverse_translation_map: Dict[str, str] = {}
@@ -110,32 +109,31 @@ class GameRules(BaseGameRules):
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):
             return super().load_data_from_json_obj(json_obj)
-        try:
-            message = MessageFile(bytes(json_obj))
-        except FormatError as error:
-            log_debug(f"{_PLUGIN}: not a message file ({error})")
+        raw = bytes(json_obj)
+        if not gfmsg.is_gfmsg(raw):
+            log_debug(f"{_PLUGIN}: not a message file")
             self._file = None
             return [[]], {}
-        self._file = message
+        self._file = raw
         self.load_translation_map()
         back = str.maketrans(self.reverse_translation_map) if self.reverse_translation_map else None
-        return [[text.translate(back) if back else text for text in message.texts()]], {"0": "Text"}
+        texts = [gfmsg.to_editor(units) for units, _flags in gfmsg.read(raw)]
+        return [[text.translate(back) if back else text for text in texts]], {"0": "Text"}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         if self._file is None:
             return super().save_data_to_json_obj(data, block_names)
         self.load_translation_map()
         table = str.maketrans(self.translation_map) if self.translation_map else None
-        return self._file.build([str(text).translate(table) if table else str(text) for text in (data or [[]])[0]])
+        old = gfmsg.read(self._file)
+        texts = [str(text).translate(table) if table else str(text) for text in (data or [[]])[0]]
+        if len(texts) != len(old):
+            raise ValueError(f"{len(texts)} lines for a file of {len(old)}")
+        return gfmsg.write([(gfmsg.from_editor(text), flags) for text, (_units, flags) in zip(texts, old)])
 
     def prepare_save_context(self, context) -> None:
-        """The file is rebuilt from its current version (translation first): load the newest that parses."""
-        for raw in context.existing_versions():
-            try:
-                self._file = MessageFile(raw)
-                return
-            except FormatError as error:
-                log_debug(f"{_PLUGIN}: cannot read {context.relative_path}: {error}; trying the next version")
+        """The file is rebuilt from its current version (translation first): the newest that parses."""
+        self._file = next((raw for raw in context.existing_versions() if gfmsg.is_gfmsg(raw)), self._file)
 
     def reset_runtime_state(self) -> None:
         self._file = None
@@ -143,8 +141,8 @@ class GameRules(BaseGameRules):
 
     # -- where a block comes from ------------------------------------------------
 
-    def _locate(self, block_idx: int) -> Optional[Tuple[str, MessageFile, List[str]]]:
-        """``(relative path, parsed source file, line labels)`` of a data block; cached per load."""
+    def _locate(self, block_idx: int) -> Optional[Tuple[str, List[int], List[str]]]:
+        """``(relative path, line flags, line labels)`` of a data block; cached per load."""
         if block_idx in self._located:
             return self._located[block_idx]
         found = None
@@ -154,8 +152,9 @@ class GameRules(BaseGameRules):
             block = pm.project.blocks[block_map.get(block_idx, block_idx)]
             path = Path(pm.get_absolute_path(block.source_file))
             table = path.with_suffix(".tbl")
-            labels = read_labels(table.read_bytes()) if table.is_file() else []
-            found = (str(block.source_file).replace("\\", "/"), MessageFile(path.read_bytes()), labels)
+            labels = gfmsg.read_labels(table.read_bytes()) if table.is_file() else []
+            flags = [flags for _units, flags in gfmsg.read(path.read_bytes())]
+            found = (str(block.source_file).replace("\\", "/"), flags, labels)
         except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
             log_debug(f"{_PLUGIN}: no message file behind block {block_idx}: {error}")
         self._located[block_idx] = found
@@ -166,10 +165,10 @@ class GameRules(BaseGameRules):
         located = self._locate(block_idx)
         if not located:
             return None
-        rel, message, labels = located
+        rel, line_flags, labels = located
         try:
             index = int(string_idx)
-            flags = message.flags[index]
+            flags = line_flags[index]
         except (IndexError, TypeError, ValueError):
             return None
         attributes: Dict[str, Any] = {"file": rel, "line": index, "flags": flags}
@@ -234,13 +233,14 @@ class GameRules(BaseGameRules):
             if not section or "/common/" not in f"/{rel}":
                 continue
             try:
-                texts = MessageFile(Path(pm.get_absolute_path(block.source_file)).read_bytes()).texts()
-            except (OSError, FormatError) as error:
+                texts = [gfmsg.to_editor(units) for units, _flags
+                         in gfmsg.read(Path(pm.get_absolute_path(block.source_file)).read_bytes())]
+            except (OSError, ValueError) as error:
                 log_debug(f"{_PLUGIN}: no glossary terms from {rel}: {error}")
                 continue
             for row, term in enumerate(texts):
                 term = term.strip()
-                if not term or term in seen or "[" in term or len(term) > 40:
+                if not term or term in seen or "{" in term or len(term) > 40:
                     continue
                 seen.add(term)
                 entries.append({"term": term, "section": section, "description": f"{stem} table",
@@ -253,7 +253,7 @@ class GameRules(BaseGameRules):
     # -- editor ------------------------------------------------------------------
 
     def get_tag_tooltip(self, tag: str) -> str:
-        return describe(str(tag))
+        return gfmsg.describe(str(tag))
 
     def get_external_reference_url(self, term: str) -> Optional[str]:
         if not term or not term.strip():

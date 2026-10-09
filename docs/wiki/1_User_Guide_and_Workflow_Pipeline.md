@@ -325,8 +325,9 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `pokemon_nx` — Pokémon Sword/Shield (with both DLC) and Pokémon Legends: Arceus (Switch). **Source:** the
      workspace's `source` (`1_unpack.bat`: base + newest update): `bin\message\English\common` and `script`
      `*.dat` (one block per file; the `.tbl` next to it names each line), `bin\font` (`.BFOTF`, `bmp\*.bffnt`)
-     and `bin\appli\*\bin\*_eng.arc` (English layout pictures). Tags: `[VAR XXXX(...)]` game commands
-     (`[VAR BE01]` next text box, `[VAR FF00(n)]` colour, `[VAR 0100(n)]` an inserted name) and `[XXXX]` icons.
+     and `bin\appli\*\bin\*_eng.arc` (English layout pictures). Tags (the same as `pokemon_trinity`): `{PAGE}`
+     next text box, `{COLOR 0002}` colour, `{VAR 0100 0000}` an inserted name, `M{GENDER 00FF|aster|iss}` word forms
+     (their lengths are written again on save), `{CHAR E305}` a button icon.
      The text fonts lack Ґ Є І Ї ґ є і ї: `translation_map.json` writes І і Ї ї as Latin I i Ï ï and Є є Ґ ґ as
      Э э Ъ ъ, whose glyphs are redrawn in the Font Editor. Sword and Shield share one romfs: `2_build.bat` writes
      the mod for both title ids.
@@ -398,7 +399,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      English text `message\dat\English\{common,script}\*.dat` — Z-A: `ik_message\...` — the fonts
      `appli\font\bin` / `ui\font\bin` and the English layout archives `*_eng.arc`); **Translation:**
      `translation`. One block per message file (Scarlet/Violet 913 files, 85,331 lines; Z-A 427 files, 76,810
-     lines); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`; grammar branches carry their
+     lines); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, icons `{CHAR E300}`; grammar branches carry their
      two texts, `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), and their lengths are
      written again on save. The Font Editor opens the `.bfotf` and `.bffnt` fonts; the Textures window opens the
      BNTX pictures of the English layouts (title logo, menus). `2_build.bat` writes the changed files into a

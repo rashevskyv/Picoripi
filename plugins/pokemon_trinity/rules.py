@@ -11,9 +11,9 @@ the BNTX text pictures: title logo, menus). ``2_build.bat`` writes changed files
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
+from plugins.common import gfmsg
 from plugins.common.tag_manager import GenericTagManager
 
-from . import gfmsg
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 
@@ -72,6 +72,9 @@ class GameRules(BaseGameRules):
 
     def reset_runtime_state(self) -> None:
         self._loaded, self._base = None, None
+
+    def get_tag_tooltip(self, tag: str) -> str:
+        return gfmsg.describe(str(tag))
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
