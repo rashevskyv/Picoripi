@@ -1,0 +1,1517 @@
+{
+ "source": "enderandrew/sm_rewrite a726202",
+ "items": {
+  "msg.01.EnergyTank": {
+   "refs": [
+    "src/sm_84.c:463"
+   ],
+   "functions": [
+    "PlmInstr_CollectHealthEnergyTank"
+   ]
+  },
+  "msg.02.Missile": {
+   "refs": [
+    "src/sm_84.c:482"
+   ],
+   "functions": [
+    "PlmInstr_CollectAmmoMissileTank"
+   ]
+  },
+  "msg.03.SuperMissile": {
+   "refs": [
+    "src/sm_84.c:492"
+   ],
+   "functions": [
+    "PlmInstr_CollectAmmoSuperMissileTank"
+   ]
+  },
+  "msg.04.PowerBomb": {
+   "refs": [
+    "src/sm_84.c:502"
+   ],
+   "functions": [
+    "PlmInstr_CollectAmmoPowerBombTank"
+   ]
+  },
+  "msg.05.GrapplingBeam": {
+   "refs": [
+    "src/sm_84.c:445"
+   ],
+   "functions": [
+    "PlmInstr_PickupEquipmentAddGrappleShowMessage"
+   ]
+  },
+  "msg.06.XrayScope": {
+   "refs": [
+    "src/sm_84.c:455"
+   ],
+   "functions": [
+    "PlmInstr_PickupEquipmentAddXrayShowMessage"
+   ]
+  },
+  "msg.07.VariaSuit": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.08.SpringBall": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.09.MorphingBall": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.10.ScrewAttack": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.11.HiJumpBoots": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.12.SpaceJump": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.13.SpeedBooster": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.14.ChargeBeam": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.15.IceBeam": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.16.WaveBeam": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.17.Spazer": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.18.PlasmaBeam": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.19.Bomb": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.20.MapDataAccessCompleted": {
+   "refs": [
+    "src/sm_84.c:703",
+    "src/sm_85.c:326",
+    "src/sm_85.c:388"
+   ],
+   "functions": [
+    "PlmInstr_ActivateMapStation",
+    "HandleMessageBoxInteraction_Async",
+    "DisplayMessageBox_Async"
+   ]
+  },
+  "msg.21.EnergyRechargeCompleted": {
+   "refs": [
+    "src/sm_84.c:710",
+    "src/sm_85.c:326"
+   ],
+   "functions": [
+    "PlmInstr_ActivateEnergyStation",
+    "HandleMessageBoxInteraction_Async"
+   ]
+  },
+  "msg.22.MissileReloadCompleted": {
+   "refs": [
+    "src/sm_84.c:719",
+    "src/sm_85.c:327"
+   ],
+   "functions": [
+    "PlmInstr_ActivateMissileStation",
+    "HandleMessageBoxInteraction_Async"
+   ]
+  },
+  "msg.23.WouldYouLikeToSave": {
+   "refs": [
+    "src/sm_84.c:727",
+    "src/sm_85.c:304"
+   ],
+   "functions": [
+    "PlmInstr_ActivateSaveStationAndGotoIfNo",
+    "HandleMessageBoxInteraction_Async"
+   ]
+  },
+  "msg.24.SaveCompleted": {
+   "refs": [
+    "src/sm_84.c:1103",
+    "src/sm_85.c:327",
+    "src/sm_85.c:367"
+   ],
+   "functions": [
+    "PlmInstr_DisplayGameSavedMessageBox",
+    "HandleMessageBoxInteraction_Async",
+    "DisplayMessageBox_Async"
+   ]
+  },
+  "msg.25.ReserveTank": {
+   "refs": [
+    "src/sm_84.c:472"
+   ],
+   "functions": [
+    "PlmInstr_CollectHealthReserveTank"
+   ]
+  },
+  "msg.26.GravitySuit": {
+   "refs": [
+    "src/sm_84.c:426",
+    "src/sm_84.c:435"
+   ],
+   "functions": [
+    "PlmInstr_PickupBeamAndShowMessage",
+    "PlmInstr_PickupEquipmentAndShowMessage"
+   ]
+  },
+  "msg.23.WouldYouLikeToSave.choice": {
+   "refs": [
+    "src/sm_85.c:250"
+   ],
+   "functions": [
+    "ToggleSaveConfirmationSelection"
+   ]
+  },
+  "menu.GameOver": {
+   "refs": [
+    "src/sm_81.c:552"
+   ],
+   "functions": [
+    "GameOverMenu_1_Init"
+   ]
+  },
+  "menu.FindMetroidLarva": {
+   "refs": [
+    "src/sm_81.c:553"
+   ],
+   "functions": [
+    "GameOverMenu_1_Init"
+   ]
+  },
+  "menu.TryAgain": {
+   "refs": [
+    "src/sm_81.c:554"
+   ],
+   "functions": [
+    "GameOverMenu_1_Init"
+   ]
+  },
+  "menu.YesReturnToGame.1": {
+   "refs": [
+    "src/sm_81.c:555"
+   ],
+   "functions": [
+    "GameOverMenu_1_Init"
+   ]
+  },
+  "menu.YesReturnToGame.2": {
+   "refs": [
+    "src/sm_81.c:555"
+   ],
+   "functions": [
+    "GameOverMenu_1_Init"
+   ]
+  },
+  "menu.NoGoToTitle.1": {
+   "refs": [
+    "src/sm_81.c:556"
+   ],
+   "functions": [
+    "GameOverMenu_1_Init"
+   ]
+  },
+  "menu.NoGoToTitle.2": {
+   "refs": [
+    "src/sm_81.c:556"
+   ],
+   "functions": [
+    "GameOverMenu_1_Init"
+   ]
+  },
+  "menu.SamusData": {
+   "refs": [
+    "src/sm_81.c:1387"
+   ],
+   "functions": [
+    "FileSelectMenu_16"
+   ]
+  },
+  "menu.SamusA": {
+   "refs": [
+    "src/sm_81.c:784",
+    "src/sm_81.c:1388"
+   ],
+   "functions": [
+    "DrawFileCopySaveSlotAInfo",
+    "FileSelectMenu_16"
+   ]
+  },
+  "menu.SamusB": {
+   "refs": [
+    "src/sm_81.c:791",
+    "src/sm_81.c:1395"
+   ],
+   "functions": [
+    "DrawFileCopySaveSlotBInfo",
+    "FileSelectMenu_16"
+   ]
+  },
+  "menu.SamusC": {
+   "refs": [
+    "src/sm_81.c:798",
+    "src/sm_81.c:1402"
+   ],
+   "functions": [
+    "DrawFileCopySaveSlotCInfo",
+    "FileSelectMenu_16"
+   ]
+  },
+  "menu.NoData": {
+   "refs": [
+    "src/sm_81.c:1469"
+   ],
+   "functions": [
+    "DrawFileSelectionHealth"
+   ]
+  },
+  "menu.DataCopy": {
+   "refs": [
+    "src/sm_81.c:1411"
+   ],
+   "functions": [
+    "FileSelectMenu_16"
+   ]
+  },
+  "menu.DataClear": {
+   "refs": [
+    "src/sm_81.c:1413"
+   ],
+   "functions": [
+    "FileSelectMenu_16"
+   ]
+  },
+  "menu.Exit": {
+   "refs": [
+    "src/sm_81.c:758",
+    "src/sm_81.c:1416"
+   ],
+   "functions": [
+    "LoadMenuExitTilemap",
+    "FileSelectMenu_16"
+   ]
+  },
+  "menu.DataCopyMode": {
+   "refs": [
+    "src/sm_81.c:726",
+    "src/sm_81.c:879"
+   ],
+   "functions": [
+    "FileSelectMenu_Func1",
+    "DrawFileCopySelectDestinationSaveFileInfo"
+   ]
+  },
+  "menu.DataClearMode": {
+   "refs": [
+    "src/sm_81.c:1115"
+   ],
+   "functions": [
+    "InitFileSelectMenuFileClear"
+   ]
+  },
+  "menu.CopyWhichData": {
+   "refs": [
+    "src/sm_81.c:727"
+   ],
+   "functions": [
+    "FileSelectMenu_Func1"
+   ]
+  },
+  "menu.CopySamusToWhere": {
+   "refs": [
+    "src/sm_81.c:881"
+   ],
+   "functions": [
+    "DrawFileCopySelectDestinationSaveFileInfo"
+   ]
+  },
+  "menu.CopySamusToSamus": {
+   "refs": [
+    "src/sm_81.c:954"
+   ],
+   "functions": [
+    "FileSelectMenu_11_InitializeConfirm"
+   ]
+  },
+  "menu.IsThisOk": {
+   "refs": [
+    "src/sm_81.c:965"
+   ],
+   "functions": [
+    "DrawFileCopyClearConfirmation"
+   ]
+  },
+  "menu.Yes": {
+   "refs": [
+    "src/sm_81.c:967"
+   ],
+   "functions": [
+    "DrawFileCopyClearConfirmation"
+   ]
+  },
+  "menu.No": {
+   "refs": [
+    "src/sm_81.c:974"
+   ],
+   "functions": [
+    "DrawFileCopyClearConfirmation"
+   ]
+  },
+  "menu.CopyCompleted": {
+   "refs": [
+    "src/sm_81.c:1083"
+   ],
+   "functions": [
+    "FileSelectMenu_13_FileCopyDoIt"
+   ]
+  },
+  "menu.ClearWhichData": {
+   "refs": [
+    "src/sm_81.c:1116"
+   ],
+   "functions": [
+    "InitFileSelectMenuFileClear"
+   ]
+  },
+  "menu.ClearSamusA": {
+   "refs": [
+    "src/sm_81.c:1174"
+   ],
+   "functions": [
+    "FileSelectMenu_23_FileClearInitConfirm"
+   ]
+  },
+  "menu.DataCleared": {
+   "refs": [
+    "src/sm_81.c:1238"
+   ],
+   "functions": [
+    "FileSelectMenu_25_FileClearDoClear"
+   ]
+  },
+  "options.options.r01c00": {
+   "refs": [
+    "src/sm_82.c:4460"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.options.r06c00": {
+   "refs": [
+    "src/sm_82.c:4460"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.options.r10c00": {
+   "refs": [
+    "src/sm_82.c:4460"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.options.r13c00": {
+   "refs": [
+    "src/sm_82.c:4460"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.options.r17c00": {
+   "refs": [
+    "src/sm_82.c:4460"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.options.r21c00": {
+   "refs": [
+    "src/sm_82.c:4460"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.options.r26c04": {
+   "refs": [
+    "src/sm_82.c:4460"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.options.r26c14": {
+   "refs": [
+    "src/sm_82.c:4460"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.options.r26c22": {
+   "refs": [
+    "src/sm_82.c:4460"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r01c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r05c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r08c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r11c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r14c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r17c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r20c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r23c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r26c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller.r29c00": {
+   "refs": [
+    "src/sm_82.c:4461"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller_jp.r01c00": {
+   "refs": [
+    "src/sm_82.c:4462"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller_jp.r26c00": {
+   "refs": [
+    "src/sm_82.c:4462"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.controller_jp.r29c00": {
+   "refs": [
+    "src/sm_82.c:4462"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r01c00": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r07c00": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r13c00": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r15c03": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r19c00": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r25c04": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r25c21": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r26c04": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r26c17": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special.r26c21": {
+   "refs": [
+    "src/sm_82.c:4463"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special_jp.r01c00": {
+   "refs": [
+    "src/sm_82.c:4464"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special_jp.r07c13": {
+   "refs": [
+    "src/sm_82.c:4464"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special_jp.r13c09": {
+   "refs": [
+    "src/sm_82.c:4464"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "options.special_jp.r19c00": {
+   "refs": [
+    "src/sm_82.c:4464"
+   ],
+   "functions": [
+    "GameOptionsMenu_1_LoadingOptionsScreen"
+   ]
+  },
+  "pause.area0": {
+   "refs": [
+    "src/sm_82.c:1507",
+    "src/sm_82.c:1640"
+   ],
+   "functions": [
+    "LoadPauseMenuMapTilemapAndAreaLabel",
+    "DrawRoomSelectMapAreaLabel"
+   ]
+  },
+  "pause.area1": {
+   "refs": [
+    "src/sm_82.c:1507",
+    "src/sm_82.c:1640"
+   ],
+   "functions": [
+    "LoadPauseMenuMapTilemapAndAreaLabel",
+    "DrawRoomSelectMapAreaLabel"
+   ]
+  },
+  "pause.area2": {
+   "refs": [
+    "src/sm_82.c:1507",
+    "src/sm_82.c:1640"
+   ],
+   "functions": [
+    "LoadPauseMenuMapTilemapAndAreaLabel",
+    "DrawRoomSelectMapAreaLabel"
+   ]
+  },
+  "pause.area3": {
+   "refs": [
+    "src/sm_82.c:1507",
+    "src/sm_82.c:1640"
+   ],
+   "functions": [
+    "LoadPauseMenuMapTilemapAndAreaLabel",
+    "DrawRoomSelectMapAreaLabel"
+   ]
+  },
+  "pause.area4": {
+   "refs": [
+    "src/sm_82.c:1507",
+    "src/sm_82.c:1640"
+   ],
+   "functions": [
+    "LoadPauseMenuMapTilemapAndAreaLabel",
+    "DrawRoomSelectMapAreaLabel"
+   ]
+  },
+  "pause.area5": {
+   "refs": [
+    "src/sm_82.c:1507",
+    "src/sm_82.c:1640"
+   ],
+   "functions": [
+    "LoadPauseMenuMapTilemapAndAreaLabel",
+    "DrawRoomSelectMapAreaLabel"
+   ]
+  },
+  "pause.area6": {
+   "refs": [
+    "src/sm_82.c:1507",
+    "src/sm_82.c:1640"
+   ],
+   "functions": [
+    "LoadPauseMenuMapTilemapAndAreaLabel",
+    "DrawRoomSelectMapAreaLabel"
+   ]
+  },
+  "intro.page1": {
+   "refs": [
+    "src/sm_8b.c:2267"
+   ],
+   "functions": [
+    "CinematicFunc_Intro_WaitFadeinShowText"
+   ],
+   "speaker": "Samus"
+  },
+  "intro.page2": {
+   "refs": [
+    "src/sm_8b.c:2889"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Page2"
+   ],
+   "speaker": "Samus"
+  },
+  "intro.page3": {
+   "refs": [
+    "src/sm_8b.c:2895"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Page3"
+   ],
+   "speaker": "Samus"
+  },
+  "intro.page4": {
+   "refs": [
+    "src/sm_8b.c:2901"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Page4"
+   ],
+   "speaker": "Samus"
+  },
+  "intro.page5": {
+   "refs": [
+    "src/sm_8b.c:2907"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Page5"
+   ],
+   "speaker": "Samus"
+  },
+  "intro.page6": {
+   "refs": [
+    "src/sm_8b.c:2754"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func15b"
+   ],
+   "speaker": "Samus"
+  },
+  "credits.r000c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r001c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r002c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r004c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r005c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r007c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r009c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r010c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r012c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r013c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r015c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r017c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r019c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r020c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r022c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r024c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r025c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r027c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r028c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r030c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r031c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r032c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r033c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r035c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r037c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r039c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r041c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r043c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r045c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r047c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r049c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r051c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r053c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r055c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r057c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r059c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r061c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r065c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r066c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r068c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r069c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r071c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r072c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r074c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r075c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r077c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r078c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r080c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r081c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r083c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r084c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r086c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r087c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r089c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r090c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r092c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r094c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r097c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r099c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r101c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r102c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r104c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r105c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r107c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r108c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r110c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r112c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r114c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r116c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r118c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r120c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r122c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.r124c00": {
+   "refs": [
+    "src/sm_8b.c:4866"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func126"
+   ]
+  },
+  "credits.DeerForce.r0": {
+   "refs": [
+    "src/sm_8b.c:4924"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func132"
+   ]
+  },
+  "credits.DeerForce.r2": {
+   "refs": [
+    "src/sm_8b.c:4924"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func132"
+   ]
+  },
+  "credits.DeerForce.r5": {
+   "refs": [
+    "src/sm_8b.c:4924"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func132"
+   ]
+  },
+  "credits.1994Nintendo.r0": {
+   "refs": [
+    "src/sm_8b.c:4992"
+   ],
+   "functions": [
+    "CinematicFunction_Intro_Func135"
+   ]
+  }
+ }
+}

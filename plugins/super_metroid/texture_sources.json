@@ -1,0 +1,158 @@
+[
+ {
+  "label": "Message boxes and HUD: letters, button words (standard BG3 tiles)",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/bg3_font.bin",
+  "params": {
+   "pixel_format": "snes:2bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 128
+  }
+ },
+ {
+  "label": "File select and options: fonts and words",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/menu_tiles.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 344
+  }
+ },
+ {
+  "label": "File select area map: area names",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/area_select.bin",
+  "params": {
+   "pixel_format": "snes:2bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 48
+  }
+ },
+ {
+  "label": "Pause screen: item names, MAP, SAMUS, font",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/pause_tiles.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 256
+  }
+ },
+ {
+  "label": "Pause screen sprites",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/pause_sprites.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 128
+  }
+ },
+ {
+  "label": "Intro text font",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/intro_font.bin",
+  "params": {
+   "pixel_format": "snes:2bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 72
+  }
+ },
+ {
+  "label": "Title: SUPER METROID logo, Nintendo, 1994, PRESENTS",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/title_sprites.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 256
+  }
+ },
+ {
+  "label": "Intro: Ceres station captions",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/ceres_sprites.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 256
+  }
+ },
+ {
+  "label": "Intro: PLANET ZEBES caption",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/zebes_sprites.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 256
+  }
+ },
+ {
+  "label": "Ending and credits: font, TIME, item percentage",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/ending_font.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 96
+  }
+ },
+ {
+  "label": "Ending: TIME, digits, letters",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/ending_sprites.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 384
+  }
+ },
+ {
+  "label": "Escape timer and enemy letters",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/timer_font.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 32
+  }
+ },
+ {
+  "label": "Escape timer: TIME",
+  "kind": "menu_label",
+  "format": "raw",
+  "path": "gfx/timer_label.bin",
+  "params": {
+   "pixel_format": "snes:4bpp",
+   "offset": 0,
+   "width": 128,
+   "height": 8
+  }
+ }
+]

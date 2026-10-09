@@ -22,6 +22,13 @@ the line when it is done or moved into a plan.
   effect letters such as `EFF_tutorial_target_*_word_*`). Same GX formats as TPL.
 - The ICON names C..J and TEXT_END come from the game's tables; no English message uses them.
 
+## Super Metroid (`plugins/super_metroid`, 2026-10-08)
+
+- sm_rewrite's HEAD opens a new window every frame (`main_loop()`, commit e55088a); the workspace build fixes its copy of `src/main.c` (`MAIN_PATCH` in `zt\sm.py`) and fails loudly if the port changes. Boot proof: the file select shows a text, a font and a texture edit.
+- Ukrainian letters have cells only in the message-box font (21 unused BG3 tiles). The menu, pause, intro and credits fonts have no free cells; the intro font has 4. Japanese-only glyph cells could be reused if the Japanese text option may go (question to the user).
+- The big menu and credits letters are built from shared top/bottom tiles: new letters need new tiles and a pair table; the Font Editor shows only the cells whose halves are a whole letter.
+- Text pictures (pause item names, button words, title logo, PLANET ZEBES, SEE YOU NEXT MISSION) are tile graphics in the Textures window, not text. Not opened: the Russian fan patch's changes to level data in banks C2/C3 (not text).
+- `FONTS` / `UA_BG3` in the workspace's `zt\sm.py` and `font_sources.json` must agree (regenerate both together).
 ## A Link to the Past (`plugins/zelda_lttp`, 2026-10-07)
 
 - The Ukrainian letters have empty cells in the workspace font (б–я 95–119, Б–Я 128–148); nobody has drawn them yet. The file-select screen, name entry and credits keep the English font and words.
