@@ -49,6 +49,11 @@ def _parse(data: bytes):
     return glyphs, (width, height, cell_w, cell_h, columns, rows), tex_at
 
 
+def _rows_used(glyphs, columns: int, rows: int) -> int:
+    """The rows the glyphs fill: some fonts list more glyphs than the stored row count holds."""
+    return max(rows, -(-len(glyphs) // columns)) if columns else rows
+
+
 def _atlas(data: bytes, tex_at: int) -> Image.Image:
     """The R8 atlas as one channel of ink."""
     return mibl.read(data[tex_at:], {})[0].image.getchannel("R")
@@ -58,8 +63,8 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     glyphs, (width, height, cell_w, cell_h, columns, rows), tex_at = _parse(data)
     pitch_w, pitch_h = cell_w + GAP, cell_h + GAP
     free_rows = int(params.get("free_rows", 8))
-    total_rows = rows + free_rows
-    ink = Image.new("L", (columns * pitch_w, total_rows * pitch_h), 0)
+    total_rows = _rows_used(glyphs, columns, rows) + free_rows
+    ink = Image.new("L", (max(columns * pitch_w, width), total_rows * pitch_h), 0)    # the whole atlas width
     ink.paste(_atlas(data, tex_at).crop((0, 0, min(width, ink.width), min(height, ink.height))), (0, 0))
     count = columns * total_rows
     packets = [{"kerning": 0, "width": cell_w} for _ in range(count)]
@@ -95,15 +100,19 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     packets = (metadata.get("WID1") or [{}])[0].get("packets", [])
     ink = coverage(sheets[0])
     old = _atlas(original, tex_at)
-    new_rows = _used_rows(ink, mapping, columns, pitch_h, rows)
+    used = _rows_used(glyphs, columns, rows)
+    new_rows = _used_rows(ink, mapping, columns, pitch_h, used)
     count = max([len(glyphs), *(g + 1 for g in mapping)])
     table: List[Tuple[int, int, int]] = []
     for index in range(count):
-        code = mapping.get(index, 0xE000 + index)
+        # a glyph without a character keeps its code (some fonts store one code point twice)
+        code = mapping.get(index, glyphs[index][0] if index < len(glyphs) else 0xE000 + (index & 0x1FFF))
         packet = packets[index] if index < len(packets) else {"kerning": 0, "width": cell_w}
         left = int(packet.get("kerning", 0))
         table.append((code, max(0, min(255, left)), max(0, min(255, left + int(packet.get("width", 0))))))
     new_w, new_h = -(-(columns * pitch_w + GAP) // 4) * 4, -(-(new_rows * pitch_h + GAP) // 4) * 4   # a trailing gap, padded to 4
+    if new_rows == used:
+        new_w, new_h, new_rows = width, height, rows                 # no new row: the atlas keeps its size
     atlas = Image.new("L", (new_w, new_h), 0)
     atlas.paste(ink.crop((0, 0, min(ink.width, new_w), min(ink.height, new_h))), (0, 0))
     same_atlas = (new_w, new_h) == (width, height) and atlas.tobytes() == old.tobytes()

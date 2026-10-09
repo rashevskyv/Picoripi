@@ -1,0 +1,7 @@
+[
+  {"label": "Title logo (English)", "kind": "title_screen", "format": "wilay", "path": "menu/image/mnu001_titlelogo_us.wilay"},
+  {"label": "Title logo, wide (English)", "kind": "title_screen", "format": "wilay", "path": "menu/image/mnu001_titlelogo_b_us.wilay"},
+  {"label": "Torna title logo (English)", "kind": "title_screen", "format": "wilay", "path": "menu/image/dlc3_mnu001_titlelogo_us.wilay"},
+  {"label": "Title screen layouts", "kind": "title_screen", "format": "wilay", "path": "menu/image/mnu001_*.wilay"},
+  {"label": "Pictures with English text (_us)", "kind": "ui", "format": "wilay", "path": "menu/image/*_us.wilay"}
+]
