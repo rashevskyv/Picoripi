@@ -657,8 +657,12 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         wanted[_code(info, char)] = glyph
     # A font may hold a character under two codes (cp1252 byte 0x8E and U+017D both are Ž): the model has one
     # entry for it, so the other code is not "removed" while the character is still there.
+    by_char: Dict[str, List[int]] = {}
+    for code in existing:
+        by_char.setdefault(code_char(code), []).append(code)
+    aliased = {code for codes in by_char.values() if len(codes) > 1 for code in codes}
     changed = [code for code, glyph in existing.items()
-               if glyph < count and wanted.get(code) != glyph and code_char(code) not in chars]
+               if glyph < count and wanted.get(code) != glyph and code not in aliased]
     if changed:
         raise ValueError("This font keeps the characters it has; changed or removed: "
                          + " ".join(f"U+{code:04X}" for code in sorted(changed)[:10]))
