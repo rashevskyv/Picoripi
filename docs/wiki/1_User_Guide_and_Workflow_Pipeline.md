@@ -794,6 +794,16 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Є є Ґ ґ get empty cells at the end of the ASCII sheet); **Translation:** `translation`. The Font Editor opens
      both fonts (`brfna`); `2_build.bat` writes the fonts for a disc (`build\disc\fonts`) and, when the NAND was the
      source, the shared content for a NAND (`build\nand\shared1`).
+   - `pokemon_md_3ds` — Pokémon Mystery Dungeon: Gates to Infinity and Pokémon Super Mystery Dungeon (3DS,
+     EUR), one plugin for both games. **Source:** the workspace's `source` (`1_unpack.bat`): the English message
+     files — Gates to Infinity `message\*.bin` (884 files, 55,081 lines), Super Mystery Dungeon the members of the
+     `message_en.bin` pack as `message_en.bin\*.bin` (808 files, 68,716 lines) — one block per file (story,
+     dungeon, item, move and Pokémon names and descriptions in `common`, menus, Pelipper and Connection Orb text);
+     the fonts `font\*.dic` + `*.img` (Font Editor format `pmd_font`) and the pictures `image_2d\*.img` /
+     `image_2d.bin\*.img` (title logo, menus; Textures window format `pmd_img`). Tags: `[CN]` centre a line,
+     `[K]` wait for a button, `[C]` new box, `[hero]` / `[partner]` / `[my_team]` names, `[CS:06]…[CR]` colour,
+     `[M:B05]` button icons, `[value:02:0003:0001]` numbers and inserted names (keep them as they are); a literal
+     bracket is `[[` / `]]`. Text may grow: `2_build.bat` lays each message file out again and repacks the packs.
    - `default_plugin` — Default Plugin Template
 4. After open, the last session is restored (block, string, undo stack, most filters). **Show Unsaved Only** (tree and strings list) is always off after a restart (`core/data_store.py`).
 5. `File → Close Project` unloads the workspace. It does not quit Picoripi.
