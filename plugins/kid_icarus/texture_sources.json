@@ -1,0 +1,4 @@
+[
+  {"label": "Language-dependent pictures (menus, info screens, resident)", "kind": "menu_label", "format": "cgfx",
+   "path": "romfs/eu/**/*.bcres"}
+]

@@ -46,7 +46,8 @@ EXTENSIONS = {".bti": "bti", ".bflim": "bflim", ".bclim": "bflim", ".bntx": "bnt
               ".xi": "imgc", ".bmd": "j3d", ".bdl": "j3d", ".gtx": "gtx", ".ncgr": "tiles", ".txtr": "txtr", ".gim": "gim", ".fcha": "gim",
               ".tim": "tim", ".tm2": "tim2", ".pcx": "pcx", ".psb": "m2", ".m2tex": "m2", ".g4tx": "g4tx", ".bfres": "bfres",
               ".jtex": "jade", ".jtx": "jade_jtx", ".gsh": "shpg", ".png": "png",
-              ".tex": "mt_tex", ".dmp": "dmp", ".bcres": "cgfx", ".stex": "stex",
+              ".bcres": "cgfx", ".bctex": "cgfx",
+              ".tex": "mt_tex", ".dmp": "dmp", ".stex": "stex",
               ".witex": "mibl", ".wilay": "wilay"}
 
 

@@ -258,6 +258,24 @@ tokens: 32.8k
      лишаються сирими `{tag:G:T:hex}`), Font Editor відкриває 4 шрифти BFFNT із `svn_font\EU_English.sarc`, вікно
      Textures — 1 212 малюнків макетів BFLIM і логотип титулу. Основний текст обидві гри малюють системним шрифтом
      консолі, тому обмеження ширини немає
+   - `bravely_default` — Bravely Default (3DS, Європа, англійський набір `Common_en`). **Source:** тека `source`
+     робочої теки; `1_unpack.bat` записує кожну пару `index.fs` + `crowd.fs` як теку її файлів:
+     `romfs\Common_en\<Table>\crowd.fs\<Name>.btb` (401 таблиця BTBF, 56 865 рядків: діалоги подій `.txb`, розмови
+     загону `.spb`, навчання `.trb`, меню `.mtb`, предмети, вміння, професії, монстри, щоденник D, крамниці, субтитри;
+     один блок на таблицю, один рядок на запис її таблиці рядків), шрифт гри
+     `romfs\Graphics\UI_en\Font\Font\root\font\hikari.bcfnt` і 4 403 англійські картинки макетів
+     (`romfs\Graphics\UI_en\**\*.bclim`: титульне меню, назви розділів, навчання). Розмітка лишається як є:
+     імена `[PCM1]`, значення `$` і `%ls`. Незмінена таблиця зберігається байт у байт; текст може бути довшим.
+     `2_build.bat` пакує змінені файли назад в архіви `crowd.fs` / darc у мод Luma `romfs`.
+   - `kid_icarus` — Kid Icarus: Uprising (3DS, Європа, англійський набір `eu`). **Source:** тека `source` робочої
+     теки; `1_unpack.bat` записує архіви darc з LZ11 (`.arc`, `.zrc`, вкладені) як теки: 148 англійських файлів MSBT
+     (25 833 повідомлення; до файлу додається `.msbt`): `eu\0.arc\resident\03.bin.msbt` (меню, підказки, зброя,
+     сили, фігурки), `eu\stage\<stage>.zrc\stage\bin.arc\bin\msg_00.bin.msbt` (діалоги рівнів; `msg_05` —
+     англійський набір наземних частин; чотири інші мови не показуються). Теги: `{Size:N}`, `{Color:R:G:B:A}`.
+     Font Editor відкриває два растрові шрифти (`eu\00.arc\resident\04.bin`, `fnt.bin` рівня a2800); діалоги
+     малює системний шрифт консолі. Вікно Textures показує 985 файлів CGFX (6 367 текстур, логотип
+     `menu\000.zrc\...\bind\00.bcres`), які німецька тека замінює, тобто вони мають текст. `2_build.bat`
+     перепаковує й знову стискає архіви в мод Luma `romfs`.
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Європа). **Source:** тека `source` робочої теки
      (`1_unpack.bat` копіює туди `romfs\message\eu\eu.qm`, шрифти, клавіатури введення імені
      `romfs\menu\ltn16_*.list`, текстури з текстом і `exefs\code.bin`); **Translation:** `translation` (цілі файли

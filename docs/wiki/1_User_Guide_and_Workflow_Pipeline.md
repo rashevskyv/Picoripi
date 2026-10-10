@@ -261,6 +261,24 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      stay raw `{tag:G:T:hex}`), the Font Editor opens the four BFFNT fonts of `svn_font\EU_English.sarc`, the
      Textures window 1,212 BFLIM layout pictures and the title logo. Both games draw their main text with the
      console's shared font, so messages have no width limit
+   - `bravely_default` — Bravely Default (3DS, Europe, English set `Common_en`). **Source:** the workspace's `source`
+     folder; `1_unpack.bat` writes every `index.fs` + `crowd.fs` pair as a folder of its files:
+     `romfs\Common_en\<Table>\crowd.fs\<Name>.btb` (401 BTBF tables, 56,865 strings: event dialogue `.txb`, party
+     chat `.spb`, tutorials `.trb`, menus `.mtb`, items, abilities, jobs, monsters, D's Journal, shops, subtitles; one
+     block per table, one string per entry of its string table), the game font
+     `romfs\Graphics\UI_en\Font\Font\root\font\hikari.bcfnt` and 4,403 English layout pictures
+     (`romfs\Graphics\UI_en\**\*.bclim`: the title menu, chapter titles, tutorials). Markup stays as typed:
+     `[PCM1]`-style names, `$` and `%ls` values. A table saves byte for byte when unedited and may grow.
+     `2_build.bat` packs the changed files back into their `crowd.fs` / darc archives in a Luma `romfs` mod.
+   - `kid_icarus` — Kid Icarus: Uprising (3DS, Europe, English set `eu`). **Source:** the workspace's `source`
+     folder; `1_unpack.bat` writes the LZ11 darc archives (`.arc`, `.zrc`, nested) as folders: 148 English MSBT
+     files (25,833 messages; a member gets `.msbt` added): `eu\0.arc\resident\03.bin.msbt` (menus, guidance,
+     weapons, powers, idols), `eu\stage\<stage>.zrc\stage\bin.arc\bin\msg_00.bin.msbt` (in-level dialogue;
+     `msg_05` is the English set of the ground sections; the other four languages are left out). Tags:
+     `{Size:N}`, `{Color:R:G:B:A}`. The Font Editor opens the two bitmap fonts (`eu\00.arc\resident\04.bin`,
+     `fnt.bin` of stage a2800); dialogue uses the console's shared font. The Textures window lists the 985 CGFX files
+     (6,367 textures, title logo `menu\000.zrc\...\bind\00.bcres`) that the German folder overrides, so they carry
+     text. `2_build.bat` repacks and compresses the archives again into a Luma `romfs` mod.
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Europe). **Source:** the workspace's `source` folder
      (`1_unpack.bat` copies `romfs\message\eu\eu.qm`, the fonts, the name-entry keyboards
      `romfs\menu\ltn16_*.list`, the text textures and `exefs\code.bin` there); **Translation:** `translation`

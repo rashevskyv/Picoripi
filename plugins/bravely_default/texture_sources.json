@@ -1,0 +1,4 @@
+[
+  {"label": "English layout pictures (title, menus, chapter titles, tutorials)", "kind": "menu_label", "format": "bflim",
+   "path": "romfs/Graphics/UI_en/**/*.bclim"}
+]
