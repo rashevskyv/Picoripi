@@ -279,6 +279,15 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `fnt.bin` of stage a2800); dialogue uses the console's shared font. The Textures window lists the 985 CGFX files
      (6,367 textures, title logo `menu\000.zrc\...\bind\00.bcres`) that the German folder overrides, so they carry
      text. `2_build.bat` repacks and compresses the archives again into a Luma `romfs` mod.
+   - `kingdom_hearts_ddd` — Kingdom Hearts 3D: Dream Drop Distance (3DS, Europe, English). **Source:** the
+     workspace's `source` folder; `1_unpack.bat` opens the game's `.rbin` archives (`CRAR`; English, French and
+     German files share one name, the language is found from the crc32 of the path) and writes the English
+     message files `romfs\message\en\<folder>\bin\ct*.ctd` (69 files, 8,374 messages, UTF-16; button icons and
+     colour switches show as `{UE026}`), the six CFNT fonts `romfs\font\*.bcfnt`, and the English pictures:
+     126 `.ctt` files (`CTRT`) and 54 `.l2d` layouts with pictures inside (`romfs\menu\en`, the title screen and
+     menus), `romfs\font\iconfont.ctt`. `2_build.bat` writes the changed files back into `message.rbin`,
+     `menu.rbin` and `font.rbin` (compressed again like the original) as a Luma `romfs` mod. New texture formats
+     `ctrt` and `l2d`; all 1,575 `.ctt` and 248 `.l2d` files of the game read and write back byte for byte.
    - `castlevania_mof` — Castlevania: Lords of Shadow - Mirror of Fate (3DS, Europe, English). **Source:** the
      workspace's `source` folder; `1_unpack.bat` copies `romfs\system\localization\english.txt` (1,522 messages
      `KEY##text` / `KEY#Speaker#text`: help boxes, menus, cutscene dialogue with its speaker, credits; one block, one
