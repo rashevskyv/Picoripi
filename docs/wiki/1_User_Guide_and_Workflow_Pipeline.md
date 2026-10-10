@@ -129,6 +129,24 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      and the HOME Menu font; the Textures window lists 2,126 UI textures (`shpg`, the title logo of every language
      included). `2_build.bat` packs the changes back into the packages (the same texture in every zone),
      compresses them again and writes them into the disc image.
+   - `rabbids_party` — Raving Rabbids: Party Collection (Wii, Europe): a menu and three games on one disc.
+     **Source:** the workspace's `source` (`1_unpack.bat` makes a plain ISO from the RVZ once and reads every file
+     straight from it: the menu's `files\*.dol`, pictures `files\*.tpl`, HOME Menu and banner; Rabbids 1 and 2's
+     English text `rrr1.bf\text_english.jtxt` / `rrr2.bf\...`, fonts `fonts\*.jfnt` and menu textures
+     `textures\<world>\*.jtex`; TV Party's `rrr3_bin_wii.bf\TextPackages.bin`, Flash font movies `flash\*.gfx` and
+     interface textures `textures\*.jtx`); **Translation:** `translation`. The project shows Rabbids 1 and 2 as one
+     block per text list (backslash codes such as `\cFF7FFF\` colours and `\p16\a` button icons), TV Party's English
+     column a hundred rows to a block (`<font color=…>` rich text), and the menu titles, prompt and disc messages of
+     each executable (each within its own bytes). Rabbids 1/2 text is single bytes: a letter the fonts lack is drawn
+     over an unused glyph and mapped to it in the Font Editor's translation map (TV Party text uses the map too).
+     The Font Editor opens the Jade fonts (`jade`), the menu's Wii archived fonts (`brfna`), TV Party's vector Flash
+     fonts (`swf_font`), the Rabbids 2 disc error font and the HOME Menu font; the Textures window lists the menu
+     pictures (`tpl`), the Jade menu-world textures (`jade`) and TV Party's interface textures (`jade_jtx`).
+     The few captions baked into TV Party's Flash movies (`flash\*.gfx`: "NEXT", "OK", "WARNING!" of the
+     minigame screens) are blocks too; a saved caption is encoded through the movie's own font, so it takes only
+     the letters that font has. The movies hold no pictures (the menus and logos are vector art).
+     `2_build.bat` packs every change back (only the changed LZO blocks again, a grown file at the end of its
+     bigfile) and writes it into the disc image.
    - `metroid_other_m` — Metroid: Other M (Wii, USA). **Source:** the workspace's `source` (`1_unpack.bat` puts
      there, at the disc paths, `message\message_all.dat`, the fonts `font\*.brfnt`, the Wii HOME Menu messages
      `hbm\HomeButton2\home*.csv` and every 2D layout as a folder `<number>\<layout>\timg\*.tpl`);

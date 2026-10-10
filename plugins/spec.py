@@ -79,12 +79,12 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_font_sources", "The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, "
              "g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, tmp_sdf, mgs, mgs1, mgs1_hd, m2, nftr, cv_nds, ffta2, xf, "
              "g4font, vagrant, gba_tiles, cv_gba, retro_font, retro_font_gx, pgf, twewy, policenauts, texture_grid, zelda3, "
-             "lunar, eternal_darkness, fragile_dreams, fntg), path, member, companion, font_map, params}]. "
+             "lunar, jade, brfna, swf_font, rrr_errfont, eternal_darkness, fragile_dreams, fntg), path, member, companion, font_map, params}]. "
              "Default: font_sources.json in the plugin folder.",
              call=(), returns=list),
         Hook("get_texture_sources", "The game's textures with text for the Textures window: [{label, kind, format (bti, tpl, "
              "bflim, ctpk, ctxb (also CMB models), bntx, g1t, g4tx, imgc, j3d, gba, gtx, bfres, txtr, txtr_gx, gim, tim, tim2, "
-             "policenauts_pak, vs_gim, vs_hf1, vs_rle, pcx, m2, shpg, png, sotn_blocks, sotn_cmp, ffta2_efx, raw, tiles, "
+             "policenauts_pak, vs_gim, vs_hf1, vs_rle, pcx, m2, jade, jade_jtx, shpg, png, sotn_blocks, sotn_cmp, ffta2_efx, raw, tiles, "
              "tilemap), "
              "path, member, params}]. Default: texture_sources.json in the plugin folder.",
              call=(), returns=list),

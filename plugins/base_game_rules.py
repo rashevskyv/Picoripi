@@ -763,7 +763,8 @@ class BaseGameRules:
         BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``tmp_sdf``
         (Unity TextMesh Pro SDF font, atlas PNG as ``companion``), ``mgs``, ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation
         font), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``cv_nds`` (DS Castlevania), ``ffta2`` (FFTA2 DS font),
-        ``xf`` and ``g4font`` (Level-5), ``fntg`` (EA FntG, Wii), ``vagrant`` (Vagrant Story), ``gba_tiles``,
+        ``xf`` and ``g4font`` (Level-5), ``jade`` / ``brfna`` / ``swf_font`` / ``rrr_errfont`` (Raving Rabbids: Jade FONTDESC, Wii
+        archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``vagrant`` (Vagrant Story), ``gba_tiles``,
         ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture),
         ``zelda3`` (the zelda3 PC port's ``font.png``), ``eternal_darkness`` (glyph grid in a TPL, widths in a
@@ -784,7 +785,8 @@ class BaseGameRules:
         Each entry: ``label``; ``kind`` (``title_screen``, ``area_card``, ``menu_label``...); ``format``
         (``bti``, ``tpl``, ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
         and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
-        multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``shpg`` (EA SHPG, Wii), ``txtr`` /
+        multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``jade`` / ``jade_jtx`` (Jade engine textures),
+        ``shpg`` (EA SHPG, Wii), ``txtr`` /
         ``txtr_gx`` (Retro TXTR), ``gim`` (PSP), ``tim`` (PlayStation TIM), ``tim2`` (PS2 / PSP TIM2),
         ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant Story pictures), ``sotn_blocks`` /
         ``sotn_cmp`` (Symphony of the Night VRAM tile blocks and nibble-packed pictures), ``pcx``, ``m2`` (M2 PSB

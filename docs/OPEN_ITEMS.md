@@ -48,6 +48,21 @@ the line when it is done or moved into a plan.
 - Not opened: the `.tbl` line labels (shown nowhere), `message/sort` and `messagegrammarEnglish.dat` (sort and
   article tables), the font settings `.bfcpx` / `TextFontSetting.bin`; the executable was not searched.
 
+## Raving Rabbids: Party Collection (`plugins/rabbids_party`, 2026-10-09)
+
+- TV Party's Flash movies hold no pictures: 0 bitmap tags and 0 bitmap fills in 31,720 shapes; the menus, logos
+  and the title logo are vector art (Dolphin uploads no texture for the title logo). Their `DefineExternalImage`
+  key pairs match no file on the disc (the per-movie `Flash_<id>.pk` sound packages are the only `Flash_` files).
+  A vector logo cannot be replaced by a PNG in the Textures window.
+- The TV Party static captions (`gfx` blocks) take only glyphs the movie's own font has (A-Z and a few symbols);
+  other letters need the translation map, like every other font of the game.
+- The menu prompt ("Press the A Button…") is drawn with a font that is not on the disc (a filled `e` in both
+  `wbf1/wbf2.brfna` did not show there in Dolphin; they are the HOME Menu fonts): its Cyrillic needs a user
+  decision (Latin letters or leave English).
+- Fonts cannot grow: Jade, BRFNA and Flash fonts take new letters only by redrawing unused glyphs (translation map).
+- Rabbids 1/2 textures are listed for the menu worlds only (`_main_*`, `Menu_LD`, `RRR2_Boot`, `Compil`); the same
+  key in a smaller size elsewhere gets the edit scaled down (nearest neighbour).
+
 ## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
 
 - Not opened: the disc-error messages in `sys/main.dol` (2_build writes only `files/`) and the channel title in
