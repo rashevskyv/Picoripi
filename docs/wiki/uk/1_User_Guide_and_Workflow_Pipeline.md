@@ -582,6 +582,8 @@ tokens: 43.1k
      Теги ті самі, що в `pokemon_nx`: `{PAGE}`, `{COLOR 0002}`, `{VAR 0100 0000}`, `Master Ball{PLURAL 00FE||s}`,
      `{CHAR E08E}`. У шрифтах немає кирилиці: Редактор шрифтів додає літери (`min_sheets` лишає місце).
      `2_build.bat` перезбирає GARC у мод Luma / Azahar для кожного CIA в `ISO\`.
+   - `pokemon_gen5` — Pokémon Black / White і Black 2 / White 2 (Nintendo DS). **Source:** тека `source` робочої теки (`1_unpack.bat` дістає члени NARC із ROM): `text/a_0_0_2/NNNN.msg` (меню, назви, описи, бій) і `text/a_0_0_3/NNNN.msg` (сюжет, скрипти), один блок на файл; `a/0/2/3` — NARC із шрифтами NFTR, `a/*/*/*` — NARC із картинками NCGR. Теги: `{PAGE}`, `{SCROLL}`, `{VAR 0101 0000}`, `{COLOR 0001}`, `{CHAR E447}`; перенос рядка — новий рядок. Збереження лишає прапорці й стиснення рядків; `2_build.bat` пише змінені файли в їхні NARC і розкладає ROM знову (звичайний образ NDS).
+   - `pokemon_gen4` — Pokémon Diamond / Pearl, Platinum, HeartGold / SoulSilver через декомпіляції pret. **Source:** `files/msgdata/msg/*.gmm` (XML) або `res/text/*.json`; один блок на файл, лише англійський текст; `{\r}`, `{\f}` і `{STRVAR_1 1, 0}` — теги. Збереження змінює лише відредаговані повідомлення; для ROM потрібні власні інструменти декомпіляції.
    - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), один проєкт для обох ігор.
      **Source:** тека `source` робочої теки (`1_unpack.bat`: гра + оновлення 1.3.0; бандли Unity стають
      простими файлами): `message\english_*.bdmsg` (128 таблиць, 42 946 рядків: сюжет, Покедекс обох ігор,
@@ -797,7 +799,7 @@ tokens: 43.1k
      **Tools → Textures…** показує картинки інтерфейсу й титульного екрана (`mt_tex`). `2_build.bat` збирає
      кожен архів зі зміненим файлом у мод romfs для Luma.
    - `plain_text` — Plain Text
-   - `pokemon_fr` — Pokemon FireRed/LeafGreen
+   - `pokemon_fr` — Pokémon FireRed / LeafGreen, Ruby / Sapphire і Emerald: JSON-дампи тексту ROM або вихідні файли декомпіляцій pret (`.inc`, `.s`, `.c`, `.h`; один блок на файл; коди `\n`, `\l`, `\p`, `{PLAYER}`; завершальний `$` не показується). Мовця беремо з `map.json` карти.
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) і Pokémon Legends: Z-A
      (+ Mega Dimension) (Switch, рушій Trinity від Game Freak). **Source:** тека `source` робочої теки
      (`1_unpack.bat` читає лише потрібні паки з `arc\data.trpfs` і кладе туди, за шляхами гри, англійський текст

@@ -585,6 +585,8 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      game). Tags are the same as `pokemon_nx`: `{PAGE}`, `{COLOR 0002}`, `{VAR 0100 0000}`,
      `Master Ball{PLURAL 00FE||s}`, `{CHAR E08E}`. The fonts have no Cyrillic: the Font Editor adds letters
      (`min_sheets` leaves room). `2_build.bat` rebuilds the GARCs into a Luma / Azahar mod for every CIA in `ISO\`.
+   - `pokemon_gen5` — Pokémon Black / White and Black 2 / White 2 (Nintendo DS). **Source:** the workspace's `source` (`1_unpack.bat` takes the NARC members out of the ROM): `text/a_0_0_2/NNNN.msg` (menus, names, descriptions, battle) and `text/a_0_0_3/NNNN.msg` (story, scripts), one block per message file; `a/0/2/3` the NARC with the NFTR fonts and `a/*/*/*` the NARCs with NCGR pictures. Tags: `{PAGE}`, `{SCROLL}`, `{VAR 0101 0000}`, `{COLOR 0001}`, `{CHAR E447}`; a line break is a new line. Saving keeps each line's flags and packing; `2_build.bat` writes changed files into their NARCs and lays the ROM out again (a plain NDS image).
+   - `pokemon_gen4` — Pokémon Diamond / Pearl, Platinum, HeartGold / SoulSilver through the pret decompilations. **Source:** `files/msgdata/msg/*.gmm` (XML) or `res/text/*.json`; one block per file, only the English text; `{\r}`, `{\f}` and `{STRVAR_1 1, 0}` are tags. A save changes only the edited messages; the ROM needs the decompilation's own toolchain.
    - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), one project for both games.
      **Source:** the workspace's `source` (`1_unpack.bat`: base + update 1.3.0; the Unity bundles become plain
      files): `message\english_*.bdmsg` (128 tables, 42,946 lines: story, Pokédex of both games, names,
@@ -801,7 +803,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      letters). **Tools → Textures…** lists the UI and title pictures (`mt_tex`). `2_build.bat` rebuilds every
      archive that holds a changed file into a Luma romfs mod.
    - `plain_text` — Plain Text
-   - `pokemon_fr` — Pokemon FireRed/LeafGreen
+   - `pokemon_fr` — Pokémon FireRed / LeafGreen, Ruby / Sapphire and Emerald: JSON dumps of the ROM text, or the source files of the pret decompilations (`.inc`, `.s`, `.c`, `.h`; one block per file; `\n`, `\l`, `\p` and `{PLAYER}` codes; the `$` terminator is not shown). Speakers come from each map's `map.json`.
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) and Pokémon Legends: Z-A
      (+ Mega Dimension) (Switch, Game Freak's Trinity engine). **Source:** the workspace's `source`
      (`1_unpack.bat` reads only the needed packs of `arc\data.trpfs` and puts there, at the game's paths, the

@@ -1,0 +1,206 @@
+[
+ {
+  "label": "Pictures: graphics/title_screen",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "graphics/title_screen/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/intro",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "graphics/intro/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/credits",
+  "kind": "title_screen",
+  "format": "png",
+  "path": "graphics/credits/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/birch_speech",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/birch_speech/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/naming_screen",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/naming_screen/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/pokedex",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/pokedex/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/trainer_card",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/trainer_card/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/summary_screen",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/summary_screen/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/interface",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/interface/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/battle_interface",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/battle_interface/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/text_window",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/text_window/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/shop",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/shop/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/diploma",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/diploma/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/pokenav",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/pokenav/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/reset_rtc_screen",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/reset_rtc_screen/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/wallclock",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/wallclock/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/map_popup",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/map_popup/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/mail",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/mail/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/easy_chat",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/easy_chat/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/union_room_chat",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/union_room_chat/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/link",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/link/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/party_menu",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/party_menu/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/contest",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/contest/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/slot_machine",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/slot_machine/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/pokemon_storage",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/pokemon_storage/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/frontier_pass",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/frontier_pass/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/battle_frontier",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/battle_frontier/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/wonder_card",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/wonder_card/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/wonder_news",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/wonder_news/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/misc",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/misc/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/start_menu",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/start_menu/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/trade",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/trade/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/roulette",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/roulette/**/*.png"
+ },
+ {
+  "label": "Pictures: graphics/berry_blender",
+  "kind": "ui",
+  "format": "png",
+  "path": "graphics/berry_blender/**/*.png"
+ }
+]

@@ -51,7 +51,11 @@ class Font:
             magic, size = struct.unpack_from("<4sI", data, at)
             if size < 8 or at + size > len(data):
                 raise ValueError(f"Broken NFTR block {magic!r} at 0x{at:X}")
-            block = data[at:at + size]
+            # A block's declared size may leave out its padding (Pokémon Black/White): the next block starts on a word.
+            span = (size + 3) & ~3
+            if at + span > len(data) or any(data[at + size:at + span]):
+                span = size
+            block = data[at:at + span]
             starts[at] = (magic, len(self.widths), len(self.maps))
             if magic == b"FNIF":
                 self.finf = block
@@ -70,7 +74,7 @@ class Font:
             else:
                 self.raw.append(block)
                 self.order.append(("raw", len(self.raw) - 1))
-            at += size
+            at += span
         if not self.finf or not hasattr(self, "glyphs"):
             raise ValueError("NFTR font without FNIF or PLGC")
         # The chains as the pointers link them (the file order is kept when writing).
