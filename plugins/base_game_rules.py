@@ -775,7 +775,9 @@ class BaseGameRules:
         (Unity TextMesh Pro SDF font, atlas PNG as ``companion``), ``mgs``, ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation
         font), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``cv_nds`` (DS Castlevania), ``ffta2`` (FFTA2 DS font),
         ``xf`` and ``g4font`` (Level-5), ``jade`` / ``brfna`` / ``swf_font`` / ``rrr_errfont`` (Raving Rabbids: Jade FONTDESC, Wii
-        archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``vagrant`` (Vagrant Story), ``gba_tiles``,
+        archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``laft`` (Monolith Soft LAFT, Switch Xenoblade), ``fe13_bfnt``
+        (Fire Emblem Awakening), ``pmd_font`` (Spike Chunsoft 3DS ``.dic`` + ``.img``), ``vagrant`` (Vagrant Story),
+        ``gba_tiles``,
         ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture), ``cells`` (fixed-size glyph cells in a byte range),
         ``zelda3`` (the zelda3 PC port's ``font.png``), ``eternal_darkness`` (glyph grid in a TPL, widths in a
@@ -795,16 +797,19 @@ class BaseGameRules:
         """The game's textures with text in them (title cards, menu labels...), for the Textures window.
 
         Each entry: ``label``; ``kind`` (``title_screen``, ``area_card``, ``menu_label``...); ``format``
-        (``bti``, ``tpl``, ``tpl_ctr`` (the New 3DS port of a Wii TPL), ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
+        (``bti``, ``tpl``, ``tpl_ctr`` (the New 3DS port of a Wii TPL), ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``cgfx`` (3DS CGFX), ``dmp`` (Dragon Quest VII 3DS), ``stex`` (Atlus 3DS STEX),
+        ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
         and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
-        multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``jade`` / ``jade_jtx`` (Jade engine textures),
+        multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``mibl`` / ``wilay`` (Monolith Soft MIBL
+        textures and ``.wilay`` layouts, Switch Xenoblade), ``jade`` / ``jade_jtx`` (Jade engine textures),
         ``shpg`` (EA SHPG, Wii), ``txtr`` /
         ``txtr_gx`` (Retro TXTR), ``gim`` (PSP), ``tim`` (PlayStation TIM), ``tim2`` (PS2 / PSP TIM2),
         ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant Story pictures), ``sotn_blocks`` /
         ``sotn_cmp`` (Symphony of the Night VRAM tile blocks and nibble-packed pictures), ``pcx``, ``m2`` (M2 PSB
         pictures), ``is_tex`` (Infinite Space), ``dq9_spr`` (Dragon Quest
         IX), ``png`` (a PNG the build converts itself: a decomp's graphics source, a Unity workspace's texture),
-        ``ffta2_efx`` (FFTA2 effect textures), ``mt_tex`` (Capcom MT Framework 3DS TEX), ``raw``, ``tiles`` (GBA / DS / Saturn character tiles) or ``tilemap``
+        ``ffta2_efx`` (FFTA2 effect textures), ``mt_tex`` (Capcom MT Framework 3DS TEX), ``pmd_img``
+        (Spike Chunsoft 3DS ``.img``), ``raw``, ``tiles`` (GBA / DS / Saturn character tiles) or ``tilemap``
         (a pattern name map over a cell bank, shown as one picture per screen)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``

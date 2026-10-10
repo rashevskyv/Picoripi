@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 25.3k
+tokens: 33.6k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
