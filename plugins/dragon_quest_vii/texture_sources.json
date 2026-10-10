@@ -1,0 +1,15 @@
+[
+  {"label": "Logos (copyright, Square Enix, ArtePiazza; 64x64 tiles)", "kind": "title_screen", "format": "dmp", "path": "romfs/SCREENTEX/logo/*.fpt", "member": "*.dmp"},
+  {"label": "Screens (title, maps, equipment; 64x64 tiles)", "kind": "title_screen", "format": "dmp", "path": "romfs/SCREENTEX/screen/*.fpt", "member": "*.dmp"},
+  {"label": "Backgrounds (shop, casino, bar)", "kind": "menu", "format": "dmp", "path": "romfs/SCREENTEX/bg/*.fpt", "member": "*.dmp"},
+  {"label": "Slot machine", "kind": "menu", "format": "dmp", "path": "romfs/SCREENTEX/slot/*.fpt", "member": "*.dmp"},
+  {"label": "Monster park", "kind": "menu", "format": "dmp", "path": "romfs/SCREENTEX/mpark/*.fpt", "member": "*.dmp"},
+  {"label": "Vocations", "kind": "menu", "format": "dmp", "path": "romfs/SCREENTEX/job/*.fpt", "member": "*.dmp"},
+  {"label": "Leader", "kind": "menu", "format": "dmp", "path": "romfs/SCREENTEX/leader/*.fpt", "member": "*.dmp"},
+  {"label": "Credits (staff roll pictures)", "kind": "ending", "format": "dmp", "path": "romfs/SCREENTEX/endroll/*.fpt", "member": "*.dmp"},
+  {"label": "Test screens", "kind": "menu", "format": "dmp", "path": "romfs/SCREENTEX/test/*.fpt", "member": "*.dmp"},
+  {"label": "Layout atlas (EN)", "kind": "hud", "format": "dmp", "path": "romfs/LAYOUTTEX/system_EN.fpt", "member": "*.dmp"},
+  {"label": "Layout textures", "kind": "hud", "format": "dmp", "path": "romfs/LAYOUTTEX/texture.fpt", "member": "*.dmp"},
+  {"label": "Icons", "kind": "hud", "format": "dmp", "path": "romfs/LAYOUTTEX/*/*.dmp"},
+  {"label": "Layout pictures (frames)", "kind": "hud", "format": "bflim", "path": "romfs/LAYOUT/layout.arc", "member": "timg/*.bclim"}
+]

@@ -28,7 +28,7 @@ class Texture:
 
 
 def _backends() -> Dict[str, Any]:
-    from core.texture_formats import (bfres, bntx, bti, cgfx, ctpk, ctxb, ffta2_efx, flim, g1t, g4tx, gba, gim, gtx, imgc, j3d,
+    from core.texture_formats import (bfres, bntx, bti, cgfx, ctpk, ctxb, dmp, ffta2_efx, flim, g1t, g4tx, gba, gim, gtx, imgc, j3d,
                                       jade,
                                       jade_jtx, m2, mibl, pcx, png, policenauts_pak, raw, shpg, sotn, stex, tilemap, tiles, tim, tim2, tpl, tpl_ctr, txtr, txtr_gx,
                                       vagrant, wilay)
@@ -38,14 +38,14 @@ def _backends() -> Dict[str, Any]:
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
             "bfres": bfres, "is_tex": is_tex, "dq9_spr": dq9_spr, "jade": jade, "jade_jtx": jade_jtx, "shpg": shpg, "png": png, "sotn_blocks": sotn.blocks, "sotn_cmp": sotn.packed,
-            "ffta2_efx": ffta2_efx, "cgfx": cgfx, "stex": stex, "mibl": mibl, "wilay": wilay}
+            "ffta2_efx": ffta2_efx, "dmp": dmp, "cgfx": cgfx, "stex": stex, "mibl": mibl, "wilay": wilay}
 
 
 # File name extension -> format, for files opened directly.
 EXTENSIONS = {".bti": "bti", ".bflim": "bflim", ".bclim": "bflim", ".bntx": "bntx", ".ctpk": "ctpk", ".ctxb": "ctxb", ".tpl": "tpl", ".g1t": "g1t",
               ".xi": "imgc", ".bmd": "j3d", ".bdl": "j3d", ".gtx": "gtx", ".ncgr": "tiles", ".txtr": "txtr", ".gim": "gim", ".fcha": "gim",
               ".tim": "tim", ".tm2": "tim2", ".pcx": "pcx", ".psb": "m2", ".m2tex": "m2", ".g4tx": "g4tx", ".bfres": "bfres",
-              ".jtex": "jade", ".jtx": "jade_jtx", ".gsh": "shpg", ".png": "png", ".bcres": "cgfx", ".stex": "stex",
+              ".jtex": "jade", ".jtx": "jade_jtx", ".gsh": "shpg", ".png": "png", ".dmp": "dmp", ".bcres": "cgfx", ".stex": "stex",
               ".witex": "mibl", ".wilay": "wilay"}
 
 

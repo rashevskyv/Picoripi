@@ -696,6 +696,29 @@ tokens: 32.8k
      літери отримують вільні коди Shift-JIS 0x8492–0x8499 (`core/font_formats/sjis.py`). `2_build.bat` пише змінені файли
      (текстури `.cmp` Apocalypse знову стиснені) у мод Luma `romfs`; файли DLC ідуть під title id DLC (Azahar їх
      застосовує; Luma на консолі DLC не латає).
+   - `dragon_quest_vii` — Dragon Quest VII: Fragments of the Forgotten Past (3DS, Європа, англійський слот `EN`).
+     **Source:** тека `source` робочої папки (`1_unpack.bat` розшифровує .cia і розпаковує файли LZ11 / LH):
+     `romfs\MESS\EN\*.fpt` (331 пак FPT0 з повідомленнями `#NNNNNN.txt`: діалоги й події, 56 720 повідомлень; рядок
+     = одне повідомлення, заголовок `#вікно,мовець` лишається в паку й називає мовця), `romfs\MENULIST\EN\*.txt`
+     (22 CSV-списки меню: команди, предмети, закляття, монстри, професії, місця, StreetPass; 23 920 рядків), 20
+     шрифтів BCFNT (`Font.bcfnt`, `demox\demo_font.bcfnt` і шрифти `tbud_maru`, `m7_win`, `iwamaru` в архівах darc
+     `LAYOUT\*.arc`) та екрани й атласи як текстури `DMP` (`SCREENTEX\<тека>\*.fpt`: плитки 64x64 кожного екрана,
+     `LAYOUTTEX\*.fpt`, `LAYOUTTEX\*\*.dmp`). Теги: імена `{HERO}`, коди `%a00`, граматичні коди `%E` / `%Y`,
+     `{LF}` — одинарний перенос рядка гри. `2_build.bat` знову стискає змінені файли (LZ11, LH 0x40) у мод Luma `romfs`.
+   - `dragon_quest_viii` — Dragon Quest VIII: Journey of the Cursed King (3DS, Європа, англійський слот `eng`).
+     **Source:** тека `source` робочої папки: `romfs\data\Message\eng\*.binE` (меню, предмети, закляття, уміння,
+     монстри, бій, церква, казино, алхімія, завдання) і `romfs\data\Script\field\message\eng\**\*.binE` (події,
+     репліки мешканців, розмови загону, записи; 581 таблиця, 39 164 рядки з ідентифікаторами),
+     `romfs\data\Params\WordTable\eng\*.txt` (словникові таблиці, рядок = рядок файлу), п'ять шрифтів
+     `rom\Font\*.bffnt` і картинки BFLIM у SARC-макетах `data\Layout\**\*.arc` (логотип `title\title_u.arc`).
+     Текст UTF-8 з кодами `[...]`. `2_build.bat` кладе змінені файли в мод Luma `romfs`.
+   - `dq_monsters_joker3` — Dragon Quest Monsters: Joker 3 (3DS, Японія, з накладеним англійським фанатським патчем
+     1.02; джерело — пропатчена гра). **Source:** тека `source` робочої папки: `romfs\data\Message\**\*.mes` і
+     `romfs\data\Script\Field\**\*.mes` (417 хеш-таблиць, 16 697 рядків UTF-16 з мітками: меню, предмети, уміння,
+     монстри, пошук, синтез, довідка, цікавинки, сцени; керівні символи показано як `{01}`), скрипти титрів
+     `data\Menu\EndRoll\*.nut` (рядки в лапках), чотири шрифти `*.bffnt` (кольоровий RGBA4 `break_font`) і картинки
+     BFLIM у SARC-макетах `data\Layout\**\*.arc` (логотип `title\upper\title_logo.arc`). Рядки, що патч лишив
+     японськими, видно. `2_build.bat` кладе змінені файли в мод Luma `romfs`.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) і Pokémon Legends: Z-A

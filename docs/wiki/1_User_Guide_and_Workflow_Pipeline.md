@@ -698,6 +698,30 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Ukrainian letters get the free Shift-JIS codes 0x8492–0x8499 (`core/font_formats/sjis.py`). `2_build.bat` writes the
      changed files (Apocalypse's `.cmp` textures compressed again) into a Luma `romfs` mod; the DLC's files go under the
      DLC title id (Azahar applies them; Luma on a console does not patch DLC).
+   - `dragon_quest_vii` — Dragon Quest VII: Fragments of the Forgotten Past (3DS, EUR, English slot `EN`). **Source:**
+     the workspace's `source` folder (`1_unpack.bat` decrypts the .cia and decompresses the LZ11 / LH files there):
+     `romfs\MESS\EN\*.fpt` (331 FPT0 packs of `#NNNNNN.txt` messages: dialogue and events, 56,720 messages; a string is
+     one message, its `#window,speaker` header stays in the pack and names the speaker), `romfs\MENULIST\EN\*.txt`
+     (22 CSV menu lists: commands, items, spells, monsters, vocations, places, StreetPass; 23,920 lines), the 20 BCFNT
+     fonts (`Font.bcfnt`, `demox\demo_font.bcfnt` and the `tbud_maru`, `m7_win`, `iwamaru` fonts inside the
+     `LAYOUT\*.arc` darc archives) and the screens and atlases as `DMP` textures (`SCREENTEX\<folder>\*.fpt`: 64x64
+     tiles of each screen, `LAYOUTTEX\*.fpt`, `LAYOUTTEX\*\*.dmp`). Tags: `{HERO}`-style names, `%a00` codes,
+     `%E` / `%Y` grammar codes, `{LF}` for the game's lone LF line break. `2_build.bat` compresses the changed files
+     again (LZ11, LH 0x40) into a Luma `romfs` mod.
+   - `dragon_quest_viii` — Dragon Quest VIII: Journey of the Cursed King (3DS, EUR, English slot `eng`). **Source:**
+     the workspace's `source` folder: `romfs\data\Message\eng\*.binE` (menus, items, spells, skills, monsters, battle,
+     church, casino, alchemy, quests) and `romfs\data\Script\field\message\eng\**\*.binE` (events, NPC talk, party
+     chat, records; 581 tables, 39,164 strings with their ids), `romfs\data\Params\WordTable\eng\*.txt` (item and word
+     tables, one string per line), the five `rom\Font\*.bffnt` fonts and the BFLIM pictures inside the SARC layouts
+     `data\Layout\**\*.arc` (the title logo `title\title_u.arc`). Text is UTF-8 with `[...]` codes. `2_build.bat`
+     puts the changed files into a Luma `romfs` mod.
+   - `dq_monsters_joker3` — Dragon Quest Monsters: Joker 3 (3DS, Japan, with the English fan patch 1.02 applied; the
+     patched game is the source). **Source:** the workspace's `source` folder: `romfs\data\Message\**\*.mes` and
+     `romfs\data\Script\Field\**\*.mes` (417 hashed tables, 16,697 UTF-16 strings with their labels: menus, items,
+     skills, monsters, scouting, synthesis, help, trivia, scenes; control characters show as `{01}`), the credits
+     scripts `data\Menu\EndRoll\*.nut` (quoted strings), the four `*.bffnt` fonts (the RGBA4 `break_font`) and the
+     BFLIM pictures inside the SARC layouts `data\Layout\**\*.arc` (the title logo `title\upper\title_logo.arc`).
+     Lines the patch left Japanese stay visible. `2_build.bat` puts the changed files into a Luma `romfs` mod.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) and Pokémon Legends: Z-A

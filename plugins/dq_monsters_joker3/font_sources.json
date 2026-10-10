@@ -1,0 +1,6 @@
+[
+  {"label": "Break font", "format": "bcfnt", "path": "romfs/data/Font/break_font.bffnt", "font_map": "break_font.json"},
+  {"label": "Break font (large)", "format": "bcfnt", "path": "romfs/data/Font/break_font_L.bffnt"},
+  {"label": "Debug font", "format": "bcfnt", "path": "romfs/rom/Font/DebugFont.bffnt"},
+  {"label": "Debug font (dummy)", "format": "bcfnt", "path": "romfs/rom/Font/DebugFontDummy.bffnt"}
+]
