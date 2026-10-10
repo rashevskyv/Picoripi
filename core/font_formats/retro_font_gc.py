@@ -9,8 +9,8 @@ cell width, cell height, baseline, kerning index -- then u32 kerning count and 8
 
 The texture is any GX format (``core.texture_formats.txtr_gx``); the model copies each glyph's rectangle as it
 is decoded (RGBA) into a cell of a grid (16 columns, 256 cells per sheet). Packing writes back only the cells
-the editor changed, so the rest of the texture keeps its bytes, and the paddings of a glyph whose width or
-kerning changed; an unedited model packs to the original bytes. New glyphs cannot be added here (no entry in
+the editor changed (in a palette format a new colour becomes the nearest colour of the palette, so the palette and
+the other glyphs keep their bytes), and the paddings of a glyph whose width or kerning changed; an unedited model packs to the original bytes. New glyphs cannot be added here (no entry in
 the glyph table). PAL discs (version 4) are the Trilogy layout and go to ``retro_font_gx``.
 
 The layout is from the game's reader only: no GameCube disc has been available to check it on real files.
@@ -74,6 +74,22 @@ def _boxes(info: Dict[str, Any], width: int, height: int):
     return boxes, cell_w, cell_h
 
 
+def _snap(cell: Image.Image, colours) -> Image.Image:
+    """``cell`` with every colour replaced by the nearest of the texture's palette: a colour the palette lacks would
+    make the texture writer build a new palette and re-index every glyph."""
+    known, near = set(colours), {}
+    out = cell.copy()
+    pixels_ = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            colour = pixels_[x, y]
+            if colour not in known:
+                if colour not in near:
+                    near[colour] = min(colours, key=lambda c: sum((a - b) ** 2 for a, b in zip(c, colour)))
+                pixels_[x, y] = near[colour]
+    return out
+
+
 def _image(tex: bytes) -> Image.Image:
     return txtr_gx.read(tex, {})[0].image.convert("RGBA")
 
@@ -119,6 +135,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     image = _image(tex)
     boxes, cell_w, cell_h = _boxes(info, *image.size)
     edited = image.copy()
+    colours = txtr_gx.palette(tex)
     changed = False
     for cell, box in enumerate(boxes):
         if box[2] <= box[0] or box[3] <= box[1] or cell // PER_SHEET >= len(sheets):
@@ -127,7 +144,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         x, y = (slot % COLUMNS) * cell_w, (slot // COLUMNS) * cell_h
         model = sheets[cell // PER_SHEET].convert("RGBA").crop((x, y, x + box[2] - box[0], y + box[3] - box[1]))
         if model.tobytes() != image.crop(box).tobytes():
-            edited.paste(model, box[:2])
+            edited.paste(_snap(model, colours) if colours else model, box[:2])
             changed = True
     if changed:
         tex = txtr_gx.write(tex, {0: edited}, {})

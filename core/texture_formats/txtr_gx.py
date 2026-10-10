@@ -7,7 +7,7 @@ then the GX texels of every mip level (``bti``). Retro numbers the formats its o
 from __future__ import annotations
 
 import struct
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from PIL import Image
 
@@ -27,6 +27,12 @@ def _head(data: bytes) -> Dict[str, int]:
         pal_format, pal_w, pal_h = struct.unpack_from(">IHH", data, 12)
         head.update(pal_format=pal_format, pal_count=pal_w * pal_h, pal_offset=20, data=20 + 2 * pal_w * pal_h)
     return head
+
+
+def palette(data: bytes) -> Optional[List[tuple]]:
+    """The RGBA colours of a palette format TXTR (C4, C8, C14X2), else None."""
+    head = _head(data)
+    return bti._palette(data, head) if head["format"] in (8, 9, 10) else None
 
 
 def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
