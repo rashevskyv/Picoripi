@@ -1,0 +1,4 @@
+[
+  {"label": "Game: MLG_ORDINARY_FONT (menus and text; XPR2 font, editable glyphs)", "format": "pw_xpr", "path": "font/MLG_ORDINARY_FONT.xpr"},
+  {"label": "Game: MLG_LOADING_FONT (loading screen)", "format": "pw_xpr", "path": "font/MLG_LOADING_FONT.xpr"}
+]
