@@ -91,7 +91,7 @@ def test_real_text_saves_back_unchanged():
     rules = check_loads(PLUGIN)
     text = (SOURCE / "text.json").read_text(encoding="utf-8")
     blocks, names = rules.load_data_from_json_obj(text)
-    assert [len(b) for b in blocks] == [27, 27, 36, 7, 6, 77]
+    assert [len(b) for b in blocks] == [27, 27, 36, 7, 7, 77]
     assert rules.save_data_to_json_obj(blocks, names) == text
 
 
@@ -170,7 +170,7 @@ def test_real_rom_changed_texts_land_in_the_rom_and_read_back(zt_sm):
 
 def test_real_rom_packed_blocks_compress_back_and_fit(zt_sm):
     sm, data = zt_sm
-    for addr in [a for a, _ in sm.OPTIONS] + [sm.CREDITS, sm.GFX["intro_font"][0], sm.GFX["ending_font"][0]]:
+    for addr in [a for a, _ in sm.OPTIONS] + [sm.CREDITS, sm.PROLOGUE, sm.GFX["intro_font"][0], sm.GFX["ending_font"][0]]:
         raw, room = sm.decompress(data, sm.lo(addr))
         packed = sm.compress(raw)
         assert sm.decompress(packed, 0)[0] == raw and len(packed) <= room, hex(addr)
@@ -189,3 +189,135 @@ def test_real_port_tables_follow_the_translated_rom(zt_sm, tmp_path):
     sm.apply_text(rom, texts, dict(texts, **{"msg.01.EnergyTank": "UA TEST"}))
     assert sm.patch_c_tables(port_src, tmp_path, data, bytes(rom.data)) == ["sm_85.h:kEnergyTankMsgBoxTilemap"]
     assert "0x28f4, 0x28e0" in (tmp_path / "sm_85.h").read_text(encoding="utf-8")   # U A
+
+
+# -- the intro fonts: story pages (green, 8x8) and the first screen (white, 8x16) share intro_font.bin -------------
+
+def _font(rules, part: str) -> dict:
+    return next(f for f in rules.get_font_sources() if part in f["label"])
+
+
+def _tile_image(data: bytes, tile: int):
+    """One 8x8 tile of intro_font.bin as the texture reader draws it."""
+    params = {"pixel_format": "snes:2bpp", "offset": 0, "width": 128, "height": 8 * (len(data) // 16 // 16)}
+    sheet = texture_formats.read("raw", data, params)[0].image.convert("RGBA")
+    x, y = tile % 16 * 8, tile // 16 * 8
+    return sheet.crop((x, y, x + 8, y + 8))
+
+
+def test_the_game_fonts_are_listed_one_by_one_and_intro_is_two_fonts():
+    rules = check_loads(PLUGIN)
+    labels = [f["label"] for f in rules.get_font_sources()]
+    assert len(labels) == len(set(labels)) == 9
+    assert [part for part in ("Message boxes", "HUD numbers", "small letters", "big letters (top",
+                              "Pause screen", "Intro story", "Intro first screen", "Credits: job", "Credits: names")
+            if not any(part in label for label in labels)] == []
+    story, prologue = _font(rules, "Intro story"), _font(rules, "Intro first screen")
+    assert story["path"] == prologue["path"] == "gfx/intro_font.bin"
+    assert story["font_map"] != prologue["font_map"]
+    # the big letters start at tile 0x30 (offset 0x300), their top and bottom tiles are 16 cells apart
+    assert prologue["params"]["cell"] == [8, 16] and prologue["params"]["texture_params"]["offset"] == 0x30 * 16
+    assert story["params"]["cell"] == [8, 8] and story["params"]["texture_params"]["offset"] == 0
+    assert story["params"]["texture_params"]["height"] // 8 * 16 == 0x30   # tiles 0..0x2F only
+
+
+def test_real_intro_fonts_show_every_letter_the_text_uses_as_a_whole_glyph(zt_sm):
+    sm, data = zt_sm
+    rules = check_loads(PLUGIN)
+    raw = sm.gfx_source(data, "intro_font")
+    story, prologue = _font(rules, "Intro story"), _font(rules, "Intro first screen")
+    _meta, (s_sheet,) = font_formats.extract(story["format"], raw, story["params"])
+    _meta, (p_sheet,) = font_formats.extract(prologue["format"], raw, prologue["params"])
+    for tile, ch in sm.FONTS["intro"].chars.items():
+        if ch != " ":
+            assert story["params"]["chars"][tile] == ch
+            assert s_sheet.convert("RGBA").crop((tile % 16 * 8, tile // 16 * 8, tile % 16 * 8 + 8, tile // 16 * 8 + 8)
+                                                ).tobytes() == _tile_image(raw, tile).tobytes()
+    letters = prologue["params"]["chars"]
+    for (top, bottom), ch in sm.FONTS["prologue"].chars.items():
+        if ch in " .":
+            continue
+        cell = letters.index(ch)
+        box = (cell % 16 * 8, cell // 16 * 16)
+        glyph = p_sheet.convert("RGBA").crop((box[0], box[1], box[0] + 8, box[1] + 16))
+        assert glyph.crop((0, 0, 8, 8)).tobytes() == _tile_image(raw, top).tobytes(), ch
+        assert glyph.crop((0, 8, 8, 16)).tobytes() == _tile_image(raw, bottom).tobytes(), ch
+
+
+def test_an_edited_intro_glyph_lands_in_the_built_rom_and_the_other_intro_font_keeps_its_edit(zt_sm, tmp_path):
+    sm, data = zt_sm
+    rules = check_loads(PLUGIN)
+    ws = tmp_path / "ws"
+    (ws / "source" / "gfx").mkdir(parents=True)
+    (ws / "translation" / "gfx").mkdir(parents=True)
+    (ws / "source" / "text.json").write_text(sm.dump_text(sm.Rom(data)), encoding="utf-8")
+    for name in sm.GFX:
+        (ws / "source" / "gfx" / f"{name}.bin").write_bytes(sm.gfx_source(data, name))
+    target = ws / "translation" / "gfx" / "intro_font.bin"
+    raw = (ws / "source" / "gfx" / "intro_font.bin").read_bytes()
+    story, prologue = _font(rules, "Intro story"), _font(rules, "Intro first screen")
+
+    def edit(entry: dict, current: bytes, copy_from: str, onto: str, width: int, height: int) -> bytes:
+        """The font editor's save: copy the shape of one existing glyph onto another cell, pack back."""
+        chars = entry["params"]["chars"]
+        meta, (sheet,) = font_formats.extract(entry["format"], current, entry["params"])
+        src, dst = chars.index(copy_from), chars.index(onto)
+        cols = 16
+
+        def box(cell):
+            return (cell % cols * width, cell // cols * height, cell % cols * width + width, cell // cols * height + height)
+        sheet = sheet.copy()
+        sheet.paste(sheet.crop(box(src)), box(dst))
+        return font_formats.pack(entry["format"], meta, [sheet], current, entry["params"])
+
+    after_prologue = edit(prologue, raw, "B", "A", 8, 16)         # "A" of the first screen now looks like "B"
+    target.write_bytes(after_prologue)
+    after_both = edit(story, target.read_bytes(), "B", "A", 8, 8)  # the story font's "A", on top of the saved file
+    assert after_both != after_prologue != raw
+    target.write_bytes(after_both)
+    rom, _texts, sheets = sm.build_rom(ws, data)
+    assert sheets == ["intro_font"]
+    built, _ = sm.decompress(rom, sm.lo(0x95D089))
+    original = sm.gfx_bytes(data, "intro_font")
+    tile = lambda blob, n: blob[n * 16:(n + 1) * 16]       # noqa: E731
+    assert tile(built, 0x30) == tile(original, 0x31) and tile(built, 0x40) == tile(original, 0x41)   # first screen A
+    assert tile(built, 0x00) == tile(original, 0x01)                                                  # story A
+    assert tile(built, 0x01) == tile(original, 0x01) and tile(built, 0x31) == tile(original, 0x31)
+    assert built[0x50 * 16:] == original[0x50 * 16:] and len(built) == len(original)
+
+
+def test_real_rom_the_first_screen_text_is_an_item_and_moves_to_free_space_when_it_no_longer_fits(zt_sm, tmp_path):
+    sm, data = zt_sm
+    rom = sm.Rom(data)
+    texts = {it["id"]: it["text"] for g in json.loads(sm.dump_text(rom))["groups"] for it in g["items"]}
+    assert texts["intro.prologue"] == "THE LAST METROID IS IN\nCAPTIVITY. THE GALAXY\nIS AT PEACE..."
+    names = [it["id"] for g in json.loads(sm.dump_text(rom))["groups"] if g["name"] == "Intro" for it in g["items"]]
+    assert names == [f"intro.page{n}" for n in range(1, 7)] + ["intro.prologue"]   # appended: old positions kept
+    assert sm.prologue_address(data) == sm.PROLOGUE
+    # a text that packs into the original 226 bytes stays where it is
+    same_size = "THE LAST METROID IS IN\nCAPTIVITY. THE GALAXY\nIS AT PEACE.."
+    assert sm.apply_text(rom, texts, dict(texts, **{"intro.prologue": same_size})) == ["intro.prologue"]
+    assert sm.prologue_address(rom.data) == sm.PROLOGUE
+    # a text with more distinct letters does not: the block goes to bank 8C and the ROM code follows it
+    rom = sm.Rom(data)
+    new = "UA TEST IS A LONGER LINE\nCAPTIVITY. THE GALAXY\nIS AT PEACE..."
+    assert sm.apply_text(rom, texts, dict(texts, **{"intro.prologue": new})) == ["intro.prologue"]
+    moved = bytes(rom.data)
+    assert len(moved) == len(data) and sm.prologue_address(moved) == sm.PROLOGUE_SPACE[0]
+    again = {it["id"]: it["text"] for g in json.loads(sm.dump_text(sm.Rom(moved)))["groups"] for it in g["items"]}
+    assert again["intro.prologue"] == new
+    assert all(again[k] == v for k, v in texts.items() if k != "intro.prologue")
+    raw, room = sm.decompress(data, sm.lo(sm.PROLOGUE))
+    assert len(sm.compress(raw)) <= room                      # the unchanged block still fits as it was
+    diff = [i for i in range(len(data)) if data[i] != moved[i]]
+    spaces = [sm.lo(a) for a in sm.PROLOGUE_SPACE]
+    assert all(spaces[0] <= i < spaces[1] or sm.PROLOGUE_CODE <= i < sm.PROLOGUE_CODE + 8 or sm.lo(sm.PROLOGUE) <= i
+               < sm.lo(sm.PROLOGUE) + 226 for i in diff)
+    # the port's C literal follows the moved block
+    c_file = tmp_path / "sm_8b.c"
+    c_file.write_text("a;\n  DecompressToMem(0x978d12, g_ram + 0x1e000);\n  DecompressToMem(0x978ADB, g_ram);\n",
+                      encoding="utf-8")
+    assert sm.patch_prologue_pointer(c_file, data, data) is False
+    assert sm.patch_prologue_pointer(c_file, data, moved) is True
+    assert c_file.read_text(encoding="utf-8").count(f"DecompressToMem(0x{sm.PROLOGUE_SPACE[0]:06x}, g_ram + 0x1e000)") == 1
+    assert "0x978ADB" in c_file.read_text(encoding="utf-8")
