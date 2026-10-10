@@ -21,6 +21,8 @@ APOSTROPHE = 0x07
 
 def table_starts(data: bytes) -> List[int]:
     count = struct.unpack_from("<H", data, 0)[0]
+    if count == 0 and len(data) == 2:       # an empty message file (stage_apart_boss_*: just 00 00)
+        return []
     if count == 0 or 2 * count > len(data):
         raise ValueError("not a message file: empty table")
     starts = [struct.unpack_from("<H", data, 2 * i)[0] * 2 for i in range(count)]
@@ -31,6 +33,8 @@ def table_starts(data: bytes) -> List[int]:
 
 def split(data: bytes) -> List[bytes]:
     starts = table_starts(data)
+    if not starts:
+        return []
     ends = starts[1:] + [len(data)]
     return [data[s:e] for s, e in zip(starts, ends)]
 
@@ -76,6 +80,8 @@ def _plain(text: str) -> bytes:
 
 def build(messages: List[bytes]) -> bytes:
     """A message file from its messages: the table is rebuilt from the message lengths (each padded to 2 bytes)."""
+    if not messages:
+        return b"\x00\x00"  # an empty message file
     padded = [m if len(m) % 2 == 0 else m + b"\x00" for m in messages]
     count = len(padded)
     table = bytearray()
