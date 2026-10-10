@@ -10,7 +10,9 @@ Params: ``texture`` (the texture format, default ``tpl``), ``image`` (index of t
 default 0), ``cell`` (``[width, height]``), ``chars`` (the characters of the cells, row by row, as a
 string or a list; an entry that is not one character ("" for a free cell, a game token) or is "\\0" leaves
 its cell without a character, as does a cell past the end) or ``first_code`` (cell i is character ``first_code + i``), optional ``columns`` (default: image width // cell width) and
-``texture_params`` (passed to the texture format).
+``texture_params`` (passed to the texture format). Optional ``rows_at`` (``[[x, y], ...]``, one per row):
+the rows of cells are at these places in the texture, not on one even grid (``columns`` is then required);
+the sheet is the cells laid out as one grid, and packing puts each cell back where it came from.
 """
 from __future__ import annotations
 
@@ -29,11 +31,38 @@ def _image(data: bytes, params: Dict[str, Any]):
     return texture_formats.read(fmt, data, params.get("texture_params") or {})[_int(params.get("image", 0))].image
 
 
+def _rows_at(params: Dict[str, Any]):
+    """``rows_at``: where each row of cells starts in the texture, ``[[x, y], ...]`` (a game whose glyph rows
+    are separate VRAM pages, not one even grid). None for a plain grid."""
+    rows_at = params.get("rows_at")
+    if not rows_at:
+        return None
+    return [(_int(x), _int(y)) for x, y in rows_at]
+
+
+def _compose(texture, rows_at, width: int, height: int, columns: int):
+    """The cells of the rows at ``rows_at`` laid out as one even grid (the editor's sheet)."""
+    from PIL import Image
+    sheet = Image.new("RGBA", (columns * width, len(rows_at) * height))
+    for r, (x0, y0) in enumerate(rows_at):
+        for c in range(columns):
+            cell = texture.crop((x0 + c * width, y0, x0 + (c + 1) * width, y0 + height))
+            sheet.paste(cell, (c * width, r * height))
+    return sheet
+
+
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
-    sheet = _image(data, params).convert("RGBA")
     width, height = (_int(v) for v in params["cell"])
-    columns = _int(params.get("columns") or sheet.width // width)
-    rows = sheet.height // height
+    rows_at = _rows_at(params)
+    if rows_at:
+        texture = _image(data, params).convert("RGBA")
+        columns = _int(params["columns"])
+        sheet = _compose(texture, rows_at, width, height, columns)
+        rows = len(rows_at)
+    else:
+        sheet = _image(data, params).convert("RGBA")
+        columns = _int(params.get("columns") or sheet.width // width)
+        rows = sheet.height // height
     count = columns * rows
     if "chars" in params:
         chars = params["chars"]
@@ -58,9 +87,21 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
 def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, Any]) -> bytes:
     """``original`` with the sheet written back into its image (the same bytes when nothing changed)."""
     from core import texture_formats
-    current = _image(original, params)
+    current = _image(original, params).convert("RGBA")
     sheet = sheets[0].convert("RGBA")
-    if sheet.size != current.size:
+    width, height = (_int(v) for v in params["cell"])
+    rows_at = _rows_at(params)
+    if rows_at:
+        columns = _int(params["columns"])
+        expected = (columns * width, len(rows_at) * height)
+        if sheet.size != expected:
+            raise ValueError(f"The sheet is {sheet.width}x{sheet.height}, the cells need {expected[0]}x{expected[1]}")
+        for r, (x0, y0) in enumerate(rows_at):
+            for c in range(columns):
+                cell = sheet.crop((c * width, r * height, (c + 1) * width, (r + 1) * height))
+                current.paste(cell, (x0 + c * width, y0))
+        sheet = current
+    elif sheet.size != current.size:
         raise ValueError(f"The sheet is {sheet.width}x{sheet.height}, the texture {current.width}x{current.height}")
     fmt = str(params.get("texture") or "tpl")
     return texture_formats.write(fmt, original, {_int(params.get("image", 0)): sheet},
