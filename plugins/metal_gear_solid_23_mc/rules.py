@@ -24,6 +24,8 @@ _ROLES = {
     "demo": ("Cutscene subtitle", "A subtitle of a cutscene. " + _KEEP),
     "movie": ("Cutscene subtitle", "A subtitle of a video or a codec scene. " + _KEEP),
     "vox": ("Voice subtitle", "A subtitle of a voiced radio or in-game line. " + _KEEP),
+    "books": ("Master Book or Screenplay Book page", "A line of the Master Book or Screenplay Book pages (titles "
+              "and text areas). " + _KEEP),
 }
 
 
