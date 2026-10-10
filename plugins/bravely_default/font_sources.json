@@ -1,3 +1,5 @@
 [
-  {"label": "Game font (hikari)", "format": "bcfnt", "path": "romfs/Graphics/UI_en/Font/Font/root/font/hikari.bcfnt"}
+  {"label": "Game font (hikari)", "format": "bcfnt", "path": "romfs/Graphics/UI_en/Font/Font/root/font/hikari.bcfnt"},
+  {"label": "Bravely Second fonts (Font: hikari, hikariItalic)", "format": "bcfnt", "path": "romfs/Graphics/UI/Font/Font/root/font/*.bcfnt"},
+  {"label": "Bravely Second fonts with Korean (FontK: hikari, hikariItalic)", "format": "bcfnt", "path": "romfs/Graphics/UI/Font/FontK/root/font/*.bcfnt"}
 ]

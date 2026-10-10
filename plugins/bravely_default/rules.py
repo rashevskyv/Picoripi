@@ -1,4 +1,5 @@
-"""Bravely Default plugin (3DS, EUR English): the game's BTBF text tables, its font and its pictures with text.
+"""Bravely Default (3DS, EUR English) and Bravely Second: End Layer (3DS, USA English) plugin: the games' BTBF
+text tables, their fonts and their pictures with text.
 
 A project's source folder is the workspace's ``source`` tree (``1_unpack.bat`` fills it). The game keeps its
 English text in ``Common_en`` as BTBF tables, most of them inside ``index.fs`` + ``crowd.fs`` pairs that the
@@ -9,6 +10,11 @@ unpack writes as folders of members (``2_build.bat`` packs them back):
   string table (``btbf.py``). An unedited table is written back byte for byte.
 - ``romfs/Graphics/UI_en/Font/Font/root/font/hikari.bcfnt`` -- the game font (``font_sources.json``).
 - ``romfs/Graphics/UI_en/**/*.bclim`` -- every English layout picture (``texture_sources.json``).
+
+Bravely Second keeps the same tables (plus ``.pcb`` party chat) in ``romfs/Common_en``, its fonts in
+``romfs/Graphics/UI/Font/Font/root/font`` (``hikari``, ``hikariItalic``) and its pictures in ``romfs/Graphics/UI``
+(the English and the shared ones: the unpack drops the other languages). Its archive members are packed
+(``60`` + size + raw deflate); the unpack writes them plain and the build packs them again.
 
 Text markup is plain: ``\\n`` line breaks, ``[PCM1]``-style name slots and ``$`` variables stay as typed.
 """
@@ -21,17 +27,19 @@ from utils.logging_utils import log_warning
 from .btbf import Btbf, label_of
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
-EXTENSIONS = (".btb", ".txb", ".spb", ".trb", ".mtb", ".tbl", ".subtitles")
+EXTENSIONS = (".btb", ".txb", ".spb", ".trb", ".mtb", ".tbl", ".pcb", ".subtitles")
 # What a table holds, by its name (the rest are named by the table itself).
 ROLES = {"ItemTable": "Item name or description", "MonsterData": "Enemy name", "CommandAbility": "Ability name or description",
          "SupportAbility": "Ability name or description", "SpecialTable": "Special move text", "JobTable": "Job name",
          "PcTable": "Character name", "Subtitles": "Movie subtitle", "PartyChat": "Party chat dialogue",
          "TextTable": "Event dialogue", "TutorialTable": "Tutorial text", "MenuTable": "Menu text",
-         "MessageTable": "System message", "Shop": "Shop text", "DReportTable": "D's Journal entry"}
+         "MessageTable": "System message", "Shop": "Shop text", "DReportTable": "D's Journal entry",
+         "NoteTable": "Journal entry", "QuestTable": "Quest text", "EndRoll": "Credits",
+         "NarrationTable": "Narration", "TreasureTable": "Treasure text", "Capcap": "Chompcraft text"}
 
 
 class GameRules(BaseGameRules):
-    """Bravely Default (Nintendo 3DS, European English)."""
+    """Bravely Default and Bravely Second (Nintendo 3DS, English)."""
 
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
@@ -43,7 +51,7 @@ class GameRules(BaseGameRules):
         self._paths: Dict[int, Optional[str]] = {}
 
     def get_display_name(self) -> str:
-        return "Bravely Default"
+        return "Bravely Default / Bravely Second"
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat

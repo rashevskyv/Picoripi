@@ -1,4 +1,6 @@
 [
   {"label": "English layout pictures (title, menus, chapter titles, tutorials)", "kind": "menu_label", "format": "bflim",
-   "path": "romfs/Graphics/UI_en/**/*.bclim"}
+   "path": "romfs/Graphics/UI_en/**/*.bclim"},
+  {"label": "Bravely Second English and shared UI pictures (title, menus, chapter titles, tutorials, icons)",
+   "kind": "menu_label", "format": "bflim", "path": "romfs/Graphics/UI/**/*.bclim"}
 ]
