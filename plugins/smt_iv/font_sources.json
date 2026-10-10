@@ -1,0 +1,12 @@
+[
+  {"label": "Rodin 16 (dialogue; SMT IV)", "format": "bcfnt", "path": "romfs/font/rodin_16_16.bcfnt", "font_map": "rodin_16_16.json"},
+  {"label": "Rodin 14 (menus; SMT IV)", "format": "bcfnt", "path": "romfs/font/rodin_14_14.bcfnt"},
+  {"label": "Rodin 12 (SMT IV)", "format": "bcfnt", "path": "romfs/font/rodin_12_12.bcfnt"},
+  {"label": "Rodin 6 (tiny; SMT IV)", "format": "bcfnt", "path": "romfs/font/rodin_6_6.bcfnt"},
+  {"label": "Maru 9 (SMT IV)", "format": "bcfnt", "path": "romfs/font/gmaru_9_9.bcfnt"},
+  {"label": "TsukuMin 16 (dialogue; Apocalypse)", "format": "bcfnt", "path": "romfs/font/TsukuMin_16_16.bcfnt", "font_map": "TsukuMin_16_16.json"},
+  {"label": "TsukuMin 14 (Apocalypse)", "format": "bcfnt", "path": "romfs/font/TsukuMin_14_14.bcfnt"},
+  {"label": "TsukuMin 12 (Apocalypse)", "format": "bcfnt", "path": "romfs/font/TsukuMin_12_12.bcfnt"},
+  {"label": "TsukuMin 9 (Apocalypse)", "format": "bcfnt", "path": "romfs/font/TsukuMin_9_9.bcfnt"},
+  {"label": "Demo font", "format": "bcfnt", "path": "romfs/font/demo_font.bcfnt"}
+]

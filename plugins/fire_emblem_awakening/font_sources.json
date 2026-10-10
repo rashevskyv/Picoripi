@@ -1,0 +1,9 @@
+[
+  {"label": "System (dialogue, menus; Cyrillic without Ukrainian letters)", "format": "fe13_bfnt", "path": "romfs/fonts/System.bfnt",
+   "font_map": "System.json"},
+  {"label": "UI large", "format": "fe13_bfnt", "path": "romfs/fonts/UI_L.bfnt"},
+  {"label": "UI medium", "format": "fe13_bfnt", "path": "romfs/fonts/UI_M.bfnt"},
+  {"label": "UI small", "format": "fe13_bfnt", "path": "romfs/fonts/UI_S.bfnt"},
+  {"label": "ank (small Latin)", "format": "fe13_bfnt", "path": "romfs/fonts/ank.bfnt"},
+  {"label": "Debug", "format": "fe13_bfnt", "path": "romfs/fonts/Debug.bfnt"}
+]
