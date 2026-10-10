@@ -118,8 +118,11 @@ class GameRules(BaseGameRules):
         if isinstance(json_data, (bytes, bytearray)):
             json_data = bytes(json_data).decode("utf-8", "surrogateescape")
         if isinstance(json_data, str):
+            units = pret_text.load(json_data, self._is_asm(json_data))
+            if not units:
+                return [], {}          # no decompilation text: what a text file gave this plugin before
             self._pret_loaded = json_data
-            return [pret_text.load(json_data, self._is_asm(json_data))], {"0": "Text"}
+            return [units], {"0": "Text"}
         if not isinstance(json_data, dict):
             return [], {}
         
@@ -329,7 +332,7 @@ class GameRules(BaseGameRules):
 
     def get_display_name(self) -> str:
         """Get the display name."""
-        return "Pokémon FireRed/LeafGreen"
+        return "Pokémon FireRed / LeafGreen, Ruby / Sapphire, Emerald"
 
     def get_default_tag_mappings(self) -> Dict[str, str]:
         """Get the default tag mappings."""

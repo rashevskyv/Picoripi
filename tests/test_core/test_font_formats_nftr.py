@@ -130,3 +130,17 @@ def test_existing_codes_cannot_change():
     entries[len(entries) // 2] = 1                                     # 'A' -> glyph 1
     with pytest.raises(ValueError, match="U\\+0041"):
         font_formats.pack("nftr", metadata, sheets, data, PARAMS)
+
+
+def test_a_block_whose_declared_size_leaves_out_its_padding_is_read_and_packs_back_unchanged():
+    """Pokémon Black / White: the next block starts on a word although the block's size field stops before it."""
+    data = bytearray(_font())
+    plgc = data.index(b"PLGC")
+    declared = struct.unpack_from("<I", data, plgc + 4)[0]
+    assert declared % 4 == 0 and data[plgc + declared - 2:plgc + declared] == b"\0\0"
+    struct.pack_into("<I", data, plgc + 4, declared - 2)
+    data = bytes(data)
+    font = nftr.Font(data)
+    assert len(font.glyphs) == 3 and font.codes() == {0x41: 0, 0x42: 1, 0x401: 2}
+    metadata, sheets = font_formats.extract("nftr", data, PARAMS)
+    assert font_formats.pack("nftr", metadata, sheets, data, PARAMS) == data

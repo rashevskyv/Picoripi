@@ -16,6 +16,8 @@ import urllib.parse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.containers import ContainerManager
+from core.containers.nitro import NarcContainer
 from plugins.base_game_rules import BaseGameRules
 from plugins.common import gen5msg
 from utils.logging_utils import log_debug
@@ -58,6 +60,7 @@ class GameRules(BaseGameRules):
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
+        ContainerManager.register(NarcContainer)     # the font and picture archives (Font Editor, Textures)
         self._file: Optional[bytes] = None        # the message file a save writes over (line flags, packing)
         self._located: Dict[int, Optional[Tuple[str, bytes]]] = {}
 
