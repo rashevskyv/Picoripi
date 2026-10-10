@@ -38,6 +38,7 @@ def _backends() -> Dict[str, Any]:
                                    retro_font, retro_font_gx,
                                    rrr_errfont, swf_font, texture_grid, tmp_sdf, twewy, vagrant, xf, zelda3)
     from core.font_formats import dq9, infinite_space
+    from core.font_formats import pw_xpr
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
@@ -47,7 +48,7 @@ def _backends() -> Dict[str, Any]:
             "is_obd": infinite_space, "dq9": dq9, "jade": jade, "brfna": brfna, "rrr_errfont": rrr_errfont,
             "swf_font": swf_font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams,
             "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf, "mt_font": mt_font, "pmd_font": pmd_font,
-            "fe13_bfnt": fe13_bfnt, "laft": laft}
+            "fe13_bfnt": fe13_bfnt, "laft": laft, "pw_xpr": pw_xpr}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -91,6 +92,9 @@ def detect(data: bytes) -> Optional[str]:
         return "bfn"
     if head[2:4] == b"\x20\0" and len(data) > 0x30 and bytes(data[0x20:0x22]) == b"\x30\0" and head[:2] != b"\xff\xfe":
         return "fe13_bfnt"
+    if head[:4] == b"XPR2":
+        from core.font_formats import pw_xpr
+        return "pw_xpr" if pw_xpr.is_pw_xpr(bytes(data)) else None
     if head[:4] == b"FntG":
         return "fntg"
     if head[:4] == b"LAFT":

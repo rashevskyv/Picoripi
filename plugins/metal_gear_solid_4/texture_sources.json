@@ -1,0 +1,10 @@
+[
+  {"label": "Launcher: menu words", "kind": "menu_label", "format": "png", "path": "launcher/texture/packedassetsmgs4_assets_launcher/textures/mgs4menutext_spriteatlas/*.png"},
+  {"label": "Launcher: title, guide, notices, logos", "kind": "title_screen", "format": "png", "path": "launcher/texture/defaultlocalgroup_assets_launcher/**/*.png"},
+  {"label": "Launcher: loading and dialog pictures", "kind": "menu", "format": "png", "path": "launcher/texture/defaultlocalgroup_scenes_scenes/**/*.png"},
+  {"label": "Launcher: licence logos", "kind": "logo", "format": "png", "path": "launcher/texture/packedassetsmgs4_assets_launcher/textures/license/*/*.png"},
+  {"label": "Launcher: engine logo", "kind": "logo", "format": "png", "path": "launcher/texture/packedassetsmgs4_assets_launcher/textures/mgs4/ue-logotype*/*.png"},
+  {"label": "Master Book pages", "kind": "book", "format": "png", "path": "launcher/texture/bonusassetsmgs4_assets_mgs4/**/*.png"},
+  {"label": "Screenplay Book pictures (covers, section titles, codec portraits)", "kind": "book", "format": "png", "path": "launcher/texture/scenarioassetsmgs4_assets_mgs4/**/*.png"},
+  {"label": "Digital manual pages", "kind": "manual", "format": "png", "path": "launcher/texture/packedassetsmgs4_assets_launcher/textures/mgs4/us_asset/*.png"}
+]
