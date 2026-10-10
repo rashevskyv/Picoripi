@@ -89,7 +89,8 @@ def detect(data: bytes) -> Optional[str]:
         return "bcfnt" if is_ctr_font(data) else "bffnt"
     if head[:4] in (b"FONT", b"FFNT"):
         return "bfn"
-    if head[2:4] == b"\x20\0" and len(data) > 0x30 and bytes(data[0x20:0x22]) == b"\x30\0" and head[:2] != b"\xff\xfe":
+    if len(data) > 0x30 and bytes(data[0x20:0x22]) == b"\x30\0" and bytes(data[0x22:0x24]) != bytes(2) \
+            and head[:2] != b"\xff\xfe":
         return "fe13_bfnt"
     if head[:4] == b"FntG":
         return "fntg"

@@ -1,0 +1,20 @@
+[
+  {"label": "Title logo (upper screen)", "kind": "title_screen", "format": "bch", "path": "romfs/ui/title_upper*.bch"},
+  {"label": "Title screen, lower screen (Tap to start, legal line) and save-file menu", "kind": "title_screen",
+   "format": "bch", "path": "romfs/arc/EU_English.arc/ui/title*.bch"},
+  {"label": "Chapter title cards (English)", "kind": "area_card", "format": "bch",
+   "path": "romfs/arc/EU_English.arc/titles/*.bch"},
+  {"label": "Tutorial slides (English)", "kind": "menu_label", "format": "bch",
+   "path": "romfs/arc/EU_English.arc/tutorials/*.bch"},
+  {"label": "Menus, buttons, result screens (English)", "kind": "menu_label", "format": "bch",
+   "path": "romfs/arc/EU_English.arc/ui/*.bch"},
+  {"label": "Name plates and mission captions (English)", "kind": "popup", "format": "bch",
+   "path": "romfs/arc/EU_English.arc/effects/**/*.bch"},
+  {"label": "Menus, buttons, credits (language-neutral)", "kind": "menu_label", "format": "bch",
+   "path": "romfs/ui/*.bch"},
+  {"label": "Chapter title cards and tutorial slides (language-neutral)", "kind": "area_card", "format": "bch",
+   "path": "romfs/titles/*.bch"},
+  {"label": "Tutorial slides (language-neutral)", "kind": "menu_label", "format": "bch", "path": "romfs/tutorials/*.bch"},
+  {"label": "Pictures", "kind": "menu_label", "format": "bch", "path": "romfs/picts/*.bch"},
+  {"label": "Ending", "kind": "menu_label", "format": "bch", "path": "romfs/ending/*.bch"}
+]

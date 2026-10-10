@@ -28,7 +28,9 @@ _ENTRY = "<4H5B3x"
 
 
 def detect(data: bytes) -> bool:
-    return len(data) > 0x30 and data[2:4] == b"\x20\0" and struct.unpack_from("<H", data, 0x20)[0] == 0x30
+    # Fire Emblem Awakening has 0x20 at offset 2; Code Name S.T.E.A.M. has other values there (same layout).
+    return (len(data) > 0x30 and data[:2] != b"\xff\xfe" and struct.unpack_from("<H", data, 0x20)[0] == 0x30
+            and struct.unpack_from("<H", data, 0x22)[0] > 0)
 
 
 def _info(data: bytes) -> Dict[str, Any]:
