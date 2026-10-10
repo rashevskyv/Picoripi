@@ -1,0 +1,61 @@
+[
+  {
+    "label": "Text font (subtitles, codec, item help, menus)",
+    "format": "mgs_nht",
+    "path": "font/MGS_Font_nht.raw"
+  },
+  {
+    "label": "Launcher font COUR (SDF)",
+    "format": "tmp_sdf",
+    "path": "font/launcher/COUR SDF.json",
+    "companion": "font/launcher/COUR SDF.png"
+  },
+  {
+    "label": "Launcher font KDE_TsukuGothic-Md (SDF)",
+    "format": "tmp_sdf",
+    "path": "font/launcher/KDE_TsukuGothic-Md SDF.json",
+    "companion": "font/launcher/KDE_TsukuGothic-Md SDF.png"
+  },
+  {
+    "label": "Launcher font MG-RodinProN-B (SDF)",
+    "format": "tmp_sdf",
+    "path": "font/launcher/MG-RodinProN-B SDF.json",
+    "companion": "font/launcher/MG-RodinProN-B SDF.png"
+  },
+  {
+    "label": "Launcher font MG-RodinProN-DB (SDF)",
+    "format": "tmp_sdf",
+    "path": "font/launcher/MG-RodinProN-DB SDF.json",
+    "companion": "font/launcher/MG-RodinProN-DB SDF.png"
+  },
+  {
+    "label": "Launcher font MG-RodinProN-M (SDF)",
+    "format": "tmp_sdf",
+    "path": "font/launcher/MG-RodinProN-M SDF.json",
+    "companion": "font/launcher/MG-RodinProN-M SDF.png"
+  },
+  {
+    "label": "Launcher font MG_SansSerif-Bd (SDF)",
+    "format": "tmp_sdf",
+    "path": "font/launcher/MG_SansSerif-Bd SDF.json",
+    "companion": "font/launcher/MG_SansSerif-Bd SDF.png"
+  },
+  {
+    "label": "Launcher font MG_SansSerif-Md (SDF)",
+    "format": "tmp_sdf",
+    "path": "font/launcher/MG_SansSerif-Md SDF.json",
+    "companion": "font/launcher/MG_SansSerif-Md SDF.png"
+  },
+  {
+    "label": "Launcher font MG_SansSerif-Roman (SDF)",
+    "format": "tmp_sdf",
+    "path": "font/launcher/MG_SansSerif-Roman SDF.json",
+    "companion": "font/launcher/MG_SansSerif-Roman SDF.png"
+  },
+  {
+    "label": "Launcher font TBTVM_0P (SDF)",
+    "format": "tmp_sdf",
+    "path": "font/launcher/TBTVM_0P SDF.json",
+    "companion": "font/launcher/TBTVM_0P SDF.png"
+  }
+]
