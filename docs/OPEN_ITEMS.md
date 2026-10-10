@@ -122,6 +122,7 @@ the line when it is done or moved into a plan.
 - No font has Ukrainian letters and `retro_font_gx` cannot add glyphs (no room in the C4 texture): letters go over unused accented glyphs (a translation map) or the texture must grow.
 - The workspace LZO packs about 3 % worse than Retro's: a package whose edited resources no longer fit gets the English text of unchanged tables as every language, biggest saving first; the disc has only 232 MB free, so a world package of Prime 3 (up to 743 MB) can never move.
 - Seen in Dolphin only for the menu (STRG version 3); shared-language tables of Prime 1 (version 0) and Prime 2 (version 1) are checked by machine, not in the game.
+- GameCube Metroid Prime (PC port workspace `Metroid\Prime (GC + PC port)`, 2026-10-10): no GM8E01 disc image was on this machine, so `retro_font_gc` (FONT versions 0 to 2) is checked on a font built in the tests only, and the port's mod loading was not seen in the game; unpack the disc with `1_unpack.bat` and run the real-data tests.
 
 ## Pokémon X/Y + Omega Ruby/Alpha Sapphire (`plugins/pokemon_gen6`, 2026-10-09)
 

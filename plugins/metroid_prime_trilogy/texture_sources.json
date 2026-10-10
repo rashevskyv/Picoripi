@@ -118,5 +118,35 @@
   "kind": "interface",
   "format": "txtr_gx",
   "path": "Menu/texture/RS5FE/*.txtr"
+ },
+ {
+  "label": "GameCube (PC port): GGuiSys",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "texture/GGuiSys/*.txtr"
+ },
+ {
+  "label": "GameCube (PC port): MiscData",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "texture/MiscData/*.txtr"
+ },
+ {
+  "label": "GameCube (PC port): NoARAM",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "texture/NoARAM/*.txtr"
+ },
+ {
+  "label": "GameCube (PC port): RS5",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "texture/RS5/*.txtr"
+ },
+ {
+  "label": "GameCube (PC port): Strings",
+  "kind": "interface",
+  "format": "txtr_gx",
+  "path": "texture/Strings/*.txtr"
  }
 ]

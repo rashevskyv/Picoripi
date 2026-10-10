@@ -690,7 +690,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      an unedited table stays byte for byte. The Font Editor opens every font (`retro_font_gx`: glyphs are edited
      in place, none added; no font has Ukrainian letters); the Textures window opens the interface textures
      (`txtr_gx`: every GX format). `2_build.bat` writes changed files into every package of that game that holds
-     them and the packages into a copy of the ISO
+     them and the packages into a copy of the ISO. The same plugin opens the GameCube Metroid Prime (USA 1.00
+     `GM8E01`) of the workspace `Metroid\Prime (GC + PC port)` (folders `text`, `font`, `texture` without a game
+     level; GameCube fonts through `retro_font_gc`): `2_build.bat` there writes the changed resources as loose
+     `<id>.STRG/.FONT/.TXTR` files in `build\mods\Picoripi_UA`, the mods folder of the native PC port
+     Odrannnn/MetroidPrimePort, which runs from the original disc (`3_run.bat`)
    - `metal_gear_solid_ps1` — Metal Gear Solid (PlayStation, USA, both discs). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat`: `RADIO.DAT` (every codec call), `SLUS_005.94` (item names and descriptions,
      menus, memory card messages; edited in place), `stage\<stage>\*.gcx` and `*.bin` (scripts and overlays of

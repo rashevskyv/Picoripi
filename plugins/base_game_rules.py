@@ -778,7 +778,7 @@ class BaseGameRules:
         archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``laft`` (Monolith Soft LAFT, Switch Xenoblade), ``fe13_bfnt``
         (Fire Emblem Awakening), ``pmd_font`` (Spike Chunsoft 3DS ``.dic`` + ``.img``), ``vagrant`` (Vagrant Story),
         ``gba_tiles``,
-        ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` (Retro
+        ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` / ``retro_font_gc`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture), ``cells`` (fixed-size glyph cells in a byte range),
         ``zelda3`` (the zelda3 PC port's ``font.png``), ``eternal_darkness`` (glyph grid in a TPL, widths in a
         companion pack), ``fragile_dreams`` (Fragile Dreams FONT: glyph boxes in TPL pages), ``is_obd`` (Infinite Space), ``dq9`` (Dragon Quest IX) or ``mt_font`` (Capcom MT Framework
