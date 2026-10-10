@@ -1,0 +1,13 @@
+[
+  {"label": "Boot logos (Marvelous, Grasshopper, Ubisoft, Spike)", "kind": "title_screen", "format": "tpl", "path": "ui/Title/**/*.tpl"},
+  {"label": "Health and safety screen (English)", "kind": "notice", "format": "tpl", "path": "ui/Strap/**/*.tpl"},
+  {"label": "Loading screens and ranking cards", "kind": "menu_label", "format": "tpl", "path": "ui/Loading/**/*.tpl"},
+  {"label": "Save screen", "kind": "menu_label", "format": "tpl", "path": "ui/HAYA/**/*.tpl"},
+  {"label": "Pause menu, status, key guide, battle icons", "kind": "menu_label", "format": "tpl", "path": "ui/Global/**/*.tpl"},
+  {"label": "Menus: map, jobs, game over, ranking, staff roll", "kind": "menu_label", "format": "tpl", "path": "ui/Hide/**/*.tpl"},
+  {"label": "Motel map and messages", "kind": "map", "format": "tpl", "path": "ui/Message/**/*.tpl"},
+  {"label": "Ending logo", "kind": "credits", "format": "tpl", "path": "ui/LastLogo/**/*.tpl"},
+  {"label": "Item cards and shop pictures", "kind": "menu_label", "format": "tpl", "path": "ui/Card/**/*.tpl"},
+  {"label": "Wii HOME Menu (English)", "kind": "menu_label", "format": "tpl", "path": "hbm/**/*.tpl"},
+  {"label": "Disc channel banner (Wii Menu)", "kind": "banner", "format": "tpl", "path": "opening.bnr/**/*.tpl"}
+]

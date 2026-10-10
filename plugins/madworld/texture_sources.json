@@ -1,0 +1,11 @@
+[
+  {"label": "Title logo, Nunchuk notice, title menu", "kind": "title_screen", "format": "tpl", "path": "ui/caseE/idpac_ce00_us.dat@*.tpl"},
+  {"label": "Menus, options, save data, HUD words", "kind": "menu_label", "format": "tpl", "path": "ui/subscr/**/*.tpl"},
+  {"label": "Common HUD and messages (core)", "kind": "menu_label", "format": "tpl", "path": "ui/etc/**/*.tpl"},
+  {"label": "Missions and tutorials", "kind": "menu_label", "format": "tpl", "path": "ui/case*/**/*.tpl"},
+  {"label": "Cut-scene pictures", "kind": "menu_label", "format": "tpl", "path": "ui/event/**/*.tpl"},
+  {"label": "Health and safety screen (English)", "kind": "notice", "format": "tpl", "path": "ui/strap/**/*.tpl"},
+  {"label": "Save banner", "kind": "banner", "format": "tpl", "path": "ui/banner/**/*.tpl"},
+  {"label": "Wii HOME Menu (English)", "kind": "menu_label", "format": "tpl", "path": "hbm/**/*.tpl"},
+  {"label": "Disc channel banner (Wii Menu)", "kind": "banner", "format": "tpl", "path": "opening.bnr/**/*.tpl"}
+]
