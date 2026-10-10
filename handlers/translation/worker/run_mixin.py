@@ -9,6 +9,7 @@ from core.translation.transport import ErrorKind
 from core.glossary_build.decisions import decided_block, decided_from_reply, select_related
 from core.glossary_build.parallel import MAX_CONSECUTIVE_FAILURES, run_pool
 from core.translation.layout_contract import (
+    check_tags_kept,
     check_translated,
     editor_text_for_layout,
     resolve_lines_per_window,
@@ -395,6 +396,8 @@ class AIWorkerRunMixin:
         verify_chunk_ids(translated_items, chunk)
 
         rules = getattr(self.mw, 'current_game_rules', None) if self.mw else None
+        capabilities = getattr(rules, 'get_capabilities', None)
+        strict_tags = callable(capabilities) and "strict_tags" in (capabilities() or ())
         for result_item, source_item in zip(translated_items, chunk):
             if not isinstance(result_item, dict):
                 raise ValueError("A translated item is not a JSON object")
@@ -432,6 +435,8 @@ class AIWorkerRunMixin:
                 allow_reflow=True,
             )
             check_translated(source_value, translated_value, item_id=source_id)
+            if strict_tags:
+                check_tags_kept(source_value, translated_value, item_id=source_id)
         return parsed_response
 
     def _maybe_run_editor_review(self, plan: _ChunkRun, chunk_i: int, chunk_items: list, cleaned_draft: str,

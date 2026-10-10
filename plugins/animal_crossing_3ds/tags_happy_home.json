@@ -1,22 +1,22 @@
 {
  "groups": {
   "0": "System",
-  "1": "Group 1",
-  "2": "Group 2",
-  "3": "Group 3",
-  "4": "Group 4",
-  "5": "Group 5",
-  "6": "Group 6",
-  "7": "Group 7",
-  "10": "Group 10",
-  "11": "Group 11",
-  "12": "Group 12",
-  "13": "Group 13",
-  "14": "Group 14",
-  "15": "Group 15",
-  "16": "Group 16",
-  "17": "Group 17",
-  "18": "Group 18"
+  "1": "Special character",
+  "2": "Villager animation",
+  "3": "Number and date",
+  "4": "Name",
+  "5": "Speech",
+  "6": "System menu",
+  "7": "Random next message",
+  "10": "Three-way conversation",
+  "11": "Effect",
+  "12": "Grammar",
+  "13": "Player menu",
+  "14": "Chorus",
+  "15": "Saved name",
+  "16": "Context word",
+  "17": "Context word",
+  "18": "System dialog"
  },
  "colors": [
   "Default",
@@ -33,530 +33,613 @@
   {
    "group": 0,
    "type": 2,
-   "name": "Size",
+   "name": "size",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Text size in percent from here on"
   },
   {
    "group": 0,
    "type": 3,
-   "name": "Color",
+   "name": "color",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Text colour from here on"
   },
   {
    "group": 0,
    "type": 4,
-   "name": "PageBreak",
-   "args": []
+   "name": "pageBreak",
+   "args": [],
+   "desc": "Starts a new page of the window (waits for A)"
   },
   {
    "group": 1,
    "type": 9,
-   "name": "G1_9",
-   "args": []
+   "name": "special9",
+   "args": [],
+   "desc": "Special character speech"
   },
   {
    "group": 2,
    "type": 0,
-   "name": "G2_0",
-   "args": []
+   "name": "anim0",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 1,
-   "name": "G2_1",
-   "args": []
+   "name": "anim1",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 2,
-   "name": "G2_2",
-   "args": []
+   "name": "anim2",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 3,
-   "name": "G2_3",
-   "args": []
+   "name": "anim3",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 4,
-   "name": "G2_4",
-   "args": []
+   "name": "anim4",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 5,
-   "name": "G2_5",
-   "args": []
+   "name": "anim5",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 6,
-   "name": "G2_6",
-   "args": []
+   "name": "anim6",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 7,
-   "name": "G2_7",
-   "args": []
+   "name": "anim7",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 8,
-   "name": "G2_8",
-   "args": []
+   "name": "anim8",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 9,
-   "name": "G2_9",
-   "args": []
+   "name": "anim9",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 10,
-   "name": "G2_10",
-   "args": []
+   "name": "anim10",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 11,
-   "name": "G2_11",
-   "args": []
+   "name": "anim11",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 12,
-   "name": "G2_12",
-   "args": []
+   "name": "anim12",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 13,
-   "name": "G2_13",
-   "args": []
+   "name": "anim13",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 14,
-   "name": "G2_14",
-   "args": []
+   "name": "anim14",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 15,
-   "name": "G2_15",
-   "args": []
+   "name": "anim15",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 16,
-   "name": "G2_16",
-   "args": []
+   "name": "anim16",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 17,
-   "name": "G2_17",
-   "args": []
+   "name": "anim17",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 18,
-   "name": "G2_18",
-   "args": []
+   "name": "anim18",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 19,
-   "name": "G2_19",
-   "args": []
+   "name": "anim19",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 20,
-   "name": "G2_20",
-   "args": []
+   "name": "anim20",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 21,
-   "name": "G2_21",
-   "args": []
+   "name": "anim21",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 22,
-   "name": "G2_22",
-   "args": []
+   "name": "anim22",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 23,
-   "name": "G2_23",
-   "args": []
+   "name": "anim23",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 24,
-   "name": "G2_24",
-   "args": []
+   "name": "anim24",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 25,
-   "name": "G2_25",
-   "args": []
+   "name": "anim25",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 26,
-   "name": "G2_26",
-   "args": []
+   "name": "anim26",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 27,
-   "name": "G2_27",
-   "args": []
+   "name": "anim27",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 28,
-   "name": "G2_28",
-   "args": []
+   "name": "anim28",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 29,
-   "name": "G2_29",
-   "args": []
+   "name": "anim29",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 30,
-   "name": "G2_30",
-   "args": []
+   "name": "anim30",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 31,
-   "name": "G2_31",
-   "args": []
+   "name": "anim31",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 32,
-   "name": "G2_32",
-   "args": []
+   "name": "anim32",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 33,
-   "name": "G2_33",
-   "args": []
+   "name": "anim33",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 34,
-   "name": "G2_34",
-   "args": []
+   "name": "anim34",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 35,
-   "name": "G2_35",
-   "args": []
+   "name": "anim35",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 36,
-   "name": "G2_36",
-   "args": []
+   "name": "anim36",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 37,
-   "name": "G2_37",
-   "args": []
+   "name": "anim37",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 38,
-   "name": "G2_38",
-   "args": []
+   "name": "anim38",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 39,
-   "name": "G2_39",
-   "args": []
+   "name": "anim39",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 40,
-   "name": "G2_40",
-   "args": []
+   "name": "anim40",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 41,
-   "name": "G2_41",
-   "args": []
+   "name": "anim41",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 42,
-   "name": "G2_42",
-   "args": []
+   "name": "anim42",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 43,
-   "name": "G2_43",
-   "args": []
+   "name": "anim43",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 44,
-   "name": "G2_44",
-   "args": []
+   "name": "anim44",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 45,
-   "name": "G2_45",
-   "args": []
+   "name": "anim45",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 46,
-   "name": "G2_46",
-   "args": []
+   "name": "anim46",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 47,
-   "name": "G2_47",
-   "args": []
+   "name": "anim47",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 49,
-   "name": "G2_49",
-   "args": []
+   "name": "anim49",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 50,
-   "name": "G2_50",
-   "args": []
+   "name": "anim50",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 2,
    "type": 51,
-   "name": "G2_51",
-   "args": []
+   "name": "anim51",
+   "args": [],
+   "desc": "Animation / emotion of the speaking villager"
   },
   {
    "group": 3,
    "type": 7,
-   "name": "G3_7",
+   "name": "number7",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Inserted number (slot)"
   },
   {
    "group": 3,
    "type": 9,
-   "name": "G3_9",
+   "name": "number9",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Inserted number (slot)"
   },
   {
    "group": 3,
    "type": 11,
-   "name": "G3_11",
+   "name": "number11",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Inserted number (slot)"
   },
   {
    "group": 3,
    "type": 14,
-   "name": "G3_14",
+   "name": "dateMonth",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Month of a stored date (slot)"
   },
   {
    "group": 3,
    "type": 15,
-   "name": "G3_15",
+   "name": "dateDay",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Day of a stored date (slot)"
   },
   {
    "group": 4,
    "type": 0,
-   "name": "G4_0",
-   "args": []
+   "name": "playerName",
+   "args": [],
+   "desc": "Player's name"
   },
   {
    "group": 4,
    "type": 1,
-   "name": "G4_1",
-   "args": []
+   "name": "speakerName",
+   "args": [],
+   "desc": "Name of the villager who speaks"
   },
   {
    "group": 4,
    "type": 4,
-   "name": "G4_4",
-   "args": []
+   "name": "catchphrase",
+   "args": [],
+   "desc": "Villager's catchphrase"
   },
   {
    "group": 4,
    "type": 8,
-   "name": "G4_8",
-   "args": []
+   "name": "name8",
+   "args": [],
+   "desc": "Inserted name"
   },
   {
    "group": 4,
    "type": 27,
-   "name": "G4_27",
-   "args": []
+   "name": "name27",
+   "args": [],
+   "desc": "Inserted name"
   },
   {
    "group": 4,
    "type": 29,
-   "name": "G4_29",
-   "args": []
+   "name": "name29",
+   "args": [],
+   "desc": "Inserted name"
   },
   {
    "group": 5,
    "type": 0,
-   "name": "G5_0",
+   "name": "delay",
    "args": [
     "u32"
-   ]
+   ],
+   "desc": "Pause in frames before the next character"
   },
   {
    "group": 5,
    "type": 1,
-   "name": "G5_1",
-   "args": []
+   "name": "waitButton",
+   "args": [],
+   "desc": "Waits for the A button, then goes on in the same window"
   },
   {
    "group": 5,
    "type": 2,
-   "name": "G5_2",
-   "args": []
+   "name": "speech2",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 3,
-   "name": "G5_3",
-   "args": []
+   "name": "speech3",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 4,
-   "name": "G5_4",
-   "args": []
+   "name": "speech4",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 5,
-   "name": "G5_5",
-   "args": []
+   "name": "speech5",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 6,
-   "name": "G5_6",
+   "name": "autoClose",
    "args": [
     "u32"
-   ]
+   ],
+   "desc": "Closes the window by itself after N frames"
   },
   {
    "group": 5,
    "type": 7,
-   "name": "G5_7",
+   "name": "autoNext",
    "args": [
     "u32"
-   ]
+   ],
+   "desc": "Goes on by itself after N frames"
   },
   {
    "group": 5,
    "type": 8,
-   "name": "G5_8",
-   "args": []
+   "name": "speech8",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 9,
-   "name": "G5_9",
-   "args": []
+   "name": "speech9",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 10,
-   "name": "G5_10",
-   "args": []
+   "name": "speech10",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 11,
-   "name": "G5_11",
-   "args": []
+   "name": "speech11",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 12,
-   "name": "G5_12",
-   "args": []
+   "name": "speech12",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 13,
-   "name": "G5_13",
-   "args": []
+   "name": "speech13",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 14,
-   "name": "G5_14",
-   "args": []
+   "name": "speech14",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 5,
    "type": 15,
-   "name": "G5_15",
-   "args": []
+   "name": "speech15",
+   "args": [],
+   "desc": "Speech effect"
   },
   {
    "group": 6,
    "type": 0,
-   "name": "G6_0",
+   "name": "systemMenu0",
    "args": [
     "u16",
     "u16",
     "u16",
     "u16"
-   ]
+   ],
+   "desc": "System menu; the options are the next lines"
   },
   {
    "group": 7,
    "type": 6,
-   "name": "G7_6",
+   "name": "random6",
    "args": [
     "u16",
     "u16",
@@ -566,378 +649,429 @@
     "u16",
     "u16",
     "u16"
-   ]
+   ],
+   "desc": "Goes on to one of the listed messages at random"
   },
   {
    "group": 10,
    "type": 0,
-   "name": "G10_0",
-   "args": []
+   "name": "talk3p0",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 10,
    "type": 1,
-   "name": "G10_1",
-   "args": []
+   "name": "talk3p1",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 10,
    "type": 2,
-   "name": "G10_2",
-   "args": []
+   "name": "talk3p2",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 10,
    "type": 3,
-   "name": "G10_3",
-   "args": []
+   "name": "talk3p3",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 10,
    "type": 4,
-   "name": "G10_4",
-   "args": []
+   "name": "talk3p4",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 10,
    "type": 5,
-   "name": "G10_5",
-   "args": []
+   "name": "talk3p5",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 10,
    "type": 6,
-   "name": "G10_6",
-   "args": []
+   "name": "talk3p6",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 10,
    "type": 7,
-   "name": "G10_7",
-   "args": []
+   "name": "talk3p7",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 10,
    "type": 8,
-   "name": "G10_8",
-   "args": []
+   "name": "talk3p8",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 10,
    "type": 9,
-   "name": "G10_9",
-   "args": []
+   "name": "talk3p9",
+   "args": [],
+   "desc": "Three-way conversation: who speaks and who looks at whom"
   },
   {
    "group": 11,
    "type": 0,
-   "name": "G11_0",
+   "name": "effect0",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Sound or screen effect"
   },
   {
    "group": 11,
    "type": 1,
-   "name": "G11_1",
+   "name": "effect1",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Sound or screen effect"
   },
   {
    "group": 11,
    "type": 2,
-   "name": "G11_2",
+   "name": "effect2",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Sound or screen effect"
   },
   {
    "group": 11,
    "type": 4,
-   "name": "G11_4",
+   "name": "effect4",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Sound or screen effect"
   },
   {
    "group": 11,
    "type": 5,
-   "name": "G11_5",
-   "args": []
+   "name": "effect5",
+   "args": [],
+   "desc": "Sound or screen effect"
   },
   {
    "group": 11,
    "type": 8,
-   "name": "G11_8",
+   "name": "effect8",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Sound or screen effect"
   },
   {
    "group": 11,
    "type": 9,
-   "name": "G11_9",
-   "args": []
+   "name": "effect9",
+   "args": [],
+   "desc": "Sound or screen effect"
   },
   {
    "group": 11,
    "type": 10,
-   "name": "G11_10",
-   "args": []
+   "name": "effect10",
+   "args": [],
+   "desc": "Sound or screen effect"
   },
   {
    "group": 12,
    "type": 0,
-   "name": "G12_0",
+   "name": "wordInfo",
    "args": [
     "u32"
-   ]
+   ],
+   "desc": "Grammar of the word in this entry: gender, articles"
   },
   {
    "group": 12,
    "type": 2,
-   "name": "G12_2",
-   "args": []
+   "name": "indefArticle",
+   "args": [],
+   "desc": "Indefinite article (a/an) of the next inserted word"
   },
   {
    "group": 12,
    "type": 3,
-   "name": "G12_3",
-   "args": []
+   "name": "capitalize",
+   "args": [],
+   "desc": "Capital letter at the start of the next inserted word"
   },
   {
    "group": 12,
    "type": 4,
-   "name": "G12_4",
-   "args": []
+   "name": "noArticle",
+   "args": [],
+   "desc": "Next inserted word without an article"
   },
   {
    "group": 12,
    "type": 6,
-   "name": "G12_6",
+   "name": "genderPlayer",
    "args": [
     "str",
     "str"
-   ]
+   ],
+   "desc": "Word by the player's gender: masculine, feminine"
   },
   {
    "group": 12,
    "type": 9,
-   "name": "G12_9",
+   "name": "plural",
    "args": [
     "u16",
     "str",
     "str",
     "str"
-   ]
+   ],
+   "desc": "Word by number: zero, one, many (slot)"
   },
   {
    "group": 13,
    "type": 0,
-   "name": "G13_0",
+   "name": "menu0",
    "args": [
     "u32"
-   ]
+   ],
+   "desc": "Player menu; the options are the next lines"
   },
   {
    "group": 13,
    "type": 1,
-   "name": "G13_1",
+   "name": "menu1",
    "args": [
     "u16",
     "u16",
     "u16"
-   ]
+   ],
+   "desc": "Player menu; the options are the next lines"
   },
   {
    "group": 13,
    "type": 5,
-   "name": "G13_5",
+   "name": "menu5",
    "args": [
     "u32"
-   ]
+   ],
+   "desc": "Player menu; the options are the next lines"
   },
   {
    "group": 13,
    "type": 6,
-   "name": "G13_6",
+   "name": "menu6",
    "args": [
     "u16",
     "u16",
     "u16"
-   ]
+   ],
+   "desc": "Player menu; the options are the next lines"
   },
   {
    "group": 13,
    "type": 7,
-   "name": "G13_7",
+   "name": "menu7",
    "args": [
     "u16",
     "u16",
     "u16",
     "u16"
-   ]
+   ],
+   "desc": "Player menu; the options are the next lines"
   },
   {
    "group": 13,
    "type": 8,
-   "name": "G13_8",
+   "name": "menu8",
    "args": [
     "u16",
     "u16",
     "u16",
     "u16",
     "u16"
-   ]
+   ],
+   "desc": "Player menu; the options are the next lines"
   },
   {
    "group": 14,
    "type": 0,
-   "name": "G14_0",
+   "name": "chorus0",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Several characters speak at once (prologue)"
   },
   {
    "group": 14,
    "type": 1,
-   "name": "G14_1",
+   "name": "chorus1",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Several characters speak at once (prologue)"
   },
   {
    "group": 14,
    "type": 2,
-   "name": "G14_2",
+   "name": "chorus2",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Several characters speak at once (prologue)"
   },
   {
    "group": 14,
    "type": 3,
-   "name": "G14_3",
+   "name": "chorus3",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Several characters speak at once (prologue)"
   },
   {
    "group": 15,
    "type": 0,
-   "name": "G15_0",
+   "name": "playerNameSlot",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Name of a player (slot)"
   },
   {
    "group": 15,
    "type": 1,
-   "name": "G15_1",
+   "name": "villagerNameSlot",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Name of a villager (slot)"
   },
   {
    "group": 15,
    "type": 3,
-   "name": "G15_3",
+   "name": "itemName",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Name of an item (slot)"
   },
   {
    "group": 15,
    "type": 5,
-   "name": "G15_5",
-   "args": []
+   "name": "savedName5",
+   "args": [],
+   "desc": "Saved name"
   },
   {
    "group": 15,
    "type": 7,
-   "name": "G15_7",
-   "args": []
+   "name": "savedName7",
+   "args": [],
+   "desc": "Saved name"
   },
   {
    "group": 15,
    "type": 10,
-   "name": "G15_10",
+   "name": "savedName10",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Saved name"
   },
   {
    "group": 15,
    "type": 11,
-   "name": "G15_11",
+   "name": "savedName11",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Saved name"
   },
   {
    "group": 15,
    "type": 12,
-   "name": "G15_12",
+   "name": "savedName12",
    "args": [
     "u16"
-   ]
+   ],
+   "desc": "Saved name"
   },
   {
    "group": 15,
    "type": 14,
-   "name": "G15_14",
-   "args": []
+   "name": "savedName14",
+   "args": [],
+   "desc": "Saved name"
   },
   {
    "group": 16,
    "type": 5,
-   "name": "G16_5",
-   "args": []
+   "name": "contextWord16_5",
+   "args": [],
+   "desc": "Inserted word for this scene"
   },
   {
    "group": 16,
    "type": 19,
-   "name": "G16_19",
+   "name": "contextWord16_19",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "Inserted word for this scene"
   },
   {
    "group": 17,
    "type": 26,
-   "name": "G17_26",
-   "args": []
+   "name": "contextWord17_26",
+   "args": [],
+   "desc": "Inserted word for this scene"
   },
   {
    "group": 17,
    "type": 37,
-   "name": "G17_37",
-   "args": []
+   "name": "contextWord17_37",
+   "args": [],
+   "desc": "Inserted word for this scene"
   },
   {
    "group": 18,
    "type": 0,
-   "name": "G18_0",
-   "args": []
+   "name": "dialog0",
+   "args": [],
+   "desc": "System dialog control"
   },
   {
    "group": 18,
    "type": 1,
-   "name": "G18_1",
+   "name": "dialog1",
    "args": [
     "u8",
     "u16",
     "u16"
-   ]
+   ],
+   "desc": "System dialog control"
   },
   {
    "group": 18,
    "type": 3,
-   "name": "G18_3",
+   "name": "dialog3",
    "args": [
     "u8"
-   ]
+   ],
+   "desc": "System dialog control"
   }
  ]
 }

@@ -39,7 +39,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `prepare_preview_glyph_text` | Text for the bitmap-font preview: (clean_text, per-character colours or None). |  |
 | `calculate_string_width_override` | Pixel width of a string when the game measures it its own way. |  |
 | `get_font_for_block` | Font override for a block: {'original_font_name', 'font_name'}. |  |
-| `get_font_sources` | The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, tmp_sdf, mgs, mgs1, mgs1_hd, m2, nftr, cv_nds, ffta2, xf, g4font, vagrant, gba_tiles, cv_gba, retro_font, retro_font_gx, pgf, twewy, policenauts, texture_grid, zelda3, lunar, is_obd, dq9, jade, brfna, swf_font, rrr_errfont, eternal_darkness, fragile_dreams, fntg, fe13_bfnt), path, member, companion, font_map, params}]. Default: font_sources.json in the plugin folder. |  |
+| `get_font_sources` | The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, tmp_sdf, mgs, mgs1, mgs1_hd, m2, nftr, cv_nds, ffta2, xf, g4font, vagrant, gba_tiles, cv_gba, retro_font, retro_font_gx, pgf, twewy, policenauts, texture_grid, zelda3, lunar, is_obd, dq9, jade, brfna, swf_font, rrr_errfont, eternal_darkness, fragile_dreams, fntg, fe13_bfnt), path, member, companion, font_map, params, preview}]; preview: the host measures widths and draws the bitmap preview with that font. Default: font_sources.json in the plugin folder. |  |
 | `get_texture_sources` | The game's textures with text for the Textures window: [{label, kind, format (bti, tpl, tpl_ctr, bflim, ctpk, dmp, ctxb (also CMB models), bntx, g1t, g4tx, imgc, j3d, gba, gtx, bfres, txtr, txtr_gx, gim, tim, tim2, policenauts_pak, vs_gim, vs_hf1, vs_rle, pcx, m2, is_tex, dq9_spr, jade, jade_jtx, shpg, png, sotn_blocks, sotn_cmp, ffta2_efx, cgfx, stex, raw, tiles, tilemap), path, member, params}]. Default: texture_sources.json in the plugin folder. |  |
 
 ## Problems and autofix
@@ -74,7 +74,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 
 | Hook | What it is for | Notes |
 |---|---|---|
-| `get_capabilities` | Optional abilities, for the pipeline wizard: glossary_seed, external_lore, speaker_attribution, message_window_preview. |  |
+| `get_capabilities` | Optional abilities, for the pipeline wizard: glossary_seed, external_lore, speaker_attribution, message_window_preview, strict_tags (an AI reply must keep every {tag} of the source). |  |
 | `get_translation_context_for_string` | Game metadata of a string for AI prompts (window type, role, …). |  |
 | `should_auto_match_story_context` | Whether a string takes part in automatic dialogue matching. |  |
 | `get_speaker_for_string` | Who speaks the line, when game data records it. |  |
@@ -84,6 +84,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_external_lore` | Background text about a term from an outside source (may use the network). |  |
 | `get_external_reference_url` | Web page about a term. |  |
 | `get_string_layout` | Layout of a string from game data: warn_width, max_width, font_file, lines_per_page. |  |
+| `fit_text_to_window` | A translation re-wrapped with the game's own line and page breaks; None: the generic wrapping. |  |
 | `get_ai_flow_context_for_string` | Dialogue-flow note for one line in an AI prompt. |  |
 | `get_ai_flow_group_for_string` | Id of the line's conversation: lines that share it travel in one AI request. |  |
 | `get_ai_flow_overview` | Conversation outline for the lines of one AI request. |  |

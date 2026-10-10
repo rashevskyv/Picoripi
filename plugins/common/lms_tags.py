@@ -115,10 +115,12 @@ def _encode_args(types: Tuple[str, ...], values: List, e: str) -> bytes:
 class TagCodec:
     """Editor text <-> MSBT tokens for one game's catalogue."""
 
-    def __init__(self, tags: Catalogue, value_names: Optional[Dict[Tuple[str, int], Dict[int, str]]] = None):
+    def __init__(self, tags: Catalogue, value_names: Optional[Dict[Tuple[str, int], Dict[int, str]]] = None,
+                 aliases: Optional[Dict[str, Tuple[int, int]]] = None):
+        """``aliases``: old names (``{name: (group, type)}``) that still read, so text saved before a rename loads."""
         self.tags = tags
         self.value_names = value_names or {}
-        self.by_name = {name: key for key, (name, _types, _description) in tags.items()}
+        self.by_name = {**(aliases or {}), **{name: key for key, (name, _types, _description) in tags.items()}}
         self.render_tag = lru_cache(maxsize=8192)(self._render_tag)
 
     def _readable(self, tag: Tag, e: str) -> Optional[str]:
@@ -176,7 +178,7 @@ class TagCodec:
             raise ValueError(f"Unknown tag {text}")
         if closing:
             return EndTag(*key)
-        types = self.tags[key][1]
+        name, types = self.tags[key][0], self.tags[key][1]
         if len(args) != len(types):
             raise ValueError(f"{text}: {name} takes {len(types)} argument(s)")
         values = []

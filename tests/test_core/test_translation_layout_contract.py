@@ -86,3 +86,14 @@ def test_a_line_left_in_the_source_language_is_refused():
                          item_id=12)
     check_translated(source, "Ти купив {Color:Red}шматочок пирога{Color:White}! Один шматок,\nі ти в раю!")
     check_translated("Hello, Link!", "Hello, Link!")            # too short to judge: names, greetings, codes
+
+
+def test_check_tags_kept_refuses_a_lost_added_or_changed_tag():
+    from core.translation.layout_contract import TranslationLayoutError, check_tags_kept
+    source = "Hi, {playerName}!{delay:8} Ready?{menu5:0}\nYes\nNo"
+    check_tags_kept(source, "{delay:8}Привіт, {playerName}! Готовий?{menu5:0}\nТак\nНі")   # order may change
+    for reply in ("Привіт! Готовий?{menu5:0}\nТак\nНі",                          # lost
+                  "Привіт, {playerName}!{delay:8}{delay:8} Готовий?{menu5:0}\nТак\nНі",   # added
+                  "Привіт, {PlayerName}!{delay:8} Готовий?{menu5:0}\nТак\nНі"):  # changed
+        with pytest.raises(TranslationLayoutError):
+            check_tags_kept(source, reply)

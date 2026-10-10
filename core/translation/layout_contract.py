@@ -118,6 +118,24 @@ def validate_translation_layout(
     return translated
 
 
+_CURLY_TAG = re.compile(r"\{[^{}\n]*\}")
+
+
+def check_tags_kept(source_text: Any, translation: Any, *, item_id: Any = None) -> None:
+    """Raise when a reply lost, added or changed a ``{tag}`` of the source (same tags, same count; the order may
+    change). For games whose control codes must all survive (plugin capability ``strict_tags``): an unknown
+    ``{tag}`` would otherwise reach the game as plain text."""
+    from collections import Counter
+    source = Counter(_CURLY_TAG.findall(str(source_text or "")))
+    reply = Counter(_CURLY_TAG.findall(str(translation or "")))
+    if source != reply:
+        lost, added = sorted((source - reply).elements()), sorted((reply - source).elements())
+        label = f"item {item_id}" if item_id is not None else "a line"
+        raise TranslationLayoutError(
+            f"{label} changed its control tags: keep every tag of the source exactly as written"
+            + (f"; missing {' '.join(lost)}" if lost else "") + (f"; not in the source {' '.join(added)}" if added else ""))
+
+
 _WORD = re.compile(r"[^\W\d_]{3,}")
 _TAG = re.compile(r"\{[^}]*\}|\[[^\]]*\]")
 

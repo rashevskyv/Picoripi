@@ -260,8 +260,10 @@ class BaseGameRules:
         ``external_lore`` (``get_external_lore``),
         ``speaker_attribution`` (``get_speaker_for_string``),
         ``message_window_preview`` (per-kind message windows, pagination, dump
-        frames in the BFN preview when you have game files or a decompilation).
-        Default: none.
+        frames in the BFN preview when you have game files or a decompilation),
+        ``strict_tags`` (an AI reply that loses, adds or changes a ``{tag}`` of
+        its source is refused and asked again: for games whose control codes all
+        matter). Default: none.
         """
         return set()
 
@@ -607,6 +609,15 @@ class BaseGameRules:
 
         Resolution priority in the app: explicit per-string metadata override >
         this hook > global plugin settings. Default: no game-derived layout.
+        """
+        return None
+
+    def fit_text_to_window(self, text: str, block_idx: Optional[int], string_idx: Optional[int]) -> Optional[str]:
+        """A translation re-wrapped to its window with the game's own line and page break codes.
+
+        Used when an AI translation is applied and its lines do not fit (``TextFormatter``), so a game whose
+        windows break pages with a control code, measure names or keep answer lines apart wraps its own way.
+        Default: None (the generic wrapping by ``get_string_layout`` widths).
         """
         return None
 
