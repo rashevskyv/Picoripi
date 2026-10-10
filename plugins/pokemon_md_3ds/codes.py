@@ -1,0 +1,189 @@
+"""Control codes of the Mystery Dungeon 3DS message text, one table per game.
+
+A code is one UTF-16 unit at U+A000..U+FEFF. ``name,code,flags,units``: ``flags`` 0 = a tag with no arguments
+(the exact unit); otherwise the low byte of the unit is the tag's own argument and ``units`` more units follow
+(``flags`` 2: two units). The names and values come from Blue587's md_message directive tables (GitHub,
+``gti_text_directives.csv`` / ``psmd_text_directives.csv``); the unit counts were checked against the games' text.
+The icon codes (``M:...``) are U+C0xx in Gates to Infinity and U+A0xx/U+A1xx in Super Mystery Dungeon, so the
+tables differ there and in the few codes that moved.
+"""
+from __future__ import annotations
+
+from typing import Dict, List, NamedTuple
+
+
+class Code(NamedTuple):
+    name: str
+    value: int
+    flags: int
+    units: int
+
+
+_COMMON = """\
+CS:,c100,1,0
+CR,c10f,0,0
+CN,c200,0,0
+RT,c300,0,0
+S:,c400,1,0
+RTC:,c500,1,1
+VO:,c600,1,1
+VS:,fc00,1,0
+RR,c700,0,0
+FT:,c800,1,0
+FR,c808,0,0
+LINE:,c900,2,1
+LS:,ca00,1,2
+LE,cb00,0,0
+VLS:,bb00,1,2
+VLE,bc00,0,0
+H:,cc00,1,2
+PV:,cd00,1,2
+NE:,ce00,1,2
+ES,b100,0,0
+EE,b101,0,0
+ML:,b300,1,2
+IS,b400,0,0
+IE,b401,0,0
+H_SELF:,bd00,9,1
+my_team,d000,0,0
+hero,d100,0,0
+partner,d200,0,0
+c_kind:,d300,9,0
+c_name:,d400,9,0
+c_stammer:,d500,9,0
+player,d600,0,0
+item:,d700,9,1
+kind:,d800,9,1
+waza:,d900,9,1
+type:,da00,9,1
+category:,db00,9,1
+range:,dc00,1,0
+weather:,dd00,9,1
+weather_a:,be00,9,1
+status:,de00,9,1
+status_a:,b000,9,1
+ability:,df00,9,1
+skill:,e000,9,1
+tactics,e100,9,1
+place:,e200,9,1
+rank:,e300,9,0
+value:,e400,1,2
+value_b:,fd00,1,1
+value_d_b:,fe00,2,1
+value_s_b:,e500,2,1
+value_z_b:,e600,2,1
+value_p:,b500,1,2
+value_p_b:,b600,1,1
+value_p_d_b:,b700,2,1
+value_p_s_b:,b800,2,1
+value_p_z_b:,b900,2,1
+money:,e700,1,2
+my_money:,e800,1,2
+bank:,e900,1,2
+item_bag,ea00,0,0
+face:,b200,1,0
+K,eb00,0,0
+W:,ec00,1,1
+P,ed00,0,0
+C,ee00,0,0
+FS:,ef00,1,1
+STS,f000,0,0
+STE,f100,0,0
+SE_PLAY:,f200,1,1
+ME_PLAY:,f300,1,1
+item_b:,f400,1,1
+IB:,f500,1,1
+pokemon_b:,f600,1,1
+damage_b:,f700,1,1
+string:,f800,1,1
+"""
+
+_GTI = """\
+value_m_p_s_b:,a800,2,1
+Upper_e,a000,0,0
+Upper_er,a100,0,0
+Upper_re,a200,0,0
+Upper_st,a300,0,0
+Upper_nd,a400,0,0
+Upper_rd,a500,0,0
+Upper_th,a600,0,0
+Bracket_R,a700,0,0
+"""
+
+_PSMD = """\
+UCS:,bf00,1,0
+UCR,bf0f,0,0
+other_team,a40a,0,0
+other_nickname,a40b,0,0
+explore_team,a40c,0,0
+q_list,a403,0,0
+q_title,a400,0,0
+q_text,a401,0,0
+q_memo,a402,0,0
+q_difficulty,a405,0,0
+q_limit,a406,0,0
+k_waza,a409,0,0
+q_money,a408,0,0
+Upper_e,a800,0,0
+Upper_er,a801,0,0
+Upper_re,a802,0,0
+Upper_st,a803,0,0
+Upper_nd,a804,0,0
+Upper_rd,a805,0,0
+Upper_th,a806,0,0
+Bracket_L,a807,0,0
+Bracket_R,a808,0,0
+Percent,a809,0,0
+NCPB:,a700,1,1
+q_char:,a200,1,1
+q_item:,a300,1,1
+"""
+
+# Icon names in code order: Gates to Infinity from U+C000, Super Mystery Dungeon from U+A000.
+_GTI_ICONS = """T00 I0402 I0403 I0404 I0405 I0406 I0801 I0802 I0803 I0804 I0805 I0806 I1201 I1202 I1203 I0401 I0501 I0601
+I1501 I1502 I0701 I1601 MUSICS I0705 I0702 I0703 I0704 I1301 I1302 I1303 I1001 I0301 I0302 I0201 I0202 I0203 I1010 I1011
+I1013 I1002 I1003 I1004 I1012 I1005 I1006 I1007 I1008 I1009 IDL01 IDL02 IDL03 IDL04 IDL05 IDL06 IDL07 IDL08 IDL09 IDL10
+IDL11 IDL12 IDL13 IDL14 IDL15 IDL16 IDL17 I0101 I0104 I0102 I0103 I1402 I1403 I1404 I1405 IDL21 IDL22 IDL23 IDL31 IDL32
+IDL33 IDL34 IDL35 IDL41 IDL61 IDL51 IDL71 TNORMAL TFIRE TGRASS TWATER TELECTRIC TGROUND TFLYING TPSYCHIC TBUG TROCK TGHOST
+TFIGHTING TPOISON TICE TSTEEL TDRAGON TDARK INFINITY12 INFINITY16 P01ON P02ON P03ON P04ON P01OFF P02OFF P03OFF P04OFF
+MONEY MONEYS INGOT BAGS BOX I1603 I1602 NEW LOCK UP DOWN RECYCLE VWV DLCI PIOFF PION S01 CM00 Q02 CM01 CM02 WC01 WC02
+WC03 WC04 WC05 WC06 WC07 WC08 WC09 QDSTAR WN WE WS Q05 Q00 Q06 Q01 WE00 WE01 WE02 WE03 WE04 WE05 WE06 WE07 WE08 WE09
+WE10 WE11 WE12 WE13 WE14 WE15 WE16 WE17 WE18 WE19 WE20 WE21 WE22 WE23 B01 B02 B05 B06 B03 B04 B08 B07 B12 B13 B14 B19
+B20 B21 B22 B09 B10 B11 B15 B16 B17 B18 B23 B24 OP00 OP01 OP02 OP03 OP00ACT OP01ACT OP02ACT OP03ACT MYCHARA CONG CONH
+CUU CUD CUL CUR SPACE SPACEG VHS VZS V0 V1 V2 V3 V4 V5 V6 V7 V8 V9 VSL VCRS VPL VMN VPR VCN VAS VLV VHP VPP VCLN VBRS
+VBRE NBK1 NBK2 NBK3 NBK4 F01 F02 F03 F04 F05 Q03 Q04 DLCD HKSTONE KARI UNUSED DEBUG"""
+
+_PSMD_ICONS = """T00 I0402 I0403 I0404 I0405 I0406 I0801 WAKU3 I0802 I0803 I0804 I0805 I0806 I1201 I1202 I1203 I0401 I0501
+I0601 I1501 I1502 I0702 I1001 MUSICS I0807 I0808 EREC I1304 I1301 I1302 I1303 I1305 I0301 I0302 I0201 I0202 I0203 I1010
+I1011 I1002 I1003 I1004 I1012 I1005 I1006 SHUFFLE NBKG1 NBKG2 NBKG3 NBKG4 IDENSHI SUPER I1001R I1001Y I1001V I1001P
+I1001S ICHO1 I0101 I0104 I0102 IWAND I0809 I0810 I0811 I1402 SEAL01 SEAL02 SEAL03 SEAL04 SEAL05 SEAL06 TUBO ICOO1 I0701
+IDL21 IDL22 IDL23 CONTI04 CONTI06 WAKU4 WAKU0 TNORMAL TFIRE TGRASS TWATER TELECTRIC TGROUND TFLYING TPSYCHIC TFAIRY I1013
+LOOPOFF LOOPON CONTI05 CONTI03 CONTI01 CONTI02 TBUG TROCK TGHOST TFIGHTING TPOISON TICE TSTEEL TDRAGON TDARK IDL35 OPEN
+HELPER ORB QNEW QCONTINUE QPRESENT MONEY MONEYS INGOT BAGS BOX I1603 I1602 NEW LOCK FORBID FAVORITEA RECYCLE VWV DLCI
+PIOFF PION WC01 WC02 WC03 WC04 WC05 WC06 WC07 WC08 B01 B02 TICKET AT S01 CM00 Q02 CM01 CM02 WE00 WE01 WE02 WE03 WE04
+WE05 WE06 WE07 B05 B06 B03 B04 B08 B07 RIBBON APPLE2 WE08 WE09 WE10 WE11 WE12 WE13 WE14 WE15 B12 B13 B14 B19 B20 B21
+B22 B24 WE16 WE17 WE18 WE19 WE20 WE21 WE22 WE23 B09 B10 B11 B15 B16 B17 B18 REFIN WC09 QDSTAR WN WE WS Q05 Q00 Q06 Q01
+OP00 OP01 OP02 OP03 MYCHARA B25 EPLAY EPAUSE CUU CUD CUL CUR SPACE SPACEG OP00ACT OP01ACT OP02ACT OP03ACT IDL41 IDL51
+IDL61 VHS VZS V0 V1 V2 V3 V4 V5 V6 V7 V8 V9 VSL VCRS VPL VMN VPR VCN VAS VLV VHP VPP VCLN VBRS VBRE NBK1 NBK2 NBK3 NBK4
+WAKU2 I1306 I1307 I1308 STICKET WAZABIG WAKU1 PRESENT WZMAX Q04 KUBOMI DLCD RECOMMEN KARI UNUSED DEBUG I1001P_R I1001S_R
+I0101_R I0104_R I0102_R I1001P_E I1001S_E I0101_E I0104_E I0102_E I1001P_R_E I1001S_R_E I0101_R_E I0104_R_E I0102_R_E
+IDL23_E I1301_R I1302_R I1303_R"""
+
+
+def _parse(text: str) -> List[Code]:
+    out = []
+    for line in text.splitlines():
+        name, value, flags, units = line.split(",")
+        out.append(Code(name, int(value, 16), int(flags), int(units)))
+    return out
+
+
+def _icons(names: str, first: int) -> List[Code]:
+    return [Code("M:" + name, first + i, 0, 0) for i, name in enumerate(names.split())]
+
+
+TABLES: Dict[str, List[Code]] = {
+    "gti": _parse(_COMMON) + _parse(_GTI) + _icons(_GTI_ICONS, 0xC000),
+    "psmd": _parse(_COMMON) + _parse(_PSMD) + _icons(_PSMD_ICONS, 0xA000),
+}
+GAMES = tuple(TABLES)

@@ -1,0 +1,8 @@
+[
+  {"label": "Title logo", "kind": "title_screen", "format": "pmd_img",
+   "path": ["romfs/image_2d/title0*.img", "romfs/image_2d.bin/title0*.img"]},
+  {"label": "Title flash", "kind": "title_screen", "format": "pmd_img",
+   "path": ["romfs/image_2d/title_flash*.img", "romfs/image_2d.bin/title_flash*.img"]},
+  {"label": "Menus, buttons, signs, maps", "kind": "menu", "format": "pmd_img",
+   "path": ["romfs/image_2d/*.img", "romfs/image_2d.bin/*.img"]}
+]

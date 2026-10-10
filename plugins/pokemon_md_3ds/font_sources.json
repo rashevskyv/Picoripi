@@ -1,0 +1,18 @@
+[
+  {"label": "Dialogue font (Rodin 14)", "format": "pmd_font", "path": "romfs/font/FOT-RodinProN-DB_14.dic",
+   "companion": "romfs/font/FOT-RodinProN-DB_14.img", "font_map": "font_map.json"},
+  {"label": "Menu font (Tsukushi Gothic 12)", "format": "pmd_font", "path": "romfs/font/Fot-TskuARdGothic_Std_B_12.dic",
+   "companion": "romfs/font/Fot-TskuARdGothic_Std_B_12.img"},
+  {"label": "Menu font (Tsukushi Gothic 14)", "format": "pmd_font", "path": "romfs/font/Fot-TskuARdGothic_Std_B_14.dic",
+   "companion": "romfs/font/Fot-TskuARdGothic_Std_B_14.img"},
+  {"label": "Title font (Pop Happiness 18)", "format": "pmd_font", "path": "romfs/font/FOT-PopHappinessStd-EB_18.dic",
+   "companion": "romfs/font/FOT-PopHappinessStd-EB_18.img"},
+  {"label": "Title font (Pop Happiness 18a)", "format": "pmd_font", "path": "romfs/font/FOT-PopHappinessStd-EB_18a.dic",
+   "companion": "romfs/font/FOT-PopHappinessStd-EB_18a.img"},
+  {"label": "Title font (Pop Happiness 24a)", "format": "pmd_font", "path": "romfs/font/FOT-PopHappinessStd-EB_24a.dic",
+   "companion": "romfs/font/FOT-PopHappinessStd-EB_24a.img"},
+  {"label": "Number font (lcfont 28)", "format": "pmd_font", "path": "romfs/font/lcfont28_08_08.dic",
+   "companion": "romfs/font/lcfont28_08_08.img"},
+  {"label": "Pokédex font (pkd_font)", "format": "pmd_font", "path": "romfs/font/pkd_font.dic",
+   "companion": "romfs/font/pkd_font.img"}
+]
