@@ -15,4 +15,3 @@ class TagManager(GenericTagManager):
         if not isinstance(tag_to_check, str):
             return False
         return bool(TAG_RE.fullmatch(tag_to_check))
-
