@@ -109,3 +109,32 @@ def test_every_text_bank_of_the_game_saves_back_unchanged(game):
         # and a rebuilt file differs from the original at most in the two padding bytes at its end
         rebuilt = gen5msg.write(lines)
         assert rebuilt[:-4] == raw[:-4] and len(rebuilt) == len(raw), path.name
+
+
+@pytest.mark.parametrize("game", list(GAMES))
+def test_the_font_and_picture_descriptors_resolve_in_a_project(game):
+    """The Font Editor and the Textures window resolve the plugin's descriptors: NARC members, byte-exact."""
+    from types import SimpleNamespace
+
+    from core import font_formats, texture_formats
+    from core.font_formats import sources as font_sources
+    from core.texture_formats import sources as texture_sources
+
+    root = GAMES[game].parent
+    if not root.is_dir():
+        pytest.skip(f"{root} is not on this machine")
+    meta = {"source_path": str(root), "translation_path": str(root.parent / "translation"), "is_directory_mode": True}
+    mw = SimpleNamespace(project_manager=SimpleNamespace(project=SimpleNamespace(metadata=meta)))
+    rules = load_rules(PLUGIN, mw)
+    fonts = font_sources.resolve(rules.get_font_sources(), meta)
+    assert len(fonts) == 5
+    for font in fonts:
+        data = font.read_current()
+        metadata, sheets = font_formats.extract(font.format, data, font.params)
+        assert font_formats.pack(font.format, metadata, sheets, data, font.params) == data
+    pictures = texture_sources.resolve(rules.get_texture_sources(), meta)
+    assert len(pictures) > 1000
+    for picture in pictures[:50]:
+        data, _rewrap = texture_sources.unwrap(Path(picture._current_path()).read_bytes(), picture.member, picture.params)
+        image = picture.read_current().image
+        assert texture_formats.write(picture.format, data, {picture.index: image}, picture.params) == data
