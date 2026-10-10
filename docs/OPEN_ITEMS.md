@@ -20,7 +20,7 @@ the line when it is done or moved into a plan.
 - Gen 3 (Ruby / Sapphire, FireRed / LeafGreen, Emerald): the WSL build in `zt/pret_gen3.py` (agbcc, libpng built from the cloned sources) was written but not run; `2_build.bat` must be run once to prove it.
 - Gen 3: the Ukrainian letters that are not look-alikes sit on the cells of accented Latin letters; their glyphs are not drawn. Width checks use the old JSON font map, not the game's font widths.
 - Gen 4 decompilations: no build (Metrowerks mwccarm, Nitro SDK and the ROMs are not on disk); the fonts and pictures are PNG + JSON descriptors the decompilation's tools turn into NFTR/NCGR, not opened yet.
-- Gen 5: the NO$GBA emulator does not give Pokémon Black a working save (the game stops at its own save error screen, also with the original ROM), so no edit was seen on screen; the text, font and picture edits are proved by machine only. `gfl_font.dat` (2,320 bytes) and the NCER / NSCR / NSBTX / NSBMD files are not opened. White and White 2 are not on disk.
+- Gen 5: seen in melonDS 1.1 (private copy, hidden desktop): the edited menu text, a filled `S` glyph and changed pictures (all NCGR, not one chosen picture); NO$GBA stops Pokémon B/W at its save check. `gfl_font.dat` (2,320 bytes) and the NCER / NSCR / NSBTX / NSBMD files are not opened. White and White 2 are not on disk.
 - Sun / Moon / Ultra Sun / Ultra Moon: no complete image on disk (the CIA downloads are partial).
 
 ## Ikenie no Yoru (`plugins/ikenie_no_yoru`, 2026-10-08)
