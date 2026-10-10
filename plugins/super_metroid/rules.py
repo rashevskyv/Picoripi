@@ -1,9 +1,10 @@
 """Super Metroid (SNES) through its PC port sm_rewrite: ``text.json`` of the workspace.
 
 ``1_unpack.bat`` (``_shared/scripts/zt/sm.py``) reads every text the game draws from tilemaps out of the ROM:
-message boxes, file select and game over menus, the options screens, the pause map area names, the intro and the
-credits. One group is one block; one item is one string (``\\n`` between the rows of a message box or the lines of
-an intro page). Each letter is one 8-pixel cell, so a line holds ``width`` letters. Tiles that are not letters are
+message boxes, file select and game over menus, the options screens, the pause map area names, the intro (six
+pages of the story in green 8x8 letters, and the white 16-pixel first screen "THE LAST METROID IS IN CAPTIVITY..."
+as the last item) and the credits. One group is one block; one item is one string (``\\n`` between the rows of
+a message box or the lines of an intro page). Each letter is one 8-pixel cell, so a line holds ``width`` letters. Tiles that are not letters are
 tags (``[press1]``, ``[#304B]``) and stay where they are. The game has capital letters only; ``2_build.bat`` writes
 Ukrainian look-alikes (А, В, Е, І, ...) with the Latin tile and the other Ukrainian letters with the cells the font
 has for them (the message-box font only). Saving writes the texts into the existing ``text.json`` by position.
