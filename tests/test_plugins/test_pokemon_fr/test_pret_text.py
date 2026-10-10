@@ -109,3 +109,28 @@ def test_every_text_file_of_the_decompilation_writes_back_and_edits_cleanly(game
         edited = [u.content + "x" for u in units]
         assert [u.content for u in pret_text.parse(pret_text.write(text, asm, edited), asm)] == edited, path
     assert count > 100
+
+
+@pytest.mark.parametrize("game", list(WORKSPACES))
+def test_the_font_and_picture_descriptors_resolve_in_a_decompilation_project(game):
+    from core import font_formats, texture_formats
+    from core.font_formats import sources as font_sources
+    from core.texture_formats import sources as texture_sources
+
+    root = Path(r"E:\Emulators\RomHacking\Pokemon") / game / "source"
+    if not root.is_dir():
+        pytest.skip(f"{root} is not on this machine")
+    meta = {"source_path": str(root), "translation_path": str(root.parent / "translation"), "is_directory_mode": True}
+    mw = SimpleNamespace(project_manager=SimpleNamespace(project=SimpleNamespace(metadata=meta)))
+    rules = GameRules(mw)
+    fonts = font_sources.resolve(rules.get_font_sources(), meta)
+    assert len(fonts) >= 6
+    for font in fonts:
+        data = font.read_current()
+        metadata, sheets = font_formats.extract(font.format, data, font.params)
+        assert font_formats.pack(font.format, metadata, sheets, data, font.params) == data
+    pictures = texture_sources.resolve(rules.get_texture_sources(), meta)
+    assert len(pictures) > 200
+    for picture in pictures[:40]:
+        data = Path(picture.source_path).read_bytes()
+        assert texture_formats.write(picture.format, data, {0: picture.read_current().image}, picture.params) == data
