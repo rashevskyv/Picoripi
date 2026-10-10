@@ -680,6 +680,7 @@ def _build() -> Dict[str, Codec]:
     add(value_codec("RGB8", 24, *_packed((("b", 8), ("g", 8), ("r", 8))), **le))     # bytes R, G, B
     add(value_codec("RGBA4", 16, *_packed((("a", 4), ("b", 4), ("g", 4), ("r", 4))), **le))
     add(value_codec("RGB5A1", 16, *_packed((("a", 1), ("b", 5), ("g", 5), ("r", 5))), **le))
+    add(value_codec("ARGB4", 16, *_packed((("a", 4), ("r", 4), ("g", 4), ("b", 4))), **le))   # u16 0xARGB (PhyreEngine)
     # Plain channels (GX2 R8, R4G4, R8G8): what they show depends on the texture's channel selection (``gtx``)
     add(value_codec("R8", 8, *_packed((("r", 8),)), **le))
     add(value_codec("RG4", 8, *_packed((("g", 4), ("r", 4))), **le))

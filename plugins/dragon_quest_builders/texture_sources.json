@@ -1,0 +1,44 @@
+[
+ {
+  "label": "Builders 1: logos (Dragon Quest Builders, Square Enix)",
+  "kind": "title_screen",
+  "format": "phyre",
+  "path": "build/gra/logo/*.phyre"
+ },
+ {
+  "label": "Builders 1: title screen (English)",
+  "kind": "title_screen",
+  "format": "phyre",
+  "path": "build/gra/ui/outside/title/*.en.nx.dds.NXGL.phyre"
+ },
+ {
+  "label": "Builders 1: tutorial pictures (English)",
+  "kind": "ui",
+  "format": "phyre",
+  "path": "build/gra/ui/outside/tutorial/*.en.nx.dds.NXGL.phyre"
+ },
+ {
+  "label": "Builders 1: boss name pictures (English)",
+  "kind": "ui",
+  "format": "phyre",
+  "path": "build/gra/ui/outside/boss/*.en.nx.dds.NXGL.phyre"
+ },
+ {
+  "label": "Builders 1: crafting window pictures (English)",
+  "kind": "ui",
+  "format": "phyre",
+  "path": "build/gra/ui/outside/cmaking/*.en.nx.dds.NXGL.phyre"
+ },
+ {
+  "label": "Builders 1: ending picture (English)",
+  "kind": "ui",
+  "format": "phyre",
+  "path": "build/gra/ui/outside/ending/*.en.nx.dds.NXGL.phyre"
+ },
+ {
+  "label": "Builders 2: localized UI pictures (English)",
+  "kind": "ui",
+  "format": "g1t",
+  "path": "LINKDATA/texture/*.g1t"
+ }
+]
