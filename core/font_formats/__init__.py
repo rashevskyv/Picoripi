@@ -82,7 +82,7 @@ def detect(data: bytes) -> Optional[str]:
         return "nftr"
     if head[:6] == b"FFNT\xfe\xff":
         return "bffnt_wiiu"
-    if head[:6] == b"RFNT\xfe\xff":
+    if head[:6] in (b"RFNT\xfe\xff", b"RFNA\xfe\xff", b"ANFR\xff\xfe"):   # ANFR: the New 3DS port's RFNA
         return "brfnt"
     if head[:4] in (b"FFNT", b"CFNT") and head[4:6] in (b"\xff\xfe", b"\xfe\xff"):
         from core.font_formats.bcfnt import is_ctr_font

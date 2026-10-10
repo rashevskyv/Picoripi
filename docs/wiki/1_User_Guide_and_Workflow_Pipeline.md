@@ -657,6 +657,21 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      heading font (`texture_grid`, IA8; empty cells for the Ukrainian letters), the ASCII system font and the
      HOME Menu font; **Tools → Textures…** lists about 500 pictures with text (the MADWORLD logo, menus, HUD,
      tutorials, safety screen). `2_build.bat` draws each changed table's glyph picture anew.
+   - `xenoblade_wii` — Xenoblade Chronicles (Wii, USA) and Xenoblade Chronicles 3D (New 3DS, EUR): one plugin,
+     one translation. **Source:** the workspace's `source` folder (`1_unpack.bat`), at the same paths on both
+     platforms: the English BDAT table files `bdat\bdat_common.bin` (120 tables: menus, items, arts, skills,
+     enemies, names, system messages, battle chatter), `bdat\common\bdat_*.bin` (quests, descriptions,
+     tutorials, achievements, story log), `bdat\map\bdat_ma*.bin` (NPC auto-talk, trade talk, gimmick messages
+     per map) and the scripts `script\*.sb` (NPC talk, events, heart-to-hearts: 24,600 lines in 494 scripts;
+     identifiers and debug prints are left out); Wii only: `bdat\code_mes_en.bdat` (the disc messages of
+     `main.dol`, written in place) and `hbm\hbm.arc\hbm\home.csv` (HOME Menu). About 62,800 lines in all;
+     `<n>`, `<col=s2>`, `<wait=key>` stay as they are and `@` breaks a line in menu text. The Wii files are
+     big-endian (tables and script strings scrambled), the 3DS files little-endian and plain; the 3DS
+     `2_build.bat` also takes every text file translated in the `..\Wii` workspace and not in its own, so one
+     translation feeds both. The Font Editor opens the game fonts (Wii `RFNA`, 3DS `ANFR` with QuickLZ sheets,
+     format `brfnt`), the 3 battle fonts and the HOME Menu font; **Tools → Textures…** lists the TPL pictures
+     (Wii about 3,100, format `tpl`; 3DS about 3,000, format `tpl_ctr`: title logo and title menu words, every
+     menu layout, maps, banners). `2_build.bat` writes a patched WBFS (Wii) or a Luma romfs mod (3DS).
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) and Pokémon Legends: Z-A

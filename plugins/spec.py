@@ -82,7 +82,7 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              "lunar, is_obd, dq9, jade, brfna, swf_font, rrr_errfont, eternal_darkness, fragile_dreams, fntg), path, member, companion, font_map, params}]. "
              "Default: font_sources.json in the plugin folder.",
              call=(), returns=list),
-        Hook("get_texture_sources", "The game's textures with text for the Textures window: [{label, kind, format (bti, tpl, "
+        Hook("get_texture_sources", "The game's textures with text for the Textures window: [{label, kind, format (bti, tpl, tpl_ctr, "
              "bflim, ctpk, ctxb (also CMB models), bntx, g1t, g4tx, imgc, j3d, gba, gtx, bfres, txtr, txtr_gx, gim, tim, tim2, "
              "policenauts_pak, vs_gim, vs_hf1, vs_rle, pcx, m2, is_tex, dq9_spr, jade, jade_jtx, shpg, png, sotn_blocks, sotn_cmp, ffta2_efx, raw, tiles, "
              "tilemap), "

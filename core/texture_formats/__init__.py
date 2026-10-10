@@ -30,10 +30,10 @@ class Texture:
 def _backends() -> Dict[str, Any]:
     from core.texture_formats import (bfres, bntx, bti, ctpk, ctxb, ffta2_efx, flim, g1t, g4tx, gba, gim, gtx, imgc, j3d,
                                       jade,
-                                      jade_jtx, m2, mibl, pcx, png, policenauts_pak, raw, shpg, sotn, tilemap, tiles, tim, tim2, tpl, txtr, txtr_gx,
+                                      jade_jtx, m2, mibl, pcx, png, policenauts_pak, raw, shpg, sotn, tilemap, tiles, tim, tim2, tpl, tpl_ctr, txtr, txtr_gx,
                                       vagrant, wilay)
     from core.texture_formats import dq9_spr, is_tex
-    return {"bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
+    return {"bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "tpl_ctr": tpl_ctr, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
             "imgc": imgc, "j3d": j3d, "gba": gba, "gtx": gtx, "txtr": txtr, "gim": gim, "raw": raw, "tiles": tiles, "tilemap": tilemap,
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
