@@ -297,7 +297,9 @@ tokens: 32.8k
      показує титульний екран, меню, назви розділів, довідку, картинки й спливні вікна головоломок, екрани мініігор
      і сюжетні картинки (IMGC у файлах `.xi` і всередині пакунків `.xa` / `.xp` / `.xy` / `.xc`). `2_build.bat`
      робочої теки перезбирає архіви XFSA (`lt5_uk.fa`, `vs1.fa`) або ARC0 (`lt6_uk.fa`) у мод Luma. Layton's
-     Mystery Journey (3DS) чекає на seed гри (`_shared\3ds_keys\seeds`).
+     Mystery Journey (3DS, EUR; робоча тека `LAYTON_MJ_3DS`) відкривається тим самим плагіном: англійські скрипти
+     `txt\en\**\*.xs` в `lt6_en.fa` (1 664 файли, близько 14 900 рядків) записано в UTF-8, тож українські літери
+     зберігаються як є (бракує лише гліфів у шрифтах); логотип — `menu\en\ctr\title_a.xc`.
    - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** тека `source\game`
      робочої теки (`1_unpack.bat` розпаковує туди файли диска `*SK_ASC*`): `EBootPak.bin` (меню, предмети,
      закляття, руни, системні повідомлення), `EBookPak.bin` (сторінки Тому, меню збереження),

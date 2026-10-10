@@ -1,10 +1,15 @@
 """One XSCR script of the Layton 3DS games (``*.xs``) as the rows the editor shows, and back.
 
-An XSCR file (Level-5 ``lt5`` engine: Miracle Mask, Azran Legacy, vs. Phoenix Wright) is a 0x14-byte header --
+An XSCR file (Level-5 ``lt5`` / ``lt6`` engine: Miracle Mask, Azran Legacy, vs. Phoenix Wright, Mystery Journey) is a
+0x14-byte header --
 ``XSCR``, u16 command count, u16 version (5), u32 argument count, u32 offset / 4 of the argument table, u32
 offset / 4 of the string table -- then three Level-5-compressed (LZ10) tables, each 4-aligned: commands (u16 opcode,
 u16 argument count, u32 index of the first argument), arguments (u32 type, u32 value: 1 int, 2 float, 0x18 offset
-into the string table) and the strings (Shift-JIS, NUL-terminated, every distinct string once in order of first use).
+into the string table) and the strings (NUL-terminated, every distinct string once in order of first use): Shift-JIS
+in the first three games, UTF-8 in Mystery Journey (``encoding``: given by the caller, else UTF-8 when the table
+decodes as UTF-8 and is not plain ASCII, else Shift-JIS). A third of Mystery Journey's scripts keep Shift-JIS
+speaker labels next to their UTF-8 text: a string that does not decode in ``encoding`` is read as Shift-JIS, and
+edited rows are always written in ``encoding``.
 
 Text files (``txt/<lang>/**/*.xs``) hold one line per command 1001: (id, speaker label in Japanese, text). The
 definitions file (``res/<lang>/*_def*.xs``) holds the names the game shows -- puzzle titles and types, minigame
@@ -20,7 +25,7 @@ from __future__ import annotations
 import re
 import struct
 from dataclasses import dataclass
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from core.containers import level5
 
@@ -29,7 +34,7 @@ MAGIC = b"XSCR"
 INT, FLOAT, STRING = 1, 2, 0x18
 DIALOGUE_OP = 1001          # (id, speaker label, text, ...)
 TEXT_ARG = 2
-ENCODING = "cp932"
+ENCODING = "cp932"          # the older games; Mystery Journey is "utf-8"
 _JAPANESE = re.compile(r"[぀-ヿ㐀-鿿｡-ﾟ]")
 
 
@@ -60,7 +65,7 @@ def _is_name(text: str) -> bool:
 class Script:
     """A parsed XSCR file: ``commands`` (opcode, [(type, value)...]), ``strings`` (offset -> bytes) and ``rows``."""
 
-    def __init__(self, raw: bytes):
+    def __init__(self, raw: bytes, encoding: Optional[str] = None):
         self.raw = bytes(raw)
         if self.raw[:4] != MAGIC or len(self.raw) < HEADER:
             raise FormatError("not an XSCR script")
@@ -73,6 +78,7 @@ class Script:
         self.args: List[Tuple[int, int]] = [struct.unpack_from("<II", args, i * 8) for i in range(arg_count)]
         self.commands: List[Tuple[int, int, int]] = [struct.unpack_from("<HHI", commands, i * 8) for i in range(count)]
         self.crlf = b"\r\n" in self.strings
+        self.encoding = encoding or _detect(self.strings)
         definitions = not any(opcode == DIALOGUE_OP for opcode, _argc, _first in self.commands)
         self.rows: List[Row] = []
         for c, (opcode, argc, first) in enumerate(self.commands):
@@ -93,7 +99,12 @@ class Script:
 
     def string(self, offset: int) -> str:
         end = self.strings.index(b"\0", offset)
-        return self.strings[offset:end].decode(ENCODING).replace("\r\n", "\n")
+        blob = self.strings[offset:end]
+        try:
+            text = blob.decode(self.encoding)
+        except UnicodeDecodeError:          # Mystery Journey: UTF-8 text, some files keep Shift-JIS speaker labels
+            text = blob.decode(ENCODING)
+        return text.replace("\r\n", "\n")
 
     def texts(self) -> List[str]:
         return [row.text for row in self.rows]
@@ -104,7 +115,7 @@ class Script:
         newline = b"\r\n" if self.crlf else b"\n"
         for row, text in zip(self.rows, strings):
             if str(text) != row.text:
-                changed[row.arg] = str(text).replace("\r\n", "\n").encode(ENCODING).replace(b"\n", newline)
+                changed[row.arg] = str(text).replace("\r\n", "\n").encode(self.encoding).replace(b"\n", newline)
         if not changed:
             return self.raw
         table, offsets, args = bytearray(), {}, bytearray()
@@ -130,18 +141,28 @@ class Script:
         return bytes(out)
 
 
-def parse(raw: bytes) -> Script:
-    return Script(raw)
+def _detect(strings: bytes) -> str:
+    if strings.isascii():
+        return ENCODING
+    try:
+        strings.decode("utf-8")
+    except UnicodeDecodeError:
+        return ENCODING
+    return "utf-8"
 
 
-def make(commands: Sequence[Tuple[int, Sequence[object]]], crlf: bool = False) -> bytes:
+def parse(raw: bytes, encoding: Optional[str] = None) -> Script:
+    return Script(raw, encoding)
+
+
+def make(commands: Sequence[Tuple[int, Sequence[object]]], crlf: bool = False, encoding: str = ENCODING) -> bytes:
     """An XSCR file for tests: ``commands`` = [(opcode, [int | float | str, ...]), ...]."""
     args, table, offsets, cmd_bytes = bytearray(), bytearray(), {}, bytearray()
     for opcode, values in commands:
         cmd_bytes += struct.pack("<HHI", opcode, len(values), len(args) // 8)
         for value in values:
             if isinstance(value, str):
-                blob = value.replace("\n", "\r\n" if crlf else "\n").encode(ENCODING)
+                blob = value.replace("\n", "\r\n" if crlf else "\n").encode(encoding)
                 if blob not in offsets:
                     offsets[blob] = len(table)
                     table += blob + b"\0"

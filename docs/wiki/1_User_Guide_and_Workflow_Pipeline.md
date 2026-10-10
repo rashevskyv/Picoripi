@@ -297,7 +297,9 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      fonts; the Textures window lists the title screen, menus, chapter titles, help pages, puzzle pictures and
      pop-ups, minigame screens and story pictures (IMGC in `.xi` files and inside `.xa` / `.xp` / `.xy` / `.xc`
      packs). The workspace's `2_build.bat` rebuilds the XFSA (`lt5_uk.fa`, `vs1.fa`) or ARC0 (`lt6_uk.fa`) archives
-     into the Luma mod. Layton's Mystery Journey (3DS) waits for its title seed (`_shared\3ds_keys\seeds`).
+     into the Luma mod. Layton's Mystery Journey (3DS, EUR; workspace `LAYTON_MJ_3DS`) opens with the same plugin:
+     its English scripts are `txt\en\**\*.xs` in `lt6_en.fa` (1,664 files, about 14,900 lines), written in UTF-8 so
+     Ukrainian letters are stored as they are (only the fonts lack them); the logo is `menu\en\ctr\title_a.xc`.
    - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** the workspace's
      `source\game` (`1_unpack.bat` decompresses the disc's `*SK_ASC*` files there): `EBootPak.bin` (menus,
      items, spells, runes, system messages), `EBookPak.bin` (Tome pages, save menu), `EMemcardText.bin`,

@@ -88,21 +88,38 @@ def test_folder_and_speaker_helpers():
     assert SPEAKERS["レイトン"] == "Layton"
 
 
-@pytest.mark.parametrize("source", SOURCES, ids=["mm", "al", "vspw"])
-def test_every_game_script_parses_and_builds_back_unchanged(source):
-    files = sorted(source.glob("txt/uk/**/*.xs")) + sorted(source.glob("res/uk/*_def*.xs"))
+def test_utf8_text_with_a_shift_jis_label_reads_and_writes_utf8():
+    """Mystery Journey: UTF-8 text, some files keep a Shift-JIS speaker label."""
+    data = xscr.make([(1001, [10, "ルーク", "Daddy!"])])          # the label is Shift-JIS
+    script = xscr.parse(data, "utf-8")
+    assert script.texts() == ["Daddy!"] and script.rows[0].speaker == "ルーク"
+    out = script.build([UKRAINIAN])
+    again = xscr.parse(out, "utf-8")
+    assert again.texts() == [UKRAINIAN] and UKRAINIAN.encode("utf-8") in again.strings
+    assert again.rows[0].speaker == "ルーク"
+    assert xscr.parse(xscr.make([(1001, [1, "", "‘Hi’"])], encoding="utf-8")).encoding == "utf-8"
+
+
+@pytest.mark.parametrize("source, encoding, least", [
+    (SOURCES[0], None, 10000), (SOURCES[1], None, 10000), (SOURCES[2], None, 10000),
+    (LAYTON / "Mystery Journey" / "3DS" / "source", "utf-8", 14000),
+], ids=["mm", "al", "vspw", "mj"])
+def test_every_game_script_parses_and_builds_back_unchanged(source, encoding, least):
+    files = sorted(source.glob("txt/*/**/*.xs")) + sorted(source.glob("res/uk/*_def*.xs"))
     if not files:
         pytest.skip(f"needs the workspace {source.parent}")
     rows = 0
     for path in files:
         raw = path.read_bytes()
-        script = xscr.parse(raw)
+        script = xscr.parse(raw, encoding)
         rows += len(script.rows)
         assert script.build(script.texts()) == raw, path
         rebuilt = script.build([t + "!" for t in script.texts()])   # every row changed: the tables are rewritten
-        again = xscr.parse(rebuilt)
+        again = xscr.parse(rebuilt, encoding)
         assert again.texts() == [t + "!" for t in script.texts()], path
         assert again.commands == script.commands and len(again.args) == len(script.args), path
-    assert rows > 10000
-    names = xscr.parse(next(source.glob("res/uk/*_def*.xs")).read_bytes()).texts()
-    assert names and all(not xscr.is_japanese(n) for n in names)
+    assert rows > least
+    definitions = sorted(source.glob("res/uk/*_def*.xs"))
+    if definitions:
+        names = xscr.parse(definitions[0].read_bytes()).texts()
+        assert names and all(not xscr.is_japanese(n) for n in names)

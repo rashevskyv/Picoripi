@@ -18,6 +18,8 @@ SPEAKERS = {
     "ナルホド": "Phoenix", "マヨイ": "Maya", "サイバンチョ": "Judge", "マホーネ": "Espella", "ジーケン": "Barnham",
     "ジョドーラ検事": "Darklaw", "ジョドーラ": "Darklaw", "ストーリーテラー": "Storyteller", "チェルミー": "Chelmey",
     "司書": "Librarian", "騎士": "Knight", "ロンドンサイバンチョ": "Judge (London)", "ロンドン検事": "Prosecutor (London)",
+    "カトリー": "Katrielle", "ノア": "Ernest", "シャーロ": "Sherl",
+    "10倍コイン": "Hint coin x10", "スペシャルコイン": "Special coin",
 }
 # folder of txt/<lang>/ -> (role, instruction); every other folder holds dialogue
 _ROLES = {
@@ -42,12 +44,12 @@ def folder_of(rel_path: str) -> str:
 
 
 class GameRules(BaseGameRules):
-    """Professor Layton on 3DS: Miracle Mask and Azran Legacy (Level-5 ``lt5`` / ``lt6`` engine) and vs. Phoenix Wright
-    (the same engine with Capcom's trial scripts). The project's source folder is the workspace's ``source``: the
-    English XSCR scripts ``txt/uk/<chapter>/*.xs`` and the definitions file ``res/uk/*_def*.xs`` at their paths in
-    the game archive, the fonts ``fnt/[eu]/*.xf`` and the language image packs. Saving writes the same files into the
-    translation folder; the workspace's build puts them into the archive. Mystery Journey (a newer engine) is not
-    covered until its image can be read.
+    """Professor Layton on 3DS: Miracle Mask and Azran Legacy (Level-5 ``lt5`` / ``lt6`` engine), vs. Phoenix Wright
+    (the same engine with Capcom's trial scripts) and Layton's Mystery Journey (the ``lt6`` engine again, English in
+    ``txt/en`` and UTF-8). The project's source folder is the workspace's ``source``: the English XSCR scripts
+    ``txt/<uk|en>/<chapter>/*.xs`` and the definitions file ``res/uk/*_def*.xs`` at their paths in the game archive,
+    the fonts ``fnt/[eu]/*.xf`` and the language image packs. Saving writes the same files into the translation folder;
+    the workspace's build puts them into the archive.
     """
 
     problem_prefix = PLUGIN_PREFIX
@@ -58,6 +60,7 @@ class GameRules(BaseGameRules):
         self._save_source: Optional[bytes] = None
         self._last_loaded: Optional[bytes] = None
         self._located: Dict[int, Optional[Tuple[str, Script]]] = {}
+        self._utf8_for: Optional[Tuple[str, bool]] = None
 
     def get_display_name(self) -> str:
         return "Professor Layton (3DS)"
@@ -73,7 +76,7 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         self._last_loaded = bytes(json_obj)
         try:
-            return [parse(self._last_loaded).texts()], {}
+            return [parse(self._last_loaded, self._encoding()).texts()], {}
         except (FormatError, UnicodeDecodeError, ValueError) as error:
             log_debug(f"layton_3ds: not an XSCR script ({error})")
             return [[]], {}
@@ -88,11 +91,21 @@ class GameRules(BaseGameRules):
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
         strings = data[0] if data else []
-        return parse(source).build([str(s) for s in strings])
+        return parse(source, self._encoding()).build([str(s) for s in strings])
 
     def reset_runtime_state(self) -> None:
         self._located.clear()
         self._save_source = self._last_loaded = None
+        self._utf8_for = None
+
+    def _encoding(self) -> Optional[str]:
+        """``utf-8`` for Mystery Journey (its English is ``txt/en``), else detected per file (Shift-JIS). Once per
+        source folder: a plain-ASCII file of Mystery Journey must still be written as UTF-8."""
+        pm = getattr(self.mw, "project_manager", None) if self.mw else None
+        source = ((getattr(getattr(pm, "project", None), "metadata", None) or {}).get("source_path") or "")
+        if self._utf8_for is None or self._utf8_for[0] != source:
+            self._utf8_for = (source, bool(source) and (Path(source) / "txt" / "en").is_dir())
+        return "utf-8" if self._utf8_for[1] else None
 
     # -- where a string comes from ---------------------------------------------
 
@@ -107,7 +120,7 @@ class GameRules(BaseGameRules):
             block = pm.project.blocks[block_map.get(block_idx, block_idx)]
             rel = str(block.source_file).replace("\\", "/")
             path = Path(pm.get_absolute_path(block.source_file))
-            found = (rel, parse(path.read_bytes()))
+            found = (rel, parse(path.read_bytes(), self._encoding()))
         except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
             log_debug(f"layton_3ds: no script behind block {block_idx}: {error}")
         self._located[block_idx] = found
