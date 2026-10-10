@@ -314,6 +314,22 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      and pictures `[$gaiji_…]` are tags; the Font Editor opens the G4 fonts (`font_ja`, `font_def`, Academy Y
      also `font_ja2` and a second style; each with its furigana font); the Textures window lists the menu,
      title, telop, help, caption and button pictures (G4TX: RGBA8, BC1, BC3, BC7).
+   - `layton_3ds` — Professor Layton and the Miracle Mask, Professor Layton and the Azran Legacy and Professor
+     Layton vs. Phoenix Wright: Ace Attorney (3DS, EUR; workspaces `LAYTON_MM_3DS`, `LAYTON_AL_3DS`,
+     `LAYTON_VSPW_3DS`). **Source:** the workspace's `source` folder: the English XSCR scripts `txt\uk\<folder>\*.xs`
+     (one block each; folders 01–09 story, 15 opening subtitles, 30 examine lines, 40 journal, 50 puzzles, 52 puzzle
+     help, 80–83 minigames; vs. Phoenix Wright: 04 trials, `cmn` courtroom) and the definitions file
+     `res\uk\*_def*.xs` (puzzle titles and types, minigame names, the game title), the fonts `fnt\[eu]\nrm.xf` and
+     `sml.xf` and every image pack of the `uk` folders; **Translation:** `translation`. A line keeps the game's
+     markup (`<T>`, `<W8>`, `<M4/2/1>`, `{'e}` for é); Japanese leftovers and empty lines are not shown; an
+     unedited file stays byte for byte, an edited one is written again (CRLF in vs. Phoenix Wright). The speaker
+     comes from the script's Japanese label (the main cast is shown in English). The Font Editor opens both XF
+     fonts; the Textures window lists the title screen, menus, chapter titles, help pages, puzzle pictures and
+     pop-ups, minigame screens and story pictures (IMGC in `.xi` files and inside `.xa` / `.xp` / `.xy` / `.xc`
+     packs). The workspace's `2_build.bat` rebuilds the XFSA (`lt5_uk.fa`, `vs1.fa`) or ARC0 (`lt6_uk.fa`) archives
+     into the Luma mod. Layton's Mystery Journey (3DS, EUR; workspace `LAYTON_MJ_3DS`) opens with the same plugin:
+     its English scripts are `txt\en\**\*.xs` in `lt6_en.fa` (1,664 files, about 14,900 lines), written in UTF-8 so
+     Ukrainian letters are stored as they are (only the fonts lack them); the logo is `menu\en\ctr\title_a.xc`.
    - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** the workspace's
      `source\game` (`1_unpack.bat` decompresses the disc's `*SK_ASC*` files there): `EBootPak.bin` (menus,
      items, spells, runes, system messages), `EBookPak.bin` (Tome pages, save menu), `EMemcardText.bin`,
