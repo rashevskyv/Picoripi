@@ -19,7 +19,7 @@ import struct
 import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
 MAGIC = 0x5A6F12E1
 FOOTER_SIZE_V8 = 16 + 1 + 4 + 4 + 8 + 8 + 20 + 5 * 32

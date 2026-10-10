@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 43.1k
+tokens: 43.9k
 ---
 # Посібник: інтерфейс
 
@@ -706,6 +706,13 @@ tokens: 43.1k
      `m2\image\*.m2tex`, формат Textures `m2`). `2_build.bat` пише архів виправлень M2 `patchdata.psb.m` +
      `patchdata.bin` (PC: `build\windata`; Switch: мод LayeredFS) і прибирає власні дрібні виправлення M2 там, де
      переклад змінив їхні байти.
+   - `metal_gear_solid_23_mc` — Metal Gear Solid 2 і 3, Master Collection Version (Switch; PC ще ні).
+     **Source:** тека `source` робочої теки (`1_unpack.bat`): `text\<group>.json` (codec, scenario, demo, movie,
+     vox, books і текст лаунчера; один блок на файл гри, кожен англійський рядок один раз на групу; `2_build.bat`
+     ставить перекладений рядок у кожне місце, де стоїть цей рядок). Лишайте розриви рядків, позначки `|` і
+     символи кнопок. Шрифти: `font\MGS_Font_nht.raw` (формат Font Editor `mgs_nht`; вільні клітинки беруть нові
+     літери) і SDF-шрифти лаунчера (`tmp_sdf`). Картинки: файли `.ctxr` у `texture` (формат Textures `ctxr`) і
+     PNG-картинки лаунчера.
    - `fragile_dreams` — Fragile Dreams: Farewell Ruins of the Moon (Wii, Європа). **Source:** тека `source`
      робочої теки (`1_unpack.bat` розпаковує туди стиснені файли диска `FILE_<id>`): `text\60001061.msg`
      (усі діалоги, субтитри, описи предметів, спогади й меню титульного екрана), `text\40003100\1\*.msg`,

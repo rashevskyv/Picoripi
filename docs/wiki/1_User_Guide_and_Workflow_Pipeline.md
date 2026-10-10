@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 33.6k
+tokens: 34.2k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -711,6 +711,13 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Textures format `m2`). `2_build.bat` writes M2's patch archive `patchdata.psb.m` + `patchdata.bin`
      (PC: `build\windata`; Switch: a LayeredFS mod) and drops M2's own small fixes where the translation changed
      their bytes.
+   - `metal_gear_solid_23_mc` — Metal Gear Solid 2 and 3, Master Collection Version (Switch; PC not yet).
+     **Source:** the workspace's `source` folder (`1_unpack.bat`): `text\<group>.json` (codec, scenario, demo,
+     movie, vox, books and the launcher's text; one block per game file, each English string once per group;
+     `2_build.bat` puts the translated line into every place the string stands). Keep the line breaks, the `|`
+     marks and the button symbols. Fonts: `font\MGS_Font_nht.raw` (Font Editor format `mgs_nht`; spare cells
+     take new letters) and the launcher's SDF fonts (`tmp_sdf`). Pictures: the `.ctxr` files under `texture`
+     (Textures format `ctxr`) and the launcher's PNG pictures.
    - `fragile_dreams` — Fragile Dreams: Farewell Ruins of the Moon (Wii, Europe). **Source:** the workspace's
      `source` folder (`1_unpack.bat` unpacks the disc's compressed `FILE_<id>` files there): `text\60001061.msg`
      (every dialogue, subtitle, item description, memory and the title menu), `text\40003100\1\*.msg`,

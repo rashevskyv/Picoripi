@@ -771,9 +771,9 @@ class BaseGameRules:
         """The game's bitmap fonts, for the font editor to open from a project and save back.
 
         Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
-        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``tmp_sdf``
+        BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``ttf`` (a plain TrueType / OpenType file, the ``bfotf`` model), ``tmp_sdf``
         (Unity TextMesh Pro SDF font, atlas PNG as ``companion``), ``mgs``, ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation
-        font), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``cv_nds`` (DS Castlevania), ``ffta2`` (FFTA2 DS font),
+        font), ``mgs_nht`` (MGS2 / MGS3 Master Collection ``MGS_Font_nht.raw``), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``cv_nds`` (DS Castlevania), ``ffta2`` (FFTA2 DS font),
         ``xf`` and ``g4font`` (Level-5), ``jade`` / ``brfna`` / ``swf_font`` / ``rrr_errfont`` (Raving Rabbids: Jade FONTDESC, Wii
         archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``laft`` (Monolith Soft LAFT, Switch Xenoblade), ``fe13_bfnt``
         (Fire Emblem Awakening), ``pmd_font`` (Spike Chunsoft 3DS ``.dic`` + ``.img``), ``vagrant`` (Vagrant Story),
@@ -801,7 +801,7 @@ class BaseGameRules:
         ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
         and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
         multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``mibl`` / ``wilay`` (Monolith Soft MIBL
-        textures and ``.wilay`` layouts, Switch Xenoblade), ``jade`` / ``jade_jtx`` (Jade engine textures),
+        textures and ``.wilay`` layouts, Switch Xenoblade), ``ctxr`` (MGS2 / MGS3 Master Collection ``.ctxr``: Switch NVN, PC TXTR 7), ``jade`` / ``jade_jtx`` (Jade engine textures),
         ``shpg`` (EA SHPG, Wii), ``txtr`` /
         ``txtr_gx`` (Retro TXTR), ``gim`` (PSP), ``tim`` (PlayStation TIM), ``tim2`` (PS2 / PSP TIM2),
         ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant Story pictures), ``sotn_blocks`` /

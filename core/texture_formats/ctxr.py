@@ -4,7 +4,7 @@
 block), u32 type: 2 = texture info, 3 = pixel data, 5 = an end mark. The info (0x78 bytes): u64 data size, u32
 alignment, width, height, depth, target, NVN format, mip count, slice size, 17 u32 mip offsets (from the pixel
 data), then (at 0x6C) the block height (log2) of the block-linear layout. Mips follow the same rule as BNTX. The PC build's
-``.ctxr`` is another container and is not read here.
+``.ctxr`` is another container (TXTR version 7, below).
 """
 from __future__ import annotations
 
