@@ -24,5 +24,7 @@ port)` (`zt\mpport.py`), for the native PC port Odrannnn/MetroidPrimePort. The f
 (one language, ENGL), the textures the same `txtr_gx`. Fonts differ: the GameCube USA FONT is version 0 to 2 (32-bit
 glyph fields, 46 bytes per glyph), read by `retro_font_gc` (`core/font_formats/retro_font_gc.py`); a version 4 file (PAL, the
 Trilogy discs) is passed to `retro_font_gx`. The port is given the result as loose `<id>.STRG/.FONT/.TXTR` files in its
-mods folder; the disc is not rebuilt. `retro_font_gc` was written from the game's own reader and is checked on a
-font built in the tests; the GameCube disc has not been available to check it on real files.
+mods folder; the disc is not rebuilt. `retro_font_gc` follows the game's own reader and is checked on fonts built in
+the tests and on a real GameCube USA disc (revision 2): its 7 fonts are FONT version 2 with C4 textures, every font,
+STRG table (1,293) and texture (265) packs back unchanged and keeps an edit (`test_gamecube_real_data.py`), and an
+edited string, glyph and texture are seen in the port.
