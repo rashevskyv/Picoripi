@@ -1,0 +1,4 @@
+[
+  {"label": "Text font 12 px (fi_me / fd_me)", "format": "dq9", "path": ["data/pack_lv5/fi_me.bin"], "companion": "data/pack_lv5/fd_me.bin", "params": {"spare": 66}, "font_map": "dq9_text.json"},
+  {"label": "Menu font 12 px (fi_s7 / fd_s7)", "format": "dq9", "path": ["data/pack_lv5/fi_s7.bin"], "companion": "data/pack_lv5/fd_s7.bin", "params": {"spare": 66}}
+]

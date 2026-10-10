@@ -379,6 +379,30 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      character. The Font Editor lists the font (format `ffta2`); the Textures window lists the title and company
      logos and the auction and world map effects (format `ffta2_efx`) and 11 menu tile sheets. `2_build.bat`
      writes changed members into `pc.bin` (in place when they fit, else at its end) and rebuilds the ROM.
+   - `infinite_space` — Infinite Space (Nintendo DS, Europe C6CP). **Source:** the workspace's `source` folder,
+     filled by `1_unpack.bat` with the NitroFS files: the script `data/Event/SpaceShip.scx` (every line of the
+     game's text: dialogue, menus and choices of the script, tutorials; the editor lists the ~5,000 lines that
+     hold letters, 100 a block), the screens `data/Cg/Bgd/*.bgd`, the menu sprites `data/Cg/Obd/*.obd` and the
+     textures with text `data/Cg/Texture/*.tex`; **Translation:** `translation`. Letters are the game's 78-glyph
+     list (`0-9 A-Z a-z ! ? - ・ = / . , ( ) “ ” : ’ &`); a line break shows as a new line, `[\r]` opens the next
+     window, `[\c,1,12]`-style commands (speaker, portrait, events) stay as they are; a longer line lays the
+     script out again. The Font Editor lists the 8x16 dialogue font (format `is_obd`, `Obd/T000OBJ.obd`: no room
+     for more glyphs); the Textures window lists the title logo (`Bgd/title.bgd`, `Bgd/TITLE000BG1.bgd`), every
+     screen and sprite sheet (format `tiles`) and the opening text and ship plans (format `is_tex`).
+     `2_build.bat` puts every file of `translation` back into the ROM.
+   - `dq9` — Dragon Quest IX: Sentinels of the Starry Skies (Nintendo DS, Europe YDQP; the English set is
+     translated, the French, German, Spanish and Italian sets stay). **Source:** the workspace's `source`
+     folder, filled by `1_unpack.bat` with the GPC2 archives (`*.gp2`) that hold English members: NPC talk,
+     signs, quests and story events (`*_en.bin`), menus, items, monsters, spells, skills and their
+     descriptions (`*_en.nat`) -- 60,222 strings in 1,537 files -- plus the credits, the name keyboards, the
+     fonts `data/pack_lv5/fi_*.bin` + `fd_*.bin` and the picture packs; **Translation:** `translation`. A file
+     is one archive, a block one English member; the game's `<tags>` show as `{tags}` (`{PAGE}` a new box,
+     `{1}` the apostrophe, `{,}` the comma), the game's `\n` as a line break. A longer string lays its member
+     out again and repacks the archive; an unedited archive stays byte for byte. The Font Editor lists both
+     fonts (format `dq9`); a letter typed into one of the 66 empty cells becomes a new glyph and the game draws
+     it where the text has that letter (UTF-8). The Textures window lists the title logo (`menu/bg_up*.gp2`),
+     the menus and the album pages (formats `tiles` and `dq9_spr`). `2_build.bat` puts every file of
+     `translation` back into the ROM.
    - `twewy` — The World Ends with You (Nintendo DS, Europe AWLP). **Source:** the workspace's `source` folder,
      filled by `1_unpack.bat` with every game file but the sound under its NitroFS path; the text is
      `Apl_Fuk/mestxt.mes` (the game's `mestxt.bin`: all 25,233 messages, 500 a block); **Translation:**

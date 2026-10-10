@@ -63,6 +63,26 @@ the line when it is done or moved into a plan.
 - Rabbids 1/2 textures are listed for the menu worlds only (`_main_*`, `Menu_LD`, `RRR2_Boot`, `Compil`); the same
   key in a smaller size elsewhere gets the edit scaled down (nearest neighbour).
 
+## Infinite Space (`plugins/infinite_space`, 2026-10-09)
+
+- The dialogue font (`Obd/T000OBJ.obd`) has 78 glyphs and no room for more: tiles added at its end make the game
+  lose the dialogue window (NO$GBA). The text codes allow 50 more glyphs (`0x80 0x9D`..`0x80 0xFF`); Ukrainian
+  letters need either redrawn Latin glyphs or a code change that loads a bigger font. Not decided.
+- No text file holds ship, weapon or module names (all text is in `SpaceShip.scx`, which has none of them);
+  the menus seen so far are pictures (`.obd` / `.bgd`). Where the shipyard names come from is not checked in the game.
+- `[x80NN]` codes beyond the font's list draw nothing.
+
+## Dragon Quest IX (`plugins/dq9`, 2026-10-09)
+
+- Not opened: the debug menus (`data/bin/str_dbg*`, `strdbg*`, `str_debug_en.bin`) and the Japanese kanji font
+  subsets of `data/pack/font.gp2` and `pack_lv5/font_lv5.gp2` (the English text never uses them).
+- Not opened: one line in the code (overlay 3, BLZ-packed): the greeting of a Japanese visitor in tag mode
+  ("Hello! I<1>m from Japan! Nice to meet you!"), next to its four other languages.
+- Picture formats not listed: the 3D model textures (`.nsbtx` / `.nsbmd` in `pack_lv5/*.gp2`) and the loose `ani/*.spr`
+  icons (no text seen).
+- `nat` pointer columns are found by rule (tested against all five languages of this game); a table edited by hand
+  with a new layout could fool it.
+
 ## Metroid: Other M (`plugins/metroid_other_m`, 2026-10-07)
 
 - Not opened: the disc-error messages in `sys/main.dol` (2_build writes only `files/`) and the channel title in
