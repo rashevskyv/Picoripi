@@ -504,6 +504,16 @@ tokens: 32.8k
      значок кнопки. У шрифтах тексту немає Ґ Є І Ї ґ є і ї: `translation_map.json` пише І і Ї ї як латинські I i Ï ï,
      а Є є Ґ ґ — як Э э Ъ ъ, чиї гліфи перемальовують у Редакторі шрифтів. Sword і Shield мають спільний romfs:
      `2_build.bat` пише мод для обох title id.
+   - `pokemon_gen6` — Pokémon X / Y і Omega Ruby / Alpha Sapphire (3DS), один проєкт на пару (X і Y мають
+     однакові файли тексту, шрифтів і картинок; так само Omega Ruby і Alpha Sapphire). **Source:** тека `source`
+     робочої теки (`1_unpack.bat` дістає англійські файли з архівів GARC): `romfs\a\0\7\4\NNN.dat` ігровий
+     текст і `romfs\a\0\8\2\NNN.dat` сюжет (X/Y; ORAS `a\0\7\3`, `a\0\8\1`; один блок на таблицю, назва
+     за вмістом: `080 Species names`, `Story 012`), `romfs\a\0\2\0\NNN.2.bin` рядки клавіатури введення імен
+     (один рядок, кількість символів лишайте), `romfs\a\1\8\5\*.bcfnt` шрифти (ORAS `a\1\6\7`) і
+     `romfs\a\*\*\*\000.2\timg\*.bclim` англійські картинки меню (а також логотипи й Press Start кожної гри).
+     Теги ті самі, що в `pokemon_nx`: `{PAGE}`, `{COLOR 0002}`, `{VAR 0100 0000}`, `Master Ball{PLURAL 00FE||s}`,
+     `{CHAR E08E}`. У шрифтах немає кирилиці: Редактор шрифтів додає літери (`min_sheets` лишає місце).
+     `2_build.bat` перезбирає GARC у мод Luma / Azahar для кожного CIA в `ISO\`.
    - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), один проєкт для обох ігор.
      **Source:** тека `source` робочої теки (`1_unpack.bat`: гра + оновлення 1.3.0; бандли Unity стають
      простими файлами): `message\english_*.bdmsg` (128 таблиць, 42 946 рядків: сюжет, Покедекс обох ігор,

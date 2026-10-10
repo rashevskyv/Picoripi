@@ -82,7 +82,8 @@ def to_editor(units: List[int]) -> str:
     out, k = [], 0
     while k < len(units):
         unit = units[k]
-        if unit == 0x10 and k + 2 < len(units):
+        # a command whose declared length runs past the line (3 lines of X/Y) stays as characters, to save as it is
+        if unit == 0x10 and k + 2 < len(units) and k + 2 + units[k + 1] <= len(units):
             count = units[k + 1]
             code, args = units[k + 2], units[k + 3:k + 2 + count]
             k += 2 + count

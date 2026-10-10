@@ -1,0 +1,7 @@
+[
+  {"label": "Main text font (24 px)", "format": "bcfnt", "path": ["romfs/a/1/8/5/000.bcfnt", "romfs/a/1/6/7/000.bcfnt"], "params": {"min_sheets": 680}},
+  {"label": "Second text font (24 px)", "format": "bcfnt", "path": ["romfs/a/1/8/5/001.bcfnt", "romfs/a/1/6/7/001.bcfnt"], "params": {"min_sheets": 590}},
+  {"label": "Small font (13 px)", "format": "bcfnt", "path": ["romfs/a/1/8/5/002.bcfnt", "romfs/a/1/6/7/002.bcfnt"], "params": {"min_sheets": 6}},
+  {"label": "Number font (English)", "format": "bcfnt", "path": ["romfs/a/1/8/5/003.2.bcfnt", "romfs/a/1/6/7/003.2.bcfnt"]},
+  {"label": "Large letters font (ORAS)", "format": "bcfnt", "path": "romfs/a/1/6/7/004.bcfnt", "params": {"min_sheets": 22}}
+]

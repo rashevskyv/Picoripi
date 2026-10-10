@@ -1,0 +1,8 @@
+[
+  {"label": "Title screen logo and Press Start (Pokémon X)", "kind": "title_screen", "format": "bflim", "path": "romfs/a/1/6/5/473/timg/*.bclim"},
+  {"label": "Title screen logo and Press Start (Pokémon Y)", "kind": "title_screen", "format": "bflim", "path": "romfs/a/1/6/5/480/timg/*.bclim"},
+  {"label": "Title screen logo and Press Start (Omega Ruby)", "kind": "title_screen", "format": "bflim", "path": "romfs/a/1/5/2/1127/timg/*.bclim"},
+  {"label": "Title screen logo and Press Start (Alpha Sapphire)", "kind": "title_screen", "format": "bflim", "path": "romfs/a/1/5/2/1135/timg/*.bclim"},
+  {"label": "Opening logos (ORAS)", "kind": "title_screen", "format": "bflim", "path": "romfs/a/1/5/2/11[12][09]/timg/*.bclim"},
+  {"label": "English menu, battle and screen pictures", "kind": "ui", "format": "bflim", "path": "romfs/a/*/*/*/*.2/timg/*.bclim"}
+]
