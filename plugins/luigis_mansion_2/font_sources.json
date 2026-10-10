@@ -1,0 +1,12 @@
+[
+  {"label": "Alor 15 (main text: English and the Latin languages)", "format": "nlg_font",
+   "path": "romfs/art/fe/febundlefonts_res.data/bundle.nlgb", "params": {"record": 1}},
+  {"label": "Alor Narrow Condensed 15 (narrow text)", "format": "nlg_font",
+   "path": "romfs/art/fe/febundlefonts_res.data/bundle.nlgb", "params": {"record": 0}},
+  {"label": "DFGKyoGeki-W7 18 (Russian)", "format": "nlg_font",
+   "path": "romfs/art/fe/febundlefontsru_res.data/bundle.nlgb", "params": {"record": 0}},
+  {"label": "DFGKyoGeki-W7 18 (Japanese)", "format": "nlg_font",
+   "path": "romfs/art/fe/febundlefontsjp_res.data/bundle.nlgb", "params": {"record": 0}},
+  {"label": "NTLG-DB 9 (Japanese, small)", "format": "nlg_font",
+   "path": "romfs/art/fe/febundlefontsjp_res.data/bundle.nlgb", "params": {"record": 1}}
+]
