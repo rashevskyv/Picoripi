@@ -65,17 +65,15 @@ def is_supported(fmt: str) -> bool:
 def detect(data: bytes) -> Optional[str]:
     """The format of a font file by its magic: ``bfn``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
     BCFNT or BFFNT), ``qbf``, ``gzf``, ``bfotf`` (Switch scalable font), ``bffnt_wiiu``
-    (Wii U BFFNT, big endian), ``brfnt`` (Wii RFNT), ``nftr`` (DS NFTR), ``xf`` (Level-5 XPCK font),
+    (Wii U BFFNT, big endian), ``brfnt`` (Wii RFNT and archived RFNA), ``nftr`` (DS NFTR), ``xf`` (Level-5 XPCK font),
     ``vagrant`` (Vagrant Story), ``retro_font`` (Metroid Prime 4 FONT bundle), ``pgf`` (PSP), ``jade`` (Jade
-    FONTDESC + texture, Rayman Raving Rabbids), ``brfna`` (Wii archived RFNA), ``fntg`` (EA FntG) or None."""
+    FONTDESC + texture, Rayman Raving Rabbids), ``fntg`` (EA FntG) or None."""
     from core.font_formats import bfotf
     head = bytes(data[:8])
     if head[4:8] == b"PGF0":
         return "pgf"
     if bytes(data[4:12]) == b"FONTDESC":
         return "jade"
-    if head[:6] == b"RFNA\xfe\xff":
-        return "brfna"
     if head[:4] == b"RFRM" and bytes(data[20:24]) == b"FONT":
         return "retro_font"
     if head[:4] in (b"QBF1", b"GZFX"):

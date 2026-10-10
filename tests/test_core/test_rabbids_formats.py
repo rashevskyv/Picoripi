@@ -138,7 +138,7 @@ def test_every_real_jade_font_and_texture_round_trips_and_an_edit_lands():
 @real
 def test_the_real_menu_fonts_open_and_an_edited_sheet_packs_and_reads_back():
     data = (SOURCE / "files" / "fonts" / "wbf2.brfna").read_bytes()
-    assert font_formats.detect(data) == "brfna"
+    assert font_formats.detect(data) == "brfnt"    # RFNA is detected as the RFNT reader, which can add glyphs
     meta, sheets = font_formats.extract("brfna", data, {})
     assert font_formats.pack("brfna", meta, sheets, data, {}) == data
     glyph = font_formats.char_map(meta)["e"]
