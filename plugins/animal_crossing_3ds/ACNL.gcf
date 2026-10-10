@@ -1,3 +1,6 @@
+# ACNL.gcf: the Animal Crossing: New Leaf MSBT tag definitions.
+# Taken from AeonSake's MSBT Editor (gitlab.com/AeonSake/msbt-editor), GPL-3.0-or-later; Picoripi is
+# GPL-3.0-or-later too, so the file keeps that licence. Read by plugins/common/gcf.py.
 game: "Animal Crossing: New Leaf"
 
 msbt:
