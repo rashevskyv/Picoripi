@@ -526,6 +526,21 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      layouts and the English tutorial pictures (BC7 textures written back in place, JPEG pictures re-encoded).
      `2_build.bat` writes changed files as loose romfs files for the game and every DLC that holds them and hides
      their entries in each archive index.
+   - `xenoblade_2` — Xenoblade Chronicles 2 + Torna: The Golden Country and the other DLC (Switch, update 2.1.0).
+     **Source:** the workspace's `source` folder (`1_unpack.bat` writes the `.nsz` images once as `nsp\*.nsp`, reads
+     only the needed entries of the game's `bf2.ard`, Torna's `aoc1.ard` and the loose files of the small DLC, and
+     puts there, at the archive paths, the English text tables `bdat\gb\*_ms.bdat`, the fonts `menu\font\*.wifnt`
+     and the layouts `menu\image\*.wilay`); **Translation:** `translation`. One block per table file (4,537 files,
+     83,323 text cells: the `name` column of the legacy BDAT tables; labels stay), folders by kind (`common_ms` =
+     menus, system, names and descriptions; story events `bf`, quests `qst`, NPC talk `tlk`, field and camp events,
+     heart-to-hearts and inns) with Torna and the three DLC packs as their own folders; the game's codes stay in the
+     text as `[ML:undisp ]` / `[System:Color name=tutorial ]…[/System:Color]` tags. The Font Editor opens the eight
+     LAFT fonts (`standard`, `subtitle` and `mincho` have Russian Cyrillic and lack only Ґ Є І Ї ґ є і ї; the
+     others have no Cyrillic; 8 free rows of cells are shown for new letters); the Textures window lists the English
+     title logos (`mnu001_titlelogo_us`, the wide `_b_us`, Torna's `dlc3_mnu001_titlelogo_us`), the title layouts
+     and every picture with English text (`*_us`: BC1/BC3/BC4/BC7 textures written back in place). `2_build.bat`
+     writes changed files as loose romfs files for the title that holds them and hides their entries in the
+     `bf2.arh` / `aoc1.arh` index.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,
