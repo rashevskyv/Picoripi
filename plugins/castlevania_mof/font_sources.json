@@ -1,0 +1,37 @@
+[
+  {
+    "label": "Small text font (pontif8)",
+    "format": "mof_font",
+    "path": "romfs/system/fonts/pontif8.bfont"
+  },
+  {
+    "label": "Text font (pontif12)",
+    "format": "mof_font",
+    "path": "romfs/system/fonts/pontif12.bfont"
+  },
+  {
+    "label": "Title font (bradley14)",
+    "format": "mof_font",
+    "path": "romfs/system/fonts/bradley14.bfont"
+  },
+  {
+    "label": "Large title font (bradley18)",
+    "format": "mof_font",
+    "path": "romfs/system/fonts/bradley18.bfont"
+  },
+  {
+    "label": "Debug font",
+    "format": "mof_font",
+    "path": "romfs/system/fonts/debugfont.bfont"
+  },
+  {
+    "label": "Small text font, Japanese set (pontif8jap)",
+    "format": "mof_font",
+    "path": "romfs/system/fonts/pontif8jap.bfont"
+  },
+  {
+    "label": "Title font, Japanese set (bradley14jap)",
+    "format": "mof_font",
+    "path": "romfs/system/fonts/bradley14jap.bfont"
+  }
+]

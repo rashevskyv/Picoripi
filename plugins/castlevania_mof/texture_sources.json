@@ -1,0 +1,8 @@
+[
+  {
+    "label": "GUI pictures (logo, controls, icons, symbols)",
+    "kind": "title_screen",
+    "format": "cgfx",
+    "path": "romfs/gui/textures/*.bctex"
+  }
+]

@@ -781,7 +781,7 @@ class BaseGameRules:
         ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture), ``cells`` (fixed-size glyph cells in a byte range),
         ``zelda3`` (the zelda3 PC port's ``font.png``), ``eternal_darkness`` (glyph grid in a TPL, widths in a
-        companion pack), ``fragile_dreams`` (Fragile Dreams FONT: glyph boxes in TPL pages), ``is_obd`` (Infinite Space), ``dq9`` (Dragon Quest IX) or ``mt_font`` (Capcom MT Framework
+        companion pack), ``fragile_dreams`` (Fragile Dreams FONT: glyph boxes in TPL pages), ``is_obd`` (Infinite Space), ``dq9`` (Dragon Quest IX) ``mof_font`` (Mirror of Fate ``.bfont``: a CGFX atlas with an MST glyph table) or ``mt_font`` (Capcom MT Framework
         GFD / lfd glyph boxes in an MT TEX page, the page as ``companion``)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); optional ``companion`` (a second file the font needs,
