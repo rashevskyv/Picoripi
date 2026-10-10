@@ -766,7 +766,7 @@ class BaseGameRules:
         ``xf`` and ``g4font`` (Level-5), ``jade`` / ``brfna`` / ``swf_font`` / ``rrr_errfont`` (Raving Rabbids: Jade FONTDESC, Wii
         archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``vagrant`` (Vagrant Story), ``gba_tiles``,
         ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` (Retro
-        Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture),
+        Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture), ``cells`` (fixed-size glyph cells in a byte range),
         ``zelda3`` (the zelda3 PC port's ``font.png``), ``eternal_darkness`` (glyph grid in a TPL, widths in a
         companion pack), ``fragile_dreams`` (Fragile Dreams FONT: glyph boxes in TPL pages), ``is_obd`` (Infinite Space) or ``dq9`` (Dragon Quest IX)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob

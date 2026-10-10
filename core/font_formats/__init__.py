@@ -32,12 +32,12 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import (bcfnt, bffnt, bfotf, brfna, cv_gba, cv_nds, eternal_darkness, fe13_bfnt, ffta2, fntg, fragile_dreams, g1n,
+    from core.font_formats import (bcfnt, bffnt, bfotf, cells, brfna, cv_gba, cv_nds, eternal_darkness, fe13_bfnt, ffta2, fntg, fragile_dreams, g1n,
                                    g1t, g4font, gba_tiles, gzf, laft, jade, lunar, m2, mgs, mgs1, mgs1_hd, n64, nftr, pgf, policenauts, qbf,
                                    retro_font, retro_font_gx,
                                    rrr_errfont, swf_font, texture_grid, tmp_sdf, twewy, vagrant, xf, zelda3)
     from core.font_formats import dq9, infinite_space
-    return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
+    return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
             "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
