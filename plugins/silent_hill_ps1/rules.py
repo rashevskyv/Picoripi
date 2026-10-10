@@ -6,7 +6,6 @@ descriptions, title menu). Saving writes the same file into the translation fold
 encrypts BODYPROG again and writes every changed file back over its sectors on the disc. A string
 keeps its room: the translation may not be longer than the English (see ``doc.py``).
 """
-import os
 from typing import Any, Dict, List, Optional, Tuple
 
 from plugins.base_game_rules import BaseGameRules
