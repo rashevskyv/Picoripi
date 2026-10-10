@@ -2,13 +2,18 @@
 status: current
 updated: 2026-10-09
 owns: unfinished work
-tokens: 20.4k
+tokens: 20.5k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Integration round 5 (2026-10-10)
+
+- `core/unreal/pak.py` (Unreal pak v8) has no plugin user yet; its zstd path needs Python 3.14+ (`compression.zstd`). MGS2/3 Master Collection PC text is not read yet (only the PC `.ctxr` pictures).
+- `core/texture_formats/sources.resolve()` decodes every picture it lists: Bravely Second's 5,073 ETC1 pictures take about 100 s (its real-data test has a 600 s timeout).
 
 ## Pokémon generation III-V (`plugins/pokemon_fr`, `pokemon_gen4`, `pokemon_gen5`, 2026-10-10)
 

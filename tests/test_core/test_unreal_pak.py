@@ -38,7 +38,7 @@ def test_english_entries_match_the_extracted_files():
     pytest.importorskip("cryptography")  # the workspace's NCA decryption needs it (the system Python has it)
     sys.path.insert(0, str(scripts))
     from zt import hwde_extract as hx  # the Switch NSP and key reader of the workspace scripts
-    keys = Path(r"C:\Users\Administrator\.switch\prod.keys")
+    keys = Path.home() / ".switch" / "prod.keys"
     if not keys.is_file():
         pytest.skip("prod.keys is not on this machine")
     hx.Keys.load(str(keys))

@@ -49,6 +49,7 @@ def test_both_fonts_open_and_pack_back_unchanged():
         assert font_formats.pack("bcfnt", metadata, sheets, data) == data, source.source_path
 
 
+@pytest.mark.timeout(600)  # resolve() decodes all 5,073 ETC1 pictures: about 100 s alone, more under load
 def test_sample_pictures_read_and_write_back():
     descriptors = json.loads((PLUGIN / "texture_sources.json").read_text(encoding="utf-8"))
     _need(SOURCE / "romfs" / "Graphics" / "UI")

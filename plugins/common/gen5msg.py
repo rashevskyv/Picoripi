@@ -24,6 +24,8 @@ import struct
 from dataclasses import dataclass
 from typing import List, Optional, Sequence
 
+from plugins.common.gfmsg import _crypt  # the same line cipher as the Switch files
+
 NAMES = {0xBE00: "SCROLL", 0xBE01: "PAGE", 0xBE02: "WAIT", 0xBDFF: "NULL", 0xFF00: "COLOR"}
 CODES = {name: code for code, name in NAMES.items()}
 TAG_RE = re.compile(r"\{(?:(?:[A-Z]+|VAR [0-9A-F]{4}|CHAR [0-9A-F]{4})(?: [0-9A-F]{4})*)\}")
@@ -46,15 +48,6 @@ def is_gen5msg(data: bytes) -> bool:
     sections, count, size, key, offset = struct.unpack_from("<HHIII", data)
     return sections == 1 and key == 0 and offset == 0x10 and size + 0x10 == len(data) and \
         struct.unpack_from("<I", data, 0x10)[0] == size and 4 + 8 * count <= size
-
-
-def _crypt(units: Sequence[int], index: int) -> List[int]:
-    key = (0x7C89 + index * 0x2983) & 0xFFFF
-    out = []
-    for unit in units:
-        out.append(unit ^ key)
-        key = ((key << 3) | (key >> 13)) & 0xFFFF
-    return out
 
 
 def unpack9(words: Sequence[int]) -> List[int]:
