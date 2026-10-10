@@ -25,7 +25,7 @@ class TextFormatter:
 
     def fit_translation_to_window(self, text: str, block_idx: int, string_idx: int) -> str:
         """The model's own line breaks, unless it reflowed the source and a line came out wider than the window:
-        then re-wrapped by the game's rules.
+        then re-wrapped by the game's rules. A plugin with ``fit_text_to_window`` wraps every translation itself.
 
         A translation may use more or fewer lines than the source (``validate_translation_layout(allow_reflow=True)``).
         One that keeps the source's line count is applied as it is, as before (width warnings show the rest).
@@ -37,6 +37,11 @@ class TextFormatter:
         except (AttributeError, IndexError, KeyError, TypeError):
             source = None
         rules = getattr(self.mw, 'current_game_rules', None)
+        fitter = getattr(rules, 'fit_text_to_window', None)
+        if callable(fitter):         # the game wraps its own way (its break codes, name widths, answer lines)
+            fitted = fitter(self.convert_translation_preserving_layout(value), block_idx, string_idx)
+            if isinstance(fitted, str):
+                return fitted
         if source is None or editor_text_for_layout(source, rules).count("\n") == value.count("\n"):
             return self.convert_translation_preserving_layout(value)
         from utils.utils import resolve_width_limits

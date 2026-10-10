@@ -11,6 +11,7 @@
     "space_dot_color_hex": "#808080",
     "preview_wrap_lines": false,
     "editors_wrap_lines": false,
+    "default_font_file": "Garden_msg_size16.json",
     "game_dialog_max_width_pixels": 400,
     "line_width_warning_threshold_pixels": 400,
     "autofix_enabled": {

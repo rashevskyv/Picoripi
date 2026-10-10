@@ -1,4 +1,7 @@
 [
-  {"label": "Text and system fonts (New Leaf)", "format": "bcfnt", "path": "romfs/Font/*.bcfnt"},
-  {"label": "Text and ruby fonts (Happy Home Designer)", "format": "bcfnt", "path": "romfs/Font/*.bffnt"}
+  {"label": "Message font", "format": "bcfnt",
+   "path": ["romfs/Font/Garden_msg_size16.bcfnt", "romfs/Font/Garden_msg_size16.bffnt"],
+   "font_map": "Garden_msg_size16.json", "preview": true},
+  {"label": "Other fonts (New Leaf)", "format": "bcfnt", "path": "romfs/Font/Garden[P_][!m]*.bcfnt"},
+  {"label": "Ruby font (Happy Home Designer)", "format": "bcfnt", "path": "romfs/Font/Garden_ruby.bffnt"}
 ]

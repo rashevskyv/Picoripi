@@ -4,6 +4,7 @@ glyph edit, every layout picture format reads, writes back and takes an edit, th
 byte, and the workspace build puts a changed file and a rebuilt archive into the Luma mod."""
 import hashlib
 import importlib
+import importlib.util
 
 import shutil
 import sys
@@ -173,3 +174,56 @@ def test_the_workspace_build_puts_changed_files_into_the_luma_mod(game, tmp_path
     original = sos3ds.layout_files((ws / archive_rel).read_bytes())
     assert {k: hashlib.sha1(v).hexdigest() for k, v in members.items() if k != member} == \
         {k: hashlib.sha1(v).hexdigest() for k, v in original.items() if k != member}
+
+
+def _measure(game):
+    from plugins.animal_crossing_3ds import fit
+    source = _source(game)
+    font = next((source / "Font").glob("Garden_msg_size16.*"))
+    return fit.Measure(font_formats.font_map(font_formats.extract("bcfnt", font.read_bytes(), {})[0]), {})
+
+
+def test_the_game_font_measure_breaks_where_the_game_breaks():
+    # Azahar 2026-10-10 (reports\proof\azahar_wide_line_wraps.png): a 600 px line in Rover's box broke
+    # after "...БЕЗ ПЕР" and "...ЩО РО": the box holds 320 px of Garden_msg_size16.
+    measure = _measure("New Leaf")
+    assert measure.width("ДУЖЕ ДОВГИЙ РЯДОК БЕЗ ПЕР") <= 320 < measure.width("ДУЖЕ ДОВГИЙ РЯДОК БЕЗ ПЕРЕ")
+    assert measure.width("ЕНОСУ, ЩОБ ПОБАЧИТИ, ЩО РО") <= 320 < measure.width("ЕНОСУ, ЩОБ ПОБАЧИТИ, ЩО РОБ")
+
+
+@pytest.mark.parametrize("game", list(GAMES))
+def test_every_english_dialogue_line_fits_the_measured_box(game):
+    from plugins.animal_crossing_3ds import fit
+    measure, source = _measure(game), _source(game)
+    widest = 0
+    for path in sorted((source / "Script" / "Talk").glob("*.umsbt")):
+        rules = GameRules()
+        for text in rules.load_data_from_json_obj(path.read_bytes())[0][0]:
+            widest = max([widest] + measure.lines(fit.split_choice(text)[0]))
+    assert 300 < widest <= 322         # 320 in New Leaf; one Happy Home Designer line with the amiibo icon glyphs is 322
+
+
+@pytest.mark.parametrize("game", list(GAMES))
+def test_the_voice_patch_gives_every_cyrillic_letter_a_sound_and_touches_nothing_else(game):
+    path = SCRIPTS / "zt" / "acnl_voice.py"
+    if not path.is_file():
+        pytest.skip("workspace scripts not found")
+    spec = importlib.util.spec_from_file_location("acnl_voice", path)        # no decryption needed: no Crypto
+    acnl_voice = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(acnl_voice)
+    code_bin = ROOT / game / "exefs" / "code.bin"
+    if not code_bin.is_file():
+        pytest.skip("code.bin not unpacked")
+    code = code_bin.read_bytes()
+    key = "ACNL_3DS" if game == "New Leaf" else "ACHHD_3DS"
+    records = acnl_voice.patches(key, code)
+    patched = acnl_voice.apply(code, records)
+    assert acnl_voice.patches(key, patched) == records                     # the build can run again on patched code
+    assert sum(len(data) for data in records.values()) <= 160
+    assert sum(a != b for a, b in zip(code, patched)) <= 160 and len(patched) == len(code)
+    t1 = acnl_voice.GAMES[key]["t1"]
+    for index, char in enumerate(acnl_voice.CYRILLIC):                     # T1: code 0xB0 + i -> a letter or kana sound
+        value = int.from_bytes(patched[t1 + 2 * (0xB0 + index):][:2], "little")
+        assert (0x61 <= value <= 0x7A or 1 <= value <= 0x56) or char in "ъь", char
+    ips = acnl_voice.ips(records)
+    assert ips.startswith(b"PATCH") and ips.endswith(b"EOF")

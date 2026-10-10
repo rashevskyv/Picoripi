@@ -1,0 +1,69 @@
+game: "Animal Crossing: New Leaf"
+
+msbt:
+  tags:
+    - name: ruby
+      description: ruby annotation rendered above the normal text
+      group: 0
+      type: 0
+      arguments:
+        - name: byteSpan
+          description: number of subsequent characters (as bytes) to render the annotation above (centered)
+          dataType: u16
+        - name: value
+          description: the annotation text
+          dataType: str
+    - name: size
+      description: changes the current text size
+      group: 0
+      type: 2
+      arguments:
+        - name: value
+          description: relative text size in percent
+          dataType: u16
+    - name: color
+      description: changes the current text color
+      group: 0
+      type: 3
+      arguments:
+        - name: id
+          description: id of the color
+          dataType: s16
+          valueMap:
+            -1: Reset
+            0: Default
+            1: Town
+            2: Important
+            3: Player
+            4: NPC
+            5: Tweet
+    - name: pageBreak
+      description: forces a new dialog page
+      group: 0
+      type: 4
+    - name: anim
+      description: triggers an animation for an NPC
+      group: 3
+      discard: true
+    - name: delay
+      description: delays the text rendering by a given number of frames
+      group: 7
+      type: 0
+      arguments:
+        - name: frames
+          description: number of frames to delay
+          dataType: u16
+    - name: wordInfo
+      description: contains grammatical information about a word
+      group: 14
+      type: 0
+      arguments:
+        - name: gender
+          description: id of the gender
+          dataType: u8
+        - name: indefArticle
+          description: id of the indefinite article (id in Str/STR_Article)
+          dataType: u8
+        - name: defArticle
+          description: id of the definite article (id in Str/STR_Article)
+          dataType: u8

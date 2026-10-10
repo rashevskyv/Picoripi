@@ -46,7 +46,7 @@ def test_the_english_slot_opens_saves_back_and_grows_alone():
     rules = GameRules()
     assert rules.get_display_name() == "Animal Crossing: New Leaf / Happy Home Designer (3DS)"
     blocks, names = rules.load_data_from_json_obj(raw)
-    assert blocks == [["Press ", "{Size:100}Hello{PageBreak}"]]
+    assert blocks == [["Press ", "{size:100}Hello{pageBreak}"]]
     assert rules.save_data_to_json_obj(blocks, names) == raw
     blocks[0][0] = "UA TEST, a longer line "
     saved = rules.save_data_to_json_obj(blocks, names)
@@ -64,8 +64,16 @@ def test_the_catalogue_is_picked_per_file():
     assert rules.codec is CODECS["new_leaf"]
     blocks, _ = rules.load_data_from_json_obj(_msbt([[Tag(5, 0, b"\x03\x00\x00\x00"), "x"]]))
     assert rules.codec is CODECS["happy_home"]
-    assert blocks == [["{G5_0:3}x"]]
+    assert blocks == [["{delay:3}x"]]          # the same tag is Happy Home Designer's delay
     assert "{tag:" not in blocks[0][0]
+
+
+def test_tags_have_the_msbt_editor_names_and_old_names_still_read():
+    codec = CODECS["new_leaf"]
+    delay, npc = Tag(7, 0, bytes([8, 0, 0, 0])), Tag(0, 3, bytes([4, 0]))
+    assert codec.to_editor([delay, Tag(3, 37, b""), Tag(5, 7, b""), npc]) == "{delay:8}{anim37}{catchphrase}{color:NPC}"
+    assert codec.from_editor("{G5_7}{Color:NPC}{PageBreak}{G7_0:8}") == [Tag(5, 7, b""), npc, Tag(0, 4, b""), delay]
+    assert "MSBT tag 7:0" in codec.describe("{delay:8}")
 
 
 def test_one_byte_msbt_files_read_and_rebuild():

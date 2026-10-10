@@ -447,11 +447,23 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      messages; a UMSBT holds one MSBT per language — English, Spanish, French, Italian, German — and opens as its
      English one; saving writes the other languages back untouched), `romfs\Layout\Swkbd\message\EU_English\swkbd.msbt`
      (the keyboard), `romfs\Font\*.bcfnt` / `*.bffnt` (3DS fonts) and the layout archives as folders of their
-     pictures (`romfs\Layout\<x>\<y>.arc	img\*.bclim` darc in New Leaf, `*.bflim` SARC in Happy Home Designer;
-     the title logos are letters in `Layout\Title`). Tags are named from the text per game (`tags_new_leaf.json`,
-     `tags_happy_home.json`: `{Color:NPC}`, `{PageBreak}`, `{G5_0:3}`…; the two games give the same tag numbers
-     different arguments, so a file picks the catalogue that names its tags). The three `*_ASR` name tables are
-     one-byte MSBT files (UTF-8 / Latin-1) and open too.
+     pictures (`romfs\Layout\<x>\<y>.arc\timg\*.bclim` darc in New Leaf, `*.bflim` SARC in Happy Home Designer;
+     the title logos are letters in `Layout\Title`). Every control code has a readable name: New Leaf's names come
+     from MSBT Editor's `ACNL.gcf` (`{color:NPC}`, `{pageBreak}`, `{delay:8}`, `{anim37}`, `{wordInfo:…}`) and
+     from what the code does in the text (`{playerName}`, `{catchphrase}`, `{nickname}`, `{waitButton}`,
+     `{menu5:0}` with the answers on the next lines, `{random1:…}`); Happy Home Designer has its own catalogue
+     (`{delay:8}`, `{anim37}`, `{menu0:0}`). Old names (`{G5_7}`, `{PageBreak}`) still read. The three `*_ASR`
+     name tables are one-byte MSBT files (UTF-8 / Latin-1) and open too.
+     **Windows.** Each file knows its window: dialogue box 320 px of the game font, 3 lines (the game goes on by
+     itself every 3 lines; `{pageBreak}` starts a new box), letters and the bulletin board 257 px × 6 rows,
+     system dialogs 256 px, answers 200 px. Widths are measured with the game's own `Garden_msg_size16` (the
+     measure breaks exactly where the game breaks); a name tag counts as a typical 8-letter name, `{size}`
+     scales. A line that is too wide is shown red (the game breaks it in the middle of a word); Autofix and AI
+     translation re-wrap the text with the game's own breaks and never touch answer lines. Problems: changed
+     answer count, too many lines in a letter or on the board. The preview draws the window with the game's
+     font and textures and pages it as the game does. AI replies must keep every tag (`strict_tags`). The
+     workspace build also writes `code.ips`: villagers speak Cyrillic letters (Animalese) with the sound of
+     the closest Latin letter.
    - `castlevania_sotn_saturn` — Castlevania: Symphony of the Night for the Sega Saturn, in the "Dracula X
      Ultimate" v1.1 English build. **Source:** the workspace's `source` folder, filled by `1_unpack.bat`:
      `text\<FILE>.sotnstext` (1,130 strings of 38 program files: items, relics, spells, enemies, the librarian,

@@ -1,0 +1,83 @@
+{
+ "source": "Measured 2026-10-10 from New Leaf's BCLYT layouts and Garden_msg_size16 (FINF 18x24, line feed 24): a text pane's width / (font size / 18) is its line width in font pixels. Happy Home Designer's WinMsg/wms_Talk.bflyt has the same dialogue pane. Preview rectangles are screen pixels; frame parts are the layouts' picture panes (tints approximate the materials).",
+ "font": "Garden_msg_size16.json",
+ "colors": {
+  "new_leaf": {"Default": "#ffffff", "Town": "#f55ae6", "Important": "#00bedc", "Player": "#00c300", "NPC": "#f08c00", "Tweet": "#a5bedc", "ForEscapeIsland": "#ff2020"},
+  "happy_home": {"Default": "#ffffff", "Town": "#eb3578", "Important": "#1e76eb", "Player": "#079d00", "NPC": "#ff5a00", "Tweet": "#8c8768", "ColorRed": "#f52828", "ColorYellow": "#f29d00", "ColorBrown": "#935039"}
+ },
+ "insert_width": {
+  "playerName": 80, "speakerName": 70, "villagerName2": 70, "villagerName3": 70, "villagerSlot": 70, "townName": 80,
+  "currentTown": 80, "catchphrase": 70, "nickname": 70, "mayorName": 80, "mayorName2": 80, "partnerName": 70,
+  "playerNameSlot": 80, "villagerNameSlot": 70, "townNameSlot": 80, "itemName": 140, "designName": 100,
+  "publicWork": 120, "year": 40, "month": 80, "day": 20, "hour": 20, "minute": 20, "dateYear": 40, "dateMonth": 80,
+  "dateDay": 20, "timeHour": 20, "timeMinute": 20, "weekday": 80, "amPm": 40, "amPmSlot": 40, "season": 60,
+  "species": 60, "flower": 80, "nativeFruit": 60
+ },
+ "samples": {
+  "playerName": "Оксана", "speakerName": "Мурчик", "villagerName2": "Бублик", "villagerName3": "Ромашка",
+  "villagerSlot": "Бублик", "townName": "Вишневе", "currentTown": "Вишневе", "catchphrase": "мяу",
+  "nickname": "друже", "mayorName": "Оксана", "mayorName2": "Оксана", "partnerName": "Бублик",
+  "playerNameSlot": "Оксана", "villagerNameSlot": "Бублик", "townNameSlot": "Вишневе", "itemName": "парасолька",
+  "year": "2026", "month": "жовтня", "day": "10", "hour": "9", "minute": "30", "weekday": "субота", "amPm": "AM",
+  "season": "осінь", "species": "кіт", "flower": "троянди", "nativeFruit": "вишні"
+ },
+ "kinds": {
+  "dialogue": {
+   "label": "Dialogue", "max_width": 320, "warn_width": 320, "lines_per_page": 3, "auto_pages": true,
+   "note": "msgWin/msg_win T_msg_00: 320x88 at font 18x24, line spacing 8 -> 3 lines; the game goes on to the next 3 lines by itself",
+   "preview": {"screen": [400, 240], "text": [39, 150, 320, 88], "box": [0, 113, 400, 127], "font_y": 24, "line_space": 32,
+               "text_color": "#ffffff",
+               "frame": [
+                {"texture": ["romfs/Layout/msgWin/msg_win.arc/timg/my_msg_soft_C.bclim", "romfs/Layout/WinMsg/WinMsg.arc/timg/my_cmn_WinSoftC_00.bflim"], "rect": [-2, 129, 202, 128], "tint": "#30261a", "alpha": 190},
+                {"texture": ["romfs/Layout/msgWin/msg_win.arc/timg/my_msg_soft_C.bclim", "romfs/Layout/WinMsg/WinMsg.arc/timg/my_cmn_WinSoftC_00.bflim"], "rect": [200, 129, 202, 128], "tint": "#30261a", "alpha": 190, "flip_h": true},
+                {"texture": ["romfs/Layout/msgWin/msg_win.arc/timg/my_msg_soft_L.bclim", "romfs/Layout/WinMsg/WinMsg.arc/timg/my_cmn_WinSoftL_00.bflim"], "rect": [-7, 129, 64, 128], "tint": "#f5ebd2", "alpha": 230},
+                {"texture": ["romfs/Layout/msgWin/msg_win.arc/timg/my_msg_soft_L.bclim", "romfs/Layout/WinMsg/WinMsg.arc/timg/my_cmn_WinSoftL_00.bflim"], "rect": [343, 129, 64, 128], "tint": "#f5ebd2", "alpha": 230, "flip_h": true},
+                {"texture": ["romfs/Layout/msgWin/msg_win.arc/timg/my_msg_soft_T.bclim", "romfs/Layout/WinMsg/WinMsg.arc/timg/my_cmn_WinSoftT_00.bflim"], "rect": [57, 125, 286, 16], "tint": "#f5ebd2", "alpha": 230},
+                {"texture": ["romfs/Layout/msgWin/msg_win.arc/timg/my_msg_soft_T.bclim", "romfs/Layout/WinMsg/WinMsg.arc/timg/my_cmn_WinSoftT_00.bflim"], "rect": [57, 245, 286, 16], "tint": "#f5ebd2", "alpha": 230, "flip_v": true}
+               ]}
+  },
+  "board": {
+   "label": "Bulletin board", "max_width": 257, "warn_width": 257, "lines_per_page": 6,
+   "note": "Board/board board_paper T_Hnbn_00..05: 206x21 at font 14.4x19.2 (scale 0.8) -> 257.5 px, 6 rows",
+   "preview": {"screen": [400, 240], "text": [97, 60, 206, 126], "box": [64, -6, 272, 256], "font_y": 19.2, "line_space": 21,
+               "text_color": "#232323"}
+  },
+  "letter": {
+   "label": "Letter", "max_width": 257, "warn_width": 257, "lines_per_page": 6,
+   "note": "Letter/ltr ltr_base T_Hnbn_00..05 (body), T_Hedder_00 (to), T_Footer_00 (from): 206x21 at scale 0.8 -> 257.5 px",
+   "preview": {"screen": [320, 240], "text": [57, 46, 206, 126], "box": [19, 10, 282, 192], "font_y": 19.2, "line_space": 21,
+               "text_color": "#643c00",
+               "frame": [{"texture": "romfs/Layout/Letter/ltr.arc/timg/letter_sample.bclim", "rect": [19.2, 10, 281.6, 192]}]}
+  },
+  "dialog": {
+   "label": "System dialog", "max_width": 256, "warn_width": 256, "lines_per_page": 4, "auto_pages": true,
+   "note": "common/cmn_dialog_A T_msg_00: 256x118 at font 18x24, line spacing 6 -> 4 lines, centred",
+   "preview": {"screen": [320, 240], "text": [32, 52, 256, 118], "box": [4, 8, 312, 224], "font_y": 24, "line_space": 30,
+               "text_color": "#5a1e00", "text_align": "center"}
+  },
+  "choice": {
+   "label": "Answers", "max_width": 200, "warn_width": 200, "lines_per_page": 6,
+   "note": "selWin/slct_win T_meg_00..05: one answer per 200x24 row (cmn_slct_win: 160)",
+   "preview": {"screen": [320, 240], "text": [90, 34, 200, 184], "font_y": 24, "line_space": 32, "text_color": "#ffffff"}
+  },
+  "item_name": {"label": "Item name", "max_width": 208, "warn_width": 208,
+                "note": "Balloon/itm_balloon T_itm_name: 188x22 at font 16.2x21.6 (scale 0.9) -> 208.9 px"},
+  "npc_name": {"label": "Character name", "max_width": 96, "warn_width": 96, "lines_per_page": 1,
+               "note": "msgWin/msg_win T_nam_00: 96x24 at font 18x24, centred"},
+  "text": {"label": "Interface text",
+           "note": "Other Str files: most go into 256-wide panes (passport, tour, warning); no single window, so the global limits apply"}
+ },
+ "files": {
+  "romfs/Script/Talk/*": "dialogue",
+  "romfs/Script/Bbs/*": "board",
+  "romfs/Script/MailN/*": "letter",
+  "romfs/Script/MailR/*": "letter",
+  "romfs/Script/Str/SYS_2D_Dialog_Text*": "dialog",
+  "romfs/Script/Str/SYS_2D_dialog_text*": "dialog",
+  "romfs/Script/Str/STR_Select_*": "choice",
+  "romfs/Script/Str/STR_Item_name*": "item_name",
+  "romfs/Script/Str/STR_NNpc_name.umsbt": "npc_name",
+  "romfs/Script/Str/STR_SPNpc_name.umsbt": "npc_name",
+  "romfs/Script/Str/*": "text"
+ }
+}

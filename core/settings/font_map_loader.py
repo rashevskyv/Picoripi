@@ -184,6 +184,7 @@ class FontMapLoader:
                         self.mw.all_font_maps[map_file.name] = json.load(f)
                 except (OSError, ValueError) as e:
                     log_warning(f"Could not read the font editor's width map '{map_file}': {e}")
+        self._load_preview_fonts(pm)
 
         # Dynamically load BFN fonts from all active project blocks (including inside archives)
         if pm and pm.project:
@@ -239,6 +240,46 @@ class FontMapLoader:
         self.refresh_icon_highlighting()
         if hasattr(self.mw, 'ui_updater') and hasattr(self.mw.ui_updater, 'update_preview_visibility'):
             self.mw.ui_updater.update_preview_visibility()
+
+    def _load_preview_fonts(self, pm: Any) -> None:
+        """Game fonts the plugin marks ``"preview": true`` in ``get_font_sources``, read from the project's own files
+        (the translation copy when there is one): their width map, unless the font editor already wrote one with
+        that name, and their glyphs for the bitmap preview, under the ``font_map`` name."""
+        rules = getattr(self.mw, 'current_game_rules', None)
+        getter = getattr(rules, 'get_font_sources', None)
+        project = getattr(pm, 'project', None) if pm else None
+        if not callable(getter) or project is None:
+            return
+        try:
+            descriptors = [d for d in getter() or [] if isinstance(d, dict) and d.get("preview")]
+        except Exception as exc:
+            log_warning(f"Font sources of the plugin: {exc}")
+            return
+        if not descriptors:
+            return
+        from core import font_formats
+        from core.bfn_core import BfnCore
+        from core.font_formats.sources import resolve
+        from PyQt6.QtGui import QImage
+
+        def pil_to_qimage(image):
+            rgba = image.convert("RGBA")
+            return QImage(rgba.tobytes(), rgba.width, rgba.height, rgba.width * 4, QImage.Format.Format_RGBA8888).copy()
+
+        for source in resolve(descriptors, getattr(project, 'metadata', {}) or {}):
+            try:
+                metadata, sheets = font_formats.extract(source.format, source.read_current(), source.params)
+            except (OSError, ValueError, KeyError, IndexError) as exc:
+                log_warning(f"Preview font {source.label}: {exc}")
+                continue
+            name = source.font_map or f"{Path(source.name).stem}.json"
+            self.mw.all_font_maps.setdefault(name, font_formats.font_map(metadata))
+            font = BfnCore()
+            font.metadata = metadata
+            font.gly1, font.map1 = metadata.get("GLY1", []), metadata.get("MAP1", [])
+            font.wid1, font.inf1 = metadata.get("WID1", []), metadata.get("INF1", [])
+            font._qimages_cache = [pil_to_qimage(sheet) for sheet in sheets]
+            self.mw.all_bfn_fonts[name] = font
 
     def _parse_new_font_format(self, font_data: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
         """Parses the new font format and returns a font_map."""

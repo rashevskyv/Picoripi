@@ -36,9 +36,15 @@ First, ask me these questions:
      `message_window_preview`) instead of inventing a preview from the editor text.
    - What page-break, line-break, pause, clear, or speaker-control tags exist?
    - Should AutoFix wrap only by width, by sentence/page structure, or by game-specific rules?
+     A game whose pages break with a control code, whose names are inserted by tags or whose answer
+     lines must stay one per line wraps itself in `fit_text_to_window` (the AI translation calls it).
+   - Can the font be read from the game files? Mark its `font_sources.json` entry `"preview": true`:
+     widths and the preview then come from the game's own font.
 
 5. Tags and control codes:
    - List all known tags/control codes and their meanings.
+   - Is there an MSBT Editor game config (`.gcf`) for the game? `plugins/common/gcf.py` lays its names over
+     a catalogue verified against the text. Must every tag survive AI translation? Declare `strict_tags`.
    - Which tags have visible width, such as button icons?
    - Which tags are zero-width formatting commands?
    - Which tags may appear in source but should be represented by aliases like [PLAYER]?
