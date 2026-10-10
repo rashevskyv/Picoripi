@@ -590,6 +590,13 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      LayeredFS mod with an `arc\data.trpfd` that no longer points the game to the packed originals (a changed
      English layout `X_eng.arc` also goes in as `X.arc`: the game reads language layouts only from its packs); Scarlet and
      Violet share one project and get the same mod.
+   - `wii_sysfont` — the Wii system bitmap fonts `wbf1.brfna` / `wbf2.brfna` (the NW4R archived fonts of the
+     System Menu, shipped as copies on discs that draw prompts with them, e.g. Raving Rabbids: Party Collection).
+     **Source:** the workspace's `source` (`1_unpack.bat` takes the fonts from Dolphin's NAND `shared1` content
+     or from the Rabbids disc copies and prepares the Ukrainian letters: І і Ї ї get the glyphs of I i Ï ï,
+     Є є Ґ ґ get empty cells at the end of the ASCII sheet); **Translation:** `translation`. The Font Editor opens
+     both fonts (`brfna`); `2_build.bat` writes the fonts for a disc (`build\disc\fonts`) and, when the NAND was the
+     source, the shared content for a NAND (`build\nand\shared1`).
    - `default_plugin` — Default Plugin Template
 4. After open, the last session is restored (block, string, undo stack, most filters). **Show Unsaved Only** (tree and strings list) is always off after a restart (`core/data_store.py`).
 5. `File → Close Project` unloads the workspace. It does not quit Picoripi.
