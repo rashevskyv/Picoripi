@@ -250,6 +250,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `MessageFont.bffnt` and `HyliaFont.bffnt`; the Textures window lists 63 images with text: timers, chat stickers
      and billboards (CTPK), layout banners (BFLIM), the boss title cards in `Telop.ptcl` and the title logo in
      `PictureStory_EU.bch` (PICA textures at fixed offsets, format `raw`)
+   - `mii_3ds` — Tomodachi Life and Miitopia (3DS, Europe; the A Link Between Worlds engine with Tomodachi Life's
+     tags). **Source:** `source`; **Translation:** `translation`; `1_unpack.bat` writes each archive as a folder
+     of its members and `2_build.bat` rebuilds the archive around the changed ones. Tomodachi Life: 1,038 English
+     MSBT in the LZ11 darc archives `romfs\message\<Set>\<Set>_EU_English_LZ.bin` (53,195 messages; `ArcBase` is the
+     shown text, `ArcVoice` the same messages as the text-to-speech voice reads them), tags named by the game's
+     `Game.msbp` (`{Nickname:...}`, `{Food:0:Name:Singular}`, `{SingularPluralFood:...}`, `{CS_Pause:500}`; `Color`
+     is R:G:B:A); the Textures window lists 2,467 BCLIM menu pictures and the title logo. Miitopia: 388 MSBT in
+     `romfs\eu\svn_message\EU_English.sarc` (14,979 messages; `LayoutMsg\` are interface labels; the game's own tags
+     stay raw `{tag:G:T:hex}`), the Font Editor opens the four BFFNT fonts of `svn_font\EU_English.sarc`, the
+     Textures window 1,212 BFLIM layout pictures and the title logo. Both games draw their main text with the
+     console's shared font, so messages have no width limit
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Europe). **Source:** the workspace's `source` folder
      (`1_unpack.bat` copies `romfs\message\eu\eu.qm`, the fonts, the name-entry keyboards
      `romfs\menu\ltn16_*.list`, the text textures and `exefs\code.bin` there); **Translation:** `translation`
