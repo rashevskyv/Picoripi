@@ -554,6 +554,16 @@ tokens: 32.8k
      `fragile_dreams`; японські гліфи лишаються як є); **Tools → Textures…** показує близько 2 800 картинок
      TPL (логотип, навчальні сторінки, меню, мапи, екрани безпеки, меню HOME, банер диска). `2_build.bat`
      знову стискає змінені файли.
+   - `monster_hunter_3ds` — Monster Hunter 3 Ultimate, Monster Hunter 4 Ultimate і Monster Hunter Stories
+     (3DS, Європа; Capcom MT Framework Mobile). **Source:** тека `source` робочої теки (`1_unpack.bat`
+     розшифровує гру й виймає англійські та спільні для всіх мов файли з архівів `.arc` за шляхами самої гри;
+     файл, що лежить у кількох архівах, — один файл). Текст: таблиці `.gmd` (MH3U, UTF-8), `.lmd` (MH4U і
+     Stories, UTF-16) і англійська частина завдань (`.quest` MH3U, `.mib` MH4U); кожен файл — один блок;
+     `<COLO 1>`, `</COL>`, `<SUBS 3>` і `%s` лишаються як є; рядки можуть ставати довшими; незмінений файл
+     зберігається байт у байт. Font Editor відкриває шрифти `GFD` / `lfd` з їхньою сторінкою `TEX` (формат
+     `mt_font`; в основних шрифтах є російська кирилиця, Ґ Є І Ї ґ є і ї додаються як нові літери).
+     **Tools → Textures…** показує картинки інтерфейсу й титульного екрана (`mt_tex`). `2_build.bat` збирає
+     кожен архів зі зміненим файлом у мод romfs для Luma.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) і Pokémon Legends: Z-A

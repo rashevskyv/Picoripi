@@ -553,6 +553,16 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Ґ Є І Ї. The Font Editor opens all 14 FONT fonts (format `fragile_dreams`; Japanese glyphs are kept as
      they are); **Tools → Textures…** lists about 2,800 TPL pictures (title logo, tutorials, menus, maps,
      health and safety screens, HOME Menu, disc banner). `2_build.bat` compresses the changed files again.
+   - `monster_hunter_3ds` — Monster Hunter 3 Ultimate, Monster Hunter 4 Ultimate and Monster Hunter Stories
+     (3DS, Europe; Capcom MT Framework Mobile). **Source:** the workspace's `source` folder (`1_unpack.bat`
+     decrypts the game and takes the English and language-neutral files out of the `.arc` archives, at the
+     game's own paths; a file that sits in several archives is one file). Text: `.gmd` tables (MH3U, UTF-8),
+     `.lmd` tables (MH4U and Stories, UTF-16) and the quests' English slot (`.quest` MH3U, `.mib` MH4U); each
+     file is one block; `<COLO 1>`, `</COL>`, `<SUBS 3>` and `%s` stay as they are; strings may grow; an
+     unedited file is saved byte for byte. The Font Editor opens the `GFD` / `lfd` fonts with their `TEX` page
+     (format `mt_font`; the main fonts have the Russian Cyrillic letters, Ґ Є І Ї ґ є і ї are added as new
+     letters). **Tools → Textures…** lists the UI and title pictures (`mt_tex`). `2_build.bat` rebuilds every
+     archive that holds a changed file into a Luma romfs mod.
    - `plain_text` — Plain Text
    - `pokemon_fr` — Pokemon FireRed/LeafGreen
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) and Pokémon Legends: Z-A

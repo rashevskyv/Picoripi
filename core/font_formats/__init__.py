@@ -33,7 +33,7 @@ Sheets = List[Image.Image]
 
 def _backends() -> Dict[str, Any]:
     from core.font_formats import (bcfnt, bffnt, bfotf, cv_gba, cv_nds, eternal_darkness, ffta2, fntg, fragile_dreams, g1n,
-                                   g1t, g4font, gba_tiles, gzf, lunar, m2, mgs, mgs1, mgs1_hd, n64, nftr, pgf, policenauts, qbf,
+                                   g1t, g4font, gba_tiles, gzf, lunar, m2, mgs, mgs1, mgs1_hd, mt_font, n64, nftr, pgf, policenauts, qbf,
                                    retro_font, retro_font_gx, texture_grid, tmp_sdf, twewy, vagrant, xf, zelda3)
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
@@ -41,7 +41,7 @@ def _backends() -> Dict[str, Any]:
             "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
             "texture_grid": texture_grid, "zelda3": zelda3, "mgs1": mgs1, "mgs1_hd": mgs1_hd, "m2": m2,
             "lunar": lunar, "g4font": g4font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams,
-            "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf}
+            "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf, "mt_font": mt_font}
 
 
 def adds_glyphs(fmt: str) -> bool:

@@ -767,7 +767,8 @@ class BaseGameRules:
         ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture),
         ``zelda3`` (the zelda3 PC port's ``font.png``), ``eternal_darkness`` (glyph grid in a TPL, widths in a
-        companion pack) or ``fragile_dreams`` (Fragile Dreams FONT: glyph boxes in TPL pages)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
+        companion pack) ``fragile_dreams`` (Fragile Dreams FONT: glyph boxes in TPL pages) or ``mt_font`` (Capcom MT Framework
+        GFD / lfd glyph boxes in an MT TEX page, the page as ``companion``)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); optional ``companion`` (a second file the font needs,
         relative to the source folder, read and saved with it: the texture of a Level-5 ``g4font``);
@@ -789,7 +790,7 @@ class BaseGameRules:
         ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant Story pictures), ``sotn_blocks`` /
         ``sotn_cmp`` (Symphony of the Night VRAM tile blocks and nibble-packed pictures), ``pcx``, ``m2`` (M2 PSB
         pictures), ``png`` (a PNG the build converts itself: a decomp's graphics source, a Unity workspace's texture),
-        ``ffta2_efx`` (FFTA2 effect textures), ``raw`` or ``tiles`` (GBA / DS / Saturn character tiles)); ``path`` -- as
+        ``ffta2_efx`` (FFTA2 effect textures), ``mt_tex`` (Capcom MT Framework 3DS TEX), ``raw`` or ``tiles`` (GBA / DS / Saturn character tiles)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``
         (``compression``, ``file_offset``/``file_size``, ``texture`` and what the format needs -- see

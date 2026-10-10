@@ -1,0 +1,8 @@
+[
+  {
+    "label": "Title, menu and UI pictures, font pages",
+    "kind": "ui",
+    "format": "mt_tex",
+    "path": "romfs/**/*.tex"
+  }
+]
