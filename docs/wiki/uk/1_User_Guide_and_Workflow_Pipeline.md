@@ -276,6 +276,15 @@ tokens: 43.1k
      малює системний шрифт консолі. Вікно Textures показує 985 файлів CGFX (6 367 текстур, логотип
      `menu\000.zrc\...\bind\00.bcres`), які німецька тека замінює, тобто вони мають текст. `2_build.bat`
      перепаковує й знову стискає архіви в мод Luma `romfs`.
+   - `paper_mario_ss` — Paper Mario: Sticker Star (3DS, Європа, англійський набір). **Source:** тека `source`
+     робочої теки; `1_unpack.bat` копіює 46 файлів `messages\EU_English\*.msbt` (2 859 повідомлень; діалоги рівнів
+     `stgW_L`, меню й предмети `global`, музей наліпок, титри) і розпаковує файли гри, стиснені BLZ, під їхніми
+     іменами: два шрифти CFNT `Font\pop_120px.bcfnz` / `pop_240px.bcfnz` (Font Editor) і малюнки CGFX
+     `Graphics\ui\*.bcrez`, `Graphics\shared\ui.bctez`, `Effect\main\EUR_en.bctez` (вікно Textures), а також 50
+     мовних малюнків `Lang\EUR_en.bin` (логотип, Press START, бойові слова) і `NWTexture\EUR_en.bin\lg_welcome` як
+     `<архів>\<ім'я>.bcres`. Теги: `{Size:N}`, `{Color:R:G:B:A}`, `{PageBreak}`, `{Icon:mic_a:...}`, `{Choice:...}`,
+     `{Variable:item}`, `{Number:0:%d}`, `{Wait:N}`. `2_build.bat` знову пакує змінені файли й перебудовує архів
+     текстур з його `_info.bin` у мод Luma `romfs`. Усі 1 456 файлів CGFX гри читаються й пишуться назад байт у байт.
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Європа). **Source:** тека `source` робочої теки
      (`1_unpack.bat` копіює туди `romfs\message\eu\eu.qm`, шрифти, клавіатури введення імені
      `romfs\menu\ltn16_*.list`, текстури з текстом і `exefs\code.bin`); **Translation:** `translation` (цілі файли

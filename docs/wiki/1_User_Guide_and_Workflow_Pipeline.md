@@ -279,6 +279,16 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `fnt.bin` of stage a2800); dialogue uses the console's shared font. The Textures window lists the 985 CGFX files
      (6,367 textures, title logo `menu\000.zrc\...\bind\00.bcres`) that the German folder overrides, so they carry
      text. `2_build.bat` repacks and compresses the archives again into a Luma `romfs` mod.
+   - `paper_mario_ss` — Paper Mario: Sticker Star (3DS, Europe, English set). **Source:** the workspace's `source`
+     folder; `1_unpack.bat` copies the 46 `messages\EU_English\*.msbt` files (2,859 messages; dialogue per stage
+     `stgW_L`, `global` menus and items, the sticker museum, credits) and unpacks the game's BLZ-packed files under
+     their own names: the two CFNT fonts `Font\pop_120px.bcfnz` / `pop_240px.bcfnz` (Font Editor) and the CGFX
+     pictures `Graphics\ui\*.bcrez`, `Graphics\shared\ui.bctez`, `Effect\main\EUR_en.bctez` (Textures window) plus
+     the 50 language pictures of `Lang\EUR_en.bin` (logo, Press START, battle words) and `NWTexture\EUR_en.bin\lg_welcome`
+     as `<archive>\<name>.bcres`. Tags: `{Size:N}`, `{Color:R:G:B:A}`, `{PageBreak}`, `{Icon:mic_a:...}`,
+     `{Choice:...}`, `{Variable:item}`, `{Number:0:%d}`, `{Wait:N}`. `2_build.bat` packs the changed files again and
+     rebuilds the texture archive and its `_info.bin` into a Luma `romfs` mod. All 1,456 CGFX files of the game read
+     and write back byte for byte.
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Europe). **Source:** the workspace's `source` folder
      (`1_unpack.bat` copies `romfs\message\eu\eu.qm`, the fonts, the name-entry keyboards
      `romfs\menu\ltn16_*.list`, the text textures and `exefs\code.bin` there); **Translation:** `translation`
