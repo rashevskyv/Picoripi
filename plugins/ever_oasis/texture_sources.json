@@ -1,0 +1,6 @@
+[
+  {"label": "Title screen (logo, background, copyright)", "kind": "title_screen", "format": "ctxb",
+   "path": "romfs/data/Region_EU/English/ui_title.gar/*.ctxb"},
+  {"label": "Menus, field and town screens, ending, opening", "kind": "menu_label", "format": "ctxb",
+   "path": "romfs/data/Region_EU/English/**/*.ctxb"}
+]
