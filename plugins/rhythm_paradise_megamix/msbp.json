@@ -1,0 +1,682 @@
+{
+ "endian": "little",
+ "colors": [
+  {
+   "name": "Red",
+   "rgba": "e40000ff"
+  },
+  {
+   "name": "Green",
+   "rgba": "00b200ff"
+  },
+  {
+   "name": "Blue",
+   "rgba": "0e49b3ff"
+  },
+  {
+   "name": "Yellow",
+   "rgba": "9e840dff"
+  },
+  {
+   "name": "Aqua",
+   "rgba": "18919fff"
+  },
+  {
+   "name": "Orange",
+   "rgba": "d75f00ff"
+  },
+  {
+   "name": "Violet",
+   "rgba": "8c0092ff"
+  },
+  {
+   "name": "Pink",
+   "rgba": "ce6dc4ff"
+  },
+  {
+   "name": "black_blue",
+   "rgba": "249cdaff"
+  },
+  {
+   "name": "black_red",
+   "rgba": "ff5f5fff"
+  },
+  {
+   "name": "black_green",
+   "rgba": "3bdb3eff"
+  },
+  {
+   "name": "TutorialYellow",
+   "rgba": "feff00ff"
+  }
+ ],
+ "attributes": [],
+ "tag_groups": [
+  {
+   "id": 0,
+   "name": "System",
+   "tags": [
+    {
+     "name": "Ruby",
+     "params": [
+      {
+       "name": "rt",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Font",
+     "params": [
+      {
+       "name": "face",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Size",
+     "params": [
+      {
+       "name": "percent",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "Color",
+     "params": [
+      {
+       "name": "r",
+       "type": "u8"
+      },
+      {
+       "name": "g",
+       "type": "u8"
+      },
+      {
+       "name": "b",
+       "type": "u8"
+      },
+      {
+       "name": "a",
+       "type": "u8"
+      },
+      {
+       "name": "name",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "PageBreak",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "name": "Replace",
+   "tags": [
+    {
+     "name": "CampaignStage",
+     "params": []
+    },
+    {
+     "name": "CampaignGameID",
+     "params": []
+    },
+    {
+     "name": "RetryHelpGameID",
+     "params": []
+    },
+    {
+     "name": "RetryHelpMoney",
+     "params": []
+    },
+    {
+     "name": "CoffeeGreeting",
+     "params": []
+    },
+    {
+     "name": "NaviCharName",
+     "params": []
+    },
+    {
+     "name": "RhythmItemName",
+     "params": []
+    },
+    {
+     "name": "BonusGameName",
+     "params": []
+    },
+    {
+     "name": "RhythmItemPrice",
+     "params": []
+    },
+    {
+     "name": "BonusGamePrice",
+     "params": []
+    },
+    {
+     "name": "GateBorderScore",
+     "params": []
+    },
+    {
+     "name": "BonusMusicName",
+     "params": []
+    },
+    {
+     "name": "BonusMusicPrice",
+     "params": []
+    },
+    {
+     "name": "GameName",
+     "params": []
+    },
+    {
+     "name": "GameBestScore",
+     "params": []
+    },
+    {
+     "name": "PinBallGoldenTime",
+     "params": []
+    },
+    {
+     "name": "TreRuleParamScore",
+     "params": []
+    },
+    {
+     "name": "TreRuleParamLife",
+     "params": []
+    },
+    {
+     "name": "GoatLv",
+     "params": []
+    },
+    {
+     "name": "GoatFoodNumNormal",
+     "params": []
+    },
+    {
+     "name": "GoatFoodNumSilver",
+     "params": []
+    },
+    {
+     "name": "GoatFoodNumGold",
+     "params": []
+    },
+    {
+     "name": "ResultTotalMoney",
+     "params": []
+    },
+    {
+     "name": "GateMoney",
+     "params": []
+    },
+    {
+     "name": "Money",
+     "params": []
+    },
+    {
+     "name": "CoinNum",
+     "params": []
+    },
+    {
+     "name": "ChallengeMoney",
+     "params": []
+    },
+    {
+     "name": "GamePlayNum",
+     "params": []
+    },
+    {
+     "name": "TutorialRestNum",
+     "params": []
+    },
+    {
+     "name": "TrePlayerIndex",
+     "params": []
+    },
+    {
+     "name": "CoinPrice",
+     "params": []
+    },
+    {
+     "name": "ChickenDistance",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "name": "Talk",
+   "tags": [
+    {
+     "name": "Jump",
+     "params": [
+      {
+       "name": "label",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Branch",
+     "params": [
+      {
+       "name": "num",
+       "type": "u8"
+      },
+      {
+       "name": "cancelation",
+       "type": "u8"
+      },
+      {
+       "name": "alt0",
+       "type": "str"
+      },
+      {
+       "name": "seAlt0",
+       "type": "list",
+       "items": [
+        "SE_KETTEI_SMALL",
+        "SE_KETTEI_MIDDLE",
+        "SE_KETTEI_BIG",
+        "SE_CANCEL_SMALL",
+        "SE_CANCEL_MIDDLE",
+        "SE_CANCEL_BIG"
+       ]
+      },
+      {
+       "name": "alt1",
+       "type": "str"
+      },
+      {
+       "name": "seAlt1",
+       "type": "list",
+       "items": [
+        "SE_KETTEI_SMALL",
+        "SE_KETTEI_MIDDLE",
+        "SE_KETTEI_BIG",
+        "SE_CANCEL_SMALL",
+        "SE_CANCEL_MIDDLE",
+        "SE_CANCEL_BIG"
+       ]
+      },
+      {
+       "name": "alt2",
+       "type": "str"
+      },
+      {
+       "name": "seAlt2",
+       "type": "list",
+       "items": [
+        "SE_KETTEI_SMALL",
+        "SE_KETTEI_MIDDLE",
+        "SE_KETTEI_BIG",
+        "SE_CANCEL_SMALL",
+        "SE_CANCEL_MIDDDLE",
+        "SE_CANCEL_BIG"
+       ]
+      },
+      {
+       "name": "cancel",
+       "type": "str"
+      },
+      {
+       "name": "seCancel",
+       "type": "list",
+       "items": [
+        "SE_KETTEI_SMALL",
+        "SE_KETTEI_MIDDLE",
+        "SE_KETTEI_BIG",
+        "SE_CANCEL_SMALL",
+        "SE_CANCEL_MIDDLE",
+        "SE_CANCEL_BIG"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "BranchIf",
+     "params": [
+      {
+       "name": "type",
+       "type": "list",
+       "items": [
+        "RetryHelpMoney"
+       ]
+      },
+      {
+       "name": "jumpTrue",
+       "type": "str"
+      },
+      {
+       "name": "jumpFalse",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "NaviChar",
+     "params": [
+      {
+       "name": "character",
+       "type": "list",
+       "items": [
+        "Honey",
+        "Car",
+        "Orange",
+        "Donut",
+        "Barber",
+        "Bird",
+        "Tree",
+        "Pot",
+        "Gate",
+        "GateY",
+        "GateB",
+        "GateR",
+        "Blank",
+        "Question",
+        "Tebiri",
+        "TebiriQ",
+        "Ukon",
+        "Batta",
+        "Omonaga",
+        "Iyokan",
+        "Mom",
+        "BgTower",
+        "BgCastle",
+        "TreasureGoal"
+       ]
+      },
+      {
+       "name": "expression",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "NaviCharExp",
+     "params": [
+      {
+       "name": "expression",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "RetryHelpExe",
+     "params": [
+      {
+       "name": "bDone",
+       "type": "u8"
+      }
+     ]
+    },
+    {
+     "name": "GateTutorialTry",
+     "params": []
+    },
+    {
+     "name": "GateTutorialCancel",
+     "params": []
+    },
+    {
+     "name": "ClearTED",
+     "params": []
+    },
+    {
+     "name": "AnnounceLyt",
+     "params": [
+      {
+       "name": "CoffeeBtn",
+       "type": "u8"
+      },
+      {
+       "name": "TreasureBtn",
+       "type": "u8"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "name": "TalkMode",
+   "tags": [
+    {
+     "name": "Change_WholePage",
+     "params": []
+    },
+    {
+     "name": "Change_EachChar",
+     "params": [
+      {
+       "name": "charInterval",
+       "type": "u8"
+      },
+      {
+       "name": "seInterval",
+       "type": "u8"
+      },
+      {
+       "name": "seType",
+       "type": "list",
+       "items": [
+        "Default",
+        "VoiceTubo",
+        "VoiceBee",
+        "VoiceCar",
+        "VoiceOrange",
+        "VoiceDonuts",
+        "VoiceBarber",
+        "VoiceBird",
+        "VoiceBirdAngry",
+        "VoiceWood",
+        "VoiceMaster",
+        "VoiceTebiri",
+        "VoiceTebiriMom",
+        "VoiceGate",
+        "VoiceGateY",
+        "VoiceGateB",
+        "VoiceGateR",
+        "VoiceBatta",
+        "VoiceIyokan",
+        "VoiceOmonaga",
+        "VoiceUkon"
+       ]
+      },
+      {
+       "name": "bgm",
+       "type": "list",
+       "items": [
+        "Default",
+        "MomA",
+        "MomB",
+        "LED",
+        "MED",
+        "Mute",
+        "Horror",
+        "Env",
+        "Puha",
+        "Gate",
+        "Aisatu"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "CharWait",
+     "params": [
+      {
+       "name": "wait",
+       "type": "u16"
+      }
+     ]
+    },
+    {
+     "name": "CharSE",
+     "params": [
+      {
+       "name": "seType",
+       "type": "list",
+       "items": [
+        "Default",
+        "VoiceTubo",
+        "VoiceBee",
+        "VoiceCar",
+        "VoiceOrange",
+        "VoiceDonuts",
+        "VoiceBarber",
+        "VoiceBird",
+        "VoiceBirdAngry",
+        "VoiceWood",
+        "VoiceMaster",
+        "VoiceTebiri",
+        "VoiceTebiriMom",
+        "VoiceGate",
+        "VoiceGateY",
+        "VoiceGateB",
+        "VoiceGateR",
+        "VoiceBatta",
+        "VoiceIyokan",
+        "VoiceOmonaga",
+        "VoiceUkon"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "BGM",
+     "params": [
+      {
+       "name": "bgm",
+       "type": "list",
+       "items": [
+        "Default",
+        "MomA",
+        "MomB",
+        "LED",
+        "MED",
+        "Mute",
+        "Horror",
+        "Env",
+        "Puha",
+        "Gate",
+        "Aisatu"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "Etc",
+   "tags": [
+    {
+     "name": "InputType",
+     "params": [
+      {
+       "name": "inputType",
+       "type": "list",
+       "items": [
+        "Button",
+        "Touch"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "IgnoreLF",
+     "params": []
+    },
+    {
+     "name": "Dummy",
+     "params": []
+    }
+   ]
+  }
+ ],
+ "styles": [
+  {
+   "name": "Default",
+   "region_width": 400,
+   "lines": 3,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "FotKurokane20px_3dsBitmap.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 14,
+   "color": -1
+  },
+  {
+   "name": "FotKurokane40px_3dsBitmap.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 15,
+   "color": -1
+  },
+  {
+   "name": "FotKometto40px_3dsBitmap.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 20,
+   "color": -1
+  },
+  {
+   "name": "FotSranpu38px_3dsBitmap.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 17,
+   "color": -1
+  },
+  {
+   "name": "FotMatisseMinoriyamato48px_3dsBitmap.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 16,
+   "color": -1
+  },
+  {
+   "name": "DfgGokubutokaisyo50px_3dsbitmap.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 21,
+   "color": -1
+  },
+  {
+   "name": "FotSura24px_3dsBitmap.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 22,
+   "color": -1
+  },
+  {
+   "name": "FotRodin24px_3dsBitmap_LA4packed.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 2,
+   "color": -1
+  },
+  {
+   "name": "FotDotmincyou_24px3dsbitmap_works.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 19,
+   "color": -1
+  },
+  {
+   "name": "FotNewCinemaA18px_3dsBitmap.bffnt",
+   "region_width": 400,
+   "lines": 3,
+   "font": 18,
+   "color": -1
+  }
+ ]
+}

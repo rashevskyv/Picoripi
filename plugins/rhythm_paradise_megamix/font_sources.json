@@ -1,0 +1,12 @@
+[
+  {"label": "FotKurokane20px_3dsBitmap", "format": "bcfnt", "path": "romfs/EUENlayout/coffee_common.zlib/font/FotKurokane20px_3dsBitmap.bffnt"},
+  {"label": "FotKurokane40px_3dsBitmap", "format": "bcfnt", "path": "romfs/EUENlayout/coffee_common.zlib/font/FotKurokane40px_3dsBitmap.bffnt"},
+  {"label": "FotNewCinemaA18px_3dsBitmap", "format": "bcfnt", "path": "romfs/EUENlayout/coffee_common.zlib/font/FotNewCinemaA18px_3dsBitmap.bffnt"},
+  {"label": "FotSura24px_3dsBitmap", "format": "bcfnt", "path": "romfs/EUENlayout/coffee_common.zlib/font/FotSura24px_3dsBitmap.bffnt"},
+  {"label": "FotMatisseMinoriyamato48px_3dsBitmap", "format": "bcfnt", "path": "romfs/EUENlayout/muscleDuel.zlib/font/FotMatisseMinoriyamato48px_3dsBitmap.bffnt"},
+  {"label": "FotOedokanteiryu_35px_3dsbitmap", "format": "bcfnt", "path": "romfs/EUENlayout/muscleDuel.zlib/font/FotOedokanteiryu_35px_3dsbitmap.bffnt"},
+  {"label": "FotSranpu38px_3dsBitmap", "format": "bcfnt", "path": "romfs/EUENlayout/muscleDuel.zlib/font/FotSranpu38px_3dsBitmap.bffnt"},
+  {"label": "FotRodin24px_3dsBitmap_LA4packed", "format": "bcfnt", "path": "romfs/EUlayout/common.zlib/font/FotRodin24px_3dsBitmap_LA4packed.bffnt"},
+  {"label": "FotKometto40px_3dsBitmap", "format": "bcfnt", "path": "romfs/EUlayout/prologue_agbClap.zlib/font/FotKometto40px_3dsBitmap.bffnt"},
+  {"label": "FotDotmincyou_24px3dsbitmap_works", "format": "bcfnt", "path": "romfs/EUlayout/prologue_ctrDotSamurai.zlib/font/FotDotmincyou_24px3dsbitmap_works.bffnt"}
+]
