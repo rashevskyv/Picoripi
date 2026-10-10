@@ -1,5 +1,27 @@
 [
-  {"label": "Game font (hikari)", "format": "bcfnt", "path": "romfs/Graphics/UI_en/Font/Font/root/font/hikari.bcfnt"},
-  {"label": "Bravely Second fonts (Font: hikari, hikariItalic)", "format": "bcfnt", "path": "romfs/Graphics/UI/Font/Font/root/font/*.bcfnt"},
-  {"label": "Bravely Second fonts with Korean (FontK: hikari, hikariItalic)", "format": "bcfnt", "path": "romfs/Graphics/UI/Font/FontK/root/font/*.bcfnt"}
+ {
+  "label": "Game font (hikari)",
+  "format": "bcfnt",
+  "path": "romfs/Graphics/UI_en/Font/Font/root/font/hikari.bcfnt"
+ },
+ {
+  "label": "Bravely Second fonts (Font: hikari, hikariItalic)",
+  "format": "bcfnt",
+  "path": "romfs/Graphics/UI/Font/Font/root/font/*.bcfnt"
+ },
+ {
+  "label": "Bravely Second fonts with Korean (FontK: hikari, hikariItalic)",
+  "format": "bcfnt",
+  "path": "romfs/Graphics/UI/Font/FontK/root/font/*.bcfnt"
+ },
+ {
+  "label": "Flying Fairy PC: Unity Font data, TrueType/OpenType (exported by zt/bdffhd_pc.py)",
+  "format": "ttf",
+  "path": "font/*.ttf"
+ },
+ {
+  "label": "Flying Fairy PC: Unity Font data, OpenType (exported by zt/bdffhd_pc.py)",
+  "format": "ttf",
+  "path": "font/*.otf"
+ }
 ]
