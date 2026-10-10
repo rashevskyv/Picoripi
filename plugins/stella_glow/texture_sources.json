@@ -1,0 +1,12 @@
+[
+  {"label": "Title screen", "kind": "title_screen", "format": "bflim", "path": "romfs/indicator/title/*.arc",
+   "member": "timg/*.bflim"},
+  {"label": "Menus, battle and talk screens (layout archives)", "kind": "menu_label", "format": "bflim",
+   "path": "romfs/indicator/**/*.arc", "member": "timg/*.bflim"},
+  {"label": "Event pictures and notices", "kind": "popup", "format": "bflim", "path": "romfs/picture/*.arc",
+   "member": "timg/*.bflim"},
+  {"label": "Screen effects", "kind": "popup", "format": "bflim", "path": "romfs/adventure/*.arc",
+   "member": "timg/*.bflim"},
+  {"label": "Character plates", "kind": "hud", "format": "bflim", "path": "romfs/chara/**/*.arc",
+   "member": "timg/*.bflim"}
+]

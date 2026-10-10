@@ -1,0 +1,9 @@
+[
+  {"label": "Main font (Latin, Russian Cyrillic, kana)", "format": "bcfnt", "path": "romfs/font/_font_common.bffnt"},
+  {"label": "Main font, second set (Latin, Russian Cyrillic, kana)", "format": "bcfnt", "path": "romfs/font/_font_common2.bffnt"},
+  {"label": "Latin font", "format": "bcfnt", "path": "romfs/font/font_common.bffnt"},
+  {"label": "Latin font, second set", "format": "bcfnt", "path": "romfs/font/font_common2.bffnt"},
+  {"label": "Test font", "format": "bcfnt", "path": "romfs/font/test.bffnt"},
+  {"label": "Test font 2", "format": "bcfnt", "path": "romfs/font/test2.bffnt"},
+  {"label": "Test font (tsts)", "format": "bcfnt", "path": "romfs/font/tsts.bffnt"}
+]
