@@ -241,6 +241,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      (`romfs\Graphics\UI_en\**\*.bclim`: the title menu, chapter titles, tutorials). Markup stays as typed:
      `[PCM1]`-style names, `$` and `%ls` values. A table saves byte for byte when unedited and may grow.
      `2_build.bat` packs the changed files back into their `crowd.fs` / darc archives in a Luma `romfs` mod.
+   - `bravely_default` also opens Bravely Second: End Layer (3DS, USA; workspace `Bravely\Second\3DS`): 1,284 English tables (`Common_en` and the English `Script\Scene` files, 71,219 strings), both fonts (`Graphics\UI\Font\Font` and `FontK`) and 5,073 pictures in `Graphics\UI`. `1_unpack.bat` takes the decrypted `.3ds` image; members packed as deflate are unpacked and packed again.
    - `kid_icarus` — Kid Icarus: Uprising (3DS, Europe, English set `eu`). **Source:** the workspace's `source`
      folder; `1_unpack.bat` writes the LZ11 darc archives (`.arc`, `.zrc`, nested) as folders: 148 English MSBT
      files (25,833 messages; a member gets `.msbt` added): `eu\0.arc\resident\03.bin.msbt` (menus, guidance,
