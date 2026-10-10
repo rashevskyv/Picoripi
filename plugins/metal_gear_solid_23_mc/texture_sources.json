@@ -1,6 +1,32 @@
 [
-  {"label": "Localised pictures (region overrides)", "kind": "menu_label", "format": "ctxr", "path": "texture/textures/flatlist/ovr_*/_*/*.ctxr"},
-  {"label": "Menu, HUD and overlay pictures", "kind": "menu", "format": "ctxr", "path": "texture/textures/flatlist/_*/*.ctxr"},
-  {"label": "Loading, splash and layout pictures", "kind": "title_screen", "format": "ctxr", "path": "texture/Misc/*/_*/*.ctxr"},
-  {"label": "Console font picture", "kind": "menu", "format": "ctxr", "path": "texture/EngineSupport/Fonts/_*/*.ctxr"}
+  {
+    "label": "Localised pictures (region overrides)",
+    "kind": "menu_label",
+    "format": "ctxr",
+    "path": "texture/textures/flatlist/ovr_*/_*/*.ctxr"
+  },
+  {
+    "label": "Menu, HUD and overlay pictures",
+    "kind": "menu",
+    "format": "ctxr",
+    "path": "texture/textures/flatlist/_*/*.ctxr"
+  },
+  {
+    "label": "Loading, splash and layout pictures",
+    "kind": "title_screen",
+    "format": "ctxr",
+    "path": "texture/Misc/*/_*/*.ctxr"
+  },
+  {
+    "label": "Console font picture",
+    "kind": "menu",
+    "format": "ctxr",
+    "path": "texture/EngineSupport/Fonts/_*/*.ctxr"
+  },
+  {
+    "label": "Launcher pictures (title, notices, labels)",
+    "kind": "menu",
+    "format": "png",
+    "path": "texture/launcher/*.png"
+  }
 ]
