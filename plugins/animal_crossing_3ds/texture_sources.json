@@ -1,0 +1,7 @@
+[
+  {"label": "Title logo (New Leaf)", "kind": "title_screen", "format": "bflim", "path": "romfs/Layout/Title/opng_titl.arc/timg/*.bclim"},
+  {"label": "Title logo (Happy Home Designer)", "kind": "title_screen", "format": "bflim", "path": "romfs/Layout/Title/Title.arc/timg/*.bflim"},
+  {"label": "Title logo, second screen (Happy Home Designer)", "kind": "title_screen", "format": "bflim", "path": "romfs/Layout/TitleB/TitleB.arc/timg/*.bflim"},
+  {"label": "UI layouts (all)", "kind": "ui", "format": "bflim", "path": "romfs/Layout/*/*.arc/timg/*.{bclim,bflim}"},
+  {"label": "Island minigame layouts (New Leaf)", "kind": "ui", "format": "bflim", "path": "romfs/MiniGame[01]/**/*.arc/timg/*.bclim"}
+]

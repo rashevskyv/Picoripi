@@ -2,8 +2,8 @@
 
 A file is a 0x20-byte header and sections (``LBL1`` labels, ``ATR1``, ``TSY1``, ``TXT2`` texts, ...),
 each padded with 0xAB to 16 bytes. Only ``TXT2`` is rebuilt; every other section is written back as read.
-A text is UTF-16 with control tags: ``0x0E group type size params`` opens a tag, ``0x0F group type``
-closes one. Tags travel as ``Tag`` / ``EndTag`` tokens; ``tags.py`` turns them into readable ``{tags}``.
+A text is UTF-16 (or UTF-8: encoding 0, Animal Crossing's name tables) with control tags: ``0x0E group type
+size params`` opens a tag, ``0x0F group type`` closes one; the control code is one code unit, its fields are u16. Tags travel as ``Tag`` / ``EndTag`` tokens; ``tags.py`` turns them into readable ``{tags}``.
 """
 from __future__ import annotations
 
@@ -44,8 +44,10 @@ class Msbt:
             raise ValueError("Not an MSBT file")
         self.little = raw[8:10] == b"\xff\xfe"
         self.endian = "<" if self.little else ">"
-        if raw[0x0C] != 1:
-            raise ValueError(f"Only UTF-16 MSBT files are supported (encoding {raw[0x0C]})")
+        if raw[0x0C] not in (0, 1):
+            raise ValueError(f"Only UTF-8 and UTF-16 MSBT files are supported (encoding {raw[0x0C]})")
+        self.utf8 = raw[0x0C] == 0
+        self.byte_codec = "utf-8"          # encoding 0; Animal Crossing's spoken-name tables are Latin-1
         self.header = raw[:0x20]
         self.sections: List[List] = []  # [magic, body]
         count = struct.unpack_from(self.endian + "H", raw, 0x0E)[0]
@@ -59,7 +61,13 @@ class Msbt:
             self.sections.append([magic, body])
             position += 16 + size
             position += -position % 16
-        self.messages: List[List[Token]] = self._read_texts(self._section(b"TXT2"))
+        try:
+            self.messages: List[List[Token]] = self._read_texts(self._section(b"TXT2"))
+        except UnicodeDecodeError:
+            if not self.utf8:
+                raise
+            self.byte_codec = "latin-1"
+            self.messages = self._read_texts(self._section(b"TXT2"))
         self.labels: Dict[int, str] = self._read_labels(self._section(b"LBL1"))
 
     def section(self, magic: bytes) -> bytes:
@@ -107,20 +115,29 @@ class Msbt:
         an odd distance lies across two code units and is skipped.
         """
         best = end
-        units = (b"\x00\x00", b"\x0e\x00", b"\x0f\x00") if self.little else (b"\x00\x00", b"\x00\x0e", b"\x00\x0f")
+        if self.utf8:
+            units = (b"\x00", b"\x0e", b"\x0f")
+        else:
+            units = (b"\x00\x00", b"\x0e\x00", b"\x0f\x00") if self.little else (b"\x00\x00", b"\x00\x0e", b"\x00\x0f")
         for unit in units:
             at = body.find(unit, position, best)
-            while at != -1 and (at - position) % 2:
+            while at != -1 and len(unit) == 2 and (at - position) % 2:
                 at = body.find(unit, at + 1, best)
             if at != -1:
                 best = at
         return best
 
+    def _codec(self) -> str:
+        if getattr(self, "utf8", False):
+            return getattr(self, "byte_codec", "utf-8")
+        return "utf-16-le" if self.little else "utf-16-be"
+
     def _read_text(self, body: bytes, position: int, end: int) -> List[Token]:
         e = self.endian
-        codec = "utf-16-le" if self.little else "utf-16-be"
+        codec = self._codec()
+        unit_size = 1 if self.utf8 else 2
         tokens: List[Token] = []
-        end -= (end - position) % 2
+        end -= (end - position) % unit_size
         while position < end:
             control = self._next_control(body, position, end)
             if control > position:
@@ -128,32 +145,35 @@ class Msbt:
                 position = control
             if position >= end:
                 break
-            unit = struct.unpack_from(e + "H", body, position)[0]
+            unit = body[position] if unit_size == 1 else struct.unpack_from(e + "H", body, position)[0]
             if unit == 0:
                 break
             if unit == 0x0E:
-                group, kind, size = struct.unpack_from(e + "HHH", body, position + 2)
-                tokens.append(Tag(group, kind, bytes(body[position + 8:position + 8 + size])))
-                position += 8 + size
+                group, kind, size = struct.unpack_from(e + "HHH", body, position + unit_size)
+                start = position + unit_size + 6
+                tokens.append(Tag(group, kind, bytes(body[start:start + size])))
+                position = start + size
             else:
-                group, kind = struct.unpack_from(e + "HH", body, position + 2)
+                group, kind = struct.unpack_from(e + "HH", body, position + unit_size)
                 tokens.append(EndTag(group, kind))
-                position += 6
+                position += unit_size + 4
         return tokens
 
     def encode_text(self, tokens: List[Token]) -> bytes:
         """One TXT2 entry, with its terminating null."""
         e = self.endian
-        codec = "utf-16-le" if self.little else "utf-16-be"
+        codec = Msbt._codec(self)
+        one_byte = codec in ("utf-8", "latin-1")
+        control = "B" if one_byte else "H"
         out = bytearray()
         for token in tokens:
             if isinstance(token, str):
                 out += token.encode(codec, "surrogatepass")
             elif isinstance(token, Tag):
-                out += struct.pack(e + "HHHH", 0x0E, token.group, token.type, len(token.params)) + token.params
+                out += struct.pack(e + control + "HHH", 0x0E, token.group, token.type, len(token.params)) + token.params
             else:
-                out += struct.pack(e + "HHH", 0x0F, token.group, token.type)
-        return bytes(out) + b"\x00\x00"
+                out += struct.pack(e + control + "HH", 0x0F, token.group, token.type)
+        return bytes(out) + (b"\x00" if one_byte else b"\x00\x00")
 
     def build(self, messages: List[List[Token]]) -> bytes:
         """The file with ``messages`` as its texts and every other section unchanged."""
