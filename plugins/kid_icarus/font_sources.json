@@ -1,0 +1,4 @@
+[
+  {"label": "Small font (digits, Latin, kana)", "format": "bcfnt", "path": "romfs/eu/00.arc/resident/04.bin"},
+  {"label": "Large font (chapter titles, stage a2800)", "format": "bcfnt", "path": "romfs/eu/stage/a2800.zrc/stage/bin.arc/bin/fnt.bin"}
+]
