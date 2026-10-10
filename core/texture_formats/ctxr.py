@@ -73,7 +73,63 @@ def _layouts(texture: Dict[str, Any], codec: pixels.Codec):
     return out
 
 
+# -- PC (Steam) build: a "TXTR" container, big-endian header of 0x28 bytes, pixel data at 0x84 ---------------------
+# Header: u32 "TXTR", u32 version 7, u16 width, u16 height, u16 depth, u16 ?, u16 pixel format, u16 ?, ... byte
+# mip count at 0x26. At 0x80 (aligned) a big-endian u32 size; the pixel data follows at 0x84: A8R8G8B8 (BGRA, one
+# level, rows in order) or DXT1/3/5 blocks with the mip levels one after another (DDS-like, as the codec reads them).
+PC_FORMATS = {0x0: "BGRA8", 0x5: "BC1", 0x6: "BC2", 0x7: "BC3"}
+PC_DATA = 0x84
+
+
+def detect_pc(data: bytes) -> bool:
+    return data[:4] == b"TXTR"
+
+
+def _pc_texture(data: bytes) -> Dict[str, Any]:
+    if data[:4] != b"TXTR" or struct.unpack_from(">I", data, 4)[0] != 7:
+        raise ValueError("Not a PC .ctxr (TXTR version 7)")
+    width, height = struct.unpack_from(">HH", data, 8)
+    fmt = struct.unpack_from(">H", data, 16)[0]
+    mips = max(1, data[0x26])
+    if fmt not in PC_FORMATS:
+        raise ValueError(f"PC .ctxr: pixel format {fmt:#x} is not supported yet")
+    codec = pixels.codec(PC_FORMATS[fmt])
+    levels, at = [], PC_DATA
+    for level in range(mips):
+        w, h = max(1, width >> level), max(1, height >> level)
+        levels.append((at, w, h))
+        if fmt == 0x0:
+            at += w * h * 4
+        else:
+            at += max(1, (w + 3) // 4) * max(1, (h + 3) // 4) * codec.size
+    return {"format": fmt, "codec": codec, "levels": levels}
+
+
+def _pc_read(data: bytes) -> List[Texture]:
+    tex = _pc_texture(data)
+    at, width, height = tex["levels"][0]
+    image = surface.read(data, at, tex["codec"], width, height, None)
+    return [Texture("", image, PC_FORMATS[tex["format"]], len(tex["levels"]))]
+
+
+def _pc_write(data: bytes, images: Dict[int, Image.Image]) -> bytes:
+    tex = _pc_texture(data)
+    out = bytearray(data)
+    for index, image in images.items():
+        if index:
+            raise ValueError("PC .ctxr holds one texture")
+        at, width, height = tex["levels"][0]
+        if surface.write(out, at, tex["codec"], width, height, image, None) == 0:
+            continue
+        for (lat, lw, lh), level in zip(tex["levels"][1:], surface.mip_levels(image.convert("RGBA"),
+                                                                              len(tex["levels"]))[1:]):
+            surface.write(out, lat, tex["codec"], lw, lh, level, None)
+    return bytes(out)
+
+
 def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
+    if detect_pc(data):
+        return _pc_read(data)
     out = []
     for texture in _textures(data):
         fmt = texture["format"]
@@ -89,6 +145,8 @@ def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
 
 
 def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -> bytes:
+    if detect_pc(data):
+        return _pc_write(data, images)
     out = bytearray(data)
     textures = _textures(data)
     for index, image in images.items():
