@@ -1,0 +1,4 @@
+[
+  {"label": "Message font (script12.fnt, 12 px)", "format": "cop_fnt", "path": "romfs/_spec_en/font/script12.fnt"},
+  {"label": "System font (sys.fnt, 8 px)", "format": "cop_fnt", "path": "romfs/_spec_en/font/sys.fnt"}
+]

@@ -1,0 +1,6 @@
+[
+  {"label": "Interface pictures (title, menus, results)", "kind": "menu", "format": "rtex", "path": "romfs/_spec_en/rtex/ui/*.rtx"},
+  {"label": "Effects", "kind": "hud", "format": "rtex", "path": "romfs/_spec_en/rtex/effect/*.rtx"},
+  {"label": "Effects (sets)", "kind": "hud", "format": "rtex", "path": "romfs/_spec_en/rtex/effect/*/*.rtx"},
+  {"label": "Effects (animations)", "kind": "hud", "format": "rtex", "path": "romfs/_spec_en/rtex/effect/*/*/*.rtx"}
+]
