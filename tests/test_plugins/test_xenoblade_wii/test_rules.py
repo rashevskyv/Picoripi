@@ -47,9 +47,12 @@ def table(name: str, columns: list, rows: list, e: str = ">") -> bytes:
     strings += bytes(-(str_off + len(strings)) % 16)
     body[0x20:0x20 + len(infos)] = infos
     body[names_off:hash_off] = names
-    struct.pack_into(e + "4sBBHHHHHHHHHII", body, 0, b"BDAT", 3, 0, names_off, row_len, hash_off, 1, rows_off,
-                     len(rows), 1, 2, 0, str_off, len(strings))
+    wii = e == ">"
+    struct.pack_into(e + "4sBBHHHHHHHHHII", body, 0, bdat_wii.MAGICS[e], 3 if wii else 1, 0, names_off, row_len,
+                     hash_off, 1, rows_off, len(rows), 1, 2, 0, str_off, len(strings))
     plain = bytes(body) + bytes(strings)
+    if not wii:                                   # the 3DS port: plain names and strings
+        return plain
     checksum = bdat_wii.checksum_of(plain)
     out = bytearray(plain)
     struct.pack_into(e + "H", out, 0x16, checksum)
@@ -137,3 +140,122 @@ def test_the_real_tables_and_fonts_round_trip():
     plain, glgr = bcfnt.rfna_to_rfnt(font)
     again = bcfnt.rfnt_to_rfna(plain, glgr)
     assert again[:4] == b"RFNA" and bcfnt.rfna_to_rfnt(again)[0] == plain
+
+
+# -- scripts (SB) ---------------------------------------------------------------------------------------------
+
+def script(strings: list, e: str = ">", scrambled: bool = True, tail: int = 8) -> bytes:
+    """An SB file: 13 sections, the pool (section 4) right after a dummy code section, three small sections after."""
+    count = len(strings)
+    blob, offsets = bytearray(), []
+    for raw in strings:
+        offsets.append(count * 2 + len(blob))
+        blob += raw + b"\0"
+    pool = bytearray(struct.pack(e + "III", 12, count, 2) + struct.pack(f"{e}{count}H", *offsets) + blob)
+    pool += bytes(-len(pool) % 4 + 4)
+    sections = [0x40, 0x50, 0x60, 0x70, 0x80] + [0x80 + len(pool) + 16 * i for i in range(8)]
+    head = b"SB  " + (b"\x02\x00\x03\x00" if scrambled else b"\x02\x00\x01\x00") + struct.pack(f"{e}13I", *sections)
+    data = bytearray(head + bytes(0x80 - len(head)))
+    for at in sections[:4]:
+        struct.pack_into(e + "III", data, at, 12, 0, 4)
+    data += pool
+    for _ in range(8):
+        data += struct.pack(e + "III", 12, 0, 4) + b"\xaa" * 4
+    out = bytearray(data)
+    if scrambled:
+        from plugins.xenoblade_wii import sbscript
+        sbscript._rotate(out, 0x80 + 12 + count * 2, 0x80 + len(pool), e, left=True)
+    return bytes(out + bytes(tail))
+
+
+LINES = [b"player", "Shulk, wait!<wait=key>".encode(), "ｼﾅﾘｵ".encode("shift_jis"), b"funcScForce()", b"Yes",
+         "Reyn: <n>Let's go.".encode()]
+
+
+@pytest.mark.parametrize("e,scrambled", [(">", True), ("<", False)])
+def test_script_lines_read_and_write(e, scrambled):
+    from plugins.xenoblade_wii import sbscript
+    data = script(LINES, e, scrambled)
+    assert sbscript.endian_of(data) == e and sbscript.pool(data) == LINES
+    assert sbscript.read(data) == ["Shulk, wait!<wait=key>", "Yes", "Reyn: <n>Let's go."]
+    assert sbscript.write(data, sbscript.read(data)) == data
+    longer = ["Шульк, зачекай! " * 40 + "<wait=key>", "Так", "Рейн: <n>Ходімо."]
+    out = sbscript.write(data, longer)
+    assert sbscript.read(out) == longer
+    assert [s for s in sbscript.pool(out) if not sbscript.is_text(s)] == [LINES[0], LINES[2], LINES[3]]
+    short = sbscript.write(data, ["Ні", "Так", "Ок"])
+    assert sbscript.read(short) == ["Ні", "Так", "Ок"] and len(short) == len(data)    # fits the pool's own room
+
+
+def test_the_plugin_opens_a_script_and_saves_over_the_source():
+    from plugins.xenoblade_wii import sbscript
+    rules = load_rules(PLUGIN)
+    data = script(LINES, "<", False)
+    blocks, names = rules.load_data_from_json_obj(data)
+    assert blocks == [sbscript.read(data)] and names == {"0": "Script lines"}
+    edited = script(LINES, "<", False)
+    rules.prepare_save_context(SaveContext(relative_path="script/x.sb", existing_versions=lambda: iter([edited, data])))
+    out = rules.save_data_to_json_obj([["A", "B", "C"]], names)
+    assert sbscript.read(out) == ["A", "B", "C"]
+
+
+# -- QuickLZ, 3DS textures -------------------------------------------------------------------------------------
+
+def test_quicklz_level_3_round_trips():
+    from core.containers import quicklz
+    rng = random.Random(3)
+    for size in (1, 10, 11, 12, 33, 600, 9000):
+        raw = bytes(rng.choice(b"\0\0\0\0xyzxyz") for _ in range(size))
+        stream = quicklz.compress(raw)
+        assert stream[0] == 0x4F and quicklz.sizes(stream) == (len(stream), size)
+        assert quicklz.decompress(stream) == raw
+
+
+def test_a_3ds_tpl_reads_upright_and_writes_in_place():
+    from PIL import Image
+
+    from core import texture_formats
+    from core.texture_formats import pixels, surface
+    w, h = 16, 8
+    picture = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    picture.putpixel((1, 0), (255, 255, 255, 255))                    # top row
+    stored = bytearray(w * h)
+    surface.write(stored, 0, pixels.codec("pica:A8"), w, h, picture.transpose(Image.Transpose.FLIP_TOP_BOTTOM))
+    texture = b"!xtt" + struct.pack("<HHBBH", w, h, 1, 0x2A, 0xE3E3) + b"xtrd" + struct.pack("<HHIII", 1, 4, 0x44, 0x74, len(stored))
+    texture += bytes(0x80 - len(texture)) + bytes(stored)
+    data = b"\x30\xaf\x20\x00" + struct.pack("<IIII", 1, 0x0C, 0x14, 0) + struct.pack("<HHII", h, w, 0, 0x40)
+    data += bytes(0x40 - len(data)) + texture
+    assert texture_formats.detect(data) == "tpl_ctr"
+    image = texture_formats.read("tpl_ctr", data)[0].image
+    assert image.getpixel((1, 0))[3] == 255 and image.getpixel((1, h - 1))[3] == 0
+    assert texture_formats.write("tpl_ctr", data, {}) == data
+    image.putpixel((5, 0), (255, 255, 255, 255))
+    out = texture_formats.write("tpl_ctr", data, {0: image})
+    assert len(out) == len(data) and texture_formats.read("tpl_ctr", out)[0].image.getpixel((5, 0))[3] == 255
+
+
+CTR = Path(r"E:\Emulators\RomHacking\Xenoblade\Chronicles\3DS\source")
+real_3ds = pytest.mark.skipif(not (CTR / "font" / "font_eu.brfna").exists(), reason="Xenoblade 3D not unpacked here")
+
+
+@real_3ds
+def test_the_real_3ds_text_and_fonts_round_trip():
+    from plugins.xenoblade_wii import sbscript
+    rules = load_rules(PLUGIN)
+    total = 0
+    for path in sorted(CTR.glob("bdat/**/*.bin")) + sorted(CTR.glob("script/vs01*.sb")):
+        raw = path.read_bytes()
+        blocks, names = rules.load_data_from_json_obj(raw)
+        rules.prepare_save_context(SaveContext(relative_path=path.name, existing_versions=lambda r=raw: iter([r])))
+        assert rules.save_data_to_json_obj(blocks, names) == raw, path
+        total += sum(len(b) for b in blocks)
+    assert total > 38000
+    font = (CTR / "font" / "font_eu.brfna").read_bytes()
+    assert font_formats.detect(font) == "brfnt"
+    meta, sheets = font_formats.extract("brfnt", font)
+    assert font_formats.pack("brfnt", meta, sheets, font) == font
+    sheets[0] = sheets[0].copy()
+    sheets[0].putpixel((2, 2), (255, 255, 255, 255))
+    packed = font_formats.pack("brfnt", meta, sheets, font)
+    assert packed[:4] == b"ANFR" and font_formats.extract("brfnt", packed)[1][0].getpixel((2, 2))[3] == 255
+    assert sbscript.read((CTR / "script" / "0101c1am.sb").read_bytes())

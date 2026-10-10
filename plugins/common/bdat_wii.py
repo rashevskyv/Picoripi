@@ -15,6 +15,10 @@ module follows for the big-endian Wii layout): two running keys ``~checksum >> 8
 XOR the even and odd bytes, each advanced by the stored byte; the checksum is the sum over the plain table
 bytes from 0x20 of ``(byte << (offset & 3)) & 0xFF`` mod 65536.
 
+The New 3DS port stores the same tables little-endian, its magic as the swapped word ``TADB``, unscrambled
+(flags 1), and keeps the Wii file's size in the header although its tables are shorter; a rewritten file keeps
+that field and moves it by the change in length.
+
 A text cell is a string cell of any column not in ``SKIP_COLUMNS`` (resource names, file names, debug names).
 """
 from __future__ import annotations
@@ -23,6 +27,7 @@ import struct
 from typing import List, Tuple
 
 MAGIC = b"BDAT"
+MAGICS = {">": b"BDAT", "<": b"TADB"}
 SCRAMBLED = 2
 STRING = 7
 SKIP_COLUMNS = frozenset({"resource", "filename", "filename_1", "filename_2", "file", "file_name", "ID_NAME",
@@ -34,9 +39,9 @@ def endian_of(data: bytes) -> str:
     for e in (">", "<"):
         if len(data) >= 16:
             count, size = struct.unpack_from(e + "II", data, 0)
-            if 0 < count < 4096 and size == len(data) and 8 + 4 * count <= len(data):
+            if 0 < count < 4096 and size >= len(data) - 16 and 8 + 4 * count <= len(data):
                 first = struct.unpack_from(e + "I", data, 8)[0]
-                if first + 0x20 <= len(data) and data[first:first + 4] == MAGIC:
+                if first + 0x20 <= len(data) and data[first:first + 4] == MAGICS[e]:
                     return e
     return ""
 
@@ -90,7 +95,7 @@ class Table:
         self.e = e
         (magic, self.flags, _z, names_off, self.row_len, hash_off, _slots, self.rows_off, self.rows, _base, _u,
          self.checksum, self.str_off, self.str_len) = struct.unpack_from(e + "4sBBHHHHHHHHHII", raw, 0)
-        if magic != MAGIC:
+        if magic != MAGICS[e]:
             raise ValueError("BDAT table: bad magic")
         plain = bytearray(raw)
         if self.flags & SCRAMBLED:
@@ -98,6 +103,7 @@ class Table:
             plain[self.str_off:self.str_off + self.str_len] = unscramble(
                 raw[self.str_off:self.str_off + self.str_len], self.checksum)
         self.plain = bytes(plain)
+        self.padded = len(raw) % 4 == 0                  # 3DS: the last table of a file is not padded
         self.names_off, self.hash_off = names_off, hash_off
         self.name = _cstr(self.plain, names_off)
         self.columns: List[Tuple[str, int, int]] = []   # every string column: (name, offset in the row, count)
@@ -112,6 +118,17 @@ class Table:
                 count = struct.unpack_from(e + "H", self.plain, info_off + 4)[0] if kind == 2 else 1
                 self.columns.append((cname, offset, count))
             at = (at + 4 + len(cname.encode("utf-8")) + 2) & ~1
+
+    def _hash_order(self) -> List[str]:
+        """Column names in the order of the hash table's slots and chains."""
+        out = []
+        slots = struct.unpack_from(self.e + "H", self.plain, 0x0C)[0]
+        for i in range(slots):
+            node = struct.unpack_from(self.e + "H", self.plain, self.hash_off + 2 * i)[0]
+            while node and len(out) < 4096:
+                out.append(_cstr(self.plain, node + 4))
+                node = struct.unpack_from(self.e + "H", self.plain, node + 2)[0]
+        return out
 
     def _cells(self):
         for row in range(self.rows):
@@ -132,17 +149,28 @@ class Table:
         e = self.e
         body = bytearray(self.plain[:self.str_off])
         blob, where = bytearray(), {}
-        new = iter(texts)
-        for cname, cell in self._cells():
+        given = iter(texts)
+        cells = [(cname, cell, next(given) if cname not in SKIP_COLUMNS else None) for cname, cell in self._cells()]
+        if e == "<":         # 3DS: the strings lie column by column, the columns in their hash-table order
+            order = {cname: i for i, cname in enumerate(self._hash_order())}
+            cells.sort(key=lambda item: order.get(item[0], len(order)))
+        for cname, cell, text in cells:
             old = struct.unpack_from(e + "I", self.plain, cell)[0]
-            text = next(new) if cname not in SKIP_COLUMNS else (_cstr(self.plain, old) if old else "")
+            if text is None:
+                text = _cstr(self.plain, old) if old else ""
             if not old and not text:
                 continue
             if text not in where:
                 where[text] = self.str_off + len(blob)
                 blob.extend(text.encode("utf-8") + b"\0")
-                blob.extend(bytes(len(blob) % 2))        # every string starts on an even offset
+                if e == ">":
+                    blob.extend(bytes(len(blob) % 2))    # Wii: every string starts on an even offset
             struct.pack_into(e + "I", body, cell, where[text])
+        if e == "<":                                     # 3DS: strings packed, the table padded to 4 with E3
+            struct.pack_into(e + "I", body, 0x1C, len(blob))
+            if self.padded:
+                blob.extend(b"\xe3" * (-(self.str_off + len(blob)) % 4))
+            return bytes(body) + bytes(blob)             # unscrambled; the stored checksum is left as it is
         blob.extend(bytes(-(self.str_off + len(blob)) % 16))
         struct.pack_into(e + "I", body, 0x1C, len(blob))
         plain = bytes(body) + bytes(blob)
@@ -189,5 +217,6 @@ def write(data: bytes, tables: List[List[str]]) -> bytes:
     for part in parts:
         offsets.append(at)
         at += len(part)
-    return (struct.pack(e + "II", len(parts), at) + struct.pack(f"{e}{len(parts)}I", *offsets) + bytes(head_pad)
+    size = struct.unpack_from(e + "I", data, 4)[0] + at - len(data)      # the declared size moves with the file
+    return (struct.pack(e + "II", len(parts), size) + struct.pack(f"{e}{len(parts)}I", *offsets) + bytes(head_pad)
             + b"".join(parts))

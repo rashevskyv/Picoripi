@@ -24,6 +24,12 @@ glyph-group block between the header and FINF, and the TGLP sheets stored as Nin
 (``rfna_to_rfnt``); the file written back (``rfnt_to_rfna``) compresses the sheets again as 4-bit Huffman
 (a 16-leaf tree always fits the format's 6-bit node offsets) and keeps GLGR with the new sheet sizes.
 
+New 3DS archived font (``ANFR``: Xenoblade Chronicles 3D): the same blocks little-endian with their magics
+stored as reversed words, a stale TGLP field in FINF (the game walks the blocks), and each sheet a QuickLZ
+stream (``core/containers/quicklz``) of a 0x80-byte texture header plus an A8 PICA image stored bottom row
+first. It is edited as a plain CFNT (``ctr_rfna_to_cfnt``: GLGR dropped, sheets unpacked and turned upright)
+and written back (``cfnt_to_ctr_rfna``) with the original GLGR, FINF field and texture headers.
+
 Editing: cell pixels, left offsets and advances are written in place; a redrawn glyph's glyph width is
 measured from its ink. New characters are added: a glyph after the last ``CWDH`` range gets a new
 ``CWDH`` block; a new code goes into a ``CMAP`` table that covers it, else into a scan list (the one
@@ -445,6 +451,8 @@ def _model_sheets(info: Dict[str, int], textures: List[Image.Image]) -> List[Ima
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     if data[:4] == b"RFNA":
         data = rfna_to_rfnt(data)[0]
+    elif data[:4] == b"ANFR":
+        data = ctr_rfna_to_cfnt(data)
     info = _info(data)
     sheets = _model_sheets(info, _textures(data, info))
     if _grows(info):   # blank sheets for new glyphs (``min_sheets``)
@@ -557,6 +565,10 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         plain, glgr = rfna_to_rfnt(original)
         packed = pack(metadata, sheets, plain, params)
         return original if packed == plain else rfnt_to_rfna(packed, glgr)   # untouched: the original bytes
+    if original[:4] == b"ANFR":
+        plain = ctr_rfna_to_cfnt(original)
+        packed = pack(metadata, sheets, plain, params)
+        return original if packed == plain else cfnt_to_ctr_rfna(packed, original)
     info = _info(original)
     e = info["e"]
     if _grows(info) and len(sheets) > info["sheets"]:
@@ -694,15 +706,17 @@ def _rfnt_blocks(data: bytes, at: int, count: int) -> List[Tuple[int, bytes]]:
     return out
 
 
-def _relink(out: bytearray, moved: Dict[int, int], tglp_data: int) -> None:
+def _relink(out: bytearray, moved: Dict[int, int], tglp_data: int, e: str = ">", size_at: int = 0x08) -> None:
     """Point every FINF / CWDH / CMAP / TGLP pointer of ``out`` at the moved blocks (``moved``: old -> new)."""
     def fix(pos: int) -> None:
-        old = struct.unpack_from(">I", out, pos)[0]
-        if old:
-            struct.pack_into(">I", out, pos, moved[old - 8] + 8)
+        old = struct.unpack_from(e + "I", out, pos)[0]
+        if old and old - 8 in moved:                     # the 3DS FINF keeps a stale TGLP field
+            struct.pack_into(e + "I", out, pos, moved[old - 8] + 8)
 
     for new in moved.values():
         magic = bytes(out[new:new + 4])
+        if magic[::-1] in _CTR_BLOCKS:                   # the 3DS archived font stores block magics reversed
+            magic = magic[::-1]
         if magic == b"FINF":
             for field in (0x10, 0x14, 0x18):
                 fix(new + field)
@@ -711,8 +725,8 @@ def _relink(out: bytearray, moved: Dict[int, int], tglp_data: int) -> None:
         elif magic == b"CMAP":
             fix(new + 16)
         elif magic == b"TGLP":
-            struct.pack_into(">I", out, new + 0x1C, tglp_data)
-    struct.pack_into(">I", out, 0x08, len(out))
+            struct.pack_into(e + "I", out, new + 0x1C, tglp_data)
+    struct.pack_into(e + "I", out, size_at, len(out))
 
 
 def rfna_to_rfnt(data: bytes) -> Tuple[bytes, bytes]:
@@ -854,3 +868,108 @@ def huffman_encode4(raw: bytes) -> bytes:
     bits += "0" * (-len(bits) % 32)
     body = b"".join(int(bits[i:i + 32], 2).to_bytes(4, "little") for i in range(0, len(bits), 32))
     return bytes([0x24]) + len(raw).to_bytes(3, "little") + tree + body
+
+
+# -- New 3DS archived font (Xenoblade Chronicles 3D: little-endian RFNA, QuickLZ sheets) -------------------
+
+_CTR_SHEET_CODES = {0x2A: A8}            # the port's texture header code -> PICA format (every font sheet is A8)
+_CTR_BLOCKS = (b"FINF", b"TGLP", b"CWDH", b"CMAP")
+
+
+def ctr_rfna_to_cfnt(data: bytes) -> bytes:
+    """A little-endian ``ANFR`` font as a plain CFNT: the blocks without GLGR, their magics read the right way
+    round, each sheet unpacked (QuickLZ) and stripped of its 0x80-byte texture header."""
+    from core.containers import quicklz
+    hdr, count = struct.unpack_from("<HH", data, 0x0C)
+    blocks = _rfnt_blocks_le(data, hdr, count)
+    out = bytearray(b"CFNT\xff\xfe" + struct.pack("<HIII", 0x14, 0x03000000, 0, count - 1))
+    moved: Dict[int, int] = {}
+    tglp_data = 0
+    for at, block in blocks:
+        magic = block[:4][::-1]
+        if magic == b"GLGR":
+            continue
+        block = magic + block[4:]
+        if magic == b"TGLP":
+            _cell, sheet_size, sheets = struct.unpack_from("<IIH", block, 8)
+            cursor = struct.unpack_from("<I", block, 0x1C)[0]
+            raw, code = bytearray(), None
+            for _ in range(sheets):
+                size = struct.unpack_from("<I", data, cursor)[0]
+                sheet = quicklz.decompress(data, cursor + 4)
+                code = sheet[9]
+                raw += _flip_a8(sheet[0x80:], *struct.unpack_from("<HH", block, 0x18))
+                cursor += 4 + size
+            if code not in _CTR_SHEET_CODES:
+                raise ValueError(f"3DS font sheet code {code:#x} is not supported")
+            block = bytearray(block[:0x20] + bytes(raw))
+            struct.pack_into("<I", block, 4, len(block))
+            struct.pack_into("<IHH", block, 0x0C, sheet_size - 0x80, sheets, _CTR_SHEET_CODES[code])
+            tglp_data = len(out) + 0x20
+        moved[at] = len(out)
+        out += block
+    _relink(out, moved, tglp_data, "<", 0x0C)
+    finf = next(at for at in moved.values() if out[at:at + 4] == b"FINF")
+    struct.pack_into("<I", out, finf + 0x10, tglp_data - 0x18)       # the TGLP block itself, + 8
+    return bytes(out)
+
+
+def cfnt_to_ctr_rfna(cfnt: bytes, original: bytes) -> bytes:
+    """``cfnt`` (from ``ctr_rfna_to_cfnt`` of ``original``) written back as the game's archived font: GLGR and
+    every texture header as in ``original``, each sheet packed again with QuickLZ."""
+    from core.containers import quicklz
+    hdr, count = struct.unpack_from("<HH", original, 0x0C)
+    old = _rfnt_blocks_le(original, hdr, count)
+    glgr = next(block for _at, block in old if block[:4] == b"RGLG")
+    old_tglp = next(block for _at, block in old if block[:4] == b"PLGT")
+    sheet_size, _sheets, word = struct.unpack_from("<IHH", old_tglp, 0x0C)
+    cursor = struct.unpack_from("<I", old_tglp, 0x1C)[0]
+    heads = []
+    for _ in range(_sheets):
+        size = struct.unpack_from("<I", original, cursor)[0]
+        heads.append(quicklz.decompress(original, cursor + 4)[:0x80])
+        cursor += 4 + size
+    c_hdr, c_count = struct.unpack_from("<HI", cfnt, 6)[0], struct.unpack_from("<I", cfnt, 0x10)[0]
+    blocks = _rfnt_blocks_le(cfnt, c_hdr, c_count)
+    out = bytearray(original[:hdr]) + glgr
+    moved: Dict[int, int] = {}
+    tglp_data = 0
+    for at, block in blocks:
+        magic = block[:4]
+        if magic == b"TGLP":
+            raw_size, sheets = struct.unpack_from("<IH", block, 0x0C)
+            start = struct.unpack_from("<I", block, 0x1C)[0] - at
+            chunks = []
+            for i in range(sheets):
+                head = heads[i] if i < len(heads) else heads[-1]
+                sheet = _flip_a8(block[start + i * raw_size:start + (i + 1) * raw_size], *struct.unpack_from("<HH", block, 0x18))
+                stream = quicklz.compress(head + sheet)
+                chunks.append(stream + b"\xe3" * (-len(stream) % 4))
+            block = bytearray(block[:0x20] + b"".join(struct.pack("<I", len(c)) + c for c in chunks))
+            struct.pack_into("<I", block, 4, len(block))
+            struct.pack_into("<IHH", block, 0x0C, sheet_size, sheets, word)
+            tglp_data = len(out) + 0x20
+        moved[at] = len(out)
+        out += magic[::-1] + block[4:]
+    _relink(out, moved, tglp_data, "<", 0x08)
+    struct.pack_into("<H", out, 0x0E, len(blocks) + 1)
+    old_finf = next(at for at, block in old if block[:4] == b"FNIF")
+    finf = next(at for at in moved.values() if out[at:at + 4] == b"FNIF")
+    out[finf + 0x10:finf + 0x14] = original[old_finf + 0x10:old_finf + 0x14]
+    return bytes(out)
+
+
+def _flip_a8(raw: bytes, width: int, height: int) -> bytes:
+    """An A8 PICA sheet upside down (the 3DS port stores its sheets bottom row first)."""
+    pixels = _unswizzle(bytes(raw[:width * height]), width, height)
+    rows = [pixels[y * width:(y + 1) * width] for y in range(height)]
+    return _swizzle(b"".join(reversed(rows)), width, height) + bytes(raw[width * height:])
+
+
+def _rfnt_blocks_le(data: bytes, at: int, count: int) -> List[Tuple[int, bytes]]:
+    out = []
+    for _ in range(count):
+        size = struct.unpack_from("<I", data, at + 4)[0]
+        out.append((at, bytes(data[at:at + size])))
+        at += size
+    return out

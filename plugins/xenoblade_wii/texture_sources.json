@@ -1,9 +1,17 @@
 [
-  {"label": "Title logo XENOBLADE CHRONICLES", "kind": "title_screen", "format": "tpl", "path": "menu/*/arc/timg/mf99_logo*.tpl"},
-  {"label": "Title screen pictures", "kind": "title_screen", "format": "tpl", "path": "menu/*/arc/timg/mf99_*.tpl"},
-  {"label": "Menu pictures (all layouts)", "kind": "menu_label", "format": "tpl", "path": "menu/*/arc/timg/*.tpl"},
-  {"label": "Loose menu pictures", "kind": "menu_label", "format": "tpl", "path": "menu/*.tpl"},
+  {"label": "Title logo XENOBLADE CHRONICLES (Wii)", "kind": "title_screen", "format": "tpl", "path": "menu/[0-9][0-9][0-9]_*/arc/timg/mf99_logo*.tpl"},
+  {"label": "Title screen pictures (Wii)", "kind": "title_screen", "format": "tpl", "path": "menu/[0-9][0-9][0-9]_*/arc/timg/mf99_*.tpl"},
+  {"label": "Menu pictures, all layouts (Wii)", "kind": "menu_label", "format": "tpl", "path": "menu/[0-9][0-9][0-9]_*/arc/timg/*.tpl"},
+  {"label": "Loose menu pictures (Wii)", "kind": "menu_label", "format": "tpl", "path": "menu/[0-9][0-9][0-9]_*.tpl"},
   {"label": "Disc channel banner and icon (Wii Menu)", "kind": "banner", "format": "tpl", "path": "opening.bnr/meta/*/arc/timg/*.tpl"},
-  {"label": "Save file banner and icons", "kind": "banner", "format": "tpl", "path": "banner/*.tpl"},
-  {"label": "Wii HOME Menu pictures", "kind": "menu_label", "format": "tpl", "path": "hbm/hbm.arc/hbm/homeBtn.arc/arc/timg/*.tpl"}
+  {"label": "Save file banner and icons (Wii)", "kind": "banner", "format": "tpl", "path": "banner/*.tpl"},
+  {"label": "Wii HOME Menu pictures", "kind": "menu_label", "format": "tpl", "path": "hbm/hbm.arc/hbm/homeBtn.arc/arc/timg/*.tpl"},
+  {"label": "Title logo XENOBLADE CHRONICLES 3D (3DS)", "kind": "title_screen", "format": "tpl_ctr", "path": "menu/title.arc/arc/timg/mf99_logo*.tpl"},
+  {"label": "Title screen pictures (3DS)", "kind": "title_screen", "format": "tpl_ctr", "path": "menu/title.arc/arc/timg/*.tpl"},
+  {"label": "Menu pictures, all archives (3DS, menu)", "kind": "menu_label", "format": "tpl_ctr", "path": "menu/[a-z]*.arc/arc/timg/*.tpl"},
+  {"label": "Menu pictures in layout folders (3DS, menu)", "kind": "menu_label", "format": "tpl_ctr", "path": "menu/[a-z]*.arc/arc/blyt/timg/*.tpl"},
+  {"label": "Menu pictures, all archives (3DS, menu/tpl)", "kind": "menu_label", "format": "tpl_ctr", "path": "menu/tpl/*.arc/arc/timg/*.tpl"},
+  {"label": "Loose menu pictures and maps (3DS, menu)", "kind": "map", "format": "tpl_ctr", "path": "menu/[a-z]*.tpl"},
+  {"label": "Loose menu pictures and maps (3DS, menu/tpl)", "kind": "map", "format": "tpl_ctr", "path": "menu/tpl/*.tpl"},
+  {"label": "Save file banner and icons (3DS)", "kind": "banner", "format": "tpl_ctr", "path": "save_banner/*.tpl"}
 ]
