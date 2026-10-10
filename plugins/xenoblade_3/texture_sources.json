@@ -1,0 +1,5 @@
+[
+  {"label": "Title logo (English)", "kind": "title_screen", "format": "wilay", "path": "menu/image/mnu001_cont01_en.wilay"},
+  {"label": "Title screen layouts", "kind": "title_screen", "format": "wilay", "path": "menu/image/mnu001_*.wilay"},
+  {"label": "Tutorial pictures (English)", "kind": "ui", "format": "wilay", "path": "menu/image/gb/*.wilay"}
+]

@@ -1,0 +1,8 @@
+[
+  {"label": "Menu font (Latin, ascii)", "format": "laft", "path": "menu/font/ascii.wifnt"},
+  {"label": "Standard font (menus, names)", "format": "laft", "path": "menu/font/standard.wifnt"},
+  {"label": "Talk font (dialogue)", "format": "laft", "path": "menu/font/talk.wifnt"},
+  {"label": "Standard font (Chinese)", "format": "laft", "path": "menu/font/standard_cn.wifnt", "params": {"free_rows": 0}},
+  {"label": "Standard font (Korean)", "format": "laft", "path": "menu/font/standard_kr.wifnt", "params": {"free_rows": 0}},
+  {"label": "Standard font (Taiwanese)", "format": "laft", "path": "menu/font/standard_tw.wifnt", "params": {"free_rows": 0}}
+]

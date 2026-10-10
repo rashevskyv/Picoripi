@@ -30,22 +30,23 @@ class Texture:
 def _backends() -> Dict[str, Any]:
     from core.texture_formats import (bfres, bntx, bti, ctpk, ctxb, ffta2_efx, flim, g1t, g4tx, gba, gim, gtx, imgc, j3d,
                                       jade,
-                                      jade_jtx, m2, pcx, png, policenauts_pak, raw, shpg, sotn, tilemap, tiles, tim, tim2, tpl, txtr, txtr_gx,
-                                      vagrant)
+                                      jade_jtx, m2, mibl, pcx, png, policenauts_pak, raw, shpg, sotn, tilemap, tiles, tim, tim2, tpl, txtr, txtr_gx,
+                                      vagrant, wilay)
     from core.texture_formats import dq9_spr, is_tex
     return {"bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
             "imgc": imgc, "j3d": j3d, "gba": gba, "gtx": gtx, "txtr": txtr, "gim": gim, "raw": raw, "tiles": tiles, "tilemap": tilemap,
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
             "bfres": bfres, "is_tex": is_tex, "dq9_spr": dq9_spr, "jade": jade, "jade_jtx": jade_jtx, "shpg": shpg, "png": png, "sotn_blocks": sotn.blocks, "sotn_cmp": sotn.packed,
-            "ffta2_efx": ffta2_efx}
+            "ffta2_efx": ffta2_efx, "mibl": mibl, "wilay": wilay}
 
 
 # File name extension -> format, for files opened directly.
 EXTENSIONS = {".bti": "bti", ".bflim": "bflim", ".bclim": "bflim", ".bntx": "bntx", ".ctpk": "ctpk", ".ctxb": "ctxb", ".tpl": "tpl", ".g1t": "g1t",
               ".xi": "imgc", ".bmd": "j3d", ".bdl": "j3d", ".gtx": "gtx", ".ncgr": "tiles", ".txtr": "txtr", ".gim": "gim", ".fcha": "gim",
               ".tim": "tim", ".tm2": "tim2", ".pcx": "pcx", ".psb": "m2", ".m2tex": "m2", ".g4tx": "g4tx", ".bfres": "bfres",
-              ".jtex": "jade", ".jtx": "jade_jtx", ".gsh": "shpg", ".png": "png"}
+              ".jtex": "jade", ".jtx": "jade_jtx", ".gsh": "shpg", ".png": "png",
+              ".witex": "mibl", ".wilay": "wilay"}
 
 
 def formats() -> List[str]:

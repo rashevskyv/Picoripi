@@ -33,7 +33,7 @@ Sheets = List[Image.Image]
 
 def _backends() -> Dict[str, Any]:
     from core.font_formats import (bcfnt, bffnt, bfotf, brfna, cv_gba, cv_nds, eternal_darkness, ffta2, fntg, fragile_dreams, g1n,
-                                   g1t, g4font, gba_tiles, gzf, jade, lunar, m2, mgs, mgs1, mgs1_hd, n64, nftr, pgf, policenauts, qbf,
+                                   g1t, g4font, gba_tiles, gzf, laft, jade, lunar, m2, mgs, mgs1, mgs1_hd, n64, nftr, pgf, policenauts, qbf,
                                    retro_font, retro_font_gx,
                                    rrr_errfont, swf_font, texture_grid, tmp_sdf, twewy, vagrant, xf, zelda3)
     from core.font_formats import dq9, infinite_space
@@ -45,7 +45,7 @@ def _backends() -> Dict[str, Any]:
             "lunar": lunar, "g4font": g4font,
             "is_obd": infinite_space, "dq9": dq9, "jade": jade, "brfna": brfna, "rrr_errfont": rrr_errfont,
             "swf_font": swf_font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams,
-            "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf}
+            "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf, "laft": laft}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -91,6 +91,8 @@ def detect(data: bytes) -> Optional[str]:
         return "bfn"
     if head[:4] == b"FntG":
         return "fntg"
+    if head[:4] == b"LAFT":
+        return "laft"
     if head[:4] == b"GT1G":
         return "g1t"
     if head[:4] == b"VSFN":
