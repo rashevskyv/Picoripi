@@ -26,27 +26,38 @@ def table(strings):
     return struct.pack("<%dH" % count, *offsets[:count]) + b"".join(padded)
 
 
-def test_codec_reads_letters_and_punctuation():
-    raw = bytes([0x4C, 0x4F, 0x43, 0x4B, 0x45, 0x44, 0x0E, 0x00, 0x29, 0x07, 0x1F])
-    assert codec.decode(raw) == "LOCKED. I'?"
+def test_codec_reads_glyphs_as_ascii_minus_0x20():
+    # "It's locked." with the game's glyph bytes, then "?"
+    raw = bytes([0x29, 0x54, 0x07, 0x53, 0x00, 0x4C, 0x4F, 0x43, 0x4B, 0x45, 0x44, 0x0E, 0x1F])
+    assert codec.decode(raw) == "It's locked.?"
 
 
-def test_codec_shows_unknown_bytes_as_tags():
-    assert codec.decode(bytes([0x80, 0xFF, 0x90])) == "{80}{FF}{90}"
+def test_codec_shows_control_and_tag_bytes_as_tags():
+    assert codec.decode(bytes([0x80, 0xFF, 0x90, 0x3C, 0x5B, 0x5D, 0x5F])) == "{80}{FF}{90}{3C}{5B}{5D}{5F}"
 
 
-def test_codec_encodes_letters_in_the_plain_set_and_tags_back():
-    assert codec.encode("UA TEST.{FF}") == bytes([0x55, 0x41, 0x00, 0x54, 0x45, 0x53, 0x54, 0x0E, 0xFF])
+def test_codec_encodes_capitals_and_small_letters_back():
+    assert codec.encode("UA TEST.{FF}") == bytes([0x35, 0x21, 0x00, 0x34, 0x25, 0x33, 0x34, 0x0E, 0xFF])
+    assert codec.encode("ua") == bytes([0x55, 0x41])
 
 
-def test_codec_rejects_a_character_without_a_glyph():
+@pytest.mark.parametrize("text", ["Ї", "{", "}", "\\"])
+def test_codec_rejects_a_character_without_a_glyph(text):
     with pytest.raises(ValueError):
-        codec.encode("Ї")
+        codec.encode(text)
+
+
+def test_codec_puts_a_marker_on_an_even_offset():
+    # "A", a space, then the message-end marker 0x90: the space would sit at offset 1 (odd), so one pad
+    assert codec.encode("A {90}") == bytes([0x21, 0x00, 0x00, 0x90])
+    # "AB", a space, then 0x90: the space sits at offset 2 (even), so no pad
+    assert codec.encode("AB {90}") == bytes([0x21, 0x22, 0x00, 0x90])
+
 
 
 def test_doc_reads_strings_and_rebuilds_unchanged_bytes():
     source = table([b"\x80LOCKED\x0e\xff\xff", b"\x80IT\x1f\xff\xff"])
-    assert doc.texts(source) == ["{80}LOCKED.{FF}{FF}", "{80}IT?{FF}{FF}"]
+    assert doc.texts(source) == ["{80}locked.{FF}{FF}", "{80}it?{FF}{FF}"]
     out, problems = doc.build(source, doc.texts(source))
     assert problems == []
     assert out == source
@@ -59,7 +70,7 @@ def test_doc_edit_changes_one_string_only():
     out, problems = doc.build(source, texts)
     assert problems == []
     # an odd-length string is padded with one zero byte, which reads back as a space
-    assert doc.texts(out) == ["{80}LOCKED.{FF}{FF}", "{80}UA TEST.{FF}{FF} "]
+    assert doc.texts(out) == ["{80}locked.{FF}{FF}", "{80}UA TEST.{FF}{FF} "]
 
 
 def test_doc_keeps_a_string_that_cannot_be_encoded():

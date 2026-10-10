@@ -1,42 +1,31 @@
 """Text codec of Silent Hill 3 (PC, English messages): the game's glyph bytes as editor text.
 
-The English messages hold one byte per glyph. The bytes 0x00, 0x07, 0x0C, 0x0E and 0x1F are a space,
-an apostrophe, a comma, a full stop and a question mark. The letters A to Z are read from two glyph sets,
-0x21-0x3A and 0x41-0x5A; a letter written back always uses 0x41-0x5A. Every other byte (control codes,
-the start and end markers of a message) is shown as a tag ``{XX}`` (two hex digits), so every byte has
-one visible form and a message without edits gives back its own bytes.
+Each glyph byte is the ASCII code minus 0x20: 0x00 is a space, 0x0E a full stop, 0x21-0x3A are the
+capitals, 0x41-0x5A the small letters, 0x10-0x19 the digits. The bytes 0x3C, 0x5B and 0x5D (a backslash,
+a brace) and every byte from 0x5F up are shown as a tag ``{XX}`` (two hex digits), so a tag never
+looks like text and every byte has one visible form.
+
+A message keeps the position of its marker bytes: a space before 0x80 (message start), 0x90 (message
+end) or 0x10 (page break) must sit at an even offset of the message; ``align`` adds a zero byte where
+needed.
 """
 from __future__ import annotations
 
 import re
 
+TAG_BYTES = frozenset({0x3C, 0x5B, 0x5D})
+MARKER_BYTES = frozenset({0x80, 0x90, 0x10})
 SPACE = 0x00
-PUNCTUATION = {0x00: " ", 0x07: "'", 0x0C: ",", 0x0E: ".", 0x1F: "?"}
 TAG_RE = re.compile(r"\{([0-9A-F]{2})\}")
 _TOKEN_RE = re.compile(r"\{[0-9A-F]{2}\}|.", re.DOTALL)
 
 
-def _letter(byte: int) -> str | None:
-    if 0x21 <= byte <= 0x3A or 0x41 <= byte <= 0x5A:
-        return chr(ord("A") + (byte - 0x21) % 0x20)
-    return None
-
-
-def _glyph_byte(char: str) -> int | None:
-    for byte, shown in PUNCTUATION.items():
-        if shown == char:
-            return byte
-    if "A" <= char <= "Z":
-        return 0x41 + ord(char) - ord("A")
-    return None
+def _is_text(byte: int) -> bool:
+    return byte < 0x5F and byte not in TAG_BYTES
 
 
 def decode(raw: bytes) -> str:
-    out = []
-    for byte in raw:
-        shown = PUNCTUATION.get(byte) or _letter(byte)
-        out.append(shown if shown is not None else "{%02X}" % byte)
-    return "".join(out)
+    return "".join(chr(byte + 0x20) if _is_text(byte) else "{%02X}" % byte for byte in raw)
 
 
 def encode(text: str) -> bytes:
@@ -47,8 +36,18 @@ def encode(text: str) -> bytes:
         if tag is not None:
             out.append(int(tag.group(1), 16))
             continue
-        byte = _glyph_byte(token)
-        if byte is None:
+        code = ord(token)
+        if not 0x20 <= code <= 0x7E or (code - 0x20) in TAG_BYTES:
             raise ValueError(f"character {token!r} has no glyph in the English font")
+        out.append(code - 0x20)
+    return align(bytes(out))
+
+
+def align(body: bytes) -> bytes:
+    """Insert a zero byte before a marker's space when that space would sit at an odd offset."""
+    out = bytearray()
+    for byte in body:
+        if byte in MARKER_BYTES and out and out[-1] == SPACE and (len(out) - 1) % 2:
+            out.insert(len(out) - 1, SPACE)
         out.append(byte)
     return bytes(out)
