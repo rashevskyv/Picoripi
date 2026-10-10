@@ -541,6 +541,20 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      and every picture with English text (`*_us`: BC1/BC3/BC4/BC7 textures written back in place). `2_build.bat`
      writes changed files as loose romfs files for the title that holds them and hides their entries in the
      `bf2.arh` / `aoc1.arh` index.
+   - `xenoblade_x_de` — Xenoblade Chronicles X: Definitive Edition (Switch, update 1.0.2). **Source:** the
+     workspace's `source` folder (`1_unpack.bat` reads only the needed entries of the game's `sts.ard` — its
+     `sts.arh` index holds path hashes, named from a public hash list — and puts there, at the archive paths, the
+     English text tables `bdat\us\*.bdat`, the credits `ui\credit\endroll.crt`, the fonts `ui\font\*.wifnt`, the
+     layouts `ui\image\*.wilay` and the English pictures `ui\stream\us\*.wilay`); **Translation:** `translation`.
+     One block per file (1,801 tables with 121,843 text cells + 654 credits lines), folders by kind (`common_ms` =
+     menus, system, names and descriptions; story events `xs`, quest events `qev`, talk events `tev`, credits); the
+     game's codes stay in the text as `[ST:wait ]` / `[ST:icon p1=a ]` / `[ST:col p1=red ]` tags. The Font Editor
+     opens the six LAFT fonts (`standard`, `caption`, `standard_kr`, `standard_tw` have Russian Cyrillic and lack
+     only Ґ Є І Ї ґ є і ї; `numeric` and `unique` hold digits and signs; 99 free cells plus 8 free rows shown for
+     new letters); the Textures window lists the English title logo (`ui\stream\us\strm_title_thumb001`), the title
+     layouts (`10010_*`), the English layouts (`*_en`) and pictures (BC7 / RGBA8 written back in place, JPEG
+     re-encoded). `2_build.bat` writes changed files under `romfs\mod\` of the LayeredFS mod together with
+     masagrator's XCXDE-ModLoader (`exefs`), which makes the game read them instead of the archive entries.
    - `vagrant_story` — Vagrant Story (PlayStation, USA SLUS-01040). **Source:** the workspace's `source`
      folder, filled by `1_unpack.bat` with the disc's text files under their disc paths: `EVENT\*.EVT`
      (cutscenes), `MAP\*.MPD` (room events), `MENU\ITEMNAME.BIN`, `ITEMHELP.BIN`, `MCMAN.BIN`, `MENU12.BIN`,

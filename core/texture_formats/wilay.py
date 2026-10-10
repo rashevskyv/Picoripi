@@ -34,8 +34,7 @@ def blocks(data: bytes) -> List[Tuple[str, int, int]]:
         if struct.unpack_from("<I", data, at - 4)[0] != 10001:
             continue
         end = at + 4
-        size = struct.unpack_from("<I", data, end - mibl.FOOTER.size)[0]
-        out.append(("mibl", end - mibl.block_size(size), end))
+        out.append(("mibl", end - mibl.block_size(mibl.footer(data[end - mibl.FOOTER.size:end])), end))
     jpeg = _jpeg(data)
     if jpeg:
         out.append(("jpeg", *jpeg))

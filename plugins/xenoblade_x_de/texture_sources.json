@@ -1,0 +1,6 @@
+[
+  {"label": "Title logo (English)", "kind": "title_screen", "format": "wilay", "path": "ui/stream/us/strm_title_thumb001.wilay"},
+  {"label": "Title screen layouts", "kind": "title_screen", "format": "wilay", "path": "ui/image/10010_*.wilay"},
+  {"label": "English layouts", "kind": "ui", "format": "wilay", "path": "ui/image/*_en.wilay"},
+  {"label": "English pictures (tips, advice)", "kind": "ui", "format": "wilay", "path": "ui/stream/us/*.wilay"}
+]

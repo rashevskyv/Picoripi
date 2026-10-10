@@ -33,9 +33,12 @@ def footer(data: bytes) -> Dict[str, int]:
             "dimension": dimension, "format": fmt, "mips": mips}
 
 
-def block_size(image_size: int) -> int:
-    """Bytes of the whole block: the image data and the page that ends with the footer."""
-    return (image_size + FOOTER.size + PAGE - 1) // PAGE * PAGE
+def block_size(info: Dict[str, int]) -> int:
+    """Bytes of the whole block from its footer: the image size (page-padded mip data) and, only when the
+    footer does not fit in the padding after the last mip level, one more page for it."""
+    levels_total = image_size(info["width"], info["height"], codec_of(info["format"]), info["mips"])
+    size = -(-info["size"] // PAGE) * PAGE
+    return size if info["size"] - levels_total >= FOOTER.size else size + PAGE
 
 
 def _block_height_mip0(rows: int) -> int:
@@ -97,8 +100,9 @@ def build(image: Image.Image, fmt: int, mips: int = 1) -> bytes:
     """A whole MIBL block of a new image (its data, padding and footer)."""
     codec = codec_of(fmt)
     plan = levels(image.width, image.height, codec, mips)
-    size = sum(s for _a, _w, _h, s, _o in plan)
-    out = bytearray(block_size(size))
+    size = -(-sum(s for _a, _w, _h, s, _o in plan) // PAGE) * PAGE
+    info = {"size": size, "width": image.width, "height": image.height, "format": fmt, "mips": mips}
+    out = bytearray(block_size(info))
     for (at, width, height, _s, offsets), level in zip(plan, surface.mip_levels(image.convert("RGBA"), mips)):
         surface.write(out, at, codec, width, height, level, offsets, force=True)
     FOOTER.pack_into(out, len(out) - FOOTER.size, size, PAGE, image.width, image.height, 1, 1, fmt, mips, 10001, MAGIC)
