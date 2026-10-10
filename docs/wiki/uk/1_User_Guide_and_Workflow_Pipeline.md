@@ -267,6 +267,7 @@ tokens: 43.1k
      (`romfs\Graphics\UI_en\**\*.bclim`: титульне меню, назви розділів, навчання). Розмітка лишається як є:
      імена `[PCM1]`, значення `$` і `%ls`. Незмінена таблиця зберігається байт у байт; текст може бути довшим.
      `2_build.bat` пакує змінені файли назад в архіви `crowd.fs` / darc у мод Luma `romfs`.
+   - `bravely_default` також відкриває Bravely Second: End Layer (3DS, USA; робоча тека `Bravely\Second\3DS`): 1 284 англійські таблиці (`Common_en` і англійські файли `Script\Scene`, 71 219 рядків), обидва шрифти (`Graphics\UI\Font\Font` і `FontK`) і 5 073 картинки в `Graphics\UI`. `1_unpack.bat` бере розшифрований образ `.3ds`; члени, стиснені deflate, розпаковуються й пакуються знову.
    - `kid_icarus` — Kid Icarus: Uprising (3DS, Європа, англійський набір `eu`). **Source:** тека `source` робочої
      теки; `1_unpack.bat` записує архіви darc з LZ11 (`.arc`, `.zrc`, вкладені) як теки: 148 англійських файлів MSBT
      (25 833 повідомлення; до файлу додається `.msbt`): `eu\0.arc\resident\03.bin.msbt` (меню, підказки, зброя,

@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from core.font_formats import Metadata, Sheets, char_code, grey_sheet, map_entries
+from core.font_formats import Metadata, Sheets, char_code, char_map, grey_sheet, map_entries
 
 _MAGIC = 0x18029A7F
 _COLUMNS = 32
@@ -217,8 +217,15 @@ def _traced(ink: Image.Image, baseline: int, scale: float) -> List[list]:
             for x0, y0, x1, y1 in boxes]
 
 
+def _cmap_of(metadata: Metadata) -> Dict[int, int]:
+    """``{code point: font glyph id}`` of the model's character map (MAP1)."""
+    ids = metadata["header"]["glyph_ids"]
+    return {char_code(char): ids[cell] for char, cell in char_map(metadata).items()}
+
+
 def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, Any]) -> bytes:
-    """The original bytes when nothing changed; else the font with the changed widths and redrawn glyphs."""
+    """The original bytes when nothing changed; else the font with the changed widths, redrawn glyphs and
+    character map (a code added to the map points at an existing glyph: the copied shape)."""
     from core.font_formats import cff as cff_format, coverage
     again, again_sheets = extract(original, params)
     old_widths = [packet["width"] for packet in again["WID1"][0]["packets"]]
@@ -227,7 +234,9 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     redrawn = [(cell, sheet, box) for cell, sheet, box in _cells(again, again_sheets)
                if sheet < len(drawn) and drawn[sheet].crop(box).tobytes() != again_sheets[sheet].crop(box).tobytes()]
     resized = [cell for cell, (old, new) in enumerate(zip(old_widths, new_widths)) if old != new]
-    if not redrawn and not resized:
+    new_map = _cmap_of(metadata)
+    remapped = new_map != _cmap_of(again)
+    if not redrawn and not resized and not remapped:
         return bytes(original)
     plain, key = decrypt(original)
     font = OpenType(plain)
@@ -257,7 +266,8 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         outlines[glyph] = contours
         metrics[glyph] = (advance, min((p[1][0] for contour in contours for p in contour), default=0))
     replaced = _truetype_glyphs(plain, font, outlines) if cff is None else None
-    return encrypt(cff_format.rebuild_font(plain, cff, font.cmap(), [], metrics, replaced), key)
+    mapping = {**font.cmap(), **new_map} if remapped else font.cmap()
+    return encrypt(cff_format.rebuild_font(plain, cff, mapping, [], metrics, replaced), key)
 
 
 def _simple_glyph(contours: List[list]) -> bytes:
