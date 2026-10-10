@@ -1,0 +1,128 @@
+[
+  {
+    "label": "MH3U: main font",
+    "format": "mt_font",
+    "path": "romfs/GUI/font/font.gfd",
+    "companion": "romfs/GUI/font/font_00_GSM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "MH3U: button icons",
+    "format": "mt_font",
+    "path": "romfs/GUI/font/icon/font_icon.gfd",
+    "companion": "romfs/GUI/font/icon/font_icon_00_GSM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "MH3U: typed text font",
+    "format": "mt_font",
+    "path": "romfs/GUI/dfont/Dfont_local.gfd",
+    "companion": "romfs/GUI/dfont/Dfont_local_00_GSM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "MH3U: online text font",
+    "format": "mt_font",
+    "path": "romfs/GUI/dfont/Dfont_net.gfd",
+    "companion": "romfs/GUI/dfont/Dfont_net_00_GSM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "MH4U: main font",
+    "format": "mt_font",
+    "path": "romfs/loc/lyt/font/font_loc.lfd",
+    "companion": "romfs/loc/lyt/font/font_loc_00_AM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "MH4U: ending font 1",
+    "format": "mt_font",
+    "path": "romfs/loc/lyt/font/end_font_loc_00.lfd",
+    "companion": "romfs/loc/lyt/font/end_font_loc_00_00_AM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "MH4U: ending font 2",
+    "format": "mt_font",
+    "path": "romfs/loc/lyt/font/end_font_loc_01.lfd",
+    "companion": "romfs/loc/lyt/font/end_font_loc_01_00_AM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "Stories: main font, page 1",
+    "format": "mt_font",
+    "path": "romfs/gui/font/font00_jpn.gfd",
+    "companion": "romfs/gui/font/font00_jpn_00_AM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "Stories: main font, page 2",
+    "format": "mt_font",
+    "path": "romfs/gui/font/font00_jpn.gfd",
+    "companion": "romfs/gui/font/font00_jpn_01_AM_NOMIP.tex",
+    "params": {
+      "page": 1
+    }
+  },
+  {
+    "label": "Stories: layout font font00_jpn",
+    "format": "mt_font",
+    "path": "romfs/_loc/lyt/font/font00_jpn.lfd",
+    "companion": "romfs/_loc/lyt/font/font00_jpn_00_AM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "Stories: layout font MonsterEgg_font_jpn",
+    "format": "mt_font",
+    "path": "romfs/_loc/lyt/font/MonsterEgg_font_jpn.lfd",
+    "companion": "romfs/_loc/lyt/font/MonsterEgg_font_jpn_00_AM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "Stories: layout font Number_font_jpn",
+    "format": "mt_font",
+    "path": "romfs/_loc/lyt/font/Number_font_jpn.lfd",
+    "companion": "romfs/_loc/lyt/font/Number_font_jpn_00_AM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "Stories: layout font staffroll_rock_font_jpn",
+    "format": "mt_font",
+    "path": "romfs/_loc/lyt/font/staffroll_rock_font_jpn.lfd",
+    "companion": "romfs/_loc/lyt/font/staffroll_rock_font_jpn_00_AM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  },
+  {
+    "label": "Stories: layout font staffroll_reggae_font_jpn",
+    "format": "mt_font",
+    "path": "romfs/lyt/font/staffroll_reggae_font_jpn.lfd",
+    "companion": "romfs/lyt/font/staffroll_reggae_font_jpn_00_AM_NOMIP.tex",
+    "params": {
+      "page": 0
+    }
+  }
+]
