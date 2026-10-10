@@ -11,8 +11,8 @@
     "space_dot_color_hex": "#808080",
     "preview_wrap_lines": false,
     "editors_wrap_lines": false,
-    "game_dialog_max_width_pixels": 288,
-    "line_width_warning_threshold_pixels": 280,
+    "game_dialog_max_width_pixels": 256,
+    "line_width_warning_threshold_pixels": 240,
     "autofix_enabled": {
         "SH3_TAG_WARNING": false,
         "SH3_WIDTH_EXCEEDED": false,
@@ -38,7 +38,7 @@
         "SH3_BROKEN_ICON_HYPHEN": false
     },
     "lines_per_page": 3,
-    "default_font_file": "silent_hill_ps1_font.json",
+    "default_font_file": "",
     "tag_color_rgba": "#ffff8c00",
     "tag_bold": true,
     "tag_italic": false,

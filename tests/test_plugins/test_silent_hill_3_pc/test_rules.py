@@ -102,3 +102,19 @@ def test_every_english_message_file_round_trips_byte_for_byte():
         out, problems = doc.build(raw, doc.texts(raw))
         assert problems == [], names[index]
         assert out == raw, names[index]
+
+
+def test_codec_shows_a_page_break_as_a_tag_and_a_digit_zero_as_a_digit():
+    assert codec.decode(bytes([0x00, 0x10, 0x00, 0x80])) == " {10} {80}"
+    # the 0x10 here follows a space at an odd offset, so it is the digit zero
+    assert codec.decode(bytes([0x01, 0x00, 0x10, 0x00, 0x80])) == "! 0 {80}"
+
+
+def test_codec_writes_a_typed_zero_as_the_digit_byte_without_a_pad():
+    assert codec.encode("A0") == bytes([0x21, 0x10])
+    assert codec.encode("A 0") == bytes([0x21, 0x00, 0x10])
+
+
+def test_codec_page_break_tag_round_trips_as_a_marker():
+    text = " {10} {80}"
+    assert codec.decode(codec.encode(text)) == text
