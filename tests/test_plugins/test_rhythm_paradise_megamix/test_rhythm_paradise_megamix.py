@@ -8,7 +8,6 @@ import pytest
 
 from core import font_formats, texture_formats
 from core.font_formats import sources as font_sources
-from core.texture_formats import sources as texture_sources
 from plugins.rhythm_paradise_megamix import tags
 from plugins.rhythm_paradise_megamix.rules import GameRules
 from plugins.testing import check_loads, check_validator
@@ -64,10 +63,14 @@ def test_the_fonts_open_and_pack_back_unchanged():
 
 def test_a_few_pictures_read_and_write_back():
     descriptors = json.loads((PLUGIN / "texture_sources.json").read_text(encoding="utf-8"))
-    found = texture_sources.resolve(descriptors, {"source_path": str(_need(SOURCE)), "translation_path": ""})
-    files = sorted({(source.source_path, source.format) for source in found})
-    assert len(files) == 2318
-    for path, fmt in files[::100]:
-        data = Path(path).read_bytes()
-        textures = texture_formats.read(fmt, data)
-        assert texture_formats.write(fmt, data, {i: t.image for i, t in enumerate(textures)}) == data, path
+    _need(SOURCE)
+    total = 0
+    for descriptor in descriptors:
+        files = sorted(path for path in SOURCE.glob(descriptor["path"]) if path.is_file())
+        assert files, descriptor["path"]
+        total += len(files)
+        for path in files[::150]:
+            data = path.read_bytes()
+            textures = texture_formats.read(descriptor["format"], data)
+            assert texture_formats.write(descriptor["format"], data, {i: t.image for i, t in enumerate(textures)}) == data, path
+    assert total == 2318
