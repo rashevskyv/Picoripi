@@ -446,9 +446,13 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `text\<FILE>.sotnstext` (1,130 strings of 38 program files: items, relics, spells, enemies, the librarian,
      menus, save screens, area names, room messages, cutscene speaker names), `fonts\MENU_12x12.BIN` (the font
      of the title, data-select and save menus), `fonts\SYSTEM_8x8.BIN` and `fonts\ASCII.FON` (Tools → Font Editor), `dialogue\*.BIN` (the cutscene dialogue is pictures of its
-     lines, 20 files) and `title\TITLE_LOGO.BIN` (Tools → Textures). A longer string moves its neighbours and
-     their pointers; a speaker name keeps its letter count. Keep the first cell of a dialogue picture empty: the
-     game fills the dialogue box with it.
+     lines, 20 files), `title\TITLE_LOGO.BIN` (the title screen as one 320x256 picture: logo, copyright, PRESS
+     START BUTTON) and `title\TITLE_MENUS.BIN` (the eight menu screens with their gothic headings — player
+     select, data select, name entry, data copy and delete, the main menu — one picture each; Tools →
+     Textures). A redrawn piece of a screen reuses an equal 8x8 cell, redraws a cell only that place uses, or
+     takes a free cell; the build packs the cells into `TITLE.MAP` again and moves the game's chunk table. A
+     longer string moves its neighbours and their pointers; a speaker name keeps its letter count. Keep the
+     first cell of a dialogue picture empty: the game fills the dialogue box with it.
    - `pokemon_nx` — Pokémon Sword/Shield (with both DLC) and Pokémon Legends: Arceus (Switch). **Source:** the
      workspace's `source` (`1_unpack.bat`: base + newest update): `bin\message\English\common` and `script`
      `*.dat` (one block per file; the `.tbl` next to it names each line), `bin\font` (`.BFOTF`, `bmp\*.bffnt`)

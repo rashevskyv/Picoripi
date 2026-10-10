@@ -789,7 +789,8 @@ class BaseGameRules:
         ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant Story pictures), ``sotn_blocks`` /
         ``sotn_cmp`` (Symphony of the Night VRAM tile blocks and nibble-packed pictures), ``pcx``, ``m2`` (M2 PSB
         pictures), ``png`` (a PNG the build converts itself: a decomp's graphics source, a Unity workspace's texture),
-        ``ffta2_efx`` (FFTA2 effect textures), ``raw`` or ``tiles`` (GBA / DS / Saturn character tiles)); ``path`` -- as
+        ``ffta2_efx`` (FFTA2 effect textures), ``raw``, ``tiles`` (GBA / DS / Saturn character tiles) or ``tilemap``
+        (a pattern name map over a cell bank, shown as one picture per screen)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``
         (``compression``, ``file_offset``/``file_size``, ``texture`` and what the format needs -- see

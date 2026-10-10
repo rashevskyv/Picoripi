@@ -105,11 +105,15 @@ def test_every_font_packs_back_and_a_box_glyph_reads_back(tmp_path):
 @needs_data
 def test_every_dialogue_picture_and_the_logo_write_back_unchanged_and_take_an_edit():
     entries = json.loads((PLUGIN_DIR / "texture_sources.json").read_text(encoding="utf-8"))
-    assert len(entries) == 21
+    assert len(entries) == 22
     for entry in entries:
         data = (SOURCE / entry["path"]).read_bytes()
-        image = texture_formats.read(entry["format"], data, entry["params"])[0].image
-        assert texture_formats.write(entry["format"], data, {0: image}, entry["params"]) == data, entry["label"]
+        textures = texture_formats.read(entry["format"], data, entry["params"])
+        images = {i: t.image for i, t in enumerate(textures)}
+        assert texture_formats.write(entry["format"], data, images, entry["params"]) == data, entry["label"]
+    assert [t.image.size for t in texture_formats.read("tilemap", (SOURCE / "title/TITLE_LOGO.BIN").read_bytes(),
+                                                       entries[-2]["params"])] == [(320, 256)]
+    assert len(texture_formats.read("tilemap", (SOURCE / "title/TITLE_MENUS.BIN").read_bytes(), entries[-1]["params"])) == 8
     entry = entries[2]                                   # S011, the prologue
     data = (SOURCE / entry["path"]).read_bytes()
     image = texture_formats.read("tiles", data, entry["params"])[0].image.copy()
@@ -132,9 +136,48 @@ def test_the_dialogue_and_logo_compression_round_trips_and_packs_no_larger():
             if name in ("S011.CHR", "EVENT020.CHR", "SWATA.CHR"):      # packing all 20 takes 30 s
                 packed = zt.kos_compress(pictures)
                 assert zt.kos_decompress(packed)[0] == pictures and len(packed) <= len(packed_original), name
+
+
+@needs_data
+def test_the_title_chunks_unpack_and_an_edited_logo_and_menu_bank_pack_into_a_table_the_game_can_follow():
+    zt = _zt()
+    with zt.Disc(zt.WORKSPACE / "ISO" / "Dracula_X_Ultimate_v1.1.bin") as disc:
+        entries = disc.entries()
         title = disc.read(entries["TITLE.MAP"].lba, entries["TITLE.MAP"].size)
-        logo, end = zt.kos_decompress(title, zt.LOGO[1])
-        assert len(zt.kos_compress(logo)) <= end - zt.LOGO[1]
+        prg = disc.read(entries["TITLE.PRG"].lba, entries["TITLE.PRG"].size)
+    chunks = zt.title_chunks(prg, len(title))
+    assert [s for _a, s, _n in chunks][:4] == [0x5000, 0x8383, 0x7F40, 0x897A] and len(chunks) == 20
+    parts = zt.title_unpack(title, chunks)
+    by = {start: streams for start, _size, streams, _end in parts}
+    logo_map, logo_cells, menu_cells = by[zt.LOGO_MAP][0][0], by[zt.LOGO_CELLS][0][0], by[zt.MENU_CELLS][0][0]
+    assert (SOURCE / "title" / "TITLE_LOGO.BIN").read_bytes() == logo_map + logo_cells
+    assert (SOURCE / "title" / "TITLE_MENUS.BIN").read_bytes() == title[:zt.MENU_MAP] + menu_cells
+    assert len(logo_cells) == 30464 and len(menu_cells) == 27584 and logo_map[:4] == b"\0\x28\0\x20"
+    cells = bytearray(menu_cells)
+    cells[5 * 32 + 3] ^= 0x77
+    logo = bytearray(logo_cells) + bytes(64 * 3)                 # a changed cell, and the logo bank grown
+    logo[100 * 64 + 7] ^= 0x33
+    new_title, table = zt.title_pack(title, chunks, {zt.MENU_CELLS: bytes(cells), zt.LOGO_CELLS: bytes(logo)})
+    new_prg = zt.patch_title_table(prg, chunks, table)
+    again = zt.title_unpack(new_title, zt.title_chunks(new_prg, len(new_title)))
+    assert len(again) == len(parts)
+    for (start, size, streams, _end), (new_start, new_size, new_streams, _new_end) in zip(parts, again):
+        assert (new_start, new_size) == table[start] and len(new_streams) == len(streams)
+        if start in (zt.MENU_CELLS, zt.LOGO_CELLS):
+            assert new_streams == [({zt.MENU_CELLS: bytes(cells), zt.LOGO_CELLS: bytes(logo)}[start], True)], hex(start)
+        else:                                     # every other byte of the file only moves, by a multiple of 64
+            new_end = _new_end if new_size is None else new_start + new_size
+            assert new_title[new_start:new_end] == title[start:_end if size is None else start + size], hex(start)
+            assert (new_start - start) % 64 == 0, hex(start)
+    assert new_title[:zt.MENU_MAP] == title[:zt.MENU_MAP]
+    assert zt.title_pack(title, chunks, {})[0] == title                  # nothing to pack: the file as it is
+    changed = {i for i in range(0, len(prg), 4) if prg[i:i + 4] != new_prg[i:i + 4]}
+    assert 0x73C0 in changed and changed <= {at + k for at, _s, _n in chunks for k in (0, 4)}   # table words only
+    # a seeded stream copies from the bytes decoded before it and reads back through the same window
+    seeded = zt.kos_compress(logo_cells[4096:8192], seed=logo_cells[:4096])
+    assert len(seeded) < len(zt.kos_compress(logo_cells[4096:8192]))
+    window = bytearray(logo_cells[:4096])
+    assert zt._lz_stream(seeded, 0, None, window) == (len(seeded), True) and bytes(window) == logo_cells[:8192]
 
 
 @needs_data

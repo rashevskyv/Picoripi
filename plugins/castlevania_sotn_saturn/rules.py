@@ -11,8 +11,11 @@ A project's source folder holds what ``1_unpack.bat`` of the workspace takes off
 - ``fonts/MENU_12x12.BIN`` (the title, data-select and save menus: 1 bit 12x12 from ``GAME.PRG``; the game
   shrinks it to 8 px with grey edges), ``fonts/SYSTEM_8x8.BIN`` (the in-game font, 4 bit 8x8) and
   ``fonts/ASCII.FON`` (1 bit 8x16); ``font_sources.json``, read through the ``raw`` and ``tiles`` texture formats.
-- ``dialogue/<EVENT>.BIN`` -- the cutscene dialogue is pictures of its lines (4 bit 8x16 cells, 32 a line), and
-  ``title/TITLE_LOGO.BIN`` -- the title logo pieces (8 bit 8x8 cells); ``texture_sources.json``.
+- ``dialogue/<EVENT>.BIN`` -- the cutscene dialogue is pictures of its lines (4 bit 8x16 cells, 32 a line);
+  ``title/TITLE_LOGO.BIN`` -- the title screen as one picture (its 40x32 pattern name map and 8 bit 8x8 cells)
+  and ``title/TITLE_MENUS.BIN`` -- the eight menu screens with the gothic headings (the 40x256 map and 4 bit
+  cells of VDP2 NBG3), both through the ``tilemap`` texture format; ``texture_sources.json``. The workspace
+  build packs the cells into their LZ chunks of ``TITLE.MAP`` again and moves the chunk table in ``TITLE.PRG``.
 """
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
