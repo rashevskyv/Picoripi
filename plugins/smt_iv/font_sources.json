@@ -8,5 +8,10 @@
   {"label": "TsukuMin 14 (Apocalypse)", "format": "bcfnt", "path": "romfs/font/TsukuMin_14_14.bcfnt"},
   {"label": "TsukuMin 12 (Apocalypse)", "format": "bcfnt", "path": "romfs/font/TsukuMin_12_12.bcfnt"},
   {"label": "TsukuMin 9 (Apocalypse)", "format": "bcfnt", "path": "romfs/font/TsukuMin_9_9.bcfnt"},
-  {"label": "Demo font", "format": "bcfnt", "path": "romfs/font/demo_font.bcfnt"}
+  {"label": "Demo font", "format": "bcfnt", "path": "romfs/font/demo_font.bcfnt"},
+  {"label": "Humming 12 (SJR)", "format": "bcfnt", "path": "romfs/font/HummingSB_12.bcfnt"},
+  {"label": "Kakugo 9 (SJR)", "format": "bcfnt", "path": "romfs/font/KakugoLPB_9.bcfnt"},
+  {"label": "Kakugo 12 (SJR)", "format": "bcfnt", "path": "romfs/font/KakugoLPDB_12.bcfnt"},
+  {"label": "Kakugo 14 (SJR)", "format": "bcfnt", "path": "romfs/font/KakugoLPDB_14.bcfnt"},
+  {"label": "ModeMin 15 (SJR)", "format": "bcfnt", "path": "romfs/font/ModeMinASB_15.bcfnt"}
 ]

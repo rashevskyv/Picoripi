@@ -38,13 +38,13 @@ def _is_text(unit: int) -> bool:
     return ord(char) < 0xF0000
 
 
-def decode(raw: bytes) -> str:
-    """Editor text of a stored string (without its ``FFFF`` end)."""
+def decode(raw: bytes, end: int = END) -> str:
+    """Editor text of a stored string (without its end unit: ``FFFF``, or ``0000`` in Strange Journey Redux)."""
     if len(raw) % 2:
         raise FormatError("odd string length")
     units = list(struct.unpack(f"<{len(raw) // 2}H", raw))
     units = [u >> 8 | (u & 0xFF) << 8 for u in units]   # big-endian pairs
-    if units and units[-1] == END:
+    if units and units[-1] == end:
         units.pop()
     out: List[str] = []
     i = 0
@@ -67,8 +67,8 @@ def decode(raw: bytes) -> str:
     return "".join(out)
 
 
-def encode(text: str) -> bytes:
-    """The stored bytes of editor text (with ``FFFF``). ``Table.build`` keeps an unchanged entry as it is, so an
+def encode(text: str, end: int = END) -> bytes:
+    """The stored bytes of editor text (with the end unit). ``Table.build`` keeps an unchanged entry as it is, so an
     entry without bytes stays one."""
     units: List[int] = []
     at = 0
@@ -78,7 +78,7 @@ def encode(text: str) -> bytes:
         units += parts[:1] + [(p & 0xFF) << 8 | p >> 8 for p in parts[1:]]   # arguments are little-endian numbers
         at = match.end()
     units += [_code(c) for c in text[at:]]
-    units.append(END)
+    units.append(end)
     return b"".join(u.to_bytes(2, "big") for u in units)
 
 
@@ -112,16 +112,19 @@ class Table:
                  ((i, *struct.unpack_from("<II", raw, self.table + i * 16 + 4)) for i in range(self.count)) if size]
         self.strings_at = min(s[0] for s in spans) if spans else self.table + self.count * 16
         self.end = max(s[1] for s in spans) if spans else self.strings_at
+        # Strange Journey Redux ends a string with 0000, SMT IV / Apocalypse with FFFF (a table never mixes them)
+        self.terminator = next((0 if e[-2:] == bytes(2) else END for e in self.entries if e), END)
 
     def texts(self) -> List[str]:
-        return [decode(entry) for entry in self.entries]
+        return [decode(entry, self.terminator) for entry in self.entries]
 
     def build(self, texts: Sequence[str]) -> bytes:
         """The table with texts; the strings are written again between the first and the last one, the bytes
         before (header, table, whatever lies between) and after stay."""
         if len(texts) != self.count:
             raise FormatError(f"{len(texts)} strings for {self.count} entries")
-        blobs = [encode(str(t)) if str(t) != decode(e) else e for t, e in zip(texts, self.entries)]
+        end = self.terminator
+        blobs = [encode(str(t), end) if str(t) != decode(e, end) else e for t, e in zip(texts, self.entries)]
         out = bytearray(self.raw[:self.strings_at])
         at = self.strings_at
         for i, blob in enumerate(blobs):
