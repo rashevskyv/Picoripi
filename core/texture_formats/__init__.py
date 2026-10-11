@@ -32,8 +32,8 @@ def _backends() -> Dict[str, Any]:
                                       jade,
                                       jade_jtx, m2, mt_tex, mibl, pcx, pmd_img, png, policenauts_pak, raw, shpg, sotn, stex, tilemap, tiles, tim, tim2, tpl, tpl_ctr, txtr, txtr_gx,
                                       vagrant, wilay)
-    from core.texture_formats import bch, dq9_spr, is_tex
-    return {"bch": bch, "bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "tpl_ctr": tpl_ctr, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
+    from core.texture_formats import bch, dq9_spr, is_tex, ztex
+    return {"ztex": ztex, "bch": bch, "bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "tpl_ctr": tpl_ctr, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
             "imgc": imgc, "j3d": j3d, "gba": gba, "gtx": gtx, "txtr": txtr, "gim": gim, "raw": raw, "tiles": tiles, "tilemap": tilemap,
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
@@ -48,7 +48,7 @@ EXTENSIONS = {".bti": "bti", ".bflim": "bflim", ".bclim": "bflim", ".bntx": "bnt
               ".jtex": "jade", ".jtx": "jade_jtx", ".gsh": "shpg", ".png": "png",
               ".bcres": "cgfx", ".bctex": "cgfx",
               ".tex": "mt_tex", ".dmp": "dmp", ".stex": "stex",
-              ".witex": "mibl", ".wilay": "wilay", ".bch": "bch"}
+              ".witex": "mibl", ".wilay": "wilay", ".bch": "bch", ".ztex": "ztex"}
 
 
 def formats() -> List[str]:
