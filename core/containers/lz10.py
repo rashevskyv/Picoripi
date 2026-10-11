@@ -21,6 +21,9 @@ def decompress(data: bytes, offset: int = 0) -> Tuple[bytes, int]:
     size = int.from_bytes(data[offset + 1:offset + 4], "little")
     out = bytearray()
     pos = offset + 4
+    if size == 0 and len(data) >= offset + 8:          # extended header: the real u32 size follows (Gen 4 NARCs)
+        size = int.from_bytes(data[offset + 4:offset + 8], "little")
+        pos = offset + 8
     try:
         while len(out) < size:
             flags = data[pos]
