@@ -1,8 +1,8 @@
 """The ``NLOC`` text table of Luigi's Mansion: Dark Moon (3DS): the data member of ``art/fe/<language>.data``.
 
-``NLOC``, u32 version 1, u32 hash, u32 count, count x (u32 character offset, u32 key hash) sorted by hash, u32
-statistic (about the text's size), then the strings: UTF-16LE, each ended by a NUL, in the order the game's
-sources have them. The offset counts characters from the first string. Texts show in file order (not hash
+``NLOC``, u32 version, u32 hash, u32 count, count x (u32 character offset, u32 key hash) sorted by hash, u32
+statistic (about the text's size), then the strings, each ended by a NUL, in the order the game's sources have them:
+UTF-16LE in version 1 (3DS), UTF-32LE in version 2 (Switch HD). The offset counts characters from the first string. Texts show in file order (not hash
 order); ``ids`` are the key hashes. Page and style markup is plain text in the strings: ``{p}`` (next line or
 page), ``{tp:0.01}...{/tp}`` (typewriter), ``{clr:RRGGBB}...{clr:pop}`` (colour), ``{ts:1.5}...{/ts}`` (size),
 ``{0}`` (a value the game fills in).
@@ -22,13 +22,16 @@ class Table:
         if raw[:4] != MAGIC or len(raw) < 0x14:
             raise ValueError("not an NLOC table")
         self.raw = bytes(raw)
+        self.version = struct.unpack_from("<I", raw, 4)[0]
+        self.codec = "utf-32-le" if self.version == 2 else "utf-16-le"
+        self.width = 4 if self.version == 2 else 2
         self.count = struct.unpack_from("<I", raw, 12)[0]
         self.entries = [struct.unpack_from("<II", raw, 0x10 + 8 * i) for i in range(self.count)]
         self.stat_at = 0x10 + 8 * self.count
         self.pool_at = self.stat_at + 4
         if self.pool_at > len(raw):
             raise ValueError("NLOC table is cut short")
-        pool = raw[self.pool_at:].decode("utf-16-le")
+        pool = raw[self.pool_at:].decode(self.codec)
         self.order = sorted(range(self.count), key=lambda i: self.entries[i][0])   # entries in pool order
         self._texts = []
         for i in self.order:
@@ -51,7 +54,7 @@ class Table:
             offsets[entry_index] = at
             pool.append(text + "\0")
             at += len(text) + 1
-        old_chars = (len(self.raw) - self.pool_at) // 2
+        old_chars = (len(self.raw) - self.pool_at) // self.width
         stat = struct.unpack_from("<I", self.raw, self.stat_at)[0]
         if at > old_chars:   # a statistic that grows with the text size (about one unit per six characters)
             stat = -(-stat * at // old_chars)
@@ -59,7 +62,7 @@ class Table:
         for i, (_old, key) in enumerate(self.entries):
             head += struct.pack("<II", offsets[i], key)
         head += struct.pack("<I", stat)
-        return bytes(head) + "".join(pool).encode("utf-16-le")
+        return bytes(head) + "".join(pool).encode(self.codec)
 
 
 class Credits:

@@ -1,0 +1,9 @@
+[
+  {"label": "Standard font (menus, names, talk)", "format": "laft", "path": "menu/font/standard.wifnt"},
+  {"label": "Mincho font (titles, serif)", "format": "laft", "path": "menu/font/mincho.wifnt"},
+  {"label": "Subtitle font, Japanese (event subtitles)", "format": "laft", "path": "menu/font/subtitle_jp.wifnt"},
+  {"label": "Subtitle font, Chinese (Taiwan)", "format": "laft", "path": "menu/font/subtitle_tw.wifnt", "params": {"free_rows": 0}},
+  {"label": "Standard font (Korean)", "format": "laft", "path": "menu/font/standard_kr.wifnt", "params": {"free_rows": 0}},
+  {"label": "Standard font (Chinese, simplified)", "format": "laft", "path": "menu/font/standard_cn.wifnt", "params": {"free_rows": 0}},
+  {"label": "Standard font (Chinese, traditional)", "format": "laft", "path": "menu/font/standard_tw.wifnt", "params": {"free_rows": 0}}
+]
