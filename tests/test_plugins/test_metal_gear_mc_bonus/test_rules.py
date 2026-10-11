@@ -45,11 +45,11 @@ def test_rules_load_and_save_unchanged_file_byte_exact():
 def test_edited_line_reads_back_and_keeps_line_count():
     path = SOURCE / "vol1" / "system" / "config" / "notice.psb"
     data = path.read_bytes()
-    lines = psb_text.lines(data)
+    lines = psb_text.lines(data, words=True)
     texts = [None] * len(lines)
     texts[0] = "UA TEST"
-    new = psb_text.build(data, texts)
+    new = psb_text.build(data, texts, words=True)
     assert new != data
-    after = psb_text.lines(new)
+    after = psb_text.lines(new, words=True)
     assert after[0][1] == "UA TEST"
     assert len(after) == len(lines)

@@ -40,7 +40,7 @@ class GameRules(BaseGameRules):
             try:
                 if _version(data) not in (2, 3):
                     return [[]], {}              # a font or picture page: no text here
-                lines = psb_text.lines(data)
+                lines = psb_text.lines(data, words=True)
             except (ValueError, IndexError, KeyError, UnicodeDecodeError) as error:
                 log_debug(f"metal_gear_mc_bonus: not an M2 text file ({error})")
                 return [[]], {}
@@ -50,5 +50,5 @@ class GameRules(BaseGameRules):
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         source = self._last_loaded
         if source is not None and psb_text.is_psb(source) and _version(source) in (2, 3):
-            return psb_text.build(source, (data or [[]])[0] if data else [])
+            return psb_text.build(source, (data or [[]])[0] if data else [], words=True)
         return super().save_data_to_json_obj(data, block_names)

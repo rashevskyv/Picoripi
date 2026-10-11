@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- psb_text: optional single-word mode (`words=True`) shows one-word labels (SAVE, Slot 1, OFF) and skips internal IDs; the Bonus Content plugin uses it (Vol.1 752 -> 1420, Vol.2 766 -> 1346 lines); the default two-word rule of the MGS1 Master Collection plugin is unchanged.
 - New plugin `metal_gear_mc_bonus` (Metal Gear Solid Master Collection Bonus Content, Vol.1 and Vol.2, Switch): `zt/mgbonus.py` unpacks the two M2 apps' PSB text (179 + 197 files, 752 + 766 English lines; 172 text PSBs round trip byte-exact) and builds `patchdata` per app; the Bonus workspace gets `1_unpack.bat` / `2_build.bat`; the stub that said "Not unpacked yet" is gone.
 - Merged the fifth set of finished game branches (Super Metroid intro fonts, Pokémon generations III-V, Bravely Second and the PC font and pak readers, Metal Gear Solid 2 / 3 Master Collection); the plugin contract, the roadmap and the developer guide (EN, UK) list the new formats `ttf`, `mgs_nht` and `ctxr`, and the guide now names `bffnt_wiiu` and `brfnt` too.
 - Font format `ttf` (a plain TrueType / OpenType file, the `bfotf` glyph model; `alias` points a missing character at a look-alike glyph) with the Bravely Default PC fonts and English pictures in its source lists, and `core/unreal/pak.py` (reads Unreal pak version 8 with zstd, zlib or no compression; writes an unencrypted pak), not used by a plugin yet.
