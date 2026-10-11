@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+
+from core.address_forms import resolve_for as resolve_address_form
 from typing import Dict, List, Optional, Tuple
 
 from core.story_context_overrides import get_story_context_override
@@ -244,7 +246,11 @@ class MessagesMixin:
             # Who the line is spoken TO (plugin-provided), as in a batch item.
             addressee = self._plugin_addressee(block_idx, string_idx, speaker or "Unknown")
             if addressee:
-                context_lines.append(f'Addressee: {self._translate_speaker(addressee)}')
+                addressee_name = self._translate_speaker(addressee)
+                context_lines.append(f'Addressee: {addressee_name}')
+                address_form = resolve_address_form(self.mw, speaker, addressee_name)
+                if address_form:
+                    context_lines.append(f'Address form: {address_form}')
         if mode_description:
             context_lines.append(f'Mode: {mode_description}')
         if translation_context.get('window_type'):

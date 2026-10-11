@@ -51,6 +51,16 @@ class MainWindowToolsActionsMixin:
             self.mw.glossary_pipeline_handler = handler
         handler.build_from_text()
 
+    def open_address_forms(self):
+        """Edit who addresses whom formally or informally (saved in the project)."""
+        if getattr(getattr(self.mw, 'project_manager', None), 'project', None) is None:
+            from PyQt6.QtWidgets import QMessageBox
+            from core.i18n import tr
+            QMessageBox.information(self.mw, tr('Forms of Address'), tr('Open a project first: the table is stored in the project.'))
+            return
+        from ui.address_forms_dialog import AddressFormsDialog
+        AddressFormsDialog(self.mw).exec()
+
     def merge_speakers_from_script(self):
         """Name the plugin's speaker codes from the marked-up script."""
         handler = getattr(self.mw, 'speaker_merge_handler', None)

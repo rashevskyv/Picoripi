@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from core.story_context_overrides import get_story_context_override
 from core.translation.layout_contract import resolve_lines_per_window
+from core.address_forms import resolve_for as resolve_address_form
 from core.translation.run_memory import RunMemory
 
 # Rows of the series translation memory sent with one chunk.
@@ -383,6 +384,10 @@ class BatchMixin:
             addressee = self._plugin_addressee(real_b_idx, real_s_idx, speaker)
             if addressee:
                 item_for_ai['addressee'] = self._translate_speaker(addressee)
+                # The project's Forms of Address table (Tools menu): "formal" / "informal".
+                address_form = resolve_address_form(self.mw, speaker, item_for_ai['addressee'])
+                if address_form:
+                    item_for_ai['address_form'] = address_form
 
             # Game-script flow context (plugin-provided): conversation position,
             # branch conditions and follow-up game actions for this exact line

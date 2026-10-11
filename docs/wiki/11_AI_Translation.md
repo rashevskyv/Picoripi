@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: handlers/translation, core/translation
-tokens: 4.2k
+tokens: 5.1k
 purpose: Providers, prompts, chunks, run memory, translation memory
 ---
 # AI Translation
@@ -28,6 +28,8 @@ Prompt files are merged **key by key**, later ones winning: `translation_prompts
 **Line layout of a reply.** The model writes the words; Picoripi lays them out. Every string has a **layout class** (`core/translation/layout_class.py`): the plugin names it (`layout_class` in `get_translation_context_for_string`, from the window kind) or the engine guesses it from the source: a few short lines without sentence punctuation are **lines** (a menu, a name, a choice, credits), everything else is **prose**. The request says which (`layout_class: "lines"` on the item; prose is the default) and gives a letter budget instead of pixels: `max_chars_per_line`, measured on the Ukrainian alphabet in the game's font (`lines_per_window` × `max_chars_per_line` per page). For prose the model may write each page as running text; when the reply is applied, the words of every page are reflowed by the **typesetter** (`core/typesetter.py`) with the game's font: fill to the target width (`warn_width`), never leave «і», «в», «на» and the other one- and two-letter function words at the end of a line, never leave one word alone on the last line, and go past the target only up to the limit (`max_width`) when those rules need it. The same typesetter breaks a too-wide line in the width autofix. A **lines** string keeps the model's lines as they are. A reply must still keep the blank lines (page breaks) and the trailing newline, or its chunk fails. **Shorten pass:** after the draft (and the review), Picoripi typesets every item; a prose item that then needs more windows than the source, or a lines item with a line wider than the limit, goes back once in the same conversation with `shorten_by_letters` (how many letters, measured) and the reason; a shortened line is taken only when it fits better, otherwise the draft stays. `"shorten_enabled": false` in the translation config turns the pass off. The run summary counts `layout: N did not fit, M shortened`. The two widths of a window kind are its target and its limit; a plugin that knows only one of them gives `width_tolerance_percent` in `config.json` (default 5) and the other follows.
 
 A single-string request also carries an `Addressee:` line when the plugin knows who the line is spoken to — the same information a batch item has.
+
+**Forms of address (ти/ви).** **Tools → Forms of Address...** is a small table saved in the project (`address_forms` in the `.uiproj` metadata, `core/address_forms.py`): **Characters** with free-word traits (`child`, `adult`, `elder`, `royalty`, `deity`, `male`, `female`...; the list starts with the names the Speaker field shows), **Rules** between traits in priority order (the defaults: anyone → royalty, deity or elder formal, then child → adult formal, adult → child informal, child → child informal; `*` is anyone) and **Pairs** (one speaker to one addressee) that beat every rule. For a line whose plugin names the addressee, the first matching pair or rule becomes `address_form: "formal"` or `"informal"` in the batch item and an `Address form:` line in a single-string request; the review pass checks ти/ви against it. No match, no field: the model decides as before. Set it once when the project starts; it works for every run after that.
 
 ---
 

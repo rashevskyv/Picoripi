@@ -396,6 +396,12 @@ class MenuBuilder:
         )
         tools_menu.addAction(self.mw.merge_speakers_action)
 
+        self.mw.address_forms_action = QAction(tr('Forms of &Address...'), self.mw)
+        self.mw.address_forms_action.setToolTip(
+            tr('Who speaks to whom formally or informally (ти/ви): character traits, rules between traits and explicit pairs; the prompts carry the answer for every line')
+        )
+        tools_menu.addAction(self.mw.address_forms_action)
+
         # AI Batch Translation Submenu
         ai_batch_menu = tools_menu.addMenu(tr('AI &Batch Translation'))
         ai_batch_menu.setToolTipsVisible(True)
