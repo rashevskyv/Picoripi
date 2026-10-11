@@ -3,13 +3,59 @@ from utils.constants import plugins_root, user_plugin_file_or_shipped
 import json
 from pathlib import Path
 from typing import Dict, Optional, Any
+from PyQt6 import QtCore
+from utils import app_mode
 from utils.logging_utils import log_debug, log_info, log_error, log_warning
+from utils.thread_utils import WorkerThread
+
+
+def _scan_preview_fonts(getter) -> list:
+    return [d for d in getter() or [] if isinstance(d, dict) and d.get("preview")]
+
+
+class _PreviewScan(WorkerThread):
+    """Asks the plugin for its font descriptors off the UI thread (a Gen V scan reads the game's archives)."""
+
+    done = QtCore.pyqtSignal(object, str, int)  # descriptors, error, generation
+
+    def __init__(self, getter, generation: int):
+        super().__init__()
+        self._getter = getter
+        self._generation = generation
+
+    def run(self):
+        try:
+            self.done.emit(_scan_preview_fonts(self._getter), "", self._generation)
+        except Exception as exc:
+            self.done.emit([], str(exc), self._generation)
+
+
+class _PreviewReceiver(QtCore.QObject):
+    """Lives on the UI thread; the queued signal from the scan lands in its slot there."""
+
+    def __init__(self, loader: "FontMapLoader"):
+        super().__init__()
+        self._loader = loader
+
+    @QtCore.pyqtSlot(object, str, int)
+    def on_done(self, descriptors, error, generation):
+        self._loader._preview_scan_done(descriptors, error, generation)
+
 
 class FontMapLoader:
     """Font map loader implementation."""
     def __init__(self, main_window: Any):
         """Initialize a new instance."""
         self.mw = main_window
+        self._preview_generation = 0
+        self._preview_job: Optional[_PreviewScan] = None
+        self._preview_metadata: Dict[str, Any] = {}
+        self._receiver: Optional[_PreviewReceiver] = None
+
+    @property
+    def preview_scan_running(self) -> bool:
+        """True while the plugin's font descriptors are being read in a worker."""
+        return self._preview_job is not None
 
     def load_all_font_maps(self) -> None:
         """Load all font maps."""
@@ -250,13 +296,45 @@ class FontMapLoader:
         project = getattr(pm, 'project', None) if pm else None
         if not callable(getter) or project is None:
             return
-        try:
-            descriptors = [d for d in getter() or [] if isinstance(d, dict) and d.get("preview")]
-        except Exception as exc:
-            log_warning(f"Font sources of the plugin: {exc}")
+        # The plugin's descriptors come from a worker: a scan reads the game's archives, which is slow on the UI thread.
+        self._preview_generation += 1
+        self._preview_metadata = dict(getattr(project, 'metadata', {}) or {})
+        if app_mode.headless:
+            # No event loop here: the scan runs in place, and load_all_font_maps refreshes the rest afterwards.
+            try:
+                descriptors = _scan_preview_fonts(getter)
+            except Exception as exc:
+                log_warning(f"Font sources of the plugin: {exc}")
+                return
+            if descriptors:
+                self._apply_preview_fonts(descriptors, self._preview_metadata)
+            return
+        if self._receiver is None:
+            self._receiver = _PreviewReceiver(self)
+        job = _PreviewScan(getter, self._preview_generation)
+        job.done.connect(self._receiver.on_done)
+        self._preview_job = job
+        job.start()
+
+    def _preview_scan_done(self, descriptors: list, error: str, generation: int) -> None:
+        """The plugin's descriptors arrived (on the UI thread). A result of an older load is dropped."""
+        if generation != self._preview_generation:
+            return
+        self._preview_job = None
+        if error:
+            log_warning(f"Font sources of the plugin: {error}")
             return
         if not descriptors:
             return
+        self._apply_preview_fonts(descriptors, self._preview_metadata)
+        # Same tail as load_all_font_maps: the preview fonts can change the icon cache and the preview.
+        self.update_icon_sequences_cache()
+        self.refresh_icon_highlighting()
+        if hasattr(self.mw, 'ui_updater') and hasattr(self.mw.ui_updater, 'update_preview_visibility'):
+            self.mw.ui_updater.update_preview_visibility()
+
+    def _apply_preview_fonts(self, descriptors: list, project_metadata: Dict[str, Any]) -> None:
+        """Read the preview fonts the descriptors name and put their width maps and glyphs into the maps."""
         from core import font_formats
         from core.bfn_core import BfnCore
         from core.font_formats.sources import resolve
@@ -266,7 +344,7 @@ class FontMapLoader:
             rgba = image.convert("RGBA")
             return QImage(rgba.tobytes(), rgba.width, rgba.height, rgba.width * 4, QImage.Format.Format_RGBA8888).copy()
 
-        for source in resolve(descriptors, getattr(project, 'metadata', {}) or {}):
+        for source in resolve(descriptors, project_metadata):
             try:
                 metadata, sheets = font_formats.extract(source.format, source.read_current(), source.params)
             except (OSError, ValueError, KeyError, IndexError) as exc:

@@ -434,12 +434,30 @@ def test_a_single_string_request_shows_the_translation_memory_and_a_variation_re
     assert 'TRANSLATION MEMORY (same source elsewhere):\n- "Thanks a lot!" -> "UA Thanks a lot!"' in single
 
     server.script.append(lambda body: json.dumps(["Дуже дякую!", "Щиро дякую!"], ensure_ascii=False))
-    answerer = ModalAnswerer(lambda widget: widget.reject() is None)  # close the variations window
-    try:
-        mw.translation_handler.variations_handler.generate_variation_for_string(1, 1)
-        wait_idle(qtbot, mw)
-    finally:
-        answerer.stop()
+    # The variations window is replaced where the handler uses it: its exec() would block in a modal loop.
+    from handlers.translation import translation_ui_handler
+
+    opened = []
+
+    class NoLoopVariations:
+        selected_translation = None
+
+        def __init__(self, parent, variations, show_refresh=False):
+            opened.append(list(variations))
+
+        def setModal(self, modal):
+            pass
+
+        def exec(self):
+            return 0
+
+        def result(self):
+            return 0
+
+    monkeypatch.setattr(translation_ui_handler, "TranslationVariationsDialog", NoLoopVariations)
+    mw.translation_handler.variations_handler.generate_variation_for_string(1, 1)
+    wait_idle(qtbot, mw)
+    assert opened == [["Дуже дякую!", "Щиро дякую!"]]
     variation = user_of(server.bodies()[-1])
     assert "Generate 10 different" in system_of(server.bodies()[-1])
     assert "TRANSLATION MEMORY" not in variation

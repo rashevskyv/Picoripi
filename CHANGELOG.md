@@ -2,6 +2,16 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Textures window and Font Editor: a plugin's font and picture scan (Pokémon Gen V reads every picture NARC) now runs in the window's job instead of on the UI thread; a test proves the scan leaves the UI thread.
+- Tests: the save test takes the splitter states from the output; they are pixel sizes of the machine's fonts, so only their format is compared.
+- Tests: the glossary dialog's three lower panes may differ by one pixel (whole-pixel split of the height); the test allowed exact equality only.
+- Block list: a chapter-load result that arrives after the window closed is dropped by a relay owned by the block list widget (it crashed with "has been deleted" before); a test closes the window first.
+- Tests: the Font Editor lists a plugin's fonts through its font job in a headless test (a Gen V font archive is found).
+- Tests: the synthetic NARC archives of the Gen V scan tests now have the right table sizes and an empty name table, so the scan finds their members.
+- Unreal pak reader: `open_path` closes its file when the returned `Pak` is closed (`close()` or `with`); the file was never released before.
+- Font maps on project load: the plugin's font descriptors are read in a worker thread (Pokémon Gen V reads every font NARC there); a result of an older load is dropped. Preview fonts are still applied on the UI thread.
+- Tests: the Pokémon Gen V unchanged-file test now checks what the codec does with bytes behind a message (no line is offered); its first assertion was always true.
+- Tests: the review run test that opens the AI variations window no longer waits in its modal loop; the window is replaced by a stand-in whose exec() returns at once.
 - Merged the fifth set of finished game branches (Super Metroid intro fonts, Pokémon generations III-V, Bravely Second and the PC font and pak readers, Metal Gear Solid 2 / 3 Master Collection); the plugin contract, the roadmap and the developer guide (EN, UK) list the new formats `ttf`, `mgs_nht` and `ctxr`, and the guide now names `bffnt_wiiu` and `brfnt` too.
 - Font format `ttf` (a plain TrueType / OpenType file, the `bfotf` glyph model; `alias` points a missing character at a look-alike glyph) with the Bravely Default PC fonts and English pictures in its source lists, and `core/unreal/pak.py` (reads Unreal pak version 8 with zstd, zlib or no compression; writes an unencrypted pak), not used by a plugin yet.
 - Super Metroid: the intro was two fonts on one sheet and one text was missing. `intro_font.bin` holds the green 8x8 story letters (pages "I FIRST BATTLED..."), the white 8x16 first-screen letters ("THE LAST METROID IS IN CAPTIVITY...", tiles 0x30-0x69, top + bottom tile) and the Japanese glyphs; the Font Editor now lists the story font and the first-screen font as two entries (offset 0x300 keeps the 8x16 cells whole), the HUD digits as their own entry (nine fonts), and the first-screen sentence is the last item of the Intro group in `text.json` (`zt\sm.py`: a 16-pixel `prologue` font; a translation that does not pack into the original 226 bytes moves the block to bank 8C and the ROM code and the port's C call follow it).

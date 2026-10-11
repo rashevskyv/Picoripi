@@ -19,7 +19,7 @@ import struct
 import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
 
 MAGIC = 0x5A6F12E1
 FOOTER_SIZE_V8 = 16 + 1 + 4 + 4 + 8 + 8 + 20 + 5 * 32
@@ -53,6 +53,19 @@ class Pak:
     mount: str
     entries: List[Entry]
     methods: List[str]
+    closer: Optional[Callable[[], None]] = field(default=None, repr=False)  # closes the file of open_path
+
+    def close(self) -> None:
+        """Release the pak file, when ``open_path`` opened one. Safe to call twice."""
+        if self.closer is not None:
+            self.closer()
+            self.closer = None
+
+    def __enter__(self) -> "Pak":
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self.close()
 
     def names(self) -> List[str]:
         return [entry.name for entry in self.entries]
@@ -131,13 +144,20 @@ def open_pak(read: Callable[[int, int], bytes], size: int) -> Pak:
 
 
 def open_path(path: Path) -> Pak:
+    """Open a pak file. Close the returned pak (``close()`` or ``with``) to release the file."""
     stream = open(path, "rb")
-    size = Path(path).stat().st_size
+    try:
+        size = Path(path).stat().st_size
 
-    def read(offset: int, length: int) -> bytes:
-        stream.seek(offset)
-        return stream.read(length)
-    return open_pak(read, size)
+        def read(offset: int, length: int) -> bytes:
+            stream.seek(offset)
+            return stream.read(length)
+        opened = open_pak(read, size)
+    except BaseException:
+        stream.close()
+        raise
+    opened.closer = stream.close
+    return opened
 
 
 def _fstring_bytes(text: str) -> bytes:
