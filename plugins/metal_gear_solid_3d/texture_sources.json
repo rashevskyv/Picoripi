@@ -4,5 +4,11 @@
     "kind": "title_screen",
     "format": "bflim",
     "path": "romfs/ui/**/*.bclim"
+  },
+  {
+    "label": "Stage layouts (BCLIM in the .la2 inside the .hpk archives: staff roll, epilogue, title cards)",
+    "kind": "title_screen",
+    "format": "bflim",
+    "path": "romfs/stage/**/*.bclim"
   }
 ]
