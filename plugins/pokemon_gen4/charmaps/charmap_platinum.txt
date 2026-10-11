@@ -1,9 +1,3 @@
-// Character mapping for Pokémon Platinum
-// Version 2023.07.28
-// Format is HEXCODE=<character> or HEXCODE={<command>}
-// Comments are preceded by double forward slashes as in C99 and C++.
-// Leading spaces and tabs are ignored; trailing spaces and tabs are not.
-
 0000=\x0000
 0001=　
 0002=ぁ
@@ -2880,8 +2874,6 @@
 E000=\n
 25BC=\r
 25BD=\f
-
-// Function codes
 0100={STRVAR_1}
 0300={STRVAR_3}
 0400={STRVAR_4}
