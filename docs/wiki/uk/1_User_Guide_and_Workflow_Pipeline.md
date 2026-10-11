@@ -373,7 +373,10 @@ tokens: 43.1k
      `assets` порту за тими самими шляхами (англійські теки `data-en`, `data-EU`, `data-en-EU` і `data`):
      окремі файли `.txt` / `.lbin` / `.dat` у UTF-8, картинки PNG і бітмапний шрифт `data\font\font.dat`
      (редактор шрифтів додає літери: рушій читає UTF-8). Збірка пише змінені файли в
-     `build\sd\switch\<dir>\assets` для SD-карти; Eden показує для цих портів лише чорний екран.
+     `build\sd\switch\<dir>\assets` для SD-карти; у запуску homebrew в Eden немає дескриптора процесу,
+     тому завантажувач цих портів тут зупиняється. `layton_mr` (Layton Brothers: Mystery Room, робоча
+     тека `LAYTON_MR_NX`) відкриває рядки даних Unity, експортовані скриптом робочої теки
+     (`{"strings": [...]}` на файл даних), і їхні текстури (PNG).
    - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** тека `source\game`
      робочої теки (`1_unpack.bat` розпаковує туди файли диска `*SK_ASC*`): `EBootPak.bin` (меню, предмети,
      закляття, руни, системні повідомлення), `EBookPak.bin` (сторінки Тому, меню збереження),

@@ -372,8 +372,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `LAYTON_LF_HD_NX`; `switch.7z` of the port) use the same plugin: **Source** is the port's `assets` folder at the same
      paths (the English folders `data-en`, `data-EU`, `data-en-EU` and `data`): loose UTF-8 `.txt` / `.lbin` / `.dat`
      files, PNG pictures and the bitmap font `data\font\font.dat` (the Font Editor adds letters: the engine reads UTF-8).
-     The build writes the changed files to `build\sd\switch\<dir>\assets` for the SD card; Eden shows only a black
-     screen for these ports.
+     The build writes the changed files to `build\sd\switch\<dir>\assets` for the SD card; Eden's homebrew launch has no
+     process handle, so the loader of these ports stops there. `layton_mr` (Layton Brothers: Mystery Room, workspace
+     `LAYTON_MR_NX`) opens the strings of the Unity data files exported by the workspace script (`{"strings": [...]}` per
+     data file) and their textures (PNG).
    - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** the workspace's
      `source\game` (`1_unpack.bat` decompresses the disc's `*SK_ASC*` files there): `EBootPak.bin` (menus,
      items, spells, runes, system messages), `EBookPak.bin` (Tome pages, save menu), `EMemcardText.bin`,
