@@ -12,6 +12,12 @@ are kept.
 tail at 0x24); 20-byte records: u32 code, u32 ``page | x << 8 | y << 20``, u32 ``width | height << 12``, u32
 advance in the low byte, u32; after the records u32 0 and u32 the file offset of the page name.
 
+``GFD`` of the Switch games (Monster Hunter Stories, version 0x21108): the same header (glyph count at 0x1C), the
+name (u32 length at 0x3C, text, NUL) and 36-byte records: u32 code, six floats (width, height, left bearing, top
+bearing, advance, line height), u32 ``page | x << 8 | y << 20`` and u32 flags. The page is a Switch ``TEX``
+(BC7) that keeps the glyph coverage in its green channel (red and blue are constant). Records are not sorted
+the same way and the file ends with the page name for icon fonts, so a font with a tail cannot grow.
+
 The model has one cell per glyph of the page, in code order, with the glyph's box at the cell's top-left, and
 spare empty cells. A typed character in a spare cell becomes a new record (``ADDS_GLYPHS``); mapping a character
 to an existing cell makes a record that shares that box. An edited glyph is drawn into its own box when it fits,
@@ -19,6 +25,7 @@ else into free room of the page. Packing an unedited model gives the original by
 """
 from __future__ import annotations
 
+import math
 import struct
 from typing import Any, Dict, List, Tuple
 
@@ -31,7 +38,29 @@ ADDS_GLYPHS = True
 SPARE = 96
 
 
+NX_VERSION = 0x21108
+
+
+def _parse_nx(table: bytes) -> Dict[str, Any]:
+    count, nlen = struct.unpack_from("<II", table, 0x1C)[0], struct.unpack_from("<I", table, 0x3C)[0]
+    start = 0x40 + nlen + 1
+    end = start + count * 36
+    if nlen > 0x100 or end > len(table):
+        raise ValueError("font records run past the file")
+    records = []
+    for index in range(count):
+        at = start + index * 36
+        code = struct.unpack_from("<I", table, at)[0]
+        fw, fh, _bx, _by, fadv, _line = struct.unpack_from("<6f", table, at + 4)
+        v1 = struct.unpack_from("<I", table, at + 28)[0]
+        records.append({"code": code, "raw": table[at:at + 36], "page": v1 & 0xFF, "x": (v1 >> 8) & 0xFFF,
+                        "y": (v1 >> 20) & 0xFFF, "w": math.ceil(fw), "h": math.ceil(fh), "advance": round(fadv)})
+    return {"kind": "gfd_nx", "start": start, "size": 36, "end": end, "records": records}
+
+
 def _parse(table: bytes) -> Dict[str, Any]:
+    if table[:4] == b"GFD\0" and len(table) > 0x44 and struct.unpack_from("<I", table, 4)[0] == NX_VERSION:
+        return _parse_nx(table)
     if table[:4] == b"GFD\0":
         count = struct.unpack_from("<I", table, 0x1C)[0]
         start = next((p + 5 + n for p in range(0x24, 0x44, 4)
@@ -64,6 +93,13 @@ def _parse(table: bytes) -> Dict[str, Any]:
 
 def _record_bytes(kind: str, r: Dict[str, Any]) -> bytes:
     out = bytearray(r["raw"])
+    if kind == "gfd_nx":
+        fw, fh, bx, by, fadv, line = struct.unpack_from("<6f", out, 4)
+        fw, fh = (fw if math.ceil(fw) == r["w"] else float(r["w"])), (fh if math.ceil(fh) == r["h"] else float(r["h"]))
+        fadv = fadv if round(fadv) == r["advance"] else float(r["advance"])
+        struct.pack_into("<I6f", out, 0, r["code"], fw, fh, bx, by, fadv, line)
+        struct.pack_into("<I", out, 28, r["page"] | r["x"] << 8 | r["y"] << 20)
+        return bytes(out)
     _code, _w1, w2, w3 = struct.unpack_from("<4I", out, 0)
     w1 = r["page"] | r["x"] << 8 | r["y"] << 20
     w2 = (w2 & 0xFF) | r["w"] << 8 | r["h"] << 20 if kind == "gfd" else (w2 & ~0xFFFFFF) | r["w"] | r["h"] << 12
@@ -74,6 +110,19 @@ def _record_bytes(kind: str, r: Dict[str, Any]) -> bytes:
 def _page(texture: bytes) -> Image.Image:
     from core.texture_formats import mt_tex
     return mt_tex.read(texture, {})[0].image.convert("RGBA")
+
+
+def _green_page(image: Image.Image) -> bool:
+    """A Switch font page keeps its coverage in green; red and blue hold one value."""
+    red, _green, blue, _alpha = image.split()
+    return all(hi - lo <= 8 for lo, hi in (red.getextrema(), blue.getextrema()))
+
+
+def _ink(image: Image.Image, nx: bool) -> Image.Image:
+    """Glyph coverage of a page: the green channel of a Switch page (red and blue constant), else alpha / luminance."""
+    if nx and _green_page(image):
+        return image.getchannel("G")
+    return coverage(image)
 
 
 def _layout(font: Dict[str, Any], page: int, spare: bool):
@@ -87,7 +136,7 @@ def _layout(font: Dict[str, Any], page: int, spare: bool):
 
 
 def _spare(font: Dict[str, Any], table: bytes) -> bool:
-    return font["kind"] == "lfd" or font["end"] == len(table)      # a GFD with a second table cannot grow
+    return font["kind"] == "lfd" or font["end"] == len(table)      # a GFD with a second table / tail cannot grow
 
 
 def _cell(glyph: int, cw: int, ch: int, columns: int) -> Tuple[int, int, int, int]:
@@ -100,7 +149,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     font = _parse(table)
     page = int(params.get("page", 0))
     mine, cw, ch, columns, rows = _layout(font, page, _spare(font, table))
-    ink = coverage(_page(texture))
+    ink = _ink(_page(texture), font["kind"] == "gfd_nx")
     sheet = Image.new("L", (columns * cw, rows * ch))
     packets, pairs, seen = [], [], set()
     for glyph, index in enumerate(mine):
@@ -115,7 +164,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     packets += [{"kerning": 0, "width": 0} for _ in range(columns * rows - len(packets))]
     space = next((r["advance"] for r in font["records"] if r["code"] == 0x20), cw // 2)
     metadata = {
-        "header": {"signature": "GFD" if font["kind"] == "gfd" else "lfd", "num_chunks": 1},
+        "header": {"signature": "lfd" if font["kind"] == "lfd" else "GFD", "num_chunks": 1},
         "INF1": [{"encoding": 1, "ascent": ch * 3 // 4, "descent": ch - ch * 3 // 4, "width": space, "leading": ch,
                   "fallback_code": 0x3F, "unk1": 0}],
         "GLY1": [{"start_glyph": 0, "end_glyph": columns * rows - 1, "cell_width": cw, "cell_height": ch,
@@ -153,7 +202,8 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     packets = metadata["WID1"][0]["packets"]
     records = font["records"]
     image = _page(texture)
-    plane = coverage(image)
+    nx = font["kind"] == "gfd_nx" and _green_page(image)
+    plane = _ink(image, nx)
     taken = [bytearray(plane.width) for _ in range(plane.height)]
     for r in records:
         if r["page"] == page:
@@ -215,7 +265,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     out += b"".join(_record_bytes(font["kind"], r) for r in rows)
     out += table[font["end"]:]
     grow = len(added) * font["size"]
-    if font["kind"] == "gfd":
+    if font["kind"] in ("gfd", "gfd_nx"):
         struct.pack_into("<I", out, 0x1C, len(rows))
     elif grow:
         struct.pack_into("<I", out, 8, len(rows))
@@ -227,6 +277,10 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     if dirty:                                 # only the touched boxes: the rest of the page keeps its pixels
         for box in dirty:
             ink = plane.crop(box)
+            if nx:
+                red, _green, blue, alpha = image.crop(box).split()
+                image.paste(Image.merge("RGBA", (red, ink, blue, alpha)), box[:2])
+                continue
             white = Image.new("L", ink.size, 255)
             image.paste(Image.merge("RGBA", (white, white, white, ink)), box[:2])
         texture = mt_tex.write(texture, {0: image}, {})

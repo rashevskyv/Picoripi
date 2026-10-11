@@ -1,18 +1,15 @@
-"""Tag manager of the plugin template."""
+"""Tags of Monster Hunter Stories (Switch) messages: ``<COL ..>``, ``<SPNM ..>``, ``<PAGE>``, ``<ICON ..>`` and friends."""
+import re
 from typing import Set
 
 from plugins.common.tag_manager import GenericTagManager
-from core.tag_utils import ANY_NON_EMPTY_TAG_CAPTURE_PATTERN as TAG_RE
+
+TAG_RE = re.compile(r"<[A-Z/][^<>\n]{0,40}>|%[0-9]*[sdcxXf]")
 
 
 class TagManager(GenericTagManager):
-    """Baseline tag manager for new plugin projects."""
-
     def get_legitimate_tags(self) -> Set[str]:
-        return {r"\[[^\]]+\]", r"\{[^}]+\}"}
+        return {TAG_RE.pattern}
 
     def is_tag_legitimate(self, tag_to_check: str) -> bool:
-        if not isinstance(tag_to_check, str):
-            return False
-        return bool(TAG_RE.fullmatch(tag_to_check))
-
+        return isinstance(tag_to_check, str) and bool(TAG_RE.fullmatch(tag_to_check))
