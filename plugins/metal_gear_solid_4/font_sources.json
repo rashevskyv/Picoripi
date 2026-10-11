@@ -1,0 +1,23 @@
+[
+  {"label": "Game: SCE-PS3-RD-R-LATIN (subtitles, codec, menus; TrueType)", "format": "bfotf", "path": "font/SCE-PS3-RD-R-LATIN.TTF", "params": {"size": 40}},
+  {"label": "Game: SCE-PS3-MT-R-LATIN (TrueType)", "format": "bfotf", "path": "font/SCE-PS3-MT-R-LATIN.TTF", "params": {"size": 40}},
+  {"label": "Game: SCE-PS3-NR-R-JPN (Japanese and symbols; TrueType)", "format": "bfotf", "path": "font/SCE-PS3-NR-R-JPN.TTF", "params": {"size": 40}},
+  {"label": "Game: SCE-PS3-SR-R-JPN (Japanese and symbols; TrueType)", "format": "bfotf", "path": "font/SCE-PS3-SR-R-JPN.TTF", "params": {"size": 40}},
+  {"label": "Launcher: MG_SansSerif-Md SDF (menus, English)", "format": "tmp_sdf", "path": "launcher/font/mg_sansserif-mdsdf_asset/MG_SansSerif-Md SDF.json", "companion": "launcher/font/mg_sansserif-mdsdf_asset/MG_SansSerif-Md SDF.png"},
+  {"label": "Launcher: MG_SansSerif-Bd SDF", "format": "tmp_sdf", "path": "launcher/font/mg_sansserif-bdsdf_asset/MG_SansSerif-Bd SDF.json", "companion": "launcher/font/mg_sansserif-bdsdf_asset/MG_SansSerif-Bd SDF.png"},
+  {"label": "Launcher: MG_SansSerif-Roman SDF", "format": "tmp_sdf", "path": "launcher/font/mg_sansserif-romansdf_asset/MG_SansSerif-Roman SDF.json", "companion": "launcher/font/mg_sansserif-romansdf_asset/MG_SansSerif-Roman SDF.png"},
+  {"label": "Launcher: MG-RodinProN-M SDF", "format": "tmp_sdf", "path": "launcher/font/mg-rodinpron-msdf_asset/MG-RodinProN-M SDF.json", "companion": "launcher/font/mg-rodinpron-msdf_asset/MG-RodinProN-M SDF.png"},
+  {"label": "Launcher: MG-RodinProN-DB SDF", "format": "tmp_sdf", "path": "launcher/font/mg-rodinpron-dbsdf_asset/MG-RodinProN-DB SDF.json", "companion": "launcher/font/mg-rodinpron-dbsdf_asset/MG-RodinProN-DB SDF.png"},
+  {"label": "Launcher: MG-RodinProN-B SDF", "format": "tmp_sdf", "path": "launcher/font/mg-rodinpron-bsdf_asset/MG-RodinProN-B SDF.json", "companion": "launcher/font/mg-rodinpron-bsdf_asset/MG-RodinProN-B SDF.png"},
+  {"label": "Launcher: KDE_TsukuGothic-Md SDF", "format": "tmp_sdf", "path": "launcher/font/kde_tsukugothic-mdsdf_asset/KDE_TsukuGothic-Md SDF.json", "companion": "launcher/font/kde_tsukugothic-mdsdf_asset/KDE_TsukuGothic-Md SDF.png"},
+  {"label": "Launcher: COUR SDF", "format": "tmp_sdf", "path": "launcher/font/coursdf_asset/COUR SDF.json", "companion": "launcher/font/coursdf_asset/COUR SDF.png"},
+  {"label": "Launcher: TBTVM_0P SDF (Screenplay Book)", "format": "tmp_sdf", "path": "launcher/font/tbtvm_0psdf_asset/TBTVM_0P SDF.json", "companion": "launcher/font/tbtvm_0psdf_asset/TBTVM_0P SDF.png"},
+  {"label": "Launcher: font file MG_SansSerif-Md (dynamic glyphs)", "format": "bfotf", "path": "launcher/font/mg_sansserif-md_otf/MG_SansSerif-Md.otf", "params": {"size": 40}},
+  {"label": "Launcher: font file MG_SansSerif-Bd", "format": "bfotf", "path": "launcher/font/mg_sansserif-bd_otf/MG_SansSerif-Bd.otf", "params": {"size": 40}},
+  {"label": "Launcher: font file MG_SansSerif-Roman", "format": "bfotf", "path": "launcher/font/mg_sansserif-roman_otf/MG_SansSerif-Roman.otf", "params": {"size": 40}},
+  {"label": "Launcher: font file MG-RodinProN-M", "format": "bfotf", "path": "launcher/font/mg-rodinpron-m_otf/MG-RodinProN-M.otf", "params": {"size": 40}},
+  {"label": "Launcher: font file MG-RodinProN-DB", "format": "bfotf", "path": "launcher/font/mg-rodinpron-db_otf/MG-RodinProN-DB.otf", "params": {"size": 40}},
+  {"label": "Launcher: font file MG-RodinProN-B", "format": "bfotf", "path": "launcher/font/mg-rodinpron-b_otf/MG-RodinProN-B.otf", "params": {"size": 40}},
+  {"label": "Launcher: font file KDE_TsukuGothic-Md", "format": "bfotf", "path": "launcher/font/kde_tsukugothic-md_otf/KDE_TsukuGothic-Md.otf", "params": {"size": 40}},
+  {"label": "Launcher: font file COUR", "format": "bfotf", "path": "launcher/font/cour_ttf/COUR.ttf", "params": {"size": 40}}
+]

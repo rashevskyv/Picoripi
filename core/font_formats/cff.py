@@ -128,6 +128,7 @@ class Cff:
         self.count = len(self.charstrings)
         self.cid = _get(self.top, 1230) is not None
         self.charset = self._read_charset(_get(self.top, 15, [0])[0])
+        self.encoding = self._read_encoding(_get(self.top, 16, [0])[0])
         if self.cid:
             fd_dicts, _ = read_index(data, _get(self.top, 1236)[0])
             self.fds = [read_dict(raw) for raw in fd_dicts]
@@ -157,6 +158,16 @@ class Cff:
                 i += 3 if kind == 1 else 4
                 ids.extend(range(first, first + left + 1))
         return ids[:self.count]
+
+    def _read_encoding(self, at: int) -> bytes:
+        """The bytes of a custom Encoding (Top DICT op 16 above 1), or b"" for the standard ones."""
+        if at <= 1:
+            return b""
+        kind = self.data[at]
+        size = 2 + (self.data[at + 1] if kind & 0x7F == 0 else 2 * self.data[at + 1])
+        if kind & 0x80:                     # supplements: count, then (code, SID) triples
+            size += 1 + 3 * self.data[at + size]
+        return bytes(self.data[at:at + size])
 
     def _read_fdselect(self, at: int) -> List[int]:
         kind = self.data[at]
@@ -203,7 +214,9 @@ class Cff:
             head += write_index(self.strings) + write_index(self.gsubrs)
             return head
 
-        charset = self._charset_bytes()
+        charset = self._charset_bytes() + self.encoding   # a custom Encoding moves along, right after the charset
+        if self.encoding:
+            _set(top, 16, [0])
         fdselect = self._fdselect_bytes() if self.cid else b""
         charstrings = write_index(self.charstrings)
         # Private dicts + local subrs, each private followed by its subrs.
@@ -237,6 +250,8 @@ class Cff:
             body, _subrs = private_blobs[0]
             _set(top, 18, [len(body), cursor])
         _set(top, 15, [charset_at])
+        if self.encoding:
+            _set(top, 16, [charset_at + len(charset) - len(self.encoding)])
         _set(top, 17, [charstrings_at])
         head = layout(top)
         if len(head) != base:
