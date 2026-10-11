@@ -1,5 +1,5 @@
-"""Paper Mario (N64) logo pictures: the RGBA16 source files open and write back byte for byte, and the
-picture source list names every file (skipped where the workspace is not on this machine)."""
+"""Paper Mario (N64) pictures from the port's archive: the raw source files open and write back byte for byte,
+and the picture source list names every file with its format (skipped where the workspace is not here)."""
 import json
 from pathlib import Path
 
@@ -15,14 +15,16 @@ def _sources():
     return json.loads((PLUGIN / "texture_sources.json").read_text(encoding="utf-8"))
 
 
-def test_texture_sources_name_three_rgba16_pictures():
+def test_texture_sources_name_seven_pictures_in_their_formats():
     entries = _sources()
-    assert len(entries) == 3
-    assert all(e["format"] == "raw" and e["params"]["pixel_format"] == "n64:RGBA16" for e in entries)
+    assert len(entries) == 7
+    formats = {e["params"]["pixel_format"] for e in entries}
+    assert formats == {"n64:RGBA16", "n64:RGBA32", "n64:IA8"}
+    assert all(e["format"] == "raw" for e in entries)
 
 
 @pytest.mark.parametrize("entry", _sources(), ids=lambda e: e["path"])
-def test_real_logo_round_trips_byte_exact(entry):
+def test_real_picture_round_trips_byte_exact(entry):
     path = SOURCE / Path(entry["path"]).name
     if not path.is_file():
         pytest.skip("the Paper Mario workspace is not on this machine")
