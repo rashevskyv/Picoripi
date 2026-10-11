@@ -190,7 +190,7 @@ class TestSingleStringPrompt:
 
         user = self._compose(handler)
 
-        assert 'TRANSLATION MEMORY (same source elsewhere):' in user
+        assert 'TRANSLATION MEMORY (same source elsewhere;' in user
         assert '- "Yes" -> "Так"' in user and '- "[Color:Red]YES[/Color]" -> "ТАК"' in user
 
     def test_nothing_saved_means_no_section(self, handler):

@@ -215,6 +215,10 @@ class SessionMixin:
             self.mw.data_store.block_names = result['block_names']
             self.mw.block_to_project_file_map = result['block_to_project_file_map']
             self.mw.data_store.block_to_project_file_map = result['block_to_project_file_map']
+            saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+            if saved_mgr is not None:
+                saved_mgr.series_memory = result.get('series_memory') or {}
+                saved_mgr.source_positions = result.get('source_positions') or {}
 
             # The state as it was after the source files, before the translations were parsed.
             formats.restore_state(self.mw.current_game_rules, result.get('plugin_keys_backup'))

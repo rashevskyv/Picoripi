@@ -8,6 +8,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.story_context_overrides import get_story_context_override
 from core.translation.layout_contract import resolve_lines_per_window
 from core.translation.run_memory import RunMemory
+
+# Rows of the series translation memory sent with one chunk.
+SERIES_MEMORY_ROWS = 10
 from core.translation.session_manager import TranslationSessionState
 from core.translation.story_context_bundle import glossary_names_from_story_bundle
 from handlers.translation.prompt_composer.glossary_mixin import SERIES_GLOSSARY_LEAD
@@ -224,6 +227,25 @@ class BatchMixin:
             }
             for row in memory.similar(own_texts)
         ]
+
+    def _series_memory_rows(self, source_items: List[Any]) -> List[Dict[str, str]]:
+        """What the other projects of the series saved for the sources of this chunk, one row per source."""
+        saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+        series = getattr(saved_mgr, 'series_by_source', None)
+        if not callable(series):
+            return []
+        rows = []
+        for item in source_items:
+            text = item.get('text', '') if isinstance(item, dict) else str(item)
+            for row in series(text)[:1]:
+                rows.append({
+                    'text': self._item_text_for_ai({'id': 0, 'text': row['source']})[2],
+                    'translation': self._item_text_for_ai({'id': 0, 'text': row['translation']})[2],
+                    'project': row['project'],
+                })
+            if len(rows) >= SERIES_MEMORY_ROWS:
+                break
+        return rows
 
     def build_placeholder_map(self, source_items: List[Dict]) -> Dict:
         """The forced-alias maps of ``source_items``, keyed by item id.
@@ -495,6 +517,9 @@ class BatchMixin:
         memory_rows = self._run_memory_rows(source_items)
         if memory_rows:
             json_payload_for_ai['already_translated_in_this_run'] = memory_rows
+        series_rows = self._series_memory_rows(source_items)
+        if series_rows:
+            json_payload_for_ai['translated_in_other_games_of_the_series'] = series_rows
         if story_context_catalog:
             json_payload_for_ai['story_context_catalog'] = story_context_catalog
         if scene_context:

@@ -431,7 +431,10 @@ def test_a_single_string_request_shows_the_translation_memory_and_a_variation_re
         answerer.stop()
     assert shown and shown[0][0] == "Source: saved for the same text elsewhere in the project"
     single = user_of(server.bodies()[-1])
-    assert 'TRANSLATION MEMORY (same source elsewhere):\n- "Thanks a lot!" -> "UA Thanks a lot!"' in single
+    assert (
+        'TRANSLATION MEMORY (same source elsewhere; "in <project>" = another game of the series):\n'
+        '- "Thanks a lot!" -> "UA Thanks a lot!"'
+    ) in single
 
     server.script.append(lambda body: json.dumps(["Дуже дякую!", "Щиро дякую!"], ensure_ascii=False))
     answerer = ModalAnswerer(lambda widget: widget.reject() is None)  # close the variations window

@@ -29,14 +29,22 @@ class MessagesMixin:
             return ""
         source = source_of(block_idx, string_idx)
         rows = similar(source) if isinstance(source, str) else None
-        if not isinstance(rows, list) or not rows:
+        rows = rows[:TRANSLATION_MEMORY_ROWS] if isinstance(rows, list) else []
+        series = getattr(saved_mgr, 'series_by_source', None)
+        series_rows = series(source, exact=False) if callable(series) and isinstance(source, str) else []
+        rows += series_rows[:TRANSLATION_MEMORY_ROWS]
+        if not rows:
             return ""
         lines = []
-        for row in rows[:TRANSLATION_MEMORY_ROWS]:
+        for row in rows:
             original = self._item_text_for_ai({'id': 0, 'text': row.get('source', '')})[2].replace('\n', ' ')
             translation = self._item_text_for_ai({'id': 0, 'text': row.get('translation', '')})[2].replace('\n', ' ')
-            lines.append(f'- "{original}" -> "{translation}"')
-        return "TRANSLATION MEMORY (same source elsewhere):\n" + "\n".join(lines)
+            where = f" (in {row['project']})" if row.get('project') else ""
+            lines.append(f'- "{original}" -> "{translation}"{where}')
+        return (
+            'TRANSLATION MEMORY (same source elsewhere; "in <project>" = another game of the series):\n'
+            + "\n".join(lines)
+        )
 
     def _resolve_prompt_speaker(
         self,

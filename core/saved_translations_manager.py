@@ -1,20 +1,16 @@
 """Saved translations: by position (the backup a string is restored from) and by source text (the memory)."""
 from utils.atomic_io import atomic_write_json
-import hashlib
 import json
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 
 from core.translation.run_memory import normalize_source
+from core.translation.series_memory import source_hash as _source_hash
 from utils.logging_utils import log_info, log_error
 
 # Translations kept per source text (the newest last): the same words in another
 # place of the game may have been translated differently on purpose.
 MEMORY_VARIANTS = 5
-
-
-def _source_hash(source: str) -> str:
-    return hashlib.sha1(normalize_source(source).encode("utf-8")).hexdigest()
 
 
 class SavedTranslationsManager:
@@ -34,6 +30,10 @@ class SavedTranslationsManager:
         self._memory_path_loaded: Optional[Path] = None
         # True while the memory exists only here: built from the saved translations, not yet written.
         self._memory_unsaved = False
+        # Filled when a project loads (core/translation/series_memory.py): what the other projects
+        # of the series translated, and where each source text sits in this project.
+        self.series_memory: Dict[str, List[Dict[str, str]]] = {}
+        self.source_positions: Dict[str, List[Tuple[int, int]]] = {}
 
     def clear_cache(self) -> None:
         """Clear the in-memory cache."""
@@ -133,6 +133,31 @@ class SavedTranslationsManager:
             return []
         rows = self.load_translation_memory().get(_source_hash(source), [])
         return [row for row in reversed(rows) if isinstance(row, dict) and isinstance(row.get("translation"), str)]
+
+    def series_by_source(self, source: Any, exact: bool = True) -> List[Dict[str, str]]:
+        """Translations of this source text in the other projects of the series, nearest level first.
+
+        Each row has ``source``, ``translation`` and ``project``. ``exact=False``
+        also gives spellings that differ in tags, case or spacing.
+        """
+        if not isinstance(source, str) or not normalize_source(source):
+            return []
+        rows = self.series_memory.get(_source_hash(source), [])
+        return [row for row in rows if not exact or row.get("source") == source]
+
+    def positions_of_source(self, source: Any) -> List[Tuple[int, int]]:
+        """Every ``(block_idx, string_idx)`` of this project with exactly this source text."""
+        if not isinstance(source, str) or not normalize_source(source):
+            return []
+        data = getattr(getattr(self.mw, 'data_store', None), 'data', None)
+        found = []
+        for block_idx, string_idx in self.source_positions.get(_source_hash(source), []):
+            try:
+                if data[block_idx][string_idx] == source:
+                    found.append((block_idx, string_idx))
+            except (TypeError, IndexError, KeyError):
+                continue
+        return found
 
     def _get_saved_translations_path(self) -> Optional[Path]:
         """Internal helper to get the saved translations path."""
