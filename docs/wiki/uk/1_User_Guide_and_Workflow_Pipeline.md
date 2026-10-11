@@ -964,6 +964,8 @@ tokens: 44.0k
      і однаковий мод.
    - `wii_sysfont` — системні растрові шрифти Wii `wbf1.brfna` / `wbf2.brfna` (архівні шрифти NW4R системного
      меню; їхні копії лежать на дисках, які малюють ними підказки, наприклад Raving Rabbids: Party Collection).
+     У NAND vWii з європейської консолі ті самі два файли; його накреслення WiiNTLG-Regular.ttc
+     (`fonts/WiiNTLG-Gothic.ttf`, `fonts/WiiNTLG-PGothic.ttf`) відкриваються в редакторі шрифтів як TTF. Накреслення поки що не можна записати назад у колекцію.
      **Source:** тека `source` робочої теки (`1_unpack.bat` бере шрифти з NAND Dolphin (`shared1`) або з копій на
      диску Rabbids і готує українські літери: І і Ї ї отримують гліфи I i Ï ï, Є є Ґ ґ — порожні клітинки в
      кінці аркуша ASCII); **Translation:** `translation`. Font Editor відкриває обидва шрифти (`brfna`);

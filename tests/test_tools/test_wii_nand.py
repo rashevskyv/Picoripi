@@ -76,3 +76,36 @@ def test_missing_superblock_is_rejected():
 
 def test_names_with_path_characters_are_escaped():
     assert nand.escape_name("a/b:c") == "a%2Fb%3Ac"
+
+
+def _sfnt(tables):
+    """One face: the table directory of ``tables`` (tag -> (offset, bytes)) into a single collection file."""
+    head = struct.pack(">IHHHH", 0x00010000, len(tables), 0, 0, 0)
+    records = b"".join(struct.pack(">4sIII", tag, 0, offset, len(data)) for tag, (offset, data) in tables.items())
+    return head + records
+
+
+def test_ttc_faces_keep_their_table_bytes(tmp_path):
+    from tools.wii_nand import ttc
+
+    glyf = bytes(range(10))  # shared by both faces, 10 bytes (padded to 12 in the output)
+    cmap = b"cmap-table"
+    # layout: TTC header (12 + 2 offsets = 20 bytes), face 0 directory, face 1 directory, then tables
+    directory = 12 + 16 * 2  # sfnt header and two table records
+    face0_at, face1_at = 20, 20 + directory
+    table_at = 20 + 2 * directory
+    tables = {b"cmap": (table_at, cmap), b"glyf": (table_at + len(cmap), glyf)}
+    face = _sfnt(tables)
+    header = b"ttcf" + struct.pack(">II", 0x00010000, 2) + struct.pack(">II", face0_at, face1_at)
+    blob = header + face + face + cmap + glyf
+    assert len(blob) == table_at + len(cmap) + len(glyf)
+    faces = ttc.split_ttc(blob)
+    assert len(faces) == 2
+    for out in faces:
+        assert out[:4] == struct.pack(">I", 0x00010000)
+        assert struct.unpack_from(">H", out, 4)[0] == 2
+        for i in range(2):
+            tag, _checksum, offset, length = struct.unpack_from(">4sIII", out, 12 + 16 * i)
+            assert out[offset:offset + length] == tables[tag][1]
+    with pytest.raises(ttc.TtcError):
+        ttc.split_ttc(b"not a collection")

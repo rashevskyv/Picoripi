@@ -35,12 +35,22 @@ class GameRules(BaseGameRules):
         return "Wii System Font"
 
     def get_font_sources(self) -> List[Dict[str, Any]]:
-        """The two system fonts, listed once the archived-font format (``brfna``, feat/ready-rabbids) is in."""
+        """The two system fonts (wbf1, wbf2) and the two faces of the vWii WiiNTLG collection.
+
+        The faces are written by the vWii workspace (``tools/wii_nand/ttc.py`` splits WiiNTLG-Regular.ttc).
+        A project without those files skips them.
+        """
         from core.font_formats import is_supported
-        if not is_supported("brfna"):
-            return []
-        return [{"label": "Wii system font 1 (wbf1.brfna)", "format": "brfna", "path": "fonts/wbf1.brfna"},
-                {"label": "Wii system font 2 (wbf2.brfna)", "format": "brfna", "path": "fonts/wbf2.brfna"}]
+        sources: List[Dict[str, Any]] = []
+        if is_supported("brfna"):
+            sources += [{"label": "Wii system font 1 (wbf1.brfna)", "format": "brfna", "path": "fonts/wbf1.brfna"},
+                        {"label": "Wii system font 2 (wbf2.brfna)", "format": "brfna", "path": "fonts/wbf2.brfna"}]
+        if is_supported("ttf"):
+            sources += [{"label": "Wii NTLG Gothic (WiiNTLG-Regular.ttc, face 0)", "format": "ttf",
+                         "path": "fonts/WiiNTLG-Gothic.ttf"},
+                        {"label": "Wii NTLG PGothic (WiiNTLG-Regular.ttc, face 1)", "format": "ttf",
+                         "path": "fonts/WiiNTLG-PGothic.ttf"}]
+        return sources
 
     def get_capabilities(self) -> Set[str]:
         """Opt-in features. Empty here on purpose.
