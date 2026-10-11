@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-09
+updated: 2026-10-11
 owns: unfinished work
 tokens: 20.4k
 purpose: Everything left open, one line each, by work package
@@ -10,9 +10,19 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Integration round 6 (2026-10-11)
+
+- `jfnt` (One Piece, `JFNT`) and `asw_jfnt` (Dragon Ball Fusions, `jFNT`) are two font readers for two layouts (different magic). Decide later whether one reader can cover both.
+- Duplicate LZ10: `core/containers/level5.py` has its own `_lz10` decode and `lz10_encode`; `core/containers/lz10.py` is the shared one. Merge them into one implementation.
+- Pret character tables (H3): the gen4 charmaps hold the encoding facts only; provenance is in `plugins/pokemon_gen4/charmaps/README.md`. Keep that note current when a pret table changes.
+- Owner paths in test fixtures (H4): new tests name the owner's `E:\Emulators\RomHacking` paths and skip where the files are missing. Decide whether the public repo keeps them or reads an environment variable.
+- TP preview goldens (`tests/fixtures/review_queue/wp5`) were made with no fonts installed; the pixel check depends on the machine's fonts (`QT_QPA_FONTDIR`).
+- Intermittent worker crashes under heavy load (xdist): `test_wwhd_real`, `test_kid_icarus_real`, `test_kingdom_hearts_ddd`. Each passes alone; rerun them with `-p no:xdist`.
+- Ultra boot proof open: no emulator boot check is recorded for the Ultra game in round 6.
+
 ## Integration round 5 (2026-10-10)
 
-- `core/unreal/pak.py` (Unreal pak v8) has no plugin user yet; its zstd path needs Python 3.14+ (`compression.zstd`). MGS2/3 Master Collection PC text is not read yet (only the PC `.ctxr` pictures).
+- `core/unreal/pak.py` (Unreal pak v8) has no plugin user yet; its zstd path needs Python 3.14+ (`compression.zstd`) or the `zstandard` package; otherwise it raises `PakError`. MGS2/3 Master Collection PC text is not read yet (only the PC `.ctxr` pictures).
 - `core/texture_formats/sources.resolve()` decodes every picture it lists: Bravely Second's 5,073 ETC1 pictures take about 100 s (its real-data test has a 600 s timeout).
 
 ## Pokémon generation III-V (`plugins/pokemon_fr`, `pokemon_gen4`, `pokemon_gen5`, 2026-10-10)
