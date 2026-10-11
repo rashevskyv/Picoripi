@@ -518,6 +518,12 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      widths). Textures: title screen and logos, battle status page, card game words, 50 full-screen pictures.
      Tags: `\n` next line, `{2000}` new page, `{3007}` the 'more' arrow, `{B2C9}` speaker, `{XXXX}` other codes.
      A longer text moves the messages; a file that outgrows its place goes to the end of the disc.
+   - `paper_mario_64` — Paper Mario (N64, USA 1.0) in the PC port PaperBoat 1.0.2. **Source:** the workspace's
+     `source\text\paper_mario_64_messages.txt` (one line per message, 8,009: `MSG_<name>` and the editor text, codes in
+     brackets such as `[@F0]`); the message font `source\font\charset_standard.bin` (a texture grid of 166 16x16
+     CI4 glyphs) and the logo pictures `source\texture\LOGO_*.bin` (RGBA16). `2_build.bat` writes the changed
+     messages, glyphs and logos into the port's mod `build\mods\zz_Picoripi_UA.o2r`; the ROM is not changed.
+     The charset has no Ukrainian letters yet.
    - `paper_mario_ok` — Paper Mario: The Origami King (Switch, 2020), the same formats. **Source:** the
      workspace's `source` (`1_unpack.bat`: base + update): `msg\EU_English\*.msbt` (59 files, 9,708 messages),
      `font\*.bffnt` (12 fonts) and `ui\...\*.bntx`; a picture the game keeps once per language opens as its
