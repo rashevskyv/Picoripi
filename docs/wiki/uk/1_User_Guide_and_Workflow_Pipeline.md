@@ -583,6 +583,12 @@ tokens: 44.0k
      Теги ті самі, що в `pokemon_nx`: `{PAGE}`, `{COLOR 0002}`, `{VAR 0100 0000}`, `Master Ball{PLURAL 00FE||s}`,
      `{CHAR E08E}`. У шрифтах немає кирилиці: Редактор шрифтів додає літери (`min_sheets` лишає місце).
      `2_build.bat` перезбирає GARC у мод Luma / Azahar для кожного CIA в `ISO\`.
+   - `pokemon_gen7` — Pokémon Sun / Moon і Ultra Sun / Ultra Moon (3DS, розшифровані образи `.3ds` у `ISO\`). Sun і
+     Moon мають однакові англійські файли; так само два Ultra. Ultra читає оновлення v1.2 як накладку.
+     **Source:** `romfs\a\0\3\2\NNN.dat` англійський ігровий текст (898 таблиць у Sun), `romfs\a\0\4\2\NNN.dat`
+     текст Battle Tree, `romfs\a\0\2\5\NNN.bffnt` шрифти і `romfs\a\*\*\*\NNN.bflim` картинки. У шрифтах немає
+     кирилиці: Редактор шрифтів додає літери. `2_build.bat` перезбирає змінені GARC у мод Luma / Azahar для кожного
+     заголовка.
    - `pokemon_gen5` — Pokémon Black / White і Black 2 / White 2 (Nintendo DS). **Source:** тека `source` робочої теки (`1_unpack.bat` дістає члени NARC із ROM): `text/a_0_0_2/NNNN.msg` (меню, назви, описи, бій) і `text/a_0_0_3/NNNN.msg` (сюжет, скрипти), один блок на файл; `a/0/2/3` — NARC із шрифтами NFTR, `a/*/*/*` — NARC із картинками NCGR. Теги: `{PAGE}`, `{SCROLL}`, `{VAR 0101 0000}`, `{COLOR 0001}`, `{CHAR E447}`; перенос рядка — новий рядок. Збереження лишає прапорці й стиснення рядків; `2_build.bat` пише змінені файли в їхні NARC і розкладає ROM знову (звичайний образ NDS).
    - `pokemon_gen4` — Pokémon Diamond / Pearl, Platinum, HeartGold / SoulSilver через декомпіляції pret. **Source:** `files/msgdata/msg/*.gmm` (XML) або `res/text/*.json`; один блок на файл, лише англійський текст; `{\r}`, `{\f}` і `{STRVAR_1 1, 0}` — теги. Збереження змінює лише відредаговані повідомлення; для ROM потрібні власні інструменти декомпіляції.
    - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), один проєкт для обох ігор.

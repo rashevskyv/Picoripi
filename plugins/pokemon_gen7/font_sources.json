@@ -1,0 +1,17 @@
+[
+  {"label": "Font 000", "format": "bcfnt", "path": "romfs/a/0/2/5/000.bffnt"},
+  {"label": "Font 001", "format": "bcfnt", "path": "romfs/a/0/2/5/001.bffnt"},
+  {"label": "Font 002", "format": "bcfnt", "path": "romfs/a/0/2/5/002.bffnt"},
+  {"label": "Font 003", "format": "bcfnt", "path": "romfs/a/0/2/5/003.bffnt"},
+  {"label": "Font 004", "format": "bcfnt", "path": "romfs/a/0/2/5/004.bffnt"},
+  {"label": "Font 005", "format": "bcfnt", "path": "romfs/a/0/2/5/005.bffnt"},
+  {"label": "Font 006 (English slot)", "format": "bcfnt", "path": "romfs/a/0/2/5/006.2.bffnt"},
+  {"label": "Font 006 (Japanese slot)", "format": "bcfnt", "path": "romfs/a/0/2/5/006.bffnt"},
+  {"label": "Font 006 (French slot)", "format": "bcfnt", "path": "romfs/a/0/2/5/006.3.bffnt"},
+  {"label": "Font 006 (Italian slot)", "format": "bcfnt", "path": "romfs/a/0/2/5/006.4.bffnt"},
+  {"label": "Font 006 (German slot)", "format": "bcfnt", "path": "romfs/a/0/2/5/006.5.bffnt"},
+  {"label": "Font 006 (Spanish slot)", "format": "bcfnt", "path": "romfs/a/0/2/5/006.7.bffnt"},
+  {"label": "Font 006 (Korean slot)", "format": "bcfnt", "path": "romfs/a/0/2/5/006.8.bffnt"},
+  {"label": "Font 006 (slot 9)", "format": "bcfnt", "path": "romfs/a/0/2/5/006.9.bffnt"},
+  {"label": "Font 006 (slot 10)", "format": "bcfnt", "path": "romfs/a/0/2/5/006.10.bffnt"}
+]

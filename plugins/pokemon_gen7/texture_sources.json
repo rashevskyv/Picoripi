@@ -1,0 +1,10 @@
+[
+  {"label": "Pictures in a/0/6/1 (FLIM)", "kind": "picture", "format": "bflim", "path": "romfs/a/0/6/1/*.bflim"},
+  {"label": "Pictures in a/0/6/2 (FLIM)", "kind": "picture", "format": "bflim", "path": "romfs/a/0/6/2/*.bflim"},
+  {"label": "Pictures in a/1/5/4 (FLIM)", "kind": "picture", "format": "bflim", "path": "romfs/a/1/5/4/*.bflim"},
+  {"label": "Pictures in a/1/5/9 (FLIM)", "kind": "picture", "format": "bflim", "path": "romfs/a/1/5/9/*.bflim"},
+  {"label": "Pictures in a/2/6/0 (FLIM)", "kind": "picture", "format": "bflim", "path": "romfs/a/2/6/0/*.bflim"},
+  {"label": "Pictures in a/2/6/9 (FLIM)", "kind": "picture", "format": "bflim", "path": "romfs/a/2/6/9/*.bflim"},
+  {"label": "Pictures in a/2/8/1 (FLIM)", "kind": "picture", "format": "bflim", "path": "romfs/a/2/8/1/*.bflim"},
+  {"label": "Pictures in a/2/9/1 (FLIM)", "kind": "picture", "format": "bflim", "path": "romfs/a/2/9/1/*.bflim"}
+]

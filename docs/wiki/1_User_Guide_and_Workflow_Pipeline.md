@@ -586,6 +586,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      game). Tags are the same as `pokemon_nx`: `{PAGE}`, `{COLOR 0002}`, `{VAR 0100 0000}`,
      `Master Ball{PLURAL 00FE||s}`, `{CHAR E08E}`. The fonts have no Cyrillic: the Font Editor adds letters
      (`min_sheets` leaves room). `2_build.bat` rebuilds the GARCs into a Luma / Azahar mod for every CIA in `ISO\`.
+   - `pokemon_gen7` — Pokémon Sun / Moon and Ultra Sun / Ultra Moon (3DS, decrypted `.3ds` images in `ISO\`). Sun and
+     Moon share every English file; so do the two Ultra games. The Ultra games read the v1.2 update as an overlay.
+     **Source:** `romfs\a\0\3\2\NNN.dat` English game text (898 tables in Sun), `romfs\a\0\4\2\NNN.dat` Battle Tree
+     text, `romfs\a\0\2\5\NNN.bffnt` fonts, and `romfs\a\*\*\*\NNN.bflim` pictures. The fonts have no Cyrillic: the
+     Font Editor adds letters. `2_build.bat` rebuilds the changed GARCs into a Luma / Azahar mod for each title.
    - `pokemon_gen5` — Pokémon Black / White and Black 2 / White 2 (Nintendo DS). **Source:** the workspace's `source` (`1_unpack.bat` takes the NARC members out of the ROM): `text/a_0_0_2/NNNN.msg` (menus, names, descriptions, battle) and `text/a_0_0_3/NNNN.msg` (story, scripts), one block per message file; `a/0/2/3` the NARC with the NFTR fonts and `a/*/*/*` the NARCs with NCGR pictures. Tags: `{PAGE}`, `{SCROLL}`, `{VAR 0101 0000}`, `{COLOR 0001}`, `{CHAR E447}`; a line break is a new line. Saving keeps each line's flags and packing; `2_build.bat` writes changed files into their NARCs and lays the ROM out again (a plain NDS image).
    - `pokemon_gen4` — Pokémon Diamond / Pearl, Platinum, HeartGold / SoulSilver through the pret decompilations. **Source:** `files/msgdata/msg/*.gmm` (XML) or `res/text/*.json`; one block per file, only the English text; `{\r}`, `{\f}` and `{STRVAR_1 1, 0}` are tags. A save changes only the edited messages; the ROM needs the decompilation's own toolchain.
    - `pokemon_bdsp` — Pokémon Brilliant Diamond / Shining Pearl (Switch, Unity), one project for both games.
