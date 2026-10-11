@@ -1,0 +1,86 @@
+[
+  {
+    "label": "Nintendo logo (LOGO_2)",
+    "kind": "logo",
+    "format": "raw",
+    "path": "texture/LOGO_2.bin",
+    "params": {
+      "pixel_format": "n64:RGBA16",
+      "width": 256,
+      "height": 48,
+      "offset": 0
+    }
+  },
+  {
+    "label": "Nintendo 64 logo (LOGO_1)",
+    "kind": "logo",
+    "format": "raw",
+    "path": "texture/LOGO_1.bin",
+    "params": {
+      "pixel_format": "n64:RGBA16",
+      "width": 128,
+      "height": 112,
+      "offset": 0
+    }
+  },
+  {
+    "label": "Intelligent Systems logo (LOGO_3)",
+    "kind": "logo",
+    "format": "raw",
+    "path": "texture/LOGO_3.bin",
+    "params": {
+      "pixel_format": "n64:RGBA16",
+      "width": 256,
+      "height": 112,
+      "offset": 0
+    }
+  },
+  {
+    "label": "Theater curtain tile (theater_curtains, RGBA32 32x32)",
+    "kind": "theater",
+    "format": "raw",
+    "path": "texture/theater_curtains.bin",
+    "params": {
+      "pixel_format": "n64:RGBA32",
+      "width": 32,
+      "height": 32,
+      "offset": 0
+    }
+  },
+  {
+    "label": "Title screen logo (title_logo_img, RGBA32 200x112)",
+    "kind": "title_screen",
+    "format": "raw",
+    "path": "texture/title_logo_img.bin",
+    "params": {
+      "pixel_format": "n64:RGBA32",
+      "width": 200,
+      "height": 112,
+      "offset": 0
+    }
+  },
+  {
+    "label": "Title screen copyright (title_copyright_img, IA8 144x32)",
+    "kind": "title_screen",
+    "format": "raw",
+    "path": "texture/title_copyright_img.bin",
+    "params": {
+      "pixel_format": "n64:IA8",
+      "width": 144,
+      "height": 32,
+      "offset": 0
+    }
+  },
+  {
+    "label": "Title screen PRESS START (title_press_start_img, IA8 128x32)",
+    "kind": "title_screen",
+    "format": "raw",
+    "path": "texture/title_press_start_img.bin",
+    "params": {
+      "pixel_format": "n64:IA8",
+      "width": 128,
+      "height": 32,
+      "offset": 0
+    }
+  }
+]
