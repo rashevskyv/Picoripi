@@ -10,6 +10,16 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Integration round 7 (2026-10-11)
+
+- BIOS Huffman exists twice: `core/containers/level5.py` `_huffman` (Kuriimu tree layout) and `core/containers/layton_ds.py` `_huffman` (BIOS tree layout, Layton DS). Both read MSB-first 32-bit words, but the tree indexing differs. A random-tree comparison proved too little (25 comparable cases of 3000), so both stay. Merge them after a Layton DS stream with a Huffman body is checked on disk, or after a BIOS Huffman encoder test exists.
+- Duplicate LZ10 (round 6 item) is still open: `core/containers/level5.py` `_lz10` next to `core/containers/lz10.py`.
+- `plugins/pokemon_gen7/rules.py` is a copy of `plugins/pokemon_gen6/rules.py` (33 changed lines: tables, GARC ids, names). Both use `plugins/common/gfmsg`. A shared base for the Game Freak `.dat` plugins is a later refactor.
+- Licence notices: `core/texture_formats/xenos.py` carries the full Xenia BSD-3 text (Ben Vanik, 2015); `core/containers/layton_ds.py` carries the full MIT text of bullbin's madhatter (2024), which its pack codec is ported from. Jak (`fr3`) cites the OpenGOAL port for format facts only; no OpenGOAL source is copied. The OpenGOAL licence was not checked.
+- Zstd: `core/zstd_frame.py` is the one zstd helper (`compression.zstd` or `zstandard`, imported inside the calls). `fr3` and `core/unreal/pak.py` use it.
+- `feat/ready-dk` does not exist; Donkey Kong is not in round 7.
+- Ultra boot proof still open (round 6 item); the Sun/Moon plugin has no boot check either.
+
 ## Integration round 6 (2026-10-11)
 
 - `jfnt` (One Piece, `JFNT`) and `asw_jfnt` (Dragon Ball Fusions, `jFNT`) are two font readers for two layouts (different magic). Decide later whether one reader can cover both.
