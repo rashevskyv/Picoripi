@@ -54,3 +54,20 @@ def test_extended_lz10_header_decodes():
     # 0x10, zero 24-bit size, then the u32 size 5; one flag byte 0 = five literals
     stream = b"\x10\x00\x00\x00" + struct.pack("<I", 5) + b"\x00" + b"hello"
     assert lz10.decompress(stream)[0] == b"hello"
+
+
+def test_chars_param_becomes_a_char_map():
+    from core.font_formats import char_map
+
+    raw = _font_bin(20)
+    meta, _sheets = G.extract(raw, {"chars": {"A": 3, "T": 19, "??": 2, "B": 40}})
+    mapping = char_map(meta)
+    assert mapping == {"A": 3, "T": 19}          # two-character and out-of-range entries are left out
+
+
+def test_diamond_charmap_gives_glyph_index_text_code_minus_one():
+    from plugins.pokemon_gen4.rules import _glyph_map, _CHARMAPS
+
+    glyphs = _glyph_map(str(_CHARMAPS / "charmap_dp_hgss.txt"))
+    assert glyphs["T"] == 0x13E - 1
+    assert glyphs["A"] == 0x12B - 1

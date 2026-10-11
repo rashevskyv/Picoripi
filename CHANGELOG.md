@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon Diamond / Pearl, Platinum, HeartGold / SoulSilver (DS): the Gen 4 font bins label each glyph cell with its character from the game's charmap (MAP1 from the `chars` param; glyph index = text code - 1).
 - Pokémon Diamond / Pearl, Platinum, HeartGold / SoulSilver (DS): the font bins of `graphic/font.narc` open in the Font Editor (format `gen4_glyphs`, byte-exact no-op round trip); LZ10 NCGR members open in Textures (decompressed to read, compressed again to save); Pearl and SoulSilver build from their own ROMs (`zt_base.txt` picks the base); pret mode stays selectable (`ZT_GEN4_MODE=pret` or `zt_mode.txt`).
 - Pokémon Diamond / Pearl, Platinum and HeartGold / SoulSilver (DS, USA): ROM mode of `pokemon_gen4` (`.msg` message banks, Gen 4 charmap codec `plugins/common/gen4msg.py`, NCGR pictures); `zt\pkgen4.py` unpacks and rebuilds the NitroFS from the clean ROM (unchanged build = original bytes); LZ10 extended-size headers in `core/containers/lz10.py`; Gen 4 fonts are not opened yet.
 - Merged the fifth set of finished game branches (Super Metroid intro fonts, Pokémon generations III-V, Bravely Second and the PC font and pak readers, Metal Gear Solid 2 / 3 Master Collection); the plugin contract, the roadmap and the developer guide (EN, UK) list the new formats `ttf`, `mgs_nht` and `ctxr`, and the guide now names `bffnt_wiiu` and `brfnt` too.

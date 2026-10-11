@@ -67,6 +67,16 @@ def _lz10_ncgr(member: bytes) -> bool:
         return False
 
 
+def _glyph_map(charmap_path: str) -> Dict[str, int]:
+    """{character: glyph index} of a charmap: a single-character entry of text code c is glyph c - 1."""
+    chars, _commands = gen4msg.load_charmap(charmap_path)
+    glyphs: Dict[str, int] = {}
+    for code, text in sorted(chars.items()):
+        if len(text) == 1 and text.strip() and code >= 1:
+            glyphs.setdefault(text, code - 1)
+    return glyphs
+
+
 def gen4msg_is_bank(data: bytes) -> bool:
     try:
         gen4msg.decode_bank(data)
@@ -179,15 +189,29 @@ class GameRules(BaseGameRules):
                 yield rel, members
 
     def get_font_sources(self) -> List[Dict[str, Any]]:
-        """The Gen 4 font bins (``core.font_formats.gen4_glyphs``): the members of each font NARC."""
+        """The Gen 4 font bins (``core.font_formats.gen4_glyphs``): the members of each font NARC, with the
+        glyph map of the game's charmap (glyph index = text code - 1), so the Font Editor shows letters."""
         from core.font_formats import gen4_glyphs
+        glyphs = _glyph_map(self._game_charmap())
         sources: List[Dict[str, Any]] = []
         for rel, members in self._narc_files():
             numbers = [n for n, m in enumerate(members) if gen4_glyphs.is_font_bin(m)]
             if numbers:
                 sources.append({"label": rel, "kind": "font", "format": "gen4_glyphs", "path": rel,
-                                "member": "#{" + ",".join(str(n) for n in numbers) + "}"})
+                                "member": "#{" + ",".join(str(n) for n in numbers) + "}",
+                                "params": {"chars": glyphs}})
         return sources
+
+    def _game_charmap(self) -> str:
+        """The charmap of the game of the unpacked tree: Platinum has pl_msg banks, HeartGold / SoulSilver a+0+2+7,
+        Diamond / Pearl neither."""
+        try:
+            root = Path(str(self.mw.project_manager.project.metadata.get("source_path") or ""))
+        except AttributeError:
+            root = Path("")
+        if (root / "text" / "msgdata+pl_msg.narc").is_dir():
+            return str(_CHARMAPS / "charmap_platinum.txt")
+        return str(_CHARMAPS / "charmap_dp_hgss.txt")
 
     def get_texture_sources(self) -> List[Dict[str, Any]]:
         """The NCGR pictures of the NARCs, one source per kind per NARC: the raw members, and the LZ10 members with

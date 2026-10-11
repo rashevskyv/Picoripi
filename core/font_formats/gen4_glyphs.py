@@ -13,7 +13,8 @@ unedited font packs back to the same bytes; an edited pixel is quantised to the 
 from the metadata's WID1 packets when they are given, else the file keeps its own widths. No new glyphs
 (``ADDS_GLYPHS`` is False): the glyph table has a fixed size.
 
-Params: none needed (the header describes the font); optional ``columns`` (default 16).
+Params: ``chars`` (``{character: glyph index}``: the Font Editor labels those cells; the plugin builds it from the
+game's charmap, text code - 1; a glyph index past the font's end is left out), optional ``columns`` (default 16).
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from typing import Any, Dict, Tuple
 
 from PIL import Image
 
-from core.font_formats import Metadata, Sheets, coverage, grey_sheet
+from core.font_formats import Metadata, Sheets, char_code, coverage, grey_sheet, map_entries
 
 ADDS_GLYPHS = False
 HEADER = 16
@@ -70,6 +71,10 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
                     ink[(y0 + ty * 8 + row) * stride + x0 + tx * 8 + x] = value * 85
     sheet = grey_sheet(Image.frombytes("L", (stride, lines * cell_h), bytes(ink)))
     widths = list(data[widths_at:widths_at + count])
+    # params "chars": {character: glyph index} (the plugin builds it from the game's charmap, text code - 1)
+    chars = params.get("chars") or {}
+    pairs = sorted({(char_code(char), int(index)) for char, index in chars.items()
+                    if len(char) == 1 and 0 <= int(index) < count})
     metadata = {
         "header": {"signature": "Gen 4 font bin", "num_chunks": 4},
         "INF1": [{"encoding": 0, "ascent": cell_h - 2, "descent": 2, "width": cell_w, "leading": cell_h,
@@ -77,7 +82,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
         "GLY1": [{"start_glyph": 0, "end_glyph": count - 1, "cell_width": cell_w, "cell_height": cell_h,
                   "page_data_size": count * glyph, "texture_format": 0, "glyph_horizontal_count": columns,
                   "glyph_vertical_count": lines, "texture_width": stride, "texture_height": lines * cell_h}],
-        "MAP1": [],
+        "MAP1": [map_entries(pairs)] if pairs else [],
         "WID1": [{"first_code_included": 0, "last_code_included": count - 1,
                   "packets": [{"kerning": 0, "width": w} for w in widths]}],
     }
