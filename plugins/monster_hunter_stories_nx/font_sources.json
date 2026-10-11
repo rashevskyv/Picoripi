@@ -1,0 +1,12 @@
+[
+  {"label": "Main text font (English, 50 px pages)", "format": "mt_font", "path": "romfs/nativeNXx64/gui/font/font02_eng.gfd",
+   "companion": "romfs/nativeNXx64/gui/font/font02_eng_00_ID_HQ.tex", "params": {"page": 0}},
+  {"label": "Second text font (English, 40 px pages)", "format": "mt_font", "path": "romfs/nativeNXx64/gui/font/font04_eng.gfd",
+   "companion": "romfs/nativeNXx64/gui/font/font04_eng_00_ID_HQ.tex", "params": {"page": 0}},
+  {"label": "Button icons (Nintendo 64 pad)", "format": "mt_font", "path": "romfs/nativeNXx64/gui/font/f_icon_64_00.gfd",
+   "companion": "romfs/nativeNXx64/gui/font/texture/btn00_n64_ID.tex", "params": {"page": 0}},
+  {"label": "Button icons (directional pad)", "format": "mt_font", "path": "romfs/nativeNXx64/gui/font/f_icon_di_00.gfd",
+   "companion": "romfs/nativeNXx64/gui/font/texture/btn00_di_ID.tex", "params": {"page": 0}},
+  {"label": "Button icons (keyboard)", "format": "mt_font", "path": "romfs/nativeNXx64/gui/font/f_icon_kb_00.gfd",
+   "companion": "romfs/nativeNXx64/gui/font/texture/btn00_kb_ID.tex", "params": {"page": 0}}
+]

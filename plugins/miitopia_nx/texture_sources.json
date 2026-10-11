@@ -1,0 +1,4 @@
+[
+  {"label": "Miitopia (Switch) title logo", "kind": "title_screen", "format": "bntx", "path": "romfs/cmn/lyt/title.arc.szs/timg/__Combined.bntx"},
+  {"label": "Miitopia (Switch) menus and layouts", "kind": "menu", "format": "bntx", "path": "romfs/cmn/lyt/**/*.arc.szs/timg/__Combined.bntx"}
+]

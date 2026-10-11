@@ -1,0 +1,6 @@
+[
+  {"label": "Title logo", "kind": "title_screen", "format": "wilay", "path": "menu/image/titlelogo.wilay"},
+  {"label": "Future Connected title logo (English)", "kind": "title_screen", "format": "wilay", "path": "menu/image/titlelogo_aoc_en.wilay"},
+  {"label": "Tutorial pictures (English)", "kind": "ui", "format": "wilay", "path": "menu/image/tutorial_gb/*.wilay"},
+  {"label": "Menu layouts with pictures", "kind": "ui", "format": "wilay", "path": "menu/image/*.wilay"}
+]

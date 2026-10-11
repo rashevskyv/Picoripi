@@ -1,0 +1,9 @@
+[
+  {"label": "Main font 20x20 (dialogue, menus)", "format": "jfnt", "path": "romfs/font_eu/opu3font20x20.jfnt"},
+  {"label": "Font 22x22 (HUD, names)", "format": "jfnt", "path": "romfs/font_eu/opu3_h_font22x22.jfnt"},
+  {"label": "Large font 52x52 (titles)", "format": "jfnt", "path": "romfs/font_eu/opu3_h_font52x52.jfnt"},
+  {"label": "Large font 52x52, variant 2 (digits and symbols)", "format": "jfnt", "path": "romfs/font_eu/opu3_h_font52x52_2.jfnt"},
+  {"label": "Large font 52x52, variant 3", "format": "jfnt", "path": "romfs/font_eu/opu3_h_font52x52_3.jfnt"},
+  {"label": "Large font 52x52, variant 4", "format": "jfnt", "path": "romfs/font_eu/opu3_h_font52x52_4.jfnt"},
+  {"label": "Command font (button icons)", "format": "jfnt", "path": "romfs/font_eu/opu3font_command.jfnt"}
+]

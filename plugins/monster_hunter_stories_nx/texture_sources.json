@@ -1,0 +1,5 @@
+[
+  {"label": "Menu, battle, field and demo pictures (gui)", "kind": "ui", "format": "mt_tex",
+   "path": "romfs/nativeNXx64/gui/**/*.tex"},
+  {"label": "Layout pictures (lyt)", "kind": "ui", "format": "mt_tex", "path": "romfs/nativeNXx64/lyt/**/*.tex"}
+]

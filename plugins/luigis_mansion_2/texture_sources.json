@@ -1,0 +1,6 @@
+[
+  {"label": "Front-end texture bundles (menus, HUD, maps, loading, multiplayer; the font pages too)", "kind": "ui",
+   "format": "nlg_tex", "path": "romfs/art/fe/febundle*_res.data/bundle.nlgb"},
+  {"label": "Front-end texture bundles (Switch: menus, HUD, fonts; DXT1 and DXT5)", "kind": "ui",
+   "format": "nlg_tex", "path": "romfs/art/fe/febundle*_res.data/bundle.nlgh"}
+]

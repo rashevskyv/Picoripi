@@ -1,0 +1,4 @@
+[
+  {"label": "Menu pictures and localized labels (loose files and menu archives; English *_en_eu)", "kind": "ui",
+   "format": "jimg", "path": "romfs/menu_eu/**/*.jtex"}
+]
