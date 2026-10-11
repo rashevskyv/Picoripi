@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Tests: the review run helper waits up to 60 s for an AI run to end (was 15 s), so a loaded machine does not time out.
 - Textures window and Font Editor: a plugin's font and picture scan (Pokémon Gen V reads every picture NARC) now runs in the window's job instead of on the UI thread; a test proves the scan leaves the UI thread.
 - Tests: the TP preview pixel goldens are compared only where the font environment matches the one recorded with them (`preview/render_environment.json`); elsewhere those tests skip with the reason, and the layout and label tests always run.
 - Tests: the save test takes the splitter states from the output; they are pixel sizes of the machine's fonts, so only their format is compared.

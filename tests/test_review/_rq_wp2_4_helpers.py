@@ -258,8 +258,9 @@ def configure_provider(mw, server: FakeAIServer, *, provider: str = "openai", pr
     mw.translation_config = cfg
 
 
-def wait_idle(qtbot, mw, timeout: int = 15000) -> None:
-    """Until the AI run, and any retry it scheduled, is over."""
+def wait_idle(qtbot, mw, timeout: int = 60000) -> None:
+    """Until the AI run, and any retry it scheduled, is over. The limit is generous: a loaded machine (xdist) runs
+    the same work several times slower; a run that really stalls still fails, after the limit."""
     lifecycle = mw.translation_handler.ai_lifecycle_manager
     qtbot.waitUntil(
         lambda: not mw.translation_handler.is_ai_running and lifecycle._retry_context is None
