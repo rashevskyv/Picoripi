@@ -812,7 +812,7 @@ tokens: 44.0k
      **Tools → Textures…** показує картинки інтерфейсу й титульного екрана (`mt_tex`). `2_build.bat` збирає
      кожен архів зі зміненим файлом у мод romfs для Luma.
    - `plain_text` — Plain Text
-   - `pokemon_fr` — Pokémon FireRed / LeafGreen, Ruby / Sapphire і Emerald: JSON-дампи тексту ROM або вихідні файли декомпіляцій pret (`.inc`, `.s`, `.c`, `.h`; один блок на файл; коди `\n`, `\l`, `\p`, `{PLAYER}`; завершальний `$` не показується). Мовця беремо з `map.json` карти.
+   - `pokemon_fr` — Pokémon FireRed / LeafGreen, Ruby / Sapphire і Emerald: JSON-дампи тексту ROM або вихідні файли декомпіляцій pret (`.inc`, `.s`, `.c`, `.h`; один блок на файл; коди `\n`, `\l`, `\p`, `{PLAYER}`; завершальний `$` не показується). Мовця беремо з `map.json` карти. Назви регіонів на карті та назви предметів FireRed (JSON) теж є повідомленнями. Збережений файл декомпіляції зберігає свої LF-кінці рядків, а індексований PNG зберігає палітру, глибину бітів і непозмінені пікселі.
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) і Pokémon Legends: Z-A
      (+ Mega Dimension) (Switch, рушій Trinity від Game Freak). **Source:** тека `source` робочої теки
      (`1_unpack.bat` читає лише потрібні паки з `arc\data.trpfs` і кладе туди, за шляхами гри, англійський текст

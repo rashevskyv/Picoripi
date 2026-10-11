@@ -816,7 +816,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      letters). **Tools → Textures…** lists the UI and title pictures (`mt_tex`). `2_build.bat` rebuilds every
      archive that holds a changed file into a Luma romfs mod.
    - `plain_text` — Plain Text
-   - `pokemon_fr` — Pokémon FireRed / LeafGreen, Ruby / Sapphire and Emerald: JSON dumps of the ROM text, or the source files of the pret decompilations (`.inc`, `.s`, `.c`, `.h`; one block per file; `\n`, `\l`, `\p` and `{PLAYER}` codes; the `$` terminator is not shown). Speakers come from each map's `map.json`.
+   - `pokemon_fr` — Pokémon FireRed / LeafGreen, Ruby / Sapphire and Emerald: JSON dumps of the ROM text, or the source files of the pret decompilations (`.inc`, `.s`, `.c`, `.h`; one block per file; `\n`, `\l`, `\p` and `{PLAYER}` codes; the `$` terminator is not shown). Speakers come from each map's `map.json`. The region map names and FireRed item names (JSON) are messages too. A saved decompilation file keeps its LF line endings, and an indexed PNG keeps its palette, bit depth and unedited pixels.
    - `pokemon_trinity` — Pokémon Scarlet/Violet (+ The Teal Mask, The Indigo Disk) and Pokémon Legends: Z-A
      (+ Mega Dimension) (Switch, Game Freak's Trinity engine). **Source:** the workspace's `source`
      (`1_unpack.bat` reads only the needed packs of `arc\data.trpfs` and puts there, at the game's paths, the

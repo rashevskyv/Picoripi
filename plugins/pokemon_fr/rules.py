@@ -4,6 +4,7 @@ Two ways in: the JSON dumps of the ROM text (``load_data_from_json_obj`` with a 
 source files of a pret decompilation (``.inc``, ``.s``, ``.c``, ``.h``: ``pret_text``; a project block is one
 source file, saved in place so ``2_build.bat`` only copies the translated files over the decompilation).
 """
+import json
 import os
 from typing import Dict, Any, Tuple, Set, Optional, List
 from collections import OrderedDict
@@ -64,7 +65,8 @@ class GameRules(BaseGameRules):
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat(pret_text.SUFFIXES, "text", "pret decompilation source"), *DEFAULT_FORMATS]
+        # newline="": the decompilation's line endings come back as they are (a plain text write would make CRLF)
+        return [FileFormat(pret_text.SUFFIXES, "text", "pret decompilation source", newline=""), *DEFAULT_FORMATS]
 
     # The keys of every loaded block, in load order. The game files are dicts of
     # key -> string; the editor only sees the strings, so the keys are kept here
@@ -118,11 +120,23 @@ class GameRules(BaseGameRules):
         if isinstance(json_data, (bytes, bytearray)):
             json_data = bytes(json_data).decode("utf-8", "surrogateescape")
         if isinstance(json_data, str):
-            units = pret_text.load(json_data, self._is_asm(json_data))
-            if not units:
-                return [], {}          # no decompilation text: what a text file gave this plugin before
-            self._pret_loaded = json_data
-            return [units], {"0": "Text"}
+            # ``.json`` is a text format of this plugin (the decompilation's region map and item tables), so a
+            # JSON dump of the ROM text arrives here as text: it is parsed back into a dict.
+            if pret_text.is_pret_json(json_data):
+                units = pret_text.load_json(json_data)
+            elif json_data.lstrip().startswith("{"):
+                try:
+                    json_data = json.loads(json_data)
+                except ValueError:
+                    return [], {}
+                units = None
+            else:
+                units = pret_text.load(json_data, self._is_asm(json_data))
+            if units is not None:
+                if not units:
+                    return [], {}      # no decompilation text: what a text file gave this plugin before
+                self._pret_loaded = json_data
+                return [units], {"0": "Text"}
         if not isinstance(json_data, dict):
             return [], {}
         
@@ -152,6 +166,8 @@ class GameRules(BaseGameRules):
         source = self._pret_source if self._pret_source is not None else self._pret_loaded
         if source is not None and not self.original_keys:
             texts = [str(text) for text in (data[0] if data else [])]
+            if pret_text.is_pret_json(source):
+                return pret_text.write_json(source, texts)
             return pret_text.write(source, self._is_asm(source), texts)
         if not self.original_keys or len(self.original_keys) != len(data):
             raise ValueError("Original keys for Pokemon data are missing or mismatched. Cannot save.")
@@ -176,13 +192,14 @@ class GameRules(BaseGameRules):
                     string_obj[key] = "" # Pad with empty string if missing
             
             output_json[block_name] = string_obj
-            
-        return output_json
-        
+
+        # the ROM text dumps are JSON files, a text format of this plugin: the file's text
+        return json.dumps(output_json, ensure_ascii=False, indent=4)
+
     @staticmethod
     def _is_asm(text: str) -> bool:
-        """An assembly file holds ``.string`` lines; a C file holds ``_("...")`` calls."""
-        return ".string" in text
+        """An assembly file holds ``.string`` or ``.braille`` lines; a C file holds ``_("...")`` calls."""
+        return pret_text.is_asm_text(text)
 
     # -- context from the decompilation ---------------------------------------------------
 
@@ -216,7 +233,7 @@ class GameRules(BaseGameRules):
             with open(path, encoding="utf-8", errors="surrogateescape") as stream:
                 text = stream.read()
             asm = pret_text.is_asm(rel)
-            units = pret_text.parse(text, asm)
+            units = pret_text.parse_file(text, rel)
             scripts = {}
             if asm:
                 labels = [unit.label for unit in units if unit.label]

@@ -41,8 +41,8 @@ def save_json_file(file_path: Union[str, Path], data_to_save: Any) -> bool:
         log_error(f"Error saving to '{file_path}': {e}", exc_info=True)
         return False
 
-def load_text_file(file_path: Union[str, Path]) -> Tuple[Optional[str], Optional[str]]:
-    """Load text file."""
+def load_text_file(file_path: Union[str, Path], newline: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+    """Load text file. ``newline`` is as for ``open()``: "" keeps the line endings the file has."""
     log_info(f"Loading text file: '{file_path}'")
     content = None
     error_message = None
@@ -54,7 +54,7 @@ def load_text_file(file_path: Union[str, Path]) -> Tuple[Optional[str], Optional
         return content, error_message
 
     try:
-        with p.open('r', encoding='utf-8') as f:
+        with p.open('r', encoding='utf-8', newline=newline) as f:
             content = f.read()
     except UnicodeDecodeError:
         log_debug(f"UTF-8 decoding failed for '{file_path}'. Trying UTF-16.")
@@ -70,13 +70,13 @@ def load_text_file(file_path: Union[str, Path]) -> Tuple[Optional[str], Optional
 
     return content, error_message
 
-def save_text_file(file_path: Union[str, Path], text_content: str) -> bool:
-    """Save text file."""
+def save_text_file(file_path: Union[str, Path], text_content: str, newline: Optional[str] = None) -> bool:
+    """Save text file. ``newline`` is as for ``open()``: "" writes the text's line endings as they are."""
     log_info(f"Saving text content to file: '{file_path}'.")
     try:
         p = Path(file_path)
         p.resolve().parent.mkdir(parents=True, exist_ok=True)
-        atomic_write_text(p, text_content)
+        atomic_write_text(p, text_content, newline=newline)
         return True
     except Exception as e:
         log_error(f"Error saving to '{file_path}': {e}", exc_info=True)
