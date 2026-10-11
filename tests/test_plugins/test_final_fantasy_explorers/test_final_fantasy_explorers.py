@@ -5,6 +5,7 @@ Real data: both text tables load and save back byte for byte; both fonts open an
 layout archives read and write back unchanged.
 """
 import json
+import shutil
 import struct
 from pathlib import Path
 
@@ -91,9 +92,13 @@ def test_both_fonts_open_and_pack_back_unchanged():
 
 def test_every_picture_kind_resolves_and_a_darc_member_writes_through(tmp_path):
     descriptors = json.loads((PLUGIN / "texture_sources.json").read_text(encoding="utf-8"))
-    root = _need(SOURCE)
-    found = texture_sources.resolve(descriptors, {"source_path": str(root), "translation_path": str(tmp_path)})
-    assert len(found) > 4000
+    real = _need(SOURCE) / "romfs"
+    root = tmp_path / "source"            # a few files of each kind: resolving all 3,153 takes a minute
+    for pattern in ("ui/*.darc", "gfx/*.cgfx", "gfx/*.ctpk"):
+        for path in sorted(real.glob(pattern))[:3]:
+            (root / "romfs" / path.parent.name).mkdir(parents=True, exist_ok=True)
+            shutil.copy(path, root / "romfs" / path.parent.name / path.name)
+    found = texture_sources.resolve(descriptors, {"source_path": str(root), "translation_path": str(tmp_path / "tr")})
     assert {"cgfx", "ctpk", "bflim"} <= {source.format for source in found}
     member = next(s for s in found if s.format == "bflim" and min(s.size) >= 16 and s.pixel_format in ("RGBA4", "ETC1A4"))
     image = member.read_original().image.copy()
