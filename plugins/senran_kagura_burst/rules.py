@@ -163,15 +163,13 @@ class GameRules(BaseGameRules):
 
 
 def _position_in_file(rules: "GameRules", block_idx: int) -> int:
-    """The position of a block among the blocks of its file (the executable's blocks follow each other)."""
+    """The number of the data block among the blocks that come from the same file (the executable's blocks)."""
     try:
         pm = rules.mw.project_manager
         block_map = getattr(rules.mw, "block_to_project_file_map", None) or {}
         index = block_map.get(block_idx, block_idx)
         source = pm.project.blocks[index].source_file
-        position = 0
-        while index - position - 1 >= 0 and pm.project.blocks[index - position - 1].source_file == source:
-            position += 1
-        return position
+        return sum(1 for k in range(block_idx)
+                   if block_map.get(k, k) < len(pm.project.blocks) and pm.project.blocks[block_map.get(k, k)].source_file == source)
     except (AttributeError, IndexError, KeyError, TypeError):
         return 0

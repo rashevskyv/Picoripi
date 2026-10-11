@@ -776,7 +776,7 @@ class BaseGameRules:
         font), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``cv_nds`` (DS Castlevania), ``ffta2`` (FFTA2 DS font),
         ``xf`` and ``g4font`` (Level-5), ``jade`` / ``brfna`` / ``swf_font`` / ``rrr_errfont`` (Raving Rabbids: Jade FONTDESC, Wii
         archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``laft`` (Monolith Soft LAFT, Switch Xenoblade), ``fe13_bfnt``
-        (Fire Emblem Awakening), ``pmd_font`` (Spike Chunsoft 3DS ``.dic`` + ``.img``), ``vagrant`` (Vagrant Story),
+        (Fire Emblem Awakening), ``pmd_font`` (Spike Chunsoft 3DS ``.dic`` + ``.img``), ``ubiart_tfn`` (UbiArt ``.tfn.ckd`` glyph table + its ``.tga.ckd`` atlas), ``jfnt`` (Arc System Works atlas font), ``cfna`` (3DS archived ``.bcfna``), ``vagrant`` (Vagrant Story),
         ``gba_tiles``,
         ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture), ``cells`` (fixed-size glyph cells in a byte range),
@@ -809,7 +809,7 @@ class BaseGameRules:
         pictures), ``is_tex`` (Infinite Space), ``dq9_spr`` (Dragon Quest
         IX), ``png`` (a PNG the build converts itself: a decomp's graphics source, a Unity workspace's texture),
         ``ffta2_efx`` (FFTA2 effect textures), ``mt_tex`` (Capcom MT Framework 3DS TEX), ``pmd_img``
-        (Spike Chunsoft 3DS ``.img``), ``raw``, ``tiles`` (GBA / DS / Saturn character tiles) or ``tilemap``
+        (Spike Chunsoft 3DS ``.img``), ``ubiart_tex`` (UbiArt ``.tga.ckd`` / ``.png.ckd``), ``jimg`` (Arc System Works ``.jtex``), ``raw``, ``tiles`` (GBA / DS / Saturn character tiles) or ``tilemap``
         (a pattern name map over a cell bank, shown as one picture per screen)); ``path`` -- as
         in ``get_font_sources``; optional ``member`` (a glob inside the archive at ``path``, walking into
         archives inside it: ``a.szs/timg/*.bflim``; an N64 ROM's files are ``#<dmadata index>``); ``params``

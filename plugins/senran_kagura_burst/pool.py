@@ -9,12 +9,16 @@ Finding the strings: a run of units that are ASCII text, a line feed, Latin-1 an
 three long, after a NUL unit and ended by a NUL unit, with two letters in a row and not a file name or an
 identifier. Areas are clusters of such runs (gap below 2 KiB) with at least 20 strings; the file names of the game
 (``rom:/...``) lie between the texts and are not text. A translated file is read with the strings found in the
-original (``reference``), so a text that no longer looks like one is still found.
+original (``reference``), so a text that no longer looks like one is still found. For the European executable
+(the size in ``code_layout.json``: start, room and area of every string, offsets only) the table is used as it is,
+so a translated file opened on its own keeps every string, whatever the texts have become.
 """
 from __future__ import annotations
 
+import json
 import re
 import struct
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 GAP = 2048
@@ -90,6 +94,13 @@ def _find(raw: bytes) -> List[Item]:
     return items
 
 
+def _layout() -> Optional[Dict[str, object]]:
+    try:
+        return json.loads(Path(__file__).with_name("code_layout.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 class Pool:
     """The editable strings of the executable and the way to write them back.
 
@@ -102,6 +113,10 @@ class Pool:
         if len(raw) < 0x10000 or raw[:4] == b"TAMS":
             raise PoolError("not an executable")
         self.raw = raw
+        layout = _layout() if reference is None else None
+        if layout and layout.get("size") == len(raw):
+            self.items = [Item(int(a), int(b), int(c)) for a, b, c in layout["items"]]   # type: ignore[index]
+            return
         base = bytes(reference) if reference is not None and len(reference) == len(raw) else raw
         self.items = _find(base)
 

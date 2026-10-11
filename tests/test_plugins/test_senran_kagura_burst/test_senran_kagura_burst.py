@@ -295,3 +295,27 @@ def test_a_real_compressed_pack_is_changed_and_compressed_again():
     assert binpack.is_compressed(out) and len(out) < len(raw) * 1.2
     again = DarcContainer(binpack.PackContainer(out).read_file(name))
     assert texture_formats.read("bflim", again.read_file(member))[0].image.getpixel((2, 2))[:3] >= (240, 0, 0)
+
+
+def test_the_shipped_layout_is_what_the_finder_sees_in_the_real_executable():
+    raw = _need(SOURCE / "exefs" / "code.bin").read_bytes()
+    found = sorted(pool._find(raw), key=lambda i: (i.area, i.start))
+    shipped = pool.Pool(raw).items
+    assert [(i.start, i.room, i.area) for i in found] == [(i.start, i.room, i.area) for i in shipped]
+    assert len(shipped) == 2629
+
+
+def test_a_translated_executable_keeps_all_its_strings_when_it_is_opened_alone():
+    raw = _need(SOURCE / "exefs" / "code.bin").read_bytes()
+    p = pool.Pool(raw)
+    blocks = [list(b) for b in p.texts()]
+    blocks[0][0] = "А!"            # too short to look like text to a finder
+    blocks[0][1] = ""              # an empty translation
+    blocks[1][5] = "Ґґ"
+    out = p.rebuild(blocks)
+    rules = GameRules()
+    loaded, _names = rules.load_data_from_json_obj(out)
+    assert sum(len(b) for b in loaded) == 2629
+    assert loaded[0][0] == "А!" and loaded[0][1] == "" and loaded[1][5] == "Ґґ"
+    assert loaded[0][2] == blocks[0][2] and loaded[1][0] == blocks[1][0]
+    assert rules.save_data_to_json_obj(loaded, {}) == out
