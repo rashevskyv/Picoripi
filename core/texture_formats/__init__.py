@@ -27,6 +27,11 @@ class Texture:
     mipmaps: int = 1
 
 
+def _tga():
+    from core.texture_formats import tga
+    return tga
+
+
 def _sh2tex():
     from core.texture_formats import sh2tex
     return sh2tex
@@ -41,7 +46,7 @@ def _backends() -> Dict[str, Any]:
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
             "bfres": bfres, "shpg": shpg, "png": png, "sotn_blocks": sotn.blocks, "sotn_cmp": sotn.packed,
-            "ffta2_efx": ffta2_efx, "sh2tex": _sh2tex()}
+            "ffta2_efx": ffta2_efx, "sh2tex": _sh2tex(), "tga": _tga()}
 
 
 # File name extension -> format, for files opened directly.
