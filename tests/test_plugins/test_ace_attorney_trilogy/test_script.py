@@ -6,7 +6,7 @@ import pytest
 from PIL import Image
 
 from core import texture_formats
-from plugins.ace_attorney_3ds import gsscript
+from plugins.ace_attorney_trilogy import gsscript
 
 CODE = {c: k for k, c in gsscript.CHARS.items()}
 
@@ -101,3 +101,29 @@ def test_real_pictures_open_and_round_trip():
         textures = texture_formats.read("bch", raw)
         assert textures
         assert texture_formats.write("bch", raw, {i: t.image for i, t in enumerate(textures)}) == raw
+
+
+def test_switch_codes_are_detected_and_round_trip():
+    # "Hi, a." in the Switch font codes (H 0xFFA8, i 0xFFC9, comma, space, a, full stop)
+    section = [0x30, 0xFFA8, 0xFFC9, 0xFF8C, 0x3080, 0xFFC1, 0xFF8E]
+    raw = _script([section])
+    script = gsscript.Script(raw)
+    assert script.chars is gsscript.SWITCH_CHARS
+    assert script.texts() == ["Hi, a."]
+    assert script.rebuild(["Hi, ok."]) == _script([[0x30, 0xFFA8, 0xFFC9, 0xFF8C, 0x3080, 0xFFCF, 0xFFCB, 0xFF8E]])
+
+
+SWITCH = Path(r"E:\Emulators\RomHacking\Ace Attorney\Trilogy\Switch\source\romfs\Data\StreamingAssets")
+
+
+@pytest.mark.skipif(not SWITCH.is_dir(), reason="the Switch game is not unpacked")
+def test_every_real_switch_script_round_trips():
+    files = sorted(SWITCH.rglob("*_u.mdt"))
+    assert len(files) == 106
+    total = 0
+    for path in files:
+        raw = path.read_bytes()
+        script = gsscript.Script(raw)
+        total += len(script.texts())
+        assert script.rebuild(script.texts()) == raw
+    assert total > 100000

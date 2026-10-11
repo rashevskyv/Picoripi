@@ -276,6 +276,9 @@ tokens: 43.1k
      малює системний шрифт консолі. Вікно Textures показує 985 файлів CGFX (6 367 текстур, логотип
      `menu\000.zrc\...\bind\00.bcres`), які німецька тека замінює, тобто вони мають текст. `2_build.bat`
      перепаковує й знову стискає архіви в мод Luma `romfs`.
+   - `ace_attorney_trilogy` — Phoenix Wright: Ace Attorney Trilogy (3DS і Switch). **Source:** `source`; **Translation:** `translation`. 3DS: 37 англійських скриптів ресурсного паку `pack.dat` (`script\sNN.bin`, 37 757 повідомлень), два шрифти гри і 12 008 картинок BCH; Switch: 106 англійських скриптів `GS1|GS2|GS3\scenario\*_u.mdt` (122 343 повідомлення, власні коди символів). У повідомленні `\n` — новий рядок, `{page}` — чекати дотику, `{wait:N}` — пауза, `{xNNN}` — символ гри без літери; текст може бути довшим або коротшим за оригінал
+   - `code_of_princess` — Code of Princess (3DS) і Code of Princess EX (Switch). **Source:** `source`; текст вшито у виконуваний файл (`exefs\code.bin` UTF-16, `exefs\main` NSO UTF-32); рядок пишеться на місце і не може бути довшим за оригінал (`{x08}` закінчує повідомлення); шрифти `FD` і картинки `RTEX`
+   - `corpse_party` — Corpse Party (3DS; Switch 2021). **Source:** `source`; 20 файлів `*_scriptlist.MSG` (слоти повідомлень по 128 байтів, 8 717 повідомлень; текст не може вийти за слоти) і списки в лапках `itemdatalist`, `deaddatalist`, `endinglist`, `playersettinglist`; на Switch ті самі файли — TextAsset у `resources.assets` (`text\`)
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Європа). **Source:** тека `source` робочої теки
      (`1_unpack.bat` копіює туди `romfs\message\eu\eu.qm`, шрифти, клавіатури введення імені
      `romfs\menu\ltn16_*.list`, текстури з текстом і `exefs\code.bin`); **Translation:** `translation` (цілі файли

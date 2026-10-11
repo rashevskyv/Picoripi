@@ -1,4 +1,5 @@
-"""Ace Attorney Trilogy (3DS) script blobs: 16-bit words, English text as game character codes.
+"""Ace Attorney Trilogy script blobs (3DS ``pack.dat`` members, Switch ``*.mdt``): 16-bit words, English text as
+game character codes.
 
 A script file (an English member of ``pack.dat`` entry "scripts", decompressed) is ``u32 n`` followed by ``n``
 u32 words: the first ``n - 2`` are the offsets of the sections (dialogue or investigation scenes; the section
@@ -40,6 +41,30 @@ for _i in range(26):
     CHARS[0x8A + _i] = chr(65 + _i)
     CHARS[0xA4 + _i] = chr(97 + _i)
 CODES = {char: code for code, char in CHARS.items()}
+
+# The Switch (Unity) version writes the same scripts with the codes of its own font: digits 0xFF90.., A-Z 0xFFA1..,
+# a-z 0xFFC1.., the space 0x3080 and the punctuation below (found by comparing the Switch and 3DS scripts message by
+# message).
+SWITCH_CHARS: Dict[int, str] = {0xFF81: "!", 0xFF9F: "?", 0xFF8E: ".", 0xFF9A: ":", 0xFF8C: ",", 0xFF87: "'",
+                                0x3080: " ", 0x2095: "-", 0xFF82: '"', 0xFF88: "(", 0xFF89: ")", 0xFF8A: "*"}
+for _i in range(10):
+    SWITCH_CHARS[0xFF90 + _i] = str(_i)
+for _i in range(26):
+    SWITCH_CHARS[0xFFA1 + _i] = chr(65 + _i)
+    SWITCH_CHARS[0xFFC1 + _i] = chr(97 + _i)
+SWITCH_CODES = {char: code for code, char in SWITCH_CHARS.items()}
+
+
+def detect_chars(sections) -> Dict[int, str]:
+    """The character table (3DS or Switch) a script's words belong to."""
+    switch = three = 0
+    for words in sections:
+        for w in words:
+            if 0xFFA1 <= w <= 0xFFDA:
+                switch += 1
+            elif 0xA4 <= w <= 0xBD:
+                three += 1
+    return SWITCH_CHARS if switch > three else CHARS
 _TAG = re.compile(r"\{(x[0-9a-fA-F]{1,4}|page|wait:\d+)\}")
 
 
@@ -58,8 +83,9 @@ def _is_text(word: int) -> bool:
     return word >= 0x80
 
 
-def encode(text: str) -> List[int]:
+def encode(text: str, codes: Optional[Dict[str, int]] = None) -> List[int]:
     """The words of a message text (``ScriptError`` on a character the game has no code for)."""
+    codes = CODES if codes is None else codes
     words: List[int] = []
     pos = 0
     while pos < len(text):
@@ -77,15 +103,16 @@ def encode(text: str) -> List[int]:
         char = text[pos]
         if char == "\n":
             words.append(NEWLINE)
-        elif char in CODES:
-            words.append(CODES[char])
+        elif char in codes:
+            words.append(codes[char])
         else:
             raise ScriptError(f"no game code for {char!r}")
         pos += 1
     return words
 
 
-def decode(words: List[int]) -> str:
+def decode(words: List[int], chars: Optional[Dict[int, str]] = None) -> str:
+    chars = CHARS if chars is None else chars
     out = []
     i = 0
     while i < len(words):
@@ -97,8 +124,8 @@ def decode(words: List[int]) -> str:
         elif w == WAIT:
             out.append("{wait:%d}" % words[i + 1])
             i += 1
-        elif w in CHARS:
-            out.append(CHARS[w])
+        elif w in chars:
+            out.append(chars[w])
         else:
             out.append("{x%x}" % w)
         i += 1
@@ -121,19 +148,21 @@ class Script:
         starts = sorted(set(table[i] for i in self.slots))
         self.bounds = list(zip(starts, starts[1:] + [len(raw)]))
         self.words = [struct.unpack_from(f"<{(end - start) // 2}H", raw, start) for start, end in self.bounds]
+        self.chars = detect_chars(self.words)
+        self.codes = {char: code for code, char in self.chars.items()}
         self.messages: List[Tuple[int, int, int]] = []     # (section, first word, end word)
         for sec, words in enumerate(self.words):
             self.messages += [(sec, a, b) for a, b in _runs(words)]
 
     def texts(self) -> List[str]:
-        return [decode(list(self.words[s][a:b])) for s, a, b in self.messages]
+        return [decode(list(self.words[s][a:b]), self.chars) for s, a, b in self.messages]
 
     def rebuild(self, texts: List[str]) -> bytes:
         if len(texts) != len(self.messages):
             raise ScriptError(f"{len(texts)} texts for {len(self.messages)} messages")
         by_section: Dict[int, List[Tuple[int, int, List[int]]]] = {}
         for (sec, a, b), text in zip(self.messages, texts):
-            by_section.setdefault(sec, []).append((a, b, encode(text)))
+            by_section.setdefault(sec, []).append((a, b, encode(text, self.codes)))
         parts: List[bytes] = []
         new_start: Dict[int, int] = {}
         pos = self.header

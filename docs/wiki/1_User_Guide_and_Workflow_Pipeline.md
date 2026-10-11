@@ -279,6 +279,9 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `fnt.bin` of stage a2800); dialogue uses the console's shared font. The Textures window lists the 985 CGFX files
      (6,367 textures, title logo `menu\000.zrc\...\bind\00.bcres`) that the German folder overrides, so they carry
      text. `2_build.bat` repacks and compresses the archives again into a Luma `romfs` mod.
+   - `ace_attorney_trilogy` — Phoenix Wright: Ace Attorney Trilogy (3DS and Switch). **Source:** `source`; **Translation:** `translation`. 3DS: the 37 English scripts of the resource pack `pack.dat` (`script\sNN.bin`, 37,757 messages), the two game fonts and 12,008 BCH pictures; Switch: the 106 English scripts `GS1|GS2|GS3\scenario\*_u.mdt` (122,343 messages, own character codes). In a message `\n` is a line break, `{page}` waits for a tap, `{wait:N}` pauses, `{xNNN}` is a game character without a letter; a text may be longer or shorter than the original
+   - `code_of_princess` — Code of Princess (3DS) and Code of Princess EX (Switch). **Source:** `source`; the text is compiled into the executable (`exefs\code.bin` UTF-16, `exefs\main` NSO UTF-32); a string is written in place and may not be longer than the original (`{x08}` ends a message); `FD` fonts and `RTEX` pictures
+   - `corpse_party` — Corpse Party (3DS; Switch 2021). **Source:** `source`; the 20 `*_scriptlist.MSG` files (128-byte message slots, 8,717 messages; a text may not outgrow its slots) and the quoted lists `itemdatalist`, `deaddatalist`, `endinglist`, `playersettinglist`; on the Switch the same files are TextAssets of `resources.assets` (`text\`)
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Europe). **Source:** the workspace's `source` folder
      (`1_unpack.bat` copies `romfs\message\eu\eu.qm`, the fonts, the name-entry keyboards
      `romfs\menu\ltn16_*.list`, the text textures and `exefs\code.bin` there); **Translation:** `translation`

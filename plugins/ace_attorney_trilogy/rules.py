@@ -71,7 +71,7 @@ class GameRules(BaseGameRules):
         try:
             return [gsscript.Script(self._last_loaded).texts()], {}
         except gsscript.ScriptError as error:
-            log_debug(f"ace_attorney_3ds: not a script ({error})")
+            log_debug(f"ace_attorney_trilogy: not a script ({error})")
             return [[]], {}
 
     def prepare_save_context(self, context) -> None:
@@ -100,4 +100,4 @@ class GameRules(BaseGameRules):
         return DEFAULT_LINES_PER_PAGE
 
     def get_default_script_name(self) -> Optional[str]:
-        return "ace_attorney_3ds_script.md"
+        return "ace_attorney_trilogy_script.md"
