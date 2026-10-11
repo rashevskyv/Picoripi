@@ -1,8 +1,74 @@
 [
-  {"label": "Menu, title, save slots and icons", "kind": "ui", "format": "cgfx", "path": "romfs/menu_field/*.bctex"},
-  {"label": "Dialogue window and name plate", "kind": "ui", "format": "cgfx", "path": "romfs/talk/*.bctex"},
-  {"label": "Dialogue box and wait icon", "kind": "ui", "format": "cgfx", "path": "romfs/dialog/*.bctex"},
-  {"label": "Numbers, clock and item help", "kind": "ui", "format": "cgfx", "path": "romfs/font/*.bctex"},
-  {"label": "Number plates", "kind": "ui", "format": "cgfx", "path": "romfs/num/*.bctex"},
-  {"label": "Staff roll pictures", "kind": "ui", "format": "cgfx", "path": "romfs/staffroll/*.bctex"}
+  {
+    "label": "Menu, title, save slots and icons (3DS)",
+    "kind": "ui",
+    "format": "cgfx",
+    "path": "romfs/menu_field/*.bctex"
+  },
+  {
+    "label": "Dialogue window and name plate (3DS)",
+    "kind": "ui",
+    "format": "cgfx",
+    "path": "romfs/talk/*.bctex"
+  },
+  {
+    "label": "Dialogue box and wait icon (3DS)",
+    "kind": "ui",
+    "format": "cgfx",
+    "path": "romfs/dialog/*.bctex"
+  },
+  {
+    "label": "Numbers, clock and item help (3DS)",
+    "kind": "ui",
+    "format": "cgfx",
+    "path": "romfs/font/*.bctex"
+  },
+  {
+    "label": "Number plates (3DS)",
+    "kind": "ui",
+    "format": "cgfx",
+    "path": "romfs/num/*.bctex"
+  },
+  {
+    "label": "Staff roll pictures (3DS)",
+    "kind": "ui",
+    "format": "cgfx",
+    "path": "romfs/staffroll/*.bctex"
+  },
+  {
+    "label": "Menu, title, save slots and icons (Switch)",
+    "kind": "ui",
+    "format": "bntx",
+    "path": "romfs/menu_field/*.bntx"
+  },
+  {
+    "label": "Dialogue window and name plate (Switch)",
+    "kind": "ui",
+    "format": "bntx",
+    "path": "romfs/talk/*.bntx"
+  },
+  {
+    "label": "Dialogue box and wait icon (Switch)",
+    "kind": "ui",
+    "format": "bntx",
+    "path": "romfs/dialog/*.bntx"
+  },
+  {
+    "label": "Numbers, clock and item help (Switch)",
+    "kind": "ui",
+    "format": "bntx",
+    "path": "romfs/font/*.bntx"
+  },
+  {
+    "label": "Number plates (Switch)",
+    "kind": "ui",
+    "format": "bntx",
+    "path": "romfs/num/*.bntx"
+  },
+  {
+    "label": "Staff roll pictures (Switch)",
+    "kind": "ui",
+    "format": "bntx",
+    "path": "romfs/staffroll/*.bntx"
+  }
 ]

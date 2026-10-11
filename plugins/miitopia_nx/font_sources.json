@@ -1,0 +1,6 @@
+[
+  {"label": "Miitopia (Switch): info font, English (EU)", "format": "bffnt", "path": "romfs/eu/svn_font/EU_English.sarc/FontInfo.bffnt"},
+  {"label": "Miitopia (Switch): caption font, English (EU)", "format": "bffnt", "path": "romfs/eu/svn_font/EU_English.sarc/FontCaption.bffnt"},
+  {"label": "Miitopia (Switch): info font, American English", "format": "bffnt", "path": "romfs/us/svn_font/US_English.sarc/FontInfo.bffnt"},
+  {"label": "Miitopia (Switch): caption font, American English", "format": "bffnt", "path": "romfs/us/svn_font/US_English.sarc/FontCaption.bffnt"}
+]

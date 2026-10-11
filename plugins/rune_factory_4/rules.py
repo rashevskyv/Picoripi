@@ -5,7 +5,8 @@ folder at the same paths: ``romfs/script/rf3mc.eng`` (dialogue and events), ``ro
 ``romfs/textAndData/text/*.eng`` (items, NPCs, quests, skills, menus, map names). Each file is one block;
 ``2_build.bat`` copies the changed files into a Luma / Azahar mod. The game has no font file of its own:
 it draws with the console's shared font. Pictures with text (``texture_sources.json``) are CGFX ``.bctex``
-files in the same romfs.
+files in the same romfs; the Switch game has the same tables (plus rf4TxtShinkonHelp) and its pictures are
+.bntx files (BC7) at the same paths.
 """
 from __future__ import annotations
 
@@ -27,7 +28,7 @@ class GameRules(TableRules):
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
-    display_name = "Rune Factory 4 (3DS)"
+    display_name = "Rune Factory 4 (3DS) / Special (Switch)"
     file_formats = (((".eng",), "Rune Factory TEXT table (English)"), ((".jpn",), "Rune Factory TEXT table (Japanese)"))
     default_script_name = "rune_factory_4_script.md"
     lines_per_page = DEFAULT_LINES_PER_PAGE
