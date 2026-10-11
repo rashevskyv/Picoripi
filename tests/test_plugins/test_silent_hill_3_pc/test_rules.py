@@ -95,9 +95,9 @@ def test_every_english_message_file_round_trips_byte_for_byte():
     names = dict(catalog["msg"])
     data = MSG_ARC.read_bytes()
     _, entries = sh3_arc.parse(data)
-    english = [i for i, name in names.items() if name.endswith("_eng_msg.mes")]
-    assert len(english) == 46
-    for index in english:
+    messages = [i for i, name in names.items() if name.endswith("_msg.mes")]
+    assert len(messages) == 368
+    for index in messages:
         raw = sh3_arc.entry_bytes(data, entries[index])
         out, problems = doc.build(raw, doc.texts(raw))
         assert problems == [], names[index]
