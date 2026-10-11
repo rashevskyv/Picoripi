@@ -156,6 +156,14 @@ the line when it is done or moved into a plan.
 - The title updates (X/Y 1.5, ORAS 1.4) are not on disk; their text differences, if any, are unknown.
 - Alpha Sapphire's CIA is not on disk; the scripts handle it once it is in `ISO\` (title id 000400000011C500).
 
+## Pokémon Sun/Moon + Ultra Sun/Ultra Moon (`plugins/pokemon_gen7`, 2026-10-11)
+
+- Not opened: the `PC` packs of `a/0/9/4` (10,422 members), `a/0/8/7` and `a/0/9/8`; they are not text, fonts or pictures found so far.
+- The picture GARCs hold many languages; the English subset is not separated yet, so the project opens every FLIM picture of the eight GARCs.
+- Not checked in the game: a boot with a visible edit in Azahar (no run has been made yet for Gen 7).
+- The v1.2 update of each Ultra game is read as an overlay; its title version field reads 0 in the CIA header, so the choice rests on the file content.
+- Sun and Moon share every English file; Ultra Sun and Ultra Moon share every English file too (checked by machine on the unpacked images).
+
 ## Pokémon Sword/Shield + Legends: Arceus (`plugins/pokemon_nx`, 2026-10-09)
 
 - Not opened: the `grammar/*.dat` and `sort_string` tables (binary, not text), strings in `main`.
