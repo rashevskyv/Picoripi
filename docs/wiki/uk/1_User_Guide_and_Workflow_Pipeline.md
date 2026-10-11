@@ -276,6 +276,14 @@ tokens: 43.1k
      малює системний шрифт консолі. Вікно Textures показує 985 файлів CGFX (6 367 текстур, логотип
      `menu\000.zrc\...\bind\00.bcres`), які німецька тека замінює, тобто вони мають текст. `2_build.bat`
      перепаковує й знову стискає архіви в мод Luma `romfs`.
+   - `final_fantasy_explorers` — Final Fantasy Explorers (3DS, Європа, англійська). **Source:** тека `source`
+     робочої теки; `1_unpack.bat` розшифровує гру й записує її файли розпакованими (гра пакує кожен файл BLZ і
+     називає його хешем; назви знаходять у рядках програми): дві таблиці тексту `romfs\message\message_en.textres`
+     (6 891 повідомлення) і `message_home_en.textres` (5 285 повідомлень), шрифти CFNT `romfs\font\font.bcfnt` і
+     `font_localize.bcfnt` та малюнки: 347 архівів макетів `romfs\ui\*.darc` (BCLIM), 545 `romfs\gfx\*.cgfx`,
+     значки CTPK у `romfs\gfx` і `message\messageIcon.tpl` (4 812 малюнків; 13 піксельних форматів). Керівні
+     символи в повідомленні показуються як `{c01}`, `{c05}` тощо. `2_build.bat` пакує змінені файли знову через BLZ
+     і записує їх під хеш-назвами як мод Luma `romfs`. Усі файли тексту, шрифти й малюнки пишуться назад байт у байт.
    - `metal_gear_solid_3d` — Metal Gear Solid: Snake Eater 3D (3DS, Європа, англійська). **Source:** тека `source`
      робочої теки; `1_unpack.bat` записує `text\vox.mgssubs`, `movie.mgssubs`, `demo.mgssubs` (JSON: англійські
      рядки субтитрів трьох потокових файлів `vox.dat`, `movie.dat`, `demo.dat` як байти hex із таймінгом; 6 878

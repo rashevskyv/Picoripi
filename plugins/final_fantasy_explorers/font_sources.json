@@ -1,0 +1,12 @@
+[
+  {
+    "label": "Latin font (font_localize)",
+    "format": "bcfnt",
+    "path": "romfs/font/font_localize.bcfnt"
+  },
+  {
+    "label": "Japanese font (font)",
+    "format": "bcfnt",
+    "path": "romfs/font/font.bcfnt"
+  }
+]

@@ -279,6 +279,15 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `fnt.bin` of stage a2800); dialogue uses the console's shared font. The Textures window lists the 985 CGFX files
      (6,367 textures, title logo `menu\000.zrc\...\bind\00.bcres`) that the German folder overrides, so they carry
      text. `2_build.bat` repacks and compresses the archives again into a Luma `romfs` mod.
+   - `final_fantasy_explorers` — Final Fantasy Explorers (3DS, Europe, English). **Source:** the workspace's
+     `source` folder; `1_unpack.bat` decrypts the game and writes its files plain (the game packs every file with
+     BLZ and names it by a hash; the unpack finds the names from the program's strings): the two text tables
+     `romfs\message\message_en.textres` (6,891 messages) and `message_home_en.textres` (5,285 messages), the CFNT
+     fonts `romfs\font\font.bcfnt` and `font_localize.bcfnt`, and the pictures: 347 layout archives `romfs\ui\*.darc`
+     (BCLIM), 545 `romfs\gfx\*.cgfx`, the CTPK icons in `romfs\gfx` and `message\messageIcon.tpl` (4,812 pictures;
+     13 pixel formats). Control characters in a message show as `{c01}`, `{c05}` and so on. `2_build.bat` packs
+     the changed files with BLZ again and writes them under their hash names as a Luma `romfs` mod. All text
+     files, fonts and pictures write back byte for byte.
    - `metal_gear_solid_3d` — Metal Gear Solid: Snake Eater 3D (3DS, Europe, English). **Source:** the workspace's
      `source` folder; `1_unpack.bat` writes `text\vox.mgssubs`, `movie.mgssubs`, `demo.mgssubs` (JSON: the English
      subtitle lines of the three stream files `vox.dat`, `movie.dat`, `demo.dat` as hex bytes with their timing; 6,878

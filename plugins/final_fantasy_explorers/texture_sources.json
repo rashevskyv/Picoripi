@@ -1,0 +1,27 @@
+[
+  {
+    "label": "Layout archives (UI pictures)",
+    "kind": "title_screen",
+    "format": "bflim",
+    "path": "romfs/ui/*.darc",
+    "member": "*.bclim"
+  },
+  {
+    "label": "CGFX pictures",
+    "kind": "other",
+    "format": "cgfx",
+    "path": "romfs/gfx/*.cgfx"
+  },
+  {
+    "label": "CTPK pictures",
+    "kind": "other",
+    "format": "ctpk",
+    "path": "romfs/gfx/*.ctpk"
+  },
+  {
+    "label": "Message icons",
+    "kind": "other",
+    "format": "ctpk",
+    "path": "romfs/message/messageIcon.tpl"
+  }
+]
