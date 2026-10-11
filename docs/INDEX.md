@@ -7,7 +7,7 @@ Read the row, then open only the document you need.
 | Document | What it is the home of | ~tokens | Status | Owns |
 |---|---|---|---|---|
 | `docs/ARCHITECTURE.md` | Layers, data flow, facades, and where to change what | 2.1k | current | layering, data flow |
-| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 2.8k | current | decisions and their reasons |
+| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 3.1k | current | decisions and their reasons |
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 1.5k | current | engineering practice |
 | `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.5k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
@@ -18,6 +18,7 @@ Read the row, then open only the document you need.
 | `docs/TRANSLATION_PROMPTING_STRATEGY.md` | Target design of translation context and prompts (Ukrainian) | 6.2k | design | handlers/translation/prompt_composer |
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 5.1k | current | handlers/translation, core/translation |
 | `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.8k | current | core/companion_sync.py, companion/ |
+| `docs/wiki/13_Working_Together.md` (+uk) | Rooms, progress page, team board | 1.2k | current | core/collab, core/progress_stats.py |
 | `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 18.4k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
 | `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 6.7k | current | plugins/ |

@@ -1,7 +1,11 @@
 """Progress page: counting, daily history and streak, the room's board, the page itself."""
 import json
 
+import pytest
+import requests
+
 from core import progress_stats as ps
+from core.collab.server import RoomServer
 
 
 def _summary():
@@ -53,3 +57,35 @@ class TestPage:
         assert "Olena is 17 words behind Taras &lt;b&gt;." in page
         assert "http-equiv='refresh' content='30'" in page and "<polyline" in page
         assert page.index("Intro") > page.index("Blocks with the most left")
+
+
+class TestRoom:
+    @pytest.fixture
+    def room(self, tmp_path):
+        server = RoomServer("pw", "fp", port=0, host="127.0.0.1", journal=tmp_path / "room.json").start()
+        yield server
+        server.stop()
+
+    def test_first_translations_count_words_polish_counts_edits_and_seeds_count_nothing(self, room):
+        base = f"http://127.0.0.1:{room.port}"
+        token = requests.post(base + "/join", json={"name": "Olena", "password": "pw", "fingerprint": "fp"}).json()["token"]
+        headers = {"X-Room-Token": token}
+
+        def edit(**fields):
+            requests.post(base + "/edits", headers=headers, json={"edits": [fields]}).raise_for_status()
+
+        edit(key="a", text="Привіт", base_rev=0, words=2)
+        edit(key="a", text="Вітаю", base_rev=1, words=2)                  # polishing: an edit, not a new row
+        edit(key="b", text="Так", base_rev=0, words=1, seed=True)          # shared at join: nobody's credit
+        (day,) = room.room.stats["Olena"].values()
+        assert day == {"rows": 1, "words": 2, "edits": 2}
+
+        assert requests.post(base + "/summary", headers=headers, json={"rows_total": "x"}).status_code == 400
+        requests.post(base + "/summary", headers=headers, json={**_summary(), "history": {}}).raise_for_status()
+        page = requests.get(base + "/stats")
+        assert page.headers["Content-Type"].startswith("text/html")
+        assert "Olena" in page.text and "2 / 4" in page.text and "Привіт" not in page.text   # counts, never text
+
+        room.stop()
+        saved = json.loads(room.room.journal.read_text(encoding="utf-8"))
+        assert saved["stats"]["Olena"] == room.room.stats["Olena"]

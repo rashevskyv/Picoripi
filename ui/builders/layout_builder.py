@@ -762,6 +762,9 @@ class LayoutBuilder:
         edited_column_layout.setContentsMargins(0, 0, 0, 0)
         edited_column_layout.setSpacing(2)
         edited_column_layout.addWidget(self.mw.memory_banner, 0)
+        from ui.components.collab_row_bar import CollabRowBar
+        self.mw.collab_row_bar = CollabRowBar(self.mw)
+        edited_column_layout.addWidget(self.mw.collab_row_bar, 0)
         edited_column_layout.addWidget(self.mw.edited_text_edit, 1)
         
         # BFN Visual Preview Widget + ephemeral window-preset switcher under it

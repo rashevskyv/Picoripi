@@ -273,6 +273,9 @@ class TextViewsMixin:
         banner = getattr(self.mw, 'memory_banner', None)
         if banner is not None:
             banner.refresh(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
+        collab = getattr(self.mw, 'collab_handler', None)
+        if collab is not None:
+            collab.on_row_shown(self.mw.data_store.physical_block_idx, self.mw.data_store.current_string_idx)
 
         self._apply_heavy_text_view_overlays(
             original_text_raw, edited_text_raw, highlights=True, bfn=True

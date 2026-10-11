@@ -61,6 +61,19 @@ class MainWindowToolsActionsMixin:
         from ui.address_forms_dialog import AddressFormsDialog
         AddressFormsDialog(self.mw).exec()
 
+    def open_collab(self):
+        """The Work Together window; the room lives in ``mw.collab_handler`` from the first use on."""
+        from handlers.collab_handler import ensure_collab_handler
+        from ui.collab_dialog import CollabDialog
+        handler = ensure_collab_handler(self.mw)
+        dialog = getattr(self.mw, 'collab_dialog', None)
+        if dialog is None:
+            dialog = CollabDialog(self.mw, handler)
+            self.mw.collab_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
+
     def open_progress(self):
         """The progress page (counted in a worker, opened in the browser)."""
         from handlers.progress_handler import open_progress_page

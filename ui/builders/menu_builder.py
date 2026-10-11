@@ -402,6 +402,12 @@ class MenuBuilder:
         )
         tools_menu.addAction(self.mw.address_forms_action)
 
+        self.mw.collab_action = QAction(tr('&Work Together...'), self.mw)
+        self.mw.collab_action.setToolTip(
+            tr('Host a room on this computer or join someone else\'s: edit the same project together and see who is where')
+        )
+        tools_menu.addAction(self.mw.collab_action)
+
         self.mw.progress_action = QAction(tr('&Progress...'), self.mw)
         self.mw.progress_action.setToolTip(
             tr('Open the progress page in the browser: translated and left, by day and by block; in a room, the team board')
