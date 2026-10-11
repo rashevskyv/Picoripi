@@ -357,7 +357,8 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      English text files (both English sets; 238,614 strings: item, quest and dialogue tables, and rows with string
      pointers for menus; `{c:XXXX.XXXX}` tags), 12 fonts (`.fnt`, Font Editor format `l5_fnt`) and 36 `.ztex`
      pictures; the 354 UI containers `.l5ui` are unpacked too but are not opened as textures until a game check
-     passes. `2_build.bat` packs the changed files back into `_file_archive.bin` in a Luma `romfs` mod.
+     passes. A text longer than its place is cut to that place, with a warning in the build log; moving it to the
+     end of the file is off, because it hung the game. `2_build.bat` packs the changed files back into `_file_archive.bin` in a Luma `romfs` mod.
    - `digimon_redigitize` — Digimon World: Re:Digitize Decode (3DS, Japanese release with the English fan
      translation). **Source:** the workspace's `source` folder; `1_unpack.bat` writes the files of
      `romfs\ARCV0.BIN` (zlib) that hold text, by their path in the archive plus `.btxt`: 177 `KCAP` containers with

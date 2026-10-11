@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- fantasy_life: a changed text longer than its place in the file is cut to that place with a warning in the build log (moving it to the end of the file is off; it hung the game after the title screen).
 - Merged the sixth set of finished game branches: Metal Gear Master Collection (MGS4, Peace Walker, MG1/2, bonus content), Metroid Prime (GameCube and PC port), BlueWake, Dragon Quest Builders 1/2, Pokémon Gen 3 text and PNG, Mirror of Fate, Sticker Star, Kingdom Hearts 3D, Silent Hill 2/3, Paper Mario 64 (PaperBoat), 3DS batches A to C (Ace Attorney Trilogy, Code of Princess, Digimon Re:Digitize, Fantasy Life, One Piece, Luigi's Mansion). One `bch` texture reader serves two plugins; the plugin contract and the wiki list every font and texture format; version 0.3.157-dev.
 - Merged the late round-6 branches: Pokémon Gen 4 ROM mode (DS message banks and pictures, LZ10 extended header in `core/containers/lz10.py`), 3DS batch E (Dragon Ball Fusions, Gravity Falls UbiArt fonts and textures `ubiart_tfn` / `ubiart_tex`, Senran Kagura Burst archived fonts `cfna`, Arc System Works `jFNT` as `asw_jfnt`), the Metal Gear Solid 3D script text follow-up, and the `fix/audit-r5` fixes again (the earlier revert is undone); `jimg` is one reader for both jIMG families.
 - Tests: the 429 busy-wait proxy test checks the wait the transport policy requests (recorded sleeps), not the wall clock, which failed at 0.99 s on a loaded Windows machine.
