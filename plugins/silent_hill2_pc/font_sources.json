@@ -1,0 +1,16 @@
+[
+ {
+  "label": "Font atlas 44x64 cells (EE font000.tga; glyph map not known yet)",
+  "format": "texture_grid",
+  "path": "EE/sh2e/font/font000.tga",
+  "params": {
+   "texture": "tga",
+   "cell": [
+    44,
+    64
+   ],
+   "columns": 100,
+   "chars": ""
+  }
+ }
+]

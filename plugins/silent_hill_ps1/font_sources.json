@@ -1,0 +1,14 @@
+[
+  {
+    "label": "Text font 12x16 (messages, item names, title menu) (1ST/FONT16.TIM)",
+    "format": "texture_grid",
+    "path": "1ST/FONT16.TIM",
+    "params": {
+      "texture": "tim",
+      "cell": [12, 16],
+      "columns": 21,
+      "rows_at": [[0, 0], [256, 0], [512, 0], [768, 0]],
+      "first_code": 39
+    }
+  }
+]

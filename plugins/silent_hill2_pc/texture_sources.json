@@ -1,0 +1,1904 @@
+[
+ {
+  "label": "data/etc/effect/fog.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/fog.tex"
+ },
+ {
+  "label": "data/pic/add/itemmenux.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/itemmenux.tex"
+ },
+ {
+  "label": "data/pic/add/mapboldwin.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/mapboldwin.tex"
+ },
+ {
+  "label": "data/pic/add/mapmark.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/mapmark.tex"
+ },
+ {
+  "label": "data/pic/add/p_birthday.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/p_birthday.tex"
+ },
+ {
+  "label": "data/pic/add/p_entotsu.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/p_entotsu.tex"
+ },
+ {
+  "label": "data/pic/add/p_lostbook.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/p_lostbook.tex"
+ },
+ {
+  "label": "data/pic/add/p_teien.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/p_teien.tex"
+ },
+ {
+  "label": "data/pic/add/p_zukan.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/p_zukan.tex"
+ },
+ {
+  "label": "data/pic/add/teien2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/teien2.tex"
+ },
+ {
+  "label": "data/pic/add/warning.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/warning.tex"
+ },
+ {
+  "label": "data/pic/add/xblackhouban.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/xblackhouban.tex"
+ },
+ {
+  "label": "data/pic/add/xredhouban.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/xredhouban.tex"
+ },
+ {
+  "label": "data/pic/add/xwhitehouban.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/add/xwhitehouban.tex"
+ },
+ {
+  "label": "data/pic/apt/clock_close.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/clock_close.tex"
+ },
+ {
+  "label": "data/pic/apt/clock_hari.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/clock_hari.tex"
+ },
+ {
+  "label": "data/pic/apt/clock_memo.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/clock_memo.tex"
+ },
+ {
+  "label": "data/pic/apt/clock_memo_2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/clock_memo_2.tex"
+ },
+ {
+  "label": "data/pic/apt/clock_name.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/clock_name.tex"
+ },
+ {
+  "label": "data/pic/apt/clock_open.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/clock_open.tex"
+ },
+ {
+  "label": "data/pic/apt/dust_in.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/dust_in.tex"
+ },
+ {
+  "label": "data/pic/apt/dust_out.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/dust_out.tex"
+ },
+ {
+  "label": "data/pic/apt/p_desk_coin.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_desk_coin.tex"
+ },
+ {
+  "label": "data/pic/apt/p_desk_coin_coin.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_desk_coin_coin.tex"
+ },
+ {
+  "label": "data/pic/apt/p_desk_hint.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_desk_hint.tex"
+ },
+ {
+  "label": "data/pic/apt/p_dust_in.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_dust_in.tex"
+ },
+ {
+  "label": "data/pic/apt/p_dust_out.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_dust_out.tex"
+ },
+ {
+  "label": "data/pic/apt/p_dust_out_coin.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_dust_out_coin.tex"
+ },
+ {
+  "label": "data/pic/apt/p_endhint.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_endhint.tex"
+ },
+ {
+  "label": "data/pic/apt/p_family.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_family.tex"
+ },
+ {
+  "label": "data/pic/apt/p_safe_close.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_safe_close.tex"
+ },
+ {
+  "label": "data/pic/apt/p_safe_close2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_safe_close2.tex"
+ },
+ {
+  "label": "data/pic/apt/p_tourist.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/apt/p_tourist.tex"
+ },
+ {
+  "label": "data/pic/carbon.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/carbon.tex"
+ },
+ {
+  "label": "data/pic/comingsoon.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/comingsoon.tex"
+ },
+ {
+  "label": "data/pic/dls/p_436.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_436.tex"
+ },
+ {
+  "label": "data/pic/dls/p_fireman.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_fireman.tex"
+ },
+ {
+  "label": "data/pic/dls/p_flingwoman.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_flingwoman.tex"
+ },
+ {
+  "label": "data/pic/dls/p_hanging.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_hanging.tex"
+ },
+ {
+  "label": "data/pic/dls/p_hanging_2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_hanging_2.tex"
+ },
+ {
+  "label": "data/pic/dls/p_hanging_easy.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_hanging_easy.tex"
+ },
+ {
+  "label": "data/pic/dls/p_hanging_extra.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_hanging_extra.tex"
+ },
+ {
+  "label": "data/pic/dls/p_hanging_hard.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_hanging_hard.tex"
+ },
+ {
+  "label": "data/pic/dls/p_hanging_normal.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_hanging_normal.tex"
+ },
+ {
+  "label": "data/pic/dls/p_magazin.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_magazin.tex"
+ },
+ {
+  "label": "data/pic/dls/p_manacles_off.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_manacles_off.tex"
+ },
+ {
+  "label": "data/pic/dls/p_manacles_on.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_manacles_on.tex"
+ },
+ {
+  "label": "data/pic/dls/p_marker.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_marker.tex"
+ },
+ {
+  "label": "data/pic/dls/p_newspaper.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_newspaper.tex"
+ },
+ {
+  "label": "data/pic/dls/p_panelrun.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_panelrun.tex"
+ },
+ {
+  "label": "data/pic/dls/p_panelrun_btn.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_panelrun_btn.tex"
+ },
+ {
+  "label": "data/pic/dls/p_pull_off.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_pull_off.tex"
+ },
+ {
+  "label": "data/pic/dls/p_pull_on.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_pull_on.tex"
+ },
+ {
+  "label": "data/pic/dls/p_sankaku.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_sankaku.tex"
+ },
+ {
+  "label": "data/pic/dls/p_tablet.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_tablet.tex"
+ },
+ {
+  "label": "data/pic/dls/p_tablet_plate.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/p_tablet_plate.tex"
+ },
+ {
+  "label": "data/pic/dls/pmanacleson_tr.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/dls/pmanacleson_tr.tex"
+ },
+ {
+  "label": "data/pic/effect/fog.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/fog.tex"
+ },
+ {
+  "label": "data/pic/etc/botan.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/botan.tex"
+ },
+ {
+  "label": "data/pic/etc/botan_j.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/botan_j.tex"
+ },
+ {
+  "label": "data/pic/etc/carsol.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/carsol.tex"
+ },
+ {
+  "label": "data/pic/etc/cesa.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/cesa.tex"
+ },
+ {
+  "label": "data/pic/etc/comingsoon.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/comingsoon.tex"
+ },
+ {
+  "label": "data/pic/etc/gameover1.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/gameover1.tex"
+ },
+ {
+  "label": "data/pic/etc/itemmenu.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/itemmenu.tex"
+ },
+ {
+  "label": "data/pic/etc/itemmenu2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/itemmenu2.tex"
+ },
+ {
+  "label": "data/pic/etc/kcet.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/kcet.tex"
+ },
+ {
+  "label": "data/pic/etc/konami.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/konami.tex"
+ },
+ {
+  "label": "data/pic/etc/konami2048x2048.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/konami2048x2048.tex"
+ },
+ {
+  "label": "data/pic/etc/p_laura_letter.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/p_laura_letter.tex"
+ },
+ {
+  "label": "data/pic/etc/p_letterm.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/p_letterm.tex"
+ },
+ {
+  "label": "data/pic/etc/p_letterm_w.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/p_letterm_w.tex"
+ },
+ {
+  "label": "data/pic/etc/p_lostmemory.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/p_lostmemory.tex"
+ },
+ {
+  "label": "data/pic/etc/p_memo.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/p_memo.tex"
+ },
+ {
+  "label": "data/pic/etc/p_redreling.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/p_redreling.tex"
+ },
+ {
+  "label": "data/pic/etc/savebg1.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/savebg1.tex"
+ },
+ {
+  "label": "data/pic/etc/sce.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/sce.tex"
+ },
+ {
+  "label": "data/pic/etc/sh2dc.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/sh2dc.tex"
+ },
+ {
+  "label": "data/pic/etc/splash_logo.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/splash_logo.tex"
+ },
+ {
+  "label": "data/pic/etc/start00.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/start00.tex"
+ },
+ {
+  "label": "data/pic/etc/start00j.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/start00j.tex"
+ },
+ {
+  "label": "data/pic/etc/start01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/start01.tex"
+ },
+ {
+  "label": "data/pic/etc/start01j.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/start01j.tex"
+ },
+ {
+  "label": "data/pic/etc/title.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/title.tex"
+ },
+ {
+  "label": "data/pic/female.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/female.tex"
+ },
+ {
+  "label": "data/pic/hsp/carbon.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/carbon.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_box.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_box.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_boxnumber.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_boxnumber.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_boxnumber_2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_boxnumber_2.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_carbon.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_carbon.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_diary.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_diary.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_doctormemo.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_doctormemo.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_doctormemo_key.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_doctormemo_key.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_drainage.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_drainage.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_drainage_key.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_drainage_key.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_female.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_female.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_female_ring.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_female_ring.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_h_elevator.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_h_elevator.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_h_elevator_2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_h_elevator_2.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_h_elevator_botan.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_h_elevator_botan.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_hair.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_hair.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_hair_hair.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_hair_hair.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_museuminfo_key.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_museuminfo_key.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_musiuminfo.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_musiuminfo.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_panel.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_panel.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_panel02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_panel02.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_patient.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_patient.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_quiz.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_quiz.tex"
+ },
+ {
+  "label": "data/pic/hsp/p_quiz_btn.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/p_quiz_btn.tex"
+ },
+ {
+  "label": "data/pic/hsp/pboxkey.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/pboxkey.tex"
+ },
+ {
+  "label": "data/pic/hsp/pboxkey01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/pboxkey01.tex"
+ },
+ {
+  "label": "data/pic/hsp/whiteboard.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/hsp/whiteboard.tex"
+ },
+ {
+  "label": "data/pic/htl/dram.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/dram.tex"
+ },
+ {
+  "label": "data/pic/htl/egg.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/egg.tex"
+ },
+ {
+  "label": "data/pic/htl/maker.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/maker.tex"
+ },
+ {
+  "label": "data/pic/htl/p_bag_close.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_bag_close.tex"
+ },
+ {
+  "label": "data/pic/htl/p_bag_open.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_bag_open.tex"
+ },
+ {
+  "label": "data/pic/htl/p_bag_open_key.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_bag_open_key.tex"
+ },
+ {
+  "label": "data/pic/htl/p_can_close.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_can_close.tex"
+ },
+ {
+  "label": "data/pic/htl/p_can_open.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_can_open.tex"
+ },
+ {
+  "label": "data/pic/htl/p_can_open2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_can_open2.tex"
+ },
+ {
+  "label": "data/pic/htl/p_egghollow.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_egghollow.tex"
+ },
+ {
+  "label": "data/pic/htl/p_hanging.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_hanging.tex"
+ },
+ {
+  "label": "data/pic/htl/p_hanging2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_hanging2.tex"
+ },
+ {
+  "label": "data/pic/htl/p_htl_elevator.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_htl_elevator.tex"
+ },
+ {
+  "label": "data/pic/htl/p_htl_elevator_2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_htl_elevator_2.tex"
+ },
+ {
+  "label": "data/pic/htl/p_laura_letter.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_laura_letter.tex"
+ },
+ {
+  "label": "data/pic/htl/p_marker.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_marker.tex"
+ },
+ {
+  "label": "data/pic/htl/p_receipt.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_receipt.tex"
+ },
+ {
+  "label": "data/pic/htl/p_redreling.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_redreling.tex"
+ },
+ {
+  "label": "data/pic/htl/p_trank.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_trank.tex"
+ },
+ {
+  "label": "data/pic/htl/p_video.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_video.tex"
+ },
+ {
+  "label": "data/pic/htl/p_video02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/p_video02.tex"
+ },
+ {
+  "label": "data/pic/htl/prisonmap03mark.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/htl/prisonmap03mark.tex"
+ },
+ {
+  "label": "data/pic/item/p_laura_letter.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/p_laura_letter.tex"
+ },
+ {
+  "label": "data/pic/item/p_letterm.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/p_letterm.tex"
+ },
+ {
+  "label": "data/pic/item/p_letterm_w.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/p_letterm_w.tex"
+ },
+ {
+  "label": "data/pic/item/p_lostmemory.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/p_lostmemory.tex"
+ },
+ {
+  "label": "data/pic/item/p_memo.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/p_memo.tex"
+ },
+ {
+  "label": "data/pic/item/p_redreling.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/p_redreling.tex"
+ },
+ {
+  "label": "data/pic/item/x_coinelder.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_coinelder.tex"
+ },
+ {
+  "label": "data/pic/item/x_coinelder_ura.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_coinelder_ura.tex"
+ },
+ {
+  "label": "data/pic/item/x_coinprisoner.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_coinprisoner.tex"
+ },
+ {
+  "label": "data/pic/item/x_coinprisoner_ura.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_coinprisoner_ura.tex"
+ },
+ {
+  "label": "data/pic/item/x_coinsnake.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_coinsnake.tex"
+ },
+ {
+  "label": "data/pic/item/x_coinsnake_ura.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_coinsnake_ura.tex"
+ },
+ {
+  "label": "data/pic/item/x_keyclock.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_keyclock.tex"
+ },
+ {
+  "label": "data/pic/item/x_keygate.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_keygate.tex"
+ },
+ {
+  "label": "data/pic/item/x_keynorth.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_keynorth.tex"
+ },
+ {
+  "label": "data/pic/item/x_keyrapis.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_keyrapis.tex"
+ },
+ {
+  "label": "data/pic/item/x_keyspiral.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_keyspiral.tex"
+ },
+ {
+  "label": "data/pic/item/x_mary_p.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_mary_p.tex"
+ },
+ {
+  "label": "data/pic/item/x_plate_female.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_plate_female.tex"
+ },
+ {
+  "label": "data/pic/item/x_plate_kick.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_plate_kick.tex"
+ },
+ {
+  "label": "data/pic/item/x_plate_pig.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_plate_pig.tex"
+ },
+ {
+  "label": "data/pic/item/x_ringlead.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_ringlead.tex"
+ },
+ {
+  "label": "data/pic/item/x_ringopper.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/item/x_ringopper.tex"
+ },
+ {
+  "label": "data/pic/itemmenu.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/itemmenu.tex"
+ },
+ {
+  "label": "data/pic/map/apartmape1f.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/apartmape1f.tex"
+ },
+ {
+  "label": "data/pic/map/apartmape2f.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/apartmape2f.tex"
+ },
+ {
+  "label": "data/pic/map/apartmape3f.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/apartmape3f.tex"
+ },
+ {
+  "label": "data/pic/map/apartmapew1f.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/apartmapew1f.tex"
+ },
+ {
+  "label": "data/pic/map/apartmapew2f.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/apartmapew2f.tex"
+ },
+ {
+  "label": "data/pic/map/apartmapew3f.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/apartmapew3f.tex"
+ },
+ {
+  "label": "data/pic/map/apartmapmark.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/apartmapmark.tex"
+ },
+ {
+  "label": "data/pic/map/apartmapw.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/apartmapw.tex"
+ },
+ {
+  "label": "data/pic/map/hospitalmap01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hospitalmap01.tex"
+ },
+ {
+  "label": "data/pic/map/hospitalmap02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hospitalmap02.tex"
+ },
+ {
+  "label": "data/pic/map/hospitalmapmk.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hospitalmapmk.tex"
+ },
+ {
+  "label": "data/pic/map/hotelmap1f01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hotelmap1f01.tex"
+ },
+ {
+  "label": "data/pic/map/hotelmap1f02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hotelmap1f02.tex"
+ },
+ {
+  "label": "data/pic/map/hotelmap2f01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hotelmap2f01.tex"
+ },
+ {
+  "label": "data/pic/map/hotelmap2f02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hotelmap2f02.tex"
+ },
+ {
+  "label": "data/pic/map/hotelmap3f01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hotelmap3f01.tex"
+ },
+ {
+  "label": "data/pic/map/hotelmap3f02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hotelmap3f02.tex"
+ },
+ {
+  "label": "data/pic/map/hotelmapbf01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hotelmapbf01.tex"
+ },
+ {
+  "label": "data/pic/map/hotelmapbf02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hotelmapbf02.tex"
+ },
+ {
+  "label": "data/pic/map/hotelmapmark.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/hotelmapmark.tex"
+ },
+ {
+  "label": "data/pic/map/outmap.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/outmap.tex"
+ },
+ {
+  "label": "data/pic/map/outmape.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/outmape.tex"
+ },
+ {
+  "label": "data/pic/map/outmapmark.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/outmapmark.tex"
+ },
+ {
+  "label": "data/pic/map/outmapw.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/outmapw.tex"
+ },
+ {
+  "label": "data/pic/map/p01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/p01.tex"
+ },
+ {
+  "label": "data/pic/map/p02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/p02.tex"
+ },
+ {
+  "label": "data/pic/map/prisonmap.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/prisonmap.tex"
+ },
+ {
+  "label": "data/pic/map/prisonmap01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/prisonmap01.tex"
+ },
+ {
+  "label": "data/pic/map/prisonmap01mark.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/prisonmap01mark.tex"
+ },
+ {
+  "label": "data/pic/map/prisonmap02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/prisonmap02.tex"
+ },
+ {
+  "label": "data/pic/map/prisonmap02mark.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/prisonmap02mark.tex"
+ },
+ {
+  "label": "data/pic/map/prisonmap03.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/prisonmap03.tex"
+ },
+ {
+  "label": "data/pic/map/prisonmap03mark.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/map/prisonmap03mark.tex"
+ },
+ {
+  "label": "data/pic/out/p_incar.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/p_incar.tex"
+ },
+ {
+  "label": "data/pic/out/p_incar_map.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/p_incar_map.tex"
+ },
+ {
+  "label": "data/pic/out/p_lostmemory.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/p_lostmemory.tex"
+ },
+ {
+  "label": "data/pic/out/p_outmape.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/p_outmape.tex"
+ },
+ {
+  "label": "data/pic/out/p_outmapw.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/p_outmapw.tex"
+ },
+ {
+  "label": "data/pic/out/p_redpaper.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/p_redpaper.tex"
+ },
+ {
+  "label": "data/pic/out/p_spana.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/p_spana.tex"
+ },
+ {
+  "label": "data/pic/out/p_swamp.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/p_swamp.tex"
+ },
+ {
+  "label": "data/pic/out/p_swamp2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/p_swamp2.tex"
+ },
+ {
+  "label": "data/pic/out/statuebox.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/statuebox.tex"
+ },
+ {
+  "label": "data/pic/out/statuekey.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/statuekey.tex"
+ },
+ {
+  "label": "data/pic/out/statuekey2.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/out/statuekey2.tex"
+ },
+ {
+  "label": "data/pic/p_quiz_btn.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/p_quiz_btn.tex"
+ },
+ {
+  "label": "data/pic/panel.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/panel.tex"
+ },
+ {
+  "label": "data/pic/title.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/title.tex"
+ },
+ {
+  "label": "data/pic/ufo/hj01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/hj01.tex"
+ },
+ {
+  "label": "data/pic/ufo/hj02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/hj02.tex"
+ },
+ {
+  "label": "data/pic/ufo/hj03.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/hj03.tex"
+ },
+ {
+  "label": "data/pic/ufo/hj032.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/hj032.tex"
+ },
+ {
+  "label": "data/pic/ufo/hj04.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/hj04.tex"
+ },
+ {
+  "label": "data/pic/ufo/hj05.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/hj05.tex"
+ },
+ {
+  "label": "data/pic/ufo/hj06.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/hj06.tex"
+ },
+ {
+  "label": "data/pic/ufo/hj07.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/hj07.tex"
+ },
+ {
+  "label": "data/pic/ufo/staff01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/staff01.tex"
+ },
+ {
+  "label": "data/pic/ufo/staff02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/staff02.tex"
+ },
+ {
+  "label": "data/pic/ufo/staff03.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/staff03.tex"
+ },
+ {
+  "label": "data/pic/ufo/staff04.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/staff04.tex"
+ },
+ {
+  "label": "data/pic/ufo/staff05.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/staff05.tex"
+ },
+ {
+  "label": "data/pic/ufo/staff06.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/staff06.tex"
+ },
+ {
+  "label": "data/pic/ufo/staff07.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/staff07.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufomado01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufomado01.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufomado02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufomado02.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufomado03.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufomado03.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufomizu01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufomizu01.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufomizu02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufomizu02.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufomizu03.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufomizu03.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufomizu04.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufomizu04.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufoniwa01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufoniwa01.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufoniwa02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufoniwa02.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufoniwa03.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufoniwa03.tex"
+ },
+ {
+  "label": "data/pic/ufo/ufoniwa04.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/ufoniwa04.tex"
+ },
+ {
+  "label": "data/pic/ufo/words01.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/words01.tex"
+ },
+ {
+  "label": "data/pic/ufo/words02.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/words02.tex"
+ },
+ {
+  "label": "data/pic/ufo/words03.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/words03.tex"
+ },
+ {
+  "label": "data/pic/ufo/words04.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/words04.tex"
+ },
+ {
+  "label": "data/pic/ufo/words05.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/words05.tex"
+ },
+ {
+  "label": "data/pic/ufo/words06.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/words06.tex"
+ },
+ {
+  "label": "data/pic/ufo/words062.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/words062.tex"
+ },
+ {
+  "label": "data/pic/ufo/words07.tex",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/ufo/words07.tex"
+ },
+ {
+  "label": "data/chr/jms/lll_jms.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/chr/jms/lll_jms.tbn2"
+ },
+ {
+  "label": "data/etc/effect/apstair00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/apstair00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/bar00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/bar00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/bloodtex0.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/bloodtex0.tbn2"
+ },
+ {
+  "label": "data/etc/effect/boatmask.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/boatmask.tbn2"
+ },
+ {
+  "label": "data/etc/effect/candle.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/candle.tbn2"
+ },
+ {
+  "label": "data/etc/effect/fire00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/fire00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/fire01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/fire01.tbn2"
+ },
+ {
+  "label": "data/etc/effect/flame003.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/flame003.tbn2"
+ },
+ {
+  "label": "data/etc/effect/flame032.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/flame032.tbn2"
+ },
+ {
+  "label": "data/etc/effect/flear.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/flear.tbn2"
+ },
+ {
+  "label": "data/etc/effect/fly1.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/fly1.tbn2"
+ },
+ {
+  "label": "data/etc/effect/fog.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/fog.tbn2"
+ },
+ {
+  "label": "data/etc/effect/footmark.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/footmark.tbn2"
+ },
+ {
+  "label": "data/etc/effect/gesui00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/gesui00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/gesui01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/gesui01.tbn2"
+ },
+ {
+  "label": "data/etc/effect/glas03.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/glas03.tbn2"
+ },
+ {
+  "label": "data/etc/effect/hbstair00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/hbstair00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/kitchen00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/kitchen00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/lens_flare.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/lens_flare.tbn2"
+ },
+ {
+  "label": "data/etc/effect/msi00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/msi00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/passba00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/passba00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/passbb00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/passbb00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/playable0.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/playable0.tbn2"
+ },
+ {
+  "label": "data/etc/effect/poison.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/poison.tbn2"
+ },
+ {
+  "label": "data/etc/effect/psground00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/psground00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/psground01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/psground01.tbn2"
+ },
+ {
+  "label": "data/etc/effect/psground02.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/psground02.tbn2"
+ },
+ {
+  "label": "data/etc/effect/psground03.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/psground03.tbn2"
+ },
+ {
+  "label": "data/etc/effect/psground04.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/psground04.tbn2"
+ },
+ {
+  "label": "data/etc/effect/spark.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/spark.tbn2"
+ },
+ {
+  "label": "data/etc/effect/sprash.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/sprash.tbn2"
+ },
+ {
+  "label": "data/etc/effect/water00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/water00.tbn2"
+ },
+ {
+  "label": "data/etc/effect/water01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/water01.tbn2"
+ },
+ {
+  "label": "data/etc/effect/water02.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/water02.tbn2"
+ },
+ {
+  "label": "data/etc/effect/water40.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/etc/effect/water40.tbn2"
+ },
+ {
+  "label": "data/menu/mc/mu_alpha.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/menu/mc/mu_alpha.tbn2"
+ },
+ {
+  "label": "data/menu/mc/savebg.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/menu/mc/savebg.tbn2"
+ },
+ {
+  "label": "data/menu/mc/savebg2.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/menu/mc/savebg2.tbn2"
+ },
+ {
+  "label": "data/pic/effect/apstair00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/apstair00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/bar00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/bar00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/bloodtex0.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/bloodtex0.tbn2"
+ },
+ {
+  "label": "data/pic/effect/boatmask.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/boatmask.tbn2"
+ },
+ {
+  "label": "data/pic/effect/candle.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/candle.tbn2"
+ },
+ {
+  "label": "data/pic/effect/fire00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/fire00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/fire01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/fire01.tbn2"
+ },
+ {
+  "label": "data/pic/effect/flame003.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/flame003.tbn2"
+ },
+ {
+  "label": "data/pic/effect/flame032.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/flame032.tbn2"
+ },
+ {
+  "label": "data/pic/effect/flear.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/flear.tbn2"
+ },
+ {
+  "label": "data/pic/effect/fly1.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/fly1.tbn2"
+ },
+ {
+  "label": "data/pic/effect/fog.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/fog.tbn2"
+ },
+ {
+  "label": "data/pic/effect/footmark.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/footmark.tbn2"
+ },
+ {
+  "label": "data/pic/effect/gesui00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/gesui00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/gesui01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/gesui01.tbn2"
+ },
+ {
+  "label": "data/pic/effect/glas03.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/glas03.tbn2"
+ },
+ {
+  "label": "data/pic/effect/hbstair00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/hbstair00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/hibana01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/hibana01.tbn2"
+ },
+ {
+  "label": "data/pic/effect/kitchen00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/kitchen00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/lens_flare.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/lens_flare.tbn2"
+ },
+ {
+  "label": "data/pic/effect/msi00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/msi00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/passba00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/passba00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/passbb00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/passbb00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/playable0.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/playable0.tbn2"
+ },
+ {
+  "label": "data/pic/effect/poison.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/poison.tbn2"
+ },
+ {
+  "label": "data/pic/effect/psground00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/psground00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/psground01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/psground01.tbn2"
+ },
+ {
+  "label": "data/pic/effect/psground02.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/psground02.tbn2"
+ },
+ {
+  "label": "data/pic/effect/psground03.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/psground03.tbn2"
+ },
+ {
+  "label": "data/pic/effect/psground04.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/psground04.tbn2"
+ },
+ {
+  "label": "data/pic/effect/smok01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/smok01.tbn2"
+ },
+ {
+  "label": "data/pic/effect/spark.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/spark.tbn2"
+ },
+ {
+  "label": "data/pic/effect/sprash.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/sprash.tbn2"
+ },
+ {
+  "label": "data/pic/effect/water00.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/water00.tbn2"
+ },
+ {
+  "label": "data/pic/effect/water01.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/water01.tbn2"
+ },
+ {
+  "label": "data/pic/effect/water02.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/water02.tbn2"
+ },
+ {
+  "label": "data/pic/effect/water40.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/effect/water40.tbn2"
+ },
+ {
+  "label": "data/pic/etc/konami_r.tbn2",
+  "kind": "menu",
+  "format": "sh2tex",
+  "path": "data/pic/etc/konami_r.tbn2"
+ }
+]

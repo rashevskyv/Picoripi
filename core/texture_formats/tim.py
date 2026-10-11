@@ -5,7 +5,8 @@ follows), then the CLUT block and the pixel block, each ``u32 length, u16 x, y, 
 16-bit VRAM words). The textures of a file are its TIMs from ``offset`` (default 0) until the next
 bytes are not a TIM; an indexed one is shown with CLUT row ``clut_row`` (default 0), or as grey levels
 when its CLUT block is missing or empty (the game loads the palette from elsewhere). Writing keeps
-the CLUT (new colours take the nearest entry) and changes only the pixels that differ.
+the CLUT (new colours take the nearest entry) and changes only the pixels that differ. A TIM whose pixel
+block runs past the end of the data (a cut-off copy in a file's padding) ends the list.
 """
 from __future__ import annotations
 
@@ -35,7 +36,11 @@ def _tims(data: bytes, start: int) -> List[Dict[str, Any]]:
             length, _x, _y, width, height = struct.unpack_from("<I4H", data, pos)
             clut = (pos + 12, width * height)
             pos += length
+        if pos + 12 > len(data):
+            break
         length, _x, _y, words, height = struct.unpack_from("<I4H", data, pos)
+        if pos + length > len(data):                 # a cut-off copy in a file's padding (Silent Hill)
+            break
         bits = _BITS[flags & 7]
         out.append({"bits": bits, "clut": clut, "pixels": pos + 12, "width": words * 16 // bits, "height": height})
         at = pos + length

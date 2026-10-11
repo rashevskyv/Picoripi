@@ -27,6 +27,16 @@ class Texture:
     mipmaps: int = 1
 
 
+def _tga():
+    from core.texture_formats import tga
+    return tga
+
+
+def _sh2tex():
+    from core.texture_formats import sh2tex
+    return sh2tex
+
+
 def _backends() -> Dict[str, Any]:
     from core.texture_formats import (bch, bfres, bntx, bti, cgfx, ctpk, ctrt, ctxb, ctxr, dmp, l2d, ffta2_efx, flim, g1t, g4tx, gba, gim, gtx, imgc, j3d,
                                       jade,
@@ -38,7 +48,7 @@ def _backends() -> Dict[str, Any]:
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
             "bfres": bfres, "phyre": phyre, "is_tex": is_tex, "dq9_spr": dq9_spr, "jade": jade, "jade_jtx": jade_jtx, "shpg": shpg, "png": png, "sotn_blocks": sotn.blocks, "sotn_cmp": sotn.packed,
-            "ffta2_efx": ffta2_efx, "mt_tex": mt_tex, "pmd_img": pmd_img, "dmp": dmp, "cgfx": cgfx, "stex": stex, "mibl": mibl, "wilay": wilay, "pw_txp": pw_txp, "ctrt": ctrt, "l2d": l2d, "bch": bch, "rtex": rtex, "ctxr": ctxr}
+            "ffta2_efx": ffta2_efx, "mt_tex": mt_tex, "pmd_img": pmd_img, "dmp": dmp, "cgfx": cgfx, "stex": stex, "mibl": mibl, "wilay": wilay, "pw_txp": pw_txp, "ctrt": ctrt, "l2d": l2d, "bch": bch, "rtex": rtex, "ctxr": ctxr, "sh2tex": _sh2tex(), "tga": _tga()}
 
 
 # File name extension -> format, for files opened directly.
