@@ -35,7 +35,6 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._save_source: Optional[bytes] = None
         self._last_loaded: Optional[bytes] = None
-        self._last_name: str = ""
         self._located: Dict[int, Optional[Tuple[str, Document]]] = {}
         self._utf8_for: Optional[Tuple[str, bool]] = None
 
@@ -48,10 +47,6 @@ class GameRules(BaseGameRules):
                            "Professor Layton (DS) texts"), *DEFAULT_FORMATS]
 
     # -- load and save ---------------------------------------------------------
-
-    def _current_name(self) -> str:
-        """The source file being loaded or saved (its path tells the document kind), "" when unknown."""
-        return self._last_name
 
     def _utf8(self) -> bool:
         """True for the Android HD ports (the source folder has ``data-en``): their text is UTF-8."""
@@ -66,7 +61,7 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         self._last_loaded = bytes(json_obj)
         try:
-            return [Document(self._last_loaded, self._last_name, self._utf8()).texts()], {}
+            return [Document(self._last_loaded, "", self._utf8()).texts()], {}
         except (FormatError, ValueError, IndexError, UnicodeDecodeError) as error:
             log_debug(f"layton_ds: no texts in this file ({error})")
             return [[]], {}
@@ -81,7 +76,7 @@ class GameRules(BaseGameRules):
         if source is None:
             return super().save_data_to_json_obj(data, block_names)
         strings = data[0] if data else []
-        return Document(source, self._last_name, self._utf8()).build([str(s) for s in strings])
+        return Document(source, "", self._utf8()).build([str(s) for s in strings])
 
     def reset_runtime_state(self) -> None:
         self._located.clear()

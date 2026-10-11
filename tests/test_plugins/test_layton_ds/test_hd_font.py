@@ -156,3 +156,13 @@ def test_utf8_can_be_given_by_the_caller_and_a_puzzle_record_is_found_by_content
     assert [r.text for r in document.rows][:2] == ["Title", "Prompt"]
     changed = document.build(["Титул", "Prompt", "Right", "Wrong", "Hint 1", "Hint 2", "Hint 3"])
     assert "Титул".encode("utf-8") in changed
+
+
+def test_hd_text_is_found_without_a_file_name():
+    """The app gives the plugin bytes only: an HD port's English text with an accent or a curly quote is still text."""
+    from plugins.layton_ds.formats import Document
+
+    raw = b"50|NONE|NONE|3|Caf\xc3\xa9, it\xe2\x80\x99s open."
+    document = Document(raw, "", utf8=True)
+    assert len(document.rows) == 1 and document.rows[0].text.startswith("Caf\u00e9")
+    assert document.build(document.texts()) == raw

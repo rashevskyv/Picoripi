@@ -560,7 +560,7 @@ class Document:
             self.single = GdsCodec(plain, "", not _normal_gds(plain))
         elif _is_nazo(plain):
             self.single = NazoCodec(plain)
-        elif unix.lower().endswith(".txt") or _printable(plain):
+        elif unix.lower().endswith(".txt") or _printable(plain) or (self.utf8 and _utf8_text(plain)):
             self.single = TxtCodec(plain)
         else:
             raise FormatError("not a Layton DS text file")
@@ -616,6 +616,15 @@ class Document:
 def _normal_gds(data: bytes) -> bool:
     """A script that starts with a command (type 0) after the length; a talk script starts with an operand."""
     return len(data) >= 8 and struct.unpack_from("<H", data, 4)[0] == 0
+
+
+def _utf8_text(data: bytes) -> bool:
+    """UTF-8 text without control characters but tab and line breaks (an HD port's text file: the app gives no name)."""
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    return bool(text.strip()) and all(c >= " " or c in "\t\r\n" for c in text)
 
 
 def _printable(data: bytes) -> bool:
