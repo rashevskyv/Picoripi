@@ -61,6 +61,11 @@ class MainWindowToolsActionsMixin:
         from ui.address_forms_dialog import AddressFormsDialog
         AddressFormsDialog(self.mw).exec()
 
+    def open_progress(self):
+        """The progress page (counted in a worker, opened in the browser)."""
+        from handlers.progress_handler import open_progress_page
+        open_progress_page(self.mw)
+
     def merge_speakers_from_script(self):
         """Name the plugin's speaker codes from the marked-up script."""
         handler = getattr(self.mw, 'speaker_merge_handler', None)

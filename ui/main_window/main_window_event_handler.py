@@ -88,6 +88,8 @@ class MainWindowEventHandler:
             self.mw.merge_speakers_action.triggered.connect(self.mw.actions.merge_speakers_from_script)
         if hasattr(self.mw, 'address_forms_action'):
             self.mw.address_forms_action.triggered.connect(self.mw.actions.open_address_forms)
+        if hasattr(self.mw, 'progress_action'):
+            self.mw.progress_action.triggered.connect(self.mw.actions.open_progress)
         if hasattr(self.mw, 'translate_story_action') and self.mw.translate_story_action:
             self.mw.translate_story_action.triggered.connect(
                 lambda: self.mw.translation_handler.translate_story_first() if hasattr(self.mw, 'translation_handler') else None

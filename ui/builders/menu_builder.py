@@ -402,6 +402,12 @@ class MenuBuilder:
         )
         tools_menu.addAction(self.mw.address_forms_action)
 
+        self.mw.progress_action = QAction(tr('&Progress...'), self.mw)
+        self.mw.progress_action.setToolTip(
+            tr('Open the progress page in the browser: translated and left, by day and by block; in a room, the team board')
+        )
+        tools_menu.addAction(self.mw.progress_action)
+
         # AI Batch Translation Submenu
         ai_batch_menu = tools_menu.addMenu(tr('AI &Batch Translation'))
         ai_batch_menu.setToolTipsVisible(True)
