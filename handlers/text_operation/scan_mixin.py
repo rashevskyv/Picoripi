@@ -1,13 +1,43 @@
 """Text operations: problem rescans after an edit."""
 from __future__ import annotations
 from typing import Tuple
+from PyQt6.QtCore import QObject, pyqtSlot
 from PyQt6.QtGui import QTextCursor
 from handlers.async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 from utils.logging_utils import log_debug
 
 
+class _IssueScanRelay(QObject):
+    """Receives one scan's result on the UI thread and hands it to the handler, then deletes itself.
+
+    It is a child of the main window: a result that arrives after the window is gone is dropped by Qt instead of
+    reaching the deleted block list.
+    """
+
+    def __init__(self, owner, handler):
+        super().__init__(owner)
+        self._handler = handler
+
+    @pyqtSlot(int, int, str, list, list, list, list)
+    def finished(self, block_idx, string_idx, text, problems_in_string, glossary_matches, translation_matches,
+                 spellcheck_matches):
+        try:
+            self._handler._on_issue_scan_finished(block_idx, string_idx, text, problems_in_string, glossary_matches,
+                                                  translation_matches, spellcheck_matches)
+        finally:
+            self.deleteLater()
+
+
 class ScanMixin:
     """Issue thresholds, rescans, async scanner launch/finish, asterisk sync."""
+
+    def _connect_scan_result(self, scanner) -> None:
+        """Deliver the scanner's result through a relay owned by the main window (see _IssueScanRelay)."""
+        owner = self.mw if isinstance(self.mw, QObject) else None
+        relay = _IssueScanRelay(owner, self)
+        if owner is None:
+            scanner._result_relay = relay      # no Qt parent to keep it alive: the scanner keeps it
+        scanner.finished_scan.connect(relay.finished)
 
     def _get_string_thresholds(self, block_idx: int, string_idx: int) -> Tuple[int, int]:
         """Internal helper to get the string thresholds."""
@@ -119,7 +149,7 @@ class ScanMixin:
             editor_text=editor_text,
             logical_hard_limit=logical_hard_limit,
         )
-        self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
+        self._connect_scan_result(self.current_scanner_thread)
         if getattr(self.mw, '_is_sync_scan', False) is True:
             self.current_scanner_thread.run()
         else:
@@ -187,7 +217,7 @@ class ScanMixin:
             editor_text=editor_text,
             logical_hard_limit=logical_hard_limit_for_string
         )
-        self.current_scanner_thread.finished_scan.connect(self._on_issue_scan_finished)
+        self._connect_scan_result(self.current_scanner_thread)
         if getattr(self.mw, '_is_sync_scan', False) is True:
             self.current_scanner_thread.run()
         else:
