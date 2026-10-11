@@ -1,0 +1,8 @@
+[
+  {"label": "Language pictures (logo, Press Start, game over, goal...)", "kind": "title_screen", "format": "cgfx",
+   "path": "romfs/Lang/EUR_en.bin/*.bcres"},
+  {"label": "Welcome picture", "kind": "other", "format": "cgfx", "path": "romfs/NWTexture/EUR_en.bin/*.bcres"},
+  {"label": "Effect pictures (English)", "kind": "other", "format": "cgfx", "path": "romfs/Effect/main/EUR_en.bctez"},
+  {"label": "Shared UI atlas", "kind": "other", "format": "cgfx", "path": "romfs/Graphics/shared/ui.bctez"},
+  {"label": "UI layouts (message windows, battle, menus)", "kind": "other", "format": "cgfx", "path": "romfs/Graphics/ui/*.bcrez"}
+]

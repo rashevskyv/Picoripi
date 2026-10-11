@@ -1,0 +1,4 @@
+[
+  {"label": "Text font (pop 120px)", "format": "bcfnt", "path": "romfs/Font/pop_120px.bcfnz"},
+  {"label": "Large font (pop 240px)", "format": "bcfnt", "path": "romfs/Font/pop_240px.bcfnz"}
+]

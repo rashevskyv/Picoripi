@@ -781,7 +781,7 @@ class BaseGameRules:
         ``cv_gba`` (1-bit glyph records of the GBA Castlevania games), ``retro_font`` / ``retro_font_gx`` / ``retro_font_gc`` (Retro
         Studios), ``pgf`` (PSP), ``twewy``, ``policenauts``, ``lunar``, ``texture_grid`` (a glyph grid in one texture), ``cells`` (fixed-size glyph cells in a byte range),
         ``zelda3`` (the zelda3 PC port's ``font.png``), ``eternal_darkness`` (glyph grid in a TPL, widths in a
-        companion pack), ``fragile_dreams`` (Fragile Dreams FONT: glyph boxes in TPL pages), ``is_obd`` (Infinite Space), ``dq9`` (Dragon Quest IX) or ``mt_font`` (Capcom MT Framework
+        companion pack), ``fragile_dreams`` (Fragile Dreams FONT: glyph boxes in TPL pages), ``is_obd`` (Infinite Space), ``dq9`` (Dragon Quest IX) ``mof_font`` (Mirror of Fate ``.bfont``: a CGFX atlas with an MST glyph table) or ``mt_font`` (Capcom MT Framework
         GFD / lfd glyph boxes in an MT TEX page, the page as ``companion``)); ``path`` -- a path or glob relative to the project's source folder, or a list of them (the first that
         matches wins; a single-file project's file is used as it is); optional ``member`` (a glob
         of files inside the archive at ``path``); optional ``companion`` (a second file the font needs,
@@ -797,7 +797,7 @@ class BaseGameRules:
         """The game's textures with text in them (title cards, menu labels...), for the Textures window.
 
         Each entry: ``label``; ``kind`` (``title_screen``, ``area_card``, ``menu_label``...); ``format``
-        (``bti``, ``tpl``, ``tpl_ctr`` (the New 3DS port of a Wii TPL), ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``cgfx`` (3DS CGFX), ``dmp`` (Dragon Quest VII 3DS), ``stex`` (Atlus 3DS STEX),
+        (``bti``, ``tpl``, ``tpl_ctr`` (the New 3DS port of a Wii TPL), ``bflim`` (3DS and Wii U BFLIM, 3DS BCLIM), ``ctpk``, ``cgfx`` (3DS CGFX), ``dmp`` (Dragon Quest VII 3DS), ``ctrt`` (Kingdom Hearts 3D ``.ctt``) / ``l2d`` (its ``.l2d`` layouts with CTRT pictures inside), ``stex`` (Atlus 3DS STEX),
         ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
         and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
         multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``mibl`` / ``wilay`` (Monolith Soft MIBL

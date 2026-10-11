@@ -277,6 +277,53 @@ tokens: 44.0k
      малює системний шрифт консолі. Вікно Textures показує 985 файлів CGFX (6 367 текстур, логотип
      `menu\000.zrc\...\bind\00.bcres`), які німецька тека замінює, тобто вони мають текст. `2_build.bat`
      перепаковує й знову стискає архіви в мод Luma `romfs`.
+   - `final_fantasy_explorers` — Final Fantasy Explorers (3DS, Європа, англійська). **Source:** тека `source`
+     робочої теки; `1_unpack.bat` розшифровує гру й записує її файли розпакованими (гра пакує кожен файл BLZ і
+     називає його хешем; назви знаходять у рядках програми): дві таблиці тексту `romfs\message\message_en.textres`
+     (6 891 повідомлення) і `message_home_en.textres` (5 285 повідомлень), шрифти CFNT `romfs\font\font.bcfnt` і
+     `font_localize.bcfnt` та малюнки: 347 архівів макетів `romfs\ui\*.darc` (BCLIM), 545 `romfs\gfx\*.cgfx`,
+     значки CTPK у `romfs\gfx` і `message\messageIcon.tpl` (4 812 малюнків; 13 піксельних форматів). Керівні
+     символи в повідомленні показуються як `{c01}`, `{c05}` тощо. `2_build.bat` пакує змінені файли знову через BLZ
+     і записує їх під хеш-назвами як мод Luma `romfs`. Усі файли тексту, шрифти й малюнки пишуться назад байт у байт.
+   - `metal_gear_solid_3d` — Metal Gear Solid: Snake Eater 3D (3DS, Європа, англійська). **Source:** тека `source`
+     робочої теки; `1_unpack.bat` записує `text\vox.mgssubs`, `movie.mgssubs`, `demo.mgssubs` (JSON: англійські
+     рядки субтитрів трьох потокових файлів `vox.dat`, `movie.dat`, `demo.dat` як байти hex із таймінгом; 6 878
+     рядків: виклики по рації, голоси в грі, відео, кат-сцени; один блок на файл) і розкриває 232 архіви макетів
+     `.la2` (darc) як теки: 43 шрифти `font/*.bcfnt` і 1 064 малюнки `timg/*.bclim` (`romfs\ui\<ім'я>.la2\...`;
+     мовні варіанти `_f _g _i _j _s` не беруться). Текст — ASCII з escape `1F xx` для літер з діакритикою (Latin-1
+     мінус 0x7F) і `80 7C` як перенос рядка; інші байти показуються як `{xNN}`; `translation_map.json` проєкту
+     зіставляє літеру з гліфом, який її малює. `2_build.bat` повертає змінені рядки в їхній слот потокового файлу
+     (слот не можна пересунути: коли англійський текст не влазить, у записі французький-іспанський текст
+     прибирається) і перепаковує змінені `.la2` у мод Luma `romfs`. Скрипти (`.gcx`), тексти дзвінків у
+     `codec.dat` і архіви рівнів `.hpk` не відкриваються.
+   - `kingdom_hearts_ddd` — Kingdom Hearts 3D: Dream Drop Distance (3DS, Європа, англійська). **Source:** тека
+     `source` робочої теки; `1_unpack.bat` відкриває архіви гри `.rbin` (`CRAR`; англійські, французькі й німецькі
+     файли мають одну назву, мову знаходять за crc32 шляху) і записує англійські файли повідомлень
+     `romfs\message\en\<тека>\bin\ct*.ctd` (69 файлів, 8 374 повідомлення, UTF-16; кнопки й перемикачі кольору
+     показуються як `{UE026}`), шість шрифтів CFNT `romfs\font\*.bcfnt` та англійські малюнки: 126 файлів `.ctt`
+     (`CTRT`) і 54 макети `.l2d` з малюнками всередині (`romfs\menu\en`, титульний екран і меню),
+     `romfs\font\iconfont.ctt`. `2_build.bat` записує змінені файли назад у `message.rbin`, `menu.rbin` і
+     `font.rbin` (знову стиснені, як в оригіналі) у мод Luma `romfs`. Нові формати текстур `ctrt` і `l2d`; усі
+     1 575 файлів `.ctt` і 248 `.l2d` гри читаються й пишуться назад байт у байт.
+   - `castlevania_mof` — Castlevania: Lords of Shadow - Mirror of Fate (3DS, Європа, англійська). **Source:** тека
+     `source` робочої теки; `1_unpack.bat` копіює `romfs\system\localization\english.txt` (1 522 повідомлення
+     `KEY##текст` / `KEY#Мовець#текст`: підказки, меню, діалоги кат-сцен з мовцем, титри; один блок, один рядок на
+     повідомлення), сім файлів `romfs\system\fonts\*.bfont` і 40 малюнків CGFX `romfs\gui\textures\*.bctex`
+     (логотип, англійські схеми керування, значки). У редакторі `|` — перенос рядка, а `@[A]` показується як `{A}`.
+     Текст — один байт Windows-1252 на символ: літери, для яких у шрифті немає байта, записуються як `?`, якщо в
+     проєкті немає `translation_map.json` (`{"Є": "Æ"}`: літера пишеться байтом того гліфа й показується назад
+     літерою). Font Editor відкриває шрифти як `mof_font` (правка й переміщення рамок гліфів в атласі; місця під
+     нові коди немає). `2_build.bat` пише змінені файли в мод Luma `romfs`, а нові розміри — у копію
+     `system\files.toc`.
+   - `paper_mario_ss` — Paper Mario: Sticker Star (3DS, Європа, англійський набір). **Source:** тека `source`
+     робочої теки; `1_unpack.bat` копіює 46 файлів `messages\EU_English\*.msbt` (2 859 повідомлень; діалоги рівнів
+     `stgW_L`, меню й предмети `global`, музей наліпок, титри) і розпаковує файли гри, стиснені BLZ, під їхніми
+     іменами: два шрифти CFNT `Font\pop_120px.bcfnz` / `pop_240px.bcfnz` (Font Editor) і малюнки CGFX
+     `Graphics\ui\*.bcrez`, `Graphics\shared\ui.bctez`, `Effect\main\EUR_en.bctez` (вікно Textures), а також 50
+     мовних малюнків `Lang\EUR_en.bin` (логотип, Press START, бойові слова) і `NWTexture\EUR_en.bin\lg_welcome` як
+     `<архів>\<ім'я>.bcres`. Теги: `{Size:N}`, `{Color:R:G:B:A}`, `{PageBreak}`, `{Icon:mic_a:...}`, `{Choice:...}`,
+     `{Variable:item}`, `{Number:0:%d}`, `{Wait:N}`. `2_build.bat` знову пакує змінені файли й перебудовує архів
+     текстур з його `_info.bin` у мод Luma `romfs`. Усі 1 456 файлів CGFX гри читаються й пишуться назад байт у байт.
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Європа). **Source:** тека `source` робочої теки
      (`1_unpack.bat` копіює туди `romfs\message\eu\eu.qm`, шрифти, клавіатури введення імені
      `romfs\menu\ltn16_*.list`, текстури з текстом і `exefs\code.bin`); **Translation:** `translation` (цілі файли

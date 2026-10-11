@@ -1,0 +1,8 @@
+[
+  {
+    "label": "UI pictures (BCLIM in the .la2 layout archives)",
+    "kind": "title_screen",
+    "format": "bflim",
+    "path": "romfs/ui/**/*.bclim"
+  }
+]

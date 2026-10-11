@@ -1,0 +1,20 @@
+[
+  {
+    "label": "English menu and help pictures",
+    "kind": "title_screen",
+    "format": "ctrt",
+    "path": "romfs/menu/en/*.ctt"
+  },
+  {
+    "label": "English layouts with pictures (title, menus)",
+    "kind": "title_screen",
+    "format": "l2d",
+    "path": "romfs/menu/en/*.l2d"
+  },
+  {
+    "label": "Icon font picture",
+    "kind": "other",
+    "format": "ctrt",
+    "path": "romfs/font/*.ctt"
+  }
+]

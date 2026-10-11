@@ -1,0 +1,32 @@
+[
+  {
+    "label": "Message font (mesfont)",
+    "format": "bcfnt",
+    "path": "romfs/font/mesfont.bcfnt"
+  },
+  {
+    "label": "Dialogue font (talkfont)",
+    "format": "bcfnt",
+    "path": "romfs/font/talkfont.bcfnt"
+  },
+  {
+    "label": "Command font (cmdfont)",
+    "format": "bcfnt",
+    "path": "romfs/font/cmdfont.bcfnt"
+  },
+  {
+    "label": "Menu font (menufont)",
+    "format": "bcfnt",
+    "path": "romfs/font/menufont.bcfnt"
+  },
+  {
+    "label": "Help font (helpfont)",
+    "format": "bcfnt",
+    "path": "romfs/font/helpfont.bcfnt"
+  },
+  {
+    "label": "Numerals (numeral)",
+    "format": "bcfnt",
+    "path": "romfs/font/numeral.bcfnt"
+  }
+]
