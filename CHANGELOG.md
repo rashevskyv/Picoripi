@@ -3,6 +3,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [Unreleased]
 
 - Textures window and Font Editor: a plugin's font and picture scan (Pokémon Gen V reads every picture NARC) now runs in the window's job instead of on the UI thread; a test proves the scan leaves the UI thread.
+- Block list: a chapter-load result that arrives after the window closed is dropped by a relay owned by the block list widget (it crashed with "has been deleted" before); a test closes the window first.
 - Tests: the Font Editor lists a plugin's fonts through its font job in a headless test (a Gen V font archive is found).
 - Tests: the synthetic NARC archives of the Gen V scan tests now have the right table sizes and an empty name table, so the scan finds their members.
 - Unreal pak reader: `open_path` closes its file when the returned `Pak` is closed (`close()` or `with`); the file was never released before.

@@ -2,13 +2,33 @@
 from __future__ import annotations
 
 import re
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QObject, Qt, pyqtSlot
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QTreeWidgetItem, QStyle
 from pathlib import Path
 from core.mempalace.story_timeline import StoryVirtualProjection
 from core.manual_story_structures import apply_manual_story_structures
 from utils.logging_utils import log_error
+
+
+class _ChapterLoadRelay(QObject):
+    """Receives a chapter worker's result on the UI thread and hands it to the updater.
+
+    The relay is a child of the block list widget, so it dies with the widget: a result that arrives after
+    the window closed is dropped by Qt instead of reaching a deleted widget.
+    """
+
+    def __init__(self, widget, updater):
+        super().__init__(widget)
+        self._updater = updater
+
+    @pyqtSlot(object, object)
+    def loaded(self, chapters, mappings):
+        self._updater._on_chapters_loaded(chapters, mappings)
+
+    @pyqtSlot(str)
+    def failed(self, error_msg):
+        self._updater._on_chapters_load_failed(error_msg)
 
 
 class PopulateMixin:
@@ -250,8 +270,10 @@ class PopulateMixin:
 
             from core.mempalace_worker import MemePalaceChaptersLoadWorker
             self._chapters_load_worker = MemePalaceChaptersLoadWorker(client, wing_name)
-            self._chapters_load_worker.finished_signal.connect(self._on_chapters_loaded)
-            self._chapters_load_worker.error_signal.connect(self._on_chapters_load_failed)
+            widget = self.mw.block_list_widget
+            self._chapters_relay = _ChapterLoadRelay(widget if isinstance(widget, QObject) else None, self)
+            self._chapters_load_worker.finished_signal.connect(self._chapters_relay.loaded)
+            self._chapters_load_worker.error_signal.connect(self._chapters_relay.failed)
             self._start_chapters_worker_when_ready()
 
             self._add_story_placeholder("Story", "Loading...", QStyle.StandardPixmap.SP_BrowserReload)
@@ -260,9 +282,9 @@ class PopulateMixin:
         """The wing changed: drop the worker and every cache that belongs to the previous one."""
         if self._chapters_load_worker:
             try:
-                self._chapters_load_worker.finished_signal.disconnect(self._on_chapters_loaded)
-                self._chapters_load_worker.error_signal.disconnect(self._on_chapters_load_failed)
-            except TypeError:
+                self._chapters_load_worker.finished_signal.disconnect(self._chapters_relay.loaded)
+                self._chapters_load_worker.error_signal.disconnect(self._chapters_relay.failed)
+            except (TypeError, AttributeError):
                 pass
             self._chapters_load_worker = None
         self._chapters_cache = None

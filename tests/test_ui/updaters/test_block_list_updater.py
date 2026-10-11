@@ -1,4 +1,5 @@
 import re
+import threading
 import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
@@ -971,3 +972,35 @@ def test_stale_window_cache_does_not_revive_blank_rows(mock_mw, mock_dp):
     }
 
     assert updater._window_kind_groups() == {"Item Get": {(0, 0)}}
+
+
+def test_a_chapter_result_that_arrives_after_the_window_closed_is_dropped(qtbot, updater):
+    """The window closes while the chapter worker still runs: its late result must reach no deleted widget."""
+    from PyQt6 import sip
+
+    release = threading.Event()
+
+    class SlowMemePalaceClient:
+        def get_all_chapters(self, wing_name):
+            release.wait(10)
+            return [{"id": 10, "num": "Act 1, Ch 1", "title": "Ordon Village"}]
+
+        def get_all_chapter_mappings(self, wing_name):
+            return {10: []}
+
+    composer = MagicMock()
+    composer.prompt_composer._get_mempalace_client.return_value = SlowMemePalaceClient()
+    composer.prompt_composer._get_wing_name.return_value = "tp"
+    updater.mw.translation_handler = composer
+    updater.mw._is_test_mode = False
+    updater.mw.block_list_widget.create_item = MagicMock(return_value=QTreeWidgetItem())
+
+    updater.populate_blocks()
+    worker = updater._chapters_load_worker
+    assert worker is not None and worker.isRunning()
+    widget = updater.mw.block_list_widget
+    widget.deleteLater()                       # the window closes
+    qtbot.waitUntil(lambda: sip.isdeleted(widget), timeout=10000)
+    release.set()                              # the worker now finishes and emits its result
+    qtbot.waitUntil(worker.isFinished, timeout=10000)
+    qtbot.wait(50)                             # a result delivered to the deleted widget would raise here
