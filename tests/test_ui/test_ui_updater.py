@@ -62,7 +62,7 @@ def test_UIUpdater_get_tree_state(updater):
     assert "block_0" in state["expanded_ids"]
     assert "block_0" == state["selected_id"]
 
-def test_UIUpdater_apply_tree_state(updater):
+def test_UIUpdater_apply_tree_state(qtbot, updater):
     from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
     from PyQt6.QtCore import Qt
     updater.mw.block_list_widget = QTreeWidget()
@@ -79,8 +79,8 @@ def test_UIUpdater_apply_tree_state(updater):
         "h_scroll": 0
     }
     completed = MagicMock()
-    with patch('PyQt6.QtCore.QTimer.singleShot', side_effect=lambda ms, func: func()):
-        updater.apply_tree_state(state, on_completed=completed)
+    updater.apply_tree_state(state, on_completed=completed)
+    qtbot.waitUntil(lambda: completed.called, timeout=5000)     # the restore runs in deferred timers
     assert item.isExpanded()
     # verify that block selection is restored
     # force=True: a session restore must load the block even while data is loading
@@ -90,7 +90,7 @@ def test_UIUpdater_apply_tree_state(updater):
 
 
 def test_tree_state_restores_exact_duplicate_virtual_node_and_collapsed_nodes(
-    updater, mock_mw
+    qtbot, updater, mock_mw
 ):
     from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
     from PyQt6.QtCore import Qt
@@ -129,8 +129,8 @@ def test_tree_state_restores_exact_duplicate_virtual_node_and_collapsed_nodes(
     tree.setCurrentItem(speaker_none)
     mock_mw.data_store.displayed_string_indices = [(7, 4), (7, 8)]
 
-    with patch('PyQt6.QtCore.QTimer.singleShot', side_effect=lambda ms, func: func()):
-        updater.apply_tree_state(state)
+    updater.apply_tree_state(state)
+    qtbot.waitUntil(lambda: mock_mw.list_selection_handler.string_selected_from_preview.called, timeout=5000)
 
     assert tree.currentItem() is window_none
     assert windows.isExpanded()

@@ -3,6 +3,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [Unreleased]
 
 - Text operations: an issue scan's result is delivered through a relay owned by the main window, so a result that arrives after the window closed is dropped (it crashed with "has been deleted" before).
+- Block list: the deferred restore of the tree selection and scroll is scheduled with `single_shot` on the block list widget, so it never runs after that widget is gone (it closed a deleted progress dialog before).
+- Tests: the tree state tests wait for the deferred restore instead of patching the static timer.
 - Tests: the review run helper waits up to 60 s for an AI run to end (was 15 s), so a loaded machine does not time out.
 - Textures window and Font Editor: a plugin's font and picture scan (Pokémon Gen V reads every picture NARC) now runs in the window's job instead of on the UI thread; a test proves the scan leaves the UI thread.
 - Tests: the TP preview pixel goldens are compared only where the font environment matches the one recorded with them (`preview/render_environment.json`); elsewhere those tests skip with the reason, and the layout and label tests always run.
