@@ -1,4 +1,5 @@
-"""Level-5 ``ztex`` picture files of Fantasy Life (3DS): one or more PICA textures with their source file names.
+"""Level-5 ``ztex`` picture files of Fantasy Life (3DS): one or more PICA textures with their source file names,
+alone or embedded in a UI container (every ``ztex`` block of the file is read).
 
 Header (little endian): ``ztex``, u16 texture count, u16 version (2), u32 flags; then 0x58 bytes per texture from
 0x0C: 0x40 bytes of name, u32 hash, u32 data offset, u32 0, u32 data size, u16 width, u16 height, u8 mip count,
@@ -26,21 +27,37 @@ def detect(data: bytes) -> bool:
     return data[:4] == b"ztex"
 
 
+def _starts(data: bytes) -> List[int]:
+    """Offsets of the ztex blocks of a file: 0 for a ztex file, else every embedded block (UI containers carry
+    their pictures this way; the offsets inside a block count from the block's start)."""
+    if data[:4] == b"ztex":
+        return [0]
+    out, at = [], data.find(b"ztex")
+    while at >= 0:
+        if at + 0x0C + ENTRY <= len(data):
+            count, version = struct.unpack_from("<HH", data, at + 4)
+            if 1 <= count <= 32 and version == 2:
+                out.append(at)
+        at = data.find(b"ztex", at + 4)
+    if not out:
+        raise ValueError("Not a ztex file and no ztex block inside")
+    return out
+
+
 def _entries(data: bytes) -> List[Dict[str, Any]]:
-    if data[:4] != b"ztex":
-        raise ValueError("Not a ztex file")
-    count = struct.unpack_from("<H", data, 4)[0]
     out = []
-    for i in range(count):
-        at = 0x0C + ENTRY * i
-        if at + ENTRY > len(data):
-            raise ValueError("ztex header runs past the file end")
-        name = data[at:at + 0x40].split(b"\0")[0].decode("latin1")
-        _hash, offset, _zero, size, width, height, mips, fmt = struct.unpack_from("<IIIIHHBB", data, at + 0x40)
-        if fmt not in FORMATS:
-            raise ValueError(f"ztex pixel format 0x{fmt:02X} is not supported")
-        out.append({"name": name, "codec": pixels.codec("pica:" + FORMATS[fmt]), "format": FORMATS[fmt],
-                    "at": offset, "width": width, "height": height, "mips": max(1, mips), "size": size})
+    for start in _starts(data):
+        count = struct.unpack_from("<H", data, start + 4)[0]
+        for i in range(count):
+            at = start + 0x0C + ENTRY * i
+            if at + ENTRY > len(data):
+                raise ValueError("ztex header runs past the file end")
+            name = data[at:at + 0x40].split(bytes(1))[0].decode("latin1")
+            _hash, offset, _zero, size, width, height, mips, fmt = struct.unpack_from("<IIIIHHBB", data, at + 0x40)
+            if fmt not in FORMATS:
+                raise ValueError(f"ztex pixel format 0x{fmt:02X} is not supported")
+            out.append({"name": name, "codec": pixels.codec("pica:" + FORMATS[fmt]), "format": FORMATS[fmt],
+                        "at": start + offset, "width": width, "height": height, "mips": max(1, mips), "size": size})
     return out
 
 

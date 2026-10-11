@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 
 from plugins.fantasy_life import l5text
-from plugins.fantasy_life.l5text import L5Text, decode, encode
+from plugins.fantasy_life.l5text import L5PtrText, L5Text, decode, encode, open_text
 from plugins.fantasy_life.rules import GameRules
 
 
@@ -86,6 +86,56 @@ def test_rules_load_and_save():
     assert L5Text(rules.save_data_to_json_obj([["Альфа", "Beta"]], {})).strings == ["Альфа", "Beta"]
 
 
+def _ptr_table(strings, stride=20, marker=0x152):
+    """A text file of the second kind: rows (offset, flags, ...) and the strings behind them; one string is shared."""
+    rows = len(strings) + 1
+    at, table = 0x54, 0x60
+    head = bytearray(table)
+    struct.pack_into("<I", head, 0, l5text.TABLE_MAGIC)
+    struct.pack_into("<II", head, 0x10, 0x20, at)
+    struct.pack_into("<3I", head, at, rows, stride, table)
+    heap_at = table + rows * stride
+    heap, body = bytearray(), bytearray()
+    offsets = []
+    for s in strings:
+        offsets.append(heap_at + len(heap))
+        heap += s + bytes(-len(s) % 4)
+    offsets.append(offsets[0])                       # the last row shares the first string
+    for r, off in enumerate(offsets):
+        body += struct.pack("<IIIII", off, 0x2E0100, r, marker if r % 2 else 0, 4)
+    out = bytearray(head + body + heap)
+    struct.pack_into("<I", out, 0x0C, len(out) - 0x20)
+    return bytes(out)
+
+
+def test_pointer_table_reads_edits_and_grows():
+    raw = _ptr_table([_u("Back") + b"\0\0", _u("Choose") + BREAK + _u("it.") + b"\0\0", _u("Name") + b"\0\0"])
+    f = open_text(raw)
+    assert isinstance(f, L5PtrText)
+    assert f.strings == ["Back", "Choose\nit.", "Name"] and all(f.exact)
+    assert f.build(f.strings) == raw
+    # a shorter string stays where it is, a longer one moves to the end and its row follows
+    out = f.build(["Back", "Choose", "A name that is much longer than before"])
+    g = L5PtrText(out)
+    assert g.strings == ["Back", "Choose", "A name that is much longer than before"]
+    assert len(out) > len(raw) and out[0x10:0x54] == raw[0x10:0x54]
+    assert struct.unpack_from("<I", out, 0x0C)[0] + 0x20 == len(out)
+    # the shared string is one entry, and both rows read it
+    assert g.count == 3 and len(g.refs[g.offsets[0]]) == 2
+    with pytest.raises(l5text.FormatError):
+        f.build(["only one"])
+
+
+def test_pointer_table_ignores_number_columns_and_rejects_other_files():
+    f = L5PtrText(_ptr_table([_u("Alpha") + b"\0\0"]))
+    assert f.columns == [0]
+    with pytest.raises(l5text.FormatError):
+        L5PtrText(b"\0" * 64)
+    rules = GameRules()
+    blocks, _ = rules.load_data_from_json_obj(_ptr_table([_u("Alpha") + b"\0\0"]))
+    assert blocks == [["Alpha"]]
+
+
 def test_ztex_reads_and_writes_a_picture():
     from core import texture_formats
     pixels = bytearray(8 * 8 * 4)                       # RGBA8, one 8x8 level
@@ -139,15 +189,16 @@ def _need(path: Path) -> Path:
 
 def test_real_text_files_save_back_byte_for_byte():
     files = sorted(_need(SOURCE).glob("*.l5txt"))
-    assert len(files) == 940
-    strings = 0
+    assert len(files) > 2000
+    strings = pointer_files = 0
     for path in files[::9]:
         raw = path.read_bytes()
-        f = L5Text(raw)
+        f = open_text(raw)
         assert f.build(f.strings) == raw, path.name
         assert f.exact.count(False) <= 2
+        pointer_files += isinstance(f, L5PtrText)
         strings += f.count
-    assert strings > 5000
+    assert strings > 5000 and pointer_files > 20
 
 
 def test_real_fonts_and_pictures_round_trip():
@@ -158,8 +209,8 @@ def test_real_fonts_and_pictures_round_trip():
         raw = path.read_bytes()
         meta, sheets = font_formats.extract("l5_fnt", raw)
         assert font_formats.pack("l5_fnt", meta, sheets, raw) == raw, path.name
-    pictures = sorted(SOURCE.glob("*.ztex"))
-    assert pictures
+    pictures = sorted(SOURCE.glob("*.ztex")) + sorted(SOURCE.glob("*.l5ui"))[::7]     # a UI container holds ztex blocks
+    assert len(pictures) > 36
     for path in pictures:
         raw = path.read_bytes()
         textures = texture_formats.read("ztex", raw)

@@ -6,7 +6,9 @@ the ones Picoripi opens at ``romfs/_file_archive/<number>.<ext>`` (decompressed)
 
 - ``.l5txt`` -- an English text file (one block): UTF-16 strings of items, quests, dialogue, menus. The game holds
   two English sets (American and British spelling) next to the other languages; both are written. Control
-  sequences are ``{c:XXXX.XXXX}`` tags; a line break is a real new line.
+  sequences are ``{c:XXXX.XXXX}`` tags; a line break is a real new line. Two kinds of file exist: an index table
+  of strings (items, quests, dialogue) and a table of rows with string pointers (menus, system messages);
+  a longer string of the second kind moves to the end of the file.
 - ``.fnt`` -- the bitmap fonts (``font_sources.json``).
 - ``.ztex`` -- the pictures with words: title, buttons, font sheets (``texture_sources.json``).
 """
@@ -35,7 +37,7 @@ class GameRules(BaseGameRules):
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
-        self._file: Optional[l5text.L5Text] = None
+        self._file: Optional[Any] = None
 
     def get_display_name(self) -> str:
         return "Fantasy Life"
@@ -54,7 +56,7 @@ class GameRules(BaseGameRules):
             self._file = None
             return super().load_data_from_json_obj(json_obj)
         try:
-            self._file = l5text.L5Text(bytes(json_obj))
+            self._file = l5text.open_text(bytes(json_obj))
         except (l5text.FormatError, ValueError) as error:
             log_debug(f"fantasy_life: not a text table ({error})")
             self._file = None
@@ -66,7 +68,7 @@ class GameRules(BaseGameRules):
         self._file = None
         for raw in context.existing_versions():
             try:
-                self._file = l5text.L5Text(raw)
+                self._file = l5text.open_text(raw)
                 return
             except (l5text.FormatError, ValueError) as error:
                 log_warning(f"fantasy_life: cannot read {context.relative_path}: {error}; trying the next version")

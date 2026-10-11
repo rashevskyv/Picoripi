@@ -61,12 +61,12 @@ def _content(units: Tuple[int, ...]) -> Tuple[int, ...]:
     return units[:last]
 
 
-def decode(entry: bytes) -> str:
-    """One string's bytes as editor text."""
+def decode(entry: bytes, start: int = 0) -> str:
+    """One string's bytes as editor text (``start``: the string's first unit sits at an odd 2-byte slot, 1)."""
     units = _content(struct.unpack(f"<{len(entry) // 2}H", entry[:len(entry) // 2 * 2]))
     out: List[str] = []
     run: List[int] = []
-    pos = 0              # units written so far (for the alignment of a break)
+    pos = start          # units written so far (for the alignment of a break)
 
     def flush() -> None:
         nonlocal pos
@@ -91,7 +91,7 @@ def decode(entry: bytes) -> str:
     return "".join(out)
 
 
-def encode(text: str, pad4: bool = True) -> bytes:
+def encode(text: str, pad4: bool = True, start: int = 0) -> bytes:
     """Editor text -> the string's bytes: units, a NUL, zero padding to 4 bytes (``pad4``: the table pads)."""
     units: List[int] = []
     pos = 0
@@ -101,7 +101,7 @@ def encode(text: str, pad4: bool = True) -> bytes:
             units += [int(u, 16) for u in tag.group()[3:-1].split(".")]
             pos = tag.end()
         elif text[pos] == "\n":
-            if len(units) % 2:
+            if (len(units) + start) % 2:
                 units.append(0xFFFF)
             units += _BREAK
             pos += 1
@@ -170,3 +170,126 @@ class L5Text:
         offs = [o + shift if k > item else o for k, o in enumerate(self.container)]
         head = struct.pack("<I", n) + struct.pack(f"<{n + 1}I", *offs)
         return head + self.data[self.container[0]:self.base] + bytes(table) + self.data[self.container[item + 1]:]
+
+
+
+# ---------------------------------------------------------------- pointer tables (menu and system texts)
+
+class L5PtrText:
+    """A text file of the second kind: the same magic, but the 0x20-byte header leads to rows (``count`` x
+    ``stride`` bytes) in which some columns are byte offsets of NUL-terminated UTF-16 strings; the strings fill the
+    rest of the file. ``strings`` are the distinct strings in order of first use (row by row); ``build`` rewrites a
+    changed string in its own space when it fits, else appends it to the file and moves every pointer to it."""
+
+    def __init__(self, data: bytes):
+        self.data = bytes(data)
+        d = self.data
+        if len(d) < 0x40 or struct.unpack_from("<I", d, 0)[0] != TABLE_MAGIC:
+            raise FormatError("not a Fantasy Life text table")
+        if struct.unpack_from("<I", d, 0x0C)[0] + 0x20 != len(d):
+            raise FormatError("the payload size does not match the file")
+        at = struct.unpack_from("<I", d, 0x14)[0]
+        if not 0x20 <= at <= len(d) - 12 or at % 4:
+            raise FormatError("no row table")
+        rows, stride, table = struct.unpack_from("<3I", d, at)
+        end = table + rows * stride
+        if not 0 < rows <= 200000 or stride < 4 or stride % 4 or table < at + 12 or end > len(d):
+            raise FormatError("bad row table")
+        self.rows, self.stride, self.table, self.heap = rows, stride, table, end
+        columns = []
+        for j in range(stride // 4):
+            values = [struct.unpack_from("<I", d, table + r * stride + 4 * j)[0] for r in range(rows)]
+            used = [v for v in values if end <= v < len(d) - 1 and v % 2 == 0]
+            # the other cells of a string column are all the same (0, or a "no string" marker)
+            if used and len({v for v in values if v not in used}) <= 1 and self._texty(used):
+                columns.append(j)
+        if not columns:
+            raise FormatError("no string column")
+        self.columns = columns
+        self.refs: dict = {}          # string offset -> [(row, column), ...]
+        for r in range(rows):
+            for j in columns:
+                v = struct.unpack_from("<I", d, table + r * stride + 4 * j)[0]
+                if end <= v < len(d) - 1 and v % 2 == 0:
+                    self.refs.setdefault(v, []).append((r, j))
+        self.offsets = list(self.refs)                 # first use first: the order survives a rebuild
+        by_address = sorted(self.offsets)
+        self.entries: List[bytes] = []
+        self.capacity: List[int] = []
+        for v in self.offsets:
+            stop = self._nul(v)
+            self.entries.append(d[v:stop + 2])
+            size = stop + 2 - v
+            nxt = by_address.index(v) + 1
+            limit = by_address[nxt] if nxt < len(by_address) else len(d)
+            self.capacity.append(min(size + -size % 4, max(limit - v, size)))
+        self.strings = [decode(e, (v // 2) % 2) for e, v in zip(self.entries, self.offsets)]
+        self.exact = [encode(s, False, (v // 2) % 2) == e for s, e, v in zip(self.strings, self.entries, self.offsets)]
+
+    @property
+    def count(self) -> int:
+        return len(self.strings)
+
+    def _nul(self, at: int) -> int:
+        """Offset of the terminating NUL unit of the string at ``at`` (a command ``FFFx FFFF n 0 ...`` is skipped
+        whole: it may hold zero units)."""
+        d, i = self.data, at
+        while i + 2 <= len(d):
+            unit = d[i] | d[i + 1] << 8
+            if unit == 0:
+                return i
+            if unit >= 0xFFF0 and i + 8 <= len(d) and d[i + 2] == 0xFF and d[i + 3] == 0xFF:
+                i += 4 + (d[i + 4] | d[i + 5] << 8)
+                continue
+            i += 2
+        raise FormatError("string without a terminator")
+
+    def _texty(self, offsets: List[int]) -> bool:
+        """Most of the strings at ``offsets`` are text (at least half of the units are not control units); empty
+        strings do not count."""
+        good = seen = 0
+        for v in sorted(set(offsets)):
+            try:
+                stop = self._nul(v)
+                units = struct.unpack(f"<{(stop - v) // 2}H", self.data[v:stop])
+            except (FormatError, struct.error):
+                return False
+            if not units:
+                continue
+            seen += 1
+            if sum(1 for u in units if not _is_control(u) and not 0xD800 <= u < 0xE000) * 2 >= len(units):
+                good += 1
+        return seen > 0 and good * 10 >= seen * 7
+
+    def build(self, texts: List[str]) -> bytes:
+        if len(texts) != self.count:
+            raise FormatError(f"{len(texts)} strings for {self.count}")
+        out = bytearray(self.data)
+        moved = {}
+        for k, text in enumerate(texts):
+            if text == self.strings[k]:
+                continue
+            v = self.offsets[k]
+            raw = encode(text, False, (v // 2) % 2)
+            if len(raw) <= self.capacity[k]:
+                out[v:v + self.capacity[k]] = raw + bytes(self.capacity[k] - len(raw))
+                continue
+            out += bytes((v % 4 - len(out)) % 4)       # the new place has the same 2-byte phase as the old one
+            moved[v] = len(out)
+            out += raw + bytes(-len(raw) % 4)
+            # the old space becomes padding when no other string starts inside it
+            if not any(v < o < v + len(self.entries[k]) for o in self.offsets):
+                out[v:v + len(self.entries[k])] = bytes(len(self.entries[k]))
+        for v, new in moved.items():
+            for r, j in self.refs[v]:
+                struct.pack_into("<I", out, self.table + r * self.stride + 4 * j, new)
+        struct.pack_into("<I", out, 0x0C, len(out) - 0x20)
+        return bytes(out)
+
+
+def open_text(data: bytes):
+    """The text file as a ``L5Text`` (index table) or a ``L5PtrText`` (rows of pointers); FormatError if neither."""
+    try:
+        return L5Text(data)
+    except FormatError:
+        return L5PtrText(data)
