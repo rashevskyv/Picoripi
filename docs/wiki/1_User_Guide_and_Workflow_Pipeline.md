@@ -279,6 +279,17 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `fnt.bin` of stage a2800); dialogue uses the console's shared font. The Textures window lists the 985 CGFX files
      (6,367 textures, title logo `menu\000.zrc\...\bind\00.bcres`) that the German folder overrides, so they carry
      text. `2_build.bat` repacks and compresses the archives again into a Luma `romfs` mod.
+   - `metal_gear_solid_3d` — Metal Gear Solid: Snake Eater 3D (3DS, Europe, English). **Source:** the workspace's
+     `source` folder; `1_unpack.bat` writes `text\vox.mgssubs`, `movie.mgssubs`, `demo.mgssubs` (JSON: the English
+     subtitle lines of the three stream files `vox.dat`, `movie.dat`, `demo.dat` as hex bytes with their timing; 6,878
+     lines: radio calls, in-game voices, movies, cutscenes; one block per file) and opens the 232 `.la2` layout
+     archives (darc) as folders: 43 `font/*.bcfnt` fonts and 1,064 `timg/*.bclim` pictures (`romfs\ui\<name>.la2\...`;
+     the `_f _g _i _j _s` language variants are left out). Text is ASCII with `1F xx` escapes for accented letters
+     (Latin-1 minus 0x7F) and `80 7C` as the line break; other bytes show as `{xNN}`; a project's
+     `translation_map.json` maps a letter to the glyph that draws it. `2_build.bat` puts the changed lines back
+     into their slot of the stream file (a slot cannot move: when the English text outgrows it, the French to Spanish
+     lines of that record lose their text) and repacks the changed `.la2` files into a Luma `romfs` mod. Scripts
+     (`.gcx`), the codec call texts in `codec.dat` and the `.hpk` stage archives are not opened.
    - `kingdom_hearts_ddd` — Kingdom Hearts 3D: Dream Drop Distance (3DS, Europe, English). **Source:** the
      workspace's `source` folder; `1_unpack.bat` opens the game's `.rbin` archives (`CRAR`; English, French and
      German files share one name, the language is found from the crc32 of the path) and writes the English

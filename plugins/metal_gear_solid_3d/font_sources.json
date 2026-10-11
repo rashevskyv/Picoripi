@@ -1,0 +1,217 @@
+[
+  {
+    "label": "cockpit/player_gauge: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/cockpit/player_gauge.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "cockpit/player_gauge: font_alps_14px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/cockpit/player_gauge.la2/font/font_alps_14px_num.bcfnt"
+  },
+  {
+    "label": "cockpit/player_gauge: font_alps_17px_num_f",
+    "format": "bcfnt",
+    "path": "romfs/ui/cockpit/player_gauge.la2/font/font_alps_17px_num_f.bcfnt"
+  },
+  {
+    "label": "font: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "font: font_alps_10px_f",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_alps_10px_f.bcfnt"
+  },
+  {
+    "label": "font: font_alps_13px",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_alps_13px.bcfnt"
+  },
+  {
+    "label": "font: font_alps_13px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_alps_13px_num.bcfnt"
+  },
+  {
+    "label": "font: font_alps_14px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_alps_14px_num.bcfnt"
+  },
+  {
+    "label": "font: font_alps_16px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_alps_16px_num.bcfnt"
+  },
+  {
+    "label": "font: font_alps_17px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_alps_17px_num.bcfnt"
+  },
+  {
+    "label": "font: font_alps_17px_num_f",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_alps_17px_num_f.bcfnt"
+  },
+  {
+    "label": "font: font_hlv3_m_alp_ovl",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_hlv3_m_alp_ovl.bcfnt"
+  },
+  {
+    "label": "font: font_hlv3_mf2quarter_alp_ovl",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_hlv3_mf2quarter_alp_ovl.bcfnt"
+  },
+  {
+    "label": "font: font_mgs3_l_alp_ovl",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_mgs3_l_alp_ovl.bcfnt"
+  },
+  {
+    "label": "font: font_mgs3_lf_alp_ovl",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_mgs3_lf_alp_ovl.bcfnt"
+  },
+  {
+    "label": "font: font_mgs3_type_alp_ovl",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_mgs3_type_alp_ovl.bcfnt"
+  },
+  {
+    "label": "font: font_suv_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/font.la2/font/font_suv_num.bcfnt"
+  },
+  {
+    "label": "menu/common: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/common.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "menu/common: font_alps_17px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/common.la2/font/font_alps_17px_num.bcfnt"
+  },
+  {
+    "label": "menu/sv/backpack: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/backpack.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "menu/sv/backpack: font_alps_14px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/backpack.la2/font/font_alps_14px_num.bcfnt"
+  },
+  {
+    "label": "menu/sv/backpack: font_alps_17px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/backpack.la2/font/font_alps_17px_num.bcfnt"
+  },
+  {
+    "label": "menu/sv/camouflage: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/camouflage.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "menu/sv/camouflage: font_alps_17px_num_f",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/camouflage.la2/font/font_alps_17px_num_f.bcfnt"
+  },
+  {
+    "label": "menu/sv/cure: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/cure.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "menu/sv/cure: font_alps_17px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/cure.la2/font/font_alps_17px_num.bcfnt"
+  },
+  {
+    "label": "menu/sv/food: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/food.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "menu/sv/food: font_alps_14px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/food.la2/font/font_alps_14px_num.bcfnt"
+  },
+  {
+    "label": "menu/sv/map: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/map.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "menu/sv/radio: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/radio.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "menu/sv/radio: font_alps_10px_f",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/radio.la2/font/font_alps_10px_f.bcfnt"
+  },
+  {
+    "label": "menu/sv/radio: font_alps_14px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/radio.la2/font/font_alps_14px_num.bcfnt"
+  },
+  {
+    "label": "menu/sv/radio: font_alps_17px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/radio.la2/font/font_alps_17px_num.bcfnt"
+  },
+  {
+    "label": "menu/sv/radio: font_mgs3_lf_alp_ovl",
+    "format": "bcfnt",
+    "path": "romfs/ui/menu/sv/radio.la2/font/font_mgs3_lf_alp_ovl.bcfnt"
+  },
+  {
+    "label": "scene/playdata: font_alps_14px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/scene/playdata.la2/font/font_alps_14px_num.bcfnt"
+  },
+  {
+    "label": "scene/result: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/scene/result.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "scene/result_bottom: font_alps_10px",
+    "format": "bcfnt",
+    "path": "romfs/ui/scene/result_bottom.la2/font/font_alps_10px.bcfnt"
+  },
+  {
+    "label": "scene/title: font_alps_10px_euro",
+    "format": "bcfnt",
+    "path": "romfs/ui/scene/title.la2/font/font_alps_10px_euro.bcfnt"
+  },
+  {
+    "label": "scene/title: font_alps_14px_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/scene/title.la2/font/font_alps_14px_num.bcfnt"
+  },
+  {
+    "label": "test/test_button: font_suv_num",
+    "format": "bcfnt",
+    "path": "romfs/ui/test/test_button.la2/font/font_suv_num.bcfnt"
+  },
+  {
+    "label": "test/test_radio: font_hlv3_m_alp_ovl",
+    "format": "bcfnt",
+    "path": "romfs/ui/test/test_radio.la2/font/font_hlv3_m_alp_ovl.bcfnt"
+  },
+  {
+    "label": "test/test_radio: font_mgs3_l_alp_ovl",
+    "format": "bcfnt",
+    "path": "romfs/ui/test/test_radio.la2/font/font_mgs3_l_alp_ovl.bcfnt"
+  },
+  {
+    "label": "test/test_radio: font_mgs3_type_alp_ovl",
+    "format": "bcfnt",
+    "path": "romfs/ui/test/test_radio.la2/font/font_mgs3_type_alp_ovl.bcfnt"
+  }
+]
