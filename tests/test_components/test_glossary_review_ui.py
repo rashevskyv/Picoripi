@@ -1549,7 +1549,8 @@ class TestGlossaryLayoutAndControls:
         # 3. Lower details splitter default sizes are balanced
         lower_sizes = dialog._lower_detail_splitter.sizes()
         assert len(lower_sizes) == 3
-        assert lower_sizes[0] == lower_sizes[1] == lower_sizes[2]
+        # Three equal stretch factors split the height in whole pixels: the parts differ by at most one pixel.
+        assert max(lower_sizes) - min(lower_sizes) <= 1
 
     def test_save_button_keeps_dialog_open_and_saves_in_place(self, qtbot):
         update_cb = MagicMock(return_value=([SINGLE], {}))

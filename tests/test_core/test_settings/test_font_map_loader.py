@@ -1,4 +1,5 @@
 import pytest
+from types import SimpleNamespace
 import json
 from unittest.mock import MagicMock
 
@@ -168,3 +169,63 @@ def test_FontMapLoader_load_bfn_from_project_blocks(mock_mw, tmp_path):
     assert "test_archive.arc/test_archive_font.bfn" in mock_mw.all_bfn_fonts
 
 
+
+
+def _narc(members):
+    """A NARC archive whose members are the given byte strings (a BTAF table and a GMIF body)."""
+    import struct
+    body, spans = b"", []
+    for member in members:
+        spans.append((len(body), len(body) + len(member)))
+        body += member
+    btaf = b"BTAF" + struct.pack("<II", 12 + 8 * len(spans), len(spans)) + b"".join(
+        struct.pack("<II", start, end) for start, end in spans)
+    btnf = b"BTNF" + struct.pack("<I", 20) + struct.pack("<IHH", 8, 0, 0xF000) + bytes(4)  # an empty name table
+    gmif = b"GMIF" + struct.pack("<I", 8 + len(body)) + body
+    head = b"NARC" + struct.pack("<HHIHH", 0xFFFE, 0x0100, 16 + len(btaf) + len(btnf) + len(gmif), 16, 3)
+    return head + btaf + btnf + gmif
+
+
+def test_the_plugin_font_scan_reads_the_archives_off_the_ui_thread(qtbot, tmp_path, monkeypatch):
+    """A project load asks the plugin for its font descriptors in a worker: no archive is read on the UI thread."""
+    import threading
+    from types import SimpleNamespace
+
+    from plugins.pokemon_gen5 import rules as gen5_rules
+    from plugins.testing import load_rules
+    from utils import app_mode
+
+    source = tmp_path / "source"
+    for index in range(30):
+        folder = source / "a" / "0" / "1"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / str(index)).write_bytes(_narc([b"RTFN" + bytes(12)]))
+    scanned = []
+    real_members_with = gen5_rules._members_with
+
+    def recording_members_with(data, magic):
+        scanned.append(threading.get_ident())
+        return real_members_with(data, magic)
+
+    monkeypatch.setattr(gen5_rules, "_members_with", recording_members_with)
+    monkeypatch.setattr(app_mode, "headless", False)
+    project = SimpleNamespace(metadata={"source_path": str(source), "translation_path": str(tmp_path / "t")})
+    mw = SimpleNamespace(all_font_maps={}, all_bfn_fonts={}, project_manager=SimpleNamespace(project=project))
+    mw.current_game_rules = load_rules("pokemon_gen5", mw)
+    loader = FontMapLoader(mw)
+    loader._load_preview_fonts(SimpleNamespace(project=project))
+    assert loader.preview_scan_running
+    qtbot.waitUntil(lambda: not loader.preview_scan_running, timeout=20000)
+    assert len(scanned) >= 30
+    assert threading.get_ident() not in scanned
+
+
+def test_a_descriptor_result_of_an_older_load_is_dropped(monkeypatch):
+    applied = []
+    loader = FontMapLoader(SimpleNamespace(all_font_maps={}, all_bfn_fonts={}))
+    monkeypatch.setattr(loader, "_apply_preview_fonts", lambda descriptors, metadata: applied.append(descriptors))
+    loader._preview_generation = 2
+    loader._preview_scan_done([{"preview": True, "label": "old"}], "", 1)
+    assert applied == []
+    loader._preview_scan_done([{"preview": True, "label": "current"}], "", 2)
+    assert applied == [[{"preview": True, "label": "current"}]]
