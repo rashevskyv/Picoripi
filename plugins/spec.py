@@ -77,7 +77,7 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_font_for_block", "Font override for a block: {'original_font_name', 'font_name'}.",
              call=(0,), returns=dict, optional=True),
         Hook("get_font_sources", "The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, "
-             "g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, tmp_sdf, mgs, mgs1, mgs1_hd, m2, nftr, cv_nds, ffta2, xf, "
+             "g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, tmp_sdf, mgs, mgs1, mgs1_hd, m2, nftr, gen4_glyphs, cv_nds, ffta2, xf, "
              "g4font, vagrant, gba_tiles, cv_gba, retro_font, retro_font_gx, pgf, twewy, policenauts, texture_grid, zelda3, "
              "lunar, is_obd, dq9, jade, brfna, swf_font, rrr_errfont, eternal_darkness, fragile_dreams, fntg, mt_font, pmd_font, fe13_bfnt, laft, cells, ttf, mgs_nht), path, member, companion, font_map, params, preview}]; "
              "preview: the host measures widths and draws the bitmap preview with that font. "
