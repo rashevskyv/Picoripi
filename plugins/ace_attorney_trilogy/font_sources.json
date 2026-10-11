@@ -1,0 +1,4 @@
+[
+  {"label": "Game font (entry 41)", "format": "bcfnt", "path": "font/e00041.bcfnt", "params": {"bottom_up": true}},
+  {"label": "Game font, second set (entry 42)", "format": "bcfnt", "path": "font/e00042.bcfnt", "params": {"bottom_up": true}}
+]

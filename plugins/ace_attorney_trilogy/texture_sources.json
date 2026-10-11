@@ -1,0 +1,4 @@
+[
+  {"label": "Pictures (every BCH of pack.dat: titles, menus, evidence, tutorials, sprites)", "kind": "menu",
+   "format": "bch", "path": "texture/*.bch"}
+]

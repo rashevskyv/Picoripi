@@ -28,9 +28,9 @@ class Texture:
 
 
 def _backends() -> Dict[str, Any]:
-    from core.texture_formats import (bfres, bntx, bti, cgfx, ctpk, ctrt, ctxb, ctxr, dmp, l2d, ffta2_efx, flim, g1t, g4tx, gba, gim, gtx, imgc, j3d,
+    from core.texture_formats import (bch, bfres, bntx, bti, cgfx, ctpk, ctrt, ctxb, ctxr, dmp, l2d, ffta2_efx, flim, g1t, g4tx, gba, gim, gtx, imgc, j3d,
                                       jade,
-                                      jade_jtx, m2, mt_tex, mibl, pcx, phyre, pmd_img, png, policenauts_pak, raw, shpg, sotn, stex, tilemap, tiles, tim, tim2, tpl, tpl_ctr, txtr, txtr_gx,
+                                      jade_jtx, m2, mt_tex, mibl, pcx, phyre, pmd_img, png, policenauts_pak, raw, rtex, shpg, sotn, stex, tilemap, tiles, tim, tim2, tpl, tpl_ctr, txtr, txtr_gx,
                                       vagrant, wilay)
     from core.texture_formats import dq9_spr, is_tex, pw_txp
     return {"bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "tpl_ctr": tpl_ctr, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
@@ -38,7 +38,7 @@ def _backends() -> Dict[str, Any]:
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
             "bfres": bfres, "phyre": phyre, "is_tex": is_tex, "dq9_spr": dq9_spr, "jade": jade, "jade_jtx": jade_jtx, "shpg": shpg, "png": png, "sotn_blocks": sotn.blocks, "sotn_cmp": sotn.packed,
-            "ffta2_efx": ffta2_efx, "mt_tex": mt_tex, "pmd_img": pmd_img, "dmp": dmp, "cgfx": cgfx, "stex": stex, "mibl": mibl, "wilay": wilay, "pw_txp": pw_txp, "ctrt": ctrt, "l2d": l2d, "ctxr": ctxr}
+            "ffta2_efx": ffta2_efx, "mt_tex": mt_tex, "pmd_img": pmd_img, "dmp": dmp, "cgfx": cgfx, "stex": stex, "mibl": mibl, "wilay": wilay, "pw_txp": pw_txp, "ctrt": ctrt, "l2d": l2d, "bch": bch, "rtex": rtex, "ctxr": ctxr}
 
 
 # File name extension -> format, for files opened directly.
@@ -46,7 +46,7 @@ EXTENSIONS = {".bti": "bti", ".bflim": "bflim", ".bclim": "bflim", ".bntx": "bnt
               ".xi": "imgc", ".bmd": "j3d", ".bdl": "j3d", ".gtx": "gtx", ".ncgr": "tiles", ".txtr": "txtr", ".gim": "gim", ".fcha": "gim",
               ".tim": "tim", ".tm2": "tim2", ".pcx": "pcx", ".psb": "m2", ".m2tex": "m2", ".g4tx": "g4tx", ".bfres": "bfres",
               ".jtex": "jade", ".jtx": "jade_jtx", ".gsh": "shpg", ".png": "png",
-              ".bcres": "cgfx", ".bctex": "cgfx", ".ctt": "ctrt", ".l2d": "l2d",
+              ".bcres": "cgfx", ".bctex": "cgfx", ".ctt": "ctrt", ".l2d": "l2d", ".bch": "bch", ".rtx": "rtex",
               ".tex": "mt_tex", ".dmp": "dmp", ".stex": "stex",
               ".witex": "mibl", ".wilay": "wilay", ".txp": "pw_txp", ".ctxr": "ctxr", ".phyre": "phyre"}
 

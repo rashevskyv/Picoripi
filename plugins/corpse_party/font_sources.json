@@ -1,0 +1,4 @@
+[
+  {"label": "Message font (f12_eu_uni.bffnt)", "format": "bcfnt", "path": "romfs/font/f12_eu_uni.bffnt"},
+  {"label": "Large font with Japanese (f14_eu_jp_uni.bffnt)", "format": "bcfnt", "path": "romfs/font/f14_eu_jp_uni.bffnt"}
+]

@@ -30,6 +30,8 @@ stream (``core/containers/quicklz``) of a 0x80-byte texture header plus an A8 PI
 first. It is edited as a plain CFNT (``ctr_rfna_to_cfnt``: GLGR dropped, sheets unpacked and turned upright)
 and written back (``cfnt_to_ctr_rfna``) with the original GLGR, FINF field and texture headers.
 
+``bottom_up`` (font source param): the cells of the stored texture start at its bottom row (Ace Attorney Trilogy 3DS).
+
 Editing: cell pixels, left offsets and advances are written in place; a redrawn glyph's glyph width is
 measured from its ink. New characters are added: a glyph after the last ``CWDH`` range gets a new
 ``CWDH`` block; a new code goes into a ``CMAP`` table that covers it, else into a scan list (the one
@@ -369,8 +371,11 @@ def _textures(data: bytes, info: Dict[str, int]) -> List[Image.Image]:
         return [gx_decode(data[info["data"] + index * info["sheet_size"]:][:info["sheet_size"]], info["format"],
                           info["sheet_width"], info["sheet_height"]) for index in range(info["sheets"])]
     size = texture_size(info["format"], info["sheet_width"], info["sheet_height"])
-    return [decode(data[info["data"] + index * info["sheet_size"]:][:size], info["format"],
-                   info["sheet_width"], info["sheet_height"]) for index in range(info["sheets"])]
+    textures = [decode(data[info["data"] + index * info["sheet_size"]:][:size], info["format"],
+                       info["sheet_width"], info["sheet_height"]) for index in range(info["sheets"])]
+    if info.get("bottom_up"):   # Capcom: the cells start at the bottom row of the stored texture
+        textures = [texture.transpose(Image.FLIP_TOP_BOTTOM) for texture in textures]
+    return textures
 
 
 # -- Wii U (GX2) sheets ------------------------------------------------------------------------
@@ -478,6 +483,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     elif data[:4] == b"ANFR":
         data = ctr_rfna_to_cfnt(data)
     info = _info(data)
+    info["bottom_up"] = bool(params.get("bottom_up"))
     sheets = _model_sheets(info, _textures(data, info))
     if _grows(info):   # blank sheets for new glyphs (``min_sheets``)
         size = (info["columns"] * info["cell_width"], info["rows"] * info["cell_height"])
@@ -594,6 +600,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         packed = pack(metadata, sheets, plain, params)
         return original if packed == plain else cfnt_to_ctr_rfna(packed, original)
     info = _info(original)
+    info["bottom_up"] = bool(params.get("bottom_up"))
     e = info["e"]
     if _grows(info) and len(sheets) > info["sheets"]:
         # Blank sheets (``min_sheets``) become part of the file only when they got ink or a character.
@@ -603,6 +610,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         if top >= info["sheets"]:
             original = _add_sheets(original, info, top + 1 - info["sheets"])
             info = _info(original)
+            info["bottom_up"] = bool(params.get("bottom_up"))
         sheets = sheets[:info["sheets"]]
     out = bytearray(original)
     count = info["columns"] * info["rows"] * info["sheets"]
@@ -630,6 +638,8 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
             _cafe_write(out, info, index, before, texture)
             continue
         start = info["data"] + index * info["sheet_size"]
+        if info.get("bottom_up"):
+            texture = texture.transpose(Image.FLIP_TOP_BOTTOM)
         raw = gx_encode(texture, info["format"]) if info["rvl"] else encode(texture, info["format"])
         out[start:start + len(raw)] = raw
 

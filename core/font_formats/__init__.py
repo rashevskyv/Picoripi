@@ -32,8 +32,8 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import (bcfnt, bffnt, bfotf, cells, brfna, cv_gba, cv_nds, eternal_darkness, fe13_bfnt, ffta2, fntg, fragile_dreams, g1n,
-                                   g1t, g4font, gba_tiles, gzf, laft, jade, lunar, m2, mgs, mgs1, mgs1_hd, mof_font, mof_font, mt_font, n64, nftr, pgf, pmd_font,
+    from core.font_formats import (bcfnt, bffnt, bfotf, cells, brfna, cop_fnt, cv_gba, cv_nds, eternal_darkness, fe13_bfnt, ffta2, fntg, fragile_dreams, g1n,
+                                   g1t, g4font, gba_tiles, gzf, laft, jade, lunar, m2, mgs, mgs1, mgs1_hd, mof_font, mt_font, n64, nftr, pgf, pmd_font,
                                    policenauts, qbf,
                                    retro_font, retro_font_gc, retro_font_gx,
                                    rrr_errfont, swf_font, texture_grid, tmp_sdf, ttf, twewy, vagrant, xf, zelda3, mgs_nht)
@@ -49,7 +49,7 @@ def _backends() -> Dict[str, Any]:
             "swf_font": swf_font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams,
             "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf, "mt_font": mt_font, "pmd_font": pmd_font,
             "fe13_bfnt": fe13_bfnt, "laft": laft, "pw_xpr": pw_xpr,
-            "mgs_nht": mgs_nht, "phyre_bmf": phyre_bmf, "mof_font": mof_font}
+            "mgs_nht": mgs_nht, "phyre_bmf": phyre_bmf, "mof_font": mof_font, "cop_fnt": cop_fnt}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -96,6 +96,8 @@ def detect(data: bytes) -> Optional[str]:
     if head[:4] == b"XPR2":
         from core.font_formats import pw_xpr
         return "pw_xpr" if pw_xpr.is_pw_xpr(bytes(data)) else None
+    if head[:2] == b"FD" and len(head) > 3 and head[3] == 0x8A:
+        return "cop_fnt"
     if head[:4] == b"FntG":
         return "fntg"
     if head[:4] == b"LAFT":
