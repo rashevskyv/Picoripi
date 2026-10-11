@@ -83,8 +83,7 @@ class Pak:
             for start, end in entry.blocks:
                 raw = self.read(base + start, end - start)
                 if name == "Zstd":
-                    from compression import zstd
-                    parts.append(zstd.decompress(raw))
+                    parts.append(_zstd_decompress(raw, entry.name))
                 elif name in ("Zlib", "Gzip"):
                     parts.append(zlib.decompress(raw, 47 if name == "Gzip" else 15))
                 else:
@@ -93,6 +92,21 @@ class Pak:
         if len(out) != entry.usize:
             raise PakError(f"{entry.name}: {len(out)} bytes, the index says {entry.usize}")
         return out
+
+
+def _zstd_decompress(raw: bytes, name: str) -> bytes:
+    """One zstd frame. ``compression.zstd`` (Python 3.14+) or the ``zstandard`` package; otherwise a PakError."""
+    try:
+        from compression import zstd
+    except ImportError:
+        zstd = None
+    if zstd is not None:
+        return zstd.decompress(raw)
+    try:
+        import zstandard
+    except ImportError:
+        raise PakError(f"{name}: zstd needs Python 3.14 or the zstandard package") from None
+    return zstandard.ZstdDecompressor().decompressobj().decompress(raw)
 
 
 def _fstring(index: bytes, pos: int):

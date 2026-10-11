@@ -1,5 +1,6 @@
 """Unreal ``.pak`` version 8 (core/unreal/pak.py): a written pak reads back; the real Bravely Default II pak (skipped
 where the NSP or the extracted files are not on this machine) gives the same bytes for the English entries."""
+import sys
 from pathlib import Path
 
 import pytest
@@ -60,3 +61,19 @@ def test_english_entries_match_the_extracted_files():
     assert sample
     for entry in sample:
         assert opened.data(entry) == (EXTRACTED / entry.name).read_bytes()
+
+
+def test_zstd_without_a_zstd_module_is_a_pak_error(monkeypatch):
+    from core.unreal import pak
+
+    monkeypatch.setitem(sys.modules, "compression", None)
+    monkeypatch.setitem(sys.modules, "zstandard", None)
+    with pytest.raises(pak.PakError, match="zstd needs Python 3.14 or the zstandard package"):
+        pak._zstd_decompress(b"\x28\xb5\x2f\xfd", "Content/x.uasset")
+
+
+def test_zstd_round_trip_with_the_standard_library():
+    from core.unreal import pak
+
+    zstd = pytest.importorskip("compression.zstd")
+    assert pak._zstd_decompress(zstd.compress(b"hello pak"), "x") == b"hello pak"
