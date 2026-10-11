@@ -1,4 +1,4 @@
-"""Ace Attorney Trilogy (3DS) plugin: the English script files of ``pack.dat``, the game font and the pictures.
+"""Ace Attorney Trilogy plugin (3DS and Switch): the English script files of ``pack.dat``, the game font and the pictures.
 
 ``1_unpack.bat`` (``zt/aat3ds.py``) writes the game's resource pack ``pack.dat`` (hash-named, LZ-compressed
 entries) as loose files: ``script/<NN>.bin`` (one English script per day of the three games: every sentence of
@@ -53,11 +53,11 @@ class GameRules(BaseGameRules):
         self._last_loaded: Optional[bytes] = None
 
     def get_display_name(self) -> str:
-        return "Ace Attorney Trilogy (3DS)"
+        return "Ace Attorney Trilogy"
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat((".bin",), "bytes", "Ace Attorney script"), *DEFAULT_FORMATS]
+        return [FileFormat((".bin", ".mdt"), "bytes", "Ace Attorney script"), *DEFAULT_FORMATS]
 
     def get_capabilities(self) -> Set[str]:
         return set()

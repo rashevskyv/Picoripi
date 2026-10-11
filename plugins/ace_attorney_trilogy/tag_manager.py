@@ -1,4 +1,4 @@
-"""Ace Attorney Trilogy (3DS) message tags: ``{page}``, ``{wait:N}`` and ``{xNNN}`` (a game character with no letter)."""
+"""Ace Attorney Trilogy (3DS and Switch) message tags: ``{page}``, ``{wait:N}`` and ``{xNNN}`` (a game character with no letter)."""
 import re
 from typing import Set
 
