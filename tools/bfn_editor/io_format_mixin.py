@@ -21,7 +21,7 @@ from core.font_formats import g1t
 from core.i18n import tr
 from utils import app_mode
 from utils.atomic_io import atomic_write_bytes, atomic_write_json
-from utils.logging_utils import log_debug, log_error, log_info
+from utils.logging_utils import log_error, log_info
 from utils.thread_utils import WorkerThread
 
 
@@ -113,31 +113,15 @@ class IoFormatMixin:
         parent = self.parent() if callable(getattr(self, "parent", None)) else None
         return getattr(parent, "mw", None) or parent
 
-    def request_plugin_fonts(self):
-        """List the active plugin's fonts found in the open project, in a font job, then add them to the tree.
-
-        The plugin reads the game's archives to find its fonts, so that scan runs off the UI thread.
-        """
+    def plugin_font_sources(self):
+        """The active plugin's fonts found in the open project."""
         mw = self._main_window()
         rules = getattr(mw, "current_game_rules", None)
         project = getattr(getattr(mw, "project_manager", None), "project", None)
         if rules is None or project is None or not hasattr(rules, "get_font_sources"):
-            return
+            return []
         from core.font_formats.sources import resolve
-        metadata = dict(project.metadata)
-
-        def done(found, error):
-            if error:
-                log_debug(f"io_format_mixin.request_plugin_fonts: plugin fonts skipped: {error}")
-                return
-            for source in found:
-                self.font_sources.setdefault(source.label, {
-                    "type": "plugin", "path": source.source_path, "files": {source.label: None}, "font_source": source,
-                })
-            if found and self.isVisible():
-                self.rebuild_tree_widget()
-
-        self.run_font_job(lambda: resolve(rules.get_font_sources(), metadata), done)
+        return resolve(rules.get_font_sources(), project.metadata)
 
     def project_font_map_path(self, source=None):
         """``<project>/font_maps/<name>.json`` for a plugin's font, or None outside a project."""

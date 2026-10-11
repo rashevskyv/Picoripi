@@ -250,10 +250,12 @@ class TextureWindow(QtWidgets.QMainWindow):
         if rules is None or project is None or not hasattr(rules, "get_texture_sources"):
             self.statusBar().showMessage(tr("No project is open: open a texture file (Ctrl+O)."))
             return
+        descriptors = rules.get_texture_sources()
+        if not descriptors:
+            self.statusBar().showMessage(tr("This game's plugin names no textures: open a texture file (Ctrl+O)."))
+            return
         metadata = dict(project.metadata)
-        # The plugin reads the game's archives to name its textures, so that call runs in the job too.
-        self._load(lambda: texture_sources.resolve(rules.get_texture_sources(), metadata), project_dir,
-                   empty_message=tr("This game's plugin names no textures: open a texture file (Ctrl+O)."))
+        self._load(lambda: texture_sources.resolve(descriptors, metadata), project_dir)
 
     def open_file_dialog(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -267,7 +269,7 @@ class TextureWindow(QtWidgets.QMainWindow):
         """Open a texture file (or an archive of them) directly; edits are written into that file."""
         self._load(lambda: texture_sources.open_file(path), "")
 
-    def _load(self, find: Callable[[], List[TextureSource]], project_dir: str, empty_message: str = "") -> None:
+    def _load(self, find: Callable[[], List[TextureSource]], project_dir: str) -> None:
         self.tree.clear()
         self.sources, self.images = [], {}
         self.project_dir = project_dir
@@ -283,8 +285,7 @@ class TextureWindow(QtWidgets.QMainWindow):
                 progress(("images", source, *_read_pair(source)))
             return len(found)
 
-        self.run_job(work, self._on_load_item,
-                     lambda count, error: self._on_load_done(count, error, empty_message))
+        self.run_job(work, self._on_load_item, self._on_load_done)
 
     def _on_load_item(self, item) -> None:
         if item[0] == "list":
@@ -301,13 +302,10 @@ class TextureWindow(QtWidgets.QMainWindow):
         self.images[source.key] = (pil_to_qimage(original), pil_to_qimage(current))
         self._refresh_item(source)
 
-    def _on_load_done(self, count, error, empty_message: str = "") -> None:
+    def _on_load_done(self, count, error) -> None:
         if error:
             self.statusBar().showMessage(tr("Could not load the textures: {0}", error))
             QtWidgets.QMessageBox.warning(self, tr("Textures"), tr("Could not load the textures:\n{0}", error))
-            return
-        if not count and empty_message:
-            self.statusBar().showMessage(empty_message)
             return
         self.statusBar().showMessage(tr("{0} textures", count or 0))
 

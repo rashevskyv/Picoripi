@@ -1,5 +1,4 @@
 import pytest
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 import os
 from PyQt6.QtWidgets import QApplication
@@ -980,35 +979,3 @@ def test_bfn_editor_empty_glyph_automatic_physical_registration(qapp, dummy_bfn_
 
 
 
-
-
-def test_the_font_editor_lists_the_plugin_fonts_through_its_job_headless(qapp, tmp_path):
-    """Headless, the plugin's font list is requested through the font job and runs in place: the font appears."""
-    import struct
-    from PyQt6 import QtWidgets
-    from utils import app_mode
-    from plugins.testing import load_rules
-
-    body = b"RTFN" + bytes(12)
-    btaf = b"BTAF" + struct.pack("<II", 20, 1) + struct.pack("<II", 0, len(body))
-    btnf = b"BTNF" + struct.pack("<I", 20) + struct.pack("<IHH", 8, 0, 0xF000) + bytes(4)
-    gmif = b"GMIF" + struct.pack("<I", 8 + len(body)) + body
-    narc = b"NARC" + struct.pack("<HHIHH", 0xFFFE, 0x0100, 16 + len(btaf) + len(btnf) + len(gmif), 16, 3) + btaf + btnf + gmif
-    folder = tmp_path / "source" / "a" / "0" / "2"
-    folder.mkdir(parents=True)
-    (folder / "3").write_bytes(narc)
-    parent = QtWidgets.QWidget()
-    project = SimpleNamespace(metadata={"source_path": str(tmp_path / "source"),
-                                        "translation_path": str(tmp_path / "translation")})
-    parent.project_manager = SimpleNamespace(project=project)
-    parent.current_game_rules = load_rules("pokemon_gen5", parent)
-    assert app_mode.headless is True
-    editor = BfnEditorWindow(parent=parent)
-    try:
-        editor.request_plugin_fonts()
-        plugin_fonts = [entry for entry in editor.font_sources.values() if entry["type"] == "plugin"]
-        assert len(plugin_fonts) == 1
-        assert plugin_fonts[0]["font_source"].format == "nftr"
-    finally:
-        editor.close()
-        parent.close()

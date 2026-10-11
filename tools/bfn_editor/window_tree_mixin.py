@@ -87,7 +87,15 @@ class WindowTreeMixin:
                         print(f"Error scanning loose font {font_file}: {e}")
 
         # Fonts the game plugin describes (get_font_sources), found in the open project; read when chosen.
-        self.request_plugin_fonts()
+        # ponytail: a font archive is opened here, on the UI thread, to list its members (font archives are
+        # small); move the listing into a font job if one gets large.
+        try:
+            for source in self.plugin_font_sources():
+                self.font_sources.setdefault(source.label, {
+                    "type": "plugin", "path": source.source_path, "files": {source.label: None}, "font_source": source,
+                })
+        except Exception as exc:
+            log_debug(f"window_tree_mixin.WindowTreeMixin.scan_fonts_directories: plugin fonts skipped: {exc!r}")
 
     def rebuild_tree_widget(self, active_sheet_count=0, expanded_keys=None):
         """Populate the left tree widget with all found font sources, BFN files and sheets."""
