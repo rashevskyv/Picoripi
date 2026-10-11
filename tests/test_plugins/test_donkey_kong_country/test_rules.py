@@ -56,3 +56,17 @@ def test_the_dkc2_and_dkc3_text_files_round_trip_when_the_workspaces_exist():
         blocks, names = rules.load_data_from_json_obj(content)
         assert [len(block) for block in blocks] == counts
         assert rules.save_data_to_json_obj(blocks, names) == content
+
+
+def test_the_dkc1_graphic_sheets_round_trip_through_the_snes_codec_when_present():
+    from core.texture_formats import pixels
+    gfx = Path(r"E:\Emulators\RomHacking\Donkey Kong\Donkey Kong Country 1\Switch\source\gfx")
+    cases = [("logo_rareware.bin", "snes:4bpp", 128, 192), ("copyright_font.bin", "snes:4bpp", 128, 256),
+             ("map_label_font.bin", "snes:2bpp", 128, 32)]
+    for name, fmt, width, height in cases:
+        path = gfx / name
+        if not path.is_file():
+            continue
+        data = path.read_bytes()
+        codec = pixels.codec(fmt)
+        assert bytes(codec.encode(codec.decode(data, width, height))) == data
