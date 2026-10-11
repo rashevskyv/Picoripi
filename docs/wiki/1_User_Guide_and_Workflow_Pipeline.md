@@ -332,6 +332,33 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `ace_attorney_trilogy` — Phoenix Wright: Ace Attorney Trilogy (3DS and Switch). **Source:** `source`; **Translation:** `translation`. 3DS: the 37 English scripts of the resource pack `pack.dat` (`script\sNN.bin`, 37,757 messages), the two game fonts and 12,008 BCH pictures; Switch: the 106 English scripts `GS1|GS2|GS3\scenario\*_u.mdt` (122,343 messages, own character codes). In a message `\n` is a line break, `{page}` waits for a tap, `{wait:N}` pauses, `{xNNN}` is a game character without a letter; a text may be longer or shorter than the original
    - `code_of_princess` — Code of Princess (3DS) and Code of Princess EX (Switch). **Source:** `source`; the text is compiled into the executable (`exefs\code.bin` UTF-16, `exefs\main` NSO UTF-32); a string is written in place and may not be longer than the original (`{x08}` ends a message); `FD` fonts and `RTEX` pictures
    - `corpse_party` — Corpse Party (3DS; Switch 2021). **Source:** `source`; the 20 `*_scriptlist.MSG` files (128-byte message slots, 8,717 messages; a text may not outgrow its slots) and the quoted lists `itemdatalist`, `deaddatalist`, `endinglist`, `playersettinglist`; on the Switch the same files are TextAssets of `resources.assets` (`text\`)
+   - `ever_oasis` — Ever Oasis (3DS, Europe, English). **Source:** the workspace's `source` folder;
+     `1_unpack.bat` writes `romfs\data\Region_EU\English\main.gmsg` (GMSG v3: 8,515 messages; names, menus, items,
+     dialogue; tags `{wait}`, `{clear}`, `{style:..}`, `{cNN:..}`, plural `{c14:..|a|b|c}`), the font
+     `main.gzf` (GZFX, 470 glyphs) and 666 CTXB pictures of the GAR v5 archives (title, menus, dungeon names).
+     A message may grow; `2_build.bat` rebuilds the GAR archives in a Luma `romfs` mod.
+   - `code_name_steam` — Code Name: S.T.E.A.M. (3DS, Europe, English). **Source:** the workspace's `source` folder;
+     `1_unpack.bat` writes the 76 message files `mess\EU_English` (4,406 lines; the Fire Emblem Awakening message
+     format, LZ13), 9 fonts (`.bfnt`, `cbf_std.bcfnt`) and 536 BCH files (938 pictures) of the RASI archive
+     `arc\EU_English.arc` and the neutral folders. `2_build.bat` packs the changed files back into a Luma mod.
+   - `stella_glow` — Stella Glow (3DS, Europe). **Source:** the workspace's `source` folder; `1_unpack.bat` unpacks
+     the IECP-packed `.cmp` files: the 18 `param\*.str` tables (4,330 strings, any length), the 1,554
+     `event\*.flw` scripts (24,800 dialogue lines; a line cannot be longer than the original yet), 7 `.bffnt` fonts
+     and 3,202 BFLIM pictures of the SARC archives (`indicator`, `picture`, `adventure`, `chara`). `2_build.bat`
+     compresses the changed archives again into a Luma mod.
+   - `fantasy_life` — Fantasy Life (3DS, Europe). **Source:** the workspace's `source` folder; `1_unpack.bat`
+     writes the LZ11 files of `romfs\_file_archive.bin` by their number in the archive (`05774.l5txt`): 2,527
+     English text files (both English sets; 238,614 strings: item, quest and dialogue tables, and rows with string
+     pointers for menus; `{c:XXXX.XXXX}` tags), 12 fonts (`.fnt`, Font Editor format `l5_fnt`) and 36 `.ztex`
+     pictures; the 354 UI containers `.l5ui` are unpacked too but are not opened as textures until a game check
+     passes. `2_build.bat` packs the changed files back into `_file_archive.bin` in a Luma `romfs` mod.
+   - `digimon_redigitize` — Digimon World: Re:Digitize Decode (3DS, Japanese release with the English fan
+     translation). **Source:** the workspace's `source` folder; `1_unpack.bat` writes the files of
+     `romfs\ARCV0.BIN` (zlib) that hold text, by their path in the archive plus `.btxt`: 177 `KCAP` containers with
+     8,861 `BTX` tables (73,374 strings; one block per table; the tables' offsets are stale, the game reads the
+     strings in order) and the 1,930 `GMIO` textures plus `.gmio` (RGBA8, RGB8, RGB565, L8). A string may change its
+     length (the containers are rebuilt) except in two files with data behind the container. `2_build.bat` packs
+     the changed files back into `ARCV0.BIN` (a file that no longer fits its slot goes to the end).
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Europe). **Source:** the workspace's `source` folder
      (`1_unpack.bat` copies `romfs\message\eu\eu.qm`, the fonts, the name-entry keyboards
      `romfs\menu\ltn16_*.list`, the text textures and `exefs\code.bin` there); **Translation:** `translation`

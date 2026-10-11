@@ -1,0 +1,4 @@
+[
+  {"label": "Text fonts (Latin, Russian Cyrillic, kana; sizes 12x13, 13x15, 15x17)", "format": "l5_fnt",
+   "path": "romfs/_file_archive/*.fnt"}
+]

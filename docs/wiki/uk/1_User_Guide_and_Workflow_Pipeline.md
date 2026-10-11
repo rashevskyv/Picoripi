@@ -327,6 +327,33 @@ tokens: 44.0k
    - `ace_attorney_trilogy` — Phoenix Wright: Ace Attorney Trilogy (3DS і Switch). **Source:** `source`; **Translation:** `translation`. 3DS: 37 англійських скриптів ресурсного паку `pack.dat` (`script\sNN.bin`, 37 757 повідомлень), два шрифти гри і 12 008 картинок BCH; Switch: 106 англійських скриптів `GS1|GS2|GS3\scenario\*_u.mdt` (122 343 повідомлення, власні коди символів). У повідомленні `\n` — новий рядок, `{page}` — чекати дотику, `{wait:N}` — пауза, `{xNNN}` — символ гри без літери; текст може бути довшим або коротшим за оригінал
    - `code_of_princess` — Code of Princess (3DS) і Code of Princess EX (Switch). **Source:** `source`; текст вшито у виконуваний файл (`exefs\code.bin` UTF-16, `exefs\main` NSO UTF-32); рядок пишеться на місце і не може бути довшим за оригінал (`{x08}` закінчує повідомлення); шрифти `FD` і картинки `RTEX`
    - `corpse_party` — Corpse Party (3DS; Switch 2021). **Source:** `source`; 20 файлів `*_scriptlist.MSG` (слоти повідомлень по 128 байтів, 8 717 повідомлень; текст не може вийти за слоти) і списки в лапках `itemdatalist`, `deaddatalist`, `endinglist`, `playersettinglist`; на Switch ті самі файли — TextAsset у `resources.assets` (`text\`)
+   - `ever_oasis` — Ever Oasis (3DS, Європа, англійська). **Source:** тека `source` робочої теки; `1_unpack.bat`
+     записує `romfs\data\Region_EU\English\main.gmsg` (GMSG v3: 8 515 повідомлень; імена, меню, предмети,
+     діалоги; теги `{wait}`, `{clear}`, `{style:..}`, `{cNN:..}`, множина `{c14:..|a|b|c}`), шрифт `main.gzf`
+     (GZFX, 470 знаків) і 666 малюнків CTXB з архівів GAR v5 (титули, меню, назви підземель). Повідомлення може
+     бути довшим; `2_build.bat` знову збирає архіви GAR у мод Luma `romfs`.
+   - `code_name_steam` — Code Name: S.T.E.A.M. (3DS, Європа, англійська). **Source:** тека `source` робочої теки;
+     `1_unpack.bat` записує 76 файлів повідомлень `mess\EU_English` (4 406 рядків; формат повідомлень Fire Emblem
+     Awakening, LZ13), 9 шрифтів (`.bfnt`, `cbf_std.bcfnt`) і 536 файлів BCH (938 малюнків) архіву RASI
+     `arc\EU_English.arc` та нейтральних тек. `2_build.bat` пакує змінені файли назад у мод Luma.
+   - `stella_glow` — Stella Glow (3DS, Європа). **Source:** тека `source` робочої теки; `1_unpack.bat`
+     розпаковує файли `.cmp` (IECP): 18 таблиць `param\*.str` (4 330 рядків, довільної довжини), 1 554 сценарії
+     `event\*.flw` (24 800 рядків діалогів; рядок поки не може бути довшим за оригінал), 7 шрифтів `.bffnt` і
+     3 202 малюнки BFLIM з архівів SARC (`indicator`, `picture`, `adventure`, `chara`). `2_build.bat` стискає
+     змінені архіви назад у мод Luma.
+   - `fantasy_life` — Fantasy Life (3DS, Європа). **Source:** тека `source` робочої теки; `1_unpack.bat` записує
+     файли з LZ11 архіву `romfs\_file_archive.bin` за номером в архіві (`05774.l5txt`): 2 527 англійських
+     текстових файлів (обидва англійські набори; 238 614 рядків: таблиці предметів, завдань і діалогів та таблиці з
+     вказівниками для меню; теги `{c:XXXX.XXXX}`), 12 шрифтів (`.fnt`, формат Font Editor `l5_fnt`) і 36 малюнків
+     `.ztex`; 354 контейнери інтерфейсу `.l5ui` також розпаковані, але не відкриваються як текстури, поки їх не
+     перевірено в грі. `2_build.bat` пакує змінені файли назад у `_file_archive.bin` у мод Luma `romfs`.
+   - `digimon_redigitize` — Digimon World: Re:Digitize Decode (3DS, японський випуск з англійським
+     фан-перекладом). **Source:** тека `source` робочої теки; `1_unpack.bat` записує файли `romfs\ARCV0.BIN`
+     (zlib) з текстом за шляхом в архіві з `.btxt`: 177 контейнерів `KCAP` з 8 861 таблицею `BTX` (73 374 рядки;
+     один блок на таблицю; зміщення таблиць застарілі, гра читає рядки підряд) і 1 930 текстур `GMIO` з `.gmio`
+     (RGBA8, RGB8, RGB565, L8). Рядок може змінювати довжину (контейнери перебудовуються), крім двох файлів з
+     даними за контейнером. `2_build.bat` пакує змінені файли назад у `ARCV0.BIN` (файл, що не вміщується в
+     своє місце, йде в кінець).
    - `zelda_oot3d` — Zelda: Ocarina of Time 3D (3DS, Європа). **Source:** тека `source` робочої теки
      (`1_unpack.bat` копіює туди `romfs\message\eu\eu.qm`, шрифти, клавіатури введення імені
      `romfs\menu\ltn16_*.list`, текстури з текстом і `exefs\code.bin`); **Translation:** `translation` (цілі файли

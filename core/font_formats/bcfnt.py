@@ -46,7 +46,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageChops
 
-from core.font_formats import Metadata, Sheets, char_map, coverage, grey_sheet, map_entries, char_code
+from core.font_formats import Metadata, Sheets, char_map, code_char, coverage, grey_sheet, map_entries, char_code
 from core.texture_formats import gx2, pixels, surface
 
 ADDS_GLYPHS = True  # a typed character gets its own CMAP code (an empty cell, a new CWDH block)
@@ -662,9 +662,17 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     blocks = _cmap_blocks(original, info)
     existing = _codes(blocks)
     wanted: Dict[int, int] = {}
-    for char, glyph in char_map(metadata).items():
+    chars = char_map(metadata)
+    for char, glyph in chars.items():
         wanted[_code(info, char)] = glyph
-    changed = [code for code, glyph in existing.items() if glyph < count and wanted.get(code) != glyph]
+    # A font may hold a character under two codes (cp1252 byte 0x8E and U+017D both are Ž): the model has one
+    # entry for it, so the other code is not "removed" while the character is still there.
+    by_char: Dict[str, List[int]] = {}
+    for code in existing:
+        by_char.setdefault(code_char(code), []).append(code)
+    aliased = {code for codes in by_char.values() if len(codes) > 1 for code in codes}
+    changed = [code for code, glyph in existing.items()
+               if glyph < count and wanted.get(code) != glyph and code not in aliased]
     if changed:
         raise ValueError("This font keeps the characters it has; changed or removed: "
                          + " ".join(f"U+{code:04X}" for code in sorted(changed)[:10]))

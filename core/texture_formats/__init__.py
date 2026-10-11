@@ -42,9 +42,9 @@ def _backends() -> Dict[str, Any]:
                                       jade,
                                       jade_jtx, m2, mt_tex, mibl, pcx, phyre, pmd_img, png, policenauts_pak, raw, rtex, shpg, sotn, stex, tilemap, tiles, tim, tim2, tpl, tpl_ctr, txtr, txtr_gx,
                                       vagrant, wilay)
-    from core.texture_formats import dq9_spr, is_tex, pw_txp, sh3_tex
+    from core.texture_formats import dq9_spr, gmio, is_tex, pw_txp, sh3_tex, ztex
     from core.texture_formats import jimg, nlg_tex
-    return {"bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "tpl_ctr": tpl_ctr, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
+    return {"gmio": gmio, "ztex": ztex, "bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "tpl_ctr": tpl_ctr, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
             "imgc": imgc, "j3d": j3d, "gba": gba, "gtx": gtx, "txtr": txtr, "gim": gim, "raw": raw, "tiles": tiles, "tilemap": tilemap,
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
@@ -59,7 +59,7 @@ EXTENSIONS = {".bti": "bti", ".bflim": "bflim", ".bclim": "bflim", ".bntx": "bnt
               ".jtex": "jade", ".jtx": "jade_jtx", ".gsh": "shpg", ".png": "png",
               ".bcres": "cgfx", ".bctex": "cgfx", ".ctt": "ctrt", ".l2d": "l2d", ".bch": "bch", ".rtx": "rtex",
               ".tex": "mt_tex", ".dmp": "dmp", ".stex": "stex",
-              ".witex": "mibl", ".wilay": "wilay", ".txp": "pw_txp", ".ctxr": "ctxr", ".phyre": "phyre"}
+              ".witex": "mibl", ".wilay": "wilay", ".txp": "pw_txp", ".ctxr": "ctxr", ".phyre": "phyre", ".ztex": "ztex", ".gmio": "gmio"}
 
 
 def formats() -> List[str]:

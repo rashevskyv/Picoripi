@@ -1,0 +1,4 @@
+[
+  {"label": "GMIO textures (menus, UI, battle, maps; RGBA8, RGB8, RGB565, L8)", "kind": "menu_label", "format": "gmio",
+   "path": "romfs/ARCV/**/*.gmio"}
+]

@@ -37,7 +37,7 @@ def _backends() -> Dict[str, Any]:
                                    policenauts, qbf,
                                    retro_font, retro_font_gc, retro_font_gx,
                                    rrr_errfont, swf_font, texture_grid, tmp_sdf, ttf, twewy, vagrant, xf, zelda3, mgs_nht)
-    from core.font_formats import dq9, infinite_space, phyre_bmf
+    from core.font_formats import dq9, infinite_space, phyre_bmf, l5_fnt
     from core.font_formats import jfnt, nlg_font
     from core.font_formats import pw_xpr
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
@@ -50,7 +50,7 @@ def _backends() -> Dict[str, Any]:
             "swf_font": swf_font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams,
             "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf, "mt_font": mt_font, "pmd_font": pmd_font,
             "fe13_bfnt": fe13_bfnt, "laft": laft, "pw_xpr": pw_xpr,
-            "mgs_nht": mgs_nht, "phyre_bmf": phyre_bmf, "mof_font": mof_font, "cop_fnt": cop_fnt, "nlg_font": nlg_font, "jfnt": jfnt}
+            "mgs_nht": mgs_nht, "phyre_bmf": phyre_bmf, "mof_font": mof_font, "cop_fnt": cop_fnt, "nlg_font": nlg_font, "jfnt": jfnt, "l5_fnt": l5_fnt}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -92,13 +92,16 @@ def detect(data: bytes) -> Optional[str]:
         return "bcfnt" if is_ctr_font(data) else "bffnt"
     if head[:4] in (b"FONT", b"FFNT"):
         return "bfn"
-    if head[2:4] == b"\x20\0" and len(data) > 0x30 and bytes(data[0x20:0x22]) == b"\x30\0" and head[:2] != b"\xff\xfe":
+    if len(data) > 0x30 and bytes(data[0x20:0x22]) == b"\x30\0" and bytes(data[0x22:0x24]) != bytes(2) \
+            and head[:2] != b"\xff\xfe":
         return "fe13_bfnt"
     if head[:4] == b"XPR2":
         from core.font_formats import pw_xpr
         return "pw_xpr" if pw_xpr.is_pw_xpr(bytes(data)) else None
     if head[:2] == b"FD" and len(head) > 3 and head[3] == 0x8A:
         return "cop_fnt"
+    if head[:4] == b"FNT " and len(data) > 0x20:
+        return "l5_fnt"
     if head[:4] == b"FntG":
         return "fntg"
     if head[:4] == b"LAFT":
