@@ -19,6 +19,7 @@ the line when it is done or moved into a plan.
 - TP preview goldens (`tests/fixtures/review_queue/wp5`) were made with no fonts installed; the pixel check depends on the machine's fonts (`QT_QPA_FONTDIR`).
 - Intermittent worker crashes under heavy load (xdist): `test_wwhd_real`, `test_kid_icarus_real`, `test_kingdom_hearts_ddd`. Each passes alone; rerun them with `-p no:xdist`.
 - Ultra boot proof open: no emulator boot check is recorded for the Ultra game in round 6.
+- `fantasy_life`: a longer text is cut, not moved (moving hung the game after the title screen; `allow_growth` in `plugins/fantasy_life/l5text.py` stays off). 26 `.l5ui` containers (`ui000_*`) gave a black screen at start in Azahar; the breaking one is not found.
 
 ## Integration round 5 (2026-10-10)
 
