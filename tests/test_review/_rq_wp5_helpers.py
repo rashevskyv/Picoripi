@@ -794,3 +794,24 @@ class FakeChatServer:
         self._server.shutdown()
         self._server.server_close()
         self._thread.join(5)
+
+
+def render_environment() -> dict:
+    """What the pixels depend on besides the code: the Qt and PyQt builds and the font families Qt found.
+
+    The golden pixels reproduce only where Qt finds the same families (QT_QPA_FONTDIR changes the set). The
+    fingerprint is recorded with the goldens; a machine with another fingerprint compares the layout, not pixels.
+    """
+    import hashlib
+    import json
+
+    from PyQt6.QtCore import PYQT_VERSION_STR, QT_VERSION_STR
+    from PyQt6.QtGui import QFontDatabase
+
+    families = sorted(QFontDatabase.families())
+    return {
+        "qt": QT_VERSION_STR,
+        "pyqt": PYQT_VERSION_STR,
+        "families": len(families),
+        "families_sha256": hashlib.sha256(json.dumps(families, ensure_ascii=False).encode("utf-8")).hexdigest(),
+    }

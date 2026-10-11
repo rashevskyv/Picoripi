@@ -1,0 +1,9 @@
+{
+ "note": "The pixel goldens of this folder reproduce in an environment with this fingerprint: QT_QPA_FONTDIR unset (Qt finds 0 font families). With QT_QPA_FONTDIR=C:/Windows/Fonts (79 families) the pixel tests are skipped, not failed.",
+ "fingerprint": {
+  "qt": "6.11.0",
+  "pyqt": "6.11.0",
+  "families": 0,
+  "families_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+ }
+}
