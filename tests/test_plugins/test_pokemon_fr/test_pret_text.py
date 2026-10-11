@@ -83,7 +83,7 @@ def test_the_plugin_loads_and_saves_a_decompilation_file(qapp):
                               block_indices=[0], runtime_state=[])
     rules.prepare_save_context(context)
     assert rules.save_data_to_json_obj(blocks, names).endswith('Name_Text: .string "ХЛОПЕЦЬ$"\n')
-    assert pret_text.SUFFIXES == (".inc", ".s", ".c", ".h")
+    assert pret_text.SUFFIXES == (".inc", ".s", ".c", ".h", ".json")
     assert any(fmt.mode == "text" and ".inc" in fmt.extensions for fmt in rules.get_file_formats())
 
 
@@ -134,3 +134,57 @@ def test_the_font_and_picture_descriptors_resolve_in_a_decompilation_project(gam
     for picture in pictures[:40]:
         data = Path(picture.source_path).read_bytes()
         assert texture_formats.write(picture.format, data, {0: picture.read_current().image}, picture.params) == data
+
+
+def test_braille_lines_are_one_message_and_keep_their_directive():
+    text = '\t.braille "GO UP HERE.$"\n'
+    units = pret_text.parse(text, True)
+    assert [u.content for u in units] == ["GO UP HERE."] and units[0].directive == "braille"
+    assert pret_text.write(text, True, ["GO UP"]) == '\t.braille "GO UP$"\n'
+
+
+def test_a_string_line_keeps_its_length_argument_and_its_comment():
+    text = '\t.string "BOB$", 13\n\t.string "AMY$", 7 @ name\n'
+    units = pret_text.parse(text, True)
+    assert [u.content for u in units] == ["BOB", "AMY"]
+    assert pret_text.write(text, True, ["ANN", "LEA"]) == '\t.string "ANN$", 13\n\t.string "LEA$", 7 @ name\n'
+
+
+REGION_JSON = (
+    "{\n"
+    '  "map_sections": [\n'
+    "    {\n"
+    '      "id": "MAPSEC_LITTLEROOT_TOWN",\n'
+    '      "name": "LITTLEROOT TOWN",\n'
+    '      "x": 4\n'
+    "    }\n"
+    "  ]\n"
+    "}\n"
+)
+
+
+def test_a_pret_json_file_is_recognised_and_its_names_are_messages():
+    assert pret_text.is_pret_json(REGION_JSON)
+    assert not pret_text.is_pret_json('{"Block": {"a": "b"}}')
+    assert pret_text.load_json(REGION_JSON) == ["LITTLEROOT TOWN"]
+    assert pret_text.write_json(REGION_JSON, ["LITTLEROOT TOWN"]) == REGION_JSON
+
+
+def test_a_json_name_edit_is_escaped_for_json_and_reads_back():
+    edited = pret_text.write_json(REGION_JSON, ['A "B" \n C'])
+    assert '"name": "A \\"B\\" \\n C"' in edited
+    assert pret_text.load_json(edited) == ['A "B" \n C']
+
+
+def test_a_pret_file_is_written_with_the_line_endings_it_has(tmp_path):
+    from core import formats
+
+    rules = GameRules(SimpleNamespace(show_multiple_spaces_as_dots=False, newline_display_symbol="↵"))
+    pret = next(fmt for fmt in rules.get_file_formats() if ".inc" in fmt.extensions)
+    assert pret.newline == ""                                  # no platform CRLF for a decompilation's LF file
+    target = tmp_path / "scripts.inc"
+    ok, error = formats.write_file(rules, target, ASM, unknown=formats.UNKNOWN_IS_TEXT)
+    assert ok, error
+    assert target.read_bytes() == ASM.encode("utf-8")
+    content, error = formats.read_file(rules, target, unknown=formats.UNKNOWN_IS_TEXT)
+    assert error is None and content == ASM

@@ -39,6 +39,9 @@ class FileFormat:
     extensions: Tuple[str, ...]      # lowercase, with the dot: (".tbl",)
     mode: str                        # "json" (parsed), "text" (str) or "bytes"
     label: str = ""                  # for file dialogs: "Text tables"
+    # text only: how line endings are read and written. None: the platform's (universal newlines); "": kept as
+    # they are in the file (a decompilation's LF files must come back byte for byte).
+    newline: Optional[str] = None
 
 
 @dataclass
@@ -122,7 +125,7 @@ def read_file(rules: Any, path: PathLike, unknown: str = UNKNOWN_IS_ERROR) -> Tu
     if mode == MODE_JSON:
         return load_json_file(path)
     if mode == MODE_TEXT:
-        return load_text_file(path)
+        return load_text_file(path, newline=found.newline if found else None)
     try:
         return target.read_bytes(), None
     except OSError as error:
@@ -156,7 +159,8 @@ def write_file(rules: Any, path: PathLike, content: Any, unknown: str = UNKNOWN_
             content = str(content)          # the old fallback for an extension nobody claims
         if not isinstance(content, str):
             return False, f"Plugin did not return a string for {target.suffix.lower()} file."
-        return (True, None) if save_text_file(path, content) else (False, "Failed to write file to disk.")
+        newline = found.newline if found else None
+        return (True, None) if save_text_file(path, content, newline=newline) else (False, "Failed to write file to disk.")
     if not isinstance(content, (bytes, bytearray)):
         return False, f"Plugin did not return bytes for {target.suffix.lower()} file."
     try:

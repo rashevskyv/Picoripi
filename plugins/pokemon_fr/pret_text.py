@@ -3,9 +3,11 @@ show it, write it back.
 
 A *unit* is one message of the editor:
 
-- in an assembly file (``.inc``, ``.s``): the consecutive ``.string "..."`` lines of one label, up to the line
-  whose text ends with the terminator ``$`` (or the first line that is not a ``.string``);
-- in a C file (``.c``, ``.h``): the string literals inside one ``_("...")`` (adjacent literals are one message).
+- in an assembly file (``.inc``, ``.s``): the consecutive ``.string "..."`` (or ``.braille "..."``) lines of one
+  label, up to the line whose text ends with the terminator ``$`` (or the first line that is not such a line);
+- in a C file (``.c``, ``.h``): the string literals inside one ``_("...")`` (adjacent literals are one message);
+- in a JSON file the game's tools build from (``map_sections`` of the region map, ``items`` of FireRed): the string
+  value of a ``name`` / ``english`` / ``description_english`` key, one message per value.
 
 The editor text is the message as the game's other tools show it (the plugin's JSON files): the literals joined,
 with the control escapes ``\\n`` (next line), ``\\l`` (scroll a line), ``\\p`` (next box) and the ``{...}`` codes as
@@ -16,35 +18,42 @@ written again in pret style (one ``.string`` per line break) in the same place.
 from __future__ import annotations
 
 import bisect
+import json
 import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
-_STRING_LINE = re.compile(r'^(?P<prefix>[ \t]*(?:[A-Za-z_][\w.@$]*:{1,2}[ \t]*)?)\.string[ \t]+"(?P<body>(?:[^"\\]|\\.)*)"'
-                          r'(?P<rest>[ \t]*(?:@.*)?)$')
+_STRING_LINE = re.compile(r'^(?P<prefix>[ \t]*(?:[A-Za-z_][\w.@$]*:{1,2}[ \t]*)?)\.(?P<directive>string|braille)[ \t]+"'
+                          r'(?P<body>(?:[^"\\]|\\.)*)"(?P<rest>(?:[ \t]*,[ \t]*[^,@"\n]*)?[ \t]*(?:@.*)?)$')
+_ASM_DIRECTIVE = re.compile(r'^[ \t]*(?:[A-Za-z_][\w.@$]*:{1,2}[ \t]*)?\.(?:string|braille)[ \t]', re.M)
 _LITERAL = re.compile(r'"(?:[^"\\\n]|\\.)*"')
 _C_CALL = re.compile(r'(?<![\w])_\(\s*(?P<lits>"(?:[^"\\\n]|\\.)*"(?:\s*"(?:[^"\\\n]|\\.)*")*)\s*\)')
 _ASSIGNED = re.compile(r"([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?\s*=\s*\(?\s*$")
 _BREAK = re.compile(r'\\[nlp]')
+_JSON_TEXT = re.compile(r'"(?P<key>name|english|description_english)"[ \t]*:[ \t]*"(?P<body>(?:[^"\\]|\\.)*)"')
 ASM_SUFFIXES = (".inc", ".s")
 C_SUFFIXES = (".c", ".h")
-SUFFIXES = ASM_SUFFIXES + C_SUFFIXES
+JSON_SUFFIXES = (".json",)
+SUFFIXES = ASM_SUFFIXES + C_SUFFIXES + JSON_SUFFIXES
+# The top-level keys of the JSON files the game builds its text from (tools/jsonproc templates in the decompilation).
+PRET_JSON_ROOTS = ("map_sections", "items")
 
 
 @dataclass
 class Unit:
     """One message: ``content`` without the ``$``; ``span`` is the character range of the source it occupies."""
 
-    kind: str                     # "asm" or "c"
+    kind: str                     # "asm", "c" or "json"
     content: str
     hidden_end: bool
     span: Tuple[int, int]
     label: str = ""
     first_line: int = 0           # 0-based line of the first line of the unit
-    indent: str = "\t"            # asm: the whitespace before ``.string``; c: indent of the second literal
-    prefix: str = ""              # asm: what stands before ``.string`` on the first line (label, spaces)
-    comment: str = ""             # asm: the ``@ ...`` of the first line
+    indent: str = "\t"            # asm: the whitespace before the directive; c: indent of the second literal
+    prefix: str = ""              # asm: what stands before the directive on the first line (label, spaces)
+    comment: str = ""             # asm: what follows the first line's string: ``, 13`` and/or ``@ ...``, as written
     literals: int = 1             # c: how many literals the call had
+    directive: str = "string"     # asm: ``string`` or ``braille``
 
 
 def escape(content: str) -> str:
@@ -78,7 +87,8 @@ def _parse_asm(text: str) -> List[Unit]:
         if current is not None:
             content, hidden = _split_end("".join(current["bodies"]))
             units.append(Unit("asm", content, hidden, (current["start"], current["end"]), current["label"],
-                              current["line"], current["indent"], current["prefix"], current["comment"]))
+                              current["line"], current["indent"], current["prefix"], current["comment"],
+                              directive=current["directive"]))
         current = None
 
     for number, raw in enumerate(text.split("\n")):
@@ -93,13 +103,16 @@ def _parse_asm(text: str) -> List[Unit]:
             offset = end
             continue
         prefix, body, rest = found.group("prefix"), found.group("body"), found.group("rest")
+        if current is not None and current["directive"] != found.group("directive"):
+            close()                       # a .string run and a .braille run are two messages
         if current is None:
             name = re.match(r"^[ \t]*([A-Za-z_][\w.@$]*):{1,2}", prefix)
             if name:
                 label = name.group(1)
             current = {"bodies": [], "start": offset, "end": end, "label": label, "line": number,
-                       "prefix": prefix, "comment": rest.strip(), "indent": re.match(r"[ \t]*", prefix.split(":")[-1]
-                                                                                   if ":" in prefix else prefix).group(0)}
+                       "prefix": prefix, "comment": rest, "directive": found.group("directive"),
+                       "indent": re.match(r"[ \t]*", prefix.split(":")[-1]
+                                          if ":" in prefix else prefix).group(0)}
         else:
             current["end"] = end
         current["bodies"].append(body)
@@ -137,6 +150,55 @@ def load(text: str, asm: bool) -> List[str]:
     return [unit.content for unit in parse(text, asm)]
 
 
+def is_asm_text(text: str) -> bool:
+    """An assembly file: a ``.string`` or ``.braille`` line starts it."""
+    return _ASM_DIRECTIVE.search(text) is not None
+
+
+def is_pret_json(text: str) -> bool:
+    """A JSON file the game builds its text from: one of PRET_JSON_ROOTS at the top."""
+    if not text.lstrip().startswith("{"):
+        return False
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return False
+    return isinstance(data, dict) and any(root in data for root in PRET_JSON_ROOTS)
+
+
+def _parse_json(text: str) -> List[Unit]:
+    units = []
+    for found in _JSON_TEXT.finditer(text):
+        start, end = found.span("body")
+        content = json.loads('"' + found.group("body") + '"')    # the JSON escapes give the C text's escapes
+        units.append(Unit("json", content, False, (start, end), found.group("key"), text.count("\n", 0, start)))
+    return units
+
+
+def parse_file(text: str, rel: str) -> List[Unit]:
+    """The units of a source file: JSON by its name, assembly or C by its text."""
+    if str(rel).lower().endswith(JSON_SUFFIXES):
+        return _parse_json(text)
+    return parse(text, is_asm(rel))
+
+
+def load_json(text: str) -> List[str]:
+    """The editor texts of a pret JSON file."""
+    return [unit.content for unit in _parse_json(text)]
+
+
+def write_json(text: str, texts: Sequence[Optional[str]]) -> str:
+    """``text`` (a pret JSON file) with the units' texts; an unchanged unit keeps its bytes."""
+    edits: List[Tuple[int, int, str]] = []
+    for unit, new in zip(_parse_json(text), texts):
+        if new is None or str(new) == unit.content:
+            continue
+        edits.append((unit.span[0], unit.span[1], json.dumps(str(new), ensure_ascii=False)[1:-1]))
+    for start, end, rendered in sorted(edits, reverse=True):
+        text = text[:start] + rendered + text[end:]
+    return text
+
+
 def _segments(content: str) -> List[str]:
     """``content`` cut after every ``\\n``, ``\\l`` and ``\\p``."""
     out, last = [], 0
@@ -155,7 +217,7 @@ def _render_asm(unit: Unit, content: str) -> str:
     lines = []
     for index, segment in enumerate(segments):
         lead = unit.prefix if index == 0 else unit.indent
-        lines.append(f'{lead}.string "{segment}"' + (f" {unit.comment}" if index == 0 and unit.comment else ""))
+        lines.append(f'{lead}.{unit.directive} "{segment}"' + (unit.comment if index == 0 else ""))
     return "\n".join(lines) + "\n"
 
 

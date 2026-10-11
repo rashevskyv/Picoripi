@@ -220,7 +220,7 @@ class TestRuntimeState:
 
         rules.prepare_save_context(SaveContext(block_indices=[1], runtime_state=state))
         saved = rules.save_data_to_json_obj([["два"]], {"0": "block_b"})
-        assert saved == {"block_b": {"k2": "два"}}
+        assert json.loads(saved) == {"block_b": {"k2": "два"}}     # a .json file is text in this plugin
 
         rules.prepare_save_context(SaveContext(block_indices=[5], runtime_state=state))   # incomplete snapshot
         assert rules.original_keys == [["k2"]]                                                  # left as it was
