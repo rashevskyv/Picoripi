@@ -148,7 +148,7 @@ class GlossaryDialog(
         self._transfer_callback = transfer_callback
         # Canonical term key -> tooltip for terms the other glossary translates differently.
         self._conflicts: Dict[str, str] = {}
-        self._series_page: Optional["GlossaryDialog"] = None
+        self._series_pages: List["GlossaryDialog"] = []
         self._series_tabs: Optional[QTabWidget] = None
         self._reference_data: Dict[Tuple[int, int], str] = dict(reference_data) if reference_data else {}
         self._reference_language: Optional[str] = reference_language
@@ -167,7 +167,7 @@ class GlossaryDialog(
         self._entry_table: Optional[QTableWidget] = None # Legacy compatibility
 
         # The content sits in its own widget so a linked series glossary can put
-        # it in a tab next to its own page (set_series_page).
+        # it in a tab next to its own page (set_series_pages).
         self._outer_layout = QVBoxLayout(self)
         self._content = QWidget(self)
         self._outer_layout.addWidget(self._content)
@@ -776,21 +776,23 @@ class GlossaryDialog(
 
     # ── Series glossary ────────────────────────────────────────────────
 
-    def set_series_page(self, page: Optional["GlossaryDialog"], label: str = "") -> None:
-        """Show ``page`` (the linked series glossary) as a tab next to this glossary; None removes it."""
-        if self._series_page is not None and self._series_tabs is not None:
-            self._series_tabs.removeTab(self._series_tabs.indexOf(self._series_page))
-            self._series_page.deleteLater()
-        self._series_page = page
-        self._transfer_button.setVisible(self._transfer_callback is not None and page is not None)
-        if page is None:
+    def set_series_pages(self, pages: List[Tuple["GlossaryDialog", str]]) -> None:
+        """Show the series glossaries as tabs next to this glossary, ``(page, label)`` nearest first; [] removes them."""
+        if self._series_tabs is not None:
+            for old in self._series_pages:
+                self._series_tabs.removeTab(self._series_tabs.indexOf(old))
+                old.deleteLater()
+        self._series_pages = [page for page, _label in pages]
+        self._transfer_button.setVisible(self._transfer_callback is not None and bool(pages))
+        if not pages:
             return
         if self._series_tabs is None:
             self._outer_layout.removeWidget(self._content)
             self._series_tabs = QTabWidget(self)
             self._series_tabs.addTab(self._content, tr('Project Glossary'))
             self._outer_layout.addWidget(self._series_tabs)
-        self._series_tabs.addTab(page, label)
+        for page, label in pages:
+            self._series_tabs.addTab(page, label)
 
     def set_conflicts(self, conflicts: Dict[str, str]) -> None:
         """Mark terms the other glossary translates differently: canonical key -> tooltip."""

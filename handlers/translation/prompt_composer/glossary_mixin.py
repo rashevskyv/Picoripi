@@ -33,10 +33,10 @@ class GlossaryMixin:
         return self.glossary_formatter.glossary_entries_to_text(entries)
 
     def _series_glossary_text(self, text: str) -> str:
-        """Linked series glossary rows for terms in ``text`` the project glossary does not translate."""
+        """Series glossary rows (nearest level first) for terms in ``text`` the project glossary does not translate."""
         rows = series_rows_for(
             text,
-            getattr(self.main_handler, "_series_glossary_manager", None),
+            getattr(self.main_handler, "_series_glossary_managers", None) or (),
             getattr(self.main_handler, "_glossary_manager", None),
         )
         return self._glossary_entries_to_text(rows)

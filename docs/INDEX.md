@@ -25,7 +25,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.1k | current | core/translation/providers.py |
 | `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.1k | current | ui/updaters/block_list |
 | `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 0.7k | current | docs/wiki |
-| `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.0k | current | core/glossary_build, core/glossary |
+| `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.2k | current | core/glossary_build, core/glossary |
 | `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.8k | current | core/script_markup, ui/script_markup |
 | `docs/wiki/README.md` (+uk) | Wiki index and reading order | 0.6k | current | docs/wiki |
 | `AGENTS.md` | Agent entry: hard rules, commands, checklist |  | current | everything |

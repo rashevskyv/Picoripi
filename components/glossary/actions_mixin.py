@@ -262,9 +262,8 @@ class ActionsMixin:
             self.showMaximized()
 
     def _series_page_settled(self) -> bool:
-        """The series glossary tab, if any, has no unsaved edit (or the user resolved it)."""
-        page = getattr(self, "_series_page", None)
-        return page is None or page._maybe_prompt_unsaved_changes()
+        """No series glossary tab has an unsaved edit (or the user resolved them)."""
+        return all(page._maybe_prompt_unsaved_changes() for page in getattr(self, "_series_pages", ()))
 
     def closeEvent(self, event) -> None:
         """Closeevent."""

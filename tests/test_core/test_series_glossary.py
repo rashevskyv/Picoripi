@@ -10,8 +10,10 @@ from core.glossary.series import (
     find_conflicts,
     import_series_glossary,
     link_series,
-    linked_series_path,
+    linked_series_paths,
+    series_chain,
     series_rows_for,
+    set_series_links,
 )
 from core.glossary_manager import (
     STATUS_CONFIRMED,
@@ -93,15 +95,42 @@ def test_import_writes_into_settings_series_folder_and_loads_as_glossary(tmp_pat
 
 def test_project_link_round_trips_and_old_projects_have_none(tmp_path):
     old = Project.from_dict({"name": "old"})
-    assert linked_series_path(old) is None
+    assert linked_series_paths(old) == []
 
     link_series(old, tmp_path / "zelda.json")
     reloaded = Project.from_dict(json.loads(json.dumps(old.to_dict())))
-    assert linked_series_path(reloaded) == tmp_path / "zelda.json"
+    assert linked_series_paths(reloaded) == [tmp_path / "zelda.json"]
+    assert isinstance(reloaded.metadata["series_glossary"], str)  # one link: the old shape
+
+    set_series_links(reloaded, [tmp_path / "gen3.json", tmp_path / "zelda.json"])
+    reloaded = Project.from_dict(json.loads(json.dumps(reloaded.to_dict())))
+    assert linked_series_paths(reloaded) == [tmp_path / "gen3.json", tmp_path / "zelda.json"]
 
     link_series(reloaded, None)
-    assert linked_series_path(reloaded) is None
+    assert linked_series_paths(reloaded) == []
     assert "series_glossary" not in reloaded.metadata
+
+
+def test_chain_is_explicit_links_then_the_glossary_folders_above_the_project(tmp_path):
+    series = tmp_path / "Pokemon" / "_glossary" / "glossary.json"
+    game = tmp_path / "Pokemon" / "FireRed" / "_glossary" / "glossary.json"
+    for path in (series, game):
+        path.parent.mkdir(parents=True)
+        path.write_text("[]", encoding="utf-8")
+    project_dir = tmp_path / "Pokemon" / "FireRed" / "GBA" / "picoripi"
+    project_dir.mkdir(parents=True)
+    project = Project(name="FR")
+
+    assert series_chain(project, project_dir) == [game, series]
+    assert series_chain(project, None) == []
+
+    link_series(project, tmp_path / "mine.json")
+    assert series_chain(project, project_dir) == [tmp_path / "mine.json", game, series]
+    link_series(project, series)  # an explicit link is not listed twice
+    assert series_chain(project, project_dir) == [series, game]
+
+    project.metadata["series_glossary_auto"] = False
+    assert series_chain(project, project_dir) == [series]
 
 
 def test_import_entry_adds_new_terms_and_updates_existing_without_losing_project_data(tmp_path):
@@ -153,7 +182,24 @@ def test_series_rows_only_for_terms_the_project_does_not_translate(tmp_path):
         {"original": "Beedle", "translation": "Бідл", "notes": ""},
     ])
 
-    rows = series_rows_for("Link rides Epona to Beedle", series, project)
+    rows = series_rows_for("Link rides Epona to Beedle", [series], project)
 
     assert [e.original for e in rows] == ["Epona", "Beedle"]
-    assert series_rows_for("Link", None, project) == []
+    assert series_rows_for("Link", [None], project) == []
+
+
+def test_a_nearer_series_level_wins_over_a_farther_one(tmp_path):
+    project = _manager(tmp_path / "glossary.json", [])
+    game = _manager(tmp_path / "game.json", [
+        {"original": "Beedle", "translation": "Бідл-гра", "notes": ""},
+        {"original": "Epona", "translation": "", "notes": "", "status": "seeded"},
+    ])
+    series = _manager(tmp_path / "series.json", [
+        {"original": "Beedle", "translation": "Бідл-серія", "notes": ""},
+        {"original": "Epona", "translation": "Епона", "notes": ""},
+    ])
+
+    rows = series_rows_for("Beedle sells Epona", [game, series], project)
+
+    # The game level wins for Beedle; its untranslated Epona does not hide the series translation.
+    assert [(e.original, e.translation) for e in rows] == [("Beedle", "Бідл-гра"), ("Epona", "Епона")]

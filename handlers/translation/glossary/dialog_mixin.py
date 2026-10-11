@@ -52,7 +52,7 @@ class DialogMixin:
     def _on_glossary_dialog_closed(self):
         """Internal helper to handle the glossary dialog closed event."""
         self.dialog = None
-        self.series_page = None
+        self.series_pages = []
         log_debug("Glossary dialog closed and reference cleared.")
         # A changed translation renames speaker folders — but only rebuild them
         # when a name actually changed, not on a view-only visit.
