@@ -178,11 +178,12 @@ def _narc(members):
     for member in members:
         spans.append((len(body), len(body) + len(member)))
         body += member
-    btaf = b"BTAF" + struct.pack("<II", 8 + 8 * len(spans), len(spans)) + b"".join(
+    btaf = b"BTAF" + struct.pack("<II", 12 + 8 * len(spans), len(spans)) + b"".join(
         struct.pack("<II", start, end) for start, end in spans)
+    btnf = b"BTNF" + struct.pack("<I", 20) + struct.pack("<IHH", 8, 0, 0xF000) + bytes(4)  # an empty name table
     gmif = b"GMIF" + struct.pack("<I", 8 + len(body)) + body
-    head = b"NARC" + struct.pack("<HHIHH", 0xFFFE, 0x0100, 16 + len(btaf) + len(gmif), 16, 2)
-    return head + btaf + gmif
+    head = b"NARC" + struct.pack("<HHIHH", 0xFFFE, 0x0100, 16 + len(btaf) + len(btnf) + len(gmif), 16, 3)
+    return head + btaf + btnf + gmif
 
 
 def test_the_plugin_font_scan_reads_the_archives_off_the_ui_thread(qtbot, tmp_path, monkeypatch):
