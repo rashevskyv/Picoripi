@@ -1,6 +1,9 @@
 """Pokémon Black / White and Black 2 / White 2 (DS): the generation V message codec (packing, tags, flags), the
 plugin's load and save, and real-data round trips of every text bank of the workspaces."""
+import struct
+import threading
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -138,3 +141,49 @@ def test_the_font_and_picture_descriptors_resolve_in_a_project(game):
         data, _rewrap = texture_sources.unwrap(Path(picture._current_path()).read_bytes(), picture.member, picture.params)
         image = picture.read_current().image
         assert texture_formats.write(picture.format, data, {picture.index: image}, picture.params) == data
+
+
+def _narc(members):
+    """A NARC archive whose members are the given byte strings (a BTAF table and a GMIF body)."""
+    body, spans = b"", []
+    for member in members:
+        spans.append((len(body), len(body) + len(member)))
+        body += member
+    btaf = b"BTAF" + struct.pack("<II", 8 + 8 * len(spans), len(spans)) + b"".join(
+        struct.pack("<II", start, end) for start, end in spans)
+    gmif = b"GMIF" + struct.pack("<I", 8 + len(body)) + body
+    head = b"NARC" + struct.pack("<HHIHH", 0xFFFE, 0x0100, 16 + len(btaf) + len(gmif), 16, 2)
+    return head + btaf + gmif
+
+
+def test_the_first_scan_of_the_narcs_runs_off_the_ui_thread(qtbot, tmp_path, monkeypatch):
+    """Opening the Textures window reads every picture NARC in a worker thread, never on the UI thread."""
+    from plugins.pokemon_gen5 import rules as gen5_rules
+    from ui.texture_window import TextureWindow
+    from utils import app_mode
+
+    source = tmp_path / "source"
+    for index in range(40):
+        folder = source / "a" / "0" / "1"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / str(index)).write_bytes(_narc([b"RGCN" + bytes(12), b"\0" * 16]))
+    scanned = []
+    real_members_with = gen5_rules._members_with
+
+    def recording_members_with(data, magic):
+        scanned.append(threading.get_ident())
+        return real_members_with(data, magic)
+
+    monkeypatch.setattr(gen5_rules, "_members_with", recording_members_with)
+    monkeypatch.setattr(app_mode, "headless", False)
+    manager = SimpleNamespace(project=SimpleNamespace(metadata={"source_path": str(source),
+                                                                 "translation_path": str(tmp_path / "t")}),
+                              project_dir=str(tmp_path / "project"))
+    mw = SimpleNamespace(project_manager=manager)
+    mw.current_game_rules = load_rules(PLUGIN, mw)
+    window = TextureWindow(mw)
+    qtbot.addWidget(window)
+    window.load_project()
+    qtbot.waitUntil(lambda: not window.busy(), timeout=20000)
+    assert len(scanned) >= 40                            # the picture NARCs were read (some twice: skip_with)
+    assert threading.get_ident() not in scanned
