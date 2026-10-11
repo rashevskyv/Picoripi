@@ -1,0 +1,1256 @@
+[
+ {
+  "label": "data/pic/_work/ura0000.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/ura0000.tex"
+ },
+ {
+  "label": "data/pic/_work/cc3201.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/cc3201.tex"
+ },
+ {
+  "label": "data/pic/_work/flame032.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/flame032.tex"
+ },
+ {
+  "label": "data/pic/_work/fire01.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/fire01.tex"
+ },
+ {
+  "label": "data/pic/_work/fire00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/fire00.tex"
+ },
+ {
+  "label": "data/pic/_work/test0.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test0.tex"
+ },
+ {
+  "label": "data/pic/_work/test1.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test1.tex"
+ },
+ {
+  "label": "data/pic/_work/test2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test2.tex"
+ },
+ {
+  "label": "data/pic/_work/test3.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test3.tex"
+ },
+ {
+  "label": "data/pic/_work/test4.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test4.tex"
+ },
+ {
+  "label": "data/pic/_work/test5.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test5.tex"
+ },
+ {
+  "label": "data/pic/_work/test6.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test6.tex"
+ },
+ {
+  "label": "data/pic/_work/test7.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test7.tex"
+ },
+ {
+  "label": "data/pic/_work/test8.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test8.tex"
+ },
+ {
+  "label": "data/pic/_work/test.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test.tex"
+ },
+ {
+  "label": "data/pic/_work/bloodtex0.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/bloodtex0.tex"
+ },
+ {
+  "label": "data/pic/_work/test00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/test00.tex"
+ },
+ {
+  "label": "data/pic/_work/alpha.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/alpha.tex"
+ },
+ {
+  "label": "data/pic/_work/playable01.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/playable01.tex"
+ },
+ {
+  "label": "data/pic/_work/fog.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/fog.tex"
+ },
+ {
+  "label": "data/pic/_work/playable02.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/playable02.tex"
+ },
+ {
+  "label": "data/pic/_work/muf1.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/muf1.tex"
+ },
+ {
+  "label": "data/pic/_work/mr1f.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/mr1f.tex"
+ },
+ {
+  "label": "data/pic/_work/aaa.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/aaa.tex"
+ },
+ {
+  "label": "data/pic/_work/haytest.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/haytest.tex"
+ },
+ {
+  "label": "data/pic/_work/playable1.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/playable1.tex"
+ },
+ {
+  "label": "data/pic/_work/item.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/item.tex"
+ },
+ {
+  "label": "data/pic/_work/logo.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/_work/logo.tex"
+ },
+ {
+  "label": "data/pic/bu/bue2_phf.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/bu/bue2_phf.tex"
+ },
+ {
+  "label": "data/pic/bu/bue2_phr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/bu/bue2_phr.tex"
+ },
+ {
+  "label": "data/pic/bu/budf_elb.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/bu/budf_elb.tex"
+ },
+ {
+  "label": "data/pic/bu/budf_elb_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/bu/budf_elb_tr.tex"
+ },
+ {
+  "label": "data/pic/bu/budf_el2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/bu/budf_el2_tr.tex"
+ },
+ {
+  "label": "data/pic/bu/bu3e_gly.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/bu/bu3e_gly.tex"
+ },
+ {
+  "label": "data/pic/bu/buef_moa.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/bu/buef_moa.tex"
+ },
+ {
+  "label": "data/pic/bu/bu22_mob.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/bu/bu22_mob.tex"
+ },
+ {
+  "label": "data/pic/bu/bufe_moc.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/bu/bufe_moc.tex"
+ },
+ {
+  "label": "data/pic/flying.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/flying.tex"
+ },
+ {
+  "label": "data/pic/cu/cu21_dsk.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cu21_dsk.tex"
+ },
+ {
+  "label": "data/pic/cu/cuf2_bdc.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cuf2_bdc.tex"
+ },
+ {
+  "label": "data/pic/cu/cuf2_dia.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cuf2_dia.tex"
+ },
+ {
+  "label": "data/pic/cu/cudf_skt.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cudf_skt.tex"
+ },
+ {
+  "label": "data/pic/cu/cudf_sk1.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cudf_sk1.tex"
+ },
+ {
+  "label": "data/pic/cu/cudf_sk2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cudf_sk2.tex"
+ },
+ {
+  "label": "data/pic/cu/cudf_sk3.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cudf_sk3.tex"
+ },
+ {
+  "label": "data/pic/cu/cu1e_hdi.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cu1e_hdi.tex"
+ },
+ {
+  "label": "data/pic/cu/cuee_agr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cuee_agr.tex"
+ },
+ {
+  "label": "data/pic/cu/cu13_shp.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cu13_shp.tex"
+ },
+ {
+  "label": "data/pic/cu/cuf3_ale.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cuf3_ale.tex"
+ },
+ {
+  "label": "data/pic/cu/cuf3_jnf.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cuf3_jnf.tex"
+ },
+ {
+  "label": "data/pic/cu/cuf3_nic.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cuf3_nic.tex"
+ },
+ {
+  "label": "data/pic/cu/cudf_gat.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cudf_gat.tex"
+ },
+ {
+  "label": "data/pic/cu/cudf_ga2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cudf_ga2_tr.tex"
+ },
+ {
+  "label": "data/pic/cu/cu22_mst.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cu22_mst.tex"
+ },
+ {
+  "label": "data/pic/cu/cu13_tar.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cu13_tar.tex"
+ },
+ {
+  "label": "data/pic/cu/cudf_mem.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cu/cudf_mem.tex"
+ },
+ {
+  "label": "data/pic/tp/tp3f_mem.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tp/tp3f_mem.tex"
+ },
+ {
+  "label": "data/pic/tp/tp31_shd.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tp/tp31_shd.tex"
+ },
+ {
+  "label": "data/pic/tp/tp1f_can.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tp/tp1f_can.tex"
+ },
+ {
+  "label": "data/pic/tp/tp21_pkb.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tp/tp21_pkb.tex"
+ },
+ {
+  "label": "data/pic/tp/tpe1_blu.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tp/tpe1_blu.tex"
+ },
+ {
+  "label": "data/pic/tp/tpe1_red.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tp/tpe1_red.tex"
+ },
+ {
+  "label": "data/pic/01/01menuitem.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/01/01menuitem.tex"
+ },
+ {
+  "label": "data/pic/01/01menuitem_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/01/01menuitem_tr.tex"
+ },
+ {
+  "label": "data/pic/01/01menuitemtv_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/01/01menuitemtv_tr.tex"
+ },
+ {
+  "label": "data/pic/it/item.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item.tex"
+ },
+ {
+  "label": "data/pic/it/item_test.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_test.tex"
+ },
+ {
+  "label": "data/pic/it/item_mem.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_mem.tex"
+ },
+ {
+  "label": "data/pic/it/item_nth.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_nth.tex"
+ },
+ {
+  "label": "data/pic/it/item_mtr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_mtr.tex"
+ },
+ {
+  "label": "data/pic/it/item_shakesp_1_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_shakesp_1_tr.tex"
+ },
+ {
+  "label": "data/pic/it/item_shakesp_2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_shakesp_2_tr.tex"
+ },
+ {
+  "label": "data/pic/it/item_shakesp_3_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_shakesp_3_tr.tex"
+ },
+ {
+  "label": "data/pic/it/item_shakesp_4_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_shakesp_4_tr.tex"
+ },
+ {
+  "label": "data/pic/it/item_shakesp_5_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_shakesp_5_tr.tex"
+ },
+ {
+  "label": "data/pic/it/item_tarot_fool.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_tarot_fool.tex"
+ },
+ {
+  "label": "data/pic/it/item_tarot_moon.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_tarot_moon.tex"
+ },
+ {
+  "label": "data/pic/it/item_tarot_eye.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_tarot_eye.tex"
+ },
+ {
+  "label": "data/pic/it/item_tarot_hang.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_tarot_hang.tex"
+ },
+ {
+  "label": "data/pic/it/item_tarot_prie.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_tarot_prie.tex"
+ },
+ {
+  "label": "data/pic/it/item_tablet.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/it/item_tablet.tex"
+ },
+ {
+  "label": "data/pic/pl/playable01.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/pl/playable01.tex"
+ },
+ {
+  "label": "data/pic/ev_mr/muf1_vis.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/ev_mr/muf1_vis.tex"
+ },
+ {
+  "label": "data/pic/00/000_dsk.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/00/000_dsk.tex"
+ },
+ {
+  "label": "data/pic/00/000_phr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/00/000_phr.tex"
+ },
+ {
+  "label": "data/pic/00/000_phf.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/00/000_phf.tex"
+ },
+ {
+  "label": "data/pic/00/000_mem.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/00/000_mem.tex"
+ },
+ {
+  "label": "data/pic/br/br21.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/br/br21.tex"
+ },
+ {
+  "label": "data/pic/br/br32.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/br/br32.tex"
+ },
+ {
+  "label": "data/pic/br/br21_el2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/br/br21_el2.tex"
+ },
+ {
+  "label": "data/pic/br/br21_ele.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/br/br21_ele.tex"
+ },
+ {
+  "label": "data/pic/br/br32_drw.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/br/br32_drw.tex"
+ },
+ {
+  "label": "data/pic/br/br32_dr2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/br/br32_dr2.tex"
+ },
+ {
+  "label": "data/pic/br/br32_dr3_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/br/br32_dr3_tr.tex"
+ },
+ {
+  "label": "data/pic/br/brf3_omt.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/br/brf3_omt.tex"
+ },
+ {
+  "label": "data/pic/br/brf3_ura.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/br/brf3_ura.tex"
+ },
+ {
+  "label": "data/pic/ititem_test.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/ititem_test.tex"
+ },
+ {
+  "label": "data/pic/ma/mallf1omote.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/ma/mallf1omote.tex"
+ },
+ {
+  "label": "data/pic/ma/mall_f1_omote.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/ma/mall_f1_omote.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_mall_1f.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_mall_1f.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_under_a.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_under_a.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_mall_2f.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_mall_2f.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_mall_3f.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_mall_3f.tex"
+ },
+ {
+  "label": "data/pic/mp/mpm_mall_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpm_mall_tr.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_out_west.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_out_west.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_out.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_out.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_church_1.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_church_1.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_church_2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_church_2.tex"
+ },
+ {
+  "label": "data/pic/mp/mpm_sub_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpm_sub_tr.tex"
+ },
+ {
+  "label": "data/pic/mp/mpm_under_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpm_under_tr.tex"
+ },
+ {
+  "label": "data/pic/mp/mpm_build_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpm_build_tr.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_hospital_b1f.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_hospital_b1f.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_hospital_23f.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_hospital_23f.tex"
+ },
+ {
+  "label": "data/pic/mp/mpm_hospital_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpm_hospital_tr.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_sub_a.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_sub_a.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_sub_b.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_sub_b.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_sub_c.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_sub_c.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_sub_d.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_sub_d.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_sub_e.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_sub_e.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_build_a.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_build_a.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_build_b.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_build_b.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_build_c.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_build_c.tex"
+ },
+ {
+  "label": "data/pic/mp/mpb_under_b.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpb_under_b.tex"
+ },
+ {
+  "label": "data/pic/mp/mpm_out_west_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mp/mpm_out_west_tr.tex"
+ },
+ {
+  "label": "data/pic/sh/sh2edcstart.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sh/sh2edcstart.tex"
+ },
+ {
+  "label": "data/pic/ht/htr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/ht/htr.tex"
+ },
+ {
+  "label": "data/pic/hu/hu1f_cyl.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hu/hu1f_cyl.tex"
+ },
+ {
+  "label": "data/pic/hu/hu2d_elb.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hu/hu2d_elb.tex"
+ },
+ {
+  "label": "data/pic/hu/hu1f_cy2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hu/hu1f_cy2_tr.tex"
+ },
+ {
+  "label": "data/pic/hu/hu2d_el2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hu/hu2d_el2_tr.tex"
+ },
+ {
+  "label": "data/pic/hu/hu1f_ovn.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hu/hu1f_ovn.tex"
+ },
+ {
+  "label": "data/pic/hu/hu1f_ov2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hu/hu1f_ov2_tr.tex"
+ },
+ {
+  "label": "data/pic/hu/hufd_scb.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hu/hufd_scb.tex"
+ },
+ {
+  "label": "data/pic/hu/hu1f_ovh.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hu/hu1f_ovh.tex"
+ },
+ {
+  "label": "data/pic/cr/cr11_a00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cr/cr11_a00.tex"
+ },
+ {
+  "label": "data/pic/cr/cr11_b00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cr/cr11_b00.tex"
+ },
+ {
+  "label": "data/pic/cr/cr11_c00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cr/cr11_c00.tex"
+ },
+ {
+  "label": "data/pic/cr/cr11_d00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cr/cr11_d00.tex"
+ },
+ {
+  "label": "data/pic/cr/cr11_e00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cr/cr11_e00.tex"
+ },
+ {
+  "label": "data/pic/cr/cr11_f00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cr/cr11_f00.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_title.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_title.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_konami.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_konami.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_warning.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_warning.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_coming.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_coming.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_option.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_option.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_over_1.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_over_1.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_button.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_button.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_team.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_team.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_over_2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_over_2_tr.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_pass.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_pass.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_save.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_save.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_title_tv.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_title_tv.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_konami_r.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_konami_r.tex"
+ },
+ {
+  "label": "data/pic/sy/sys_title_tm.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/sy/sys_title_tm.tex"
+ },
+ {
+  "label": "data/pic/me/memo.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/me/memo.tex"
+ },
+ {
+  "label": "data/pic/fo/fog.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/fo/fog.tex"
+ },
+ {
+  "label": "data/pic/fo/fognight.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/fo/fognight.tex"
+ },
+ {
+  "label": "data/pic/cc/cc00_mtl.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/cc/cc00_mtl.tex"
+ },
+ {
+  "label": "data/pic/fi/fire02.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/fi/fire02.tex"
+ },
+ {
+  "label": "data/pic/fi/fire01.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/fi/fire01.tex"
+ },
+ {
+  "label": "data/pic/fl/flamethrower00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/fl/flamethrower00.tex"
+ },
+ {
+  "label": "data/pic/en/end_ufo_a.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/en/end_ufo_a.tex"
+ },
+ {
+  "label": "data/pic/en/end_ufo_b.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/en/end_ufo_b.tex"
+ },
+ {
+  "label": "data/pic/en/end_ufo_c.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/en/end_ufo_c.tex"
+ },
+ {
+  "label": "data/pic/en/end_ufo_d.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/en/end_ufo_d.tex"
+ },
+ {
+  "label": "data/pic/en/end_ufo_e.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/en/end_ufo_e.tex"
+ },
+ {
+  "label": "data/pic/hp/hpc3_alm.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpc3_alm.tex"
+ },
+ {
+  "label": "data/pic/hp/hpc3.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpc3.tex"
+ },
+ {
+  "label": "data/pic/hp/hpc3_trk.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpc3_trk.tex"
+ },
+ {
+  "label": "data/pic/hp/hpc3_al2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpc3_al2_tr.tex"
+ },
+ {
+  "label": "data/pic/hp/hpc3_tr2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpc3_tr2_tr.tex"
+ },
+ {
+  "label": "data/pic/hp/hp1e_nub.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hp1e_nub.tex"
+ },
+ {
+  "label": "data/pic/hp/hpcc_adh.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpcc_adh.tex"
+ },
+ {
+  "label": "data/pic/hp/hpd1_pnl.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpd1_pnl.tex"
+ },
+ {
+  "label": "data/pic/hp/hpdf_elb.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpdf_elb.tex"
+ },
+ {
+  "label": "data/pic/hp/hpdd_dla.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpdd_dla.tex"
+ },
+ {
+  "label": "data/pic/hp/hpcc_dlb.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpcc_dlb.tex"
+ },
+ {
+  "label": "data/pic/hp/hpd1_dlc.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpd1_dlc.tex"
+ },
+ {
+  "label": "data/pic/hp/hpc3_dld.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpc3_dld.tex"
+ },
+ {
+  "label": "data/pic/hp/hp14_dle.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hp14_dle.tex"
+ },
+ {
+  "label": "data/pic/hp/hp41_dlf.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hp41_dlf.tex"
+ },
+ {
+  "label": "data/pic/hp/hped_dlg.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hped_dlg.tex"
+ },
+ {
+  "label": "data/pic/hp/hp44_dlh.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hp44_dlh.tex"
+ },
+ {
+  "label": "data/pic/hp/hpcc_ad2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpcc_ad2.tex"
+ },
+ {
+  "label": "data/pic/hp/hp1e_nu2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hp1e_nu2_tr.tex"
+ },
+ {
+  "label": "data/pic/hp/hpe2_arm.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/hp/hpe2_arm.tex"
+ },
+ {
+  "label": "data/pic/mr/mr21_key.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mr21_key.tex"
+ },
+ {
+  "label": "data/pic/mr/mrf1_sha.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mrf1_sha.tex"
+ },
+ {
+  "label": "data/pic/mr/mrf1.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mrf1.tex"
+ },
+ {
+  "label": "data/pic/mr/mrf1_sh2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mrf1_sh2_tr.tex"
+ },
+ {
+  "label": "data/pic/mr/mr21_ke2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mr21_ke2.tex"
+ },
+ {
+  "label": "data/pic/mr/mrf1_ipt.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mrf1_ipt.tex"
+ },
+ {
+  "label": "data/pic/mr/mrf1_ip2_tr.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mrf1_ip2_tr.tex"
+ },
+ {
+  "label": "data/pic/mr/mrf1_moh.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mrf1_moh.tex"
+ },
+ {
+  "label": "data/pic/mr/mrf1_mon.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mrf1_mon.tex"
+ },
+ {
+  "label": "data/pic/mr/mrd1_pos.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mrd1_pos.tex"
+ },
+ {
+  "label": "data/pic/mr/mrd1_po2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mr/mrd1_po2.tex"
+ },
+ {
+  "label": "data/pic/mu/muf1.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mu/muf1.tex"
+ },
+ {
+  "label": "data/pic/mu/muf1_vis.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mu/muf1_vis.tex"
+ },
+ {
+  "label": "data/pic/mu/muf1_vi2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/mu/muf1_vi2.tex"
+ },
+ {
+  "label": "data/pic/tr/tree_ocl.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tr/tree_ocl.tex"
+ },
+ {
+  "label": "data/pic/tr/trf1_new.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tr/trf1_new.tex"
+ },
+ {
+  "label": "data/pic/tr/tr1f.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tr/tr1f.tex"
+ },
+ {
+  "label": "data/pic/tr/tr1f_nut.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tr/tr1f_nut.tex"
+ },
+ {
+  "label": "data/pic/tr/tr1f_nu2.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/tr/tr1f_nu2.tex"
+ },
+ {
+  "label": "data/pic/us/us3f_hol.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/us/us3f_hol.tex"
+ },
+ {
+  "label": "data/pic/us/usd2_p00.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/us/usd2_p00.tex"
+ },
+ {
+  "label": "data/pic/am/am11_phh.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/am/am11_phh.tex"
+ },
+ {
+  "label": "data/pic/lo/logo.tex",
+  "kind": "picture",
+  "format": "sh3_tex",
+  "path": "data/pic/lo/logo.tex"
+ }
+]

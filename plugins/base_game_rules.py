@@ -808,7 +808,7 @@ class BaseGameRules:
         ``txtr_gx`` (Retro TXTR), ``gim`` (PSP), ``tim`` (PlayStation TIM), ``tim2`` (PS2 / PSP TIM2),
         ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant Story pictures), ``sotn_blocks`` /
         ``sotn_cmp`` (Symphony of the Night VRAM tile blocks and nibble-packed pictures), ``pcx``, ``m2`` (M2 PSB
-        pictures), ``is_tex`` (Infinite Space), ``dq9_spr`` (Dragon Quest
+        pictures), ``is_tex`` (Infinite Space), ``sh3_tex`` (Silent Hill 3 PC `pic.arc` PS2 textures), ``dq9_spr`` (Dragon Quest
         IX), ``png`` (a PNG the build converts itself: a decomp's graphics source, a Unity workspace's texture),
         ``ffta2_efx`` (FFTA2 effect textures), ``mt_tex`` (Capcom MT Framework 3DS TEX), ``pmd_img``
         (Spike Chunsoft 3DS ``.img``), ``raw``, ``tiles`` (GBA / DS / Saturn character tiles) or ``tilemap``
