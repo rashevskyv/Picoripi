@@ -1,6 +1,6 @@
 [
   {"label": "Menu pictures and localized labels (loose files and menu archives; English *_en_eu)", "kind": "ui",
-   "format": "jimg", "path": "romfs/menu_eu/**/*.jtex", "params": {"layout": "linear"}},
+   "format": "jimg", "path": "romfs/menu_eu/**/*.jtex"},
   {"label": "Switch: localized menu pictures and title pictures (English *_en_eu, *_en_us)", "kind": "ui",
    "format": "jimg", "path": "romfs/rom3.cpk/menu/**/*.jtex", "params": {"layout": "linear"}}
 ]
