@@ -11,6 +11,10 @@ the ones Picoripi opens at ``romfs/_file_archive/<number>.<ext>`` (decompressed)
   a longer string of the second kind is cut to its space (it hung the game after the title screen when moved).
 - ``.fnt`` -- the bitmap fonts (``font_sources.json``).
 - ``.ztex`` -- the pictures with words: title, buttons, font sheets (``texture_sources.json``).
+- ``.l5ui`` -- UI containers with embedded ``ztex`` pictures (unpacked, not in ``texture_sources.json``): editing
+  the 26 containers of the first half that share ``ui000_*`` pictures (33080, 33088, 33158, 33166, 33580, 33588,
+  33676, 33684, 33722, 33730, 34032..34112, 34752, 34760, 35032, 35040, 35182, 35190) gave a black screen at start in
+  Azahar; 33058, 33066, 33118 and 33126 are safe. The one that breaks is not found yet.
 """
 from __future__ import annotations
 
