@@ -21,6 +21,7 @@ Latin-1 (one byte per letter, nothing is lost). A string that cannot be encoded 
 """
 from __future__ import annotations
 
+import contextvars
 import re
 import struct
 from dataclasses import dataclass
@@ -31,6 +32,10 @@ from core.containers import level5
 
 LATIN = "latin-1"
 SJIS = "cp932"
+UTF8 = "utf-8"
+# The Android HD ports (``data-en`` ... folders) store every text as UTF-8; the DS games use Latin-1 / Shift-JIS.
+# ``Document`` sets this while it reads or writes a file of an HD port: the codecs then take UTF-8.
+_UTF8 = contextvars.ContextVar("layton_utf8", default=False)
 _JAPANESE = re.compile(r"[぀-ヿ㐀-鿿｡-ﾟ-￯]")
 _MARKUP = re.compile(r"<[^<>]*>|@[a-zA-Z0-9]")
 _ASSET = re.compile(r"^[\w\-./\\%#:]+$")
@@ -73,7 +78,12 @@ def looks_like_text(text: str) -> bool:
     return True
 
 
+def _resolve(encoding: str) -> str:
+    return UTF8 if _UTF8.get() and encoding in (SJIS, LATIN) else encoding
+
+
 def _encode(text: str, encoding: str, where: str) -> bytes:
+    encoding = _resolve(encoding)
     try:
         return text.encode(encoding, errors="surrogateescape" if encoding == SJIS else "strict")
     except UnicodeEncodeError as error:
@@ -83,6 +93,7 @@ def _encode(text: str, encoding: str, where: str) -> bytes:
 
 
 def _decode(raw: bytes, encoding: str) -> str:
+    encoding = _resolve(encoding)
     return raw.decode(encoding, errors="surrogateescape" if encoding == SJIS else "strict")
 
 
@@ -100,16 +111,41 @@ class Codec:
         raise NotImplementedError
 
 
+_EVENT_HEADER = re.compile(rb"^\d+\|[^|\r\n]*\|[^|\r\n]*\|\d+\|")
+
+
+def _text_encoding(raw: bytes, fallback: str) -> str:
+    """``utf-8`` for text that has non-ASCII bytes and is valid UTF-8 (the Android HD ports store UTF-8), else
+    the DS games' own encoding."""
+    if _UTF8.get():
+        return UTF8
+    if all(b < 0x80 for b in raw):
+        return fallback
+    try:
+        raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return fallback
+    return "utf-8"
+
+
 class TxtCodec(Codec):
+    """A plain text file. An event line starts with a ``50|NONE|NONE|3|`` header that is not text: it is the row's
+    label and stays as it is."""
+
     def __init__(self, data: bytes, member: str = ""):
         self.data = data
         self.member = member
-        self.rows = [Row(member, "text", "", "", data.decode(LATIN))] if data else []
+        match = _EVENT_HEADER.match(data)
+        self.head = match.group() if match else b""
+        body = data[len(self.head):]
+        self.encoding = _text_encoding(body, LATIN)
+        label = self.head.decode("ascii", "replace")
+        self.rows = [Row(member, "text", "", label, body.decode(self.encoding))] if body.strip(b"\r\n \0") else []
 
     def build(self, texts: List[str]) -> bytes:
         if not self.rows:
             return self.data
-        return _encode(texts[0], LATIN, self.member or "txt")
+        return self.head + _encode(texts[0], self.encoding, self.member or "txt")
 
 
 class GdsCodec(Codec):
@@ -134,7 +170,7 @@ class GdsCodec(Codec):
         opcode = b""
         position = 0
         for index, (start, end, raw) in enumerate(self.strings):
-            text = raw.rstrip(b"\0").decode(LATIN)
+            text = _decode(raw.rstrip(b"\0"), LATIN)
             if looks_like_text(text):
                 while position + 1 < len(self.commands) and self.commands[position + 1][0] <= start:
                     position += 1
@@ -349,18 +385,20 @@ class NazoCodec(Codec):
         if any(self.HEADER + o >= len(data) for o in self.offsets):
             raise FormatError("puzzle string offsets run past the end")
         name = data[self.NAME_AT:self.NAME_AT + self.NAME_WIDTH].split(b"\0")[0]
-        self.rows = [Row(member, "text", "", "Title", _decode(name, SJIS))]
-        for label, offset in zip(self.LABELS, self.offsets):
-            end = data.index(b"\0", self.HEADER + offset)
-            self.rows.append(Row(member, "text", "", label, _decode(data[self.HEADER + offset:end], SJIS)))
+        strings = [name]
+        for offset in self.offsets:
+            strings.append(data[self.HEADER + offset:data.index(b"\0", self.HEADER + offset)])
+        self.encoding = _text_encoding(b"".join(strings), SJIS)
+        self.rows = [Row(member, "text", "", "Title" if i == 0 else self.LABELS[i - 1], _decode(raw, self.encoding))
+                     for i, raw in enumerate(strings)]
 
     def build(self, texts: List[str]) -> bytes:
-        name = _encode(texts[0], SJIS, f"{self.member} title")
+        name = _encode(texts[0], self.encoding, f"{self.member} title")
         if len(name) >= self.NAME_WIDTH:
             raise EncodeError(f"{self.member}: the title is {len(name)} bytes, {self.NAME_WIDTH - 1} fit")
         bank, offsets, seen = bytearray(), [], {}
         for label, text in zip(self.LABELS, texts[1:]):
-            raw = _encode(text, SJIS, f"{self.member} {label}")
+            raw = _encode(text, self.encoding, f"{self.member} {label}")
             if raw not in seen:
                 seen[raw] = len(bank)
                 bank += raw + b"\0"
@@ -442,6 +480,15 @@ def _is_dlz(data: bytes) -> bool:
     return header == 8 and length in DLZ_FIELDS and count > 0 and 8 + count * length == len(data)
 
 
+def _is_nazo(data: bytes) -> bool:
+    """A puzzle record (``n<id>.dat``): the header size 112 at 2 and string offsets that stay inside the file."""
+    try:
+        NazoCodec(data)
+    except (FormatError, ValueError, struct.error):
+        return False
+    return True
+
+
 def _is_gds(data: bytes) -> bool:
     return len(data) >= 8 and struct.unpack_from("<I", data, 0)[0] + 4 == len(data)
 
@@ -452,7 +499,17 @@ class Document:
     ``build`` writes the file again in the form the game stores it: compressed as it was.
     """
 
-    def __init__(self, raw: bytes, name: str = ""):
+    def __init__(self, raw: bytes, name: str = "", utf8: Optional[bool] = None):
+        if utf8 is None:                    # a file of an Android HD port: its folder is data-en, data-EU ...
+            utf8 = name.replace("\\", "/").split("/")[0].startswith("data-")
+        self.utf8 = utf8
+        token = _UTF8.set(self.utf8)
+        try:
+            self._parse(raw, name)
+        finally:
+            _UTF8.reset(token)
+
+    def _parse(self, raw: bytes, name: str) -> None:
         self.raw = bytes(raw)
         self.name = name
         self.pack: Optional[pack_codec.Pack] = None
@@ -492,6 +549,8 @@ class Document:
             self.single = DlzCodec(plain)
         elif _is_gds(plain) or unix.lower().endswith(".gds"):
             self.single = GdsCodec(plain, "", not _normal_gds(plain))
+        elif _is_nazo(plain):
+            self.single = NazoCodec(plain)
         elif unix.lower().endswith(".txt") or _printable(plain):
             self.single = TxtCodec(plain)
         else:
@@ -516,6 +575,13 @@ class Document:
         return [row.text for row in self.rows]
 
     def build(self, texts: List[str]) -> bytes:
+        token = _UTF8.set(self.utf8)
+        try:
+            return self._build(texts)
+        finally:
+            _UTF8.reset(token)
+
+    def _build(self, texts: List[str]) -> bytes:
         if len(texts) != len(self.rows):
             raise ValueError("the number of strings changed")
         if list(texts) == self.texts():

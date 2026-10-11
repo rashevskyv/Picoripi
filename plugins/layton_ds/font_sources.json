@@ -7,5 +7,6 @@
   {"label": "English font (font_en2)", "format": "layton_gfnt", "path": "fnt/font_en2.cf", "font_map": "font_en2.json"},
   {"label": "Main font (main)", "format": "layton_gfnt", "path": "fnt/main.cf", "font_map": "main.json"},
   {"label": "Colour font (color)", "format": "layton_gfnt", "path": "fnt/color.cp", "font_map": "color.json"},
-  {"label": "Debug font (dbg_b)", "format": "layton_gfnt", "path": "fnt/dbg_b.ca", "font_map": "dbg_b.json"}
+  {"label": "Debug font (dbg_b)", "format": "layton_gfnt", "path": "fnt/dbg_b.ca", "font_map": "dbg_b.json"},
+  {"label": "Game font (font.dat, HD ports)", "format": "layton_hd", "path": ["data/font/font.dat", "data/fnt/font.dat"], "font_map": "font_hd.json"}
 ]

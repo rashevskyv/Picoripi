@@ -33,5 +33,14 @@
  {"label": "Console menu 3D objects (Mystery Journey)", "kind": "menu_label", "format": "imgc", "path": "menu/en/ctr/*.xc", "member": "*.xi"},
  {"label": "Puzzle animations (Mystery Journey)", "kind": "banner", "format": "imgc", "path": "nazo/en/*.xa", "member": "*.xi"},
  {"label": "Story pictures (Mystery Journey, console)", "kind": "banner", "format": "imgc", "path": "spr/en/ctr/*.xa", "member": "*.xi"},
- {"label": "Movie sprites (Mystery Journey)", "kind": "banner", "format": "imgc", "path": "evt/mov/en/*.xa", "member": "*.xi"}
+ {"label": "Movie sprites (Mystery Journey)", "kind": "banner", "format": "imgc", "path": "evt/mov/en/*.xa", "member": "*.xi"},
+ {"label": "Console menu screens (Mystery Journey, Switch)", "kind": "menu_label", "format": "imgc", "path": "menu/en/nx/*.xi"},
+ {"label": "Console menu screens (Mystery Journey, Switch)", "kind": "menu_label", "format": "imgc", "path": "menu/en/nx/*.xa", "member": "*.xi"},
+ {"label": "Console menu 3D objects (Mystery Journey, Switch)", "kind": "menu_label", "format": "imgc", "path": "menu/en/nx/*.xc", "member": "*.xi"},
+ {"label": "Case titles (Mystery Journey, Switch)", "kind": "banner", "format": "imgc", "path": "menu/en/episode/*.xi"},
+ {"label": "Story pictures (Mystery Journey, Switch)", "kind": "banner", "format": "imgc", "path": "spr/en/nx/*.xa", "member": "*.xi"},
+ {"label": "Dinner minigame map (Mystery Journey)", "kind": "tutorial", "format": "imgc", "path": "mini/dinner/map/en/*.xc", "member": "*.xi"},
+ {"label": "US spelling: character pictures (Mystery Journey, Switch)", "kind": "banner", "format": "imgc", "path": "_us/chr/en/*.xi"},
+ {"label": "US spelling: menu pictures (Mystery Journey, Switch)", "kind": "menu_label", "format": "imgc", "path": "_us/menu/en/*.xi"},
+ {"label": "US spelling: menu screens (Mystery Journey, Switch)", "kind": "menu_label", "format": "imgc", "path": "_us/menu/en/*.xa", "member": "*.xi"}
 ]

@@ -1,4 +1,8 @@
 [
   {"label": "Main text font (nrm)", "format": "xf", "path": "fnt/[eu]/nrm.xf", "font_map": "nrm.json"},
-  {"label": "Small text font (sml)", "format": "xf", "path": "fnt/[eu]/sml.xf", "font_map": "sml.json"}
+  {"label": "Small text font (sml)", "format": "xf", "path": "fnt/[eu]/sml.xf", "font_map": "sml.json"},
+  {"label": "Large text font (lrg, Switch)", "format": "xf", "path": "fnt/[eu]/lrg.xf", "font_map": "lrg.json"},
+  {"label": "Main text font, US (nrm, Switch)", "format": "xf", "path": "fnt/[na]/nrm.xf", "font_map": "nrm_na.json"},
+  {"label": "Small text font, US (sml, Switch)", "format": "xf", "path": "fnt/[na]/sml.xf", "font_map": "sml_na.json"},
+  {"label": "Large text font, US (lrg, Switch)", "format": "xf", "path": "fnt/[na]/lrg.xf", "font_map": "lrg_na.json"}
 ]

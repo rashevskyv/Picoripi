@@ -347,7 +347,11 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      packs). The workspace's `2_build.bat` rebuilds the XFSA (`lt5_uk.fa`, `vs1.fa`) or ARC0 (`lt6_uk.fa`) archives
      into the Luma mod. Layton's Mystery Journey (3DS, EUR; workspace `LAYTON_MJ_3DS`) opens with the same plugin:
      its English scripts are `txt\en\**\*.xs` in `lt6_en.fa` (1,664 files, about 14,900 lines), written in UTF-8 so
-     Ukrainian letters are stored as they are (only the fonts lack them); the logo is `menu\en\ctr\title_a.xc`.
+     Ukrainian letters are stored as they are (only the fonts lack them); the logo is `menu\en\ctr\title_a.xc`. The Switch
+     Deluxe Edition (workspace `LAYTON_MJ_NX`, LayeredFS mod) keeps the same files loose in the RomFS: `txt\en\**\*.xs`,
+     the US spelling `_us\txt\en\**`, `res\lt6_def.xs`, the fonts `fnt\[eu]` and `fnt\[na]` (nrm, sml, lrg) and
+     the pictures of the `en` and `_us` folders (IMGN / IMGA); edit both the `txt\en` and the `_us` file of a chapter
+     (Eden's region USA reads `_us`).
    - `layton_ds` — Professor Layton and the Curious Village, Pandora's Box, Lost Future and Spectre's Call
      (Nintendo DS, EUR; workspaces `LAYTON_CV_DS`, `LAYTON_PB_DS`, `LAYTON_LF_DS`, `LAYTON_SC_DS`). **Source:** the
      workspace's `source` folder: the game's own files at their NitroFS paths (Spectre's Call: at their paths in
@@ -364,7 +368,12 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      lists the title, menu, puzzle and map pictures: backgrounds (`.arc` BG), animation atlases (`.arc` / `.arj`),
      Lost Future `.cimg` / `.cani` (`LIMG`) and Spectre's Call `.ci` / `.ca` (`GFSP`: 4-bit, 8-bit, A5I3, A3I5).
      The workspace's `2_build.bat` rebuilds the ROM (NitroFS laid out again, the GFSA archives of Spectre's Call
-     patched member by member).
+     patched member by member). The Android HD ports for Switch homebrew (workspaces `LAYTON_CV_HD_NX`, `LAYTON_PB_HD_NX`,
+     `LAYTON_LF_HD_NX`; `switch.7z` of the port) use the same plugin: **Source** is the port's `assets` folder at the same
+     paths (the English folders `data-en`, `data-EU`, `data-en-EU` and `data`): loose UTF-8 `.txt` / `.lbin` / `.dat`
+     files, PNG pictures and the bitmap font `data\font\font.dat` (the Font Editor adds letters: the engine reads UTF-8).
+     The build writes the changed files to `build\sd\switch\<dir>\assets` for the SD card; Eden shows only a black
+     screen for these ports.
    - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** the workspace's
      `source\game` (`1_unpack.bat` decompresses the disc's `*SK_ASC*` files there): `EBootPak.bin` (menus,
      items, spells, runes, system messages), `EBookPak.bin` (Tome pages, save menu), `EMemcardText.bin`,

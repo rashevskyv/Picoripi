@@ -40,6 +40,8 @@ _NAME = ("Name", "A name the game shows on its own: a puzzle title or type, a mi
 def folder_of(rel_path: str) -> str:
     """``50`` for ``txt/uk/50/50_000001.xs``, ``res`` for the definitions file."""
     parts = rel_path.replace("\\", "/").split("/")
+    if parts[0] == "_us":               # the Switch's US spelling of a chapter: _us/txt/en/18/...
+        parts = parts[1:]
     return parts[2] if len(parts) > 3 and parts[0] == "txt" else parts[0]
 
 

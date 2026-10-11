@@ -5,5 +5,7 @@
  {"label": "Pictures (LIMG)", "kind": "menu_label", "format": "layton_limg", "path": "lt3/**/*.cimg"},
  {"label": "Animation sheets (LIMG in packs)", "kind": "menu_label", "format": "layton_cani", "path": "lt3/**/*.cani"},
  {"label": "Pictures (GFSP)", "kind": "menu_label", "format": "layton_gfsp", "path": ["ani/**/*.ci", "chr/**/*.ci", "evt/**/*.ci", "gmp/**/*.ci", "img/**/*.ci", "map/**/*.ci", "menu/**/*.ci", "mini/**/*.ci", "nazo/**/*.ci", "plc/**/*.ci"]},
- {"label": "Animation pictures (GFSP)", "kind": "menu_label", "format": "layton_gfsp", "path": ["ani/**/*.ca", "chr/**/*.ca", "evt/**/*.ca", "gmp/**/*.ca", "img/**/*.ca", "map/**/*.ca", "menu/**/*.ca", "mini/**/*.ca", "nazo/**/*.ca", "plc/**/*.ca"]}
+ {"label": "Animation pictures (GFSP)", "kind": "menu_label", "format": "layton_gfsp", "path": ["ani/**/*.ca", "chr/**/*.ca", "evt/**/*.ca", "gmp/**/*.ca", "img/**/*.ca", "map/**/*.ca", "menu/**/*.ca", "mini/**/*.ca", "nazo/**/*.ca", "plc/**/*.ca"]},
+ {"label": "Pictures of the English folders (HD ports)", "kind": "menu_label", "format": "png", "path": ["data-en/**/*.png", "data-EU/**/*.png", "data-en-EU/**/*.png"]},
+ {"label": "Animation pictures (HD ports)", "kind": "menu_label", "format": "png", "path": "data/ani/**/*.png"}
 ]

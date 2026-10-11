@@ -12,6 +12,7 @@ Inside a tile the texels are those of a PICA tile transposed (x and y swapped), 
 tile is decoded with the 3DS codec and flipped over its diagonal. Pixel formats (format byte -> PICA): the
 Yo-kai Watch mapping, checked on the fonts (RGBA5551 with the glyphs in R, G and B) and the menus.
 
+IMGA (Layton's Mystery Journey on Switch, RGBA8 / RGB8 menu pictures) is IMGN under another magic.
 IMGN (Switch; checked on Yo-kai Watch 1) has the same header and tables; a tile is 8x8 pixels row by row, or,
 for a BC format, four 4x4 blocks side by side (16x4 pixels), so the blocks of the image are in plain order. Its
 format bytes are ``NX_FORMATS``.
@@ -38,13 +39,13 @@ LEGACY = 0x453
 
 
 def detect(data: bytes) -> bool:
-    return data[:4] in (b"IMGC", b"IMGN")
+    return data[:4] in (b"IMGC", b"IMGN", b"IMGA")
 
 
 def _info(data: bytes) -> Dict[str, Any]:
     if not detect(data):
         raise ValueError("Not a Level-5 IMGC texture")
-    nx = data[:4] == b"IMGN"
+    nx = data[:4] in (b"IMGN", b"IMGA")
     fmt, bpp = data[0x0A], data[0x0D]
     width, height = struct.unpack_from("<HH", data, 0x10)
     table_at = struct.unpack_from("<I", data, 0x1C)[0]
