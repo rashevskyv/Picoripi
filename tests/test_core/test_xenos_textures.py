@@ -9,6 +9,13 @@ from core.texture_formats import read, write
 from core.texture_formats import xenos
 
 
+@pytest.mark.parametrize("width,height,bpt", [(1, 1, 1), (40, 20, 1), (16, 16, 4), (100, 33, 4), (7, 3, 4)])
+def test_inline_offsets_match_the_tiled_offset_rule(width, height, bpt):
+    expected = [xenos.tiled_offset(x, height - 1 - y, xenos._align(width, 32), bpt)
+                for y in range(height) for x in range(width)]
+    assert list(xenos._offsets(width, height, bpt)) == expected
+
+
 def _tiled_file(width: int, height: int, bpt: int, body: bytes, flag: int, palette: bytes = b"") -> bytes:
     size = xenos._align(xenos._align(width, 32) * xenos._align(height, 32) * bpt, 4096)
     head = struct.pack(">4I", width, height, flag, size) + bytes(0x20 - 16)
@@ -59,7 +66,7 @@ def test_one_edited_palette_texel_changes_one_byte():
     a, r, g, b = palette[4 * 5:4 * 5 + 4]
     image.putpixel((13, 9), (r, g, b, a))
     out = write("xenos", data, {0: image})
-    at = xenos.PALETTE_DATA + xenos.tiled_offset(13, 9, 64, 1)
+    at = xenos.PALETTE_DATA + xenos.tiled_offset(13, 20 - 1 - 9, 64, 1)      # stored bottom-up
     assert out[at] == 5
     changed = [i for i in range(len(data)) if data[i] != out[i]]
     assert changed == [at]
@@ -71,7 +78,7 @@ def test_argb_edited_texel_changes_four_bytes():
     image = read("xenos", data, {})[0].image.copy()
     image.putpixel((3, 5), (10, 20, 30, 40))
     out = write("xenos", data, {0: image})
-    base = xenos.HEADER + xenos.tiled_offset(3, 5, 32, 4)
+    base = xenos.HEADER + xenos.tiled_offset(3, 16 - 1 - 5, 32, 4)           # stored bottom-up
     assert out[base:base + 4] == bytes((40, 10, 20, 30))
     changed = [i for i in range(len(data)) if data[i] != out[i]]
     assert changed and all(base <= i < base + 4 for i in changed)

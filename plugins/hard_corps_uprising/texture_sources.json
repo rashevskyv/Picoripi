@@ -1,0 +1,14 @@
+[
+  {
+    "label": "English pictures: menus, title screen, save notices, prompts (Gui\\Img\\EN, 763 files)",
+    "kind": "menu_label",
+    "format": "xenos",
+    "path": "DataXENON/Gui/Img/EN/*.bin"
+  },
+  {
+    "label": "Pictures shared by all languages: logos, copyright line, icons (Gui\\Img, top folder)",
+    "kind": "title_screen",
+    "format": "xenos",
+    "path": "DataXENON/Gui/Img/*.bin"
+  }
+]
