@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 34.3k
+tokens: 41.7k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -1018,6 +1018,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
 | New Project… | Ctrl+N | Wizard above |
 | Open Project… | Ctrl+O | Load a `project.uiproj` |
 | Recent Projects | | Last workspaces |
+| Project Manager… | Ctrl+Shift+M | The list of added projects. See below |
 | Close Project | | Unload. Disabled until a project is open |
 | Import Block… | | Add one file. **Project mode only** (tooltip: “only available in Project mode”) |
 | Import Directory… | | Add a folder of files. Same restriction |
@@ -1033,6 +1034,20 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
 | Exit | | Quit; session checkpoint is written |
 
 Partial save: right-click a block → save that block only. **Do not** use Revert unless you mean to discard the translation file.
+
+### Project Manager
+
+The Project Manager opens at start when no project is open. It lists the projects you added. A project is added
+when you create, open or import it.
+
+- **Add:** press `+`. Choose New project, Add existing project (a `project.uiproj` file), or Import projects from a folder.
+- **Import:** finds `picoripi/project.uiproj` files under a folder. Folders named `_…` or `.…` are skipped. Duplicates and unreadable projects start unchecked. Each series folder becomes one manager folder.
+- **Folders:** create your own folders. Right-click a project → Move to folder. Deleting a folder moves its projects to the top level.
+- **Order:** the last opened project is always at the top. Group and sort choices are saved.
+- **Columns:** lines and translated % come from the last open or save of that project. They show `—` until then.
+- **Details:** expand a row to see the path, what needs attention, and the Open, Show in folder and Remove from manager buttons.
+- **Build mod, Run in emulator, Export mod** come in phase 2. They are disabled now.
+- **Remove from manager** never deletes project files.
 
 ---
 

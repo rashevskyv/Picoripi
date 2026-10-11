@@ -2,13 +2,23 @@
 status: current
 updated: 2026-10-11
 owns: unfinished work
-tokens: 20.4k
+tokens: 21.9k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Project Manager phase 1 (2026-10-11)
+
+- Lines and translated % show "—" for a project that was never opened or saved in Picoripi. Counting them needs the plugin parser in a worker; the phase 2 plan (`docs/PROJECT_MANAGER_PHASE2.md`) decides it.
+- The Flags column shows only Opens, Missing, Unreadable. Build and "verified in game" need metadata that no project file holds yet. Ask the owner which fields to store.
+- The platform of an imported project comes from a folder name (3DS, Switch, …). It is a guess; the user can review it in the import checklist. Check it on the real set once.
+- The shortcut Ctrl+Shift+M is free; Ctrl+Shift+P is taken by Preview. Confirm the shortcut.
+- Opening a project from the manager has the same unsaved-edits behaviour as the Recent Projects menu. No guard was added. Check it with unsaved edits.
+- Move to folder is the only way to change a folder. Drag and drop is not built.
+- The import of the RomHacking set (`E:\Emulators\RomHacking`) into the owner's real registry is not done. Run Import once from the window.
 
 ## Integration round 7 (2026-10-11)
 

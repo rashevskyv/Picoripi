@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/settings
-tokens: 1.9k
+tokens: 2.0k
 ---
 # Налаштування
 
@@ -97,6 +97,8 @@ Enable spell checking · Dictionary Language · **Manage Dictionaries…** (за
 | `.env` | Необов’язково `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | Фільтри UI, навігація, незбережені правки, undo. **Show Unsaved Only** при відновленні примусово вимикається |
 | `~/.picoripi/session_state.json` | Розгорнуті вузли дерева, вибір і курсор для кожного проєкту (старий `session_state.json` у теці програми читається один раз) |
+| `~/.picoripi/project_manager.json` | Список Менеджера проєктів: додані проєкти, їх папки, вибір групування і сортування. Записується атомарно. Файл, який не вдається прочитати, зберігається як `.unreadable` |
+| `~/.picoripi/project_index.json` | Кеш Менеджера проєктів: остання картка і підрахунок рядків кожного проєкту. Можна видалити; відновлюється при наступному відкритті |
 | `project.uiproj` | Запис проєкту: ім’я, тека плагіна, шляхи source/translation, закладки, `reference_patch_path` |
 | `config.json` плагіна | Типові значення для цієї гри |
 | `aliases.json` плагіна | Додаткові аліаси тегів |

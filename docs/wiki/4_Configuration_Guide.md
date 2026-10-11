@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/settings
-tokens: 1.5k
+tokens: 1.6k
 purpose: Settings files, project files, where data is stored
 ---
 # Configuration
@@ -98,6 +98,8 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 | `.env` | Optional `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | UI filters, navigation, unsaved edits, undo. **Show Unsaved Only** is forced off on restore |
 | `~/.picoripi/session_state.json` | Tree expansion, selection and cursor per project (read once from the old `session_state.json` in the program folder) |
+| `~/.picoripi/project_manager.json` | Project Manager list: added projects, their folders, the group and sort choices. Written atomically. A file it cannot read is kept as `.unreadable` |
+| `~/.picoripi/project_index.json` | Project Manager cache: the last card and string counts of each project. Safe to delete; rebuilt on the next visit |
 | `project.uiproj` | Project record: name, plugin folder, source/translation paths, bookmarks, `reference_patch_path` |
 | plugin `config.json` | Defaults for that game |
 | plugin `aliases.json` | Extra tag aliases |
