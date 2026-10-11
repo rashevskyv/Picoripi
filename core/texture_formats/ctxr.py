@@ -28,7 +28,7 @@ def detect(data: bytes) -> bool:
 def _blocks(data: bytes):
     """``[(type, data offset, data size)]``."""
     if data[:4] != b"DFvN":
-        raise ValueError("Not a Switch .ctxr (no DFvN header): the PC .ctxr is not supported yet")
+        raise ValueError("Not a Switch .ctxr (no DFvN header)")
     out, at = [], struct.unpack_from("<I", data, 4)[0]
     while at + 0x24 <= len(data) and data[at:at + 4] == b"HBvN":
         size, offset = struct.unpack_from("<QQ", data, at + 8)
