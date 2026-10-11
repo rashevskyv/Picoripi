@@ -8,9 +8,13 @@ the ones Picoripi opens at ``romfs/_file_archive/<number>.<ext>`` (decompressed)
   two English sets (American and British spelling) next to the other languages; both are written. Control
   sequences are ``{c:XXXX.XXXX}`` tags; a line break is a real new line. Two kinds of file exist: an index table
   of strings (items, quests, dialogue) and a table of rows with string pointers (menus, system messages);
-  a longer string of the second kind moves to the end of the file.
+  a longer string of the second kind is cut to its space (it hung the game after the title screen when moved).
 - ``.fnt`` -- the bitmap fonts (``font_sources.json``).
 - ``.ztex`` -- the pictures with words: title, buttons, font sheets (``texture_sources.json``).
+- ``.l5ui`` -- UI containers with embedded ``ztex`` pictures (unpacked, not in ``texture_sources.json``): editing
+  the 26 containers of the first half that share ``ui000_*`` pictures (33080, 33088, 33158, 33166, 33580, 33588,
+  33676, 33684, 33722, 33730, 34032..34112, 34752, 34760, 35032, 35040, 35182, 35190) gave a black screen at start in
+  Azahar; 33058, 33066, 33118 and 33126 are safe. The one that breaks is not found yet.
 """
 from __future__ import annotations
 
@@ -78,7 +82,12 @@ class GameRules(BaseGameRules):
             return super().save_data_to_json_obj(data, block_names)
         texts = [str(t) for t in (data[0] if data and isinstance(data[0], list) else [])]
         texts += self._file.strings[len(texts):]
-        return self._file.build(texts[:self._file.count])
+        out = self._file.build(texts[:self._file.count])
+        cut = getattr(self._file, "cut", [])
+        if cut:
+            log_warning(f"fantasy_life: {len(cut)} string(s) are longer than their space in this file and were cut "
+                        f"(string numbers {cut[:10]}); a longer string of this kind is not supported yet")
+        return out
 
     def reset_runtime_state(self) -> None:
         self._file = None

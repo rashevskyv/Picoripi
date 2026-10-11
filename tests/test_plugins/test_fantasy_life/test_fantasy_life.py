@@ -114,8 +114,12 @@ def test_pointer_table_reads_edits_and_grows():
     assert isinstance(f, L5PtrText)
     assert f.strings == ["Back", "Choose\nit.", "Name"] and all(f.exact)
     assert f.build(f.strings) == raw
+    # by default a longer string is cut to its own space; the file keeps its size
+    cut = f.build(["Back", "Choose", "A name that is much longer than before"])
+    assert len(cut) == len(raw) and f.cut == [2]
+    assert L5PtrText(cut).strings[2] == "A nam"
     # a shorter string stays where it is, a longer one moves to the end and its row follows
-    out = f.build(["Back", "Choose", "A name that is much longer than before"])
+    out = f.build(["Back", "Choose", "A name that is much longer than before"], allow_growth=True)
     g = L5PtrText(out)
     assert g.strings == ["Back", "Choose", "A name that is much longer than before"]
     assert len(out) > len(raw) and out[0x10:0x54] == raw[0x10:0x54]
