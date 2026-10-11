@@ -1,10 +1,10 @@
-"""Ganbarion ``jIMG`` pictures (One Piece: Unlimited World Red, 3DS): ``.jtex`` files and the picture inside a
-``.jfnt`` font.
+"""Ganbarion and Arc System Works ``jIMG`` pictures (3DS): ``.jtex`` files and the atlas inside a ``.jfnt`` font.
 
-A 0x80-byte header (``jIMG``, u32 file size, u16 width, u16 height, byte pixel format at 0x0C; the rest is
-flags and a hash), then one surface in the console's tiled layout, no mip levels, top row first. Pixel formats:
-8 = ETC1 (4 bits per pixel), 11 = ETC1A4 (8 bits), 16 = A8. A texture is written in place; unchanged blocks keep
-their bytes.
+A 0x80-byte little-endian header (``jIMG``, u32 file size, u16 width, u16 height, u8 pixel format at 0x0C; the rest
+is flags and a hash), then one PICA texture level of 8x8 Morton tiles, top row first, from 0x80 to the end. Pixel
+formats: 0 RGBA8, 1 RGB8, 5 RGBA4, 8 ETC1, 0x0B ETC1A4, 0x10 A8 (font atlases), 0x12 L8 (a shadow gradient).
+One Piece Unlimited World Red uses 8, 0x0B and 0x10; Dragon Ball Fusions uses the others too.
+A texture is written in place; unchanged blocks keep their bytes.
 """
 from __future__ import annotations
 
@@ -17,40 +17,48 @@ from core.texture_formats import Texture, pixels, surface
 
 MAGIC = b"jIMG"
 HEADER = 0x80
-FORMATS = {8: "pica:ETC1", 11: "pica:ETC1A4", 16: "pica:A8"}
+DATA_AT = HEADER
+PICA = {0: "RGBA8", 1: "RGB8", 5: "RGBA4", 8: "ETC1", 0x0B: "ETC1A4", 0x10: "A8", 0x12: "L8"}
 
 
 def detect(data: bytes) -> bool:
-    return bytes(data[:4]) == MAGIC
+    return bytes(data[:4]) == MAGIC and len(data) > DATA_AT
+
+
+def info(data: bytes, base: int = 0) -> Dict[str, Any]:
+    """Format, size and codec of the jIMG at ``base`` of ``data``."""
+    if bytes(data[base:base + 4]) != MAGIC:
+        raise ValueError("not a jIMG picture")
+    total, width, height = struct.unpack_from("<IHH", data, base + 4)
+    fmt = data[base + 12]
+    if fmt not in PICA:
+        raise ValueError(f"jIMG pixel format {fmt:#x} is not supported")
+    codec = pixels.codec("pica:" + PICA[fmt])
+    if base + DATA_AT + surface.surface_bytes(codec, width, height) > len(data):
+        raise ValueError("jIMG picture is cut short")
+    return {"codec": codec, "format": PICA[fmt], "width": width, "height": height,
+            "at": base + DATA_AT, "total": total}
 
 
 def header(data: bytes, at: int = 0):
     """``(width, height, codec)`` of the picture whose header is at ``at``."""
-    if bytes(data[at:at + 4]) != MAGIC:
-        raise ValueError("not a jIMG picture")
-    width, height = struct.unpack_from("<HH", data, at + 8)
-    code = data[at + 12]
-    if code not in FORMATS:
-        raise ValueError(f"unsupported jIMG pixel format {code}")
-    codec = pixels.codec(FORMATS[code])
-    if len(data) < at + HEADER + surface.surface_bytes(codec, width, height):
-        raise ValueError("jIMG picture is cut short")
-    return width, height, codec
+    t = info(data, at)
+    return t["width"], t["height"], t["codec"]
 
 
 def read_at(data: bytes, at: int = 0) -> Image.Image:
-    width, height, codec = header(data, at)
-    return surface.read(data, at + HEADER, codec, width, height)
+    t = info(data, at)
+    return surface.read(data, t["at"], t["codec"], t["width"], t["height"])
 
 
 def write_at(out: bytearray, at: int, image: Image.Image) -> int:
-    width, height, codec = header(bytes(out), at)
-    return surface.write(out, at + HEADER, codec, width, height, image.convert("RGBA"))
+    t = info(bytes(out), at)
+    return surface.write(out, t["at"], t["codec"], t["width"], t["height"], image.convert("RGBA"))
 
 
 def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
-    _w, _h, codec = header(data)
-    return [Texture("", read_at(data), codec.name.split(":")[-1], 1)]
+    t = info(data)
+    return [Texture("", read_at(data), t["format"], 1)]
 
 
 def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -> bytes:

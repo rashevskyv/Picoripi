@@ -1,0 +1,7 @@
+[
+  {"label": "English layout pictures (menus, cafe, shops, results)", "kind": "menu_label", "format": "bflim", "path": "romfs/EUENlayout/*.zlib/timg/*.bflim"},
+  {"label": "English cell animation pictures (game sprites with text)", "kind": "menu_label", "format": "ctpk", "path": "romfs/EUENcellanim/*.zlib/arc/*.ctpk"},
+  {"label": "English model textures", "kind": "menu_label", "format": "cgfx", "path": "romfs/EUENmodel/*.cgfx"},
+  {"label": "EU region pictures (title, game logos, prologue and demo layouts)", "kind": "title_screen", "format": "bflim", "path": "romfs/EUlayout/*.zlib/timg/*.bflim"},
+  {"label": "EU region model textures", "kind": "menu_label", "format": "cgfx", "path": "romfs/EUmodel/*.cgfx"}
+]

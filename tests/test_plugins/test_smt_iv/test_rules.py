@@ -5,12 +5,13 @@ from pathlib import Path
 import pytest
 
 from core.font_formats import sjis
-from plugins.smt_iv import codebin, mbm
+from plugins.smt_iv import codebin, dlcinfo, mbm, tbb
 from plugins.testing import check_loads, check_validator, load_rules
 
 PLUGIN = "smt_iv"
 GAMES = [Path(r"E:\Emulators\RomHacking\Shin Megami Tensei\IV\source"),
          Path(r"E:\Emulators\RomHacking\Shin Megami Tensei\IV Apocalypse\source")]
+SJR = Path(r"E:\Emulators\RomHacking\Shin Megami Tensei\Strange Journey Redux\source")
 
 
 def make_table(entries, gap=b"\xAA" * 12, tail=b"\0" * 8):
@@ -94,3 +95,96 @@ def test_every_real_table_rebuilds_byte_for_byte(root):
     code = (root / "exefs" / "code.bin").read_bytes()
     texts = codebin.texts(code)
     assert len(texts) > 500 and codebin.build(code, texts) == code
+
+
+
+# -- Strange Journey Redux: TBB1 / FBIN containers, 0000-terminated strings, DLC info -----------------------------
+
+def sjr_entry(text: str) -> bytes:
+    return mbm.encode(text, 0)
+
+
+def pad16(blob: bytes) -> bytes:
+    return blob.ljust((len(blob) + 15) // 16 * 16, b"\0")
+
+
+def tbb1(blocks):
+    start = (0x10 + 4 * len(blocks) + 15) // 16 * 16
+    offsets, at = [], start
+    for block in blocks:
+        offsets.append(at)
+        at += len(pad16(block))
+    head = b"TBB1" + struct.pack("<III", 0x10, len(blocks), at) + struct.pack(f"<{len(blocks)}I", *offsets)
+    return head.ljust(start, b"\0") + b"".join(pad16(b) for b in blocks)
+
+
+def fbin(members):
+    first = (12 + 4 * len(members) + 15) // 16 * 16
+    head = b"FBIN" + struct.pack("<II", len(members), first) + struct.pack(f"<{len(members)}I", *[len(m) for m in members])
+    return head.ljust(first, b"\0") + b"".join(members)
+
+
+SJR_A = make_table([sjr_entry("Medicine"), b"", sjr_entry("Life Stone\n")])
+SJR_B = make_table([sjr_entry("Page {F802}")])
+
+
+def test_sjr_strings_end_with_0000_and_round_trip():
+    table = mbm.Table(SJR_A)
+    assert table.terminator == 0
+    assert table.texts() == ["Medicine", "", "Life Stone\n"]
+    assert table.build(table.texts()) == SJR_A
+    assert mbm.Table(SAMPLE).terminator == 0xFFFF   # SMT IV keeps FFFF
+
+
+def test_tbb1_and_fbin_bundles_rebuild_and_grow():
+    raw = fbin([tbb1([SJR_A, SJR_B]), tbb1([SJR_B])])
+    bundle = tbb.Bundle(raw)
+    assert len(bundle.tables) == 3
+    assert bundle.texts() == ["Medicine", "", "Life Stone\n", "Page {F802}", "Page {F802}"]
+    assert bundle.ids[0] == (0, 0) and bundle.ids[-1] == (2, 0)
+    assert bundle.build(bundle.texts()) == raw
+    assert tbb._lay_out(bundle.root, bundle.texts(), [0]) == raw
+    edited = bundle.texts()
+    edited[1] = "A new line"
+    again = tbb.Bundle(bundle.build(edited))
+    assert again.texts() == edited
+    assert len(tbb.Bundle(tbb1([SJR_A])).ids) == 3 and tbb.Bundle(SAMPLE).ids == [0, 1, 2]
+
+
+def test_content_info_archive_fields():
+    def entry(title, desc):
+        return title.ljust(0x40, b"\0") + desc.ljust(0x88, b"\0")
+    raw = struct.pack("<II", 1, 2) + entry(b"DummyTitle", b"DummyDescription") + entry(b"Training Day", b"") + entry(b"Macca Rain", b"")
+    assert dlcinfo.is_info(raw) and dlcinfo.texts(raw)[2:4] == ["Training Day", ""]
+    out = dlcinfo.build(raw, [t if t != "Macca Rain" else "UA TEST" for t in dlcinfo.texts(raw)])
+    assert len(out) == len(raw) and dlcinfo.texts(out)[4] == "UA TEST"
+    with pytest.raises(mbm.FormatError):
+        dlcinfo.build(raw, ["x" * 64 if i == 0 else t for i, t in enumerate(dlcinfo.texts(raw))])
+
+
+def test_plugin_loads_a_bundle_and_saves_it_back():
+    rules = load_rules(PLUGIN)
+    raw = fbin([tbb1([SJR_A, SJR_B])])
+    blocks, _names = rules.load_data_from_json_obj(raw)
+    assert blocks == [["Medicine", "", "Life Stone\n", "Page {F802}"]]
+    assert rules.save_data_to_json_obj(blocks, {}) == raw
+
+
+def test_every_real_sjr_text_file_rebuilds_byte_for_byte():
+    if not SJR.is_dir():
+        pytest.skip("the unpacked game is not on this machine")
+    files = sorted(SJR.glob("romfs/**/*.mbm")) + sorted(SJR.glob("romfs/Event/EventMessage*.bin"))
+    assert len(files) == 134
+    total = 0
+    for path in files:
+        raw = path.read_bytes()
+        bundle = tbb.Bundle(raw)
+        texts = bundle.texts()
+        total += len(texts)
+        assert bundle.build(texts) == raw, path.name
+        assert tbb._lay_out(bundle.root, texts, [0]) == raw, path.name   # the layout rules give the same bytes
+        for table in bundle.tables:
+            for entry in table.entries:
+                if entry:
+                    assert mbm.encode(mbm.decode(entry, table.terminator), table.terminator) == entry, path.name
+    assert total > 30000

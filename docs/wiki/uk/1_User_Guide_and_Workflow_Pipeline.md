@@ -867,6 +867,8 @@ tokens: 44.0k
      літери отримують вільні коди Shift-JIS 0x8492–0x8499 (`core/font_formats/sjis.py`). `2_build.bat` пише змінені файли
      (текстури `.cmp` Apocalypse знову стиснені) у мод Luma `romfs`; файли DLC ідуть під title id DLC (Azahar їх
      застосовує; Luma на консолі DLC не латає).
+     Strange Journey Redux (EUR, `SMT_SJR_3DS`) використовує той самий плагін: 106 файлів `.mbm` і 27 файлів
+     `Event\EventMessage*.bin` (блоки `TBB1`, рядки з кінцем `0000`), список назв DLC, шість шрифтів BCFNT і 419 картинок STEX.
    - `dragon_quest_vii` — Dragon Quest VII: Fragments of the Forgotten Past (3DS, Європа, англійський слот `EN`).
      **Source:** тека `source` робочої папки (`1_unpack.bat` розшифровує .cia і розпаковує файли LZ11 / LH):
      `romfs\MESS\EN\*.fpt` (331 пак FPT0 з повідомленнями `#NNNNNN.txt`: діалоги й події, 56 720 повідомлень; рядок
@@ -932,6 +934,26 @@ tokens: 44.0k
      `[K]` чекати кнопку, `[C]` нове вікно, `[hero]` / `[partner]` / `[my_team]` імена, `[CS:06]…[CR]` колір,
      `[M:B05]` значки кнопок, `[value:02:0003:0001]` числа й вставлені назви (лишайте як є); дужка в тексті —
      `[[` / `]]`. Текст може ставати довшим: `2_build.bat` заново розкладає кожен файл і перепаковує паки.
+   - `senran_kagura_burst` — Senran Kagura Burst (3DS, EUR). **Source:** `source` робочої теки: 432 файли `TAMS`
+     `romfs\scenario\{hanzo,hebijo}\*.bin` (3 759 повідомлень будь-якої довжини: сюжетні розділи й розмови;
+     `{v02001}` — голос, `{cff0000ff}` … `{r}` — колір, `{b008}`, `{s022}` зберігаються як є), рядки, вкомпільовані в
+     `exefs\code.bin` (2 629 текстів меню, місій, предметів і бою по 200 у блоці; пишуться на місці: текст не може бути
+     довшим за оригінал), п'ять шрифтів `.bcfna` (`cfna`, нові літери не додаються) і картинки BCLIM у пакетах
+     `romfs\ui\lyt_*.bin` (пакет із архівів `darc`; стиснутий пакет стискається знову), CTPK галереї й логотипи.
+     `2_build.bat` пише мод Luma (`code.bin` + `romfs`).
+   - `attack_on_titan_3ds` — Attack on Titan: Humanity in Chains (3DS, USA). **Source:** `romfs\_catfiles_lists\system.cf`
+     (5 501 рядок UTF-16, пишуться на місці: переклад не може бути довшим за оригінал) і 293 картинки `.ctpk`;
+     картинки інтерфейсу `.rhg` і шрифт не відкриваються.
+   - `dragon_ball_fusions` — Dragon Ball Fusions (3DS, EUR). **Source:** `message\msg_en.jmsg` (18 683 рядки будь-якої
+     довжини), дев'ять шрифтів-атласів (`jfnt`; упакований контурний шрифт `default01` не відкривається) і 2 099
+     картинок `.jtex` (`jimg`) з `DOF.cpk` та його архівів `.jarc`; `2_build.bat` пише новий `DOF.cpk`.
+   - `gravity_falls_gemulets` — Gravity Falls: Legend of the Gnome Gemulets (3DS, EUR, UbiArt). **Source:**
+     `localisation.loc8` (шість мов по 1 542 рядки), два шрифти з таблицею гліфів (`ubiart_tfn`: нова літера — новий
+     запис таблиці) і 619 картинок `.tga.ckd` / `.png.ckd` (`ubiart_tex`) з пакетів `.ipk`, які збірка пакує знову.
+     Титри не відкриваються.
+   - `rhythm_paradise_megamix` — Rhythm Paradise Megamix (3DS, EUR). **Source:** 18 англійських файлів MSBT в архівах
+     `.zlib` SARC (5 715 повідомлень; теги названо за `pajama.msbp`), десять шрифтів BFFNT і 2 318 картинок
+     BFLIM / CTPK / CGFX; збірка пакує змінені члени в `.zlib` знову.
    - `default_plugin` — Default Plugin Template
 4. Після відкриття відновлюється остання сесія (блок, рядок, undo, більшість фільтрів). **Show Unsaved Only** (дерево і список рядків) після перезапуску **завжди вимкнений** (`core/data_store.py`).
 5. `File → Close Project` вивантажує робочий простір. Picoripi при цьому не закривається.

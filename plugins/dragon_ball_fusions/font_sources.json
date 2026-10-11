@@ -1,0 +1,11 @@
+[
+  {"label": "ruby01_m (DBF)", "format": "jfnt", "path": "romfs/DOF.cpk/pac/system.jarc/ui/common/en/ruby01_m.jfnt"},
+  {"label": "special01_l (DBF)", "format": "jfnt", "path": "romfs/DOF.cpk/pac/system.jarc/ui/common/en/special01_l.jfnt"},
+  {"label": "special01_m (DBF)", "format": "jfnt", "path": "romfs/DOF.cpk/pac/system.jarc/ui/common/en/special01_m.jfnt"},
+  {"label": "special01_s (DBF)", "format": "jfnt", "path": "romfs/DOF.cpk/pac/system.jarc/ui/common/en/special01_s.jfnt"},
+  {"label": "special02_l (DBF)", "format": "jfnt", "path": "romfs/DOF.cpk/pac/system.jarc/ui/common/en/special02_l.jfnt"},
+  {"label": "special02_m (DBF)", "format": "jfnt", "path": "romfs/DOF.cpk/pac/system.jarc/ui/common/en/special02_m.jfnt"},
+  {"label": "special02_s (DBF)", "format": "jfnt", "path": "romfs/DOF.cpk/pac/system.jarc/ui/common/en/special02_s.jfnt"},
+  {"label": "special03_m (DBF)", "format": "jfnt", "path": "romfs/DOF.cpk/pac/system.jarc/ui/common/en/special03_m.jfnt"},
+  {"label": "special04_l (photo fusion)", "format": "jfnt", "path": "romfs/DOF.cpk/pac/photofusion.jarc/ui/photo/special04_l.jfnt"}
+]

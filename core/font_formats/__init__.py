@@ -32,13 +32,13 @@ Sheets = List[Image.Image]
 
 
 def _backends() -> Dict[str, Any]:
-    from core.font_formats import (bcfnt, bffnt, bfotf, cells, brfna, cop_fnt, cv_gba, cv_nds, eternal_darkness, fe13_bfnt, ffta2, fntg, fragile_dreams, g1n,
+    from core.font_formats import (bcfnt, bffnt, bfotf, cells, brfna, cfna, cop_fnt, cv_gba, cv_nds, eternal_darkness, fe13_bfnt, ffta2, fntg, fragile_dreams, g1n,
                                    g1t, g4font, gba_tiles, gzf, laft, jade, lunar, m2, mgs, mgs1, mgs1_hd, mof_font, mt_font, n64, nftr, pgf, pmd_font,
                                    policenauts, qbf,
                                    retro_font, retro_font_gc, retro_font_gx,
-                                   rrr_errfont, swf_font, texture_grid, tmp_sdf, ttf, twewy, vagrant, xf, zelda3, mgs_nht)
+                                   rrr_errfont, swf_font, texture_grid, tmp_sdf, ttf, twewy, ubiart_tfn, vagrant, xf, zelda3, mgs_nht)
     from core.font_formats import dq9, infinite_space, phyre_bmf, l5_fnt
-    from core.font_formats import jfnt, nlg_font
+    from core.font_formats import asw_jfnt, jfnt, nlg_font
     from core.font_formats import pw_xpr
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
             "bfotf": bfotf, "ttf": ttf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
@@ -50,7 +50,7 @@ def _backends() -> Dict[str, Any]:
             "swf_font": swf_font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams,
             "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf, "mt_font": mt_font, "pmd_font": pmd_font,
             "fe13_bfnt": fe13_bfnt, "laft": laft, "pw_xpr": pw_xpr,
-            "mgs_nht": mgs_nht, "phyre_bmf": phyre_bmf, "mof_font": mof_font, "cop_fnt": cop_fnt, "nlg_font": nlg_font, "jfnt": jfnt, "l5_fnt": l5_fnt}
+            "mgs_nht": mgs_nht, "phyre_bmf": phyre_bmf, "mof_font": mof_font, "cop_fnt": cop_fnt, "nlg_font": nlg_font, "jfnt": jfnt, "l5_fnt": l5_fnt, "ubiart_tfn": ubiart_tfn, "cfna": cfna, "asw_jfnt": asw_jfnt}
 
 
 def adds_glyphs(fmt: str) -> bool:
@@ -87,6 +87,8 @@ def detect(data: bytes) -> Optional[str]:
         return "bffnt_wiiu"
     if head[:6] in (b"RFNT\xfe\xff", b"RFNA\xfe\xff", b"ANFR\xff\xfe"):   # ANFR: the New 3DS port's RFNA
         return "brfnt"
+    if head[:6] == b"CFNA\xff\xfe":
+        return "cfna"
     if head[:4] in (b"FFNT", b"CFNT") and head[4:6] in (b"\xff\xfe", b"\xfe\xff"):
         from core.font_formats.bcfnt import is_ctr_font
         return "bcfnt" if is_ctr_font(data) else "bffnt"

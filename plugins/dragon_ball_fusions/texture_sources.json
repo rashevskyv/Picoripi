@@ -1,0 +1,5 @@
+[
+  {"label": "UI pictures (menus, map, battle HUD, arena)", "kind": "menu_label", "format": "jimg", "path": "romfs/DOF.cpk/**/ui/**/*.jtex"},
+  {"label": "Loose pictures of the archive root and characters", "kind": "menu_label", "format": "jimg", "path": "romfs/DOF.cpk/*.jtex"},
+  {"label": "Characters, faces, effects and everything else", "kind": "menu_label", "format": "jimg", "path": "romfs/DOF.cpk/**/*.jtex"}
+]

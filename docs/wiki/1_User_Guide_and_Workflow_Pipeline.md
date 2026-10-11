@@ -873,6 +873,8 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Ukrainian letters get the free Shift-JIS codes 0x8492–0x8499 (`core/font_formats/sjis.py`). `2_build.bat` writes the
      changed files (Apocalypse's `.cmp` textures compressed again) into a Luma `romfs` mod; the DLC's files go under the
      DLC title id (Azahar applies them; Luma on a console does not patch DLC).
+     Strange Journey Redux (EUR, `SMT_SJR_3DS`) uses the same plugin: 106 `.mbm` and 27 `Event\EventMessage*.bin` files
+     (`TBB1` blocks, `0000`-terminated strings), the DLC title list, six BCFNT fonts and 419 STEX pictures.
    - `dragon_quest_vii` — Dragon Quest VII: Fragments of the Forgotten Past (3DS, EUR, English slot `EN`). **Source:**
      the workspace's `source` folder (`1_unpack.bat` decrypts the .cia and decompresses the LZ11 / LH files there):
      `romfs\MESS\EN\*.fpt` (331 FPT0 packs of `#NNNNNN.txt` messages: dialogue and events, 56,720 messages; a string is
@@ -939,6 +941,26 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `[K]` wait for a button, `[C]` new box, `[hero]` / `[partner]` / `[my_team]` names, `[CS:06]…[CR]` colour,
      `[M:B05]` button icons, `[value:02:0003:0001]` numbers and inserted names (keep them as they are); a literal
      bracket is `[[` / `]]`. Text may grow: `2_build.bat` lays each message file out again and repacks the packs.
+   - `senran_kagura_burst` — Senran Kagura Burst (3DS, EUR). **Source:** the workspace's `source`: the 432 `TAMS`
+     message files `romfs\scenario\{hanzo,hebijo}\*.bin` (3,759 messages of any length: story chapters and
+     conversations; `{v02001}` voice, `{cff0000ff}` … `{r}` colour, `{b008}`, `{s022}` stay as typed), the strings
+     compiled into `exefs\code.bin` (2,629 menu, mission, item and battle texts, 200 to a block, written in place: a
+     text may not be longer than the original), the five `.bcfna` fonts (`cfna`, no new letters) and the BCLIM
+     pictures inside the `romfs\ui\lyt_*.bin` packs (a pack of `darc` archives; a compressed pack is compressed
+     again), CTPK gallery pictures and logos. `2_build.bat` writes a Luma mod (`code.bin` + `romfs`).
+   - `attack_on_titan_3ds` — Attack on Titan: Humanity in Chains (3DS, USA). **Source:** `romfs\_catfiles_lists\system.cf`
+     (5,501 UTF-16 strings, written in place: a translation may not be longer than the original) and 293 `.ctpk`
+     pictures; the `.rhg` UI pictures and the font are not opened.
+   - `dragon_ball_fusions` — Dragon Ball Fusions (3DS, EUR). **Source:** `message\msg_en.jmsg` (18,683 strings of any
+     length), nine atlas fonts (`jfnt`; the packed outline font `default01` is not opened) and 2,099 `.jtex` pictures
+     (`jimg`) from `DOF.cpk` and its `.jarc` archives; `2_build.bat` writes a new `DOF.cpk`.
+   - `gravity_falls_gemulets` — Gravity Falls: Legend of the Gnome Gemulets (3DS, EUR, UbiArt). **Source:**
+     `localisation.loc8` (six languages, 1,542 strings each), two glyph-table fonts (`ubiart_tfn`: a new letter is a
+     new table record) and 619 `.tga.ckd` / `.png.ckd` pictures (`ubiart_tex`) of the `.ipk` bundles, which the build
+     packs again. The credits are not opened.
+   - `rhythm_paradise_megamix` — Rhythm Paradise Megamix (3DS, EUR). **Source:** the 18 English MSBT files in the
+     `.zlib` SARC archives (5,715 messages; tags named by `pajama.msbp`), ten BFFNT fonts and 2,318 BFLIM / CTPK / CGFX
+     pictures; the build packs the changed members into the `.zlib` files again.
    - `default_plugin` — Default Plugin Template
 4. After open, the last session is restored (block, string, undo stack, most filters). **Show Unsaved Only** (tree and strings list) is always off after a restart (`core/data_store.py`).
 5. `File → Close Project` unloads the workspace. It does not quit Picoripi.

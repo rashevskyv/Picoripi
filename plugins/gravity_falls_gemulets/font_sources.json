@@ -1,0 +1,5 @@
+[
+  {"label": "My Life Coach 65 (text, atlas 512x512)", "format": "ubiart_tfn", "path": "romfs/bundle_ctr.ipk/cache/itf_cooked/ctr/enginedata/misc/fonts/mylifecoach65.tfn.ckd", "companion": "romfs/bundle_ctr.ipk/cache/itf_cooked/ctr/enginedata/misc/fonts/mylifecoach65.tga.ckd"},
+  {"label": "My Life Coach 66 (text, atlas 512x512)", "format": "ubiart_tfn", "path": "romfs/bundle_ctr.ipk/cache/itf_cooked/ctr/enginedata/misc/fonts/mylifecoach66.tfn.ckd", "companion": "romfs/bundle_ctr.ipk/cache/itf_cooked/ctr/enginedata/misc/fonts/mylifecoach66.tga.ckd"},
+  {"label": "Tahoma (debug font in the shader folder)", "format": "bcfnt", "path": "romfs/bundle_ctr.ipk/enginedata/shaders/compiled/ctr/tahoma.bcfnt"}
+]
