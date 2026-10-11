@@ -347,6 +347,24 @@ tokens: 43.1k
      Mystery Journey (3DS, EUR; робоча тека `LAYTON_MJ_3DS`) відкривається тим самим плагіном: англійські скрипти
      `txt\en\**\*.xs` в `lt6_en.fa` (1 664 файли, близько 14 900 рядків) записано в UTF-8, тож українські літери
      зберігаються як є (бракує лише гліфів у шрифтах); логотип — `menu\en\ctr\title_a.xc`.
+   - `layton_ds` — Professor Layton and the Curious Village, Pandora's Box, Lost Future і Spectre's Call
+     (Nintendo DS, EUR; робочі теки `LAYTON_CV_DS`, `LAYTON_PB_DS`, `LAYTON_LF_DS`, `LAYTON_SC_DS`). **Source:** тека
+     `source` робочої теки: власні файли гри за шляхами NitroFS (Spectre's Call: за шляхами в трьох архівах
+     `lt4_*.fa`), ще стиснені так, як їх тримає гра; один блок на файл, лише файли з текстом.
+     Curious Village: `data\otext\en\*.txt`, пакунки `.pcm` (`etext` / `htext` / `itext` / `otext` /
+     `qtext`) і скрипти `data\script\**\*.gds` (назви й умови головоломок, репліки
+     готельних кімнат, розмови подій); Pandora's Box: `data_lt2\event|nazo|place|rc\en\*.plz` і бази
+     `rc\en\*.dlz`; Lost Future: `lt3\txt\uk\*.cpck`, `lt3\rc\nazo\uk\*.cdat` (головоломки),
+     `lt3\rc\**\*.cpck` / `.cbin`; Spectre's Call: скрипти `GSD1` `txt\uk\**\*.cb` і `res\uk\*.cb`.
+     **Translation:** `translation` (цілі файли). Рядок зберігає розмітку гри (`<T>`, `<W>`, `@p`, `<'e>`);
+     незмінений файл лишається байт у байт; довший рядок записується наново з
+     пересунутими зміщеннями пакунка й переходами `.gds`; поле бази фіксованої ширини
+     відхиляє довший рядок. Редактор шрифтів відкриває шрифти `NFTR` (Curious Village, Pandora's
+     Box, Lost Future) і `GFNT` Spectre's Call; жоден поки не має української літери (по 52
+     латинські). Вікно текстур показує зображення титулу, меню, головоломок і мап: фони
+     (`.arc` BG), атласи анімацій (`.arc` / `.arj`), `.cimg` / `.cani` Lost Future (`LIMG`) і `.ci` / `.ca`
+     Spectre's Call (`GFSP`: 4-бітні, 8-бітні, A5I3, A3I5). `2_build.bat` робочої теки перезбирає ROM (NitroFS
+     розкладено наново, архіви GFSA Spectre's Call латаються по одному файлу).
    - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** тека `source\game`
      робочої теки (`1_unpack.bat` розпаковує туди файли диска `*SK_ASC*`): `EBootPak.bin` (меню, предмети,
      закляття, руни, системні повідомлення), `EBookPak.bin` (сторінки Тому, меню збереження),

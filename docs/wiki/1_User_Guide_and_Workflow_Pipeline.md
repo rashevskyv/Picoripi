@@ -348,6 +348,23 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      into the Luma mod. Layton's Mystery Journey (3DS, EUR; workspace `LAYTON_MJ_3DS`) opens with the same plugin:
      its English scripts are `txt\en\**\*.xs` in `lt6_en.fa` (1,664 files, about 14,900 lines), written in UTF-8 so
      Ukrainian letters are stored as they are (only the fonts lack them); the logo is `menu\en\ctr\title_a.xc`.
+   - `layton_ds` — Professor Layton and the Curious Village, Pandora's Box, Lost Future and Spectre's Call
+     (Nintendo DS, EUR; workspaces `LAYTON_CV_DS`, `LAYTON_PB_DS`, `LAYTON_LF_DS`, `LAYTON_SC_DS`). **Source:** the
+     workspace's `source` folder: the game's own files at their NitroFS paths (Spectre's Call: at their paths in
+     the three `lt4_*.fa` archives), still compressed as the game keeps them; one block per file, only files that
+     show text. Curious Village: `data\otext\en\*.txt`, the `etext` / `htext` / `itext` / `otext` / `qtext`
+     `.pcm` packs and the `data\script\**\*.gds` scripts (puzzle titles and questions, hotel room lines, event
+     talk); Pandora's Box: `data_lt2\event|nazo|place|rc\en\*.plz` and the `rc\en\*.dlz` databases; Lost Future:
+     `lt3\txt\uk\*.cpck`, `lt3\rc\nazo\uk\*.cdat` (puzzles), `lt3\rc\**\*.cpck` / `.cbin`; Spectre's Call:
+     the `GSD1` scripts `txt\uk\**\*.cb` and `res\uk\*.cb`. **Translation:** `translation` (whole files). A line
+     keeps the game's markup (`<T>`, `<W>`, `@p`, `<'e>`); an unedited file stays byte for byte; a longer string is
+     written again with the pack's offsets and the `.gds` jumps moved; a fixed-width database field refuses a
+     longer string. The Font Editor opens the `NFTR` fonts (Curious Village, Pandora's Box, Lost Future) and the
+     Spectre's Call `GFNT` fonts; none has a Ukrainian letter yet (52 Latin letters each). The Textures window
+     lists the title, menu, puzzle and map pictures: backgrounds (`.arc` BG), animation atlases (`.arc` / `.arj`),
+     Lost Future `.cimg` / `.cani` (`LIMG`) and Spectre's Call `.ci` / `.ca` (`GFSP`: 4-bit, 8-bit, A5I3, A3I5).
+     The workspace's `2_build.bat` rebuilds the ROM (NitroFS laid out again, the GFSA archives of Spectre's Call
+     patched member by member).
    - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** the workspace's
      `source\game` (`1_unpack.bat` decompresses the disc's `*SK_ASC*` files there): `EBootPak.bin` (menus,
      items, spells, runes, system messages), `EBookPak.bin` (Tome pages, save menu), `EMemcardText.bin`,

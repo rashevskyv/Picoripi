@@ -32,13 +32,15 @@ def _backends() -> Dict[str, Any]:
                                       jade,
                                       jade_jtx, m2, mt_tex, mibl, pcx, pmd_img, png, policenauts_pak, raw, shpg, sotn, stex, tilemap, tiles, tim, tim2, tpl, tpl_ctr, txtr, txtr_gx,
                                       vagrant, wilay)
-    from core.texture_formats import dq9_spr, is_tex
+    from core.texture_formats import dq9_spr, is_tex, layton_ds, layton_gfsp
     return {"bti": bti, "bflim": flim, "ctpk": ctpk, "ctxb": ctxb, "tpl": tpl, "tpl_ctr": tpl_ctr, "bntx": bntx, "g1t": g1t, "g4tx": g4tx,
             "imgc": imgc, "j3d": j3d, "gba": gba, "gtx": gtx, "txtr": txtr, "gim": gim, "raw": raw, "tiles": tiles, "tilemap": tilemap,
             "txtr_gx": txtr_gx, "tim": tim, "tim2": tim2, "policenauts_pak": policenauts_pak,
             "vs_gim": vagrant.gim, "vs_hf1": vagrant.hf1, "vs_rle": vagrant.rle, "pcx": pcx, "m2": m2,
             "bfres": bfres, "is_tex": is_tex, "dq9_spr": dq9_spr, "jade": jade, "jade_jtx": jade_jtx, "shpg": shpg, "png": png, "sotn_blocks": sotn.blocks, "sotn_cmp": sotn.packed,
-            "ffta2_efx": ffta2_efx, "mt_tex": mt_tex, "pmd_img": pmd_img, "dmp": dmp, "cgfx": cgfx, "stex": stex, "mibl": mibl, "wilay": wilay}
+            "ffta2_efx": ffta2_efx, "mt_tex": mt_tex, "pmd_img": pmd_img, "dmp": dmp, "cgfx": cgfx, "stex": stex, "mibl": mibl, "wilay": wilay,
+            "layton_bg": layton_ds.bg, "layton_ani": layton_ds.ani, "layton_arj": layton_ds.arj,
+            "layton_limg": layton_ds.limg, "layton_cani": layton_ds.cani, "layton_gfsp": layton_gfsp}
 
 
 # File name extension -> format, for files opened directly.
