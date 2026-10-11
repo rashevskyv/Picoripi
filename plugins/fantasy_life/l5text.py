@@ -179,7 +179,9 @@ class L5PtrText:
     """A text file of the second kind: the same magic, but the 0x20-byte header leads to rows (``count`` x
     ``stride`` bytes) in which some columns are byte offsets of NUL-terminated UTF-16 strings; the strings fill the
     rest of the file. ``strings`` are the distinct strings in order of first use (row by row); ``build`` rewrites a
-    changed string in its own space when it fits, else appends it to the file and moves every pointer to it."""
+    changed string in its own space. A longer string is cut to that space and listed in ``cut``: with
+    ``allow_growth`` it is appended to the file and every pointer to it moves instead. The game hung after the title
+    screen in an Azahar run with such moved strings, so growth is off for now."""
 
     def __init__(self, data: bytes):
         self.data = bytes(data)
@@ -261,16 +263,21 @@ class L5PtrText:
                 good += 1
         return seen > 0 and good * 10 >= seen * 7
 
-    def build(self, texts: List[str]) -> bytes:
+    def build(self, texts: List[str], allow_growth: bool = False) -> bytes:
         if len(texts) != self.count:
             raise FormatError(f"{len(texts)} strings for {self.count}")
         out = bytearray(self.data)
         moved = {}
+        self.cut = []
         for k, text in enumerate(texts):
             if text == self.strings[k]:
                 continue
             v = self.offsets[k]
             raw = encode(text, False, (v // 2) % 2)
+            if len(raw) > self.capacity[k] and not allow_growth:
+                self.cut.append(k)
+                # ponytail: the cut can fall inside a {c:...} command; the editor shows the cut string, fix it there
+                raw = raw[:self.capacity[k] // 2 * 2 - 2] + bytes(2)     # the text without its last unit, then NUL
             if len(raw) <= self.capacity[k]:
                 out[v:v + self.capacity[k]] = raw + bytes(self.capacity[k] - len(raw))
                 continue
