@@ -113,3 +113,16 @@ def test_real_game_files_round_trip():
         image = texture_formats.read("jimg", raw, {})[0].image
         assert texture_formats.write("jimg", raw, {0: image}, {}) == raw
     assert isinstance(Image.new("RGBA", (1, 1)), Image.Image)
+
+
+def test_switch_jimg_is_linear_rgba8():
+    header = b"jIMG" + struct.pack("<I", 0x80 + 8 * 4 * 4) + struct.pack("<HH", 8, 4) + bytes([0, 1, 0, 0x11]) + bytes(0x70)
+    data = header + bytes(8 * 4 * 4)
+    texture = texture_formats.read("jimg", data, {})[0]
+    assert texture.image.size == (8, 4)
+    image = texture.image.copy()
+    image.putpixel((3, 1), (10, 200, 30, 255))
+    changed = texture_formats.write("jimg", data, {0: image}, {})
+    at = 0x80 + (1 * 8 + 3) * 4
+    assert changed[at:at + 4] == bytes([10, 200, 30, 255]) and len(changed) == len(data)
+    assert texture_formats.read("jimg", changed, {})[0].image.getpixel((3, 1)) == (10, 200, 30, 255)

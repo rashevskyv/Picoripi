@@ -5,5 +5,19 @@
   {"label": "Large font 52x52, variant 2 (digits and symbols)", "format": "jfnt", "path": "romfs/font_eu/opu3_h_font52x52_2.jfnt"},
   {"label": "Large font 52x52, variant 3", "format": "jfnt", "path": "romfs/font_eu/opu3_h_font52x52_3.jfnt"},
   {"label": "Large font 52x52, variant 4", "format": "jfnt", "path": "romfs/font_eu/opu3_h_font52x52_4.jfnt"},
-  {"label": "Command font (button icons)", "format": "jfnt", "path": "romfs/font_eu/opu3font_command.jfnt"}
+  {"label": "Command font (button icons)", "format": "jfnt", "path": "romfs/font_eu/opu3font_command.jfnt"},
+  {"label": "Main font 20x20 (dialogue, menus) (4k, Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/4k/opu3font20x20.jfnt"},
+  {"label": "Font 22x22 (HUD, names) (4k, Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/4k/opu3_h_font22x22.jfnt"},
+  {"label": "Large font 52x52 (titles) (4k, Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/4k/opu3_h_font52x52.jfnt"},
+  {"label": "Large font 52x52, variant 2 (digits and symbols) (4k, Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/4k/opu3_h_font52x52_2.jfnt"},
+  {"label": "Large font 52x52, variant 3 (4k, Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/4k/opu3_h_font52x52_3.jfnt"},
+  {"label": "Large font 52x52, variant 4 (4k, Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/4k/opu3_h_font52x52_4.jfnt"},
+  {"label": "Command font (button icons) (4k, Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/4k/opu3font_command.jfnt"},
+  {"label": "Main font 20x20 (dialogue, menus) (Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/opu3font20x20.jfnt"},
+  {"label": "Font 22x22 (HUD, names) (Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/opu3_h_font22x22.jfnt"},
+  {"label": "Large font 52x52 (titles) (Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/opu3_h_font52x52.jfnt"},
+  {"label": "Large font 52x52, variant 2 (digits and symbols) (Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/opu3_h_font52x52_2.jfnt"},
+  {"label": "Large font 52x52, variant 3 (Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/opu3_h_font52x52_3.jfnt"},
+  {"label": "Large font 52x52, variant 4 (Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/opu3_h_font52x52_4.jfnt"},
+  {"label": "Command font (button icons) (Switch)", "format": "jfnt", "path": "romfs/rom4.cpk/font_eu/opu3font_command.jfnt"}
 ]

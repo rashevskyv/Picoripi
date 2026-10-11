@@ -3,7 +3,7 @@
 
 A 0x80-byte header (``jIMG``, u32 file size, u16 width, u16 height, byte pixel format at 0x0C; the rest is
 flags and a hash), then one surface in the console's tiled layout, no mip levels, top row first. Pixel formats:
-8 = ETC1 (4 bits per pixel), 11 = ETC1A4 (8 bits), 16 = A8. A texture is written in place; unchanged blocks keep
+8 = ETC1 (4 bits per pixel), 11 = ETC1A4 (8 bits), 16 = A8; the Switch game (Deluxe Edition) uses 0 = RGBA8, linear. A texture is written in place; unchanged blocks keep
 their bytes.
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ from core.texture_formats import Texture, pixels, surface
 
 MAGIC = b"jIMG"
 HEADER = 0x80
-FORMATS = {8: "pica:ETC1", 11: "pica:ETC1A4", 16: "pica:A8"}
+FORMATS = {0: "RGBA8", 8: "pica:ETC1", 11: "pica:ETC1A4", 16: "pica:A8"}
 
 
 def detect(data: bytes) -> bool:
