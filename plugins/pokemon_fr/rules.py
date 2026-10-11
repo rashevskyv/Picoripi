@@ -96,7 +96,9 @@ class GameRules(BaseGameRules):
 
     def prepare_save_context(self, context: Any) -> None:
         """Narrow the keys to the blocks that go into the file being saved."""
-        if str(getattr(context, "relative_path", "")).lower().endswith(pret_text.SUFFIXES):
+        name = str(getattr(context, "relative_path", "")).lower()
+        if name.endswith(pret_text.ASM_SUFFIXES + pret_text.C_SUFFIXES) or (
+                name.endswith(pret_text.JSON_SUFFIXES) and self._is_pret_json_file(context)):
             # A source file of a decompilation: every save is built from the file as the game's source has it
             # (the last version offered), so an unchanged message keeps its lines byte for byte.
             versions = list(context.existing_versions())
@@ -114,6 +116,12 @@ class GameRules(BaseGameRules):
             )
         else:
             log_debug("[PokemonFR Plugin] Key snapshot is incomplete; keys were not narrowed for this file.")
+
+    def _is_pret_json_file(self, context: Any) -> bool:
+        """A ``.json`` file is a decompilation's JSON only when its text has the pret roots (other JSON keys)."""
+        versions = list(context.existing_versions())
+        text = versions[-1].decode("utf-8", "surrogateescape") if versions else self._pret_loaded
+        return isinstance(text, str) and pret_text.is_pret_json(text)
 
     def load_data_from_json_obj(self, json_data: Any) -> Tuple[list, dict]:
         """Load data from json obj."""
