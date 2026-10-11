@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
+from core import zstd_frame
+
 MAGIC = 0x5A6F12E1
 FOOTER_SIZE_V8 = 16 + 1 + 4 + 4 + 8 + 8 + 20 + 5 * 32
 NAME_SIZE = 32
@@ -95,18 +97,11 @@ class Pak:
 
 
 def _zstd_decompress(raw: bytes, name: str) -> bytes:
-    """One zstd frame. ``compression.zstd`` (Python 3.14+) or the ``zstandard`` package; otherwise a PakError."""
+    """One zstd frame (``core.zstd_frame``); a missing zstd module is a PakError."""
     try:
-        from compression import zstd
-    except ImportError:
-        zstd = None
-    if zstd is not None:
-        return zstd.decompress(raw)
-    try:
-        import zstandard
-    except ImportError:
-        raise PakError(f"{name}: zstd needs Python 3.14 or the zstandard package") from None
-    return zstandard.ZstdDecompressor().decompressobj().decompress(raw)
+        return zstd_frame.decompress(raw, name)
+    except zstd_frame.ZstdUnavailable as exc:
+        raise PakError(str(exc)) from None
 
 
 def _fstring(index: bytes, pos: int):

@@ -85,7 +85,7 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=(), returns=list),
         Hook("get_texture_sources", "The game's textures with text for the Textures window: [{label, kind, format (bti, tpl, tpl_ctr, "
              "bflim, ctpk, cgfx, dmp, ctxb (also CMB models), bntx, g1t, g4tx, imgc, j3d, gba, gtx, bfres, txtr, txtr_gx, gim, tim, tim2, "
-             "policenauts_pak, vs_gim, vs_hf1, vs_rle, pcx, m2, is_tex, sh3_tex, jimg, nlg_tex, ubiart_tex, gmio, ztex, sh2tex, tga, pw_txp, dq9_spr, jade, jade_jtx, shpg, png, sotn_blocks, sotn_cmp, ffta2_efx, mt_tex, pmd_img, stex, mibl, wilay, ctxr, phyre, ctrt, l2d, bch, rtex, raw, tiles, "
+             "policenauts_pak, vs_gim, vs_hf1, vs_rle, pcx, m2, is_tex, sh3_tex, jimg, nlg_tex, ubiart_tex, gmio, ztex, sh2tex, tga, pw_txp, dq9_spr, jade, jade_jtx, shpg, png, sotn_blocks, sotn_cmp, ffta2_efx, mt_tex, pmd_img, stex, mibl, wilay, ctxr, fr3, phyre, ctrt, l2d, bch, rtex, raw, tiles, "
              "tilemap), "
              "path, member, params}]. Default: texture_sources.json in the plugin folder.",
              call=(), returns=list),
