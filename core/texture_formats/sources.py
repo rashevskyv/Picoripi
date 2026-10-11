@@ -138,8 +138,13 @@ def _decompress(data: bytes, scheme: str = "auto") -> Tuple[bytes, Rewrap]:
         plain, pack = grezzo.lzs_decompress(data), lambda new: grezzo.lzs_compress(new, data[:8])
     elif scheme == "lz11":
         plain, pack = nitro.lz11_decompress(data)[0], nitro.lz11_compress
+    elif scheme == "lz10":
+        # Gen 4 NARC members: GBA LZ77 (also the extended size header). A changed payload is compressed again to a
+        # valid stream; the decompressed bytes are what must match, not the compressor's bytes.
+        from core.containers import lz10
+        plain, pack = lz10.decompress(data)[0], lz10.compress
     else:
-        raise ValueError(f"Compression {scheme!r} is not supported (yaz0, zstd, zlib, gzip, yar, lzs, lz11 are)")
+        raise ValueError(f"Compression {scheme!r} is not supported (yaz0, zstd, zlib, gzip, yar, lzs, lz11, lz10 are)")
     return plain, lambda new: data if new == plain else pack(new)
 
 

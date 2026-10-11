@@ -12,6 +12,8 @@ import struct
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.containers import ContainerManager
+from core.containers.nitro import NarcContainer
 from plugins.base_game_rules import BaseGameRules
 from plugins.common import gen4msg
 from utils.logging_utils import log_debug
@@ -38,22 +40,31 @@ def _codecs() -> List[gen4msg.Codec]:
 _TEXTURE_NARC_MAX = 6_500_000        # the same cap as Gen 5: the sprite packs are bigger
 
 
-def _ncgr_members(data: bytes) -> List[int]:
-    """Indices of the members of a NARC that are uncompressed NCGR pictures (``RGCN``); [] for other files."""
+def _narc_members(data: bytes) -> List[bytes]:
+    """The members of a NARC (``[]`` for other files and for NARCs above the picture cap)."""
     if data[:4] != b"NARC" or len(data) > _TEXTURE_NARC_MAX:
         return []
-    btaf = data.find(b"BTAF")
-    gmif = data.find(b"GMIF")
+    btaf, gmif = data.find(b"BTAF"), data.find(b"GMIF")
     if btaf < 0 or gmif < 0:
         return []
     count = struct.unpack_from("<I", data, btaf + 8)[0]
     body = gmif + 8
-    numbers = []
+    members = []
     for n in range(count):
         start, end = struct.unpack_from("<II", data, btaf + 12 + 8 * n)
-        if data[body + start:body + start + 4] == b"RGCN":
-            numbers.append(n)
-    return numbers
+        members.append(bytes(data[body + start:body + end]))
+    return members
+
+
+def _lz10_ncgr(member: bytes) -> bool:
+    """A Gen 4 LZ10 member whose stream is an NCGR picture (``RGCN``)."""
+    from core.containers import lz10
+    if member[:1] != b"\x10":
+        return False
+    try:
+        return lz10.decompress(member)[0][:4] == b"RGCN"
+    except ValueError:
+        return False
 
 
 def gen4msg_is_bank(data: bytes) -> bool:
@@ -76,6 +87,7 @@ class GameRules(BaseGameRules):
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
+        ContainerManager.register(NarcContainer)     # the font and picture NARCs (Font Editor, Textures)
         self._loaded: Optional[str] = None
         self._source: Optional[str] = None
         self._msg_file: Optional[bytes] = None          # the ROM bank a save writes over (raw lines, codec)
@@ -145,28 +157,52 @@ class GameRules(BaseGameRules):
 
     # -- pictures (ROM mode) ---------------------------------------------------------------------
 
-    def get_texture_sources(self) -> List[Dict[str, Any]]:
-        """Each NARC of the unpacked ``source`` with uncompressed NCGR members (LZ10 members are not listed)."""
+    def _narc_files(self):
+        """``(relative path, members)`` of each NARC of the unpacked ``source`` (text banks are skipped)."""
         root = ""
         try:
             root = str(self.mw.project_manager.project.metadata.get("source_path") or "")
         except AttributeError:
             pass
         if not root or not os.path.isdir(root):
-            return []
-        sources: List[Dict[str, Any]] = []
+            return
         for path in sorted(Path(root).rglob("*")):
             rel = path.relative_to(root).as_posix()
             if not path.is_file() or rel.startswith(("text/", "files/")):
                 continue
             try:
-                numbers = _ncgr_members(path.read_bytes())
+                members = _narc_members(path.read_bytes())
             except (OSError, ValueError, struct.error) as error:
                 log_debug(f"{_PLUGIN}: cannot read {rel}: {error}")
                 continue
+            if members:
+                yield rel, members
+
+    def get_font_sources(self) -> List[Dict[str, Any]]:
+        """The Gen 4 font bins (``core.font_formats.gen4_glyphs``): the members of each font NARC."""
+        from core.font_formats import gen4_glyphs
+        sources: List[Dict[str, Any]] = []
+        for rel, members in self._narc_files():
+            numbers = [n for n, m in enumerate(members) if gen4_glyphs.is_font_bin(m)]
             if numbers:
-                sources.append({"label": rel, "kind": "ui", "format": "tiles", "path": rel,
+                sources.append({"label": rel, "kind": "font", "format": "gen4_glyphs", "path": rel,
                                 "member": "#{" + ",".join(str(n) for n in numbers) + "}"})
+        return sources
+
+    def get_texture_sources(self) -> List[Dict[str, Any]]:
+        """The NCGR pictures of the NARCs, one source per kind per NARC: the raw members, and the LZ10 members with
+        ``compression: lz10`` (decompressed for reading; written back compressed again, as a valid LZ10 stream)."""
+        sources: List[Dict[str, Any]] = []
+        for rel, members in self._narc_files():
+            raw = [n for n, m in enumerate(members) if m[:4] == b"RGCN"]
+            packed = [n for n, m in enumerate(members) if _lz10_ncgr(m)]
+            if raw:
+                sources.append({"label": rel, "kind": "ui", "format": "tiles", "path": rel,
+                                "member": "#{" + ",".join(str(n) for n in raw) + "}"})
+            if packed:
+                sources.append({"label": f"{rel} (LZ10)", "kind": "ui", "format": "tiles", "path": rel,
+                                "member": "#{" + ",".join(str(n) for n in packed) + "}",
+                                "params": {"compression": "lz10"}})
         return sources
 
     # -- context -----------------------------------------------------------------------------

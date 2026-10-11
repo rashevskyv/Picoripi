@@ -773,7 +773,7 @@ class BaseGameRules:
         Each entry: ``label``; ``format`` (``bfn``, ``n64``, ``g1t``, ``g1n``, ``bffnt`` (Switch), ``bcfnt`` (3DS
         BCFNT / BFFNT), ``bffnt_wiiu`` (Wii U BFFNT), ``brfnt`` (Wii RFNT), ``qbf``, ``gzf``, ``bfotf``, ``ttf`` (a plain TrueType / OpenType file, the ``bfotf`` model), ``tmp_sdf``
         (Unity TextMesh Pro SDF font, atlas PNG as ``companion``), ``mgs``, ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation
-        font), ``mgs_nht`` (MGS2 / MGS3 Master Collection ``MGS_Font_nht.raw``), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``cv_nds`` (DS Castlevania), ``ffta2`` (FFTA2 DS font),
+        font), ``mgs_nht`` (MGS2 / MGS3 Master Collection ``MGS_Font_nht.raw``), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``gen4_glyphs`` (DS Gen 4 font bins: Diamond / Pearl, Platinum, HeartGold), ``cv_nds`` (DS Castlevania), ``ffta2`` (FFTA2 DS font),
         ``xf`` and ``g4font`` (Level-5), ``jade`` / ``brfna`` / ``swf_font`` / ``rrr_errfont`` (Raving Rabbids: Jade FONTDESC, Wii
         archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``laft`` (Monolith Soft LAFT, Switch Xenoblade), ``jfnt`` (One Piece Unlimited World Red `JFNT`), ``nlg_font`` (Luigi's Mansion: Dark Moon), ``phyre_bmf`` (Dragon Quest Builders PhyreEngine bitmap fonts), ``pw_xpr`` (Peace Walker `*_FONT.xpr` XPR2 font packs), ``l5_fnt`` (Fantasy Life `FNT` fonts), ``ubiart_tfn`` (UbiArt `.tfn.ckd` fonts of the 3DS builds), ``asw_jfnt`` (Arc System Works `jFNT` atlas font, Dragon Ball Fusions), ``cfna`` (3DS archived fonts `CFNA`, NintendoWare ArchiveFont), ``cop_fnt`` (Agatsuma FD fonts,
         Code of Princess; the ``bcfnt`` backend also takes ``bottom_up`` for Capcom 3DS fonts), ``fe13_bfnt``
