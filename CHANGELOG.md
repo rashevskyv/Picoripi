@@ -3,6 +3,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [Unreleased]
 
 - Textures window and Font Editor: a plugin's font and picture scan (Pokémon Gen V reads every picture NARC) now runs in the window's job instead of on the UI thread; a test proves the scan leaves the UI thread.
+- Unreal pak reader: `open_path` closes its file when the returned `Pak` is closed (`close()` or `with`); the file was never released before.
 - Tests: the review run test that opens the AI variations window no longer waits in its modal loop; the window is replaced by a stand-in whose exec() returns at once.
 - Merged the fifth set of finished game branches (Super Metroid intro fonts, Pokémon generations III-V, Bravely Second and the PC font and pak readers, Metal Gear Solid 2 / 3 Master Collection); the plugin contract, the roadmap and the developer guide (EN, UK) list the new formats `ttf`, `mgs_nht` and `ctxr`, and the guide now names `bffnt_wiiu` and `brfnt` too.
 - Font format `ttf` (a plain TrueType / OpenType file, the `bfotf` glyph model; `alias` points a missing character at a look-alike glyph) with the Bravely Default PC fonts and English pictures in its source lists, and `core/unreal/pak.py` (reads Unreal pak version 8 with zstd, zlib or no compression; writes an unencrypted pak), not used by a plugin yet.

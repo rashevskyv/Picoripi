@@ -21,6 +21,16 @@ def test_written_pak_reads_back(tmp_path):
         assert opened.data(entry) == files[entry.name]
 
 
+def test_a_closed_pak_releases_its_file(tmp_path):
+    target = tmp_path / "patch_P.pak"
+    pak.write_pak(target, {"a.txt": b"hi"})
+    with pak.open_path(target) as opened:
+        assert opened.data(opened.entries[0]) == b"hi"
+    target.unlink()                     # on Windows an open file cannot be deleted
+    assert not target.exists()
+    opened.close()                      # closing twice is harmless
+
+
 def test_bad_footer_is_refused(tmp_path):
     target = tmp_path / "not_a_pak.bin"
     target.write_bytes(b"\x00" * 400)
