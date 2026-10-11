@@ -808,6 +808,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      (PC: `build\windata`; Switch: a LayeredFS mod) and drops M2's own small fixes where the translation changed
      their bytes.
    - `metal_gear_solid_23_mc` — Metal Gear Solid 2 and 3, Master Collection Version (Switch; PC not yet).
+   - `metal_gear_mc_bonus` — Metal Gear Solid Master Collection Bonus Content (Vol.1 and Vol.2, Switch): the two M2 apps' PSB menu and message text (English lines); fonts and pictures open in the shared font and texture tools.
      **Source:** the workspace's `source` folder (`1_unpack.bat`): `text\<group>.json` (codec, scenario, demo,
      movie, vox, books and the launcher's text; one block per game file, each English string once per group;
      `2_build.bat` puts the translated line into every place the string stands). Keep the line breaks, the `|`

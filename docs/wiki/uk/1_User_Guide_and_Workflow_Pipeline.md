@@ -800,6 +800,7 @@ tokens: 44.0k
      `patchdata.bin` (PC: `build\windata`; Switch: мод LayeredFS) і прибирає власні дрібні виправлення M2 там, де
      переклад змінив їхні байти.
    - `metal_gear_solid_23_mc` — Metal Gear Solid 2 і 3, Master Collection Version (Switch; PC ще ні).
+   - `metal_gear_mc_bonus` — Metal Gear Solid Master Collection Bonus Content (Vol.1 і Vol.2, Switch): текст меню і повідомлень двох застосунків M2 (англійські рядки); шрифти і картинки відкриваються у спільних інструментах шрифтів і текстур.
      **Source:** тека `source` робочої теки (`1_unpack.bat`): `text\<group>.json` (codec, scenario, demo, movie,
      vox, books і текст лаунчера; один блок на файл гри, кожен англійський рядок один раз на групу; `2_build.bat`
      ставить перекладений рядок у кожне місце, де стоїть цей рядок). Лишайте розриви рядків, позначки `|` і

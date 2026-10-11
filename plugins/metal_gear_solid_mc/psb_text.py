@@ -28,26 +28,58 @@ def is_psb(data: bytes) -> bool:
     return bytes(data[:4]) == MAGIC
 
 
-def _walk(value: Any, path: Path, english: bool, out: List[Tuple[Path, str]]) -> None:
+_NUMBER = re.compile(r"\d+|0x[0-9A-Fa-f]+")
+
+
+def _is_id(value: str, keys: frozenset) -> bool:
+    """A one-word string that names something in the code, not a label: snake_case, a file name, a path, a
+    number, or a plain lower-case word (no capital, no space, no digit: stand, logo, static). Capitalised,
+    all-caps words, words with a space or a digit (SAVE, Slot 1, OFF, Yes) are labels."""
+    if any(c in value for c in "_./\\"):
+        return True
+    if _NUMBER.fullmatch(value):
+        return True
+    return value.islower() and " " not in value and not any(c.isdigit() for c in value)
+
+
+def _keys(value: Any, found: set) -> set:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if isinstance(key, str):
+                found.add(key)
+            _keys(item, found)
+    elif isinstance(value, list):
+        for item in value:
+            _keys(item, found)
+    return found
+
+
+def _walk(value: Any, path: Path, english: bool, out: List[Tuple[Path, str]],
+          words: bool = False, keys: frozenset = frozenset()) -> None:
     if isinstance(value, str):
         # A translated line must stay a line: Cyrillic letters count as text too.
         if _CYRILLIC.search(value) or (english and _LATIN.search(value)) or (not english and _TEXT.search(value)):
             out.append((path, value))
+        elif words and _LATIN.search(value) and not _is_id(value, keys):
+            out.append((path, value))              # a single-word label (SAVE, Slot 1, OFF)
     elif isinstance(value, dict):
         for key, item in value.items():
             if key in OTHER_LANGUAGES:
                 continue
-            _walk(item, path + (key,), english or key == ENGLISH, out)
+            _walk(item, path + (key,), english or key == ENGLISH, out, words, keys)
     elif isinstance(value, list):
         for index, item in enumerate(value):
-            _walk(item, path + (index,), english, out)
+            _walk(item, path + (index,), english, out, words, keys)
 
 
-def lines(data: bytes) -> List[Tuple[Path, str]]:
-    """``[(place in the tree, text)]`` of the file's English text strings."""
+def lines(data: bytes, words: bool = False) -> List[Tuple[Path, str]]:
+    """``[(place in the tree, text)]`` of the file's English text strings.
+
+    ``words=True`` also shows one-word labels (SAVE, Slot 1, OFF) and skips the internal IDs (see ``_is_id``).
+    The default keeps the two-word rule of the PlayStation plugin."""
     root, _psb = m2_psb.load(bytes(data))
     out: List[Tuple[Path, str]] = []
-    _walk(root, (), False, out)
+    _walk(root, (), False, out, words, frozenset(_keys(root, set())))
     return out
 
 
@@ -55,11 +87,13 @@ def where(path: Path) -> str:
     return "/".join(str(part) for part in path)
 
 
-def build(data: bytes, texts: Sequence[Optional[str]]) -> bytes:
-    """The file with ``texts`` (one per line of ``lines``; None or the same text = unchanged)."""
+def build(data: bytes, texts: Sequence[Optional[str]], words: bool = False) -> bytes:
+    """The file with ``texts`` (one per line of ``lines``; None or the same text = unchanged).
+
+    ``words`` must match the value given to ``lines``."""
     root, psb = m2_psb.load(bytes(data))
     found: List[Tuple[Path, str]] = []
-    _walk(root, (), False, found)
+    _walk(root, (), False, found, words, frozenset(_keys(root, set())))
     changed = False
     strings = list(psb.strings)
     known = set(strings)

@@ -1,0 +1,4 @@
+[
+  {"label": "Vol.1 M2 menu fonts (system)", "format": "m2", "path": "vol1/system/font/*.psb"},
+  {"label": "Vol.2 M2 menu fonts (system)", "format": "m2", "path": "vol2/system/font/*.psb"}
+]
