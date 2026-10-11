@@ -1,0 +1,12 @@
+[
+  {"label": "Dialogue font (font18)", "format": "nftr", "path": ["data/font/font18.NFTR", "data_lt2/font/font18.NFTR"], "font_map": "font18.json"},
+  {"label": "Event text font (fontevent)", "format": "nftr", "path": ["data/font/fontevent.NFTR", "data_lt2/font/fontevent.NFTR"], "font_map": "fontevent.json"},
+  {"label": "Puzzle text font (fontq)", "format": "nftr", "path": ["data/font/fontq.NFTR", "data_lt2/font/fontq.NFTR"], "font_map": "fontq.json"},
+  {"label": "Text font 1 (font_en1)", "format": "layton_nftr", "path": "lt3/fnt/font_en1.cfnt", "font_map": "font_en1.json"},
+  {"label": "Text font 2 (font_en2)", "format": "layton_nftr", "path": "lt3/fnt/font_en2.cfnt", "font_map": "font_en2.json"},
+  {"label": "English font (font_en2)", "format": "layton_gfnt", "path": "fnt/font_en2.cf", "font_map": "font_en2.json"},
+  {"label": "Main font (main)", "format": "layton_gfnt", "path": "fnt/main.cf", "font_map": "main.json"},
+  {"label": "Colour font (color)", "format": "layton_gfnt", "path": "fnt/color.cp", "font_map": "color.json"},
+  {"label": "Debug font (dbg_b)", "format": "layton_gfnt", "path": "fnt/dbg_b.ca", "font_map": "dbg_b.json"},
+  {"label": "Game font (font.dat, HD ports)", "format": "layton_hd", "path": ["data/font/font.dat", "data/fnt/font.dat"], "font_map": "font_hd.json"}
+]

@@ -439,7 +439,37 @@ tokens: 44.0k
      робочої теки перезбирає архіви XFSA (`lt5_uk.fa`, `vs1.fa`) або ARC0 (`lt6_uk.fa`) у мод Luma. Layton's
      Mystery Journey (3DS, EUR; робоча тека `LAYTON_MJ_3DS`) відкривається тим самим плагіном: англійські скрипти
      `txt\en\**\*.xs` в `lt6_en.fa` (1 664 файли, близько 14 900 рядків) записано в UTF-8, тож українські літери
-     зберігаються як є (бракує лише гліфів у шрифтах); логотип — `menu\en\ctr\title_a.xc`.
+     зберігаються як є (бракує лише гліфів у шрифтах); логотип — `menu\en\ctr\title_a.xc`. Deluxe Edition для
+     Switch (робоча тека `LAYTON_MJ_NX`, мод LayeredFS) тримає ті самі файли окремо в RomFS: `txt\en\**\*.xs`,
+     американське написання `_us\txt\en\**`, `res\lt6_def.xs`, шрифти `fnt\[eu]` і `fnt\[na]` (nrm, sml, lrg) і
+     картинки тек `en` і `_us` (IMGN / IMGA); редагуйте і файл `txt\en`, і файл `_us` розділу
+     (Eden з регіоном USA читає `_us`).
+   - `layton_ds` — Professor Layton and the Curious Village, Pandora's Box, Lost Future і Spectre's Call
+     (Nintendo DS, EUR; робочі теки `LAYTON_CV_DS`, `LAYTON_PB_DS`, `LAYTON_LF_DS`, `LAYTON_SC_DS`). **Source:** тека
+     `source` робочої теки: власні файли гри за шляхами NitroFS (Spectre's Call: за шляхами в трьох архівах
+     `lt4_*.fa`), ще стиснені так, як їх тримає гра; один блок на файл, лише файли з текстом.
+     Curious Village: `data\otext\en\*.txt`, пакунки `.pcm` (`etext` / `htext` / `itext` / `otext` /
+     `qtext`) і скрипти `data\script\**\*.gds` (назви й умови головоломок, репліки
+     готельних кімнат, розмови подій); Pandora's Box: `data_lt2\event|nazo|place|rc\en\*.plz` і бази
+     `rc\en\*.dlz`; Lost Future: `lt3\txt\uk\*.cpck`, `lt3\rc\nazo\uk\*.cdat` (головоломки),
+     `lt3\rc\**\*.cpck` / `.cbin`; Spectre's Call: скрипти `GSD1` `txt\uk\**\*.cb` і `res\uk\*.cb`.
+     **Translation:** `translation` (цілі файли). Рядок зберігає розмітку гри (`<T>`, `<W>`, `@p`, `<'e>`);
+     незмінений файл лишається байт у байт; довший рядок записується наново з
+     пересунутими зміщеннями пакунка й переходами `.gds`; поле бази фіксованої ширини
+     відхиляє довший рядок. Редактор шрифтів відкриває шрифти `NFTR` (Curious Village, Pandora's
+     Box, Lost Future) і `GFNT` Spectre's Call; жоден поки не має української літери (по 52
+     латинські). Вікно текстур показує зображення титулу, меню, головоломок і мап: фони
+     (`.arc` BG), атласи анімацій (`.arc` / `.arj`), `.cimg` / `.cani` Lost Future (`LIMG`) і `.ci` / `.ca`
+     Spectre's Call (`GFSP`: 4-бітні, 8-бітні, A5I3, A3I5). `2_build.bat` робочої теки перезбирає ROM (NitroFS
+     розкладено наново, архіви GFSA Spectre's Call латаються по одному файлу). Андроїдні HD-порти для Switch homebrew (робочі теки `LAYTON_CV_HD_NX`,
+     `LAYTON_PB_HD_NX`, `LAYTON_LF_HD_NX`; `switch.7z` порту) відкриваються тим самим плагіном: **Source** — тека
+     `assets` порту за тими самими шляхами (англійські теки `data-en`, `data-EU`, `data-en-EU` і `data`):
+     окремі файли `.txt` / `.lbin` / `.dat` у UTF-8, картинки PNG і бітмапний шрифт `data\font\font.dat`
+     (редактор шрифтів додає літери: рушій читає UTF-8). Збірка пише змінені файли в
+     `build\sd\switch\<dir>\assets` для SD-карти; у запуску homebrew в Eden немає дескриптора процесу,
+     тому завантажувач цих портів тут зупиняється. `layton_mr` (Layton Brothers: Mystery Room, робоча
+     тека `LAYTON_MR_NX`) відкриває рядки даних Unity, експортовані скриптом робочої теки
+     (`{"strings": [...]}` на файл даних), і їхні текстури (PNG).
    - `eternal_darkness` — Eternal Darkness: Sanity's Requiem (GameCube, USA). **Source:** тека `source\game`
      робочої теки (`1_unpack.bat` розпаковує туди файли диска `*SK_ASC*`): `EBootPak.bin` (меню, предмети,
      закляття, руни, системні повідомлення), `EBookPak.bin` (сторінки Тому, меню збереження),

@@ -88,7 +88,7 @@ def _huffman(src: bytes, pos: int, size: int, depth: int) -> bytes:
     return bytes(result[2 * j] | result[2 * j + 1] << 4 for j in range(size))
 
 
-def _rle(src: bytes, pos: int, size: int) -> bytes:
+def rle_body(src: bytes, pos: int, size: int) -> bytes:
     out = bytearray()
     while len(out) < size:
         flag = src[pos]
@@ -113,7 +113,7 @@ def decompress(data: bytes) -> bytes:
     if method in (HUFFMAN4, HUFFMAN8):
         return _huffman(data, 4, size, 4 if method == HUFFMAN4 else 8)
     if method == RLE:
-        return _rle(data, 4, size)
+        return rle_body(data, 4, size)
     if method == ZLIB:
         return zlib.decompress(data[4:])
     raise ValueError(f"Unknown Level-5 compression method {method}")
