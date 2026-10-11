@@ -801,7 +801,7 @@ class BaseGameRules:
         ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
         and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
         multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``mibl`` / ``wilay`` (Monolith Soft MIBL
-        textures and ``.wilay`` layouts, Switch Xenoblade), ``ctxr`` (MGS2 / MGS3 Master Collection ``.ctxr``: Switch NVN, PC TXTR 7), ``jade`` / ``jade_jtx`` (Jade engine textures),
+        textures and ``.wilay`` layouts, Switch Xenoblade), ``ctxr`` (MGS2 / MGS3 Master Collection ``.ctxr``: Switch NVN, PC TXTR 7), ``fr3`` (Jak and Daxter level files of the OpenGOAL port: RGBA8, BC1 and BC3 records), ``jade`` / ``jade_jtx`` (Jade engine textures),
         ``shpg`` (EA SHPG, Wii), ``txtr`` /
         ``txtr_gx`` (Retro TXTR), ``gim`` (PSP), ``tim`` (PlayStation TIM), ``tim2`` (PS2 / PSP TIM2),
         ``policenauts_pak``, ``vs_gim`` / ``vs_hf1`` / ``vs_rle`` (Vagrant Story pictures), ``sotn_blocks`` /
