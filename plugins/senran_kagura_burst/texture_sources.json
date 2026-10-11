@@ -1,0 +1,9 @@
+[
+  {"label": "Title and common layouts", "kind": "title_screen", "format": "bflim", "path": "romfs/ui/lyt_{title,common}_*.bin", "member": "*.darc/timg/*.bclim"},
+  {"label": "Menu layouts", "kind": "menu_label", "format": "bflim", "path": "romfs/ui/lyt_menu_*.bin", "member": "*.darc/timg/*.bclim"},
+  {"label": "Battle HUD layouts", "kind": "hud", "format": "bflim", "path": "romfs/ui/lyt_action_*.bin", "member": "*.darc/timg/*.bclim"},
+  {"label": "Prologue, staff roll and Orochi layouts", "kind": "ending", "format": "bflim", "path": "romfs/ui/lyt_{prologue,staff_roll,orochi,adv}_*.bin", "member": "*.darc/timg/*.bclim"},
+  {"label": "Other layouts", "kind": "menu_label", "format": "bflim", "path": "romfs/arc/*.bin", "member": "*.darc/timg/*.bclim"},
+  {"label": "Logos and warning", "kind": "title_screen", "format": "ctpk", "path": "romfs/logo/*.ctpk"},
+  {"label": "Gallery pictures", "kind": "menu_label", "format": "ctpk", "path": "romfs/gm/*.ctpk"}
+]

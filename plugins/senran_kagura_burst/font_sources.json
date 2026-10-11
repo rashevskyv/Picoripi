@@ -1,0 +1,7 @@
+[
+  {"label": "font (the game's text font)", "format": "cfna", "path": "romfs/font/font.bcfna"},
+  {"label": "hudemoji (button and status icons)", "format": "cfna", "path": "romfs/font/hudemoji.bcfna"},
+  {"label": "number_00 (battle numbers)", "format": "cfna", "path": "romfs/font/number_00.bcfna"},
+  {"label": "number_01 (battle numbers)", "format": "cfna", "path": "romfs/font/number_01.bcfna"},
+  {"label": "number_02 (battle numbers)", "format": "cfna", "path": "romfs/font/number_02.bcfna"}
+]
