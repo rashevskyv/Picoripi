@@ -50,3 +50,22 @@ def test_cff_with_custom_encoding_rebuilds_into_a_loadable_font():
     table = cff.Cff(plain[at:at + length])
     rebuilt = cff.rebuild_font(plain, table, font.cmap(), [], {}, None)
     ImageFont.truetype(io.BytesIO(rebuilt), 40)
+
+
+ENGLISH_RAW = Path("D:/Games/MG1-2 MC/fr/stage/mg1/cache/english.raw")
+
+
+def test_english_raw_split_round_trips_synthetic_bytes():
+    from core import english_raw
+
+    data = b"\x00\x00\x0bTRANSCEIVER\x00\x00\x04SEND\x00\x01\x02Hi\x00\x00\x00\x00ok text here\x00\xff"
+    chunks = english_raw.split(data)
+    assert english_raw.join(chunks) == data
+    assert [text for is_text, text in chunks if is_text] == [b"TRANSCEIVER\x00", b"SEND\x00", b"ok text here\x00"]
+
+
+def test_english_raw_split_round_trips_the_install_file():
+    from core import english_raw
+
+    data = _need(ENGLISH_RAW)
+    assert english_raw.join(english_raw.split(data)) == data
