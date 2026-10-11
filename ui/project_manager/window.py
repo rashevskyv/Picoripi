@@ -18,7 +18,7 @@ from core.project_library import index, registry, views
 from core.project_library.cards import percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
 from ui.project_manager.jobs import BackgroundJob, CardScanJob
-from utils.logging_utils import log_info
+from utils.logging_utils import log_debug, log_info
 from utils.thread_utils import safe_shutdown_thread, single_shot
 
 KEY_ROLE = Qt.ItemDataRole.UserRole
@@ -620,7 +620,11 @@ class ProjectManagerDialog(QDialog):
 
     def closeEvent(self, event) -> None:
         for job in list(self._jobs):
-            safe_shutdown_thread(job, None, 1000)
+            try:
+                safe_shutdown_thread(job, None, 1000)
+            except RuntimeError as exc:  # Qt deleted a job that had already finished
+                log_debug(f"Project manager job was already gone at close: {exc}")
+        self._jobs.clear()
         super().closeEvent(event)
 
 
