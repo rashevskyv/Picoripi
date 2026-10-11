@@ -92,4 +92,3 @@ class GameRules(BaseGameRules):
 
     def get_editor_page_size(self) -> int:
         return DEFAULT_LINES_PER_PAGE
-
