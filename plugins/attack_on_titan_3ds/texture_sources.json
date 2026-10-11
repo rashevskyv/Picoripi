@@ -1,0 +1,8 @@
+[
+  {"label": "Staff roll", "kind": "ending", "format": "ctpk", "path": "romfs/staff/*.ctpk"},
+  {"label": "Staff roll (updated)", "kind": "ending", "format": "ctpk", "path": "romfs/staff_upd/*.ctpk"},
+  {"label": "Signboards", "kind": "menu_label", "format": "ctpk", "path": "romfs/signboard/*.ctpk"},
+  {"label": "Loading pictures (cut-ins)", "kind": "menu_label", "format": "ctpk", "path": "romfs/load/*.ctpk"},
+  {"label": "Battle UI", "kind": "hud", "format": "ctpk", "path": "romfs/ags/field_d/*.ctpk"},
+  {"label": "Other pictures", "kind": "menu_label", "format": "ctpk", "path": "romfs/**/*.ctpk"}
+]
