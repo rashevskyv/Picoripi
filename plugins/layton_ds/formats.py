@@ -93,7 +93,12 @@ def _encode(text: str, encoding: str, where: str) -> bytes:
 
 
 def _decode(raw: bytes, encoding: str) -> str:
-    encoding = _resolve(encoding)
+    resolved = _resolve(encoding)
+    if resolved != encoding:                # an HD port: UTF-8; a file it took over from the DS may be Shift-JIS
+        try:
+            return raw.decode(resolved)
+        except UnicodeDecodeError:
+            pass
     return raw.decode(encoding, errors="surrogateescape" if encoding == SJIS else "strict")
 
 
@@ -118,7 +123,11 @@ def _text_encoding(raw: bytes, fallback: str) -> str:
     """``utf-8`` for text that has non-ASCII bytes and is valid UTF-8 (the Android HD ports store UTF-8), else
     the DS games' own encoding."""
     if _UTF8.get():
-        return UTF8
+        try:
+            raw.decode("utf-8")
+            return UTF8
+        except UnicodeDecodeError:
+            return fallback
     if all(b < 0x80 for b in raw):
         return fallback
     try:
