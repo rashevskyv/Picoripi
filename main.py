@@ -789,4 +789,11 @@ if __name__ == '__main__':
     wait_for_threads_at_exit()
     log_info(f"Qt event loop finished with exit code: {exit_code}", category="lifecycle")
     log_info("================= Application End =================")
-    sys.exit(exit_code)
+    # Everything is saved by now. Interpreter teardown frees the remaining Qt wrappers in arbitrary order and
+    # crashed about one exit in four with an access violation, so end the process without it.
+    import logging
+    import os
+    logging.shutdown()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(exit_code)
