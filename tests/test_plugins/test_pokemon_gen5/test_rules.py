@@ -70,10 +70,11 @@ def test_a_changed_line_keeps_the_flags_the_packing_and_the_other_lines():
 
 def test_an_unchanged_file_is_returned_as_it_was():
     rules = load_rules(PLUGIN)
-    blocks, names = rules.load_data_from_json_obj(SAMPLE + b"\xaa\xaa")        # padding bytes behind the lines
-    assert not gen5msg.is_gen5msg(SAMPLE + b"\xaa\xaa") or rules.save_data_to_json_obj(blocks, names) is not None
     blocks, names = rules.load_data_from_json_obj(SAMPLE)
     assert rules.save_data_to_json_obj(blocks, names) == SAMPLE
+    padded = SAMPLE + b"\xaa\xaa"                                 # bytes behind the message: not a message file
+    assert not gen5msg.is_gen5msg(padded)
+    assert rules.load_data_from_json_obj(padded) == ([[]], {})     # so no line is offered for editing
 
 
 def test_a_letter_the_packing_cannot_hold_leaves_the_line_plain():
