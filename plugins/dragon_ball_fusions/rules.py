@@ -7,7 +7,7 @@ in the CRI archive ``romfs/DOF.cpk`` and in ``.jarc`` archives inside it, which 
 - ``romfs/DOF.cpk/message/msg_en.jmsg`` -- all the English text: 18,683 UTF-16 strings keyed by hash (``jmsg``);
   the French, German, Spanish and Italian files are not opened.
 - ``romfs/DOF.cpk/pac/system.jarc/ui/common/en/*.jfnt`` (and ``ui/photo`` in ``photofusion.jarc``) -- the bitmap
-  fonts (``font_sources.json``, format ``jfnt``); ``default01.jfnt``, the main font, is a packed outline font that is
+  fonts (``font_sources.json``, format ``asw_jfnt``); ``default01.jfnt``, the main font, is a packed outline font that is
   not opened.
 - every ``.jtex`` (``jimg``, ``texture_sources.json``): loose in the CPK and inside the ``.jarc`` archives.
 """

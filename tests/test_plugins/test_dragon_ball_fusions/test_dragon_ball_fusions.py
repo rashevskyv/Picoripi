@@ -88,14 +88,14 @@ def _jfnt() -> bytes:
 
 def test_jfnt_atlas_font_round_trips_and_edits():
     raw = _jfnt()
-    meta, sheets = font_formats.extract("jfnt", raw)
+    meta, sheets = font_formats.extract("asw_jfnt", raw)
     assert set(font_formats.char_map(meta)) == set("!\"#$%&")
-    assert font_formats.pack("jfnt", meta, sheets, raw) == raw
+    assert font_formats.pack("asw_jfnt", meta, sheets, raw) == raw
     sheet = sheets[0].copy()
     sheet.paste(Image.new("RGBA", (6, 6), (255, 255, 255, 255)), (0, 0))
-    out = font_formats.pack("jfnt", meta, [sheet], raw)
+    out = font_formats.pack("asw_jfnt", meta, [sheet], raw)
     assert out != raw and len(out) == len(raw)
-    assert font_formats.extract("jfnt", out)[1][0].tobytes() != sheets[0].tobytes()
+    assert font_formats.extract("asw_jfnt", out)[1][0].tobytes() != sheets[0].tobytes()
 
 
 def test_real_message_file_round_trips():
@@ -111,8 +111,8 @@ def test_real_fonts_and_pictures():
     _need(SOURCE)
     for source in json.loads((PLUGIN / "font_sources.json").read_text(encoding="utf-8")):
         data = (WS / "source" / source["path"]).read_bytes()
-        meta, sheets = font_formats.extract("jfnt", data)
-        assert font_formats.pack("jfnt", meta, sheets, data) == data, source["path"]
+        meta, sheets = font_formats.extract("asw_jfnt", data)
+        assert font_formats.pack("asw_jfnt", meta, sheets, data) == data, source["path"]
     files = sorted(SOURCE.rglob("*.jtex"))
     assert len(files) > 2000
     for path in files[::120]:
