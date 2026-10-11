@@ -7,8 +7,14 @@ A project's source folder is the workspace's ``source`` tree (``1_unpack.bat`` f
   English line as hex bytes with its timing. One block per file, one string per line. The bytes are ASCII with
   ``0x1F`` + a code for an accented letter (Latin-1 minus 0x7F) and ``0x80 0x7C`` as the line break (``textcodec.py``,
   the scheme of the Twin Snakes); other bytes show as ``{xNN}``. An unedited line keeps its bytes.
+- ``text/gcx.mgsgcx`` -- the English text of the game scripts (``stage/*/scenerio.gcx`` and ``codec.dat``: item and
+  weapon help, codec calls, profiles, menu messages) as JSON: blocks of lines, each English string once; the build
+  puts a translation into every script that has the string. The bytes are the same as in the subtitles, with a
+  plain ``0x0A`` as the line break. A longer translation takes room from the other languages' strings of the
+  same script table, so the file keeps its size.
 - ``romfs/ui/**.la2/...`` -- the ``.la2`` layout archives (darc) as folders: ``font/*.bcfnt`` fonts and
-  ``timg/*.bclim`` pictures (``font_sources.json``, ``texture_sources.json``).
+  ``timg/*.bclim`` pictures (``font_sources.json``, ``texture_sources.json``); ``romfs/stage/*/cache.hpk/*.la2/``
+  holds the layouts inside the stage archives (staff roll, epilogue pictures, title cards).
 
 A project may have ``translation_map.json`` (``{"Б": "Á"}``): the letter is written as the byte code of the glyph it
 is mapped to and shown back as the letter.
@@ -27,6 +33,7 @@ from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
 MARK = "mgs3d-subtitles"
+MARK_GCX = "mgs3d-gcx"
 
 
 class GameRules(BaseGameRules):
@@ -43,6 +50,7 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._model: Optional[dict] = None          # the file loaded or about to be saved
         self._lines: List[Tuple[int, int]] = []     # string index -> (record, line)
+        self._names: List[str] = []                 # gcx: the name of each block
         self.translation_map: Dict[str, str] = {}
         self.reverse_map: Dict[str, str] = {}
 
@@ -51,7 +59,7 @@ class GameRules(BaseGameRules):
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat((".mgssubs",), "bytes", "Snake Eater 3D subtitles"), *DEFAULT_FORMATS]
+        return [FileFormat((".mgssubs", ".mgsgcx"), "bytes", "Snake Eater 3D text and subtitles"), *DEFAULT_FORMATS]
 
     def get_capabilities(self) -> Set[str]:
         return set()
@@ -78,7 +86,8 @@ class GameRules(BaseGameRules):
             model = json.loads(bytes(raw).decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return None
-        return model if isinstance(model, dict) and model.get("format") == MARK else None
+        ok = isinstance(model, dict) and model.get("format") in (MARK, MARK_GCX)
+        return model if ok else None
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         model = self._parse(json_obj) if isinstance(json_obj, (bytes, bytearray)) else None
@@ -87,6 +96,11 @@ class GameRules(BaseGameRules):
             return super().load_data_from_json_obj(json_obj)
         self.load_translation_map()
         self._model = model
+        if model["format"] == MARK_GCX:
+            self._lines = []
+            blocks = [[textcodec.decode(bytes.fromhex(h), self.reverse_map) for h in block["lines"]]
+                      for block in model["blocks"]]
+            return blocks or [[]], {str(i): str(b.get("name", i)) for i, b in enumerate(model["blocks"])}
         self._lines = [(r, n) for r, record in enumerate(model["records"]) for n in range(len(record["lines"]))]
         texts = [textcodec.decode(bytes.fromhex(model["records"][r]["lines"][n]["hex"]), self.reverse_map)
                  for r, n in self._lines]
@@ -95,7 +109,7 @@ class GameRules(BaseGameRules):
     def prepare_save_context(self, context) -> None:
         """The file is rebuilt from the newest version that parses (timing and offsets stay as they were)."""
         self._model = None
-        if not str(getattr(context, "relative_path", "")).lower().endswith(".mgssubs"):
+        if not str(getattr(context, "relative_path", "")).lower().endswith((".mgssubs", ".mgsgcx")):
             return
         for raw in context.existing_versions():
             model = self._parse(raw)
@@ -107,10 +121,23 @@ class GameRules(BaseGameRules):
         if self._model is None:
             return super().save_data_to_json_obj(data, block_names)
         self.load_translation_map()
-        texts = data[0] if data and isinstance(data[0], list) else []
         model = json.loads(json.dumps(self._model))
-        index = 0
         missing: Set[str] = set()
+        if model.get("format") == MARK_GCX:
+            for number, block in enumerate(model["blocks"]):
+                shown = data[number] if number < len(data) and isinstance(data[number], list) else []
+                for n, hex_text in enumerate(block["lines"]):
+                    original = bytes.fromhex(hex_text)
+                    text = shown[n] if n < len(shown) else None
+                    if text is None or str(text) == textcodec.decode(original, self.reverse_map):
+                        continue
+                    block["lines"][n] = textcodec.encode(str(text), textcodec.LF, self.translation_map, missing).hex()
+            if missing:
+                log_warning(f"metal_gear_solid_3d: characters the font has no code for were written as '?': "
+                            f"{''.join(sorted(missing))}")
+            return json.dumps(model, indent=1).encode("utf-8")
+        texts = data[0] if data and isinstance(data[0], list) else []
+        index = 0
         for record in model["records"]:
             for line in record["lines"]:
                 original = bytes.fromhex(line["hex"])
@@ -127,11 +154,14 @@ class GameRules(BaseGameRules):
 
     def reset_runtime_state(self) -> None:
         self._model, self._lines = None, []
+        self._names = []
 
     # -- context ---------------------------------------------------------------------
 
     def get_translation_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
         model = self._model
+        if model and model.get("format") == MARK_GCX:
+            return {"content_role": "Game text: item, weapon or codec message", "has_speaker": False}
         if not model or not 0 <= string_idx < len(self._lines):
             return {}
         record, line = self._lines[string_idx]
@@ -140,6 +170,9 @@ class GameRules(BaseGameRules):
                 "timing": f"{item['start']}-{item['end']}"}
 
     def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
+        if self._model and self._model.get("format") == MARK_GCX:
+            blocks = self._model["blocks"]
+            return {"resource": str(blocks[block_idx].get("name", "")) if 0 <= block_idx < len(blocks) else ""}
         if not self._model or not 0 <= string_idx < len(self._lines):
             return {}
         record = self._model["records"][self._lines[string_idx][0]]
@@ -147,7 +180,7 @@ class GameRules(BaseGameRules):
 
     def get_ai_flow_group_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         """Lines of one subtitle record belong to one clip or cutscene scene."""
-        if not self._model or not 0 <= string_idx < len(self._lines):
+        if not self._model or self._model.get("format") == MARK_GCX or not 0 <= string_idx < len(self._lines):
             return None
         return f"record-{self._model['records'][self._lines[string_idx][0]]['offset']}"
 

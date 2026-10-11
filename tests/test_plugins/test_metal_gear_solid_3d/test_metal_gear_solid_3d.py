@@ -83,3 +83,44 @@ def test_pictures_read_and_write_back():
         formats.update(texture.pixel_format for texture in textures)
         assert texture_formats.write("bflim", data, {i: t.image for i, t in enumerate(textures)}) == data, path
     assert formats
+
+
+def _gcx_model(*blocks) -> bytes:
+    return json.dumps({"format": "mgs3d-gcx", "blocks": [{"name": f"stage/b{i}/scenerio.gcx", "lines": [x.hex() for x in b]}
+                                                          for i, b in enumerate(blocks)]}, indent=1).encode("utf-8")
+
+
+def test_gcx_blocks_decode_with_names_and_save_back_with_a_plain_line_feed():
+    raw = _gcx_model([b"Ration:\nRestores stamina.\n", b"Dr\x1fjd\x80#\xc0"], [b"Second block"])
+    rules = GameRules()
+    blocks, names = rules.load_data_from_json_obj(raw)
+    assert blocks == [["Ration:\nRestores stamina.\n", "Dr\xe9d{x80}#{xC0}"], ["Second block"]]
+    assert names == {"0": "stage/b0/scenerio.gcx", "1": "stage/b1/scenerio.gcx"}
+    rules._model = json.loads(raw)
+    assert rules.save_data_to_json_obj(blocks, {}) == raw
+    blocks[1][0] = "Another\nblock"
+    saved = json.loads(rules.save_data_to_json_obj(blocks, {}))
+    assert bytes.fromhex(saved["blocks"][1]["lines"][0]) == b"Another\nblock"
+    assert saved["blocks"][0] == json.loads(raw)["blocks"][0]
+
+
+def test_gcx_text_file_of_the_game_loads_and_saves_back_byte_for_byte():
+    raw = _need(SOURCE / "text" / "gcx.mgsgcx").read_bytes()
+    rules = GameRules()
+    blocks, names = rules.load_data_from_json_obj(raw)
+    rules._model = json.loads(raw)
+    assert len(blocks) == len(names) >= 40
+    assert sum(len(b) for b in blocks) == 9684
+    assert rules.save_data_to_json_obj(blocks, {}) == raw
+    assert any(line.startswith("PERSONAL DATA") for block in blocks for line in block)
+
+
+def test_stage_layout_pictures_of_the_hpk_archives_read_and_write_back():
+    descriptors = json.loads((PLUGIN / "texture_sources.json").read_text(encoding="utf-8"))
+    found = texture_sources.resolve(descriptors, {"source_path": str(_need(SOURCE)), "translation_path": ""})
+    stage = [s for s in found if "stage" in Path(s.source_path).parts[-6:]]
+    assert len(stage) >= 100
+    for source in stage[::10]:
+        data = Path(source.source_path).read_bytes()
+        textures = texture_formats.read("bflim", data)
+        assert texture_formats.write("bflim", data, {i: t.image for i, t in enumerate(textures)}) == data
