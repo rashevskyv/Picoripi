@@ -65,6 +65,10 @@ def preview(h):
         else:
             meta[name] = value
     (out / "synthetic.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
+    # The pixels reproduce only where Qt finds the same font families: record that environment with them.
+    environment = {"note": "The pixel goldens of this folder reproduce in an environment with this fingerprint.",
+                   "fingerprint": h.render_environment()}
+    (out / "render_environment.json").write_text(json.dumps(environment, indent=1), encoding="utf-8")
 
     if (h.TP_DUMP_ROOT / "res" / "Layout" / "msgres01.arc").exists():
         rendered = h.render_tp_previews(h.TP_DUMP_ROOT)

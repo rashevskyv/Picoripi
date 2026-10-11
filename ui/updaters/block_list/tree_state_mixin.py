@@ -4,6 +4,7 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QTreeWidgetItemIterator
 from utils.logging_utils import log_info
+from utils.thread_utils import single_shot
 
 class TreeStateMixin:
     """Block-tree expansion/selection state capture and restore."""
@@ -199,7 +200,6 @@ class TreeStateMixin:
                         if selected_string_idx != -1:
                             log_info(f"UIUpdater: Restoring string selection to absolute index {selected_string_idx}")
                             # Further delay for strings to ensure they are populated and mapped
-                            from PyQt6.QtCore import QTimer
 
                             def _select_string_and_restore_scroll():
                                 try:
@@ -256,7 +256,7 @@ class TreeStateMixin:
                                 finally:
                                     finish_restore()
 
-                            QTimer.singleShot(200, _select_string_and_restore_scroll)
+                            single_shot(200, self.mw.block_list_widget, _select_string_and_restore_scroll)
                         else:
                             finish_restore()
                     else:
@@ -266,8 +266,7 @@ class TreeStateMixin:
                     log_warning(f"UIUpdater: Error in _delayed_select: {e}")
                     finish_restore()
 
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(50, _delayed_select)
+            single_shot(50, self.mw.block_list_widget, _delayed_select)
         else:
             finish_restore()
 

@@ -3,7 +3,12 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [Unreleased]
 
 - Merged the sixth set of finished game branches: Metal Gear Master Collection (MGS4, Peace Walker, MG1/2, bonus content), Metroid Prime (GameCube and PC port), BlueWake, Dragon Quest Builders 1/2, Pokémon Gen 3 text and PNG, Mirror of Fate, Sticker Star, Kingdom Hearts 3D, Silent Hill 2/3, Paper Mario 64 (PaperBoat), 3DS batches A to C (Ace Attorney Trilogy, Code of Princess, Digimon Re:Digitize, Fantasy Life, One Piece, Luigi's Mansion). One `bch` texture reader serves two plugins; the plugin contract and the wiki list every font and texture format; version 0.3.157-dev.
+- Text operations: an issue scan's result is delivered through a relay owned by the main window, so a result that arrives after the window closed is dropped (it crashed with "has been deleted" before).
+- Block list: the deferred restore of the tree selection and scroll is scheduled with `single_shot` on the block list widget, so it never runs after that widget is gone (it closed a deleted progress dialog before).
+- Tests: the tree state tests wait for the deferred restore instead of patching the static timer.
+- Tests: the review run helper waits up to 60 s for an AI run to end (was 15 s), so a loaded machine does not time out.
 - Textures window and Font Editor: a plugin's font and picture scan (Pokémon Gen V reads every picture NARC) now runs in the window's job instead of on the UI thread; a test proves the scan leaves the UI thread.
+- Tests: the TP preview pixel goldens are compared only where the font environment matches the one recorded with them (`preview/render_environment.json`); elsewhere those tests skip with the reason, and the layout and label tests always run.
 - Tests: the save test takes the splitter states from the output; they are pixel sizes of the machine's fonts, so only their format is compared.
 - Tests: the glossary dialog's three lower panes may differ by one pixel (whole-pixel split of the height); the test allowed exact equality only.
 - Block list: a chapter-load result that arrives after the window closed is dropped by a relay owned by the block list widget (it crashed with "has been deleted" before); a test closes the window first.

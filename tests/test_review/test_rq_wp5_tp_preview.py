@@ -5,6 +5,14 @@ window, location plate, subtitles, boss, howl, credits, Midna, light spirit) and
 forced preset. Pixels, bar labels and the bar width must equal what the pre-audit code produced
 (``tests/fixtures/review_queue/wp5/make_golden.py``; tolerance 0). Then Settings -> "limits by window type":
 edit, OK, reopen keeps the value, and the file is written exactly as the old dialog wrote it.
+
+The pixel goldens reproduce only where Qt finds the same font families. ``preview/render_environment.json`` records
+that environment. Where this machine differs, the pixel tests skip with the reason; the layout, size and label
+tests always run. To refresh the goldens (one command, Git Bash, from the baseline worktree 691699c0, with
+QT_QPA_FONTDIR unset so the environment matches the recorded one)::
+
+    cd /d/git/dev/Picoripi-baseline && PYTHONPATH=. QT_QPA_PLATFORM=offscreen \\
+        ../Picoripi/venv/Scripts/python.exe ../Picoripi/tests/fixtures/review_queue/wp5/make_golden.py preview < /dev/null
 """
 import json
 from pathlib import Path
@@ -34,32 +42,71 @@ def _same_pixels(actual: QImage, golden: QImage) -> bool:
     return actual.convertToFormat(fmt) == golden.convertToFormat(fmt)
 
 
-def test_every_window_kind_and_forced_preset_paints_as_before(qapp, no_layout_cache):
+def _pixel_skip_reason() -> str:
+    """Empty when this machine renders like the goldens; otherwise why the pixel comparison is skipped."""
+    recorded = json.loads((GOLDEN / "render_environment.json").read_text(encoding="utf-8"))["fingerprint"]
+    current = h.render_environment()
+    if current == recorded:
+        return ""
+    return (f"font environment differs from the goldens' (Qt finds {current['families']} font families, the goldens "
+            f"were made with {recorded['families']}; QT_QPA_FONTDIR changes this): pixels not compared, "
+            "the layout and labels are")
+
+
+def test_every_window_kind_has_the_golden_layout_and_labels(qapp, no_layout_cache):
+    """Font-independent part of the golden: the window kinds, the bar labels, the bar and the picture sizes."""
     meta = json.loads((GOLDEN / "synthetic.json").read_text(encoding="utf-8"))
     rendered = h.render_tp_previews(None)
 
     assert set(rendered) == set(meta)
-    differing = []
     for name, value in rendered.items():
         if "image" not in value:
+            if name == "bar" and _pixel_skip_reason():
+                continue                          # the bar's minimum width is a font metric
             assert value == meta[name], name
             continue
         golden = QImage(str(GOLDEN / f"{name}.png"))
         assert not golden.isNull(), name
-        if not _same_pixels(value["image"], golden):
-            differing.append(name)
+        assert value["image"].size() == golden.size(), name
         assert value["label"] == meta[name]["label"], name
         assert value["bar_visible"] is True and meta[name]["bar_visible"] is True
-    assert differing == []
     # The bar names the window it shows: Auto follows the message, a forced preset is named plainly.
     assert rendered["auto_03_item"]["label"] == "Auto: Item get"     # message 0x02A5 forces the item window
     assert rendered["forced_02_2"]["label"] == "Wooden sign"
     assert rendered["wrapped"]["label"] == "Auto: Dialogue"
 
 
+def test_every_window_kind_and_forced_preset_paints_as_before(qapp, no_layout_cache):
+    reason = _pixel_skip_reason()
+    if reason:
+        pytest.skip(reason)
+    rendered = h.render_tp_previews(None)
+    differing = [name for name, value in rendered.items() if "image" in value and not _same_pixels(
+        value["image"], QImage(str(GOLDEN / f"{name}.png")))]
+    assert differing == []
+
+
+@pytest.mark.skipif(not HAS_DUMP, reason="retail Twilight Princess dump not on this machine")
+def test_the_retail_dump_layout_and_labels_are_as_before(qapp, no_layout_cache):
+    golden = json.loads((GOLDEN / "dump_digests.json").read_text(encoding="utf-8"))
+    rendered = h.render_tp_previews(h.TP_DUMP_ROOT)
+
+    assert set(rendered) == set(golden)
+    for name, value in rendered.items():
+        if "image" not in value:
+            if name == "bar" and _pixel_skip_reason():
+                continue                          # the bar's minimum width is a font metric
+            assert value == golden[name], name
+        else:
+            assert value["label"] == golden[name]["label"], name
+
+
 @pytest.mark.skipif(not HAS_DUMP, reason="retail Twilight Princess dump not on this machine")
 def test_with_the_retail_dump_frames_icons_and_font_paint_as_before(qapp, no_layout_cache):
     """The game's own frames, item icons and font. Only pixel digests are stored."""
+    reason = _pixel_skip_reason()
+    if reason:
+        pytest.skip(reason)
     golden = json.loads((GOLDEN / "dump_digests.json").read_text(encoding="utf-8"))
     rendered = h.render_tp_previews(h.TP_DUMP_ROOT)
 
