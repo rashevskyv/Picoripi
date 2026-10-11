@@ -1,0 +1,8 @@
+[
+  {"label": "Interface (title, menus, saves, lists)", "kind": "menu", "format": "bflim", "path": "romfs/gscene/*.arc", "member": "*.bflim"},
+  {"label": "Common interface", "kind": "menu", "format": "bflim", "path": "romfs/gcom/*.arc", "member": "*.bflim"},
+  {"label": "Map names, notes, items, events, faces, characters", "kind": "menu", "format": "bflim", "path": "romfs/gscene/*/*.arc", "member": "*.bflim"},
+  {"label": "Pictures (font folder)", "kind": "menu", "format": "ctpk", "path": "romfs/font/*.ctpk"},
+  {"label": "Pictures (common)", "kind": "menu", "format": "ctpk", "path": "romfs/gcom/*.ctpk"},
+  {"label": "Pictures (game)", "kind": "menu", "format": "ctpk", "path": "romfs/ggame/*.ctpk"}
+]

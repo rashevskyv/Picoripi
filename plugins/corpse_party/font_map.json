@@ -1,0 +1,21 @@
+{
+    "[PLAYER]": {
+        "width": 32
+    },
+    "[A]": {
+        "width": 16
+    },
+    "[B]": {
+        "width": 16
+    },
+    "{PAGE}": {
+        "width": 0
+    },
+    "{COLOR}": {
+        "width": 0
+    },
+    "{/COLOR}": {
+        "width": 0
+    }
+}
+
