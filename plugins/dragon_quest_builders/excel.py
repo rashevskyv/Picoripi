@@ -151,3 +151,63 @@ def write(table: Table, texts: List[str]) -> bytes:
         struct.pack_into("<I", out, pos, added[new] - pos)
     out += bytes(-len(out) % 4) + FOOTER + struct.pack("<I", table.columns)
     return bytes(out)
+
+
+# -- packs: many tables as one project block ---------------------------------------------------------
+
+PACK_MAGIC = b"DQBP"
+
+
+def is_pack(data: bytes) -> bool:
+    return bytes(data[:4]) == PACK_MAGIC
+
+
+def pack_tables(items: List[Tuple[int, bytes]]) -> bytes:
+    """Tables [(LINKDATA index, table bytes)] as one file: ``DQBP``, u32 count, then per table u32 index and u32
+    size, then the tables one after another. The workspace script writes it; Picoripi shows one block of all the
+    texts and saves the tables back into the same pack."""
+    head = PACK_MAGIC + struct.pack("<I", len(items))
+    head += b"".join(struct.pack("<II", index, len(data)) for index, data in items)
+    return head + b"".join(data for _index, data in items)
+
+
+def unpack_tables(data: bytes) -> List[Tuple[int, bytes]]:
+    if not is_pack(data):
+        raise ValueError("not a table pack")
+    count = struct.unpack_from("<I", data, 4)[0]
+    at = 8 + 8 * count
+    out = []
+    for i in range(count):
+        index, size = struct.unpack_from("<II", data, 8 + 8 * i)
+        out.append((index, bytes(data[at:at + size])))
+        at += size
+    if at != len(data):
+        raise ValueError("the table pack is cut short or has trailing bytes")
+    return out
+
+
+def pack_texts(data: bytes) -> Optional[List[str]]:
+    """The texts of every table of a pack, in order, or None when a table of it cannot be read."""
+    out: List[str] = []
+    for _index, raw in unpack_tables(data):
+        table = parse(raw)
+        if table is None:
+            return None
+        out += table.texts()
+    return out
+
+
+def pack_write(data: bytes, texts: List[str]) -> bytes:
+    """The pack with the texts (as ``pack_texts`` lists them) written back table by table; unchanged tables and
+    an unchanged pack are returned byte for byte."""
+    items, at = [], 0
+    for index, raw in unpack_tables(data):
+        table = parse(raw)
+        if table is None:
+            raise ValueError(f"table {index} of the pack cannot be read")
+        count = len(table.texts())
+        items.append((index, write(table, texts[at:at + count])))
+        at += count
+    if at != len(texts):
+        raise ValueError(f"the pack has {at} texts, {len(texts)} given")
+    return pack_tables(items)

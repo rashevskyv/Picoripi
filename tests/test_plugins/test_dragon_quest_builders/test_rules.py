@@ -107,3 +107,25 @@ def test_tags_are_the_angle_codes():
     for tag in ("<key>", "<br>", "<pname>", "<speaker(Rollo)>", "<color(0xFFFC9016)>", "</color>", "<icon(427)>", "<nbsp>"):
         assert TAG_RE.fullmatch(tag), tag
     assert not TAG_RE.fullmatch("a < b")
+
+
+def test_a_pack_of_tables_is_one_block_and_saves_back_table_by_table():
+    second = make_table(2, 2, None, [(0, 0, "Yes"), (0, 1, "Si"), (1, 0, "No"), (1, 1, "<br>maybe")])
+    pack = excel.pack_tables([(90, SAMPLE), (95, second)])
+    assert excel.is_pack(pack) and [i for i, _d in excel.unpack_tables(pack)] == [90, 95]
+    rules = load_rules(PLUGIN)
+    blocks, names = rules.load_data_from_json_obj(pack)
+    assert blocks == [excel.parse(SAMPLE).texts() + ["Yes", "Si", "No", "<br>maybe"]]
+    assert rules.save_data_to_json_obj(blocks, names) == pack                # unedited pack: same bytes
+    blocks[0][0] = "Привіт<key>"
+    blocks[0][-1] = "<br>можливо"
+    out = rules.save_data_to_json_obj(blocks, names)
+    tables = dict(excel.unpack_tables(out))
+    assert excel.parse(tables[90]).texts()[0] == "Привіт<key>" and excel.parse(tables[95]).texts()[-1] == "<br>можливо"
+    assert tables[95] != second and excel.parse(tables[95]).columns == 2
+    again = excel.pack_write(out, excel.pack_texts(out))
+    assert again == out
+    with pytest.raises(ValueError):
+        rules.save_data_to_json_obj([blocks[0][:-1]], names)
+    with pytest.raises(ValueError):
+        excel.unpack_tables(pack + b"x")

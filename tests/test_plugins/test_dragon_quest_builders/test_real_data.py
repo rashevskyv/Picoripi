@@ -40,11 +40,17 @@ def _check_tables(paths):
         blocks, names = rules.load_data_from_json_obj(raw)
         assert blocks[0], path
         assert rules.save_data_to_json_obj(blocks, names) == raw, path
-        table = excel.parse(raw)
-        edited = [t + "!" if i % 5 == 0 else t for i, t in enumerate(table.texts())]
-        out = excel.write(table, edited)
-        again = excel.parse(out)
-        assert again.texts() == edited and again.columns == table.columns, path
+        if excel.is_pack(raw):
+            texts = excel.pack_texts(raw)
+            edited = [t + "!" if i % 5 == 0 else t for i, t in enumerate(texts)]
+            out = excel.pack_write(raw, edited)
+            assert excel.pack_texts(out) == edited and len(excel.unpack_tables(out)) == len(excel.unpack_tables(raw)), path
+        else:
+            table = excel.parse(raw)
+            edited = [t + "!" if i % 5 == 0 else t for i, t in enumerate(table.texts())]
+            out = excel.write(table, edited)
+            again = excel.parse(out)
+            assert again.texts() == edited and again.columns == table.columns, path
         lines += len(blocks[0])
     return lines
 
@@ -60,11 +66,14 @@ def test_builders_1_pictures_and_fonts_write_back_unchanged():
     pictures = sorted((source / "build" / "gra").rglob("*.phyre"))
     fonts = [p for p in pictures if ".fgen." in p.name]
     textures = [p for p in pictures if p not in fonts]
-    assert len(fonts) == 4 and len(textures) >= 80
+    assert len(fonts) == 4 and len(textures) >= 82
+    packs = [p for p in textures if p.name.startswith(("uitex", "uiicon"))]
+    assert len(packs) == 2
     for path in textures:
         raw = path.read_bytes()
-        texture = texture_formats.read("phyre", raw)[0]
-        assert texture_formats.write("phyre", raw, {0: texture.image}) == raw, path
+        found = texture_formats.read("phyre", raw)
+        assert len(found) == (345 if path.name.startswith("uitex") else 980 if path.name.startswith("uiicon") else 1)
+        assert texture_formats.write("phyre", raw, {k: t.image for k, t in enumerate(found)}) == raw, path
     for path in fonts:
         raw = path.read_bytes()
         assert font_formats.detect(raw) == "phyre_bmf"
@@ -74,9 +83,10 @@ def test_builders_1_pictures_and_fonts_write_back_unchanged():
 
 def test_builders_2_every_table_round_trips_and_takes_an_edit():
     source = _source(B2, "LINKDATA") / "LINKDATA" / "text"
-    paths = sorted(source.glob("*.bin"))
-    assert len(paths) > 4000
-    assert _check_tables(paths) > 20000
+    paths = sorted(source.glob("*.dqbp"))
+    assert 20 < len(paths) < 200
+    assert sum(len(excel.unpack_tables(p.read_bytes())) for p in paths) > 4000
+    assert _check_tables(paths) > 80000
 
 
 def test_builders_2_font_pictures_and_build():
@@ -95,8 +105,9 @@ def test_builders_2_font_pictures_and_build():
     # the original archives read through the workspace script's readers
     old = zt.LinkData(B2 / "romfs" / "LINKDATA.IDX", B2 / "romfs" / "LINKDATA.BIN")
     try:
-        index = int(sorted((root / "text").glob("*.bin"))[0].stem)
-        assert old.read(index) == (root / "text" / f"{index:05d}.bin").read_bytes()
+        pack = sorted((root / "text").glob("*.dqbp"))[0]
+        for index, data in excel.unpack_tables(pack.read_bytes()):
+            assert old.read(index) == data
         assert old.read(598) == (root / "font" / "00598.g1t").read_bytes()
     finally:
         old.close()

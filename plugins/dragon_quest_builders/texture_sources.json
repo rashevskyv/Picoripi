@@ -6,6 +6,12 @@
   "path": "build/gra/logo/*.phyre"
  },
  {
+  "label": "Builders 1: HUD, menu and map sprites (English packs uitex, uiicon)",
+  "kind": "ui",
+  "format": "phyre",
+  "path": "build/gra/ui/game/ui*.en.NXGL.phyre"
+ },
+ {
   "label": "Builders 1: title screen (English)",
   "kind": "title_screen",
   "format": "phyre",

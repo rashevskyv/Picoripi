@@ -101,3 +101,47 @@ def test_rotated_glyph_is_stored_on_its_side():
     atlas_at = len(data) - 64 * 32
     # upright (0, 0) of a glyph stored with ROTATE_90 + flip lands in the bottom-left of its 8x6 stored box
     assert changed[0] >= atlas_at
+
+
+def _leb(value: int) -> bytes:
+    out = bytearray()
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        out.append(byte | (0x80 if value else 0))
+        if not value:
+            return bytes(out)
+
+
+def _pack(sizes, second, kind=3):
+    """A pack cluster: asset names, 27-byte records, the class name with two format names, the fix-up numbers
+    (index list, header numbers, slot 2 and slot 3 groups) and the pixels (ARGB4444 2 bytes, ARGB8 4 bytes)."""
+    names = b"".join(f"ui/t/s{k}.en.nx.dds".encode() + b"\x00" for k in range(len(sizes)))
+    records = b"".join(b"\x03" + struct.pack("<6I", 0, 3, 2, w, h, 1) + b"\x00\x00" for w, h in sizes)
+    numbers = [*range(len(sizes)), 105, 4, 0, 3, 1, 0, 105, 78, 0]
+    group = sorted(second)
+    if kind == 6:                                                # one run: start, step, count
+        numbers += [6, 2, 0, 1, len(sizes) - len(group), 6, 3, group[0], 1, len(group)]
+    else:                                                        # lists: count, values
+        numbers += [3, 2, len(group), *group, 2, 3, len(group), *group]
+    numbers += [8, 1, 0, 36, 72, 108]
+    body = names + b"\x00" + records + b"PTexture2D\x00ARGB4444\x00ARGB8\x00" + bytes(12) + b"".join(map(_leb, numbers))
+    pixels = b"".join(bytes(w * h * (4 if k in second else 2)) for k, (w, h) in enumerate(sizes))
+    return _cluster(body) + pixels
+
+
+def test_a_pack_reads_each_texture_with_the_format_the_fixup_groups_give():
+    sizes = [(4, 2), (2, 2), (3, 3), (4, 4), (2, 1), (5, 2)]
+    for kind, second in ((3, [1, 2, 4]), (6, [3, 4, 5])):
+        data = _pack(sizes, second, kind)
+        assert phyre.detect(data)
+        textures = phyre.read(data, {})
+        assert [t.name for t in textures] == [f"ui/t/s{k}.en.nx.dds" for k in range(len(sizes))]
+        assert [t.pixel_format for t in textures] == [("ARGB8" if k in second else "ARGB4444") for k in range(6)]
+        assert [t.image.size for t in textures] == sizes
+        assert phyre.write(data, {k: t.image for k, t in enumerate(textures)}, {}) == data
+        edited = textures[2].image.copy()
+        edited.putpixel((0, 0), (17, 34, 51, 255))
+        out = phyre.write(data, {2: edited}, {})
+        assert out != data and len(out) == len(data) and phyre.read(out, {})[2].image.getpixel((0, 0)) == (17, 34, 51, 255)
+        assert phyre.read(out, {})[1].image.tobytes() == textures[1].image.tobytes()
