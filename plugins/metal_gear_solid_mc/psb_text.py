@@ -33,12 +33,13 @@ _NUMBER = re.compile(r"\d+|0x[0-9A-Fa-f]+")
 
 def _is_id(value: str, keys: frozenset) -> bool:
     """A one-word string that names something in the code, not a label: snake_case, a file name, a path, a
-    number, or a lower-case word that is also a key of the same file."""
+    number, or a plain lower-case word (no capital, no space, no digit: stand, logo, static). Capitalised,
+    all-caps words, words with a space or a digit (SAVE, Slot 1, OFF, Yes) are labels."""
     if any(c in value for c in "_./\\"):
         return True
     if _NUMBER.fullmatch(value):
         return True
-    return value.islower() and " " not in value and value in keys
+    return value.islower() and " " not in value and not any(c.isdigit() for c in value)
 
 
 def _keys(value: Any, found: set) -> set:
