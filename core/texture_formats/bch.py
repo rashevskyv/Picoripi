@@ -1,20 +1,19 @@
-"""3DS ``BCH`` (Nintendo H3D / "Ctr Binary") graphics files: the textures their GPU commands point at.
+"""3DS BCH (H3D) model files: the textures they carry, found by their PICA texture commands.
 
-A BCH holds models, materials and textures; a Capcom file of pictures (Ace Attorney Trilogy 3DS: ``pack.dat``)
-holds one texture and nothing else. The texture's size, pixel format and place are not in a table of their own: they
-are PICA200 register writes in the GPU command block (``TEXUNIT0_DIM`` 0x82 = width << 16 | height, ``TEXUNIT0_ADDR1``
-0x85 = byte offset into the data block, ``TEXUNIT0_TYPE`` 0x8e = pixel format). Header (little endian): ``BCH\\0``,
-u8 backward / forward compatibility, u16 version, then u32 offsets of the contents, the string table, the GPU
-commands and the data, the relocation table, and the five lengths. A command is a parameter word, a header word
-(register, byte mask, extra-parameter count, consecutive flag) and the extra parameters, padded to 8 bytes.
+A BCH keeps its textures as PICA register writes in the commands section: ``0x82`` (dimensions: width in bits
+16-26, height in bits 0-10), ``0x85`` (address of level 0 in the raw data section), ``0x8E`` (pixel format, the
+same numbers as CTPK). A block with non-zero dimensions is a texture; materials repeat the registers with zeros.
+Textures are named ``tex<N>`` in file order. Only level 0 is written; a mip chain, when a texture has one, is left
+as it was.
 
-Every distinct (size, format, offset) of texture unit 0 is one texture, in order of its data offset; writing
-changes pixels in place (same size). A material that points at the same data shares the texture.
+Header (little endian): ``BCH\\0``, u8 backward and forward compatibility, u16 converter version, u32 addresses of
+the contents, strings, commands and raw data sections (then raw-extension when compatibility > 0x20, relocation),
+lengths in the same order.
 """
 from __future__ import annotations
 
 import struct
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 from PIL import Image
 
@@ -22,55 +21,64 @@ from core.texture_formats import Texture, pixels, surface
 
 PICA = {0: "RGBA8", 1: "RGB8", 2: "RGBA5551", 3: "RGB565", 4: "RGBA4", 5: "LA8", 6: "HILO8", 7: "L8",
         8: "A8", 9: "LA4", 10: "L4", 11: "A4", 12: "ETC1", 13: "ETC1A4"}
-_DIM, _ADDR, _TYPE = 0x82, 0x85, 0x8E
 
 
 def detect(data: bytes) -> bool:
-    return len(data) > 0x38 and data[:4] == b"BCH\0"
+    return data[:4] == b"BCH\0"
 
 
-def _commands(data: bytes, start: int, size: int):
-    """``(register, value)`` of every GPU command in the block."""
-    words = struct.unpack_from(f"<{size // 4}I", data, start)
-    at = 0
-    while at + 1 < len(words):
-        value, head = words[at], words[at + 1]
-        register, extra, consecutive = head & 0xFFFF, (head >> 20) & 0x7FF, head >> 31
-        yield register, value
-        for i in range(extra):
-            nxt = words[at + 2 + i] if at + 2 + i < len(words) else 0
-            yield register + (i + 1 if consecutive else 0), nxt
-        at += 2 + extra + (extra & 1)
+def _sections(data: bytes) -> Dict[str, int]:
+    if data[:4] != b"BCH\0":
+        raise ValueError("Not a BCH file")
+    backward = data[4]
+    ext = backward > 0x20
+    contents, strings, commands, raw = struct.unpack_from("<4I", data, 8)
+    at = 0x18
+    if ext:
+        at += 4
+    at += 4                                    # relocation address
+    lengths = struct.unpack_from("<4I", data, at)
+    return {"commands": commands, "commands_len": lengths[2], "raw": raw, "raw_len": lengths[3],
+            "contents": contents, "strings": strings}
+
+
+def _blocks(data: bytes) -> List[Dict[str, Any]]:
+    sec = _sections(data)
+    out: List[Dict[str, Any]] = []
+    regs: Dict[int, int] = {}
+    pos, end = sec["commands"], sec["commands"] + sec["commands_len"]
+    seen = set()
+    while pos + 8 <= end:
+        param, header = struct.unpack_from("<II", data, pos)
+        reg, mask, extra, consecutive = header & 0xFFFF, header >> 16 & 0xF, header >> 20 & 0x7FF, header >> 31
+        params = [param] + list(struct.unpack_from(f"<{extra}I", data, pos + 8)) if extra else [param]
+        for i, value in enumerate(params):
+            target = reg + i if consecutive else reg
+            if mask == 0xF:
+                regs[target] = value
+            if target == 0x8E and regs.get(0x82):
+                dim, fmt, addr = regs[0x82], value & 0xF, regs.get(0x85, 0)
+                width, height = dim >> 16 & 0x7FF, dim & 0x7FF
+                if fmt in PICA and width and height and addr not in seen:
+                    seen.add(addr)
+                    out.append({"width": width, "height": height, "format": PICA[fmt], "address": addr})
+        words = 2 + extra
+        pos += (words + words % 2) * 4
+    return out
 
 
 def _entries(data: bytes) -> List[Dict[str, Any]]:
-    if not detect(data):
-        raise ValueError("Not a BCH file")
-    forward = data[5]
-    if forward >= 0x21:
-        raise ValueError(f"BCH version {forward:#x} (a separate data extension block) is not supported")
-    _contents, _strings, gpu, base, _reloc, _clen, _slen, glen, dlen = struct.unpack_from("<IIIIIIIII", data, 8)
-    found: Dict[Tuple[int, int, int], None] = {}
-    state: Dict[str, int] = {}
-    for register, value in _commands(data, gpu, glen):
-        if register == _DIM:
-            state["dim"] = value
-        elif register == _ADDR:
-            state["addr"] = value
-        elif register == _TYPE and "dim" in state and "addr" in state and value in PICA:
-            found[(state["dim"], state["addr"], value)] = None
-    out = []
-    for dim, addr, fmt in found:
-        width, height = (dim >> 16) & 0x7FF, dim & 0x7FF
-        codec = pixels.codec("pica:" + PICA[fmt])
-        if not width or not height or addr + surface.surface_bytes(codec, width, height) > dlen:
-            continue
-        out.append({"at": base + addr, "width": width, "height": height, "format": PICA[fmt], "codec": codec})
-    return sorted(out, key=lambda e: e["at"])
+    raw = _sections(data)["raw"]
+    entries = []
+    for index, block in enumerate(_blocks(data)):
+        codec = pixels.codec("pica:" + block["format"])
+        entries.append({"name": f"tex{index}", "codec": codec, "format": block["format"], "width": block["width"],
+                        "height": block["height"], "at": raw + block["address"]})
+    return entries
 
 
 def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
-    return [Texture("", surface.read(data, e["at"], e["codec"], e["width"], e["height"]), e["format"])
+    return [Texture(e["name"], surface.read(data, e["at"], e["codec"], e["width"], e["height"]), e["format"], 1)
             for e in _entries(data)]
 
 
@@ -78,6 +86,6 @@ def write(data: bytes, images: Dict[int, Image.Image], params: Dict[str, Any]) -
     out = bytearray(data)
     entries = _entries(data)
     for index, image in images.items():
-        e = entries[index]
-        surface.write(out, e["at"], e["codec"], e["width"], e["height"], image)
+        entry = entries[index]
+        surface.write(out, entry["at"], entry["codec"], entry["width"], entry["height"], image)
     return bytes(out)
