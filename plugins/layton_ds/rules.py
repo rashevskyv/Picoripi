@@ -43,7 +43,7 @@ class GameRules(BaseGameRules):
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
-        return [FileFormat((".pcm", ".plz", ".dlz", ".cpck", ".gds", ".cbin", ".cdat", ".lbin", ".cb", ".txt"), "bytes",
+        return [FileFormat((".pcm", ".plz", ".dlz", ".cpck", ".gds", ".cbin", ".cdat", ".lbin", ".cb", ".txt", ".dat"), "bytes",
                            "Professor Layton (DS) texts"), *DEFAULT_FORMATS]
 
     # -- load and save ---------------------------------------------------------
