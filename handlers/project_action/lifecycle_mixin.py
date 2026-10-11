@@ -64,6 +64,7 @@ class LifecycleMixin:
                 self.mw.settings_manager.add_recent_project(project_file)
                 self.mw.settings_manager.save_settings()
                 self._update_recent_projects_menu()
+            self.note_project_opened(project_file)
 
             # Switch plugin if needed
             if info['plugin'] != self.mw.active_game_plugin:
@@ -88,6 +89,7 @@ class LifecycleMixin:
             self.ui_updater.update_title()
 
             def on_created(state_restored):
+                self.record_project_counts()
                 QMessageBox.information(
                     self.mw,
                     tr('Project Created'),
@@ -129,6 +131,7 @@ class LifecycleMixin:
                 self.mw.settings_manager.add_recent_project(project_path)
                 self.mw.settings_manager.save_settings(save_project_settings=False)
                 self._update_recent_projects_menu()
+            self.note_project_opened(project_path)
 
             # Switch plugin if needed
             if project.plugin_name and project.plugin_name != self.mw.active_game_plugin:
@@ -162,6 +165,7 @@ class LifecycleMixin:
             self.ui_updater.update_title()
 
             def on_opened(state_restored):
+                self.record_project_counts()
                 if hasattr(self.mw, 'bookmark_handler'):
                     self.mw.bookmark_handler.update_bookmarks_menu()
                 log_info(f"Project '{project.name}' opened with {len(project.blocks)} blocks.")
@@ -197,6 +201,8 @@ class LifecycleMixin:
             sync_push_on_close(self.mw)
         except Exception as exc:
             log_debug(f"Failed to auto-push companion on project close: {exc}")
+
+        self.record_project_counts()
 
         # Clear project
         if self.mw.project_manager:

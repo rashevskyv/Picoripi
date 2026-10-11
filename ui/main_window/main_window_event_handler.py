@@ -137,6 +137,8 @@ class MainWindowEventHandler:
             self.mw.new_project_action.triggered.connect(self.mw.project_action_handler.create_new_project_action)
         if hasattr(self.mw, 'open_project_action'):
             self.mw.open_project_action.triggered.connect(self.mw.project_action_handler.open_project_action)
+        if hasattr(self.mw, 'project_manager_action'):
+            self.mw.project_manager_action.triggered.connect(self.mw.project_action_handler.open_project_manager_action)
         if hasattr(self.mw, 'close_project_action'):
             self.mw.close_project_action.triggered.connect(self.mw.project_action_handler.close_project_action)
         if hasattr(self.mw, 'import_block_action'):

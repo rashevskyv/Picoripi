@@ -84,6 +84,7 @@ class RecentMixin:
                 self.mw.settings_manager.add_recent_project(project_path)
                 self.mw.settings_manager.save_settings(save_project_settings=False)
                 self._update_recent_projects_menu()
+            self.note_project_opened(project_path)
 
             # 2. FORCE correct plugin to load BEFORE any data parsing happens
             # Even if it's the same plugin, we reload it to ensure a clean state for this project
@@ -131,6 +132,7 @@ class RecentMixin:
             self.ui_updater.update_title()
 
             def on_recent_opened(state_restored):
+                self.record_project_counts()
                 if hasattr(self.mw, 'bookmark_handler'):
                     self.mw.bookmark_handler.update_bookmarks_menu()
 
