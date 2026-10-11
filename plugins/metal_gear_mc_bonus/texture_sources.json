@@ -1,0 +1,4 @@
+[
+  {"label": "Vol.1 M2 pictures with text (image)", "kind": "menu", "format": "m2", "path": "vol1/201/image/*.psb"},
+  {"label": "Vol.2 M2 pictures with text (image)", "kind": "menu", "format": "m2", "path": "vol2/777/image/*.psb"}
+]
