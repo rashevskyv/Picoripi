@@ -775,7 +775,7 @@ class BaseGameRules:
         (Unity TextMesh Pro SDF font, atlas PNG as ``companion``), ``mgs``, ``mgs1``, ``mgs1_hd`` (M2's 4x PlayStation
         font), ``mgs_nht`` (MGS2 / MGS3 Master Collection ``MGS_Font_nht.raw``), ``m2`` (M2 PSB font), ``nftr`` (DS NFTR), ``cv_nds`` (DS Castlevania), ``ffta2`` (FFTA2 DS font),
         ``xf`` and ``g4font`` (Level-5), ``jade`` / ``brfna`` / ``swf_font`` / ``rrr_errfont`` (Raving Rabbids: Jade FONTDESC, Wii
-        archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``laft`` (Monolith Soft LAFT, Switch Xenoblade), ``cop_fnt`` (Agatsuma FD fonts,
+        archived fonts, Flash DefineFont3, the Rabbids 2 disc error font), ``fntg`` (EA FntG, Wii), ``laft`` (Monolith Soft LAFT, Switch Xenoblade), ``jfnt`` (One Piece Unlimited World Red `JFNT`), ``nlg_font`` (Luigi's Mansion: Dark Moon), ``phyre_bmf`` (Dragon Quest Builders PhyreEngine bitmap fonts), ``pw_xpr`` (Peace Walker `*_FONT.xpr` XPR2 font packs), ``l5_fnt`` (Fantasy Life `FNT` fonts), ``cop_fnt`` (Agatsuma FD fonts,
         Code of Princess; the ``bcfnt`` backend also takes ``bottom_up`` for Capcom 3DS fonts), ``fe13_bfnt``
         (Fire Emblem Awakening), ``pmd_font`` (Spike Chunsoft 3DS ``.dic`` + ``.img``), ``vagrant`` (Vagrant Story),
         ``gba_tiles``,
@@ -802,7 +802,7 @@ class BaseGameRules:
         ``ctxb``, ``bntx``, ``g1t``, ``g4tx``
         and ``imgc`` (Level-5), ``j3d`` (GameCube / Wii BMD / BDL model textures), ``gba`` (GBA tiles in a packed
         multiboot program), ``gtx`` (Wii U GX2), ``bfres`` (Wii U BFRES FTEX), ``mibl`` / ``wilay`` (Monolith Soft MIBL
-        textures and ``.wilay`` layouts, Switch Xenoblade), ``ctxr`` (MGS2 / MGS3 Master Collection ``.ctxr``: Switch NVN, PC TXTR 7), ``bch`` (3DS BCH, Capcom Ace Attorney Trilogy),
+        textures and ``.wilay`` layouts, Switch Xenoblade), ``ctxr`` (MGS2 / MGS3 Master Collection ``.ctxr``: Switch NVN, PC TXTR 7), ``jimg`` (One Piece Unlimited World Red `jIMG`), ``nlg_tex`` (Luigi's Mansion: Dark Moon), ``phyre`` (PhyreEngine `.NXGL.phyre`, Dragon Quest Builders), ``pw_txp`` (Peace Walker `*.txp` DDS packs), ``sh2tex`` (Silent Hill 2 PC `.tex` / `.tbn2`), ``tga`` (Silent Hill 2 Enhanced Edition TGA atlas), ``ztex`` (Fantasy Life `ztex`), ``gmio`` (Digimon World `GMIO`), ``bch`` (3DS BCH, Capcom Ace Attorney Trilogy),
         ``rtex`` (Agatsuma RTEX, Code of Princess 3DS / Switch), ``jade`` / ``jade_jtx`` (Jade engine textures),
         ``shpg`` (EA SHPG, Wii), ``txtr`` /
         ``txtr_gx`` (Retro TXTR), ``gim`` (PSP), ``tim`` (PlayStation TIM), ``tim2`` (PS2 / PSP TIM2),
