@@ -124,3 +124,50 @@ def test_credits_script_lines():
     changed = nloc.Credits(table.build(["/h1:Дизайн", "Bryce Holliday", "Cafe"]))
     assert changed.texts()[1:] == ["Bryce Holliday", "Cafe"]
     assert b"@align left" in changed.raw
+
+
+def make_hd_bundle(with_font=False):
+    """A Switch bundle member: ``Powe`` entry (0x30 bytes) + a 16 x 16 DXT5 DDS with three mip levels, then data."""
+    dds = bytearray(128)
+    dds[0:4] = b"DDS "
+    struct.pack_into("<IIIIIII", dds, 4, 124, 0x000A1007, 16, 16, 256, 0, 3)
+    dds[84:88] = b"DXT5"
+    dds += bytes(256 + 64 + 16)
+    member = bytearray(struct.pack("<IIII", 0xE977D350, 0x22222222, len(dds), 0x22222222) + bytes(0x20)) + dds
+    if with_font:
+        glyph_lines = "".join(f"Glyph {c} Width 8 9 0 {i * 4} 0 {i * 4 + 4} 4 0\r\n" for i, c in enumerate("ABC"))
+        text = ("NLG Font Description File\r\nVersion 1.11\r\nFont \"T\" 18 color 255 255 255\r\n"
+                "PageSize 16 PageCount 1 TextType color Distribution english\r\n"
+                "Height 5 RenderHeight 4 Ascent 3 RenderAscent 3 IL 0\r\nCharSpacing 0 LineHeight 0\r\n"
+                + glyph_lines + "END\r\n   ").encode("latin-1")
+        member += b"\xf6\xbc\x27\x00\x01\x02\x03\x04" + text + struct.pack("<I", 0x22222222) + b"tail data"
+    return nlg_tex.join_hd(bytes(member))
+
+
+def test_switch_bundle_textures_read_and_write_in_place():
+    bundle = make_hd_bundle()
+    assert texture_formats.detect(bundle) == "nlg_tex"
+    textures = texture_formats.read("nlg_tex", bundle, {})
+    assert len(textures) == 1 and textures[0].image.size == (16, 16)
+    assert texture_formats.write("nlg_tex", bundle, {0: textures[0].image}, {}) == bundle
+    painted = textures[0].image.copy()
+    painted.paste((255, 0, 255, 255), (0, 0, 8, 8))
+    changed = texture_formats.write("nlg_tex", bundle, {0: painted}, {})
+    assert changed != bundle and len(changed) == len(bundle) and changed[:4] == b"NLGH"
+    r, g, b, _a = texture_formats.read("nlg_tex", changed, {})[0].image.getpixel((1, 1))
+    assert r > 240 and g < 24 and b > 240
+
+
+def test_switch_font_glyph_rectangles():
+    data = make_hd_bundle(with_font=True)
+    metadata, sheets = font_formats.extract("nlg_font", data, {})
+    assert len(metadata["WID1"][0]["packets"]) == 3 and metadata["GLY1"][0]["cell_width"] == 4
+    assert font_formats.pack("nlg_font", metadata, sheets, data, {}) == data
+    sheet = sheets[0].copy()
+    sheet.paste((255, 255, 255, 255), (0, 0, 2, 2))
+    edited = font_formats.pack("nlg_font", metadata, [sheet], data, {})
+    assert edited != data and len(edited) == len(data) and edited.endswith(b"tail data")
+    assert font_formats.extract("nlg_font", edited, {})[1][0].getpixel((1, 1))[3] == 255
+    metadata["WID1"][0]["packets"][0]["width"] = 12
+    widened = font_formats.pack("nlg_font", metadata, sheets, data, {})
+    assert b"Glyph A Width 12 9 0 0 0 4 4 0" in widened

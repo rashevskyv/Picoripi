@@ -3,7 +3,8 @@
 ``1_unpack.bat`` (``zt/r3b3ds.py``) opens the game's ``.dict`` / ``.data`` pairs as folders in the project's source
 folder: ``romfs/art/fe/english.data/strings.nloc`` (the English text table; ``ukenglish`` is what a European
 console loads, ``russian`` what a console set to Russian loads), ``romfs/art/fe/febundle*_res.data/bundle.nlgb``
-(the texture and font bundles, ``font_sources.json`` / ``texture_sources.json``) and ``romfs/art/fe/credits.txt``.
+(the texture and font bundles, ``font_sources.json`` / ``texture_sources.json``; ``bundle.nlgh`` for the Switch HD
+version, whose tables are NLOC version 2) and ``romfs/art/fe/credits.txt``.
 Each text table is one block; ``2_build.bat`` rebuilds the pair around a changed member.
 """
 from __future__ import annotations

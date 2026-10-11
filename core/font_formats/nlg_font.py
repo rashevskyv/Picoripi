@@ -15,6 +15,12 @@ font twice (two slots with the same text and pages); ``params.record`` picks one
 The model has one cell per glyph in a 16-column grid (the glyph's ink at the cell's top-left); packing writes back
 the cells that changed into the pages (mip levels made again) and the advance / offset numbers of the glyph lines when
 the new text still fits into the old one (spaces fill what is saved). New glyphs cannot be added: the pages are full.
+
+The Switch version (Luigi's Mansion 2 HD) has the same records in the bundle member that also holds its DXT5 pages
+(1024 x 1024; ``NLGH`` bundle, see ``nlg_tex``). There the last record is followed by other data, so its end is
+found by the page ids it lists, and a glyph line has its place on the page:
+``Glyph <c> Width <advance> <cell width> <offset> <x0> <y0> <x1> <y1> <page>`` (the picture is drawn at four times
+the size, so the rectangles are larger than the cell width). The model's cell then is the largest rectangle.
 """
 from __future__ import annotations
 
@@ -27,12 +33,24 @@ from core.font_formats import Metadata, Sheets, char_code, map_entries
 from core.texture_formats import nlg_tex
 
 COLUMNS = 16
-_GLYPH = re.compile(r"Glyph (\S+) Width (-?\d+) (-?\d+)(?: (-?\d+))?$")
+_GLYPH = re.compile(r"Glyph (\S+) Width (-?\d+) (-?\d+)(?: (-?\d+))?((?: -?\d+){0,5})$")
 _TITLE = b"NLG Font Description File"
+
+
+def _end_by_ids(table: bytes, start: int, pages: int, known: set) -> int:
+    """End of a record: just past the first run of ``pages`` u32 that are all known texture ids (-1: none found)."""
+    at = table.index(b"END", start) + 3
+    limit = min(len(table) - 4 * pages, at + 0x400)
+    while at <= limit:
+        if all(int.from_bytes(table[at + 4 * i:at + 4 * i + 4], "little") in known for i in range(pages)):
+            return at + 4 * pages
+        at += 1
+    return -1
 
 
 def _records(table: bytes) -> List[Dict[str, Any]]:
     """Every font record of the table member: text span, header values, glyphs, page ids."""
+    known = {e["id"] for e in nlg_tex.entries(table)}
     found = []
     starts = []
     at = 0
@@ -47,7 +65,6 @@ def _records(table: bytes) -> List[Dict[str, Any]]:
         stop = end
         while stop < len(table) and table[stop] in (0x0D, 0x0A, 0x20):
             stop += 1
-        record_end = (starts[n + 1] - 8) if n + 1 < len(starts) else len(table)
         text = table[start:end].decode("latin-1").replace("\r\n", "\n")
         head, glyphs = [], []
         for line in text.split("\n"):
@@ -55,12 +72,22 @@ def _records(table: bytes) -> List[Dict[str, Any]]:
             if match:
                 token = match.group(1)
                 code = int(token) if len(token) > 1 and token.isdigit() else ord(token)
+                tail = [int(v) for v in match.group(5).split()]
                 glyphs.append({"code": code, "token": token, "advance": int(match.group(2)),
                                "cell": int(match.group(3)), "offset": int(match.group(4) or 0),
-                               "has_offset": match.group(4) is not None})
+                               "has_offset": match.group(4) is not None,
+                               "rect": tuple(tail[:4]) if len(tail) == 5 else None,
+                               "page": tail[4] if len(tail) == 5 else None})
             else:
                 head.append(line)
         pages = int(re.search(r"PageCount (\d+)", text).group(1))
+        record_end = _end_by_ids(table, start, pages, known)
+        if record_end >= 0:                  # the ids are the last bytes of the record; the text ends before them
+            stop = min(stop, record_end - 4 * pages)
+        elif n + 1 < len(starts):
+            record_end = starts[n + 1] - 8
+        else:
+            record_end = len(table)
         size = int(re.search(r"PageSize (\d+)", text).group(1))
         height = int(re.search(r"RenderHeight (\d+)", text).group(1))
         ascent = int(re.search(r"Ascent (\d+)", text).group(1))
@@ -85,6 +112,9 @@ def _cells(record: Dict[str, Any]) -> List[Tuple[int, int, int]]:
     page = x = y = 0
     out = []
     for glyph in record["glyphs"]:
+        if glyph["rect"]:
+            out.append((glyph["page"], glyph["rect"][0], glyph["rect"][1]))
+            continue
         if x + glyph["cell"] > size:
             x, y = 0, y + height
         if y + height > size:
@@ -113,7 +143,17 @@ def _page_images(record: Dict[str, Any], textures: Dict[int, Dict[str, Any]], pi
 
 def _cell_box(cell: Tuple[int, int, int], glyph: Dict[str, Any], height: int) -> Tuple[int, int, int, int]:
     _page, x, y = cell
+    if glyph["rect"]:
+        return glyph["rect"]
     return (x, y, x + glyph["cell"], y + height)
+
+
+def _cell_size(record: Dict[str, Any]) -> Tuple[int, int]:
+    """Width and height of one cell of the model: the largest glyph box."""
+    glyphs, height = record["glyphs"], record["height"]
+    boxes = [(g["rect"][2] - g["rect"][0], g["rect"][3] - g["rect"][1]) if g["rect"] else (g["cell"], height)
+             for g in glyphs]
+    return max([b[0] for b in boxes] + [1]), max([b[1] for b in boxes] + [1])
 
 
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
@@ -121,14 +161,14 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     record = records[group[0]]
     pages = _page_images(record, textures, pixel_member)
     cells = _cells(record)
-    glyphs, height = record["glyphs"], record["height"]
-    cell_w = max([g["cell"] for g in glyphs] + [1])
+    glyphs = record["glyphs"]
+    cell_w, height = _cell_size(record)
     rows = max(1, -(-len(glyphs) // COLUMNS))
     sheet = Image.new("RGBA", (COLUMNS * cell_w, rows * height))
     packets = []
     for i, (glyph, cell) in enumerate(zip(glyphs, cells)):
         if cell[0] < len(pages):
-            piece = pages[cell[0]].crop(_cell_box(cell, glyph, height))
+            piece = pages[cell[0]].crop(_cell_box(cell, glyph, record["height"]))
             sheet.paste(piece, ((i % COLUMNS) * cell_w, (i // COLUMNS) * height))
         packets.append({"kerning": -glyph["offset"], "width": glyph["advance"]})
     space = next((p["width"] for g, p in zip(glyphs, packets) if g["code"] == 32), cell_w // 2)
@@ -154,6 +194,8 @@ def _description(record: Dict[str, Any], widths: List[Dict[str, int]]) -> str:
             glyph = record["glyphs"][n]
             advance, offset = int(widths[n]["width"]), -int(widths[n]["kerning"])
             tail = f" {offset}" if glyph["has_offset"] or offset else ""
+            if glyph["rect"]:
+                tail += " " + " ".join(str(v) for v in (*glyph["rect"], glyph["page"]))
             line = f"Glyph {glyph['token']} Width {advance} {glyph['cell']}{tail}"
             n += 1
         lines.append(line)
@@ -165,8 +207,8 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     record = records[group[0]]
     pages = _page_images(record, textures, pixel_member)
     cells = _cells(record)
-    glyphs, height = record["glyphs"], record["height"]
-    cell_w = max([g["cell"] for g in glyphs] + [1])
+    glyphs = record["glyphs"]
+    cell_w, height = _cell_size(record)
     out = bytearray(pixel_member)
     edited = [p.copy() for p in pages]
     touched = set()
@@ -176,10 +218,11 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
             if cell[0] >= len(pages):
                 continue
             x, y = (i % COLUMNS) * cell_w, (i // COLUMNS) * height
-            if y + height > sheet.height or x + glyph["cell"] > sheet.width:
+            box = _cell_box(cell, glyph, record["height"])
+            gw, gh = box[2] - box[0], box[3] - box[1]
+            if y + height > sheet.height or x + cell_w > sheet.width:
                 continue
-            piece = sheet.crop((x, y, x + glyph["cell"], y + height))
-            box = _cell_box(cell, glyph, height)
+            piece = sheet.crop((x, y, x + gw, y + gh))
             if piece.tobytes() != pages[cell[0]].crop(box).tobytes():
                 edited[cell[0]].paste(piece, box[:2])
                 touched.add(cell[0])
@@ -200,6 +243,13 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
                     raise ValueError("the new glyph widths do not fit into the font description of the game "
                                      f"({len(body)} bytes against {span})")
                 new_table[r["start"]:r["stop"]] = body + b" " * (span - len(body))
+    if nlg_tex.is_hd(original):          # the descriptions and the pixels are one member
+        merged = bytearray(out)
+        for r in {records[number]["start"]: records[number] for number in group}.values():
+            merged[r["start"]:r["stop"]] = new_table[r["start"]:r["stop"]]
+        if bytes(merged) == pixel_member:
+            return bytes(original)
+        return nlg_tex.join_hd(bytes(merged))
     if not touched and bytes(new_table) == table:
         return bytes(original)
     return nlg_tex.join(bytes(new_table), bytes(out))
