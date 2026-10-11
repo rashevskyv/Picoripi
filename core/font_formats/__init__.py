@@ -36,7 +36,7 @@ def _backends() -> Dict[str, Any]:
                                    g1t, g4font, gba_tiles, gzf, laft, jade, lunar, m2, mgs, mgs1, mgs1_hd, mt_font, n64, nftr, pgf, pmd_font,
                                    policenauts, qbf,
                                    retro_font, retro_font_gx,
-                                   rrr_errfont, swf_font, texture_grid, tmp_sdf, twewy, vagrant, xf, zelda3)
+                                   rrr_errfont, swf_font, texture_grid, tmp_sdf, twewy, ubiart_tfn, vagrant, xf, zelda3)
     from core.font_formats import dq9, infinite_space
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
             "bfotf": bfotf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
@@ -47,7 +47,7 @@ def _backends() -> Dict[str, Any]:
             "is_obd": infinite_space, "dq9": dq9, "jade": jade, "brfna": brfna, "rrr_errfont": rrr_errfont,
             "swf_font": swf_font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams,
             "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf, "mt_font": mt_font, "pmd_font": pmd_font,
-            "fe13_bfnt": fe13_bfnt, "laft": laft}
+            "fe13_bfnt": fe13_bfnt, "laft": laft, "ubiart_tfn": ubiart_tfn}
 
 
 def adds_glyphs(fmt: str) -> bool:

@@ -1,0 +1,8 @@
+[
+  {"label": "Menus, HUD, journal (world/common/ui)", "kind": "menu_label", "format": "ubiart_tex", "path": "romfs/bundle_ctr.ipk/cache/itf_cooked/ctr/world/common/ui/**/*.tga.ckd"},
+  {"label": "Menus, HUD (png)", "kind": "menu_label", "format": "ubiart_tex", "path": "romfs/bundle_ctr.ipk/cache/itf_cooked/ctr/world/common/ui/**/*.png.ckd"},
+  {"label": "Loading screens", "kind": "title_screen", "format": "ubiart_tex", "path": "romfs/persistentloading_ctr.ipk/**/*.tga.ckd"},
+  {"label": "World map", "kind": "menu_label", "format": "ubiart_tex", "path": "romfs/worldmap_ctr.ipk/**/*.tga.ckd"},
+  {"label": "Engine textures and the font atlases", "kind": "menu_label", "format": "ubiart_tex", "path": "romfs/bundle_ctr.ipk/cache/itf_cooked/ctr/enginedata/**/*.*.ckd"},
+  {"label": "Levels, characters, effects (all other pictures)", "kind": "menu_label", "format": "ubiart_tex", "path": "romfs/bundle_ctr.ipk/cache/itf_cooked/ctr/world/**/*.tga.ckd"}
+]
