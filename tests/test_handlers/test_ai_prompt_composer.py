@@ -811,7 +811,7 @@ def test_AIPromptComposer_tag_alias_legend_and_newlines(composer):
     assert "{f:dummy}" not in user_msg
     assert '"line_count": 2' in user
     assert "SOURCE LAYOUT TARGET" in user_msg
-    assert "add only the minimum necessary extra lines" in system_msg.lower()
+    assert "prefer concise wording over an extra dialogue window" in system_msg.lower()
 
 
 def test_batch_prompt_keeps_source_whitespace_instead_of_reflowing(composer):

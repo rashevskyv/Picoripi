@@ -242,6 +242,11 @@ class BaseGameRules:
             Section a new term from this line goes into.
         ``force_glossary`` (bool)
             Marks the line as one that must produce a glossary entry.
+        ``layout_class`` (str)
+            ``"prose"``: Picoripi breaks the lines of each page itself with the
+            game's font (dialogue, descriptions). ``"lines"``: one source line is
+            one output line (menus, names, choices, credits). Omitted: the engine
+            guesses from the source text.
 
         Default: no metadata.
         """

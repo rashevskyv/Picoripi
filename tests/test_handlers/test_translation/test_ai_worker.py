@@ -628,3 +628,65 @@ def test_a_failed_chunk_is_reported_with_its_own_reply_not_the_previous_chunk_s(
     translated.assert_called_once()                     # the first chunk is kept
     assert report.call_args.args[2] == ""               # the second chunk had no reply to quote
     assert report.call_args.args[3] == "chunk 1"
+
+
+class _TenPxFormatter:
+    """A window 100 px wide, ten pixels a letter, three lines a page."""
+
+    def __init__(self, mw):
+        pass
+
+    def typeset_parameters(self, block_idx, string_idx):
+        import re
+        return (lambda line: len(re.sub(r"\{[^}]*\}", "", line)) * 10), 100, 100, 3
+
+
+def _shorten_worker(worker_deps, draft, fixes, layout_class="lines"):
+    from unittest.mock import patch as _patch
+    provider, prompt_composer = worker_deps
+    prompt_composer.compose_batch_request.return_value = ("sys", "user", {})
+    worker = AIWorker(provider, prompt_composer, {
+        'type': 'translate_block_chunked', 'block_idx': 0, 'workers': 1, 'enable_editor_review': False,
+        'enable_shorten': True, 'source_items': [{"id": 0, "text": "Hello"}, {"id": 1, "text": "Bye"}],
+        'composer_args': {'system_prompt': 'sys', 'block_idx': 0, 'mode_description': 'm'},
+    })
+    provider.translate.side_effect = [ProviderResponse(text=json.dumps(draft)), ProviderResponse(text=json.dumps(fixes))]
+    chunks = []
+    worker.chunk_translated.connect(lambda idx, text, ctx: chunks.append(json.loads(text)))
+    with _patch('handlers.translation.worker.run_mixin.TextFormatter', _TenPxFormatter), \
+         _patch('handlers.translation.worker.run_mixin.layout_class_for', return_value=layout_class):
+        worker.run()
+    return provider, chunks
+
+
+def test_a_line_wider_than_the_window_goes_back_with_a_measured_letter_count(worker_deps):
+    from handlers.translation.prompt_composer.instructions import SHORTEN_REQUEST
+    draft = {"translated_strings": [{"id": 0, "translation": "Вітаю, шановний мандрівнику"}, {"id": 1, "translation": "Бувай"}]}
+    fixes = {"translated_strings": [{"id": 0, "translation": "Вітаю, мандрівнику"}]}
+
+    provider, chunks = _shorten_worker(worker_deps, draft, fixes)
+
+    messages = provider.translate.call_args_list[1][0][0]
+    assert [m["role"] for m in messages] == ["system", "user", "assistant", "user"]
+    assert messages[3]["content"].startswith(SHORTEN_REQUEST)
+    problems = json.loads(messages[3]["content"][len(SHORTEN_REQUEST):])
+    assert problems == [{"id": 0, "shorten_by_letters": 17, "problem": "a line is 170 px wider than the window"}]
+    assert chunks == [{"translated_strings": [{"id": 0, "translation": "Вітаю, мандрівнику"}, {"id": 1, "translation": "Бувай"}]}]
+
+
+def test_a_prose_page_that_needs_an_extra_window_is_shortened_and_a_worse_answer_is_refused(worker_deps):
+    long = " ".join(["слово"] * 8)                       # 47 letters: 5 lines of 10, the window holds 3
+    draft = {"translated_strings": [{"id": 0, "translation": long}, {"id": 1, "translation": "Бувай"}]}
+    fixes = {"translated_strings": [{"id": 0, "translation": " ".join(["слово"] * 9)}]}   # longer still
+
+    provider, chunks = _shorten_worker(worker_deps, draft, fixes, layout_class="prose")
+
+    problems = json.loads(provider.translate.call_args_list[1][0][0][3]["content"].split("ITEMS:\n", 1)[1])
+    assert problems[0]["id"] == 0 and "more window(s)" in problems[0]["problem"] and problems[0]["shorten_by_letters"] >= 17
+    assert chunks == [draft]                            # the "fix" fits no better: the draft stays
+
+
+def test_nothing_over_the_window_means_no_second_request(worker_deps):
+    draft = {"translated_strings": [{"id": 0, "translation": "Привіт"}, {"id": 1, "translation": "Бувай"}]}
+    provider, chunks = _shorten_worker(worker_deps, draft, {"translated_strings": []})
+    assert provider.translate.call_count == 1 and chunks == [draft]

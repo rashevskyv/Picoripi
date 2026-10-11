@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Dict, Optional
 
 from core.story_context_overrides import get_story_context_override
+from core.translation.layout_class import LINES, layout_class_for
 from core.translation.story_context_bundle import build_story_context_bundle
 from core.translation.layout_contract import layout_signature, resolve_lines_per_window
 from utils.logging_utils import log_debug
@@ -56,6 +57,7 @@ class StoryMixin:
         )
         try:
             from utils.utils import resolve_width_limits
+            from utils.width import chars_that_fit
 
             metadata = getattr(self.mw, 'string_metadata', {}).get(
                 (block_idx, string_idx), {}
@@ -67,9 +69,17 @@ class StoryMixin:
                 string_idx,
                 getattr(self.mw, 'line_width_warning_threshold_pixels', 280),
                 getattr(self.mw, 'game_dialog_max_width_pixels', 300),
+                tolerance_percent=getattr(self.mw, 'width_tolerance_percent', None),
             )
             signature['warning_line_width_px'] = warning_width
             signature['max_line_width_px'] = max_width
+            # What the model can count: letters per line, measured on the target alphabet in the game's font.
+            font_map = getattr(self.mw, 'current_font_map', None) or getattr(self.mw, 'font_map', None) or {}
+            budget = chars_that_fit(warning_width, font_map)
+            if budget:
+                signature['max_chars_per_line'] = budget
         except (AttributeError, TypeError, ValueError):
             pass
+        if layout_class_for(self.mw, block_idx, string_idx, text) == LINES:
+            signature['layout_class'] = LINES
         return signature

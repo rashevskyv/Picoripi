@@ -103,25 +103,24 @@ def _fit_window(source):
         current_game_rules=rules, data_store=SimpleNamespace(data=[[source]]))
 
 
-def test_fit_keeps_the_models_lines_when_they_fit_or_follow_the_source():
+def test_fit_keeps_the_models_lines_for_a_lines_string():
+    """A menu or a name: one source line is one output line, however wide (the width warning shows the rest)."""
     with patch('handlers.translation.text_formatter.calculate_string_width', side_effect=lambda s, *a, **k: len(s) * 10):
-        merged = TextFormatter(_fit_window("one\ntwo\nthree")).fit_translation_to_window("один два\nтри", 0, 0)
-        assert merged == "один два\nтри"                       # reflowed, but every line fits: as the model wrote it
-        wide = "дуже довгий рядок перекладу\nдва\nтри"
-        kept = TextFormatter(_fit_window("one\ntwo\nthree")).fit_translation_to_window(wide, 0, 0)
-        assert kept == wide                                    # same line count as the source: applied as before
+        wide = "дуже довгий пункт меню\nдва\nтри"
+        assert TextFormatter(_fit_window("Save\nLoad\nQuit")).fit_translation_to_window(wide, 0, 0) == wide
 
 
-def test_fit_rewraps_a_reflowed_line_that_is_wider_than_the_window():
+def test_fit_typesets_prose_with_the_games_font_whatever_the_model_broke():
+    """A dialogue line: the words of the page are reflowed to the target width; no word is left alone at the end."""
     with patch('handlers.translation.text_formatter.calculate_string_width', side_effect=lambda s, *a, **k: len(s) * 10):
-        fitted = TextFormatter(_fit_window("one\ntwo\nthree")).fit_translation_to_window("дуже довгий рядок\nтри", 0, 0)
-    assert fitted.count("\n") > 1 and fitted.replace("\n", " ").split() == "дуже довгий рядок три".split()
+        window = _fit_window("Hello there, friend. How are you?")
+        assert TextFormatter(window).fit_translation_to_window("один два три чотир", 0, 0) == "один два\nтри чотир"
 
 
 def test_fit_rewraps_the_whole_page_so_no_word_is_left_alone():
     """Live run 2026-10-03: only the too-wide line was split, leaving «закінчаться» on a line of its own."""
-    window = _fit_window("a\nb\nc\nd")
+    window = _fit_window("Say something long here, please.")
     window.game_dialog_max_width_pixels, window.line_width_warning_threshold_pixels = 200, 180
     with patch('handlers.translation.text_formatter.calculate_string_width', side_effect=lambda s, *a, **k: len(s) * 10):
         fitted = TextFormatter(window).fit_translation_to_window("один два\nдуже довгий рядок тут і ще\nтри", 0, 0)
-    assert fitted == "один два дуже довгий\nрядок тут і ще три"
+    assert fitted == "один два дуже\nдовгий рядок тут\nі ще три"

@@ -18,7 +18,7 @@ from .instructions import append_engine_rules, batch_rules
 
 
 # Layout values that are normally the same for every item of a chunk.
-_SHARED_LAYOUT_KEYS = ('lines_per_window', 'warning_line_width_px', 'max_line_width_px')
+_SHARED_LAYOUT_KEYS = ('lines_per_window', 'warning_line_width_px', 'max_line_width_px', 'max_chars_per_line')
 # Reference languages sent per item unless the translation config says otherwise: None is every one.
 DEFAULT_MAX_REFERENCE_LANGUAGES: Optional[int] = None
 
@@ -46,6 +46,8 @@ def _hoist_layout_defaults(items: List[Dict]) -> Dict:
             slim['ends_with_newline'] = True
         if isinstance(layout.get('window_count'), int) and layout['window_count'] > 1:
             slim['window_count'] = layout['window_count']
+        if layout.get('layout_class'):
+            slim['layout_class'] = layout['layout_class']
         for key in _SHARED_LAYOUT_KEYS:
             if key in layout and layout[key] != defaults.get(key):
                 slim[key] = layout[key]

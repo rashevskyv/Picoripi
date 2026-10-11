@@ -296,11 +296,14 @@ def resolve_string_layout(game_rules, block_idx, string_idx) -> dict:
     return layout if isinstance(layout, dict) else {}
 
 def resolve_width_limits(string_meta, game_rules, block_idx, string_idx,
-                         default_warn, default_max) -> Tuple[int, int]:
+                         default_warn, default_max, tolerance_percent=None) -> Tuple[int, int]:
     """Resolve (warn_width, max_width) for one string.
 
-    Priority: explicit per-string metadata override ("width") >
-    plugin layout hook (window-kind defaults) > global settings.
+    ``warn_width`` is the target a line is laid out to; ``max_width`` the
+    overflow still accepted. Priority: explicit per-string metadata override
+    ("width") > plugin layout hook (window-kind defaults) > global settings.
+    When the plugin gives only one of the two, the other follows from
+    ``tolerance_percent`` (the plugin's ``width_tolerance_percent``).
     """
     meta = string_meta or {}
     override = _positive_int(meta.get("width"))
@@ -310,7 +313,28 @@ def resolve_width_limits(string_meta, game_rules, block_idx, string_idx,
     layout = resolve_string_layout(game_rules, block_idx, string_idx)
     warn = _positive_int(layout.get("warn_width"))
     max_w = _positive_int(layout.get("max_width"))
+    tolerance = tolerance_percent if isinstance(tolerance_percent, (int, float)) and tolerance_percent >= 0 else None
+    if tolerance is not None and (warn is None) != (max_w is None):
+        if warn is None:
+            warn = max(1, round(max_w / (1 + tolerance / 100)))
+        else:
+            max_w = round(warn * (1 + tolerance / 100))
     warn_default = _positive_int(default_warn) or 280
     max_default = _positive_int(default_max) or 300
     return (warn if warn is not None else warn_default,
             max_w if max_w is not None else max_default)
+
+
+# Letters the budget is measured on: the target language's lowercase alphabet and a space.
+BUDGET_SAMPLE = "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя "
+
+
+def chars_that_fit(width_px, font_map: dict, sample: str = BUDGET_SAMPLE) -> Optional[int]:
+    """How many average letters of ``sample`` fit in ``width_px`` with ``font_map``; None when the font is unknown."""
+    limit = _positive_int(width_px)
+    if limit is None or not font_map or not sample:
+        return None
+    total = calculate_string_width(sample, font_map, default_char_width=0)
+    if total <= 0:
+        return None
+    return max(1, int(limit * len(sample) / total))

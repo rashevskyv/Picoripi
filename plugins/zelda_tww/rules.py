@@ -27,6 +27,9 @@ TEXTBOX_TYPES = {
     13: "Picto Box notice", 14: "Wind Waker conducting",
 }
 
+# Boxes whose every source line is one output line (names, Hylian glyph text, conducting cues).
+LINE_KINDS = frozenset({11, 12, 14})
+
 # Widths in font units (cell 24; the game draws the font at 23 px, so units = px x 24/23).
 # The game wraps mid-word once a line reaches 503 px (419 px in an item-get box with its
 # icon), so the longest allowed line is one pixel less.  The warning sits at the centring
@@ -146,7 +149,10 @@ class GameRules(TwilightPrincessRules):
         if not attrs:
             return {}
         kind = attrs["textbox_type"]
-        return {"window_type": TEXTBOX_TYPES.get(kind, f"Textbox type {kind}")}
+        context = {"window_type": TEXTBOX_TYPES.get(kind, f"Textbox type {kind}")}
+        if kind in LINE_KINDS:
+            context["layout_class"] = "lines"
+        return context
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         """Line width and lines per page from the message's own INF1 entry."""

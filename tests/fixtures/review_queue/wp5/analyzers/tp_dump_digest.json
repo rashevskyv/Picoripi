@@ -1,3 +1,4 @@
 {
- "digest": "18be5ab7e0191485270fbb0db34790bb2f7af6dcb32ad5cd23e0cd5ae563e411"
+  "digest": "2427b9ce81a6a441ecee7289573cb6e34753fb9c4a070e25a63abfdd53b28392",
+  "note": "Regenerated 2026-10-09: the width autofix breaks lines with core/typesetter.py (no lone last word, no hanging function word), so the fixed texts differ from the pre-audit baseline."
 }

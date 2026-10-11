@@ -42,6 +42,7 @@ class AIBatchTranslator(BaseTranslationHandler):
         context['enable_editor_review'] = wanted and context.get('enable_editor_review', True)
         if context['enable_editor_review'] and config.get('review_model'):
             context['review_model'] = str(config['review_model'])
+        context['enable_shorten'] = bool(config.get('shorten_enabled', True))
 
     @staticmethod
     def _translation_value(item: Dict[str, Any]) -> str:

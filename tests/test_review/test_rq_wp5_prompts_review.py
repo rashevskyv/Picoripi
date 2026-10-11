@@ -167,7 +167,7 @@ def test_switched_on_each_chunk_gets_a_review_turn_in_its_own_conversation(qapp,
 
     requests, chunks, context = _run_block(qapp, {"review_enabled": True}, tmp_path, plugin)
 
-    assert context == {"enable_editor_review": True}
+    assert context == {"enable_editor_review": True, "enable_shorten": True}
     assert len(requests) == 2
     review = requests[1]["messages"]
     assert [m["role"] for m in review] == ["system", "user", "assistant", "user"]

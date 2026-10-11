@@ -1021,6 +1021,12 @@ class GameRules(BaseGameRules):
                 "kind_name", f"Window kind {fuki_kind}"
             ),
         }
+        try:
+            layout_class = (self.get_string_layout(block_idx, string_idx) or {}).get("layout_class")
+        except Exception:
+            layout_class = None  # a rules object without window layouts (tests): the engine guesses
+        if layout_class:
+            context["layout_class"] = layout_class
         if fuki_kind == 19:
             context.update({
                 "content_role": "BossName",
@@ -1515,7 +1521,8 @@ class GameRules(BaseGameRules):
         # window_layouts.json drives pagination and lets users name/describe
         # window kinds the catalog doesn't know yet
         layout = layout_for_kind(self._get_window_layouts(), fuki_kind)
-        if self.mw is not None and not getattr(self.mw, "use_per_window_layouts", True):
+        mw = getattr(self, 'mw', None)
+        if mw is not None and not getattr(mw, "use_per_window_layouts", True):
             layout = dict(layout)
             layout["lines_per_page"] = getattr(self.mw, "lines_per_page", 4)
         return window_style_for_kind(fuki_kind, layout)
@@ -1610,7 +1617,8 @@ class GameRules(BaseGameRules):
         lines-per-page), from window_layouts.json keyed by the message's
         fuki_kind. Used by the app's width checks / autofix / AI wrapping
         unless the string has an explicit override."""
-        if self.mw is not None and not getattr(self.mw, "use_per_window_layouts", True):
+        mw = getattr(self, 'mw', None)
+        if mw is not None and not getattr(mw, "use_per_window_layouts", True):
             return None
         attrs = self.get_message_attributes(block_idx, string_idx)
         if attrs is None:

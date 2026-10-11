@@ -144,6 +144,8 @@ class GameRules(BaseGameRules):
         if not found["dialogue"] or not attributes:
             return {"content_role": f"Interface text ({found['file']}, {found['label']})", "has_speaker": False}
         context: Dict[str, Any] = {"window_type": attributes["balloon"]}
+        if attributes["balloon"] in messages.LINE_BALLOONS:
+            context["layout_class"] = "lines"
         role = messages.NOT_SPEAKERS.get(attributes["character"])
         if role:
             context["content_role"] = role[0]

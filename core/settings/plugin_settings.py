@@ -62,6 +62,9 @@ class PluginSettings:
             "game_dialog_max_width_pixels": DEFAULT_GAME_DIALOG_MAX_WIDTH_PIXELS,
             "line_width_warning_threshold_pixels": DEFAULT_LINE_WIDTH_WARNING_THRESHOLD,
             "lines_per_page": 4,
+            # How far past the target width a line may go before it has to be shortened (step 2 of the layout
+            # pipeline). Used when a window kind gives only one width.
+            "width_tolerance_percent": 5,
             "use_per_window_layouts": True,
             "original_file_path": None, "edited_file_path": None,
             "is_directory_mode": False, "auto_generate_translation_path": False,

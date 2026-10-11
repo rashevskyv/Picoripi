@@ -8,13 +8,17 @@ from core.translation.chunk_result import verify_chunk_ids
 from core.translation.transport import ErrorKind
 from core.glossary_build.decisions import decided_block, decided_from_reply, select_related
 from core.glossary_build.parallel import MAX_CONSECUTIVE_FAILURES, run_pool
+from core.translation.layout_class import LINES, layout_class_for
 from core.translation.layout_contract import (
     check_translated,
     editor_text_for_layout,
     resolve_lines_per_window,
     validate_translation_layout,
 )
+from core.typesetter import typeset_text
+from handlers.translation.text_formatter import TextFormatter
 from utils.logging_utils import log_debug
+from utils.width import BUDGET_SAMPLE
 
 # Strings sent to the model in one request of a block translation or a batch update.
 ITEMS_PER_CHUNK = 12
@@ -474,6 +478,103 @@ class AIWorkerRunMixin:
             log_debug(f"AIWorker: review of chunk {chunk_i} failed, keeping the draft: {e}")
             return cleaned_draft
 
+    # ── the shorten pass ───────────────────────────────────────────────
+
+    def _real_position(self, source_id: Any) -> Tuple[Any, Any]:
+        """``(block_idx, string_idx)`` of a chunk item in the project."""
+        temp_id_map = self.task_details.get('temp_id_map') or {}
+        if source_id in temp_id_map:
+            return temp_id_map[source_id]
+        if str(source_id) in temp_id_map:
+            return temp_id_map[str(source_id)]
+        return self.task_details.get('block_idx'), source_id
+
+    def _layout_stats(self) -> Dict[str, int]:
+        return self.__dict__.setdefault('_layout_stats_counters', {"over": 0, "shortened": 0})
+
+    def _overflow_of(self, source_item: Any, translation: str) -> Tuple[int, str]:
+        """``(letters to cut, what is wrong)`` for one translated item as the game would show it; ``(0, "")`` fits."""
+        if not (getattr(self.mw, 'current_font_map', None) or getattr(self.mw, 'font_map', None)):
+            return 0, ""  # no font: widths would be guesses, not measurements
+        source_text = source_item.get('text', '') if isinstance(source_item, dict) else str(source_item)
+        block_idx, string_idx = self._real_position(source_item.get('id') if isinstance(source_item, dict) else None)
+        measure, target, limit, lines_per_page = TextFormatter(self.mw).typeset_parameters(block_idx, string_idx)
+        letter_px = max(1.0, measure(BUDGET_SAMPLE) / len(BUDGET_SAMPLE))
+        if layout_class_for(self.mw, block_idx, string_idx, source_text) == LINES:
+            over = [measure(line) - limit for line in translation.split("\n")]
+            excess = sum(px for px in over if px > 0)
+            if excess <= 0:
+                return 0, ""
+            return -(-excess // letter_px), f"a line is {max(over)} px wider than the window"
+        if not lines_per_page:
+            return 0, ""
+        _text, added = typeset_text(translation, measure, target, limit, lines_per_page)
+        if added <= 0:
+            return 0, ""
+        letters_per_page = int(lines_per_page * target / letter_px)
+        pages = [" ".join(page.split()) for page in translation.replace("\r", "").split("\n\n")]
+        excess = sum(max(0, len(page) - letters_per_page) for page in pages)
+        return max(1, excess), f"needs {added} more window(s) than the source ({lines_per_page} lines each)"
+
+    def _maybe_shorten_overflow(self, plan: _ChunkRun, chunk_i: int, chunk_items: list, cleaned: str,
+                                messages: Optional[list] = None) -> str:
+        """Measured feedback: items Picoripi cannot fit go back once with "shorten by about N letters".
+
+        A prose item that needs more windows than the source, or a lines item with a line wider than the limit.
+        A shortened translation is taken only when it fits better than the draft; anything else keeps the draft.
+        """
+        if not self.task_details.get('enable_shorten', False) or not messages or self.is_cancelled:
+            return cleaned
+        from handlers.translation.prompt_composer.instructions import SHORTEN_REQUEST
+        try:
+            draft = json.loads(cleaned)
+            by_id = {str(item.get('id')): item for item in chunk_items if isinstance(item, dict)}
+            problems = []
+            for item in draft.get('translated_strings', []):
+                source_item = by_id.get(str(item.get('id'))) if isinstance(item, dict) else None
+                if source_item is None:
+                    continue
+                letters, note = self._overflow_of(source_item, str(item.get('translation') or ''))
+                if letters > 0:
+                    problems.append({"id": item.get('id'), "shorten_by_letters": int(letters), "problem": note})
+        except Exception as e:
+            log_debug(f"AIWorker: overflow check of chunk {chunk_i} skipped: {e}")
+            return cleaned
+        if not problems:
+            return cleaned
+        self._layout_stats()["over"] += len(problems)
+        shorten_messages = [m for m in messages if m.get("role") in ("system", "user")] + [
+            {"role": "assistant", "content": cleaned},
+            {"role": "user", "content": SHORTEN_REQUEST + json.dumps(problems, ensure_ascii=False)},
+        ]
+        try:
+            self._log_ai_traffic(shorten_messages, chunk=chunk_i)
+            resp = self.provider.translate(shorten_messages, session=None, settings_override=dict(plan.provider_override))
+            self._log_ai_traffic(shorten_messages, response_text=resp.text if resp else "", chunk=chunk_i)
+            if self.is_cancelled or not resp or not resp.text:
+                return cleaned
+            fixes = json.loads(self._clean_json_response(resp.text)).get('translated_strings', [])
+            shorter = {str(f.get('id')): f['translation'] for f in fixes if isinstance(f, dict) and f.get('translation')}
+            changed = 0
+            for item in draft.get('translated_strings', []):
+                new = shorter.get(str(item.get('id'))) if isinstance(item, dict) else None
+                if not new or new == item.get('translation'):
+                    continue
+                source_item = by_id[str(item.get('id'))]
+                if self._overflow_of(source_item, new)[0] < self._overflow_of(source_item, str(item.get('translation') or ''))[0]:
+                    item['translation'] = new
+                    changed += 1
+            if not changed:
+                return cleaned
+            shortened = json.dumps(draft, ensure_ascii=False)
+            self._validate_chunk_result(chunk_i, chunk_items, shortened)
+            self._layout_stats()["shortened"] += changed
+            log_debug(f"AIWorker: shortened {changed} of {len(problems)} overflowing line(s) of chunk {chunk_i}")
+            return shortened
+        except Exception as e:
+            log_debug(f"AIWorker: shorten pass of chunk {chunk_i} failed, keeping the draft: {e}")
+            return cleaned
+
     def _run_translate_block_chunked(self) -> None:
         source_items = self.task_details['source_items']
         block_idx = self.task_details.get('block_idx')
@@ -541,7 +642,8 @@ class AIWorkerRunMixin:
                 # The reply came back but was refused (no JSON, a line layout change): say so for this chunk.
                 self._log_ai_traffic(messages, error=exc, chunk=idx)
                 raise
-            return self._maybe_run_editor_review(plan, idx, chunk, cleaned, messages)
+            reviewed = self._maybe_run_editor_review(plan, idx, chunk, cleaned, messages)
+            return self._maybe_shorten_overflow(plan, idx, chunk, reviewed, messages)
 
         def _worker_call(idx: int) -> str:
             try:
@@ -675,6 +777,7 @@ class AIWorkerRunMixin:
                 cleaned_text = self._clean_json_response(response.text)
                 self._validate_chunk_result(i, chunk, cleaned_text)
                 cleaned_text = self._maybe_run_editor_review(plan, i, chunk, cleaned_text, messages)
+                cleaned_text = self._maybe_shorten_overflow(plan, i, chunk, cleaned_text, messages)
 
                 if session_state and not session_state.bootstrapped:
                     log_debug(f"AIWorker: First chunk (index {i}) of block translation successful. Marking session as bootstrapped.")
