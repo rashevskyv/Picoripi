@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Tests: the 429 busy-wait proxy test checks the wait the transport policy requests (recorded sleeps), not the wall clock, which failed at 0.99 s on a loaded Windows machine.
 - Text operations: an issue scan's result is delivered through a relay owned by the main window, so a result that arrives after the window closed is dropped (it crashed with "has been deleted" before).
 - Block list: the deferred restore of the tree selection and scroll is scheduled with `single_shot` on the block list widget, so it never runs after that widget is gone (it closed a deleted progress dialog before).
 - Tests: the tree state tests wait for the deferred restore instead of patching the static timer.

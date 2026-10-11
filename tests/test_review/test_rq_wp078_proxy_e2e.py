@@ -10,6 +10,7 @@ import time
 import pytest
 
 from core.translation.config import build_default_translation_config
+from core.translation import providers
 from core.translation.providers import OpenAIProvider, create_translation_provider
 from core.translation.transport import ErrorKind, TransportError
 from handlers.translation.ai_worker import AIWorker
@@ -147,8 +148,23 @@ def test_parallel_requests_are_capped_by_the_proxy_s_usable_accounts(start):
 # ------------------------------------------------------------------------------------- 429 server_busy
 
 
-def test_a_server_busy_answer_is_waited_out_and_the_request_then_succeeds(start):
+def test_a_server_busy_answer_is_waited_out_and_the_request_then_succeeds(start, monkeypatch):
     """Two requests, one account, no queue in the proxy: the second gets 429 + Retry-After, waits, retries."""
+    # The policy the provider builds records each sleep it asks for: the wait is checked as requested, not as
+    # the wall clock measured (time.sleep may return a few milliseconds early on a loaded Windows machine).
+    waits = []
+
+    class RecordingPolicy(providers.TransportPolicy):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            real_sleep = self.sleep
+
+            def sleep(seconds):
+                waits.append(seconds)
+                real_sleep(seconds)
+            self.sleep = sleep
+
+    monkeypatch.setattr(providers, "TransportPolicy", RecordingPolicy)
     proxy = start(accounts=1, hold=0.6, average_sec=1.0, config={"max_queued_requests": 0})
     provider = OpenAIProvider(provider_settings(proxy))
     provider.enable_retries(lambda: False)
@@ -174,7 +190,7 @@ def test_a_server_busy_answer_is_waited_out_and_the_request_then_succeeds(start)
 
     assert errors == []
     assert json.loads(results[2][0])["translated_strings"][0]["id"] == 2
-    assert results[2][1] >= 1.0                                   # it waited out Retry-After: 1
+    assert sum(waits) >= 1.0                                      # it waited out Retry-After: 1, as requested
     assert results[2][1] < 10                                     # and did not run into a timeout
     log = proxy.log()
     assert log.count('"POST /v1/chat/completions HTTP/1.1" 429') == 1
