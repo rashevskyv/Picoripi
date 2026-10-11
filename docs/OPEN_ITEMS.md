@@ -19,6 +19,7 @@ the line when it is done or moved into a plan.
 - Zstd: `core/zstd_frame.py` is the one zstd helper (`compression.zstd` or `zstandard`, imported inside the calls). `fr3` and `core/unreal/pak.py` use it.
 - `feat/ready-dk` does not exist; Donkey Kong is not in round 7.
 - Ultra boot proof still open (round 6 item); the Sun/Moon plugin has no boot check either.
+- Full suite at 6f5a0d89 (`python tasks.py test`, parallel): 9344 passed, 13 skipped, 2 xfailed, 0 failed (601 s). Round 6's xdist worker crashes did not recur in this run.
 
 ## Integration round 6 (2026-10-11)
 
