@@ -15,3 +15,16 @@ the console language is.
 
 Prime 1 here is the Trilogy edition; its English text matches Metroid Prime Remastered in most tables, so a
 Remastered plugin can take this translation over by the English strings.
+
+## GameCube Metroid Prime and the PC port
+
+The same plugin opens Metroid Prime (GameCube, USA 1.00 `GM8E01`) unpacked by the workspace `Metroid\Prime (GC + PC
+port)` (`zt\mpport.py`), for the native PC port Odrannnn/MetroidPrimePort. The folders have no game level:
+`text\<package>\*.strg`, `font\*.font`, `texture\<package>\*.txtr`. The tables are the same Retro STRG version 0
+(one language, ENGL), the textures the same `txtr_gx`. Fonts differ: the GameCube USA FONT is version 0 to 2 (32-bit
+glyph fields, 46 bytes per glyph), read by `retro_font_gc` (`core/font_formats/retro_font_gc.py`); a version 4 file (PAL, the
+Trilogy discs) is passed to `retro_font_gx`. The port is given the result as loose `<id>.STRG/.FONT/.TXTR` files in its
+mods folder; the disc is not rebuilt. `retro_font_gc` follows the game's own reader and is checked on fonts built in
+the tests and on a real GameCube USA disc (revision 2): its 7 fonts are FONT version 2 with C4 textures, every font,
+STRG table (1,293) and texture (265) packs back unchanged and keeps an edit (`test_gamecube_real_data.py`), and an
+edited string, glyph and texture are seen in the port.

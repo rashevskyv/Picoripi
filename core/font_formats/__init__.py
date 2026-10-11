@@ -35,14 +35,14 @@ def _backends() -> Dict[str, Any]:
     from core.font_formats import (bcfnt, bffnt, bfotf, cells, brfna, cv_gba, cv_nds, eternal_darkness, fe13_bfnt, ffta2, fntg, fragile_dreams, g1n,
                                    g1t, g4font, gba_tiles, gzf, laft, jade, lunar, m2, mgs, mgs1, mgs1_hd, mt_font, n64, nftr, pgf, pmd_font,
                                    policenauts, qbf,
-                                   retro_font, retro_font_gx,
+                                   retro_font, retro_font_gc, retro_font_gx,
                                    rrr_errfont, swf_font, texture_grid, tmp_sdf, ttf, twewy, vagrant, xf, zelda3, mgs_nht)
     from core.font_formats import dq9, infinite_space
     from core.font_formats import pw_xpr
     return {"n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
             "bfotf": bfotf, "ttf": ttf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
-            "retro_font_gx": retro_font_gx, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
+            "retro_font_gx": retro_font_gx, "retro_font_gc": retro_font_gc, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
             "texture_grid": texture_grid, "zelda3": zelda3, "mgs1": mgs1, "mgs1_hd": mgs1_hd, "m2": m2,
             "lunar": lunar, "g4font": g4font,
             "is_obd": infinite_space, "dq9": dq9, "jade": jade, "brfna": brfna, "rrr_errfont": rrr_errfont,
