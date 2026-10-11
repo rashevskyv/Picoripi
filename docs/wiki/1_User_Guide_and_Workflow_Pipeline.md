@@ -106,6 +106,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      editor shows the letters. The Textures window opens the title screen, menu and message-window pictures (`gim`: GIM in FCHN
      packs, 8-bit index and RGBA8888). `2_build.bat` zips changed files back into their packs and writes a
      copy of the image with them (`build\Lunar - Silver Star Harmony (UA).iso`); `3_run.bat` starts PPSSPP.
+   - `donkey_kong_tropical_freeze` — Donkey Kong Country: Tropical Freeze (Switch, update v131072). **Source:** the workspace's `source` (`text\<package>__<asset>.msbt`: the English USEN message tables of the three packages with text, 6 tables). **Translation:** `translation`, starts with the Ukrainian USEN tables of the UKR mod. `2_build.bat` writes the changed tables into copies of the three packages (big-endian Retro RFRM PACK). Fonts (the Scaleform GFX library) and textures are not opened yet.
    - `metroid_prime4` — Metroid Prime 4: Beyond (Switch, update 1.1.0). **Source:** the workspace's `source`
      made by `1_unpack.bat` from the game's Retro packages (`text\*.msbt`: the English USEN messages of every
      MSBT table, 98 tables, 5,792 messages; `font\FONT_*.rfont`; `texture\<package>\*.txtr`, decompressed);

@@ -107,6 +107,7 @@ tokens: 44.0k
      відкриває картинки титульного екрана, меню й вікна повідомлень (`gim`: GIM у паках FCHN, 8-бітний індекс
      і RGBA8888). `2_build.bat` знову пакує змінені файли в їхні паки й записує копію образу з ними
      (`build\Lunar - Silver Star Harmony (UA).iso`); `3_run.bat` запускає PPSSPP.
+   - `donkey_kong_tropical_freeze` — Donkey Kong Country: Tropical Freeze (Switch, оновлення v131072). **Source:** `source` робочої теки (`text\<пакет>__<таблиця>.msbt`: англійські таблиці USEN трьох пакетів з текстом, 6 таблиць). **Translation:** `translation`, починається з українських таблиць USEN мода UKR. `2_build.bat` кладе змінені таблиці в копії трьох пакетів (великий порядок байтів, Retro RFRM PACK). Шрифти (бібліотека Scaleform GFX) і текстури ще не відкриваються.
    - `metroid_prime4` — Metroid Prime 4: Beyond (Switch, оновлення 1.1.0). **Source:** `source` робочої теки,
      який `1_unpack.bat` робить із пакетів Retro гри (`text\*.msbt`: англійські повідомлення USEN кожної таблиці
      MSBT, 98 таблиць, 5792 повідомлення; `font\FONT_*.rfont`; `texture\<пакет>\*.txtr`, розпаковані);
