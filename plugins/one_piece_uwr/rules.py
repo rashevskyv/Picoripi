@@ -7,6 +7,10 @@ text, system and tutorial strings), ``romfs/staffroll_eu/staffroll.jmsg``, ``rom
 ``romfs/quest_eu/category*.jarc/*.jmsg`` (quest texts). Each table is one block showing its English strings;
 ``2_build.bat`` appends the changed members to their archive. Fonts are ``romfs/font_eu/*.jfnt``, pictures
 ``romfs/menu_eu/**/*.jtex`` (``texture_sources.json``).
+
+The Switch Deluxe Edition keeps the same files inside CRI ``CPK`` archives; ``1_unpack.bat`` (``zt/r3bnx.py``,
+``zt/cpk.py``) opens them as ``romfs/romN.cpk/...`` folders (``rom4.cpk`` text and fonts, ``rom0.cpk`` / ``rom1.cpk`` /
+``rom2.cpk`` jARC archives, ``rom3.cpk`` pictures). Its pictures are linear RGBA8 (``jimg`` format code 0).
 """
 from __future__ import annotations
 
@@ -26,7 +30,7 @@ class GameRules(TableRules):
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
     tag_manager_class = TagManager
-    display_name = "One Piece: Unlimited World Red (3DS)"
+    display_name = "One Piece: Unlimited World Red (3DS) / Deluxe (Switch)"
     file_formats = (((".jmsg",), "Ganbarion jMSG message table"), ((".bin",), "Ganbarion jMSG message table (.bin)"))
     default_script_name = "one_piece_uwr_script.md"
     lines_per_page = DEFAULT_LINES_PER_PAGE
