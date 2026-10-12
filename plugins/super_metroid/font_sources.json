@@ -1911,6 +1911,50 @@
   }
  },
  {
+  "label": "Pause screen: Ukrainian capitals (8x8; 21 cells, drawn by a person)",
+  "format": "texture_grid",
+  "path": "gfx/pause_ua.bin",
+  "params": {
+   "texture": "raw",
+   "cell": [
+    8,
+    8
+   ],
+   "chars": [
+    "Б",
+    "Г",
+    "Ґ",
+    "Д",
+    "Є",
+    "Ж",
+    "З",
+    "И",
+    "Ї",
+    "Й",
+    "Л",
+    "П",
+    "У",
+    "Ф",
+    "Ц",
+    "Ч",
+    "Ш",
+    "Щ",
+    "Ь",
+    "Ю",
+    "Я",
+    "",
+    "",
+    ""
+   ],
+   "texture_params": {
+    "pixel_format": "snes:4bpp",
+    "offset": 0,
+    "width": 64,
+    "height": 24
+   }
+  }
+ },
+ {
   "label": "Intro story pages: green letters (8x8)",
   "format": "texture_grid",
   "path": "gfx/intro_font.bin",

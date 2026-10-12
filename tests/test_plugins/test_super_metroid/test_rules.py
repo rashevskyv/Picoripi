@@ -212,7 +212,7 @@ def _tile_image(data: bytes, tile: int):
 def test_the_game_fonts_are_listed_one_by_one_and_intro_is_two_fonts():
     rules = check_loads(PLUGIN)
     labels = [f["label"] for f in rules.get_font_sources()]
-    assert len(labels) == len(set(labels)) == 10
+    assert len(labels) == len(set(labels)) == 11
     assert [part for part in ("Message boxes", "HUD numbers", "small letters", "big letters (top",
                               "Pause screen", "Intro story", "Intro story pages: Ukrainian", "Intro first screen", "Credits: job",
                               "Credits: names")
@@ -372,3 +372,57 @@ def test_the_small_menu_font_has_a_cell_for_every_ukrainian_capital_outside_the_
     cells = [chars.index(ch) for ch in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"]
     assert len(set(cells)) == 21 and min(cells) >= 0xD2              # past the English letters (0x60-0x8F)
     assert all(chars[c] == ch for c, ch in zip(cells, "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"))
+
+
+def test_the_pause_font_has_a_cell_for_every_ukrainian_capital_in_the_free_vram_block():
+    """Tiles 0x3C0-0x3D7 are VRAM words 0x3C00-0x3FFF: no pause map uses them, so the 21 capitals sit there."""
+    rules = check_loads(PLUGIN)
+    cells = _font(rules, "Pause screen: Ukrainian")
+    assert cells["path"] == "gfx/pause_ua.bin" and cells["format"] == "texture_grid"
+    assert cells["params"]["texture_params"]["height"] // 8 * (cells["params"]["texture_params"]["width"] // 8) == 24
+    chars = cells["params"]["chars"]
+    assert chars[:21] == list("БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ") and set(chars[21:]) == {""}
+
+
+def test_real_pause_capitals_use_free_tiles_and_a_zero_filled_rom_block(zt_sm, tmp_path):
+    sm, data = zt_sm
+    assert sm.PAUSE_UA_FIRST_TILE * 16 >= 0x3C00 and (sm.PAUSE_UA_FIRST_TILE + 24) * 16 <= 0x4000
+    assert all(sm.UA_PAUSE[ch] == sm.PAUSE_UA_FIRST_TILE + k for k, ch in enumerate("БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"))
+    assert sm.FONTS["pause"].codes["Б"] == 0x3C0 and sm.FONTS["pause"].codes["Я"] == 0x3D4
+    rom = sm.Rom(data)
+    sm.blank_new_sheets(rom)
+    block = bytes(rom.data[sm.lo(sm.PAUSE_UA_ADDR):sm.lo(sm.PAUSE_UA_ADDR) + sm.PAUSE_UA_SIZE])
+    assert block == bytes(sm.PAUSE_UA_SIZE)
+    # the block stays after the pause palettes (0xB6F000-0xB6F1FF) and no pause text cell sits in it
+    assert sm.PAUSE_UA_ADDR >= 0xB6F200 and sm.PAUSE_UA_ADDR + sm.PAUSE_UA_SIZE <= 0xB70000
+    assert sm.gfx_source(data, "pause_ua") == bytes(sm.PAUSE_UA_SIZE)
+
+
+def test_the_pause_loader_gets_one_extra_dma_after_the_bg3_transfer(tmp_path):
+    """patch_pause_c adds the capitals' DMA to LoadPauseMenuTilesAndClearBG2 and keeps the BG3 transfer where it was."""
+    sm = _zt_sm_or_skip()
+    src = tmp_path / "src"
+    (src / "src").mkdir(parents=True)
+    body = ("void LoadPauseMenuTilesAndClearBG2(void) {  // 0x828E75\n"
+            "  static const StartDmaCopy kDmaCopy_StandardBg3Tiles = { .das = 0x2000 };\n"
+            "  SetupDmaTransfer(&kDmaCopy_StandardBg3Tiles);\n"
+            "  WriteReg(MDMAEN, 2);\n"
+            "}\n")
+    (src / "src" / "sm_82.c").write_text(body, encoding="utf-8", newline="")
+    sm.patch_pause_c(src)
+    text = (src / "src" / "sm_82.c").read_text(encoding="utf-8")
+    assert text.count("kDmaCopy_PauseUaCapitals") == 2 and text.startswith(body[:-2])
+    assert text.index("kDmaCopy_StandardBg3Tiles);") < text.index("kDmaCopy_PauseUaCapitals = ")
+    assert f"LONGPTR(0x{sm.PAUSE_UA_ADDR:06x})" in text and f".das = 0x{sm.PAUSE_UA_SIZE:x}" in text
+    assert "WriteReg(VMADDH, 0x3C)" in text and text.endswith("}\n")
+
+
+def _zt_sm_or_skip():
+    if not (SCRIPTS / "zt" / "sm.py").is_file():
+        pytest.skip("Super Metroid shared scripts not on disk")
+    sys.path.insert(0, str(SCRIPTS))
+    try:
+        from zt import sm
+        return sm
+    finally:
+        sys.path.remove(str(SCRIPTS))
