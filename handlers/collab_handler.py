@@ -339,7 +339,14 @@ class CollabHandler(QObject):
             if self._turn_over(budget, turn_started):
                 budget, turn_started = 0, time.perf_counter()
                 yield
-        self._refresh(touched)
+        updater = getattr(self.mw, "ui_updater", None)
+        for block_idx in sorted(touched):
+            yield                                          # each block's tree refresh is a turn of its own (D21)
+            if updater is not None:
+                updater.update_block_item_text_with_problem_count(block_idx)
+        if updater is not None and getattr(self.mw.data_store, "physical_block_idx", -1) in touched:
+            yield                                          # the editor's text views: a turn of their own
+            updater.update_text_views()
         self.last_message = tr('Joined the room: {taken} row(s) taken from it, {shared} shared, {conflicts} conflict(s).',
                                taken=taken, shared=shared, conflicts=len(self.conflicts))
         self._status(self.last_message)

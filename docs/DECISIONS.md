@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 3.7k
+tokens: 4.7k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -192,23 +192,45 @@ takes effect after restart, because modules hold the path they read at import. L
 
 ## D21. A room join applies its rows on the UI thread in short turns, not in a worker (2026-10-12)
 
-**Context.** A join applies every row of the room to the open project. The apply changes the data store, the
-unsaved-changes state and the editor, all owned by the UI thread. The audit asked for the apply to leave the UI
-thread (AGENTS rule 5). The first measurement used the mock-heavy test window: about 300 us per row, so 5,000 rows
-took 2.25 s and 20,000 rows 4.9 s in one call.
-**Measured on the real apply path** (`DataStateProcessor`, `AppDataStore`, the room handler; a plain-attribute
-window; no UI tree refresh; idle machine; garbage collector paused): 7 to 10 us per row (median 8 us, p99 18 to
-50 us); the slowest single row 0.23 to 0.45 ms; 5,000 rows in 26 turns, the slowest turn 3 to 5 ms; 20,000 rows
-in 101 turns, the slowest turn 3 to 5 ms; total 0.04 s for 5,000 rows and 0.16 s for 20,000 rows.
-**Decision.** The join is a generator that handles rows in turns: a turn ends after 200 rows, or after about
-50 ms, and the clock is read every 8 rows. One turn runs per event-loop pass (`single_shot` owned by the handler).
-Each row is checked when it is reached (conflicts, superseded keys, a left room). The apply stays on the UI thread
-because it mutates the store and the editor; a worker would need a snapshot of the store (as costly as the apply's
-reads) and would race with the user's typing. The tree refresh runs once at the end of the join, not per turn,
-because its cost depends on the project's tree and is not measured here.
-**Cost and limits.** A join of 20,000 rows lasts about 0.2 s of apply work plus the refresh and the event-loop
-passes; the editor shows the old text until the join ends. A single row can hold the window for its own cost
-(under 0.5 ms measured). The per-row autosave timer restart is part of the measured cost. Production trees with a
-very large block have an unmeasured refresh cost, which runs once per join.
-**Test.** `tests/test_performance.py` runs the real-path join with the garbage collector paused and requires every
-turn under 0.15 s (30 times the measured maximum). The mock-window join test is a smoke test with no time bound.
+**Context.** A join applies every row of the room to the open project, then refreshes the tree of each block it
+touched. Both change state owned by the UI thread (the data store, the unsaved-changes state, the block tree and
+the editor). AGENTS rule 5 keeps such work off long blocking calls. The first measurement used the mock-heavy test
+window: about 300 us per row, so 5,000 rows took 2.25 s and 20,000 rows 4.9 s in one call. That number is mostly
+mock overhead.
+
+**Measured on the real path** (the product classes: `DataStateProcessor`, `AppDataStore`, `FilterQueryAPI`,
+`BlockListUpdater` on a real `QTreeWidget`, the room handler, the rules of `plain_text`; a plain-attribute window
+with no MagicMock; one problem every 20 rows, written as a project scan leaves them; idle machine; garbage
+collector paused; below-normal priority):
+
+| case | total | apply turns | slowest apply turn | refresh turns | slowest refresh turn | per block refresh (median / max) |
+|---|---|---|---|---|---|---|
+| 25 blocks x 200 rows (5,000) | 0.06 s | 26 | 3.9 ms | 25 | 1.3 ms | 0.31 / 1.30 ms |
+| 100 blocks x 200 rows (20,000) | 0.19 s | 101 | 2.8 ms | 100 | 1.0 ms | 0.59 / 0.81 ms |
+
+- Apply: 7 to 10 us per row (median 8 us; p99 18 to 50 us); the slowest single row 0.23 to 0.45 ms.
+- Refresh of one block, first call after its rows changed (the block's warning index is rebuilt): median 1.8 ms,
+  max 4.5 ms for 100 blocks of 600 rows with 60,000 problem entries (1 per row), and 3.2 ms with 2,100 extra
+  tree items (the tree iterator is O(tree) per call). Repeat call with the index built: 0.1 ms (0.9 ms with the
+  extra tree items).
+- Not measured: the editor's text views (`update_text_views`), which need a real editor. A join calls them at
+  most once, in a turn of their own.
+
+**Decision.** The join is a generator that runs in turns, one turn per event-loop pass (`single_shot` owned by the
+handler; `leave()` drops the generator, so a left room stops the join). An apply turn ends after 200 rows, or after
+about 50 ms; the clock is read every 8 rows. After the last row, each touched block is refreshed in its own turn
+(one tree refresh per turn, in block order). The editor's text views, when the displayed block was touched, get a
+turn of their own. Each row is checked when it is reached (conflicts, keys superseded by a remote edit, a left
+room). The apply and the refresh stay on the UI thread: they mutate the store, the tree and the editor. A worker
+would need a snapshot of the store (as costly as the reads) and would race with the user's typing.
+
+**Cost and limits.** A join of 20,000 rows takes about 0.2 s of apply and refresh work, spread over about 200
+event-loop passes; the tree and the editor show the old state until their turn comes. A single row or a single
+block refresh can hold the window for its own cost (under 0.5 ms and under 5 ms measured). Remote edits that
+arrive in one poll still refresh their blocks together (`_refresh`, not yet in turns); a poll that touches many
+blocks has the same per-block cost in one event (about 1 to 5 ms per block here).
+
+**Test.** `tests/test_performance.py` runs the real-path join (with the real tree refresh) and requires every turn
+under 0.15 s, about 30 times the measured slowest turn. The mock-window join test is a smoke test with no time
+bound. `tests/test_core/test_collab.py` checks that a join touching 100 blocks runs at most one block refresh per
+turn and refreshes each block once.

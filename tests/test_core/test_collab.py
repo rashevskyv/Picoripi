@@ -195,6 +195,41 @@ class TestJoinInSlices:
         assert handler._current(0, 450) == "NEWER"
         assert handler._current(0, 10) == "UA 10"
 
+    def test_a_join_touching_100_blocks_refreshes_one_block_per_turn(self, qtbot, tmp_path, monkeypatch):
+        class CountingUpdater:
+            """Records each block tree refresh; the join calls only these two methods."""
+
+            def __init__(self):
+                self.refreshed = []
+
+            def update_block_item_text_with_problem_count(self, block_idx):
+                self.refreshed.append(block_idx)
+
+            def update_text_views(self, *args, **kwargs):
+                pass
+
+        blocks = [[f"Source {b}-{r}" for r in range(3)] for b in range(100)]
+        mw = _project_window(tmp_path, "blocks100", blocks=blocks)
+        mw.ui_updater = counting = CountingUpdater()
+        handler = mw.collab_handler
+        handler._build_positions()
+        rows = {handler._key(b, r): {"text": f"UA {b}-{r}", "rev": 1, "name": "Olena", "time": 0.0}
+                for b in range(100) for r in range(3)}
+        refreshes_per_turn = []
+        real_turn = handler._join_slice
+
+        def counted_turn():
+            before = len(counting.refreshed)
+            real_turn()
+            refreshes_per_turn.append(len(counting.refreshed) - before)
+
+        monkeypatch.setattr(handler, "_join_slice", counted_turn)
+        handler._on_joined({"rows": rows, "participants": []})
+        qtbot.waitUntil(lambda: handler._join_plan is None, timeout=60000)
+        assert max(refreshes_per_turn) == 1                    # never more than one block refresh in a turn
+        assert sorted(counting.refreshed) == list(range(100))  # every touched block refreshed once
+        assert "Joined the room: 300 row(s) taken" in handler.last_message
+
     def test_leaving_the_room_stops_a_join_in_progress(self, qtbot, tmp_path, monkeypatch):
         mw = _project_window(tmp_path, "cancel", lines=[f"Source {i}" for i in range(2000)])
         handler = mw.collab_handler
@@ -208,10 +243,10 @@ class TestJoinInSlices:
 
 # ── two windows in one room ──────────────────────────────────────────
 
-def _project_window(tmp_path, name, lines=("Hello", "Bye", "Yes")):
+def _project_window(tmp_path, name, lines=("Hello", "Bye", "Yes"), blocks=None):
     folder = tmp_path / name
     folder.mkdir()
-    mw = _window(folder, [list(lines)])
+    mw = _window(folder, blocks if blocks is not None else [list(lines)])
     mw.data_processor = DataStateProcessor(mw)
     mw.active_game_plugin = "plain_text"
     mw.statusBar = None

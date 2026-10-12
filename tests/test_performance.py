@@ -456,54 +456,83 @@ def test_dictionary_manager_fetch_fallback_performance(qapp):
 
 
 class _PlainWindow:
-    """The window attributes a join touches, as plain attributes (no mock records each call).
+    """The window a join touches, with plain attributes (no mock records calls), and a real block tree.
 
-    The UI refresh (ui_updater) and the undo stack are left out: a join calls the refresh once at its end,
-    which the test does not time. ``DataStateProcessor`` and the room handler are the real classes.
+    The rules, the data store, ``DataStateProcessor``, ``FilterQueryAPI``, ``BlockListUpdater`` (the real tree refresh),
+    a real ``QTreeWidget`` and the room handler are the product classes. Problems come from a fake scan: one problem
+    every 20 rows, written into ``problems_per_subline`` as a project scan leaves them.
     """
 
-    def __init__(self, lines):
+    def __init__(self, blocks, rows_per_block):
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
         from core.data_store import AppDataStore
         from core.data_state_processor import DataStateProcessor
+        from core.filter_query_api import FilterQueryAPI
         from core.saved_translations_manager import SavedTranslationsManager
         from handlers.collab_handler import CollabHandler
+        from plugins.testing import load_rules
+        from ui.updaters.block_list.updater import BlockListUpdater
 
         self.data_store = AppDataStore(self)
-        self.data_store.data = [list(lines)]
-        self.data_store.block_names = {"0": "Block 0"}
+        self.data_store.data = [[f"Source {b}-{r} with some words" for r in range(rows_per_block)] for b in range(blocks)]
+        self.data_store.block_names = {str(b): f"Block {b:03d}" for b in range(blocks)}
         self.block_to_project_file_map = {}
         self.project_manager = None
         self.statusBar = None
         self.active_game_plugin = "plain_text"
+        self.detection_enabled = {}
+        self.current_game_rules = load_rules("plain_text", self)
+        self.block_list_widget = QTreeWidget()
+        self.data_processor = DataStateProcessor(self)
+        self.filter_query_api = FilterQueryAPI(self, self.data_processor)
         self.undo_manager = None
-        self.ui_updater = None
         self.editor_operation_handler = None
         self.saved_translations_manager = SavedTranslationsManager.__new__(SavedTranslationsManager)
         self.saved_translations_manager.mw = self
-        self.data_processor = DataStateProcessor(self)
         self.collab_handler = CollabHandler(self)
+        problem = next(iter(self.current_game_rules.get_problem_definitions() or {"problem.test": {}}))
+        for b in range(blocks):
+            for r in range(0, rows_per_block, 20):
+                self.data_store.problems_per_subline[(b, r, 0)] = {problem}
+        class UiUpdater:
+            """The part of ``ui.ui_updater.UiUpdater`` that a join calls: the per-block tree refresh."""
+
+            def __init__(self, block_list_updater):
+                self.block_list_updater = block_list_updater
+
+            def update_block_item_text_with_problem_count(self, block_idx):
+                self.block_list_updater.update_block_item_text_with_problem_count(block_idx)
+
+        self.ui_updater = UiUpdater(BlockListUpdater(self, self.data_processor))
+        for b in range(blocks):
+            item = QTreeWidgetItem([f"Block {b:03d}"])
+            item.setData(0, Qt.ItemDataRole.UserRole, b)
+            item.setData(0, Qt.ItemDataRole.UserRole + 4, f"Block {b:03d}")
+            self.block_list_widget.addTopLevelItem(item)
+            self.ui_updater.block_list_updater._block_items_cache[b] = [item]
 
 
-def _join_rows(handler, count):
-    return {handler._key(0, i): {"text": f"UA line {i} з словами", "rev": 1, "name": "Olena", "time": 0.0}
-            for i in range(count)}
+def _join_rows(handler):
+    return {key: {"text": f"UA {b}-{r} з словами", "rev": 1, "name": "Olena", "time": 0.0}
+            for key, (b, r) in handler.positions.items()}
 
 
 @pytest.mark.performance
-@pytest.mark.parametrize("rows", [5000, 20000])
-def test_a_collab_join_on_the_real_apply_path_never_holds_the_window_for_long(qapp, qtbot, rows):
-    """Every UI turn of a join stays under 0.15 s, measured on the real apply path with the garbage collector paused.
+@pytest.mark.parametrize("blocks, rows_per_block", [(25, 200), (100, 200)])
+def test_a_collab_join_on_the_real_path_never_holds_the_window_for_long(qapp, qtbot, blocks, rows_per_block):
+    """Every UI turn of a join stays under 0.15 s: the apply turns and the one-block tree refresh turns.
 
-    Measured (idle machine, this fixture): about 8 us per row, 5,000 rows in 26 turns of at most 200 rows, the slowest
-    turn 5 ms, the slowest single row 0.45 ms. The bound is 30 times that, so it fails only on a real regression.
-    The UI tree refresh runs once at the end of the join and is not in these turns (see docs/DECISIONS.md D21).
+    Real path: the product classes throughout, the real tree refresh (``BlockListUpdater``) for every block the join
+    touches, the garbage collector paused for the measured part. Measured on this machine (see docs/DECISIONS.md D21):
+    the slowest turn is a few milliseconds. The bound is about 30 times that.
     """
     import gc
     import time
 
     from handlers.collab_handler import JOIN_SLICE_ROWS
 
-    window = _PlainWindow([f"Source line {i} with some words" for i in range(rows)])
+    window = _PlainWindow(blocks, rows_per_block)
     handler = window.collab_handler
     handler._build_positions()
     turns = []
@@ -517,12 +546,12 @@ def test_a_collab_join_on_the_real_apply_path_never_holds_the_window_for_long(qa
     handler._join_slice = timed_turn
     gc.disable()
     try:
-        handler._on_joined({"rows": _join_rows(handler, rows), "participants": []})
-        qtbot.waitUntil(lambda: handler._join_plan is None, timeout=120000)
+        handler._on_joined({"rows": _join_rows(handler), "participants": []})
+        qtbot.waitUntil(lambda: handler._join_plan is None, timeout=60000)
     finally:
         gc.enable()
-    assert handler._current(0, rows - 1) == f"UA line {rows - 1} з словами"
-    assert len(turns) >= rows // JOIN_SLICE_ROWS
+    assert handler._current(blocks - 1, rows_per_block - 1) == f"UA {blocks - 1}-{rows_per_block - 1} з словами"
+    assert len(turns) >= blocks * rows_per_block // JOIN_SLICE_ROWS + blocks
     assert max(turns) < 0.15, f"slowest turn {max(turns):.3f} s"
     handler.leave()
 
@@ -536,7 +565,7 @@ def test_a_collab_join_in_the_mock_harness_applies_every_row(qapp, qtbot, tmp_pa
     mw = _project_window(tmp_path, "join_smoke", lines=[f"Source line {i}" for i in range(2000)])
     handler = mw.collab_handler
     handler._build_positions()
-    handler._on_joined({"rows": _join_rows(handler, 2000), "participants": []})
+    handler._on_joined({"rows": _join_rows(handler), "participants": []})
     qtbot.waitUntil(lambda: handler._join_plan is None, timeout=120000)
-    assert handler._current(0, 1999) == "UA line 1999 з словами"
+    assert handler._current(0, 1999) == "UA 0-1999 з словами"
     handler.leave()

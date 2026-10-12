@@ -7,11 +7,11 @@ Read the row, then open only the document you need.
 | Document | What it is the home of | ~tokens | Status | Owns |
 |---|---|---|---|---|
 | `docs/ARCHITECTURE.md` | Layers, data flow, facades, and where to change what | 2.2k | current | layering, data flow |
-| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 3.7k | current | decisions and their reasons |
+| `docs/DECISIONS.md` | Why the code is the way it is: one short record per decision | 4.7k | current | decisions and their reasons |
 | `docs/ENGINEERING.md` | Habits behind the rules: threads, performance, persistence, tests | 1.5k | current | engineering practice |
 | `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.5k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
-| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 22.5k | current | unfinished work |
+| `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 22.6k | current | unfinished work |
 | `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 10.9k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
 | `docs/PROJECT_MANAGER_PHASE2.md` | Project Manager phase 2 plan | 0.6k | design | project manager |
 | `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.5k | current | owner decisions and live checks |
