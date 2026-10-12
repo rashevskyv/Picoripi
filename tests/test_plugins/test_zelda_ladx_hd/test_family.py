@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from plugins.zelda_ladx_hd import lng
-from plugins.zelda_ladx_hd.rules import SEED_FILE, GameRules
+from plugins.zelda_ladx_hd.rules import FAMILY_NAME, REFERENCE_FILE, GameRules
 
 
 def _translated_gbc(path: Path) -> Path:
@@ -25,11 +25,13 @@ def test_unknown_files_are_no_family(tmp_path):
 
 def test_translated_gbc_rom_is_the_base_member(tmp_path):
     rom = _translated_gbc(tmp_path / "game.gbc")
-    plan = GameRules().family_plan([str(rom)], str(tmp_path))
+    project = tmp_path / "picoripi"  # the workspace's project folder; the seed is in the workspace's reference folder
+    plan = GameRules().family_plan([str(rom)], str(project))
     assert plan.base == "dx_gbc"
     assert [m.key for m in plan.members] == ["dx_gbc"]
     assert plan.link_method == "scene key match"
-    assert plan.seed_path == str(tmp_path / SEED_FILE)
+    assert plan.family_name == FAMILY_NAME == "Link's Awakening DX"
+    assert plan.seed_path == str(tmp_path / "reference" / REFERENCE_FILE)
 
 
 def _real_hd_folder() -> Path:

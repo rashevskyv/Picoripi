@@ -7,6 +7,7 @@ Layouts are kept per key sequence. A project can hold ``eng.lng`` and ``dialog_e
 layout of its own file by the keys it writes.
 """
 import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -23,13 +24,19 @@ GBC_SIZE = 0x100000
 GBC_SHA1 = "d90ac17e9bf17b6c61624ad9f05447bdb5efc01a"
 # PC HD v1.0.0 language files: (size, FNV-1a 64) of eng.lng, then dialog_eng.lng. The content decides the member.
 HD_SIGNATURES = ((2295, "a1237d4e4a6279fe"), (65623, "c7f88380502b15a1"))
-SEED_FILE = "ladx_family_seed.json"  # ponytail: name chosen here, no seed file exists yet; set it when one does
+# The family's name (FamilyPlan has no name field: the family config's family_project.name names the project, as in
+# zelda_bmg/family.py). The seed is the workspace's reference\hd_seed.json, next to the project folder (picoripi\).
+FAMILY_NAME = "Link's Awakening DX"
+# The reference seed (built by the HD workspace, reference\hd_seed.json) and its reference columns.
+REFERENCE_FILE = "hd_seed.json"
+REFERENCE_LABELS = {"ua_gb": "UA GB (closest GBC dialogue)", "swuk": "SWUK (same GBC dialogue)"}
 
 
 @dataclass
 class LadxFamilyPlan(FamilyPlan):
-    """FamilyPlan plus what core does not read yet: the link method and the reference seed file."""
+    """FamilyPlan plus what core does not read yet: the family name, the link method and the reference seed file."""
 
+    family_name: str = FAMILY_NAME
     link_method: str = "scene key match"
     seed_path: Optional[str] = None
 
@@ -113,8 +120,39 @@ class GameRules(BaseGameRules):
         keys = [entry.key for entry in entries]
         self._layouts[_signature(keys)] = parsed
         blocks = [[entry.value] for entry in entries]
-        names = {index: key for index, key in enumerate(keys)}
+        # String keys: the project load looks names up with str(index) (handlers/project_action/load_worker.py).
+        names = {str(index): key for index, key in enumerate(keys)}
         return blocks, names
+
+    def get_reference_language_label(self) -> str:
+        return "Reference (UA GB, SWUK)"
+
+    def load_multi_reference(self, patch_path: str, block_names=None) -> Dict[str, Dict[Tuple[int, int], str]]:
+        """Reference columns from ``hd_seed.json`` (or the folder that holds it), matched by key.
+
+        The seed is built offline (HD\\reference): per file, per key, the Ukrainian of the closest GBC dialogue
+        (``ua_gb``) and the SWUK line (``swuk``), with the match score. Shown only; never written to a translation.
+        """
+        path = Path(patch_path)
+        if path.is_dir():
+            path = path / REFERENCE_FILE
+        if not path.is_file() or not block_names:
+            return {}
+        pairs = block_names.items() if isinstance(block_names, dict) else enumerate(block_names)
+        index = {name: int(block) for block, name in pairs}
+        seed = json.loads(path.read_text(encoding="utf-8"))
+        result: Dict[str, Dict[Tuple[int, int], str]] = {label: {} for label in REFERENCE_LABELS.values()}
+        for rows in seed.values():
+            for key, row in rows.items():
+                block = index.get(key)
+                if block is None:
+                    continue
+                score = row.get("score")
+                suffix = f"  [{score:.2f}]" if score is not None else ""
+                for field, label in REFERENCE_LABELS.items():
+                    if row.get(field):
+                        result[label][(block, 0)] = row[field] + suffix
+        return {label: items for label, items in result.items() if items}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         """Write the file: the stored layout with the edited values, or the entries alone when no layout is known."""
@@ -189,5 +227,5 @@ class GameRules(BaseGameRules):
             return [(ref.name, text.to_markup(raw[ref.rom:ref.rom + text.span_length(raw, ref.rom)]))
                     for ref in rom.read_dialog_refs(raw)]
 
-        seed = str(Path(project_dir) / SEED_FILE) if project_dir else None
-        return LadxFamilyPlan(members=tuple(members), read=read, seed_path=seed)
+        seed = str(Path(project_dir).parent / "reference" / REFERENCE_FILE) if project_dir else None
+        return LadxFamilyPlan(members=tuple(members), read=read, family_name=FAMILY_NAME, seed_path=seed)

@@ -20,7 +20,7 @@ def test_load_gives_one_block_per_entry_named_by_key():
     rules = GameRules()
     data, names = _load(rules, FILE)
     assert data == [["Start Game"], ["Back"]]
-    assert names == {0: "menu_start", 1: "menu_back"}
+    assert names == {"0": "menu_start", "1": "menu_back"}
 
 
 def test_save_without_edits_is_byte_exact():
