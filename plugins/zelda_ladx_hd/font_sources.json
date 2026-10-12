@@ -1,1 +1,10 @@
-[]
+[
+  {"label": "Dialogue and label font (smallFont)", "format": "sprite_font", "path": "Content/Fonts/smallFont.xnb"},
+  {"label": "Header font (newHeaderFont)", "format": "sprite_font", "path": "Content/Fonts/newHeaderFont.xnb"},
+  {"label": "Header font, not loaded by the code (headerFont)", "format": "sprite_font", "path": "Content/Fonts/headerFont.xnb"},
+  {"label": "Credits font", "format": "sprite_font", "path": "Content/Fonts/credits font.xnb"},
+  {"label": "Credits header font", "format": "sprite_font", "path": "Content/Fonts/credits header font.xnb"},
+  {"label": "Editor font (not in the game)", "format": "sprite_font", "path": "Content/Fonts/editor font.xnb"},
+  {"label": "Editor mono font (not in the game)", "format": "sprite_font", "path": "Content/Fonts/editor mono font.xnb"},
+  {"label": "Editor small mono font (not in the game)", "format": "sprite_font", "path": "Content/Fonts/editor small mono font.xnb"}
+]
