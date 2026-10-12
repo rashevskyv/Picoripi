@@ -2,6 +2,7 @@
 import time
 import uuid
 from typing import Dict, List, Optional
+from core.i18n import tr
 from utils.logging_utils import log_debug
 
 
@@ -59,7 +60,8 @@ class AIWorkerControlMixin:
             text += "; failed: " + ", ".join(f"{kind}×{count}" for kind, count in sorted(failures.items()))
         stats = getattr(self, '_layout_stats_counters', None)
         if stats and stats.get("over"):
-            text += f"; layout: {stats['over']} did not fit, {stats['shortened']} shortened"
+            text += tr("; layout: {over} did not fit, {shortened} shortened",
+                       over=stats["over"], shortened=stats["shortened"])
         return text
 
     def _add_retry_reminder(self, messages: List[Dict[str, str]]) -> None:
