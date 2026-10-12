@@ -147,3 +147,52 @@ def fanout(family: Family, store: dict, member: str) -> Tuple[Dict[str, Optional
         text = _resolve(family, linked, texts, member, uid, keys)
         out[uid] = text or None
     return out, warnings
+
+
+def trees(family: Family) -> List[Tuple[Tuple[str, str], Tuple[Tuple[str, str], ...]]]:
+    """Every unit tree: (root, nodes). The root is the unit no parent link leads from; the nodes are the root and
+    every unit linked below it, one per member. A tree with one node is unshared; with more, it is shared."""
+    linked = links(family)
+    parent = {(m, u): link for m in linked for u, link in linked[m].items()}
+
+    def top(node: Tuple[str, str]) -> Tuple[str, str]:
+        while node in parent:
+            node = parent[node]
+        return node
+
+    grouped: Dict[Tuple[str, str], List[Tuple[str, str]]] = {}
+    for member, units in family.units.items():
+        for uid, _key in units:
+            grouped.setdefault(top((member, uid)), []).append((member, uid))
+    result = []
+    for root, nodes in grouped.items():
+        members = [m for m, _ in nodes]
+        if len(set(members)) != len(members):
+            raise ValueError(f"a unit tree holds two units of one member: {root}")
+        result.append((root, tuple([root] + [n for n in nodes if n != root])))
+    return result
+
+
+def normalize(family: Family, store: dict) -> Tuple[dict, List[Tuple[str, str]]]:
+    """The store with each tree's text on its root unit. Equal texts below the root are dropped (they resolve to the
+    root). A text below the root that differs is kept, and listed: an override that a single shared unit cannot show.
+    """
+    keys = {(m, u): key for m, units in family.units.items() for u, key in units}
+    texts = {m: dict(v) for m, v in store.get("texts", {}).items()}
+    overrides: List[Tuple[str, str]] = []
+    for root, nodes in trees(family):
+        found = []
+        for node in nodes:
+            entry = texts.get(node[0], {}).get(node[1])
+            if entry and entry["text"] and entry["source"] == key_hash(keys[node]):
+                found.append((node, entry["text"]))
+        if not found:
+            continue
+        text = found[0][1]
+        for node, own in found:
+            if own != text:
+                overrides.append(node)
+            elif node != root:
+                del texts[node[0]][node[1]]
+        texts.setdefault(root[0], {})[root[1]] = {"source": key_hash(keys[root]), "text": text}
+    return {**store, "texts": texts}, overrides

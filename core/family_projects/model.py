@@ -30,14 +30,15 @@ class FamilyPlan:
 
     read(member_key) -> [(unit_id, text)] in file order. unit_id is a stable id the plugin chooses (for example
     "bmgres.arc/zel_00.bmg#12"); text is the translator-visible source text. match_key(text) -> the key that
-    decides whether two units are the same (default: the text itself). shared_files maps a file to "shared"
-    (identical bytes wanted in every member, copied from the base) or "per-member" (each member keeps its own).
+    decides whether two units are the same (default: the text itself). shared_files maps a file path (relative to
+    the folder that holds each member's folder, for example "Fontus/fontres.arc") to the member keys that take the
+    base member's copy byte for byte. A file that is not listed is per member.
     """
 
     members: Tuple[FamilyMember, ...]
     read: Callable[[str], List[Tuple[str, str]]]
     match_key: Optional[Callable[[str], str]] = None
-    shared_files: Dict[str, str] = field(default_factory=dict)
+    shared_files: Dict[str, Tuple[str, ...]] = field(default_factory=dict)
 
     @property
     def base(self) -> str:

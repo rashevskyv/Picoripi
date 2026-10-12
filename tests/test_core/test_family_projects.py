@@ -1,9 +1,9 @@
 """Family engine: alignment by match key, links to parents, seeding, fan-out and the store file (synthetic units)."""
 import pytest
 
-from core.family_projects.align import align
+from core.family_projects.align import align, key_hash
 from core.family_projects.model import FamilyMember, FamilyPlan
-from core.family_projects.store import Family, fanout, links, load_store, save_store, seed
+from core.family_projects.store import Family, fanout, links, load_store, normalize, save_store, seed, trees
 
 
 def _gc(texts, prefix="zel_00.bmg#"):
@@ -103,3 +103,26 @@ def test_store_round_trip_and_version_guard(tmp_path):
     path.write_text('{"version": 1}', encoding="utf-8")
     with pytest.raises(ValueError):
         load_store(path, "gc")
+
+
+def test_trees_group_linked_units_under_their_root_and_keep_unlinked_units_alone():
+    family = _family(GC, hd=_gc(["Hello", "GamePad"], prefix="hd#"), wii=_gc(["Press A"], prefix="wii#"))
+    found = {root: nodes for root, nodes in trees(family)}
+    assert found[("gc", "zel_00.bmg#0")] == (("gc", "zel_00.bmg#0"), ("hd", "hd#0"))
+    assert found[("gc", "zel_00.bmg#1")] == (("gc", "zel_00.bmg#1"), ("wii", "wii#0"))
+    assert found[("hd", "hd#1")] == (("hd", "hd#1"),)
+    assert found[("gc", "zel_00.bmg#2")] == (("gc", "zel_00.bmg#2"),)
+
+
+def test_normalize_moves_a_child_text_to_the_root_and_reports_a_differing_child():
+    family = _family(GC, hd=_gc(["Hello", "GamePad"], prefix="hd#"))
+    store = {"version": 2, "base": "gc", "texts": {"hd": {
+        "hd#0": {"source": key_hash("Hello"), "text": "Привіт"},
+        "hd#1": {"source": key_hash("GamePad"), "text": "Геймпад"}}}}
+    out, overrides = normalize(family, store)
+    assert overrides == []
+    assert out["texts"]["gc"]["zel_00.bmg#0"]["text"] == "Привіт"
+    assert "hd" not in out["texts"] or "hd#0" not in out["texts"]["hd"]
+    store["texts"]["gc"] = {"zel_00.bmg#0": {"source": key_hash("Hello"), "text": "Інший"}}
+    _out, overrides = normalize(family, store)
+    assert overrides == [("hd", "hd#0")]
