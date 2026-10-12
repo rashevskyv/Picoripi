@@ -1,0 +1,21 @@
+{
+  "_about": "Ukrainian letters in the Oracles message font. A letter's byte value is also its font cell (cell n = 16 bytes at font_offset + 16 * n). Letters that Russian uses keep the cp1251 code the Russian hack uses. The eight Ukrainian-only letters take cp1251 codes that the English text never uses (and the Russian hack uses only for leftover art). The Russian hack uses cp1251 0x98 nowhere, so the Ukrainian є takes 0x98. The glyph images are drawn by a person; the cells start empty (0xFF = blank).",
+  "cells": {
+    "А": "0xC0", "Б": "0xC1", "В": "0xC2", "Г": "0xC3", "Ґ": "0xA5", "Д": "0xC4", "Е": "0xC5", "Є": "0xAA",
+    "Ж": "0xC6", "З": "0xC7", "И": "0xC8", "І": "0xB2", "Ї": "0xAF", "Й": "0xC9", "К": "0xCA", "Л": "0xCB",
+    "М": "0xCC", "Н": "0xCD", "О": "0xCE", "П": "0xCF", "Р": "0xD0", "С": "0xD1", "Т": "0xD2", "У": "0xD3",
+    "Ф": "0xD4", "Х": "0xD5", "Ц": "0xD6", "Ч": "0xD7", "Ш": "0xD8", "Щ": "0xD9", "Ь": "0xDC", "Ю": "0xDE",
+    "Я": "0xDF",
+    "а": "0xE0", "б": "0xE1", "в": "0xE2", "г": "0xE3", "ґ": "0xB4", "д": "0xE4", "е": "0xE5", "є": "0x98",
+    "ж": "0xE6", "з": "0xE7", "и": "0xE8", "і": "0xB3", "ї": "0xBF", "й": "0xE9", "к": "0xEA", "л": "0xEB",
+    "м": "0xEC", "н": "0xED", "о": "0xEE", "п": "0xEF", "р": "0xF0", "с": "0xF1", "т": "0xF2", "у": "0xF3",
+    "ф": "0xF4", "х": "0xF5", "ц": "0xF6", "ч": "0xF7", "ш": "0xF8", "щ": "0xF9", "ь": "0xFC", "ю": "0xFE",
+    "я": "0xFF",
+    "’": "0x92", "–": "0x96", "—": "0x97"
+  },
+  "english_reserved": ["0xB8", "0xB9", "0xBA", "0xBB"],
+  "notes": {
+    "0xB8-0xBB": "Button icons (A and B) in the English text. Ukrainian cannot use them, so « » and є at 0xBA are not used.",
+    "0xDA, 0xDB, 0xDD": "Russian-only letters (Ъ Ы Э) and Ъ ы э in lower case are not in the Ukrainian set."
+  }
+}

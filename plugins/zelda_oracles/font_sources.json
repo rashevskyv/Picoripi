@@ -1,0 +1,10 @@
+[
+  {
+    "label": "Message font (GBC, 256 cells 8x16)",
+    "format": "gbc_font",
+    "path": "*.gbc",
+    "params": {
+      "font_offset": "0x70720"
+    }
+  }
+]

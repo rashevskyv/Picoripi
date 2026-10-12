@@ -277,6 +277,7 @@ _TAG_RE = re.compile(
     r")"
 )
 _NAMED_TWO_BYTE = {"abtn": b"\xB8\xB9", "bbtn": b"\xBA\xBB"}
+TAG_PATTERN = _TAG_RE.pattern  # the control codes of the markup, for the editor's tag manager
 _SIMPLE_0C = {"opt()": 2, "stop": 3, "num1": 1, "num2": 6, "heartpiece": 5, "slow()": 7}
 _SIMPLE_0A = {"Link": 0, "Child": 1, "secret1": 2, "secret2": 3}
 
@@ -294,14 +295,21 @@ def _target_low_byte(name: str, index: int) -> int:
     return target & 0xFF
 
 
-def from_markup(text: str, index: int = 0) -> bytes:
-    """Encode editor text to game bytes, terminated by 0x00. ``index`` is the string's text index."""
+def from_markup(text: str, index: int = 0, letters: Optional[Dict[str, int]] = None) -> bytes:
+    """Encode editor text to game bytes, terminated by 0x00. ``index`` is the string's text index.
+
+    ``letters`` maps the extra characters (Ukrainian letters) to their font cell codes.
+    """
     out = bytearray()
     i = 0
     while i < len(text):
         ch = text[i]
         if ch == "\n":
             out.append(0x01)
+            i += 1
+            continue
+        if letters and ch in letters:
+            out.append(letters[ch])
             i += 1
             continue
         if ch == "\\":

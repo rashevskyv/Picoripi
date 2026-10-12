@@ -40,7 +40,8 @@ def _backends() -> Dict[str, Any]:
     from core.font_formats import dq9, gen4_glyphs, infinite_space, phyre_bmf, l5_fnt
     from core.font_formats import asw_jfnt, jfnt, nlg_font, layton_gfnt, layton_hd, layton_nftr
     from core.font_formats import pw_xpr
-    return {"gen4_glyphs": gen4_glyphs, "n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
+    from core.font_formats import gbc_font
+    return {"gen4_glyphs": gen4_glyphs, "n64": n64, "gbc_font": gbc_font, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
             "bfotf": bfotf, "ttf": ttf, "mgs": mgs, "bffnt_wiiu": bcfnt, "brfnt": bcfnt, "nftr": nftr, "xf": xf,
             "vagrant": vagrant, "gba_tiles": gba_tiles, "retro_font": retro_font,
             "retro_font_gx": retro_font_gx, "retro_font_gc": retro_font_gc, "pgf": pgf, "twewy": twewy, "policenauts": policenauts,
