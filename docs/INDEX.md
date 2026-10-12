@@ -15,7 +15,7 @@ Read the row, then open only the document you need.
 | `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 10.9k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
 | `docs/PROJECT_MANAGER_PHASE2.md` | Project Manager phase 2 plan | 0.6k | design | project manager |
 | `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.5k | current | owner decisions and live checks |
-| `docs/ROADMAP.md` | Master plan: the work packages of Picoripi, their state and the order | 1.0k | current | work packages, order of work |
+| `docs/ROADMAP.md` | Master plan: the work packages of Picoripi, their state and the order | 1.1k | current | work packages, order of work |
 | `docs/TESTING_STRATEGY_AND_AUDIT.md` | Shape of the test suite, lanes, known risks | 2.3k | current | tests/ |
 | `docs/TRANSLATION_PROMPTING_STRATEGY.md` | Target design of translation context and prompts (Ukrainian) | 6.2k | design | handlers/translation/prompt_composer |
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 5.1k | current | handlers/translation, core/translation |

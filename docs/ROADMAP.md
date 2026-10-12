@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: work packages, order of work
-tokens: 1.0k
+tokens: 1.1k
 purpose: Master plan: the work packages of Picoripi, their state and the order
 ---
 # Road map
@@ -23,7 +23,9 @@ State: `done` is on `origin/main`; `branch` is finished on a branch and waits fo
 | A4 | Work Together, v1 (rooms, presence, revisions, conflicts, journal, bounded join and remote turns) | done | | `docs/wiki/13_Working_Together.md`, D18, D21 |
 | A5 | Series memory, forms of address, glossary chain, progress page | done | | wiki 1, 13 |
 | A6 | Work Together, v2: claims, roles, comments, host transfer, headless room server, op API | doing | branch `feat/collab-claims` | D22 (to come) |
-| A7 | Work Together, v3: offline-first journal (exchange file, shared folder, any reachable room) | next | after A6 | D22 |
+| A7 | Work Together, v3: the log is the truth, local files are a replica; offline-first journal (exchange file, shared folder, any reachable room); build stamp (hash of the translation state and the unsynced edits in every build manifest); block-hash check at start | next | after A6; owner decided 2026-10-12 | D22 |
+| A16 | Thin client: observers get a read-only web page from the room server; a full web editor later (the server must run all the time, e.g. a VPS) | idea | needs the A6 op API and A7 | D22 |
+| A17 | AI through the room: the server holds the key and ticks "AI for participants", a user ticks "send AI requests through the server" and may enter an own key (own key wins); limits per participant, spend counters per participant (no texts, no key), access by role | next | after A6; owner decided 2026-10-12 | D22 |
 | A8 | Family projects: one project per game family, plugin decides what is shared, "<version> only" folders | branch | TP, WW, DX; `feat/family-projects-ui`, `feat/family-ww`, `feat/ladx-family` | D19, D20 |
 | A9 | Family UI: several folders or images per project, roles of files recognised by the plugin | next | needs A2 and A8 merged | `docs/PROJECT_MANAGER_PHASE2.md` |
 | A10 | Project Manager, phase 2 (wizard, unpack recipes, build, export, run, flags) | next | | `docs/PROJECT_MANAGER_PHASE2.md` |
