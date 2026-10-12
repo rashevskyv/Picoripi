@@ -1167,6 +1167,7 @@
   "Profiled via AI (Speech Profile generated)": "Профіль через AI (згенеровано мовний профіль)",
   "Progress and the log belong to the jobs on this tab (Find Context, timeline, voices). Prevent sleep for long AI runs. Clearing the database wipes imported structure and analysis only — not your translations or glossary.": "Прогрес і журнал належать до завдань на цій вкладці (пошук контексту, часова шкала, голоси). Запобігати переходу в сплячий режим для тривалих запусків ШІ. Очищення бази даних видаляє лише імпортовану структуру та аналіз — а не ваші переклади чи глосарій.",
   "Project": "Проєкт",
+  "Project name": "Назва проєкту",
   "Project blocks": "Блоки проєкту",
   "Project Created": "Проєкт створено",
   "Project Creation Failed": "Не вдалося створити проєкт",

@@ -7,7 +7,7 @@ purpose: Project Manager phase 2 plan
 ---
 # Project Manager, phase 2 (plan, not built)
 
-Phase 1 is in `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (Project Manager) and `docs/DECISIONS.md` D18.
+Phase 1 is in `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (Project Manager) and `docs/DECISIONS.md` D20.
 This page lists what phase 2 adds. Nothing here is implemented.
 
 ## Scope

@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Review round 8: the room looks up a participant token under its lock; the Project Manager shows "Project name" (uk.json pair) where it showed the shared "Name" key; the Project Manager decision record is D20 (D18 is the collab room's).
 - Collab: the plugin-spec host-code check no longer sees a rules attribute read in the room fingerprint (`str(plugin).encode`).
 - Integration round 8 (2026-10-12): merged the user's WIP branch, Project Manager phase 1, portable data folder, Wii U system fonts, MGS3 PC CRC, Donkey Kong Country DKC1-3 and the OoT 3D sheet import; collab room listens on loopback by default; version 0.3.159-dev.
 - Work Together: the room listens on 127.0.0.1 by default; other computers (LAN) only when the host ticks Allow other computers (LAN), with a plain-HTTP warning in the window; the wiki (EN, UK) says so. The room's address list is looked up only then.

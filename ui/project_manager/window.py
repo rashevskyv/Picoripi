@@ -30,7 +30,7 @@ GROUP_CHOICES = (
     ("text", "By text amount"), ("none", "No grouping"),
 )
 SORT_CHOICES = (
-    ("name", "Name"), ("lines", "Lines"), ("platform", "Platform"), ("readiness", "Readiness"), ("modified", "Modified"),
+    ("name", "Project name"), ("lines", "Lines"), ("platform", "Platform"), ("readiness", "Readiness"), ("modified", "Modified"),
 )
 ISSUE_TEXT = {
     "project_file_missing": "The project file was not found.",
@@ -39,7 +39,7 @@ ISSUE_TEXT = {
     "source_missing": "The original files path does not exist.",
     "translation_missing": "The translation files path does not exist.",
 }
-COLUMNS = ("Name", "Platform", "Lines", "Blocks", "Translated", "Modified", "Flags")
+COLUMNS = ("Project name", "Platform", "Lines", "Blocks", "Translated", "Modified", "Flags")
 
 
 # ----- registry operations, run on a worker thread by BackgroundJob -----
@@ -637,7 +637,7 @@ class ImportDialog(QDialog):
         self.resize(900, 500)
         layout = QVBoxLayout(self)
         self._tree = QTreeWidget()
-        self._tree.setHeaderLabels([tr("Import"), tr("Series"), tr("Name"), tr("Platform"), tr("Blocks"),
+        self._tree.setHeaderLabels([tr("Import"), tr("Series"), tr("Project name"), tr("Platform"), tr("Blocks"),
                                     tr("Note"), tr("Path")])
         self._candidates = candidates
         for candidate in candidates:

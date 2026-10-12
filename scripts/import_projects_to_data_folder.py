@@ -4,7 +4,7 @@ Same rules as the manager's "Import projects from a folder": every ``picoripi/pr
 ``--root`` is found, one folder per series is created, and projects already listed are left as they are.
 Dry run by default. With ``--apply`` the registry is backed up (a copy) before it is written.
 
-    python scripts/import_projects_to_data_folder.py --root "E:\\Emulators\\RomHacking" --data-dir "D:\\git\\dev\\Picoripi\\data"
+    python scripts/import_projects_to_data_folder.py --root "<folder with the projects>" --data-dir "<your data folder>"
     python scripts/import_projects_to_data_folder.py --root ... --data-dir ... --apply
 """
 from __future__ import annotations

@@ -130,9 +130,10 @@ class Room:
 
     def who(self, token: str) -> Optional[str]:
         """The participant id of ``token``, or None."""
-        for pid, who in self.participants.items():
-            if hmac.compare_digest(who["token"], token):
-                return pid
+        with self.cond:                   # request threads share the dict with join, leave and the poll timeout
+            for pid, who in self.participants.items():
+                if hmac.compare_digest(who["token"], token):
+                    return pid
         return None
 
     def leave(self, pid: str) -> None:

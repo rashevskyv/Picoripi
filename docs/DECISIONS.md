@@ -162,7 +162,7 @@ game constants stay in that file. Widths reach the checks through `<project>/fon
 **Cost.** The model keeps BFN names (`GLY1`, `MAP1`, `WID1`) for formats that are not BFN; a format whose
 character map is fixed by the game cannot give a new glyph a character (the translation map does that).
 
-## D18. The Project Manager lists the projects the user added; counts come from memory (2026-10)
+## D20. The Project Manager lists the projects the user added; counts come from memory (2026-10)
 
 **Context.** Picoripi had only Recent Projects. Scanning all project files at start would read hundreds of
 folders and make the list depend on the disk. The line and translation counts need the plugin's parser, and
