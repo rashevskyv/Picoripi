@@ -141,10 +141,11 @@ def seed_from_project(plan: FamilyPlan, units: Dict[str, List[Unit]], translatio
 
 
 def create_project(project_dir: Path, source_root: Path, translation_root: Path, name: str, rules,
-                   carry_from: Path | None = None) -> Path:
+                   carry_from: Path | None = None, plugin_name: str = "zelda_bmg") -> Path:
     """Create the project file for the two roots and let Picoripi's sync make the blocks. Returns the .uiproj path.
 
     carry_from: a GameCube project folder. Its translation map, settings and block metadata are copied over.
+    plugin_name: the plugin that opens the project (its rules are the ones passed in).
     """
     from core.project.manager import ProjectManager
 
@@ -153,7 +154,7 @@ def create_project(project_dir: Path, source_root: Path, translation_root: Path,
     project_file = project_dir / PROJECT_FILE
     if not project_file.exists():
         atomic_write_json(project_file, {
-            "id": str(uuid.uuid4()), "name": name, "description": "", "plugin_name": "zelda_bmg",
+            "id": str(uuid.uuid4()), "name": name, "description": "", "plugin_name": plugin_name,
             "blocks": [], "virtual_folders": [],
             "metadata": {"source_path": str(source_root), "translation_path": str(translation_root),
                          "is_directory_mode": True, "auto_create_translations": False,
