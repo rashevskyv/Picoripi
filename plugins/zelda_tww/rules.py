@@ -158,6 +158,14 @@ class GameRules(TwilightPrincessRules):
             return rules
         return [*rules, (HD_TAG_RE.pattern, manager.tag_format), (r"[-]", manager.tag_format)]
 
+    def check_msbt_text(self, text: str) -> list:
+        """Problem checks of one HD (MSBT) block text: unparsed, unknown, unmatched, size, colour and icon issues.
+
+        Called for MSBT blocks only; GameCube text is checked by the curly-tag rules. See plugins/zelda_ww/msbt_checks.py.
+        """
+        from plugins.zelda_ww.msbt_checks import check_text
+        return check_text(text)
+
     def get_capabilities(self):
         """Lore from the wiki and terms from item windows; no speakers or window chrome yet."""
         return {"glossary_seed", "external_lore", "external_reference"}
