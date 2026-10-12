@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Monster Hunter Portable 3rd HD (PSP, Yakumo): new plugin `mhp3rd` (`plugins/mhp3rd/`): reads the dict form of a Yakumo `.lang` file (block -> TABLE:INDEX -> text), `lang_file.py` converts `.lang` <-> dict with a byte-exact round trip; tests use synthetic data only. The English source is built outside the repository from the user's own image.
 - Monster Hunter Portable 3rd HD (Yakumo port): `plugins/mhp3rd/lang_file.py` reads and writes Yakumo `*.lang` files (TABLE:INDEX) with a byte-exact round trip; chat filter tables 41-43 and entry 0 of each table are not editable. No game data was used.
 - Integration round 7 (2026-10-11): merged Pokémon Sun / Moon (`pokemon_gen7`), Jak and Daxter (`jak_and_daxter`, texture format `fr3`), Hard Corps: Uprising (`hard_corps_uprising`, texture format `xenos`) and Professor Layton DS and Mystery Room (`layton_ds`, `layton_mr`; fonts `layton_nftr`, `layton_gfnt`, `layton_hd`; pictures `layton_bg`, `layton_ani`, `layton_arj`, `layton_cani`, `layton_gfsp`, `layton_limg`); one zstd helper (`core/zstd_frame.py`) for `fr3` and the Unreal pak reader; the BIOS RLE body is shared in `core/containers/level5.py`; version 0.3.158-dev.
 - fantasy_life: a changed text longer than its place in the file is cut to that place with a warning in the build log (moving it to the end of the file is off; it hung the game after the title screen).

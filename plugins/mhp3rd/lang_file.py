@@ -12,7 +12,7 @@ import os
 import re
 import tempfile
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 BOM = "\ufeff"
 MAIN_BLOCK = 16
@@ -235,3 +235,22 @@ def write_lang(path: str, doc: LangDocument) -> None:
         if os.path.exists(tmp):
             os.remove(tmp)
         raise
+
+
+def to_json_obj(doc: "LangDocument") -> dict:
+    """The file as a dict: block name -> {key: value}. Keys keep their written form (TABLE:INDEX)."""
+    blocks: Dict[str, Dict[str, str]] = {}
+    for entry in doc.entries():
+        blocks.setdefault(str(entry.block), {})[entry.key] = entry.value
+    return blocks
+
+
+def from_json_obj(obj: dict, language: str, name: str) -> str:
+    """Write a file from the dict form. Values are escaped; blocks keep their order."""
+    lines = ["language = %s" % language, "name = %s" % name, ""]
+    for block, values in obj.items():
+        lines.append("[%s]" % block)
+        for key, value in values.items():
+            lines.append("%s = %s" % (key, escape(value)))
+        lines.append("")
+    return "\n".join(lines)
