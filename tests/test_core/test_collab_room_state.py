@@ -46,6 +46,7 @@ def test_a_comment_is_seen_resolved_and_only_its_author_or_a_moderator_deletes_i
     ha.comment("row", "Hello", [key], "Check the tone")
     qtbot.waitUntil(lambda: bool(hb.comments), timeout=5000)
     cid = next(iter(hb.comments))
+    qtbot.waitUntil(lambda: cid in ha.comments, timeout=5000)     # the author's own window learns it on its next poll
     assert hb.row_notes(key)["comments_open"] == 1
     hb.resolve_comment(cid, True)
     qtbot.waitUntil(lambda: ha.comments[cid]["resolved"] is not None, timeout=5000)
