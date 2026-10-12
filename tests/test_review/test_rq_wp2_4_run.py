@@ -174,7 +174,8 @@ def test_the_review_pass_sees_the_translation_conversation_and_its_fixes_are_app
     assert review["roles"] == ["system", "user", "assistant", "user"]
     assert review["messages"][:2] == draft_request                      # the same rules, glossary and context
     assert review["messages"][3]["content"] == REVIEW_REQUEST
-    assert [row(mw, 0, 0), row(mw, 0, 1)] == ["UA Hello there.", "UA Another line\\nUA below."]
+    # A prose string is typeset with the game's font (layout_class), so the reviewer's break is not kept as it was.
+    assert [row(mw, 0, 0), row(mw, 0, 1)] == ["UA Hello there.", "UA Another line UA below."]
 
 
 def test_an_unusable_editor_review_keeps_the_draft(qtbot, monkeypatch, tmp_path, server):
