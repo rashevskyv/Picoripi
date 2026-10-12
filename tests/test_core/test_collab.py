@@ -87,7 +87,7 @@ class TestServer:
             return requests.post(base + "/edits", headers={"X-Room-Token": token},
                                  json={"edits": [{"key": "k", "text": text, "base_rev": base_rev}]}).json()
 
-        assert edit(tokens[0], "A's text", 0) == {"accepted": {"k": 1}, "conflicts": {}}
+        assert edit(tokens[0], "A's text", 0) == {"accepted": {"k": 1}, "conflicts": {}, "refused": {}}
         stale = edit(tokens[1], "B's text", 0)
         assert stale["accepted"] == {} and stale["conflicts"]["k"]["text"] == "A's text"
         assert stale["conflicts"]["k"]["name"] == "A" and stale["conflicts"]["k"]["rev"] == 1
@@ -161,8 +161,9 @@ class TestRoomLimits:
         recent = room.poll(pid, since=room.seq - 2, wait=0)
         assert [e["key"] for e in recent["events"]] == ["k10", "k11"]
         behind = room.poll(pid, since=before, wait=0)           # the oldest kept event is later than this
-        assert all(e["type"] == "edit" for e in behind["events"])
-        assert {e["key"]: e["text"] for e in behind["events"]} == {f"k{i}": f"t{i}" for i in range(12)}
+        edits = [e for e in behind["events"] if e["type"] == "edit"]
+        assert {e["key"]: e["text"] for e in edits} == {f"k{i}": f"t{i}" for i in range(12)}
+        assert [e["type"] for e in behind["events"] if e["type"] != "edit"] == ["snapshot"]
 
 
 class TestJoinInSlices:
