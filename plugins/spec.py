@@ -51,6 +51,7 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_display_name", "Game name shown in the UI.", required=True, call=(), returns=str),
         Hook("get_file_formats", "The files the game's text lives in: core.formats.FileFormat(extensions, mode, label) "
              "with mode json, text or bytes.", call=(), returns=list),
+        Hook("family_plan", "Family of the game: the members (consoles or versions) a list of source folders holds, which links to which, and how each unit is read (core/family_projects/model.py). Gets the sources the user gave; the plugin recognises each by content. None: no family.", optional=True),
         Hook("export_runtime_state", "What the plugin learned while loading and needs again to save (plain JSON data).",
              call=()),
         Hook("restore_runtime_state", "Take back what export_runtime_state returned.", call=(None,)),

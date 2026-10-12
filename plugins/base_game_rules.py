@@ -164,6 +164,16 @@ class BaseGameRules:
         from core.formats import DEFAULT_FORMATS
         return list(DEFAULT_FORMATS)
 
+    def family_plan(self, sources: List[str], project_dir: Optional[str] = None) -> Any:
+        """Declare a family from the source paths the user gave, or None when the game has no family.
+
+        The plugin recognises each source by its content and names its members (see
+        ``core/family_projects/model.py``: FamilyMember, FamilyPlan). Core then links the units of the members
+        and keeps one translation per shared unit. ``project_dir`` is the project folder, for its character map.
+        Default: None (one console, no family).
+        """
+        return None
+
     def export_runtime_state(self) -> Any:
         """What the plugin learned while loading and needs again to save.
 

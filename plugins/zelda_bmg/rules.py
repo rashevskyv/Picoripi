@@ -198,6 +198,14 @@ class GameRules(BaseGameRules):
         self._aliased_raw_tags_signature = None
         self.load_translation_map()
 
+    def family_plan(self, sources: list, project_dir: Optional[str] = None) -> Any:
+        """Twilight Princess family: GameCube, Wii and the two Wii U HD language slots (see family.py)."""
+        from pathlib import Path
+        from .family import make_rules, plan_for_sources
+        rules = make_rules(Path(project_dir) if project_dir else None)  # a fresh rules object: no shared load state
+        plan, _units = plan_for_sources(sources, rules)
+        return plan
+
     def get_file_formats(self) -> list:
         """Message files (.bmg) and bitmap fonts (.bfn) are binary."""
         from core.formats import DEFAULT_FORMATS, FileFormat

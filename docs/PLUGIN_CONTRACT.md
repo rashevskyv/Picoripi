@@ -22,6 +22,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `save_data_to_json_obj` | Turn blocks back into what is written to the file. | required |
 | `get_display_name` | Game name shown in the UI. | required |
 | `get_file_formats` | The files the game's text lives in: core.formats.FileFormat(extensions, mode, label) with mode json, text or bytes. |  |
+| `family_plan` | Family of the game: the members (consoles or versions) a list of source folders holds, which links to which, and how each unit is read (core/family_projects/model.py). Gets the sources the user gave; the plugin recognises each by content. None: no family. |  |
 | `export_runtime_state` | What the plugin learned while loading and needs again to save (plain JSON data). |  |
 | `restore_runtime_state` | Take back what export_runtime_state returned. |  |
 | `reset_runtime_state` | Forget the loading state before a new file or project is loaded. |  |
