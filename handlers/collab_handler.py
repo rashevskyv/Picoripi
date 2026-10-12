@@ -30,8 +30,9 @@ from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread, safe_shutdown_thread, single_shot
 
 SUMMARY_EVERY_MS = 60_000
-JOIN_SLICE_ROWS = 200                 # rows a join handles per UI-thread turn ...
-JOIN_SLICE_SECONDS = 0.1              # ... or this long, whichever comes first (a slow row or a busy machine)
+JOIN_SLICE_ROWS = 200                 # a join turn handles at most this many rows ...
+JOIN_CLOCK_EVERY = 8                  # ... reads the clock every this many rows ...
+JOIN_SLICE_SECONDS = 0.05             # ... and ends after about this long (one row may exceed it; see docs/DECISIONS.md D21)
 
 REMOTE = "COLLAB_REMOTE"
 JOURNAL_NAME = "collab_room.json"
@@ -298,7 +299,9 @@ class CollabHandler(QObject):
 
     @staticmethod
     def _turn_over(rows_done: int, turn_started: float) -> bool:
-        return rows_done >= JOIN_SLICE_ROWS or time.perf_counter() - turn_started >= JOIN_SLICE_SECONDS
+        if rows_done >= JOIN_SLICE_ROWS:
+            return True
+        return rows_done % JOIN_CLOCK_EVERY == 0 and time.perf_counter() - turn_started >= JOIN_SLICE_SECONDS
 
     def _join_work(self, data: Dict[str, Any]) -> Iterator[None]:
         """The join as a generator: yields when a turn is full (rows or time). Each row is checked when it is reached."""
@@ -320,8 +323,6 @@ class CollabHandler(QObject):
                     touched.add(position[0])
             budget += 1
             if self._turn_over(budget, turn_started):
-                self._refresh(touched)
-                touched.clear()
                 budget, turn_started = 0, time.perf_counter()
                 yield
         for key, (block_idx, string_idx) in list(self.positions.items()):
@@ -336,8 +337,6 @@ class CollabHandler(QObject):
                 shared += 1
             budget += 1
             if self._turn_over(budget, turn_started):
-                self._refresh(touched)
-                touched.clear()
                 budget, turn_started = 0, time.perf_counter()
                 yield
         self._refresh(touched)

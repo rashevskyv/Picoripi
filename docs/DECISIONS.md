@@ -189,3 +189,26 @@ the chooser runs in `main.py` before any module reads it. Headless runs and the 
 to a temp folder; a headless run without an explicit folder raises instead of asking or guessing.
 **Cost.** The chooser appears on each new worktree or checkout (each has its own `data/`). A "change folder"
 takes effect after restart, because modules hold the path they read at import. Logs stay next to the program.
+
+## D21. A room join applies its rows on the UI thread in short turns, not in a worker (2026-10-12)
+
+**Context.** A join applies every row of the room to the open project. The apply changes the data store, the
+unsaved-changes state and the editor, all owned by the UI thread. The audit asked for the apply to leave the UI
+thread (AGENTS rule 5). The first measurement used the mock-heavy test window: about 300 us per row, so 5,000 rows
+took 2.25 s and 20,000 rows 4.9 s in one call.
+**Measured on the real apply path** (`DataStateProcessor`, `AppDataStore`, the room handler; a plain-attribute
+window; no UI tree refresh; idle machine; garbage collector paused): 7 to 10 us per row (median 8 us, p99 18 to
+50 us); the slowest single row 0.23 to 0.45 ms; 5,000 rows in 26 turns, the slowest turn 3 to 5 ms; 20,000 rows
+in 101 turns, the slowest turn 3 to 5 ms; total 0.04 s for 5,000 rows and 0.16 s for 20,000 rows.
+**Decision.** The join is a generator that handles rows in turns: a turn ends after 200 rows, or after about
+50 ms, and the clock is read every 8 rows. One turn runs per event-loop pass (`single_shot` owned by the handler).
+Each row is checked when it is reached (conflicts, superseded keys, a left room). The apply stays on the UI thread
+because it mutates the store and the editor; a worker would need a snapshot of the store (as costly as the apply's
+reads) and would race with the user's typing. The tree refresh runs once at the end of the join, not per turn,
+because its cost depends on the project's tree and is not measured here.
+**Cost and limits.** A join of 20,000 rows lasts about 0.2 s of apply work plus the refresh and the event-loop
+passes; the editor shows the old text until the join ends. A single row can hold the window for its own cost
+(under 0.5 ms measured). The per-row autosave timer restart is part of the measured cost. Production trees with a
+very large block have an unmeasured refresh cost, which runs once per join.
+**Test.** `tests/test_performance.py` runs the real-path join with the garbage collector paused and requires every
+turn under 0.15 s (30 times the measured maximum). The mock-window join test is a smoke test with no time bound.

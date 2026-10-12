@@ -455,23 +455,57 @@ def test_dictionary_manager_fetch_fallback_performance(qapp):
     assert duration < 0.050, f"Dictionary fetch fallback took too long: {duration*1000:.2f}ms (budget: 50ms)"
 
 
+class _PlainWindow:
+    """The window attributes a join touches, as plain attributes (no mock records each call).
+
+    The UI refresh (ui_updater) and the undo stack are left out: a join calls the refresh once at its end,
+    which the test does not time. ``DataStateProcessor`` and the room handler are the real classes.
+    """
+
+    def __init__(self, lines):
+        from core.data_store import AppDataStore
+        from core.data_state_processor import DataStateProcessor
+        from core.saved_translations_manager import SavedTranslationsManager
+        from handlers.collab_handler import CollabHandler
+
+        self.data_store = AppDataStore(self)
+        self.data_store.data = [list(lines)]
+        self.data_store.block_names = {"0": "Block 0"}
+        self.block_to_project_file_map = {}
+        self.project_manager = None
+        self.statusBar = None
+        self.active_game_plugin = "plain_text"
+        self.undo_manager = None
+        self.ui_updater = None
+        self.editor_operation_handler = None
+        self.saved_translations_manager = SavedTranslationsManager.__new__(SavedTranslationsManager)
+        self.saved_translations_manager.mw = self
+        self.data_processor = DataStateProcessor(self)
+        self.collab_handler = CollabHandler(self)
+
+
+def _join_rows(handler, count):
+    return {handler._key(0, i): {"text": f"UA line {i} з словами", "rev": 1, "name": "Olena", "time": 0.0}
+            for i in range(count)}
+
+
 @pytest.mark.performance
 @pytest.mark.parametrize("rows", [5000, 20000])
-def test_a_collab_join_never_holds_the_window_for_longer_than_a_slice(qapp, qtbot, tmp_path, monkeypatch, rows):
-    """A join runs in turns of at most JOIN_SLICE_ROWS rows or JOIN_SLICE_SECONDS; no turn may hold the window for 200 ms.
+def test_a_collab_join_on_the_real_apply_path_never_holds_the_window_for_long(qapp, qtbot, rows):
+    """Every UI turn of a join stays under 0.15 s, measured on the real apply path with the garbage collector paused.
 
-    Before the slices a 5,000-row join held the window for 2.25 s and a 20,000-row join for 4.90 s (idle machine, same
-    harness). The harness is mock-heavy, so the garbage collector is paused for the measured part: its pauses grow with
-    the mock call history and are not the handler's cost.
+    Measured (idle machine, this fixture): about 8 us per row, 5,000 rows in 26 turns of at most 200 rows, the slowest
+    turn 5 ms, the slowest single row 0.45 ms. The bound is 30 times that, so it fails only on a real regression.
+    The UI tree refresh runs once at the end of the join and is not in these turns (see docs/DECISIONS.md D21).
     """
     import gc
-    from test_core.test_collab import _project_window
+    import time
+
     from handlers.collab_handler import JOIN_SLICE_ROWS
 
-    mw = _project_window(tmp_path, f"join{rows}", lines=[f"Source line {i}" for i in range(rows)])
-    handler = mw.collab_handler
+    window = _PlainWindow([f"Source line {i} with some words" for i in range(rows)])
+    handler = window.collab_handler
     handler._build_positions()
-    room_rows = {handler._key(0, i): {"text": f"UA {i}", "rev": 1, "name": "Olena", "time": 0.0} for i in range(rows)}
     turns = []
     real_turn = handler._join_slice
 
@@ -480,12 +514,29 @@ def test_a_collab_join_never_holds_the_window_for_longer_than_a_slice(qapp, qtbo
         real_turn()
         turns.append(time.perf_counter() - started)
 
-    monkeypatch.setattr(handler, "_join_slice", timed_turn)
+    handler._join_slice = timed_turn
     gc.disable()
     try:
-        handler._on_joined({"rows": room_rows, "participants": []})
+        handler._on_joined({"rows": _join_rows(handler, rows), "participants": []})
         qtbot.waitUntil(lambda: handler._join_plan is None, timeout=120000)
     finally:
         gc.enable()
+    assert handler._current(0, rows - 1) == f"UA line {rows - 1} з словами"
     assert len(turns) >= rows // JOIN_SLICE_ROWS
-    assert max(turns) < 0.2, f"slowest turn {max(turns):.3f} s for {JOIN_SLICE_ROWS} rows"
+    assert max(turns) < 0.15, f"slowest turn {max(turns):.3f} s"
+    handler.leave()
+
+
+@pytest.mark.performance
+def test_a_collab_join_in_the_mock_harness_applies_every_row(qapp, qtbot, tmp_path):
+    """Smoke only, no time bound: the mock-heavy test window adds about 300 us per row (MagicMock call records),
+    so its turn times say nothing about the product. The real-path test above carries the time bound."""
+    from test_core.test_collab import _project_window
+
+    mw = _project_window(tmp_path, "join_smoke", lines=[f"Source line {i}" for i in range(2000)])
+    handler = mw.collab_handler
+    handler._build_positions()
+    handler._on_joined({"rows": _join_rows(handler, 2000), "participants": []})
+    qtbot.waitUntil(lambda: handler._join_plan is None, timeout=120000)
+    assert handler._current(0, 1999) == "UA line 1999 з словами"
+    handler.leave()
