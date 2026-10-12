@@ -6,12 +6,54 @@ lines the game skips are kept with the file layout, so a save writes them back u
 Layouts are kept per key sequence. A project can hold ``eng.lng`` and ``dialog_eng.lng``, and a save finds the
 layout of its own file by the keys it writes.
 """
-from typing import Any, Dict, List, Tuple
+import hashlib
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
+from core.family_projects.model import FamilyMember, FamilyPlan
 from core.formats import MODE_TEXT, FileFormat
 from plugins.base_game_rules import BaseGameRules
 
 from . import lng
+
+# Game Boy Color ROM, English v1.0 (the rule of zelda_ladx accept()): the source ROM by SHA-1, or a translated ROM
+# by its header title. The GBC plugin is on its own branch; its code is imported only when the GBC member is read.
+GBC_SIZE = 0x100000
+GBC_SHA1 = "d90ac17e9bf17b6c61624ad9f05447bdb5efc01a"
+# PC HD v1.0.0 language files: (size, FNV-1a 64) of eng.lng, then dialog_eng.lng. The content decides the member.
+HD_SIGNATURES = ((2295, "a1237d4e4a6279fe"), (65623, "c7f88380502b15a1"))
+SEED_FILE = "ladx_family_seed.json"  # ponytail: name chosen here, no seed file exists yet; set it when one does
+
+
+@dataclass
+class LadxFamilyPlan(FamilyPlan):
+    """FamilyPlan plus what core does not read yet: the link method and the reference seed file."""
+
+    link_method: str = "scene key match"
+    seed_path: Optional[str] = None
+
+
+def _fnv1a64(data: bytes) -> str:
+    value = 0xCBF29CE484222325
+    for byte in data:
+        value ^= byte
+        value = (value * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return f"{value:016x}"
+
+
+def _is_gbc(data: bytes) -> bool:
+    if len(data) != GBC_SIZE:
+        return False
+    return hashlib.sha1(data).hexdigest() == GBC_SHA1 or (data[0x134:0x139] == b"ZELDA" and data[0x143] == 0x80)
+
+
+def _hd_part(data: bytes) -> Optional[int]:
+    """Index in HD_SIGNATURES of a language file, or None. The hash runs only on a size match."""
+    for index, (size, digest) in enumerate(HD_SIGNATURES):
+        if len(data) == size and _fnv1a64(data) == digest:
+            return index
+    return None
 
 
 def _layout_to_json(lang: lng.LangFile) -> Dict[str, Any]:
@@ -106,3 +148,46 @@ class GameRules(BaseGameRules):
     def reset_runtime_state(self) -> None:
         """Forget the layouts before another project is loaded."""
         self._layouts = {}
+
+    def family_plan(self, sources: List[str], project_dir: Optional[str] = None) -> Optional[FamilyPlan]:
+        """The Link's Awakening DX family: the Game Boy Color ROM (base) and the PC HD language files.
+
+        A source is a file, or a folder of ``*.lng`` and ``*.gbc`` files. Each file is recognised by its content;
+        unknown files are ignored. None when no file is recognised.
+        """
+        gbc: List[Path] = []
+        hd: Dict[int, Path] = {}
+        for source in sources:
+            path = Path(source)
+            for file in (sorted([*path.glob("*.lng"), *path.glob("*.gbc")]) if path.is_dir() else [path]):
+                data = file.read_bytes()
+                if _is_gbc(data):
+                    if gbc:
+                        raise ValueError(f"two Game Boy Color ROMs: {gbc[0]} and {file}")
+                    gbc.append(file)
+                    continue
+                part = _hd_part(data)
+                if part is None:
+                    continue
+                if part in hd:
+                    raise ValueError(f"two sources are the same language file: {hd[part]} and {file}")
+                hd[part] = file
+        if not gbc and not hd:
+            return None
+        members = []
+        if gbc:
+            members.append(FamilyMember("dx_gbc", "Game Boy Color", str(gbc[0]), base=True))
+        if hd:
+            members.append(FamilyMember("dx_hd", "PC HD", str(hd[min(hd)].parent), base=not gbc))
+
+        def read(key: str) -> List[Tuple[str, str]]:
+            if key == "dx_hd":
+                return [(line.key, line.value) for part in sorted(hd)
+                        for line in lng.parse(hd[part].read_bytes()).entries()]
+            from plugins.zelda_ladx import rom, text  # the GBC plugin: imported here, so planning works without it
+            raw = gbc[0].read_bytes()
+            return [(ref.name, text.to_markup(raw[ref.rom:ref.rom + text.span_length(raw, ref.rom)]))
+                    for ref in rom.read_dialog_refs(raw)]
+
+        seed = str(Path(project_dir) / SEED_FILE) if project_dir else None
+        return LadxFamilyPlan(members=tuple(members), read=read, seed_path=seed)
