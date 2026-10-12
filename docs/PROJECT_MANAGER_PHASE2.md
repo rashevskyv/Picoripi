@@ -1,9 +1,9 @@
 ---
 status: design
 updated: 2026-10-11
-owns: Project Manager phase 2 plan
+owns: project manager
 tokens: 0.6k
-purpose: What phase 2 of the Project Manager adds: wizard, platforms, unpack recipes, build and run
+purpose: Project Manager phase 2 plan
 ---
 # Project Manager, phase 2 (plan, not built)
 

@@ -1,8 +1,8 @@
 ---
 status: current
 updated: 2026-10-10
-owns: core/collab, core/progress_stats.py
-tokens: 1.7k
+owns: core/collab
+tokens: 1.8k
 ---
 # Спільна робота і прогрес
 
