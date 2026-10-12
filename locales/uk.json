@@ -1849,5 +1849,6 @@
   "The image is {0}x{1}, the texture {2}x{3}. Resize the image to fit?": "Зображення {0}x{1}, а текстура {2}x{3}. Змінити розмір зображення?",
   "This game's plugin names no textures: open a texture file (Ctrl+O).": "Плагін цієї гри не називає текстур: відкрийте файл текстури (Ctrl+O).",
   "Translated": "Переклад",
-  "{0} textures": "Текстур: {0}"
+  "{0} textures": "Текстур: {0}",
+  "Suggest Advance Width From Drawn Pixels": "Запропонувати ширину кроку за намальованими пікселями"
 }

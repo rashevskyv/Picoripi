@@ -323,6 +323,7 @@ class ImageView(QtWidgets.QGraphicsView):
         action_render = menu.addAction(tr("Render Font to Selected Glyph..."))
         action_import = menu.addAction(tr("Import Selected Glyph PNG..."))
         action_export = menu.addAction(tr("Export Selected Glyph PNG..."))
+        action_advance = menu.addAction(tr("Suggest Advance Width From Drawn Pixels"))
         
         action = menu.exec(event.globalPos())
         if action == action_render:
@@ -331,4 +332,8 @@ class ImageView(QtWidgets.QGraphicsView):
             v.import_glyph_png()
         elif action == action_export:
             v.export_glyph_png()
+        elif action == action_advance:
+            from .glyph_width_suggest import suggest_advances
+            suggest_advances(v, v.selected_glyph_indices())
+            v._set_dirty(True)
 
