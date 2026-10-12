@@ -2,6 +2,7 @@
 import os
 import struct
 import json
+import tempfile
 from PIL import Image
 
 from core.bfn_core import (GX_8BIT, gx8_encode as _gx8_encode, gx8_texels as _gx8_texels, map_lists_to_pairs,
@@ -454,3 +455,34 @@ def repack_bfn_logic(input_dir, output_bfn_path):
     
     with open(output_bfn_path, 'wb') as f:
         f.write(final_buf)
+
+
+def read_bfn_model(data):
+    """A BFN file's bytes as the font editor's model ``(metadata, sheets)`` (sheets: RGBA images)."""
+    with tempfile.TemporaryDirectory(prefix="bfn_model_") as folder:
+        path = os.path.join(folder, "font.bfn")
+        with open(path, 'wb') as f:
+            f.write(data)
+        extract_bfn_logic(path, os.path.join(folder, "out"))
+        out = os.path.join(folder, "out")
+        with open(os.path.join(out, "data.json")) as f:
+            metadata = json.load(f)
+        count = len([name for name in os.listdir(out) if name.startswith("sheet_") and name.endswith(".png")])
+        sheets = []
+        for index in range(count):
+            with Image.open(os.path.join(out, f"sheet_{index}.png")) as image:
+                sheets.append(image.convert("RGBA"))
+    return metadata, sheets
+
+
+def write_bfn_model(metadata, sheets):
+    """The BFN file bytes of the model that ``read_bfn_model`` returns."""
+    with tempfile.TemporaryDirectory(prefix="bfn_model_") as folder:
+        with open(os.path.join(folder, "data.json"), 'w') as f:
+            json.dump(metadata, f, indent=4)
+        for index, sheet in enumerate(sheets):
+            sheet.save(os.path.join(folder, f"sheet_{index}.png"))
+        out = os.path.join(folder, "font.bfn")
+        repack_bfn_logic(folder, out)
+        with open(out, 'rb') as f:
+            return f.read()
