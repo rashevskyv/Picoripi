@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: core/collab
-tokens: 2.4k
+tokens: 2.7k
 purpose: Rooms, roles, claims, comments
 ---
 # Working Together and Progress
@@ -87,11 +87,23 @@ right-click and press **Claim for me**. A row can also be claimed from the bar a
 **Presence.** When you open a row that someone else is working on, the status bar says "Name is working here." Nothing
 is locked.
 
+**Markers on the block tree.** A block shows, after its name, what the room knows about it:
+
+- **● N** — a disc with the initial of a participant who works in the block (`+1` when more than one). The tooltip says
+  "Name works here, N min ago".
+- **🔒 N** — a claim in the block, with the owner's initial. The item is grey when the owner is offline.
+- **💬 3** — three open comments in the block. Resolved comments do not count.
+
+The bar above the editor shows the same for the open row, and **Claim this row**, **Approve** and **Comment…**.
+A row claimed by someone else is **read-only** in the editor: you see its text and the bar says **Claimed by Name**.
+Right-click the bar, or a block in the tree, for the room's menu: **Claim for me**, **Release my claim here**,
+**Assign to…**, **Comment…**, **Resolve comments here**.
+
 **Comments.** Comment on a row, a file, a block, a folder, a virtual folder or the whole project: right-click the tree
 item and press **Comment…**, or press **Comment…** in the bar above the editor. A comment has its author, the time and
 its text. **Resolve** marks it resolved with who and when; press it again to reopen the comment. Everybody in the room
-sees the comments. The room keeps them in `collab_room.json` and in `comments.json` in the project folder, so they stay
-after the room closes.
+sees the comments. Every participant's Picoripi keeps a copy in `comments.json` in its project folder, and the room keeps
+them in `collab_room.json`, so they stay after the room closes.
 
 **Approval.** A reviewer, a moderator or the host presses **Approve** in the bar above the editor. A later change of the
 row's text removes the approval.
@@ -116,9 +128,11 @@ The first participant that joins with the token in `owner-token.txt` becomes the
 its port and the room id, and runs until you stop it. The room answers only to the room password (for joining) and to
 room tokens (for everything else).
 
-**Remote rooms are off by default.** Picoripi connects to a room only when you press **Start the room** or **Join**.
-Nothing connects by itself, and no room address is saved for later. The traffic is plain HTTP: use a VPN or a network
-you trust.
+**Remote rooms are off by default.** Picoripi connects to a room only when you press **Start the room**, **Join** or
+**Connect**. Nothing connects by itself. The room's address and name are remembered for the next start; a password is
+remembered only when you tick **Remember this room**. The password is kept in this computer's settings (`collab.json`,
+like the AI keys), never in the project folder or an export. Forget a saved room with **Forget**. The traffic is plain
+HTTP: use a VPN or a network you trust.
 
 ## Progress page
 

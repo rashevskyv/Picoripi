@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: unfinished work
-tokens: 22.9k
+tokens: 22.8k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -11,12 +11,9 @@ Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.
 the line when it is done or moved into a plan.
 
 ## Work Together: roles, claims, comments (2026-10-12, D22)
-- Tree markers: presence, claims and comment counts on block and folder items (the block tree's text refresh in `ui/updaters/block_list/highlight_mixin.py`). The row bar and the window show them now.
-- Saved remote endpoints: a settings list of rooms (address, no password) that the window offers; the list is empty by default and nothing connects by itself. Joining one address at a time works now.
-- Client-side `comments.json`: the server writes it; a participant's own copy in its project folder needs a `WorkerThread` writer.
+- Tree markers on leaf rows: block items carry presence, claim and comment markers; the row items under a virtual folder do not yet. Resolved comments are not dimmed.
 - Offline-first sync: operation log per participant, exchange file and shared-folder reader, with the conflict rules in D22 (next package; the interfaces are named there).
-- Read-only editor for claimed rows: the window puts the room's text back on each change; a read-only widget would be cleaner.
-- Row list menu: the row bar has the room actions; the editor's row list has no context menu yet.
+- Folder-level aggregation on virtual and real folder items: only block items get markers so far.
 - Journal keeps state, not the operation list (D22 "one deliberate change"); a client that falls behind a window of 5,000 events gets a snapshot.
 - Operations made while the room is unreachable wait in memory for the running session only; if Picoripi closes first, they are lost (the offline-first item keeps them on disk).
 

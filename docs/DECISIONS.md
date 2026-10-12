@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: decisions and their reasons
-tokens: 7.4k
+tokens: 7.9k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -311,11 +311,32 @@ the host's own computer.
 - Plain HTTP; the password is a shared secret, not encryption (as D18).
 - A room lives while its process runs. A headless room needs a machine that stays on.
 - An offline participant's changes reach the room only when it reconnects. The offline-first package below is the fix.
-- Presence, claim and comment markers on the block tree are not built yet; the row bar and the Work Together window show
-  them. The row list has no menu of its own.
-- A saved list of remote endpoints is not built; the window joins one address at a time.
+- Leaf rows of the block tree get no marker; the row bar shows the row's claim, presence and comments. Resolved comments
+  are not dimmed on the tree.
+- The row's menu is on the row bar; the editor itself has no menu of its own.
 - A host that lost its token and runs a headless room needs the creation token file (`--owner-token-file`); otherwise
   nobody can take the host role back.
+
+**Second round (2026-10-12, same work package).**
+- **Markers.** A block item shows a disc with the initial of the first participant who works there (`+n` for more), a
+  lock with the initial of the claim's owner (grey when the owner is offline) and a bubble with the open-comment count.
+  The tooltip gives the names, the minutes since each one moved there, and the claim and comment lines.
+  `ui/collab_markers.py` draws; the handler decides what each block shows.
+- **Read-only.** The editor is read-only for a row the participant may not change (another claim, or a role without
+  text rights). The row bar sets and clears that flag only; a read-only editor for another reason is left alone. The
+  refusal path still puts the room's text back, as the safety net.
+- **Menus.** One scope menu (`ui/collab_menu.py`) for the block tree and for the row bar: Claim for me, Release my claim
+  here, Assign to, Comment, Resolve comments here.
+- **comments.json everywhere.** Every participant's Picoripi writes the room's comments to the project's `comments.json`
+  when they change, atomically, in a worker thread (`core/collab/comments_file.py`). On join the window reads the file in
+  a worker and merges it by comment id, but only when the file came from another room: a file of this room is the
+  room's own copy, so a deleted comment stays deleted. A resolution takes the later time.
+- **Saved rooms.** The user may tick "Remember this room": the address, the name and the password go to the computer's
+  settings (`collab.json`, next to the AI keys in `settings.json`). The list is empty on a fresh profile; a saved room
+  connects only when the user presses Connect. A test checks that a fresh profile makes no network call and that the
+  password never reaches the project folder.
+- **Error texts.** The room sends English on the wire. The window shows `tr(text)` of each text; every text the room can
+  send is a catalog key (a test reads `core/collab/server.py` and checks the keys).
 
 **Test.** `tests/test_core/test_collab_server.py`: the permission matrix, enforcement in `edit`, claims and requests,
 approval, comments, identity, removal and unban, host transfer, idempotent operations, the journal and `comments.json`,
