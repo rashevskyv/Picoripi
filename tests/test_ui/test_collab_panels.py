@@ -90,6 +90,7 @@ def test_the_row_bar_shows_the_claim_and_offers_only_what_the_role_allows(qtbot,
     key = a.collab_handler._key(0, 0)
     a.collab_handler.claim("row", "Hello", [key])
     qtbot.waitUntil(lambda: bool(b.collab_handler.claims), timeout=5000)
+    qtbot.waitUntil(lambda: bool(a.collab_handler.claims), timeout=5000)   # the owner's window learns it on its poll
     bar_b = CollabRowBar(b)
     qtbot.addWidget(bar_b)
     bar_b.refresh(0, 0)
