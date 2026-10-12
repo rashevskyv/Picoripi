@@ -16,7 +16,8 @@ def _project(root, name, project_id):
 
 
 def _dialog(qtbot, settings, opened):
-    dialog = ProjectManagerDialog(None, str(settings), opened.append, lambda: None)
+    dialog = ProjectManagerDialog(None, str(settings), opened.append, lambda: None,
+                                  lambda project_file, updates: None, lambda name, value: None)
     qtbot.addWidget(dialog)
     return dialog
 

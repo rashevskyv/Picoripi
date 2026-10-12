@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from core.project_library.flags import flags_of
 from core.tag_utils import strip_tags
 from utils.constants import plugins_root
 
@@ -46,6 +47,7 @@ def read_card(project_file: str | Path) -> Dict[str, Any]:
         "project_id": str(data.get("id") or ""),
         "modified": str(data.get("modified_at") or ""),
         "issues": issues,
+        "flags": flags_of(metadata),
         "mtime_ns": stat.st_mtime_ns,
         "size": stat.st_size,
     }

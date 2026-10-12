@@ -162,6 +162,7 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
     translation_roots = [_root(base, metadata.get("translation_path")), base]
 
     totals = {"lines": 0, "needs_translation": 0, "translated": 0}
+    groups: Dict[str, Dict[str, int]] = {}
     skipped = 0
     cache: Dict[str, Any] = {}
     for block in data.get("blocks") or []:
@@ -182,4 +183,14 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
         counts = count_strings([original], [translated or []], {})
         for key in totals:
             totals[key] += counts[key]
-    return {"counts": totals, "targets": targets_of(rules), "skipped": skipped}
+        group = _group_name(str(block.get("source_file") or ""))
+        row = groups.setdefault(group, {"blocks": 0, "lines": 0})
+        row["blocks"] += 1
+        row["lines"] += counts["lines"]
+    return {"counts": totals, "targets": targets_of(rules), "skipped": skipped, "groups": groups}
+
+
+def _group_name(source_file: str) -> str:
+    """The folder a block's source file sits in, for the resource tree of a row. Top-level files share one group."""
+    parts = source_file.replace("\\", "/").split("/")
+    return parts[0] if len(parts) > 1 and parts[0] else "(top level)"

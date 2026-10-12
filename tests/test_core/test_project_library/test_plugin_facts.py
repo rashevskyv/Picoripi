@@ -93,6 +93,7 @@ def test_count_project_counts_translated_lines_per_block(tmp_path):
     assert result["counts"] == {"lines": 2, "needs_translation": 2, "translated": 1}
     assert result["skipped"] == 0
     assert result["targets"][0]["id"] == "patch"
+    assert result["groups"] == {"(top level)": {"blocks": 1, "lines": 2}}
 
 
 def test_count_project_uses_the_internal_key_of_a_split_file(tmp_path):

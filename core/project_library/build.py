@@ -10,7 +10,7 @@ import shlex
 import shutil
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional
 
 from utils.logging_utils import log_info
 
@@ -159,11 +159,3 @@ def emulator_argv(template: str, path: str, posix: Optional[bool] = None) -> Lis
     if not any(PLACEHOLDER in word for word in words):
         argv.append(path)
     return argv
-
-
-def list_relative(folder: str | os.PathLike) -> Sequence[str]:
-    """Relative file paths under ``folder``, sorted; empty when the folder is missing."""
-    root = Path(folder)
-    if not root.is_dir():
-        return []
-    return sorted(path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file())

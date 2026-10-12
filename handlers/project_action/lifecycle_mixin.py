@@ -38,7 +38,14 @@ class LifecycleMixin:
         info = dialog.get_project_info()
         if not info:
             return
+        self.finish_new_project(info)
 
+    def finish_new_project(self, info: Dict) -> None:
+        """Create the project described by ``info`` and open it. Shared by the old dialog and the Project Manager wizard.
+
+        ``info`` has the keys of ``NewProjectDialog.get_project_info`` and may add ``platform`` and ``metadata``
+        (stored in the project's metadata and in the Project Manager's row).
+        """
         # Create project using ProjectManager
         self.mw.project_manager = ProjectManager()
 
@@ -55,6 +62,9 @@ class LifecycleMixin:
 
         if success:
             project = self.mw.project_manager.project
+            if info.get('metadata'):
+                project.metadata.update(info['metadata'])
+                self.mw.project_manager.save()
             log_info(f"Project '{project.name}' created successfully at {info['directory']}.")
 
             # Update recent projects
@@ -64,7 +74,7 @@ class LifecycleMixin:
                 self.mw.settings_manager.add_recent_project(project_file)
                 self.mw.settings_manager.save_settings()
                 self._update_recent_projects_menu()
-            self.note_project_opened(project_file)
+            self.note_project_opened(project_file, platform=info.get('platform', ''))
 
             # Switch plugin if needed
             if info['plugin'] != self.mw.active_game_plugin:

@@ -1,21 +1,29 @@
-"""Project actions: the Project Manager window, and the registry and string counts it reads."""
+"""Project actions: the Project Manager window, its wizard, and the registry, counts and flags it reads and writes."""
 from functools import partial
-from typing import Optional
+from typing import Dict, Optional
 
-from core.project_library import index, registry
+from core.project_library import flags, index, registry
+from core.project_library.plugin_facts import default_load_rules
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.window import ProjectManagerDialog
+from ui.project_manager.wizard import ProjectWizard
 from utils import constants
 from utils.logging_utils import log_debug
 
 
-def _touch(reg: registry.Registry, path: str, project_id: str) -> None:
+def _touch(reg: registry.Registry, path: str, project_id: str, platform: str = "") -> None:
     reg.touch_opened(path, project_id=project_id)
+    if platform:
+        reg.update_fields(path, platform=platform)
 
 
 def _library_dir() -> str:
     # Read at call time: tests point SETTINGS_DIR at a temporary folder.
     return str(constants.SETTINGS_DIR)
+
+
+def _same_file(first: str, second: str) -> bool:
+    return registry.project_key(first) == registry.project_key(second)
 
 
 class LibraryMixin:
@@ -24,7 +32,8 @@ class LibraryMixin:
         dialog: Optional[ProjectManagerDialog] = getattr(self.mw, "project_manager_dialog", None)
         if dialog is None:
             dialog = ProjectManagerDialog(self.mw, _library_dir(), self._open_from_manager,
-                                          self.create_new_project_action)
+                                          self.open_new_project_wizard, self.save_project_flags,
+                                          self.save_project_manager_setting)
             self.mw.project_manager_dialog = dialog
         else:
             dialog.reload()
@@ -39,16 +48,40 @@ class LibraryMixin:
             return
         self.open_project_manager_action()
 
+    def open_new_project_wizard(self) -> None:
+        """The Project Manager's new-project wizard. It creates the project through the shared creation path."""
+        wizard = ProjectWizard(self.mw, default_load_rules, self.finish_new_project)
+        wizard.exec()
+
     def _open_from_manager(self, project_file: str) -> None:
         self._open_recent_project(project_file)
 
-    def note_project_opened(self, project_file: str) -> None:
+    def note_project_opened(self, project_file: str, platform: str = "") -> None:
         """Record in the registry that a project was opened now. Adds the project when it is new."""
         project_manager = getattr(self.mw, "project_manager", None)
         project = getattr(project_manager, "project", None)
         project_id = getattr(project, "id", "") or ""
-        job = BackgroundJob(registry.mutate, _library_dir(), partial(_touch, path=project_file, project_id=project_id))
+        job = BackgroundJob(registry.mutate, _library_dir(),
+                            partial(_touch, path=project_file, project_id=project_id, platform=platform))
         job.start()
+
+    def save_project_flags(self, project_file: str, updates: Dict[str, bool]) -> None:
+        """Store the user's flags of a project. An open project saves them with its own file; others on a worker."""
+        project_manager = getattr(self.mw, "project_manager", None)
+        project = getattr(project_manager, "project", None)
+        open_file = getattr(project_manager, "project_file_path", None)
+        if project is not None and open_file and _same_file(open_file, project_file):
+            stored = dict(project.metadata.get("flags") or {})
+            stored.update(updates)
+            project.metadata["flags"] = {name: bool(value) for name, value in stored.items()
+                                         if name in flags.FLAG_NAMES}
+            project_manager.save()
+            return
+        BackgroundJob(flags.set_flags, project_file, updates).start()
+
+    def save_project_manager_setting(self, name: str, value: str) -> None:
+        """Store one Project Manager setting (for example the emulator command) on a worker."""
+        BackgroundJob(registry.mutate, _library_dir(), partial(_set_setting, name=name, value=value)).start()
 
     def record_project_counts(self) -> None:
         """Store the line and translation counts of the open project, counted on a worker thread.
@@ -65,3 +98,7 @@ class LibraryMixin:
         edited = dict(store.edited_data or {})
         log_debug(f"Counting strings of project {key} on a worker thread.")
         BackgroundJob(index.record_counts, _library_dir(), key, original, translated, edited).start()
+
+
+def _set_setting(reg: registry.Registry, name: str, value: str) -> None:
+    reg.set_setting(name, value)
