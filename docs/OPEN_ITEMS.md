@@ -25,11 +25,11 @@ the line when it is done or moved into a plan.
 - Only `plugins/plain_text` declares a build target, and no real game plugin implements `get_source_roles`, `identify_source`, `unpack_sources` or `build_target` yet. Until a game does, the wizard takes roles and platforms from the user and the Build, Export and Run buttons stay off for it.
 - Counts skip archive members (blocks inside containers) and report them as "not counted yet". Counting them needs the load worker's archive path (`handlers/project_action/load_worker.py`).
 - A count is stored against the project file's modification time. An edit to a translation file made outside Picoripi shows the old count until the project file changes or the project is opened.
-- Counting imports each plugin on a worker, one project at a time. `load_game_plugin` clears plugin modules (`forget_plugin_modules`), so a count and a load of the same plugin at once can race. Not seen yet; check it with a real game plugin.
+- Counting and the main window's plugin load share the `PLUGIN_IMPORT_LOCK` of `utils/plugin_import.py`. A plugin load can wait for a count that is importing the same plugin, and that wait runs on the UI thread: seconds for a large plugin. Check it with a real game plugin.
 - The wizard, with no unpacking and several files, uses the base file as the source. The other files are recorded in the project metadata only.
 - One emulator command serves every platform. MacOS `.app` bundles need the path of the program inside the bundle.
 - Export copies a folder. A zip or a single-file export is not built.
-- Ctrl+N still opens the older New Project dialog. The wizard is reached from the Project Manager's `+` menu.
+- `components/project_dialogs.py` `NewProjectDialog` is no longer opened by the product. The wizard has no option to use an existing translation folder, which the dialog had. Add that option to the wizard, or delete the class with `tests/manual_test_project_dialogs.py`.
 - ROADMAP entries A9 and A10 are not updated: `docs/ROADMAP.md` is not on `main`. Their state is in the phase 2 commit messages and D23.
 
 ## Project Manager phase 1 (2026-10-11)

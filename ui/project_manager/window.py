@@ -542,10 +542,10 @@ class ProjectManagerDialog(QDialog):
 
         attention = [tr(ISSUE_TEXT[issue]) for issue in row["issues"] if issue in ISSUE_TEXT]
         if row["count_error"]:
-            attention.append(tr("The lines could not be counted: {0}", row["count_error"]))
+            attention.append(tr("The lines could not be counted: {0}.", row["count_error"]))
         if row["skipped"]:
             attention.append(tr("{0} blocks are not counted yet (archive members or missing files).", row["skipped"]))
-        layout.addWidget(QLabel(tr("Needs attention:") + " " + ("; ".join(attention) if attention
+        layout.addWidget(QLabel(tr("Needs attention:") + " " + (" ".join(attention) if attention
                                                               else tr("Nothing."))))
 
         flag_row = QHBoxLayout()

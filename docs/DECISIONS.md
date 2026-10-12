@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 6.0k
+tokens: 6.1k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -284,3 +284,9 @@ runs at a time, which limits the race to a load in the middle of a count.
 **Cost.** Counts skip archive members and report them. A count reads the files of each project again when the
 project file changes. Only `plugins/plain_text` declares a build target in this change; it copies the translation
 files.
+
+**Addendum (2026-10-12).** Every import of a game plugin takes the `PLUGIN_IMPORT_LOCK` of `utils/plugin_import.py`: the
+Project Manager's `default_load_rules` and the main window's `load_game_plugin` (forget and import). The count
+worker and the main window no longer see each other's half-dropped modules; a test checks that a worker waits while
+the lock is held. The cost is that a plugin load waits on the UI thread for a count that is importing the same
+plugin. Ctrl+N and every New Project entry open the wizard; `NewProjectDialog` is no longer opened.

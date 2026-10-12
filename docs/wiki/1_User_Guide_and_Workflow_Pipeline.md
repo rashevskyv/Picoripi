@@ -1043,7 +1043,7 @@ Partial save: right-click a block → save that block only. **Do not** use Rever
 The Project Manager opens at start when no project is open. It lists the projects you added. A project is added
 when you create, open or import it.
 
-- **Add:** press `+`. Choose New project (a wizard), Add existing project (a `project.uiproj` file), or Import projects from a folder. **File → New Project** (Ctrl+N) still opens the older dialog.
+- **Add:** press `+`. Choose New project (a wizard), Add existing project (a `project.uiproj` file), or Import projects from a folder. **File → New Project** (Ctrl+N) opens the same wizard.
 - **New project wizard:** choose the game, then add the files. The game's plugin reads each file and sets its role (for example base game or update) and its platform. Change them if needed. Then choose the project folder. The originals are not copied; the project refers to them by path. When the game needs unpacking, the wizard unpacks into the project folder. Cancel stops the unpacking and removes what it wrote.
 - **Import:** finds `picoripi/project.uiproj` files under a folder. Folders named `_…` or `.…` are skipped. Duplicates and unreadable projects start unchecked. Each series folder becomes one manager folder.
 - **Folders:** create your own folders. Right-click a project → Move to folder. Deleting a folder moves its projects to the top level.

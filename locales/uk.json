@@ -2108,7 +2108,6 @@
   "Working...": "Працюю...",
   "Set the emulator command first (Emulator... button).": "Спершу задайте команду емулятора (кнопка «Емулятор...»).",
   "The emulator did not start: {0}": "Емулятор не запустився: {0}",
-  "The lines could not be counted: {0}": "Рядки не вдалося порахувати: {0}",
   "{0} blocks are not counted yet (archive members or missing files).": "{0} блоків ще не враховано (члени архівів або відсутні файли).",
   "This game declares no build target yet.": "Ця гра ще не оголосила жодної цілі збірки.",
   "This project is already building.": "Цей проєкт уже збирається.",
@@ -2118,5 +2117,6 @@
   "Failed: {0}": "Помилка: {0}",
   "Exported to {0}": "Експортовано до {0}",
   "Built: {0}": "Зібрано: {0}",
-  "Files: {0}": "Файлів: {0}"
+  "Files: {0}": "Файлів: {0}",
+  "The lines could not be counted: {0}.": "Рядки не вдалося порахувати: {0}."
 }
