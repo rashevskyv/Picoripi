@@ -10,6 +10,7 @@ from utils.logging_utils import log_info, log_warning, log_error, log_debug
 
 from core import formats
 from core.containers import ContainerManager
+from core.reference_manager import ReferenceManager
 from core.project_models import Block
 
 
@@ -203,9 +204,12 @@ class BlocksMixin:
 
         if is_directory_mode:
             root_path = Path(source_path)
+            skipped = self._reference_prefixes(root_path, existing_blocks)
             for filepath in root_path.rglob('*'):
                 if filepath.is_file() and filepath.suffix.lower() in supported_extensions:
                     rel_path = filepath.relative_to(root_path).as_posix()
+                    if any(rel_path.lower() == p or rel_path.lower().startswith(p + '/') for p in skipped):
+                        continue
                     process_source_file(filepath, rel_path)
         else:
             filepath = Path(source_path)
@@ -226,6 +230,24 @@ class BlocksMixin:
                 self._migrate_file_structure_to_virtual_folders()
             else:
                 self.save()
+
+    def _reference_prefixes(self, root_path: Path, existing_blocks: dict) -> List[str]:
+        """Lower-case paths under the source root that hold reference files, not project blocks: ``reference/``
+        and what ``reference_patch_path`` points to. A path that already holds blocks of this project stays
+        scanned, so a project that deliberately keeps its files there is unchanged."""
+        prefixes = ["reference"]
+        patch_path = ReferenceManager.get_reference_patch_path(self.project_dir) if self.project_dir else None
+        if patch_path:
+            try:
+                patch = Path(patch_path)
+                if not patch.is_absolute():
+                    patch = Path(self.project_dir) / patch
+                prefixes.append(patch.resolve().relative_to(root_path.resolve()).as_posix().lower())
+            except (OSError, ValueError):
+                pass  # outside the source root (the usual case) or unreadable: nothing to skip
+        known = [name.replace('\\', '/').lower() for name in existing_blocks]
+        return [p for p in prefixes if p not in ('', '.')
+                and not any(name == p or name.startswith(p + '/') for name in known)]
 
     def _archive_scan_path(self) -> Optional[Path]:
         return Path(self.project_dir) / "archive_scan.json" if self.project_dir else None
