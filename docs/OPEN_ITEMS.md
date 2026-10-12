@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-11
+updated: 2026-10-12
 owns: unfinished work
 tokens: 21.9k
 purpose: Everything left open, one line each, by work package
@@ -9,6 +9,14 @@ purpose: Everything left open, one line each, by work package
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Integration round 8 (2026-10-12)
+- Merged on `integrate/ready-2026-10-12` from origin/main 2eeafa1c: the user's WIP branch (7 commits), `feat/project-manager`, `feat/portable-home`, `feat/ready-wiiu-system`, `feat/ready-mgs23-pc`, `feat/ready-dk`, `feat/oot3d-ua`. Not pushed.
+- Test failures seen in the full parallel run, and their classes: a stale `docs/INDEX.md` after the merge (integration, fixed by `docs-index`); the review-pass test expected a kept line break where the user's `layout_class` now typesets a prose string (intentional change, test updated, see its comment). A run that shared the machine with a second pytest run ended with `node down: Not properly terminated` workers (load, not reproduced in a quiet run).
+- `plugins/plain_text/fonts/` (FFNT dumps of a Nintendo game) is not tracked: no free licence. No test reads it; smoke passes without it.
+- Collab residual risk: the first fingerprint pass of a project runs on the UI thread at Start or Join (one pass, then cached per project). Move it to a worker if large projects stall.
+- Collab residual risk: `lan_addresses()` looks up the host name once per process, and only after the host allows other computers.
+- Collab residual risk: the room is plain HTTP with a shared password; the window says so.
 
 ## Project Manager phase 1 (2026-10-11)
 
