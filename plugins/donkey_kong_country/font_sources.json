@@ -1,0 +1,28 @@
+[
+  {
+    "label": "Copyright line font: 8x8 cells (glyph map not known yet)",
+    "format": "texture_grid",
+    "path": "gfx/copyright_font.bin",
+    "params": {
+      "texture": "raw",
+      "cell": [
+        8,
+        8
+      ],
+      "chars": []
+    }
+  },
+  {
+    "label": "Level-name labels on the world map: 8x8 cells (glyph map not known)",
+    "format": "texture_grid",
+    "path": "gfx/map_label_font.bin",
+    "params": {
+      "texture": "raw",
+      "cell": [
+        8,
+        8
+      ],
+      "chars": []
+    }
+  }
+]

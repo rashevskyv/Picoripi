@@ -1,0 +1,38 @@
+[
+  {
+    "label": "Rareware logo: green and gold R (4 bpp tiles, ROM 0x219000)",
+    "kind": "menu_label",
+    "format": "raw",
+    "path": "gfx/logo_rareware.bin",
+    "params": {
+      "pixel_format": "snes:4bpp",
+      "offset": 0,
+      "width": 128,
+      "height": 192
+    }
+  },
+  {
+    "label": "Copyright line font: 1994 Nintendo (4 bpp tiles, ROM 0x240000)",
+    "kind": "menu_label",
+    "format": "raw",
+    "path": "gfx/copyright_font.bin",
+    "params": {
+      "pixel_format": "snes:4bpp",
+      "offset": 0,
+      "width": 128,
+      "height": 256
+    }
+  },
+  {
+    "label": "Level-name labels on the world map: font tiles (2 bpp, ROM 0x227C00; glyph map not known)",
+    "kind": "menu_label",
+    "format": "raw",
+    "path": "gfx/map_label_font.bin",
+    "params": {
+      "pixel_format": "snes:2bpp",
+      "offset": 0,
+      "width": 128,
+      "height": 32
+    }
+  }
+]
