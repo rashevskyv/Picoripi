@@ -103,3 +103,20 @@ def test_store_round_trip_and_version_guard(tmp_path):
     path.write_text('{"version": 1}', encoding="utf-8")
     with pytest.raises(ValueError):
         load_store(path, "gc")
+
+
+def test_exact_keys_pair_every_copy_whatever_the_order():
+    from core.family_projects.align import align_by_key
+
+    alignment = align_by_key(["a", "b", "a", "c"], ["c", "a", "b", "a", "z"])
+    assert alignment.pairs == ((3, 0), (0, 1), (1, 2), (2, 3))
+    assert alignment.console_only == (4,)
+    assert alignment.parent_only == ()
+
+
+def test_exact_family_links_by_key_not_by_order():
+    family = Family(base="gc", parents={"gc": (), "hd": ("gc",)},
+                    units={"gc": [("g1", "x"), ("g2", "y"), ("g3", "x")],
+                           "hd": [("h1", "y"), ("h2", "x"), ("h3", "x")]}, exact_keys=True)
+    linked = links(family)["hd"]
+    assert linked == {"h1": ("gc", "g2"), "h2": ("gc", "g1"), "h3": ("gc", "g3")}
