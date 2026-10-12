@@ -47,7 +47,11 @@ def member_texts(folder: Path) -> Dict[str, List[str]]:
 
 
 def write_folder(source: Path, target: Path, texts: Dict[str, List[str]]) -> int:
-    """Write target/<archive> for every archive of source; members with new texts are rewritten. Returns how many."""
+    """Write target/<archive> for every archive of source that has a changed member. Returns the changed members.
+
+    Archives without a change are not written: a translation folder holds only what changed, and the build
+    takes every other archive from source.
+    """
     target.mkdir(parents=True, exist_ok=True)
     rewritten = 0
     for archive in sorted(source.glob(ARCHIVE_GLOB)):
@@ -65,8 +69,6 @@ def write_folder(source: Path, target: Path, texts: Dict[str, List[str]]) -> int
         if changed:
             rewritten += changed
             atomic_write_bytes(target / archive.name, container.pack())
-        else:
-            atomic_write_bytes(target / archive.name, archive.read_bytes())
     return rewritten
 
 
@@ -74,7 +76,9 @@ def _read_texts(spec: Path) -> Dict[str, List[str]]:
     """A translation given as an archive folder or as a json file {member: [texts]}."""
     if spec.is_dir():
         return member_texts(spec)
-    return json.loads(spec.read_text(encoding="utf-8"))
+    if spec.is_file():
+        return json.loads(spec.read_text(encoding="utf-8"))
+    return {}  # no translation yet (a console slot that was never translated)
 
 
 def _load_family(config_path: Path) -> dict:
