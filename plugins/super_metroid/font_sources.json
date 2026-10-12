@@ -1911,7 +1911,7 @@
   }
  },
  {
-  "label": "Pause screen: Ukrainian capitals (8x8; 21 cells, drawn by a person)",
+  "label": "Pause screen: Ukrainian capitals (8x8, 4bpp 32 B per tile; draw in colour 13 white on colour 4 black; palette 6; 21 cells, drawn by a person)",
   "format": "texture_grid",
   "path": "gfx/pause_ua.bin",
   "params": {
