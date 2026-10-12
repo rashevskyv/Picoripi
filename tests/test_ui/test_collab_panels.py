@@ -1,0 +1,103 @@
+"""Work together UI: the management tabs, the block tree menu and the row bar, with real windows in one room."""
+import pytest
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMenu, QTreeWidget, QTreeWidgetItem
+
+from test_core.test_collab import _project_window
+from test_core.test_collab_room_state import _host_and_guest
+from ui.collab_manage_panel import ManagePanel
+from ui.collab_menu import keys_of_item, show_tree_menu
+from ui.components.collab_row_bar import CollabRowBar
+
+
+@pytest.fixture
+def pair(tmp_path, qtbot):
+    a, b = _project_window(tmp_path, "a"), _project_window(tmp_path, "b")
+    yield a, b
+    for mw in (a, b):
+        mw.collab_handler.leave()
+
+
+def _select(widget, item_id):
+    for row in range(widget.count()):
+        if widget.item(row).data(Qt.ItemDataRole.UserRole) == item_id:
+            widget.setCurrentRow(row)
+            return
+    raise AssertionError(f"{item_id} is not listed")
+
+
+def test_the_host_can_change_remove_and_transfer_but_a_translator_only_sees_the_list(qtbot, pair):
+    a, b = _host_and_guest(qtbot, pair)
+    host_id, guest_id = a.collab_handler._my_id(), b.collab_handler._my_id()
+    host_panel = ManagePanel(None, a.collab_handler)
+    qtbot.addWidget(host_panel)
+    host_panel.refresh()
+    assert host_panel.people.count() == 2
+    _select(host_panel.people, guest_id)
+    assert host_panel.set_role_button.isEnabled() and host_panel.kick_button.isEnabled()
+    assert host_panel.transfer_button.isEnabled()
+    assert host_panel.log_tab is not None and host_panel.isTabVisible(host_panel.indexOf(host_panel.log_tab))
+
+    guest_panel = ManagePanel(None, b.collab_handler)
+    qtbot.addWidget(guest_panel)
+    guest_panel.refresh()
+    assert guest_panel.people.count() == 2
+    _select(guest_panel.people, host_id)
+    assert not guest_panel.set_role_button.isEnabled()
+    assert not guest_panel.kick_button.isEnabled() and not guest_panel.transfer_button.isEnabled()
+    assert not guest_panel.isTabVisible(guest_panel.indexOf(guest_panel.log_tab))
+
+
+def test_the_host_removes_a_translator_from_its_panel_after_a_confirmation(qtbot, pair, monkeypatch):
+    a, b = _host_and_guest(qtbot, pair)
+    from PyQt6.QtWidgets import QMessageBox
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *args, **kwargs: QMessageBox.StandardButton.Yes))
+    panel = ManagePanel(None, a.collab_handler)
+    qtbot.addWidget(panel)
+    panel.refresh()
+    guest = b.collab_handler._my_id()
+    _select(panel.people, guest)
+    panel.kick_button.click()
+    qtbot.waitUntil(lambda: a.collab_handler.members[guest]["banned"], timeout=5000)
+    qtbot.waitUntil(lambda: b.collab_handler.client is None, timeout=10000)   # the removed window leaves the room
+
+
+def test_a_claim_from_the_block_tree_menu_is_granted_to_the_guest(qtbot, pair, monkeypatch):
+    a, b = _host_and_guest(qtbot, pair)
+    tree = QTreeWidget()
+    qtbot.addWidget(tree)
+    item = QTreeWidgetItem(["Block 1"])
+    item.setData(0, Qt.ItemDataRole.UserRole, 0)
+    tree.addTopLevelItem(item)
+    kind, label, keys = keys_of_item(b.collab_handler, item)
+    assert kind == "block" and label == "Block 1" and len(keys) == 3
+    tree.resize(300, 200)
+    tree.show()
+    qtbot.waitExposed(tree)
+
+    def choose_claim(menu, pos):
+        return next(action for action in menu.actions() if action.text() == "Claim for me")
+
+    monkeypatch.setattr(QMenu, "exec", choose_claim)
+    show_tree_menu(b.collab_handler, tree, tree.visualItemRect(item).center())
+    guest = b.collab_handler._my_id()
+    qtbot.waitUntil(lambda: any(c["owner"] == guest for c in a.collab_handler.claims.values()), timeout=5000)
+    assert sum(len(c["keys"]) for c in a.collab_handler.claims.values()) == 3
+
+
+def test_the_row_bar_shows_the_claim_and_offers_only_what_the_role_allows(qtbot, pair):
+    a, b = _host_and_guest(qtbot, pair)
+    key = a.collab_handler._key(0, 0)
+    a.collab_handler.claim("row", "Hello", [key])
+    qtbot.waitUntil(lambda: bool(b.collab_handler.claims), timeout=5000)
+    bar_b = CollabRowBar(b)
+    qtbot.addWidget(bar_b)
+    bar_b.refresh(0, 0)
+    assert "Claimed by Host" in bar_b.label.text()
+    assert not bar_b.claim_button.isVisibleTo(bar_b)          # claimed by someone else
+    assert not bar_b.approve_button.isVisibleTo(bar_b)        # a translator cannot approve
+    bar_a = CollabRowBar(a)
+    qtbot.addWidget(bar_a)
+    bar_a.refresh(0, 0)
+    assert "Claimed by you" in bar_a.label.text()
+    assert bar_a.approve_button.isVisibleTo(bar_a)            # the host can approve

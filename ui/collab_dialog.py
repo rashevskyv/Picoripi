@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 
 from core.i18n import tr
 from handlers.collab_handler import DEFAULT_PORT, LanLookup, load_settings
+from ui.collab_manage_panel import ManagePanel
 from utils.thread_utils import single_shot
 
 KEY_ROLE = Qt.ItemDataRole.UserRole
@@ -37,7 +38,7 @@ class CollabDialog(QDialog):
         super().__init__(main_window if isinstance(main_window, QWidget) else None)
         self.mw, self.handler = main_window, handler
         self.setWindowTitle(tr('Work Together'))
-        self.resize(520, 560)
+        self.resize(620, 820)
         saved = load_settings()
         layout = QVBoxLayout(self)
 
@@ -105,6 +106,8 @@ class CollabDialog(QDialog):
         self.people = QListWidget(self)
         self.people.itemDoubleClicked.connect(lambda item: self.handler.jump_to(item.data(KEY_ROLE)))
         layout.addWidget(self.people, 1)
+        self.manage = ManagePanel(self, self.handler)
+        layout.addWidget(self.manage, 2)
         self.status_label = QLabel(self)
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
@@ -183,6 +186,8 @@ class CollabDialog(QDialog):
             item.setData(KEY_ROLE, person.get("where"))
             self.people.addItem(item)
         self.status_label.setText(handler.last_message or handler.status_text())
+        if handler.active:
+            self.manage.refresh()
         if self.isVisible():
             single_shot(1000, self, self._tick)
 

@@ -267,6 +267,16 @@ def test_a_kicked_token_cannot_join_again(tmp_path):
         _join(room, "Olena", olena["token"])
 
 
+def test_the_host_can_lift_a_removal_and_the_member_joins_again(tmp_path):
+    room, host, _ = _room_with_host(tmp_path)
+    olena = _join(room, "Olena")
+    room.apply_ops(host["id"], [{"op_id": "k", "kind": "kick", "target": olena["id"]}])
+    assert room.apply_ops(host["id"], [{"op_id": "u", "kind": "unban", "target": olena["id"]}])["u"] == {"ok": True}
+    again = _join(room, "Olena", olena["token"])
+    assert again["id"] == olena["id"]
+    assert "error" in room.apply_ops(again["id"], [{"op_id": "u2", "kind": "unban", "target": olena["id"]}])["u2"]
+
+
 def test_a_host_cannot_be_kicked_and_a_moderator_cannot_kick_a_moderator(tmp_path):
     room, host, _ = _room_with_host(tmp_path)
     mod = _join(room, "Mod")

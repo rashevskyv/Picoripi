@@ -40,8 +40,9 @@ JOIN_SLICE_SECONDS = 0.05             # ... and ends after about this long (one 
 REMOTE = "COLLAB_REMOTE"
 DEFAULT_PORT = 8765
 # Room events the window keeps: row edits and the roles, claims, comments and log. Presence and joins go to the list.
-ROOM_EVENTS = {"edit", "snapshot", "approved", "claim_granted", "claim_released", "claim_requested", "claim_denied",
-               "role_set", "host_transferred", "kicked", "comment_added", "comment_resolved", "comment_deleted", "log"}
+ROOM_EVENTS = {"edit", "snapshot", "join", "leave", "approved", "claim_granted", "claim_released", "claim_requested",
+               "claim_denied", "role_set", "host_transferred", "kicked", "unbanned", "comment_added", "comment_resolved",
+               "comment_deleted", "log"}
 LOG_KEEP = 500
 
 
@@ -122,10 +123,11 @@ def _comment_mirror(comment: Dict[str, Any]) -> Dict[str, Any]:
 
 # The room events that change the mirror, and the handler method that applies each one.
 _MIRROR = {
-    "snapshot": "_mirror_snapshot", "approved": "_mirror_approved", "claim_granted": "_mirror_claim_granted",
+    "snapshot": "_mirror_snapshot", "join": "_mirror_join", "leave": "_mirror_leave",
+    "approved": "_mirror_approved", "claim_granted": "_mirror_claim_granted",
     "claim_released": "_mirror_claim_released", "claim_requested": "_mirror_claim_requested",
     "claim_denied": "_mirror_claim_denied", "role_set": "_mirror_role_set",
-    "host_transferred": "_mirror_host_transferred", "kicked": "_mirror_kicked",
+    "host_transferred": "_mirror_host_transferred", "kicked": "_mirror_kicked", "unbanned": "_mirror_unbanned",
     "comment_added": "_mirror_comment_added", "comment_resolved": "_mirror_comment_resolved",
     "comment_deleted": "_mirror_comment_deleted", "log": "_mirror_log",
 }
@@ -616,6 +618,16 @@ class CollabHandler(QObject):
     def _mirror_snapshot(self, event: Dict[str, Any]) -> None:
         self._apply_state(event.get("state") or {})
 
+    def _mirror_join(self, event: Dict[str, Any]) -> None:
+        member = self.members.setdefault(event["by"], {"name": "?", "role": None, "banned": False})
+        member.update(name=event.get("name", member["name"]), online=True)
+        if event.get("role"):
+            member["role"] = event["role"]
+
+    def _mirror_leave(self, event: Dict[str, Any]) -> None:
+        if event.get("by") in self.members:
+            self.members[event["by"]]["online"] = False
+
     def _mirror_approved(self, event: Dict[str, Any]) -> None:
         (self.approved.add if event.get("approved") else self.approved.discard)(event["key"])
 
@@ -654,6 +666,10 @@ class CollabHandler(QObject):
     def _mirror_kicked(self, event: Dict[str, Any]) -> None:
         if event.get("member") in self.members:
             self.members[event["member"]]["banned"] = True
+
+    def _mirror_unbanned(self, event: Dict[str, Any]) -> None:
+        if event.get("member") in self.members:
+            self.members[event["member"]]["banned"] = False
 
     def _mirror_comment_added(self, event: Dict[str, Any]) -> None:
         comment = event["comment"]
@@ -704,6 +720,9 @@ class CollabHandler(QObject):
 
     def kick(self, target: str) -> Optional[str]:
         return self._ask("kick", target=target)
+
+    def unban(self, target: str) -> Optional[str]:
+        return self._ask("unban", target=target)
 
     def transfer_host(self, target: str) -> Optional[str]:
         return self._ask("transfer_host", target=target, confirm=True)

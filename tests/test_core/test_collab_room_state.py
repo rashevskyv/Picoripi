@@ -20,6 +20,7 @@ def _host_and_guest(qtbot, pair):
     b.collab_handler.join(f"127.0.0.1:{port}", "pw", "Guest")
     _wait_joined(qtbot, b)
     qtbot.waitUntil(lambda: len(b.collab_handler.members) == 2, timeout=5000)
+    qtbot.waitUntil(lambda: len(a.collab_handler.members) == 2, timeout=5000)   # the host learns of the guest by its join event
     return a, b
 
 

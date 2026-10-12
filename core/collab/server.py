@@ -569,6 +569,16 @@ class Room:
         self._log(pid, "kicked", member=target, name=member["name"])
         return {"ok": True}
 
+    def _op_unban(self, pid: str, op: Dict[str, Any]) -> Dict[str, Any]:
+        target = op.get("target")
+        member = self.members.get(target) if isinstance(target, str) else None
+        if member is None or not member["banned"] or not allowed(self._role(pid) or "", "kick", target=member["role"]):
+            raise ValueError("not allowed")
+        member["banned"] = False
+        self._event("unbanned", by=pid, name=self._name(pid), member=target)
+        self._log(pid, "unbanned", member=target, name=member["name"])
+        return {"ok": True}
+
     def _op_transfer_host(self, pid: str, op: Dict[str, Any]) -> Dict[str, Any]:
         target = op.get("target")
         member = self.members.get(target) if isinstance(target, str) else None
@@ -678,7 +688,7 @@ _OPS = {
     "edit": "_op_edit", "claim": "_op_claim", "decide": "_op_decide", "release": "_op_release",
     "assign": "_op_assign", "approve": "_op_approve", "comment": "_op_comment",
     "comment_resolve": "_op_comment_resolve", "comment_delete": "_op_comment_delete", "role": "_op_role",
-    "kick": "_op_kick", "transfer_host": "_op_transfer_host",
+    "kick": "_op_kick", "unban": "_op_unban", "transfer_host": "_op_transfer_host",
 }
 
 
