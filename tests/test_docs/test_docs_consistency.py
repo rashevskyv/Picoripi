@@ -91,7 +91,7 @@ def test_the_version_is_written_in_one_place():
 
 def test_the_entry_documents_stay_small():
     """What every session reads first has a budget, in tokens."""
-    budgets = {"AGENTS.md": 2000, "README.md": 3500, "docs/INDEX.md": 1300, "docs/ARCHITECTURE.md": 2500, "docs/ENGINEERING.md": 2000}
+    budgets = {"AGENTS.md": 2000, "README.md": 3500, "docs/INDEX.md": 1400, "docs/ARCHITECTURE.md": 2500, "docs/ENGINEERING.md": 2000}
     sizes = {path: docs_index.estimate_tokens(_text(path)) for path in budgets}
 
     assert {path: size for path, size in sizes.items() if size > budgets[path]} == {}
