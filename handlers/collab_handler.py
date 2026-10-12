@@ -137,7 +137,7 @@ class CollabHandler(QObject):
         token = (id(getattr(store, "data", None)), len(getattr(store, "data", None) or []), plugin)
         if self._scan_cache is not None and self._scan_cache[0] == token:
             return self._scan_cache[1]
-        digest = hashlib.sha256(plugin.encode("utf-8"))
+        digest = hashlib.sha256(str(plugin).encode("utf-8"))
         positions: Dict[str, Tuple[int, int]] = {}
         for block_idx, string_idx, source in self._rows():
             key = self._key(block_idx, string_idx)

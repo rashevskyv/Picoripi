@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: unfinished work
-tokens: 22.2k
+tokens: 22.5k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -13,6 +13,8 @@ the line when it is done or moved into a plan.
 ## Integration round 8 (2026-10-12)
 - Merged on `integrate/ready-2026-10-12` from origin/main 2eeafa1c: the user's WIP branch (7 commits), `feat/project-manager`, `feat/portable-home`, `feat/ready-wiiu-system`, `feat/ready-mgs23-pc`, `feat/ready-dk`, `feat/oot3d-ua`. Not pushed.
 - Test failures seen in the full parallel run, and their classes: a stale `docs/INDEX.md` after the merge (integration, fixed by `docs-index`); the review-pass test expected a kept line break where the user's `layout_class` now typesets a prose string (intentional change, test updated, see its comment). A run that shared the machine with a second pytest run ended with `node down: Not properly terminated` workers (load, not reproduced in a quiet run).
+- Final full parallel run on this branch (before the last heuristic fix): 9548 passed, 14 skipped, 2 xfailed, 4 failed. One failure was ours: `test_validate_all` read `plugin.encode` in `handlers/collab_handler.py`; fixed (now `str(plugin).encode`), `test_validate_all` and `test_collab` pass (162).
+- OPEN, owner decision: three Super Metroid real-data tests (`tests/test_plugins/test_super_metroid/test_rules.py`, `test_real_text_saves_back_unchanged`, `test_real_intro_fonts_show_every_letter_the_text_uses_as_a_whole_glyph`, `test_an_edited_intro_glyph_lands_in_the_built_rom_and_the_other_intro_font_keeps_its_edit`) read the live workspace `E:\Emulators\RomHacking\Metroid\Super Metroid\source\text.json`, which was rewritten at 14:14:38 on 2026-10-12 by a process outside this repo (block counts now 27,27,29,7,7,77 against 27,27,36,7,7,77). Two fail serially too; the third failed only in parallel. Not weakened: decide whether the expected values follow the workspace or the workspace is pinned.
 - `plugins/plain_text/fonts/` (FFNT dumps of a Nintendo game) is not tracked: no free licence. No test reads it; smoke passes without it.
 - Collab residual risk: the first fingerprint pass of a project runs on the UI thread at Start or Join (one pass, then cached per project). Move it to a worker if large projects stall.
 - Collab residual risk: `lan_addresses()` looks up the host name once per process, and only after the host allows other computers.
