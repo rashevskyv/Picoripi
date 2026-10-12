@@ -144,6 +144,7 @@ def test_real_rom_unchanged_text_and_sheets_build_the_same_rom(zt_sm, tmp_path):
     assert sm.apply_text(rom, texts, dict(texts)) == []
     assert bytes(rom.data) == data                      # unchanged text: the same bytes
     sm.blank_freed_intro(rom, data)                     # the build's own first steps: freed intro tiles, JP switch
+    sm.blank_freed_menu(rom)                            # freed menu tiles (the Japanese option art)
     sm.patch_japanese_toggle(rom)
     built = bytes(rom.data)
     for name in sm.GFX:
@@ -341,3 +342,12 @@ def test_real_rom_the_first_screen_text_is_an_item_and_moves_to_free_space_when_
     assert sm.patch_prologue_pointer(c_file, data, moved) is True
     assert c_file.read_text(encoding="utf-8").count(f"DecompressToMem(0x{sm.PROLOGUE_SPACE[0]:06x}, g_ram + 0x1e000)") == 1
     assert "0x978ADB" in c_file.read_text(encoding="utf-8")
+
+
+def test_the_small_menu_font_has_a_cell_for_every_ukrainian_capital_outside_the_english_letters():
+    rules = check_loads(PLUGIN)
+    small = next(f for f in rules.get_font_sources() if f["label"].startswith("File select, game over and options: small"))
+    chars = small["params"]["chars"]
+    cells = [chars.index(ch) for ch in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"]
+    assert len(set(cells)) == 21 and min(cells) >= 0xD2              # past the English letters (0x60-0x8F)
+    assert all(chars[c] == ch for c, ch in zip(cells, "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"))
