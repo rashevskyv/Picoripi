@@ -108,3 +108,16 @@ def accept(rom: bytes) -> None:
     except UnknownRom:
         if len(rom) != ROM_SIZE or rom[0x134:0x139] != TITLE or rom[0x143] != 0x80:
             raise
+
+
+# Credits: 56 fixed rows of 18 characters, no end code (LADX-Disassembly text/credits.asm, NewStaffRoles and
+# NewStaffPeople; found in the English v1.0 ROM by a byte search of the rows).
+CREDITS_START = 0x5C09B
+CREDITS_ROWS = 56
+CREDITS_WIDTH = 18
+
+
+def credit_rows(rom: bytes) -> list:
+    """The 56 credit rows as raw bytes (18 each)."""
+    return [bytes(rom[CREDITS_START + CREDITS_WIDTH * k:CREDITS_START + CREDITS_WIDTH * (k + 1)])
+            for k in range(CREDITS_ROWS)]

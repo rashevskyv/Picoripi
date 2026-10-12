@@ -21,10 +21,12 @@ from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS  # noqa: F401 - the host 
 from .tag_manager import TagManager
 
 BLOCK_SIZE = 0x100
+CREDITS_BLOCK = "3"
 BLOCK_NAMES = {
     "0": "Dialog 000-0FF",
     "1": "Dialog 100-1FF",
     "2": "Dialog 200-2AF",
+    CREDITS_BLOCK: "Credits (18-character rows)",
 }
 
 
@@ -70,6 +72,7 @@ class GameRules(BaseGameRules):
             block, _position = _block_of(ref.index)
             blocks[block].append(markup)
             self._markups[ref.index] = markup
+        blocks[int(CREDITS_BLOCK)] = [ladx_text.decode_bytes(row) for row in ladx_rom.credit_rows(raw)]
         return blocks, dict(BLOCK_NAMES)
 
     # -- save ----------------------------------------------------------------------------------
@@ -121,6 +124,21 @@ class GameRules(BaseGameRules):
                 errors.append(f"{', '.join(names)}: {len(run)} bytes do not fit in {room} (the old text's place)")
                 continue
             rebuilt[place:place + room] = run + bytes([ladx_text.PAD]) * (room - len(run))
+
+        # Credits: fixed rows of 18 bytes, each padded with spaces; a row over 18 characters is refused.
+        lines = data[int(CREDITS_BLOCK)] if int(CREDITS_BLOCK) < len(data) else []
+        for number, line in enumerate(lines[:ladx_rom.CREDITS_ROWS]):
+            try:
+                row = ladx_text.encode_text(line)
+            except ladx_text.TextError as error:
+                errors.append(f"Credits row {number + 1}: {error}")
+                continue
+            if len(row) > ladx_rom.CREDITS_WIDTH:
+                errors.append(f"Credits row {number + 1} has {len(row)} characters, the limit is {ladx_rom.CREDITS_WIDTH}")
+                continue
+            at = ladx_rom.CREDITS_START + ladx_rom.CREDITS_WIDTH * number
+            padded = row + bytes([ladx_text.PAD]) * (ladx_rom.CREDITS_WIDTH - len(row))
+            rebuilt[at:at + ladx_rom.CREDITS_WIDTH] = padded
 
         if errors:
             raise ValueError("\n".join(errors))

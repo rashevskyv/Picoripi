@@ -31,10 +31,29 @@ def _save(rules, blocks, *versions):
     return rules.save_data_to_json_obj(blocks, {})
 
 
-def test_blocks_hold_every_dialog():
+def test_blocks_hold_every_dialog_and_the_credits():
     _raw, _rules, blocks, names = _rules_and_data()
-    assert [len(block) for block in blocks] == [256, 256, 176]
-    assert set(names) == {"0", "1", "2"}
+    assert [len(block) for block in blocks] == [256, 256, 176, 56]
+    assert set(names) == {"0", "1", "2", "3"}
+    assert blocks[3][0] == "    1998 STAFF    "
+    assert blocks[3][55] == "THE  END          "
+
+
+def test_credits_unchanged_save_gives_the_source_bytes_and_an_edit_is_padded():
+    raw, rules, blocks, _names = _rules_and_data()
+    assert _save(rules, blocks, raw) == raw
+    blocks[3][1] = "    NEW NAME      "
+    out = _save(rules, blocks, raw)
+    assert out[0x5C0AD:0x5C0AD + 18] == b"    NEW NAME      "
+    reread, _ = GameRules().load_data_from_json_obj(out)
+    assert reread[3][1] == "    NEW NAME      "
+
+
+def test_credit_row_over_18_characters_is_refused():
+    raw, rules, blocks, _names = _rules_and_data()
+    blocks[3][2] = "X" * 19
+    with pytest.raises(ValueError, match="Credits row 3 has 19 characters, the limit is 18"):
+        _save(rules, blocks, raw)
 
 
 def test_unchanged_save_gives_the_source_bytes():
