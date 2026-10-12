@@ -15,7 +15,8 @@ import json
 import socket
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
+from collections import deque
+from typing import Any, Deque, Dict, Iterator, List, Optional, Tuple
 
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QToolButton
@@ -125,9 +126,12 @@ class CollabHandler(QObject):
         self.status_button: Optional[QToolButton] = None
         self._summary_dirty = False
         self._summary_worker = None
-        self._join_plan: Optional[Iterator[None]] = None     # the rows of a join, handled in slices
+        self._join_plan: Optional[Iterator[None]] = None     # the join's turns (None when no join runs)
         self._join_tick_pending = False
-        self._join_superseded: Set[str] = set()              # keys a remote edit changed during the join
+        self._turns: Deque[Iterator[None]] = deque()         # turns in order: the join, then remote batches
+        self._remote_pending: Deque[Dict[str, Any]] = deque()  # remote edits not applied yet, oldest first
+        self._remote_turn: Optional[Iterator[None]] = None
+        self._applied_rev: Dict[str, int] = {}               # per row key: newest revision applied or sent here
 
     # ── project identity ───────────────────────────────────────────────
 
@@ -198,6 +202,7 @@ class CollabHandler(QObject):
     def _connect(self, address: str, name: str, password: str) -> None:
         self._build_positions()
         self.row_info, self.conflicts, self.participants = {}, {}, []
+        self._applied_rev = {}
         client = RoomClient(address, name, password, self.fingerprint())
         client.joined.connect(self._on_joined)
         client.remote_events.connect(self._on_remote_events)
@@ -211,6 +216,9 @@ class CollabHandler(QObject):
     def leave(self) -> None:
         """Leave the room (and stop it, when this window hosts it); returns within a few seconds."""
         self._join_plan = None
+        self._turns.clear()
+        self._remote_turn = None
+        self._remote_pending.clear()
         client, self.client = self.client, None
         if client is not None:
             client.stop()
@@ -270,31 +278,29 @@ class CollabHandler(QObject):
             updater.update_text_views()
 
     def _on_joined(self, data: Dict[str, Any]) -> None:
-        """Take the room's rows and share the rows the room lacks, a slice of rows per UI turn.
-
-        The rows are applied on the UI thread (they change the data store and the editor), so the work is
-        split: ``JOIN_SLICE_ROWS`` rows, then the event loop runs, then the next slice.
-        """
-        self._join_superseded = set()
+        """Take the room's rows and share the rows the room lacks, in turns (see ``_join_work``)."""
         self._join_plan = self._join_work(data)
+        self._turns.append(self._join_plan)
         self.participants = data.get("participants") or []
         self._schedule_join_slice()
 
     def _schedule_join_slice(self) -> None:
-        if not self._join_tick_pending:
+        if self._turns and not self._join_tick_pending:
             self._join_tick_pending = True
             single_shot(0, self, self._join_slice)
 
     def _join_slice(self) -> None:
+        """Run the next turn of the queue: one step of the join or of a remote batch."""
         self._join_tick_pending = False
-        plan = self._join_plan
-        if plan is None:
-            return                                         # the room was left or another join began
+        if not self._turns:
+            return                                         # the room was left
+        turn = self._turns[0]
         try:
-            next(plan)
+            next(turn)
         except StopIteration:
-            self._join_plan = None
-            return
+            self._turns.popleft()
+            if turn is self._join_plan:
+                self._join_plan = None
         self._schedule_join_slice()
 
     @staticmethod
@@ -303,6 +309,17 @@ class CollabHandler(QObject):
             return True
         return rows_done % JOIN_CLOCK_EVERY == 0 and time.perf_counter() - turn_started >= JOIN_SLICE_SECONDS
 
+    def _refresh_turns(self, touched: set) -> Iterator[None]:
+        """Refresh the touched blocks' tree items, one block per turn; then the editor, if its block was touched."""
+        updater = getattr(self.mw, "ui_updater", None)
+        for block_idx in sorted(touched):
+            yield                                          # each block's tree refresh is a turn of its own (D21)
+            if updater is not None:
+                updater.update_block_item_text_with_problem_count(block_idx)
+        if updater is not None and getattr(self.mw.data_store, "physical_block_idx", -1) in touched:
+            yield                                          # the editor's text views: a turn of their own
+            updater.update_text_views()
+
     def _join_work(self, data: Dict[str, Any]) -> Iterator[None]:
         """The join as a generator: yields when a turn is full (rows or time). Each row is checked when it is reached."""
         taken, shared, budget = 0, 0, 0
@@ -310,9 +327,8 @@ class CollabHandler(QObject):
         touched: set = set()
         room_rows = data.get("rows") or {}
         for key, row in room_rows.items():
-            if key in self._join_superseded:
-                continue                                   # a remote edit already brought a newer text
             self.row_info[key] = {"name": row.get("name", ""), "time": row.get("time")}
+            self._applied_rev[key] = max(self._applied_rev.get(key, 0), int(row.get("rev", 0) or 0))
             position = self.positions.get(key)
             if position is not None and self._current(*position) != row["text"]:
                 if position in self.mw.data_store.edited_data:
@@ -339,14 +355,7 @@ class CollabHandler(QObject):
             if self._turn_over(budget, turn_started):
                 budget, turn_started = 0, time.perf_counter()
                 yield
-        updater = getattr(self.mw, "ui_updater", None)
-        for block_idx in sorted(touched):
-            yield                                          # each block's tree refresh is a turn of its own (D21)
-            if updater is not None:
-                updater.update_block_item_text_with_problem_count(block_idx)
-        if updater is not None and getattr(self.mw.data_store, "physical_block_idx", -1) in touched:
-            yield                                          # the editor's text views: a turn of their own
-            updater.update_text_views()
+        yield from self._refresh_turns(touched)
         self.last_message = tr('Joined the room: {taken} row(s) taken from it, {shared} shared, {conflicts} conflict(s).',
                                taken=taken, shared=shared, conflicts=len(self.conflicts))
         self._status(self.last_message)
@@ -369,31 +378,62 @@ class CollabHandler(QObject):
             self.client.set_summary({**summary, "history": history})
 
     def _on_remote_events(self, events: List[Dict[str, Any]]) -> None:
-        touched = set()
-        for event in events:
-            if event["type"] != "edit":
-                continue
-            key = event["key"]
-            if self._join_plan is not None:
-                self._join_superseded.add(key)             # the join must not write its older text over this
-            self.row_info[key] = {"name": event.get("name", ""), "time": event.get("time")}
-            position = self.positions.get(key)
-            if position is None:
-                continue
-            if self.client is not None and self.client.has_pending(key):
-                continue                                   # our unsent text meets it on the server as a conflict
-            self.conflicts.pop(key, None)
-            if self._current(*position) != event["text"]:
-                self._apply(*position, event["text"])
-                touched.add(position[0])
-                self._summary_dirty = True
-        self._refresh(touched)
-        self._refresh_bar()
+        """Queue the others' edits; they are applied in turns, in arrival order, behind any batch still running."""
+        self._remote_pending.extend(event for event in events if event.get("type") == "edit")
+        if self._remote_turn is None and self._remote_pending:
+            self._remote_turn = self._remote_work()
+            self._turns.append(self._remote_turn)
+            self._schedule_join_slice()
+
+    def _remote_work(self) -> Iterator[None]:
+        """Apply the queued remote edits, JOIN_SLICE_ROWS per turn; then refresh the blocks they touched, one per turn.
+
+        Edits that arrive while a turn waits are taken by the outer loop: nothing is dropped, nothing runs twice.
+        """
+        while self._remote_pending:
+            touched: set = set()
+            budget, turn_started = 0, time.perf_counter()
+            while self._remote_pending:
+                block_idx = self._apply_remote_edit(self._remote_pending.popleft())
+                if block_idx is not None:
+                    touched.add(block_idx)
+                budget += 1
+                if self._turn_over(budget, turn_started) and self._remote_pending:
+                    budget, turn_started = 0, time.perf_counter()
+                    yield
+            yield from self._refresh_turns(touched)
+            self._refresh_bar()
+        self._remote_turn = None
+
+    def _apply_remote_edit(self, event: Dict[str, Any]) -> Optional[int]:
+        """Apply one remote edit if it is newer than what this participant has; returns the block it changed.
+
+        A row is never written twice with the same revision, and an older revision cannot overwrite a newer one. A row
+        with an unsent local edit is left alone: the server decides that conflict.
+        """
+        key = event["key"]
+        rev = int(event.get("rev", 0) or 0)
+        if rev <= self._applied_rev.get(key, 0):
+            return None
+        position = self.positions.get(key)
+        if position is None:
+            return None
+        if self.client is not None and self.client.has_pending(key):
+            return None                                    # our unsent text meets it on the server as a conflict
+        self._applied_rev[key] = rev
+        self.row_info[key] = {"name": event.get("name", ""), "time": event.get("time")}
+        self.conflicts.pop(key, None)
+        if self._current(*position) == event["text"]:
+            return None
+        self._apply(*position, event["text"])
+        self._summary_dirty = True
+        return position[0]
 
     def _on_edits_done(self, accepted: Dict[str, int], conflicts: Dict[str, Dict[str, Any]]) -> None:
         name = self.client.name if self.client is not None else ""
-        for key in accepted:
+        for key, rev in accepted.items():
             self.row_info[key] = {"name": name, "time": time.time()}
+            self._applied_rev[key] = max(self._applied_rev.get(key, 0), int(rev or 0))
         if conflicts:
             self.conflicts.update(conflicts)
             self._status(tr('{count} row(s) were changed by someone else first: see the bar above the editor.',

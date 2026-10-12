@@ -557,6 +557,52 @@ def test_a_collab_join_on_the_real_path_never_holds_the_window_for_long(qapp, qt
 
 
 @pytest.mark.performance
+@pytest.mark.parametrize("blocks, rows_per_block", [(100, 600)])
+def test_a_remote_batch_of_60k_edits_never_holds_the_window_for_long(qapp, qtbot, blocks, rows_per_block):
+    """60,000 remote edits over 100 blocks (one batch, as a long poll or a resync delivers them): every turn < 0.15 s,
+    and each row is written exactly once, with its own text.
+
+    Before the turns, the same batch took 0.64 s in one event (measured on this window, see docs/DECISIONS.md D21).
+    """
+    import gc
+    import time
+
+    window = _PlainWindow(blocks, rows_per_block)
+    handler = window.collab_handler
+    handler._build_positions()
+    written = []
+    real_apply = handler._apply
+
+    def counting_apply(*args):
+        written.append(args[:2])
+        real_apply(*args)
+
+    handler._apply = counting_apply
+    turns = []
+    real_turn = handler._join_slice
+
+    def timed_turn():
+        started = time.perf_counter()
+        real_turn()
+        turns.append(time.perf_counter() - started)
+
+    handler._join_slice = timed_turn
+    events = [{"type": "edit", "key": key, "text": f"RU {b}-{r}", "rev": 2, "name": "Ihor", "time": 1.0, "by": "x"}
+              for key, (b, r) in handler.positions.items()]
+    gc.disable()
+    try:
+        handler._on_remote_events(events)
+        qtbot.waitUntil(lambda: not handler._turns, timeout=60000)
+    finally:
+        gc.enable()
+    assert len(written) == blocks * rows_per_block
+    assert len(set(written)) == blocks * rows_per_block             # every row exactly once
+    assert handler._current(blocks - 1, rows_per_block - 1) == f"RU {blocks - 1}-{rows_per_block - 1}"
+    assert max(turns) < 0.15, f"slowest turn {max(turns):.3f} s"
+    handler.leave()
+
+
+@pytest.mark.performance
 def test_a_collab_join_in_the_mock_harness_applies_every_row(qapp, qtbot, tmp_path):
     """Smoke only, no time bound: the mock-heavy test window adds about 300 us per row (MagicMock call records),
     so its turn times say nothing about the product. The real-path test above carries the time bound."""

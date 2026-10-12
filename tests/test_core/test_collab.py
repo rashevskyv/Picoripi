@@ -189,11 +189,35 @@ class TestJoinInSlices:
         handler = mw.collab_handler
         handler._build_positions()
         handler._on_joined({"rows": self._room_rows(handler, 600), "participants": []})
-        handler._on_remote_events([{"type": "edit", "key": handler._key(0, 450), "text": "NEWER", "name": "Ihor",
-                                    "time": 1.0, "by": "someone"}])
-        qtbot.waitUntil(lambda: handler._join_plan is None, timeout=60000)
+        handler._on_remote_events([{"type": "edit", "key": handler._key(0, 450), "text": "NEWER", "rev": 2,
+                                    "name": "Ihor", "time": 1.0, "by": "someone"}])
+        qtbot.waitUntil(lambda: not handler._turns, timeout=60000)   # the remote batch runs after the join
         assert handler._current(0, 450) == "NEWER"
         assert handler._current(0, 10) == "UA 10"
+
+    def test_two_overlapping_remote_batches_are_applied_in_order_and_a_stale_edit_is_not(self, qtbot, tmp_path,
+                                                                                          monkeypatch):
+        mw = _project_window(tmp_path, "overlap", lines=["Source"])
+        handler = mw.collab_handler
+        handler._build_positions()
+        key = handler._key(0, 0)
+        applied = []
+        real_apply = handler._apply
+
+        def recording_apply(*args):
+            applied.append(args[2])
+            real_apply(*args)
+
+        monkeypatch.setattr(handler, "_apply", recording_apply)
+        handler._on_remote_events([{"type": "edit", "key": key, "text": "first", "rev": 2, "name": "A", "time": 1.0}])
+        handler._on_remote_events([{"type": "edit", "key": key, "text": "second", "rev": 3, "name": "B", "time": 2.0}])
+        handler._on_remote_events([{"type": "edit", "key": key, "text": "stale", "rev": 2, "name": "C", "time": 3.0}])
+        qtbot.waitUntil(lambda: not handler._turns, timeout=5000)
+        assert applied == ["first", "second"]          # in arrival order; the older revision is never written
+        assert handler._current(0, 0) == "second"
+        handler._on_remote_events([{"type": "edit", "key": key, "text": "second", "rev": 3, "name": "B", "time": 2.0}])
+        qtbot.waitUntil(lambda: not handler._turns, timeout=5000)
+        assert applied == ["first", "second"]          # the same revision again is not applied twice
 
     def test_a_join_touching_100_blocks_refreshes_one_block_per_turn(self, qtbot, tmp_path, monkeypatch):
         class CountingUpdater:

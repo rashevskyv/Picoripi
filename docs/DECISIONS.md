@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 4.7k
+tokens: 5.1k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -213,8 +213,12 @@ collector paused; below-normal priority):
   max 4.5 ms for 100 blocks of 600 rows with 60,000 problem entries (1 per row), and 3.2 ms with 2,100 extra
   tree items (the tree iterator is O(tree) per call). Repeat call with the index built: 0.1 ms (0.9 ms with the
   extra tree items).
-- Not measured: the editor's text views (`update_text_views`), which need a real editor. A join calls them at
-  most once, in a turn of their own.
+- Remote batches (the same real window, 100 blocks, one batch of edits, before this round one event):
+  20,000 edits in 0.26 s (200 turns; slowest apply turn 5.2 ms, slowest refresh turn 1.1 ms; 6 us per row median,
+  0.36 ms max); 60,000 edits in 0.77 s (400 turns; slowest apply turn 5.1 ms, slowest refresh turn 2.2 ms; 6 us per
+  row median, 0.9 ms max). Before the turns, one event took 0.23 s and 0.64 s for the same batches.
+- Not measured: the editor's text views (`update_text_views`), which need a real editor. A join or a remote batch
+  calls them at most once, in a turn of their own.
 
 **Decision.** The join is a generator that runs in turns, one turn per event-loop pass (`single_shot` owned by the
 handler; `leave()` drops the generator, so a left room stops the join). An apply turn ends after 200 rows, or after
@@ -224,13 +228,24 @@ turn of their own. Each row is checked when it is reached (conflicts, keys super
 room). The apply and the refresh stay on the UI thread: they mutate the store, the tree and the editor. A worker
 would need a snapshot of the store (as costly as the reads) and would race with the user's typing.
 
+**Remote batches** use the same turn queue (`_turns`, run one turn per event-loop pass). The join is the first
+item in the queue; each remote batch is one generator that drains `_remote_pending`, so a batch that is still
+running is never started again and later edits join it in arrival order. Within a turn, edits are applied in order,
+JOIN_SLICE_ROWS per turn. An edit is written only if its revision is newer than the newest one this participant has
+applied or sent (`_applied_rev`): an older edit cannot overwrite a newer one, and the same edit is never written
+twice. A row with an unsent local edit is left alone (the server decides that conflict, as before). `leave()` drops
+the queue, the pending edits and the running batch.
+
 **Cost and limits.** A join of 20,000 rows takes about 0.2 s of apply and refresh work, spread over about 200
 event-loop passes; the tree and the editor show the old state until their turn comes. A single row or a single
-block refresh can hold the window for its own cost (under 0.5 ms and under 5 ms measured). Remote edits that
-arrive in one poll still refresh their blocks together (`_refresh`, not yet in turns); a poll that touches many
-blocks has the same per-block cost in one event (about 1 to 5 ms per block here).
+block refresh can hold the window for its own cost (under 1 ms and under 3 ms measured). A remote batch that
+arrives while a join runs waits behind it. Remote edits are queued without a size limit: nothing is dropped; a poll
+returns at most 5,000 events (`EVENT_LIMIT`), and at the measured turn rate a backlog clears in a few event-loop
+passes, so the queue does not grow unless the window stops for a long time.
 
 **Test.** `tests/test_performance.py` runs the real-path join (with the real tree refresh) and requires every turn
-under 0.15 s, about 30 times the measured slowest turn. The mock-window join test is a smoke test with no time
-bound. `tests/test_core/test_collab.py` checks that a join touching 100 blocks runs at most one block refresh per
-turn and refreshes each block once.
+under 0.15 s, about 30 times the measured slowest turn; it also runs a batch of 60,000 remote edits over 100 blocks
+with the same bound, and checks that each row is written once. The mock-window join test is a smoke test with no
+time bound. `tests/test_core/test_collab.py` checks that a join touching 100 blocks runs at most one block refresh per
+turn and refreshes each block once, and that overlapping remote batches apply in arrival order and a stale or
+repeated revision is not applied.
