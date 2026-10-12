@@ -755,6 +755,17 @@ class LayoutBuilder:
 
         self.mw.edited_text_edit = LineNumberedTextEdit(self.mw)
         self.mw.edited_text_edit.setObjectName("edited_text_edit")
+        from ui.components.memory_banner import MemoryBanner
+        self.mw.memory_banner = MemoryBanner(self.mw)
+        edited_column = QWidget()
+        edited_column_layout = QVBoxLayout(edited_column)
+        edited_column_layout.setContentsMargins(0, 0, 0, 0)
+        edited_column_layout.setSpacing(2)
+        edited_column_layout.addWidget(self.mw.memory_banner, 0)
+        from ui.components.collab_row_bar import CollabRowBar
+        self.mw.collab_row_bar = CollabRowBar(self.mw)
+        edited_column_layout.addWidget(self.mw.collab_row_bar, 0)
+        edited_column_layout.addWidget(self.mw.edited_text_edit, 1)
         
         # BFN Visual Preview Widget + ephemeral window-preset switcher under it
         from ui.components.bfn_preview_widget import (
@@ -771,7 +782,7 @@ class LayoutBuilder:
 
         # Vertical splitter for editor and visual preview
         self.mw.editor_preview_splitter = QSplitter(Qt.Orientation.Vertical)
-        self.mw.editor_preview_splitter.addWidget(self.mw.edited_text_edit)
+        self.mw.editor_preview_splitter.addWidget(edited_column)
         self.mw.editor_preview_splitter.addWidget(self.mw.bfn_preview_column)
         self.mw.editor_preview_splitter.setSizes([350, 130])
         

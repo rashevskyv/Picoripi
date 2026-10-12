@@ -1,5 +1,8 @@
+import gc
+
 from PyQt6.QtWidgets import (
     QApplication,
+    QComboBox,
     QListWidget,
     QPlainTextEdit,
     QTextEdit,
@@ -95,3 +98,18 @@ def test_scroll_widget_created_after_install_gets_adaptive_vertical_bar(qapp):
     QApplication.processEvents()
 
     assert isinstance(edit.verticalScrollBar(), AdaptiveScrollBar)
+
+
+def test_bar_on_a_qt_created_scroll_area_survives_the_cycle_collector(qapp):
+    # A combo box popup is a list view Qt creates itself: Python only ever holds temporary wrappers of it.
+    combo = QComboBox()
+    combo.addItems([str(i) for i in range(50)])
+    install_adaptive_scrollbars(qapp)
+    combo.show()
+    QApplication.processEvents()
+    gc.collect()
+
+    # A freed wrapper comes back as a fresh plain QScrollBar over the live AdaptiveScrollBar.
+    bar = combo.view().verticalScrollBar()
+    assert isinstance(bar, AdaptiveScrollBar)
+    assert bar.thickness == AdaptiveScrollBar.COLLAPSED_THICKNESS

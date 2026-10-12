@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+
+from core.address_forms import resolve_for as resolve_address_form
 from typing import Dict, List, Optional, Tuple
 
 from core.story_context_overrides import get_story_context_override
@@ -29,14 +31,22 @@ class MessagesMixin:
             return ""
         source = source_of(block_idx, string_idx)
         rows = similar(source) if isinstance(source, str) else None
-        if not isinstance(rows, list) or not rows:
+        rows = rows[:TRANSLATION_MEMORY_ROWS] if isinstance(rows, list) else []
+        series = getattr(saved_mgr, 'series_by_source', None)
+        series_rows = series(source, exact=False) if callable(series) and isinstance(source, str) else []
+        rows += series_rows[:TRANSLATION_MEMORY_ROWS]
+        if not rows:
             return ""
         lines = []
-        for row in rows[:TRANSLATION_MEMORY_ROWS]:
+        for row in rows:
             original = self._item_text_for_ai({'id': 0, 'text': row.get('source', '')})[2].replace('\n', ' ')
             translation = self._item_text_for_ai({'id': 0, 'text': row.get('translation', '')})[2].replace('\n', ' ')
-            lines.append(f'- "{original}" -> "{translation}"')
-        return "TRANSLATION MEMORY (same source elsewhere):\n" + "\n".join(lines)
+            where = f" (in {row['project']})" if row.get('project') else ""
+            lines.append(f'- "{original}" -> "{translation}"{where}')
+        return (
+            'TRANSLATION MEMORY (same source elsewhere; "in <project>" = another game of the series):\n'
+            + "\n".join(lines)
+        )
 
     def _resolve_prompt_speaker(
         self,
@@ -236,7 +246,11 @@ class MessagesMixin:
             # Who the line is spoken TO (plugin-provided), as in a batch item.
             addressee = self._plugin_addressee(block_idx, string_idx, speaker or "Unknown")
             if addressee:
-                context_lines.append(f'Addressee: {self._translate_speaker(addressee)}')
+                addressee_name = self._translate_speaker(addressee)
+                context_lines.append(f'Addressee: {addressee_name}')
+                address_form = resolve_address_form(self.mw, speaker, addressee_name)
+                if address_form:
+                    context_lines.append(f'Address form: {address_form}')
         if mode_description:
             context_lines.append(f'Mode: {mode_description}')
         if translation_context.get('window_type'):

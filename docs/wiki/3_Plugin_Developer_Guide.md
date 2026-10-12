@@ -75,7 +75,7 @@ plugins/<id>/
   translation_prompts/prompts.json    # prompt sections the game changes
 ```
 
-**`config.json`** — defaults for a new project: `display_name`, `game_dialog_max_width_pixels`, `line_width_warning_threshold_pixels`, `lines_per_page`, `default_font_file`, `detection_enabled`, `autofix_enabled`, colours and wrap flags. Per-session keys (open file paths, selection, scroll positions, search history) are refused by the validator; the application stores those in `project_settings.json`.
+**`config.json`** — defaults for a new project: `display_name`, `game_dialog_max_width_pixels`, `line_width_warning_threshold_pixels`, `width_tolerance_percent` (how far past the target width a line may go before it must be shortened; used when a window kind gives only one width), `lines_per_page`, `default_font_file`, `detection_enabled`, `autofix_enabled`, colours and wrap flags. Per-session keys (open file paths, selection, scroll positions, search history) are refused by the validator; the application stores those in `project_settings.json`.
 
 **`config.py`** — `PROBLEM_DEFINITIONS, DEFAULT_DETECTION_SETTINGS, DEFAULT_AUTOFIX_SETTINGS = generate_base_config(PREFIX, overrides=…, custom_problems=…)` from `plugins/common/config_factory.py`.
 
@@ -136,7 +136,7 @@ Everything above is the required minimum. Beyond it a plugin can mine the game's
 
 Do not declare a capability the plugin cannot deliver.
 
-**Slots, not values.** `get_translation_context_for_string` returns metadata under keys the engine publishes — `window_type`, `content_role`, `role_instruction`, `has_speaker`, `glossary_section`, `force_glossary`. The values are the plugin's: `content_role` may be `"BossName"` or anything the game needs, and `role_instruction` is the sentence that tells the model what the role means. The engine never compares a value to a specific game, and engine code must not learn one.
+**Slots, not values.** `get_translation_context_for_string` returns metadata under keys the engine publishes — `window_type`, `content_role`, `role_instruction`, `has_speaker`, `glossary_section`, `force_glossary`, `layout_class` (`"prose"`: Picoripi breaks the lines of each page itself; `"lines"`: one source line is one output line — menus, names, choices; omitted: guessed from the source text). The values are the plugin's: `content_role` may be `"BossName"` or anything the game needs, and `role_instruction` is the sentence that tells the model what the role means. The engine never compares a value to a specific game, and engine code must not learn one.
 
 **Speakers.** `get_speaker_for_string` returns the identity the game data records; the engine fills rows the user has not set and never overwrites a user's choice. `is_placeholder_speaker(name)` says whether that identity is an internal id the script-merge step may replace with a real name (default: yes).
 

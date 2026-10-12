@@ -5,6 +5,9 @@ import re
 from typing import Any, List
 from utils.utils import calculate_string_width
 from core.tag_utils import ANY_TAG_PATTERN_STR
+from core.translation.layout_class import LINES, layout_class_for
+from core.translation.layout_contract import resolve_lines_per_window
+from core.typesetter import typeset_text
 
 
 class TextFormatter:
@@ -24,14 +27,14 @@ class TextFormatter:
         return value
 
     def fit_translation_to_window(self, text: str, block_idx: int, string_idx: int) -> str:
-        """The model's own line breaks, unless it reflowed the source and a line came out wider than the window:
-        then re-wrapped by the game's rules. A plugin with ``fit_text_to_window`` wraps every translation itself.
+        """The translation as the game will show it.
 
-        A translation may use more or fewer lines than the source (``validate_translation_layout(allow_reflow=True)``).
-        One that keeps the source's line count is applied as it is, as before (width warnings show the rest).
+        A plugin with ``fit_text_to_window`` wraps every translation itself (its break codes, name widths, answer lines).
+        A ``lines`` string (menu, name, choice: ``core/translation/layout_class.py``) keeps the model's lines.
+        A prose string is typeset: the words of every page are reflowed with the game's font to the target
+        width (``core/typesetter.py``), so the model's own line breaks inside a page do not matter.
         """
         value = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
-        from core.translation.layout_contract import editor_text_for_layout
         try:
             source = self.mw.data_store.data[block_idx][string_idx]
         except (AttributeError, IndexError, KeyError, TypeError):
@@ -42,31 +45,26 @@ class TextFormatter:
             fitted = fitter(self.convert_translation_preserving_layout(value), block_idx, string_idx)
             if isinstance(fitted, str):
                 return fitted
-        if source is None or editor_text_for_layout(source, rules).count("\n") == value.count("\n"):
+        if source is None or layout_class_for(self.mw, block_idx, string_idx, source) == LINES:
             return self.convert_translation_preserving_layout(value)
+        typeset, _added = typeset_text(value, *self.typeset_parameters(block_idx, string_idx))
+        return self.convert_translation_preserving_layout(typeset)
+
+    def typeset_parameters(self, block_idx: int, string_idx: int):
+        """``(measure, target, limit, lines_per_page)`` of one string for ``core.typesetter``."""
         from utils.utils import resolve_width_limits
-        _, max_width = resolve_width_limits(
+        target, limit = resolve_width_limits(
             self.mw.string_metadata.get((block_idx, string_idx), {}), getattr(self.mw, 'current_game_rules', None),
-            block_idx, string_idx, self.mw.line_width_warning_threshold_pixels, self.mw.game_dialog_max_width_pixels)
+            block_idx, string_idx, self.mw.line_width_warning_threshold_pixels, self.mw.game_dialog_max_width_pixels,
+            tolerance_percent=getattr(self.mw, 'width_tolerance_percent', None))
         font_map = getattr(self.mw, 'current_font_map', None) or getattr(self.mw, 'font_map', None) or {}
         icon_sequences = getattr(self.mw, 'icon_sequences', []) or []
         tag_mappings = getattr(self.mw, 'default_tag_mappings', {}) or {}
-        try:
-            limit = int(max_width)
-        except (TypeError, ValueError):
-            return self.convert_translation_preserving_layout(value)
-        too_wide = any(
-            calculate_string_width(line, font_map, icon_sequences=icon_sequences, default_tag_mappings=tag_mappings)
-            > limit
-            for line in value.split("\n")
-        )
-        if too_wide:
-            # The model's breaks are not kept then: each page (between blank lines) is wrapped as one paragraph, so
-            # that a too-wide line does not leave a lone word on a line of its own.
-            pages = re.split(r"(\n[ \t]*\n)", value)
-            joined = "".join(part if index % 2 else " ".join(part.split("\n")) for index, part in enumerate(pages))
-            return self.format_and_wrap_translation(joined, block_idx, string_idx)
-        return self.convert_translation_preserving_layout(value)
+
+        def measure(line: str) -> int:
+            return calculate_string_width(line, font_map, icon_sequences=icon_sequences, default_tag_mappings=tag_mappings)
+
+        return measure, int(target), int(limit), resolve_lines_per_window(self.mw, block_idx, string_idx)
 
     def format_and_wrap_translation(self, text: str, block_idx: int, string_idx: int) -> str:
         """

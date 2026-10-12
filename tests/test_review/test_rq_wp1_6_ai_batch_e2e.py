@@ -40,6 +40,10 @@ def window(main_window, tmp_path, monkeypatch, qtbot, server):  # noqa: F811
     mw = main_window
     open_project(mw, make_plain_project(tmp_path, {"story": LINES}), monkeypatch, qtbot)
     monkeypatch.setattr(app_mode, "headless", False)
+    # A window wide enough for every line: these tests check the request traffic, not the typesetting
+    # (since 2026-10-09 a prose translation is reflowed to the window when it is applied).
+    mw.line_width_warning_threshold_pixels = 4000
+    mw.game_dialog_max_width_pixels = 4000
     mw.prompt_editor_enabled = False
     mw.log_ai_traffic = True
     ai_traffic_log_path().unlink(missing_ok=True)  # the settings directory is shared by the session

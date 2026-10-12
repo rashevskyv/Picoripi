@@ -7,7 +7,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from core.story_context_overrides import get_story_context_override
 from core.translation.layout_contract import resolve_lines_per_window
+from core.address_forms import resolve_for as resolve_address_form
 from core.translation.run_memory import RunMemory
+
+# Rows of the series translation memory sent with one chunk.
+SERIES_MEMORY_ROWS = 10
 from core.translation.session_manager import TranslationSessionState
 from core.translation.story_context_bundle import glossary_names_from_story_bundle
 from handlers.translation.prompt_composer.glossary_mixin import SERIES_GLOSSARY_LEAD
@@ -18,7 +22,7 @@ from .instructions import append_engine_rules, batch_rules
 
 
 # Layout values that are normally the same for every item of a chunk.
-_SHARED_LAYOUT_KEYS = ('lines_per_window', 'warning_line_width_px', 'max_line_width_px')
+_SHARED_LAYOUT_KEYS = ('lines_per_window', 'warning_line_width_px', 'max_line_width_px', 'max_chars_per_line')
 # Reference languages sent per item unless the translation config says otherwise: None is every one.
 DEFAULT_MAX_REFERENCE_LANGUAGES: Optional[int] = None
 
@@ -46,6 +50,8 @@ def _hoist_layout_defaults(items: List[Dict]) -> Dict:
             slim['ends_with_newline'] = True
         if isinstance(layout.get('window_count'), int) and layout['window_count'] > 1:
             slim['window_count'] = layout['window_count']
+        if layout.get('layout_class'):
+            slim['layout_class'] = layout['layout_class']
         for key in _SHARED_LAYOUT_KEYS:
             if key in layout and layout[key] != defaults.get(key):
                 slim[key] = layout[key]
@@ -223,6 +229,25 @@ class BatchMixin:
             for row in memory.similar(own_texts)
         ]
 
+    def _series_memory_rows(self, source_items: List[Any]) -> List[Dict[str, str]]:
+        """What the other projects of the series saved for the sources of this chunk, one row per source."""
+        saved_mgr = getattr(self.mw, 'saved_translations_manager', None)
+        series = getattr(saved_mgr, 'series_by_source', None)
+        if not callable(series):
+            return []
+        rows = []
+        for item in source_items:
+            text = item.get('text', '') if isinstance(item, dict) else str(item)
+            for row in series(text)[:1]:
+                rows.append({
+                    'text': self._item_text_for_ai({'id': 0, 'text': row['source']})[2],
+                    'translation': self._item_text_for_ai({'id': 0, 'text': row['translation']})[2],
+                    'project': row['project'],
+                })
+            if len(rows) >= SERIES_MEMORY_ROWS:
+                break
+        return rows
+
     def build_placeholder_map(self, source_items: List[Dict]) -> Dict:
         """The forced-alias maps of ``source_items``, keyed by item id.
 
@@ -359,6 +384,10 @@ class BatchMixin:
             addressee = self._plugin_addressee(real_b_idx, real_s_idx, speaker)
             if addressee:
                 item_for_ai['addressee'] = self._translate_speaker(addressee)
+                # The project's Forms of Address table (Tools menu): "formal" / "informal".
+                address_form = resolve_address_form(self.mw, speaker, item_for_ai['addressee'])
+                if address_form:
+                    item_for_ai['address_form'] = address_form
 
             # Game-script flow context (plugin-provided): conversation position,
             # branch conditions and follow-up game actions for this exact line
@@ -493,6 +522,9 @@ class BatchMixin:
         memory_rows = self._run_memory_rows(source_items)
         if memory_rows:
             json_payload_for_ai['already_translated_in_this_run'] = memory_rows
+        series_rows = self._series_memory_rows(source_items)
+        if series_rows:
+            json_payload_for_ai['translated_in_other_games_of_the_series'] = series_rows
         if story_context_catalog:
             json_payload_for_ai['story_context_catalog'] = story_context_catalog
         if scene_context:

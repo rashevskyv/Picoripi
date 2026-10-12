@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 2.8k
+tokens: 3.1k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -132,6 +132,18 @@ tag cannot take a Ukrainian case ending. A live run showed «Лінку» in the
 translation keeps «Лінк» / «Епона» in the right case as plain text. The names are fixed: the translation does not
 support renaming (the glossary says so for Link). A nominative-only `{Epona}` tag was tried and rejected.
 **Cost.** A hero or horse renamed by the player keeps the Ukrainian default name.
+
+## D18. Working together: a room hosted inside one participant's Picoripi (2026-10-10, owner)
+
+**Context.** Several translators work on one game. The Companion server (FastAPI, Docker) syncs only the glossary and
+needs a machine to run it; peer-to-peer needs NAT traversal and a replicated data model.
+**Decision.** The owner chose a server that one of the participants runs: Tools → Work Together starts a stdlib HTTP
+room inside that Picoripi (`core/collab/server.py`), the host sets port and password, everyone (the host too, over
+127.0.0.1) joins with the same client. Rows are keyed like saved translations; a fingerprint of the source rows
+refuses another project; an edit on an old revision is refused and shown as a conflict, never overwritten silently.
+The room also serves the progress page and the team board (`/stats`).
+**Cost.** Plain HTTP (LAN or a VPN); the room lives only while the host's Picoripi runs; every participant needs the
+same game files; Import BMG and Undo Paste bypass the room.
 
 ## D17. Text textures: one window, the game's own format, only changed blocks re-encoded (2026-10)
 

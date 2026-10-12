@@ -38,6 +38,8 @@ CHARACTER_NAMES = (
 BALLOON_TYPES = ("Text Narration Sign-Wood NoBorder-BlackLetters NoBorder-WhiteLetters Subtitle Sign-Stone "
                  "Sign-Paper Telescope GettingItems Text-Centered QuestStatusScreen Text-Hylian Pictograph "
                  "WindWaker").split()
+# Balloons whose every source line is one output line (a status screen, glyph text, conducting cues).
+LINE_BALLOONS = frozenset({"QuestStatusScreen", "Text-Hylian", "WindWaker"})
 ATTRIBUTE_SIZE = 23
 
 # CharacterName values that are not a character: (content role, glossary section).

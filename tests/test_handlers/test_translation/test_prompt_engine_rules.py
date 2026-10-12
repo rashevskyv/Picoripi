@@ -59,9 +59,10 @@ def test_single_string_system_prompt_does_not_depend_on_the_string(composer):
 
 
 @pytest.mark.parametrize("rule", [
-    "Translate the \"text\" field", "translated_strings", "LAYOUT PRIORITY", "GLOSSARY IS MANDATORY",
+    "Translate the \"text\" field", "translated_strings", "LAYOUT:", "GLOSSARY IS MANDATORY",
     "story_context_ref", "role_instruction", "TRANSCRIPTION RULES", "DIALOGUE FLOW",
-    "ADDRESSEE", "TAG ALIAS LEGEND", "ANCHORED TAGS", "REFERENCE TRANSLATIONS", "OUTPUT SHAPE IS IMMUTABLE",
+    "ADDRESSEE", "TAG ALIAS LEGEND", "ANCHORED TAGS", "REFERENCE TRANSLATIONS", "max_chars_per_line",
+    'layout_class is "lines"',
 ])
 def test_batch_rules_cover_every_instruction_the_user_message_used_to_carry(rule):
     assert rule in batch_rules("SysPrompt")
@@ -191,7 +192,8 @@ def test_a_plain_item_carries_only_what_is_specific_to_it(composer):
     payload = _payload(user)
 
     plain, busy = payload["strings_to_translate"]
-    assert plain == {"id": 0, "text": "First line\nsecond line", "layout": {"line_count": 2}}
+    # Two short unpunctuated lines read as a list, so the item says so; a sentence carries no layout_class.
+    assert plain == {"id": 0, "text": "First line\nsecond line", "layout": {"line_count": 2, "layout_class": "lines"}}
     assert busy["layout"] == {
         "line_count": 6, "blank_line_indices": [1, 5], "ends_with_newline": True, "window_count": 2,
     }

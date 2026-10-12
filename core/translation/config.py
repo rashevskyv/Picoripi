@@ -34,6 +34,9 @@ def build_default_translation_config() -> dict:
         # (REVIEW_REQUEST); "review_model" may name another model for it. On by default since 2026-10-04;
         # the old "editor_review_enabled" belonged to the removed editor review and is not read.
         "review_enabled": DEFAULT_REVIEW_ENABLED,
+        # The shorten pass: an item whose typeset text needs more windows than the source, or a line wider
+        # than the limit, goes back once with "shorten by about N letters" (SHORTEN_REQUEST).
+        "shorten_enabled": True,
         # Identical strings (same text, speaker, addressee and window) are sent
         # once per run and share the translation.
         "fold_duplicates": True,

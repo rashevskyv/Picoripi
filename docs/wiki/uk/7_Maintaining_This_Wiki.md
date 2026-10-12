@@ -2,7 +2,7 @@
 status: current
 updated: 2026-09-27
 owns: docs/wiki
-tokens: 0.8k
+tokens: 0.9k
 ---
 # Як вести цю вікі
 
@@ -25,6 +25,7 @@ tokens: 0.8k
 | Script Markup Studio | `9_Script_Markup.md` | `uk/9_…` |
 | AI Translate / Variation / Chat | `11_AI_Translation.md` | `uk/11_…` |
 | Picoripi Companion (мобільний PWA та сервер синхронізації) | `12_Picoripi_Companion.md` | `uk/12_…` |
+| Кімнати (спільна робота), сторінка прогресу, таблиця команди | `13_Working_Together.md` |
 | Короткий пітч + карта | кореневий `README.md` | посилання на `docs/wiki/uk/README.md` |
 | Усі можливості одним переліком | `docs/FEATURES.md` | лише англійською |
 | Правила для агентів | `AGENTS.md` (обґрунтування: `docs/ENGINEERING.md`; карта коду: `docs/ARCHITECTURE.md`) | лише англійською |

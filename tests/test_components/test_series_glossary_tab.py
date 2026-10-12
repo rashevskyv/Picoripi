@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt
 from components.glossary_dialog import GlossaryDialog
 from components.glossary.widgets import _CONFLICT_BRUSH
 from core.glossary.series import link_series
-from core.glossary_manager import GlossaryManager
+from core.glossary_manager import GlossaryEntry, GlossaryManager
 from core.project_models import Project
 from handlers.translation.ai_prompt_composer import AIPromptComposer
 from handlers.translation.glossary_handler import GlossaryHandler
@@ -133,7 +133,25 @@ def test_unlinking_removes_the_tab_and_saves_the_project(qtbot, tmp_path):
     assert handler.series_page is None
     assert handler.dialog._series_tabs.count() == 1
     assert handler.mw.project_manager.saved == 1
-    assert handler.series_glossary_manager.get_entries() == []
+    assert handler.series_glossary_managers == []
+
+
+def test_two_levels_give_two_tabs_nearest_first_and_promote_asks_for_the_level(qtbot, tmp_path):
+    handler, _, _ = _handler(
+        tmp_path, series_rows=[{"original": "Beedle", "translation": "Бідл", "notes": ""}], project_rows=[]
+    )
+    qtbot.addWidget(handler.dialog)
+    game = _write(tmp_path / "game.json", [{"original": "Epona", "translation": "Епона", "notes": ""}])
+    handler.add_series_link(game)
+
+    tabs = handler.dialog._series_tabs
+    assert [tabs.tabText(i) for i in range(tabs.count())] == ["Project Glossary", "Series: game", "Series: zelda"]
+    assert [m.glossary_path for m in handler.series_glossary_managers] == [game, tmp_path / "zelda.json"]
+    assert handler.mw.project_manager.project.metadata["series_glossary"] == [str(game), str(tmp_path / "zelda.json")]
+
+    handler._promote_to_series([GlossaryEntry("Midna", "Мідна", "")], level=1)
+    assert handler.series_glossary_managers[1].get_entry("Midna").translation == "Мідна"
+    assert handler.series_glossary_managers[0].get_entry("Midna") is None
 
 
 def test_prompts_put_series_rows_after_the_project_glossary_and_only_for_missing_terms(tmp_path):
@@ -150,7 +168,7 @@ def test_prompts_put_series_rows_after_the_project_glossary_and_only_for_missing
     mw.data_store = mw
     mw.data_store.data = [["Link meets Beedle"]]
     composer = AIPromptComposer(SimpleNamespace(
-        mw=mw, data_processor=None, ui_updater=None, _glossary_manager=project, _series_glossary_manager=series
+        mw=mw, data_processor=None, ui_updater=None, _glossary_manager=project, _series_glossary_managers=[series]
     ))
     composer._get_mempalace_client = MagicMock(return_value=None)
     composer._find_speaker_in_script = MagicMock(return_value=None)

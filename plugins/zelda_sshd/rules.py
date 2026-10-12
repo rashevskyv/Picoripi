@@ -259,7 +259,8 @@ class GameRules(BaseGameRules):
                 context["glossary_section"] = role[1]
             return context
         if box == messages.TITLE_CARD:
-            return {"content_role": "Area title card", "has_speaker": False, "glossary_section": "Places"}
+            return {"content_role": "Area title card", "has_speaker": False, "glossary_section": "Places",
+                    "layout_class": "lines"}
         if box == messages.ITEM_GET:
             return {"content_role": "Item get message", "has_speaker": False}
         return {"window_type": f"Window {box}"} if box is not None else {}

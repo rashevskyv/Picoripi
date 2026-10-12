@@ -1,6 +1,6 @@
 """GlossaryHandler: the glossary of the open project and its UI."""
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from handlers.translation.base_translation_handler import BaseTranslationHandler
 from handlers.translation.glossary_prompt_manager import GlossaryPromptManager
@@ -31,8 +31,10 @@ class GlossaryHandler(
         """Initialize a new instance."""
         super().__init__(main_handler)
         self.glossary_manager = GlossaryManager()
-        # The series glossary the open project links to (empty when it links none).
-        self.series_glossary_manager = GlossaryManager()
+        # The series glossaries of the open project, nearest first (empty when it has none).
+        # One list object for the life of the handler: the prompt composer keeps a reference.
+        self.series_glossary_managers: List[GlossaryManager] = []
+        self.series_pages = []
         self._open_glossary_action: Optional[QAction] = None
         self.dialog: Optional[GlossaryDialog] = None
         # Snapshot of (original, translation) pairs taken when the dialog opens,

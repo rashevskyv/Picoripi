@@ -1,8 +1,12 @@
-"""Series glossary: one glossary file shared by the projects of a game series.
+"""Series glossaries: glossary files shared by the projects of a game series.
 
-The file has the project ``glossary.json`` schema, so ``GlossaryManager``
-loads, edits and saves it as it does a project glossary. A project links to
-one series glossary through ``project.metadata["series_glossary"]``.
+Each file has the project ``glossary.json`` schema, so ``GlossaryManager``
+loads, edits and saves it as it does a project glossary. A project has a
+chain of them, nearest first: the files it links explicitly
+(``project.metadata["series_glossary"]``, one path or a list) and then every
+``_glossary/glossary.json`` in the folders above the project folder (a game
+folder, then its series folder), unless ``series_glossary_auto`` is false.
+The project glossary wins; a nearer level wins over a farther one.
 """
 from __future__ import annotations
 
@@ -17,6 +21,9 @@ from core.glossary.models import STATUS_CONFIRMED, STATUS_TRANSLATED, GlossaryEn
 from utils.atomic_io import atomic_write_text
 
 METADATA_KEY = "series_glossary"
+AUTO_KEY = "series_glossary_auto"
+FOLDER_NAME = "_glossary"
+FOLDER_FILE = "glossary.json"
 
 # Statuses of the multi-source series document (``{"terms": [...]}``): the
 # first two are settled, the other two still need a person's decision.
@@ -28,20 +35,56 @@ def series_dir() -> Path:
     return constants.SETTINGS_DIR / "series_glossaries"
 
 
-def linked_series_path(project: Any) -> Optional[Path]:
-    """The series glossary file ``project`` links to, or None (old projects have no key)."""
+def linked_series_paths(project: Any) -> List[Path]:
+    """The series glossary files ``project`` links to explicitly, nearest first (old projects link none)."""
     metadata = getattr(project, "metadata", None)
     value = metadata.get(METADATA_KEY) if isinstance(metadata, dict) else None
-    return Path(value) if isinstance(value, str) and value.strip() else None
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    return [Path(item) for item in value if isinstance(item, str) and item.strip()]
+
+
+def set_series_links(project: Any, paths: Iterable[Path]) -> None:
+    """Make ``paths`` the explicit series links of ``project`` (none removes the key). The caller saves the project."""
+    paths = [str(path) for path in paths]
+    if paths:
+        project.metadata[METADATA_KEY] = paths[0] if len(paths) == 1 else paths
+    else:
+        project.metadata.pop(METADATA_KEY, None)
 
 
 def link_series(project: Any, path: Optional[Path]) -> None:
-    """Link ``project`` to the series glossary at ``path``; None unlinks. The caller saves the project."""
-    metadata = project.metadata
-    if path is None:
-        metadata.pop(METADATA_KEY, None)
-    else:
-        metadata[METADATA_KEY] = str(path)
+    """Link ``project`` to exactly the series glossary at ``path``; None unlinks every explicit link."""
+    set_series_links(project, [path] if path is not None else [])
+
+
+def folder_glossaries_enabled(project: Any) -> bool:
+    """Whether the ``_glossary`` files above the project folder count (the default)."""
+    metadata = getattr(project, "metadata", None)
+    return not (isinstance(metadata, dict) and metadata.get(AUTO_KEY) is False)
+
+
+def discovered_series_paths(project_dir: Optional[Path]) -> List[Path]:
+    """``_glossary/glossary.json`` in the project folder and in every folder above it, nearest first."""
+    if project_dir is None:
+        return []
+    start = Path(project_dir)
+    found = []
+    for folder in (start, *start.parents):
+        candidate = folder / FOLDER_NAME / FOLDER_FILE
+        if candidate.is_file():
+            found.append(candidate)
+    return found
+
+
+def series_chain(project: Any, project_dir: Optional[Path]) -> List[Path]:
+    """Every series glossary file of ``project``, nearest first: explicit links, then folder glossaries."""
+    chain = linked_series_paths(project)
+    if folder_glossaries_enabled(project):
+        chain += [path for path in discovered_series_paths(project_dir) if path not in chain]
+    return chain
 
 
 def _split_option(option: str) -> tuple[str, str]:
@@ -122,11 +165,29 @@ def project_covers(project: Optional[GlossaryManager], entry: GlossaryEntry) -> 
     return bool(found and (found.translation or "").strip())
 
 
-def series_rows_for(text: str, series: Optional[GlossaryManager], project: Optional[GlossaryManager]) -> List[GlossaryEntry]:
-    """Series entries found in ``text`` for terms the project glossary does not translate."""
-    if not isinstance(series, GlossaryManager) or not text or not series.get_entries():
+def series_rows_for(
+    text: str, chain: Iterable[Optional[GlossaryManager]], project: Optional[GlossaryManager]
+) -> List[GlossaryEntry]:
+    """Series entries found in ``text`` for terms the project glossary does not translate.
+
+    ``chain`` is nearest first; a term translated by a nearer level is not
+    listed again from a farther one.
+    """
+    if not text:
         return []
-    return [entry for entry in series.get_relevant_terms(text) if not project_covers(project, entry)]
+    rows: List[GlossaryEntry] = []
+    seen = set()
+    for series in chain:
+        if not isinstance(series, GlossaryManager) or not series.get_entries():
+            continue
+        for entry in series.get_relevant_terms(text):
+            key = GlossaryManager.canonical_key(entry.original)
+            if key in seen or project_covers(project, entry):
+                continue
+            if (entry.translation or "").strip():
+                seen.add(key)
+            rows.append(entry)
+    return rows
 
 
 def find_conflicts(

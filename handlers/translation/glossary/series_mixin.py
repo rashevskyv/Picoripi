@@ -1,5 +1,6 @@
-"""Glossary: the series glossary the project links to — loading, its tab, copy/promote, link menu."""
+"""Glossary: the chain of series glossaries of the project — loading, their tabs, copy/promote, link menu."""
 import json
+from functools import partial
 from pathlib import Path
 from typing import List, Optional
 
@@ -8,14 +9,17 @@ from PyQt6.QtWidgets import QFileDialog, QMenu, QMessageBox
 
 from components.glossary_dialog import GlossaryDialog
 from core.glossary.series import (
+    AUTO_KEY,
     entries_from_json,
     find_conflicts,
+    folder_glossaries_enabled,
     import_series_glossary,
-    link_series,
-    linked_series_path,
+    linked_series_paths,
+    series_chain,
     series_dir,
+    set_series_links,
 )
-from core.glossary_manager import GlossaryEntry
+from core.glossary_manager import GlossaryEntry, GlossaryManager
 from core.i18n import tr
 from utils.atomic_io import atomic_write_text
 from utils.logging_utils import log_debug
@@ -25,90 +29,132 @@ def _sorted_entries(manager) -> List[GlossaryEntry]:
     return sorted(manager.get_entries(), key=lambda e: e.original.lower())
 
 
+def _read_series_file(path: Path) -> Optional[str]:
+    """The text of a series glossary file, or None when it is unreadable or not a glossary.json list."""
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except OSError as exc:
+        log_debug(f"Series glossary {path} is unreadable: {exc}")
+        return None
+    if text.strip() and not text.lstrip().startswith("["):
+        # Not the glossary.json shape: binding it would overwrite the file on the first edit.
+        log_debug(f"Series glossary {path} is not a glossary.json list; not loaded")
+        return None
+    return text
+
+
 class SeriesMixin:
-    series_page: Optional[GlossaryDialog] = None
+    # The tab of each loaded series glossary, in chain order (nearest first).
+    series_pages: List[GlossaryDialog] = []
 
     def _open_project(self):
         return getattr(getattr(self.mw, "project_manager", None), "project", None)
 
-    def sync_series_glossary(self) -> None:
-        """Load the series glossary the open project links to (nothing when unlinked) into its manager."""
-        path = linked_series_path(self._open_project())
-        manager = self.series_glossary_manager
-        if path == manager.glossary_path:
-            return
-        text = ""
-        if path is not None:
-            try:
-                text = path.read_text(encoding="utf-8-sig")
-            except OSError as exc:
-                log_debug(f"Series glossary {path} is unreadable: {exc}")
-                path, text = None, ""
-            if text.strip() and not text.lstrip().startswith("["):
-                # Not the glossary.json shape: binding it would overwrite the file on the first edit.
-                log_debug(f"Series glossary {path} is not a glossary.json list; not loaded")
-                path, text = None, ""
-        manager.load_from_text(plugin_name=None, glossary_path=path, raw_text=text)
+    def _project_dir(self) -> Optional[Path]:
+        value = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        return Path(value) if value else None
 
-    # ── The tab in the Glossary window ──────────────────────────────────
+    @property
+    def series_page(self) -> Optional[GlossaryDialog]:
+        """The nearest series glossary tab, or None."""
+        return self.series_pages[0] if self.series_pages else None
+
+    @property
+    def series_glossary_manager(self) -> Optional[GlossaryManager]:
+        """The nearest loaded series glossary, or None."""
+        return self.series_glossary_managers[0] if self.series_glossary_managers else None
+
+    def sync_series_glossary(self) -> None:
+        """Load the series glossaries of the open project (nearest first) into ``series_glossary_managers``.
+
+        The list object is shared with the prompt composer, so it is changed in place.
+        """
+        loaded = {manager.glossary_path: manager for manager in self.series_glossary_managers}
+        managers = []
+        for path in series_chain(self._open_project(), self._project_dir()):
+            manager = loaded.get(path)
+            if manager is None:
+                text = _read_series_file(path)
+                if text is None:
+                    continue
+                manager = GlossaryManager()
+                manager.load_from_text(plugin_name=None, glossary_path=path, raw_text=text)
+            managers.append(manager)
+        self.series_glossary_managers[:] = managers
+
+    def _forget_series_glossaries(self) -> None:
+        """Drop the loaded files, so the next sync reads them again."""
+        self.series_glossary_managers[:] = []
+
+    # ── The tabs in the Glossary window ─────────────────────────────────
 
     def _attach_series_page(self) -> None:
-        """Put the linked series glossary in a tab of the open Glossary window (or take it away)."""
+        """Put every series glossary of the project in a tab of the open Glossary window (or take them away)."""
         if self.dialog is None:
             return
         self.sync_series_glossary()
-        path = linked_series_path(self._open_project())
-        if path != self.series_glossary_manager.glossary_path:
-            path = None  # linked, but unreadable or not a glossary.json list
-        self.series_page = None
-        if path is not None:
-            self.series_page = GlossaryDialog(
+        self.series_pages = []
+        for manager in self.series_glossary_managers:
+            page = GlossaryDialog(
                 parent=self.mw,
-                entries=_sorted_entries(self.series_glossary_manager),
+                entries=_sorted_entries(manager),
                 occurrence_map={},
                 jump_callback=self._jump_to_occurrence,
-                update_callback=self._handle_series_entry_update,
-                delete_callback=self._handle_series_entry_delete,
+                update_callback=partial(self._handle_series_entry_update, manager),
+                delete_callback=partial(self._handle_series_entry_delete, manager),
                 transfer_callback=self._copy_series_to_project,
                 transfer_label=tr('Copy to Project Glossary'),
                 embedded=True,
             )
-        self.dialog.set_series_page(self.series_page, tr('Series: {name}', name=path.stem) if path else "")
+            self.series_pages.append(page)
+        self.dialog.set_series_pages([
+            (page, tr('Series: {name}', name=self._series_label(manager.glossary_path)))
+            for page, manager in zip(self.series_pages, self.series_glossary_managers)
+        ])
         self._refresh_series_conflicts()
+
+    @staticmethod
+    def _series_label(path: Optional[Path]) -> str:
+        """``Zelda`` for ``Zelda/_glossary/glossary.json``, else the file stem."""
+        if path is None:
+            return ""
+        if path.parent.name == "_glossary":
+            return path.parent.parent.name or path.stem
+        return path.stem
 
     def _refresh_series_conflicts(self) -> None:
-        """Mark, in both tabs, the terms the project and the series glossary translate differently."""
+        """Mark, in every tab, the terms the project and a series glossary translate differently."""
         if getattr(self, "dialog", None) is None:
             return
-        if self.series_page is None:
-            self.dialog.set_conflicts({})
-            return
-        conflicts = find_conflicts(self.glossary_manager.get_entries(), self.series_glossary_manager.get_entries())
-        self.dialog.set_conflicts({
-            key: tr('Conflict: the series glossary translates this as "{translation}".', translation=theirs)
-            for key, (_mine, theirs) in conflicts.items()
-        })
-        self.series_page.set_conflicts({
-            key: tr('Conflict: the project glossary translates this as "{translation}".', translation=mine)
-            for key, (mine, _theirs) in conflicts.items()
-        })
+        project_conflicts = {}
+        for page, manager in zip(self.series_pages, self.series_glossary_managers):
+            conflicts = find_conflicts(self.glossary_manager.get_entries(), manager.get_entries())
+            for key, (_mine, theirs) in conflicts.items():
+                project_conflicts.setdefault(
+                    key, tr('Conflict: the series glossary translates this as "{translation}".', translation=theirs)
+                )
+            page.set_conflicts({
+                key: tr('Conflict: the project glossary translates this as "{translation}".', translation=mine)
+                for key, (mine, _theirs) in conflicts.items()
+            })
+        self.dialog.set_conflicts(project_conflicts)
 
     def _handle_series_entry_update(
-        self, original, translation, notes, profiled=None, status=None, section=None, user_notes=None
+        self, manager, original, translation, notes, profiled=None, status=None, section=None, user_notes=None
     ):
-        """Update callback of the series tab; same contract as the project one."""
+        """Update callback of a series tab; same contract as the project one."""
         extra = {key: value for key, value in (("section", section), ("user_notes", user_notes)) if value is not None}
-        if not self.series_glossary_manager.update_entry(original, translation, notes, profiled, status=status, **extra):
+        if not manager.update_entry(original, translation, notes, profiled, status=status, **extra):
             return None
         self._refresh_series_conflicts()
-        return _sorted_entries(self.series_glossary_manager), {}
+        return _sorted_entries(manager), {}
 
-    def _handle_series_entry_delete(self, original: str):
-        """Delete callback of the series tab."""
-        if not self.series_glossary_manager.delete_entry(original):
+    def _handle_series_entry_delete(self, manager, original: str):
+        """Delete callback of a series tab."""
+        if not manager.delete_entry(original):
             return None
         self._refresh_series_conflicts()
-        return _sorted_entries(self.series_glossary_manager), {}
+        return _sorted_entries(manager), {}
 
     def _copy_series_to_project(self, entries: List[GlossaryEntry]) -> None:
         """Copy series terms into the project glossary (a term it has takes the series translation)."""
@@ -125,17 +171,27 @@ class SeriesMixin:
         self._refresh_series_conflicts()
         self._series_status(tr('Copied {count} term(s) into the project glossary.', count=len(entries)))
 
-    def _promote_to_series(self, entries: List[GlossaryEntry]) -> None:
-        """Copy project terms into the linked series glossary."""
-        if self.series_page is None:
+    def _promote_to_series(self, entries: List[GlossaryEntry], level: Optional[int] = None) -> None:
+        """Copy project terms into a series glossary: the only one, the chosen one, or one picked from a menu."""
+        if not self.series_glossary_managers:
             return
-        manager = self.series_glossary_manager
+        if level is None:
+            level = 0 if len(self.series_glossary_managers) == 1 else self._ask_series_level()
+            if level is None:
+                return
+        manager = self.series_glossary_managers[level]
         with manager.transaction():
             for entry in entries:
                 manager.import_entry(entry)
-        self.series_page.reload_data(_sorted_entries(manager), {})
+        self.series_pages[level].reload_data(_sorted_entries(manager), {})
         self._refresh_series_conflicts()
         self._series_status(tr('Copied {count} term(s) into the series glossary.', count=len(entries)))
+
+    def _ask_series_level(self) -> Optional[int]:
+        menu = QMenu(self.dialog)
+        actions = [menu.addAction(self._series_label(m.glossary_path)) for m in self.series_glossary_managers]
+        chosen = menu.exec(QCursor.pos())
+        return actions.index(chosen) if chosen in actions else None
 
     def _series_status(self, message: str) -> None:
         status_bar = getattr(self.mw, "statusBar", None)
@@ -145,18 +201,27 @@ class SeriesMixin:
     # ── Linking ─────────────────────────────────────────────────────────
 
     def set_series_link(self, path: Optional[Path]) -> None:
-        """Link the open project to the series glossary at ``path`` (None unlinks), save the project, refresh."""
+        """Link the open project to exactly the series glossary at ``path`` (None unlinks), save, refresh."""
+        self._set_series_links([path] if path is not None else [])
+
+    def add_series_link(self, path: Path) -> None:
+        """Add ``path`` to the explicit series links of the open project (nearest first), save, refresh."""
+        self._set_series_links([path] + [p for p in linked_series_paths(self._open_project()) if p != path])
+
+    def _set_series_links(self, paths: List[Path]) -> None:
         project = self._open_project()
         if project is None:
             return
-        link_series(project, path)
+        set_series_links(project, paths)
+        self._save_project_and_refresh()
+
+    def _save_project_and_refresh(self) -> None:
         self.mw.project_manager.save()
-        # Forget the loaded file, so a re-import into the same path is read again.
-        self.series_glossary_manager.load_from_text(plugin_name=None, glossary_path=None, raw_text="")
+        self._forget_series_glossaries()
         self._attach_series_page()
 
     def _show_series_glossary_menu(self) -> None:
-        """The Series Glossary... button: new, choose (importing other shapes), unlink."""
+        """The Series Glossary... button: new, link, unlink one, use or ignore the folder glossaries."""
         project = self._open_project()
         if project is None:
             QMessageBox.information(
@@ -166,15 +231,25 @@ class SeriesMixin:
         menu = QMenu(self.dialog)
         new_action = menu.addAction(tr('New Empty Series Glossary...'))
         choose_action = menu.addAction(tr('Link or Import Series Glossary...'))
-        unlink_action = menu.addAction(tr('Unlink Series Glossary'))
-        unlink_action.setEnabled(linked_series_path(project) is not None)
+        unlink_actions = {}
+        for path in linked_series_paths(project):
+            unlink_actions[menu.addAction(tr('Unlink {name}', name=self._series_label(path)))] = path
+        auto_action = menu.addAction(tr('Use the _glossary folders above the project'))
+        auto_action.setCheckable(True)
+        auto_action.setChecked(folder_glossaries_enabled(project))
         chosen = menu.exec(QCursor.pos())
         if chosen is new_action:
             self._create_series_glossary()
         elif chosen is choose_action:
             self._choose_series_glossary()
-        elif chosen is unlink_action:
-            self.set_series_link(None)
+        elif chosen in unlink_actions:
+            self._set_series_links([p for p in linked_series_paths(project) if p != unlink_actions[chosen]])
+        elif chosen is auto_action:
+            if auto_action.isChecked():
+                project.metadata.pop(AUTO_KEY, None)
+            else:
+                project.metadata[AUTO_KEY] = False
+            self._save_project_and_refresh()
 
     def _create_series_glossary(self) -> None:
         folder = series_dir()
@@ -186,7 +261,7 @@ class SeriesMixin:
         target = Path(path)
         if not target.exists():
             atomic_write_text(target, "[]\n")
-        self.set_series_link(target)
+        self.add_series_link(target)
 
     def _choose_series_glossary(self) -> None:
         """Link a glossary.json-shaped file as is; convert any other glossary JSON into the series folder first."""
@@ -203,7 +278,7 @@ class SeriesMixin:
             QMessageBox.warning(self.dialog, tr('Series Glossary'), tr('Cannot read this glossary: {error}', error=exc))
             return
         if isinstance(data, list):
-            self.set_series_link(source)
+            self.add_series_link(source)
             return
         target = series_dir() / f"{source.stem}.json"
         if target.exists() and QMessageBox.question(
@@ -213,4 +288,4 @@ class SeriesMixin:
         ) != QMessageBox.StandardButton.Yes:
             return
         import_series_glossary(source, target)
-        self.set_series_link(target)
+        self.add_series_link(target)

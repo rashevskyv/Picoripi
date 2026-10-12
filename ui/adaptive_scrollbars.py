@@ -277,6 +277,7 @@ class AdaptiveScrollBarManager(QObject):
         # in the meantime leaves through its ``destroyed`` signal: sip cannot
         # tell that a Qt-owned widget is gone, so ``_is_deleted`` is not enough.
         self._pending: dict = {}
+        self._bars: dict = {}
 
     def refresh(self) -> None:
         for widget in QApplication.topLevelWidgets():
@@ -359,6 +360,12 @@ class AdaptiveScrollBarManager(QObject):
 
     def _make_bar(self, orientation: Qt.Orientation, source: QScrollBar, parent: QAbstractScrollArea) -> AdaptiveScrollBar:
         bar = AdaptiveScrollBar(orientation, parent)
+        # The bar's wrapper hangs off the area's wrapper, which can be a temporary one (a list view Qt created
+        # itself). The cycle collector then frees both while the C++ bar lives on, and its next event() calls
+        # into a freed object: an access violation with no traceback. Hold the wrapper until Qt destroys the bar.
+        key = id(bar)
+        self._bars[key] = bar
+        bar.destroyed.connect(lambda *_args: self._bars.pop(key, None))
         try:
             bar.setRange(source.minimum(), source.maximum())
             bar.setSingleStep(source.singleStep())

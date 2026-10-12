@@ -57,6 +57,9 @@ class AIWorkerControlMixin:
                 failures[kind or "other"] = failures.get(kind or "other", 0) + 1
         if failures:
             text += "; failed: " + ", ".join(f"{kind}×{count}" for kind, count in sorted(failures.items()))
+        stats = getattr(self, '_layout_stats_counters', None)
+        if stats and stats.get("over"):
+            text += f"; layout: {stats['over']} did not fit, {stats['shortened']} shortened"
         return text
 
     def _add_retry_reminder(self, messages: List[Dict[str, str]]) -> None:

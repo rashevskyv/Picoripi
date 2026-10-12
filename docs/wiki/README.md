@@ -26,6 +26,7 @@ When product behaviour changes, update the **owning** page in [7](7_Maintaining_
 | [9. Script Markup](9_Script_Markup.md) | Studio modes, shortcuts, export |
 | [11. AI Translation](11_AI_Translation.md) | Providers, AI Translate / Variation / Chat, prompts |
 | [12. Picoripi Companion](12_Picoripi_Companion.md) | Mobile PWA, phone review workflow, auto-sync, server setup |
+| [13. Working together and progress](13_Working_Together.md) | Rooms hosted by a participant, conflicts, who is where; progress page and team board |
 
 **Recommended AI backend for glossary and bulk translation:** Gemini Web2API. See [page 5](5_Gemini_Web2API.md).
 

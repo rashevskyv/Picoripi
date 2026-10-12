@@ -86,6 +86,12 @@ class MainWindowEventHandler:
             self.mw.build_glossary_text_action.triggered.connect(self.mw.actions.build_glossary_from_text)
         if hasattr(self.mw, 'merge_speakers_action'):
             self.mw.merge_speakers_action.triggered.connect(self.mw.actions.merge_speakers_from_script)
+        if hasattr(self.mw, 'address_forms_action'):
+            self.mw.address_forms_action.triggered.connect(self.mw.actions.open_address_forms)
+        if hasattr(self.mw, 'collab_action'):
+            self.mw.collab_action.triggered.connect(self.mw.actions.open_collab)
+        if hasattr(self.mw, 'progress_action'):
+            self.mw.progress_action.triggered.connect(self.mw.actions.open_progress)
         if hasattr(self.mw, 'translate_story_action') and self.mw.translate_story_action:
             self.mw.translate_story_action.triggered.connect(
                 lambda: self.mw.translation_handler.translate_story_first() if hasattr(self.mw, 'translation_handler') else None
@@ -341,6 +347,9 @@ class MainWindowEventHandler:
         self.mw.app_action_handler.handle_close_event(event)
         
         if event.isAccepted():
+            collab = getattr(self.mw, 'collab_handler', None)
+            if collab is not None:
+                collab.leave()
             if hasattr(self.mw, 'list_selection_handler') and self.mw.list_selection_handler:
                 try:
                     self.mw.list_selection_handler.cleanup()

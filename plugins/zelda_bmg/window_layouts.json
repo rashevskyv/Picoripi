@@ -13,7 +13,8 @@
         "Kind 15 is Talk visuals with kanban pagination (not a wooden sign).",
         "An optional 'name' labels the kind in the editor (preview badge and the",
         "Window: label). Unknown kinds show as 'Dialogue (kind N)' - to classify",
-        "one (e.g. the ring-menu item info screen), add its number here."
+        "one (e.g. the ring-menu item info screen), add its number here.",
+        "layout_class 'lines' marks kinds whose every source line is one output line (credits, names); the other kinds are prose: Picoripi breaks their lines itself."
     ],
     "default": {
         "warn_width": 410,
@@ -56,7 +57,8 @@
             "warn_width": 400,
             "max_width": 420,
             "lines_per_page": 10,
-            "name": "Staff credits"
+            "name": "Staff credits",
+            "layout_class": "lines"
         },
         "9": {
             "warn_width": 340,
@@ -75,7 +77,8 @@
             "max_width": 440,
             "font_file": "reishotai_24_22.bfn",
             "lines_per_page": 4,
-            "name": "Location name"
+            "name": "Location name",
+            "layout_class": "lines"
         },
         "16": {
             "warn_width": 410,
@@ -94,7 +97,8 @@
             "max_width": 440,
             "font_file": "reishotai_24_22.bfn",
             "lines_per_page": 4,
-            "name": "Boss name"
+            "name": "Boss name",
+            "layout_class": "lines"
         }
     }
 }

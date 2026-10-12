@@ -3,6 +3,7 @@ import re
 from typing import List, Tuple
 from core.tag_utils import ANY_TAG_PATTERN_STR
 from .base import ProblemRule
+from core.typesetter import typeset_page
 from .models import ProblemMatch, FixResult
 from .context import RuleContext
 import utils.utils as uu
@@ -103,52 +104,13 @@ class WidthRule(ProblemRule):
                 final_lines.append(line)
                 continue
 
-            while _get_string_width(line, context) > threshold:
-                line_parts = re.findall(rf'((?:{ANY_TAG_PATTERN_STR})-\S+|{ANY_TAG_PATTERN_STR}|\S+|\s+)', line)
-                best_split_point = -1
-                punctuation_chars = {',', '.', '!', '?', ':', ';', '…', ')', ']', '}', '»', '”', '’', '"', "'", '—', '–'}
-
-                # Use binary search to find the largest j where prefix width <= threshold
-                low = 1
-                high = len(line_parts)
-                largest_fitting = -1
-                while low <= high:
-                    mid = (low + high) // 2
-                    prefix = "".join(line_parts[:mid]).rstrip()
-                    if _get_string_width(prefix, context) <= threshold:
-                        largest_fitting = mid
-                        low = mid + 1
-                    else:
-                        high = mid - 1
-
-                # Check from largest_fitting downwards for a split point not starting with punctuation
-                if largest_fitting != -1:
-                    for j in range(largest_fitting, 0, -1):
-                        line_part_two = "".join(line_parts[j:]).lstrip()
-                        if line_part_two and line_part_two[0] in punctuation_chars:
-                            continue
-                        best_split_point = j
-                        break
-
-                if best_split_point == -1 and len(line_parts) > 1:
-                    best_split_point = 1
-
-                if best_split_point != -1:
-                    line1 = "".join(line_parts[:best_split_point]).rstrip()
-                    line2 = "".join(line_parts[best_split_point:]).lstrip()
-                    final_lines.append(line1)
-                    if under_star:
-                        line2_stripped = line2.lstrip()
-                        if not line2_stripped.startswith('{tab}'):
-                            leading_spaces = line2[:len(line2) - len(line2_stripped)]
-                            line2 = leading_spaces + '{tab}' + line2_stripped
-                    line = line2 
-                else:
-                    final_lines.append(line)
-                    line = ""
-                    break
-            if line:
-                final_lines.append(line)
+            # Too wide: the typesetter breaks it (target = the warning width, limit = the hard one).
+            target = context.width_threshold if 0 < context.width_threshold <= threshold else threshold
+            pieces = typeset_page(line, lambda part: _get_string_width(part, context), target, threshold)
+            for index, piece in enumerate(pieces):
+                if under_star and index and not piece.lstrip().startswith('{tab}'):
+                    piece = '{tab}' + piece.lstrip()
+                final_lines.append(piece)
 
         final_text = "\n".join(final_lines)
         return FixResult(text=final_text, changed=final_text != context.text, fixed_problem_ids={self.id})

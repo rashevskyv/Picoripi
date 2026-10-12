@@ -41,8 +41,7 @@ _BATCH_CONTEXT_PRIORITY = (
     "Context priority: preserve source meaning and tags; obey glossary translations; use "
     "event/location/participant facts; apply relationship and address rules; then preserve each current "
     "speaker's voice profile. Context describes the source scene and must never be copied into the "
-    "translation as extra text. OUTPUT SHAPE IS IMMUTABLE: preserve every source line boundary and blank "
-    "line; never reflow text."
+    "translation as extra text."
 )
 
 _BATCH_RULES = (
@@ -50,15 +49,15 @@ _BATCH_RULES = (
     'Return a single, valid JSON object with a "translated_strings" key whose value is an array of objects.',
     'Each returned object must have the original "id" (integer) and a "translation" (string) field. Return the '
     'objects in the same order as the input; their number must exactly match the number of input objects.',
-    'LAYOUT PRIORITY: First try to preserve line_count, blank_line_indices, trailing-newline state, and '
-    'window_count from each item\'s "layout" field. Translate each source line into the corresponding output '
-    'line and prefer concise wording that stays within max_line_width_px. Never remove, merge, or reorder source '
-    'lines. You may add the minimum necessary extra lines, and therefore an extra dialogue window, only when the '
-    'translation cannot remain readable or fit the width otherwise.',
-    'LAYOUT VALUES: An item\'s "layout" lists only what is specific to it. lines_per_window, '
-    'warning_line_width_px and max_line_width_px come from "layout_defaults" unless the item overrides them; a '
-    'missing blank_line_indices means no blank lines, a missing ends_with_newline means no trailing newline, a '
-    'missing window_count means one window.',
+    'LAYOUT: Each item\'s "layout" (with "layout_defaults" for what it does not override) gives max_chars_per_line '
+    '(count letters and spaces; tags count as nothing), lines_per_window, line_count, blank_line_indices (page '
+    'breaks; missing = none), ends_with_newline (missing = no trailing newline) and window_count (missing = 1). '
+    'Keep every blank line and the trailing-newline state exactly. If layout_class is "lines" (menus, names, '
+    'choices, credits): translate each source line into the corresponding output line, each within '
+    'max_chars_per_line; never add, remove, merge or reorder lines. Otherwise the text is prose: Picoripi breaks '
+    'the lines of each page itself with the game\'s font, so write each page as running text (a line break '
+    'inside a page is allowed but not needed) and keep each page within lines_per_window x max_chars_per_line '
+    'letters; prefer concise wording over an extra dialogue window.',
     'GLOSSARY IS MANDATORY: Every term found in the "glossary" field (when present) MUST be translated exactly as '
     'specified there. Do NOT use synonyms, alternatives, or your own translation for glossary terms. You may only '
     'inflect the word endings to match {target_lang} grammar. Glossary overrides everything.',
@@ -99,8 +98,7 @@ _SINGLE_CONTEXT_PRIORITY = (
     "CONTEXT PRIORITY: Preserve source meaning and tags first. Glossary translations are mandatory lexical "
     "choices. Then apply factual story event, location and participant context; relationship/address rules; "
     "and finally the current speaker's character voice. Never invent absent facts or copy context descriptions "
-    "into the translation. OUTPUT SHAPE IS IMMUTABLE: preserve every source line boundary and blank line; never "
-    "reflow text."
+    "into the translation."
 )
 
 # Shared by the single-string request types that work on game text.
@@ -125,11 +123,13 @@ _SINGLE_CONTEXT_RULES = (
 
 _SINGLE_TRANSLATION_RULES = (
     'Translate the original source text into {target_lang} without altering the meaning.',
-    'Prefer keeping the line_count (including empty lines) and the window_count given in SOURCE LAYOUT TARGET.',
-    'Treat the SOURCE LAYOUT TARGET as the preferred layout, not an absolute prohibition. Translate each source '
-    'line into its corresponding output line; never remove, merge, or reorder source lines. First use concise '
-    'wording within max_line_width_px. If that would harm meaning or readability, add only the minimum necessary '
-    'extra lines or dialogue windows.',
+    'LAYOUT: SOURCE LAYOUT TARGET gives max_chars_per_line (count letters and spaces; tags count as nothing), '
+    'lines_per_window, line_count, blank_line_indices (page breaks), ends_with_newline and window_count. Keep '
+    'every blank line and the trailing-newline state exactly. If layout_class is "lines" (a menu, a name, a '
+    'choice): translate each source line into the corresponding output line, each within max_chars_per_line; '
+    'never add, remove, merge or reorder lines. Otherwise the text is prose: Picoripi breaks the lines of each '
+    'page itself with the game\'s font, so write each page as running text and keep it within lines_per_window x '
+    'max_chars_per_line letters; prefer concise wording over an extra dialogue window.',
     'GLOSSARY IS MANDATORY: Every term found in the GLOSSARY section (when present) MUST be translated exactly as '
     'specified in the "Translation" column. Do NOT use synonyms, alternatives, or your own translation for '
     'glossary terms. You may only inflect word endings to match {target_lang} grammar.',
@@ -226,6 +226,16 @@ def strip_engine_rules(system_prompt: str) -> str:
 
 # The reviewer's turn: the same conversation as the translation (rules, glossary, speakers, scene), the draft as
 # the model's own answer, then this. Only real errors are fixed; correct lines are not restyled.
+# The shorten pass: sent after the draft (and the review) with the items Picoripi measured as not fitting.
+SHORTEN_REQUEST = (
+    "Picoripi laid your translation out with the game's font, and the items below do not fit their window. "
+    "For each one, shorten the translation by about the number of letters given (\"shorten_by_letters\"): "
+    "keep the meaning, the glossary terms, every tag, every blank line and the trailing-newline state; say the "
+    "same thing in fewer words. Do not touch any other item.\n"
+    'Return JSON only: {"translated_strings": [{"id": ..., "translation": "..."}]} with ONLY the items listed.\n'
+    "ITEMS:\n"
+)
+
 REVIEW_REQUEST = (
     "Review the translation you just gave against the source, the glossary table, the speakers and addressees, "
     "the story context and every rule above. Fix only real errors:\n"

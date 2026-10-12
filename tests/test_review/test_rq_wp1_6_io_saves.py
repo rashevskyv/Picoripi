@@ -73,9 +73,15 @@ def test_translation_archive_glossary_settings_and_session_are_written_as_before
         if key.endswith("_splitter_state") and key in new:
             old[key] = new[key]
     added = set(new["translation_config"]) - set(old["translation_config"])
-    assert added == {"review_enabled", "fold_duplicates", "fixed_output_sections"}
+    assert added == {"review_enabled", "fold_duplicates", "fixed_output_sections", "shorten_enabled"}
     assert set(new["translation_config"]["providers"]["openai"]) - set(old["translation_config"]["providers"]["openai"]) == {"profile"}
-    assert settings == dump({**old, "translation_config": new["translation_config"]})
+    # The splitter states are window geometry, which the bar above the editor (2026-10-09) changed.
+    geometry = {key for key in new if key.endswith("_splitter_state")}
+    assert geometry == {key for key in old if key.endswith("_splitter_state")}
+    assert {k: v for k, v in new.items() if k not in geometry} == {
+        **{k: v for k, v in old.items() if k not in geometry}, "translation_config": new["translation_config"],
+    }
+    assert settings == dump(new)
 
     session = scenario.normalize_session(out["session"], root)
     assert session == json.loads((GOLDEN_DIR / "save_session.json").read_text(encoding="utf-8"))

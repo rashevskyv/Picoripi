@@ -3,6 +3,8 @@ from pathlib import Path
 from PyQt6.QtCore import pyqtSignal
 from core import formats
 from core.containers import ContainerManager
+from core.glossary.series import series_chain
+from core.translation.series_memory import MEMORY_NAME, index_source_positions, load_series_memory, register_project
 from utils.logging_utils import log_error
 from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread
@@ -38,6 +40,23 @@ class ProjectLoadWorker(WorkerThread):
             except Exception as e:
                 return None, f"Failed to read binary file: {e}"
         return formats.read_file(self.current_game_rules, path, unknown=formats.UNKNOWN_IS_TEXT)
+
+    def _series_memory(self) -> dict:
+        """Register this project beside its series glossaries and read what the other projects translated."""
+        project = getattr(self.project_manager, 'project', None)
+        project_dir = getattr(self.project_manager, 'project_dir', None)
+        if project is None or not project_dir:
+            return {}
+        try:
+            chain = series_chain(project, Path(project_dir))
+            if not chain:
+                return {}
+            own = Path(project_dir) / MEMORY_NAME
+            register_project(chain, project.name or Path(project_dir).name, own)
+            return load_series_memory(chain, own)
+        except Exception as e:
+            log_error(f"ProjectLoadWorker: series memory not loaded: {e}")
+            return {}
 
     def run(self):
         try:
@@ -235,7 +254,9 @@ class ProjectLoadWorker(WorkerThread):
                 'edited_file_data': edited_file_data,
                 'block_names': block_names,
                 'block_to_project_file_map': block_to_project_file_map,
-                'plugin_keys_backup': plugin_keys_backup
+                'plugin_keys_backup': plugin_keys_backup,
+                'series_memory': self._series_memory(),
+                'source_positions': index_source_positions(data),
             })
         except Exception as e:
             self.error_occurred = e

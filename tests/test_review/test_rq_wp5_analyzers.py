@@ -21,6 +21,12 @@ def results(qapp):
     return {plugin: h.analyze_corpus(plugin, *h.corpus_for(plugin)) for plugin in h.PLUGINS}
 
 
+def _words(fix):
+    """An autofix result with its line breaks taken out: ``[text, changed]`` -> ``[words, changed]``."""
+    text, changed = fix[0], fix[1]
+    return [" ".join(str(text).replace("\\n", " ").split()), changed]   # "\\n" is Pokémon's line-break tag
+
+
 def _golden(plugin):
     return json.loads((GOLDEN / f"{plugin}.json").read_text(encoding="utf-8"))
 
@@ -34,8 +40,11 @@ def test_problems_autofix_and_merging_are_as_before(results, plugin):
     for new_s, old_s in zip(new["strings"], old["strings"]):
         assert new_s["whole"] == old_s["whole"], new_s["text"]
         assert new_s["sublines"] == old_s["sublines"], new_s["text"]
-        assert new_s["autofix"] == old_s["autofix"], new_s["text"]
-        assert new_s["autofix_each"] == old_s["autofix_each"], new_s["text"]
+        # The width fix breaks lines with the typesetter since 2026-10-09 (no lone last word, no hanging
+        # function word), so its line choice may differ from the baseline; the words and the flag may not.
+        assert _words(new_s["autofix"]) == _words(old_s["autofix"]), new_s["text"]
+        assert {pid: _words(fix) for pid, fix in new_s["autofix_each"].items()} == {
+            pid: _words(fix) for pid, fix in old_s["autofix_each"].items()}, new_s["text"]
     for new_t, old_t in zip(new["tag_checks"], old["tag_checks"]):
         assert new_t.get("whole") == old_t.get("whole")
         assert new_t.get("mismatch") == old_t.get("mismatch")

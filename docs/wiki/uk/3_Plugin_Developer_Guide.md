@@ -74,7 +74,7 @@ plugins/<id>/
   translation_prompts/prompts.json    # розділи промптів, які гра змінює
 ```
 
-**`config.json`** — типові значення для нового проєкту: `display_name`, `game_dialog_max_width_pixels`, `line_width_warning_threshold_pixels`, `lines_per_page`, `default_font_file`, `detection_enabled`, `autofix_enabled`, кольори та прапорці перенесення. Сесійні ключі (шляхи відкритих файлів, вибір, позиції прокрутки, історія пошуку) валідатор відхиляє; застосунок зберігає їх у `project_settings.json`.
+**`config.json`** — типові значення для нового проєкту: `display_name`, `game_dialog_max_width_pixels`, `line_width_warning_threshold_pixels`, `width_tolerance_percent` (на скільки відсотків рядок може вийти за цільову ширину, перш ніж його треба скоротити; береться, коли тип вікна дає лише одну ширину), `lines_per_page`, `default_font_file`, `detection_enabled`, `autofix_enabled`, кольори та прапорці перенесення. Сесійні ключі (шляхи відкритих файлів, вибір, позиції прокрутки, історія пошуку) валідатор відхиляє; застосунок зберігає їх у `project_settings.json`.
 
 **`config.py`** — `PROBLEM_DEFINITIONS, DEFAULT_DETECTION_SETTINGS, DEFAULT_AUTOFIX_SETTINGS = generate_base_config(PREFIX, overrides=…, custom_problems=…)` із `plugins/common/config_factory.py`.
 
@@ -135,7 +135,7 @@ class GameRules(BaseGameRules):
 
 Не оголошуйте можливість, якої плагін не може забезпечити.
 
-**Слоти, а не значення.** `get_translation_context_for_string` повертає метадані під ключами, які публікує рушій: `window_type`, `content_role`, `role_instruction`, `has_speaker`, `glossary_section`, `force_glossary`. Значення належать плагіну: `content_role` може бути `"BossName"` чи будь-чим, що потрібно грі, а `role_instruction` — речення, яке пояснює моделі, що ця роль означає. Рушій ніколи не порівнює значення з конкретною грою, і код рушія не повинен його знати.
+**Слоти, а не значення.** `get_translation_context_for_string` повертає метадані під ключами, які публікує рушій: `window_type`, `content_role`, `role_instruction`, `has_speaker`, `glossary_section`, `force_glossary`, `layout_class` (`"prose"`: Picoripi сам переносить рядки кожної сторінки; `"lines"`: один рядок оригіналу — один рядок перекладу: меню, назви, вибір; пропущено: вгадується з тексту оригіналу). Значення належать плагіну: `content_role` може бути `"BossName"` чи будь-чим, що потрібно грі, а `role_instruction` — речення, яке пояснює моделі, що ця роль означає. Рушій ніколи не порівнює значення з конкретною грою, і код рушія не повинен його знати.
 
 **Мовці.** `get_speaker_for_string` повертає ідентифікатор, записаний у даних гри; рушій заповнює рядки, яких користувач не задав, і ніколи не перезаписує вибір користувача. `is_placeholder_speaker(name)` каже, чи є цей ідентифікатор внутрішнім кодом, який крок злиття зі сценарієм може замінити справжнім іменем (типово — так).
 

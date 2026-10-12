@@ -95,22 +95,22 @@ class TestReviewSwitch:
         context = {"enable_editor_review": True}
         self._translator({})._attach_editor_review(context)
 
-        assert context == {"enable_editor_review": False}
+        assert context == {"enable_editor_review": False, "enable_shorten": True}
 
     def test_switched_on_it_runs_with_the_translation_model_or_the_review_model(self):
         context = {"enable_editor_review": True}
         self._translator({"review_enabled": True})._attach_editor_review(context)
-        assert context == {"enable_editor_review": True}
+        assert context == {"enable_editor_review": True, "enable_shorten": True}
 
         context = {}
         self._translator({"review_enabled": True, "review_model": "gemini-3.1-pro"})._attach_editor_review(context)
-        assert context == {"enable_editor_review": True, "review_model": "gemini-3.1-pro"}
+        assert context == {"enable_editor_review": True, "review_model": "gemini-3.1-pro", "enable_shorten": True}
 
     def test_a_run_that_declined_the_pass_keeps_it_off(self):
         context = {"enable_editor_review": False}
         self._translator({"review_enabled": True})._attach_editor_review(context)
 
-        assert context == {"enable_editor_review": False}
+        assert context == {"enable_editor_review": False, "enable_shorten": True}
 
 
 def test_the_application_layer_is_found_from_any_working_directory(tmp_path, monkeypatch):

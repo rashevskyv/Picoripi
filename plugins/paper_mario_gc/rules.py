@@ -59,6 +59,8 @@ LAYOUTS = {
     "description": (336, 342, 10), "menu": (336, 342, 10), "tattle_log": (336, 342, 10),
     "global_other": (336, 342, 10), "battle": (360, 376, 2),
 }
+# Kinds whose every source line is one output line (choices, names).
+LINE_KINDS = frozenset({"select", "item_name", "enemy_name", "name"})
 WINDOW_TAGS = ("kanban", "diary", "housou", "plate", "tec", "majo", "boss", "system", "keyxon", "select")
 _ROLES = {
     "talk": ("Dialogue", "A line of dialogue in a speech balloon (3 lines a page)."),
@@ -300,6 +302,8 @@ class GameRules(BaseGameRules):
         result: Dict[str, Any] = {"window_type": kind}
         if role:
             result.update(content_role=role, role_instruction=instruction)
+        if kind in LINE_KINDS:
+            result["layout_class"] = "lines"
         return result
 
     def get_speaker_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:

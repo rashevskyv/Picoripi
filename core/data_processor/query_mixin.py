@@ -154,9 +154,14 @@ class QueryMixin:
             else:
                 store._index_unsaved[block_idx].discard(string_idx)
 
-        # Record in undo manager if it exists and text actually changed
-        if hasattr(self.mw, 'undo_manager') and old_text != new_text:
+        # Record in undo manager if it exists and text actually changed (not another participant's edit)
+        if hasattr(self.mw, 'undo_manager') and old_text != new_text and action_type != "COLLAB_REMOTE":
             self.mw.undo_manager.record_action(action_type, block_idx, string_idx, old_text, new_text)
+
+        # A room (handlers/collab_handler.py) sends this participant's edits to the others.
+        collab = getattr(self.mw, 'collab_handler', None)
+        if collab is not None and old_text != new_text:
+            collab.on_local_edit(block_idx, string_idx, new_text, action_type)
 
         self.mw.data_store.unsaved_changes = bool(self.mw.data_store.edited_data)
 

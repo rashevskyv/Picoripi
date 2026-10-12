@@ -98,7 +98,7 @@ REWORDED = {
         ['if an item has "reference_translations", they are contextual evidence for meaning, speaker tone, and gender only'],
     # Single-string and variation requests: the line count moved from a number in the rule into the layout target.
     'prefer keeping 2 lines (including empty ones) and the original window_count':
-        ['prefer keeping the line_count (including empty lines) and the window_count given in source layout target'],
+        ['keep every blank line and the trailing-newline state exactly'],
     'each option should preferably keep':
         ['each option should preferably keep the line_count given in source layout target (including empty lines), in '
          'the same order'],
@@ -121,11 +121,31 @@ REWORDED = {
     'loaded reference translations are contextual evidence':
         ['if a reference translations section is present, it is contextual evidence for meaning, speaker tone, and '
          'gender only'],
+    # 2026-10-09 layout pipeline: one LAYOUT rule; Picoripi breaks prose lines itself, the model gets a letter budget.
+    'layout priority: first try to preserve line_count':
+        ['keep every blank line and the trailing-newline state exactly'],
+    'translate each source line into the corresponding output line and prefer concise wording':
+        ['translate each source line into the corresponding output line, each within max_chars_per_line'],
+    'never remove, merge, or reorder source lines':
+        ['never add, remove, merge or reorder lines'],
+    'you may add the minimum necessary extra lines':
+        ['prefer concise wording over an extra dialogue window'],
+    'prefer keeping the line_count (including empty lines) and the window_count given in source layout target':
+        ['keep every blank line and the trailing-newline state exactly'],
+    'treat the source layout target as the preferred layout':
+        ['source layout target gives max_chars_per_line'],
+    'translate each source line into its corresponding output line; never remove, merge, or reorder source lines':
+        ['translate each source line into the corresponding output line, each within max_chars_per_line'],
+    'first use concise wording within max_line_width_px':
+        ['prefer concise wording over an extra dialogue window'],
+    'if that would harm meaning or readability, add only the minimum necessary extra lines':
+        ['prefer concise wording over an extra dialogue window'],
 }
 
 # Baseline sentences the audit removed on purpose.
 DELETED = {
     'narrative canon:': "2.4: NarrativeLedger removed; nothing ever filled established_narrative_context",
+    'output shape is immutable:': "2026-10-09: contradicted the layout rule; prose lines are now broken by Picoripi",
 }
 
 

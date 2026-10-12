@@ -42,6 +42,7 @@ class AIBatchTranslator(BaseTranslationHandler):
         context['enable_editor_review'] = wanted and context.get('enable_editor_review', True)
         if context['enable_editor_review'] and config.get('review_model'):
             context['review_model'] = str(config['review_model'])
+        context['enable_shorten'] = bool(config.get('shorten_enabled', True))
 
     @staticmethod
     def _translation_value(item: Dict[str, Any]) -> str:
@@ -133,6 +134,11 @@ class AIBatchTranslator(BaseTranslationHandler):
         remembered = find_by_source(item.get("text", "")) if callable(find_by_source) else None
         if fits(remembered):
             return remembered, True
+        # Then what another project of the series saved for exactly this text (nearest level first).
+        series_by_source = getattr(saved_mgr, 'series_by_source', None)
+        for row in (series_by_source(item.get("text", "")) if callable(series_by_source) else []):
+            if fits(row.get("translation")):
+                return row["translation"], True
         return None, False
 
     def _extract_single_translation(self, response: ProviderResponse) -> str:
@@ -193,7 +199,9 @@ class AIBatchTranslator(BaseTranslationHandler):
             return source_items, temp_id_map
 
         saved_translations = saved_mgr.load_all_saved_translations()
-        if not isinstance(saved_translations, dict) or not saved_translations:
+        if not isinstance(saved_translations, dict):
+            return source_items, temp_id_map
+        if not saved_translations and not getattr(saved_mgr, 'series_memory', None):
             return source_items, temp_id_map
 
         # Collect cached items info
