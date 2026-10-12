@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- silent_hill_ps1: the PC-port menu and quick-menu keys that the disc does not carry (336 keys, `source\pc_keys.json`, a new JSON source type `silent_hill_pc_keys` in `plugins/silent_hill_ps1/pc_keys.py`) open as ordinary text; the build writes them into the language pack with their translations.
 - silent_hill_ps1: the option and save/load menu strings (`VIN\OPTION.BIN`, `VIN\SAVELOAD.BIN`, 56 strings at fixed offsets) open as editable blocks.
 - Integration round 7 (2026-10-11): merged Pokémon Sun / Moon (`pokemon_gen7`), Jak and Daxter (`jak_and_daxter`, texture format `fr3`), Hard Corps: Uprising (`hard_corps_uprising`, texture format `xenos`) and Professor Layton DS and Mystery Room (`layton_ds`, `layton_mr`; fonts `layton_nftr`, `layton_gfnt`, `layton_hd`; pictures `layton_bg`, `layton_ani`, `layton_arj`, `layton_cani`, `layton_gfsp`, `layton_limg`); one zstd helper (`core/zstd_frame.py`) for `fr3` and the Unreal pak reader; the BIOS RLE body is shared in `core/containers/level5.py`; version 0.3.158-dev.
 - fantasy_life: a changed text longer than its place in the file is cut to that place with a warning in the build log (moving it to the end of the file is off; it hung the game after the title screen).
