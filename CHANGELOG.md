@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Fonts: MonoGame SpriteFont (`.xnb`) backend `sprite_font` (cell sheet, byte-exact round trip for the Link's Awakening DX HD fonts, a typed letter in a free cell adds a glyph with the character map kept sorted); shared XNB container in `core/containers/xnb.py`.
+- Textures: MonoGame `Texture2D` (`.xnb`, RGBA8 and DXT3) format `xnb_texture`; edits keep the other bytes.
 - Link's Awakening DX HD (PC fan remake v1.0.0): new plugin `zelda_ladx_hd` reads and writes `Data/Languages/*.lng` (KEY VALUE, byte-exact round trip, duplicate-key check); the SpriteFont glyph check shows no Cyrillic in the game fonts.
 - Integration round 7 (2026-10-11): merged Pokémon Sun / Moon (`pokemon_gen7`), Jak and Daxter (`jak_and_daxter`, texture format `fr3`), Hard Corps: Uprising (`hard_corps_uprising`, texture format `xenos`) and Professor Layton DS and Mystery Room (`layton_ds`, `layton_mr`; fonts `layton_nftr`, `layton_gfnt`, `layton_hd`; pictures `layton_bg`, `layton_ani`, `layton_arj`, `layton_cani`, `layton_gfsp`, `layton_limg`); one zstd helper (`core/zstd_frame.py`) for `fr3` and the Unreal pak reader; the BIOS RLE body is shared in `core/containers/level5.py`; version 0.3.158-dev.
 - fantasy_life: a changed text longer than its place in the file is cut to that place with a warning in the build log (moving it to the end of the file is off; it hung the game after the title screen).
