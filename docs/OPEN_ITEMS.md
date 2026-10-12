@@ -12,10 +12,10 @@ the line when it is done or moved into a plan.
 
 ## Zelda DS (`plugins/zelda_ds`, 2026-10-12)
 
-- Fonts: `Font/*.nftr` of Phantom Hourglass: two 3-bit fonts (`zeldaDS_endL`, `zeldaDS_endS`) fail `core/font_formats/nftr.py` ("3 bits per pixel are not supported"). Spirit Tracks fonts are LZ10-compressed NFTR (round trip ok after decompression). Not in the source folder yet.
-- Textures: `Menu/`, `English/Menu/` and Spirit Tracks `Screen/` hold LZ10 `.bin` pictures and NCGR / NCLR (`RGCN` / `RLCN`). Not opened yet.
-- Download Play child programs: Spirit Tracks `*_Child.srl` open as NitroFS (13 files, no BMG yet); Phantom Hourglass `child.srl` has its own header (`ZELDA_DS:PH`) and `resChild2nd.bin` is LZ10 -> NARC (not opened).
-- Spirit Tracks boot proof with a visible edit: the title and the file select were reached in melonDS, but the name-entry OK button is not reachable with the runner's touch mapping (taps typed keys; Start and D-pad did not confirm).
+- Zelda DS: the fonts and picture files are in `source\`, but the Textures window and the Font Editor have not been checked in the GUI for them. `texture_sources.json` is not written yet.
+- Zelda DS 3D textures (`ntfp` / `ntft` / `ntfi` members of `*.bin` NARCs, NSBTX inside BMD0 models) are not opened. One LZ10 stream (`dwc/utility.bin`) gives a back-reference error.
+- Zelda DS Download Play children: no BMG, NFTR or readable strings in the child programs (PH `child.srl` has no NitroFS files; the ST child ARM9 has no plain text). Their text format is not identified yet.
+- Zelda DS picture edits: the picture module writes top-level NCGR members only; a picture nested one archive down (in the ST child) is rebuilt as a whole file, not edited sheet by sheet.
 
 ## Integration round 7 (2026-10-11)
 

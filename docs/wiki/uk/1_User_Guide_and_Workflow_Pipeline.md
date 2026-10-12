@@ -212,7 +212,10 @@ tokens: 44.0k
    - `zelda_ds` — The Legend of Zelda: Phantom Hourglass і Spirit Tracks (DS, USA; робочі теки `Zelda\Phantom Hourglass\DS`
      і `Zelda\Spirit Tracks\DS`). **Source:** тека `source` робочої теки (`1_unpack.bat` бере BMG-повідомлення з папки
      English чистого USA ROM, і `staff.bmg` Spirit Tracks); **Translation:** `translation` (цілі BMG-файли; `2_build.bat`
-     перебудовує `.nds`). Шрифтів і текстур у робочій теці ще немає.
+     перебудовує `.nds`). **Шрифти:** файли `Font/*.nftr` (Phantom Hourglass: NFTR з 3 і 2 бітами на піксель;
+     Spirit Tracks: NFTR, стиснений LZ10) відкриваються у Font Editor; перемальований гліф оновлює свою ширину і
+     відступ, якщо ширину не ввели вручну. **Зображення:** файли NARC (LZ10) з тайлами NCGR і палітрами NCLR (меню,
+     титульні і мапні зображення; зображення дочірньої програми Spirit Tracks). Вікно текстур ще не підключене.
    - `zelda_fsae` — Zelda: Four Swords Anniversary Edition (DSiWare, Європа). **Source:** тека `source` робочої
      теки (`1_unpack.bat` бере її з чистого європейського дампу: `eu.kmsg`, `font_ltn.nftr`, посібник
      `manpages_narc_eu.blz` і графіку); **Translation:** `translation` (цілі файли; `2_build.bat` робочої теки
