@@ -40,16 +40,19 @@ def _set_aside(path: Path, reason: str) -> None:
         log_warning(f"Could not set aside project manager registry {path}: {exc}")
 
 
-def _read_document(path: Path) -> Dict[str, Any]:
+def _read_document(path: Path, set_aside: bool = True) -> Dict[str, Any]:
+    """The stored document; an unreadable file is set aside unless ``set_aside`` is false (a dry run reads only)."""
     if not path.exists():
         return _empty_document()
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        _set_aside(path, str(exc))
+        if set_aside:
+            _set_aside(path, str(exc))
         return _empty_document()
     if not isinstance(raw, dict) or int(raw.get("version", 0) or 0) > SCHEMA_VERSION:
-        _set_aside(path, "not a registry this version can read")
+        if set_aside:
+            _set_aside(path, "not a registry this version can read")
         return _empty_document()
     document = _empty_document()
     document.update(raw)  # unknown keys from a newer build stay in the file
@@ -169,10 +172,13 @@ def registry_path(directory: str | os.PathLike) -> Path:
     return Path(directory) / REGISTRY_FILE_NAME
 
 
-def read(directory: str | os.PathLike) -> Dict[str, Any]:
-    """The registry document as stored (a job calls this on a worker thread)."""
+def read(directory: str | os.PathLike, set_aside: bool = True) -> Dict[str, Any]:
+    """The registry document as stored (a job calls this on a worker thread).
+
+    ``set_aside=False`` reads without moving or writing anything: an unreadable file reads as an empty registry.
+    """
     with _lock:
-        return _read_document(registry_path(directory))
+        return _read_document(registry_path(directory), set_aside=set_aside)
 
 
 def mutate(directory: str | os.PathLike, operation: Callable[[Registry], Any], *args: Any) -> Dict[str, Any]:

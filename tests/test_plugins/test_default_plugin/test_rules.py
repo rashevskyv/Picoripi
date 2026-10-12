@@ -36,7 +36,7 @@ def test_default_plugin_has_discovery_config_and_ai_prompt():
     config = json.loads((plugin_dir / "config.json").read_text(encoding="utf-8"))
 
     assert config["display_name"] == "Default Plugin Template"
-    assert config["default_font_file"] == "default_font.json"
+    assert config["default_font_file"] == ""                  # no bundled width table: see the font loader fallback
     assert (plugin_dir / "AI_PLUGIN_ASSISTANT_PROMPT.md").is_file()
     assert (plugin_dir / "translation_prompts/prompts.json").is_file()
 

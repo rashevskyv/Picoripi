@@ -38,7 +38,7 @@
         "DEFAULT_BROKEN_ICON_HYPHEN": true
     },
     "lines_per_page": 4,
-    "default_font_file": "default_font.json",
+    "default_font_file": "",
     "tag_color_rgba": "#ffff8c00",
     "tag_bold": true,
     "tag_italic": false,

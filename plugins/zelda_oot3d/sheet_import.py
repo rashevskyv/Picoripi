@@ -2,10 +2,11 @@
 
 The sheet has one row per message (row 1 is the header): ``ID`` in column C, ``English (EU)`` in column F and the
 Ukrainian text in column G. Control codes are written as ``⟦NAME⟧`` or ``⟦NAME:ARG⟧`` (``ARG`` is hex, or a colour
-name for ``COLOR``). The names follow the 3DS code table of the translator's stage6 tools. They differ from the
+name for ``COLOR``). The names follow the 3DS code table of the owner's stage6 tools. They differ from the
 editor tags of ``qm.py`` for some codes; both read the same bytes.
 
-Rules (from the translator's stage6 importer; the output matches its shipped ``eu.qm`` byte for byte):
+Rules (from the owner's own stage6 importer, a tool that is not part of this repository; no third-party code is
+copied. The output matches its shipped ``eu.qm`` byte for byte):
 
 - An empty Ukrainian cell takes the sheet's English text. An empty English cell keeps the game's own bytes.
 - A text with ``⟦END⟧`` followed by more text has that text moved in front of the end code.

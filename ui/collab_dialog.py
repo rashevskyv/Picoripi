@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.i18n import tr
-from handlers.collab_handler import DEFAULT_PORT, lan_addresses, load_settings
+from handlers.collab_handler import DEFAULT_PORT, LanLookup, load_settings
 from utils.thread_utils import single_shot
 
 KEY_ROLE = Qt.ItemDataRole.UserRole
@@ -132,13 +132,23 @@ class CollabDialog(QDialog):
             self.status_label.setText(tr('The room could not start: {error}', error=exc))
             return
         if lan:
-            addresses = [f"{ip}:{port}" for ip in lan_addresses()] or [f"<{tr('this computer')}>:{port}"]
-            self.invite_label.setText(tr('Address: {addresses}\nPassword: {password}',
-                                         addresses=" / ".join(addresses), password=self.host_password.text()))
+            # Name lookup can wait for DNS: the invitation is filled in when the addresses arrive.
+            self.invite_label.setText(tr('Looking up this computer\'s addresses…'))
+            self._invite_port = port
+            self._lan_lookup = LanLookup()
+            self._lan_lookup.found.connect(self._show_lan_invite)
+            self._lan_lookup.start()
         else:
             self.invite_label.setText(tr('Address: {addresses} (this computer only)\nPassword: {password}',
                                          addresses=f"127.0.0.1:{port}", password=self.host_password.text()))
         self._tick()
+
+    def _show_lan_invite(self, ips: list) -> None:
+        if self.handler.server is None or self.handler.server.port != self._invite_port:
+            return                                         # the room was left while the lookup ran
+        addresses = [f"{ip}:{self._invite_port}" for ip in ips] or [f"<{tr('this computer')}>:{self._invite_port}"]
+        self.invite_label.setText(tr('Address: {addresses}\nPassword: {password}',
+                                     addresses=" / ".join(addresses), password=self.host_password.text()))
 
     def _join(self) -> None:
         if not self._ready() or not self.address_edit.text().strip():

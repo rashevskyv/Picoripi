@@ -1,15 +1,18 @@
 """Ocarina of Time 3D: the translator's sheet written into the English slot of eu.qm (synthetic fixtures; the real
 package is checked when its files are on disk)."""
+import json
 import struct
-from pathlib import Path
 
 import pytest
 
+import romhacking_root
 from plugins.zelda_oot3d import qm, sheet_import as si
 
-OOT3D_SOURCE_QM = Path(r"E:\Emulators\RomHacking\Zelda\Ocarina of Time\3D - 3DS\source\romfs\message\eu\eu.qm")
-OOT3D_SHEET = Path(r"D:\RomHacking_tmp\oot3d_ua\source\current_translation.json")
-OOT3D_PACKAGE_QM = Path(r"D:\RomHacking_tmp\oot3d_ua\build\rev1_stage6\romfs\message\eu\eu.qm")
+# Under the RomHacking root: the game's source package, and the translator's sheet and its shipped package
+# (copy the oot3d_ua folder there to run that check).
+OOT3D_SOURCE_QM = ("Zelda", "Ocarina of Time", "3D - 3DS", "source", "romfs", "message", "eu", "eu.qm")
+OOT3D_SHEET = ("oot3d_ua", "source", "current_translation.json")
+OOT3D_PACKAGE_QM = ("oot3d_ua", "build", "rev1_stage6", "romfs", "message", "eu", "eu.qm")
 EU_ENGLISH = 2          # language index of the English slot in the table row
 GERMAN = 3
 
@@ -102,12 +105,12 @@ def test_row_count_and_id_must_match_the_game_file():
         si.build_eu_qm(source, make_sheet([sheet_row(9, "A", "B")]))
 
 
-@pytest.mark.skipif(not (OOT3D_SOURCE_QM.exists() and OOT3D_SHEET.exists() and OOT3D_PACKAGE_QM.exists()),
-                    reason="the Ocarina of Time 3D package is not on disk")
+@romhacking_root.needs(OOT3D_SOURCE_QM, OOT3D_SHEET, OOT3D_PACKAGE_QM)
 def test_real_sheet_reproduces_the_translators_shipped_eu_qm():
-    import json
-    result = si.build_eu_qm(OOT3D_SOURCE_QM.read_bytes(), json.loads(OOT3D_SHEET.read_text(encoding="utf-8")))
-    assert result.data == OOT3D_PACKAGE_QM.read_bytes()
+    source = romhacking_root.path(*OOT3D_SOURCE_QM).read_bytes()
+    sheet = json.loads(romhacking_root.path(*OOT3D_SHEET).read_text(encoding="utf-8"))
+    result = si.build_eu_qm(source, sheet)
+    assert result.data == romhacking_root.path(*OOT3D_PACKAGE_QM).read_bytes()
     assert result.translated == 2508
     assert result.fallback_ids == [1371, 1373]
     assert si.check_editor_readable(result.data) == []

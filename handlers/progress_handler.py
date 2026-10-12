@@ -70,7 +70,7 @@ def open_progress_page(mw: Any) -> None:
     collab = getattr(mw, "collab_handler", None)
     if collab is not None and collab.client is not None:
         # In a room the room serves the page, with the team board; send a fresh summary, then open it.
-        url = f"{collab.client.base_url}/stats"
+        url = f"{collab.client.base_url}/stats?token={collab.client.token}"
 
         def show_room(summary: dict, history: dict) -> None:
             if collab.client is not None:

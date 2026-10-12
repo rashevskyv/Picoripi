@@ -41,8 +41,8 @@ def main(argv=None) -> int:
     from core.project_library import discovery, registry
 
     found = discovery.find_projects(root)
-    registered = {os.path.abspath(p["path"]) for p in registry.read(data_dir)["projects"]} if (
-        registry.registry_path(data_dir).exists()) else set()
+    # A dry run must not write: an unreadable registry is read as empty here, not moved aside.
+    registered = {os.path.abspath(p["path"]) for p in registry.read(data_dir, set_aside=args.apply)["projects"]}
 
     print(f"Data folder : {data_dir}")
     print(f"Search root : {root}")

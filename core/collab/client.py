@@ -77,6 +77,11 @@ class RoomClient(WorkerThread):
 
     # ── the worker ─────────────────────────────────────────────────────
 
+    @property
+    def token(self) -> str:
+        """This participant's room token (the progress page takes it in its query)."""
+        return self._token or ""
+
     def _post(self, path: str, body: Dict[str, Any], timeout: float = REQUEST_TIMEOUT) -> requests.Response:
         headers = {"X-Room-Token": self._token} if self._token else {}
         return self._session.post(self.base_url + path, json=body, headers=headers, timeout=timeout)

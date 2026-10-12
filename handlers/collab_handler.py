@@ -15,9 +15,9 @@ import json
 import socket
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QToolButton
 
 import utils.constants as constants
@@ -27,9 +27,11 @@ from core.i18n import tr
 from core.progress_stats import _words as source_words
 from utils.atomic_io import atomic_write_json
 from utils.logging_utils import log_debug
-from utils.thread_utils import safe_shutdown_thread, single_shot
+from utils.thread_utils import WorkerThread, safe_shutdown_thread, single_shot
 
 SUMMARY_EVERY_MS = 60_000
+JOIN_SLICE_ROWS = 200                 # rows a join handles per UI-thread turn ...
+JOIN_SLICE_SECONDS = 0.1              # ... or this long, whichever comes first (a slow row or a busy machine)
 
 REMOTE = "COLLAB_REMOTE"
 JOURNAL_NAME = "collab_room.json"
@@ -77,6 +79,15 @@ def lan_addresses() -> List[str]:
     return list(_LAN_ADDRESSES)
 
 
+class LanLookup(WorkerThread):
+    """``lan_addresses()`` off the UI thread: name lookup can wait for DNS. Owns nothing; WorkerThread keeps it alive."""
+
+    found = pyqtSignal(list)
+
+    def run(self) -> None:
+        self.found.emit(lan_addresses())
+
+
 def ensure_collab_handler(main_window: Any) -> "CollabHandler":
     """The window's room handler, made on first use with its status-bar button."""
     handler = getattr(main_window, "collab_handler", None)
@@ -113,6 +124,9 @@ class CollabHandler(QObject):
         self.status_button: Optional[QToolButton] = None
         self._summary_dirty = False
         self._summary_worker = None
+        self._join_plan: Optional[Iterator[None]] = None     # the rows of a join, handled in slices
+        self._join_tick_pending = False
+        self._join_superseded: Set[str] = set()              # keys a remote edit changed during the join
 
     # ── project identity ───────────────────────────────────────────────
 
@@ -195,6 +209,7 @@ class CollabHandler(QObject):
 
     def leave(self) -> None:
         """Leave the room (and stop it, when this window hosts it); returns within a few seconds."""
+        self._join_plan = None
         client, self.client = self.client, None
         if client is not None:
             client.stop()
@@ -254,30 +269,78 @@ class CollabHandler(QObject):
             updater.update_text_views()
 
     def _on_joined(self, data: Dict[str, Any]) -> None:
-        """Take the room's rows; share rows the room does not have; an unsaved local row that differs is a conflict."""
-        taken, shared, touched = 0, 0, set()
+        """Take the room's rows and share the rows the room lacks, a slice of rows per UI turn.
+
+        The rows are applied on the UI thread (they change the data store and the editor), so the work is
+        split: ``JOIN_SLICE_ROWS`` rows, then the event loop runs, then the next slice.
+        """
+        self._join_superseded = set()
+        self._join_plan = self._join_work(data)
+        self.participants = data.get("participants") or []
+        self._schedule_join_slice()
+
+    def _schedule_join_slice(self) -> None:
+        if not self._join_tick_pending:
+            self._join_tick_pending = True
+            single_shot(0, self, self._join_slice)
+
+    def _join_slice(self) -> None:
+        self._join_tick_pending = False
+        plan = self._join_plan
+        if plan is None:
+            return                                         # the room was left or another join began
+        try:
+            next(plan)
+        except StopIteration:
+            self._join_plan = None
+            return
+        self._schedule_join_slice()
+
+    @staticmethod
+    def _turn_over(rows_done: int, turn_started: float) -> bool:
+        return rows_done >= JOIN_SLICE_ROWS or time.perf_counter() - turn_started >= JOIN_SLICE_SECONDS
+
+    def _join_work(self, data: Dict[str, Any]) -> Iterator[None]:
+        """The join as a generator: yields when a turn is full (rows or time). Each row is checked when it is reached."""
+        taken, shared, budget = 0, 0, 0
+        turn_started = time.perf_counter()
+        touched: set = set()
         room_rows = data.get("rows") or {}
         for key, row in room_rows.items():
+            if key in self._join_superseded:
+                continue                                   # a remote edit already brought a newer text
             self.row_info[key] = {"name": row.get("name", ""), "time": row.get("time")}
             position = self.positions.get(key)
-            if position is None or self._current(*position) == row["text"]:
-                continue
-            if position in self.mw.data_store.edited_data:
-                self.conflicts[key] = {**row, "mine": self._current(*position)}
-                continue
-            self._apply(*position, row["text"])
-            taken += 1
-            touched.add(position[0])
-        for key, (block_idx, string_idx) in self.positions.items():
+            if position is not None and self._current(*position) != row["text"]:
+                if position in self.mw.data_store.edited_data:
+                    self.conflicts[key] = {**row, "mine": self._current(*position)}
+                else:
+                    self._apply(*position, row["text"])
+                    taken += 1
+                    touched.add(position[0])
+            budget += 1
+            if self._turn_over(budget, turn_started):
+                self._refresh(touched)
+                touched.clear()
+                budget, turn_started = 0, time.perf_counter()
+                yield
+        for key, (block_idx, string_idx) in list(self.positions.items()):
             if key in room_rows:
                 continue
+            if self.client is None:
+                return
             source = self.mw.data_store.data[block_idx][string_idx]
             text = self._current(block_idx, string_idx)
             if text and text != source:
                 self.client.queue_edit(key, text, words=self._source_words(block_idx, string_idx), seed=True)
                 shared += 1
+            budget += 1
+            if self._turn_over(budget, turn_started):
+                self._refresh(touched)
+                touched.clear()
+                budget, turn_started = 0, time.perf_counter()
+                yield
         self._refresh(touched)
-        self.participants = data.get("participants") or []
         self.last_message = tr('Joined the room: {taken} row(s) taken from it, {shared} shared, {conflicts} conflict(s).',
                                taken=taken, shared=shared, conflicts=len(self.conflicts))
         self._status(self.last_message)
@@ -305,6 +368,8 @@ class CollabHandler(QObject):
             if event["type"] != "edit":
                 continue
             key = event["key"]
+            if self._join_plan is not None:
+                self._join_superseded.add(key)             # the join must not write its older text over this
             self.row_info[key] = {"name": event.get("name", ""), "time": event.get("time")}
             position = self.positions.get(key)
             if position is None:

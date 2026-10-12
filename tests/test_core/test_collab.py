@@ -6,9 +6,10 @@ import pytest
 import requests
 
 from core.collab.client import RoomClient
-from core.collab.server import RoomServer
+from core.collab import server as room_module
+from core.collab.server import Room, RoomServer
 from core.data_state_processor import DataStateProcessor
-from handlers.collab_handler import CollabHandler
+from handlers.collab_handler import JOIN_SLICE_ROWS, CollabHandler
 from test_core.test_translation_memory import _window
 
 FP = "fingerprint-1"
@@ -121,12 +122,96 @@ class TestServer:
         other.httpd.server_close()
 
 
+class TestRoomLimits:
+    def test_the_progress_page_needs_the_room_token(self, room):
+        base = f"http://127.0.0.1:{room.port}"
+        assert requests.get(base + "/stats").status_code == 401
+        token = requests.post(base + "/join", json={"name": "A", "password": "secret", "fingerprint": FP}).json()["token"]
+        assert requests.get(base + "/stats", params={"token": "wrong"}).status_code == 401
+        assert requests.get(base + "/stats", params={"token": "тест"}).status_code == 401    # not a server error
+        page = requests.get(base + "/stats", params={"token": token})
+        assert page.status_code == 200 and page.headers["Content-Type"].startswith("text/html")
+
+    def test_the_event_list_is_bounded_and_a_poll_that_fell_behind_gets_every_row(self, monkeypatch):
+        monkeypatch.setattr(room_module, "EVENT_LIMIT", 5)
+        room = Room("secret", FP)
+        pid = room.join("A", "secret", FP)["id"]
+        before = room.seq
+        for i in range(12):
+            room.edit(pid, [{"key": f"k{i}", "text": f"t{i}", "base_rev": 0, "seed": False, "words": 0}])
+        assert len(room.events) == 5
+        recent = room.poll(pid, since=room.seq - 2, wait=0)
+        assert [e["key"] for e in recent["events"]] == ["k10", "k11"]
+        behind = room.poll(pid, since=before, wait=0)           # the oldest kept event is later than this
+        assert all(e["type"] == "edit" for e in behind["events"])
+        assert {e["key"]: e["text"] for e in behind["events"]} == {f"k{i}": f"t{i}" for i in range(12)}
+
+
+class TestJoinInSlices:
+    @staticmethod
+    def _room_rows(handler, count):
+        return {handler._key(0, i): {"text": f"UA {i}", "rev": 1, "name": "Olena", "time": 0.0} for i in range(count)}
+
+    @staticmethod
+    def _count_slices(monkeypatch, handler):
+        """Records how many rows each UI-thread turn of the join applied."""
+        applied, per_turn = {"n": 0}, []
+        real_apply, real_turn = handler._apply, handler._join_slice
+
+        def counting_apply(*args):
+            applied["n"] += 1
+            real_apply(*args)
+
+        def counted_turn():
+            start = applied["n"]
+            real_turn()
+            per_turn.append(applied["n"] - start)
+
+        monkeypatch.setattr(handler, "_apply", counting_apply)
+        monkeypatch.setattr(handler, "_join_slice", counted_turn)
+        return per_turn
+
+    def test_a_big_join_applies_its_rows_in_turns_of_at_most_a_slice(self, qtbot, tmp_path, monkeypatch):
+        mw = _project_window(tmp_path, "slices", lines=[f"Source line {i}" for i in range(5000)])
+        handler = mw.collab_handler
+        handler._build_positions()
+        per_turn = self._count_slices(monkeypatch, handler)
+        handler._on_joined({"rows": self._room_rows(handler, 5000), "participants": []})
+        assert sum(per_turn) == 0                              # the join itself returns before any row is applied
+        qtbot.waitUntil(lambda: handler._join_plan is None, timeout=60000)
+        assert sum(per_turn) == 5000
+        assert max(per_turn) <= JOIN_SLICE_ROWS and len(per_turn) >= 5000 // JOIN_SLICE_ROWS
+        assert handler._current(0, 4999) == "UA 4999"
+        assert "Joined the room: 5000 row(s) taken from it" in handler.last_message
+
+    def test_a_remote_edit_during_a_join_is_not_overwritten_by_the_older_room_text(self, qtbot, tmp_path):
+        mw = _project_window(tmp_path, "superseded", lines=[f"Source {i}" for i in range(600)])
+        handler = mw.collab_handler
+        handler._build_positions()
+        handler._on_joined({"rows": self._room_rows(handler, 600), "participants": []})
+        handler._on_remote_events([{"type": "edit", "key": handler._key(0, 450), "text": "NEWER", "name": "Ihor",
+                                    "time": 1.0, "by": "someone"}])
+        qtbot.waitUntil(lambda: handler._join_plan is None, timeout=60000)
+        assert handler._current(0, 450) == "NEWER"
+        assert handler._current(0, 10) == "UA 10"
+
+    def test_leaving_the_room_stops_a_join_in_progress(self, qtbot, tmp_path, monkeypatch):
+        mw = _project_window(tmp_path, "cancel", lines=[f"Source {i}" for i in range(2000)])
+        handler = mw.collab_handler
+        handler._build_positions()
+        per_turn = self._count_slices(monkeypatch, handler)
+        handler._on_joined({"rows": self._room_rows(handler, 2000), "participants": []})
+        handler.leave()
+        qtbot.waitUntil(lambda: not handler._join_tick_pending, timeout=5000)
+        assert handler._join_plan is None and sum(per_turn) == 0
+
+
 # ── two windows in one room ──────────────────────────────────────────
 
-def _project_window(tmp_path, name):
+def _project_window(tmp_path, name, lines=("Hello", "Bye", "Yes")):
     folder = tmp_path / name
     folder.mkdir()
-    mw = _window(folder, [["Hello", "Bye", "Yes"]])
+    mw = _window(folder, [list(lines)])
     mw.data_processor = DataStateProcessor(mw)
     mw.active_game_plugin = "plain_text"
     mw.statusBar = None

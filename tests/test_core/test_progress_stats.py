@@ -82,7 +82,7 @@ class TestRoom:
 
         assert requests.post(base + "/summary", headers=headers, json={"rows_total": "x"}).status_code == 400
         requests.post(base + "/summary", headers=headers, json={**_summary(), "history": {}}).raise_for_status()
-        page = requests.get(base + "/stats")
+        page = requests.get(base + "/stats", params={"token": token})   # the page needs the room token
         assert page.headers["Content-Type"].startswith("text/html")
         assert "Olena" in page.text and "2 / 4" in page.text and "Привіт" not in page.text   # counts, never text
 

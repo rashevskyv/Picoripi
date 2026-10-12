@@ -9,7 +9,8 @@ so nobody overwrites anybody without seeing it. The rows are written to a journa
 in the host's project folder, so a restarted room keeps them. The room also counts,
 per participant and day, the rows they translated first, the source words of those
 rows and their edits, and serves a progress page at ``/stats``
-(``core/progress_stats.py``) from those counts and the project summary a client posts.
+(``core/progress_stats.py``) from those counts and the project summary a client posts. The page needs the room
+token in its query (``?token=``).
 
 Server threads never touch Qt or the project data. Plain HTTP: use it on a LAN or
 over a VPN; the password is a shared secret, not encryption. The room listens on 127.0.0.1 unless the host
@@ -23,9 +24,10 @@ import json
 import secrets
 import threading
 import time
+from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 from core import progress_stats
@@ -40,6 +42,7 @@ POLL_WAIT = 1.0                       # seconds a poll waits for news
 # ponytail: short poll keeps one client thread simple; abort-to-wake if traffic ever matters.
 JOURNAL_DELAY = 2.0                   # seconds between journal writes while edits keep coming
 PARTICIPANT_TIMEOUT = 30.0            # seconds without a poll before a participant is dropped
+EVENT_LIMIT = 5000                    # events kept; a poll further behind gets every row as an edit instead
 
 
 class Room:
@@ -50,7 +53,7 @@ class Room:
         self.fingerprint = fingerprint
         self.journal = journal
         self.rows: Dict[str, Dict[str, Any]] = {}
-        self.events: List[Dict[str, Any]] = []
+        self.events: Deque[Dict[str, Any]] = deque(maxlen=EVENT_LIMIT)
         self.participants: Dict[str, Dict[str, Any]] = {}
         self.seq = 0
         self.closed = False
@@ -132,7 +135,7 @@ class Room:
         """The participant id of ``token``, or None."""
         with self.cond:                   # request threads share the dict with join, leave and the poll timeout
             for pid, who in self.participants.items():
-                if hmac.compare_digest(who["token"], token):
+                if hmac.compare_digest(who["token"].encode("utf-8"), token.encode("utf-8")):
                     return pid
         return None
 
@@ -158,8 +161,27 @@ class Room:
             if pid in self.participants:
                 self.participants[pid]["seen"] = time.time()
             self._drop_silent()
-            events = [e for e in self.events if e["seq"] > since]
-            return {"seq": self.seq, "events": events, "participants": self._public(), "closed": self.closed}
+            return {"seq": self.seq, "events": self._events_since(since), "participants": self._public(),
+                    "closed": self.closed}
+
+    def _events_since(self, since: int) -> List[Dict[str, Any]]:
+        """The events after ``since``, newest last (called with the lock held).
+
+        A client that fell further behind than the kept events gets every row as an ``edit``: its
+        rows then match the room again, and nothing is lost silently.
+        """
+        oldest = self.events[0]["seq"] if self.events else self.seq + 1
+        if oldest > since + 1:
+            return [{"seq": self.seq, "type": "edit", "by": row.get("by", ""), "name": row.get("name", ""), "key": key,
+                     "text": row["text"], "rev": row.get("rev", 0), "time": row.get("time")}
+                    for key, row in self.rows.items()]
+        out: List[Dict[str, Any]] = []
+        for event in reversed(self.events):                  # newest first: stop at the first one already seen
+            if event["seq"] <= since:
+                break
+            out.append(event)
+        out.reverse()
+        return out
 
     def edit(self, pid: str, edits: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Apply edits ``{key, text, base_rev}``; one whose ``base_rev`` is not the row's revision is refused."""
@@ -303,7 +325,11 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(200, {"protocol": PROTOCOL, "app": "picoripi-room"})
             return
         if url.path in ("/stats", "/"):
-            # Counts and names only, no text: anyone who can reach the room may look (it refreshes itself).
+            # Counts and names only, no text. A browser cannot send the room token as a header, so it comes in the query.
+            token = (parse_qs(url.query).get("token") or [""])[0]
+            if self.room.who(token) is None:
+                self._send(401, {"error": "not in the room"})
+                return
             data = self.room.stats_page().encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")

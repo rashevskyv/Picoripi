@@ -16,8 +16,8 @@ the line when it is done or moved into a plan.
 - Final full parallel run on this branch (before the last heuristic fix): 9548 passed, 14 skipped, 2 xfailed, 4 failed. One failure was ours: `test_validate_all` read `plugin.encode` in `handlers/collab_handler.py`; fixed (now `str(plugin).encode`), `test_validate_all` and `test_collab` pass (162).
 - OPEN, owner decision: three Super Metroid real-data tests (`tests/test_plugins/test_super_metroid/test_rules.py`, `test_real_text_saves_back_unchanged`, `test_real_intro_fonts_show_every_letter_the_text_uses_as_a_whole_glyph`, `test_an_edited_intro_glyph_lands_in_the_built_rom_and_the_other_intro_font_keeps_its_edit`) read the live workspace `<RomHacking>\Metroid\Super Metroid\source\text.json`, which was rewritten at 14:14:38 on 2026-10-12 by a process outside this repo (block counts now 27,27,29,7,7,77 against 27,27,36,7,7,77). Two fail serially too; the third failed only in parallel. Not weakened: decide whether the expected values follow the workspace or the workspace is pinned.
 - `plugins/plain_text/fonts/` (FFNT dumps of a Nintendo game) is not tracked: no free licence. No test reads it; smoke passes without it.
-- Collab residual risk: the first fingerprint pass of a project runs on the UI thread at Start or Join (one pass, then cached per project). Move it to a worker if large projects stall.
-- Collab residual risk: `lan_addresses()` looks up the host name once per process, and only after the host allows other computers.
+- Collab residual risk: the first fingerprint pass of a project runs on the UI thread at Start or Join (one pass, then cached per project). Measured with plain attribute access: 29 ms for 20,000 rows, 93 ms for 60,000. Move it to a worker if a project grows past about 200,000 rows.
+- Collab residual risk: `lan_addresses()` looks up the host name once per process, only after the host allows other computers, and in a background thread (`LanLookup`); a slow DNS shows the invitation a moment later.
 - Collab residual risk: the room is plain HTTP with a shared password; the window says so.
 
 ## Project Manager phase 1 (2026-10-11)
@@ -46,7 +46,7 @@ the line when it is done or moved into a plan.
 - `jfnt` (One Piece, `JFNT`) and `asw_jfnt` (Dragon Ball Fusions, `jFNT`) are two font readers for two layouts (different magic). Decide later whether one reader can cover both.
 - Duplicate LZ10: `core/containers/level5.py` has its own `_lz10` decode and `lz10_encode`; `core/containers/lz10.py` is the shared one. Merge them into one implementation.
 - Pret character tables (H3): the gen4 charmaps hold the encoding facts only; provenance is in `plugins/pokemon_gen4/charmaps/README.md`. Keep that note current when a pret table changes.
-- Owner paths in test fixtures (H4): new tests name the owner's `E:\Emulators\RomHacking` paths and skip where the files are missing. Decide whether the public repo keeps them or reads an environment variable.
+- Owner paths in test fixtures: the Donkey Kong, Zelda OoT 3D and Super Metroid real-file tests read the root from `PICORIPI_ROMHACKING` (`tests/romhacking_root.py`) and skip when it is unset. The owner must set it to `E:\Emulators\RomHacking` to keep them running. Other older test modules still name `E:\Emulators\RomHacking` directly (about 200 lines in the tracked tree, pre-existing): not yet moved to the helper.
 - TP preview goldens (`tests/fixtures/review_queue/wp5`) were made with no fonts installed; the pixel check depends on the machine's fonts (`QT_QPA_FONTDIR`).
 - Intermittent worker crashes under heavy load (xdist): `test_wwhd_real`, `test_kid_icarus_real`, `test_kingdom_hearts_ddd`. Each passes alone; rerun them with `-p no:xdist`.
 - Ultra boot proof open: no emulator boot check is recorded for the Ultra game in round 6.

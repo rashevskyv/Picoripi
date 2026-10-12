@@ -1941,6 +1941,7 @@
   "{name} — {where}": "{name} — {where}",
   "The room could not start: {error}": "Кімната не запустилася: {error}",
   "this computer": "цей комп'ютер",
+  "Looking up this computer's addresses…": "Визначаємо адреси цього комп'ютера…",
   "Take theirs": "Взяти їхнє",
   "Use the text the other participant saved in the room for this row.": "Використати текст, який інший учасник зберіг у кімнаті для цього рядка.",
   "Keep mine": "Лишити моє",

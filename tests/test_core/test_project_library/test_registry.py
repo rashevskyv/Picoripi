@@ -115,3 +115,12 @@ def test_newer_schema_is_set_aside(tmp_path):
 
     assert not path.exists()
     assert path.with_name(path.name + ".unreadable").exists()
+
+
+def test_a_dry_read_leaves_an_unreadable_registry_where_it_is(tmp_path):
+    path = registry.registry_path(tmp_path)
+    path.write_text("{ not json", encoding="utf-8")
+
+    assert registry.read(tmp_path, set_aside=False)["projects"] == []
+    assert path.read_text(encoding="utf-8") == "{ not json"
+    assert not path.with_name(path.name + ".unreadable").exists()

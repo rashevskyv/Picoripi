@@ -97,7 +97,7 @@ After I answer, produce:
      (subclass plugins.common.problem_analyzer.GenericProblemAnalyzer / plugins.common.text_fixer.GenericTextFixer
      and name the classes in GameRules.problem_analyzer_class / text_fixer_class)
    - plugins/<plugin_name>/font_map.json
-   - plugins/<plugin_name>/fonts/default_font.json if needed
+   - plugins/<plugin_name>/fonts/<font>.json if needed
    - plugins/<plugin_name>/translation_prompts/prompts.json if needed
 4. A pytest test suite under tests/test_plugins/test_<plugin_name>/.
 5. The parallel verification command:

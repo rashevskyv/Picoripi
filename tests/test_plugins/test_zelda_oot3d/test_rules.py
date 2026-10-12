@@ -6,12 +6,15 @@ from types import SimpleNamespace
 
 import pytest
 
+import romhacking_root
 from core.formats import SaveContext
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 from plugins.zelda_oot3d import qm
 from plugins.zelda_oot3d.rules import CODE_BIN, read_name, write_name
 
-OOT3D = Path(r"E:\Emulators\RomHacking\Zelda\Ocarina of Time\3D - 3DS")
+OOT3D = ("Zelda", "Ocarina of Time", "3D - 3DS")      # under the RomHacking root
+EU_QM = (*OOT3D, "source", "romfs", "message", "eu", "eu.qm")
+CODE_BIN_FILE = (*OOT3D, "source", "exefs", "code.bin")
 
 
 def _text(text: str) -> bytes:
@@ -181,10 +184,9 @@ def test_references_match_by_message_id(project, tmp_path):
 
 # -- the workspace's own files ---------------------------------------------------------------
 
-@pytest.mark.skipif(not (OOT3D / "source" / "romfs" / "message" / "eu" / "eu.qm").exists(),
-                    reason="Ocarina of Time 3D workspace not unpacked here")
+@romhacking_root.needs(EU_QM)
 def test_real_file_round_trips_byte_exact():
-    data = (OOT3D / "source" / "romfs" / "message" / "eu" / "eu.qm").read_bytes()
+    data = romhacking_root.path(*EU_QM).read_bytes()
     file = qm.Qm(data)
     assert file.build() == data                                          # the game's own layout, byte for byte
     for texts in file.texts:
@@ -200,12 +202,12 @@ def test_real_file_round_trips_byte_exact():
     assert load_rules("zelda_oot3d").load_data_from_json_obj(edited)[0] == blocks
 
 
-@pytest.mark.skipif(not (OOT3D / "source" / "exefs" / "code.bin").exists(), reason="Ocarina of Time 3D workspace not unpacked here")
+@romhacking_root.needs(CODE_BIN_FILE)
 def test_real_keyboards_and_default_name():
     rules = load_rules("zelda_oot3d")
-    for page in sorted((OOT3D / "source" / "romfs" / "menu").glob("ltn16_*.list")):
+    for page in sorted(romhacking_root.path(*OOT3D, "source", "romfs", "menu").glob("ltn16_*.list")):
         data = page.read_bytes()
         assert rules.save_data_to_json_obj(rules.load_data_from_json_obj(data)[0], {}) == data
-    code = (OOT3D / "source" / "exefs" / "code.bin").read_bytes()
+    code = romhacking_root.path(*CODE_BIN_FILE).read_bytes()
     assert rules.load_data_from_json_obj(code)[0] == [["Link"]]
     assert rules.save_data_to_json_obj([["Link"]], {}) == code

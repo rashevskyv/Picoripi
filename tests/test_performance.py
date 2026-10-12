@@ -453,3 +453,39 @@ def test_dictionary_manager_fetch_fallback_performance(qapp):
         
     print(f"\nDictionary list fetch fallback duration: {duration*1000:.2f}ms")
     assert duration < 0.050, f"Dictionary fetch fallback took too long: {duration*1000:.2f}ms (budget: 50ms)"
+
+
+@pytest.mark.performance
+@pytest.mark.parametrize("rows", [5000, 20000])
+def test_a_collab_join_never_holds_the_window_for_longer_than_a_slice(qapp, qtbot, tmp_path, monkeypatch, rows):
+    """A join runs in turns of at most JOIN_SLICE_ROWS rows or JOIN_SLICE_SECONDS; no turn may hold the window for 200 ms.
+
+    Before the slices a 5,000-row join held the window for 2.25 s and a 20,000-row join for 4.90 s (idle machine, same
+    harness). The harness is mock-heavy, so the garbage collector is paused for the measured part: its pauses grow with
+    the mock call history and are not the handler's cost.
+    """
+    import gc
+    from test_core.test_collab import _project_window
+    from handlers.collab_handler import JOIN_SLICE_ROWS
+
+    mw = _project_window(tmp_path, f"join{rows}", lines=[f"Source line {i}" for i in range(rows)])
+    handler = mw.collab_handler
+    handler._build_positions()
+    room_rows = {handler._key(0, i): {"text": f"UA {i}", "rev": 1, "name": "Olena", "time": 0.0} for i in range(rows)}
+    turns = []
+    real_turn = handler._join_slice
+
+    def timed_turn():
+        started = time.perf_counter()
+        real_turn()
+        turns.append(time.perf_counter() - started)
+
+    monkeypatch.setattr(handler, "_join_slice", timed_turn)
+    gc.disable()
+    try:
+        handler._on_joined({"rows": room_rows, "participants": []})
+        qtbot.waitUntil(lambda: handler._join_plan is None, timeout=120000)
+    finally:
+        gc.enable()
+    assert len(turns) >= rows // JOIN_SLICE_ROWS
+    assert max(turns) < 0.2, f"slowest turn {max(turns):.3f} s for {JOIN_SLICE_ROWS} rows"

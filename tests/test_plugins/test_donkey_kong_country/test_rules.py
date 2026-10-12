@@ -1,14 +1,16 @@
 """Donkey Kong Country (SNES) plugin: text.json round trip, slot lengths and the real ROM text (when present)."""
 import json
-from pathlib import Path
 
+import pytest
+
+import romhacking_root
 from plugins.donkey_kong_country import rules as dkc_rules
 from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "donkey_kong_country"
-SOURCE = Path(r"E:\Emulators\RomHacking\Donkey Kong\Donkey Kong Country 1\Switch\source")
-SOURCE_DKC2 = Path(r"E:\Emulators\RomHacking\Donkey Kong\Donkey Kong Country 2\Switch\source")
-SOURCE_DKC3 = Path(r"E:\Emulators\RomHacking\Donkey Kong\Donkey Kong Country 3\Switch\source")
+DKC1 = ("Donkey Kong", "Donkey Kong Country 1", "Switch", "source")
+DKC2 = ("Donkey Kong", "Donkey Kong Country 2", "Switch", "source")
+DKC3 = ("Donkey Kong", "Donkey Kong Country 3", "Switch", "source")
 SAMPLE = json.dumps({"format": dkc_rules.FORMAT, "game": "test", "groups": [
     {"name": "Level and map names", "items": [
         {"id": "DKC1.0038A6D1", "rom": "0x38A6D1", "max_bytes": 17, "text": "Blackout Basement"}]},
@@ -34,39 +36,34 @@ def test_an_unchanged_save_is_the_same_file_and_texts_go_in_by_position():
     assert saved["groups"][1]["items"][0]["text"] == "Hi!"
 
 
-def test_the_real_text_file_round_trips_when_the_workspace_exists():
-    text_file = SOURCE / "text.json"
-    if not text_file.is_file():
-        return
-    content = text_file.read_text(encoding="utf-8")
+@romhacking_root.needs((*DKC1, "text.json"))
+def test_the_real_text_file_round_trips():
+    content = romhacking_root.path(*DKC1, "text.json").read_text(encoding="utf-8")
     rules = check_loads(PLUGIN)
     blocks, names = rules.load_data_from_json_obj(content)
     assert [len(block) for block in blocks] == [19, 79, 304, 135, 1049]
     assert rules.save_data_to_json_obj(blocks, names) == content
 
 
-def test_the_dkc2_and_dkc3_text_files_round_trip_when_the_workspaces_exist():
-    expected = {SOURCE_DKC2: [31, 52, 1787, 485, 296, 13], SOURCE_DKC3: [8, 40, 232, 30, 52]}
-    for folder, counts in expected.items():
-        text_file = folder / "text.json"
-        if not text_file.is_file():
-            continue
-        content = text_file.read_text(encoding="utf-8")
-        rules = check_loads(PLUGIN)
-        blocks, names = rules.load_data_from_json_obj(content)
-        assert [len(block) for block in blocks] == counts
-        assert rules.save_data_to_json_obj(blocks, names) == content
+@pytest.mark.parametrize("folder, counts", [
+    pytest.param(DKC2, [31, 52, 1787, 485, 296, 13], marks=romhacking_root.needs((*DKC2, "text.json")), id="dkc2"),
+    pytest.param(DKC3, [8, 40, 232, 30, 52], marks=romhacking_root.needs((*DKC3, "text.json")), id="dkc3"),
+])
+def test_the_dkc2_and_dkc3_text_files_round_trip(folder, counts):
+    content = romhacking_root.path(*folder, "text.json").read_text(encoding="utf-8")
+    rules = check_loads(PLUGIN)
+    blocks, names = rules.load_data_from_json_obj(content)
+    assert [len(block) for block in blocks] == counts
+    assert rules.save_data_to_json_obj(blocks, names) == content
 
 
-def test_the_dkc1_graphic_sheets_round_trip_through_the_snes_codec_when_present():
+@pytest.mark.parametrize("name, fmt, width, height", [
+    pytest.param("logo_rareware.bin", "snes:4bpp", 128, 192, marks=romhacking_root.needs((*DKC1, "gfx", "logo_rareware.bin")), id="logo"),
+    pytest.param("copyright_font.bin", "snes:4bpp", 128, 256, marks=romhacking_root.needs((*DKC1, "gfx", "copyright_font.bin")), id="copyright"),
+    pytest.param("map_label_font.bin", "snes:2bpp", 128, 32, marks=romhacking_root.needs((*DKC1, "gfx", "map_label_font.bin")), id="map-label"),
+])
+def test_the_dkc1_graphic_sheets_round_trip_through_the_snes_codec(name, fmt, width, height):
     from core.texture_formats import pixels
-    gfx = Path(r"E:\Emulators\RomHacking\Donkey Kong\Donkey Kong Country 1\Switch\source\gfx")
-    cases = [("logo_rareware.bin", "snes:4bpp", 128, 192), ("copyright_font.bin", "snes:4bpp", 128, 256),
-             ("map_label_font.bin", "snes:2bpp", 128, 32)]
-    for name, fmt, width, height in cases:
-        path = gfx / name
-        if not path.is_file():
-            continue
-        data = path.read_bytes()
-        codec = pixels.codec(fmt)
-        assert bytes(codec.encode(codec.decode(data, width, height))) == data
+    data = romhacking_root.path(*DKC1, "gfx", name).read_bytes()
+    codec = pixels.codec(fmt)
+    assert bytes(codec.encode(codec.decode(data, width, height))) == data

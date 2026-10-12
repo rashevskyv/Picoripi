@@ -1,6 +1,4 @@
-# Font folders are ignored unless their data is free to ship (the default plugin's letter widths, no glyph data).
 fonts
-!plugins/default_plugin/fonts/
 # plain_text font dumps are game font data (FFNT) with no free licence: kept on the user's disk only.
 plugins/plain_text/fonts/
 # Glyph widths measured from the game's atlas (no font data): shipped with the plugin.

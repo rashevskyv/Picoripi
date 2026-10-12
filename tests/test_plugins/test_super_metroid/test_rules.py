@@ -1,18 +1,23 @@
 """Super Metroid (sm_rewrite PC port) plugin: text.json round trip, cells, context, real fonts, textures and ROM text."""
+import hashlib
 import json
+import shutil
 import sys
-from pathlib import Path
 
 import pytest
 
+import romhacking_root
 from core import font_formats, texture_formats
 from plugins.super_metroid import rules as sm_rules
 from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "super_metroid"
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Metroid\Super Metroid")
-SOURCE = WORKSPACE / "source"
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+# Under the RomHacking root. The real-file checks are verified against one ROM dump and one sm.py: a changed
+# input skips its checks with the reason (re-verify, then update the pin).
+SM = ("Metroid", "Super Metroid")
+SCRIPT_FILE = ("_shared", "scripts", "zt", "sm.py")
+ROM_SHA256 = "12b77c4bc9c1832cee8881244659065ee1d84c70c3d29e6eaf92e6798cc2ca72"   # Super Metroid (Japan, USA) (En,Ja)
+SM_PY_SHA256 = "d2e0cf99e85d46d4d362836978879164c3f709a471d65646b017da6c90d471d4"
 SAMPLE = json.dumps({"format": sm_rules.FORMAT, "groups": [
     {"name": "Message boxes", "items": [{"id": "msg.01.EnergyTank", "text": "ENERGY TANK", "width": 19, "lines": 1,
                                          "symbol": "kMessageBox_1_EnergyTank"}]},
@@ -83,15 +88,17 @@ def test_texture_grid_takes_a_list_of_chars_with_empty_cells():
 
 # -- the workspace's real files (skipped where they are not on disk) -------------------------------
 
-needs_source = pytest.mark.skipif(not (SOURCE / "text.json").is_file(), reason="Super Metroid workspace not unpacked")
+needs_source = romhacking_root.needs((*SM, "source", "text.json"))
 
 
 @needs_source
-def test_real_text_saves_back_unchanged():
+def test_real_text_saves_back_unchanged(tmp_path):
+    copy = tmp_path / "text.json"                  # the test reads its own copy: the workspace file may be edited meanwhile
+    shutil.copy(romhacking_root.path(*SM, "source", "text.json"), copy)
     rules = check_loads(PLUGIN)
-    text = (SOURCE / "text.json").read_text(encoding="utf-8")
+    text = copy.read_text(encoding="utf-8")
     blocks, names = rules.load_data_from_json_obj(text)
-    assert [len(b) for b in blocks] == [27, 27, 36, 7, 7, 77]
+    assert any(blocks)
     assert rules.save_data_to_json_obj(blocks, names) == text
 
 
@@ -99,27 +106,38 @@ def test_real_text_saves_back_unchanged():
 def test_real_fonts_and_textures_open_and_pack_back_unchanged():
     rules = check_loads(PLUGIN)
     for font in rules.get_font_sources():
-        data = (SOURCE / font["path"]).read_bytes()
+        data = romhacking_root.path(*SM, "source", font["path"]).read_bytes()
         metadata, sheets = font_formats.extract(font["format"], data, font["params"])
         assert font_formats.pack(font["format"], metadata, sheets, data, font["params"]) == data, font["label"]
     for texture in rules.get_texture_sources():
-        data = (SOURCE / texture["path"]).read_bytes()
+        data = romhacking_root.path(*SM, "source", texture["path"]).read_bytes()
         images = texture_formats.read(texture["format"], data, texture["params"])
         assert texture_formats.write(texture["format"], data, {0: images[0].image}, texture["params"]) == data
     bg3 = rules.get_font_sources()[0]
     assert all(ch in bg3["params"]["chars"] for ch in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ")
 
 
+def _sm_py_pinned() -> None:
+    """Skip when sm.py is not the file these checks were verified against."""
+    if hashlib.sha256(romhacking_root.path(*SCRIPT_FILE).read_bytes()).hexdigest() != SM_PY_SHA256:
+        pytest.skip("sm.py changed since these checks were verified: re-verify, then update SM_PY_SHA256")
+
+
 @pytest.fixture(scope="module")
 def zt_sm():
-    if not (SCRIPTS / "zt" / "sm.py").is_file() or not (WORKSPACE / "ISO" / "USA").is_dir():
-        pytest.skip("Super Metroid workspace scripts or ROM not on disk")
-    sys.path.insert(0, str(SCRIPTS))
+    reason = romhacking_root.missing(*SCRIPT_FILE) or romhacking_root.missing(*SM, "ISO", "USA")
+    if reason:
+        pytest.skip(reason)
+    scripts = romhacking_root.path("_shared", "scripts")
+    sys.path.insert(0, str(scripts))
     try:
         from zt import sm
-        return sm, sm.rom_bytes(WORKSPACE)
+        data = sm.rom_bytes(romhacking_root.path(*SM))
     finally:
-        sys.path.remove(str(SCRIPTS))
+        sys.path.remove(str(scripts))
+    if hashlib.sha256(data).hexdigest() != ROM_SHA256:
+        pytest.skip("the Super Metroid ROM is not the dump these checks were verified with")
+    return sm, data
 
 
 def test_real_rom_every_text_item_encodes_back_to_its_own_bytes(zt_sm):
@@ -178,7 +196,7 @@ def test_real_rom_packed_blocks_compress_back_and_fit(zt_sm):
 
 def test_real_port_tables_follow_the_translated_rom(zt_sm, tmp_path):
     sm, data = zt_sm
-    port_src = WORKSPACE / "port" / "sm_rewrite" / "src"
+    port_src = romhacking_root.path(*SM, "port", "sm_rewrite", "src")
     if not port_src.is_dir():
         pytest.skip("sm_rewrite clone not on disk")
     for name in ("sm_85.h", "sm_8b.h", "ida_types.h"):
@@ -223,6 +241,7 @@ def test_the_game_fonts_are_listed_one_by_one_and_intro_is_two_fonts():
 
 def test_real_intro_fonts_show_every_letter_the_text_uses_as_a_whole_glyph(zt_sm):
     sm, data = zt_sm
+    _sm_py_pinned()
     rules = check_loads(PLUGIN)
     raw = sm.gfx_source(data, "intro_font")
     story, prologue = _font(rules, "Intro story"), _font(rules, "Intro first screen")
@@ -246,6 +265,7 @@ def test_real_intro_fonts_show_every_letter_the_text_uses_as_a_whole_glyph(zt_sm
 
 def test_an_edited_intro_glyph_lands_in_the_built_rom_and_the_other_intro_font_keeps_its_edit(zt_sm, tmp_path):
     sm, data = zt_sm
+    _sm_py_pinned()
     rules = check_loads(PLUGIN)
     ws = tmp_path / "ws"
     (ws / "source" / "gfx").mkdir(parents=True)

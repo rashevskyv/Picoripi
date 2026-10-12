@@ -65,7 +65,7 @@ leaves, the room closes for everyone. Name, port and last address (never the pas
 A row counts as translated when its source has text besides tags and its current text is not empty and differs from
 the source (the same rule as the editor).
 
-**In a room** the page is served by the host at `http://<host address>:<port>/stats` (the **Progress page** button,
+**In a room** the page is served by the host at `http://<host address>:<port>/stats?token=<your room token>` (the **Progress page** button adds the token;
 or Tools → Progress), refreshes itself every 30 seconds, and adds the **Team** board: for each participant the source
 words and rows they translated first, their edits, and today's words, with medals for the first three, the
 **Leader of the day** and how far the second is behind the first. Rows shared at join count for nobody; polishing a
