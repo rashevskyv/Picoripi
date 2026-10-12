@@ -182,3 +182,17 @@ members is valid. The CLI (`python -m plugins.zelda_bmg.family`) is a thin wrapp
 **Cost.** Each plugin implements its own recognition and reading. Recognition by message-count fingerprint is
 exact for the sources on disk, and a new revision of a game needs a new fingerprint. The match key is the editor text
 by default; a plugin with different tag syntax per console must normalise it first (open: Wind Waker, see D19 status).
+
+## D20. Family project folders: "Shared" and "<version> only", for every version alike (2026-10-12)
+
+**Context.** The first Twilight Princess project kept the GameCube messages in the main tree and put only the other
+versions' own messages in folders. That made the base special, and the "HD Msguk only" folder held messages that the
+Msgus slot also has.
+**Decision.** A unit tree (one message plus its linked copies, `core/family_projects/store.py` `trees`) is one project
+message. A tree of more than one version is in "Shared" (rooted in the base) or "Shared <label>" (rooted in another
+version). A tree of one version is in "<label> only", the GameCube included ("GC only"). The store is unchanged.
+`normalize` moves a tree's text onto its root; a text below the root that differs is an override, and the project
+build refuses it until a family has such texts. Files a member takes from the base byte for byte are declared in
+`FamilyPlan.shared_files` (file -> members); `family.py shared` copies them.
+**Cost.** A text that differs below the root cannot be shown in the project yet (none for Twilight Princess).
+
