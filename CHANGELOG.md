@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Plugin contract: layout_class is named in the get_translation_context_for_string entry of spec.py, PLUGIN_CONTRACT.md, the roadmap key table and AI prompt Q8 (mechanism only).
 - Fonts: .gitignore hides only the top-level fonts folder; the default plugin's width table (default_font.json, widths only) is tracked; plain_text FFNT dumps stay on the user's disk (not redistributable, no test reads them).
 - Run summary: the layout suffix ("did not fit, shortened") is translated like the rest of the summary (uk.json pair added).
 - Working together: **Tools → Work Together...** hosts a room inside this Picoripi (stdlib HTTP server, port and password set by the host, `core/collab/server.py`) or joins someone's room; every edit reaches the others in a second or two, a row edited at the same time by two people becomes a conflict with **Take theirs** / **Keep mine** on a bar above the editor, the bar also shows who is on the row now and who changed it last, the window lists who is where (double-click to go there), and a project with other game text is refused by a fingerprint of the source rows (`handlers/collab_handler.py`, `core/collab/client.py`, wiki 13).

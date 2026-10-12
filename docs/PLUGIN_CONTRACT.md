@@ -75,7 +75,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | Hook | What it is for | Notes |
 |---|---|---|
 | `get_capabilities` | Optional abilities, for the pipeline wizard: glossary_seed, external_lore, speaker_attribution, message_window_preview, strict_tags (an AI reply must keep every {tag} of the source). |  |
-| `get_translation_context_for_string` | Game metadata of a string for AI prompts (window type, role, …). |  |
+| `get_translation_context_for_string` | Game metadata of a string for AI prompts (window type, role, layout_class, …). |  |
 | `should_auto_match_story_context` | Whether a string takes part in automatic dialogue matching. |  |
 | `get_speaker_for_string` | Who speaks the line, when game data records it. |  |
 | `get_addressee_for_string` | Who the line is spoken to. |  |

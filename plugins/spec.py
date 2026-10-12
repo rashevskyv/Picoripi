@@ -122,7 +122,7 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_capabilities", "Optional abilities, for the pipeline wizard: glossary_seed, external_lore, "
              "speaker_attribution, message_window_preview, strict_tags (an AI reply must keep every {tag} of the source).",
              call=(), returns=set),
-        Hook("get_translation_context_for_string", "Game metadata of a string for AI prompts (window type, role, …).",
+        Hook("get_translation_context_for_string", "Game metadata of a string for AI prompts (window type, role, layout_class, …).",
              call=(0, 0), returns=dict),
         Hook("should_auto_match_story_context", "Whether a string takes part in automatic dialogue matching.",
              call=(0, 0), returns=bool),

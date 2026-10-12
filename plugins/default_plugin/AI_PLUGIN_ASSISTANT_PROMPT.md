@@ -62,6 +62,7 @@ First, ask me these questions:
 8. Game data and advanced capabilities (optional):
    - Do I have the game's source code, a decompilation, or documentation of its data formats?
    - Do I have the raw game files (message archives, stage/room/scene tables), or only text already extracted from them?
+   - Does the game draw some text in short line-by-line boxes (menus, names, choices) and other text as paragraphs? Return `layout_class` (`"lines"` or `"prose"`) from `get_translation_context_for_string`: Picoripi keeps the lines of a `lines` string and wraps a `prose` string with the game's font. Without it, Picoripi guesses from the source text.
    - Does a message carry any attribute saying which on-screen window or box the game draws it in? That attribute usually identifies the message's role - item name, place name, boss name, speaker caption - and can seed the glossary directly.
    - Does the game data already pair a name with its own description or icon (for example an item-acquisition screen)? Those pairs are ready-made glossary entries that need no AI at all.
    - Can conversations, branches, or scene membership be reconstructed from the data? (Knowing which lines form one conversation also lets Picoripi keep them in the same AI request.)
