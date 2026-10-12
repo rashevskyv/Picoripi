@@ -1,6 +1,6 @@
 """Build the main window: layout, menu, toolbar, status bar."""
 from PyQt6.QtGui import QIcon
-from pathlib import Path
+from utils.data_location import app_root
 from ui.builders.layout_builder import LayoutBuilder
 from ui.builders.statusbar_builder import StatusBarBuilder
 from ui.builders.menu_builder import MenuBuilder
@@ -14,7 +14,7 @@ def setup_main_window_ui(main_window):
     """
     # 1. Basic Window Setup
     main_window.setWindowTitle(tr('Picoripi'))
-    icon_path = Path("assets/icon.ico")
+    icon_path = app_root() / "assets" / "icon.ico"
     if icon_path.exists():
         main_window.setWindowIcon(QIcon(str(icon_path)))
 

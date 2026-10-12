@@ -3,6 +3,8 @@ import tempfile
 
 # Before any project import: utils.logging_utils opens (and truncates) its log file when imported.
 os.environ["PICORIPI_LOG_FILE"] = os.path.join(tempfile.gettempdir(), "picoripi_tests", f"app_debug_{os.getpid()}.txt")
+# The user data folder is a temp folder per test process: no test reads or writes the real data folder or the home folder.
+os.environ["PICORIPI_HOME"] = os.path.join(tempfile.gettempdir(), "picoripi_tests", f"home_{os.getpid()}")
 
 import pytest  # noqa: E402
 import gc  # noqa: E402

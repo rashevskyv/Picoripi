@@ -1,7 +1,9 @@
 """Spellchecking: dictionaries, a background suggestion worker and a disk cache."""
 # /home/runner/work/RAG_project/RAG_project/core/spellchecker_manager.py
 from utils import app_mode
-from utils.atomic_io import atomic_write_json
+from utils.atomic_io import atomic_write_bytes, atomic_write_json
+from utils.constants import SETTINGS_DIR
+from utils.data_location import app_root
 import re
 import threading
 from pathlib import Path
@@ -12,7 +14,10 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 from utils.thread_utils import WorkerThread, single_shot
 
 CUSTOM_DICT_FILENAME = "custom_dictionary.txt"
-LOCAL_DICT_PATH = Path("resources/spellchecker")
+# Shipped dictionaries: read-only, next to the program (absolute, so the working directory does not matter).
+LOCAL_DICT_PATH = app_root() / "resources" / "spellchecker"
+# The user's own files: downloaded dictionaries, custom words and the spell cache, in the data folder.
+USER_DICT_PATH = SETTINGS_DIR / "spellchecker"
 MIN_WORD_LENGTH = 3
 WORD_PATTERN = re.compile(r"^[a-zA-Zа-яА-ЯіїІїЄєґҐ']+")
 SUGGESTION_LIMIT = 7
@@ -126,7 +131,7 @@ class SpellcheckerManager(QObject):
         self.custom_words = set()
         self._spell_cache: Dict[str, bool] = {}
         self._suggestions_cache: Dict[str, List[str]] = {}
-        self._cache_file = LOCAL_DICT_PATH / "spell_cache.json"
+        self._cache_file = USER_DICT_PATH / "spell_cache.json"
 
         self.dictionary_loaded.connect(self._on_dictionary_loaded)
 
@@ -241,13 +246,23 @@ class SpellcheckerManager(QObject):
             # window construction and the project load, slowing both.
             single_shot(0, self, lambda: threading.Thread(target=self._load_dictionary_async, daemon=True).start())
 
+    def _dictionary_basename(self) -> Path:
+        """Basename of the language dictionary: an explicit folder, else the user's copy, else the shipped one."""
+        name = self.language
+        if self.custom_dict_path != LOCAL_DICT_PATH:
+            return self.custom_dict_path / name
+        for folder in (USER_DICT_PATH, LOCAL_DICT_PATH):
+            basename = folder / name
+            if basename.with_suffix('.dic').exists() and basename.with_suffix('.aff').exists():
+                return basename
+        return LOCAL_DICT_PATH / name
+
     def _load_dictionary_async(self):
         """Internal helper to load dictionary async."""
         try:
-            dictionary_name = self.language
-            search_path = self.custom_dict_path
+            # the folder is chosen by _dictionary_basename
             
-            dictionary_basename = search_path / dictionary_name
+            dictionary_basename = self._dictionary_basename()
             log_debug(f"Loading dictionary from basename asynchronously: '{dictionary_basename}'")
 
             dic_path = dictionary_basename.with_suffix('.dic')
@@ -289,10 +304,9 @@ class SpellcheckerManager(QObject):
         """Internal helper to do initialize spellchecker."""
         log_debug("Attempting to initialize spellchecker...")
         try:
-            dictionary_name = self.language
-            search_path = self.custom_dict_path
+            # the folder is chosen by _dictionary_basename
             
-            dictionary_basename = search_path / dictionary_name
+            dictionary_basename = self._dictionary_basename()
             log_debug(f"Loading dictionary from basename: '{dictionary_basename}'")
 
             dic_path = dictionary_basename.with_suffix('.dic')
@@ -304,7 +318,7 @@ class SpellcheckerManager(QObject):
                 return
 
             self.hunspell = Dictionary.from_files(str(dictionary_basename))
-            log_debug(f"spylls Dictionary object created successfully for language '{dictionary_name}'.")
+            log_debug(f"spylls Dictionary object created successfully for language '{self.language}'.")
             self._spell_cache.clear()
             self._suggestions_cache.clear()
             self._load_user_dictionary()
@@ -346,23 +360,25 @@ class SpellcheckerManager(QObject):
 
     def scan_local_dictionaries(self) -> Dict[str, str]:
         """Scans for .dic files and returns a map of language code to full path."""
-        if not LOCAL_DICT_PATH.exists():
-            return {}
-        
         dictionaries = {}
-        for font_file in LOCAL_DICT_PATH.iterdir():
-            if font_file.suffix.lower() == ".dic":
-                lang_code = font_file.stem
-                aff_path = LOCAL_DICT_PATH / f"{lang_code}.aff"
-                if aff_path.exists():
-                    dictionaries[lang_code] = str(font_file)
-        
+        # Shipped first, then the user's folder: a downloaded copy of the same language wins.
+        for folder in (LOCAL_DICT_PATH, USER_DICT_PATH):
+            if not folder.exists():
+                continue
+            for font_file in folder.iterdir():
+                if font_file.suffix.lower() == ".dic" and (folder / f"{font_file.stem}.aff").exists():
+                    dictionaries[font_file.stem] = str(font_file)
+
         log_debug(f"Found local dictionaries: {list(dictionaries.keys())}")
         return dictionaries
 
     def _load_user_dictionary(self):
         """Internal helper to load user dictionary."""
-        custom_dict_path = LOCAL_DICT_PATH / CUSTOM_DICT_FILENAME
+        custom_dict_path = USER_DICT_PATH / CUSTOM_DICT_FILENAME
+        legacy_words = LOCAL_DICT_PATH / CUSTOM_DICT_FILENAME
+        if not custom_dict_path.exists() and legacy_words.exists():
+            # Words saved next to the program before the data folder existed: copied, the old file stays.
+            atomic_write_bytes(custom_dict_path, legacy_words.read_bytes())
         if not custom_dict_path.exists():
             custom_dict_path.parent.mkdir(parents=True, exist_ok=True)
             return
@@ -481,8 +497,9 @@ class SpellcheckerManager(QObject):
             if normalized_word in self._suggestions_cache:
                 del self._suggestions_cache[normalized_word]
 
-            custom_dict_path = LOCAL_DICT_PATH / CUSTOM_DICT_FILENAME
+            custom_dict_path = USER_DICT_PATH / CUSTOM_DICT_FILENAME
             try:
+                custom_dict_path.parent.mkdir(parents=True, exist_ok=True)
                 with custom_dict_path.open('a', encoding='utf-8') as f:
                     f.write(normalized_word + "\n")
                 log_debug(f"Added '{normalized_word}' to user dictionary file.")

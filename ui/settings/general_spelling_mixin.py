@@ -1,5 +1,6 @@
 """Settings dialog: General and Spelling tabs."""
-from PyQt6.QtWidgets import QFormLayout, QComboBox, QLabel, QCheckBox, QLineEdit, QPushButton, QMessageBox
+import utils.constants as constants
+from PyQt6.QtWidgets import QFormLayout, QHBoxLayout, QComboBox, QLabel, QCheckBox, QLineEdit, QPushButton, QMessageBox
 from components.labeled_spinbox import LabeledSpinBox
 from components.dictionary_manager_dialog import DictionaryManagerDialog
 from .settings_widgets import ColorPickerButton
@@ -41,6 +42,16 @@ class SettingsGeneralSpellingMixin:
             tr('<b>Browse</b><br>Click — locate the wit.exe executable for automatic GameCube/Wii ISO message extraction.<br>You can also leave this blank to use PATH or auto-discovery.')
         )
         layout.addRow(QLabel(tr('Wiimms ISO Tool (wit.exe) Path:')), self.wit_tool_selector)
+
+        self.data_location_label = QLabel(str(constants.SETTINGS_DIR), self)
+        self.data_location_label.setWordWrap(True)
+        self.data_location_button = QPushButton(tr('Data location…'), self)
+        self.data_location_button.setToolTip(tr('See and change the folder where Picoripi keeps your data.'))
+        self.data_location_button.clicked.connect(self._open_data_location)
+        data_row = QHBoxLayout()
+        data_row.addWidget(self.data_location_label, 1)
+        data_row.addWidget(self.data_location_button)
+        layout.addRow(QLabel(tr('Data folder:')), data_row)
         
         self.show_spaces_checkbox = QCheckBox(tr('Show special spaces as dots'), self)
         layout.addRow(self.show_spaces_checkbox)
@@ -112,6 +123,11 @@ class SettingsGeneralSpellingMixin:
         layout.addRow(manage_button)
         
         self.populate_spellchecker_languages()
+
+    def _open_data_location(self):
+        """Show the data folder, open it, or move the data to another folder (restart needed)."""
+        from dialogs.data_location_dialog import open_data_location_dialog
+        open_data_location_dialog(self, constants.SETTINGS_DIR)
 
     def _open_dictionary_manager(self):
         """Internal helper to open dictionary manager."""

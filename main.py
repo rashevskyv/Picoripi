@@ -20,6 +20,12 @@ Qt.SizeHintRole = Qt.ItemDataRole.SizeHintRole
 from PyQt6.QtGui import QIcon, QKeyEvent, QShowEvent
 from typing import Optional, Dict, Set, Any, List
 
+if __name__ == '__main__':
+    # The user data folder is frozen when utils.constants is first imported: the user chooses it before that.
+    from dialogs.data_location_dialog import ensure_data_location_chosen
+    if not ensure_data_location_chosen():
+        sys.exit(0)
+
 from ui.ui_setup import setup_main_window_ui
 from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
 from ui.ui_updater import UIUpdater
@@ -48,6 +54,7 @@ from core.data_state_processor import DataStateProcessor
 from core.undo_manager import UndoManager
 from core.state_manager import StateManager, AppState
 from utils.constants import SETTINGS_FILE_PATH
+from utils.data_location import app_root
 from core.data_store import AppDataStore
 from core.translation.config import build_default_translation_config
 from core.spellchecker_manager import SpellcheckerManager
@@ -732,9 +739,9 @@ if __name__ == '__main__':
 
     sys.excepthook = global_exception_handler
     log_info("================= Application Start =================")
-    app = QApplication(sys.argv)
+    app = QApplication.instance() or QApplication(sys.argv)
 
-    app_icon_path = Path("assets/icon.ico")
+    app_icon_path = app_root() / "assets" / "icon.ico"
     if app_icon_path.exists():
         app.setWindowIcon(QIcon(str(app_icon_path)))
 

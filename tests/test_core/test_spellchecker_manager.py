@@ -4,6 +4,7 @@ pytestmark = pytest.mark.serial
 from unittest.mock import MagicMock, patch
 from pathlib import Path
 from core.spellchecker_manager import SpellcheckerManager, LOCAL_DICT_PATH, CUSTOM_DICT_FILENAME
+from core.spellchecker_manager import USER_DICT_PATH
 
 @pytest.fixture
 def mock_mw():
@@ -108,12 +109,14 @@ def test_SpellcheckerManagerload_user_dictionary(mock_local_path, mock_mw, tmp_p
     # We patch Local Dict Path internally
     import core.spellchecker_manager
     core.spellchecker_manager.LOCAL_DICT_PATH = tmp_path
+    core.spellchecker_manager.USER_DICT_PATH = tmp_path
     
     sm = SpellcheckerManager(mock_mw)
     sm._load_user_dictionary()
     
     assert sm.custom_words == {"hello", "world", "test"}
     core.spellchecker_manager.LOCAL_DICT_PATH = LOCAL_DICT_PATH
+    core.spellchecker_manager.USER_DICT_PATH = USER_DICT_PATH
 
 def test_SpellcheckerManager_reload_glossary_words(mock_mw):
     sm = SpellcheckerManager(mock_mw)
@@ -157,6 +160,7 @@ def test_SpellcheckerManager_add_to_custom_dictionary(mock_local_path, mock_mw, 
     
     import core.spellchecker_manager
     core.spellchecker_manager.LOCAL_DICT_PATH = tmp_path
+    core.spellchecker_manager.USER_DICT_PATH = tmp_path
     
     sm = SpellcheckerManager(mock_mw)
     sm.hunspell = MagicMock() # required for add to custom dict to work
@@ -166,6 +170,7 @@ def test_SpellcheckerManager_add_to_custom_dictionary(mock_local_path, mock_mw, 
     assert (tmp_path / CUSTOM_DICT_FILENAME).read_text(encoding='utf-8').strip() == "зілля"
     
     core.spellchecker_manager.LOCAL_DICT_PATH = LOCAL_DICT_PATH
+    core.spellchecker_manager.USER_DICT_PATH = USER_DICT_PATH
 
 def test_SpellcheckerManager_is_misspelled(mock_mw):
     sm = SpellcheckerManager(mock_mw)

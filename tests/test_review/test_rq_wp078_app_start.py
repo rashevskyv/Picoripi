@@ -1,8 +1,8 @@
 """Review queue WP7 / WP5 5.6: the application starts through tasks.py the way run.bat / run.sh start it, and
 from another working directory (``python <repo>/main.py``): the plugins are found from the code's location.
 
-The real ``python tasks.py run`` in a subprocess, offscreen, with the home directory (and with it
-SETTINGS_DIR) pointed at a temporary folder so the owner's settings are never read or written.
+The real ``python tasks.py run`` in a subprocess, offscreen, with the data folder (PICORIPI_HOME) and the home directory
+pointed at a temporary folder so the owner's settings are never read or written.
 """
 import os
 import signal
@@ -36,7 +36,7 @@ def started_app(request, tmp_path):
     home.mkdir()
     log_path = tmp_path / "app.log"
     env = dict(os.environ, QT_QPA_PLATFORM="offscreen", HOME=str(home), USERPROFILE=str(home),
-               PYTHONIOENCODING="utf-8")
+               PYTHONIOENCODING="utf-8", PICORIPI_HOME=str(home / ".picoripi"))   # explicit: no first-start chooser
     env.pop("VIRTUAL_ENV", None)
     if request.param == "tasks_run":
         command, cwd = [sys.executable, "tasks.py", "run"], ROOT
