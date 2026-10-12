@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 5.3k
+tokens: 6.0k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -256,3 +256,31 @@ with the same bound, and checks that each row is written once. The mock-window j
 time bound. `tests/test_core/test_collab.py` checks that a join touching 100 blocks runs at most one block refresh per
 turn and refreshes each block once, and that overlapping remote batches apply in arrival order and a stale or
 repeated revision is not applied.
+
+## D23. Project Manager phase 2: plugin hooks for roles, unpacking and builds; counts in a worker (2026-10-12)
+
+**Context.** Phase 1 listed the projects and showed counts only after a project was opened. The new-project wizard,
+Build, Export and Run need facts only a game's plugin knows: which files a game has, how to recognise them, how to
+unpack them and what it can build.
+**Decision.** Six optional `BaseGameRules` hooks: `get_source_roles`, `identify_source`, `get_platforms`,
+`unpack_sources`, `get_build_targets`, `build_target`. The defaults do nothing, so every plugin stays valid, and
+the buttons stay off for a game that declares no target. Each hook runs on a worker and receives its progress and
+cancel callables; a hook never touches widgets. The wizard creates the project through the same path as the old
+dialog (`LifecycleMixin.finish_new_project`). Unpacking and building write into a temporary folder beside the
+result and rename it into place only when complete; a cancel removes that folder and nothing else. Export copies a
+built folder into a folder the user chooses, which must be empty. The emulator command is a Project Manager setting
+kept in `project_manager.json` (`settings`), written through the registry's lock and atomic write. It is split into
+arguments before `{path}` is replaced, and the program starts detached without a shell. Counts for projects never
+opened come from `count_project`, which loads the plugin with `GameRules(None)` on a worker and counts the blocks the
+project file lists, resolved against the source and translation paths. The result is cached in `project_index.json`
+with the project file's modification time (`counted_mtime`). The plugin loader is passed in, so tests use an explicit
+fake. The flags "built" and "verified in game" live in `metadata.flags` and change only when the user ticks them.
+An open project saves them through its own manager, so no second writer touches its file.
+**Thread safety.** `BaseGameRules(None)` creates `QTextCharFormat`, `QColor` and `QFont` values in
+`plugins/common/tag_manager.py` and `config_factory.py`. They are value types and are created on the worker. A plugin
+that creates a widget or a QObject in its constructor would break this; the rule for plugin authors is in the hook
+docstrings. `load_game_plugin` clears plugin modules, so a count and a load of one plugin can race. One count job
+runs at a time, which limits the race to a load in the middle of a count.
+**Cost.** Counts skip archive members and report them. A count reads the files of each project again when the
+project file changes. Only `plugins/plain_text` declares a build target in this change; it copies the translation
+files.
