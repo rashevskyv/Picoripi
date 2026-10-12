@@ -1,9 +1,9 @@
 ---
 status: current
-updated: 2026-10-10
+updated: 2026-10-12
 owns: core/collab
-tokens: 1.3k
-purpose: Rooms, progress page, team board
+tokens: 2.4k
+purpose: Rooms, roles, claims, comments
 ---
 # Working Together and Progress
 
@@ -49,6 +49,76 @@ double-click a name to go there. The status-bar button shows how many are in the
 project folder; a room started again on the same project keeps them. **Leave the room** disconnects; when the host
 leaves, the room closes for everyone. Name, port and last address (never the password) are remembered in
 `~/.picoripi/collab.json`.
+
+## Roles, claims and comments
+
+**Roles.** A role belongs to your room token, not to a computer.
+
+- **Host:** one. The host can make moderators and can give the host role to someone else (**Make host**, after a
+  confirmation). The old host becomes a moderator.
+- **Moderator:** any number, set by the host.
+- **Reviewer:** marks rows approved. Does not change text.
+- **Translator:** the role every participant gets at join. Edits and claims rows.
+- **Observer:** reads and comments.
+
+| Action | Host | Moderator | Reviewer | Translator | Observer |
+|---|---|---|---|---|---|
+| Change a row's text | yes | yes | no | yes | no |
+| Approve a row | yes | yes | yes | no | no |
+| Claim a row or an area | yes | yes | no | yes | no |
+| Give, refuse or take away a claim | yes | yes | no | no | no |
+| Assign an area to someone | yes | yes | no | no | no |
+| Comment; delete your own comment | yes | yes | yes | yes | yes |
+| Delete someone else's comment | yes | yes | no | no | no |
+| Remove a participant; allow back | yes | yes (not host or moderators) | no | no | no |
+| Change a role | any | translator ↔ observer or reviewer only | no | no | no |
+| Read the moderator log | yes | no | no | no | no |
+
+**Claims.** Select a row, a file, a block, a folder or a virtual folder ("Shared", "<console> only") in the block tree,
+right-click and press **Claim for me**. A row can also be claimed from the bar above the editor (**Claim this row**).
+
+- An area that nobody claimed is granted at once.
+- An area that someone else holds becomes a request. The host or a moderator gives it or refuses it.
+- A claimed row can be edited only by its owner. Everybody else sees **Claimed by Name** in the bar, and their edit is
+  put back.
+- Areas nobody claimed need no claim: everybody edits them.
+- A claim stays when its owner leaves; the room shows the owner as offline. The owner, a host or a moderator releases it.
+
+**Presence.** When you open a row that someone else is working on, the status bar says "Name is working here." Nothing
+is locked.
+
+**Comments.** Comment on a row, a file, a block, a folder, a virtual folder or the whole project: right-click the tree
+item and press **Comment…**, or press **Comment…** in the bar above the editor. A comment has its author, the time and
+its text. **Resolve** marks it resolved with who and when; press it again to reopen the comment. Everybody in the room
+sees the comments. The room keeps them in `collab_room.json` and in `comments.json` in the project folder, so they stay
+after the room closes.
+
+**Approval.** A reviewer, a moderator or the host presses **Approve** in the bar above the editor. A later change of the
+row's text removes the approval.
+
+**Identity.** Your token for each name is kept on this computer in `~/.picoripi/collab.json` (never the password). Join
+with the same name on the same computer and you get your role back. While you are online, another computer cannot join
+with your name.
+
+**Removing a participant.** **Remove from room** keeps a participant out until a host or a moderator presses
+**Allow back**. Host and moderators cannot be removed.
+
+**The window.** The Work Together window has four tabs under the list of people: **Roles**, **Claims** (with the
+requests), **Comments** and **Moderator log** (host only).
+
+**A room without a window.** A room can run on a computer that stays on, without Picoripi's window:
+
+```
+python -m core.collab.server --headless --port 8765 --password-file room-password.txt --project-dir "D:\Projects\MyGame" --owner-token-file owner-token.txt
+```
+
+The first participant that joins with the token in `owner-token.txt` becomes the host. The process prints one line with
+its port and the room id, and runs until you stop it. The room answers only to the room password (for joining) and to
+room tokens (for everything else).
+
+**Remote rooms are off by default.** Picoripi connects to a room only when you press **Start the room** or **Join**.
+Nothing connects by itself, and no room address is saved for later. The traffic is plain HTTP: use a VPN or a network
+you trust.
 
 ## Progress page
 

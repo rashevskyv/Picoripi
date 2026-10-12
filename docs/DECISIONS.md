@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-02
+updated: 2026-10-12
 owns: decisions and their reasons
-tokens: 5.3k
+tokens: 7.4k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -256,3 +256,93 @@ with the same bound, and checks that each row is written once. The mock-window j
 time bound. `tests/test_core/test_collab.py` checks that a join touching 100 blocks runs at most one block refresh per
 turn and refreshes each block once, and that overlapping remote batches apply in arrival order and a stale or
 repeated revision is not applied.
+
+## D22. Work together: roles, claims, comments, operations and a headless room (2026-10-12, owner)
+
+**Context.** A room (D18) shares rows. Translators need to reserve parts of the game text, the host and moderators
+need to assign and review, comments must outlive the room, and the room must run on a neutral machine as well as on
+the host's own computer.
+
+**Decision.**
+- **Roles** belong to a participant token: host (one; the host transfers the role with a confirmation, and the old
+  host becomes a moderator), moderator (any number, set by the host), reviewer (approves rows, does not change text),
+  translator (the default at join), observer (reads and comments). `core/collab/roles.py` is the one permission table;
+  the server asks `allowed(role, action, target, new)` before every operation, and the UI only hides what it refuses.
+- **Identity.** A token is issued at join and kept by the server only as its SHA-256 hash. A join with a known token
+  gets the same member back, with its role, claims and operation high-water mark. The same name with another token is
+  refused while the first is online. A removed token is refused at join, not only at the next poll.
+- **Creation token.** A room starts with a creation token; the first joiner that presents it becomes the host. The
+  in-app host keeps its token in `collab.json` per name. When that token is not the room's host, the app issues a new
+  creation token and the previous host becomes a moderator, so the room stays manageable.
+- **Claims.** A scope is a project, folder, file, block, row or virtual folder. The client sends the row keys under
+  the scope; a claim on a folder covers every row inside it. The server keeps a row-to-claim index and the smallest
+  claim wins. A free area is granted at once. An area that another member holds becomes a request to the host and
+  moderators; approving a request takes the area from its owner. Claims persist when the owner leaves; the owner, a
+  host or a moderator releases them.
+- **Edits.** Translators, moderators and the host edit. A claimed row is edited only by its owner. A refused edit comes
+  back with the room's text and the reason, and the window puts the room's text back in place.
+- **Comments.** A thread per scope (row, file, block, folder, virtual folder, project) with author, time, text and a
+  resolved flag (who, when; can be reopened). The author deletes its own comment; a host or moderator deletes any.
+  Comments are kept in the room journal and in `comments.json` next to it, both written atomically on the journal timer.
+- **Approval.** Reviewers, moderators and the host mark a row approved. A text change clears the mark. Approval is not
+  a claim.
+- **Presence.** Entering a row that someone else works on shows a soft warning. Nothing is locked.
+- **Removal.** A kick is a ban until a host or moderator allows the participant back. Host and moderators cannot be
+  removed. Moderator actions go to a log that only the host sees.
+- **Operations.** Each change is an operation with an `op_id`, a `kind`, its payload and an optional `seq`. `seq` counts
+  per member from 1. The server applies a `seq` above the member's high-water mark only; a repeat answers
+  `duplicate` and changes nothing. `POST /ops` takes up to 500 operations with the room id; `GET /ops?since=` is the
+  same feed as `GET /events`. The legacy `POST /edits` and `GET /events` remain. A poll that is further behind than the
+  kept events gets every row plus a `snapshot` of members, claims, requests and comments.
+- **Journal (one deliberate change).** The room journal (`collab_room.json`, protocol 2) stores the current state, the
+  sequence number, each member's high-water mark and the last 500 log entries. It does not store the full operation
+  list: that list grows without limit and the journal is written every two seconds while the room changes. The event
+  window (`EVENT_LIMIT`) lives in memory. A protocol 1 journal still loads.
+- **Headless room.** `python -m core.collab.server --headless --port N --password-file F --project-dir D`, with
+  optional `--host`, `--owner-name` and `--owner-token-file`. The module imports no Qt. The fingerprint comes from the
+  journal in D; without a journal, the first join with the creation token sets it and other joins wait. The process
+  prints one JSON line (`port`, `room_id`, and `owner_token` when it is issued and not written to the token file).
+  The journal is written on close and within two seconds of each change; a `terminate()` on Windows skips the close,
+  so the last two seconds can be lost.
+- **No open endpoints.** `/hello` was removed. Joining needs the room password; every other endpoint needs the room
+  token. No remote endpoint is contacted by default: joining is an explicit action in the window.
+
+**Cost and limits.**
+- Plain HTTP; the password is a shared secret, not encryption (as D18).
+- A room lives while its process runs. A headless room needs a machine that stays on.
+- An offline participant's changes reach the room only when it reconnects. The offline-first package below is the fix.
+- Presence, claim and comment markers on the block tree are not built yet; the row bar and the Work Together window show
+  them. The row list has no menu of its own.
+- A saved list of remote endpoints is not built; the window joins one address at a time.
+- A host that lost its token and runs a headless room needs the creation token file (`--owner-token-file`); otherwise
+  nobody can take the host role back.
+
+**Test.** `tests/test_core/test_collab_server.py`: the permission matrix, enforcement in `edit`, claims and requests,
+approval, comments, identity, removal and unban, host transfer, idempotent operations, the journal and `comments.json`,
+the headless start, and that the process imports no Qt. `tests/test_core/test_collab_client.py`: a real server with
+real clients (answers, refusals, a token kept across reconnects, removal). `tests/test_core/test_collab_room_state.py`
+and `tests/test_ui/test_collab_panels.py`: two windows in one room (mirror, actions, panel gating, tree menu, row bar).
+`tests/test_performance.py`: the join and remote-batch bounds of D21 still hold.
+
+**Next package: offline-first sync (design only, not built).** A participant edits offline; the work merges later
+through any of three transports.
+1. **Operation log per participant.** `collab_sync/journal-<member id>.ops`: JSON lines, append-only. Each line is one
+   operation with `op_id` (random), `member`, `seq` (the member's own counter), `lamport` (a new field: the largest
+   value seen plus one), `base_rev` for an edit, and the payload. A line applied twice changes nothing, because the
+   `op_id` is already known.
+2. **Transports.** (a) Any reachable room: `POST /ops` with the local lines above the room's high-water mark for the
+   member (the endpoint exists now). (b) An exchange file `.picoripi-sync`: Export writes the lines after a cursor,
+   Import reads them. (c) A shared folder (Syncthing, a cloud drive): each participant reads the others'
+   `collab_sync/*.ops` files and merges them by `op_id`.
+3. **Conflict rules.**
+   - Two edits of one row from the same base revision: both stay in the history. The current text is the edit with the
+     greater `lamport` (ties: the member id). The row is flagged as a conflict with the same Take theirs and Keep mine
+     actions as now.
+   - An edit made offline to a row claimed by someone else becomes a **proposal**: it is not applied, and the claim
+     owner sees it and accepts or drops it.
+   - Comments merge as a set by `id`; the resolved flag takes the last writer by `lamport`.
+   - Roles and claims: operations by host or moderator tokens merge by `lamport`; of two claims on the same rows the
+     earlier claim wins; a request stays a request.
+4. **Interfaces** (a new module beside the server, to create): `Op` (the fields above), `OpLog.append` and `read_since(cursor)`,
+   `merge(ops)` returning the changes. `Room._apply_op` stays the only authority path; sync feeds it operations.
+5. **Not in this package:** the client writing its log, the exchange file, and the shared-folder reader.
