@@ -2,6 +2,8 @@
 from plugins.common.config_factory import generate_base_config
 
 PLUGIN_PREFIX = "ZLA"
+# Two rows of 16 characters per box page: the game draws the arrow after every 32 characters
+# (LADX-Disassembly code/home/dialog.asm, DialogBreakHandler; DIALOG_LINE_LEN in code/macros.asm).
 DEFAULT_LINES_PER_PAGE = 2
 
 PROBLEM_DEFINITIONS, DEFAULT_DETECTION_SETTINGS, DEFAULT_AUTOFIX_SETTINGS = generate_base_config(
