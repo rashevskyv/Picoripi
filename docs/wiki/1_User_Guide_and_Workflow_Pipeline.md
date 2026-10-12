@@ -968,6 +968,8 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Violet share one project and get the same mod.
    - `wii_sysfont` — the Wii system bitmap fonts `wbf1.brfna` / `wbf2.brfna` (the NW4R archived fonts of the
      System Menu, shipped as copies on discs that draw prompts with them, e.g. Raving Rabbids: Party Collection).
+     The vWii NAND of the EUR console has the same two files; its WiiNTLG-Regular.ttc faces
+     (`fonts/WiiNTLG-Gothic.ttf`, `fonts/WiiNTLG-PGothic.ttf`) open in the Font Editor as TTF. A face cannot be written back into the collection yet.
      **Source:** the workspace's `source` (`1_unpack.bat` takes the fonts from Dolphin's NAND `shared1` content
      or from the Rabbids disc copies and prepares the Ukrainian letters: І і Ї ї get the glyphs of I i Ï ï,
      Є є Ґ ґ get empty cells at the end of the ASCII sheet); **Translation:** `translation`. The Font Editor opens
