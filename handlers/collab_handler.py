@@ -17,14 +17,15 @@ import time
 from functools import partial
 from pathlib import Path
 from collections import deque
-from typing import Any, Deque, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Deque, Dict, Iterator, List, Optional, Set, Tuple
 
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QToolButton
 
 import utils.constants as constants
 from core.collab.client import RoomClient
-from core.collab.server import RoomServer
+from core.collab.roles import HOST, MODERATOR, allowed
+from core.collab.server import JOURNAL_NAME, RoomServer
 from core.i18n import tr
 from core.progress_stats import _words as source_words
 from utils.atomic_io import atomic_write_json
@@ -37,8 +38,11 @@ JOIN_CLOCK_EVERY = 8                  # ... reads the clock every this many rows
 JOIN_SLICE_SECONDS = 0.05             # ... and ends after about this long (one row may exceed it; see docs/DECISIONS.md D21)
 
 REMOTE = "COLLAB_REMOTE"
-JOURNAL_NAME = "collab_room.json"
 DEFAULT_PORT = 8765
+# Room events the window keeps: row edits and the roles, claims, comments and log. Presence and joins go to the list.
+ROOM_EVENTS = {"edit", "snapshot", "approved", "claim_granted", "claim_released", "claim_requested", "claim_denied",
+               "role_set", "host_transferred", "kicked", "comment_added", "comment_resolved", "comment_deleted", "log"}
+LOG_KEEP = 500
 
 
 def settings_path() -> Path:
@@ -60,6 +64,22 @@ def save_settings(**values: Any) -> None:
         atomic_write_json(settings_path(), data, ensure_ascii=False, indent=1)
     except OSError as exc:
         log_debug(f"Collab: settings not saved: {exc}")
+
+
+def saved_token(name: str) -> Optional[str]:
+    """This computer's participant token for ``name`` (the room gives the same member back for it)."""
+    tokens = load_settings().get("tokens")
+    value = tokens.get(name) if isinstance(tokens, dict) else None
+    return value if isinstance(value, str) and value else None
+
+
+def remember_token(name: str, token: Optional[str]) -> None:
+    """Keep the token of a new identity; written only when it changes (the join is on the UI thread)."""
+    if not token or saved_token(name) == token:
+        return
+    tokens = dict(load_settings().get("tokens") or {})
+    tokens[name] = token
+    save_settings(tokens=tokens)
 
 
 _LAN_ADDRESSES: List[str] = []
@@ -89,6 +109,26 @@ class LanLookup(WorkerThread):
 
     def run(self) -> None:
         self.found.emit(lan_addresses())
+
+
+def _claim_mirror(claim: Dict[str, Any]) -> Dict[str, Any]:
+    return {**claim, "keys": set(claim.get("keys") or [])}
+
+
+def _comment_mirror(comment: Dict[str, Any]) -> Dict[str, Any]:
+    keys = comment.get("keys")
+    return {**comment, "keys": None if keys is None else set(keys)}
+
+
+# The room events that change the mirror, and the handler method that applies each one.
+_MIRROR = {
+    "snapshot": "_mirror_snapshot", "approved": "_mirror_approved", "claim_granted": "_mirror_claim_granted",
+    "claim_released": "_mirror_claim_released", "claim_requested": "_mirror_claim_requested",
+    "claim_denied": "_mirror_claim_denied", "role_set": "_mirror_role_set",
+    "host_transferred": "_mirror_host_transferred", "kicked": "_mirror_kicked",
+    "comment_added": "_mirror_comment_added", "comment_resolved": "_mirror_comment_resolved",
+    "comment_deleted": "_mirror_comment_deleted", "log": "_mirror_log",
+}
 
 
 def ensure_collab_handler(main_window: Any) -> "CollabHandler":
@@ -134,6 +174,18 @@ class CollabHandler(QObject):
         self._remote_turn: Optional[Iterator[None]] = None
         self._applied_rev: Dict[str, int] = {}               # per row key: newest revision applied or sent here
         self._generation = 0                                 # counts the rooms: bumped by leave(), see _on_remote_events
+        self._reset_mirror()
+
+    def _reset_mirror(self) -> None:
+        """What the room has said about roles, claims, comments and approvals (kept in step by the room's events)."""
+        self.role: Optional[str] = None                      # this participant's role in the room
+        self.members: Dict[str, Dict[str, Any]] = {}         # {id: {name, role, online, banned}}
+        self.claims: Dict[str, Dict[str, Any]] = {}          # {cid: {cid, owner, name, scope, keys: set, online}}
+        self.requests: Dict[str, Dict[str, Any]] = {}        # {rid: {rid, requester, name, scope, count}}
+        self.comments: Dict[str, Dict[str, Any]] = {}        # {id: {... keys: set or None for the whole project}}
+        self.approved: Set[str] = set()                      # row keys the room marked approved
+        self.log: List[Dict[str, Any]] = []                  # moderator actions (the host sees them)
+        self._room_text: Dict[str, str] = {}                 # the text the room holds per row key
 
     # ── project identity ───────────────────────────────────────────────
 
@@ -192,25 +244,34 @@ class CollabHandler(QObject):
         project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
         journal = Path(project_dir) / JOURNAL_NAME if project_dir else None
         self.server = RoomServer(password, self.fingerprint(), port=port, host=bind, journal=journal).start()
+        room = self.server.room
+        # The host is the member with the creation token. Whoever starts the room takes the host role, unless this
+        # computer's saved token already is the room's host (a restart of the same room keeps the same host).
+        token = saved_token(name)
+        if not (token and room.is_host_token(token)):
+            token = room.owner_token_plain or room.issue_owner_token(name)
         save_settings(name=name, port=self.server.port)
-        self._connect(f"127.0.0.1:{self.server.port}", name, password)
+        self._connect(f"127.0.0.1:{self.server.port}", name, password, token=token)
         return self.server.port
 
     def join(self, address: str, password: str, name: str) -> None:
         self.leave()
         save_settings(name=name, address=address)
-        self._connect(address, name, password)
+        self._connect(address, name, password, token=saved_token(name))
 
-    def _connect(self, address: str, name: str, password: str) -> None:
+    def _connect(self, address: str, name: str, password: str, token: Optional[str] = None) -> None:
         self._build_positions()
         self.row_info, self.conflicts, self.participants = {}, {}, []
         self._applied_rev = {}
-        client = RoomClient(address, name, password, self.fingerprint())
+        self._reset_mirror()
+        client = RoomClient(address, name, password, self.fingerprint(), token=token)
         generation = self._generation
         client.joined.connect(partial(self._on_joined, generation=generation))
         client.remote_events.connect(partial(self._on_remote_events, generation=generation))
         client.participants_changed.connect(self._on_participants)
         client.edits_done.connect(self._on_edits_done)
+        client.edits_refused.connect(self._on_edits_refused)
+        client.op_done.connect(self._on_op_done)
         client.state_changed.connect(self._on_state)
         client.refused.connect(self._on_refused)
         self.client = client
@@ -231,6 +292,7 @@ class CollabHandler(QObject):
         if server is not None:
             server.stop()
         self.participants, self.conflicts = [], {}
+        self._reset_mirror()
         self._on_state("off")
 
     @property
@@ -244,9 +306,58 @@ class CollabHandler(QObject):
         if self.client is None or action_type == REMOTE:
             return
         key = self._key(block_idx, string_idx)
+        if not self.can_edit(key):
+            self._refuse_local(block_idx, string_idx, key)
+            return
         self.conflicts.pop(key, None)
         self.client.queue_edit(key, text or "", words=self._source_words(block_idx, string_idx))
         self._summary_dirty = True
+
+    def can_edit(self, key: str) -> bool:
+        """This participant's role may change text, and the row is not claimed by someone else (the room decides too)."""
+        if self.client is None:
+            return True
+        if self.role is None or not allowed(self.role, "edit"):
+            return False
+        owner = self.claim_owner(key)
+        return owner is None or owner == self._my_id()
+
+    def _refuse_local(self, block_idx: int, string_idx: int, key: str) -> None:
+        """A row this participant may not change: the room's text goes back in place, and the reason is shown."""
+        room_text = self._room_text.get(key)
+        if room_text is not None and self._current(block_idx, string_idx) != room_text:
+            self._apply(block_idx, string_idx, room_text)
+            self._refresh({block_idx})
+        owner = self.claim_owner_name(key)
+        self._status(tr('Claimed by {name}: the row stays as the room has it.', name=owner) if owner
+                     else tr('Your role cannot change text in this room.'))
+
+    def claim_owner(self, key: str) -> Optional[str]:
+        """The member id that owns the most specific claim on ``key``, or None."""
+        owner, size = None, None
+        for claim in self.claims.values():
+            if key in claim["keys"] and (size is None or len(claim["keys"]) < size):
+                owner, size = claim["owner"], len(claim["keys"])
+        return owner
+
+    def claim_owner_name(self, key: str) -> Optional[str]:
+        owner = self.claim_owner(key)
+        return self.members.get(owner, {}).get("name") if owner else None
+
+    def row_notes(self, key: str) -> Dict[str, Any]:
+        """What the bar above the editor shows about one row: claim, open comments, approval, editability."""
+        owner = self.claim_owner(key)
+        return {
+            "claimed_by": self.claim_owner_name(key),
+            "claimed_by_me": owner is not None and owner == self._my_id(),
+            "comments_open": sum(1 for c in self.comments.values()
+                                 if not c["resolved"] and (c["keys"] is None or key in c["keys"])),
+            "approved": key in self.approved,
+            "editable": self.can_edit(key),
+        }
+
+    def _my_id(self) -> Optional[str]:
+        return getattr(self.client, "participant_id", None) if self.client is not None else None
 
     def _source_words(self, block_idx: int, string_idx: int) -> int:
         try:
@@ -258,6 +369,9 @@ class CollabHandler(QObject):
         """The editor shows this row: tell the room where this participant is, refresh the bar above the editor."""
         if self.client is not None and block_idx >= 0 and string_idx >= 0:
             self.client.set_presence(self._key(block_idx, string_idx))
+            others = self.others_on(block_idx, string_idx)
+            if others:                                    # a soft warning: nothing is locked
+                self._status(tr('{names} is working here.', names=", ".join(others)))
         bar = getattr(self.mw, "collab_row_bar", None)
         if bar is not None:
             bar.refresh(block_idx, string_idx)
@@ -285,6 +399,11 @@ class CollabHandler(QObject):
         """Take the room's rows and share the rows the room lacks, in turns (see ``_join_work``)."""
         if generation is not None and (generation != self._generation or self.client is None):
             return                                         # the rows of a room that was left
+        if getattr(self.client, "name", None):
+            remember_token(self.client.name, data.get("token"))
+        self.role = data.get("role")
+        self.log = list(data.get("log") or [])
+        self._apply_state(data.get("state") or {})
         self._join_plan = self._join_work(data)
         self._turns.append(self._join_plan)
         self.participants = data.get("participants") or []
@@ -340,6 +459,9 @@ class CollabHandler(QObject):
         for key, row in room_rows.items():
             self.row_info[key] = {"name": row.get("name", ""), "time": row.get("time")}
             self._applied_rev[key] = max(self._applied_rev.get(key, 0), int(row.get("rev", 0) or 0))
+            self._room_text[key] = row["text"]
+            if row.get("approved"):
+                self.approved.add(key)
             position = self.positions.get(key)
             if position is not None and self._current(*position) != row["text"]:
                 if position in self.mw.data_store.edited_data:
@@ -398,7 +520,7 @@ class CollabHandler(QObject):
             generation = self._generation
         if self.client is None or generation != self._generation:
             return
-        self._remote_pending.extend(event for event in events if event.get("type") == "edit")
+        self._remote_pending.extend(event for event in events if event.get("type") in ROOM_EVENTS)
         if self._remote_turn is None and self._remote_pending:
             self._start_remote_work()
 
@@ -422,18 +544,18 @@ class CollabHandler(QObject):
                 while self._remote_pending and generation == self._generation:
                     event = self._remote_pending.popleft()
                     try:
-                        block_idx = self._apply_remote_edit(event)
-                    except Exception as exc:                # one bad edit must not stall the others
-                        failed.append((event.get("key"), exc))
-                        block_idx = None
-                    if block_idx is not None:
-                        touched.add(block_idx)
+                        blocks = self._apply_event(event)
+                    except Exception as exc:                # one bad event must not stall the others
+                        failed.append((event.get("key") or event.get("type"), exc))
+                        blocks = None
+                    if blocks:
+                        touched.update(blocks)
                     budget += 1
                     if self._turn_over(budget, turn_started) and self._remote_pending:
                         budget, turn_started = 0, time.perf_counter()
                         yield
                 if failed:
-                    log_warning(f"Collab: {len(failed)} remote edit(s) not applied; first: row {failed[0][0]!r}: "
+                    log_warning(f"Collab: {len(failed)} room event(s) not applied; first: {failed[0][0]!r}: "
                                 f"{failed[0][1]!r}")
                 yield from self._refresh_turns(touched)
                 self._refresh_bar()
@@ -461,6 +583,8 @@ class CollabHandler(QObject):
         if self.client.has_pending(key):
             return None                                    # our unsent text meets it on the server as a conflict
         self._applied_rev[key] = rev
+        self._room_text[key] = event["text"]
+        self.approved.discard(key)
         self.row_info[key] = {"name": event.get("name", ""), "time": event.get("time")}
         self.conflicts.pop(key, None)
         if self._current(*position) == event["text"]:
@@ -469,11 +593,181 @@ class CollabHandler(QObject):
         self._summary_dirty = True
         return position[0]
 
+    def _apply_event(self, event: Dict[str, Any]) -> Optional[Set[int]]:
+        """Apply one room event; returns the blocks whose tree items it changed (or None)."""
+        if event.get("type") == "edit":
+            block_idx = self._apply_remote_edit(event)
+            return {block_idx} if block_idx is not None else None
+        if self.client is None:
+            return None
+        method = _MIRROR.get(event.get("type"))
+        return getattr(self, method)(event) if method else None
+
+    def _apply_state(self, state: Dict[str, Any]) -> None:
+        """Replace the mirror of members, claims, requests and comments with what the room sent (join, snapshot)."""
+        self.members = {m["id"]: {"name": m["name"], "role": m["role"], "online": m["online"], "banned": m["banned"]}
+                        for m in state.get("members") or []}
+        self.claims = {c["cid"]: _claim_mirror(c) for c in state.get("claims") or []}
+        self.requests = {r["rid"]: dict(r) for r in state.get("requests") or []}
+        self.comments = {c["id"]: _comment_mirror(c) for c in state.get("comments") or []}
+        if self._my_id() in self.members:
+            self.role = self.members[self._my_id()]["role"]
+
+    def _mirror_snapshot(self, event: Dict[str, Any]) -> None:
+        self._apply_state(event.get("state") or {})
+
+    def _mirror_approved(self, event: Dict[str, Any]) -> None:
+        (self.approved.add if event.get("approved") else self.approved.discard)(event["key"])
+
+    def _mirror_claim_granted(self, event: Dict[str, Any]) -> None:
+        claim = event["claim"]
+        self.claims[claim["cid"]] = _claim_mirror(claim)
+        if event.get("rid"):
+            self.requests.pop(event["rid"], None)
+
+    def _mirror_claim_released(self, event: Dict[str, Any]) -> None:
+        self.claims.pop(event.get("cid"), None)
+
+    def _mirror_claim_requested(self, event: Dict[str, Any]) -> None:
+        request = event["request"]
+        self.requests[request["rid"]] = dict(request)
+
+    def _mirror_claim_denied(self, event: Dict[str, Any]) -> None:
+        self.requests.pop(event.get("rid"), None)
+
+    def _mirror_role_set(self, event: Dict[str, Any]) -> None:
+        member = self.members.setdefault(event["member"], {"name": "?", "online": False, "banned": False})
+        member["role"] = event["role"]
+        if event["member"] == self._my_id():
+            self.role = event["role"]
+
+    def _mirror_host_transferred(self, event: Dict[str, Any]) -> None:
+        new, old = event["to"], event["by"]
+        for mid, role in ((new, HOST), (old, MODERATOR)):
+            if mid in self.members:
+                self.members[mid]["role"] = role
+        if self._my_id() == new:
+            self.role = HOST
+        elif self._my_id() == old:
+            self.role = MODERATOR
+
+    def _mirror_kicked(self, event: Dict[str, Any]) -> None:
+        if event.get("member") in self.members:
+            self.members[event["member"]]["banned"] = True
+
+    def _mirror_comment_added(self, event: Dict[str, Any]) -> None:
+        comment = event["comment"]
+        self.comments[comment["id"]] = _comment_mirror(comment)
+
+    def _mirror_comment_resolved(self, event: Dict[str, Any]) -> None:
+        comment = self.comments.get(event.get("id"))
+        if comment is not None:
+            comment["resolved"] = ({"by": event.get("by"), "name": event.get("name"), "time": event.get("time")}
+                                   if event.get("resolved") else None)
+
+    def _mirror_comment_deleted(self, event: Dict[str, Any]) -> None:
+        self.comments.pop(event.get("id"), None)
+
+    def _mirror_log(self, event: Dict[str, Any]) -> None:
+        self.log.append(event["entry"])
+        del self.log[:-LOG_KEEP]
+
+    # ---- what this participant asks the room to do -------------------------------
+
+    def _ask(self, kind: str, **fields: Any) -> Optional[str]:
+        """Queue one operation for the room; its answer comes by ``op_done``. None when not in a room."""
+        return self.client.queue_op(kind, **fields) if self.client is not None else None
+
+    def keys_of_block(self, block_idx: int) -> List[str]:
+        return [key for key, (block, _string) in self.positions.items() if block == block_idx]
+
+    def all_keys(self) -> List[str]:
+        return list(self.positions)
+
+    def claim(self, kind: str, label: str, keys: List[str]) -> Optional[str]:
+        return self._ask("claim", scope={"kind": kind, "label": label}, keys=list(keys))
+
+    def assign(self, target: str, kind: str, label: str, keys: List[str]) -> Optional[str]:
+        return self._ask("assign", target=target, scope={"kind": kind, "label": label}, keys=list(keys))
+
+    def release(self, cid: str) -> Optional[str]:
+        return self._ask("release", cid=cid)
+
+    def cancel_request(self, rid: str) -> Optional[str]:
+        return self._ask("release", rid=rid)
+
+    def decide(self, rid: str, approve: bool) -> Optional[str]:
+        return self._ask("decide", rid=rid, approve=approve)
+
+    def set_role(self, target: str, role: str) -> Optional[str]:
+        return self._ask("role", target=target, role=role)
+
+    def kick(self, target: str) -> Optional[str]:
+        return self._ask("kick", target=target)
+
+    def transfer_host(self, target: str) -> Optional[str]:
+        return self._ask("transfer_host", target=target, confirm=True)
+
+    def comment(self, kind: str, label: str, keys: List[str], text: str) -> Optional[str]:
+        return self._ask("comment", scope={"kind": kind, "label": label},
+                         keys=None if kind == "project" else list(keys), text=text)
+
+    def resolve_comment(self, cid: str, resolved: bool) -> Optional[str]:
+        return self._ask("comment_resolve", id=cid, resolved=resolved)
+
+    def delete_comment(self, cid: str) -> Optional[str]:
+        return self._ask("comment_delete", id=cid)
+
+    def approve_row(self, key: str, approved: bool = True) -> Optional[str]:
+        return self._ask("approve", key=key, approved=approved)
+
+    def _on_op_done(self, op_id: str, kind: str, result: Dict[str, Any]) -> None:
+        if "error" in result:
+            message = tr('Not done: {reason}', reason=result["error"])
+        elif result.get("refused"):
+            message = tr('Your role does not allow this.')
+        elif "requested" in result:
+            message = tr('Request sent: the host or a moderator decides.')
+        elif "granted" in result:
+            message = tr('Claim granted.')
+        else:
+            message = tr('Done.')
+        self.last_message = message
+        self._status(message)
+        self._refresh_bar()
+
+    def _on_edits_refused(self, refused: Dict[str, Dict[str, Any]]) -> None:
+        """The room refused some edits (a claim by someone else, or the role): the room's text goes back in place."""
+        for key, info in refused.items():
+            row = info.get("row") or {}
+            room_text = row.get("text")
+            if room_text is None or not row.get("rev"):   # a row the room does not hold keeps its local text
+                continue
+            self._room_text[key] = room_text
+            position = self.positions.get(key)
+            if position is not None and self._current(*position) != room_text:
+                self._apply(*position, room_text)
+                self._refresh({position[0]})
+        if len(refused) == 1:
+            key, info = next(iter(refused.items()))
+            message = (tr('Claimed by {name}: your text was not sent.', name=info.get("owner") or "?")
+                       if info.get("reason") == "claimed"
+                       else tr('Your role cannot change text in this room.'))
+        else:
+            message = tr('{count} row(s) were not sent: your role or a claim does not allow it.', count=len(refused))
+        self._status(message)
+        self._refresh_bar()
+
     def _on_edits_done(self, accepted: Dict[str, int], conflicts: Dict[str, Dict[str, Any]]) -> None:
         name = self.client.name if self.client is not None else ""
         for key, rev in accepted.items():
             self.row_info[key] = {"name": name, "time": time.time()}
             self._applied_rev[key] = max(self._applied_rev.get(key, 0), int(rev or 0))
+            position = self.positions.get(key)
+            if position is not None:
+                self._room_text[key] = self._current(*position)
+        for key, theirs in conflicts.items():
+            self._room_text[key] = theirs.get("text", "")
         if conflicts:
             self.conflicts.update(conflicts)
             self._status(tr('{count} row(s) were changed by someone else first: see the bar above the editor.',
@@ -532,7 +826,7 @@ class CollabHandler(QObject):
 
     def others_on(self, block_idx: int, string_idx: int) -> List[str]:
         key = self._key(block_idx, string_idx)
-        me = self.client.participant_id if self.client is not None else None
+        me = self._my_id()
         return [p["name"] for p in self.participants if p.get("where") == key and p.get("id") != me]
 
     # ── status ─────────────────────────────────────────────────────────
