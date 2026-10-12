@@ -78,3 +78,33 @@ def read_dialog_refs(rom: bytes) -> list[DialogRef]:
         offset = (bank_byte & 0x3F) * BANK_SIZE + (pointer - SWITCHABLE_BASE)
         refs.append(DialogRef(index=index, pointer=pointer, bank_byte=bank_byte, rom=offset))
     return refs
+
+
+TITLE = b"ZELDA"  # header title of the DX ROM (0x134-0x138), also kept by a translated ROM
+
+
+def header_checksum(rom: bytes) -> int:
+    """Header checksum over 0x134-0x14C (the value stored at 0x14D)."""
+    return (-sum(rom[0x134:0x14D]) - (0x14D - 0x134)) & 0xFF
+
+
+def global_checksum(rom: bytes) -> int:
+    """Sum of every byte except the two checksum bytes at 0x14E-0x14F (stored big-endian)."""
+    return (sum(rom) - rom[0x14E] - rom[0x14F]) & 0xFFFF
+
+
+def fix_checksums(rom: bytearray) -> None:
+    """Write the header and global checksums. On an unedited ROM this changes nothing."""
+    rom[0x14D] = header_checksum(rom)
+    total = global_checksum(rom)
+    rom[0x14E] = total >> 8
+    rom[0x14F] = total & 0xFF
+
+
+def accept(rom: bytes) -> None:
+    """Accept the source ROM by SHA-1, or a translated ROM by size and header title (its SHA-1 changes)."""
+    try:
+        identify(rom)
+    except UnknownRom:
+        if len(rom) != ROM_SIZE or rom[0x134:0x139] != TITLE or rom[0x143] != 0x80:
+            raise

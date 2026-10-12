@@ -71,7 +71,8 @@ def test_unchanged_rom_rebuilds_byte_for_byte():
     original = bytes(data)
     out = bytearray(data)
     for ref in rom.read_dialog_refs(original):
-        text.write_text(out, ref, text.read_text(original, ref))
+        run = original[ref.rom : ref.rom + text.span_length(original, ref.rom)]
+        text.write_text(out, ref, text.to_markup(run))
     assert bytes(out) == original
 
 
@@ -88,7 +89,7 @@ def test_write_refuses_text_longer_than_the_run():
     data = _build_rom([b"Hi"])
     ref = rom.read_dialog_refs(data)[0]
     with pytest.raises(text.TextTooLong):
-        text.write_text(bytearray(data), ref, "Too long for two bytes")
+        text.write_text(bytearray(data), ref, "Hello!")
 
 
 def test_span_without_end_code_is_an_error():

@@ -36,7 +36,8 @@ def test_every_dialog_rewrites_unchanged():
     assert len(refs) == rom.DIALOG_COUNT
     out = bytearray(raw)
     for ref in refs:
-        text.write_text(out, ref, text.read_text(raw, ref))
+        run = raw[ref.rom : ref.rom + text.span_length(raw, ref.rom)]
+        text.write_text(out, ref, text.to_markup(run))
     assert bytes(out) == raw
 
 

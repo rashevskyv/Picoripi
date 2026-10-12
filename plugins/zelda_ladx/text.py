@@ -18,6 +18,8 @@ from .rom import DialogRef
 TERMINATOR = 0xFF
 PAD = 0x20
 SCAN_LIMIT = 4096
+# Symbols and the choice marker shown as <name>, and bytes without a name shown as {XX}.
+TAG_PATTERN = r"<[a-z0-9]+>|\{[0-9A-F]{2}\}"
 
 # Plain characters: their charmap codes.
 _CODE_OF: Dict[str, int] = {
@@ -79,7 +81,10 @@ def encode_text(text: str) -> bytes:
     out = bytearray()
     for piece in _PIECE_RE.findall(text):
         if len(piece) == 4 and piece[0] == "{" and piece[3] == "}":
-            out.append(int(piece[1:3], 16))
+            code = int(piece[1:3], 16)
+            if code == TERMINATOR:
+                raise TextError("{FF} is the end code and cannot be written inside a dialog")
+            out.append(code)
             continue
         code = _CODE_BY_TEXT.get(piece)
         if code is None:
@@ -93,10 +98,41 @@ def read_text(rom: bytes, ref: DialogRef) -> str:
     return decode_bytes(rom[ref.rom : ref.rom + span_length(rom, ref.rom)])
 
 
+ROW = 16
+
+
+def to_markup(run: bytes) -> str:
+    """Editor text of one dialog: one line per 16-byte row, trailing padding spaces removed from full rows.
+
+    The last row is kept exactly, because the ROM does not pad it. ``from_markup`` pads the full rows back,
+    so an unedited dialog gives the same bytes.
+    """
+    rows = [run[i:i + ROW] for i in range(0, len(run), ROW)]
+    lines = []
+    for number, row in enumerate(rows):
+        text = decode_bytes(row)
+        lines.append(text.rstrip(" ") if number < len(rows) - 1 else text)
+    return "\n".join(lines)
+
+
+def from_markup(markup: str) -> bytes:
+    """Dialog bytes for editor text. Full rows are padded to 16 bytes; a row over 16 bytes is an error."""
+    lines = markup.split("\n")
+    out = bytearray()
+    for number, line in enumerate(lines):
+        data = encode_text(line)
+        if len(data) > ROW:
+            raise TextError(f"row {number + 1} has {len(data)} characters, the limit is {ROW}")
+        if number < len(lines) - 1:
+            data += bytes([PAD]) * (ROW - len(data))
+        out += data
+    return bytes(out)
+
+
 def write_text(rom: bytearray, ref: DialogRef, text: str) -> None:
-    """Write ``text`` into the dialog run in place and pad the rest of the run with spaces."""
+    """Write editor text into the dialog run in place and pad the rest of the run with spaces."""
     room = span_length(rom, ref.rom)
-    data = encode_text(text)
+    data = from_markup(text)
     if len(data) > room:
         raise TextTooLong(f"{ref.name}: {len(data)} bytes do not fit in {room}")
     rom[ref.rom : ref.rom + room] = data + bytes([PAD]) * (room - len(data))
