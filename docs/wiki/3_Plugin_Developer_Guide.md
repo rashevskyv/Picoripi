@@ -148,6 +148,12 @@ Do not declare a capability the plugin cannot deliver.
 
 ---
 
+## Families of versions (family_plan)
+
+A game sold in several versions (for example GameCube, Wii and Wii U HD) can share one translation. `family_plan(sources, project_dir)` gets the folders or files the user gave and returns a `core.family_projects.model.FamilyPlan`, or `None` when the game has no family (the default). The plugin recognises each source by its content, not by the user's folder name: Twilight Princess uses the message count of its files as a fingerprint (`plugins/zelda_bmg/family.py`). The plan lists the members (`FamilyMember(key, label, path, base, parents)`), the base version, and `read(member_key)`, which returns `(unit_id, text)` pairs.
+
+Core (`core/family_projects/`) links the units of each member to the units of its parents by equal match key (the text by default), stores one translation per shared unit, keeps the differing texts as per-member overrides, and fans the texts back out. A member may link to several parents in order: a member that shares most of its text with a second member links to that one first. Fewer sources than members is valid. The Twilight Princess project builder (`plugins/zelda_bmg/family_project.py`) writes one project: the base archives, and one folder per version named "<label> only" for its own messages.
+
 ## Tests for a plugin
 
 The generated test file is the start. Add, with real data: a sample that parses into the expected blocks; a save round trip that keeps every field; valid and invalid tags; a width warning on a deliberately long line; autofix returning `(str, bool)` without damaging tags. `plugins/testing.py` has the shared checks (`check_loads`, `check_round_trip`, `check_validator`).

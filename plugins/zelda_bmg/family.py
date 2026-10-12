@@ -106,10 +106,11 @@ def _member_key(folder: Path, fingerprint_key: str) -> str:
     return "hd_msgus" if folder.name.lower() == "msgus" else "hd_msguk"
 
 
+LABELS = {"gc": "GameCube", "wii": "Wii", "hd_msguk": "HD Msguk", "hd_msgus": "HD Msgus"}
+
+
 def _label(key: str) -> str:
-    if key.startswith("hd"):
-        return f"Wii U HD, slot {'Msgus' if key == 'hd_msgus' else 'Msguk'}"
-    return FINGERPRINTS[key][0]
+    return LABELS[key]
 
 
 def plan_for_sources(sources: Sequence[str], rules: GameRules) -> Tuple[FamilyPlan, Dict[str, List[Unit]]]:
@@ -160,7 +161,18 @@ def family_of(plan: FamilyPlan) -> Family:
     )
 
 
-def write_member(source: Path, out: Path, texts: Dict[str, str], rules: GameRules) -> int:
+def subset_bmg(source: bytes, indices: Sequence[int], texts: Sequence[str], rules: GameRules) -> bytes:
+    """A BMG with only the messages at indices (in that order), with the given editor texts.
+
+    Message attributes and ids come from the kept messages of source; the other messages are dropped.
+    """
+    rules.load_data_from_json_obj(source)
+    bmg = rules.last_loaded_bmg
+    bmg.messages = [bmg.messages[i] for i in indices]
+    return rules.save_data_to_json_obj([list(texts)], {})
+
+
+def write_member(source: Path, out: Path, texts: Dict[str, str], rules: GameRules, always: bool = False) -> int:
     """Write out/<archive> for every archive of source that has a changed message. Returns the changed file count.
 
     texts maps a unit id to its new editor text; ids without an entry keep their text. Unchanged archives are not
@@ -181,7 +193,7 @@ def write_member(source: Path, out: Path, texts: Dict[str, str], rules: GameRule
                 continue
             container.write_file(path, write_bmg(blob, new, rules))
             changed += 1
-        if changed:
+        if changed or always:
             changed_total += changed
             atomic_write_bytes(out / archive.name, container.pack())
     return changed_total
@@ -206,7 +218,7 @@ def _load(config_path: Path) -> Tuple[dict, FamilyPlan, Dict[str, List[Unit]], G
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=["plan", "seed", "fanout"])
+    parser.add_argument("command", choices=["plan", "seed", "fanout", "project", "push", "pull", "verify"])
     parser.add_argument("family", type=Path, help="path to the family file (json)")
     parser.add_argument("--member", help="fanout: the member key")
     parser.add_argument("--out", type=Path, help="fanout: the folder to write the archives to")
@@ -214,6 +226,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     config, plan, units, rules = _load(args.family)
     store_path = config["_dir"] / config.get("store", "family_translations.json")
+    if args.command in ("project", "push", "pull", "verify"):
+        from . import family_project as fp
+        fam = config.get("family_project", {})
+        root = config["_dir"]
+        src, tr, pdir = (root / fam[k] for k in ("source", "translation", "dir"))
+        if args.command == "project":
+            print(f"source archives and loose subsets: {fp.build_sources(plan, units, src, rules)}")
+            store = load_store(store_path, plan.base)
+            fp.push(plan, store, units, tr, rules)
+            carry = root / fam["carry_from"] if fam.get("carry_from") else None
+            print(fp.create_project(pdir, src, tr, fam.get("name", "Family project"), rules, carry_from=carry))
+        elif args.command == "push":
+            fp.push(plan, load_store(store_path, plan.base), units, tr, rules)
+        elif args.command == "pull":
+            store, warnings = fp.seed_from_project(plan, units, tr, rules)
+            save_store(store_path, store)
+            print(f"wrote {store_path}: {sum(len(v) for v in store['texts'].values())} stored texts, {len(warnings)} warnings")
+        else:
+            print("messages per folder:", fp.count_messages(pdir, rules))
+        return 0
     if args.command == "plan":
         for member in plan.members:
             parents = ", ".join(member.parents) or "none (base)"

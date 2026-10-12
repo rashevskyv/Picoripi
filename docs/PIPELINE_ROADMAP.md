@@ -29,6 +29,7 @@ purpose: Pipeline design of record (Ukrainian); shipped vs planned on top
 | Адресат репліки | 2.2 | **зроблено** (M4) |
 | Майстер-провідник | 8 | **зроблено** (M5) |
 | Паралельні запити побудови глосарію | 5 «Паралелізм» | **зроблено інакше**: фіксований пул потоків (`core/glossary_build/parallel.py`) |
+| Сім'ї версій: `BaseGameRules.family_plan` (хук, D19), нейтральний рушій `core/family_projects/` | — | **зроблено частково**: Twilight Princess (GC, Wii, HD) — рушій, записування, проєкт; Wind Waker — ні (див. OPEN_ITEMS) |
 
 **Заплановано, не зроблено:**
 
