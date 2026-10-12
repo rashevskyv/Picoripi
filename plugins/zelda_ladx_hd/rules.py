@@ -6,12 +6,18 @@ lines the game skips are kept with the file layout, so a save writes them back u
 Layouts are kept per key sequence. A project can hold ``eng.lng`` and ``dialog_eng.lng``, and a save finds the
 layout of its own file by the keys it writes.
 """
+import json
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from core.formats import MODE_TEXT, FileFormat
 from plugins.base_game_rules import BaseGameRules
 
 from . import lng
+
+# The reference seed (built by the HD workspace, reference\hd_seed.json) and its reference columns.
+REFERENCE_FILE = "hd_seed.json"
+REFERENCE_LABELS = {"ua_gb": "UA GB (closest GBC dialogue)", "swuk": "SWUK (same GBC dialogue)"}
 
 
 def _layout_to_json(lang: lng.LangFile) -> Dict[str, Any]:
@@ -71,8 +77,39 @@ class GameRules(BaseGameRules):
         keys = [entry.key for entry in entries]
         self._layouts[_signature(keys)] = parsed
         blocks = [[entry.value] for entry in entries]
-        names = {index: key for index, key in enumerate(keys)}
+        # String keys: the project load looks names up with str(index) (handlers/project_action/load_worker.py).
+        names = {str(index): key for index, key in enumerate(keys)}
         return blocks, names
+
+    def get_reference_language_label(self) -> str:
+        return "Reference (UA GB, SWUK)"
+
+    def load_multi_reference(self, patch_path: str, block_names=None) -> Dict[str, Dict[Tuple[int, int], str]]:
+        """Reference columns from ``hd_seed.json`` (or the folder that holds it), matched by key.
+
+        The seed is built offline (HD\\reference): per file, per key, the Ukrainian of the closest GBC dialogue
+        (``ua_gb``) and the SWUK line (``swuk``), with the match score. Shown only; never written to a translation.
+        """
+        path = Path(patch_path)
+        if path.is_dir():
+            path = path / REFERENCE_FILE
+        if not path.is_file() or not block_names:
+            return {}
+        pairs = block_names.items() if isinstance(block_names, dict) else enumerate(block_names)
+        index = {name: int(block) for block, name in pairs}
+        seed = json.loads(path.read_text(encoding="utf-8"))
+        result: Dict[str, Dict[Tuple[int, int], str]] = {label: {} for label in REFERENCE_LABELS.values()}
+        for rows in seed.values():
+            for key, row in rows.items():
+                block = index.get(key)
+                if block is None:
+                    continue
+                score = row.get("score")
+                suffix = f"  [{score:.2f}]" if score is not None else ""
+                for field, label in REFERENCE_LABELS.items():
+                    if row.get(field):
+                        result[label][(block, 0)] = row[field] + suffix
+        return {label: items for label, items in result.items() if items}
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         """Write the file: the stored layout with the edited values, or the entries alone when no layout is known."""
