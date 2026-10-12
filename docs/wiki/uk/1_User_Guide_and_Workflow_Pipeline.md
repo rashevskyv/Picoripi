@@ -209,6 +209,10 @@ tokens: 44.0k
      одним блоком «Credits roll». Tools → Textures показує п’ять картинок з текстом у `textures_bin/texture_pack.bin`
      (логотип на титульному екрані й чотири назви вкладок меню паузи; BNTX RGBA8 в одному потоці zlib, записуються
      назад у пак)
+   - `zelda_ds` — The Legend of Zelda: Phantom Hourglass і Spirit Tracks (DS, USA; робочі теки `Zelda\Phantom Hourglass\DS`
+     і `Zelda\Spirit Tracks\DS`). **Source:** тека `source` робочої теки (`1_unpack.bat` бере BMG-повідомлення з папки
+     English чистого USA ROM, і `staff.bmg` Spirit Tracks); **Translation:** `translation` (цілі BMG-файли; `2_build.bat`
+     перебудовує `.nds`). Шрифтів і текстур у робочій теці ще немає.
    - `zelda_fsae` — Zelda: Four Swords Anniversary Edition (DSiWare, Європа). **Source:** тека `source` робочої
      теки (`1_unpack.bat` бере її з чистого європейського дампу: `eu.kmsg`, `font_ltn.nftr`, посібник
      `manpages_narc_eu.blz` і графіку); **Translation:** `translation` (цілі файли; `2_build.bat` робочої теки

@@ -212,6 +212,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      roll: headings, companies and names, the same in every language) opens as one more block, "Credits roll".
      Tools → Textures lists the five text pictures of `textures_bin/texture_pack.bin` (the title logo and the four
      pause-menu tab names; BNTX RGBA8 inside one zlib stream, written back into the pack)
+   - `zelda_ds` — The Legend of Zelda: Phantom Hourglass and Spirit Tracks (DS, USA; workspaces `Zelda\Phantom Hourglass\DS`
+     and `Zelda\Spirit Tracks\DS`). **Source:** the workspace's `source` folder (`1_unpack.bat` takes the BMG messages of the
+     English folder from the clean USA ROM, and `staff.bmg` of Spirit Tracks); **Translation:** `translation` (whole BMG files;
+     `2_build.bat` rebuilds the `.nds`). Fonts and textures are not in the workspace yet.
    - `zelda_fsae` — Zelda: Four Swords Anniversary Edition (DSiWare, Europe). **Source:** the workspace's `source`
      folder (`1_unpack.bat` takes it from the clean European dump: `eu.kmsg`, `font_ltn.nftr`, the manual
      `manpages_narc_eu.blz` and the graphics); **Translation:** `translation` (whole files; the workspace's
