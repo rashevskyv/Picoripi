@@ -148,6 +148,22 @@ Do not declare a capability the plugin cannot deliver.
 
 ---
 
+## Project Manager: roles, unpacking and build targets
+
+The Project Manager's new-project wizard and its Build, Export and Run buttons use five optional hooks.
+Each hook has a default, so a plugin without them still works: the wizard then takes the role and the platform from the user, uses the files as they are, and the buttons stay off.
+
+- `get_source_roles()` lists the roles a project's files can have, for example base game, update, DLC and disc 2. The first role is the default.
+- `identify_source(path)` reads one file the user added, by its content, and returns its role and platform. It returns `None` for a file that is not from this game.
+- `get_platforms()` lists the platforms the game ships on. The wizard uses it when `identify_source` does not name one.
+- `unpack_sources(sources, target_dir, progress, is_cancelled)` unpacks the role files into an empty folder that the host made. It returns that folder, or `None` when the files need no unpacking.
+- `get_build_targets()` lists what the game can build, each with an `id`, a `label`, `platforms` (empty means all) and a `kind`: `files`, `patch` or `layeredfs`.
+- `build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)` writes one target into an empty output folder and returns the result path.
+
+These hooks run on a worker thread. They must not create widgets or read `self.mw`. The host passes `progress` and `is_cancelled`; check `is_cancelled()` in long loops. The host builds into a temporary folder and renames it when the build succeeds. Export copies the built folder to a folder the user chooses. Run starts the emulator command the user set in the Project Manager, with the built path as an argument.
+
+`plugins/plain_text/rules.py` is the reference: its single target copies the translation files as they are.
+
 ## Tests for a plugin
 
 The generated test file is the start. Add, with real data: a sample that parses into the expected blocks; a save round trip that keeps every field; valid and invalid tags; a width warning on a deliberately long line; autofix returning `(str, bool)` without damaging tags. `plugins/testing.py` has the shared checks (`check_loads`, `check_round_trip`, `check_validator`).

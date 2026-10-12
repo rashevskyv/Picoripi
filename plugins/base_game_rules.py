@@ -1,5 +1,5 @@
 """BaseGameRules: every hook a game plugin may implement; the list is in plugins/spec.py."""
-from typing import List, Tuple, Dict, Optional, Any, Set
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 from PyQt6.QtGui import QTextCharFormat
 import json
 import re
@@ -976,3 +976,56 @@ class BaseGameRules:
             log_warning(f"BaseGameRules: Failed to parse transcript: {e}")
             
         return transcript_list
+
+    # ----- Project Manager: roles, platforms, unpacking and build targets -----
+    # Every hook below runs on a Project Manager worker thread. It must not create widgets or use ``self.mw``.
+    # Report progress and check for cancel only through the callables the host passes in.
+
+    def get_source_roles(self) -> List[Dict[str, str]]:
+        """The roles a project's source files can have, as ``[{"id": ..., "label": ...}]``.
+
+        A game with an update or a second disc declares one role per kind of file. The first role is the
+        one a single file gets when nothing else is known. Default: one role, ``base``.
+        """
+        return [{"id": "base", "label": "Base game"}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        """Recognise one file the user added, from its content (not its name).
+
+        Returns ``{"role": <role id>, "platform": <platform id, or "">}``, or None when the file is not
+        from this game. Default: None; the user then picks the role and the platform.
+        """
+        return None
+
+    def get_platforms(self) -> List[Dict[str, str]]:
+        """The platforms the game ships on, as ``[{"id": ..., "label": ...}]``. Default: none."""
+        return []
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str,
+                       progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> Optional[str]:
+        """Unpack the role files into ``target_dir``, an empty folder the host made, and return that folder.
+
+        ``sources`` maps a role id to a file path; a role may be missing. Call ``progress(percent, text)``
+        while working. When ``is_cancelled()`` is true, stop and return None. Return None without writing
+        anything when the files need no unpacking: the host then uses them as they are. Default: None.
+        """
+        return None
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        """What the game can build, as ``[{"id": ..., "label": ..., "platforms": [...], "kind": ...}]``.
+
+        ``platforms`` lists platform ids; an empty list means every platform. ``kind`` is ``files`` (a folder
+        of separate files), ``patch`` (a file that changes the game) or ``layeredfs`` (a mod folder for a
+        loader). The Build, Export and Run buttons stay disabled while a game declares no target. Default: none.
+        """
+        return []
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
+        """Write the build ``target_id`` into ``output_dir``, an empty folder the host made, and return the
+        path of the result (a file or a folder inside ``output_dir``).
+
+        ``source_dir`` is the unpacked source, or the folder of the source files; ``translation_dir`` holds the
+        translation files. Raise ``ValueError`` for a target id the game does not declare.
+        """
+        raise ValueError(f"Unknown build target: {target_id}")

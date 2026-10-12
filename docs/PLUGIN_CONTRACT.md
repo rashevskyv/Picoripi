@@ -116,6 +116,17 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `load_reference_patch` | Read a reference translation: (block, string) -> text. |  |
 | `load_multi_reference` | Read reference translations in several languages. |  |
 
+## Project Manager (worker thread: no widgets, no self.mw)
+
+| Hook | What it is for | Notes |
+|---|---|---|
+| `get_source_roles` | Roles the project's source files can have: [{id, label}]. The first is the default. |  |
+| `identify_source` | Recognise a file the user added, by its content: {role, platform} or None. |  |
+| `get_platforms` | Platforms the game ships on: [{id, label}]. |  |
+| `unpack_sources` | Unpack the role files into an empty folder: progress(percent, text) and is_cancelled() are passed in. Returns the folder, or None to use the files as they are. |  |
+| `get_build_targets` | What the game can build: [{id, label, platforms, kind}] with kind files, patch or layeredfs. Empty: the Build, Export and Run buttons stay off. |  |
+| `build_target` | Write one build target into an empty output folder and return the result path. Gets source_dir, translation_dir, output_dir, progress and is_cancelled. |  |
+
 ## Looked for by the host (not on the base class)
 
 | Hook | What it is for | Notes |
