@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 3.1k
+tokens: 3.4k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -161,3 +161,16 @@ so an unedited font saves byte-exact. A plugin names its fonts with `get_font_so
 game constants stay in that file. Widths reach the checks through `<project>/font_maps/*.json`.
 **Cost.** The model keeps BFN names (`GLY1`, `MAP1`, `WID1`) for formats that are not BFN; a format whose
 character map is fixed by the game cannot give a new glyph a character (the translation map does that).
+
+## D18. The Project Manager lists the projects the user added; counts come from memory (2026-10)
+
+**Context.** Picoripi had only Recent Projects. Scanning all project files at start would read hundreds of
+folders and make the list depend on the disk. The line and translation counts need the plugin's parser, and
+a plugin loaded on a worker thread is a risk.
+**Decision.** `~/.picoripi/project_manager.json` holds only what the user added: paths, folders, names, the
+view choices. Every change is a read-modify-write on a worker under one lock. The window reads a cache,
+`project_index.json`, and refreshes each card from a worker. Lines and translated % are counted from the data
+already in memory when a project opens or saves, on a worker. Only `picoripi/project.uiproj` folders are imported,
+and folders named `_…` or `.…` are skipped.
+**Cost.** A project never opened in Picoripi shows "—" for lines. Counts copy the lists on the UI thread once
+(pointer copies). Recent Projects stays as before and is not replaced.

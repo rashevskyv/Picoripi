@@ -66,6 +66,10 @@ class MenuBuilder:
         self.mw.recent_projects_menu.installEventFilter(self.tooltip_filter)
         file_menu.addMenu(self.mw.recent_projects_menu)
 
+        self.mw.project_manager_action = QAction(tr('Project Manager...'), self.mw)
+        self.mw.project_manager_action.setShortcut('Ctrl+Shift+M')
+        file_menu.addAction(self.mw.project_manager_action)
+
         self.mw.close_project_action = QAction(tr('&Close Project'), self.mw)
         self.mw.close_project_action.setEnabled(False)
         file_menu.addAction(self.mw.close_project_action)

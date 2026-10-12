@@ -7,6 +7,7 @@ from handlers.project_action.blocks_mixin import BlocksMixin
 from handlers.project_action.session_mixin import SessionMixin
 from handlers.project_action.recent_mixin import RecentMixin
 from handlers.project_action.tree_mixin import TreeMixin
+from handlers.project_action.library_mixin import LibraryMixin
 
 
 class ProjectActionHandler(
@@ -15,6 +16,7 @@ class ProjectActionHandler(
     SessionMixin,
     RecentMixin,
     TreeMixin,
+    LibraryMixin,
     BaseHandler,
 ):
     """Handler for project action operations."""

@@ -237,6 +237,9 @@ class AppActionHandler(BaseHandler):
                     auto_push_in_background(self.mw)
                 except Exception as exc:
                     log_debug(f"Companion auto-push after save error: {exc}")
+                project_actions = getattr(self.mw, 'project_action_handler', None)
+                if project_actions is not None:
+                    project_actions.record_project_counts()
 
             if on_finished_callback:
                 on_finished_callback(success, warnings, errors)

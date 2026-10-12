@@ -58,6 +58,7 @@ from core.filter_query_api import FilterQueryAPI
 from plugins.base_game_rules import BaseGameRules
 
 from utils.logging_utils import log_info, log_warning, log_error, log_debug
+from utils.thread_utils import single_shot
 from utils.hotkey_manager import HotkeyManager
 from utils.constants import (
     EDITOR_PLAYER_TAG, ORIGINAL_PLAYER_TAG,
@@ -780,6 +781,7 @@ if __name__ == '__main__':
         window = MainWindow(startup_splash=splash)
         if not window._startup_loading_pending:
             window.finish_startup_loading()
+        single_shot(0, window, window.project_action_handler.open_project_manager_if_none)
     except Exception as e:
         log_error(f"CRITICAL ERROR during MainWindow initialization: {e}", exc_info=True)
         sys.exit(1)
