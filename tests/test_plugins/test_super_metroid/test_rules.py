@@ -212,9 +212,10 @@ def _tile_image(data: bytes, tile: int):
 def test_the_game_fonts_are_listed_one_by_one_and_intro_is_two_fonts():
     rules = check_loads(PLUGIN)
     labels = [f["label"] for f in rules.get_font_sources()]
-    assert len(labels) == len(set(labels)) == 9
+    assert len(labels) == len(set(labels)) == 10
     assert [part for part in ("Message boxes", "HUD numbers", "small letters", "big letters (top",
-                              "Pause screen", "Intro story", "Intro first screen", "Credits: job", "Credits: names")
+                              "Pause screen", "Intro story", "Intro story pages: Ukrainian", "Intro first screen", "Credits: job",
+                              "Credits: names")
             if not any(part in label for label in labels)] == []
     story, prologue = _font(rules, "Intro story"), _font(rules, "Intro first screen")
     assert story["path"] == prologue["path"] == "gfx/intro_font.bin"
@@ -240,6 +241,26 @@ def test_the_first_screen_grid_has_a_free_pair_cell_for_every_ukrainian_letter()
         assert top in free and top + 0x10 in free, letter
         tops.append(top)
     assert len(set(tops)) == 21
+
+
+def test_the_story_window_has_a_cell_for_every_ukrainian_capital():
+    """The 96 tiles 0x30-0x8F that the story pages load from their own block: 21 free cells from tile 0x30 on."""
+    rules = check_loads(PLUGIN)
+    window = _font(rules, "Intro story pages: Ukrainian")
+    assert window["path"] == "gfx/story_window.bin" and window["format"] == "texture_grid"
+    assert window["params"]["texture_params"]["height"] // 8 * 16 == 96
+    chars = window["params"]["chars"]
+    assert len(chars) == 96 and chars[:21] == list("БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ")
+    assert set(chars[21:]) == {""}
+
+
+def test_real_story_window_cells_match_the_zt_table(zt_sm):
+    sm, data = zt_sm
+    rules = check_loads(PLUGIN)
+    window = _font(rules, "Intro story pages: Ukrainian")["params"]["chars"]
+    assert sm.STORY_FIRST_TILE == 0x30 and len(sm.STORY_UA) == 21
+    for ch, tile in sm.STORY_UA.items():
+        assert window[tile - sm.STORY_FIRST_TILE] == ch
 
 
 def test_real_intro_fonts_show_every_letter_the_text_uses_as_a_whole_glyph(zt_sm):
