@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-11
+updated: 2026-10-12
 owns: unfinished work
 tokens: 20.4k
 purpose: Everything left open, one line each, by work package
@@ -9,6 +9,15 @@ purpose: Everything left open, one line each, by work package
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Family projects (2026-10-12, branch feat/family-projects-ui)
+
+- [ ] Project and wizard accept several folders or game images per project, each assigned to a member by the plugin (the engine and the TP recognition exist; the UI and image files do not).
+- [ ] Wind Waker family: plugin reads both GC BMG (`zelda_tww`) and HD MSBT (`zelda_ww`); match rate by editor text is 23 % (tags differ: `{escape:255:...}` vs `[Size]`). Needs a tag map before the family works.
+- [ ] Shared and per-member files (`FamilyPlan.shared_files`): the hook field exists, no plugin fills it, the build does not read it yet (TP `fontres.arc` shared, `rubyres.arc` per Wii).
+- [ ] Wind Waker font sync: the two copies "file-select font" and "name-entry font" (28335 and 148064 bytes) are not byte-equal; glyph sync by character code is not written.
+- [ ] Family store v1 to v2 migration: the old `_family/family_translations.json` is kept as `.bak_v1_20261012`; the new store is seeded from the translation folders.
+- [ ] TP Wii only folder reads the Wii source from `D:\RomHacking_tmp`; the family file must point elsewhere once that folder is removed.
 
 ## Integration round 7 (2026-10-11)
 

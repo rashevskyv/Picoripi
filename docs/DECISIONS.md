@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-02
+updated: 2026-10-12
 owns: decisions and their reasons
-tokens: 2.8k
+tokens: 3.6k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
