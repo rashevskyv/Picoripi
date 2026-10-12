@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional
 from core.containers import ContainerManager
 from plugins.common import gc_banner as banner
 from plugins.common.msbt import MAGIC as MSBT_MAGIC, Msbt
-from plugins.zelda_ww.tags import from_editor, to_editor
+from plugins.zelda_ww.tags import TAG_RE as HD_TAG_RE, from_editor, to_editor
 from plugins.zelda_bmg.rules import GameRules as TwilightPrincessRules
 
 from .dol import DolResources
@@ -145,6 +145,18 @@ class GameRules(TwilightPrincessRules):
             text = texts[index] if index < len(texts) else current
             new_tokens.append(tokens if text == current else from_editor(text))
         return msbt.build(new_tokens)
+
+    def get_syntax_highlighting_rules(self):
+        """The GameCube curly tags, plus the HD tags and icon characters of an MSBT block (see prepare/load).
+
+        GameCube text never holds square brackets or the icon characters (U+E000..U+F8FF), so the HD patterns
+        cannot match a BMG block; both syntaxes are highlighted in every block.
+        """
+        rules = super().get_syntax_highlighting_rules()
+        manager = getattr(self, "tag_manager", None)
+        if manager is None:
+            return rules
+        return [*rules, (HD_TAG_RE.pattern, manager.tag_format), (r"[-]", manager.tag_format)]
 
     def get_capabilities(self):
         """Lore from the wiki and terms from item windows; no speakers or window chrome yet."""

@@ -79,3 +79,13 @@ def test_derive_gives_each_hd_tag_to_one_gc_tag():
 
 def test_render_of_a_wait_tag_matches_the_editor_form():
     assert render_tag(Tag(1, 6, bytes.fromhex("000a"))) == "[Wait:10]"
+
+
+def test_gamecube_plugin_highlights_hd_tags_and_icons():
+    import re
+
+    from plugins.zelda_tww.rules import GameRules
+
+    patterns = [re.compile(pattern) for pattern, _format in GameRules().get_syntax_highlighting_rules()]
+    assert any(p.search("say [Size:150] now") for p in patterns)
+    assert any(p.search("press \ue0a0 here") for p in patterns)
