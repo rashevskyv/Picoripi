@@ -11,8 +11,11 @@ import pytest
 
 from core.containers.unityfs_crc import bundle_crc, patch_catalog_crc
 
-REAL_LAUNCHER = Path(os.environ.get("MGS3_PC_LAUNCHER_DATA", "D:/Games/MGS3 Master Collection/launcher_Data"))
-REAL_TERMS = REAL_LAUNCHER / "StreamingAssets/aa/StandaloneWindows64/defaultlocalgroup_assets_module/textdata/textdata_terms.asset.bundle"
+# The real launcher folder comes from MGS3_PC_LAUNCHER_DATA (the repository keeps no personal paths); unset, the checks skip.
+_LAUNCHER_ENV = os.environ.get("MGS3_PC_LAUNCHER_DATA", "").strip()
+REAL_TERMS = (Path(_LAUNCHER_ENV) / "StreamingAssets/aa/StandaloneWindows64/defaultlocalgroup_assets_module/textdata/textdata_terms.asset.bundle"
+              if _LAUNCHER_ENV else None)
+REAL_TERMS_MISSING = REAL_TERMS is None or not REAL_TERMS.is_file()
 
 
 def _bundle(blocks: list[bytes]) -> bytes:
@@ -84,7 +87,7 @@ def test_patch_refuses_a_new_crc_with_more_digits():
         patch_catalog_crc(catalog, {308193437: 1234567890})
 
 
-@pytest.mark.skipif(not REAL_TERMS.is_file(), reason="MGS3 PC launcher data is not on disk")
+@pytest.mark.skipif(REAL_TERMS_MISSING, reason="set MGS3_PC_LAUNCHER_DATA to the MGS3 PC launcher_Data folder")
 def test_real_terms_bundle_matches_its_catalog_value():
     # The catalog record of textdata_terms (LZ4HC blocks) stores this CRC; the value was checked on all 204 records.
     assert bundle_crc(REAL_TERMS.read_bytes()) == 2430254833
