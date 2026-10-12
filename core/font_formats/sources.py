@@ -6,7 +6,8 @@ folder, or a list of them -- the first that matches wins; its folder part may st
 ignored in a single-file project, whose file is the font file), optional ``member`` (a glob of
 files inside the archive at ``path``, or a path through archives inside it: ``dat/inner.arc/font/*.bfn``;
 a compressed archive or member is read decompressed and written compressed again),
-``font_map`` (the width map the font feeds) and ``params`` (the format's game constants). A G1T
+``font_map`` (the width map the font feeds), ``params`` (the format's game constants) and ``sync_glyphs_with``
+(the label of another descriptor whose same-named file takes the glyphs drawn here: ``glyph_sync``). A G1T
 whose widths live in the game's executable (``params.widths.patches``) also has exefs patch files in
 the translation folder, one per build of the game (``widths_patches``: file -> table address).
 ``companion`` (a path relative to the source folder) is a second file the font needs, e.g. the texture
@@ -57,6 +58,9 @@ class FontSource:
     widths_patches: Dict[str, str] = field(default_factory=dict)
     companion_source: str = ""
     companion_translation: str = ""
+    descriptor: str = ""                     # the label of the descriptor this file came from
+    sync_with: str = ""                      # the label of the descriptor whose glyphs this file follows
+    sync_partner: Optional["FontSource"] = field(default=None, repr=False, compare=False)
 
     @property
     def name(self) -> str:
@@ -146,6 +150,11 @@ def resolve(descriptors: Iterable[Dict[str, Any]], project_metadata: Dict[str, A
                 found.extend(_sources_for(descriptor, source_path, translation_path, translation_root, source_root))
         except (OSError, ValueError, KeyError, TypeError) as error:
             log_warning(f"Font source {descriptor.get('label') or descriptor.get('path')!r}: {error}")
+    for source in found:       # a copy that follows another copy's glyphs: the file of the same name in that descriptor
+        partners = [other for other in found if source.sync_with and other is not source
+                    and other.descriptor == source.sync_with and other.name == source.name]
+        if len(partners) == 1:
+            source.sync_partner = partners[0]
     return found
 
 
@@ -180,7 +189,9 @@ def _sources_for(descriptor: Dict[str, Any], source_path: str, translation_path:
     common = dict(format=str(descriptor["format"]), source_path=source_path, translation_path=translation_path,
                   font_map=str(descriptor.get("font_map") or ""), params=params,
                   widths_patches={os.path.normpath(os.path.join(translation_root, rel)): str(address)
-                                  for rel, address in patches.items()} if translation_root else {}, **pair)
+                                  for rel, address in patches.items()} if translation_root else {},
+                  descriptor=str(descriptor.get("label") or ""), sync_with=str(descriptor.get("sync_glyphs_with") or ""),
+                  **pair)
     label = str(descriptor.get("label") or "")
     member_glob = descriptor.get("member")
     if not member_glob:

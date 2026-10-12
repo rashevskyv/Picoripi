@@ -17,11 +17,12 @@ from PIL import Image
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from core import font_formats
-from core.font_formats import g1t
+from core.font_formats import g1t, glyph_sync
 from core.i18n import tr
+from tools.bfn_editor.bfn_engine import read_bfn_model, write_bfn_model
 from utils import app_mode
 from utils.atomic_io import atomic_write_bytes, atomic_write_json
-from utils.logging_utils import log_debug, log_error, log_info
+from utils.logging_utils import log_debug, log_error, log_info, log_warning
 from utils.thread_utils import WorkerThread
 
 
@@ -59,6 +60,22 @@ def pil_to_qimage(image: Image.Image) -> QtGui.QImage:
     rgba = image.convert("RGBA")
     qimage = QtGui.QImage(rgba.tobytes(), rgba.width, rgba.height, rgba.width * 4, QtGui.QImage.Format.Format_RGBA8888)
     return qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
+
+
+def sync_linked_bfn(source, partner, data: bytes):
+    """Copy the glyphs that ``data`` changed in ``source`` into its linked copy ``partner`` (core.font_formats.glyph_sync).
+
+    ``data`` is the edited copy as it was written. Returns the report. Decoding and encoding take a fraction of
+    a second per copy, so this runs in a font job, not on the UI thread.
+    """
+    edited = read_bfn_model(bytes(data))
+    edited_original = read_bfn_model(source.read_original())
+    other = read_bfn_model(partner.read_current())
+    other_original = read_bfn_model(partner.read_original())
+    model, report = glyph_sync.copy_glyphs(edited, edited_original, other, other_original)
+    if model is not None:
+        partner.write(write_bfn_model(*model))
+    return report
 
 
 def apply_saved_widths(metadata: dict, saved: dict) -> None:
@@ -168,7 +185,7 @@ class IoFormatMixin:
             self.archive_name = ""
             self.archive_files = {}
             if source.format == "bfn":
-                self.archive_save_callback = lambda _name, data: source.write(data)
+                self.archive_save_callback = lambda _name, data: self._save_plugin_bfn(source, data)
                 self.original_font_metadata, self.original_sheet_images = None, []
                 if original != current:
                     self.load_original_bfn_bytes(original, source.name)
@@ -179,6 +196,24 @@ class IoFormatMixin:
             self.load_formatted_bytes(current, source.name, source.format, source.params, original=original)
 
         self.run_font_job(work, done)
+
+    def _save_plugin_bfn(self, source, data):
+        """Write a plugin BFN font. A linked copy (``sync_partner``) gets the glyphs changed here, in a job."""
+        source.write(data)
+        partner = source.sync_partner
+        if partner is None:
+            return
+
+        def done(report, error):
+            if error:
+                QtWidgets.QMessageBox.warning(self, tr('Error'), tr('The linked font was not updated: {0}', error))
+                return
+            for char, reason in report.skipped.items():
+                log_warning(f"Font editor: glyph {char!r} not copied to {partner.label}: {reason}")
+            self.status.showMessage(tr("Linked font {0}: {1} glyphs copied, {2} conflicts, {3} skipped",
+                                       partner.label, len(report.copied), len(report.conflicts), len(report.skipped)))
+
+        self.run_font_job(lambda: sync_linked_bfn(source, partner, bytes(data)), done)
 
     # -- loading and saving other formats ------------------------------------------
 

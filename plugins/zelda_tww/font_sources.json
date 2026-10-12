@@ -18,14 +18,16 @@
     "format": "bfn",
     "path": ["res/Msg/nameres.arc", "files/res/Msg/nameres.arc", "nameres.arc", "../nameres.arc"],
     "member": "*.bfn",
-    "font_map": "rock_24_20_ia4_e.json"
+    "font_map": "rock_24_20_ia4_e.json",
+    "sync_glyphs_with": "File select font (a copy of the name entry font)"
   },
   {
     "label": "File select font (a copy of the name entry font)",
     "format": "bfn",
     "path": ["res/Stage/Name/Stage.arc", "files/res/Stage/Name/Stage.arc"],
     "member": "dat/file_select.arc/font/*.bfn",
-    "font_map": "rock_24_20_ia4_e.json"
+    "font_map": "rock_24_20_ia4_e.json",
+    "sync_glyphs_with": "Name entry font"
   },
   {
     "label": "Disc error font (in main.dol)",
