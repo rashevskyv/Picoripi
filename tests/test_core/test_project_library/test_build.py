@@ -1,0 +1,168 @@
+"""Unpack, build, export, emulator command, project flags and the registry setting of the Project Manager."""
+import json
+import os
+
+import pytest
+
+from core.project_library import build, flags, registry
+from plugins.base_game_rules import BaseGameRules
+from plugins.plain_text.rules import GameRules as PlainTextRules
+
+
+def _no_cancel():
+    return False
+
+
+class BuildingRules(BaseGameRules):
+    """Writes one file per call into the folder it is given; unpacks only when asked to."""
+
+    def __init__(self, unpack_result="source", fail=False):
+        super().__init__()
+        self.unpack_result = unpack_result
+        self.fail = fail
+
+    def unpack_sources(self, sources, target_dir, progress, is_cancelled):
+        if self.unpack_result is None:
+            return None
+        with open(os.path.join(target_dir, "game.bin"), "w", encoding="utf-8") as handle:
+            handle.write(",".join(sorted(sources)))
+        progress(100, "done")
+        return target_dir
+
+    def build_target(self, target_id, source_dir, translation_dir, output_dir, progress, is_cancelled):
+        if self.fail:
+            raise OSError("disk full")
+        if target_id != "patch":
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        result = os.path.join(output_dir, "patch.ips")
+        with open(result, "w", encoding="utf-8") as handle:
+            handle.write("patched")
+        return result
+
+
+def test_unpack_moves_the_folder_into_place(tmp_path):
+    result = build.run_unpack(BuildingRules(), {"base": "x"}, tmp_path, lambda p, t: None, _no_cancel)
+
+    assert result == str(tmp_path / "unpacked")
+    assert (tmp_path / "unpacked" / "game.bin").read_text(encoding="utf-8") == "base"
+    assert not [p for p in tmp_path.iterdir() if p.name.startswith(".unpack-")]
+
+
+def test_unpack_without_a_recipe_leaves_no_folder(tmp_path):
+    result = build.run_unpack(BuildingRules(unpack_result=None), {}, tmp_path, lambda p, t: None, _no_cancel)
+
+    assert result is None
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_cancelled_unpack_removes_only_its_temporary_folder(tmp_path):
+    (tmp_path / "keep.txt").write_text("user file", encoding="utf-8")
+    with pytest.raises(build.Cancel):
+        build.run_unpack(BuildingRules(), {"base": "x"}, tmp_path, lambda p, t: None, lambda: True)
+
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["keep.txt"]
+
+
+def test_build_replaces_an_earlier_result_and_returns_its_path(tmp_path):
+    rules = BuildingRules()
+    build_dir = tmp_path / "build" / "patch"
+    build_dir.mkdir(parents=True)
+    (build_dir / "old.ips").write_text("old", encoding="utf-8")
+
+    result = build.run_build(rules, "patch", tmp_path, "src", "tr", lambda p, t: None, _no_cancel)
+
+    assert result == str(build_dir / "patch.ips")
+    assert (build_dir / "patch.ips").read_text(encoding="utf-8") == "patched"
+    assert not (build_dir / "old.ips").exists()
+    assert [p.name for p in (tmp_path / "build").iterdir()] == ["patch"]
+
+
+def test_failed_build_keeps_the_earlier_result(tmp_path):
+    build_dir = tmp_path / "build" / "patch"
+    build_dir.mkdir(parents=True)
+    (build_dir / "old.ips").write_text("old", encoding="utf-8")
+
+    with pytest.raises(OSError):
+        build.run_build(BuildingRules(fail=True), "patch", tmp_path, "src", "tr", lambda p, t: None, _no_cancel)
+
+    assert (build_dir / "old.ips").read_text(encoding="utf-8") == "old"
+    assert [p.name for p in (tmp_path / "build").iterdir()] == ["patch"]
+
+
+def test_export_copies_into_an_empty_folder_and_refuses_a_used_one(tmp_path):
+    source = tmp_path / "build"
+    (source / "sub").mkdir(parents=True)
+    (source / "sub" / "a.txt").write_text("a", encoding="utf-8")
+    destination = tmp_path / "out"
+
+    result = build.export_build(source, destination, lambda p, t: None, _no_cancel)
+
+    assert result == str(destination)
+    assert (destination / "sub" / "a.txt").read_text(encoding="utf-8") == "a"
+    other = tmp_path / "used"
+    other.mkdir()
+    (other / "x").write_text("x", encoding="utf-8")
+    with pytest.raises(ValueError):
+        build.export_build(source, other, lambda p, t: None, _no_cancel)
+
+
+def test_plain_text_target_copies_translation_files_keeping_folders(tmp_path):
+    translation = tmp_path / "tr"
+    (translation / "menu").mkdir(parents=True)
+    (translation / "menu" / "a.txt").write_text("hello", encoding="utf-8")
+    output = tmp_path / "out"
+    output.mkdir()
+
+    result = PlainTextRules().build_target("translated_files", "", str(translation), str(output),
+                                           lambda p, t: None, _no_cancel)
+
+    assert result == str(output)
+    assert (output / "menu" / "a.txt").read_text(encoding="utf-8") == "hello"
+
+
+def test_emulator_template_keeps_a_spaced_path_as_one_argument():
+    template = '"C:\\Emu Dir\\emu.exe" --load {path} --title x'
+
+    assert build.emulator_argv(template, "D:\\my mods\\build", posix=False) == [
+        "C:\\Emu Dir\\emu.exe", "--load", "D:\\my mods\\build", "--title", "x"]
+    assert build.emulator_argv("/Applications/Emu.app/Contents/MacOS/emu {path}", "/tmp/a b",
+                               posix=True) == ["/Applications/Emu.app/Contents/MacOS/emu", "/tmp/a b"]
+
+
+def test_emulator_template_without_placeholder_appends_the_path_and_empty_is_nothing():
+    assert build.emulator_argv("emu", "/x", posix=True) == ["emu", "/x"]
+    assert build.emulator_argv("   ", "/x", posix=True) == []
+
+
+def test_flags_are_stored_in_metadata_and_other_data_stays(tmp_path):
+    project_file = tmp_path / "project.uiproj"
+    project_file.write_text(json.dumps({"name": "Aria", "metadata": {"source_path": "src"}}), encoding="utf-8")
+
+    stored = flags.set_flags(project_file, {"built": True})
+    flags.set_flags(project_file, {"verified_in_game": True})
+
+    document = json.loads(project_file.read_text(encoding="utf-8"))
+    assert stored == {"built": True}
+    assert document["metadata"] == {"source_path": "src",
+                                    "flags": {"built": True, "verified_in_game": True}}
+    assert flags.flags_of(document["metadata"]) == {"built": True, "verified_in_game": True}
+
+
+def test_unknown_flag_is_refused(tmp_path):
+    project_file = tmp_path / "project.uiproj"
+    project_file.write_text(json.dumps({"metadata": {}}), encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        flags.set_flags(project_file, {"shipped": True})
+
+
+def test_registry_keeps_only_known_settings(tmp_path):
+    def operation(reg):
+        assert reg.set_setting("emulator_command", "emu {path}")
+        assert not reg.set_setting("openai_key", "secret")
+
+    registry.mutate(tmp_path, operation)
+
+    reloaded = registry.Registry(registry.read(tmp_path))
+    assert reloaded.settings() == {"emulator_command": "emu {path}"}
+    assert "openai_key" not in json.dumps(registry.read(tmp_path))
