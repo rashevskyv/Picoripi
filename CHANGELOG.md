@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Wind Waker (2026-10-12): the GameCube plugin highlights HD tags (`[Size:150]`) and icon characters in MSBT blocks of the family project; the font editor logs each glyph code copied to a linked copy (`sync_glyphs_with`), with the count in the save message.
 - Wind Waker family (2026-10-12): GameCube BMG and HD MSBT share one translation; the tag table is derived from the game files (`plugins/zelda_ww/family_tag_map.json`, D20); `zelda_tww` opens MSBT blocks; `core/family_projects` gains `exact_keys` (`align_by_key`), TP keeps its alignment; `plugins/common/msbt.py` gains `subset`.
 - Font glyph sync: a glyph drawn in one copy of a linked font (`sync_glyphs_with` in a plugin's `font_sources.json`) is copied to the other copy by character code when the Font Editor saves it; kept in `core/font_formats/glyph_sync.py`. Wind Waker's name entry font and the file select copy are linked; a glyph of another cell size, or one the other texture format cannot hold exactly, is skipped and logged.
 - Family projects (2026-10-12): the plugin declares the family (`BaseGameRules.family_plan`, D19); core `core/family_projects/` is a generic engine with member parents (HD Msgus links to Msguk first). Twilight Princess: fingerprint recognition of GC, Wii and both HD slots, one project with the base archives and "<console> only" folders, push/pull with the store; Wind Waker is not a family yet (match rate 23%, tags differ).
