@@ -1,0 +1,3 @@
+[
+  {"label": "Level textures (PNG export of the .fr3 files)", "format": "png", "path": "textures/**/*.png"}
+]
