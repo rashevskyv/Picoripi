@@ -10,6 +10,8 @@ that does not fit its old place is refused. Several dialogs that share one place
 same bytes, otherwise they are refused with their names. All refusals are reported together. The header and
 global checksums are fixed on save.
 """
+import json
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.formats import DEFAULT_FORMATS, FileFormat
@@ -30,6 +32,12 @@ BLOCK_NAMES = {
 }
 
 
+REFERENCE_LABELS = {
+    "ua_gb": "Ukrainian GB v0.1 (decoded)",
+    "swuk": "Ukrainian SWUK (matched by words)",
+}
+
+
 def _block_of(index: int) -> Tuple[int, int]:
     return index // BLOCK_SIZE, index % BLOCK_SIZE
 
@@ -47,6 +55,7 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._loaded: Optional[bytes] = None
         self._markups: Dict[int, str] = {}
+        self._names: Dict[str, Tuple[int, int]] = {}
         self._save_source: Optional[bytes] = None
         self._save_newest: Optional[bytes] = None
 
@@ -66,14 +75,42 @@ class GameRules(BaseGameRules):
         self._loaded = raw
         blocks: List[List[str]] = [[] for _ in BLOCK_NAMES]
         self._markups = {}
+        self._names = {}
         for ref in _slots(raw):
             n = ladx_text.span_length(raw, ref.rom)
             markup = ladx_text.to_markup(raw[ref.rom:ref.rom + n])
-            block, _position = _block_of(ref.index)
+            block, position = _block_of(ref.index)
             blocks[block].append(markup)
             self._markups[ref.index] = markup
+            self._names[ref.name] = (block, position)
         blocks[int(CREDITS_BLOCK)] = [ladx_text.decode_bytes(row) for row in ladx_rom.credit_rows(raw)]
         return blocks, dict(BLOCK_NAMES)
+
+    # -- reference columns ---------------------------------------------------------------------
+
+    def supports_reference_patch(self) -> bool:
+        return True
+
+    def get_reference_language_label(self) -> str:
+        return "Reference (UA GB, SWUK)"
+
+    def load_multi_reference(self, patch_path: str, block_names=None) -> Dict[str, Dict[Tuple[int, int], str]]:
+        """Reference columns from the folder of JSON files (``ua_gb.json``, ``swuk.json``), matched by dialog name.
+
+        A file maps ``DialogNNN`` to the reference text. Editor rows are kept as they are; the reference is shown
+        only, it is never written into the translation.
+        """
+        folder = Path(patch_path)
+        if folder.is_file():
+            folder = folder.parent
+        result: Dict[str, Dict[Tuple[int, int], str]] = {}
+        for key, label in REFERENCE_LABELS.items():
+            path = folder / f"{key}.json"
+            if not path.is_file():
+                continue
+            mapping = json.loads(path.read_text(encoding="utf-8"))
+            result[label] = {self._names[name]: text for name, text in mapping.items() if name in self._names}
+        return result
 
     # -- save ----------------------------------------------------------------------------------
 
