@@ -1,44 +1,35 @@
-"""Copy the glyphs drawn in one copy of a font to the other copy of the same font, by character code.
+"""Copy glyph changes between two identical copies of a bitmap font, by character code, in order of change.
 
-A glyph is its cell pixels, its kerning and its width (the WID1 packet). The edited copy is the one saved
-now. A code the edited copy changed (against its own original) is copied to the other copy, unless the other
-copy changed that code too and differently: then the edited copy wins and the code is reported as a conflict.
-A cell of a different size is not copied (no lossless mapping is defined for that). A pixel the other copy's
-texture format cannot hold exactly is not copied either. A glyph the other copy shares with another code is
-not copied either, because the copy would change that code too.
+Two copies are identical when they have the same format, the same cell size and the same code-to-glyph layout
+(pixels and widths may differ). Only identical copies are linked: a different cell size or format is never a
+candidate, so no scaling is done.
 
-Works on the font editor's model ``(metadata, sheets)`` (see ``core.font_formats``): sheets are RGBA images.
-Pure: no files, no threads. The caller reads the two copies and writes the result back.
+A change is a glyph whose content (cell pixels, kerning, width) differs from the copy as it was loaded. Each change
+is recorded with a time in ``font_sync.json`` (the state file): the latest change per code wins everywhere, and a
+revert is a change too. On save, a copy first takes the newer glyphs of its partner (for codes it did not change
+itself), then writes; then its own latest changes are copied to the partner. A copy with no change of its own
+copies nothing, so an old drawing cannot come back after a revert in the other copy.
+
+Pure: works on the editor's model ``(metadata, sheets)`` (RGBA sheets) and on plain dicts. The caller reads and
+writes the files.
 """
 from __future__ import annotations
 
 import copy
-from collections import Counter
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
-
-from PIL import Image
+import hashlib
+import json
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from core.font_formats import Metadata, Sheets, char_map
 
 Model = Tuple[Metadata, Sheets]
-
-# GX texture formats (GLY1 ``texture_format``) the copy can check: I4 0, I8 1, IA4 2, IA8 3.
-_FOUR_BIT, _EIGHT_BIT = (0, 2), (1, 3)
-
-
-@dataclass
-class SyncReport:
-    """What one sync did: codes shared by both copies, copied, in conflict, and skipped (code -> reason)."""
-
-    shared: int = 0
-    copied: List[str] = field(default_factory=list)
-    conflicts: List[str] = field(default_factory=list)
-    skipped: Dict[str, str] = field(default_factory=dict)
+STATE_FILE = "font_sync.json"
+LOG_LIMIT = 5000
 
 
 def _cell_box(metadata: Metadata, glyph: int):
-    """``(sheet, x, y, cell width, cell height, texture format)`` of a glyph in the GLY1 grid, or None."""
+    """``(sheet, x, y, cell width, cell height)`` of a glyph in the GLY1 grid, or None."""
     for gly in metadata.get("GLY1", []):
         start, end = gly["start_glyph"], gly["end_glyph"]
         if not start <= glyph <= end:
@@ -46,7 +37,7 @@ def _cell_box(metadata: Metadata, glyph: int):
         columns, rows = gly["glyph_horizontal_count"], gly["glyph_vertical_count"]
         sheet, cell = divmod(glyph - start, columns * rows)
         width, height = gly["cell_width"], gly["cell_height"]
-        return sheet, (cell % columns) * width, (cell // columns) * height, width, height, gly["texture_format"]
+        return sheet, (cell % columns) * width, (cell // columns) * height, width, height
     return None
 
 
@@ -59,95 +50,122 @@ def _packet(metadata: Metadata, glyph: int) -> Optional[Dict[str, int]]:
     return None
 
 
-def _cell(model: Model, glyph: Optional[int]) -> Optional[Image.Image]:
-    """The RGBA cell of a glyph, or None when the model has none."""
-    if glyph is None:
-        return None
-    metadata, sheets = model
-    box = _cell_box(metadata, glyph)
-    if box is None or box[0] >= len(sheets):
-        return None
-    sheet, x, y, width, height, _format = box
-    return sheets[sheet].crop((x, y, x + width, y + height))
+def cell_size(metadata: Metadata) -> Optional[Tuple[int, int]]:
+    """The cell size of the font's glyph grid, or None when it has no grid."""
+    gly = metadata.get("GLY1") or []
+    return (gly[0]["cell_width"], gly[0]["cell_height"]) if gly else None
 
 
-def _record(model: Model, glyph: Optional[int]):
-    """What a glyph is: cell size, cell pixels, kerning and width; None when the model has no such glyph."""
-    cell = _cell(model, glyph)
-    packet = _packet(model[0], glyph) if glyph is not None else None
-    if cell is None or packet is None:
-        return None
-    return cell.size, cell.tobytes(), packet["kerning"], packet["width"]
-
-
-def storable(cell: Image.Image, texture_format: int) -> bool:
-    """True when the texture format keeps every pixel of the cell exactly.
-
-    The 4-bit formats store multiples of 17 only; I4 and I8 have alpha equal to intensity; IA4 and IA8 keep
-    an alpha of their own (a multiple of 17 in IA4).
-    """
-    if texture_format not in _FOUR_BIT + _EIGHT_BIT:
+def identical(a: Model, b: Model, format_a: str, format_b: str) -> bool:
+    """True when two copies share the format, the cell size and the code-to-glyph layout."""
+    if format_a != format_b or cell_size(a[0]) is None or cell_size(a[0]) != cell_size(b[0]):
         return False
-    step = 17 if texture_format in _FOUR_BIT else 1
-    own_alpha = texture_format in (2, 3)
-    for red, green, blue, alpha in cell.getdata():
-        if not red == green == blue or red % step:
-            return False
-        if own_alpha and alpha % (17 if texture_format == 2 else 1):
-            return False
-        if not own_alpha and alpha != red:
-            return False
-    return True
+    return char_map(a[0]) == char_map(b[0])
 
 
-def copy_glyphs(edited: Model, edited_original: Model, other: Model, other_original: Model
-                ) -> Tuple[Optional[Model], SyncReport]:
-    """The other copy with the glyphs the edited copy changed, or None when nothing is copied; and the report.
+def glyph_hashes(model: Model) -> Dict[str, str]:
+    """Content hash per mapped code (cell pixels, cell size, kerning and width). Codes without a cell are left out."""
+    metadata, sheets = model
+    hashes: Dict[str, str] = {}
+    for char, glyph in char_map(metadata).items():
+        box = _cell_box(metadata, glyph)
+        packet = _packet(metadata, glyph)
+        if box is None or packet is None or box[0] >= len(sheets):
+            continue
+        sheet, x, y, width, height = box
+        cell = sheets[sheet].crop((x, y, x + width, y + height)).tobytes()
+        digest = hashlib.sha256()
+        digest.update(f"{width}x{height}:{packet['kerning']}:{packet['width']}:".encode("ascii"))
+        digest.update(cell)
+        hashes[char] = digest.hexdigest()
+    return hashes
 
-    ``edited`` is the copy saved now, ``edited_original`` and ``other_original`` are the game's own fonts,
-    ``other`` is the other copy as it is now.
+
+def dirty_codes(loaded: Dict[str, str], model: Model) -> List[str]:
+    """The codes whose glyph differs from the copy as it was loaded (``loaded`` = its glyph hashes then)."""
+    now = glyph_hashes(model)
+    return sorted(char for char in set(now) | set(loaded) if now.get(char) != loaded.get(char))
+
+
+def copy_glyph(into: Model, owner: Model, char: str) -> None:
+    """Write the owner's glyph for ``char`` (cell pixels, kerning, width) into ``into``, in place."""
+    metadata, sheets = owner
+    target_meta, target_sheets = into
+    glyph = char_map(metadata)[char]
+    target = char_map(target_meta)[char]
+    sheet, x, y, width, height = _cell_box(metadata, glyph)
+    cell = sheets[sheet].crop((x, y, x + width, y + height))
+    t_sheet, t_x, t_y, _w, _h = _cell_box(target_meta, target)
+    target_sheets[t_sheet].paste(cell, (t_x, t_y))
+    packet, target_packet = _packet(metadata, glyph), _packet(target_meta, target)
+    target_packet["kerning"], target_packet["width"] = packet["kerning"], packet["width"]
+
+
+# -- the state file ----------------------------------------------------------------------------------
+
+def new_state() -> Dict[str, Any]:
+    return {"version": 1, "latest": {}, "log": []}
+
+
+def pair_key(a: str, b: str) -> str:
+    return "|".join(sorted((a, b)))
+
+
+def load_state(path: Path) -> Dict[str, Any]:
+    """The state file, or a new state when there is none."""
+    if not Path(path).is_file():
+        return new_state()
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if data.get("version") != 1:
+        raise ValueError(f"{path}: unknown font sync version {data.get('version')!r}")
+    return data
+
+
+def save_state(path: Path, state: Dict[str, Any]) -> None:
+    from utils.atomic_io import atomic_write_json
+
+    atomic_write_json(Path(path), state, ensure_ascii=False, indent=1)
+
+
+def record_changes(state: Dict[str, Any], font: str, codes: Iterable[str], hashes: Dict[str, str], now: float) -> None:
+    """Make ``font``'s glyphs for ``codes`` the latest changes, and log them. A code with no glyph is not recorded."""
+    for char in codes:
+        if char not in hashes:
+            continue
+        state["latest"][char] = {"font": font, "time": now, "hash": hashes[char]}
+        state["log"].append({"font": font, "code": char, "time": now, "hash": hashes[char]})
+    del state["log"][:-LOG_LIMIT]
+
+
+def carry(state: Dict[str, Any], owner: str, owner_model: Model, into: str, into_model: Model,
+          skip: Iterable[str] = ()) -> Tuple[Model, List[str]]:
+    """``into_model`` with every latest change of ``owner`` that it lacks, and the codes copied.
+
+    A code in ``skip`` (changed by ``into`` itself) is not touched. The owner's glyph must still hold the hash that
+    was recorded for it, otherwise it is not copied.
     """
-    report = SyncReport()
-    edited_codes, edited_was = char_map(edited[0]), char_map(edited_original[0])
-    other_codes, other_was = char_map(other[0]), char_map(other_original[0])
-    shared = sorted(set(edited_codes) & set(other_codes))
-    report.shared = len(shared)
-    other_users = Counter(other_codes.values())             # codes that point at each glyph of the other copy
-    result: Optional[Model] = None
+    skip = set(skip)
+    owner_hashes = glyph_hashes(owner_model)
+    into_hashes = glyph_hashes(into_model)
+    wanted = [char for char, entry in sorted(state["latest"].items())
+              if entry["font"] == owner and char not in skip and char in owner_hashes
+              and owner_hashes[char] == entry["hash"] and into_hashes.get(char) != entry["hash"]]
+    if not wanted:
+        return into_model, []
+    result: Model = (copy.deepcopy(into_model[0]), [sheet.copy() for sheet in into_model[1]])
+    for char in wanted:
+        copy_glyph(result, owner_model, char)
+    return result, wanted
 
-    for char in shared:
-        now = _record(edited, edited_codes[char])
-        if now == _record(edited_original, edited_was.get(char)):
-            continue                                        # the edited copy did not change this code
-        if now is None:
-            report.skipped[char] = "the edited copy has no cell or width for it"
-            continue
-        target = other_codes[char]
-        was_other = _record(other_original, other_was.get(char))
-        if _record(other, target) == now:
-            continue                                        # the other copy already has this glyph
-        if _record(other, target) != was_other:
-            report.conflicts.append(char)                   # both changed it: the edited copy wins
-        if other_users[target] > 1:
-            report.skipped[char] = f"the other copy's glyph is shared by {other_users[target]} codes"
-            continue
-        box = _cell_box(other[0], target)
-        if box is None or _packet(other[0], target) is None:
-            report.skipped[char] = "the other copy has no cell or width for it"
-            continue
-        cell = _cell(edited, edited_codes[char])
-        if cell.size != (box[3], box[4]):
-            report.skipped[char] = (f"cell size {cell.width}x{cell.height} differs from the other copy's "
-                                    f"{box[3]}x{box[4]}; no lossless mapping")
-            continue
-        if not storable(cell, box[5]):
-            report.skipped[char] = "the other copy's texture format cannot hold these pixels exactly"
-            continue
-        if result is None:
-            result = (copy.deepcopy(other[0]), [sheet.copy() for sheet in other[1]])
-        sheet, x, y = box[0], box[1], box[2]
-        result[1][sheet].paste(cell, (x, y))
-        packet = _packet(result[0], target)
-        packet["kerning"], packet["width"] = now[2], now[3]
-        report.copied.append(char)
-    return result, report
+
+def pair_enabled(pairs: Dict[str, Dict[str, Any]], a: str, b: str) -> bool:
+    """Whether the user copies changes between two copies. ``pairs`` is the project's ``font_sync_pairs`` mapping;
+    a pair is off until the user turns it on."""
+    return bool(pairs.get(pair_key(a, b), {}).get("enabled", False))
+
+
+def set_pair(pairs: Dict[str, Dict[str, Any]], a: str, b: str, enabled: bool, prompted: bool = True) -> None:
+    """Turn a pair on or off in the project's ``font_sync_pairs`` mapping (``prompted``: the one-time question was shown)."""
+    entry = pairs.setdefault(pair_key(a, b), {})
+    entry["enabled"] = bool(enabled)
+    entry["prompted"] = bool(prompted)

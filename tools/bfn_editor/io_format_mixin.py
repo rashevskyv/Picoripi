@@ -12,6 +12,7 @@ import json
 import os
 import shutil
 import tempfile
+import time
 
 from PIL import Image
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -22,7 +23,7 @@ from core.i18n import tr
 from tools.bfn_editor.bfn_engine import read_bfn_model, write_bfn_model
 from utils import app_mode
 from utils.atomic_io import atomic_write_bytes, atomic_write_json
-from utils.logging_utils import log_debug, log_error, log_info, log_warning
+from utils.logging_utils import log_debug, log_error, log_info
 from utils.thread_utils import WorkerThread
 
 
@@ -62,20 +63,24 @@ def pil_to_qimage(image: Image.Image) -> QtGui.QImage:
     return qimage.convertToFormat(QtGui.QImage.Format.Format_ARGB32)
 
 
-def sync_linked_bfn(source, partner, data: bytes):
-    """Copy the glyphs that ``data`` changed in ``source`` into its linked copy ``partner`` (core.font_formats.glyph_sync).
+def sync_on_save(source, partner, data: bytes, loaded, state_path: str, now: float):
+    """One save of ``source`` with its identical partner (the pair is on). Returns (bytes of the edited copy, bytes of
+    the partner or None, codes taken from the partner, codes given to it).
 
-    ``data`` is the edited copy as it was written. Returns the report. Decoding and encoding take a fraction of
-    a second per copy, so this runs in a font job, not on the UI thread.
+    ``loaded`` = glyph hashes of the copy as it was loaded or last saved. Its own changes are recorded with ``now``;
+    the partner's newer glyphs are taken first (not for codes it changed here), then its own latest changes are given.
     """
     edited = read_bfn_model(bytes(data))
-    edited_original = read_bfn_model(source.read_original())
-    other = read_bfn_model(partner.read_current())
-    other_original = read_bfn_model(partner.read_original())
-    model, report = glyph_sync.copy_glyphs(edited, edited_original, other, other_original)
-    if model is not None:
-        partner.write(write_bfn_model(*model))
-    return report
+    partner_model = read_bfn_model(partner.read_current())
+    state = glyph_sync.load_state(state_path)
+    changed = glyph_sync.dirty_codes(loaded or {}, edited)
+    glyph_sync.record_changes(state, source.label, changed, glyph_sync.glyph_hashes(edited), now)
+    taken_model, taken = glyph_sync.carry(state, partner.label, partner_model, source.label, edited, skip=changed)
+    edited_bytes = write_bfn_model(*taken_model) if taken else bytes(data)
+    given_model, given = glyph_sync.carry(state, source.label, taken_model, partner.label, partner_model)
+    partner_bytes = write_bfn_model(*given_model) if given else None
+    glyph_sync.save_state(state_path, state)
+    return edited_bytes, partner_bytes, taken, given
 
 
 def apply_saved_widths(metadata: dict, saved: dict) -> None:
@@ -171,14 +176,25 @@ class IoFormatMixin:
         self.status.showMessage(tr("Loading font: {0}...", source.label))
 
         def work():
-            return source.read_current(), source.read_original()
+            current, original = source.read_current(), source.read_original()
+            candidate, loaded = None, None
+            if source.format == "bfn":
+                model = read_bfn_model(current)
+                loaded = glyph_sync.glyph_hashes(model)
+                if source.sync_partner is not None:
+                    other = read_bfn_model(source.sync_partner.read_current())
+                    if glyph_sync.identical(model, other, source.format, source.sync_partner.format):
+                        candidate = source.sync_partner
+            return current, original, candidate, loaded
 
         def done(result, error):
             if error:
                 QtWidgets.QMessageBox.critical(self, tr('Error'), tr('Failed to open font: {0}', error))
                 self.status.showMessage(tr("Failed to load font."))
                 return
-            current, original = result
+            current, original, candidate, loaded = result
+            self._sync_loaded = loaded
+            self._set_sync_candidate(source, candidate)
             self.font_source = source
             self.font_write_path = ""
             self.current_bfn_name = source.label
@@ -197,28 +213,92 @@ class IoFormatMixin:
 
         self.run_font_job(work, done)
 
-    def _save_plugin_bfn(self, source, data):
-        """Write a plugin BFN font. A linked copy (``sync_partner``) gets the glyphs changed here, in a job."""
-        source.write(data)
-        partner = source.sync_partner
+    def _sync_pairs(self):
+        """The project's ``font_sync_pairs``: the copy pairs the user turned on (and whether the question was asked)."""
+        pm = getattr(self._main_window(), "project_manager", None)
+        if pm is None or getattr(pm, "project", None) is None:
+            return {}
+        return pm.project.metadata.setdefault("font_sync_pairs", {})
+
+    def _save_sync_pairs(self):
+        pm = getattr(self._main_window(), "project_manager", None)
+        if pm is not None and getattr(pm, "project", None) is not None:
+            pm.save()
+
+    def _sync_state_path(self):
+        pm = getattr(self._main_window(), "project_manager", None)
+        project_dir = getattr(pm, "project_dir", None)
+        return os.path.join(project_dir, glyph_sync.STATE_FILE) if project_dir else None
+
+    def _set_sync_candidate(self, source, partner):
+        """Show the copy-changes checkbox for an identical partner (off by default) and, once, a non-modal question."""
+        old = getattr(self, "sync_checkbox", None)
+        if old is not None:
+            self.status.removeWidget(old)
+            old.deleteLater()
+            self.sync_checkbox = None
         if partner is None:
             return
+        pairs = self._sync_pairs()
+        checkbox = QtWidgets.QCheckBox(tr("Copy changes to: {0}", partner.label))
+        checkbox.setChecked(glyph_sync.pair_enabled(pairs, source.label, partner.label))
+        checkbox.toggled.connect(lambda on: self._set_sync_pair(source, partner, on))
+        self.sync_checkbox = checkbox
+        self.status.addPermanentWidget(checkbox)
+        entry = pairs.get(glyph_sync.pair_key(source.label, partner.label), {})
+        if not entry.get("prompted", False):
+            glyph_sync.set_pair(pairs, source.label, partner.label, False, prompted=True)
+            self._save_sync_pairs()
+            box = QtWidgets.QMessageBox(self)
+            box.setWindowTitle(tr("Linked font"))
+            box.setText(tr("This font has an identical one ({0}). Copy glyph changes between them?", partner.label))
+            yes = box.addButton(tr("Yes"), QtWidgets.QMessageBox.ButtonRole.YesRole)
+            box.addButton(tr("No"), QtWidgets.QMessageBox.ButtonRole.NoRole)
+            box.setModal(False)
+            box.buttonClicked.connect(lambda button: checkbox.setChecked(button is yes))
+            self._sync_prompt = box
+            box.show()
 
-        def done(report, error):
+    def _set_sync_pair(self, source, partner, on):
+        pairs = self._sync_pairs()
+        glyph_sync.set_pair(pairs, source.label, partner.label, on, prompted=True)
+        self._save_sync_pairs()
+        self.status.showMessage(tr("Copy changes to {0}: {1}", partner.label, tr("on") if on else tr("off")))
+
+    def _save_plugin_bfn(self, source, data):
+        """Write a plugin BFN font. With an identical partner whose pair is on, the changes are copied by the sync."""
+        partner = source.sync_partner
+        state_path = self._sync_state_path()
+        loaded = getattr(self, "_sync_loaded", None)
+        now = time.time()
+        active = (partner is not None and state_path is not None and loaded is not None
+                  and glyph_sync.pair_enabled(self._sync_pairs(), source.label, partner.label))
+
+        def work():
+            if not active:
+                source.write(data)
+                return bytes(data), None, [], []
+            final, partner_bytes, taken, given = sync_on_save(source, partner, bytes(data), loaded, state_path, now)
+            source.write(final)
+            if partner_bytes is not None:
+                partner.write(partner_bytes)
+            return final, partner_bytes, taken, given
+
+        def done(result, error):
             if error:
                 QtWidgets.QMessageBox.warning(self, tr('Error'), tr('The linked font was not updated: {0}', error))
                 return
-            for char, reason in report.skipped.items():
-                log_warning(f"Font editor: glyph {char!r} not copied to {partner.label}: {reason}")
-            if report.copied:
-                codes = " ".join(repr(char) for char in sorted(report.copied))
-                log_info(f"Font editor: {len(report.copied)} glyphs copied to {partner.label}: {codes}")
-            for char in sorted(report.conflicts):
-                log_warning(f"Font editor: glyph {char!r} differs in both copies; the saved copy won")
-            self.status.showMessage(tr("Linked font {0}: {1} glyphs copied, {2} conflicts, {3} skipped",
-                                       partner.label, len(report.copied), len(report.conflicts), len(report.skipped)))
+            final, _partner_bytes, taken, given = result
+            self._sync_loaded = glyph_sync.glyph_hashes(read_bfn_model(final))
+            if active:
+                if given:
+                    log_info(f"Font sync: {len(given)} glyphs copied to {partner.label}: " + " ".join(map(repr, given)))
+                if taken:
+                    log_info(f"Font sync: {len(taken)} glyphs taken from {partner.label}: " + " ".join(map(repr, taken)))
+                self.status.showMessage(tr("Linked font {0}: {1} glyphs copied to it, {2} taken from it",
+                                           partner.label, len(given), len(taken)))
 
-        self.run_font_job(lambda: sync_linked_bfn(source, partner, bytes(data)), done)
+        self.run_font_job(work, done)
 
     # -- loading and saving other formats ------------------------------------------
 

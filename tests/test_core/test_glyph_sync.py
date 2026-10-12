@@ -1,143 +1,138 @@
-"""Glyph sync between two copies of a font (core/font_formats/glyph_sync.py), on synthetic font models."""
+"""Glyph sync between two identical copies of a bitmap font: change-based, opt-in (synthetic fonts, no game data)."""
+from pathlib import Path
+
 from PIL import Image
 
-from core.font_formats.glyph_sync import copy_glyphs, storable
-from core.font_formats.sources import resolve
+from core.font_formats import glyph_sync as gs
+from core.font_formats import map_entries
 
 
-def font(values=None, widths=None, codes="AB", cell=(4, 4), grid=(2, 2), texture_format=2, entries=None):
-    """A font model. Glyph i draws ``values[i]`` over its whole cell (default 17 * (i + 1)); its width is 5."""
-    columns, rows = grid
-    per_sheet = columns * rows
-    sheet_count = (len(codes) + per_sheet - 1) // per_sheet
-    sheets = [Image.new("RGBA", (columns * cell[0], rows * cell[1]), (0, 0, 0, 0)) for _ in range(sheet_count)]
+def font(fill=(255, 255, 255, 255), cell=(10, 10), codes=("A", "B"), kerning=0, width=6, glyph_count=None):
+    """Two glyphs on one sheet: 'A' is glyph 0, 'B' glyph 1; ``fill`` paints the top-left 6x5 of each cell."""
+    cw, ch = cell
+    sheet = Image.new("RGBA", (cw * 4, ch * 2), (0, 0, 0, 0))
     for glyph in range(len(codes)):
-        value = (values or {}).get(glyph, 17 * (glyph + 1))
-        sheet, index = divmod(glyph, per_sheet)
-        x, y = (index % columns) * cell[0], (index // columns) * cell[1]
-        sheets[sheet].paste((value, value, value, value), (x, y, x + cell[0], y + cell[1]))
-    codes_entries = entries if entries is not None else list(range(len(codes)))
+        for x in range(6):
+            for y in range(5):
+                sheet.putpixel((glyph * cw + x, y), fill)
     metadata = {
-        "GLY1": [{"start_glyph": 0, "end_glyph": len(codes) - 1, "cell_width": cell[0], "cell_height": cell[1],
-                  "glyph_horizontal_count": columns, "glyph_vertical_count": rows,
-                  "texture_format": texture_format}],
-        "MAP1": [{"mapping_type": 2, "first_char": ord(codes[0]), "last_char": ord(codes[0]) + len(codes_entries) - 1,
-                  "entries": codes_entries}],
-        "WID1": [{"first_code_included": 0,
-                  "packets": [{"kerning": 0, "width": (widths or {}).get(glyph, 5)} for glyph in range(len(codes))]}],
+        "GLY1": [{"start_glyph": 0, "end_glyph": 7, "cell_width": cw, "cell_height": ch,
+                  "glyph_horizontal_count": 4, "glyph_vertical_count": 2, "texture_format": 2}],
+        "MAP1": [map_entries([(ord(c), i) for i, c in enumerate(codes)])],
+        "WID1": [{"first_code_included": 0, "last_code_included": 7,
+                  "packets": [{"kerning": kerning, "width": width} for _ in range(8)],
+                  "glyph_widths": [6] * 8}],
     }
-    return metadata, sheets
+    return metadata, [sheet]
 
 
-def pixel(model, glyph, grid=(2, 2), cell=(4, 4)):
-    """The value of a glyph's top-left pixel."""
-    columns, rows = grid
-    sheet, index = divmod(glyph, columns * rows)
-    x, y = (index % columns) * cell[0], (index // columns) * cell[1]
-    return model[1][sheet].getpixel((x, y))[0]
+def painted(model, char, colour):
+    """``model`` with only the 6x5 ink box of ``char`` painted ``colour`` (in place)."""
+    metadata, sheets = model
+    glyph = gs.char_map(metadata)[char]
+    sheet, x, y, _w, _h = gs._cell_box(metadata, glyph)
+    for xx in range(6):
+        for yy in range(5):
+            sheets[sheet].putpixel((x + xx, y + yy), colour)
+    return model
 
 
-def width_of(model, glyph):
-    return model[0]["WID1"][0]["packets"][glyph]["width"]
+def blank_glyph(model, char):
+    """Erase the cell of ``char`` in place (a revert to nothing)."""
+    metadata, sheets = model
+    glyph = gs.char_map(metadata)[char]
+    sheet, x, y, w, h = gs._cell_box(metadata, glyph)
+    sheets[sheet].paste((0, 0, 0, 0), (x, y, x + w, y + h))
 
 
-def test_an_edited_glyph_is_copied_to_the_other_copy_by_code():
+def test_copies_are_identical_only_with_format_size_and_layout():
+    a = font()
+    assert gs.identical(a, font(fill=(0, 0, 0, 255)), "bfn", "bfn")         # pixels may differ
+    assert not gs.identical(a, font(cell=(12, 10)), "bfn", "bfn")          # a different cell size is not a candidate
+    assert not gs.identical(a, a, "bfn", "bfn_other")                       # a different format is not either
+    assert not gs.identical(a, font(codes=("B", "A")), "bfn", "bfn")       # a different layout is not either
+
+
+def test_pairs_are_off_by_default():
+    pairs = {}
+    assert gs.pair_enabled(pairs, "name entry", "file select") is False
+    gs.set_pair(pairs, "name entry", "file select", True)
+    assert gs.pair_enabled(pairs, "file select", "name entry") is True     # the pair, in either order
+
+
+def test_a_change_is_copied_to_the_other_copy():
+    loaded_a = gs.glyph_hashes(font())
+    a = painted(font(), "A", (0, 0, 0, 255))              # A's 'A' glyph was drawn dark
+    state = gs.new_state()
+    gs.record_changes(state, "A", gs.dirty_codes(loaded_a, a), gs.glyph_hashes(a), now=10.0)
+    b = font()
+    b, copied = gs.carry(state, "A", a, "B", b)
+    assert copied == ["A"]
+    assert gs.glyph_hashes(b)["A"] == gs.glyph_hashes(a)["A"]
+    assert gs.glyph_hashes(b)["B"] == gs.glyph_hashes(font())["B"]        # nothing else moved
+
+
+def test_a_revert_is_a_change_and_propagates():
     original = font()
-    copied, report = copy_glyphs(font(values={0: 68}), original, font(), original)
-    assert pixel(copied, 0) == 68
-    assert pixel(copied, 1) == 34                      # code 'B' was not edited: unchanged
-    assert report.copied == ["A"] and report.conflicts == [] and report.skipped == {}
-    assert report.shared == 2
+    loaded = gs.glyph_hashes(original)
+    state = gs.new_state()
+    drawn = painted(font(), "A", (0, 0, 0, 255))
+    gs.record_changes(state, "A", gs.dirty_codes(loaded, drawn), gs.glyph_hashes(drawn), now=1.0)
+    b, _ = gs.carry(state, "A", drawn, "B", font())
+    # A reverts the drawing: the copy saved last is the drawing, the revert is a new change
+    reverted = font()
+    blank_glyph(reverted, "A")
+    loaded_after_save = gs.glyph_hashes(drawn)
+    changed = gs.dirty_codes(loaded_after_save, reverted)
+    assert changed == ["A"]
+    gs.record_changes(state, "A", changed, gs.glyph_hashes(reverted), now=2.0)
+    b, copied = gs.carry(state, "A", reverted, "B", b)
+    assert copied == ["A"]
+    assert gs.glyph_hashes(b)["A"] == gs.glyph_hashes(reverted)["A"]
 
 
-def test_a_width_only_edit_travels_with_the_glyph():
+def test_a_stale_copy_with_no_change_of_its_own_does_not_bring_back_an_old_drawing():
     original = font()
-    copied, report = copy_glyphs(font(widths={1: 9}), original, font(), original)
-    assert width_of(copied, 1) == 9
-    assert width_of(copied, 0) == 5
-    assert pixel(copied, 1) == 34
-    assert report.copied == ["B"]
+    drawn = painted(font(), "A", (0, 0, 0, 255))
+    state = gs.new_state()
+    gs.record_changes(state, "A", ["A"], gs.glyph_hashes(drawn), now=1.0)
+    # B was opened while it still had the drawing; A then reverted and saved (latest change: A, the original)
+    reverted = font()
+    gs.record_changes(state, "A", ["A"], gs.glyph_hashes(reverted), now=2.0)
+    stale_b = drawn                                      # B's memory: the old drawing, no change of its own
+    assert gs.dirty_codes(gs.glyph_hashes(drawn), stale_b) == []
+    stale_b, copied = gs.carry(state, "A", reverted, "B", stale_b, skip=[])
+    assert copied == ["A"]                              # the newer revert from A replaces the stale drawing
+    assert gs.glyph_hashes(stale_b)["A"] == gs.glyph_hashes(original)["A"]
 
 
-def test_a_change_only_in_the_other_copy_is_left_alone():
-    original = font()
-    copied, report = copy_glyphs(original, original, font(values={0: 102}), original)
-    assert copied is None
-    assert report.copied == [] and report.conflicts == []
+def test_the_latest_change_wins_in_both_directions():
+    state = gs.new_state()
+    a_draw = painted(font(), "A", (0, 0, 0, 255))
+    b_draw = painted(font(), "A", (128, 128, 128, 255))
+    gs.record_changes(state, "A", ["A"], gs.glyph_hashes(a_draw), now=1.0)
+    gs.record_changes(state, "B", ["A"], gs.glyph_hashes(b_draw), now=2.0)   # B changed it later
+    assert state["latest"]["A"]["font"] == "B"
+    untouched = font()
+    _, copied_to_b = gs.carry(state, "A", a_draw, "B", untouched)
+    assert copied_to_b == []                             # A's older change does not overwrite B's newer one
+    _, copied_to_a = gs.carry(state, "B", b_draw, "A", font())
+    assert copied_to_a == ["A"]
 
 
-def test_both_copies_changed_the_same_code_differently_the_edited_copy_wins_and_is_reported():
-    original = font()
-    copied, report = copy_glyphs(font(values={0: 68}), original, font(values={0: 102}), original)
-    assert pixel(copied, 0) == 68
-    assert report.copied == ["A"] and report.conflicts == ["A"]
+def test_own_changes_are_not_copied_over_by_the_partner():
+    state = gs.new_state()
+    a_draw = painted(font(), "A", (0, 0, 0, 255))
+    gs.record_changes(state, "A", ["A"], gs.glyph_hashes(a_draw), now=1.0)
+    _, copied = gs.carry(state, "A", a_draw, "B", font(), skip=["A"])
+    assert copied == []
 
 
-def test_both_copies_changed_the_same_code_the_same_way_nothing_is_copied():
-    original = font()
-    copied, report = copy_glyphs(font(values={0: 68}), original, font(values={0: 68}), original)
-    assert copied is None
-    assert report.copied == [] and report.conflicts == []
-
-
-def test_a_cell_of_another_size_is_skipped_with_the_sizes_named():
-    original = font()
-    copied, report = copy_glyphs(font(values={0: 68}), original, font(cell=(6, 6)), font(cell=(6, 6)))
-    assert copied is None
-    assert report.skipped["A"] == "cell size 4x4 differs from the other copy's 6x6; no lossless mapping"
-
-
-def test_a_glyph_lands_in_the_other_copy_layout_at_its_own_cell():
-    # The other copy has one column and two rows: code 'B' is the glyph in its second row.
-    copied, report = copy_glyphs(font(values={1: 85}), font(), font(grid=(1, 2)), font(grid=(1, 2)))
-    assert pixel(copied, 1, grid=(1, 2)) == 85
-    assert pixel(copied, 0, grid=(1, 2)) == 17
-    assert report.copied == ["B"]
-
-
-def test_a_glyph_that_another_code_shares_in_the_other_copy_is_skipped():
-    shared = font(entries=[0, 0])                      # 'A' and 'B' both point at glyph 0 in the other copy
-    copied, report = copy_glyphs(font(values={0: 68}), font(), shared, font(entries=[0, 0]))
-    assert copied is None
-    assert report.skipped["A"] == "the other copy's glyph is shared by 2 codes"
-
-
-def test_pixels_the_other_texture_format_cannot_hold_are_not_copied():
-    copied, report = copy_glyphs(font(values={0: 5}), font(), font(), font())
-    assert copied is None
-    assert report.skipped["A"] == "the other copy's texture format cannot hold these pixels exactly"
-
-
-def test_a_code_only_one_copy_has_is_not_shared():
-    copied, report = copy_glyphs(font(values={0: 68}), font(), font(codes="A"), font(codes="A"))
-    assert report.shared == 1
-    assert report.copied == ["A"]
-
-
-def test_storable_follows_each_texture_format():
-    def solid(value, alpha=None):
-        return Image.new("RGBA", (2, 2), (value, value, value, value if alpha is None else alpha))
-
-    assert storable(solid(34), 2) and storable(solid(0), 0)     # IA4 and I4 hold multiples of 17
-    assert not storable(solid(5), 2) and not storable(solid(5), 0)
-    assert storable(solid(5), 1)                                  # I8: any intensity, alpha equal to it
-    assert not storable(solid(5, alpha=7), 1)
-    assert storable(solid(5, alpha=7), 3)                         # IA8: any intensity and alpha
-    assert storable(solid(34, alpha=68), 2)                       # IA4 keeps its own alpha
-    assert not storable(solid(34), 9)                             # a format this check does not know
-
-
-def test_linked_descriptors_are_paired_by_their_label_and_file_name(tmp_path):
-    for name in ("a/font.bfn", "b/font.bfn", "c/other.bfn"):
-        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / name).write_bytes(b"x")
-    descriptors = [
-        {"label": "Copy one", "format": "bfn", "path": "a/font.bfn", "sync_glyphs_with": "Copy two"},
-        {"label": "Copy two", "format": "bfn", "path": "b/font.bfn", "sync_glyphs_with": "Copy one"},
-        {"label": "Loose", "format": "bfn", "path": "c/other.bfn", "sync_glyphs_with": "Copy one"},
-    ]
-    found = resolve(descriptors, {"source_path": str(tmp_path), "translation_path": str(tmp_path / "tr"),
-                                  "is_directory_mode": True})
-    one, two, loose = found
-    assert one.sync_partner is two and two.sync_partner is one
-    assert loose.sync_partner is None                   # no file of the linked descriptor has its name
+def test_the_state_file_round_trips(tmp_path: Path):
+    state = gs.new_state()
+    gs.record_changes(state, "A", ["A"], {"A": "abc"}, now=3.5)
+    path = tmp_path / gs.STATE_FILE
+    gs.save_state(path, state)
+    loaded = gs.load_state(path)
+    assert loaded["latest"]["A"] == {"font": "A", "time": 3.5, "hash": "abc"}
+    assert gs.load_state(tmp_path / "missing.json")["latest"] == {}

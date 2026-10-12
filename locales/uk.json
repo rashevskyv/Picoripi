@@ -1850,5 +1850,14 @@
   "This game's plugin names no textures: open a texture file (Ctrl+O).": "Плагін цієї гри не називає текстур: відкрийте файл текстури (Ctrl+O).",
   "Translated": "Переклад",
   "{0} textures": "Текстур: {0}",
-  "Suggest Advance Width From Drawn Pixels": "Запропонувати ширину кроку за намальованими пікселями"
+  "Suggest Advance Width From Drawn Pixels": "Запропонувати ширину кроку за намальованими пікселями",
+  "Linked font": "Пов’язаний шрифт",
+  "This font has an identical one ({0}). Copy glyph changes between them?": "Цей шрифт має ідентичний ({0}). Копіювати зміни гліфів між ними?",
+  "Yes": "Так",
+  "No": "Ні",
+  "Copy changes to: {0}": "Копіювати зміни до: {0}",
+  "Copy changes to {0}: {1}": "Копіювати зміни до {0}: {1}",
+  "on": "увімк.",
+  "off": "вимк.",
+  "Linked font {0}: {1} glyphs copied to it, {2} taken from it": "Пов’язаний шрифт {0}: {1} гліфів скопійовано в нього, {2} взято з нього"
 }
