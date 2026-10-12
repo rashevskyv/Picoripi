@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Work Together: the room listens on 127.0.0.1 by default; other computers (LAN) only when the host ticks Allow other computers (LAN), with a plain-HTTP warning in the window; the wiki (EN, UK) says so. The room's address list is looked up only then.
 - Plugin contract: layout_class is named in the get_translation_context_for_string entry of spec.py, PLUGIN_CONTRACT.md, the roadmap key table and AI prompt Q8 (mechanism only).
 - Fonts: .gitignore hides only the top-level fonts folder; the default plugin's width table (default_font.json, widths only) is tracked; plain_text FFNT dumps stay on the user's disk (not redistributable, no test reads them).
 - Run summary: the layout suffix ("did not fit, shortened") is translated like the rest of the summary (uk.json pair added).

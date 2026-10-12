@@ -57,15 +57,24 @@ def save_settings(**values: Any) -> None:
         log_debug(f"Collab: settings not saved: {exc}")
 
 
+_LAN_ADDRESSES: List[str] = []
+
+
 def lan_addresses() -> List[str]:
-    """This computer's IPv4 addresses other than loopback (what the others type to join)."""
-    found = set()
-    try:
-        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
-            found.add(info[4][0])
-    except OSError:
-        pass
-    return sorted(a for a in found if not a.startswith("127."))
+    """This computer's IPv4 addresses other than loopback (what the others type to join).
+
+    Asked for only when other computers are allowed, and looked up once per process.
+    ponytail: a network change after the first lookup shows in the invitation after a restart of Picoripi.
+    """
+    if not _LAN_ADDRESSES:
+        found = set()
+        try:
+            for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+                found.add(info[4][0])
+        except OSError:
+            pass
+        _LAN_ADDRESSES.extend(sorted(a for a in found if not a.startswith("127.")))
+    return list(_LAN_ADDRESSES)
 
 
 def ensure_collab_handler(main_window: Any) -> "CollabHandler":
@@ -99,6 +108,7 @@ class CollabHandler(QObject):
         self.row_info: Dict[str, Dict[str, Any]] = {}       # key -> {name, time}: who changed it last
         self.conflicts: Dict[str, Dict[str, Any]] = {}      # key -> theirs + "mine"
         self.positions: Dict[str, Tuple[int, int]] = {}
+        self._scan_cache: Optional[Tuple[tuple, Tuple[str, Dict[str, Tuple[int, int]]]]] = None
         self.last_message = ""
         self.status_button: Optional[QToolButton] = None
         self._summary_dirty = False
@@ -116,24 +126,48 @@ class CollabHandler(QObject):
                 for string_idx, source in enumerate(block):
                     yield block_idx, string_idx, source
 
+    def _scan(self) -> Tuple[str, Dict[str, Tuple[int, int]]]:
+        """The fingerprint and the row positions, from one pass over the rows, cached per project.
+
+        The cache is keyed on the row list, its length and the plugin: source rows do not change while a room runs.
+        ponytail: a project reloaded into the same list object keeps the old cache; reload creates a new list.
+        """
+        store = self.mw.data_store
+        plugin = str(getattr(self.mw, "active_game_plugin", ""))
+        token = (id(getattr(store, "data", None)), len(getattr(store, "data", None) or []), plugin)
+        if self._scan_cache is not None and self._scan_cache[0] == token:
+            return self._scan_cache[1]
+        digest = hashlib.sha256(plugin.encode("utf-8"))
+        positions: Dict[str, Tuple[int, int]] = {}
+        for block_idx, string_idx, source in self._rows():
+            key = self._key(block_idx, string_idx)
+            digest.update(f"\x00{key}\x01{source}".encode("utf-8"))
+            positions[key] = (block_idx, string_idx)
+        result = (digest.hexdigest(), positions)
+        self._scan_cache = (token, result)
+        return result
+
     def fingerprint(self) -> str:
         """The plugin and every row's key and source text: two participants on different text are refused."""
-        digest = hashlib.sha256(str(getattr(self.mw, "active_game_plugin", "")).encode("utf-8"))
-        for block_idx, string_idx, source in self._rows():
-            digest.update(f"\x00{self._key(block_idx, string_idx)}\x01{source}".encode("utf-8"))
-        return digest.hexdigest()
+        return self._scan()[0]
 
     def _build_positions(self) -> None:
-        self.positions = {self._key(b, s): (b, s) for b, s, _ in self._rows()}
+        self.positions = self._scan()[1]
 
     # ── start and stop ─────────────────────────────────────────────────
 
     def project_open(self) -> bool:
         return bool(getattr(self.mw.data_store, "data", None))
 
-    def host(self, port: int, password: str, name: str, bind: str = "0.0.0.0") -> int:
-        """Start the room on ``port`` and join it; returns the port (0 picks a free one)."""
+    def host(self, port: int, password: str, name: str, bind: Optional[str] = None, lan: bool = False) -> int:
+        """Start the room on ``port`` and join it; returns the port (0 picks a free one).
+
+        Only this computer can reach the room unless ``lan`` is true: then every network interface listens.
+        ``bind`` overrides that choice (tests pin a loopback address).
+        """
         self.leave()
+        if bind is None:
+            bind = "0.0.0.0" if lan else "127.0.0.1"
         project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
         journal = Path(project_dir) / JOURNAL_NAME if project_dir else None
         self.server = RoomServer(password, self.fingerprint(), port=port, host=bind, journal=journal).start()

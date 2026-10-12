@@ -8,6 +8,7 @@ from typing import Any
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QDialog,
     QFormLayout,
     QGroupBox,
@@ -62,6 +63,14 @@ class CollabDialog(QDialog):
         self.host_password = QLineEdit(secrets.token_urlsafe(6), host_box)
         self.host_password.setToolTip(tr('The others type this to join. Change it for every new group.'))
         host_form.addRow(tr('Password:'), self.host_password)
+        self.lan_check = QCheckBox(tr('Allow other computers (LAN)'), host_box)
+        self.lan_check.setToolTip(tr('Off: only this computer can join. On: computers on your network can join with '
+                                     'the password. Set it before you start the room.'))
+        host_form.addRow(self.lan_check)
+        self.lan_warning = QLabel(tr('Traffic is plain HTTP: the password is sent without encryption. Allow other '
+                                     'computers only on a network you trust.'), host_box)
+        self.lan_warning.setWordWrap(True)
+        host_form.addRow(self.lan_warning)
         self.host_button = QPushButton(tr('Start the room'), host_box)
         self.host_button.setToolTip(tr('Start the room on this computer and join it.'))
         self.host_button.clicked.connect(self._host)
@@ -115,14 +124,20 @@ class CollabDialog(QDialog):
     def _host(self) -> None:
         if not self._ready():
             return
+        lan = self.lan_check.isChecked()
         try:
-            port = self.handler.host(self.port_spin.value(), self.host_password.text(), self.name_edit.text().strip())
+            port = self.handler.host(self.port_spin.value(), self.host_password.text(),
+                                     self.name_edit.text().strip(), lan=lan)
         except OSError as exc:
             self.status_label.setText(tr('The room could not start: {error}', error=exc))
             return
-        addresses = [f"{ip}:{port}" for ip in lan_addresses()] or [f"<{tr('this computer')}>:{port}"]
-        self.invite_label.setText(tr('Address: {addresses}\nPassword: {password}',
-                                     addresses=" / ".join(addresses), password=self.host_password.text()))
+        if lan:
+            addresses = [f"{ip}:{port}" for ip in lan_addresses()] or [f"<{tr('this computer')}>:{port}"]
+            self.invite_label.setText(tr('Address: {addresses}\nPassword: {password}',
+                                         addresses=" / ".join(addresses), password=self.host_password.text()))
+        else:
+            self.invite_label.setText(tr('Address: {addresses} (this computer only)\nPassword: {password}',
+                                         addresses=f"127.0.0.1:{port}", password=self.host_password.text()))
         self._tick()
 
     def _join(self) -> None:

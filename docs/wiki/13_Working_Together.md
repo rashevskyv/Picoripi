@@ -21,9 +21,11 @@ to install: the host's Picoripi is the server (`core/collab/server.py`, Python s
 - **Join:** type your name, the host's address (`192.168.1.20:8765`) and the password, press **Join**.
 - **Everyone opens the same project.** Rows are named by file, block key and line, and the room checks a fingerprint of
   every row's source text: a different dump or region of the game is refused with "another project".
-- **Network:** traffic is plain HTTP and the password is a shared secret, not encryption. Use a local network or a
-  VPN that joins the computers into one network (Tailscale, ZeroTier, Radmin VPN). Forwarding the port on a router
-  works too, at your own risk.
+- **Network:** the room listens on this computer only (`127.0.0.1`) until you tick **Allow other computers (LAN)**
+  before you press **Start the room**. Then every network interface listens and computers on your network can join with
+  the password. Traffic is plain HTTP and the password is a shared secret, not encryption: allow other computers only on
+  a network you trust. Use a local network or a VPN that joins the computers into one network (Tailscale, ZeroTier,
+  Radmin VPN). Forwarding the port on a router works too, at your own risk.
 
 **What is shared.** Every edit of a translation (typing, AI translation, autofix, Undo) reaches the others in a second
 or two; the latest text of a row wins in the queue, so typing is not one request per key. Another participant's edit

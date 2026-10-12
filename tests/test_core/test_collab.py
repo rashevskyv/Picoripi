@@ -181,3 +181,40 @@ class TestTwoWindows:
 
         b.collab_handler.keep_mine(key)
         qtbot.waitUntil(lambda: a.data_processor.get_current_string_text(0, 2)[0] == "Атож", timeout=5000)
+
+
+# ── where the room listens ───────────────────────────────────────────
+
+class TestWhereTheRoomListens:
+    def test_a_room_listens_on_loopback_by_default(self):
+        room = RoomServer("secret", FP, port=0)
+        try:
+            assert room.httpd.server_address[0] == "127.0.0.1"
+        finally:
+            room.httpd.server_close()
+
+    def test_the_host_listens_on_loopback_until_other_computers_are_allowed(self, qtbot, tmp_path):
+        mw = _project_window(tmp_path, "listen")
+        try:
+            mw.collab_handler.host(0, "pw", "Host")
+            assert mw.collab_handler.server.httpd.server_address[0] == "127.0.0.1"
+            mw.collab_handler.host(0, "pw", "Host", lan=True)
+            assert mw.collab_handler.server.httpd.server_address[0] == "0.0.0.0"
+        finally:
+            mw.collab_handler.leave()
+
+    def test_the_fingerprint_is_computed_in_one_pass_per_project(self, tmp_path, monkeypatch):
+        mw = _project_window(tmp_path, "scan")
+        handler = mw.collab_handler
+        real_key, calls = handler._key, []
+
+        def counting_key(block_idx, string_idx):
+            calls.append((block_idx, string_idx))
+            return real_key(block_idx, string_idx)
+
+        monkeypatch.setattr(handler, "_key", counting_key)
+        first = handler.fingerprint()
+        handler._build_positions()
+        assert handler.fingerprint() == first
+        assert len(calls) == 3                      # the three rows of the window, one pass in all
+        assert set(handler.positions.values()) == {(0, 0), (0, 1), (0, 2)}

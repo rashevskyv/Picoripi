@@ -12,7 +12,8 @@ rows and their edits, and serves a progress page at ``/stats``
 (``core/progress_stats.py``) from those counts and the project summary a client posts.
 
 Server threads never touch Qt or the project data. Plain HTTP: use it on a LAN or
-over a VPN; the password is a shared secret, not encryption.
+over a VPN; the password is a shared secret, not encryption. The room listens on 127.0.0.1 unless the host
+allows other computers (``host="0.0.0.0"``).
 """
 from __future__ import annotations
 
@@ -378,7 +379,7 @@ class _Handler(BaseHTTPRequestHandler):
 class RoomServer:
     """The room on ``host:port`` in a daemon thread; ``stop()`` returns within a second."""
 
-    def __init__(self, password: str, fingerprint: str, port: int = 0, host: str = "0.0.0.0",
+    def __init__(self, password: str, fingerprint: str, port: int = 0, host: str = "127.0.0.1",
                  journal: Optional[Path] = None):
         self.room = Room(password, fingerprint, journal)
         handler = type("RoomHandler", (_Handler,), {"room": self.room})
