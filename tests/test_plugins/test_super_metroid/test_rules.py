@@ -91,7 +91,7 @@ def test_real_text_saves_back_unchanged():
     rules = check_loads(PLUGIN)
     text = (SOURCE / "text.json").read_text(encoding="utf-8")
     blocks, names = rules.load_data_from_json_obj(text)
-    assert [len(b) for b in blocks] == [27, 27, 29, 7, 7, 77]     # JAPANESE TEXT layouts are not in the catalog
+    assert [len(b) for b in blocks] == [27, 27, 28, 7, 7, 77]     # JAPANESE TEXT layouts and row are not in the catalog
     assert rules.save_data_to_json_obj(blocks, names) == text
 
 
