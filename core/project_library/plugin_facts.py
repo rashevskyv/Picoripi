@@ -14,15 +14,21 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 from core import formats
 from core.project_library.cards import count_strings
 from utils.logging_utils import log_warning
+from utils.plugin_import import PLUGIN_IMPORT_LOCK
 
 LoadRules = Callable[[str], Any]
 Cancelled = Callable[[], bool]
 
 
 def default_load_rules(plugin_name: str) -> Any:
-    """The plugin's ``GameRules`` built without a main window. Imports the plugin module on the calling thread."""
-    module = importlib.import_module(f"plugins.{plugin_name}.rules")
-    return module.GameRules(None)
+    """The plugin's ``GameRules`` built without a main window.
+
+    Imports the plugin on the calling thread, under ``PLUGIN_IMPORT_LOCK``, so the main window's load of the same
+    plugin (which drops and re-imports its modules) cannot run in the middle.
+    """
+    with PLUGIN_IMPORT_LOCK:
+        module = importlib.import_module(f"plugins.{plugin_name}.rules")
+        return module.GameRules(None)
 
 
 def roles_of(rules: Any) -> List[Dict[str, str]]:

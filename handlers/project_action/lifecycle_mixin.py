@@ -1,9 +1,7 @@
 """Project actions: create, open, close."""
-from utils.constants import plugins_root
-import json
 from pathlib import Path
 from typing import Dict
-from PyQt6.QtWidgets import QMessageBox, QFileDialog, QDialog
+from PyQt6.QtWidgets import QMessageBox, QFileDialog
 from core.project_manager import ProjectManager
 from utils.logging_utils import log_info, log_debug, log_error
 from core.i18n import tr
@@ -11,34 +9,9 @@ from core.i18n import tr
 
 class LifecycleMixin:
     def create_new_project_action(self) -> None:
-        """Create new project action."""
-        from components.project_dialogs import NewProjectDialog
+        """Ctrl+N and every New Project entry: the new-project wizard. The project is created by finish_new_project."""
         log_info("Create New Project action triggered.")
-
-        # Get available plugins
-        plugins: Dict[str, str] = {}
-        plugins_dir = plugins_root()
-        if plugins_dir.is_dir():
-            for item_path in plugins_dir.iterdir():
-                config_path = item_path / "config.json"
-                if item_path.is_dir() and config_path.exists():
-                    try:
-                        with config_path.open('r', encoding='utf-8') as f:
-                            config_data = json.load(f)
-                        display_name = config_data.get("display_name", item_path.name)
-                        plugins[display_name] = item_path.name
-                    except Exception as e:
-                        log_debug(f"Could not read config for plugin '{item_path.name}': {e}")
-
-        dialog = NewProjectDialog(self.mw, available_plugins=plugins)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            log_info("New project dialog cancelled.")
-            return
-
-        info = dialog.get_project_info()
-        if not info:
-            return
-        self.finish_new_project(info)
+        self.open_new_project_wizard()
 
     def finish_new_project(self, info: Dict) -> None:
         """Create the project described by ``info`` and open it. Shared by the old dialog and the Project Manager wizard.
