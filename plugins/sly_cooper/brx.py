@@ -3,7 +3,9 @@
 Facts from the ProjectCane source (Sly1-Release): a level file on disk is raw data (the extractor writes it
 decompressed, transition.cpp opens it without decoding). Text is a u16 little-endian length followed by that many
 bytes, with no terminator (CBinaryInputStream::ReadStringSw). Texture offsets are relative to the stream position
-taken at load time (shd.cpp textureDataStart), so a string may change length without moving any stored offset.
+taken at load time (shd.cpp textureDataStart), but that position comes from Align(0x10) counted from the file start
+(sw.cpp). So the texture block only stays aligned when every length change is a multiple of 16. replace_spans pads
+a new text with trailing spaces to keep that: the port draws them as blank space.
 
 This module finds candidate text spans and replaces them. It does not decode the object tree: a span is text only
 when its bytes pass ``is_text``. Spans that are not text are never reported, so they are never edited.
@@ -16,9 +18,10 @@ from typing import List, Sequence, Tuple
 
 MIN_LENGTH = 4
 MAX_LENGTH = 600
+ALIGNMENT = 16  # sw.cpp: pbis->Align(0x10) before the texture block
 _PRINTABLE = re.compile(rb"[\x20-\x7e]+")
 _IDENTIFIER = re.compile(rb"[a-z0-9_]+")
-_LONG_RUN = re.compile(rb"(.)\1\1\1")
+_LONG_RUN = re.compile(rb"([^ ])\1\1\1")  # a run of spaces is alignment padding, not noise
 _VOWEL = re.compile(rb"[aeiouyAEIOUY]")
 
 
@@ -73,6 +76,8 @@ def scan_text(data: bytes) -> List[TextSpan]:
 def replace_spans(data: bytes, edits: Sequence[Tuple[TextSpan, str]]) -> bytes:
     """Return ``data`` with each span's text replaced by the new text. The u16 length is rewritten to match.
 
+    The new text gets trailing spaces so that its length differs from the old one by a multiple of 16: the
+    texture block after the text stays on its 16-byte alignment (see the module docstring).
     Raises ValueError when a new text is not printable ASCII or is longer than MAX_LENGTH. Every edit is checked
     against the span it replaces: the stored bytes must still be the original text."""
     out = bytearray()
@@ -87,6 +92,10 @@ def replace_spans(data: bytes, edits: Sequence[Tuple[TextSpan, str]]) -> bytes:
         raw_new = new_text.encode("ascii")  # UnicodeEncodeError is a ValueError
         if not (1 <= len(raw_new) <= MAX_LENGTH) or not all(0x20 <= b <= 0x7E for b in raw_new):
             raise ValueError(f"new text at {at:#x} is not printable ASCII of 1..{MAX_LENGTH} bytes")
+        padded_length = len(raw_new) + (len(raw_old) - len(raw_new)) % ALIGNMENT
+        if padded_length > MAX_LENGTH:
+            raise ValueError(f"new text at {at:#x} is too long after alignment padding")
+        raw_new = raw_new.ljust(padded_length, b" ")
         out += data[cursor:at]
         out += len(raw_new).to_bytes(2, "little") + raw_new
         cursor = at + 2 + len(raw_old)

@@ -60,9 +60,18 @@ def test_a_longer_and_a_shorter_text_are_found_again_in_order():
     spans = scan_text(data)
     edits = [(spans[0], "UA TEST: a much longer Ukrainian-style line for the length check."), (spans[1], "Okay.")]
     new = replace_spans(data, edits)
-    assert len(new) == len(data) + (len(edits[0][1]) - len(spans[0].text)) + (len(edits[1][1]) - len(spans[1].text))
-    assert [s.text for s in scan_text(new)] == [edits[0][1], edits[1][1], SENTENCES[2].decode()]
+    assert (len(new) - len(data)) % 16 == 0  # the texture block after the text keeps its alignment
+    assert [s.text.rstrip(" ") for s in scan_text(new)] == [edits[0][1], edits[1][1], SENTENCES[2].decode()]
     assert replace_spans(new, [(s, s.text) for s in scan_text(new)]) == new
+
+
+def test_new_text_is_padded_so_the_length_change_is_a_multiple_of_16():
+    data = make_level(SENTENCES[0])
+    span = scan_text(data)[0]
+    for new in ["Short.", "Twenty three letters here.", "A line a few characters longer than the original one, yes!"]:
+        out = replace_spans(data, [(span, new)])
+        assert (len(out) - len(data)) % 16 == 0
+        assert scan_text(out)[0].text.rstrip(" ") == new
 
 
 def test_an_edit_against_a_different_original_is_refused():
@@ -101,6 +110,7 @@ def test_real_level_one_edit_changes_only_its_own_span():
     assert len(spans) > 50
     target = spans[7]
     new = replace_spans(data, [(target, "UA TEST line, longer than the original one for the length check.")])
+    assert (len(new) - len(data)) % 16 == 0
     found = scan_text(new)
     assert len(found) == len(spans)
     assert found[7].text.startswith("UA TEST line")
