@@ -4,10 +4,12 @@ from __future__ import annotations
 import time
 from typing import Any, Optional
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QInputDialog, QLabel, QPushButton
 
 from core.collab.roles import allowed
 from core.i18n import tr
+from ui.collab_menu import show_row_menu
 
 PREVIEW_CHARS = 80
 
@@ -26,6 +28,9 @@ class CollabRowBar(QFrame):
         self.setObjectName("collab_row_bar")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self._key: Optional[str] = None
+        self._locked = False
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._open_menu)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(6, 2, 6, 2)
         layout.setSpacing(6)
@@ -57,12 +62,28 @@ class CollabRowBar(QFrame):
     def _handler(self):
         return getattr(self.mw, "collab_handler", None)
 
+    def _lock_editor(self, locked: bool) -> None:
+        """The editor is read-only while the row is not this participant's to change. Only this bar sets and clears
+        the flag, so a read-only editor for another reason is left as it is."""
+        editor = getattr(self.mw, "edited_text_edit", None)
+        if editor is None or (not locked and not self._locked):
+            return
+        editor.setReadOnly(locked)
+        self._locked = locked
+
+    def _open_menu(self, pos) -> None:
+        handler = self._handler()
+        if handler is not None and self._key is not None:
+            show_row_menu(handler, self, pos, self._key)
+
     def refresh(self, block_idx: int, string_idx: int) -> None:
         handler = self._handler()
         if handler is None or not handler.active or block_idx < 0 or string_idx < 0:
+            self._lock_editor(False)
             self.hide()
             return
         self._key = handler._key(block_idx, string_idx)
+        self._lock_editor(not handler.can_edit(self._key))   # a row claimed by someone else is read-only
         conflict = handler.conflicts.get(self._key)
         if conflict:
             self.label.setText(tr('Conflict: {name} saved "{theirs}"; yours is "{mine}".',

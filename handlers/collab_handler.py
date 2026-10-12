@@ -17,17 +17,19 @@ import time
 from functools import partial
 from pathlib import Path
 from collections import deque
-from typing import Any, Deque, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Any, Deque, Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QToolButton
 
 import utils.constants as constants
 from core.collab.client import RoomClient
+from core.collab.comments_file import comments_path, merge_comment, read_room_comments, write_comments
 from core.collab.roles import HOST, MODERATOR, allowed
 from core.collab.server import JOURNAL_NAME, RoomServer
 from core.i18n import tr
 from core.progress_stats import _words as source_words
+from ui.collab_markers import apply_markers, presence_line
 from utils.atomic_io import atomic_write_json
 from utils.logging_utils import log_debug, log_warning
 from utils.thread_utils import WorkerThread, safe_shutdown_thread, single_shot
@@ -47,7 +49,8 @@ LOG_KEEP = 500
 
 
 def settings_path() -> Path:
-    """Name, port and last address (never the password); read at call time: tests move SETTINGS_DIR."""
+    """Name, port, last address, the participant token per name and the rooms the user saved (with their passwords,
+    as the AI keys are kept). Read at call time: tests move SETTINGS_DIR."""
     return constants.SETTINGS_DIR / "collab.json"
 
 
@@ -83,6 +86,32 @@ def remember_token(name: str, token: Optional[str]) -> None:
     save_settings(tokens=tokens)
 
 
+ENDPOINTS_KEY = "endpoints"
+
+
+def load_endpoints() -> List[Dict[str, str]]:
+    """The rooms the user chose to remember: ``[{name, address, password}]``; empty on a fresh profile.
+
+    The password sits in this computer's collab.json in SETTINGS_DIR, next to the AI keys in settings.json. It is never
+    written to the project folder, an export or a log, and nothing connects to a saved room by itself.
+    """
+    raw = load_settings().get(ENDPOINTS_KEY)
+    if not isinstance(raw, list):
+        return []
+    return [{"name": str(e.get("name") or ""), "address": str(e["address"]), "password": str(e.get("password") or "")}
+            for e in raw if isinstance(e, dict) and e.get("address")]
+
+
+def remember_endpoint(name: str, address: str, password: str) -> None:
+    endpoints = [e for e in load_endpoints() if e["address"] != address]
+    endpoints.append({"name": name, "address": address, "password": password})
+    save_settings(**{ENDPOINTS_KEY: endpoints})
+
+
+def forget_endpoint(address: str) -> None:
+    save_settings(**{ENDPOINTS_KEY: [e for e in load_endpoints() if e["address"] != address]})
+
+
 _LAN_ADDRESSES: List[str] = []
 
 
@@ -112,6 +141,11 @@ class LanLookup(WorkerThread):
         self.found.emit(lan_addresses())
 
 
+# The events whose markers may sit on any block (claims, comments, joins and leaves, a whole snapshot).
+_MARKED_EVENTS = {"snapshot", "join", "leave", "claim_granted", "claim_released", "claim_denied",
+                  "comment_added", "comment_resolved", "comment_deleted"}
+
+
 def _claim_mirror(claim: Dict[str, Any]) -> Dict[str, Any]:
     return {**claim, "keys": set(claim.get("keys") or [])}
 
@@ -131,6 +165,35 @@ _MIRROR = {
     "comment_added": "_mirror_comment_added", "comment_resolved": "_mirror_comment_resolved",
     "comment_deleted": "_mirror_comment_deleted", "log": "_mirror_log",
 }
+
+
+class CommentsFile(WorkerThread):
+    """``comments.json`` read or written off the UI thread. ``comments`` None reads it, a list writes it.
+
+    Owns nothing; WorkerThread keeps it alive until it finishes.
+    """
+
+    loaded = pyqtSignal(str, list)       # the room that wrote the file, and the comments it holds for this project
+
+    def __init__(self, path: Path, fingerprint: str, room_id: str, comments: Optional[List[Dict[str, Any]]] = None):
+        super().__init__()
+        self.path, self.fingerprint, self.room_id, self.comments = path, fingerprint, room_id, comments
+
+    def run(self) -> None:
+        if self.comments is None:
+            room_id, comments = read_room_comments(self.path, self.fingerprint)
+            self.loaded.emit(room_id, comments)
+            return
+        try:
+            write_comments(self.path, self.fingerprint, self.room_id, self.comments)
+        except OSError as exc:                 # the room keeps working; the file is written at the next change
+            log_debug(f"Collab: comments.json not written: {exc}")
+
+
+def _comment_plain(comment: Dict[str, Any]) -> Dict[str, Any]:
+    """A mirror comment as the file and the room send it (keys as a sorted list)."""
+    keys = comment.get("keys")
+    return {**comment, "keys": None if keys is None else sorted(keys)}
 
 
 def ensure_collab_handler(main_window: Any) -> "CollabHandler":
@@ -176,6 +239,12 @@ class CollabHandler(QObject):
         self._remote_turn: Optional[Iterator[None]] = None
         self._applied_rev: Dict[str, int] = {}               # per row key: newest revision applied or sent here
         self._generation = 0                                 # counts the rooms: bumped by leave(), see _on_remote_events
+        self._block_keys: Dict[int, List[str]] = {}          # block index -> row keys, from _build_positions
+        self._presence_since: Dict[str, float] = {}          # participant id -> when its row was last seen to change
+        self._io_threads: List[Any] = []                     # comments.json readers and writers still running
+        self._comments_writing = False                       # a comments.json write is running
+        self._comments_again = False                         # a change came while a write ran: write again after it
+        self._room_id = ""                                   # the room's id, from the join (written into the file)
         self._reset_mirror()
 
     def _reset_mirror(self) -> None:
@@ -228,6 +297,9 @@ class CollabHandler(QObject):
 
     def _build_positions(self) -> None:
         self.positions = self._scan()[1]
+        self._block_keys = {}
+        for key, (block_idx, _string_idx) in self.positions.items():
+            self._block_keys.setdefault(block_idx, []).append(key)
 
     # ── start and stop ─────────────────────────────────────────────────
 
@@ -405,7 +477,9 @@ class CollabHandler(QObject):
             remember_token(self.client.name, data.get("token"))
         self.role = data.get("role")
         self.log = list(data.get("log") or [])
+        self._room_id = str(data.get("room_id") or "")
         self._apply_state(data.get("state") or {})
+        self._load_comments_file()
         self._join_plan = self._join_work(data)
         self._turns.append(self._join_plan)
         self.participants = data.get("participants") or []
@@ -448,6 +522,7 @@ class CollabHandler(QObject):
             yield                                          # each block's tree refresh is a turn of its own (D21)
             if updater is not None:
                 updater.update_block_item_text_with_problem_count(block_idx)
+            self._mark_blocks({block_idx})                 # the room's markers go back on after the text (same turn)
         if updater is not None and getattr(self.mw.data_store, "physical_block_idx", -1) in touched:
             yield                                          # the editor's text views: a turn of their own
             updater.update_text_views()
@@ -491,6 +566,7 @@ class CollabHandler(QObject):
                 budget, turn_started = 0, time.perf_counter()
                 yield
         yield from self._refresh_turns(touched)
+        yield from self._mark_turns(set(self._block_keys))  # the room's markers on every block, one block per turn
         self.last_message = tr('Joined the room: {taken} row(s) taken from it, {shared} shared, {conflicts} conflict(s).',
                                taken=taken, shared=shared, conflicts=len(self.conflicts))
         self._status(self.last_message)
@@ -596,14 +672,58 @@ class CollabHandler(QObject):
         return position[0]
 
     def _apply_event(self, event: Dict[str, Any]) -> Optional[Set[int]]:
-        """Apply one room event; returns the blocks whose tree items it changed (or None)."""
+        """Apply one room event; returns the blocks whose tree items it changed (or None).
+
+        A claim, a comment or a join changes markers that may sit on any block, so it returns every block; each
+        block's items are then refreshed in a turn of their own.
+        """
         if event.get("type") == "edit":
             block_idx = self._apply_remote_edit(event)
             return {block_idx} if block_idx is not None else None
         if self.client is None:
             return None
-        method = _MIRROR.get(event.get("type"))
-        return getattr(self, method)(event) if method else None
+        kind = event.get("type")
+        method = _MIRROR.get(kind)
+        if method is None:
+            return None
+        getattr(self, method)(event)
+        return set(self._block_keys) if kind in _MARKED_EVENTS else None
+
+    def _mark_turns(self, blocks: Set[int]) -> Iterator[None]:
+        """Put the room's markers on each block's tree items, one block per turn (D21)."""
+        for block_idx in sorted(blocks):
+            yield
+            self._mark_blocks({block_idx})
+
+    def _mark_blocks(self, blocks: Iterable[int]) -> None:
+        """Markers on the tree items of ``blocks``: who works there, the claim and the open comments."""
+        updater = getattr(self.mw, "ui_updater", None)
+        cache = getattr(updater, "_block_items_cache", None)
+        if not cache or self.client is None:
+            return
+        me, now = self._my_id(), time.time()
+        for block_idx in blocks:
+            items = cache.get(block_idx) or []
+            if not items:
+                continue
+            keys = set(self._block_keys.get(block_idx, ()))
+            present = [p for p in self.participants if p.get("where") in keys and p.get("id") != me]
+            claimed = [c for c in self.claims.values() if not c["keys"].isdisjoint(keys)]
+            claim = claimed[0] if claimed else None
+            comments = sum(1 for c in self.comments.values()
+                           if not c["resolved"] and (c["keys"] is None or not c["keys"].isdisjoint(keys)))
+            tooltip = []
+            for person in present:
+                minutes = int((now - self._presence_since.get(person["id"], now)) // 60)
+                tooltip.append(presence_line(person["name"], minutes))
+            if claim is not None:
+                tooltip.append(tr('Claimed by {name}', name=claim["name"]) + ("" if claim.get("online") else tr(' (offline)')))
+            if comments:
+                tooltip.append(tr('{count} open comment(s)', count=comments))
+            for item in items:
+                apply_markers(item, present[0]["name"] if present else None, len(present) - 1,
+                              claim["name"] if claim is not None else None,
+                              claim is not None and not claim.get("online"), comments, "\n".join(tooltip))
 
     def _apply_state(self, state: Dict[str, Any]) -> None:
         """Replace the mirror of members, claims, requests and comments with what the room sent (join, snapshot)."""
@@ -674,15 +794,79 @@ class CollabHandler(QObject):
     def _mirror_comment_added(self, event: Dict[str, Any]) -> None:
         comment = event["comment"]
         self.comments[comment["id"]] = _comment_mirror(comment)
+        self._save_comments()
 
     def _mirror_comment_resolved(self, event: Dict[str, Any]) -> None:
         comment = self.comments.get(event.get("id"))
         if comment is not None:
             comment["resolved"] = ({"by": event.get("by"), "name": event.get("name"), "time": event.get("time")}
                                    if event.get("resolved") else None)
+            self._save_comments()
 
     def _mirror_comment_deleted(self, event: Dict[str, Any]) -> None:
-        self.comments.pop(event.get("id"), None)
+        if self.comments.pop(event.get("id"), None) is not None:
+            self._save_comments()
+
+    # ---- comments.json in the project folder (read and written off the UI thread) -----------------
+
+    def _project_dir(self) -> Optional[Path]:
+        project_dir = getattr(getattr(self.mw, "project_manager", None), "project_dir", None)
+        return Path(project_dir) if project_dir else None
+
+    def _load_comments_file(self) -> None:
+        """Read the project's comments.json; what it holds is merged in when the worker reports (see below)."""
+        folder = self._project_dir()
+        if folder is None or self.client is None:
+            return
+        worker = CommentsFile(comments_path(folder), self.fingerprint(), self._room_id)
+        worker.loaded.connect(self._on_comments_loaded)
+        self._start_io(worker)
+
+    def _on_comments_loaded(self, room_id: str, comments: List[Dict[str, Any]]) -> None:
+        """Add the comments the file has and the window lacks; a resolution the file has later than the window's wins.
+
+        A file written by this same room is not merged: the room is the authority for it (a comment the room deleted
+        stays deleted). A file of another room (another host, or the project before a new room) is merged by id.
+        """
+        if self.client is None or not room_id or room_id == self._room_id:
+            return
+        changed = False
+        for comment in comments:
+            local = self.comments.get(comment["id"])
+            if local is None:
+                self.comments[comment["id"]] = _comment_mirror(comment)
+                changed = True
+            elif merge_comment(local, _comment_mirror(comment)):
+                changed = True
+        if changed:
+            self._save_comments()
+
+    def _save_comments(self) -> None:
+        """Write the window's comments to the project's comments.json, one write at a time, in a worker."""
+        folder = self._project_dir()
+        if folder is None or self.client is None:
+            return
+        if self._comments_writing:
+            self._comments_again = True                    # the newest state is written after the running write
+            return
+        self._comments_writing = True
+        snapshot = [_comment_plain(c) for c in self.comments.values()]
+        worker = CommentsFile(comments_path(folder), self.fingerprint(), self._room_id, snapshot)
+        self._start_io(worker)
+
+    def _start_io(self, worker: "CommentsFile") -> None:
+        self._io_threads.append(worker)
+        worker.finished.connect(partial(self._io_done, worker))
+        worker.start()
+
+    def _io_done(self, worker: "CommentsFile") -> None:
+        if worker in self._io_threads:
+            self._io_threads.remove(worker)
+        if worker.comments is not None:                    # a write finished
+            self._comments_writing = False
+            if self._comments_again:
+                self._comments_again = False
+                self._save_comments()
 
     def _mirror_log(self, event: Dict[str, Any]) -> None:
         self.log.append(event["entry"])
@@ -695,7 +879,31 @@ class CollabHandler(QObject):
         return self.client.queue_op(kind, **fields) if self.client is not None else None
 
     def keys_of_block(self, block_idx: int) -> List[str]:
-        return [key for key, (block, _string) in self.positions.items() if block == block_idx]
+        return list(self._block_keys.get(block_idx, []))
+
+    def claim_id_of(self, key: str) -> Optional[str]:
+        """The claim that covers ``key`` most specifically, or None (the claim the owner releases)."""
+        best, size = None, None
+        for cid, claim in self.claims.items():
+            if key in claim["keys"] and (size is None or len(claim["keys"]) < size):
+                best, size = cid, len(claim["keys"])
+        return best
+
+    def release_mine_in(self, keys: Set[str]) -> int:
+        """Release this participant's claims that cover any of ``keys``; returns how many were released."""
+        me = self._my_id()
+        cids = [cid for cid, claim in self.claims.items() if claim["owner"] == me and not claim["keys"].isdisjoint(keys)]
+        for cid in cids:
+            self.release(cid)
+        return len(cids)
+
+    def resolve_open_in(self, keys: Set[str]) -> int:
+        """Resolve the open comments whose scope covers any of ``keys``; returns how many."""
+        cids = [cid for cid, c in self.comments.items()
+                if not c["resolved"] and (c["keys"] is None or not c["keys"].isdisjoint(keys))]
+        for cid in cids:
+            self.resolve_comment(cid, True)
+        return len(cids)
 
     def all_keys(self) -> List[str]:
         return list(self.positions)
@@ -742,7 +950,7 @@ class CollabHandler(QObject):
 
     def _on_op_done(self, op_id: str, kind: str, result: Dict[str, Any]) -> None:
         if "error" in result:
-            message = tr('Not done: {reason}', reason=result["error"])
+            message = tr('Not done: {reason}', reason=tr(str(result["error"])))
         elif result.get("refused"):
             message = tr('Your role does not allow this.')
         elif "requested" in result:
@@ -795,15 +1003,32 @@ class CollabHandler(QObject):
 
     def _on_participants(self, participants: List[Dict[str, Any]]) -> None:
         if participants != self.participants:
+            before = {p.get("id"): p.get("where") for p in self.participants}
+            now, moved = time.time(), set()
+            for person in participants:
+                where = person.get("where")
+                if before.get(person.get("id")) != where:           # moved, arrived or left a row: its blocks change
+                    self._presence_since[person.get("id")] = now
+                    for key in (before.get(person.get("id")), where):
+                        position = self.positions.get(key) if key else None
+                        if position is not None:
+                            moved.add(position[0])
+            present = {p.get("id") for p in participants}
+            for pid, where in before.items():                        # left: the block it stood on changes too
+                position = self.positions.get(where) if where and pid not in present else None
+                if position is not None:
+                    moved.add(position[0])
             self.participants = participants
             self._update_status_button()
+            self._mark_blocks(moved)
 
     def _on_state(self, state: str) -> None:
         self.state = state
         self._update_status_button()
 
     def _on_refused(self, reason: str) -> None:
-        self.last_message = tr('The room refused to let you in: {reason}', reason=reason)
+        # The room sends English on the wire; the window shows the translation of that text when there is one.
+        self.last_message = tr('The room refused to let you in: {reason}', reason=tr(reason))
         self._status(self.last_message)
         self.leave()
 

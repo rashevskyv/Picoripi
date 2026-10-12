@@ -1,7 +1,7 @@
 """Work together UI: the management tabs, the block tree menu and the row bar, with real windows in one room."""
 import pytest
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMenu, QTreeWidget, QTreeWidgetItem
+from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtWidgets import QMenu, QPlainTextEdit, QTreeWidget, QTreeWidgetItem
 
 from test_core.test_collab import _project_window
 from test_core.test_collab_room_state import _host_and_guest
@@ -102,3 +102,56 @@ def test_the_row_bar_shows_the_claim_and_offers_only_what_the_role_allows(qtbot,
     bar_a.refresh(0, 0)
     assert "Claimed by you" in bar_a.label.text()
     assert bar_a.approve_button.isVisibleTo(bar_a)            # the host can approve
+
+
+def test_a_row_claimed_by_someone_else_is_read_only_in_the_editor_until_the_window_leaves(qtbot, pair):
+    a, b = _host_and_guest(qtbot, pair)
+    editor = QPlainTextEdit()
+    qtbot.addWidget(editor)
+    b.edited_text_edit = editor
+    a.collab_handler.claim("row", "Hello", [a.collab_handler._key(0, 0)])
+    qtbot.waitUntil(lambda: bool(b.collab_handler.claims), timeout=5000)
+    bar_b = CollabRowBar(b)
+    qtbot.addWidget(bar_b)
+    bar_b.refresh(0, 0)
+    assert editor.isReadOnly()
+    b.collab_handler.leave()
+    bar_b.refresh(0, 0)
+    assert not editor.isReadOnly()                            # the lock is cleared when the room is left
+
+
+def test_the_row_menu_claims_the_row_for_the_guest(qtbot, pair, monkeypatch):
+    a, b = _host_and_guest(qtbot, pair)
+    bar = CollabRowBar(b)
+    qtbot.addWidget(bar)
+    bar.refresh(0, 0)
+
+    def choose_claim(menu, pos):
+        return next(action for action in menu.actions() if action.text() == "Claim for me")
+
+    monkeypatch.setattr(QMenu, "exec", choose_claim)
+    bar._open_menu(QPoint(1, 1))
+    guest = b.collab_handler._my_id()
+    qtbot.waitUntil(lambda: any(c["owner"] == guest for c in a.collab_handler.claims.values()), timeout=5000)
+
+
+def test_a_fresh_profile_makes_no_network_call_and_lists_no_saved_room(qtbot, pair, monkeypatch):
+    import socket
+
+    import requests
+
+    from core.collab.client import RoomClient
+    from ui.collab_dialog import CollabDialog
+
+    def no_network(*args, **kwargs):
+        raise AssertionError("a fresh profile must not connect anywhere")
+
+    monkeypatch.setattr(socket, "create_connection", no_network)
+    monkeypatch.setattr(socket.socket, "connect", no_network)
+    monkeypatch.setattr(requests.sessions.Session, "request", no_network)
+    monkeypatch.setattr(RoomClient, "start", no_network)
+    a, _b = pair
+    dialog = CollabDialog(a, a.collab_handler)
+    qtbot.addWidget(dialog)
+    assert dialog.saved_list.count() == 0
+    assert a.collab_handler.client is None

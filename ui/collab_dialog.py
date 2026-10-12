@@ -24,7 +24,14 @@ from PyQt6.QtWidgets import (
 )
 
 from core.i18n import tr
-from handlers.collab_handler import DEFAULT_PORT, LanLookup, load_settings
+from handlers.collab_handler import (
+    DEFAULT_PORT,
+    LanLookup,
+    forget_endpoint,
+    load_endpoints,
+    load_settings,
+    remember_endpoint,
+)
 from ui.collab_manage_panel import ManagePanel
 from utils.thread_utils import single_shot
 
@@ -99,8 +106,29 @@ class CollabDialog(QDialog):
         self.join_button = QPushButton(tr('Join'), join_box)
         self.join_button.setToolTip(tr('Connect to the host\'s room.'))
         self.join_button.clicked.connect(self._join)
+        self.remember_check = QCheckBox(tr('Remember this room (the password is kept on this computer only)'), join_box)
+        self.remember_check.setToolTip(tr('Saves the address and the password in this computer\'s settings. Nothing '
+                                          'connects to a saved room by itself: you press Connect.'))
+        join_form.addRow(self.remember_check)
         join_form.addRow(self.join_button)
         layout.addWidget(join_box)
+
+        saved_box = QGroupBox(tr('Saved rooms'), self)
+        saved_layout = QVBoxLayout(saved_box)
+        self.saved_list = QListWidget(saved_box)
+        self.saved_list.setToolTip(tr('Rooms you chose to remember. Select one and press Connect.'))
+        saved_layout.addWidget(self.saved_list)
+        saved_buttons = QHBoxLayout()
+        self.connect_saved_button = QPushButton(tr('Connect'), saved_box)
+        self.connect_saved_button.clicked.connect(self._connect_saved)
+        self.forget_saved_button = QPushButton(tr('Forget'), saved_box)
+        self.forget_saved_button.clicked.connect(self._forget_saved)
+        saved_buttons.addWidget(self.connect_saved_button)
+        saved_buttons.addWidget(self.forget_saved_button)
+        saved_buttons.addStretch(1)
+        saved_layout.addLayout(saved_buttons)
+        self._fill_saved()
+        layout.addWidget(saved_box)
 
         layout.addWidget(QLabel(tr('In the room (double-click to go to where they are):'), self))
         self.people = QListWidget(self)
@@ -156,8 +184,39 @@ class CollabDialog(QDialog):
     def _join(self) -> None:
         if not self._ready() or not self.address_edit.text().strip():
             return
-        self.handler.join(self.address_edit.text().strip(), self.join_password.text(), self.name_edit.text().strip())
+        address, password, name = self.address_edit.text().strip(), self.join_password.text(), self.name_edit.text().strip()
+        if self.remember_check.isChecked():
+            remember_endpoint(name, address, password)
+            self._fill_saved()
+        self.handler.join(address, password, name)
         self._tick()
+
+    def _fill_saved(self) -> None:
+        """The rooms the user chose to remember; the list is empty on a fresh profile."""
+        self.saved_list.clear()
+        for endpoint in load_endpoints():
+            item = QListWidgetItem(f"{endpoint['name'] or '?'} — {endpoint['address']}")
+            item.setData(KEY_ROLE, endpoint["address"])
+            self.saved_list.addItem(item)
+
+    def _connect_saved(self) -> None:
+        """Connect to the selected saved room: only on this press, never at start-up."""
+        item = self.saved_list.currentItem()
+        if item is None or not self._ready():
+            return
+        endpoint = next((e for e in load_endpoints() if e["address"] == item.data(KEY_ROLE)), None)
+        if endpoint is None:
+            return
+        self.address_edit.setText(endpoint["address"])
+        self.join_password.setText(endpoint["password"])
+        self.handler.join(endpoint["address"], endpoint["password"], self.name_edit.text().strip())
+        self._tick()
+
+    def _forget_saved(self) -> None:
+        item = self.saved_list.currentItem()
+        if item is not None:
+            forget_endpoint(item.data(KEY_ROLE))
+            self._fill_saved()
 
     def _leave(self) -> None:
         self.handler.leave()

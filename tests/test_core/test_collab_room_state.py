@@ -1,6 +1,10 @@
 """The window's mirror of roles, claims, comments and approvals, and its actions, with two windows in one room."""
-import pytest
+import types
 
+import pytest
+from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
+
+from core.collab.comments_file import comments_path, write_comments
 from handlers.collab_handler import saved_token
 from test_core.test_collab import _project_window, _wait_joined
 
@@ -96,3 +100,76 @@ def test_a_snapshot_replaces_the_mirror_in_a_turn(qtbot, pair):
     qtbot.waitUntil(lambda: not hb._turns, timeout=5000)
     assert hb.members == {"m1": {"name": "Ihor", "role": "moderator", "online": True, "banned": False}}
     assert hb.claims == {} and hb.comments == {}
+
+
+def _file_has(folder, text):
+    path = comments_path(folder)
+    return path.is_file() and text in path.read_text(encoding="utf-8")
+
+
+def test_a_comment_is_saved_in_both_project_folders_and_this_rooms_file_cannot_undo_a_deletion(qtbot, pair, tmp_path):
+    a, b = pair
+    a.project_manager = types.SimpleNamespace(project=None, project_dir=str(tmp_path / "a"))
+    b.project_manager = types.SimpleNamespace(project=None, project_dir=str(tmp_path / "b"))
+    a, b = _host_and_guest(qtbot, pair)
+    ha, hb = a.collab_handler, b.collab_handler
+    key = ha._key(0, 0)
+    ha.comment("row", "Hello", [key], "Check the tone")
+    qtbot.waitUntil(lambda: _file_has(tmp_path / "b", "Check the tone"), timeout=5000)
+    qtbot.waitUntil(lambda: _file_has(tmp_path / "a", "Check the tone"), timeout=5000)
+    cid = next(iter(hb.comments))
+    ha.delete_comment(cid)
+    qtbot.waitUntil(lambda: cid not in hb.comments, timeout=5000)
+    # A stale copy of the deleted comment, written by this same room, is not merged back into the window.
+    write_comments(comments_path(tmp_path / "b"), hb.fingerprint(), ha._room_id,
+                   [{"id": cid, "scope": {"kind": "row", "label": "k"}, "keys": ["k"], "author": "x",
+                     "author_name": "Host", "time": 1.0, "text": "stale", "resolved": None}])
+    port = ha.server.port
+    hb.leave()
+    hb.join(f"127.0.0.1:{port}", "pw", "Guest")
+    _wait_joined(qtbot, b)
+    qtbot.waitUntil(lambda: len(hb.members) == 2, timeout=5000)
+    assert cid not in hb.comments
+
+
+def test_a_file_of_another_room_is_merged_by_comment_id(qtbot, pair, tmp_path):
+    a, b = _host_and_guest(qtbot, pair)
+    hb = b.collab_handler
+    b.project_manager = types.SimpleNamespace(project=None, project_dir=str(tmp_path / "b"))
+    comment = {"id": "old1", "scope": {"kind": "file", "label": "f"}, "keys": ["f::1"], "author": "x",
+               "author_name": "Ihor", "time": 1.0, "text": "From an earlier room", "resolved": None}
+    hb._on_comments_loaded("earlier-room", [comment])
+    assert hb.comments["old1"]["keys"] == {"f::1"} and hb.comments["old1"]["text"] == "From an earlier room"
+    qtbot.waitUntil(lambda: _file_has(tmp_path / "b", "From an earlier room"), timeout=5000)
+
+
+class _Updater:
+    """The part of the block list updater the window calls: the tree item of block 0 for the test."""
+
+    def __init__(self, items):
+        self._block_items_cache = {0: items}
+
+    def update_block_item_text_with_problem_count(self, block_idx):
+        pass
+
+    def update_text_views(self):
+        pass
+
+
+def test_claims_comments_and_presence_show_as_markers_on_the_block_item(qtbot, pair):
+    a, b = _host_and_guest(qtbot, pair)
+    tree = QTreeWidget()
+    qtbot.addWidget(tree)
+    item = QTreeWidgetItem(["Block 1"])
+    tree.addTopLevelItem(item)
+    b.ui_updater = _Updater([item])
+    ha, hb = a.collab_handler, b.collab_handler
+    ha.claim("block", "Block 1", ha.keys_of_block(0))
+    qtbot.waitUntil(lambda: "🔒" in item.text(0), timeout=5000)
+    assert "🔒 H" in item.text(0) and "Claimed by Host" in item.toolTip(0)
+    ha.comment("block", "Block 1", ha.keys_of_block(0), "Look here")
+    qtbot.waitUntil(lambda: "💬 1" in item.text(0), timeout=5000)
+    ha.on_row_shown(0, 0)                                  # the host is on a row of this block
+    qtbot.waitUntil(lambda: "● H" in item.text(0), timeout=5000)
+    assert "works here" in item.toolTip(0)
+    assert hb.client is not None
