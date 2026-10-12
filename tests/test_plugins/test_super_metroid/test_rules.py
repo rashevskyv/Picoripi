@@ -91,7 +91,7 @@ def test_real_text_saves_back_unchanged():
     rules = check_loads(PLUGIN)
     text = (SOURCE / "text.json").read_text(encoding="utf-8")
     blocks, names = rules.load_data_from_json_obj(text)
-    assert [len(b) for b in blocks] == [27, 27, 36, 7, 7, 77]
+    assert [len(b) for b in blocks] == [27, 27, 29, 7, 7, 77]     # JAPANESE TEXT layouts are not in the catalog
     assert rules.save_data_to_json_obj(blocks, names) == text
 
 
@@ -142,11 +142,14 @@ def test_real_rom_unchanged_text_and_sheets_build_the_same_rom(zt_sm, tmp_path):
     rom = sm.Rom(data)
     texts = {it["id"]: it["text"] for g in json.loads(sm.dump_text(rom))["groups"] for it in g["items"]}
     assert sm.apply_text(rom, texts, dict(texts)) == []
-    assert bytes(rom.data) == data
+    assert bytes(rom.data) == data                      # unchanged text: the same bytes
+    sm.blank_freed_intro(rom, data)                     # the build's own first steps: freed intro tiles, JP switch
+    sm.patch_japanese_toggle(rom)
+    built = bytes(rom.data)
     for name in sm.GFX:
         (tmp_path / "s" / "gfx").mkdir(parents=True, exist_ok=True)
         (tmp_path / "s" / "gfx" / f"{name}.bin").write_bytes(sm.gfx_source(data, name))
-    assert sm.apply_gfx(rom, tmp_path / "s", tmp_path / "s") == [] and bytes(rom.data) == data
+    assert sm.apply_gfx(rom, tmp_path / "s", tmp_path / "s", data) == [] and bytes(rom.data) == built
 
 
 def test_real_rom_changed_texts_land_in_the_rom_and_read_back(zt_sm):
@@ -221,6 +224,23 @@ def test_the_game_fonts_are_listed_one_by_one_and_intro_is_two_fonts():
     assert story["params"]["texture_params"]["height"] // 8 * 16 == 0x30   # tiles 0..0x2F only
 
 
+def test_the_first_screen_grid_has_a_free_pair_cell_for_every_ukrainian_letter():
+    """Tiles 0x5A-0x5F/0x6A-0x6F and 0x70-0x7F/0x80-0x8F are the freed Japanese window (no English screen uses them)."""
+    rules = check_loads(PLUGIN)
+    prologue = _font(rules, "Intro first screen")
+    chars = prologue["params"]["chars"]
+    assert len(chars) == prologue["params"]["texture_params"]["height"] // 16 * 16 == 48
+    assert chars[:26] == [chr(65 + i) for i in range(26)]
+    free = set(range(0x5A, 0x60)) | set(range(0x6A, 0x90))
+    tops = []
+    for letter in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ":
+        row, col = divmod(chars.index(letter), 16)
+        top = 0x30 + 0x20 * row + col                     # the 8x16 grid: top tile, bottom tile 0x10 later
+        assert top in free and top + 0x10 in free, letter
+        tops.append(top)
+    assert len(set(tops)) == 21
+
+
 def test_real_intro_fonts_show_every_letter_the_text_uses_as_a_whole_glyph(zt_sm):
     sm, data = zt_sm
     rules = check_loads(PLUGIN)
@@ -278,7 +298,7 @@ def test_an_edited_intro_glyph_lands_in_the_built_rom_and_the_other_intro_font_k
     rom, _texts, sheets = sm.build_rom(ws, data)
     assert sheets == ["intro_font"]
     built, _ = sm.decompress(rom, sm.lo(0x95D089))
-    original = sm.gfx_bytes(data, "intro_font")
+    original = sm.gfx_source(data, "intro_font")          # the freed Japanese tiles are blank in the build too
     tile = lambda blob, n: blob[n * 16:(n + 1) * 16]       # noqa: E731
     assert tile(built, 0x30) == tile(original, 0x31) and tile(built, 0x40) == tile(original, 0x41)   # first screen A
     assert tile(built, 0x00) == tile(original, 0x01)                                                  # story A
