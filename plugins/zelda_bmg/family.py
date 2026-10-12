@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -106,7 +107,7 @@ def _member_key(folder: Path, fingerprint_key: str) -> str:
     return "hd_msgus" if folder.name.lower() == "msgus" else "hd_msguk"
 
 
-LABELS = {"gc": "GameCube", "wii": "Wii", "hd_msguk": "HD Msguk", "hd_msgus": "HD Msgus"}
+LABELS = {"gc": "GC", "wii": "Wii", "hd_msguk": "HD Msguk", "hd_msgus": "HD Msgus"}
 
 
 def _label(key: str) -> str:
@@ -148,6 +149,8 @@ def plan_for_sources(sources: Sequence[str], rules: GameRules) -> Tuple[FamilyPl
     plan = FamilyPlan(
         members=tuple(members),
         read=lambda key: [(unit.uid, unit.text) for unit in units[key]],
+        # Wii keeps the GameCube font archive byte for byte. rubyres.arc is not listed: each Wii copy differs.
+        shared_files={"Fontus/fontres.arc": ("wii",)},
     )
     return plan, units
 
@@ -199,6 +202,20 @@ def write_member(source: Path, out: Path, texts: Dict[str, str], rules: GameRule
     return changed_total
 
 
+def copy_shared_files(plan: FamilyPlan, member: str, res_out: Path) -> List[str]:
+    """Copy the base member's shared files into res_out (the member's res folder). Returns the file paths copied."""
+    copied = []
+    base_res = Path(plan.member(plan.base).path).parent
+    for rel, members in plan.shared_files.items():
+        if member not in members:
+            continue
+        target = res_out / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(base_res / rel, target)
+        copied.append(rel)
+    return copied
+
+
 def read_translation(folder: Path, source: Dict[str, str], rules: GameRules) -> Dict[str, str]:
     """Translated text per unit id from a translation folder. A message that still reads as its source is untranslated."""
     if not folder.is_dir():
@@ -218,7 +235,7 @@ def _load(config_path: Path) -> Tuple[dict, FamilyPlan, Dict[str, List[Unit]], G
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=["plan", "seed", "fanout", "project", "push", "pull", "verify"])
+    parser.add_argument("command", choices=["plan", "seed", "fanout", "project", "push", "pull", "verify", "shared"])
     parser.add_argument("family", type=Path, help="path to the family file (json)")
     parser.add_argument("--member", help="fanout: the member key")
     parser.add_argument("--out", type=Path, help="fanout: the folder to write the archives to")
@@ -226,6 +243,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     config, plan, units, rules = _load(args.family)
     store_path = config["_dir"] / config.get("store", "family_translations.json")
+    if args.command == "shared":
+        if not args.member or not args.out:
+            parser.error("shared needs --member and --out (the member's res folder)")
+        copied = copy_shared_files(plan, args.member, args.out)
+        print(f"{args.member}: copied {len(copied)} shared file(s): {', '.join(copied) or 'none'}")
+        return 0
     if args.command in ("project", "push", "pull", "verify"):
         from . import family_project as fp
         fam = config.get("family_project", {})
@@ -236,7 +259,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             store = load_store(store_path, plan.base)
             fp.push(plan, store, units, tr, rules)
             carry = root / fam["carry_from"] if fam.get("carry_from") else None
-            print(fp.create_project(pdir, src, tr, fam.get("name", "Family project"), rules, carry_from=carry))
+            print(fp.create_project(pdir, src, tr, fam.get("name", "Family project"), rules, carry_from=carry,
+                                   mapping=fp.carry_mapping(plan, units)))
         elif args.command == "push":
             fp.push(plan, load_store(store_path, plan.base), units, tr, rules)
         elif args.command == "pull":

@@ -1,13 +1,10 @@
 """Twilight Princess family project: one Picoripi project for the whole family, built from the family plan.
 
-Layout of the project source root (the project's source_path):
-    <root>/bmgres.arc, bmgres1.arc, ...            the base member (GameCube archives, copied as they are)
-    <root>/<Label> only/<archive>/<file>.bmg       the messages only that member has (loose BMG files)
-The translation root (translation_path) has the same layout. Shared messages live once, in the base archives.
-A loose file holds the member's own messages in unit order; the plan says which unit each one is.
-
-Only the TP plugin reads the archives; the project itself is created by Picoripi's own sync, so blocks and
-virtual folders are the ones the app makes.
+Every unit tree (one message, plus its linked copies in the other versions) is one project message. Its folder:
+    "Shared" (base-rooted tree with more than one version), "Shared HD Msguk" (the same for a tree rooted in HD
+    Msguk), or "<label> only" (a tree of one version: "GC only", "Wii only", "HD Msguk only", "HD Msgus only").
+Each folder holds loose BMG files <folder>/<archive>/<file>.bmg with the root version's messages, in order.
+The source root and the translation root have the same layout. Picoripi's sync makes the blocks.
 """
 from __future__ import annotations
 
@@ -17,35 +14,20 @@ import uuid
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from core.containers.rarc_container import RarcContainer
 from core.family_projects.model import FamilyPlan
-from core.family_projects.store import fanout, links, seed
+from core.family_projects.store import fanout, normalize, seed, trees
 from utils.atomic_io import atomic_write_bytes, atomic_write_json
 
-from .family import ARCHIVE_GLOB, Unit, editor_texts, family_of, scan, subset_bmg, write_member
+from .family import Unit, editor_texts, family_of, subset_bmg
 
 PROJECT_FILE = "project.uiproj"
 # Project files the family project carries over from the GameCube project (same messages, same tags).
 CARRIED_FILES = ("translation_map.json", "project_settings.json")
-# Block metadata carried over per GameCube block (keyed by archive and file name).
+# Block metadata carried over per GameCube message (keyed by message index in its file).
 CARRIED_METADATA = ("story_context_assignments", "translation_status")
-
-
-def own_units(plan: FamilyPlan, units: Dict[str, List[Unit]]) -> Dict[str, List[Unit]]:
-    """Per member: the units that are not linked to a parent. The base keeps all of its units."""
-    linked = links(family_of(plan))
-    return {key: [u for u in items if key == plan.base or u.uid not in linked[key]]
-            for key, items in units.items()}
-
-
-def _groups(items: Sequence[Unit]) -> "OrderedDict[Tuple[str, str], List[Unit]]":
-    """Units grouped by (archive, file), in order."""
-    groups: "OrderedDict[Tuple[str, str], List[Unit]]" = OrderedDict()
-    for unit in items:
-        groups.setdefault((unit.archive, unit.member), []).append(unit)
-    return groups
 
 
 class _Archives:
@@ -61,90 +43,105 @@ class _Archives:
         return self._cache[archive].read_file(inner)
 
 
-def subset_path(root: Path, label: str, archive: str, inner: str) -> Path:
-    return root / f"{label} only" / archive / inner
+def folder_name(plan: FamilyPlan, root_member: str, shared: bool) -> str:
+    label = plan.member(root_member).label
+    if not shared:
+        return f"{label} only"
+    return "Shared" if root_member == plan.base else f"Shared {label}"
+
+
+def _entries(plan: FamilyPlan, units: Dict[str, List[Unit]]) -> List[Tuple[str, str, Unit]]:
+    """(folder, root member, root unit) for every tree, in family order."""
+    by_uid = {m: {u.uid: u for u in items} for m, items in units.items()}
+    out = []
+    for (member, uid), nodes in trees(family_of(plan)):
+        out.append((folder_name(plan, member, len(nodes) > 1), member, by_uid[member][uid]))
+    return out
+
+
+def _files(plan: FamilyPlan, units: Dict[str, List[Unit]]) -> "OrderedDict[Tuple[str, str, str], Tuple[str, List[Unit]]]":
+    """Per project file (folder, archive, file): (root member, its units sorted by message index)."""
+    files: "OrderedDict[Tuple[str, str, str], Tuple[str, List[Unit]]]" = OrderedDict()
+    for folder, member, unit in _entries(plan, units):
+        key = (folder, unit.archive, unit.member)
+        files.setdefault(key, (member, []))[1].append(unit)
+    for key, (member, group) in files.items():
+        group.sort(key=lambda u: u.index)
+    return files
 
 
 def build_sources(plan: FamilyPlan, units: Dict[str, List[Unit]], root: Path, rules) -> int:
-    """Write the project source root. Returns the number of loose subset files."""
-    root.mkdir(parents=True, exist_ok=True)
-    base = plan.member(plan.base)
-    for archive in sorted(Path(base.path).glob(ARCHIVE_GLOB)):
-        shutil.copy2(archive, root / archive.name)
-    written = 0
-    own = own_units(plan, units)
-    for member in plan.members:
-        if member.base:
-            continue
-        original = _Archives(Path(member.path))
-        for (archive, inner), group in _groups(own[member.key]).items():
-            data = subset_bmg(original.file(archive, inner), [u.index for u in group],
-                              [u.text for u in group], rules)
-            atomic_write_bytes(subset_path(root, member.label, archive, inner), data)
-            written += 1
-    return written
+    """Write the project source root. Returns the number of project files."""
+    originals = {m.key: _Archives(Path(m.path)) for m in plan.members}
+    files = _files(plan, units)
+    for (folder, archive, inner), (member, group) in files.items():
+        data = subset_bmg(originals[member].file(archive, inner), [u.index for u in group],
+                          [u.text for u in group], rules)
+        atomic_write_bytes(root / folder / archive / inner, data)
+    return len(files)
 
 
-def push(plan: FamilyPlan, store: dict, units: Dict[str, List[Unit]], translation_root: Path, rules) -> List[str]:
-    """Write the store's texts into the translation root. Returns the warnings of the fan-out."""
+def push(plan: FamilyPlan, store: dict, units: Dict[str, List[Unit]], translation_root: Path, rules) -> None:
+    """Write the store's texts into the translation root. Refuses a store with a text the project cannot show."""
     family = family_of(plan)
-    warnings: List[str] = []
-    base = plan.member(plan.base)
-    base_out, base_warnings = fanout(family, store, plan.base)
-    warnings += base_warnings
-    write_member(Path(base.path), translation_root,
-                 {uid: text for uid, text in base_out.items() if text is not None}, rules, always=True)
-    own = own_units(plan, units)
-    for member in plan.members:
-        if member.base:
-            continue
-        out, member_warnings = fanout(family, store, member.key)
-        warnings += member_warnings
-        original = _Archives(Path(member.path))
-        for (archive, inner), group in _groups(own[member.key]).items():
-            texts = [out.get(u.uid) or u.text for u in group]
-            data = subset_bmg(original.file(archive, inner), [u.index for u in group], texts, rules)
-            atomic_write_bytes(subset_path(translation_root, member.label, archive, inner), data)
-    return warnings
+    store, overrides = normalize(family, store)
+    if overrides:
+        raise ValueError("the project cannot show these texts (they differ from the shared unit): "
+                         + ", ".join(f"{m} {u}" for m, u in overrides))
+    # Keyed by member too: a unit id is only unique inside one member (the same id exists in every version).
+    texts = {}
+    for member in {m for _f, m, _u in _entries(plan, units)}:
+        out, _warnings = fanout(family, store, member)
+        texts.update({(member, uid): text for uid, text in out.items() if text is not None})
+    originals = {m.key: _Archives(Path(m.path)) for m in plan.members}
+    for (folder, archive, inner), (member, group) in _files(plan, units).items():
+        new = [texts.get((member, u.uid)) or u.text for u in group]
+        data = subset_bmg(originals[member].file(archive, inner), [u.index for u in group], new, rules)
+        atomic_write_bytes(translation_root / folder / archive / inner, data)
 
 
 def pull(plan: FamilyPlan, units: Dict[str, List[Unit]], translation_root: Path, rules) -> Dict[str, Dict[str, str]]:
-    """Translated text per member and unit id, read back from the translation root (for seed).
+    """Translated text per root member and unit id, read back from the translation root (for seed).
 
-    A message that still reads as its source is untranslated (""). A base archive not in the root is untranslated.
+    A message that still reads as its source is untranslated (""). A file that is not in the root is untranslated.
     """
     translations: Dict[str, Dict[str, str]] = {}
-    source = {key: {u.uid: u.text for u in items} for key, items in units.items()}
-    translations[plan.base] = {
-        u.uid: ("" if source[plan.base][u.uid] == u.text else u.text)
-        for u in scan(translation_root, rules)
-    } if translation_root.is_dir() else {}
-    own = own_units(plan, units)
-    for member in plan.members:
-        if member.base:
+    originals = {m.key: _Archives(Path(m.path)) for m in plan.members}
+    for (folder, archive, inner), (member, group) in _files(plan, units).items():
+        path = translation_root / folder / archive / inner
+        if not path.is_file():
             continue
-        values: Dict[str, str] = {}
-        for (archive, inner), group in _groups(own[member.key]).items():
-            path = subset_path(translation_root, member.label, archive, inner)
-            if not path.is_file():
-                continue
-            texts = editor_texts(path.read_bytes(), rules)
-            for unit, text in zip(group, texts):
-                values[unit.uid] = "" if text == unit.text else text
-        translations[member.key] = values
+        # An untouched message reads back in the writer's form, which can differ from its source text.
+        # Compare with that form, or every such message would look translated.
+        written = subset_bmg(originals[member].file(archive, inner), [u.index for u in group],
+                             [u.text for u in group], rules)
+        baseline = editor_texts(written, rules)
+        values = translations.setdefault(member, {})
+        for unit, base, text in zip(group, baseline, editor_texts(path.read_bytes(), rules)):
+            values[unit.uid] = "" if text == base else text
     return translations
 
 
 def seed_from_project(plan: FamilyPlan, units: Dict[str, List[Unit]], translation_root: Path, rules):
-    """The store built from the translation root (see pull)."""
+    """The store built from the translation root (see pull). Returns (store, warnings)."""
     return seed(family_of(plan), pull(plan, units, translation_root, rules))
 
 
+def carry_mapping(plan: FamilyPlan, units: Dict[str, List[Unit]]) -> Dict[Tuple[str, str, str], Dict[int, int]]:
+    """For each project file of the base version: GameCube message index -> index in the project file."""
+    mapping = {}
+    for key, (member, group) in _files(plan, units).items():
+        if member == plan.base:
+            mapping[key] = {unit.index: pos for pos, unit in enumerate(group)}
+    return mapping
+
+
 def create_project(project_dir: Path, source_root: Path, translation_root: Path, name: str, rules,
-                   carry_from: Path | None = None) -> Path:
+                   carry_from: Optional[Path] = None, mapping: Optional[dict] = None) -> Path:
     """Create the project file for the two roots and let Picoripi's sync make the blocks. Returns the .uiproj path.
 
-    carry_from: a GameCube project folder. Its translation map, settings and block metadata are copied over.
+    carry_from: a GameCube project folder. Its translation map, settings and message metadata are copied over,
+    with the message indexes moved to the project file (mapping, see carry_mapping).
     """
     from core.project.manager import ProjectManager
 
@@ -164,15 +161,16 @@ def create_project(project_dir: Path, source_root: Path, translation_root: Path,
     manager.sync_project_files(plugin=rules)
     manager.save()
     if carry_from is not None:
-        carry_project_data(carry_from, project_dir)
-        manager = ProjectManager(str(project_dir))
-        manager.sync_project_files(plugin=rules)
-        manager.save()
+        carry_project_data(carry_from, project_dir, mapping or {})
     return project_file
 
 
-def carry_project_data(old_dir: Path, new_dir: Path) -> int:
-    """Copy the translation map and settings, and the GameCube block metadata. Returns the blocks updated."""
+def carry_project_data(old_dir: Path, new_dir: Path, mapping: dict) -> int:
+    """Copy the translation map and settings, and the GameCube message metadata, to the project file.
+
+    The metadata is keyed by message index; each index moves to the index the message has in the new file.
+    Returns the number of metadata entries carried.
+    """
     for name in CARRIED_FILES:
         if (old_dir / name).is_file() and not (new_dir / name).exists():
             shutil.copy2(old_dir / name, new_dir / name)
@@ -180,22 +178,31 @@ def carry_project_data(old_dir: Path, new_dir: Path) -> int:
     by_file = {(b["metadata"].get("archive_rel_path"), b["metadata"].get("archive_file_name")): b
                for b in old["blocks"] if b.get("metadata", {}).get("is_archive_member")}
     new = json.loads((new_dir / PROJECT_FILE).read_text(encoding="utf-8"))
-    updated = 0
+    carried = 0
     for block in new["blocks"]:
-        meta = block.get("metadata", {})
-        source = by_file.get((meta.get("archive_rel_path"), meta.get("archive_file_name")))
-        if not meta.get("is_archive_member") or source is None:
+        parts = block["source_file"].replace("\\", "/").split("/")
+        key = (parts[0], parts[1], "/".join(parts[2:])) if len(parts) > 2 else None
+        if key not in mapping:
             continue
-        for key in CARRIED_METADATA:
-            if key in source.get("metadata", {}):
-                meta[key] = source["metadata"][key]
-                updated += 1
+        source = by_file.get((parts[1], parts[-1]))
+        if source is None:
+            continue
+        meta = block.setdefault("metadata", {})
+        for name in CARRIED_METADATA:
+            values = source.get("metadata", {}).get(name)
+            if not values:
+                continue
+            moved = {str(mapping[key][int(idx)]): value for idx, value in values.items()
+                     if idx.isdigit() and int(idx) in mapping[key]}
+            if moved:
+                meta[name] = moved
+                carried += len(moved)
     atomic_write_json(new_dir / PROJECT_FILE, new, ensure_ascii=False, indent=4)
-    return updated
+    return carried
 
 
 def count_messages(project_dir: Path, rules) -> Dict[str, int]:
-    """Messages per top-level folder of the project (the base archives count under "base"), read through the project."""
+    """Messages per top-level folder of the project, read through the project's own manager."""
     from core.project.manager import ProjectManager
 
     manager = ProjectManager(str(project_dir))
@@ -206,8 +213,6 @@ def count_messages(project_dir: Path, rules) -> Dict[str, int]:
             data = manager.get_archive_container(meta["archive_rel_path"]).read_file(meta["archive_file_name"])
         else:
             data = Path(manager.get_absolute_path(block.source_file)).read_bytes()
-        texts = editor_texts(data, rules)
-        top = block.source_file.replace("\\", "/").split("/")
-        folder = top[0] if top[0].endswith(" only") else "base"
-        counts[folder] = counts.get(folder, 0) + len(texts)
+        folder = block.source_file.replace("\\", "/").split("/")[0]
+        counts[folder] = counts.get(folder, 0) + len(editor_texts(data, rules))
     return counts

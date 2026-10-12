@@ -39,3 +39,17 @@ def test_plan_recognises_four_members_and_links_them_as_planned():
 def test_a_single_source_is_a_valid_family():
     plan, _units = plan_for_sources([str(SOURCES[0])], make_rules(None))
     assert plan.base == "gc" and len(plan.members) == 1
+
+
+@needs_game
+def test_project_folders_hold_every_message_once_with_the_planned_counts():
+    from collections import Counter
+
+    from plugins.zelda_bmg.family_project import _entries
+
+    plan, units = plan_for_sources([str(p) for p in SOURCES], make_rules(WORKSPACE / "GC + Wii/picoripi"))
+    folders = Counter(folder for folder, _member, _unit in _entries(plan, units))
+    assert folders == {"Shared": 15486, "Shared HD Msguk": 2908, "GC only": 136, "Wii only": 183,
+                       "HD Msguk only": 413, "HD Msgus only": 405}
+    assert sum(folders.values()) == 19531
+    assert plan.shared_files == {"Fontus/fontres.arc": ("wii",)}
