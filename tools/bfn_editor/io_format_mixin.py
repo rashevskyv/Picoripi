@@ -210,6 +210,11 @@ class IoFormatMixin:
                 return
             for char, reason in report.skipped.items():
                 log_warning(f"Font editor: glyph {char!r} not copied to {partner.label}: {reason}")
+            if report.copied:
+                codes = " ".join(repr(char) for char in sorted(report.copied))
+                log_info(f"Font editor: {len(report.copied)} glyphs copied to {partner.label}: {codes}")
+            for char in sorted(report.conflicts):
+                log_warning(f"Font editor: glyph {char!r} differs in both copies; the saved copy won")
             self.status.showMessage(tr("Linked font {0}: {1} glyphs copied, {2} conflicts, {3} skipped",
                                        partner.label, len(report.copied), len(report.conflicts), len(report.skipped)))
 
