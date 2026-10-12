@@ -118,6 +118,12 @@ class Room:
         with self.cond:
             return self._has_host()
 
+    def is_host_token(self, token: str) -> bool:
+        """True when ``token`` belongs to the member that is the host now."""
+        with self.cond:
+            mid = self.token_index.get(_hash(token))
+            return mid is not None and self.members[mid]["role"] == HOST
+
     def _has_host(self) -> bool:
         return any(m["role"] == HOST for m in self.members.values())
 
