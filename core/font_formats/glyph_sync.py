@@ -15,11 +15,14 @@ writes the files.
 """
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
 import json
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+from PIL import Image
 
 from core.font_formats import Metadata, Sheets, char_map
 
@@ -137,6 +140,15 @@ def record_changes(state: Dict[str, Any], font: str, codes: Iterable[str], hashe
     del state["log"][:-LOG_LIMIT]
 
 
+def _wanted(state: Dict[str, Any], owner: str, owner_hashes: Dict[str, str], into_hashes: Dict[str, str],
+            skip: Iterable[str]) -> List[str]:
+    """The codes whose latest change is ``owner``'s, that the owner still holds, and that the other copy lacks."""
+    skip = set(skip)
+    return [char for char, entry in sorted(state["latest"].items())
+            if entry["font"] == owner and char not in skip and char in owner_hashes
+            and owner_hashes[char] == entry["hash"] and into_hashes.get(char) != entry["hash"]]
+
+
 def carry(state: Dict[str, Any], owner: str, owner_model: Model, into: str, into_model: Model,
           skip: Iterable[str] = ()) -> Tuple[Model, List[str]]:
     """``into_model`` with every latest change of ``owner`` that it lacks, and the codes copied.
@@ -144,18 +156,83 @@ def carry(state: Dict[str, Any], owner: str, owner_model: Model, into: str, into
     A code in ``skip`` (changed by ``into`` itself) is not touched. The owner's glyph must still hold the hash that
     was recorded for it, otherwise it is not copied.
     """
-    skip = set(skip)
-    owner_hashes = glyph_hashes(owner_model)
-    into_hashes = glyph_hashes(into_model)
-    wanted = [char for char, entry in sorted(state["latest"].items())
-              if entry["font"] == owner and char not in skip and char in owner_hashes
-              and owner_hashes[char] == entry["hash"] and into_hashes.get(char) != entry["hash"]]
+    wanted = _wanted(state, owner, glyph_hashes(owner_model), glyph_hashes(into_model), skip)
     if not wanted:
         return into_model, []
     result: Model = (copy.deepcopy(into_model[0]), [sheet.copy() for sheet in into_model[1]])
     for char in wanted:
         copy_glyph(result, owner_model, char)
     return result, wanted
+
+
+def _payload(model: Model, char: str, hashes: Dict[str, str]) -> Dict[str, Any]:
+    """A glyph as the state file keeps it until its copy can be written: cell pixels, metrics, content hash."""
+    metadata, sheets = model
+    glyph = char_map(metadata)[char]
+    sheet, x, y, width, height = _cell_box(metadata, glyph)
+    cell = sheets[sheet].crop((x, y, x + width, y + height)).tobytes()
+    packet = _packet(metadata, glyph)
+    return {"hash": hashes[char], "size": [width, height], "cell": base64.b64encode(cell).decode("ascii"),
+            "kerning": packet["kerning"], "width": packet["width"]}
+
+
+def _write_payload(model: Model, char: str, payload: Dict[str, Any]) -> bool:
+    """Write a kept glyph into ``model``, in place. False when the cell does not have the kept size."""
+    metadata, sheets = model
+    glyph = char_map(metadata)[char]
+    sheet, x, y, width, height = _cell_box(metadata, glyph)
+    if list(payload["size"]) != [width, height]:
+        return False
+    cell = Image.frombytes("RGBA", (width, height), base64.b64decode(payload["cell"]))
+    sheets[sheet].paste(cell, (x, y))
+    packet = _packet(metadata, glyph)
+    packet["kerning"], packet["width"] = payload["kerning"], payload["width"]
+    return True
+
+
+def defer(state: Dict[str, Any], target: str, owner: str, owner_model: Model, target_model: Model,
+          skip: Iterable[str] = ()) -> List[str]:
+    """Keep the glyphs ``target`` lacks (the owner's latest changes) in the state as pending for ``target``.
+
+    Used while ``target`` is open with unsaved edits: its file is not written; the glyphs wait for its next save
+    or reopening. Returns the codes kept.
+    """
+    owner_hashes, target_hashes = glyph_hashes(owner_model), glyph_hashes(target_model)
+    wanted = _wanted(state, owner, owner_hashes, target_hashes, skip)
+    pending = state.setdefault("pending", {}).setdefault(target, {})
+    for char in wanted:
+        pending[char] = _payload(owner_model, char, owner_hashes)
+    return wanted
+
+
+def apply_pending(state: Dict[str, Any], target: str, target_model: Model,
+                  skip: Iterable[str] = ()) -> Tuple[Model, List[str]]:
+    """``target_model`` with the glyphs kept for ``target``, and the codes applied.
+
+    A kept glyph is dropped, not applied, when ``target`` changed that code itself (``skip``: its unsaved edits win) or
+    when its latest change is ``target``'s own. Every kept entry is removed once it is looked at.
+    """
+    pending = state.get("pending", {}).get(target)
+    if not pending:
+        return target_model, []
+    skip = set(skip)
+    hashes = glyph_hashes(target_model)
+    result: Optional[Model] = None
+    applied: List[str] = []
+    for char in sorted(pending):
+        payload = pending.pop(char)
+        latest = state["latest"].get(char)
+        if char in skip or (latest is not None and latest["font"] == target):
+            continue
+        if hashes.get(char) == payload["hash"]:
+            continue
+        if result is None:
+            result = (copy.deepcopy(target_model[0]), [sheet.copy() for sheet in target_model[1]])
+        if _write_payload(result, char, payload):
+            applied.append(char)
+    if not pending:
+        state["pending"].pop(target, None)
+    return (result if result is not None else target_model), applied
 
 
 def pair_enabled(pairs: Dict[str, Dict[str, Any]], a: str, b: str) -> bool:

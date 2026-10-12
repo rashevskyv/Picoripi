@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Font glyph sync (2026-10-12): changes that would write into a copy open with unsaved edits wait in font_sync.json ("pending") and apply on that copy's save or reopening; its own unsaved edits win.
 - Font glyph sync rework (2026-10-12): opt-in per identical pair (checkbox, default off, project metadata `font_sync_pairs`); change-based, latest change per glyph wins, a revert propagates and a stale copy does not bring back an old drawing; log in `font_sync.json`; different cell sizes or formats are never linked.
 - Wind Waker (2026-10-12): the GameCube plugin highlights HD tags (`[Size:150]`) and icon characters in MSBT blocks of the family project; the font editor logs each glyph code copied to a linked copy (`sync_glyphs_with`), with the count in the save message.
 - Wind Waker family (2026-10-12): GameCube BMG and HD MSBT share one translation; the tag table is derived from the game files (`plugins/zelda_ww/family_tag_map.json`, D20); `zelda_tww` opens MSBT blocks; `core/family_projects` gains `exact_keys` (`align_by_key`), TP keeps its alignment; `plugins/common/msbt.py` gains `subset`.

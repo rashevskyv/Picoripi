@@ -78,20 +78,21 @@ def registry_reader_writer(monkeypatch):
     monkeypatch.setattr(mixin, "write_bfn_model", lambda *model: token(model))
 
 
-def save(source, partner, model, loaded, state_path, now):
+def save(source, partner, model, loaded, state_path, now, busy=False):
     """One save of ``source`` whose edited model is ``model``, as the editor's job does it."""
-    final, partner_bytes, taken, given = mixin.sync_on_save(source, partner, token(model), loaded, str(state_path), now)
+    final, partner_bytes, taken, given, deferred = mixin.sync_on_save(
+        source, partner, token(model), loaded, str(state_path), now, partner_busy=busy)
     source.write(final)
     if partner_bytes is not None:
         partner.write(partner_bytes)
-    return taken, given
+    return taken, given, deferred
 
 
 def test_a_drawing_is_copied_on_save_and_reported(tmp_path):
     state_path = tmp_path / gs.STATE_FILE
     a, b = Copy("A", font()), Copy("B", font())
     drawn = paint(font(), "A")
-    taken, given = save(a, b, drawn, hashes(a.data), state_path, now=1.0)
+    taken, given, _deferred = save(a, b, drawn, hashes(a.data), state_path, now=1.0)
     assert given == ["A"] and taken == []
     assert hashes(b.data)["A"] == gs.glyph_hashes(drawn)["A"]
 
@@ -102,7 +103,7 @@ def test_a_revert_is_a_change_and_is_copied_too(tmp_path):
     drawn = paint(font(), "A")
     save(a, b, drawn, hashes(a.data), state_path, now=1.0)
     reverted = blank(font(), "A")
-    taken, given = save(a, b, reverted, gs.glyph_hashes(drawn), state_path, now=2.0)
+    taken, given, _deferred = save(a, b, reverted, gs.glyph_hashes(drawn), state_path, now=2.0)
     assert given == ["A"]
     assert hashes(b.data)["A"] == gs.glyph_hashes(reverted)["A"]
 
@@ -116,7 +117,7 @@ def test_a_stale_copy_with_no_change_does_not_bring_back_an_old_drawing(tmp_path
     save(a, b, reverted, gs.glyph_hashes(drawn), state_path, now=2.0)  # B's file: the revert
     # B was opened while it still had the drawing; it has no change of its own and saves now
     stale = Copy("B", paint(font(), "A"))
-    taken, given = save(stale, a, REGISTRY[bytes(stale.data)], hashes(stale.data), state_path, now=3.0)
+    taken, given, _deferred = save(stale, a, REGISTRY[bytes(stale.data)], hashes(stale.data), state_path, now=3.0)
     assert taken == ["A"] and given == []
     assert hashes(stale.data)["A"] == gs.glyph_hashes(blank(font(), "A"))["A"]
 
@@ -125,6 +126,44 @@ def test_a_copy_that_saves_without_changes_gives_nothing(tmp_path):
     state_path = tmp_path / gs.STATE_FILE
     a, b = Copy("A", font()), Copy("B", font())
     before = hashes(b.data)
-    taken, given = save(a, b, font(), hashes(a.data), state_path, now=1.0)
+    taken, given, _deferred = save(a, b, font(), hashes(a.data), state_path, now=1.0)
     assert taken == [] and given == []
     assert hashes(b.data) == before
+
+
+def test_a_partner_with_unsaved_edits_is_not_written_and_the_glyph_waits(tmp_path):
+    state_path = tmp_path / gs.STATE_FILE
+    a, b = Copy("A", font()), Copy("B", font())
+    b_before = b.data
+    drawn = paint(font(), "A")
+    taken, given, deferred = save(a, b, drawn, hashes(a.data), state_path, now=1.0, busy=True)
+    assert given == [] and deferred == ["A"]
+    assert b.data == b_before                                     # B's file is untouched
+    state = gs.load_state(state_path)
+    assert "A" in state["pending"]["B"]
+
+
+def test_a_waiting_glyph_applies_when_the_partner_is_saved(tmp_path):
+    state_path = tmp_path / gs.STATE_FILE
+    a, b = Copy("A", font()), Copy("B", font())
+    drawn = paint(font(), "A")
+    save(a, b, drawn, hashes(a.data), state_path, now=1.0, busy=True)
+    # B is saved with no edits of its own: the waiting drawing is applied to its save
+    b_model = font()
+    b_saved = Copy("B", b_model)
+    taken, given, deferred = save(b_saved, a, b_model, hashes(b_saved.data), state_path, now=2.0)
+    assert taken == ["A"] and deferred == []
+    assert hashes(b_saved.data)["A"] == gs.glyph_hashes(drawn)["A"]
+    assert "A" not in gs.load_state(state_path).get("pending", {}).get("B", {})
+
+
+def test_the_partners_own_unsaved_edit_wins_over_the_waiting_glyph(tmp_path):
+    state_path = tmp_path / gs.STATE_FILE
+    a, b = Copy("A", font()), Copy("B", font())
+    drawn = paint(font(), "A")
+    save(a, b, drawn, hashes(a.data), state_path, now=1.0, busy=True)
+    own = paint(font(), "A", (128, 128, 128, 255))                # B's own edit of the same code
+    b_saved = Copy("B", own)
+    taken, given, deferred = save(b_saved, a, own, gs.glyph_hashes(font()), state_path, now=2.0)
+    assert "A" not in taken                                       # the partner's waiting glyph is dropped
+    assert hashes(b_saved.data)["A"] == gs.glyph_hashes(own)["A"]

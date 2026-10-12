@@ -66,7 +66,7 @@ def test_a_changed_glyph_is_copied_to_the_other_copy_on_save(copies, tmp_path):
     cell_b = sheets[box_b[0]].crop((box_b[1], box_b[2], box_b[1] + box_b[3], box_b[2] + box_b[4]))
     sheets[box_a[0]].paste(cell_b, (box_a[1], box_a[2]))               # the name copy's 'A' takes the 'B' pixels
     edited = write_bfn_model(metadata, sheets)
-    edited_bytes, partner_bytes, taken, given = sync_on_save(name, select, edited, loaded,
+    edited_bytes, partner_bytes, taken, given, _deferred = sync_on_save(name, select, edited, loaded,
                                                             str(tmp_path / glyph_sync.STATE_FILE), now=1.0)
     assert given == ["A"] and taken == []
     partner_model = read_bfn_model(partner_bytes)
