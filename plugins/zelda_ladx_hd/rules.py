@@ -81,6 +81,9 @@ class GameRules(BaseGameRules):
         names = {str(index): key for index, key in enumerate(keys)}
         return blocks, names
 
+    def supports_reference_patch(self) -> bool:
+        return True
+
     def get_reference_language_label(self) -> str:
         return "Reference (UA GB, SWUK)"
 
