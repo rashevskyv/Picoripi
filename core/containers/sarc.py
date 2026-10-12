@@ -3,7 +3,7 @@
 TotK compresses most files with zstd against dictionaries kept in ``romfs/Pack/ZsDic.pack.zs`` (itself
 a zstd SARC without a dictionary). A frame names its dictionary by id, so the dictionaries are found by
 looking for ``ZsDic.pack.zs`` in the places ``dictionary_dirs`` lists (the TotK plugin sets it: the project folders and
-``~/.picoripi/plugins/zelda_totk``) and loaded once.
+the ``plugins/zelda_totk`` folder of the data folder) and loaded once.
 
 ``SarcContainer`` plugs these archives into the project's archive support: each ``.msbt`` inside
 becomes a project block, and saving repacks the archive and compresses it with the same dictionary.
@@ -68,7 +68,7 @@ def _dictionary(dict_id: int):
     if dict_id not in _dictionaries:
         raise ValueError(
             f"zstd dictionary {dict_id:#x} not found: put the game's romfs/Pack/{DICTIONARY_PACK} next to "
-            f"the project's romfs (Pack/{DICTIONARY_PACK}) or into ~/.picoripi/plugins/zelda_totk/"
+            f"the project's romfs (Pack/{DICTIONARY_PACK}) or into the data folder (plugins/zelda_totk/)"
         )
     return _dictionaries[dict_id]
 

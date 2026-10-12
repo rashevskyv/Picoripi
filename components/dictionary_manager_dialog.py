@@ -12,10 +12,10 @@ from utils.logging_utils import log_debug, log_error
 import pycountry
 from core.i18n import tr
 from utils.thread_utils import WorkerThread
+from core.spellchecker_manager import USER_DICT_PATH
 
 DICTIONARY_API_URL = "https://api.github.com/repos/wooorm/dictionaries/contents/dictionaries"
 DICTIONARY_DOWNLOAD_URL_TEMPLATE = "https://raw.githubusercontent.com/wooorm/dictionaries/main/dictionaries/{lang_code}/index.{ext}"
-LOCAL_DICT_PATH = "resources/spellchecker"
 
 class DownloadThread(WorkerThread):
     """Download thread implementation with cooperative cancellation."""
@@ -222,7 +222,7 @@ class DictionaryManagerDialog(QDialog):
 
         lang_code = selected_items[0].data(Qt.UserRole)
         
-        local_dict_path_obj = Path(LOCAL_DICT_PATH)
+        local_dict_path_obj = USER_DICT_PATH  # downloads belong to the user's data folder
         downloads = [
             (DICTIONARY_DOWNLOAD_URL_TEMPLATE.format(lang_code=lang_code, ext='dic'), (local_dict_path_obj / f"{lang_code}.dic").as_posix()),
             (DICTIONARY_DOWNLOAD_URL_TEMPLATE.format(lang_code=lang_code, ext='aff'), (local_dict_path_obj / f"{lang_code}.aff").as_posix())

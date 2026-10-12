@@ -1,5 +1,6 @@
 """Story, scene and room context of a string, read from MemPalace for prompts."""
 from __future__ import annotations
+import utils.constants as constants
 import os
 import re
 from typing import Optional, Tuple
@@ -33,7 +34,7 @@ class StoryContextManager:
                 elif json_path and isinstance(json_path, (str, bytes)):
                     project_dir = os.path.dirname(json_path)
             if not project_dir or not isinstance(project_dir, (str, bytes)):
-                project_dir = os.getcwd()
+                project_dir = str(constants.SETTINGS_DIR)
 
         source_project_dir = os.path.abspath(project_dir) if project_dir else None
         if (
@@ -47,7 +48,7 @@ class StoryContextManager:
         resolved_db = os.path.join(project_dir, db_file) if project_dir else ""
 
         if not project_dir or not os.path.exists(resolved_db):
-            candidates = [os.getcwd()]
+            candidates = [str(constants.SETTINGS_DIR)]
             if hasattr(self.mw, "data_store") and self.mw.data_store:
                 json_path = getattr(self.mw.data_store, "json_path", None)
                 if json_path and isinstance(json_path, (str, bytes)):

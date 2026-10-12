@@ -2,14 +2,14 @@
 status: current
 updated: 2026-10-02
 owns: core/settings
-tokens: 1.6k
+tokens: 2.0k
 purpose: Settings files, project files, where data is stored
 ---
 # Configuration
 
 **Language:** English · [Українська](uk/4_Configuration_Guide.md)
 
-User-facing settings live in **Settings…** (`Ctrl+P`), `ui/settings_dialog.py`. On-disk: `settings.json` in the working directory (do not commit it). Optional `.env` is loaded at startup (`core/settings_manager.py` + `python-dotenv`) for API key env vars.
+User-facing settings live in **Settings…** (`Ctrl+P`), `ui/settings_dialog.py`. On-disk: `settings.json` in the data folder (see [Where Picoripi keeps your data](#where-picoripi-keeps-your-data); do not commit it). Optional `.env` is loaded at startup (`core/settings_manager.py` + `python-dotenv`) for API key env vars.
 
 This page lists **controls as the UI shows them**, then the files they persist to.
 
@@ -81,10 +81,34 @@ Connection to the mobile review backend. See [12. Picoripi Companion](12_Picorip
 |---------|--|
 | Enable Console Logging | |
 | Enable File Logging | |
-| Log AI Traffic to File (`ai_traffic.log`) | Written to the settings folder (`~/.picoripi/ai_traffic.log`) as JSON Lines: one record per request, response or error with a shared `request_id`, chunk number, attempt, sizes and duration, plus a summary per run. Rolled over to `ai_traffic.log.1` at 8 MB instead of being cleared |
+| Log AI Traffic to File (`ai_traffic.log`) | Written to the data folder (`ai_traffic.log`) as JSON Lines: one record per request, response or error with a shared `request_id`, chunk number, attempt, sizes and duration, plus a summary per run. Rolled over to `ai_traffic.log.1` at 8 MB instead of being cleared |
 | Log File Path | empty → `app_debug.txt` |
 
 Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plugins.
+
+---
+
+## Where Picoripi keeps your data
+
+The first time Picoripi starts, it asks where to keep its data. The data folder holds your settings, the Project Manager list, series glossaries, plugin data and caches. Picoripi never picks a folder for you: you confirm it.
+
+- The suggested folder is `data`, next to the program. It is portable: move the program folder and the data moves with it.
+- You can choose another folder. You can also keep using your old profile folder `~/.picoripi`. Copying the old data is optional. The old folder is never changed or deleted.
+- Change the folder later in **Settings → Global → Data folder → Data location…**. Picoripi copies the data to the new folder. Restart Picoripi to use it.
+- Two explicit overrides exist: the environment variable `PICORIPI_HOME`, and `picoripi_home.json` next to the program (the chooser writes it).
+
+```mermaid
+flowchart TD
+  A{PICORIPI_HOME set?} -->|yes| U[Use that folder]
+  A -->|no| B{picoripi_home.json next to the program, usable?}
+  B -->|yes| U
+  B -->|no| C[Ask the user: chooser]
+  C --> D[User confirms a folder]
+  D --> W[Write picoripi_home.json]
+  W --> U
+```
+
+The log file `app_debug.txt` stays next to the program unless **Log File Path** names another file. Short-lived temporary files use the system temp folder.
 
 ---
 
@@ -97,9 +121,9 @@ Categories: general, lifecycle, file_ops, settings, ui_action, ai, scanner, plug
 | `locales/uk.json` | Ukrainian UI catalog. Add a key here whenever you add `tr("...")` in code |
 | `.env` | Optional `OPENAI_API_KEY`, `GEMINI_API_KEY`, … |
 | `session` / `.picoripi_session.json` | UI filters, navigation, unsaved edits, undo. **Show Unsaved Only** is forced off on restore |
-| `~/.picoripi/session_state.json` | Tree expansion, selection and cursor per project (read once from the old `session_state.json` in the program folder) |
-| `~/.picoripi/project_manager.json` | Project Manager list: added projects, their folders, the group and sort choices. Written atomically. A file it cannot read is kept as `.unreadable` |
-| `~/.picoripi/project_index.json` | Project Manager cache: the last card and string counts of each project. Safe to delete; rebuilt on the next visit |
+| `session_state.json` in the data folder | Tree expansion, selection and cursor per project (read once from the old `session_state.json` in the program folder) |
+| `project_manager.json` in the data folder | Project Manager list: added projects, their folders, the group and sort choices. Written atomically. A file it cannot read is kept as `.unreadable` |
+| `project_index.json` in the data folder | Project Manager cache: the last card and string counts of each project. Safe to delete; rebuilt on the next visit |
 | `project.uiproj` | Project record: name, plugin folder, source/translation paths, bookmarks, `reference_patch_path` |
 | plugin `config.json` | Defaults for that game |
 | plugin `aliases.json` | Extra tag aliases |

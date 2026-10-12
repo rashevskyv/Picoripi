@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: layering, data flow
-tokens: 2.1k
+tokens: 2.2k
 purpose: Layers, data flow, facades, and where to change what
 ---
 # Architecture
@@ -54,6 +54,7 @@ flowchart LR
 | `core/mempalace/` | story context database and workers | `core/mempalace_client.py` | `tests/test_core/` | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` |
 | `core/containers/` | game archives (RARC, U8, Yaz0) | `core/containers/container_manager.py` | `tests/test_core/` | wiki 3 |
 | `core/settings/` | global, plugin and session settings | `core/settings_manager.py` | `tests/test_core/test_settings/` | wiki 4 |
+| `utils/data_location.py`, `core/data_location_choice.py`, `dialogs/data_location_dialog.py` | where user data lives: explicit choice, first-start chooser, copy of an old folder | `utils/constants.py` (`SETTINGS_DIR`) | `tests/test_utils/test_data_location.py`, `tests/test_core/test_data_location_choice.py`, `tests/test_dialogs/test_data_location_dialog.py` | wiki 4, D19 |
 | `ui/updaters/` | block tree, preview, text views, status | `ui/ui_updater.py` | `tests/test_ui/test_updaters/` | wiki 6 |
 | `ui/settings/` | Settings dialog tabs | `ui/settings_dialog.py` | `tests/test_ui/test_settings/` | wiki 4 |
 | `components/`, `dialogs/` | reusable widgets and dialogs | `components/editor/line_edit/` | `tests/test_components/`, `tests/test_dialogs/` | wiki 1 |

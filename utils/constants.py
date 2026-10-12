@@ -20,8 +20,15 @@ DEFAULT_APP_FONT_SIZE = 10
 LT_PREVIEW_SELECTED_LINE_COLOR = "#AEC6E0"
 DT_PREVIEW_SELECTED_LINE_COLOR = "#003E6B"
 
-# Settings path in home directory
-SETTINGS_DIR = Path.home() / ".picoripi"
+# User data folder: chosen by the user at first start (see utils/data_location.py). Frozen at import.
+from utils import app_mode
+from utils.data_location import resolve_data_location
+
+DATA_LOCATION = resolve_data_location()
+if DATA_LOCATION.needs_choice and app_mode.headless:
+    # Headless runs must name the folder (PICORIPI_HOME); they never ask and never guess.
+    raise RuntimeError("Headless run without PICORIPI_HOME: name the user data folder explicitly.")
+SETTINGS_DIR = DATA_LOCATION.path
 SETTINGS_FILE_PATH = str(SETTINGS_DIR / "settings.json")
 
 

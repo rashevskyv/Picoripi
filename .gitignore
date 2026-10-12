@@ -67,3 +67,7 @@ pytest-of-Administrator/
 # Local agent scratch (skills live in .agents/skills)
 /.grok/
 .tmp_audit/
+
+# User data folder (portable default, chosen at first start) and the pointer file that remembers the choice
+/data/
+/picoripi_home.json

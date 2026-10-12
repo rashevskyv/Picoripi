@@ -1,6 +1,7 @@
 """Progress and cancel dialog of a running AI operation."""
 # components/ai_status_dialog.py ---
 from utils import app_mode
+from utils.data_location import app_root
 from typing import Optional
 from PyQt6.QtWidgets import (
     QApplication,
@@ -90,7 +91,7 @@ class AIStatusDialog(QDialog):
         animation_layout = QHBoxLayout()
         animation_layout.addStretch(1)
         self.animation_label = QLabel(self)
-        self.movie = QMovie("resources/icons/loading.gif")
+        self.movie = QMovie(str(app_root() / "resources" / "icons" / "loading.gif"))
         self.movie.setScaledSize(QSize(48, 48))
         self.animation_label.setMovie(self.movie)
         animation_layout.addWidget(self.animation_label)

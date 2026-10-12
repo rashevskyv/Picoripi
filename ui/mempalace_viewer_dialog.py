@@ -1,4 +1,5 @@
 """Browse the MemPalace database: wings, rooms, relations."""
+import utils.constants as constants
 import os
 from PyQt6.QtWidgets import (
     QDialog, QAbstractItemView, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTextEdit, 
@@ -125,7 +126,7 @@ class MemePalaceViewerDialog(QDialog):
         try:
             project_dir = self.mw.project_manager.project_dir if (hasattr(self.mw, "project_manager") and self.mw.project_manager) else None
             if not project_dir:
-                project_dir = os.path.dirname(self.mw.data_store.project_file) if (hasattr(self.mw, "data_store") and self.mw.data_store and getattr(self.mw.data_store, "project_file", None)) else os.getcwd()
+                project_dir = os.path.dirname(self.mw.data_store.project_file) if (hasattr(self.mw, "data_store") and self.mw.data_store and getattr(self.mw.data_store, "project_file", None)) else str(constants.SETTINGS_DIR)
 
             if project_dir:
                 db_name = "mempalace_local.db"

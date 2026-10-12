@@ -1,4 +1,5 @@
 """Session / settings / close-lifecycle mixin for MemePalaceBuilderDialog."""
+import utils.constants as constants
 import os
 import sqlite3
 from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
@@ -23,7 +24,7 @@ class MemePalaceSessionMixin:
         """Prepare local DB client and script composer."""
         project_dir = self.mw.project_manager.project_dir if (hasattr(self.mw, "project_manager") and self.mw.project_manager) else None
         if not project_dir:
-            project_dir = os.path.dirname(self.mw.data_store.project_file) if (hasattr(self.mw, "data_store") and self.mw.data_store and getattr(self.mw.data_store, "project_file", None)) else os.getcwd()
+            project_dir = os.path.dirname(self.mw.data_store.project_file) if (hasattr(self.mw, "data_store") and self.mw.data_store and getattr(self.mw.data_store, "project_file", None)) else str(constants.SETTINGS_DIR)
 
         if project_dir:
             db_name = "mempalace_local.db"

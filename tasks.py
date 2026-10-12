@@ -51,6 +51,8 @@ def _environment(headless: bool = False, test_temp: bool = False) -> Dict[str, s
     environment = dict(os.environ, PYTHONPATH=str(ROOT))
     if headless:
         environment["QT_QPA_PLATFORM"] = "offscreen"
+        # Headless runs name a throw-away user data folder: they never ask and never touch the real one.
+        environment["PICORIPI_HOME"] = str(TEST_TEMP / "headless_home")
     if test_temp:
         TEST_TEMP.mkdir(exist_ok=True)
         for name in ("TMPDIR", "TEMP", "TMP"):

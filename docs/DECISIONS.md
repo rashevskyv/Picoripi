@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 3.4k
+tokens: 3.7k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -174,3 +174,18 @@ already in memory when a project opens or saves, on a worker. Only `picoripi/pro
 and folders named `_…` or `.…` are skipped.
 **Cost.** A project never opened in Picoripi shows "—" for lines. Counts copy the lists on the UI thread once
 (pointer copies). Recent Projects stays as before and is not replaced.
+
+## D19. The user chooses the data folder; no silent default, no home folder by default (2026-10)
+
+**Context.** Picoripi wrote everything to `~/.picoripi`, spread over the computer. The user wants a portable
+program whose data sits in one folder that he chooses, and no data written before he has chosen.
+**Decision.** `utils/data_location.py` resolves the folder from explicit choices only: the env variable
+`PICORIPI_HOME`, then `picoripi_home.json` next to the program (a path inside the program folder is stored
+relative). Without either, the first-start chooser (`dialogs/data_location_dialog.py`) must run; its suggestion
+(`data` next to the program) is pre-filled and still needs a confirm click. The model (`core/data_location_choice.py`)
+checks writability, free space and the old profile; the copy of an old folder never overwrites, never deletes,
+and writes the pointer only after success. `utils.constants.SETTINGS_DIR` keeps its name and is frozen at import, so
+the chooser runs in `main.py` before any module reads it. Headless runs and the test suite set `PICORIPI_HOME`
+to a temp folder; a headless run without an explicit folder raises instead of asking or guessing.
+**Cost.** The chooser appears on each new worktree or checkout (each has its own `data/`). A "change folder"
+takes effect after restart, because modules hold the path they read at import. Logs stay next to the program.
