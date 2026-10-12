@@ -96,6 +96,7 @@ The first time Picoripi starts, it asks where to keep its data. The data folder 
 - You can choose another folder. You can also keep using your old profile folder `~/.picoripi`. Copying the old data is optional. The old folder is never changed or deleted.
 - Change the folder later in **Settings → Global → Data folder → Data location…**. Picoripi copies the data to the new folder. Restart Picoripi to use it.
 - Two explicit overrides exist: the environment variable `PICORIPI_HOME`, and `picoripi_home.json` next to the program (the chooser writes it).
+- Git: every data folder gets a `.gitignore` with a `*` line. Git then skips the folder, even inside a repository. If the chosen folder is in a Git repository that does not ignore it, the chooser asks first. **Write .gitignore** is the default. Files outside the data folder do not change.
 
 ```mermaid
 flowchart TD

@@ -10,6 +10,7 @@ from core.settings.font_map_loader import FontMapLoader
 from core.settings.recent_projects_manager import RecentProjectsManager
 from core.settings.session_state_manager import SessionStateManager
 from utils.constants import SETTINGS_FILE_PATH, SETTINGS_DIR
+from utils.data_folder_git import ensure_self_ignore
 
 # Before 0.3.150 the session state was written to the working directory, which run.bat sets to the repository root.
 LEGACY_SESSION_STATE_PATH = Path(__file__).resolve().parent.parent / "session_state.json"
@@ -27,7 +28,10 @@ class SettingsManager:
         """Initialize a new instance."""
         self.mw = main_window
         self.settings_file_path = SETTINGS_FILE_PATH
+        created = not SETTINGS_DIR.exists()
         SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
+        if created:
+            ensure_self_ignore(SETTINGS_DIR)   # a new data folder keeps itself out of Git
         self._settings = {}
         
         # Initialize specialized managers

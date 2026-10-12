@@ -25,6 +25,9 @@ from core.data_location_choice import (
 from core.i18n import tr
 from utils.thread_utils import WorkerThread
 from utils import app_mode
+from utils.data_folder_git import (
+    GIT_NOT_IGNORED, GitState, data_folder_git_state, ensure_self_ignore, find_work_tree,
+)
 from utils.data_location import (
     app_root, legacy_dir, resolve_data_location, write_pointer,
 )
@@ -75,6 +78,18 @@ class CopyWorker(WorkerThread):
             self.failed.emit(str(exc))
 
 
+class GitCheckWorker(WorkerThread):
+    """Asks Git whether a repository ignores the chosen folder. Runs git, so it never runs on the UI thread."""
+    finished_ok = pyqtSignal(object)
+
+    def __init__(self, folder: Path, parent=None):
+        super().__init__(parent)
+        self._folder = folder
+
+    def run(self) -> None:
+        self.finished_ok.emit(data_folder_git_state(self._folder))
+
+
 class DataLocationDialog(QDialog):
     """Shows the options, the resulting folder and its checks; writes the pointer on confirm."""
 
@@ -88,6 +103,10 @@ class DataLocationDialog(QDialog):
         # In Settings the old folder is the current one; at first start it is the legacy profile folder.
         self._model = DataLocationModel(root, legacy=current if not first_start else legacy)
         self._worker: Optional[CopyWorker] = None
+        self._git_worker: Optional[GitCheckWorker] = None
+        self._write_ignore = True          # the self-ignoring .gitignore is written unless the user declines it in a repository
+        self._gitignore_yes: Optional[QPushButton] = None   # the prompt's buttons, while it is open
+        self._gitignore_no: Optional[QPushButton] = None
         self._choice: Optional[DataLocationChoice] = None
         self.result_folder: Optional[Path] = None
         self._build(current, legacy, notice)
@@ -207,7 +226,7 @@ class DataLocationDialog(QDialog):
         if self._first_start and self._model.legacy is not None and option != OPTION_LEGACY:
             lines.append(tr("The old profile folder ~/.picoripi is kept. Nothing is deleted."))
         self._info.setText("\n".join(lines))
-        self._ok_button.setEnabled(self._worker is None and self._ready(target))
+        self._ok_button.setEnabled(self._worker is None and self._git_worker is None and self._ready(target))
 
     def _ready(self, target: Optional[Path]) -> bool:
         return target is not None and not self._model.problems(target, same_ok=self._selected_option() == OPTION_LEGACY)
@@ -229,6 +248,47 @@ class DataLocationDialog(QDialog):
             return
         custom = self._custom_folder() if option == OPTION_CUSTOM else None
         self._choice = self._model.build_choice(option, custom, copy_legacy=self._copy_check.isChecked())
+        if find_work_tree(self._choice.target) is None:
+            self._continue_after_git_check()     # no repository: nothing to ask, the folder is not in Git
+        else:
+            self._start_git_check(self._choice.target)
+
+    def _start_git_check(self, folder: Path) -> None:
+        self._git_worker = GitCheckWorker(folder, self)
+        self._git_worker.finished_ok.connect(self._git_checked)
+        self._ok_button.setEnabled(False)
+        self._git_worker.start()
+
+    def _git_checked(self, state: GitState) -> None:
+        self._git_worker.wait()
+        self._git_worker.deleteLater()
+        self._git_worker = None
+        if state.state == GIT_NOT_IGNORED:
+            self._ask_gitignore(state.repo)     # continues when the user answers
+        else:
+            self._continue_after_git_check()
+
+    def _ask_gitignore(self, repo: Path) -> None:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle(tr("Data folder in Git"))
+        box.setText(tr("The data folder is inside a Git repository, and Git does not ignore it. "
+                       "Your projects and settings could be committed by accident.")
+                    + "\n" + tr("Git repository:") + " " + str(repo))
+        box.setInformativeText(tr("Write a .gitignore in the data folder? Git then skips that folder only. "
+                                  "Files outside it stay unchanged."))
+        self._gitignore_yes = box.addButton(tr("Write .gitignore"), QMessageBox.ButtonRole.AcceptRole)
+        self._gitignore_no = box.addButton(tr("Continue without it"), QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(self._gitignore_yes)
+        box.setEscapeButton(self._gitignore_no)
+        box.finished.connect(lambda _code: self._gitignore_answered(box.clickedButton() is self._gitignore_yes))
+        box.open()
+
+    def _gitignore_answered(self, write: bool) -> None:
+        self._write_ignore = write
+        self._continue_after_git_check()
+
+    def _continue_after_git_check(self) -> None:
         if self._choice.copy_from is not None:
             self._start_copy(self._choice)
         else:
@@ -276,6 +336,8 @@ class DataLocationDialog(QDialog):
 
     def _finish(self, choice: DataLocationChoice) -> None:
         try:
+            if self._write_ignore:
+                ensure_self_ignore(choice.target)
             write_pointer(choice.target, self._root)
         except OSError as exc:
             QMessageBox.warning(self, tr("Data folder"), tr("Saving the choice failed:") + " " + str(exc))
@@ -288,6 +350,8 @@ class DataLocationDialog(QDialog):
         if self._worker is not None:
             self._worker.cancel()
             self._worker.wait()
+        if self._git_worker is not None:
+            self._git_worker.wait()    # git ends by its own timeout (GIT_TIMEOUT_S)
         super().reject()
 
 
