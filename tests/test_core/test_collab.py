@@ -4,11 +4,13 @@ import time
 
 import pytest
 import requests
+from PyQt6.QtCore import QThread
 
 from core.collab.client import RoomClient
 from core.collab import server as room_module
 from core.collab.server import Room, RoomServer
 from core.data_state_processor import DataStateProcessor
+from handlers import collab_handler as collab_module
 from handlers.collab_handler import JOIN_SLICE_ROWS, CollabHandler
 from test_core.test_translation_memory import _window
 
@@ -20,6 +22,22 @@ def room(tmp_path):
     server = RoomServer("secret", FP, port=0, host="127.0.0.1", journal=tmp_path / "room.json").start()
     yield server
     server.stop()
+
+
+class FakeRoomClient(QThread):
+    """A joined room client without a server: the handler checks ``client is None`` and ``has_pending``."""
+
+    def stop(self) -> None:
+        pass
+
+    def set_summary(self, summary: dict) -> None:
+        pass
+
+    def has_pending(self, key: str) -> bool:
+        return False
+
+    def queue_edit(self, key: str, text: str, words: int = 0, seed: bool = False) -> None:
+        pass
 
 
 def _client(qtbot, server, name, password="secret", fingerprint=FP):
@@ -188,6 +206,7 @@ class TestJoinInSlices:
         mw = _project_window(tmp_path, "superseded", lines=[f"Source {i}" for i in range(600)])
         handler = mw.collab_handler
         handler._build_positions()
+        handler.client = FakeRoomClient()
         handler._on_joined({"rows": self._room_rows(handler, 600), "participants": []})
         handler._on_remote_events([{"type": "edit", "key": handler._key(0, 450), "text": "NEWER", "rev": 2,
                                     "name": "Ihor", "time": 1.0, "by": "someone"}])
@@ -195,11 +214,56 @@ class TestJoinInSlices:
         assert handler._current(0, 450) == "NEWER"
         assert handler._current(0, 10) == "UA 10"
 
+    def test_a_failing_remote_edit_does_not_stall_the_later_ones(self, qtbot, tmp_path, monkeypatch):
+        mw = _project_window(tmp_path, "failing", lines=[f"S{i}" for i in range(5)])
+        handler = mw.collab_handler
+        handler._build_positions()
+        handler.client = FakeRoomClient()
+        warnings = []
+        monkeypatch.setattr(collab_module, "log_warning", warnings.append)
+        real_apply_edit = handler._apply_remote_edit
+        bad_key = handler._key(0, 1)
+
+        def failing_for_one_row(event):
+            if event["key"] == bad_key:
+                raise RuntimeError("boom")
+            return real_apply_edit(event)
+
+        monkeypatch.setattr(handler, "_apply_remote_edit", failing_for_one_row)
+        handler._on_remote_events([{"type": "edit", "key": handler._key(0, i), "text": f"R{i}", "rev": 2,
+                                    "name": "A", "time": 1.0} for i in range(5)])
+        qtbot.waitUntil(lambda: not handler._turns, timeout=5000)
+        assert [handler._current(0, i) for i in (0, 2, 3, 4)] == ["R0", "R2", "R3", "R4"]   # no stall after the failure
+        assert handler._current(0, 1) == "S1"                  # the failing row is not written
+        assert len(warnings) == 1 and bad_key in warnings[0]   # reported once, with its key
+        assert handler._remote_turn is None
+
+    def test_remote_edits_after_leave_or_from_an_old_room_are_not_applied(self, qtbot, tmp_path):
+        mw = _project_window(tmp_path, "stale", lines=["S0", "S1"])
+        handler = mw.collab_handler
+        handler._build_positions()
+        handler.client = FakeRoomClient()
+        old_room = handler._generation
+        handler._on_remote_events([{"type": "edit", "key": handler._key(0, 0), "text": "queued", "rev": 2,
+                                    "name": "A", "time": 1.0}])
+        handler.leave()                                        # the queued edit is dropped with the room
+        assert not handler._remote_pending and not handler._turns
+        handler.client = FakeRoomClient()                      # a new room: its own generation
+        handler._on_remote_events([{"type": "edit", "key": handler._key(0, 0), "text": "stale", "rev": 3,
+                                    "name": "B", "time": 2.0}], generation=old_room)
+        handler.client = None
+        handler._on_remote_events([{"type": "edit", "key": handler._key(0, 1), "text": "late", "rev": 4,
+                                    "name": "B", "time": 3.0}])
+        qtbot.waitUntil(lambda: not handler._turns, timeout=5000)
+        assert handler._current(0, 0) == "S0" and handler._current(0, 1) == "S1"   # nothing written into the project
+        assert not handler._remote_pending
+
     def test_two_overlapping_remote_batches_are_applied_in_order_and_a_stale_edit_is_not(self, qtbot, tmp_path,
                                                                                           monkeypatch):
         mw = _project_window(tmp_path, "overlap", lines=["Source"])
         handler = mw.collab_handler
         handler._build_positions()
+        handler.client = FakeRoomClient()
         key = handler._key(0, 0)
         applied = []
         real_apply = handler._apply

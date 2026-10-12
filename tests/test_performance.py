@@ -567,9 +567,12 @@ def test_a_remote_batch_of_60k_edits_never_holds_the_window_for_long(qapp, qtbot
     import gc
     import time
 
+    from test_core.test_collab import FakeRoomClient
+
     window = _PlainWindow(blocks, rows_per_block)
     handler = window.collab_handler
     handler._build_positions()
+    handler.client = FakeRoomClient()                   # joined: remote edits are applied only in a room
     written = []
     real_apply = handler._apply
 

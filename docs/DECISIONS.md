@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: decisions and their reasons
-tokens: 5.1k
+tokens: 5.3k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -234,7 +234,14 @@ running is never started again and later edits join it in arrival order. Within 
 JOIN_SLICE_ROWS per turn. An edit is written only if its revision is newer than the newest one this participant has
 applied or sent (`_applied_rev`): an older edit cannot overwrite a newer one, and the same edit is never written
 twice. A row with an unsent local edit is left alone (the server decides that conflict, as before). `leave()` drops
-the queue, the pending edits and the running batch.
+the queue, the pending edits and the running batch, and starts a new room generation: events from an older
+generation, or any event while not joined, are dropped before they are queued, so nothing from an old room is
+written into the project. One edit that raises is logged once per batch with its key; the rest of the batch goes
+on. A turn that raises is logged and dropped, and the queue goes on.
+
+**Queue limit (documented).** The remote queue has no size limit: nothing is dropped. One poll returns at most
+5,000 events, so a backlog exists only while the window stalls; a stall of several seconds with a busy room can hold
+tens of thousands of events in memory until the window runs again. A client-side pause would be the next step.
 
 **Cost and limits.** A join of 20,000 rows takes about 0.2 s of apply and refresh work, spread over about 200
 event-loop passes; the tree and the editor show the old state until their turn comes. A single row or a single

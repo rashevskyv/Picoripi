@@ -14,6 +14,7 @@ import hashlib
 import json
 import socket
 import time
+from functools import partial
 from pathlib import Path
 from collections import deque
 from typing import Any, Deque, Dict, Iterator, List, Optional, Tuple
@@ -27,7 +28,7 @@ from core.collab.server import RoomServer
 from core.i18n import tr
 from core.progress_stats import _words as source_words
 from utils.atomic_io import atomic_write_json
-from utils.logging_utils import log_debug
+from utils.logging_utils import log_debug, log_warning
 from utils.thread_utils import WorkerThread, safe_shutdown_thread, single_shot
 
 SUMMARY_EVERY_MS = 60_000
@@ -132,6 +133,7 @@ class CollabHandler(QObject):
         self._remote_pending: Deque[Dict[str, Any]] = deque()  # remote edits not applied yet, oldest first
         self._remote_turn: Optional[Iterator[None]] = None
         self._applied_rev: Dict[str, int] = {}               # per row key: newest revision applied or sent here
+        self._generation = 0                                 # counts the rooms: bumped by leave(), see _on_remote_events
 
     # ── project identity ───────────────────────────────────────────────
 
@@ -204,8 +206,9 @@ class CollabHandler(QObject):
         self.row_info, self.conflicts, self.participants = {}, {}, []
         self._applied_rev = {}
         client = RoomClient(address, name, password, self.fingerprint())
-        client.joined.connect(self._on_joined)
-        client.remote_events.connect(self._on_remote_events)
+        generation = self._generation
+        client.joined.connect(partial(self._on_joined, generation=generation))
+        client.remote_events.connect(partial(self._on_remote_events, generation=generation))
         client.participants_changed.connect(self._on_participants)
         client.edits_done.connect(self._on_edits_done)
         client.state_changed.connect(self._on_state)
@@ -215,6 +218,7 @@ class CollabHandler(QObject):
 
     def leave(self) -> None:
         """Leave the room (and stop it, when this window hosts it); returns within a few seconds."""
+        self._generation += 1                              # events still in flight from that room are dropped
         self._join_plan = None
         self._turns.clear()
         self._remote_turn = None
@@ -277,8 +281,10 @@ class CollabHandler(QObject):
         if getattr(store, "physical_block_idx", -1) in blocks:
             updater.update_text_views()
 
-    def _on_joined(self, data: Dict[str, Any]) -> None:
+    def _on_joined(self, data: Dict[str, Any], generation: Optional[int] = None) -> None:
         """Take the room's rows and share the rows the room lacks, in turns (see ``_join_work``)."""
+        if generation is not None and (generation != self._generation or self.client is None):
+            return                                         # the rows of a room that was left
         self._join_plan = self._join_work(data)
         self._turns.append(self._join_plan)
         self.participants = data.get("participants") or []
@@ -298,6 +304,11 @@ class CollabHandler(QObject):
         try:
             next(turn)
         except StopIteration:
+            self._turns.popleft()
+            if turn is self._join_plan:
+                self._join_plan = None
+        except Exception as exc:                           # a failed turn is dropped, the queue goes on
+            log_warning(f"Collab: a room turn failed and was dropped: {exc!r}")
             self._turns.popleft()
             if turn is self._join_plan:
                 self._join_plan = None
@@ -377,33 +388,60 @@ class CollabHandler(QObject):
         if self.client is not None:
             self.client.set_summary({**summary, "history": history})
 
-    def _on_remote_events(self, events: List[Dict[str, Any]]) -> None:
-        """Queue the others' edits; they are applied in turns, in arrival order, behind any batch still running."""
+    def _on_remote_events(self, events: List[Dict[str, Any]], generation: Optional[int] = None) -> None:
+        """Queue the others' edits; they are applied in turns, in arrival order, behind any batch still running.
+
+        ``generation`` is the room the events came from (the client's, when connected). Events from a room that was
+        left, or that is not joined, are dropped: nothing from an old room is written into the project.
+        """
+        if generation is None:
+            generation = self._generation
+        if self.client is None or generation != self._generation:
+            return
         self._remote_pending.extend(event for event in events if event.get("type") == "edit")
         if self._remote_turn is None and self._remote_pending:
-            self._remote_turn = self._remote_work()
-            self._turns.append(self._remote_turn)
-            self._schedule_join_slice()
+            self._start_remote_work()
 
-    def _remote_work(self) -> Iterator[None]:
+    def _start_remote_work(self) -> None:
+        self._remote_turn = self._remote_work(self._generation)
+        self._turns.append(self._remote_turn)
+        self._schedule_join_slice()
+
+    def _remote_work(self, generation: int) -> Iterator[None]:
         """Apply the queued remote edits, JOIN_SLICE_ROWS per turn; then refresh the blocks they touched, one per turn.
 
-        Edits that arrive while a turn waits are taken by the outer loop: nothing is dropped, nothing runs twice.
+        One edit that fails does not stop the others: the failure is logged once per batch, with its key. Edits that
+        arrive while a turn waits are taken by the outer loop: nothing is dropped, nothing runs twice. The ``finally``
+        clears the batch's own marker, and restarts a batch if edits were left behind by an exception.
         """
-        while self._remote_pending:
-            touched: set = set()
-            budget, turn_started = 0, time.perf_counter()
-            while self._remote_pending:
-                block_idx = self._apply_remote_edit(self._remote_pending.popleft())
-                if block_idx is not None:
-                    touched.add(block_idx)
-                budget += 1
-                if self._turn_over(budget, turn_started) and self._remote_pending:
-                    budget, turn_started = 0, time.perf_counter()
-                    yield
-            yield from self._refresh_turns(touched)
-            self._refresh_bar()
-        self._remote_turn = None
+        try:
+            while self._remote_pending and generation == self._generation:
+                touched: set = set()
+                failed: List[Any] = []
+                budget, turn_started = 0, time.perf_counter()
+                while self._remote_pending and generation == self._generation:
+                    event = self._remote_pending.popleft()
+                    try:
+                        block_idx = self._apply_remote_edit(event)
+                    except Exception as exc:                # one bad edit must not stall the others
+                        failed.append((event.get("key"), exc))
+                        block_idx = None
+                    if block_idx is not None:
+                        touched.add(block_idx)
+                    budget += 1
+                    if self._turn_over(budget, turn_started) and self._remote_pending:
+                        budget, turn_started = 0, time.perf_counter()
+                        yield
+                if failed:
+                    log_warning(f"Collab: {len(failed)} remote edit(s) not applied; first: row {failed[0][0]!r}: "
+                                f"{failed[0][1]!r}")
+                yield from self._refresh_turns(touched)
+                self._refresh_bar()
+        finally:
+            if generation == self._generation:
+                self._remote_turn = None
+                if self._remote_pending:
+                    self._start_remote_work()
 
     def _apply_remote_edit(self, event: Dict[str, Any]) -> Optional[int]:
         """Apply one remote edit if it is newer than what this participant has; returns the block it changed.
@@ -411,6 +449,8 @@ class CollabHandler(QObject):
         A row is never written twice with the same revision, and an older revision cannot overwrite a newer one. A row
         with an unsent local edit is left alone: the server decides that conflict.
         """
+        if self.client is None:
+            return None                                    # not joined: nothing from a room is written
         key = event["key"]
         rev = int(event.get("rev", 0) or 0)
         if rev <= self._applied_rev.get(key, 0):
@@ -418,7 +458,7 @@ class CollabHandler(QObject):
         position = self.positions.get(key)
         if position is None:
             return None
-        if self.client is not None and self.client.has_pending(key):
+        if self.client.has_pending(key):
             return None                                    # our unsent text meets it on the server as a conflict
         self._applied_rev[key] = rev
         self.row_info[key] = {"name": event.get("name", ""), "time": event.get("time")}
