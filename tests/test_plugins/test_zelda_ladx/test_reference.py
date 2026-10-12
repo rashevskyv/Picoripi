@@ -16,3 +16,10 @@ def test_missing_reference_files_give_no_columns(tmp_path):
     _raw, rules, _blocks, _names = _rules_and_data()
     assert rules.load_multi_reference(str(tmp_path)) == {}
     assert rules.supports_reference_patch() is True
+
+
+def test_only_the_rom_is_a_project_file():
+    """Directory mode adds every file of a declared type under source\\; the JSON reference files must not be one."""
+    _raw, rules, _blocks, _names = _rules_and_data()
+    extensions = {ext for fmt in rules.get_file_formats() for ext in fmt.extensions}
+    assert extensions == {".gbc"}

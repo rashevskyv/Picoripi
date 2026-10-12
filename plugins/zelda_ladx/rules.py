@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from core.formats import DEFAULT_FORMATS, FileFormat
+from core.formats import FileFormat
 from plugins.base_game_rules import BaseGameRules
 
 from . import rom as ladx_rom
@@ -63,7 +63,9 @@ class GameRules(BaseGameRules):
         return "Zelda: Link's Awakening DX (Game Boy Color)"
 
     def get_file_formats(self) -> list:
-        return [FileFormat((".gbc",), "bytes", "Link's Awakening DX ROM"), *DEFAULT_FORMATS]
+        # Only the ROM. Directory mode adds every file of these types under source\, so the JSON reference
+        # files in source\reference must not be declared here (they would become project blocks).
+        return [FileFormat((".gbc",), "bytes", "Link's Awakening DX ROM")]
 
     # -- load ----------------------------------------------------------------------------------
 
