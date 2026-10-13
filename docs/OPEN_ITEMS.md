@@ -31,6 +31,7 @@ the line when it is done or moved into a plan.
 - `feat/ss-shared` adds only one CHANGELOG line about workspace scripts that are not in this repository. Owner decides whether to keep it.
 - Sly Cooper: licence of ProjectCane unverified; schema not shipped. The option table (1179 entries, from ProjectCane `spaprops.cpp`) left `plugins/sly_cooper/tables.py`; `load_option_schema()` reads it from a local file given by the caller, e.g. `<workspace>\tools\option_schema.json`, outside the repository. Owner decision before push: the table is still in the history of commit `76d8c5a1` (not pushed), so a push publishes it unless that history is rewritten.
 - Wind Waker family project: base archive messages count under the `.extracted` folder, not `base` (test adapted).
+- Sly Cooper option table (ProjectCane, licence not verified) remains in history at 76d8c5a1; owner accepted 2026-10-13, to confirm the licence.
 
 ## Integration round 8 (2026-10-12)
 - Merged on `integrate/ready-2026-10-12` from origin/main 2eeafa1c: the user's WIP branch (7 commits), `feat/project-manager`, `feat/portable-home`, `feat/ready-wiiu-system`, `feat/ready-mgs23-pc`, `feat/ready-dk`, `feat/oot3d-ua`. Not pushed.
