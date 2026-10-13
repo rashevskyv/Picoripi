@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 11.4k
+tokens: 11.8k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -158,6 +158,7 @@ Each hook has a default, so a plugin without them still works: the wizard then t
 - `get_platforms()` lists the platforms the game ships on. The wizard uses it when `identify_source` does not name one.
 - `unpack_sources(sources, target_dir, progress, is_cancelled)` unpacks the role files into an empty folder that the host made. It returns that folder, or `None` when the files need no unpacking.
 - `get_source_subfolder()` names the folder of the unpacked tree that is the project's source root, with `/` separators, for example `files/res/Msgus`. The default is `None`: the whole unpacked folder is the source. The host fails the unpack with a message when that folder is missing. Use it when the unpacked tree holds more than the game's text.
+- Encrypted console images: `core/containers/console_crypto.py`. A reader raises `encrypted_error(console, label)` for encrypted content. Inside `unpack_sources`, `key_path(console)` returns the key file the user chose for that console in the wizard, or `None`. The plugin never opens a key file itself, and a key path is never written into a project.
 - `get_build_targets()` lists what the game can build, each with an `id`, a `label`, `platforms` (empty means all) and a `kind`: `files`, `patch` or `layeredfs`.
 - `build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)` writes one target into an empty output folder and returns the result path.
 - `project_icon(project_dir)` returns a PNG or JPEG picture of the game for the project's row, or `None`. The host scales it to 128 px and caches it. It runs in the scan process, so it may read files but must not create widgets. A user's `icon.png` beside the project file wins over it. `plugins/plain_text/rules.py` returns a `banner.png` beside the project file as the example.

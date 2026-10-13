@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from core.containers import console_crypto
 from core.i18n import tr
 from core.project_library import images
 from utils.logging_utils import log_info
@@ -46,20 +47,23 @@ def _remove_own(folder: Path) -> None:
 
 
 def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLike,
-               progress: Progress, is_cancelled: Cancelled) -> Optional[str]:
+               progress: Progress, is_cancelled: Cancelled,
+               key_provider: Optional[Callable[[str], Optional[str]]] = None) -> Optional[str]:
     """Unpack the role files of a new project into ``project_dir/unpacked``.
 
     Returns the project's source folder, or None when the plugin needs no unpacking. That is the unpacked folder,
     or its subfolder from ``get_source_subfolder``. Raises ``Cancel`` when the user cancelled; the temporary folder
     is then removed and nothing else is touched. Raises ``ValueError`` before writing when the drive has too little
-    room for a game image, or when the unpacked tree lacks the source subfolder.
+    room for a game image, or when the unpacked tree lacks the source subfolder. ``key_provider`` maps a console id to
+    its key file path for this job only (see ``console_crypto.key_source``).
     """
     project = Path(project_dir)
     _check_free_space(project, sources)
     temporary = project / f".unpack-{uuid.uuid4().hex}"
     temporary.mkdir(parents=True, exist_ok=False)
     try:
-        result = rules.unpack_sources(sources, str(temporary), progress, is_cancelled)
+        with console_crypto.key_source(key_provider):
+            result = rules.unpack_sources(sources, str(temporary), progress, is_cancelled)
         if is_cancelled():
             raise Cancel()
         if result is None:
@@ -89,10 +93,12 @@ def _free_bytes(path: Path) -> int:
 def _check_free_space(project: Path, sources: Dict[str, str]) -> None:
     """Fail before anything is written when the drive cannot hold the unpacked files of a game image.
 
-    Only game images (a GameCube or Nintendo DS disc or cartridge) need the room. Any other file is used as it is,
-    so it is not checked. The room is the image size plus 10 % of it, or ``MIN_MARGIN``, whichever is larger.
+    Only game images that an unpack step can write (a GameCube or Nintendo DS image, or a decrypted 3DS program) need
+    the room. Any other file is used as it is, so it is not checked. The room is the image size plus 10 % of it, or
+    ``MIN_MARGIN``, whichever is larger.
     """
-    found = [path for path in sources.values() if images.identify(path) is not None]
+    found = [path for path in sources.values()
+             if (images.identify(path) or {}).get("kind") in images.UNPACK_KINDS]
     if not found:
         return
     size = sum(os.path.getsize(path) for path in found)

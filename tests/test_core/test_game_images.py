@@ -189,7 +189,7 @@ def test_identify_and_unsupported_formats(tmp_path):
     (tmp_path / "text.iso").write_bytes(b"not an image")
     rvz = tmp_path / "game.rvz"
     rvz.write_bytes(b"RVZ\x01" + b"\0" * 0x500)
-    assert images.identify(tmp_path / "rom.nds") == {"kind": "nds", "game_id": "KQ9V"}
+    assert images.identify(tmp_path / "rom.nds") == {"kind": "nds", "game_id": "KQ9V", "encrypted": False}
     assert images.identify(tmp_path / "text.iso") is None
     assert images.identify(tmp_path / "missing.iso") is None
     with pytest.raises(ImageError, match="RVZ"):
@@ -223,7 +223,7 @@ def test_nkit_gamecube_disc_is_read_as_it_is(tmp_path):
     (tmp_path / "plain.iso").write_bytes(bytes(plain))
     (tmp_path / "nkit.iso").write_bytes(bytes(nkit))
 
-    assert images.identify(tmp_path / "nkit.iso") == {"kind": "gc", "game_id": "TSTE01"}
+    assert images.identify(tmp_path / "nkit.iso") == {"kind": "gc", "game_id": "TSTE01", "encrypted": False}
     with images.open_image(tmp_path / "plain.iso") as first, images.open_image(tmp_path / "nkit.iso") as second:
         assert [(e.path, e.size) for e in first.entries()] == [(e.path, e.size) for e in second.entries()]
 
@@ -236,8 +236,10 @@ def test_wii_and_unknown_nkit_images_are_refused_with_the_reason(tmp_path):
     other[0x200:0x204] = b"NKIT"
     (tmp_path / "other.iso").write_bytes(bytes(other))
 
-    assert images.identify(tmp_path / "wii.iso") is None
-    with pytest.raises(ImageError, match="Wii image"):
+    assert images.identify(tmp_path / "wii.iso") == {"kind": "wii", "game_id": "\0" * 6, "title_id": "\0" * 6,
+                                                     "encrypted": True, "title_kind": ""}
+    assert images.needs_key(tmp_path / "wii.iso") == "wii"
+    with pytest.raises(ImageError, match="needs its key file"):
         with images.open_image(tmp_path / "wii.iso"):
             pass
     with pytest.raises(ImageError, match="unknown kind"):

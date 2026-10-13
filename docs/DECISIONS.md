@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: decisions and their reasons
-tokens: 11.9k
+tokens: 15.3k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -618,3 +618,45 @@ or a cartridge in the app.
   scripts (kept; recorded in `docs/OPEN_ITEMS.md`); Castlevania dos 74, por 136, ooe 165 files equal; Tactics A2 11 equal;
   DQ9 1751 equal; Twin Snakes 69 files equal with both discs; Eternal Darkness 187 files equal; Metroid Prime 1565
   equal; Twilight Princess `res/Msgus` 10 archives equal, 10 blocks as in the workspace.
+
+**Addendum (phase 2b, 2026-10-13): partial. Decryption is blocked.** The owner's key design is built where it needs no
+AES. Encrypted reads stop at the seam; they are not built.
+- Blocked: the pinned `pycryptodome==3.23.0` (`requirements-dev.txt`) is not installed in the project venv. The install
+  was denied by the auto-mode permission check. The brief allows no pure-Python AES and no install into shared Python,
+  so every encrypted 3DS, Switch and Wii read raises `encrypted_error` in `core/containers/console_crypto.py`. The
+  message names the missing package when it is missing. The owner runs `install_picoripi_crypto.bat` (in the owner's
+  `_shared\scripts` folder, not in the repo; see `docs/OPEN_ITEMS.md`) to install the pin; the decrypt bodies follow in
+  phase 2c.
+- Built, no key needed: `core/containers/n3ds.py` reads a decrypted (NoCrypto) main program in a card image (`.3ds`,
+  `.cci`), a CIA, or a bare NCCH (`.cxi`, `.cfa`). Files: `exheader.bin`, `exefs/<name>.bin` (the workspace name:
+  `.code` is `code.bin`) and `romfs/<path>` (IVFC level 3, UTF-16 names, every table pointer bounds-checked, every name
+  through `check_name`).
+- Built: `core/project_library/console_keys.py`, the key file location per console (`3ds`, `switch`, `wii`). It is
+  one JSON file in the data folder, written atomically. It keeps the path only; `path_for` returns a path only while the
+  file exists. It is not part of any project and never goes to a Work Together room.
+- Built: `console_crypto.key_source`, a job-scoped key lookup. `build.run_unpack(key_provider=...)` sets it around
+  `unpack_sources`; `UnpackJob` passes `console_keys.path_for`. No hook signature changed.
+- Built: the wizard asks, on Create, for one key file per console that a file with a role needs and that has no live
+  stored path (`ui/project_manager/wizard.py`, `_ask_key_files`). The job writes the chosen paths on its worker thread.
+  Plugin facts report `key` and `key_ready` per file (`plugin_facts.identify_sources`).
+- Built, identify only: a Switch NSP takes its title ID and kind (base, update, dlc) from the plain-text `*.cnmt.xml`,
+  or from the rights ID of its ticket (`0x2A0`) when it has no content meta. An XCI is recognised with no title. A Wii disc
+  gives its game ID (magic at `0x18`). `images.identify` returns `encrypted`; `images.needs_key` gives the console.
+- `images.UNPACK_KINDS` (GameCube, Nintendo DS, decrypted 3DS) decides what the free-space check counts. Switch and Wii
+  files do not count, because no unpack step writes them.
+- No plugin is wired. No shipped plugin unpacks a file this phase can read: retail `.cia` files are encrypted, and the
+  decrypted dumps are not a plugin input.
+- Verified (read only, no key): synthetic 3DS images in `tests/test_core/test_n3ds_image.py`. Real data (gated by
+  `PICORIPI_ROMHACKING`): the decrypted Majora's Mask 3D CXI has 2139 RomFS files, all equal by sha256; its exheader and
+  ExeFS banner are equal; the decrypted Update CIA is read and its `code.bin` and `icon.bin` equal the workspace. Eight Switch NSP filenames carry a title ID, and `identify` returns the same ID for
+  each of them (base, update, DLC; the Legends Z-A NSP has no ticket and reads from its content meta).
+- ExeFS code: when the exheader flag (byte 0x0D, bit 0) says the code is packed, `exefs/code.bin` is decoded with the
+  BLZ decoder in `core/containers/nitro.py` as it is written (`ImageFile.decode`). Verified: the Update CIA's
+  `code.bin` decodes to the workspace file byte for byte (5971968 bytes), through the reader.
+- Icon and code origin: the workspace `exefs` (code, icon) equals the Update build, not the base game. The base
+  CXI's icon differs from byte 12480 on, and the base code decodes to a different binary. The base extraction is
+  right; the workspace ExeFS came from the Update. The workspace romfs and banner are the base game's (equal to the
+  base CXI). The Update CIA has no `banner.bin`.
+- The workspace also holds `romfs/version.ctxb`, which is not in the RomFS.
+- Risk: until a Switch plugin exists, the wizard also asks for a key file for an encrypted Switch file that no plugin
+  unpacks. The prompt is shown only for a file that has a role.

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-13
 owns: unfinished work
-tokens: 25.1k
+tokens: 26.8k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -43,7 +43,7 @@ the line when it is done or moved into a plan.
 - Open: a change to the core parsers (`core/formats.py`) without a version bump does not recount; the signature covers the plugin folders and the version only (D28).
 - Owner to confirm: `plugins/mario_vs_donkey_kong_switch/msbp.json` (4428 lines) is the game's own message project converted to JSON; it may ship publicly only if the owner agrees (D29: game art is never committed).
 - Owner: `feat/manual-3ds-plugin` waits for the owner.
-- A18 (unpack in Picoripi): phase 1 is in integration round 11; phase 2a runs on `feat/unpack-2a` (see the open items at the end of this file). Phase 2b (console key file, Wii, 3DS, Switch) is not started.
+- A18 (unpack in Picoripi): phase 1 is in integration round 11; phase 2a runs on `feat/unpack-2a`; phase 2b runs on `feat/unpack-2b` but decryption is blocked (see the open items at the end of this file).
 
 ## Integration round 9 (2026-10-13)
 - Merged on `integrate/ready-2026-10-13` from origin/main 670e8b63: `feat/pm-phase2`, `feat/data-folder-guard`, `feat/collab-claims`, `feat/family-projects`, `feat/family-projects-ui`, `feat/family-ww`, `feat/zelda-ladx-dx`, `feat/ladx-family`, `feat/ladx-hd`, `feat/zelda-ds`, `feat/mhp3rd-lang`, `feat/sly-cooper`, `feat/ss-shared`, `docs/roadmap`. Not pushed.
@@ -1057,3 +1057,14 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Eternal Darkness and Metroid Prime real-data results come from the helper's full runs; the Eternal Darkness full run was not repeated in phase 2a review.
 - Phantom Hourglass workspace `source` is 4 files behind the current `zt/zelda_ds.py` (three `resChild2nd.bin` files for English, French and Spanish, and `Menu/UI_main/opening.bin`). Owner decides whether to rerun its `1_unpack`.
 - Revenant Wings workspace project lists 55 blocks; the same source gives 59 with the current scan (four `.dpk` blocks). Owner decides whether to rebuild that project.
+
+## Unpack in Picoripi (phase 2b, 2026-10-13, partial)
+- BLOCKED: decryption of 3DS, Switch and Wii content. `pycryptodome==3.23.0` is pinned in `requirements-dev.txt` but not installed in the project venv: the install was denied by the auto-mode permission check, and the brief forbids a pure-Python AES. Every encrypted read raises `encrypted_error` (`core/containers/console_crypto.py`). Owner runs `install_picoripi_crypto.bat` (in the owner's `_shared\scripts` folder; it installs the pin into the project venv), then phase 2c fills the decrypt bodies at that seam: NCCH CTR and keyscrambler (3DS), NCA XTS and CTR with `prod.keys` (Switch), the common key CBC per sector (Wii).
+- Owner step after 2c: `scripts\verify_unpack_keys.py` and its `.bat` (not written here; it has nothing to run until the decrypt bodies exist). It takes the key file path as an argument, unpacks the given images to `D:\RomHacking_tmp\unpack_check\`, and prints counts and hash equality per game only.
+- Key file formats the store will hold, not read yet: 3DS `aes_keys.txt` (boot9 next to it is used by the workspace tool), Switch `prod.keys`, Wii `keys.bin` (0x400 bytes, common key at 0x158, as `tools/wii_nand` reads it).
+- The pin is not in `requirements.txt`. When the decrypt bodies land, decide whether it joins the app's requirements.
+- ExeFS `code.bin` is decoded from BLZ when the exheader says so (`nitro.blz_decompress`). Verified against the Update CIA. The base Majora's Mask 3D code differs from the workspace, because the workspace ExeFS is the Update build (D30 addendum). Copy of Princess (text in `code.bin`) is not wired yet.
+- No plugin is wired for 3DS, Switch or Wii. Retail `.cia` files are encrypted, and the decrypted dumps are not a plugin input.
+- Wii U: not done (no reader, no key).
+- The wizard prompt also appears for an encrypted Switch file that a plugin may never unpack. Revisit when a Switch plugin exists.
+- 3DS seed crypto (games whose NCCH key comes from a seed: Layton Miracle Mask, Dragon Quest VII/VIII, Corpse Party and others): not in the reader. It needs the seed database too.
