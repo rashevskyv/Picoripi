@@ -195,7 +195,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
     ('Looked for by the host (not on the base class)', (
         Hook("problem_analyzer", "Analyzer object: analyze_data_string(), registry.get_prefixed_id(). "
              "String context: the host sets _current_scan_block_idx and _current_scan_string_idx around each "
-             "string analysis and restores the previous values after. Read them with getattr(..., None); "
+             "string analysis and restores the previous values after. The values are per thread: a thread "
+             "sees only the values it set. Read them with getattr(..., None); "
              "they are None outside a string analysis. Do not keep them after the call.",
              kind="attribute", on_base=False),
         Hook("tag_manager", "Tag manager object (GenericTagManager or a subclass).", kind="attribute", on_base=False),

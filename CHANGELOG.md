@@ -4,6 +4,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [Unreleased]
 
 - Problem analyzers: `_current_scan_block_idx` and `_current_scan_string_idx` are per thread on `GenericProblemAnalyzer` (`plugins/common/problem_analyzer.py`), so two threads that analyse strings with one analyzer do not share the indexes; the names still read and write as before, and are None in a new thread.
+- Plugin docs: the analyzer string context (per thread, None outside a check) and the `get_problem_detail` hook are in the plugin contract (`plugins/spec.py`, `docs/PLUGIN_CONTRACT.md`), the roadmap hook table, the plugin developer guide (EN, UK) and AI prompt Q8.
 - 3DS manual preview (`manual_3ds`): picture panes show their BCLIM textures (page archive, then Common_texture) read from the owner's folder; ink is the console's dark grey; orange frames and window panes are not drawn yet
 - 3DS manual (`manual_3ds`): the text panes per style are in `geometry.json`; a translation that needs more panes of one style than the original (a highlighted phrase) is reported as "Out of panes" (`PANES`), as the build reports it; the check matches the build on every dumped manual
 - Editor problem tooltip: a plugin can show a detail under a problem's name through the new `get_problem_detail` hook (`plugins/spec.py`); `manual_3ds` shows the layout message (for example the pixels past the column)
