@@ -253,6 +253,28 @@ def test_an_operation_without_seq_is_applied_once_when_it_is_sent_again(tmp_path
     assert [c["text"] for c in room.comments.values()].count("Once") == 2
 
 
+def test_a_comment_of_another_rooms_file_is_adopted_once_and_a_deleted_one_stays_deleted(tmp_path):
+    room, host, _ = _room_with_host(tmp_path)
+    olena = _join(room, "Olena")
+    imported = {"id": "old9", "scope": {"kind": "file", "label": "f"}, "keys": ["f::1"], "author_name": "Ihor",
+                "time": 1.0, "text": "Earlier", "resolved": None}
+    assert room.apply_ops(olena["id"], [{"op_id": "i0", "kind": "comment_import", "comment": imported}])["i0"] == {
+        "refused": {"reason": "role"}}
+    assert room.apply_ops(host["id"], [{"op_id": "i1", "kind": "comment_import", "comment": imported}])["i1"] == {
+        "comment": "old9"}
+    assert room.comments["old9"]["keys"] == {"f::1"} and room.comments["old9"]["author_name"] == "Ihor"
+    assert room.apply_ops(host["id"], [{"op_id": "i2", "kind": "comment_import", "comment": imported}])["i2"] == {
+        "skipped": "known"}
+    assert room.apply_ops(host["id"], [{"op_id": "i3", "kind": "comment_import", "comment": {"id": 5}}])["i3"] == {
+        "error": "bad comment"}
+    assert room.apply_ops(host["id"], [{"op_id": "d", "kind": "comment_delete", "id": "old9"}])["d"] == {"ok": True}
+    assert room.apply_ops(host["id"], [{"op_id": "i4", "kind": "comment_import", "comment": imported}])["i4"] == {
+        "skipped": "deleted"}
+    assert "old9" not in room.comments
+    room.write_journal()
+    assert "old9" in Room(PW, FP, tmp_path / JOURNAL_NAME).deleted_comments
+
+
 def test_an_empty_comment_is_refused(tmp_path):
     room, _, _ = _room_with_host(tmp_path)
     olena = _join(room, "Olena")

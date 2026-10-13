@@ -1,8 +1,8 @@
 """The room's comments in the project folder (``comments.json``): read and written by every participant's Picoripi.
 
 The room server writes the file too, from its own state. A participant's Picoripi writes the comments it holds when
-they change, so they stay after the room closes. Loading merges by comment id: a comment the file has and the window
-does not is added; for a comment both have, the later resolution (by time) wins. Stdlib only.
+they change, so they stay after the room closes. A file of another room is read by the host or a moderator, who adopt
+its comments into the room (``comment_import``). Stdlib only.
 """
 from __future__ import annotations
 
@@ -42,15 +42,3 @@ def write_comments(path: Path, fingerprint: str, room_id: str, comments: List[Di
     """Replace the file atomically (temporary file, then rename); raises ``OSError`` if it cannot."""
     atomic_write_json(Path(path), {"protocol": PROTOCOL, "fingerprint": fingerprint, "room_id": room_id,
                                    "comments": comments}, ensure_ascii=False)
-
-
-def merge_comment(local: Dict[str, Any], incoming: Dict[str, Any]) -> bool:
-    """Merge ``incoming`` into ``local`` (both comment dicts of one id); True when ``local`` changed.
-
-    The resolution with the later time wins; the text and the author never change after the comment is made.
-    """
-    theirs, mine = incoming.get("resolved"), local.get("resolved")
-    if theirs and (mine is None or float(theirs.get("time") or 0) > float(mine.get("time") or 0)):
-        local["resolved"] = theirs
-        return True
-    return False

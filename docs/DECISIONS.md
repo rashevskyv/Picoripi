@@ -336,8 +336,9 @@ the host's own computer.
   here, Assign to, Comment, Resolve comments here.
 - **comments.json everywhere.** Every participant's Picoripi writes the room's comments to the project's `comments.json`
   when they change, atomically, in a worker thread (`core/collab/comments_file.py`). On join the window reads the file in
-  a worker and merges it by comment id, but only when the file came from another room: a file of this room is the
-  room's own copy, so a deleted comment stays deleted. A resolution takes the later time.
+  a worker. A file of another room is not merged into the window: the host or a moderator adopts its comments into the
+  room (`comment_import`), and the room skips a comment it already holds or deleted (its deleted ids are kept in the
+  journal). A file of this room is never read back. Guests show a foreign file's comments only after the room has them.
 - **Saved rooms.** The user may tick "Remember this room": the address, the name and the password go to the computer's
   settings (`collab.json`, next to the AI keys in `settings.json`). The list is empty on a fresh profile; a saved room
   connects only when the user presses Connect. A test checks that a fresh profile makes no network call and that the

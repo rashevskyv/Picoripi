@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import QToolButton
 
 import utils.constants as constants
 from core.collab.client import RoomClient
-from core.collab.comments_file import comments_path, merge_comment, read_room_comments, write_comments
+from core.collab.comments_file import comments_path, read_room_comments, write_comments
 from core.collab.roles import HOST, MODERATOR, allowed
 from core.collab.server import JOURNAL_NAME, RoomServer
 from core.i18n import tr
@@ -823,23 +823,19 @@ class CollabHandler(QObject):
         self._start_io(worker)
 
     def _on_comments_loaded(self, room_id: str, comments: List[Dict[str, Any]]) -> None:
-        """Add the comments the file has and the window lacks; a resolution the file has later than the window's wins.
+        """Adopt the comments of another room's file that this room does not hold, as the host or a moderator.
 
-        A file written by this same room is not merged: the room is the authority for it (a comment the room deleted
-        stays deleted). A file of another room (another host, or the project before a new room) is merged by id.
+        Each one goes to the room as a ``comment_import`` operation; the room skips a comment it holds or deleted. Other
+        participants add nothing here: the room's copy reaches them as an event. A file written by this same room is not
+        read back: the room is the authority for its own comments.
         """
         if self.client is None or not room_id or room_id == self._room_id:
             return
-        changed = False
+        if self.role not in (HOST, MODERATOR):
+            return
         for comment in comments:
-            local = self.comments.get(comment["id"])
-            if local is None:
-                self.comments[comment["id"]] = _comment_mirror(comment)
-                changed = True
-            elif merge_comment(local, _comment_mirror(comment)):
-                changed = True
-        if changed:
-            self._save_comments()
+            if comment["id"] not in self.comments:
+                self._ask("comment_import", comment=comment)
 
     def _save_comments(self) -> None:
         """Write the window's comments to the project's comments.json, one write at a time, in a worker."""

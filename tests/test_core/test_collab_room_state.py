@@ -132,15 +132,23 @@ def test_a_comment_is_saved_in_both_project_folders_and_this_rooms_file_cannot_u
     assert cid not in hb.comments
 
 
-def test_a_file_of_another_room_is_merged_by_comment_id(qtbot, pair, tmp_path):
+def test_the_host_adopts_a_comment_of_another_rooms_file_and_a_guest_does_not(qtbot, pair, tmp_path):
     a, b = _host_and_guest(qtbot, pair)
-    hb = b.collab_handler
+    ha, hb = a.collab_handler, b.collab_handler
+    a.project_manager = types.SimpleNamespace(project=None, project_dir=str(tmp_path / "a"))
     b.project_manager = types.SimpleNamespace(project=None, project_dir=str(tmp_path / "b"))
     comment = {"id": "old1", "scope": {"kind": "file", "label": "f"}, "keys": ["f::1"], "author": "x",
                "author_name": "Ihor", "time": 1.0, "text": "From an earlier room", "resolved": None}
     hb._on_comments_loaded("earlier-room", [comment])
+    assert "old1" not in hb.comments                       # a guest adopts nothing from a file
+    ha._on_comments_loaded("earlier-room", [comment])      # the host takes it into the room
+    qtbot.waitUntil(lambda: "old1" in hb.comments, timeout=5000)   # every window learns it from the room
     assert hb.comments["old1"]["keys"] == {"f::1"} and hb.comments["old1"]["text"] == "From an earlier room"
     qtbot.waitUntil(lambda: _file_has(tmp_path / "b", "From an earlier room"), timeout=5000)
+    hb.resolve_comment("old1", True)                       # the room holds it: a guest may resolve it now
+    qtbot.waitUntil(lambda: ha.comments["old1"]["resolved"] is not None, timeout=5000)
+    ha.delete_comment("old1")
+    qtbot.waitUntil(lambda: "old1" not in hb.comments, timeout=5000)
 
 
 class _Updater:

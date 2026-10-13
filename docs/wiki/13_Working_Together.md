@@ -72,6 +72,7 @@ leaves, the room closes for everyone. Name, port and last address (never the pas
 | Resolve a comment | yes | yes | yes | yes | no |
 | Reopen a comment another member resolved | yes | yes | no | no | no |
 | Delete someone else's comment | yes | yes | no | no | no |
+| Take in the comments of an earlier room's file | yes | yes | no | no | no |
 | Remove a participant; allow back | yes | yes (not host or moderators) | no | no | no |
 | Change a role | any | translator ↔ observer or reviewer only | no | no | no |
 | Read the moderator log | yes | no | no | no | no |
@@ -105,7 +106,8 @@ Right-click the bar, or a block in the tree, for the room's menu: **Claim for me
 item and press **Comment…**, or press **Comment…** in the bar above the editor. A comment has its author, the time and
 its text. **Resolve** marks it resolved with who and when; press it again to reopen the comment. Everybody in the room
 sees the comments. Every participant's Picoripi keeps a copy in `comments.json` in its project folder, and the room keeps
-them in `collab_room.json`, so they stay after the room closes.
+them in `collab_room.json`, so they stay after the room closes. A `comments.json` from an earlier room is taken in by
+the host or a moderator when they join; the other participants see those comments once the room has them.
 
 **Approval.** A reviewer, a moderator or the host presses **Approve** in the bar above the editor. A later change of the
 row's text removes the approval.

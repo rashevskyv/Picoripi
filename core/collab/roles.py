@@ -20,7 +20,7 @@ MOVABLE = (TRANSLATOR, REVIEWER, OBSERVER)
 CLAIM_OWNERS = (HOST, MODERATOR, TRANSLATOR)
 
 ACTIONS = ("edit", "approve", "claim", "claim_decide", "assign", "comment", "resolve_comment", "reopen_any_comment",
-           "delete_any_comment", "kick", "set_role", "transfer_host", "view_log")
+           "delete_any_comment", "import_comment", "kick", "set_role", "transfer_host", "view_log")
 
 
 def allowed(actor: str, action: str, target: str | None = None, new: str | None = None) -> bool:
@@ -44,6 +44,8 @@ def allowed(actor: str, action: str, target: str | None = None, new: str | None 
     if action == "reopen_any_comment":                  # reopen a comment another member resolved
         return actor in (HOST, MODERATOR)
     if action == "delete_any_comment":
+        return actor in (HOST, MODERATOR)
+    if action == "import_comment":                      # adopt a comment of another room's file
         return actor in (HOST, MODERATOR)
     if action == "kick":
         return actor in (HOST, MODERATOR) and target not in (HOST, MODERATOR)

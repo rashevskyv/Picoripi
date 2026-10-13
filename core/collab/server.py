@@ -84,6 +84,7 @@ class Room:
         self.owner_name: Optional[str] = None
         self.owner_token_plain: Optional[str] = None        # kept in memory only, for the process that made it
         self.banned_names: Set[str] = set()                 # casefolded names of removed members: no new identity uses one
+        self.deleted_comments: Set[str] = set()             # ids of deleted comments: an import never brings one back
         self.claims: Dict[str, Dict[str, Any]] = {}         # {cid: {cid, owner, scope, keys: set, order}}
         self.row_claim: Dict[str, str] = {}                 # row key -> cid of its most specific claim
         self.requests: Dict[str, Dict[str, Any]] = {}       # {rid: {rid, requester, scope, keys: set, time}}
@@ -159,6 +160,7 @@ class Room:
                 self.token_index[self.members[mid]["token_hash"]] = mid
         self.owner_hash = data.get("owner_hash") or None
         self.banned_names = {str(name) for name in data.get("banned_names") or []}
+        self.deleted_comments = {str(cid) for cid in data.get("deleted_comments") or []}
         for claim in data.get("claims") or []:
             self._claim_order += 1
             self.claims[claim["cid"]] = {"cid": claim["cid"], "owner": claim["owner"], "scope": claim["scope"],
@@ -177,7 +179,7 @@ class Room:
             "protocol": PROTOCOL, "fingerprint": self.fingerprint, "room_id": self.room_id, "seq": self.seq,
             "rows": {k: dict(v) for k, v in self.rows.items()}, "stats": json.loads(json.dumps(self.stats)),
             "members": {mid: dict(m) for mid, m in self.members.items()}, "owner_hash": self.owner_hash,
-            "banned_names": sorted(self.banned_names),
+            "banned_names": sorted(self.banned_names), "deleted_comments": sorted(self.deleted_comments),
             "claims": [self._claim_out(c) for c in self.claims.values()],
             "requests": [self._request_out(r, keys=True) for r in self.requests.values()],
             "comments": [self._comment_out(c) for c in self.comments.values()],
@@ -571,8 +573,41 @@ class Room:
                 raise ValueError("not allowed")
             self._log(pid, "comment_deleted", author=comment["author"], scope=comment["scope"])
         del self.comments[comment["id"]]
+        self.deleted_comments.add(comment["id"])
         self._event("comment_deleted", by=pid, name=self._name(pid), id=comment["id"])
         return {"ok": True}
+
+    def _op_comment_import(self, pid: str, op: Dict[str, Any]) -> Dict[str, Any]:
+        """A comment of another room's file, adopted into this room. One the room holds or deleted is skipped."""
+        if not allowed(self._role(pid) or "", "import_comment"):
+            return {"refused": {"reason": "role"}}
+        raw = op.get("comment")
+        cid = raw.get("id") if isinstance(raw, dict) else None
+        if not isinstance(cid, str) or not cid or len(cid) > 64:
+            raise ValueError("bad comment")
+        if cid in self.comments:
+            return {"skipped": "known"}
+        if cid in self.deleted_comments:
+            return {"skipped": "deleted"}
+        text = raw.get("text")
+        if not isinstance(text, str) or not text.strip() or len(text) > MAX_COMMENT:
+            raise ValueError("a comment needs text up to 4000 characters")
+        scope = _clean_scope(raw.get("scope"))
+        keys = None if scope["kind"] == "project" else _clean_keys(raw.get("keys"))
+        if keys is not None and not keys:
+            raise ValueError("a comment needs a scope")
+        author_name = raw.get("author_name")
+        resolved = raw.get("resolved")
+        if isinstance(resolved, dict):
+            resolved = {"by": "", "name": str(resolved.get("name") or "?")[:MAX_NAME], "time": _when(resolved.get("time"))}
+        else:
+            resolved = None
+        self.comments[cid] = {"id": cid, "scope": scope, "keys": keys, "author": "",
+                              "author_name": author_name[:MAX_NAME] if isinstance(author_name, str) else "?",
+                              "time": _when(raw.get("time")), "text": text, "resolved": resolved}
+        self._log(pid, "comment_imported", scope=scope)
+        self._event("comment_added", by=pid, name=self._name(pid), comment=self._comment_out(self.comments[cid]))
+        return {"comment": cid}
 
     def _op_role(self, pid: str, op: Dict[str, Any]) -> Dict[str, Any]:
         target, new = op.get("target"), op.get("role")
@@ -718,6 +753,7 @@ _OPS = {
     "assign": "_op_assign", "approve": "_op_approve", "comment": "_op_comment",
     "comment_resolve": "_op_comment_resolve", "comment_delete": "_op_comment_delete", "role": "_op_role",
     "kick": "_op_kick", "unban": "_op_unban", "transfer_host": "_op_transfer_host",
+    "comment_import": "_op_comment_import",
 }
 
 
@@ -766,6 +802,13 @@ def _clean_keys(value: Any) -> Set[str]:
             raise ValueError("bad key")
         keys.add(key)
     return keys
+
+
+def _when(value: Any) -> float:
+    """A time from a file: its number, or now when it is not one."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return time.time()
+    return float(value)
 
 
 def _int(value: Any) -> int:

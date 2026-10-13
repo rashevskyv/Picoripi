@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from core.collab.comments_file import comments_path, merge_comment, read_comments, write_comments
+from core.collab.comments_file import comments_path, read_comments, write_comments
 from handlers.collab_handler import forget_endpoint, load_endpoints, remember_endpoint
 
 FP = "fp-persist"
@@ -31,16 +31,6 @@ def test_a_file_of_another_project_or_a_broken_file_gives_no_comments(tmp_path):
     path.write_text("{not json", encoding="utf-8")
     assert read_comments(path, FP) == []
     assert read_comments(tmp_path / "missing.json", FP) == []
-
-
-def test_merge_keeps_the_later_resolution_and_the_text_of_the_comment():
-    local = _comment("c1", "Original", resolved={"by": "x", "name": "Ihor", "time": 5.0})
-    older = _comment("c1", "Original", resolved={"by": "y", "name": "Olena", "time": 2.0})
-    later = _comment("c1", "Original", resolved={"by": "y", "name": "Olena", "time": 9.0})
-    assert merge_comment(local, older) is False and local["resolved"]["name"] == "Ihor"
-    assert merge_comment(local, later) is True and local["resolved"]["name"] == "Olena"
-    reopened = _comment("c1", "Original", resolved=None)
-    assert merge_comment(local, reopened) is False                 # a reopening carries no time: the room decides
 
 
 def test_saved_rooms_keep_the_password_in_settings_and_a_fresh_profile_has_none(tmp_path, monkeypatch):
