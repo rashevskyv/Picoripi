@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import List, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 
 def key_hash(key: str) -> str:
@@ -42,4 +42,29 @@ def align(parent: Sequence[str], keys: Sequence[str]) -> Alignment:
         pairs=tuple(pairs),
         parent_only=tuple(i for i in range(len(left)) if i not in used_parent),
         console_only=tuple(j for j in range(len(right)) if j not in used_console),
+    )
+
+
+def align_by_key(parent: Sequence[str], keys: Sequence[str]) -> Alignment:
+    """Pair every key with the same key of the parent: the n-th copy with the n-th copy, wherever they sit.
+
+    For a family whose match keys name their units (``Family.exact_keys``): the two lists need not agree in order.
+    """
+    waiting: Dict[str, List[int]] = {}
+    for position, key in enumerate(parent):
+        waiting.setdefault(key, []).append(position)
+    taken: Dict[str, int] = {}
+    pairs: List[Tuple[int, int]] = []
+    for position, key in enumerate(keys):
+        copies = waiting.get(key, [])
+        used = taken.get(key, 0)
+        if used < len(copies):
+            pairs.append((copies[used], position))
+            taken[key] = used + 1
+    used_parent = {i for i, _ in pairs}
+    used_console = {j for _, j in pairs}
+    return Alignment(
+        pairs=tuple(pairs),
+        parent_only=tuple(i for i in range(len(parent)) if i not in used_parent),
+        console_only=tuple(j for j in range(len(keys)) if j not in used_console),
     )

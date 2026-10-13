@@ -463,3 +463,19 @@ build refuses it until a family has such texts. Files a member takes from the ba
 `FamilyPlan.shared_files` (file -> members); `family.py shared` copies them.
 **Cost.** A text that differs below the root cannot be shown in the project yet (none for Twilight Princess).
 
+## D20. Wind Waker: one syntax-free match key, the tag table derived from the files (2026-10-12)
+
+**Context.** Wind Waker GameCube (BMG) writes a control tag as `{escape:TYPE:HEX}`; Wind Waker HD (MSBT) writes it as
+`[Size:150]`, `[Wait:10]`, `[/C]`. Equal editor text matched 23 % of the GameCube messages. D19 left the tag syntax open.
+**Decision.** `plugins/zelda_ww/family_tags.py` maps the two syntaxes. `plugins/zelda_ww/family_tag_map.json` is derived
+from the decoded files (`python -m plugins.zelda_ww.family_tags derive <bmg> <msbt>`): messages with the same id in
+both versions, compared with tags and icons removed; each tag pairs with the HD tag it co-occurs with at the same text
+offset (Jaccard score at least 0.5; each HD tag used once). Colour (escape 255, type 0) and scale (type 1) follow a rule
+the catalogue names and the data confirm. The match key converts GameCube to HD syntax, folds curly quotes (the
+GameCube editor shows them, HD does not) and drops colour. Shared text is stored in GameCube syntax and converted to
+HD syntax on write; HD-only messages keep HD syntax in their own folder. The engine pairs equal keys with
+`align_by_key` when a family sets `exact_keys` (D18 alignment stays for Twilight Princess).
+**Cost.** The table is a snapshot of one game revision; a test re-derives it. Three HD tags have a conflicting partner
+and stay per-version. Colour 0 is written as `[/C]` (box default); `[White]` reads back as the same colour.
+Messages with an unmapped tag never match. Only the GameCube plugin (`zelda_tww`) opens the family project; it reads
+MSBT blocks by their magic, but its editor tag highlighting and checks still use GameCube syntax (open).

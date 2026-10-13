@@ -126,3 +126,18 @@ def test_normalize_moves_a_child_text_to_the_root_and_reports_a_differing_child(
     store["texts"]["gc"] = {"zel_00.bmg#0": {"source": key_hash("Hello"), "text": "Інший"}}
     _out, overrides = normalize(family, store)
     assert overrides == [("hd", "hd#0")]
+def test_exact_keys_pair_every_copy_whatever_the_order():
+    from core.family_projects.align import align_by_key
+
+    alignment = align_by_key(["a", "b", "a", "c"], ["c", "a", "b", "a", "z"])
+    assert alignment.pairs == ((3, 0), (0, 1), (1, 2), (2, 3))
+    assert alignment.console_only == (4,)
+    assert alignment.parent_only == ()
+
+
+def test_exact_family_links_by_key_not_by_order():
+    family = Family(base="gc", parents={"gc": (), "hd": ("gc",)},
+                    units={"gc": [("g1", "x"), ("g2", "y"), ("g3", "x")],
+                           "hd": [("h1", "y"), ("h2", "x"), ("h3", "x")]}, exact_keys=True)
+    linked = links(family)["hd"]
+    assert linked == {"h1": ("gc", "g2"), "h2": ("gc", "g1"), "h3": ("gc", "g3")}

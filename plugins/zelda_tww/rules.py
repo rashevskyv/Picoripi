@@ -12,6 +12,8 @@ from typing import Any, Dict, Optional
 
 from core.containers import ContainerManager
 from plugins.common import gc_banner as banner
+from plugins.common.msbt import MAGIC as MSBT_MAGIC, Msbt
+from plugins.zelda_ww.tags import TAG_RE as HD_TAG_RE, from_editor, to_editor
 from plugins.zelda_bmg.rules import GameRules as TwilightPrincessRules
 
 from .dol import DolResources
@@ -80,6 +82,8 @@ class GameRules(TwilightPrincessRules):
         super().__init__(main_window_ref)
         self._banner: Optional[bytes] = None          # the banner file being saved (None: a BMG)
         self._banner_loaded: Optional[bytes] = None
+        self._msbt: Optional[Msbt] = None             # an HD MSBT file loaded for a family project (None: a BMG)
+        self._msbt_save: Optional[Msbt] = None        # the MSBT the save in progress writes over
         ContainerManager.register(DolResources, (".dol",))   # disc-error messages and font in main.dol
 
     def get_display_name(self) -> str:
@@ -90,27 +94,80 @@ class GameRules(TwilightPrincessRules):
         """Message files and the disc banner; the fonts (.bfn) open in Tools -> Font Editor, not as text."""
         from core.formats import FileFormat
         return [FileFormat((".bnr",), "bytes", "Disc banner"),
+                FileFormat((".msbt",), "bytes", "MSBT (Wind Waker HD)"),
                 *(item for item in super().get_file_formats() if ".bfn" not in item.extensions)]
 
     def load_data_from_json_obj(self, json_obj: Any):
-        """A BMG, or the disc banner's five texts."""
+        """A BMG, the disc banner's five texts, or an HD MSBT (the family project's HD-only messages)."""
         if isinstance(json_obj, bytes) and banner.is_banner(json_obj):
             self._banner_loaded = json_obj
             return [banner.read(json_obj)], {"0": "Disc banner"}
+        if isinstance(json_obj, (bytes, bytearray)) and bytes(json_obj[:8]) == MSBT_MAGIC:
+            self._msbt = Msbt(bytes(json_obj))
+            return [[to_editor(tokens) for tokens in self._msbt.messages]], {}
         return super().load_data_from_json_obj(json_obj)
 
+    def _load_bmg_cached(self, cache_key, read_bytes):
+        """An MSBT block has no BMG behind it: the message-context code reads none."""
+        data = read_bytes()
+        if bytes(data[:8]) == MSBT_MAGIC:
+            return None
+        return super()._load_bmg_cached(cache_key, lambda: data)
+
+    def family_plan(self, sources: list, project_dir: Optional[str] = None) -> Any:
+        """Wind Waker family: GameCube (base) and HD message folders (see plugins/zelda_ww/family.py)."""
+        from plugins.zelda_ww.family import plan_for_sources
+        return plan_for_sources(sources, project_dir)
+
     def prepare_save_context(self, context) -> None:
-        """The banner is written over its current file; a BMG as the Twilight Princess rules do it."""
+        """The banner is written over its current file; an MSBT over the one loaded; a BMG as the Twilight Princess rules do it."""
         self._banner = None
-        if str(context.relative_path).lower().endswith(".bnr"):
+        self._msbt_save = None
+        name = str(context.relative_path).lower()
+        if name.endswith(".bnr"):
             self._banner = next(iter(context.existing_versions()), None) or self._banner_loaded
+            return
+        if name.endswith(".msbt"):
+            self._msbt_save = self._msbt
             return
         super().prepare_save_context(context)
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         if self._banner is not None:
             return banner.write(self._banner, data[0])
+        if self._msbt_save is not None:
+            return self._save_msbt(self._msbt_save, data[0] if data and isinstance(data[0], list) else [])
         return super().save_data_to_json_obj(data, block_names)
+
+    @staticmethod
+    def _save_msbt(msbt: Msbt, texts: list) -> bytes:
+        """The MSBT with the edited messages re-encoded in HD tags; unedited messages keep their tokens."""
+        new_tokens = []
+        for index, tokens in enumerate(msbt.messages):
+            current = to_editor(tokens)
+            text = texts[index] if index < len(texts) else current
+            new_tokens.append(tokens if text == current else from_editor(text))
+        return msbt.build(new_tokens)
+
+    def get_syntax_highlighting_rules(self):
+        """The GameCube curly tags, plus the HD tags and icon characters of an MSBT block (see prepare/load).
+
+        GameCube text never holds square brackets or the icon characters (U+E000..U+F8FF), so the HD patterns
+        cannot match a BMG block; both syntaxes are highlighted in every block.
+        """
+        rules = super().get_syntax_highlighting_rules()
+        manager = getattr(self, "tag_manager", None)
+        if manager is None:
+            return rules
+        return [*rules, (HD_TAG_RE.pattern, manager.tag_format), (r"[-]", manager.tag_format)]
+
+    def check_msbt_text(self, text: str) -> list:
+        """Problem checks of one HD (MSBT) block text: unparsed, unknown, unmatched, size, colour and icon issues.
+
+        Called for MSBT blocks only; GameCube text is checked by the curly-tag rules. See plugins/zelda_ww/msbt_checks.py.
+        """
+        from plugins.zelda_ww.msbt_checks import check_text
+        return check_text(text)
 
     def get_capabilities(self):
         """Lore from the wiki and terms from item windows; no speakers or window chrome yet."""

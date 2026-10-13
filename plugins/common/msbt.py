@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import struct
 from dataclasses import dataclass
-from typing import Dict, List, Union
+from typing import Dict, List, Sequence, Union
 
 MAGIC = b"MsgStdBn"
 _SECTION_PAD = b"\xab"
@@ -179,6 +179,49 @@ class Msbt:
         """The file with ``messages`` as its texts and every other section unchanged."""
         if len(messages) != len(self.messages):
             raise ValueError(f"The file has {len(self.messages)} messages, got {len(messages)}")
+        return self._pack(self.sections, messages)
+
+    def subset(self, indices: Sequence[int], messages: List[List[Token]]) -> bytes:
+        """A file with only the messages at ``indices`` (in that order), with ``messages`` as their texts.
+
+        Labels, attributes (ATR1) and the per-message style table (TSY1) follow the kept messages. The labels
+        go into one hash slot: the file reads back in the editor; the game's own files are never subset.
+        """
+        if len(messages) != len(indices):
+            raise ValueError("one text per kept message")
+        e = self.endian
+        new_index = {old: new for new, old in enumerate(indices)}
+        entries = bytearray()
+        label_count = 0
+        for old in indices:
+            name = self.labels.get(old)
+            if name is None:
+                continue
+            raw = name.encode("utf-8")
+            if len(raw) > 255:
+                raise ValueError(f"label too long: {name[:20]}")
+            entries += bytes([len(raw)]) + raw + struct.pack(e + "I", new_index[old])
+            label_count += 1
+        lbl1 = struct.pack(e + "I", 1) + struct.pack(e + "II", label_count, 12) + bytes(entries)
+        atr1 = self._section(b"ATR1")
+        if atr1:
+            count, size = struct.unpack_from(e + "II", atr1, 0)
+            rows = b"".join(atr1[8 + old * size:8 + (old + 1) * size] for old in indices)
+            atr1 = struct.pack(e + "II", len(indices), size) + rows + atr1[8 + count * size:]
+        tsy1 = b"".join(self._section(b"TSY1")[4 * old:4 * old + 4] for old in indices)
+        sections = []
+        for magic, body in self.sections:
+            if magic == b"LBL1":
+                body = lbl1
+            elif magic == b"ATR1":
+                body = atr1
+            elif magic == b"TSY1":
+                body = tsy1
+            sections.append([magic, body])
+        return self._pack(sections, messages)
+
+    def _pack(self, sections: List[List], messages: List[List[Token]]) -> bytes:
+        """The file from its sections, with TXT2 rebuilt from ``messages``."""
         e = self.endian
         texts = [self.encode_text(tokens) for tokens in messages]
         table = 4 + 4 * len(texts)
@@ -189,7 +232,7 @@ class Msbt:
         txt2 = struct.pack(f"{e}I{len(texts)}I", len(texts), *offsets) + b"".join(texts)
 
         out = bytearray(self.header)
-        for magic, body in self.sections:
+        for magic, body in sections:
             if magic == b"TXT2":
                 body = txt2
             out += magic + struct.pack(e + "I", len(body)) + b"\x00" * 8 + body

@@ -20,7 +20,7 @@ from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 from utils.atomic_io import atomic_write_json
 
-from .align import align, key_hash
+from .align import align, align_by_key, key_hash
 
 VERSION = 2
 STORE_FILE = "family_translations.json"
@@ -34,6 +34,7 @@ class Family:
     base: str
     parents: Mapping[str, Tuple[str, ...]]
     units: Mapping[str, Sequence[Tuple[str, str]]]
+    exact_keys: bool = False   # the keys name their units: pair equal keys wherever they sit (align_by_key)
 
     def __post_init__(self) -> None:
         seen = set()
@@ -61,7 +62,9 @@ def links(family: Family) -> Dict[str, Dict[str, Link]]:
         keys = [key for _, key in units]
         for parent in family.parents[member]:
             parent_units = family.units[parent]
-            for parent_pos, pos in align([key for _, key in parent_units], keys).pairs:
+            parent_keys = [key for _, key in parent_units]
+            pairs = (align_by_key if family.exact_keys else align)(parent_keys, keys).pairs
+            for parent_pos, pos in pairs:
                 uid = units[pos][0]
                 if uid not in linked:
                     linked[uid] = (parent, parent_units[parent_pos][0])
