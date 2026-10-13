@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: unfinished work
-tokens: 22.6k
+tokens: 23.0k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -20,10 +20,22 @@ the line when it is done or moved into a plan.
 - Collab residual risk: `lan_addresses()` looks up the host name once per process, only after the host allows other computers, and in a background thread (`LanLookup`); a slow DNS shows the invitation a moment later.
 - Collab residual risk: the room is plain HTTP with a shared password; the window says so.
 
+## Project Manager phase 2 (2026-10-12)
+
+- Only `plugins/plain_text` declares a build target, and no real game plugin implements `get_source_roles`, `identify_source`, `unpack_sources` or `build_target` yet. Until a game does, the wizard takes roles and platforms from the user and the Build, Export and Run buttons stay off for it.
+- Counts skip archive members (blocks inside containers) and report them as "not counted yet". Counting them needs the load worker's archive path (`handlers/project_action/load_worker.py`).
+- A count is stored against the project file's modification time. An edit to a translation file made outside Picoripi shows the old count until the project file changes or the project is opened.
+- Counting and the main window's plugin load share the `PLUGIN_IMPORT_LOCK` of `utils/plugin_import.py`. A plugin load can wait for a count that is importing the same plugin, and that wait runs on the UI thread: seconds for a large plugin. Check it with a real game plugin.
+- The wizard, with no unpacking and several files, uses the base file as the source. The other files are recorded in the project metadata only.
+- One emulator command serves every platform. MacOS `.app` bundles need the path of the program inside the bundle.
+- Export copies a folder. A zip or a single-file export is not built.
+- `components/project_dialogs.py` `NewProjectDialog` is no longer opened by the product. The wizard has no option to use an existing translation folder, which the dialog had. Add that option to the wizard, or delete the class with `tests/manual_test_project_dialogs.py`.
+- ROADMAP entries A9 and A10 are not updated: `docs/ROADMAP.md` is not on `main`. Their state is in the phase 2 commit messages and D23.
+
 ## Project Manager phase 1 (2026-10-11)
 
-- Lines and translated % show "—" for a project that was never opened or saved in Picoripi. Counting them needs the plugin parser in a worker; the phase 2 plan (`docs/PROJECT_MANAGER_PHASE2.md`) decides it.
-- The Flags column shows only Opens, Missing, Unreadable. Build and "verified in game" need metadata that no project file holds yet. Ask the owner which fields to store.
+- Closed in phase 2 (D23): lines and translated % are counted in a worker for a project never opened.
+- Closed in phase 2 (D23): the Built and Verified in game flags are stored in `metadata.flags`, set only by the user.
 - The platform of an imported project comes from a folder name (3DS, Switch, …). It is a guess; the user can review it in the import checklist. Check it on the real set once.
 - The shortcut Ctrl+Shift+M is free; Ctrl+Shift+P is taken by Preview. Confirm the shortcut.
 - Opening a project from the manager has the same unsaved-edits behaviour as the Recent Projects menu. No guard was added. Check it with unsaved edits.

@@ -114,3 +114,27 @@ class GameRules(BaseGameRules):
         """Process pasted segment."""
         from utils.utils import clean_spaces
         return process_pasted_segment(clean_spaces(segment_to_insert), original_text_for_tags, editor_player_tag_const)
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        """One target: the translation files, copied as they are, keeping their folders."""
+        return [{"id": "translated_files", "label": "Translated files", "platforms": [], "kind": "files"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        """Copy every file of ``translation_dir`` into ``output_dir``, keeping the relative paths."""
+        if target_id != "translated_files":
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        import os
+        import shutil
+        from pathlib import Path
+        root = Path(translation_dir)
+        files = [root] if root.is_file() else sorted(path for path in root.rglob("*") if path.is_file())
+        for position, path in enumerate(files, start=1):
+            if is_cancelled():
+                break
+            relative = path.name if root.is_file() else path.relative_to(root).as_posix()
+            target = Path(output_dir) / relative
+            os.makedirs(target.parent, exist_ok=True)
+            shutil.copy2(path, target)
+            progress(100 * position // max(1, len(files)), relative)
+        return output_dir

@@ -6,7 +6,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import QProcess, Qt, QUrl
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QHBoxLayout, QInputDialog, QLabel, QMenu,
@@ -15,9 +15,13 @@ from PyQt6.QtWidgets import (
 
 from core.i18n import tr
 from core.project_library import index, registry, views
+from core.project_library.build import emulator_argv
 from core.project_library.cards import percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
+from core.project_library.flags import FLAG_NAMES, flags_of
+from core.project_library.plugin_facts import default_load_rules
 from ui.project_manager.jobs import BackgroundJob, CardScanJob
+from ui.project_manager.tasks import ActionJob, CountJob
 from utils.logging_utils import log_debug, log_info
 from utils.thread_utils import safe_shutdown_thread, single_shot
 
@@ -39,6 +43,7 @@ ISSUE_TEXT = {
     "source_missing": "The original files path does not exist.",
     "translation_missing": "The translation files path does not exist.",
 }
+FLAG_LABELS = {"built": "Built", "verified_in_game": "Verified in game"}
 COLUMNS = ("Project name", "Platform", "Lines", "Blocks", "Translated", "Modified", "Flags")
 
 
@@ -138,24 +143,39 @@ def format_modified(value: str) -> str:
 
 
 class ProjectManagerDialog(QDialog):
-    """The list of projects the user added. Opens the chosen project through the callbacks given by the handler."""
+    """The list of projects the user added. Opens the chosen project through the callbacks given by the handler.
+
+    ``save_flags(project_file, updates)`` and ``save_setting(name, value)`` store the user's choices; the handler decides
+    whether an open project or a worker writes them.
+    """
 
     def __init__(self, parent, library_dir: str, open_project: Callable[[str], None],
-                 new_project: Callable[[], None]):
+                 new_project: Callable[[], None], save_flags: Callable[[str, Dict[str, bool]], None],
+                 save_setting: Callable[[str, str], None],
+                 load_rules: Callable[[str], Any] = default_load_rules):
         super().__init__(parent)
         self.setWindowTitle(tr("Project Manager"))
         self.resize(1100, 620)
         self._dir = library_dir
         self._open_project = open_project
         self._new_project = new_project
-        self._document: Dict[str, Any] = {"projects": [], "folders": [], "view": dict(registry.DEFAULT_VIEW)}
+        self._save_flags = save_flags
+        self._save_setting = save_setting
+        self._load_rules = load_rules
+        self._document: Dict[str, Any] = {"projects": [], "folders": [], "view": dict(registry.DEFAULT_VIEW),
+                                          "settings": {}}
         self._entries: Dict[str, Dict[str, Any]] = {}
         self._cards: Dict[str, Dict[str, Any]] = {}
+        self._flag_state: Dict[str, Dict[str, bool]] = {}
         self._scanned: set = set()
         self._loaded = False
         self._render_scheduled = False
         self._jobs: List[Any] = []
         self._items: Dict[str, QTreeWidgetItem] = {}
+        self._status_labels: Dict[str, QLabel] = {}
+        self._action_text: Dict[str, str] = {}
+        self._action_jobs: Dict[str, ActionJob] = {}
+        self._count_job: Optional[CountJob] = None
         self._build_ui()
         self._run(BackgroundJob(_load_state, library_dir), self._on_state)
         self._status.setText(tr("Loading projects..."))
@@ -185,6 +205,10 @@ class ProjectManagerDialog(QDialog):
         new_folder = QPushButton(tr("New folder..."))
         new_folder.clicked.connect(self._new_folder_clicked)
         bar.addWidget(new_folder)
+        emulator = QPushButton(tr("Emulator..."))
+        emulator.setToolTip(tr("The command that starts your emulator. Used by Run in emulator."))
+        emulator.clicked.connect(self._emulator_clicked)
+        bar.addWidget(emulator)
         bar.addStretch(1)
 
         self._group = QComboBox()
@@ -252,6 +276,7 @@ class ProjectManagerDialog(QDialog):
         self._loaded = True
         self._render()
         self._scan_cards()
+        self._schedule_counts()
 
     def _scan_cards(self) -> None:
         targets = []
@@ -274,15 +299,42 @@ class ProjectManagerDialog(QDialog):
 
     def _on_scan_done(self, scanned: int) -> None:
         self._status.setText(tr("{0} projects.", len(self._document["projects"])))
+        self._schedule_counts()
 
-    def _mutate(self, operation: Callable[..., Any]) -> None:
-        if not self._loaded:
+    # ----- counts of projects never opened -----
+    def _schedule_counts(self) -> None:
+        """Count the projects whose counts are missing or older than their file. One count job runs at a time."""
+        if self._count_job is not None:
             return
-        self._run(BackgroundJob(registry.mutate, self._dir, operation), self._on_document)
+        targets = []
+        for entry in self._document["projects"]:
+            key = registry.project_key(entry["path"])
+            cached = self._entries.get(key) or {}
+            card = self._cards.get(key) or cached.get("card") or {}
+            mtime = card.get("mtime_ns")
+            if mtime is None or "unreadable" in card.get("issues", []) or card.get("missing"):
+                continue
+            if cached.get("counted_mtime") == mtime:
+                continue
+            targets.append((key, entry["path"]))
+        if not targets:
+            return
+        job = CountJob(self._dir, targets, self._load_rules)
+        self._count_job = job
+        job.counted.connect(self._on_counted)
+        job.failed.connect(lambda _message: self._on_count_done(0))
+        self._run(job, self._on_count_done)
+        self._status.setText(tr("Counting {0} projects...", len(targets)))
 
-    def _on_document(self, document: Dict[str, Any]) -> None:
-        self._document = document
+    def _on_counted(self, key: str, fields: Dict[str, Any]) -> None:
+        entry = self._entries.setdefault(key, {})
+        entry.pop("count_error", None)
+        entry.update(fields)
         self._schedule_render()
+
+    def _on_count_done(self, _counted: int) -> None:
+        self._count_job = None
+        self._status.setText(tr("{0} projects.", len(self._document["projects"])))
 
     # ----- rendering -----
     def _schedule_render(self) -> None:
@@ -320,6 +372,12 @@ class ProjectManagerDialog(QDialog):
                 "added": entry.get("added") or "",
                 "plugin": card.get("plugin", ""),
                 "refreshing": key not in self._scanned,
+                "targets": list(cached.get("targets") or []),
+                "groups": dict(cached.get("groups") or {}),
+                "skipped": int(cached.get("skipped") or 0),
+                "count_error": str(cached.get("count_error") or ""),
+                "counted_at": cached.get("counted_at") or "",
+                "flags": self._flag_state.get(key) or card.get("flags") or flags_of({}),
             })
         return rows
 
@@ -334,6 +392,7 @@ class ProjectManagerDialog(QDialog):
 
         self._tree.clear()
         self._items = {}
+        self._status_labels = {}  # the labels die with the tree; the texts stay in self._action_text
         self._stack.setCurrentWidget(self._tree if rows else self._empty)
         for kind, value, group_rows in sections:
             header = QTreeWidgetItem(self._tree, [f"{self._section_title(kind, value, folder_names)}  ({len(group_rows)})"])
@@ -396,6 +455,9 @@ class ProjectManagerDialog(QDialog):
             flags.append(tr("Opens"))
         if row["issues"] and "project_file_missing" not in row["issues"] and "unreadable" not in row["issues"]:
             flags.append(tr("Needs attention"))
+        for name in FLAG_NAMES:
+            if row["flags"].get(name):
+                flags.append(tr(FLAG_LABELS[name]))
         translated = "—" if row["translated"] is None else f"{row['translated']} %"
         return [
             row["name"],
@@ -462,18 +524,38 @@ class ProjectManagerDialog(QDialog):
         form.addRow(tr("Plugin"), QLabel(row["plugin"] or "—"))
         form.addRow(tr("Lines"), QLabel("—" if row["lines"] is None else f"{row['lines']:,}"))
         form.addRow(tr("Translated"), QLabel("—" if row["translated"] is None else f"{row['translated']} %"))
+        form.addRow(tr("Blocks"), QLabel("—" if row["blocks"] is None else str(row["blocks"])))
         form.addRow(tr("Modified"), QLabel(format_modified(row["modified"])))
         form.addRow(tr("Added"), QLabel(format_modified(row["added"])))
         form.addRow(tr("Last opened"), QLabel(format_modified(row["last_opened"])))
+        form.addRow(tr("Counted"), QLabel(format_modified(row["counted_at"])))
         layout.addLayout(form)
 
-        blocks = "—" if row["blocks"] is None else str(row["blocks"])
-        layout.addWidget(QLabel(tr("Blocks: {0}", blocks)))
-        layout.addWidget(QLabel(tr("Texts, fonts and textures are not counted yet.")))
+        if row["groups"]:
+            tree = QTreeWidget()
+            tree.setHeaderLabels([tr("Folder"), tr("Blocks"), tr("Lines")])
+            for name in sorted(row["groups"], key=str.casefold):
+                group = row["groups"][name]
+                tree.addTopLevelItem(QTreeWidgetItem([name, str(group["blocks"]), f"{group['lines']:,}"]))
+            tree.setMaximumHeight(150)
+            layout.addWidget(tree)
 
         attention = [tr(ISSUE_TEXT[issue]) for issue in row["issues"] if issue in ISSUE_TEXT]
-        layout.addWidget(QLabel(tr("Needs attention:") + " " + ("; ".join(attention) if attention
+        if row["count_error"]:
+            attention.append(tr("The lines could not be counted: {0}.", row["count_error"]))
+        if row["skipped"]:
+            attention.append(tr("{0} blocks are not counted yet (archive members or missing files).", row["skipped"]))
+        layout.addWidget(QLabel(tr("Needs attention:") + " " + (" ".join(attention) if attention
                                                               else tr("Nothing."))))
+
+        flag_row = QHBoxLayout()
+        for name in FLAG_NAMES:
+            check = QCheckBox(tr(FLAG_LABELS[name]))
+            check.setChecked(bool(row["flags"].get(name)))
+            check.toggled.connect(partial(self._flag_toggled, row["path"], row["key"], name))
+            flag_row.addWidget(check)
+        flag_row.addStretch(1)
+        layout.addLayout(flag_row)
 
         buttons = QHBoxLayout()
         open_button = QPushButton(tr("Open"))
@@ -485,18 +567,108 @@ class ProjectManagerDialog(QDialog):
         remove = QPushButton(tr("Remove from manager"))
         remove.clicked.connect(_call(self._remove_clicked, row))
         buttons.addWidget(remove)
-        for label in ("Build mod", "Run in emulator", "Export mod"):
-            disabled = QPushButton(tr(label))
-            disabled.setEnabled(False)
-            disabled.setToolTip(tr("Coming in phase 2"))
-            buttons.addWidget(disabled)
+        buttons.addWidget(self._action_button("Build mod", "build", row))
+        buttons.addWidget(self._action_button("Export mod", "export", row))
+        buttons.addWidget(self._action_button("Run in emulator", "run", row))
         buttons.addStretch(1)
         layout.addLayout(buttons)
+
+        status = QLabel(self._action_text.get(row["key"], ""))
+        status.setWordWrap(True)
+        layout.addWidget(status)
+        self._status_labels[row["key"]] = status
         return widget
+
+    def _action_button(self, label: str, mode: str, row: Dict[str, Any]) -> QToolButton:
+        """A button that lists the plugin's build targets. Off when the game declares none."""
+        button = QToolButton()
+        button.setText(tr(label))
+        button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu = QMenu(button)
+        for target in row["targets"]:
+            action = menu.addAction(str(target["label"]))
+            action.triggered.connect(_call(self._start_action, row["path"], target["id"], mode))
+        button.setMenu(menu)
+        if not row["targets"]:
+            button.setEnabled(False)
+            button.setToolTip(tr("This game declares no build target yet."))
+        elif mode == "run" and not self._emulator_command():
+            button.setEnabled(False)
+            button.setToolTip(tr("Set the emulator command first (Emulator... button)."))
+        return button
 
     @staticmethod
     def _reveal(path: str) -> None:
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(path).parent)))
+
+    def _flag_toggled(self, path: str, key: str, name: str, checked: bool) -> None:
+        state = dict(self._flag_state.get(key) or {})
+        state[name] = bool(checked)
+        self._flag_state[key] = state
+        self._save_flags(path, {name: bool(checked)})
+
+    # ----- build, export and run -----
+    def _emulator_command(self) -> str:
+        return str((self._document.get("settings") or {}).get("emulator_command") or "").strip()
+
+    def _emulator_clicked(self) -> None:
+        text, ok = QInputDialog.getText(
+            self, tr("Emulator command"),
+            tr("Command that starts your emulator. Write {path} where the built file or folder goes."),
+            text=self._emulator_command())
+        if ok:
+            value = text.strip()
+            self._document.setdefault("settings", {})["emulator_command"] = value
+            self._save_setting("emulator_command", value)
+
+    def _start_action(self, project_file: str, target_id: str, mode: str) -> None:
+        key = registry.project_key(project_file)
+        if key in self._action_jobs:
+            self._status.setText(tr("This project is already building."))
+            return
+        export_to = ""
+        if mode == "export":
+            export_to = QFileDialog.getExistingDirectory(self, tr("Export mod to folder"), str(Path.home()))
+            if not export_to:
+                return
+        job = ActionJob(project_file, target_id, self._load_rules, export_to)
+        self._action_jobs[key] = job
+        self._set_action_text(key, tr("Working..."))
+        job.progress.connect(lambda percent, text, k=key: self._set_action_text(k, f"{text} ({percent} %)"))
+        job.done.connect(lambda path, k=key, m=mode: self._on_action_done(k, m, path))
+        job.cancelled.connect(lambda k=key: self._on_action_ended(k, tr("Cancelled.")))
+        job.failed.connect(lambda message, k=key: self._on_action_ended(k, tr("Failed: {0}", message)))
+        self._run(job, lambda _path: None)
+
+    def _on_action_done(self, key: str, mode: str, path: str) -> None:
+        self._action_jobs.pop(key, None)
+        if mode == "run":
+            self._set_action_text(key, self._launch_emulator(path))
+        elif mode == "export":
+            self._set_action_text(key, tr("Exported to {0}", path))
+        else:
+            self._set_action_text(key, tr("Built: {0}", path))
+
+    def _on_action_ended(self, key: str, text: str) -> None:
+        self._action_jobs.pop(key, None)
+        self._set_action_text(key, text)
+
+    def _set_action_text(self, key: str, text: str) -> None:
+        self._action_text[key] = text
+        label = self._status_labels.get(key)
+        if label is not None:
+            label.setText(text)
+
+    def _launch_emulator(self, path: str) -> str:
+        """Start the emulator detached, with the path as argument. No shell is used."""
+        argv = emulator_argv(self._emulator_command(), path)
+        if not argv:
+            return tr("Set the emulator command first (Emulator... button).")
+        started, _pid = QProcess.startDetached(argv[0], argv[1:])
+        if not started:
+            return tr("The emulator did not start: {0}", argv[0])
+        log_info(f"Started the emulator {argv[0]} with {path}.")
+        return tr("Started the emulator with {0}", path)
 
     # ----- context menu and actions -----
     def _context_menu(self, position) -> None:
@@ -511,11 +683,6 @@ class ProjectManagerDialog(QDialog):
             self._menu_item(menu, tr("Rename..."), self._rename_clicked, row)
             self._menu_item(menu, tr("Move to folder..."), self._move_clicked, row)
             self._menu_item(menu, tr("Remove from manager"), self._remove_clicked, row)
-            menu.addSeparator()
-            for label in ("Build mod", "Run in emulator", "Export mod"):
-                action = menu.addAction(tr(label))
-                action.setEnabled(False)
-                action.setToolTip(tr("Coming in phase 2"))
         elif folder:
             self._menu_item(menu, tr("Rename folder..."), self._rename_folder_clicked, folder)
             self._menu_item(menu, tr("Delete folder..."), self._delete_folder_clicked, folder)
@@ -577,6 +744,15 @@ class ProjectManagerDialog(QDialog):
         self._render()
         self._mutate(partial(_op_set_view, **choices))
 
+    def _mutate(self, operation: Callable[..., Any]) -> None:
+        if not self._loaded:
+            return
+        self._run(BackgroundJob(registry.mutate, self._dir, operation), self._on_document)
+
+    def _on_document(self, document: Dict[str, Any]) -> None:
+        self._document = document
+        self._schedule_render()
+
     # ----- adding projects -----
     def _new_project_clicked(self) -> None:
         self._new_project()
@@ -625,6 +801,8 @@ class ProjectManagerDialog(QDialog):
             except RuntimeError as exc:  # Qt deleted a job that had already finished
                 log_debug(f"Project manager job was already gone at close: {exc}")
         self._jobs.clear()
+        self._action_jobs.clear()
+        self._count_job = None
         super().closeEvent(event)
 
 

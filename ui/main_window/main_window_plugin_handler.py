@@ -10,6 +10,7 @@ from PyQt6.QtGui import QKeySequence
 from utils.logging_utils import log_info, log_error
 from plugins.base_game_rules import BaseGameRules
 from utils.utils import clear_width_caches
+from utils.plugin_import import PLUGIN_IMPORT_LOCK
 from core.i18n import tr
 
 
@@ -124,9 +125,9 @@ class MainWindowPluginHandler:
 
         try:
             module_path = f"plugins.{self.mw.active_game_plugin}.rules"
-            forget_plugin_modules(self.mw.active_game_plugin)
-
-            game_rules_module = importlib.import_module(module_path)
+            with PLUGIN_IMPORT_LOCK:  # a Project Manager worker must not import this plugin while its modules are dropped
+                forget_plugin_modules(self.mw.active_game_plugin)
+                game_rules_module = importlib.import_module(module_path)
             
             if hasattr(game_rules_module, 'GameRules') and issubclass(getattr(game_rules_module, 'GameRules'), BaseGameRules):
                 GameRulesClass = getattr(game_rules_module, 'GameRules')

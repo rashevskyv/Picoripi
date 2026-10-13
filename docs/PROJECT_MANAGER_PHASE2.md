@@ -1,14 +1,14 @@
 ---
-status: design
-updated: 2026-10-11
+status: current
+updated: 2026-10-12
 owns: project manager
 tokens: 0.6k
-purpose: Project Manager phase 2 plan
+purpose: Project Manager phase 2
 ---
-# Project Manager, phase 2 (plan, not built)
+# Project Manager, phase 2 (built; the decisions are in D23)
 
 Phase 1 is in `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (Project Manager) and `docs/DECISIONS.md` D20.
-This page lists what phase 2 adds. Nothing here is implemented.
+This page lists what phase 2 adds. Built as listed; the open items are in docs/OPEN_ITEMS.md (Project Manager phase 2).
 
 ## Scope
 

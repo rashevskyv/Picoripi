@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/glossary_build, ui/pipeline_wizard_dialog.py
-tokens: 10.9k
+tokens: 11.0k
 purpose: Pipeline design of record (Ukrainian); shipped vs planned on top
 ---
 # Road Map: наскрізний пайплайн локалізації та майстер-провідник
@@ -114,6 +114,10 @@ def load_multi_reference(self, patch_path: str, block_names: Optional[List[str]]
 > **Лишається звірити на живих даних:** сама відповідність «табличка локації → назва місця»
 > виведена з мапи типів вікон, а не перевірена на реальному наборі повідомлень. Якщо
 > таблички виявляться неповними, запасне джерело — `TelopData`.
+
+### 2.2a Хуки Менеджера проєктів (PM фаза 2)
+
+Майстер нового проєкту і кнопки Build, Export, Run використовують п'ять хуків: `get_source_roles`, `identify_source`, `get_platforms`, `unpack_sources`, `get_build_targets`, `build_target`. Усі мають типову поведінку (без хуків плагін працює, кнопки вимкнені). Опис механізму: `docs/wiki/3_Plugin_Developer_Guide.md`, розділ про Менеджер проєктів.
 
 ### 2.3 Витік словника TP у рушій (усунуто в M3)
 

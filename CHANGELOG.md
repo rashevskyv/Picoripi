@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Project Manager phase 2: new-project wizard (game, files with roles and platform from the plugin, location, unpack in a worker with cancel), counts for projects never opened, expanded row with stats, folder tree, needs attention, Built and Verified in game flags, Build mod, Export mod and Run in emulator through the plugin hooks `get_source_roles`, `identify_source`, `get_platforms`, `unpack_sources`, `get_build_targets`, `build_target` (plain_text: translated files); D23; wiki EN and UK.
 - Work Together: the room listens on 127.0.0.1 by default; other computers (LAN) only when the host ticks Allow other computers (LAN), with a plain-HTTP warning in the window; the wiki (EN, UK) says so. The room's address list is looked up only then.
 - Plugin contract: layout_class is named in the get_translation_context_for_string entry of spec.py, PLUGIN_CONTRACT.md, the roadmap key table and AI prompt Q8 (mechanism only).
 - Fonts: the default plugin ships no letter-width table (its widths came from a game font dump); letters take the default width until a font map is made. plain_text FFNT dumps stay on the user's disk.

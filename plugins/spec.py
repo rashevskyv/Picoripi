@@ -172,6 +172,20 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("load_reference_patch", "Read a reference translation: (block, string) -> text."),
         Hook("load_multi_reference", "Read reference translations in several languages."),
     )),
+    ('Project Manager (worker thread: no widgets, no self.mw)', (
+        Hook("get_source_roles", "Roles the project's source files can have: [{id, label}]. The first is the default.",
+             call=(), returns=list),
+        Hook("identify_source", "Recognise a file the user added, by its content: {role, platform} or None.",
+             call=None, returns=dict, optional=True),
+        Hook("get_platforms", "Platforms the game ships on: [{id, label}].", call=(), returns=list),
+        Hook("unpack_sources", "Unpack the role files into an empty folder: progress(percent, text) and "
+             "is_cancelled() are passed in. Returns the folder, or None to use the files as they are.",
+             call=None, returns=str, optional=True),
+        Hook("get_build_targets", "What the game can build: [{id, label, platforms, kind}] with kind files, patch "
+             "or layeredfs. Empty: the Build, Export and Run buttons stay off.", call=(), returns=list),
+        Hook("build_target", "Write one build target into an empty output folder and return the result path. "
+             "Gets source_dir, translation_dir, output_dir, progress and is_cancelled.", call=None, returns=str),
+    )),
     ('Looked for by the host (not on the base class)', (
         Hook("problem_analyzer", "Analyzer object: analyze_data_string(), registry.get_prefixed_id().",
              kind="attribute", on_base=False),

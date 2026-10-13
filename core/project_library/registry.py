@@ -27,7 +27,11 @@ def project_key(path: str | os.PathLike) -> str:
 
 
 def _empty_document() -> Dict[str, Any]:
-    return {"version": SCHEMA_VERSION, "folders": [], "projects": [], "view": dict(DEFAULT_VIEW)}
+    return {"version": SCHEMA_VERSION, "folders": [], "projects": [], "view": dict(DEFAULT_VIEW), "settings": {}}
+
+
+# The settings the Project Manager keeps. Keys for AI services are not here: they live on the AI settings page only.
+SETTING_NAMES = ("emulator_command",)
 
 
 def _set_aside(path: Path, reason: str) -> None:
@@ -60,6 +64,8 @@ def _read_document(path: Path, set_aside: bool = True) -> Dict[str, Any]:
         if not isinstance(document.get(key), list):
             document[key] = []
     document["view"] = {**DEFAULT_VIEW, **(document.get("view") or {})}
+    if not isinstance(document.get("settings"), dict):
+        document["settings"] = {}
     return document
 
 
@@ -162,6 +168,17 @@ class Registry:
 
     def set_view(self, **choices: Any) -> None:
         self.document["view"].update({k: v for k, v in choices.items() if k in DEFAULT_VIEW})
+
+    # ----- settings -----
+    def settings(self) -> Dict[str, Any]:
+        return {name: self.document["settings"].get(name, "") for name in SETTING_NAMES}
+
+    def set_setting(self, name: str, value: str) -> bool:
+        """Store one Project Manager setting. Unknown names are refused."""
+        if name not in SETTING_NAMES:
+            return False
+        self.document["settings"][name] = str(value)
+        return True
 
 
 def _now() -> str:

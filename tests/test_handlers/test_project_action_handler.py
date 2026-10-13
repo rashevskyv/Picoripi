@@ -21,15 +21,23 @@ def test_ProjectActionHandler_set_project_actions_enabled(mock_mw):
     h._set_project_actions_enabled(False)
     mock_mw.close_project_action.setEnabled.assert_called_with(False)
 
+def test_ProjectActionHandler_create_new_project_action_opens_the_wizard(mock_mw):
+    """Ctrl+N and every New Project entry open the wizard; the wizard creates the project later."""
+    h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
+    opened = []
+    h.open_new_project_wizard = lambda: opened.append(True)
+
+    h.create_new_project_action()
+
+    assert opened == [True]
+
+
 @patch('handlers.project_action.lifecycle_mixin.ProjectManager')
 @patch('handlers.project_action_handler.Path.is_dir')
 @patch('handlers.project_action.lifecycle_mixin.QMessageBox')
-@patch('components.project_dialogs.NewProjectDialog')
-def test_ProjectActionHandler_create_new_project_action(mock_dialog_class, mock_msg_box, mock_is_dir, mock_pm_class, mock_mw):
+def test_ProjectActionHandler_finish_new_project_creates_and_announces(mock_msg_box, mock_is_dir, mock_pm_class, mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
-    mock_dialog = mock_dialog_class.return_value
-    mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
-    mock_dialog.get_project_info.return_value = {
+    info = {
         'directory': 'C:/proj', 'name': 'Test Project', 'plugin': 'plug',
         'description': '', 'source_path': '', 'translation_path': '',
         'is_directory_mode': False, 'auto_create_translations': False
@@ -42,7 +50,7 @@ def test_ProjectActionHandler_create_new_project_action(mock_dialog_class, mock_
 
     mock_is_dir.return_value = False # skip plugin loading
 
-    h.create_new_project_action()
+    h.finish_new_project(info)
 
     mock_pm.create_new_project.assert_called_once()
     mock_mw.ui_updater.update_title.assert_called_once()

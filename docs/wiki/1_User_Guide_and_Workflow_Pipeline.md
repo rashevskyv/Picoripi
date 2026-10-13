@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 42.0k
+tokens: 42.3k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -1043,13 +1043,16 @@ Partial save: right-click a block → save that block only. **Do not** use Rever
 The Project Manager opens at start when no project is open. It lists the projects you added. A project is added
 when you create, open or import it.
 
-- **Add:** press `+`. Choose New project, Add existing project (a `project.uiproj` file), or Import projects from a folder.
+- **Add:** press `+`. Choose New project (a wizard), Add existing project (a `project.uiproj` file), or Import projects from a folder. **File → New Project** (Ctrl+N) opens the same wizard.
+- **New project wizard:** choose the game, then add the files. The game's plugin reads each file and sets its role (for example base game or update) and its platform. Change them if needed. Then choose the project folder. The originals are not copied; the project refers to them by path. When the game needs unpacking, the wizard unpacks into the project folder. Cancel stops the unpacking and removes what it wrote.
 - **Import:** finds `picoripi/project.uiproj` files under a folder. Folders named `_…` or `.…` are skipped. Duplicates and unreadable projects start unchecked. Each series folder becomes one manager folder.
 - **Folders:** create your own folders. Right-click a project → Move to folder. Deleting a folder moves its projects to the top level.
 - **Order:** the last opened project is always at the top. Group and sort choices are saved.
-- **Columns:** lines and translated % come from the last open or save of that project. They show `—` until then.
-- **Details:** expand a row to see the path, what needs attention, and the Open, Show in folder and Remove from manager buttons.
-- **Build mod, Run in emulator, Export mod** come in phase 2. They are disabled now.
+- **Columns:** lines and translated % are counted in the background, also for projects you have not opened. A count shows `—` until it is done. Blocks inside archives are not counted yet.
+- **Details:** expand a row to see the path, the stats, a list of the folders with their blocks and lines, and what needs attention. Two flags, **Built** and **Verified in game**, are set only when you tick them.
+- **Build mod:** builds the game's targets into the project's `build` folder. A game that declares no target shows the button off.
+- **Export mod:** copies a built target to a folder you choose. The folder must be empty.
+- **Run in emulator:** builds the target and starts your emulator on it. Set the command once with **Emulator...**. Write `{path}` where the built file or folder goes, for example `"C:\Emu\emu.exe" {path}`.
 - **Remove from manager** never deletes project files.
 
 ---
