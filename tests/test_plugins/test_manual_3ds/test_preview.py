@@ -161,3 +161,31 @@ def test_picture_panes_name_their_bclim_textures_and_the_textures_decode():
     assert pictures.picture_textures(data)[:2] == ["cap_menu-screen_ue_6.bclim", "cap_menu-screen_shita_6.bclim"]
     image = pictures.TextureBank(archive, f"{tools.manual.BASE_SLOT}_texture").image("cap_menu-screen_ue_6.bclim")
     assert image is not None and (image.width(), image.height()) == (160, 96)
+
+
+def test_text_on_a_dark_window_is_white_and_text_on_paper_keeps_the_ink():
+    window = (10.0, 20.0, 100.0, 40.0, (255, 86, 0, 255))  # the orange pill: x, top, width, height, fill
+    sub = page_render.SubPage(key="small/Page_002_small_0", flows=[], windows=[window])
+    assert page_render._ink_on(sub, 0.0, 50.0, 30.0, 16.0) == (255, 255, 255)
+    assert page_render._ink_on(sub, 0.0, 200.0, 30.0, 16.0) is None  # outside the pill
+    assert page_render._ink_on(sub, 100.0, 50.0, 30.0, 16.0) is None  # the pill is one sub-page lower
+
+
+def test_the_index_entry_of_a_page_is_its_title_string():
+    rules = m3d.GameRules()
+    rules.load_data_from_json_obj(_document(["index/Index#0", PAGE_KEY, "index/Index#2"]))
+    assert rules.index_string_of_page(2) == 2
+    assert rules.index_string_of_page(0) == 0
+    assert rules.index_string_of_page(9) is None
+
+
+@pytest.mark.skipif(romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") is not None,
+                    reason=romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") or "")
+def test_window_panes_of_the_home_menu_page_keep_their_orange_fill_and_the_backdrop():
+    from plugins.manual_3ds import repo_tools
+    tools = repo_tools.load_tools(str(romhacking_root.path(*_REPO_MANUAL)))
+    archive = tools.bcma.load(repo_tools.manual_path(tools, "home_menu_manual"))
+    first = page_render.groups_of(tools, archive)["small/Page_002_small"][0]
+    orange = [window for window in first.windows if window[4] == (255, 86, 0, 255)]
+    assert len(orange) >= 2  # the two orange pills of the bottom screen's list
+    assert first.backdrop and all(window[4][:3] == (255, 255, 255) for window in first.backdrop)

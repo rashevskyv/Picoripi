@@ -286,6 +286,14 @@ class GameRules(BaseGameRules):
         return {meta["key"]: index for index, meta in enumerate(self._block_meta)
                 if group_key_of(meta["key"]) == group}
 
+    def index_string_of_page(self, page: int) -> Optional[int]:
+        """The string index of the Index entry that names a page ("index/Index#<page>"), or None."""
+        key = f"index/Index#{page}"
+        for index, meta in enumerate(self._block_meta):
+            if meta["key"] == key:
+                return index
+        return None
+
     def preview_budget(self, key: str) -> Optional[float]:
         """The column width a paragraph is drawn in on the console (from geometry.json), or None."""
         geo = self._geo.get(key)

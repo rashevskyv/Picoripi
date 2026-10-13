@@ -5,6 +5,8 @@ relative to its parent group, so the position of a pane on the page is the sum o
 (read here from the order of the file's sections). Sub-pages (K = 0..n) are stacked, each under the one before.
 Text is wrapped with manual.layout_for, the same call the console build uses. Each picture pane is drawn with its
 BCLIM texture (see pictures.py); a texture that is missing or cannot be decoded is drawn as a grey box of its size.
+A window pane with a visible fill is drawn as a rounded box in the average of its four vertex colours; its frame
+texture is not drawn. The page's *_bg windows are drawn under the first sub-page.
 
 Overflow is shown in red: a piece that ends past its line's right limit, and every line the paragraph has no
 pane for.
@@ -17,7 +19,7 @@ import struct
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 
-from PyQt6.QtCore import QRectF
+from PyQt6.QtCore import QRectF, Qt
 from PyQt6.QtGui import QColor, QImage, QPainter
 
 from plugins.manual_3ds import pictures as pictures_mod
@@ -38,10 +40,17 @@ TRANSLATE_AT = 0x24
 PANE_SIZE_AT = 0x44
 PANE_NAME_AT = 0x0C
 PANE_NAME_LEN = 0x18
+WINDOW_COLOURS_AT = 0x60    # wnd1: u32 offset (from the pane start) of its four RGBA8 vertex colours
+WINDOW_CORNER = 12.0        # ponytail: window drawn as a plain rounded box; its frame texture is not drawn
+BACKDROP_PATTERN = re.compile(r"Page_(\d+)_(large|small)_bg")
 
 
 class RenderCancelled(Exception):
     """The caller asked the render to stop."""
+
+
+# A window pane drawn as a box: x, top, width, height on the sub-page, and its fill (R, G, B, A).
+Window = Tuple[float, float, float, float, Tuple[int, int, int, int]]
 
 
 @dataclass
@@ -53,6 +62,8 @@ class SubPage:
     # Text pane name -> (x, y) on the sub-page. y is BCLYT's: 0 at the top, negative below.
     positions: Dict[str, Tuple[float, float]] = field(default_factory=dict)
     pictures: List[Tuple[float, float, float, float, Optional[str]]] = field(default_factory=list)  # x, top, w, h, texture
+    windows: List[Window] = field(default_factory=list)  # window panes with a visible fill, under the text
+    backdrop: List[Window] = field(default_factory=list)  # the page's *_bg windows, drawn once under the first sub-page
     extent: float = 0.0                        # the height the sub-page takes in the column
 
 
@@ -66,14 +77,13 @@ class ColumnRender:
     missing_glyphs: Set[str] = field(default_factory=set)
     failed_keys: Dict[str, str] = field(default_factory=dict)
     sub_pages: List[Tuple[str, float]] = field(default_factory=list)   # key and the offset it is drawn at
-    title: str = ""                            # the page's fixed heading texts (the tab bar of the viewer)
 
 
-def _panes(data: bytes) -> Iterator[Tuple[bytes, str, float, float, float, float]]:
-    """Every pane of a BCLYT file in file order: (kind, name, x, y, width, height) with x and y on the page.
+def _panes(data: bytes) -> Iterator[Tuple[bytes, str, float, float, float, float, int]]:
+    """Every pane of a BCLYT file in file order: (kind, name, x, y, width, height, offset) with x and y on the page.
 
-    A pane is placed relative to the pane that opened its group (pas1 .. pae1), so each one adds the
-    translations of its ancestors. Rotation and scale of the groups are not applied.
+    The offset is the pane's position in the file. A pane is placed relative to the pane that opened its group
+    (pas1 .. pae1), so each one adds the translations of its ancestors. Rotation and scale of the groups are not applied.
     """
     header = struct.unpack_from("<H", data, 0x06)[0]
     count = struct.unpack_from("<H", data, 0x10)[0]
@@ -93,17 +103,48 @@ def _panes(data: bytes) -> Iterator[Tuple[bytes, str, float, float, float, float
             name = data[pos + PANE_NAME_AT:pos + PANE_NAME_AT + PANE_NAME_LEN].split(b"\0")[0].decode("ascii", "replace")
             parent_x, parent_y = stack[-1] if stack else (0.0, 0.0)
             last = (parent_x + x, parent_y + y)
-            yield magic, name, last[0], last[1], width, height
+            yield magic, name, last[0], last[1], width, height, pos
         pos += size
+
+
+def _window_fill(data: bytes, pos: int) -> Optional[Tuple[int, int, int, int]]:
+    """The fill of the window pane at ``pos``: the average of its four vertex colours, or None when it is clear.
+
+    A gradient is drawn in its average colour (the console blends the corners; the average is the flat stand-in).
+    """
+    start = pos + struct.unpack_from("<I", data, pos + WINDOW_COLOURS_AT)[0]
+    corners = [struct.unpack_from("<4B", data, start + 4 * index) for index in range(4)]
+    alpha = sum(corner[3] for corner in corners) // 4
+    if alpha == 0:
+        return None
+    red, green, blue = (sum(corner[channel] for corner in corners) // 4 for channel in range(3))
+    return red, green, blue, alpha
+
+
+def _windows_of(data: bytes) -> List[Window]:
+    """The window panes of a BCLYT file that have a visible fill, as (x, top, width, height, fill)."""
+    out: List[Window] = []
+    for magic, _name, x, y, width, height, pos in _panes(data):
+        if magic != b"wnd1":
+            continue
+        fill = _window_fill(data, pos)
+        if fill is not None:
+            out.append((x, -y, width, height, fill))
+    return out
 
 
 def groups_of(tools: Tools, archive: Any) -> Dict[str, List[SubPage]]:
     """Every page group of a manual -> {"large/Page_003_large": [SubPage, ...] in K order}."""
     flows_by_key = tools.manual.pages_of(archive, tools.manual.BASE_SLOT)
     groups: Dict[str, List[SubPage]] = {}
+    backdrops: Dict[str, List[Window]] = {}
     for part in ("large", "small"):
         for file_name, data in archive.read(f"{tools.manual.BASE_SLOT}_{part}").items():
             name = file_name.removesuffix(".bclyt")
+            backdrop = BACKDROP_PATTERN.fullmatch(name)
+            if backdrop:
+                backdrops[f"{part}/Page_{backdrop.group(1)}_{part}"] = _windows_of(data)
+                continue
             match = PAGE_PATTERN.fullmatch(name)
             if not match:
                 continue
@@ -111,7 +152,7 @@ def groups_of(tools: Tools, archive: Any) -> Dict[str, List[SubPage]]:
             pictures: List[Tuple[float, float, float, float, Optional[str]]] = []
             picture_names = iter(pictures_mod.picture_textures(data))
             extent = 0.0
-            for magic, pane_name, x, y, width, height in _panes(data):
+            for magic, pane_name, x, y, width, height, _pos in _panes(data):
                 if magic == b"txt1":
                     positions[pane_name] = (x, y)
                 elif magic == b"pic1":
@@ -120,10 +161,12 @@ def groups_of(tools: Tools, archive: Any) -> Dict[str, List[SubPage]]:
                     extent = max(extent, -y + height)
             key = f"{part}/{name}"
             sub = SubPage(key=key, flows=flows_by_key.get(key, []), positions=positions,
-                          pictures=pictures, extent=extent)
+                          pictures=pictures, windows=_windows_of(data), extent=extent)
             groups.setdefault(f"{part}/Page_{match.group(1)}_{part}", []).append(sub)
-    for subs in groups.values():
+    for group, subs in groups.items():
         subs.sort(key=lambda sub: int(PAGE_PATTERN.fullmatch(sub.key.split("/", 1)[1]).group(3)))
+        if group in backdrops:
+            subs[0].backdrop = backdrops[group]
     return groups
 
 
@@ -203,6 +246,11 @@ def render_column(tools: Tools, font: Any, widths: Dict[int, int], homoglyphs: D
         offset = 0.0
         for sub_index, sub in enumerate(subs):
             result.sub_pages.append((sub.key, offset))
+            if sub_index == 0:
+                for x, top, width, height, fill in sub.backdrop:
+                    _draw_window(painter, x, offset + top, width, height, fill)
+            for x, top, width, height, fill in sub.windows:
+                _draw_window(painter, x, offset + top, width, height, fill)
             for x, top, width, height, texture in sub.pictures:
                 picture = bank.image(texture) if bank is not None else None
                 _draw_picture(painter, x, offset + top, width, height, picture)
@@ -226,13 +274,24 @@ def render_column(tools: Tools, font: Any, widths: Dict[int, int], homoglyphs: D
                 if _draw_flow(painter, sub, flow, lines, limit, offset, result, font, tools, widths,
                               glyph_cache, manual):
                     result.overflow_keys.add(key)
-                if flow.fixed and sub_index == 0 and lines and lines[0]:
-                    result.title += "".join(piece.text for piece in lines[0] if piece.icon is None).strip() + " "
             offset += sub.extent
     finally:
         painter.end()
-    result.title = result.title.strip()
     return result
+
+
+def _ink_on(sub: SubPage, offset: float, x: float, top: float, height: float) -> Optional[Tuple[int, int, int]]:
+    """White ink for text that sits on a dark window fill (the orange pills); None keeps the console ink.
+
+    ponytail: the rule is "dark fill", not the game's own text colour per pane (txt1 colour fields are not decoded).
+    """
+    middle = top + height / 2
+    for window_x, window_top, width, window_height, fill in sub.windows:
+        if min(fill[:3]) >= 200:
+            continue
+        if window_x <= x <= window_x + width and offset + window_top <= middle <= offset + window_top + window_height:
+            return 255, 255, 255
+    return None
 
 
 def _draw_flow(painter: QPainter, sub: SubPage, flow: Any, lines: List[List[Any]], limit: float, offset: float,
@@ -262,7 +321,7 @@ def _draw_flow(painter: QPainter, sub: SubPage, flow: Any, lines: List[List[Any]
             flagged = flagged or over
             if over and not beyond_pane:
                 painter.fillRect(QRectF(piece.x + dx, top, piece.width, flow.line_height), QColor(*OVERFLOW_FILL))
-            rgb = OVERFLOW_RGB if over else TEXT_RGB
+            rgb = OVERFLOW_RGB if over else (_ink_on(sub, offset, piece.x + dx, top, flow.line_height) or TEXT_RGB)
             _draw_piece(painter, piece.text, piece.x + dx, top, flow, font, tools, widths, rgb,
                         glyph_cache, result.missing_glyphs, manual)
     return flagged
@@ -286,6 +345,18 @@ def _draw_piece(painter: QPainter, text: str, x: float, top: float, flow: Any, f
                 left = font.widths[font.cmap[ord(ch)]][0] if font.cmap[ord(ch)] < len(font.widths) else 0
                 painter.drawImage(QRectF(cx + left * scale, top, cell_w, cell_h), glyph)
         cx += advance
+
+
+def _draw_window(painter: QPainter, x: float, top: float, width: float, height: float,
+                 fill: Tuple[int, int, int, int]) -> None:
+    painter.save()
+    try:
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(*fill))
+        corner = min(WINDOW_CORNER, height / 2)
+        painter.drawRoundedRect(QRectF(x, top, width, height), corner, corner)
+    finally:
+        painter.restore()
 
 
 def _draw_picture(painter: QPainter, x: float, top: float, width: float, height: float,

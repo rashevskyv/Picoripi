@@ -28,6 +28,11 @@ TOP_SIZE = (400, 240)
 BOTTOM_SIZE = (320, 240)
 BOTTOM_X = 40                 # the bottom screen is centred under the top screen
 TAB_BAR = 24                  # the page tab bar at the top of the top screen
+BADGE_RGB = (117, 183, 217)   # the light blue page-number badge of the console's title bar (sampled from the calibration shot)
+BADGE_TOP = 5.0
+BADGE_SIZE = 27.0
+BADGE_FONT_PX = 17
+TITLE_FONT_PX = 14
 BOTTOM_BAR = 40               # the Back / Enlarge bar at the bottom of the bottom screen
 VISIBLE_HEIGHT = (TOP_SIZE[1] - TAB_BAR) + (BOTTOM_SIZE[1] - BOTTOM_BAR)
 SCROLL_STEP = 48.0            # pixels per wheel notch
@@ -225,6 +230,7 @@ class ManualPreviewPanel(QWidget):
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self._start_render)
         self._page_number = ""
+        self._tab_title = ""
 
         self._screens = _Screens(self)
         self._size_button = QPushButton(self)
@@ -294,10 +300,7 @@ class ManualPreviewPanel(QWidget):
             painter.drawText(QRectF(BOTTOM_X + 12, TAB_BAR + 12, BOTTOM_SIZE[0] - 24, VISIBLE_HEIGHT - 24),
                              Qt.AlignmentFlag.AlignCenter.value | Qt.TextFlag.TextWordWrap.value,
                              self._message or tr("Select a string of a manual page."))
-        painter.fillRect(QRectF(BOTTOM_X, 0, BOTTOM_SIZE[0], TAB_BAR), QColor(255, 255, 255))
-        painter.setPen(QColor(0, 0, 0))
-        painter.drawText(QRectF(BOTTOM_X + 8, 0, BOTTOM_SIZE[0] - 16, TAB_BAR),
-                         int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft), self._tab_text())
+        self._paint_tab_bar(painter)
         bar = QRectF(BOTTOM_X, TOP_SIZE[1] + BOTTOM_SIZE[1] - BOTTOM_BAR, BOTTOM_SIZE[0], BOTTOM_BAR)
         painter.fillRect(bar, QColor(44, 44, 44))
         painter.setPen(QColor(255, 255, 255))
@@ -312,10 +315,31 @@ class ManualPreviewPanel(QWidget):
             return 0.0
         return min(max(0.0, value), max(0.0, self._result.height - VISIBLE_HEIGHT))
 
-    def _tab_text(self) -> str:
-        if self._result is None or not self._page_number:
-            return self._page_number
-        return f"{self._page_number}  {self._result.title}"
+    def _paint_tab_bar(self, painter: QPainter) -> None:
+        """The title bar: the page number in a blue badge, then the page's title (its Index entry, translated)."""
+        painter.fillRect(QRectF(BOTTOM_X, 0, BOTTOM_SIZE[0], TAB_BAR), QColor(255, 255, 255))
+        if not self._page_number:
+            return
+        painter.save()
+        try:
+            badge = QRectF(BOTTOM_X, BADGE_TOP, BADGE_SIZE, BADGE_SIZE)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(*BADGE_RGB))
+            painter.drawRoundedRect(badge, 3, 3)
+            font = painter.font()
+            font.setPixelSize(BADGE_FONT_PX)
+            font.setBold(True)
+            painter.setFont(font)
+            painter.setPen(QColor(255, 255, 255))
+            painter.drawText(badge, int(Qt.AlignmentFlag.AlignCenter), self._page_number)
+            font.setPixelSize(TITLE_FONT_PX)
+            font.setBold(False)
+            painter.setFont(font)
+            painter.setPen(QColor(0, 0, 0))
+            title = QRectF(BOTTOM_X + BADGE_SIZE + 8, BADGE_TOP, BOTTOM_SIZE[0] - BADGE_SIZE - 16, BADGE_SIZE)
+            painter.drawText(title, int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft), self._tab_title)
+        finally:
+            painter.restore()
 
     def _update_buttons(self) -> None:
         self._size_button.setText(tr("Show small text") if self._large else tr("Show large text"))
@@ -344,7 +368,13 @@ class ManualPreviewPanel(QWidget):
         texts = {key: self._mw.data_processor.get_current_string_text(block, i)[0] for key, i in indices.items()}
         budgets = {key: self._rules.preview_budget(key) for key in indices}
         request = _Request(self._root, self._rules.manual_name(), group, texts, budgets)
-        self._page_number = str(int(page.split("_")[1]))
+        page_no = int(page.split("_")[1])
+        # The badge shows the printed page number: the file Page_002 is page 3 (checked on the calibration shot).
+        self._page_number = str(page_no + 1)
+        title_index = self._rules.index_string_of_page(page_no)
+        self._tab_title = ""
+        if title_index is not None:
+            self._tab_title = self._mw.data_processor.get_current_string_text(block, title_index)[0] or ""
         if request.key in self._cache:
             self._cache.move_to_end(request.key)
             self._show_result(self._cache[request.key])
