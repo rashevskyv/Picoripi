@@ -417,9 +417,9 @@ through any of three transports.
 4. **Interfaces** (a new module beside the server, to create): `Op` (the fields above), `OpLog.append` and `read_since(cursor)`,
    `merge(ops)` returning the changes. `Room._apply_op` stays the only authority path; sync feeds it operations.
 5. **Not in this package:** the client writing its log, the exchange file, and the shared-folder reader.
-## D18. Family projects: one translation for the strings several consoles share (2026-10-12)
+## D24. Family projects: one translation for the strings several consoles share (2026-10-12)
 
-> Superseded in part by D19: the plugin, not core, decides the members and the match key.
+> Superseded in part by D25: the plugin, not core, decides the members and the match key.
 
 **Context.** Twilight Princess (GameCube, Wii, Wii U HD) and Wind Waker (GameCube, Wii U HD) have the same
 message ids and mostly the same text. Translating each console separately repeats the work and lets the copies drift.
@@ -434,12 +434,12 @@ Message ids are not used as the key: the HD BMGs reuse ids (2707 distinct ids in
 unique ids). Escape differences between consoles make a text unit; they are not warned yet. The Picoripi project with
 virtual folders per console is not built yet; the store is fed by the CLI (`python -m plugins.zelda_bmg.family`).
 
-## D19. The plugin declares the family; core is a generic engine (2026-10-12)
+## D25. The plugin declares the family; core is a generic engine (2026-10-12)
 
-**Context.** D18 let core decide what is shared (equal editor text) and read the family from a JSON file given to
+**Context.** D24 let core decide what is shared (equal editor text) and read the family from a JSON file given to
 a CLI. A Wind Waker or Twilight Princess match needs game knowledge: which sources are which console, which files
 are shared bytes (font archives), and what counts as the same message across formats.
-**Decision.** Supersedes the "core decides" part of D18. `BaseGameRules.family_plan(sources, project_dir)` returns a
+**Decision.** Supersedes the "core decides" part of D24. `BaseGameRules.family_plan(sources, project_dir)` returns a
 `FamilyPlan` (core/family_projects/model.py): its members (key, label, source, base, parents) and a reader that lists
 each member's units as (unit id, text). The plugin recognises each source by its content. Core
 (`core/family_projects/`) only aligns units by their match key, stores one text per shared unit, keeps per-member
@@ -448,9 +448,9 @@ the base), so a unit shared by three consoles is stored once. The user supplies 
 members is valid. The CLI (`python -m plugins.zelda_bmg.family`) is a thin wrapper over the same plan.
 **Cost.** Each plugin implements its own recognition and reading. Recognition by message-count fingerprint is
 exact for the sources on disk, and a new revision of a game needs a new fingerprint. The match key is the editor text
-by default; a plugin with different tag syntax per console must normalise it first (open: Wind Waker, see D19 status).
+by default; a plugin with different tag syntax per console must normalise it first (open: Wind Waker, see D25 status).
 
-## D20. Family project folders: "Shared" and "<version> only", for every version alike (2026-10-12)
+## D26. Family project folders: "Shared" and "<version> only", for every version alike (2026-10-12)
 
 **Context.** The first Twilight Princess project kept the GameCube messages in the main tree and put only the other
 versions' own messages in folders. That made the base special, and the "HD Msguk only" folder held messages that the
@@ -463,10 +463,10 @@ build refuses it until a family has such texts. Files a member takes from the ba
 `FamilyPlan.shared_files` (file -> members); `family.py shared` copies them.
 **Cost.** A text that differs below the root cannot be shown in the project yet (none for Twilight Princess).
 
-## D20. Wind Waker: one syntax-free match key, the tag table derived from the files (2026-10-12)
+## D27. Wind Waker: one syntax-free match key, the tag table derived from the files (2026-10-12)
 
 **Context.** Wind Waker GameCube (BMG) writes a control tag as `{escape:TYPE:HEX}`; Wind Waker HD (MSBT) writes it as
-`[Size:150]`, `[Wait:10]`, `[/C]`. Equal editor text matched 23 % of the GameCube messages. D19 left the tag syntax open.
+`[Size:150]`, `[Wait:10]`, `[/C]`. Equal editor text matched 23 % of the GameCube messages. D25 left the tag syntax open.
 **Decision.** `plugins/zelda_ww/family_tags.py` maps the two syntaxes. `plugins/zelda_ww/family_tag_map.json` is derived
 from the decoded files (`python -m plugins.zelda_ww.family_tags derive <bmg> <msbt>`): messages with the same id in
 both versions, compared with tags and icons removed; each tag pairs with the HD tag it co-occurs with at the same text
@@ -474,7 +474,7 @@ offset (Jaccard score at least 0.5; each HD tag used once). Colour (escape 255, 
 the catalogue names and the data confirm. The match key converts GameCube to HD syntax, folds curly quotes (the
 GameCube editor shows them, HD does not) and drops colour. Shared text is stored in GameCube syntax and converted to
 HD syntax on write; HD-only messages keep HD syntax in their own folder. The engine pairs equal keys with
-`align_by_key` when a family sets `exact_keys` (D18 alignment stays for Twilight Princess).
+`align_by_key` when a family sets `exact_keys` (D24 alignment stays for Twilight Princess).
 **Cost.** The table is a snapshot of one game revision; a test re-derives it. Three HD tags have a conflicting partner
 and stay per-version. Colour 0 is written as `[/C]` (box default); `[White]` reads back as the same colour.
 Messages with an unmapped tag never match. Only the GameCube plugin (`zelda_tww`) opens the family project; it reads
