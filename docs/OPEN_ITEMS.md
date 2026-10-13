@@ -10,6 +10,14 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Test path hygiene (A14, 2026-10-13)
+
+- Done: real-data tests reach the RomHacking workspace through `romhacking_root.under()` (env `PICORIPI_ROMHACKING`); without it they skip. `tests/test_personal_paths.py` fails on a new hard-coded drive path in `tests/`.
+- Not checked any more on the owner's PC: the PPSSPP flash0 font comparison (`test_lunar_ssh`, always skipped); the `D:\Downloads\switch` NSP checks and the `MG1-2 MC` raw check (relative placeholders, skip); the WP8 proxy tests (set `RQ_WP8_PROXY_ROOT` to run them).
+- Jak 2 `atoll.fr3` check reads `PICORIPI_SCRATCH` (default `scratch`), not `D:\RomHacking_tmp`.
+- Guard run (deny-mode audit hook over E:\Emulators, D:\Downloads, D:\Emulators, D:\Games, D:\RomHacking_tmp): 601 of 769 write-candidate test items ran, no write denied. The other 104 files (no write site outside tmp by AST triage) were not run under the hook. Owner action: run `python tasks.py test` with `PICORIPI_ROMHACKING` set and confirm the real-data count once.
+- Before/after listing (path, size, mtime): the whole `E:\Emulators\RomHacking` tree, 1,821,846 entries, is identical; `D:\Downloads`, `D:\Emulators`, `D:\Games`, `D:\RomHacking_tmp` are identical to two levels only.
+
 ## Work Together: roles, claims, comments (2026-10-12, D22)
 - Tree markers on leaf rows: block items carry presence, claim and comment markers; the row items under a virtual folder do not yet. Resolved comments are not dimmed.
 - Offline-first sync: operation log per participant, exchange file and shared-folder reader, with the conflict rules in D22 (next package; the interfaces are named there).
