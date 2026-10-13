@@ -9,6 +9,12 @@ from utils import app_mode
 from utils import data_location as dl
 
 
+@pytest.fixture(autouse=True)
+def _search_stops_at_the_temp_folder(tmp_path, monkeypatch):
+    """A temp folder can sit inside a git work tree on this machine (the C: root is one): keep the search inside it."""
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
+
+
 @pytest.fixture
 def app_folder(tmp_path):
     folder = tmp_path / "app"

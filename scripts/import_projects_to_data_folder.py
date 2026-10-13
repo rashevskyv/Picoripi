@@ -2,7 +2,8 @@
 
 Same rules as the manager's "Import projects from a folder": every ``picoripi/project.uiproj`` below
 ``--root`` is found, one folder per series is created, and projects already listed are left as they are.
-Dry run by default. With ``--apply`` the registry is backed up (a copy) before it is written.
+Dry run by default. With ``--apply`` the data folder gets a self-ignoring ``.gitignore`` (a ``*`` line, so Git
+skips it) and the registry is backed up (a copy) before it is written. The dry run reports both and writes nothing.
 
     python scripts/import_projects_to_data_folder.py --root "<folder with the projects>" --data-dir "<your data folder>"
     python scripts/import_projects_to_data_folder.py --root ... --data-dir ... --apply
@@ -39,13 +40,28 @@ def main(argv=None) -> int:
     sys.path.insert(0, str(ROOT))
 
     from core.project_library import discovery, registry
+    from utils.data_folder_git import (
+        GIT_IGNORED, GIT_NOT_IGNORED, GIT_NO_REPO, data_folder_git_state, ensure_self_ignore, has_self_ignore,
+    )
 
     found = discovery.find_projects(root)
     # A dry run must not write: an unreadable registry is read as empty here, not moved aside.
     registered = {os.path.abspath(p["path"]) for p in registry.read(data_dir, set_aside=args.apply)["projects"]}
+    git_state = data_folder_git_state(data_dir).state
+    git_text = {
+        GIT_NO_REPO: "not inside a Git repository",
+        GIT_IGNORED: "inside a Git repository that ignores it",
+        GIT_NOT_IGNORED: "inside a Git repository, NOT ignored",
+    }.get(git_state, "Git could not tell")
+    if has_self_ignore(data_dir):
+        ignore_text = "present"
+    else:
+        ignore_text = "missing, written below" if args.apply else "missing, --apply writes it"
 
     print(f"Data folder : {data_dir}")
     print(f"Search root : {root}")
+    print(f"Git         : {git_text}")
+    print(f".gitignore  : {ignore_text} (ignores the data folder itself)")
     print(f"Found       : {len(found)} project files")
     print()
     print(f"{'series':24} {'platform':10} {'name':30} {'state':16} project file")
@@ -70,6 +86,9 @@ def main(argv=None) -> int:
         return 0
 
     data_dir.mkdir(parents=True, exist_ok=True)
+    # First, so the folder is ignored by Git before any file lands in it.
+    if ensure_self_ignore(data_dir):
+        print(f"Gitignore   : written {data_dir / '.gitignore'}")
     reg_file = registry.registry_path(data_dir)
     if reg_file.exists():
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")

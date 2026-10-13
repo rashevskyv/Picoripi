@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Data folder and Git: every data folder gets a self-ignoring `.gitignore` (`*`) when created; the chooser asks before a folder inside a Git repository that does not ignore it (default: write the file); `scripts/import_projects_to_data_folder.py` reports the Git state in its dry run and writes the file first on `--apply` (`utils/data_folder_git.py`, `dialogs/data_location_dialog.py`; wiki 4 EN and UK).
 - Project Manager phase 2: new-project wizard (game, files with roles and platform from the plugin, location, unpack in a worker with cancel), counts for projects never opened, expanded row with stats, folder tree, needs attention, Built and Verified in game flags, Build mod, Export mod and Run in emulator through the plugin hooks `get_source_roles`, `identify_source`, `get_platforms`, `unpack_sources`, `get_build_targets`, `build_target` (plain_text: translated files); D23; wiki EN and UK.
 - Work Together: the room listens on 127.0.0.1 by default; other computers (LAN) only when the host ticks Allow other computers (LAN), with a plain-HTTP warning in the window; the wiki (EN, UK) says so. The room's address list is looked up only then.
 - Plugin contract: layout_class is named in the get_translation_context_for_string entry of spec.py, PLUGIN_CONTRACT.md, the roadmap key table and AI prompt Q8 (mechanism only).
