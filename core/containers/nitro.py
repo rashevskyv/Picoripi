@@ -135,6 +135,8 @@ def blz_decompress(data: bytes) -> bytes:
                     break
                 if flags & (0x80 >> bit):
                     src -= 2
+                    if src < stop:   # a negative index would wrap to the end of the data
+                        raise ValueError("broken BLZ stream")
                     value = data[src] | data[src + 1] << 8
                     count = (value >> 12) + 3
                     if dst - count < stop:

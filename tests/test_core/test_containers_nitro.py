@@ -83,6 +83,13 @@ def test_blz_stream_that_would_write_before_the_start_is_refused():
         nitro.blz_decompress(bytes(packed))
 
 
+def test_blz_token_that_reads_before_the_start_is_refused():
+    # Four literals, then a token whose two bytes would start at index -1: that index must not wrap to the end.
+    footer = struct.pack("<II", 14 | 8 << 24, 3)    # compressed length 14, footer 8, growth 3
+    with pytest.raises(ValueError, match="broken BLZ stream"):
+        nitro.blz_decompress(bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x08]) + footer)
+
+
 def narc(files: dict) -> bytes:
     """A NARC of ``files`` ({"dir/sub/name": bytes}), with its name table."""
     dirs = {"": ([], [])}                                   # path -> (subfolders, file names)

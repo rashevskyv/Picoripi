@@ -641,7 +641,7 @@ AES. Encrypted reads stop at the seam; they are not built.
   Plugin facts report `key` and `key_ready` per file (`plugin_facts.identify_sources`).
 - Built, identify only: a Switch NSP takes its title ID and kind (base, update, dlc) from the plain-text `*.cnmt.xml`,
   or from the rights ID of its ticket (`0x2A0`) when it has no content meta. An XCI is recognised with no title. A Wii disc
-  gives its game ID (magic at `0x18`). `images.identify` returns `encrypted`; `images.needs_key` gives the console.
+  gives its game ID (magic at `0x18`). `images.identify` returns `encrypted`; `images.needs_key` gives the console for an `UNPACK_KINDS` kind only.
 - `images.UNPACK_KINDS` (GameCube, Nintendo DS, decrypted 3DS) decides what the free-space check counts. Switch and Wii
   files do not count, because no unpack step writes them.
 - No plugin is wired. No shipped plugin unpacks a file this phase can read: retail `.cia` files are encrypted, and the
