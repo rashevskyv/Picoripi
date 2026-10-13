@@ -118,7 +118,7 @@ def load_multi_reference(self, patch_path: str, block_names: Optional[List[str]]
 
 ### 2.2a Хуки Менеджера проєктів (PM фаза 2)
 
-Майстер нового проєкту і кнопки Build, Export, Run використовують п'ять хуків: `get_source_roles`, `identify_source`, `get_platforms`, `unpack_sources`, `get_build_targets`, `build_target`. Усі мають типову поведінку (без хуків плагін працює, кнопки вимкнені). Опис механізму: `docs/wiki/3_Plugin_Developer_Guide.md`, розділ про Менеджер проєктів.
+Майстер нового проєкту і кнопки Build, Export, Run використовують шість хуків: `get_source_roles`, `identify_source`, `get_platforms`, `unpack_sources`, `get_build_targets`, `build_target`, а значки списку — необов'язковий `project_icon` (D28). Усі мають типову поведінку (без хуків плагін працює, кнопки вимкнені). Опис механізму: `docs/wiki/3_Plugin_Developer_Guide.md`, розділ про Менеджер проєктів.
 
 ### 2.3 Витік словника TP у рушій (усунуто в M3)
 

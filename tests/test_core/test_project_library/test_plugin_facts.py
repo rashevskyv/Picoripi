@@ -4,6 +4,8 @@ The plugin is replaced by an explicit fake passed as ``load_rules``; no plugin m
 """
 import json
 
+import pytest
+
 from core.project_library import plugin_facts
 from plugins.base_game_rules import BaseGameRules
 
@@ -131,3 +133,39 @@ def test_count_project_returns_none_when_cancelled(tmp_path):
     project = _project(tmp_path, [{"source_file": "source.json", "translation_file": "source.json"}])
 
     assert plugin_facts.count_project(project, load_rules=_loader(FakeRules()), is_cancelled=lambda: True) is None
+
+
+def test_count_project_skips_binary_files_without_reading_them_as_text(tmp_path, monkeypatch):
+    """A font of a game is no text: the counter must not hand it to the text loader (Metal Gear fonts did)."""
+    (tmp_path / "font.res").write_bytes(b"\x00\xff\xfe\x80" * 64)
+    (tmp_path / "source.json").write_text(json.dumps([["Hi"]]), encoding="utf-8")
+    project = _project(tmp_path, [
+        {"source_file": "font.res", "translation_file": "font.res"},
+        {"source_file": "source.json", "translation_file": "source.json"},
+    ])
+    text_loads = []
+    real_load_text = plugin_facts.formats.load_text_file
+
+    def spy(path, newline=None):
+        text_loads.append(str(path))
+        return real_load_text(path, newline=newline)
+
+    monkeypatch.setattr(plugin_facts.formats, "load_text_file", spy)
+
+    result = plugin_facts.count_project(project, load_rules=_loader(FakeRules()))
+
+    assert text_loads == []  # the .res font is unclaimed: no text load; the JSON block loads as JSON
+    assert result["counts"]["lines"] == 1
+    assert result["skipped"] == 1
+
+
+def test_count_project_names_a_missing_plugin_instead_of_failing(tmp_path):
+    (tmp_path / "source.json").write_text(json.dumps([["Hi"]]), encoding="utf-8")
+    project = _project(tmp_path, [{"source_file": "source.json", "translation_file": "source.json"}])
+
+    def loader(plugin_name):
+        raise ModuleNotFoundError(f"No module named 'plugins.{plugin_name}'", name=f"plugins.{plugin_name}")
+
+    with pytest.raises(plugin_facts.PluginMissing) as caught:
+        plugin_facts.count_project(project, load_rules=loader)
+    assert str(caught.value) == "fake"

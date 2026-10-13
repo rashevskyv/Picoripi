@@ -8,6 +8,7 @@ This plugin provides text editing functionality with problem detection and autof
 - Line merging/splitting based on width constraints
 """
 
+import os
 from typing import List, Tuple, Dict, Optional, Any, Set
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.config_factory import problem_ids
@@ -114,6 +115,14 @@ class GameRules(BaseGameRules):
         """Process pasted segment."""
         from utils.utils import clean_spaces
         return process_pasted_segment(clean_spaces(segment_to_insert), original_text_for_tags, editor_player_tag_const)
+
+    def project_icon(self, project_dir: str) -> Optional[bytes]:
+        """The project's banner.png, when the translator put one beside the project file (the example of the hook)."""
+        try:
+            with open(os.path.join(project_dir, "banner.png"), "rb") as handle:
+                return handle.read()
+        except OSError:
+            return None
 
     def get_build_targets(self) -> List[Dict[str, Any]]:
         """One target: the translation files, copied as they are, keeping their folders."""

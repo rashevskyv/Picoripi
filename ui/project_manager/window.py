@@ -1,16 +1,23 @@
-"""The Project Manager window: the list of added projects, their folders, grouping, sorting and details."""
+"""The Project Manager window: the projects the user added, in a list or a grid, with groups, details and a progress strip.
+
+The window never parses project content. A scan child process (``ui/project_manager/scan_process.py``) reads the cards,
+icons and string counts and reports one small event per project; the window updates the row the event names. Rows
+change in place while a scan runs, so the scroll position and the selection stay where the user put them.
+"""
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PyQt6.QtCore import QProcess, Qt, QUrl
-from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtCore import QProcess, QRect, QSize, Qt, QUrl
+from PyQt6.QtGui import QColor, QDesktopServices, QIcon, QImage, QPainter, QPixmap
 from PyQt6.QtWidgets import (
-    QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QHBoxLayout, QInputDialog, QLabel, QMenu,
-    QMessageBox, QPushButton, QStackedWidget, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QInputDialog, QLabel, QListWidget,
+    QListWidgetItem, QMenu, QMessageBox, QProgressBar, QPushButton, QStackedWidget, QStyledItemDelegate, QToolButton,
+    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
 from core.i18n import tr
@@ -19,15 +26,19 @@ from core.project_library.build import emulator_argv
 from core.project_library.cards import percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
 from core.project_library.flags import FLAG_NAMES, flags_of
-from core.project_library.plugin_facts import default_load_rules
-from ui.project_manager.jobs import BackgroundJob, CardScanJob
-from ui.project_manager.tasks import ActionJob, CountJob
-from utils.logging_utils import log_debug, log_info
+from core.project_library.icons import ICON_SIZE, IMAGE_FILTER, save_user_icon
+from core.project_library.plugin_facts import PLUGIN_MISSING, default_load_rules
+from core.project_library.scan import ICON_FILE_NAME
+from ui.project_manager.jobs import BackgroundJob
+from ui.project_manager.scan_process import ScanProcess
+from ui.project_manager.tasks import ActionJob
+from utils.logging_utils import log_debug, log_info, log_warning
 from utils.thread_utils import safe_shutdown_thread, single_shot
 
 KEY_ROLE = Qt.ItemDataRole.UserRole
 KIND_ROLE = Qt.ItemDataRole.UserRole + 1
 DETAIL_ROLE = Qt.ItemDataRole.UserRole + 2
+PERCENT_ROLE = Qt.ItemDataRole.UserRole + 3
 
 GROUP_CHOICES = (
     ("folder", "By folder"), ("platform", "By platform"), ("readiness", "By readiness"),
@@ -44,7 +55,10 @@ ISSUE_TEXT = {
     "translation_missing": "The translation files path does not exist.",
 }
 FLAG_LABELS = {"built": "Built", "verified_in_game": "Verified in game"}
-COLUMNS = ("Project name", "Platform", "Lines", "Blocks", "Translated", "Modified", "Flags")
+COLUMNS = ("Project name", "Platform", "Series", "Plugin", "Progress", "Last opened", "Status")
+PROGRESS_COLUMN = COLUMNS.index("Progress")
+LIST_ICON_SIZE = 64
+LIST_COLUMN_WIDTHS = (340, 70, 120, 130, 170, 110)  # the last column (Status) takes the rest
 
 
 # ----- registry operations, run on a worker thread by BackgroundJob -----
@@ -108,8 +122,22 @@ def _card_facts(project_file: str) -> tuple:
 
 
 def _load_state(directory: str) -> tuple:
-    """The registry document and the cached index entries."""
-    return registry.read(directory), index.read(directory)
+    """The registry document, the cached index entries, and the cached icons as images (loaded off the window)."""
+    document = registry.read(directory)
+    entries = index.read(directory)
+    images: Dict[str, QImage] = {}
+    for key, entry in entries.items():
+        file = str((entry.get("icon") or {}).get("file") or "")
+        if file and Path(file).is_file():
+            image = QImage(file)
+            if not image.isNull():
+                images[key] = image
+    return document, entries, images
+
+
+def _read_image(path: str) -> Optional[QImage]:
+    image = QImage(path)
+    return None if image.isNull() else image
 
 
 def _call(function: Callable[..., Any], *args: Any) -> Callable[..., None]:
@@ -142,11 +170,68 @@ def format_modified(value: str) -> str:
         return value
 
 
+def series_of(path: str) -> str:
+    """The series folder of a project, read from its folder layout.
+
+    ``<Series>/<Game>/<Platform>/picoripi/project.uiproj`` has a platform folder one level above ``picoripi``;
+    ``<Series>/<Game>/picoripi/project.uiproj`` has none. The root folder is not stored, so a project directly under
+    the root shows the root's name here.
+    """
+    parts = Path(path).parts
+    if len(parts) >= 5 and platform_from_parts([parts[-3]]):
+        return parts[-5]
+    return parts[-4] if len(parts) >= 4 else ""
+
+
+def _initials(name: str) -> str:
+    words = [word for word in name.replace("-", " ").split() if word]
+    return "".join(word[0] for word in words[:2]).upper() or "?"
+
+
+def _eta_text(seconds: float) -> str:
+    if seconds < 90:
+        return tr("about {0} s left", max(1, int(round(seconds))))
+    return tr("about {0} min left", max(1, int(round(seconds / 60))))
+
+
+def _tile_icon(size: int, platform: str, series: str) -> QIcon:
+    """The generated tile of a project without an icon: a colour for the platform, the series initials."""
+    seed = platform or series or "?"
+    pixmap = QPixmap(size, size)
+    pixmap.fill(QColor.fromHsv(sum(ord(c) for c in seed) * 37 % 360, 90, 150))
+    painter = QPainter(pixmap)
+    painter.setPen(QColor("white"))
+    font = painter.font()
+    font.setBold(True)
+    font.setPointSize(max(10, size // 4))
+    painter.setFont(font)
+    painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, _initials(series or platform))
+    painter.end()
+    return QIcon(pixmap)
+
+
+class ProgressDelegate(QStyledItemDelegate):
+    """Draws the translated share of a project as a thin bar under the text of the Progress column."""
+
+    def paint(self, painter, option, index) -> None:  # noqa: N802 - Qt's name
+        super().paint(painter, option, index)
+        percent = index.data(PERCENT_ROLE)
+        if index.column() != PROGRESS_COLUMN or percent is None:
+            return
+        rect = option.rect
+        bar = QRect(rect.left() + 6, rect.bottom() - 7, max(0, rect.width() - 12), 4)
+        painter.save()
+        painter.fillRect(bar, QColor(128, 128, 128, 80))
+        painter.fillRect(QRect(bar.left(), bar.top(), bar.width() * int(percent) // 100, bar.height()),
+                         QColor("#2e8b57"))
+        painter.restore()
+
+
 class ProjectManagerDialog(QDialog):
     """The list of projects the user added. Opens the chosen project through the callbacks given by the handler.
 
     ``save_flags(project_file, updates)`` and ``save_setting(name, value)`` store the user's choices; the handler decides
-    whether an open project or a worker writes them.
+    whether an open project or a worker writes them. ``load_rules`` builds a plugin for the build and run actions.
     """
 
     def __init__(self, parent, library_dir: str, open_project: Callable[[str], None],
@@ -171,17 +256,38 @@ class ProjectManagerDialog(QDialog):
         self._loaded = False
         self._render_scheduled = False
         self._jobs: List[Any] = []
+        self._mode = "list"
+        # rows: the widgets, kept between renders so a change updates them in place
         self._items: Dict[str, QTreeWidgetItem] = {}
+        self._headers: Dict[Tuple[str, str], QTreeWidgetItem] = {}
+        self._grid_items: Dict[str, QListWidgetItem] = {}
+        self._shown: List[Tuple[str, str, List[str]]] = []
+        self._frozen: Optional[Tuple[Dict[str, Any], frozenset, List[Tuple[str, str, List[str]]]]] = None
+        self._detail_signature: Dict[str, str] = {}
         self._status_labels: Dict[str, QLabel] = {}
         self._action_text: Dict[str, str] = {}
         self._action_jobs: Dict[str, ActionJob] = {}
-        self._count_job: Optional[CountJob] = None
+        self._icon_images: Dict[str, QImage] = {}
+        self._icons: Dict[str, QIcon] = {}
+        self._tiles: Dict[Tuple[str, str], QIcon] = {}
+        # the scan
+        self._scan = ScanProcess(self)
+        self._scan.event_received.connect(self._on_scan_event)
+        self._scan.stopped.connect(self._on_scan_stopped)
+        self._scan_active = False
+        self._user_cancelled = False
+        self._scan_total = 0
+        self._scan_stale = 0
+        self._scan_position = 0
+        self._scan_name = ""
+        self._eta_average: Optional[float] = None
+        self._last_tick: Optional[float] = None
         self._build_ui()
         self._run(BackgroundJob(_load_state, library_dir), self._on_state)
         self._status.setText(tr("Loading projects..."))
 
     def reload(self) -> None:
-        """Read the registry and the cache again; the list may have changed while the window was hidden."""
+        """Read the registry and the cache again, and scan again; the list may have changed while the window was hidden."""
         self._scanned = set()
         self._loaded = False
         self._status.setText(tr("Loading projects..."))
@@ -211,6 +317,18 @@ class ProjectManagerDialog(QDialog):
         bar.addWidget(emulator)
         bar.addStretch(1)
 
+        self._list_button = QToolButton()
+        self._list_button.setText(tr("List"))
+        self._list_button.setCheckable(True)
+        self._list_button.setChecked(True)
+        self._grid_button = QToolButton()
+        self._grid_button.setText(tr("Grid"))
+        self._grid_button.setCheckable(True)
+        self._list_button.clicked.connect(partial(self._set_mode, "list"))
+        self._grid_button.clicked.connect(partial(self._set_mode, "grid"))
+        bar.addWidget(self._list_button)
+        bar.addWidget(self._grid_button)
+
         self._group = QComboBox()
         for value, label in GROUP_CHOICES:
             self._group.addItem(tr(label), value)
@@ -225,15 +343,49 @@ class ProjectManagerDialog(QDialog):
         bar.addWidget(self._descending)
         layout.addLayout(bar)
 
+        # the progress strip: shown while a scan runs, never blocks the list
+        self._strip = QFrame()
+        self._strip.setFrameShape(QFrame.Shape.StyledPanel)
+        strip = QHBoxLayout(self._strip)
+        self._strip_label = QLabel("")
+        self._strip_bar = QProgressBar()
+        self._strip_bar.setMaximumWidth(260)
+        self._strip_bar.setTextVisible(False)
+        hide_button = QPushButton(tr("Hide"))
+        hide_button.setToolTip(tr("Hide this strip. The scan goes on."))
+        hide_button.clicked.connect(self._strip.hide)
+        cancel_button = QPushButton(tr("Cancel scan"))
+        cancel_button.clicked.connect(self._cancel_scan_clicked)
+        strip.addWidget(self._strip_label, 1)
+        strip.addWidget(self._strip_bar)
+        strip.addWidget(hide_button)
+        strip.addWidget(cancel_button)
+        self._strip.hide()
+        layout.addWidget(self._strip)
+
         self._tree = QTreeWidget()
         self._tree.setHeaderLabels([tr(column) for column in COLUMNS])
         self._tree.setColumnCount(len(COLUMNS))
+        for column, width in enumerate(LIST_COLUMN_WIDTHS):
+            self._tree.setColumnWidth(column, width)
         self._tree.setAlternatingRowColors(True)
+        self._tree.setIconSize(QSize(LIST_ICON_SIZE, LIST_ICON_SIZE))
+        self._tree.setItemDelegate(ProgressDelegate(self._tree))
         self._tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self._tree.customContextMenuRequested.connect(self._context_menu)
+        self._tree.customContextMenuRequested.connect(partial(self._context_menu, self._tree))
         self._tree.itemDoubleClicked.connect(self._on_double_click)
         self._tree.itemExpanded.connect(self._on_expanded)
         self._tree.header().setStretchLastSection(True)
+
+        self._grid = QListWidget()
+        self._grid.setViewMode(QListWidget.ViewMode.IconMode)
+        self._grid.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
+        self._grid.setGridSize(QSize(ICON_SIZE + 40, ICON_SIZE + 64))
+        self._grid.setWordWrap(True)
+        self._grid.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self._grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._grid.customContextMenuRequested.connect(partial(self._context_menu, self._grid))
+        self._grid.itemDoubleClicked.connect(self._on_grid_double_click)
 
         self._empty = QWidget()
         empty_layout = QVBoxLayout(self._empty)
@@ -245,6 +397,7 @@ class ProjectManagerDialog(QDialog):
 
         self._stack = QStackedWidget()
         self._stack.addWidget(self._tree)
+        self._stack.addWidget(self._grid)
         self._stack.addWidget(self._empty)
         layout.addWidget(self._stack, 1)
 
@@ -254,6 +407,12 @@ class ProjectManagerDialog(QDialog):
         self._group.currentIndexChanged.connect(self._view_changed)
         self._sort.currentIndexChanged.connect(self._view_changed)
         self._descending.toggled.connect(self._view_changed)
+
+    def _set_mode(self, mode: str) -> None:
+        self._mode = mode
+        self._list_button.setChecked(mode == "list")
+        self._grid_button.setChecked(mode == "grid")
+        self._render()
 
     # ----- jobs -----
     def _run(self, job: BackgroundJob, on_done: Callable[[Any], None]) -> None:
@@ -272,73 +431,130 @@ class ProjectManagerDialog(QDialog):
         self._status.setText(tr("Something went wrong: {0}", message))
 
     def _on_state(self, state: tuple) -> None:
-        self._document, self._entries = state
+        self._document, self._entries, images = state
+        self._icon_images.update(images)
+        self._icons = {}
         self._loaded = True
         self._render()
-        self._scan_cards()
-        self._schedule_counts()
+        self._start_scan()
 
-    def _scan_cards(self) -> None:
-        targets = []
-        for entry in self._document["projects"]:
-            key = registry.project_key(entry["path"])
-            cached = (self._entries.get(key) or {}).get("card")
-            targets.append((key, entry["path"], cached))
+    # ----- the scan -----
+    def _start_scan(self) -> None:
+        """Scan every project in the list. One scan at a time: a new one replaces the running one."""
+        targets = [(registry.project_key(entry["path"]), str(entry["path"])) for entry in self._document["projects"]]
         if not targets:
+            self._scan_active = False
+            self._strip.hide()
             return
-        job = CardScanJob(self._dir, targets)
-        job.card_ready.connect(self._on_card)
-        job.done.connect(self._on_scan_done)
-        self._run(job, lambda _count: None)
-        self._status.setText(tr("Refreshing {0} projects...", len(targets)))
+        self._scan.shutdown()
+        self._scan_active = True
+        self._user_cancelled = False
+        self._scan_total = len(targets)
+        self._scan_stale = 0
+        self._scan_position = 0
+        self._scan_name = ""
+        self._eta_average = None
+        self._last_tick = None
+        self._scan.start(self._dir, targets)
+        self._strip_bar.setRange(0, 0)  # busy until the plan says how many projects need work
+        self._strip_label.setText(tr("Checking {0} projects...", len(targets)))
+        self._strip.show()
+        self._status.setText(tr("Checking {0} projects...", len(targets)))
 
-    def _on_card(self, key: str, card: Dict[str, Any]) -> None:
-        self._cards[key] = card
-        self._scanned.add(key)
+    def _on_scan_event(self, event: Dict[str, Any]) -> None:
+        kind = event.get("event")
+        if kind == "card":
+            key = str(event.get("key"))
+            self._cards[key] = dict(event.get("card") or {})
+            self._scanned.add(key)
+            self._schedule_render()
+        elif kind == "icon":
+            key = str(event.get("key"))
+            path = str(event.get("file") or "")
+            if path:
+                self._run(BackgroundJob(_read_image, path), partial(self._on_icon_image, key))
+            else:
+                self._icon_images.pop(key, None)
+                self._icons.pop(key, None)
+                self._schedule_render()
+        elif kind == "plan":
+            self._scan_total = int(event.get("total") or 0)
+            self._scan_stale = int(event.get("stale") or 0)
+            self._scan_position = 0
+            if self._scan_stale:
+                self._strip_bar.setRange(0, max(1, self._scan_total))
+                self._show_progress()
+            else:
+                self._strip.hide()
+        elif kind == "progress":
+            self._scan_position = int(event.get("done") or 0)
+            self._scan_name = str(event.get("name") or "")
+            self._tick()
+            self._show_progress()
+        elif kind == "counts":
+            key = str(event.get("key"))
+            fields = dict(event.get("fields") or {})
+            entry = self._entries.setdefault(key, {})
+            if "count_error" not in fields:
+                entry.pop("count_error", None)  # a fresh count replaces an old error
+            entry.update(fields)
+            self._schedule_render()
+        elif kind == "done":
+            self._scan_active = False
+            self._strip.hide()
+            log_info(f"Project manager scan: {event.get('total')} projects checked, {event.get('counted')} counted, "
+                     f"{event.get('plugin_missing')} plugin missing, {event.get('failed')} failed, "
+                     f"{event.get('seconds')} s.")
+            if int(event.get("failed") or 0):
+                log_warning(f"Project manager: {event.get('failed')} projects could not be counted.")
+            self._status.setText(tr("{0} projects.", len(self._document["projects"])))
+            self._schedule_render()
+
+    def _on_icon_image(self, key: str, image: Optional[QImage]) -> None:
+        if image is not None:
+            self._icon_images[key] = image
+            self._icons.pop(key, None)
+            self._schedule_render()
+
+    def _tick(self) -> None:
+        """Track how long each counted project takes: the average gives the time left."""
+        now = time.monotonic()
+        if self._last_tick is not None:
+            sample = now - self._last_tick
+            self._eta_average = sample if self._eta_average is None else 0.7 * self._eta_average + 0.3 * sample
+        self._last_tick = now
+
+    def _show_progress(self) -> None:
+        done = self._scan_total - self._scan_stale + self._scan_position
+        remaining = self._scan_stale - self._scan_position
+        if self._eta_average is None or self._scan_position <= 0:
+            eta = tr("estimating time left")
+        else:
+            eta = _eta_text(remaining * self._eta_average)
+        text = tr("Scanning {0} of {1} — {2} — {3}", done, self._scan_total, self._scan_name, eta)
+        self._strip_bar.setValue(done)
+        self._strip_label.setText(text)
+        self._strip.show()
+        self._status.setText(text)
+
+    def _cancel_scan_clicked(self) -> None:
+        self._user_cancelled = True
+        self._scan.cancel()
+        self._strip.hide()
+
+    def _on_scan_stopped(self, finished: bool) -> None:
+        """The child ended. Its last event (done) already hid the strip; a cancel or a crash leaves what it wrote."""
+        self._scan_active = False
+        self._strip.hide()
+        if self._user_cancelled:
+            self._status.setText(tr("Scan cancelled."))
+        elif not finished:
+            self._status.setText(tr("Scan stopped."))
         self._schedule_render()
-
-    def _on_scan_done(self, scanned: int) -> None:
-        self._status.setText(tr("{0} projects.", len(self._document["projects"])))
-        self._schedule_counts()
-
-    # ----- counts of projects never opened -----
-    def _schedule_counts(self) -> None:
-        """Count the projects whose counts are missing or older than their file. One count job runs at a time."""
-        if self._count_job is not None:
-            return
-        targets = []
-        for entry in self._document["projects"]:
-            key = registry.project_key(entry["path"])
-            cached = self._entries.get(key) or {}
-            card = self._cards.get(key) or cached.get("card") or {}
-            mtime = card.get("mtime_ns")
-            if mtime is None or "unreadable" in card.get("issues", []) or card.get("missing"):
-                continue
-            if cached.get("counted_mtime") == mtime:
-                continue
-            targets.append((key, entry["path"]))
-        if not targets:
-            return
-        job = CountJob(self._dir, targets, self._load_rules)
-        self._count_job = job
-        job.counted.connect(self._on_counted)
-        job.failed.connect(lambda _message: self._on_count_done(0))
-        self._run(job, self._on_count_done)
-        self._status.setText(tr("Counting {0} projects...", len(targets)))
-
-    def _on_counted(self, key: str, fields: Dict[str, Any]) -> None:
-        entry = self._entries.setdefault(key, {})
-        entry.pop("count_error", None)
-        entry.update(fields)
-        self._schedule_render()
-
-    def _on_count_done(self, _counted: int) -> None:
-        self._count_job = None
-        self._status.setText(tr("{0} projects.", len(self._document["projects"])))
 
     # ----- rendering -----
     def _schedule_render(self) -> None:
-        """Rebuild the list soon. Several card results in a row become one rebuild."""
+        """Rebuild the list soon. Several events in a row become one render."""
         if self._render_scheduled:
             return
         self._render_scheduled = True
@@ -356,13 +572,15 @@ class ProjectManagerDialog(QDialog):
             key = registry.project_key(path)
             cached = self._entries.get(key) or {}
             card = self._cards.get(key) or cached.get("card") or {}
-            counts = cached.get("counts")
+            counts = cached.get("counts") or None
             rows.append({
                 "key": key,
                 "path": path,
                 "name": entry.get("name") or card.get("name") or Path(path).parent.name,
                 "folder_id": entry.get("folder_id") or "",
                 "platform": entry.get("platform") or "",
+                "series": series_of(path),
+                "counts": counts,
                 "lines": counts.get("lines") if counts else None,
                 "translated": percent_translated(counts) if counts else None,
                 "blocks": card.get("blocks"),
@@ -382,38 +600,158 @@ class ProjectManagerDialog(QDialog):
         return rows
 
     def _render(self) -> None:
-        expanded = {key for key, item in self._items.items() if item.isExpanded()}
-        view = self._document.get("view", {})
+        """Bring the view in line with the registry and the cache.
+
+        The order does not change while a scan runs: a count that arrives updates its row, it does not move it. The
+        order is worked out again when the scan ends, or when a project is added or removed, or the view changes.
+        """
+        view = dict(self._document.get("view", {}))
         self._sync_controls(view)
         rows = self._rows()
+        rows_by_key = {row["key"]: row for row in rows}
         last = max((row for row in rows if row["last_opened"]), key=lambda r: r["last_opened"], default=None)
         folder_names = {folder["id"]: folder["name"] for folder in self._document["folders"]}
-        sections = views.arrange(rows, view, folder_names, last["key"] if last else None)
+        keys = frozenset(rows_by_key)
+        shape = self._shape_for(rows, view, folder_names, last["key"] if last else None)
+        if self._scan_active and self._frozen is not None and self._frozen[0] == view and self._frozen[1] == keys:
+            shape = self._frozen[2]
+        self._frozen = (view, keys, shape)
+        if not rows:
+            self._stack.setCurrentWidget(self._empty)
+        else:
+            self._stack.setCurrentWidget(self._grid if self._mode == "grid" else self._tree)
+        if shape == self._shown and self._items:
+            self._update_in_place(shape, rows_by_key)
+        else:
+            self._rebuild(shape, rows_by_key, folder_names)
 
+    @staticmethod
+    def _shape_for(rows: List[Dict[str, Any]], view: Dict[str, Any], folder_names: Dict[str, str],
+                   last_key: Optional[str]) -> List[Tuple[str, str, List[str]]]:
+        return [(kind, value, [row["key"] for row in group])
+                for kind, value, group in views.arrange(rows, view, folder_names, last_key)]
+
+    def _rebuild(self, shape: List[Tuple[str, str, List[str]]], rows_by_key: Dict[str, Dict[str, Any]],
+                 folder_names: Dict[str, str]) -> None:
+        """Build the widgets again. The scroll position, the selection and the open details are kept."""
+        scroll = self._tree.verticalScrollBar().value()
+        expanded = {key for key, item in self._items.items() if item.isExpanded()}
+        selected = self._selected_key()
+        self._tree.setUpdatesEnabled(False)  # one paint at the end instead of one per row
+        self._grid.setUpdatesEnabled(False)
         self._tree.clear()
+        self._grid.clear()
         self._items = {}
-        self._status_labels = {}  # the labels die with the tree; the texts stay in self._action_text
-        self._stack.setCurrentWidget(self._tree if rows else self._empty)
-        for kind, value, group_rows in sections:
-            header = QTreeWidgetItem(self._tree, [f"{self._section_title(kind, value, folder_names)}  ({len(group_rows)})"])
+        self._headers = {}
+        self._grid_items = {}
+        self._status_labels = {}
+        self._detail_signature = {}
+        for kind, value, keys in shape:
+            header = QTreeWidgetItem(self._tree, [self._section_label(kind, value, folder_names, len(keys))])
             header.setFirstColumnSpanned(True)
             header.setData(0, KIND_ROLE, (kind, value))
             header.setExpanded(True)
             font = header.font(0)
             font.setBold(True)
             header.setFont(0, font)
-            for row in group_rows:
-                item = QTreeWidgetItem(header, self._cells(row))
-                item.setData(0, KEY_ROLE, row["key"])
+            self._headers[(kind, value)] = header
+            for key in keys:
+                row = rows_by_key[key]
+                item = QTreeWidgetItem(header)
+                item.setData(0, KEY_ROLE, key)
                 item.setData(0, KIND_ROLE, ("project", row["path"]))
+                self._fill(item, row)
                 detail = QTreeWidgetItem(item)
                 detail.setFirstColumnSpanned(True)
-                detail.setData(0, DETAIL_ROLE, row["key"])
-                self._items[row["key"]] = item
-                if row["key"] in expanded:
+                detail.setData(0, DETAIL_ROLE, key)
+                self._items[key] = item
+                grid_item = QListWidgetItem()
+                grid_item.setData(KEY_ROLE, key)
+                self._fill_grid(grid_item, row)
+                self._grid.addItem(grid_item)
+                self._grid_items[key] = grid_item
+                if key in expanded:
                     item.setExpanded(True)
                     self._on_expanded(item)
-        self._tree.resizeColumnToContents(0)
+        self._shown = shape
+        self._tree.setUpdatesEnabled(True)
+        self._grid.setUpdatesEnabled(True)
+        self._tree.updateGeometries()
+        self._tree.verticalScrollBar().setValue(scroll)
+        self._restore_selection(selected)
+
+    def _update_in_place(self, shape: List[Tuple[str, str, List[str]]], rows_by_key: Dict[str, Dict[str, Any]]) -> None:
+        """The same projects in the same order: only the cells, icons and details that changed are set."""
+        for _kind, _value, keys in shape:
+            for key in keys:
+                row = rows_by_key[key]
+                item = self._items[key]
+                self._fill(item, row)
+                self._fill_grid(self._grid_items[key], row)
+                if item.isExpanded():
+                    self._refresh_detail(item, row)
+
+    def _refresh_detail(self, item: QTreeWidgetItem, row: Dict[str, Any]) -> None:
+        signature = repr(sorted((name, repr(value)) for name, value in row.items()))
+        if self._detail_signature.get(row["key"]) == signature:
+            return
+        self._detail_signature[row["key"]] = signature
+        detail = item.child(0)
+        self._tree.setItemWidget(detail, 0, self._detail_widget(row))
+
+    def _selected_key(self) -> Optional[str]:
+        if self._mode == "grid":
+            selected = self._grid.selectedItems()
+            return selected[0].data(KEY_ROLE) if selected else None
+        item = self._tree.currentItem()
+        return item.data(0, KEY_ROLE) if item is not None else None
+
+    def _restore_selection(self, key: Optional[str]) -> None:
+        if key is None:
+            return
+        if key in self._items:
+            self._tree.setCurrentItem(self._items[key])
+        if key in self._grid_items:
+            self._grid_items[key].setSelected(True)
+
+    def _fill(self, item: QTreeWidgetItem, row: Dict[str, Any]) -> None:
+        for column, text in enumerate(self._cells(row)):
+            item.setText(column, text)
+        item.setIcon(0, self._icon_for(row))
+        item.setToolTip(0, row["path"])
+        item.setData(PROGRESS_COLUMN, PERCENT_ROLE, row["translated"])
+
+    def _fill_grid(self, item: QListWidgetItem, row: Dict[str, Any]) -> None:
+        item.setText(f"{row['name']}\n{self._progress_text(row)}")
+        item.setIcon(self._icon_for(row))
+        item.setToolTip(row["path"])
+
+    def _icon_for(self, row: Dict[str, Any]) -> QIcon:
+        """The project's icon: its picture (the user's or the plugin's), else the generated tile."""
+        key = row["key"]
+        if key in self._icons:
+            return self._icons[key]
+        image = self._icon_images.get(key)
+        if image is not None:
+            icon = QIcon(QPixmap.fromImage(image))
+            self._icons[key] = icon
+            return icon
+        tile_key = (row["platform"], row["series"])
+        if tile_key not in self._tiles:
+            self._tiles[tile_key] = _tile_icon(ICON_SIZE, row["platform"], row["series"])
+        return self._tiles[tile_key]
+
+    @staticmethod
+    def _progress_text(row: Dict[str, Any]) -> str:
+        counts = row["counts"]
+        if counts:
+            needs = counts.get("needs_translation") or 0
+            if needs > 0:
+                return f"{counts.get('translated', 0):,} / {needs:,} · {row['translated']} %"
+            return "—"
+        if row["count_error"] or "plugin_missing" in row["issues"]:
+            return "—"
+        return "…"
 
     def _sync_controls(self, view: Dict[str, Any]) -> None:
         for combo, value in ((self._group, view.get("group_by")), (self._sort, view.get("sort_by"))):
@@ -425,6 +763,10 @@ class ProjectManagerDialog(QDialog):
         self._descending.blockSignals(True)
         self._descending.setChecked(bool(view.get("descending")))
         self._descending.blockSignals(False)
+
+    @staticmethod
+    def _section_label(kind: str, value: str, folder_names: Dict[str, str], count: int) -> str:
+        return f"{ProjectManagerDialog._section_title(kind, value, folder_names)}  ({count})"
 
     @staticmethod
     def _section_title(kind: str, value: str, folder_names: Dict[str, str]) -> str:
@@ -444,30 +786,36 @@ class ProjectManagerDialog(QDialog):
 
     @staticmethod
     def _cells(row: Dict[str, Any]) -> List[str]:
+        return [
+            row["name"],
+            row["platform"] or "—",
+            row["series"] or "—",
+            row["plugin"] or "—",
+            ProjectManagerDialog._progress_text(row),
+            format_modified(row["last_opened"]),
+            ProjectManagerDialog._status_text(row),
+        ]
+
+    @staticmethod
+    def _status_text(row: Dict[str, Any]) -> str:
+        issues = set(row["issues"])
         flags = []
         if row["refreshing"]:
             flags.append(tr("refreshing..."))
-        if "project_file_missing" in row["issues"]:
+        if "project_file_missing" in issues:
             flags.append(tr("Missing"))
-        elif "unreadable" in row["issues"]:
+        elif "unreadable" in issues:
             flags.append(tr("Unreadable"))
         elif not row["refreshing"]:
             flags.append(tr("Opens"))
-        if row["issues"] and "project_file_missing" not in row["issues"] and "unreadable" not in row["issues"]:
+        if "plugin_missing" in issues or row["count_error"] == PLUGIN_MISSING:
+            flags.append(tr("Plugin missing"))
+        if issues - {"project_file_missing", "unreadable", "plugin_missing"}:
             flags.append(tr("Needs attention"))
         for name in FLAG_NAMES:
             if row["flags"].get(name):
                 flags.append(tr(FLAG_LABELS[name]))
-        translated = "—" if row["translated"] is None else f"{row['translated']} %"
-        return [
-            row["name"],
-            row["platform"] or "—",
-            "—" if row["lines"] is None else f"{row['lines']:,}",
-            "—" if row["blocks"] is None else str(row["blocks"]),
-            translated,
-            format_modified(row["modified"]),
-            ", ".join(flags) or "—",
-        ]
+        return ", ".join(flags) or "—"
 
     # ----- selection helpers -----
     def _project_row(self, item: Optional[QTreeWidgetItem]) -> Optional[Dict[str, Any]]:
@@ -476,7 +824,9 @@ class ProjectManagerDialog(QDialog):
         data = item.data(0, KIND_ROLE)
         if not data or data[0] != "project":
             return None
-        key = item.data(0, KEY_ROLE)
+        return self._row_by_key(item.data(0, KEY_ROLE))
+
+    def _row_by_key(self, key: Optional[str]) -> Optional[Dict[str, Any]]:
         for row in self._rows():
             if row["key"] == key:
                 return row
@@ -495,6 +845,11 @@ class ProjectManagerDialog(QDialog):
         if row:
             self._open(row["path"])
 
+    def _on_grid_double_click(self, item: QListWidgetItem) -> None:
+        row = self._row_by_key(item.data(KEY_ROLE))
+        if row:
+            self._open(row["path"])
+
     def _open(self, path: str) -> None:
         log_info(f"Project manager: opening {path}")
         self._open_project(path)
@@ -509,6 +864,7 @@ class ProjectManagerDialog(QDialog):
             return
         row = self._project_row(item)
         if row:
+            self._detail_signature[row["key"]] = repr(sorted((name, repr(value)) for name, value in row.items()))
             self._tree.setItemWidget(detail, 0, self._detail_widget(row))
 
     def _detail_widget(self, row: Dict[str, Any]) -> QWidget:
@@ -541,7 +897,7 @@ class ProjectManagerDialog(QDialog):
             layout.addWidget(tree)
 
         attention = [tr(ISSUE_TEXT[issue]) for issue in row["issues"] if issue in ISSUE_TEXT]
-        if row["count_error"]:
+        if row["count_error"] and row["count_error"] != PLUGIN_MISSING:
             attention.append(tr("The lines could not be counted: {0}.", row["count_error"]))
         if row["skipped"]:
             attention.append(tr("{0} blocks are not counted yet (archive members or missing files).", row["skipped"]))
@@ -567,6 +923,9 @@ class ProjectManagerDialog(QDialog):
         remove = QPushButton(tr("Remove from manager"))
         remove.clicked.connect(_call(self._remove_clicked, row))
         buttons.addWidget(remove)
+        change_icon = QPushButton(tr("Change icon..."))
+        change_icon.clicked.connect(_call(self._icon_clicked, row))
+        buttons.addWidget(change_icon)
         buttons.addWidget(self._action_button("Build mod", "build", row))
         buttons.addWidget(self._action_button("Export mod", "export", row))
         buttons.addWidget(self._action_button("Run in emulator", "run", row))
@@ -606,6 +965,46 @@ class ProjectManagerDialog(QDialog):
         state[name] = bool(checked)
         self._flag_state[key] = state
         self._save_flags(path, {name: bool(checked)})
+
+    # ----- project icons -----
+    def _icon_clicked(self, row: Dict[str, Any]) -> None:
+        """Copy a user's picture to the project's icon.png, scaled. The scan picks the change up on its next run."""
+        path, _filter = QFileDialog.getOpenFileName(
+            self, tr("Choose an icon"), str(Path.home()),
+            tr("Images") + f" ({IMAGE_FILTER});;" + tr("All files") + " (*)")
+        if not path:
+            return
+        target = Path(row["path"]).parent / ICON_FILE_NAME
+        job = BackgroundJob(save_user_icon, Path(path), target)
+        job.done.connect(partial(self._on_icon_saved, row["key"]))
+        job.failed.connect(lambda _message: self._status.setText(tr("The icon could not be saved.")))
+        self._run(job, lambda _image: None)
+
+    def _on_icon_saved(self, key: str, image: Optional[QImage]) -> None:
+        if image is None:
+            self._status.setText(tr("The icon could not be saved."))
+            return
+        self._icon_images[key] = image
+        self._icons.pop(key, None)
+        self._schedule_render()
+
+    def _clear_icon_clicked(self, row: Dict[str, Any]) -> None:
+        answer = QMessageBox.question(
+            self, tr("Clear icon"),
+            tr("Remove the icon file of this project? The game's own files are not touched."),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        target = Path(row["path"]).parent / ICON_FILE_NAME
+        job = BackgroundJob(_remove_file, target)
+        job.done.connect(lambda _result, key=row["key"]: self._on_icon_cleared(key))
+        job.failed.connect(lambda _message: self._status.setText(tr("The icon could not be removed.")))
+        self._run(job, lambda _result: None)
+
+    def _on_icon_cleared(self, key: str) -> None:
+        self._icon_images.pop(key, None)
+        self._icons.pop(key, None)
+        self._schedule_render()
 
     # ----- build, export and run -----
     def _emulator_command(self) -> str:
@@ -671,24 +1070,32 @@ class ProjectManagerDialog(QDialog):
         return tr("Started the emulator with {0}", path)
 
     # ----- context menu and actions -----
-    def _context_menu(self, position) -> None:
-        item = self._tree.itemAt(position)
+    def _context_menu(self, view, position) -> None:
+        if view is self._grid:
+            item = self._grid.itemAt(position)
+            row = self._row_by_key(item.data(KEY_ROLE)) if item is not None else None
+            folder = None
+        else:
+            item = self._tree.itemAt(position)
+            row = self._project_row(item)
+            folder = self._folder_of(item)
         menu = QMenu(self)
-        row = self._project_row(item)
-        folder = self._folder_of(item)
         if row:
             self._menu_item(menu, tr("Open"), self._open, row["path"])
             self._menu_item(menu, tr("Show in folder"), self._reveal, row["path"])
             menu.addSeparator()
             self._menu_item(menu, tr("Rename..."), self._rename_clicked, row)
             self._menu_item(menu, tr("Move to folder..."), self._move_clicked, row)
+            self._menu_item(menu, tr("Change icon..."), self._icon_clicked, row)
+            self._menu_item(menu, tr("Clear icon"), self._clear_icon_clicked, row)
+            menu.addSeparator()
             self._menu_item(menu, tr("Remove from manager"), self._remove_clicked, row)
         elif folder:
             self._menu_item(menu, tr("Rename folder..."), self._rename_folder_clicked, folder)
             self._menu_item(menu, tr("Delete folder..."), self._delete_folder_clicked, folder)
         else:
             return
-        menu.exec(self._tree.viewport().mapToGlobal(position))
+        menu.exec(view.viewport().mapToGlobal(position))
 
     @staticmethod
     def _menu_item(menu: QMenu, text: str, function: Callable[..., None], *args: Any) -> None:
@@ -750,8 +1157,12 @@ class ProjectManagerDialog(QDialog):
         self._run(BackgroundJob(registry.mutate, self._dir, operation), self._on_document)
 
     def _on_document(self, document: Dict[str, Any]) -> None:
+        before = {registry.project_key(p["path"]) for p in self._document["projects"]}
         self._document = document
         self._schedule_render()
+        after = {registry.project_key(p["path"]) for p in document["projects"]}
+        if after != before:
+            self._start_scan()  # a new project has no card yet
 
     # ----- adding projects -----
     def _new_project_clicked(self) -> None:
@@ -795,6 +1206,7 @@ class ProjectManagerDialog(QDialog):
             self._mutate(partial(_op_import, items=dialog.chosen()))
 
     def closeEvent(self, event) -> None:
+        self._scan.shutdown()
         for job in list(self._jobs):
             try:
                 safe_shutdown_thread(job, None, 1000)
@@ -802,8 +1214,16 @@ class ProjectManagerDialog(QDialog):
                 log_debug(f"Project manager job was already gone at close: {exc}")
         self._jobs.clear()
         self._action_jobs.clear()
-        self._count_job = None
         super().closeEvent(event)
+
+
+def _remove_file(path: Path) -> bool:
+    """Delete one file if it exists (the project's icon). A worker runs this."""
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+    return True
 
 
 class ImportDialog(QDialog):

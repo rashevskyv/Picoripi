@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 11.3k
+tokens: 11.4k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -150,7 +150,7 @@ Do not declare a capability the plugin cannot deliver.
 
 ## Project Manager: roles, unpacking and build targets
 
-The Project Manager's new-project wizard and its Build, Export and Run buttons use five optional hooks.
+The Project Manager's new-project wizard, its Build, Export and Run buttons and its list icons use six optional hooks.
 Each hook has a default, so a plugin without them still works: the wizard then takes the role and the platform from the user, uses the files as they are, and the buttons stay off.
 
 - `get_source_roles()` lists the roles a project's files can have, for example base game, update, DLC and disc 2. The first role is the default.
@@ -159,8 +159,9 @@ Each hook has a default, so a plugin without them still works: the wizard then t
 - `unpack_sources(sources, target_dir, progress, is_cancelled)` unpacks the role files into an empty folder that the host made. It returns that folder, or `None` when the files need no unpacking.
 - `get_build_targets()` lists what the game can build, each with an `id`, a `label`, `platforms` (empty means all) and a `kind`: `files`, `patch` or `layeredfs`.
 - `build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)` writes one target into an empty output folder and returns the result path.
+- `project_icon(project_dir)` returns a PNG or JPEG picture of the game for the project's row, or `None`. The host scales it to 128 px and caches it. It runs in the scan process, so it may read files but must not create widgets. A user's `icon.png` beside the project file wins over it. `plugins/plain_text/rules.py` returns a `banner.png` beside the project file as the example.
 
-These hooks run on a worker thread. They must not create widgets or read `self.mw`. The host passes `progress` and `is_cancelled`; check `is_cancelled()` in long loops. The host builds into a temporary folder and renames it when the build succeeds. Export copies the built folder to a folder the user chooses. Run starts the emulator command the user set in the Project Manager, with the built path as an argument.
+These hooks run on a worker thread, except `project_icon`, which runs in the scan process. They must not create widgets or read `self.mw`. The host passes `progress` and `is_cancelled`; check `is_cancelled()` in long loops. The host builds into a temporary folder and renames it when the build succeeds. Export copies the built folder to a folder the user chooses. Run starts the emulator command the user set in the Project Manager, with the built path as an argument.
 
 `plugins/plain_text/rules.py` is the reference: its single target copies the translation files as they are.
 ## Families of versions (family_plan)

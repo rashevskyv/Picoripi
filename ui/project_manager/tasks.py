@@ -6,13 +6,12 @@ Every job takes ``load_rules`` (a plugin name -> ``GameRules``). The window pass
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 
-from core.project_library import build, index, plugin_facts
+from core.project_library import build, plugin_facts
 from utils.constants import plugins_root
 from utils.logging_utils import log_error, log_warning
 from utils.thread_utils import WorkerThread
@@ -133,57 +132,6 @@ def _project_paths(project_file: str) -> Tuple[str, str, str]:
     if not translation:
         translation = str(path.parent / "translation")
     return str(data.get("plugin_name") or ""), source or str(path.parent), translation
-
-
-class CountJob(WorkerThread):
-    """Counts the lines of projects that have no counts yet, with each plugin's parser, one project at a time.
-
-    Each result is emitted as soon as it is ready and stored in the index at the end. Cancelling keeps what was done.
-    A project whose counting fails gets ``count_error`` instead, and is not retried until its file changes.
-    """
-
-    counted = pyqtSignal(str, dict)
-    done = pyqtSignal(int)
-    failed = pyqtSignal(str)
-
-    def __init__(self, directory: str, targets: List[Tuple[str, str]], load_rules: LoadRules):
-        super().__init__()
-        self._directory = directory
-        self._targets = list(targets)
-        self._load_rules = load_rules
-
-    def run(self) -> None:
-        updates: Dict[str, Dict[str, Any]] = {}
-        for key, project_file in self._targets:
-            if self.isInterruptionRequested():
-                break
-            fields = self._count(project_file)
-            if fields is None:
-                break
-            updates[key] = fields
-            self.counted.emit(key, fields)
-        try:
-            index.merge(self._directory, updates)
-        except OSError as exc:
-            log_error(f"Could not save the counts to the project index: {exc}")
-            self.failed.emit(str(exc))
-            return
-        self.done.emit(len(updates))
-
-    def _count(self, project_file: str) -> Optional[Dict[str, Any]]:
-        try:
-            mtime = os.stat(project_file).st_mtime_ns
-        except OSError as exc:
-            return {"count_error": str(exc), "counted_mtime": 0, "counted_at": index.stamp()}
-        try:
-            result = plugin_facts.count_project(project_file, self._load_rules, self.isInterruptionRequested)
-        except Exception as exc:  # one broken plugin or file must not stop the other projects
-            log_warning(f"Could not count {project_file}: {exc}")
-            return {"count_error": str(exc), "counted_mtime": mtime, "counted_at": index.stamp()}
-        if result is None:
-            return None
-        return {"counts": result["counts"], "targets": result["targets"], "skipped": result["skipped"],
-                "groups": result["groups"], "counted_mtime": mtime, "counted_at": index.stamp()}
 
 
 class ActionJob(WorkerThread):

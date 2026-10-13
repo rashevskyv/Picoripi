@@ -5,6 +5,7 @@ Callers pass ``load_rules`` so tests can supply an explicit fake; the default im
 """
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import os
@@ -13,11 +14,17 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from core import formats
 from core.project_library.cards import count_strings
+from utils.constants import plugins_root
 from utils.logging_utils import log_warning
 from utils.plugin_import import PLUGIN_IMPORT_LOCK
 
 LoadRules = Callable[[str], Any]
 Cancelled = Callable[[], bool]
+PLUGIN_MISSING = "plugin_missing"  # the count error of a project whose game plugin is not installed
+
+
+class PluginMissing(Exception):
+    """The project names a game plugin that is not installed. Not an error of the project; shown as a flag."""
 
 
 def default_load_rules(plugin_name: str) -> Any:
@@ -119,10 +126,14 @@ def _sub_block_index(names: Dict[str, str], count: int, internal_key: str) -> in
 
 
 def _parse(rules: Any, path: Path, cache: Dict[str, Any]) -> Any:
-    """``(blocks, names)`` of one file, parsed once per count. ``None`` when the file cannot be read."""
+    """``(blocks, names)`` of one file, parsed once per count. ``None`` when the file cannot be read.
+
+    A file no format of the plugin claims (fonts, images, archives) is skipped, never read as text. The default
+    ``UNKNOWN_IS_ERROR`` policy answers "unsupported" without opening the file.
+    """
     key = str(path)
     if key not in cache:
-        content, error = formats.read_file(rules, path, unknown=formats.UNKNOWN_IS_TEXT)
+        content, error = formats.read_file(rules, path)
         if error or content is None:
             cache[key] = None
         else:
@@ -161,7 +172,13 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("project file is not a JSON object")
-    rules = load_rules(str(data.get("plugin_name") or ""))
+    plugin_name = str(data.get("plugin_name") or "")
+    try:
+        rules = load_rules(plugin_name)
+    except ModuleNotFoundError as exc:
+        if exc.name and exc.name.startswith("plugins." + plugin_name):
+            raise PluginMissing(plugin_name) from exc
+        raise
     base = path.parent
     metadata = data.get("metadata") or {}
     source_roots = [_root(base, metadata.get("source_path")), base]
@@ -194,6 +211,47 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
         row["blocks"] += 1
         row["lines"] += counts["lines"]
     return {"counts": totals, "targets": targets_of(rules), "skipped": skipped, "groups": groups}
+
+
+def _stat_part(path: Optional[Path]) -> Optional[List[int]]:
+    """``[mtime_ns, size]`` of a file, or None when it is missing."""
+    if path is None:
+        return None
+    try:
+        stat = os.stat(path)
+    except OSError:
+        return None
+    return [stat.st_mtime_ns, stat.st_size]
+
+
+def input_signature(project_file: str | os.PathLike, plugins_folder: Optional[Path] = None) -> str:
+    """A fingerprint of everything a count reads: the project file, the plugin's config, and for each block its
+    source and translation file (the path that resolves, with its size and modification time).
+
+    Equal fingerprints mean equal counts, so a cached count is reused only while this value is unchanged. Only
+    ``stat`` is called; no file content is read. Folder modification times are not used: on NTFS they do not change
+    when a file inside is edited. Raises ``OSError`` or ``ValueError`` when the project file cannot be read.
+    """
+    path = Path(project_file)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("project file is not a JSON object")
+    plugin_name = str(data.get("plugin_name") or "")
+    folder = plugins_folder if plugins_folder is not None else plugins_root()
+    metadata = data.get("metadata") or {}
+    base = path.parent
+    source_roots = [_root(base, metadata.get("source_path")), base]
+    translation_roots = [_root(base, metadata.get("translation_path")), base]
+    parts: List[Any] = [["project", _stat_part(path)], ["plugin", plugin_name,
+                                                         _stat_part(folder / plugin_name / "config.json")]]
+    for block in data.get("blocks") or []:
+        if (block.get("metadata") or {}).get("is_archive_member"):
+            continue
+        for kind, roots, relative in (("source", source_roots, block.get("source_file")),
+                                      ("translation", translation_roots, block.get("translation_file"))):
+            found = _resolve(str(relative or ""), roots)
+            parts.append([kind, str(relative or ""), str(found) if found else "", _stat_part(found)])
+    return hashlib.sha1(json.dumps(parts, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
 def _group_name(source_file: str) -> str:
