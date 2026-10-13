@@ -1,4 +1,5 @@
 """The host sets the block and string index a problem analyzer reads, on every string-analysis path."""
+import threading
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -8,6 +9,7 @@ from handlers.analyzer_context import analyzer_string_context
 from handlers.text_operation.edit_mixin import EditMixin
 from handlers.text_operation.scan_mixin import ScanMixin
 from handlers.width_calculation_worker import WidthCalculationWorker
+from plugins.common.problem_analyzer import GenericProblemAnalyzer
 
 SEED = (99, 99)
 
@@ -173,3 +175,91 @@ def test_rescan_on_edit_path_sees_the_edited_string():
 
     assert analyzer.seen == [(1, 3, "edited\nline")]
     assert (analyzer._current_scan_block_idx, analyzer._current_scan_string_idx) == SEED
+
+
+def _make_analyzer():
+    return GenericProblemAnalyzer(None, None, {}, {})
+
+
+def _read(analyzer):
+    return analyzer._current_scan_block_idx, analyzer._current_scan_string_idx
+
+
+def test_old_attribute_names_read_and_write_for_one_thread():
+    analyzer = _make_analyzer()
+    assert _read(analyzer) == (None, None)
+    analyzer._current_scan_block_idx = 2
+    analyzer._current_scan_string_idx = 5
+    assert _read(analyzer) == (2, 5)
+    with analyzer_string_context(analyzer, 7, 8):
+        assert _read(analyzer) == (7, 8)
+    assert _read(analyzer) == (2, 5)
+
+
+def test_two_threads_each_keep_their_own_string_context_while_overlapping():
+    analyzer = _make_analyzer()
+    # Two workers and the main thread are inside their own contexts at the same time.
+    barrier = threading.Barrier(3, timeout=5)
+    seen = {}
+    errors = []
+
+    def worker(name, block, string):
+        try:
+            with analyzer_string_context(analyzer, block, string):
+                barrier.wait()
+                seen[name] = _read(analyzer)
+                barrier.wait()
+            seen[name + "_after"] = _read(analyzer)
+        except Exception as exc:  # reported below; abort so the other parties do not wait
+            errors.append(exc)
+            barrier.abort()
+
+    threads = [
+        threading.Thread(target=worker, args=("a", 1, 10)),
+        threading.Thread(target=worker, args=("b", 2, 20)),
+    ]
+    for thread in threads:
+        thread.start()
+    with analyzer_string_context(analyzer, 9, 90):
+        barrier.wait()
+        main_inside = _read(analyzer)
+        barrier.wait()
+    for thread in threads:
+        thread.join(timeout=5)
+
+    assert errors == []
+    assert seen["a"] == (1, 10)
+    assert seen["b"] == (2, 20)
+    assert main_inside == (9, 90)
+    # After each context ends, its own thread is back to None and the main thread too.
+    assert seen["a_after"] == (None, None)
+    assert seen["b_after"] == (None, None)
+    assert _read(analyzer) == (None, None)
+
+
+def test_value_set_on_one_thread_is_not_seen_by_another_thread():
+    analyzer = _make_analyzer()
+    analyzer._current_scan_block_idx = 4
+    analyzer._current_scan_string_idx = 4
+    seen = {}
+
+    def reader():
+        seen["other"] = _read(analyzer)
+
+    thread = threading.Thread(target=reader)
+    thread.start()
+    thread.join(timeout=5)
+    assert seen["other"] == (None, None)
+    assert _read(analyzer) == (4, 4)
+
+
+def test_new_analyzer_created_in_a_new_thread_sees_none():
+    result = {}
+
+    def build_and_read():
+        result["values"] = _read(_make_analyzer())
+
+    thread = threading.Thread(target=build_and_read)
+    thread.start()
+    thread.join(timeout=5)
+    assert result["values"] == (None, None)

@@ -13,6 +13,8 @@ def analyzer_string_context(analyzer: Any, block_idx: int, string_idx: int) -> I
 
     Plugins read these two attributes when they need string context. Every host caller that
     analyses a string must set them, or the plugin sees the last scanned string instead.
+    On a GenericProblemAnalyzer the attributes are per thread: this call sets and restores
+    only the current thread's values.
     """
     previous = (getattr(analyzer, BLOCK_ATTR, None), getattr(analyzer, STRING_ATTR, None))
     setattr(analyzer, BLOCK_ATTR, block_idx)
