@@ -36,6 +36,7 @@ class CollabRowBar(QFrame):
         layout.setSpacing(6)
         self.label = QLabel(self)
         self.label.setWordWrap(True)
+        self.label.setTextFormat(Qt.TextFormat.PlainText)       # names and comments are text, never markup
         layout.addWidget(self.label, 1)
         self.theirs_button = QPushButton(tr('Take theirs'), self)
         self.theirs_button.setToolTip(tr('Use the text the other participant saved in the room for this row.'))

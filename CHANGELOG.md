@@ -3,6 +3,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 ## [Unreleased]
 
 - Work Together: the room checks who may resolve or reopen a comment (observers may not resolve; reopening another member's resolution needs its author, a host or a moderator), an operation without `seq` is applied once per `op_id`, and a bad field fails only its own operation (`approve` with a non-text key no longer drops the connection).
+- Work Together: the row bar and the removal and host-transfer questions show participant names and texts as plain text, so a name that looks like HTML is shown as typed.
 - Work Together: saved participant tokens are kept per room address and name and sent only to that address (a room at another address never receives them, a new room at an address starts its names over, tokens kept by name by an earlier version are dropped); the settings file is written by a worker, not on the UI thread (D22, wiki 13 EN and UK).
 - Work Together: comments of another room's comments.json are adopted into the room by the host or a moderator (`comment_import`); a comment the room holds or deleted is skipped, and no window keeps a foreign comment the room does not know (the merge that could not be resolved or deleted is gone).
 - Work Together: removing a participant blocks its token and its name (case-insensitive, kept in the journal until Allow back); the texts now say that the room password still admits a new name, and D22 and wiki 13 (EN, UK) say the same.

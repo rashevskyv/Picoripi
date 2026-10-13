@@ -51,7 +51,7 @@ def test_the_host_can_change_remove_and_transfer_but_a_translator_only_sees_the_
 def test_the_host_removes_a_translator_from_its_panel_after_a_confirmation(qtbot, pair, monkeypatch):
     a, b = _host_and_guest(qtbot, pair)
     from PyQt6.QtWidgets import QMessageBox
-    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *args, **kwargs: QMessageBox.StandardButton.Yes))
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: QMessageBox.StandardButton.Yes.value)
     panel = ManagePanel(None, a.collab_handler)
     qtbot.addWidget(panel)
     panel.refresh()
@@ -102,6 +102,17 @@ def test_the_row_bar_shows_the_claim_and_offers_only_what_the_role_allows(qtbot,
     bar_a.refresh(0, 0)
     assert "Claimed by you" in bar_a.label.text()
     assert bar_a.approve_button.isVisibleTo(bar_a)            # the host can approve
+
+
+def test_the_row_bar_shows_names_and_texts_of_the_room_as_plain_text(qtbot, pair):
+    a, b = _host_and_guest(qtbot, pair)
+    key = b.collab_handler._key(0, 0)
+    bar = CollabRowBar(b)
+    qtbot.addWidget(bar)
+    b.collab_handler.conflicts[key] = {"name": "<b>Olena</b>", "text": "<i>Tak</i>", "mine": "Ні"}
+    bar.refresh(0, 0)
+    assert bar.label.textFormat() == Qt.TextFormat.PlainText
+    assert "<b>Olena</b>" in bar.label.text() and "<i>Tak</i>" in bar.label.text()
 
 
 def test_a_row_claimed_by_someone_else_is_read_only_in_the_editor_until_the_window_leaves(qtbot, pair):

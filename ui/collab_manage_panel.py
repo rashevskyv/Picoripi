@@ -52,6 +52,14 @@ def _fill(widget: QListWidget, rows: List[Tuple[str, str]]) -> None:
             widget.setCurrentItem(item)
 
 
+def _confirm(parent: QWidget, title: str, text: str) -> bool:
+    """A yes or no question. The text is plain: a participant's name in it is never read as markup."""
+    box = QMessageBox(QMessageBox.Icon.Question, title, text,
+                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, parent)
+    box.setTextFormat(Qt.TextFormat.PlainText)
+    return box.exec() == QMessageBox.StandardButton.Yes.value
+
+
 def _selected_id(widget: QListWidget) -> Optional[str]:
     item = widget.currentItem()
     return item.data(ID_ROLE) if item is not None else None
@@ -220,10 +228,10 @@ class ManagePanel(QTabWidget):
     def _kick(self) -> None:
         mid = _selected_id(self.people)
         member = self.handler.members.get(mid or "")
-        if member and QMessageBox.question(self, tr('Remove from room'), tr(
+        if member and _confirm(self, tr('Remove from room'), tr(
                 'Remove {name} from the room? Its token and its name are blocked until you press Allow back. '
                 'Anyone with the room password can still join under a new name.',
-                name=member.get("name", "?"))) == QMessageBox.StandardButton.Yes:
+                name=member.get("name", "?"))):
             self.handler.kick(mid)
 
     def _unban(self) -> None:
@@ -234,9 +242,9 @@ class ManagePanel(QTabWidget):
     def _transfer(self) -> None:
         mid = _selected_id(self.people)
         member = self.handler.members.get(mid or "")
-        if member and QMessageBox.question(self, tr('Make host'), tr(
+        if member and _confirm(self, tr('Make host'), tr(
                 'Give the host role to {name}? You become a moderator and cannot give it back on your own.',
-                name=member.get("name", "?"))) == QMessageBox.StandardButton.Yes:
+                name=member.get("name", "?"))):
             self.handler.transfer_host(mid)
 
     def _release(self) -> None:
