@@ -1,14 +1,18 @@
 ---
 status: current
-updated: 2026-10-12
+updated: 2026-10-13
 owns: project manager
-tokens: 0.6k
+tokens: 0.7k
 purpose: Project Manager phase 2
 ---
 # Project Manager, phase 2 (built; the decisions are in D23)
 
 Phase 1 is in `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (Project Manager) and `docs/DECISIONS.md` D20.
 This page lists what phase 2 adds. Built as listed; the open items are in docs/OPEN_ITEMS.md (Project Manager phase 2).
+
+**Update 2026-10-13 (D28):** the scan of the projects (cards, icons, counts) runs in a child process with a signature
+cache; rows update in place; the list and grid views, the progress strip, the project icons (`icon.png` and the
+`project_icon` hook) and the wizard's Icon field are in. Scope item 4 ("counts for projects never opened") is closed.
 
 ## Scope
 

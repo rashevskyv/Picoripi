@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-13
 owns: work packages, order of work
-tokens: 1.1k
+tokens: 1.2k
 purpose: Master plan: the work packages of Picoripi, their state and the order
 ---
 # Road map

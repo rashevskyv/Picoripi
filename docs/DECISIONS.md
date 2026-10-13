@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: decisions and their reasons
-tokens: 10.8k
+tokens: 11.9k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -483,3 +483,44 @@ HD syntax on write; HD-only messages keep HD syntax in their own folder. The eng
 and stay per-version. Colour 0 is written as `[/C]` (box default); `[White]` reads back as the same colour.
 Messages with an unmapped tag never match. Only the GameCube plugin (`zelda_tww`) opens the family project; it reads
 MSBT blocks by their magic, but its editor tag highlighting and checks still use GameCube syntax (open).
+
+## D28. The Project Manager scans in a child process, keeps a signature cache and updates rows in place (2026-10-13)
+
+**Context.** The first scan of 191 projects froze the window for minutes. Measured on the unchanged code: heartbeat
+gaps up to 2.2 s (117 gaps over 250 ms), 54 tracebacks from binary fonts read as text, and the list rebuilt about 150
+times during the scan. The rebuild (`tree.clear()` and 191 new rows) took 42 s of UI-thread time and reset the
+scroll position. Counts for a project were recomputed on every start, and a count for an open project carried no
+signature, so it was recounted too.
+**Decision.**
+- The scan runs in a child process: `python -m core.project_library.scan_child`, started with `QProcess` from the
+  window. The job arrives on stdin as JSON; the child writes one JSON line per event (`card`, `icon`, `plan`,
+  `progress`, `counts`, `done`) on stdout, and plugin `print()` goes to stderr. The child runs at below-normal
+  priority and sets `PICORIPI_SCAN_CHILD=1`, which keeps `utils.logging_utils` from truncating `app_debug.txt`.
+  The window kills the child on close and on a new scan. Cancel kills it; what it already wrote stays.
+- The scan has two phases. Phase 1 reads each card, works out the icon, and computes each project's input signature
+  (the project file, the plugin's `config.json`, and the stat of every source and translation file its blocks name).
+  Phase 2 counts only the projects whose signature changed. A second start with nothing changed parses no string
+  content.
+- The cache lives in `project_index.json` (card by mtime and size, counts by signature) and `pm_icons/` (PNG per
+  project). Folder modification times are not used: on NTFS they do not change when a file inside is edited.
+  `record_counts` stores the signature of the files on disk when a project is saved, so an open project is not
+  recounted on the next start.
+- Counting skips a file that no format of the plugin claims. It never reads it as text. A project whose plugin is
+  not installed gets `count_error = plugin_missing` (shown as a flag) and is not counted. One summary line ends a
+  scan.
+- Rows update in place: when only cells, icons or counts change, the same `QTreeWidgetItem` objects get new text
+  and data. The order does not change while a scan runs; a regroup or re-sort happens when the scan ends or the
+  view changes. A rebuild (a project added or removed, a view change) keeps the scroll value, the selection and the
+  open details.
+- The list has two views: a list (`QTreeWidget`, the default, with groups) and a grid (`QListWidget` in icon mode,
+  flat). The progress strip shows "Scanning N of M — name — about X left"; the time left is a moving average of the
+  time each counted project takes.
+- Icons: `icon.png` beside `project.uiproj` wins; a plugin may return PNG or JPEG bytes from the optional hook
+  `project_icon(project_dir)`; otherwise a generated tile. The image is decoded with `QImage` on a worker, never on
+  the window's thread at paint time.
+**Thread safety.** The child has its own `sys.modules`, so the plugin import lock of D23 no longer guards the scan
+against the window's plugin load. The window's own loads still use `PLUGIN_IMPORT_LOCK`.
+**Cost.** The first scan of 191 projects takes about 4 minutes in the child (plugin parsing is CPU work), but the
+window stays responsive: heartbeat max gap 202 ms (was 2154 ms), 0 gaps over 250 ms (was 117). The render time falls
+from 42 s to 2 s. A frozen (PyInstaller) build would need a scan entry point; no frozen build exists. Icons changed
+while the window is open appear at the next scan (open or Reload); there is no file watcher.

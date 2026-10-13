@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: unfinished work
-tokens: 24.3k
+tokens: 25.1k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -55,13 +55,20 @@ the line when it is done or moved into a plan.
 
 - Only `plugins/plain_text` declares a build target, and no real game plugin implements `get_source_roles`, `identify_source`, `unpack_sources` or `build_target` yet. Until a game does, the wizard takes roles and platforms from the user and the Build, Export and Run buttons stay off for it.
 - Counts skip archive members (blocks inside containers) and report them as "not counted yet". Counting them needs the load worker's archive path (`handlers/project_action/load_worker.py`).
-- A count is stored against the project file's modification time. An edit to a translation file made outside Picoripi shows the old count until the project file changes or the project is opened.
-- Counting and the main window's plugin load share the `PLUGIN_IMPORT_LOCK` of `utils/plugin_import.py`. A plugin load can wait for a count that is importing the same plugin, and that wait runs on the UI thread: seconds for a large plugin. Check it with a real game plugin.
+- Closed in D28: a count is kept while its input signature (project file, plugin config, source and translation files) is unchanged. An edit to a translation file made outside Picoripi is seen at the next scan.
+- Closed in D28 for the scan: the scan runs in its own process with its own modules, so a plugin load of the window cannot wait for it. The window's own plugin loads still share `PLUGIN_IMPORT_LOCK` on the UI thread.
 - The wizard, with no unpacking and several files, uses the base file as the source. The other files are recorded in the project metadata only.
 - One emulator command serves every platform. MacOS `.app` bundles need the path of the program inside the bundle.
 - Export copies a folder. A zip or a single-file export is not built.
 - `components/project_dialogs.py` `NewProjectDialog` is no longer opened by the product. The wizard has no option to use an existing translation folder, which the dialog had. Add that option to the wizard, or delete the class with `tests/manual_test_project_dialogs.py`.
 - ROADMAP entries A9 and A10 are not updated: `docs/ROADMAP.md` is not on `main`. Their state is in the phase 2 commit messages and D23.
+- The first scan of 191 projects takes about 4 minutes in the scan process (plugin parsing is CPU work). The window stays responsive; a faster parse would need a plugin-level change.
+- Five projects show `Plugin missing` on `main`: `zelda_oracles`, `donkey_kong_tropical_freeze`, `mario_vs_donkey_kong_gba` and `mario_vs_donkey_kong_switch` exist only on unmerged branches (`feat/oracles-gbc`, `ready-dk-extra`, `ready-dk-gba`, `ready-dk-switch`). The project files are not changed; the rows light up when those plugins are merged.
+- The grid view has no details pane: Build, Export, Run and the flags are in the list view only.
+- Icons changed while the window is open appear at the next scan (open or Reload). There is no file watcher.
+- The icon files written by the game-icon extraction (`feat/game-icons`, `<project>/picoripi/icon.png`) are not on `main` yet; the manager reads them as soon as they exist beside `project.uiproj`.
+- A scan child needs `sys.executable -m core.project_library.scan_child`. A frozen (PyInstaller) build would need a scan entry point; no frozen build exists.
+- A save of an open project writes its counts to the index from the window's process while a scan may be writing the same file from the child. A lost entry only means one recount at the next scan.
 
 ## Project Manager phase 1 (2026-10-11)
 
