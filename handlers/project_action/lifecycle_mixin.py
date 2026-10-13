@@ -47,6 +47,8 @@ class LifecycleMixin:
                 self.mw.settings_manager.add_recent_project(project_file)
                 self.mw.settings_manager.save_settings()
                 self._update_recent_projects_menu()
+            if info.get('icon_source'):
+                self.copy_project_icon(info['directory'], info['icon_source'])
             self.note_project_opened(project_file, platform=info.get('platform', ''))
 
             # Switch plugin if needed

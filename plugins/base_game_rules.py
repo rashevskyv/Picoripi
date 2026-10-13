@@ -1030,6 +1030,16 @@ class BaseGameRules:
         """
         return []
 
+    def project_icon(self, project_dir: str) -> Optional[bytes]:
+        """A picture of the game for the Project Manager's list: PNG or JPEG bytes, or None. Default: None.
+
+        ``project_dir`` is the folder that holds ``project.uiproj``. Read only what the picture needs. The host
+        scales it to 128 px and caches it under the data folder. The call runs on the scan process, not on the
+        window's thread, so it may read files but must not create widgets. A user's own ``icon.png`` in that folder
+        wins over this hook; a failing hook gives the generated tile.
+        """
+        return None
+
     def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
                      progress: Callable[[int, str], None], is_cancelled: Callable[[], bool]) -> str:
         """Write the build ``target_id`` into ``output_dir``, an empty folder the host made, and return the

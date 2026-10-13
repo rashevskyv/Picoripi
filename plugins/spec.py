@@ -186,6 +186,7 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              "or layeredfs. Empty: the Build, Export and Run buttons stay off.", call=(), returns=list),
         Hook("build_target", "Write one build target into an empty output folder and return the result path. "
              "Gets source_dir, translation_dir, output_dir, progress and is_cancelled.", call=None, returns=str),
+        Hook("project_icon", "A picture of the game for the Project Manager list (PNG or JPEG bytes) for the project folder, or None. Runs on the scan process. The user's icon.png wins.", call=None, returns=bytes, optional=True),
     )),
     ('Looked for by the host (not on the base class)', (
         Hook("problem_analyzer", "Analyzer object: analyze_data_string(), registry.get_prefixed_id().",

@@ -206,8 +206,10 @@ def _log_message(level, message: str, category: str, exc_info=False):
     elif level == logging.ERROR:
         adapter.error(message, exc_info=exc_info)
 
-# Default initialization
-update_logger_handlers(True, True)
+# Default initialization. The Project Manager's scan process (PICORIPI_SCAN_CHILD=1) installs no handler: the
+# file below would be truncated by the child at import, and its warnings reach the window's log through stderr.
+if os.environ.get("PICORIPI_SCAN_CHILD") != "1":
+    update_logger_handlers(True, True)
 
 def log_debug(message: str, category: str = "general"):
     """Log debug."""

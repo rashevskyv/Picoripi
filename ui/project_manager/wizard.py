@@ -5,16 +5,20 @@ project reaches ``on_create``, which creates it through the shared project-creat
 """
 from __future__ import annotations
 
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import (
     QComboBox, QDialog, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar,
     QPushButton, QStackedWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
 from core.i18n import tr
+from core.project_library.icons import IMAGE_FILTER, load_image
+from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.tasks import FactsJob, PluginListJob, UnpackJob
 from utils.logging_utils import log_info
 from utils.thread_utils import safe_shutdown_thread
@@ -77,9 +81,50 @@ class ProjectWizard(QDialog):
         form.addRow(tr("Game"), self._game)
         self._name = QLineEdit()
         form.addRow(tr("Project name"), self._name)
+        self._icon_path = ""
+        icon_row = QHBoxLayout()
+        self._icon_preview = QLabel()
+        self._icon_preview.setFixedSize(64, 64)
+        self._icon_preview.setToolTip(tr("Optional. Shown in the Project Manager list."))
+        browse_icon = QPushButton(tr("Browse..."))
+        browse_icon.clicked.connect(self._browse_icon)
+        clear_icon = QPushButton(tr("Clear icon"))
+        clear_icon.clicked.connect(self._clear_icon)
+        icon_row.addWidget(self._icon_preview)
+        icon_row.addWidget(browse_icon)
+        icon_row.addWidget(clear_icon)
+        icon_row.addStretch(1)
+        form.addRow(tr("Icon (optional)"), icon_row)
         layout.addLayout(form)
         layout.addStretch(1)
         return page
+
+    # ----- icon -----
+    def _browse_icon(self) -> None:
+        path, _filter = QFileDialog.getOpenFileName(
+            self, tr("Choose an icon"), str(Path.home()), tr("Images") + f" ({IMAGE_FILTER});;" + tr("All files") + " (*)")
+        if path:
+            self.set_icon(path)
+
+    def set_icon(self, path: str) -> None:
+        """Remember the picture for the project. Its preview is decoded on a worker; a non-picture is refused."""
+        self._icon_path = path
+        self._run(BackgroundJob(load_image, Path(path)), partial(self._on_icon_preview, path))
+
+    def _on_icon_preview(self, path: str, image: Optional[QImage]) -> None:
+        if path != self._icon_path:
+            return  # the user picked another picture meanwhile
+        if image is None:
+            self._icon_path = ""
+            self._icon_preview.clear()
+            QMessageBox.warning(self, tr("New project"), tr("This file is not a picture."))
+            return
+        self._icon_preview.setPixmap(QPixmap.fromImage(
+            image.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
+
+    def _clear_icon(self) -> None:
+        self._icon_path = ""
+        self._icon_preview.clear()
 
     def _files_page(self) -> QWidget:
         page = QWidget()
@@ -364,6 +409,7 @@ class ProjectWizard(QDialog):
             "is_directory_mode": is_directory,
             "auto_create_translations": True,
             "platform": platform,
+            "icon_source": self._icon_path,
             "metadata": {
                 "source_roles": {role: path for role, path in sources.items()},
                 "platform": platform,

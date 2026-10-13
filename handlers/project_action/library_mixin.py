@@ -1,8 +1,11 @@
 """Project actions: the Project Manager window, its wizard, and the registry, counts and flags it reads and writes."""
 from functools import partial
+from pathlib import Path
 from typing import Dict, Optional
 
 from core.project_library import flags, index, registry
+from core.project_library.icons import save_user_icon
+from core.project_library.scan import ICON_FILE_NAME
 from core.project_library.plugin_facts import default_load_rules
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.window import ProjectManagerDialog
@@ -79,6 +82,10 @@ class LibraryMixin:
             return
         BackgroundJob(flags.set_flags, project_file, updates).start()
 
+    def copy_project_icon(self, directory: str, source: str) -> None:
+        """Copy a picture the user chose in the wizard to the new project's icon.png, scaled, on a worker."""
+        BackgroundJob(save_user_icon, Path(source), Path(directory) / ICON_FILE_NAME).start()
+
     def save_project_manager_setting(self, name: str, value: str) -> None:
         """Store one Project Manager setting (for example the emulator command) on a worker."""
         BackgroundJob(registry.mutate, _library_dir(), partial(_set_setting, name=name, value=value)).start()
@@ -97,7 +104,8 @@ class LibraryMixin:
         translated = [list(block) if isinstance(block, list) else block for block in store.edited_file_data or []]
         edited = dict(store.edited_data or {})
         log_debug(f"Counting strings of project {key} on a worker thread.")
-        BackgroundJob(index.record_counts, _library_dir(), key, original, translated, edited).start()
+        BackgroundJob(index.record_counts, _library_dir(), key, original, translated, edited,
+                      project_manager.project_file_path).start()
 
 
 def _set_setting(reg: registry.Registry, name: str, value: str) -> None:

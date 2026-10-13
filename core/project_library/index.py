@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
+from core.project_library import plugin_facts
 from core.project_library.cards import count_strings
 from utils.atomic_io import atomic_write_json
 from utils.logging_utils import log_warning
@@ -65,8 +66,19 @@ def stamp() -> str:
 
 
 def record_counts(directory: str | os.PathLike, key: str, original: Any, translated_file: Any,
-                  edited: Dict[Any, Any]) -> Dict[str, int]:
-    """Count the strings of a project from data in memory and store the counts. Runs on a worker thread."""
+                  edited: Dict[Any, Any], project_file: str | os.PathLike | None = None) -> Dict[str, int]:
+    """Count the strings of a project from data in memory and store the counts. Runs on a worker thread.
+
+    With ``project_file`` the entry also stores the input signature of the files on disk, so the next scan keeps
+    these counts while the saved files are unchanged. The counts come from memory: they are the saved state
+    when this runs after a save.
+    """
     counts = count_strings(original, translated_file, edited)
-    merge(directory, {key: {"counts": counts, "counted_at": stamp()}})
+    fields: Dict[str, Any] = {"counts": counts, "counted_at": stamp(), "count_error": None}
+    if project_file is not None:
+        try:
+            fields["signature"] = plugin_facts.input_signature(project_file)
+        except (OSError, ValueError):
+            fields["signature"] = None  # the next scan recounts
+    merge(directory, {key: fields})
     return counts
