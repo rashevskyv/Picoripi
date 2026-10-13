@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_warning
 
-from . import doc
+from . import doc, pc_keys
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -28,6 +28,8 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._save_source: Optional[bytes] = None
         self._last_loaded: Optional[bytes] = None
+        self._pc_doc: Optional[Dict[str, Any]] = None   # the PC-port keys document (pc_keys.py), when loaded
+        self._last_kind: Optional[str] = None           # "disc" (bytes) or "pc" (the keys document): what a save writes
 
     def get_display_name(self) -> str:
         return "Silent Hill (PlayStation)"
@@ -37,9 +39,14 @@ class GameRules(BaseGameRules):
         return [FileFormat((".bin",), "bytes", "Silent Hill overlays and BODYPROG"), *DEFAULT_FORMATS]
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
+        if pc_keys.is_document(json_obj):
+            self._pc_doc = json_obj
+            self._last_kind = "pc"
+            return pc_keys.blocks(json_obj)
         if not isinstance(json_obj, (bytes, bytearray)):
             return super().load_data_from_json_obj(json_obj)
         data = bytes(json_obj)
+        self._last_kind = "disc"
         self._last_loaded = data
         groups = doc.parse(data)
         if not groups:
@@ -55,6 +62,8 @@ class GameRules(BaseGameRules):
         self._save_source = versions[-1] if versions else None
 
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        if self._last_kind == "pc" and self._pc_doc is not None:
+            return pc_keys.with_texts(self._pc_doc, data or [])
         source = self._save_source if self._save_source is not None else self._last_loaded
         if source is None:
             return super().save_data_to_json_obj(data, block_names)

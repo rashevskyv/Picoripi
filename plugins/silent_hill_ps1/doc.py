@@ -6,6 +6,8 @@ Two kinds of file hold text, and the plugin finds them by their shape (it gets b
   message pointers; each message is a NUL-terminated string in the same file. One block: the messages.
 * ``1ST\\BODYPROG.BIN`` (decrypted): the item name and description tables (195 pointers each) and the
   title menu (four pointers: CONTINUE, START, OPTION, EXTRA).
+* ``VIN\\OPTION.BIN`` and ``VIN\\SAVELOAD.BIN``: the option and save/load menu strings, found by their
+  text (``menu_slots.py``). One block each.
 
 A string is edited in place. Its room is the bytes it has now: the string, its NUL, and the zero bytes
 after it up to the next string of the same file. An edit that does not fit its room is not written;
@@ -18,6 +20,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Sequence, Tuple
 
 from . import codec
+from .menu_slots import menu_group
 
 OVERLAY_BASE = 0x800C9578          # USA map overlay link base (the port's USA_OVL_BASE)
 BODY_BASE = 0x80024B60             # BODYPROG link base (the port's USA_BODY_VRAM)
@@ -112,6 +115,9 @@ def _groups_of(data: bytes) -> List[Tuple[str, List[int]]]:
         descs = _pointer_starts(data, ITEM_DESC_TABLE, ITEM_COUNT, BODY_BASE) or []
         menu = _pointer_starts(data, TITLE_MENU_TABLE, TITLE_MENU_COUNT, BODY_BASE) or []
         return [("item names", names), ("item descriptions", descs), ("title menu", menu)]
+    menu = menu_group(data)
+    if menu is not None:
+        return [menu]
     starts = _message_starts(data)
     if starts:
         return [("messages", starts)]
