@@ -18,7 +18,7 @@ from PyQt6.QtGui import QColor, QPainter
 from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from core.i18n import tr
-from plugins.manual_3ds import page_render, repo_tools
+from plugins.manual_3ds import page_render, pictures, repo_tools
 from utils.atomic_io import atomic_write_json
 from utils.constants import user_plugin_dir
 
@@ -39,6 +39,8 @@ PAGE_NUMBER = re.compile(r"Page_(\d+)_(large|small)")
 
 _GROUPS_LOCK = threading.Lock()
 _GROUPS: Dict[Tuple[str, str], Dict[str, List[Any]]] = {}
+_ARCHIVES: Dict[Tuple[str, str], Any] = {}
+_BANKS: Dict[Tuple[str, str], Any] = {}
 _RENDER_LOCK = threading.Lock()
 
 
@@ -76,12 +78,32 @@ class _Request:
         self.key = (root, manual_name, group, hash(tuple(sorted(texts.items()))))
 
 
-def _groups_of(tools: Any, manual_name: str) -> Dict[str, List[Any]]:
+def _archive_of(tools: Any, manual_name: str) -> Any:
+    """The manual's archive, read once per folder. Called from the worker only."""
     key = (str(tools.root), manual_name)
     with _GROUPS_LOCK:
+        if key not in _ARCHIVES:
+            _ARCHIVES[key] = tools.bcma.load(repo_tools.manual_path(tools, manual_name))
+        return _ARCHIVES[key]
+
+
+def _groups_of(tools: Any, manual_name: str) -> Dict[str, List[Any]]:
+    key = (str(tools.root), manual_name)
+    archive = _archive_of(tools, manual_name)
+    with _GROUPS_LOCK:
         if key not in _GROUPS:
-            _GROUPS[key] = page_render.groups_of(tools, repo_tools.manual_path(tools, manual_name))
+            _GROUPS[key] = page_render.groups_of(tools, archive)
         return _GROUPS[key]
+
+
+def _bank_of(tools: Any, manual_name: str) -> Any:
+    """The decoded textures of the manual, kept across renders of the same folder (one worker at a time)."""
+    key = (str(tools.root), manual_name)
+    archive = _archive_of(tools, manual_name)
+    with _GROUPS_LOCK:
+        if key not in _BANKS:
+            _BANKS[key] = pictures.TextureBank(archive, f"{tools.manual.BASE_SLOT}_texture")
+        return _BANKS[key]
 
 
 def draw_request(request: _Request, should_stop: Any) -> page_render.ColumnRender:
@@ -92,11 +114,12 @@ def draw_request(request: _Request, should_stop: Any) -> page_render.ColumnRende
     tools = repo_tools.load_tools(root)
     font = repo_tools.load_font(tools)
     groups = _groups_of(tools, request.manual_name)
+    bank = _bank_of(tools, request.manual_name)
     widths = repo_tools.widths_of(tools)
     homoglyphs = tools.manual.load_homoglyphs()
     with _RENDER_LOCK:  # the layout model keeps per-flow state; one drawing at a time
         return page_render.render_column(tools, font, widths, homoglyphs, groups, request.group,
-                                         request.texts, request.budgets, should_stop)
+                                         request.texts, request.budgets, should_stop, bank=bank)
 
 
 class PageRenderWorker(QThread):

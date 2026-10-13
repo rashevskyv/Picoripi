@@ -146,3 +146,18 @@ def test_host_docks_the_panel_in_place_of_the_bfn_preview(qtbot, monkeypatch):
     handler.attach_custom_preview()
     assert host.custom_preview_widget is None
     assert not bfn.isHidden() and not bar.isHidden()
+
+
+_REPO_MANUAL = ("_shared", "3ds_sysfont_ua", "repo_manual")
+
+
+@pytest.mark.skipif(romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") is not None,
+                    reason=romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") or "")
+def test_picture_panes_name_their_bclim_textures_and_the_textures_decode():
+    from plugins.manual_3ds import pictures, repo_tools
+    tools = repo_tools.load_tools(str(romhacking_root.path(*_REPO_MANUAL)))
+    archive = tools.bcma.load(repo_tools.manual_path(tools, "home_menu_manual"))
+    data = archive.read(f"{tools.manual.BASE_SLOT}_small")["Page_002_small_0.bclyt"]
+    assert pictures.picture_textures(data)[:2] == ["cap_menu-screen_ue_6.bclim", "cap_menu-screen_shita_6.bclim"]
+    image = pictures.TextureBank(archive, f"{tools.manual.BASE_SLOT}_texture").image("cap_menu-screen_ue_6.bclim")
+    assert image is not None and (image.width(), image.height()) == (160, 96)

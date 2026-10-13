@@ -3,8 +3,8 @@
 The page is read from Manual.bcma through the folder's own tools (see repo_tools). A BCLYT pane is placed
 relative to its parent group, so the position of a pane on the page is the sum of its ancestors' translations
 (read here from the order of the file's sections). Sub-pages (K = 0..n) are stacked, each under the one before.
-Text is wrapped with manual.layout_for, the same call the console build uses. Pictures are not decoded: each
-picture pane is drawn as a grey box of its size.
+Text is wrapped with manual.layout_for, the same call the console build uses. Each picture pane is drawn with its
+BCLIM texture (see pictures.py); a texture that is missing or cannot be decoded is drawn as a grey box of its size.
 
 Overflow is shown in red: a piece that ends past its line's right limit, and every line the paragraph has no
 pane for.
@@ -20,11 +20,12 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 from PyQt6.QtCore import QRectF
 from PyQt6.QtGui import QColor, QImage, QPainter
 
+from plugins.manual_3ds import pictures as pictures_mod
 from plugins.manual_3ds.repo_tools import Tools
 
 COLUMN_WIDTH = 400          # the image is wider than the 320 px column: an overflow past the edge stays visible
 SCREEN_COLUMN = 320         # the column width on the console
-TEXT_RGB = (0, 0, 0)
+TEXT_RGB = (60, 60, 60)     # the console ink: the darkest common colour of the calibration screenshot's text
 OVERFLOW_RGB = (200, 0, 0)
 PAPER_RGB = (255, 255, 255)
 PICTURE_RGB = (214, 214, 214)
@@ -51,7 +52,7 @@ class SubPage:
     flows: List[Any]
     # Text pane name -> (x, y) on the sub-page. y is BCLYT's: 0 at the top, negative below.
     positions: Dict[str, Tuple[float, float]] = field(default_factory=dict)
-    pictures: List[Tuple[float, float, float, float]] = field(default_factory=list)  # x, top, width, height
+    pictures: List[Tuple[float, float, float, float, Optional[str]]] = field(default_factory=list)  # x, top, w, h, texture
     extent: float = 0.0                        # the height the sub-page takes in the column
 
 
@@ -96,9 +97,8 @@ def _panes(data: bytes) -> Iterator[Tuple[bytes, str, float, float, float, float
         pos += size
 
 
-def groups_of(tools: Tools, path: Any) -> Dict[str, List[SubPage]]:
+def groups_of(tools: Tools, archive: Any) -> Dict[str, List[SubPage]]:
     """Every page group of a manual -> {"large/Page_003_large": [SubPage, ...] in K order}."""
-    archive = tools.bcma.load(path)
     flows_by_key = tools.manual.pages_of(archive, tools.manual.BASE_SLOT)
     groups: Dict[str, List[SubPage]] = {}
     for part in ("large", "small"):
@@ -108,13 +108,14 @@ def groups_of(tools: Tools, path: Any) -> Dict[str, List[SubPage]]:
             if not match:
                 continue
             positions: Dict[str, Tuple[float, float]] = {}
-            pictures: List[Tuple[float, float, float, float]] = []
+            pictures: List[Tuple[float, float, float, float, Optional[str]]] = []
+            picture_names = iter(pictures_mod.picture_textures(data))
             extent = 0.0
             for magic, pane_name, x, y, width, height in _panes(data):
                 if magic == b"txt1":
                     positions[pane_name] = (x, y)
                 elif magic == b"pic1":
-                    pictures.append((x, -y, width, height))
+                    pictures.append((x, -y, width, height, next(picture_names, None)))
                 if magic in (b"txt1", b"pic1", b"wnd1") or pane_name.startswith("__AREA"):
                     extent = max(extent, -y + height)
             key = f"{part}/{name}"
@@ -184,8 +185,12 @@ def _pane_cap(flow: Any, index: int, manual: Any) -> float:
 
 def render_column(tools: Tools, font: Any, widths: Dict[int, int], homoglyphs: Dict[str, str],
                   groups: Dict[str, List[SubPage]], group_key: str, texts: Dict[str, str],
-                  budgets: Dict[str, Any], should_stop: Optional[Callable[[], bool]] = None) -> ColumnRender:
-    """Lay out and draw the page group ``group_key`` with the current ``texts`` (string key -> translation)."""
+                  budgets: Dict[str, Any], should_stop: Optional[Callable[[], bool]] = None,
+                  bank: Optional[Any] = None) -> ColumnRender:
+    """Lay out and draw the page group ``group_key`` with the current ``texts`` (string key -> translation).
+
+    ``bank`` is a pictures.TextureBank; without it every picture is a grey box.
+    """
     manual = tools.manual
     subs = groups.get(group_key, [])
     total = sum(sub.extent for sub in subs)
@@ -198,8 +203,9 @@ def render_column(tools: Tools, font: Any, widths: Dict[int, int], homoglyphs: D
         offset = 0.0
         for sub_index, sub in enumerate(subs):
             result.sub_pages.append((sub.key, offset))
-            for x, top, width, height in sub.pictures:
-                _draw_picture(painter, x, offset + top, width, height)
+            for x, top, width, height, texture in sub.pictures:
+                picture = bank.image(texture) if bank is not None else None
+                _draw_picture(painter, x, offset + top, width, height, picture)
             for index, flow in enumerate(sub.flows):
                 if should_stop is not None and should_stop():
                     raise RenderCancelled()
@@ -282,8 +288,12 @@ def _draw_piece(painter: QPainter, text: str, x: float, top: float, flow: Any, f
         cx += advance
 
 
-def _draw_picture(painter: QPainter, x: float, top: float, width: float, height: float) -> None:
+def _draw_picture(painter: QPainter, x: float, top: float, width: float, height: float,
+                  picture: Optional[QImage] = None) -> None:
     rect = QRectF(x, top, width, height)
+    if picture is not None and not picture.isNull():
+        painter.drawImage(rect, picture)
+        return
     painter.fillRect(rect, QColor(*PICTURE_RGB))
     painter.setPen(QColor(*PICTURE_EDGE_RGB))
     painter.drawRect(rect)
