@@ -310,6 +310,21 @@ def test_the_host_can_lift_a_removal_and_the_member_joins_again(tmp_path):
     assert "error" in room.apply_ops(again["id"], [{"op_id": "u2", "kind": "unban", "target": olena["id"]}])["u2"]
 
 
+def test_a_removed_name_cannot_join_with_a_new_token_until_it_is_allowed_back(tmp_path):
+    room, host, _ = _room_with_host(tmp_path)
+    olena = _join(room, "Olena")
+    room.apply_ops(host["id"], [{"op_id": "k", "kind": "kick", "target": olena["id"]}])
+    with pytest.raises(ValueError, match="removed"):
+        _join(room, "Olena")                                  # a new token, the same name
+    with pytest.raises(ValueError, match="removed"):
+        _join(room, "OLENA")                                  # the name is compared without case
+    room.write_journal()
+    with pytest.raises(ValueError, match="removed"):          # the ban survives a restart of the room
+        Room(PW, FP, tmp_path / JOURNAL_NAME).join("Olena", PW, FP)
+    assert room.apply_ops(host["id"], [{"op_id": "u", "kind": "unban", "target": olena["id"]}])["u"] == {"ok": True}
+    assert _join(room, "Olena")["id"] != olena["id"]          # allowed back: the name joins as a new member
+
+
 def test_a_host_cannot_be_kicked_and_a_moderator_cannot_kick_a_moderator(tmp_path):
     room, host, _ = _room_with_host(tmp_path)
     mod = _join(room, "Mod")

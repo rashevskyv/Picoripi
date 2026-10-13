@@ -114,8 +114,9 @@ row's text removes the approval.
 with the same name on the same computer and you get your role back. While you are online, another computer cannot join
 with your name.
 
-**Removing a participant.** **Remove from room** keeps a participant out until a host or a moderator presses
-**Allow back**. Host and moderators cannot be removed.
+**Removing a participant.** **Remove from room** blocks the participant's token and its name until a host or a moderator
+presses **Allow back**. The room password still lets anyone in under a new name, so change the password to keep someone
+out. The host cannot be removed. A moderator cannot be removed; change its role first.
 
 **The window.** The Work Together window has four tabs under the list of people: **Roles**, **Claims** (with the
 requests), **Comments** and **Moderator log** (host only).

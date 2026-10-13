@@ -83,7 +83,10 @@ class ManagePanel(QTabWidget):
         roles_layout.addLayout(row)
         row = QHBoxLayout()
         self.kick_button = QPushButton(tr('Remove from room'), roles_tab)
-        self.kick_button.setToolTip(tr('The participant cannot join again until you allow it back.'))
+        self.kick_button.setToolTip(tr(
+            'Remove the participant. Its token and its name are blocked until you press Allow back. '
+            'Anyone with the room password can still join under a new name: change the password to keep someone out. '
+            'A moderator cannot be removed: change its role first.'))
         self.kick_button.clicked.connect(self._kick)
         self.unban_button = QPushButton(tr('Allow back'), roles_tab)
         self.unban_button.clicked.connect(self._unban)
@@ -218,7 +221,8 @@ class ManagePanel(QTabWidget):
         mid = _selected_id(self.people)
         member = self.handler.members.get(mid or "")
         if member and QMessageBox.question(self, tr('Remove from room'), tr(
-                'Remove {name} from the room? They cannot join again until you allow it back.',
+                'Remove {name} from the room? Its token and its name are blocked until you press Allow back. '
+                'Anyone with the room password can still join under a new name.',
                 name=member.get("name", "?"))) == QMessageBox.StandardButton.Yes:
             self.handler.kick(mid)
 

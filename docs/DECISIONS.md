@@ -289,8 +289,11 @@ the host's own computer.
 - **Approval.** Reviewers, moderators and the host mark a row approved. A text change clears the mark. Approval is not
   a claim.
 - **Presence.** Entering a row that someone else works on shows a soft warning. Nothing is locked.
-- **Removal.** A kick is a ban until a host or moderator allows the participant back. Host and moderators cannot be
-  removed. Moderator actions go to a log that only the host sees.
+- **Removal.** Removing a participant blocks its token and its name (compared without case) until a host or moderator
+  presses Allow back. A host cannot be removed; a moderator cannot be removed by a moderator, nor by the host until its
+  role is changed. A removal is not an access control: anyone with the room password can join under a new name with a
+  new token. To keep someone out, the host changes the room password. The ban is held in the journal (`banned_names`).
+  Moderator actions go to a log that only the host sees.
 - **Operations.** Each change is an operation with an `op_id`, a `kind`, its payload and an optional `seq`. `seq` counts
   per member from 1. The server applies a `seq` above the member's high-water mark only; a repeat answers
   `duplicate` and changes nothing. An operation without `seq` is applied once per member and `op_id`: the last 20,000

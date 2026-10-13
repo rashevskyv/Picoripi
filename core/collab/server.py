@@ -83,6 +83,7 @@ class Room:
         self.owner_hash: Optional[str] = None               # the creation token, until its first joiner takes it
         self.owner_name: Optional[str] = None
         self.owner_token_plain: Optional[str] = None        # kept in memory only, for the process that made it
+        self.banned_names: Set[str] = set()                 # casefolded names of removed members: no new identity uses one
         self.claims: Dict[str, Dict[str, Any]] = {}         # {cid: {cid, owner, scope, keys: set, order}}
         self.row_claim: Dict[str, str] = {}                 # row key -> cid of its most specific claim
         self.requests: Dict[str, Dict[str, Any]] = {}       # {rid: {rid, requester, scope, keys: set, time}}
@@ -157,6 +158,7 @@ class Room:
                                      "banned": bool(member.get("banned")), "op_hw": int(member.get("op_hw") or 0)}
                 self.token_index[self.members[mid]["token_hash"]] = mid
         self.owner_hash = data.get("owner_hash") or None
+        self.banned_names = {str(name) for name in data.get("banned_names") or []}
         for claim in data.get("claims") or []:
             self._claim_order += 1
             self.claims[claim["cid"]] = {"cid": claim["cid"], "owner": claim["owner"], "scope": claim["scope"],
@@ -175,6 +177,7 @@ class Room:
             "protocol": PROTOCOL, "fingerprint": self.fingerprint, "room_id": self.room_id, "seq": self.seq,
             "rows": {k: dict(v) for k, v in self.rows.items()}, "stats": json.loads(json.dumps(self.stats)),
             "members": {mid: dict(m) for mid, m in self.members.items()}, "owner_hash": self.owner_hash,
+            "banned_names": sorted(self.banned_names),
             "claims": [self._claim_out(c) for c in self.claims.values()],
             "requests": [self._request_out(r, keys=True) for r in self.requests.values()],
             "comments": [self._comment_out(c) for c in self.comments.values()],
@@ -253,6 +256,8 @@ class Room:
             if mid is not None and self.members[mid]["banned"]:
                 raise ValueError("you were removed from this room")
             effective = (self.owner_name or name) if is_owner else name
+            if mid is None and effective.casefold() in self.banned_names:    # a removed name, with a new token
+                raise ValueError("you were removed from this room")
             if any(pid != mid and who["name"] == effective for pid, who in self.participants.items()):
                 raise ValueError("that name is in use in this room")
             if is_owner:
@@ -586,6 +591,7 @@ class Room:
         if member is None or target == pid or not allowed(self._role(pid) or "", "kick", target=member["role"]):
             raise ValueError("not allowed")
         member["banned"] = True
+        self.banned_names.add(member["name"].casefold())
         self.participants.pop(target, None)
         self._event("kicked", by=pid, name=self._name(pid), member=target, target_name=member["name"])
         self._log(pid, "kicked", member=target, name=member["name"])
@@ -597,6 +603,7 @@ class Room:
         if member is None or not member["banned"] or not allowed(self._role(pid) or "", "kick", target=member["role"]):
             raise ValueError("not allowed")
         member["banned"] = False
+        self.banned_names.discard(member["name"].casefold())
         self._event("unbanned", by=pid, name=self._name(pid), member=target)
         self._log(pid, "unbanned", member=target, name=member["name"])
         return {"ok": True}
