@@ -4,9 +4,11 @@ from pathlib import Path
 
 import pytest
 
+import romhacking_root
+
 from plugins.donkey_kong_tropical_freeze.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Donkey Kong\Donkey Kong Country Tropical Freeze\Switch")
+WS = romhacking_root.under("Donkey Kong/Donkey Kong Country Tropical Freeze/Switch")
 
 
 def _need(path: Path) -> Path:

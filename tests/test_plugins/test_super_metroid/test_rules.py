@@ -434,14 +434,3 @@ def test_a_pause_label_takes_the_ukrainian_capital_in_cell_2_from_tile_14(zt_sm)
     out = sm.encode(sm.FONTS["pause"], cells, "Б UA TES", "area0")
     assert (out[2] & 0x3FF) == 14
     assert (out[2] & 0xFC00) == (cells[2] & 0xFC00)
-
-
-def _zt_sm_or_skip():
-    if not (SCRIPTS / "zt" / "sm.py").is_file():
-        pytest.skip("Super Metroid shared scripts not on disk")
-    sys.path.insert(0, str(SCRIPTS))
-    try:
-        from zt import sm
-        return sm
-    finally:
-        sys.path.remove(str(SCRIPTS))

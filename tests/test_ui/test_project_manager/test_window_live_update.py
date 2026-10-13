@@ -126,5 +126,5 @@ def test_clear_icon_removes_only_the_icon_file(qtbot, tmp_path, monkeypatch):
 
 
 def test_series_comes_from_the_folder_layout_with_or_without_a_platform_folder():
-    assert series_of("E:/Emulators/RomHacking/Ace Attorney/Trilogy/3DS/picoripi/project.uiproj") == "Ace Attorney"
-    assert series_of("E:/Emulators/RomHacking/Animal Crossing/Happy Home Designer/picoripi/project.uiproj") == "Animal Crossing"
+    assert series_of("Ace Attorney/Trilogy/3DS/picoripi/project.uiproj") == "Ace Attorney"
+    assert series_of("Animal Crossing/Happy Home Designer/picoripi/project.uiproj") == "Animal Crossing"

@@ -1,8 +1,9 @@
 """The Game Boy Color Oracles font backend: an unedited model packs back to the same ROM bytes, and an edited
 glyph changes only its own 16 bytes. The real ROM check is skipped where the ROM is not on this machine."""
-from pathlib import Path
 
 import pytest
+
+import romhacking_root
 from PIL import Image
 
 from core.font_formats import gbc_font
@@ -57,7 +58,7 @@ def test_missing_offset_is_refused():
 
 
 def test_real_usa_rom_round_trips_when_present():
-    path = Path(r"D:\Emulators\roms\roms\gbc\Legend of Zelda,The-Oracle of Ages.gbc")
+    path = romhacking_root.under("Zelda/Oracles/Ages/ISO/Legend of Zelda,The-Oracle of Ages.gbc")
     if not path.is_file():
         pytest.skip("the USA Oracle of Ages ROM is not on this machine")
     rom = path.read_bytes()

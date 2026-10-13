@@ -524,3 +524,20 @@ against the window's plugin load. The window's own loads still use `PLUGIN_IMPOR
 window stays responsive: heartbeat max gap 202 ms (was 2154 ms), 0 gaps over 250 ms (was 117). The render time falls
 from 42 s to 2 s. A frozen (PyInstaller) build would need a scan entry point; no frozen build exists. Icons changed
 while the window is open appear at the next scan (open or Reload); there is no file watcher.
+
+## D29. Game icons: an offline harvester writes icon.png; the app reads only icon.png (2026-10-13)
+
+**Context.** Two branches each added project icons. The Project Manager reads `picoripi/icon.png` and the optional
+`project_icon` plugin hook (D28). `core/game_icons` reads a picture from a game's own files (3DS, DS, GameCube, Wii,
+Switch, PE, PSP).
+
+**Decision.**
+- One mechanism. `scripts/harvest_project_icons.py` extracts a picture and writes `icon.png` beside
+  `project.uiproj`. It uses the Project Manager's atomic PNG writer (`core/project_library/icons.py`) and keeps the
+  native size.
+- The app does not extract game icons. A plugin that wants its own picture returns it from `project_icon`.
+- A harvested icon never replaces an existing `icon.png`. The script is a dry run unless `--apply` is given.
+- Game art is never committed to the repository.
+
+**Consequences.** The harvester has one write path. A harvested icon shows at the next scan, because the scan reads
+the file's size and time. A second extraction path inside the app would need a new record.

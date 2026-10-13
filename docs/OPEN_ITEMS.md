@@ -63,10 +63,10 @@ the line when it is done or moved into a plan.
 - `components/project_dialogs.py` `NewProjectDialog` is no longer opened by the product. The wizard has no option to use an existing translation folder, which the dialog had. Add that option to the wizard, or delete the class with `tests/manual_test_project_dialogs.py`.
 - ROADMAP entries A9 and A10 are not updated: `docs/ROADMAP.md` is not on `main`. Their state is in the phase 2 commit messages and D23.
 - The first scan of 191 projects takes about 4 minutes in the scan process (plugin parsing is CPU work). The window stays responsive; a faster parse would need a plugin-level change.
-- Five projects show `Plugin missing` on `main`: `zelda_oracles`, `donkey_kong_tropical_freeze`, `mario_vs_donkey_kong_gba` and `mario_vs_donkey_kong_switch` exist only on unmerged branches (`feat/oracles-gbc`, `ready-dk-extra`, `ready-dk-gba`, `ready-dk-switch`). The project files are not changed; the rows light up when those plugins are merged.
+- Five projects showed `Plugin missing` before round 10 (`zelda_oracles`, `donkey_kong_tropical_freeze`, `mario_vs_donkey_kong_gba`, `mario_vs_donkey_kong_switch`). Round 10 merges those plugins. Not yet checked in the app.
 - The grid view has no details pane: Build, Export, Run and the flags are in the list view only.
 - Icons changed while the window is open appear at the next scan (open or Reload). There is no file watcher.
-- The icon files written by the game-icon extraction (`feat/game-icons`, `<project>/picoripi/icon.png`) are not on `main` yet; the manager reads them as soon as they exist beside `project.uiproj`.
+- Game icons: `scripts/harvest_project_icons.py` writes `picoripi/icon.png` (dry run by default; `--apply` writes). It is run by hand; the app does not extract icons (D29).
 - A scan child needs `sys.executable -m core.project_library.scan_child`. A frozen (PyInstaller) build would need a scan entry point; no frozen build exists.
 - A save of an open project writes its counts to the index from the window's process while a scan may be writing the same file from the child. A lost entry only means one recount at the next scan.
 

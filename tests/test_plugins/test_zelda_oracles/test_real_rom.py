@@ -3,16 +3,17 @@
 No ROM bytes are stored in the repository. The test reads the ROM from the user's collection and
 checks that rewriting every string with its own bytes leaves the ROM unchanged.
 """
-from pathlib import Path
 
 import pytest
+
+import romhacking_root
 
 from plugins.zelda_oracles import font, text
 from plugins.zelda_oracles.rom import AGES_US, SEASONS_US, identify
 
 ROMS = {
-    "ages": Path(r"D:\Emulators\roms\roms\gbc\Legend of Zelda,The-Oracle of Ages.gbc"),
-    "seasons": Path(r"D:\Emulators\roms\roms\gbc\Legend of Zelda,The-Oracle of Seasons.gbc"),
+    "ages": romhacking_root.under("Zelda/Oracles/Ages/ISO/Legend of Zelda,The-Oracle of Ages.gbc"),
+    "seasons": romhacking_root.under("Zelda/Oracles/Seasons/ISO/Legend of Zelda, The - Oracle of Seasons (USA, Australia).gbc"),
 }
 
 

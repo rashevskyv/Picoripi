@@ -1,14 +1,15 @@
 """The Oracles rules on the USA ROM (skipped where the ROM is not on this machine): the blocks come from the
 text groups, an unchanged save gives the same bytes, an edit lands in its own string and a longer one is refused.
 Ukrainian letter cells are unique and avoid the English button codes."""
-from pathlib import Path
 
 import pytest
+
+import romhacking_root
 
 from plugins.zelda_oracles import text
 from plugins.zelda_oracles.rules import GameRules, load_letters
 
-AGES = Path(r"D:\Emulators\roms\roms\gbc\Legend of Zelda,The-Oracle of Ages.gbc")
+AGES = romhacking_root.under("Zelda/Oracles/Ages/ISO/Legend of Zelda,The-Oracle of Ages.gbc")
 
 
 def _ages():
