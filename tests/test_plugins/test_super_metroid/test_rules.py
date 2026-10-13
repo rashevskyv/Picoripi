@@ -98,7 +98,7 @@ def test_real_text_saves_back_unchanged(tmp_path):
     rules = check_loads(PLUGIN)
     text = copy.read_text(encoding="utf-8")
     blocks, names = rules.load_data_from_json_obj(text)
-    assert any(blocks)
+    assert [len(b) for b in blocks] == [27, 27, 28, 7, 7, 77]     # JAPANESE TEXT layouts and row are not in the catalog
     assert rules.save_data_to_json_obj(blocks, names) == text
 
 
@@ -160,11 +160,15 @@ def test_real_rom_unchanged_text_and_sheets_build_the_same_rom(zt_sm, tmp_path):
     rom = sm.Rom(data)
     texts = {it["id"]: it["text"] for g in json.loads(sm.dump_text(rom))["groups"] for it in g["items"]}
     assert sm.apply_text(rom, texts, dict(texts)) == []
-    assert bytes(rom.data) == data
+    assert bytes(rom.data) == data                      # unchanged text: the same bytes
+    sm.blank_freed_intro(rom, data)                     # the build's own first steps: freed intro tiles, JP switch
+    sm.blank_freed_menu(rom)                            # freed menu tiles (the Japanese option art)
+    sm.patch_japanese_toggle(rom)
+    built = bytes(rom.data)
     for name in sm.GFX:
         (tmp_path / "s" / "gfx").mkdir(parents=True, exist_ok=True)
         (tmp_path / "s" / "gfx" / f"{name}.bin").write_bytes(sm.gfx_source(data, name))
-    assert sm.apply_gfx(rom, tmp_path / "s", tmp_path / "s") == [] and bytes(rom.data) == data
+    assert sm.apply_gfx(rom, tmp_path / "s", tmp_path / "s", data) == [] and bytes(rom.data) == built
 
 
 def test_real_rom_changed_texts_land_in_the_rom_and_read_back(zt_sm):
@@ -226,9 +230,10 @@ def _tile_image(data: bytes, tile: int):
 def test_the_game_fonts_are_listed_one_by_one_and_intro_is_two_fonts():
     rules = check_loads(PLUGIN)
     labels = [f["label"] for f in rules.get_font_sources()]
-    assert len(labels) == len(set(labels)) == 9
+    assert len(labels) == len(set(labels)) == 10
     assert [part for part in ("Message boxes", "HUD numbers", "small letters", "big letters (top",
-                              "Pause screen", "Intro story", "Intro first screen", "Credits: job", "Credits: names")
+                              "Pause screen", "Intro story", "Intro story pages: Ukrainian", "Intro first screen", "Credits: job",
+                              "Credits: names")
             if not any(part in label for label in labels)] == []
     story, prologue = _font(rules, "Intro story"), _font(rules, "Intro first screen")
     assert story["path"] == prologue["path"] == "gfx/intro_font.bin"
@@ -237,6 +242,43 @@ def test_the_game_fonts_are_listed_one_by_one_and_intro_is_two_fonts():
     assert prologue["params"]["cell"] == [8, 16] and prologue["params"]["texture_params"]["offset"] == 0x30 * 16
     assert story["params"]["cell"] == [8, 8] and story["params"]["texture_params"]["offset"] == 0
     assert story["params"]["texture_params"]["height"] // 8 * 16 == 0x30   # tiles 0..0x2F only
+
+
+def test_the_first_screen_grid_has_a_free_pair_cell_for_every_ukrainian_letter():
+    """Tiles 0x5A-0x5F/0x6A-0x6F and 0x70-0x7F/0x80-0x8F are the freed Japanese window (no English screen uses them)."""
+    rules = check_loads(PLUGIN)
+    prologue = _font(rules, "Intro first screen")
+    chars = prologue["params"]["chars"]
+    assert len(chars) == prologue["params"]["texture_params"]["height"] // 16 * 16 == 48
+    assert chars[:26] == [chr(65 + i) for i in range(26)]
+    free = set(range(0x5A, 0x60)) | set(range(0x6A, 0x90))
+    tops = []
+    for letter in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ":
+        row, col = divmod(chars.index(letter), 16)
+        top = 0x30 + 0x20 * row + col                     # the 8x16 grid: top tile, bottom tile 0x10 later
+        assert top in free and top + 0x10 in free, letter
+        tops.append(top)
+    assert len(set(tops)) == 21
+
+
+def test_the_story_window_has_a_cell_for_every_ukrainian_capital():
+    """The 96 tiles 0x30-0x8F that the story pages load from their own block: 21 free cells from tile 0x30 on."""
+    rules = check_loads(PLUGIN)
+    window = _font(rules, "Intro story pages: Ukrainian")
+    assert window["path"] == "gfx/story_window.bin" and window["format"] == "texture_grid"
+    assert window["params"]["texture_params"]["height"] // 8 * 16 == 96
+    chars = window["params"]["chars"]
+    assert len(chars) == 96 and chars[:21] == list("БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ")
+    assert set(chars[21:]) == {""}
+
+
+def test_real_story_window_cells_match_the_zt_table(zt_sm):
+    sm, data = zt_sm
+    rules = check_loads(PLUGIN)
+    window = _font(rules, "Intro story pages: Ukrainian")["params"]["chars"]
+    assert sm.STORY_FIRST_TILE == 0x30 and len(sm.STORY_UA) == 21
+    for ch, tile in sm.STORY_UA.items():
+        assert window[tile - sm.STORY_FIRST_TILE] == ch
 
 
 def test_real_intro_fonts_show_every_letter_the_text_uses_as_a_whole_glyph(zt_sm):
@@ -298,7 +340,7 @@ def test_an_edited_intro_glyph_lands_in_the_built_rom_and_the_other_intro_font_k
     rom, _texts, sheets = sm.build_rom(ws, data)
     assert sheets == ["intro_font"]
     built, _ = sm.decompress(rom, sm.lo(0x95D089))
-    original = sm.gfx_bytes(data, "intro_font")
+    original = sm.gfx_source(data, "intro_font")          # the freed Japanese tiles are blank in the build too
     tile = lambda blob, n: blob[n * 16:(n + 1) * 16]       # noqa: E731
     assert tile(built, 0x30) == tile(original, 0x31) and tile(built, 0x40) == tile(original, 0x41)   # first screen A
     assert tile(built, 0x00) == tile(original, 0x01)                                                  # story A
@@ -341,3 +383,65 @@ def test_real_rom_the_first_screen_text_is_an_item_and_moves_to_free_space_when_
     assert sm.patch_prologue_pointer(c_file, data, moved) is True
     assert c_file.read_text(encoding="utf-8").count(f"DecompressToMem(0x{sm.PROLOGUE_SPACE[0]:06x}, g_ram + 0x1e000)") == 1
     assert "0x978ADB" in c_file.read_text(encoding="utf-8")
+
+
+def test_the_small_menu_font_has_a_cell_for_every_ukrainian_capital_outside_the_english_letters():
+    rules = check_loads(PLUGIN)
+    small = next(f for f in rules.get_font_sources() if f["label"].startswith("File select, game over and options: small"))
+    chars = small["params"]["chars"]
+    cells = [chars.index(ch) for ch in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"]
+    assert len(set(cells)) == 21 and min(cells) >= 0xD2              # past the English letters (0x60-0x8F)
+    assert all(chars[c] == ch for c, ch in zip(cells, "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"))
+
+
+def test_the_pause_font_has_cells_for_the_ukrainian_capitals_on_free_stock_tiles():
+    """The 22 cells (21 capitals and the apostrophe) are tiles of the stock pause sheet that no pause map uses,
+    and none of them is a Latin letter or the dot of the pause font (tiles 48-74)."""
+    rules = check_loads(PLUGIN)
+    area = next(f for f in rules.get_font_sources() if f["label"].startswith("Pause screen: area names"))
+    assert area["path"] == "gfx/pause_tiles.bin" and area["format"] == "texture_grid"
+    chars = area["params"]["chars"]
+    cells = [chars.index(ch) for ch in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ’"]
+    assert cells[:2] == [14, 78] and len(set(cells)) == 22
+    assert all(not (48 <= c <= 74) for c in cells)
+    assert all(chars[c] == ch for c, ch in zip(cells, "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ’"))
+    assert not any(c for c in chars[48:75] if c not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ.")
+
+
+def test_real_pause_cells_are_stock_free_tiles_and_the_stock_sheet_round_trips(zt_sm):
+    sm, data = zt_sm
+    assert sm.PAUSE_UA_TILES == sm.PAUSE_FREE_TILES[:22] and sm.PAUSE_FREE_TILES[:2] == [14, 78]
+    assert all(t < 512 and not (48 <= t <= 74) for t in sm.PAUSE_FREE_TILES)
+    assert sm.UA_PAUSE["Б"] == 14 and sm.FONTS["pause"].codes["Б"] == 14
+    assert sm.FONTS["pause"].codes["G"] == 0x36 and sm.FONTS["pause"].codes["Z"] == 0x49
+    assert sm.FONTS["pause"].codes["'"] == sm.FONTS["pause"].codes["’"] == sm.PAUSE_UA_TILES[-1]
+    # raw 4bpp tiles, no compression: the cells are blanked in source\gfx and in the ROM, all others keep their bytes
+    raw = sm.gfx_bytes(data, "pause_tiles")
+    src = sm.gfx_source(data, "pause_tiles")
+    assert len(src) == len(raw) == 0x4000
+    for t in range(512):
+        expect = bytes(32) if t in sm.PAUSE_UA_TILES else raw[t * 32:(t + 1) * 32]
+        assert src[t * 32:(t + 1) * 32] == expect
+    rom = sm.Rom(data)
+    sm.blank_pause_cells(rom)
+    base = sm.lo(sm.GFX["pause_tiles"][0])
+    assert bytes(rom.data[base:base + 0x4000]) == src
+
+
+def test_a_pause_label_takes_the_ukrainian_capital_in_cell_2_from_tile_14(zt_sm):
+    sm, data = zt_sm
+    cells = sm.words(data, sm.lo(0x820000 | sm.word(data, sm.lo(sm.AREA_LABELS))), 12)
+    out = sm.encode(sm.FONTS["pause"], cells, "Б UA TES", "area0")
+    assert (out[2] & 0x3FF) == 14
+    assert (out[2] & 0xFC00) == (cells[2] & 0xFC00)
+
+
+def _zt_sm_or_skip():
+    if not (SCRIPTS / "zt" / "sm.py").is_file():
+        pytest.skip("Super Metroid shared scripts not on disk")
+    sys.path.insert(0, str(SCRIPTS))
+    try:
+        from zt import sm
+        return sm
+    finally:
+        sys.path.remove(str(SCRIPTS))
