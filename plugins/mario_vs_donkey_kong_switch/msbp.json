@@ -1,0 +1,4428 @@
+{
+ "endian": "little",
+ "colors": [
+  {
+   "name": "Red",
+   "rgba": "ed1c24ff"
+  },
+  {
+   "name": "Yellow",
+   "rgba": "ff6900ff"
+  },
+  {
+   "name": "Blue",
+   "rgba": "0000ffff"
+  },
+  {
+   "name": "Orange",
+   "rgba": "ff2c00ff"
+  },
+  {
+   "name": "LightBlue",
+   "rgba": "0090ffff"
+  },
+  {
+   "name": "LightOrange",
+   "rgba": "ff6700ff"
+  },
+  {
+   "name": "Credits_Yellow",
+   "rgba": "ffde00ff"
+  }
+ ],
+ "attributes": [],
+ "tag_groups": [
+  {
+   "id": 0,
+   "name": "System",
+   "tags": [
+    {
+     "name": "Ruby",
+     "params": [
+      {
+       "name": "rt",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Font",
+     "params": [
+      {
+       "name": "name",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Scale",
+     "params": [
+      {
+       "name": "percent",
+       "type": "u16"
+      },
+      {
+       "name": "name",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Color",
+     "params": [
+      {
+       "name": "name",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "PageBreak",
+     "params": []
+    },
+    {
+     "name": "Reference",
+     "params": [
+      {
+       "name": "mltxt",
+       "type": "str"
+      },
+      {
+       "name": "label",
+       "type": "str"
+      },
+      {
+       "name": "lang",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "name": "Eui",
+   "tags": [
+    {
+     "name": "Wait",
+     "params": [
+      {
+       "name": "f",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "Speed",
+     "params": [
+      {
+       "name": "v",
+       "type": "f32"
+      }
+     ]
+    },
+    {
+     "name": "Flush",
+     "params": []
+    },
+    {
+     "name": "AutoNext",
+     "params": [
+      {
+       "name": "f",
+       "type": "s32"
+      }
+     ]
+    },
+    {
+     "name": "Choice2",
+     "params": [
+      {
+       "name": "opt0",
+       "type": "u16"
+      },
+      {
+       "name": "opt1",
+       "type": "u16"
+      },
+      {
+       "name": "default",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1"
+       ]
+      },
+      {
+       "name": "cancel",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1",
+        "none"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Choice3",
+     "params": [
+      {
+       "name": "opt0",
+       "type": "u16"
+      },
+      {
+       "name": "opt1",
+       "type": "u16"
+      },
+      {
+       "name": "opt2",
+       "type": "u16"
+      },
+      {
+       "name": "default",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1",
+        "opt2"
+       ]
+      },
+      {
+       "name": "cancel",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1",
+        "opt2",
+        "none"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Choice4",
+     "params": [
+      {
+       "name": "opt0",
+       "type": "u16"
+      },
+      {
+       "name": "opt1",
+       "type": "u16"
+      },
+      {
+       "name": "opt2",
+       "type": "u16"
+      },
+      {
+       "name": "opt3",
+       "type": "u16"
+      },
+      {
+       "name": "default",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1",
+        "opt2",
+        "opt3"
+       ]
+      },
+      {
+       "name": "cancel",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1",
+        "opt2",
+        "opt3",
+        "none"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "PictFont",
+     "params": [
+      {
+       "name": "c",
+       "type": "list",
+       "items": [
+        "A",
+        "B"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "ChoiceExclude",
+     "params": [
+      {
+       "name": "opt0",
+       "type": "s16"
+      },
+      {
+       "name": "opt0_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt1",
+       "type": "s16"
+      },
+      {
+       "name": "opt1_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt2",
+       "type": "s16"
+      },
+      {
+       "name": "opt2_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt3",
+       "type": "s16"
+      },
+      {
+       "name": "opt3_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "default",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1",
+        "opt2",
+        "opt3"
+       ]
+      },
+      {
+       "name": "cancel",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1",
+        "opt2",
+        "opt3",
+        "none"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "ChoiceExcludeSpare",
+     "params": [
+      {
+       "name": "opt0",
+       "type": "s16"
+      },
+      {
+       "name": "opt0_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt1",
+       "type": "s16"
+      },
+      {
+       "name": "opt1_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt2",
+       "type": "s16"
+      },
+      {
+       "name": "opt2_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt3",
+       "type": "s16"
+      },
+      {
+       "name": "opt3_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt4",
+       "type": "s16"
+      },
+      {
+       "name": "opt4_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt5",
+       "type": "s16"
+      },
+      {
+       "name": "opt5_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt6",
+       "type": "s16"
+      },
+      {
+       "name": "opt6_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "opt7",
+       "type": "s16"
+      },
+      {
+       "name": "opt7_exclude_key",
+       "type": "str"
+      },
+      {
+       "name": "default",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1",
+        "opt2",
+        "opt3",
+        "opt4",
+        "opt5",
+        "opt6",
+        "opt7"
+       ]
+      },
+      {
+       "name": "cancel",
+       "type": "list",
+       "items": [
+        "opt0",
+        "opt1",
+        "opt2",
+        "opt3",
+        "opt4",
+        "opt5",
+        "opt6",
+        "opt7",
+        "none"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Choice1",
+     "params": [
+      {
+       "name": "opt0",
+       "type": "u16"
+      },
+      {
+       "name": "cancel",
+       "type": "list",
+       "items": [
+        "opt0",
+        "none"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "name": "String",
+   "tags": [
+    {
+     "name": "Day",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Month",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Year",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Time",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "World",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Level",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Number",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "WorldName",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Seconds",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Centiseconds",
+     "params": [
+      {
+       "name": "Value",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "name": "Controls",
+   "tags": [
+    {
+     "name": "TabLeft",
+     "params": []
+    },
+    {
+     "name": "TabRight",
+     "params": []
+    },
+    {
+     "name": "Special",
+     "params": []
+    },
+    {
+     "name": "ButtonX",
+     "params": []
+    },
+    {
+     "name": "ButtonY",
+     "params": []
+    },
+    {
+     "name": "ButtonA",
+     "params": []
+    },
+    {
+     "name": "ButtonB",
+     "params": []
+    },
+    {
+     "name": "Select",
+     "params": []
+    }
+   ]
+  },
+  {
+   "id": 201,
+   "name": "Grammar",
+   "tags": [
+    {
+     "name": "WordAttr",
+     "params": [
+      {
+       "name": "Type",
+       "type": "list",
+       "items": [
+        "none",
+        "Masculine",
+        "Feminine",
+        "Neuter"
+       ]
+      },
+      {
+       "name": "DefArt",
+       "type": "s8"
+      },
+      {
+       "name": "IndefArt",
+       "type": "s8"
+      },
+      {
+       "name": "Count",
+       "type": "list",
+       "items": [
+        "Singular",
+        "Plural"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "DefArt",
+     "params": []
+    },
+    {
+     "name": "IndefArt",
+     "params": []
+    },
+    {
+     "name": "Cap",
+     "params": []
+    },
+    {
+     "name": "Decap",
+     "params": []
+    },
+    {
+     "name": "Gender",
+     "params": [
+      {
+       "name": "Masculine",
+       "type": "str"
+      },
+      {
+       "name": "Feminine",
+       "type": "str"
+      },
+      {
+       "name": "Neuter",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Count",
+     "params": [
+      {
+       "name": "Singular",
+       "type": "str"
+      },
+      {
+       "name": "Plural",
+       "type": "str"
+      },
+      {
+       "name": "SingularPossessive",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "Patchim",
+     "params": [
+      {
+       "name": "Yes",
+       "type": "str"
+      },
+      {
+       "name": "No",
+       "type": "str"
+      }
+     ]
+    },
+    {
+     "name": "PatchimX",
+     "params": [
+      {
+       "name": "Yes",
+       "type": "str"
+      },
+      {
+       "name": "No",
+       "type": "str"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "styles": [
+  {
+   "name": "GameLevelPauseMenu_00-L_Resume-T_Btn_00",
+   "region_width": 782,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Menu-T_Btn_00",
+   "region_width": 782,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Restart-T_Btn_00",
+   "region_width": 782,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Mode-T_Btn_00",
+   "region_width": 782,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "LevelIntro_00-T_Text",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-T_Name_00",
+   "region_width": 100,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-T_Level_00",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-T_New_00",
+   "region_width": 810,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-T_Name_00",
+   "region_width": 100,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-T_Level_00",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-T_New_00",
+   "region_width": 810,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-T_Name_00",
+   "region_width": 100,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-T_Level_00",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-T_New_00",
+   "region_width": 810,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameOver_00-T_Text",
+   "region_width": 1840,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_00-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_01-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_02-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_03-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_04-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_05-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Lives-T_Lives",
+   "region_width": 75,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Lives-T_x",
+   "region_width": 60,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Time-T_Time",
+   "region_width": 180,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Controllers-T_IconText",
+   "region_width": 180,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Controllers-T_BottomText",
+   "region_width": 400,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Guides-T_IconText",
+   "region_width": 180,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Guides-T_BottomText",
+   "region_width": 400,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-L_StarScore-T_StarNumber",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-T_File_Text",
+   "region_width": 300,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-L_StarScore-T_StarNumber",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-T_File_Text",
+   "region_width": 300,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-L_StarScore-T_StarNumber",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-T_File_Text",
+   "region_width": 300,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-T_FileSelect_Header",
+   "region_width": 1900,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_Guides-T_IconText",
+   "region_width": 180,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_Guides-T_BottomText",
+   "region_width": 400,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_Controllers-T_IconText",
+   "region_width": 180,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_Controllers-T_BottomText",
+   "region_width": 400,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameConfirmation_00-L_Window_00-T_Text",
+   "region_width": 1480,
+   "lines": 9,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameConfirmation_00-L_Window_00-L_Left-T_Btn_00",
+   "region_width": 800,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameConfirmation_00-L_Window_00-L_Right-T_Btn_00",
+   "region_width": 800,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameOver_00-L_Right-T_Btn_00",
+   "region_width": 540,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameOver_00-L_Left-T_Btn_00",
+   "region_width": 540,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-T_Time_00",
+   "region_width": 500,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-T_Mode_00",
+   "region_width": 750,
+   "lines": 2,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-T_Time_00",
+   "region_width": 500,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-T_Mode_00",
+   "region_width": 750,
+   "lines": 2,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-T_Time_00",
+   "region_width": 500,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-T_Mode_00",
+   "region_width": 750,
+   "lines": 2,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Window_00-T_Title",
+   "region_width": 800,
+   "lines": 2,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-T_WorldName_00",
+   "region_width": 1200,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameSplashScreen_00-T_Notes_00",
+   "region_width": 300,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameSplashScreen_00-T_Left_00",
+   "region_width": 500,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameSplashScreen_00-T_Glyph_02",
+   "region_width": 40,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameSplashScreen_00-T_Glyph_01",
+   "region_width": 45,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameSplashScreen_00-T_Glyph_00",
+   "region_width": 40,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_Gallery-T_IconText",
+   "region_width": 180,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_Gallery-T_BottomText",
+   "region_width": 400,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_00-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_01-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_02-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_03-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_04-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_05-T_In",
+   "region_width": 72,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Star_00-T_Clear",
+   "region_width": 700,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "GameConfirmation_01-L_Window_00-T_Text",
+   "region_width": 1300,
+   "lines": 5,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameConfirmation_01-L_Window_00-L_Left-T_Btn_00",
+   "region_width": 800,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameConfirmation_01-L_Window_00-L_Right-T_Btn_00",
+   "region_width": 800,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_TwoHandClimb_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_TwoHandClimb_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_TwoHandClimb_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_TwoHandClimb_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_TwoHandClimb_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_TwoHandClimb_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Backflip_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Backflip_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Backflip_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Backflip_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Backflip_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Backflip_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Crouch_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Crouch_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Crouch_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Crouch_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Crouch_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_Crouch_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HammerThrow_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HammerThrow_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HammerThrow_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HammerThrow_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HammerThrow_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HammerThrow_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandDoubleJump_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandDoubleJump_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandDoubleJump_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandDoubleJump_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandDoubleJump_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandDoubleJump_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandJump_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandJump_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandJump_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandJump_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandJump_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandJump_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandWalk_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandWalk_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandWalk_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandWalk_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandWalk_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandWalk_00-L_Tutorial-T_Description",
+   "region_width": 1250,
+   "lines": 5,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_JumpUpThrow_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_JumpUpThrow_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_JumpUpThrow_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_JumpUpThrow_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_JumpUpThrow_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_JumpUpThrow_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpEnemies_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpEnemies_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpEnemies_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpEnemies_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpEnemies_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpEnemies_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpObjects_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpObjects_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpObjects_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpObjects_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpObjects_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpObjects_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ThrowObjectsUp_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ThrowObjectsUp_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ThrowObjectsUp_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ThrowObjectsUp_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ThrowObjectsUp_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ThrowObjectsUp_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ViewLevel_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 4,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ViewLevel_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ViewLevel_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ViewLevel_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ViewLevel_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ViewLevel_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 12,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_WireSpinJump_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_WireSpinJump_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_WireSpinJump_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_WireSpinJump_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_WireSpinJump_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_WireSpinJump_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_BackingWindow-T_Title",
+   "region_width": 800,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_AudioListenerPanel-L_MusicButton-T_Btn_00",
+   "region_width": 340,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_AudioListenerPanel-L_MusicButton-T_Numeric",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_AudioListenerPanel-L_SE_Button-T_Btn_00",
+   "region_width": 340,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_AudioListenerPanel-L_SE_Button-T_Numeric",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Audio-T_MiddleText",
+   "region_width": 1920,
+   "lines": 2,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_00-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_01-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_02-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_03-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_04-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Mini_05-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Video-T_MiddleText",
+   "region_width": 1920,
+   "lines": 2,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_00-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_01-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_02-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_03-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_04-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Mini_05-T_text_MISS",
+   "region_width": 260,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_2P_Header-T_Pair_00",
+   "region_width": 804,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_2P_Header-T_Join_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_2P_Header-T_R_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_2P_Header-T_Plus_00",
+   "region_width": 34,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_2P_Header-T_L_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_2P_Header-T_SL_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_2P_Header-T_SR_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_2P_Header-T_Pair_00",
+   "region_width": 804,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_2P_Header-T_Join_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_2P_Header-T_R_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_2P_Header-T_Plus_00",
+   "region_width": 34,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_2P_Header-T_L_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_2P_Header-T_SL_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_2P_Header-T_SR_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-L_GameMode-T_Mode_00",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-L_GameMode-T_Mode_00",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-L_GameMode-T_Mode_00",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ColorSwitch_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ColorSwitch_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ColorSwitch_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ColorSwitch_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ColorSwitch_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ColorSwitch_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ToyBox_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ToyBox_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ToyBox_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ToyBox_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ToyBox_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_ToyBox_00-L_Tutorial-T_Description",
+   "region_width": 1250,
+   "lines": 2,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Lives-T_Lives",
+   "region_width": 75,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-L_Lives-T_x",
+   "region_width": 60,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_00-T_2JoyconDescription",
+   "region_width": 506,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_00-T_1JoyconDescription",
+   "region_width": 518,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_00-T_MoveName",
+   "region_width": 360,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_01-T_2JoyconDescription",
+   "region_width": 506,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_01-T_1JoyconDescription",
+   "region_width": 518,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_01-T_MoveName",
+   "region_width": 360,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_02-T_2JoyconDescription",
+   "region_width": 506,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_02-T_1JoyconDescription",
+   "region_width": 518,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_02-T_MoveName",
+   "region_width": 360,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_03-T_2JoyconDescription",
+   "region_width": 506,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_03-T_1JoyconDescription",
+   "region_width": 518,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_03-T_MoveName",
+   "region_width": 360,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_04-T_2JoyconDescription",
+   "region_width": 506,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_04-T_1JoyconDescription",
+   "region_width": 518,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_04-T_MoveName",
+   "region_width": 360,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_05-T_2JoyconDescription",
+   "region_width": 506,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_05-T_1JoyconDescription",
+   "region_width": 518,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_05-T_MoveName",
+   "region_width": 360,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_06-T_2JoyconDescription",
+   "region_width": 506,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_06-T_1JoyconDescription",
+   "region_width": 518,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_06-T_MoveName",
+   "region_width": 360,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_SingleJoyConPage-T_Grab_Dual_00",
+   "region_width": 600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_SingleJoyConPage-T_Jump_Dual_00",
+   "region_width": 600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_SingleJoyConPage-T_Move_Dual_00",
+   "region_width": 600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_DualJoyConPage-T_Move_Dual",
+   "region_width": 388,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_DualJoyConPage-T_ActivateCamera_Dual",
+   "region_width": 400,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_DualJoyConPage-T_Grab_Dual",
+   "region_width": 400,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_DualJoyConPage-T_Jump_Dual",
+   "region_width": 400,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_PageHeader-T_ActionGuideText",
+   "region_width": 1024,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Video-L_TabL-T_ButtonsL",
+   "region_width": 80,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Video-L_TabL-T_ButtonsArrowL",
+   "region_width": 55,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Video-L_TabR-T_ButtonsR",
+   "region_width": 80,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Video-L_TabR-T_ButtonsArrowR",
+   "region_width": 55,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Audio-L_TabL-T_ButtonsL",
+   "region_width": 80,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Audio-L_TabL-T_ButtonsArrowL",
+   "region_width": 55,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Audio-L_TabR-T_ButtonsR",
+   "region_width": 80,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-L_GalleryTab_Audio-L_TabR-T_ButtonsArrowR",
+   "region_width": 55,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_PageHeader-L_TabL-T_ButtonsL",
+   "region_width": 80,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_PageHeader-L_TabL-T_ButtonsArrowL",
+   "region_width": 55,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_PageHeader-L_TabR-T_ButtonsR",
+   "region_width": 80,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_PageHeader-L_TabR-T_ButtonsArrowR",
+   "region_width": 55,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameModeChoice_00-T_ModeSelectTitle",
+   "region_width": 1920,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameModeChoice_00-L_Left-T_ModeName",
+   "region_width": 460,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameModeChoice_00-L_Right-T_ModeName",
+   "region_width": 460,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameModeChoice_00-T_ClassicText",
+   "region_width": 1600,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameModeChoice_00-T_CasualText",
+   "region_width": 1600,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Cutscene_Skip-L_Skip_00-TxtAButton",
+   "region_width": 56,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Cutscene_Skip-L_Skip_00-TxtRematch",
+   "region_width": 280,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeUp_00-T_Text",
+   "region_width": 1600,
+   "lines": 2,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpRamRam_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpRamRam_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpRamRam_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpRamRam_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpRamRam_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_PickUpRamRam_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "OneUpIndicator-T_1UP",
+   "region_width": 210,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandBirdEgg_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandBirdEgg_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandBirdEgg_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandBirdEgg_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandBirdEgg_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_HandstandBirdEgg_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 15,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Time-T_InfinitySymbol",
+   "region_width": 50,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Camera-T_2P_Text",
+   "region_width": 50,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Camera-T_1P_Text",
+   "region_width": 50,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "CongratsScreen-T_Congratulations",
+   "region_width": 1300,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "CongratsScreen-L_Banner-T_WorldCleared",
+   "region_width": 1400,
+   "lines": 3,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "LevelIntro_00-T_Text_00",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "LevelIntro_00-T_Text_01",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "LevelIntro_00-T_Text_02",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "LevelIntro_00-T_Text_03",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-L_Time-T_BonusTime",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-T_TargetTimeLabel",
+   "region_width": 160,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelHUD_00-T_TimeToBeat",
+   "region_width": 105,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "Gallery_00-T_Text",
+   "region_width": 880,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-L_Lives-T_Lives",
+   "region_width": 100,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-L_Lives-T_Lives",
+   "region_width": 100,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-L_Lives-T_Lives",
+   "region_width": 100,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_00-T_2PHeader",
+   "region_width": 1620,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_01-T_2PHeader",
+   "region_width": 1620,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_02-T_2PHeader",
+   "region_width": 1620,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_03-T_2PHeader",
+   "region_width": 1620,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_04-T_2PHeader",
+   "region_width": 1620,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_05-T_2PHeader",
+   "region_width": 1620,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-L_ListItem_06-T_2PHeader",
+   "region_width": 1620,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-T_Controls",
+   "region_width": 1580,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-T_DualJoycon",
+   "region_width": 100,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_ActionGuidePage-T_SingleJoycon",
+   "region_width": 100,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_SingleJoyConPage-T_ActivateCamera_Dual_00",
+   "region_width": 600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_PageHeader-Nav_Dual",
+   "region_width": 100,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_PageHeader-Nav_Single",
+   "region_width": 100,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_PageHeader-Nav_Guide",
+   "region_width": 100,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_Win",
+   "region_width": 1200,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_Time",
+   "region_width": 540,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_Best",
+   "region_width": 540,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_Lose",
+   "region_width": 1200,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_NewBestTime",
+   "region_width": 400,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_TimesUp",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Star_00-T_Perfect",
+   "region_width": 700,
+   "lines": 1,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_SpringJump_00-L_Tutorial-T_Controls_00",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_SpringJump_00-L_Tutorial-T_Title",
+   "region_width": 1000,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_SpringJump_00-L_Tutorial-T_Controls_01",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_SpringJump_00-L_Tutorial-T_Controls_02",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_SpringJump_00-L_Tutorial-T_Controls_03",
+   "region_width": 400,
+   "lines": 3,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Tutorial_SpringJump_00-L_Tutorial-T_Description",
+   "region_width": 1340,
+   "lines": 11,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Prompt-T_Select",
+   "region_width": 566,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_Prompt-T_SelectButton",
+   "region_width": 60,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_World-T_WorldName",
+   "region_width": 1600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelWin_00-L_World-T_Title",
+   "region_width": 1600,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackIntro_00-T_Best",
+   "region_width": 420,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackIntro_00-T_BestLabel",
+   "region_width": 480,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackIntro_00-T_TimeToBeat",
+   "region_width": 420,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackIntro_00-T_TimeToBeatLabel",
+   "region_width": 480,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackIntro_00-L_World-T_WorldName",
+   "region_width": 1600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackIntro_00-L_World-T_Title",
+   "region_width": 1600,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-L_Right-T_Btn_00",
+   "region_width": 540,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-L_Left-T_Btn_00",
+   "region_width": 540,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_TimeLabel",
+   "region_width": 540,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_BestLabel",
+   "region_width": 540,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_TimeToBeatLabel",
+   "region_width": 540,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "TimeAttackOutro_00-T_TimeToBeat",
+   "region_width": 540,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "PickupIndicator-T_Button",
+   "region_width": 120,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_Special_00-T_Select",
+   "region_width": 566,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_Special_00-T_SelectButton",
+   "region_width": 60,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_ButtonX_00-T_Select",
+   "region_width": 566,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_ButtonX_00-T_SelectButton",
+   "region_width": 60,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_ButtonX_01-T_Select",
+   "region_width": 566,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_ButtonX_01-T_SelectButton",
+   "region_width": 60,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_Select_01-T_Select",
+   "region_width": 566,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_Select_01-T_SelectButton",
+   "region_width": 60,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_ButtonB_01-T_Select",
+   "region_width": 566,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_ButtonB_01-T_SelectButton",
+   "region_width": 60,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_ButtonA_01-T_Select",
+   "region_width": 566,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "Footer_00-L_Footer-L_ButtonA_01-T_SelectButton",
+   "region_width": 60,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelPauseMenu_00-T_Title",
+   "region_width": 800,
+   "lines": 1,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_GameMode-T_Mode_00",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_StarScore-T_StarNumber",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Lives-T_Lives",
+   "region_width": 100,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_2P_Header-T_Pair_00",
+   "region_width": 804,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_2P_Header-T_Join_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_2P_Header-T_R_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_2P_Header-T_Plus_00",
+   "region_width": 34,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_2P_Header-T_L_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_2P_Header-T_SL_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_2P_Header-T_SR_00",
+   "region_width": 50,
+   "lines": 1,
+   "font": 13,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_00-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_00-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_00-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_01-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_01-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_01-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_02-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_02-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_02-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_03-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_03-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_03-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_04-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_04-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_04-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_05-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_05-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_05-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_06-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_06-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_06-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_07-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_07-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_07-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_08-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_08-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P0-L_Btn_08-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_00-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_00-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_00-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_01-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_01-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_01-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_02-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_02-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_02-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_03-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_03-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_03-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_04-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_04-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_04-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_05-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_05-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_05-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_06-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_06-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_06-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_07-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_07-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_07-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_08-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_08-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_P1-L_Btn_08-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_00-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_00-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_00-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_01-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_01-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_01-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_02-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_02-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_02-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_03-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_03-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_03-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_04-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_04-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_04-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_05-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_05-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_05-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_06-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_06-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_06-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_07-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_07-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_07-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_08-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_08-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels-L_Btn_08-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-T_WorldName_00",
+   "region_width": 950,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_00-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_00-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_00-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_01-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_01-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_01-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_02-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_02-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_02-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_03-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_03-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_03-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_04-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_04-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_04-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_05-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_05-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_05-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_06-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_06-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_06-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_07-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_07-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_07-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_08-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_08-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N1-L_Btn_08-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_00-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_00-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_00-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_01-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_01-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_01-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_02-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_02-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_02-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_03-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_03-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_03-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_04-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_04-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_04-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_05-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_05-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_05-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_06-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_06-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_06-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_07-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_07-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_07-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_08-L_LevelNumber_00-T_Text_00",
+   "region_width": 95,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_08-L_ExpertLock-T_StarNumber_00",
+   "region_width": 200,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Levels_N0-L_Btn_08-L_ExpertLock-T_StarNumber_01",
+   "region_width": 165,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-T_ArrowR_00",
+   "region_width": 39,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-T_ArrowL_00",
+   "region_width": 39,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_00-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_01-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_02-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_03-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_04-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_05-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_06-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_07-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_08-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_09-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_10-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_11-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_12-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_13-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_14-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_15-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_16-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_17-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_18-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_Zipper_00-L_W_19-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "ThanksPlaying-T_text_00",
+   "region_width": 1400,
+   "lines": 4,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotA-L_GameMode-T_Mode_01",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotB-L_GameMode-T_Mode_01",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameMainMenu_00-L_SlotC-L_GameMode-T_Mode_01",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "GameLevelSelect_00-L_GameMode-T_Mode_01",
+   "region_width": 300,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "MainCredits_00-T_Text_00",
+   "region_width": 1440,
+   "lines": 37,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "MainCredits_00-T_Text_01",
+   "region_width": 1440,
+   "lines": 37,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "PlusCredits_00-T_Text_00",
+   "region_width": 1600,
+   "lines": 37,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "PlusCredits_00-T_Text_01",
+   "region_width": 1600,
+   "lines": 37,
+   "font": 8,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-T_WorldName_00",
+   "region_width": 1500,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_00-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_01-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_02-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_03-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_04-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_05-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_06-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_07-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_08-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_09-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_10-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_11-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_12-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_13-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_14-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_15-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_16-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_17-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_18-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "WorldIntro-L_Zipper_00-L_W_19-T_WorldNumber_00",
+   "region_width": 150,
+   "lines": 1,
+   "font": 1,
+   "color": -1
+  },
+  {
+   "name": "MainCredits_00-T_Text_Thanks",
+   "region_width": 1920,
+   "lines": 7,
+   "font": 0,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_SingleJoyConPage-T_ActivateCamera_Dual_01",
+   "region_width": 600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_SingleJoyConPage-T_Grab_Dual_01",
+   "region_width": 600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_SingleJoyConPage-T_Jump_Dual_01",
+   "region_width": 600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  },
+  {
+   "name": "ActionGuideMenu_00-L_SingleJoyConPage-T_Move_Dual_01",
+   "region_width": 600,
+   "lines": 1,
+   "font": 12,
+   "color": -1
+  }
+ ]
+}
