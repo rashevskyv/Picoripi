@@ -4,6 +4,7 @@ The synthetic font has a 4x2 grid of 10x10 cells on one sheet: Latin letters wit
 Cyrillic glyphs with a flat advance of 35, as the Wind Waker HD font has. The real test works on a copy.
 """
 import shutil
+import os
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,7 @@ from PIL import Image
 
 from core.font_formats import advance, char_map, map_entries
 
-REAL = Path("E:/Emulators/RomHacking/Zelda/Wind Waker/HD - Wii U/source/Font/CKingMsg.bffnt")  # the game's own copy: flat 35
+REAL = Path(os.environ.get("PICORIPI_ROMHACKING", "RomHacking"), "Zelda/Wind Waker/HD - Wii U/source/Font/CKingMsg.bffnt")  # the game's own copy: flat 35
 
 
 def _synthetic():

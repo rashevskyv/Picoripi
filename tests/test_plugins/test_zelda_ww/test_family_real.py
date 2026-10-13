@@ -4,6 +4,7 @@ Skipped on a machine without the unpacked game. The counts are the ones the plan
 recognition, the tag table or the link alignment changed.
 """
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -15,8 +16,8 @@ from plugins.zelda_tww.rules import GameRules
 from plugins.zelda_ww import family_tags as ft
 from plugins.zelda_ww.tags import to_editor
 
-GC_MSG = Path("E:/Emulators/RomHacking/Zelda/Wind Waker/GC/source/files/res/Msg")
-HD_MSG = Path("E:/Emulators/RomHacking/Zelda/Wind Waker/HD - Wii U/source/Message")
+GC_MSG = Path(os.environ.get("PICORIPI_ROMHACKING", "RomHacking"), "Zelda/Wind Waker/GC/source/files/res/Msg")
+HD_MSG = Path(os.environ.get("PICORIPI_ROMHACKING", "RomHacking"), "Zelda/Wind Waker/HD - Wii U/source/Message")
 needs_game = pytest.mark.skipif(not (GC_MSG.is_dir() and HD_MSG.is_dir()),
                                 reason="the unpacked Wind Waker message folders are not on this machine")
 

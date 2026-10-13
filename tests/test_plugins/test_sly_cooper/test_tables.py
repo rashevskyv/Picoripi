@@ -11,10 +11,7 @@ import pytest
 
 from plugins.sly_cooper import tables
 
-DEFAULT_WORLDS = Path(
-    r"D:\Downloads\switch\Sly Cooper and the Thievius Raccoonus (ProjectCane port) for Nintendo Switch [NSP]"
-    r"\switch\ProjectCane\Worlds"
-)
+DEFAULT_WORLDS = Path("sly_cooper_switch/switch/ProjectCane/Worlds")
 WORLDS = Path(os.environ.get("SLY1_WORLDS", str(DEFAULT_WORLDS)))
 PARIS = WORLDS / "Paris" / "Paris.brx"
 real = pytest.mark.skipif(not PARIS.exists(), reason="Sly data folder not on this machine")

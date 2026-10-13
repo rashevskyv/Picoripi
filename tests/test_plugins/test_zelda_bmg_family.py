@@ -3,6 +3,7 @@
 Skipped on a machine without the unpacked game. The counts are the ones the plan printed for the GameCube, Wii and
 both Wii U HD slots; a change here means the recognition or the linking changed.
 """
+import os
 from pathlib import Path
 
 import pytest
@@ -10,10 +11,10 @@ import pytest
 from core.family_projects.store import links
 from plugins.zelda_bmg.family import family_of, make_rules, plan_for_sources
 
-WORKSPACE = Path("E:/Emulators/RomHacking/Zelda/Twilight Princess")
+WORKSPACE = Path(os.environ.get("PICORIPI_ROMHACKING", "RomHacking"), "Zelda/Twilight Princess")
 SOURCES = [
     WORKSPACE / "GC + Wii/ISO/ENG/root/res/Msgus",
-    Path("D:/RomHacking_tmp/Zelda/TP_Wii_ENG/files/res/Msgus"),
+    Path(os.environ.get("PICORIPI_SCRATCH", "scratch"), "Zelda/TP_Wii_ENG/files/res/Msgus"),
     WORKSPACE / "HD - Wii U/source/content/res/Msguk",
     WORKSPACE / "HD - Wii U/source/content/res/Msgus",
 ]

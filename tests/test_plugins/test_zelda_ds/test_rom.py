@@ -4,6 +4,7 @@ The real-data tests read the clean USA dumps from the scratch folder (never copi
 when the folder is missing.
 """
 import struct
+import os
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,7 @@ import pytest
 from plugins.zelda_ds import rom
 from plugins.zelda_ds.bmg import Bmg, build
 
-SCRATCH = Path(r"D:\RomHacking_tmp\zelda_ds\rom_clean")
+SCRATCH = Path(os.environ.get("PICORIPI_SCRATCH", "scratch"), r"zelda_ds\rom_clean")
 PH = SCRATCH / "ph_usa.nds"
 ST = SCRATCH / "st_usa.nds"
 

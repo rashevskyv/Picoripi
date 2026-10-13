@@ -1,4 +1,5 @@
 """Picture archives of the DS Zelda games: NARC / LZ10 round trip, an NCGR edit, nested archives."""
+import os
 from pathlib import Path
 
 import pytest
@@ -6,7 +7,7 @@ import pytest
 from plugins.zelda_ds import pictures
 from plugins.zelda_ds.rom import nitro_files
 
-SCRATCH = Path(r"D:\RomHacking_tmp\zelda_ds\rom_clean")
+SCRATCH = Path(os.environ.get("PICORIPI_SCRATCH", "scratch"), r"zelda_ds\rom_clean")
 PH = SCRATCH / "ph_usa.nds"
 ST = SCRATCH / "st_usa.nds"
 

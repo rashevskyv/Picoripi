@@ -2,6 +2,7 @@
 
 The synthetic cases name one kind each. The real-data test checks that the game's own 68 HD files raise no issue.
 """
+import os
 from pathlib import Path
 
 import pytest
@@ -10,7 +11,7 @@ from plugins.common.msbt import Msbt
 from plugins.zelda_ww.msbt_checks import check_text
 from plugins.zelda_ww.tags import to_editor
 
-HD_MSG = Path("E:/Emulators/RomHacking/Zelda/Wind Waker/HD - Wii U/source/Message")
+HD_MSG = Path(os.environ.get("PICORIPI_ROMHACKING", "RomHacking"), "Zelda/Wind Waker/HD - Wii U/source/Message")
 
 
 def kinds(text):

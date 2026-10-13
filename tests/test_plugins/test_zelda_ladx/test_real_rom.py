@@ -11,7 +11,7 @@ import pytest
 from plugins.zelda_ladx import rom, text
 
 DEFAULT_ZIP = Path(
-    r"E:\Emulators\RomHacking\_new"
+    r"reference_roms"
     r"\Legend of Zelda, The - Link's Awakening DX (USA, Europe) (SGB Enhanced) (GB Compatible).zip"
 )
 

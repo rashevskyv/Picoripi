@@ -4,6 +4,7 @@ The real-data tests read the clean USA ROMs in the scratch folder (never copied 
 it is missing.
 """
 import copy
+import os
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,7 @@ import pytest
 from core.font_formats import lz10_nftr, nftr
 from plugins.zelda_ds.rom import nitro_files
 
-SCRATCH = Path(r"D:\RomHacking_tmp\zelda_ds\rom_clean")
+SCRATCH = Path(os.environ.get("PICORIPI_SCRATCH", "scratch"), r"zelda_ds\rom_clean")
 PH = SCRATCH / "ph_usa.nds"
 ST = SCRATCH / "st_usa.nds"
 PARAMS = {"columns": 16, "spare": 32}

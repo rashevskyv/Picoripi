@@ -5,6 +5,7 @@ code, and nothing else may change: the test copies an existing glyph (cell and w
 checks the linked copy in a temporary translation folder. The game's source folder must not change.
 """
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,7 @@ from tools.bfn_editor.bfn_engine import read_bfn_model, write_bfn_model
 from tools.bfn_editor.io_format_mixin import sync_on_save
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = Path(r"E:\Emulators\RomHacking\Zelda\Wind Waker\GC\source")
+SOURCE = Path(os.environ.get("PICORIPI_ROMHACKING", "RomHacking"), r"Zelda\Wind Waker\GC\source")
 NAME_ENTRY = "Name entry font"
 FILE_SELECT = "File select font (a copy of the name entry font)"
 MEMBER = "font/rock_24_20_ia4_e.bfn"

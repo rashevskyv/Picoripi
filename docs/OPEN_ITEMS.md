@@ -61,7 +61,7 @@ the line when it is done or moved into a plan.
 - [ ] Shared files are copied by `python -m plugins.zelda_bmg.family shared` only; the Wii patcher (`GC + Wii\Patcher\patcher.py`, outside the repo) still copies its own `fontres.arc`. Connect it to the command.
 - [ ] Wind Waker font sync: the two copies "file-select font" and "name-entry font" (28335 and 148064 bytes) are not byte-equal; glyph sync by character code is not written.
 - [ ] Family store v1 to v2 migration: the old `_family/family_translations.json` is kept as `.bak_v1_20261012`; the new store is seeded from the translation folders.
-- [ ] TP Wii only folder reads the Wii source from `D:\RomHacking_tmp`; the family file must point elsewhere once that folder is removed.
+- [ ] TP Wii only folder reads the Wii source from `<RomHacking_tmp>`; the family file must point elsewhere once that folder is removed.
 ## Zelda DS (`plugins/zelda_ds`, 2026-10-12)
 
 - Zelda DS: the fonts and picture files are in `source\`, but the Textures window and the Font Editor have not been checked in the GUI for them. `texture_sources.json` is not written yet.
