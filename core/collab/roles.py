@@ -19,8 +19,8 @@ MOVABLE = (TRANSLATOR, REVIEWER, OBSERVER)
 # Roles that can own a claim (a row, file, folder, project or any set of rows).
 CLAIM_OWNERS = (HOST, MODERATOR, TRANSLATOR)
 
-ACTIONS = ("edit", "approve", "claim", "claim_decide", "assign", "comment", "delete_any_comment",
-           "kick", "set_role", "transfer_host", "view_log")
+ACTIONS = ("edit", "approve", "claim", "claim_decide", "assign", "comment", "resolve_comment", "reopen_any_comment",
+           "delete_any_comment", "kick", "set_role", "transfer_host", "view_log")
 
 
 def allowed(actor: str, action: str, target: str | None = None, new: str | None = None) -> bool:
@@ -39,6 +39,10 @@ def allowed(actor: str, action: str, target: str | None = None, new: str | None 
         return actor in (HOST, MODERATOR)
     if action == "comment":
         return actor in ROLES
+    if action == "resolve_comment":                     # observers read and comment; they do not resolve
+        return actor in (HOST, MODERATOR, REVIEWER, TRANSLATOR)
+    if action == "reopen_any_comment":                  # reopen a comment another member resolved
+        return actor in (HOST, MODERATOR)
     if action == "delete_any_comment":
         return actor in (HOST, MODERATOR)
     if action == "kick":

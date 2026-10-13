@@ -32,7 +32,7 @@ import secrets
 import sys
 import threading
 import time
-from collections import deque
+from collections import OrderedDict, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Deque, Dict, List, Optional, Set, Tuple
@@ -58,6 +58,7 @@ JOURNAL_DELAY = 2.0                   # seconds between journal writes while cha
 PARTICIPANT_TIMEOUT = 30.0            # seconds without a poll before a participant is dropped
 EVENT_LIMIT = 5000                    # events kept; a poll further behind gets a snapshot instead
 LOG_LIMIT = 500                       # moderator actions kept
+SEEN_OPS = 20_000                     # operations without seq remembered for dedupe; a restart forgets them
 SCOPE_KINDS = ("project", "folder", "file", "block", "row", "virtual")
 
 
@@ -89,6 +90,7 @@ class Room:
         self.log: Deque[Dict[str, Any]] = deque(maxlen=LOG_LIMIT)
         self.seq = 0
         self._claim_order = 0
+        self._seen_ops: "OrderedDict[Tuple[str, str], bool]" = OrderedDict()   # (member id, op_id) without seq
         self.closed = False
         # {name: {day: {rows, words, edits}}}: what each participant did, for the progress page.
         self.stats: Dict[str, Dict[str, Dict[str, int]]] = {}
@@ -408,7 +410,8 @@ class Room:
         return results
 
     def _apply_op(self, pid: str, op: Dict[str, Any]) -> Dict[str, Any]:
-        """One operation; the sequence check makes a repeat a no-op. Lock held."""
+        """One operation. A repeat is a no-op: with ``seq`` the member's high-water mark decides; without ``seq`` the
+        ``op_id`` is remembered (the last SEEN_OPS, in memory). Lock held."""
         member = self.members.get(pid)
         if member is None:
             return {"error": "not a member"}
@@ -419,6 +422,13 @@ class Room:
             if seq <= member["op_hw"]:
                 return {"duplicate": True}
             member["op_hw"] = seq
+        else:
+            seen = (pid, op["op_id"])
+            if seen in self._seen_ops:
+                return {"duplicate": True}
+            self._seen_ops[seen] = True
+            if len(self._seen_ops) > SEEN_OPS:
+                self._seen_ops.popitem(last=False)
         method = _OPS.get(op.get("kind"))
         if method is None:
             return {"error": "unknown operation"}
@@ -426,6 +436,9 @@ class Room:
             result = getattr(self, method)(pid, op)
         except ValueError as exc:
             return {"error": str(exc)}
+        except Exception as exc:          # a field of the wrong type: this operation fails, the batch goes on
+            log_debug(f"Collab room: operation {op.get('kind')!r} failed: {exc!r}")
+            return {"error": "bad operation"}
         self._schedule_journal()
         return result
 
@@ -508,12 +521,15 @@ class Room:
     def _op_approve(self, pid: str, op: Dict[str, Any]) -> Dict[str, Any]:
         if not allowed(self._role(pid) or "", "approve"):
             return {"refused": {"reason": "role"}}
-        row = self.rows.get(op.get("key"))
+        key = op.get("key")
+        if not isinstance(key, str):
+            raise ValueError("bad key")
+        row = self.rows.get(key)
         if row is None:
             raise ValueError("no such row")
         approved = op.get("approved") is not False
         row["approved"] = {"by": pid, "name": self._name(pid), "time": time.time()} if approved else None
-        self._event("approved", by=pid, name=self._name(pid), key=op["key"], approved=approved)
+        self._event("approved", by=pid, name=self._name(pid), key=key, approved=approved)
         return {"ok": True}
 
     def _op_comment(self, pid: str, op: Dict[str, Any]) -> Dict[str, Any]:
@@ -532,7 +548,13 @@ class Room:
 
     def _op_comment_resolve(self, pid: str, op: Dict[str, Any]) -> Dict[str, Any]:
         comment = self._comment(op)
+        actor = self._role(pid) or ""
+        if not allowed(actor, "resolve_comment"):
+            return {"refused": {"reason": "role"}}
         resolved = op.get("resolved") is not False
+        resolved_by_other = comment["resolved"] is not None and comment["resolved"]["by"] != pid
+        if not resolved and resolved_by_other and comment["author"] != pid and not allowed(actor, "reopen_any_comment"):
+            return {"refused": {"reason": "role"}}
         comment["resolved"] = {"by": pid, "name": self._name(pid), "time": time.time()} if resolved else None
         self._event("comment_resolved", by=pid, name=self._name(pid), id=comment["id"], resolved=resolved)
         return {"ok": True}

@@ -69,6 +69,8 @@ leaves, the room closes for everyone. Name, port and last address (never the pas
 | Give, refuse or take away a claim | yes | yes | no | no | no |
 | Assign an area to someone | yes | yes | no | no | no |
 | Comment; delete your own comment | yes | yes | yes | yes | yes |
+| Resolve a comment | yes | yes | yes | yes | no |
+| Reopen a comment another member resolved | yes | yes | no | no | no |
 | Delete someone else's comment | yes | yes | no | no | no |
 | Remove a participant; allow back | yes | yes (not host or moderators) | no | no | no |
 | Change a role | any | translator ↔ observer or reviewer only | no | no | no |

@@ -2155,6 +2155,7 @@
   "not a member": "Учасника немає в кімнаті",
   "bad seq": "Поганий номер послідовності",
   "bad op id": "Поганий ідентифікатор операції",
+  "bad operation": "Погана операція",
   "another room: the room was started again": "Інша кімната: кімнату запущено знову",
   "ops must be a list of at most 500": "Операцій має бути список до 500",
   "a name is needed": "Потрібне ім'я",

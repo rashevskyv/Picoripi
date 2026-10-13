@@ -282,8 +282,10 @@ the host's own computer.
 - **Edits.** Translators, moderators and the host edit. A claimed row is edited only by its owner. A refused edit comes
   back with the room's text and the reason, and the window puts the room's text back in place.
 - **Comments.** A thread per scope (row, file, block, folder, virtual folder, project) with author, time, text and a
-  resolved flag (who, when; can be reopened). The author deletes its own comment; a host or moderator deletes any.
-  Comments are kept in the room journal and in `comments.json` next to it, both written atomically on the journal timer.
+  resolved flag (who, when). Observers cannot resolve. Anyone who may resolve can reopen; reopening a comment that
+  another member resolved needs its author, a host or a moderator. The author deletes its own comment; a host or
+  moderator deletes any. Comments are kept in the room journal and in `comments.json` next to it, both written
+  atomically on the journal timer.
 - **Approval.** Reviewers, moderators and the host mark a row approved. A text change clears the mark. Approval is not
   a claim.
 - **Presence.** Entering a row that someone else works on shows a soft warning. Nothing is locked.
@@ -291,7 +293,9 @@ the host's own computer.
   removed. Moderator actions go to a log that only the host sees.
 - **Operations.** Each change is an operation with an `op_id`, a `kind`, its payload and an optional `seq`. `seq` counts
   per member from 1. The server applies a `seq` above the member's high-water mark only; a repeat answers
-  `duplicate` and changes nothing. `POST /ops` takes up to 500 operations with the room id; `GET /ops?since=` is the
+  `duplicate` and changes nothing. An operation without `seq` is applied once per member and `op_id`: the last 20,000
+  ids are kept in memory, so a restart forgets them. A field of the wrong type fails that operation with `bad
+  operation`; the batch goes on. `POST /ops` takes up to 500 operations with the room id; `GET /ops?since=` is the
   same feed as `GET /events`. The legacy `POST /edits` and `GET /events` remain. A poll that is further behind than the
   kept events gets every row plus a `snapshot` of members, claims, requests and comments.
 - **Journal (one deliberate change).** The room journal (`collab_room.json`, protocol 2) stores the current state, the

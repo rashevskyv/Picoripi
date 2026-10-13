@@ -61,6 +61,11 @@ def _join(room, name, token=None):
     ("translator", "assign", None, None, False),
     ("observer", "comment", None, None, True),
     ("reviewer", "comment", None, None, True),
+    ("translator", "resolve_comment", None, None, True),
+    ("reviewer", "resolve_comment", None, None, True),
+    ("observer", "resolve_comment", None, None, False),
+    ("moderator", "reopen_any_comment", None, None, True),
+    ("translator", "reopen_any_comment", None, None, False),
     ("host", "delete_any_comment", None, None, True),
     ("moderator", "delete_any_comment", None, None, True),
     ("translator", "delete_any_comment", None, None, False),
@@ -220,6 +225,34 @@ def test_comments_resolve_reopen_and_delete_by_role(tmp_path):
     assert any(l["action"] == "comment_deleted" for l in room.log)
 
 
+def test_an_observer_cannot_resolve_and_a_translator_cannot_reopen_anothers_resolution(tmp_path):
+    room, host, _ = _room_with_host(tmp_path)
+    olena, ihor, ivan = _join(room, "Olena"), _join(room, "Ihor"), _join(room, "Ivan")
+    observer = _join(room, "Obs")
+    room.apply_ops(host["id"], [{"op_id": "ro", "kind": "role", "target": observer["id"], "role": "observer"}])
+    cid = room.apply_ops(olena["id"], [{"op_id": "c", "kind": "comment", "scope": {"kind": "project", "label": ""},
+                                        "text": "Hi"}])["c"]["comment"]
+    refused = room.apply_ops(observer["id"], [{"op_id": "r0", "kind": "comment_resolve", "id": cid, "resolved": True}])
+    assert refused["r0"] == {"refused": {"reason": "role"}} and room.comments[cid]["resolved"] is None
+    assert room.apply_ops(ihor["id"], [{"op_id": "r1", "kind": "comment_resolve", "id": cid, "resolved": True}])["r1"] == {"ok": True}
+    refused = room.apply_ops(ivan["id"], [{"op_id": "r2", "kind": "comment_resolve", "id": cid, "resolved": False}])
+    assert refused["r2"] == {"refused": {"reason": "role"}} and room.comments[cid]["resolved"]["name"] == "Ihor"
+    assert room.apply_ops(olena["id"], [{"op_id": "r3", "kind": "comment_resolve", "id": cid, "resolved": False}])["r3"] == {"ok": True}
+    assert room.comments[cid]["resolved"] is None
+
+
+def test_an_operation_without_seq_is_applied_once_when_it_is_sent_again(tmp_path):
+    room, host, _ = _room_with_host(tmp_path)
+    olena = _join(room, "Olena")
+    op = {"op_id": "c-once", "kind": "comment", "scope": {"kind": "project", "label": ""}, "text": "Once"}
+    assert "comment" in room.apply_ops(olena["id"], [op])["c-once"]
+    assert room.apply_ops(olena["id"], [dict(op)])["c-once"] == {"duplicate": True}
+    assert [c["text"] for c in room.comments.values()].count("Once") == 1
+    # The same op_id from another member is another operation.
+    assert "comment" in room.apply_ops(host["id"], [dict(op)])["c-once"]
+    assert [c["text"] for c in room.comments.values()].count("Once") == 2
+
+
 def test_an_empty_comment_is_refused(tmp_path):
     room, _, _ = _room_with_host(tmp_path)
     olena = _join(room, "Olena")
@@ -352,6 +385,16 @@ def test_a_bad_operation_is_an_error_for_that_operation_only(tmp_path):
     assert results["ok"] == {"ok": True, "rev": 1}
     assert results["bad"] == {"error": "unknown operation"}
     assert results["#2"] == {"error": "bad op id"}
+
+
+def test_an_approve_with_a_key_that_is_not_text_is_a_plain_error_and_the_batch_goes_on(tmp_path):
+    room, host, _ = _room_with_host(tmp_path)
+    _edit(room, host["id"], "k", "A", 0)
+    results = room.apply_ops(host["id"], [{"op_id": "bad", "kind": "approve", "key": ["k"]},
+                                          {"op_id": "ok", "kind": "approve", "key": "k"}])
+    assert results["bad"] == {"error": "bad key"}
+    assert results["ok"] == {"ok": True}
+    assert room.rows["k"]["approved"]["name"] == "Host"
 
 
 # ---- persistence ------------------------------------------------------------------------
