@@ -92,7 +92,7 @@ class Font:
     def _read_glyphs(self, block: bytes) -> None:
         (self.cell_width, self.cell_height, self.glyph_size, self.baseline, self.max_width, self.bpp,
          self.flags) = struct.unpack_from("<BBHbBBB", block, 8)
-        if self.bpp not in (1, 2, 4, 8) or not self.glyph_size:
+        if self.bpp not in (1, 2, 3, 4, 8) or not self.glyph_size:
             raise ValueError(f"NFTR glyphs of {self.bpp} bits per pixel are not supported")
         count = (len(block) - 16) // self.glyph_size
         while count and 16 + (count - 1) * self.glyph_size + 3 >= len(block):   # the block's padding, not a glyph
@@ -300,6 +300,9 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
                          f"{old_sheets[0].width}x{old_sheets[0].height}")
     old_ink = coverage(old_sheets[0])
     packets = metadata["WID1"][0]["packets"]
+    glyph_widths = metadata["WID1"][0].get("glyph_widths", [])
+    old_packets = old_metadata["WID1"][0]["packets"]
+    old_glyph_widths = old_metadata["WID1"][0]["glyph_widths"]
     count = len(font.glyphs)
 
     existing = font.codes()
@@ -331,10 +334,21 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
             font.glyphs[index] = font.encode(cell)
         old = widths.get(index, default)
         bounds = cell.point(lambda value: 255 if value >= 128 else 0).getbbox()
-        glyph_width = (bounds[2] if bounds else 0) if redrawn else old[1]
         packet = packets[index] if index < len(packets) else {"kerning": -default[0], "width": default[2]}
-        entries[index] = (_clamp(-int(packet["kerning"]), -128, 127), _clamp(glyph_width, 0, 255),
-                          _clamp(packet["width"], 0, 255))
+        was_packet = old_packets[index] if index < len(old_packets) else {"kerning": -default[0], "width": default[2]}
+        was_glyph = int(old_glyph_widths[index]) if index < len(old_glyph_widths) else old[1]
+        was_left, was_advance = -int(was_packet["kerning"]), int(was_packet["width"])
+        glyph_meta = int(glyph_widths[index]) if index < len(glyph_widths) else was_glyph
+        # Widths follow a redrawn glyph unless the metadata was edited by hand (then the edit wins).
+        if redrawn and glyph_meta == was_glyph:
+            glyph_width = bounds[2] if bounds else 0
+        else:
+            glyph_width = glyph_meta
+        left, advance = -int(packet["kerning"]), int(packet["width"])
+        if advance == was_advance and left == was_left and glyph_width != was_glyph:
+            # the spacing to the right of the glyph is kept: the advance moves with the glyph's width
+            advance = left + glyph_width + (was_advance - was_left - was_glyph)
+        entries[index] = (_clamp(left, -128, 127), _clamp(glyph_width, 0, 255), _clamp(advance, 0, 255))
 
     # Widths of the glyphs the file describes, then the new glyphs at the end of the range that ends the font.
     for block in font.widths:
@@ -369,6 +383,20 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         font.order.insert(_after(font, "cmap"), ("cmap", len(font.maps) - 1))
         font.map_chain.append(len(font.maps) - 1)
     return font.build()
+
+
+UKRAINIAN = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+
+
+def ukrainian_coverage(font: Font) -> Dict[str, Any]:
+    """What the font holds for Ukrainian: the letters it has no code for, the glyph cells not used by any code
+    and the spare cells a new letter can take. Nothing is drawn."""
+    codes = font.codes()
+    missing = [char for char in UKRAINIAN if font.to_code(char) not in codes]
+    used = set(codes.values())
+    unused = [index for index in range(len(font.glyphs)) if index not in used]
+    return {"missing_ukrainian": missing, "missing_count": len(missing), "unused_glyphs": unused,
+            "glyphs": len(font.glyphs), "bpp": font.bpp, "cell": [font.cell_width, font.cell_height]}
 
 
 def _after(font: Font, kind: str) -> int:

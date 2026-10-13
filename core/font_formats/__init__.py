@@ -39,6 +39,7 @@ def _backends() -> Dict[str, Any]:
                                    rrr_errfont, swf_font, texture_grid, tmp_sdf, ttf, twewy, ubiart_tfn, vagrant, xf, zelda3, mgs_nht)
     from core.font_formats import dq9, gen4_glyphs, infinite_space, phyre_bmf, l5_fnt
     from core.font_formats import asw_jfnt, jfnt, nlg_font, layton_gfnt, layton_hd, layton_nftr
+    from core.font_formats import lz10_nftr
     from core.font_formats import pw_xpr
     from core.font_formats import sprite_font
     return {"sprite_font": sprite_font, "gen4_glyphs": gen4_glyphs, "n64": n64, "g1t": g1t, "g1n": g1n, "bffnt": bffnt, "bcfnt": bcfnt, "qbf": qbf, "gzf": gzf, "cells": cells,
@@ -51,7 +52,7 @@ def _backends() -> Dict[str, Any]:
             "swf_font": swf_font, "eternal_darkness": eternal_darkness, "fragile_dreams": fragile_dreams,
             "fntg": fntg, "cv_gba": cv_gba, "cv_nds": cv_nds, "ffta2": ffta2, "tmp_sdf": tmp_sdf, "mt_font": mt_font, "pmd_font": pmd_font,
             "fe13_bfnt": fe13_bfnt, "laft": laft, "pw_xpr": pw_xpr,
-            "mgs_nht": mgs_nht, "phyre_bmf": phyre_bmf, "mof_font": mof_font, "cop_fnt": cop_fnt, "nlg_font": nlg_font, "jfnt": jfnt, "l5_fnt": l5_fnt, "ubiart_tfn": ubiart_tfn, "cfna": cfna, "asw_jfnt": asw_jfnt, "layton_nftr": layton_nftr, "layton_gfnt": layton_gfnt, "layton_hd": layton_hd}
+            "mgs_nht": mgs_nht, "phyre_bmf": phyre_bmf, "mof_font": mof_font, "cop_fnt": cop_fnt, "nlg_font": nlg_font, "jfnt": jfnt, "l5_fnt": l5_fnt, "ubiart_tfn": ubiart_tfn, "cfna": cfna, "asw_jfnt": asw_jfnt, "layton_nftr": layton_nftr, "layton_gfnt": layton_gfnt, "layton_hd": layton_hd, "lz10_nftr": lz10_nftr}
 
 
 def adds_glyphs(fmt: str) -> bool:

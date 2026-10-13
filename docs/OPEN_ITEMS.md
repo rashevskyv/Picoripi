@@ -62,6 +62,12 @@ the line when it is done or moved into a plan.
 - [ ] Wind Waker font sync: the two copies "file-select font" and "name-entry font" (28335 and 148064 bytes) are not byte-equal; glyph sync by character code is not written.
 - [ ] Family store v1 to v2 migration: the old `_family/family_translations.json` is kept as `.bak_v1_20261012`; the new store is seeded from the translation folders.
 - [ ] TP Wii only folder reads the Wii source from `D:\RomHacking_tmp`; the family file must point elsewhere once that folder is removed.
+## Zelda DS (`plugins/zelda_ds`, 2026-10-12)
+
+- Zelda DS: the fonts and picture files are in `source\`, but the Textures window and the Font Editor have not been checked in the GUI for them. `texture_sources.json` is not written yet.
+- Zelda DS 3D textures (`ntfp` / `ntft` / `ntfi` members of `*.bin` NARCs, NSBTX inside BMD0 models) are not opened. One LZ10 stream (`dwc/utility.bin`) gives a back-reference error.
+- Zelda DS Download Play children: no BMG, NFTR or readable strings in the child programs (PH `child.srl` has no NitroFS files; the ST child ARM9 has no plain text). Their text format is not identified yet.
+- Zelda DS picture edits: the picture module writes top-level NCGR members only; a picture nested one archive down (in the ST child) is rebuilt as a whole file, not edited sheet by sheet.
 
 ## Integration round 7 (2026-10-11)
 

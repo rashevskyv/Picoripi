@@ -1,5 +1,6 @@
 All notable changes to the **Picoripi** project will be documented in this file.
 
+- Zelda DS (`plugins/zelda_ds`, `zt/zelda_ds.py`): Phantom Hourglass and Spirit Tracks (USA) messages (BMG) open, edit and rebuild with byte-exact unchanged files; NitroFS rebuild keeps each file's original gap (`plugins/zelda_ds/rom.py`); a Phantom Hourglass edit shows in melonDS; fonts (DS NFTR with 3-bit glyphs, LZ10 wrapper `core/font_formats/lz10_nftr.py`; a redrawn glyph updates its width and advance in `core/font_formats/nftr.py` unless the width was typed by hand; Ukrainian coverage report) and picture files (LZ10 NARC with NCGR and NCLR, `plugins/zelda_ds/pictures.py`, including Download Play child pictures) are in the source folder; the Textures window is not wired yet.
 ## [Unreleased]
 
 - Data folder and Git: every data folder gets a self-ignoring `.gitignore` (`*`) when created; the chooser asks before a folder inside a Git repository that does not ignore it (default: write the file); `scripts/import_projects_to_data_folder.py` reports the Git state in its dry run and writes the file first on `--apply` (`utils/data_folder_git.py`, `dialogs/data_location_dialog.py`; wiki 4 EN and UK).

@@ -1,0 +1,11 @@
+[
+  {"label": "Phantom Hourglass: text font (LC_Font_m)", "format": "nftr", "path": "Font/LC_Font_m.nftr", "font_map": "zelda_ds_LC_Font_m.json"},
+  {"label": "Phantom Hourglass: text font (zeldaDS_15)", "format": "nftr", "path": "Font/zeldaDS_15.nftr", "font_map": "zelda_ds_zeldaDS_15.json"},
+  {"label": "Phantom Hourglass: battle font (zeldaDS_15_btl)", "format": "nftr", "path": "Font/zeldaDS_15_btl.nftr", "font_map": "zelda_ds_zeldaDS_15_btl.json"},
+  {"label": "Phantom Hourglass: large ending font (zeldaDS_endL, 3 bpp)", "format": "nftr", "path": "Font/zeldaDS_endL.nftr", "font_map": "zelda_ds_zeldaDS_endL.json"},
+  {"label": "Phantom Hourglass: small ending font (zeldaDS_endS, 3 bpp)", "format": "nftr", "path": "Font/zeldaDS_endS.nftr", "font_map": "zelda_ds_zeldaDS_endS.json"},
+  {"label": "Spirit Tracks: text font (DSZ2_msg, LZ10)", "format": "lz10_nftr", "path": "Font/DSZ2_msg.nftr", "font_map": "zelda_ds_DSZ2_msg.json"},
+  {"label": "Spirit Tracks: large ending font (DSZ2_endL, LZ10)", "format": "lz10_nftr", "path": "Font/DSZ2_endL.nftr", "font_map": "zelda_ds_DSZ2_endL.json"},
+  {"label": "Spirit Tracks: small ending font (DSZ2_endS, LZ10)", "format": "lz10_nftr", "path": "Font/DSZ2_endS.nftr", "font_map": "zelda_ds_DSZ2_endS.json"},
+  {"label": "Spirit Tracks: name font (LC_Font_s_Name, LZ10)", "format": "lz10_nftr", "path": "Font/LC_Font_s_Name.nftr", "font_map": "zelda_ds_LC_Font_s_Name.json"}
+]
