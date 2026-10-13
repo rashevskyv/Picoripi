@@ -1,12 +1,12 @@
 """Silent Hill 2 texture reader (core/texture_formats/sh2tex.py): round trip on real files (skips without the game data)."""
-import pathlib
 import struct
 
 import pytest
 
+import romhacking_root
 from core.texture_formats import sh2tex
 
-DATA = pathlib.romhacking_root.under('Silent Hill\\Silent Hill 2\\PC\\ISO\\data')
+DATA = romhacking_root.under('Silent Hill\\Silent Hill 2\\PC\\ISO\\data')
 CARBON = DATA / "pic" / "carbon.tex"
 
 
