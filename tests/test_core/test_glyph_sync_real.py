@@ -72,5 +72,3 @@ def test_a_changed_glyph_is_copied_to_the_other_copy_on_save(copies, tmp_path):
     assert given == ["A"] and taken == []
     partner_model = read_bfn_model(partner_bytes)
     assert glyph_sync.glyph_hashes(partner_model)["A"] == glyph_sync.glyph_hashes((metadata, sheets))["A"]
-
-
