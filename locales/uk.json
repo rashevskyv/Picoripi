@@ -2254,5 +2254,17 @@
     "Copy changes to {0}: {1}": "Копіювати зміни до {0}: {1}",
     "on": "увімк.",
     "off": "вимк.",
-    "Linked font {0}: {1} glyphs copied to it, {2} taken from it": "Пов’язаний шрифт {0}: {1} гліфів скопійовано в нього, {2} взято з нього"
+    "Linked font {0}: {1} glyphs copied to it, {2} taken from it": "Пов’язаний шрифт {0}: {1} гліфів скопійовано в нього, {2} взято з нього",
+    "Choose folder...": "Обрати папку...",
+    "Choose the repo_manual folder": "Оберіть папку repo_manual",
+    "Drawing the page...": "Малюю сторінку...",
+    "Not a repo_manual folder: {0}": "Це не папка repo_manual: {0}",
+    "Select a string of a manual page.": "Оберіть рядок сторінки посібника.",
+    "Set the repo_manual folder to draw the page.": "Вкажіть папку repo_manual, щоб намалювати сторінку.",
+    "Show large text": "Показати великий текст",
+    "Show small text": "Показати малий текст",
+    "The index is not drawn here. Select a string of a page.": "Індекс тут не малюється. Оберіть рядок сторінки.",
+    "Y  Large text": "Y  Великий текст",
+    "Y  Small text": "Y  Малий текст",
+    "{0} paragraph(s) over the line width. Missing glyphs: {1}": "{0} абзац(ів) за межею рядка. Відсутні гліфи: {1}"
 }

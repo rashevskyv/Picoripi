@@ -73,6 +73,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=("pasted", _LINE, "[PLAYER]"), returns=tuple),
         Hook("prepare_preview_glyph_text", "Text for the bitmap-font preview: (clean_text, per-character colours or None).",
              call=(_LINE,), returns=tuple),
+        Hook("get_custom_preview_widget", "A widget that draws the current text in the game's own viewer instead of the "
+             "BFN preview; it gets refresh() after each change and shutdown() before deletion. None: the BFN preview.",
+             call=None, optional=True),
         Hook("calculate_string_width_override", "Pixel width of a string when the game measures it its own way.",
              call=("text", {}, 6), returns=int, optional=True),
         Hook("get_font_for_block", "Font override for a block: {'original_font_name', 'font_name'}.",

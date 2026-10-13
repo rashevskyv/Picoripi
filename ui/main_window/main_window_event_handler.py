@@ -6,6 +6,7 @@ from PyQt6.QtCore import QTimer
 from utils.logging_utils import log_debug, log_info, log_warning, log_error
 from utils.utils import ALL_TAGS_PATTERN
 from core.i18n import tr
+from ui.components.custom_preview import custom_preview_of
 
 if TYPE_CHECKING:
     from main import MainWindow
@@ -345,6 +346,9 @@ class MainWindowEventHandler:
         log_info("Close event received.")
         if hasattr(self.mw, 'hotkey_manager'):
             self.mw.hotkey_manager.unregister()
+        custom_preview = custom_preview_of(self.mw)
+        if custom_preview is not None:
+            custom_preview.shutdown()
         self.mw.helper.prepare_to_close()
         self.mw.app_action_handler.handle_close_event(event)
         

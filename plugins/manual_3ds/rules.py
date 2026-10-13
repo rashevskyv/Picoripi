@@ -18,6 +18,7 @@ from plugins.base_game_rules import BaseGameRules
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 
 from . import layout
+from .page_render import group_key_of
 from .config import CUSTOM_IDS, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -246,3 +247,29 @@ class GameRules(BaseGameRules):
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 8) -> Optional[int]:
         return None
+
+    # -- live preview ---------------------------------------------------------------------
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The manual viewer preview (plugins/manual_3ds/preview_panel.py); needs the repo_manual folder to draw."""
+        from plugins.manual_3ds.preview_panel import ManualPreviewPanel
+        return ManualPreviewPanel(main_window, self)
+
+    def manual_name(self) -> str:
+        return self._name
+
+    def string_key(self, string_idx: int) -> Optional[str]:
+        """The manual key ("large/Page_003_large_0#4") of a string, or None."""
+        if not (0 <= string_idx < len(self._block_meta)):
+            return None
+        return self._block_meta[string_idx]["key"]
+
+    def strings_of_group(self, group: str) -> Dict[str, int]:
+        """{key: string index} of every paragraph of a page group, e.g. "large/Page_003_large"."""
+        return {meta["key"]: index for index, meta in enumerate(self._block_meta)
+                if group_key_of(meta["key"]) == group}
+
+    def preview_budget(self, key: str) -> Optional[float]:
+        """The column width a paragraph is drawn in on the console (from geometry.json), or None."""
+        geo = self._geo.get(key)
+        return geo.budget if geo is not None else None

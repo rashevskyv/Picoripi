@@ -11,6 +11,7 @@ from utils.utils import (
     calculate_strict_string_width,
 )
 from ui.components.bfn_preview_widget import _looks_like_bfn_editor
+from ui.components.custom_preview import custom_preview_of
 from core.data_store import store_is_virtual_view
 from core.i18n import tr
 from utils.logging_utils import log_debug
@@ -429,7 +430,16 @@ class TextViewsMixin:
         toggle_action = getattr(self.mw, 'toggle_preview_action', None)
         show_preview = preview_enabled and (toggle_action.isChecked() if toggle_action else True)
 
-        if hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
+        custom_preview = custom_preview_of(self.mw)
+        if custom_preview is not None:
+            column = getattr(self.mw, 'bfn_preview_column', None)
+            if show_preview:
+                if column is not None and column.isHidden():
+                    column.show()
+                custom_preview.update_preview_text(edited_text_raw, original=original_text_raw)
+            elif column is not None and not column.isHidden():
+                column.hide()
+        elif hasattr(self.mw, 'bfn_preview_widget') and self.mw.bfn_preview_widget:
             preview_widget = self.mw.bfn_preview_widget
             preview_host = self._preview_visibility_host(preview_widget, self.mw)
             if show_preview:

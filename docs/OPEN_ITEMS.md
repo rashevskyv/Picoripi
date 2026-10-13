@@ -1020,3 +1020,12 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   translated again in the project (the series file itself is never written by a build).
 - Series and project glossary files are read and written on the UI thread, as the project glossary is today.
 - Two programs (or two projects open at once) editing the same series file: the last write wins.
+
+## 3DS manual preview (`manual_3ds`, 2026-10-13)
+
+- Not drawn: the page screenshots (ETC1 textures in `EUR_xx_texture.arc`) and the page backgrounds (`*_bg` layouts); each picture pane is a grey box. Decode BCLIM ETC1 to draw them.
+- Not drawn: the orange item frames behind the numbered titles, the neighbouring pages at the screen sides (grey strips), and the viewer's own tab text when the heading is not in the selected part (Large or Small).
+- Glyphs come from the system font `cbf_std` in black; the console's grey anti-aliasing is not copied, so ink is heavier than on the console.
+- Sub-pages K are stacked by their own area heights; checked on one console screenshot (Page 2, Small) only, with a 14 px vertical offset of the viewer's first row. Other pages are not compared.
+- Scroll is by pixel steps with no momentum; the Y button is a click target only (no controller input in the panel).
+- Untranslated paragraphs (empty `ua`) draw nothing in the preview.

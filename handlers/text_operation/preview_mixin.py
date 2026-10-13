@@ -4,6 +4,7 @@ from PyQt6.QtGui import QTextCursor
 from utils.logging_utils import log_debug
 from utils.utils import convert_dots_to_spaces_from_editor
 from handlers.async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
+from ui.components.custom_preview import custom_preview_of
 
 # Idle gap after the last keystroke before analysis/preview/render.
 # The editor itself stays live; spellcheck, glossary, tags, warnings,
@@ -349,6 +350,9 @@ class PreviewMixin:
             highlighter.set_typing_mode(False, trigger_rehighlight=True)
 
         self._update_preview_content()
+        custom_preview = custom_preview_of(self.mw)
+        if custom_preview is not None and getattr(self.mw, 'preview_enabled', True):
+            custom_preview.update_preview_text(str(current_text_raw or ""))
         bfn = getattr(self.mw, 'bfn_preview_widget', None)
         if (
             current_text_raw is not None
