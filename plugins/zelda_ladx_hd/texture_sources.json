@@ -1,1 +1,7 @@
-[]
+[
+  {"label": "UI sheet (ui.png)", "kind": "menu_label", "format": "png", "path": "Data/ui.png"},
+  {"label": "Copy icon", "kind": "menu_icon", "format": "xnb_texture", "path": "Content/Menu/copyIcon.xnb"},
+  {"label": "Gear icon", "kind": "menu_icon", "format": "xnb_texture", "path": "Content/Menu/gearIcon.xnb"},
+  {"label": "Trash icon", "kind": "menu_icon", "format": "xnb_texture", "path": "Content/Menu/trashIcon.xnb"},
+  {"label": "Menu background", "kind": "menu_background", "format": "xnb_texture", "path": "Content/Menu/menuBackground.xnb"}
+]
