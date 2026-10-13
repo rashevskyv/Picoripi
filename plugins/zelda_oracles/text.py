@@ -372,5 +372,3 @@ def replace_text(rom: bytearray, span: TextSpan, new_bytes: bytes) -> None:
     if len(new_bytes) > span.length:
         raise TextError(f"{span.name} needs {len(new_bytes)} bytes, the old string has {span.length}")
     rom[span.start:span.start + len(new_bytes)] = new_bytes
-
-

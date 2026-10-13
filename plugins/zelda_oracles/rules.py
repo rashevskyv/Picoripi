@@ -169,4 +169,3 @@ class GameRules(BaseGameRules):
             mapping = json.loads(path.read_text(encoding="utf-8"))
             result[label] = {self._names[name]: text for name, text in mapping.items() if name in self._names}
         return result
-
