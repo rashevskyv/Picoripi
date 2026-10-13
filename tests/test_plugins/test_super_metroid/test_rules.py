@@ -212,7 +212,7 @@ def _tile_image(data: bytes, tile: int):
 def test_the_game_fonts_are_listed_one_by_one_and_intro_is_two_fonts():
     rules = check_loads(PLUGIN)
     labels = [f["label"] for f in rules.get_font_sources()]
-    assert len(labels) == len(set(labels)) == 11
+    assert len(labels) == len(set(labels)) == 10
     assert [part for part in ("Message boxes", "HUD numbers", "small letters", "big letters (top",
                               "Pause screen", "Intro story", "Intro story pages: Ukrainian", "Intro first screen", "Credits: job",
                               "Credits: names")
@@ -374,47 +374,46 @@ def test_the_small_menu_font_has_a_cell_for_every_ukrainian_capital_outside_the_
     assert all(chars[c] == ch for c, ch in zip(cells, "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"))
 
 
-def test_the_pause_font_has_a_cell_for_every_ukrainian_capital_in_the_free_vram_block():
-    """Tiles 0x3C0-0x3D7 are VRAM words 0x3C00-0x3FFF: no pause map uses them, so the 21 capitals sit there."""
+def test_the_pause_font_has_cells_for_the_ukrainian_capitals_on_free_stock_tiles():
+    """The 22 cells (21 capitals and the apostrophe) are tiles of the stock pause sheet that no pause map uses,
+    and none of them is a Latin letter or the dot of the pause font (tiles 48-74)."""
     rules = check_loads(PLUGIN)
-    cells = _font(rules, "Pause screen: Ukrainian")
-    assert cells["path"] == "gfx/pause_ua.bin" and cells["format"] == "texture_grid"
-    assert cells["params"]["texture_params"]["height"] // 8 * (cells["params"]["texture_params"]["width"] // 8) == 24
-    chars = cells["params"]["chars"]
-    assert chars[:21] == list("БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ") and set(chars[21:]) == {""}
+    area = next(f for f in rules.get_font_sources() if f["label"].startswith("Pause screen: area names"))
+    assert area["path"] == "gfx/pause_tiles.bin" and area["format"] == "texture_grid"
+    chars = area["params"]["chars"]
+    cells = [chars.index(ch) for ch in "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ’"]
+    assert cells[:2] == [14, 78] and len(set(cells)) == 22
+    assert all(not (48 <= c <= 74) for c in cells)
+    assert all(chars[c] == ch for c, ch in zip(cells, "БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ’"))
+    assert not any(c for c in chars[48:75] if c not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ.")
 
 
-def test_real_pause_capitals_use_free_tiles_and_a_zero_filled_rom_block(zt_sm, tmp_path):
+def test_real_pause_cells_are_stock_free_tiles_and_the_stock_sheet_round_trips(zt_sm):
     sm, data = zt_sm
-    assert sm.PAUSE_UA_FIRST_TILE * 16 >= 0x3C00 and (sm.PAUSE_UA_FIRST_TILE + 24) * 16 <= 0x4000
-    assert all(sm.UA_PAUSE[ch] == sm.PAUSE_UA_FIRST_TILE + k for k, ch in enumerate("БГҐДЄЖЗИЇЙЛПУФЦЧШЩЬЮЯ"))
-    assert sm.FONTS["pause"].codes["Б"] == 0x3C0 and sm.FONTS["pause"].codes["Я"] == 0x3D4
+    assert sm.PAUSE_UA_TILES == sm.PAUSE_FREE_TILES[:22] and sm.PAUSE_FREE_TILES[:2] == [14, 78]
+    assert all(t < 512 and not (48 <= t <= 74) for t in sm.PAUSE_FREE_TILES)
+    assert sm.UA_PAUSE["Б"] == 14 and sm.FONTS["pause"].codes["Б"] == 14
+    assert sm.FONTS["pause"].codes["G"] == 0x36 and sm.FONTS["pause"].codes["Z"] == 0x49
+    assert sm.FONTS["pause"].codes["'"] == sm.FONTS["pause"].codes["’"] == sm.PAUSE_UA_TILES[-1]
+    # raw 4bpp tiles, no compression: the cells are blanked in source\gfx and in the ROM, all others keep their bytes
+    raw = sm.gfx_bytes(data, "pause_tiles")
+    src = sm.gfx_source(data, "pause_tiles")
+    assert len(src) == len(raw) == 0x4000
+    for t in range(512):
+        expect = bytes(32) if t in sm.PAUSE_UA_TILES else raw[t * 32:(t + 1) * 32]
+        assert src[t * 32:(t + 1) * 32] == expect
     rom = sm.Rom(data)
-    sm.blank_new_sheets(rom)
-    block = bytes(rom.data[sm.lo(sm.PAUSE_UA_ADDR):sm.lo(sm.PAUSE_UA_ADDR) + sm.PAUSE_UA_SIZE])
-    assert block == bytes(sm.PAUSE_UA_SIZE)
-    # the block stays after the pause palettes (0xB6F000-0xB6F1FF) and no pause text cell sits in it
-    assert sm.PAUSE_UA_ADDR >= 0xB6F200 and sm.PAUSE_UA_ADDR + sm.PAUSE_UA_SIZE <= 0xB70000
-    assert sm.gfx_source(data, "pause_ua") == bytes(sm.PAUSE_UA_SIZE)
+    sm.blank_pause_cells(rom)
+    base = sm.lo(sm.GFX["pause_tiles"][0])
+    assert bytes(rom.data[base:base + 0x4000]) == src
 
 
-def test_the_pause_loader_gets_one_extra_dma_after_the_bg3_transfer(tmp_path):
-    """patch_pause_c adds the capitals' DMA to LoadPauseMenuTilesAndClearBG2 and keeps the BG3 transfer where it was."""
-    sm = _zt_sm_or_skip()
-    src = tmp_path / "src"
-    (src / "src").mkdir(parents=True)
-    body = ("void LoadPauseMenuTilesAndClearBG2(void) {  // 0x828E75\n"
-            "  static const StartDmaCopy kDmaCopy_StandardBg3Tiles = { .das = 0x2000 };\n"
-            "  SetupDmaTransfer(&kDmaCopy_StandardBg3Tiles);\n"
-            "  WriteReg(MDMAEN, 2);\n"
-            "}\n")
-    (src / "src" / "sm_82.c").write_text(body, encoding="utf-8", newline="")
-    sm.patch_pause_c(src)
-    text = (src / "src" / "sm_82.c").read_text(encoding="utf-8")
-    assert text.count("kDmaCopy_PauseUaCapitals") == 2 and text.startswith(body[:-2])
-    assert text.index("kDmaCopy_StandardBg3Tiles);") < text.index("kDmaCopy_PauseUaCapitals = ")
-    assert f"LONGPTR(0x{sm.PAUSE_UA_ADDR:06x})" in text and f".das = 0x{sm.PAUSE_UA_SIZE:x}" in text
-    assert "WriteReg(VMADDH, 0x3C)" in text and text.endswith("}\n")
+def test_a_pause_label_takes_the_ukrainian_capital_in_cell_2_from_tile_14(zt_sm):
+    sm, data = zt_sm
+    cells = sm.words(data, sm.lo(0x820000 | sm.word(data, sm.lo(sm.AREA_LABELS))), 12)
+    out = sm.encode(sm.FONTS["pause"], cells, "Б UA TES", "area0")
+    assert (out[2] & 0x3FF) == 14
+    assert (out[2] & 0xFC00) == (cells[2] & 0xFC00)
 
 
 def _zt_sm_or_skip():
