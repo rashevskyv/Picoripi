@@ -4,7 +4,7 @@ Dry run by default: prints a table (project | source file | format | result). ``
 project.uiproj, only where no icon.png exists yet. Nothing else is written; game files are only read.
 
     python scripts/harvest_project_icons.py --registry <data>\\project_manager.json [--apply] [--table out.tsv]
-    python scripts/harvest_project_icons.py --root E:\\Emulators\\RomHacking [--apply]
+    python scripts/harvest_project_icons.py --root <RomHacking folder> [--apply]
 """
 from __future__ import annotations
 
