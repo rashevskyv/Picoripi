@@ -462,6 +462,10 @@ version). A tree of one version is in "<label> only", the GameCube included ("GC
 build refuses it until a family has such texts. Files a member takes from the base byte for byte are declared in
 `FamilyPlan.shared_files` (file -> members); `family.py shared` copies them.
 **Cost.** A text that differs below the root cannot be shown in the project yet (none for Twilight Princess).
+**Naming (documented, not renamed).** The Wind Waker base tree is in a folder named `.extracted`, not "Shared".
+`.extracted/` is the project's folder for extracted archive sources (`core/project/blocks_mixin.py`).
+`plugins/zelda_ww/family.py` `count_project` and `tests/test_plugins/test_zelda_ww/test_family_real.py` rely on the name.
+It is kept: a rename would change existing project folders. Twilight Princess uses "Shared".
 
 ## D27. Wind Waker: one syntax-free match key, the tag table derived from the files (2026-10-12)
 

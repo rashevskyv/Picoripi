@@ -1,8 +1,10 @@
 """Sly Cooper level prefix: CLUT, BMP, SHD and font tables are read and written back byte for byte.
 
-The synthetic test builds a tiny world prefix by hand. The real-data test reads Paris.brx when the Sly data folder is
-on this machine (environment variable SLY1_WORLDS, or the default folder); it skips otherwise.
+The synthetic tests build a tiny world prefix by hand with a tiny option schema of their own: no third-party table
+is needed. The real-data test reads Paris.brx when the Sly data folder (environment variable SLY1_WORLDS) and a
+local option schema (environment variable SLY1_OPTION_SCHEMA) are on this machine; it skips otherwise.
 """
+import json
 import os
 import struct
 from pathlib import Path
@@ -11,10 +13,14 @@ import pytest
 
 from plugins.sly_cooper import tables
 
-DEFAULT_WORLDS = Path("sly_cooper_switch/switch/ProjectCane/Worlds")
-WORLDS = Path(os.environ.get("SLY1_WORLDS", str(DEFAULT_WORLDS)))
+WORLDS = Path(os.environ.get("SLY1_WORLDS", "sly_cooper_switch/switch/ProjectCane/Worlds"))
 PARIS = WORLDS / "Paris" / "Paris.brx"
-real = pytest.mark.skipif(not PARIS.exists(), reason="Sly data folder not on this machine")
+SCHEMA_FILE = Path(os.environ.get("SLY1_OPTION_SCHEMA", "")) if os.environ.get("SLY1_OPTION_SCHEMA") else None
+real = pytest.mark.skipif(not (PARIS.exists() and SCHEMA_FILE is not None and SCHEMA_FILE.is_file()),
+                          reason="Sly data folder or local option schema not on this machine")
+
+# Two options as the synthetic level uses them: eopid 0 is an OTYP_Cid (two bytes), eopid 1 a Bool (one byte).
+SYNTH_SCHEMA = ((7, 4, 0), (0, 1, 0))
 
 
 class _Builder:
@@ -63,7 +69,7 @@ def _synthetic_level() -> tuple:
 
 def test_synthetic_level_decodes_every_table():
     data, at = _synthetic_level()
-    w = tables.read_tables(data)
+    w = tables.read_tables(data, SYNTH_SCHEMA)
     assert w.ibnk == 1
     assert w.option_count == 2
 
@@ -91,7 +97,7 @@ def test_synthetic_level_decodes_every_table():
 
 def test_synthetic_level_round_trips_byte_exact():
     data, at = _synthetic_level()
-    w = tables.read_tables(data)
+    w = tables.read_tables(data, SYNTH_SCHEMA)
     assert tables.write_clut_entry(w.cluts[0]) == data[at["clut"]:at["clut"] + 12]
     assert tables.write_bmp_entry(w.bmps[0]) == data[at["bmp"]:at["bmp"] + 20]
     assert tables.write_font(w.fonts[0]) == data[w.fonts[0].offset:w.fonts[0].end]
@@ -101,13 +107,31 @@ def test_synthetic_level_round_trips_byte_exact():
 def test_truncated_level_is_refused():
     data, _ = _synthetic_level()
     with pytest.raises(tables.TablesError):
-        tables.read_tables(data[:-1])
+        tables.read_tables(data[:-1], SYNTH_SCHEMA)
+
+
+def test_level_is_refused_without_a_schema_and_with_an_unknown_option():
+    data, _ = _synthetic_level()
+    with pytest.raises(tables.TablesError, match="no option schema"):
+        tables.read_tables(data, None)
+    with pytest.raises(tables.TablesError, match="outside the option schema"):
+        tables.read_tables(data, SYNTH_SCHEMA[:1])
+
+
+def test_option_schema_file_is_read_as_rows_and_missing_or_malformed_files_are_reported(tmp_path):
+    path = tmp_path / "option_schema.json"
+    path.write_text(json.dumps([[7, 4, 0], [-2147475455, 4, 0]]), encoding="utf-8")
+    assert tables.load_option_schema(path) == ((7, 4, 0), (-2147475455, 4, 0))
+    assert tables.load_option_schema(tmp_path / "absent.json") is None
+    path.write_text(json.dumps([[7, 4]]), encoding="utf-8")
+    with pytest.raises(tables.TablesError, match="integer rows"):
+        tables.load_option_schema(path)
 
 
 @real
 def test_paris_font_table_and_round_trip():
     data = PARIS.read_bytes()
-    w = tables.read_tables(data)
+    w = tables.read_tables(data, tables.load_option_schema(SCHEMA_FILE))
     font = next(f for f in w.fonts if f.offset == 0xF6C4)
     # Header bytes at 0xf6c4 read in CFontBrx::LoadFromBrx order (font.cpp): U16 ibmp = 0, S16 iclut = 855,
     # dxChar 25, dxSpace 10, dy 41, fontk 0, F32 rxScale 1.0, U32 cglyff 133. Glyphs run 0xf6d4..0xfafc.

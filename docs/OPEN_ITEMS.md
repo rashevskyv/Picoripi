@@ -29,7 +29,7 @@ the line when it is done or moved into a plan.
 - Decision numbers: the family branches used D18 to D20, which main already had. They are now D24 (family projects), D25 (plugin declares the family), D26 (family folders) and D27 (Wind Waker).
 - Personal paths in the new real-data tests now come from `PICORIPI_ROMHACKING` and `PICORIPI_SCRATCH`; the defaults are relative paths, so those tests skip until the owner sets the variables.
 - `feat/ss-shared` adds only one CHANGELOG line about workspace scripts that are not in this repository. Owner decides whether to keep it.
-- The Sly Cooper plugin takes facts from the ProjectCane source. Its licence is not checked.
+- Sly Cooper: licence of ProjectCane unverified; schema not shipped. The option table (1179 entries, from ProjectCane `spaprops.cpp`) left `plugins/sly_cooper/tables.py`; `load_option_schema()` reads it from a local file given by the caller, e.g. `<workspace>\tools\option_schema.json`, outside the repository. Owner decision before push: the table is still in the history of commit `76d8c5a1` (not pushed), so a push publishes it unless that history is rewritten.
 - Wind Waker family project: base archive messages count under the `.extracted` folder, not `base` (test adapted).
 
 ## Integration round 8 (2026-10-12)

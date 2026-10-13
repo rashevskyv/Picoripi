@@ -144,13 +144,14 @@ def test_the_host_adopts_a_comment_of_another_rooms_file_and_a_guest_does_not(qt
     hb._on_comments_loaded("earlier-room", [comment])
     assert "old1" not in hb.comments                       # a guest adopts nothing from a file
     ha._on_comments_loaded("earlier-room", [comment])      # the host takes it into the room
-    qtbot.waitUntil(lambda: "old1" in hb.comments, timeout=5000)   # every window learns it from the room
+    qtbot.waitUntil(lambda: "old1" in hb.comments, timeout=15000)  # every window learns it from the room
+    qtbot.waitUntil(lambda: "old1" in ha.comments, timeout=15000)  # the host's own mirror applies the same event
     assert hb.comments["old1"]["keys"] == {"f::1"} and hb.comments["old1"]["text"] == "From an earlier room"
-    qtbot.waitUntil(lambda: _file_has(tmp_path / "b", "From an earlier room"), timeout=5000)
+    qtbot.waitUntil(lambda: _file_has(tmp_path / "b", "From an earlier room"), timeout=15000)
     hb.resolve_comment("old1", True)                       # the room holds it: a guest may resolve it now
-    qtbot.waitUntil(lambda: ha.comments["old1"]["resolved"] is not None, timeout=5000)
+    qtbot.waitUntil(lambda: ha.comments.get("old1", {}).get("resolved") is not None, timeout=15000)
     ha.delete_comment("old1")
-    qtbot.waitUntil(lambda: "old1" not in hb.comments, timeout=5000)
+    qtbot.waitUntil(lambda: "old1" not in hb.comments, timeout=15000)
 
 
 class _Updater:

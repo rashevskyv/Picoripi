@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from plugins.common.msbt import EndTag, Tag
+from utils.atomic_io import atomic_write_text
 
 from .tags import from_editor, render_tag, to_editor
 
@@ -279,8 +280,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     gc_units, hd_units = _ids_from_folders(Path(args[1]), Path(args[2]))
     result = derive(id_pairs(gc_units, hd_units))
     text = json.dumps({"version": 1, "gc_to_hd": result["gc_to_hd"]}, indent=2, ensure_ascii=False) + "\n"
-    with open(MAP_FILE, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(text)
+    atomic_write_text(MAP_FILE, text, newline="")
     print(f"compared {result['compared']} messages; {len(result['gc_to_hd'])} tags mapped; "
           f"{len(result['conflicts'])} conflicts")
     return 0

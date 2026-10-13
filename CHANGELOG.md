@@ -297,6 +297,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 - New plugin `zelda_totk` (Zelda: Tears of the Kingdom): opens `romfs/Mals/*.sarc.zs` (zstd SARC of MSBTs, game dictionary from `Pack/ZsDic.pack.zs`, Python 3.14 `compression.zstd`), shows tags readably (`{color:2}`, `{icon:AButton0}`, raw `{tag:G:T:hex}` otherwise), saves a drop-in mod archive (unchanged input is byte-identical), gives each line its MSBT file and label as context; offline tools for font widths from BFFNT (`font_tool`) and the resource size table (`restbl`).
 
 - Series glossary: a project can link one glossary shared by a game series (`project.metadata["series_glossary"]`, files in `~/.picoripi/series_glossaries/`). **Glossary… → Series Glossary...** creates, links or imports one (a `{"terms": [...]}` multi-source document is converted, keeping per-source variants and status); the Glossary window shows it as a **Series: <name>** tab with the same editing and search, **Copy to Project Glossary** / **Promote to Series Glossary** for the selected terms, and terms the two glossaries translate differently marked red in both. AI prompts add series rows, marked lower priority, only for terms the project glossary does not translate; glossary builds never write the series file.
+- Sly Cooper: the option table left `plugins/sly_cooper/tables.py` (licence of ProjectCane unverified; schema not shipped). `load_option_schema()` reads it from a local file given by the caller; `read_tables()` needs that schema and refuses without it.
 
 ## [0.3.151-dev] - 2026-10-03
 
