@@ -125,6 +125,41 @@ def test_unpack_job_that_is_cancelled_leaves_only_the_project_folder(qtbot, tmp_
     assert not [p for p in project_dir.iterdir() if p.name.startswith(".unpack")]
 
 
+def test_wizard_asks_for_a_key_file_only_when_a_chosen_file_needs_one_and_none_is_stored(qtbot, tmp_path, monkeypatch):
+    from core.project_library import console_keys
+    from test_core.test_n3ds_image import build_cci, build_ncch
+    from ui.project_manager import wizard as wizard_module
+    from utils import constants
+
+    monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path / "data")
+    key_file = tmp_path / "keys.txt"
+    key_file.write_bytes(b"placeholder")
+    locked = tmp_path / "locked.cci"
+    locked.write_bytes(build_cci(build_ncch(encrypted=True)))
+    asked = []
+
+    class FakeDialog:
+        @staticmethod
+        def getOpenFileName(*_args, **_kwargs):
+            asked.append(True)
+            return str(key_file), ""
+
+    monkeypatch.setattr(wizard_module, "QFileDialog", FakeDialog)
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    wizard.add_paths([str(locked)])
+    qtbot.waitUntil(lambda: (wizard._key_status.get(str(locked)) or {}).get("key") == "3ds", timeout=10000)
+
+    assert wizard._ask_key_files(wizard._file_choices()) == {"3ds": str(key_file)}
+    assert asked == [True]
+    console_keys.set_path("3ds", str(key_file))
+    wizard._reread_files()
+    qtbot.waitUntil(lambda: (wizard._key_status.get(str(locked)) or {}).get("key_ready") is True, timeout=10000)
+    assert wizard._ask_key_files(wizard._file_choices()) == {}
+    assert asked == [True]
+
+
 def test_expanded_row_offers_targets_and_saves_flags_for_a_project_that_is_not_open(qtbot, tmp_path):
     project = _project(tmp_path / "root", "Aria", "p-aria")
     key = registry.project_key(project)

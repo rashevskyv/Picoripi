@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from core import formats
+from core.project_library import console_keys, images
 from core.project_library.cards import count_strings
 from utils.constants import APP_VERSION, plugins_root
 from utils.logging_utils import log_warning
@@ -75,9 +76,11 @@ def targets_of(rules: Any) -> List[Dict[str, Any]]:
 
 
 def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled = lambda: False) -> List[Dict[str, Any]]:
-    """For each path: ``{"path", "role", "platform"}``. ``role`` is "" when the plugin does not recognise the file.
+    """For each path: ``{"path", "role", "platform", "key", "key_ready"}``.
 
-    A role the plugin did not declare is dropped, so the wizard never shows a role it cannot save.
+    ``role`` is "" when the plugin does not recognise the file. A role the plugin did not declare is dropped, so the
+    wizard never shows a role it cannot save. ``key`` is the console whose key file the file needs ("" when none);
+    ``key_ready`` is True when Picoripi already has that console's key file.
     """
     known = {role["id"] for role in roles_of(rules)}
     result: List[Dict[str, Any]] = []
@@ -93,7 +96,9 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
         if isinstance(identity, dict) and str(identity.get("role") or "") in known:
             role = str(identity["role"])
             platform = str(identity.get("platform") or "")
-        result.append({"path": path, "role": role, "platform": platform})
+        console = images.needs_key(path) or ""
+        result.append({"path": path, "role": role, "platform": platform, "key": console,
+                       "key_ready": bool(console) and console_keys.path_for(console) is not None})
     return result
 
 

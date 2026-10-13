@@ -7,11 +7,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import pyqtSignal
 
-from core.project_library import build, plugin_facts
+from core.project_library import build, console_keys, plugin_facts
 from utils.constants import plugins_root
 from utils.logging_utils import log_error, log_warning
 from utils.thread_utils import WorkerThread
@@ -88,18 +88,22 @@ class UnpackJob(WorkerThread):
     cancelled = pyqtSignal()
     failed = pyqtSignal(str)
 
-    def __init__(self, plugin_name: str, sources: Dict[str, str], project_dir: str, load_rules: LoadRules):
+    def __init__(self, plugin_name: str, sources: Dict[str, str], project_dir: str, load_rules: LoadRules,
+                 key_paths: Optional[Dict[str, str]] = None):
         super().__init__()
         self._plugin = plugin_name
         self._sources = dict(sources)
         self._project_dir = project_dir
         self._load_rules = load_rules
+        self._key_paths = dict(key_paths or {})   # console id -> key file path the user chose in the wizard
 
     def run(self) -> None:
         try:
+            for console, path in self._key_paths.items():
+                console_keys.set_path(console, path)
             rules = self._load_rules(self._plugin)
             folder = build.run_unpack(rules, self._sources, self._project_dir, self._report,
-                                      self.isInterruptionRequested)
+                                      self.isInterruptionRequested, key_provider=console_keys.path_for)
             Path(self._project_dir, "translation").mkdir(parents=True, exist_ok=True)
         except build.Cancel:
             self.cancelled.emit()

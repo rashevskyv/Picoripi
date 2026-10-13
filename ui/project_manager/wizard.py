@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.i18n import tr
+from core.project_library import images
 from core.project_library.icons import IMAGE_FILTER, load_image
 from ui.project_manager.jobs import BackgroundJob
 from ui.project_manager.tasks import FactsJob, PluginListJob, UnpackJob
@@ -42,6 +43,7 @@ class ProjectWizard(QDialog):
         self._roles: List[Dict[str, str]] = []
         self._platforms: List[Dict[str, str]] = []
         self._unpack_job: Optional[UnpackJob] = None
+        self._key_status: Dict[str, Dict[str, Any]] = {}   # per file path: the console its key file is for, and ready
         self._build_ui()
         self._run(PluginListJob(), self._on_plugins)
         self._show_page(0)
@@ -208,6 +210,7 @@ class ProjectWizard(QDialog):
         for position in range(self._files_tree.topLevelItemCount()):
             self._files_tree.topLevelItem(position).setData(0, Qt.ItemDataRole.UserRole + 1, False)
         self._roles, self._platforms = [], []
+        self._key_status = {}
         self._reread_files()
 
     def _reread_files(self) -> None:
@@ -223,6 +226,7 @@ class ProjectWizard(QDialog):
         self._roles = facts.get("roles") or []
         self._platforms = facts.get("platforms") or []
         identities = {item["path"]: item for item in facts.get("identities") or []}
+        self._key_status = identities
         for position in range(self._files_tree.topLevelItemCount()):
             item = self._files_tree.topLevelItem(position)
             path = item.data(0, Qt.ItemDataRole.UserRole)
@@ -333,10 +337,13 @@ class ProjectWizard(QDialog):
         choices = self._file_choices()
         sources = {choice["role"]: path for path, choice in choices.items()}
         folder = self._folder.text().strip()
+        key_paths = self._ask_key_files(choices)
+        if key_paths is None:
+            return
         self._set_busy(True)
         self._progress.setValue(0)
         self._progress_text.setText(tr("Unpacking..."))
-        job = UnpackJob(self._game.currentData(), sources, folder, self._load_rules)
+        job = UnpackJob(self._game.currentData(), sources, folder, self._load_rules, key_paths)
         job.progress.connect(self._on_progress)
         job.cancelled.connect(self._on_unpack_cancelled)
         job.done.connect(lambda unpacked, s=sources, c=choices: self._on_unpacked(unpacked, s, c))
@@ -345,6 +352,27 @@ class ProjectWizard(QDialog):
         job.cancelled.connect(lambda j=job: self._finish_job(j))
         self._unpack_job = job
         self._run(job, lambda _result: self._finish_job(job))
+
+    def _ask_key_files(self, choices: Dict[str, Dict[str, str]]) -> Optional[Dict[str, str]]:
+        """The key file of each console that a chosen file needs and Picoripi has no live path for.
+
+        Asks only for files that have a role. Returns ``{console: path}``, or None when the user cancels a dialog.
+        """
+        needed: List[str] = []
+        for path, choice in choices.items():
+            status = self._key_status.get(path) or {}
+            console = str(status.get("key") or "")
+            if choice["role"] and console and not status.get("key_ready") and console not in needed:
+                needed.append(console)
+        picked: Dict[str, str] = {}
+        for console in needed:
+            label = tr(images.CONSOLE_LABEL[console])
+            path, _filter = QFileDialog.getOpenFileName(
+                self, tr("Choose the key file for {0}", label), str(Path.home()), tr("All files") + " (*)")
+            if not path:
+                return None
+            picked[console] = path
+        return picked
 
     def _problem(self) -> str:
         if not self._name.text().strip():

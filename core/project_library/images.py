@@ -1,9 +1,10 @@
-"""Game images for a plugin's unpack step: recognise a GameCube or Nintendo DS image, and write its files to a folder.
+"""Game images for a plugin's unpack step: recognise a supported image by content, and write its files to a folder.
 
-``identify`` reads only the first 0x440 bytes, by content, never by file name. ``extract`` writes the files a plugin
-asks for, in the folder layout of the zt scripts' ``source`` folder. NKit GameCube discs are read as they are (the
-layout is the same). Formats this module does not read (RVZ, WIA, Wii, NKit of other kinds) raise ``ImageError``
-with the reason: a plugin reports it, and never converts an image.
+``identify`` reads only the headers, by content, never by file name. ``extract`` writes the files a plugin asks for, in
+the folder layout of the zt scripts' ``source`` folder. NKit GameCube discs are read as they are (the layout is the
+same). Nintendo 3DS programs are read when they are decrypted (NoCrypto); encrypted 3DS, Switch and Wii content raises
+``ImageError`` from ``core.containers.console_crypto``. Formats this module does not read (RVZ, WIA, other NKit
+kinds) raise ``ImageError`` with the reason: a plugin reports it, and never converts an image.
 All functions run on a worker thread: they read and write files, never touch widgets.
 """
 from __future__ import annotations
@@ -13,43 +14,71 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Container, Dict, Iterator, Optional, Sequence
 
+from core.containers import n3ds, switch_images, wii_disc
+from core.containers.console_crypto import encrypted_error
 from core.containers.gcm import GameCubeImage, HEADER_SIZE, is_gamecube_header
 from core.containers.image_files import ImageError, ImageFile, ImageReader, copy_range
 from core.containers.nds import NdsImage, is_nds_header
+from core.i18n import tr
 
 Progress = Callable[[int, str], None]
 Cancelled = Callable[[], bool]
 
 KIND_GC = "gc"
 KIND_NDS = "nds"
-WII_MAGIC_AT = 0x18          # a Wii disc keeps its magic here; a GameCube disc keeps its magic at 0x1C
-WII_MAGIC = 0x5D1C9EA3
+KIND_3DS = "3ds"
+KIND_SWITCH = "switch"
+KIND_WII = "wii"
+CONSOLE_OF_KIND = {KIND_3DS: "3ds", KIND_SWITCH: "switch", KIND_WII: "wii"}
+CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii"}
+UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS))   # the kinds an unpack step can write today
+WII_MAGIC_AT = wii_disc.WII_MAGIC_AT
+WII_MAGIC = wii_disc.WII_MAGIC
 _UNSUPPORTED = {
     b"RVZ\x01": "an RVZ image: convert it to a plain ISO first",
     b"WIA\x01": "a WIA image: convert it to a plain ISO first",
 }
 
 
-def identify(path: str | Path) -> Optional[Dict[str, str]]:
-    """``{"kind": "gc" | "nds", "game_id": ...}`` for a supported image, or None for any other file."""
+def _describe(stream: Any, head: bytes) -> Optional[Dict[str, Any]]:
+    """``{"kind", "game_id", "encrypted", ...}`` of a supported image, or None. Leaves the stream at offset 0."""
+    if is_gamecube_header(head):
+        return {"kind": KIND_GC, "game_id": head[:6].decode("ascii", "replace"), "encrypted": False}
+    if is_nds_header(head):
+        return {"kind": KIND_NDS, "game_id": head[0x0C:0x10].decode("ascii", "replace"), "encrypted": False}
+    found = wii_disc.locate(head)
+    if found is None:
+        reader = ImageReader(stream)
+        stream.seek(0)
+        program = n3ds.locate(reader, head)
+        found = n3ds.identify_fields(program) if program is not None else switch_images.locate(reader, head)
+        stream.seek(0)
+    return found
+
+
+def identify(path: str | Path) -> Optional[Dict[str, Any]]:
+    """The fields of a supported image (``kind``, ``game_id``, ``encrypted``, ``title_id``), or None for any other file."""
     try:
         with open(path, "rb") as stream:
-            head = stream.read(HEADER_SIZE)
-    except OSError:
+            return _describe(stream, stream.read(HEADER_SIZE))
+    except (OSError, ValueError, struct.error):   # ImageError is a ValueError: a broken image is not identified
         return None
-    if is_gamecube_header(head):
-        return {"kind": KIND_GC, "game_id": head[:6].decode("ascii", "replace")}
-    if is_nds_header(head):
-        return {"kind": KIND_NDS, "game_id": head[0x0C:0x10].decode("ascii", "replace")}
-    return None
 
 
 def base_identity(path: str | Path, game_codes: Container[str]) -> Optional[Dict[str, str]]:
-    """``{"role": "base", "platform": "gc" | "nds"}`` when ``path`` is an image of one of ``game_codes``."""
+    """``{"role": "base", "platform": <kind>}`` when ``path`` is an image of one of ``game_codes``."""
     found = identify(path)
     if found is None or found["game_id"] not in game_codes:
         return None
     return {"role": "base", "platform": found["kind"]}
+
+
+def needs_key(path: str | Path) -> Optional[str]:
+    """The console whose key file an image needs, or None when it needs none or is not a supported image."""
+    found = identify(path)
+    if found is None or not found.get("encrypted"):
+        return None
+    return CONSOLE_OF_KIND.get(found["kind"])
 
 
 def _reader(stream: Any) -> ImageReader:
@@ -60,11 +89,16 @@ def _reader(stream: Any) -> ImageReader:
         return GameCubeImage(stream)
     if is_nds_header(head):
         return NdsImage(stream)
+    found = _describe(stream, head)
+    if found is not None:
+        if found["kind"] == KIND_3DS:
+            return n3ds.N3dsImage(stream)   # raises the encrypted error itself for encrypted content
+        if found.get("encrypted"):
+            kind = found["kind"]
+            raise encrypted_error(CONSOLE_OF_KIND[kind], tr(CONSOLE_LABEL[kind]))
     for magic, reason in _UNSUPPORTED.items():
         if head.startswith(magic):
             raise ImageError(f"Picoripi cannot read {reason}")
-    if len(head) >= HEADER_SIZE and struct.unpack_from(">I", head, WII_MAGIC_AT)[0] == WII_MAGIC:
-        raise ImageError("a Wii image: Picoripi does not read Wii images yet")
     if len(head) >= 0x204 and head[0x200:0x204] == b"NKIT":
         raise ImageError("an NKit image of an unknown kind: convert it to a plain ISO first")
     raise ImageError("not a GameCube or Nintendo DS image")

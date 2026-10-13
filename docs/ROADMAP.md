@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-13
 owns: work packages, order of work
-tokens: 1.2k
+tokens: 1.5k
 purpose: Master plan: the work packages of Picoripi, their state and the order
 ---
 # Road map
@@ -55,7 +55,7 @@ The per-game table is the status page generated from `_shared/status/*.json`. In
 3. A11, A13, A14 in between rounds.
 4. Integration round 10 is done (`origin/main` 0e1cf802; see A10).
 5. `feat/manual-3ds-plugin` waits for the owner.
-6. A18 (unpack in Picoripi): phase 1 in integration round 11; phase 2a on `feat/unpack-2a` (pending the lead's commit); then phase 2b (console keys).
+6. A18 (unpack in Picoripi): phase 1 in integration round 11; phase 2a on `feat/unpack-2a` (pending the lead's commit); phase 2b on `feat/unpack-2b`: key file store and wizard prompt, decrypted 3DS programs, Switch and Wii identify. Decryption is blocked (pycryptodome not installed; see `docs/OPEN_ITEMS.md`); phase 2c fills it.
 
 ## How a package moves
 
