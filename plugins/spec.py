@@ -114,6 +114,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_syntax_highlighting_rules", "List of (regex, QTextCharFormat) for the editor.", call=(), returns=list),
         Hook("get_legitimate_tags", "Tags that may appear in a translation.", call=(), returns=set),
         Hook("get_tag_tooltip", "Explanation shown for a tag.", call=("{tag}",), returns=str),
+        Hook("get_problem_detail", "Detail for one problem of one string (block, string, problem id), shown under "
+             "its name in the editor tooltip. Empty: no detail.", call=(0, 0, "X"), returns=str),
         Hook("get_tag_checker_handler", "Object that runs the plugin's tag-mismatch check, or None."),
         Hook("get_custom_context_tags", "Tags of the editor context menu: {'single_tags', 'wrap_tags'}.",
              call=(), returns=dict),

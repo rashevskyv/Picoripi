@@ -763,6 +763,10 @@ class BaseGameRules:
         """Return an optional human-readable explanation for an editor tag."""
         return ""
 
+    def get_problem_detail(self, block_idx: int, string_idx: int, problem_id: str) -> str:
+        """Return an optional detail for one problem of one string, shown under its name in the editor tooltip."""
+        return ""
+
     def get_context_menu_actions(self, editor_widget, selected_text: Optional[str]) -> List[Dict[str, Any]]:
         """Get the context menu actions."""
         return []

@@ -117,7 +117,9 @@ class GameRules(BaseGameRules):
         self._name = ""
         self._geo: Dict[str, layout.Geometry] = {}
         self._block_meta: List[Dict[str, Any]] = []
-        self._problem_cache: Dict[Tuple[int, int, str], Set[str]] = {}
+        self._problem_cache: Dict[Tuple[int, int, str], Tuple[Set[str], Dict[str, str]]] = {}
+        # (block, string) -> {problem id: detail text} from the last analysis of that string
+        self._problem_details: Dict[Tuple[int, int], Dict[str, str]] = {}
 
     def get_display_name(self) -> str:
         return "Electronic manuals (3DS, Ukrainian)"
@@ -139,6 +141,7 @@ class GameRules(BaseGameRules):
         translation = any("ua" in entry for entry in doc.values())
         texts = [str(entry.get("ua", "")) if translation else str(entry["en"]) for entry in doc.values()]
         self._problem_cache = {}
+        self._problem_details = {}
         self._block_meta = [{"key": key, "ru": str(entry.get("ru", "")), "lines": entry.get("lines"),
                              "width": entry.get("width")} for key, entry in doc.items()]
         return [texts], {"0": self._name or "Manual"}
@@ -171,6 +174,7 @@ class GameRules(BaseGameRules):
         self._save_doc = None
         self._geo = {}
         self._problem_cache = {}
+        self._problem_details = {}
 
     # -- reference (Russian, context only) ------------------------------------------------
 
@@ -207,17 +211,29 @@ class GameRules(BaseGameRules):
         if block_idx != 0 or not (0 <= string_idx < len(self._block_meta)):
             return set()
         cache_key = (block_idx, string_idx, text)
-        if cache_key in self._problem_cache:
-            return set(self._problem_cache[cache_key])
-        meta = self._block_meta[string_idx]
-        key = meta["key"]
-        geo = self._geo.get(key)
-        entry = self._doc.get(key, {}) if self._doc else {}
-        _DATA.load()
-        found = layout.check_entry(text, meta["ru"], entry, geo, _DATA.widths)
-        ids = {f"{PLUGIN_PREFIX}_{name}" for name, _message in found if f"{PLUGIN_PREFIX}_{name}" in CUSTOM_IDS}
-        self._problem_cache[cache_key] = set(ids)
-        return ids
+        if cache_key not in self._problem_cache:
+            meta = self._block_meta[string_idx]
+            key = meta["key"]
+            geo = self._geo.get(key)
+            entry = self._doc.get(key, {}) if self._doc else {}
+            _DATA.load()
+            found = layout.check_entry(text, meta["ru"], entry, geo, _DATA.widths)
+            ids: Set[str] = set()
+            details: Dict[str, str] = {}
+            for name, message in found:
+                pid = f"{PLUGIN_PREFIX}_{name}"
+                if pid not in CUSTOM_IDS:
+                    continue
+                ids.add(pid)
+                details[pid] = f"{details[pid]}; {message}" if pid in details else message
+            self._problem_cache[cache_key] = (ids, details)
+        ids, details = self._problem_cache[cache_key]
+        self._problem_details[(block_idx, string_idx)] = details
+        return set(ids)
+
+    def get_problem_detail(self, block_idx: int, string_idx: int, problem_id: str) -> str:
+        """The layout message of one problem of the last analysed text of the paragraph."""
+        return self._problem_details.get((block_idx, string_idx), {}).get(problem_id, "")
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         if block_idx != 0 or not (0 <= string_idx < len(self._block_meta)):

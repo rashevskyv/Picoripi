@@ -129,6 +129,16 @@ def test_the_editor_scan_gets_the_problem_ids_of_the_scanned_string(widths, geom
     assert found == [{"M3D_WIDTH"}]
 
 
+def test_the_problem_detail_is_the_layout_message_of_the_last_analysed_text(widths, geometry):
+    rules = check_loads(PLUGIN)
+    rules.load_data_from_json_obj(_text(SAMPLE))
+    rules.manual_problems(0, 0, "а" * 13)
+    assert rules.get_problem_detail(0, 0, "M3D_WIDTH") == "line 1 is 76 px past the 50 px column"
+    assert rules.get_problem_detail(0, 0, "M3D_LINES") == ""
+    rules.manual_problems(0, 0, "а")
+    assert rules.get_problem_detail(0, 0, "M3D_WIDTH") == ""
+
+
 def _geo():
     return layout.Geometry(part="large", font_size=24.0, char_space=0.0,
                            lines=[layout.Line(10.0, 300.0), layout.Line(10.0, 300.0)])

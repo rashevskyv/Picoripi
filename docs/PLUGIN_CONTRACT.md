@@ -65,6 +65,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_syntax_highlighting_rules` | List of (regex, QTextCharFormat) for the editor. |  |
 | `get_legitimate_tags` | Tags that may appear in a translation. |  |
 | `get_tag_tooltip` | Explanation shown for a tag. |  |
+| `get_problem_detail` | Detail for one problem of one string (block, string, problem id), shown under its name in the editor tooltip. Empty: no detail. |  |
 | `get_tag_checker_handler` | Object that runs the plugin's tag-mismatch check, or None. |  |
 | `get_custom_context_tags` | Tags of the editor context menu: {'single_tags', 'wrap_tags'}. |  |
 | `save_custom_context_tags` | Store the context-menu tags. |  |
