@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-07
 owns: ui/, components/, dialogs/
-tokens: 42.3k
+tokens: 43.5k
 purpose: Main window, menus, filters, settings tabs, shortcuts
 ---
 # User Guide: Interface
@@ -952,7 +952,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      scripts `data\Menu\EndRoll\*.nut` (quoted strings), the four `*.bffnt` fonts (the RGBA4 `break_font`) and the
      BFLIM pictures inside the SARC layouts `data\Layout\**\*.arc` (the title logo `title\upper\title_logo.arc`).
      Lines the patch left Japanese stay visible. `2_build.bat` puts the changed files into a Luma `romfs` mod.
-   - `mhp3rd` — Monster Hunter Portable 3rd HD (PSP image NPJB-40001, Yakumo PC port). **Source:** the workspace `source` folder holds `en_source.json`, built by `tools/build_source_lang.py` from the user's PSP image and the English patch: keys are `TABLE:INDEX` (quests `ref:offset`). **Translation:** `translation/uk.json`; `2_build.bat` writes `uk.lang` into Yakumo's translations folder, and the disc is not changed. Not yet: the Character Creation labels (not in the extracted blocks) and the font choice (Yakumo's `text.font` in its `settings.ini`). **Required Yakumo:** a build from commit 43190f0 or later (the released builds alpha.4 and alpha.5 cannot load translation files).
+   - `mhp3rd` — Monster Hunter Portable 3rd HD (PSP image NPJB-40001, Yakumo PC port). **Source:** the workspace `source` folder holds `en_source.json`, built by the workspace script build_source_lang.py (not in this repository) from the user's PSP image and the English patch: keys are `TABLE:INDEX` (quests `ref:offset`). **Translation:** `translation/uk.json`; `2_build.bat` writes `uk.lang` into Yakumo's translations folder, and the disc is not changed. Not yet: the Character Creation labels (not in the extracted blocks) and the font choice (Yakumo's `text.font` in its `settings.ini`). **Required Yakumo:** a build from commit 43190f0 or later (the released builds alpha.4 and alpha.5 cannot load translation files).
    - `monster_hunter_3ds` — Monster Hunter 3 Ultimate, Monster Hunter 4 Ultimate and Monster Hunter Stories
      (3DS, Europe; Capcom MT Framework Mobile). **Source:** the workspace's `source` folder (`1_unpack.bat`
      decrypts the game and takes the English and language-neutral files out of the `.arc` archives, at the

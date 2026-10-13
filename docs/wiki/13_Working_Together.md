@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: core/collab
-tokens: 2.7k
+tokens: 2.9k
 purpose: Rooms, roles, claims, comments
 ---
 # Working Together and Progress

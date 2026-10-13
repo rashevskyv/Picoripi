@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: core/collab
-tokens: 3.8k
+tokens: 4.1k
 ---
 # Спільна робота і прогрес
 

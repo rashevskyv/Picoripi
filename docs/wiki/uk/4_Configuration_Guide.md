@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/settings
-tokens: 2.6k
+tokens: 2.7k
 ---
 # Налаштування
 

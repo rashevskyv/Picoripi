@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 14.1k
+tokens: 15.2k
 ---
 # Посібник розробника плагінів
 
