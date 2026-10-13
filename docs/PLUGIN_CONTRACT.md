@@ -133,7 +133,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 
 | Hook | What it is for | Notes |
 |---|---|---|
-| `problem_analyzer` | Analyzer object: analyze_data_string(), registry.get_prefixed_id(). | looked for, attribute |
+| `problem_analyzer` | Analyzer object: analyze_data_string(), registry.get_prefixed_id(). String context: the host sets _current_scan_block_idx and _current_scan_string_idx around each string analysis and restores the previous values after. Read them with getattr(..., None); they are None outside a string analysis. Do not keep them after the call. | looked for, attribute |
 | `tag_manager` | Tag manager object (GenericTagManager or a subclass). | looked for, attribute |
 | `problem_ids` | Namespace of the plugin's problem ids (None for a plugin without problem definitions). | attribute |
 | `PROBLEM_MISSING_ICON_SPACING` | Id of the 'missing space next to an icon' problem. | looked for, attribute |
