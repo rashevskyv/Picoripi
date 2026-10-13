@@ -1,5 +1,6 @@
 """Castlevania DS plugin (Dawn of Sorrow, Portrait of Ruin, Order of Ecclesia): codes, string bank, fonts, pictures;
 real data from the workspaces when they are on disk."""
+import romhacking_root
 import json
 import sys
 from pathlib import Path
@@ -15,7 +16,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "castlevania_ds"
 PLUGIN_DIR = Path(__file__).parents[3] / "plugins" / PLUGIN
-ROOT = Path(r"E:\Emulators\RomHacking\Castlevania")
+ROOT = romhacking_root.under('Castlevania')
 WORKSPACES = {"dos": ROOT / "Dawn of Sorrow", "por": ROOT / "Portrait of Ruin", "ooe": ROOT / "Order of Ecclesia"}
 
 

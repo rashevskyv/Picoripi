@@ -1,5 +1,6 @@
 """Paper Mario (N64) message font: the charset glyph sheet opens in the Font Editor's format and packs back to
 the same bytes unedited; a changed glyph lands in its own cell (skipped where the workspace is not here)."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import pytest
 from core import font_formats
 
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "paper_mario_64"
-FONT_FILE = Path(r"E:\Emulators\RomHacking\Paper Mario\Paper Mario 64\N64-PC-port with ISO\source\font\charset_standard.bin")
+FONT_FILE = romhacking_root.under('Paper Mario\\Paper Mario 64\\N64-PC-port with ISO\\source\\font\\charset_standard.bin')
 
 
 def _descriptor():

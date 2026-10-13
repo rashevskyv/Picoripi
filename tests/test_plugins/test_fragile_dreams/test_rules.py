@@ -1,8 +1,8 @@
 """Fragile Dreams plugin: message blocks (load, save, a longer text, cp1251), the HOME Menu table, the FONT
 format (unedited = same bytes, a redrawn and a bigger glyph, widths); the real files when the workspace is
 unpacked here."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image, ImageDraw
@@ -15,7 +15,7 @@ from plugins.fragile_dreams import fdtext
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "fragile_dreams"
-SOURCE = Path(r"E:\Emulators\RomHacking\Fragile Dreams\source")
+SOURCE = romhacking_root.under('Fragile Dreams\\source')
 real = pytest.mark.skipif(not (SOURCE / "text" / "60001061.msg").exists(), reason="Fragile Dreams not unpacked here")
 
 

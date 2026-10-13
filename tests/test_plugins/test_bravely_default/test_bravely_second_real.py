@@ -3,6 +3,7 @@
 The English tables (Common_en, the English Script/Scene files and Graphics/UI) load and save back byte for byte,
 both fonts (Font and FontK) pack back unchanged, and every picture of a sample reads and writes back unchanged.
 """
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from core.font_formats import sources as font_sources
 from core.texture_formats import sources as texture_sources
 from plugins.bravely_default.rules import EXTENSIONS, GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Bravely\Second\3DS")
+WS = romhacking_root.under('Bravely\\Second\\3DS')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "bravely_default"
 

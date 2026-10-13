@@ -1,6 +1,6 @@
 """Dragon Quest VII, VIII and Monsters: Joker 3 (3DS) plugins: packs, tables and the real games' files."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -13,7 +13,7 @@ from plugins.dragon_quest_vii import rules as dq7_rules
 from plugins.dragon_quest_viii import bine
 from plugins.testing import check_loads, check_validator, load_rules
 
-ROOT = Path(r"E:\Emulators\RomHacking\Dragon Quest")
+ROOT = romhacking_root.under('Dragon Quest')
 DQ7 = ROOT / "Dragon Quest VII/3DS/source/romfs"
 DQ8 = ROOT / "Dragon Quest VIII/3DS/source/romfs"
 J3 = ROOT / "Monsters Joker 3/source/romfs"

@@ -2,6 +2,7 @@
 UMSBT and the keyboard MSBT save back byte for byte with every tag named, every font packs back unchanged and takes a
 glyph edit, every layout picture format reads, writes back and takes an edit, the layout archives rebuild byte for
 byte, and the workspace build puts a changed file and a rebuilt archive into the Luma mod."""
+import romhacking_root
 import hashlib
 import importlib
 import importlib.util
@@ -17,8 +18,8 @@ from core import font_formats, texture_formats
 from core.texture_formats import flim
 from plugins.animal_crossing_3ds.rules import GameRules, umsbt_split
 
-ROOT = Path(r"E:\Emulators\RomHacking\Animal Crossing")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+ROOT = romhacking_root.under('Animal Crossing')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 GAMES = {"New Leaf": (3299, 87425, 5, 4851), "Happy Home Designer": (507, 57737, 2, 8833)}
 UKRAINIAN = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
 

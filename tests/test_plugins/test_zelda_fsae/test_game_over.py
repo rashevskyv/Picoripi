@@ -1,6 +1,6 @@
 """GAME OVER of Four Swords Anniversary Edition: the word, letter table and places in the ARM9."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -8,7 +8,7 @@ from core.formats import SaveContext
 from plugins.testing import load_rules
 from plugins.zelda_fsae import game_over
 
-FSAE = Path(r"E:\Emulators\RomHacking\Zelda\Four Swords Anniversary")
+FSAE = romhacking_root.under('Zelda\\Four Swords Anniversary')
 LETTERS = "GAMEOVR"
 
 

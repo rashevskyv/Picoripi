@@ -1,5 +1,6 @@
 """Spore Hero plugin: the LOCBIN package (strings, histogram bytes, stream layout), main.dol messages; the real files
 (text, fonts, UI textures) when the workspace is unpacked here."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -12,7 +13,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "spore_hero"
 PLUGIN_DIR = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN
-SOURCE = Path(r"E:\Emulators\RomHacking\Spore Hero\source")
+SOURCE = romhacking_root.under('Spore Hero\\source')
 TEXT = SOURCE / "game" / "localization" / "localization" / "ENG_US.rpk"
 real = pytest.mark.skipif(not TEXT.exists(), reason="Spore Hero not unpacked here")
 

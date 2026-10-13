@@ -1,4 +1,5 @@
 """Metal Gear Solid (PlayStation) plugin hooks: load and save every kind of file; the real workspace when present."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 from .samples import gcx, program, radio, subs_file
 
-WS = Path(r"E:\Emulators\RomHacking\Metal Gear\Metal Gear Solid\PS1")
+WS = romhacking_root.under('Metal Gear\\Metal Gear Solid\\PS1')
 SOURCE = WS / "source"
 real = pytest.mark.skipif(not (SOURCE / "RADIO.DAT").is_file(), reason="the unpacked workspace is not on this machine")
 

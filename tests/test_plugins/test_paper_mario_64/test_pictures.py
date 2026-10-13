@@ -1,5 +1,6 @@
 """Paper Mario (N64) pictures from the port's archive: the raw source files open and write back byte for byte,
 and the picture source list names every file with its format (skipped where the workspace is not here)."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import pytest
 from core import texture_formats
 
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "paper_mario_64"
-SOURCE = Path(r"E:\Emulators\RomHacking\Paper Mario\Paper Mario 64\N64-PC-port with ISO\source\texture")
+SOURCE = romhacking_root.under('Paper Mario\\Paper Mario 64\\N64-PC-port with ISO\\source\\texture')
 
 
 def _sources():

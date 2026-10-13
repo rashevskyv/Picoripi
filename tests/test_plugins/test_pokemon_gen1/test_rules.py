@@ -1,4 +1,5 @@
 """Pokémon Red / Blue / Yellow plugin: asm text units, editing and saving back, context, fonts, real files."""
+import romhacking_root
 import io
 import json
 import re
@@ -39,7 +40,7 @@ TypeNames:
 \tli "NORMAL"
 \tli "FIGHTING"
 """
-WORKSPACES = [Path(r"E:\Emulators\RomHacking\Pokemon\Red and Blue"), Path(r"E:\Emulators\RomHacking\Pokemon\Yellow")]
+WORKSPACES = [romhacking_root.under('Pokemon\\Red and Blue'), romhacking_root.under('Pokemon\\Yellow')]
 
 
 def test_the_plugin_loads_round_trips_and_validates():

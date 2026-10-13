@@ -2,6 +2,7 @@
 saves back byte for byte and takes an edit, every Phyre texture / font and every G1T picture writes back
 unchanged, and the workspace build (zt/dqb.py) puts a changed file into a copy of the archive while every other
 entry stays."""
+import romhacking_root
 import importlib
 import json
 import sys
@@ -14,9 +15,9 @@ from core.font_formats import char_map
 from plugins.dragon_quest_builders import excel
 from plugins.dragon_quest_builders.rules import GameRules
 
-B1 = Path(r"E:\Emulators\RomHacking\Dragon Quest\Builders\Switch")
-B2 = Path(r"E:\Emulators\RomHacking\Dragon Quest\Builders 2\Switch")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+B1 = romhacking_root.under('Dragon Quest\\Builders\\Switch')
+B2 = romhacking_root.under('Dragon Quest\\Builders 2\\Switch')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 
 
 def _source(ws: Path, probe: str) -> Path:

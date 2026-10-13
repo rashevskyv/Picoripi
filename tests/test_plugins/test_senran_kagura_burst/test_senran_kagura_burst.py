@@ -1,6 +1,7 @@
 """Senran Kagura Burst plugin: synthetic TAMS files, the executable's string pool, the .bin pack and its compression;
 and, skipped where the workspace is not on this machine, the real game files (432 message files, 2,629 strings of
 code.bin, the layout packs with their pictures, the five CFNA fonts)."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -18,7 +19,7 @@ from plugins.testing import check_loads, check_validator
 
 PLUGIN_NAME = "senran_kagura_burst"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN_NAME
-WS = Path(r"E:\Emulators\RomHacking\Senran Kagura\Burst\3DS")
+WS = romhacking_root.under('Senran Kagura\\Burst\\3DS')
 SOURCE = WS / "source"
 
 

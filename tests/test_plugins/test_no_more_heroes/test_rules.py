@@ -1,10 +1,10 @@
 """No More Heroes plugin: text blocks exported by the workspace script (load, save, other keys kept, Ukrainian),
 tags, the HOME Menu table; the game's LZ, text codec and text box rebuild of the workspace script when it is on
 this machine; the real fonts and text when the workspace is unpacked here."""
+import romhacking_root
 import importlib
 import json
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -14,8 +14,8 @@ from plugins.no_more_heroes.rules import TAG_RE
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "no_more_heroes"
-WS = Path(r"E:\Emulators\RomHacking\No More Heroes")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+WS = romhacking_root.under('No More Heroes')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 real = pytest.mark.skipif(not (WS / "source" / "text" / "main.dol.nmt").exists(), reason="No More Heroes not unpacked here")
 
 SAMPLE = {"file": "Title/TITLE.rsl", "blocks": [

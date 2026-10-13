@@ -1,7 +1,7 @@
 """Luigi's Mansion: Dark Moon (3DS) plugin: NLOC tables, font and texture bundles (synthetic and the real game's
 files when they are unpacked here)."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -12,7 +12,7 @@ from plugins.luigis_mansion_2 import nloc
 from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "luigis_mansion_2"
-SOURCE = Path(r"E:\Emulators\RomHacking\Luigi's Mansion\2\3DS\source\romfs\art\fe")
+SOURCE = romhacking_root.under("Luigi's Mansion\\2\\3DS\\source\\romfs\\art\\fe")
 
 
 def make_nloc(strings, keys=None) -> bytes:

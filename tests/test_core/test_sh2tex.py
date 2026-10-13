@@ -6,7 +6,7 @@ import pytest
 
 from core.texture_formats import sh2tex
 
-DATA = pathlib.Path(r"E:\Emulators\RomHacking\Silent Hill\Silent Hill 2\PC\ISO\data")
+DATA = pathlib.romhacking_root.under('Silent Hill\\Silent Hill 2\\PC\\ISO\\data')
 CARBON = DATA / "pic" / "carbon.tex"
 
 

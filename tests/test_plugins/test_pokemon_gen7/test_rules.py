@@ -1,6 +1,6 @@
 """Pokémon Sun / Moon and Ultra Sun / Ultra Moon (3DS) plugin: the shared gfmsg codec on gen 7 tables, block names;
 real-data round trips of the English tables, fonts and pictures of the workspaces (skipped when the data is missing)."""
-from pathlib import Path
+import romhacking_root
 
 import pytest
 
@@ -10,7 +10,7 @@ from plugins.pokemon_gen7.rules import locate, table_name
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "pokemon_gen7"
-ROOTS = {name: Path(r"E:\Emulators\RomHacking\Pokemon") / name / "source" / "romfs"
+ROOTS = {name: romhacking_root.under('Pokemon') / name / "source" / "romfs"
          for name in ("Sun and Moon", "Ultra Sun and Ultra Moon")}
 TEXT = ("a/0/3/2", "a/0/4/2")
 TABLES = {"Sun and Moon": 898, "Ultra Sun and Ultra Moon": 1251}

@@ -1,5 +1,6 @@
 """Unreal ``.pak`` version 8 (core/unreal/pak.py): a written pak reads back; the real Bravely Default II pak (skipped
 where the NSP or the extracted files are not on this machine) gives the same bytes for the English entries."""
+import romhacking_root
 import sys
 from pathlib import Path
 
@@ -7,8 +8,8 @@ import pytest
 
 from core.unreal import pak
 
-NSP = Path(r"E:\Emulators\RomHacking\Bravely\Default II\Switch\ISO\Bravely Default II [01006DC010326000][v0].nsp")
-EXTRACTED = Path(r"E:\Emulators\RomHacking\Bravely\Default II\Switch\source\pak")
+NSP = romhacking_root.under('Bravely\\Default II\\Switch\\ISO\\Bravely Default II [01006DC010326000][v0].nsp')
+EXTRACTED = romhacking_root.under('Bravely\\Default II\\Switch\\source\\pak')
 
 
 def test_written_pak_reads_back(tmp_path):
@@ -42,7 +43,7 @@ def test_bad_footer_is_refused(tmp_path):
 def test_english_entries_match_the_extracted_files():
     if not NSP.is_file() or not EXTRACTED.is_dir():
         pytest.skip("Bravely Default II NSP or extracted files are not on this machine")
-    scripts = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+    scripts = romhacking_root.under('_shared\\scripts')
     if not scripts.is_dir():
         pytest.skip("the RomHacking workspace scripts are not on this machine")
     import sys

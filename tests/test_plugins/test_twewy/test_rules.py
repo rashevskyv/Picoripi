@@ -1,4 +1,5 @@
 """The World Ends with You plugin: message codec, pack archive, font backend; real-data round trips."""
+import romhacking_root
 import json
 import struct
 import sys
@@ -17,7 +18,7 @@ from plugins.twewy import mestxt, textures
 
 PLUGIN = "twewy"
 PLUGIN_DIR = Path(__file__).parents[3] / "plugins" / "twewy"
-WS = Path(r"E:\Emulators\RomHacking\The World Ends With You")
+WS = romhacking_root.under('The World Ends With You')
 SOURCE = WS / "source"
 TEXT = SOURCE / "Apl_Fuk" / "mestxt.mes"
 FONT = SOURCE / "Apl_Fuk" / "Grp_Font.bin"

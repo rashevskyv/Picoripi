@@ -2,9 +2,9 @@
 byte (also with every message re-encoded from the editor form), every font packs back unchanged and takes an
 edit (BC4, BC5 outline fonts, bfotf), every UI texture writes back unchanged and one texture per pixel format
 takes an edit, and the workspace build puts an unchanged texture back into its BFRES byte for byte."""
+import romhacking_root
 import importlib
 import sys
-from pathlib import Path
 
 import pytest
 from PIL import ImageDraw
@@ -15,8 +15,8 @@ from plugins.common.msbt import Msbt
 from plugins.paper_mario_nx.rules import GameRules
 from plugins.paper_mario_nx.tags import from_editor
 
-WS = Path(r"E:\Emulators\RomHacking\Paper Mario\Thousand-Year Door\Switch")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+WS = romhacking_root.under('Paper Mario\\Thousand-Year Door\\Switch')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 pytestmark = pytest.mark.skipif(not (WS / "source" / "msg" / "EU_English" / "global.msbt").is_file(),
                                 reason="Paper Mario TTYD (Switch) not unpacked")
 

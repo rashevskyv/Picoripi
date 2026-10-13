@@ -1,4 +1,5 @@
 """Metal Gear Solid 4 (Master Collection) plugin: real data from the workspace when it is on this machine."""
+import romhacking_root
 from pathlib import Path
 
 import pytest
@@ -6,7 +7,7 @@ import pytest
 from plugins.metal_gear_solid_4 import loc
 from plugins.common import mgmc_launcher
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Metal Gear\Metal Gear Solid 4\Switch\source")
+SOURCE = romhacking_root.under('Metal Gear\\Metal Gear Solid 4\\Switch\\source')
 
 
 def _need(path: Path) -> bytes:

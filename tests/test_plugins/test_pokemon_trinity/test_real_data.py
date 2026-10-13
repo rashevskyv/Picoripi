@@ -2,9 +2,9 @@
 saves back byte for byte (also fully re-encoded from the editor form), every font packs back unchanged, every
 English layout texture writes back unchanged and the title logo takes an edit, and the workspace build's
 data.trpfd no longer finds a changed file while every other file stays."""
+import romhacking_root
 import importlib
 import sys
-from pathlib import Path
 
 import pytest
 from PIL import ImageDraw
@@ -15,8 +15,8 @@ from core.texture_formats.sources import list_members, unwrap
 from plugins.common import gfmsg
 from plugins.pokemon_trinity.rules import GameRules
 
-ROOT = Path(r"E:\Emulators\RomHacking\Pokemon")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+ROOT = romhacking_root.under('Pokemon')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 # workspace, text folder, message files, lines, fonts, layout archive glob, English texture count
 GAMES = {
     "sv": ("Scarlet and Violet", "message/dat/English", 913, 85331, "appli/font/bin", "appli/data/*/*_eng.arc", 2386),

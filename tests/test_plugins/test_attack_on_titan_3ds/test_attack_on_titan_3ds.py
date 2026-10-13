@@ -1,5 +1,6 @@
 """Attack on Titan: Humanity in Chains plugin: the system.cf text written in place (synthetic data and, skipped where
 the workspace is not on this machine, the real file) and the CTPK pictures."""
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from plugins.attack_on_titan_3ds.rules import GameRules
 from plugins.testing import check_loads, check_validator
 
 PLUGIN_NAME = "attack_on_titan_3ds"
-WS = Path(r"E:\Emulators\RomHacking\Attack on Titan Humanity in Chains")
+WS = romhacking_root.under('Attack on Titan Humanity in Chains')
 SOURCE = WS / "source" / "romfs"
 
 

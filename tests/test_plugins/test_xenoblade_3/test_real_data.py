@@ -2,6 +2,7 @@
 saves back byte for byte and takes an edit, every font packs back unchanged and the Latin fonts take a new
 letter, every layout texture format writes back unchanged and the title logo takes an edit, and the workspace
 build hides a changed file in each archive index while every other entry stays."""
+import romhacking_root
 import importlib
 import json
 import sys
@@ -15,8 +16,8 @@ from core.texture_formats import wilay
 from plugins.common import bdat
 from plugins.xenoblade_3.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Xenoblade\Chronicles 3")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+WS = romhacking_root.under('Xenoblade\\Chronicles 3')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 UKRAINIAN = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
 
 

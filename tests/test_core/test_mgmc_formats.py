@@ -1,11 +1,12 @@
 """Metal Gear Master Collection formats: XPR2 font, TXP texture pack, CFF rebuild with a custom Encoding."""
+import romhacking_root
 from pathlib import Path
 
 import pytest
 
 from core import font_formats, texture_formats
 
-ROOT = Path(r"E:\Emulators\RomHacking\Metal Gear\Peace Walker\Switch\source")
+ROOT = romhacking_root.under('Metal Gear\\Peace Walker\\Switch\\source')
 
 
 def _need(path: Path) -> bytes:
@@ -42,8 +43,7 @@ def test_cff_with_custom_encoding_rebuilds_into_a_loadable_font():
     import io
     from PIL import ImageFont
     from core.font_formats import bfotf, cff
-    path = Path(r"E:\Emulators\RomHacking\Metal Gear\Metal Gear Solid 4\Switch\source\launcher\font"
-                r"\mg_sansserif-md_otf\MG_SansSerif-Md.otf")
+    path = romhacking_root.under('Metal Gear\\Metal Gear Solid 4\\Switch\\source\\launcher\\font\\mg_sansserif-md_otf\\MG_SansSerif-Md.otf')
     plain = _need(path)
     font = bfotf.OpenType(plain)
     at, length = font.tables["CFF "]
@@ -52,7 +52,8 @@ def test_cff_with_custom_encoding_rebuilds_into_a_loadable_font():
     ImageFont.truetype(io.BytesIO(rebuilt), 40)
 
 
-ENGLISH_RAW = Path("D:/Games/MG1-2 MC/fr/stage/mg1/cache/english.raw")
+# Outside PICORIPI_ROMHACKING: a relative placeholder, so the test that reads it skips.
+ENGLISH_RAW = Path("Games", "MG1-2 MC", "fr", "stage", "mg1", "cache", "english.raw")
 
 
 def test_english_raw_split_round_trips_synthetic_bytes():

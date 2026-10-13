@@ -1,6 +1,6 @@
 """Pokémon Mystery Dungeon 3DS plugin: SIR0 messages, control-code tags, .img textures, .dic fonts and the real games."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -13,7 +13,7 @@ from plugins.pokemon_md_3ds import message
 from plugins.testing import check_loads, check_validator, load_rules
 
 PLUGIN = "pokemon_md_3ds"
-ROOT = Path(r"E:\Emulators\RomHacking\Pokemon")
+ROOT = romhacking_root.under('Pokemon')
 GTI = ROOT / "Mystery Dungeon Gates to Infinity/source/romfs"
 PSMD = ROOT / "Super Mystery Dungeon/source/romfs"
 

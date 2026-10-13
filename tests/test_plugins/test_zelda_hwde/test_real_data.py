@@ -3,6 +3,7 @@
 Every text file rebuilds byte for byte; an edit reaches the file; every text texture the plugin names
 resolves in the workspace's source folder and writes back to the translation folder.
 """
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from PIL import Image, ImageDraw
 from core.texture_formats import sources
 from plugins.zelda_hwde.textfile import TextFile
 
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Zelda\Hyrule Warriors DE")
+WORKSPACE = romhacking_root.under('Zelda\\Hyrule Warriors DE')
 SOURCE = WORKSPACE / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "zelda_hwde"
 

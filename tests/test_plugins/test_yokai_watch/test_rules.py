@@ -1,5 +1,5 @@
 """Yo-kai Watch plugin: cfg.bin round trips, editor text, hidden strings, layout; the real files when present."""
-from pathlib import Path
+import romhacking_root
 
 import pytest
 
@@ -12,7 +12,7 @@ from plugins.yokai_watch.textfile import TextFile
 
 from .samples import cfg_file, dialogue_file, noun_info, text_info
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch\3DS\source")
+SOURCE = romhacking_root.under('Yo-kai Watch\\Yo-kai Watch\\3DS\\source')
 UKRAINIAN = "Ґанок і їжак — «є» п’ять"
 
 
@@ -146,7 +146,7 @@ def test_width_ignores_tags():
     assert rules.calculate_string_width_override("a{PNAME01}б[g_coin]", widths) == 17
 
 
-@pytest.mark.skipif(not SOURCE.is_dir(), reason="needs the Yo-kai Watch workspace (E:\\Emulators\\RomHacking\\Yo-kai Watch\\Yo-kai Watch\\3DS)")
+@pytest.mark.skipif(not SOURCE.is_dir(), reason="needs the Yo-kai Watch workspace under PICORIPI_ROMHACKING")
 def test_real_files_round_trip_byte_for_byte():
     files = sorted(SOURCE.rglob("*_en.cfg.bin"))
     assert len(files) == 2005
@@ -161,8 +161,8 @@ def test_real_files_round_trip_byte_for_byte():
     assert rows > 40000
 
 
-SOURCE_3 = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch 3\source")
-SOURCE_NX = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch\Switch\source")
+SOURCE_3 = romhacking_root.under('Yo-kai Watch\\Yo-kai Watch 3\\source')
+SOURCE_NX = romhacking_root.under('Yo-kai Watch\\Yo-kai Watch\\Switch\\source')
 
 
 @pytest.mark.skipif(not SOURCE_3.is_dir(), reason="needs the Yo-kai Watch 3 workspace (YOKAI_WATCH_3)")
@@ -180,7 +180,7 @@ def test_yokai_watch_3_files_round_trip_byte_for_byte():
     assert layout["dialogue|TEXT_INFO|2"]["lines"] == 2
 
 
-SOURCE_2 = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch 2\source")
+SOURCE_2 = romhacking_root.under('Yo-kai Watch\\Yo-kai Watch 2\\source')
 
 
 @pytest.mark.skipif(not SOURCE_2.is_dir(), reason="needs the Yo-kai Watch 2 workspace (YOKAI_WATCH_2)")
@@ -239,8 +239,8 @@ def test_switch_files_round_trip_byte_for_byte_and_an_edit_keeps_the_other_lines
     assert "Whisper" in named or "Nate" in named
 
 
-SOURCE_YW4 = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch 4\source")
-SOURCE_YAY = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Academy Y\source")
+SOURCE_YW4 = romhacking_root.under('Yo-kai Watch\\Yo-kai Watch 4\\source')
+SOURCE_YAY = romhacking_root.under('Yo-kai Watch\\Yo-kai Academy Y\\source')
 
 
 def test_square_bracket_colours_and_pictures_of_the_switch_sequels_are_tags():

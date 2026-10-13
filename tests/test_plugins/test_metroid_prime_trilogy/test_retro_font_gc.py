@@ -1,5 +1,6 @@
 """FONT version 0 to 2 of the GameCube Metroid Prime (``retro_font_gc``) on a font built here, then on the user's own
 unpacked GameCube disc when the workspace has one (skipped otherwise)."""
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from core import font_formats, texture_formats
 from core.font_formats import retro_font_gc
 from core.texture_formats import txtr_gx
 
-GAMECUBE_SOURCE = Path(r"E:\Emulators\RomHacking\Metroid\Prime (GC + PC port)\source")
+GAMECUBE_SOURCE = Path(romhacking_root.under('Metroid\\Prime (GC + PC port)\\source'))
 WIDTH, HEIGHT = 64, 16
 TEXTURE_ID = 0x1234ABCD
 # (character, left px, top px, width, height, left padding, advance, right padding)

@@ -1,6 +1,7 @@
 """Ocarina of Time on the US 1.0 ROM itself (skipped where the workspace is not on this machine): every text
 block, both fonts and one texture of each pixel format survive an unchanged save byte for byte, and edits land
 where the game reads them."""
+import romhacking_root
 import glob
 import json
 from pathlib import Path
@@ -14,7 +15,7 @@ from plugins.common.n64_rom import N64Rom
 from plugins.zelda_oot64.rules import TITLE_FILE, GameRules
 
 ROOT = Path(__file__).resolve().parents[3]
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Zelda\Ocarina of Time\N64")
+WORKSPACE = romhacking_root.under('Zelda\\Ocarina of Time\\N64')
 FONT_SOURCES = json.loads((ROOT / "plugins" / "zelda_oot64" / "font_sources.json").read_text(encoding="utf-8"))
 TEXTURE_SOURCES = json.loads((ROOT / "plugins" / "zelda_oot64" / "texture_sources.json").read_text(encoding="utf-8"))
 

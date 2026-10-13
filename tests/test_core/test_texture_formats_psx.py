@@ -1,5 +1,6 @@
 """PlayStation textures: CLUT colours, raw CI4/CI8, TIM, Vagrant Story GIM / HF1 / RLE, the text-save carry-over,
 the Vagrant Story staff-roll font; every plugin texture of the real game when it is unpacked here."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -186,7 +187,7 @@ def test_vagrant_staff_roll_font_sets():
         assert out[0x40 + 112 * which + 5] == 0 and sum(a != b for a, b in zip(out, data)) == 1
 
 
-WS = Path(r"E:\Emulators\RomHacking\Vagrant Story\source")
+WS = romhacking_root.under('Vagrant Story\\source')
 
 
 @pytest.mark.skipif(not (WS / "GIM").is_dir(), reason="Vagrant Story not unpacked here")

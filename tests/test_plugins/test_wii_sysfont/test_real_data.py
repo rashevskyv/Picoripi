@@ -1,14 +1,14 @@
 """Real-data checks of the workspace script ``_shared\\scripts\\zt\\wii_sysfont.py`` on the Wii system fonts
 (the Rabbids disc copies); skipped when the script or the fonts are not on this machine."""
+import romhacking_root
 import importlib
 import struct
 import sys
-from pathlib import Path
 
 import pytest
 
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
-FONTS = Path(r"E:\Emulators\RomHacking\Raving Rabbids Party Collection\source\files\fonts")
+SCRIPTS = romhacking_root.under('_shared\\scripts')
+FONTS = romhacking_root.under('Raving Rabbids Party Collection\\source\\files\\fonts')
 UA = "ЄІЇєіїҐґ"
 
 

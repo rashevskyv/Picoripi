@@ -3,7 +3,7 @@
 The plugin tests run anywhere. The real-data tests read the Switch workspace's source files and skip when they are
 missing (the workspace is not part of the repository).
 """
-from pathlib import Path
+import romhacking_root
 
 import pytest
 
@@ -11,7 +11,7 @@ from core import font_formats
 from core.texture_formats import ctxr
 from plugins.metal_gear_solid_23_mc.rules import GameRules
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Metal Gear\Metal Gear Solid 2\Switch\source")
+SOURCE = romhacking_root.under('Metal Gear\\Metal Gear Solid 2\\Switch\\source')
 FONT = SOURCE / "font" / "MGS_Font_nht.raw"
 PICTURE = SOURCE / "texture" / "Misc" / "loading" / "_nx" / "loading.ctxr"
 

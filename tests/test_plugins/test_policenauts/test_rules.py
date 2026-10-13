@@ -2,6 +2,7 @@
 
 The real-data tests read the workspace's ``source`` folder (1_unpack.bat) and skip when it is missing.
 """
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -15,7 +16,7 @@ from plugins.policenauts import codec, doc, voice
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "policenauts"
-SOURCE = Path(r"E:\Emulators\RomHacking\Policenauts\source")
+SOURCE = romhacking_root.under('Policenauts\\source')
 needs_data = pytest.mark.skipif(not (SOURCE / "PN_VOX1.PNV").is_file(), reason="Policenauts not unpacked here")
 
 

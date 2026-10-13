@@ -1,4 +1,5 @@
 """Dragon Quest IX plugin: GPC2 archives, cfg / nat tables, the fi+fd fonts, pac and spr pictures; real data."""
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from plugins.dq9.rules import parse_file
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "dq9"
-WS = Path(r"E:\Emulators\RomHacking\Dragon Quest\Dragon Quest IX")
+WS = romhacking_root.under('Dragon Quest\\Dragon Quest IX')
 SOURCE = WS / "source"
 needs_data = pytest.mark.skipif(not (SOURCE / "data" / "pack_lv5" / "fi_me.bin").is_file(),
                                 reason="Dragon Quest IX workspace not on disk")

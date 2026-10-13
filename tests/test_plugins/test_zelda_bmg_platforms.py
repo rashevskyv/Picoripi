@@ -4,6 +4,7 @@ seven MAP1 blocks with (code, glyph) pairs).
 
 The real-file tests use the owner's workspaces and skip where they are absent.
 """
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from plugins.zelda_bmg.rules import GameRules
 from plugins.zelda_bmg.tag_catalog import TP_CATALOG, fixed_escape_widths
 from tools.bfn_editor.bfn_engine import extract_bfn_logic, repack_bfn_logic
 
-ZELDA = Path(r"E:\Emulators\RomHacking\Zelda")
+ZELDA = romhacking_root.under('Zelda')
 WII_MSG = ZELDA / "Twilight Princess" / "_archive" / "Wii workspace (agent 2026-10-04)" / "source" / "files" / "res" / "Msgus"
 GC_ISO = ZELDA / "Twilight Princess" / "GC + Wii" / "ISO"
 GC_MSG = GC_ISO / "ENG" / "root" / "res" / "Msgus"

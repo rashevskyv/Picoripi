@@ -1,6 +1,7 @@
 """Metroid Prime Trilogy on the user's own unpacked disc (skipped without it): every string table of the three
 games and the menu saves back byte for byte and keeps an edit in every language, every font packs back unchanged
 and keeps an edited glyph, and every texture format of the interface writes back unchanged and keeps an edit."""
+import romhacking_root
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ from core.texture_formats import bti, txtr_gx
 from plugins.metroid_prime_trilogy.rules import GameRules
 from plugins.metroid_prime_trilogy.strg import Strg
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Metroid\Prime Trilogy\source")
+SOURCE = romhacking_root.under('Metroid\\Prime Trilogy\\source')
 GAMES = ("MP1", "MP2", "MP3", "Menu")
 
 

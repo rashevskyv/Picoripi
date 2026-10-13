@@ -4,6 +4,7 @@ workspace is not on this machine).
 Real data: every English MSBT loads and saves back byte for byte; both bitmap fonts open and pack back unchanged;
 every text picture reads and writes back unchanged.
 """
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from plugins.common.msbt import Tag
 from plugins.paper_mario_ss import tags
 from plugins.paper_mario_ss.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Paper Mario\Sticker Star")
+WS = romhacking_root.under('Paper Mario\\Sticker Star')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "paper_mario_ss"
 

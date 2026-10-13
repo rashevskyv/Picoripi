@@ -1,6 +1,6 @@
 """Fire Emblem Awakening plugin: message archives (synthetic and the real game), the plugin's load / save."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -8,7 +8,7 @@ from plugins.fire_emblem_awakening.archive import Archive
 from plugins.testing import check_loads, check_validator, load_rules
 
 PLUGIN = "fire_emblem_awakening"
-REAL = Path(r"E:\Emulators\RomHacking\Fire Emblem\Awakening\source\romfs\m\U")
+REAL = romhacking_root.under('Fire Emblem\\Awakening\\source\\romfs\\m\\U')
 
 
 def make_archive(messages, name="MESS_ARCHIVE_T", shared=()):

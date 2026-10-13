@@ -3,6 +3,7 @@
 Reading a texture and writing the same image back must give the game file byte for byte; an edit must
 keep the file size and read back as drawn.
 """
+import romhacking_root
 import glob
 import json
 from pathlib import Path
@@ -13,7 +14,7 @@ from PIL import Image, ImageDraw
 from core import texture_formats
 from core.texture_formats import sources
 
-ZELDA = Path(r"E:\Emulators\RomHacking\Zelda")
+ZELDA = romhacking_root.under('Zelda')
 ROOT = Path(__file__).resolve().parents[2]
 
 

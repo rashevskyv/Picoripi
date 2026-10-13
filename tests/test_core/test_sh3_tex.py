@@ -2,7 +2,7 @@
 
 The real-data tests read the installed game's ``data\\pic.arc`` and skip when it is missing.
 """
-from pathlib import Path
+import romhacking_root
 
 import pytest
 from PIL import Image
@@ -10,8 +10,8 @@ from PIL import Image
 from core.containers import sh3_arc
 from core.texture_formats import sh3_tex
 
-PIC = Path(r"E:\Emulators\RomHacking\Silent Hill\Silent Hill 3\PC\ISO\data\pic.arc")
-ARC = Path(r"E:\Emulators\RomHacking\Silent Hill\Silent Hill 3\PC\ISO\data\arc.arc")
+PIC = romhacking_root.under('Silent Hill\\Silent Hill 3\\PC\\ISO\\data\\pic.arc')
+ARC = romhacking_root.under('Silent Hill\\Silent Hill 3\\PC\\ISO\\data\\arc.arc')
 needs_game = pytest.mark.skipif(not (PIC.is_file() and ARC.is_file()), reason="Silent Hill 3 data not installed here")
 
 

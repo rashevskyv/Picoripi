@@ -1,6 +1,6 @@
 """Vagrant Story text outside the room script: door scripts, the chest's weapon name, the staff roll."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -11,7 +11,7 @@ from plugins.vagrant_story import doc as docs
 
 from .samples import script
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Vagrant Story\source")
+SOURCE = romhacking_root.under('Vagrant Story\\source')
 
 
 def door_room(room_lines, doors, weapon="Seventh Heaven", slack_check=True) -> bytes:

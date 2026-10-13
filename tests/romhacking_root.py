@@ -29,7 +29,16 @@ def missing(*parts: str) -> Optional[str]:
 
 def path(*parts: str) -> Path:
     """The path under the root; call only after ``missing`` returned None."""
-    return root().joinpath(*parts)
+    return _base().joinpath(*parts)
+
+
+def under(rel: str = "") -> Path:
+    """The path under the root for a module-level constant; unset, it is a relative placeholder that does not exist."""
+    return _base() / rel
+
+
+def _base() -> Path:
+    return root() or Path("RomHacking")
 
 
 def needs(*files: tuple):

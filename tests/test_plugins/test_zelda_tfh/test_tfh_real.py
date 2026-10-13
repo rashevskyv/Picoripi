@@ -4,6 +4,7 @@ Every English MSBT loads and saves back byte for byte with no raw tags left, the
 game's own message project, both fonts, every listed text image and every BFLIM / CTPK of the unpacked
 archives read and write back unchanged.
 """
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from core.texture_formats import sources as texture_sources
 from plugins.common import msbp
 from plugins.zelda_tfh.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Zelda\Tri Force Heroes")
+WS = romhacking_root.under('Zelda\\Tri Force Heroes')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "zelda_tfh"
 UKRAINIAN = "ҐЄІЇґєії"

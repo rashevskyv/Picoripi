@@ -1,5 +1,6 @@
 """Four Swords Anniversary Edition plugin: KMSG load/save, control-code tags, speakers, widths, references; the real
 files of the workspace when they are here."""
+import romhacking_root
 import struct
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,7 +12,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 from plugins.zelda_fsae import kmsg
 from plugins.zelda_fsae.tags import TAG_RE, describe, from_editor, to_editor
 
-FSAE = Path(r"E:\Emulators\RomHacking\Zelda\Four Swords Anniversary")
+FSAE = romhacking_root.under('Zelda\\Four Swords Anniversary')
 
 
 def _text(*parts) -> bytes:

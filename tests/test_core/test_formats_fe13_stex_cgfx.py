@@ -1,6 +1,6 @@
 """Fire Emblem Awakening bfnt fonts, Atlus STEX and CGFX textures: synthetic files, and the real games when on disk."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -9,8 +9,8 @@ from core import font_formats, texture_formats
 from core.font_formats import fe13_bfnt
 from core.texture_formats import pixels, surface
 
-FE = Path(r"E:\Emulators\RomHacking\Fire Emblem\Awakening\source\romfs")
-SMT = Path(r"E:\Emulators\RomHacking\Shin Megami Tensei\IV\source\romfs")
+FE = romhacking_root.under('Fire Emblem\\Awakening\\source\\romfs')
+SMT = romhacking_root.under('Shin Megami Tensei\\IV\\source\\romfs')
 
 
 def make_bfnt(glyphs, width=64, height=32):

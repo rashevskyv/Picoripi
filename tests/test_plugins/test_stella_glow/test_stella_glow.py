@@ -1,5 +1,6 @@
 """Stella Glow plugin: string tables and event flows on synthetic data, then on the real EU game files (skipped
 where the workspace is not on this machine)."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -74,7 +75,7 @@ def test_rules_load_and_save():
     assert blocks == [["A", "B"]] and rules.save_data_to_json_obj(blocks, {}) == raw
 
 
-WS = Path(r"E:\Emulators\RomHacking\Stella Glow")
+WS = romhacking_root.under('Stella Glow')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "stella_glow"
 

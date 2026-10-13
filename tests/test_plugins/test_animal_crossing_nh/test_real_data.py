@@ -2,6 +2,7 @@
 byte for byte (also fully re-encoded), the keyboard text too, every font packs back unchanged and the text fonts
 (TrueType and CFF) take a glyph edit, every texture format in the layouts and models reads, writes back and takes
 an edit, and the workspace scripts build the mod and turn an NSZ into the original NCAs."""
+import romhacking_root
 import hashlib
 import importlib
 import os
@@ -20,8 +21,8 @@ from plugins.animal_crossing_nh.rules import GameRules
 from plugins.animal_crossing_nh.tags import from_editor
 from plugins.common.msbt import Msbt
 
-WS = Path(r"E:\Emulators\RomHacking\Animal Crossing\New Horizons")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+WS = romhacking_root.under('Animal Crossing\\New Horizons')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 SOURCE = WS / "source"
 needs_game = pytest.mark.skipif(not (SOURCE / "Message" / "String_USen.sarc.zs").is_file(),
                                 reason="Animal Crossing: New Horizons not unpacked")

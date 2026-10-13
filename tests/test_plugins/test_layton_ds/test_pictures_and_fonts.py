@@ -1,4 +1,5 @@
 """Professor Layton DS: pictures (bg, animation atlases, LIMG sheets, GFSP) and fonts (compressed NFTR, GFNT)."""
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import pytest
 from core import font_formats, texture_formats
 from core.containers import layton_ds, level5, lz10
 
-LAYTON = Path(r"E:\Emulators\RomHacking\Professor Layton")
+LAYTON = romhacking_root.under('Professor Layton')
 
 
 def bgr555(r, g, b):

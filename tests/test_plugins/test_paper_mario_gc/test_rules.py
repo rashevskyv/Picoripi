@@ -1,4 +1,5 @@
 """Paper Mario: The Thousand-Year Door plugin: message format, tags, translation map, hooks; the real files when present."""
+import romhacking_root
 import json
 import re
 from pathlib import Path
@@ -13,7 +14,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "paper_mario_gc"
 PLUGIN_DIR = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Paper Mario\Thousand-Year Door\GC\source")
+WORKSPACE = romhacking_root.under('Paper Mario\\Thousand-Year Door\\GC\\source')
 MSG = WORKSPACE / "files" / "msg" / "US"
 UKRAINIAN = "Ґанок і їжак, «є» п’ять ЩЮЯ"
 # a Japanese leftover as the US files keep it: UTF-16LE kana with single-byte line breaks and tags

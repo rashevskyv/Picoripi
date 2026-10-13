@@ -1,7 +1,7 @@
 """Jak and Daxter plugin: the game text as JSON blocks (load, save, ids kept), and the unpacked Jak II text
 when the workspace is on this machine."""
+import romhacking_root
 import json
-from pathlib import Path
 
 import pytest
 
@@ -9,7 +9,7 @@ from core.formats import SaveContext
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "jak_and_daxter"
-WS = Path(r"E:\Emulators\RomHacking\Jak and Daxter\Jak 2\Switch")
+WS = romhacking_root.under('Jak and Daxter\\Jak 2\\Switch')
 real = pytest.mark.skipif(not (WS / "source" / "text" / "common.json").exists(), reason="Jak II not unpacked here")
 
 SAMPLE = {"file": "text/common.json", "blocks": [

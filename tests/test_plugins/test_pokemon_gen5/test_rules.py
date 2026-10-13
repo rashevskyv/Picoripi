@@ -1,5 +1,6 @@
 """Pokémon Black / White and Black 2 / White 2 (DS): the generation V message codec (packing, tags, flags), the
 plugin's load and save, and real-data round trips of every text bank of the workspaces."""
+import romhacking_root
 import struct
 import threading
 from pathlib import Path
@@ -11,7 +12,7 @@ from plugins.common import gen5msg
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "pokemon_gen5"
-GAMES = {name: Path(r"E:\Emulators\RomHacking\Pokemon") / name / "source" / "text"
+GAMES = {name: romhacking_root.under('Pokemon') / name / "source" / "text"
          for name in ("Black and White", "Black 2 and White 2")}
 
 

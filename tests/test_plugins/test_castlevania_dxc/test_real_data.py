@@ -4,6 +4,7 @@ Every text file of the workspace's ``source`` saves back byte for byte; the font
 picture writes back unchanged and keeps an edit; the workspace script (``_shared\\scripts\\zt\\dxc.py``) lays every
 RESC pack out again byte for byte and unpacks what ``source`` holds.
 """
+import romhacking_root
 import json
 import sys
 from pathlib import Path
@@ -17,7 +18,7 @@ from core.texture_formats import sources as texture_sources
 from plugins.castlevania_dxc.rules import GameRules
 
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "castlevania_dxc"
-RH = Path(r"E:\Emulators\RomHacking")
+RH = romhacking_root.under('')
 WS = RH / "Castlevania" / "Dracula X Chronicles"
 SOURCE = WS / "source"
 

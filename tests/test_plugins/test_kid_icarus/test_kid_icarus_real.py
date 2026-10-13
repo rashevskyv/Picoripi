@@ -3,6 +3,7 @@
 Every English MSBT loads and saves back byte for byte with no raw tags left; both bitmap fonts open and pack
 back unchanged; every language-dependent CGFX picture reads and writes back unchanged.
 """
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from core.font_formats import sources as font_sources
 from core.texture_formats import sources as texture_sources
 from plugins.kid_icarus.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Kid Icarus Uprising")
+WS = romhacking_root.under('Kid Icarus Uprising')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "kid_icarus"
 

@@ -1,6 +1,6 @@
 """Rune Factory 4 (3DS) plugin: TEXT tables (synthetic and the real game's romfs when it is unpacked here)."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -8,7 +8,7 @@ from plugins.rune_factory_4 import text
 from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "rune_factory_4"
-ROMFS = Path(r"E:\Emulators\RomHacking\Rune Factory\4\3DS\romfs")
+ROMFS = romhacking_root.under('Rune Factory\\4\\3DS\\romfs')
 
 
 def make_table(strings) -> bytes:

@@ -1,6 +1,7 @@
 """Majora's Mask on the US ROM itself (skipped where the workspace is not on this machine): every text block,
 the font and one texture of each pixel format survive an unchanged save byte for byte, and edits land where
 the game reads them; a text save keeps the texture, glyph and width edits of the translated ROM."""
+import romhacking_root
 import glob
 import json
 import struct
@@ -15,7 +16,7 @@ from plugins.common.n64_rom import N64Rom
 from plugins.zelda_mm64.rules import CODE_FILE, TITLE_FILE, TITLE_OFFSET, GameRules
 
 ROOT = Path(__file__).resolve().parents[3]
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Zelda\Majoras Mask\N64")
+WORKSPACE = romhacking_root.under('Zelda\\Majoras Mask\\N64')
 FONT = json.loads((ROOT / "plugins" / "zelda_mm64" / "font_sources.json").read_text(encoding="utf-8"))[0]
 TEXTURE_SOURCES = json.loads((ROOT / "plugins" / "zelda_mm64" / "texture_sources.json").read_text(encoding="utf-8"))
 

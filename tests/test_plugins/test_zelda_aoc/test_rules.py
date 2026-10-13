@@ -1,4 +1,5 @@
 """Age of Calamity plugin hooks: load/save, save context, speakers, attributes, glossary, layout; real files."""
+import romhacking_root
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -10,7 +11,7 @@ from plugins.zelda_aoc.aoctext import TextBundle
 
 from .test_formats import bundle, sample_battle, sample_text, table
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Zelda\Hyrule Warriors Age of Calamity\source")
+SOURCE = romhacking_root.under('Zelda\\Hyrule Warriors Age of Calamity\\source')
 
 
 def test_plugin_loads_and_validates():

@@ -1,6 +1,7 @@
 """Rhythm Paradise Megamix plugin: the plugin loads and validates; on the real EU game files (skipped where the
 workspace is not on this machine) every English MSBT loads and saves back byte for byte with no raw tags left,
 the ten fonts open and pack back unchanged and the English pictures read and write back unchanged."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from plugins.rhythm_paradise_megamix.rules import GameRules
 from plugins.testing import check_loads, check_validator
 
 PLUGIN_NAME = "rhythm_paradise_megamix"
-WS = Path(r"E:\Emulators\RomHacking\Rhythm Paradise Megamix")
+WS = romhacking_root.under('Rhythm Paradise Megamix')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN_NAME
 

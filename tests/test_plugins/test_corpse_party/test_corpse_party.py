@@ -1,5 +1,5 @@
 """Corpse Party (3DS): message slots, quoted-string lists and the real files (skipped when missing)."""
-from pathlib import Path
+import romhacking_root
 
 import pytest
 
@@ -57,7 +57,7 @@ def test_quoted_lists_round_trip_and_ignore_comments():
     assert txtlist.texts(out) == ["x", "y", "z\nw", "n"]
 
 
-ROOT = Path(r"E:\Emulators\RomHacking\Corpse Party\3DS\source\romfs\data")
+ROOT = romhacking_root.under('Corpse Party\\3DS\\source\\romfs\\data')
 
 
 @pytest.mark.skipif(not ROOT.is_dir(), reason="the game is not unpacked")

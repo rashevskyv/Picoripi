@@ -2,8 +2,8 @@ r"""Silent Hill 3 (PC) plugin: the English message codec, the message table, the
 
 The real-data test reads ``data\msg.arc`` of the installed game and skips when it is missing.
 """
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -12,7 +12,7 @@ from plugins.silent_hill_3_pc import codec, doc
 from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "silent_hill_3_pc"
-MSG_ARC = Path(r"E:\Emulators\RomHacking\Silent Hill\Silent Hill 3\PC\ISO\data\msg.arc")
+MSG_ARC = romhacking_root.under('Silent Hill\\Silent Hill 3\\PC\\ISO\\data\\msg.arc')
 needs_game = pytest.mark.skipif(not MSG_ARC.is_file(), reason="Silent Hill 3 data not installed here")
 
 

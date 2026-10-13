@@ -1,9 +1,9 @@
 """Castlevania: Circle of the Moon plugin: text.json round trip, real font and textures, and the ROM build."""
+import romhacking_root
 import json
 import random
 import shutil
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -12,9 +12,9 @@ from plugins.castlevania_cotm import rules as cvm_rules
 from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "castlevania_cotm"
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Castlevania\Circle of the Moon")
+WORKSPACE = romhacking_root.under('Castlevania\\Circle of the Moon')
 SOURCE = WORKSPACE / "source"
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 SAMPLE = json.dumps({"format": cvm_rules.FORMAT, "groups": [
     {"name": "Enemies", "items": [{"id": "40", "text": "Skeleton", "space": 39}]},
     {"name": "Story", "items": [{"id": "343", "text": "{1D 44}{1E 00}It's locked...{03}{1D C0}"}]}]},

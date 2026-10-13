@@ -1,11 +1,11 @@
 """MadWorld plugin: message tables exported as JSON blocks (load, save, other keys kept), tags; the workspace
 script's message words, tables and rebuilt atlases when it is on this machine; the real fonts, text and a
 changed table of a stage package and of a cut-scene when the workspace is unpacked here."""
+import romhacking_root
 import importlib
 import json
 import re
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -15,8 +15,8 @@ from plugins.madworld.rules import TAG_RE
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "madworld"
-WS = Path(r"E:\Emulators\RomHacking\MadWorld")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+WS = romhacking_root.under('MadWorld')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 real = pytest.mark.skipif(not (WS / "image" / "mw_index.json").exists(), reason="MadWorld not unpacked here")
 
 SAMPLE = {"file": "subscr/MessSubscr002_us.msd", "kind": "msd", "atlas": "subscr/subscr002_us.mtd", "blocks": [

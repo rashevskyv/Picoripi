@@ -1,7 +1,7 @@
 """Level-5 formats: compression, XPCK packs, IMGC textures and XF fonts (synthetic files; the game's when present)."""
+import romhacking_root
 import struct
 import zlib
-from pathlib import Path
 
 import pytest
 from PIL import Image, ImageDraw
@@ -11,7 +11,7 @@ from core.containers import level5
 from core.font_formats import xf
 from core.texture_formats import imgc, pixels
 
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Yo-kai Watch\Yo-kai Watch\3DS")
+WORKSPACE = romhacking_root.under('Yo-kai Watch\\Yo-kai Watch\\3DS')
 
 
 # -- builders ---------------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 """Ever Oasis GMSG v3: control-code grammar on synthetic messages, then the real English file (skipped when the
 workspace is not on this machine)."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -75,7 +76,7 @@ def test_refuses_other_versions():
         Gmsg(bytes(data))
 
 
-WS = Path(r"E:\Emulators\RomHacking\Ever Oasis")
+WS = romhacking_root.under('Ever Oasis')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "ever_oasis"
 

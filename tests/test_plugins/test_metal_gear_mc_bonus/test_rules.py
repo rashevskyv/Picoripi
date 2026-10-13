@@ -4,15 +4,16 @@ The tests read the workspace's source folder (``1_unpack.bat``) and skip when it
 """
 from __future__ import annotations
 
-from pathlib import Path
 
 import pytest
+
+import romhacking_root
 
 from core import m2_psb
 from plugins.metal_gear_mc_bonus.rules import GameRules
 from plugins.metal_gear_solid_mc import psb_text
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Metal Gear\Master Collection Bonus\Switch\source")
+SOURCE = romhacking_root.under('Metal Gear\\Master Collection Bonus\\Switch\\source')
 PSB_FILES = sorted((SOURCE / "vol1").rglob("*.psb")) + sorted((SOURCE / "vol2").rglob("*.psb")) if SOURCE.is_dir() else []
 
 needs_data = pytest.mark.skipif(not PSB_FILES, reason="Bonus Switch source is not unpacked")

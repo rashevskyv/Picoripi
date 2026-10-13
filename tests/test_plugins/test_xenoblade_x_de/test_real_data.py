@@ -2,6 +2,7 @@
 English text table and the credits roll save back byte for byte and take an edit, every font packs back unchanged
 (the four text fonts have Cyrillic but lack Ґ Є І Ї ґ є і ї), every layout texture format writes back unchanged
 and the title logo takes an edit, and the workspace build puts a changed file under romfs/mod with the loader."""
+import romhacking_root
 import importlib
 import os
 import subprocess
@@ -17,8 +18,8 @@ from plugins.common import bdat
 from plugins.xenoblade_x_de import crt
 from plugins.xenoblade_x_de.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Xenoblade\Chronicles X\DE - Switch")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+WS = romhacking_root.under('Xenoblade\\Chronicles X\\DE - Switch')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 UKRAINIAN = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
 
 

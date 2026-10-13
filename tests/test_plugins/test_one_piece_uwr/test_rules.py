@@ -1,7 +1,7 @@
 """One Piece: Unlimited World Red (3DS) plugin: jMSG tables, jfnt fonts and jIMG pictures (synthetic and the real
 game's files when they are unpacked here)."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -11,7 +11,7 @@ from plugins.one_piece_uwr import jmsg
 from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "one_piece_uwr"
-ROMFS = Path(r"E:\Emulators\RomHacking\One Piece Unlimited World Red\3DS\romfs")
+ROMFS = romhacking_root.under('One Piece Unlimited World Red\\3DS\\romfs')
 
 
 def make_jmsg(blocks, mask=0x10, tail=b"") -> bytes:

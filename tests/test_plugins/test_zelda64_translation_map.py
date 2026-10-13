@@ -1,6 +1,7 @@
 """The N64 Zelda plugins write Ukrainian into font slots of one map (``translation_map.json``): the same map
 feeds the encoder, the decoder, the width check and the Font Editor, so a letter always lands on the glyph
 drawn for it."""
+import romhacking_root
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -65,8 +66,8 @@ def test_the_shipped_maps_are_the_plugins_own_files():
         assert set(UKRAINIAN) <= set(data), plugin
 
 
-ROMS = {"oot64": Path(r"E:\Emulators\RomHacking\Zelda\Ocarina of Time\N64\rom\Legend of Zelda, The - Ocarina of Time (USA).z64"),
-        "mm64": Path(r"E:\Emulators\RomHacking\Zelda\Majoras Mask\N64\rom\Legend of Zelda, The - Majora's Mask (USA).z64")}
+ROMS = {"oot64": Path(romhacking_root.under('Zelda\\Ocarina of Time\\N64\\rom\\Legend of Zelda, The - Ocarina of Time (USA).z64')),
+        "mm64": Path(romhacking_root.under("Zelda\\Majoras Mask\\N64\\rom\\Legend of Zelda, The - Majora's Mask (USA).z64"))}
 
 
 def _font_codes(fmt, body):

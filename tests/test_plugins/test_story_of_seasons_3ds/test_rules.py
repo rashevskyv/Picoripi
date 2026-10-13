@@ -1,7 +1,7 @@
 """Harvest Moon 3D / Story of Seasons (3DS) plugin: PAPA tables and Tale of Two Towns message tables (synthetic and
 the real games when their workspaces are unpacked here)."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -9,8 +9,8 @@ from plugins.story_of_seasons_3ds import papa, ttt
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "story_of_seasons_3ds"
-ANB = Path(r"E:\Emulators\RomHacking\Story of Seasons\A New Beginning\source\romfs")
-TTT = Path(r"E:\Emulators\RomHacking\Story of Seasons\Tale of Two Towns\3DS\source\romfs")
+ANB = romhacking_root.under('Story of Seasons\\A New Beginning\\source\\romfs')
+TTT = romhacking_root.under('Story of Seasons\\Tale of Two Towns\\3DS\\source\\romfs')
 
 
 def make_papa(rows, slots=()) -> bytes:
@@ -124,8 +124,8 @@ def test_real_ttt_tables_round_trip_and_hold_the_game_text():
     assert menu[1:4] == ["New Game", "Continue", "Multiplayer"]
 
 
-SOS = Path(r"E:\Emulators\RomHacking\Story of Seasons\Story of Seasons\source\romfs")
-TRIO = Path(r"E:\Emulators\RomHacking\Story of Seasons\Trio of Towns\source\romfs")
+SOS = romhacking_root.under('Story of Seasons\\Story of Seasons\\source\\romfs')
+TRIO = romhacking_root.under('Story of Seasons\\Trio of Towns\\source\\romfs')
 
 
 @pytest.mark.skipif(not (SOS / "MsgGB.xbb").is_dir(), reason="Story of Seasons not unpacked here")

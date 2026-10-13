@@ -1,4 +1,5 @@
 """The manual (NTPG pages in a BLZ NARC) and the graphics packs of Four Swords Anniversary Edition."""
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from plugins.zelda_fsae import manual
 from plugins.zelda_fsae.packs import CmpPack, ZeldatPack
 from test_core.test_containers_nitro import narc
 
-FSAE = Path(r"E:\Emulators\RomHacking\Zelda\Four Swords Anniversary")
+FSAE = romhacking_root.under('Zelda\\Four Swords Anniversary')
 
 
 def _block(magic: bytes, body: bytes) -> bytes:

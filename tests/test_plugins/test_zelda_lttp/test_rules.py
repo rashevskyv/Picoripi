@@ -1,4 +1,5 @@
 """A Link to the Past (zelda3 PC port) plugin: dialogue.txt round trip, line codes, letters, context, real files."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from plugins.zelda_lttp import rules as lttp
 PLUGIN = "zelda_lttp"
 SAMPLE = ("1: \n2: [Speed 00][3]      [2]    >[Choose]\n"
           "3: Meet the elder of the village[2]and get the Master Sword.[Waitkey][Scroll]Go![Scroll]Now!\n")
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Zelda\A Link to the Past")
+WORKSPACE = romhacking_root.under('Zelda\\A Link to the Past')
 SOURCE = WORKSPACE / "source"
 
 
@@ -104,7 +105,7 @@ def test_real_switch_port_menu_words_save_back_unchanged():
     assert rules.get_string_layout(1, 0) is None and rules.get_speaker_for_string(1, 0) is None
 
 
-ZT = Path(r"E:\Emulators\RomHacking\_shared\scripts\zt\lttp.py")
+ZT = romhacking_root.under('_shared\\scripts\\zt\\lttp.py')
 
 
 @pytest.mark.skipif(not ZT.is_file(), reason="workspace scripts not on disk")

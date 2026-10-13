@@ -1,6 +1,6 @@
 """Shin Megami Tensei IV plugin: MSG2 tables and executable strings (synthetic and the real games)."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -9,9 +9,9 @@ from plugins.smt_iv import codebin, dlcinfo, mbm, tbb
 from plugins.testing import check_loads, check_validator, load_rules
 
 PLUGIN = "smt_iv"
-GAMES = [Path(r"E:\Emulators\RomHacking\Shin Megami Tensei\IV\source"),
-         Path(r"E:\Emulators\RomHacking\Shin Megami Tensei\IV Apocalypse\source")]
-SJR = Path(r"E:\Emulators\RomHacking\Shin Megami Tensei\Strange Journey Redux\source")
+GAMES = [romhacking_root.under('Shin Megami Tensei\\IV\\source'),
+         romhacking_root.under('Shin Megami Tensei\\IV Apocalypse\\source')]
+SJR = romhacking_root.under('Shin Megami Tensei\\Strange Journey Redux\\source')
 
 
 def make_table(entries, gap=b"\xAA" * 12, tail=b"\0" * 8):

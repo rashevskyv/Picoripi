@@ -1,5 +1,6 @@
 """Dragon Ball Fusions plugin: the jMSG and jFNT/jIMG formats on synthetic data and (skipped where the workspace is
 not on this machine) the real game files."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -13,7 +14,7 @@ from plugins.dragon_ball_fusions.rules import GameRules
 from plugins.testing import check_loads, check_validator
 
 PLUGIN_NAME = "dragon_ball_fusions"
-WS = Path(r"E:\Emulators\RomHacking\Dragon Ball Fusions")
+WS = romhacking_root.under('Dragon Ball Fusions')
 SOURCE = WS / "source" / "romfs" / "DOF.cpk"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN_NAME
 

@@ -1,6 +1,6 @@
 """Vagrant Story plugin hooks: load/save, the translation copy, layout, context, reference; the real files when present."""
+import romhacking_root
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -12,7 +12,7 @@ from plugins.vagrant_story import doc as docs
 
 from .samples import area_file, event_file, item_names, program_file, room_file
 
-WS = Path(r"E:\Emulators\RomHacking\Vagrant Story")
+WS = romhacking_root.under('Vagrant Story')
 SOURCE, REFERENCE = WS / "source", WS / "reference" / "RU"
 UKRAINIAN = "Ґанок і їжак — «є» п’ять"
 

@@ -1,6 +1,6 @@
 """Professor Layton DS plugin: packs, scripts, databases and the rows of the editor; the game's files when present."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -10,7 +10,7 @@ from plugins.layton_ds import formats
 from plugins.layton_ds.formats import Document, EncodeError, FormatError
 from plugins.testing import check_loads, check_round_trip, check_validator
 
-LAYTON = Path(r"E:\Emulators\RomHacking\Professor Layton")
+LAYTON = romhacking_root.under('Professor Layton')
 
 
 # -- builders ------------------------------------------------------------------------------------------------

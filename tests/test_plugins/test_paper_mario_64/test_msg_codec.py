@@ -1,13 +1,13 @@
 """Paper Mario (N64) message codec: tags, the end code and padding, and the real ROM's messages (skipped
 where the workspace is not on this machine)."""
+import romhacking_root
 import re
-from pathlib import Path
 
 import pytest
 
 from plugins.paper_mario_64.msg_codec import decode_message, encode_message
 
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Paper Mario\Paper Mario 64\N64-PC-port with ISO")
+WORKSPACE = romhacking_root.under('Paper Mario\\Paper Mario 64\\N64-PC-port with ISO')
 MESSAGES = WORKSPACE / "source" / "text" / "paper_mario_64_messages.txt"
 ROM = WORKSPACE / "ISO" / "Paper Mario (U) [!].z64"
 ROM_SEGMENT = 0x1B83000

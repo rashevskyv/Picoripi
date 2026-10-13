@@ -4,6 +4,7 @@ workspace is not on this machine).
 Real data: both text tables load and save back byte for byte; both fonts open and pack back unchanged; pictures in the
 layout archives read and write back unchanged.
 """
+import romhacking_root
 import json
 import shutil
 import struct
@@ -18,7 +19,7 @@ from core.texture_formats import sources as texture_sources
 from plugins.final_fantasy_explorers import textres
 from plugins.final_fantasy_explorers.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Final Fantasy\Explorers")
+WS = romhacking_root.under('Final Fantasy\\Explorers')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "final_fantasy_explorers"
 

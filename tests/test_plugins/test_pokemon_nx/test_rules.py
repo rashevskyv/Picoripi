@@ -1,4 +1,5 @@
 """Pokémon Sword/Shield + Legends: Arceus plugin: the shared gfmsg codec, translation map; real-data round trips."""
+import romhacking_root
 import json
 import importlib
 import sys
@@ -16,7 +17,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "pokemon_nx"
 PLUGIN_DIR = Path(__file__).parents[3] / "plugins" / PLUGIN
-GAMES = {name: Path(r"E:\Emulators\RomHacking\Pokemon") / name / "source" for name in ("Sword and Shield", "Legends Arceus")}
+GAMES = {name: romhacking_root.under('Pokemon') / name / "source" for name in ("Sword and Shield", "Legends Arceus")}
 LINES = {"Sword and Shield": (1106, 60588), "Legends Arceus": (322, 43704)}
 
 
@@ -146,7 +147,7 @@ def test_every_english_layout_texture_writes_back_and_a_logo_edit_lands_in_the_a
     assert logo.read_current().image.getpixel((8, 8)) != logo.read_original().image.getpixel((8, 8))
 
 
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 
 
 def test_legends_arceus_gfpak_packs_rebuild_byte_exact_and_take_an_edited_layout():

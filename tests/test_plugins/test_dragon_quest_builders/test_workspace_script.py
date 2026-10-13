@@ -1,5 +1,6 @@
 """The workspace script (_shared/scripts/zt/dqb.py): nxarc and LINKDATA readers and the append-and-point writers,
 on small archives built here (skipped when the scripts are not on this machine)."""
+import romhacking_root
 import importlib
 import struct
 import sys
@@ -8,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 
 
 @pytest.fixture(scope="module")

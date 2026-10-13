@@ -1,6 +1,7 @@
 """Eternal Darkness plugin: packs of string tables with byte-pair messages (load, save, layout after a longer
 text), control codes, main.dol strings, the font format and the TPL members of a pack; the real files when the
 workspace is unpacked here."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -16,7 +17,7 @@ from plugins.eternal_darkness import edtext
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "eternal_darkness"
-GAME = Path(r"E:\Emulators\RomHacking\Eternal Darkness - Sanity’s Requiem\source\game")
+GAME = romhacking_root.under('Eternal Darkness - Sanity’s Requiem\\source\\game')
 real = pytest.mark.skipif(not (GAME / "EBootPak.bin").exists(), reason="Eternal Darkness not unpacked here")
 TPL_STUB = b"\x00\x20\xaf\x30" + bytes(28) + b"T" * 32      # stands in for texture data
 

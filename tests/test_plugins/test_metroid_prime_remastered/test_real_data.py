@@ -1,6 +1,7 @@
 """Metroid Prime Remastered on the user's own dump (skipped without it): the packages repack byte for byte, every
 English table saves back byte for byte, every font page packs back unchanged and keeps an edited glyph, every
 texture format writes back and keeps an edit, and an unpacked texture goes back into its package."""
+import romhacking_root
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,7 @@ from core.containers import retro_pak as rp
 from core.texture_formats import txtr
 from plugins.metroid_prime_remastered.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Metroid\Prime Remastered")
+WS = romhacking_root.under('Metroid\\Prime Remastered')
 
 
 def _need(path: Path) -> Path:

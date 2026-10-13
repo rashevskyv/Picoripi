@@ -4,6 +4,7 @@ workspace is not on this machine).
 Real data: every localization file loads and saves back byte for byte; every font opens, packs back unchanged and
 takes an edited glyph; every picture reads and writes back unchanged.
 """
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from core.texture_formats import sources as texture_sources
 from plugins.castlevania_mof import text
 from plugins.castlevania_mof.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Castlevania\Mirror of Fate\3DS")
+WS = romhacking_root.under('Castlevania\\Mirror of Fate\\3DS')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "castlevania_mof"
 

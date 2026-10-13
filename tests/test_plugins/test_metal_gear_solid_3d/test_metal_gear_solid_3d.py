@@ -1,5 +1,6 @@
 """Metal Gear Solid: Snake Eater 3D plugin: the subtitle file model (synthetic) and the real EU game files
 (skipped where the workspace is not on this machine)."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from core.font_formats import sources as font_sources
 from core.texture_formats import sources as texture_sources
 from plugins.metal_gear_solid_3d.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Metal Gear\Metal Gear Solid 3\3DS")
+WS = romhacking_root.under('Metal Gear\\Metal Gear Solid 3\\3DS')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "metal_gear_solid_3d"
 

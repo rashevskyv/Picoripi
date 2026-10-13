@@ -1,5 +1,6 @@
 """Majora's Mask 3D plugin: GMSG load/save, control-code tags, references; the real files of the workspace when
 they are here."""
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 from plugins.zelda_mm3d import gmsg
 from plugins.zelda_mm3d.rules import split_blocks
 
-MM3D = Path(r"E:\Emulators\RomHacking\Zelda\Majoras Mask\3D - 3DS")
+MM3D = romhacking_root.under('Zelda\\Majoras Mask\\3D - 3DS')
 ENGLISH = {
     0x0002: "{quicktext-on}You got a {color:blue}Blue Rupee{color:default}!{quicktext-off}\n{delay:10}Worth 5.{flow:wait}",
     0x0100: "{sfx:0x01006858}Look, {name}!{flow:continue}{box-break}\nNext box {btn:A}.{event:1}",

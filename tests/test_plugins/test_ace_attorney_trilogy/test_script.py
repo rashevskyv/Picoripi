@@ -1,6 +1,6 @@
 """Ace Attorney Trilogy (3DS): the script codec, the BCH texture backend and the real game files (skipped without them)."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -77,7 +77,7 @@ def test_bch_textures_read_and_write_back():
     assert texture_formats.read("bch", changed)[0].image.getpixel((3, 3)) == (255, 0, 0, 255)
 
 
-ROOT = Path(r"E:\Emulators\RomHacking\Ace Attorney\Trilogy\3DS\source")
+ROOT = romhacking_root.under('Ace Attorney\\Trilogy\\3DS\\source')
 
 
 @pytest.mark.skipif(not (ROOT / "script").is_dir(), reason="the game is not unpacked")
@@ -113,7 +113,7 @@ def test_switch_codes_are_detected_and_round_trip():
     assert script.rebuild(["Hi, ok."]) == _script([[0x30, 0xFFA8, 0xFFC9, 0xFF8C, 0x3080, 0xFFCF, 0xFFCB, 0xFF8E]])
 
 
-SWITCH = Path(r"E:\Emulators\RomHacking\Ace Attorney\Trilogy\Switch\source\romfs\Data\StreamingAssets")
+SWITCH = romhacking_root.under('Ace Attorney\\Trilogy\\Switch\\source\\romfs\\Data\\StreamingAssets')
 
 
 @pytest.mark.skipif(not SWITCH.is_dir(), reason="the Switch game is not unpacked")

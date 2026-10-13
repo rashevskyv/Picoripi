@@ -1,5 +1,6 @@
 """Gravity Falls: Legend of the Gnome Gemulets plugin: the localisation file format on synthetic data, the UbiArt
 texture and font formats, and (skipped where the workspace is not on this machine) the real game files."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -15,7 +16,7 @@ from plugins.gravity_falls_gemulets.tag_manager import TAG_RE
 from plugins.testing import check_loads, check_validator
 
 PLUGIN_NAME = "gravity_falls_gemulets"
-WS = Path(r"E:\Emulators\RomHacking\Gravity Falls Legend of the Gnome Gemulets")
+WS = romhacking_root.under('Gravity Falls Legend of the Gnome Gemulets')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN_NAME
 

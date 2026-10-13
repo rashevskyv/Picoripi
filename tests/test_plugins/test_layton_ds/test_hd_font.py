@@ -1,7 +1,7 @@
 """Professor Layton HD ports: ``font.dat`` in the Font Editor model, and IMGA pictures (IMGN under another magic)."""
+import romhacking_root
 import copy
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image, ImageDraw
@@ -110,7 +110,7 @@ def test_imga_picture_reads_and_writes_like_imgn():
     assert texture_formats.write("imgc", imga, {0: textures[0].image}) == imga
 
 
-REAL = Path(r"E:\Emulators\RomHacking\Professor Layton")
+REAL = romhacking_root.under('Professor Layton')
 
 
 @pytest.mark.parametrize("game", ["Curious Village", "Pandora's Box", "Lost Future"])

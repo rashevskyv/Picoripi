@@ -1,6 +1,7 @@
 """Pokémon BDSP on the user's own dump (skipped without it): every English table saves back byte for byte and
 rebuilds its labels from the editor text, every font packs back unchanged and keeps an edited glyph, every
 texture PNG writes back unchanged, and the fonts' Ukrainian coverage is what the status file reports."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from core.font_formats import bfotf, sources
 from plugins.pokemon_bdsp import msg
 from plugins.pokemon_bdsp.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Pokemon\Brilliant Diamond and Shining Pearl")
+WS = romhacking_root.under('Pokemon\\Brilliant Diamond and Shining Pearl')
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "pokemon_bdsp"
 UKRAINIAN = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
 

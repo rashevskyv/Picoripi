@@ -1,5 +1,6 @@
 """Castlevania: Symphony of the Night (Saturn) plugin: codec, string banks, fonts and dialogue pictures; real-data
 round trips through the workspace scripts (skipped when the workspace is not on disk)."""
+import romhacking_root
 import json
 import sys
 from pathlib import Path
@@ -14,9 +15,9 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "castlevania_sotn_saturn"
 PLUGIN_DIR = Path(__file__).parents[3] / "plugins" / PLUGIN
-WS = Path(r"E:\Emulators\RomHacking\Castlevania\Symphony of the Night\Saturn")
+WS = romhacking_root.under('Castlevania\\Symphony of the Night\\Saturn')
 SOURCE = WS / "source"
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 needs_data = pytest.mark.skipif(not (SOURCE / "text" / "GAME.PRG.sotnstext").is_file()
                                 or not (SCRIPTS / "zt" / "sotnsat.py").is_file(),
                                 reason="Symphony of the Night (Saturn) workspace not on disk")

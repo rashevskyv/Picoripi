@@ -2,15 +2,15 @@
 
 The real-data tests read the game's ``data`` folder and skip when the game is not installed here.
 """
+import romhacking_root
 import gzip
 import struct
-from pathlib import Path
 
 import pytest
 
 from core.containers import sh3_arc
 
-DATA = Path(r"E:\Emulators\RomHacking\Silent Hill\Silent Hill 3\PC\ISO\data")
+DATA = romhacking_root.under('Silent Hill\\Silent Hill 3\\PC\\ISO\\data')
 needs_game = pytest.mark.skipif(not (DATA / "msg.arc").is_file(), reason="Silent Hill 3 data not installed here")
 
 

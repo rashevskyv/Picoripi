@@ -1,4 +1,5 @@
 """Layton's Mystery Journey: Deluxe Edition (Switch) keeps loose RomFS files in the 3DS formats (IMGN pictures, XF fonts)."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from plugins.layton_3ds import xscr
 from plugins.layton_3ds.rules import folder_of
 
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "layton_3ds"
-SOURCE = Path(r"E:\Emulators\RomHacking\Professor Layton\Mystery Journey\Switch\source")
+SOURCE = romhacking_root.under('Professor Layton\\Mystery Journey\\Switch\\source')
 
 
 def test_us_spelling_folder_is_the_chapter():

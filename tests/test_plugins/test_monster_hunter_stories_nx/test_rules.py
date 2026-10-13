@@ -1,6 +1,6 @@
 """Monster Hunter Stories (Switch) plugin: GMD v2 tables (synthetic and the real game's archive when it is unpacked here)."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -8,8 +8,7 @@ from plugins.monster_hunter_stories_nx import gmd
 from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "monster_hunter_stories_nx"
-SOURCE = Path(r"E:\Emulators\RomHacking\Monster Hunter\Stories\Switch\source\romfs\nativeNXx64\archive\message_R"
-              r"\message_all_eng.arc\message_R")
+SOURCE = romhacking_root.under('Monster Hunter\\Stories\\Switch\\source\\romfs\\nativeNXx64\\archive\\message_R\\message_all_eng.arc\\message_R')
 
 
 def make_gmd(strings, labels=None) -> bytes:

@@ -1,4 +1,5 @@
 """Yo-kai Watch fonts and textures through the plugin's source lists, on the game's own files."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from core.font_formats import sources as font_sources
 from core.texture_formats import sources as texture_sources
 
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "yokai_watch"
-WORKSPACES = Path(r"E:\Emulators\RomHacking\Yo-kai Watch")
+WORKSPACES = romhacking_root.under('Yo-kai Watch')
 SOURCE = WORKSPACES / "Yo-kai Watch" / "3DS" / "source"
 SOURCE_3 = WORKSPACES / "Yo-kai Watch 3" / "source"
 SOURCE_NX = WORKSPACES / "Yo-kai Watch" / "Switch" / "source"

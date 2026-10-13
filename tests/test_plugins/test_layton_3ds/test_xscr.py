@@ -1,5 +1,5 @@
 """Professor Layton 3DS plugin: XSCR round trips, editor rows, names in the definitions file; the game's files when present."""
-from pathlib import Path
+import romhacking_root
 
 import pytest
 
@@ -8,7 +8,7 @@ from plugins.layton_3ds import xscr
 from plugins.layton_3ds.rules import SPEAKERS, folder_of
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
-LAYTON = Path(r"E:\Emulators\RomHacking\Professor Layton")
+LAYTON = romhacking_root.under('Professor Layton')
 SOURCES = [LAYTON / "Miracle Mask" / "source", LAYTON / "Azran Legacy" / "source", LAYTON / "vs Phoenix Wright" / "source"]
 UKRAINIAN = "Ґанок і їжак"   # not in cp932: the game's fonts and encoding need other codes for these letters
 

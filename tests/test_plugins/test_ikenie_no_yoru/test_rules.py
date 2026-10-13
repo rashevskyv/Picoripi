@@ -1,6 +1,7 @@
 """Ikenie no Yoru plugin: MES0 message tables (control codes, layout, the first-number field), layout text boxes,
 main.dol slots, the HOME Menu's Japanese column; the real files (text, fonts, textures) when the workspace is
 unpacked here."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -14,7 +15,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "ikenie_no_yoru"
 PLUGIN_DIR = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN
-SOURCE = Path(r"E:\Emulators\RomHacking\Ikenie no Yoru\source")
+SOURCE = romhacking_root.under('Ikenie no Yoru\\source')
 real = pytest.mark.skipif(not (SOURCE / "sys" / "main.dol").exists(), reason="Ikenie no Yoru not unpacked here")
 
 NAME, PAGE, NEWLINE = [0x0001, 0x0003], 0x000C, 0x000A

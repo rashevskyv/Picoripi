@@ -1,9 +1,9 @@
 """Xenoblade Chronicles (Wii / 3DS) plugin: big-endian legacy BDAT tables (a hand-made file: read, unchanged =
 same bytes, a longer text, hidden tables), the Nintendo Huffman codec of the RFNA fonts, and the real
 workspace files when they are unpacked here."""
+import romhacking_root
 import random
 import struct
-from pathlib import Path
 
 import pytest
 
@@ -14,7 +14,7 @@ from plugins.common import bdat_wii
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "xenoblade_wii"
-SOURCE = Path(r"E:\Emulators\RomHacking\Xenoblade\Chronicles\Wii\source")
+SOURCE = romhacking_root.under('Xenoblade\\Chronicles\\Wii\\source')
 real = pytest.mark.skipif(not (SOURCE / "bdat" / "bdat_common.bin").exists(), reason="Xenoblade Wii not unpacked here")
 
 
@@ -234,7 +234,7 @@ def test_a_3ds_tpl_reads_upright_and_writes_in_place():
     assert len(out) == len(data) and texture_formats.read("tpl_ctr", out)[0].image.getpixel((5, 0))[3] == 255
 
 
-CTR = Path(r"E:\Emulators\RomHacking\Xenoblade\Chronicles\3DS\source")
+CTR = romhacking_root.under('Xenoblade\\Chronicles\\3DS\\source')
 real_3ds = pytest.mark.skipif(not (CTR / "font" / "font_eu.brfna").exists(), reason="Xenoblade 3D not unpacked here")
 
 

@@ -1,5 +1,6 @@
 """Wind Waker HD on the game's own files (skipped where the workspace is not on this machine): every MSBT,
 every font and every listed texture goes back byte for byte, and an edit keeps the archives' layout."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -13,7 +14,7 @@ from core.font_formats import sources as font_sources
 from core.texture_formats import sources as texture_sources
 from plugins.zelda_ww.rules import GameRules
 
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Zelda\Wind Waker\HD - Wii U")
+WORKSPACE = romhacking_root.under('Zelda\\Wind Waker\\HD - Wii U')
 SOURCE = WORKSPACE / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "zelda_ww"
 

@@ -1,7 +1,7 @@
 """Pokémon X/Y + Omega Ruby/Alpha Sapphire (3DS) plugin: the shared gfmsg codec on gen 6 tables, keyboard rows, block
 names; real-data round trips of every English table, font and layout picture of the workspaces."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -12,7 +12,7 @@ from plugins.pokemon_gen6.rules import is_keyboard, keyboard_header, locate, tab
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "pokemon_gen6"
-GAMES = {name: Path(r"E:\Emulators\RomHacking\Pokemon") / name / "source" / "romfs"
+GAMES = {name: romhacking_root.under('Pokemon') / name / "source" / "romfs"
          for name in ("X and Y", "Omega Ruby and Alpha Sapphire")}
 TABLES = {"X and Y": ("a/0/7/4", "a/0/8/2", 151, 424, 27605 + 7607), "Omega Ruby and Alpha Sapphire": ("a/0/7/3", "a/0/8/1", 175, 637, 33909 + 11538)}
 FONTS = {"X and Y": "a/1/8/5", "Omega Ruby and Alpha Sapphire": "a/1/6/7"}

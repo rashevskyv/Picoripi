@@ -1,4 +1,5 @@
-"""TotK 1.4.0 on the developer's disk (E:\\...\\TOTK_UA\\romfs, made by 1_unpack.bat); skipped elsewhere."""
+"""TotK 1.4.0 under PICORIPI_ROMHACKING (TOTK_UA/romfs, made by 1_unpack.bat); skipped elsewhere."""
+import romhacking_root
 from pathlib import Path
 
 import pytest
@@ -10,7 +11,7 @@ from plugins.zelda_totk import event_flow, font_glyphs, restbl
 from plugins.common.msbt import Msbt, Tag
 from plugins.zelda_totk.tags import from_editor, to_editor
 
-ROMFS = Path(r"E:\Emulators\RomHacking\Zelda\Tears of the Kingdom\romfs")
+ROMFS = romhacking_root.under('Zelda\\Tears of the Kingdom\\romfs')
 pytestmark = pytest.mark.skipif(not (ROMFS / "Pack" / "ZsDic.pack.zs").is_file(), reason="no TotK romfs on disk")
 
 

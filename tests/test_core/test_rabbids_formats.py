@@ -1,9 +1,9 @@
 """Formats of Raving Rabbids: Party Collection (Wii): Jade textures (raw + palette, TGA, DDS) and FONTDESC fonts,
 Wii archived fonts (RFNA, CX Huffman), the Rabbids 2 disc error font. Synthetic files round-trip byte-exact and
 edits land; the real files are checked when the workspace is unpacked here."""
+import romhacking_root
 import random
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image, ImageDraw
@@ -13,7 +13,7 @@ from core.font_formats import brfna, rrr_errfont
 from core.font_formats.sources import join_pair
 from core.texture_formats import jade
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Raving Rabbids Party Collection\source")
+SOURCE = romhacking_root.under('Raving Rabbids Party Collection\\source')
 real = pytest.mark.skipif(not (SOURCE / "rrr1.bf").is_dir(), reason="Raving Rabbids Party Collection not unpacked here")
 CODES = bytes.fromhex("3412d0caff00ff00dec0dec0")
 

@@ -1,6 +1,7 @@
 """Metroid Prime 4: Beyond on the user's own dump (skipped without it): every English table saves back byte for
 byte, every font page packs back unchanged and keeps an edited glyph, every texture format the interface uses
 writes back unchanged and keeps an edit, and the BakAI fonts carry the Ukrainian alphabet."""
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from core.font_formats import retro_font
 from core.texture_formats import astc, txtr
 from plugins.metroid_prime4.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Metroid\Prime 4 Beyond")
+WS = romhacking_root.under('Metroid\\Prime 4 Beyond')
 UKRAINIAN = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
 
 

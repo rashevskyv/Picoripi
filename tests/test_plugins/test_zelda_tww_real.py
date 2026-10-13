@@ -1,5 +1,6 @@
 """Real Wind Waker (GameCube, USA) data: every text file, font and text texture the plugins list opens, and an
 unedited save gives the game's bytes back. Skips without the workspace."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from core.texture_formats import sources
 from plugins.zelda_tingle.rules import GameRules as TingleRules
 from plugins.zelda_tww.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Zelda\Wind Waker\GC")
+WS = romhacking_root.under('Zelda\\Wind Waker\\GC')
 SOURCE = WS / "source"
 META = {"source_path": str(SOURCE), "translation_path": "", "is_directory_mode": True}
 TEXT_FILES = [("files/res/Msg/bmgres.arc", "zel_00.bmg", 4411), ("files/res/Msg/bmgresh.arc", "zel_01.bmg", 15),

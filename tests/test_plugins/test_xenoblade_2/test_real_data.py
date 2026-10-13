@@ -2,6 +2,7 @@
 saves back byte for byte, rebuilds byte for byte and takes an edit; every font packs back unchanged and the
 Latin fonts lack only the 8 Ukrainian-specific letters; the layout textures write back unchanged and both title
 logos take an edit; the workspace build hides a changed file in the archive index."""
+import romhacking_root
 import importlib
 import json
 import sys
@@ -15,8 +16,8 @@ from core.texture_formats import wilay
 from plugins.common import bdat_legacy as bdat
 from plugins.xenoblade_2.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Xenoblade\Chronicles 2")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+WS = romhacking_root.under('Xenoblade\\Chronicles 2')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 UKRAINIAN = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
 UKRAINIAN_ONLY = "ҐЄІЇґєії"
 

@@ -1,5 +1,6 @@
 """Fantasy Life plugin: the text table codec and ztex / FNT formats on synthetic data, then on the real EU game files
 (skipped where the workspace is not on this machine)."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -180,7 +181,7 @@ def test_l5_fnt_edit_changes_one_glyph():
     assert out != data and len(out) == len(data)
 
 
-WS = Path(r"E:\Emulators\RomHacking\Fantasy Life")
+WS = romhacking_root.under('Fantasy Life')
 SOURCE = WS / "source" / "romfs" / "_file_archive"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "fantasy_life"
 

@@ -1,12 +1,13 @@
 """Plain TrueType fonts (core/font_formats/ttf.py) on a real Unity font exported from a game (skipped where the file is
 not on this machine): unchanged packing gives the same bytes, a copied-shape alias is written into the cmap."""
+import romhacking_root
 from pathlib import Path
 
 import pytest
 
 from core.font_formats import bfotf, char_map, ttf  # noqa: F401
 
-FONT = Path(r"E:\Emulators\RomHacking\Bravely\Default\PC\source\font\SE-MLSEU.ttf")
+FONT = romhacking_root.under('Bravely\\Default\\PC\\source\\font\\SE-MLSEU.ttf')
 PARAMS = {"size": 24}
 
 

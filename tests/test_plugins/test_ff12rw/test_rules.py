@@ -1,4 +1,5 @@
 """Final Fantasy XII: Revenant Wings plugin: text formats, DPK packs, NFTR fonts in a pack; real-data round trips."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -14,7 +15,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "ff12rw"
 PLUGIN_DIR = Path(__file__).parents[3] / "plugins" / "ff12rw"
-WS = Path(r"E:\Emulators\RomHacking\Final Fantasy\Revenant Wings")
+WS = romhacking_root.under('Final Fantasy\\Revenant Wings')
 SOURCE = WS / "source"
 needs_data = pytest.mark.skipif(not (SOURCE / "data" / "FontPack.dpk").is_file(),
                                 reason="Final Fantasy XII: Revenant Wings workspace not on disk")

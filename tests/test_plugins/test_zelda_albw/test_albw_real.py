@@ -3,6 +3,7 @@
 Every English MSBT loads and saves back byte for byte with no raw tags left, the shipped catalogue is the
 game's own message project, both fonts and every listed text image read and write back unchanged.
 """
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from plugins.common import msbp
 from plugins.zelda_albw import tags
 from plugins.zelda_albw.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Zelda\A Link Between Worlds")
+WS = romhacking_root.under('Zelda\\A Link Between Worlds')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "zelda_albw"
 UKRAINIAN = "ҐЄІЇґєії"

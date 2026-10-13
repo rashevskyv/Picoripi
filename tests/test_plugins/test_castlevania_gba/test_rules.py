@@ -1,4 +1,5 @@
 """Castlevania GBA plugin (Harmony of Dissonance, Aria of Sorrow): text codes, strings bank, 1-bit fonts; real data."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from plugins.castlevania_gba.rules import BLOCKS, TEXT_FORMAT, font_descriptors
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "castlevania_gba"
-ROOT = Path(r"E:\Emulators\RomHacking\Castlevania")
+ROOT = romhacking_root.under('Castlevania')
 WORKSPACES = {"aos": ROOT / "Aria of Sorrow", "hod": ROOT / "Harmony of Dissonance"}
 
 

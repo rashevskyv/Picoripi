@@ -4,6 +4,7 @@ not on this machine).
 Real data: every English message file loads and saves back byte for byte and takes an edit; both kinds of picture
 (CTRT, L2D with pictures inside) read and write back unchanged; every font opens and packs back unchanged.
 """
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -16,7 +17,7 @@ from core.texture_formats import sources as texture_sources
 from plugins.kingdom_hearts_ddd import ctd
 from plugins.kingdom_hearts_ddd.rules import GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Kingdom Hearts\Dream Drop Distance\3DS")
+WS = romhacking_root.under('Kingdom Hearts\\Dream Drop Distance\\3DS')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "kingdom_hearts_ddd"
 

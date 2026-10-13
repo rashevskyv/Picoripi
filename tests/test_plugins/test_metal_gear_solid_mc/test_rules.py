@@ -1,6 +1,6 @@
 """Metal Gear Solid Master Collection plugin: M2's PSB text, fonts and pictures; the real workspaces when present."""
+import romhacking_root
 import json
-from pathlib import Path
 
 import pytest
 
@@ -10,7 +10,7 @@ from core.font_formats import char_map
 from core.texture_formats import pcx
 from plugins.testing import check_loads, check_validator, load_rules
 
-BASE = Path(r"E:\Emulators\RomHacking\Metal Gear\Metal Gear Solid")
+BASE = romhacking_root.under('Metal Gear\\Metal Gear Solid')
 WORKSPACES = [BASE / "PC - Steam" / "source", BASE / "Switch" / "source"]
 PRESENT = [ws for ws in WORKSPACES if (ws / "mgsmc_members.idx").is_file()]
 real = pytest.mark.skipif(not PRESENT, reason="the unpacked workspaces are not on this machine")

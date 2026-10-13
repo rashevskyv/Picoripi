@@ -3,6 +3,7 @@
 Unchanged text bundles, fonts and textures must come back byte for byte; an edited texture or font must reach
 the mod as a loose asset file that the RDB index points at (``_shared\\scripts\\zt\\aoc.py``, what 2_build runs).
 """
+import romhacking_root
 import json
 import struct
 import sys
@@ -17,7 +18,7 @@ from core.texture_formats import sources as texture_sources
 from plugins.zelda_aoc.aoctext import TextBundle
 
 ROOT = Path(__file__).resolve().parents[3]
-RH = Path(r"E:\Emulators\RomHacking")
+RH = romhacking_root.under('')
 WS = RH / "Zelda" / "Hyrule Warriors Age of Calamity"
 SOURCE = WS / "source"
 

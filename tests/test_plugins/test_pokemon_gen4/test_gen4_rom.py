@@ -1,5 +1,6 @@
 """Pokémon generation IV ROM mode (``.msg`` banks): codec round trips, plugin load and save, and the real ROM banks
 of the workspace when they are unpacked (the real-data test skips without them)."""
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from plugins.common import gen4msg
 from plugins.pokemon_gen4.rules import GameRules
 
 CHARMAP = Path(__file__).resolve().parents[3] / "plugins" / "pokemon_gen4" / "charmaps" / "charmap_dp_hgss.txt"
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Pokemon\Diamond and Pearl\source\text\msgdata+msg.narc")
+WORKSPACE = romhacking_root.under('Pokemon\\Diamond and Pearl\\source\\text\\msgdata+msg.narc')
 
 
 def _codec() -> gen4msg.Codec:

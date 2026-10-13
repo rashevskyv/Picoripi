@@ -3,6 +3,7 @@
 Real-data tests read the workspace's ``source`` folder (``1_unpack.bat`` of the SotN PS1 workspace) and
 skip when it is not on this machine.
 """
+import romhacking_root
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -18,7 +19,7 @@ from plugins.testing import check_loads, check_validator
 
 PLUGIN = "castlevania_sotn"
 PLUGIN_DIR = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN
-SOURCE = Path(r"E:\Emulators\RomHacking\Castlevania\Symphony of the Night\PS1\source")
+SOURCE = romhacking_root.under('Castlevania\\Symphony of the Night\\PS1\\source')
 needs_data = pytest.mark.skipif(not (SOURCE / "DRA.BIN").is_file(), reason="SotN workspace source not on disk")
 
 

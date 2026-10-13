@@ -1,4 +1,5 @@
 """Cadence of Hyrule plugin: localization.xml load/save, tags, speakers, hooks; the real file when it is here."""
+import romhacking_root
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -10,7 +11,7 @@ from plugins.zelda_coh import rules as coh_rules
 from plugins.zelda_coh.locxml import LocalizationFile
 from plugins.zelda_coh.tags import TAG_RE, describe, from_editor, to_editor
 
-REAL = Path(r"E:\Emulators\RomHacking\Zelda\Cadence of Hyrule\source\localization.xml")
+REAL = romhacking_root.under('Zelda\\Cadence of Hyrule\\source\\localization.xml')
 
 
 def _text(string_id, key, en, ja="ja"):

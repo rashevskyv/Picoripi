@@ -1,5 +1,5 @@
 """Xenoblade Chronicles: Definitive Edition (Switch) plugin: the Xenoblade 2 rules on the DE files (real data when unpacked)."""
-from pathlib import Path
+import romhacking_root
 
 import pytest
 
@@ -7,7 +7,7 @@ from plugins.common import bdat_legacy
 from plugins.testing import check_loads, check_validator, load_rules
 
 PLUGIN = "xenoblade_de"
-SOURCE = Path(r"E:\Emulators\RomHacking\Xenoblade\Chronicles\DE - Switch\source")
+SOURCE = romhacking_root.under('Xenoblade\\Chronicles\\DE - Switch\\source')
 
 
 def test_the_plugin_loads_and_validates():

@@ -3,6 +3,7 @@
 Every English BTBF table loads, follows the row-major string rule, saves back byte for byte and grows cleanly;
 the font opens and packs back unchanged; every listed picture reads and writes back unchanged.
 """
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from core.texture_formats import sources as texture_sources
 from plugins.bravely_default.btbf import Btbf
 from plugins.bravely_default.rules import EXTENSIONS, GameRules
 
-WS = Path(r"E:\Emulators\RomHacking\Bravely\Default\3DS")
+WS = romhacking_root.under('Bravely\\Default\\3DS')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "bravely_default"
 UKRAINIAN = "ҐЄІЇґєії"

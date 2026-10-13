@@ -2,6 +2,7 @@
 
 Unedited fonts must pack back byte-exact; the descriptors must put each character on its glyph.
 """
+import romhacking_root
 import json
 import os
 import struct
@@ -17,8 +18,8 @@ from plugins.common.n64_rom import compute_crc
 from tools.bfn_editor.bfn_engine import extract_bfn_logic, repack_bfn_logic
 
 ROOT = Path(__file__).resolve().parents[2]
-ZELDA = Path(r"E:\Emulators\RomHacking\Zelda")
-SWITCH = Path(r"D:\Downloads\switch")
+ZELDA = romhacking_root.under('Zelda')
+SWITCH = Path("Downloads", "switch")  # outside PICORIPI_ROMHACKING: a relative placeholder, so these tests skip
 OOT_ROM = ZELDA / "Ocarina of Time" / "N64" / "rom" / "Legend of Zelda, The - Ocarina of Time (USA).z64"
 MM_ROM = ZELDA / "Majoras Mask" / "N64" / "rom" / "Legend of Zelda, The - Majora's Mask (USA).z64"
 HWDE_UI = ZELDA / "Hyrule Warriors DE" / "romfs" / "data" / "ui"

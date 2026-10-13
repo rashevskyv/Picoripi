@@ -1,6 +1,6 @@
 """Code of Princess: the executable string pool, the FD font and RTEX picture formats (real files skip when missing)."""
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -80,7 +80,7 @@ def test_rtex_reads_and_writes_back():
     assert changed != raw and len(changed) == len(raw)
 
 
-ROOT = Path(r"E:\Emulators\RomHacking\Code of Princess\3DS\source")
+ROOT = romhacking_root.under('Code of Princess\\3DS\\source')
 
 
 @pytest.mark.skipif(not (ROOT / "exefs" / "code.bin").is_file(), reason="the game is not unpacked")

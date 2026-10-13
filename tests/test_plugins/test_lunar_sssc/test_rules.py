@@ -2,8 +2,8 @@
 
 The real-data tests read the workspace's ``source`` folder (1_unpack.bat) and skip when it is missing.
 """
+import romhacking_root
 import struct
-from pathlib import Path
 
 import pytest
 from PIL import Image, ImageDraw
@@ -13,7 +13,7 @@ from plugins.lunar_sssc import codec, doc, script, strings
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "lunar_sssc"
-SOURCE = Path(r"E:\Emulators\RomHacking\Lunar\Silver Star Story\source")
+SOURCE = romhacking_root.under('Lunar\\Silver Star Story\\source')
 needs_data = pytest.mark.skipif(not (SOURCE / "SLUS_006.28").is_file(), reason="Lunar SSSC not unpacked here")
 TEXT_FONT = {"offset": "0xA197C", "count": 91, "chars": "".join(chr(c) for c in range(0x20, 0x7B))}
 

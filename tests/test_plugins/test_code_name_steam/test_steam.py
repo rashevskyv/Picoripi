@@ -1,5 +1,6 @@
 """Code Name: S.T.E.A.M. plugin: message archive round trip and BCH textures on synthetic data, then on the real
 EU game files (skipped where the workspace is not on this machine)."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -61,7 +62,7 @@ def test_tags():
     assert manager.is_tag_legitimate("$Ap$ギア,") and not manager.is_tag_legitimate("$Ap$")
 
 
-WS = Path(r"E:\Emulators\RomHacking\Code Name STEAM")
+WS = romhacking_root.under('Code Name STEAM')
 SOURCE = WS / "source"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "code_name_steam"
 

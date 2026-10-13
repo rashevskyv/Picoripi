@@ -1,5 +1,5 @@
 """Twin Snakes plugin hooks: load/save, the translation copy, speakers, context; the real files when present."""
-from pathlib import Path
+import romhacking_root
 from types import SimpleNamespace
 
 import pytest
@@ -12,7 +12,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 from .samples import codec_file, gcx_file, subs_file
 
-TEXT = Path(r"E:\Emulators\RomHacking\Metal Gear\Twin Snakes\source\text")
+TEXT = romhacking_root.under('Metal Gear\\Twin Snakes\\source\\text')
 UKRAINIAN = "Ґанок і їжак — «є» п’ять"
 
 

@@ -1,5 +1,6 @@
 """Super Paper Mario plugin: message files with their end padding, global.txt groups, HOME Menu messages; the real
 files (text, fonts, textures) when the workspace is unpacked here."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "super_paper_mario"
 PLUGIN_DIR = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN
-SOURCE = Path(r"E:\Emulators\RomHacking\Paper Mario\Super Paper Mario\source")
+SOURCE = romhacking_root.under('Paper Mario\\Super Paper Mario\\source')
 MSG = SOURCE / "msg" / "UK"
 real = pytest.mark.skipif(not (MSG / "global.txt").exists(), reason="Super Paper Mario not unpacked here")
 

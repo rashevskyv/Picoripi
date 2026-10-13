@@ -1,5 +1,6 @@
 """Pokémon generation III (pret decompilations): finding, showing and writing back the text of ``.inc`` / ``.s`` /
 ``.c`` / ``.h`` files; the plugin's load and save of such a file; real-data round trips of the workspaces."""
+import romhacking_root
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -92,7 +93,7 @@ WORKSPACES = {"Ruby and Sapphire": "pokeruby", "FireRed and LeafGreen": "pokefir
 
 @pytest.mark.parametrize("game", list(WORKSPACES))
 def test_every_text_file_of_the_decompilation_writes_back_and_edits_cleanly(game):
-    root = Path(r"E:\Emulators\RomHacking\Pokemon") / game / "source"
+    root = romhacking_root.under('Pokemon') / game / "source"
     if not root.is_dir():
         pytest.skip(f"{root} is not on this machine")
     count = 0
@@ -117,7 +118,7 @@ def test_the_font_and_picture_descriptors_resolve_in_a_decompilation_project(gam
     from core.font_formats import sources as font_sources
     from core.texture_formats import sources as texture_sources
 
-    root = Path(r"E:\Emulators\RomHacking\Pokemon") / game / "source"
+    root = romhacking_root.under('Pokemon') / game / "source"
     if not root.is_dir():
         pytest.skip(f"{root} is not on this machine")
     meta = {"source_path": str(root), "translation_path": str(root.parent / "translation"), "is_directory_mode": True}

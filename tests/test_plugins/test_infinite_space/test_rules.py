@@ -1,4 +1,5 @@
 """Infinite Space plugin: the scx script, the OBD dialogue font, .tex textures and .bgd sheets; real data."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -14,7 +15,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "infinite_space"
 PLUGIN_DIR = Path(__file__).parents[3] / "plugins" / "infinite_space"
-WS = Path(r"E:\Emulators\RomHacking\Infinite Space")
+WS = romhacking_root.under('Infinite Space')
 SOURCE = WS / "source"
 needs_data = pytest.mark.skipif(not (SOURCE / "data" / "Event" / "SpaceShip.scx").is_file(),
                                 reason="Infinite Space workspace not on disk")

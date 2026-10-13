@@ -1,5 +1,6 @@
 """Digimon World: Re:Digitize Decode plugin: KCAP / BTX text containers on synthetic data, then on the real game files
 (skipped where the workspace is not on this machine)."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -130,7 +131,7 @@ def test_rules_load_and_save():
     assert DigiText(out).strings == [["Альфа", "Beta"], ["Gamma"]]
 
 
-WS = Path(r"E:\Emulators\RomHacking\Digimon World Re Digitize Decode")
+WS = romhacking_root.under('Digimon World Re Digitize Decode')
 SOURCE = WS / "source" / "romfs" / "ARCV"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "digimon_redigitize"
 

@@ -1,11 +1,11 @@
 """Peace Walker (Master Collection) plugin: real data from the workspace when it is on this machine."""
-from pathlib import Path
+import romhacking_root
 
 import pytest
 
 from plugins.metal_gear_pw import olang
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Metal Gear\Peace Walker\Switch\source\text")
+SOURCE = romhacking_root.under('Metal Gear\\Peace Walker\\Switch\\source\\text')
 
 
 @pytest.mark.parametrize("name", ["lang_start_nx.olang", "olangWw_nx.olang"])

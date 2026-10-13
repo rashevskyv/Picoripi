@@ -1,5 +1,5 @@
 """Tests of the Pokémon Gold, Silver and Crystal (pret) plugin: asm text units, editor text, writing back."""
-from pathlib import Path
+import romhacking_root
 
 import pytest
 
@@ -146,8 +146,8 @@ def test_width_counts_tiles():
     assert text_tiles("[text_ram wX]ab") == 2
 
 
-DECOMPS = [Path(r"E:\Emulators\RomHacking\Pokemon\Crystal\port\pokecrystal"),
-           Path(r"E:\Emulators\RomHacking\Pokemon\Gold and Silver\port\pokegold")]
+DECOMPS = [romhacking_root.under('Pokemon\\Crystal\\port\\pokecrystal'),
+           romhacking_root.under('Pokemon\\Gold and Silver\\port\\pokegold')]
 
 
 @pytest.mark.parametrize("root", DECOMPS, ids=["pokecrystal", "pokegold"])

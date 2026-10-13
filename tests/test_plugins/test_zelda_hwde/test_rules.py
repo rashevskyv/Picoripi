@@ -1,4 +1,5 @@
 """Hyrule Warriors DE plugin hooks: load/save, save context, speakers, attributes, layout; real files."""
+import romhacking_root
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -11,7 +12,7 @@ from plugins.zelda_hwde.textfile import LANGUAGES, TextFile
 
 from .test_formats import sample_file, xl
 
-ROMFS = Path(r"E:\Emulators\RomHacking\Zelda\Hyrule Warriors DE\romfs\data")
+ROMFS = romhacking_root.under('Zelda\\Hyrule Warriors DE\\romfs\\data')
 REAL_FILES = (
     "common/msgdata.bin", "common/MovieSubtitle.bin", "common/VoiceMes.bin", "common/VoiceMesChange.bin",
     "event/EventSubtitle.bin", "intermission/IMSubtitle.bin", "battle/btlmessage.bin",

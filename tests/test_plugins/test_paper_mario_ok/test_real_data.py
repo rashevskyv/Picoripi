@@ -2,9 +2,9 @@
 byte for byte (also fully re-encoded from the editor form), every font packs back unchanged and BC4 / BC5 fonts
 take a glyph edit, every UI texture writes back unchanged and one texture per pixel format takes an edit, and the
 workspace build puts textures back into their BFRES (the English one into both English slots)."""
+import romhacking_root
 import importlib
 import sys
-from pathlib import Path
 
 import pytest
 from PIL import ImageDraw
@@ -15,8 +15,8 @@ from plugins.common.msbt import Msbt
 from plugins.paper_mario_ok.rules import GameRules
 from plugins.paper_mario_ok.tags import from_editor
 
-WS = Path(r"E:\Emulators\RomHacking\Paper Mario\Origami King")
-SCRIPTS = Path(r"E:\Emulators\RomHacking\_shared\scripts")
+WS = romhacking_root.under('Paper Mario\\Origami King')
+SCRIPTS = romhacking_root.under('_shared\\scripts')
 pytestmark = pytest.mark.skipif(not (WS / "source" / "msg" / "EU_English" / "global.msbt").is_file(),
                                 reason="Paper Mario: The Origami King not unpacked")
 # Pure-Python ASTC decoding takes minutes for these two (an 8640x8640 ASTC 10x10 chart, ~150 ASTC 8x8 museum

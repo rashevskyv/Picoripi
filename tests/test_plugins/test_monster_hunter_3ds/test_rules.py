@@ -1,4 +1,5 @@
 """Monster Hunter 3DS plugin: GMD, lmd and quest text, MT TEX textures, GFD/lfd fonts; real-data round trips."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -17,7 +18,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator
 
 PLUGIN = "monster_hunter_3ds"
 PLUGIN_DIR = Path(__file__).parents[3] / "plugins" / PLUGIN
-MH = Path(r"E:\Emulators\RomHacking\Monster Hunter")
+MH = romhacking_root.under('Monster Hunter')
 GAMES = [MH / "3 Ultimate" / "3DS", MH / "4 Ultimate", MH / "Stories" / "3DS"]
 UKRAINIAN_ONLY = set("ҐЄІЇґєії")
 

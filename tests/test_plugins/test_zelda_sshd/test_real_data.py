@@ -1,6 +1,7 @@
 """Skyward Sword on the user's own dumps (skipped without them): every English MSBT of HD 1.0.1 and Wii USA
 saves back byte for byte, every archive repacks byte for byte, every font packs back unchanged and takes a
 new letter, and the HD's official Russian fills a Wii project by label."""
+import romhacking_root
 from pathlib import Path
 
 import pytest
@@ -12,8 +13,8 @@ from plugins.common.msbt import Msbt
 from plugins.zelda_sshd import reference
 from plugins.zelda_sshd.rules import GameRules
 
-HD = Path(r"E:\Emulators\RomHacking\Zelda\Skyward Sword\HD - Switch")
-WII = Path(r"E:\Emulators\RomHacking\Zelda\Skyward Sword\Wii")
+HD = romhacking_root.under('Zelda\\Skyward Sword\\HD - Switch')
+WII = romhacking_root.under('Zelda\\Skyward Sword\\Wii')
 
 
 def _need(path: Path) -> Path:

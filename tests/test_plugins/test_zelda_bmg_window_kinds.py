@@ -1,4 +1,5 @@
 """Tests for TP message window kinds (INF1 fuki_kind) and type-aware preview styles."""
+import romhacking_root
 import pytest
 
 from plugins.zelda_bmg.window_kinds import (
@@ -599,8 +600,7 @@ def test_dump_talk_frame_loads_when_msgres_present(qapp, tmp_path):
 
     layout = find_layout_root()
     if layout is None:
-        from pathlib import Path
-        known = Path(r"E:\Emulators\RomHacking\Zelda\Twilight Princess\GC + Wii\ISO\ENG\root\res\Layout")
+        known = romhacking_root.under('Zelda\\Twilight Princess\\GC + Wii\\ISO\\ENG\\root\\res\\Layout')
         if not (known / "msgres01.arc").is_file():
             pytest.skip("retail Layout dump not available")
         loader._LAYOUT_ROOT = known

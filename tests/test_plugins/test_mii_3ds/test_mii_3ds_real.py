@@ -3,6 +3,7 @@
 Every English MSBT loads and saves back byte for byte, Tomodachi Life's tags are all named, the shipped catalogue is
 the game's own message project, Miitopia's four fonts and every listed layout picture read and write back unchanged.
 """
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -14,8 +15,8 @@ from core.texture_formats import sources as texture_sources
 from plugins.common import msbp
 from plugins.mii_3ds.rules import GameRules
 
-TOMODACHI = Path(r"E:\Emulators\RomHacking\Tomodachi Life")
-MIITOPIA = Path(r"E:\Emulators\RomHacking\Miitopia\3DS")
+TOMODACHI = romhacking_root.under('Tomodachi Life')
+MIITOPIA = romhacking_root.under('Miitopia\\3DS')
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "mii_3ds"
 UKRAINIAN = "ҐЄІЇґєії"
 

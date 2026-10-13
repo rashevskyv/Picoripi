@@ -3,6 +3,7 @@
 The real-data tests read the workspace's ``source`` folder (1_unpack.bat) and the three USA discs, and
 skip when they are missing.
 """
+import romhacking_root
 import json
 import struct
 import sys
@@ -15,7 +16,7 @@ from plugins.lunar_ebc import codec, doc, es
 from plugins.testing import check_loads, check_round_trip, check_validator, load_rules
 
 PLUGIN = "lunar_ebc"
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Lunar\Eternal Blue")
+WORKSPACE = romhacking_root.under('Lunar\\Eternal Blue')
 SOURCE = WORKSPACE / "source"
 SHARED = WORKSPACE.parent.parent / "_shared" / "scripts"
 needs_data = pytest.mark.skipif(not (SOURCE / "DATA" / "EVENT").is_dir(), reason="Lunar 2 not unpacked here")

@@ -1,5 +1,6 @@
 """Raving Rabbids: Party Collection plugin: Jade text lists, TV Party TextPackages, executable messages, HOME Menu;
 the real files, fonts and textures when the workspace is unpacked here."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -12,7 +13,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "rabbids_party"
 PLUGIN_DIR = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN
-SOURCE = Path(r"E:\Emulators\RomHacking\Raving Rabbids Party Collection\source")
+SOURCE = romhacking_root.under('Raving Rabbids Party Collection\\source')
 real = pytest.mark.skipif(not (SOURCE / "rrr1.bf").is_dir(), reason="Raving Rabbids Party Collection not unpacked here")
 
 

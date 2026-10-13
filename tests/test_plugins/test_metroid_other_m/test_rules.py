@@ -1,5 +1,6 @@
 """Metroid: Other M plugin: the tdpack message file (tables, control codes, line breaks), HOME Menu messages; the real
 files (text, fonts, layout textures) when the workspace is unpacked here."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -12,7 +13,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "metroid_other_m"
 PLUGIN_DIR = Path(__file__).resolve().parents[3] / "plugins" / PLUGIN
-SOURCE = Path(r"E:\Emulators\RomHacking\Metroid\Other M\source")
+SOURCE = romhacking_root.under('Metroid\\Other M\\source')
 MESSAGES = SOURCE / "message" / "message_all.dat"
 real = pytest.mark.skipif(not MESSAGES.exists(), reason="Metroid: Other M not unpacked here")
 

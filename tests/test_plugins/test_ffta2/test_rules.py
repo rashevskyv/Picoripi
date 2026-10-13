@@ -1,4 +1,5 @@
 """Final Fantasy Tactics A2 plugin: text codes, message packs, font and effect textures; real-data round trips."""
+import romhacking_root
 import json
 import struct
 from pathlib import Path
@@ -16,7 +17,7 @@ from plugins.testing import check_loads, check_round_trip, check_validator, load
 
 PLUGIN = "ffta2"
 PLUGIN_DIR = Path(__file__).parents[3] / "plugins" / "ffta2"
-WS = Path(r"E:\Emulators\RomHacking\Final Fantasy\Tactics A2")
+WS = romhacking_root.under('Final Fantasy\\Tactics A2')
 SOURCE = WS / "source"
 needs_data = pytest.mark.skipif(not (SOURCE / "event" / "rom" / "ev_msg0.a2msg").is_file(),
                                 reason="Final Fantasy Tactics A2 workspace not on disk")

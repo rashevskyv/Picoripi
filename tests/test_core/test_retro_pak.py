@@ -3,6 +3,7 @@
 Synthetic packages and streams check the rules; the game's own files (skipped when missing) check that an
 untouched package repacks byte for byte and that the tables come from the executable.
 """
+import romhacking_root
 import struct
 from pathlib import Path
 
@@ -10,7 +11,7 @@ import pytest
 
 from core.containers import retro_pak as rp
 
-WS = Path(r"E:\Emulators\RomHacking\Metroid\Prime 4 Beyond")
+WS = romhacking_root.under('Metroid\\Prime 4 Beyond')
 
 
 def _form(kind: bytes, body: bytes, version: int = 1) -> bytes:

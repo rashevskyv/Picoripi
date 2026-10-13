@@ -1,7 +1,7 @@
 """Pokémon generation IV (pret decompilations pokediamond, pokeplatinum, pokeheartgold): the GMM and JSON message
 sources, show and write back in place; real-data round trips of the workspaces."""
+import romhacking_root
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -73,7 +73,7 @@ WORKSPACES = {"Diamond and Pearl": "files/msgdata/msg", "HeartGold and SoulSilve
 
 @pytest.mark.parametrize("game", list(WORKSPACES))
 def test_every_message_source_of_the_decompilation_writes_back_and_edits_cleanly(game):
-    root = Path(r"E:\Emulators\RomHacking\Pokemon") / game / "source" / WORKSPACES[game]
+    root = romhacking_root.under('Pokemon') / game / "source" / WORKSPACES[game]
     if not root.is_dir():
         pytest.skip(f"{root} is not on this machine")
     count = 0

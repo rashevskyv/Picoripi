@@ -1,6 +1,7 @@
 """Metroid Prime (GameCube, USA GM8E01) on the user's own unpacked disc (workspace ``Metroid\\Prime (GC + PC port)``,
 skipped when it is not there): every string table and texture writes back unchanged and keeps an edit, and every
 font packs back unchanged and keeps an edited glyph."""
+import romhacking_root
 from pathlib import Path
 
 import pytest
@@ -10,7 +11,7 @@ from core import font_formats, texture_formats
 from plugins.metroid_prime_trilogy.rules import GameRules
 from plugins.metroid_prime_trilogy.strg import Strg
 
-SOURCE = Path(r"E:\Emulators\RomHacking\Metroid\Prime (GC + PC port)\source")
+SOURCE = Path(romhacking_root.under('Metroid\\Prime (GC + PC port)\\source'))
 
 
 def _files(kind: str, pattern: str):

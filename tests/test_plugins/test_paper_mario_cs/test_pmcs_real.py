@@ -1,5 +1,6 @@
 """Paper Mario: Color Splash on the game's own files (skipped where the workspace is not on this machine): every
 MSBT, font and UI texture goes back byte for byte; an edited message, glyph and texture read back."""
+import romhacking_root
 import json
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from core.texture_formats import sources as texture_sources
 from plugins.common import msbp
 from plugins.paper_mario_cs.rules import GameRules
 
-WORKSPACE = Path(r"E:\Emulators\RomHacking\Paper Mario\Color Splash")
+WORKSPACE = romhacking_root.under('Paper Mario\\Color Splash')
 SOURCE = WORKSPACE / "source" / "content"
 PLUGIN = Path(__file__).resolve().parents[3] / "plugins" / "paper_mario_cs"
 
