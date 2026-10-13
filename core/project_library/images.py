@@ -74,9 +74,13 @@ def base_identity(path: str | Path, game_codes: Container[str]) -> Optional[Dict
 
 
 def needs_key(path: str | Path) -> Optional[str]:
-    """The console whose key file an image needs, or None when it needs none or is not a supported image."""
+    """The console whose key file an image needs, or None when it needs none or is not a supported image.
+
+    Only a kind an unpack step can write (``UNPACK_KINDS``) asks for a key. A Switch or Wii file that no
+    plugin unpacks yet asks for none.
+    """
     found = identify(path)
-    if found is None or not found.get("encrypted"):
+    if found is None or not found.get("encrypted") or found["kind"] not in UNPACK_KINDS:
         return None
     return CONSOLE_OF_KIND.get(found["kind"])
 

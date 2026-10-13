@@ -86,7 +86,7 @@ def test_switch_nsp_title_comes_from_its_ticket_rights_id(tmp_path):
 
     assert found == {"kind": "switch", "game_id": "0100ABCD00000800", "title_id": "0100ABCD00000800",
                      "encrypted": True, "title_kind": "update"}
-    assert images.needs_key(path) == "switch"
+    assert images.needs_key(path) is None   # no plugin unpacks a Switch file yet, so no key is asked for
     with pytest.raises(ImageError, match="needs its key file"):
         with images.open_image(path):
             pass

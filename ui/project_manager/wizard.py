@@ -370,6 +370,7 @@ class ProjectWizard(QDialog):
             path, _filter = QFileDialog.getOpenFileName(
                 self, tr("Choose the key file for {0}", label), str(Path.home()), tr("All files") + " (*)")
             if not path:
+                self._progress_text.setText(tr("No key file was chosen. Nothing was created."))
                 return None
             picked[console] = path
         return picked

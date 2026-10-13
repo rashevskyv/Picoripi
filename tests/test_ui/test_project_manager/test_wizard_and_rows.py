@@ -160,6 +160,41 @@ def test_wizard_asks_for_a_key_file_only_when_a_chosen_file_needs_one_and_none_i
     assert asked == [True]
 
 
+def test_cancelling_the_key_dialog_stops_create_with_a_message_and_no_unpack(qtbot, tmp_path, monkeypatch):
+    from core.i18n import tr
+    from test_core.test_n3ds_image import build_cci, build_ncch
+    from ui.project_manager import wizard as wizard_module
+    from utils import constants
+
+    monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path / "data")
+    locked = tmp_path / "locked.cci"
+    locked.write_bytes(build_cci(build_ncch(encrypted=True)))
+    constructed = []
+
+    class CancelledDialog:
+        @staticmethod
+        def getOpenFileName(*_args, **_kwargs):
+            return "", ""
+
+    class SpyJob:
+        def __init__(self, *args, **_kwargs):
+            constructed.append(args)
+
+    monkeypatch.setattr(wizard_module, "QFileDialog", CancelledDialog)
+    monkeypatch.setattr(wizard_module, "UnpackJob", SpyJob)
+    wizard = ProjectWizard(None, _loader, lambda info: None)
+    qtbot.addWidget(wizard)
+    _wait_for_plugins(qtbot, wizard)
+    wizard.add_paths([str(locked)])
+    qtbot.waitUntil(lambda: (wizard._key_status.get(str(locked)) or {}).get("key") == "3ds", timeout=10000)
+    monkeypatch.setattr(wizard, "_problem", lambda: "")   # the name, folder and roles are not what this test checks
+
+    wizard._create_clicked()
+
+    assert wizard._progress_text.text() == tr("No key file was chosen. Nothing was created.")
+    assert constructed == []
+
+
 def test_expanded_row_offers_targets_and_saves_flags_for_a_project_that_is_not_open(qtbot, tmp_path):
     project = _project(tmp_path / "root", "Aria", "p-aria")
     key = registry.project_key(project)
