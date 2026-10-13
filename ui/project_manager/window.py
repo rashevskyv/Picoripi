@@ -314,6 +314,8 @@ class ProjectManagerDialog(QDialog):
             mtime = card.get("mtime_ns")
             if mtime is None or "unreadable" in card.get("issues", []) or card.get("missing"):
                 continue
+            if "plugin_missing" in card.get("issues", []):  # nothing to count with; the row shows the flag
+                continue
             if cached.get("counted_mtime") == mtime:
                 continue
             targets.append((key, entry["path"]))
@@ -453,7 +455,9 @@ class ProjectManagerDialog(QDialog):
             flags.append(tr("Unreadable"))
         elif not row["refreshing"]:
             flags.append(tr("Opens"))
-        if row["issues"] and "project_file_missing" not in row["issues"] and "unreadable" not in row["issues"]:
+        if "plugin_missing" in row["issues"]:
+            flags.append(tr("Plugin missing"))
+        if row["issues"] and not {"project_file_missing", "unreadable", "plugin_missing"} & set(row["issues"]):
             flags.append(tr("Needs attention"))
         for name in FLAG_NAMES:
             if row["flags"].get(name):

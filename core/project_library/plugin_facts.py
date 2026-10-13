@@ -18,6 +18,11 @@ from utils.plugin_import import PLUGIN_IMPORT_LOCK
 
 LoadRules = Callable[[str], Any]
 Cancelled = Callable[[], bool]
+PLUGIN_MISSING = "plugin_missing"  # the count error of a project whose game plugin is not installed
+
+
+class PluginMissing(Exception):
+    """The project names a game plugin that is not installed. Not an error of the project; shown as a flag."""
 
 
 def default_load_rules(plugin_name: str) -> Any:
@@ -119,10 +124,14 @@ def _sub_block_index(names: Dict[str, str], count: int, internal_key: str) -> in
 
 
 def _parse(rules: Any, path: Path, cache: Dict[str, Any]) -> Any:
-    """``(blocks, names)`` of one file, parsed once per count. ``None`` when the file cannot be read."""
+    """``(blocks, names)`` of one file, parsed once per count. ``None`` when the file cannot be read.
+
+    A file no format of the plugin claims (fonts, images, archives) is skipped, never read as text. The default
+    ``UNKNOWN_IS_ERROR`` policy answers "unsupported" without opening the file.
+    """
     key = str(path)
     if key not in cache:
-        content, error = formats.read_file(rules, path, unknown=formats.UNKNOWN_IS_TEXT)
+        content, error = formats.read_file(rules, path)
         if error or content is None:
             cache[key] = None
         else:
@@ -161,7 +170,13 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("project file is not a JSON object")
-    rules = load_rules(str(data.get("plugin_name") or ""))
+    plugin_name = str(data.get("plugin_name") or "")
+    try:
+        rules = load_rules(plugin_name)
+    except ModuleNotFoundError as exc:
+        if exc.name and exc.name.startswith("plugins." + plugin_name):
+            raise PluginMissing(plugin_name) from exc
+        raise
     base = path.parent
     metadata = data.get("metadata") or {}
     source_roots = [_root(base, metadata.get("source_path")), base]

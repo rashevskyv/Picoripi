@@ -13,8 +13,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from PyQt6.QtCore import pyqtSignal
 
 from core.project_library import build, index, plugin_facts
+from core.project_library.plugin_facts import PLUGIN_MISSING
 from utils.constants import plugins_root
-from utils.logging_utils import log_error, log_warning
+from utils.logging_utils import log_debug, log_error, log_info, log_warning
 from utils.thread_utils import WorkerThread
 
 LoadRules = Callable[[str], Any]
@@ -154,6 +155,7 @@ class CountJob(WorkerThread):
 
     def run(self) -> None:
         updates: Dict[str, Dict[str, Any]] = {}
+        failed = missing = 0
         for key, project_file in self._targets:
             if self.isInterruptionRequested():
                 break
@@ -161,7 +163,14 @@ class CountJob(WorkerThread):
             if fields is None:
                 break
             updates[key] = fields
+            if fields.get("count_error") == PLUGIN_MISSING:
+                missing += 1
+            elif "count_error" in fields:
+                failed += 1
             self.counted.emit(key, fields)
+        # One summary line per run, not one warning per project.
+        summary = f"Project manager counts: {len(updates) - missing - failed} counted, {missing} plugin missing, {failed} failed."
+        (log_warning if failed else log_info)(summary)
         try:
             index.merge(self._directory, updates)
         except OSError as exc:
@@ -177,8 +186,10 @@ class CountJob(WorkerThread):
             return {"count_error": str(exc), "counted_mtime": 0, "counted_at": index.stamp()}
         try:
             result = plugin_facts.count_project(project_file, self._load_rules, self.isInterruptionRequested)
+        except plugin_facts.PluginMissing:
+            return {"count_error": PLUGIN_MISSING, "counted_mtime": mtime, "counted_at": index.stamp()}
         except Exception as exc:  # one broken plugin or file must not stop the other projects
-            log_warning(f"Could not count {project_file}: {exc}")
+            log_debug(f"Could not count {project_file}: {exc}")
             return {"count_error": str(exc), "counted_mtime": mtime, "counted_at": index.stamp()}
         if result is None:
             return None

@@ -846,6 +846,7 @@
   "Line: {0}/{1}": "Рядок: {0}/{1}",
   "Link lines, then analyse story and voices": "Об’єднайте рядки, потім проаналізуйте історію та голоси",
   "Linked font {0}: {1} glyphs copied, {2} conflicts, {3} skipped": "Пов’язаний шрифт {0}: скопійовано гліфів: {1}, конфліктів: {2}, пропущено: {3}",
+  "Plugin missing": "Плагін відсутній",
   "{0} glyphs wait for {1} (it has unsaved edits)": "{0} гліфів чекають на {1} (у ньому є незбережені зміни)",
   "llama3": "llama3",
   "Load &Reference Patch/Translation...": "Завантажити &референсний патч/переклад...",
