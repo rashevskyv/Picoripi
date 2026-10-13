@@ -24,7 +24,7 @@ EXHEADER_SIZE = 0x800
 EXHEADER_FLAGS_AT = 0x0D     # the exheader's flag byte (system control info); bit 0 = the ExeFS code is BLZ-packed
 CODE_PACKED_BIT = 0x01
 NO_ENTRY = 0xFFFFFFFF
-MAX_FILES = 200_000          # guards the file walks against a corrupt table
+MAX_FILES = 200_000          # caps the RomFS files and, separately, its directories (a corrupt table)
 MAX_TMD = 0x10000
 MAX_CODE = 64 << 20          # a packed ExeFS code section is read whole for BLZ decoding; no real program is near this
 SIG_SIZES = {0x10000: 0x240, 0x10001: 0x140, 0x10002: 0x80, 0x10003: 0x240, 0x10004: 0x140, 0x10005: 0x80}
@@ -212,6 +212,7 @@ class N3dsImage(ImageReader):
         files: List[ImageFile] = []
         stack: List[Tuple[int, str]] = [(0, "")]
         seen_dirs: set = set()
+        directories = 1   # the root; each child directory found below adds one
         while stack:
             pos, prefix = stack.pop()
             if pos in seen_dirs:
@@ -242,6 +243,9 @@ class N3dsImage(ImageReader):
                 seen_children.add(dir_pos)
                 raw, name = self._name_entry(dir_base, dir_len, dir_pos, 0x18, 0x14)
                 stack.append((dir_pos, f"{prefix}{name}/"))
+                directories += 1
+                if directories > MAX_FILES:
+                    raise ImageError("the RomFS holds too many directories")
                 dir_pos = _u32(raw, 0x04)
         return files
 

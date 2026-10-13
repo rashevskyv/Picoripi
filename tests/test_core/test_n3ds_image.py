@@ -200,6 +200,13 @@ def test_romfs_entry_outside_the_image_is_refused():
         n3ds.N3dsImage(io.BytesIO(build_cci(build_ncch(tamper=point_past_end))))
 
 
+def test_romfs_with_more_directories_than_the_limit_is_refused(monkeypatch):
+    monkeypatch.setattr(n3ds, "MAX_FILES", 1)    # the root and one file fit; the subfolder d does not
+
+    with pytest.raises(ImageError, match="too many directories"):
+        n3ds.N3dsImage(io.BytesIO(build_cci(build_ncch())))
+
+
 def test_bytes_that_are_no_3ds_image_are_not_identified(tmp_path):
     path = _write(tmp_path, "noise.bin", bytes(range(256)) * 16)
 

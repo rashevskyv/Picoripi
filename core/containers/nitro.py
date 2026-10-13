@@ -136,10 +136,15 @@ def blz_decompress(data: bytes) -> bytes:
                 if flags & (0x80 >> bit):
                     src -= 2
                     value = data[src] | data[src + 1] << 8
-                    for _ in range((value >> 12) + 3):
+                    count = (value >> 12) + 3
+                    if dst - count < stop:
+                        raise ValueError("BLZ stream writes before the start of the file")
+                    for _ in range(count):
                         dst -= 1
                         out[dst] = out[dst + (value & 0xFFF) + 3]
                 else:
+                    if dst <= stop:
+                        raise ValueError("BLZ stream writes before the start of the file")
                     src -= 1
                     dst -= 1
                     out[dst] = data[src]

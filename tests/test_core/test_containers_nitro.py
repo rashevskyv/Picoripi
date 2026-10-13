@@ -73,6 +73,16 @@ def test_blz_refuses_data_that_does_not_compress():
         nitro.blz_compress(bytes(rng.randrange(256) for _ in range(256)))
 
 
+def test_blz_stream_that_would_write_before_the_start_is_refused():
+    # One byte less of room than the stream needs: the last write would land before the start of the file.
+    packed = bytearray(nitro.blz_compress(_sample(3000, 3) + bytes(3000)))
+    growth = struct.unpack_from("<I", packed, len(packed) - 4)[0]
+    assert growth > 1
+    struct.pack_into("<I", packed, len(packed) - 4, growth - 1)
+    with pytest.raises(ValueError, match="writes before the start of the file"):
+        nitro.blz_decompress(bytes(packed))
+
+
 def narc(files: dict) -> bytes:
     """A NARC of ``files`` ({"dir/sub/name": bytes}), with its name table."""
     dirs = {"": ([], [])}                                   # path -> (subfolders, file names)
