@@ -5,7 +5,7 @@ import struct
 import pytest
 
 from core.containers.gcm import GameCubeImage
-from core.containers.image_files import ImageError
+from core.containers.image_files import MAX_TABLE, ImageError, check_name
 from core.containers.nds import NdsImage, walk_fnt
 from core.project_library import images
 
@@ -85,6 +85,61 @@ def test_gamecube_rejects_wii_and_unknown_files():
 def test_gamecube_rejects_unsafe_names():
     with pytest.raises(ImageError, match="unsafe file name"):
         GameCubeImage(io.BytesIO(_gc_disc(bad_name=True))).entries()
+
+
+def _gc_with_fst(entries, names: bytes, fst_size=None) -> bytes:
+    """The test disc with its file system table replaced by ``entries`` followed by ``names``."""
+    image = bytearray(_gc_disc())
+    fst = b"".join(entries) + names
+    struct.pack_into(">III", image, 0x420, 0x2480, 0x2600, len(fst) if fst_size is None else fst_size)
+    image[0x2600:0x2600 + len(fst)] = fst
+    return bytes(image)
+
+
+@pytest.mark.parametrize("name", ["..", ".", "..\\up", "a/b", "C:x", "a:b", "a.", "trailing ", "CON", "nul.txt",
+                                  "COM1", "bad\x01name"])
+def test_check_name_refuses_names_windows_cannot_store(name):
+    with pytest.raises(ImageError, match="unsafe file name"):
+        check_name(name)
+
+
+@pytest.mark.parametrize("name", ["a.bin", "main.arm9", "connect.bin", ".hidden"])
+def test_check_name_accepts_plain_names(name):
+    assert check_name(name) == name
+
+
+def test_gamecube_refuses_a_table_that_lists_an_entry_twice():
+    # Directory P (entries 2-3) holds directory Q, whose range runs on to entry 5; the root then lists entry 4 again.
+    entries = [
+        struct.pack(">III", 0x01000000, 0, 6),   # 0: root, 6 entries
+        struct.pack(">III", 0x01000000, 0, 4),   # 1: directory P, entries 2 and 3
+        struct.pack(">III", 0x01000002, 0, 6),   # 2: directory Q, entries 3 to 5
+        struct.pack(">III", 4, 0x2800, 5),       # 3: file a
+        struct.pack(">III", 6, 0x2800, 5),       # 4: file b
+        struct.pack(">III", 8, 0x2800, 5),       # 5: file c
+    ]
+    names = b"P\0Q\0a\0b\0c\0"
+    with pytest.raises(ImageError, match="twice"):
+        GameCubeImage(io.BytesIO(_gc_with_fst(entries, names))).entries()
+
+
+def test_gamecube_refuses_a_file_system_table_above_the_limit():
+    with pytest.raises(ImageError, match="too large"):
+        GameCubeImage(io.BytesIO(_gc_with_fst([], b"", fst_size=MAX_TABLE + 1))).entries()
+
+
+def test_nds_name_table_with_a_loop_is_refused():
+    # Two sub directories of the root both point back at the root: without the check the walk never ends.
+    root_table = b"\x81d" + struct.pack("<H", 0xF000) + b"\x81e" + struct.pack("<H", 0xF000) + b"\x00"
+    table = struct.pack("<IHH", 8, 0, 0xF000) + root_table
+    with pytest.raises(ImageError, match="twice"):
+        walk_fnt(table)
+
+
+def test_nds_name_table_cut_short_is_an_image_error():
+    table = struct.pack("<IHH", 8, 0, 0xF000) + b"\x85ab"    # a five-byte name with two bytes left
+    with pytest.raises(ImageError, match="cut short"):
+        walk_fnt(table)
 
 
 def test_nds_entries_and_file_contents():

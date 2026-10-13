@@ -17,6 +17,7 @@ HEADER_SIZE = 0x440
 BI2_SIZE = 0x2000
 APPLOADER_OFFSET = 0x2440
 FST_ENTRY = 12
+MAX_DEPTH = 64
 
 
 def u32be(data: bytes, at: int) -> int:
@@ -67,7 +68,7 @@ class GameCubeImage(ImageReader):
         return max(offset + size for offset, size in zip(offsets, sizes))
 
     def _fst_files(self) -> List[ImageFile]:
-        fst = self.read_at(self._fst_at, self._fst_size)
+        fst = self.read_table(self._fst_at, self._fst_size)
         if len(fst) < FST_ENTRY:
             raise ImageError("the file system table is empty")
         count = u32be(fst, 8)
@@ -75,12 +76,18 @@ class GameCubeImage(ImageReader):
         if count < 1 or names_at > len(fst):
             raise ImageError("the file system table does not hold its entries")
         found: List[ImageFile] = []
+        listed = bytearray(count)  # each entry belongs to one directory; a second listing is a broken table
 
-        def walk(first: int, end: int, prefix: str) -> None:
+        def walk(first: int, end: int, prefix: str, depth: int) -> None:
+            if depth > MAX_DEPTH:
+                raise ImageError("the file system table nests too deep")
             if not (0 < first <= end <= count):
                 raise ImageError("the file system table has a broken directory")
             index = first
             while index < end:
+                if listed[index]:
+                    raise ImageError("the file system table lists an entry twice")
+                listed[index] = 1
                 word, offset, size = struct.unpack_from(">III", fst, index * FST_ENTRY)
                 name_at = names_at + (word & 0xFFFFFF)
                 nul = fst.find(b"\0", name_at)
@@ -90,11 +97,11 @@ class GameCubeImage(ImageReader):
                 if word >> 24:
                     if size <= index:
                         raise ImageError("the file system table has a broken directory")
-                    walk(index + 1, size, f"{prefix}{name}/")
+                    walk(index + 1, size, f"{prefix}{name}/", depth + 1)
                     index = size
                 else:
                     found.append(ImageFile(f"files/{prefix}{name}", offset, size))
                     index += 1
 
-        walk(1, count, "")
+        walk(1, count, "", 0)
         return found

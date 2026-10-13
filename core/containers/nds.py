@@ -26,19 +26,27 @@ def is_nds_header(head: bytes) -> bool:
 def walk_fnt(table: bytes) -> Dict[str, int]:
     """``{path: file id}`` of a file name table (the FNT, starting at its first byte; sub-tables are relative to it)."""
     found: Dict[str, int] = {}
+    listed = set()  # a directory has one parent: a second visit is a loop, and would make the walk exponential
 
     def walk(dir_id: int, prefix: str, depth: int) -> None:
         if depth > 64:
             raise ImageError("the file name table nests too deep")
-        at_entry = (dir_id & 0xFFF) * 8
+        key = dir_id & 0xFFF
+        if key in listed:
+            raise ImageError("the file name table lists a directory twice")
+        listed.add(key)
+        at_entry = key * 8
         if at_entry + 8 > len(table):
             raise ImageError("the file name table has no such directory")
         sub, first = struct.unpack_from("<IH", table, at_entry)
         at, file_id = sub, first
         while at < len(table) and table[at]:
             length = table[at] & 0x7F
+            is_dir = table[at] & 0x80
+            if at + 1 + length + (2 if is_dir else 0) > len(table):
+                raise ImageError("the file name table is cut short")
             name = check_name(bytes(table[at + 1:at + 1 + length]).decode("ascii", "replace"))
-            if table[at] & 0x80:
+            if is_dir:
                 walk(struct.unpack_from("<H", table, at + 1 + length)[0], f"{prefix}{name}/", depth + 1)
                 at += 3 + length
             else:
@@ -60,8 +68,8 @@ class NdsImage(ImageReader):
         arm9_at, _entry, _load, arm9_size = struct.unpack_from("<4I", head, 0x20)
         self._arm9 = (arm9_at, arm9_size)
         fnt_at, fnt_size, fat_at, fat_size = struct.unpack_from("<4I", head, 0x40)
-        self._fnt = self.read_at(fnt_at, fnt_size)
-        self._fat = self.read_at(fat_at, fat_size)
+        self._fnt = self.read_table(fnt_at, fnt_size)
+        self._fat = self.read_table(fat_at, fat_size)
 
     def entries(self) -> List[ImageFile]:
         """``main.arm9``, then every NitroFS file in file-name-table order (sorted by path)."""
