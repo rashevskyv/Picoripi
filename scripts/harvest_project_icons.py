@@ -194,7 +194,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             continue
         result = f"{icon.image.width}x{icon.image.height}"
         if args.apply:
-            write_icon(icon, target)
+            try:
+                write_icon(icon, target)
+            except OSError as error:  # a folder that cannot be written must not stop the batch
+                rows.append([label, source, fmt, f"error: {error}"])
+                continue
             result += " written"
         else:
             result += " (dry run)"

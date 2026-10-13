@@ -23,8 +23,10 @@ def test_story_context_manager_init(mock_mw):
     manager = StoryContextManager(mock_mw)
     assert manager.mw == mock_mw
 
-def test_story_context_manager_get_wing_name(mock_mw):
+def test_story_context_manager_get_wing_name(mock_mw, monkeypatch):
     manager = StoryContextManager(mock_mw)
+    # No MemPalace client: otherwise the wing comes from a real mempalace_local.db found on disk, which differs per machine.
+    monkeypatch.setattr(manager, "get_mempalace_client", lambda: None)
     wing = manager.get_wing_name()
     assert wing == "Zelda_TP"
 
