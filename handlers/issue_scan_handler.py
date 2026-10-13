@@ -11,6 +11,7 @@ from .base_handler import BaseHandler
 from utils.logging_utils import log_info, log_debug, log_error
 from utils.constants import APP_VERSION
 from core.i18n import tr
+from handlers.analyzer_context import analyzer_string_context
 
 ISSUE_RULE_ENGINE_VERSION = 3
 
@@ -153,51 +154,49 @@ class IssueScanHandler(BaseHandler):
             text = str(text)
             original_text = block_data[string_idx]
             
-            # Set block and string index on analyzer for context-aware validation
-            analyzer._current_scan_block_idx = block_idx
-            analyzer._current_scan_string_idx = string_idx
-            
-            font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
-            
-            width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
-            
-            all_problems_for_string = [] # List of sets, one per subline
-            
-            if hasattr(analyzer, 'analyze_data_string'):
-                all_problems_for_string = analyzer.analyze_data_string(text, font_map_for_string, width_threshold_for_string, logical_hard_limit_for_string)
-            elif hasattr(analyzer, 'analyze_subline'):
-                sublines = text.split('\n')
-                for i, subline in enumerate(sublines):
-                    next_subline = sublines[i+1] if i + 1 < len(sublines) else None
-                    problems = analyzer.analyze_subline(
-                        text=subline, next_text=next_subline, subline_number_in_data_string=i, qtextblock_number_in_editor=i,
-                        is_last_subline_in_data_string=(i == len(sublines) - 1), editor_font_map=font_map_for_string,
-                        editor_line_width_threshold=width_threshold_for_string,
-                        full_data_string_text_for_logical_check=text,
-                        logical_hard_limit=logical_hard_limit_for_string
-                    )
-                    all_problems_for_string.append(problems)
+            with analyzer_string_context(analyzer, block_idx, string_idx):
 
-            # Check tag mismatch
-            if original_text and hasattr(analyzer, "check_tags_mismatch"):
-                if analyzer.check_tags_mismatch(original_text, text) is True:
-                    tag_warning_id = getattr(analyzer.problem_ids, 'PROBLEM_TAG_WARNING', None)
-                    if not tag_warning_id and isinstance(analyzer.problem_ids, dict):
-                        tag_warning_id = analyzer.problem_ids.get('TAG', None)
-                    if not tag_warning_id:
-                        # Fallback
-                        for pid in getattr(analyzer, 'problem_definitions', {}).keys():
-                            if pid.endswith('_TAG_WARNING'):
-                                tag_warning_id = pid
-                                break
-                                
-                    if tag_warning_id and isinstance(tag_warning_id, str):
-                        if not all_problems_for_string:
-                            all_problems_for_string = [set()]
-                        if not isinstance(all_problems_for_string[0], set):
-                            all_problems_for_string[0] = set(all_problems_for_string[0])
-                        all_problems_for_string[0].add(tag_warning_id)
-            
+                font_map_for_string = self.mw.helper.get_font_map_for_string(block_idx, string_idx)
+
+                width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
+
+                all_problems_for_string = [] # List of sets, one per subline
+
+                if hasattr(analyzer, 'analyze_data_string'):
+                    all_problems_for_string = analyzer.analyze_data_string(text, font_map_for_string, width_threshold_for_string, logical_hard_limit_for_string)
+                elif hasattr(analyzer, 'analyze_subline'):
+                    sublines = text.split('\n')
+                    for i, subline in enumerate(sublines):
+                        next_subline = sublines[i+1] if i + 1 < len(sublines) else None
+                        problems = analyzer.analyze_subline(
+                            text=subline, next_text=next_subline, subline_number_in_data_string=i, qtextblock_number_in_editor=i,
+                            is_last_subline_in_data_string=(i == len(sublines) - 1), editor_font_map=font_map_for_string,
+                            editor_line_width_threshold=width_threshold_for_string,
+                            full_data_string_text_for_logical_check=text,
+                            logical_hard_limit=logical_hard_limit_for_string
+                        )
+                        all_problems_for_string.append(problems)
+
+                # Check tag mismatch
+                if original_text and hasattr(analyzer, "check_tags_mismatch"):
+                    if analyzer.check_tags_mismatch(original_text, text) is True:
+                        tag_warning_id = getattr(analyzer.problem_ids, 'PROBLEM_TAG_WARNING', None)
+                        if not tag_warning_id and isinstance(analyzer.problem_ids, dict):
+                            tag_warning_id = analyzer.problem_ids.get('TAG', None)
+                        if not tag_warning_id:
+                            # Fallback
+                            for pid in getattr(analyzer, 'problem_definitions', {}).keys():
+                                if pid.endswith('_TAG_WARNING'):
+                                    tag_warning_id = pid
+                                    break
+
+                        if tag_warning_id and isinstance(tag_warning_id, str):
+                            if not all_problems_for_string:
+                                all_problems_for_string = [set()]
+                            if not isinstance(all_problems_for_string[0], set):
+                                all_problems_for_string[0] = set(all_problems_for_string[0])
+                            all_problems_for_string[0].add(tag_warning_id)
+
             for i, problem_set in enumerate(all_problems_for_string):
                 if problem_set:
                     self.mw.data_store.problems_per_subline[(block_idx, string_idx, i)] = problem_set
