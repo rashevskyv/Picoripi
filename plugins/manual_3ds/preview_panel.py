@@ -30,9 +30,9 @@ BOTTOM_X = 40                 # the bottom screen is centred under the top scree
 TAB_BAR = 24                  # the page tab bar at the top of the top screen
 BADGE_RGB = (117, 183, 217)   # the light blue page-number badge of the console's title bar (sampled from the calibration shot)
 BADGE_TOP = 5.0
-BADGE_SIZE = 27.0
+BADGE_SIZE = 28.0
 BADGE_FONT_PX = 17
-TITLE_FONT_PX = 14
+TITLE_FONT_PX = 16
 BOTTOM_BAR = 40               # the Back / Enlarge bar at the bottom of the bottom screen
 VISIBLE_HEIGHT = (TOP_SIZE[1] - TAB_BAR) + (BOTTOM_SIZE[1] - BOTTOM_BAR)
 SCROLL_STEP = 48.0            # pixels per wheel notch
@@ -336,7 +336,7 @@ class ManualPreviewPanel(QWidget):
             font.setBold(False)
             painter.setFont(font)
             painter.setPen(QColor(0, 0, 0))
-            title = QRectF(BOTTOM_X + BADGE_SIZE + 8, BADGE_TOP, BOTTOM_SIZE[0] - BADGE_SIZE - 16, BADGE_SIZE)
+            title = QRectF(BOTTOM_X + BADGE_SIZE + 10, BADGE_TOP, BOTTOM_SIZE[0] - BADGE_SIZE - 16, BADGE_SIZE)
             painter.drawText(title, int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft), self._tab_title)
         finally:
             painter.restore()
