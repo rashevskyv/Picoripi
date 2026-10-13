@@ -1,0 +1,30 @@
+[
+  {
+    "label": "Title logo, DX (GBC, 64 tiles of 8 x 8 at file 0xE1800)",
+    "kind": "title_screen",
+    "format": "raw",
+    "path": "*.gbc",
+    "params": {"pixel_format": "snes:2bpp", "width": 128, "height": 32, "offset": "0xE1800"}
+  },
+  {
+    "label": "Title logo, original (GBC, 112 tiles of 8 x 8 at file 0x3C900)",
+    "kind": "title_screen",
+    "format": "raw",
+    "path": "*.gbc",
+    "params": {"pixel_format": "snes:2bpp", "width": 128, "height": 56, "offset": "0x3C900"}
+  },
+  {
+    "label": "File menu tiles (GBC, 64 tiles of 8 x 8 at file 0xBC000; ERASE, COPY and slot labels)",
+    "kind": "menu_label",
+    "format": "raw",
+    "path": "*.gbc",
+    "params": {"pixel_format": "snes:2bpp", "width": 128, "height": 32, "offset": "0xBC000"}
+  },
+  {
+    "label": "Save menu tiles (GBC, 80 tiles of 8 x 8 at file 0xBC400)",
+    "kind": "menu_label",
+    "format": "raw",
+    "path": "*.gbc",
+    "params": {"pixel_format": "snes:2bpp", "width": 128, "height": 40, "offset": "0xBC400"}
+  }
+]
