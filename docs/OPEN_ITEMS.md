@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: unfinished work
-tokens: 24.0k
+tokens: 24.3k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -22,6 +22,15 @@ the line when it is done or moved into a plan.
 - Work Together: a host restarted on another port gets a new identity (its token is kept per address). The creation-token file restores the host role only on the same token.
 - Work Together: a foreign `comments.json` is adopted only when the host or a moderator joins with it; with no host online its comments stay hidden.
 - Work Together: the join snapshot (`_apply_state`) is not measured with 5,000 comments; the first read of `collab.json` per process is synchronous (a small file).
+
+## Integration round 9 (2026-10-13)
+- Merged on `integrate/ready-2026-10-13` from origin/main 670e8b63: `feat/pm-phase2`, `feat/data-folder-guard`, `feat/collab-claims`, `feat/family-projects`, `feat/family-projects-ui`, `feat/family-ww`, `feat/zelda-ladx-dx`, `feat/ladx-family`, `feat/ladx-hd`, `feat/zelda-ds`, `feat/mhp3rd-lang`, `feat/sly-cooper`, `feat/ss-shared`, `docs/roadmap`. Not pushed.
+- Skipped: `feat/oot3d-ua` (no commits beyond main), `feat/sh-menu-lang` (its worktree has uncommitted changes), `feat/sm-sh-ua-variants` (an agent still works on it).
+- Decision numbers: the family branches used D18 to D20, which main already had. They are now D24 (family projects), D25 (plugin declares the family), D26 (family folders) and D27 (Wind Waker).
+- Personal paths in the new real-data tests now come from `PICORIPI_ROMHACKING` and `PICORIPI_SCRATCH`; the defaults are relative paths, so those tests skip until the owner sets the variables.
+- `feat/ss-shared` adds only one CHANGELOG line about workspace scripts that are not in this repository. Owner decides whether to keep it.
+- The Sly Cooper plugin takes facts from the ProjectCane source. Its licence is not checked.
+- Wind Waker family project: base archive messages count under the `.extracted` folder, not `base` (test adapted).
 
 ## Integration round 8 (2026-10-12)
 - Merged on `integrate/ready-2026-10-12` from origin/main 2eeafa1c: the user's WIP branch (7 commits), `feat/project-manager`, `feat/portable-home`, `feat/ready-wiiu-system`, `feat/ready-mgs23-pc`, `feat/ready-dk`, `feat/oot3d-ua`. Not pushed.
