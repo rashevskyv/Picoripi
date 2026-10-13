@@ -17,7 +17,7 @@ PLUGIN = "super_metroid"
 SM = ("Metroid", "Super Metroid")
 SCRIPT_FILE = ("_shared", "scripts", "zt", "sm.py")
 ROM_SHA256 = "12b77c4bc9c1832cee8881244659065ee1d84c70c3d29e6eaf92e6798cc2ca72"   # Super Metroid (Japan, USA) (En,Ja)
-SM_PY_SHA256 = "d2e0cf99e85d46d4d362836978879164c3f709a471d65646b017da6c90d471d4"
+SM_PY_SHA256 = "ea3c9590a279c78616579a1ae1d4cd4c1072866a415b94fd26762eb089db43d3"
 SAMPLE = json.dumps({"format": sm_rules.FORMAT, "groups": [
     {"name": "Message boxes", "items": [{"id": "msg.01.EnergyTank", "text": "ENERGY TANK", "width": 19, "lines": 1,
                                          "symbol": "kMessageBox_1_EnergyTank"}]},
