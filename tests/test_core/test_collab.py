@@ -365,7 +365,8 @@ class TestTwoWindows:
         b.collab_handler.join(f"127.0.0.1:{port}", "pw", "Guest")
         _wait_joined(qtbot, b)
         qtbot.waitUntil(lambda: b.data_processor.get_current_string_text(0, 0)[0] == "Привіт", timeout=5000)
-        assert "Joined the room: 1 row(s) taken from it" in b.collab_handler.last_message
+        # The join's summary comes after its rows are applied, in a turn of its own: wait for it.
+        qtbot.waitUntil(lambda: "Joined the room: 1 row(s) taken from it" in b.collab_handler.last_message, timeout=5000)
 
         a.undo_manager.record_action.reset_mock()
         b.data_processor.update_edited_data(0, 1, "Бувай")
