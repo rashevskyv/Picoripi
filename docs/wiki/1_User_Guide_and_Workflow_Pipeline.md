@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-07
+updated: 2026-10-13
 owns: ui/, components/, dialogs/
 tokens: 43.9k
 purpose: Main window, menus, filters, settings tabs, shortcuts
@@ -1062,7 +1062,7 @@ when you create, open or import it.
 - **Order:** the last opened project is always at the top. Group and sort choices are saved.
 - **Views:** **List** (default) shows a row per project with a 64 px icon, name, platform, series, plugin, progress (translated of the strings that need a translation, with a bar), last opened and status flags. **Grid** shows the same projects as 128 px tiles. Groups apply to the list only.
 - **Icons:** a project's icon is `icon.png` beside its `project.uiproj`, scaled to 128 px. Without one, the game's plugin may supply a picture; without that, a coloured tile with the series initials is shown. **Change icon...** (row menu or Details) copies a picture you choose, scaled to 256 px. **Clear icon** removes that file only. The wizard has an optional **Icon** field too.
-- **Scan and progress:** a scan reads the cards, icons and counts of all projects in a separate process, so the window stays responsive. A strip above the list shows "Scanning 37 of 191 — name — about 2 min left"; **Hide** hides the strip and the scan goes on; **Cancel scan** stops it. The strip hides when the scan ends. Rows whose counts are not known yet show `…`.
+- **Scan and progress:** a scan reads the cards, icons and counts of all projects in a separate process, so the window stays responsive. A strip above the list shows "Scanning 37 of 191 — name — about 2 min left"; **Hide** hides the strip and the scan goes on; **Cancel scan** stops it after the project being counted; if the scan process does not stop within 2 seconds, it is ended. The strip hides when the scan ends. Rows whose counts are not known yet show `…`.
 - **Cache:** the second start shows the last counts at once and scans again only what changed: a project whose project file, plugin config, or a source or translation file it names changed since the last count is counted again. Other projects keep their counts. The cache is `project_index.json` and `pm_icons` in the data folder; deleting them only costs a new scan.
 - **Columns:** lines and translated % are counted in the background, also for projects you have not opened. Blocks inside archives are not counted yet.
 - **Plugin missing:** a project whose game plugin is not installed shows the flag **Plugin missing** and is not counted. Nothing is deleted.

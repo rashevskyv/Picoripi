@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-12
+updated: 2026-10-13
 owns: unfinished work
 tokens: 25.1k
 purpose: Everything left open, one line each, by work package
@@ -30,6 +30,20 @@ the line when it is done or moved into a plan.
 - Work Together: a host restarted on another port gets a new identity (its token is kept per address). The creation-token file restores the host role only on the same token.
 - Work Together: a foreign `comments.json` is adopted only when the host or a moderator joins with it; with no host online its comments stay hidden.
 - Work Together: the join snapshot (`_apply_state`) is not measured with 5,000 comments; the first read of `collab.json` per process is synchronous (a small file).
+
+## Integration round 10 (2026-10-13)
+- Integrated on `integrate/r10` from origin/main 54cc4479 and approved by the audit. `origin/main` is now 0e1cf802 (the round's fixes are on it). Contents: Project Manager Dolphin view and scan process, game icons, Super Metroid, Silent Hill menu language, Oracles, Donkey Kong x3.
+- Audit fixes in 0e1cf802: "Built" and "Verified in game" have Ukrainian labels; the icon harvester reports a folder it cannot write and goes on; the story wing test stubs the MemPalace client (a `mempalace_local.db` in a parent folder changed its result; it reproduces on origin/main).
+- Follow-up on `fix/pm-followups` (not merged): the scan child stops between projects on a `cancel` line, and its stderr goes to the app log; the count signature includes the plugin's Python files, the shared `plugins/common` files and the Picoripi version (D28).
+- Open from the audit: `core/project_library/index.py` `merge` locks per process only. The scan child and the window can write `project_index.json` at once; a lost update keeps an old count with a new signature until the next change. A file lock closes it.
+- Open: `ScanProcess.shutdown()` waits up to 1.5 s on the UI thread when a rescan replaces a running scan (`ui/project_manager/window.py` `_start_scan`). Kill is fast in practice.
+- Open: one `BackgroundJob` (a QThread) per changed icon (`_on_scan_event`, "icon"); a single decode worker would be cleaner.
+- Open: PNGs in `pm_icons/` of removed projects are never deleted.
+- Open: no test that closing the Project Manager window leaves no child process; no test that a `record_counts` save is followed by a correct scan.
+- Open: a change to the core parsers (`core/formats.py`) without a version bump does not recount; the signature covers the plugin folders and the version only (D28).
+- Owner to confirm: `plugins/mario_vs_donkey_kong_switch/msbp.json` (4428 lines) is the game's own message project converted to JSON; it may ship publicly only if the owner agrees (D29: game art is never committed).
+- Owner: `feat/manual-3ds-plugin` waits for the owner.
+- A18 (unpack in Picoripi) runs on `feat/unpack-images` (another agent). Its row was added to `docs/ROADMAP.md` in the follow-up branch.
 
 ## Integration round 9 (2026-10-13)
 - Merged on `integrate/ready-2026-10-13` from origin/main 670e8b63: `feat/pm-phase2`, `feat/data-folder-guard`, `feat/collab-claims`, `feat/family-projects`, `feat/family-projects-ui`, `feat/family-ww`, `feat/zelda-ladx-dx`, `feat/ladx-family`, `feat/ladx-hd`, `feat/zelda-ds`, `feat/mhp3rd-lang`, `feat/sly-cooper`, `feat/ss-shared`, `docs/roadmap`. Not pushed.

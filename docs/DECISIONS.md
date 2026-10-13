@@ -496,11 +496,20 @@ signature, so it was recounted too.
   window. The job arrives on stdin as JSON; the child writes one JSON line per event (`card`, `icon`, `plan`,
   `progress`, `counts`, `done`) on stdout, and plugin `print()` goes to stderr. The child runs at below-normal
   priority and sets `PICORIPI_SCAN_CHILD=1`, which keeps `utils.logging_utils` from truncating `app_debug.txt`.
-  The window kills the child on close and on a new scan. Cancel kills it; what it already wrote stays.
+  The window closes the child at once on close and on a new scan. Cancel writes the line `cancel` to the child's
+  stdin: the child stops between projects (and between blocks inside a count), ends with `done` (`cancelled: true`),
+  and exits 0. A child still running after `CANCEL_GRACE_MS` (2 s) is killed; what it already wrote stays.
+  The child's stderr lines go to the app log as warnings (`Project scan: ...`); the child's own warnings and plugin
+  `print()` lines are the same channel.
 - The scan has two phases. Phase 1 reads each card, works out the icon, and computes each project's input signature
-  (the project file, the plugin's `config.json`, and the stat of every source and translation file its blocks name).
-  Phase 2 counts only the projects whose signature changed. A second start with nothing changed parses no string
-  content.
+  (the project file, the plugin's `config.json`, the stat of every Python file of the plugin and of the shared
+  `plugins/common` folder, the Picoripi version `APP_VERSION`, and the stat of every source and translation file its
+  blocks name). Phase 2 counts only the projects whose signature changed. A second start with nothing changed parses
+  no string content.
+- The version and the Python files make a parser update recount the affected projects, without a manual cache reset.
+  Ceiling: the core parsers (`core/formats.py`, the format modules outside the plugin folders) are covered only by the
+  version. A dev build that changes them without a version bump keeps stale counts. Upgrade: add a stat stamp of the
+  core parser modules when that happens in practice. Only `stat` is called; no file content is read.
 - The cache lives in `project_index.json` (card by mtime and size, counts by signature) and `pm_icons/` (PNG per
   project). Folder modification times are not used: on NTFS they do not change when a file inside is edited.
   `record_counts` stores the signature of the files on disk when a project is saved, so an open project is not

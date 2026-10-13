@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from core import formats
 from core.project_library.cards import count_strings
-from utils.constants import plugins_root
+from utils.constants import APP_VERSION, plugins_root
 from utils.logging_utils import log_warning
 from utils.plugin_import import PLUGIN_IMPORT_LOCK
 
@@ -224,13 +224,33 @@ def _stat_part(path: Optional[Path]) -> Optional[List[int]]:
     return [stat.st_mtime_ns, stat.st_size]
 
 
+def _code_stamp(plugin_name: str, folder: Path) -> List[Any]:
+    """``[path, [mtime_ns, size]]`` of each Python file of the plugin and of the shared plugin code (``common``).
+
+    A parser lives in these files, so an edit or an update of them changes the stamp and the counts are redone.
+    Only ``stat`` is called. The folders are small (a few dozen files each).
+    """
+    roots = [folder / "common"]
+    if plugin_name:
+        roots.insert(0, folder / plugin_name)
+    stamps: List[Any] = []
+    for root in roots:
+        if root.is_dir():
+            for module in sorted(root.rglob("*.py")):
+                stamps.append([module.relative_to(folder).as_posix(), _stat_part(module)])
+    return stamps
+
+
 def input_signature(project_file: str | os.PathLike, plugins_folder: Optional[Path] = None) -> str:
-    """A fingerprint of everything a count reads: the project file, the plugin's config, and for each block its
-    source and translation file (the path that resolves, with its size and modification time).
+    """A fingerprint of everything a count reads: the project file, the plugin's config, the plugin's Python files
+    and the shared ``common`` plugin files, the Picoripi version, and for each block its source and translation file
+    (the path that resolves, with its size and modification time).
 
     Equal fingerprints mean equal counts, so a cached count is reused only while this value is unchanged. Only
     ``stat`` is called; no file content is read. Folder modification times are not used: on NTFS they do not change
     when a file inside is edited. Raises ``OSError`` or ``ValueError`` when the project file cannot be read.
+
+    The version covers the core parsers (``core/formats``), which are not in the plugin folders; a release changes it.
     """
     path = Path(project_file)
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -243,7 +263,8 @@ def input_signature(project_file: str | os.PathLike, plugins_folder: Optional[Pa
     source_roots = [_root(base, metadata.get("source_path")), base]
     translation_roots = [_root(base, metadata.get("translation_path")), base]
     parts: List[Any] = [["project", _stat_part(path)], ["plugin", plugin_name,
-                                                         _stat_part(folder / plugin_name / "config.json")]]
+                                                         _stat_part(folder / plugin_name / "config.json")],
+                        ["code", _code_stamp(plugin_name, folder)], ["version", APP_VERSION]]
     for block in data.get("blocks") or []:
         if (block.get("metadata") or {}).get("is_archive_member"):
             continue

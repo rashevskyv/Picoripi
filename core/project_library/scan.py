@@ -6,7 +6,8 @@ window's interpreter. Each step reports one small event (a dict); the window upd
 Cache rules, one entry per project key in ``project_index.json``:
 - ``card``: reused while the project file keeps its modification time and size.
 - ``counts`` or ``count_error``: reused while ``plugin_facts.input_signature`` is unchanged. Any change to the project
-  file, the plugin's config, or a source or translation file a block names starts a recount.
+  file, the plugin's config, its Python files (the parser), the shared ``common`` plugin files, the Picoripi version, or
+  a source or translation file a block names starts a recount.
 - ``icon``: reused while its ``want`` is unchanged: the user's ``picoripi/icon.png`` (size and modification time), or,
   without one, the project file and plugin. The PNG lives in ``<data folder>/pm_icons``.
 A cache entry is never trusted across a changed signature; a missing entry is simply computed.
