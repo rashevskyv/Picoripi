@@ -17,7 +17,8 @@ import time
 import urllib.parse
 from pathlib import Path
 
-PROXY_ROOT = Path(os.environ.get("RQ_WP8_PROXY_ROOT", r"D:\git\dev\gemini-web2api-wp8"))
+# Set RQ_WP8_PROXY_ROOT to the WP8 checkout to run the proxy tests; unset, they skip.
+PROXY_ROOT = Path(os.environ.get("RQ_WP8_PROXY_ROOT", "gemini-web2api-wp8"))
 
 
 def gemini_frame(text: str) -> bytes:

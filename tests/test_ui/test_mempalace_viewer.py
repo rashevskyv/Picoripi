@@ -15,7 +15,7 @@ def test_mempalace_viewer_init(qapp):
     mock_mw = MagicMock()
     mock_mw.project_manager = MagicMock()
     mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/proj.uiproj"
+    mock_mw.data_store.project_file = "/test/proj.uiproj"
     mock_mw.data_store.data = []
     
     parent_widget = QWidget()

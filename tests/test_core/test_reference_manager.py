@@ -15,7 +15,7 @@ def test_reference_patch_path_get_set(tmp_path: Path):
 
     assert ReferenceManager.get_reference_patch_path(project_dir) is None
 
-    patch_path = "E:/Games/Zelda/RU_patch"
+    patch_path = "/Games/Zelda/RU_patch"
     ReferenceManager.set_reference_patch_path(project_dir, patch_path)
     assert ReferenceManager.get_reference_patch_path(project_dir) == patch_path
 

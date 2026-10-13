@@ -13,7 +13,7 @@ The same scenario functions run on the old code (here, as a script) and on the c
 * ``baseline.json`` -- the legacy Build Glossary with an unreadable chunk and a glossary-pipeline build through
   a real OpenAI-compatible endpoint without ``/healthz``, recorded on the pre-audit baseline (691699c0):
 
-      cd D:/git/dev/Picoripi-baseline && PYTHONPATH=. QT_QPA_PLATFORM=offscreen \
+      cd <baseline-checkout> && PYTHONPATH=. QT_QPA_PLATFORM=offscreen \
           ../Picoripi/venv/Scripts/python.exe ../Picoripi/tests/fixtures/review_queue/wp1_6/ai/make_golden.py baseline < /dev/null
 
 Only the code under test comes from the working directory; the fake server comes from this repository.

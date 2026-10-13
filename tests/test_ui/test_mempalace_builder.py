@@ -76,7 +76,7 @@ def _settings_backed_main_window(settings=None):
     mock_mw.project_manager = MagicMock()
     mock_mw.project_manager.project = None
     mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.project_file = "/test/file.bmg"
     mock_mw.data_store.data = [["Line"]]
     mock_mw.data_store.block_names = {"0": "zel_00"}
     mock_mw.settings_manager = MagicMock()
@@ -98,7 +98,7 @@ def test_mempalace_builder_empty_lines_filtering(qapp):
     mock_mw.project_manager.project = None # Single-file mode
     
     mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.project_file = "/test/file.bmg"
     # Block 0 has one empty string, one whitespace-only string, and one valid string
     mock_mw.data_store.data = [
         ["", "   ", "Valid dialogue line"]
@@ -121,7 +121,7 @@ def test_mempalace_builder_uses_consistent_action_styles(qapp):
     mock_mw.project_manager = MagicMock()
     mock_mw.project_manager.project = None
     mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.project_file = "/test/file.bmg"
     mock_mw.data_store.data = [["Line"]]
     mock_mw.data_store.block_names = {"0": "zel_00"}
 
@@ -165,7 +165,7 @@ def test_mempalace_builder_selects_validated_hierarchy_project(qapp, tmp_path):
     mock_mw.project_manager = MagicMock()
     mock_mw.project_manager.project = None
     mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.project_file = "/test/file.bmg"
     mock_mw.data_store.data = [["Line"]]
     mock_mw.data_store.block_names = {"0": "zel_00"}
     path = tmp_path / "script_markup_project.json"
@@ -214,7 +214,7 @@ def test_mempalace_builder_rejects_invalid_hierarchy_project_without_state_chang
     mock_mw.project_manager = MagicMock()
     mock_mw.project_manager.project = None
     mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.project_file = "/test/file.bmg"
     mock_mw.data_store.data = [["Line"]]
     mock_mw.data_store.block_names = {"0": "zel_00"}
     valid_path = tmp_path / "script_markup_project.json"
@@ -610,7 +610,7 @@ def test_mempalace_builder_pipeline_orchestration(qapp):
     mock_mw.project_manager = MagicMock()
     mock_mw.project_manager.project = None
     mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.project_file = "/test/file.bmg"
     mock_mw.data_store.data = [["Line"]]
     mock_mw.data_store.block_names = {"0": "zel_00"}
     
@@ -661,7 +661,7 @@ def test_mempalace_builder_pipeline_session_persistence(qapp):
     mock_mw.project_manager = MagicMock()
     mock_mw.project_manager.project = None
     mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.project_file = "/test/file.bmg"
     mock_mw.data_store.data = [["Line"]]
     mock_mw.data_store.block_names = {"0": "zel_00"}
     
@@ -682,14 +682,14 @@ def test_mempalace_builder_pipeline_session_persistence(qapp):
     dialog.pipeline_running = True
     dialog.pipeline_step = 2
     dialog.wing_edit.setText("Zelda_TEST")
-    dialog.file_path_edit.setText("d:/test/script.txt")
+    dialog.file_path_edit.setText("/test/script.txt")
     
     # 2. Persist state
     dialog._save_pipeline_state()
     assert mock_settings["mempalace_pipeline_running"] is True
     assert mock_settings["mempalace_pipeline_step"] == 2
     assert mock_settings["mempalace_pipeline_wing"] == "Zelda_TEST"
-    assert mock_settings["mempalace_pipeline_script"] == "d:/test/script.txt"
+    assert mock_settings["mempalace_pipeline_script"] == "/test/script.txt"
     
     # 3. Create a new dialog and load settings to verify recovery
     dialog2 = MemePalaceBuilderDialog(mock_mw, parent=parent_widget)
@@ -697,7 +697,7 @@ def test_mempalace_builder_pipeline_session_persistence(qapp):
     assert dialog2.saved_pipeline_running is True
     assert dialog2.saved_pipeline_step == 2
     assert dialog2.saved_pipeline_wing == "Zelda_TEST"
-    assert dialog2.saved_pipeline_script == "d:/test/script.txt"
+    assert dialog2.saved_pipeline_script == "/test/script.txt"
     assert "Continue Pipeline (Step 2/4)" in dialog2.pipeline_btn.text()
 
 
@@ -810,7 +810,7 @@ def test_mempalace_builder_dialog_passes_target_lang_to_chapter_analyzer(qapp):
     mock_mw.project_manager = MagicMock()
     mock_mw.project_manager.project = None
     mock_mw.data_store = MagicMock()
-    mock_mw.data_store.project_file = "d:/test/file.bmg"
+    mock_mw.data_store.project_file = "/test/file.bmg"
     mock_mw.data_store.data = [["Line"]]
     mock_mw.data_store.block_names = {"0": "zel_00"}
     mock_mw.settings_manager = MagicMock()

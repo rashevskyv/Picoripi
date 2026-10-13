@@ -123,8 +123,8 @@ def test_plain_text_target_copies_translation_files_keeping_folders(tmp_path):
 def test_emulator_template_keeps_a_spaced_path_as_one_argument():
     template = '"C:\\Emu Dir\\emu.exe" --load {path} --title x'
 
-    assert build.emulator_argv(template, "D:\\my mods\\build", posix=False) == [
-        "C:\\Emu Dir\\emu.exe", "--load", "D:\\my mods\\build", "--title", "x"]
+    assert build.emulator_argv(template, "Z:\\my mods\\build", posix=False) == [
+        "C:\\Emu Dir\\emu.exe", "--load", "Z:\\my mods\\build", "--title", "x"]
     assert build.emulator_argv("/Applications/Emu.app/Contents/MacOS/emu {path}", "/tmp/a b",
                                posix=True) == ["/Applications/Emu.app/Contents/MacOS/emu", "/tmp/a b"]
 

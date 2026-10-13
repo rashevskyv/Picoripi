@@ -150,8 +150,8 @@ def test_ProjectManager_save_load_settings(pm):
     
     # Load settings
     pm.project.metadata["settings"]["font_size"] = 16
-    pm.project.metadata["settings"]["fonts_dir_path"] = "D:/another/fonts"
-    pm.project.metadata["settings"]["orig_fonts_dir_path"] = "D:/another/orig_fonts"
+    pm.project.metadata["settings"]["fonts_dir_path"] = "/another/fonts"
+    pm.project.metadata["settings"]["orig_fonts_dir_path"] = "/another/orig_fonts"
     pm.project.metadata["settings"]["main_splitter_state"] = "loaded_main"
     pm.project.metadata["settings"]["right_splitter_state"] = "loaded_right"
     pm.project.metadata["settings"]["bottom_right_splitter_state"] = "loaded_bottom_right"
@@ -159,8 +159,8 @@ def test_ProjectManager_save_load_settings(pm):
     
     assert pm.load_settings_from_project(mw) is True
     assert mw.font_size == 16
-    assert mw.fonts_dir_path == "D:/another/fonts"
-    assert mw.orig_fonts_dir_path == "D:/another/orig_fonts"
+    assert mw.fonts_dir_path == "/another/fonts"
+    assert mw.orig_fonts_dir_path == "/another/orig_fonts"
     assert mw.main_splitter_state == "loaded_main"
     assert mw.right_splitter_state == "loaded_right"
     assert mw.bottom_right_splitter_state == "loaded_bottom_right"

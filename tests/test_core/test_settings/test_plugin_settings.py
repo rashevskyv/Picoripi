@@ -158,7 +158,7 @@ def test_PluginSettings_persists_mempalace_hierarchy_import_metadata(dummy_mw, t
     ps = PluginSettings(dummy_mw)
     ps._get_plugin_config_path = MagicMock(return_value=None)
     ps._get_project_settings_path = MagicMock(return_value=project_settings)
-    dummy_mw.mempalace_hierarchy_project_path = "D:/scripts/script_markup_project.json"
+    dummy_mw.mempalace_hierarchy_project_path = "/scripts/script_markup_project.json"
     dummy_mw.mempalace_hierarchy_project_hash = "abc123"
     dummy_mw.mempalace_hierarchy_project_version = 1
 
@@ -216,11 +216,11 @@ def test_PluginSettings_load_save_fonts_dir_path(dummy_mw, tmp_path):
     
     assert dummy_mw.fonts_dir_path == "C:/custom/fonts/dir"
     
-    dummy_mw.fonts_dir_path = "D:/another/fonts/dir"
+    dummy_mw.fonts_dir_path = "/another/fonts/dir"
     ps.save()
     
     saved = json.loads(project_settings.read_text())
-    assert saved["fonts_dir_path"] == "D:/another/fonts/dir"
+    assert saved["fonts_dir_path"] == "/another/fonts/dir"
 
 def test_PluginSettings_load_save_orig_fonts_dir_path(dummy_mw, tmp_path):
     project_settings = tmp_path / "project_settings.json"
@@ -237,11 +237,11 @@ def test_PluginSettings_load_save_orig_fonts_dir_path(dummy_mw, tmp_path):
     
     assert dummy_mw.orig_fonts_dir_path == "C:/custom/orig_fonts/dir"
     
-    dummy_mw.orig_fonts_dir_path = "D:/another/orig_fonts/dir"
+    dummy_mw.orig_fonts_dir_path = "/another/orig_fonts/dir"
     ps.save()
     
     saved = json.loads(project_settings.read_text())
-    assert saved["orig_fonts_dir_path"] == "D:/another/orig_fonts/dir"
+    assert saved["orig_fonts_dir_path"] == "/another/orig_fonts/dir"
 
 def test_PluginSettings_translation_config_loading(dummy_mw, tmp_path):
     # Setup dummy_mw with translation_config

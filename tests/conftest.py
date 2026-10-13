@@ -1,6 +1,9 @@
 import os
+import sys
 import tempfile
 
+# Test scripts imported from the owner's workspace must not leave __pycache__ folders in it.
+sys.dont_write_bytecode = True
 # Before any project import: utils.logging_utils opens (and truncates) its log file when imported.
 os.environ["PICORIPI_LOG_FILE"] = os.path.join(tempfile.gettempdir(), "picoripi_tests", f"app_debug_{os.getpid()}.txt")
 # The user data folder is a temp folder per test process: no test reads or writes the real data folder or the home folder.

@@ -93,16 +93,16 @@ def fake_main_window(qtbot):
     """Fixture providing a mock MainWindow for SettingsDialog."""
     mw = MockMainWindow()
     qtbot.addWidget(mw)
-    mw.reference_patch_path = "D:/games/zelda/PAL_RU"
-    mw.wit_tool_path = "D:/tools/wit.exe"
+    mw.reference_patch_path = "/games/zelda/PAL_RU"
+    mw.wit_tool_path = "/tools/wit.exe"
     mw.fonts_dir_path = ""
     mw.orig_fonts_dir_path = ""
 
     # Setup mock project
     proj = MagicMock()
     proj.metadata = {
-        "source_path": "D:/proj/src",
-        "translation_path": "D:/proj/dst",
+        "source_path": "/proj/src",
+        "translation_path": "/proj/dst",
         "is_directory_mode": True,
         "auto_generate_translation_path": False,
     }
@@ -136,11 +136,11 @@ def test_settings_dialog_initializes_and_saves_wit_tool_path(fake_main_window, q
     qtbot.addWidget(dialog)
 
     assert hasattr(dialog, "wit_tool_path_edit")
-    assert dialog.wit_tool_path_edit.text() == "D:/tools/wit.exe"
+    assert dialog.wit_tool_path_edit.text() == "/tools/wit.exe"
 
-    dialog.wit_tool_path_edit.setText("E:/custom_wit/bin/wit.exe")
+    dialog.wit_tool_path_edit.setText("/custom_wit/bin/wit.exe")
     settings = dialog.get_settings()
-    assert settings.get("wit_tool_path") == "E:/custom_wit/bin/wit.exe"
+    assert settings.get("wit_tool_path") == "/custom_wit/bin/wit.exe"
 
 
 def test_settings_dialog_initializes_and_saves_reference_patch_path(fake_main_window, qtbot):
@@ -149,12 +149,12 @@ def test_settings_dialog_initializes_and_saves_reference_patch_path(fake_main_wi
     qtbot.addWidget(dialog)
 
     assert hasattr(dialog, "reference_path_edit")
-    assert dialog.reference_path_edit.text() == "D:/games/zelda/PAL_RU"
+    assert dialog.reference_path_edit.text() == "/games/zelda/PAL_RU"
     assert dialog.reference_path_selector.isEnabled()
 
-    dialog.reference_path_edit.setText("D:/games/zelda/Zelda_PAL.iso")
+    dialog.reference_path_edit.setText("/games/zelda/Zelda_PAL.iso")
     settings = dialog.get_settings()
-    assert settings.get("reference_patch_path") == "D:/games/zelda/Zelda_PAL.iso"
+    assert settings.get("reference_patch_path") == "/games/zelda/Zelda_PAL.iso"
 
 
 def test_try_extract_iso_messages_uses_configured_wit_tool(tmp_path):

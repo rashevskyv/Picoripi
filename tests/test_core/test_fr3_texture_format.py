@@ -1,5 +1,6 @@
 """Jak and Daxter level texture file (.fr3): a synthetic payload round trip (RGBA and BC1 records) and, when the
 port's extracted levels are on this machine, a real-data no-op write and one changed texture."""
+import os
 import struct
 from pathlib import Path
 
@@ -8,7 +9,9 @@ from PIL import Image
 
 from core.texture_formats import fr3
 
-REAL = Path(r"D:\RomHacking_tmp\ready-jak\jak-project-switch\out\jak2\fr3\atoll.fr3")
+# A scratch build output (PICORIPI_SCRATCH), not the RomHacking workspace.
+REAL = Path(os.environ.get("PICORIPI_SCRATCH", "scratch"), "ready-jak", "jak-project-switch", "out", "jak2", "fr3",
+            "atoll.fr3")
 
 
 def _str(text: str) -> bytes:
