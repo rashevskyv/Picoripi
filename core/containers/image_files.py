@@ -1,0 +1,66 @@
+"""Shared parts of the game image readers (GameCube discs, Nintendo DS cartridges): a file entry and a copy.
+
+A reader lists its files as ``ImageFile`` entries (path inside the image, absolute offset, size). Copies run in
+chunks and check for a cancel between chunks, so a multi-gigabyte image never sits in memory.
+"""
+from __future__ import annotations
+
+from typing import BinaryIO, Callable, List, NamedTuple
+
+CHUNK = 1 << 20
+
+
+class ImageError(ValueError):
+    """The file is not an image this reader supports, or its tables do not fit the file."""
+
+
+class ImageFile(NamedTuple):
+    path: str
+    offset: int
+    size: int
+
+
+def check_name(name: str) -> str:
+    """A name from an image's file table, or ImageError when it could not be a plain file name on Windows."""
+    if not name or name in (".", "..") or any(char in name for char in '/\\:*?"<>|\0'):
+        raise ImageError(f"unsafe file name in the image: {name!r}")
+    return name
+
+
+class ImageReader:
+    """Base of the readers: the open stream, the file size, reads of one entry."""
+
+    def __init__(self, stream: BinaryIO) -> None:
+        self.stream = stream
+        stream.seek(0, 2)
+        self.size = stream.tell()
+
+    def read_at(self, offset: int, size: int) -> bytes:
+        """``size`` bytes at ``offset``; ImageError when the image ends before that."""
+        if offset < 0 or size < 0 or offset + size > self.size:
+            raise ImageError(f"the image ends before offset {offset:#x} + {size:#x}")
+        self.stream.seek(offset)
+        return self.stream.read(size)
+
+    def read(self, entry: ImageFile) -> bytes:
+        return self.read_at(entry.offset, entry.size)
+
+    def entries(self) -> List[ImageFile]:
+        raise NotImplementedError
+
+
+def copy_range(stream: BinaryIO, offset: int, size: int, out: BinaryIO,
+               is_cancelled: Callable[[], bool], on_bytes: Callable[[int], None]) -> bool:
+    """Copy ``size`` bytes at ``offset`` of ``stream`` into ``out``. False when cancelled first."""
+    stream.seek(offset)
+    left = size
+    while left > 0:
+        if is_cancelled():
+            return False
+        data = stream.read(min(CHUNK, left))
+        if not data:
+            raise ImageError("the image ends inside a file")
+        out.write(data)
+        left -= len(data)
+        on_bytes(len(data))
+    return True

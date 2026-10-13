@@ -163,6 +163,8 @@ class GameRules(BaseGameRules):
 Ці хуки виконуються у робочому потоці. Вони не мають створювати віджети або читати `self.mw`. Хост передає `progress` і `is_cancelled`; перевіряйте `is_cancelled()` у довгих циклах. Хост збирає у тимчасову теку і перейменовує її після успіху. Export копіює зібрану теку в теку, яку вибирає користувач. Run запускає команду емулятора, яку користувач задав у Менеджері проєктів, і передає шлях збірки аргументом.
 
 Еталон: `plugins/plain_text/rules.py`. Його єдина ціль копіює файли перекладу як є.
+
+Образи гри: `core/project_library/images.py` читає образи дисків GameCube і картриджів Nintendo DS за заголовком. У `identify_source` викликайте `identify` або `base_identity(path, game_codes)`, а в `unpack_sources` — `extract(path, target_dir, progress, is_cancelled, select=...)`. `unpack.py` гри перелічує файли, які вона залишає, як це робив її скрипт zt; `plugins/zelda_fsae/` — короткий приклад. `ImageError` означає формат, який помічник не читає; він має дійти до хоста, що показує повідомлення.
 ## Сім'ї версій (family_plan)
 
 Гра, що вийшла в кількох версіях (наприклад GameCube, Wii і Wii U HD), може мати один переклад. `family_plan(sources, project_dir)` отримує теки або файли, які дав користувач, і повертає `core.family_projects.model.FamilyPlan`, або `None`, якщо сім'ї немає (типово). Плагін розпізнає кожне джерело за вмістом, а не за назвою теки, яку дав користувач: для Twilight Princess кількість повідомлень у файлах є відбитком (`plugins/zelda_bmg/family.py`). План перелічує учасників (`FamilyMember(key, label, path, base, parents)`), базову версію і `read(member_key)`, який повертає пари `(unit_id, text)`.

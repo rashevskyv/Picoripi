@@ -541,3 +541,43 @@ Switch, PE, PSP).
 
 **Consequences.** The harvester has one write path. A harvested icon shows at the next scan, because the scan reads
 the file's size and time. A second extraction path inside the app would need a new record.
+
+## D30. Unpack in Picoripi: Picoripi reads GameCube and Nintendo DS images itself (2026-10-13)
+
+**Context.** The zt scripts unpack game images outside Picoripi (DolphinTool, ndstool, Python). D23 gave the
+new-project wizard a `unpack_sources` hook, but no plugin implemented it, so a project could not start from a disc
+or a cartridge in the app.
+
+**Decision.**
+- Readers in `core`, pure Python, streamed, with cancel between chunks: `core/containers/gcm.py` (GameCube ISO
+  and GCM: header, file system table, `sys/` and `files/` as DolphinTool writes them) and `core/containers/nds.py`
+  (Nintendo DS ROM: header, file name table, file spans; `main.arm9` is the ARM9 program). Both share the entry type
+  and the copy in `core/containers/image_files.py`. The NitroFS name walk is in core; `plugins/zelda_ds/rom.py` calls it.
+- One helper for plugins, `core/project_library/images.py`: `identify` reads the header only and recognises the image
+  by content, `base_identity` gives the role and platform for a list of game codes, `open_image` and `extract` write
+  the files a plugin selects. `extract` returns None on cancel. Formats it does not read (RVZ, WIA, NKit, Wii) raise
+  `ImageError` with the reason. Nothing is converted.
+- A plugin chooses its files in its own `unpack.py`. The list is the list its zt script copied, not a new rule.
+- Wired in phase 1: The Wind Waker (GameCube, GZLE01), Paper Mario: The Thousand-Year Door (GameCube, G8ME01),
+  Phantom Hourglass and Spirit Tracks (AZEE, BKIE), Four Swords Anniversary (KQ9V), Revenant Wings (AXFP), Infinite
+  Space (C6CP), The World Ends with You (AWLP).
+- Not wired, because the zt step makes more than a copy: Eternal Darkness (decompresses EDASC into `source\game`),
+  Twin Snakes (splits text out of two discs), Metroid Prime GameCube (explodes packs), Castlevania DS (writes a string
+  bank), Pokemon DS (splits NARC members into blocks), Layton DS (splits GFSA members), Tactics A2 (joins `pc.bin`
+  members), Dragon Quest IX (keeps GPC2 archives by their English names: later). Twilight Princess GameCube is a
+  family project whose source is `res/Msgus`; a whole-disc project has 17 blocks, the workspace project 10.
+  That needs a decision first.
+- A game with no unpack step still uses the file as it is (GBA ROMs, for example): no `unpack_sources` result, no reader.
+- Owner decision on console keys (2026-10-13), phase 2, not built here: no global key setting. The wizard asks for a
+  key file only when an added file needs one (3DS, Switch, Wii, Wii U). Picoripi remembers the key file location per
+  console, not per plugin or project, in the data folder, and reuses it for any plugin of that console while the file
+  is still there; otherwise it asks again. It stores the path only, never copies or logs key values, and never sends
+  the path to a Work Together room.
+
+**Consequences.**
+- Verified against the workspace on real images (read only, temp folders): file lists and sha256 equal for Wind Waker
+  (2218 files), Paper Mario (3209), Four Swords (8), Revenant Wings (120), Infinite Space (616), TWEWY (731), Spirit
+  Tracks (215); Phantom Hourglass equal for all 302 workspace files (the current zt script writes 4 more pictures).
+- A new project takes the unpacked folder as its source root. A workspace project that points at a subfolder
+  (Paper Mario `files\msg\US`) gets the same block count, with longer block names.
+- Platform labels go through `tr()` (`locales/uk.json`). Plugins add no dependency.

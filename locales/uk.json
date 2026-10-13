@@ -2130,6 +2130,8 @@
         "Not set": "Не задано",
         "Project file: {0}": "Файл проєкту: {0}",
         "Unpacked files: {0} (only when the game needs unpacking)": "Розпаковані файли: {0} (лише якщо грі потрібне розпакування)",
+        "GameCube": "GameCube",
+        "Nintendo DS": "Nintendo DS",
         "Translation files: {0} (created now)": "Файли перекладу: {0} (створюються зараз)",
         "Originals: not copied; the project refers to them by path.": "Оригінали не копіюються; проєкт посилається на них за шляхом.",
         "Started the emulator with {0}": "Емулятор запущено з {0}",

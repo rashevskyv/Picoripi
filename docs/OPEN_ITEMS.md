@@ -1027,3 +1027,13 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
   translated again in the project (the series file itself is never written by a build).
 - Series and project glossary files are read and written on the UI thread, as the project glossary is today.
 - Two programs (or two projects open at once) editing the same series file: the last write wins.
+
+## Unpack in Picoripi (phase 1, 2026-10-13)
+- Phase 2: the console key file (D30 has the owner's rule). Wii, Wii U, 3DS and Switch images need it. Wii discs need a partition reader too.
+- RVZ, WIA, NKit and Wii images are not read; the zt scripts still convert them with DolphinTool or wit. The wizard says so and asks for an ISO.
+- Not wired (D30 lists the reason): Eternal Darkness, Twin Snakes, Metroid Prime GameCube, Castlevania DS, Pokemon DS, Layton DS, Tactics A2, Dragon Quest IX.
+- Twilight Princess GameCube: owner decides the source root. A whole-disc project has 17 blocks; the workspace project (`res/Msgus`) has 10.
+- The new project takes the unpacked folder as its source root; a plugin cannot yet name a subfolder. Paper Mario keeps the same count (260) with longer block names.
+- Phantom Hourglass workspace `source` is 4 files behind the current `zt/zelda_ds.py` (three `resChild2nd.bin` files for English, French and Spanish, and `Menu/UI_main/opening.bin`). Owner decides whether to rerun its `1_unpack`.
+- Revenant Wings workspace project lists 55 blocks; the same source gives 59 with the current scan (four `.dpk` blocks). Owner decides whether to rebuild that project.
+- The wizard does not check free space before a 1.4 GB disc is unpacked into the project folder.
