@@ -9,17 +9,20 @@ project.uiproj, only where no icon.png exists yet. Nothing else is written; game
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 import re
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from core.game_icons import Icon, extract_icon  # noqa: E402
+from core.project_library.icons import scale_image_bytes  # noqa: E402  the Project Manager's atomic PNG writer
 
 PICOPRIPI_DIR, PROJECT_FILE, ICON_NAME = "picoripi", "project.uiproj", "icon.png"
 PRUNE = {"source", "reports", "_tmp", "tools", "docs", "_reference", ".git", "__pycache__"}
@@ -153,10 +156,11 @@ def load_projects(registry: Optional[str], root: Optional[str]) -> List[Tuple[st
 
 
 def write_icon(icon: Icon, target: str) -> None:
-    """Atomic write of the PNG next to project.uiproj (temp file, then os.replace)."""
-    temp = target + ".tmp"
-    icon.image.save(temp, format="PNG")
-    os.replace(temp, target)
+    """Write the PNG next to project.uiproj with the Project Manager's writer (atomic). Native size: no resampling."""
+    buffer = io.BytesIO()
+    icon.image.save(buffer, format="PNG")
+    if not scale_image_bytes(buffer.getvalue(), Path(target), max(icon.image.size)):
+        raise OSError(f"cannot write {target}")
 
 
 def main(argv: Optional[List[str]] = None) -> int:
