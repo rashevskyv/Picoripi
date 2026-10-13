@@ -1063,7 +1063,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Owner step after 2c: `scripts\verify_unpack_keys.py` and its `.bat` (not written here; it has nothing to run until the decrypt bodies exist). It takes the key file path as an argument, unpacks the given images to `D:\RomHacking_tmp\unpack_check\`, and prints counts and hash equality per game only.
 - Key file formats the store will hold, not read yet: 3DS `aes_keys.txt` (boot9 next to it is used by the workspace tool), Switch `prod.keys`, Wii `keys.bin` (0x400 bytes, common key at 0x158, as `tools/wii_nand` reads it).
 - The pin is not in `requirements.txt`. When the decrypt bodies land, decide whether it joins the app's requirements.
-- ExeFS `code.bin` is stored compressed in the 3DS image (BLZ). The workspace holds it decompressed. Decompression is not built, so plugins that need the code (Copy of Princess: text in `code.bin`) wait for it.
+- ExeFS `code.bin` is decoded from BLZ when the exheader says so (`nitro.blz_decompress`). Verified against the Update CIA. The base Majora's Mask 3D code differs from the workspace, because the workspace ExeFS is the Update build (D30 addendum). Copy of Princess (text in `code.bin`) is not wired yet.
 - No plugin is wired for 3DS, Switch or Wii. Retail `.cia` files are encrypted, and the decrypted dumps are not a plugin input.
 - Wii U: not done (no reader, no key).
 - The wizard prompt also appears for an encrypted Switch file that a plugin may never unpack. Revisit when a Switch plugin exists.

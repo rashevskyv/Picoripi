@@ -129,8 +129,12 @@ def write_entries(reader: ImageReader, entries: Sequence[ImageFile], target_dir:
         out_path = target.joinpath(*entry.path.split("/"))
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "wb") as out:
-            if not copy_range(reader.stream, entry.offset, entry.size, out, is_cancelled, on_bytes):
-                return False
+            if entry.decode is None:
+                if not copy_range(reader.stream, entry.offset, entry.size, out, is_cancelled, on_bytes):
+                    return False
+            else:
+                out.write(entry.decode(reader.read(entry)))   # a whole entry: a decoded code section is not streamed
+                on_bytes(entry.size)
     progress(100, "")
     return True
 

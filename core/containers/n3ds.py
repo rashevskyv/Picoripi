@@ -12,6 +12,7 @@ import struct
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.containers.console_crypto import encrypted_error
+from core.containers.nitro import blz_decompress
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
 from core.i18n import tr
 
@@ -20,6 +21,8 @@ NCCH_MAGIC = b"NCCH"
 NCSD_MAGIC = b"NCSD"
 CIA_HEADER_SIZE = 0x2020
 EXHEADER_SIZE = 0x800
+EXHEADER_FLAGS_AT = 0x0D     # the exheader's flag byte (system control info); bit 0 = the ExeFS code is BLZ-packed
+CODE_PACKED_BIT = 0x01
 NO_ENTRY = 0xFFFFFFFF
 MAX_FILES = 200_000          # guards the file walks against a corrupt table
 MAX_TMD = 0x10000
@@ -126,12 +129,14 @@ class N3dsImage(ImageReader):
     def _list(self, base: int) -> List[ImageFile]:
         head = self.read_at(base, 0x200)
         entries: List[ImageFile] = []
+        code_packed = False
         if _u32(head, 0x180):
             entries.append(ImageFile("exheader.bin", base + 0x200, self._fit(base + 0x200, EXHEADER_SIZE)))
+            code_packed = bool(self.read_at(base + 0x200, EXHEADER_SIZE)[EXHEADER_FLAGS_AT] & CODE_PACKED_BIT)
         exefs_off, exefs_size = _u32(head, 0x1A0) * UNIT, _u32(head, 0x1A4) * UNIT
         romfs_off, romfs_size = _u32(head, 0x1B0) * UNIT, _u32(head, 0x1B4) * UNIT
         if exefs_size:
-            entries += self._exefs(self._region(base + exefs_off, exefs_size))
+            entries += self._exefs(self._region(base + exefs_off, exefs_size), code_packed)
         if romfs_size:
             entries += self._romfs(self._region(base + romfs_off, romfs_size))
         if not entries:
@@ -149,7 +154,7 @@ class N3dsImage(ImageReader):
 
     # -- ExeFS -------------------------------------------------------------
 
-    def _exefs(self, region: Tuple[int, int]) -> List[ImageFile]:
+    def _exefs(self, region: Tuple[int, int], code_packed: bool) -> List[ImageFile]:
         start, size = region
         if size < 0x200:
             raise ImageError("the ExeFS is shorter than its header")
@@ -167,8 +172,10 @@ class N3dsImage(ImageReader):
             check_name(name)
             if 0x200 + offset + length > size:
                 raise ImageError(f"ExeFS file {name} ends past its section")
-            # The names of the workspace (3dstool): ".code" is "exefs/code.bin".
-            files.append(ImageFile(f"exefs/{name.lstrip('.')}.bin", start + 0x200 + offset, length))
+            # The names of the workspace (3dstool): ".code" is "exefs/code.bin". A packed code section is BLZ in the
+            # image; the exheader flag says so, and the file is decoded as it is written.
+            decode = blz_decompress if code_packed and name == ".code" else None
+            files.append(ImageFile(f"exefs/{name.lstrip('.')}.bin", start + 0x200 + offset, length, decode))
         return files
 
     # -- RomFS (IVFC level 3) ------------------------------------------------

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-12
 owns: decisions and their reasons
-tokens: 15.1k
+tokens: 15.3k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -648,11 +648,15 @@ AES. Encrypted reads stop at the seam; they are not built.
   decrypted dumps are not a plugin input.
 - Verified (read only, no key): synthetic 3DS images in `tests/test_core/test_n3ds_image.py`. Real data (gated by
   `PICORIPI_ROMHACKING`): the decrypted Majora's Mask 3D CXI has 2139 RomFS files, all equal by sha256; its exheader and
-  ExeFS banner are equal; its icon is equal for the first 12480 bytes (the workspace copy differs after that); the
-  decrypted Update CIA is read. Eight Switch NSP filenames carry a title ID, and `identify` returns the same ID for
+  ExeFS banner are equal; the decrypted Update CIA is read and its `code.bin` and `icon.bin` equal the workspace. Eight Switch NSP filenames carry a title ID, and `identify` returns the same ID for
   each of them (base, update, DLC; the Legends Z-A NSP has no ticket and reads from its content meta).
-- Found, not fixed: the image stores the ExeFS `code.bin` compressed (BLZ, its size is about 2.1 MB less than the
-  workspace file); the workspace holds it decompressed. Picoripi returns the stored bytes. Decompression is not built.
-  The workspace also holds `romfs/version.ctxb`, which is not in the RomFS.
+- ExeFS code: when the exheader flag (byte 0x0D, bit 0) says the code is packed, `exefs/code.bin` is decoded with the
+  BLZ decoder in `core/containers/nitro.py` as it is written (`ImageFile.decode`). Verified: the Update CIA's
+  `code.bin` decodes to the workspace file byte for byte (5971968 bytes), through the reader.
+- Icon and code origin: the workspace `exefs` (code, icon) equals the Update build, not the base game. The base
+  CXI's icon differs from byte 12480 on, and the base code decodes to a different binary. The base extraction is
+  right; the workspace ExeFS came from the Update. The workspace romfs and banner are the base game's (equal to the
+  base CXI). The Update CIA has no `banner.bin`.
+- The workspace also holds `romfs/version.ctxb`, which is not in the RomFS.
 - Risk: until a Switch plugin exists, the wizard also asks for a key file for an encrypted Switch file that no plugin
   unpacks. The prompt is shown only for a file that has a role.

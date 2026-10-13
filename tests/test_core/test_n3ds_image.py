@@ -11,11 +11,12 @@ import pytest
 from core.containers import n3ds
 from core.containers.console_crypto import key_source
 from core.containers.image_files import ImageError
+from core.containers.nitro import blz_compress
 from core.project_library import images
 
 NO = 0xFFFFFFFF
 UNIT = 0x200
-EXHEADER = bytes(range(256)) * 8
+EXHEADER = (bytes(range(256)) * 8)[:0x0D] + b"\0" + (bytes(range(256)) * 8)[0x0E:]   # flag byte 0: not packed
 CODE = b"CODE" * 64
 
 
@@ -55,12 +56,15 @@ def build_romfs():
     return bytes(ivfc) + level3
 
 
-def build_ncch(encrypted=False, romfs=None, tamper=None):
+def build_ncch(encrypted=False, romfs=None, tamper=None, packed=False):
     romfs = build_romfs() if romfs is None else romfs
+    code = blz_compress(CODE) if packed else CODE
+    exheader = bytearray(EXHEADER)
+    exheader[0x0D] = 0x01 if packed else 0          # exheader flag: bit 0 = the ExeFS code is BLZ-packed
     exefs_header = bytearray(0x200)
     exefs_header[0:5] = b".code"
-    struct.pack_into("<II", exefs_header, 8, 0, len(CODE))
-    exefs = _pad4(bytes(exefs_header) + CODE).ljust(((0x200 + len(CODE) + UNIT - 1) // UNIT) * UNIT, b"\0")
+    struct.pack_into("<II", exefs_header, 8, 0, len(code))
+    exefs = _pad4(bytes(exefs_header) + code).ljust(((0x200 + len(code) + UNIT - 1) // UNIT) * UNIT, b"\0")
     romfs = romfs.ljust(((len(romfs) + UNIT - 1) // UNIT) * UNIT, b"\0")
     header = bytearray(0x200)
     header[0x100:0x104] = b"NCCH"
@@ -72,7 +76,7 @@ def build_ncch(encrypted=False, romfs=None, tamper=None):
     romfs_at = exefs_at + len(exefs) // UNIT
     struct.pack_into("<II", header, 0x1A0, exefs_at, len(exefs) // UNIT)
     struct.pack_into("<II", header, 0x1B0, romfs_at, len(romfs) // UNIT)
-    body = bytes(header) + EXHEADER.ljust(0x800, b"\0") + exefs + romfs
+    body = bytes(header) + bytes(exheader).ljust(0x800, b"\0") + exefs + romfs
     return tamper(bytearray(body)) if tamper else body
 
 
@@ -123,6 +127,17 @@ def test_decrypted_card_image_lists_exheader_exefs_and_romfs_without_a_key(tmp_p
     assert (out / "exefs" / "code.bin").read_bytes() == CODE
     assert (out / "romfs" / "a.bin").read_bytes() == b"hello"
     assert (out / "romfs" / "d" / "b.txt").read_bytes() == b"xyz"
+
+
+def test_packed_code_section_is_written_decoded(tmp_path):
+    path = _write(tmp_path, "packed.cci", build_cci(build_ncch(packed=True)))
+    out = tmp_path / "out"
+
+    images.extract(path, out, lambda p, t: None, lambda: False)
+
+    assert (out / "exefs" / "code.bin").read_bytes() == CODE
+    assert (out / "exheader.bin").read_bytes() == bytes(
+        EXHEADER[:0x0D] + b"\x01" + EXHEADER[0x0E:])
 
 
 def test_decrypted_cia_reads_its_main_content_without_a_key(tmp_path):

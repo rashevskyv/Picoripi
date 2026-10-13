@@ -5,7 +5,7 @@ chunks and check for a cancel between chunks, so a multi-gigabyte image never si
 """
 from __future__ import annotations
 
-from typing import BinaryIO, Callable, List, NamedTuple
+from typing import BinaryIO, Callable, List, NamedTuple, Optional
 
 CHUNK = 1 << 20
 
@@ -15,9 +15,12 @@ class ImageError(ValueError):
 
 
 class ImageFile(NamedTuple):
+    """One file of an image. ``size`` is the size stored in the image. ``decode``, when set, turns the stored bytes
+    into the file's bytes (for example a compressed ExeFS code section); it is then called once on the whole entry."""
     path: str
     offset: int
     size: int
+    decode: Optional[Callable[[bytes], bytes]] = None
 
 
 def check_name(name: str) -> str:

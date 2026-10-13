@@ -1,7 +1,11 @@
-"""Decrypted Nintendo 3DS programs of the owner's RomHacking workspace: no key is needed, and every workspace file of the
-program equals the file the image holds (same size and sha256).
+"""Decrypted Nintendo 3DS programs of the owner's RomHacking workspace: no key is needed, and workspace files equal the
+files the image holds (same size and sha256).
 
-Needs ``PICORIPI_ROMHACKING`` (see tests/romhacking_root.py). Read only: nothing is written to the workspace.
+The workspace ``exefs`` (code, icon, banner) is the Update build's: it equals the decrypted Update CIA, and the packed
+ExeFS code is decoded to the workspace bytes. The workspace ``romfs`` is the base game's: it equals the base CXI.
+
+Needs ``PICORIPI_ROMHACKING`` (see tests/romhacking_root.py). Read only: nothing is written to the workspace; the
+extracted copies go to pytest's temporary folder.
 """
 import hashlib
 
@@ -12,6 +16,9 @@ from core.project_library import images
 MM3D_CXI = ("Zelda", "Majoras Mask", "3D - 3DS", "image", "Majora's Mask 3D (decrypted).cxi")
 MM3D_UPDATE_CIA = ("Zelda", "Majoras Mask", "3D - 3DS", "image", "Majora's Mask 3D Update (decrypted).cia")
 MM3D_WORKSPACE = ("Zelda", "Majoras Mask", "3D - 3DS")
+# Workspace files the base CXI does not hold: the exheader copy 3dstool also writes into ``exefs``, the workspace's
+# ``romfs/version.ctxb`` (not in the RomFS), and the workspace ExeFS (from the Update build; see the Update test).
+NOT_FROM_BASE = {"exefs/exheader.bin", "romfs/version.ctxb", "exefs/code.bin", "exefs/icon.bin"}
 
 
 class _Hash:
@@ -33,47 +40,49 @@ def _sha_of(path):
     return digest.hexdigest()
 
 
-# Workspace files the image does not hold as stored: ``exefs/exheader.bin`` (3dstool copies the exheader there too),
-# ``romfs/version.ctxb`` (not in the RomFS), and ``exefs/code.bin`` (the image stores the code compressed; the workspace
-# holds it decompressed, and Picoripi does not decompress ExeFS code yet).
-NOT_STORED_AS_IS = {"exefs/exheader.bin", "romfs/version.ctxb", "exefs/code.bin"}
-# The workspace icon differs from the image after byte 12480 (an edit of the workspace copy); its SMDH header and the
-# first 12480 bytes are compared.
-PREFIX_ONLY = {"exefs/icon.bin": 12480}
-
-
-def _program_files(workspace):
-    """The workspace files that the program's exheader, ExeFS and RomFS hold as stored: ``{relative path: file}``."""
+def _program_files(workspace, skip):
+    """The workspace files the program's exheader and RomFS hold as stored: ``{relative path: file}``."""
     files = {}
     for path in workspace.rglob("*"):
         rel = path.relative_to(workspace).as_posix()
-        if path.is_file() and rel not in NOT_STORED_AS_IS and (rel == "exheader.bin" or rel.startswith(("exefs/", "romfs/"))):
+        if not path.is_file() or rel in skip:
+            continue
+        if rel in ("exheader.bin", "exefs/banner.bin") or rel.startswith("romfs/"):
             files[rel] = path
     return files
 
 
 @romhacking_root.needs(MM3D_CXI, MM3D_WORKSPACE)
-def test_majoras_mask_decrypted_cxi_matches_the_workspace_program_files():
+def test_majoras_mask_decrypted_cxi_romfs_matches_the_workspace():
     workspace = romhacking_root.path(*MM3D_WORKSPACE)
-    wanted = _program_files(workspace)
-    assert wanted, "the workspace holds no program files"
+    wanted = _program_files(workspace, NOT_FROM_BASE)
+    assert sum(1 for rel in wanted if rel.startswith("romfs/")) > 2000
     image = romhacking_root.path(*MM3D_CXI)
 
     assert images.identify(image)["encrypted"] is False
     with images.open_image(image) as reader:
         listed = {entry.path: entry for entry in reader.entries()}
-        assert sum(1 for rel in wanted if rel.startswith("romfs/")) > 2000
         for rel, path in sorted(wanted.items()):
             entry = listed[rel]
             assert entry.size == path.stat().st_size, rel
-            if rel in PREFIX_ONLY:
-                reader.stream.seek(entry.offset)
-                with open(path, "rb") as stream:
-                    assert reader.stream.read(PREFIX_ONLY[rel]) == stream.read(PREFIX_ONLY[rel]), rel
-                continue
             hashed = _Hash()
             assert copy_range(reader.stream, entry.offset, entry.size, hashed, lambda: False, lambda n: None)
             assert hashed.digest.hexdigest() == _sha_of(path), rel
+        assert listed["exheader.bin"].size == romhacking_root.path(*MM3D_WORKSPACE, "exheader.bin").stat().st_size
+
+
+@romhacking_root.needs(MM3D_UPDATE_CIA, MM3D_WORKSPACE)
+def test_majoras_mask_update_cia_exefs_matches_the_workspace(tmp_path):
+    image = romhacking_root.path(*MM3D_UPDATE_CIA)
+    workspace = romhacking_root.path(*MM3D_WORKSPACE)
+
+    assert images.identify(image)["encrypted"] is False
+    written = images.extract(image, tmp_path, lambda p, t: None, lambda: False,
+                             select=lambda path: path in ("exefs/code.bin", "exefs/icon.bin"))
+
+    assert written == str(tmp_path)
+    for name in ("code.bin", "icon.bin"):
+        assert _sha_of(tmp_path / "exefs" / name) == _sha_of(workspace / "exefs" / name), name
 
 
 @romhacking_root.needs(MM3D_UPDATE_CIA)
