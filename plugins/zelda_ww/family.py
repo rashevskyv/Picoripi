@@ -312,7 +312,7 @@ def command_project(config: dict, root: Path) -> Dict[str, int]:
 
 
 def count_project(project_dir: Path, rules) -> Dict[str, int]:
-    """Messages per top-level folder of the project, read through the project (base archives count as "base")."""
+    """Messages per top-level folder of the project, read through the project (the base archives sit in the ".extracted" folder)."""
     from plugins.zelda_bmg.family_project import count_messages
 
     return count_messages(project_dir, rules)

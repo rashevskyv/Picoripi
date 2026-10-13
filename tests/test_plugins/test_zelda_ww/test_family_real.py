@@ -90,7 +90,7 @@ def test_project_builds_twice_with_the_planned_counts(tmp_path):
     first = command_project(config, tmp_path)
     blocks = len(json.loads((tmp_path / "picoripi" / "project.uiproj").read_text(encoding="utf-8"))["blocks"])
     second = command_project(config, tmp_path)
-    assert first == second == {"base": 4426, "HD only": 1608}
+    assert first == second == {".extracted": 4426, "HD only": 1608}
     assert len(json.loads((tmp_path / "picoripi" / "project.uiproj").read_text(encoding="utf-8"))["blocks"]) == blocks
 
 
