@@ -32,7 +32,7 @@ the line when it is done or moved into a plan.
 - Work Together: the join snapshot (`_apply_state`) is not measured with 5,000 comments; the first read of `collab.json` per process is synchronous (a small file).
 
 ## Integration round 10 (2026-10-13)
-- Integrated on `integrate/r10` from origin/main 54cc4479 and approved by the audit. `origin/main` is now 0e1cf802. Not pushed. Contents: Project Manager Dolphin view and scan process, game icons, Super Metroid, Silent Hill menu language, Oracles, Donkey Kong x3.
+- Integrated on `integrate/r10` from origin/main 54cc4479 and approved by the audit. `origin/main` is now 0e1cf802 (the round's fixes are on it). Contents: Project Manager Dolphin view and scan process, game icons, Super Metroid, Silent Hill menu language, Oracles, Donkey Kong x3.
 - Audit fixes in 0e1cf802: "Built" and "Verified in game" have Ukrainian labels; the icon harvester reports a folder it cannot write and goes on; the story wing test stubs the MemPalace client (a `mempalace_local.db` in a parent folder changed its result; it reproduces on origin/main).
 - Follow-up on `fix/pm-followups` (not merged): the scan child stops between projects on a `cancel` line, and its stderr goes to the app log; the count signature includes the plugin's Python files, the shared `plugins/common` files and the Picoripi version (D28).
 - Open from the audit: `core/project_library/index.py` `merge` locks per process only. The scan child and the window can write `project_index.json` at once; a lost update keeps an old count with a new signature until the next change. A file lock closes it.
