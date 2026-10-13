@@ -22,6 +22,11 @@ CUSTOM_PROBLEMS = {
         "name": "Line too wide", "color": QColor(255, 80, 0, 110), "priority": 2,
         "description": "A line is wider than the paragraph's column on the console.",
     },
+    "PANES": {
+        "name": "Out of panes", "color": QColor(255, 0, 0, 120), "priority": 1,
+        "description": "The text needs more text panes of one style (plain text or a highlighted phrase) than the "
+                       "original paragraph has on the console.",
+    },
     "MARKUP": {
         "name": "Markup changed", "color": QColor(255, 165, 0, 150), "priority": 1,
         "description": "The icon and style markers ({i0}, {s1|...}, {br}) differ from the Russian original.",

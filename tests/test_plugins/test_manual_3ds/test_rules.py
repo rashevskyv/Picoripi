@@ -139,6 +139,33 @@ def test_the_problem_detail_is_the_layout_message_of_the_last_analysed_text(widt
     assert rules.get_problem_detail(0, 0, "M3D_WIDTH") == ""
 
 
+def _panes_geo(panes):
+    return layout.Geometry(part="large", font_size=24.0, char_space=0.0,
+                           lines=[layout.Line(10.0, 300.0), layout.Line(10.0, 300.0)], panes=panes)
+
+
+def test_a_highlight_with_no_pane_of_its_style_is_out_of_panes(widths):
+    entry = {"lines": 2, "width": 300.0}
+    text = "Привет {s1|там}"
+    problems = layout.check_entry(text, text, entry, _panes_geo({0: 1}), widths)
+    assert ("PANES", "out of panes for style 1 (the original has 0)") in problems
+
+
+def test_the_paragraph_style_and_a_highlight_each_with_a_pane_is_fine(widths):
+    entry = {"lines": 2, "width": 300.0}
+    text = "Привет {s1|там}"
+    problems = layout.check_entry(text, text, entry, _panes_geo({0: 1, 1: 1}), widths)
+    assert not [name for name, _ in problems if name == "PANES"]
+
+
+def test_neighbours_of_one_style_share_a_pane_and_an_icon_ends_the_sharing(widths):
+    pieces = [[layout.Piece(style=0, text="a"), layout.Piece(style=0, text="b")],
+              [layout.Piece(style=0, text="c"), layout.Piece(style=-1, icon=0), layout.Piece(style=0, text="d")]]
+    # line 1: "a b" is one pane; line 2: "c" is one pane, the icon ends it, "d" is a third pane
+    assert layout.pane_overflow(pieces, {0: 3}) is None
+    assert layout.pane_overflow(pieces, {0: 2}) == (0, 2)
+
+
 def _geo():
     return layout.Geometry(part="large", font_size=24.0, char_space=0.0,
                            lines=[layout.Line(10.0, 300.0), layout.Line(10.0, 300.0)])

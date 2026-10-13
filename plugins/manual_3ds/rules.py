@@ -79,6 +79,7 @@ def _geometry_for(entries: Dict[str, Dict[str, Any]], fp: str) -> Tuple[str, Dic
             icon_widths=[float(w) for w in facts.get("icon_widths", [])],
             fixed=bool(facts.get("fixed", False)),
             budget=float(facts["budget"]) if facts.get("budget") is not None else None,
+            panes={int(style): int(count) for style, count in (facts.get("panes") or {}).items()},
         )
     return found["name"], out
 

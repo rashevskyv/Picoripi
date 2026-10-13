@@ -58,6 +58,8 @@ class Geometry:
     fixed: bool = False
     # The column budget the build uses: the widest localisation, recomputed from the dump. None: the JSON width.
     budget: Optional[float] = None
+    # Text panes per style, as the build maps them: {0: n} for the paragraph's own style, {1: n} for the next one...
+    panes: Dict[int, int] = field(default_factory=dict)
 
     @property
     def pane_model(self) -> bool:
@@ -303,6 +305,28 @@ def line_overflow(lines: List[List[Piece]], geo: Geometry, limit: float) -> List
     return out
 
 
+def pane_overflow(lines: List[List[Piece]], panes: Dict[int, int]) -> Optional[Tuple[int, int]]:
+    """The first style whose pieces need more text panes than the paragraph has: (style, panes), else None.
+
+    The build (manual.to_edits) gives each piece one free pane of its style. Neighbouring pieces of one style on one
+    line share a pane, and an icon ends that sharing. Panes are not given back, so a style runs out in order.
+    """
+    counts: Dict[int, int] = {}
+    for line in lines:
+        last: Optional[int] = None
+        for piece in line:
+            if piece.icon is not None:
+                last = None
+                continue
+            if last is not None and piece.style == last:
+                continue
+            last = piece.style
+            counts[piece.style] = counts.get(piece.style, 0) + 1
+            if counts[piece.style] > panes.get(piece.style, 0):
+                return piece.style, panes.get(piece.style, 0)
+    return None
+
+
 def line_text(line: List[Piece]) -> str:
     return "".join(piece.text if piece.icon is None and piece.style != -2 else "" for piece in line).strip()
 
@@ -359,6 +383,12 @@ def check_entry(ua: str, ru: str, entry: dict, geo: Optional[Geometry], widths: 
         problems.append(("WORD", f"does not fit its pane box, shown on the column instead: {reason}"))
     if len(lines) > line_count:
         problems.append(("LINES", f"needs {len(lines)} lines, the paragraph has {line_count}"))
+    # The build places the lines on the paragraph's panes; a paragraph it cannot place is not measured for width.
+    if not geo.fixed and len(lines) <= len(geo.lines) and geo.panes:
+        over = pane_overflow(lines, geo.panes)
+        if over:
+            problems.append(("PANES", f"out of panes for style {over[0]} (the original has {over[1]})"))
+            return problems
     # The gate skips the column check for every small paragraph, the column fallback included.
     if geo.pane_model or not budget:
         return problems
