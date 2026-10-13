@@ -6,6 +6,7 @@ bytes again. Reads the owner's manual source only (env PICORIPI_ROMHACKING); wri
 """
 import difflib
 import json
+import sys
 import time
 
 import pytest
@@ -17,6 +18,18 @@ from main import MainWindow
 PLUGIN = "manual_3ds"
 MANUAL_DIR = ("_shared", "3ds_sysfont_ua", "repo_manual", "src", "manuals")
 MANUAL_FILE = "activity_log.json"
+
+
+@pytest.fixture
+def restore_plugin_modules():
+    """The host drops and re-imports a plugin's modules when it loads it. Put the old module objects back afterwards,
+    so the other tests of this plugin keep the classes they imported."""
+    prefix = f"plugins.{PLUGIN}"
+    saved = {name: module for name, module in sys.modules.items() if name == prefix or name.startswith(prefix + ".")}
+    yield
+    for name in [n for n in sys.modules if n == prefix or n.startswith(prefix + ".")]:
+        del sys.modules[name]
+    sys.modules.update(saved)
 
 
 def _pump(qapp, seconds, until):
@@ -36,6 +49,7 @@ def _save(mw, qapp):
 
 @pytest.mark.skipif(romhacking_root.missing(*MANUAL_DIR) is not None,
                     reason=romhacking_root.missing(*MANUAL_DIR) or "")
+@pytest.mark.usefixtures("restore_plugin_modules")
 def test_edit_save_revert_save_gives_back_the_original_file(qtbot, qapp, tmp_path, monkeypatch):
     original = romhacking_root.path(*MANUAL_DIR, MANUAL_FILE).read_bytes()
     document = json.loads(original.decode("utf-8"))
