@@ -1023,9 +1023,10 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 ## 3DS manual preview (`manual_3ds`, 2026-10-13)
 
-- Not drawn: the page screenshots (ETC1 textures in `EUR_xx_texture.arc`) and the page backgrounds (`*_bg` layouts); each picture pane is a grey box. Decode BCLIM ETC1 to draw them.
+- Done (phase 3): the page screenshots are drawn from their BCLIM textures (page archive, then `Common_texture.arc`); a texture that cannot be decoded stays a grey box.
+- Not drawn: the page backgrounds (`*_bg` layouts) and the window panes (`wnd1`): the orange item frames, the numbered title bars and the tab bar.
 - Not drawn: the orange item frames behind the numbered titles, the neighbouring pages at the screen sides (grey strips), and the viewer's own tab text when the heading is not in the selected part (Large or Small).
-- Glyphs come from the system font `cbf_std` in black; the console's grey anti-aliasing is not copied, so ink is heavier than on the console.
+- Glyphs come from the system font `cbf_std`, drawn in the console ink (60, 60, 60); the anti-aliasing is the font's own, not the console's.
 - Sub-pages K are stacked by their own area heights; checked on one console screenshot (Page 2, Small) only, with a 14 px vertical offset of the viewer's first row. Other pages are not compared.
 - Scroll is by pixel steps with no momentum; the Y button is a click target only (no controller input in the panel).
 - Untranslated paragraphs (empty `ua`) draw nothing in the preview.
