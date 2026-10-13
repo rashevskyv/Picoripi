@@ -1066,5 +1066,4 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - ExeFS `code.bin` is decoded from BLZ when the exheader says so (`nitro.blz_decompress`). Verified against the Update CIA. The base Majora's Mask 3D code differs from the workspace, because the workspace ExeFS is the Update build (D30 addendum). Copy of Princess (text in `code.bin`) is not wired yet.
 - No plugin is wired for 3DS, Switch or Wii. Retail `.cia` files are encrypted, and the decrypted dumps are not a plugin input.
 - Wii U: not done (no reader, no key).
-- The wizard prompt also appears for an encrypted Switch file that a plugin may never unpack. Revisit when a Switch plugin exists.
-- 3DS seed crypto (games whose NCCH key comes from a seed: Layton Miracle Mask, Dragon Quest VII/VIII, Corpse Party and others): not in the reader. It needs the seed database too.
+- The wizard asks for a key only for kinds in `images.UNPACK_KINDS` (3DS today; no Switch or Wii prompt). The 3DS prompt still does not check the chosen plugin: no plugin unpacks 3DS yet. A per-plugin declaration needs a new `BaseGameRules` hook; add it when a plugin unpacks a 3DS, Switch or Wii image.- 3DS seed crypto (games whose NCCH key comes from a seed: Layton Miracle Mask, Dragon Quest VII/VIII, Corpse Party and others): not in the reader. It needs the seed database too.
