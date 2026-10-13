@@ -11,6 +11,8 @@ import os
 from typing import Any, Dict, Optional
 
 from core.containers import ContainerManager
+from core.i18n import tr
+from core.project_library import images
 from plugins.common import gc_banner as banner
 from plugins.common.msbt import MAGIC as MSBT_MAGIC, Msbt
 from plugins.zelda_ww.tags import TAG_RE as HD_TAG_RE, from_editor, to_editor
@@ -85,6 +87,17 @@ class GameRules(TwilightPrincessRules):
         self._msbt: Optional[Msbt] = None             # an HD MSBT file loaded for a family project (None: a BMG)
         self._msbt_save: Optional[Msbt] = None        # the MSBT the save in progress writes over
         ContainerManager.register(DolResources, (".dol",))   # disc-error messages and font in main.dol
+
+    # Project Manager: the GameCube disc (USA) is extracted whole into sys\ and files\, as zt/gc.py does.
+    def get_platforms(self) -> list:
+        return [{"id": "gc", "label": tr("GameCube")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return images.base_identity(path, ("GZLE01",))
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        return images.extract(base, target_dir, progress, is_cancelled) if base else None
 
     def get_display_name(self) -> str:
         """Get the display name."""

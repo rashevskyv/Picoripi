@@ -20,8 +20,10 @@ from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
 from core.containers import ContainerManager
+from core.i18n import tr
+from core.project_library import images
 
-from . import game_over, kmsg, manual
+from . import game_over, kmsg, manual, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .packs import CmpPack, ZeldatPack
 from .tag_manager import TagManager
@@ -101,6 +103,17 @@ class GameRules(BaseGameRules):
         self._arm9: Optional[bytes] = None
         ContainerManager.register(CmpPack)       # the graphics packs (Tools -> Textures)
         ContainerManager.register(ZeldatPack)
+
+    # Project Manager: the cartridge (Europe) is read by core/project_library/images.py; unpack.py picks the files.
+    def get_platforms(self) -> list:
+        return [{"id": "nds", "label": tr("Nintendo DS")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return images.base_identity(path, ("KQ9V",))
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        return unpack.extract(base, target_dir, progress, is_cancelled) if base else None
 
     def get_display_name(self) -> str:
         return "Zelda: Four Swords Anniversary Edition"

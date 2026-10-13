@@ -26,6 +26,7 @@ State: `done` is on `origin/main`; `branch` is finished on a branch and waits fo
 | A7 | Work Together, v3: the log is the truth, local files are a replica; offline-first journal (exchange file, shared folder, any reachable room); build stamp (hash of the translation state and the unsynced edits in every build manifest); block-hash check at start | next | after A6; owner decided 2026-10-12 | D22 |
 | A16 | Thin client: observers get a read-only web page from the room server; a full web editor later (the server must run all the time, e.g. a VPS) | idea | needs the A6 op API and A7 | D22 |
 | A17 | AI through the room: the server holds the key and ticks "AI for participants", a user ticks "send AI requests through the server" and may enter an own key (own key wins); limits per participant, spend counters per participant (no texts, no key), access by role | next | after A6; owner decided 2026-10-12 | D22 |
+| A18 | Unpack in Picoripi: phase 1 (GameCube and Nintendo DS images unpacked by the wizard, no keys); phase 2 (console key file per console, Wii and 3DS and Switch images) | doing | phase 1 in integration round 11; phase 2 not started | `docs/DECISIONS.md` D30, `docs/OPEN_ITEMS.md` |
 | A8 | Family projects: one project per game family, plugin decides what is shared, "<version> only" folders | done | TP, WW, DX; the family engine has a command line, the interface is A9 | D25, D26, D27 |
 | A9 | Family UI: several folders or images per project, roles of files recognised by the plugin | next | needs A2 and A8 merged | `docs/PROJECT_MANAGER_PHASE2.md` |
 | A10 | Project Manager, phase 2 (wizard, unpack recipes, build, export, run, flags) | done | on `origin/main`; integration round 10 (`origin/main` 0e1cf802): Dolphin view and scan process, game icons, Super Metroid, Silent Hill menu language, Oracles, Donkey Kong x3; real plugin hooks per game come with each plugin | `docs/PROJECT_MANAGER_PHASE2.md` |
@@ -34,7 +35,6 @@ State: `done` is on `origin/main`; `branch` is finished on a branch and waits fo
 | A13 | Reference files under `source/reference` must not become blocks | doing | separate session | |
 | A14 | Hygiene: personal paths in tracked files, provenance of widths tables, slow test on `origin/main` | doing | tests done (guard test, `romhacking_root`); left: personal paths in non-test tracked files, widths provenance | `docs/REVIEW_QUEUE.md` |
 | A15 | macOS and Linux checks (no `.exe` or `.bat` assumptions in app code) | idea | | |
-| A18 | Unpack in Picoripi: images without keys first, then 3DS, Switch, Wii and Wii U with keys located per console | doing | on `feat/unpack-images` (another agent) | `docs/PROJECT_MANAGER_PHASE2.md` |
 
 ## Games (readiness: opens, saves, builds, boots with a visible edit)
 
@@ -55,7 +55,7 @@ The per-game table is the status page generated from `_shared/status/*.json`. In
 3. A11, A13, A14 in between rounds.
 4. Integration round 10 is done (`origin/main` 0e1cf802; see A10).
 5. `feat/manual-3ds-plugin` waits for the owner.
-6. A18 (unpack in Picoripi) runs on `feat/unpack-images`.
+6. A18 (unpack in Picoripi): phase 1 in integration round 11, then phase 2.
 
 ## How a package moves
 

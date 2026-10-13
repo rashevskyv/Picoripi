@@ -1057,6 +1057,7 @@ when you create, open or import it.
 
 - **Add:** press `+`. Choose New project (a wizard), Add existing project (a `project.uiproj` file), or Import projects from a folder. **File → New Project** (Ctrl+N) opens the same wizard.
 - **New project wizard:** choose the game, then add the files. The game's plugin reads each file and sets its role (for example base game or update) and its platform. Change them if needed. Then choose the project folder. The originals are not copied; the project refers to them by path. When the game needs unpacking, the wizard unpacks into the project folder. Cancel stops the unpacking and removes what it wrote.
+- **Unpacking:** a GameCube disc (ISO or GCM) or a Nintendo DS ROM (`.nds`) is unpacked into the folder `unpacked` inside the project folder. Picoripi recognises the file by its content. The game's plugin decides which files it keeps. RVZ, WIA, NKit and Wii files are not read yet: convert them to a plain ISO first. A game that needs no unpacking, for example a Game Boy Advance ROM, uses the file as it is.
 - **Import:** finds `picoripi/project.uiproj` files under a folder. Folders named `_…` or `.…` are skipped. Duplicates and unreadable projects start unchecked. Each series folder becomes one manager folder.
 - **Folders:** create your own folders. Right-click a project → Move to folder. Deleting a folder moves its projects to the top level.
 - **Order:** the last opened project is always at the top. Group and sort choices are saved.

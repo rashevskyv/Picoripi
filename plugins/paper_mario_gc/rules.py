@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from utils.constants import user_plugin_file_or_shipped
 from utils.logging_utils import log_debug, log_warning
@@ -119,6 +121,17 @@ class GameRules(BaseGameRules):
         self._map_stamp: Optional[tuple] = None
         self.translation_map: Dict[str, str] = {}
         self.reverse_translation_map: Dict[str, str] = {}
+
+    # Project Manager: the GameCube disc (USA) is extracted whole into sys\ and files\, as zt/ttyd.py does.
+    def get_platforms(self) -> list:
+        return [{"id": "gc", "label": tr("GameCube")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return images.base_identity(path, ("G8ME01",))
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        return images.extract(base, target_dir, progress, is_cancelled) if base else None
 
     def get_display_name(self) -> str:
         return "Paper Mario: The Thousand-Year Door"

@@ -11,6 +11,8 @@ from __future__ import annotations
 import struct
 from typing import Dict
 
+from core.containers.nds import walk_fnt
+
 
 class RomError(ValueError):
     """The ROM is not laid out the way this module expects, or a file is not in it."""
@@ -28,24 +30,7 @@ def _crc16(data: bytes) -> int:
 def nitro_ids(rom: bytes) -> Dict[str, int]:
     """``{path: file id}`` of the NitroFS (the file name table at the header's FNT offset)."""
     fnt = struct.unpack_from("<I", rom, 0x40)[0]
-    found: Dict[str, int] = {}
-
-    def walk(dir_id: int, prefix: str) -> None:
-        sub, first = struct.unpack_from("<IH", rom, fnt + (dir_id & 0xFFF) * 8)
-        at, file_id = fnt + sub, first
-        while rom[at]:
-            length = rom[at] & 0x7F
-            name = rom[at + 1:at + 1 + length].decode("ascii", "replace")
-            if rom[at] & 0x80:
-                walk(struct.unpack_from("<H", rom, at + 1 + length)[0], prefix + name + "/")
-                at += 3 + length
-            else:
-                found[prefix + name] = file_id
-                file_id += 1
-                at += 1 + length
-
-    walk(0xF000, "")
-    return found
+    return walk_fnt(memoryview(rom)[fnt:])
 
 
 def nitro_files(rom: bytes) -> Dict[str, bytes]:
