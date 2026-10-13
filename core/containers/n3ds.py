@@ -26,6 +26,7 @@ CODE_PACKED_BIT = 0x01
 NO_ENTRY = 0xFFFFFFFF
 MAX_FILES = 200_000          # guards the file walks against a corrupt table
 MAX_TMD = 0x10000
+MAX_CODE = 64 << 20          # a packed ExeFS code section is read whole for BLZ decoding; no real program is near this
 SIG_SIZES = {0x10000: 0x240, 0x10001: 0x140, 0x10002: 0x80, 0x10003: 0x240, 0x10004: 0x140, 0x10005: 0x80}
 LABEL = "Nintendo 3DS"
 
@@ -73,7 +74,7 @@ def _cia_program(reader: ImageReader, head: bytes) -> Program:
     tik_off = _align(hsize, 0x40) + _align(cert, 0x40)
     tmd_off = tik_off + _align(tik, 0x40)
     con_off = tmd_off + _align(tmd, 0x40)
-    if tik > MAX_TMD or tmd > MAX_TMD or tmd < 0x10:
+    if not 4 <= tik <= MAX_TMD or not 0x10 <= tmd <= MAX_TMD:
         raise ImageError("the CIA metadata has a bad size")
     ticket = reader.read_at(tik_off, tik)
     meta = reader.read_at(tmd_off, tmd)
@@ -175,6 +176,8 @@ class N3dsImage(ImageReader):
             # The names of the workspace (3dstool): ".code" is "exefs/code.bin". A packed code section is BLZ in the
             # image; the exheader flag says so, and the file is decoded as it is written.
             decode = blz_decompress if code_packed and name == ".code" else None
+            if decode is not None and length > MAX_CODE:   # a decoded code section is read whole: bound it
+                raise ImageError("the packed code section is too large")
             files.append(ImageFile(f"exefs/{name.lstrip('.')}.bin", start + 0x200 + offset, length, decode))
         return files
 

@@ -207,3 +207,18 @@ def test_bytes_that_are_no_3ds_image_are_not_identified(tmp_path):
     with pytest.raises(ImageError, match="not a GameCube or Nintendo DS image"):
         with images.open_image(path):
             pass
+
+
+def test_cia_with_an_empty_ticket_is_refused_with_the_reason():
+    cia = bytearray(build_cia(build_ncch()))
+    struct.pack_into("<I", cia, 0x0C, 0)                  # ticket size 0
+
+    with pytest.raises(ImageError, match="bad size"):
+        n3ds.N3dsImage(io.BytesIO(bytes(cia)))
+
+
+def test_packed_code_section_over_the_size_limit_is_refused(monkeypatch):
+    monkeypatch.setattr(n3ds, "MAX_CODE", 16)
+
+    with pytest.raises(ImageError, match="packed code section is too large"):
+        n3ds.N3dsImage(io.BytesIO(build_cci(build_ncch(packed=True))))

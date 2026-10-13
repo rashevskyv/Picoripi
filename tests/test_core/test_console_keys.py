@@ -2,13 +2,14 @@
 
 No key bytes appear here: the tests write placeholder files and check which path the store keeps.
 """
+import io
 import json
 import struct
 
 import pytest
 
-from core.containers import console_crypto, switch_images
-from core.containers.image_files import ImageError
+from core.containers import console_crypto, image_files, switch_images
+from core.containers.image_files import ImageError, ImageReader
 from core.project_library import build, console_keys, images, plugin_facts
 from utils import constants
 from test_core.test_n3ds_image import build_cci, build_ncch
@@ -111,6 +112,14 @@ def test_switch_cartridge_is_recognised_but_its_title_is_not_read(tmp_path):
 
     assert images.identify(path) == {"kind": "switch", "game_id": "", "title_id": "", "encrypted": True,
                                      "title_kind": ""}
+
+
+def test_switch_pfs0_name_table_over_the_limit_is_refused(monkeypatch):
+    monkeypatch.setattr(image_files, "MAX_TABLE", 8)
+    data = b"PFS0" + struct.pack("<III", 0, 16, 0) + bytes(16)
+
+    with pytest.raises(ImageError, match="too large"):
+        switch_images.locate(ImageReader(io.BytesIO(data)), data)
 
 
 def test_title_kind_of_a_switch_title():

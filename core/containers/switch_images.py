@@ -26,7 +26,7 @@ def _pfs0_files(reader: ImageReader) -> List[Dict[str, Any]]:
     if count > 4096:
         raise ImageError("the PFS0 archive lists too many files")
     entries = reader.read_at(0x10, count * 0x18)
-    names = reader.read_at(0x10 + count * 0x18, strtab_size)
+    names = reader.read_table(0x10 + count * 0x18, strtab_size)
     data_base = 0x10 + count * 0x18 + strtab_size
     files: List[Dict[str, Any]] = []
     for index in range(count):
