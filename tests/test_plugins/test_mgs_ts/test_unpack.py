@@ -145,6 +145,16 @@ def test_two_discs_write_the_common_files_once_and_each_disc_its_own_subtitles(t
     assert (target / "common" / "codec.dat").read_bytes() == b"codec"
 
 
+def test_a_stage_name_that_is_not_a_file_name_is_refused(tmp_path):
+    tree = disc_tree(demo_container())
+    # a stage name that climbs out of the output folder (8 bytes, the stage.dat name field)
+    tree["stage.dat"] = stage_dat([("..\\..\\e", stage([(0x06180720, gcx_file())]))])
+    disc = _write(tmp_path / "d1.iso", gc_disc(tree, disc=0))
+    with pytest.raises(ImageError, match="unsafe file name"):
+        _unpack(tmp_path, {"disc1": disc})
+    assert not (tmp_path / "e.gcx").exists()
+
+
 def test_a_common_file_that_differs_on_disc2_goes_to_disc2(tmp_path):
     first = _write(tmp_path / "d1.iso", gc_disc(disc_tree(demo_container(), codec=b"codec one"), disc=0))
     second = _write(tmp_path / "d2.iso", gc_disc(disc_tree(demo_container(), codec=b"codec two"), disc=1))

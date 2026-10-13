@@ -60,6 +60,16 @@ def test_tactics_a2_archive_reads_a_single_file_member():
     assert a2.PcArchive(bytes(idx), data).read(name) == blob
 
 
+def test_tactics_a2_member_cut_short_by_the_archive_end_is_refused():
+    name = "system/rom/a.bin"
+    idx = bytearray(8 + 9 * 1024)
+    struct.pack_into("<I", idx, 0, 1024)
+    words = 2                                                   # claims 8 bytes, the archive has 4
+    struct.pack_into("<II", idx, 8 + 9 * a2.name_hash(name), (0x40 // 2) | words << 26, words >> 6)
+    with pytest.raises(ImageError, match="ends after the end"):
+        a2.PcArchive(bytes(idx), bytes(0x40) + b"abcd").read(name)
+
+
 def test_tactics_a2_join_puts_magic_kind_index_and_data_in_order():
     assert a2.a2_join("T", b"IDX", b"DATA") == b"A2MS" + b"T" + struct.pack("<I", 3) + b"IDX" + b"DATA"
 

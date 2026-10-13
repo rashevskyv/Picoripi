@@ -178,8 +178,15 @@ def decompress(data: bytes, is_cancelled: Optional[Callable[[], bool]] = None) -
     wpos = 0
     out = bytearray()
     next_check = _CANCEL_EVERY
+    limit = None
 
     while True:
+        # The first four decoded bytes give the size of the rest. A valid stream ends with its end token at exactly
+        # that size; more output than that is a corrupt stream, refused here so it cannot grow without limit.
+        if limit is None and len(out) >= 4:
+            limit = 4 + int.from_bytes(out[:4], "big")
+        if limit is not None and len(out) > limit:
+            raise ValueError("the *SK_ASC* stream is longer than its size")
         if is_cancelled is not None and len(out) >= next_check:
             next_check += _CANCEL_EVERY
             if is_cancelled():

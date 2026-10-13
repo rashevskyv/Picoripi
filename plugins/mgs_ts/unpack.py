@@ -21,7 +21,7 @@ import struct
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Set, Tuple
 
-from core.containers.image_files import ImageError
+from core.containers.image_files import ImageError, check_name
 from core.project_library import images
 from plugins.mgs_ts import subtitles
 from plugins.mgs_ts.stage_dat import StageDatContainer
@@ -203,7 +203,8 @@ def _stage_pieces(data: bytes) -> Iterator[Tuple[str, str, int, bytes]]:
             continue
         blob = container.read_file(member)
         if (kind == "gcx" and _gcx_has_text(blob)) or (kind == "fnt" and _is_font(blob)):
-            yield member.split("/", 1)[0], kind, word, blob
+            # The stage name comes from stage.dat's table: it becomes a file name, so it is checked as one.
+            yield check_name(member.split("/", 1)[0]), kind, word, blob
 
 
 def _gcx_has_text(blob: bytes) -> bool:

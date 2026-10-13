@@ -115,6 +115,17 @@ def test_a_member_in_two_archives_must_have_the_same_bytes(tmp_path):
         unpack.extract(str(rom), str(tmp_path / "out"), lambda *_: None, lambda: False)
 
 
+def test_an_archive_member_that_climbs_out_of_the_folder_is_refused(tmp_path):
+    # the path passes the text-folder rule ("txt" and "uk"), then climbs out of the output folder
+    main = _gfsa([("txt/../../uk/", [("evil.cb", _stored(GSD_TEXT))])])
+    rom = tmp_path / "rom.nds"
+    rom.write_bytes(nds_rom({"lt4_main_uk.fa": main, "lt4_seq.fa": _gfsa(), "lt4_sub.fa": _gfsa()},
+                            title=b"LAYTON4", code=b"BLFP"))
+    with pytest.raises(ImageError, match="unsafe file name"):
+        unpack.extract(str(rom), str(tmp_path / "out"), lambda *_: None, lambda: False)
+    assert not (tmp_path / "uk" / "evil.cb").exists()
+
+
 PB_ROM = ("Professor Layton", "Pandora's Box", "DS", "ISO", "Professor Layton and Pandora's Box (Europe).nds")
 PB_SOURCE = ("Professor Layton", "Pandora's Box", "DS", "source")
 SC_ROM = ("Professor Layton", "Spectre's Call", "ISO", "Professor Layton and the Spectre's Call (Europe).nds")

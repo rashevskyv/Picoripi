@@ -76,6 +76,8 @@ class PcArchive:
             if not found:
                 raise ImageError(f"{name} is not in master/pc.bin")
             offset, size = found[0][:2]
+        if offset + size > len(self.data):
+            raise ImageError(f"{name} ends after the end of master/pc.bin")
         return bytes(self.data[offset:offset + size])
 
 

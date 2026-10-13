@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
 from core.containers import level5
-from core.containers.image_files import ImageError, ImageFile
+from core.containers.image_files import ImageError, ImageFile, check_name
 from core.project_library import images
 from .formats import Document
 
@@ -138,11 +138,22 @@ class _Gfsa:
             a, b = struct.unpack_from("<II", files, 8 * index)
             offset = ((b >> 16) & 0xFFF) << 18 | (a >> 16) << 2
             size = (b >> 28) << 16 | (b & 0xFFFF)
-            self.files[(folder[index] + file_names[index]).decode("shift-jis")] = (offset, size)
+            member = (folder[index] + file_names[index]).decode("shift-jis")
+            self.files[_safe_member(member)] = (offset, size)
 
     def read(self, member: str) -> bytes:
         offset, size = self.files[member]
-        return self.raw[self.data_at + offset:self.data_at + offset + size]
+        start = self.data_at + offset
+        if start + size > len(self.raw):
+            raise ImageError(f"{member} ends after the end of its archive")
+        return self.raw[start:start + size]
+
+
+def _safe_member(member: str) -> str:
+    """A member path of an archive, each part checked as a file name: no traversal, no device name."""
+    for part in member.split("/"):
+        check_name(part)
+    return member
 
 
 def _put(target_dir: str, rel: str, data: bytes) -> None:

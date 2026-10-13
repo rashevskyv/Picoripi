@@ -85,7 +85,14 @@ class Pak:
             return raw
         if raw[4:5] != b"\x78":
             raise ValueError(f"{res.type} {res.key}: only zlib resources are read (Prime 1)")
-        return zlib.decompress(raw[4:])
+        # The u32 in front is the size after decompression: stop one byte past it, so a bad stream cannot grow
+        # without limit, and a size that does not match is an error.
+        size = struct.unpack_from(">I", raw, 0)[0]
+        packer = zlib.decompressobj()
+        body = packer.decompress(raw[4:], size + 1)
+        if len(body) != size or packer.unconsumed_tail:
+            raise ValueError(f"{res.type} {res.key}: the size after decompression does not match")
+        return body
 
 
 def _label(name: str, prefix: str, key: str) -> str:
