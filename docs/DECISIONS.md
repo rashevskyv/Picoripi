@@ -448,7 +448,7 @@ the base), so a unit shared by three consoles is stored once. The user supplies 
 members is valid. The CLI (`python -m plugins.zelda_bmg.family`) is a thin wrapper over the same plan.
 **Cost.** Each plugin implements its own recognition and reading. Recognition by message-count fingerprint is
 exact for the sources on disk, and a new revision of a game needs a new fingerprint. The match key is the editor text
-by default; a plugin with different tag syntax per console must normalise it first (open: Wind Waker, see D25 status).
+by default; a plugin with different tag syntax per console must normalise it first (Wind Waker: solved in D27).
 
 ## D26. Family project folders: "Shared" and "<version> only", for every version alike (2026-10-12)
 

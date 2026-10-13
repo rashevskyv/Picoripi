@@ -19,7 +19,7 @@ from plugins.base_game_rules import BaseGameRules
 from . import lng
 
 # Game Boy Color ROM, English v1.0 (the rule of zelda_ladx accept()): the source ROM by SHA-1, or a translated ROM
-# by its header title. The GBC plugin is on its own branch; its code is imported only when the GBC member is read.
+# by its header title. The GBC plugin (zelda_ladx) is imported only when the GBC member is read.
 GBC_SIZE = 0x100000
 GBC_SHA1 = "d90ac17e9bf17b6c61624ad9f05447bdb5efc01a"
 # PC HD v1.0.0 language files: (size, FNV-1a 64) of eng.lng, then dialog_eng.lng. The content decides the member.
