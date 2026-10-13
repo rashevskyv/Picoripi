@@ -1,0 +1,18 @@
+{
+    "display_name": "Monster Hunter Portable 3rd HD (PSP, Yakumo)",
+    "default_tag_mappings": {},
+    "block_names": {},
+    "block_color_markers": {},
+    "newline_display_symbol": "↵",
+    "newline_css": "color: #A020F0; font-weight: bold;",
+    "tag_css": "color: rgba(128, 128, 128, 128); font-style: italic;",
+    "bracket_tag_color_hex": "#8da3b4",
+    "show_multiple_spaces_as_dots": true,
+    "space_dot_color_hex": "#808080",
+    "preview_wrap_lines": false,
+    "editors_wrap_lines": false,
+    "game_dialog_max_width_pixels": 600,
+    "line_width_warning_threshold_pixels": 600,
+    "autofix_enabled": {},
+    "detection_enabled": {}
+}

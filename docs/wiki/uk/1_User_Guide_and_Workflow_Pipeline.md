@@ -947,6 +947,7 @@ tokens: 54.0k
      `data\Menu\EndRoll\*.nut` (рядки в лапках), чотири шрифти `*.bffnt` (кольоровий RGBA4 `break_font`) і картинки
      BFLIM у SARC-макетах `data\Layout\**\*.arc` (логотип `title\upper\title_logo.arc`). Рядки, що патч лишив
      японськими, видно. `2_build.bat` кладе змінені файли в мод Luma `romfs`.
+   - `mhp3rd` — Monster Hunter Portable 3rd HD (образ PSP NPJB-40001, порт Yakumo для ПК). **Джерело:** папка `source` містить `en_source.json`, який збирає `tools/build_source_lang.py` з вашого образу PSP і англійського патча; ключі `TABLE:INDEX` (квести `ref:offset`). **Переклад:** `translation/uk.json`; `2_build.bat` записує `uk.lang` у папку перекладів Yakumo, диск не змінюється. Ще не готово: написи екрана створення персонажа (їх немає у вилучених блоках) і вибір шрифту (`text.font` у `settings.ini` Yakumo). **Потрібна версія Yakumo:** збірка з коміту 43190f0 або новішого (випущені збірки alpha.4 і alpha.5 не читають файли перекладу).
    - `monster_hunter_3ds` — Monster Hunter 3 Ultimate, Monster Hunter 4 Ultimate і Monster Hunter Stories
      (3DS, Європа; Capcom MT Framework Mobile). **Source:** тека `source` робочої теки (`1_unpack.bat`
      розшифровує гру й виймає англійські та спільні для всіх мов файли з архівів `.arc` за шляхами самої гри;
