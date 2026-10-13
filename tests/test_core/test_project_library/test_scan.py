@@ -4,11 +4,13 @@ Projects use the real ``plain_text`` plugin folder (so the card has no missing-p
 explicit fakes passed to ``scan.run``. The last test starts the real child process.
 """
 import json
+import os
+import sys
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage
 
-from core.project_library import index, scan
+from core.project_library import index, plugin_facts, scan
 from core.project_library.scan import ICON_FILE_NAME
 from plugins.base_game_rules import BaseGameRules
 from ui.project_manager.scan_process import ScanProcess
@@ -102,6 +104,40 @@ def test_a_changed_translation_file_recounts_only_its_project(tmp_path):
     assert index.read(tmp_path / "data")["k1"]["counts"]["translated"] == 1
 
 
+def test_a_parser_or_version_change_recounts_the_project(tmp_path, monkeypatch):
+    projects = [("k1", _project(tmp_path, "one"))]
+    _scan(tmp_path / "data", projects)
+    monkeypatch.setattr(plugin_facts, "APP_VERSION", "9.9.9-test")
+
+    events, summary = _scan(tmp_path / "data", projects)
+
+    assert [event["key"] for event in _of(events, "counts")] == ["k1"]
+    assert summary["counted"] == 1
+
+
+def test_the_signature_follows_the_plugin_code_and_the_shared_code_only(tmp_path):
+    folder = tmp_path / "plugins"
+    for name in ("fake", "other", "common"):
+        (folder / name).mkdir(parents=True)
+    (folder / "fake" / "rules.py").write_text("A = 1\n", encoding="utf-8")
+    (folder / "other" / "rules.py").write_text("B = 1\n", encoding="utf-8")
+    (folder / "common" / "shared.py").write_text("C = 1\n", encoding="utf-8")
+    project = _project(tmp_path, "one", plugin="fake")
+
+    first = plugin_facts.input_signature(project, folder)
+    assert plugin_facts.input_signature(project, folder) == first
+
+    (folder / "other" / "rules.py").write_text("B = 22\n", encoding="utf-8")
+    assert plugin_facts.input_signature(project, folder) == first  # another plugin does not count
+
+    (folder / "fake" / "rules.py").write_text("A = 22\n", encoding="utf-8")
+    changed = plugin_facts.input_signature(project, folder)
+    assert changed != first  # the parser of this plugin changed
+
+    (folder / "common" / "shared.py").write_text("C = 22\n", encoding="utf-8")
+    assert plugin_facts.input_signature(project, folder) not in (first, changed)  # shared code too
+
+
 def test_a_project_whose_plugin_is_missing_gets_the_flag_and_no_count(tmp_path):
     project = _project(tmp_path, "one", plugin="no_such_plugin_folder")
 
@@ -161,3 +197,113 @@ def test_the_real_child_process_reports_the_protocol_and_ends(qtbot, tmp_path):
     assert blocker.args == [True]
     assert [event["event"] for event in events][-1] == "done"
     assert _of(events, "card")[0]["card"]["name"] == "Empty"
+
+
+def test_a_cancel_stops_the_scan_after_the_project_in_progress(tmp_path):
+    projects = [("k1", _project(tmp_path, "one")), ("k2", _project(tmp_path, "two")), ("k3", _project(tmp_path, "three"))]
+    stop = {"now": False}
+    events = []
+
+    def emit(event):
+        events.append(event)
+        if event["event"] == "counts":
+            stop["now"] = True  # the window asks for a stop after the first count
+
+    summary = scan.run(str(tmp_path / "data"), projects, emit, lambda: stop["now"], load_rules=_loader(LineRules()))
+
+    assert summary["cancelled"] is True
+    assert [event["key"] for event in _of(events, "counts")] == ["k1"]
+    stored = index.read(tmp_path / "data")
+    assert "counts" in stored["k1"]
+    assert "counts" not in stored["k2"] and "counts" not in stored["k3"]  # cards are cached for all, counts for one
+
+
+def _pipe_with(data):
+    read_fd, write_fd = os.pipe()
+    os.write(write_fd, data)
+    os.close(write_fd)  # the end of the pipe, as when the window is gone
+    return read_fd
+
+
+def test_the_child_reads_the_job_line_and_a_cancel_line_after_it():
+    from core.project_library.scan_child import _read_job
+
+    read_fd = _pipe_with(b'{"data_dir": "d", "projects": []}\ncancel\n')
+    try:
+        job, rest = _read_job(read_fd)
+    finally:
+        os.close(read_fd)
+
+    assert job == {"data_dir": "d", "projects": []}
+    assert rest == b"cancel\n"
+
+
+def test_the_child_sets_cancel_on_a_cancel_line_and_at_the_end_of_the_pipe():
+    import threading
+
+    from core.project_library.scan_child import _watch_stdin
+
+    cancelled = threading.Event()
+    read_fd = _pipe_with(b"other\ncancel\n")
+    try:
+        _watch_stdin(read_fd, b"", cancelled)
+    finally:
+        os.close(read_fd)
+    assert cancelled.is_set()
+
+    closed = threading.Event()
+    read_fd = _pipe_with(b"no cancel line\n")
+    try:
+        _watch_stdin(read_fd, b"", closed)
+    finally:
+        os.close(read_fd)
+    assert closed.is_set()  # the end of the pipe means the window is gone
+
+
+def test_a_real_child_stops_between_projects_when_the_window_cancels(qtbot, tmp_path):
+    projects = [("k%d" % number, _project(tmp_path, "p%d" % number)) for number in range(200)]
+    process = ScanProcess(None)
+    events = []
+    process.event_received.connect(events.append)
+
+    with qtbot.waitSignal(process.stopped, timeout=90000) as blocker:
+        assert process.start(str(tmp_path / "data"), projects)
+        qtbot.waitUntil(lambda: len(_of(events, "counts")) >= 1, timeout=60000)
+        process.cancel()
+
+    assert blocker.args == [False]
+    done = _of(events, "done")[0]
+    assert done["cancelled"] is True
+    assert done["counted"] < len(projects)  # the child stopped, it was not killed (no done without a clean end)
+
+
+def test_a_child_that_ignores_the_cancel_is_killed_after_the_grace_time(qtbot, monkeypatch, tmp_path):
+    from ui.project_manager import scan_process
+
+    monkeypatch.setattr(scan_process, "CANCEL_GRACE_MS", 100)
+    stubborn = [sys.executable, "-c", "import sys, time; sys.stdin.readline(); time.sleep(600)"]
+    process = ScanProcess(None, command=stubborn)
+
+    with qtbot.waitSignal(process.stopped, timeout=60000) as blocker:
+        assert process.start(str(tmp_path / "data"), [])
+        process.cancel()
+
+    assert blocker.args == [False]
+    assert not process.running()
+
+
+def test_stderr_lines_of_the_child_reach_the_app_log_as_warnings(qtbot, monkeypatch, tmp_path):
+    from ui.project_manager import scan_process
+
+    warnings = []
+    monkeypatch.setattr(scan_process, "log_warning", warnings.append)
+    child = ("import sys; sys.stdin.readline(); "
+             "sys.stderr.write('Project index set aside as x\\n'); sys.stderr.flush(); "
+             "print('{\"event\": \"done\", \"cancelled\": false}')")
+    process = ScanProcess(None, command=[sys.executable, "-c", child])
+
+    with qtbot.waitSignal(process.stopped, timeout=60000) as blocker:
+        assert process.start(str(tmp_path / "data"), [])
+
+    assert blocker.args == [True]
+    assert "Project scan: Project index set aside as x" in warnings

@@ -1,8 +1,10 @@
 """The window's side of the scan process: starts ``core.project_library.scan_child``, reads its JSON lines, stops it.
 
 It uses ``QProcess`` signals on the window's own thread, so the window never waits for the child and no worker thread
-shares the child's work. Each line of the child's output becomes one ``event`` signal. Stopping the scan kills the child;
-what it already wrote to the index stays, and the next scan picks up from there.
+shares the child's work. Each line of the child's output becomes one ``event`` signal; each line of its stderr (plugin
+prints, the child's warnings) goes to the app log as a warning. Cancel asks the child to stop between projects; the
+child that has not ended after ``CANCEL_GRACE_MS`` is killed. Closing the window kills it at once. What the child already
+wrote to the index stays, and the next scan picks up from there.
 """
 from __future__ import annotations
 
@@ -10,13 +12,15 @@ import json
 import sys
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from PyQt6.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
+from PyQt6.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
 
 from utils.constants import plugins_root
 from utils.logging_utils import log_error, log_warning
 
 SCAN_MODULE = "core.project_library.scan_child"
 STOP_WAIT_MS = 1500  # the close of the window waits at most this long for the child to end
+CANCEL_GRACE_MS = 2000  # after a cancel the child has this long to stop between projects, then it is killed
+ERROR_LINE_MAX = 500  # a stderr line is logged up to this many characters
 
 
 class ScanProcess(QObject):
@@ -30,9 +34,13 @@ class ScanProcess(QObject):
         self._command: List[str] = list(command) if command else [sys.executable, "-m", SCAN_MODULE]
         self._process: Optional[QProcess] = None
         self._buffer = b""
+        self._error_buffer = b""
         self._done = False
         self._cancelled = False
         self._errors: List[str] = []
+        self._grace = QTimer(self)
+        self._grace.setSingleShot(True)
+        self._grace.timeout.connect(self._kill_after_grace)
 
     def running(self) -> bool:
         return self._process is not None
@@ -57,31 +65,43 @@ class ScanProcess(QObject):
         process.errorOccurred.connect(self._on_error)
         self._process = process
         self._buffer = b""
+        self._error_buffer = b""
         self._done = False
         self._cancelled = False
         self._errors = []
         payload = {"data_dir": str(data_dir), "projects": [[key, path] for key, path in projects]}
         process.start()
-        process.write(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
-        process.closeWriteChannel()
+        # The write channel stays open: a line "cancel" on it is how the window stops the child.
+        process.write((json.dumps(payload, ensure_ascii=False) + "\n").encode("utf-8"))
         return True
 
     def cancel(self) -> None:
-        """Stop the scan now. ``stopped`` is emitted with False when the child has ended."""
-        if self._process is not None:
-            self._cancelled = True
-            self._process.kill()
+        """Ask the child to stop between projects. It is killed if it has not ended after ``CANCEL_GRACE_MS``.
+        ``stopped`` is emitted with False when the child has ended."""
+        process = self._process
+        if process is None or self._cancelled:
+            return
+        self._cancelled = True
+        process.write(b"cancel\n")
+        self._grace.start(CANCEL_GRACE_MS)
 
     def shutdown(self, wait_ms: int = STOP_WAIT_MS) -> None:
         """Kill the child at once and wait a little for it. Called when the window closes."""
         process = self._process
         if process is None:
             return
+        self._grace.stop()
         self._cancelled = True
         process.kill()
         process.waitForFinished(wait_ms)
         self._process = None
         process.deleteLater()
+
+    def _kill_after_grace(self) -> None:
+        """The fallback of ``cancel``: the child did not stop between projects in time."""
+        if self._process is not None:
+            log_warning("Project scan did not stop in time; the scan process is killed.")
+            self._process.kill()
 
     # ----- child output -----
     def _read_output(self) -> None:
@@ -108,17 +128,31 @@ class ScanProcess(QObject):
     def _read_errors(self) -> None:
         if self._process is None:
             return
-        text = bytes(self._process.readAllStandardError()).decode("utf-8", errors="replace")
-        self._errors.extend(line for line in text.splitlines() if line.strip())
-        del self._errors[:-20]  # keep the last lines only
+        self._error_buffer += bytes(self._process.readAllStandardError())
+        while b"\n" in self._error_buffer:
+            line, self._error_buffer = self._error_buffer.split(b"\n", 1)
+            self._log_error_line(line)
+
+    def _log_error_line(self, line: bytes) -> None:
+        text = line.decode("utf-8", errors="replace").strip()
+        if not text:
+            return
+        self._errors.append(text)
+        del self._errors[:-20]  # keep the last lines for the message of a failed scan
+        log_warning(f"Project scan: {text[:ERROR_LINE_MAX]}")
 
     def _on_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
         if self._process is None:
             return
+        self._grace.stop()
         self._read_output()
         if self._buffer.strip():
             self._emit_line(self._buffer)
             self._buffer = b""
+        self._read_errors()
+        if self._error_buffer.strip():
+            self._log_error_line(self._error_buffer)
+            self._error_buffer = b""
         process = self._process
         self._process = None
         finished_ok = self._done and not self._cancelled and exit_code == 0
