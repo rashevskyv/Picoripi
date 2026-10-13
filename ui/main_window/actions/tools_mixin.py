@@ -65,7 +65,11 @@ class MainWindowToolsActionsMixin:
         """The Work Together window; the room lives in ``mw.collab_handler`` from the first use on."""
         from handlers.collab_handler import ensure_collab_handler
         from ui.collab_dialog import CollabDialog
+        from ui.collab_menu import install_tree_menu
         handler = ensure_collab_handler(self.mw)
+        tree = getattr(self.mw, 'block_list_widget', None)
+        if tree is not None:
+            install_tree_menu(handler, tree)           # the room's actions on the block tree (once per tree)
         dialog = getattr(self.mw, 'collab_dialog', None)
         if dialog is None:
             dialog = CollabDialog(self.mw, handler)
