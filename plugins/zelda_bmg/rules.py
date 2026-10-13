@@ -6,6 +6,8 @@ import re
 import json
 from typing import Any, Tuple, Dict, List, Set, Optional
 
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_info, log_warning, log_debug, log_error
 from utils.utils import convert_spaces_to_dots_for_display
@@ -205,6 +207,20 @@ class GameRules(BaseGameRules):
         rules = make_rules(Path(project_dir) if project_dir else None)  # a fresh rules object: no shared load state
         plan, _units = plan_for_sources(sources, rules)
         return plan
+
+    # Project Manager: the GameCube disc (USA) is unpacked whole; the project's source is its res/Msgus folder.
+    def get_platforms(self) -> list:
+        return [{"id": "gc", "label": tr("GameCube")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return images.base_identity(path, ("GZ2E01",))
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        return images.extract(base, target_dir, progress, is_cancelled) if base else None
+
+    def get_source_subfolder(self) -> Optional[str]:
+        return "files/res/Msgus"
 
     def get_file_formats(self) -> list:
         """Message files (.bmg) and bitmap fonts (.bfn) are binary."""

@@ -14,12 +14,14 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.containers import ContainerManager
 from core.containers.nitro import NarcContainer
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from plugins.common import gen4msg
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
-from . import ds_text
+from . import ds_text, unpack
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -103,6 +105,17 @@ class GameRules(BaseGameRules):
         self._msg_file: Optional[bytes] = None          # the ROM bank a save writes over (raw lines, codec)
         self._bank: Optional[gen4msg.Bank] = None
         self._codec: Optional[gen4msg.Codec] = None
+
+    # Project Manager: the cartridge (USA) is read by core/project_library/images.py; unpack.py picks the files.
+    def get_platforms(self) -> list:
+        return [{"id": "nds", "label": tr("Nintendo DS")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return images.base_identity(path, ("ADAE", "APAE", "CPUE", "IPKE", "IPGE"))
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        return unpack.extract(base, target_dir, progress, is_cancelled) if base else None
 
     def get_display_name(self) -> str:
         return "Pokémon Diamond, Pearl, Platinum, HeartGold and SoulSilver (DS)"

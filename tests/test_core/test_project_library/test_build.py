@@ -1,11 +1,14 @@
 """Unpack, build, export, emulator command, project flags and the registry setting of the Project Manager."""
 import json
 import os
+import struct
+from pathlib import Path
 
 import pytest
 
 from core.project_library import build, flags, registry
 from plugins.base_game_rules import BaseGameRules
+from plugins.castlevania_gba.rules import GameRules as GbaRules
 from plugins.plain_text.rules import GameRules as PlainTextRules
 
 
@@ -166,3 +169,90 @@ def test_registry_keeps_only_known_settings(tmp_path):
     reloaded = registry.Registry(registry.read(tmp_path))
     assert reloaded.settings() == {"emulator_command": "emu {path}"}
     assert "openai_key" not in json.dumps(registry.read(tmp_path))
+
+
+class TreeRules(BuildingRules):
+    """Writes a disc-like tree: a boot file and the Msgus archives under files/res/Msgus."""
+
+    def unpack_sources(self, sources, target_dir, progress, is_cancelled):
+        folder = os.path.join(target_dir, "files", "res", "Msgus")
+        os.makedirs(folder)
+        with open(os.path.join(folder, "bmgres.arc"), "w", encoding="utf-8") as handle:
+            handle.write("arc")
+        with open(os.path.join(target_dir, "boot.bin"), "w", encoding="utf-8") as handle:
+            handle.write("boot")
+        return target_dir
+
+    def get_source_subfolder(self):
+        return "files/res/Msgus"
+
+
+def test_source_subfolder_becomes_the_project_source(tmp_path):
+    result = build.run_unpack(TreeRules(), {"base": "x"}, tmp_path, lambda p, t: None, _no_cancel)
+
+    assert result == str(tmp_path / "unpacked" / "files" / "res" / "Msgus")
+    assert (Path(result) / "bmgres.arc").read_text(encoding="utf-8") == "arc"
+    assert (tmp_path / "unpacked" / "boot.bin").exists()
+
+
+def test_missing_source_subfolder_fails_and_leaves_no_folder(tmp_path):
+    class WrongSubfolder(TreeRules):
+        def get_source_subfolder(self):
+            return "files/res/Msguk"
+
+    with pytest.raises(ValueError):
+        build.run_unpack(WrongSubfolder(), {"base": "x"}, tmp_path, lambda p, t: None, _no_cancel)
+
+    assert list(tmp_path.iterdir()) == []
+
+
+def _gamecube_image(path: Path) -> Path:
+    """A file the image reader recognises as a GameCube disc. It holds only the header, nothing else."""
+    head = bytearray(0x440)
+    head[0:6] = b"GZ2E01"
+    struct.pack_into(">I", head, 0x1C, 0xC2339F3D)
+    path.write_bytes(bytes(head))
+    return path
+
+
+def test_game_image_fails_before_writing_when_the_drive_is_too_small(tmp_path, monkeypatch):
+    image = _gamecube_image(tmp_path / "disc.iso")
+    monkeypatch.setattr(build, "_free_bytes", lambda path: 100 * build.MB)
+
+    with pytest.raises(ValueError, match="Not enough free space"):
+        build.run_unpack(BuildingRules(), {"base": str(image)}, tmp_path / "project", lambda p, t: None, _no_cancel)
+
+    assert not (tmp_path / "project").exists()
+
+
+def test_game_image_passes_when_the_room_covers_the_image_and_its_margin(tmp_path, monkeypatch):
+    image = _gamecube_image(tmp_path / "disc.iso")
+    needed = image.stat().st_size + build.MIN_MARGIN
+    monkeypatch.setattr(build, "_free_bytes", lambda path: needed)
+
+    result = build.run_unpack(BuildingRules(), {"base": str(image)}, tmp_path / "project", lambda p, t: None,
+                              _no_cancel)
+
+    assert result == str(tmp_path / "project" / "unpacked")
+
+
+def test_plain_file_is_not_checked_for_room(tmp_path, monkeypatch):
+    rom = tmp_path / "game.gba"
+    rom.write_bytes(b"\0" * 0x100)
+    monkeypatch.setattr(build, "_free_bytes", lambda path: 0)
+
+    assert build.run_unpack(GbaRules(), {"base": str(rom)}, tmp_path / "project", lambda p, t: None,
+                            _no_cancel) is None
+
+
+def test_gba_rom_is_used_as_it_is_when_the_plugin_unpacks_nothing(tmp_path):
+    rom = tmp_path / "game.gba"
+    data = bytes(range(256))
+    rom.write_bytes(data)
+    project = tmp_path / "project"
+
+    result = build.run_unpack(GbaRules(), {"base": str(rom)}, project, lambda p, t: None, _no_cancel)
+
+    assert result is None
+    assert rom.read_bytes() == data
+    assert list(project.iterdir()) == []

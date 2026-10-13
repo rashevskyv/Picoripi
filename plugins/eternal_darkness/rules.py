@@ -13,11 +13,13 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.containers import ContainerManager
 from core.containers.base_container import BaseArchiveContainer
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.tag_manager import GenericTagManager
 from utils.logging_utils import log_warning
 
-from . import edtext
+from . import edtext, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 _TAG_HELP = {"a": "colour", "i": "button or icon", "s": "text scale", "n": "line break", "r": "line code",
@@ -86,6 +88,17 @@ class GameRules(BaseGameRules):
 
     def get_display_name(self) -> str:
         return "Eternal Darkness: Sanity's Requiem"
+
+    # Project Manager: the disc (USA) is read by core/project_library/images.py; unpack.py picks the files.
+    def get_platforms(self) -> list:
+        return [{"id": "gc", "label": tr("GameCube")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return images.base_identity(path, ("GEDE01",))
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        return unpack.extract(base, target_dir, progress, is_cancelled) if base else None
 
     def get_file_formats(self) -> list:
         from core.formats import FileFormat

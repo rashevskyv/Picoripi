@@ -99,6 +99,10 @@ class GameRules(TwilightPrincessRules):
         base = sources.get("base")
         return images.extract(base, target_dir, progress, is_cancelled) if base else None
 
+    def get_source_subfolder(self) -> Optional[str]:
+        """The whole disc is the source (the Twilight Princess base class names a subfolder)."""
+        return None
+
     def get_display_name(self) -> str:
         """Get the display name."""
         return "Zelda: The Wind Waker (GameCube BMG)"

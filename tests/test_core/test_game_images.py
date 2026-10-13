@@ -214,3 +214,32 @@ def test_four_swords_plugin_takes_its_files(tmp_path):
     assert folder == str(tmp_path / "out")
     # The synthetic ROM has a.bin and sub/b.bin, neither in the Four Swords set; only main.arm9 is kept.
     assert sorted(p.name for p in (tmp_path / "out").rglob("*") if p.is_file()) == ["main.arm9"]
+
+
+def test_nkit_gamecube_disc_is_read_as_it_is(tmp_path):
+    plain = bytearray(_gc_disc())
+    nkit = bytearray(plain)
+    nkit[0x200:0x204] = b"NKIT"            # the NKit marker; the layout stays the same
+    (tmp_path / "plain.iso").write_bytes(bytes(plain))
+    (tmp_path / "nkit.iso").write_bytes(bytes(nkit))
+
+    assert images.identify(tmp_path / "nkit.iso") == {"kind": "gc", "game_id": "TSTE01"}
+    with images.open_image(tmp_path / "plain.iso") as first, images.open_image(tmp_path / "nkit.iso") as second:
+        assert [(e.path, e.size) for e in first.entries()] == [(e.path, e.size) for e in second.entries()]
+
+
+def test_wii_and_unknown_nkit_images_are_refused_with_the_reason(tmp_path):
+    wii = bytearray(0x440)
+    struct.pack_into(">I", wii, images.WII_MAGIC_AT, images.WII_MAGIC)
+    (tmp_path / "wii.iso").write_bytes(bytes(wii))
+    other = bytearray(0x440)
+    other[0x200:0x204] = b"NKIT"
+    (tmp_path / "other.iso").write_bytes(bytes(other))
+
+    assert images.identify(tmp_path / "wii.iso") is None
+    with pytest.raises(ImageError, match="Wii image"):
+        with images.open_image(tmp_path / "wii.iso"):
+            pass
+    with pytest.raises(ImageError, match="unknown kind"):
+        with images.open_image(tmp_path / "other.iso"):
+            pass

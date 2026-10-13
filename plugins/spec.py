@@ -182,6 +182,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("unpack_sources", "Unpack the role files into an empty folder: progress(percent, text) and "
              "is_cancelled() are passed in. Returns the folder, or None to use the files as they are.",
              call=None, returns=str, optional=True),
+        Hook("get_source_subfolder", "Folder of the unpacked tree that is the project's source root, e.g. "
+             "files/res/Msgus (slash path). Default: None, the whole unpacked folder.",
+             call=(), returns=str, optional=True),
         Hook("get_build_targets", "What the game can build: [{id, label, platforms, kind}] with kind files, patch "
              "or layeredfs. Empty: the Build, Export and Run buttons stay off.", call=(), returns=list),
         Hook("build_target", "Write one build target into an empty output folder and return the result path. "

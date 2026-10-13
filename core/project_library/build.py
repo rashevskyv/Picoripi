@@ -12,6 +12,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from core.i18n import tr
+from core.project_library import images
 from utils.logging_utils import log_info
 
 Progress = Callable[[int, str], None]
@@ -20,6 +22,8 @@ Cancelled = Callable[[], bool]
 UNPACKED_NAME = "unpacked"
 BUILD_DIR_NAME = "build"
 PLACEHOLDER = "{path}"
+MB = 1024 * 1024
+MIN_MARGIN = 256 * MB   # the room an unpack needs beyond the image: 10 % of its size or this, whichever is larger
 
 
 class Cancel(Exception):
@@ -45,10 +49,13 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
                progress: Progress, is_cancelled: Cancelled) -> Optional[str]:
     """Unpack the role files of a new project into ``project_dir/unpacked``.
 
-    Returns the final folder, or None when the plugin needs no unpacking. Raises ``Cancel`` when the user cancelled;
-    the temporary folder is then removed and nothing else is touched.
+    Returns the project's source folder, or None when the plugin needs no unpacking. That is the unpacked folder,
+    or its subfolder from ``get_source_subfolder``. Raises ``Cancel`` when the user cancelled; the temporary folder
+    is then removed and nothing else is touched. Raises ``ValueError`` before writing when the drive has too little
+    room for a game image, or when the unpacked tree lacks the source subfolder.
     """
     project = Path(project_dir)
+    _check_free_space(project, sources)
     temporary = project / f".unpack-{uuid.uuid4().hex}"
     temporary.mkdir(parents=True, exist_ok=False)
     try:
@@ -58,13 +65,42 @@ def run_unpack(rules: Any, sources: Dict[str, str], project_dir: str | os.PathLi
         if result is None:
             _remove_own(temporary)
             return None
+        subfolder = rules.get_source_subfolder()
+        parts = subfolder.split("/") if subfolder else []
+        if parts and not temporary.joinpath(*parts).is_dir():
+            raise ValueError(tr("The unpacked files have no folder {0}.", subfolder))
         final = _unique_sibling(project, UNPACKED_NAME)
         os.replace(temporary, final)
         log_info(f"Unpacked {len(sources)} source files into {final}.")
-        return str(final)
+        return str(final.joinpath(*parts))
     except BaseException:
         _remove_own(temporary)
         raise
+
+
+def _free_bytes(path: Path) -> int:
+    """Free bytes on the drive of ``path``, or of its nearest existing parent."""
+    probe = path
+    while not probe.exists() and probe != probe.parent:
+        probe = probe.parent
+    return shutil.disk_usage(probe).free
+
+
+def _check_free_space(project: Path, sources: Dict[str, str]) -> None:
+    """Fail before anything is written when the drive cannot hold the unpacked files of a game image.
+
+    Only game images (a GameCube or Nintendo DS disc or cartridge) need the room. Any other file is used as it is,
+    so it is not checked. The room is the image size plus 10 % of it, or ``MIN_MARGIN``, whichever is larger.
+    """
+    found = [path for path in sources.values() if images.identify(path) is not None]
+    if not found:
+        return
+    size = sum(os.path.getsize(path) for path in found)
+    needed = size + max(size // 10, MIN_MARGIN)
+    free = _free_bytes(project)
+    if free < needed:
+        raise ValueError(tr("Not enough free space on {0}: unpacking needs about {1} MB, and {2} MB is free.",
+                            str(project), str(-(-needed // MB)), str(free // MB)))
 
 
 def run_build(rules: Any, target_id: str, project_dir: str | os.PathLike, source_dir: str, translation_dir: str,

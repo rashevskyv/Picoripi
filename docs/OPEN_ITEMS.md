@@ -43,7 +43,7 @@ the line when it is done or moved into a plan.
 - Open: a change to the core parsers (`core/formats.py`) without a version bump does not recount; the signature covers the plugin folders and the version only (D28).
 - Owner to confirm: `plugins/mario_vs_donkey_kong_switch/msbp.json` (4428 lines) is the game's own message project converted to JSON; it may ship publicly only if the owner agrees (D29: game art is never committed).
 - Owner: `feat/manual-3ds-plugin` waits for the owner.
-- A18 (unpack in Picoripi) runs on `feat/unpack-images` (another agent). Its row was added to `docs/ROADMAP.md` in the follow-up branch.
+- A18 (unpack in Picoripi): phase 1 is in integration round 11; phase 2a runs on `feat/unpack-2a` (see the open items at the end of this file). Phase 2b (console key file, Wii, 3DS, Switch) is not started.
 
 ## Integration round 9 (2026-10-13)
 - Merged on `integrate/ready-2026-10-13` from origin/main 670e8b63: `feat/pm-phase2`, `feat/data-folder-guard`, `feat/collab-claims`, `feat/family-projects`, `feat/family-projects-ui`, `feat/family-ww`, `feat/zelda-ladx-dx`, `feat/ladx-family`, `feat/ladx-hd`, `feat/zelda-ds`, `feat/mhp3rd-lang`, `feat/sly-cooper`, `feat/ss-shared`, `docs/roadmap`. Not pushed.
@@ -1044,10 +1044,16 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 ## Unpack in Picoripi (phase 1, 2026-10-13)
 - Phase 2: the console key file (D30 has the owner's rule). Wii, Wii U, 3DS and Switch images need it. Wii discs need a partition reader too.
-- RVZ, WIA, NKit and Wii images are not read; the zt scripts still convert them with DolphinTool or wit. The wizard says so and asks for an ISO.
-- Not wired (D30 lists the reason): Eternal Darkness, Twin Snakes, Metroid Prime GameCube, Castlevania DS, Pokemon DS, Layton DS, Tactics A2, Dragon Quest IX.
-- Twilight Princess GameCube: owner decides the source root. A whole-disc project has 17 blocks; the workspace project (`res/Msgus`) has 10.
-- The new project takes the unpacked folder as its source root; a plugin cannot yet name a subfolder. Paper Mario keeps the same count (260) with longer block names.
+- RVZ, WIA, Wii and NKit images of other kinds are not read; the zt scripts still convert them with DolphinTool or wit. The wizard says so and asks for an ISO. NKit GameCube discs are read as they are (D30 addendum).
+- Phase 2a is wired (D30 addendum). Recorded differences, not fixed (the workspaces are not regenerated):
+  - Curious Village (Layton DS): the unpack writes 65 more `.gds` scripts than the workspace has (465 text files against 400 blocks). The plugin gives rows for them, and the current zt agrees.
+  - SoulSilver (Gen 4): `a/1/3/3` differs from the HeartGold-based workspace. The HeartGold output matches it.
+  - Lost Future (Layton DS): two stale workspace files (`lt3/fnt/font_en1.cbin`, `font_en2.cbin`) are not produced; the current zt takes only `.cfnt`.
+  - Gen 4 and Gen 5 workspaces keep the old layout (`files/msgdata/msg`, `res/text`, 623 to 828 files) that the current zt does not write.
+- Twilight Princess GameCube: the project source is `files/res/Msgus` (10 archives, equal to the workspace, 10 blocks). The whole-disc block count from the earlier note (17) was not measured. PAL and JP discs are not recognised.
+- Eternal Darkness: the unpack takes about 330 s on one thread (zt uses a 7-process pool). Only the USA disc (GEDE01) is recognised.
+- Metroid Prime GameCube: no `identify_source`, so the wizard takes the role from the user. The PAL disc (GM8P01) is not supported.
+- Metal Gear Twin Snakes: the Europe discs (GGSPA4) are not recognised.
+- Eternal Darkness and Metroid Prime real-data results come from the helper's full runs; the Eternal Darkness full run was not repeated in phase 2a review.
 - Phantom Hourglass workspace `source` is 4 files behind the current `zt/zelda_ds.py` (three `resChild2nd.bin` files for English, French and Spanish, and `Menu/UI_main/opening.bin`). Owner decides whether to rerun its `1_unpack`.
 - Revenant Wings workspace project lists 55 blocks; the same source gives 59 with the current scan (four `.dpk` blocks). Owner decides whether to rebuild that project.
-- The wizard does not check free space before a 1.4 GB disc is unpacked into the project folder.
