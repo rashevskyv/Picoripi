@@ -10,9 +10,11 @@ sent back and not put on the undo stack.
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import socket
+import threading
 import time
 from functools import partial
 from pathlib import Path
@@ -49,41 +51,111 @@ LOG_KEEP = 500
 
 
 def settings_path() -> Path:
-    """Name, port, last address, the participant token per name and the rooms the user saved (with their passwords,
-    as the AI keys are kept). Read at call time: tests move SETTINGS_DIR."""
+    """Name, port, last address, the room tokens and the rooms the user saved (with their passwords, as the AI keys are
+    kept). Read at call time: tests move SETTINGS_DIR."""
     return constants.SETTINGS_DIR / "collab.json"
 
 
-def load_settings() -> Dict[str, Any]:
+# The file is read once per process and kept as a copy: a save changes the copy at once, and a worker writes the file.
+_settings_lock = threading.Lock()
+_settings_copy: Optional[Tuple[Path, Dict[str, Any]]] = None   # the file as this process last read or saved it
+_settings_writing = False      # a SettingsFile worker is running
+_settings_newer = False        # a save came after that worker took its copy: it writes once more
+
+
+def _read_settings(path: Path) -> Dict[str, Any]:
     try:
-        data = json.loads(settings_path().read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
     except (OSError, ValueError):
         return {}
 
 
+def load_settings() -> Dict[str, Any]:
+    global _settings_copy
+    path = settings_path()
+    with _settings_lock:
+        if _settings_copy is None or _settings_copy[0] != path:
+            _settings_copy = (path, _read_settings(path))
+        return copy.deepcopy(_settings_copy[1])
+
+
+class SettingsFile(WorkerThread):
+    """``collab.json`` written off the UI thread. It writes the newest copy; a save made meanwhile is written after it."""
+
+    def run(self) -> None:
+        global _settings_writing, _settings_newer
+        while True:
+            with _settings_lock:
+                path, data = _settings_copy
+                _settings_newer = False
+            # Tokens of an earlier version were kept by name, with no room to belong to: they are dropped here.
+            kept = {key: value for key, value in data.items() if key != "tokens"}
+            try:
+                atomic_write_json(path, kept, ensure_ascii=False, indent=1)
+            except OSError as exc:
+                log_debug(f"Collab: settings not saved: {exc}")
+            with _settings_lock:
+                if not _settings_newer:
+                    _settings_writing = False
+                    return
+
+
 def save_settings(**values: Any) -> None:
-    data = {**load_settings(), **values}
-    try:
-        atomic_write_json(settings_path(), data, ensure_ascii=False, indent=1)
-    except OSError as exc:
-        log_debug(f"Collab: settings not saved: {exc}")
+    """Change the settings now; the file follows from a worker, so the UI thread never waits for the disk."""
+    global _settings_copy, _settings_writing, _settings_newer
+    path = settings_path()
+    with _settings_lock:
+        base = _settings_copy[1] if _settings_copy is not None and _settings_copy[0] == path else _read_settings(path)
+        _settings_copy = (path, {**base, **values})
+        if _settings_writing:
+            _settings_newer = True
+            return
+        _settings_writing = True
+    SettingsFile().start()
 
 
-def saved_token(name: str) -> Optional[str]:
-    """This computer's participant token for ``name`` (the room gives the same member back for it)."""
-    tokens = load_settings().get("tokens")
-    value = tokens.get(name) if isinstance(tokens, dict) else None
+def settings_idle() -> bool:
+    """True when every saved change has reached the file (tests wait for it)."""
+    with _settings_lock:
+        return not _settings_writing
+
+
+TOKENS_KEY = "room_tokens"     # {address: {"room_id": id, "names": {name: token}}}
+
+
+def _address_key(address: str) -> str:
+    """A room's identity on this computer: its address, in lower case, without the scheme or a trailing slash."""
+    value = address.strip().lower()
+    for scheme in ("http://", "https://"):
+        if value.startswith(scheme):
+            value = value[len(scheme):]
+    return value.rstrip("/")
+
+
+def saved_token(address: str, name: str) -> Optional[str]:
+    """This computer's token for ``name`` in the room at ``address``. A token is sent only to the address it was kept for."""
+    rooms = load_settings().get(TOKENS_KEY)
+    room = rooms.get(_address_key(address)) if isinstance(rooms, dict) else None
+    names = room.get("names") if isinstance(room, dict) else None
+    value = names.get(name) if isinstance(names, dict) else None
     return value if isinstance(value, str) and value else None
 
 
-def remember_token(name: str, token: Optional[str]) -> None:
-    """Keep the token of a new identity; written only when it changes (the join is on the UI thread)."""
-    if not token or saved_token(name) == token:
+def remember_token(address: str, room_id: Optional[str], name: str, token: Optional[str]) -> None:
+    """Keep the token of ``name`` in the room at ``address``. Another room id at that address (a new room) starts the
+    names over; a room at another address never reads or changes these tokens."""
+    if not token or not room_id:
         return
-    tokens = dict(load_settings().get("tokens") or {})
-    tokens[name] = token
-    save_settings(tokens=tokens)
+    key = _address_key(address)
+    rooms = load_settings().get(TOKENS_KEY)
+    rooms = dict(rooms) if isinstance(rooms, dict) else {}
+    room = rooms.get(key) if isinstance(rooms.get(key), dict) else {}
+    names = room.get("names") if room.get("room_id") == room_id and isinstance(room.get("names"), dict) else {}
+    if names.get(name) == token:
+        return
+    rooms[key] = {"room_id": room_id, "names": {**names, name: token}}
+    save_settings(**{TOKENS_KEY: rooms})
 
 
 ENDPOINTS_KEY = "endpoints"
@@ -321,17 +393,18 @@ class CollabHandler(QObject):
         room = self.server.room
         # The host is the member with the creation token. Whoever starts the room takes the host role, unless this
         # computer's saved token already is the room's host (a restart of the same room keeps the same host).
-        token = saved_token(name)
+        address = f"127.0.0.1:{self.server.port}"
+        token = saved_token(address, name)
         if not (token and room.is_host_token(token)):
             token = room.owner_token_plain or room.issue_owner_token(name)
         save_settings(name=name, port=self.server.port)
-        self._connect(f"127.0.0.1:{self.server.port}", name, password, token=token)
+        self._connect(address, name, password, token=token)
         return self.server.port
 
     def join(self, address: str, password: str, name: str) -> None:
         self.leave()
         save_settings(name=name, address=address)
-        self._connect(address, name, password, token=saved_token(name))
+        self._connect(address, name, password, token=saved_token(address, name))
 
     def _connect(self, address: str, name: str, password: str, token: Optional[str] = None) -> None:
         self._build_positions()
@@ -474,7 +547,7 @@ class CollabHandler(QObject):
         if generation is not None and (generation != self._generation or self.client is None):
             return                                         # the rows of a room that was left
         if getattr(self.client, "name", None):
-            remember_token(self.client.name, data.get("token"))
+            remember_token(self.client.base_url, data.get("room_id"), self.client.name, data.get("token"))
         self.role = data.get("role")
         self.log = list(data.get("log") or [])
         self._room_id = str(data.get("room_id") or "")

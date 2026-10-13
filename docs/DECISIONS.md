@@ -272,7 +272,9 @@ the host's own computer.
   gets the same member back, with its role, claims and operation high-water mark. The same name with another token is
   refused while the first is online. A removed token is refused at join, not only at the next poll.
 - **Creation token.** A room starts with a creation token; the first joiner that presents it becomes the host. The
-  in-app host keeps its token in `collab.json` per name. When that token is not the room's host, the app issues a new
+  in-app host keeps its token in `collab.json` per room address and name (a host restarted on another port starts
+  with a new token). A token is sent only to the address it was kept for; a new room at an address starts its names
+  over; tokens kept by name by an earlier version are dropped. When that token is not the room's host, the app issues a new
   creation token and the previous host becomes a moderator, so the room stays manageable.
 - **Claims.** A scope is a project, folder, file, block, row or virtual folder. The client sends the row keys under
   the scope; a claim on a folder covers every row inside it. The server keeps a row-to-claim index and the smallest
@@ -342,7 +344,9 @@ the host's own computer.
 - **Saved rooms.** The user may tick "Remember this room": the address, the name and the password go to the computer's
   settings (`collab.json`, next to the AI keys in `settings.json`). The list is empty on a fresh profile; a saved room
   connects only when the user presses Connect. A test checks that a fresh profile makes no network call and that the
-  password never reaches the project folder.
+  password never reaches the project folder. Settings are kept as a copy in memory: a save changes the copy at once,
+  and `SettingsFile` (a worker) writes the file, so no save waits for the disk on the UI thread. Reading the file
+  happens once per process, on first use.
 - **Error texts.** The room sends English on the wire. The window shows `tr(text)` of each text; every text the room can
   send is a catalog key (a test reads `core/collab/server.py` and checks the keys).
 

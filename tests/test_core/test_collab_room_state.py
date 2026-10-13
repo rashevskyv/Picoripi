@@ -70,10 +70,12 @@ def test_the_host_transfers_the_role_and_becomes_a_moderator(qtbot, pair):
     qtbot.waitUntil(lambda: any(e["action"] == "host_transferred" for e in b.collab_handler.log), timeout=5000)
 
 
-def test_the_token_is_kept_for_the_name_and_saved_on_this_computer(qtbot, pair):
+def test_the_token_is_kept_for_the_name_and_the_room_address_on_this_computer(qtbot, pair):
     a, b = _host_and_guest(qtbot, pair)
-    assert saved_token("Guest") == b.collab_handler.client.token
-    assert saved_token("Host") == a.collab_handler.client.token
+    address = f"127.0.0.1:{a.collab_handler.server.port}"
+    assert saved_token(address, "Guest") == b.collab_handler.client.token
+    assert saved_token(address, "Host") == a.collab_handler.client.token
+    assert saved_token("10.0.0.9:8765", "Guest") is None     # a room at another address gets none of these tokens
 
 
 def test_a_refused_edit_puts_the_room_text_back_and_says_why(qtbot, pair):

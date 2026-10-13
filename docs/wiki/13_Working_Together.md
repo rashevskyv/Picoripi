@@ -112,9 +112,9 @@ the host or a moderator when they join; the other participants see those comment
 **Approval.** A reviewer, a moderator or the host presses **Approve** in the bar above the editor. A later change of the
 row's text removes the approval.
 
-**Identity.** Your token for each name is kept on this computer in `~/.picoripi/collab.json` (never the password). Join
-with the same name on the same computer and you get your role back. While you are online, another computer cannot join
-with your name.
+**Identity.** Your token is kept on this computer for each room address and name, in `~/.picoripi/collab.json` (never the
+password). Join the same address with the same name and you get your role back. A token is never sent to another
+address. While you are online, another computer cannot join with your name.
 
 **Removing a participant.** **Remove from room** blocks the participant's token and its name until a host or a moderator
 presses **Allow back**. The room password still lets anyone in under a new name, so change the password to keep someone
