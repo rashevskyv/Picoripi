@@ -1,12 +1,14 @@
 """Game images for a plugin's unpack step: recognise a GameCube or Nintendo DS image, and write its files to a folder.
 
 ``identify`` reads only the first 0x440 bytes, by content, never by file name. ``extract`` writes the files a plugin
-asks for, in the folder layout of the zt scripts' ``source`` folder. Formats this module does not read (RVZ, WIA,
-NKit, Wii) raise ``ImageError`` with the reason: a plugin reports it, and never converts an image.
+asks for, in the folder layout of the zt scripts' ``source`` folder. NKit GameCube discs are read as they are (the
+layout is the same). Formats this module does not read (RVZ, WIA, Wii, NKit of other kinds) raise ``ImageError``
+with the reason: a plugin reports it, and never converts an image.
 All functions run on a worker thread: they read and write files, never touch widgets.
 """
 from __future__ import annotations
 
+import struct
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Container, Dict, Iterator, Optional, Sequence
@@ -20,6 +22,8 @@ Cancelled = Callable[[], bool]
 
 KIND_GC = "gc"
 KIND_NDS = "nds"
+WII_MAGIC_AT = 0x18          # a Wii disc keeps its magic here; a GameCube disc keeps its magic at 0x1C
+WII_MAGIC = 0x5D1C9EA3
 _UNSUPPORTED = {
     b"RVZ\x01": "an RVZ image: convert it to a plain ISO first",
     b"WIA\x01": "a WIA image: convert it to a plain ISO first",
@@ -51,6 +55,7 @@ def base_identity(path: str | Path, game_codes: Container[str]) -> Optional[Dict
 def _reader(stream: Any) -> ImageReader:
     head = stream.read(HEADER_SIZE)
     stream.seek(0)
+    # An NKit GameCube disc keeps the GameCube header and layout, so the GameCube reader reads it as it is.
     if is_gamecube_header(head):
         return GameCubeImage(stream)
     if is_nds_header(head):
@@ -58,8 +63,10 @@ def _reader(stream: Any) -> ImageReader:
     for magic, reason in _UNSUPPORTED.items():
         if head.startswith(magic):
             raise ImageError(f"Picoripi cannot read {reason}")
-    if len(head) >= 0x200 and head[0x200:0x204] == b"NKIT":
-        raise ImageError("an NKit image: convert it to a plain ISO first")
+    if len(head) >= HEADER_SIZE and struct.unpack_from(">I", head, WII_MAGIC_AT)[0] == WII_MAGIC:
+        raise ImageError("a Wii image: Picoripi does not read Wii images yet")
+    if len(head) >= 0x204 and head[0x200:0x204] == b"NKIT":
+        raise ImageError("an NKit image of an unknown kind: convert it to a plain ISO first")
     raise ImageError("not a GameCube or Nintendo DS image")
 
 

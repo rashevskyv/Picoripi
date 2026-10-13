@@ -1021,6 +1021,15 @@ class BaseGameRules:
         """
         return None
 
+    def get_source_subfolder(self) -> Optional[str]:
+        """The folder of the unpacked tree that is the project's source root, e.g. ``files/res/Msgus``.
+
+        Use it when the unpacked tree holds more than the game's text, so a new project starts from the folder its
+        workspace uses. The path uses ``/`` and is relative to the unpacked folder. The host fails the unpack when
+        that folder is missing. Default: None, the whole unpacked folder is the source.
+        """
+        return None
+
     def get_build_targets(self) -> List[Dict[str, Any]]:
         """What the game can build, as ``[{"id": ..., "label": ..., "platforms": [...], "kind": ...}]``.
 

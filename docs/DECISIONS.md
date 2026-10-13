@@ -590,3 +590,31 @@ or a cartridge in the app.
 - A new project takes the unpacked folder as its source root. A workspace project that points at a subfolder
   (Paper Mario `files\msg\US`) gets the same block count, with longer block names.
 - Platform labels go through `tr()` (`locales/uk.json`). Plugins add no dependency.
+
+**Addendum (phase 2a, 2026-10-13).** Wires the zt steps that do more than copy files, with readers already in Picoripi
+(NARC, GFSA, Retro PAK, Level-5, the plugins' own parsers). Logic is ported, nothing shells out to zt.
+- Wired: Pokemon Diamond/Pearl/Platinum/HeartGold/SoulSilver (Gen 4), Black/White and Black 2/White 2 (Gen 5: text
+  banks split per NARC member), Professor Layton DS (GFSA members of Spectre's Call, decompressed Level-5 files),
+  Castlevania DS (string bank as `strings.cvdstext`), Final Fantasy Tactics A2 (`pc.bin` members, read by a
+  PcArchive port), Dragon Quest IX (GPC2 name filter, the same rule as Infinite Space), Eternal Darkness (EDASC decoder
+  in `core/containers/edasc.py`; the encoder is not ported), Metroid Prime GameCube (`metroid_prime_trilogy` plugin,
+  MP1 package reader in its `unpack.py`; returns None for any other disc), Metal Gear Solid: The Twin Snakes (two
+  roles, `disc1` and `disc2`, identified by the disc number in the header; one disc alone also works), and Twilight
+  Princess GameCube (whole disc; see the source root below).
+- Source root hook: `get_source_subfolder()` on `BaseGameRules` (default None). It names a folder of the unpacked tree
+  that is the project source (`files/res/Msgus` for Twilight Princess GC). `run_unpack` returns that folder and
+  raises `ValueError` before any folder is left behind when it is missing. `zelda_tww` overrides it to None.
+- Free-space check before unpacking: only when a source is a GameCube or DS image (`images.identify`). Room needed is
+  the image size plus 10 %, or 256 MB when that is larger. Too little room raises `ValueError` with a `tr()` message
+  before a folder is created.
+- NKit GameCube discs are read as they are (the GameCube reader handles their layout). RVZ, WIA, Wii and other NKit
+  kinds are refused with the reason. The old NKit message never fired for GameCube discs; the guard order is fixed.
+- Limits recorded, not fixed: Eternal Darkness takes about 330 s on one thread (zt uses a 7-process pool); Metroid
+  Prime has no `identify_source`, so the wizard takes its role from the user; Twilight Princess and Metroid Prime
+  PAL and JP discs are not recognised; the Metroid and Eternal Darkness unpacks are checked on one USA disc each.
+- Verified on real data (read only, temp folders): Gen 4 ADAE, APAE, CPUE, IPKE equal for every written file
+  (IPGE: one file differs, `a/1/3/3`, a version difference); Gen 5 IRBO and IREO equal; Layton Pandora's Box and
+  Spectre's Call equal; Lost Future equal (two stale workspace files not produced); Curious Village 65 extra `.gds`
+  scripts (kept; recorded in `docs/OPEN_ITEMS.md`); Castlevania dos 74, por 136, ooe 165 files equal; Tactics A2 11 equal;
+  DQ9 1751 equal; Twin Snakes 69 files equal with both discs; Eternal Darkness 187 files equal; Metroid Prime 1565
+  equal; Twilight Princess `res/Msgus` 10 archives equal, 10 blocks as in the workspace.

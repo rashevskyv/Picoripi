@@ -6,11 +6,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.containers import ContainerManager
+from core.containers.image_files import ImageError
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_debug, log_info, log_warning
 from utils.utils import clean_spaces
 
 from . import doc as docs
+from . import unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .gcx import FormatError as GcxError
 from .stage_dat import StageDatContainer
@@ -19,6 +23,8 @@ from .tag_manager import TagManager
 from .textcodec import TAG_RE
 
 _PLUGIN_DIR = Path(__file__).resolve().parent
+# Both USA discs carry this game id; the disc number in the header (byte 0x6, 0 = Disc 1) tells them apart.
+GAME_ID = "GGSEA4"
 
 _ROLES = {
     "codec": ("Codec conversation", "One subtitle line of a codec (radio) call, shown under the two faces. "
@@ -80,6 +86,29 @@ class GameRules(BaseGameRules):
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
         return [FileFormat((".dat", ".gcx", ".subs", ".rel", ".bnr"), "bytes", "Twin Snakes text"), *DEFAULT_FORMATS]
+
+    # -- project sources: one or two discs ---------------------------------------
+
+    def get_platforms(self) -> list:
+        return [{"id": "gc", "label": tr("GameCube")}]
+
+    def get_source_roles(self) -> list:
+        return [{"id": "disc1", "label": tr("Disc 1")}, {"id": "disc2", "label": tr("Disc 2")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        found = images.base_identity(path, (GAME_ID,))
+        if found is None or found["platform"] != "gc":
+            return None
+        try:
+            with images.open_image(path) as image:
+                disc = image.disc_number
+        except (OSError, ImageError):
+            return None
+        return {"role": f"disc{disc + 1}", "platform": "gc"} if disc in (0, 1) else None
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        discs = {role: sources[role] for role in unpack.ROLES if sources.get(role)}
+        return unpack.extract(discs, target_dir, progress, is_cancelled) if discs else None
 
     # -- translation map ---------------------------------------------------------
 

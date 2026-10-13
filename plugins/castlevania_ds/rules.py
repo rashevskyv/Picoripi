@@ -15,11 +15,13 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_warning
 from utils.utils import clean_spaces
 
-from . import codec
+from . import codec, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -55,6 +57,17 @@ class GameRules(BaseGameRules):
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._bank: Optional[Dict[str, Any]] = None
+
+    # Project Manager: the cartridge (USA) is read by core/project_library/images.py; unpack.py picks the files.
+    def get_platforms(self) -> list:
+        return [{"id": "nds", "label": tr("Nintendo DS")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        return images.base_identity(path, tuple(unpack.GAMES))
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        return unpack.extract(base, target_dir, progress, is_cancelled) if base else None
 
     def get_display_name(self) -> str:
         return "Castlevania DS (Dawn of Sorrow / Portrait of Ruin / Order of Ecclesia)"

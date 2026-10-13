@@ -18,6 +18,7 @@ from plugins.base_game_rules import BaseGameRules
 from utils.logging_utils import log_warning
 from utils.utils import clean_spaces
 
+from . import unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .strg import Strg
 from .tag_manager import TagManager
@@ -40,6 +41,12 @@ class GameRules(BaseGameRules):
 
     def get_display_name(self) -> str:
         return "Metroid Prime Trilogy"
+
+    # Project Manager: a GameCube disc (Metroid Prime, GM8E01) is unpacked; the Wii discs of the Trilogy are not, and
+    # unpack_sources returns None for them, so their files are used as they are.
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        return unpack.extract(base, target_dir, progress, is_cancelled) if base else None
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
