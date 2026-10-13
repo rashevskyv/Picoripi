@@ -310,9 +310,14 @@ the host's own computer.
 - **Headless room.** `python -m core.collab.server --headless --port N --password-file F --project-dir D`, with
   optional `--host`, `--owner-name` and `--owner-token-file`. The module imports no Qt. The fingerprint comes from the
   journal in D; without a journal, the first join with the creation token sets it and other joins wait. The process
-  prints one JSON line (`port`, `room_id`, and `owner_token` when it is issued and not written to the token file).
+  prints one JSON line (`port`, `room_id`). A new creation token goes to the token file; without a token file it is
+  printed on stdout only with `--print-token` (stdout is a log), and without either the room does not start. A
+  headless room started again with the same token file lets whoever holds that file take the host role back: that is
+  the design, the file holder is the owner. The creation token file is written atomically; its access rights are those
+  of the folder it sits in, so keep it out of shared folders.
   The journal is written on close and within two seconds of each change; a `terminate()` on Windows skips the close,
-  so the last two seconds can be lost.
+  so the last two seconds can be lost. Journal writes run one at a time, and each snapshot is taken just before its own
+  write: an older copy cannot land after a newer one, so a deleted comment stays deleted in `comments.json`.
 - **No open endpoints.** `/hello` was removed. Joining needs the room password; every other endpoint needs the room
   token. No remote endpoint is contacted by default: joining is an explicit action in the window.
 

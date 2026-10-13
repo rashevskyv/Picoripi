@@ -40,7 +40,7 @@ from urllib.parse import parse_qs, urlparse
 
 from core import progress_stats
 from core.collab.roles import CLAIM_OWNERS, HOST, MODERATOR, TRANSLATOR, allowed
-from utils.atomic_io import atomic_write_json
+from utils.atomic_io import atomic_write_json, atomic_write_text
 from utils.logging_utils import log_debug
 
 PROTOCOL = 2
@@ -98,6 +98,7 @@ class Room:
         self.stats: Dict[str, Dict[str, Dict[str, int]]] = {}
         self.summary: Optional[Dict[str, Any]] = None
         self.cond = threading.Condition()
+        self._write_lock = threading.Lock()                 # one journal write at a time (see write_journal)
         self._journal_timer: Optional[threading.Timer] = None
         self._load_journal()
         if owner_token:
@@ -196,18 +197,21 @@ class Room:
         timer.start()
 
     def write_journal(self) -> None:
-        with self.cond:
-            self._journal_timer = None
-            if not self.journal:
-                return
-            snapshot = self._snapshot()
-        try:
-            atomic_write_json(self.journal, snapshot, ensure_ascii=False)
-            atomic_write_json(self.journal.parent / COMMENTS_NAME,
-                              {"protocol": PROTOCOL, "fingerprint": snapshot["fingerprint"],
-                               "room_id": snapshot["room_id"], "comments": snapshot["comments"]}, ensure_ascii=False)
-        except OSError as exc:
-            log_debug(f"Collab room: journal {self.journal} not written: {exc}")
+        # The snapshot is taken under the write lock, just before its own write: an older copy cannot land last, so a
+        # comment deleted before a write stays deleted in the file.
+        with self._write_lock:
+            with self.cond:
+                self._journal_timer = None
+                if not self.journal:
+                    return
+                snapshot = self._snapshot()
+            try:
+                atomic_write_json(self.journal, snapshot, ensure_ascii=False)
+                atomic_write_json(self.journal.parent / COMMENTS_NAME,
+                                  {"protocol": PROTOCOL, "fingerprint": snapshot["fingerprint"],
+                                   "room_id": snapshot["room_id"], "comments": snapshot["comments"]}, ensure_ascii=False)
+            except OSError as exc:
+                log_debug(f"Collab room: journal {self.journal} not written: {exc}")
 
     # ---- events, participants ------------------------------------------------
 
@@ -1004,6 +1008,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--owner-name", default="", help="the host's name, used when the host first joins")
     parser.add_argument("--owner-token-file", default="",
                         help="file with the creation token; created with a new token if it does not exist")
+    parser.add_argument("--print-token", action="store_true",
+                        help="print a new creation token on stdout, once; stdout is a log, so prefer --owner-token-file")
     return parser.parse_args(argv)
 
 
@@ -1025,7 +1031,7 @@ def build_server(args: argparse.Namespace) -> Tuple[RoomServer, Optional[str]]:
     if owner_token is None and server.room.owner_token_plain is not None:
         issued = server.room.owner_token_plain
         if token_file is not None:
-            token_file.write_text(issued, encoding="utf-8")
+            atomic_write_text(token_file, issued)
             issued = None                  # the file holds it: do not print it
     return server, issued
 
@@ -1033,6 +1039,12 @@ def build_server(args: argparse.Namespace) -> Tuple[RoomServer, Optional[str]]:
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
     server, issued = build_server(args)
+    if issued is not None and not args.print_token:
+        # No token file and no --print-token: the token would be lost, so the room does not start.
+        server.stop()
+        print("The room needs a host token: give --owner-token-file, or --print-token to print the new one.",
+              file=sys.stderr)
+        return 2
     server.start()
     print(json.dumps({"port": server.port, "room_id": server.room.room_id, "owner_token": issued}), flush=True)
     try:

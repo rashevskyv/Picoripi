@@ -16,6 +16,12 @@ the line when it is done or moved into a plan.
 - Folder-level aggregation on virtual and real folder items: only block items get markers so far.
 - Journal keeps state, not the operation list (D22 "one deliberate change"); a client that falls behind a window of 5,000 events gets a snapshot.
 - Operations made while the room is unreachable wait in memory for the running session only; if Picoripi closes first, they are lost (the offline-first item keeps them on disk).
+- Work Together, audit of `feat/collab-claims` (2026-10-12, not built): no quotas per member (comments, claims, requests, keys per scope); a member can fill memory and the journal. Add caps or document them.
+- Work Together: the `op_id` dedupe for operations without `seq` is in memory (20,000 ids); a restart forgets them. The client always sends `seq`, so only old or test clients rely on it.
+- Work Together: `deleted_comments` and `banned_names` in the journal grow without limit (one entry per delete or removal).
+- Work Together: a host restarted on another port gets a new identity (its token is kept per address). The creation-token file restores the host role only on the same token.
+- Work Together: a foreign `comments.json` is adopted only when the host or a moderator joins with it; with no host online its comments stay hidden.
+- Work Together: the join snapshot (`_apply_state`) is not measured with 5,000 comments; the first read of `collab.json` per process is synchronous (a small file).
 
 ## Integration round 8 (2026-10-12)
 - Merged on `integrate/ready-2026-10-12` from origin/main 2eeafa1c: the user's WIP branch (7 commits), `feat/project-manager`, `feat/portable-home`, `feat/ready-wiiu-system`, `feat/ready-mgs23-pc`, `feat/ready-dk`, `feat/oot3d-ua`. Not pushed.

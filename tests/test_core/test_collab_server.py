@@ -10,7 +10,7 @@ import requests
 
 from core.collab import roles
 from core.collab.roles import allowed
-from core.collab.server import COMMENTS_NAME, JOURNAL_NAME, Room, RoomServer, build_server, parse_args
+from core.collab.server import COMMENTS_NAME, JOURNAL_NAME, Room, RoomServer, build_server, main, parse_args
 
 FP = "fp-1"
 PW = "secret"
@@ -550,6 +550,14 @@ def test_the_headless_server_without_a_journal_binds_its_project_to_the_host_joi
         server.stop()
 
 
+def test_a_headless_room_that_would_lose_its_new_token_does_not_start_and_prints_nothing(tmp_path, capsys):
+    password = tmp_path / "pw.txt"
+    password.write_text(PW, encoding="utf-8")
+    code = main(["--headless", "--port", "0", "--password-file", str(password), "--project-dir", str(tmp_path / "p")])
+    captured = capsys.readouterr()
+    assert code == 2 and captured.out == "" and "--print-token" in captured.err
+
+
 def test_the_headless_module_runs_as_a_process_and_imports_no_qt(tmp_path):
     check = subprocess.run([sys.executable, "-c", "import sys, core.collab.server as s;"
                            "assert not any(m.startswith('PyQt') for m in sys.modules), 'Qt imported'"],
@@ -559,7 +567,7 @@ def test_the_headless_module_runs_as_a_process_and_imports_no_qt(tmp_path):
     password.write_text(PW, encoding="utf-8")
     env = {**os.environ, "PYTHONUNBUFFERED": "1"}
     proc = subprocess.Popen([sys.executable, "-m", "core.collab.server", "--headless", "--port", "0",
-                             "--password-file", str(password), "--project-dir", str(tmp_path / "p")],
+                             "--password-file", str(password), "--project-dir", str(tmp_path / "p"), "--print-token"],
                             cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
     try:
         line = json.loads(proc.stdout.readline())

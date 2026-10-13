@@ -130,7 +130,8 @@ python -m core.collab.server --headless --port 8765 --password-file room-passwor
 ```
 
 The first participant that joins with the token in `owner-token.txt` becomes the host. The process prints one line with
-its port and the room id, and runs until you stop it. The room answers only to the room password (for joining) and to
+its port and the room id, and runs until you stop it. Without `--owner-token-file` the process needs `--print-token`
+to print a new host token; the line on stdout then carries it, so keep that output private. The room answers only to the room password (for joining) and to
 room tokens (for everything else).
 
 **Remote rooms are off by default.** Picoripi connects to a room only when you press **Start the room**, **Join** or
