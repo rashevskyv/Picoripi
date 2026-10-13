@@ -417,3 +417,17 @@ through any of three transports.
 4. **Interfaces** (a new module beside the server, to create): `Op` (the fields above), `OpLog.append` and `read_since(cursor)`,
    `merge(ops)` returning the changes. `Room._apply_op` stays the only authority path; sync feeds it operations.
 5. **Not in this package:** the client writing its log, the exchange file, and the shared-folder reader.
+## D18. Family projects: one translation for the strings several consoles share (2026-10-12)
+
+**Context.** Twilight Princess (GameCube, Wii, Wii U HD) and Wind Waker (GameCube, Wii U HD) have the same
+message ids and mostly the same text. Translating each console separately repeats the work and lets the copies drift.
+**Decision.** `core/family_projects/` aligns each console's messages with the family base by their editor text
+(translator-visible text, escapes included), with `difflib` on hashes. An aligned message is a unit: translated once in
+the family store (`family_translations.json`), written into every console that has the unit. A message only one
+console has is that console's override. An override wins for its console only. A console translation that differs
+from the unit is kept as that console's override with a warning. Byte-level details (message ids, INF1 attributes)
+stay with each console's own writer (`plugins/zelda_bmg/family.py`), and only changed archives are written.
+Message ids are not used as the key: the HD BMGs reuse ids (2707 distinct ids in 5000 messages).
+**Cost.** Alignment by text can pair a repeated short line with the wrong copy (ponytail: an id key when both sides have
+unique ids). Escape differences between consoles make a text unit; they are not warned yet. The Picoripi project with
+virtual folders per console is not built yet; the store is fed by the CLI (`python -m plugins.zelda_bmg.family`).
