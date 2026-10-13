@@ -54,6 +54,14 @@ the line when it is done or moved into a plan.
 - Opening a project from the manager has the same unsaved-edits behaviour as the Recent Projects menu. No guard was added. Check it with unsaved edits.
 - Move to folder is the only way to change a folder. Drag and drop is not built.
 - The import of the RomHacking set (`<RomHacking>`) into the owner's real registry is not done. Run Import once from the window.
+## Family projects (2026-10-12, branch feat/family-projects-ui)
+
+- [ ] Project and wizard accept several folders or game images per project, each assigned to a member by the plugin (the engine and the TP recognition exist; the UI and image files do not).
+- [ ] Wind Waker family: plugin reads both GC BMG (`zelda_tww`) and HD MSBT (`zelda_ww`); match rate by editor text is 23 % (tags differ: `{escape:255:...}` vs `[Size]`). Needs a tag map before the family works.
+- [ ] Shared files are copied by `python -m plugins.zelda_bmg.family shared` only; the Wii patcher (`GC + Wii\Patcher\patcher.py`, outside the repo) still copies its own `fontres.arc`. Connect it to the command.
+- [ ] Wind Waker font sync: the two copies "file-select font" and "name-entry font" (28335 and 148064 bytes) are not byte-equal; glyph sync by character code is not written.
+- [ ] Family store v1 to v2 migration: the old `_family/family_translations.json` is kept as `.bak_v1_20261012`; the new store is seeded from the translation folders.
+- [ ] TP Wii only folder reads the Wii source from `D:\RomHacking_tmp`; the family file must point elsewhere once that folder is removed.
 
 ## Integration round 7 (2026-10-11)
 

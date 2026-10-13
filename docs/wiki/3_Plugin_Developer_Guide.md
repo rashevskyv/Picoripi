@@ -163,6 +163,11 @@ Each hook has a default, so a plugin without them still works: the wizard then t
 These hooks run on a worker thread. They must not create widgets or read `self.mw`. The host passes `progress` and `is_cancelled`; check `is_cancelled()` in long loops. The host builds into a temporary folder and renames it when the build succeeds. Export copies the built folder to a folder the user chooses. Run starts the emulator command the user set in the Project Manager, with the built path as an argument.
 
 `plugins/plain_text/rules.py` is the reference: its single target copies the translation files as they are.
+## Families of versions (family_plan)
+
+A game sold in several versions (for example GameCube, Wii and Wii U HD) can share one translation. `family_plan(sources, project_dir)` gets the folders or files the user gave and returns a `core.family_projects.model.FamilyPlan`, or `None` when the game has no family (the default). The plugin recognises each source by its content, not by the user's folder name: Twilight Princess uses the message count of its files as a fingerprint (`plugins/zelda_bmg/family.py`). The plan lists the members (`FamilyMember(key, label, path, base, parents)`), the base version, and `read(member_key)`, which returns `(unit_id, text)` pairs.
+
+Core (`core/family_projects/`) links the units of each member to the units of its parents by equal match key (the text by default), stores one translation per shared unit, keeps the differing texts as per-member overrides, and fans the texts back out. A member may link to several parents in order: a member that shares most of its text with a second member links to that one first. Fewer sources than members is valid. The Twilight Princess project builder (`plugins/zelda_bmg/family_project.py`) writes one project. Each unit tree (one message and its linked copies) is one project message, in the folder "Shared" (a base-rooted tree of more than one version), "Shared HD Msguk" (the same for a tree rooted in HD Msguk), or "<label> only" (a tree of one version). `FamilyPlan.shared_files` names the files a member takes from the base member byte for byte (the Wii takes `Fontus/fontres.arc`); `family.py shared` copies them.
 
 ## Tests for a plugin
 

@@ -419,6 +419,8 @@ through any of three transports.
 5. **Not in this package:** the client writing its log, the exchange file, and the shared-folder reader.
 ## D18. Family projects: one translation for the strings several consoles share (2026-10-12)
 
+> Superseded in part by D19: the plugin, not core, decides the members and the match key.
+
 **Context.** Twilight Princess (GameCube, Wii, Wii U HD) and Wind Waker (GameCube, Wii U HD) have the same
 message ids and mostly the same text. Translating each console separately repeats the work and lets the copies drift.
 **Decision.** `core/family_projects/` aligns each console's messages with the family base by their editor text
@@ -431,3 +433,33 @@ Message ids are not used as the key: the HD BMGs reuse ids (2707 distinct ids in
 **Cost.** Alignment by text can pair a repeated short line with the wrong copy (ponytail: an id key when both sides have
 unique ids). Escape differences between consoles make a text unit; they are not warned yet. The Picoripi project with
 virtual folders per console is not built yet; the store is fed by the CLI (`python -m plugins.zelda_bmg.family`).
+
+## D19. The plugin declares the family; core is a generic engine (2026-10-12)
+
+**Context.** D18 let core decide what is shared (equal editor text) and read the family from a JSON file given to
+a CLI. A Wind Waker or Twilight Princess match needs game knowledge: which sources are which console, which files
+are shared bytes (font archives), and what counts as the same message across formats.
+**Decision.** Supersedes the "core decides" part of D18. `BaseGameRules.family_plan(sources, project_dir)` returns a
+`FamilyPlan` (core/family_projects/model.py): its members (key, label, source, base, parents) and a reader that lists
+each member's units as (unit id, text). The plugin recognises each source by its content. Core
+(`core/family_projects/`) only aligns units by their match key, stores one text per shared unit, keeps per-member
+overrides, and fans texts out. Members link to parents in order (for example HD Msgus links to HD Msguk first, then to
+the base), so a unit shared by three consoles is stored once. The user supplies sources only; fewer sources than
+members is valid. The CLI (`python -m plugins.zelda_bmg.family`) is a thin wrapper over the same plan.
+**Cost.** Each plugin implements its own recognition and reading. Recognition by message-count fingerprint is
+exact for the sources on disk, and a new revision of a game needs a new fingerprint. The match key is the editor text
+by default; a plugin with different tag syntax per console must normalise it first (open: Wind Waker, see D19 status).
+
+## D20. Family project folders: "Shared" and "<version> only", for every version alike (2026-10-12)
+
+**Context.** The first Twilight Princess project kept the GameCube messages in the main tree and put only the other
+versions' own messages in folders. That made the base special, and the "HD Msguk only" folder held messages that the
+Msgus slot also has.
+**Decision.** A unit tree (one message plus its linked copies, `core/family_projects/store.py` `trees`) is one project
+message. A tree of more than one version is in "Shared" (rooted in the base) or "Shared <label>" (rooted in another
+version). A tree of one version is in "<label> only", the GameCube included ("GC only"). The store is unchanged.
+`normalize` moves a tree's text onto its root; a text below the root that differs is an override, and the project
+build refuses it until a family has such texts. Files a member takes from the base byte for byte are declared in
+`FamilyPlan.shared_files` (file -> members); `family.py shared` copies them.
+**Cost.** A text that differs below the root cannot be shown in the project yet (none for Twilight Princess).
+
