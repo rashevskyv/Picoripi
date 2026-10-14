@@ -41,7 +41,7 @@ def test_chat_tab_queue_count(qtbot):
 
     tab.set_queue_count(2)
     assert not tab.queue_bar.isHidden()
-    assert '2' in tab.queue_label.text()
+    assert tab.queue_label.text() == "⏳ In Queue: 2 message(s) waiting for AI"
 
     tab.set_queue_count(0)
     assert tab.queue_bar.isHidden()
