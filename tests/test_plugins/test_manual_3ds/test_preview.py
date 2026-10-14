@@ -3,6 +3,7 @@
 Only the last test reads the owner's repo_manual folder (PICORIPI_ROMHACKING); the others need no game files.
 """
 import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -46,6 +47,12 @@ def test_piece_over_its_limit_is_flagged():
     assert page_render.is_over(x_end=101.0, margin=0.0, cap=100.0)
     assert not page_render.is_over(x_end=100.0, margin=0.0, cap=100.0)
     assert not page_render.is_over(x_end=50.0, margin=20.0, cap=40.0)
+
+
+def test_a_picture_beside_a_pane_line_caps_it_in_the_preview():
+    manual = SimpleNamespace(LINE_OFFSET=8.0, PAGE_EDGE=310.0, PANE_MARGIN=0.0)
+    flow = SimpleNamespace(pane_box=lambda line: 200.0, pane_x=lambda line: 20.0, room=lambda line, pane: 76.0)
+    assert page_render._pane_cap(flow, 0, manual) == 76.0  # the picture allows less than the box (192 px)
 
 
 def test_panel_without_folder_shows_the_message(qtbot, monkeypatch):

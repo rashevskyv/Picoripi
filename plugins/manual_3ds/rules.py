@@ -9,7 +9,6 @@ The layout facts (font size, pane positions, icon widths) are not in the JSON. T
 in this folder, keyed by a fingerprint of the file's key list. Saving writes ``ua`` back into the translation file
 and keeps every other key and the key order.
 """
-import hashlib
 import json
 import os
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -18,15 +17,11 @@ from plugins.base_game_rules import BaseGameRules
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 
 from . import layout
+from .layout import fingerprint
 from .page_render import group_key_of
 from .config import CUSTOM_IDS, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-def fingerprint(keys: List[str]) -> str:
-    """Which manual a file is: a hash of its keys in order (the keys come from the console's own document)."""
-    return hashlib.sha1("\n".join(keys).encode("utf-8")).hexdigest()[:16]
 
 
 def parse_manual(text: str) -> Dict[str, Dict[str, Any]]:
@@ -69,17 +64,21 @@ def _geometry_for(entries: Dict[str, Dict[str, Any]], fp: str) -> Tuple[str, Dic
     found = _DATA.geometry.get(fp) if _DATA.geometry else None
     if not found:
         return "", {}
+    # Pictures and frames per page: [kind, abs_x, abs_y, width, height] (the page is the key minus its "#n").
+    pages = {page: [layout.Occluder(str(kind), float(x), float(y), float(w), float(h)) for kind, x, y, w, h in items]
+             for page, items in (found.get("pages") or {}).items()}
     out: Dict[str, layout.Geometry] = {}
     for key, facts in found["entries"].items():
         out[key] = layout.Geometry(
             part=facts["part"],
             font_size=float(facts["font_size"]),
             char_space=float(facts["char_space"]),
-            lines=[layout.Line(float(x), float(box)) for x, box in facts["lines"]],
+            lines=[layout.Line(*(float(v) for v in row)) for row in facts["lines"]],
             icon_widths=[float(w) for w in facts.get("icon_widths", [])],
             fixed=bool(facts.get("fixed", False)),
             budget=float(facts["budget"]) if facts.get("budget") is not None else None,
             panes={int(style): int(count) for style, count in (facts.get("panes") or {}).items()},
+            occluders=pages.get(key.split("#", 1)[0], []),
         )
     return found["name"], out
 

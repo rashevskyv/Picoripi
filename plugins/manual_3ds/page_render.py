@@ -223,7 +223,8 @@ def _line_place(sub: SubPage, flow: Any, line_index: int, placed: Dict[str, Tupl
 
 def _pane_cap(flow: Any, index: int, manual: Any) -> float:
     """The right limit of a pane line, relative to its margin (manual.layout's cap_of)."""
-    return min(flow.pane_box(index) - manual.LINE_OFFSET, manual.PAGE_EDGE - flow.pane_x(index)) - manual.PANE_MARGIN
+    return min(flow.pane_box(index) - manual.LINE_OFFSET, manual.PAGE_EDGE - flow.pane_x(index),
+               flow.room(index, pane=True)) - manual.PANE_MARGIN
 
 
 def render_column(tools: Tools, font: Any, widths: Dict[int, int], homoglyphs: Dict[str, str],
@@ -310,7 +311,7 @@ def _draw_flow(painter: QPainter, sub: SubPage, flow: Any, lines: List[List[Any]
             cap = _pane_cap(flow, line_index, manual)
         else:
             margin = flow.margin(min(line_index, len(flow.lines) - 1))
-            cap = limit
+            cap = min(limit, flow.room(line_index, pane=False))
         if beyond_pane:
             flagged = True
             painter.fillRect(QRectF(margin + dx, top, cap, flow.line_height), QColor(*OVERFLOW_FILL))
