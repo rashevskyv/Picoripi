@@ -248,9 +248,9 @@ def test_global_settings_save_and_load_companion_fields(tmp_path: Path):
     assert loaded_dict["companion_server_url"] == "http://72.56.126.242:8000"
     assert loaded_dict["companion_api_token"] == "secret_tok"
     assert loaded_dict["companion_auto_sync"] is False
-    assert getattr(mw2, "companion_server_url") == "http://72.56.126.242:8000"
-    assert getattr(mw2, "companion_api_token") == "secret_tok"
-    assert getattr(mw2, "companion_auto_sync") is False
+    assert mw2.companion_server_url == "http://72.56.126.242:8000"
+    assert mw2.companion_api_token == "secret_tok"
+    assert mw2.companion_auto_sync is False
 
 
 def test_glossary_dialog_companion_sync_prompt_and_open_settings(qtbot, monkeypatch, tmp_path: Path):
@@ -552,7 +552,7 @@ def test_companion_sync_dialog_ui(tmp_path: Path, qtbot):
         qtbot.waitUntil(lambda: dlg.was_successful, timeout=3000)
         assert dlg.terms_pulled == 2
         assert dlg.terms_pushed == 1
-        assert "✓" in dlg._status_label.text()
+        assert "✓" in dlg._status_label.text()  # deslop: ignore[poor-substring-tests] single check-mark glyph is the marker of the success state; the label text is asserted elsewhere
 
 
 def test_smart_sync_in_background_lifecycle(tmp_path: Path, qtbot):
