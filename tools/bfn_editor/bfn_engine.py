@@ -7,6 +7,7 @@ from PIL import Image
 
 from core.bfn_core import (GX_8BIT, gx8_encode as _gx8_encode, gx8_texels as _gx8_texels, map_lists_to_pairs,
                            map_pairs_to_lists)
+from utils.atomic_io import atomic_write_bytes
 
 def align_to(value, alignment):
     if value % alignment == 0:
@@ -450,8 +451,7 @@ def repack_bfn_logic(input_dir, output_bfn_path):
     final_buf.extend(b'\x00' * 16)
     final_buf.extend(writer_buf)
     
-    with open(output_bfn_path, 'wb') as f:
-        f.write(final_buf)
+    atomic_write_bytes(output_bfn_path, final_buf)
 
 
 def read_bfn_model(data):
