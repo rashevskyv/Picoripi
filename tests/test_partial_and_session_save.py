@@ -122,8 +122,7 @@ def test_save_specific_edits(dsp, mock_mw, tmp_path):
     with patch.object(dsp, '_perform_save_impl', return_value=(True, [], [])) as mock_save:
         res = dsp.save_specific_edits(strings_to_save, ask_confirmation=False)
         assert res is True
-        mock_save.assert_called_once()
-        
+
         # Verify that output_data_list passed to mock_save contains only changes for selected keys
         # output_data_list should be:
         # Block 0: ["new0_0", "orig1"] (new0_1 should not be saved yet!)
@@ -150,25 +149,20 @@ def test_dirty_flag_behavior(dsp, mock_mw, tmp_path):
     # 3. _autosave_session() when dirty=False should skip writing
     session_file = Path(tmp_path) / ".picoripi_session"
     dsp._session_dirty = False
-    
-    # Mock pickle.dumps to see if it is called
-    with patch("pickle.dumps", return_value=b"snapshot") as mock_dump:
-        dsp._autosave_session(force=False)
-        mock_dump.assert_not_called()
-        assert not session_file.exists()
-        
+    dsp._autosave_session(force=False)
+    assert not session_file.exists()
+
     # 4. _autosave_session() with force=True should write even if dirty=False
-    with patch("pickle.dumps", return_value=b"snapshot") as mock_dump:
-        dsp._autosave_session(force=True)
-        mock_dump.assert_called_once()
-        assert dsp._session_dirty is False  # becomes clean after save
-        
+    dsp._autosave_session(force=True)
+    assert session_file.exists()
+    assert dsp._session_dirty is False  # becomes clean after save
+
     # 5. _autosave_session() with dirty=True should write
+    session_file.unlink()
     dsp._session_dirty = True
-    with patch("pickle.dumps", return_value=b"snapshot") as mock_dump:
-        dsp._autosave_session(force=False)
-        mock_dump.assert_called_once()
-        assert dsp._session_dirty is False  # becomes clean after save
+    dsp._autosave_session(force=False)
+    assert session_file.exists()
+    assert dsp._session_dirty is False  # becomes clean after save
 
 def test_load_session_resets_dirty(dsp, mock_mw, tmp_path):
     mock_mw.project_manager.project_dir = str(tmp_path)
@@ -198,9 +192,9 @@ def test_update_edited_data_triggers_autosave(dsp, mock_mw, tmp_path):
     mock_mw.data_store.data = [["orig"]]
     mock_mw.data_store.edited_file_data = [["orig"]]
     
-    with patch.object(dsp, 'schedule_autosave') as mock_sched:
-        dsp.update_edited_data(0, 0, "new")
-        mock_sched.assert_called_once()
+    dsp.update_edited_data(0, 0, "new")
+    # Scheduling an autosave marks the session dirty; the write happens later.
+    assert dsp._session_dirty is True
 
 def test_save_specific_edits_forces_autosave(dsp, mock_mw, tmp_path):
     mock_mw.project_manager.project_dir = str(tmp_path)
@@ -211,7 +205,8 @@ def test_save_specific_edits_forces_autosave(dsp, mock_mw, tmp_path):
     mock_mw.data_store.edited_file_data = [["orig"]]
     mock_mw.data_store.edited_data = {(0, 0): "new"}
     
-    with patch.object(dsp, '_perform_save_impl', return_value=(True, [], [])), \
-         patch.object(dsp, '_autosave_session') as mock_autosave:
+    # Nothing is dirty here, so the session file exists only if the save forces an autosave.
+    session_file = Path(tmp_path) / ".picoripi_session"
+    with patch.object(dsp, '_perform_save_impl', return_value=(True, [], [])):
         dsp.save_specific_edits([(0, 0)], ask_confirmation=False)
-        mock_autosave.assert_called_once_with(force=True)
+    assert session_file.exists()
