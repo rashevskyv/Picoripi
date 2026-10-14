@@ -152,7 +152,11 @@ def test_mempalace_worker_scene_based_chunking():
 
 def test_mempalace_worker_mapping_only_saves_data():
     client = MagicMock()
-    
+    saved = []
+    client.add_wing = lambda wing, *args, **kwargs: saved.append(("wing", wing))
+    client.add_room = lambda wing, room, *args, **kwargs: saved.append(("room", room))
+    client.add_drawer = lambda wing, room, name, content, metadata, **kwargs: saved.append(("drawer", room, name, content, metadata))
+
     bmg_strings = ["Hello there!", "General Kenobi!"]
     bmg_ids = ["BMG_Str_0", "BMG_Str_1"]
     transcript_data = [
@@ -172,10 +176,17 @@ def test_mempalace_worker_mapping_only_saves_data():
     # We trigger the run method
     worker.run()
     
-    # Verify that add_wing, add_room, and add_drawer were called during run on the mock client
-    assert client.add_wing.called
-    assert client.add_room.called
-    assert client.add_drawer.called
+    # The wing, its room and the dialogue drawer are saved with the mapped lines and speakers
+    assert saved == [
+        ("wing", "Zelda_TP"),
+        ("room", "RoomA"),
+        (
+            "drawer", "RoomA", "dialogue_lines",
+            "DIALOGUES:\n[BMG_Str_0]: Hello there!\n[BMG_Str_1]: General Kenobi!\n",
+            {"bmg_start_idx": 0, "timestamp": "00:01",
+             "speaker_map": {"BMG_Str_0": "Obi-Wan", "BMG_Str_1": "Grievous"}},
+        ),
+    ]
 
 
 def test_mempalace_client_cache_and_mapping(tmp_path):
@@ -457,7 +468,9 @@ def test_mempalace_character_profiler_worker():
     glossary_manager = MagicMock()
     # Simulate that "RUSL" does not exist yet in glossary
     glossary_manager.get_entry.return_value = None
-    
+    saves = []
+    glossary_manager.save_to_disk = lambda: saves.append(True)
+
     worker = MemePalaceCharacterProfilerWorker(
         client=client,
         ai_provider=ai_provider,
@@ -484,8 +497,8 @@ def test_mempalace_character_profiler_worker():
         profiled=True
     )
     
-    # Verify that save_to_disk was called
-    assert glossary_manager.save_to_disk.called
+    # Verify that the glossary was saved to disk
+    assert saves
 
 
 def test_mempalace_script_analyzer_syncs_markup_glossary_sections(tmp_path):
