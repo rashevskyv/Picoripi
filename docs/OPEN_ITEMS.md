@@ -1077,8 +1077,8 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - ExeFS `code.bin` is decoded from BLZ when the exheader says so (`nitro.blz_decompress`). Verified against the Update CIA. The base Majora's Mask 3D code differs from the workspace, because the workspace ExeFS is the Update build (D30 addendum). Copy of Princess (text in `code.bin`) is not wired yet.
 - No plugin is wired for 3DS, Switch or Wii. Retail `.cia` files are encrypted, and the decrypted dumps are not a plugin input.
 - Wii U: not done (no reader, no key).
-- The wizard asks for a key only for kinds in `images.UNPACK_KINDS` (3DS today; no Switch or Wii prompt). The 3DS prompt still does not check the chosen plugin: no plugin unpacks 3DS yet. A per-plugin declaration needs a new `BaseGameRules` hook; add it when a plugin unpacks a 3DS, Switch or Wii image.
-- 3DS seed crypto (games whose NCCH key comes from a seed: Layton's Mystery Journey (`zt/layton3ds.py`, `seed=True`), Dragon Quest VII/VIII, Corpse Party and others): not in the reader. It needs the seed database too. Layton and the Miracle Mask is NOT seed-crypto: the owner's run of 2026-10-14 decrypted its CIA with the normal keys.
+- Superseded in phase 2c: the wizard asks for a key only when the plugin lists the console in `unpack_key_consoles()` and the file is encrypted (see "Unpack in Picoripi (phase 2c)" at the end of this file).
+- 3DS seed crypto (games whose NCCH key comes from a seed: Layton's Mystery Journey (`zt/layton3ds.py`, `seed=True`), Dragon Quest VII/VIII, Corpse Party and others): not in the reader. It needs the seed database too. Professor Layton and the Miracle Mask is not seed crypto: the owner's run of 2026-10-14 decrypted its CIA with the normal keys.
 
 ## 3DS manual preview (`manual_3ds`, 2026-10-13)
 
@@ -1106,3 +1106,8 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - The wizard asks for a key only when the chosen plugin lists the console in `unpack_key_consoles()` (new hook, D30 addendum) and the file is encrypted. No plugin lists one yet, so no key is asked for.
 - `pycryptodome==3.23.0` is in `requirements.txt` (decided in D30 addendum 2c). When the package is missing, an encrypted image gives the pycryptodome message, not a crash.
 - Wiki EN and UK pages for the key file and the Switch and Wii sentences in the wizard paragraph need a check after the merge; `docs/wiki/3_Plugin_Developer_Guide.md` names the new hook.
+- Audit r17 (2026-10-14), fixed: a missing or unreadable 3DS key file or boot9 file no longer chains its OS error, so a logged traceback does not show the key folder (`core/containers/n3ds.py`, two tests in `tests/test_core/test_n3ds_decrypt.py`).
+- Audit r17, open, not from this merge: `tests/test_core/test_unreal_pak.py::test_english_entries_match_the_extracted_files` opens the real `~/.switch/prod.keys` when the RomHacking workspace is set. It breaks the "generated keys only" test rule. Replace the key with a generated one or drop that branch.
+- Audit r17, open: the wizard free-space check counts Switch and Wii sources (`images.UNPACK_KINDS`) even when no plugin unpacks them. Gate it on the plugin's unpack kinds, or document it. The user guide still names only GameCube and Nintendo DS images for that check.
+- Audit r17, open: a packed 3DS code section is decoded whole by the pure-Python BLZ loop (`core/containers/nitro.py`, up to 64 MB). Cancel is checked only between entries, so a cancel waits for that decode.
+- Audit r17, open: `ImageError` texts of the container readers reach the wizard's "Unpacking failed" line untranslated. Route them through `tr()` when those readers are next changed.

@@ -88,8 +88,8 @@ class Keys3ds:
         try:
             with open(path, encoding="ascii", errors="ignore") as stream:
                 text = stream.read()
-        except OSError as exc:
-            raise ImageError("the 3DS key file cannot be read") from exc
+        except OSError:
+            raise ImageError("the 3DS key file cannot be read") from None   # no chained OSError: it holds the path
         for line in text.splitlines():
             name, _, value = line.partition("=")
             name = name.strip().lower()
@@ -127,8 +127,8 @@ def _boot9_keyx(path: str) -> Dict[int, bytes]:
     try:
         with open(path, "rb") as stream:
             data = stream.read(BOOT9_SIZE + 1)
-    except OSError as exc:
-        raise ImageError("the boot9 file cannot be read") from exc
+    except OSError:
+        raise ImageError("the boot9 file cannot be read") from None   # no chained OSError: it holds the path
     if len(data) != BOOT9_SIZE:
         raise ImageError("the boot9 file must be the full 64 KiB dump")
     keyx: Dict[int, bytes] = {}

@@ -6,6 +6,7 @@ scrambler, the CTR keystream (AES-ECB of each counter block) and the CIA title k
 import importlib.util
 import io
 import struct
+import traceback
 from pathlib import Path
 
 import pytest
@@ -159,6 +160,22 @@ def test_key_file_line_parsing_ignores_noise(tmp_path):
     assert keys.normal(0x2C, KEY_Y) == ref_scramble(KEYX_2C, KEY_Y)
     with pytest.raises(ImageError, match="no KeyX for slot 0x3D"):
         keys.normal(0x3D, KEY_Y)
+
+
+def test_unreadable_key_file_error_does_not_chain_the_path(tmp_path):
+    """The worker logs a failed unpack with its traceback; the key folder must not appear there (D30)."""
+    folder = tmp_path / ("zz" + "_marker_dir")   # not spelled out below: the test's own source line is in the traceback
+    with pytest.raises(ImageError, match="cannot be read") as info:
+        n3ds.Keys3ds.load(str(folder / "aes_keys.txt"))
+    assert "zz_marker_dir" not in "".join(traceback.format_exception(info.value))
+
+
+def test_unreadable_boot9_error_does_not_chain_the_path(tmp_path):
+    (tmp_path / "zz_marker_boot9.bin").mkdir()   # a folder where boot9 is expected: opening it fails
+    path = key_file(tmp_path, [f"slot0x2CKeyX={KEYX_2C.hex()}"])
+    with pytest.raises(ImageError, match="boot9 file cannot be read") as info:
+        n3ds.Keys3ds.load(path)
+    assert "zz_marker" not in "".join(traceback.format_exception(info.value))
 
 
 def test_open_image_decrypts_through_the_key_source(tmp_path):
