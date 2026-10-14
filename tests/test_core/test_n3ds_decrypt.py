@@ -10,9 +10,11 @@ import traceback
 from pathlib import Path
 
 import pytest
-from Crypto.Cipher import AES
 
-from core.containers import n3ds
+pytest.importorskip("Crypto.Cipher.AES", reason="the 3DS decryption tests need pycryptodome")
+from Crypto.Cipher import AES  # noqa: E402
+
+from core.containers import n3ds  # noqa: E402
 from core.containers.image_files import ImageError
 
 # The plaintext program builders live beside test_n3ds_image.py; load them from that file.

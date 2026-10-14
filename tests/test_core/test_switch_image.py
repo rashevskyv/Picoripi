@@ -5,11 +5,13 @@ import os
 import struct
 
 import pytest
-from Crypto.Cipher import AES
 
-from core.containers.image_files import ImageError
-from core.containers.switch_crypto import load_keys
-from core.containers.switch_images import SwitchImage
+pytest.importorskip("Crypto.Cipher.AES", reason="the Switch image tests need pycryptodome")
+from Crypto.Cipher import AES  # noqa: E402
+
+from core.containers.image_files import ImageError  # noqa: E402
+from core.containers.switch_crypto import load_keys  # noqa: E402
+from core.containers.switch_images import SwitchImage  # noqa: E402
 
 NO = 0xFFFFFFFF
 SECTOR = 0x200

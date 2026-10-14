@@ -103,7 +103,9 @@ def _reader(stream: Any) -> ImageReader:
     if found is not None:
         kind = found["kind"]
         encrypted = bool(found.get("encrypted"))
-        if encrypted and (key_path(CONSOLE_OF_KIND[kind]) is None or not _has_pycryptodome()):
+        # A 3DS reader checks its keys before it decrypts, so it refuses a key file with no keys without pycryptodome.
+        needs_crypto = kind != KIND_3DS and not _has_pycryptodome()
+        if encrypted and (key_path(CONSOLE_OF_KIND[kind]) is None or needs_crypto):
             raise encrypted_error(CONSOLE_OF_KIND[kind], tr(CONSOLE_LABEL[kind]))
         if kind == KIND_3DS:   # the reader loads the key file only for encrypted content
             return n3ds.N3dsImage(stream, key_path("3ds"))

@@ -10,10 +10,12 @@ import os
 import struct
 
 import pytest
-from Crypto.Cipher import AES
 
-from core.containers.image_files import ImageError
-from core.containers.wii_disc import WII_MAGIC, WiiImage, load_common_key
+pytest.importorskip("Crypto.Cipher.AES", reason="the Wii image tests need pycryptodome")
+from Crypto.Cipher import AES  # noqa: E402
+
+from core.containers.image_files import ImageError  # noqa: E402
+from core.containers.wii_disc import WII_MAGIC, WiiImage, load_common_key  # noqa: E402
 
 TITLE_ID = b"\x00\x01\x00\x00RSTE"
 PART_AT = 0x50000

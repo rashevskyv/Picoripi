@@ -16,7 +16,8 @@ import os
 import struct
 from typing import Any, Dict, List, Optional
 
-from core.containers.console_crypto import CbcView, CtrView, PlainView, RangeView, encrypted_error, wrong_key_error
+from core.containers.console_crypto import (CbcView, CtrView, PlainView, RangeView, encrypted_error,
+                                            require_pycryptodome, wrong_key_error)
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
 from core.containers.nitro import blz_decompress
 from core.containers.romfs import RomFS
@@ -116,10 +117,11 @@ class Keys3ds:
 
     def cia_title_key(self, common_index: int, title_id: bytes, encrypted: bytes) -> bytes:
         """The title key of a CIA: AES-CBC of the ticket's key under the common key, IV = title ID and zeros."""
-        from Crypto.Cipher import AES
         if common_index not in self._common:
             raise ImageError(f"the 3DS key file has no common key {common_index}")
         common_key = self.normal(0x3D, self._common[common_index])
+        require_pycryptodome("3ds", tr(LABEL))
+        from Crypto.Cipher import AES
         return AES.new(common_key, AES.MODE_CBC, title_id + bytes(8)).decrypt(encrypted)
 
 
@@ -277,6 +279,7 @@ class N3dsImage(ImageReader):
         key = self._key(secondary)
         if key is None:
             return RangeView(self.stream, start, size)
+        require_pycryptodome("3ds", tr(LABEL))
         return CtrView(self.stream, start, size, key, self._counter(start - self.program["base"], kind))
 
     def _key(self, secondary: bool) -> Optional[bytes]:

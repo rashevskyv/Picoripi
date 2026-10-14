@@ -3,13 +3,14 @@
 The builders write the smallest valid layouts: an NCCH with an exheader, an ExeFS and an IVFC RomFS with one
 directory; a card image (CCI) and a CIA around it. Encrypted content is refused with the reason, never read.
 """
+import importlib.util
 import io
 import struct
 
 import pytest
 
 from core.containers import n3ds, romfs
-from core.containers.console_crypto import key_source
+from core.containers.console_crypto import key_source, require_pycryptodome
 from core.containers.image_files import ImageError
 from core.containers.nitro import blz_compress
 from core.project_library import images
@@ -171,6 +172,13 @@ def test_encrypted_program_with_a_key_file_that_holds_no_keys_is_refused(tmp_pat
         with pytest.raises(ImageError, match="has no KeyX for slot 0x2C"):
             with images.open_image(path):
                 pass
+
+
+@pytest.mark.skipif(importlib.util.find_spec("Crypto") is not None, reason="needs an environment without pycryptodome")
+def test_key_file_without_pycryptodome_is_named_as_such(tmp_path):
+    with key_source(lambda console: str(tmp_path / "keys.txt") if console == "3ds" else None):
+        with pytest.raises(ImageError, match="needs the pycryptodome package"):
+            require_pycryptodome("3ds", "Nintendo 3DS")
 
 
 def test_encrypted_cia_is_refused_with_the_reason(tmp_path):
