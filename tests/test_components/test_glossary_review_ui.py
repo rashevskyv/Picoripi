@@ -1367,7 +1367,7 @@ class TestSpeakerIdentityResolution:
         dialog.focus_term("ASHEI")
 
         assert dialog._speaker_identity_pane.isVisibleTo(dialog) is True
-        assert "Ash" in dialog._speaker_identity_title.text()
+        assert dialog._speaker_identity_title.text() == "<b>Speaker identity (confirmed game code: Ash):</b>"
         assert dialog._apply_speaker_name_button.text() == "Reassign speaker"
         assert dialog._apply_speaker_name_button.isEnabled() is False
 
@@ -1667,8 +1667,8 @@ class TestGlossaryReferenceOccurrences:
         display_html = item.data(Qt.ItemDataRole.DisplayRole)
 
         assert "block <b>0</b>" in display_html
-        assert "EN:" in display_html
-        assert "RU:" in display_html
+        assert "EN:</b> " in display_html
+        assert "RU:</b> " in display_html
         assert "Рогатка" in display_html
         assert "text-decoration: underline;" in display_html
 
@@ -1694,7 +1694,7 @@ class TestGlossaryReferenceOccurrences:
         item = dialog._occurrence_list.item(0)
         display_html = item.data(Qt.ItemDataRole.DisplayRole)
 
-        assert "RU:" in display_html
+        assert "RU:</b> " in display_html
         assert long_ru in display_html
 
     def test_occurrence_omits_russian_block_when_no_reference_data(self, qtbot):
@@ -1715,8 +1715,8 @@ class TestGlossaryReferenceOccurrences:
         item = dialog._occurrence_list.item(0)
         display_html = item.data(Qt.ItemDataRole.DisplayRole)
 
-        assert "EN:" in display_html
-        assert "RU:" not in display_html
+        assert "EN:</b> " in display_html
+        assert "RU:</b>" not in display_html
 
     def test_reload_data_updates_reference_data(self, qtbot):
         from core.glossary_manager import GlossaryOccurrence
@@ -1744,7 +1744,7 @@ class TestGlossaryReferenceOccurrences:
         )
 
         item = dialog._occurrence_list.item(0)
-        assert "RU:" in item.data(Qt.ItemDataRole.DisplayRole)
+        assert "RU:</b> " in item.data(Qt.ItemDataRole.DisplayRole)
         assert "Держи" in item.data(Qt.ItemDataRole.DisplayRole)
 
 
