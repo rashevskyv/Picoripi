@@ -39,3 +39,12 @@ ignore = [
 "scripts/**" = ["S110", "S112"]
 "tools/i18n-translate/**" = ["S110", "S112"]
 
+# Slop checks: python -m tools.deslop --list-rules. Values here equal the code defaults.
+[tool.deslop]
+enable = []
+disable = []
+exclude = []
+poor-substring-max-length = 3
+poor-substring-words = ["error", "fail", "failed", "ok", "true", "false", "none", "data", "result", "value", "name"]
+duplicate-const-min-length = 4
+

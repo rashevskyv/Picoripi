@@ -94,6 +94,11 @@ class TestCommands:
             "PY tools/new_plugin.py my_game My Game --prefix MG",
         ]
 
+    def test_deslop_passes_its_arguments_to_the_module(self, capsys):
+        tasks.main(["deslop", "--dry-run", "--rule", "shape-in-names"])
+
+        assert _lines(capsys) == ["PY -m tools.deslop --rule shape-in-names"]
+
     def test_docs_check_checks_the_index_then_runs_the_document_tests(self, capsys):
         tasks.main(["docs-check", "--dry-run"])
 
