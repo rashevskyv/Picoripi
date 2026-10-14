@@ -69,14 +69,18 @@ def test_search_line_edit_context_menu(qapp):
     line_edit.setText("wrongword")
     line_edit.setCursorPosition(3) # Cursor inside "wrongword"
     
-    with patch('PyQt6.QtWidgets.QMenu.exec') as mock_menu_exec:
+    shown_menus = []
+    # Record the menu that would be shown instead of blocking on it.
+    with patch('PyQt6.QtWidgets.QMenu.exec', new=lambda menu, *a, **k: shown_menus.append(menu)):
         # Simulate context menu event
         class DummyEvent:
             def globalPos(self):
                 return None
         line_edit.contextMenuEvent(DummyEvent())
-        
-        assert mock_menu_exec.called
+
+    assert len(shown_menus) == 1
+    texts = [act.text() for act in shown_menus[0].actions() if not act.isSeparator()]
+    assert texts[:3] == ["correct1", "correct2", "Add 'wrongword' to Dictionary"]
 
 def test_translation_editor_spellcheck_highlighting(qapp):
     """Test that highlightBlock applies spell-check underline for the misspelled word range."""
