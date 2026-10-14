@@ -16,8 +16,7 @@ def test_ai_translation_result_dialog_single_block(qapp):
     assert "Line 3:\nTranslated Line 3" in plain_text
     
     # Check info label
-    assert "2" in dialog.info_label.text()
-    assert "1" in dialog.info_label.text() # 1 block
+    assert "Applied to <b>2</b> line(s) across <b>1</b> block(s)." in dialog.info_label.text()
     
     dialog.close()
 
@@ -37,7 +36,7 @@ def test_ai_translation_result_dialog_multiple_blocks(qapp):
     assert "Block 2" in plain_text
     assert "Line 6:\nText B" in plain_text
     
-    assert "2" in dialog.info_label.text() # 2 lines and 2 blocks
+    assert "Applied to <b>2</b> line(s) across <b>2</b> block(s)." in dialog.info_label.text()
     
     dialog.close()
 
@@ -48,9 +47,8 @@ def test_ai_translation_result_dialog_close(qapp):
     }
     
     dialog = AITranslationResultDialog(None, translation_details)
-    dialog.done = lambda code: setattr(dialog, '_result_code', code)
-    
+
     dialog.close_btn.click()
-    assert getattr(dialog, '_result_code', None) == 1 # QDialog.DialogCode.Accepted
+    assert dialog.result() == 1  # QDialog.DialogCode.Accepted
     
     dialog.close()
