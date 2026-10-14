@@ -92,14 +92,12 @@ class BfnActions:
                 return
 
             def save_callback(filename: str, new_bytes: bytes):
-                """Write updated BFN back into the in-memory archive and persist to disk."""
-                try:
-                    container.write_file(filename, new_bytes)
-                    archive_abs = pm.get_absolute_path(archive_rel_path, is_translation=False)
-                    atomic_write_bytes(archive_abs, container.pack())
-                    log_info(f"Font Editor: saved '{filename}' back to archive '{archive_rel_path}'.")
-                except Exception as ex:
-                    QMessageBox.critical(editor, tr('Font Editor'), f'Failed to write back to archive:\n{ex}')
+                """Write updated BFN back into the in-memory archive and persist to disk. A failed write raises into
+                the editor's save, which reports it and leaves the font unsaved."""
+                container.write_file(filename, new_bytes)
+                archive_abs = pm.get_absolute_path(archive_rel_path, is_translation=False)
+                atomic_write_bytes(archive_abs, container.pack())
+                log_info(f"Font Editor: saved '{filename}' back to archive '{archive_rel_path}'.")
 
             editor.open_from_bytes(
                 bfn_bytes,

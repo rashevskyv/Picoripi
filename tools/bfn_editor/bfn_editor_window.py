@@ -19,7 +19,6 @@ from tools.bfn_editor.window_tree_mixin import (
 )
 from tools.bfn_editor.window_sync_mixin import WindowSyncMixin
 from core.i18n import tr
-from utils.logging_utils import log_debug
 
 VERSION = "1.0.21"
 
@@ -50,7 +49,8 @@ class BfnEditorWindow(
     Integration points:
       - open_from_bytes(bfn_bytes, bfn_name, save_callback, font_sync_callback):
             Opens a BFN file from RAM (e.g., loaded from an ARC archive).
-            save_callback(bytes) is called after successful save to update the archive in RAM.
+            save_callback(filename, bytes) writes the saved font back; it raises when the write fails,
+            and the font then stays unsaved.
             font_sync_callback() is called to trigger Picoripi font map reload.
       - open_from_path(path):
             Opens a BFN file directly from disk.
@@ -161,27 +161,3 @@ class BfnEditorWindow(
         self.font_sources = {}
         self.scan_fonts_directories()
         self.load_bfn(path)
-
-
-    # ------------------------------------------------------------------
-    # Override save_changes to also call Picoripi sync callbacks
-    # ------------------------------------------------------------------
-
-    def save_changes(self, silent=False):
-        # Call the mixin implementation (defined in BfnIoMixin)
-        super_save = None
-        for cls in type(self).__mro__:
-            if cls is BfnEditorWindow:
-                continue
-            if 'save_changes' in cls.__dict__:
-                super_save = cls.__dict__['save_changes']
-                break
-        if super_save:
-            super_save(self, silent=silent)
-
-        # After successful save, trigger Picoripi font sync (other formats do it once their job has written)
-        if not self._dirty and self.font_sync_callback and self.font_format == "bfn":
-            try:
-                self.font_sync_callback()
-            except Exception as exc:
-                log_debug(f"bfn_editor_window.BfnEditorWindow.save_changes: ignored {exc!r}")

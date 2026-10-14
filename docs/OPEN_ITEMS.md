@@ -13,17 +13,19 @@ the line when it is done or moved into a plan.
 ## Write hardening (audit r28, 2026-10-15)
 
 - Rule 5 (pre-existing): the Font Editor saves a font on the UI thread — `save_changes` repacks the BFN and
-  `window_tree_mixin.save_disk_font` reads, rebuilds and writes the archive synchronously.
+  `window_tree_mixin.save_disk_font` reads, rebuilds and writes the archive synchronously. Not moved into a font
+  job: `switch_active_bfn_new` loads the next disk font at once, so it must first wait for the save job.
 - Rule 9: `io_save_mixin.save_changes` writes `data.json` and `sheet_*.png` with plain `open`/`QImage.save`; in
   extracted-folder mode (no BFN path) these are the user's files, so a crash mid-save can leave them torn.
 - `WiaStream.read()` with no size allocates the header-declared disc size at once; only tests call it so.
-- `ui/main_window/bfn_actions.py` `save_callback` (a font in a project archive) catches its write error and shows
-  a box, so `save_changes` then marks the font saved and shows "All changes saved" — the bug fixed in r28 for the
-  fonts-folder callback. Let the error propagate to `save_changes`.
-- `io_format_mixin._save_plugin_bfn` writes in a job after `save_changes` has marked the font saved; a failed
-  write shows a warning but the font stays marked saved.
-- `io_save_mixin.save_changes` puts the new bytes into `archive_files` (for a disk archive the same dict as the
-  font source's `files`) before the save callback runs; after a failed write the cache holds the unsaved bytes.
+- Font Editor `closeEvent`: "Yes, save" closes the window also when the save failed (the font stays unsaved, the
+  error box is shown, the edits are lost). A plugin font's save job can also end after the window closed.
+- Font Editor tree: after a fonts-folder font, `archive_save_callback` stays `save_disk_font` for that font; a
+  switch back to the project archive's font (`in_memory`) then saves it into the fonts-folder file.
+- `bfn_actions.save_callback` puts the font into the project's in-memory archive before the disk write; after a
+  failed write the in-memory archive is ahead of the file until the next save.
+- A plugin BFN font's width map and translation map are written before its file (unchanged); a failed font
+  write leaves them ahead of the file.
 
 ## Link's Awakening Switch for LAS Recomp (`plugins/zelda_las`, 2026-10-14)
 
