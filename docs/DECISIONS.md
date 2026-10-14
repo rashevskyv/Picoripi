@@ -810,3 +810,27 @@ button icons), so every one-byte code already has a cell: no cell has to be adde
 **Cost.** Until the translator draws Cyrillic, the mapped cells show their Latin-1 letters (Dolphin shows "Ïðèâ³ò" for
 "Привіт"). The cp1251 codes of Ъ Ы Э stay free. Text in layouts (`.blo`) was not measured; a layout that
 draws a mapped code would show the Cyrillic letter.
+
+## D36. Plugin folders are read-only defaults; the Font Editor's map repair on open writes nothing (2026-10-14)
+
+**Context.** Two paths wrote into `plugins/<plugin>/` at run time (rule 8), both through a plugin's `data_dir`. The
+Settings table of per-window limits saved `window_layouts.json` into the plugin folder (Twilight Princess; Wind Waker
+and Super Mario Sunshine inherit the rules, so the first Settings OK created the file there). Opening a BFN font whose
+translation-map codes were missing from MAP1 (with an empty glyph to take them) saved the font and the map at once;
+with no project the map went, not atomically, to the shipped `plugins/<plugin>/translation_map.json`.
+
+**Decision.**
+- Files in `plugins/<plugin>/` are read-only defaults. A write goes to the project folder when the file belongs to the
+  project (`translation_map.json` with a project open, as before), else to `utils.constants.user_plugin_dir(plugin)`
+  (`SETTINGS_DIR/plugins/<plugin>/`); a read takes the user's copy first, then the shipped file
+  (`user_plugin_file_or_shipped`). Every such write is atomic (`utils.atomic_io`).
+- The per-window limits are a game-wide setting like `font_map.json` and `aliases.json`, so they go to the user's
+  plugin folder only, not to the project (no per-project cache keying; one copy for every project of that game).
+- `get_translation_map_path(for_write=True)` in the Font Editor never returns a shipped file; the save after a map
+  edit and the save of a generated map both use it.
+- Opening a font writes nothing. The repair (synthetic keys, control codes, map codes missing from MAP1) changes the
+  font and map in memory, sets `map_repaired` and opens the font as unsaved (Save enabled; closing asks to save).
+
+**Cost.** A repaired font asks to be saved on close. With **Auto-sync** on, marking the font unsaved schedules the usual
+auto-save (the user's opt-in), which now writes to the user's or the project's location. A user copy of the limits
+hides later changes to the shipped defaults until the user deletes it.

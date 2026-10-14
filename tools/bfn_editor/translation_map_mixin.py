@@ -1,7 +1,8 @@
 """BFN editor: the map from original characters to translated glyphs."""
 import os
 from core.i18n import tr
-from utils.constants import user_plugin_file_or_shipped
+from utils.atomic_io import atomic_write_json
+from utils.constants import user_plugin_dir, user_plugin_file_or_shipped
 from utils.logging_utils import log_info, log_error
 from utils.logging_utils import log_debug
 
@@ -14,8 +15,9 @@ def is_slot_char(char: str) -> bool:
 
 
 class TranslationMapMixin:
-    def get_translation_map_path(self):
-        import os
+    def get_translation_map_path(self, for_write=False):
+        """The project's map; with no project the user's copy (``for_write``: always that one, never the
+        plugin's shipped default in ``plugins/``, rule 8), else the plugin's."""
         project_dir = None
         active_plugin = None
         parent_win = self.parent()
@@ -29,13 +31,18 @@ class TranslationMapMixin:
         mapping_path = None
         if project_dir:
             mapping_path = os.path.join(project_dir, "translation_map.json")
+        elif active_plugin and for_write:
+            mapping_path = str(user_plugin_dir(active_plugin) / "translation_map.json")
         elif active_plugin:
             mapping_path = str(user_plugin_file_or_shipped(active_plugin, "translation_map.json"))
         return mapping_path
 
     def load_translation_map(self):
+        """Read the map and repair it against the font in memory. Nothing is written: a repair sets
+        ``map_repaired`` and the loader marks the font unsaved, so the user saves it."""
         self.translation_map = {}
         self.reverse_translation_map = {}
+        self.map_repaired = False
         try:
             mapping_path = self.get_translation_map_path()
             if mapping_path and not os.path.exists(mapping_path):
@@ -217,14 +224,7 @@ class TranslationMapMixin:
                 if orphan_codes_found:
                     needs_save = True
                 
-                if needs_save:
-                    # Save the cleaned mapping_file without synthetic keys back to disk
-                    self.save_translation_map()
-                    # Physically save the BFN font file to commit the MAP1 changes to disk
-                    try:
-                        self.save_changes(silent=True)
-                    except Exception as e:
-                        log_error(f"Failed to auto-save BFN font during migration: {e}")
+                self.map_repaired = needs_save
                     
                 log_info(f"Font Editor: Loaded {len(self.translation_map)} characters from translation_map.json.")
         except Exception as e:
@@ -232,9 +232,8 @@ class TranslationMapMixin:
 
     def save_translation_map(self):
         try:
-            mapping_path = self.get_translation_map_path()
+            mapping_path = self.get_translation_map_path(for_write=True)
             if mapping_path:
-                import json
                 # Filter out corrupt entries before saving:
                 # - key must be 1 char, non-ASCII (ord >= 128)
                 # - value must be 1 char, a printable font character (is_slot_char)
@@ -248,8 +247,7 @@ class TranslationMapMixin:
                             clean_map[k] = v
                         # skip entries with control/invalid value codes
                     # skip entries with non-single-char keys/values
-                with open(mapping_path, "w", encoding="utf-8") as f:
-                    json.dump(clean_map, f, indent=4, ensure_ascii=False)
+                atomic_write_json(mapping_path, clean_map, indent=4, ensure_ascii=False)
                 self.status.showMessage(tr("Updated translation_map.json with {0} characters!", len(clean_map)))
         except Exception as e:
             log_error(f"Failed to save translation map: {e}")

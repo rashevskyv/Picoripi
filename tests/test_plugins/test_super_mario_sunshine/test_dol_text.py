@@ -1,4 +1,7 @@
-"""The executable's English strings: read as a document, written into their rooms, refused when they do not fit."""
+"""The executable's strings: read as a document, written into their rooms, refused when they do not fit.
+
+The plugin keeps only digests of the retail text; the ``synthetic_strings`` fixture (conftest) swaps in the digests of
+``synthetic_text``, so no game text is in the tests either."""
 import json
 import struct
 
@@ -7,14 +10,22 @@ import pytest
 from plugins.super_mario_sunshine import dol_patch
 from plugins.super_mario_sunshine.dol_text import STRINGS, DolText, apply_document, document_of
 
+pytestmark = pytest.mark.usefixtures("synthetic_strings")
+
+
+def synthetic_text(ident: str, room: int) -> bytes:
+    """Bytes that fill ``room`` minus the NUL; the first error line starts with 0x99 (the trademark sign in cp1252)."""
+    body = (b"\x99" if ident == "disc_error_1" else b"") + (ident.encode("ascii") + b"\n") * room
+    return body[:room - 1]
+
 
 def retail_dol(size: int = 0x3F0000) -> bytes:
-    """A synthetic executable: a DOL header and the English strings at their retail offsets. No game data."""
+    """A synthetic executable: a DOL header and the synthetic strings at the retail offsets. No game data."""
     data = bytearray(size)
     data[0:4] = b"\x00\x00\x01\x00"
     struct.pack_into(">I", data, 0xE0, 0x80003100)
-    for _ident, offset, _room, english in STRINGS:
-        data[offset:offset + len(english)] = english
+    for ident, offset, room, _digest in STRINGS:
+        data[offset:offset + room - 1] = synthetic_text(ident, room)
     return bytes(data)
 
 
@@ -30,16 +41,21 @@ def edited(dol: bytes, **texts: str) -> bytes:
 def test_the_retail_executable_is_recognised_and_another_is_not():
     dol = retail_dol()
     assert DolText.can_handle(dol)
-    assert not DolText.can_handle(dol.replace(b"progressive scan mode", b"interlace scan mode!"))
+    first = STRINGS[0][1]
+    assert not DolText.can_handle(dol[:first] + b"x" + dol[first + 1:])
     assert not DolText.can_handle(b"")
 
 
-def test_the_document_holds_each_english_string_in_order():
+def test_the_document_holds_each_string_in_order():
     rows = json.loads(document_of(retail_dol()).decode("utf-8"))["strings"]
     assert [row["id"] for row in rows] == [ident for ident, _o, _r, _e in STRINGS]
-    assert [row["text"] for row in rows][:3] == ["Would you like to display in\nprogressive scan mode?", "Yes", "No"]
+    assert [row["text"] for row in rows] == [synthetic_text(i, r).decode("cp1252") for i, _o, r, _e in STRINGS]
     assert [row["room"] for row in rows] == [room for _i, _o, room, _e in STRINGS]
-    assert "GAMECUBE™" in rows[5]["text"]   # byte 0x99 of the executable is ™ in cp1252
+    assert rows[5]["text"].startswith("™")   # byte 0x99 of the executable is ™ in cp1252
+
+
+def test_the_plugin_keeps_digests_not_text():
+    assert all(isinstance(digest, str) and len(digest) == 64 for _i, _o, _r, digest in STRINGS)
 
 
 def test_an_executable_whose_string_differs_is_refused():

@@ -195,7 +195,8 @@ class IoLoadMixin:
         self.populate_glyph_table()
         self.update_simulation()
         
-        self._set_dirty(False)
+        # A map repaired on open is only in memory: the font opens unsaved (Save enabled, asked on close).
+        self._set_dirty(bool(getattr(self, "map_repaired", False)))
         self._sync_with_global_preview_cache()
 
     def select_sheet(self, index):

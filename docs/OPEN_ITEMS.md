@@ -870,9 +870,6 @@ omfs`) could be
 - **Not atomic on purpose (6.1):** creating a new empty file (`translation_map.json` as `{}`, a new project
   glossary as `[]`), `.bak` copies, the log file, the downloaded dictionary, command-line tools
   (`plugins/zelda_bmg/bmg_tool.py`, `stage_data.py`), MemPalace helper outputs. None overwrites a user's work.
-- **Settings → OK writes the font map table into `plugins/<plugin>/font_map.json`** (`ui/settings/load_save_mixin.py`),
-  and `tag_alias_mixin` writes font-map overrides there too. User settings inside `plugins/` (audit C, P0-c);
-  move them to the per-user plugin folder together with `window_layouts.json`.
 - **Tests bypass `mock_open` now.** `utils.atomic_io` does not go through `builtins.open`, so a test that only
   mocks `open` and passes a path outside `tmp_path` writes a real file. A traced full run (2026-10-02) found
   none left; new tests should save into `tmp_path` or patch `atomic_write_*` in the module under test.
@@ -882,10 +879,6 @@ omfs`) could be
 - **`ui/main_window/bfn_actions.py` still imports the BMG parser** (`from bmg_tool import BMGFile, BMGMessage`,
   through the root shim) for the "Import / Export BMG JSON" actions and calls `msg_to_editor_text`. These are
   Twilight Princess actions living in the main window; they belong in the plugin's `get_plugin_actions()`.
-- **The Settings table of per-window limits writes into the plugin folder**
-  (`plugins/zelda_bmg/window_layouts.json`; `zelda_tww` and `super_mario_sunshine` inherit it through `data_dir`, and
-  with no file there the first Settings OK writes one). It is the last place where user settings are stored inside
-  `plugins/`; move it to the project or user override folder (audit C, P0-c).
 - **`get_preview_window_style` and `get_message_attributes` are still looked for with `hasattr`** in four host
   places instead of being base-class hooks.
 - **File dialogs of the project wizard and the settings path picker still list fixed extensions**

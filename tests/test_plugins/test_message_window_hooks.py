@@ -1,4 +1,6 @@
 """The preview and Settings learn about a game's message windows through hooks (WP5 5.7)."""
+import hashlib
+import importlib
 import json
 import re
 from pathlib import Path
@@ -91,11 +93,49 @@ class TestZeldaBmg:
         assert rules._get_window_layouts()["default"]["max_width"] == 123      # the cache was dropped
         assert not list(tmp_path.glob("*.tmp"))
 
-    def test_a_missing_limits_file_gives_an_empty_document(self, tmp_path):
+    def test_a_missing_limits_file_gives_the_shipped_document_else_an_empty_one(self, tmp_path):
         rules = ZeldaBmgRules()
         rules.window_layouts_path = str(tmp_path / "absent.json")
+        shipped = json.loads(Path("plugins/zelda_bmg/window_layouts.json").read_text(encoding="utf-8"))
 
+        assert rules.get_window_layouts_document() == shipped
+        rules.data_dir = str(tmp_path)                 # a plugin that ships no limits file (zelda_tww, SMS)
         assert rules.get_window_layouts_document() == {"default": {}, "kinds": {}}
+
+
+def _folder_state(folder: Path) -> dict:
+    """Every file of ``folder`` (no bytecode caches) with its time stamp and SHA-256."""
+    return {str(path.relative_to(folder)): (path.stat().st_mtime_ns, hashlib.sha256(path.read_bytes()).hexdigest())
+            for path in folder.rglob("*") if path.is_file() and "__pycache__" not in path.parts}
+
+
+@pytest.mark.parametrize("plugin", ["zelda_bmg", "zelda_tww", "super_mario_sunshine"])
+def test_settings_limits_go_to_the_user_folder_atomically_never_into_plugins(plugin, tmp_path, monkeypatch):
+    """Rule 8: the plugin's shipped limits stay a read-only default; Settings writes the user's copy (rule 9: atomic)."""
+    import utils.constants as constants
+    monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path)
+    plugin_dir = constants.plugins_root() / plugin
+    before = _folder_state(plugin_dir)
+    rules = importlib.import_module(f"plugins.{plugin}.rules").GameRules()
+
+    document = rules.get_window_layouts_document()
+    document.setdefault("default", {})["max_width"] = 123
+    rules.save_window_layouts_document(document)
+
+    user_copy = tmp_path / "plugins" / plugin / "window_layouts.json"
+    assert json.loads(user_copy.read_text(encoding="utf-8"))["default"]["max_width"] == 123
+    assert rules.get_window_layouts_document()["default"]["max_width"] == 123     # the user's copy is read first
+    assert _folder_state(plugin_dir) == before
+
+    def refuse(_source, _target):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("utils.atomic_io.os.replace", refuse)
+    document["default"]["max_width"] = 456
+    with pytest.raises(OSError, match="disk full"):
+        rules.save_window_layouts_document(document)
+    assert json.loads(user_copy.read_text(encoding="utf-8"))["default"]["max_width"] == 123
+    assert [path.name for path in user_copy.parent.iterdir()] == ["window_layouts.json"]   # no temporary file left
 
 
 class _Preview(BfnPreviewPaintMixin):
