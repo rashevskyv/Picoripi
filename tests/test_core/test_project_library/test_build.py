@@ -225,16 +225,23 @@ def test_game_image_fails_before_writing_when_the_drive_is_too_small(tmp_path, m
     assert not (tmp_path / "project").exists()
 
 
-def test_switch_and_wii_images_do_not_count_toward_the_room_check(tmp_path, monkeypatch):
-    """No unpack step writes a Switch or Wii image yet, so the room check leaves them out (DECISIONS D30)."""
+def test_switch_and_wii_images_count_toward_the_room_check(tmp_path, monkeypatch):
+    """Switch and Wii images are unpack inputs, so the room check counts them like GameCube (DECISIONS D30)."""
     disc = tmp_path / "wii.iso"
     head = bytearray(0x20)
     head[0:6] = b"RMCE01"
     struct.pack_into(">I", head, 0x18, 0x5D1C9EA3)   # the Wii disc magic
     disc.write_bytes(bytes(head))
+    name = b"game.nca\0"
+    body = b"n" * 64
+    nsp = tmp_path / "game.nsp"                       # a PFS0 with one entry: recognised as a Switch package
+    nsp.write_bytes(b"PFS0" + struct.pack("<III", 1, len(name), 0) + struct.pack("<QQII", 0, len(body), 0, 0)
+                    + name + body)
     monkeypatch.setattr(build, "_free_bytes", lambda path: 0)
 
-    build._check_free_space(tmp_path / "project", {"base": str(disc)})
+    for image in (disc, nsp):
+        with pytest.raises(ValueError, match="Not enough free space"):
+            build._check_free_space(tmp_path / "project", {"base": str(image)})
 
 
 def test_game_image_passes_when_the_room_covers_the_image_and_its_margin(tmp_path, monkeypatch):
