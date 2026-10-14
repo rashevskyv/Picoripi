@@ -1,4 +1,5 @@
-"""One zstd frame in and out: ``compression.zstd`` (Python 3.14+) or the ``zstandard`` package.
+"""One zstd frame in and out: ``compression.zstd`` (Python 3.14+) or the ``zstandard`` package; ``stdlib`` for a
+reader that streams (the Switch NCZ reader).
 
 Imported lazily by the readers that need it, so a fresh clone on an older Python still imports those modules.
 """
@@ -9,11 +10,19 @@ class ZstdUnavailable(RuntimeError):
     """Neither ``compression.zstd`` nor ``zstandard`` can be imported."""
 
 
-def _module():
+def stdlib():
+    """``compression.zstd`` (its streaming decoder has ``needs_input`` and ``eof``). ZstdUnavailable before 3.14."""
     try:
         from compression import zstd
-        return zstd
     except ImportError:
+        raise ZstdUnavailable("zstd streaming needs Python 3.14 (compression.zstd)") from None
+    return zstd
+
+
+def _module():
+    try:
+        return stdlib()
+    except ZstdUnavailable:
         pass
     try:
         import zstandard

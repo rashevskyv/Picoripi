@@ -17,7 +17,7 @@ the line when it is done or moved into a plan.
 - The SWUK import copies `region_common/ui/StartUp.arc` and `jpn_heading.bffnt`, made for v1.1.0, over the 1.0.0 files. Not checked on 1.0.0.
 - NCZ decompression (about 6 GB for this game) sends no progress; the dialog keeps its last text until the files are written.
 - A killed process or a power loss during an unpack leaves `.unpack-<id>` in the project folder (a cancel or an error removes it), now with the NCZ cache inside; nothing removes it later.
-- `core/containers/switch_nsz.py` imports `compression.zstd` itself (it needs the streaming decoder), not through `core/zstd_frame.py`; an `.nsz` needs Python 3.14 (no `zstandard` fallback).
+- An `.nsz` needs Python 3.14: `core/containers/switch_nsz.py` takes the streaming decoder from `core/zstd_frame.stdlib()` (no `zstandard` fallback). NCZBLOCK blocks above 16 MiB (`MAX_BLOCK_EXP` 24) are refused; nsz writes 1 MiB by default.
 
 ## Slop baseline: reduce the count (deslop, 2026-10-14)
 
@@ -138,7 +138,7 @@ the line when it is done or moved into a plan.
 - Duplicate LZ10 (round 6 item) is still open: `core/containers/level5.py` `_lz10` next to `core/containers/lz10.py`.
 - `plugins/pokemon_gen7/rules.py` is a copy of `plugins/pokemon_gen6/rules.py` (33 changed lines: tables, GARC ids, names). Both use `plugins/common/gfmsg`. A shared base for the Game Freak `.dat` plugins is a later refactor.
 - Licence notices: `core/texture_formats/xenos.py` carries the full Xenia BSD-3 text (Ben Vanik, 2015); `core/containers/layton_ds.py` carries the full MIT text of bullbin's madhatter (2024), which its pack codec is ported from; `core/containers/romfs_write.py` carries the full MIT text of Peiikai's LAS Recomp (2026), which it is ported from (`runtime/romfs_build.c`); `core/containers/switch_nsz.py` cites nsz (MIT) for format facts only. Jak (`fr3`) cites the OpenGOAL port for format facts only; no OpenGOAL source is copied. The OpenGOAL licence was not checked.
-- Zstd: `core/zstd_frame.py` is the one zstd helper (`compression.zstd` or `zstandard`, imported inside the calls). `fr3` and `core/unreal/pak.py` use it.
+- Zstd: `core/zstd_frame.py` is the one zstd helper (`compression.zstd` or `zstandard`, imported inside the calls). `fr3`, `core/unreal/pak.py`, the RVZ reader (`core/containers/wia.py`) and the NCZ reader (`stdlib()`) use it; `core/containers/sarc.py` imports `compression.zstd` itself for its dictionaries.
 - `feat/ready-dk` does not exist; Donkey Kong is not in round 7.
 - Ultra boot proof still open (round 6 item); the Sun/Moon plugin has no boot check either.
 - Full suite at 6f5a0d89 (`python tasks.py test`, parallel): 9344 passed, 13 skipped, 2 xfailed, 0 failed (601 s). Round 6's xdist worker crashes did not recur in this run.

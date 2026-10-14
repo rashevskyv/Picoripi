@@ -13,6 +13,7 @@ from __future__ import annotations
 import struct
 from typing import BinaryIO, Callable, List, NamedTuple, Optional, Tuple
 
+from core import zstd_frame
 from core.containers.image_files import ImageError, ImageReader
 
 NCA_HEADER_SIZE = 0x4000     # the NCA header copy at the start of an NCZ, and where its body starts
@@ -21,7 +22,9 @@ MAGIC_BLOCKS = b"NCZBLOCK"
 SECTION_SIZE = 0x40
 BLOCK_HEADER_SIZE = 0x18
 MAX_SECTIONS = 4             # an NCA has at most four sections
-MIN_BLOCK_EXP, MAX_BLOCK_EXP = 14, 32   # the block size is 2**exp bytes (nsz uses the same range)
+# The block size is 2**exp bytes. nsz writes 2**20 by default and accepts up to 2**32; a block is held in memory, so a
+# hostile file must not ask for more than 16 MiB.
+MIN_BLOCK_EXP, MAX_BLOCK_EXP = 14, 24
 CHUNK = 1 << 20
 
 
@@ -93,10 +96,9 @@ def decompress_ncz(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: C
 
 def _zstd():
     try:
-        from compression import zstd   # the standard library, Python 3.14+
-    except ImportError:
+        return zstd_frame.stdlib()
+    except zstd_frame.ZstdUnavailable:
         raise ImageError("compressed Switch images need Python 3.14 (compression.zstd)") from None
-    return zstd
 
 
 def _solid(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[[], bool]) -> bool:
