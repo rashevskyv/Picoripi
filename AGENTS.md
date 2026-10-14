@@ -62,8 +62,8 @@ Tests: focused unit tests for logic; real `pytest-qt` lifecycle tests for worker
 - `docs/DECISIONS.md` — why the code is the way it is; add a record instead of re-arguing a choice.
 - `docs/audit/2026-10-01/PLAN.md` + `TASKS.md` — current work packages (read one WP at a time).
 - `docs/wiki/README.md` — handbook; `docs/wiki/7_Maintaining_This_Wiki.md` — which page owns what.
-- Skills: `.agents/skills/update-wiki` (after user-visible or settings changes), `.agents/skills/deploy`
-  (only on an explicit `/deploy`).
+- Skills: `.agents/skills/update-wiki` (after user-visible or settings changes), `.agents/skills/deslop`
+  (at every stop point; `python tasks.py deslop`), `.agents/skills/deploy` (only on an explicit `/deploy`).
 
 ## Checklist before you report
 
@@ -76,4 +76,5 @@ Tests: focused unit tests for logic; real `pytest-qt` lifecycle tests for worker
    Q8 — describe the mechanism, not game constants — or state "single-game" in the report.
 5. Closed or opened a TODO? Update `docs/OPEN_ITEMS.md`.
 6. Tests added or updated, suite and `ruff check .` green, `git diff --check` clean.
-7. `graphify update .` last. Report what changed, what was verified and what risk remains.
+7. `python tasks.py deslop`: fix or suppress (with a reason) each new finding; never raise the baseline.
+8. `graphify update .` last. Report what changed, what was verified and what risk remains.
