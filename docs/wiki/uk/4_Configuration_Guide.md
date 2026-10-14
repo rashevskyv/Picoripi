@@ -44,7 +44,7 @@ tokens: 2.7k
 |------------|------|
 | File Paths | **Directory Mode (Load from folder)**, **Auto-generate translation path**, шляхи Original / Changes, Original Fonts Directory Path, Fonts Directory Path, **Reference Translation / ROM Path** (тека референсного патчу, розпакований ROM або образ `.iso`) |
 | Display | Default Font for Project, wrap preview, wrap editors, Newline Symbol + стиль, Tag Style |
-| Rules | Game Dialog Max Width (px), Editor Line Width Warning (px), Show guideline, Lines Per Page. Для `zelda_bmg`: **Window limit mode** — Shared for all windows vs Separate by window type (ліміти зберігаються в `~/.picoripi/plugins/<плагін>/window_layouts.json`; файл самого плагіна — типові значення) |
+| Rules | Game Dialog Max Width (px), Editor Line Width Warning (px), Show guideline, Lines Per Page. Для `zelda_bmg`: **Window limit mode** — Shared for all windows vs Separate by window type (ліміти зберігаються в `plugins/<плагін>/window_layouts.json` у вашій теці даних; файл самого плагіна — типові значення) |
 | Context Tags | Власні insert/wrap-теги для меню редактора |
 | Tag Aliases | аліас ↔ оригінальний тег; **File → Reload Tag Mappings from Settings** |
 | Font Map | Ширини гліфів |

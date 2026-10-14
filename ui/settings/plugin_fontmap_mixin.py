@@ -1,5 +1,5 @@
 """Settings dialog: font map table of the plugin."""
-from utils.constants import plugins_root
+from utils.constants import plugins_root, user_plugin_file_or_shipped
 import json
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTableWidget, QTableWidgetItem,
@@ -66,7 +66,8 @@ class PluginFontmapMixin:
         if not plugin_dir_name:
             return
             
-        font_map_path = plugins_root() / plugin_dir_name / "font_map.json"
+        # The user's copy first: OK saves the table there, so reading only the shipped file would overwrite it (D36)
+        font_map_path = user_plugin_file_or_shipped(plugin_dir_name, "font_map.json")
         if not font_map_path.exists():
             font_map_path = plugins_root() / "common" / "defaults" / "font_map.json"
             

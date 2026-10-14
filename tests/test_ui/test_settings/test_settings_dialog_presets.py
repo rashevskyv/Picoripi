@@ -245,3 +245,20 @@ def test_a_plugin_without_window_kinds_gets_the_three_shared_limits(qapp):
     assert not getattr(dialog, "_zelda_window_layout_controls", None)
     assert dialog.persist_zelda_bmg_window_rules() == (True, "")
 
+
+def test_the_font_map_table_shows_the_users_copy_so_ok_keeps_it(qapp, tmp_path, monkeypatch):
+    """OK saves the table to the user's plugin folder; the table must read that copy back, or the next OK
+    overwrites it with the shipped widths (D36)."""
+    import utils.constants as constants
+    monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path)
+    user_copy = tmp_path / "plugins" / "zelda_mc" / "font_map.json"
+    user_copy.parent.mkdir(parents=True)
+    user_copy.write_text(json.dumps({"Я": {"width": 7}}), encoding="utf-8")
+
+    dialog = SettingsDialog(MockMainWindow())
+    table = dialog.font_map_table
+    assert [(table.item(r, 0).text(), table.item(r, 1).text()) for r in range(table.rowCount())] == [("Я", "7")]
+
+    dialog.get_settings()
+    assert json.loads(user_copy.read_text(encoding="utf-8")) == {"Я": {"width": 7}}
+
