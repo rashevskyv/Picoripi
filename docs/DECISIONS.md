@@ -771,3 +771,16 @@ spec's arithmetic. No code was copied.
 
 **Cost.** The Lagged Fibonacci generator runs in pure Python (no numpy dependency): junk is slower than other data, about
 10 MB/s, and only junk regions that are read pay it. A GameCube WIA or RVZ with a chunk larger than 64 MiB is refused.
+
+## D34. The INF1 guard compares attributes, not string offsets (2026-10-14)
+
+**Context.** The first real text edit (the proof) was refused: "the message attributes (INF1) changed". Each INF1 entry
+holds a string offset into DAT1 first, and a text edit that changes a string's length moves every later offset. The
+guard compared whole INF1 sections, so it refused every real edit. Its unit test had not caught it because the synthetic
+edit kept the offsets.
+
+**Decision.** `plugins/super_mario_sunshine/build.py` compares, per BMG, the INF1 header fields (count, entry size, id)
+and each entry's attribute bytes (everything after the first four). The offsets are not compared. A changed attribute
+is still refused. Tests: `test_build.py` (attribute change refused; offset-only change accepted, real BMG layout).
+
+**Cost.** A text edit that also rewrites an attribute byte is refused: the translator changes text, not box attributes.

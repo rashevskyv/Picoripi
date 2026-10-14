@@ -22,13 +22,19 @@ def _noop(percent, text):
     return None
 
 
-def bmg(inf1: bytes, dat: bytes = b"DATA") -> bytes:
-    """A BMG-shaped file: a 0x20 header, an INF1 section and a DAT1 section. Enough for the section checks."""
+def bmg(attr: bytes = b"\0\0\0\0", dat: bytes = b"DATA", offset: int = 0) -> bytes:
+    """A BMG with one message: an INF1 section of one 8-byte entry (its string offset, then the attribute bytes) and
+    a DAT1 section holding ``dat``. Enough for the INF1 checks."""
     head = bytearray(0x20)
     head[:8] = b"MESGbmg1"
-    inf = b"INF1" + struct.pack(">I", 8 + len(inf1)) + inf1
-    dat1 = b"DAT1" + struct.pack(">I", 8 + len(dat)) + dat
-    return bytes(head) + inf + dat1
+    entry = struct.pack(">I", offset) + attr
+    inf = bytearray(b"INF1" + struct.pack(">I", 0) + struct.pack(">HH", 1, 8) + struct.pack(">I", 0) + entry)
+    inf += bytes(-len(inf) % 32)
+    struct.pack_into(">I", inf, 4, len(inf))
+    dat1 = bytearray(b"DAT1" + struct.pack(">I", 0) + dat)
+    dat1 += bytes(-len(dat1) % 32)
+    struct.pack_into(">I", dat1, 4, len(dat1))
+    return bytes(head) + bytes(inf) + bytes(dat1)
 
 
 def _write(path: Path, data: bytes) -> Path:
@@ -62,16 +68,24 @@ def test_a_file_the_disc_does_not_hold_is_refused(tmp_path):
 
 def test_a_changed_message_attribute_block_is_refused(tmp_path):
     src, trn = tmp_path / "src", tmp_path / "trn"
-    _write(src / "files/data/a.szs/map/m.bmg", bmg(b"\0" * 8))
-    _write(trn / "files/data/a.szs/map/m.bmg", bmg(b"\1" * 8))
+    _write(src / "files/data/a.szs/map/m.bmg", bmg())
+    _write(trn / "files/data/a.szs/map/m.bmg", bmg(attr=b"\1\1\1\1"))
     with pytest.raises(ValueError, match="INF1"):
         build.changed_files(src, trn)
 
 
+def test_a_moved_string_offset_alone_is_a_text_edit_and_is_accepted(tmp_path):
+    src, trn = tmp_path / "src", tmp_path / "trn"
+    _write(src / "files/data/a.szs/map/m.bmg", bmg(offset=0, dat=b"Hello\0"))
+    moved = bmg(offset=6, dat=b"Hello there\0")
+    _write(trn / "files/data/a.szs/map/m.bmg", moved)
+    assert build.changed_files(src, trn) == {"files/data/a.szs/map/m.bmg": moved}
+
+
 def test_a_text_change_in_a_member_is_taken_as_it_is(tmp_path):
     src, trn = tmp_path / "src", tmp_path / "trn"
-    _write(src / "files/data/a.szs/m.bmg", bmg(b"\0" * 8))
-    edited = bmg(b"\0" * 8, b"EDIT")
+    _write(src / "files/data/a.szs/m.bmg", bmg())
+    edited = bmg(dat=b"EDIT")
     _write(trn / "files/data/a.szs/m.bmg", edited)
     assert build.changed_files(src, trn) == {"files/data/a.szs/m.bmg": edited}
 
@@ -104,14 +118,14 @@ def test_an_archive_is_rebuilt_from_the_disc_and_keeps_yaz0(tmp_path):
 def test_gc_iso_build_refuses_a_main_dol_that_is_not_the_retail_one(tmp_path):
     other = b"B" * 10
     image = _write(tmp_path / "disc.iso", build_disc({
-        "data/a.szs": yaz0.compress(build_rarc({"m.bmg": bmg(b"\0" * 8)})), "data/b.bin": other}))
+        "data/a.szs": yaz0.compress(build_rarc({"m.bmg": bmg()})), "data/b.bin": other}))
     src, trn, out = tmp_path / "src", tmp_path / "trn", tmp_path / "out"
     out.mkdir()
-    _write(src / "files/data/a.szs/m.bmg", bmg(b"\0" * 8))
+    _write(src / "files/data/a.szs/m.bmg", bmg())
     _write(src / "files/data/b.bin", other)
     _write(src / "sys/main.dol", b"\x00" * 0x20)   # the synthetic executable is too short for the speech fix
     build.write_source_mark(src, image)
-    _write(trn / "files/data/a.szs/m.bmg", bmg(b"\0" * 8, b"EDIT"))
+    _write(trn / "files/data/a.szs/m.bmg", bmg(dat=b"EDIT"))
     with pytest.raises(ValueError, match="too short"):
         build.build_gc_iso(str(src), str(trn), str(out), _noop, _never)
     assert not (out / build.ISO_NAME).exists()
@@ -120,12 +134,12 @@ def test_gc_iso_build_refuses_a_main_dol_that_is_not_the_retail_one(tmp_path):
 def test_port_pack_writes_the_changed_member_under_the_archive_folder(tmp_path):
     src, trn, out = tmp_path / "src", tmp_path / "trn", tmp_path / "out"
     out.mkdir()
-    _write(src / "files/data/a.szs/m.bmg", bmg(b"\0" * 8))
+    _write(src / "files/data/a.szs/m.bmg", bmg())
     _write(src / "sys/main.dol", b"\x00" * 0x100)
-    _write(trn / "files/data/a.szs/m.bmg", bmg(b"\0" * 8, b"EDIT"))
+    _write(trn / "files/data/a.szs/m.bmg", bmg(dat=b"EDIT"))
     _write(trn / "sys/main.dol", b"\x01" * 0x100)
     root = Path(build.build_port_pack(str(src), str(trn), str(out), _noop, _never))
-    assert (root / "files/data/a.szs/m.bmg").read_bytes() == bmg(b"\0" * 8, b"EDIT")
+    assert (root / "files/data/a.szs/m.bmg").read_bytes() == bmg(dat=b"EDIT")
     assert not (root / "sys").exists()
     assert (root / "README.txt").read_text(encoding="utf-8").startswith("Super Mario Sunshine")
 

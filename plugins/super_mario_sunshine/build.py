@@ -12,6 +12,7 @@ overlay rule. No container is registered with ``ContainerManager``: the scan and
 """
 import json
 import os
+import struct
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
@@ -140,10 +141,22 @@ def changed_files(source_dir: str | os.PathLike, translation_dir: str | os.PathL
         old = base.read_bytes()
         if data == old:
             continue
-        if rel.lower().endswith(".bmg") and _section(data, b"INF1") != _section(old, b"INF1"):
+        if rel.lower().endswith(".bmg") and _attributes(_section(data, b"INF1")) != _attributes(_section(old, b"INF1")):
             raise ValueError(tr("{0}: the message attributes (INF1) changed; only the text may change", rel))
         changes[rel] = data
     return changes
+
+
+def _attributes(inf1: Optional[bytes]) -> Optional[tuple]:
+    """What a text edit must keep of an INF1 section: its header fields and each entry's attribute bytes.
+
+    An entry's first four bytes are the string's offset into DAT1, which a text edit moves; they are not compared.
+    """
+    if inf1 is None or len(inf1) < 16:
+        return None
+    count, entry_len = struct.unpack_from(">HH", inf1, 8)
+    tails = tuple(bytes(inf1[16 + i * entry_len + 4:16 + (i + 1) * entry_len]) for i in range(count))
+    return (bytes(inf1[8:16]), tails)
 
 
 def _archive_bytes(image: Path, archive: str, members: Dict[str, bytes]) -> bytes:
