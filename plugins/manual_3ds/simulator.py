@@ -29,6 +29,7 @@ from plugins.manual_3ds import sim_screens as ss
 CARD_EDGE = 320.0           # page x of the card's right edge (the scroll track starts there)
 LINE_LIMIT = CARD_EDGE      # a line that reaches past this is cut on the console
 PICTURE_MIN = (24.0, 12.0)  # smaller pictures are icons set inside the text (the owner's OCC_MIN_W/H)
+BOX_MIN_WIDTH = 200.0       # a window the text sits inside is a box only when this wide (the owner's OCC_BOX_MIN_W)
 TEXT_BANDS = ((48, 48, 352, 230), (48, 240, 352, 450))   # canvas boxes the scroll is matched on (chrome excluded)
 REGIONS = {
     "text": [(48, 48, 352, 230), (48, 240, 352, 450)],
@@ -210,7 +211,7 @@ def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.
             left, top = pane.top_left
             if pane.kind == "pic1" and pane.w >= PICTURE_MIN[0] and pane.h >= PICTURE_MIN[1]:
                 pictures.append((pane.name, left, top, pane.w, pane.h))
-            elif pane.kind == "wnd1" and pane.frames and pane.w >= 100:
+            elif pane.kind == "wnd1" and pane.frames and pane.w >= BOX_MIN_WIDTH:
                 frame = _frame_width(layout, pane, textures)
                 if frame:
                     windows.append((pane.name, left, top, pane.w, pane.h, frame))
@@ -218,7 +219,7 @@ def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.
         if not run.text.strip():
             continue
         step = 20.0
-        right = run.x + run.width
+        right = run.ink_right
         bottom = run.top - step
         where = f"{run.text[:50]!r}"
         if run.wrapped:
@@ -226,16 +227,16 @@ def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.
                               "the viewer broke the stored line inside its pane; this part lands on the next line"))
         if right > LINE_LIMIT + 0.5:
             out.append(Defect("clipped", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
-                              f"line ends at {right:.1f} px, the card ends at {LINE_LIMIT:.0f}: {where}"))
+                              f"ink ends at {right:.1f} px, the card ends at {LINE_LIMIT:.0f}: {where}"))
         for pic_name, px, py, pw, ph in pictures:
-            if px < right - 0.5 and px + pw > run.x + 0.5 and py > bottom + 1.0 and py - ph < run.top - 1.0 and px > run.x:
+            if px < right - 1.0 and px + pw > run.x + 1.0 and py > bottom + 1.0 and py - ph < run.top - 1.0 and px > run.x:
                 out.append(Defect("over_picture", name, number, page_name, size, run.pane, run.text, run.top,
-                                  _scroll_for(run.top), f"line ends at {right:.1f} px, picture {pic_name} starts at {px:.1f}"))
+                                  _scroll_for(run.top), f"ink ends at {right:.1f} px, picture {pic_name} starts at {px:.1f}"))
         for win_name, wx, wy, ww, wh, fw in windows:
             inner_right = wx + ww - fw
-            if wx <= run.x < wx + ww and wy > bottom + 1.0 and wy - wh < run.top - 1.0 and right > inner_right + 0.5:
+            if wx <= run.x < wx + ww and wy > bottom + 1.0 and wy - wh < run.top - 1.0 and right > inner_right + 1.0:
                 out.append(Defect("over_frame", name, number, page_name, size, run.pane, run.text, run.top,
-                                  _scroll_for(run.top), f"line ends at {right:.1f} px, the frame {win_name} starts at {inner_right:.1f}"))
+                                  _scroll_for(run.top), f"ink ends at {right:.1f} px, the frame {win_name} starts at {inner_right:.1f}"))
     return out
 
 

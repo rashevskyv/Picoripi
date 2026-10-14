@@ -290,6 +290,7 @@ class TextRun:
     top: float        # page y of the line's top
     width: float      # advance of the whole line
     wrapped: bool     # the viewer broke this line inside the pane (the text did not fit the box)
+    ink_right: float = 0.0   # page x where the last glyph's ink ends (its left bearing plus glyph width)
 
 
 def _blend(colour: RGBA, alpha: int) -> RGBA:
@@ -538,8 +539,19 @@ class PageRenderer:
             width = self._line_width(line, scale_x, char_space)
             start = left + (pane.w - width) * column_align * 0.5
             line_top = block_top - index * line_height
-            self.runs.append(TextRun(pane.name, line, start, line_top, width, wrapped))
+            self.runs.append(TextRun(pane.name, line, start, line_top, width, wrapped, self._ink_right(line, start, scale_x, char_space)))
             self._draw_line(canvas, line, start, line_top, scale_x, scale_y, char_space, colour_top, colour_bottom, alpha)
+
+    def _ink_right(self, line: str, x: float, scale_x: float, char_space: float) -> float:
+        pen = x
+        right = x
+        for ch in line:
+            code = ord(ch)
+            if not ch.isspace():
+                left, glyph_w, _char_w = self.glyphs.metrics(code)
+                right = max(right, pen + (left + glyph_w) * scale_x)
+            pen += self._advance(code, scale_x) + char_space
+        return right
 
     def _draw_line(self, canvas: Image.Image, line: str, x: float, top: float, scale_x: float, scale_y: float,
                    char_space: float, colour_top: RGBA, colour_bottom: RGBA, alpha: int) -> None:
