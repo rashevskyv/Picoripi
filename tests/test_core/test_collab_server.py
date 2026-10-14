@@ -278,9 +278,9 @@ def test_a_comment_of_another_rooms_file_is_adopted_once_and_a_deleted_one_stays
 def test_an_empty_comment_is_refused(tmp_path):
     room, _, _ = _room_with_host(tmp_path)
     olena = _join(room, "Olena")
-    assert "error" in room.apply_ops(olena["id"], [{"op_id": "c", "kind": "comment",
-                                                    "scope": {"kind": "row", "label": "k"}, "keys": ["k"],
-                                                    "text": "   "}])["c"]
+    assert room.apply_ops(olena["id"], [{"op_id": "c", "kind": "comment",
+                                         "scope": {"kind": "row", "label": "k"}, "keys": ["k"],
+                                         "text": "   "}])["c"] == {"error": "a comment needs text up to 4000 characters"}
 
 
 # ---- identity -----------------------------------------------------------------------------
@@ -329,7 +329,7 @@ def test_the_host_can_lift_a_removal_and_the_member_joins_again(tmp_path):
     assert room.apply_ops(host["id"], [{"op_id": "u", "kind": "unban", "target": olena["id"]}])["u"] == {"ok": True}
     again = _join(room, "Olena", olena["token"])
     assert again["id"] == olena["id"]
-    assert "error" in room.apply_ops(again["id"], [{"op_id": "u2", "kind": "unban", "target": olena["id"]}])["u2"]
+    assert room.apply_ops(again["id"], [{"op_id": "u2", "kind": "unban", "target": olena["id"]}])["u2"] == {"error": "not allowed"}
 
 
 def test_a_removed_name_cannot_join_with_a_new_token_until_it_is_allowed_back(tmp_path):
@@ -353,8 +353,8 @@ def test_a_host_cannot_be_kicked_and_a_moderator_cannot_kick_a_moderator(tmp_pat
     room.apply_ops(host["id"], [{"op_id": "m", "kind": "role", "target": mod["id"], "role": "moderator"}])
     other = _join(room, "Other")
     room.apply_ops(host["id"], [{"op_id": "m2", "kind": "role", "target": other["id"], "role": "moderator"}])
-    assert "error" in room.apply_ops(mod["id"], [{"op_id": "k", "kind": "kick", "target": host["id"]}])["k"]
-    assert "error" in room.apply_ops(mod["id"], [{"op_id": "k2", "kind": "kick", "target": other["id"]}])["k2"]
+    assert room.apply_ops(mod["id"], [{"op_id": "k", "kind": "kick", "target": host["id"]}])["k"] == {"error": "not allowed"}
+    assert room.apply_ops(mod["id"], [{"op_id": "k2", "kind": "kick", "target": other["id"]}])["k2"] == {"error": "not allowed"}
 
 
 def test_a_moderator_moves_translators_only_between_translator_and_observer_or_reviewer(tmp_path):
@@ -363,7 +363,7 @@ def test_a_moderator_moves_translators_only_between_translator_and_observer_or_r
     tr = _join(room, "Tr")
     room.apply_ops(host["id"], [{"op_id": "m", "kind": "role", "target": mod["id"], "role": "moderator"}])
     assert room.apply_ops(mod["id"], [{"op_id": "a", "kind": "role", "target": tr["id"], "role": "observer"}])["a"] == {"ok": True}
-    assert "error" in room.apply_ops(mod["id"], [{"op_id": "b", "kind": "role", "target": tr["id"], "role": "moderator"}])["b"]
+    assert room.apply_ops(mod["id"], [{"op_id": "b", "kind": "role", "target": tr["id"], "role": "moderator"}])["b"] == {"error": "not allowed"}
 
 
 # ---- host transfer ------------------------------------------------------------------------
@@ -378,7 +378,7 @@ def test_the_host_transfers_the_role_with_confirmation_and_becomes_a_moderator(t
     assert room._role(successor["id"]) == "host" and room._role(host["id"]) == "moderator"
     again = room.apply_ops(host["id"], [{"op_id": "t2", "kind": "transfer_host", "target": host["id"],
                                          "confirm": True}])["t2"]
-    assert "error" in again                               # the old host no longer transfers
+    assert again == {"error": "not allowed"}              # the old host no longer transfers
 
 
 def test_the_host_of_a_room_stays_the_host_after_the_journal_is_reloaded(tmp_path):
