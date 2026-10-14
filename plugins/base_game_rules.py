@@ -164,6 +164,13 @@ class BaseGameRules:
         from core.formats import DEFAULT_FORMATS
         return list(DEFAULT_FORMATS)
 
+    def includes_source_file(self, rel_path: str) -> bool:
+        """Whether a source file becomes a block of the project. ``rel_path`` is relative to the source folder and
+        uses ``/``. A game whose unpacked tree holds one text in many languages keeps only the language it
+        translates; the other files stay on disk for the build and the reference columns. Default: True.
+        """
+        return True
+
     def family_plan(self, sources: List[str], project_dir: Optional[str] = None) -> Any:
         """Declare a family from the source paths the user gave, or None when the game has no family.
 

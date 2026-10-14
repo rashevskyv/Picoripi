@@ -82,14 +82,16 @@ def read_ncz(reader: ImageReader) -> Ncz:
     return Ncz(sections, body_at, body_size, exp, sizes, total)
 
 
-def decompress_ncz(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[[], bool]) -> bool:
+def decompress_ncz(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[[], bool],
+                   progress: Optional[Callable[[int], None]] = None) -> bool:
     """Write the NCA of ``ncz`` to ``out``: its header copy, then the body. False when cancelled first (``out`` is then
-    partial). The body is written in chunks, never held whole."""
+    partial). The body is written in chunks, never held whole; ``progress(percent of the body)`` follows each one."""
     out.write(reader.read_at(0, NCA_HEADER_SIZE))
+    report = progress or (lambda percent: None)
     if ncz.block_exp is None:
-        done = _solid(reader, ncz, out, is_cancelled)
+        done = _solid(reader, ncz, out, is_cancelled, report)
     else:
-        done = _blocks(reader, ncz, out, is_cancelled)
+        done = _blocks(reader, ncz, out, is_cancelled, report)
     out.flush()
     return done
 
@@ -101,7 +103,8 @@ def _zstd():
         raise ImageError("compressed Switch images need Python 3.14 (compression.zstd)") from None
 
 
-def _solid(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[[], bool]) -> bool:
+def _solid(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[[], bool],
+           report: Callable[[int], None]) -> bool:
     zstd = _zstd()
     decoder = zstd.ZstdDecompressor()
     left = ncz.body_size
@@ -120,6 +123,7 @@ def _solid(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[
             data = decoder.decompress(feed, max_length=min(CHUNK, left))
             out.write(data)
             left -= len(data)
+            report(100 * (ncz.body_size - left) // ncz.body_size)
             if decoder.eof and left > 0:
                 raise ImageError("the compressed NCA ends before its sections do")
             if not data and not decoder.needs_input and not decoder.eof:
@@ -129,7 +133,8 @@ def _solid(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[
     return True
 
 
-def _blocks(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[[], bool]) -> bool:
+def _blocks(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable[[], bool],
+            report: Callable[[int], None]) -> bool:
     size = 1 << ncz.block_exp
     left = ncz.body_size
     pos = ncz.body_at
@@ -147,6 +152,7 @@ def _blocks(reader: ImageReader, ncz: Ncz, out: BinaryIO, is_cancelled: Callable
         piece = data[:left]
         out.write(piece)
         left -= len(piece)
+        report(100 * (ncz.body_size - left) // ncz.body_size)
     return True
 
 

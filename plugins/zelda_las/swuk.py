@@ -1,8 +1,8 @@
 """Import the Ukrainian SWUK mod of Link's Awakening (Switch; written for v1.1.0) into a project's translation folder.
 
-The mod ships message files for ``regionEU/EUen``. Each of its messages goes to the 1.0.0 file of the same name, in both
-English slots of the unpacked romfs (``regionEU/EUen`` and ``regionUS/USen``), matched by label. A label the 1.0.0 file
-does not have is dropped and counted. A 1.0.0 label the mod lacks keeps its English text and is counted. The mod's
+The mod ships message files for ``regionEU/EUen``. Each of its messages goes to the 1.0.0 file of the same name in
+``regionUS/USen``, the only slot LAS Recomp reads (its language is fixed to en-US), matched by label. ``regionEU/EUen``
+is not written; the project shows it as a reference column. A label the 1.0.0 file does not have is dropped and counted. A 1.0.0 label the mod lacks keeps its English text and is counted. The mod's
 other files (``region_common/...``) replace the 1.0.0 file of the same path.
 
 Run with the project closed in Picoripi::
@@ -20,7 +20,7 @@ from typing import Dict, List, Tuple
 from plugins.common.msbt import Msbt
 from utils.atomic_io import atomic_write_bytes
 
-SLOTS = ("regionEU/EUen", "regionUS/USen")      # the English slots of the 1.0.0 romfs; the mod is written for EUen
+SLOT = "regionUS/USen"          # the translated slot: the recomp's language is en-US; the project's blocks are this slot
 MOD_MESSAGES = "regionEU/EUen/message/"
 MOD_OTHER = "region_common/"
 MAX_MEMBER = 32 * 1024 * 1024
@@ -88,21 +88,19 @@ def import_mod(zip_path: str | Path, romfs_dir: str | Path, translation_dir: str
     for rel in sorted(files):
         data = files[rel]
         if rel.startswith(MOD_MESSAGES):
-            name = rel[len(MOD_MESSAGES):]
-            for slot in SLOTS:
-                target_rel = f"{slot}/message/{name}"
-                target = romfs / target_rel
-                if not target.is_file():
-                    report.append(f"{target_rel}: not in the unpacked romfs, skipped")
-                    continue
-                try:
-                    out, counts = map_messages(data, target.read_bytes())
-                except (ValueError, IndexError, struct.error) as error:
-                    report.append(f"{target_rel}: cannot read ({error}), skipped")
-                    continue
-                atomic_write_bytes(translation / target_rel, out)
-                report.append(f"{target_rel}: {counts['matched']} matched, {counts['kept']} kept English, "
-                              f"{counts['extra']} extra label(s) dropped")
+            target_rel = f"{SLOT}/message/{rel[len(MOD_MESSAGES):]}"
+            target = romfs / target_rel
+            if not target.is_file():
+                report.append(f"{target_rel}: not in the unpacked romfs, skipped")
+                continue
+            try:
+                out, counts = map_messages(data, target.read_bytes())
+            except (ValueError, IndexError, struct.error) as error:
+                report.append(f"{target_rel}: cannot read ({error}), skipped")
+                continue
+            atomic_write_bytes(translation / target_rel, out)
+            report.append(f"{target_rel}: {counts['matched']} matched, {counts['kept']} kept English, "
+                          f"{counts['extra']} extra label(s) dropped")
         else:
             target = romfs / rel
             if not target.is_file():

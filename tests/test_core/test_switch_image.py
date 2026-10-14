@@ -470,18 +470,24 @@ def test_ncz_cancel_stops_the_decompression_between_blocks(tmp_path):
     assert os.listdir(cache) == []
 
 
-def test_extract_unpacks_an_nsz_and_leaves_only_its_files(tmp_path):
+@pytest.mark.parametrize("mode", ["solid", "block"])
+def test_extract_unpacks_an_nsz_reports_the_decompression_and_leaves_only_its_files(tmp_path, mode):
     material = _material()
     keys_path = _key_file(tmp_path, material)
     nsz = tmp_path / "game.nsz"
-    nsz.write_bytes(_package(material, ncz="solid", big=True))
+    nsz.write_bytes(_package(material, ncz=mode, big=True))
     target = tmp_path / "out"
+    reports = []
 
     with console_crypto.key_source(lambda console: keys_path if console == "switch" else None):
-        assert images.extract(nsz, target, lambda done, text: None, lambda: False) == str(target)
+        assert images.extract(nsz, target, lambda done, text: reports.append((done, text)), lambda: False) == str(target)
 
     assert sorted(os.listdir(target)) == ["exefs", "romfs"]
     assert (target / "romfs" / "dir" / "big.bin").read_bytes() == BIG
+    texts = [text for _done, text in reports]
+    decompressed = [done for done, text in reports if text == "0100abcd00000000.ncz"]
+    assert texts[:len(decompressed)] == ["0100abcd00000000.ncz"] * len(decompressed)   # before any file is written
+    assert decompressed == sorted(decompressed) and decompressed[-1] == 100
 
 
 def test_extract_cancelled_while_decompressing_returns_none_and_writes_nothing(tmp_path):

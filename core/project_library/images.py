@@ -114,7 +114,7 @@ def _has_pycryptodome() -> bool:
 
 
 def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
-            is_cancelled: Optional[Cancelled] = None) -> ImageReader:
+            is_cancelled: Optional[Cancelled] = None, progress: Optional[Progress] = None) -> ImageReader:
     head = stream.read(HEADER_SIZE)
     stream.seek(0)
     # An NKit GameCube disc keeps the GameCube header and layout, so the GameCube reader reads it as it is.
@@ -138,7 +138,7 @@ def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
             return wii_disc.WiiImage(stream, wii_disc.load_common_key(str(key_path("wii"))))
         if kind == KIND_SWITCH and encrypted:   # an .xci is refused by the reader with its reason
             keys = switch_crypto.load_keys(str(key_path("switch")))
-            return switch_images.SwitchImage(stream, keys, cache_dir, is_cancelled)
+            return switch_images.SwitchImage(stream, keys, cache_dir, is_cancelled, progress)
     if len(head) >= 0x204 and head[0x200:0x204] == b"NKIT":
         raise ImageError("an NKit image of an unknown kind: convert it to a plain ISO first")
     raise ImageError("not a GameCube or Nintendo DS image")
@@ -146,14 +146,14 @@ def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
 
 @contextmanager
 def open_image(path: str | Path, cache_dir: Optional[str | Path] = None,
-               is_cancelled: Optional[Cancelled] = None) -> Iterator[ImageReader]:
+               is_cancelled: Optional[Cancelled] = None, progress: Optional[Progress] = None) -> Iterator[ImageReader]:
     """The reader of a supported image, open for the ``with`` block. Raises ImageError for anything else.
 
     ``cache_dir`` holds the decompressed copy of a Switch .nsz program; the copy is deleted when the block ends.
-    ``is_cancelled`` stops that decompression.
+    ``is_cancelled`` stops that decompression and ``progress`` reports it.
     """
     with open(path, "rb") as stream:
-        reader = _reader(stream, cache_dir, is_cancelled)
+        reader = _reader(stream, cache_dir, is_cancelled, progress)
         try:
             yield reader
         finally:
@@ -195,7 +195,7 @@ def extract(path: str | Path, target_dir: str | Path, progress: Progress, is_can
 
     Returns ``target_dir``, or None when the user cancelled. Raises ImageError for an unsupported or broken image.
     """
-    with open_image(path, target_dir, is_cancelled) as reader:   # a Switch .nsz is decompressed into target_dir
+    with open_image(path, target_dir, is_cancelled, progress) as reader:   # an .nsz is decompressed into target_dir
         entries = [entry for entry in reader.entries() if select is None or select(entry.path)]
         if is_cancelled() or not write_entries(reader, entries, target_dir, progress, is_cancelled):
             return None
