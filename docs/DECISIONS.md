@@ -642,8 +642,7 @@ AES. Encrypted reads stop at the seam; they are not built.
 - Built, identify only: a Switch NSP takes its title ID and kind (base, update, dlc) from the plain-text `*.cnmt.xml`,
   or from the rights ID of its ticket (`0x2A0`) when it has no content meta. An XCI is recognised with no title. A Wii disc
   gives its game ID (magic at `0x18`). `images.identify` returns `encrypted`; `images.needs_key` gives the console for an `UNPACK_KINDS` kind only.
-- `images.UNPACK_KINDS` (GameCube, Nintendo DS, decrypted 3DS) decides what the free-space check counts. Switch and Wii
-  files do not count, because no unpack step writes them.
+- `images.UNPACK_KINDS` (GameCube, Nintendo DS, 3DS, Switch, Wii) decides what the free-space check counts: every game image an unpack step reads needs the room.
 - No plugin is wired. No shipped plugin unpacks a file this phase can read: retail `.cia` files are encrypted, and the
   decrypted dumps are not a plugin input.
 - Verified (read only, no key): synthetic 3DS images in `tests/test_core/test_n3ds_image.py`. Real data (gated by
@@ -668,7 +667,7 @@ AES. Encrypted reads stop at the seam; they are not built.
 - Switch (`switch_crypto.py`, `switch_images.py`): NSP only. Program NCA by content type; header XTS with the header key; key area with the key area key of the generation (`max(0x206, 0x220) - 1`, as `zt/hwde_extract.py`); section CTR; ticket title key with titlekek. Derived keys in the file are used directly; otherwise they come from `master_key_XX` and the source keys. The XTS tweak, the derivation chain and the ticket fields are from the public formats, not verified against a dump.
 - Wii (`wii_disc.py`): `keys.bin` (exactly 0x400 bytes, common key at 0x158). The data partition's title key is decrypted from the ticket (common key index 0 only). Cluster data uses the IV at 0x3D0 of the encrypted hash block (wiibrew "Wii Disc" and Dolphin). Hashes are not verified. The GameCube FST walk is copied, with the `<< 2` shifts, because `gcm.py` reads the raw disc only.
 - Key files: 3DS `aes_keys.txt` (with boot9 beside it), Switch `prod.keys`, Wii `keys.bin`. Key bytes live in memory for one job. No error text, log line or room message contains a key value or a key file path.
-- `images.UNPACK_KINDS` now also covers Switch and Wii, for the key prompt only. The free-space check keeps the 2b rule: `images.SPACE_KINDS` (GameCube, Nintendo DS, 3DS) decides what it counts, so a Switch or Wii file does not (audit r17 reverted the branch's first change here).
+- `images.UNPACK_KINDS` now also covers Switch and Wii, for the key prompt and the free-space check. Audit r18 removed the r17 split (`images.SPACE_KINDS`): a Switch or Wii image counts for room, since these are the largest images.
 - Plugin hook `unpack_key_consoles()` (`BaseGameRules`, spec, PLUGIN_CONTRACT, D30 wizard rule): a plugin lists the consoles whose key its unpack reads. The wizard asks for a console's key only for an encrypted file of a listed console (`plugin_facts.identify_sources`). This closes the 2b risk that the wizard asked for Switch or Wii keys that no plugin used. Default: none.
 - Requirements: `pycryptodome==3.23.0` moves into `requirements.txt`. The app imports it at run time, when a user unpacks an encrypted image. The dev file keeps the same pin. The reader checks `importlib.util.find_spec("Crypto")` first, so a missing package gives the pycryptodome message and not a raw ImportError.
 - No plugin is wired. Plugins whose workspace unpack is a plain extraction are the 3DS zt scripts that run `ctr3ds.main(... "extract" ...)`, but each also copies text, builds a CXI or needs the seed database. The wiring needs a per-game check with the owner's workspace and is left open.

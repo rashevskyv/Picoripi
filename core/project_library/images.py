@@ -33,7 +33,6 @@ KIND_WII = "wii"
 CONSOLE_OF_KIND = {KIND_3DS: "3ds", KIND_SWITCH: "switch", KIND_WII: "wii"}
 CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii"}
 UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS, KIND_SWITCH, KIND_WII))   # the kinds an unpack step can read
-SPACE_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS))   # the kinds the free-space check counts: an unpack writes them (D30)
 WII_MAGIC_AT = wii_disc.WII_MAGIC_AT
 WII_MAGIC = wii_disc.WII_MAGIC
 _UNSUPPORTED = {

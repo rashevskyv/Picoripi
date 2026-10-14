@@ -2,6 +2,8 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Unpack room check (audit r18): the free-space check before an unpack counts every game image an unpack step reads, Switch and Wii included; the r17 `SPACE_KINDS` split is removed (`core/project_library/images.py`, `core/project_library/build.py`).
+- Test keys (audit r18): the Bravely Default II pak test no longer opens the owner's `prod.keys`; `tests/test_key_file_paths.py` fails when a test names a real key file or key folder (`tests/test_core/test_unreal_pak.py`).
 - 3DS manual preview (audit r15): the repo_manual tools import without leaving their bare module names in `sys.modules` (`plugins/manual_3ds/repo_tools.py`); the chosen folder is saved by the render worker, not on the UI thread (`plugins/manual_3ds/preview_panel.py`); an empty message clears the page badge and title; the real-page render test now uses the repo_manual folder.
 - Slop checks (developer tooling, no product change): `python tasks.py deslop` runs `tools/deslop`, a stdlib `ast` port of the ideas in maharshi365/deslop and dmmulroy/anti-slop (both MIT); eight rules on by default, five opt-in, a count baseline (`tools/deslop/baseline.json`) guarded by `tests/test_deslop_guard.py`, configured under `[tool.deslop]` in `pyproject.toml`.
 - Unpack room check (audit r17): the free-space check before an unpack counts GameCube, Nintendo DS and 3DS images only again; a Switch or Wii file no longer needs room, since no unpack step writes it (`core/project_library/images.py`, `core/project_library/build.py`).

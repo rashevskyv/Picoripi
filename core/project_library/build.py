@@ -93,12 +93,12 @@ def _free_bytes(path: Path) -> int:
 def _check_free_space(project: Path, sources: Dict[str, str]) -> None:
     """Fail before anything is written when the drive cannot hold the unpacked files of a game image.
 
-    Only game images that an unpack step can write (a GameCube or Nintendo DS image, or a decrypted 3DS program) need
-    the room. Any other file is used as it is, so it is not checked. The room is the image size plus 10 % of it, or
-    ``MIN_MARGIN``, whichever is larger.
+    Every game image that an unpack step reads (``images.UNPACK_KINDS``: GameCube, Nintendo DS, 3DS, Switch, Wii)
+    needs the room. Any other file is used as it is, so it is not checked. The room is the image size plus 10 % of
+    it, or ``MIN_MARGIN``, whichever is larger.
     """
     found = [path for path in sources.values()
-             if (images.identify(path) or {}).get("kind") in images.SPACE_KINDS]
+             if (images.identify(path) or {}).get("kind") in images.UNPACK_KINDS]
     if not found:
         return
     size = sum(os.path.getsize(path) for path in found)
