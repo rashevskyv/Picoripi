@@ -52,11 +52,13 @@ def test_mouse_handlers_double_click_trigger(app):
     mock_editor = MagicMock()
     mock_window = MagicMock()
     mock_editor.window.return_value = mock_window
-    
+    scroll_calls = []
+    mock_window.list_selection_handler.scroll_to_current_string_in_preview = lambda: scroll_calls.append(True)
+
     handler = LNETMouseHandlers(mock_editor)
-    
+
     handler.handle_line_number_double_click(20)
-    mock_window.list_selection_handler.scroll_to_current_string_in_preview.assert_called_once()
+    assert scroll_calls == [True]
 
 
 def test_scroll_to_current_string_in_preview_logic(app):
