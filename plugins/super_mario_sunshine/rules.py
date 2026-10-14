@@ -87,7 +87,7 @@ class GameRules(TwilightPrincessRules):
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
         texts = data[0] if data and isinstance(data[0], list) else []
         if self._dolstr_save and self._dolstr_ids is not None:
-            rooms = {ident: room for ident, _offset, room, _english in DOL_STRINGS}
+            rooms = {ident: room for ident, _offset, room, _digest in DOL_STRINGS}
             rows = [{"id": ident,
                      "text": self._refuse_unmapped(texts[index], f"main.dol/{ident}", self.encode_string_with_mapping)
                      if index < len(texts) else "", "room": rooms[ident]} for index, ident in enumerate(self._dolstr_ids)]

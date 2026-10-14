@@ -1681,6 +1681,7 @@
   "Unsaved changes pending. Click Save or press Ctrl+S to apply.": "Є незбережені зміни. Натисніть Зберегти або Ctrl+S.",
   "Update": "Оновити",
   "Updated translation_map.json with {0} characters!": "Оновлено translation_map.json ({0} символів)!",
+  "The translation map was repaired for this font. Save to keep the repair.": "Мапу перекладу виправлено під цей шрифт. Збережіть, щоб не втратити виправлення.",
   "Use API key from AI Translation": "Використовувати API-ключ із AI Translation",
   "Use Context": "Використовувати контекст",
   "Use full file": "Використовувати файл повністю",

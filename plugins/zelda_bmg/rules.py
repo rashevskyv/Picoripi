@@ -1,5 +1,6 @@
 """Twilight Princess plugin: BMG files, tags, windows, speakers, scenes."""
 from utils.atomic_io import atomic_write_text
+from utils.constants import user_plugin_dir, user_plugin_file_or_shipped
 import os
 import time
 import re
@@ -188,8 +189,8 @@ class GameRules(BaseGameRules):
         """Initialize a new instance."""
         super().__init__(main_window_ref)
         self.last_loaded_bmg = None
-        # Per-window limits edited in Settings.
-        self.window_layouts_path = os.path.join(self.data_dir, "window_layouts.json")
+        # Per-window limits edited in Settings: the user's copy (None: in the user's plugin folder, rule 8).
+        self.window_layouts_path: Optional[str] = None
         self.translation_map = {}
         self.reverse_translation_map = {}
         self._last_map_path = None
@@ -349,7 +350,7 @@ class GameRules(BaseGameRules):
             proj_path = os.path.join(project_dir, 'translation_map.json')
             if not os.path.exists(proj_path):
                 # Автоматично копіюємо з папки плагіна або створюємо порожній
-                plugin_map_path = os.path.join(self.data_dir, 'translation_map.json')
+                plugin_map_path = str(user_plugin_file_or_shipped(os.path.basename(self.data_dir), 'translation_map.json'))
                 try:
                     if os.path.exists(plugin_map_path):
                         import shutil
@@ -363,7 +364,7 @@ class GameRules(BaseGameRules):
                     log_warning(f"Failed to copy/create translation_map.json in project: {e}")
             path = proj_path
         else:
-            path = os.path.join(self.data_dir, 'translation_map.json')
+            path = str(user_plugin_file_or_shipped(os.path.basename(self.data_dir), 'translation_map.json'))
 
         try:
             mtime = os.path.getmtime(path) if os.path.exists(path) else 0
@@ -1555,7 +1556,7 @@ class GameRules(BaseGameRules):
         cached = getattr(self, "_window_layouts", None)
         if cached is None:
             from .window_kinds import load_window_layouts
-            cached = load_window_layouts(os.path.dirname(self.window_layouts_path))
+            cached = load_window_layouts(os.path.dirname(self._window_layouts_read_path()))
             self._window_layouts = cached
         return cached
 
@@ -1623,9 +1624,18 @@ class GameRules(BaseGameRules):
     def get_window_layout_groups(self) -> list:
         return list(self.WINDOW_LAYOUT_GROUPS)
 
+    def _window_layouts_user_path(self) -> str:
+        """Where Settings writes the limits: never into ``plugins/`` (rule 8)."""
+        return self.window_layouts_path or str(user_plugin_dir(os.path.basename(self.data_dir)) / "window_layouts.json")
+
+    def _window_layouts_read_path(self) -> str:
+        """The user's copy of the limits if there is one, else the plugin's shipped default."""
+        user_path = self._window_layouts_user_path()
+        return user_path if os.path.isfile(user_path) else os.path.join(self.data_dir, "window_layouts.json")
+
     def get_window_layouts_document(self) -> Optional[Dict[str, Any]]:
         try:
-            with open(self.window_layouts_path, encoding="utf-8") as stream:
+            with open(self._window_layouts_read_path(), encoding="utf-8") as stream:
                 document = json.load(stream)
         except Exception as error:
             log_debug(f"zelda_bmg: failed to load window_layouts.json: {error}")
@@ -1633,7 +1643,7 @@ class GameRules(BaseGameRules):
         return document if isinstance(document, dict) else {"default": {}, "kinds": {}}
 
     def save_window_layouts_document(self, document: Dict[str, Any]) -> None:
-        atomic_write_text(self.window_layouts_path, json.dumps(document, indent=4, ensure_ascii=False) + "\n")
+        atomic_write_text(self._window_layouts_user_path(), json.dumps(document, indent=4, ensure_ascii=False) + "\n")
         self._window_layouts = None
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:

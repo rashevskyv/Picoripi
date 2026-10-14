@@ -76,6 +76,7 @@ def test_a_shift_jis_message_file_takes_ukrainian_once_its_japanese_is_replaced(
     assert bytes([0xD2, 0xE0, 0xEA, 0]) in saved
 
 
+@pytest.mark.usefixtures("synthetic_strings")
 def test_executable_text_takes_ukrainian_and_refuses_a_character_with_no_code():
     dol = retail_dol()
     rules = GameRules()

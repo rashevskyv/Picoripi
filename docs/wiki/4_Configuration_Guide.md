@@ -45,7 +45,7 @@ Subtabs:
 |--------|------|
 | File Paths | **Directory Mode (Load from folder)**, **Auto-generate translation path**, Original / Changes paths, Original Fonts Directory Path, Fonts Directory Path, **Reference Translation / ROM Path** (reference patch folder, unpacked ROM, or `.iso` disc image) |
 | Display | Default Font for Project, wrap preview, wrap editors, Newline Symbol + style, Tag Style |
-| Rules | Game Dialog Max Width (px), Editor Line Width Warning (px), Show guideline, Lines Per Page. For `zelda_bmg`: **Window limit mode** — Shared for all windows vs Separate by window type (`window_layouts.json`) |
+| Rules | Game Dialog Max Width (px), Editor Line Width Warning (px), Show guideline, Lines Per Page. For `zelda_bmg`: **Window limit mode** — Shared for all windows vs Separate by window type (the limits are saved to `~/.picoripi/plugins/<plugin>/window_layouts.json`; the plugin's own file is the default) |
 | Context Tags | Custom insert/wrap tags for the editor menu |
 | Tag Aliases | alias ↔ original tag; **File → Reload Tag Mappings from Settings** |
 | Font Map | Glyph widths |

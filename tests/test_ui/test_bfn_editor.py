@@ -1015,3 +1015,57 @@ def test_the_font_editor_lists_the_plugin_fonts_through_its_job_headless(qapp, t
     finally:
         editor.close()
         parent.close()
+
+
+def test_a_map_repair_on_open_writes_nothing_and_the_save_goes_to_the_user_folder(qapp, tmp_path, dummy_bfn_bytes,
+                                                                                    monkeypatch):
+    """Rule 8: opening a font whose map codes are missing from MAP1 repairs the map in memory and marks the font
+    unsaved; the save writes the user's copy of the plugin's map atomically, never ``plugins/<plugin>/``."""
+    import hashlib
+    import json
+    from pathlib import Path
+    from PyQt6 import QtWidgets
+    import utils.constants as constants
+
+    monkeypatch.setattr(constants, "SETTINGS_DIR", tmp_path)
+    plugin_dir = constants.plugins_root() / "super_mario_sunshine"     # ships translation_map.json, codes 0xA1-0xFF
+
+    def state():
+        return {str(p.relative_to(plugin_dir)): (p.stat().st_mtime_ns, hashlib.sha256(p.read_bytes()).hexdigest())
+                for p in plugin_dir.rglob("*") if p.is_file() and "__pycache__" not in p.parts}
+
+    class Parent(QtWidgets.QWidget):
+        active_game_plugin = "super_mario_sunshine"
+
+    before = state()
+    parent = Parent()
+    editor = BfnEditorWindow()
+    editor.setParent(parent)
+    try:
+        editor.open_from_bytes(dummy_bfn_bytes, bfn_name="test_font.bfn")   # MAP1 has codes 32-33 only
+
+        assert editor.map_repaired and editor._dirty                  # repaired in memory, the user saves
+        assert not (tmp_path / "plugins").exists()                     # opening wrote nothing
+        assert state() == before
+
+        editor.save_translation_map()
+        user_copy = tmp_path / "plugins" / "super_mario_sunshine" / "translation_map.json"
+        shipped = json.loads(Path(plugin_dir / "translation_map.json").read_text(encoding="utf-8"))
+        assert json.loads(user_copy.read_text(encoding="utf-8")) == shipped
+        assert state() == before
+
+        def refuse(_source, _target):
+            raise OSError("disk full")
+
+        monkeypatch.setattr("utils.atomic_io.os.replace", refuse)
+        editor.translation_map = {"Я": "¡"}
+        editor.save_translation_map()                                  # logs the failure
+        assert json.loads(user_copy.read_text(encoding="utf-8")) == shipped
+        assert [p.name for p in user_copy.parent.iterdir()] == ["translation_map.json"]   # no temporary file left
+    finally:
+        editor._set_dirty(False)                                       # no unsaved-changes question on close
+        editor.clear_temp()
+        editor.close()
+        editor.setParent(None)
+        editor.deleteLater()
+        parent.deleteLater()

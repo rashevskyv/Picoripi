@@ -9,7 +9,7 @@ from core.i18n import tr
 
 from tools.bfn_editor.bfn_engine import repack_bfn_logic
 from tools.bfn_editor.bfn_commands import ImportSheetCommand, ImportGlyphCommand
-from utils.constants import user_plugin_dir
+from utils.atomic_io import atomic_write_json
 from utils.logging_utils import log_debug
 
 
@@ -85,33 +85,9 @@ class IoSaveMixin:
             elif self.original_font_metadata:
                 try:
                     translation_map = self.generate_translation_map()
-                    parent_win = self.parent()
-                    active_plugin = None
-                    mw = None
-                    project_dir = None
-                    
-                    if parent_win:
-                        if hasattr(parent_win, "active_game_plugin"):
-                            active_plugin = parent_win.active_game_plugin
-                            mw = parent_win
-                        elif hasattr(parent_win, "mw"):
-                            mw = parent_win.mw
-                            if hasattr(mw, "active_game_plugin"):
-                                active_plugin = mw.active_game_plugin
-                                
-                    if mw and hasattr(mw, "project_manager") and mw.project_manager and mw.project_manager.project_dir:
-                        project_dir = mw.project_manager.project_dir
-                    
-                    mapping_path = None
-                    if project_dir:
-                        mapping_path = os.path.join(project_dir, "translation_map.json")
-                    elif active_plugin:   # the user's copy; never into plugins/ (rule 8)
-                        mapping_path = str(user_plugin_dir(active_plugin) / "translation_map.json")
-                        os.makedirs(os.path.dirname(mapping_path), exist_ok=True)
-                    
+                    mapping_path = self.get_translation_map_path(for_write=True)
                     if mapping_path:
-                        with open(mapping_path, "w", encoding="utf-8") as f:
-                            json.dump(translation_map, f, indent=4, ensure_ascii=False)
+                        atomic_write_json(mapping_path, translation_map, indent=4, ensure_ascii=False)
                         self.status.showMessage(tr("Successfully saved BFN and updated translation_map.json with {0} characters!", len(translation_map)))
                 except Exception as ex:
                     print(f"Failed to auto-generate or save translation map: {ex}")

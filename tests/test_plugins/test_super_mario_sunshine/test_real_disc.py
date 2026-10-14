@@ -19,6 +19,7 @@ from core.containers.wia import open_disc
 from core.project_library import images
 from plugins.zelda_bmg import bmg_tool
 from plugins.super_mario_sunshine import dol_patch
+from plugins.super_mario_sunshine.dol_text import DolText
 from plugins.super_mario_sunshine.rules import GameRules
 from tools.bfn_editor.bfn_engine import read_bfn_model, write_bfn_model
 
@@ -49,6 +50,8 @@ def test_real_main_dol_is_the_retail_executable_and_takes_the_patch(disc_path):
         image = GameCubeImage(stream)
         dol = image.read(next(e for e in image.entries() if e.path == "sys/main.dol"))
     assert hashlib.sha256(dol).hexdigest() == RETAIL_DOL_SHA256
+    assert DolText.can_handle(dol)
+    DolText(dol)                       # every string room matches its digest
     patched = dol_patch.apply(dol)
     assert len(patched) == len(dol)
     assert dol_patch.revert(patched) == dol
