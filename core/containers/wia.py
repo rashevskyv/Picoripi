@@ -7,6 +7,8 @@ them; the last two decoded groups are kept. Nothing else is held in memory.
 Read: GameCube discs of any of these methods: none, bzip2, LZMA, LZMA2 (WIA and RVZ) and Zstandard (RVZ). RVZ
 packing (the junk padding stored as a seed) is reproduced with the Lagged Fibonacci generator of the RVZ spec. Refused
 with a reason: Wii partitions (they need decryption and hash rebuilding), the Purge method, and any other value.
+The file is untrusted: every table, stored group, decompressed group and junk run is checked against the size its header
+or table declares (and ``MAX_CHUNK``) before it is read, decoded or generated, and refused with ``ImageError`` past it.
 Specification: Dolphin's docs/WiaAndRvz.md (WIA format 1.00 and the RVZ additions). Facts only; the decoder is written
 from the spec.
 """
@@ -124,19 +126,24 @@ def _lzma_filters(method: int, props: bytes, expected: int) -> list:
 
 
 def _decompress(method: int, data: bytes, props: bytes, expected: int, what: str) -> bytes:
+    """``data`` decompressed; refused when it holds more than ``expected`` bytes (one byte past it is ever made)."""
+    if method not in (BZIP2, LZMA, LZMA2, ZSTD):
+        raise ImageError(f"{what}: unknown compression method {method}")
     try:
         if method == BZIP2:
-            return bz2.decompress(data)
-        if method in (LZMA, LZMA2):
+            out = bz2.BZ2Decompressor().decompress(data, expected + 1)
+        elif method == ZSTD:
+            out = zstd_frame.decompress(data, what, expected + 1)
+        else:
             decoder = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=_lzma_filters(method, props, expected))
-            return decoder.decompress(data)
-        if method == ZSTD:
-            return zstd_frame.decompress(data, what)
+            out = decoder.decompress(data, expected + 1)
     except ImageError:
         raise
     except Exception as error:   # the codec's own error types; the reason goes to the user
         raise ImageError(f"{what}: the {METHOD_NAMES.get(method, 'compressed')} data does not decompress ({error})")
-    raise ImageError(f"{what}: unknown compression method {method}")
+    if len(out) > expected:
+        raise ImageError(f"{what}: decompresses to more than the {expected} bytes the image declares")
+    return out
 
 
 def _unpack_rvz(packed: bytes, logical: int, disc_start: int) -> bytes:
@@ -154,14 +161,16 @@ def _unpack_rvz(packed: bytes, logical: int, disc_start: int) -> bytes:
                 raise ImageError("an RVZ group ends inside a junk seed")
             seed = packed[pos:pos + SEED_SIZE]
             pos += SEED_SIZE
+            if len(out) + size > logical:   # checked before the junk is generated
+                raise ImageError("an RVZ group is longer than its disc data")
             out += junk_bytes(seed, disc_start + len(out), size)
         else:
             if pos + size > len(packed):
                 raise ImageError("an RVZ group ends inside a literal run")
+            if len(out) + size > logical:
+                raise ImageError("an RVZ group is longer than its disc data")
             out += packed[pos:pos + size]
             pos += size
-        if len(out) > logical:
-            raise ImageError("an RVZ group is longer than its disc data")
     if len(out) != logical:
         raise ImageError("an RVZ group is shorter than its disc data")
     return bytes(out)
@@ -213,6 +222,7 @@ class WiaStream:
             raise ImageError("the disc size in this image is zero")
         self._method = method
         self._props = props
+        self._chunk = chunk
         self._groups = self._read_groups(group_off, group_size, n_groups, method, props)
         self._segment_of_group: Dict[int, Tuple[int, int]] = {}
         self._segments = self._read_raw_entries(raw_off, raw_size, n_raw, method, props, chunk)
@@ -223,6 +233,8 @@ class WiaStream:
         return self._file.read(size)
 
     def _table(self, offset: int, size: int, count: int, entry: int, method: int, props: bytes, what: str) -> bytes:
+        if count * entry > MAX_CHUNK or size > MAX_CHUNK:   # a 4 GiB disc in 32 KiB groups needs 1.5 MiB
+            raise ImageError(f"the {what} table is too large to read ({count} entries in {size} bytes)")
         blob = self._read_file(offset, size)
         if len(blob) != size:
             raise ImageError(f"the {what} table is cut short")
@@ -285,10 +297,12 @@ class WiaStream:
             size = field
         if size == 0:
             return bytes(logical)   # every byte of this group is zero
+        what = f"group {group}"
+        if size > 2 * self._chunk or packed > 2 * self._chunk:   # stored or packed: never twice the disc data
+            raise ImageError(f"{what} declares {max(size, packed)} bytes, more than a group of {self._chunk} can hold")
         raw = self._read_file(off4 * 4, size)
         if len(raw) != size:
             raise ImageError("the image ends inside a group")
-        what = f"group {group}"
         if compressed and self._method != NONE:
             raw = _decompress(self._method, raw, self._props, packed or logical, what)
         if self._rvz and packed:

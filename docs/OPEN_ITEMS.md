@@ -1,6 +1,6 @@
 ---
 status: current
-updated: 2026-10-14
+updated: 2026-10-15
 owns: unfinished work
 tokens: 32.2k
 purpose: Everything left open, one line each, by work package
@@ -870,11 +870,6 @@ omfs`) could be
 - **Not atomic on purpose (6.1):** creating a new empty file (`translation_map.json` as `{}`, a new project
   glossary as `[]`), `.bak` copies, the log file, the downloaded dictionary, command-line tools
   (`plugins/zelda_bmg/bmg_tool.py`, `stage_data.py`), MemPalace helper outputs. None overwrites a user's work.
-- **The Font Editor saves a loose or archived BFN back to the file it was listed from, not atomically**
-  (`tools/bfn_editor/window_tree_mixin.py`, `disk_loose` / `disk_archive`: `Path.write_bytes`). The list includes
-  `plugins/<plugin>/fonts/`; no plugin ships a `.bfn` or `.arc` there today (only width maps), so nothing in
-  `plugins/` is written now. Use `atomic_write_bytes`, and save a font found in `plugins/` to the user's plugin
-  folder (rule 8, D36) before a plugin ships one.
 - **Tests bypass `mock_open` now.** `utils.atomic_io` does not go through `builtins.open`, so a test that only
   mocks `open` and passes a path outside `tmp_path` writes a real file. A traced full run (2026-10-02) found
   none left; new tests should save into `tmp_path` or patch `atomic_write_*` in the module under test.

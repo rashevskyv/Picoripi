@@ -4,13 +4,16 @@ import json
 import struct
 from types import SimpleNamespace
 
+import pytest
 from PIL import Image, ImageDraw
 from PyQt6 import QtGui, QtWidgets
 
 from core import font_formats
 from core.bfn_core import BfnCore
 from core.font_formats import sources
+from tools.bfn_editor import window_tree_mixin
 from tools.bfn_editor.bfn_editor_window import BfnEditorWindow
+from utils import atomic_io, constants
 
 G1T_PARAMS = dict(cell_width=16, cell_height=16, columns=4, first_cell=4, first_code=0xC0, last_code=0xC3,
                   spacing=2, ink_threshold=64)
@@ -334,3 +337,81 @@ def test_a_yaz0_compressed_font_inside_an_archive_is_read_plain_and_written_comp
     member = ContainerManager.open((tmp_path / "mod" / "res" / "nameres.arc").read_bytes()).read_file("name.bfn")
     assert member[:4] == b"Yaz0" and yaz0.decompress(member) == edited
     assert source.read_current() == edited
+
+
+def _plugin_font(tmp_path, monkeypatch, archived):
+    """A font in plugins/game/fonts/ (a loose BFN or a U8 archive holding main.bfn), with plugins/ under tmp_path."""
+    plugins = tmp_path / "plugins"
+    monkeypatch.setattr(window_tree_mixin, "plugins_root", lambda: plugins)
+    monkeypatch.setattr(constants, "plugins_root", lambda: plugins)
+    shipped = plugins / "game" / "fonts" / ("fontres.arc" if archived else "main.bfn")
+    shipped.parent.mkdir(parents=True)
+    shipped.write_bytes(_u8("main.bfn", _bfn()) if archived else _bfn())
+    return shipped
+
+
+def _width_of_b(data):
+    font = BfnCore()
+    font.load(data)
+    return font.wid1[0]["packets"][1]["width"]
+
+
+@pytest.mark.parametrize("archived", [False, True])
+def test_a_font_listed_from_a_plugin_folder_is_saved_to_the_users_copy_and_read_from_it(qtbot, tmp_path, monkeypatch,
+                                                                                         archived):
+    shipped = _plugin_font(tmp_path, monkeypatch, archived)
+    original = shipped.read_bytes()
+    window = _MainWindow(tmp_path, [])
+    window.active_game_plugin = "game"
+    qtbot.addWidget(window)
+    editor = BfnEditorWindow(parent=window)
+    editor.scan_fonts_directories()
+    key = shipped.name
+    info = editor.font_sources[key]
+    editor.switch_active_bfn_new("main.bfn", key if archived else "", info["type"], info["path"], 0)
+    editor.metadata["WID1"][0]["packets"][1]["width"] = 5
+    editor.save_changes(silent=True)
+
+    assert shipped.read_bytes() == original                                   # the plugin folder is never written
+    assert sorted(p.name for p in shipped.parent.iterdir()) == [key]
+    user = constants.SETTINGS_DIR / "plugins" / "game" / "fonts" / key
+    assert user.is_file()
+    editor.scan_fonts_directories()                                           # the user's copy is listed first
+    assert editor.font_sources[key]["path"] == str(user.resolve())
+    assert _width_of_b(editor.font_sources[key]["files"]["main.bfn"]) == 5
+
+
+@pytest.mark.parametrize("archived", [False, True])
+def test_a_failed_replace_leaves_the_old_font_and_no_temporary_file(qtbot, tmp_path, monkeypatch, archived):
+    font = tmp_path / "fonts" / ("fontres.arc" if archived else "main.bfn")
+    font.parent.mkdir()
+    font.write_bytes(_u8("main.bfn", _bfn()) if archived else _bfn())
+    before = font.read_bytes()
+    editor = BfnEditorWindow()
+    qtbot.addWidget(editor)
+    info = {"type": "disk_archive" if archived else "disk_loose", "path": str(font), "write_path": str(font),
+            "files": {"main.bfn": _bfn()}}
+
+    def refuse(_temporary, _target):
+        raise OSError("disk full")
+    monkeypatch.setattr(atomic_io, "_replace", refuse)
+    with pytest.raises(OSError, match="disk full"):
+        editor.save_disk_font(info, "main.bfn", _bfn()[:-1] + b"\x01")
+
+    assert font.read_bytes() == before
+    assert list(font.parent.iterdir()) == [font]
+    assert info["files"]["main.bfn"] == _bfn()
+
+
+def test_a_font_file_opened_from_a_plugin_folder_is_saved_to_the_users_copy(qtbot, tmp_path, monkeypatch):
+    shipped = _plugin_font(tmp_path, monkeypatch, archived=False)
+    editor = BfnEditorWindow()
+    qtbot.addWidget(editor)
+    editor.open_font_file(str(shipped))
+    editor.metadata["WID1"][0]["packets"][1]["width"] = 5
+    editor.save_changes(silent=True)
+    assert shipped.read_bytes() == _bfn()
+    user = constants.SETTINGS_DIR / "plugins" / "game" / "fonts" / "main.bfn"
+    assert _width_of_b(user.read_bytes()) == 5
+    editor.open_font_file(str(shipped))                                       # opened again: the user's copy
+    assert editor.metadata["WID1"][0]["packets"][1]["width"] == 5

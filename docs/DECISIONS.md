@@ -828,6 +828,9 @@ with no project the map went, not atomically, to the shipped `plugins/<plugin>/t
   plugin folder only, not to the project (no per-project cache keying; one copy for every project of that game).
 - `get_translation_map_path(for_write=True)` in the Font Editor never returns a shipped file; the save after a map
   edit and the save of a generated map both use it.
+- A font file the Font Editor lists from `plugins/<plugin>/fonts/` (or opens from anywhere in `plugins/`) is read
+  from, and saved to, the same path under `SETTINGS_DIR/plugins/` (`utils.constants.user_copy_of`), atomically; like
+  `font_map.json` it is game-wide, so it has no project copy (2026-10-15).
 - Opening a font writes nothing. The repair (synthetic keys, control codes, map codes missing from MAP1) changes the
   font and map in memory, sets `map_repaired` and opens the font as unsaved (Save enabled; closing asks to save).
 

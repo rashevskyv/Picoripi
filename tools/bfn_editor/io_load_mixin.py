@@ -11,6 +11,7 @@ from core.i18n import tr
 
 from tools.bfn_editor.bfn_engine import extract_bfn_logic
 from tools.bfn_editor.bfn_widgets import GridItem
+from utils.constants import user_copy_of
 from utils.logging_utils import log_debug
 
 
@@ -27,9 +28,11 @@ class IoLoadMixin:
             self.choose_folder()
 
     def open_font_file(self, path):
-        """Open a font file from disk; it is saved back in place. G1T needs the grid from the plugin."""
+        """Open a font file from disk; it is saved back in place (a file in ``plugins/`` to the user's copy, read
+        first when there is one). G1T needs the grid from the plugin."""
         from core import font_formats
-        with open(path, 'rb') as f:
+        write_path = user_copy_of(path)
+        with open(write_path if write_path.is_file() else path, 'rb') as f:
             data = f.read()
         fmt = font_formats.detect(data)
         if fmt in (None, "bfn"):
@@ -49,7 +52,7 @@ class IoLoadMixin:
         self.archive_name = ""
         self.archive_files = {}
         self.current_bfn_name = os.path.basename(path)
-        self.load_formatted_bytes(data, os.path.basename(path), fmt, params, write_path=path)
+        self.load_formatted_bytes(data, os.path.basename(path), fmt, params, write_path=str(write_path))
 
     def choose_folder(self):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self, tr('Select folder containing data.json and sheet_*.png'))
@@ -66,9 +69,10 @@ class IoLoadMixin:
         self.temp_dir = tempfile.mkdtemp(prefix="bfn_viewer_")
         self.font_format, self.font_source, self.font_write_path = "bfn", None, ""
 
+        write_path = user_copy_of(path)   # a font in plugins/ is saved to the user's copy (D36)
         try:
-            extract_bfn_logic(path, self.temp_dir)
-            self.bfn_path = path
+            extract_bfn_logic(str(write_path) if write_path.is_file() else path, self.temp_dir)
+            self.bfn_path = str(write_path)
             self.folder_path = ''
             self.load_from_extracted_dir(self.temp_dir)
             self.status.showMessage(tr("Successfully loaded BFN: {0} (editing in-place)", os.path.basename(path)))

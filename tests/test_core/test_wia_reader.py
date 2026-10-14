@@ -73,9 +73,10 @@ def _compress(method: int, data: bytes):
 
 
 def build_wia(image: bytes, *, rvz: bool, method: int, chunk: int, junk=(), disc_type: int = 1,
-              compression_field: int = None, dhead: bytes = None) -> bytes:
+              compression_field: int = None, dhead: bytes = None, stored=None) -> bytes:
     """A WIA or RVZ file of ``image``. ``junk`` lists (start, end, seed) regions that RVZ packs as seeds: each lies in
-    one group and its bytes are the spec's PRNG output from its seed at its start.
+    one group and its bytes are the spec's PRNG output from its seed at its start. ``stored`` ({group: bytes}) puts
+    other plain bytes into a group (in RVZ as its packed data), to build a hostile image.
 
     Layout: header, raw data table, group data, group table (last, so the data offsets are known when it is written).
     """
@@ -112,6 +113,9 @@ def build_wia(image: bytes, *, rvz: bool, method: int, chunk: int, junk=(), disc
                 parts += struct.pack(">I", len(literal)) + literal
             packed = bytes(parts)
         plain = packed if packed else logical
+        if stored and index in stored:
+            plain = stored[index]
+            packed = plain if rvz else b""
         compressed = method != NONE and (not rvz or index % 2 == 0)
         data = _compress(method, plain)[0] if compressed else plain
         while len(data_area) % 4:
@@ -272,3 +276,59 @@ def test_open_disc_closes_the_file_of_a_refused_image(tmp_path, monkeypatch):
     with pytest.raises(ImageError, match="Wii"):
         wia.open_disc(rvz)
     assert len(opened) == 1 and opened[0].closed
+
+
+def _set_group_count(data: bytes, count: int) -> bytes:
+    out = bytearray(data)
+    struct.pack_into(">I", out, 0x48 + 0xC4, count)
+    return bytes(out)
+
+
+@pytest.mark.parametrize("method", [BZIP2, LZMA, LZMA2])
+def test_a_group_that_decompresses_past_its_disc_data_is_refused(method):
+    data = build_wia(_random(MIB2), rvz=False, method=method, chunk=MIB2, stored={0: bytes(4 * MIB2)})
+    with wia.WiaStream(io.BytesIO(data)) as stream, pytest.raises(ImageError, match="more than the"):
+        stream.read(0x100)
+
+
+def test_a_zstd_frame_is_decompressed_only_up_to_the_limit():
+    frame = zstd_frame.compress(bytes(1 << 20), "test")
+    assert zstd_frame.decompress(frame, "test", 100) == bytes(100)
+    assert zstd_frame.decompress(frame, "test") == bytes(1 << 20)
+
+
+def test_an_rvz_group_whose_packed_size_is_larger_than_two_chunks_is_refused():
+    data = build_wia(_random(0x8000), rvz=True, method=NONE, chunk=0x8000, stored={0: bytes(0x10004)})
+    with wia.WiaStream(io.BytesIO(data)) as stream, pytest.raises(ImageError, match="more than a group"):
+        stream.read(0x100)
+
+
+def test_an_rvz_junk_run_longer_than_its_group_is_refused_before_it_is_generated():
+    packed = struct.pack(">I", 0x7FFFFFFF | wia.JUNK_FLAG) + bytes(wia.SEED_SIZE)
+    data = build_wia(_random(0x8000), rvz=True, method=NONE, chunk=0x8000, stored={0: packed})
+    with wia.WiaStream(io.BytesIO(data)) as stream, pytest.raises(ImageError, match="longer than its disc data"):
+        stream.read(0x100)
+
+
+@pytest.mark.parametrize("method", [NONE, LZMA2])
+def test_a_group_table_that_holds_more_entries_than_the_header_declares_is_refused(method):
+    image = _random(3 * 0x8000)
+    data = _set_group_count(build_wia(image, rvz=True, method=method, chunk=0x8000), 2)
+    with pytest.raises(ImageError, match="group"):
+        wia.WiaStream(io.BytesIO(data))
+
+
+def test_a_group_count_too_large_for_any_disc_is_refused_before_the_table_is_read():
+    data = _set_group_count(build_wia(_random(0x8000), rvz=True, method=LZMA2, chunk=0x8000), 0x10000000)
+    with pytest.raises(ImageError, match="too large"):
+        wia.WiaStream(io.BytesIO(data))
+
+
+def test_identify_takes_an_image_that_runs_out_of_memory_as_not_identified(tmp_path, monkeypatch):
+    rvz = tmp_path / "game.rvz"
+    rvz.write_bytes(build_wia(build_disc({"a.bin": b"A"}, game_id=b"GMSE01"), rvz=True, method=NONE, chunk=0x8000))
+
+    def out_of_memory(_stream):
+        raise MemoryError
+    monkeypatch.setattr(images, "WiaStream", out_of_memory)
+    assert images.identify(rvz) is None

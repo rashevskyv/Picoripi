@@ -51,3 +51,13 @@ def user_plugin_file_or_shipped(plugin_name: str, filename: str) -> Path:
     """The user's copy of a plugin data file (``user_plugin_dir``) if there is one, else the one the plugin ships."""
     user_file = user_plugin_dir(plugin_name) / filename
     return user_file if user_file.is_file() else plugins_root() / plugin_name / filename
+
+
+def user_copy_of(path) -> Path:
+    """Where an edit of the file ``path`` is saved: a file inside ``plugins/`` maps to the same place under the
+    user's plugin folders (D36); any other file is itself."""
+    try:
+        inside = Path(path).resolve().relative_to(plugins_root().resolve())
+    except ValueError:
+        return Path(path)
+    return SETTINGS_DIR / "plugins" / inside

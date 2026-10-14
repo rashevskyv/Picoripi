@@ -70,7 +70,7 @@ def identify(path: str | Path) -> Optional[Dict[str, Any]]:
     try:
         with open(path, "rb") as stream:
             return _describe(stream, stream.read(HEADER_SIZE))
-    except (OSError, ValueError, struct.error):   # ImageError is a ValueError: a broken image is not identified
+    except (OSError, ValueError, struct.error, MemoryError):   # ImageError is a ValueError: a broken image is not identified
         return None
 
 

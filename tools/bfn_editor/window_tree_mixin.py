@@ -2,8 +2,9 @@
 from PyQt6 import QtCore, QtWidgets
 
 from core.i18n import tr
-from utils.constants import plugins_root
-from utils.logging_utils import log_debug
+from utils.atomic_io import atomic_write_bytes
+from utils.constants import plugins_root, user_copy_of
+from utils.logging_utils import log_debug, log_info
 
 ROLE_SHEET_IDX = QtCore.Qt.ItemDataRole.UserRole + 1
 ROLE_FONT_NAME = QtCore.Qt.ItemDataRole.UserRole + 2
@@ -44,14 +45,16 @@ class WindowTreeMixin:
                 if not font_file.is_file():
                     continue
                 suffix = font_file.suffix.lower()
-                
+                write_path = user_copy_of(font_file)   # a font in plugins/ is saved to, and read from, the user's copy
+                read_path = write_path if write_path.is_file() else font_file
+
                 # Check for archives containing fonts
                 if suffix in (".arc", ".rarc", ".u8"):
                     archive_name = font_file.name
                     if archive_name in self.font_sources:
                         continue
                     try:
-                        archive_data = font_file.read_bytes()
+                        archive_data = read_path.read_bytes()
                         if ContainerManager.is_supported(archive_data):
                             container = ContainerManager.open(archive_data)
                             if container:
@@ -65,7 +68,8 @@ class WindowTreeMixin:
                                 if files:
                                     self.font_sources[archive_name] = {
                                         "type": "disk_archive",
-                                        "path": str(font_file.resolve()),
+                                        "path": str(read_path.resolve()),
+                                        "write_path": str(write_path),
                                         "files": files
                                     }
                     except Exception as e:
@@ -77,10 +81,11 @@ class WindowTreeMixin:
                     if font_name in self.font_sources:
                         continue
                     try:
-                        bfn_bytes = font_file.read_bytes()
+                        bfn_bytes = read_path.read_bytes()
                         self.font_sources[font_name] = {
                             "type": "disk_loose",
-                            "path": str(font_file.resolve()),
+                            "path": str(read_path.resolve()),
+                            "write_path": str(write_path),
                             "files": {font_name: bfn_bytes}
                         }
                     except Exception as e:
@@ -249,7 +254,24 @@ class WindowTreeMixin:
         else:
             self.select_sheet(sheet_idx)
 
-    def switch_active_bfn_new(self, bfn_name, archive_name, source_type, disk_path, target_sheet_idx):
+    def save_disk_font(self, source_info, filename, new_bytes):
+        """Write a font listed from a fonts folder to its ``write_path`` (the user's copy for a plugin folder, D36),
+        atomically; an archive is rebuilt from that copy when there is one. Raises on failure."""
+        from pathlib import Path
+        target = Path(source_info["write_path"])
+        if source_info["type"] == "disk_archive":
+            from core.containers import ContainerManager
+            container = ContainerManager.open((target if target.is_file() else Path(source_info["path"])).read_bytes())
+            if not container:
+                raise ValueError(f"{source_info['path']} is not a readable archive")
+            container.write_file(filename, new_bytes)
+            atomic_write_bytes(target, container.pack())
+        else:
+            atomic_write_bytes(target, new_bytes)
+        source_info["files"][filename] = new_bytes
+        log_info(f"Font Editor: saved '{filename}' to '{target}'.")
+
+    def switch_active_bfn_new(self,bfn_name, archive_name, source_type, disk_path, target_sheet_idx):
         """Switch active BFN font with proper save prompts and target file callbacks."""
         if self._dirty:
             reply = QtWidgets.QMessageBox.question(
@@ -286,38 +308,17 @@ class WindowTreeMixin:
             # Callback is provided by Picoripi
             # self.archive_save_callback is preserved
             self.archive_files = source_info["files"]
-        elif source_type == "disk_archive":
-            # Dynamic save callback for disk archives
+        elif source_type in ("disk_archive", "disk_loose"):
             def dynamic_save_callback(filename: str, new_bytes: bytes):
                 try:
-                    from core.containers import ContainerManager
-                    from pathlib import Path
-                    archive_bytes = Path(disk_path).read_bytes()
-                    container = ContainerManager.open(archive_bytes)
-                    if container:
-                        container.write_file(filename, new_bytes)
-                        updated_archive = container.pack()
-                        Path(disk_path).write_bytes(updated_archive)
-                        # Update our local source files cache
-                        source_info["files"][filename] = new_bytes
-                        print(f"Font Editor: Saved and packed '{filename}' to disk archive '{disk_path}'.")
+                    self.save_disk_font(source_info, filename, new_bytes)
                 except Exception as ex:
-                    QtWidgets.QMessageBox.critical(self, tr('Font Editor'), tr('Failed to write back to disk archive:\n{0}', ex))
+                    if source_type == "disk_archive":
+                        QtWidgets.QMessageBox.critical(self, tr('Font Editor'), tr('Failed to write back to disk archive:\n{0}', ex))
+                    else:
+                        QtWidgets.QMessageBox.critical(self, tr('Font Editor'), tr('Failed to save loose BFN to disk:\n{0}', ex))
             self.archive_save_callback = dynamic_save_callback
-            self.archive_files = source_info["files"]
-        elif source_type == "disk_loose":
-            # Dynamic save callback for loose files on disk
-            def dynamic_save_callback(filename: str, new_bytes: bytes):
-                try:
-                    from pathlib import Path
-                    Path(disk_path).write_bytes(new_bytes)
-                    # Update local source cache
-                    source_info["files"][filename] = new_bytes
-                    print(f"Font Editor: Saved loose font '{filename}' to '{disk_path}'.")
-                except Exception as ex:
-                    QtWidgets.QMessageBox.critical(self, tr('Font Editor'), tr('Failed to save loose BFN to disk:\n{0}', ex))
-            self.archive_save_callback = dynamic_save_callback
-            self.archive_files = {}
+            self.archive_files = source_info["files"] if source_type == "disk_archive" else {}
             
         # Temporarily clear undo stack to avoid cross-font undoing
         self.undo_stack.clear()

@@ -31,12 +31,19 @@ def _module():
     return zstandard
 
 
-def decompress(raw: bytes, name: str) -> bytes:
-    """Decompress one frame; ``name`` (the file or entry) goes into the error message."""
+def decompress(raw: bytes, name: str, max_length: int = -1) -> bytes:
+    """Decompress one frame; ``name`` (the file or entry) goes into the error message. With ``max_length`` >= 0 at
+    most that many bytes are made (the caller asks for one more than it allows to see a longer frame)."""
     try:
         mod = _module()
     except ZstdUnavailable as exc:
         raise ZstdUnavailable(f"{name}: {exc}") from None
+    if max_length >= 0:
+        decoder = mod.ZstdDecompressor()
+        if hasattr(decoder, "stream_reader"):   # ponytail: the zstandard fallback, not installed here to test
+            with decoder.stream_reader(raw) as reader:
+                return reader.read(max_length)
+        return decoder.decompress(raw, max_length)
     if hasattr(mod, "ZstdDecompressor") and not hasattr(mod, "decompress"):
         return mod.ZstdDecompressor().decompressobj().decompress(raw)
     return mod.decompress(raw)
