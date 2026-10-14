@@ -103,10 +103,11 @@ class PageInfo:
 
 
 VISIBLE_ROWS = BOTTOM_BAR_ROW - PAGE_TOP   # page rows between the header and the bottom bar (414)
-# The page scrolls until the card's bottom margin (TOP_MARGIN below the content) reaches the bottom bar: the
-# end-of-page shots (shots_r12 2011-01-03_23-35-05.157 and _23-35-22.475) show the page's last rule with the
-# margin below it and nothing else, which no scroll up to the content's bottom reproduces.
-END_PAD = cr.TOP_MARGIN_ROWS
+# The page scrolls until the content's last row reaches the top of the bottom screen (canvas row 240), the card's
+# margin filling the bottom screen. Measured: shots_r12 2011-01-03_23-35-05.157 (end of home_menu_manual page 7,
+# small, content 879 px) matches at scroll 677 = 879 - (240 - 38), and no scroll up to the content's bottom
+# reproduces it. END_PAD turns that into scroll_range's form (content - VISIBLE_ROWS + END_PAD).
+END_PAD = VISIBLE_ROWS - (TOP[1] - PAGE_TOP)
 
 
 def scroll_range(column_height: int) -> int:

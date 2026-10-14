@@ -459,11 +459,16 @@ class PageRenderer:
             return
         u0, v0, u1, _v1, _u2, v2, _u3, _v3 = pane.texcoords
         tw, th = texture.size
-        box = (u0 * tw, v0 * th, u1 * tw, v2 * th)
-        if 0.0 <= min(box) and box[2] <= tw and box[3] <= th:
+        # Texture coordinates of the top-left, top-right and bottom-left corners; reversed ones mirror the picture.
+        box = (min(u0, u1) * tw, min(v0, v2) * th, max(u0, u1) * tw, max(v0, v2) * th)
+        if 0.0 <= min(box) and box[2] <= tw and box[3] <= th and box[2] > box[0] and box[3] > box[1]:
             piece = texture.crop(tuple(int(round(v)) for v in box))
         else:
             piece = texture  # a repeating texture (viewer chrome); the pages do not use one
+        if u1 < u0:
+            piece = piece.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        if v2 < v0:
+            piece = piece.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         if piece.size != (width, height):
             piece = piece.resize((width, height), Image.Resampling.BILINEAR)
         tint = tuple(sum(c[i] for c in pane.colours) // 4 for i in range(4))
