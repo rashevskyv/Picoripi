@@ -4,8 +4,10 @@ import sys
 import struct
 import json
 
-# Supported encodings
+# Supported encodings. Value 0 is Super Mario Sunshine's (GMSE01): all its BMG files use it, read as cp1252 with
+# the Shift-JIS fallback in BMGFile.load. Keep 1 after 0: ENCODINGS_REV maps cp1252 back to 1.
 ENCODINGS = {
+    0: 'cp1252',
     1: 'cp1252',
     2: 'utf-16',
     3: 'shift_jis',

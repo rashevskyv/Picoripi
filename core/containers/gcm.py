@@ -7,7 +7,7 @@ Wii discs, RVZ, WIA and NKit images are not read here: they raise ImageError.
 from __future__ import annotations
 
 import struct
-from typing import BinaryIO, List
+from typing import BinaryIO, List, Tuple
 
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
 
@@ -40,6 +40,7 @@ class GameCubeImage(ImageReader):
             raise ImageError("not a GameCube disc image")
         self.game_id = head[:6].decode("ascii", "replace")
         self.disc_number = head[6]
+        self.revision = head[7]   # the game version: GMSE01 Rev 0 has 0x00 here (the header byte 0x07)
         self._head = head
         self._dol_at, self._fst_at, self._fst_size = struct.unpack_from(">III", head, 0x420)
 
@@ -68,6 +69,14 @@ class GameCubeImage(ImageReader):
         return max(offset + size for offset, size in zip(offsets, sizes))
 
     def _fst_files(self) -> List[ImageFile]:
+        return [entry for _at, entry in self.fst_slots()]
+
+    def fst_slots(self) -> List[Tuple[int, ImageFile]]:
+        """Each file of the disc with the absolute offset of its 12-byte FST entry: ``(entry_at, ImageFile)``.
+
+        The writer patches the offset and size of an entry in place. The entry offset is the entry's place in the
+        image, not the file's data.
+        """
         fst = self.read_table(self._fst_at, self._fst_size)
         if len(fst) < FST_ENTRY:
             raise ImageError("the file system table is empty")
@@ -75,7 +84,7 @@ class GameCubeImage(ImageReader):
         names_at = count * FST_ENTRY
         if count < 1 or names_at > len(fst):
             raise ImageError("the file system table does not hold its entries")
-        found: List[ImageFile] = []
+        found: List[Tuple[int, ImageFile]] = []
         listed = bytearray(count)  # each entry belongs to one directory; a second listing is a broken table
 
         def walk(first: int, end: int, prefix: str, depth: int) -> None:
@@ -100,7 +109,7 @@ class GameCubeImage(ImageReader):
                     walk(index + 1, size, f"{prefix}{name}/", depth + 1)
                     index = size
                 else:
-                    found.append(ImageFile(f"files/{prefix}{name}", offset, size))
+                    found.append((self._fst_at + index * FST_ENTRY, ImageFile(f"files/{prefix}{name}", offset, size)))
                     index += 1
 
         walk(1, count, "", 0)

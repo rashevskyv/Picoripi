@@ -223,7 +223,8 @@ def test_nkit_gamecube_disc_is_read_as_it_is(tmp_path):
     (tmp_path / "plain.iso").write_bytes(bytes(plain))
     (tmp_path / "nkit.iso").write_bytes(bytes(nkit))
 
-    assert images.identify(tmp_path / "nkit.iso") == {"kind": "gc", "game_id": "TSTE01", "encrypted": False}
+    assert images.identify(tmp_path / "nkit.iso") == {"kind": "gc", "game_id": "TSTE01", "encrypted": False,
+                                                      "revision": 0}
     with images.open_image(tmp_path / "plain.iso") as first, images.open_image(tmp_path / "nkit.iso") as second:
         assert [(e.path, e.size) for e in first.entries()] == [(e.path, e.size) for e in second.entries()]
 

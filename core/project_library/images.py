@@ -44,7 +44,8 @@ _UNSUPPORTED = {
 def _describe(stream: Any, head: bytes) -> Optional[Dict[str, Any]]:
     """``{"kind", "game_id", "encrypted", ...}`` of a supported image, or None. Leaves the stream at offset 0."""
     if is_gamecube_header(head):
-        return {"kind": KIND_GC, "game_id": head[:6].decode("ascii", "replace"), "encrypted": False}
+        return {"kind": KIND_GC, "game_id": head[:6].decode("ascii", "replace"), "encrypted": False,
+                "revision": head[7]}
     if is_nds_header(head):
         return {"kind": KIND_NDS, "game_id": head[0x0C:0x10].decode("ascii", "replace"), "encrypted": False}
     found = wii_disc.locate(head)

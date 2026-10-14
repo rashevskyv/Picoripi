@@ -678,3 +678,37 @@ AES. Encrypted reads stop at the seam; they are not built.
   - Switch, Skyward Sword HD base NSP against its `romfs` workspace folder: 162 workspace files in `exefs` and `romfs`, 161 equal. The one difference, `romfs\EU\Object\nl_NL\5-CenterField.arc` (workspace 234554 bytes, dated 2026-10-04; ours 234522 = the RomFS table size), is most likely an edited workspace file; not confirmed.
   - Wii: unverified. The workspace holds no `keys.bin` on this PC.
   - Miracle Mask is not seed-crypto (the earlier phase 2b note that said it was is wrong; see OPEN_ITEMS).
+
+## D31. Super Mario Sunshine (GameCube GMSE01 Rev 0): BMG encoding 0, an in-place disc writer, a speech-balloon patch (2026-10-14)
+
+**Context.** The disc is the owner's GMSE01 Rev 0 (USA). Its 171 BMG files all carry encoding byte 0, which
+`bmg_tool` rejected. Dolphin runs the retail `main.dol`, which reads every byte from 0x80 up as a two-byte lead, so
+single-byte Cyrillic breaks in speech balloons. No GameCube writer existed in Picoripi. Facts come from the decomp
+(CC0) and the port's notes (MIT); no code was copied.
+
+**Decision.**
+- `bmg_tool.ENCODINGS` gains `0: cp1252`. The existing Shift-JIS fallback reads the four `pinnaBeach*.szs`
+  `dolpic1.bmg` files. Other games with byte 0 raised "Unknown encoding ID" before; they now load. Keep 1 after 0 in
+  the table: `ENCODINGS_REV` maps cp1252 back to 1.
+- Those four `dolpic1.bmg` have 8-byte INF1 entries, and the BMG save path does not reproduce their INF1 bytes. The
+  build refuses any change to a BMG's INF1 (`plugins/super_mario_sunshine/build.py`). The other 167 round-trip byte
+  for byte (`test_real_disc.py`).
+- `core/containers/gcm_writer.py` writes a disc: it streams a copy to `<out>.tmp`, overwrites a changed file in
+  place, zero-fills a shorter one, moves a grown one to the first free 0x8000-aligned gap, patches its FST entry, and
+  replaces `out` at the end. It adds no files, changes only `sys/main.dol` (same size) among the system files, and
+  refuses the source as output. Measured on this disc: an unchanged rebuild equals the source byte for byte; the
+  DOL patch changes only its four words.
+- The speech-balloon fix is four words of the retail `main.dol` (`plugins/super_mario_sunshine/dol_patch.py`): sites
+  A, C and D compare with 0x100 instead of 0x80; site B replaces `extsb r3,r3` with `ori r3,r3,0` so the width lookup
+  stays unsigned. Each word is checked before it is written, so another executable is refused. `gc_iso` applies it
+  when the translation changes any file. Owner decision, 2026-10-14.
+- The port pack (`port_pack`) writes each changed archive member under `files/<archive path>/<member>`, the port's
+  overlay rule. It never writes `sys/main.dol`: the ports do not read it from the disc.
+- `ContainerManager` now registers `.szs` for the project scan. The extension list is global, so other games' `.szs`
+  files that are RARC or U8 are opened as archives too. Check those projects after the change.
+
+**Cost and limits.** Cyrillic coverage of the font is not drawn here (the translator's job). Dolphin proof: the disc
+on disk is a damaged download: the file ends in an HTML page at 0x4F800000 (1272 MiB) and the file table reaches
+0x57058000, so 16 entries (common, title, select, mario, particle and others) are missing. A complete GMSE01 Rev 0
+dump is needed before unpack, Dolphin and the Picoripi project can work. Open: the shipped DOL text, the Shift-JIS
+display in `dolpic1` on NA, the tag catalogue (Twilight Princess tags are used for now).
