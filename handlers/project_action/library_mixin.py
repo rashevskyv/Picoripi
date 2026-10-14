@@ -36,13 +36,20 @@ class LibraryMixin:
         if dialog is None:
             dialog = ProjectManagerDialog(self.mw, _library_dir(), self._open_from_manager,
                                           self.open_new_project_wizard, self.save_project_flags,
-                                          self.save_project_manager_setting)
+                                          self.save_project_manager_setting, on_closed=self._project_manager_closed)
             self.mw.project_manager_dialog = dialog
         else:
             dialog.reload()
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()
+
+    def _project_manager_closed(self) -> None:
+        """The user closed the Project Manager. With no project open, nothing is left to show: quit as File > Exit does."""
+        project_manager = getattr(self.mw, "project_manager", None)
+        if project_manager is not None and project_manager.project is not None:
+            return
+        self.mw.close()
 
     def open_project_manager_if_none(self) -> None:
         """At start-up: show the Project Manager when no project is open."""

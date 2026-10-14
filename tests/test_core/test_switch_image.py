@@ -5,17 +5,23 @@ import os
 import struct
 
 import pytest
-from Crypto.Cipher import AES
 
-from core.containers.image_files import ImageError
-from core.containers.switch_crypto import load_keys
-from core.containers.switch_images import SwitchImage
+pytest.importorskip("Crypto.Cipher.AES", reason="the Switch image tests need pycryptodome")
+from Crypto.Cipher import AES  # noqa: E402
+zstd = pytest.importorskip("compression.zstd", reason="the NCZ tests compress with Python 3.14 zstd")
+
+from core.containers import console_crypto  # noqa: E402
+from core.containers.image_files import ImageError  # noqa: E402
+from core.containers.switch_crypto import load_keys  # noqa: E402
+from core.containers.switch_images import SwitchImage  # noqa: E402
+from core.project_library import images  # noqa: E402
 
 NO = 0xFFFFFFFF
 SECTOR = 0x200
 HEADER = 0xC00
 ROMFS_HEADER = 0x50
 TITLE = 0x0100ABCD00000000
+MAGIC_SECTIONS = b"NCZSECTN"
 
 
 def _ecb(key, data, decrypt=False):
@@ -113,19 +119,28 @@ def _section(body, fs, crypto, iv=None, field=(0x40, 0)):
     return {"body": body, "fs": fs, "crypto": crypto, "iv": iv or os.urandom(8), "field": field}
 
 
+BODY = 0x4000   # where the sections start: an NCZ copies this many bytes of NCA header first
+
+
 def _nca(header_key, content_key, area_key, sections, content_type=0, rights=bytes(16)):
-    """An NCA with the sections given. ``content_key`` encrypts the sections; with no rights ID the key area holds it
-    (wrapped with ``area_key``), otherwise the ticket holds it."""
+    """(NCA bytes, plain body, placed sections). The NCA holds the sections from BODY on, encrypted as their crypto type
+    says. ``plain`` is the body with the sections decrypted; ``placed`` lists (start, size, crypto type, IV) per section.
+    ``content_key`` encrypts the sections; with no rights ID the key area holds it (wrapped with ``area_key``), otherwise
+    the ticket holds it."""
     body = bytearray()
+    plain = bytearray()
     table = []
     fshs = []
+    placed = []
     for spec in sections:
-        start = HEADER + len(body)
+        start = BODY + len(body)
         data = _pad(spec["body"])
+        plain += data
         if spec["crypto"] == 3:
             data = _ctr(content_key, (int.from_bytes(spec["iv"], "little") << 64) | (start // 16), data)
         body += data
-        table.append((start // SECTOR, (HEADER + len(body)) // SECTOR))
+        table.append((start // SECTOR, (BODY + len(body)) // SECTOR))
+        placed.append((start, len(data), spec["crypto"], spec["iv"]))
         fsh = bytearray(0x200)
         fsh[2] = spec["fs"]
         fsh[4] = spec["crypto"]
@@ -148,7 +163,7 @@ def _nca(header_key, content_key, area_key, sections, content_type=0, rights=byt
         head[0x300:0x340] = os.urandom(0x40)
     for index, fsh in enumerate(fshs):
         head[0x400 + index * 0x200:0x600 + index * 0x200] = fsh
-    return _xts_encrypt(header_key, bytes(head)) + bytes(body)
+    return _xts_encrypt(header_key, bytes(head)) + bytes(BODY - HEADER) + bytes(body), bytes(plain), placed
 
 
 def _material():
@@ -180,9 +195,15 @@ def _key_file(tmp_path, material, direct=False, extra=()):
     return str(path)
 
 
-def _program_sections(random_romfs=False):
+BIG = bytes(range(256)) * 160   # 40960 bytes: a body of three NCZ blocks (zstd frames compress it)
+
+
+def _program_sections(random_romfs=False, big=False):
     exefs = _pfs0([("main", b"MAIN" * 300), ("main.npdm", b"NPDM" * 50)])
-    romfs = _romfs({"a.bin": b"alpha" * 40}, "dir", {"b.bin": b"bravo" * 30})
+    sub = {"b.bin": b"bravo" * 30}
+    if big:
+        sub["big.bin"] = BIG
+    romfs = _romfs({"a.bin": b"alpha" * 40}, "dir", sub)
     romfs_body = bytes(SECTOR) + (os.urandom(0x300) if random_romfs else romfs)
     return [
         _section(exefs, fs=1, crypto=3, field=(0x40, 0)),
@@ -190,32 +211,63 @@ def _program_sections(random_romfs=False):
     ]
 
 
-def _package(material, *, ticketed=True, personal=False, meta_first=False, random_romfs=False, content_key=None):
-    """(nsp bytes, the title key or area content key used)."""
+BLOCK_EXP = 14   # NCZBLOCK blocks of 16 KiB in the synthetic files
+
+
+def _ncz(nca, plain, placed, key, mode):
+    """An NCZ of ``nca`` built the way nsz builds one: the first 0x4000 bytes of the NCA, the section table, then the body
+    (``plain``, the sections decrypted). ``solid``: one zstd frame. ``block``: NCZBLOCK blocks, each zstd or raw when
+    zstd would not make it smaller, and the second block is raw by choice."""
+    table = MAGIC_SECTIONS + struct.pack("<Q", len(placed))
+    for start, size, crypto, iv in placed:
+        table += struct.pack("<4Q", start, size, crypto, 0) + (key if crypto == 3 else bytes(16)) + iv + bytes(8)
+    if mode == "solid":
+        body = zstd.compress(plain)
+    else:
+        size = 1 << BLOCK_EXP
+        pieces = [plain[pos:pos + size] for pos in range(0, len(plain), size)]
+        packed = []
+        for index, piece in enumerate(pieces):
+            frame = zstd.compress(piece)
+            packed.append(piece if index == 1 or len(frame) >= len(piece) else frame)
+        head = b"NCZBLOCK" + bytes([2, 1, 0, BLOCK_EXP]) + struct.pack("<IQ", len(packed), len(plain))
+        head += b"".join(struct.pack("<I", len(item)) for item in packed)
+        body = head + b"".join(packed)
+    return nca[:BODY] + table + body
+
+
+def _package(material, *, ticketed=True, personal=False, meta_first=False, random_romfs=False, content_key=None,
+             ncz=None, big=False):
+    """The NSP bytes. ``ncz`` ("block" or "solid") stores the program NCA as an .ncz instead of an .nca."""
     header_key = material["header_key"]
     area, titlekek = _derived(material)
     content_key = content_key or os.urandom(16)
+    sections = _program_sections(random_romfs, big)
     if ticketed:
-        title_key = content_key
         rights = os.urandom(16)
-        nca = _nca(header_key, title_key, area, _program_sections(random_romfs), rights=rights)
-        ticket = _ticket(rights, _ecb(titlekek, title_key), personal)
+        nca, plain, placed = _nca(header_key, content_key, area, sections, rights=rights)
+        ticket = _ticket(rights, _ecb(titlekek, content_key), personal)
     else:
-        rights = bytes(16)
-        nca = _nca(header_key, content_key, area, _program_sections(random_romfs))
+        nca, plain, placed = _nca(header_key, content_key, area, sections)
         ticket = None
     entries = [("0100abcd00000000.nca", nca)]
+    if ncz:
+        entries = [("0100abcd00000000.ncz", _ncz(nca, plain, placed, content_key, ncz))]
     if ticket is not None:
         entries.append(("0100abcd00000000.tik", ticket))
     if meta_first:
-        meta = _nca(header_key, os.urandom(16), area, [], content_type=1)
+        meta, _, _ = _nca(header_key, os.urandom(16), area, [], content_type=1)
         entries.insert(0, ("0100abcd00000000.cnmt.nca", meta))
     return _pfs0(entries)
 
 
-def _read_all(nsp, keys):
-    reader = SwitchImage(io.BytesIO(nsp), keys)
-    return {entry.path: reader.read(entry) for entry in reader.entries()}, reader
+def _read_all(nsp, keys, cache=None):
+    """Every file of the package, read; the cache copy of an .nsz is deleted before this returns."""
+    reader = SwitchImage(io.BytesIO(nsp), keys, cache)
+    try:
+        return {entry.path: reader.read(entry) for entry in reader.entries()}, reader
+    finally:
+        reader.close()
 
 
 @pytest.mark.parametrize("ticketed", [True, False])
@@ -336,3 +388,120 @@ def test_reading_writes_no_file(tmp_path):
     _read_all(nsp, keys)
 
     assert sorted(os.listdir(tmp_path)) == before
+
+
+@pytest.mark.parametrize("mode", ["block", "solid"])
+def test_ncz_reads_the_same_files_as_the_plain_nca(tmp_path, mode):
+    material = _material()
+    content_key = os.urandom(16)
+    keys = load_keys(_key_file(tmp_path, material))
+    cache = tmp_path / "cache"
+    ncz_nsp = _package(material, content_key=content_key, big=True, ncz=mode)
+
+    plain, _ = _read_all(_package(material, content_key=content_key, big=True), keys, cache)
+    packed, _ = _read_all(ncz_nsp, keys, cache)
+
+    assert MAGIC_SECTIONS in ncz_nsp
+    assert packed == plain
+    assert packed["romfs/dir/big.bin"] == BIG and packed["exefs/main"] == b"MAIN" * 300
+    assert os.listdir(cache) == []
+
+
+@pytest.mark.parametrize("field, value", [
+    (16, 0x100),    # section 0 starts inside the NCA header
+    (24, 0x2000),   # section 0 is too short: section 1 does not start where it ends
+    (8, 5),         # five sections
+])
+def test_ncz_bad_section_table_is_an_image_error(tmp_path, field, value):
+    material = _material()
+    nsp = bytearray(_package(material, ncz="block", big=True))
+    struct.pack_into("<Q", nsp, nsp.find(MAGIC_SECTIONS) + field, value)
+    keys = load_keys(_key_file(tmp_path, material))
+
+    with pytest.raises(ImageError):
+        _read_all(bytes(nsp), keys, tmp_path / "cache")
+
+
+def test_ncz_without_its_magic_is_an_image_error(tmp_path):
+    material = _material()
+    nsp = bytearray(_package(material, ncz="solid"))
+    nsp[nsp.find(MAGIC_SECTIONS)] = ord("X")
+    keys = load_keys(_key_file(tmp_path, material))
+
+    with pytest.raises(ImageError, match="NCZSECTN"):
+        _read_all(bytes(nsp), keys, tmp_path / "cache")
+
+
+def test_ncz_corrupt_zstd_block_is_an_image_error_and_the_cache_is_removed(tmp_path):
+    material = _material()
+    nsp = bytearray(_package(material, ncz="block", big=True))
+    at = nsp.find(MAGIC_SECTIONS)
+    count = struct.unpack_from("<Q", nsp, at + 8)[0]
+    block_head = at + 0x10 + 0x40 * count
+    blocks = struct.unpack_from("<I", nsp, block_head + 12)[0]
+    assert struct.unpack_from("<I", nsp, block_head + 0x18)[0] < 1 << BLOCK_EXP   # block 0 is a zstd frame
+    first = block_head + 0x18 + 4 * blocks
+    nsp[first:first + 4] = bytes(4)   # the zstd magic number
+    keys = load_keys(_key_file(tmp_path, material))
+    cache = tmp_path / "cache"
+    reader = SwitchImage(io.BytesIO(bytes(nsp)), keys, cache)
+
+    with pytest.raises(ImageError, match="corrupt"):
+        reader.entries()
+    assert os.listdir(cache) == []
+
+
+def test_ncz_cancel_stops_the_decompression_between_blocks(tmp_path):
+    material = _material()
+    keys = load_keys(_key_file(tmp_path, material))
+    cache = tmp_path / "cache"
+    checks = []
+
+    def cancel_from_the_second_check():
+        checks.append(1)
+        return len(checks) > 1
+
+    reader = SwitchImage(io.BytesIO(_package(material, ncz="block", big=True)), keys, cache,
+                         cancel_from_the_second_check)
+    assert reader.entries() == []
+    reader.close()
+
+    assert len(checks) == 2
+    assert os.listdir(cache) == []
+
+
+def test_extract_unpacks_an_nsz_and_leaves_only_its_files(tmp_path):
+    material = _material()
+    keys_path = _key_file(tmp_path, material)
+    nsz = tmp_path / "game.nsz"
+    nsz.write_bytes(_package(material, ncz="solid", big=True))
+    target = tmp_path / "out"
+
+    with console_crypto.key_source(lambda console: keys_path if console == "switch" else None):
+        assert images.extract(nsz, target, lambda done, text: None, lambda: False) == str(target)
+
+    assert sorted(os.listdir(target)) == ["exefs", "romfs"]
+    assert (target / "romfs" / "dir" / "big.bin").read_bytes() == BIG
+
+
+def test_extract_cancelled_while_decompressing_returns_none_and_writes_nothing(tmp_path):
+    material = _material()
+    keys_path = _key_file(tmp_path, material)
+    nsz = tmp_path / "game.nsz"
+    nsz.write_bytes(_package(material, ncz="block", big=True))
+    target = tmp_path / "out"
+
+    with console_crypto.key_source(lambda console: keys_path if console == "switch" else None):
+        assert images.extract(nsz, target, lambda done, text: None, lambda: True) is None
+
+    assert not target.exists() or not any(target.iterdir())
+
+
+def test_room_for_an_nsz_counts_its_decompressed_program_and_an_nsp_does_not(tmp_path):
+    material = _material()
+    nsz = tmp_path / "game.nsz"
+    nsz.write_bytes(_package(material, ncz="solid", big=True))
+    plain = tmp_path / "game.nsp"
+    plain.write_bytes(_package(material, big=True))
+    assert images.unpack_room(plain) == plain.stat().st_size
+    assert images.unpack_room(nsz) - nsz.stat().st_size > len(BIG)

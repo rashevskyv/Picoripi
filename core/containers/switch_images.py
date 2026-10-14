@@ -6,13 +6,18 @@ identified but not read. A RomFS that is a BKTR patch (an update's) is not liste
 """
 from __future__ import annotations
 
+import os
 import re
 import struct
-from typing import Any, BinaryIO, Dict, List, Optional, Tuple
+import tempfile
+from contextlib import suppress
+from pathlib import Path
+from typing import Any, BinaryIO, Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from core.containers.console_crypto import PlainView, RangeView, wrong_key_error
 from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
 from core.containers.switch_crypto import HEADER_SIZE, NcaHeader, SwitchKeys, content_key, open_section
+from core.containers.switch_nsz import NCA_HEADER_SIZE, decompress_ncz, read_ncz
 
 PFS0_MAGIC = b"PFS0"
 XCI_MAGIC = b"HEAD"          # at 0x100 of a cartridge image
@@ -171,21 +176,54 @@ def _romfs_files(view: PlainView) -> List[ImageFile]:
     return files
 
 
+class _Body(NamedTuple):
+    """Where the program NCA is: ``size`` bytes of ``stream`` from ``base``. ``plain``: its sections are stored decrypted
+    (an NCZ's decompressed copy), so they are read as they are."""
+    stream: Any
+    base: int
+    size: int
+    plain: bool
+
+
 class SwitchImage(ImageReader):
-    """A Switch .nsp, decrypted with ``keys``: the ExeFS files (``exefs/<name>``) and the RomFS files (``romfs/<path>``)
-    of its program NCA.
+    """A Switch .nsp or .nsz, decrypted with ``keys``: the ExeFS files (``exefs/<name>``) and the RomFS files
+    (``romfs/<path>``) of its program NCA.
 
     The program NCA is the one whose header holds content type 0; the package must hold exactly one. Its ticket must be
-    a common ticket. Compressed sections, NCA2/NCA0 and XCI images raise ImageError. ``romfs_is_patch`` is set by
-    ``entries`` when the RomFS is a BKTR patch: that RomFS is then not listed (its patch is not applied yet).
+    a common ticket. A program given as .ncz is decompressed into ``cache_dir`` (a folder of the caller, created when
+    missing); ``close`` deletes that copy. ``is_cancelled`` is checked while it decompresses: then ``entries`` returns
+    an empty list. NCA2/NCA0 and XCI images raise ImageError. ``romfs_is_patch`` is set by ``entries`` when the RomFS
+    is a BKTR patch: that RomFS is then not listed (its patch is not applied yet).
     """
 
-    def __init__(self, stream: BinaryIO, keys: SwitchKeys) -> None:
+    def __init__(self, stream: BinaryIO, keys: SwitchKeys, cache_dir: Optional[str | Path] = None,
+                 is_cancelled: Optional[Callable[[], bool]] = None) -> None:
         super().__init__(stream)
         self._keys = keys
+        self._cache_dir = cache_dir
+        self._is_cancelled = is_cancelled or (lambda: False)
+        self._cache: Optional[Tuple[BinaryIO, str]] = None
+        self._ncz_body: Optional[_Body] = None
         self.romfs_is_patch = False
 
+    def close(self) -> None:
+        """Delete the decompressed copy of a compressed program, if one was written. Safe to call more than once."""
+        self._ncz_body = None
+        if self._cache is not None:
+            handle, path = self._cache
+            self._cache = None
+            handle.close()
+            with suppress(OSError):
+                os.remove(path)
+
     def entries(self) -> List[ImageFile]:
+        try:
+            return self._entries()
+        except BaseException:
+            self.close()
+            raise
+
+    def _entries(self) -> List[ImageFile]:
         self.romfs_is_patch = False
         magic = self.read_at(0, 4) if self.size >= 4 else b""
         if magic != PFS0_MAGIC:
@@ -201,7 +239,7 @@ class SwitchImage(ImageReader):
                     raise ImageError("a ticket has a bad size")
                 ticket = self.read_at(item["offset"], item["size"])
                 tickets[ticket[RIGHTS_ID_AT:RIGHTS_ID_AT + 16]] = ticket
-            elif item["name"].endswith(".nca"):
+            elif item["name"].endswith((".nca", ".ncz")):
                 if item["size"] < HEADER_SIZE:
                     raise ImageError("an NCA is cut short")
                 header = NcaHeader(self.read_at(item["offset"], HEADER_SIZE), self._keys)
@@ -211,7 +249,10 @@ class SwitchImage(ImageReader):
             raise ImageError("the package must hold exactly one program NCA")
         item, header = programs[0]
         key = content_key(header, self._keys, tickets)
-        exefs_view, fsh = self._section(item, header, key, 0)
+        body = self._program_body(item)
+        if body is None:   # cancelled while the .ncz was decompressed
+            return []
+        exefs_view, fsh = self._section(body, header, key, 0)
         if fsh[2] != 1:
             raise ImageError("section 0 of the program NCA is not an ExeFS")
         pfs_at = struct.unpack_from("<Q", fsh, 0x40)[0]
@@ -230,7 +271,7 @@ class SwitchImage(ImageReader):
         if header.sections[1][2][4] == BKTR:
             self.romfs_is_patch = True
             return entries
-        romfs_view, fsh = self._section(item, header, key, 1)
+        romfs_view, fsh = self._section(body, header, key, 1)
         if fsh[2] != 0:
             raise ImageError("section 1 of the program NCA is not a RomFS")
         level = struct.unpack_from("<Q", fsh, 0x90)[0]
@@ -238,14 +279,53 @@ class SwitchImage(ImageReader):
             raise ImageError("the RomFS starts past its section")
         return entries + _romfs_files(RangeView(romfs_view, level, romfs_view.size - level))
 
-    def _section(self, item: Dict[str, Any], header: NcaHeader, key: bytes, index: int) -> Tuple[PlainView, bytes]:
-        """The decrypted view of section ``index`` of the program NCA and its section header."""
+    def _program_body(self, item: Dict[str, Any]) -> Optional[_Body]:
+        """The program NCA: the .nca in the package, or for an .ncz its decompressed copy. None when cancelled."""
+        if not item["name"].endswith(".ncz"):
+            return _Body(self.stream, item["offset"], item["size"], False)
+        if self._ncz_body is None:
+            self._ncz_body = self._decompress(item)
+        return self._ncz_body
+
+    def _decompress(self, item: Dict[str, Any]) -> Optional[_Body]:
+        """Decompress the .ncz ``item`` into a new file in ``cache_dir``. None when cancelled (the file is deleted)."""
+        if self._cache_dir is None:
+            raise ImageError("a compressed Switch program needs a folder for its decompressed NCA")
+        source = ImageReader(RangeView(self.stream, item["offset"], item["size"]))
+        ncz = read_ncz(source)
+        folder = Path(self._cache_dir)
+        folder.mkdir(parents=True, exist_ok=True)
+        handle, path = tempfile.mkstemp(dir=folder, prefix=".ncz-", suffix=".nca")
+        self._cache = (os.fdopen(handle, "w+b"), path)
+        if not decompress_ncz(source, ncz, self._cache[0], self._is_cancelled):
+            self.close()
+            return None
+        return _Body(self._cache[0], 0, ncz.nca_size, True)
+
+    def _section(self, body: _Body, header: NcaHeader, key: bytes, index: int) -> Tuple[PlainView, bytes]:
+        """The view of section ``index`` of the program NCA and its section header. An NCZ's sections are plain bytes:
+        they were decrypted before compression, so no CTR is applied again."""
         spec = header.sections[index]
         if spec is None:
             raise ImageError(f"the program NCA has no section {index}")
         start, end, fsh = spec
-        if end > item["size"]:
+        if end > body.size:
             raise ImageError("a section ends past its NCA")
         if struct.unpack_from("<Q", fsh, 0x180)[0]:
             raise ImageError("compressed sections are not read")
-        return open_section(self.stream, item["offset"], spec, key), fsh
+        if not body.plain:
+            return open_section(body.stream, body.base, spec, key), fsh
+        if fsh[4] not in (1, 3, 4) or start < NCA_HEADER_SIZE:
+            raise ImageError("a section of the compressed NCA is not read")
+        return RangeView(body.stream, body.base + start, end - start), fsh
+
+
+def ncz_nca_bytes(reader: ImageReader) -> int:
+    """The decompressed size of every .ncz entry of a package (0 when it has none). Reads only the NCZ tables."""
+    if reader.size < 4 or reader.read_at(0, 4) != PFS0_MAGIC:
+        return 0
+    total = 0
+    for item in _pfs0_files(reader):
+        if item["name"].endswith(".ncz"):
+            total += read_ncz(ImageReader(RangeView(reader.stream, item["offset"], item["size"]))).nca_size
+    return total

@@ -11,6 +11,7 @@ All functions run on a worker thread: they read and write files, never touch wid
 from __future__ import annotations
 
 import importlib.util
+import os
 import struct
 from contextlib import contextmanager
 from pathlib import Path
@@ -74,6 +75,20 @@ def identify(path: str | Path) -> Optional[Dict[str, Any]]:
         return None
 
 
+def unpack_room(path: str | Path) -> int:
+    """Bytes an unpack of this image needs beside it: the file, and for a Switch .nsz its decompressed program twice
+    (the cache copy, then the extracted files). ponytail: estimated from the NCZ tables, not measured; the real use can
+    differ by the size of the ExeFS and the table overhead."""
+    size = os.path.getsize(path)
+    if (identify(path) or {}).get("kind") != KIND_SWITCH:
+        return size
+    try:
+        with open(path, "rb") as stream:
+            return size + 2 * switch_images.ncz_nca_bytes(ImageReader(stream))
+    except (OSError, ValueError, struct.error):
+        return size
+
+
 def base_identity(path: str | Path, game_codes: Container[str]) -> Optional[Dict[str, str]]:
     """``{"role": "base", "platform": <kind>}`` when ``path`` is an image of one of ``game_codes``."""
     found = identify(path)
@@ -99,7 +114,8 @@ def _has_pycryptodome() -> bool:
     return importlib.util.find_spec("Crypto") is not None
 
 
-def _reader(stream: Any) -> ImageReader:
+def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
+            is_cancelled: Optional[Cancelled] = None) -> ImageReader:
     head = stream.read(HEADER_SIZE)
     stream.seek(0)
     # An NKit GameCube disc keeps the GameCube header and layout, so the GameCube reader reads it as it is.
@@ -113,14 +129,17 @@ def _reader(stream: Any) -> ImageReader:
     if found is not None:
         kind = found["kind"]
         encrypted = bool(found.get("encrypted"))
-        if encrypted and (key_path(CONSOLE_OF_KIND[kind]) is None or not _has_pycryptodome()):
+        # A 3DS reader checks its keys before it decrypts, so it refuses a key file with no keys without pycryptodome.
+        needs_crypto = kind != KIND_3DS and not _has_pycryptodome()
+        if encrypted and (key_path(CONSOLE_OF_KIND[kind]) is None or needs_crypto):
             raise encrypted_error(CONSOLE_OF_KIND[kind], tr(CONSOLE_LABEL[kind]))
         if kind == KIND_3DS:   # the reader loads the key file only for encrypted content
             return n3ds.N3dsImage(stream, key_path("3ds"))
         if kind == KIND_WII and encrypted:
             return wii_disc.WiiImage(stream, wii_disc.load_common_key(str(key_path("wii"))))
         if kind == KIND_SWITCH and encrypted:   # an .xci is refused by the reader with its reason
-            return switch_images.SwitchImage(stream, switch_crypto.load_keys(str(key_path("switch"))))
+            keys = switch_crypto.load_keys(str(key_path("switch")))
+            return switch_images.SwitchImage(stream, keys, cache_dir, is_cancelled)
     for magic, reason in _UNSUPPORTED.items():
         if head.startswith(magic):
             raise ImageError(f"Picoripi cannot read {reason}")
@@ -130,10 +149,20 @@ def _reader(stream: Any) -> ImageReader:
 
 
 @contextmanager
-def open_image(path: str | Path) -> Iterator[ImageReader]:
-    """The reader of a supported image, open for the ``with`` block. Raises ImageError for anything else."""
+def open_image(path: str | Path, cache_dir: Optional[str | Path] = None,
+               is_cancelled: Optional[Cancelled] = None) -> Iterator[ImageReader]:
+    """The reader of a supported image, open for the ``with`` block. Raises ImageError for anything else.
+
+    ``cache_dir`` holds the decompressed copy of a Switch .nsz program; the copy is deleted when the block ends.
+    ``is_cancelled`` stops that decompression.
+    """
     with open(path, "rb") as stream:
-        yield _reader(stream)
+        reader = _reader(stream, cache_dir, is_cancelled)
+        try:
+            yield reader
+        finally:
+            if isinstance(reader, switch_images.SwitchImage):
+                reader.close()
 
 
 def write_entries(reader: ImageReader, entries: Sequence[ImageFile], target_dir: str | Path,
@@ -170,8 +199,8 @@ def extract(path: str | Path, target_dir: str | Path, progress: Progress, is_can
 
     Returns ``target_dir``, or None when the user cancelled. Raises ImageError for an unsupported or broken image.
     """
-    with open_image(path) as reader:
+    with open_image(path, target_dir, is_cancelled) as reader:   # a Switch .nsz is decompressed into target_dir
         entries = [entry for entry in reader.entries() if select is None or select(entry.path)]
-        if not write_entries(reader, entries, target_dir, progress, is_cancelled):
+        if is_cancelled() or not write_entries(reader, entries, target_dir, progress, is_cancelled):
             return None
     return str(target_dir)

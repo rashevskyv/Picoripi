@@ -52,6 +52,15 @@ def encrypted_error(console: str, label: str) -> ImageError:
     return ImageError(tr("The key file does not decrypt the {0} image.", label))
 
 
+def require_pycryptodome(console: str, label: str) -> None:
+    """Raise the encrypted_error when pycryptodome is missing. A decrypting reader calls it after its key checks,
+    so a key file that holds no keys is refused without the package."""
+    try:
+        from Crypto.Cipher import AES  # noqa: F401
+    except ImportError:
+        raise encrypted_error(console, label) from None
+
+
 def wrong_key_error(label: str) -> ImageError:
     """The error when the key file loads but does not decrypt the content (the tables come out as noise)."""
     return ImageError(tr("The key file does not decrypt the {0} image.", label))

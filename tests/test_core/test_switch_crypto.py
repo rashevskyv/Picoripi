@@ -2,10 +2,12 @@
 import os
 
 import pytest
-from Crypto.Cipher import AES
 
-from core.containers.image_files import ImageError
-from core.containers.switch_crypto import load_keys, xts_decrypt
+pytest.importorskip("Crypto.Cipher.AES", reason="the Switch crypto tests need pycryptodome")
+from Crypto.Cipher import AES  # noqa: E402
+
+from core.containers.image_files import ImageError  # noqa: E402
+from core.containers.switch_crypto import load_keys, xts_decrypt  # noqa: E402
 
 
 def _ecb(key, data, decrypt=False):

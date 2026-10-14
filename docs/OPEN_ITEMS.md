@@ -10,6 +10,15 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Link's Awakening Switch for LAS Recomp (`plugins/zelda_las`, 2026-10-14)
+
+- Not run in LAS Recomp yet; no Cyrillic font ships with the plugin.
+- Every MSBT of every region is a block in the project list, but only the English slots (`regionEU/EUen`, `regionUS/USen`) are translated. No hook filters the source files; the build needs the whole `romfs` as source.
+- The SWUK import copies `region_common/ui/StartUp.arc` and `jpn_heading.bffnt`, made for v1.1.0, over the 1.0.0 files. Not checked on 1.0.0.
+- NCZ decompression (about 6 GB for this game) sends no progress; the dialog keeps its last text until the files are written.
+- A killed process or a power loss during an unpack leaves `.unpack-<id>` in the project folder (a cancel or an error removes it), now with the NCZ cache inside; nothing removes it later.
+- `core/containers/switch_nsz.py` imports `compression.zstd` itself (it needs the streaming decoder), not through `core/zstd_frame.py`; an `.nsz` needs Python 3.14 (no `zstandard` fallback).
+
 ## Slop baseline: reduce the count (deslop, 2026-10-14)
 
 - Reduce `tools/deslop/baseline.json` (default-on rules, counts per file): `call-only-assertions` in tests 321 -> 165 (2026-10-14). The 165 left check specific argument values of a collaborator call (for example an exact window title or exact call arguments); they stay as specific checks, not result checks. Remaining work: a test that checks only "was called" (no argument value, no result) needs a result or state check, not a suppression. Largest left: `tests/test_ui/test_ui_updater.py` 17, `tests/test_ui/test_updaters/test_small_updaters.py` 17, `tests/test_handlers/test_translation/test_glossary_handler.py` 14.
@@ -80,6 +89,8 @@ the line when it is done or moved into a plan.
 
 ## Project Manager phase 2 (2026-10-12)
 
+- Owner screenshot of 2026-10-14 showed the Project Manager in English while the menus were Ukrainian. Not reproduced on HEAD: every Project Manager literal has a `locales/uk.json` key (keys dated 2026-10-11 and 2026-10-13), and a freshly built dialog renders in Ukrainian. Check whether the owner's running build predates these keys. The walk test `tests/test_ui/test_project_manager/test_translation_walk.py` guards against regressions.
+- Qt's own dialog text ("OK", "Yes", "No") follows the language only where Qt ships the translation (`qtbase_uk.qm` has Cancel and Yes but not OK). Other Qt text stays English.
 - Only `plugins/plain_text` declares a build target, and no real game plugin implements `get_source_roles`, `identify_source`, `unpack_sources` or `build_target` yet. Until a game does, the wizard takes roles and platforms from the user and the Build, Export and Run buttons stay off for it.
 - Counts skip archive members (blocks inside containers) and report them as "not counted yet". Counting them needs the load worker's archive path (`handlers/project_action/load_worker.py`).
 - Closed in D28: a count is kept while its input signature (project file, plugin config, source and translation files) is unchanged. An edit to a translation file made outside Picoripi is seen at the next scan.
@@ -126,7 +137,7 @@ the line when it is done or moved into a plan.
 - BIOS Huffman exists twice: `core/containers/level5.py` `_huffman` (Kuriimu tree layout) and `core/containers/layton_ds.py` `_huffman` (BIOS tree layout, Layton DS). Both read MSB-first 32-bit words, but the tree indexing differs. A random-tree comparison proved too little (25 comparable cases of 3000), so both stay. Merge them after a Layton DS stream with a Huffman body is checked on disk, or after a BIOS Huffman encoder test exists.
 - Duplicate LZ10 (round 6 item) is still open: `core/containers/level5.py` `_lz10` next to `core/containers/lz10.py`.
 - `plugins/pokemon_gen7/rules.py` is a copy of `plugins/pokemon_gen6/rules.py` (33 changed lines: tables, GARC ids, names). Both use `plugins/common/gfmsg`. A shared base for the Game Freak `.dat` plugins is a later refactor.
-- Licence notices: `core/texture_formats/xenos.py` carries the full Xenia BSD-3 text (Ben Vanik, 2015); `core/containers/layton_ds.py` carries the full MIT text of bullbin's madhatter (2024), which its pack codec is ported from. Jak (`fr3`) cites the OpenGOAL port for format facts only; no OpenGOAL source is copied. The OpenGOAL licence was not checked.
+- Licence notices: `core/texture_formats/xenos.py` carries the full Xenia BSD-3 text (Ben Vanik, 2015); `core/containers/layton_ds.py` carries the full MIT text of bullbin's madhatter (2024), which its pack codec is ported from; `core/containers/romfs_write.py` carries the full MIT text of Peiikai's LAS Recomp (2026), which it is ported from (`runtime/romfs_build.c`); `core/containers/switch_nsz.py` cites nsz (MIT) for format facts only. Jak (`fr3`) cites the OpenGOAL port for format facts only; no OpenGOAL source is copied. The OpenGOAL licence was not checked.
 - Zstd: `core/zstd_frame.py` is the one zstd helper (`compression.zstd` or `zstandard`, imported inside the calls). `fr3` and `core/unreal/pak.py` use it.
 - `feat/ready-dk` does not exist; Donkey Kong is not in round 7.
 - Ultra boot proof still open (round 6 item); the Sun/Moon plugin has no boot check either.

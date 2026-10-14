@@ -26,3 +26,38 @@ def test_qt_message_handler(capsys):
     captured = capsys.readouterr()
     assert "Some other warning message" in captured.err
 
+
+
+def test_closing_the_project_manager_with_no_project_closes_the_main_window(qtbot):
+    """The start-up path: the manager opens with no project; closing it goes through the main window's close."""
+    mw = MainWindow()
+    mw.is_testing = True
+    qtbot.addWidget(mw)
+    mw.show()
+    qtbot.waitExposed(mw)
+    mw.project_action_handler.open_project_manager_if_none()
+    dialog = mw.project_manager_dialog
+    qtbot.waitUntil(lambda: dialog.isVisible(), timeout=5000)
+
+    dialog.close()
+
+    qtbot.waitUntil(lambda: not mw.isVisible(), timeout=5000)
+    assert not dialog.isVisible()
+
+
+def test_closing_the_project_manager_with_a_project_open_keeps_the_main_window(qtbot):
+    """A project is open: the manager closes back to it and Picoripi stays up. The rule reads only ``project``."""
+    mw = MainWindow()
+    mw.is_testing = True
+    qtbot.addWidget(mw)
+    mw.show()
+    qtbot.waitExposed(mw)
+    mw.project_manager.project = object()   # stands for an open project
+    mw.project_action_handler.open_project_manager_action()
+    dialog = mw.project_manager_dialog
+    qtbot.waitUntil(lambda: dialog.isVisible(), timeout=5000)
+
+    dialog.close()
+
+    assert not dialog.isVisible()
+    assert mw.isVisible()

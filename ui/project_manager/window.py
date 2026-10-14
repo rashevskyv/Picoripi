@@ -7,17 +7,18 @@ change in place while a scan runs, so the scroll position and the selection stay
 from __future__ import annotations
 
 import time
+import unicodedata
 from datetime import datetime
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PyQt6.QtCore import QProcess, QRect, QSize, Qt, QUrl
-from PyQt6.QtGui import QColor, QDesktopServices, QIcon, QImage, QPainter, QPixmap
+from PyQt6.QtCore import QProcess, QRect, QSize, Qt, QTimer, QUrl
+from PyQt6.QtGui import QColor, QDesktopServices, QIcon, QImage, QKeySequence, QPainter, QPixmap, QShortcut
 from PyQt6.QtWidgets import (
-    QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QInputDialog, QLabel, QListWidget,
-    QListWidgetItem, QMenu, QMessageBox, QProgressBar, QPushButton, QStackedWidget, QStyledItemDelegate, QToolButton,
-    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
+    QListWidget, QListWidgetItem, QMenu, QMessageBox, QProgressBar, QPushButton, QStackedWidget, QStyledItemDelegate,
+    QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 
 from core.i18n import tr
@@ -59,6 +60,21 @@ COLUMNS = ("Project name", "Platform", "Series", "Plugin", "Progress", "Last ope
 PROGRESS_COLUMN = COLUMNS.index("Progress")
 LIST_ICON_SIZE = 64
 LIST_COLUMN_WIDTHS = (340, 70, 120, 130, 170, 110)  # the last column (Status) takes the rest
+SEARCH_DELAY_MS = 150  # the list filters this long after the last key press
+
+
+def _fold(text: str) -> str:
+    return unicodedata.normalize("NFC", text).casefold()
+
+
+def matches_search(row: Dict[str, Any], query: str) -> bool:
+    """True when every word of ``query`` is part of the project name, series, platform, plugin or folder path.
+
+    The match ignores case and the Unicode form. Words may sit in different fields: ``aria gba`` finds a GBA
+    project named Aria.
+    """
+    fields = [_fold(str(row.get(name) or "")) for name in ("name", "series", "platform", "plugin", "path")]
+    return all(any(word in field for field in fields) for word in _fold(query).split())
 
 
 # ----- registry operations, run on a worker thread by BackgroundJob -----
@@ -143,6 +159,18 @@ def _read_image(path: str) -> Optional[QImage]:
 def _call(function: Callable[..., Any], *args: Any) -> Callable[..., None]:
     """A slot for a Qt signal. Qt passes extra arguments (``checked``); this slot drops them."""
     return lambda *_ignored: function(*args)
+
+
+def _message_page(text: str) -> QWidget:
+    """A page of the list stack that shows one centred line."""
+    page = QWidget()
+    layout = QVBoxLayout(page)
+    label = QLabel(text)
+    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    layout.addStretch(1)
+    layout.addWidget(label)
+    layout.addStretch(1)
+    return page
 
 
 class ImportScanJob(BackgroundJob):
@@ -237,7 +265,8 @@ class ProjectManagerDialog(QDialog):
     def __init__(self, parent, library_dir: str, open_project: Callable[[str], None],
                  new_project: Callable[[], None], save_flags: Callable[[str, Dict[str, bool]], None],
                  save_setting: Callable[[str, str], None],
-                 load_rules: Callable[[str], Any] = default_load_rules):
+                 load_rules: Callable[[str], Any] = default_load_rules,
+                 on_closed: Optional[Callable[[], None]] = None):
         super().__init__(parent)
         self.setWindowTitle(tr("Project Manager"))
         self.resize(1100, 620)
@@ -247,6 +276,12 @@ class ProjectManagerDialog(QDialog):
         self._save_flags = save_flags
         self._save_setting = save_setting
         self._load_rules = load_rules
+        self._on_closed = on_closed  # called when the user closes the window; not when a project is opened from it
+        self._closing_for_project = False
+        self._filter_timer = QTimer(self)
+        self._filter_timer.setSingleShot(True)
+        self._filter_timer.setInterval(SEARCH_DELAY_MS)
+        self._filter_timer.timeout.connect(self._render)
         self._document: Dict[str, Any] = {"projects": [], "folders": [], "view": dict(registry.DEFAULT_VIEW),
                                           "settings": {}}
         self._entries: Dict[str, Dict[str, Any]] = {}
@@ -280,6 +315,8 @@ class ProjectManagerDialog(QDialog):
         self._scan_stale = 0
         self._scan_position = 0
         self._scan_name = ""
+        self._planned = False  # True once the child sent its plan; before that the cards show the progress
+        self._cards_seen = 0
         self._eta_average: Optional[float] = None
         self._last_tick: Optional[float] = None
         self._build_ui()
@@ -316,6 +353,15 @@ class ProjectManagerDialog(QDialog):
         emulator.clicked.connect(self._emulator_clicked)
         bar.addWidget(emulator)
         bar.addStretch(1)
+
+        self._search = QLineEdit()
+        self._search.setPlaceholderText(tr("Search projects"))
+        self._search.setClearButtonEnabled(True)
+        self._search.setMinimumWidth(220)
+        self._search.textChanged.connect(lambda _text: self._filter_timer.start())
+        bar.addWidget(self._search)
+        find_shortcut = QShortcut(QKeySequence(QKeySequence.StandardKey.Find), self)
+        find_shortcut.activated.connect(self._focus_search)
 
         self._list_button = QToolButton()
         self._list_button.setText(tr("List"))
@@ -387,18 +433,14 @@ class ProjectManagerDialog(QDialog):
         self._grid.customContextMenuRequested.connect(partial(self._context_menu, self._grid))
         self._grid.itemDoubleClicked.connect(self._on_grid_double_click)
 
-        self._empty = QWidget()
-        empty_layout = QVBoxLayout(self._empty)
-        empty_label = QLabel(tr("No projects yet. Press + to add a project."))
-        empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        empty_layout.addStretch(1)
-        empty_layout.addWidget(empty_label)
-        empty_layout.addStretch(1)
+        self._empty = _message_page(tr("No projects yet. Press + to add a project."))
+        self._no_match = _message_page(tr("No project matches this search."))
 
         self._stack = QStackedWidget()
         self._stack.addWidget(self._tree)
         self._stack.addWidget(self._grid)
         self._stack.addWidget(self._empty)
+        self._stack.addWidget(self._no_match)
         layout.addWidget(self._stack, 1)
 
         self._status = QLabel("")
@@ -453,13 +495,24 @@ class ProjectManagerDialog(QDialog):
         self._scan_stale = 0
         self._scan_position = 0
         self._scan_name = ""
+        self._planned = False
+        self._cards_seen = 0
         self._eta_average = None
         self._last_tick = None
         self._scan.start(self._dir, targets)
-        self._strip_bar.setRange(0, 0)  # busy until the plan says how many projects need work
+        self._strip_bar.setRange(0, 0)  # busy until the first card: the child is still starting
         self._strip_label.setText(tr("Checking {0} projects...", len(targets)))
         self._strip.show()
         self._status.setText(tr("Checking {0} projects...", len(targets)))
+
+    def _show_checking(self) -> None:
+        """The cards phase: the child reads one card per project before it plans the counts. The cards are the progress."""
+        if self._cards_seen == 1:  # the first card: the bar stops being busy and counts the cards
+            self._strip_bar.setRange(0, max(1, self._scan_total))
+        self._strip_bar.setValue(self._cards_seen)
+        text = tr("Checking {0} of {1} projects...", self._cards_seen, self._scan_total)
+        self._strip_label.setText(text)
+        self._status.setText(text)
 
     def _on_scan_event(self, event: Dict[str, Any]) -> None:
         kind = event.get("event")
@@ -467,6 +520,9 @@ class ProjectManagerDialog(QDialog):
             key = str(event.get("key"))
             self._cards[key] = dict(event.get("card") or {})
             self._scanned.add(key)
+            if not self._planned:
+                self._cards_seen += 1
+                self._show_checking()
             self._schedule_render()
         elif kind == "icon":
             key = str(event.get("key"))
@@ -478,6 +534,7 @@ class ProjectManagerDialog(QDialog):
                 self._icons.pop(key, None)
                 self._schedule_render()
         elif kind == "plan":
+            self._planned = True
             self._scan_total = int(event.get("total") or 0)
             self._scan_stale = int(event.get("stale") or 0)
             self._scan_position = 0
@@ -609,15 +666,19 @@ class ProjectManagerDialog(QDialog):
         self._sync_controls(view)
         rows = self._rows()
         rows_by_key = {row["key"]: row for row in rows}
+        query = self._search.text().strip()
+        shown = [row for row in rows if matches_search(row, query)] if query else rows
         last = max((row for row in rows if row["last_opened"]), key=lambda r: r["last_opened"], default=None)
         folder_names = {folder["id"]: folder["name"] for folder in self._document["folders"]}
-        keys = frozenset(rows_by_key)
-        shape = self._shape_for(rows, view, folder_names, last["key"] if last else None)
+        keys = frozenset(row["key"] for row in shown)
+        shape = self._shape_for(shown, view, folder_names, last["key"] if last else None)
         if self._scan_active and self._frozen is not None and self._frozen[0] == view and self._frozen[1] == keys:
             shape = self._frozen[2]
         self._frozen = (view, keys, shape)
         if not rows:
             self._stack.setCurrentWidget(self._empty)
+        elif not shown:
+            self._stack.setCurrentWidget(self._no_match)
         else:
             self._stack.setCurrentWidget(self._grid if self._mode == "grid" else self._tree)
         if shape == self._shown and self._items:
@@ -853,7 +914,30 @@ class ProjectManagerDialog(QDialog):
     def _open(self, path: str) -> None:
         log_info(f"Project manager: opening {path}")
         self._open_project(path)
-        self.close()
+        self._closing_for_project = True  # the window closes for the project, not for the user: no quit
+        try:
+            self.close()
+        finally:
+            self._closing_for_project = False
+
+    # ----- search and closing -----
+    def _focus_search(self) -> None:
+        self._search.setFocus()
+        self._search.selectAll()
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 - Qt's name
+        """Esc clears the search while it has text; the next Esc closes the window."""
+        if event.key() == Qt.Key.Key_Escape and self._search.text():
+            self._search.clear()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def done(self, result: int) -> None:
+        """Every way to close the window ends here: the close button, Alt+F4, Esc (reject) and opening a project."""
+        super().done(result)
+        if not self._closing_for_project and self._on_closed is not None:
+            self._on_closed()
 
     # ----- details -----
     def _on_expanded(self, item: QTreeWidgetItem) -> None:
