@@ -829,7 +829,7 @@ with no project the map went, not atomically, to the shipped `plugins/<plugin>/t
 - `get_translation_map_path(for_write=True)` in the Font Editor never returns a shipped file; the save after a map
   edit and the save of a generated map both use it.
 - Opening a font writes nothing. The repair (synthetic keys, control codes, map codes missing from MAP1) changes the
-  font and map in memory, sets `map_repaired` and opens the font as unsaved; the status bar asks the user to save.
+  font and map in memory, sets `map_repaired` and opens the font as unsaved (Save enabled; closing asks to save).
 
 **Cost.** A repaired font asks to be saved on close. With **Auto-sync** on, marking the font unsaved schedules the usual
 auto-save (the user's opt-in), which now writes to the user's or the project's location. A user copy of the limits
