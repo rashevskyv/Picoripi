@@ -808,7 +808,7 @@ def test_speakers_none_excludes_blank_and_whitespace_rows(mock_mw, mock_dp):
     }
     assert "Hero" in speaker_folders
     assert speaker_folders["Hero"] == [(0, 0)]
-    assert "None" in speaker_folders
+    assert "None" in speaker_folders  # deslop: ignore[poor-substring-tests] dict key check: speaker folders are keyed by speaker name
     assert speaker_folders["None"] == [(0, 3)]
 
     # Test nested Windows/<kind>/Speakers/None
