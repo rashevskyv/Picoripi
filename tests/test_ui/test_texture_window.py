@@ -73,7 +73,7 @@ def test_list_export_import_and_revert_in_a_worker_thread(qtbot, project, monkey
     assert window.status == {"a_title.bti": "redrawn"}
     assert json.loads((project.project_dir / "textures" / "status.json").read_text(encoding="utf-8")) == \
         {"a_title.bti": "redrawn"}
-    assert "1" in window.statusBar().currentMessage()
+    assert window.statusBar().currentMessage() == "Saved 1 textures (1 resized)"
 
     monkeypatch.setattr(texture_window_module.QtWidgets.QMessageBox, "question",
                         lambda *a, **k: QtWidgets.QMessageBox.StandardButton.Yes)
