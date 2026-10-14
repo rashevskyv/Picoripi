@@ -87,7 +87,7 @@ def test_GameRules_get_plugin_actions(rules):
 
 def test_GameRules_get_text_representation_for_preview(rules):
     result = rules.get_text_representation_for_preview("Hello\nWorld")
-    assert "↵" in result
+    assert "↵" in result  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the line-break symbol
 
 def test_GameRules_get_text_representation_for_editor(rules):
     result = rules.get_text_representation_for_editor("Hello World")
