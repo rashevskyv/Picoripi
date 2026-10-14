@@ -67,8 +67,9 @@ def test_english_entries_match_the_extracted_files():
 def test_zstd_without_a_zstd_module_is_a_pak_error(monkeypatch):
     from core.unreal import pak
 
-    monkeypatch.setitem(sys.modules, "compression", None)
-    monkeypatch.setitem(sys.modules, "zstandard", None)
+    # a None entry makes the import fail: this is how the test simulates a missing optional module
+    monkeypatch.setitem(sys.modules, "compression", None)  # deslop: ignore[module-mocking] simulates a missing module; no mock object
+    monkeypatch.setitem(sys.modules, "zstandard", None)  # deslop: ignore[module-mocking] simulates a missing module; no mock object
     with pytest.raises(pak.PakError, match="zstd needs Python 3.14 or the zstandard package"):
         pak._zstd_decompress(b"\x28\xb5\x2f\xfd", "Content/x.uasset")
 
