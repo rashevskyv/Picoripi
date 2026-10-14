@@ -28,7 +28,6 @@ def test_glossary_highlighting_updates_all_editors(mock_mw):
     gpm._update_glossary_highlighting()
     
     # Verify set_glossary_manager was called for ALL editors
-    # FAILURE EXPECTED HERE: Currently only original_text_edit is updated
     mock_mw.original_text_edit.set_glossary_manager.assert_called_once_with(mock_glossary)
     mock_mw.edited_text_edit.set_glossary_manager.assert_called_once_with(mock_glossary)
     mock_mw.preview_text_edit.set_glossary_manager.assert_called_once_with(mock_glossary)

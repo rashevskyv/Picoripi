@@ -552,7 +552,7 @@ def test_companion_sync_dialog_ui(tmp_path: Path, qtbot):
         qtbot.waitUntil(lambda: dlg.was_successful, timeout=3000)
         assert dlg.terms_pulled == 2
         assert dlg.terms_pushed == 1
-        assert "✓" in dlg._status_label.text()  # deslop: ignore[poor-substring-tests] single check-mark glyph is the marker of the success state; the label text is asserted elsewhere
+        assert dlg._status_label.text() == "✓ Synchronized successfully: 2 pulled, 1 pushed."
 
 
 def test_smart_sync_in_background_lifecycle(tmp_path: Path, qtbot):
