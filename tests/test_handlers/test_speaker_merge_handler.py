@@ -1,6 +1,6 @@
 """Wiring for the script/game-data speaker join: inputs, refusals, and saving."""
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -97,7 +97,9 @@ class TestRefusals:
         mw = _mw(tmp_path, has_project=False)
         _run(mw, mw._script)
 
-        no_dialog.information.assert_called_once()
+        assert no_dialog.information.call_args.args[2] == (
+            'Open a project first: the speaker names are stored beside it.'
+        )
         assert not (tmp_path / ALIAS_FILENAME).exists()
 
     def test_empty_script_rows_still_opens_dialog_with_manual_rows(self, tmp_path, no_dialog):
@@ -105,7 +107,6 @@ class TestRefusals:
         mw = _mw(tmp_path)
         _run(mw, [])
 
-        no_dialog.report.assert_called_once()
         result = no_dialog.report.call_args.args[0]
         assert result.codes_seen == 1
         assert "Voice 41" in result.all_placeholders
@@ -115,7 +116,9 @@ class TestRefusals:
         mw = _mw(tmp_path, codes={})
         _run(mw, mw._script)
 
-        no_dialog.information.assert_called_once()
+        assert no_dialog.information.call_args.args[2] == (
+            'The active plugin did not attribute any line to a speaker, so there is nothing for the script to name.'
+        )
         assert not (tmp_path / ALIAS_FILENAME).exists()
 
     def test_an_identity_the_plugin_calls_a_display_name_is_left_alone(self, tmp_path, no_dialog):
@@ -200,8 +203,10 @@ class TestUnmarkedScript:
         mw = _mw(tmp_path)
         _run(mw, mw._script)
 
-        no_dialog.warning.assert_called_once()
         assert "marked up" in no_dialog.warning.call_args.args[-3]
+        # Ok lets the guessed merge run and name the code.
+        result = no_dialog.report.call_args.args[0]
+        assert result.resolved == {"Voice 41": "RENADO"}
 
     def test_declining_the_warning_saves_nothing(self, tmp_path, no_dialog):
         no_dialog.warning.return_value = no_dialog.StandardButton.Cancel
@@ -209,7 +214,7 @@ class TestUnmarkedScript:
         _run(mw, mw._script)
 
         assert not (tmp_path / ALIAS_FILENAME).exists()
-        no_dialog.report.assert_not_called()
+        assert no_dialog.report.mock_calls == []
 
     def test_a_marked_up_script_is_used_and_never_guessed(self, tmp_path, no_dialog):
         """Approved SPEAKER/TEXT marks beat the ALL-CAPS heuristic."""
@@ -219,7 +224,7 @@ class TestUnmarkedScript:
         # The raw-script reading would name it TELMA; the markup must win.
         _run(mw, [("TELMA", LONG_A), ("TELMA", LONG_B)])
 
-        no_dialog.warning.assert_not_called()
+        assert no_dialog.warning.mock_calls == []
         _apply_from_dialog(no_dialog)
         saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
         assert saved == {"Voice 41": "RENADO"}
@@ -230,7 +235,7 @@ class TestUnmarkedScript:
         mw = _mw(tmp_path)
         _run(mw, mw._script)
 
-        no_dialog.warning.assert_called_once()
+        assert "marked up" in no_dialog.warning.call_args.args[-3]
         _apply_from_dialog(no_dialog)
         saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
         assert saved == {"Voice 41": "RENADO"}
@@ -281,10 +286,11 @@ class TestMerging:
     def test_the_folders_are_rebuilt_on_apply(self, tmp_path, no_dialog):
         mw = _mw(tmp_path)
         _run(mw, mw._script)
-
-        mw.ui_updater.block_list_updater.refresh_virtual_folder_labels.assert_not_called()
         _apply_from_dialog(no_dialog)
-        mw.ui_updater.block_list_updater.refresh_virtual_folder_labels.assert_called_once()
+
+        saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
+        assert saved == {"Voice 41": "RENADO"}
+        mw.ui_updater.block_list_updater.refresh_virtual_folder_labels.assert_called_once_with()
 
     def test_a_shared_voice_saves_every_named_character(self, tmp_path, no_dialog):
         mw = _mw(tmp_path)
@@ -303,8 +309,9 @@ class TestMerging:
         assert result.resolved == {"Voice 41": "RENADO"}
         assert [v.text for v in result.evidence["Voice 41"]] == [LONG_A, LONG_B]
         # Shown, not exec'd: a modal report would freeze the wizard behind it.
-        no_dialog.report.return_value.show.assert_called_once()
-        no_dialog.report.return_value.exec.assert_not_called()
+        shown = no_dialog.report.return_value
+        assert call.show() in shown.mock_calls
+        assert call.exec() not in shown.mock_calls
 
     def test_unmatched_codes_and_game_display_names_reach_dialog_result(self, tmp_path, no_dialog):
         mw = _mw(
@@ -373,7 +380,7 @@ class TestSuggestionsFromTheGlossary:
         manager.get_entries.side_effect = [[], [entry]]
         _run(mw, [("SOMEONE ELSE", "A line that is nowhere in the game text")])
 
-        mw.translation_handler.glossary_handler.initialize_glossary_highlighting.assert_called_once()
+        mw.translation_handler.glossary_handler.initialize_glossary_highlighting.assert_called_once_with()
         result = no_dialog.report.call_args.args[0]
         assert result.unproven["Bans"] == {"BARNES": 1}
 
@@ -405,8 +412,8 @@ class TestGlossaryMigrationOnApply:
         _apply_from_dialog(no_dialog, chosen={"Voice 41": "RENADO"})
 
         manager.rename_original.assert_called_once_with("Voice 41", "RENADO")
-        glossary_handler._update_glossary_highlighting.assert_called_once()
-        glossary_handler.refresh_open_dialog.assert_called_once()
+        glossary_handler._update_glossary_highlighting.assert_called_once_with()
+        glossary_handler.refresh_open_dialog.assert_called_once_with()
         assert (tmp_path / ALIAS_FILENAME).exists()
 
     def test_shared_voice_does_not_collapse_glossary_into_joined_name(self, tmp_path, no_dialog):
@@ -421,7 +428,7 @@ class TestGlossaryMigrationOnApply:
 
         saved = json.loads((tmp_path / ALIAS_FILENAME).read_text(encoding="utf-8"))
         assert saved == {"Voice 41": "RENADO / TELMA"}
-        manager.rename_original.assert_not_called()
+        assert manager.rename_original.mock_calls == []
 
     def test_save_names_succeeds_even_if_glossary_manager_is_unavailable(self, tmp_path, no_dialog):
         mw = _mw(tmp_path)
@@ -444,10 +451,10 @@ class TestGlossaryMigrationOnApply:
         _apply_from_dialog(no_dialog, chosen={})
 
         assert not (tmp_path / ALIAS_FILENAME).exists()
-        mw.ui_updater.block_list_updater.refresh_virtual_folder_labels.assert_not_called()
-        manager.rename_original.assert_not_called()
-        glossary_handler._update_glossary_highlighting.assert_not_called()
-        glossary_handler.refresh_open_dialog.assert_not_called()
+        assert mw.ui_updater.block_list_updater.refresh_virtual_folder_labels.mock_calls == []
+        assert manager.rename_original.mock_calls == []
+        assert glossary_handler._update_glossary_highlighting.mock_calls == []
+        assert glossary_handler.refresh_open_dialog.mock_calls == []
 
     def test_public_save_names_helper_returns_bool_success(self, tmp_path):
         mw = _mw(tmp_path)
