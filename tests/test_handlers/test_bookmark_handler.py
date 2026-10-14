@@ -32,7 +32,8 @@ def test_bookmark_handler_add_bookmark_invalid(mock_mw):
     handler = BookmarkHandler(mock_mw, MagicMock(), MagicMock())
     with patch.object(QMessageBox, 'warning') as mock_warn:
         handler.add_bookmark()
-        mock_warn.assert_called_once()
+    mock_warn.assert_called_once()
+    assert mock_mw.bookmarks == []
 
 def test_bookmark_handler_add_bookmark_success(mock_mw):
     data_processor = MagicMock()
@@ -123,11 +124,44 @@ def test_bookmark_handler_delete_bookmark(mock_mw):
         assert len(mock_mw.bookmarks) == 1
         assert mock_mw.bookmarks[0]["id"] == "b2"
 
+class _RecordingMenu:
+    """Menu stand-in: records the calls made while the bookmarks menu is redrawn, into a shared log."""
+
+    def __init__(self, log):
+        self._log = log
+
+    def clear(self):
+        self._log.append(("clear",))
+
+    def addAction(self, action_or_text):
+        self._log.append(("action", action_or_text))
+        return MagicMock()
+
+    def addMenu(self, title):
+        self._log.append(("menu", title))
+        return _RecordingMenu(self._log)
+
+    def addSeparator(self):
+        self._log.append(("separator",))
+
+    def setToolTip(self, text):
+        self._log.append(("tooltip", text))
+
+
 def test_bookmark_handler_update_bookmarks_menu(mock_mw):
     mock_mw.bookmarks = [{"id": "b1", "name": "B1", "block_name": "Block 0", "string_idx": 0}]
+    log = []
+    mock_mw.bookmarks_menu = _RecordingMenu(log)
     handler = BookmarkHandler(mock_mw, MagicMock(), MagicMock())
     handler.update_bookmarks_menu()
-    
-    mock_mw.bookmarks_menu.clear.assert_called_once()
-    mock_mw.bookmarks_menu.addAction.assert_called()
-    mock_mw.bookmarks_menu.addMenu.assert_called_with("Delete Bookmark")
+
+    assert log == [
+        ("clear",),
+        ("action", mock_mw.add_bookmark_action),
+        ("menu", "Delete Bookmark"),
+        ("tooltip", "Select a bookmark to delete"),
+        ("action", "B1 (Block 0, Line 1)"),
+        ("action", mock_mw.clear_bookmarks_action),
+        ("separator",),
+        ("action", "B1 (Block 0, Line 1)"),
+    ]
