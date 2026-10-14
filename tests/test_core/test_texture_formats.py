@@ -268,6 +268,47 @@ def test_3ds_bflim_round_trip_and_turned_images(fmt_name, flags):
     assert mean_error(again.crop((0, 0, 20, 10)), texture.image.crop((0, 0, 20, 10))) == 0
 
 
+def make_3ds_layout(magic, fmt_name, width, height, stored, flags=0):
+    """A 3DS BCLIM (magic CLIM) or BFLIM (FLIM) whose PICA texture is ``stored`` exactly as given."""
+    fmt = {v: k for k, v in flim.PICA_FLIM.items()}[fmt_name]
+    data = pixels.codec("pica:" + fmt_name).encode(stored)
+    footer = magic + struct.pack("<HHIIHH", 0xFEFF, 0x14, 0x07020000, len(data) + 0x28, 1, 0)
+    if magic == b"CLIM":
+        footer += b"imag" + struct.pack("<IHHII", 0x10, width, height, fmt, 0)
+    else:
+        footer += b"imag" + struct.pack("<IHHHBBI", 0x10, width, height, 0x80, fmt, flags, len(data))
+    return data + footer
+
+
+def test_3ds_clim_picture_is_read_where_it_is_stored():
+    # Stored top row first with the picture in the top-left corner: the read keeps it there, unturned.
+    image = picture(10, 6)
+    stored = Image.new("RGBA", (16, 8), (0, 0, 0, 0))
+    stored.paste(image, (0, 0))
+    data = make_3ds_layout(b"CLIM", "RGBA8", 10, 6, stored)
+    texture = flim.read(data, {})[0]
+    assert texture.image.tobytes() == image.tobytes()
+    assert flim.write(data, {0: texture.image}, {}) == data
+    edited = image.copy()
+    edited.putpixel((0, 0), (255, 0, 0, 255))
+    assert flim.read(flim.write(data, {0: edited}, {}), {})[0].image.getpixel((0, 0)) == (255, 0, 0, 255)
+
+
+@pytest.mark.parametrize("flags", [4, 8])
+def test_3ds_turned_bflim_picture_is_read_upright(flags):
+    # The stored texture of a turned picture: the inverse of the read, as checked on A Link Between Worlds
+    # (flag 4 "The End", flag 8 "Finish"): flag 4 = a 90 degree turn, flag 8 = a 270 degree turn and a mirror.
+    image = picture(20, 10)
+    display = Image.new("RGBA", (32, 16), (0, 0, 0, 0))
+    display.paste(image, (0, 0))
+    if flags == 4:
+        stored = display.transpose(Image.Transpose.ROTATE_270)
+    else:
+        stored = display.transpose(Image.Transpose.FLIP_LEFT_RIGHT).transpose(Image.Transpose.ROTATE_90)
+    data = make_3ds_layout(b"FLIM", "RGBA8", 20, 10, stored, flags)
+    assert flim.read(data, {})[0].image.tobytes() == image.tobytes()
+
+
 def make_flim_wiiu(fmt_id, width, height, image, tile_mode=4):
     codec = pixels.codec(flim.CAFE_FLIM[fmt_id])
     bw, bh = codec.block
