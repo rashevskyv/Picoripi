@@ -4,7 +4,7 @@ pytest-qt==4.5.0
 pytest-timeout==2.4.0
 pytest-xdist==3.8.0
 ruff==0.15.15
-# AES for tools/wii_nand (vWii NAND reader and its tests); the app never imports it.
+# AES for tools/wii_nand and the decrypt tests; the same pin is in requirements.txt (the app imports it).
 pycryptodome==3.23.0
 
 # CLI only (see .agents/rules/graphify.md) - the app never imports it.

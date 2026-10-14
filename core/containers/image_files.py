@@ -5,7 +5,7 @@ chunks and check for a cancel between chunks, so a multi-gigabyte image never si
 """
 from __future__ import annotations
 
-from typing import BinaryIO, Callable, List, NamedTuple, Optional
+from typing import Any, BinaryIO, Callable, List, NamedTuple, Optional
 
 CHUNK = 1 << 20
 MAX_TABLE = 64 << 20  # a file system or name table above this size is refused: no real image has one
@@ -19,11 +19,14 @@ class ImageError(ValueError):
 
 class ImageFile(NamedTuple):
     """One file of an image. ``size`` is the size stored in the image. ``decode``, when set, turns the stored bytes
-    into the file's bytes (for example a compressed ExeFS code section); it is then called once on the whole entry."""
+    into the file's bytes (for example a compressed ExeFS code section); it is then called once on the whole entry.
+    ``stream``, when set, is a seekable view of decrypted bytes (``console_crypto.PlainView``); ``offset`` then
+    addresses that view. Without it, ``offset`` addresses the image's own stream."""
     path: str
     offset: int
     size: int
     decode: Optional[Callable[[bytes], bytes]] = None
+    stream: Optional[Any] = None
 
 
 def check_name(name: str) -> str:
@@ -61,7 +64,17 @@ class ImageReader:
         return self.read_at(offset, size)
 
     def read(self, entry: ImageFile) -> bytes:
-        return self.read_at(entry.offset, entry.size)
+        if entry.stream is None:
+            return self.read_at(entry.offset, entry.size)
+        entry.stream.seek(entry.offset)
+        data = entry.stream.read(entry.size)
+        if len(data) != entry.size:
+            raise ImageError(f"the image ends inside {entry.path}")
+        return data
+
+    def source(self, entry: ImageFile) -> BinaryIO:
+        """The stream that holds ``entry``: its view when it has one, else the image's own stream."""
+        return entry.stream if entry.stream is not None else self.stream
 
     def entries(self) -> List[ImageFile]:
         raise NotImplementedError

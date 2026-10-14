@@ -2127,7 +2127,7 @@
         "The unpacked files have no folder {0}.": "У розпакованих файлах немає папки {0}.",
         "The {0} image is encrypted and needs its key file.": "Образ {0} зашифрований і потребує файл ключів.",
         "The {0} image is encrypted. Picoripi needs the pycryptodome package to read it.": "Образ {0} зашифрований. Picoripi потребує пакет pycryptodome, щоб його прочитати.",
-        "The {0} image is encrypted. Picoripi cannot decrypt it yet.": "Образ {0} зашифрований. Picoripi ще не може його розшифрувати.",
+        "The key file does not decrypt the {0} image.": "Файл ключів не розшифровує образ {0}.",
         "Choose the key file for {0}": "Оберіть файл ключів для {0}",
         "Nintendo 3DS": "Nintendo 3DS",
         "Nintendo Switch": "Nintendo Switch",

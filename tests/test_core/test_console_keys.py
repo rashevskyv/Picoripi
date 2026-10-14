@@ -86,7 +86,7 @@ def test_switch_nsp_title_comes_from_its_ticket_rights_id(tmp_path):
 
     assert found == {"kind": "switch", "game_id": "0100ABCD00000800", "title_id": "0100ABCD00000800",
                      "encrypted": True, "title_kind": "update"}
-    assert images.needs_key(path) is None   # no plugin unpacks a Switch file yet, so no key is asked for
+    assert images.needs_key(path) == "switch"   # the Switch unpack reads a key file (the wizard asks per plugin)
     with pytest.raises(ImageError, match="needs its key file"):
         with images.open_image(path):
             pass
@@ -136,6 +136,9 @@ def test_identification_reports_the_key_a_file_needs(tmp_path, data_folder):
 
         def identify_source(self, path):
             return {"role": "base", "platform": "3ds"}
+
+        def unpack_key_consoles(self):
+            return ["3ds"]
 
     path = tmp_path / "locked.cci"
     path.write_bytes(build_cci(build_ncch(encrypted=True)))

@@ -27,6 +27,9 @@ class FakeGame(BaseGameRules):
     def identify_source(self, path):
         return {"role": "update", "platform": "3ds"} if path.endswith("update.bin") else None
 
+    def unpack_key_consoles(self):
+        return ["3ds"]   # the game's unpack reads the 3DS key file, so the wizard asks for it
+
     def build_target(self, target_id, source_dir, translation_dir, output_dir, progress, is_cancelled):
         with open(os.path.join(output_dir, "patch.bin"), "w", encoding="utf-8") as handle:
             handle.write("built")

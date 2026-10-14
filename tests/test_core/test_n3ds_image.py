@@ -8,7 +8,7 @@ import struct
 
 import pytest
 
-from core.containers import n3ds
+from core.containers import n3ds, romfs
 from core.containers.console_crypto import key_source
 from core.containers.image_files import ImageError
 from core.containers.nitro import blz_compress
@@ -163,12 +163,12 @@ def test_encrypted_program_needs_its_key_file_and_no_key_is_read(tmp_path):
             pass
 
 
-def test_encrypted_program_with_a_key_path_is_still_not_decrypted(tmp_path):
+def test_encrypted_program_with_a_key_file_that_holds_no_keys_is_refused(tmp_path):
     path = _write(tmp_path, "locked.cci", build_cci(build_ncch(encrypted=True)))
     key_file = _write(tmp_path, "keyfile.txt", b"placeholder")
 
     with key_source(lambda console: str(key_file) if console == "3ds" else None):
-        with pytest.raises(ImageError, match="pycryptodome|cannot decrypt it yet"):
+        with pytest.raises(ImageError, match="has no KeyX for slot 0x2C"):
             with images.open_image(path):
                 pass
 
@@ -201,7 +201,7 @@ def test_romfs_entry_outside_the_image_is_refused():
 
 
 def test_romfs_with_more_directories_than_the_limit_is_refused(monkeypatch):
-    monkeypatch.setattr(n3ds, "MAX_FILES", 1)    # the root and one file fit; the subfolder d does not
+    monkeypatch.setattr(romfs, "MAX_FILES", 1)    # the root and one file fit; the subfolder d does not
 
     with pytest.raises(ImageError, match="too many directories"):
         n3ds.N3dsImage(io.BytesIO(build_cci(build_ncch())))

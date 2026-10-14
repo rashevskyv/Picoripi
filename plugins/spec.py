@@ -185,6 +185,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_source_subfolder", "Folder of the unpacked tree that is the project's source root, e.g. "
              "files/res/Msgus (slash path). Default: None, the whole unpacked folder.",
              call=(), returns=str, optional=True),
+        Hook("unpack_key_consoles", "Consoles whose key file the unpack reads: any of 3ds, switch, wii. The wizard "
+             "asks for a key file only for an encrypted file of a listed console. Default: none.",
+             call=(), returns=list, optional=True),
         Hook("get_build_targets", "What the game can build: [{id, label, platforms, kind}] with kind files, patch "
              "or layeredfs. Empty: the Build, Export and Run buttons stay off.", call=(), returns=list),
         Hook("build_target", "Write one build target into an empty output folder and return the result path. "
