@@ -31,11 +31,13 @@ def test_AIWorker_cancel(worker_deps):
 
 def test_AIWorker_cancel_closes_active_provider_stream(worker_deps):
     provider, prompt_composer = worker_deps
+    stream_closes = []
+    provider.cancel_active_stream = lambda: stream_closes.append(True)
     worker = AIWorker(provider, prompt_composer, {})
 
     worker.cancel()
 
-    provider.cancel_active_stream.assert_called_once()
+    assert stream_closes == [True]
 
 def test_AIWorkerclean_json_response(worker_deps):
     provider, prompt_composer = worker_deps
@@ -73,20 +75,20 @@ def test_AIWorker_run_chat_message(worker_deps):
     
     mock_success = MagicMock()
     mock_error = MagicMock()
-    mock_finished = MagicMock()
+    finished = []
     worker.success.connect(mock_success)
     worker.error.connect(mock_error)
-    worker.finished.connect(mock_finished)
-    
+    worker.finished.connect(lambda: finished.append(True))
+
     response = ProviderResponse(text="response")
     provider.translate.return_value = response
-    
+
     worker.run()
-    
+
     if mock_error.called:
         pytest.fail(f"Worker emitted error: {mock_error.call_args}")
     mock_success.assert_called_once_with(response, task_details)
-    mock_finished.assert_called_once()
+    assert finished == [True]
 
 def test_AIWorker_run_build_glossary(worker_deps):
     provider, prompt_composer = worker_deps
@@ -125,17 +127,17 @@ def test_AIWorker_build_glossary_unreadable_chunk_is_an_error_not_a_silent_drop(
         'chunk_size': 8000,
         'dialog_steps': ['1', '2', '3', '4'],
     })
-    mock_success = MagicMock()
-    mock_error = MagicMock()
-    worker.success.connect(mock_success)
-    worker.error.connect(mock_error)
+    successes = []
+    errors = []
+    worker.success.connect(lambda *args: successes.append(args))
+    worker.error.connect(lambda *args: errors.append(args))
     provider.translate.return_value = ProviderResponse(text='{"note": "an object, not the term list"}')
 
     worker.run()
 
-    mock_error.assert_called_once()
-    assert mock_error.call_args[0][1]['error_kind'] == 'parse'
-    mock_success.assert_not_called()
+    assert len(errors) == 1
+    assert errors[0][1]['error_kind'] == 'parse'
+    assert successes == []
 
 
 def test_AIWorker_run_translate_block_chunked(worker_deps):
@@ -147,20 +149,19 @@ def test_AIWorker_run_translate_block_chunked(worker_deps):
     }
     worker = AIWorker(provider, prompt_composer, task_details)
     
-    mock_chunk_translated = MagicMock()
+    chunks = []
     mock_error = MagicMock()
-    worker.chunk_translated.connect(mock_chunk_translated)
+    worker.chunk_translated.connect(lambda idx, text, ctx: chunks.append(json.loads(text)))
     worker.error.connect(mock_error)
-    
+
     response = ProviderResponse(text='{"translated_strings": [{"id": 0, "translation": "TransA"}]}')
     provider.translate.return_value = response
-    
+
     worker.run()
-    
+
     if mock_error.called:
         pytest.fail(f"Worker emitted error: {mock_error.call_args}")
-    mock_chunk_translated.assert_called_once()
-    assert "TransA" in mock_chunk_translated.call_args[0][1]
+    assert chunks == [{"translated_strings": [{"id": 0, "translation": "TransA"}]}]
 
 def test_AIWorker_run_cancelled(worker_deps):
     """Test that cancel() sets is_cancelled flag and worker stops early."""
@@ -619,13 +620,14 @@ def test_a_failed_chunk_is_reported_with_its_own_reply_not_the_previous_chunk_s(
         {"translated_strings": [{"id": index, "translation": "T"} for index in range(12)]}
     ))
     provider.translate.side_effect = [first_reply, TranslationProviderError("the server went away")]
-    translated = MagicMock()
-    worker.chunk_translated.connect(translated)
+    translated = []
+    worker.chunk_translated.connect(lambda idx, text, ctx: translated.append(json.loads(text)))
 
     with patch('handlers.translation.worker.run_mixin.handle_ai_error', return_value=("failed", {})) as report:
         worker.run()
 
-    translated.assert_called_once()                     # the first chunk is kept
+    # the first chunk is kept, with its own reply
+    assert translated == [{"translated_strings": [{"id": index, "translation": "T"} for index in range(12)]}]
     assert report.call_args.args[2] == ""               # the second chunk had no reply to quote
     assert report.call_args.args[3] == "chunk 1"
 
