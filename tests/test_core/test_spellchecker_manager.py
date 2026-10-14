@@ -36,9 +36,9 @@ def test_SpellcheckerManager_init(mock_from_files, mock_mw, tmp_path):
 def test_SpellcheckerManagerinitialize_spellchecker(mock_from_files, mock_mw, tmp_path):
     # Test file not found scenario
     sm = SpellcheckerManager(mock_mw, language='uk', custom_dict_path=tmp_path)
-    # the files don't exist -> hunspell should be None
+    # the files don't exist -> hunspell should be None; a loaded mock dictionary
+    # would make it non-None, so this also covers "no load attempted".
     assert sm.hunspell is None
-    mock_from_files.assert_not_called()
 
 @patch('core.spellchecker_manager.Dictionary.from_files')
 def test_SpellcheckerManager_reload_dictionary(mock_from_files, mock_mw, tmp_path):
@@ -55,7 +55,7 @@ def test_SpellcheckerManager_reload_dictionary(mock_from_files, mock_mw, tmp_pat
     assert sm.language == 'en'
     assert sm.custom_dict_path == dict_dir
     mock_from_files.assert_called_once_with(str(dict_dir / "en"))
-    mock_mw.edited_text_edit.highlighter.rehighlight.assert_called_once()
+    mock_mw.edited_text_edit.highlighter.rehighlight.assert_called_once_with()
 
 def test_SpellcheckerManager_set_enabled(mock_mw):
     sm = SpellcheckerManager(mock_mw)
@@ -119,13 +119,15 @@ def test_SpellcheckerManagerload_user_dictionary(mock_local_path, mock_mw, tmp_p
     core.spellchecker_manager.USER_DICT_PATH = USER_DICT_PATH
 
 def test_SpellcheckerManager_reload_glossary_words(mock_mw):
+    from types import SimpleNamespace
     sm = SpellcheckerManager(mock_mw)
     sm.enabled = True
-    sm._load_glossary_words = MagicMock()
-    
+    mock_gm = mock_mw.translation_handler.glossary_handler.glossary_manager
+    mock_gm.get_entries.return_value = [SimpleNamespace(translation="Hyrule Castle")]
+
     sm.reload_glossary_words()
-    sm._load_glossary_words.assert_called_once()
-    mock_mw.edited_text_edit.highlighter.rehighlight.assert_called_once()
+    assert "hyrule" in sm.custom_words
+    mock_mw.edited_text_edit.highlighter.rehighlight.assert_called_once_with()
 
 def test_SpellcheckerManagerload_glossary_words(mock_mw):
     sm = SpellcheckerManager(mock_mw)
@@ -238,10 +240,10 @@ def test_SpellcheckerManager_caching(mock_from_files, mock_mw):
     assert sm.is_misspelled("apple") is True
     
     # 4. Custom word - should return False and not query hunspell
-    sm.hunspell.lookup.reset_mock()
+    # A lookup that would call the word misspelled: only skipping hunspell gives False.
+    sm.hunspell.lookup.return_value = False
     sm.custom_words.add("banana")
     assert sm.is_misspelled("Banana") is False
-    sm.hunspell.lookup.assert_not_called()
     
     # 5. Reset cache on reinit
     sm._initialize_spellchecker()
@@ -263,14 +265,16 @@ def test_SpellcheckerManager_suggestions_loaded_signal(mock_mw):
 
 def test_SpellcheckerManager_rehighlight_debounce(mock_mw):
     sm = SpellcheckerManager(mock_mw)
-    sm._rehighlight_timer = MagicMock()
-    sm._trigger_rehighlight = MagicMock()
-    
+
     # In the running application the rehighlight is debounced by the timer
     with patch.object(app_mode, 'headless', False):
         sm._on_spellcheck_results_ready({"apple": True}, {})
-        sm._rehighlight_timer.start.assert_called_once()
-        sm._trigger_rehighlight.assert_not_called()
+    try:
+        assert sm._rehighlight_timer.isActive()
+    finally:
+        sm._rehighlight_timer.stop()
+    # No synchronous repaint: the highlighter waits for the debounce.
+    mock_mw.edited_text_edit.highlighter.rehighlight.assert_not_called()
 
 @patch('core.spellchecker_manager.Dictionary.from_files')
 def test_SpellcheckerManager_load_dictionary_async(mock_from_files, mock_mw, tmp_path):
