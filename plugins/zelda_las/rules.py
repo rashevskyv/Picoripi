@@ -1,8 +1,8 @@
 """Link's Awakening (Nintendo Switch, 2019) plugin: the base game's MSBT text, built into romfs.bin for LAS Recomp.
 
 The project unpacks the base game (v1.0.0 only; see ``recomp.py``). The source folder is the unpacked ``romfs``: the
-build needs all of it. Only the English slots (``regionEU/EUen``, ``regionUS/USen``) become blocks. The other languages
-are reference columns, read by label from a romfs folder. Build target ``lasrecomp`` writes ``romfs.bin`` with the
+build needs all of it. Only ``regionUS/USen``, the slot the recomp reads, becomes blocks. The other slots (``EUen``
+too) are reference columns, read by label from a romfs folder. Build target ``lasrecomp`` writes ``romfs.bin`` with the
 translated files replaced. The SWUK import is ``swuk.py``.
 """
 import struct
@@ -17,7 +17,7 @@ from utils.logging_utils import log_warning
 from utils.utils import clean_spaces
 
 from . import recomp
-from .swuk import SLOTS
+from .swuk import SLOT
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 from .tags import CODEC
@@ -46,8 +46,8 @@ class GameRules(BaseGameRules):
         return [FileFormat((".msbt",), "bytes", "MSBT"), *DEFAULT_FORMATS]
 
     def includes_source_file(self, rel_path: str) -> bool:
-        """Only the English slots are translated; the build still reads the whole romfs."""
-        return rel_path.startswith(tuple(f"{slot}/" for slot in SLOTS))
+        """Only the slot the recomp reads is translated; the build still reads the whole romfs."""
+        return rel_path.startswith(f"{SLOT}/")
 
     # -- reference languages ---------------------------------------------------
 

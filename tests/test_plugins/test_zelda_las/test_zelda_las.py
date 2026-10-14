@@ -102,7 +102,7 @@ def test_a_mod_without_a_label_keeps_the_english_text_of_that_message():
     assert _texts(out) == [("A", "мод a"), ("B", "english b")]
 
 
-def test_import_writes_both_slots_and_reports_each_file(tmp_path):
+def test_import_writes_only_the_us_slot_and_reports_each_file(tmp_path):
     romfs = tmp_path / "romfs"
     for slot in ("regionEU/EUen", "regionUS/USen"):
         (romfs / slot / "message").mkdir(parents=True)
@@ -118,7 +118,8 @@ def test_import_writes_both_slots_and_reports_each_file(tmp_path):
     translation = tmp_path / "translation"
     report = swuk.import_mod(mod, romfs, translation)
     assert any("regionUS/USen/message/Hint.msbt: 1 matched, 1 kept English" in line for line in report)
-    assert any("regionEU/EUen/message/Hint.msbt: 1 matched, 1 kept English" in line for line in report)
+    assert not any("regionEU" in line for line in report)
+    assert not (translation / "regionEU").exists()
     assert any("StartUp.arc: copied (8 bytes; the 1.0.0 file has 4 bytes)" in line for line in report)
     assert _texts((translation / "regionUS/USen/message/Hint.msbt").read_bytes()) == [("A", "english a"),
                                                                                        ("B", "мод b")]
@@ -127,9 +128,9 @@ def test_import_writes_both_slots_and_reports_each_file(tmp_path):
     assert not (tmp_path / "evil.msbt").exists()
 
 
-def test_only_the_english_slots_become_blocks_and_the_others_are_references(tmp_path):
+def test_only_the_us_slot_becomes_blocks_and_the_others_are_references(tmp_path):
     romfs = tmp_path / "romfs"
-    texts = {"regionUS/USen": ("english a", "english b"), "regionEU/EUen": ("english a", "english b"),
+    texts = {"regionUS/USen": ("english a", "english b"), "regionEU/EUen": ("english a", "colour b"),
              "regionEU/EUfr": ("français a", "français b"),   # written in label order B, A
              "regionJP/JPja": ("日本 a", None)}
     for slot, (a, b) in texts.items():
@@ -147,12 +148,12 @@ def test_only_the_english_slots_become_blocks_and_the_others_are_references(tmp_
     rules = GameRules()
     manager.sync_project_files(plugin=rules)
     sources = [block.source_file for block in manager.project.blocks]
-    assert sorted(sources) == ["regionEU/EUen/message/Hint.msbt", "regionUS/USen/message/Hint.msbt"]
+    assert sources == ["regionUS/USen/message/Hint.msbt"]
 
     rules.mw = SimpleNamespace(project_manager=manager, block_to_project_file_map={})
-    us = sources.index("regionUS/USen/message/Hint.msbt")
+    us = 0
     references = rules.load_multi_reference(str(romfs), {str(us): "Hint"})
-    assert references == {"English (EU)": {(us, 0): "english a", (us, 1): "english b"},
+    assert references == {"English (EU)": {(us, 0): "english a", (us, 1): "colour b"},
                           "French (EU)": {(us, 0): "français a", (us, 1): "français b"},
                           "Japanese (JA)": {(us, 0): "日本 a"}}
 

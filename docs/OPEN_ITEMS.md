@@ -14,7 +14,6 @@ the line when it is done or moved into a plan.
 
 - Not run in LAS Recomp yet. The font is the owner's choice and is not in the repo: Noto Sans Regular 2.015 (OFL, `glyf`, has the Ukrainian letters) waits in the RomHacking workspace `Zelda\Links Awakening\Switch\fonts`. Not seen in the game yet: its size and line height against the Standard font.
 - Button icons come from the NintendoExt font (`runtime/hle/pl.c`, type 5). Without the owner's dump of `nintendo_ext_003` the recomp draws them with the Standard font, which has no such glyphs; this is the same with the recomp's own fallback fonts.
-- Both English slots are blocks (`regionEU/EUen`, `regionUS/USen`, the SWUK import writes both); the recomp reads only `regionUS/USen` (en-US). An edit in one slot is not copied to the other.
 - The SWUK import copies `region_common/ui/StartUp.arc` and `jpn_heading.bffnt`, made for v1.1.0, over the 1.0.0 files. Not checked on 1.0.0.
 - A killed process or a power loss during an unpack leaves `.unpack-<id>` in the project folder (a cancel or an error removes it), now with the NCZ cache inside; nothing removes it later.
 - `core/containers/switch_nsz.py` imports `compression.zstd` itself (it needs the streaming decoder), not through `core/zstd_frame.py`; an `.nsz` needs Python 3.14 (no `zstandard` fallback).
