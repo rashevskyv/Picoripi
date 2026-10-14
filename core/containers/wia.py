@@ -295,11 +295,11 @@ class WiaStream:
         else:
             compressed = self._method != NONE
             size = field
+        if size == 0:
+            return bytes(logical)   # every byte of this group is zero
         what = f"group {group}"
         if size > 2 * self._chunk or packed > 2 * self._chunk:   # stored or packed: never twice the disc data
             raise ImageError(f"{what} declares {max(size, packed)} bytes, more than a group of {self._chunk} can hold")
-        if size == 0:
-            return bytes(logical)   # every byte of this group is zero
         raw = self._read_file(off4 * 4, size)
         if len(raw) != size:
             raise ImageError("the image ends inside a group")
