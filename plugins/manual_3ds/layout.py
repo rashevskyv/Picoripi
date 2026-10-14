@@ -1,11 +1,13 @@
 """3DS electronic manual: the line model of the Ukrainian text, ported from the manuals repo's tools/manual.py.
 
 The viewer draws every line of a manual paragraph as its own pane. This module wraps the translation into
-lines the same way the build does, so the editor can report a line count, a line width or a word that does not
-fit before the owner builds. It has no font file and no repo import: the advances come from widths.json and the
-pane geometry from geometry.json (both facts taken from the console dumps).
+lines the same way the build does (the owner's model: that is where the build puts the lines), then measures
+every stored line the way the console draws it (console_render's constants: fontSize / 25 with charSpace, the
+viewer's wrap at the pane box less 2 px, the card edge at 320) and reports what the console will show wrong.
+It has no font file and no repo import: the advances come from widths.json and the pane geometry from
+geometry.json (both facts taken from the console dumps).
 
-Two models, as in the gate:
+Two models for the build's placement, as in the gate:
 - pane model (small text): each line starts at its own pane x and must end inside its own box.
 - column model (large text and the contents): one width per paragraph, the budget from the data.
 """
@@ -17,7 +19,10 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-FONT_EM = 24.0
+from .console_render import COLUMN_WIDTH, FONT_WIDTH, FRAME_INNER, PICTURE_MARGIN, WRAP_SLACK
+
+FONT_EM = 24.0             # the owner's build measures at this em (the console draws at FONT_WIDTH)
+BOX_PADDING = 1.6          # the build widens a pane to its text plus this (manual.to_edits)
 WIDTH_SLACK = 4.0          # the gate adds this to every column budget
 LINE_OFFSET = 8.0          # a line is drawn from pane x + 8
 PAGE_EDGE = 310.0          # the text ends by this x in page units
@@ -105,7 +110,7 @@ class Geometry:
         """Page position of the margin() that line `line` reads."""
         return self.lines[0].abs_x if line == 0 else self.lines[min(1, len(self.lines) - 1)].abs_x
 
-    def right_limit(self, line: int) -> float:
+    def right_limit(self, line: int, picture_margin: float = OCC_MARGIN, frame_margin: float = FRAME_MARGIN) -> float:
         """Absolute x a line must end before, because a picture or frame sits beside it (inf: none).
 
         A line is in the way of an occluder when their vertical extents overlap. A picture to the right of the
@@ -126,10 +131,10 @@ class Geometry:
                 continue
             right = occluder.abs_x + occluder.width
             if occluder.kind == "pic1" and occluder.abs_x > left:
-                limit = min(limit, occluder.abs_x - OCC_MARGIN)
+                limit = min(limit, occluder.abs_x - picture_margin)
             elif (occluder.kind == "wnd1" and occluder.abs_x <= left < right
                   and occluder.width >= OCC_BOX_MIN_W and occluder.height >= OCC_BOX_MIN_H):
-                limit = min(limit, right - FRAME_MARGIN)
+                limit = min(limit, right - frame_margin)
         return limit
 
     def room(self, line: int, pane: bool) -> float:
@@ -479,8 +484,63 @@ def beside_overruns(lines: List[List[Piece]], geo: Geometry, pane: bool) -> List
     return out
 
 
+def console_width(text: str, geo: Geometry, widths: Widths) -> float:
+    """The advance the console gives a stored line: glyph advances at fontSize / FONT_WIDTH plus charSpace."""
+    if not text:
+        return 0.0
+    return sum(widths.glyph(ch) for ch in text) * geo.font_size / FONT_WIDTH + geo.char_space * (len(text) - 1)
+
+
+def _stored_line(line: List[Piece]) -> Tuple[str, float]:
+    """The text the build writes for a laid-out line and the icons' width on it (icons are picture panes)."""
+    text = ""
+    icons = 0.0
+    for piece in line:
+        if piece.icon is not None:
+            icons += piece.width
+        elif piece.style != -2:
+            text += (" " if piece.spaced and text else "") + piece.text
+    return text, icons
+
+
+def console_problems(lines: List[List[Piece]], geo: Geometry, widths: Widths, pane: bool) -> List[Tuple[str, str]]:
+    """What the console shows wrong on the lines the build writes (console_render's constants).
+
+    - WRAP: the line is wider than its pane box less WRAP_SLACK, so the viewer breaks it inside the pane and
+      its end lands on the next line (the pane box is the stored one, widened by the build to the text it measured);
+    - WIDTH: the line's ink runs past the card's right edge (COLUMN_WIDTH) onto the scroll track;
+    - BESIDE: the line runs into a picture (PICTURE_MARGIN before its left edge) or past a box frame's inner edge.
+    """
+    out: List[Tuple[str, str]] = []
+    last = len(geo.lines) - 1
+    for index, line in enumerate(lines):
+        if not line:
+            continue
+        text, icons = _stored_line(line)
+        width = console_width(text, geo, widths) + icons
+        if pane:
+            local = geo.lines[min(index, last)].x
+            start = geo.lines[min(index, last)].abs_x
+        else:
+            local = geo.margin(index)
+            start = geo.abs_margin(index)
+        owner_width = line[-1].x + line[-1].width - local
+        box = max(geo.lines[min(index, last)].box, owner_width + BOX_PADDING)
+        if width > box - WRAP_SLACK + 0.01:
+            out.append(("WRAP", f"line {index + 1} is {width:.0f} px in a {box:.0f} px pane; the console breaks it inside"))
+        if start + width > COLUMN_WIDTH + 0.5:
+            out.append(("WIDTH", f"line {index + 1} runs {start + width - COLUMN_WIDTH:.0f} px past the card edge"))
+        edge = geo.right_limit(index, PICTURE_MARGIN, FRAME_INNER)
+        if edge != float("inf") and start + width > edge + 0.01:
+            out.append(("BESIDE", f"line {index + 1} runs {start + width - edge:.0f} px into the picture or frame"))
+    return out
+
+
 def check_entry(ua: str, ru: str, entry: dict, geo: Optional[Geometry], widths: Widths) -> List[Tuple[str, str]]:
-    """Problems of one translated paragraph -> [(problem key, message)]. Empty ua is not checked."""
+    """Problems of one translated paragraph -> [(problem key, message)]. Empty ua is not checked.
+
+    The build's placement (the owner's model) decides the lines; the console's measure (console_problems)
+    decides what is wrong with them, so the problems agree with the simulator's render."""
     if not ua:
         return []
     problems: List[Tuple[str, str]] = []
@@ -515,14 +575,6 @@ def check_entry(ua: str, ru: str, entry: dict, geo: Optional[Geometry], widths: 
             problems.append(("PANES", f"out of panes for style {over[0]} (the original has {over[1]})"))
             return problems
     if len(lines) <= len(geo.lines):
-        # Only a paragraph the build can place is measured against its pictures and frames.
-        for index, drawn, edge in beside_overruns(lines, geo, mode == "pane"):
-            problems.append(("BESIDE", f"line {index + 1} runs {drawn - edge:.0f} px into the picture or frame"))
-    # The gate skips the column check for every small paragraph, the column fallback included.
-    if geo.pane_model or not budget:
-        return problems
-    past = line_overflow(lines, geo, limit)
-    worst = max(range(len(past)), key=past.__getitem__)
-    if past[worst] > 0:
-        problems.append(("WIDTH", f"line {worst + 1} is {past[worst]:.0f} px past the {budget:.0f} px column"))
+        # Only a paragraph the build can place is measured as the console draws it.
+        problems.extend(console_problems(lines, geo, widths, mode == "pane"))
     return problems

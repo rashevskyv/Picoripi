@@ -19,8 +19,13 @@ CUSTOM_PROBLEMS = {
         "description": "One word is wider than the pane box it has to fit (small text). Reword the sentence.",
     },
     "WIDTH": {
-        "name": "Line too wide", "color": QColor(255, 80, 0, 110), "priority": 2,
-        "description": "A line is wider than the paragraph's column on the console.",
+        "name": "Line past the card edge", "color": QColor(255, 80, 0, 110), "priority": 2,
+        "description": "A line's ink runs past the right edge of the page card on the console (onto the scroll track).",
+    },
+    "WRAP": {
+        "name": "Line breaks on the console", "color": QColor(255, 80, 0, 110), "priority": 2,
+        "description": "The console breaks this stored line inside its pane: the line is wider than its pane box less "
+                       "2 px, so its end lands on the next line, over the text there.",
     },
     "BESIDE": {
         "name": "Line runs into a picture or frame", "color": QColor(255, 80, 0, 110), "priority": 2,

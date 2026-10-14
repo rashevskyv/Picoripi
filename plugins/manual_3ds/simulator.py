@@ -230,12 +230,13 @@ def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.
             out.append(Defect("over_edge", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
                               f"ink ends at {right:.1f} px, the card ends at {LINE_LIMIT:.0f} (drawn over the scroll track): {where}"))
         for pic_name, px, py, pw, ph in pictures:
-            if px < right - 1.0 and px + pw > run.x + 1.0 and py > bottom + 1.0 and py - ph < run.top - 1.0 and px > run.x:
+            if (px - cr.PICTURE_MARGIN < right - 0.01 and px + pw > run.x + 1.0 and py > bottom + 1.0
+                    and py - ph < run.top - 1.0 and px > run.x):
                 out.append(Defect("over_picture", name, number, page_name, size, run.pane, run.text, run.top,
                                   _scroll_for(run.top), f"ink ends at {right:.1f} px, picture {pic_name} starts at {px:.1f}"))
         for win_name, wx, wy, ww, wh, fw in windows:
-            inner_right = wx + ww - fw
-            if wx <= run.x < wx + ww and wy > bottom + 1.0 and wy - wh < run.top - 1.0 and right > inner_right + 1.0:
+            inner_right = wx + ww - max(fw, cr.FRAME_INNER)
+            if wx <= run.x < wx + ww and wy > bottom + 1.0 and wy - wh < run.top - 1.0 and right > inner_right + 0.01:
                 out.append(Defect("over_frame", name, number, page_name, size, run.pane, run.text, run.top,
                                   _scroll_for(run.top), f"ink ends at {right:.1f} px, the frame {win_name} starts at {inner_right:.1f}"))
     return out

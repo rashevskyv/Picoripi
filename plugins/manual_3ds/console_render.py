@@ -31,7 +31,16 @@ COLUMN_WIDTH = 320
 # on the console (shots_r8 2011-01-03_05-17-58.769: the "100" of home_menu_manual page 3, large, reaches
 # canvas x 361, two columns into the track), so its overrun is kept and composed there.
 OVERRUN = 16
-FONT_WIDTH_FALLBACK = 25    # FINF width of cbf_std (the x scale is fontSizeX / width)
+# The console scales a glyph by fontSizeX / FONT_WIDTH across and fontSizeY / FONT_HEIGHT down (the font's FINF
+# width and height; cbf_std has 25 and 30) and adds the pane's charSpace after every glyph. Measured on
+# shots_r17b 2011-01-04_01-59-44.529: that gives a text difference of 0.9 where /24 or no charSpace give 13 to 25.
+FONT_WIDTH = 25
+FONT_HEIGHT = 30
+FONT_WIDTH_FALLBACK = FONT_WIDTH
+# A line's ink must stop this far before a picture's left edge, and before a box frame's inner edge (the frame
+# textures of the boxes are 4 px wide); the layout check and the defect finder share these.
+PICTURE_MARGIN = 1.0
+FRAME_INNER = 4.0
 # The viewer breaks a stored line inside its pane when the line's advance comes within this of the pane width.
 # Measured on shots_r17b 2011-01-04_01-58-38.378 against the round-8 health document: a 301.0 px line in a
 # 301.8 px box was broken, a 316.2 px line in a 321.3 px box was not. Refined by the validation run.

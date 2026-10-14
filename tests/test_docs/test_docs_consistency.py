@@ -17,7 +17,20 @@ CURRENT_DOCS = sorted(
 )
 WIKI_PAGES = sorted(path.name for path in (ROOT / "docs" / "wiki").glob("*.md"))
 
-TOP_LEVEL = {path.name for path in ROOT.iterdir() if path.is_dir() and not path.name.startswith(".")} | {".agents"}
+def _ignored_top_level() -> set:
+    """Top-level folders Git ignores (`/name/` lines of .gitignore: the data folder, venvs, build output).
+
+    They exist only in some checkouts, so a backticked path under them is not a repository path."""
+    out = set()
+    for line in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line.startswith("/") and line.endswith("/") and "*" not in line:
+            out.add(line.strip("/"))
+    return out
+
+
+TOP_LEVEL = ({path.name for path in ROOT.iterdir() if path.is_dir() and not path.name.startswith(".")}
+             | {".agents"}) - _ignored_top_level()
 BACKTICKED = re.compile(r"`([^`\s]+)`")
 LINK = re.compile(r"\]\(([^)\s]+)\)")
 # Files the application or the user creates at run time, and placeholders.

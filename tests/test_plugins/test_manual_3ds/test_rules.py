@@ -93,11 +93,25 @@ def test_a_column_paragraph_that_needs_three_lines_is_a_line_problem(widths, geo
     assert [name for name, _ in problems] == ["LINES"]
 
 
-def test_one_word_wider_than_the_column_is_a_width_problem_with_the_pixels(widths, geometry):
+def test_one_word_past_the_card_edge_is_a_width_problem_with_the_pixels(widths, geometry):
+    # 34 letters: 340 px for the build (one line), 326.4 px on the console from page x 0: 6.4 px past the 320 px card.
     entry = SAMPLE[SAMPLE_KEYS[0]]
-    problems = layout.check_entry("а" * 13, entry["ru"], entry, _geo(), widths)
-    width = [message for name, message in problems if name == "WIDTH"]
-    assert width and "line 1 is 76 px past the 50 px column" in width[0]
+    problems = layout.check_entry("а" * 34, entry["ru"], entry, _geo(), widths)
+    assert [(name, message) for name, message in problems if name == "WIDTH"] == [("WIDTH", "line 1 runs 6 px past the card edge")]
+
+
+def test_a_line_the_build_accepts_but_the_console_breaks_is_a_wrap_problem(widths):
+    """The pane model ignores charSpace and measures 16 letters and 15 spaces as 290.5 px: inside the 300 px pane
+    less 8 (no problem, nothing widened). The console draws them at fontSize / 25 plus 1 px of charSpace after each
+    glyph, 313.2 px: more than the pane less 2, so it breaks the line inside the pane."""
+    text = " ".join("а" * 16)
+    small = layout.Geometry(part="small", font_size=24.0, char_space=1.0, lines=[layout.Line(10.0, 300.0, 0.0, 0.0, 20.0)])
+    problems = layout.check_entry(text, text, {"lines": 1, "width": 0}, small, widths)
+    assert [name for name, _ in problems] == ["WRAP"]
+    assert "the console breaks it inside" in problems[0][1]
+    # Without charSpace the console line is 283.2 px and stays inside the pane.
+    plain = layout.Geometry(part="small", font_size=24.0, char_space=0.0, lines=[layout.Line(10.0, 300.0, 0.0, 0.0, 20.0)])
+    assert layout.check_entry(text, text, {"lines": 1, "width": 0}, plain, widths) == []
 
 
 def test_changed_markers_are_reported_alone(widths, geometry):
@@ -128,15 +142,15 @@ def test_the_editor_scan_gets_the_problem_ids_of_the_scanned_string(widths, geom
     analyzer = rules.problem_analyzer
     analyzer._current_scan_block_idx = 0
     analyzer._current_scan_string_idx = 0
-    found = analyzer.analyze_data_string("а" * 13, {}, 0)
+    found = analyzer.analyze_data_string("а" * 34, {}, 0)
     assert found == [{"M3D_WIDTH"}]
 
 
 def test_the_problem_detail_is_the_layout_message_of_the_last_analysed_text(widths, geometry):
     rules = check_loads(PLUGIN)
     rules.load_data_from_json_obj(_text(SAMPLE))
-    rules.manual_problems(0, 0, "а" * 13)
-    assert rules.get_problem_detail(0, 0, "M3D_WIDTH") == "line 1 is 76 px past the 50 px column"
+    rules.manual_problems(0, 0, "а" * 34)
+    assert rules.get_problem_detail(0, 0, "M3D_WIDTH") == "line 1 runs 6 px past the card edge"
     assert rules.get_problem_detail(0, 0, "M3D_LINES") == ""
     rules.manual_problems(0, 0, "а")
     assert rules.get_problem_detail(0, 0, "M3D_WIDTH") == ""
@@ -250,7 +264,8 @@ def test_a_picture_beside_a_pane_line_makes_its_words_wrap_sooner(widths):
 def test_a_column_line_that_runs_into_a_picture_is_a_beside_problem(widths):
     geo = _geo_on([layout.Occluder("pic1", 100.0, 0.0, 80.0, 60.0)], [layout.Line(10.0, 300.0, 10.0, 0.0, 20.0)])
     problems = layout.check_entry("а" * 12, "а" * 12, {"lines": 1, "width": 300.0}, geo, widths)
-    assert ("BESIDE", "line 1 runs 34 px into the picture or frame") in problems
+    # 12 letters are 115.2 px on the console from x 10; the picture's edge less its margin is at 99.
+    assert ("BESIDE", "line 1 runs 26 px into the picture or frame") in problems
 
 
 def test_a_dropped_button_glyph_is_an_icon_problem():
@@ -341,12 +356,15 @@ def test_the_problems_match_the_owners_gate_on_every_dumped_manual():
             repo_tools.manual_path(tools, name)
         except repo_tools.ToolsError:
             continue  # no dump on this disk
-        problems, wide, _, _ = owner._problems(name)
+        problems, _wide, _, _ = owner._problems(name)
         expected = defaultdict(set)
         for message in problems:
-            expected[message.split(": ", 1)[0]].add(_owner_kind(message))
-        for message in wide:
-            expected[message.split(": ", 1)[0]].add("WIDTH")
+            kind = _owner_kind(message)
+            # The gate measures lines against pictures with its own model (/24, no charSpace, 4 and 5 px margins);
+            # the plugin measures them as the console draws them (BESIDE, WIDTH, WRAP), so only the gate's
+            # text and pane failures are compared.
+            if kind != "BESIDE":
+                expected[message.split(": ", 1)[0]].add(kind)
         doc = owner.load_json(name)
         _, geometry = m3d._geometry_for(doc, layout.fingerprint(list(doc)))
         for key, entry in doc.items():
@@ -356,7 +374,7 @@ def test_the_problems_match_the_owners_gate_on_every_dumped_manual():
                                                               geometry.get(key), m3d._DATA.widths)}
             # WORD is the plugin's own rule: a small paragraph the pane model cannot fit is shown on the column
             # and reported here. The gate lays it out on the column and only records it, so it is not compared.
-            found.discard("WORD")
+            found -= {"WORD", "WIDTH", "BESIDE", "WRAP"}
             if found != expected.get(key, set()):
                 differences.append((name, key, sorted(expected.get(key, set())), sorted(found)))
     assert differences == []
