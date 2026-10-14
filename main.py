@@ -87,6 +87,26 @@ from core.context import UIProvider
 from core.i18n import tr
 
 
+def install_qt_translator(code: str):
+    """Qt's own text (the OK, Cancel, Yes and No buttons of its dialogs) follows the UI language when Qt ships it.
+
+    Dialogs made after this call use the translation. Returns the installed translator, or None (English, or no file).
+    """
+    from PyQt6 import QtCore
+    from PyQt6.QtCore import QLibraryInfo, QTranslator
+    app = QApplication.instance()
+    if app is None or code == "en":
+        return None
+    folders = (QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath),
+               str(Path(QtCore.__file__).parent / "Qt6" / "translations"))
+    for folder in folders:
+        translator = QTranslator(app)  # owned by the app: it lives as long as the app
+        if translator.load(f"qtbase_{code}", folder):
+            app.installTranslator(translator)
+            return translator
+    return None
+
+
 class StateProperty:
     def __init__(self, state_enum: AppState):
         self.state_enum = state_enum
@@ -279,7 +299,7 @@ class MainWindow(QMainWindow):
         self.report_startup_progress(15, tr("Reading application settings…"))
         self.settings_manager.load_settings()
         from core.i18n import init as init_i18n
-        init_i18n(self.settings_manager.get("ui_language", "en"))
+        install_qt_translator(init_i18n(self.settings_manager.get("ui_language", "en")))
 
         # Actions Handlers
         self.string_settings_updater = StringSettingsUpdater(self, self.data_processor)
