@@ -53,21 +53,21 @@ def test_IssueScanHandler_initial_silent_scan(handler, mock_mw, qapp):
         qapp.processEvents()
         mock_scan.assert_called_with(0)
 
-def test_IssueScanHandler_initial_silent_scan_force(handler, mock_mw, qapp):
-    with patch.object(handler, '_perform_issues_scan_for_block') as mock_scan, \
-         patch.object(handler, '_load_issues_cache') as mock_load_cache, \
-         patch.object(handler, '_get_cache_path') as mock_get_path:
-        
-        mock_path = MagicMock()
-        mock_path.exists.return_value = True
-        mock_get_path.return_value = mock_path
-        
+def test_IssueScanHandler_initial_silent_scan_force(handler, mock_mw, qapp, tmp_path):
+    cache_file = tmp_path / "issues_cache.json"
+    cache_file.write_text("{}", encoding="utf-8")
+    scanned = []
+    loads = []
+
+    with patch.object(handler, '_perform_issues_scan_for_block', new=lambda block_idx: scanned.append(block_idx)), \
+         patch.object(handler, '_load_issues_cache', new=lambda: loads.append(True)), \
+         patch.object(handler, '_get_cache_path', return_value=cache_file):
         handler._perform_initial_silent_scan_all_issues(force=True)
         qapp.processEvents()
-        
-        mock_load_cache.assert_not_called()
-        mock_path.unlink.assert_called_once()
-        mock_scan.assert_called_with(0)
+
+    assert loads == []
+    assert not cache_file.exists()
+    assert scanned == [0]
 
 @patch('PyQt6.QtWidgets.QMessageBox.information')
 def test_IssueScanHandler_rescan_issues_for_single_block(mock_msg, handler, mock_mw):
@@ -77,41 +77,42 @@ def test_IssueScanHandler_rescan_issues_for_single_block(mock_msg, handler, mock
         mock_scan.assert_called_with(0)
         handler.ui_updater.update_block_item_text_with_problem_count.assert_called_with(0)
 
-@patch('PyQt6.QtWidgets.QMessageBox.information')
-def test_IssueScanHandler_rescan_all_tags(mock_msg, handler, mock_mw, qapp):
+def test_IssueScanHandler_rescan_all_tags(handler, mock_mw, qapp):
     mock_mw.data_processor.get_current_string_text.return_value = ("test", False)
-    with patch.object(handler, '_perform_issues_scan_for_block') as mock_scan:
+    scanned = []
+    messages = []
+    with patch.object(handler, '_perform_issues_scan_for_block', new=lambda block_idx: scanned.append(block_idx)), \
+         patch('PyQt6.QtWidgets.QMessageBox.information', new=lambda *args: messages.append(args)):
         handler.rescan_all_tags()
         qapp.processEvents()
-        mock_scan.assert_called_once()
-        handler.ui_updater.refresh_block_tree_indicators.assert_called_once()
+    assert scanned == [0]
+    assert messages == [(mock_mw, "Scan Complete", "Full issue scan complete.")]
+    handler.ui_updater.refresh_block_tree_indicators.assert_called_once()
 
 
-@patch('handlers.issue_scan_handler.QMessageBox.information')
-def test_rescan_all_tags_reports_completion_only_after_last_batch(mock_msg, handler, mock_mw):
+def test_rescan_all_tags_reports_completion_only_after_last_batch(handler, mock_mw):
     mock_mw.data_store.data = [["line"] for _ in range(3)]
     handler._SCAN_BATCH_SIZE = 1
+    scanned = []
+    messages = []
 
-    with patch.object(handler, '_perform_issues_scan_for_block') as mock_scan:
+    with patch.object(handler, '_perform_issues_scan_for_block', new=lambda block_idx: scanned.append(block_idx)), \
+         patch('handlers.issue_scan_handler.QMessageBox.information', new=lambda *args: messages.append(args)):
         handler.rescan_all_tags()
         handler._scan_timer.stop()
 
-        mock_msg.assert_not_called()
+        assert messages == []
 
         handler._scan_next_batch()
         handler._scan_timer.stop()
-        mock_msg.assert_not_called()
+        assert messages == []
 
         handler._scan_next_batch()
         handler._scan_timer.stop()
-        mock_msg.assert_not_called()
+        assert messages == []
 
         handler._scan_next_batch()
 
-    assert mock_scan.call_count == 3
-    mock_msg.assert_called_once_with(
-        mock_mw,
-        "Scan Complete",
-        "Full issue scan complete.",
-    )
+    assert scanned == [0, 1, 2]
+    assert messages == [(mock_mw, "Scan Complete", "Full issue scan complete.")]
     handler.ui_updater.refresh_block_tree_indicators.assert_called_once()
