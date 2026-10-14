@@ -123,7 +123,10 @@ def test_studio_buttons_explain_their_actions(qapp):
     assert "Enter" in dialog.search_next_btn.toolTip()
     assert "Shift+Enter" in dialog.search_prev_btn.toolTip()
     assert "Ctrl+M" in dialog.hierarchy_mark_btn.toolTip()
-    assert "F2" in dialog.flags_list.toolTip()
+    assert dialog.flags_list.toolTip() == (
+        "Double-click a node to jump to source. Press F2, use Rename node, "
+        "or click an already selected node to rename."
+    )
     for shortcut in ("Ctrl+S", "Ctrl+P", "Ctrl+T", "Ctrl+B", "Ctrl+I"):
         assert shortcut in dialog.hierarchy_mark_btn.toolTip()
         assert shortcut in dialog.hierarchy_type_combo.toolTip()
