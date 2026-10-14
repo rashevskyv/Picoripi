@@ -41,7 +41,9 @@ class _Data:
 
     def __init__(self) -> None:
         self.widths: Optional[layout.Widths] = None
+        # {fingerprint: facts} of the manuals; the owner commit the file was built from is in owner_commit.
         self.geometry: Optional[Dict[str, Dict[str, Any]]] = None
+        self.owner_commit: str = ""
 
     def load(self) -> None:
         if self.widths is None:
@@ -50,8 +52,10 @@ class _Data:
         if self.geometry is None:
             try:
                 with open(os.path.join(_DATA_DIR, "geometry.json"), encoding="utf-8") as handle:
-                    self.geometry = json.load(handle)
-            except (OSError, ValueError):
+                    doc = json.load(handle)
+                self.owner_commit = str(doc.get("owner_commit", ""))
+                self.geometry = doc.get("manuals", {})
+            except (OSError, ValueError, AttributeError):
                 self.geometry = {}
 
 

@@ -42,7 +42,7 @@ SHORT_WORDS = set("зуввііййаоокс")
 PAGE_WORDS = {"с.", "стор."}
 _RUSSIAN_ONLY = set("ыэъёЫЭЪЁ")
 _MIXED_WORD = re.compile(r"(?<![\w{}])(?=\w*[A-Za-z])(?=\w*[А-Яа-яІіЇїЄєҐґ])\w+")
-_BAD_REFERENCE = re.compile(r"\(\s*с\.\s|\bстр\.|см\.")  # \b: "стр." as a word, not the end of "Настр."
+_BAD_REFERENCE = re.compile(r"\(\s*с\.\s|\bстр\.|\bсм\.")  # \b: "стр." and "см." as words, not "Настр." or "просм."
 _WORD_APOSTROPHE = re.compile(r"(?<=[^\W\d_])'(?=[^\W\d_])")
 
 
@@ -429,9 +429,9 @@ def style_problems(ua: str) -> List[str]:
 
 
 def missing_glyphs(text: str, widths: Widths) -> List[str]:
-    """Characters the font has no advance for (zero width means no glyph in the table)."""
+    """Characters outside the font's charset (the gate's check: ord(ch) not in the charset file, plus the patched letters)."""
     body = MARKER_RE.sub(lambda m: m.group(3) or "", text)
-    return sorted({ch for ch in body if not ch.isspace() and widths.glyph(ch) == 0})
+    return sorted({ch for ch in body if not ch.isspace() and ch not in widths.advances})
 
 
 def pua_counts(text: str) -> Counter:
@@ -500,7 +500,8 @@ def check_entry(ua: str, ru: str, entry: dict, geo: Optional[Geometry], widths: 
     # The build's own budget when the geometry has it: the JSON width is a copy made at extraction time and is stale.
     budget = float(geo.budget if geo.budget is not None else entry.get("width") or 0.0)
     limit = budget + WIDTH_SLACK
-    line_count = int(entry.get("lines") or len(geo.lines))
+    # The gate counts the lines the dump's panes give the paragraph, not the JSON's copy of that number.
+    line_count = len(geo.lines)
     lines, mode, reason = layout_for(rendered, geo, limit, widths, line_count)
     if mode == "column-fallback":
         # The gate lays such a paragraph out on the column instead and only lists it: here it is a problem.

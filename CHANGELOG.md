@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- 3DS manual sync (owner tools at a19b98a): `manual_3ds` follows the owner's `pas1` nesting, page-reference regex, default `real` glyph variant and picture/frame layout, and its problems match the owner's gate on all 16 dumped manuals; `geometry.json` records the owner commit it was built from, `widths.json` is rebuilt by `scripts/build_manual_geometry.py`; regression tests for the three home-menu screenshots (`plugins/manual_3ds/`, `tests/test_plugins/test_manual_3ds/`).
 - Unpack room check (audit r18): the free-space check before an unpack counts every game image an unpack step reads, Switch and Wii included; the r17 `SPACE_KINDS` split is removed (`core/project_library/images.py`, `core/project_library/build.py`).
 - Test keys (audit r18): the Bravely Default II pak test no longer opens the owner's `prod.keys`; `tests/test_key_file_paths.py` fails when a test names a real key file or key folder (`tests/test_core/test_unreal_pak.py`).
 - Deslop skill (developer tooling, no product change): `python tasks.py deslop` now reports only findings new over `tools/deslop/baseline.json` (exit 1 on growth), `--all` lists every finding and exits 0; `.agents/skills/deslop/SKILL.md` runs it at every stop point (`tools/deslop/__main__.py`, `tests/test_tools/test_deslop.py`, `AGENTS.md`, `docs/ENGINEERING.md`).
