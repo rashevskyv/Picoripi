@@ -94,9 +94,21 @@ def test_gh_install_menu_actions(mock_action, gh):
     gh.install_menu_actions()
     assert gh._open_glossary_action == action1
 
+class _FakePromptManager:
+    """Records whether the prompt manager preloaded the glossary highlighting."""
+
+    def __init__(self):
+        self.highlighting_initialized = False
+
+    def initialize_highlighting(self):
+        self.highlighting_initialized = True
+
+
 def test_gh_initialize_glossary_highlighting(gh):
+    prompts = _FakePromptManager()
+    gh._prompt_manager = prompts
     gh.initialize_glossary_highlighting()
-    gh._prompt_manager.initialize_highlighting.assert_called_once()
+    assert prompts.highlighting_initialized is True
 
 @patch('handlers.translation.glossary.dialog_mixin.QProgressDialog')
 @patch('handlers.translation.glossary.dialog_mixin.GlossaryOccurrenceWorker')
@@ -271,16 +283,38 @@ def test_gh_start_glossary_notes_variation(gh):
     
     d.set_ai_busy.assert_called_with(False)
 
+class _FakeNotesUpdater:
+    """Records each notes variation request and reports that it started."""
+
+    def __init__(self):
+        self.requests = []
+
+    def request_glossary_notes_variation(self, **kwargs):
+        self.requests.append(kwargs)
+        return True
+
+
 def test_gh_handle_notes_variation_from_dialog(gh):
-    # Setup dialog
-    gh.dialog = MagicMock()
+    dialog = MagicMock()
+    gh.dialog = dialog
     gh.mw.data_store.data = [["Block 0 String 0"]]
-    
+    updater = _FakeNotesUpdater()
+    gh._occurrence_updater = updater
+
     occurrence = GlossaryOccurrence(GlossaryEntry("t", "tr", "n"), 0, 0, 0, 0, 0, "Block 0 String 0")
+    # no occurrence map yet, so the handler builds the index from the project data
+    gh.glossary_manager.get_occurrence_map.return_value = {}
     gh.glossary_manager.build_occurrence_index.return_value = {"t": [occurrence]}
-    
+
     gh._handle_notes_variation_from_dialog(GlossaryEntry("t", "tr", "n"))
-    gh._occurrence_updater.request_glossary_notes_variation.assert_called_once()
+
+    assert len(updater.requests) == 1
+    request = updater.requests[0]
+    assert request["term"] == "t"
+    assert request["translation"] == "tr"
+    assert request["current_notes"] == "n"
+    assert request["context_line"] == "Block 0 String 0"
+    assert request["dialog"] is dialog
 
 @patch('handlers.translation.glossary.edit_mixin.QMessageBox')
 def test_gh_handle_glossary_notes_variation_success(mock_box, gh):
