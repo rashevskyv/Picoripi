@@ -89,10 +89,10 @@ def test_text_edited_basic(mock_async_scanner, mock_get_pool):
 
     # Verify edited_sublines contains index 0
     assert 0 in ctx.data_store.edited_sublines
-    # Verify data_processor.update_edited_data was called
-    data_processor.update_edited_data.assert_called()
-    # Verify scanner was instantiated and submitted to the shared thread pool.
-    mock_async_scanner.assert_called_once()
+    # The edited text is saved for the bound row.
+    assert data_processor.update_edited_data.call_args.args[:3] == (0, 0, "Changed line 1")
+    # The scanner is built for the edited text and submitted to the shared thread pool.
+    assert mock_async_scanner.call_args.kwargs["text"] == "Changed line 1"
     mock_get_pool.return_value.start.assert_called_once_with(mock_async_scanner.return_value)
 
 def test_revert_line():
@@ -142,31 +142,52 @@ def test_fix_all_strings_target_strings():
         target_strings = [(0, 0)]
         handler.fix_all_strings(target_strings)
 
-        mock_worker_class.assert_called_once()
-        mock_worker.start.assert_called_once()
+        # The fixed text is saved only if the worker was built for the target
+        # strings and started, so the save proves both.
+        assert mock_worker_class.call_args.kwargs["target_strings"] == [(0, 0)]
         data_processor.update_edited_data.assert_called_once_with(
             0, 0, "Fixed text", action_type="AUTOFIX", skip_ui_refresh=True
         )
 
+class _RecordingSignal:
+    def __init__(self, events):
+        self._events = events
+
+    def disconnect(self, slot):
+        self._events.append("disconnect")
+
+
+class _FakeAutofixWorker:
+    """A running worker that records, in order, what cleanup does to it."""
+
+    def __init__(self):
+        self.events = []
+        self.finished = _RecordingSignal(self.events)
+
+    def isRunning(self):
+        return True
+
+    def cancel(self):
+        self.events.append("cancel")
+
+    def wait(self, msecs):
+        self.events.append(("wait", msecs))
+        return True
+
+    def deleteLater(self):
+        self.events.append("deleteLater")
+
+
 def test_autofix_cleanup_with_running_worker():
     ctx = MockContext()
-    data_processor = MagicMock()
-    ui_updater = MagicMock()
-    handler = TextOperationHandler(ctx, data_processor, ui_updater)
+    handler = TextOperationHandler(ctx, MagicMock(), MagicMock())
 
-    mock_worker = MagicMock()
-    mock_worker.isRunning.return_value = True
-    mock_worker.wait.return_value = True
+    worker = _FakeAutofixWorker()
+    handler._active_autofix_worker = worker
 
-    handler._active_autofix_worker = mock_worker
-
-    # Call cleanup
     handler._cleanup_active_autofix()
 
-    # Ensure worker was cancelled, waited on and deleted later
-    mock_worker.cancel.assert_called_once()
-    mock_worker.wait.assert_called_once_with(2000)
-    mock_worker.deleteLater.assert_called_once()
+    assert worker.events == ["disconnect", "cancel", ("wait", 2000), "deleteLater"]
     assert handler._active_autofix_worker is None
 
 
