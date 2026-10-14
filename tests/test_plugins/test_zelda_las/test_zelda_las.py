@@ -145,10 +145,15 @@ def test_only_the_us_slot_becomes_blocks_and_the_others_are_references(tmp_path)
     manager.project = Project(name="LAS", plugin_name="zelda_las")
     manager.project.metadata = {"source_path": str(romfs), "translation_path": str(tmp_path / "translation"),
                                 "is_directory_mode": True}
+    eu = "regionEU/EUen/message/Hint.msbt"   # a block of a project made before the hook
+    manager.add_block(name="Hint", source_file_path=eu, translation_file_path=eu)
+    (tmp_path / "translation" / eu).parent.mkdir(parents=True)
+    (tmp_path / "translation" / eu).write_bytes(b"old translation")
     rules = GameRules()
     manager.sync_project_files(plugin=rules)
     sources = [block.source_file for block in manager.project.blocks]
     assert sources == ["regionUS/USen/message/Hint.msbt"]
+    assert (tmp_path / "translation" / eu).read_bytes() == b"old translation"   # the block left, its file stays
 
     rules.mw = SimpleNamespace(project_manager=manager, block_to_project_file_map={})
     us = 0

@@ -12,15 +12,8 @@ from utils.logging_utils import log_warning
 
 from core.containers import sarc
 from plugins.common.msbt import Msbt
+from plugins.common.switch_languages import LANGUAGES   # archive prefix -> reference label
 from .tags import to_editor
-
-# Archive prefix -> reference label. Russian keeps "Russian (RU)": the host shows it first.
-LANGUAGES = {
-    "EUru": "Russian (RU)", "USen": "English (US)", "EUen": "English (EU)", "EUde": "German (DE)",
-    "EUfr": "French (EU)", "USfr": "French (US)", "EUes": "Spanish (EU)", "USes": "Spanish (US)",
-    "EUit": "Italian (IT)", "EUnl": "Dutch (NL)", "USpt": "Portuguese (US)", "JPja": "Japanese (JA)",
-    "KRko": "Korean (KO)", "CNzh": "Chinese, simplified (CN)", "TWzh": "Chinese, traditional (TW)",
-}
 
 
 def _archives(folder: Path) -> Dict[str, Path]:

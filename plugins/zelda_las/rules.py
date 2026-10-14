@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.msbt import Msbt
-from plugins.zelda_totk.reference import LANGUAGES
+from plugins.common.switch_languages import LANGUAGES
 from utils.logging_utils import log_warning
 from utils.utils import clean_spaces
 
