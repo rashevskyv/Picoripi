@@ -103,8 +103,13 @@ def test_restore_state_after_settings_load(qapp):
     mw.right_splitter.addWidget(QWidget())
     mw.right_splitter.addWidget(QWidget())
     
-    state_val = base64.b64encode(mw.main_splitter.saveState().data()).decode('ascii')
-    
+    # A saved layout with known sizes, so the restore has an observable effect.
+    saved_layout = QSplitter(Qt.Orientation.Horizontal)
+    saved_layout.addWidget(QWidget())
+    saved_layout.addWidget(QWidget())
+    saved_layout.setSizes([300, 100])
+    state_val = base64.b64encode(saved_layout.saveState().data()).decode('ascii')
+
     # Configure mock settings manager to return state
     def mock_get(key, default=None):
         if key == "main_splitter_state":
@@ -122,3 +127,10 @@ def test_restore_state_after_settings_load(qapp):
         # Verify settings_manager was queried for splitter states
         mw.settings_manager.get.assert_any_call("main_splitter_state")
         mw.settings_manager.get.assert_any_call("right_splitter_state")
+        # The saved main splitter layout is applied to the live splitter.
+        reference = QSplitter(Qt.Orientation.Horizontal)
+        reference.addWidget(QWidget())
+        reference.addWidget(QWidget())
+        reference.restoreState(base64.b64decode(state_val))
+        assert mw.main_splitter.sizes() == reference.sizes()
+        assert mw.main_splitter.sizes() != [0, 0]
