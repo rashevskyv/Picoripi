@@ -760,7 +760,7 @@ def test_prompts_contain_transcription_rules_for_ukrainian():
             p_data = json.load(f)
         resolved = resolve_target_language_prompt(p_data["translation"]["system_prompt"], "Ukrainian")
         assert "Ґ" in resolved, f"Plugin {p_name} missing Ґ in Ukrainian prompt"  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the Ukrainian letter must appear in the prompt
-        assert "сі" in resolved, f"Plugin {p_name} missing 'сі' in Ukrainian prompt"
+        assert "сі" in resolved, f"Plugin {p_name} missing 'сі' in Ukrainian prompt"  # deslop: ignore[poor-substring-tests] two-letter Ukrainian syllable marker: the transcription example differs per plugin, so no shared full phrase exists
 
 
 def test_AIPromptComposer_tag_alias_legend_and_newlines(composer):
@@ -1155,8 +1155,8 @@ def test_glossary_terms_are_matched_on_the_force_alias_words_the_model_gets(comp
     item = [{"id": 0, "text": "{escape:0:0000}! You're so close!"}]
 
     composer.compose_batch_request("SysPrompt", item, item, block_idx=0, mode_description="translation")
-    assert "Link" in manager.get_relevant_terms.call_args_list[-1].args[0]
+    assert manager.get_relevant_terms.call_args_list[-1].args[0] == "Link! You're so close!"
 
     composer.compose_messages("SysPrompt", item[0]["text"], block_idx=0, string_idx=0, expected_lines=1,
                               mode_description="translation")
-    assert "Link" in manager.get_relevant_terms.call_args_list[-1].args[0]
+    assert manager.get_relevant_terms.call_args_list[-1].args[0] == "Link! You're so close!"
