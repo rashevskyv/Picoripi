@@ -2305,5 +2305,8 @@
     "The index is not drawn here. Select a string of a page.": "Індекс тут не малюється. Оберіть рядок сторінки.",
     "Y  Large text": "Y  Великий текст",
     "Y  Small text": "Y  Малий текст",
-    "{0} paragraph(s) over the line width. Missing glyphs: {1}": "{0} абзац(ів) за межею рядка. Відсутні гліфи: {1}"
+    "{0} paragraph(s) over the line width. Missing glyphs: {1}": "{0} абзац(ів) за межею рядка. Відсутні гліфи: {1}",
+    "Console page {0} (file {1}). {2} defect(s) on the render: {3}. Missing glyphs: {4}": "Сторінка консолі {0} (файл {1}). Дефектів на рендері: {2}: {3}. Відсутні гліфи: {4}",
+    "This paragraph: {0}.": "Цей абзац: {0}.",
+    "{0} paragraph(s) kept the stored text (the layout refused the translation).": "{0} абзац(ів) лишили збережений текст (модель відхилила переклад)."
 }

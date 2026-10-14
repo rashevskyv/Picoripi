@@ -11,6 +11,7 @@ and keeps every other key and the key order.
 """
 import json
 import os
+import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
@@ -18,10 +19,18 @@ from plugins.common.problem_analyzer import GenericProblemAnalyzer
 
 from . import layout
 from .layout import fingerprint
-from .page_render import group_key_of
 from .config import CUSTOM_IDS, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+_STRING_KEY_PATTERN = re.compile(r"(large|small)/Page_(\d+)_(large|small)_\d+")
+
+
+def group_key_of(string_key: str) -> Optional[str]:
+    """"small/Page_003_small_1#4" -> "small/Page_003_small", or None for an index entry."""
+    match = _STRING_KEY_PATTERN.fullmatch(string_key.split("#", 1)[0])
+    if not match:
+        return None
+    return f"{match.group(1)}/Page_{match.group(2)}_{match.group(1)}"
 
 
 def parse_manual(text: str) -> Dict[str, Dict[str, Any]]:
