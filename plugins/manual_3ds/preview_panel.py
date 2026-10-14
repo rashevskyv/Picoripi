@@ -13,7 +13,7 @@ import threading
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple
 
-from PyQt6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter
 from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
@@ -22,6 +22,7 @@ from plugins.manual_3ds import page_render, pictures, repo_tools
 from utils.atomic_io import atomic_write_json
 from utils.constants import user_plugin_dir
 from utils.logging_utils import log_warning
+from utils.thread_utils import WorkerThread
 
 PLUGIN_NAME = "manual_3ds"
 SETTINGS_FILE = "preview.json"
@@ -138,7 +139,7 @@ def draw_request(request: _Request, should_stop: Any) -> page_render.ColumnRende
                                          request.texts, request.budgets, should_stop, bank=bank)
 
 
-class PageRenderWorker(QThread):
+class PageRenderWorker(WorkerThread):
     """Draws one request. ``rendered`` carries (generation, request key, ColumnRender or an error message)."""
 
     rendered = pyqtSignal(int, object, object)
