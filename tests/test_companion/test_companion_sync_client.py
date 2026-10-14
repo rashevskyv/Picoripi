@@ -29,7 +29,7 @@ def test_test_connection_success():
         ok, msg = client.test_connection()
         assert ok is True
         assert "Found 1 project" in msg
-        mock_get.assert_called_once()
+        mock_get.assert_called_once_with("http://myserver:8000/api/projects", headers=client._get_headers(), timeout=client.timeout)
 
 
 def test_test_connection_unauthorized():
@@ -350,7 +350,7 @@ def test_auto_pull_triggers_glossary_refresh_and_status(qtbot, tmp_path: Path):
             qtbot.waitUntil(lambda: len(results) == 1, timeout=3000)
             assert results == [(True, 4)]
             assert mw.glossary_manager.refresh_called == 1
-            assert "4" in mw.statusBar().last_msg
+            assert mw.statusBar().last_msg == "Companion: auto-synced 4 updated terms from server."
 
     # Case 2: debounce returns None if within 3s
     with patch("core.companion_sync.get_companion_client_from_mw", return_value=client):
@@ -697,4 +697,5 @@ def test_sync_push_on_close_executes_smart_sync(tmp_path: Path):
             res = sync_push_on_close(fake_mw, show_dialog=False)
             assert res is True
             assert fake_mw.glossary_manager.save_to_disk.called
-            mock_sync.assert_called_once()
+            assert mock_sync.call_args.kwargs["project_name"] == "ClosingProj"
+            assert mock_sync.call_args.kwargs["glossary_path"] == g_file
