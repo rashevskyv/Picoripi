@@ -80,6 +80,8 @@ the line when it is done or moved into a plan.
 
 ## Project Manager phase 2 (2026-10-12)
 
+- Owner screenshot of 2026-10-14 showed the Project Manager in English while the menus were Ukrainian. Not reproduced on HEAD: every Project Manager literal has a `locales/uk.json` key (keys dated 2026-10-11 and 2026-10-13), and a freshly built dialog renders in Ukrainian. Check whether the owner's running build predates these keys. The walk test `tests/test_ui/test_project_manager/test_translation_walk.py` guards against regressions.
+- Qt's own dialog text ("OK", "Yes", "No") follows the language only where Qt ships the translation (`qtbase_uk.qm` has Cancel and Yes but not OK). Other Qt text stays English.
 - Only `plugins/plain_text` declares a build target, and no real game plugin implements `get_source_roles`, `identify_source`, `unpack_sources` or `build_target` yet. Until a game does, the wizard takes roles and platforms from the user and the Build, Export and Run buttons stay off for it.
 - Counts skip archive members (blocks inside containers) and report them as "not counted yet". Counting them needs the load worker's archive path (`handlers/project_action/load_worker.py`).
 - Closed in D28: a count is kept while its input signature (project file, plugin config, source and translation files) is unchanged. An edit to a translation file made outside Picoripi is seen at the next scan.

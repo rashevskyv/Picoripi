@@ -2,6 +2,11 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Project Manager search: a **Search projects** field filters the list and the grid live (debounced, instance-owned timer) over name, series, platform, plugin and folder path; Ctrl+F focuses it, Esc clears it; groups without a match hide and counts show matches (`ui/project_manager/window.py`, `tests/test_ui/test_project_manager/test_search.py`).
+- Project Manager close: closing the window with no project open (close button, Esc, Alt+F4) quits Picoripi through the File > Exit path; with a project open it returns to it (`handlers/project_action/library_mixin.py`, `ui/project_manager/window.py`, `tests/test_ui/test_project_manager/test_close_rule.py`).
+- Project Manager progress: the strip is busy until the first card, then counts the cards ("Checking 37 of 191 projects...") until the child sends its plan, so it no longer sits empty during the card read (`ui/project_manager/window.py`, `tests/test_ui/test_project_manager/test_window_live_update.py`).
+- Project Manager translation: Qt's own dialog text (Cancel, Yes, No where Qt ships it) follows the UI language (`main.py` installs `qtbase_<lang>` at start-up); three new `uk.json` keys (Search projects, No project matches this search., Checking {0} of {1} projects...); a walk test fails on any visible English Project Manager string without a translation (`tests/test_ui/test_project_manager/test_translation_walk.py`).
+
 - Unpack room check (audit r18): the free-space check before an unpack counts every game image an unpack step reads, Switch and Wii included; the r17 `SPACE_KINDS` split is removed (`core/project_library/images.py`, `core/project_library/build.py`).
 - Test keys (audit r18): the Bravely Default II pak test no longer opens the owner's `prod.keys`; `tests/test_key_file_paths.py` fails when a test names a real key file or key folder (`tests/test_core/test_unreal_pak.py`).
 - Deslop skill (developer tooling, no product change): `python tasks.py deslop` now reports only findings new over `tools/deslop/baseline.json` (exit 1 on growth), `--all` lists every finding and exits 0; `.agents/skills/deslop/SKILL.md` runs it at every stop point (`tools/deslop/__main__.py`, `tests/test_tools/test_deslop.py`, `AGENTS.md`, `docs/ENGINEERING.md`).
