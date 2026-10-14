@@ -14,8 +14,11 @@ def _set_entries(handler, entries):
     handler.glossary_manager.get_entries = MagicMock(return_value=entries)
 
 
-def _refresh_mock(handler):
-    return handler.mw.ui_updater.block_list_updater.refresh_virtual_folder_labels
+def _record_refreshes(handler):
+    """Replace the virtual folder label refresh with a recorder; return the list of calls."""
+    calls = []
+    handler.mw.ui_updater.block_list_updater.refresh_virtual_folder_labels = lambda *args, **kwargs: calls.append(True)
+    return calls
 
 
 def test_no_change_does_not_rebuild(qapp):
@@ -24,9 +27,9 @@ def test_no_change_does_not_rebuild(qapp):
     handler._glossary_signature_on_open = handler._glossary_signature()
     handler.dialog = MagicMock()
 
-    _refresh_mock(handler).reset_mock()
+    refreshes = _record_refreshes(handler)
     handler._on_glossary_dialog_closed()
-    _refresh_mock(handler).assert_not_called()
+    assert refreshes == []
 
 
 def test_translation_change_rebuilds(qapp):
@@ -35,9 +38,9 @@ def test_translation_change_rebuilds(qapp):
     _set_entries(handler, [GlossaryEntry("WOMAN 1", "Жінка 001", "", "")])
     handler.dialog = MagicMock()
 
-    _refresh_mock(handler).reset_mock()
+    refreshes = _record_refreshes(handler)
     handler._on_glossary_dialog_closed()
-    _refresh_mock(handler).assert_called_once()
+    assert refreshes == [True]
 
 
 def test_notes_only_change_does_not_rebuild(qapp):
@@ -46,6 +49,6 @@ def test_notes_only_change_does_not_rebuild(qapp):
     _set_entries(handler, [GlossaryEntry("WOMAN 1", "Жінка 1", "new note", "")])
     handler.dialog = MagicMock()
 
-    _refresh_mock(handler).reset_mock()
+    refreshes = _record_refreshes(handler)
     handler._on_glossary_dialog_closed()
-    _refresh_mock(handler).assert_not_called()
+    assert refreshes == []
