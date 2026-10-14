@@ -225,6 +225,18 @@ def test_game_image_fails_before_writing_when_the_drive_is_too_small(tmp_path, m
     assert not (tmp_path / "project").exists()
 
 
+def test_switch_and_wii_images_do_not_count_toward_the_room_check(tmp_path, monkeypatch):
+    """No unpack step writes a Switch or Wii image yet, so the room check leaves them out (DECISIONS D30)."""
+    disc = tmp_path / "wii.iso"
+    head = bytearray(0x20)
+    head[0:6] = b"RMCE01"
+    struct.pack_into(">I", head, 0x18, 0x5D1C9EA3)   # the Wii disc magic
+    disc.write_bytes(bytes(head))
+    monkeypatch.setattr(build, "_free_bytes", lambda path: 0)
+
+    build._check_free_space(tmp_path / "project", {"base": str(disc)})
+
+
 def test_game_image_passes_when_the_room_covers_the_image_and_its_margin(tmp_path, monkeypatch):
     image = _gamecube_image(tmp_path / "disc.iso")
     needed = image.stat().st_size + build.MIN_MARGIN

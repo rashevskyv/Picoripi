@@ -98,7 +98,7 @@ def _check_free_space(project: Path, sources: Dict[str, str]) -> None:
     ``MIN_MARGIN``, whichever is larger.
     """
     found = [path for path in sources.values()
-             if (images.identify(path) or {}).get("kind") in images.UNPACK_KINDS]
+             if (images.identify(path) or {}).get("kind") in images.SPACE_KINDS]
     if not found:
         return
     size = sum(os.path.getsize(path) for path in found)
