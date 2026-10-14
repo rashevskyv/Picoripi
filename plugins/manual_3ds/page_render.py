@@ -205,20 +205,21 @@ def _glyph_image(font: Any, bcfnt: Any, code: int, rgb: Tuple[int, int, int], ca
     return image
 
 
-def _line_place(sub: SubPage, flow: Any, line_index: int, placed: Dict[str, Tuple[float, float]]) -> Tuple[float, float]:
+def _line_place(sub: SubPage, flow: Any, line_index: int) -> Tuple[float, float]:
     """-> (top, dx) of a line on the sub-page: its top edge, and how far its pieces move from the x of the flow.
 
-    A line sits on the position of its first text pane. A line the paragraph has no pane for is put one line
-    height under the last pane line. ``placed`` remembers the last line of the paragraph.
+    The console draws line i at the first line's y less i line heights: that is where the owner's build writes it
+    (manual.to_edits), not at each original pane's y (a few paragraphs have uneven pane spacing). The pieces move by
+    the page offset of the line's own first pane; a line past the paragraph's own lines uses the first line's offset.
     """
+    anchor = next(pane for pane in flow.lines[0] if pane.is_text)
+    anchor_x, anchor_y = sub.positions.get(anchor.name, (anchor.x, anchor.y))
+    top = -anchor_y + line_index * flow.line_height
     if line_index < len(flow.lines):
-        first = next((pane for pane in flow.lines[line_index] if pane.is_text), None)
-        if first is not None:
-            x, y = sub.positions.get(first.name, (first.x, first.y))
-            placed["last"] = (-y, x - first.x)
-            return placed["last"]
-    top, dx = placed.get("last", (0.0, 0.0))
-    return top + (line_index - (len(flow.lines) - 1)) * flow.line_height, dx
+        first = next((pane for pane in flow.lines[line_index] if pane.is_text), anchor)
+        x, _ = sub.positions.get(first.name, (first.x, first.y))
+        return top, x - first.x
+    return top, anchor_x - anchor.x
 
 
 def _pane_cap(flow: Any, index: int, manual: Any) -> float:
@@ -301,9 +302,8 @@ def _draw_flow(painter: QPainter, sub: SubPage, flow: Any, lines: List[List[Any]
     """Draw one laid-out paragraph. True when a piece is past its line or the text needs more lines than the page has."""
     pane_model = manual.is_pane_model(flow)
     flagged = False
-    placed: Dict[str, Tuple[float, float]] = {}
     for line_index, line in enumerate(lines):
-        rel_top, dx = _line_place(sub, flow, line_index, placed)
+        rel_top, dx = _line_place(sub, flow, line_index)
         top = offset + rel_top
         beyond_pane = line_index >= len(flow.lines)
         if pane_model and not beyond_pane:

@@ -118,7 +118,7 @@ def _real_keys():
     """The key list of home_menu_manual, from the plugin's geometry table (the keys, not the text)."""
     import pathlib
 
-    geometry = json.loads((pathlib.Path(m3d.__file__).parent / "geometry.json").read_text(encoding="utf-8"))
+    geometry = json.loads((pathlib.Path(m3d.__file__).parent / "geometry.json").read_text(encoding="utf-8"))["manuals"]
     entry = next(value for value in geometry.values() if value.get("name") == "home_menu_manual")
     return list(entry["entries"].keys())
 
@@ -195,3 +195,45 @@ def test_window_panes_of_the_home_menu_page_keep_their_orange_fill_and_the_backd
     orange = [window for window in first.windows if window[4] == (255, 86, 0, 255)]
     assert len(orange) >= 2  # the two orange pills of the bottom screen's list
     assert first.backdrop and all(window[4][:3] == (255, 255, 255) for window in first.backdrop)
+
+
+@pytest.mark.skipif(romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") is not None,
+                    reason=romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") or "")
+def test_the_preview_places_text_and_pictures_where_the_owners_parser_does():
+    """The preview's own BCLYT reader and the owner's bclyt.parse agree on every text, picture and window pane.
+
+    The owner's layout (flows, the pictures beside a line) runs on the owner's parser; the drawing runs on this
+    reader. A difference here would draw a line somewhere the build does not put it.
+    """
+    from plugins.manual_3ds import repo_tools
+    tools = repo_tools.load_tools(str(romhacking_root.path(*_REPO_MANUAL)))
+    archive = tools.bcma.load(repo_tools.manual_path(tools, "home_menu_manual"))
+    placed_kinds = ("txt1", "pic1", "wnd1")
+    compared = 0
+    for part in ("large", "small"):
+        for name, data in archive.read(f"{tools.manual.BASE_SLOT}_{part}").items():
+            owner = [(pane.kind, pane.name, pane.abs_x, pane.abs_y)
+                     for pane in tools.bclyt.parse(data) if pane.kind in placed_kinds]
+            ours = [(magic.decode(), pane, x, y)
+                    for magic, pane, x, y, _width, _height, _pos in page_render._panes(data)
+                    if magic.decode() in placed_kinds]
+            assert ours == owner, name
+            compared += len(owner)
+    assert compared > 0
+
+
+def test_a_line_sits_on_the_builds_grid_not_on_its_original_pane():
+    """The build puts line i at the first line's y less i line heights, so an unevenly spaced original is redrawn there."""
+    from plugins.manual_3ds import page_render
+
+    def pane(name, x, y):
+        return SimpleNamespace(name=name, x=x, y=y, is_text=True)
+
+    # Original pane tops 100, 119, 140 (uneven); the build's grid with a 20 px line is 100, 120, 140.
+    flow = SimpleNamespace(lines=[[pane("a", 10.0, -100.0)], [pane("b", 10.0, -119.0)], [pane("c", 10.0, -140.0)]],
+                           line_height=20.0)
+    sub = page_render.SubPage(key="small/Page_000_small_0", flows=[],
+                              positions={"a": (10.0, -100.0), "b": (10.0, -119.0), "c": (10.0, -140.0)})
+    tops = [page_render._line_place(sub, flow, index)[0] for index in range(3)]
+    assert tops == [100.0, 120.0, 140.0]
+    assert page_render._line_place(sub, flow, 3) == (160.0, 0.0)  # a line past the paragraph's own lines

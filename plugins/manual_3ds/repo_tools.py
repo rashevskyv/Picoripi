@@ -7,6 +7,7 @@ console build uses. They are imported from that folder, with bytecode writing of
 from __future__ import annotations
 
 import importlib
+import subprocess
 import sys
 import threading
 from contextlib import contextmanager
@@ -144,3 +145,13 @@ def widths_of(tools: Tools) -> Dict[int, int]:
         if key not in _WIDTHS:
             _WIDTHS[key] = tools.manual.load_widths()
         return _WIDTHS[key]
+
+
+def owner_commit(root: Any) -> str:
+    """The short commit of the folder's own git HEAD (its tools), read-only; "" when the folder is not a git checkout."""
+    try:
+        done = subprocess.run(["git", "-C", str(root), "rev-parse", "--short=7", "HEAD"],
+                              capture_output=True, text=True, timeout=20, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return done.stdout.strip() if done.returncode == 0 else ""

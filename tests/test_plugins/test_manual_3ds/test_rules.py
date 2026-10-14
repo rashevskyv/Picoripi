@@ -282,20 +282,57 @@ def _owner_kind(message):
     return next((kind for needle, kind in _OWNER_KINDS if needle in body), "OTHER")
 
 
-@pytest.mark.skipif(_GATE is not None, reason=_GATE or "")
-def test_the_geometry_file_is_the_build_of_the_owners_dumps():
+def _builder():
     builder_path = Path(m3d.__file__).parents[2] / "scripts" / "build_manual_geometry.py"
     spec = importlib.util.spec_from_file_location("build_manual_geometry", builder_path)
     builder = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(builder)
-    tools = repo_tools.load_tools(str(romhacking_root.path(*_REPO_MANUAL)))
+    return builder
+
+
+def _owner_tools():
+    return repo_tools.load_tools(str(romhacking_root.path(*_REPO_MANUAL)))
+
+
+def _require_geometry_from_owner_head(tools):
+    """One clear failure when the owner's tools moved on since geometry.json was built (not an assertion diff)."""
+    head = repo_tools.owner_commit(tools.root)
+    built = json.loads(Path(m3d._DATA_DIR, "geometry.json").read_text(encoding="utf-8")).get("owner_commit", "")
+    if head != built:
+        pytest.fail(f"owner tools at {head}, geometry built from {built}: run scripts/build_manual_geometry.py")
+
+
+def test_geometry_from_other_owner_tools_fails_with_one_message(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(repo_tools, "owner_commit", lambda root: "1111111")
+    built = json.loads(Path(m3d._DATA_DIR, "geometry.json").read_text(encoding="utf-8"))["owner_commit"]
+    with pytest.raises(pytest.fail.Exception) as stop:
+        _require_geometry_from_owner_head(SimpleNamespace(root="folder"))
+    assert str(stop.value) == (f"owner tools at 1111111, geometry built from {built}: "
+                               "run scripts/build_manual_geometry.py")
+
+
+@pytest.mark.skipif(_GATE is not None, reason=_GATE or "")
+def test_the_geometry_file_is_the_build_of_the_owners_dumps():
+    tools = _owner_tools()
+    _require_geometry_from_owner_head(tools)
     committed = json.loads(Path(m3d._DATA_DIR, "geometry.json").read_text(encoding="utf-8"))
-    assert builder.build(tools) == committed
+    assert _builder().build(tools) == committed["manuals"]
+
+
+@pytest.mark.skipif(_GATE is not None, reason=_GATE or "")
+def test_the_widths_file_is_the_build_of_the_owners_tools():
+    tools = _owner_tools()
+    _require_geometry_from_owner_head(tools)
+    committed = json.loads(Path(m3d._DATA_DIR, "widths.json").read_text(encoding="utf-8"))
+    assert _builder().build_widths(tools) == committed
 
 
 @pytest.mark.skipif(_GATE is not None, reason=_GATE or "")
 def test_the_problems_match_the_owners_gate_on_every_dumped_manual():
-    tools = repo_tools.load_tools(str(romhacking_root.path(*_REPO_MANUAL)))
+    tools = _owner_tools()
+    _require_geometry_from_owner_head(tools)
     owner = tools.manual
     m3d._DATA.load()
     differences = []
@@ -323,3 +360,27 @@ def test_the_problems_match_the_owners_gate_on_every_dumped_manual():
             if found != expected.get(key, set()):
                 differences.append((name, key, sorted(expected.get(key, set())), sorted(found)))
     assert differences == []
+
+
+# Console screenshots of the home menu manual (the owner's tests/test_manual_checks.py): the translated line must
+# stop short of the picture or frame beside it. The text is the owner's translation, read from the owner's folder.
+_HOME_MENU_KEYS = (
+    "small/Page_006_small_0#4",    # lines stay left of the picture (page 7)
+    "small/Page_009_small_0#19",   # lines stay left of the picture
+    "small/Page_020_small_0#13",   # stays inside the blue frame (page 21)
+)
+
+
+@pytest.mark.skipif(_GATE is not None, reason=_GATE or "")
+@pytest.mark.parametrize("key", _HOME_MENU_KEYS)
+def test_home_menu_line_keeps_off_the_picture_or_frame_beside_it(key):
+    tools = _owner_tools()
+    _require_geometry_from_owner_head(tools)
+    m3d._DATA.load()
+    doc = tools.manual.load_json("home_menu_manual")
+    entry = doc[key]
+    assert entry.get("ua"), f"{key} has no translation in home_menu_manual.json"
+    _, geometry = m3d._geometry_for(doc, layout.fingerprint(list(doc)))
+    assert geometry[key].occluders, f"{key}: the page's pictures and frames are missing from the geometry"
+    problems = layout.check_entry(entry["ua"], entry.get("ru", ""), entry, geometry[key], m3d._DATA.widths)
+    assert [message for name, message in problems if name == "BESIDE"] == []
