@@ -4,9 +4,11 @@ The pixels come first, then a 0x28-byte footer: the file header (magic, byte ord
 ``imag`` block. FLIM: u16 width, u16 height, u16 alignment, u8 format, u8 flags, u32 image size.
 CLIM: u32 block size, u16 width, u16 height, u32 format.
 
-3DS: a PICA texture of the next power-of-two size (at least 8), stored bottom row first; FLIM flag 4
-or 8 stores it turned by 90 degrees. Wii U: a GX2 surface, flags = tile mode (low 5 bits) and the
-swizzle (high 3 bits, bits 8-10 of the GX2 swizzle value), top row first.
+3DS: a PICA texture of the next power-of-two size (at least 8), top row first, the picture in its
+top-left corner; FLIM flag 4 or 8 stores the picture turned by 90 degrees. Wii U: a GX2 surface, flags =
+tile mode (low 5 bits) and the swizzle (high 3 bits, bits 8-10 of the GX2 swizzle value), top row first.
+Checked on real files: 3DS BCLIM and flag 0 BFLIM (New Leaf, Happy Home Designer), flag 4 and 8 BFLIM
+(A Link Between Worlds), Wii U BFLIM (Wind Waker HD).
 """
 from __future__ import annotations
 
@@ -62,20 +64,19 @@ def _pica_geometry(info: Dict[str, Any]) -> Tuple[int, int]:
 
 
 def _to_display(stored: Image.Image, flags: int) -> Image.Image:
-    image = stored.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     if flags == 4:
-        return image.transpose(Image.Transpose.ROTATE_90).transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        return stored.transpose(Image.Transpose.ROTATE_90)
     if flags == 8:
-        return image.transpose(Image.Transpose.ROTATE_270)
-    return image
+        return stored.transpose(Image.Transpose.ROTATE_270).transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    return stored
 
 
 def _to_stored(display: Image.Image, flags: int) -> Image.Image:
     if flags == 4:
-        display = display.transpose(Image.Transpose.FLIP_LEFT_RIGHT).transpose(Image.Transpose.ROTATE_270)
-    elif flags == 8:
-        display = display.transpose(Image.Transpose.ROTATE_90)
-    return display.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        return display.transpose(Image.Transpose.ROTATE_270)
+    if flags == 8:
+        return display.transpose(Image.Transpose.FLIP_LEFT_RIGHT).transpose(Image.Transpose.ROTATE_90)
+    return display
 
 
 # -- Wii U ----------------------------------------------------------------------------------------
@@ -99,7 +100,7 @@ def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
         width, height = _pica_geometry(info)
         full = _to_display(surface.read(data, 0, codec, width, height), info["flags"])
         image = full.crop((0, 0, info["width"], info["height"]))
-    if params.get("flip"):   # a game whose layouts draw the picture upside down (the Marvelous farm games)
+    if params.get("flip"):   # turns the cropped picture over; no plugin sets it (Trio of Towns reads upright)
         image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     return [Texture("", image, info["name"])]
 
