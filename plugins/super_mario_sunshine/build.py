@@ -19,6 +19,7 @@ from core.containers import yaz0
 from core.containers.gcm import GameCubeImage
 from core.containers.gcm_writer import write_disc
 from core.containers.rarc_container import RarcContainer
+from core.containers.wia import open_disc
 from core.i18n import tr
 
 from . import dol_patch, dol_text
@@ -147,7 +148,7 @@ def changed_files(source_dir: str | os.PathLike, translation_dir: str | os.PathL
 
 def _archive_bytes(image: Path, archive: str, members: Dict[str, bytes]) -> bytes:
     """The archive ``archive`` of the disc, with ``members`` written into it. Yaz0 is kept when the disc has it."""
-    with open(image, "rb") as stream:
+    with open_disc(image) as stream:   # a WIA or RVZ source is read as its disc; the source is never written
         disc = GameCubeImage(stream)
         entry = next((e for e in disc.entries() if e.path == archive), None)
         if entry is None:

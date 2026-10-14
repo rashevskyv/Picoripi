@@ -16,6 +16,7 @@ from typing import Callable, Dict, List, Mapping, Optional, Tuple
 
 from core.containers.gcm import GameCubeImage
 from core.containers.image_files import CHUNK, ImageError, ImageFile
+from core.containers.wia import WiaStream, open_disc
 
 ALIGN = 0x8000
 # The largest single-layer GameCube disc. A changed file may use the space up to here.
@@ -54,10 +55,10 @@ def _check_changes(changes: Mapping[str, bytes], by_path: Dict[str, Tuple[int, I
 
 
 def _copy(source: Path, tmp: Path, progress: Progress, is_cancelled: Cancelled) -> bool:
-    """Stream ``source`` into ``tmp`` in chunks. False when cancelled."""
-    total = source.stat().st_size or 1
+    """Stream the disc ``source`` into ``tmp`` in chunks, decoding a WIA or RVZ source. False when cancelled."""
     done = 0
-    with open(source, "rb") as src, open(tmp, "wb") as dst:
+    with open_disc(source) as src, open(tmp, "wb") as dst:
+        total = (src.size if isinstance(src, WiaStream) else source.stat().st_size) or 1
         while True:
             if is_cancelled():
                 return False
@@ -80,7 +81,7 @@ def write_disc(source: str | Path, out: str | Path, changes: Mapping[str, bytes]
     source, out = Path(source), Path(out)
     if out.exists() and os.path.samefile(source, out):
         raise ImageError("the output must not be the source image")
-    with open(source, "rb") as stream:
+    with open_disc(source) as stream:
         image = GameCubeImage(stream)
         slots = image.fst_slots()
         sys_entries = [entry for entry in image.entries() if not entry.path.startswith("files/")]

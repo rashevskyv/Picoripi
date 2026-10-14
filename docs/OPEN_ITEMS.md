@@ -1057,7 +1057,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 ## Unpack in Picoripi (phase 1, 2026-10-13)
 - Phase 2: the console key file (D30 has the owner's rule). Wii, Wii U, 3DS and Switch images need it. Wii discs need a partition reader too.
-- RVZ, WIA, Wii and NKit images of other kinds are not read; the zt scripts still convert them with DolphinTool or wit. The wizard says so and asks for an ISO. NKit GameCube discs are read as they are (D30 addendum).
+- Wii WIA and RVZ images, and NKit images of other kinds, are not read; the zt scripts still convert them with DolphinTool or wit. The wizard says so and asks for an ISO. GameCube WIA and RVZ are read natively since D33 (`core/containers/wia.py`). NKit GameCube discs are read as they are (D30 addendum).
 - Phase 2a is wired (D30 addendum). Recorded differences, not fixed (the workspaces are not regenerated):
   - Curious Village (Layton DS): the unpack writes 65 more `.gds` scripts than the workspace has (465 text files against 400 blocks). The plugin gives rows for them, and the current zt agrees.
   - SoulSilver (Gen 4): `a/1/3/3` differs from the HeartGold-based workspace. The HeartGold output matches it.

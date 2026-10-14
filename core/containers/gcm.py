@@ -2,7 +2,8 @@
 
 ``entries`` gives the layout DolphinTool writes: ``sys/`` (boot.bin, bi2.bin, apploader.img, fst.bin, main.dol)
 and ``files/`` (the disc's file system). Only the header, the FST and the bytes a caller asks for are read.
-Wii discs, RVZ, WIA and NKit images are not read here: they raise ImageError.
+Wii discs and NKit images are not read here: they raise ImageError. A WIA or RVZ image reaches this reader as the
+decoded disc (``core.containers.wia.WiaStream``), so it is read the same way.
 """
 from __future__ import annotations
 

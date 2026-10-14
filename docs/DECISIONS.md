@@ -743,3 +743,31 @@ always writes a leading NUL in DAT1; their DAT1 starts with text.
 a `.part` file, 2026-10-14). The original ISO is not at its path, so the four real `dolpic1` round-trips and the real
 archive folder test cannot run until a complete image is back. The English executable text has not been tested in
 Dolphin.
+
+## D33. WIA and RVZ images are read as the disc they hold; the file is never converted or written (2026-10-14)
+
+**Context.** The owner's Super Mario Sunshine image is an RVZ. Picoripi refused WIA and RVZ ("convert it to a plain
+ISO first"), so the owner had to convert by hand. Dolphin's WiaAndRvz.md (external, not in this repo; WIA 1.00 and the RVZ additions) is the
+spec; the decoder is written from it. Dolphin's source was read for three facts only: the raw-data and group tables are
+compressed with the disc's method, the packed junk segments are the spec's format, and the generator's output is the
+spec's arithmetic. No code was copied.
+
+**Decision.**
+- `core/containers/wia.py`: `WiaStream` presents a WIA or RVZ image as a read-only plain disc stream (`seek`, `tell`,
+  `read`). `GameCubeImage` reads it unchanged. Groups are decoded when a read needs them; the last two are cached.
+  Methods: none, bzip2, LZMA, LZMA2 (WIA and RVZ) and Zstandard (RVZ, `core/zstd_frame.py`). RVZ packing (junk as seed) is
+  reproduced by the spec's Lagged Fibonacci generator (`junk_bytes`). Refused with the reason: Wii partitions, the Purge
+  method, unknown methods and chunk sizes.
+- `images.py` accepts GameCube WIA and RVZ (identify, extract). The refusal table is empty; Wii WIA and RVZ are refused
+  by the reader with the reason. The disc writer (`gcm_writer.write_disc`) and the archive rebuild read their source
+  through `open_disc`, so an RVZ source is copied as its ISO. The output is always a plain ISO; no RVZ is written.
+- Tests (`tests/test_core/test_wia_reader.py`): a small writer in the test builds every method, junk packing, zero groups,
+  chunk sizes of 32 KiB (RVZ) and 2 MiB (WIA), random reads, the refusals, and identify and extract on an RVZ. Each decoded
+  image is compared with the plain image it came from. The junk generator is compared with a literal transcription of the
+  spec.
+- Measured on the owner's complete image (our copy, read only): `GMSE01`, revision byte 0x07 = 0, disc size
+  1,459,978,240. `sys/main.dol` has the retail SHA-256. The whole disc decodes in about 32 s. Compared byte for byte with
+  DolphinTool's own conversion of the same file (a private copy under `D:\RomHacking_tmp`): 0 differing bytes.
+
+**Cost.** The Lagged Fibonacci generator runs in pure Python (no numpy dependency): junk is slower than other data, about
+10 MB/s, and only junk regions that are read pay it. A GameCube WIA or RVZ with a chunk larger than 64 MiB is refused.
