@@ -268,7 +268,6 @@ def test_GlossaryManager_multiline_notes_and_pipe_escaping(manager, tmp_path):
     
     assert loaded_entry is not None
     assert loaded_entry.notes == entry_notes
-    assert "\n" in loaded_entry.notes
 
 
 def test_GlossaryManager_profiled_field(manager, tmp_path):
