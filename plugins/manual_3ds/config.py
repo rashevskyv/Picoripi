@@ -22,6 +22,15 @@ CUSTOM_PROBLEMS = {
         "name": "Line too wide", "color": QColor(255, 80, 0, 110), "priority": 2,
         "description": "A line is wider than the paragraph's column on the console.",
     },
+    "BESIDE": {
+        "name": "Line runs into a picture or frame", "color": QColor(255, 80, 0, 110), "priority": 2,
+        "description": "A line runs into a picture or a box frame beside it on the console page. Shorten the line or "
+                       "the paragraph.",
+    },
+    "ICON": {
+        "name": "Button glyph mismatch", "color": QColor(255, 0, 0, 120), "priority": 1,
+        "description": "A button glyph of the Russian original is missing or repeated in the translation.",
+    },
     "PANES": {
         "name": "Out of panes", "color": QColor(255, 0, 0, 120), "priority": 1,
         "description": "The text needs more text panes of one style (plain text or a highlighted phrase) than the "

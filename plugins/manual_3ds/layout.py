@@ -11,7 +11,9 @@ Two models, as in the gate:
 """
 from __future__ import annotations
 
+import hashlib
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
@@ -23,6 +25,14 @@ DIGIT_UNITS = 16.3         # measured on the console; the font table says 17
 SPACE_UNITS = 8.7          # measured on the console; the font table says 9
 SAFETY = 1.0
 PANE_PARTS = ("small",)    # the parts laid out with the pane model
+# Pictures and frames beside a line (manual.right_limit): a picture counts when it is at least this big, the
+# line stops this far short of its left edge; a frame is a box only when big enough, and the text stops this far
+# short of its right edge (the console border is 3 px wide, inside the box).
+OCC_START = 0.0            # where a line's ink starts, relative to its pane x (calibration; 0 on the console)
+OCC_MARGIN = 4.0
+OCC_BOX_MIN_W = 200.0
+OCC_BOX_MIN_H = 40.0
+FRAME_MARGIN = 5.0
 
 MARKER_RE = re.compile(r"\{i(\d+)\}|\{s(\d+)\|([^}]*)\}|(\{br\})")
 SPACE_RE = re.compile(r"([ \t\n]+)")
@@ -32,7 +42,7 @@ SHORT_WORDS = set("зуввііййаоокс")
 PAGE_WORDS = {"с.", "стор."}
 _RUSSIAN_ONLY = set("ыэъёЫЭЪЁ")
 _MIXED_WORD = re.compile(r"(?<![\w{}])(?=\w*[A-Za-z])(?=\w*[А-Яа-яІіЇїЄєҐґ])\w+")
-_BAD_REFERENCE = re.compile(r"\(\s*с\.\s|стр\.|см\.")
+_BAD_REFERENCE = re.compile(r"\(\s*с\.\s|\bстр\.|см\.")  # \b: "стр." as a word, not the end of "Настр."
 _WORD_APOSTROPHE = re.compile(r"(?<=[^\W\d_])'(?=[^\W\d_])")
 
 
@@ -40,10 +50,30 @@ class LayoutError(Exception):
     """The text cannot be laid out on the paragraph's lines or panes."""
 
 
+def fingerprint(keys: List[str]) -> str:
+    """Which manual a file is: a hash of its keys in order (the keys come from the console's own document)."""
+    return hashlib.sha1("\n".join(keys).encode("utf-8")).hexdigest()[:16]
+
+
 @dataclass(frozen=True)
 class Line:
-    x: float      # pane x of the line's first text pane
+    x: float      # pane x of the line's first text pane (local to its group)
     box: float    # width of that pane
+    # The same pane's page position (its groups added) and the line step: Geometry.right_limit().
+    abs_x: float = 0.0
+    abs_y: float = 0.0
+    step: float = 20.0
+
+
+@dataclass(frozen=True)
+class Occluder:
+    """A picture (pic1) or a window (wnd1) of the page, in page coordinates (BCLYT y: 0 at the top, down is negative)."""
+
+    kind: str
+    abs_x: float
+    abs_y: float
+    width: float
+    height: float
 
 
 @dataclass
@@ -60,6 +90,8 @@ class Geometry:
     budget: Optional[float] = None
     # Text panes per style, as the build maps them: {0: n} for the paragraph's own style, {1: n} for the next one...
     panes: Dict[int, int] = field(default_factory=dict)
+    # Pictures and frames of the paragraph's page that a line can run into.
+    occluders: List[Occluder] = field(default_factory=list)
 
     @property
     def pane_model(self) -> bool:
@@ -68,6 +100,48 @@ class Geometry:
     def margin(self, line: int) -> float:
         """Where a line starts: the first line may be indented differently."""
         return self.lines[0].x if line == 0 else self.lines[min(1, len(self.lines) - 1)].x
+
+    def abs_margin(self, line: int) -> float:
+        """Page position of the margin() that line `line` reads."""
+        return self.lines[0].abs_x if line == 0 else self.lines[min(1, len(self.lines) - 1)].abs_x
+
+    def right_limit(self, line: int) -> float:
+        """Absolute x a line must end before, because a picture or frame sits beside it (inf: none).
+
+        A line is in the way of an occluder when their vertical extents overlap. A picture to the right of the
+        line's start ends the line before its left edge; a frame the line starts inside ends it at its right edge.
+        A line past the paragraph's own lines continues below the last one.
+        """
+        last = len(self.lines) - 1
+        pane = self.lines[min(line, last)]
+        top = pane.abs_y - max(line - last, 0) * pane.step
+        bottom = top - pane.step
+        left = pane.abs_x + OCC_START
+        limit = float("inf")
+        for occluder in self.occluders:
+            occ_top = occluder.abs_y
+            occ_bottom = occ_top - occluder.height
+            # A picture that only touches the line's band (within a pixel) is not in the way of it.
+            if not (occ_bottom < top - 1.0 and occ_top > bottom + 1.0):
+                continue
+            right = occluder.abs_x + occluder.width
+            if occluder.kind == "pic1" and occluder.abs_x > left:
+                limit = min(limit, occluder.abs_x - OCC_MARGIN)
+            elif (occluder.kind == "wnd1" and occluder.abs_x <= left < right
+                  and occluder.width >= OCC_BOX_MIN_W and occluder.height >= OCC_BOX_MIN_H):
+                limit = min(limit, right - FRAME_MARGIN)
+        return limit
+
+    def room(self, line: int, pane: bool) -> float:
+        """Width line `line` may take before the nearest picture or frame beside it, measured from its start (inf: none).
+
+        The start is the line's pane x (pane model) or the paragraph margin (column model), both in page coordinates.
+        """
+        start = (self.lines[line].abs_x if pane else self.abs_margin(line)) + OCC_START
+        limit = self.right_limit(line)
+        if limit == float("inf"):
+            return limit
+        return limit - start
 
 
 class Widths:
@@ -199,9 +273,11 @@ class _Model:
 
         def cap_of(index: int) -> float:
             if not pane:
-                return limit
+                # Column model: the budget, but never past a picture or frame the line runs beside.
+                return min(limit, geo.room(index, pane=False))
             line = pane_line(index)
-            return min(line.box - LINE_OFFSET, PAGE_EDGE - line.x)
+            # A picture or frame beside the line ends it earlier (Geometry.room).
+            return min(line.box - LINE_OFFSET, PAGE_EDGE - line.x, geo.room(index, pane=True))
 
         lines: List[List[Piece]] = [[]]
         x = margin_of(0)
@@ -358,6 +434,51 @@ def missing_glyphs(text: str, widths: Widths) -> List[str]:
     return sorted({ch for ch in body if not ch.isspace() and widths.glyph(ch) == 0})
 
 
+def pua_counts(text: str) -> Counter:
+    """Private-use code points (the console's button glyphs) of a string, with their counts."""
+    return Counter(ch for ch in text if 0xE000 <= ord(ch) <= 0xF8FF)
+
+
+def _codepoints(counts: Counter) -> str:
+    return " ".join(f"U+{ord(ch):04X}x{n}" if n > 1 else f"U+{ord(ch):04X}" for ch, n in sorted(counts.items())) or "none"
+
+
+def icon_problems(ua: str, source: str) -> str:
+    """The button glyphs of the source must all come back in the translation, the same count of each.
+
+    A dropped glyph shows as a gap where the button name was, so this is a gate. "" when they match.
+    """
+    want, have = pua_counts(source), pua_counts(ua)
+    if want == have:
+        return ""
+    return f"button glyphs {_codepoints(have)} in the translation, {_codepoints(want)} in the source"
+
+
+def beside_overruns(lines: List[List[Piece]], geo: Geometry, pane: bool) -> List[Tuple[int, float, float]]:
+    """Lines that run into a picture or frame beside them -> [(line index, drawn right edge, edge), ...].
+
+    Both sides are page coordinates: the drawn edge is the line's start + its width, the edge is Geometry.right_limit.
+    """
+    out: List[Tuple[int, float, float]] = []
+    for index, line in enumerate(lines):
+        if not line:
+            continue
+        edge = geo.right_limit(index)
+        if edge == float("inf"):
+            continue
+        if pane:
+            local = geo.lines[index].x
+            start = geo.lines[index].abs_x + OCC_START
+        else:
+            local = geo.margin(index)
+            start = geo.abs_margin(index) + OCC_START
+        last = line[-1]
+        drawn = start + (last.x + last.width - local)
+        if drawn > edge + 0.01:
+            out.append((index, drawn, edge))
+    return out
+
+
 def check_entry(ua: str, ru: str, entry: dict, geo: Optional[Geometry], widths: Widths) -> List[Tuple[str, str]]:
     """Problems of one translated paragraph -> [(problem key, message)]. Empty ua is not checked."""
     if not ua:
@@ -365,6 +486,9 @@ def check_entry(ua: str, ru: str, entry: dict, geo: Optional[Geometry], widths: 
     problems: List[Tuple[str, str]] = []
     if markers(ua) != markers(ru):
         return [("MARKUP", f"markers {markers(ua)} differ from the Russian {markers(ru)}")]
+    icons = icon_problems(ua, ru or entry.get("en", ""))
+    if icons:
+        problems.append(("ICON", icons))
     for text in style_problems(ua):
         problems.append(("STYLE", text))
     glyphs = missing_glyphs(widths.apply_homoglyphs(ua), widths)
@@ -389,6 +513,10 @@ def check_entry(ua: str, ru: str, entry: dict, geo: Optional[Geometry], widths: 
         if over:
             problems.append(("PANES", f"out of panes for style {over[0]} (the original has {over[1]})"))
             return problems
+    if len(lines) <= len(geo.lines):
+        # Only a paragraph the build can place is measured against its pictures and frames.
+        for index, drawn, edge in beside_overruns(lines, geo, mode == "pane"):
+            problems.append(("BESIDE", f"line {index + 1} runs {drawn - edge:.0f} px into the picture or frame"))
     # The gate skips the column check for every small paragraph, the column fallback included.
     if geo.pane_model or not budget:
         return problems

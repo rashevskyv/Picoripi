@@ -3,13 +3,16 @@
 The tests use a tiny synthetic manual and synthetic widths and geometry, installed on the plugin's own data holder.
 The real-data check reads the owner's manual sources only when PICORIPI_ROMHACKING is set.
 """
+import importlib.util
 import json
 import string
+from collections import defaultdict
+from pathlib import Path
 
 import pytest
 
 import romhacking_root
-from plugins.manual_3ds import layout
+from plugins.manual_3ds import layout, repo_tools
 from plugins.manual_3ds import rules as m3d
 from plugins.testing import check_loads, check_round_trip, check_validator
 
@@ -199,3 +202,124 @@ def test_the_build_budget_beats_the_stale_json_width(widths, monkeypatch):
     rules.load_data_from_json_obj(_text(SAMPLE))
     # 13 letters = 130 px fit a 204 px column (budget 200 + slack), so no width problem.
     assert rules.manual_problems(0, 0, "а" * 13) == set()
+
+
+def _geo_on(occluders, lines, part="large", budget=300.0):
+    return layout.Geometry(part=part, font_size=24.0, char_space=0.0, lines=lines, budget=budget,
+                           occluders=occluders)
+
+
+def test_a_picture_to_the_right_of_the_line_ends_it_before_its_left_edge():
+    geo = _geo_on([layout.Occluder("pic1", 200.0, 0.0, 80.0, 60.0)], [layout.Line(10.0, 300.0, 10.0, 0.0, 20.0)])
+    assert geo.right_limit(0) == 200.0 - layout.OCC_MARGIN
+
+
+def test_a_picture_in_another_line_band_is_not_in_the_way():
+    geo = _geo_on([layout.Occluder("pic1", 200.0, -200.0, 80.0, 60.0)], [layout.Line(10.0, 300.0, 10.0, 0.0, 20.0)])
+    assert geo.right_limit(0) == float("inf")
+
+
+def test_a_box_frame_the_line_starts_in_ends_it_inside_its_right_edge():
+    box = layout.Occluder("wnd1", 8.0, 40.0, 304.0, 345.0)
+    geo = _geo_on([box], [layout.Line(20.0, 200.0, 40.0, 0.0, 20.0)])
+    assert geo.right_limit(0) == 8.0 + 304.0 - layout.FRAME_MARGIN
+
+
+def test_a_small_frame_is_not_a_box():
+    frame = layout.Occluder("wnd1", 8.0, 40.0, 60.0, 30.0)
+    geo = _geo_on([frame], [layout.Line(20.0, 200.0, 40.0, 0.0, 20.0)])
+    assert geo.right_limit(0) == float("inf")
+
+
+def test_room_is_measured_from_the_start_of_the_line():
+    geo = _geo_on([layout.Occluder("pic1", 200.0, 0.0, 80.0, 60.0)], [layout.Line(10.0, 300.0, 10.0, 0.0, 20.0)])
+    assert geo.room(0, pane=False) == 200.0 - layout.OCC_MARGIN - 10.0
+
+
+def test_a_picture_beside_a_pane_line_makes_its_words_wrap_sooner(widths):
+    lines = [layout.Line(20.0, 200.0, 20.0, 0.0, 20.0), layout.Line(20.0, 200.0, 20.0, -20.0, 20.0)]
+    text = "аааа аааа"  # two 40 px words: 108.7 px on one line with the box, 76 px allowed beside the picture
+    free = layout.Geometry(part="small", font_size=24.0, char_space=0.0, lines=lines)
+    beside = layout.Geometry(part="small", font_size=24.0, char_space=0.0, lines=lines,
+                             occluders=[layout.Occluder("pic1", 100.0, 0.0, 80.0, 60.0)])
+    one, _, _ = layout.layout_for(text, free, 300.0, widths, 2)
+    two, _, _ = layout.layout_for(text, beside, 300.0, widths, 2)
+    assert len(one) == 1 and len(two) == 2
+
+
+def test_a_column_line_that_runs_into_a_picture_is_a_beside_problem(widths):
+    geo = _geo_on([layout.Occluder("pic1", 100.0, 0.0, 80.0, 60.0)], [layout.Line(10.0, 300.0, 10.0, 0.0, 20.0)])
+    problems = layout.check_entry("а" * 12, "а" * 12, {"lines": 1, "width": 300.0}, geo, widths)
+    assert ("BESIDE", "line 1 runs 34 px into the picture or frame") in problems
+
+
+def test_a_dropped_button_glyph_is_an_icon_problem():
+    assert layout.icon_problems("Натисніть і", "Нажмите  и ") != ""
+
+
+def test_kept_button_glyphs_are_not_reported():
+    assert layout.icon_problems("Натисніть  і ", "Нажмите  и ") == ""
+
+
+def test_the_english_source_is_the_glyph_source_when_russian_is_empty(widths):
+    problems = layout.check_entry("Натисніть", "", {"en": "Press  now"}, None, widths)
+    assert [name for name, _ in problems] == ["ICON"]
+
+
+_REPO_MANUAL = ("_shared", "3ds_sysfont_ua", "repo_manual")
+_GATE = romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py")
+# The owner's gate message -> the plugin's problem name (manual.py check output, one line per problem).
+_OWNER_KINDS = (
+    ("button glyphs", "ICON"), ("markers ", "MARKUP"), ("missing glyphs", "GLYPH"),
+    ("WIDTH beside picture", "BESIDE"), ("out of panes", "PANES"), ("needs ", "LINES"),
+    ("Russian letters", "STYLE"), ("double space", "STYLE"), ("leading or trailing", "STYLE"),
+    ("mixed Latin", "STYLE"), ("лице", "STYLE"), ("page reference", "STYLE"),
+)
+
+
+def _owner_kind(message):
+    body = message.split(": ", 1)[1]
+    return next((kind for needle, kind in _OWNER_KINDS if needle in body), "OTHER")
+
+
+@pytest.mark.skipif(_GATE is not None, reason=_GATE or "")
+def test_the_geometry_file_is_the_build_of_the_owners_dumps():
+    builder_path = Path(m3d.__file__).parents[2] / "scripts" / "build_manual_geometry.py"
+    spec = importlib.util.spec_from_file_location("build_manual_geometry", builder_path)
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    tools = repo_tools.load_tools(str(romhacking_root.path(*_REPO_MANUAL)))
+    committed = json.loads(Path(m3d._DATA_DIR, "geometry.json").read_text(encoding="utf-8"))
+    assert builder.build(tools) == committed
+
+
+@pytest.mark.skipif(_GATE is not None, reason=_GATE or "")
+def test_the_problems_match_the_owners_gate_on_every_dumped_manual():
+    tools = repo_tools.load_tools(str(romhacking_root.path(*_REPO_MANUAL)))
+    owner = tools.manual
+    m3d._DATA.load()
+    differences = []
+    for name in owner.MANUALS:
+        try:
+            repo_tools.manual_path(tools, name)
+        except repo_tools.ToolsError:
+            continue  # no dump on this disk
+        problems, wide, _, _ = owner._problems(name)
+        expected = defaultdict(set)
+        for message in problems:
+            expected[message.split(": ", 1)[0]].add(_owner_kind(message))
+        for message in wide:
+            expected[message.split(": ", 1)[0]].add("WIDTH")
+        doc = owner.load_json(name)
+        _, geometry = m3d._geometry_for(doc, layout.fingerprint(list(doc)))
+        for key, entry in doc.items():
+            if not entry.get("ua"):
+                continue
+            found = {kind for kind, _ in layout.check_entry(entry["ua"], entry.get("ru", ""), entry,
+                                                              geometry.get(key), m3d._DATA.widths)}
+            # WORD is the plugin's own rule: a small paragraph the pane model cannot fit is shown on the column
+            # and reported here. The gate lays it out on the column and only records it, so it is not compared.
+            found.discard("WORD")
+            if found != expected.get(key, set()):
+                differences.append((name, key, sorted(expected.get(key, set())), sorted(found)))
+    assert differences == []
