@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Tuple
 from PyQt6.QtCore import QObject, pyqtSlot
 from PyQt6.QtGui import QTextCursor
+from handlers.analyzer_context import analyzer_string_context
 from handlers.async_issue_scanner import AsyncIssueScanner, get_scanner_thread_pool
 from utils.logging_utils import log_debug
 
@@ -78,19 +79,20 @@ class ScanMixin:
         width_threshold_for_string, logical_hard_limit_for_string = self._get_string_thresholds(block_idx, string_idx)
         
         problems_in_string = []
-        if hasattr(analyzer, 'analyze_data_string'):
-            problems_in_string = analyzer.analyze_data_string(new_text, font_map_for_string, width_threshold_for_string, logical_hard_limit_for_string)
-        elif hasattr(analyzer, 'analyze_subline'):
-            for i, subline in enumerate(sublines):
-                next_subline = sublines[i+1] if i + 1 < len(sublines) else None
-                problems = analyzer.analyze_subline(
-                    text=subline, next_text=next_subline, subline_number_in_data_string=i, qtextblock_number_in_editor=i,
-                    is_last_subline_in_data_string=(i == len(sublines) - 1), editor_font_map=font_map_for_string,
-                    editor_line_width_threshold=width_threshold_for_string,
-                    full_data_string_text_for_logical_check=new_text,
-                    logical_hard_limit=logical_hard_limit_for_string
-                )
-                problems_in_string.append(problems)
+        with analyzer_string_context(analyzer, block_idx, string_idx):
+            if hasattr(analyzer, 'analyze_data_string'):
+                problems_in_string = analyzer.analyze_data_string(new_text, font_map_for_string, width_threshold_for_string, logical_hard_limit_for_string)
+            elif hasattr(analyzer, 'analyze_subline'):
+                for i, subline in enumerate(sublines):
+                    next_subline = sublines[i+1] if i + 1 < len(sublines) else None
+                    problems = analyzer.analyze_subline(
+                        text=subline, next_text=next_subline, subline_number_in_data_string=i, qtextblock_number_in_editor=i,
+                        is_last_subline_in_data_string=(i == len(sublines) - 1), editor_font_map=font_map_for_string,
+                        editor_line_width_threshold=width_threshold_for_string,
+                        full_data_string_text_for_logical_check=new_text,
+                        logical_hard_limit=logical_hard_limit_for_string
+                    )
+                    problems_in_string.append(problems)
 
         for i, problem_set in enumerate(problems_in_string):
              if problem_set:

@@ -272,3 +272,23 @@ def test_list_item_delegate_tooltip_displays_colored_dot():
 
     tooltip = delegate._get_problems_tooltip_text(main_window, index)
     assert "<span style='color: #00c800;'>●</span> <b>Width Limit</b>: 3 cases<br><i>Too long</i>" in tooltip
+
+
+def test_tooltip_shows_the_plugin_detail_under_the_problem_name(app):
+    """The plugin's per-string detail for a problem appears under its name in the editor tooltip."""
+    from unittest.mock import MagicMock
+    mw, editor = _make_real_main_window(app)
+    mw.data_store.current_block_idx = 0
+    mw.data_store.current_string_idx = 1
+    mw.data_store.physical_block_idx = 0
+    mw.data_store.problems_per_subline = {(0, 1, 0): {"M3D_WIDTH"}}
+    mw.current_game_rules = MagicMock()
+    mw.current_game_rules.get_problem_definitions.return_value = {"M3D_WIDTH": {"name": "Too wide", "description": "Too wide"}}
+    mw.current_game_rules.get_problem_detail.return_value = "line 1 is 76 px past the 50 px column"
+    mw.detection_enabled = {"M3D_WIDTH": True}
+
+    tooltip = LNETTooltipLogic(editor).find_warning_tooltip_at(QPoint(5, 5))
+
+    mw.current_game_rules.get_problem_detail.assert_called_with(0, 1, "M3D_WIDTH")
+    assert "<b>Too wide</b>: Too wide<br>line 1 is 76 px past the 50 px column" in tooltip
+    mw.close()

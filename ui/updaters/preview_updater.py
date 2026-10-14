@@ -2,6 +2,7 @@
 from typing import Optional, Any
 from collections import OrderedDict
 from PyQt6.QtCore import QTimer
+from ui.components.custom_preview import custom_preview_of
 from core.glossary_manager import GlossaryOccurrence
 from .base_ui_updater import BaseUIUpdater
 from utils.logging_utils import log_debug
@@ -571,7 +572,8 @@ class PreviewUpdater(TextViewsMixin, BaseUIUpdater):
             return
 
         all_bfn_fonts = getattr(self.mw, 'all_bfn_fonts', {})
-        fonts_loaded = bool(all_bfn_fonts)
+        custom_preview = custom_preview_of(self.mw)
+        fonts_loaded = bool(all_bfn_fonts) or custom_preview is not None
 
         if not fonts_loaded:
             preview_host.hide()
@@ -586,8 +588,10 @@ class PreviewUpdater(TextViewsMixin, BaseUIUpdater):
             if callable(activate_preview):
                 activate_preview()
             preview_host.show()
-            if preview_host is not preview_widget:
+            if preview_host is not preview_widget and custom_preview is None:
                 preview_widget.show()
+            if custom_preview is not None:
+                custom_preview.refresh()
             # Immediately update preview text when showing
             edited_text_raw = ""
             if self.mw.data_store.physical_block_idx != -1 and self.mw.data_store.current_string_idx != -1:

@@ -2,6 +2,7 @@
 from PyQt6.QtCore import QPoint
 from PyQt6.QtGui import QColor
 from typing import Optional
+import html
 import re
 
 
@@ -104,20 +105,23 @@ class LNETTooltipLogic:
 
         if problems:
             problem_definitions = main_window.current_game_rules.get_problem_definitions() if main_window.current_game_rules else {}
+            detail_for = getattr(main_window.current_game_rules, "get_problem_detail", None)
             for prob_id in sorted(list(problems)):
                 prob_def = problem_definitions.get(prob_id, {})
                 desc = prob_def.get("description", prob_id)
                 name = prob_def.get("name", "")
-                
+
                 detection_config = getattr(main_window, 'detection_enabled', {})
                 if not detection_config.get(prob_id, True):
                     continue
 
+                detail = detail_for(block_idx, string_idx, prob_id) if callable(detail_for) else ""
+                detail_html = f"<br>{html.escape(detail)}" if detail else ""
                 dot = _format_warning_dot(prob_def.get("color"))
                 if name:
-                    tooltip_lines.append(f"{dot}<b>{name}</b>: {desc}")
+                    tooltip_lines.append(f"{dot}<b>{name}</b>: {desc}{detail_html}")
                 else:
-                    tooltip_lines.append(f"{dot}{desc}")
+                    tooltip_lines.append(f"{dot}{desc}{detail_html}")
         
         if tooltip_lines:
             font_size = getattr(self.editor.window(), 'tooltip_font_size', 11)

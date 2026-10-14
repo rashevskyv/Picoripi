@@ -617,6 +617,16 @@ class BaseGameRules:
         cleaned = re.sub(r'\[[^\]]*\]', "", cleaned)
         return cleaned, None
 
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """A widget that draws the current text in the game's own viewer, in place of the BFN preview.
+
+        The host docks it above the BFN preview column and hides that preview. The host calls ``refresh()``
+        after each selection change and text edit, and ``update_preview_text(text, original=...)`` as it does
+        for the BFN preview. The widget reads the project through ``main_window``. It must have ``shutdown()``,
+        which the host calls before it deletes the widget. Default: None (the BFN preview is used).
+        """
+        return None
+
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
         """Per-string layout defaults derived from game data (e.g. the message's
         window type): {"warn_width": int, "max_width": int, "font_file": str,
@@ -751,6 +761,10 @@ class BaseGameRules:
 
     def get_tag_tooltip(self, tag: str) -> str:
         """Return an optional human-readable explanation for an editor tag."""
+        return ""
+
+    def get_problem_detail(self, block_idx: int, string_idx: int, problem_id: str) -> str:
+        """Return an optional detail for one problem of one string, shown under its name in the editor tooltip."""
         return ""
 
     def get_context_menu_actions(self, editor_widget, selected_text: Optional[str]) -> List[Dict[str, Any]]:

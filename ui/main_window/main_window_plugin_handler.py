@@ -12,6 +12,7 @@ from plugins.base_game_rules import BaseGameRules
 from utils.utils import clear_width_caches
 from utils.plugin_import import PLUGIN_IMPORT_LOCK
 from core.i18n import tr
+from ui.components.custom_preview import custom_preview_of
 
 
 if TYPE_CHECKING:
@@ -151,10 +152,45 @@ class MainWindowPluginHandler:
             log_error(error_msg, exc_info=True)
             self._load_fallback_rules(error_msg)
             
+        self.attach_custom_preview()
         if hasattr(self.mw, 'translation_handler'):
             self.mw.translation_handler.initialize_glossary_highlighting()
             
         self.update_warnings_filter_button()
+
+    def attach_custom_preview(self):
+        """Show the plugin's own preview widget in place of the BFN preview, or restore the BFN preview.
+
+        The widget comes from ``GameRules.get_custom_preview_widget``; None keeps the BFN preview.
+        """
+        mw = self.mw
+        column = getattr(mw, 'bfn_preview_column', None)
+        bfn = getattr(mw, 'bfn_preview_widget', None)
+        bar = getattr(mw, 'bfn_preview_window_bar', None)
+        old = custom_preview_of(mw)
+        if old is not None:
+            mw.custom_preview_widget = None
+            old.shutdown()
+            if column is not None:
+                column.layout().removeWidget(old)
+            old.hide()
+            old.deleteLater()
+            if bfn is not None:
+                bfn.show()
+            if bar is not None:
+                bar.show()
+        rules = getattr(mw, 'current_game_rules', None)
+        getter = getattr(rules, 'get_custom_preview_widget', None)
+        widget = getter(mw) if callable(getter) and column is not None else None
+        if widget is None:
+            return
+        mw.custom_preview_widget = widget
+        column.layout().insertWidget(0, widget, 1)
+        if bfn is not None:
+            bfn.hide()
+        if bar is not None:
+            bar.hide()
+        widget.refresh()
 
     def _load_custom_aliases(self):
         """Internal helper to load custom aliases."""

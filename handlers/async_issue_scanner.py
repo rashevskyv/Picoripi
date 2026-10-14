@@ -19,6 +19,7 @@ from typing import Any, Optional
 from PyQt6 import sip
 from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal
 
+from handlers.analyzer_context import analyzer_string_context
 from utils.logging_utils import log_error
 from utils.logging_utils import log_debug
 
@@ -160,11 +161,12 @@ class AsyncIssueScanner(QRunnable):
         """Internal helper to run warnings."""
         if not self.warnings_enabled:
             return []
+        # The tag check below also reads the string context, so the whole warning pass runs inside it.
+        with analyzer_string_context(self.analyzer, self.block_idx, self.string_idx):
+            return self._analyze_warnings()
 
-        # Set block and string index on analyzer for context-aware validation
-        self.analyzer._current_scan_block_idx = self.block_idx
-        self.analyzer._current_scan_string_idx = self.string_idx
-
+    def _analyze_warnings(self) -> list:
+        """Run the plugin warnings and the tag mismatch check for this string."""
         problems_in_string = []
         if hasattr(self.analyzer, "analyze_data_string"):
             problems = self.analyzer.analyze_data_string(

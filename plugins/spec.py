@@ -73,6 +73,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=("pasted", _LINE, "[PLAYER]"), returns=tuple),
         Hook("prepare_preview_glyph_text", "Text for the bitmap-font preview: (clean_text, per-character colours or None).",
              call=(_LINE,), returns=tuple),
+        Hook("get_custom_preview_widget", "A widget that draws the current text in the game's own viewer instead of the "
+             "BFN preview; it gets refresh() after each change and shutdown() before deletion. None: the BFN preview.",
+             call=None, optional=True),
         Hook("calculate_string_width_override", "Pixel width of a string when the game measures it its own way.",
              call=("text", {}, 6), returns=int, optional=True),
         Hook("get_font_for_block", "Font override for a block: {'original_font_name', 'font_name'}.",
@@ -111,6 +114,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_syntax_highlighting_rules", "List of (regex, QTextCharFormat) for the editor.", call=(), returns=list),
         Hook("get_legitimate_tags", "Tags that may appear in a translation.", call=(), returns=set),
         Hook("get_tag_tooltip", "Explanation shown for a tag.", call=("{tag}",), returns=str),
+        Hook("get_problem_detail", "Detail for one problem of one string (block, string, problem id), shown under "
+             "its name in the editor tooltip. Empty: no detail.", call=(0, 0, "X"), returns=str),
         Hook("get_tag_checker_handler", "Object that runs the plugin's tag-mismatch check, or None."),
         Hook("get_custom_context_tags", "Tags of the editor context menu: {'single_tags', 'wrap_tags'}.",
              call=(), returns=dict),
@@ -192,7 +197,11 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("project_icon", "A picture of the game for the Project Manager list (PNG or JPEG bytes) for the project folder, or None. Runs on the scan process. The user's icon.png wins.", call=None, returns=bytes, optional=True),
     )),
     ('Looked for by the host (not on the base class)', (
-        Hook("problem_analyzer", "Analyzer object: analyze_data_string(), registry.get_prefixed_id().",
+        Hook("problem_analyzer", "Analyzer object: analyze_data_string(), registry.get_prefixed_id(). "
+             "String context: the host sets _current_scan_block_idx and _current_scan_string_idx around each "
+             "string analysis and restores the previous values after. The values are per thread: a thread "
+             "sees only the values it set. Read them with getattr(..., None); "
+             "they are None outside a string analysis. Do not keep them after the call.",
              kind="attribute", on_base=False),
         Hook("tag_manager", "Tag manager object (GenericTagManager or a subclass).", kind="attribute", on_base=False),
         Hook("problem_ids", "Namespace of the plugin's problem ids (None for a plugin without problem definitions).",

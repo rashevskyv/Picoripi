@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt
 from utils.logging_utils import log_debug
 from utils.utils import calculate_string_width, remove_all_tags
 from core.i18n import tr
+from handlers.analyzer_context import analyzer_string_context
 
 
 class EditMixin:
@@ -209,35 +210,40 @@ class EditMixin:
             else:
                 logical_sublines = text_to_analyze.split('\n')
 
-            for subline_idx, sub_line_text in enumerate(logical_sublines):
-                sub_line_no_tags_rstripped = remove_all_tags(sub_line_text).rstrip()
-                width_px = calculate_string_width(sub_line_no_tags_rstripped, font_map_for_string)
-                
-                current_subline_problems = set()
+            # One analyzer call per text, with this data line's context set.
+            with analyzer_string_context(analyzer, self.mw.data_store.physical_block_idx, data_line_idx):
+                whole_problems = None
                 if hasattr(analyzer, 'analyze_data_string'):
-                    problems_per_subline_list = analyzer.analyze_data_string(text_to_analyze, font_map_for_string, warning_threshold, logical_hard_limit)
-                    current_subline_problems = problems_per_subline_list[subline_idx] if subline_idx < len(problems_per_subline_list) else set()
-                elif hasattr(analyzer, 'analyze_subline'):
-                    next_original_subline = logical_sublines[subline_idx + 1] if subline_idx + 1 < len(logical_sublines) else None
-                    current_subline_problems = analyzer.analyze_subline(
-                        text=sub_line_text,
-                        next_text=next_original_subline,
-                        subline_number_in_data_string=subline_idx,
-                        qtextblock_number_in_editor=subline_idx, 
-                        is_last_subline_in_data_string=(subline_idx == len(logical_sublines) - 1),
-                        editor_font_map=font_map_for_string,
-                        editor_line_width_threshold=warning_threshold,
-                        full_data_string_text_for_logical_check=text_to_analyze,
-                        logical_hard_limit=logical_hard_limit
-                    )
-                
-                statuses = []
-                for prob_id in current_subline_problems:
-                    if prob_id in problem_definitions:
-                        statuses.append(problem_definitions[prob_id]['name'])
-                
-                status_str = ", ".join(statuses) if statuses else "OK"
-                info_parts.append(f"  Sub-line {subline_idx+1} (rstripped): {width_px}px ({status_str}) '{sub_line_no_tags_rstripped[:30]}...'")
+                    whole_problems = analyzer.analyze_data_string(text_to_analyze, font_map_for_string, warning_threshold, logical_hard_limit)
+
+                for subline_idx, sub_line_text in enumerate(logical_sublines):
+                    sub_line_no_tags_rstripped = remove_all_tags(sub_line_text).rstrip()
+                    width_px = calculate_string_width(sub_line_no_tags_rstripped, font_map_for_string)
+
+                    current_subline_problems = set()
+                    if whole_problems is not None:
+                        current_subline_problems = whole_problems[subline_idx] if subline_idx < len(whole_problems) else set()
+                    elif hasattr(analyzer, 'analyze_subline'):
+                        next_original_subline = logical_sublines[subline_idx + 1] if subline_idx + 1 < len(logical_sublines) else None
+                        current_subline_problems = analyzer.analyze_subline(
+                            text=sub_line_text,
+                            next_text=next_original_subline,
+                            subline_number_in_data_string=subline_idx,
+                            qtextblock_number_in_editor=subline_idx,
+                            is_last_subline_in_data_string=(subline_idx == len(logical_sublines) - 1),
+                            editor_font_map=font_map_for_string,
+                            editor_line_width_threshold=warning_threshold,
+                            full_data_string_text_for_logical_check=text_to_analyze,
+                            logical_hard_limit=logical_hard_limit
+                        )
+
+                    statuses = []
+                    for prob_id in current_subline_problems:
+                        if prob_id in problem_definitions:
+                            statuses.append(problem_definitions[prob_id]['name'])
+
+                    status_str = ", ".join(statuses) if statuses else "OK"
+                    info_parts.append(f"  Sub-line {subline_idx+1} (rstripped): {width_px}px ({status_str}) '{sub_line_no_tags_rstripped[:30]}...'")
             if title_prefix == "Current": info_parts.append("") 
         
         result_dialog = QMessageBox(self.mw)

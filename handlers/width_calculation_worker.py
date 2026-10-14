@@ -2,6 +2,7 @@
 # handlers/width_calculation_worker.py
 from PyQt6.QtCore import pyqtSignal
 from typing import List, Dict, Any, Optional
+from handlers.analyzer_context import analyzer_string_context
 from utils.utils import calculate_string_width, remove_all_tags
 from utils.thread_utils import WorkerThread
 
@@ -113,50 +114,55 @@ class WidthCalculationWorker(WorkerThread):
                     game_status = f"EXCEEDS GAME DIALOG LIMIT ({total_game_width - logical_hard_limit}px)"
                 line_report_parts.append(f"    Total (game dialog, rstripped): {total_game_width}px ({game_status})")
 
-                for subline_idx, sub_line_text in enumerate(logical_sublines):
-                    sub_line_no_tags_rstripped = remove_all_tags(sub_line_text).rstrip()
-                    width_px = calculate_string_width(sub_line_no_tags_rstripped, font_map_for_string)
-                    
-                    # Add to chart entries ONLY for current text 
-                    if title_prefix == "Current":
-                        # CRITICAL: Calculate widths for ALL fonts now for "smooth switching"
-                        all_widths = {}
-                        for f_name, f_map in self.all_font_maps.items():
-                            all_widths[f_name] = float(calculate_string_width(sub_line_no_tags_rstripped, f_map))
-                        
-                        chart_entries.append({
-                            'text': sub_line_no_tags_rstripped,
-                            'block_idx': self.block_idx,
-                            'string_idx': data_str_idx,
-                            'line_idx': subline_idx,
-                            'width_pixels': float(width_px), # Default width (current/specified font)
-                            'widths': all_widths           # Multi-font widths
-                        })
-
-                    # Problem Analysis logic (stays the same as it depends on the specified/active font)
-                    current_subline_problems: set = set()
+                # Problem analysis: one analyzer call per text, with this string's context set.
+                with analyzer_string_context(analyzer, self.block_idx, data_str_idx):
+                    whole_problems: Optional[list] = None
                     if hasattr(analyzer, 'analyze_data_string'):
-                        problems_per_subline_list = analyzer.analyze_data_string(text_to_analyze, font_map_for_string, editor_warning_threshold, logical_hard_limit)
-                        current_subline_problems = problems_per_subline_list[subline_idx] if subline_idx < len(problems_per_subline_list) else set()
-                    elif hasattr(analyzer, 'analyze_subline'):
-                        next_subline = logical_sublines[subline_idx+1] if subline_idx + 1 < len(logical_sublines) else None
-                        current_subline_problems = analyzer.analyze_subline(
-                            text=sub_line_text, next_text=next_subline, 
-                            subline_number_in_data_string=subline_idx, qtextblock_number_in_editor=subline_idx,
-                            is_last_subline_in_data_string=(subline_idx == len(logical_sublines) - 1), 
-                            editor_font_map=font_map_for_string,
-                            editor_line_width_threshold=editor_warning_threshold,
-                            full_data_string_text_for_logical_check=text_to_analyze,
-                            logical_hard_limit=logical_hard_limit
-                        )
-                    
-                    statuses: List[str] = []
-                    for prob_id in current_subline_problems:
-                        if prob_id in problem_definitions:
-                            statuses.append(problem_definitions[prob_id]['name'])
-                    
-                    status_str = ", ".join(statuses) if statuses else "OK"
-                    line_report_parts.append(f"    Sub {subline_idx+1} (rstripped): {width_px}px ({status_str}) '{sub_line_no_tags_rstripped[:30]}...'")
+                        whole_problems = analyzer.analyze_data_string(text_to_analyze, font_map_for_string, editor_warning_threshold, logical_hard_limit)
+
+                    for subline_idx, sub_line_text in enumerate(logical_sublines):
+                        sub_line_no_tags_rstripped = remove_all_tags(sub_line_text).rstrip()
+                        width_px = calculate_string_width(sub_line_no_tags_rstripped, font_map_for_string)
+
+                        # Add to chart entries ONLY for current text
+                        if title_prefix == "Current":
+                            # CRITICAL: Calculate widths for ALL fonts now for "smooth switching"
+                            all_widths = {}
+                            for f_name, f_map in self.all_font_maps.items():
+                                all_widths[f_name] = float(calculate_string_width(sub_line_no_tags_rstripped, f_map))
+
+                            chart_entries.append({
+                                'text': sub_line_no_tags_rstripped,
+                                'block_idx': self.block_idx,
+                                'string_idx': data_str_idx,
+                                'line_idx': subline_idx,
+                                'width_pixels': float(width_px), # Default width (current/specified font)
+                                'widths': all_widths           # Multi-font widths
+                            })
+
+                        # Problem Analysis logic (stays the same as it depends on the specified/active font)
+                        current_subline_problems: set = set()
+                        if whole_problems is not None:
+                            current_subline_problems = whole_problems[subline_idx] if subline_idx < len(whole_problems) else set()
+                        elif hasattr(analyzer, 'analyze_subline'):
+                            next_subline = logical_sublines[subline_idx+1] if subline_idx + 1 < len(logical_sublines) else None
+                            current_subline_problems = analyzer.analyze_subline(
+                                text=sub_line_text, next_text=next_subline,
+                                subline_number_in_data_string=subline_idx, qtextblock_number_in_editor=subline_idx,
+                                is_last_subline_in_data_string=(subline_idx == len(logical_sublines) - 1),
+                                editor_font_map=font_map_for_string,
+                                editor_line_width_threshold=editor_warning_threshold,
+                                full_data_string_text_for_logical_check=text_to_analyze,
+                                logical_hard_limit=logical_hard_limit
+                            )
+
+                        statuses: List[str] = []
+                        for prob_id in current_subline_problems:
+                            if prob_id in problem_definitions:
+                                statuses.append(problem_definitions[prob_id]['name'])
+
+                        status_str = ", ".join(statuses) if statuses else "OK"
+                        line_report_parts.append(f"    Sub {subline_idx+1} (rstripped): {width_px}px ({status_str}) '{sub_line_no_tags_rstripped[:30]}...'")
                 
                 if title_prefix == "Current":
                     line_report_parts.append("")

@@ -38,6 +38,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_editor_page_size` | Lines per page in the editor. |  |
 | `process_pasted_segment` | Adapt pasted text to the tags of the original: (text, status, message). |  |
 | `prepare_preview_glyph_text` | Text for the bitmap-font preview: (clean_text, per-character colours or None). |  |
+| `get_custom_preview_widget` | A widget that draws the current text in the game's own viewer instead of the BFN preview; it gets refresh() after each change and shutdown() before deletion. None: the BFN preview. |  |
 | `calculate_string_width_override` | Pixel width of a string when the game measures it its own way. |  |
 | `get_font_for_block` | Font override for a block: {'original_font_name', 'font_name'}. |  |
 | `get_font_sources` | The game's bitmap fonts for the font editor: [{label, format (bfn, n64, g1t, g1n, bffnt, bcfnt, bffnt_wiiu, brfnt, qbf, gzf, bfotf, tmp_sdf, mgs, mgs1, mgs1_hd, m2, nftr, cv_nds, ffta2, xf, g4font, vagrant, gba_tiles, cv_gba, retro_font, retro_font_gx, retro_font_gc, pgf, twewy, policenauts, texture_grid, zelda3, lunar, is_obd, dq9, jade, brfna, swf_font, rrr_errfont, eternal_darkness, fragile_dreams, fntg, mt_font, pmd_font, fe13_bfnt, laft, phyre_bmf, cop_fnt, jfnt, nlg_font, cells, ttf, mgs_nht, mof_font, pw_xpr, l5_fnt, ubiart_tfn, asw_jfnt, cfna, gen4_glyphs, layton_gfnt, layton_hd, layton_nftr), path, member, companion, font_map, params, preview}]; preview: the host measures widths and draws the bitmap preview with that font. Default: font_sources.json in the plugin folder. |  |
@@ -64,6 +65,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_syntax_highlighting_rules` | List of (regex, QTextCharFormat) for the editor. |  |
 | `get_legitimate_tags` | Tags that may appear in a translation. |  |
 | `get_tag_tooltip` | Explanation shown for a tag. |  |
+| `get_problem_detail` | Detail for one problem of one string (block, string, problem id), shown under its name in the editor tooltip. Empty: no detail. |  |
 | `get_tag_checker_handler` | Object that runs the plugin's tag-mismatch check, or None. |  |
 | `get_custom_context_tags` | Tags of the editor context menu: {'single_tags', 'wrap_tags'}. |  |
 | `save_custom_context_tags` | Store the context-menu tags. |  |
@@ -134,7 +136,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 
 | Hook | What it is for | Notes |
 |---|---|---|
-| `problem_analyzer` | Analyzer object: analyze_data_string(), registry.get_prefixed_id(). | looked for, attribute |
+| `problem_analyzer` | Analyzer object: analyze_data_string(), registry.get_prefixed_id(). String context: the host sets _current_scan_block_idx and _current_scan_string_idx around each string analysis and restores the previous values after. The values are per thread: a thread sees only the values it set. Read them with getattr(..., None); they are None outside a string analysis. Do not keep them after the call. | looked for, attribute |
 | `tag_manager` | Tag manager object (GenericTagManager or a subclass). | looked for, attribute |
 | `problem_ids` | Namespace of the plugin's problem ids (None for a plugin without problem definitions). | attribute |
 | `PROBLEM_MISSING_ICON_SPACING` | Id of the 'missing space next to an icon' problem. | looked for, attribute |

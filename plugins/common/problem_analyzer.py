@@ -1,4 +1,5 @@
 """GenericProblemAnalyzer: runs the shared problem rules for a plugin."""
+import threading
 from typing import Optional, Set, List
 import re
 from plugins.common.problem_rules import (
@@ -18,6 +19,29 @@ class GenericProblemAnalyzer:
     star_section_mode: Optional[bool] = None   # sections of a string are opened by a star tag
     # Line breaks are stored as backslash escapes (n, p, l) rather than as newlines.
     escaped_line_breaks: bool = False
+
+    # The string being analysed. Each thread keeps its own pair, so two threads that
+    # analyse strings with the same analyzer do not see each other's indexes.
+    # Outside a string analysis both read as None.
+    def _scan_local(self) -> threading.local:
+        # dict.setdefault is atomic, so two threads cannot create two stores.
+        return self.__dict__.setdefault("_scan_string_local", threading.local())
+
+    @property
+    def _current_scan_block_idx(self) -> Optional[int]:
+        return getattr(self._scan_local(), "block_idx", None)
+
+    @_current_scan_block_idx.setter
+    def _current_scan_block_idx(self, value: Optional[int]) -> None:
+        self._scan_local().block_idx = value
+
+    @property
+    def _current_scan_string_idx(self) -> Optional[int]:
+        return getattr(self._scan_local(), "string_idx", None)
+
+    @_current_scan_string_idx.setter
+    def _current_scan_string_idx(self, value: Optional[int]) -> None:
+        self._scan_local().string_idx = value
 
     def __init__(self, main_window_ref, tag_manager_ref, problem_definitions_ref, problem_ids_ref,
                  tag_style: Optional[str] = None, star_section_mode: Optional[bool] = None):
