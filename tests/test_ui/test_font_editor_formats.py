@@ -162,6 +162,36 @@ def test_bfn_font_inside_an_archive_is_written_back_into_the_archive(qtbot, tmp_
     assert widths["B"] == {"width": 5}
 
 
+def _linear_bfn():
+    """Super Mario Sunshine's layout: a linear map (type 0) of 0x41-0x42 followed by non-zero padding."""
+    inf1 = b"INF1" + struct.pack(">I6HI", 32, 0, 6, 2, 8, 8, 0x20, 0) + bytes.fromhex("6f7b6f7b6f7b6f7b")
+    wid1 = b"WID1" + struct.pack(">IHH", 32, 0, 1) + bytes([0, 6, 0, 7]) + bytes(16)
+    map1 = b"MAP1" + struct.pack(">IHHHH", 32, 0, 0x41, 0x42, 0) + bytes.fromhex("77bd" * 8)
+    gly1 = b"GLY1" + struct.pack(">IHHHHIHHHHH", 96, 0, 1, 8, 8, 64, 0, 2, 1, 16, 8) + bytes(2) + bytes(64)
+    body = inf1 + wid1 + map1 + gly1
+    return b"FONTbfn1" + struct.pack(">II", 32 + len(body), 4) + bytes(16) + body
+
+
+def test_a_linear_bfn_in_an_archive_folder_saves_unchanged_byte_for_byte_and_takes_a_drawn_glyph(qtbot, tmp_path):
+    font = tmp_path / "source" / "files" / "data" / "nintendo.szs" / "font" / "standard_fontex.bfn"
+    font.parent.mkdir(parents=True)
+    font.write_bytes(_linear_bfn())
+    descriptors = [{"label": "System font", "format": "bfn", "path": "files/data/nintendo.szs/font/standard_fontex.bfn"}]
+    window = _MainWindow(tmp_path, descriptors)
+    qtbot.addWidget(window)
+    written = tmp_path / "mod" / "files" / "data" / "nintendo.szs" / "font" / "standard_fontex.bfn"
+
+    editor = _open(window, "System font")
+    editor.save_changes(silent=True)
+    assert written.read_bytes() == font.read_bytes()
+
+    editor.sheet_images[0].setPixelColor(9, 2, QtGui.QColor(255, 255, 255, 255))    # the cell of B (glyph 1)
+    editor.save_changes(silent=True)
+    again = _open(window, "System font")
+    assert again.sheet_images[0].pixelColor(9, 2).alpha() == 255
+    assert written.read_bytes()[:-64] == font.read_bytes()[:-64]       # only the texture changed
+
+
 def test_font_jobs_run_in_a_worker_thread_one_after_another(qtbot, monkeypatch):
     from PyQt6.QtCore import QThread
     from utils import app_mode

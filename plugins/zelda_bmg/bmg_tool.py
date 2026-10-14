@@ -4,8 +4,10 @@ import sys
 import struct
 import json
 
-# Supported encodings
+# Supported encodings. Value 0 is Super Mario Sunshine's (GMSE01): all its BMG files use it, read as cp1252 with
+# the Shift-JIS fallback in BMGFile.load. Keep 1 after 0: ENCODINGS_REV maps cp1252 back to 1.
 ENCODINGS = {
+    0: 'cp1252',
     1: 'cp1252',
     2: 'utf-16',
     3: 'shift_jis',
@@ -139,6 +141,9 @@ class BMGFile:
 
             elif sec_magic == b'DAT1':
                 dat_data = sec_data[8:]
+                # Most files start DAT1 with a NUL; the first string then sits at offset 1. Some (Super Mario Sunshine's
+                # dolpic1.bmg) start with text at offset 0. The save keeps the file's own choice.
+                self.dat1_leading_null = dat_data[:1] == b'\0'
 
             elif sec_magic == b'MID1':
                 count, entry_len, unk = struct.unpack_from(se + 'HHI', sec_data, 8)
@@ -391,8 +396,9 @@ class BMGFile:
         dat1 = bytearray(8)
         mid1 = bytearray(16)
 
-        # First entry in DAT1 is always a null character
-        dat1.extend(null_char)
+        # First entry in DAT1 is a null character, as the loaded file had one (a new file always has it).
+        if getattr(self, 'dat1_leading_null', True):
+            dat1.extend(null_char)
 
         entry_len = 4
         if self.messages:

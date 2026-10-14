@@ -191,7 +191,7 @@ def extract_bfn_logic(bfn_path, output_dir):
                 "entries": [int(e) for e in entries]
             }
             tail = chunk_body[8 + len(entries) * 2:]
-            if mapping_type != 0 and any(tail):  # padding, or the data of a type the editor does not read
+            if any(tail):  # padding (not zero after a Super Mario Sunshine linear map), or data the editor does not read
                 map1["tail"] = tail.hex()
             metadata["MAP1"].append(map1)
             
@@ -381,16 +381,13 @@ def repack_bfn_logic(input_dir, output_bfn_path):
             entry_count
         ))
         
-        if mapping_type == 0:
-            writer_buf.extend(b'\x00' * 16)
-        elif mapping_type == 2:
+        if mapping_type == 2:
             for entry in entries:
                 writer_buf.extend(struct.pack('>H', entry))
         elif mapping_type == 3:
             for entry in map_lists_to_pairs(entries):
                 writer_buf.extend(struct.pack('>H', entry))
-        if mapping_type != 0:
-            writer_buf.extend(bytes.fromhex(map1.get("tail", ""))[:-len(writer_buf) % 32])
+        writer_buf.extend(bytes.fromhex(map1.get("tail", ""))[:-len(writer_buf) % 32])
 
         while len(writer_buf) % 32 != 0:
             writer_buf.append(0)

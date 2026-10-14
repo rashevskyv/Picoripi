@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-14
 owns: unfinished work
-tokens: 31.6k
+tokens: 32.2k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -17,7 +17,7 @@ the line when it is done or moved into a plan.
 - The SWUK import copies `region_common/ui/StartUp.arc` and `jpn_heading.bffnt`, made for v1.1.0, over the 1.0.0 files. Not checked on 1.0.0.
 - NCZ decompression (about 6 GB for this game) sends no progress; the dialog keeps its last text until the files are written.
 - A killed process or a power loss during an unpack leaves `.unpack-<id>` in the project folder (a cancel or an error removes it), now with the NCZ cache inside; nothing removes it later.
-- `core/containers/switch_nsz.py` imports `compression.zstd` itself (it needs the streaming decoder), not through `core/zstd_frame.py`; an `.nsz` needs Python 3.14 (no `zstandard` fallback).
+- An `.nsz` needs Python 3.14: `core/containers/switch_nsz.py` takes the streaming decoder from `core/zstd_frame.stdlib()` (no `zstandard` fallback). NCZBLOCK blocks above 16 MiB (`MAX_BLOCK_EXP` 24) are refused; nsz writes 1 MiB by default.
 
 ## 3DS manual simulator (`plugins/manual_3ds`, 2026-10-14)
 
@@ -148,7 +148,7 @@ the line when it is done or moved into a plan.
 - Duplicate LZ10 (round 6 item) is still open: `core/containers/level5.py` `_lz10` next to `core/containers/lz10.py`.
 - `plugins/pokemon_gen7/rules.py` is a copy of `plugins/pokemon_gen6/rules.py` (33 changed lines: tables, GARC ids, names). Both use `plugins/common/gfmsg`. A shared base for the Game Freak `.dat` plugins is a later refactor.
 - Licence notices: `core/texture_formats/xenos.py` carries the full Xenia BSD-3 text (Ben Vanik, 2015); `core/containers/layton_ds.py` carries the full MIT text of bullbin's madhatter (2024), which its pack codec is ported from; `core/containers/romfs_write.py` carries the full MIT text of Peiikai's LAS Recomp (2026), which it is ported from (`runtime/romfs_build.c`); `core/containers/switch_nsz.py` cites nsz (MIT) for format facts only. Jak (`fr3`) cites the OpenGOAL port for format facts only; no OpenGOAL source is copied. The OpenGOAL licence was not checked.
-- Zstd: `core/zstd_frame.py` is the one zstd helper (`compression.zstd` or `zstandard`, imported inside the calls). `fr3` and `core/unreal/pak.py` use it.
+- Zstd: `core/zstd_frame.py` is the one zstd helper (`compression.zstd` or `zstandard`, imported inside the calls). `fr3`, `core/unreal/pak.py`, the RVZ reader (`core/containers/wia.py`) and the NCZ reader (`stdlib()`) use it; `core/containers/sarc.py` imports `compression.zstd` itself for its dictionaries.
 - `feat/ready-dk` does not exist; Donkey Kong is not in round 7.
 - Ultra boot proof still open (round 6 item); the Sun/Moon plugin has no boot check either.
 - Full suite at 6f5a0d89 (`python tasks.py test`, parallel): 9344 passed, 13 skipped, 2 xfailed, 0 failed (601 s). Round 6's xdist worker crashes did not recur in this run.
@@ -1078,7 +1078,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 
 ## Unpack in Picoripi (phase 1, 2026-10-13)
 - Phase 2: the console key file (D30 has the owner's rule). Wii, Wii U, 3DS and Switch images need it. Wii discs need a partition reader too.
-- RVZ, WIA, Wii and NKit images of other kinds are not read; the zt scripts still convert them with DolphinTool or wit. The wizard says so and asks for an ISO. NKit GameCube discs are read as they are (D30 addendum).
+- Wii WIA and RVZ images, and NKit images of other kinds, are not read; the zt scripts still convert them with DolphinTool or wit. The wizard says so and asks for an ISO. GameCube WIA and RVZ are read natively since D33 (`core/containers/wia.py`). NKit GameCube discs are read as they are (D30 addendum).
 - Phase 2a is wired (D30 addendum). Recorded differences, not fixed (the workspaces are not regenerated):
   - Curious Village (Layton DS): the unpack writes 65 more `.gds` scripts than the workspace has (465 text files against 400 blocks). The plugin gives rows for them, and the current zt agrees.
   - SoulSilver (Gen 4): `a/1/3/3` differs from the HeartGold-based workspace. The HeartGold output matches it.
@@ -1139,3 +1139,10 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Audit r17, reversed in audit r18: the wizard free-space check counts every `images.UNPACK_KINDS` image again, Switch and Wii included. The r17 split `images.SPACE_KINDS` is removed; test `test_switch_and_wii_images_count_toward_the_room_check`.
 - Audit r17, open: a packed 3DS code section is decoded whole by the pure-Python BLZ loop (`core/containers/nitro.py`, up to 64 MB). Cancel is checked only between entries, so a cancel waits for that decode.
 - Audit r17, open: `ImageError` texts of the container readers reach the wizard's "Unpacking failed" line untranslated. Route them through `tr()` when those readers are next changed.
+- Super Mario Sunshine (2026-10-14): the project is registered from the complete RVZ, now at `GameCube\source\Super Mario Sunshine (USA).rvz` in the workspace (same SHA-256 as the old `D:\RomHacking_tmp` copy, which is deleted). The project's translation folder is still empty.
+- Super Mario Sunshine: Dolphin (private copy) showed a menu string, a subtitle line and the airport0 speech balloon in Latin, and the balloon again with Ukrainian through the code map (D35): every letter one cell, both lines whole, no crash. The cells still hold the Latin-1 letters until the translator draws Cyrillic. The Latin-1 line of airport0 #1 (Toadsworth) did not come up in the 200 s run.
+- Super Mario Sunshine: the port overlay matches both ports' loader (`platform/dvd/dvd.cpp` `overlay_dir`, sms-port 9d86575 as pinned by sms-switch b16ef26): `mods/<name>/files`, a folder named after a disc archive replaces members inside it, member paths compared in lower case; on Switch the folder is `sdmc:/switch/sms`.
+- Super Mario Sunshine: the executable's English text (11 strings, `dol_text.py`, D32) is editable; the two progressive-scan confirmations with escape codes are not in it yet. Dolphin check of the executable text is still open.
+- Super Mario Sunshine: the four `dolpic1.bmg` (Shift-JIS Japanese) save only when every message is replaced (a Japanese character has no code); whether the NA game shows them is unchecked.
+- Super Mario Sunshine: the system font and the subtitle font open in the Font Editor (`font_sources.json`); no Cyrillic glyphs are drawn (the translator's job). The two `test_fontex.bfn` (title and common archives) are Shift-JIS fonts (type 2) without the code map's cells and are not listed: which text they draw is not known. No width map (`font_map`) is declared yet, so the width check does not use the game font.
+- Super Mario Sunshine: escape tags and the attribute tables are still the Twilight Princess ones; the SMS tag catalogue is not written.

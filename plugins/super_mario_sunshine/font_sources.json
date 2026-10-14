@@ -1,0 +1,12 @@
+[
+  {
+    "label": "System font (balloons, menus; standard_fontex.bfn)",
+    "format": "bfn",
+    "path": "files/data/nintendo.szs/font/standard_fontex.bfn"
+  },
+  {
+    "label": "Subtitle font (demo_font.bfn)",
+    "format": "bfn",
+    "path": "files/data/subtitle.szs/font/demo_font.bfn"
+  }
+]

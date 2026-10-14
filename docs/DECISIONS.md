@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-12
+updated: 2026-10-14
 owns: decisions and their reasons
-tokens: 16.7k
+tokens: 19.6k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -678,3 +678,135 @@ AES. Encrypted reads stop at the seam; they are not built.
   - Switch, Skyward Sword HD base NSP against its `romfs` workspace folder: 162 workspace files in `exefs` and `romfs`, 161 equal. The one difference, `romfs\EU\Object\nl_NL\5-CenterField.arc` (workspace 234554 bytes, dated 2026-10-04; ours 234522 = the RomFS table size), is most likely an edited workspace file; not confirmed.
   - Wii: unverified. The workspace holds no `keys.bin` on this PC.
   - Miracle Mask is not seed-crypto (the earlier phase 2b note that said it was is wrong; see OPEN_ITEMS).
+
+## D31. Super Mario Sunshine (GameCube GMSE01 Rev 0): BMG encoding 0, an in-place disc writer, a speech-balloon patch (2026-10-14)
+
+**Context.** The disc is the owner's GMSE01 Rev 0 (USA). Its 171 BMG files all carry encoding byte 0, which
+`bmg_tool` rejected. Dolphin runs the retail `main.dol`, which reads every byte from 0x80 up as a two-byte lead, so
+single-byte Cyrillic breaks in speech balloons. No GameCube writer existed in Picoripi. Facts come from the decomp
+(CC0) and the port's notes (MIT); no code was copied.
+
+**Decision.**
+- `bmg_tool.ENCODINGS` gains `0: cp1252`. The existing Shift-JIS fallback reads the four `pinnaBeach*.szs`
+  `dolpic1.bmg` files. Other games with byte 0 raised "Unknown encoding ID" before; they now load. Keep 1 after 0 in
+  the table: `ENCODINGS_REV` maps cp1252 back to 1.
+- Four `dolpic1.bmg` (Shift-JIS, `pinnaBeach*.szs`) do not round-trip their INF1. Cause, measured 2026-10-14: their
+  DAT1 starts with the first text, not with a NUL byte. The save path writes every INF1 string offset one higher
+  (1-based, as in the other files, which start with a NUL). It is a base offset, not the entry size (8 bytes here).
+  The build refuses any change to a BMG's INF1 (`plugins/super_mario_sunshine/build.py`). The other 167 round-trip
+  byte for byte (`test_real_disc.py`).
+- `core/containers/gcm_writer.py` writes a disc: it streams a copy to `<out>.tmp`, overwrites a changed file in
+  place, zero-fills a shorter one, moves a grown one to the first free 0x8000-aligned gap, patches its FST entry, and
+  replaces `out` at the end. It adds no files, changes only `sys/main.dol` (same size) among the system files, and
+  refuses the source as output. Measured on this disc: an unchanged rebuild equals the source byte for byte; the
+  DOL patch changes only its four words.
+- The speech-balloon fix is four words of the retail `main.dol` (`plugins/super_mario_sunshine/dol_patch.py`): sites
+  A, C and D compare with 0x100 instead of 0x80; site B replaces `extsb r3,r3` with `ori r3,r3,0` so the width lookup
+  stays unsigned. Each word is checked before it is written, so another executable is refused. `gc_iso` applies it
+  when the translation changes any file. Owner decision, 2026-10-14.
+- The port pack (`port_pack`) writes each changed archive member under `files/<archive path>/<member>`, the port's
+  overlay rule. It never writes `sys/main.dol`: the ports do not read it from the disc.
+- `ContainerManager` now registers `.szs` for the project scan. The extension list is global, so other games' `.szs`
+  files that are RARC or U8 are opened as archives too. Check those projects after the change.
+
+**Cost and limits.** Cyrillic coverage of the font is not drawn here (the translator's job). Dolphin proof: the disc
+on disk is a damaged download: the file ends in an HTML page at 0x4F800000 (1272 MiB) and the file table reaches
+0x57058000, so 16 entries (common, title, select, mario, particle and others) are missing. A complete GMSE01 Rev 0
+dump is needed before unpack, Dolphin and the Picoripi project can work. Open: the shipped DOL text, the Shift-JIS
+display in `dolpic1` on NA, the tag catalogue (Twilight Princess tags are used for now).
+
+## D32. Super Mario Sunshine: no global container registration; archives as folders; the executable's text (2026-10-14)
+
+**Context.** D31 registered `.szs` (and `.dol`) with `ContainerManager`. The registration is global: the project scan
+then opens every `.szs` and `.dol` of every game as an archive (`core/project/blocks_mixin.py`, `archive_extensions`),
+which changes how other games' projects are read. The four `dolpic1.bmg` files did not round-trip because the BMG save
+always writes a leading NUL in DAT1; their DAT1 starts with text.
+
+**Decision.**
+- Picoripi registers no container for this plugin. `unpack_sources` turns each RARC `*.szs` under `files/` into a folder
+  of its members (`files/data/scene/bianco0.szs/map/message.bmg`), the same layout as the port overlay. The GameCube
+  build rebuilds a changed archive from the disc's own copy (`build._archive_bytes`) and keeps Yaz0 when the disc has it.
+- The executable's English text is one editable file, `sys/main_strings.dolstr` (JSON), written at unpack. Eleven plain
+  strings: the progressive-scan question, Yes, No, the card title, the English save comment and the six disc-error lines.
+  Each has its retail room (English length with its NUL). A text that does not fit, or has a character outside one byte
+  (cp1252), is refused. The two progressive-scan confirmations with escape codes are not in this version
+  (`plugins/super_mario_sunshine/dol_text.py`). A changed text is written into `sys/main.dol` at build, and the speech fix
+  follows (`dol_patch.ensure`).
+- The BMG save keeps each file's own DAT1 base: a file that starts DAT1 with text (dolpic1) keeps its string offsets.
+  Files with a leading NUL are unchanged. The INF1 guard stays: a change to INF1 is refused.
+- Measured on the reference `main.dol` copy (SHA-256 13934c86...9955): an unchanged document reproduces the executable
+  exactly; a shorter text changes only its own room.
+
+**Supersedes** the `.szs` and `.dol` registration bullets and the "INF1 refused for four files" cost of D31.
+
+**Cost.** The disc on disk is now a new download in progress (`_new\Super Mario Sunshine (USA, Canada).rvz`, 0 bytes and
+a `.part` file, 2026-10-14). The original ISO is not at its path, so the four real `dolpic1` round-trips and the real
+archive folder test cannot run until a complete image is back. The English executable text has not been tested in
+Dolphin.
+
+## D33. WIA and RVZ images are read as the disc they hold; the file is never converted or written (2026-10-14)
+
+**Context.** The owner's Super Mario Sunshine image is an RVZ. Picoripi refused WIA and RVZ ("convert it to a plain
+ISO first"), so the owner had to convert by hand. Dolphin's WiaAndRvz.md (external, not in this repo; WIA 1.00 and the RVZ additions) is the
+spec; the decoder is written from it. Dolphin's source was read for three facts only: the raw-data and group tables are
+compressed with the disc's method, the packed junk segments are the spec's format, and the generator's output is the
+spec's arithmetic. No code was copied.
+
+**Decision.**
+- `core/containers/wia.py`: `WiaStream` presents a WIA or RVZ image as a read-only plain disc stream (`seek`, `tell`,
+  `read`). `GameCubeImage` reads it unchanged. Groups are decoded when a read needs them; the last two are cached.
+  Methods: none, bzip2, LZMA, LZMA2 (WIA and RVZ) and Zstandard (RVZ, `core/zstd_frame.py`). RVZ packing (junk as seed) is
+  reproduced by the spec's Lagged Fibonacci generator (`junk_bytes`). Refused with the reason: Wii partitions, the Purge
+  method, unknown methods and chunk sizes.
+- `images.py` accepts GameCube WIA and RVZ (identify, extract). The refusal table is empty; Wii WIA and RVZ are refused
+  by the reader with the reason. The disc writer (`gcm_writer.write_disc`) and the archive rebuild read their source
+  through `open_disc`, so an RVZ source is copied as its ISO. The output is always a plain ISO; no RVZ is written.
+- Tests (`tests/test_core/test_wia_reader.py`): a small writer in the test builds every method, junk packing, zero groups,
+  chunk sizes of 32 KiB (RVZ) and 2 MiB (WIA), random reads, the refusals, and identify and extract on an RVZ. Each decoded
+  image is compared with the plain image it came from. The junk generator is compared with a literal transcription of the
+  spec.
+- Measured on the owner's complete image (our copy, read only): `GMSE01`, revision byte 0x07 = 0, disc size
+  1,459,978,240. `sys/main.dol` has the retail SHA-256. The whole disc decodes in about 32 s. Compared byte for byte with
+  DolphinTool's own conversion of the same file (a private copy under `D:\RomHacking_tmp`): 0 differing bytes.
+
+**Cost.** The Lagged Fibonacci generator runs in pure Python (no numpy dependency): junk is slower than other data, about
+10 MB/s, and only junk regions that are read pay it. A GameCube WIA or RVZ with a chunk larger than 64 MiB is refused.
+
+## D34. The INF1 guard compares attributes, not string offsets (2026-10-14)
+
+**Context.** The first real text edit (the proof) was refused: "the message attributes (INF1) changed". Each INF1 entry
+holds a string offset into DAT1 first, and a text edit that changes a string's length moves every later offset. The
+guard compared whole INF1 sections, so it refused every real edit. Its unit test had not caught it because the synthetic
+edit kept the offsets.
+
+**Decision.** `plugins/super_mario_sunshine/build.py` compares, per BMG, the INF1 header fields (count, entry size, id)
+and each entry's attribute bytes (everything after the first four). The offsets are not compared. A changed attribute
+is still refused. Tests: `test_build.py` (attribute change refused; offset-only change accepted, real BMG layout).
+
+**Cost.** A text edit that also rewrites an attribute byte is refused: the translator changes text, not box attributes.
+
+## D35. Super Mario Sunshine: Ukrainian letters on one-byte codes the game's text does not use (2026-10-14)
+
+**Context.** The game's text is one byte per character; the BMG save wrote any other character as '?'. The plugin used
+the Twilight Princess translation map, which is empty. Measured on the disc: the 187 cp1252 BMG files use only ASCII
+and 0xA5 (the Y-button cell, `balloon.bmg`); the executable's strings add 0x99 (™); the four `dolpic1.bmg` are Shift-JIS
+Japanese. The system font and the subtitle font are type 0 with a linear map 0x20-0xFF (224 cells, Latin-1 glyphs and
+button icons), so every one-byte code already has a cell: no cell has to be added.
+
+**Decision.**
+- `plugins/super_mario_sunshine/translation_map.json` (read-only, shipped; `GameRules.data_dir` points at the plugin,
+  so a project gets a copy as for Wind Waker): the 66 Ukrainian letters on their cp1251 codes, except Ґ on 0xA8
+  (cp1251 0xA5 is the Y button), and the apostrophe U+02BC on 0xA2. Every value is in 0xA1-0xFF: one Latin-1 byte, which
+  the font editor accepts as a slot (its value check rejects 0x7F-0xA0). The typographic ’ (U+2019) stays native 0x92,
+  whose cell already has the glyph.
+- The BMG save and the executable-text save encode through the map. A character with no one-byte code, or one whose
+  code belongs to a Ukrainian letter (À would show as А), is refused with the character and the message id; the check
+  runs before the BMG save, which would turn an error into an empty file. A BMG read as Shift-JIS is written as cp1252,
+  so `dolpic1.bmg` saves once all its Japanese is replaced.
+- The BFN engine keeps the non-zero padding after a linear MAP1, so the two fonts save byte for byte when unchanged.
+  The fonts are listed as loose files of the archive folders (`font_sources.json`); the two Shift-JIS `test_fontex.bfn`
+  are not listed (in a type 2 font, 0x81-0x9F and 0xE0-0xFC are lead bytes).
+
+**Cost.** Until the translator draws Cyrillic, the mapped cells show their Latin-1 letters (Dolphin shows "Ïðèâ³ò" for
+"Привіт"). The cp1251 codes of Ъ Ы Э stay free. Text in layouts (`.blo`) was not measured; a layout that
+draws a mapped code would show the Cyrillic letter.

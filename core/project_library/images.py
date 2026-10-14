@@ -3,8 +3,9 @@
 ``identify`` reads only the headers, by content, never by file name. ``extract`` writes the files a plugin asks for, in
 the folder layout of the zt scripts' ``source`` folder. NKit GameCube discs are read as they are (the layout is the
 same). Nintendo 3DS programs are read when they are decrypted (NoCrypto); encrypted 3DS, Switch and Wii content raises
-``ImageError`` from ``core.containers.console_crypto``. Formats this module does not read (RVZ, WIA, other NKit
-kinds) raise ``ImageError`` with the reason: a plugin reports it, and never converts an image.
+``ImageError`` from ``core.containers.console_crypto``. GameCube WIA and RVZ images are read as the plain disc they
+hold (``core.containers.wia``); the file is never converted or written. Formats this module does not read (other
+NKit kinds, Wii WIA or RVZ) raise ``ImageError`` with the reason: a plugin reports it.
 All functions run on a worker thread: they read and write files, never touch widgets.
 """
 from __future__ import annotations
@@ -21,6 +22,7 @@ from core.containers.console_crypto import encrypted_error, key_path
 from core.containers.gcm import GameCubeImage, HEADER_SIZE, is_gamecube_header
 from core.containers.image_files import ImageError, ImageFile, ImageReader, copy_range
 from core.containers.nds import NdsImage, is_nds_header
+from core.containers.wia import WiaStream, is_wia_or_rvz
 from core.i18n import tr
 
 Progress = Callable[[int, str], None]
@@ -36,16 +38,22 @@ CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii
 UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS, KIND_SWITCH, KIND_WII))   # the kinds an unpack step can read
 WII_MAGIC_AT = wii_disc.WII_MAGIC_AT
 WII_MAGIC = wii_disc.WII_MAGIC
-_UNSUPPORTED = {
-    b"RVZ\x01": "an RVZ image: convert it to a plain ISO first",
-    b"WIA\x01": "a WIA image: convert it to a plain ISO first",
-}
+_UNSUPPORTED: Dict[bytes, str] = {}
 
 
 def _describe(stream: Any, head: bytes) -> Optional[Dict[str, Any]]:
     """``{"kind", "game_id", "encrypted", ...}`` of a supported image, or None. Leaves the stream at offset 0."""
+    if is_wia_or_rvz(head):   # the decoded disc's header; a Wii WIA or RVZ raises ImageError from the reader
+        stream.seek(0)
+        disc_head = WiaStream(stream).read(HEADER_SIZE)
+        stream.seek(0)
+        if is_gamecube_header(disc_head):
+            return {"kind": KIND_GC, "game_id": disc_head[:6].decode("ascii", "replace"), "encrypted": False,
+                    "revision": disc_head[7]}
+        return None
     if is_gamecube_header(head):
-        return {"kind": KIND_GC, "game_id": head[:6].decode("ascii", "replace"), "encrypted": False}
+        return {"kind": KIND_GC, "game_id": head[:6].decode("ascii", "replace"), "encrypted": False,
+                "revision": head[7]}
     if is_nds_header(head):
         return {"kind": KIND_NDS, "game_id": head[0x0C:0x10].decode("ascii", "replace"), "encrypted": False}
     found = wii_disc.locate(head)
@@ -115,6 +123,8 @@ def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
         return GameCubeImage(stream)
     if is_nds_header(head):
         return NdsImage(stream)
+    if is_wia_or_rvz(head):   # the decoded disc, read in place: the file is never written
+        return GameCubeImage(WiaStream(stream))
     found = _describe(stream, head)
     if found is not None:
         kind = found["kind"]
