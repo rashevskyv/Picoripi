@@ -96,10 +96,23 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
         if isinstance(identity, dict) and str(identity.get("role") or "") in known:
             role = str(identity["role"])
             platform = str(identity.get("platform") or "")
-        console = images.needs_key(path) or ""
+        console = _key_console(rules, path)
         result.append({"path": path, "role": role, "platform": platform, "key": console,
                        "key_ready": bool(console) and console_keys.path_for(console) is not None})
     return result
+
+
+def _key_console(rules: Any, path: str) -> str:
+    """The console whose key file an encrypted file needs, when the game's unpack reads that console; else ""."""
+    console = images.needs_key(path) or ""
+    if not console:
+        return ""
+    try:
+        consoles = [str(item) for item in rules.unpack_key_consoles()]
+    except Exception as exc:  # a plugin's bug must not stop the wizard; no key is asked for
+        log_warning(f"unpack_key_consoles failed: {exc}")
+        consoles = []
+    return console if console in consoles else ""
 
 
 def _root(base: Path, value: Any) -> Optional[Path]:

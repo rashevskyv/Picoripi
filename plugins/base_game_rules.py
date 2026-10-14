@@ -1053,6 +1053,14 @@ class BaseGameRules:
         """
         return []
 
+    def unpack_key_consoles(self) -> List[str]:
+        """The consoles whose key file this game's unpack reads: any of ``"3ds"``, ``"switch"``, ``"wii"``.
+
+        The wizard asks for a console's key file only when a chosen file is encrypted, and only when the game lists that
+        console here. A game that unpacks no encrypted image returns none. Default: none.
+        """
+        return []
+
     def project_icon(self, project_dir: str) -> Optional[bytes]:
         """A picture of the game for the Project Manager's list: PNG or JPEG bytes, or None. Default: None.
 

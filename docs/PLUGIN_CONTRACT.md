@@ -128,6 +128,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_platforms` | Platforms the game ships on: [{id, label}]. |  |
 | `unpack_sources` | Unpack the role files into an empty folder: progress(percent, text) and is_cancelled() are passed in. Returns the folder, or None to use the files as they are. |  |
 | `get_source_subfolder` | Folder of the unpacked tree that is the project's source root, e.g. files/res/Msgus (slash path). Default: None, the whole unpacked folder. |  |
+| `unpack_key_consoles` | Consoles whose key file the unpack reads: any of 3ds, switch, wii. The wizard asks for a key file only for an encrypted file of a listed console. Default: none. |  |
 | `get_build_targets` | What the game can build: [{id, label, platforms, kind}] with kind files, patch or layeredfs. Empty: the Build, Export and Run buttons stay off. |  |
 | `build_target` | Write one build target into an empty output folder and return the result path. Gets source_dir, translation_dir, output_dir, progress and is_cancelled. |  |
 | `project_icon` | A picture of the game for the Project Manager list (PNG or JPEG bytes) for the project folder, or None. Runs on the scan process. The user's icon.png wins. |  |

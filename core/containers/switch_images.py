@@ -1,15 +1,18 @@
-"""Nintendo Switch images, identify only: a .nsp (PFS0) names its title from the rights ID of its ticket.
+"""Nintendo Switch images: identify a .nsp (PFS0) or .xci, and read the ExeFS and RomFS of a .nsp with its keys.
 
-An .xci (HFS0 cartridge image) is recognised, but its title is not read. Every Switch program is encrypted with keys
-Picoripi does not read yet (prod.keys), so the reader for these images raises ``encrypted_error``.
+``locate`` names the title from the rights ID of the ticket or from the content meta, without keys. ``SwitchImage``
+decrypts a .nsp with a prod.keys file (see switch_crypto): the ExeFS files and the RomFS of the program NCA. An .xci is
+identified but not read. A RomFS that is a BKTR patch (an update's) is not listed; ``romfs_is_patch`` tells the caller.
 """
 from __future__ import annotations
 
 import re
 import struct
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
-from core.containers.image_files import ImageError, ImageReader, check_name
+from core.containers.console_crypto import PlainView, RangeView, wrong_key_error
+from core.containers.image_files import ImageError, ImageFile, ImageReader, check_name
+from core.containers.switch_crypto import HEADER_SIZE, NcaHeader, SwitchKeys, content_key, open_section
 
 PFS0_MAGIC = b"PFS0"
 XCI_MAGIC = b"HEAD"          # at 0x100 of a cartridge image
@@ -17,6 +20,11 @@ RIGHTS_ID_AT = 0x2A0         # rights ID (16 bytes) in a Switch ticket: its firs
 MAX_TICKET = 0x4000
 MAX_XML = 0x10000
 UPDATE_SUFFIX = 0x800        # a title ID with these low bits is the update of its base game
+PROGRAM = 0                  # content type of the program NCA (NCA header 0x205)
+BKTR = 4                     # section encryption type of a patch (an update's RomFS)
+ROMFS_HEADER = 0x50
+NO_ENTRY = 0xFFFFFFFF
+MAX_ENTRIES = 200_000        # caps the RomFS entries, which also stops a looping table
 
 
 def _pfs0_files(reader: ImageReader) -> List[Dict[str, Any]]:
@@ -99,3 +107,145 @@ def locate(reader: ImageReader, head: bytes) -> Optional[Dict[str, Any]]:
     if head[0x100:0x104] == XCI_MAGIC:
         return {"kind": "switch", "game_id": "", "title_id": "", "encrypted": True, "title_kind": ""}
     return None
+
+
+def _inside(item: Dict[str, Any], size: int) -> None:
+    if item["offset"] + item["size"] > size:
+        raise ImageError("a file ends past the end of its container")
+
+
+def _table_entry(table: bytes, pos: int, header: int) -> bytes:
+    if pos % 4 or pos + header > len(table):
+        raise ImageError("a RomFS table entry is out of range")
+    return table[pos:pos + header]
+
+
+def _romfs_name(table: bytes, pos: int, header: int, name_at: int) -> str:
+    length = struct.unpack_from("<I", _table_entry(table, pos, header), name_at)[0]
+    if not 0 < length <= 0x200 or pos + header + length > len(table):
+        raise ImageError("a RomFS name is out of range")
+    try:
+        name = table[pos + header:pos + header + length].decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ImageError("unsafe RomFS name") from exc
+    return check_name(name)
+
+
+def _romfs_files(view: PlainView) -> List[ImageFile]:
+    """The files of a Switch RomFS: a 0x50-byte header of ten u64 fields, then the directory and file tables.
+
+    Names are UTF-8. Entries address ``view``, which starts at the RomFS header.
+    """
+    reader = ImageReader(view)
+    head = reader.read_at(0, ROMFS_HEADER)
+    if struct.unpack_from("<Q", head)[0] != ROMFS_HEADER:
+        raise ImageError("the RomFS section has no RomFS header")
+    dir_off, dir_len = struct.unpack_from("<QQ", head, 0x18)
+    file_off, file_len = struct.unpack_from("<QQ", head, 0x38)
+    data_off = struct.unpack_from("<Q", head, 0x48)[0]
+    dirs = reader.read_table(dir_off, dir_len)
+    meta = reader.read_table(file_off, file_len)
+    files: List[ImageFile] = []
+    stack: List[Tuple[int, str]] = [(0, "")]
+    visits = 0
+    while stack:
+        pos, prefix = stack.pop()
+        child_dir, child_file = struct.unpack_from("<II", _table_entry(dirs, pos, 0x18), 8)
+        file_pos = child_file
+        while file_pos != NO_ENTRY:
+            visits += 1
+            raw = _table_entry(meta, file_pos, 0x20)
+            offset, length = struct.unpack_from("<QQ", raw, 8)
+            name = _romfs_name(meta, file_pos, 0x20, 0x1C)
+            if data_off + offset + length > reader.size:
+                raise ImageError(f"RomFS file {name} ends past the RomFS")
+            files.append(ImageFile(f"romfs/{prefix}{name}", data_off + offset, length, None, view))
+            file_pos = struct.unpack_from("<I", raw, 4)[0]
+        dir_pos = child_dir
+        while dir_pos != NO_ENTRY:
+            visits += 1
+            stack.append((dir_pos, f"{prefix}{_romfs_name(dirs, dir_pos, 0x18, 0x14)}/"))
+            dir_pos = struct.unpack_from("<I", _table_entry(dirs, dir_pos, 0x18), 4)[0]
+        if visits > MAX_ENTRIES:
+            raise ImageError("the RomFS is too large or its tables loop")
+    return files
+
+
+class SwitchImage(ImageReader):
+    """A Switch .nsp, decrypted with ``keys``: the ExeFS files (``exefs/<name>``) and the RomFS files (``romfs/<path>``)
+    of its program NCA.
+
+    The program NCA is the one whose header holds content type 0; the package must hold exactly one. Its ticket must be
+    a common ticket. Compressed sections, NCA2/NCA0 and XCI images raise ImageError. ``romfs_is_patch`` is set by
+    ``entries`` when the RomFS is a BKTR patch: that RomFS is then not listed (its patch is not applied yet).
+    """
+
+    def __init__(self, stream: BinaryIO, keys: SwitchKeys) -> None:
+        super().__init__(stream)
+        self._keys = keys
+        self.romfs_is_patch = False
+
+    def entries(self) -> List[ImageFile]:
+        self.romfs_is_patch = False
+        magic = self.read_at(0, 4) if self.size >= 4 else b""
+        if magic != PFS0_MAGIC:
+            if self.size >= 0x104 and self.read_at(0x100, 4) == XCI_MAGIC:
+                raise ImageError("Switch cartridge images (.xci) are not read yet")
+            raise ImageError("not a Switch .nsp package")
+        tickets: Dict[bytes, bytes] = {}
+        programs: List[Tuple[Dict[str, Any], NcaHeader]] = []
+        for item in _pfs0_files(self):
+            _inside(item, self.size)
+            if item["name"].endswith(".tik"):
+                if not RIGHTS_ID_AT + 16 <= item["size"] <= MAX_TICKET:
+                    raise ImageError("a ticket has a bad size")
+                ticket = self.read_at(item["offset"], item["size"])
+                tickets[ticket[RIGHTS_ID_AT:RIGHTS_ID_AT + 16]] = ticket
+            elif item["name"].endswith(".nca"):
+                if item["size"] < HEADER_SIZE:
+                    raise ImageError("an NCA is cut short")
+                header = NcaHeader(self.read_at(item["offset"], HEADER_SIZE), self._keys)
+                if header.content_type == PROGRAM:
+                    programs.append((item, header))
+        if len(programs) != 1:
+            raise ImageError("the package must hold exactly one program NCA")
+        item, header = programs[0]
+        key = content_key(header, self._keys, tickets)
+        exefs_view, fsh = self._section(item, header, key, 0)
+        if fsh[2] != 1:
+            raise ImageError("section 0 of the program NCA is not an ExeFS")
+        pfs_at = struct.unpack_from("<Q", fsh, 0x40)[0]
+        if pfs_at >= exefs_view.size:
+            raise ImageError("the ExeFS starts past its section")
+        exefs = RangeView(exefs_view, pfs_at, exefs_view.size - pfs_at)
+        exefs_reader = ImageReader(exefs)
+        if exefs_reader.read_at(0, 4) != PFS0_MAGIC:
+            raise wrong_key_error("Switch")
+        entries: List[ImageFile] = []
+        for file in _pfs0_files(exefs_reader):
+            _inside(file, exefs.size)
+            entries.append(ImageFile(f"exefs/{file['name']}", file["offset"], file["size"], None, exefs))
+        if header.sections[1] is None:
+            return entries
+        if header.sections[1][2][4] == BKTR:
+            self.romfs_is_patch = True
+            return entries
+        romfs_view, fsh = self._section(item, header, key, 1)
+        if fsh[2] != 0:
+            raise ImageError("section 1 of the program NCA is not a RomFS")
+        level = struct.unpack_from("<Q", fsh, 0x90)[0]
+        if level >= romfs_view.size:
+            raise ImageError("the RomFS starts past its section")
+        return entries + _romfs_files(RangeView(romfs_view, level, romfs_view.size - level))
+
+    def _section(self, item: Dict[str, Any], header: NcaHeader, key: bytes, index: int) -> Tuple[PlainView, bytes]:
+        """The decrypted view of section ``index`` of the program NCA and its section header."""
+        spec = header.sections[index]
+        if spec is None:
+            raise ImageError(f"the program NCA has no section {index}")
+        start, end, fsh = spec
+        if end > item["size"]:
+            raise ImageError("a section ends past its NCA")
+        if struct.unpack_from("<Q", fsh, 0x180)[0]:
+            raise ImageError("compressed sections are not read")
+        return open_section(self.stream, item["offset"], spec, key), fsh

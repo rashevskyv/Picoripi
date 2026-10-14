@@ -7,3 +7,5 @@ pycountry==24.6.1
 requests==2.32.5
 spylls==0.1.7
 Pillow>=10.4.0
+# AES for the encrypted 3DS, Switch and Wii images (core/containers/console_crypto.py); the app imports it at run time.
+pycryptodome==3.23.0

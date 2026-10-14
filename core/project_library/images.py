@@ -9,13 +9,14 @@ All functions run on a worker thread: they read and write files, never touch wid
 """
 from __future__ import annotations
 
+import importlib.util
 import struct
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Container, Dict, Iterator, Optional, Sequence
 
-from core.containers import n3ds, switch_images, wii_disc
-from core.containers.console_crypto import encrypted_error
+from core.containers import n3ds, switch_crypto, switch_images, wii_disc
+from core.containers.console_crypto import encrypted_error, key_path
 from core.containers.gcm import GameCubeImage, HEADER_SIZE, is_gamecube_header
 from core.containers.image_files import ImageError, ImageFile, ImageReader, copy_range
 from core.containers.nds import NdsImage, is_nds_header
@@ -31,7 +32,7 @@ KIND_SWITCH = "switch"
 KIND_WII = "wii"
 CONSOLE_OF_KIND = {KIND_3DS: "3ds", KIND_SWITCH: "switch", KIND_WII: "wii"}
 CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii"}
-UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS))   # the kinds an unpack step can write today
+UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS, KIND_SWITCH, KIND_WII))   # the kinds an unpack step can read
 WII_MAGIC_AT = wii_disc.WII_MAGIC_AT
 WII_MAGIC = wii_disc.WII_MAGIC
 _UNSUPPORTED = {
@@ -85,6 +86,11 @@ def needs_key(path: str | Path) -> Optional[str]:
     return CONSOLE_OF_KIND.get(found["kind"])
 
 
+def _has_pycryptodome() -> bool:
+    """True when the pycryptodome package can be imported; the decrypting readers need it."""
+    return importlib.util.find_spec("Crypto") is not None
+
+
 def _reader(stream: Any) -> ImageReader:
     head = stream.read(HEADER_SIZE)
     stream.seek(0)
@@ -95,11 +101,16 @@ def _reader(stream: Any) -> ImageReader:
         return NdsImage(stream)
     found = _describe(stream, head)
     if found is not None:
-        if found["kind"] == KIND_3DS:
-            return n3ds.N3dsImage(stream)   # raises the encrypted error itself for encrypted content
-        if found.get("encrypted"):
-            kind = found["kind"]
+        kind = found["kind"]
+        encrypted = bool(found.get("encrypted"))
+        if encrypted and (key_path(CONSOLE_OF_KIND[kind]) is None or not _has_pycryptodome()):
             raise encrypted_error(CONSOLE_OF_KIND[kind], tr(CONSOLE_LABEL[kind]))
+        if kind == KIND_3DS:   # the reader loads the key file only for encrypted content
+            return n3ds.N3dsImage(stream, key_path("3ds"))
+        if kind == KIND_WII and encrypted:
+            return wii_disc.WiiImage(stream, wii_disc.load_common_key(str(key_path("wii"))))
+        if kind == KIND_SWITCH and encrypted:   # an .xci is refused by the reader with its reason
+            return switch_images.SwitchImage(stream, switch_crypto.load_keys(str(key_path("switch"))))
     for magic, reason in _UNSUPPORTED.items():
         if head.startswith(magic):
             raise ImageError(f"Picoripi cannot read {reason}")
@@ -134,7 +145,7 @@ def write_entries(reader: ImageReader, entries: Sequence[ImageFile], target_dir:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "wb") as out:
             if entry.decode is None:
-                if not copy_range(reader.stream, entry.offset, entry.size, out, is_cancelled, on_bytes):
+                if not copy_range(reader.source(entry), entry.offset, entry.size, out, is_cancelled, on_bytes):
                     return False
             else:
                 out.write(entry.decode(reader.read(entry)))   # a whole entry: a decoded code section is not streamed

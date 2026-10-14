@@ -66,7 +66,7 @@ def test_majoras_mask_decrypted_cxi_romfs_matches_the_workspace():
             entry = listed[rel]
             assert entry.size == path.stat().st_size, rel
             hashed = _Hash()
-            assert copy_range(reader.stream, entry.offset, entry.size, hashed, lambda: False, lambda n: None)
+            assert copy_range(reader.source(entry), entry.offset, entry.size, hashed, lambda: False, lambda n: None)
             assert hashed.digest.hexdigest() == _sha_of(path), rel
         assert listed["exheader.bin"].size == romhacking_root.path(*MM3D_WORKSPACE, "exheader.bin").stat().st_size
 
