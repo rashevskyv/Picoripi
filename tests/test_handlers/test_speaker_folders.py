@@ -390,18 +390,30 @@ def test_save_speaker_does_not_save_if_unchanged_from_displayed(qapp, mock_mw, m
     cb.setEditable(True)
     cb._last_displayed_char = "Hero"
     mock_mw.speaker_combobox = cb
-    
+    # The saved assignment differs, so only the displayed value can stop the save
+    mock_project.blocks[0].metadata["character_assignments"]["0"] = "Other"
+    mock_mw.undo_manager.is_undoing_redoing = False
+
     mock_mw.ui_updater = MagicMock()
     mock_mw.ui_updater.block_list_updater = MagicMock()
     
     handler = ListSelectionHandler(mock_mw, mock_mw.data_processor, mock_mw.ui_updater)
-    
+    saves = []
+    refreshes = []
+    mock_mw.project_manager.save = lambda: saves.append(True)
+    mock_mw.ui_updater.block_list_updater.populate_blocks = lambda *args, **kwargs: refreshes.append(kwargs)
+
     # Try saving "Hero" which is the same as the displayed speaker
     handler.save_speaker_for_current_string("Hero")
-    
+
     # Assert save was NOT called
-    mock_mw.project_manager.save.assert_not_called()
-    mock_mw.ui_updater.block_list_updater.populate_blocks.assert_not_called()
+    assert saves == []
+    assert refreshes == []
+
+    # Control: a different speaker is saved and the blocks are refreshed
+    handler.save_speaker_for_current_string("Villain")
+    assert saves == [True]
+    assert len(refreshes) == 1
 
 def test_save_speaker_in_virtual_folder_does_not_navigate(qapp, mock_mw, mock_project):
     """Test that changing speaker in virtual mode changes metadata without moving folder or row selection."""
