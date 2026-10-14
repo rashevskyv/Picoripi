@@ -60,8 +60,7 @@ class TestAppActionHandler(unittest.TestCase):
         self.ctx.data_store.unsaved_changes = False
         
         self.handler.open_file_dialog_action()
-        
-        mock_get_open.assert_called_once()
+
         self.assertEqual(self.handler.mw.json_path, "test.json")
 
     @patch('handlers.app_action_handler.QFileDialog.getSaveFileName')
@@ -72,9 +71,8 @@ class TestAppActionHandler(unittest.TestCase):
         
         self.handler.save_as_dialog_action()
         
-        mock_get_save.assert_called_once()
         self.assertEqual(self.handler.mw.data_store.edited_json_path, "new_save.json")
-        self.handler.save_data_action.assert_called_once()
+        self.assertFalse(self.handler.save_data_action.call_args.kwargs["ask_confirmation"])
 
     @patch('handlers.app_action_handler.QProgressDialog')
     @patch('handlers.app_action_handler.WidthCalculationWorker')
@@ -101,11 +99,9 @@ class TestAppActionHandler(unittest.TestCase):
         
         self.handler.calculate_widths_for_block_action(0)
         
-        # Verify progress dialog was created
-        mock_progress.assert_called_once()
-        # Verify worker was created and started
-        mock_worker_cls.assert_called_once()
-        mock_worker_inst.start.assert_called_once()
+        # The progress dialog names the block; the worker starts only once it exists.
+        self.assertEqual(mock_progress.call_args.args[0], "Calculating widths for TestBlock...")
+        mock_worker_inst.start.assert_called_once_with()
     @patch('handlers.app_action_handler.QProgressDialog')
     @patch('handlers.app_action_handler.SaveWorker')
     def test_perform_async_save_flow_success(self, mock_worker_cls, mock_progress):
@@ -124,7 +120,6 @@ class TestAppActionHandler(unittest.TestCase):
         self.handler.perform_async_save_flow([["string_default"]], ask_confirmation=True, on_finished_callback=on_finished)
         
         connect_mock = mock_worker_inst.finished_with_result.connect
-        connect_mock.assert_called()
         on_finished_slot = connect_mock.call_args[0][0]
         on_finished_slot(True, [("archive.rarc", 200, 100)], [])
         
@@ -132,10 +127,9 @@ class TestAppActionHandler(unittest.TestCase):
         self.assertTrue(callback_results[0][0])
         self.assertEqual(callback_results[0][1], [("archive.rarc", 200, 100)])
         
-        mock_progress.assert_called_once()
-        mock_worker_cls.assert_called_once()
-        mock_worker_inst.start.assert_called_once()
-        mock_pd_inst.close.assert_called_once()
+        self.assertEqual(mock_progress.call_args.args[0], "Initializing save operation...")
+        mock_worker_inst.start.assert_called_once_with()
+        mock_pd_inst.close.assert_called_once_with()
 
     @patch('handlers.app_action_handler.QProgressDialog')
     @patch('handlers.app_action_handler.SaveWorker')
@@ -156,7 +150,10 @@ class TestAppActionHandler(unittest.TestCase):
         self.assertEqual(len(callback_results), 1)
         self.assertFalse(callback_results[0][0])
         self.assertEqual(callback_results[0][2], ["Disk full error"])
-        mock_msg_box.critical.assert_called_once()
+        self.assertEqual(
+            mock_msg_box.critical.call_args.args[2],
+            "Failed to save files:\nDisk full error",
+        )
 
     def test_save_worker_run_success(self):
         from handlers.app_action_handler import SaveWorker
@@ -170,7 +167,6 @@ class TestAppActionHandler(unittest.TestCase):
         
         worker.run()
         
-        mock_dsp._perform_save_impl.assert_called_once()
         args, kwargs = mock_dsp._perform_save_impl.call_args
         self.assertEqual(args[0], [["data"]])
         self.assertTrue(callable(kwargs['progress_callback']))
