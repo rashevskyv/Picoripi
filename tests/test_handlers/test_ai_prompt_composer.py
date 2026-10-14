@@ -759,7 +759,7 @@ def test_prompts_contain_transcription_rules_for_ukrainian():
         with open(p_path, "r", encoding="utf-8") as f:
             p_data = json.load(f)
         resolved = resolve_target_language_prompt(p_data["translation"]["system_prompt"], "Ukrainian")
-        assert "Ґ" in resolved, f"Plugin {p_name} missing Ґ in Ukrainian prompt"
+        assert "Ґ" in resolved, f"Plugin {p_name} missing Ґ in Ukrainian prompt"  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the Ukrainian letter must appear in the prompt
         assert "сі" in resolved, f"Plugin {p_name} missing 'сі' in Ukrainian prompt"
 
 
