@@ -32,7 +32,9 @@ BASELINE = Path(__file__).resolve().parent / "baseline.json"
 # Directories skipped by name anywhere (hidden directories are always skipped).
 SKIP_NAMES = frozenset({"__pycache__"})
 # Directories skipped by repo-relative path.
-DEFAULT_EXCLUDES = ("venv", "build", "dist", "graphify-out", "font_tool", "gemini", "companion/venv", "node_modules")
+DEFAULT_EXCLUDES = (
+    "venv", "build", "dist", "graphify-out", "font_tool", "gemini", "scratch", "worktrees", "companion/venv", "node_modules",
+)
 SUPPRESS = re.compile(r"#\s*deslop:\s*ignore(?:\[([^\]]*)\])?")
 
 
@@ -108,7 +110,12 @@ def _is_excluded(rel: str, excludes: Sequence[str]) -> bool:
 
 def iter_python_files(starts: Sequence[str], root: Path, excludes: Sequence[str]) -> Iterator[Path]:
     for start in starts:
-        for dirpath, dirnames, filenames in os.walk(Path(root, start)):
+        target = Path(root, start)
+        if target.is_file():  # a named file is checked even when its folder is excluded
+            if target.name.endswith(".py"):
+                yield target
+            continue
+        for dirpath, dirnames, filenames in os.walk(target):
             base = _rel_posix(dirpath, root)
             kept = []
             for name in dirnames:

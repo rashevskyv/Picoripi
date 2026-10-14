@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/glossary_build, ui/pipeline_wizard_dialog.py
-tokens: 11.2k
+tokens: 11.4k
 purpose: Pipeline design of record (Ukrainian); shipped vs planned on top
 ---
 # Road Map: наскрізний пайплайн локалізації та майстер-провідник

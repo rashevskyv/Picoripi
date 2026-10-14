@@ -29,7 +29,7 @@ def restore_plugin_modules():
     yield
     for name in [n for n in sys.modules if n == prefix or n.startswith(prefix + ".")]:
         del sys.modules[name]
-    sys.modules.update(saved)
+    sys.modules.update(saved)  # deslop: ignore[module-mocking] restores the snapshot taken above
 
 
 def _pump(qapp, seconds, until):

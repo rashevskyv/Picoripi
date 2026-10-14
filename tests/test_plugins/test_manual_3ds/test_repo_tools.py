@@ -33,7 +33,7 @@ def test_load_tools_leaves_the_bare_tool_names_out_of_sys_modules(tmp_path, monk
     for name in ("manual", "bcma", "lz10", "lz11", "bclyt", "bcfnt"):
         monkeypatch.delitem(sys.modules, name, raising=False)
     sentinel = object()
-    monkeypatch.setitem(sys.modules, "darc", sentinel)  # an entry the app had before: it must come back
+    monkeypatch.setitem(sys.modules, "darc", sentinel)  # deslop: ignore[module-mocking] planted on purpose; line 44 checks it is kept
     root = _synthetic_folder(tmp_path / "repo")
 
     tools = repo_tools.load_tools(str(root))

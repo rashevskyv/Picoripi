@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: engineering practice
-tokens: 1.8k
+tokens: 1.9k
 purpose: Habits behind the rules: threads, performance, persistence, tests
 ---
 # Engineering practice
@@ -106,6 +106,8 @@ maharshi365/deslop and dmmulroy/anti-slop (both MIT, credited in `tools/deslop/_
 - Suppress with `# deslop: ignore[rule-id]` on the reported line; a bare `# deslop: ignore` covers every rule there.
 - Ratchet: `tools/deslop/baseline.json` holds counts per file and rule, no source text, for the enabled rules.
   `tests/test_deslop_guard.py` fails when a count grows. After a review, refresh with `python -m tools.deslop --update-baseline`.
+- The guard reads the working tree, not git. An untracked `.py` file, or an ignored one outside the excluded folders, adds to the
+  counts. `DEFAULT_EXCLUDES` in `tools/deslop/engine.py` skips local folders such as `scratch` and `worktrees`. A fresh clone reproduces the baseline.
 - Ruff mapping (ruff selection unchanged): deprecated APIs to `UP035`; `RUF006` covers dangling asyncio tasks, not
   unawaited coroutines; ruff 0.15 has no rule for unreachable code.
 - Not ported: the TypeScript-only and type-system rules (`unknown`, `typeof`, `Reflect`, Tailwind, and so on) and the Effect rules.

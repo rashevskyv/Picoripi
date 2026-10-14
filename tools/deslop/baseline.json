@@ -123,8 +123,7 @@
     "poor-substring-tests": 1
   },
   "tests/test_core/test_translation/test_providers.py": {
-    "call-only-assertions": 4,
-    "repeated-assert-call": 1
+    "call-only-assertions": 4
   },
   "tests/test_core/test_translation_memory.py": {
     "call-only-assertions": 1

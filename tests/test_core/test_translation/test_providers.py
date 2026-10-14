@@ -392,7 +392,7 @@ def test_workers_are_clamped_to_the_proxys_active_accounts(mock_get, health, ask
     mock_get.return_value = _ok_response(health)
     provider = _local_provider()
     assert provider.clamp_workers(asked) == expected
-    assert provider.clamp_workers(asked) == expected
+    assert provider.clamp_workers(asked) == expected  # deslop: ignore[repeated-assert-call] the second call must come from the cache; call_count below checks it
     assert mock_get.call_count == 1  # asked once per provider
     assert mock_get.call_args[0][0] == "http://localhost:20128/healthz"
 

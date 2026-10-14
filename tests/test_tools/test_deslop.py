@@ -384,6 +384,25 @@ class TestScanning:
 
         assert sorted(path.relative_to(tmp_path).as_posix() for path in found) == ["keep.py", "tools/build/keep.py"]
 
+    def test_the_default_excludes_skip_local_scratch_and_worktree_folders(self, tmp_path):
+        for relative in ("keep.py", "scratch/skip.py", "worktrees/skip.py"):
+            target = tmp_path / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("x = 1\n", encoding="utf-8")
+
+        found = list(engine.iter_python_files(["."], tmp_path, excludes=engine.DEFAULT_EXCLUDES))
+
+        assert [path.relative_to(tmp_path).as_posix() for path in found] == ["keep.py"]
+
+    def test_a_named_python_file_is_checked_and_a_named_text_file_is_not(self, tmp_path):
+        (tmp_path / "scratch").mkdir()
+        (tmp_path / "scratch" / "one.py").write_text("x = 1\n", encoding="utf-8")
+        (tmp_path / "notes.txt").write_text("x\n", encoding="utf-8")
+
+        found = list(engine.iter_python_files(["scratch/one.py", "notes.txt"], tmp_path, excludes=engine.DEFAULT_EXCLUDES))
+
+        assert [path.relative_to(tmp_path).as_posix() for path in found] == ["scratch/one.py"]
+
     def test_a_syntax_error_is_reported_and_the_scan_goes_on(self, tmp_path):
         (tmp_path / "broken.py").write_text("def broken(:\n", encoding="utf-8")
         (tmp_path / "fine.py").write_text('assert "x" in y\n', encoding="utf-8")

@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-14
 owns: unfinished work
-tokens: 27.2k
+tokens: 27.8k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -18,6 +18,8 @@ the line when it is done or moved into a plan.
 - Opt-in rules were measured but are not in the baseline: `any-params-returns` 1153 in product code, `shape-in-names` 424, `renamed-imports` 228, `duplicate-consts` 400. Decide per rule before enabling it in `[tool.deslop]`.
 - Ruff candidates on this repo (not selected in `pyproject.toml`): `UP035 deprecated-import` 2126 hits; `RUF006 asyncio-dangling-task` 0; ruff 0.15.15 has no rule for unreachable code or unawaited coroutines.
 - After each reduction run `python -m tools.deslop --update-baseline` and commit the lower count.
+- Merge check (audit r16, 2026-10-14): no count rose. The baseline lost one entry (`repeated-assert-call`, `tests/test_core/test_translation/test_providers.py`, now suppressed with a reason). Two `module-mocking` findings in `tests/test_plugins/test_manual_3ds/` are suppressed with a reason: they test that sys.modules is restored.
+- Known false positives: `call-only-assertions` counts `assert_called_with(...)` on the arguments sent to a collaborator as mock-only; decide whether such argument checks count as results before reducing the 321. `poor-substring-tests` flags a single non-ASCII glyph (e.g. `'Ї'` in font tests), which is a deliberate marker; decide per case. `module-mocking` cannot tell a restore snapshot from a fake module; suppress with a reason.
 
 ## Test path hygiene (A14, 2026-10-13)
 
