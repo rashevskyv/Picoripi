@@ -443,3 +443,77 @@ class TestCommandLine:
     def test_an_unknown_rule_exits_with_usage_error(self, capsys):
         assert deslop_cli.main(["--rule", "no-such-rule", "tests/test_tools"]) == 2
         assert "unknown deslop rule" in capsys.readouterr().err
+
+
+class TestDefaultRun:
+    """The default run compares with the baseline; --all lists every finding; --update-baseline writes counts."""
+
+    @pytest.fixture
+    def repo(self, tmp_path, monkeypatch):
+        (tmp_path / "plugins").mkdir()
+        (tmp_path / "plugins" / "grown.py").write_text('a = getattr(obj, "name")\nb = getattr(obj, "size")\n', encoding="utf-8")
+        (tmp_path / "plugins" / "steady.py").write_text('c = getattr(obj, "kind")\n', encoding="utf-8")
+        baseline = tmp_path / "baseline.json"
+        monkeypatch.setattr(engine, "BASELINE", baseline)
+        return tmp_path, baseline
+
+    def test_a_baseline_that_covers_every_finding_exits_zero_and_prints_no_finding(self, repo, capsys):
+        root, baseline = repo
+        baseline.write_text('{"plugins/grown.py": {"getattr-literal": 2}, "plugins/steady.py": {"getattr-literal": 1}}', encoding="utf-8")
+
+        assert deslop_cli.main([], root=root) == 0
+
+        printed = capsys.readouterr().out
+        assert "no new findings over the baseline" in printed
+        assert "[getattr-literal]" not in printed
+
+    def test_a_grown_count_lists_the_findings_of_that_file_and_rule_only(self, repo, capsys):
+        root, baseline = repo
+        baseline.write_text('{"plugins/grown.py": {"getattr-literal": 1}, "plugins/steady.py": {"getattr-literal": 1}}', encoding="utf-8")
+
+        assert deslop_cli.main([], root=root) == 1
+
+        printed = capsys.readouterr().out
+        assert "plugins/grown.py:1: [getattr-literal]" in printed and "plugins/grown.py:2: [getattr-literal]" in printed
+        assert "plugins/steady.py" not in printed
+        assert "plugins/grown.py [getattr-literal] 1 -> 2" in printed
+
+    def test_a_missing_baseline_counts_every_finding_as_new(self, repo, capsys):
+        root, _ = repo
+
+        assert deslop_cli.main([], root=root) == 1
+        assert "plugins/steady.py:1: [getattr-literal]" in capsys.readouterr().out
+
+    def test_a_count_that_dropped_below_the_baseline_exits_zero(self, repo):
+        root, baseline = repo
+        baseline.write_text('{"plugins/grown.py": {"getattr-literal": 9}, "plugins/steady.py": {"getattr-literal": 1}}', encoding="utf-8")
+
+        assert deslop_cli.main([], root=root) == 0
+
+    def test_all_lists_every_finding_and_exits_zero_even_without_a_baseline(self, repo, capsys):
+        root, _ = repo
+
+        assert deslop_cli.main(["--all"], root=root) == 0
+
+        printed = capsys.readouterr().out
+        assert "plugins/grown.py:1: [getattr-literal]" in printed
+        assert "plugins/grown.py:2: [getattr-literal]" in printed
+        assert "plugins/steady.py:1: [getattr-literal]" in printed
+
+    def test_an_explicit_baseline_file_replaces_the_default(self, repo, tmp_path, capsys):
+        root, _ = repo
+        other = tmp_path / "other.json"
+        other.write_text('{"plugins/grown.py": {"getattr-literal": 2}, "plugins/steady.py": {"getattr-literal": 1}}', encoding="utf-8")
+
+        assert deslop_cli.main(["--baseline", str(other)], root=root) == 0
+
+    def test_update_baseline_writes_the_counts_and_exits_zero(self, repo, capsys):
+        root, baseline = repo
+
+        assert deslop_cli.main(["--update-baseline"], root=root) == 0
+
+        assert engine.load_baseline(baseline) == {
+            "plugins/grown.py": {"getattr-literal": 2},
+            "plugins/steady.py": {"getattr-literal": 1},
+        }
+        assert "baseline written" in capsys.readouterr().out

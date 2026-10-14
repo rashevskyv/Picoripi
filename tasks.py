@@ -8,7 +8,7 @@
     docs-check    document headers, docs/INDEX.md, the plugin contract page, tests/test_docs
     docs-index    refresh token counts and rebuild docs/INDEX.md
     graph         refresh the code graph (graphify update .)
-    deslop        slop checks over the repository (python -m tools.deslop; arguments pass through)
+    deslop        new slop findings over tools/deslop/baseline.json; --all lists every finding (arguments pass through)
     bump          next development version (scripts/bump_version.py)
     new-plugin    scaffold a plugin (tools/new_plugin.py <id> "<Name>" --prefix XX)
     run           start Picoripi

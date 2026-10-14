@@ -99,6 +99,8 @@ What to test, by kind of code:
 `python tasks.py deslop` runs `tools/deslop` (stdlib `ast`, about 8 s for the repo), a port of the ideas in
 maharshi365/deslop and dmmulroy/anti-slop (both MIT, credited in `tools/deslop/__init__.py`). `--list-rules` lists all rules.
 
+- Default run: prints only findings new over `tools/deslop/baseline.json`; exit 1 on growth. `--all` lists every finding, exit 0.
+
 - On, test files: `call-only-assertions`, `module-mocking`, `poor-substring-tests`, `repeated-assert-call`.
 - On, all files: `chained-cast`, `getattr-literal`, `reduce-accumulator-copy`, `filter-map-chain`.
 - Opt-in (`--rule ID` or `enable` in `[tool.deslop]`): `any-params-returns`, `pass-through-type-alias`,
