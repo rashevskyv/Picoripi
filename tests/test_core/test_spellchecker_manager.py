@@ -92,7 +92,7 @@ def test_SpellcheckerManager_scan_local_dictionaries(mock_local_path, mock_mw, t
     sm = SpellcheckerManager(mock_mw)
     dicts = sm.scan_local_dictionaries()
     
-    assert 'de' in dicts
+    assert 'de' in dicts  # deslop: ignore[poor-substring-tests] dict key check: the scan returns a dict keyed by dictionary code
     assert 'es' not in dicts
     
     core.spellchecker_manager.LOCAL_DICT_PATH = LOCAL_DICT_PATH # restore
@@ -150,7 +150,7 @@ def test_SpellcheckerManagerload_glossary_words(mock_mw):
     assert "another" in sm.custom_words
     assert "translation" in sm.custom_words
     assert "це" not in sm.custom_words # len 2
-    assert "too" in sm.custom_words # valid length 3
+    assert "too" in sm.custom_words  # deslop: ignore[poor-substring-tests] exact element of the custom word set; valid length 3
     assert "123" not in sm.custom_words # digits not matching WORD_PATTERN
 
 @patch('core.spellchecker_manager.LOCAL_DICT_PATH')
