@@ -9,12 +9,13 @@ from __future__ import annotations
 import importlib
 import sys
 import threading
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Iterator, Optional
 
-# Font of the console's text, relative to the folder (the shared system font, LZ10 compressed).
+# Font of the console's text, relative to the folder (the shared system font, LZ11 compressed).
 FONT_RELATIVE = Path("work") / "0004009B00014002" / "cbf_std.bcfnt.lz"
 # Module names the tools import from their own folder; cleared before a different folder is loaded.
 _TOOL_MODULES = ("manual", "bcma", "bclyt", "bcfnt", "lz10", "lz11", "darc", "variant", "build", "validate", "luma_hook")
@@ -71,14 +72,15 @@ def load_tools(root: str) -> Tools:
         if key in _LOADED:
             return _LOADED[key]
         tools_dir = str(base / "tools")
-        for name in _TOOL_MODULES:
-            sys.modules.pop(name, None)
         previous = sys.dont_write_bytecode
         sys.dont_write_bytecode = True
         sys.path.insert(0, tools_dir)
         try:
-            # The folder's own modules, found through tools_dir; a broken or older folder is reported, not raised.
-            loaded = {name: importlib.import_module(name) for name in ("manual", "bcma", "bclyt", "bcfnt", "lz10", "lz11")}
+            with _keep_sys_modules(_TOOL_MODULES):
+                for name in _TOOL_MODULES:
+                    sys.modules.pop(name, None)
+                # The folder's own modules, found through tools_dir; a broken or older folder is reported, not raised.
+                loaded = {name: importlib.import_module(name) for name in ("manual", "bcma", "bclyt", "bcfnt", "lz10", "lz11")}
         except Exception as exc:
             raise ToolsError(f"the tools in {tools_dir} do not import: {exc!r}") from exc
         finally:
@@ -91,6 +93,24 @@ def load_tools(root: str) -> Tools:
         return tools
 
 
+@contextmanager
+def _keep_sys_modules(names: Iterable[str]) -> Iterator[None]:
+    """Put the named entries of sys.modules back as they were, after the block.
+
+    The folder's modules keep the references they bound at import (bcma holds darc and lz10), so the
+    tools still work; the bare names ("manual", "lz10", ...) do not stay in the app's module table.
+    """
+    saved = {name: sys.modules.get(name) for name in names}
+    try:
+        yield
+    finally:
+        for name, module in saved.items():
+            if module is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = module
+
+
 def load_font(tools: Tools) -> Any:
     """The console's system font (a bcfnt.Font), decoded once per folder."""
     key = str(tools.root)
@@ -98,9 +118,9 @@ def load_font(tools: Tools) -> Any:
         if key not in _FONTS:
             path = tools.root / FONT_RELATIVE
             try:
-                # The shared font is LZ11 (the first byte says so); LZ10 is accepted too.
+                # The shared font is LZ11 (first byte 17, 0x11); LZ10 (first byte 16) is accepted too.
                 data = path.read_bytes()
-                packed = tools.lz11 if data[:1] == b"" else tools.lz10
+                packed = tools.lz11 if data[:1] == bytes((17,)) else tools.lz10
                 _FONTS[key] = tools.bcfnt.parse(packed.decompress(data))
             except Exception as exc:
                 raise ToolsError(f"the font {path} does not decode: {exc!r}") from exc

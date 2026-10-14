@@ -13,10 +13,10 @@ the line when it is done or moved into a plan.
 ## Test path hygiene (A14, 2026-10-13)
 
 - Done: real-data tests reach the RomHacking workspace through `romhacking_root.under()` (env `PICORIPI_ROMHACKING`); without it they skip. `tests/test_personal_paths.py` fails on a new hard-coded drive path in `tests/`.
-- Not checked any more on the owner's PC: the PPSSPP flash0 font comparison (`test_lunar_ssh`, always skipped); the `D:\Downloads\switch` NSP checks and the `MG1-2 MC` raw check (relative placeholders, skip); the WP8 proxy tests (set `RQ_WP8_PROXY_ROOT` to run them).
-- Jak 2 `atoll.fr3` check reads `PICORIPI_SCRATCH` (default `scratch`), not `D:\RomHacking_tmp`.
-- Guard run (deny-mode audit hook over E:\Emulators, D:\Downloads, D:\Emulators, D:\Games, D:\RomHacking_tmp): 601 of 769 write-candidate test items ran, no write denied. The other 104 files (no write site outside tmp by AST triage) were not run under the hook. Owner action: run `python tasks.py test` with `PICORIPI_ROMHACKING` set and confirm the real-data count once.
-- Before/after listing (path, size, mtime): the whole `E:\Emulators\RomHacking` tree, 1,821,846 entries, is identical; `D:\Downloads`, `D:\Emulators`, `D:\Games`, `D:\RomHacking_tmp` are identical to two levels only.
+- Not checked any more on the owner's PC: the PPSSPP flash0 font comparison (`test_lunar_ssh`, always skipped); the owner's download-folder NSP checks and the `MG1-2 MC` raw check (relative placeholders, skip); the WP8 proxy tests (set `RQ_WP8_PROXY_ROOT` to run them).
+- Jak 2 `atoll.fr3` check reads `PICORIPI_SCRATCH` (default `scratch`), not the owner's scratch folder.
+- Guard run (deny-mode audit hook over the owner's emulator, download, game and scratch folders): 601 of 769 write-candidate test items ran, no write denied. The other 104 files (no write site outside tmp by AST triage) were not run under the hook. Owner action: run `python tasks.py test` with `PICORIPI_ROMHACKING` set and confirm the real-data count once.
+- Before/after listing (path, size, mtime): the whole owner's workspace tree, 1,821,846 entries, is identical; the download, emulator, game and scratch folders are identical to two levels only.
 
 ## Work Together: roles, claims, comments (2026-10-12, D22)
 - Tree markers on leaf rows: block items carry presence, claim and comment markers; the row items under a virtual folder do not yet. Resolved comments are not dimmed.
@@ -813,7 +813,7 @@ omfs`) could be
   `handlers/project_action_handler.py`, `core/project_manager.py` and ten more). Tests patch class attributes
   through some of those paths (`...project_action_handler.QFileDialog.getOpenFileName`). Remove with the shims
   themselves once callers import from the real packages.
-- **`plugins/zelda_bmg/window_frame_loader.py::_KNOWN_DUMP` is a path on the author's machine** (`E:\Emulators\...`).
+- **`plugins/zelda_bmg/window_frame_loader.py::_KNOWN_DUMP` is a path on the author's machine** (a drive path under the owner's workspace; code behaviour, not changed here).
   It should come from the project or the plugin settings.
 
 - **`sync_push_on_close` still syncs on the calling thread when there is no window (6.3)** — headless callers

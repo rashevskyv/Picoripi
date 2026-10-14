@@ -21,6 +21,7 @@ from core.i18n import tr
 from plugins.manual_3ds import page_render, pictures, repo_tools
 from utils.atomic_io import atomic_write_json
 from utils.constants import user_plugin_dir
+from utils.logging_utils import log_warning
 
 PLUGIN_NAME = "manual_3ds"
 SETTINGS_FILE = "preview.json"
@@ -65,6 +66,14 @@ def save_folder(folder: str) -> None:
     atomic_write_json(target / SETTINGS_FILE, {"repo_manual": folder}, indent=2, ensure_ascii=False)
 
 
+def _persist_folder(folder: str) -> None:
+    """Store the chosen folder. Called from the render worker: the disk write stays off the UI thread."""
+    try:
+        save_folder(folder)
+    except OSError as exc:
+        log_warning(f"manual_3ds: the repo_manual folder was not saved: {exc!r}")
+
+
 def page_name_of(string_key: str) -> Optional[str]:
     """"small/Page_003_small_1#4" -> "Page_003", or None for an index entry."""
     match = PAGE_NUMBER.search(string_key.split("#", 1)[0])
@@ -74,12 +83,14 @@ def page_name_of(string_key: str) -> Optional[str]:
 class _Request:
     """What a worker draws: the folder, the manual, the page group and the texts. Plain data."""
 
-    def __init__(self, root: str, manual_name: str, group: str, texts: Dict[str, str], budgets: Dict[str, Any]):
+    def __init__(self, root: str, manual_name: str, group: str, texts: Dict[str, str], budgets: Dict[str, Any],
+                 save_root: str = ""):
         self.root = root
         self.manual_name = manual_name
         self.group = group
         self.texts = texts
         self.budgets = budgets
+        self.save_root = save_root  # a folder the user just chose: the worker stores it before drawing
         self.key = (root, manual_name, group, hash(tuple(sorted(texts.items()))))
 
 
@@ -142,6 +153,8 @@ class PageRenderWorker(QThread):
         self._stop.set()
 
     def run(self) -> None:
+        if self._request.save_root:
+            _persist_folder(self._request.save_root)
         try:
             result: Any = draw_request(self._request, self._stop.is_set)
         except page_render.RenderCancelled:
@@ -219,6 +232,7 @@ class ManualPreviewPanel(QWidget):
         self._mw = main_window
         self._rules = rules
         self._root = ""  # read from the user's settings by the worker, so the UI thread does no disk I/O
+        self._save_pending = ""  # a folder the user chose; the next render worker stores it
         self._large = True
         self._scroll = 0.0
         self._result: Optional[page_render.ColumnRender] = None
@@ -367,7 +381,8 @@ class ManualPreviewPanel(QWidget):
         indices = self._rules.strings_of_group(group)
         texts = {key: self._mw.data_processor.get_current_string_text(block, i)[0] for key, i in indices.items()}
         budgets = {key: self._rules.preview_budget(key) for key in indices}
-        request = _Request(self._root, self._rules.manual_name(), group, texts, budgets)
+        request = _Request(self._root, self._rules.manual_name(), group, texts, budgets, self._save_pending)
+        self._save_pending = ""
         page_no = int(page.split("_")[1])
         # The badge shows the printed page number: the file Page_002 is page 3 (checked on the calibration shot).
         self._page_number = str(page_no + 1)
@@ -409,6 +424,8 @@ class ManualPreviewPanel(QWidget):
 
     def _show_message(self, text: str) -> None:
         self._result = None
+        self._page_number = ""  # no page is drawn: the title bar must not show the last page's badge
+        self._tab_title = ""
         self._message = text
         self._set_status(text)
         self._screens.update()
@@ -427,6 +444,6 @@ class ManualPreviewPanel(QWidget):
         if not chosen:
             return
         self._root = chosen
-        save_folder(chosen)
+        self._save_pending = chosen
         self._cache.clear()
         self.refresh()

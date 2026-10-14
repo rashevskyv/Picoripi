@@ -11,6 +11,7 @@ from plugins.manual_3ds import page_render, preview_panel
 from plugins.manual_3ds import rules as m3d
 
 PAGE_KEY = "small/Page_003_small_0#1"
+_REPO_MANUAL = ("_shared", "3ds_sysfont_ua", "repo_manual")
 
 
 class _Store:
@@ -75,9 +76,10 @@ def test_panel_reports_a_string_outside_a_page(qtbot, monkeypatch):
     assert panel._message == "The index is not drawn here. Select a string of a page."
 
 
-@pytest.mark.skipif(romhacking_root.missing("work") is not None, reason=romhacking_root.missing("work") or "")
+@pytest.mark.skipif(romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") is not None,
+                    reason=romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") or "")
 def test_real_page_renders_and_flags_an_overflowing_paragraph(qtbot, monkeypatch):
-    monkeypatch.setattr(preview_panel, "load_folder", lambda: str(romhacking_root.root()))
+    monkeypatch.setattr(preview_panel, "load_folder", lambda: str(romhacking_root.path(*_REPO_MANUAL)))
     keys = _real_keys()
     rules = m3d.GameRules()
     rules.load_data_from_json_obj(_document(keys))
@@ -146,9 +148,6 @@ def test_host_docks_the_panel_in_place_of_the_bfn_preview(qtbot, monkeypatch):
     handler.attach_custom_preview()
     assert host.custom_preview_widget is None
     assert not bfn.isHidden() and not bar.isHidden()
-
-
-_REPO_MANUAL = ("_shared", "3ds_sysfont_ua", "repo_manual")
 
 
 @pytest.mark.skipif(romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") is not None,
