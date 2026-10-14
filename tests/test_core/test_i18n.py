@@ -6,7 +6,7 @@ from core import i18n
 def test_menu_lists_catalogs_that_have_translations():
     codes = i18n.available_languages()
     assert codes[0] == "en"
-    assert "uk" in codes
+    assert "uk" in codes  # deslop: ignore[poor-substring-tests] exact element of the list of language codes, not a substring
     assert "ru" not in codes
 
 
@@ -74,7 +74,7 @@ def test_empty_translation_falls_back_to_english(tmp_path, monkeypatch):
         json.dumps({"@language_name": "Testish", "Save Changes": "Savex"}, ensure_ascii=False),
         encoding="utf-8",
     )
-    assert "xx" in i18n.available_languages()
+    assert "xx" in i18n.available_languages()  # deslop: ignore[poor-substring-tests] exact element of the list of language codes, not a substring
     i18n.set_language("xx")
     assert i18n.tr("Save Changes") == "Savex"
     assert i18n.tr("Unknown chrome") == "Unknown chrome"
