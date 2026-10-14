@@ -6,6 +6,7 @@ Layout, from nsz (``nsz/IndependentNczDecompressor.py``, ``nsz/Header.py``, ``ns
 zstd stream. Each block is one zstd frame, or raw when its size equals its decompressed size. The body is the NCA from
 0x4000 on, with the AES-CTR sections already decrypted. ``decompress_ncz`` writes the NCA back (header copy, then body),
 so the reader can use its normal section views. All fields are little-endian. No key is read or kept here.
+nsz (MIT licence, https://github.com/nicoboss/nsz) is cited for these format facts only; none of its code is copied.
 """
 from __future__ import annotations
 
