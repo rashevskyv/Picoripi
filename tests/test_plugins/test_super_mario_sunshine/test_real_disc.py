@@ -15,14 +15,6 @@ from plugins.super_mario_sunshine import dol_patch
 from plugins.super_mario_sunshine.rules import GameRules
 
 DISC = ("_new", "Super Mario Sunshine (2002)(Nintendo)(US).iso")
-# The four Shift-JIS message files whose DAT1 starts with text, not with a NUL byte: the save path writes their string
-# offsets one higher, so their INF1 does not round-trip (see build.py).
-INF1_NOT_REPRODUCED = {
-    "files/data/scene/pinnaBeach0.szs/map/dolpic1.bmg",
-    "files/data/scene/pinnaBeach1.szs/map/dolpic1.bmg",
-    "files/data/scene/pinnaBeach2.szs/map/dolpic1.bmg",
-    "files/data/scene/pinnaBeach3.szs/map/dolpic1.bmg",
-}
 
 
 @romhacking_root.needs(DISC)
@@ -65,9 +57,9 @@ def test_intact_bmg_messages_round_trip_except_the_known_shift_jis_files():
                 tool.load(body)
                 if tool.save() != body:
                     differing.add(f"{entry.path}/{name}")
-    # A complete dump adds archives: the count may only grow, and no file outside the known four may stop round-tripping.
+    # A complete dump adds archives: the count may only grow, and no file may stop round-tripping.
     assert count >= 171
-    assert differing <= INF1_NOT_REPRODUCED
+    assert differing == set()
 
 
 @romhacking_root.needs(DISC)

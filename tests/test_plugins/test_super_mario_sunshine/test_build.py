@@ -1,10 +1,13 @@
-"""Super Mario Sunshine plugin on synthetic data: source mark, changed files, INF1 guard, the GameCube and port builds."""
+"""Super Mario Sunshine plugin on synthetic data: source mark, archive folders, changed members, the INF1 guard, the
+GameCube and port builds."""
 import struct
 from pathlib import Path
 
 import pytest
 
+from core.containers import yaz0
 from core.containers.gcm import GameCubeImage
+from core.containers.rarc_container import RarcContainer
 from gc_disc import build_disc
 from plugins.super_mario_sunshine import build
 from plugins.super_mario_sunshine.rules import GameRules
@@ -57,33 +60,58 @@ def test_a_file_the_disc_does_not_hold_is_refused(tmp_path):
         build.changed_files(src, trn)
 
 
-def test_a_changed_message_attribute_block_in_an_archive_is_refused(tmp_path):
+def test_a_changed_message_attribute_block_is_refused(tmp_path):
     src, trn = tmp_path / "src", tmp_path / "trn"
-    _write(src / "files/data/a.szs", build_rarc({"map/m.bmg": bmg(b"\0" * 8)}))
-    _write(trn / "files/data/a.szs", build_rarc({"map/m.bmg": bmg(b"\1" * 8)}))
+    _write(src / "files/data/a.szs/map/m.bmg", bmg(b"\0" * 8))
+    _write(trn / "files/data/a.szs/map/m.bmg", bmg(b"\1" * 8))
     with pytest.raises(ValueError, match="INF1"):
         build.changed_files(src, trn)
 
 
-def test_a_text_change_in_an_archive_is_taken_whole(tmp_path):
+def test_a_text_change_in_a_member_is_taken_as_it_is(tmp_path):
     src, trn = tmp_path / "src", tmp_path / "trn"
-    _write(src / "files/data/a.szs", build_rarc({"m.bmg": bmg(b"\0" * 8)}))
-    edited = build_rarc({"m.bmg": bmg(b"\0" * 8, b"EDIT")})
-    _write(trn / "files/data/a.szs", edited)
-    assert build.changed_files(src, trn) == {"files/data/a.szs": edited}
+    _write(src / "files/data/a.szs/m.bmg", bmg(b"\0" * 8))
+    edited = bmg(b"\0" * 8, b"EDIT")
+    _write(trn / "files/data/a.szs/m.bmg", edited)
+    assert build.changed_files(src, trn) == {"files/data/a.szs/m.bmg": edited}
+
+
+def test_archive_split_finds_the_member_inside_an_archive_folder():
+    assert build.archive_split("files/data/scene/a.szs/map/m.bmg") == ("files/data/scene/a.szs", "map/m.bmg")
+    assert build.archive_split("files/data/b.bin") is None
+
+
+def test_fold_archives_turns_a_rarc_into_a_folder_and_keeps_other_files(tmp_path):
+    root = tmp_path / "source"
+    _write(root / "files/data/a.szs", yaz0.compress(build_rarc({"m.bmg": b"BMG-A"})))
+    _write(root / "files/data/plain.szs", b"not an archive")
+    build.fold_archives(root)
+    assert (root / "files/data/a.szs/m.bmg").read_bytes() == b"BMG-A"
+    assert (root / "files/data/a.szs").is_dir()
+    assert (root / "files/data/plain.szs").read_bytes() == b"not an archive"
+
+
+def test_an_archive_is_rebuilt_from_the_disc_and_keeps_yaz0(tmp_path):
+    disc = _write(tmp_path / "disc.iso", build_disc({
+        "data/a.szs": yaz0.compress(build_rarc({"m.bmg": b"OLD", "n.bmg": b"KEEP"}))}))
+    raw = build._archive_bytes(disc, "files/data/a.szs", {"m.bmg": b"NEW"})
+    assert raw[:4] == b"Yaz0"
+    container = RarcContainer(raw)
+    assert container.read_file("m.bmg") == b"NEW"
+    assert container.read_file("n.bmg") == b"KEEP"
 
 
 def test_gc_iso_build_refuses_a_main_dol_that_is_not_the_retail_one(tmp_path):
     other = b"B" * 10
     image = _write(tmp_path / "disc.iso", build_disc({
-        "data/a.szs": build_rarc({"m.bmg": bmg(b"\0" * 8)}), "data/b.bin": other}))
+        "data/a.szs": yaz0.compress(build_rarc({"m.bmg": bmg(b"\0" * 8)})), "data/b.bin": other}))
     src, trn, out = tmp_path / "src", tmp_path / "trn", tmp_path / "out"
     out.mkdir()
-    _write(src / "files/data/a.szs", build_rarc({"m.bmg": bmg(b"\0" * 8)}))
+    _write(src / "files/data/a.szs/m.bmg", bmg(b"\0" * 8))
     _write(src / "files/data/b.bin", other)
     _write(src / "sys/main.dol", b"\x00" * 0x20)   # the synthetic executable is too short for the speech fix
     build.write_source_mark(src, image)
-    _write(trn / "files/data/a.szs", build_rarc({"m.bmg": bmg(b"\0" * 8, b"EDIT")}))
+    _write(trn / "files/data/a.szs/m.bmg", bmg(b"\0" * 8, b"EDIT"))
     with pytest.raises(ValueError, match="too short"):
         build.build_gc_iso(str(src), str(trn), str(out), _noop, _never)
     assert not (out / build.ISO_NAME).exists()
@@ -92,13 +120,12 @@ def test_gc_iso_build_refuses_a_main_dol_that_is_not_the_retail_one(tmp_path):
 def test_port_pack_writes_the_changed_member_under_the_archive_folder(tmp_path):
     src, trn, out = tmp_path / "src", tmp_path / "trn", tmp_path / "out"
     out.mkdir()
-    _write(src / "files/data/a.szs", build_rarc({"m.bmg": bmg(b"\0" * 8)}))
+    _write(src / "files/data/a.szs/m.bmg", bmg(b"\0" * 8))
     _write(src / "sys/main.dol", b"\x00" * 0x100)
-    _write(trn / "files/data/a.szs", build_rarc({"m.bmg": bmg(b"\0" * 8, b"EDIT")}))
+    _write(trn / "files/data/a.szs/m.bmg", bmg(b"\0" * 8, b"EDIT"))
     _write(trn / "sys/main.dol", b"\x01" * 0x100)
     root = Path(build.build_port_pack(str(src), str(trn), str(out), _noop, _never))
     assert (root / "files/data/a.szs/m.bmg").read_bytes() == bmg(b"\0" * 8, b"EDIT")
-    assert not (root / "files/data/a.szs").is_file()
     assert not (root / "sys").exists()
     assert (root / "README.txt").read_text(encoding="utf-8").startswith("Super Mario Sunshine")
 

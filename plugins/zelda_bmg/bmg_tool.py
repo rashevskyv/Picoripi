@@ -141,6 +141,9 @@ class BMGFile:
 
             elif sec_magic == b'DAT1':
                 dat_data = sec_data[8:]
+                # Most files start DAT1 with a NUL; the first string then sits at offset 1. Some (Super Mario Sunshine's
+                # dolpic1.bmg) start with text at offset 0. The save keeps the file's own choice.
+                self.dat1_leading_null = dat_data[:1] == b'\0'
 
             elif sec_magic == b'MID1':
                 count, entry_len, unk = struct.unpack_from(se + 'HHI', sec_data, 8)
@@ -393,8 +396,9 @@ class BMGFile:
         dat1 = bytearray(8)
         mid1 = bytearray(16)
 
-        # First entry in DAT1 is always a null character
-        dat1.extend(null_char)
+        # First entry in DAT1 is a null character, as the loaded file had one (a new file always has it).
+        if getattr(self, 'dat1_leading_null', True):
+            dat1.extend(null_char)
 
         entry_len = 4
         if self.messages:

@@ -1,22 +1,30 @@
 """Build targets of Super Mario Sunshine: a GameCube disc image (``gc_iso``) and the PC/Switch port pack (``port_pack``).
 
-The source folder is the whole disc as ``images.extract`` writes it (``sys/`` and ``files/``). The disc itself is
-never changed: ``unpack_sources`` records its path in ``.picoripi_disc.json`` and the ISO build copies it through
-``write_disc``. The translation folder holds only the files that were saved; every one of them must exist in the
-source, so no file is added to the disc. An archive (``.szs``) is replaced as a whole. The port pack writes only the
-archive members that changed, under ``files/<disc path of the archive>/<member>``: the port's overlay rule.
+The source folder is the disc as ``images.extract`` writes it (``sys/`` and ``files/``), with each RARC archive
+(``*.szs``) turned into a folder of its members: ``files/data/scene/bianco0.szs/map/message.bmg``. Its executable text
+is ``sys/main_strings.dolstr`` (see dol_text.py). The disc itself is never changed: ``unpack_sources`` records its
+path in ``.picoripi_disc.json`` and the ISO build copies it through ``write_disc``.
+
+The translation folder holds only the files that were saved; each must exist in the source, so no file is added.
+A changed archive member is written into a copy of its archive (read from the disc), and the archive replaces the
+disc's file. The port pack writes the changed members as they are, under ``files/<archive>/<member>``: the port's
+overlay rule. No container is registered with ``ContainerManager``: the scan and the other games are not changed.
 """
 import json
 import os
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Tuple
 
-from core.containers import ContainerManager
+from core.containers import yaz0
+from core.containers.gcm import GameCubeImage
 from core.containers.gcm_writer import write_disc
+from core.containers.rarc_container import RarcContainer
 from core.i18n import tr
-from . import dol_patch
+
+from . import dol_patch, dol_text
 
 SOURCE_MARK = ".picoripi_disc.json"
+TEXT_MEMBER = "sys/main_strings.dolstr"
 ISO_NAME = "Super Mario Sunshine (UA).iso"
 PACK_README = """Super Mario Sunshine: Ukrainian text (uk), an overlay for the PC and Switch ports.
 
@@ -60,6 +68,42 @@ def disc_of_source(source_dir: str | os.PathLike) -> Path:
     return image
 
 
+def fold_archives(target_dir: str | os.PathLike, is_cancelled: Cancelled = lambda: False) -> bool:
+    """Turn each RARC ``*.szs`` under ``files/`` into a folder of its members. False when cancelled.
+
+    A file that is not a RARC archive (after Yaz0) stays a file. The folder takes the archive's name, so the file is
+    removed first. The member bytes are written as they are in the archive.
+    """
+    for path in sorted(Path(target_dir, "files").rglob("*.szs")):
+        if is_cancelled():
+            return False
+        raw = path.read_bytes()
+        data = yaz0.decompress(raw) if raw[:4] == b"Yaz0" else raw
+        if data[:4] != b"RARC":
+            continue
+        container = RarcContainer(data)
+        path.unlink()
+        for name in container.list_files():
+            _write(path / name, container.read_file(name))
+    return True
+
+
+def write_text_member(target_dir: str | os.PathLike) -> None:
+    """Write the executable's English text next to ``sys/main.dol`` as ``sys/main_strings.dolstr``."""
+    target = Path(target_dir)
+    dol = (target / "sys" / "main.dol").read_bytes()
+    _write(target / TEXT_MEMBER, dol_text.document_of(dol))
+
+
+def archive_split(rel: str) -> Optional[Tuple[str, str]]:
+    """``(archive path, member path)`` when ``rel`` lies inside an archive folder (``x.szs/``), else None."""
+    parts = rel.split("/")
+    for index, part in enumerate(parts[:-1]):
+        if part.lower().endswith(".szs"):
+            return "/".join(parts[:index + 1]), "/".join(parts[index + 1:])
+    return None
+
+
 def _section(data: bytes, name: bytes) -> Optional[bytes]:
     """The bytes of the BMG section ``name`` (INF1, DAT1 ...), or None."""
     offset = 0x20
@@ -74,38 +118,11 @@ def _section(data: bytes, name: bytes) -> Optional[bytes]:
     return None
 
 
-def _member_changes(base: bytes, new: bytes, archive: str) -> Dict[str, bytes]:
-    """The members of the archive ``new`` that differ from ``base``. A member may not be added, and a BMG keeps its INF1.
-
-    INF1 holds the attributes of each message (box type, speaker and so on). The four Shift-JIS files in
-    pinnaBeach*.szs do not save their INF1 correctly: their DAT1 starts with text, not with a NUL byte, and the save
-    path writes every string offset one higher. So a change to INF1 is refused for them.
-    """
-    base_container = ContainerManager.open(base)
-    new_container = ContainerManager.open(new)
-    if base_container is None or new_container is None:
-        raise ValueError(tr("{0}: not an archive Picoripi can read", archive))
-    names = set(base_container.list_files())
-    changed: Dict[str, bytes] = {}
-    for name in new_container.list_files():
-        if name not in names:
-            raise ValueError(tr("{0}: the archive holds no member {1} (new files are not written)", archive, name))
-        data = new_container.read_file(name)
-        old = base_container.read_file(name)
-        if data == old:
-            continue
-        if name.lower().endswith(".bmg") and _section(data, b"INF1") != _section(old, b"INF1"):
-            raise ValueError(tr("{0}/{1}: the message attributes (INF1) changed; only the text may change",
-                                archive, name))
-        changed[name] = data
-    return changed
-
-
 def changed_files(source_dir: str | os.PathLike, translation_dir: str | os.PathLike) -> Dict[str, bytes]:
-    """{disc path: new bytes} for each file of the translation folder that differs from the source.
+    """{path in the source tree: new bytes} for each file of the translation folder that differs from the source.
 
-    An archive is compared member by member (so the INF1 guard applies), and returned whole. A file the source does
-    not hold is refused.
+    A BMG member keeps its INF1 (the message attributes): a change to INF1 is refused. A file the source does not hold
+    is refused, so no file is added.
     """
     source, translation = Path(source_dir), Path(translation_dir)
     changes: Dict[str, bytes] = {}
@@ -122,10 +139,28 @@ def changed_files(source_dir: str | os.PathLike, translation_dir: str | os.PathL
         old = base.read_bytes()
         if data == old:
             continue
-        if rel.lower().endswith((".szs", ".arc")):
-            _member_changes(old, data, rel)
+        if rel.lower().endswith(".bmg") and _section(data, b"INF1") != _section(old, b"INF1"):
+            raise ValueError(tr("{0}: the message attributes (INF1) changed; only the text may change", rel))
         changes[rel] = data
     return changes
+
+
+def _archive_bytes(image: Path, archive: str, members: Dict[str, bytes]) -> bytes:
+    """The archive ``archive`` of the disc, with ``members`` written into it. Yaz0 is kept when the disc has it."""
+    with open(image, "rb") as stream:
+        disc = GameCubeImage(stream)
+        entry = next((e for e in disc.entries() if e.path == archive), None)
+        if entry is None:
+            raise ValueError(tr("{0}: not on the disc (new files are not written)", archive))
+        data = disc.read(entry)
+    raw = yaz0.decompress(data) if data[:4] == b"Yaz0" else data
+    container = RarcContainer(raw)
+    for member, body in members.items():
+        if member not in container.list_files():
+            raise ValueError(tr("{0}: the archive holds no member {1} (new files are not written)", archive, member))
+        container.write_file(member, body)
+    packed = container.pack()
+    return yaz0.compress(packed, max_candidates=16) if data[:4] == b"Yaz0" else packed
 
 
 def build_gc_iso(source_dir: str, translation_dir: str, output_dir: str,
@@ -133,12 +168,23 @@ def build_gc_iso(source_dir: str, translation_dir: str, output_dir: str,
     """Write the translated disc into ``output_dir`` and return its path. The original disc is copied, never changed."""
     image = disc_of_source(source_dir)
     changes = changed_files(source_dir, translation_dir)
-    if changes:
-        # Any translated file brings the speech-balloon fix into the executable being written: the translation's
-        # main.dol when it has one, else the source's (see dol_patch.py).
-        dol = changes.get("sys/main.dol")
-        if dol is None:
-            dol = (Path(source_dir) / "sys" / "main.dol").read_bytes()
+    text = changes.pop(TEXT_MEMBER, None)
+    archives: Dict[str, Dict[str, bytes]] = {}
+    for rel in list(changes):
+        split = archive_split(rel)
+        if split is not None:
+            archive, member = split
+            archives.setdefault(archive, {})[member] = changes.pop(rel)
+    for archive, members in archives.items():
+        if is_cancelled():
+            break
+        progress(0, archive)
+        changes[archive] = _archive_bytes(image, archive, members)
+    if changes or text is not None:
+        # Any translated file brings the speech-balloon fix into the executable being written (see dol_patch.py).
+        dol = (Path(source_dir) / "sys" / "main.dol").read_bytes()
+        if text is not None:
+            dol = dol_text.apply_document(dol, text)
         changes["sys/main.dol"] = dol_patch.ensure(dol)
     out = Path(output_dir) / ISO_NAME
     write_disc(image, out, changes, progress, is_cancelled)
@@ -148,7 +194,6 @@ def build_gc_iso(source_dir: str, translation_dir: str, output_dir: str,
 def build_port_pack(source_dir: str, translation_dir: str, output_dir: str,
                     progress: Progress, is_cancelled: Cancelled) -> str:
     """Write ``mods/uk`` (the overlay for the PC and Switch ports) into ``output_dir`` and return its path."""
-    source = Path(source_dir)
     changes = changed_files(source_dir, translation_dir)
     root = Path(output_dir) / "mods" / "uk"
     files = root / "files"
@@ -157,15 +202,9 @@ def build_port_pack(source_dir: str, translation_dir: str, output_dir: str,
         if is_cancelled():
             break
         progress(100 * index // count, rel)
-        if not rel.startswith("files/"):   # sys/main.dol: the ports do not read it from the disc
+        if not rel.startswith("files/"):   # sys/: the ports do not read the executable from the disc
             continue
-        disc_path = rel[len("files/"):]
-        if rel.lower().endswith((".szs", ".arc")):
-            base = (source / rel).read_bytes()
-            for member, member_data in _member_changes(base, data, rel).items():
-                _write(files / disc_path / member, member_data)
-        else:
-            _write(files / disc_path, data)
+        _write(files / rel[len("files/"):], data)
     _write(root / "README.txt", PACK_README.encode("utf-8"))
     progress(100, "")
     return str(root)

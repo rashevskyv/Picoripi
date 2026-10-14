@@ -2315,5 +2315,6 @@
   "GameCube disc image (ISO)": "Образ диска GameCube (ISO)",
   "PC and Switch port pack (mods/uk)": "Пакет для портів PC і Switch (mods/uk)",
   "main.dol is too short for the speech fix ({0})": "main.dol закороткий для виправлення мовлення ({0})",
-  "main.dol: the word at {0:#x} is not the expected instruction ({1})": "main.dol: слово за адресою {0:#x} не є очікуваною інструкцією ({1})"
+  "main.dol: the word at {0:#x} is not the expected instruction ({1})": "main.dol: слово за адресою {0:#x} не є очікуваною інструкцією ({1})",
+  "{0}: the message attributes (INF1) changed; only the text may change": "{0}: змінено атрибути повідомлень (INF1); можна змінювати лише текст"
 }

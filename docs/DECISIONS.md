@@ -714,3 +714,32 @@ on disk is a damaged download: the file ends in an HTML page at 0x4F800000 (1272
 0x57058000, so 16 entries (common, title, select, mario, particle and others) are missing. A complete GMSE01 Rev 0
 dump is needed before unpack, Dolphin and the Picoripi project can work. Open: the shipped DOL text, the Shift-JIS
 display in `dolpic1` on NA, the tag catalogue (Twilight Princess tags are used for now).
+
+## D32. Super Mario Sunshine: no global container registration; archives as folders; the executable's text (2026-10-14)
+
+**Context.** D31 registered `.szs` (and `.dol`) with `ContainerManager`. The registration is global: the project scan
+then opens every `.szs` and `.dol` of every game as an archive (`core/project/blocks_mixin.py`, `archive_extensions`),
+which changes how other games' projects are read. The four `dolpic1.bmg` files did not round-trip because the BMG save
+always writes a leading NUL in DAT1; their DAT1 starts with text.
+
+**Decision.**
+- Picoripi registers no container for this plugin. `unpack_sources` turns each RARC `*.szs` under `files/` into a folder
+  of its members (`files/data/scene/bianco0.szs/map/message.bmg`), the same layout as the port overlay. The GameCube
+  build rebuilds a changed archive from the disc's own copy (`build._archive_bytes`) and keeps Yaz0 when the disc has it.
+- The executable's English text is one editable file, `sys/main_strings.dolstr` (JSON), written at unpack. Eleven plain
+  strings: the progressive-scan question, Yes, No, the card title, the English save comment and the six disc-error lines.
+  Each has its retail room (English length with its NUL). A text that does not fit, or has a character outside one byte
+  (cp1252), is refused. The two progressive-scan confirmations with escape codes are not in this version
+  (`plugins/super_mario_sunshine/dol_text.py`). A changed text is written into `sys/main.dol` at build, and the speech fix
+  follows (`dol_patch.ensure`).
+- The BMG save keeps each file's own DAT1 base: a file that starts DAT1 with text (dolpic1) keeps its string offsets.
+  Files with a leading NUL are unchanged. The INF1 guard stays: a change to INF1 is refused.
+- Measured on the reference `main.dol` copy (SHA-256 13934c86...9955): an unchanged document reproduces the executable
+  exactly; a shorter text changes only its own room.
+
+**Supersedes** the `.szs` and `.dol` registration bullets and the "INF1 refused for four files" cost of D31.
+
+**Cost.** The disc on disk is now a new download in progress (`_new\Super Mario Sunshine (USA, Canada).rvz`, 0 bytes and
+a `.part` file, 2026-10-14). The original ISO is not at its path, so the four real `dolpic1` round-trips and the real
+archive folder test cannot run until a complete image is back. The English executable text has not been tested in
+Dolphin.
