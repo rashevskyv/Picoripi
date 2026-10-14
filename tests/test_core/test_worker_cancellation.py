@@ -51,31 +51,35 @@ class TestCompanionClient:
         client, glossary = self._client_and_file(tmp_path)
         before = glossary.read_bytes()
 
-        with patch("requests.get", return_value=_response(REMOTE)), patch("requests.post") as post:
+        posts = []
+        with patch("requests.get", return_value=_response(REMOTE)), \
+                patch("requests.post", side_effect=lambda *a, **k: posts.append(a)):
             ok, *_rest = client.sync_project("P", glossary, cancelled=lambda: True)
 
         assert ok is False and glossary.read_bytes() == before
-        post.assert_not_called()
+        assert posts == []
 
     def test_a_cancelled_commit_neither_writes_nor_pushes(self, tmp_path):
         client, glossary = self._client_and_file(tmp_path)
         before = glossary.read_bytes()
         merge = MergeResult(merged_entries=[{"original": "Hyrule", "translation": "new"}], pulled_count=1, pushed_count=1, conflicts=[])
 
-        with patch("requests.post") as post:
+        posts = []
+        with patch("requests.post", side_effect=lambda *a, **k: posts.append(a)):
             ok, *_rest = client.commit_merge("P", glossary, merge, cancelled=lambda: True)
 
         assert ok is False and glossary.read_bytes() == before
-        post.assert_not_called()
+        assert posts == []
 
     def test_a_push_cancelled_before_the_request_sends_nothing(self, tmp_path):
         client, glossary = self._client_and_file(tmp_path)
 
-        with patch("requests.post") as post:
+        posts = []
+        with patch("requests.post", side_effect=lambda *a, **k: posts.append(a)):
             ok, _message, count = client.push_project("P", glossary, cancelled=lambda: True)
 
         assert (ok, count) == (False, 0)
-        post.assert_not_called()
+        assert posts == []
 
     def test_the_worker_hands_its_own_interruption_flag_to_the_client(self, tmp_path):
         client = MagicMock()
@@ -136,13 +140,16 @@ def test_a_second_save_is_refused_while_one_is_running(qtbot):
     handler.save_worker = running
     outcomes = []
 
-    with patch("handlers.app_action_handler.QProgressDialog") as progress_dialog:
+    dialogs_made = []
+    activations = []
+    window.state.set_active.side_effect = lambda *a, **k: activations.append(a)
+    with patch("handlers.app_action_handler.QProgressDialog", side_effect=lambda *a, **k: dialogs_made.append(a)):
         handler.perform_async_save_flow([], on_finished_callback=lambda *outcome: outcomes.append(outcome))
 
     assert handler.save_worker is running
     assert len(outcomes) == 1 and outcomes[0][0] is False and outcomes[0][2]
-    progress_dialog.assert_not_called()
-    window.state.set_active.assert_not_called()
+    assert dialogs_made == []
+    assert activations == []
 
 
 class _SlowClient:
@@ -174,12 +181,13 @@ def test_skipping_a_stuck_companion_sync_returns_at_once_and_kills_no_thread(qtb
     worker = dialog._worker
     try:
         assert client.started.wait(5)
-        with patch.object(type(worker), "terminate") as terminate:
+        terminated = []
+        with patch.object(type(worker), "terminate", side_effect=lambda *a: terminated.append(a)):
             began = time.monotonic()
             dialog._on_skip_clicked()
             waited = time.monotonic() - began
 
-        terminate.assert_not_called()
+        assert terminated == []
         assert waited < 2.0                                   # the window is not held by the network
         assert thread_utils._parked == [(worker, worker)]     # the thread is kept until it ends
         assert dialog._worker is None and dialog.was_successful is False
