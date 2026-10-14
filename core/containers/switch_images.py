@@ -192,16 +192,18 @@ class SwitchImage(ImageReader):
     The program NCA is the one whose header holds content type 0; the package must hold exactly one. Its ticket must be
     a common ticket. A program given as .ncz is decompressed into ``cache_dir`` (a folder of the caller, created when
     missing); ``close`` deletes that copy. ``is_cancelled`` is checked while it decompresses: then ``entries`` returns
-    an empty list. NCA2/NCA0 and XCI images raise ImageError. ``romfs_is_patch`` is set by ``entries`` when the RomFS
+    an empty list. ``progress(percent, .ncz name)`` reports that decompression. NCA2/NCA0 and XCI images raise ImageError. ``romfs_is_patch`` is set by ``entries`` when the RomFS
     is a BKTR patch: that RomFS is then not listed (its patch is not applied yet).
     """
 
     def __init__(self, stream: BinaryIO, keys: SwitchKeys, cache_dir: Optional[str | Path] = None,
-                 is_cancelled: Optional[Callable[[], bool]] = None) -> None:
+                 is_cancelled: Optional[Callable[[], bool]] = None,
+                 progress: Optional[Callable[[int, str], None]] = None) -> None:
         super().__init__(stream)
         self._keys = keys
         self._cache_dir = cache_dir
         self._is_cancelled = is_cancelled or (lambda: False)
+        self._progress = progress or (lambda percent, text: None)
         self._cache: Optional[Tuple[BinaryIO, str]] = None
         self._ncz_body: Optional[_Body] = None
         self.romfs_is_patch = False
@@ -297,7 +299,9 @@ class SwitchImage(ImageReader):
         folder.mkdir(parents=True, exist_ok=True)
         handle, path = tempfile.mkstemp(dir=folder, prefix=".ncz-", suffix=".nca")
         self._cache = (os.fdopen(handle, "w+b"), path)
-        if not decompress_ncz(source, ncz, self._cache[0], self._is_cancelled):
+        name = item["name"]
+        if not decompress_ncz(source, ncz, self._cache[0], self._is_cancelled,
+                              lambda percent: self._progress(percent, name)):
             self.close()
             return None
         return _Body(self._cache[0], 0, ncz.nca_size, True)

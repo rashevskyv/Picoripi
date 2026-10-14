@@ -1,18 +1,23 @@
 """Link's Awakening (Nintendo Switch, 2019) plugin: the base game's MSBT text, built into romfs.bin for LAS Recomp.
 
-The project unpacks the base game (v1.0.0 only; see ``recomp.py``). The source folder is the unpacked ``romfs``, so
-every MSBT of every region opens as one block. The English slots are ``regionEU/EUen`` and ``regionUS/USen``.
-Build target ``lasrecomp`` writes ``romfs.bin`` with the translated files replaced. The SWUK import is ``swuk.py``.
+The project unpacks the base game (v1.0.0 only; see ``recomp.py``). The source folder is the unpacked ``romfs``: the
+build needs all of it. Only the English slots (``regionEU/EUen``, ``regionUS/USen``) become blocks. The other languages
+are reference columns, read by label from a romfs folder. Build target ``lasrecomp`` writes ``romfs.bin`` with the
+translated files replaced. The SWUK import is ``swuk.py``.
 """
+import struct
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.msbt import Msbt
+from plugins.zelda_totk.reference import LANGUAGES
 from utils.logging_utils import log_warning
 from utils.utils import clean_spaces
 
 from . import recomp
+from .swuk import SLOTS
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 from .tags import CODEC
@@ -39,6 +44,51 @@ class GameRules(BaseGameRules):
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
         return [FileFormat((".msbt",), "bytes", "MSBT"), *DEFAULT_FORMATS]
+
+    def includes_source_file(self, rel_path: str) -> bool:
+        """Only the English slots are translated; the build still reads the whole romfs."""
+        return rel_path.startswith(tuple(f"{slot}/" for slot in SLOTS))
+
+    # -- reference languages ---------------------------------------------------
+
+    def supports_reference_patch(self) -> bool:
+        """The other language slots of a romfs folder (``region*/<lang>/message``) are the references."""
+        return True
+
+    def get_reference_language_label(self) -> str:
+        return LANGUAGES["EUru"]
+
+    def load_reference_patch(self, patch_path: str, block_names=None) -> Dict[Tuple[int, int], str]:
+        return self.load_multi_reference(patch_path, block_names).get(self.get_reference_language_label(), {})
+
+    def load_multi_reference(self, patch_path: str, block_names=None) -> Dict[str, Dict[Tuple[int, int], str]]:
+        """The block's message file in every other slot of ``patch_path`` (a romfs folder), matched by label."""
+        root = Path(patch_path)
+        result: Dict[str, Dict[Tuple[int, int], str]] = {}
+        for key in block_names or {}:
+            rel = self._block_source(int(key))
+            parts = rel.split("/") if rel else []
+            own = _read_msbt(root / rel) if len(parts) > 2 else None
+            if own is None:
+                continue
+            for slot in sorted(root.glob("region*/*")):
+                other = _read_msbt(slot.joinpath(*parts[2:])) if slot.name != parts[1] else None
+                if other is None:
+                    continue
+                texts = {label: other.messages[i] for i, label in other.labels.items() if i < len(other.messages)}
+                found = result.setdefault(LANGUAGES.get(slot.name, slot.name), {})
+                for index, label in own.labels.items():
+                    if label in texts:
+                        found[(int(key), index)] = self.codec.to_editor(texts[label], other.little)
+        return result
+
+    def _block_source(self, block_idx: int) -> Optional[str]:
+        """The source path of a block (relative to the romfs), from the open project."""
+        try:
+            project_idx = self.mw.block_to_project_file_map.get(block_idx, block_idx)
+            return str(self.mw.project_manager.project.blocks[project_idx].source_file)
+        except (AttributeError, IndexError, KeyError, TypeError):
+            return None
 
     # -- load and save ---------------------------------------------------------
 
@@ -129,3 +179,11 @@ class GameRules(BaseGameRules):
         if target_id != recomp.TARGET_ID:
             return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
         return recomp.build(source_dir, translation_dir, output_dir, progress, is_cancelled)
+
+
+def _read_msbt(path: Path) -> Optional[Msbt]:
+    """The MSBT at ``path``, or None when it is missing or does not parse."""
+    try:
+        return Msbt(path.read_bytes())
+    except (OSError, ValueError, IndexError, struct.error):
+        return None

@@ -1,5 +1,9 @@
 {
   " ── ": " ── ",
+  "LAS Recomp needs a TrueType font (.ttf, glyf outlines) with the letters {0}. Put one into {1}, or name it with \"{2}\" in project_settings.json.": "LAS Recomp потребує шрифту TrueType (.ttf, контури glyf) з літерами {0}. Покладіть його в {1} або вкажіть його в \"{2}\" у project_settings.json.",
+  "cannot read it": "не вдається прочитати",
+  "no letters {0}": "немає літер {0}",
+  "not a TrueType font with glyf outlines": "це не шрифт TrueType з контурами glyf",
   "&Add Bookmark...": "&Додати закладку...",
   "&Advanced Search...": "&Розширений пошук...",
   "&Bookmarks": "&Закладки",

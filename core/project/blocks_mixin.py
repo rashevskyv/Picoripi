@@ -206,7 +206,8 @@ class BlocksMixin:
             for filepath in root_path.rglob('*'):
                 if filepath.is_file() and filepath.suffix.lower() in supported_extensions:
                     rel_path = filepath.relative_to(root_path).as_posix()
-                    process_source_file(filepath, rel_path)
+                    if plugin is None or plugin.includes_source_file(rel_path):
+                        process_source_file(filepath, rel_path)
         else:
             filepath = Path(source_path)
             if filepath.is_file() and filepath.suffix.lower() in supported_extensions:
