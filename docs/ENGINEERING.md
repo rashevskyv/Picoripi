@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: engineering practice
-tokens: 1.9k
+tokens: 2.0k
 purpose: Habits behind the rules: threads, performance, persistence, tests
 ---
 # Engineering practice

@@ -18,6 +18,8 @@ from typing import Any, Dict, Iterable, Iterator, Optional
 
 # Font of the console's text, relative to the folder (the shared system font, LZ11 compressed).
 FONT_RELATIVE = Path("work") / "0004009B00014002" / "cbf_std.bcfnt.lz"
+# The same font with the Ukrainian letters the mod adds: what the console runs with the mod. Used when built.
+PATCHED_FONT_RELATIVE = Path("dist_sysfont") / "cbf_std.bcfnt.lz"
 # Module names the tools import from their own folder; cleared before a different folder is loaded.
 _TOOL_MODULES = ("manual", "bcma", "bclyt", "bcfnt", "lz10", "lz11", "darc", "variant", "build", "validate", "luma_hook")
 
@@ -117,7 +119,9 @@ def load_font(tools: Tools) -> Any:
     key = str(tools.root)
     with _LOCK:
         if key not in _FONTS:
-            path = tools.root / FONT_RELATIVE
+            path = tools.root / PATCHED_FONT_RELATIVE
+            if not path.is_file():
+                path = tools.root / FONT_RELATIVE
             try:
                 # The shared font is LZ11 (first byte 17, 0x11); LZ10 (first byte 16) is accepted too.
                 data = path.read_bytes()

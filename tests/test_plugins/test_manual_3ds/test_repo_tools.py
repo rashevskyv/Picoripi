@@ -78,7 +78,7 @@ def test_the_chosen_folder_is_stored_by_the_render_worker(monkeypatch, tmp_path)
     stored = []
     monkeypatch.setattr(preview_panel, "save_folder", lambda folder: stored.append(folder))
     monkeypatch.setattr(preview_panel, "load_folder", lambda: "")  # never read the user's own settings here
-    request = preview_panel._Request("", "activity_log", "small/Page_003_small", {}, {}, str(tmp_path))
+    request = preview_panel._Request("", "activity_log", "small/Page_003_small", {}, {}, "", str(tmp_path))
     worker = preview_panel.PageRenderWorker(1, request, None)
 
     worker.run()  # no folder is set, so the drawing fails; the save must still happen first
@@ -86,18 +86,17 @@ def test_the_chosen_folder_is_stored_by_the_render_worker(monkeypatch, tmp_path)
     assert stored == [str(tmp_path)]
 
 
-def test_a_message_clears_the_page_badge_and_title(qtbot, monkeypatch):
+def test_a_message_clears_the_drawn_page(qtbot, monkeypatch):
     monkeypatch.setattr(preview_panel, "load_folder", lambda: "")
     rules = m3d.GameRules()
     rules.load_data_from_json_obj('{"index/Index#0": {"lines": 1, "width": 300.0, "en": "T", "ru": "T", "ua": "T"}}')
     panel = preview_panel.ManualPreviewPanel(SimpleNamespace(), rules)
     qtbot.addWidget(panel)
-    panel._page_number = "3"
-    panel._tab_title = "Old title"
+    panel._result = object()  # type: ignore[assignment]  a drawn page stands in here
 
     panel._show_message("Select a string of a manual page.")
 
-    assert panel._page_number == "" and panel._tab_title == ""
+    assert panel._result is None and panel._message == "Select a string of a manual page."
 
 
 @pytest.mark.skipif(romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") is not None,

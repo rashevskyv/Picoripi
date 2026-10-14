@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-14
 owns: unfinished work
-tokens: 27.8k
+tokens: 31.1k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -18,6 +18,16 @@ the line when it is done or moved into a plan.
 - NCZ decompression (about 6 GB for this game) sends no progress; the dialog keeps its last text until the files are written.
 - A killed process or a power loss during an unpack leaves `.unpack-<id>` in the project folder (a cancel or an error removes it), now with the NCZ cache inside; nothing removes it later.
 - `core/containers/switch_nsz.py` imports `compression.zstd` itself (it needs the streaming decoder), not through `core/zstd_frame.py`; an `.nsz` needs Python 3.14 (no `zstandard` fallback).
+
+## 3DS manual simulator (`plugins/manual_3ds`, 2026-10-14)
+
+- Done: `core/texture_formats/flim.py` reads 3DS CLIM / flag 0 BFLIM pictures as stored (top row first, picture top-left; `fix/flim-orientation`), and `console_render.decode_bclim` is `flim.read`; the merged render still matches the console on the pages with pictures (home_menu_manual page 7: text difference 0.86).
+- The viewer's line wrap: it breaks a stored line that comes within `WRAP_SLACK` (2 px) of its pane width. Measured: a break at 0.8 px, none at 4.5 px; the 3.0 px break seen on an older card may be the older font's apostrophe width. Lines whose margin is between 0.8 and 4.5 px are reported with that uncertainty.
+- The scroll bar's length and position are modelled (190 px track, length by the visible share), not fitted per shot; the bar rows of every shots_r17b pair are in the chrome notes of the simulator report.
+- The real-data screenshot test (`tests/test_plugins/test_manual_3ds/test_simulator.py`) needs `PICORIPI_3DS_CALIB` (the folder that holds `shots_r17b`) besides `PICORIPI_ROMHACKING`; the chrome crops come from `<data>/plugins/manual_3ds/chrome` (git-ignored, cut from console screenshots).
+- One layout truth (chosen 2026-10-14): the plugin's problems take the lines from the owner's model (that is where the build puts them: `layout.layout_for`, since round 19 the console's own measure: `fontSize / 25`, each pane's charSpace, the card edge, the ink overhangs) and judge each stored line with the console's measure (`layout.console_problems`: `console_render.FONT_WIDTH`, `WRAP_SLACK`, `COLUMN_WIDTH`, `FRAME_INNER`, `SUB_PIXEL`): WRAP (the viewer breaks the line inside its pane), WIDTH (ink past the card edge), BESIDE (past a picture's edge or a box frame's inner edge; the clearance before a picture is the owner layout's job, so Nintendo's own "/" panes are no defect). The preview runs the real render (`simulator.defects_of`) on the worker; the scan does not render (the per-line measure is the same arithmetic). The owner's column-budget WIDTH rule is gone from the plugin; the gate-comparison test compares the gate's text and pane failures only.
+- Done (owner round 19, 848d04b): the owner's model measures as the console draws (`fontSize / 25`, `charSpace`, ink overhangs, frame widths from the textures), so the 329 cand_r18 lines past the card edge belong to the past builds; the next build's render decides.
+- Not ported from the owner's `beside_overruns`: the icon bands of other lines (an icon whose origin is at the bottom reaches up into the line above). The plugin's BESIDE sees pictures and frames only; the preview's render (`simulator.defects_of`) sees every icon as a picture. The parity test does not compare BESIDE.
 
 ## Slop baseline: reduce the count (deslop, 2026-10-14)
 
