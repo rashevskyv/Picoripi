@@ -162,7 +162,7 @@ class TestRefusals:
 
         result = no_dialog.report.call_args.args[0]
         assert result.resolved["Voice 41"] == "RENADO / TELMA"
-        assert "Bou" in result.all_placeholders
+        assert "Bou" in result.all_placeholders  # deslop: ignore[poor-substring-tests] exact element of the placeholder list, not a substring
         assert "Voice 41" in result.all_placeholders
 
 
