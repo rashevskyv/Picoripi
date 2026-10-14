@@ -35,20 +35,20 @@ def test_ailm_prepare_provider(mock_create, mock_box, ailm):
     # Disabled provider
     ailm.mw.translation_config = {'provider': 'disabled'}
     assert ailm._prepare_provider() is None
-    mock_box.information.assert_called_once()
+    assert mock_box.information.call_args.args[2] == 'The AI provider is disabled in the settings.'
     mock_box.reset_mock()
-    
+
     # Missing provider settings
     ailm.mw.translation_config = {'provider': 'openai', 'providers': {}}
     assert ailm._prepare_provider() is None
-    mock_box.warning.assert_called_once()
+    assert mock_box.warning.call_args.args[2] == "No configuration found for provider 'openai'."
     mock_box.reset_mock()
-    
+
     # Provider error
     ailm.mw.translation_config = {'provider': 'openai', 'providers': {'openai': {'model': 'gpt'}}}
     mock_create.side_effect = TranslationProviderError("Err")
     assert ailm._prepare_provider() is None
-    mock_box.critical.assert_called_once()
+    assert mock_box.critical.call_args.args[2] == "Err"
     mock_box.reset_mock()
     
     # Success
@@ -66,28 +66,30 @@ def test_ailm_prepare_provider(mock_create, mock_box, ailm):
 def test_ailm_run_ai_task(mock_thread, mock_worker, ailm):
     mock_thread_inst = mock_thread.return_value
     mock_worker_inst = mock_worker.return_value
-    
+    started_threads = []
+    mock_thread_inst.start.side_effect = lambda: started_threads.append(mock_thread_inst)
+
     mock_provider = MagicMock()
     ailm.run_ai_task(mock_provider, {'type': 'translate_preview'})
-    
+
     assert ailm.is_ai_running is True
     assert ailm.main_handler.is_ai_running is True
     assert ailm.thread == mock_thread_inst
     assert ailm.worker == mock_worker_inst
-    
+
     mock_worker_inst.moveToThread.assert_called_with(mock_thread_inst)
-    mock_thread_inst.start.assert_called_once()
-    
+    assert started_threads == [mock_thread_inst]
+
     # Check that detail_updated connects to set_detail_text
     mock_worker_inst.detail_updated.connect.assert_called_with(
         ailm.main_handler.ui_handler.status_dialog.set_detail_text
     )
-    
-    # Chunked task check
+
+    # Chunked task: the progress bar is set up from the worker's chunk count.
     ailm.run_ai_task(mock_provider, {'type': 'translate_block_chunked'})
-    # Worker signals connected differently
-    # Using side effects isn't strictly necessary as we're just checking branch execution
-    mock_worker_inst.total_chunks_calculated.connect.assert_called()
+    mock_worker_inst.total_chunks_calculated.connect.assert_called_with(
+        ailm.main_handler._setup_progress_bar
+    )
 
 def test_ailm_on_thread_finished(ailm):
     ailm.worker = MagicMock()
@@ -101,18 +103,22 @@ def test_ailm_on_thread_finished(ailm):
     
     # Test retry context triggers _perform_retry
     ailm._retry_context = {'type': 'test'}
-    ailm._perform_retry = MagicMock()
+    retries = []
+    ailm._perform_retry = lambda: retries.append(ailm._retry_context)
     ailm._is_waiting_retry_delay = False
     
     ailm._on_thread_finished()
-    ailm._perform_retry.assert_called_once()
+    assert retries == [{'type': 'test'}]
 
 def test_ailm_callbacks(ailm):
     cb1 = MagicMock()
     cb2 = MagicMock()
     cb3 = MagicMock()
     ailm.register_handler('test', cb1, cb2, cb3)
-    
+    cancel_steps = []
+    ailm.main_handler.reset_translation_session.side_effect = lambda: cancel_steps.append("reset_session")
+    ailm.main_handler.prompt_for_revert_after_cancel.side_effect = lambda: cancel_steps.append("prompt_revert")
+
     resp = ProviderResponse()
     
     ailm._on_success(resp, {'type': 'test'})
@@ -127,36 +133,40 @@ def test_ailm_callbacks(ailm):
     cb2.assert_called_with("Err", {'type': 'test'})
     
     ailm._on_worker_cancelled()
-    ailm.main_handler.reset_translation_session.assert_called_once()
-    ailm.main_handler.prompt_for_revert_after_cancel.assert_called_once()
+    assert cancel_steps == ["reset_session", "prompt_revert"]
 
 @patch('handlers.translation.ai_lifecycle_manager.QMessageBox')
 def test_ailm_handle_task_error(mock_box, ailm):
     # Glossary task
     ailm._handle_task_error("Err", {'type': 'fill_glossary'})
-    ailm.main_handler.ui_handler.finish_ai_operation.assert_called_once()
+    assert ailm.main_handler.ui_handler.finish_ai_operation.call_args.kwargs == {'success': False}
     ailm.main_handler.glossary_handler._handle_ai_fill_error.assert_called_with("Err", {'type': 'fill_glossary'})
-    
+
     # Glossary notes task
     mock_box.reset_mock()
     ailm._handle_task_error("Err", {'type': 'glossary_notes_variation', 'dialog': 'd'})
-    mock_box.warning.assert_called_once()
-    
+    assert mock_box.warning.call_args.args[2] == "Err"
+
     # Timeout
     mock_box.reset_mock()
     mock_box.question.return_value = mock_box.StandardButton.Yes
     ctx = {'type': 'translate_preview', 'attempt': 1, 'max_retries': 3}
-    
+
     ailm._retry_delay_timer = MagicMock()
     ailm._handle_task_error("Read timed out", ctx)
-    mock_box.question.assert_called_once()
+    assert mock_box.question.call_args.args[2] == (
+        "AI translation timed out after ? seconds while processing unknown.\n\n"
+        "Would you like to wait longer and retry?"
+    )
     assert ailm._retry_context == ctx
     ailm._retry_delay_timer.start.assert_called_once_with(0)
-        
+
     # Non-timeout error max attempts reached
     mock_box.reset_mock()
     ailm._handle_task_error("Fatal", {'type': 'translate_preview', 'attempt': 3, 'max_retries': 3})
-    mock_box.critical.assert_called_once()
+    assert mock_box.critical.call_args.args[2] == (
+        "Operation failed after 3 attempts while processing unknown.\n\nLast error: Fatal"
+    )
 
 @pytest.mark.parametrize("retry_after, expected_ms", [(0.0, 3000), (41.2, 42000)])
 @patch('handlers.translation.ai_lifecycle_manager.QMessageBox')
@@ -169,8 +179,10 @@ def test_ailm_retry_dialog_waits_for_the_servers_retry_after(mock_box, ailm, ret
 
     ailm._handle_task_error("429 Client Error: Too Many Requests", ctx)
 
+    assert ailm._retry_context == ctx
+    assert ailm._is_waiting_retry_delay is True
     ailm._retry_delay_timer.start.assert_called_once_with(expected_ms)
-    assert f"{expected_ms // 1000}s" in msg_box.addButton.call_args_list[0][0][0]
+    assert msg_box.addButton.call_args_list[0].args[0] == f"Retry (Wait {expected_ms // 1000}s)"
 
 
 def test_ailm_clean_model_output(ailm):
@@ -216,7 +228,7 @@ def test_ailm_perform_retry(ailm):
     ailm._retry_context = {'type': 'unknown'}
     with patch('handlers.translation.ai_lifecycle_manager.QMessageBox') as mock_box:
         ailm._perform_retry()
-        mock_box.critical.assert_called_once()
+        assert mock_box.critical.call_args.args[2] == "Retry logic not implemented for task 'unknown'."
 
 @pytest.mark.parametrize("completed, resumes", [({0, 1}, True), (set(), False)])
 def test_ailm_retry_of_a_chunked_block_keeps_finished_chunks(ailm, completed, resumes):
@@ -251,13 +263,13 @@ def test_ailm_prepare_to_close(mock_safe_shutdown, ailm):
     mock_worker = MagicMock()
     ailm.thread = mock_thread
     ailm.worker = mock_worker
-    ailm._retry_delay_timer = MagicMock()
-    ailm._deferred_retry_timer = MagicMock()
+    ailm._retry_delay_timer.start(60_000)
+    ailm._deferred_retry_timer.start(60_000)
     ailm._pending_deferred_retry = MagicMock()
     ailm._retry_context = {'type': 'translate_preview'}
     ailm.prepare_to_close()
-    ailm._retry_delay_timer.stop.assert_called_once()
-    ailm._deferred_retry_timer.stop.assert_called_once()
+    assert not ailm._retry_delay_timer.isActive()
+    assert not ailm._deferred_retry_timer.isActive()
     assert ailm._pending_deferred_retry is None
     assert ailm._retry_context is None
     mock_safe_shutdown.assert_called_once_with(mock_thread, mock_worker)
