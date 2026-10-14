@@ -10,6 +10,14 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## 3DS manual simulator (`plugins/manual_3ds`, 2026-10-14)
+
+- `core/texture_formats/flim.py` turns a CLIM's rows over and crops the top-left; the manual's BCLIMs are stored top row first with the image in the top-left of the power-of-two texture (`num_01`, 18x18 in 32x32, shows its boxed digit only that way; the console shows the icon row of `cap_menu_manual_6` at the top). `console_render.decode_bclim` reads them that way; `flim.read` is left as it is until another 3DS CLIM user is checked against its game.
+- The viewer's line wrap: it breaks a stored line that comes within `WRAP_SLACK` (2 px) of its pane width. Measured: a break at 0.8 px, none at 4.5 px; the 3.0 px break seen on an older card may be the older font's apostrophe width. Lines whose margin is between 0.8 and 4.5 px are reported with that uncertainty.
+- The scroll bar's length and position are modelled (190 px track, length by the visible share), not fitted per shot; the bar rows of every shots_r17b pair are in the chrome notes of the simulator report.
+- The real-data screenshot test (`tests/test_plugins/test_manual_3ds/test_simulator.py`) needs `PICORIPI_3DS_CALIB` (the folder that holds `shots_r17b`) besides `PICORIPI_ROMHACKING`; the chrome crops come from `<data>/plugins/manual_3ds/chrome` (git-ignored, cut from console screenshots).
+- Large-text pages: 329 lines of cand_r18 end 1 to 12 px past the card edge (the owner's column budgets measure at `fontSize / 24` without `charSpace`; the console draws at `fontSize / 25` with `charSpace`), so the owner's large-text model needs the simulator's measure before the next round.
+
 ## Slop baseline: reduce the count (deslop, 2026-10-14)
 
 - Reduce `tools/deslop/baseline.json` (default-on rules, counts per file): 321 `call-only-assertions` in tests (largest: `tests/test_ui/test_ui_updater.py` 23, `tests/test_handlers/test_translation_handler.py` 18); add a state or result check, do not suppress.

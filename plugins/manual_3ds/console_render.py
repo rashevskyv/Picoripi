@@ -27,6 +27,10 @@ PANE_KINDS = (b"pan1", b"pic1", b"txt1", b"wnd1", b"bnd1")
 TOP_MARGIN = 204.0          # the page backdrop starts 204 px above the text origin (every *_info __BGRECT__ is at y=204)
 TOP_MARGIN_ROWS = 204
 COLUMN_WIDTH = 320
+# The column image is wider than the card: a line that runs past the card's edge is drawn over the scroll track
+# on the console (shots_r8 2011-01-03_05-17-58.769: the "100" of home_menu_manual page 3, large, reaches
+# canvas x 361, two columns into the track), so its overrun is kept and composed there.
+OVERRUN = 16
 FONT_WIDTH_FALLBACK = 25    # FINF width of cbf_std (the x scale is fontSizeX / width)
 # The viewer breaks a stored line inside its pane when the line's advance comes within this of the pane width.
 # Measured on shots_r17b 2011-01-04_01-58-38.378 against the round-8 health document: a 301.0 px line in a
@@ -358,7 +362,7 @@ class PageRenderer:
         layouts = [parse(data) for data in files]
         page_height = height or max((lay.height for lay in layouts), default=0.0)
         rows = int(math.ceil(page_height + 2 * TOP_MARGIN))
-        canvas = Image.new("RGBA", (COLUMN_WIDTH, max(rows, 1)), (0, 0, 0, 0))
+        canvas = Image.new("RGBA", (COLUMN_WIDTH + OVERRUN, max(rows, 1)), (0, 0, 0, 0))
         for layout in layouts:
             for pane in layout.panes:
                 if not pane.visible:

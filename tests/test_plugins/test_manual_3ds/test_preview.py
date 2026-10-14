@@ -74,7 +74,7 @@ def test_panel_reports_a_string_outside_a_page(qtbot, monkeypatch):
                     reason=romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") or "")
 def test_real_page_renders_and_flags_an_overflowing_paragraph(qtbot, monkeypatch):
     """A 200-W paragraph: the owner's pane model refuses it and the column model widens the pane for it, so the
-    render shows the line cut at the card's edge (a `clipped` defect on that key); three-word paragraphs on
+    render shows the line running past the card's edge (an `over_edge` defect on that key); three-word paragraphs on
     one-line panes are refused outright and keep their stored text (failed keys)."""
     monkeypatch.setattr(preview_panel, "load_folder", lambda: str(romhacking_root.path(*_REPO_MANUAL)))
     keys = _real_keys()
@@ -94,9 +94,9 @@ def test_real_page_renders_and_flags_an_overflowing_paragraph(qtbot, monkeypatch
     panel.shutdown()
     result = panel._result
     assert result is not None, panel._message
-    assert result.column.width() == 320 and result.overlay.size().width() == 400
+    assert result.column.width() == 320 + preview_panel.cr.OVERRUN and result.overlay.size().width() == 400
     assert result.number == 3
-    assert "clipped" in result.defect_keys.get("small/Page_002_small_0#2", []) or "small/Page_002_small_0#2" in result.failed_keys
+    assert "over_edge" in result.defect_keys.get("small/Page_002_small_0#2", []) or "small/Page_002_small_0#2" in result.failed_keys
     assert result.failed_keys and result.runs, "the page drew no text"
 
 

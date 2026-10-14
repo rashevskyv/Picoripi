@@ -5,8 +5,8 @@ Pulls together console_render (the page column), sim_screens (the viewer's chrom
 scripts/manual_3ds_render.py and by the preview panel:
 
 - ``Simulator.render(...)``: one page of one build at one scroll -> the two screens;
-- ``find_defects(...)``: what the render shows wrong: a line past the card edge, a line the viewer broke inside its
-  pane, a line over a picture or a frame, a glyph the font lacks;
+- ``find_defects(...)``: what the render shows wrong: a line whose ink runs past the card's edge onto the scroll
+  track, a line the viewer broke inside its pane, a line over a picture or a frame, a glyph the font lacks;
 - ``match_shot(...)``: which build, scroll and size a console screenshot pair shows, and how far the render is from it.
 
 Nothing here reads JSON translations: the pages come from the archives a build wrote (the console reads the same).
@@ -27,7 +27,7 @@ from plugins.manual_3ds import repo_tools
 from plugins.manual_3ds import sim_screens as ss
 
 CARD_EDGE = 320.0           # page x of the card's right edge (the scroll track starts there)
-LINE_LIMIT = CARD_EDGE      # a line that reaches past this is cut on the console
+LINE_LIMIT = CARD_EDGE      # a line that reaches past this runs onto the scroll track (top screen) or is lost (bottom)
 PICTURE_MIN = (24.0, 12.0)  # smaller pictures are icons set inside the text (the owner's OCC_MIN_W/H)
 BOX_MIN_WIDTH = 200.0       # a window the text sits inside is a box only when this wide (the owner's OCC_BOX_MIN_W)
 TEXT_BANDS = ((48, 48, 352, 230), (48, 240, 352, 450))   # canvas boxes the scroll is matched on (chrome excluded)
@@ -38,6 +38,7 @@ REGIONS = {
     "bottom_bar": [(40, 452, 360, 480)],
 }
 MATCH_STEP = 4              # coarse scroll search step; refined by +-MATCH_STEP after
+SAME_EPS = 0.1              # builds whose text-band difference is this close to the best show the same page here
 
 
 def manual_file_name(tools: Any, name: str) -> str:
@@ -60,7 +61,7 @@ def build_files(tools: Any, build: Path) -> Dict[str, Path]:
 
 @dataclass
 class Defect:
-    kind: str                   # clipped | wrapped | over_picture | over_frame | missing_glyph
+    kind: str                   # over_edge | wrapped | over_picture | over_frame | missing_glyph
     manual: str
     page: int                   # console page number
     page_file: str              # Page_NNN
@@ -226,8 +227,8 @@ def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.
             out.append(Defect("wrapped", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
                               "the viewer broke the stored line inside its pane; this part lands on the next line"))
         if right > LINE_LIMIT + 0.5:
-            out.append(Defect("clipped", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
-                              f"ink ends at {right:.1f} px, the card ends at {LINE_LIMIT:.0f}: {where}"))
+            out.append(Defect("over_edge", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
+                              f"ink ends at {right:.1f} px, the card ends at {LINE_LIMIT:.0f} (drawn over the scroll track): {where}"))
         for pic_name, px, py, pw, ph in pictures:
             if px < right - 1.0 and px + pw > run.x + 1.0 and py > bottom + 1.0 and py - ph < run.top - 1.0 and px > run.x:
                 out.append(Defect("over_picture", name, number, page_name, size, run.pane, run.text, run.top,
@@ -330,13 +331,19 @@ class Match:
     page_hash: str = ""
 
 
+def build_round(build: str) -> Tuple[int, int, str]:
+    """Sort key of a build folder name: candidates by round number (`cand` is round 0), probe builds (calib_*) first."""
+    digits = "".join(ch for ch in build if ch.isdigit())
+    return (0 if build.startswith("calib") else 1, int(digits) if digits else 0, build)
+
+
 def match_shot(sims: Dict[str, Simulator], shot: Image.Image, name: str, page_file: int, sizes: Iterable[str],
                buttons: int, arrows: bool, preferred: str = "") -> Tuple[Optional[Match], Optional[ScreenRender], Dict[str, Match]]:
     """The build and scroll whose render is closest to a console pair, over every build that has the page.
 
-    Builds whose page files are byte-identical are rendered once and score alike; among those the `preferred`
-    build (the one the folder was classified as) is named, else the last in name order (the newest round).
-    Returns the best match, its render, and the result of every build (keyed by build name).
+    Builds whose page renders alike are scored once; among those the `preferred` build (the one the folder was
+    classified as; "a or b" names two) is named, else the newest round. Returns the best match, its render, and
+    the result of every build (keyed by build name).
     """
     seen: Dict[Tuple[str, str], str] = {}
     results: Dict[str, Match] = {}
@@ -349,12 +356,19 @@ def match_shot(sims: Dict[str, Simulator], shot: Image.Image, name: str, page_fi
         for size in sizes:
             if page_file not in manual.pages(size):
                 continue
+            # Builds whose page files are byte-identical render alike; so do builds whose files differ only in
+            # bytes the render does not read, so the render itself is the twin key.
             digest = manual.page_hash(page_file, size)
             twin = seen.get((digest, size))
+            if twin is None:
+                column = sim.column(name, page_file, size)[0]
+                digest = hashlib.sha1(column.tobytes()).hexdigest()[:12]
+                twin = seen.get((digest, size))
             if twin is not None:
                 results[build] = Match(build, size, results[twin].scroll, results[twin].text_diff, results[twin].bad_text_pixels,
                                        dict(results[twin].regions), digest)
                 continue
+            seen[(manual.page_hash(page_file, size), size)] = build
             seen[(digest, size)] = build
             column = sim.column(name, page_file, size)[0]
             limit = ss.scroll_range(column.height)
@@ -367,8 +381,12 @@ def match_shot(sims: Dict[str, Simulator], shot: Image.Image, name: str, page_fi
             if best is None or match.text_diff < best.text_diff:
                 best, best_render = match, render
     if best is not None:
-        twins = [b for b, m in results.items() if m.page_hash == best.page_hash and m.size == best.size]
-        chosen = preferred if preferred in twins else sorted(twins)[-1]
+        # Builds that render alike, or whose render differs from the best by less than SAME_EPS in the text bands
+        # (they differ outside the part of the page the screenshot shows), are the same build for this pair.
+        twins = [b for b, m in results.items()
+                 if m.size == best.size and (m.page_hash == best.page_hash or m.text_diff - best.text_diff <= SAME_EPS)]
+        wanted = [b.strip() for b in preferred.split(" or ") if b.strip() in twins]
+        chosen = wanted[0] if wanted else max(twins, key=build_round)
         if chosen != best.build:
             best = Match(chosen, best.size, best.scroll, best.text_diff, best.bad_text_pixels, dict(best.regions), best.page_hash)
     return best, best_render, results

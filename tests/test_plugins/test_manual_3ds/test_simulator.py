@@ -251,12 +251,16 @@ def test_page_files_puts_the_backdrop_first_then_the_sub_pages_in_order():
 
 def test_compose_places_page_y_zero_under_the_header_and_scrolls_the_column():
     glyphs = cr.Glyphs(_Font(), _Bcfnt())
-    column = Image.new("RGBA", (320, 1000), (0, 0, 0, 0))
+    column = Image.new("RGBA", (336, 1000), (0, 0, 0, 0))
     column.paste((255, 0, 0, 255), (0, 214, 320, 215))      # page y = -10
     column.paste((0, 0, 255, 255), (0, 504, 320, 505))      # page y = -300
+    column.paste((0, 255, 0, 255), (320, 604, 336, 605))    # ink past the card's edge at page y = -400
     info = ss.PageInfo(7, "Title", 3, has_previous=True, has_next=False)
     canvas = ss.compose(column, 0, info, ss.Chrome(bottom_bar={}), glyphs)
     assert canvas.size == (400, 480)
+    # x 372 is on the track, right of the scroll bar: at scroll 0 that row shows page y = -100, at 300 it shows -400.
+    assert canvas.getpixel((372, ss.PAGE_TOP + 100))[:3] != (0, 255, 0)
+    assert ss.compose(column, 300, info, ss.Chrome(bottom_bar={}), glyphs).getpixel((372, ss.PAGE_TOP + 100))[:3] == (0, 255, 0)
     assert canvas.getpixel((200, ss.PAGE_TOP + 10))[:3] == (255, 0, 0)
     assert canvas.getpixel((200, ss.PAGE_TOP + 300))[:3] == (0, 0, 255)
     scrolled = ss.compose(column, 100, info, ss.Chrome(bottom_bar={}), glyphs)

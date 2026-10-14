@@ -47,7 +47,7 @@ WORKER_STOP_MS = 3000
 Y_BUTTON_START = 180          # the Y label area of the bottom bar starts here (x, in card pixels)
 PAGE_NUMBER = re.compile(r"Page_(\d+)_(large|small)")
 DEFECT_RGBA = (255, 0, 0, 60)
-MARKED_DEFECTS = ("clipped", "wrapped", "over_picture", "over_frame")
+MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame")
 
 _GROUPS_LOCK = threading.Lock()
 _ARCHIVES: Dict[Tuple[str, str], Any] = {}
@@ -427,12 +427,16 @@ class ManualPreviewPanel(QWidget):
             return
         result = self._result
         top = ss.PAGE_TOP - cr.TOP_MARGIN_ROWS - self._scroll
-        painter.drawImage(QPointF(BOTTOM_X, top), result.column)
+        painter.drawImage(QPointF(BOTTOM_X, top), result.column, QRectF(0, 0, cr.COLUMN_WIDTH, result.column.height()))
         for defect in result.defects:
             if defect.kind in MARKED_DEFECTS:
                 row = ss.PAGE_TOP - defect.page_y - self._scroll
                 painter.fillRect(QRectF(BOTTOM_X, row, BOTTOM_SIZE[0], 20), QColor(*DEFECT_RGBA))
         painter.drawImage(QPointF(0, 0), result.overlay)
+        # Ink past the card's edge lies over the scroll track on the top screen, as on the console.
+        strip_top = ss.HEADER_ROWS + len(ss.HEADER_SHADOW)
+        painter.drawImage(QRectF(BOTTOM_X + cr.COLUMN_WIDTH, strip_top, cr.OVERRUN, TOP_SIZE[1] - strip_top), result.column,
+                          QRectF(cr.COLUMN_WIDTH, strip_top - top, cr.OVERRUN, TOP_SIZE[1] - strip_top))
         x0, y0, x1, y1 = ss.bar_rect(result.column_height, self._scroll)
         painter.fillRect(QRectF(x0 - 1, y0 - 1, x1 - x0 + 3, y1 - y0 + 3), QColor(*ss.BAR_OUTLINE))
         painter.fillRect(QRectF(x0, y0, x1 - x0 + 1, y1 - y0 + 1), QColor(*ss.BAR_FILL))

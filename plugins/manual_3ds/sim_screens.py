@@ -151,8 +151,15 @@ def compose(column: Image.Image, scroll: float, info: PageInfo, chrome: Chrome, 
 def compose_with(column: Image.Image, scroll: float, chrome_overlay: Image.Image) -> Image.Image:
     """`compose` with a ready overlay (the panel keeps one per page and scrolls the column under it)."""
     canvas = Image.new("RGBA", CANVAS, (255, 255, 255, 255))
-    _paste_column(canvas, column, CARD_X, PAGE_TOP, scroll)
+    card = column.crop((0, 0, cr.COLUMN_WIDTH, column.height))
+    _paste_column(canvas, card, CARD_X, PAGE_TOP, scroll)
     canvas.alpha_composite(chrome_overlay)
+    if column.width > cr.COLUMN_WIDTH:
+        # Ink past the card's edge lies over the scroll track on the top screen (nothing is beyond the bottom screen).
+        strip = Image.new("RGBA", (column.width - cr.COLUMN_WIDTH, TOP[1] - HEADER_ROWS - len(HEADER_SHADOW)), (0, 0, 0, 0))
+        _paste_column(strip, column.crop((cr.COLUMN_WIDTH, 0, column.width, column.height)), 0,
+                      PAGE_TOP - HEADER_ROWS - len(HEADER_SHADOW), scroll)
+        canvas.alpha_composite(strip, (CARD_X + cr.COLUMN_WIDTH, HEADER_ROWS + len(HEADER_SHADOW)))
     x0, y0, x1, y1 = bar_rect(column.height, scroll)
     draw = ImageDraw.Draw(canvas)
     draw.rectangle((x0 - 1, y0 - 1, x1 + 1, y1 + 1), fill=BAR_OUTLINE + (255,))

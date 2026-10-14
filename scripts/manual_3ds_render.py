@@ -189,7 +189,8 @@ def cmd_validate(args: argparse.Namespace) -> None:
         sheet = comparison_sheet(shot, canvas)
         sheet_name = f"{entry['folder']}_{stem}.png"
         sheet.save(out / sheet_name)
-        twins = sorted(b for b, m in per_build.items() if m.page_hash == best.page_hash and m.size == best.size)
+        twins = sorted(b for b, m in per_build.items() if m.size == best.size
+                       and (m.page_hash == best.page_hash or m.text_diff - best.text_diff <= sim_mod.SAME_EPS))
         record = {
             "folder": entry["folder"], "stem": stem, "manual": entry["manual"], "page_file": entry["page_file"],
             "console_page": render.info.number, "title": render.info.title, "size": best.size, "scroll": best.scroll,
