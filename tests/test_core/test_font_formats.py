@@ -315,19 +315,25 @@ def test_bffnt_remapped_character_wins_over_the_old_cmap():
 # -- BFN (the editor's own engine) --------------------------------------------------------------
 
 
-def test_bfn_engine_keeps_chunk_order_padding_and_linear_map(tmp_path):
-    """Wind Waker files: WID1 and MAP1 before GLY1, non-zero padding, a linear (type 0) map."""
-    import json
-    from tools.bfn_editor.bfn_engine import extract_bfn_logic, repack_bfn_logic
-
+def _linear_bfn(map_padding: bytes = bytes(16)) -> bytes:
+    """Two 8x8 I4 glyphs; WID1 and MAP1 (linear, type 0, followed by ``map_padding``) before GLY1."""
     inf1 = b"INF1" + struct.pack(">I6HI", 32, 0, 6, 2, 8, 8, 0x20, 7) + bytes.fromhex("DEADBEEF01020304")
     wid1 = b"WID1" + struct.pack(">IHH", 32, 0, 2) + bytes([0, 6, 1, 7]) + bytes(range(1, 17))
-    map1 = b"MAP1" + struct.pack(">IHHHH", 32, 0, 0x20, 0x21, 0) + bytes(16)
+    map1 = b"MAP1" + struct.pack(">IHHHH", 32, 0, 0x20, 0x21, 0) + map_padding
     texture = bytes(((i * 37) & 0xFF) for i in range(64))
     gly1 = b"GLY1" + struct.pack(">IHHHHIHHHHH", 96, 0, 1, 8, 8, 64, 0, 2, 1, 16, 8) + bytes(2) + texture
     body = inf1 + wid1 + map1 + gly1
-    data = b"FONTbfn1" + struct.pack(">II", 32 + len(body), 4) + bytes(16) + body
+    return b"FONTbfn1" + struct.pack(">II", 32 + len(body), 4) + bytes(16) + body
 
+
+@pytest.mark.parametrize("map_padding", [bytes(16), bytes.fromhex("77bd" * 8)])
+def test_bfn_engine_keeps_chunk_order_padding_and_linear_map(tmp_path, map_padding):
+    """Wind Waker files: WID1 and MAP1 before GLY1, non-zero padding, a linear (type 0) map. Super Mario Sunshine's
+    linear maps are followed by non-zero padding too."""
+    import json
+    from tools.bfn_editor.bfn_engine import extract_bfn_logic, repack_bfn_logic
+
+    data = _linear_bfn(map_padding)
     (tmp_path / "f.bfn").write_bytes(data)
     extract_bfn_logic(str(tmp_path / "f.bfn"), str(tmp_path))
     metadata = json.loads((tmp_path / "data.json").read_text())
@@ -341,6 +347,19 @@ def test_bfn_engine_keeps_chunk_order_padding_and_linear_map(tmp_path):
     (tmp_path / "data.json").write_text(json.dumps(metadata))
     repack_bfn_logic(str(tmp_path), str(tmp_path / "out.bfn"))
     assert struct.unpack_from(">H", (tmp_path / "out.bfn").read_bytes(), 32 + 64 + 8)[0] == 2
+
+
+def test_bfn_glyph_drawn_into_a_cell_round_trips_and_nothing_else_changes():
+    from tools.bfn_editor.bfn_engine import read_bfn_model, write_bfn_model
+
+    data = _linear_bfn(bytes.fromhex("77bd" * 8))
+    metadata, sheets = read_bfn_model(data)
+    ImageDraw.Draw(sheets[0]).rectangle((9, 1, 14, 6), fill=(255, 255, 255, 255))     # glyph 1 (code 0x21)
+    edited = write_bfn_model(metadata, sheets)
+    again_metadata, again_sheets = read_bfn_model(edited)
+    assert again_sheets[0].tobytes() == sheets[0].tobytes() and again_metadata == metadata
+    texture_at = len(data) - 64
+    assert edited[:texture_at] == data[:texture_at] and edited[texture_at:] != data[texture_at:]
 
 
 # -- font sources in a project --------------------------------------------------------------

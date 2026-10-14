@@ -20,6 +20,7 @@ from core.project_library import images
 from plugins.zelda_bmg import bmg_tool
 from plugins.super_mario_sunshine import dol_patch
 from plugins.super_mario_sunshine.rules import GameRules
+from tools.bfn_editor.bfn_engine import read_bfn_model, write_bfn_model
 
 DISC_ENV = "PICORIPI_SMS_DISC"
 RETAIL_DOL_SHA256 = "13934c863d649b1ddca1ca4d7748f49d28a571685cbee5fb1542545c32869955"
@@ -51,6 +52,42 @@ def test_real_main_dol_is_the_retail_executable_and_takes_the_patch(disc_path):
     patched = dol_patch.apply(dol)
     assert len(patched) == len(dol)
     assert dol_patch.revert(patched) == dol
+
+
+def _archive_member(disc_path, archive, member):
+    with open_disc(disc_path) as stream:
+        image = GameCubeImage(stream)
+        data = image.read(next(e for e in image.entries() if e.path == archive))
+    return RarcContainer(yaz0.decompress(data) if data[:4] == b"Yaz0" else data).read_file(member)
+
+
+@pytest.mark.parametrize("archive,member", [("files/data/nintendo.szs", "font/standard_fontex.bfn"),
+                                            ("files/data/subtitle.szs", "font/demo_font.bfn")])
+def test_the_editable_fonts_pack_back_byte_for_byte(disc_path, archive, member):
+    font = _archive_member(disc_path, archive, member)
+    assert write_bfn_model(*read_bfn_model(font)) == font
+
+
+def test_no_english_message_uses_a_code_of_the_ukrainian_map(disc_path):
+    codes = {ord(value) for value in GameRules().translation_map.values()}
+    used = set()
+    with open_disc(disc_path) as stream:
+        image = GameCubeImage(stream)
+        for entry in image.entries():
+            if not entry.path.endswith(".szs"):
+                continue
+            data = image.read(entry)
+            raw = yaz0.decompress(data) if data[:4] == b"Yaz0" else data
+            if raw[:4] != b"RARC":
+                continue
+            container = RarcContainer(raw)
+            for name in container.list_files():
+                if name.lower().endswith(".bmg"):
+                    tool = bmg_tool.BMGFile()
+                    tool.load(container.read_file(name))
+                    if tool.encoding == "cp1252":     # the four dolpic1.bmg are Shift-JIS Japanese
+                        used |= {b for m in tool.messages for p in m.parts if isinstance(p, str) for b in p.encode("cp1252")}
+    assert used and not used & codes
 
 
 def test_intact_bmg_messages_round_trip_byte_for_byte(disc_path):

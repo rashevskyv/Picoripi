@@ -3,8 +3,13 @@
 The message files are JSystem BMG, the same format as Twilight Princess, so this plugin reuses the Twilight Princess
 rules (``plugins.zelda_bmg``) for reading, saving and checks. Unpack extracts the whole disc (as Wind Waker does).
 Build targets: ``gc_iso`` (a new disc image) and ``port_pack`` (the mods/uk overlay for the PC and Switch ports).
+
+The game's text is one byte per character. ``translation_map.json`` (this folder; the project's copy once a project is
+open) gives each Ukrainian letter and the apostrophe a code the game's text does not use (D35). A save that holds a
+character with no code is refused with the character and the message; nothing is written as '?'.
 """
 import json
+import os
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.formats import FileFormat
@@ -19,8 +24,18 @@ GAME_ID = "GMSE01"
 REVISION = 0
 
 
+class UnmappedCharacter(ValueError):
+    """A character the game's one-byte text has no code for."""
+
+    def __init__(self, char: str):
+        super().__init__(char)
+        self.char = char
+
+
 class GameRules(TwilightPrincessRules):
     """Super Mario Sunshine (GameCube, USA)."""
+
+    data_dir = os.path.dirname(os.path.abspath(__file__))   # translation_map.json: the Cyrillic codes
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
@@ -44,13 +59,46 @@ class GameRules(TwilightPrincessRules):
         self._dolstr_ids = None
         return super().load_data_from_json_obj(json_obj)
 
+    def encode_string_with_mapping(self, s: str) -> str:
+        """``s`` with each Ukrainian letter on its code. Raises UnmappedCharacter for a character with no one-byte code,
+        or one whose code belongs to a Ukrainian letter (it would show as that letter)."""
+        self.load_translation_map()
+        out = []
+        for char in s:
+            code = self.translation_map.get(char)
+            if code is None:
+                if char in self.reverse_translation_map:
+                    raise UnmappedCharacter(char)
+                code = char
+            try:
+                if len(code.encode("cp1252")) != 1:
+                    raise UnmappedCharacter(char)
+            except UnicodeEncodeError:
+                raise UnmappedCharacter(char) from None
+            out.append(code)
+        return "".join(out)
+
+    def _refuse_unmapped(self, text: str, where: str, encode) -> Any:
+        try:
+            return encode(text)
+        except UnmappedCharacter as error:
+            raise ValueError(tr("{0}: the character {1} has no code in the game's text", where, repr(error.char))) from None
+
     def save_data_to_json_obj(self, data: list, block_names: dict) -> Any:
+        texts = data[0] if data and isinstance(data[0], list) else []
         if self._dolstr_save and self._dolstr_ids is not None:
-            texts = data[0] if data and isinstance(data[0], list) else []
             rooms = {ident: room for ident, _offset, room, _english in DOL_STRINGS}
-            rows = [{"id": ident, "text": self.encode_string_with_mapping(texts[index]) if index < len(texts) else "",
-                     "room": rooms[ident]} for index, ident in enumerate(self._dolstr_ids)]
+            rows = [{"id": ident,
+                     "text": self._refuse_unmapped(texts[index], f"main.dol/{ident}", self.encode_string_with_mapping)
+                     if index < len(texts) else "", "room": rooms[ident]} for index, ident in enumerate(self._dolstr_ids)]
             return json.dumps({"format": DOLSTR_FORMAT, "strings": rows}, ensure_ascii=False, indent=1).encode("utf-8")
+        # Checked before the BMG save, which turns any error into an empty file.
+        bmg = self.last_loaded_bmg
+        for index, text in enumerate(texts):
+            message = bmg.messages[index] if bmg and index < len(bmg.messages) else None
+            self._refuse_unmapped(text, tr("Message {0}", getattr(message, "id", index)), self.editor_text_to_msg_content)
+        if bmg is not None:
+            bmg.encoding = "cp1252"     # one byte per character; dolpic1.bmg is read as Shift-JIS, its text is replaced
         return super().save_data_to_json_obj(data, block_names)
 
     def get_display_name(self) -> str:
