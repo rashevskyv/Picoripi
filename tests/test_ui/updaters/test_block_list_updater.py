@@ -246,25 +246,27 @@ def test_virtual_block_cache_round_trips_without_requery(updater, mock_mw, mock_
 
 
 def test_virtual_ready_callback_waits_for_story_worker(updater):
-    callback = MagicMock()
+    calls = []
     updater._is_loading_chapters = True
 
-    updater.when_virtual_blocks_ready(callback)
-    callback.assert_not_called()
+    updater.when_virtual_blocks_ready(lambda: calls.append(True))
+    assert calls == []
 
     updater._notify_virtual_blocks_ready()
-    callback.assert_called_once_with()
+    assert calls == [True]
 
 
 def test_story_worker_starts_while_startup_splash_exists(updater):
     worker = MagicMock()
     worker.isRunning.return_value = False
+    starts = []
+    worker.start = lambda: starts.append(True)
     updater._chapters_load_worker = worker
     updater.mw._startup_splash = MagicMock()
 
     updater._start_chapters_worker_when_ready()
 
-    worker.start.assert_called_once_with()
+    assert starts == [True]
 
 @pytest.fixture
 def updater(mock_mw, mock_dp):
