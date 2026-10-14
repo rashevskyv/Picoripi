@@ -1,4 +1,4 @@
-"""Command line for the deslop checks: scan, list rules, print a summary, compare or update the baseline."""
+"""Command line for the deslop checks: report new findings over the baseline, list all findings, print a summary, update the baseline."""
 
 from __future__ import annotations
 
@@ -35,11 +35,37 @@ def _list_rules() -> None:
         print(f"{rule.id:<26}{state}  {rule.scope:<6}  {rule.why}")
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def _report_new(result: engine.Scan, baseline: Path) -> int:
+    """Print the findings of each (file, rule) pair whose count grew over the baseline. Exit 1 if any grew."""
+    grown = engine.growth(engine.counts_of(result.violations), engine.load_baseline(baseline))
+    if not grown:
+        print("deslop: no new findings over the baseline")
+        return 0
+    pairs = {(path, rule_id) for path, rule_id, _, _ in grown}
+    for item in result.violations:
+        if (item.path, item.rule) in pairs:
+            print(item)
+    for path, rule_id, old, new in grown:
+        print(f"deslop: {path} [{rule_id}] {old} -> {new} in the baseline")
+    print("deslop: new findings. Fix each one, or suppress it with '# deslop: ignore[rule] <reason>'. Never raise the baseline.")
+    return 1
+
+
+def main(argv: Optional[List[str]] = None, root: Path = engine.ROOT) -> int:
     parser = argparse.ArgumentParser(prog="python -m tools.deslop", description="Flag low-evidence code patterns.")
     parser.add_argument("paths", nargs="*", default=["."], help="files or folders, relative to the repository root")
     parser.add_argument("--rule", action="append", default=[], metavar="ID", help="also run this opt-in rule")
-    parser.add_argument("--baseline", type=Path, metavar="FILE", help="fail only where a count grows over FILE")
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="list every finding and exit 0 (a survey; the check is the default run)",
+    )
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        metavar="FILE",
+        help="compare with FILE (default: tools/deslop/baseline.json); with --update-baseline, the file to write",
+    )
     parser.add_argument(
         "--update-baseline",
         action="store_true",
@@ -53,7 +79,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         _list_rules()
         return 0
 
-    settings = engine.load_config()
+    settings = engine.load_config(root)
     try:
         options = engine.resolve_options(settings)
         rule_ids = engine.enabled_rule_ids(settings, args.rule)
@@ -61,7 +87,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"deslop: {error}", file=sys.stderr)
         return 2
 
-    result = engine.scan(args.paths, rule_ids=rule_ids, options=options, excludes=engine.excludes_from(settings))
+    result = engine.scan(
+        args.paths, rule_ids=rule_ids, options=options, excludes=engine.excludes_from(settings), root=root
+    )
     for error in result.errors:
         print(f"deslop: skipped {error}", file=sys.stderr)
     print(f"deslop: scanned {len(result.files)} files in {result.seconds:.2f} s")
@@ -74,22 +102,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"deslop: baseline written to {target}")
         return 0
 
-    if args.baseline is not None:
-        grown = engine.growth(engine.counts_of(result.violations), engine.load_baseline(args.baseline))
-        for path, rule_id, old, new in grown:
-            print(f"{path}: [{rule_id}] {old} -> {new}; fix the new ones or suppress them with a reason")
-        if grown:
-            print("deslop: counts grew. Lower them, or after a review run: python -m tools.deslop --update-baseline")
-            return 1
-        print("deslop: no count grew over the baseline")
+    if args.all:
+        for item in result.violations:
+            print(item)
+        print(f"deslop: {len(result.violations)} finding(s) in total; --all exits 0")
         return 0
 
-    for item in result.violations:
-        print(item)
-    if result.violations:
-        print(f"deslop: {len(result.violations)} violation(s)")
-        return 1
-    return 0
+    return _report_new(result, args.baseline or engine.BASELINE)
 
 
 if __name__ == "__main__":
