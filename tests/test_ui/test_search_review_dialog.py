@@ -300,17 +300,17 @@ def test_SearchReviewDialog_undo_redo_sync(qapp):
     mw.undo_manager = undo_mgr
     
     dialog = SearchReviewDialog(mw, "hello world", "hello", line_numbers=[0])
-    dialog.refresh_from_project = MagicMock()
-    
+    refreshes = []
+    dialog.refresh_from_project = lambda: refreshes.append("refresh")
+
     action = UndoAction("TEXT_EDIT", 0, 0, "old text", "new text", 123.45)
     undo_mgr.undo_stack.append(action)
-    
+
     undo_mgr.undo()
-    assert dialog.refresh_from_project.called
-    
-    dialog.refresh_from_project.reset_mock()
+    assert refreshes == ["refresh"]
+
     undo_mgr.redo()
-    assert dialog.refresh_from_project.called
+    assert refreshes == ["refresh", "refresh"]
 
     dialog.close()
 
