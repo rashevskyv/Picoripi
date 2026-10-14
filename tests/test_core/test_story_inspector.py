@@ -183,7 +183,7 @@ def test_glossary_info_matching():
     entries = b["glossary_entries"]
     originals = [e["original"] for e in entries]
     assert "hurry" in originals
-    assert "URI" in originals
+    assert "URI" in originals  # deslop: ignore[poor-substring-tests] exact element of the originals list, not a substring
 
     hurry_entry = next(e for e in entries if e["original"] == "hurry")
     assert hurry_entry["translation"] == "поспішати"
