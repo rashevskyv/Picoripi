@@ -391,7 +391,8 @@ def test_plugin_hook_reads_font_sources_json_next_to_the_rules(tmp_path, monkeyp
     (folder / "font_sources.json").write_text(json.dumps(described), encoding="utf-8")
     spec = importlib.util.spec_from_file_location("fake_font_plugin_rules", folder / "rules.py")
     module = importlib.util.module_from_spec(spec)
-    monkeypatch.setitem(sys.modules, "fake_font_plugin_rules", module)
+    # the hook finds the plugin's module by its class's module name in sys.modules, so it must be registered
+    monkeypatch.setitem(sys.modules, "fake_font_plugin_rules", module)  # deslop: ignore[module-mocking] registers a real module the product looks up; no mock
     spec.loader.exec_module(module)
     assert module.GameRules().get_font_sources() == described
 

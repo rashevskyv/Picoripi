@@ -7,6 +7,15 @@ from PyQt6.QtCore import QPoint
 from handlers.translation_handler import TranslationHandler
 from core.translation.providers import ProviderResponse
 
+
+def _record_writes_and_errors(th):
+    """Routes the handler's store writes and reported errors into plain lists."""
+    edits, errors = [], []
+    th.data_processor.update_edited_data = lambda block_idx, string_idx, text, **_kwargs: edits.append((block_idx, string_idx, text))
+    th.ai_lifecycle_manager._handle_task_error = lambda message, _context: errors.append(message)
+    return edits, errors
+
+
 @pytest.fixture
 def mock_deps():
     mw = MagicMock()
@@ -181,35 +190,41 @@ def test_th_prompt_for_revert_after_cancel_chapter(mock_box, th):
 
 @patch('handlers.translation.facade.translate_mixin.QMessageBox')
 def test_th_translate_current_string(mock_box, th):
+    th.glossary_handler._get_original_string.return_value = "orig"
+    started = []
+    th._translate_and_apply = lambda **kwargs: started.append(kwargs)
+
     th.is_ai_running = True
     th.translate_current_string()
-    mock_box.information.assert_called_once()
-    
+    assert started == []
+    assert mock_box.information.call_args.args[2] == "An AI task is already running. Please wait for it to complete."
+
     th.is_ai_running = False
-    with patch.object(th, '_translate_and_apply') as mock_apply:
-        th.translate_current_string()
-        mock_apply.assert_called_once()
+    th.translate_current_string()
+    assert [kwargs["source_text"] for kwargs in started] == ["orig"]
 
 @patch('handlers.translation_handler.QMessageBox')
 def test_th_translate_preview_selection(mock_box, th):
     th.is_ai_running = False
     th.mw.preview_text_edit.get_selected_lines.return_value = [0, 1]
     th.mw.data_store.displayed_string_indices = [0, 1]
-    
+    started = []
+    th._initiate_batch_translation = started.append
+
     th.ai_lifecycle_manager._prepare_provider.return_value = None
     th.translate_preview_selection(QPoint(0, 0)) # Fails early
+    assert started == []
 
-    
+
     provider = MagicMock()
     th.ai_lifecycle_manager._prepare_provider.return_value = provider
     th.glossary_handler.load_prompts.return_value = ("sys", None)
     th.prompt_composer.compose_batch_request.return_value = ("sys_p", "user_p", {})
-    
+
     with patch.object(th, '_maybe_edit_prompt') as mock_edit:
         mock_edit.return_value = ("e_sys", "e_user")
-        with patch.object(th, '_initiate_batch_translation') as mock_init:
-            th.translate_preview_selection(QPoint(0, 0))
-            mock_init.assert_called_once()
+        th.translate_preview_selection(QPoint(0, 0))
+    assert [task['type'] for task in started] == ['translate_preview']
 
 @patch('handlers.translation_handler.QMessageBox')
 def test_th_translate_current_block(mock_box, th):
@@ -302,6 +317,7 @@ def test_th_handle_chunk_translated_rejects_a_lost_page_break(th):
         'source_items': [{'id': 0, 'text': 'line one\n\nline two'}],
     }
     th.translation_progress = {1: {'completed_chunks': set(), 'total_chunks': 1}}
+    edits, errors = _record_writes_and_errors(th)
 
     chunk_text = (
         '{"translated_strings": '
@@ -309,8 +325,8 @@ def test_th_handle_chunk_translated_rejects_a_lost_page_break(th):
     )
     th._handle_chunk_translated(0, chunk_text, ctx)
 
-    th.data_processor.update_edited_data.assert_not_called()
-    th.ai_lifecycle_manager._handle_task_error.assert_called_once()
+    assert edits == []
+    assert errors == ["Failed to process chunk 1: blank-line layout mismatch: expected blank lines at indices [1], received []"]
 
 def test_th_handle_chunk_translated_chapter(th):
     ctx = {
@@ -361,11 +377,12 @@ def test_th_handle_single_translation_rejects_a_lost_page_break(th):
     th.ai_lifecycle_manager._clean_model_output.return_value = (
         '{"translation":"merged line"}'
     )
+    edits, errors = _record_writes_and_errors(th)
 
     th._handle_single_translation_success(ProviderResponse(), ctx)
 
-    th.data_processor.update_edited_data.assert_not_called()
-    th.ai_lifecycle_manager._handle_task_error.assert_called_once()
+    assert edits == []
+    assert errors == ["Validation failed: blank-line layout mismatch: expected blank lines at indices [1], received []"]
 
 @patch('handlers.translation_handler.QMessageBox')
 def test_th_handle_variation_success(mock_box, th):
@@ -380,15 +397,17 @@ def test_th_handle_variation_success(mock_box, th):
     th.ui_handler.apply_inline_variation.assert_called_with("v1")
 
 def test_th_translate_selected_lines(th):
+    routed = []
+    th.translate_preview_selection = lambda *args, **kwargs: routed.append("preview")
+    th.translate_current_string = lambda *args, **kwargs: routed.append("current string")
+
     th.mw.preview_text_edit.get_selected_lines.return_value = [1]
-    with patch.object(th, 'translate_preview_selection') as mock_prev:
-        th.translate_selected_lines()
-        mock_prev.assert_called_once()
-        
+    th.translate_selected_lines()
+
     th.mw.preview_text_edit.get_selected_lines.return_value = []
-    with patch.object(th, 'translate_current_string') as mock_curr:
-        th.translate_selected_lines()
-        mock_curr.assert_called_once()
+    th.translate_selected_lines()
+
+    assert routed == ["preview", "current string"]
 
 
 def test_translate_all_blocks_chronologically(th):
@@ -501,11 +520,13 @@ def test_th_handle_chunk_translated_updates_title(th):
         'translated_strings': [{'id': 0, 'translation': 'trans'}]
     })
     th.data_processor.is_string_translated.return_value = False
-    
+    refreshes = []
+    th.ui_updater.update_title = lambda: refreshes.append("refresh")
+
     th._handle_chunk_translated(0, chunk_text, context)
-    
+
     # Check that update_title was called to show asterisk
-    th.ui_updater.update_title.assert_called_once()
+    assert refreshes == ["refresh"]
 
 def test_th_handle_preview_translation_success_updates_title(th):
     context = {
@@ -520,11 +541,13 @@ def test_th_handle_preview_translation_success_updates_title(th):
     )
     th.ai_lifecycle_manager._clean_model_output.return_value = response.text
     th.data_processor.is_string_translated.return_value = False
-    
+    refreshes = []
+    th.ui_updater.update_title = lambda: refreshes.append("refresh")
+
     th._handle_preview_translation_success(response, context)
-    
+
     # Check that update_title was called to show asterisk
-    th.ui_updater.update_title.assert_called_once()
+    assert refreshes == ["refresh"]
 
 
 def test_save_and_load_progress_metadata(th):
@@ -913,11 +936,12 @@ def test_th_handle_chunk_translated_closes_the_undo_group_when_applying_fails(th
 @pytest.mark.parametrize("cleaned", ['[]', 'null', '{"translated_strings": "x"}'])
 def test_th_handle_preview_translation_rejects_a_reply_of_the_wrong_shape(th, cleaned):
     th.ai_lifecycle_manager._clean_model_output.return_value = cleaned
+    edits, errors = _record_writes_and_errors(th)
 
     th._handle_preview_translation_success(ProviderResponse(), {'block_idx': 1, 'source_items': [{'id': 0, 'text': 's'}]})
 
-    th.data_processor.update_edited_data.assert_not_called()
-    th.ai_lifecycle_manager._handle_task_error.assert_called_once()
+    assert edits == []
+    assert len(errors) == 1 and errors[0].startswith("Validation failed: ")
     th.mw.undo_manager.begin_group.assert_not_called()
 
 

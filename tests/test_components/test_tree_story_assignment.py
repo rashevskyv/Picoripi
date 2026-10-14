@@ -75,7 +75,7 @@ def test_assigns_multiple_selected_strings_to_speaker(qtbot):
         "1": {"speaker": "SYSTEM"},
         "2": {"speaker": "SYSTEM"},
     }
-    window.project_manager.save.assert_called_once()
+    window.project_manager.save.assert_called_once_with()
 
 
 def _glossary_entry(original, translation):
@@ -215,7 +215,7 @@ def test_drop_rechecks_none_target_at_release(qtbot):
         "1": {"structure_id": "story:none", "speaker": "None", "item": "None"},
         "2": {"structure_id": "story:none", "speaker": "None", "item": "None"},
     }
-    event.acceptProposedAction.assert_called_once()
+    event.acceptProposedAction.assert_called_once_with()
 
 
 def test_virtual_target_locator_restores_none_and_expands_path(qtbot):

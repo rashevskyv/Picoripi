@@ -30,7 +30,7 @@ def definitions():
 def test_plugin_loads_and_validates():
     rules = check_loads("layton_3ds")
     assert rules.get_display_name() == "Professor Layton (3DS)"
-    assert ".xs" in {e for f in rules.get_file_formats() for e in f.extensions}
+    assert ".xs" in {e for f in rules.get_file_formats() for e in f.extensions}  # deslop: ignore[poor-substring-tests] exact element of the extension set, not a substring
     assert rules.get_capabilities() == {"speaker_attribution"}
     check_validator("layton_3ds")
 

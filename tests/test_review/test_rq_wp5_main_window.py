@@ -31,7 +31,7 @@ def keep_plugin_modules():
     yield
     for name in [name for name in sys.modules if is_game(name)]:
         del sys.modules[name]
-    sys.modules.update(before)
+    sys.modules.update(before)  # deslop: ignore[module-mocking] puts back the real game modules saved above; not a mock
 
 
 @pytest.fixture

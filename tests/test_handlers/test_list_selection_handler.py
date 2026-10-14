@@ -5,6 +5,36 @@ from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QMessageBox
 from handlers.list_selection_handler import ListSelectionHandler
 from core.data_store import ViewKind
 
+
+class _FakeBlockList:
+    """Records the items the block tree is asked to edit inline."""
+
+    def __init__(self):
+        self.edits = []
+
+    def editItem(self, item, column):
+        self.edits.append((item, column))
+
+
+class _FakeUIUpdater:
+    """Records that the block tree was rebuilt."""
+
+    def __init__(self):
+        self.blocks_rebuilt = False
+
+    def populate_blocks(self):
+        self.blocks_rebuilt = True
+
+
+class _FakeCursorVisibleTimer:
+    """Records the delays the deferred cursor-visible timer is started with."""
+
+    def __init__(self):
+        self.starts = []
+
+    def start(self, msec=0):
+        self.starts.append(msec)
+
 @pytest.fixture
 def handler(mock_mw):
     # Ensure a clean, predictable mock_mw state for every test
@@ -195,8 +225,11 @@ def test_ListSelectionHandler_string_selected_from_preview(handler):
         handler.mw.ui_updater.update_text_views.assert_called()
 
 def test_ListSelectionHandler_rename_block(handler):
-    handler.rename_block(MagicMock())
-    handler.mw.block_list_widget.editItem.assert_called_once()
+    tree = _FakeBlockList()
+    handler.mw.block_list_widget = tree
+    item = MagicMock()
+    handler.rename_block(item)
+    assert tree.edits == [(item, 0)]
 
 
 def test_category_view_keeps_physical_block_address(handler):
@@ -548,11 +581,15 @@ def test_ListSelectionHandler_string_selected_from_preview_invalid(handler):
     mock_preview.highlightManager.clearPreviewSelectedLineHighlight.assert_called()
 
 def test_ListSelectionHandler_handle_block_item_text_changed_empty(handler):
+    names_before = dict(handler.mw.data_store.block_names)
+    ui = _FakeUIUpdater()
+    handler.ui_updater = ui
     mock_item = MagicMock()
     mock_item.text.return_value = "   "
     handler.handle_block_item_text_changed(mock_item, 0)
-    handler.mw.ui_updater.populate_blocks.assert_called_once()
-    
+    assert ui.blocks_rebuilt is True
+    assert handler.mw.data_store.block_names == names_before
+
 def test_ListSelectionHandler_handle_block_item_text_changed_folder(handler):
     mock_item = MagicMock()
     mock_item.text.return_value = "NewFolder [1/2]"
@@ -584,10 +621,11 @@ def test_ListSelectionHandler_navigate_to_problem_not_found(handler):
     handler.mw.data_store.current_block_idx = 0
     handler.mw.data_store.data = [["S0", "S1"]]
     handler._data_string_has_any_problem = MagicMock(return_value=False)
-    handler.string_selected_from_preview = MagicMock()
-    
+    selected = []
+    handler.string_selected_from_preview = selected.append
+
     handler.navigate_to_problem_string(True)
-    handler.string_selected_from_preview.assert_not_called()
+    assert selected == []
 
 def test_ListSelectionHandler_preview_selection_with_selection(handler):
     mock_preview = handler.mw.preview_text_edit
@@ -613,22 +651,27 @@ def test_ListSelectionHandler_preview_selection_with_selection(handler):
     assert handler.mw.data_store.selected_string_indices == [11, 12, 13]
 
 def test_ListSelectionHandler_move_selection_to_category_branches(handler):
+    handler.mw.data_store.current_block_idx = 0
+    moved = []
+    handler.mw.project_manager.move_strings_to_category = lambda *args: moved.append(args)
     # No selection
     handler.mw.data_store.selected_string_indices = []
-    with patch('PyQt6.QtWidgets.QMessageBox.warning') as mock_warn:
+    with patch('handlers.category_handler.QMessageBox') as mock_box:
         handler.move_selection_to_category()
-        mock_warn.assert_called_once()
-    
+    assert mock_box.warning.call_args.args[2] == "No strings selected in preview."
+
     handler.mw.data_store.selected_string_indices = [0]
     # No project
     handler.mw.project_manager.project = None
     handler.move_selection_to_category() # should just return
-    
+    assert moved == []
+
     # Empty input
     handler.mw.project_manager.project = MagicMock()
+    handler.mw.project_manager.project.blocks = [MagicMock()]
     with patch('PyQt6.QtWidgets.QInputDialog.getText', return_value=("", True)):
         handler.move_selection_to_category()
-        handler.mw.project_manager.move_strings_to_category.assert_not_called()
+    assert moved == []
 
 def test_ListSelectionHandler_toggle_show_overrides_only_checked(handler):
     handler.mw.preview_text_edit.verticalScrollBar().value.return_value = 120
@@ -1111,11 +1154,12 @@ def test_manual_preview_click_does_not_reanchor_scrollbar(handler):
     handler.mw.data_store.get_displayed_index_pos = lambda target: target if isinstance(target, int) else -1
     handler.mw.edited_text_edit = None
     handler.mw.search_panel_widget = None
-    handler._cursor_visible_timer.start = MagicMock()
+    timer = _FakeCursorVisibleTimer()
+    handler._cursor_visible_timer = timer
 
     with patch("handlers.list_selection.physical_selection_mixin.QTextCursor", return_value=MagicMock()):
         handler.string_selected_from_preview(25, is_manual_click=True)
-        handler._cursor_visible_timer.start.assert_not_called()
+        assert timer.starts == []
 
         handler.string_selected_from_preview(25, is_manual_click=False)
-        handler._cursor_visible_timer.start.assert_called_once()
+        assert timer.starts == [10]

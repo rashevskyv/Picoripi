@@ -105,38 +105,40 @@ def test_AIStatusDialog_bottom_controls_layout(qapp):
 
 from unittest.mock import patch, ANY
 
-@patch('components.ai_status_dialog.prevent_sleep')
-@patch('components.ai_status_dialog.restore_sleep')
-@patch('components.ai_status_dialog.put_to_sleep')
-def test_AIStatusDialog_sleep_handling(mock_put, mock_restore, mock_prevent, qapp):
+def test_AIStatusDialog_sleep_handling(qapp, monkeypatch):
+    sleep_log = []
+    monkeypatch.setattr('components.ai_status_dialog.prevent_sleep', lambda: sleep_log.append('prevent'))
+    monkeypatch.setattr('components.ai_status_dialog.restore_sleep', lambda: sleep_log.append('restore'))
     dialog = AIStatusDialog()
-    
-    # 1. Start with prevent sleep active
-    dialog.prevent_sleep_checkbox.setChecked(True)
-    dialog.start("Test title")
-    mock_prevent.assert_called_once()
-    
-    # 2. Toggle prevent sleep checkbox while visible
-    dialog.prevent_sleep_checkbox.setChecked(False)
-    mock_restore.assert_called_once()
-    
-    dialog.prevent_sleep_checkbox.setChecked(True)
-    assert mock_prevent.call_count == 2
-    
-    # 3. Finish, should call restore_sleep
-    mock_restore.reset_mock()
-    dialog.finish()
-    mock_restore.assert_called_once()
-    
-    # 4. Finish with sleep_after checked
-    dialog.sleep_after_checkbox.setChecked(True)
-    with patch('core.auto_sleep_manager.AutoSleepManager.schedule_sleep') as mock_schedule:
-        dialog.finish(success=True)
-        mock_schedule.assert_called_once_with(
-            task_name="Test title",
-            delay_seconds=ANY,
-            parent_widget=ANY
-        )
+    try:
+        # 1. Start with prevent sleep active
+        dialog.prevent_sleep_checkbox.setChecked(True)
+        dialog.start("Test title")
+        assert sleep_log == ['prevent']
+
+        # 2. Toggle prevent sleep checkbox while visible
+        dialog.prevent_sleep_checkbox.setChecked(False)
+        assert sleep_log == ['prevent', 'restore']
+
+        dialog.prevent_sleep_checkbox.setChecked(True)
+        assert sleep_log == ['prevent', 'restore', 'prevent']
+
+        # 3. Finish, should call restore_sleep
+        dialog.finish()
+        assert sleep_log == ['prevent', 'restore', 'prevent', 'restore']
+
+        # 4. Finish with sleep_after checked
+        dialog.sleep_after_checkbox.setChecked(True)
+        with patch('core.auto_sleep_manager.AutoSleepManager.schedule_sleep') as mock_schedule:
+            dialog.finish(success=True)
+            mock_schedule.assert_called_once_with(
+                task_name="Test title",
+                delay_seconds=ANY,
+                parent_widget=ANY
+            )
+    finally:
+        # A failed step must not leave a running dialog: its close would ask the user.
+        dialog.finish(success=False, show_popup=False)
 
 
 def test_AIStatusDialog_cancel_prevents_sleep(qapp):
@@ -158,47 +160,75 @@ def test_AIStatusDialog_cancel_prevents_sleep(qapp):
         dialog.finish(success=True)
         mock_schedule.assert_not_called()
 
+class _Signal:
+    """Accepts slot connections; these tests never emit it."""
+
+    def connect(self, _slot):
+        pass
+
+
+class _FakePopup:
+    """Stands in for a popup dialog: keeps how it was built and whether it was shown."""
+
+    def __init__(self, parent, translation_details, previous_translations=None):
+        self.built_with = (parent, translation_details, previous_translations)
+        self.shown = False
+        self.destroyed = _Signal()
+
+    def setAttribute(self, *_args):
+        pass
+
+    def show(self):
+        self.shown = True
+
+
+def _popup_factory(built):
+    """Return a callable that builds a _FakePopup and records it in built."""
+    def build(parent, translation_details, previous_translations=None):
+        popup = _FakePopup(parent, translation_details, previous_translations)
+        built.append(popup)
+        return popup
+    return build
+
+
 def test_AIStatusDialog_finish_triggers_comparison(qapp):
-    from unittest.mock import patch
     dialog = AIStatusDialog()
-    
+
     translation_details = {
         0: [(0, "new1"), (1, "new2")]
     }
     previous_translations = {
         0: [(0, "old1"), (1, "old2")]
     }
-    
+
     was_headless = app_mode.headless
-    
+
     try:
         # 1. More than 1 line re-translated -> AITranslationComparisonDialog
         app_mode.headless = False
-            
-        with patch('dialogs.ai_translation_comparison_dialog.AITranslationComparisonDialog') as mock_comp_dialog, \
-             patch('dialogs.ai_translation_result_dialog.AITranslationResultDialog') as mock_res_dialog:
-            
+        comparison_built, result_built = [], []
+        with patch('dialogs.ai_translation_comparison_dialog.AITranslationComparisonDialog', new=_popup_factory(comparison_built)), \
+             patch('dialogs.ai_translation_result_dialog.AITranslationResultDialog', new=_popup_factory(result_built)):
             dialog.finish(success=True, show_popup=True, translation_details=translation_details, previous_translations=previous_translations)
-            
-            mock_comp_dialog.assert_called_once_with(dialog.parentWidget() or dialog, translation_details, previous_translations)
-            mock_comp_dialog.return_value.show.assert_called_once()
-            mock_res_dialog.assert_not_called()
-            
+
+        assert [p.built_with for p in comparison_built] == [(dialog, translation_details, previous_translations)]
+        assert [p.shown for p in comparison_built] == [True]
+        assert result_built == []
+
         # 2. Only 1 line re-translated -> AITranslationComparisonDialog
         single_prev = {
             0: [(0, "old1")]
         }
-        
+
         app_mode.headless = False
-            
-        with patch('dialogs.ai_translation_comparison_dialog.AITranslationComparisonDialog') as mock_comp_dialog, \
-             patch('dialogs.ai_translation_result_dialog.AITranslationResultDialog') as mock_res_dialog:
-            
+        comparison_built, result_built = [], []
+        with patch('dialogs.ai_translation_comparison_dialog.AITranslationComparisonDialog', new=_popup_factory(comparison_built)), \
+             patch('dialogs.ai_translation_result_dialog.AITranslationResultDialog', new=_popup_factory(result_built)):
             dialog.finish(success=True, show_popup=True, translation_details=translation_details, previous_translations=single_prev)
-            
-            mock_comp_dialog.assert_called_once_with(dialog.parentWidget() or dialog, translation_details, single_prev)
-            mock_comp_dialog.return_value.show.assert_called_once()
-            mock_res_dialog.assert_not_called()
+
+        assert [p.built_with for p in comparison_built] == [(dialog, translation_details, single_prev)]
+        assert [p.shown for p in comparison_built] == [True]
+        assert result_built == []
     finally:
         app_mode.headless = was_headless
 
@@ -243,74 +273,72 @@ def test_AIStatusDialog_explicit_source_window(qapp):
     win.close()
 
 
+def _record_activation(window):
+    """Replace raise_ and activateWindow with recorders; return the calls in order."""
+    events = []
+    window.raise_ = lambda: events.append("raise")
+    window.activateWindow = lambda: events.append("activate")
+    return events
+
+
 def test_AIStatusDialog_finish_without_popup_activates_source(qapp):
     from PyQt6.QtWidgets import QWidget
-    from unittest.mock import MagicMock
     win = QWidget()
     win.show()
-    win.activateWindow = MagicMock()
-    win.raise_ = MagicMock()
+    events = _record_activation(win)
 
     dialog = AIStatusDialog()
     dialog.start("Test Return", source_window=win)
     dialog.finish(show_popup=False)
 
-    win.raise_.assert_called()
-    win.activateWindow.assert_called()
+    assert events == ["raise", "activate"]
     win.close()
 
 
 def test_AIStatusDialog_finish_in_pytest_activates_source(qapp):
     from PyQt6.QtWidgets import QWidget
-    from unittest.mock import MagicMock
     win = QWidget()
     win.show()
-    win.activateWindow = MagicMock()
-    win.raise_ = MagicMock()
+    events = _record_activation(win)
 
     dialog = AIStatusDialog()
     dialog.start("Test Pytest Fallback", source_window=win)
     # Headless: the popup is suppressed and the source is activated directly
     dialog.finish(success=True, show_popup=True)
 
-    win.raise_.assert_called()
-    win.activateWindow.assert_called()
+    assert events == ["raise", "activate"]
     win.close()
 
 
 def test_AIStatusDialog_cancel_and_reject_activates_source(qapp):
     from PyQt6.QtWidgets import QWidget, QMessageBox
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
     win = QWidget()
     win.show()
-    win.activateWindow = MagicMock()
-    win.raise_ = MagicMock()
+    events = _record_activation(win)
 
     dialog = AIStatusDialog()
     dialog.start("Test Cancel Return", source_window=win)
     with patch('PyQt6.QtWidgets.QMessageBox.question', return_value=QMessageBox.StandardButton.Yes):
         dialog.on_cancel()
+    assert events == []
     dialog.finish(success=False, show_popup=False)
 
-    win.raise_.assert_called()
-    win.activateWindow.assert_called()
+    assert events == ["raise", "activate"]
     win.close()
 
 
 def test_AIStatusDialog_reject_when_not_running_activates_source(qapp):
     from PyQt6.QtWidgets import QWidget
-    from unittest.mock import MagicMock
     win = QWidget()
     win.show()
-    win.activateWindow = MagicMock()
-    win.raise_ = MagicMock()
+    events = _record_activation(win)
 
     dialog = AIStatusDialog()
     dialog.source_window = win
     dialog.reject()
 
-    win.raise_.assert_called()
-    win.activateWindow.assert_called()
+    assert events == ["raise", "activate"]
     win.close()
 
 
@@ -333,13 +361,12 @@ def test_AIStatusDialog_deleted_source_window_safe(qapp):
 
 
 def test_AIStatusDialog_popup_dismissal_restores_source(qapp):
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import patch
     from PyQt6.QtWidgets import QWidget, QMessageBox
 
     win = QWidget()
     win.show()
-    win.activateWindow = MagicMock()
-    win.raise_ = MagicMock()
+    events = _record_activation(win)
 
     dialog = AIStatusDialog()
     dialog.start("Test Popup Dismissal", source_window=win)
@@ -348,20 +375,21 @@ def test_AIStatusDialog_popup_dismissal_restores_source(qapp):
     try:
         app_mode.headless = False
 
-        with patch('PyQt6.QtWidgets.QMessageBox.show') as mock_msg_show:
+        def record_popup_show(_box):
+            events.append("popup")
+
+        with patch('PyQt6.QtWidgets.QMessageBox.show', new=record_popup_show):
             dialog.finish(success=True, show_popup=True)
-            mock_msg_show.assert_called_once()
 
             # Source should not have been activated while popup is open
-            assert win.activateWindow.call_count == 0
+            assert events == ["popup"]
 
             # Simulate closing/destroying the QMessageBox
             msg_boxes = [w for w in qapp.topLevelWidgets() if isinstance(w, QMessageBox)]
             for mb in msg_boxes:
                 mb.destroyed.emit(mb)
 
-            assert win.activateWindow.call_count >= 1
-            assert win.raise_.call_count >= 1
+            assert events == ["popup", "raise", "activate"]
     finally:
         app_mode.headless = was_headless
         win.close()

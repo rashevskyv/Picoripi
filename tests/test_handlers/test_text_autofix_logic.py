@@ -6,6 +6,31 @@ from handlers.text_autofix_logic import TextAutofixLogic
 def mock_autofix(mock_mw):
     return TextAutofixLogic(mock_mw, MagicMock(), mock_mw.ui_updater)
 
+
+class _RecordingCursor:
+    """Text cursor stand-in: records each text inserted into the editor."""
+
+    def __init__(self, inserted):
+        self._inserted = inserted
+
+    def beginEditBlock(self):
+        pass
+
+    def endEditBlock(self):
+        pass
+
+    def select(self, *_args):
+        pass
+
+    def insertText(self, text):
+        self._inserted.append(text)
+
+    def position(self):
+        return 0
+
+    def setPosition(self, _pos):
+        pass
+
 def test_TextAutofixLogic_init(mock_autofix, mock_mw):
     assert mock_autofix.mw == mock_mw
 
@@ -46,7 +71,9 @@ def test_TextAutofixLogicfix_width_exceeded(mock_autofix, mock_mw):
 
     text = "Very long line that exceeds the 100 limit.\nShort."
     fixed = mock_autofix._fix_width_exceeded(text)
-    assert "\n" in fixed
+    # the long line is broken into more lines; no word is lost or changed
+    assert fixed.split() == text.split()
+    assert fixed.count("\n") > text.count("\n")
 
 def test_TextAutofixLogicfix_blue_sublines(mock_autofix, mock_mw):
     mock_mw.current_game_rules = MagicMock()
@@ -75,9 +102,10 @@ def test_TextAutofixLogic_auto_fix_current_string(mock_msgbox_info, mock_autofix
     mock_mw.current_string_idx = 0
     mock_autofix.data_processor.get_current_string_text.return_value = ("Original", False)
 
+    inserted = []
     mock_mw.edited_text_edit = MagicMock()
     mock_mw.edited_text_edit.toPlainText.return_value = " Translated  text\n with issues. "
-    mock_mw.edited_text_edit.textCursor().position.return_value = 0
+    mock_mw.edited_text_edit.textCursor.return_value = _RecordingCursor(inserted)
     mock_mw.edited_text_edit.document().characterCount.return_value = 10
     mock_mw.edited_text_edit.verticalScrollBar().value.return_value = 0
     mock_mw.edited_text_edit.horizontalScrollBar().value.return_value = 0
@@ -93,6 +121,7 @@ def test_TextAutofixLogic_auto_fix_current_string(mock_msgbox_info, mock_autofix
 
     mock_autofix.auto_fix_current_string()
 
+    assert inserted == ["Fixed Text"]
     mock_autofix.ui_updater.populate_current_view.assert_called_once_with()
 
 
@@ -139,7 +168,7 @@ def test_TextAutofixLogic_fix_width_exceeded_corner(mock_calc, mock_autofix, moc
 
     # word exceeds initially
     text = "Long Word"
-    assert "\n" in mock_autofix._fix_width_exceeded(text)
+    assert mock_autofix._fix_width_exceeded(text) == "Long\nWord"
 
 def test_TextAutofixLogic_fix_blue_sublines_corner(mock_autofix, mock_mw):
     assert mock_autofix._fix_blue_sublines("1") == "1"
@@ -201,7 +230,9 @@ def test_TextAutofixLogic_auto_fix_current_string_corner(mock_warn, mock_autofix
     # Max iteration branch (warning)
     mock_autofix._fix_empty_odd_sublines.side_effect = lambda x: x + "!"
     mock_autofix.auto_fix_current_string()
-    mock_warn.assert_called_once()
+    mock_warn.assert_called_once_with(
+        mock_mw, "Auto-fix", "Auto-fix could not stabilize the text. Some rules might be conflicting."
+    )
 
 
 def test_TextAutofixLogic_fix_short_lines_boundary_cross(mock_autofix, mock_mw):

@@ -55,12 +55,32 @@ def test_SearchHandler_calculate_qtextblock_and_pos_in_block(search_handler):
     assert q_idx == 1
     assert pos == 2
 
+class _RecordingHighlights:
+    """Highlight manager stand-in: records the search highlight calls of one editor into a shared log."""
+
+    def __init__(self, editor_name, log):
+        self._editor_name = editor_name
+        self._log = log
+
+    def clear_search_match_highlights(self):
+        self._log.append((self._editor_name, "clear"))
+
+    def add_search_match_highlight(self, *args):
+        self._log.append((self._editor_name, "add", args))
+
+
 def test_SearchHandler_clear_all_search_highlights(search_handler, mock_mw):
+    log = []
     for ed_name in ['preview_text_edit', 'original_text_edit', 'edited_text_edit']:
         editor = MagicMock()
+        editor.highlightManager = _RecordingHighlights(ed_name, log)
         setattr(mock_mw, ed_name, editor)
     search_handler.clear_all_search_highlights()
-    mock_mw.preview_text_edit.highlightManager.clear_search_match_highlights.assert_called_once()
+    assert sorted(log) == [
+        ('edited_text_edit', 'clear'),
+        ('original_text_edit', 'clear'),
+        ('preview_text_edit', 'clear'),
+    ]
 
 @patch('handlers.search_handler.SearchHandler._navigate_to_match')
 def test_SearchHandler_find_next(mock_nav, search_handler, mock_mw):
@@ -84,16 +104,18 @@ def test_SearchHandler_navigate_to_match_precise(search_handler, mock_mw):
     mock_mw.current_block_idx = 0
     mock_mw.current_string_idx = 0
     mock_mw.block_list_widget = MagicMock()
+    log = []
     for ed_name in ['preview_text_edit', 'original_text_edit', 'edited_text_edit']:
         editor = MagicMock()
         editor.objectName.return_value = ed_name
+        editor.highlightManager = _RecordingHighlights(ed_name, log)
         doc = editor.document.return_value
         doc.blockCount.return_value = 1
         block = doc.findBlockByNumber.return_value
         block.isValid.return_value = True
         block.position.return_value = 0
         setattr(mock_mw, ed_name, editor)
-    
+
     with patch.object(search_handler, '_get_text_for_search', return_value="apple pie"):
         with patch.object(search_handler, '_calculate_qtextblock_and_pos_in_block', return_value=(0, 0)):
             with patch.object(search_handler, '_find_nth_occurrence_in_display_text', return_value=(0, 5)):
@@ -101,15 +123,17 @@ def test_SearchHandler_navigate_to_match_precise(search_handler, mock_mw):
                     with patch('handlers.search_handler.QTextCursor'):
                         with patch('handlers.search_handler.QTreeWidgetItemIterator'):
                             search_handler._navigate_to_match(0, 0, 0, 5, False)
-    
-    mock_mw.preview_text_edit.highlightManager.add_search_match_highlight.assert_called()
+
+    assert ('preview_text_edit', 'add', (0, 0, 5)) in log
 
 def test_SearchHandler_navigate_to_match_tagless(search_handler, mock_mw):
     mock_mw.current_block_idx = 0
     mock_mw.current_string_idx = 0
+    log = []
     for ed_name in ['preview_text_edit', 'original_text_edit', 'edited_text_edit']:
         editor = MagicMock()
         editor.objectName.return_value = ed_name
+        editor.highlightManager = _RecordingHighlights(ed_name, log)
         doc = editor.document.return_value
         doc.blockCount.return_value = 1
         block = doc.findBlockByNumber.return_value
@@ -117,15 +141,15 @@ def test_SearchHandler_navigate_to_match_tagless(search_handler, mock_mw):
         block.text.return_value = "apple pie"
         block.position.return_value = 0
         setattr(mock_mw, ed_name, editor)
-    
+
     with patch('handlers.search_handler.prepare_text_for_tagless_search', return_value="apple"):
         with patch('handlers.search_handler.convert_raw_to_display_text', return_value="apple"):
             with patch('PyQt6.QtWidgets.QApplication.processEvents'):
                 with patch('handlers.search_handler.QTextCursor'):
                     with patch('handlers.search_handler.QTreeWidgetItemIterator'):
                         search_handler._navigate_to_match(0, 0, 0, 5, True)
-                        
-    mock_mw.preview_text_edit.highlightManager.add_search_match_highlight.assert_called()
+
+    assert ('preview_text_edit', 'add', (0, 0, 5)) in log
 
 
 def test_SearchHandler_integration_navigate_between_blocks(search_handler, mock_mw):

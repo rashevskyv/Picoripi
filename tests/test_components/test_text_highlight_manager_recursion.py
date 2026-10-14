@@ -23,18 +23,19 @@ def editor(qapp):
 def test_setLinkedCursorPosition_skips_duplicate(editor):
     """setLinkedCursorPosition must NOT call applyHighlights if called with the same params."""
     manager = TextHighlightManager(editor)
-    
-    with patch.object(manager, 'applyHighlights') as mock_apply:
+    applied = []
+
+    with patch.object(manager, 'applyHighlights', new=lambda *args, **kwargs: applied.append(True)):
         manager.setLinkedCursorPosition(0, 0)
-        assert mock_apply.call_count == 1
-        
+        assert len(applied) == 1
+
         # Same params — must be suppressed
         manager.setLinkedCursorPosition(0, 0)
-        assert mock_apply.call_count == 1
-        
+        assert len(applied) == 1
+
         # Different params — must fire
         manager.setLinkedCursorPosition(1, 0)
-        assert mock_apply.call_count == 2
+        assert len(applied) == 2
 
 
 def test_warning_and_error_do_not_color_editor_background(editor):
@@ -54,13 +55,14 @@ def test_updateCurrentLineHighlight_skips_same_line(editor):
     cursor.setPosition(0)
     editor.setTextCursor(cursor)
     
-    with patch.object(manager, 'applyHighlights') as mock_apply:
+    applied = []
+    with patch.object(manager, 'applyHighlights', new=lambda *args, **kwargs: applied.append(True)):
         manager.updateCurrentLineHighlight()
-        assert mock_apply.call_count == 1
-        
+        assert len(applied) == 1
+
         # Same line — must be suppressed
         manager.updateCurrentLineHighlight()
-        assert mock_apply.call_count == 1
+        assert len(applied) == 1
 
 def test_clearLinkedCursor_resets_tracker(editor):
     """clearLinkedCursorPosition must reset the tracker so the next call works."""
@@ -120,13 +122,14 @@ def test_width_exceed_highlights_trigger_apply(editor):
     block = editor.document().firstBlock()
     color = QColor(144, 238, 144) # Green
     
-    with patch.object(manager, 'applyHighlights') as mock_apply:
+    applied = []
+    with patch.object(manager, 'applyHighlights', new=lambda *args, **kwargs: applied.append(True)):
         manager.add_width_exceed_char_highlight(block, 2, color)
-        assert mock_apply.call_count == 1
-        
+        assert len(applied) == 1
+
         # Adding same highlight is skipped, so no applyHighlights
         manager.add_width_exceed_char_highlight(block, 2, color)
-        assert mock_apply.call_count == 1
-        
+        assert len(applied) == 1
+
         manager.clear_width_exceed_char_highlights()
-        assert mock_apply.call_count == 2
+        assert len(applied) == 2

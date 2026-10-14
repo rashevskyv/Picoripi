@@ -173,30 +173,32 @@ def test_search_focus_preservation(mock_mw, mock_dsp):
     
     # Setup edited_text_edit mock
     mock_editor = MagicMock()
+    focus_requests = []
+    mock_editor.setFocus.side_effect = lambda *args: focus_requests.append(args)
     mock_mw.edited_text_edit = mock_editor
-    
+
     # 1. When focus is NOT in the search panel:
     with patch.object(QApplication, 'focusWidget') as mock_focus:
         other_widget = MagicMock()
         other_widget.parentWidget.return_value = None
         mock_focus.return_value = other_widget
-        
+
         # Trigger string selection (this will call string_selected_from_preview)
         handler.string_selected_from_preview(0)
-        
+
         # Verify focus was requested on edited_text_edit
-        mock_editor.setFocus.assert_called()
-        
-    mock_editor.reset_mock()
-    
+        assert focus_requests == [()]
+
+    focus_requests.clear()
+
     # 2. When focus IS in the search panel:
     with patch.object(QApplication, 'focusWidget') as mock_focus:
         # focusWidget returns search panel widget itself
         mock_focus.return_value = mock_search_panel
         mock_search_panel.parentWidget.return_value = None
-        
+
         # Trigger string selection
         handler.string_selected_from_preview(0)
-        
+
         # Verify focus was NOT requested on edited_text_edit
-        mock_editor.setFocus.assert_not_called()
+        assert focus_requests == []

@@ -61,7 +61,7 @@ def test_multiline_occurrence_shows_full_messages_in_both_languages(qtbot):
 
     # Line 2 header
     assert "line <b>2</b>" in display_html
-    assert "EN:" in display_html
+    assert "EN:</b> First EN line &amp; opening scene." in display_html
 
     # Both EN lines visible, surrounding line preserved, escaping and highlighting verified
     assert "First EN line &amp; opening scene." in display_html
@@ -70,8 +70,7 @@ def test_multiline_occurrence_shows_full_messages_in_both_languages(qtbot):
     assert "<legendary>" not in display_html
 
     # All three RU lines visible, surrounding lines preserved, escaping and highlighting verified
-    assert "RU:" in display_html
-    assert "Первая строка RU &amp; пролог." in display_html
+    assert "RU:</b> Первая строка RU &amp; пролог." in display_html
     assert "Вторая строка RU &lt;детали&gt;." in display_html
     assert "Легендарный" in display_html
     assert "<b style='color: #f59e0b; text-decoration: underline;'>Высший Меч</b>" in display_html
@@ -134,8 +133,7 @@ def test_multiline_occurrence_omits_reference_only_when_record_absent_or_empty(q
     qtbot.addWidget(dialog_short)
     dialog_short.focus_term("Master Sword")
     html_short = dialog_short._occurrence_list.item(0).data(Qt.ItemDataRole.DisplayRole)
-    assert "RU:" in html_short
-    assert "Первая строка RU." in html_short
+    assert "RU:</b> Первая строка RU." in html_short
     assert "Вторая строка RU." in html_short
 
     # Case D: reference record has blank line at line_idx, but other lines nonempty
@@ -154,8 +152,7 @@ def test_multiline_occurrence_omits_reference_only_when_record_absent_or_empty(q
     qtbot.addWidget(dialog_blank)
     dialog_blank.focus_term("Master Sword")
     html_blank = dialog_blank._occurrence_list.item(0).data(Qt.ItemDataRole.DisplayRole)
-    assert "RU:" in html_blank
-    assert "Первая строка RU." in html_blank
+    assert "RU:</b> Первая строка RU." in html_blank
     assert "Четвертая строка RU." in html_blank
 
 

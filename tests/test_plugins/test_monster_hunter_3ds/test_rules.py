@@ -198,8 +198,8 @@ def test_real_font_gets_a_new_letter():
     sheet = sheets[0].copy()
     ImageDraw.Draw(sheet).rectangle((x, y + 2, x + 4, y + 12), fill=(255, 255, 255, 255))
     packed = font_formats.pack("mt_font", metadata, [sheet], data, {})
-    assert "Ї" in mt_font.letters(packed)
-    assert "Ї" in char_map(font_formats.extract("mt_font", packed, {})[0])
+    assert "Ї" in mt_font.letters(packed)  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the Ukrainian letter must be in the letters
+    assert "Ї" in char_map(font_formats.extract("mt_font", packed, {})[0])  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the Ukrainian letter must be in the char map
 
 
 @pytest.mark.parametrize("ws", GAMES, ids=["mh3u", "mh4u", "stories"])

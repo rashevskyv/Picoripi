@@ -101,8 +101,8 @@ def test_remove_tag_alias_replaces_alias_with_tag_in_edited_data(mock_question, 
     assert mock_mw.data_store.edited_data[(0, 0)] == "Some {OldTag} text"
     assert mock_mw.data_store.edited_data[(0, 1)] == "Unrelated text"
     # Highlighters and views should be refreshed
-    mock_mw.helper.reconfigure_all_highlighters.assert_called_once()
-    mock_mw.ui_updater.update_text_views.assert_called_once()
+    mock_mw.helper.reconfigure_all_highlighters.assert_called_once_with()
+    mock_mw.ui_updater.update_text_views.assert_called_once_with()
 
 
 @patch('ui.main_window.actions.tag_alias_mixin.TagAliasDialog')
@@ -136,8 +136,8 @@ def test_edit_tag_alias_replaces_old_alias_in_edited_data(mock_dialog_class, moc
     # (since the editor updates representation dynamically when displaying)
     assert mock_mw.data_store.edited_data[(0, 0)] == "Some {OldTag} text"
     # Views and highlighters are refreshed
-    mock_mw.helper.reconfigure_all_highlighters.assert_called_once()
-    mock_mw.ui_updater.update_text_views.assert_called_once()
+    mock_mw.helper.reconfigure_all_highlighters.assert_called_once_with()
+    mock_mw.ui_updater.update_text_views.assert_called_once_with()
 
 
 def test_tag_alias_dialog_focus_and_return_pressed(qtbot):

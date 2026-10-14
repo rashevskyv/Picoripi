@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from PyQt6.QtCore import Qt, QEvent
-from PyQt6.QtGui import QKeyEvent
+from PyQt6.QtGui import QAction, QKeyEvent
 from PyQt6.QtWidgets import QComboBox, QCompleter, QLineEdit, QWidget
 from PyQt6.QtTest import QTest
 from ui.ui_event_filters import MainWindowEventFilter, TextEditEventFilter
@@ -93,31 +93,35 @@ def test_MainWindowEventFilter_routes_speaker_line_edit_undo_to_app_action(qapp)
     mw = QWidget()
     mw.speaker_combobox = QComboBox(mw)
     mw.speaker_combobox.setEditable(True)
-    mw.undo_typing_action = MagicMock()
-    mw.redo_typing_action = MagicMock()
+    fired = []
+    mw.undo_typing_action = QAction(mw)
+    mw.undo_typing_action.triggered.connect(lambda: fired.append("undo"))
+    mw.redo_typing_action = QAction(mw)
+    mw.redo_typing_action.triggered.connect(lambda: fired.append("redo"))
 
     filter_obj = MainWindowEventFilter(mw)
     event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Z, Qt.KeyboardModifier.ControlModifier)
 
     assert filter_obj.eventFilter(mw.speaker_combobox.lineEdit(), event) is True
-    mw.undo_typing_action.trigger.assert_called_once()
-    mw.redo_typing_action.trigger.assert_not_called()
+    assert fired == ["undo"]
 
 def test_MainWindowEventFilter_routes_speaker_popup_redo_to_app_action(qapp):
     mw = QWidget()
     mw.speaker_combobox = QComboBox(mw)
     mw.speaker_combobox.setEditable(True)
     mw.speaker_combobox.addItems(["Hero", "Villain"])
-    mw.undo_typing_action = MagicMock()
-    mw.redo_typing_action = MagicMock()
+    fired = []
+    mw.undo_typing_action = QAction(mw)
+    mw.undo_typing_action.triggered.connect(lambda: fired.append("undo"))
+    mw.redo_typing_action = QAction(mw)
+    mw.redo_typing_action.triggered.connect(lambda: fired.append("redo"))
 
     filter_obj = MainWindowEventFilter(mw)
     modifiers = Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier
     event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Z, modifiers)
 
     assert filter_obj.eventFilter(mw.speaker_combobox.view().viewport(), event) is True
-    mw.redo_typing_action.trigger.assert_called_once()
-    mw.undo_typing_action.trigger.assert_not_called()
+    assert fired == ["redo"]
 
 
 def test_speaker_click_selects_all_existing_text(qapp, qtbot):
@@ -224,9 +228,8 @@ def test_clicking_speaker_suggestion_does_not_commit_only_enter_does(qapp):
     # Selecting a suggestion (fires `activated`) fills the field but must not save.
     mw.speaker_combobox.setCurrentIndex(1)
     mw.speaker_combobox.activated.emit(1)
-    mw.list_selection_handler.save_speaker_for_current_string.assert_not_called()
 
-    # Only Enter (returnPressed) commits.
+    # Only Enter (returnPressed) commits; a click save would make the call count 2 below.
     mw.speaker_combobox.lineEdit().returnPressed.emit()
     mw.list_selection_handler.save_speaker_for_current_string.assert_called_once_with(
         "Fado"

@@ -159,12 +159,13 @@ def test_cached_translation_with_extra_lines_can_be_restored(
 def test_translate_and_apply_cache_hit(translation_handler, mock_mw):
     # Test that _translate_and_apply immediately applies a saved translation and skips AI
     saved_db = {"src/block0.json::bk0::0": "Saved Translation 0"}
-    
+    ai_launches = []
+
     with patch.object(mock_mw.saved_translations_manager, 'load_all_saved_translations', return_value=saved_db), \
          patch.object(translation_handler.data_processor, 'update_edited_data') as mock_update, \
-         patch.object(translation_handler, '_run_ai_task') as mock_run_ai, \
+         patch.object(translation_handler, '_run_ai_task', new=lambda *args, **kwargs: ai_launches.append(args)), \
          patch.object(CachedTranslationDialog, 'exec', return_value=1):
-         
+
         translation_handler._translate_and_apply(
             source_text="original_0",
             expected_lines=1,
@@ -172,11 +173,11 @@ def test_translate_and_apply_cache_hit(translation_handler, mock_mw):
             block_idx=0,
             string_idx=0
         )
-        
+
         # Should apply locally
         mock_update.assert_called_once_with(0, 0, "Saved Translation 0", action_type="RESTORE", skip_ui_refresh=True)
         # Should not launch AI task
-        mock_run_ai.assert_not_called()
+        assert ai_launches == []
 
 def test_handle_single_translation_success_saves_cache(translation_handler, mock_mw):
     response = MagicMock()

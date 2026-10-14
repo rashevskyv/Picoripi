@@ -66,42 +66,50 @@ def test_dialog_init_with_data(qtbot):
 
 def test_dialog_run_story_first(qtbot):
     mw = FakeMainWindow(has_data=True)
+    launched = []
+    mw.translation_handler.translate_story_first = lambda *args: launched.append("story_first")
     qtbot.addWidget(mw)
     dialog = AIBatchTranslationDialog(mw)
     qtbot.addWidget(dialog)
 
     dialog.btn_story_first.click()
-    mw.translation_handler.translate_story_first.assert_called_once()
+    assert launched == ["story_first"]
 
 
 def test_dialog_run_remaining_blocks(qtbot):
     mw = FakeMainWindow(has_data=True)
+    launched = []
+    mw.translation_handler.translate_remaining_blocks = lambda *args: launched.append("remaining_blocks")
     qtbot.addWidget(mw)
     dialog = AIBatchTranslationDialog(mw)
     qtbot.addWidget(dialog)
 
     dialog.btn_remaining_blocks.click()
-    mw.translation_handler.translate_remaining_blocks.assert_called_once()
+    assert launched == ["remaining_blocks"]
 
 
 def test_dialog_run_full_pipeline(qtbot):
     mw = FakeMainWindow(has_data=True)
+    launched = []
+    mw.translation_handler.translate_all_blocks_pipeline = lambda *args: launched.append("full_pipeline")
     qtbot.addWidget(mw)
     dialog = AIBatchTranslationDialog(mw)
     qtbot.addWidget(dialog)
 
     dialog.btn_full_pipeline.click()
-    mw.translation_handler.translate_all_blocks_pipeline.assert_called_once()
+    assert launched == ["full_pipeline"]
 
 
 def test_dialog_run_all_blocks(qtbot):
     mw = FakeMainWindow(has_data=True)
+    launched = []
+    mw.translation_handler.translate_all_blocks_chronologically = lambda *args: launched.append("all_blocks")
     qtbot.addWidget(mw)
     dialog = AIBatchTranslationDialog(mw)
     qtbot.addWidget(dialog)
 
     dialog.btn_all_blocks.click()
-    mw.translation_handler.translate_all_blocks_chronologically.assert_called_once()
+    assert launched == ["all_blocks"]
 
 
 def test_toolbar_and_header_button_trigger_dialog(qtbot, monkeypatch):

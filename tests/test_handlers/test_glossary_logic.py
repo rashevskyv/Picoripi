@@ -49,10 +49,10 @@ def test_GlossaryManager_build_occurrence_index(gm):
 def test_GlossaryManager_session_changes_tracking(gm):
     gm.add_entry("New", "Новий", "Note")
     changes = gm.get_session_changes()
-    assert "New" in changes
+    assert "New" in changes  # deslop: ignore[poor-substring-tests] dict key check: session changes are keyed by term
     assert changes["New"].translation == "Новий"
     
     gm.delete_entry("New")
     changes = gm.get_session_changes()
-    assert "New" in changes
+    assert "New" in changes  # deslop: ignore[poor-substring-tests] dict key check: session changes are keyed by term
     assert changes["New"] is None # Deleted marker

@@ -140,7 +140,7 @@ def test_a_partner_with_unsaved_edits_is_not_written_and_the_glyph_waits(tmp_pat
     assert given == [] and deferred == ["A"]
     assert b.data == b_before                                     # B's file is untouched
     state = gs.load_state(state_path)
-    assert "A" in state["pending"]["B"]
+    assert list(state["pending"]["B"]) == ["A"]
 
 
 def test_a_waiting_glyph_applies_when_the_partner_is_saved(tmp_path):

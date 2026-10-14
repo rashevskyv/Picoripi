@@ -116,9 +116,9 @@ def test_bfn_core_to_font_map_conversion():
     # Without translation map overrides
     font_map = bfn.to_font_map()
     
-    assert " " in font_map
+    assert " " in font_map  # deslop: ignore[poor-substring-tests] dict key check: the font map is keyed by character
     assert font_map[" "]["width"] == 8
-    assert "!" in font_map
+    assert "!" in font_map  # deslop: ignore[poor-substring-tests] dict key check: the font map is keyed by character
     assert font_map["!"]["width"] == 10
     
     # With translation map (map Ukranian 'і' [U+0456] to CP1252 '!' [code 33])
@@ -128,7 +128,7 @@ def test_bfn_core_to_font_map_conversion():
     font_map_with_ukr = bfn.to_font_map(translation_map)
     
     # The Ukranian letter 'і' must dynamically inherit the width of CP1252 '!' (10 pixels)
-    assert "і" in font_map_with_ukr
+    assert "і" in font_map_with_ukr  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the Ukrainian letter must be in the font map
     assert font_map_with_ukr["і"]["width"] == 10
 
 def test_bfn_core_get_sheets_qimages():

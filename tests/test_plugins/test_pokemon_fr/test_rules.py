@@ -36,7 +36,7 @@ def test_GameRules_save_data_to_json_obj(rules):
 
 def test_GameRules_get_display_name(rules):
     name = rules.get_display_name()
-    assert "Pok" in name
+    assert name == "Pokémon FireRed / LeafGreen, Ruby / Sapphire, Emerald"
 
 def test_GameRules_get_problem_definitions(rules):
     defs = rules.get_problem_definitions()

@@ -29,7 +29,7 @@ def test_test_connection_success():
         ok, msg = client.test_connection()
         assert ok is True
         assert "Found 1 project" in msg
-        mock_get.assert_called_once()
+        mock_get.assert_called_once_with("http://myserver:8000/api/projects", headers=client._get_headers(), timeout=client.timeout)
 
 
 def test_test_connection_unauthorized():
@@ -248,9 +248,9 @@ def test_global_settings_save_and_load_companion_fields(tmp_path: Path):
     assert loaded_dict["companion_server_url"] == "http://72.56.126.242:8000"
     assert loaded_dict["companion_api_token"] == "secret_tok"
     assert loaded_dict["companion_auto_sync"] is False
-    assert getattr(mw2, "companion_server_url") == "http://72.56.126.242:8000"
-    assert getattr(mw2, "companion_api_token") == "secret_tok"
-    assert getattr(mw2, "companion_auto_sync") is False
+    assert mw2.companion_server_url == "http://72.56.126.242:8000"
+    assert mw2.companion_api_token == "secret_tok"
+    assert mw2.companion_auto_sync is False
 
 
 def test_glossary_dialog_companion_sync_prompt_and_open_settings(qtbot, monkeypatch, tmp_path: Path):
@@ -350,7 +350,7 @@ def test_auto_pull_triggers_glossary_refresh_and_status(qtbot, tmp_path: Path):
             qtbot.waitUntil(lambda: len(results) == 1, timeout=3000)
             assert results == [(True, 4)]
             assert mw.glossary_manager.refresh_called == 1
-            assert "4" in mw.statusBar().last_msg
+            assert mw.statusBar().last_msg == "Companion: auto-synced 4 updated terms from server."
 
     # Case 2: debounce returns None if within 3s
     with patch("core.companion_sync.get_companion_client_from_mw", return_value=client):
@@ -552,7 +552,7 @@ def test_companion_sync_dialog_ui(tmp_path: Path, qtbot):
         qtbot.waitUntil(lambda: dlg.was_successful, timeout=3000)
         assert dlg.terms_pulled == 2
         assert dlg.terms_pushed == 1
-        assert "✓" in dlg._status_label.text()
+        assert "✓" in dlg._status_label.text()  # deslop: ignore[poor-substring-tests] single check-mark glyph is the marker of the success state; the label text is asserted elsewhere
 
 
 def test_smart_sync_in_background_lifecycle(tmp_path: Path, qtbot):
@@ -697,4 +697,5 @@ def test_sync_push_on_close_executes_smart_sync(tmp_path: Path):
             res = sync_push_on_close(fake_mw, show_dialog=False)
             assert res is True
             assert fake_mw.glossary_manager.save_to_disk.called
-            mock_sync.assert_called_once()
+            assert mock_sync.call_args.kwargs["project_name"] == "ClosingProj"
+            assert mock_sync.call_args.kwargs["glossary_path"] == g_file

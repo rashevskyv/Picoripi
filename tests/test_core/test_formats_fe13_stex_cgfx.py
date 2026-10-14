@@ -53,7 +53,7 @@ def test_bfnt_new_character_goes_to_a_free_band_or_a_japanese_box():
     new = next(g for g in info["glyphs"] if g[0] == 0x490)
     assert (new[4], new[5], new[7]) == (5, 9, 3)
     again, _sheets = font_formats.extract("fe13_bfnt", packed)
-    assert "Ґ" in font_formats.char_map(again)
+    assert "Ґ" in font_formats.char_map(again)  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the Ukrainian letter must be in the char map
     # no free band: the Japanese glyph's box is reused
     full = make_bfnt([(0x41, 0, 0, 6, 10, 2, 7), (0x3042, 16, 0, 8, 8, 2, 9)], height=11)
     metadata, sheets = font_formats.extract("fe13_bfnt", full)

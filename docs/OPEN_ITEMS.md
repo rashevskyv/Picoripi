@@ -12,9 +12,10 @@ the line when it is done or moved into a plan.
 
 ## Slop baseline: reduce the count (deslop, 2026-10-14)
 
-- Reduce `tools/deslop/baseline.json` (default-on rules, counts per file): 321 `call-only-assertions` in tests (largest: `tests/test_ui/test_ui_updater.py` 23, `tests/test_handlers/test_translation_handler.py` 18); add a state or result check, do not suppress.
+- Reduce `tools/deslop/baseline.json` (default-on rules, counts per file): `call-only-assertions` in tests 321 -> 165 (2026-10-14). The 165 left check only specific argument values; by rule A they are kept as "arguments checked". Remaining work: a test that checks only "was called" (no argument value, no result) needs a result or state check, not a suppression. Largest left: `tests/test_ui/test_ui_updater.py` 17, `tests/test_ui/test_updaters/test_small_updaters.py` 17, `tests/test_handlers/test_translation/test_glossary_handler.py` 14.
+- Test gaps found by the rewrite: `tests/test_core/test_worker_cancellation.py`: disabling the cancel checks at `core/companion_sync.py` lines 316 and 402 does not fail its tests; a scenario that reaches the push is needed. `AIStatusDialog` teardown can hang a run if a test leaves the dialog open (its closeEvent calls the real `QMessageBox.question`). `tests/test_ui/test_glossary_ui_logic.py` has a stale "FAILURE EXPECTED HERE" docstring on a passing test.
 - Product `getattr-literal` (20, e.g. `components/ai_status_dialog.py`): plain attribute assignment or access where the attribute always exists. `hasattr` probes are not checked on purpose.
-- `poor-substring-tests` (62 in tests): the three-character `EN:` and `RU:` markers in glossary tests are often correct; decide between a threshold of 2 and a suppression with a reason.
+- `poor-substring-tests` (62 -> 0 in tests, 2026-10-14): fixed with exact assertions; single glyph markers, dict-key checks and exact collection elements carry `# deslop: ignore[poor-substring-tests] <reason>`.
 - Opt-in rules were measured but are not in the baseline: `any-params-returns` 1153 in product code, `shape-in-names` 424, `renamed-imports` 228, `duplicate-consts` 400. Decide per rule before enabling it in `[tool.deslop]`.
 - Ruff candidates on this repo (not selected in `pyproject.toml`): `UP035 deprecated-import` 2126 hits; `RUF006 asyncio-dangling-task` 0; ruff 0.15.15 has no rule for unreachable code or unawaited coroutines.
 - After each reduction run `python -m tools.deslop --update-baseline` and commit the lower count.

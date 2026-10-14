@@ -86,11 +86,33 @@ def test_StringSettingsHandler_apply_width_to_lines(handler):
         assert handler.mw.string_metadata[(0, 0)]["width"] == 180
         assert handler.mw.string_metadata[(0, 3)]["width"] == 180
 
+class _RecordingUIUpdater:
+    """Records the block and text-view refreshes, in order."""
+
+    def __init__(self, calls):
+        self._calls = calls
+
+    def update_block_item_text_with_problem_count(self, block_idx):
+        self._calls.append(("update_block_item_text_with_problem_count", block_idx))
+
+    def update_text_views(self):
+        self._calls.append(("update_text_views",))
+
+
 def test_StringSettingsHandler_apply_and_rescan(handler):
+    ui_calls = []
     handler.mw.issue_scan_handler = MagicMock()
+    handler.mw.ui_updater = _RecordingUIUpdater(ui_calls)
+    handler.mw.data_store.current_block_idx = 0
+    handler.mw.data_store.physical_block_idx = 3
+
     handler._apply_and_rescan()
-    handler.mw.ui_updater.update_block_item_text_with_problem_count.assert_called()
-    handler.mw.ui_updater.update_text_views.assert_called()
+
+    assert ui_calls == [
+        ("update_block_item_text_with_problem_count", 0),
+        ("update_block_item_text_with_problem_count", 3),
+        ("update_text_views",),
+    ]
 
 def test_StringSettingsHandler_delete_font_if_default(handler):
     handler.mw.string_metadata[(0, 0)] = {"font_file": "old"}

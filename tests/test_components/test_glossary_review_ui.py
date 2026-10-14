@@ -85,6 +85,16 @@ def _dialog(
     return dialog
 
 
+class _RecordingCallback:
+    """Callable that keeps the arguments of every call, in order."""
+
+    def __init__(self):
+        self.calls = []
+
+    def __call__(self, *args):
+        self.calls.append(args)
+
+
 class TestTableScroll:
     def test_selecting_the_translation_cell_does_not_pan_sideways(self, qtbot):
         dialog = _dialog(qtbot, [SINGLE, AMBIGUOUS, CONFIRMED])
@@ -1244,7 +1254,7 @@ class TestSpeakerIdentityResolution:
         assert dialog._apply_speaker_name_button.isEnabled() is True
 
     def test_explicit_apply_callback(self, qtbot):
-        callback = MagicMock()
+        callback = _RecordingCallback()
         prov_char = GlossaryEntry(
             original="Ash",
             translation="",
@@ -1263,12 +1273,12 @@ class TestSpeakerIdentityResolution:
         qtbot.addWidget(dialog)
         dialog.focus_term("Ash")
 
-        callback.assert_not_called()
+        assert callback.calls == []
 
         dialog._speaker_name_combo.setEditText("Ashy")
         dialog._apply_speaker_name_button.click()
 
-        callback.assert_called_once_with("Ash", "Ashy")
+        assert callback.calls == [("Ash", "Ashy")]
 
     def test_unsafe_prefill_prevented_when_no_suggested_name(self, qtbot):
         prov_char = GlossaryEntry(
@@ -1367,7 +1377,7 @@ class TestSpeakerIdentityResolution:
         dialog.focus_term("ASHEI")
 
         assert dialog._speaker_identity_pane.isVisibleTo(dialog) is True
-        assert "Ash" in dialog._speaker_identity_title.text()
+        assert dialog._speaker_identity_title.text() == "<b>Speaker identity (confirmed game code: Ash):</b>"
         assert dialog._apply_speaker_name_button.text() == "Reassign speaker"
         assert dialog._apply_speaker_name_button.isEnabled() is False
 
@@ -1622,7 +1632,7 @@ class TestForceRetranslateButton:
         assert not dialog._retranslate_button.isHidden()
 
     def test_clicking_button_prompts_and_calls_callback_on_yes(self, qtbot, monkeypatch):
-        callback = MagicMock()
+        callback = _RecordingCallback()
         dialog = _dialog(qtbot, [SINGLE], force_retranslate_callback=callback)
         monkeypatch.setattr(
             QMessageBox,
@@ -1630,10 +1640,10 @@ class TestForceRetranslateButton:
             lambda *a, **kw: QMessageBox.StandardButton.Yes,
         )
         dialog._retranslate_button.click()
-        assert callback.call_count == 1
+        assert callback.calls == [()]
 
     def test_clicking_button_does_not_call_callback_on_no(self, qtbot, monkeypatch):
-        callback = MagicMock()
+        callback = _RecordingCallback()
         dialog = _dialog(qtbot, [SINGLE], force_retranslate_callback=callback)
         monkeypatch.setattr(
             QMessageBox,
@@ -1641,7 +1651,7 @@ class TestForceRetranslateButton:
             lambda *a, **kw: QMessageBox.StandardButton.No,
         )
         dialog._retranslate_button.click()
-        assert callback.call_count == 0
+        assert callback.calls == []
 
 
 class TestGlossaryReferenceOccurrences:
@@ -1667,8 +1677,8 @@ class TestGlossaryReferenceOccurrences:
         display_html = item.data(Qt.ItemDataRole.DisplayRole)
 
         assert "block <b>0</b>" in display_html
-        assert "EN:" in display_html
-        assert "RU:" in display_html
+        assert "EN:</b> " in display_html
+        assert "RU:</b> " in display_html
         assert "Рогатка" in display_html
         assert "text-decoration: underline;" in display_html
 
@@ -1694,7 +1704,7 @@ class TestGlossaryReferenceOccurrences:
         item = dialog._occurrence_list.item(0)
         display_html = item.data(Qt.ItemDataRole.DisplayRole)
 
-        assert "RU:" in display_html
+        assert "RU:</b> " in display_html
         assert long_ru in display_html
 
     def test_occurrence_omits_russian_block_when_no_reference_data(self, qtbot):
@@ -1715,8 +1725,8 @@ class TestGlossaryReferenceOccurrences:
         item = dialog._occurrence_list.item(0)
         display_html = item.data(Qt.ItemDataRole.DisplayRole)
 
-        assert "EN:" in display_html
-        assert "RU:" not in display_html
+        assert "EN:</b> " in display_html
+        assert "RU:</b>" not in display_html
 
     def test_reload_data_updates_reference_data(self, qtbot):
         from core.glossary_manager import GlossaryOccurrence
@@ -1744,7 +1754,7 @@ class TestGlossaryReferenceOccurrences:
         )
 
         item = dialog._occurrence_list.item(0)
-        assert "RU:" in item.data(Qt.ItemDataRole.DisplayRole)
+        assert "RU:</b> " in item.data(Qt.ItemDataRole.DisplayRole)
         assert "Держи" in item.data(Qt.ItemDataRole.DisplayRole)
 
 

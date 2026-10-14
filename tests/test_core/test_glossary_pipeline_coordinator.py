@@ -460,7 +460,7 @@ class TestStructuralSeedsRespectTheArea:
 
         terms = {e.original for e in manager.get_entries()}
         assert "Ordon Village" in terms
-        assert "Bou" in terms              # speaks in block 0 too
+        assert "Bou" in terms              # deslop: ignore[poor-substring-tests] exact element of the term set; speaks in block 0 too
         assert "Diababa" not in terms      # belongs to block 5
 
     def test_a_seed_with_no_block_is_kept(self):

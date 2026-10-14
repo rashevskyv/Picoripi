@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
+from handlers.translation import glossary_builder_handler
 from handlers.translation.glossary_builder_handler import GlossaryBuilderHandler
 from core.translation.providers import ProviderResponse
 
@@ -19,6 +20,23 @@ def gbh(mock_mw):
     with patch('handlers.translation.glossary_builder_handler.GlossaryBuilderHandler._load_prompts', return_value={"system_prompt": "sys", "user_prompt_template": "user"}):
         handler = GlossaryBuilderHandler(mock_mw)
         return handler
+
+@pytest.fixture
+def messages(monkeypatch):
+    """Records each message box the handler shows, as (kind, text)."""
+    shown = []
+
+    class _FakeMessageBox:
+        @staticmethod
+        def information(parent, title, text, *args):
+            shown.append(("information", text))
+
+        @staticmethod
+        def warning(parent, title, text, *args):
+            shown.append(("warning", text))
+
+    monkeypatch.setattr(glossary_builder_handler, "QMessageBox", _FakeMessageBox)
+    return shown
 
 def test_gbh_split_text_into_chunks(gbh):
     text = "1234567890"
@@ -70,15 +88,13 @@ def test_gbh_resolve_translation_credentials(gbh):
     creds_none = gbh._resolve_translation_credentials("Unknown")
     assert creds_none == {}
 
-@patch('handlers.translation.glossary_builder_handler.QMessageBox')
-def test_gbh_build_glossary_for_block_empty(mock_box, gbh):
+def test_gbh_build_glossary_for_block_empty(messages, gbh):
     gbh.mw.data_store.data = [[]] # block 0 is empty
     gbh.build_glossary_for_block(0)
-    mock_box.information.assert_called_once()
+    assert messages == [("information", "The selected block/category is empty. Nothing to process.")]
 
 @patch('handlers.translation.glossary_builder_handler.get_provider_for_config')
-@patch('handlers.translation.glossary_builder_handler.QMessageBox')
-def test_gbh_build_glossary_for_block_no_key(mock_box, mock_provider, gbh):
+def test_gbh_build_glossary_for_block_no_key(mock_provider, messages, gbh):
     gbh.mw.glossary_ai = {
         "use_translation_api_key": True,
         "provider": "OpenAI Compatible"
@@ -86,11 +102,10 @@ def test_gbh_build_glossary_for_block_no_key(mock_box, mock_provider, gbh):
     gbh.mw.translation_config = {} # No keys
     
     gbh.build_glossary_for_block(0)
-    mock_box.warning.assert_called_once()
+    assert messages == [("warning", "No API key is configured for the selected glossary provider in AI Translation settings.")]
 
 @patch('handlers.translation.glossary_builder_handler.get_provider_for_config')
-@patch('handlers.translation.glossary_builder_handler.QMessageBox')
-def test_gbh_build_glossary_for_block_no_key_but_custom_endpoint(mock_box, mock_provider, gbh):
+def test_gbh_build_glossary_for_block_no_key_but_custom_endpoint(mock_provider, messages, gbh):
     gbh.mw.glossary_ai = {
         "use_translation_api_key": True,
         "provider": "OpenAI Compatible"
@@ -100,10 +115,11 @@ def test_gbh_build_glossary_for_block_no_key_but_custom_endpoint(mock_box, mock_
             "openai": {"endpoint": "http://localhost:1234"}
         }
     }
-    with patch.object(gbh, '_start_async_glossary_task') as mock_start:
-        gbh.build_glossary_for_block(0)
-        mock_box.warning.assert_not_called()
-        mock_start.assert_called_once()
+    started = []
+    gbh._start_async_glossary_task = lambda *args: started.append(args)
+    gbh.build_glossary_for_block(0)
+    assert messages == []
+    assert [args[0] for args in started] == [0]
 
 @patch('handlers.translation.glossary_builder_handler.GlossaryBuilderHandler._start_async_glossary_task')
 @patch('handlers.translation.glossary_builder_handler.get_provider_for_config')
@@ -257,50 +273,32 @@ def test_ai_worker_build_glossary_boundary_tags():
     assert call_args_1[1]["content"] == "A" * 995 + " Worl"
     assert call_args_2[1]["content"] == "d!"
 
-def test_ai_worker_build_glossary_chunk_size_normalization():
+def _chunk_lengths_sent(block_text, chunk_size):
+    """Lengths of the chunks the worker sends for one block of text."""
     from handlers.translation.ai_worker import AIWorker
-    from core.translation.providers import ProviderResponse
-    
-    mock_provider = MagicMock()
-    mock_provider.translate.return_value = ProviderResponse(text="[]", raw_payload=[])
-    
-    # 1. Invalid values should fallback to default (8000), resulting in 1 chunk for 1500 chars
+
+    provider = MagicMock()
+    provider.translate.return_value = ProviderResponse(text="[]", raw_payload=[])
+    task_details = {
+        'type': 'build_glossary',
+        'block_data': [block_text],
+        'target_indices': [0],
+        'chunk_size': chunk_size,
+    }
+    AIWorker(provider, None, task_details).run()
+    return [len(call.args[0][1]["content"]) for call in provider.translate.call_args_list]
+
+
+def test_ai_worker_build_glossary_chunk_size_normalization():
+    # Invalid values fall back to the default (8000): 8500 chars split into 8000 + 500.
     for bad_size in ["bad", None, 0, -1]:
-        mock_provider.translate.reset_mock()
-        task_details = {
-            'type': 'build_glossary',
-            'block_data': ["A" * 1500],
-            'target_indices': [0],
-            'chunk_size': bad_size
-        }
-        worker = AIWorker(mock_provider, None, task_details)
-        worker.run()
-        assert mock_provider.translate.call_count == 1
-        
-    # 2. Values smaller than 1000 should be clamped to 1000 -> 2 chunks for 1500 chars
-    mock_provider.translate.reset_mock()
-    task_details = {
-        'type': 'build_glossary',
-        'block_data': ["A" * 1500],
-        'target_indices': [0],
-        'chunk_size': 500  # Clamped to 1000 -> 2 chunks
-    }
-    worker = AIWorker(mock_provider, None, task_details)
-    worker.run()
-    assert mock_provider.translate.call_count == 2
+        assert _chunk_lengths_sent("A" * 8500, bad_size) == [8000, 500]
 
-    # 3. Values larger than 32000 should be clamped to 32000 -> 2 chunks for 33000 chars
-    mock_provider.translate.reset_mock()
-    task_details = {
-        'type': 'build_glossary',
-        'block_data': ["A" * 33000],
-        'target_indices': [0],
-        'chunk_size': 50000  # Clamped to 32000 -> 2 chunks
-    }
-    worker = AIWorker(mock_provider, None, task_details)
-    worker.run()
-    assert mock_provider.translate.call_count == 2
+    # Values smaller than 1000 are clamped to 1000: two chunks for 1500 chars.
+    assert _chunk_lengths_sent("A" * 1500, 500) == [1000, 500]
 
+    # Values larger than 32000 are clamped to 32000: two chunks for 33000 chars.
+    assert _chunk_lengths_sent("A" * 33000, 50000) == [32000, 1000]
 
 
 @patch('handlers.translation.glossary_builder_handler.QMessageBox')
@@ -346,15 +344,14 @@ def test_gbh_preserves_ai_glossary_section(mock_box, gbh):
         "DIABABA", "ДІАБАБА", "Бос із титулом «Сутінковий паразит».", section="Boss Names"
     )
 
-@patch('handlers.translation.glossary_builder_handler.QMessageBox')
-def test_gbh_on_glossary_error_cancelled(mock_box, gbh):
+def test_gbh_on_glossary_error_cancelled(messages, gbh):
     mock_sb = MagicMock()
     gbh._on_glossary_error("Err", mock_sb)
-    mock_box.warning.assert_called()
+    assert messages == [("warning", "Err")]
     
-    mock_box.reset_mock()
+    messages.clear()
     gbh._on_glossary_cancelled(mock_sb)
-    mock_box.information.assert_called()
+    assert messages == [("information", "Glossary generation was cancelled.")]
 
 def test_gbh_cleanup_worker(gbh):
     gbh._worker = MagicMock()
@@ -369,9 +366,20 @@ def test_gbh_cleanup_worker(gbh):
     assert gbh._thread is None
 
 def test_gbh_prepare_to_close(gbh):
-    gbh._cleanup_worker = MagicMock()
+    class _FakeStatusDialog:
+        """Records how the status dialog was finished."""
+
+        def __init__(self):
+            self.finished_with = []
+
+        def finish(self, show_popup=True):
+            self.finished_with.append(show_popup)
+
+    dialog = _FakeStatusDialog()
+    gbh._status_dialog = dialog
     gbh.prepare_to_close()
-    gbh._cleanup_worker.assert_called_once()
+    assert dialog.finished_with == [False]
+    assert gbh._status_dialog is None
 
 def test_ai_worker_build_glossary_exception_handling():
     from handlers.translation.ai_worker import AIWorker
@@ -406,14 +414,25 @@ def test_ai_worker_build_glossary_exception_handling():
     ProviderResponse(raw_payload=None, text='{"terms": "not a list"}'),
     ProviderResponse(raw_payload=None, text='not json'),
 ])
-@patch('handlers.translation.glossary_builder_handler.QMessageBox')
-def test_gbh_a_reply_that_is_not_a_term_list_is_an_error_not_no_new_terms(mock_box, gbh, response):
-    mock_mgr = MagicMock()
-    gbh._glossary_manager = mock_mgr
+def test_gbh_a_reply_that_is_not_a_term_list_is_an_error_not_no_new_terms(messages, gbh, response):
+    class _FakeGlossaryManager:
+        """Records the entries a build adds and the saves it makes."""
+
+        def __init__(self):
+            self.added = []
+            self.saved = 0
+
+        def add_entry(self, *args, **kwargs):
+            self.added.append(args)
+
+        def save_to_disk(self):
+            self.saved += 1
+
+    manager = _FakeGlossaryManager()
+    gbh._glossary_manager = manager
 
     gbh._on_glossary_success(response, {}, MagicMock())
 
-    mock_box.warning.assert_called_once()
-    mock_box.information.assert_not_called()
-    mock_mgr.add_entry.assert_not_called()
-    mock_mgr.save_to_disk.assert_not_called()
+    assert messages == [("warning", "Could not parse AI response.")]
+    assert manager.added == []
+    assert manager.saved == 0
