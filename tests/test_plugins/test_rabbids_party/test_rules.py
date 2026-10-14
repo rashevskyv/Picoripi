@@ -70,8 +70,10 @@ def test_jade_text_blocks_show_lists_and_write_letters_through_the_translation_m
     assert blocks[0] == ["Yes", "No", "", "Press \\p16\\a to\ncontinue", ""] and names["1"].startswith("61020799 Caf")
     rules.prepare_save_context(SaveContext(relative_path="rrr1.bf/text_english.jtxt", existing_versions=lambda: iter([JTXT])))
     assert rules.save_data_to_json_obj(blocks, names) == JTXT
-    monkeypatch.setattr(type(rules), "load_translation_map",
-                        lambda self: setattr(self, "translation_map", {"Т": "T", "Б": "\xc1"}))
+    def load_map(self):
+        self.translation_map = {"Т": "T", "Б": "\xc1"}
+
+    monkeypatch.setattr(type(rules), "load_translation_map", load_map)
     blocks[0][0] = "ТБ"
     blocks[0][1] = "Ж"
     saved = rules.save_data_to_json_obj(blocks, names)
