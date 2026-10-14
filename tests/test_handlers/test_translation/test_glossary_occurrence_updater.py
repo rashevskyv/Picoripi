@@ -17,6 +17,35 @@ def mock_gh():
 def updater(mock_gh):
     return GlossaryOccurrenceUpdater(mock_gh)
 
+class _RecordingUIUpdater:
+    """Records the UI refresh calls the occurrence updater makes, in order."""
+
+    def __init__(self):
+        self.calls = []
+
+    def update_text_views(self):
+        self.calls.append(("update_text_views",))
+
+    def populate_strings_for_block(self, *args):
+        self.calls.append(("populate_strings_for_block", args))
+
+    def update_block_item_text_with_problem_count(self, block_idx):
+        self.calls.append(("update_block_item_text_with_problem_count", block_idx))
+
+
+class _RecordingTranslationUpdateDialog:
+    """Records the AI busy and batch flags the updater sets on the dialog."""
+
+    def __init__(self):
+        self.calls = []
+
+    def set_ai_busy(self, busy):
+        self.calls.append(("set_ai_busy", busy))
+
+    def set_batch_active(self, active):
+        self.calls.append(("set_batch_active", active))
+
+
 @patch('handlers.translation.glossary_occurrence_updater.GlossaryTranslationUpdateDialog')
 def test_gou_show_translation_update_dialog(mock_dialog, updater):
     mock_dialog_inst = mock_dialog.return_value
@@ -78,6 +107,8 @@ def test_gou_occurrence_helpers(updater):
 
 def test_gou_apply_occurrence_translation_non_active(updater):
     occ = GlossaryOccurrence(GlossaryEntry("t", "tr"), 1, 2, 3, 0, 0, "line")
+    ui = _RecordingUIUpdater()
+    updater._mw.ui_updater = ui
 
     # Inactive case 1: different string index
     updater._mw.data_store.physical_block_idx = 1
@@ -87,13 +118,11 @@ def test_gou_apply_occurrence_translation_non_active(updater):
     updater._main_handler.data_processor.update_edited_data.assert_called_once_with(
         1, 2, "new_t", skip_ui_refresh=True
     )
-    updater._mw.ui_updater.populate_strings_for_block.assert_not_called()
-    updater._mw.ui_updater.update_text_views.assert_not_called()
-    updater._mw.ui_updater.update_block_item_text_with_problem_count.assert_called_once_with(1)
+    assert ui.calls == [("update_block_item_text_with_problem_count", 1)]
 
     # Inactive case 2: different physical block index
     updater._main_handler.data_processor.update_edited_data.reset_mock()
-    updater._mw.ui_updater.reset_mock()
+    ui.calls.clear()
     updater._mw.data_store.physical_block_idx = 5
     updater._mw.data_store.current_string_idx = 2
     updater._apply_occurrence_translation(occ, "new_t2")
@@ -101,14 +130,14 @@ def test_gou_apply_occurrence_translation_non_active(updater):
     updater._main_handler.data_processor.update_edited_data.assert_called_once_with(
         1, 2, "new_t2", skip_ui_refresh=True
     )
-    updater._mw.ui_updater.populate_strings_for_block.assert_not_called()
-    updater._mw.ui_updater.update_text_views.assert_not_called()
-    updater._mw.ui_updater.update_block_item_text_with_problem_count.assert_called_once_with(1)
+    assert ui.calls == [("update_block_item_text_with_problem_count", 1)]
 
 def test_gou_apply_occurrence_translation_virtual_view_active(updater):
     occ = GlossaryOccurrence(GlossaryEntry("t", "tr"), 1, 2, 3, 0, 0, "line")
 
     # In virtual view, current_block_idx is negative (e.g. -3), but physical_block_idx matches
+    ui = _RecordingUIUpdater()
+    updater._mw.ui_updater = ui
     updater._mw.data_store.current_block_idx = -3
     updater._mw.data_store.physical_block_idx = 1
     updater._mw.data_store.current_string_idx = 2
@@ -117,32 +146,31 @@ def test_gou_apply_occurrence_translation_virtual_view_active(updater):
     updater._main_handler.data_processor.update_edited_data.assert_called_once_with(
         1, 2, "virtual_text", skip_ui_refresh=True
     )
-    updater._mw.ui_updater.populate_strings_for_block.assert_not_called()
-    updater._mw.ui_updater.update_text_views.assert_called_once()
-    updater._mw.ui_updater.update_block_item_text_with_problem_count.assert_called_once_with(1)
+    assert ui.calls == [("update_text_views",), ("update_block_item_text_with_problem_count", 1)]
 
 def test_gou_request_ai_occurrence_update(updater):
     # No dialog
     updater._request_ai_occurrence_update(None, False)
     
-    updater.translation_update_dialog = MagicMock()
+    dialog = _RecordingTranslationUpdateDialog()
+    updater.translation_update_dialog = dialog
     updater._current_translation_entry = GlossaryEntry("t", "tr")
     occ = GlossaryOccurrence(updater._current_translation_entry, 1, 2, 3, 0, 0, "line")
-    
+
     updater._main_handler.data_processor.get_current_string_text.return_value = ("trans", {})
-    
-    with patch.object(updater, 'request_glossary_occurrence_update') as mock_req:
-        mock_req.return_value = None
+
+    requested_from_batch = []
+    with patch.object(updater, 'request_glossary_occurrence_update',
+                      new=lambda **kwargs: requested_from_batch.append(kwargs["from_batch"])):
         updater._request_ai_occurrence_update(occ, False)
-        
-        updater.translation_update_dialog.set_ai_busy.assert_called_with(True)
-        updater.translation_update_dialog.set_batch_active.assert_not_called()
-        mock_req.assert_called_once()
-        
-        mock_req.reset_mock()
+        assert dialog.calls == [("set_ai_busy", True)]
+        assert requested_from_batch == [False]
+
+        dialog.calls.clear()
+        requested_from_batch.clear()
         updater._request_ai_occurrence_update(occ, True)
-        updater.translation_update_dialog.set_batch_active.assert_called_with(True)
-        mock_req.assert_called_once()
+        assert dialog.calls == [("set_ai_busy", True), ("set_batch_active", True)]
+        assert requested_from_batch == [True]
 
 @patch('handlers.translation.glossary_occurrence_updater.QMessageBox')
 def test_gou_request_glossary_occurrence_update(mock_box, updater):
@@ -210,18 +238,22 @@ def test_gou_handle_glossary_occurrence_update_success(updater):
     occ = GlossaryOccurrence(GlossaryEntry("t", "tr"), 1, 2, 3, 0, 0, "line")
     ctx = {"occurrence": occ, "from_batch": False, "composer_args": {"expected_lines": 1}}
     
+    errors, results = [], []
+
     # Invalid JSON
     updater._main_handler.ai_lifecycle_manager._clean_model_output.return_value = "{"
-    with patch.object(updater, '_handle_occurrence_ai_error') as mock_err:
+    with patch.object(updater, '_handle_occurrence_ai_error', new=lambda message, from_batch: errors.append(from_batch)):
         updater.handle_glossary_occurrence_update_success(ProviderResponse(), ctx)
-        mock_err.assert_called_once()
-        
+    assert errors == [False]
+    assert results == []
+
     # Valid JSON
     updater._main_handler.ai_lifecycle_manager._clean_model_output.return_value = '{"translation": "new"}'
     updater._main_handler.ai_lifecycle_manager._trim_trailing_whitespace_from_lines.return_value = "new"
-    with patch.object(updater, 'handle_occurrence_ai_result') as mock_res:
+    with patch.object(updater, 'handle_occurrence_ai_result', new=lambda **kwargs: results.append(kwargs)):
         updater.handle_glossary_occurrence_update_success(ProviderResponse(), ctx)
-        mock_res.assert_called_with(occurrence=occ, updated_translation="new", from_batch=False)
+    assert results == [{"occurrence": occ, "updated_translation": "new", "from_batch": False}]
+    assert errors == [False]
 
 def test_gou_handle_glossary_occurrence_batch_success(updater):
     ctx = {"from_batch": True, "expected_lines": {"0": 1}, "occurrence_lookup": {"0": MagicMock()}}
@@ -276,9 +308,10 @@ def test_gou_show_translation_update_dialog_no_translated_occurrences(mock_gh, u
     entry = GlossaryEntry("t", "tr")
     occ = GlossaryOccurrence(entry, 0, 0, 0, 0, 0, "line")
     
-    with patch('handlers.translation.glossary_occurrence_updater.GlossaryTranslationUpdateDialog') as mock_dialog:
+    built = []
+    with patch('handlers.translation.glossary_occurrence_updater.GlossaryTranslationUpdateDialog', new=lambda **kwargs: built.append(kwargs)):
         updater.show_translation_update_dialog(entry=entry, previous_translation="old", occurrences=[occ])
-        
-        mock_dialog.assert_not_called()
-        updater._mw.statusBar.showMessage.assert_called_with("No translated occurrences found to update.", 4000)
+
+    assert built == []
+    updater._mw.statusBar.showMessage.assert_called_with("No translated occurrences found to update.", 4000)
 
