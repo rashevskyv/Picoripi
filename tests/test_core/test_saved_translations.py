@@ -1,7 +1,6 @@
 import pytest
 import json
-from unittest.mock import MagicMock, patch
-from pathlib import Path
+from unittest.mock import MagicMock, call, patch
 from PyQt6.QtWidgets import QMessageBox
 
 from core.saved_translations_manager import SavedTranslationsManager
@@ -94,25 +93,21 @@ def test_saved_translations_caching(manager, temp_project_dir):
     path = manager._get_saved_translations_path()
     
     # 1. First load: should read from disk
-    with patch.object(Path, 'open', wraps=path.open) as mock_open:
-        loaded1 = manager.load_all_saved_translations()
-        assert loaded1 == data
-        mock_open.assert_called_once()
-        
-        # 2. Second load: should use cache (no additional disk reads)
-        loaded2 = manager.load_all_saved_translations()
-        assert loaded2 == data
-        mock_open.assert_called_once() # still called only once
-        
+    loaded1 = manager.load_all_saved_translations()
+    assert loaded1 == data
+
+    # 2. Second load: should use cache. The file is gone, so only the cache can answer.
+    path.unlink()
+    loaded2 = manager.load_all_saved_translations()
+    assert loaded2 == data
+
     # 3. Path changes: should invalidate cache and read from the new path
     mock_mw_for_saved_new = manager.mw
     mock_mw_for_saved_new.project_manager.project_dir = str(temp_project_dir / "new_project_dir")
     manager._get_saved_translations_path()
-    
-    with patch.object(Path, 'exists', return_value=False) as mock_exists:
-        loaded3 = manager.load_all_saved_translations()
-        assert loaded3 == {}
-        mock_exists.assert_called_once() # path change detected, checked if exists
+
+    loaded3 = manager.load_all_saved_translations()
+    assert loaded3 == {}
 
 def test_save_translation_single(manager, mock_mw_for_saved):
     # Unique key for block 0, string 0 in project mode:
@@ -152,7 +147,7 @@ def test_restore_translation_not_found(mock_warning, handler):
     # No saved translation exists yet
     res = handler.restore_translation(0, 0)
     assert res is False
-    mock_warning.assert_called_once()
+    assert mock_warning.call_args.args[2] == 'No saved translation found for this line.'
 
 
 def test_restore_translation_success(handler, mock_mw_for_saved):
@@ -177,13 +172,10 @@ def test_restore_translations_for_strings(handler, mock_mw_for_saved):
     
     handler.restore_translations_for_strings(0, [0, 1])
     
-    assert mock_mw_for_saved.data_processor.update_edited_data.call_count == 2
-    mock_mw_for_saved.data_processor.update_edited_data.assert_any_call(
-        0, 0, "Restored 0", action_type="RESTORE", skip_ui_refresh=True
-    )
-    mock_mw_for_saved.data_processor.update_edited_data.assert_any_call(
-        0, 1, "Restored 1", action_type="RESTORE", skip_ui_refresh=True
-    )
+    assert mock_mw_for_saved.data_processor.update_edited_data.call_args_list == [
+        call(0, 0, "Restored 0", action_type="RESTORE", skip_ui_refresh=True),
+        call(0, 1, "Restored 1", action_type="RESTORE", skip_ui_refresh=True),
+    ]
 
 
 @patch("handlers.saved_translations_handler.QFileDialog.getSaveFileName")
@@ -207,7 +199,7 @@ def test_export_translations_action(mock_info, mock_fd, handler, mock_mw_for_sav
     assert "files" in data
     assert "src/block0.json" in data["files"]
     assert data["files"]["src/block0.json"]["bk0"]["0"] == "Exported Translation"
-    mock_info.assert_called_once()
+    assert mock_info.call_args.args[2] == f'Successfully exported translations to:\n{export_path}'
 
 
 @patch("handlers.saved_translations_handler.QFileDialog.getOpenFileName")
@@ -239,7 +231,10 @@ def test_import_translations_action(mock_info, mock_q, mock_fd, handler, mock_mw
     mock_mw_for_saved.data_processor.update_edited_data.assert_called_once_with(
         0, 0, "Imported Translation Text", action_type="IMPORT", skip_ui_refresh=True
     )
-    mock_info.assert_called_once()
+    assert mock_info.call_args.args[2] == (
+        'Successfully imported 1 translations.\n'
+        'The changes are loaded in the editor. Click "Save" to save them.'
+    )
 
 def test_auto_save_on_revert_strings(dsp_for_saved, mock_mw_for_saved, manager):
     # Setup manager and dsp on main window
