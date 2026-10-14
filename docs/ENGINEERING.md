@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: engineering practice
-tokens: 1.5k
+tokens: 1.8k
 purpose: Habits behind the rules: threads, performance, persistence, tests
 ---
 # Engineering practice
@@ -93,6 +93,22 @@ What to test, by kind of code:
   cleaned up in `finally`; no `QThread` is left running at test exit; no mutable Qt object is shared across
   `pytest-xdist` workers.
 - Lanes, markers and known risks: `docs/TESTING_STRATEGY_AND_AUDIT.md`.
+
+## Slop checks (deslop)
+
+`python tasks.py deslop` runs `tools/deslop` (stdlib `ast`, about 8 s for the repo), a port of the ideas in
+maharshi365/deslop and dmmulroy/anti-slop (both MIT, credited in `tools/deslop/__init__.py`). `--list-rules` lists all rules.
+
+- On, test files: `call-only-assertions`, `module-mocking`, `poor-substring-tests`, `repeated-assert-call`.
+- On, all files: `chained-cast`, `getattr-literal`, `reduce-accumulator-copy`, `filter-map-chain`.
+- Opt-in (`--rule ID` or `enable` in `[tool.deslop]`): `any-params-returns`, `pass-through-type-alias`,
+  `renamed-imports`, `shape-in-names`, `duplicate-consts`.
+- Suppress with `# deslop: ignore[rule-id]` on the reported line; a bare `# deslop: ignore` covers every rule there.
+- Ratchet: `tools/deslop/baseline.json` holds counts per file and rule, no source text, for the enabled rules.
+  `tests/test_deslop_guard.py` fails when a count grows. After a review, refresh with `python -m tools.deslop --update-baseline`.
+- Ruff mapping (ruff selection unchanged): deprecated APIs to `UP035`; `RUF006` covers dangling asyncio tasks, not
+  unawaited coroutines; ruff 0.15 has no rule for unreachable code.
+- Not ported: the TypeScript-only and type-system rules (`unknown`, `typeof`, `Reflect`, Tailwind, and so on) and the Effect rules.
 
 ## Documentation
 

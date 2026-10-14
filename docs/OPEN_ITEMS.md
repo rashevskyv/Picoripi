@@ -1,14 +1,23 @@
 ---
 status: current
-updated: 2026-10-13
+updated: 2026-10-14
 owns: unfinished work
-tokens: 26.8k
+tokens: 27.2k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Slop baseline: reduce the count (deslop, 2026-10-14)
+
+- Reduce `tools/deslop/baseline.json` (default-on rules, counts per file): 321 `call-only-assertions` in tests (largest: `tests/test_ui/test_ui_updater.py` 23, `tests/test_handlers/test_translation_handler.py` 18); add a state or result check, do not suppress.
+- Product `getattr-literal` (20, e.g. `components/ai_status_dialog.py`): plain attribute assignment or access where the attribute always exists. `hasattr` probes are not checked on purpose.
+- `poor-substring-tests` (62 in tests): the three-character `EN:` and `RU:` markers in glossary tests are often correct; decide between a threshold of 2 and a suppression with a reason.
+- Opt-in rules were measured but are not in the baseline: `any-params-returns` 1153 in product code, `shape-in-names` 424, `renamed-imports` 228, `duplicate-consts` 400. Decide per rule before enabling it in `[tool.deslop]`.
+- Ruff candidates on this repo (not selected in `pyproject.toml`): `UP035 deprecated-import` 2126 hits; `RUF006 asyncio-dangling-task` 0; ruff 0.15.15 has no rule for unreachable code or unawaited coroutines.
+- After each reduction run `python -m tools.deslop --update-baseline` and commit the lower count.
 
 ## Test path hygiene (A14, 2026-10-13)
 
