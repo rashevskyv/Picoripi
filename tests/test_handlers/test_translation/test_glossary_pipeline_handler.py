@@ -44,7 +44,7 @@ def _mw(dataset=None, current_idx=0, selected=None, bind_glossary=True):
 def test_no_project_shows_message(mock_box):
     mw = _mw(dataset=[])
     GlossaryPipelineHandler(mw).build_from_text()
-    mock_box.information.assert_called_once()
+    assert mock_box.information.call_args.args[2] == "Open a project first."
 
 
 @patch("handlers.translation.glossary_pipeline_handler.QMessageBox")
@@ -156,11 +156,14 @@ def test_provider_failure_aborts(mock_dialog, mock_provider, mock_box):
 @patch("handlers.translation.glossary_pipeline_handler.QMessageBox")
 def test_finished_reports_and_refreshes(mock_box):
     mw = _mw()
+    highlights = []
+    mw.translation_handler.glossary_handler._update_glossary_highlighting = lambda: highlights.append(True)
     handler = GlossaryPipelineHandler(mw)
     handler._on_finished(True, "seeded 3, described 3, translated 0")
 
-    mock_box.return_value.exec.assert_called_once()
-    mw.translation_handler.glossary_handler._update_glossary_highlighting.assert_called_once()
+    assert highlights == [True]
+    report_text = mock_box.return_value.setInformativeText.call_args.args[0]
+    assert report_text.startswith("seeded 3, described 3, translated 0")
 
 
 @patch("handlers.translation.glossary_pipeline_handler.GlossaryStoppedDialog")
@@ -248,13 +251,15 @@ def test_build_binds_the_glossary_file_before_starting(
     # Unbound at the start, exactly as a session that has not opened the
     # glossary yet: the build has to resolve the path itself.
     mw = _mw(bind_glossary=False)
-    binder = mw.translation_handler.glossary_handler.bind_glossary_for_write
-    binder.return_value = Path(tempfile.gettempdir()) / "picoripi_test_project" / "glossary.json"
+    bound = []
+    path = Path(tempfile.gettempdir()) / "picoripi_test_project" / "glossary.json"
+    mw.translation_handler.glossary_handler.bind_glossary_for_write = lambda: bound.append(path) or path
     handler = GlossaryPipelineHandler(mw)
 
     handler.build_from_text()
 
-    binder.assert_called_once()
+    assert bound == [path]
+    assert mock_worker.call_args.args[0] is mw.translation_handler.glossary_handler.glossary_manager
     mock_worker.return_value.start.assert_called_once()
 
 
@@ -271,6 +276,8 @@ def test_a_build_can_start_from_options_without_showing_the_dialog(
         {"area": AREA_PROJECT, "mode": "draft", "chunk_size": "local", "translate": False}
     )
 
+    assert handler._worker is mock_worker.return_value
+    assert mock_worker.call_args.kwargs["mode"] == "draft"
     mock_worker.return_value.start.assert_called_once()
 
 
@@ -461,19 +468,19 @@ class TestForceRetranslate:
         assert kwargs["translate"] is True
         assert kwargs["force_retranslate"] is True
 
-    @patch("handlers.translation.glossary_pipeline_handler.QMessageBox.warning")
-    def test_force_retranslate_warns_when_worker_already_running(self, mock_warning):
+    @patch("handlers.translation.glossary_pipeline_handler.QMessageBox")
+    def test_force_retranslate_warns_when_worker_already_running(self, mock_box):
         mw = _mw()
         handler = GlossaryPipelineHandler(mw)
         handler._worker = MagicMock()
         handler._worker.isRunning.return_value = True
 
         handler.force_retranslate()
-        mock_warning.assert_called_once()
+        assert mock_box.warning.call_args.args[2] == "A glossary build or translation task is already running."
 
-    @patch("handlers.translation.glossary_pipeline_handler.QMessageBox.information")
-    def test_force_retranslate_informs_when_glossary_empty(self, mock_info):
+    @patch("handlers.translation.glossary_pipeline_handler.QMessageBox")
+    def test_force_retranslate_informs_when_glossary_empty(self, mock_box):
         mw = _mw()
         handler = GlossaryPipelineHandler(mw)
         handler.force_retranslate()
-        mock_info.assert_called_once()
+        assert mock_box.information.call_args.args[2] == "Glossary is empty. There are no terms to retranslate."
