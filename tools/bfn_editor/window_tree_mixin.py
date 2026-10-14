@@ -1,4 +1,6 @@
 """BFN editor: the tree of fonts and sheets."""
+import functools
+
 from PyQt6 import QtCore, QtWidgets
 
 from core.i18n import tr
@@ -271,7 +273,7 @@ class WindowTreeMixin:
         source_info["files"][filename] = new_bytes
         log_info(f"Font Editor: saved '{filename}' to '{target}'.")
 
-    def switch_active_bfn_new(self,bfn_name, archive_name, source_type, disk_path, target_sheet_idx):
+    def switch_active_bfn_new(self, bfn_name, archive_name, source_type, disk_path, target_sheet_idx):
         """Switch active BFN font with proper save prompts and target file callbacks."""
         if self._dirty:
             reply = QtWidgets.QMessageBox.question(
@@ -309,15 +311,8 @@ class WindowTreeMixin:
             # self.archive_save_callback is preserved
             self.archive_files = source_info["files"]
         elif source_type in ("disk_archive", "disk_loose"):
-            def dynamic_save_callback(filename: str, new_bytes: bytes):
-                try:
-                    self.save_disk_font(source_info, filename, new_bytes)
-                except Exception as ex:
-                    if source_type == "disk_archive":
-                        QtWidgets.QMessageBox.critical(self, tr('Font Editor'), tr('Failed to write back to disk archive:\n{0}', ex))
-                    else:
-                        QtWidgets.QMessageBox.critical(self, tr('Font Editor'), tr('Failed to save loose BFN to disk:\n{0}', ex))
-            self.archive_save_callback = dynamic_save_callback
+            # A failed write raises into save_changes, which reports it and leaves the font unsaved.
+            self.archive_save_callback = functools.partial(self.save_disk_font, source_info)
             self.archive_files = source_info["files"] if source_type == "disk_archive" else {}
             
         # Temporarily clear undo stack to avoid cross-font undoing

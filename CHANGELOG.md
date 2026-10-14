@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Font Editor (audit r28): a font from a fonts folder that fails to save shows one error and stays unsaved; before, the error was followed by "All changes saved" and the font was marked saved (`tools/bfn_editor/window_tree_mixin.py`; test in `tests/test_ui/test_font_editor_formats.py`).
 - Font Editor: every save of a font file is atomic (`atomic_write_bytes`: the BFN repack, the loose and archived fonts of the fonts folders), and a font listed from `plugins/<plugin>/fonts/` or opened from `plugins/` is read from and saved to the user's copy under `SETTINGS_DIR/plugins/` (`utils.constants.user_copy_of`, rule 8, D36); tests in `tests/test_ui/test_font_editor_formats.py`.
 - WIA/RVZ reader caps every table, stored group, decompressed group and RVZ junk run at the size the header or table declares (tables and chunks at `MAX_CHUNK`, a group at twice its chunk) and refuses a larger one with `ImageError` before it is read or decoded; `zstd_frame.decompress` takes `max_length`; `images.identify` treats `MemoryError` as not identified; tests in `tests/test_core/test_wia_reader.py`.
 - Settings → font map table reads the user's `font_map.json` (the copy OK saves) before the plugin's, so a second OK no longer overwrites the user's widths with the shipped ones (`ui/settings/plugin_fontmap_mixin.py`; test in `tests/test_ui/test_settings/test_settings_dialog_presets.py`).

@@ -657,8 +657,6 @@
   "Failed to save changes.": "Не вдалося зберегти зміни.",
   "Failed to save changes: {0}": "Не вдалося зберегти зміни: {0}",
   "Failed to save files due to an unknown error.": "Не вдалося зберегти файли через невідому помилку.",
-  "Failed to save loose BFN to disk:\n{0}": "Не вдалося зберегти окремий BFN на диск:\n{0}",
-  "Failed to write back to disk archive:\n{0}": "Не вдалося записати назад в архів на диску:\n{0}",
   "Fetching remote dictionary list...": "Отримання списку віддалених словників...",
   "File Paths": "Шляхи до файлів",
   "File ▾": "Файл ▾",

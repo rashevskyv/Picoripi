@@ -2,13 +2,28 @@
 status: current
 updated: 2026-10-15
 owns: unfinished work
-tokens: 32.2k
+tokens: 32.4k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
 
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
+
+## Write hardening (audit r28, 2026-10-15)
+
+- Rule 5 (pre-existing): the Font Editor saves a font on the UI thread — `save_changes` repacks the BFN and
+  `window_tree_mixin.save_disk_font` reads, rebuilds and writes the archive synchronously.
+- Rule 9: `io_save_mixin.save_changes` writes `data.json` and `sheet_*.png` with plain `open`/`QImage.save`; in
+  extracted-folder mode (no BFN path) these are the user's files, so a crash mid-save can leave them torn.
+- `WiaStream.read()` with no size allocates the header-declared disc size at once; only tests call it so.
+- `ui/main_window/bfn_actions.py` `save_callback` (a font in a project archive) catches its write error and shows
+  a box, so `save_changes` then marks the font saved and shows "All changes saved" — the bug fixed in r28 for the
+  fonts-folder callback. Let the error propagate to `save_changes`.
+- `io_format_mixin._save_plugin_bfn` writes in a job after `save_changes` has marked the font saved; a failed
+  write shows a warning but the font stays marked saved.
+- `io_save_mixin.save_changes` puts the new bytes into `archive_files` (for a disk archive the same dict as the
+  font source's `files`) before the save callback runs; after a failed write the cache holds the unsaved bytes.
 
 ## Link's Awakening Switch for LAS Recomp (`plugins/zelda_las`, 2026-10-14)
 

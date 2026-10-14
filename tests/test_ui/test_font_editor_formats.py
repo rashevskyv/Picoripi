@@ -403,6 +403,32 @@ def test_a_failed_replace_leaves_the_old_font_and_no_temporary_file(qtbot, tmp_p
     assert info["files"]["main.bfn"] == _bfn()
 
 
+def test_a_failed_disk_font_save_keeps_the_font_unsaved_and_shows_no_success(qtbot, tmp_path, monkeypatch):
+    shipped = _plugin_font(tmp_path, monkeypatch, archived=False)
+    window = _MainWindow(tmp_path, [])
+    window.active_game_plugin = "game"
+    qtbot.addWidget(window)
+    editor = BfnEditorWindow(parent=window)
+    editor.scan_fonts_directories()
+    info = editor.font_sources["main.bfn"]
+    editor.switch_active_bfn_new("main.bfn", "", info["type"], info["path"], 0)
+    editor.metadata["WID1"][0]["packets"][1]["width"] = 5
+    editor._set_dirty(True)
+    shown = []
+    monkeypatch.setattr(QtWidgets.QMessageBox, "information", lambda *args: shown.append("information"))
+    monkeypatch.setattr(QtWidgets.QMessageBox, "critical", lambda *args: shown.append("critical"))
+
+    def refuse(_target, _data):
+        raise OSError("disk full")
+    monkeypatch.setattr(window_tree_mixin, "atomic_write_bytes", refuse)
+    editor.save_changes()
+
+    assert shown == ["critical"]
+    assert editor._dirty
+    assert not (constants.SETTINGS_DIR / "plugins" / "game" / "fonts" / "main.bfn").exists()
+    assert shipped.read_bytes() == _bfn()
+
+
 def test_a_font_file_opened_from_a_plugin_folder_is_saved_to_the_users_copy(qtbot, tmp_path, monkeypatch):
     shipped = _plugin_font(tmp_path, monkeypatch, archived=False)
     editor = BfnEditorWindow()
