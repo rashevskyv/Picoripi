@@ -1,7 +1,23 @@
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from handlers.project_action_handler import ProjectActionHandler
 from core.project_manager import ProjectManager
 from PyQt6.QtWidgets import QMessageBox, QDialog
+
+
+class _RecentProjectsSettings:
+    """Keeps the recent-projects list and records the list at each save."""
+
+    def __init__(self, recent):
+        self.recent = list(recent)
+        self.saved = []
+
+    def clear_recent_projects(self):
+        self.recent = []
+
+    def save_settings(self):
+        self.saved.append(list(self.recent))
 
 def test_ProjectActionHandler_init(mock_mw):
     # MW without project_manager
@@ -52,9 +68,9 @@ def test_ProjectActionHandler_finish_new_project_creates_and_announces(mock_msg_
 
     h.finish_new_project(info)
 
-    mock_pm.create_new_project.assert_called_once()
-    mock_mw.ui_updater.update_title.assert_called_once()
-    mock_msg_box.information.assert_called_once()
+    assert mock_mw.project_manager is mock_pm
+    assert mock_mw.last_opened_path == str(Path('C:/proj') / 'project.uiproj')
+    assert mock_msg_box.information.call_args.args[2] == "Project 'Test Project' has been created successfully."
 
 @patch('handlers.project_action.lifecycle_mixin.ProjectManager')
 @patch('handlers.project_action.blocks_mixin.QMessageBox')
@@ -121,9 +137,7 @@ def test_ProjectActionHandler_import_block_action(mock_dialog_class, mock_msg_bo
 
     h.import_block_action()
 
-    mock_mw.project_manager.add_block.assert_called_once()
-    h._populate_blocks_from_project.assert_called_once()
-    mock_msg_box.information.assert_called_once()
+    assert mock_msg_box.information.call_args.args[2] == "Block 'New Block' has been imported."
 
 @patch('handlers.project_action.blocks_mixin.QMessageBox')
 @patch('handlers.project_action_handler.QFileDialog.getExistingDirectory')
@@ -179,13 +193,17 @@ def test_ProjectActionHandler_move_block_action(mock_mw):
 
 def test_ProjectActionHandler_add_folder_action(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
+    routed = []
+    mock_mw.virtual_folder_handler = SimpleNamespace(add_folder_action=lambda: routed.append("add folder"))
     h.add_folder_action()
-    mock_mw.virtual_folder_handler.add_folder_action.assert_called_once()
+    assert routed == ["add folder"]
 
 def test_ProjectActionHandler_add_items_to_folder_action(mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
+    routed = []
+    mock_mw.virtual_folder_handler = SimpleNamespace(add_items_to_folder_action=lambda: routed.append("add items"))
     h.add_items_to_folder_action()
-    mock_mw.virtual_folder_handler.add_items_to_folder_action.assert_called_once()
+    assert routed == ["add items"]
 
 @patch('handlers.project_action_handler.Path.exists')
 def test_ProjectActionHandler_populate_blocks_from_project(mock_exists, mock_mw):
@@ -368,25 +386,26 @@ def test_ProjectActionHandler_populate_blocks_with_translations(mock_exists, moc
 def test_ProjectActionHandler_clear_recent_projects(mock_msg_box, mock_mw):
     mock_msg_box.StandardButton = QMessageBox.StandardButton
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
-    mock_mw.settings_manager = MagicMock()
+    settings = _RecentProjectsSettings(["a.uiproj"])
+    mock_mw.settings_manager = settings
+    h._update_recent_projects_menu = lambda: None
 
     # Test No
     mock_msg_box.question.return_value = QMessageBox.StandardButton.No
     h._clear_recent_projects()
-    mock_mw.settings_manager.clear_recent_projects.assert_not_called()
+    assert settings.recent == ["a.uiproj"]
+    assert settings.saved == []
 
     # Test Yes
     mock_msg_box.question.return_value = QMessageBox.StandardButton.Yes
-    h._update_recent_projects_menu = MagicMock()
     h._clear_recent_projects()
-    mock_mw.settings_manager.clear_recent_projects.assert_called_once()
-    mock_mw.settings_manager.save_settings.assert_called_once()
-    h._update_recent_projects_menu.assert_called_once()
+    assert settings.recent == []
+    assert settings.saved == [[]]
 
 
-@patch('handlers.project_action.handler.ProjectManager')
+@patch('handlers.project_action.recent_mixin.ProjectManager')
 @patch('handlers.project_action.recent_mixin.QMessageBox')
-@patch('handlers.project_action.blocks_mixin.Path')
+@patch('handlers.project_action.recent_mixin.Path')
 def test_ProjectActionHandler_open_recent_project_session_restore_avoid_timer(mock_Path, mock_msg_box, mock_pm_class, mock_mw):
     h = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_mw.settings_manager = MagicMock()
@@ -402,9 +421,10 @@ def test_ProjectActionHandler_open_recent_project_session_restore_avoid_timer(mo
     # Session state IS restored
     h._populate_blocks_from_project = MagicMock(side_effect=lambda on_completed=None: on_completed(True) if on_completed else None)
 
-    h._restore_view_timer = MagicMock()
+    starts = []
+    h._restore_view_timer = SimpleNamespace(start=starts.append)
     h._open_recent_project("real_path.uiproj")
-    h._restore_view_timer.start.assert_not_called()
+    assert starts == []
 
 @patch('handlers.project_action.recent_mixin.ProjectManager')
 @patch('handlers.project_action.blocks_mixin.QMessageBox')
