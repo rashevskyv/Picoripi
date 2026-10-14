@@ -38,7 +38,6 @@ CONSOLE_LABEL = {"3ds": "Nintendo 3DS", "switch": "Nintendo Switch", "wii": "Wii
 UNPACK_KINDS = frozenset((KIND_GC, KIND_NDS, KIND_3DS, KIND_SWITCH, KIND_WII))   # the kinds an unpack step can read
 WII_MAGIC_AT = wii_disc.WII_MAGIC_AT
 WII_MAGIC = wii_disc.WII_MAGIC
-_UNSUPPORTED: Dict[bytes, str] = {}
 
 
 def _describe(stream: Any, head: bytes) -> Optional[Dict[str, Any]]:
@@ -140,9 +139,6 @@ def _reader(stream: Any, cache_dir: Optional[str | Path] = None,
         if kind == KIND_SWITCH and encrypted:   # an .xci is refused by the reader with its reason
             keys = switch_crypto.load_keys(str(key_path("switch")))
             return switch_images.SwitchImage(stream, keys, cache_dir, is_cancelled)
-    for magic, reason in _UNSUPPORTED.items():
-        if head.startswith(magic):
-            raise ImageError(f"Picoripi cannot read {reason}")
     if len(head) >= 0x204 and head[0x200:0x204] == b"NKIT":
         raise ImageError("an NKit image of an unknown kind: convert it to a plain ISO first")
     raise ImageError("not a GameCube or Nintendo DS image")

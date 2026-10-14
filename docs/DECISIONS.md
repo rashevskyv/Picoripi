@@ -767,7 +767,7 @@ spec's arithmetic. No code was copied.
   spec.
 - Measured on the owner's complete image (our copy, read only): `GMSE01`, revision byte 0x07 = 0, disc size
   1,459,978,240. `sys/main.dol` has the retail SHA-256. The whole disc decodes in about 32 s. Compared byte for byte with
-  DolphinTool's own conversion of the same file (a private copy under `D:\RomHacking_tmp`): 0 differing bytes.
+  DolphinTool's own conversion of the same file (a private copy): 0 differing bytes.
 
 **Cost.** The Lagged Fibonacci generator runs in pure Python (no numpy dependency): junk is slower than other data, about
 10 MB/s, and only junk regions that are read pay it. A GameCube WIA or RVZ with a chunk larger than 64 MiB is refused.

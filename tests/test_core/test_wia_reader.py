@@ -261,3 +261,14 @@ def test_open_disc_gives_a_plain_stream_for_an_iso(tmp_path):
     iso.write_bytes(b"x" * 100)
     with wia.open_disc(iso) as stream:
         assert stream.read() == b"x" * 100
+
+
+def test_open_disc_closes_the_file_of_a_refused_image(tmp_path, monkeypatch):
+    rvz = tmp_path / "wii.rvz"
+    rvz.write_bytes(build_wia(_random(0x8000), rvz=True, method=NONE, chunk=0x8000, disc_type=2))
+    opened = []
+    real_open = open
+    monkeypatch.setattr(wia, "open", lambda *args: opened.append(real_open(*args)) or opened[-1], raising=False)
+    with pytest.raises(ImageError, match="Wii"):
+        wia.open_disc(rvz)
+    assert len(opened) == 1 and opened[0].closed

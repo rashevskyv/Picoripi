@@ -362,5 +362,9 @@ def open_disc(path) -> BinaryIO:
     head = file.read(4)
     file.seek(0)
     if is_wia_or_rvz(head):
-        return WiaStream(file, owns=True)
+        try:
+            return WiaStream(file, owns=True)
+        except BaseException:   # a refused image (Wii, Purge, broken tables) must not leave the file open
+            file.close()
+            raise
     return file

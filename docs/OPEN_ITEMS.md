@@ -884,7 +884,8 @@ omfs`) could be
   through the root shim) for the "Import / Export BMG JSON" actions and calls `msg_to_editor_text`. These are
   Twilight Princess actions living in the main window; they belong in the plugin's `get_plugin_actions()`.
 - **The Settings table of per-window limits writes into the plugin folder**
-  (`plugins/zelda_bmg/window_layouts.json`). It is the last place where user settings are stored inside
+  (`plugins/zelda_bmg/window_layouts.json`; `zelda_tww` and `super_mario_sunshine` inherit it through `data_dir`, and
+  with no file there the first Settings OK writes one). It is the last place where user settings are stored inside
   `plugins/`; move it to the project or user override folder (audit C, P0-c).
 - **`get_preview_window_style` and `get_message_attributes` are still looked for with `hasattr`** in four host
   places instead of being base-class hooks.
@@ -1139,7 +1140,7 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Audit r17, reversed in audit r18: the wizard free-space check counts every `images.UNPACK_KINDS` image again, Switch and Wii included. The r17 split `images.SPACE_KINDS` is removed; test `test_switch_and_wii_images_count_toward_the_room_check`.
 - Audit r17, open: a packed 3DS code section is decoded whole by the pure-Python BLZ loop (`core/containers/nitro.py`, up to 64 MB). Cancel is checked only between entries, so a cancel waits for that decode.
 - Audit r17, open: `ImageError` texts of the container readers reach the wizard's "Unpacking failed" line untranslated. Route them through `tr()` when those readers are next changed.
-- Super Mario Sunshine (2026-10-14): the project is registered from the complete RVZ, now at `GameCube\source\Super Mario Sunshine (USA).rvz` in the workspace (same SHA-256 as the old `D:\RomHacking_tmp` copy, which is deleted). The project's translation folder is still empty.
+- Super Mario Sunshine (2026-10-14): the project is registered from the complete RVZ, now at `GameCube\source\Super Mario Sunshine (USA).rvz` in the workspace (same SHA-256 as the older private copy, which is deleted). The project's translation folder is still empty.
 - Super Mario Sunshine: Dolphin (private copy) showed a menu string, a subtitle line and the airport0 speech balloon in Latin, and the balloon again with Ukrainian through the code map (D35): every letter one cell, both lines whole, no crash. The cells still hold the Latin-1 letters until the translator draws Cyrillic. The Latin-1 line of airport0 #1 (Toadsworth) did not come up in the 200 s run.
 - Super Mario Sunshine: the port overlay matches both ports' loader (`platform/dvd/dvd.cpp` `overlay_dir`, sms-port 9d86575 as pinned by sms-switch b16ef26): `mods/<name>/files`, a folder named after a disc archive replaces members inside it, member paths compared in lower case; on Switch the folder is `sdmc:/switch/sms`.
 - Super Mario Sunshine: the executable's English text (11 strings, `dol_text.py`, D32) is editable; the two progressive-scan confirmations with escape codes are not in it yet. Dolphin check of the executable text is still open.
