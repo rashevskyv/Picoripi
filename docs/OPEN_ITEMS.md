@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-14
 owns: unfinished work
-tokens: 27.8k
+tokens: 31.5k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -1129,10 +1129,10 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Audit r17, reversed in audit r18: the wizard free-space check counts every `images.UNPACK_KINDS` image again, Switch and Wii included. The r17 split `images.SPACE_KINDS` is removed; test `test_switch_and_wii_images_count_toward_the_room_check`.
 - Audit r17, open: a packed 3DS code section is decoded whole by the pure-Python BLZ loop (`core/containers/nitro.py`, up to 64 MB). Cancel is checked only between entries, so a cancel waits for that decode.
 - Audit r17, open: `ImageError` texts of the container readers reach the wizard's "Unpacking failed" line untranslated. Route them through `tr()` when those readers are next changed.
-- Super Mario Sunshine (2026-10-14): the project is registered from our copy of the complete RVZ (`picoripi\project.uiproj` in the workspace; Super Mario series folder). The owner's original `_new` ISO is damaged and gone from its path; the RVZ copy is at `D:\RomHacking_tmp\sms_src`. The project's translation folder is still empty.
-- Super Mario Sunshine: the Dolphin proof used a private copy: menu string (the file-select memory-card message) and a subtitle line visible; the speech-balloon path (Talk2D2) is not reached: subtitles and the opening use other code. Frames are in the reports folder.
-- Super Mario Sunshine: the port overlay is checked against the PC port's loader (`dvd.cpp` `overlay_dir`): the folder rule and lower-case member names match. The Switch port uses the PC port's code through the `sms-port` submodule, which is not in the clone; not checked there.
-- Super Mario Sunshine: the executable's English text (11 strings, `dol_text.py`, D32) is editable; the two progressive-scan confirmations with escape codes are not in it yet. Dolphin check of the English text and of the speech fix is still open.
-- Super Mario Sunshine: the speech-balloon DOL fix (D31) is unverified in Dolphin, and the NA display of the Shift-JIS `dolpic1` text is unchecked.
-- Super Mario Sunshine: the font `standard_fontex.bfn` (type 0, lookup 0x20-0xFF, 224 glyphs) is declared in `font_sources.json` and parses with `BfnCore`; it is not yet opened in the Font Editor on the app, and no Cyrillic glyphs are drawn (the translator's job).
+- Super Mario Sunshine (2026-10-14): the project is registered from the complete RVZ, now at `GameCube\source\Super Mario Sunshine (USA).rvz` in the workspace (same SHA-256 as the old `D:\RomHacking_tmp` copy, which is deleted). The project's translation folder is still empty.
+- Super Mario Sunshine: Dolphin (private copy) showed a menu string, a subtitle line and the airport0 speech balloon in Latin, and the balloon again with Ukrainian through the code map (D35): every letter one cell, both lines whole, no crash. The cells still hold the Latin-1 letters until the translator draws Cyrillic. The Latin-1 line of airport0 #1 (Toadsworth) did not come up in the 200 s run.
+- Super Mario Sunshine: the port overlay matches both ports' loader (`platform/dvd/dvd.cpp` `overlay_dir`, sms-port 9d86575 as pinned by sms-switch b16ef26): `mods/<name>/files`, a folder named after a disc archive replaces members inside it, member paths compared in lower case; on Switch the folder is `sdmc:/switch/sms`.
+- Super Mario Sunshine: the executable's English text (11 strings, `dol_text.py`, D32) is editable; the two progressive-scan confirmations with escape codes are not in it yet. Dolphin check of the executable text is still open.
+- Super Mario Sunshine: the four `dolpic1.bmg` (Shift-JIS Japanese) save only when every message is replaced (a Japanese character has no code); whether the NA game shows them is unchecked.
+- Super Mario Sunshine: the system font and the subtitle font open in the Font Editor (`font_sources.json`); no Cyrillic glyphs are drawn (the translator's job). The two `test_fontex.bfn` (title and common archives) are Shift-JIS fonts (type 2) without the code map's cells and are not listed: which text they draw is not known. No width map (`font_map`) is declared yet, so the width check does not use the game font.
 - Super Mario Sunshine: escape tags and the attribute tables are still the Twilight Princess ones; the SMS tag catalogue is not written.

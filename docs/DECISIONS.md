@@ -1,8 +1,8 @@
 ---
 status: current
-updated: 2026-10-12
+updated: 2026-10-14
 owns: decisions and their reasons
-tokens: 15.3k
+tokens: 19.6k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -784,3 +784,29 @@ and each entry's attribute bytes (everything after the first four). The offsets 
 is still refused. Tests: `test_build.py` (attribute change refused; offset-only change accepted, real BMG layout).
 
 **Cost.** A text edit that also rewrites an attribute byte is refused: the translator changes text, not box attributes.
+
+## D35. Super Mario Sunshine: Ukrainian letters on one-byte codes the game's text does not use (2026-10-14)
+
+**Context.** The game's text is one byte per character; the BMG save wrote any other character as '?'. The plugin used
+the Twilight Princess translation map, which is empty. Measured on the disc: the 187 cp1252 BMG files use only ASCII
+and 0xA5 (the Y-button cell, `balloon.bmg`); the executable's strings add 0x99 (™); the four `dolpic1.bmg` are Shift-JIS
+Japanese. The system font and the subtitle font are type 0 with a linear map 0x20-0xFF (224 cells, Latin-1 glyphs and
+button icons), so every one-byte code already has a cell: no cell has to be added.
+
+**Decision.**
+- `plugins/super_mario_sunshine/translation_map.json` (read-only, shipped; `GameRules.data_dir` points at the plugin,
+  so a project gets a copy as for Wind Waker): the 66 Ukrainian letters on their cp1251 codes, except Ґ on 0xA8
+  (cp1251 0xA5 is the Y button), and the apostrophe U+02BC on 0xA2. Every value is in 0xA1-0xFF: one Latin-1 byte, which
+  the font editor accepts as a slot (its value check rejects 0x7F-0xA0). The typographic ’ (U+2019) stays native 0x92,
+  whose cell already has the glyph.
+- The BMG save and the executable-text save encode through the map. A character with no one-byte code, or one whose
+  code belongs to a Ukrainian letter (À would show as А), is refused with the character and the message id; the check
+  runs before the BMG save, which would turn an error into an empty file. A BMG read as Shift-JIS is written as cp1252,
+  so `dolpic1.bmg` saves once all its Japanese is replaced.
+- The BFN engine keeps the non-zero padding after a linear MAP1, so the two fonts save byte for byte when unchanged.
+  The fonts are listed as loose files of the archive folders (`font_sources.json`); the two Shift-JIS `test_fontex.bfn`
+  are not listed (in a type 2 font, 0x81-0x9F and 0xE0-0xFC are lead bytes).
+
+**Cost.** Until the translator draws Cyrillic, the mapped cells show their Latin-1 letters (Dolphin shows "Ïðèâ³ò" for
+"Привіт"). The cp1251 codes of Ъ Ы Э stay free. Text in layouts (`.blo`) was not measured; a layout that
+draws a mapped code would show the Cyrillic letter.
