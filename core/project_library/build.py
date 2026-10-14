@@ -101,7 +101,7 @@ def _check_free_space(project: Path, sources: Dict[str, str]) -> None:
              if (images.identify(path) or {}).get("kind") in images.UNPACK_KINDS]
     if not found:
         return
-    size = sum(os.path.getsize(path) for path in found)
+    size = sum(images.unpack_room(path) for path in found)   # an .nsz counts its decompressed program too
     needed = size + max(size // 10, MIN_MARGIN)
     free = _free_bytes(project)
     if free < needed:
