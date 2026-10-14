@@ -337,15 +337,18 @@ class TestPreviewUpdater:
         mock_mw.preview_text_edit.setPlainText.assert_called_with("Boss name")
 
     def test_populate_strings_no_data(self, updater):
-        preview_edit = MagicMock()
-        preview_edit.toPlainText.return_value = ""
+        """No data clears the preview and displays no strings."""
+        from components.editor.line_edit.widget import LineNumberedTextEdit
+        preview_edit = LineNumberedTextEdit()
+        preview_edit.setPlainText("stale")
         updater.mw.preview_text_edit = preview_edit
         updater.mw.data_store.data = []
         updater.mw.current_game_rules = MagicMock()
 
         updater.populate_strings_for_block(0)
-        # Should not crash, and not set any text (already empty)
-        preview_edit.setPlainText.assert_not_called()
+
+        assert preview_edit.toPlainText() == ""
+        assert updater.mw.data_store.displayed_string_indices == []
 
     @patch.object(PreviewUpdater, 'update_text_views')
     @patch.object(PreviewUpdater, '_apply_highlights_for_block')
