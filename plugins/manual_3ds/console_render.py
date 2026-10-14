@@ -37,9 +37,10 @@ OVERRUN = 16
 FONT_WIDTH = 25
 FONT_HEIGHT = 30
 FONT_WIDTH_FALLBACK = FONT_WIDTH
-# A line's ink must stop this far before a picture's left edge, and before a box frame's inner edge (the frame
-# textures of the boxes are 4 px wide); the layout check and the defect finder share these.
-PICTURE_MARGIN = 1.0
+# A line's ink must stop before a box frame's inner edge: its right edge less the frame texture's width, never
+# less than this (the frame textures of the boxes are 4 px wide). A line's ink must also stop at a picture's
+# left edge; the clearance before it is the owner layout's job (OCC_MARGIN, ICON_GAP), not a defect, so the
+# untouched original layout is never flagged. The layout check and the defect finder share these.
 FRAME_INNER = 4.0
 # An overrun under this (px) is not a defect: the console rounds glyph positions to whole pixels, so a line that
 # ends 0.3 px past an edge shows no ink there. The defect finder and the layout check share it.

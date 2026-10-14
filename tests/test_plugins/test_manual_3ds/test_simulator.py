@@ -283,7 +283,9 @@ _GATE = romhacking_root.missing(*_REPO_MANUAL)
 
 
 def test_an_overrun_under_half_a_pixel_is_not_a_defect():
-    """The console rounds glyph positions to whole pixels: ink 0.4 px past an edge shows nothing there."""
+    """The console rounds glyph positions to whole pixels: ink 0.4 px past an edge shows nothing there. Ink that
+    ends short of a picture's edge is no defect either, however close: the clearance is the owner layout's job
+    (Nintendo's own "/" panes end 0.4 px before the next icon)."""
     picture = cr.Pane("pic1", "Pic", True, 0, 255, 200.0, -10.0, 80.0, 60.0, abs_x=200.0, abs_y=-10.0)
     page = cr.Layout(320.0, 260.0, [], [], [], [picture])
 
@@ -291,8 +293,9 @@ def test_an_overrun_under_half_a_pixel_is_not_a_defect():
         run = cr.TextRun("Line", "text", 10.0, -20.0, ink_right - 10.0, False, ink_right=ink_right)
         return [d.kind for d in simulator.defects_of([run], [], [page], cr.Textures({}), "m", 1, "Page_000", "small")]
 
-    assert kinds(200.0 - cr.PICTURE_MARGIN + 0.4) == []
-    assert kinds(200.0 - cr.PICTURE_MARGIN + 0.6) == ["over_picture"]
+    assert kinds(199.6) == []
+    assert kinds(200.4) == []
+    assert kinds(200.6) == ["over_picture"]
     assert kinds(simulator.LINE_LIMIT + 0.4) == ["over_picture"]
     assert kinds(simulator.LINE_LIMIT + 0.6) == ["over_edge", "over_picture"]
 

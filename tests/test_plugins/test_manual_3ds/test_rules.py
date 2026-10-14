@@ -283,7 +283,7 @@ def test_a_box_frame_the_line_starts_in_ends_it_inside_its_right_edge():
     thin = layout.Occluder("wnd1", 8.0, 40.0, 304.0, 345.0, frame_width=4.0)
     wide = layout.Occluder("wnd1", 8.0, 40.0, 304.0, 345.0, frame_width=18.0)
     assert _geo_on([thin], geo.lines).right_limit(0) == 8.0 + 304.0 - 4.0
-    assert _geo_on([wide], geo.lines).right_limit(0, layout.PICTURE_MARGIN, layout.FRAME_INNER) == 8.0 + 304.0 - 18.0
+    assert _geo_on([wide], geo.lines).right_limit(0, 0.0, layout.FRAME_INNER) == 8.0 + 304.0 - 18.0
 
 
 def test_a_small_frame_is_not_a_box():
@@ -311,12 +311,12 @@ def test_a_picture_beside_a_pane_line_makes_its_words_wrap_sooner(widths):
 def test_a_column_line_that_runs_into_a_picture_is_a_beside_problem(widths):
     geo = _geo_on([layout.Occluder("pic1", 100.0, 0.0, 80.0, 60.0)], [layout.Line(10.0, 300.0, 10.0, 0.0, 20.0)])
     problems = layout.check_entry("а" * 12, "а" * 12, {"lines": 1, "width": 300.0}, geo, widths)
-    # 12 letters are 115.2 px on the console from x 10; the picture's edge less its margin is at 99.
-    assert ("BESIDE", "line 1 runs 26 px into the picture or frame") in problems
-    # The advance ends 125.2 px, 0.7 px into a picture at 125 (its margin at 124); the last glyph's ink ends 1.92 px
-    # (2 units) before its advance, so with the overhangs known the line stays clear.
+    # 12 letters are 115.2 px on the console from x 10; the picture's edge is at 100.
+    assert ("BESIDE", "line 1 runs 25 px into the picture or frame") in problems
+    # The advance ends 125.2 px, 1.2 px into a picture at 124; the last glyph's ink ends 1.92 px (2 units) before
+    # its advance, so with the overhangs known the line stays clear.
     inked = layout.Widths({"advances": widths.advances, "overhangs": {"а": 2.0}})
-    geo = _geo_on([layout.Occluder("pic1", 125.0, 0.0, 80.0, 60.0)], [layout.Line(10.0, 300.0, 10.0, 0.0, 20.0)])
+    geo = _geo_on([layout.Occluder("pic1", 124.0, 0.0, 80.0, 60.0)], [layout.Line(10.0, 300.0, 10.0, 0.0, 20.0)])
     assert layout.check_entry("а" * 12, "а" * 12, {"lines": 1, "width": 300.0}, geo, inked) == []
     assert [name for name, _ in layout.check_entry("а" * 12, "а" * 12, {"lines": 1, "width": 300.0}, geo, widths)] == ["BESIDE"]
 

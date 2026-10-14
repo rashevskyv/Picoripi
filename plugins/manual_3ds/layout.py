@@ -19,7 +19,7 @@ from collections import Counter
 from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Optional, Tuple
 
-from .console_render import COLUMN_WIDTH, FONT_WIDTH, FRAME_INNER, PICTURE_MARGIN, SUB_PIXEL, WRAP_SLACK
+from .console_render import COLUMN_WIDTH, FONT_WIDTH, FRAME_INNER, SUB_PIXEL, WRAP_SLACK
 
 CARD_EDGE = float(COLUMN_WIDTH)   # the build keeps every line inside the card (manual.CARD_EDGE)
 BOX_PADDING = WRAP_SLACK + 0.5    # the build widens a pane to its text plus this (manual.to_edits)
@@ -627,7 +627,7 @@ def console_problems(lines: List[List[Piece]], geo: Geometry, widths: Widths, pa
     - WRAP: the line is wider than its pane box less WRAP_SLACK, so the viewer breaks it inside the pane and
       its end lands on the next line (the pane box is the stored one, widened by the build to the text it measured);
     - WIDTH: the line's ink runs past the card's right edge (COLUMN_WIDTH) onto the scroll track;
-    - BESIDE: the line's ink runs into a picture (PICTURE_MARGIN before its left edge) or past a box frame's inner edge.
+    - BESIDE: the line's ink runs past a picture's left edge or past a box frame's inner edge.
     Overruns under SUB_PIXEL are not reported: the console rounds them away.
     """
     out: List[Tuple[str, str]] = []
@@ -650,7 +650,7 @@ def console_problems(lines: List[List[Piece]], geo: Geometry, widths: Widths, pa
             out.append(("WRAP", f"line {index + 1} is {width:.0f} px in a {box:.0f} px pane; the console breaks it inside"))
         if start + ink > COLUMN_WIDTH + SUB_PIXEL:
             out.append(("WIDTH", f"line {index + 1} runs {start + ink - COLUMN_WIDTH:.0f} px past the card edge"))
-        edge = geo.right_limit(index, PICTURE_MARGIN, FRAME_INNER)
+        edge = geo.right_limit(index, 0.0, FRAME_INNER)
         if edge != float("inf") and start + ink > edge + SUB_PIXEL:
             out.append(("BESIDE", f"line {index + 1} runs {start + ink - edge:.0f} px into the picture or frame"))
     return out

@@ -230,7 +230,7 @@ def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.
             out.append(Defect("over_edge", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
                               f"ink ends at {right:.1f} px, the card ends at {LINE_LIMIT:.0f} (drawn over the scroll track): {where}"))
         for pic_name, px, py, pw, ph in pictures:
-            if (px - cr.PICTURE_MARGIN < right - cr.SUB_PIXEL and px + pw > run.x + 1.0 and py > bottom + 1.0
+            if (px < right - cr.SUB_PIXEL and px + pw > run.x + 1.0 and py > bottom + 1.0
                     and py - ph < run.top - 1.0 and px > run.x):
                 out.append(Defect("over_picture", name, number, page_name, size, run.pane, run.text, run.top,
                                   _scroll_for(run.top), f"ink ends at {right:.1f} px, picture {pic_name} starts at {px:.1f}"))
