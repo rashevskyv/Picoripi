@@ -47,6 +47,17 @@ def apply(dol: bytes) -> bytes:
     return _replace(dol, from_retail=True)
 
 
+def ensure(dol: bytes) -> bytes:
+    """``dol`` with the speech fix in place: a DOL that already has it is returned as it is, a retail one is patched.
+
+    A translated executable carries the fix when it was saved after the patch; any other word raises ValueError.
+    """
+    if len(dol) >= max(at for at, _retail, _patched, _site in PATCHES) + 4 and all(
+            struct.unpack_from(">I", dol, at)[0] == patched for at, _retail, patched, _site in PATCHES):
+        return dol
+    return apply(dol)
+
+
 def revert(dol: bytes) -> bytes:
     """``dol`` with the four words put back. Raises ValueError when a word is not the patched one."""
     return _replace(dol, from_retail=False)

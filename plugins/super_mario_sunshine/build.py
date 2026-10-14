@@ -77,8 +77,9 @@ def _section(data: bytes, name: bytes) -> Optional[bytes]:
 def _member_changes(base: bytes, new: bytes, archive: str) -> Dict[str, bytes]:
     """The members of the archive ``new`` that differ from ``base``. A member may not be added, and a BMG keeps its INF1.
 
-    INF1 holds the attributes of each message (box type, speaker and so on). The BMG save path does not reproduce
-    every INF1 layout byte for byte (four Shift-JIS files in pinnaBeach*.szs), so a change to INF1 is refused.
+    INF1 holds the attributes of each message (box type, speaker and so on). The four Shift-JIS files in
+    pinnaBeach*.szs do not save their INF1 correctly: their DAT1 starts with text, not with a NUL byte, and the save
+    path writes every string offset one higher. So a change to INF1 is refused for them.
     """
     base_container = ContainerManager.open(base)
     new_container = ContainerManager.open(new)
@@ -132,9 +133,13 @@ def build_gc_iso(source_dir: str, translation_dir: str, output_dir: str,
     """Write the translated disc into ``output_dir`` and return its path. The original disc is copied, never changed."""
     image = disc_of_source(source_dir)
     changes = changed_files(source_dir, translation_dir)
-    if changes and "sys/main.dol" not in changes:
-        # Any translated file brings the speech-balloon fix in the retail executable (see dol_patch.py).
-        changes["sys/main.dol"] = dol_patch.apply((Path(source_dir) / "sys" / "main.dol").read_bytes())
+    if changes:
+        # Any translated file brings the speech-balloon fix into the executable being written: the translation's
+        # main.dol when it has one, else the source's (see dol_patch.py).
+        dol = changes.get("sys/main.dol")
+        if dol is None:
+            dol = (Path(source_dir) / "sys" / "main.dol").read_bytes()
+        changes["sys/main.dol"] = dol_patch.ensure(dol)
     out = Path(output_dir) / ISO_NAME
     write_disc(image, out, changes, progress, is_cancelled)
     return str(out)

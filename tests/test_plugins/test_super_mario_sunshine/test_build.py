@@ -115,6 +115,12 @@ def test_identify_source_accepts_gmse01_rev0_only(tmp_path):
     assert rules.identify_source(str(other)) is None
 
 
+def test_the_system_font_is_declared_as_a_bfn_in_the_stage_archive_folder():
+    entries = GameRules().get_font_sources()
+    assert [(e["format"], e["path"], e["member"]) for e in entries] == [
+        ("bfn", ["files/data/nintendo.szs"], "font/standard_fontex.bfn")]
+
+
 def test_build_targets_and_an_unknown_target(tmp_path):
     rules = GameRules()
     assert [t["id"] for t in rules.get_build_targets()] == ["gc_iso", "port_pack"]

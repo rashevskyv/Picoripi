@@ -1,0 +1,8 @@
+[
+  {
+    "label": "System font (standard_fontex.bfn, single byte)",
+    "format": "bfn",
+    "path": ["files/data/nintendo.szs"],
+    "member": "font/standard_fontex.bfn"
+  }
+]

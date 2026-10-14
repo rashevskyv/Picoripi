@@ -690,9 +690,11 @@ single-byte Cyrillic breaks in speech balloons. No GameCube writer existed in Pi
 - `bmg_tool.ENCODINGS` gains `0: cp1252`. The existing Shift-JIS fallback reads the four `pinnaBeach*.szs`
   `dolpic1.bmg` files. Other games with byte 0 raised "Unknown encoding ID" before; they now load. Keep 1 after 0 in
   the table: `ENCODINGS_REV` maps cp1252 back to 1.
-- Those four `dolpic1.bmg` have 8-byte INF1 entries, and the BMG save path does not reproduce their INF1 bytes. The
-  build refuses any change to a BMG's INF1 (`plugins/super_mario_sunshine/build.py`). The other 167 round-trip byte
-  for byte (`test_real_disc.py`).
+- Four `dolpic1.bmg` (Shift-JIS, `pinnaBeach*.szs`) do not round-trip their INF1. Cause, measured 2026-10-14: their
+  DAT1 starts with the first text, not with a NUL byte. The save path writes every INF1 string offset one higher
+  (1-based, as in the other files, which start with a NUL). It is a base offset, not the entry size (8 bytes here).
+  The build refuses any change to a BMG's INF1 (`plugins/super_mario_sunshine/build.py`). The other 167 round-trip
+  byte for byte (`test_real_disc.py`).
 - `core/containers/gcm_writer.py` writes a disc: it streams a copy to `<out>.tmp`, overwrites a changed file in
   place, zero-fills a shorter one, moves a grown one to the first free 0x8000-aligned gap, patches its FST entry, and
   replaces `out` at the end. It adds no files, changes only `sys/main.dol` (same size) among the system files, and

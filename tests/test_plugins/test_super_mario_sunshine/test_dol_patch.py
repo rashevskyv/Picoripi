@@ -40,3 +40,17 @@ def test_a_site_that_is_not_retail_is_refused():
 def test_a_short_executable_is_refused():
     with pytest.raises(ValueError, match="too short"):
         dol_patch.apply(bytes(0x1000))
+
+
+def test_ensure_patches_a_retail_executable_and_keeps_a_patched_one():
+    dol = bytes(_retail())
+    patched = dol_patch.apply(dol)
+    assert dol_patch.ensure(dol) == patched
+    assert dol_patch.ensure(patched) is patched
+
+
+def test_ensure_refuses_an_executable_that_is_neither_retail_nor_patched():
+    dol = bytearray(_retail())
+    struct.pack_into(">I", dol, dol_patch.PATCHES[0][0], 0x12345678)
+    with pytest.raises(ValueError, match="not the expected instruction"):
+        dol_patch.ensure(bytes(dol))

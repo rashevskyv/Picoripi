@@ -4,16 +4,19 @@ The disc on disk is a damaged download: its file table runs past the end of the 
 on are an HTML page. The tests read only the intact part and check the facts measured on 2026-10-14.
 """
 import romhacking_root
+from core.bfn_core import BfnCore
 from core.containers import ContainerManager
 from core.containers import yaz0
 from core.containers.gcm import GameCubeImage
 from core.containers.image_files import ImageError
+from core.containers.rarc_container import RarcContainer
 from plugins.zelda_bmg import bmg_tool
 from plugins.super_mario_sunshine import dol_patch
 from plugins.super_mario_sunshine.rules import GameRules
 
 DISC = ("_new", "Super Mario Sunshine (2002)(Nintendo)(US).iso")
-# Message files whose INF1 is 8 bytes per entry; the BMG save path does not reproduce their INF1 (see build.py).
+# The four Shift-JIS message files whose DAT1 starts with text, not with a NUL byte: the save path writes their string
+# offsets one higher, so their INF1 does not round-trip (see build.py).
 INF1_NOT_REPRODUCED = {
     "files/data/scene/pinnaBeach0.szs/map/dolpic1.bmg",
     "files/data/scene/pinnaBeach1.szs/map/dolpic1.bmg",
@@ -62,5 +65,19 @@ def test_intact_bmg_messages_round_trip_except_the_known_shift_jis_files():
                 tool.load(body)
                 if tool.save() != body:
                     differing.add(f"{entry.path}/{name}")
-    assert count == 171
-    assert differing == INF1_NOT_REPRODUCED
+    # A complete dump adds archives: the count may only grow, and no file outside the known four may stop round-tripping.
+    assert count >= 171
+    assert differing <= INF1_NOT_REPRODUCED
+
+
+@romhacking_root.needs(DISC)
+def test_the_system_font_is_single_byte_with_a_lookup_from_0x20_to_0xff():
+    with open(romhacking_root.path(*DISC), "rb") as stream:
+        image = GameCubeImage(stream)
+        archive = image.read(next(e for e in image.entries() if e.path == "files/data/nintendo.szs"))
+    font = BfnCore()
+    font.load(RarcContainer(yaz0.decompress(archive)).read_file("font/standard_fontex.bfn"))
+    assert font.inf1[0]["encoding"] == 0
+    mapping = font.map1[0]
+    assert (mapping["mapping_type"], mapping["first_char"], mapping["last_char"]) == (2, 32, 255)
+    assert mapping["mapping_entry_count"] == 224
