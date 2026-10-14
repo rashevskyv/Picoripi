@@ -282,6 +282,21 @@ def test_scroll_range_stops_when_the_page_bottom_meets_the_bottom_bar():
 _GATE = romhacking_root.missing(*_REPO_MANUAL)
 
 
+def test_an_overrun_under_half_a_pixel_is_not_a_defect():
+    """The console rounds glyph positions to whole pixels: ink 0.4 px past an edge shows nothing there."""
+    picture = cr.Pane("pic1", "Pic", True, 0, 255, 200.0, -10.0, 80.0, 60.0, abs_x=200.0, abs_y=-10.0)
+    page = cr.Layout(320.0, 260.0, [], [], [], [picture])
+
+    def kinds(ink_right):
+        run = cr.TextRun("Line", "text", 10.0, -20.0, ink_right - 10.0, False, ink_right=ink_right)
+        return [d.kind for d in simulator.defects_of([run], [], [page], cr.Textures({}), "m", 1, "Page_000", "small")]
+
+    assert kinds(200.0 - cr.PICTURE_MARGIN + 0.4) == []
+    assert kinds(200.0 - cr.PICTURE_MARGIN + 0.6) == ["over_picture"]
+    assert kinds(simulator.LINE_LIMIT + 0.4) == ["over_picture"]
+    assert kinds(simulator.LINE_LIMIT + 0.6) == ["over_edge", "over_picture"]
+
+
 @pytest.mark.skipif(_GATE is not None or not os.environ.get(CALIB_ENV), reason=_GATE or f"{CALIB_ENV} is not set")
 def test_home_menu_page_7_small_matches_the_console_within_antialiasing():
     """shots_r17b 2011-01-04_01-59-44.529 shows home_menu_manual page 7 (small) at scroll 0 with cand_r17."""

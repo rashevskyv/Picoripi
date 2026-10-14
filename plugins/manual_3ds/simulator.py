@@ -199,7 +199,7 @@ def find_defects(sim: Simulator, name: str, page_file: int, size: str) -> List[D
 def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.Layout], textures: cr.Textures,
                name: str, number: int, page_name: str, size: str) -> List[Defect]:
     """The defects a rendered page shows: a cut line, a line the viewer broke, a line over a picture or a frame,
-    a missing glyph. Pure: works on what PageRenderer.render left behind."""
+    a missing glyph. An overrun under cr.SUB_PIXEL is none. Pure: works on what PageRenderer.render left behind."""
     out: List[Defect] = []
     for ch in missing:
         out.append(Defect("missing_glyph", name, number, page_name, size, "", ch, 0.0, 0, f"U+{ord(ch):04X}"))
@@ -226,17 +226,17 @@ def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.
         if run.wrapped:
             out.append(Defect("wrapped", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
                               "the viewer broke the stored line inside its pane; this part lands on the next line"))
-        if right > LINE_LIMIT + 0.5:
+        if right > LINE_LIMIT + cr.SUB_PIXEL:
             out.append(Defect("over_edge", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
                               f"ink ends at {right:.1f} px, the card ends at {LINE_LIMIT:.0f} (drawn over the scroll track): {where}"))
         for pic_name, px, py, pw, ph in pictures:
-            if (px - cr.PICTURE_MARGIN < right - 0.01 and px + pw > run.x + 1.0 and py > bottom + 1.0
+            if (px - cr.PICTURE_MARGIN < right - cr.SUB_PIXEL and px + pw > run.x + 1.0 and py > bottom + 1.0
                     and py - ph < run.top - 1.0 and px > run.x):
                 out.append(Defect("over_picture", name, number, page_name, size, run.pane, run.text, run.top,
                                   _scroll_for(run.top), f"ink ends at {right:.1f} px, picture {pic_name} starts at {px:.1f}"))
         for win_name, wx, wy, ww, wh, fw in windows:
             inner_right = wx + ww - max(fw, cr.FRAME_INNER)
-            if wx <= run.x < wx + ww and wy > bottom + 1.0 and wy - wh < run.top - 1.0 and right > inner_right + 0.01:
+            if wx <= run.x < wx + ww and wy > bottom + 1.0 and wy - wh < run.top - 1.0 and right > inner_right + cr.SUB_PIXEL:
                 out.append(Defect("over_frame", name, number, page_name, size, run.pane, run.text, run.top,
                                   _scroll_for(run.top), f"ink ends at {right:.1f} px, the frame {win_name} starts at {inner_right:.1f}"))
     return out

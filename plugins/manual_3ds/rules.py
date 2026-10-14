@@ -77,23 +77,30 @@ def _geometry_for(entries: Dict[str, Dict[str, Any]], fp: str) -> Tuple[str, Dic
     found = _DATA.geometry.get(fp) if _DATA.geometry else None
     if not found:
         return "", {}
-    # Pictures and frames per page: [kind, abs_x, abs_y, width, height] (the page is the key minus its "#n").
-    pages = {page: [layout.Occluder(str(kind), float(x), float(y), float(w), float(h)) for kind, x, y, w, h in items]
+    # Pictures and frames per page: [kind, abs_x, abs_y, width, height, frame width or null] (the page is the key
+    # minus its "#n").
+    pages = {page: [layout.Occluder(str(kind), float(x), float(y), float(w), float(h), None if fw is None else float(fw))
+                    for kind, x, y, w, h, fw in items]
              for page, items in (found.get("pages") or {}).items()}
     out: Dict[str, layout.Geometry] = {}
     for key, facts in found["entries"].items():
+        own = set(facts.get("own", []))   # the paragraph's own inline icons: not in the way of its lines
         out[key] = layout.Geometry(
             part=facts["part"],
             font_size=float(facts["font_size"]),
             char_space=float(facts["char_space"]),
-            lines=[layout.Line(*(float(v) for v in row)) for row in facts["lines"]],
+            lines=[[_line(pane) for pane in row] for row in facts["lines"]],
             icon_widths=[float(w) for w in facts.get("icon_widths", [])],
             fixed=bool(facts.get("fixed", False)),
             budget=float(facts["budget"]) if facts.get("budget") is not None else None,
-            panes={int(style): int(count) for style, count in (facts.get("panes") or {}).items()},
-            occluders=pages.get(key.split("#", 1)[0], []),
+            occluders=[occ for index, occ in enumerate(pages.get(key.split("#", 1)[0], [])) if index not in own],
         )
     return found["name"], out
+
+
+def _line(pane: List[Any]) -> layout.Line:
+    """One text pane of geometry.json: [x, width, abs_x, abs_y, step, char_space, style, origin, text_pos, text_align, mark]."""
+    return layout.Line(*(float(v) for v in pane[:6]), *(int(v) for v in pane[6:10]), *(str(v) for v in pane[10:11]))
 
 
 class ManualProblemAnalyzer(GenericProblemAnalyzer):

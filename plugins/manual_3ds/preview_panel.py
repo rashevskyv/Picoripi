@@ -12,6 +12,7 @@ so what the panel shows is what the card shows. Drawing runs in a QThread worker
 """
 from __future__ import annotations
 
+import copy
 import json
 import re
 import threading
@@ -209,11 +210,15 @@ def build_page(tools: Any, archive: Any, flows_by_key: Dict[str, List[Any]], par
             if not text:
                 continue
             try:
+                # The build's own steps on a copy: mark_panes_out reassigns the copy's lines (the shared flow
+                # keeps its panes for the next render).
+                laid = copy.copy(flow)
+                manual.mark_panes_out(laid, text)
                 rendered = manual.apply_homoglyphs(text, table)
                 budget = budgets.get(key)
                 limit = (float(budget) if budget else cr.COLUMN_WIDTH) + manual.WIDTH_SLACK
-                lines = manual.layout_for(rendered, flow, limit, widths)
-                edits.update(manual.to_edits(lines, flow))
+                lines = manual.layout_for(rendered, laid, limit, widths)
+                edits.update(manual.to_edits(lines, laid))
             except Exception as exc:  # the owner's layout refuses the text: the page keeps the stored text there
                 failed[key] = repr(exc)
         out.append(tools.bclyt.rewrite(data, edits) if edits else data)

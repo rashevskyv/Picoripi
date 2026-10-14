@@ -41,6 +41,9 @@ FONT_WIDTH_FALLBACK = FONT_WIDTH
 # textures of the boxes are 4 px wide); the layout check and the defect finder share these.
 PICTURE_MARGIN = 1.0
 FRAME_INNER = 4.0
+# An overrun under this (px) is not a defect: the console rounds glyph positions to whole pixels, so a line that
+# ends 0.3 px past an edge shows no ink there. The defect finder and the layout check share it.
+SUB_PIXEL = 0.5
 # The viewer breaks a stored line inside its pane when the line's advance comes within this of the pane width.
 # Measured on shots_r17b 2011-01-04_01-58-38.378 against the round-8 health document: a 301.0 px line in a
 # 301.8 px box was broken, a 316.2 px line in a 321.3 px box was not. Refined by the validation run.
