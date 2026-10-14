@@ -307,6 +307,9 @@ def test_3ds_turned_bflim_picture_is_read_upright(flags):
         stored = display.transpose(Image.Transpose.FLIP_LEFT_RIGHT).transpose(Image.Transpose.ROTATE_90)
     data = make_3ds_layout(b"FLIM", "RGBA8", 20, 10, stored, flags)
     assert flim.read(data, {})[0].image.tobytes() == image.tobytes()
+    # the flip parameter turns the cropped picture, not the whole power-of-two texture
+    assert flim.read(data, {"flip": True})[0].image.tobytes() == image.transpose(
+        Image.Transpose.FLIP_TOP_BOTTOM).tobytes()
 
 
 def make_flim_wiiu(fmt_id, width, height, image, tile_mode=4):

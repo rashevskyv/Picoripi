@@ -100,7 +100,7 @@ def read(data: bytes, params: Dict[str, Any]) -> List[Texture]:
         width, height = _pica_geometry(info)
         full = _to_display(surface.read(data, 0, codec, width, height), info["flags"])
         image = full.crop((0, 0, info["width"], info["height"]))
-    if params.get("flip"):   # a game whose layouts draw the picture upside down (the Marvelous farm games)
+    if params.get("flip"):   # turns the cropped picture over; no plugin sets it (Trio of Towns reads upright)
         image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     return [Texture("", image, info["name"])]
 
