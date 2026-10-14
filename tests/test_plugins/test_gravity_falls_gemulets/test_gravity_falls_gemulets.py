@@ -120,7 +120,7 @@ def test_ubiart_font_round_trips_and_adds_a_glyph():
     pairs = [(font_formats.char_code(c), g) for c, g in chars.items()] + [(0x416, spare)]
     meta["MAP1"] = [font_formats.map_entries(pairs)]
     out = font_formats.pack("ubiart_tfn", meta, [sheet], raw)
-    assert "Ж" in font_formats.char_map(font_formats.extract("ubiart_tfn", out)[0])
+    assert "Ж" in font_formats.char_map(font_formats.extract("ubiart_tfn", out)[0])  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the Ukrainian letter must be in the char map
 
 
 def test_real_localisation_round_trips():

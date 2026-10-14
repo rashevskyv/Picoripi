@@ -69,7 +69,7 @@ def test_DataStateProcessor_update_edited_data_metadata():
     
     # Check that metadata has been created
     assert "translation_status" in block.metadata
-    assert "0" in block.metadata["translation_status"]
+    assert list(block.metadata["translation_status"]) == ["0"]
     status = block.metadata["translation_status"]["0"]
     assert status["approved"] is False
     assert status["ai_model"] == "AI Model"  # fallback since lifecycle manager is mock

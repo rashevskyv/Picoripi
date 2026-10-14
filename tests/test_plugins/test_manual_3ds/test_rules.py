@@ -314,17 +314,20 @@ def _require_geometry_from_owner_head(tools):
     head = repo_tools.owner_commit(tools.root)
     built = json.loads(Path(m3d._DATA_DIR, "geometry.json").read_text(encoding="utf-8")).get("owner_commit", "")
     if head != built:
-        pytest.fail(f"owner tools at {head}, geometry built from {built}: run scripts/build_manual_geometry.py")
+        pytest.fail(f"owner tools at {head or 'an unknown commit (not a git checkout)'}, "
+                    f"geometry built from {built or 'an unknown commit'}: run scripts/build_manual_geometry.py")
 
 
-def test_geometry_from_other_owner_tools_fails_with_one_message(monkeypatch):
+@pytest.mark.parametrize("head", ["1111111", ""])
+def test_geometry_from_other_owner_tools_fails_with_one_message(monkeypatch, head):
     from types import SimpleNamespace
 
-    monkeypatch.setattr(repo_tools, "owner_commit", lambda root: "1111111")
+    monkeypatch.setattr(repo_tools, "owner_commit", lambda root: head)
     built = json.loads(Path(m3d._DATA_DIR, "geometry.json").read_text(encoding="utf-8"))["owner_commit"]
+    shown = head or "an unknown commit (not a git checkout)"
     with pytest.raises(pytest.fail.Exception) as stop:
         _require_geometry_from_owner_head(SimpleNamespace(root="folder"))
-    assert str(stop.value) == (f"owner tools at 1111111, geometry built from {built}: "
+    assert str(stop.value) == (f"owner tools at {shown}, geometry built from {built}: "
                                "run scripts/build_manual_geometry.py")
 
 

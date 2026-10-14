@@ -36,7 +36,7 @@ class TestBuildWindow:
         dataset = self._dataset()
         occ = Occurrence(0, 5)
         win = build_window(dataset, occ, window_size=1)  # tiny budget
-        assert "s5" in win.text
+        assert win.text == "s5"
         assert win.start_string_idx == 5
         assert win.end_string_idx == 5
 

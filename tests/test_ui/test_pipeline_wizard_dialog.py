@@ -374,12 +374,14 @@ class TestEmbeddedTools:
 class TestLaunching:
     def test_a_step_triggers_the_action_the_menu_used_to(self, tmp_path):
         mw = _mw(tmp_path)
+        triggers = []
+        mw.merge_speakers_action.trigger = lambda *args: triggers.append(True)
         dialog = PipelineWizardDialog(mw)
 
         dialog.select_step("speakers")
         dialog._run_current()
 
-        mw.merge_speakers_action.trigger.assert_called_once()
+        assert triggers == [True]
         dialog.deleteLater()
 
     def test_the_glossary_step_hosts_the_automatic_route(self, tmp_path):
@@ -475,33 +477,36 @@ class TestTextPipelineLaunching:
 
     def test_clicking_story_first_calls_handler(self, tmp_path):
         mw = _mw(tmp_path)
-        mw.translation_handler.translate_story_first = MagicMock()
+        launched = []
+        mw.translation_handler.translate_story_first = lambda *args: launched.append("story_first")
         dialog = PipelineWizardDialog(mw)
         dialog.select_step("text")
 
         dialog.btn_story_first.click()
 
-        mw.translation_handler.translate_story_first.assert_called_once()
+        assert launched == ["story_first"]
         dialog.deleteLater()
 
     def test_clicking_remaining_blocks_calls_handler(self, tmp_path):
         mw = _mw(tmp_path)
-        mw.translation_handler.translate_remaining_blocks = MagicMock()
+        launched = []
+        mw.translation_handler.translate_remaining_blocks = lambda *args: launched.append("remaining_blocks")
         dialog = PipelineWizardDialog(mw)
         dialog.select_step("text")
 
         dialog.btn_remaining_blocks.click()
 
-        mw.translation_handler.translate_remaining_blocks.assert_called_once()
+        assert launched == ["remaining_blocks"]
         dialog.deleteLater()
 
     def test_clicking_full_pipeline_calls_handler(self, tmp_path):
         mw = _mw(tmp_path)
-        mw.translation_handler.translate_all_blocks_pipeline = MagicMock()
+        launched = []
+        mw.translation_handler.translate_all_blocks_pipeline = lambda *args: launched.append("full_pipeline")
         dialog = PipelineWizardDialog(mw)
         dialog.select_step("text")
 
         dialog.btn_full_pipeline.click()
 
-        mw.translation_handler.translate_all_blocks_pipeline.assert_called_once()
+        assert launched == ["full_pipeline"]
         dialog.deleteLater()

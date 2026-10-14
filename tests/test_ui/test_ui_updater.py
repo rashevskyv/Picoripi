@@ -1,9 +1,86 @@
 import pytest
 # Auto-generated test file for ui/ui_updater.py
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from ui.ui_updater import UIUpdater
 from ui.updaters.preview_updater import PreviewUpdater
+
+
+class _FakeHighlights:
+    """Keeps the highlights an editor shows, so a test reads the result and not the call log."""
+
+    def __init__(self):
+        self.problem_lines = set()
+        self.critical_lines = set()
+        self.warning_lines = {}
+        self.categorized = None
+
+    def clearAllProblemHighlights(self):
+        self.problem_lines = set()
+        self.critical_lines = set()
+        self.warning_lines = {}
+
+    def clearCategorizedLineHighlights(self):
+        self.categorized = None
+
+    def setCategorizedLineHighlights(self, indices, color):
+        self.categorized = list(indices)
+
+    def addCriticalProblemHighlight(self, line):
+        self.critical_lines.add(line)
+
+    def addWarningLineHighlight(self, line, color):
+        self.warning_lines[line] = color
+
+
+class _FakePreview:
+    """Preview edit whose problem lines live in its highlight manager."""
+
+    def __init__(self, highlights):
+        self.highlightManager = highlights
+
+    def addProblemLineHighlight(self, line):
+        self.highlightManager.problem_lines.add(line)
+
+
+class _FakeTextEdit:
+    """Holds plain text like the editor does; only the calls the text-view update makes."""
+
+    def __init__(self, text=""):
+        self.text = text
+        self.highlightManager = _FakeHighlights()
+
+    def toPlainText(self):
+        return self.text
+
+    def setPlainText(self, text):
+        self.text = text
+
+    def textCursor(self):
+        return _FakeCursor()
+
+    def setTextCursor(self, cursor):
+        pass
+
+
+class _FakeCursor:
+    """Cursor with no selection; the text-view update only moves and reads its position."""
+
+    def __init__(self):
+        self._pos = 0
+
+    def position(self):
+        return self._pos
+
+    def anchor(self):
+        return self._pos
+
+    def hasSelection(self):
+        return False
+
+    def setPosition(self, pos, *_mode):
+        self._pos = pos
 
 @pytest.fixture
 def updater(mock_mw):
@@ -213,17 +290,21 @@ def test_UIUpdater_add_virtual_folder_to_tree(updater):
     updater.block_list_updater._add_virtual_folder_to_tree(updater.mw.block_list_widget.invisibleRootItem(), folder, {}, None)
 
 def test_UIUpdater_populate_blocks(updater):
+    """Rebuilding the tree drops the stale items and shows the block."""
     from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
-    updater.mw.block_list_widget = QTreeWidget()
-    mock_item = QTreeWidgetItem([])
-    updater.mw.block_list_widget.create_item = MagicMock(return_value=mock_item)
+    tree = QTreeWidget()
+    # the app's tree widget builds block items with create_item; a plain item keeps the real tree behaviour
+    tree.create_item = lambda text, _idx, _role: QTreeWidgetItem([text])
+    updater.mw.block_list_widget = tree
+    tree.addTopLevelItem(QTreeWidgetItem(["stale"]))
     updater.mw.data_store.data = [[]]
     updater.mw.data_store.block_names = {"0": "Block 0"}
     updater.mw.current_game_rules = MagicMock()
     updater.mw.project_manager = None
-    updater.mw.block_list_widget.clear = MagicMock()
     updater.populate_blocks()
-    updater.mw.block_list_widget.clear.assert_called()
+    texts = [tree.topLevelItem(i).text(0) for i in range(tree.topLevelItemCount())]
+    assert "stale" not in texts
+    assert "Block 0" in texts
 
 def test_UIUpdater_update_block_item_text_with_problem_count(updater):
     from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem
@@ -314,25 +395,25 @@ def test_UIUpdater_apply_highlights_for_block_no_rules(updater, mock_mw):
     updater.preview_updater._apply_highlights_for_block(0)
 
 def test_UIUpdater_apply_highlights_for_block_out_of_range(updater, mock_mw):
-    """Early return when block_idx is out of range."""
-    mock_mw.preview_text_edit = MagicMock()
-    mock_mw.preview_text_edit.highlightManager = MagicMock()
+    """Early return when block_idx is out of range: old highlights are cleared, none are added."""
+    highlights = _FakeHighlights()
+    highlights.problem_lines = {7}
+    mock_mw.preview_text_edit = _FakePreview(highlights)
     mock_mw.current_game_rules = MagicMock()
     mock_mw.data = [["s1"]]
     updater.preview_updater._apply_highlights_for_block(5)  # out of range
-    mock_mw.preview_text_edit.highlightManager.clearAllProblemHighlights.assert_called_once()
-    mock_mw.preview_text_edit.addProblemLineHighlight.assert_not_called()
+    assert highlights.problem_lines == set()
 
 def test_UIUpdater_apply_highlights_for_block_with_no_displayed_indices(updater, mock_mw):
-    """When displayed_string_indices is empty, uses all indices."""
-    mock_mw.preview_text_edit = MagicMock()
-    mock_mw.preview_text_edit.highlightManager = MagicMock()
+    """When displayed_string_indices is empty, every string of the block is checked."""
+    highlights = _FakeHighlights()
+    mock_mw.preview_text_edit = _FakePreview(highlights)
     mock_mw.current_game_rules = MagicMock()
     mock_mw.data = [["s1", "s2"]]
     mock_mw.displayed_string_indices = []  # empty, should auto use all
-    mock_mw.list_selection_handler._data_string_has_any_problem.return_value = False
+    mock_mw.data_store.problems_per_subline = {(0, 1, 0): {"P1"}}
     updater.preview_updater._apply_highlights_for_block(0)
-    mock_mw.preview_text_edit.highlightManager.clearAllProblemHighlights.assert_called_once()
+    assert highlights.problem_lines == {1}
 
 def test_UIUpdater_apply_highlights_for_block_with_categorized(updater, mock_mw):
     """highlight_categorized must be read from data_store, not mw directly."""
@@ -346,10 +427,9 @@ def test_UIUpdater_apply_highlights_for_block_with_categorized(updater, mock_mw)
     real_store.problems_per_subline = {}
     mock_mw.data_store = real_store
 
-    mock_mw.preview_text_edit = MagicMock()
-    mock_mw.preview_text_edit.highlightManager = MagicMock()
+    highlights = _FakeHighlights()
+    mock_mw.preview_text_edit = _FakePreview(highlights)
     mock_mw.current_game_rules = MagicMock()
-    mock_mw.list_selection_handler._data_string_has_any_problem.return_value = False
 
     pm = MagicMock()
     proj = MagicMock()
@@ -362,20 +442,20 @@ def test_UIUpdater_apply_highlights_for_block_with_categorized(updater, mock_mw)
     mock_mw.block_to_project_file_map = {0: 0}
 
     updater.preview_updater._apply_highlights_for_block(0)
-    # MUST call setCategorizedLineHighlights when data_store.highlight_categorized is True
-    mock_mw.preview_text_edit.highlightManager.setCategorizedLineHighlights.assert_called_once()
+    # highlight_categorized is read from data_store: the categorized string 0 is shown
+    assert highlights.categorized == [0]
 
 def test_UIUpdater_apply_highlights_to_editor_no_editor(updater, mock_mw):
     """Early return when editor is None."""
     updater.preview_updater._apply_highlights_to_editor(None, 0, 0)  # should not raise
 
 def test_UIUpdater_apply_highlights_to_editor_negative_idx(updater, mock_mw):
-    """Early return when block_idx or string_idx is negative."""
-    editor = MagicMock()
-    editor.highlightManager = MagicMock()
+    """Early return when block_idx or string_idx is negative: old highlights are cleared, none are added."""
+    highlights = _FakeHighlights()
+    highlights.critical_lines = {3}
+    editor = SimpleNamespace(highlightManager=highlights)  # no document(): the code must not get that far
     updater.preview_updater._apply_highlights_to_editor(editor, -1, 0)
-    editor.highlightManager.clearAllProblemHighlights.assert_called_once()
-    editor.document.assert_not_called()  # should not proceed
+    assert highlights.critical_lines == set()
 
 def test_UIUpdater_apply_highlights_to_editor_with_empty_subline_problem(updater, mock_mw):
     """Test the PROBLEM_EMPTY_ODD_SUBLINE_DISPLAY branch (line 762-764)."""
@@ -485,21 +565,17 @@ def test_UIUpdater_update_text_views(updater, mock_mw):
     mock_mw.edited_text_edit.setPlainText.assert_called_with("E_edit")
 
 def test_UIUpdater_update_text_views_no_selection(updater, mock_mw):
-    """Test where current_block_idx = -1 (inactive case)"""
+    """No selection (current_block_idx = -1): stale text left in both editors is cleared."""
     mock_mw.current_block_idx = -1
     mock_mw.current_string_idx = -1
     mock_mw.current_game_rules = None
     mock_mw.show_multiple_spaces_as_dots = False
-    mock_mw.original_text_edit = MagicMock()
-    mock_mw.edited_text_edit = MagicMock()
-    mock_mw.original_text_edit.toPlainText.return_value = ""
-    mock_mw.edited_text_edit.toPlainText.return_value = ""
-    mock_mw.original_text_edit.textCursor = MagicMock()
-    mock_mw.edited_text_edit.textCursor = MagicMock()
+    mock_mw.original_text_edit = _FakeTextEdit("stale original")
+    mock_mw.edited_text_edit = _FakeTextEdit("stale edited")
 
     updater.update_text_views()
-    # With empty string, setPlainText is not called (no diff)
-    mock_mw.original_text_edit.setPlainText.assert_not_called()
+    assert mock_mw.original_text_edit.toPlainText() == ""
+    assert mock_mw.edited_text_edit.toPlainText() == ""
 
 @patch.object(PreviewUpdater, 'update_text_views')
 @patch.object(PreviewUpdater, '_apply_highlights_for_block')
@@ -707,7 +783,8 @@ def test_UIUpdater_update_status_bar_selection(updater):
     updater.mw.data_store.current_string_idx = 0
 
     updater.update_status_bar_selection()
-    updater.mw.status_label_part1.setText.assert_called()
+    updater.mw.status_label_part1.setText.assert_called_with("Sel: 13/13")
+    updater.mw.status_label_part2.setText.assert_called_with("At: 0")
 
 def test_UIUpdater_clear_status_bar(updater):
     updater.clear_status_bar()
@@ -765,8 +842,8 @@ def test_UIUpdater_update_statusbar_paths(updater):
     updater.mw.original_path_label = MagicMock()
     updater.mw.edited_path_label = MagicMock()
     updater.update_statusbar_paths()
-    updater.mw.original_path_label.setText.assert_called()
-    updater.mw.edited_path_label.setText.assert_called()
+    updater.mw.original_path_label.setText.assert_called_with("Original: some_orig.json")
+    updater.mw.edited_path_label.setText.assert_called_with("Changes: some_edited.json")
 
 def test_UIUpdater_clear_highlights_no_base_name(updater):
     """Cover line 656: base_display_name is None (no UserRole+4 set)."""

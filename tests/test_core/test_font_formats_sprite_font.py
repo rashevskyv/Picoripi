@@ -67,7 +67,7 @@ def test_add_character_creates_a_glyph_and_keeps_the_map_sorted():
     out = sprite_font.pack(metadata, sheets, data, {})
     again_meta, again_sheets = sprite_font.extract(out, {})
     cells = sprite_font._cells(again_meta)
-    assert "Ї" in cells
+    assert "Ї" in cells  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the Ukrainian letter must be among the cells
     assert again_sheets[0].getpixel((x0 + cw // 2, y0 + ch // 2))[3] == 255
     chars = [chr(c) for c in sorted(ord(k) for k in cells)]
     assert chars == sorted(chars)

@@ -78,5 +78,5 @@ def test_ukrainian_letters_missing_are_listed_not_drawn():
     font = nftr.Font(_font(PH, "Font/zeldaDS_endL.nftr"))
     report = nftr.ukrainian_coverage(font)
     assert report["missing_count"] == len(nftr.UKRAINIAN) == 66
-    assert "Ї" in report["missing_ukrainian"]
+    assert "Ї" in report["missing_ukrainian"]  # deslop: ignore[poor-substring-tests] single non-ASCII glyph marker: the Ukrainian letter is reported as missing
     assert report["bpp"] == 3

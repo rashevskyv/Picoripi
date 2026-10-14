@@ -116,7 +116,7 @@ def test_serialize_and_deserialize_session(dsp):
     assert isinstance(json_snapshot["edited_data"], dict)
     assert json_snapshot["data"][0] == ["source_0"]
     assert json_snapshot["data"][1][0]["__picoripi_type__"] == "bytes"
-    assert "0,0" in json_snapshot["edited_data"]
+    assert "0,0" in json_snapshot["edited_data"]  # deslop: ignore[poor-substring-tests] dict key check: edited_data is keyed by "block,string"
     assert json_snapshot["edited_data"]["0,0"] == "new"
 
     assert isinstance(json_snapshot["unsaved_block_indices"], list)

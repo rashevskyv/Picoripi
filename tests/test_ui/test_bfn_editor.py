@@ -80,7 +80,10 @@ def test_wrap_ui_text_splits_long_labels(qapp):
     fm = QFontMetrics(QApplication.font())
     text = "Експортувати поточний аркуш PNG..."
     wrapped, width = wrap_ui_text(text, fm, 120)
-    assert "\n" in wrapped
+    lines = wrapped.split("\n")
+    assert len(lines) == 2
+    assert " ".join(lines) == text
+    assert width == max(painted_text_width(fm, line) for line in lines)
     assert width < painted_text_width(fm, text)
     short, short_w = wrap_ui_text("Width", fm, 200)
     assert short == "Width"
@@ -94,7 +97,7 @@ def test_bfn_editor_uk_labels_fit_on_two_lines(qapp):
     i18n.init("uk")
     try:
         editor = BfnEditorWindow()
-        assert "\n" in editor.btn_export_sheet.text()
+        assert len(editor.btn_export_sheet.text().split("\n")) == 2
         for btn in (
             editor.btn_export_sheet,
             editor.btn_import_sheet,

@@ -106,7 +106,7 @@ class TestExtract:
         extract = make_extract(call, PROMPTS, mask=lambda t: t.replace("SECRET", "X"))
         extract(_chunk("has SECRET tag"))
         assert "SECRET" not in captured["user"]
-        assert "X" in captured["user"]
+        assert "has X tag" in captured["user"]
 
     def test_fragment_falls_back_to_description_key(self):
         reply = '[{"term": "A", "description": "desc form"}]'

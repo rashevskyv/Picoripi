@@ -18,6 +18,10 @@ def test_project_font_loading_on_open(mock_msg_box, mock_pm_class, qapp, mock_mw
 
     # Setup string settings updater mock
     mock_mw.string_settings_updater = MagicMock()
+    font_loads = []
+    combobox_updates = []
+    mock_mw.settings_manager.load_all_font_maps = lambda: font_loads.append("fonts")
+    mock_mw.string_settings_updater.update_font_combobox = lambda: combobox_updates.append(True)
 
     # Mock the QFileDialog to return a dummy project path
     dummy_project_path = "C:/path/to/test_project.uiproj"
@@ -39,8 +43,8 @@ def test_project_font_loading_on_open(mock_msg_box, mock_pm_class, qapp, mock_mw
     # Verify project load sequence calls
     mock_pm.load.assert_called_once_with(dummy_project_path)
     mock_pm.load_settings_from_project.assert_called_once_with(mock_mw)
-    mock_mw.settings_manager.load_all_font_maps.assert_called_once()
-    mock_mw.string_settings_updater.update_font_combobox.assert_called_once()
+    assert font_loads == ["fonts"]
+    assert combobox_updates == [True]
 
 
 @patch('handlers.project_action.recent_mixin.ProjectManager')
@@ -53,6 +57,10 @@ def test_project_font_loading_on_open_recent(mock_msg_box, mock_pm_class, qapp, 
     mock_mw.ui_updater = MagicMock()
     handler = ProjectActionHandler(mock_mw, MagicMock(), mock_mw.ui_updater)
     mock_mw.string_settings_updater = MagicMock()
+    font_loads = []
+    combobox_updates = []
+    mock_mw.settings_manager.load_all_font_maps = lambda: font_loads.append("fonts")
+    mock_mw.string_settings_updater.update_font_combobox = lambda: combobox_updates.append(True)
 
     dummy_project_path = "C:/path/to/recent_project.uiproj"
     
@@ -73,8 +81,8 @@ def test_project_font_loading_on_open_recent(mock_msg_box, mock_pm_class, qapp, 
     # Verify calls
     mock_pm.load.assert_called_once_with(dummy_project_path)
     mock_pm.load_settings_from_project.assert_called_once_with(mock_mw)
-    mock_mw.settings_manager.load_all_font_maps.assert_called_once()
-    mock_mw.string_settings_updater.update_font_combobox.assert_called_once()
+    assert font_loads == ["fonts"]
+    assert combobox_updates == [True]
 
 
 def test_bfn_preview_widget_active_font_resolves_correctly(qapp, mock_mw):

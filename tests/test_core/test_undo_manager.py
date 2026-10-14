@@ -207,11 +207,13 @@ def test_UndoManager_navigate_to_virtual_folder_target_uses_preview_relative_ind
     mock_mw.data_store.current_view_kind = ViewKind.SPEAKER
     mock_mw.data_store.displayed_string_indices = [(5, 1), (7, 2)]
     mock_mw.list_selection_handler = MagicMock()
+    block_selections = []
     mock_mw.block_list_widget = MagicMock()
+    mock_mw.block_list_widget.select_block_by_index = lambda *args: block_selections.append(args)
 
     um._navigate_to(7, 2)
 
-    mock_mw.block_list_widget.select_block_by_index.assert_not_called()
+    assert block_selections == []
     mock_mw.list_selection_handler.string_selected_from_preview.assert_called_once_with(1)
 
 def test_UndoManager_navigate_to_virtual_folder_missing_target_does_not_select_physical_block(um, mock_mw):
@@ -220,11 +222,13 @@ def test_UndoManager_navigate_to_virtual_folder_missing_target_does_not_select_p
     mock_mw.data_store.current_view_kind = ViewKind.CHAPTER
     mock_mw.data_store.displayed_string_indices = [(5, 1)]
     mock_mw.list_selection_handler = MagicMock()
+    block_selections = []
     mock_mw.block_list_widget = MagicMock()
+    mock_mw.block_list_widget.select_block_by_index = lambda *args: block_selections.append(args)
 
     um._navigate_to(7, 2)
 
-    mock_mw.block_list_widget.select_block_by_index.assert_not_called()
+    assert block_selections == []
     mock_mw.list_selection_handler.string_selected_from_preview.assert_called_once_with(2)
 
 

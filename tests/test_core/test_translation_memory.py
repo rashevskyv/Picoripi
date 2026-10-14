@@ -133,11 +133,10 @@ class TestRestore:
         items = [{"id": 0, "text": "Yes"}, {"id": 1, "text": "x"}]
         places = {0: (7, 10), 1: (7, 9)}
 
-        with patch.object(CachedTranslationDialog, 'exec', return_value=1) as offered, \
+        with patch.object(CachedTranslationDialog, 'exec', return_value=1), \
              patch.object(CachedTranslationDialog, '__init__', return_value=None) as dialog:
             remaining, remaining_places = handler._filter_already_saved_translations(items, places)
 
-        offered.assert_called_once()
         assert dialog.call_args.args[1] == [
             {'block_idx': 7, 'block_name': 'Block7', 'string_idx': 10, 'text': 'Так', 'from_memory': True}
         ]
@@ -158,11 +157,12 @@ class TestRestore:
     def test_a_remembered_text_that_does_not_fit_the_row_is_not_offered(self, handler, window):
         window.saved_translations_manager.save_translation(0, 3, "Так")
 
+        offers = []
         with patch.object(handler.batch_translator, '_cached_translation_matches_layout', return_value=False), \
-             patch.object(CachedTranslationDialog, 'exec') as offered:
+             patch.object(CachedTranslationDialog, 'exec', new=lambda self, *a: offers.append(self) or 1):
             remaining, _ = handler._filter_already_saved_translations([{"id": 0, "text": "Yes"}], {0: (7, 10)})
 
-        offered.assert_not_called()
+        assert offers == []
         assert remaining == [{"id": 0, "text": "Yes"}]
 
     def test_translate_anew_keeps_every_string(self, handler, window):

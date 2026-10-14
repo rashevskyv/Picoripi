@@ -71,15 +71,18 @@ def test_JsonTagHighlighter_set_spellchecker_enabled(highlighter):
 
 def test_highlightBlock_skips_glossary_and_tags_while_typing(highlighter):
     hl, doc = highlighter
+    text = "Castle {Color:Red} text"
     hl._typing_mode = True
     hl._rebuild_glossary_cache = MagicMock()
     hl._rebuild_translation_glossary_cache = MagicMock()
     hl._get_icon_matches_for_block = MagicMock(return_value=[])
-    hl.highlightBlock("Castle {Color:Red} text")
+    hl.highlightBlock(text)
     hl._rebuild_glossary_cache.assert_not_called()
     hl._rebuild_translation_glossary_cache.assert_not_called()
     hl._get_icon_matches_for_block.assert_not_called()
-    hl.setFormat.assert_called()
+    # only the plain default colour covers the line; the tag gets no colour
+    applied = [args for args, _ in hl.setFormat.call_args_list]
+    assert applied == [(0, len(text), hl.color_default_format)]
 
 def test_JsonTagHighlighter_apply_css_to_format(highlighter):
     hl, doc = highlighter
@@ -122,8 +125,10 @@ def test_JsonTagHighlighter_highlightBlock_rules(highlighter):
     hl, doc = highlighter
     text = "{Tag} [Bracket] \\n [CustomRule]"
     hl.highlightBlock(text)
-    # Should find 4 formats matching our rules
-    assert hl.setFormat.call_count >= 4
+    # The custom rule colours exactly its own text with its own format
+    applied = [args for args, _ in hl.setFormat.call_args_list]
+    start = text.index("[CustomRule]")
+    assert (start, len("[CustomRule]"), hl.custom_rules[0][1]) in applied
 
 def test_JsonTagHighlighter_forced_alias_spacing(highlighter):
     hl, doc = highlighter
@@ -196,8 +201,12 @@ def test_JsonTagHighlighter_spellcheck(highlighter, mock_mw):
     text = "MisspelledWord"
     hl.highlightBlock(text)
 
-    # Set format should be called once for the whole word plus the basic format at the start
-    assert hl.setFormat.call_count >= 2
+    # The misspelled word, covering characters 0..14, gets the spellcheck underline
+    applied = [args for args, _ in hl.setFormat.call_args_list]
+    assert any(
+        args[:2] == (0, len(text)) and args[2].underlineStyle() == QTextCharFormat.UnderlineStyle.SpellCheckUnderline
+        for args in applied
+    )
 
 def test_JsonTagHighlighter_theme_dark(qapp):
     doc = QTextDocument()

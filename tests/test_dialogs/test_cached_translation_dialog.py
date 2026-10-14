@@ -45,7 +45,7 @@ def test_cached_translation_dialog_multiple_items(qapp):
     plain_text = dialog.text_edit.toPlainText()
     assert "Line 1:\nText 1" in plain_text
     assert "Line 2:\nText 2" in plain_text
-    assert "2" in dialog.info_label.text()
+    assert "Cached translations are available for <b>2</b> of the selected lines." in dialog.info_label.text()
     
     dialog.close()
 
@@ -58,18 +58,8 @@ def test_cached_translation_dialog_button_clicks(qapp):
         'text': "Text"
     }]
     
-    dialog = CachedTranslationDialog(None, cached_info)
-    
-    # We can mock done() to see what value was passed
-    dialog.done = lambda code: setattr(dialog, '_result_code', code)
-    
-    dialog.restore_btn.click()
-    assert getattr(dialog, '_result_code', None) == 1
-    
-    dialog.translate_btn.click()
-    assert getattr(dialog, '_result_code', None) == 2
-    
-    dialog.cancel_btn.click()
-    assert getattr(dialog, '_result_code', None) == 0
-    
-    dialog.close()
+    for button_name, expected_code in (("restore_btn", 1), ("translate_btn", 2), ("cancel_btn", 0)):
+        dialog = CachedTranslationDialog(None, cached_info)
+        getattr(dialog, button_name).click()
+        assert dialog.result() == expected_code
+        dialog.close()

@@ -61,7 +61,7 @@ def test_unchanged_text_saves_the_same_bytes_and_edits_keep_their_tags():
 def test_the_archive_type_is_registered_for_zs_files():
     GameRules()
     assert sarc_module.SarcContainer in container_manager._CONTAINER_TYPES
-    assert ".zs" in container_manager.ContainerManager.extensions()
+    assert ".zs" in container_manager.ContainerManager.extensions()  # deslop: ignore[poor-substring-tests] exact element of the extensions tuple, not a substring
 
 
 def test_tags_are_explained():

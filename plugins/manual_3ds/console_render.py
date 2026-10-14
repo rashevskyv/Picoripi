@@ -21,7 +21,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from PIL import Image
 
-from core.texture_formats import flim, pixels, surface
+from core.texture_formats import flim
 
 PANE_KINDS = (b"pan1", b"pic1", b"txt1", b"wnd1", b"bnd1")
 TOP_MARGIN = 204.0          # the page backdrop starts 204 px above the text origin (every *_info __BGRECT__ is at y=204)
@@ -215,21 +215,10 @@ def _pane(data: bytes, pos: int, magic: bytes) -> Pane:
 def decode_bclim(data: bytes) -> Image.Image:
     """A manual's BCLIM as the viewer draws it: the stored rows top first, the image in the top-left corner.
 
-    The pixels are a PICA texture of the next power-of-two size (at least 8). flim.read turns the rows over
-    and crops the top-left corner, which is right for a 3DS layout image but not for these: on the console the
-    icon row of cap_menu_manual_6 (85 x 64 in 128 x 64) is at the top (shots_r17b 2011-01-04_01-59-44.529), and
-    num_01 (18 x 18 in 32 x 32) shows its boxed digit, which the turned-over copy loses to the padding.
+    flim.read gives exactly that for a 3DS CLIM (checked on the console: the icon row of cap_menu_manual_6 is at
+    the top on shots_r17b 2011-01-04_01-59-44.529, and num_01, 18 x 18 in a 32 x 32 texture, shows its boxed digit).
     """
-    foot = len(data) - 0x28
-    if data[foot:foot + 4] != b"CLIM":
-        raise ValueError("not a BCLIM")
-    imag = foot + struct.unpack_from("<H", data, foot + 6)[0]
-    width, height, fmt = struct.unpack_from("<HHI", data, imag + 8)
-    codec = pixels.codec("pica:" + flim.PICA_FLIM[fmt])
-    stored_w = max(8, 1 << (width - 1).bit_length())
-    stored_h = max(8, 1 << (height - 1).bit_length())
-    full = surface.read(data, 0, codec, stored_w, stored_h)
-    return full.crop((0, 0, width, height)).convert("RGBA")
+    return flim.read(data, {})[0].image.convert("RGBA")
 
 
 class Textures:

@@ -201,44 +201,51 @@ def test_TextOperationHandler_update_preview_content(handler, mock_mw):
     mock_mw.ui_updater.preview_updater._apply_highlights_for_block.assert_called_once_with(0)
 
 def test_TextOperationHandler_text_edited_early_returns(handler, mock_mw):
+    mock_mw.edited_text_edit.toPlainText.return_value = "typed"
     mock_mw.is_programmatically_changing_text = True
     handler.text_edited()
-    mock_mw.data_processor.update_edited_data.assert_not_called()
-    
+    assert not handler.preview_update_timer.isActive()
+
     mock_mw.is_programmatically_changing_text = False
     mock_mw.current_block_idx = -1
     handler.text_edited()
-    mock_mw.data_processor.update_edited_data.assert_not_called()
-    
+    assert not handler.preview_update_timer.isActive()
+
     mock_mw.current_block_idx = 0
     mock_mw.edited_text_edit = None
     handler.text_edited()
-    mock_mw.data_processor.update_edited_data.assert_not_called()
+    assert not handler.preview_update_timer.isActive()
+
+    # The same kind of edit on a shown row does schedule the save.
+    mock_mw.edited_text_edit = MagicMock()
+    mock_mw.edited_text_edit.toPlainText.return_value = "typed after"
+    handler.text_edited()
+    assert handler.preview_update_timer.isActive()
 
 @patch('handlers.text_operation.edit_mixin.QMessageBox')
 def test_TextOperationHandler_paste_block_text_errors(mock_mbox, handler, mock_mw):
     mock_mw.current_block_idx = -1
     handler.paste_block_text()
-    mock_mbox.warning.assert_called_once()
-    
+    assert mock_mbox.warning.call_args.args[2] == "Please select a block."
+
     mock_mw.current_block_idx = 0
     mock_mw.current_game_rules = None
     mock_mbox.reset_mock()
     handler.paste_block_text()
-    mock_mbox.warning.assert_called_once()
+    assert mock_mbox.warning.call_args.args[2] == "Game rules not loaded."
 
 @patch('handlers.text_operation.edit_mixin.QMessageBox')
 def test_TextOperationHandler_calculate_width(mock_mbox, handler, mock_mw):
     mock_mw.current_block_idx = -1
     handler.calculate_width_for_data_line_action(0)
-    mock_mbox.warning.assert_called_once()
-    
+    assert mock_mbox.warning.call_args.args[2] == "No block or data line selected."
+
     mock_mw.current_block_idx = 0
     mock_mw.font_map = None
     handler.data_processor.get_current_string_text.return_value = ("txt", "src")
     mock_mbox.reset_mock()
     handler.calculate_width_for_data_line_action(0)
-    mock_mbox.warning.assert_called_once()
+    assert mock_mbox.warning.call_args.args[2] == "Font map is not loaded. Cannot calculate width."
     
     mock_mw.font_map = {"a": 1}
     mock_mw.game_dialog_max_width_pixels = 100
@@ -253,7 +260,8 @@ def test_TextOperationHandler_calculate_width(mock_mbox, handler, mock_mw):
     with patch('handlers.text_operation.edit_mixin.QMessageBox') as mock_dlg:
         with patch('handlers.text_operation.edit_mixin.calculate_string_width', return_value=120):
             handler.calculate_width_for_data_line_action(0)
-            mock_dlg.return_value.exec.assert_called_once()
+    shown = mock_dlg.return_value.setText.call_args.args[0]
+    assert "Sub-line 1 (rstripped): 120px (Problem)" in shown
 
 @patch('handlers.text_operation.autofix_mixin.QMessageBox')
 def test_TextOperationHandler_autofix_errors(mock_mbox, handler, mock_mw):
@@ -353,33 +361,40 @@ def test_TextOperationHandler_on_issue_scan_finished(handler, mock_mw):
     handler.ui_updater.update_block_item_text_with_problem_count.assert_called_with(0)
     handler.ui_updater.update_text_views.assert_not_called()
 
-@patch('handlers.text_operation.autofix_mixin.AutofixSelectionDialog')
 @patch('PyQt6.QtWidgets.QApplication.keyboardModifiers')
 @patch('handlers.text_operation_handler.convert_dots_to_spaces_from_editor', side_effect=lambda x: x)
 @patch('handlers.text_operation_handler.QTextCursor')
 def test_TextOperationHandler_auto_fix_current_string_with_ctrl_click(
-    mock_cursor, mock_conv, mock_modifiers, mock_dialog_cls, handler, mock_mw
+    mock_cursor, mock_conv, mock_modifiers, handler, mock_mw, monkeypatch
 ):
+    from handlers.text_operation import autofix_mixin
     from PyQt6.QtCore import Qt
     from PyQt6.QtWidgets import QDialog
-    
+
+    opened = []
+
+    class _FakeSelectionDialog:
+        """Accepted with one problem selected; records each opening."""
+
+        def __init__(self, problem_definitions, autofix_settings, parent):
+            opened.append(problem_definitions)
+
+        def exec(self):
+            return QDialog.DialogCode.Accepted
+
+        def get_selected_problems(self):
+            return {"some_problem"}
+
+    monkeypatch.setattr(autofix_mixin, "AutofixSelectionDialog", _FakeSelectionDialog)
     mock_modifiers.return_value = Qt.KeyboardModifier.ControlModifier
-    
-    mock_dialog = MagicMock()
-    mock_dialog.exec.return_value = QDialog.DialogCode.Accepted
-    mock_dialog.get_selected_problems.return_value = {"some_problem"}
-    mock_dialog_cls.return_value = mock_dialog
-    
+
     mock_mw.current_game_rules.get_problem_definitions.return_value = {"some_problem": {"name": "Some Problem"}}
     mock_mw.edited_text_edit.toPlainText.side_effect = ["bad text", "fixed", "fixed", "fixed"]
     
     handler.auto_fix_current_string(from_button=True)
-    mock_dialog_cls.assert_called_once()
-    mock_dialog.exec.assert_called_once()
-    
-    mock_dialog_cls.reset_mock()
-    mock_dialog.exec.reset_mock()
-    
+    assert opened == [{"some_problem": {"name": "Some Problem"}}]
+    mock_mw.data_processor.update_edited_data.assert_any_call(0, 0, "fixed", action_type="AUTOFIX")
+
+    opened.clear()
     handler.auto_fix_current_string(from_button=False)
-    mock_dialog_cls.assert_not_called()
-    mock_dialog.exec.assert_not_called()
+    assert opened == []

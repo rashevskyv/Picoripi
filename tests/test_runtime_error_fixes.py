@@ -49,6 +49,8 @@ def test_SearchReviewDialog_save_changes_calls_mark_dirty(qapp):
     # Trigger save_changes_to_project
     dialog.save_changes_to_project()
     
+    # The query "Original" is replaced in "Original string"; the result is saved into the edited data
+    assert mw.data_store.edited_data == {(0, 0): "New string string"}
     # Verify that data_store.mark_dirty was called instead of project_manager.mark_block_unsaved
     mw.data_store.mark_dirty.assert_called_once_with(0)
     mw.project_manager.mark_block_unsaved.assert_not_called()
@@ -136,6 +138,28 @@ def test_trigger_advanced_search_without_panel(qapp):
     # Verify open_advanced_search was called with default parameters
     helper.open_advanced_search.assert_called_once_with("", False, False, True, False)
 
+class _Signal:
+    """Accepts slot connections; these tests never emit it."""
+
+    def connect(self, _slot):
+        pass
+
+
+class _FakeSearchDialog:
+    """Stands in for SearchReviewDialog: keeps how it was built and whether it was shown."""
+
+    def __init__(self, main_window, text, query, **kwargs):
+        self.built_with = (text, query, kwargs["line_numbers"])
+        self.shown = False
+        self.destroyed = _Signal()
+
+    def setAttribute(self, *_args):
+        pass
+
+    def show(self):
+        self.shown = True
+
+
 def test_open_advanced_search_no_matches_opens_dialog(qapp):
     """Test that open_advanced_search opens SearchReviewDialog even when there are no matches for the query."""
     from unittest.mock import patch
@@ -144,30 +168,32 @@ def test_open_advanced_search_no_matches_opens_dialog(qapp):
     mock_main_window.data_store.edited_data = {}
     mock_main_window.data_store.current_block_idx = 0
     mock_main_window.active_search_dialog = None  # prevent MagicMock auto-attribute from being truthy
-    
+
     # Mock data processor text retrieval
     mock_main_window.data_processor.get_current_string_text.return_value = ("Some original text", None)
-    
+
     from ui.main_window.main_window_helper import MainWindowHelper
     helper = MainWindowHelper(mock_main_window)
-    
+
+    built = []
+    info_boxes = []
+
+    def build_dialog(main_window, text, query, **kwargs):
+        dialog = _FakeSearchDialog(main_window, text, query, **kwargs)
+        built.append(dialog)
+        return dialog
+
     # Patch SearchReviewDialog and QMessageBox
-    with patch('dialogs.search_review_dialog.SearchReviewDialog') as mock_dialog_class, \
-         patch('PyQt6.QtWidgets.QMessageBox.information') as mock_info:
-         
-        mock_dialog_inst = MagicMock()
-        mock_dialog_class.return_value = mock_dialog_inst
-        mock_dialog_inst.exec.return_value = False  # just close
-        
+    with patch('dialogs.search_review_dialog.SearchReviewDialog', new=build_dialog), \
+         patch('PyQt6.QtWidgets.QMessageBox.information', new=lambda *args, **kwargs: info_boxes.append(args)):
         # Query that has no matches (e.g. "non_existent")
         helper.open_advanced_search("non_existent", False, False, True, False)
-        
-        # QMessageBox should NOT be called
-        mock_info.assert_not_called()
-        
-        # SearchReviewDialog should be instantiated and shown
-        mock_dialog_class.assert_called_once()
-        mock_dialog_inst.show.assert_called_once()
+
+    # QMessageBox should NOT be shown
+    assert info_boxes == []
+    # SearchReviewDialog is built with no matching lines and shown
+    assert [d.built_with for d in built] == [("", "non_existent", [])]
+    assert [d.shown for d in built] == [True]
 
 def test_search_review_dialog_jump_to_item_with_modifier(qapp):
     """Test that jump_to_item_from_list always navigates and show_current_item is called with from_click=True."""
@@ -276,29 +302,28 @@ def test_search_review_dialog_jump_to_item_with_ctrl_or_shift(qapp):
     )
     dialog.find_matches()
     
-    dialog._navigate_to_block_and_string = MagicMock()
+    calls = []
+    dialog._navigate_to_block_and_string = lambda *args: calls.append(("navigate", args))
     dialog.clear_current_item_highlight = MagicMock()
-    dialog.show_current_item = MagicMock()
-    
+    dialog.show_current_item = lambda **kwargs: calls.append(("show", kwargs))
+
     mock_item = MagicMock()
     dialog.matches_list.row = MagicMock(return_value=1)
-    
+
     # Patch keyboardModifiers to simulate Ctrl key pressed
     with patch('PyQt6.QtWidgets.QApplication.keyboardModifiers', return_value=Qt.KeyboardModifier.ControlModifier):
         dialog.jump_to_item_from_list(mock_item)
-        
-    # Verify that navigation and highlight clearing were NOT called
-    dialog._navigate_to_block_and_string.assert_not_called()
-    dialog.show_current_item.assert_not_called()
-    
+    assert calls == []
+
     # Patch keyboardModifiers to simulate Shift key pressed
-    dialog._navigate_to_block_and_string.reset_mock()
-    dialog.show_current_item.reset_mock()
     with patch('PyQt6.QtWidgets.QApplication.keyboardModifiers', return_value=Qt.KeyboardModifier.ShiftModifier):
         dialog.jump_to_item_from_list(mock_item)
-        
-    dialog._navigate_to_block_and_string.assert_not_called()
-    dialog.show_current_item.assert_not_called()
+    assert calls == []
+
+    # Control: a plain click on the same item does navigate
+    with patch('PyQt6.QtWidgets.QApplication.keyboardModifiers', return_value=Qt.KeyboardModifier.NoModifier):
+        dialog.jump_to_item_from_list(mock_item)
+    assert calls == [("show", {"from_click": True}), ("navigate", (0, 1))]
 
 
 

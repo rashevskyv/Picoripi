@@ -2,6 +2,7 @@
 import importlib
 import re
 import sys
+import types
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -71,7 +72,7 @@ class TestPluginReload:
         yield
         for name in [name for name in sys.modules if name.startswith("plugins.")]:
             del sys.modules[name]
-        sys.modules.update(before)
+        sys.modules.update(before)  # deslop: ignore[module-mocking] puts back the real plugin modules this test class loads; not a mock
 
     def test_every_module_of_the_plugin_is_dropped_and_no_other(self):
         importlib.import_module("plugins.zelda_bmg.rules")
@@ -97,7 +98,7 @@ class TestPluginReload:
         assert second is not first and not hasattr(second, "marker")
 
     def test_a_plugin_whose_name_starts_like_another_is_left_alone(self):
-        sys.modules["plugins.zelda_mc_extra"] = MagicMock()
+        sys.modules["plugins.zelda_mc_extra"] = types.ModuleType("plugins.zelda_mc_extra")  # deslop: ignore[module-mocking] forget_plugin_modules works on sys.modules; a planted entry is the input
         try:
             importlib.import_module("plugins.zelda_mc.rules")
             forget_plugin_modules("zelda_mc")

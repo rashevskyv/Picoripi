@@ -287,19 +287,21 @@ def test_AIChatHandler_prepare_to_close(mock_safe_shutdown, chat_handler):
 
 
 def test_AIChatHandler_show_chat_window_unminimizes(chat_handler):
+    calls = []
     mock_dialog = MagicMock()
     mock_dialog.isMinimized.return_value = True
+    mock_dialog.show = lambda: calls.append("show")
+    mock_dialog.showNormal = lambda: calls.append("showNormal")
+    mock_dialog.raise_ = lambda: calls.append("raise")
+    mock_dialog.activateWindow = lambda: calls.append("activateWindow")
     mock_tab = MagicMock()
+    mock_tab.input_edit.setFocus = lambda: calls.append("setFocus")
     mock_dialog.tabs.currentWidget.return_value = mock_tab
     chat_handler.dialog = mock_dialog
 
     chat_handler.show_chat_window()
 
-    mock_dialog.show.assert_called_once()
-    mock_dialog.showNormal.assert_called_once()
-    mock_dialog.raise_.assert_called_once()
-    mock_dialog.activateWindow.assert_called_once()
-    mock_tab.input_edit.setFocus.assert_called_once()
+    assert calls == ["show", "showNormal", "raise", "activateWindow", "setFocus"]
 
 
 def test_session_state_prepare_request_preserves_system_prompt_and_history():

@@ -3,6 +3,12 @@ from dialogs.ai_translation_comparison_dialog import AITranslationComparisonDial
 from PyQt6.QtCore import Qt
 from unittest.mock import MagicMock, patch
 
+def _record(mock):
+    """Record each call of ``mock`` so a test can check what happened, not just that it did."""
+    calls = []
+    mock.side_effect = lambda *args, **kwargs: calls.append((args, kwargs))
+    return calls
+
 def test_AITranslationComparisonDialog_init(qapp):
     translation_details = {
         0: [(0, "New Line 1"), (1, "New Line 2")]
@@ -44,6 +50,7 @@ def test_AITranslationComparisonDialog_cell_clicks(qapp):
     
     # Mock MainWindow
     mock_mw = MagicMock()
+    cell_saves = _record(mock_mw.data_processor.update_edited_data)
     mock_mw.data_store.current_block_idx = 0
     mock_mw.data_store.current_category_name = None
     mock_mw.data_store.current_chapter_id = None
@@ -57,13 +64,13 @@ def test_AITranslationComparisonDialog_cell_clicks(qapp):
     # Click on Column 1 (Old Translation) to revert
     dialog._on_cell_clicked(0, 1)
     assert dialog.row_metadata[0]["current_choice"] == "old"
-    mock_mw.data_processor.update_edited_data.assert_not_called()
+    assert cell_saves == []
     
     # Click on Column 2 (New Translation) to apply again
     mock_mw.data_processor.update_edited_data.reset_mock()
     dialog._on_cell_clicked(0, 2)
     assert dialog.row_metadata[0]["current_choice"] == "new"
-    mock_mw.data_processor.update_edited_data.assert_not_called()
+    assert cell_saves == []
     
     # DB update should happen when accepted
     dialog.accept()
@@ -78,6 +85,7 @@ def test_AITranslationComparisonDialog_item_changed(qapp):
     }
     
     mock_mw = MagicMock()
+    item_saves = _record(mock_mw.data_processor.update_edited_data)
     mock_mw.data_store.current_block_idx = 0
     mock_mw.data_store.current_category_name = None
     mock_mw.data_store.current_chapter_id = None
@@ -92,7 +100,7 @@ def test_AITranslationComparisonDialog_item_changed(qapp):
     
     assert dialog.row_metadata[0]["new_text"] == "Manually Edited Text"
     assert dialog.row_metadata[0]["current_choice"] == "new"
-    mock_mw.data_processor.update_edited_data.assert_not_called()
+    assert item_saves == []
     
     # DB update should happen when accepted
     dialog.accept()
@@ -107,6 +115,7 @@ def test_AITranslationComparisonDialog_variation_chosen(qapp):
     }
     
     mock_mw = MagicMock()
+    variation_saves = _record(mock_mw.data_processor.update_edited_data)
     mock_mw.data_store.current_block_idx = 0
     mock_mw.data_store.current_category_name = None
     mock_mw.data_store.current_chapter_id = None
@@ -121,7 +130,7 @@ def test_AITranslationComparisonDialog_variation_chosen(qapp):
     assert dialog.row_metadata[0]["new_text"] == "AI Chosen Variation"
     assert dialog.row_metadata[0]["current_choice"] == "new"
     assert dialog.table_widget.item(0, 2).text() == "AI Chosen Variation"
-    mock_mw.data_processor.update_edited_data.assert_not_called()
+    assert variation_saves == []
     
     # DB update should happen when accepted
     dialog.accept()
@@ -190,10 +199,11 @@ def test_MultilineItemDelegate_events(qapp):
     delegate.closeEditor.reset_mock()
     
     # Test KeyPress Escape
+    escape_commits = _record(delegate.commitData.emit)
     event_escape = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
     res = delegate.eventFilter(editor, event_escape)
     assert res is True
-    delegate.commitData.emit.assert_not_called()
+    assert escape_commits == []
     delegate.closeEditor.emit.assert_called_once_with(editor)
     
     # Reset mocks
@@ -272,8 +282,9 @@ def test_AITranslationComparisonDialog_double_click(qapp):
     
     # Double click on Column 2 should NOT navigate
     mock_mw.translation_handler.ui_handler._activate_entry.reset_mock()
+    double_navs = _record(mock_mw.translation_handler.ui_handler._activate_entry)
     dialog._on_cell_double_clicked(0, 2)
-    mock_mw.translation_handler.ui_handler._activate_entry.assert_not_called()
+    assert double_navs == []
 
 
 def test_AITranslationComparisonDialog_single_click_location(qapp):
@@ -299,8 +310,9 @@ def test_AITranslationComparisonDialog_single_click_location(qapp):
     
     # Single click on Column 1 should update choice instead of navigation
     mock_mw.translation_handler.ui_handler._activate_entry.reset_mock()
+    single_navs = _record(mock_mw.translation_handler.ui_handler._activate_entry)
     dialog._on_cell_clicked(0, 1)
-    mock_mw.translation_handler.ui_handler._activate_entry.assert_not_called()
+    assert single_navs == []
     assert dialog.row_metadata[0]["current_choice"] == "old"
 
 

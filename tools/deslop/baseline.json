@@ -26,18 +26,8 @@
   "tests/test_app_action_handler.py": {
     "call-only-assertions": 2
   },
-  "tests/test_companion/test_companion_sync_client.py": {
-    "getattr-literal": 3,
-    "poor-substring-tests": 2
-  },
-  "tests/test_components/test_ai_batch_translation_dialog.py": {
-    "call-only-assertions": 4
-  },
-  "tests/test_components/test_ai_chat_dialog.py": {
-    "poor-substring-tests": 1
-  },
   "tests/test_components/test_editor/test_double_click_navigation.py": {
-    "call-only-assertions": 6
+    "call-only-assertions": 5
   },
   "tests/test_components/test_editor/test_lnet_context_menu.py": {
     "call-only-assertions": 1
@@ -45,66 +35,14 @@
   "tests/test_components/test_editor/test_mass_operations.py": {
     "call-only-assertions": 3
   },
-  "tests/test_components/test_glossary_reference_multiline.py": {
-    "poor-substring-tests": 4
-  },
   "tests/test_components/test_glossary_review_ui.py": {
-    "call-only-assertions": 8,
-    "poor-substring-tests": 6
-  },
-  "tests/test_components/test_text_highlight_manager_recursion.py": {
-    "call-only-assertions": 3
+    "call-only-assertions": 5
   },
   "tests/test_components/test_tree_story_assignment.py": {
     "call-only-assertions": 2
   },
-  "tests/test_core/test_bfn_core.py": {
-    "poor-substring-tests": 3
-  },
-  "tests/test_core/test_bookmarks.py": {
-    "call-only-assertions": 2
-  },
-  "tests/test_core/test_collab_server.py": {
-    "poor-substring-tests": 6
-  },
-  "tests/test_core/test_durable_session.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_core/test_font_formats.py": {
-    "module-mocking": 1
-  },
-  "tests/test_core/test_font_formats_sprite_font.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_core/test_font_sync_editor.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_core/test_formats_fe13_stex_cgfx.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_core/test_glossary_ai_adapters.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_core/test_glossary_context_window.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_core/test_glossary_manager.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_core/test_glossary_pipeline_coordinator.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_core/test_i18n.py": {
-    "poor-substring-tests": 2
-  },
-  "tests/test_core/test_mempalace_speech_profiling.py": {
-    "call-only-assertions": 1
-  },
   "tests/test_core/test_mempalace_worker.py": {
-    "call-only-assertions": 3
-  },
-  "tests/test_core/test_plugin_isolation.py": {
-    "module-mocking": 2
+    "call-only-assertions": 1
   },
   "tests/test_core/test_saved_translations.py": {
     "call-only-assertions": 2
@@ -113,14 +51,7 @@
     "call-only-assertions": 1
   },
   "tests/test_core/test_settings_manager.py": {
-    "call-only-assertions": 9
-  },
-  "tests/test_core/test_spellchecker_manager.py": {
-    "call-only-assertions": 2,
-    "poor-substring-tests": 2
-  },
-  "tests/test_core/test_story_inspector.py": {
-    "poor-substring-tests": 1
+    "call-only-assertions": 2
   },
   "tests/test_core/test_translation/test_providers.py": {
     "call-only-assertions": 4
@@ -129,214 +60,94 @@
     "call-only-assertions": 1
   },
   "tests/test_core/test_undo_manager.py": {
-    "call-only-assertions": 3
-  },
-  "tests/test_core/test_unreal_pak.py": {
-    "module-mocking": 2
+    "call-only-assertions": 1
   },
   "tests/test_core/test_worker_cancellation.py": {
     "call-only-assertions": 1
   },
-  "tests/test_dialogs/test_ai_translation_comparison_dialog.py": {
-    "call-only-assertions": 1
-  },
-  "tests/test_dialogs/test_ai_translation_result_dialog.py": {
-    "getattr-literal": 1,
-    "poor-substring-tests": 3
-  },
-  "tests/test_dialogs/test_cached_translation_dialog.py": {
-    "getattr-literal": 1,
-    "poor-substring-tests": 1
-  },
-  "tests/test_dialogs/test_real_workers_lifecycle.py": {
-    "poor-substring-tests": 1
-  },
   "tests/test_handlers/test_ai_chat_handler.py": {
-    "call-only-assertions": 3
+    "call-only-assertions": 2
   },
   "tests/test_handlers/test_ai_prompt_composer.py": {
-    "call-only-assertions": 2,
-    "poor-substring-tests": 2
+    "call-only-assertions": 2
   },
   "tests/test_handlers/test_bookmark_handler.py": {
-    "call-only-assertions": 3
-  },
-  "tests/test_handlers/test_glossary_logic.py": {
-    "poor-substring-tests": 2
-  },
-  "tests/test_handlers/test_glossary_refresh.py": {
-    "call-only-assertions": 3
-  },
-  "tests/test_handlers/test_issue_scan_handler.py": {
-    "call-only-assertions": 5
-  },
-  "tests/test_handlers/test_list_selection_handler.py": {
-    "call-only-assertions": 15
-  },
-  "tests/test_handlers/test_project_action_handler.py": {
-    "call-only-assertions": 17
-  },
-  "tests/test_handlers/test_saved_translations_handler.py": {
-    "call-only-assertions": 5
-  },
-  "tests/test_handlers/test_search_handler.py": {
-    "call-only-assertions": 3
-  },
-  "tests/test_handlers/test_search_handler_logic.py": {
     "call-only-assertions": 1
   },
-  "tests/test_handlers/test_speaker_folders.py": {
-    "call-only-assertions": 3
+  "tests/test_handlers/test_issue_scan_handler.py": {
+    "call-only-assertions": 2
   },
-  "tests/test_handlers/test_speaker_merge_handler.py": {
-    "call-only-assertions": 2,
-    "poor-substring-tests": 1
+  "tests/test_handlers/test_list_selection_handler.py": {
+    "call-only-assertions": 10
+  },
+  "tests/test_handlers/test_project_action_handler.py": {
+    "call-only-assertions": 12
+  },
+  "tests/test_handlers/test_saved_translations_handler.py": {
+    "call-only-assertions": 2
+  },
+  "tests/test_handlers/test_speaker_folders.py": {
+    "call-only-assertions": 2
   },
   "tests/test_handlers/test_startup_selection_and_flush.py": {
-    "call-only-assertions": 17
+    "call-only-assertions": 2
   },
   "tests/test_handlers/test_string_settings_handler.py": {
-    "call-only-assertions": 4
-  },
-  "tests/test_handlers/test_text_analysis_handler.py": {
     "call-only-assertions": 3
   },
   "tests/test_handlers/test_text_autofix_logic.py": {
-    "call-only-assertions": 2,
-    "poor-substring-tests": 2
+    "call-only-assertions": 1
   },
   "tests/test_handlers/test_text_operation_handler.py": {
-    "call-only-assertions": 12
+    "call-only-assertions": 9
   },
   "tests/test_handlers/test_translation/test_ai_cache_integration.py": {
-    "call-only-assertions": 4
-  },
-  "tests/test_handlers/test_translation/test_ai_lifecycle_manager.py": {
-    "call-only-assertions": 2
+    "call-only-assertions": 3
   },
   "tests/test_handlers/test_translation/test_ai_variations_handler.py": {
     "call-only-assertions": 3
   },
-  "tests/test_handlers/test_translation/test_ai_worker.py": {
-    "call-only-assertions": 5
-  },
   "tests/test_handlers/test_translation/test_glossary_builder_handler.py": {
-    "call-only-assertions": 10
+    "call-only-assertions": 3
   },
   "tests/test_handlers/test_translation/test_glossary_handler.py": {
-    "call-only-assertions": 16
+    "call-only-assertions": 14
   },
   "tests/test_handlers/test_translation/test_glossary_occurrence_updater.py": {
-    "call-only-assertions": 6
+    "call-only-assertions": 1
   },
   "tests/test_handlers/test_translation/test_glossary_pipeline_handler.py": {
-    "call-only-assertions": 10
-  },
-  "tests/test_handlers/test_translation/test_surrounding_context_and_metadata.py": {
-    "poor-substring-tests": 1
+    "call-only-assertions": 7
   },
   "tests/test_handlers/test_translation_handler.py": {
-    "call-only-assertions": 18
-  },
-  "tests/test_handlers/test_virtual_folder_handler.py": {
-    "call-only-assertions": 4
-  },
-  "tests/test_partial_and_session_save.py": {
-    "call-only-assertions": 2
-  },
-  "tests/test_plugins/test_gravity_falls_gemulets/test_gravity_falls_gemulets.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_plugins/test_layton_3ds/test_xscr.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_plugins/test_monster_hunter_3ds/test_rules.py": {
-    "poor-substring-tests": 2
-  },
-  "tests/test_plugins/test_pokemon_fr/test_rules.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_plugins/test_rabbids_party/test_rules.py": {
-    "getattr-literal": 1
-  },
-  "tests/test_plugins/test_zelda_ds/test_fonts.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_plugins/test_zelda_mc/test_rules.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_plugins/test_zelda_totk/test_rules.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_plugins/test_zelda_ww/test_rules.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_review/test_rq_wp5_main_window.py": {
-    "module-mocking": 1
+    "call-only-assertions": 10
   },
   "tests/test_runtime_error_fixes.py": {
-    "call-only-assertions": 6
+    "call-only-assertions": 3
   },
   "tests/test_text_operation_handler.py": {
     "call-only-assertions": 2
   },
-  "tests/test_ui/script_markup/test_construct_and_session.py": {
-    "poor-substring-tests": 1
-  },
-  "tests/test_ui/test_ai_status_dialog.py": {
-    "call-only-assertions": 7
-  },
   "tests/test_ui/test_auto_sleep_countdown_dialog.py": {
     "call-only-assertions": 1
   },
-  "tests/test_ui/test_bfn_editor.py": {
-    "poor-substring-tests": 2
-  },
   "tests/test_ui/test_glossary_ui_logic.py": {
-    "call-only-assertions": 3
-  },
-  "tests/test_ui/test_pipeline_wizard_dialog.py": {
-    "call-only-assertions": 4
-  },
-  "tests/test_ui/test_preview_font_loading.py": {
-    "call-only-assertions": 2
-  },
-  "tests/test_ui/test_search_panel_spellcheck.py": {
-    "call-only-assertions": 1
-  },
-  "tests/test_ui/test_search_review_dialog.py": {
-    "call-only-assertions": 1
-  },
-  "tests/test_ui/test_splitter_restoration.py": {
     "call-only-assertions": 1
   },
   "tests/test_ui/test_tag_aliases_logic.py": {
     "call-only-assertions": 1
   },
-  "tests/test_ui/test_texture_window.py": {
-    "poor-substring-tests": 1
-  },
   "tests/test_ui/test_ui_event_filters.py": {
     "call-only-assertions": 1
   },
   "tests/test_ui/test_ui_updater.py": {
-    "call-only-assertions": 23
+    "call-only-assertions": 17
   },
   "tests/test_ui/test_updaters/test_small_updaters.py": {
-    "call-only-assertions": 18
-  },
-  "tests/test_ui/updaters/test_block_list_updater.py": {
-    "call-only-assertions": 2,
-    "poor-substring-tests": 1
+    "call-only-assertions": 17
   },
   "tests/test_utils/test_power_utils.py": {
     "call-only-assertions": 2
-  },
-  "tests/test_utils/test_syntax_highlighter.py": {
-    "call-only-assertions": 3
-  },
-  "tests/test_utils/test_thread_utils.py": {
-    "call-only-assertions": 4
   },
   "tools/benchmark_glossary_variant.py": {
     "getattr-literal": 1

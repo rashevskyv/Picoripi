@@ -230,7 +230,6 @@ def test_real_project_load_worker_lifecycle(qtbot):
         finally:
             _cleanup_worker(worker)
     result = blocker.args[0]
-    assert "data" in result
     assert result["data"] == ["data"]
     assert not worker.isRunning()
 

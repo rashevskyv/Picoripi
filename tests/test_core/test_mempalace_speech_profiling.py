@@ -110,9 +110,11 @@ def test_character_profiler_skips_existing_long_profile(mock_client, mock_ai):
     )
     worker._fetch_external_lore = MagicMock(return_value="")
 
+    ai_calls = []
+    mock_ai.translate.side_effect = lambda *a, **k: ai_calls.append((a, k))
     worker.run()
 
-    mock_ai.translate.assert_not_called()
+    assert ai_calls == []
     glossary_manager.update_entry.assert_called_with(
         original="RUSL",
         translation="Rusl",

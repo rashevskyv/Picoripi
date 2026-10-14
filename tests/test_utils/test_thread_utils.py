@@ -30,6 +30,60 @@ class _Reporter(WorkerThread):
         self.may_end.wait(10)
 
 
+class _FakeWorker:
+    """Records the calls safe_shutdown_thread makes on a worker, into a shared log."""
+
+    def __init__(self, log):
+        self._log = log
+
+    def cancel(self):
+        self._log.append("worker.cancel")
+
+    def disconnect(self):
+        self._log.append("worker.disconnect")
+
+    def deleteLater(self):
+        self._log.append("worker.deleteLater")
+
+
+class _FakeFinishedSignal:
+    def __init__(self, log):
+        self._log = log
+
+    def connect(self, _slot):
+        self._log.append("thread.finished.connect")
+
+
+class _FakeThread:
+    """Records the calls safe_shutdown_thread makes on a thread; wait() times are kept in waits."""
+
+    def __init__(self, log, running=False, wait_result=True):
+        self._log = log
+        self._running = running
+        self._wait_result = wait_result
+        self.waits = []
+        self.finished = _FakeFinishedSignal(log)
+
+    def isRunning(self):
+        return self._running
+
+    def requestInterruption(self):
+        self._log.append("thread.requestInterruption")
+
+    def quit(self):
+        self._log.append("thread.quit")
+
+    def wait(self, timeout_ms):
+        self.waits.append(timeout_ms)
+        return self._wait_result
+
+    def disconnect(self):
+        self._log.append("thread.disconnect")
+
+    def deleteLater(self):
+        self._log.append("thread.deleteLater")
+
+
 def test_a_worker_thread_survives_its_owner_letting_go_while_it_still_runs(qtbot):
     """The crash this prevents: a result slot drops the last reference before run() has returned."""
     owner = {"worker": _Reporter()}
@@ -96,19 +150,15 @@ def test_a_thread_that_stops_is_cancelled_waited_for_disconnected_and_deleted():
 
 
 def test_a_thread_that_is_not_running_is_only_cleaned_up():
-    worker = MagicMock()
-    thread = MagicMock()
-    thread.isRunning.return_value = False
+    log = []
+    worker = _FakeWorker(log)
+    thread = _FakeThread(log, running=False)
 
     safe_shutdown_thread(thread, worker)
 
-    worker.cancel.assert_called_once()
-    worker.disconnect.assert_called_once()
-    worker.deleteLater.assert_called_once()
-    thread.disconnect.assert_called_once()
-    thread.deleteLater.assert_called_once()
-    thread.quit.assert_not_called()
-    thread.wait.assert_not_called()
+    # no quit and no wait: the thread had already stopped
+    assert log == ["worker.cancel", "worker.disconnect", "thread.disconnect", "worker.deleteLater", "thread.deleteLater"]
+    assert thread.waits == []
 
 
 def test_a_thread_that_does_not_stop_is_parked_and_never_deleted_or_terminated():
@@ -135,49 +185,49 @@ def test_a_thread_that_does_not_stop_is_parked_and_never_deleted_or_terminated()
 
 
 def test_parked_threads_get_a_last_wait_when_the_application_quits():
-    thread = MagicMock()
-    thread.isRunning.return_value = True
-    thread.wait.return_value = False
+    log = []
+    thread = _FakeThread(log, running=True, wait_result=False)
     safe_shutdown_thread(thread, None, timeout_ms=100)
-    thread.wait.reset_mock()
+    thread.waits.clear()
 
     wait_for_threads_at_exit(timeout_ms=1000)
 
-    thread.wait.assert_called_once()
-    assert 0 < thread.wait.call_args.args[0] <= 1000
+    assert len(thread.waits) == 1
+    assert 0 < thread.waits[0] <= 1000
 
 
 def test_a_worker_without_cancel_is_fine():
+    log = []
+
     class DummyWorker:
         def disconnect(self):
-            pass
+            log.append("worker.disconnect")
 
         def deleteLater(self):
-            pass
+            log.append("worker.deleteLater")
 
-    worker = MagicMock(spec=DummyWorker)
-    thread = MagicMock()
-    thread.isRunning.return_value = False
+    thread = _FakeThread(log, running=False)
 
-    safe_shutdown_thread(thread, worker)
+    safe_shutdown_thread(thread, DummyWorker())
 
-    worker.disconnect.assert_called_once()
-    worker.deleteLater.assert_called_once()
+    assert log == ["worker.disconnect", "thread.disconnect", "worker.deleteLater", "thread.deleteLater"]
 
 
 @patch('utils.thread_utils.QThread.currentThread')
 def test_a_thread_never_waits_for_itself(mock_current_thread):
-    worker = MagicMock()
-    thread = MagicMock()
-    thread.isRunning.return_value = True
+    log = []
+    worker = _FakeWorker(log)
+    thread = _FakeThread(log, running=True)
     mock_current_thread.return_value = thread
 
     safe_shutdown_thread(thread, worker)
 
-    thread.quit.assert_called_once()
-    thread.wait.assert_not_called()
-    thread.terminate.assert_not_called()
-    thread.deleteLater.assert_not_called()      # it is still running: this very call is inside it
+    # it is still running: this very call is inside it, so it is parked, not waited for or deleted
+    assert thread.waits == []
+    assert log == [
+        "worker.cancel", "thread.requestInterruption", "thread.quit",
+        "worker.disconnect", "thread.disconnect", "thread.finished.connect",
+    ]
 
 
 def test_failures_of_the_worker_or_the_thread_do_not_escape():
