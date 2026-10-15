@@ -5,9 +5,7 @@ import os
 from pathlib import Path
 from typing import Callable, Dict, List
 
-from core.project_library.cards import PROJECT_FILE_NAME, read_card
-
-PROJECT_FOLDER_NAME = "picoripi"
+from core.project_library.cards import PROJECT_FILE_NAME, PROJECT_FOLDER_NAME, fallback_name, read_card
 
 # Folder names that stand for a platform. Matched case-insensitively with spaces removed ("Wii U" -> "wiiu").
 PLATFORM_NAMES = {
@@ -54,7 +52,7 @@ def find_projects(root: str | os.PathLike, cancelled: Callable[[], bool] = lambd
         try:
             item.update(read_card(project_file))
         except (OSError, ValueError) as exc:
-            item.update({"name": Path(directory).parent.name, "error": str(exc), "project_id": "",
+            item.update({"name": fallback_name(project_file), "error": str(exc), "project_id": "",
                          "plugin": "", "blocks": 0, "issues": ["unreadable"], "modified": ""})
         found.append(item)
 

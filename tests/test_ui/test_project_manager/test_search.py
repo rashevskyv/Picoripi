@@ -84,6 +84,34 @@ def test_matches_search_is_case_insensitive_and_checks_every_field():
     assert not matches_search(row, "aria nes")
 
 
+def test_matches_search_checks_the_managers_folder_of_the_project():
+    row = {"name": "picoripi_manuals", "folder": "Nintendo 3DS system",
+           "path": "/library/_shared/3ds_sysfont_ua/picoripi_manuals/picoripi/project.uiproj"}
+
+    assert matches_search(row, "Nintendo 3DS")
+    assert not matches_search(row, "Nintendo Wii")
+
+
+def test_a_project_without_a_card_yet_is_found_by_its_folder_and_named_after_its_game_folder(qtbot, tmp_path,
+                                                                                           monkeypatch):
+    """Regression: during the first scan a new project had no card; its row was named "picoripi" and the search
+    did not look at the manager's folder (group) it sits in, so "Nintendo 3DS" found nothing."""
+    _no_scan_child(monkeypatch)
+    folder = tmp_path / "root" / "picoripi_manuals" / "picoripi"
+    folder.mkdir(parents=True)
+    project = folder / "project.uiproj"
+    project.write_text(json.dumps({"id": "m", "name": "Nintendo 3DS electronic manuals", "blocks": []}),
+                       encoding="utf-8")
+    registry.mutate(tmp_path, lambda reg: reg.add(str(project), folder_id=reg.create_folder("Nintendo 3DS system")))
+    dialog = _dialog(qtbot, tmp_path)
+    key = registry.project_key(str(project))
+
+    assert [row["name"] for row in dialog._rows()] == ["picoripi_manuals"]
+    _type(qtbot, dialog, "Nintendo 3DS")
+
+    qtbot.waitUntil(lambda: set(dialog._items) == {key}, timeout=2000)
+
+
 def test_matches_search_handles_ukrainian_and_the_unicode_form():
     row = {"name": "Мармелад", "series": "Пікмін", "platform": "", "plugin": "", "path": ""}
 

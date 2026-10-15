@@ -130,7 +130,7 @@ def test_series_comes_from_the_folder_layout_with_or_without_a_platform_folder()
     assert series_of("Animal Crossing/Happy Home Designer/picoripi/project.uiproj") == "Animal Crossing"
 
 
-def test_the_strip_is_busy_then_counts_the_cards_until_the_plan(qtbot, tmp_path, monkeypatch):
+def test_the_strip_is_busy_then_counts_the_checked_projects_until_the_plan(qtbot, tmp_path, monkeypatch):
     monkeypatch.setattr(window.ScanProcess, "start", lambda self, data_dir, projects: True)
     first = _project(tmp_path / "root", "Aria")
     second = _project(tmp_path / "root", "Zelda")
@@ -143,11 +143,15 @@ def test_the_strip_is_busy_then_counts_the_cards_until_the_plan(qtbot, tmp_path,
     assert dialog._strip.isVisible()
     assert bar.maximum() == 0  # busy: the child is still starting
 
+    # The cards come first and only fill the rows; the checked projects move the bar.
     dialog._on_scan_event({"event": "card", "key": registry.project_key(first), "card": {"name": "Aria"}})
+    dialog._on_scan_event({"event": "card", "key": registry.project_key(second), "card": {"name": "Zelda"}})
+    assert bar.maximum() == 0
+    dialog._on_scan_event({"event": "checked", "done": 1})
     assert (bar.minimum(), bar.maximum(), bar.value()) == (0, 2, 1)
     assert dialog._strip_label.text() == "Checking 1 of 2 projects..."
 
-    dialog._on_scan_event({"event": "card", "key": registry.project_key(second), "card": {"name": "Zelda"}})
+    dialog._on_scan_event({"event": "checked", "done": 2})
     assert bar.value() == 2
 
     dialog._on_scan_event({"event": "plan", "total": 2, "stale": 2})

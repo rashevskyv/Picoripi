@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from core.project_library import index, plugin_facts
-from core.project_library.cards import read_card
+from core.project_library.cards import fallback_name, read_card
 from core.project_library.icons import ICON_SIZE, scale_image_bytes, scale_image_file
 from core.project_library.plugin_facts import default_load_rules
 from utils.logging_utils import log_debug
@@ -55,13 +55,13 @@ def _card_for(project_file: str, cached: Optional[Dict[str, Any]]) -> Dict[str, 
     try:
         stat = os.stat(project_file)
     except OSError:
-        return {"missing": True, "issues": ["project_file_missing"], "name": Path(project_file).parent.name}
+        return {"missing": True, "issues": ["project_file_missing"], "name": fallback_name(project_file)}
     if cached and cached.get("mtime_ns") == stat.st_mtime_ns and cached.get("size") == stat.st_size:
         return cached
     try:
         return read_card(project_file)
     except (OSError, ValueError) as exc:
-        return {"issues": ["unreadable"], "error": str(exc), "name": Path(project_file).parent.name}
+        return {"issues": ["unreadable"], "error": str(exc), "name": fallback_name(project_file)}
 
 
 def _icon_want(project_dir: Path, card: Dict[str, Any]) -> List[Any]:
@@ -156,8 +156,9 @@ def run(data_dir: str, projects: Iterable[Tuple[str, str]], emit: Emit, is_cance
         load_rules: LoadRules = default_load_rules) -> Dict[str, int]:
     """Scan ``projects`` (``(project key, project file)`` pairs). Returns the totals that the ``done`` event carries.
 
-    Phase 1 reads every card and icon and works out each project's input signature. Phase 2 counts only the projects
-    whose signature changed, so a second start with nothing changed does no parsing of string content.
+    Phase 1 reads every card (a ``card`` event each), then each project's icon and input signature (a ``checked``
+    event each, ``done`` = projects checked so far). Phase 2 counts only the projects whose signature changed, so a
+    second start with nothing changed does no parsing of string content.
     """
     targets = list(projects)
     cache = index.read(data_dir)
@@ -175,6 +176,9 @@ def run(data_dir: str, projects: Iterable[Tuple[str, str]], emit: Emit, is_cance
     stale: List[Tuple[str, str, str, Dict[str, Any]]] = []
     totals = {"counted": 0, "plugin_missing": 0, "failed": 0}
     cancelled = False
+    # Every card first: a card is one small JSON file, so the whole list has its names (and search finds them) in
+    # about a second; the icons and the signatures (a stat of every file a block names) come after.
+    cards: List[Tuple[str, str, Dict[str, Any]]] = []
     for key, project_file in targets:
         if is_cancelled():
             cancelled = True
@@ -184,6 +188,14 @@ def run(data_dir: str, projects: Iterable[Tuple[str, str]], emit: Emit, is_cance
         if card is not cached.get("card"):
             batch.add(key, {"card": card})
         emit({"event": "card", "key": key, "card": card})
+        cards.append((key, project_file, card))
+    batch.flush()
+    for position, (key, project_file, card) in enumerate(cards):
+        if is_cancelled():
+            cancelled = True
+            break
+        emit({"event": "checked", "done": position + 1})
+        cached = cache.get(key) or {}
         icon = _icon_step(key, project_file, card, cached.get("icon"), icon_dir, rules_of)
         if icon is not None:
             batch.add(key, {"icon": icon})
@@ -210,7 +222,7 @@ def run(data_dir: str, projects: Iterable[Tuple[str, str]], emit: Emit, is_cance
                 cancelled = True
                 break
             emit({"event": "progress", "done": position, "total": len(stale),
-                  "name": card.get("name") or Path(project_file).parent.name})
+                  "name": card.get("name") or fallback_name(project_file)})
             fields, outcome = _count_fields(project_file, signature, rules_of, is_cancelled)
             if fields is None:
                 cancelled = True

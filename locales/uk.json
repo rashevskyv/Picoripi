@@ -2304,6 +2304,8 @@
     "Not a repo_manual folder: {0}": "Це не папка repo_manual: {0}",
     "Select a string of a manual page.": "Оберіть рядок сторінки посібника.",
     "Set the repo_manual folder to draw the page.": "Вкажіть папку repo_manual, щоб намалювати сторінку.",
+    "The repo_manual folder has no console files of the manual {0}, so its pages cannot be drawn.": "У папці repo_manual немає консольних файлів посібника {0}, тому його сторінки не можна намалювати.",
+    "This manual is not read yet. The page is drawn when it is.": "Цей посібник ще не прочитано. Сторінку буде намальовано, щойно його прочитають.",
     "Show large text": "Показати великий текст",
     "Show small text": "Показати малий текст",
     "The index is not drawn here. Select a string of a page.": "Індекс тут не малюється. Оберіть рядок сторінки.",

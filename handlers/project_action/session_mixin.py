@@ -98,9 +98,40 @@ class SessionMixin:
             self.ui_updater.update_statusbar_paths()
 
         log_info("Project state restored from session checkpoint; skipped full project file load.")
+        self._read_missing_plugin_state()
         if on_completed:
             on_completed(True)
         return True
+
+    def _read_missing_plugin_state(self) -> None:
+        """A session written before the plugin kept runtime state restores none (a 3DS manual project then knows no
+        manual). Read the project files once on a worker for that state only; the restored strings and edits stay.
+        When it arrives, the issues are scanned again and a custom preview redraws."""
+        rules = self.mw.current_game_rules
+        had_state = getattr(self.data_processor, "session_had_plugin_state", None)
+        if rules is None or not callable(had_state) or had_state() or formats.export_state(rules) is None:
+            return
+        log_info("The session holds no plugin state; reading the project files for it.")
+        formats.reset_state(rules)
+        worker = ProjectLoadWorker(self.mw.project_manager, rules, state_only=True)
+
+        def on_finished(result):
+            if self._active_load_worker is not worker or self.mw.current_game_rules is not rules or not result:
+                return
+            formats.restore_state(rules, result.get('plugin_keys_backup'))
+            scanner = getattr(self.mw, "issue_scan_handler", None)
+            if scanner is not None:
+                scanner._perform_initial_silent_scan_all_issues(force=True)
+            preview = getattr(self.mw, "custom_preview_widget", None)
+            if preview is not None:
+                preview.refresh()
+
+        self._active_load_worker = worker
+        worker.finished_with_result.connect(on_finished)
+        if app_mode.headless:
+            worker.run()
+        else:
+            worker.start()
 
 
     def _populate_blocks_from_project(self, on_completed=None) -> None:

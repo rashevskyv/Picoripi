@@ -78,7 +78,7 @@ def test_the_chosen_folder_is_stored_by_the_render_worker(monkeypatch, tmp_path)
     stored = []
     monkeypatch.setattr(preview_panel, "save_folder", lambda folder: stored.append(folder))
     monkeypatch.setattr(preview_panel, "load_folder", lambda: "")  # never read the user's own settings here
-    request = preview_panel._Request("", "activity_log", "small/Page_003_small", {}, {}, "", str(tmp_path))
+    request = preview_panel._Request("", "activity_log", "small/Page_003_small", {}, "", str(tmp_path))
     worker = preview_panel.PageRenderWorker(1, request, None)
 
     worker.run()  # no folder is set, so the drawing fails; the save must still happen first

@@ -30,6 +30,7 @@ _WIDTHS: Dict[str, Dict[int, int]] = {}
 
 
 NO_FOLDER = "folder not set"  # the message of a panel that has no folder yet (the panel translates it)
+NO_MANUAL = "no console files of the manual "  # + the manual's name: the folder has no dump of it (no Manual.bcma)
 
 
 class ToolsError(Exception):
@@ -133,13 +134,10 @@ def load_font(tools: Tools) -> Any:
 
 
 def manual_path(tools: Tools, name: str) -> Path:
-    """The Manual.bcma of a manual, as the tools name it. ToolsError when the name or the file is unknown."""
-    if name not in tools.manual.MANUALS:
-        raise ToolsError(f"no manual named {name} in the tools")
-    path = tools.manual.source_path(name)
-    if not path.is_file():
-        raise ToolsError(f"missing: {path}")
-    return path
+    """The Manual.bcma of a manual, as the tools name it. ToolsError (NO_MANUAL) when the name or the file is unknown."""
+    if name not in tools.manual.MANUALS or not tools.manual.source_path(name).is_file():
+        raise ToolsError(f"{NO_MANUAL}{name or '?'}")
+    return tools.manual.source_path(name)
 
 
 def widths_of(tools: Tools) -> Dict[int, int]:

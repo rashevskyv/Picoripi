@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import (
 from core.i18n import tr
 from core.project_library import index, registry, views
 from core.project_library.build import emulator_argv
-from core.project_library.cards import percent_translated, read_card
+from core.project_library.cards import fallback_name, percent_translated, read_card
 from core.project_library.discovery import find_projects, platform_from_parts
 from core.project_library.flags import FLAG_NAMES, flags_of
 from core.project_library.icons import ICON_SIZE, IMAGE_FILTER, save_user_icon
@@ -68,12 +68,13 @@ def _fold(text: str) -> str:
 
 
 def matches_search(row: Dict[str, Any], query: str) -> bool:
-    """True when every word of ``query`` is part of the project name, series, platform, plugin or folder path.
+    """True when every word of ``query`` is part of the project name, series, platform, plugin, the manager's folder
+    (group) the project is in, or its folder path.
 
     The match ignores case and the Unicode form. Words may sit in different fields: ``aria gba`` finds a GBA
     project named Aria.
     """
-    fields = [_fold(str(row.get(name) or "")) for name in ("name", "series", "platform", "plugin", "path")]
+    fields = [_fold(str(row.get(name) or "")) for name in ("name", "series", "platform", "plugin", "folder", "path")]
     return all(any(word in field for field in fields) for word in _fold(query).split())
 
 
@@ -315,8 +316,8 @@ class ProjectManagerDialog(QDialog):
         self._scan_stale = 0
         self._scan_position = 0
         self._scan_name = ""
-        self._planned = False  # True once the child sent its plan; before that the cards show the progress
-        self._cards_seen = 0
+        self._planned = False  # True once the child sent its plan; before that the checked projects show the progress
+        self._checked = 0
         self._eta_average: Optional[float] = None
         self._last_tick: Optional[float] = None
         self._build_ui()
@@ -496,7 +497,7 @@ class ProjectManagerDialog(QDialog):
         self._scan_position = 0
         self._scan_name = ""
         self._planned = False
-        self._cards_seen = 0
+        self._checked = 0
         self._eta_average = None
         self._last_tick = None
         self._scan.start(self._dir, targets)
@@ -506,11 +507,12 @@ class ProjectManagerDialog(QDialog):
         self._status.setText(tr("Checking {0} projects...", len(targets)))
 
     def _show_checking(self) -> None:
-        """The cards phase: the child reads one card per project before it plans the counts. The cards are the progress."""
-        if self._cards_seen == 1:  # the first card: the bar stops being busy and counts the cards
+        """The check phase: the child reads every card, then checks each project's icon and files before it plans the
+        counts. The checked projects are the progress."""
+        if self._checked == 1:  # the first project: the bar stops being busy and counts the checked projects
             self._strip_bar.setRange(0, max(1, self._scan_total))
-        self._strip_bar.setValue(self._cards_seen)
-        text = tr("Checking {0} of {1} projects...", self._cards_seen, self._scan_total)
+        self._strip_bar.setValue(self._checked)
+        text = tr("Checking {0} of {1} projects...", self._checked, self._scan_total)
         self._strip_label.setText(text)
         self._status.setText(text)
 
@@ -520,10 +522,11 @@ class ProjectManagerDialog(QDialog):
             key = str(event.get("key"))
             self._cards[key] = dict(event.get("card") or {})
             self._scanned.add(key)
-            if not self._planned:
-                self._cards_seen += 1
-                self._show_checking()
             self._schedule_render()
+        elif kind == "checked":
+            if not self._planned:
+                self._checked = int(event.get("done") or 0)
+                self._show_checking()
         elif kind == "icon":
             key = str(event.get("key"))
             path = str(event.get("file") or "")
@@ -624,6 +627,7 @@ class ProjectManagerDialog(QDialog):
 
     def _rows(self) -> List[Dict[str, Any]]:
         rows = []
+        folder_names = {folder["id"]: folder["name"] for folder in self._document["folders"]}
         for entry in self._document["projects"]:
             path = entry["path"]
             key = registry.project_key(path)
@@ -633,8 +637,9 @@ class ProjectManagerDialog(QDialog):
             rows.append({
                 "key": key,
                 "path": path,
-                "name": entry.get("name") or card.get("name") or Path(path).parent.name,
+                "name": entry.get("name") or card.get("name") or fallback_name(path),
                 "folder_id": entry.get("folder_id") or "",
+                "folder": folder_names.get(entry.get("folder_id") or "", ""),
                 "platform": entry.get("platform") or "",
                 "series": series_of(path),
                 "counts": counts,

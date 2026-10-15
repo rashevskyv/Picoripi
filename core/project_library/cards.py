@@ -10,6 +10,15 @@ from core.tag_utils import strip_tags
 from utils.constants import plugins_root
 
 PROJECT_FILE_NAME = "project.uiproj"
+PROJECT_FOLDER_NAME = "picoripi"  # a game workspace keeps its project in <game>/picoripi/project.uiproj
+
+
+def fallback_name(project_file: str | Path) -> str:
+    """The name of a project whose file names none: its folder, or the game folder above a ``picoripi`` folder."""
+    folder = Path(project_file).parent
+    if folder.name.casefold() == PROJECT_FOLDER_NAME and folder.parent.name:
+        return folder.parent.name
+    return folder.name
 
 
 def _exists(base: Path, value: str) -> bool:
@@ -41,7 +50,7 @@ def read_card(project_file: str | Path) -> Dict[str, Any]:
             issues.append(code)
 
     return {
-        "name": str(data.get("name") or path.parent.name),
+        "name": str(data.get("name") or fallback_name(path)),
         "plugin": plugin,
         "blocks": len(data.get("blocks") or []),
         "project_id": str(data.get("id") or ""),
