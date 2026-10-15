@@ -1152,3 +1152,16 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Super Mario Sunshine: the four `dolpic1.bmg` (Shift-JIS Japanese) save only when every message is replaced (a Japanese character has no code); whether the NA game shows them is unchecked.
 - Super Mario Sunshine: the system font and the subtitle font open in the Font Editor (`font_sources.json`); no Cyrillic glyphs are drawn (the translator's job). The two `test_fontex.bfn` (title and common archives) are Shift-JIS fonts (type 2) without the code map's cells and are not listed: which text they draw is not known. No width map (`font_map`) is declared yet, so the width check does not use the game font.
 - Super Mario Sunshine: escape tags and the attribute tables are still the Twilight Princess ones; the SMS tag catalogue is not written.
+
+## Final Fantasy Tactics Advance (GBA) plugin (`plugins/ffta_gba`, 2026-10-15)
+
+- Not opened yet: the name-entry keyboard grid (u16 LE codes from about 0xA33F00) and a few text runs outside the known
+  tables (0x4B9011, 0x4B658E, 0x4C3006, debug strings near 0x391000 and 0x3C4000).
+- The title menu words (New Game, Saved Game, Color Mode) and the intro captions are pictures; texture support is not
+  done.
+- Single-byte strings of the offset tables are not shown: 5,478 strings, all placeholder codes (5,474 `8D 8A FF` /
+  `8A FF` and four short kana strings); the build keeps their bytes.
+- The text buffer size is not read from the code (`rom_text.TEXT_LIMIT` = the longest string of the game).
+- FFTARecomp: upstream runs a translated ROM "Unpatched" (whole-ROM hash: no widescreen patches). A one-line fork
+  (`ffta_rom::eligible` = `verify_hooks`) shows it in 16:9 with the patches on (checked headless, 2026-10-15); the fork
+  is local and unpublished, and its installer still checks `KNOWN_SHA1`.

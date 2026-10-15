@@ -2323,5 +2323,12 @@
   "main.dol: the word at {0:#x} is not the expected instruction ({1})": "main.dol: слово за адресою {0:#x} не є очікуваною інструкцією ({1})",
   "{0}: the message attributes (INF1) changed; only the text may change": "{0}: змінено атрибути повідомлень (INF1); можна змінювати лише текст",
   "{0}: the character {1} has no code in the game's text": "{0}: символ {1} не має коду в тексті гри",
-  "Message {0}": "Повідомлення {0}"
+  "Message {0}": "Повідомлення {0}",
+  "Game Boy Advance": "Game Boy Advance",
+  "Translated GBA ROM": "Перекладений ROM GBA",
+  "Reading the text...": "Читання тексту...",
+  "Writing the ROM...": "Запис ROM...",
+  "String {0}: {1}": "Рядок {0}: {1}",
+  "{0} is not Final Fantasy Tactics Advance (USA, AFXE).": "{0} — не Final Fantasy Tactics Advance (США, AFXE).",
+  "The unpacked folder has no ROM in {0}.": "У розпакованій теці немає ROM у {0}."
 }

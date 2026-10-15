@@ -564,6 +564,18 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      character. The Font Editor lists the font (format `ffta2`); the Textures window lists the title and company
      logos and the auction and world map effects (format `ffta2_efx`) and 11 menu tile sheets. `2_build.bat`
      writes changed members into `pc.bin` (in place when they fit, else at its end) and rebuilds the ROM.
+   - `ffta_gba` — Final Fantasy Tactics Advance (Game Boy Advance, USA AFXE). **Source:** the project's `unpacked`
+     folder: New Project (Project Manager) recognises the ROM and writes `rom/` (the copy the build starts from),
+     `text/*.fftatext` (menus, items, names, missions and notices, story events and battles: 9,543 strings in 104
+     tables) and `fonts/font.bin` (the 16x16 font with its widths); **Translation:** `translation`. A space and a
+     line break are plain text; `[wait]`, `[next]`, `[clear]` wait, turn the page and clear the box (after a
+     `[clear]` inside a text the editor starts a new line); `[crn:XX]` and
+     `[var:XX]` insert a name or a number; `[choice:XX]` starts a two-way choice whose answers end with `[sep]`;
+     `[sp:XX]` is a space of XX pixels; `[xXXXX]` is a character without a letter in the editor. Ukrainian letters
+     use the kana cells of the font: the Font Editor (format `cells`) shows them under their Ukrainian names, and
+     the translator draws them there. A character with no code is refused by name when you save. The build target
+     **Translated GBA ROM** writes edited strings and the edited font; a changed string or table goes after the
+     end of the ROM and its pointers follow it.
    - `infinite_space` — Infinite Space (Nintendo DS, Europe C6CP). **Source:** the workspace's `source` folder,
      filled by `1_unpack.bat` with the NitroFS files: the script `data/Event/SpaceShip.scx` (every line of the
      game's text: dialogue, menus and choices of the script, tutorials; the editor lists the ~5,000 lines that
