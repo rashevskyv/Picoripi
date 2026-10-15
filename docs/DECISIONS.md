@@ -861,6 +861,7 @@ Spanish, Italian) is context. Reference languages already load through `referenc
 
 **Cost.** A slot the European English rewrote shows that text without a mark. A reference path that is still the
 image (the app closed during the unpack) loads nothing until the disc is picked again.
+
 ## D38. Final Fantasy Tactics Advance (GBA): edited text goes after the ROM's end, plain and two-byte (2026-10-15)
 
 **Context.** The text is in pointer tables (one u32 pointer a string) and in offset tables (u16 offsets from the

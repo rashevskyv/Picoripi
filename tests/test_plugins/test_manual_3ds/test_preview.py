@@ -297,6 +297,43 @@ def test_host_docks_the_panel_in_place_of_the_bfn_preview(qtbot, monkeypatch):
     assert not bfn.isHidden() and not bar.isHidden()
 
 
+def test_a_second_attach_replaces_the_panel_and_shuts_the_old_one_down(qtbot):
+    """setup_plugin_ui docks the panel, a later load_game_plugin docks it again: one panel, the old one shut down."""
+    from PyQt6.QtWidgets import QVBoxLayout, QWidget
+
+    from ui.main_window.main_window_plugin_handler import MainWindowPluginHandler
+
+    shut = []
+
+    class Panel(QWidget):
+        def refresh(self):
+            pass
+
+        def shutdown(self):
+            shut.append(self)
+
+    class PanelRules(m3d.GameRules):
+        def get_custom_preview_widget(self, main_window):
+            return Panel()
+
+    host = _Store(["Text"])
+    column = QWidget()
+    qtbot.addWidget(column)
+    layout = QVBoxLayout(column)
+    bfn = QWidget(column)
+    layout.addWidget(bfn, 1)
+    host.bfn_preview_column, host.bfn_preview_widget, host.current_game_rules = column, bfn, PanelRules()
+    handler = MainWindowPluginHandler(host)
+
+    handler.attach_custom_preview()
+    first = host.custom_preview_widget
+    handler.attach_custom_preview()
+    second = host.custom_preview_widget
+    assert second is not first and shut == [first]
+    assert layout.count() == 2 and layout.indexOf(second) == 0 and layout.indexOf(first) == -1
+    assert bfn.isHidden()
+
+
 def test_a_preview_widget_that_fails_is_logged_and_the_bfn_preview_stays(qtbot, monkeypatch):
     """pythonw has no stderr: an error of the plugin's widget must reach the app log, not end the plugin load."""
     from PyQt6.QtWidgets import QVBoxLayout, QWidget

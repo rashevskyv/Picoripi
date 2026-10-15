@@ -2341,5 +2341,8 @@
   "Table {0} would take {1} bytes; its offsets reach 65535.": "Таблиця {0} зайняла б {1} байтів; її зсуви сягають лише 65535.",
   "The source is not Final Fantasy Tactics Advance (USA, AFXE).": "Джерело — не Final Fantasy Tactics Advance (США, AFXE).",
   "The font file has {0} bytes; the game's font has {1}.": "Файл шрифту має {0} байтів; шрифт гри має {1}.",
-  "Table {0} ({1}) has no pointer the build can move.": "Таблиця {0} ({1}) не має вказівника, який збирання може перенести."
+  "Table {0} ({1}) has no pointer the build can move.": "Таблиця {0} ({1}) не має вказівника, який збирання може перенести.",
+  "{0} is not a character code": "{0} не є кодом символу",
+  "Unknown tag {0}": "Невідомий тег {0}",
+  "The text takes {0} bytes; the longest the game is known to show is {1}": "Текст займає {0} байтів; найдовший відомий текст, який показує гра, має {1}"
 }

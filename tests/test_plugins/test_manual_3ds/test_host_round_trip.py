@@ -104,6 +104,38 @@ def test_edit_save_revert_save_gives_back_the_original_file(qtbot, qapp, tmp_pat
     mw.close()
 
 
+@pytest.mark.skipif(romhacking_root.missing(*MANUAL_DIR) is not None,
+                    reason=romhacking_root.missing(*MANUAL_DIR) or "")
+@pytest.mark.usefixtures("restore_plugin_modules")
+def test_a_project_on_the_owner_files_in_place_shows_english_as_original_and_ukrainian_as_edited(
+        qtbot, qapp, tmp_path, monkeypatch):
+    """Regression: the owner's project reads repo_manual/src/manuals in place (source = translation folder), and those
+    files hold en, ru and ua; the Original (EN) column showed the Ukrainian. Runs on a copy of the owner's file."""
+    original = romhacking_root.path(*MANUAL_DIR, MANUAL_FILE).read_bytes()
+    document = json.loads(original.decode("utf-8"))
+    manuals, project = tmp_path / "manuals", tmp_path / "project"
+    for folder in (manuals, project):
+        folder.mkdir()
+    (manuals / MANUAL_FILE).write_bytes(original)
+    _answer_message_boxes(monkeypatch)
+
+    mw = MainWindow()
+    mw.is_testing = True
+    qtbot.addWidget(mw)
+    info = {"directory": str(project), "name": "in place", "plugin": PLUGIN, "description": "",
+            "source_path": str(manuals), "translation_path": str(manuals), "is_directory_mode": True,
+            "auto_create_translations": False}
+    mw.project_action_handler.finish_new_project(info)
+    _pump(qapp, 60, lambda: bool(mw.data_store.data and mw.data_store.data[0]))
+
+    entries = list(document.values())
+    assert mw.data_store.data[0] == [entry.get("en") or entry.get("ru", "") for entry in entries]
+    assert [mw.data_processor.get_current_string_text(0, index)[0] for index in range(len(entries))] == \
+        [entry.get("ua", "") for entry in entries]
+    assert any(entry.get("en") and entry.get("ua") and entry["en"] != entry["ua"] for entry in entries)
+    mw.close()
+
+
 def _restart_with_session(qtbot, tmp_path, monkeypatch, manuals, *, plugin_state, repo_manual=""):
     """Open a project of ``manuals`` ({file name: text}) once, so it writes its session on close, then start the app
     again as run.bat does: the startup plugin is the project's, the project opens from its session."""
@@ -204,6 +236,10 @@ def test_a_restart_on_a_manual_project_shows_the_manual_preview(qtbot, tmp_path,
     mw = _restart_with_session(qtbot, tmp_path, monkeypatch, {"one.json": document, "two.json": document},
                                plugin_state=plugin_state)
     panel = _manual_preview_shown(mw)
+    # The glossary belongs to the project: the startup glossary load ran before the project opened, so the project
+    # open that reuses the startup plugin must load it again (highlighting, AI prompts).
+    glossary = mw.translation_handler.glossary_handler.glossary_manager.glossary_path
+    assert glossary is not None and Path(glossary) == tmp_path / "project" / "glossary.json"
     rules = mw.current_game_rules
     page_name_of = sys.modules[f"plugins.{PLUGIN}.preview_panel"].page_name_of
     paragraph = next(index for index in range(len(mw.data_store.data[0]))

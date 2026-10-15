@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-03
 owns: plugins/
-tokens: 12.7k
+tokens: 12.8k
 purpose: The one plugin guide: files, hooks, capabilities, tests
 ---
 # Plugin Developer Guide
@@ -115,6 +115,8 @@ With these the base class builds the tag manager, the problem analyzer and the t
 Inside the application the text is `List[List[str]]` — blocks of strings — plus block names. `load_data_from_json_obj` returns `(blocks, block_names)`; `save_data_to_json_obj(blocks, block_names)` returns what goes back to the file. Unknown fields of the format must survive the round trip.
 
 If saving needs something the strings do not carry (table keys, the parsed binary file), keep it in the plugin and implement `export_runtime_state()` / `restore_runtime_state(state)` / `reset_runtime_state()` — plain JSON data that the host keeps across reloads, reverts and sessions — and `prepare_save_context(context)`, called before each project file is built (`context.block_indices`, `context.runtime_state`, `context.existing_versions()` yields the file's current bytes, translation first). A session written before the plugin kept any state restores none: the host then reads the project files once on a worker for the state only (the restored strings and edits stay) and scans the issues again. The host never reads plugin attributes. Examples: `plugins/pokemon_fr/rules.py` (keys), `plugins/manual_3ds/rules.py` (one manual per block), `plugins/zelda_bmg/rules.py` (a binary file patched on save).
+
+The host parses a source file and a translation file with the same `load_data_from_json_obj`. When one file can hold both the original and the translation (several languages in one file, read in place), implement `set_load_role(role)`: the host calls it with `"translation"` before it parses a translation file (the project load, the changes file, the re-parse after a save or a revert) and with `"source"` after. Example: `plugins/manual_3ds/rules.py` (`en` for the original, `ua` for the translation).
 
 ---
 

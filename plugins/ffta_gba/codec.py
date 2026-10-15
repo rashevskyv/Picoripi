@@ -23,6 +23,8 @@ import re
 import struct
 from typing import Dict, List, Tuple
 
+from core.i18n import tr
+
 UA_LETTERS = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
 UA_FIRST = 0x8053                      # katakana ァ onwards: 66 cells, all below 0x80A0
 UA_CODES: Dict[str, int] = {letter: UA_FIRST + i for i, letter in enumerate(UA_LETTERS)}
@@ -161,13 +163,13 @@ def encode_db(text: str) -> bytes:
         elif match := re.fullmatch(r"\[x([0-9A-F]{4})\]", token):
             code = int(match.group(1), 16)
             if code >> 8 in (0, 0x40):
-                raise EncodeError(f"{token} is not a character code")
+                raise EncodeError(tr("{0} is not a character code", token))
             out += struct.pack(">H", code)
         elif match := re.fullmatch(r"\[([a-z]+|c[0-9A-F]{2})(?::([0-9A-F]{2,4}))?\]", token):
             name, params = match.group(1), bytes.fromhex(match.group(2) or "")
             code = int(name[1:], 16) if re.fullmatch(r"c[0-9A-F]{2}", name) else _NAME_CODES.get(name)
             if code is None or code not in KNOWN_CONTROLS or len(params) != CONTROL_PARAMS.get(code, 0):
-                raise EncodeError(f"Unknown tag {token}")
+                raise EncodeError(tr("Unknown tag {0}", token))
             out += bytes((0x40, code)) + params
         else:
             raise EncodeError(f"The character {token!r} has no code in the game's font", token)

@@ -97,6 +97,16 @@ def test_table_without_pointers_is_refused(rom, banks):
         rom_text.build(rom, edited(banks, "4B83A0-0", raw))
 
 
+def test_a_text_longer_than_the_longest_known_is_refused(banks):
+    raw = strings_of(banks, "497418")["497418-1"]
+    longest = "A" * ((rom_text.TEXT_LIMIT - 1) // 2)                               # two bytes a letter, then 00
+    assert rom_text.tbl_text(rom_text.tbl_encode(longest, raw)) == longest
+    with pytest.raises(rom_text.codec.EncodeError, match=str(rom_text.TEXT_LIMIT)):
+        rom_text.tbl_encode(longest + "A", raw)
+    with pytest.raises(rom_text.codec.EncodeError, match=str(rom_text.TEXT_LIMIT)):
+        rom_text.abs_encode("A" * rom_text.TEXT_LIMIT, b"\x80\xb0\x00")
+
+
 def test_font_is_written_and_a_wrong_size_refused(rom, banks):
     font = bytes(rom_text.FONT_END - rom_text.FONT_START)
     assert rom_text.build(rom, banks.values(), font)[rom_text.FONT_START:rom_text.FONT_END] == font
@@ -116,8 +126,8 @@ def test_plugin_unpacks_edits_and_builds(tmp_path, rom):
     bank = json.loads((unpacked / "text" / "system.fftatext").read_text(encoding="utf-8"))
     blocks, names = game.load_data_from_json_obj(bank)
     assert blocks[0] == ["Mi", "AB"] and names["0"] == "Menus, commands and abilities"
-    with pytest.raises(ValueError, match="'Ы'"):
-        game.save_data_to_json_obj([["Ы", "AB"]] + blocks[1:], names)
+    with pytest.raises(ValueError, match="'Ω'"):
+        game.save_data_to_json_obj([["Ω", "AB"]] + blocks[1:], names)
     saved = game.save_data_to_json_obj([["Mi", "Тест"]] + blocks[1:], names)
     assert saved["blocks"][0]["strings"][0]["raw"] == bank["blocks"][0]["strings"][0]["raw"]   # untouched
     translation = tmp_path / "translation" / "text"

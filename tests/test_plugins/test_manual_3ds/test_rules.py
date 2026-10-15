@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 import romhacking_root
+from core import formats
 from plugins.manual_3ds import layout, repo_tools
 from plugins.manual_3ds import rules as m3d
 from plugins.testing import check_loads, check_round_trip, check_validator
@@ -74,13 +75,30 @@ def test_source_and_translation_load_differently(widths, geometry):
     blocks, names = rules.load_data_from_json_obj(_text(source))
     assert blocks == [["Hello there", "Note"]], "the source role gives the original, the English"
     assert names == {"0": "synthetic"}
-    blocks, _ = rules.load_data_from_json_obj(_text(SAMPLE))
+    with formats.translation_parse(rules):
+        blocks, _ = rules.load_data_from_json_obj(_text(SAMPLE))
     assert blocks == [["Привіт", ""]], "the translation role gives ua; an empty ua stays empty"
+
+
+def test_a_file_with_every_language_gives_english_as_source_and_ukrainian_as_translation(widths, geometry):
+    """Regression: a project that reads the owner's files in place parses the same en+ru+ua file for both columns;
+    the original column showed the Ukrainian. A page the English manual lacks (empty en) shows the Russian."""
+    rules = check_loads(PLUGIN)
+    both = {SAMPLE_KEYS[0]: _entry(2, 50.0, "Hello there", "Привет", "Привіт"),
+            SAMPLE_KEYS[1]: _entry(1, 300.0, "", "Заметка", "Нотатка")}
+    original, _ = rules.load_data_from_json_obj(_text(both))
+    with formats.translation_parse(rules):
+        edited, _ = rules.load_data_from_json_obj(_text(both))
+    assert original == [["Hello there", "Заметка"]]
+    assert edited == [["Привіт", "Нотатка"]]
+    again, _ = rules.load_data_from_json_obj(_text(both))
+    assert again == original, "the role goes back to source after the translation parse"
 
 
 def test_an_unchanged_save_is_the_same_file_and_ua_goes_back_by_key(widths, geometry):
     rules = check_loads(PLUGIN)
-    blocks, names = rules.load_data_from_json_obj(_text(SAMPLE))
+    with formats.translation_parse(rules):
+        blocks, names = rules.load_data_from_json_obj(_text(SAMPLE))
     assert rules.save_data_to_json_obj(blocks, names) == _text(SAMPLE)
     saved = json.loads(rules.save_data_to_json_obj([["Новий"]], names))
     assert list(saved) == SAMPLE_KEYS, "key order is kept"

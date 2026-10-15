@@ -195,8 +195,8 @@ def tbl_encode(text: str, raw: bytes) -> bytes:
     """A new offset-table string for ``text``: the old header without single-byte and LZSS, two-byte text."""
     body = codec.encode_db(text)
     if len(body) + 1 > TEXT_LIMIT:
-        raise codec.EncodeError(f"The text takes {len(body) + 1} bytes; the longest the game is known to show is "
-                                f"{TEXT_LIMIT}")
+        raise codec.EncodeError(tr("The text takes {0} bytes; the longest the game is known to show is {1}",
+                                   len(body) + 1, TEXT_LIMIT))
     return struct.pack("<H", u16(raw, 0) & ~3) + body + b"\0"
 
 
@@ -210,8 +210,8 @@ def abs_text(raw: bytes) -> str:
 def abs_encode(text: str, raw: bytes) -> bytes:
     new = codec.encode_plain(text, raw[:1] == b"\x01")
     if len(new) > TEXT_LIMIT:
-        raise codec.EncodeError(f"The text takes {len(new)} bytes; the longest the game is known to show is "
-                                f"{TEXT_LIMIT}")
+        raise codec.EncodeError(tr("The text takes {0} bytes; the longest the game is known to show is {1}",
+                                   len(new), TEXT_LIMIT))
     return new
 
 

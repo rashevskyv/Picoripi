@@ -197,6 +197,19 @@ class TestRuntimeState:
         formats.restore_state(bare, ["x"])
         formats.reset_state(bare)
         formats.prepare_save(bare, SaveContext())
+        with formats.translation_parse(bare):
+            pass
+
+    def test_a_translation_parse_tells_the_plugin_its_role_and_gives_it_back_after_an_error(self):
+        roles = []
+        rules = SimpleNamespace(set_load_role=roles.append)
+
+        with pytest.raises(ValueError):
+            with formats.translation_parse(rules):
+                roles.append("parse")
+                raise ValueError("a broken file")
+        assert roles == ["translation", "parse", "source"]
+        BaseGameRules().set_load_role("translation")             # the default does nothing
 
     def test_pokemon_keys_travel_as_runtime_state(self):
         rules = PokemonRules()

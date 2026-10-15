@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-02
 owns: core/glossary_build, ui/pipeline_wizard_dialog.py
-tokens: 11.7k
+tokens: 11.8k
 purpose: Pipeline design of record (Ukrainian); shipped vs planned on top
 ---
 # Road Map: наскрізний пайплайн локалізації та майстер-провідник
@@ -71,6 +71,7 @@ purpose: Pipeline design of record (Ukrainian); shipped vs planned on top
 | `get_texture_sources` | які текстури гри з текстом є в проєкті: шлях або glob, член архіву (вкладені архіви обходяться), формат файлу (`bti`, `tpl`, `tpl_ctr`, `bflim`, `ctpk`, `ctxb`, `bntx`, `g1t`, `g4tx`, `imgc`, `j3d`, `gba`, `gtx`, `bfres`, `shpg`, `txtr`, `txtr_gx`, `gim`, `tim`, `tim2`, `policenauts_pak`, `vs_gim`, `vs_hf1`, `vs_rle`, `pcx`, `m2`, `is_tex`, `sh3_tex`, `jimg`, `nlg_tex`, `ubiart_tex`, `gmio`, `ztex`, `sh2tex`, `tga`, `pw_txp`, `dq9_spr`, `jade`, `jade_jtx`, `png`, `sotn_blocks`, `sotn_cmp`, `raw`, `ffta2_efx`, `mt_tex`, `pmd_img`, `cgfx`, `dmp`, `stex`, `mibl`, `ctrt`, `l2d`, `bch`, `rtex`, `wilay`, `phyre`, `fr3`, `xenos`, `layton_bg`, `layton_ani`, `layton_arj`, `layton_cani`, `layton_gfsp`, `layton_limg`, `ctxr`, `tiles`, `tilemap`) і параметри (стиснення, зсув у паку, піксельний формат сирих текстур); спільне вікно «Текстури» (`core/texture_formats`) експортує PNG і записує перемальовані текстури в копію перекладу | `texture_sources.json`: BTI у RARC (TP GC/Wii); також є у WW, WW HD, OoT/MM N64, HWDE, CoH, TotK |
 | `parse_walkthrough_transcript` | розбір зовнішнього скрипту на сцени, спікерів і репліки | власний парсер формату |
 | `get_problem_detail` | деталь однієї проблеми одного рядка (блок, рядок, ідентифікатор проблеми), що показується під назвою проблеми в підказці редактора; порожній рядок — деталі немає | `manual_3ds`: повідомлення про межу колонки (піксель за межею) |
+| `set_load_role` | роль розбору файлу: `"translation"`, поки хост розбирає файл перекладу (`core.formats.translation_parse`), `"source"` після; для формату, де один файл містить і оригінал, і переклад | `manual_3ds`: файл з `en`, `ru` і `ua` дає `en` як оригінал і `ua` як переклад |
 
 Контекст перевірки — не хук, а протокол аналізатора: `_current_scan_block_idx` і `_current_scan_string_idx` задає програма навколо кожного аналізу рядка, на кожен потік окремо, поза аналізом вони `None` (`handlers/analyzer_context.py`, `plugins/common/problem_analyzer.py`; опис у `docs/PLUGIN_CONTRACT.md`).
 
