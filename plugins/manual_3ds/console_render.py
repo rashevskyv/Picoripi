@@ -306,10 +306,12 @@ class TextRun:
 
 @dataclass
 class Cover:
-    """A filled rectangle a pane paints (page coordinates, top > bottom): what a line drawn before it loses.
+    """A filled rectangle a pane paints (page coordinates, top > bottom), with its draw order.
 
-    Seen on the console (shots_r19 2011-01-01_21-00-53.280, home_menu_manual page 8): the label "Прикріпити
-    жетони" of a table's left cell is cut at the cell's edge, because the next row's white cell is drawn after it.
+    The defect finder reads two things off it: a line drawn before a cover loses the ink under it (`covered`), and
+    a line that starts inside a cover and leaves it runs over whatever is beside the cover (`over_cell`: on the
+    console, shots_r19 2011-01-01_21-00-53.280, home_menu_manual page 8, the white label "Прикріпити жетони" of a
+    table's grey cell vanishes at the cell's edge, white on the white page, and resurfaces under the next cell's text).
     """
 
     order: int
@@ -318,6 +320,7 @@ class Cover:
     top: float
     right: float
     bottom: float
+    kind: str = "content"    # content (a window's filled inside), frame (its painted frame strip) or picture
 
     def covers(self, left: float, top: float, right: float, bottom: float, slack: float) -> bool:
         return (min(self.right, right) - max(self.left, left) > slack
@@ -454,10 +457,10 @@ class PageRenderer:
         # Solid frame strips paint too (a table cell's edge); an outline texture (mostly clear) paints nothing.
         right, bottom = left + pane.w, top - pane.h
         if all(_opaque(f[0]) for f in frames[:4] if f[0] is not None):
-            self.covers.extend((Cover(self._order, pane.name, left, top, left + fl, bottom),
-                                Cover(self._order, pane.name, right - fr, top, right, bottom),
-                                Cover(self._order, pane.name, left, top, right, top - ft),
-                                Cover(self._order, pane.name, left, bottom + fb, right, bottom)))
+            self.covers.extend((Cover(self._order, pane.name, left, top, left + fl, bottom, "frame"),
+                                Cover(self._order, pane.name, right - fr, top, right, bottom, "frame"),
+                                Cover(self._order, pane.name, left, top, right, top - ft, "frame"),
+                                Cover(self._order, pane.name, left, bottom + fb, right, bottom, "frame")))
         # Frames: four L-shaped quads, each a corner plus the edge that follows it clockwise (nw4r DrawFrame).
         if len(frames) == 1:
             base = frames[0][0]
@@ -499,9 +502,9 @@ class PageRenderer:
             colour = tuple(sum(c[i] for c in pane.colours) // 4 for i in range(4))
             if colour[3]:
                 canvas.alpha_composite(Image.new("RGBA", (width, height), _blend(colour, alpha)), (x0, y0))
-                self.covers.append(Cover(self._order, pane.name, left, top, left + pane.w, top - pane.h))
+                self.covers.append(Cover(self._order, pane.name, left, top, left + pane.w, top - pane.h, "picture"))
             return
-        self.covers.append(Cover(self._order, pane.name, left, top, left + pane.w, top - pane.h))
+        self.covers.append(Cover(self._order, pane.name, left, top, left + pane.w, top - pane.h, "picture"))
         u0, v0, u1, _v1, _u2, v2, _u3, _v3 = pane.texcoords
         tw, th = texture.size
         # Texture coordinates of the top-left, top-right and bottom-left corners; reversed ones mirror the picture.

@@ -7,7 +7,7 @@ scripts/manual_3ds_render.py and by the preview panel:
 - ``Simulator.render(...)``: one page of one build at one scroll -> the two screens;
 - ``find_defects(...)``: what the render shows wrong: a line whose ink runs past the card's edge onto the scroll
   track, a line the viewer broke inside its pane, a line over a picture or a frame, a line painted over by a pane
-  drawn after it (a table cell), two lines whose ink overlaps, a glyph the font lacks;
+  drawn after it, a line that leaves the filled cell it starts in, two lines whose ink overlaps, a glyph the font lacks;
 - ``match_shot(...)``: which build, scroll and size a console screenshot pair shows, and how far the render is from it.
 
 Nothing here reads JSON translations: the pages come from the archives a build wrote (the console reads the same).
@@ -43,6 +43,10 @@ MATCH_STEP = 4              # coarse scroll search step; refined by +-MATCH_STEP
 # whole step (fontSize y), so a line that sits on a box frame is none, and Nintendo's own adjacent glyph panes
 # (the circled digits of home_menu_manual page 14 meet by 1.6 px) are none.
 OVERLAP_SLACK = 2.0
+CELL_MIN_WIDTH = 24.0       # a filled box narrower than this is a marker, not a cell a line can leave
+# Ink may run this far (px) past a box's filled inside before it has left the cell: Nintendo's own lines reach
+# 6.0 px past the filled inside into the box's clear frame (health_safety_n3ds page 12, large, "протрите их сухой").
+CELL_SLACK = 6.5
 SAME_EPS = 0.1              # builds whose text-band difference is this close to the best show the same page here
 
 
@@ -66,7 +70,7 @@ def build_files(tools: Any, build: Path) -> Dict[str, Path]:
 
 @dataclass
 class Defect:
-    kind: str                   # over_edge | wrapped | over_picture | over_frame | covered | text_overlap | missing_glyph
+    kind: str                   # over_edge | wrapped | over_picture | over_frame | covered | over_cell | text_overlap | missing_glyph
     manual: str
     page: int                   # console page number
     page_file: str              # Page_NNN
@@ -277,17 +281,29 @@ def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.
 def _occlusions(runs: List[cr.TextRun], covers: Iterable[cr.Cover], name: str, number: int, page_name: str,
                 size: str) -> List[Defect]:
     """`covered`: a pane drawn after the line paints over its ink (the console shows the line cut there);
-    `text_overlap`: the ink of two lines of different panes meets (a caption running into the next caption).
+    `over_cell`: the line starts inside a filled box drawn before it and its ink leaves that box (a table label in
+    white that runs out of its grey cell onto the white page: shots_r19 2011-01-01_21-00-53.280, page 8);
+    `text_overlap`: the ink of two lines of different panes meets (a label running under the next cell's text).
     Overlaps of at most OVERLAP_SLACK px in either direction are none: adjacent panes touch by design."""
     out: List[Defect] = []
     inked = [run for run in runs if run.text.strip()]
-    later = sorted(covers, key=lambda cover: cover.order)
+    ordered = sorted(covers, key=lambda cover: cover.order)
     for run in inked:
         box = (run.ink_left, run.top, run.ink_right, run.top - run.height)
-        for cover in later:
+        for cover in ordered:
             if cover.order > run.order and cover.covers(*box, OVERLAP_SLACK):
                 out.append(Defect("covered", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
                                   f"{cover.pane} is drawn after this line and paints over it from {max(cover.left, run.x):.1f} px"))
+                break
+        # A line that starts inside a filled cell and leaves it: its ink runs over whatever is beside the cell (a
+        # table's white label is invisible there and lands under the next cell's text).
+        for cover in ordered:
+            if (cover.order < run.order and cover.kind == "content" and cover.right - cover.left >= CELL_MIN_WIDTH
+                    and cover.covers(*box, OVERLAP_SLACK) and cover.left <= run.ink_left
+                    and run.ink_right > cover.right + CELL_SLACK):
+                out.append(Defect("over_cell", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
+                                  f"the line starts in the filled box {cover.pane} and leaves it at {cover.right:.1f} px "
+                                  f"(ink ends at {run.ink_right:.1f})"))
                 break
     # ponytail: pairwise over the page's lines (a few hundred); a sweep if a manual ever has thousands.
     for index, run in enumerate(inked):

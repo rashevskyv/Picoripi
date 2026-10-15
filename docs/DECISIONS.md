@@ -866,20 +866,23 @@ image (the app closed during the unpack) loads nothing until the disc is picked 
 
 **Context.** The owner's New 3DS screenshots (`shots_r19`, 114 pairs dated 2011-01-01 by the console clock) showed
 table labels cut at the cell edge, captions running into each other and lines past the card edge. A first match
-against rounds 17–19 gave a median text difference of 7.5 / 255 where the older pairs gave 1.3: most of those pairs
-were shot with a card build that no tmp folder holds (`D:\RomHacking_tmp\calib\nd000_card_*.bin`, `card_romfs_before_r*`
-and `card_before_r19_*` are the copies of what the card held). The "AABBB CCC DDD" and lone "I" / "J" texts on two
-pairs are the owner's own width-calibration probes (`calib_v2`-era builds), not viewer panes.
+against rounds 17–19 gave a median text difference of 7.5 / 255 where the older pairs gave 1.3: 103 of the 113 pairs
+were shot with the card copy `D:\RomHacking_tmp\calib\nd000_card_1653.bin` (also `calib\nd000`), a build no tmp folder
+holds; matched to it the median is 1.1. The "AABBB CCC DDD" and lone "I" / "J" texts on two pairs are the owner's own
+width-calibration probes (`calib_v2`-era builds), not viewer panes; those two pairs and 34 more in `shots_r19_new`
+are byte-identical copies of `shots_new` and `shots_r17b`.
 
 **Decision.**
 - A pair is classified by machine (badge and title against the header of every page of every manual, size from the
   bottom bar) and matched by `match_shot` against every build on disk, the card copies included; a pair whose best
   build is none of them is reported as such, never fitted. The simulator is changed only where the exact build's
   render differs from the console.
-- The cut labels are not clipping: the console draws panes in file order, and a table's next cell (a `wnd1` with a
-  filled content) is drawn after the label. The renderer records what each filled pane paints (`Cover`) and the defect
-  finder reports a line a later pane paints over (`covered`) and two lines whose ink meets (`text_overlap`), so the
-  text can be shortened; the render itself already showed the cut.
+- The cut table labels are neither clipping nor occlusion: the label is white ink on the grey cell, drawn after the
+  cell, and past the cell's edge it is white on the white page — invisible until it resurfaces under the next cell's
+  dark text. The render already showed that; the renderer now records what each filled pane paints and in what order
+  (`Cover`) and the defect finder reports a line that starts inside a filled cell and leaves it (`over_cell`), two
+  lines whose ink meets (`text_overlap`) and a line a later pane paints over (`covered`), so the text can be shortened.
+  Nintendo's own lines reach 6.0 px past a box's filled inside into its clear frame (`CELL_SLACK` 6.5).
 - A box frame's inner edge is the painted width of its texture (the opaque columns from the outer edge), not the
   texture's width: Nintendo's own lines end on the clear inner columns of its 4 px frames, and the untouched original
   must show no defect. An outline frame (a texture that is mostly clear) paints nothing over a line.

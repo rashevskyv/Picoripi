@@ -49,7 +49,7 @@ WORKER_STOP_MS = 3000
 Y_BUTTON_START = 180          # the Y label area of the bottom bar starts here (x, in card pixels)
 PAGE_NUMBER = re.compile(r"Page_(\d+)_(large|small)")
 DEFECT_RGBA = (255, 0, 0, 60)
-MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame", "covered", "text_overlap")
+MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame", "covered", "over_cell", "text_overlap")
 
 _GROUPS_LOCK = threading.Lock()
 _ARCHIVES: Dict[Tuple[str, str], Any] = {}

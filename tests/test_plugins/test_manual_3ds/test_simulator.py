@@ -311,9 +311,31 @@ def _defects(renderer, layouts):
     return simulator.defects_of(renderer.runs, [], layouts, renderer.textures, "m", 1, "Page_000", "small", renderer.covers)
 
 
+def test_a_line_that_leaves_the_filled_cell_it_starts_in_is_over_cell():
+    """A table label in white that runs out of its grey cell onto the white page (page 8 of the HOME manual on the
+    console): the cell is drawn before the label, so nothing covers it, and the ink past the cell is invisible."""
+    cell = _wnd1("Cell", 10.0, -5.0, 60.0, 30.0, (140, 140, 140, 255), [])
+    label = _txt1("Label", 12.0, -10.0, 100.0, 20.0, "aaaaaaaaaa", char_space=0.0)   # ink 12.7 .. 78.7
+    data = _bclyt([_mat1([("m", None)]), cell, label])
+    renderer = _renderer()
+    renderer.render([data])
+    found = _defects(renderer, [cr.parse(data)])
+    assert [(d.kind, d.pane) for d in found] == [("over_cell", "Label")] and "Cell" in found[0].detail
+    # The same label in a cell wide enough for it: nothing.
+    roomy = _bclyt([_mat1([("m", None)]), _wnd1("Cell", 10.0, -5.0, 80.0, 30.0, (140, 140, 140, 255), []), label])
+    renderer = _renderer()
+    renderer.render([roomy])
+    assert _defects(renderer, [cr.parse(roomy)]) == []
+    # A label that starts outside the cell is no cell label (an icon box beside the text).
+    outside = _bclyt([_mat1([("m", None)]), _wnd1("Cell", 40.0, -5.0, 30.0, 30.0, (140, 140, 140, 255), []), label])
+    renderer = _renderer()
+    renderer.render([outside])
+    assert _defects(renderer, [cr.parse(outside)]) == []
+
+
 def test_a_filled_pane_drawn_after_a_line_covers_it():
-    """A table's next cell paints over the label drawn before it (the console cuts the label at the cell's edge);
-    the same cell drawn before the label paints nothing over it."""
+    """A pane drawn after a line paints over it (a picture placed over a line's end); the same pane drawn before
+    the line paints nothing over it (the line starting outside it is no cell label either)."""
     cell = _wnd1("Cell", 60.0, -5.0, 100.0, 30.0, (140, 140, 140, 255), [])
     label = _txt1("Label", 10.0, -10.0, 100.0, 20.0, "aaaaaaaaaa", char_space=0.0)   # ink 10 .. 76.7
     after = _bclyt([_mat1([("m", None)]), label, cell])
@@ -390,6 +412,26 @@ def test_frame_width_counts_the_painted_columns_of_the_right_frame():
     assert simulator.defects_of([run], [], [layout], textures, "m", 1, "Page_000", "small") == []
     run = cr.TextRun("Line", "aaaa", 8.0, -10.0, 290.0, False, ink_right=302.6, ink_left=8.5)
     assert [d.kind for d in simulator.defects_of([run], [], [layout], textures, "m", 1, "Page_000", "small")] == ["over_frame"]
+
+
+@pytest.mark.skipif(_GATE is not None or not os.environ.get(CALIB_ENV), reason=_GATE or f"{CALIB_ENV} is not set")
+def test_new_3ds_page_22_draws_a_line_short_of_its_pane_whole():
+    """shots_r19 2011-01-01_04-23-50.283 (New 3DS, the card copy nd000 in the calib folder) shows home_menu_manual
+    page 22 (small) with "центру технічної підтримки" (0.83 px short of its pane) on one line: the viewer does not
+    break a line that fits, and the render matches the console within anti-aliasing."""
+    repo = romhacking_root.path(*_REPO_MANUAL)
+    calib = Path(os.environ[CALIB_ENV])
+    top = calib / "shots_r19" / "2011-01-01_04-23-50.283_top.bmp"
+    bottom = calib / "shots_r19" / "2011-01-01_04-23-50.283_bot.bmp"
+    if not (top.is_file() and bottom.is_file() and (calib / "nd000").is_file()):
+        pytest.skip("the shots_r19 pair or the card copy nd000 is not on disk")
+    sim = simulator.Simulator(str(repo), calib, None)
+    shot = simulator.load_pair(top, bottom)
+    best, render, _ = simulator.match_shot({"card": sim}, shot, "home_menu_manual", 21, ["small"], 3, True)
+    assert best is not None and best.size == "small" and best.text_diff < 5.0, best
+    runs = [run for run in render.runs if run.pane == "TextBox_439"]
+    assert [run.text for run in runs] == ["центру технічної підтримки"] and not runs[0].wrapped
+    assert not [d for d in simulator.find_defects(sim, "home_menu_manual", 21, "small") if d.kind == "wrapped"]
 
 
 @pytest.mark.skipif(_GATE is not None or not os.environ.get(CALIB_ENV), reason=_GATE or f"{CALIB_ENV} is not set")
