@@ -1,0 +1,9 @@
+[
+  {
+    "label": "Wii fonts (LayoutData/Font.arc)",
+    "format": "brfnt",
+    "path": ["versions/wii/files/LocalizeData/UsEnglish/LayoutData/Font.arc", "versions/wii/files/UsEnglish/LayoutData/Font.arc",
+             "versions/wii/files/LayoutData/Font.arc"],
+    "member": "*.brfnt"
+  }
+]

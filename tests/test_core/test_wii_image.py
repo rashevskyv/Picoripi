@@ -51,7 +51,7 @@ def _plain(fst_at: int = DEFAULT_FST_AT) -> bytearray:
     plain = bytearray(CLUSTERS * DATA)
     boot = bytearray(0x440)
     struct.pack_into(">I", boot, 0x18, WII_MAGIC)
-    struct.pack_into(">III", boot, 0x420, 0x3000 >> 2, fst_at >> 2, len(FST))
+    struct.pack_into(">III", boot, 0x420, 0x3000 >> 2, fst_at >> 2, len(FST) >> 2)   # all three divided by 4
     plain[0:0x440] = boot
     plain[0x440:0x2440] = BI2
     plain[0x2440:0x2470] = APPLOADER

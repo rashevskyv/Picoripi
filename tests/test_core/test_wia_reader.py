@@ -220,10 +220,10 @@ def test_the_first_0x80_bytes_come_from_the_header_not_from_the_groups():
         assert stream.read(0x100) == header + image[0x80:0x100]
 
 
-def test_a_wii_image_is_refused_with_its_reason():
-    data = build_wia(_random(0x8000), rvz=True, method=NONE, chunk=0x8000, disc_type=2)
-    with pytest.raises(ImageError, match="Wii"):
-        wia.WiaStream(io.BytesIO(data))
+def test_an_unknown_disc_type_is_refused_with_its_reason():
+    data = build_wia(_random(0x8000), rvz=True, method=NONE, chunk=0x8000, disc_type=3)
+    with pytest.raises(ImageError, match="disc type 3"):
+        wia.WiaStream(io.BytesIO(data))   # Wii images (type 2) are read: test_wia_wii.py
 
 
 def test_the_purge_method_is_refused():
@@ -269,11 +269,11 @@ def test_open_disc_gives_a_plain_stream_for_an_iso(tmp_path):
 
 def test_open_disc_closes_the_file_of_a_refused_image(tmp_path, monkeypatch):
     rvz = tmp_path / "wii.rvz"
-    rvz.write_bytes(build_wia(_random(0x8000), rvz=True, method=NONE, chunk=0x8000, disc_type=2))
+    rvz.write_bytes(build_wia(_random(0x8000), rvz=True, method=NONE, chunk=0x8000, disc_type=3))
     opened = []
     real_open = open
     monkeypatch.setattr(wia, "open", lambda *args: opened.append(real_open(*args)) or opened[-1], raising=False)
-    with pytest.raises(ImageError, match="Wii"):
+    with pytest.raises(ImageError, match="disc type"):
         wia.open_disc(rvz)
     assert len(opened) == 1 and opened[0].closed
 

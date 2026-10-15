@@ -10,6 +10,27 @@ purpose: Everything left open, one line each, by work package
 Every unchecked item that is not already a task in `docs/audit/2026-10-01/TASKS.md`. One line each; delete
 the line when it is done or moved into a plan.
 
+## Super Mario Galaxy 1 and 2 (`plugins/super_mario_galaxy`, 2026-10-15, D39)
+
+- The Wii fonts get the Ukrainian mod's Cyrillic glyphs, scaled from the Switch fonts (`font_port.py`); the mod has
+  no ґ, so the builds write г for it. The scaled glyphs are not reviewed letter by letter yet. The Switch fonts
+  (little-endian `TNFR`) do not open in the Font Editor.
+- Picoripi cannot read a Switch update's RomFS (BKTR). The Switch build takes the update's archives from the imported
+  mod; a project without a mod builds on the base game's archives, which lack the update's labels (SMG1 v0 has 2246,
+  the mods 2247). The update the Ukrainian SMG1 mod was made for is unknown (its labels are those of the Russian mod,
+  which needs v1.3.0 = v196608).
+- Switch build not run in an emulator (skipped for now): Eden cannot open the `.nsz` packages (NCZ inside); an NSP is
+  needed.
+- 73 SMG1 labels (110 in SMG2) are worded differently on the Wii and the Switch, so each has a Wii row and a Switch
+  row (warning "Switch translation; Wii English differs"). The SMG1 Wii rows have no Ukrainian yet and build as the
+  Wii English; the Wii title prompt ("Press both A and B") is one of them.
+- Nebula: the build's `sys/fst.bin` must also replace Nebula's `content\sys\fst.bin` (the runtime loads that copy at
+  boot). Setup or repair of Nebula writes it back.
+- 132 imported SMG1 messages have other tags than the English (colour and timing tags the translator moved);
+  every button picture in a Wii row is now a Wii picture.
+- The 22 SMG1 Wii-only labels with text have no Ukrainian yet (the Switch mod does not have them); the Switch
+  `System.arc` (6 messages) is not in the mod either.
+
 ## Write hardening (audit r28, 2026-10-15)
 
 - Rule 5 (pre-existing): the Font Editor saves a font on the UI thread — `save_changes` repacks the BFN and

@@ -1,0 +1,14 @@
+{
+    "display_name": "Super Mario Galaxy",
+    "default_tag_mappings": {},
+    "block_names": {},
+    "block_color_markers": {},
+    "newline_display_symbol": "↵",
+    "newline_css": "color: #A020F0; font-weight: bold;",
+    "tag_css": "color: rgba(128, 128, 128, 128); font-style: italic;",
+    "bracket_tag_color_hex": "#8da3b4",
+    "preview_wrap_lines": false,
+    "editors_wrap_lines": false,
+    "lines_per_page": 3,
+    "translation_config": {}
+}

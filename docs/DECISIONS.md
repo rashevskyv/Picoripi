@@ -884,3 +884,46 @@ are FFTA-LZSS packed (header bit 1); the game reads a plain string straight from
 
 **Cost.** The ROM grows with every edit (whole tables are copied); a full translation adds a few hundred KiB. A
 compressed string that is edited takes more room than before.
+## D39. Super Mario Galaxy 1 and 2: one project for every version, keyed by message label (2026-10-15)
+
+**Context.** The owner wants one Super Mario Galaxy project whose translation goes to the Wii disc (RMGE01 rev 0), the
+Switch release (010099C022B96000) and the Nebula PC recompilation, and the same for Super Mario Galaxy 2 (SB4E01,
+0100FD8022DAA000). The Ukrainian SMG1 translation exists as a Switch LayeredFS mod. The versions do not share message
+order: SMG1 Wii has 2463 labels, the Switch 2246 (1938 shared; 504 of the 525 Wii-only labels are empty, the
+Switch-only ones are new menus). The game looks every message up by its name (`messageid.tbl`, or the MSBT label in
+SMG2), so the name is stable where the index is not.
+
+**Decision.**
+- The editable unit is a plugin document per message archive (`MessageData/<archive>.smgmsg`, JSON): one row per
+  label over the Wii and Switch English slots, the Wii text first, then the labels only the Switch has; each row lists
+  the versions that have it. A build writes each version's own archives by label and keeps every untouched message
+  (the Switch rewords some English). SMG1 archives are BMG + BCSV labels; SMG2 archives are one per zone with MSBT
+  members (key `<member>/<label>`). What differs between the games (ids, Nebula) is data in `unpack.GAMES`.
+- A label whose English words differ between the versions (tags left out) gets one row per version, both marked
+  `split` and flagged in the editor ("Switch translation; Wii English differs"). An imported Switch translation fills
+  only the Switch row; the Wii and Nebula builds take the Wii row, or the Wii English, never the Switch wording.
+- Editor tags show the Wii bytes on every version. The Switch files are the same formats little-endian (CRAR, swapped
+  section magics, UTF-16LE); tag fields are swapped by a measured rule: BMG tag number and groups 1 (u16), 6 and 7
+  (u32); every u16 of an LMS tag. Button pictures (group 3) differ in number and are paired per label from the English
+  of both versions, then by the most common pair over the game; a picture with no pair takes the other version's
+  English picture at the same place.
+- Wii WIA/RVZ images are read with no key: the format stores partitions decrypted with hashes removed
+  (`core/containers/wia.py` `partition_view`; `WiiImage(stream, None)`). A Wii ISO still needs the key file; DolphinTool
+  can convert it to RVZ (done for SB4E01). `WiiImage` now reads the FST size as divided by 4 (it was taken as bytes).
+- Builds: Wii a Riivolution patch plus a Dolphin game-mod descriptor (smallest, also works on a console); Nebula a
+  `GALAXY_DISC_MOD_MANIFEST` whose grown archive goes into a free gap before the first file, with a patched FST;
+  Switch an Atmosphere LayeredFS folder for every English slot.
+- An imported mod's archive becomes that version's base archive (`translation/versions/<version>/...`): the Ukrainian
+  and Russian Switch mods were made for a game update whose archive has labels the base game lacks, and Picoripi cannot
+  read update (BKTR) RomFS. Its `Font.arc` goes beside it.
+- Fonts: the Wii `Font.arc` BRFNTs open in the font editor; `bcfnt` gained the RGB5A3 sheets of the number and
+  button fonts, so all five save byte for byte. Nothing is drawn: the import copies the Ukrainian mod's Cyrillic
+  glyphs from its Switch fonts (`TNFR`, the Wii format little-endian at about 2.4 times the size) into new cells of the
+  Wii message, menu and cinema fonts, scaled by the ratio of the two fonts' Latin advances and set on the Wii baseline
+  (`font_port.py`). і and ї use the Wii font's own i and ï glyphs; the mod draws є at э, so that glyph goes to є.
+- Text: the project keeps proper Ukrainian. The import turns the mod's font workarounds back (Latin i, ï and Russian
+  э in Cyrillic words become і, ї, є); each build writes a letter its font lacks as the mod did (`encode_for_font`):
+  the Switch build for the mod's font, the Wii and Nebula builds only ґ as г.
+
+**Cost.** The Nebula path needs the patched `fst.bin` copied over Nebula's `content\sys\fst.bin` as well: Nebula loads
+the loose FST at boot and ignores the manifest for it (measured). The ported glyphs are scaled bitmaps, not redrawn letters. A label the versions word differently stays English on the Wii until its Wii row is translated.

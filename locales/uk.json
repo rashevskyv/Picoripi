@@ -2344,5 +2344,21 @@
   "Table {0} ({1}) has no pointer the build can move.": "Таблиця {0} ({1}) не має вказівника, який збирання може перенести.",
   "{0} is not a character code": "{0} не є кодом символу",
   "Unknown tag {0}": "Невідомий тег {0}",
-  "The text takes {0} bytes; the longest the game is known to show is {1}": "Текст займає {0} байтів; найдовший відомий текст, який показує гра, має {1}"
+  "The text takes {0} bytes; the longest the game is known to show is {1}": "Текст займає {0} байтів; найдовший відомий текст, який показує гра, має {1}",
+  "No free space in the disc for a file of {0} bytes.": "На диску немає вільного місця для файлу розміром {0} байтів.",
+  "The project's source has no Super Mario Galaxy version.": "У вихідних файлах проєкту немає жодної версії Super Mario Galaxy.",
+  "The project has no message documents ({0}).": "У проєкті немає документів повідомлень ({0}).",
+  "The project has no {0} version: add its game file and unpack again.": "У проєкті немає версії {0}: додайте її файл гри й розпакуйте знову.",
+  "Nebula runs only Super Mario Galaxy.": "Nebula запускає лише Super Mario Galaxy.",
+  "Nebula runs only the USA disc revision 0 (its main.dol): this project has another.": "Nebula запускає лише диск USA ревізії 0 (його main.dol): у цьому проєкті інший.",
+  "The disc has no file {0}.": "На диску немає файлу {0}.",
+  "Wii disc (USA)": "Диск Wii (USA)",
+  "Switch game": "Гра для Switch",
+  "Another Wii disc (reference languages)": "Інший диск Wii (мови для довідки)",
+  "Wii: Riivolution patch and Dolphin launcher": "Wii: патч Riivolution і запуск у Dolphin",
+  "Nebula (PC): disc mod manifest": "Nebula (ПК): маніфест мода диска",
+  "Switch: Atmosphere LayeredFS mod": "Switch: мод LayeredFS для Atmosphere",
+  "Tag group {0}": "Група тегів {0}",
+  "The Wii row of this label: translate it for the Wii wording.": "Рядок Wii цієї мітки: перекладіть його за формулюванням Wii.",
+  "The {0} row of this label; the Wii row has its own English.": "Рядок {0} цієї мітки; рядок Wii має власний англійський текст."
 }

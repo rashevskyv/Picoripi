@@ -4,9 +4,12 @@
 ISO, so ``GameCubeImage`` reads it unchanged. Groups (chunk_size bytes of disc each) are decoded when a read needs
 them; the last two decoded groups are kept. Nothing else is held in memory.
 
-Read: GameCube discs of any of these methods: none, bzip2, LZMA, LZMA2 (WIA and RVZ) and Zstandard (RVZ). RVZ
-packing (the junk padding stored as a seed) is reproduced with the Lagged Fibonacci generator of the RVZ spec. Refused
-with a reason: Wii partitions (they need decryption and hash rebuilding), the Purge method, and any other value.
+Read: GameCube and Wii discs of any of these methods: none, bzip2, LZMA, LZMA2 (WIA and RVZ) and Zstandard (RVZ). RVZ
+packing (the junk padding stored as a seed) is reproduced with the Lagged Fibonacci generator of the RVZ spec. A Wii
+image stores each partition's data already decrypted, with the hash blocks removed: ``partition_view`` reads it (no
+key is needed or opened), while the stream itself reads only the raw areas (headers, partition table, tickets) and
+gives zeros inside a partition. The hash exception lists are skipped, never applied. Refused with a reason: the Purge
+method and any other value.
 The file is untrusted: every table, stored group, decompressed group and junk run is checked against the size its header
 or table declares (and ``MAX_CHUNK``) before it is read, decoded or generated, and refused with ``ImageError`` past it.
 Specification: Dolphin's docs/WiaAndRvz.md (WIA format 1.00 and the RVZ additions). Facts only; the decoder is written
@@ -22,6 +25,7 @@ from collections import OrderedDict
 from typing import BinaryIO, Dict, List, Optional, Tuple
 
 from core import zstd_frame
+from core.containers.console_crypto import PlainView
 from core.containers.image_files import ImageError
 
 MAGIC_WIA = b"WIA\x01"
@@ -40,6 +44,13 @@ SEED_SIZE = 68
 LFG_K, LFG_J = 521, 32
 JUNK_FLAG = 0x80000000
 CACHE_GROUPS = 2
+SECTOR_DATA = 0x7C00          # a Wii partition sector without its 0x400-byte hash block
+PART_STRUCT = 0x30            # wia_part_t: the title key, then two wia_part_data_t
+MAX_PART_STRUCT = 0x400
+MAX_PARTS = 128
+LIST_DATA = 0x1F0000          # one hash exception list per 2 MiB of disc (this much partition data)
+MAX_EXCEPTIONS = 52 * 64      # per list: Dolphin's own limit, enough for every hash and padding byte
+EXCEPTION = 22                # u16 offset and a 20-byte SHA-1
 
 
 def is_wia_or_rvz(head: bytes) -> bool:
@@ -193,17 +204,18 @@ class WiaStream:
         disc = HEAD_SIZE
         disc_type, method, _level, chunk = struct.unpack_from(">IIII", head, disc)
         self._dhead = head[disc + 0x10:disc + 0x10 + DHEAD_SIZE]
-        n_part = struct.unpack_from(">I", head, disc + 0x90)[0]
+        n_part, part_size = struct.unpack_from(">II", head, disc + 0x90)
+        part_off = struct.unpack_from(">Q", head, disc + 0x98)[0]
         n_raw = struct.unpack_from(">I", head, disc + 0xB4)[0]
         raw_off, raw_size = struct.unpack_from(">QI", head, disc + 0xB8)
         n_groups = struct.unpack_from(">I", head, disc + 0xC4)[0]
         group_off, group_size = struct.unpack_from(">QI", head, disc + 0xC8)
         props_len = min(head[disc + 0xD4], 7)
         props = head[disc + 0xD5:disc + 0xD5 + props_len]
-        if disc_type == WII_DISC or n_part:
-            raise ImageError("a Wii WIA or RVZ image: its partitions need decryption, which Picoripi does not read yet")
-        if disc_type != GC_DISC:
+        if disc_type not in (GC_DISC, WII_DISC):
             raise ImageError(f"a WIA or RVZ image of disc type {disc_type}: not read")
+        if disc_type == GC_DISC and n_part:
+            raise ImageError("a GameCube WIA or RVZ image cannot have Wii partitions")
         if method == PURGE:
             raise ImageError("a WIA or RVZ image with the Purge method: not read; convert it to a plain ISO first")
         if method not in METHOD_NAMES and method != NONE:
@@ -224,9 +236,11 @@ class WiaStream:
         self._props = props
         self._chunk = chunk
         self._groups = self._read_groups(group_off, group_size, n_groups, method, props)
-        self._segment_of_group: Dict[int, Tuple[int, int]] = {}
+        # group index -> (junk offset of its first byte, its data size, its hash exception lists)
+        self._group_info: Dict[int, Tuple[int, int, int]] = {}
         self._segments = self._read_raw_entries(raw_off, raw_size, n_raw, method, props, chunk)
         self._starts = [start for start, _end, _gi in self._segments]
+        self._partitions = self._read_partitions(part_off, n_part, part_size)
 
     def _read_file(self, offset: int, size: int) -> bytes:
         self._file.seek(offset)
@@ -271,23 +285,84 @@ class WiaStream:
                 begin = start + k * chunk
                 end = min(begin + chunk, start + disc_size)
                 segments.append((begin, end, group_index + k))
-                self._segment_of_group[group_index + k] = (begin, end)
+                self._group_info[group_index + k] = (begin, end - begin, 0)
         segments.sort()
         return segments
+
+    def _read_partitions(self, offset: int, count: int, size: int) -> List[Tuple[int, List[Tuple[int, int, int]]]]:
+        """Each Wii partition: (disc offset of its data, [(start, end, group)] in its decrypted data)."""
+        if not count:
+            return []
+        if count > MAX_PARTS or not 0 < size <= MAX_PART_STRUCT:
+            raise ImageError("the partition table of this image is not valid")
+        blob = self._read_file(offset, count * size)
+        if len(blob) != count * size:
+            raise ImageError("the partition table is cut short")
+        chunk_data = self._chunk // SECTOR * SECTOR_DATA if self._chunk >= SECTOR else 0
+        lists = max(1, self._chunk // MIB2)
+        partitions = []
+        for index in range(count):
+            entry = blob[index * size:(index + 1) * size].ljust(PART_STRUCT, b"\0")   # the spec pads a short struct
+            pds = [struct.unpack_from(">IIII", entry, 0x10 + k * 0x10) for k in range(2)]
+            first = pds[0][0]
+            segments: List[Tuple[int, int, int]] = []
+            for pd_first, n_sectors, group_index, n_groups in pds:
+                if not n_sectors:
+                    continue
+                if pd_first < first:
+                    raise ImageError("the partition table of this image is not valid")
+                start = (pd_first - first) * SECTOR_DATA
+                data_size = n_sectors * SECTOR_DATA
+                if (not chunk_data or n_groups != -(-data_size // chunk_data)
+                        or group_index + n_groups > len(self._groups)):
+                    raise ImageError("the partition table does not match its groups")
+                for k in range(n_groups):
+                    begin = start + k * chunk_data
+                    end = min(begin + chunk_data, start + data_size)
+                    segments.append((begin, end, group_index + k))
+                    # the junk offset counts from the start of this data entry, as Dolphin writes it
+                    self._group_info[group_index + k] = (k * chunk_data, end - begin, lists)
+            segments.sort()
+            partitions.append((first * SECTOR, segments))
+        return partitions
+
+    def partition_view(self, data_at: int) -> "PartitionView":
+        """The decrypted data of the Wii partition whose data starts at disc offset ``data_at``."""
+        for start, segments in self._partitions:
+            if start == data_at and segments:
+                return PartitionView(self, segments)
+        raise ImageError(f"this image holds no Wii partition data at {data_at:#x}")
 
     def _group(self, index: int) -> bytes:
         cached = self._cache.get(index)
         if cached is not None:
             self._cache.move_to_end(index)
             return cached
-        start, end = self._segment_of_group[index]
-        data = self._decode_group(index, start, end - start)
+        junk_at, logical, lists = self._group_info[index]
+        data = self._decode_group(index, junk_at, logical, lists)
         self._cache[index] = data
         if len(self._cache) > CACHE_GROUPS:
             self._cache.popitem(last=False)
         return data
 
-    def _decode_group(self, group: int, disc_start: int, logical: int) -> bytes:
+    @staticmethod
+    def _skip_exceptions(data: bytes, lists: int, align: bool, what: str) -> int:
+        """The offset after ``lists`` hash exception lists at the start of ``data`` (padded to 4 when ``align``)."""
+        pos = 0
+        for _ in range(lists):
+            if pos + 2 > len(data):
+                raise ImageError(f"{what} ends inside its hash exceptions")
+            count = struct.unpack_from(">H", data, pos)[0]
+            if count > MAX_EXCEPTIONS:
+                raise ImageError(f"{what} declares {count} hash exceptions, more than a list can hold")
+            pos += 2 + count * EXCEPTION
+        if align:
+            pos += -pos % 4
+        if pos > len(data):
+            raise ImageError(f"{what} ends inside its hash exceptions")
+        return pos
+
+    def _decode_group(self, group: int, disc_start: int, logical: int, lists: int = 0) -> bytes:
         off4, field, packed = self._groups[group]
         if self._rvz:
             compressed = bool(field & JUNK_FLAG)
@@ -298,13 +373,17 @@ class WiaStream:
         if size == 0:
             return bytes(logical)   # every byte of this group is zero
         what = f"group {group}"
-        if size > 2 * self._chunk or packed > 2 * self._chunk:   # stored or packed: never twice the disc data
+        exceptions = lists * (2 + MAX_EXCEPTIONS * EXCEPTION)   # the most the hash exception lists can take
+        if size > 2 * self._chunk + exceptions or packed > 2 * self._chunk:   # never twice the disc data
             raise ImageError(f"{what} declares {max(size, packed)} bytes, more than a group of {self._chunk} can hold")
         raw = self._read_file(off4 * 4, size)
         if len(raw) != size:
             raise ImageError("the image ends inside a group")
-        if compressed and self._method != NONE:
-            raw = _decompress(self._method, raw, self._props, packed or logical, what)
+        stored = not (compressed and self._method != NONE)
+        if not stored:
+            raw = _decompress(self._method, raw, self._props, (packed or logical) + exceptions, what)
+        if lists:   # stored lists are padded to 4 bytes; compressed ones are not
+            raw = raw[self._skip_exceptions(raw, lists, stored, what):]
         if self._rvz and packed:
             return _unpack_rvz(raw, logical, disc_start)
         if len(raw) != logical:
@@ -365,6 +444,28 @@ class WiaStream:
 
     def __exit__(self, *exc) -> None:
         self.close()
+
+
+class PartitionView(PlainView):
+    """The decrypted data of one Wii partition of a WIA or RVZ image (0x7C00 bytes per disc sector, no hashes).
+    Gaps between its data entries read as zeros."""
+
+    def __init__(self, image: WiaStream, segments: List[Tuple[int, int, int]]) -> None:
+        super().__init__(segments[-1][1])
+        self._image = image
+        self._segments = segments
+        self._starts = [start for start, _end, _gi in segments]
+
+    def _plain(self, offset: int, size: int) -> bytes:
+        out = bytearray(size)
+        hi_total = offset + size
+        last = bisect.bisect_left(self._starts, hi_total)
+        for start, end, group in self._segments[:last]:
+            if end <= offset:
+                continue
+            lo, hi = max(start, offset), min(end, hi_total)
+            out[lo - offset:hi - offset] = self._image._group(group)[lo - start:hi - start]
+        return bytes(out)
 
 
 def open_disc(path) -> BinaryIO:

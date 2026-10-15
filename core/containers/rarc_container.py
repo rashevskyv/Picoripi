@@ -55,6 +55,7 @@ from . import yaz0
 
 
 _RARC_MAGIC = b"RARC"
+_CRAR_MAGIC = b"CRAR"   # the same layout with every field little-endian (Super Mario 3D All-Stars on Switch)
 _YAZ0_MAGIC = b"Yaz0"
 
 # Struct format strings (big-endian)
@@ -85,14 +86,14 @@ class RarcContainer(BaseArchiveContainer):
         """Check if can handle."""
         if len(data) < 4:
             return False
-        if data[:4] == _RARC_MAGIC:
+        if data[:4] in (_RARC_MAGIC, _CRAR_MAGIC):
             return True
         if data[:4] == _YAZ0_MAGIC:
             # Peek inside: decompress only enough to check inner magic.
             # For small archives this is fast; for large ones Yaz0 is O(n) but still fast.
             try:
                 inner = yaz0.decompress(data, limit=4)
-                return inner[:4] == _RARC_MAGIC
+                return inner[:4] in (_RARC_MAGIC, _CRAR_MAGIC)
             except Exception:
                 return False
         return False
@@ -104,9 +105,11 @@ class RarcContainer(BaseArchiveContainer):
         if self._is_yaz0:
             data = yaz0.decompress(data)
 
-        if data[:4] != _RARC_MAGIC:
+        if data[:4] not in (_RARC_MAGIC, _CRAR_MAGIC):
             raise ValueError(f"Not a RARC archive (magic={data[:4]!r})")
 
+        self.little_endian = data[:4] == _CRAR_MAGIC   # CRAR: the little-endian RARC of the Switch ports
+        self._e = "<" if self.little_endian else ">"
         self._raw: bytes = data
         self._overlay: dict[str, bytes] = {}  # staged file writes
 
@@ -121,20 +124,20 @@ class RarcContainer(BaseArchiveContainer):
         d = self._raw
 
         # RARC header
-        self._dh_off: int = struct.unpack_from(">I", d, 0x08)[0]   # data header offset (0x20)
-        self._data_off_rel: int = struct.unpack_from(">I", d, 0x0C)[0]  # file data start, rel to dh_off
+        self._dh_off: int = struct.unpack_from(self._e + "I", d, 0x08)[0]   # data header offset (0x20)
+        self._data_off_rel: int = struct.unpack_from(self._e + "I", d, 0x0C)[0]  # file data start, rel to dh_off
         self._abs_data_off: int = self._data_off_rel + self._dh_off
 
         # Data header fields (we keep these for faithful round-tripping)
         dh = self._dh_off
-        self._num_nodes: int    = struct.unpack_from(">I", d, dh + 0x00)[0]
-        self._node_list_off: int = struct.unpack_from(">I", d, dh + 0x04)[0] + dh
-        self._total_entries: int = struct.unpack_from(">I", d, dh + 0x08)[0]
-        self._entries_off: int   = struct.unpack_from(">I", d, dh + 0x0C)[0] + dh
-        self._str_list_size: int = struct.unpack_from(">I", d, dh + 0x10)[0]
-        self._str_list_off: int  = struct.unpack_from(">I", d, dh + 0x14)[0] + dh
-        self._next_free_id: int  = struct.unpack_from(">H", d, dh + 0x18)[0]
-        self._sync_ids: int      = struct.unpack_from(">B", d, dh + 0x1A)[0]
+        self._num_nodes: int    = struct.unpack_from(self._e + "I", d, dh + 0x00)[0]
+        self._node_list_off: int = struct.unpack_from(self._e + "I", d, dh + 0x04)[0] + dh
+        self._total_entries: int = struct.unpack_from(self._e + "I", d, dh + 0x08)[0]
+        self._entries_off: int   = struct.unpack_from(self._e + "I", d, dh + 0x0C)[0] + dh
+        self._str_list_size: int = struct.unpack_from(self._e + "I", d, dh + 0x10)[0]
+        self._str_list_off: int  = struct.unpack_from(self._e + "I", d, dh + 0x14)[0] + dh
+        self._next_free_id: int  = struct.unpack_from(self._e + "H", d, dh + 0x18)[0]
+        self._sync_ids: int      = struct.unpack_from(self._e + "B", d, dh + 0x1A)[0]
 
         # String table (kept verbatim – we never rename files)
         self._str_data: bytes = d[self._str_list_off : self._str_list_off + self._str_list_size]
@@ -144,10 +147,10 @@ class RarcContainer(BaseArchiveContainer):
         for i in range(self._num_nodes):
             off = self._node_list_off + i * _NODE_SIZE
             typ       = d[off : off + 4].decode("ascii", "replace").rstrip("\x00")
-            name_off  = struct.unpack_from(">I", d, off + 4)[0]
-            name_hash = struct.unpack_from(">H", d, off + 8)[0]
-            num_files = struct.unpack_from(">H", d, off + 10)[0]
-            first_fi  = struct.unpack_from(">I", d, off + 12)[0]
+            name_off  = struct.unpack_from(self._e + "I", d, off + 4)[0]
+            name_hash = struct.unpack_from(self._e + "H", d, off + 8)[0]
+            num_files = struct.unpack_from(self._e + "H", d, off + 10)[0]
+            first_fi  = struct.unpack_from(self._e + "I", d, off + 12)[0]
             self._nodes.append({
                 "type": typ,
                 "name_off": name_off,
@@ -162,12 +165,13 @@ class RarcContainer(BaseArchiveContainer):
         self._entries: list[dict] = []
         for i in range(self._total_entries):
             off = self._entries_off + i * _ENTRY_SIZE
-            file_id   = struct.unpack_from(">H", d, off + 0)[0]
-            name_hash = struct.unpack_from(">H", d, off + 2)[0]
-            flags     = struct.unpack_from(">H", d, off + 4)[0]
-            name_off  = struct.unpack_from(">H", d, off + 6)[0]
-            data_off  = struct.unpack_from(">I", d, off + 8)[0]
-            size      = struct.unpack_from(">I", d, off + 12)[0]
+            file_id   = struct.unpack_from(self._e + "H", d, off + 0)[0]
+            name_hash = struct.unpack_from(self._e + "H", d, off + 2)[0]
+            # one u32: the flags in the top 16 bits, the name offset in the low 16 (a CRAR swaps the whole word)
+            flags_name = struct.unpack_from(self._e + "I", d, off + 4)[0]
+            flags, name_off = flags_name >> 16, flags_name & 0xFFFF
+            data_off  = struct.unpack_from(self._e + "I", d, off + 8)[0]
+            size      = struct.unpack_from(self._e + "I", d, off + 12)[0]
             # 4 bytes of padding at off+16
 
             is_dir = (file_id == 0xFFFF)
@@ -298,17 +302,17 @@ class RarcContainer(BaseArchiveContainer):
         # Patch each file entry: data_off (at +8) and size (at +12)
         for entry_idx, (new_rel_off, new_size) in new_offsets.items():
             raw_off = self._entries[entry_idx]["raw_off"]
-            struct.pack_into(">I", prefix, raw_off + 8,  new_rel_off)
-            struct.pack_into(">I", prefix, raw_off + 12, new_size)
+            struct.pack_into(self._e + "I", prefix, raw_off + 8,  new_rel_off)
+            struct.pack_into(self._e + "I", prefix, raw_off + 12, new_size)
 
         # Patch RARC header: total_data_size (0x10) and mram_size (0x14)
         new_total_data = len(new_data_section)
-        struct.pack_into(">I", prefix, 0x10, new_total_data)
-        struct.pack_into(">I", prefix, 0x14, new_total_data)  # mram = all data
+        struct.pack_into(self._e + "I", prefix, 0x10, new_total_data)
+        struct.pack_into(self._e + "I", prefix, 0x14, new_total_data)  # mram = all data
 
         # Patch RARC header: file_size (0x04)
         new_file_size = len(prefix) + len(new_data_section)
-        struct.pack_into(">I", prefix, 0x04, new_file_size)
+        struct.pack_into(self._e + "I", prefix, 0x04, new_file_size)
 
         result = bytes(prefix) + bytes(new_data_section)
 
