@@ -10,12 +10,10 @@ from __future__ import annotations
 import copy
 import json
 import threading
-from typing import Any, Callable, Dict, List, Set, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from plugins.manual_3ds import console_render as cr
 from plugins.manual_3ds import repo_tools, simulator
-from utils.atomic_io import atomic_write_json
-from utils.constants import user_plugin_dir
 
 PLUGIN_NAME = "manual_3ds"
 SETTINGS_FILE = "preview.json"
@@ -31,7 +29,9 @@ RENDER_LOCK = threading.Lock()   # the owner's layout model keeps per-flow state
 
 
 def load_folder() -> str:
-    """The repo_manual folder the user chose, or "" (per user, outside the repository)."""
+    """The repo_manual folder the user chose, or "" (per user, outside the repository). Reads the disk."""
+    from utils.constants import user_plugin_dir   # the user data folder: resolved when asked, not at import
+
     try:
         data = json.loads((user_plugin_dir(PLUGIN_NAME) / SETTINGS_FILE).read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -41,6 +41,9 @@ def load_folder() -> str:
 
 
 def save_folder(folder: str) -> None:
+    from utils.atomic_io import atomic_write_json
+    from utils.constants import user_plugin_dir
+
     target = user_plugin_dir(PLUGIN_NAME)
     target.mkdir(parents=True, exist_ok=True)
     atomic_write_json(target / SETTINGS_FILE, {"repo_manual": folder}, indent=2, ensure_ascii=False)
@@ -149,11 +152,11 @@ def build_page(tools: Any, archive: Any, flows_by_key: Dict[str, List[Any]], par
 
 
 def page_kinds(tools: Any, manual_name: str, part: str, page: int, texts: Dict[str, str],
-               budgets: Dict[str, Any]) -> Tuple[Dict[str, Set[str]], Dict[str, str]]:
-    """{string key: defect kinds} of one page built from `texts` and drawn once, plus the layout failures.
+               budgets: Dict[str, Any]) -> Tuple[Dict[str, Dict[str, str]], Dict[str, str]]:
+    """{string key: {defect kind: detail}} of one page built from `texts` and drawn once, plus the layout failures.
 
     What the editor's problem scan reports for the page's strings is what the preview draws: both call this
-    build and ``simulator.page_defects``.
+    build and ``simulator.page_defects``. The detail is the first flagged line's (the translator shortens by it).
     """
     archive = archive_of(tools, manual_name)
     flows = flows_of(tools, manual_name)
@@ -164,9 +167,9 @@ def page_kinds(tools: Any, manual_name: str, part: str, page: int, texts: Dict[s
     textures = textures_of(tools, manual_name)
     rendered = simulator.render_page(files, textures, cr.Glyphs(repo_tools.load_font(tools), tools.bcfnt))
     number = index_of(tools, manual_name).number_of(page)
-    out: Dict[str, Set[str]] = {}
+    out: Dict[str, Dict[str, str]] = {}
     for defect in simulator.page_defects(rendered, textures, manual_name, number, f"Page_{page:03d}", part):
         key = owners.get(defect.pane)
         if key is not None:
-            out.setdefault(key, set()).add(defect.kind)
+            out.setdefault(key, {}).setdefault(defect.kind, f"{defect.text[:40]!r}: {defect.detail}")
     return out, failed

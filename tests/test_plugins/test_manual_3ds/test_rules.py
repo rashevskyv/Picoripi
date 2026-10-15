@@ -467,15 +467,18 @@ def test_home_menu_line_keeps_off_the_picture_or_frame_beside_it(key):
 
 
 class _FakeRender:
-    """page_build.page_kinds stand-in: records its calls, answers with fixed kinds for one string."""
+    """page_build.page_kinds stand-in: records its calls, answers with fixed kinds (detail "d") for a string."""
 
-    def __init__(self, kinds):
+    def __init__(self, kinds, error=None):
         self.calls = []
         self.kinds = kinds
+        self.error = error
 
     def __call__(self, tools, manual_name, part, page, texts, budgets):
         self.calls.append((manual_name, part, page, dict(texts)))
-        return {key: set(found) for key, found in self.kinds.items()}, {}
+        if self.error is not None:
+            raise self.error
+        return {key: {kind: f"{kind} d" for kind in found} for key, found in self.kinds.items()}, {}
 
 
 def _rules_with_render(monkeypatch, kinds):
@@ -493,6 +496,7 @@ def test_the_render_problems_of_the_page_reach_the_strings_that_own_them(widths,
     cell, two paragraphs' ink meeting, a line painted over) are the editor problems of the strings that own them."""
     rules, render = _rules_with_render(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell", "text_overlap"}, SAMPLE_KEYS[1]: {"covered"}})
     assert rules.manual_problems(0, 0, "Привіт") == {"M3D_CELL", "M3D_OVERLAP"}
+    assert rules.get_problem_detail(0, 0, "M3D_CELL") == "over_cell d"
     assert rules.manual_problems(0, 1, "") == {"M3D_COVERED"}
     assert render.calls == [("synthetic", "large", 0, {SAMPLE_KEYS[0]: "Привіт", SAMPLE_KEYS[1]: ""})]
     # The same texts again: the page is not rendered again. A changed text renders it once more.
@@ -509,6 +513,18 @@ def test_a_page_without_a_translation_is_not_rendered(widths, geometry, monkeypa
         entry["ua"] = ""
     assert rules.manual_problems(0, 0, "") == set()
     assert render.calls == []
+
+
+def test_a_page_the_tools_cannot_draw_is_cached_as_drawn_and_not_tried_again(widths, geometry, monkeypatch):
+    """A failing render leaves no render problems and is not repeated for the same texts (so a background render
+    and the host's rescan never chase each other); the folder setting is read from disk once."""
+    reads = []
+    rules, render = _rules_with_render(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell"}})
+    render.error = RuntimeError("no font")
+    monkeypatch.setattr(m3d.page_build, "load_folder", lambda: reads.append(1) or "repo")
+    first = rules.manual_problems(0, 0, "Привіт")
+    second = rules.manual_problems(0, 0, "Привіт")
+    assert (first, second, len(render.calls), len(reads)) == (set(), set(), 1, 1)
 
 
 def test_on_the_ui_thread_the_page_renders_in_the_background_and_the_block_is_rescanned(widths, geometry, monkeypatch):
@@ -534,7 +550,7 @@ def test_on_the_ui_thread_the_page_renders_in_the_background_and_the_block_is_re
             break
         import time
         time.sleep(0.01)
-    assert render.calls and rules._page_problems[(0, m3d.group_key_of(PAGE))][1] == {SAMPLE_KEYS[0]: {"M3D_CELL"}}
+    assert render.calls and rules._page_problems[(0, m3d.group_key_of(PAGE))][1] == {SAMPLE_KEYS[0]: {"M3D_CELL": "over_cell d"}}
     assert rules.manual_problems(0, 0, "Привіт") == {"M3D_CELL"}
     rules._rescan_block(0)
     assert rescanned == [0]

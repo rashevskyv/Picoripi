@@ -177,15 +177,17 @@ class GameRules(BaseGameRules):
         self._problem_cache: Dict[Tuple[int, int, str], Tuple[Set[str], Dict[str, str]]] = {}
         # (block, string) -> {problem id: detail text} from the last analysis of that string
         self._problem_details: Dict[Tuple[int, int], Dict[str, str]] = {}
-        # (block, page group) -> (the page's texts it was rendered with, {string key: render problem ids}).
+        # (block, page group) -> (the page's texts it was rendered with, {string key: {problem id: detail}}).
         # The render sees what the geometry cannot (a label leaving its cell, two paragraphs' ink meeting), so a
         # page is built from every current text on it and judged once; a changed text renders it again.
-        self._page_problems: Dict[Tuple[int, str], Tuple[Tuple[Tuple[str, str], ...], Dict[str, Set[str]]]] = {}
+        self._page_problems: Dict[Tuple[int, str], Tuple[Tuple[Tuple[str, str], ...], Dict[str, Dict[str, str]]]] = {}
         self._render_lock = threading.Lock()
         self._rendering: Set[int] = set()     # blocks a background render is working on
-        self._rescan = _Rescan()
-        self._rescan.block_done.connect(self._rescan_block)
+        # Made on the UI thread when the first background render is scheduled (a queued signal lands on the thread
+        # that owns the object). A render of a rules object the host replaced emits into nothing: harmless.
+        self._rescan: Optional[_Rescan] = None
         self._render_warned = False
+        self._root: Optional[str] = None      # the owner's folder, read from disk once per load (None: not yet)
 
     def get_display_name(self) -> str:
         return "Electronic manuals (3DS, Ukrainian)"
@@ -221,6 +223,7 @@ class GameRules(BaseGameRules):
         self._problem_cache = {}
         self._problem_details = {}
         self._page_problems = {}
+        self._root = None
 
     def prepare_save_context(self, context: Any) -> None:
         """The translation file is written over its newest existing version (translation, else the source)."""
@@ -256,6 +259,7 @@ class GameRules(BaseGameRules):
         self._problem_cache = {}
         self._problem_details = {}
         self._page_problems = {}
+        self._root = None
 
     def _manual(self, block_idx: Optional[int]) -> Optional[_Manual]:
         """The manual of a data block, its geometry looked up, or None."""
@@ -327,30 +331,37 @@ class GameRules(BaseGameRules):
                 details[pid] = f"{details[pid]}; {message}" if pid in details else message
             self._problem_cache[cache_key] = (ids, details)
         ids, details = self._problem_cache[cache_key]
-        self._problem_details[(block_idx, string_idx)] = details
-        return set(ids) | self._render_problems(block_idx, found_entry[0], found_entry[1])
+        rendered = self._render_problems(block_idx, found_entry[0], found_entry[1])
+        self._problem_details[(block_idx, string_idx)] = {**details, **rendered}
+        return set(ids) | set(rendered)
 
     # -- the render's problems ---------------------------------------------------------------
 
-    def _render_problems(self, block_idx: int, manual: _Manual, key: str) -> Set[str]:
-        """The render problem ids of one string: from the page cache, rendered now off the UI thread, or scheduled."""
+    def _folder(self) -> str:
+        """The owner's repo_manual folder (the preview panel's setting), read from disk once per load."""
+        if self._root is None:
+            self._root = page_build.load_folder()
+        return self._root
+
+    def _render_problems(self, block_idx: int, manual: _Manual, key: str) -> Dict[str, str]:
+        """{render problem id: detail} of one string: from the page cache, rendered now off the UI thread, or scheduled."""
         group = group_key_of(key)
-        if group is None or not manual.name or not page_build.load_folder():
-            return set()
+        if group is None or not manual.name or not self._folder():
+            return {}
         keys = [k for k in manual.keys if group_key_of(k) == group]
         texts = self._page_texts(block_idx, manual, keys)
         if not any(texts.values()):
-            return set()   # an untouched page draws Nintendo's own text: nothing to judge
+            return {}   # an untouched page draws Nintendo's own text: nothing to judge
         signature = tuple(sorted(texts.items()))
         cached = self._page_problems.get((block_idx, group))
         if cached is not None and cached[0] == signature:
-            return set(cached[1].get(key, set()))
+            return dict(cached[1].get(key, {}))
         if app_mode.headless or threading.current_thread() is not threading.main_thread():
             found = self._render_page_problems(manual, group, keys, texts)
             self._page_problems[(block_idx, group)] = (signature, found)
-            return set(found.get(key, set()))
+            return dict(found.get(key, {}))
         self._render_later(block_idx)   # never a render on the UI thread: the host rescans the block when it is done
-        return set()
+        return {}
 
     def _page_texts(self, block_idx: int, manual: _Manual, keys: List[str]) -> Dict[str, str]:
         """The current text of every string of a page: the editor's (edits included), else the loaded file's."""
@@ -360,25 +371,36 @@ class GameRules(BaseGameRules):
         index = {key: position for position, key in enumerate(manual.keys)}
         return {key: str(processor.get_current_string_text(block_idx, index[key])[0] or "") for key in keys}
 
-    def _render_page_problems(self, manual: _Manual, group: str, keys: List[str], texts: Dict[str, str]) -> Dict[str, Set[str]]:
+    def _render_page_problems(self, manual: _Manual, group: str, keys: List[str], texts: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+        """{string key: {problem id: detail}} of one page; {} (logged once) when the owner's tools cannot draw it.
+
+        Any failure is caught: the result is cached for these texts either way, so a page that cannot be drawn
+        never makes the background render and the host's rescan chase each other.
+        """
         try:
-            tools = repo_tools.load_tools(page_build.load_folder())
+            tools = repo_tools.load_tools(self._folder())
             part, page_name = group.split("/", 1)
             page = int(page_name.split("_")[1])
             budgets = {key: (manual.geo[key].budget if key in manual.geo else None) for key in keys}
             kinds, _failed = page_build.page_kinds(tools, manual.name or "", part, page, texts, budgets)
-        except (repo_tools.ToolsError, KeyError, ValueError, OSError) as exc:
+        except Exception as exc:  # the owner's tools, the font or a file: the scan goes on without the render
             if not self._render_warned:
                 self._render_warned = True
                 log_warning(f"manual_3ds: the page render for the problem scan is off: {exc!r}")
             return {}
-        return {key: {RENDER_IDS[kind] for kind in found if kind in RENDER_IDS} for key, found in kinds.items()}
+        return {key: {RENDER_IDS[kind]: detail for kind, detail in found.items() if kind in RENDER_IDS}
+                for key, found in kinds.items()}
 
     def _render_later(self, block_idx: int) -> None:
+        """Schedule a background render of the block (UI thread only): one thread per block at a time."""
         with self._render_lock:
             if block_idx in self._rendering:
                 return
             self._rendering.add(block_idx)
+        if self._rescan is None:
+            self._rescan = _Rescan()
+            self._rescan.block_done.connect(self._rescan_block)
+        # ponytail: one daemon thread per block (18 manuals at most); a single queue if they ever thrash.
         threading.Thread(target=self._render_block, args=(block_idx,), name="manual_3ds-scan-render", daemon=True).start()
 
     def _render_block(self, block_idx: int) -> None:
@@ -390,7 +412,11 @@ class GameRules(BaseGameRules):
             groups = sorted({group for group in (group_key_of(key) for key in manual.keys) if group})
             for group in groups:
                 keys = [k for k in manual.keys if group_key_of(k) == group]
-                texts = self._page_texts(block_idx, manual, keys)
+                try:
+                    texts = self._page_texts(block_idx, manual, keys)
+                except Exception as exc:  # the editor's data changed under the read: the next scan renders the page
+                    log_warning(f"manual_3ds: {group} not rendered for the scan: {exc!r}")
+                    continue
                 if not any(texts.values()):
                     continue
                 signature = tuple(sorted(texts.items()))
@@ -401,7 +427,8 @@ class GameRules(BaseGameRules):
             with self._render_lock:
                 self._rendering.discard(block_idx)
         try:
-            self._rescan.block_done.emit(block_idx)
+            if self._rescan is not None:
+                self._rescan.block_done.emit(block_idx)
         except RuntimeError:
             pass   # the rules were replaced while the render ran: nothing to rescan
 
