@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-15
 owns: unfinished work
-tokens: 33.4k
+tokens: 33.7k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -27,8 +27,6 @@ the line when it is done or moved into a plan.
 
 - Phase 2, not started: a live preview that draws the selected string in its applet's BCLYT panes with the shared 3DS renderer of `plugins/manual_3ds` (`console_render`, being reworked on `feat/manual-sim-fidelity`). Nothing is built for it yet.
 - Width limits: only the one layout-bound string has a box (`boxes.json`, System Settings `StartTopEU_U_00.bclyt` `TextBoxTitle_00`, 194 px at font size 18.75, read once from the decrypted applet romfs). A new `src/layouts/<part>.json` in the owner's repo needs its pane added there by hand (read the pane with the owner's `tools/bclyt.py` from the applet's romfs); until then its strings show their width only. MSBT strings have no known box: the owner's own budget (widest official localisation, `tools/validate.py label_budgets`) needs the `work/<tid>/romfs` dumps, which are not on disk for most titles.
-- Same-folder project: source and translation are the same files, so the plugin tells the passes apart by the host's order (sources, `export_runtime_state`, translations). An autosave export while a project load still parses sources would show `ua` as the original for the rest of that load. Fix if it shows: a host hook that names the pass. The same host order makes `manual_3ds`, whose source and translation are also one folder, show `ua` in its Original column (its load picks `ua` whenever the file has it; found by reading the code, not seen in the UI).
-- The Project Manager count parses a same-folder file once for both columns (`plugin_facts.count_project` caches by path), so its translated count for this project is not meaningful.
 - A save writes every `ua` the editor holds that differs from the file on disk, so a `ua` changed outside Picoripi in a file that is open is written back with the editor's text. The reference read (0.15 s for 138 files) runs on the UI thread, as for every plugin; the session keeps the string ids (about 310 KB).
 
 ## Link's Awakening Switch for LAS Recomp (`plugins/zelda_las`, 2026-10-14)
@@ -1166,3 +1164,16 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Super Mario Sunshine: escape tags and the attribute tables are still the Twilight Princess ones; the SMS tag catalogue is not written.
 - Super Mario Sunshine reference languages (2026-10-15, D37): the European disc gives English (EU), French, German, Spanish and Italian for 186 of 191 US message files (3193 of 3481 messages, every language). No reference: the four Japanese `dolpic1.bmg`, `title.szs/marisun_stage.bmg` (same file on both discs) and `main_strings.dolstr`. Open: the European English of a few slots says something else (`sys_message` #19 and #21, `pinnaParco5` and `test11/pinnaparco_5` #12, `ricco7` and `test11/ricco_7` #21; `loadmessage` #6 and #22-25 by the text pairing); a reworded slot or a moved message is not told apart.
 - Super Mario Sunshine reference, open: the owner's project folder holds `reference_eu`, but `project_settings.json` was not written (the agent's write was blocked); the owner runs the agent's `sms_set_eu_reference.bat` or picks the folder in Settings. A reference path that is still the disc image (Picoripi closed during the unpack) loads nothing at the next open; pick the disc again.
+
+## Final Fantasy Tactics Advance (GBA) plugin (`plugins/ffta_gba`, 2026-10-15)
+
+- Not opened yet: the name-entry keyboard grid (u16 LE codes from about 0xA33F00) and a few text runs outside the known
+  tables (0x4B9011, 0x4B658E, 0x4C3006, debug strings near 0x391000 and 0x3C4000).
+- The title menu words (New Game, Saved Game, Color Mode) and the intro captions are pictures; texture support is not
+  done.
+- Single-byte strings of the offset tables are not shown: 5,478 strings, all placeholder codes (5,474 `8D 8A FF` /
+  `8A FF` and four short kana strings); the build keeps their bytes.
+- The text buffer size is not read from the code (`rom_text.TEXT_LIMIT` = the longest string of the game).
+- FFTARecomp: upstream runs a translated ROM "Unpatched" (whole-ROM hash: no widescreen patches). A one-line fork
+  (`ffta_rom::eligible` = `verify_hooks`) shows it in 16:9 with the patches on (checked headless, 2026-10-15); the fork
+  is local and unpublished, and its installer still checks `KNOWN_SHA1`.

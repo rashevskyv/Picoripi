@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-14
 owns: decisions and their reasons
-tokens: 20.7k
+tokens: 21.2k
 purpose: Why the code is the way it is: one short record per decision
 ---
 # Decisions
@@ -861,3 +861,26 @@ Spanish, Italian) is context. Reference languages already load through `referenc
 
 **Cost.** A slot the European English rewrote shows that text without a mark. A reference path that is still the
 image (the app closed during the unpack) loads nothing until the disc is picked again.
+
+## D38. Final Fantasy Tactics Advance (GBA): edited text goes after the ROM's end, plain and two-byte (2026-10-15)
+
+**Context.** The text is in pointer tables (one u32 pointer a string) and in offset tables (u16 offsets from the
+table's start, reached from a pointer array, from code literals and from the event tree at 0x9C1484). Many strings
+are FFTA-LZSS packed (header bit 1); the game reads a plain string straight from the ROM. The ROM on disk is a trimmed
+10.2 MiB dump; a GBA cartridge holds 32 MiB. The English text uses no kana; the 16x16 font has 3175 cells with kana in
+0x8000-0x80A5.
+
+**Decision.**
+- An edited string is written plain (LZSS bit cleared, window bits kept) and two-byte; the plugin has no LZSS encoder.
+  A pointer-table name that was single-byte stays single-byte when every letter allows it.
+- An edited pointer-table string is appended after the ROM's end and every pointer of its table to it moves. A table
+  with an edited string is rebuilt (each string at an even offset) and appended; every exact u32 pointer to it in the
+  ROM and every event-tree offset to it change. The old bytes stay, so an unknown reference still reads the old text.
+  A table that nothing points to is refused with its address.
+- The 66 Ukrainian letters take the katakana codes 0x8053-0x8094 (the cells keep their kana until the translator draws
+  the letters). Japanese leftover strings in the event tables then read as Ukrainian letters in the editor.
+- An edited text longer than the longest plain string of the game (970 bytes) is refused: the end of the game's text
+  buffer at 0x020078B0 is not known.
+
+**Cost.** The ROM grows with every edit (whole tables are copied); a full translation adds a few hundred KiB. A
+compressed string that is edited takes more room than before.

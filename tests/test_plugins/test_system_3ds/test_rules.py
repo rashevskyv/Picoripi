@@ -4,7 +4,8 @@ import json
 
 import pytest
 
-from core.formats import SaveContext
+from core.formats import SaveContext, translation_parse
+from core.project_library import plugin_facts
 from plugins.system_3ds import rules as system_rules
 from plugins.system_3ds.rules import GameRules, read_entries
 
@@ -28,12 +29,12 @@ LAYOUT = json.dumps({"up_LZ.bin": {"./blyt/StartTopEU_U_00.bclyt": {"TextBoxTitl
 
 
 def _loaded(*files):
-    """A plugin after the host's project load: every source parsed, the state exported, then every translation."""
+    """A plugin after the host's project load: every source parsed, then every translation in the translation role."""
     rules = GameRules()
     rules.reset_runtime_state()
     originals = [rules.load_data_from_json_obj(raw)[0][0] for raw in files]
-    rules.export_runtime_state()
-    translations = [rules.load_data_from_json_obj(raw)[0][0] for raw in files]
+    with translation_parse(rules):
+        translations = [rules.load_data_from_json_obj(raw)[0][0] for raw in files]
     return rules, originals, translations
 
 
@@ -42,16 +43,12 @@ def _save(rules, raw, texts):
     return rules.save_data_to_json_obj([texts])
 
 
-def test_a_parse_before_the_export_is_the_english_original_and_after_it_the_ukrainian():
+def test_the_source_role_gives_the_english_original_and_the_translation_role_the_ukrainian():
     rules, originals, translations = _loaded(STRINGS)
     assert originals == [["HOME Menu", "Open", "абв", ""]]
     assert translations == [["Меню HOME", "{t:1.0:6200}Запустити{/t:1.0}", "абв", ""]]
-
-
-def test_a_restored_session_parses_translations():
-    rules = GameRules()
-    rules.restore_runtime_state({"blocks": []})
-    assert rules.load_data_from_json_obj(STRINGS)[0][0][0] == "Меню HOME"
+    assert len(rules.export_runtime_state()["blocks"]) == 1  # a translation parse adds no block
+    assert rules.load_data_from_json_obj(STRINGS)[0][0][0] == "HOME Menu"  # the role is back to source
 
 
 def test_the_project_sync_parse_of_json_names_one_block_and_changes_nothing():
@@ -132,3 +129,15 @@ def test_the_reference_is_the_russian_column_of_the_matching_file(tmp_path):
     (tmp_path / "layouts" / "system_settings.json").write_bytes(LAYOUT)
     rules, _, _ = _loaded(LAYOUT, STRINGS)
     assert rules.load_reference_patch(str(tmp_path)) == {(0, 0): "Выберите язык.", (1, 0): "Меню HOME"}
+
+
+def test_the_project_manager_counts_ukrainian_against_english_in_a_same_folder_project(tmp_path):
+    (tmp_path / "strings" / "area").mkdir(parents=True)
+    (tmp_path / "strings" / "area" / "EU_100.json").write_bytes(COMPACT)
+    project = tmp_path / "project.uiproj"
+    project.write_text(json.dumps({
+        "plugin_name": "system_3ds", "metadata": {"source_path": str(tmp_path), "translation_path": str(tmp_path)},
+        "blocks": [{"source_file": "strings/area/EU_100.json", "translation_file": "strings/area/EU_100.json"}]}),
+        encoding="utf-8")
+    # "Москва" and "Республіка Адигея" differ from the English: both count as translated.
+    assert plugin_facts.count_project(project)["counts"] == {"lines": 2, "needs_translation": 2, "translated": 2}

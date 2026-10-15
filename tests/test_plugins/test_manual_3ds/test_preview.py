@@ -9,6 +9,7 @@ import pytest
 from PyQt6 import sip
 
 import romhacking_root
+from core import formats
 from plugins.manual_3ds import preview_panel
 from plugins.manual_3ds import rules as m3d
 
@@ -235,9 +236,10 @@ def test_a_page_paragraph_of_activity_log_in_the_whole_project_draws_its_ukraini
     monkeypatch.setattr(preview_panel, "load_folder", lambda: str(folder))
     rules = m3d.GameRules()
     blocks, names = {}, {}
-    for block, path in enumerate(sorted((folder / "src" / "manuals").glob("*.json"))):
-        blocks[block] = rules.load_data_from_json_obj(path.read_text(encoding="utf-8"))[0][0]
-        names[str(block)] = path.stem
+    with formats.translation_parse(rules):  # the store's text is the translation the editor shows
+        for block, path in enumerate(sorted((folder / "src" / "manuals").glob("*.json"))):
+            blocks[block] = rules.load_data_from_json_obj(path.read_text(encoding="utf-8"))[0][0]
+            names[str(block)] = path.stem
     block = next(int(index) for index, name in names.items() if name == "activity_log")
     store = _Store([], blocks=blocks, block_names=names)
     store.current_block_idx = store.physical_block_idx = block
@@ -295,6 +297,71 @@ def test_host_docks_the_panel_in_place_of_the_bfn_preview(qtbot, monkeypatch):
     handler.attach_custom_preview()
     assert host.custom_preview_widget is None
     assert not bfn.isHidden() and not bar.isHidden()
+
+
+def test_a_second_attach_replaces_the_panel_and_shuts_the_old_one_down(qtbot):
+    """setup_plugin_ui docks the panel, a later load_game_plugin docks it again: one panel, the old one shut down."""
+    from PyQt6.QtWidgets import QVBoxLayout, QWidget
+
+    from ui.main_window.main_window_plugin_handler import MainWindowPluginHandler
+
+    shut = []
+
+    class Panel(QWidget):
+        def refresh(self):
+            pass
+
+        def shutdown(self):
+            shut.append(self)
+
+    class PanelRules(m3d.GameRules):
+        def get_custom_preview_widget(self, main_window):
+            return Panel()
+
+    host = _Store(["Text"])
+    column = QWidget()
+    qtbot.addWidget(column)
+    layout = QVBoxLayout(column)
+    bfn = QWidget(column)
+    layout.addWidget(bfn, 1)
+    host.bfn_preview_column, host.bfn_preview_widget, host.current_game_rules = column, bfn, PanelRules()
+    handler = MainWindowPluginHandler(host)
+
+    handler.attach_custom_preview()
+    first = host.custom_preview_widget
+    handler.attach_custom_preview()
+    second = host.custom_preview_widget
+    assert second is not first and shut == [first]
+    assert layout.count() == 2 and layout.indexOf(second) == 0 and layout.indexOf(first) == -1
+    assert bfn.isHidden()
+
+
+def test_a_preview_widget_that_fails_is_logged_and_the_bfn_preview_stays(qtbot, monkeypatch):
+    """pythonw has no stderr: an error of the plugin's widget must reach the app log, not end the plugin load."""
+    from PyQt6.QtWidgets import QVBoxLayout, QWidget
+
+    from ui.main_window import main_window_plugin_handler
+    from ui.main_window.main_window_plugin_handler import MainWindowPluginHandler
+
+    logged = []
+    monkeypatch.setattr(main_window_plugin_handler, "log_error",
+                        lambda message, exc_info=False, **kwargs: logged.append((message, exc_info)))
+
+    class BrokenRules(m3d.GameRules):
+        def get_custom_preview_widget(self, main_window):
+            raise RuntimeError("no panel today")
+
+    host = _Store(["Text"])
+    column = QWidget()
+    qtbot.addWidget(column)
+    bfn = QWidget(column)
+    QVBoxLayout(column).addWidget(bfn)
+    host.bfn_preview_column, host.bfn_preview_widget, host.current_game_rules = column, bfn, BrokenRules()
+
+    MainWindowPluginHandler(host).attach_custom_preview()
+
+    assert getattr(host, "custom_preview_widget", None) is None and not bfn.isHidden()
+    assert logged == [("The preview widget of BrokenRules failed: no panel today", True)]
 
 
 def test_the_index_entry_of_a_page_is_its_title_string():

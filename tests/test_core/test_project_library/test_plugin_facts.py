@@ -98,6 +98,27 @@ def test_count_project_counts_translated_lines_per_block(tmp_path):
     assert result["groups"] == {"(top level)": {"blocks": 1, "lines": 2}}
 
 
+def test_count_project_parses_a_file_read_in_place_once_per_role(tmp_path):
+    """One file is both source and translation (several languages in it): the translation side is parsed in the
+    translation role, not taken from the source parse."""
+    class RoleRules(FakeRules):
+        role = "source"
+
+        def set_load_role(self, role):
+            self.role = role
+
+        def load_data_from_json_obj(self, json_obj):
+            return [[entry[self.role] for entry in json_obj]], {}
+
+    (tmp_path / "a.json").write_text(json.dumps([{"source": "Hi", "translation": "Привіт"},
+                                                 {"source": "Bye", "translation": "Bye"}]), encoding="utf-8")
+    project = _project(tmp_path, [{"source_file": "a.json", "translation_file": "a.json"}])
+
+    result = plugin_facts.count_project(project, load_rules=_loader(RoleRules()))
+
+    assert result["counts"] == {"lines": 2, "needs_translation": 2, "translated": 1}
+
+
 def test_count_project_uses_the_internal_key_of_a_split_file(tmp_path):
     class NamedRules(FakeRules):
         def load_data_from_json_obj(self, json_obj):

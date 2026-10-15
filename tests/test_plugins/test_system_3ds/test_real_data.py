@@ -13,7 +13,7 @@ import sys
 import pytest
 
 import romhacking_root
-from core.formats import SaveContext
+from core.formats import SaveContext, translation_parse
 from plugins.system_3ds.rules import GameRules, line_widths, read_entries
 
 REPO = ("_shared", "3ds_sysfont_ua", "repo_manual")
@@ -42,8 +42,8 @@ def project_files(tmp_path_factory):
     raws = [p.read_bytes() for p in paths]
     for raw in raws:
         rules.load_data_from_json_obj(raw)
-    rules.export_runtime_state()
-    return rules, [(path, raw, rules.load_data_from_json_obj(raw)[0][0]) for path, raw in zip(paths, raws)]
+    with translation_parse(rules):
+        return rules, [(path, raw, rules.load_data_from_json_obj(raw)[0][0]) for path, raw in zip(paths, raws)]
 
 
 def _save(rules, raw, texts):

@@ -139,9 +139,10 @@ class AppActionHandler(BaseHandler):
 
             # Parsing the changes file must not change what the plugin learned from the original.
             plugin_state = formats.export_state(self.mw.current_game_rules)
-            new_edited_data, _ = safe_call(
-                self.mw.current_game_rules, 'load_data_from_json_obj', file_content, default=([], {})
-            )
+            with formats.translation_parse(self.mw.current_game_rules):
+                new_edited_data, _ = safe_call(
+                    self.mw.current_game_rules, 'load_data_from_json_obj', file_content, default=([], {})
+                )
             formats.restore_state(self.mw.current_game_rules, plugin_state)
             
             self.mw.data_store.edited_json_path = path
@@ -351,9 +352,10 @@ class AppActionHandler(BaseHandler):
                     QMessageBox.warning(self.mw, tr('Edited Load Warning'), f"Could not load changes file: {self.mw.data_store.edited_json_path}\n{edit_error}")
                 else:
                     plugin_state = formats.export_state(self.mw.current_game_rules)
-                    edited_data_from_file, _ = safe_call(
-                        self.mw.current_game_rules, 'load_data_from_json_obj', edited_file_content, default=([], {})
-                    )
+                    with formats.translation_parse(self.mw.current_game_rules):
+                        edited_data_from_file, _ = safe_call(
+                            self.mw.current_game_rules, 'load_data_from_json_obj', edited_file_content, default=([], {})
+                        )
                     formats.restore_state(self.mw.current_game_rules, plugin_state)
                         
                     self.mw.data_store.edited_file_data = edited_data_from_file

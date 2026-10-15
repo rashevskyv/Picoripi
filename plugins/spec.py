@@ -59,6 +59,8 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
              call=()),
         Hook("restore_runtime_state", "Take back what export_runtime_state returned.", call=(None,)),
         Hook("reset_runtime_state", "Forget the loading state before a new file or project is loaded.", call=()),
+        Hook("set_load_role", "\"translation\" while the host parses a translation file, \"source\" after: a source "
+             "file that also holds the translation returns the right language.", call=("source",)),
         Hook("prepare_save_context", "Called before save_data_to_json_obj for each project file, with a "
              "core.formats.SaveContext."),
         Hook("get_text_representation_for_editor", "Stored text of one subline as shown in the editor (tags to aliases).",

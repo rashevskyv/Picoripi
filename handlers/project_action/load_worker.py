@@ -208,7 +208,8 @@ class ProjectLoadWorker(WorkerThread):
                 parsed_edited_data = None
                 if not error and file_content is not None and self.current_game_rules:
                     try:
-                        parsed_edited_data, _ = self.current_game_rules.load_data_from_json_obj(file_content)
+                        with formats.translation_parse(self.current_game_rules):
+                            parsed_edited_data, _ = self.current_game_rules.load_data_from_json_obj(file_content)
                     except Exception as parse_err:
                         log_error(f"CORRUPT BMG: Failed to parse translation for {block.name} (archive {archive_rel_path}/{inner_path}): {parse_err}. Falling back to source.", category="file_ops")
                         file_content_src = None
@@ -233,7 +234,8 @@ class ProjectLoadWorker(WorkerThread):
                     if block.internal_key:
                         sub_idx_edit = -1
                         try:
-                            _, trans_names = self.current_game_rules.load_data_from_json_obj(file_content)
+                            with formats.translation_parse(self.current_game_rules):
+                                _, trans_names = self.current_game_rules.load_data_from_json_obj(file_content)
                         except Exception:
                             trans_names = {}
                         sub_idx_edit = _sub_block_index(trans_names, len(parsed_edited_data), block.internal_key)

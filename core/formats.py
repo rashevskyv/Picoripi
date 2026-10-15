@@ -15,6 +15,7 @@ from __future__ import annotations
 from utils.atomic_io import atomic_write_bytes
 
 import json
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Sequence, Set, Tuple, Union
@@ -191,6 +192,21 @@ def reset_state(rules: Any) -> None:
     hook = getattr(rules, "reset_runtime_state", None)
     if callable(hook):
         hook()
+
+
+@contextmanager
+def translation_parse(rules: Any) -> Iterator[None]:
+    """The parses inside read a translation file, not the source: the plugin hears ``set_load_role("translation")``
+    before them and ``set_load_role("source")`` after. A plugin whose source file can also hold the translation (one
+    file, several languages) needs it to know which language a parse returns."""
+    hook = getattr(rules, "set_load_role", None)
+    if callable(hook):
+        hook("translation")
+    try:
+        yield
+    finally:
+        if callable(hook):
+            hook("source")
 
 
 def prepare_save(rules: Any, context: SaveContext) -> None:

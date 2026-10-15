@@ -169,7 +169,7 @@ class GameRules(BaseGameRules):
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._blocks: List[Dict[str, Any]] = []  # per data block, in load order: {"keys": [...], "fp": "..."}
-        self._sources_read = False
+        self._load_role = "source"
         self._save_text: Optional[str] = None
         self._widths: Optional[manual_layout.Widths] = None
         self._boxes: Optional[Dict[str, Any]] = None
@@ -195,29 +195,25 @@ class GameRules(BaseGameRules):
         if not isinstance(json_obj, (bytes, bytearray)):
             return [], {}  # the project sync hands parsed JSON only to name blocks: one file is one block
         entries = read_entries(_text(json_obj))
-        if self._sources_read:
+        # The source and the translation are the same file: the host's load role says which column a parse fills.
+        if self._load_role == "translation":
             return [[entry.ua for entry in entries]], {}
         self._blocks.append({"keys": [entry.key for entry in entries], "fp": _fingerprint(entries)})
         return [[entry.en for entry in entries]], {}
 
+    def set_load_role(self, role: str) -> None:
+        self._load_role = role
+
     def export_runtime_state(self) -> Any:
-        # The source and the translation are the same file. The load worker parses every source, exports this state,
-        # then parses the translations (BaseGameRules.export_runtime_state); every later parse (a save, a revert)
-        # is a translation too. So a parse before the first export since a reset is a source (en), after it ua.
-        # ponytail: an autosave export while a project load still parses sources would flip it early; the loads
-        # clear the editor first, so nothing is dirty then. Upgrade: a host hook naming the pass.
-        self._sources_read = True
         return {"blocks": [dict(block) for block in self._blocks]}
 
     def restore_runtime_state(self, state: Any) -> None:
         blocks = state.get("blocks") if isinstance(state, dict) else None
         if isinstance(blocks, list):
             self._blocks = [dict(block) for block in blocks if isinstance(block, dict)]
-        self._sources_read = True
 
     def reset_runtime_state(self) -> None:
         self._blocks = []
-        self._sources_read = False
         self._save_text = None
 
     def prepare_save_context(self, context: Any) -> None:

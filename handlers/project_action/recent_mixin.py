@@ -98,6 +98,9 @@ class RecentMixin:
             self.mw.active_game_plugin = target_plugin
             if same_fresh_startup_plugin:
                 log_info(f"Reusing freshly loaded startup plugin: '{target_plugin}'")
+                # The glossary is the project's: the startup load ran before the project was open.
+                if getattr(self.mw, 'translation_handler', None):
+                    self.mw.translation_handler.initialize_glossary_highlighting()
             else:
                 self._report_startup(64, f"Loading {target_plugin} plugin…")
                 self.mw.load_game_plugin() # SYNC CALL UPDATING current_game_rules
