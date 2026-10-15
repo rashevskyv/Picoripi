@@ -3,6 +3,7 @@
 The message files are JSystem BMG, the same format as Twilight Princess, so this plugin reuses the Twilight Princess
 rules (``plugins.zelda_bmg``) for reading, saving and checks. Unpack extracts the whole disc (as Wind Waker does).
 Build targets: ``gc_iso`` (a new disc image) and ``port_pack`` (the mods/uk overlay for the PC and Switch ports).
+The European disc (GMSP01) is the reference: five languages beside each US message (``reference.py``, D37).
 
 The game's text is one byte per character. ``translation_map.json`` (this folder; the project's copy once a project is
 open) gives each Ukrainian letter and the apostrophe a code the game's text does not use (D35). A save that holds a
@@ -10,6 +11,7 @@ character with no code is refused with the character and the message; nothing is
 """
 import json
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.formats import FileFormat
@@ -17,7 +19,7 @@ from core.i18n import tr
 from core.project_library import images
 from plugins.zelda_bmg.rules import GameRules as TwilightPrincessRules
 
-from . import build
+from . import build, reference
 from .dol_text import FORMAT as DOLSTR_FORMAT, STRINGS as DOL_STRINGS, is_text_document
 
 GAME_ID = "GMSE01"
@@ -103,6 +105,36 @@ class GameRules(TwilightPrincessRules):
 
     def get_display_name(self) -> str:
         return "Super Mario Sunshine"
+
+    # Reference languages: the European disc (GMSP01), unpacked into the project (reference.py).
+    def get_reference_language_label(self) -> str:
+        return reference.LANGUAGES[0][1]
+
+    def load_reference_patch(self, patch_path: str, block_names=None) -> Dict[Tuple[int, int], str]:
+        return self.load_multi_reference(patch_path, block_names).get(self.get_reference_language_label(), {})
+
+    def load_multi_reference(self, patch_path: str, block_names=None) -> Dict[str, Dict[Tuple[int, int], str]]:
+        """The European languages of a ``reference_eu`` folder for each block, by file and message number. A disc
+        image gives nothing here: ``unpack_reference`` unpacks it first, on a worker thread."""
+        root = Path(patch_path)
+        if not root.is_dir():
+            return {}
+        blocks = {}
+        for key in block_names or {}:
+            try:
+                manager = self.mw.project_manager
+                block = manager.project.blocks[self.mw.block_to_project_file_map.get(int(key), int(key))]
+            except (AttributeError, IndexError, KeyError, TypeError, ValueError):
+                continue
+            blocks[int(key)] = (str(block.source_file).replace("\\", "/"),
+                                Path(manager.get_absolute_path(block.source_file)))
+        return reference.load_languages(root, blocks, self.get_text_representation_for_editor)
+
+    def unpack_reference(self, path: str, project_dir: str, progress, is_cancelled) -> Optional[str]:
+        """The European disc: its message files go to ``<project>/reference_eu``. Any other path is used as it is."""
+        if not reference.is_european_disc(path):
+            return None
+        return reference.unpack(path, project_dir, progress, is_cancelled)
 
     # Project Manager: the GameCube disc (USA) is unpacked whole; the source is the disc's folder tree.
     def get_platforms(self) -> list:

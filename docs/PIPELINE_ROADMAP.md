@@ -104,6 +104,9 @@ def load_reference_patch(self, patch_path: str, block_names: Optional[List[str]]
 
 def load_multi_reference(self, patch_path: str, block_names: Optional[List[str]] = None) -> Dict[str, Dict[Tuple[int, int], str]]:
     """Завантаження та парсинг файлів референсних перекладів кількома мовами (наприклад, з розпакованого ROM). Дефолт: обгортка load_reference_patch()."""
+
+def unpack_reference(self, path: str, project_dir: str, progress, is_cancelled) -> Optional[str]:
+    """Розпакування обраного файлу довідки (образ гри іншого регіону) у папку проєкту у фоновому потоці. Повертає папку для reference_patch_path. Дефолт: None (шлях як є)."""
 ```
 
 **Реалізація в TP (приклад, не частина рушія):**

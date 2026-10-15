@@ -662,7 +662,7 @@ class MainWindowEventHandler:
                 self.mw,
                 tr("Select Multi-Language ROM ISO Image"),
                 initial_dir,
-                "Game ISO Images (*.iso);;All Files (*)",
+                "Game disc images (*.iso *.gcm *.rvz *.wia);;All Files (*)",
             )
             if not iso_path:
                 return
@@ -685,7 +685,42 @@ class MainWindowEventHandler:
         self._apply_reference_path(dir_path)
 
     def _apply_reference_path(self, dir_path: str) -> None:
-        """Load and apply reference translations from dir_path."""
+        """Load and apply reference translations from dir_path. A picked file goes to the plugin's
+        ``unpack_reference`` on a worker thread first; the folder it returns becomes the reference path."""
+        from pathlib import Path
+        from core.reference_manager import ReferenceUnpackWorker
+        from utils.thread_utils import safe_shutdown_thread
+        project_dir = getattr(self.mw.project_manager, 'project_dir', None)
+        game_rules = getattr(self.mw, 'current_game_rules', None)
+        if not (dir_path and project_dir and hasattr(game_rules, 'unpack_reference') and Path(dir_path).is_file()):
+            self._use_reference_path(dir_path)
+            return
+        old = getattr(self, '_reference_worker', None)
+        if old is not None:
+            safe_shutdown_thread(old, old)
+        worker = ReferenceUnpackWorker(game_rules, dir_path, str(project_dir))
+        worker.finished_signal.connect(
+            lambda folder, error: self._on_reference_unpacked(worker, project_dir, dir_path, folder, error))
+        self._reference_worker = worker
+        if hasattr(self.mw, 'show_toast'):
+            self.mw.show_toast(tr("Reading the reference from {0}...", Path(dir_path).name))
+        worker.start()
+
+    def _on_reference_unpacked(self, worker, project_dir, picked: str, folder: str, error: str) -> None:
+        """The unpack ended: use its folder (or the picked path), unless another pick or project came since."""
+        if worker is not getattr(self, '_reference_worker', None):
+            return
+        self._reference_worker = None
+        if getattr(self.mw.project_manager, 'project_dir', None) != project_dir:
+            return
+        if error:
+            if hasattr(self.mw, 'show_toast'):
+                self.mw.show_toast(tr("Cannot read the reference: {0}", error))
+            return
+        self._use_reference_path(folder or picked)
+
+    def _use_reference_path(self, dir_path: str) -> None:
+        """Store dir_path as the reference path and load its languages."""
         from core.reference_manager import ReferenceManager
         self.mw.reference_patch_path = dir_path or ""
         project_dir = getattr(self.mw.project_manager, 'project_dir', None)

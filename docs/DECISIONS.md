@@ -837,3 +837,27 @@ with no project the map went, not atomically, to the shipped `plugins/<plugin>/t
 **Cost.** A repaired font asks to be saved on close. With **Auto-sync** on, marking the font unsaved schedules the usual
 auto-save (the user's opt-in), which now writes to the user's or the project's location. A user copy of the limits
 hides later changes to the shipped defaults until the user deletes it.
+
+## D37. Super Mario Sunshine: the European disc as reference languages, unpacked by a plugin hook (2026-10-15)
+
+**Context.** The owner translates the US English slot only; the European disc (GMSP01: English, French, German,
+Spanish, Italian) is context. Reference languages already load through `reference_patch_path` and
+`load_multi_reference`, which runs on the UI thread at project open. Reading the BMG files from the RVZ takes about
+40 s, so it cannot happen there.
+
+**Decision.**
+- A new optional hook `unpack_reference(path, project_dir, progress, is_cancelled)`. When the user picks a file as the
+  reference, `ReferenceUnpackWorker` calls it on a worker thread; the returned folder becomes `reference_patch_path`.
+  Default None: the path is used as it is (Twilight Princess ISOs keep their old path).
+- Super Mario Sunshine writes only the disc's BMG members (936 files, 1.6 MB) into `<project>/reference_eu`, in the
+  folder layout of the US unpack (archives as folders). Not the whole disc: `fold_archives` would write every model and
+  texture. The folder sits beside `unpacked`, so the source scan never sees it.
+- The European file of a US file is found by name (`message_L.bmg`, `_L/` folder, `<archive>_L.szs`, `cmn2d_L.szs`).
+  Messages match by number when the counts agree (185 of 186 files); otherwise by the English text (difflib), and
+  that pairing serves the other four languages.
+- The European BMGs add an STR1 section (message names) that `BMGFile` reads as another game's layout, so the reader
+  keeps only INF1 and DAT1. The text is shown as the disc has it: the Ukrainian code map (D35) is not applied, or
+  é would show as й.
+
+**Cost.** A slot the European English rewrote shows that text without a mark. A reference path that is still the
+image (the app closed during the unpack) loads nothing until the disc is picked again.
