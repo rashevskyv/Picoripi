@@ -862,7 +862,7 @@ Spanish, Italian) is context. Reference languages already load through `referenc
 **Cost.** A slot the European English rewrote shows that text without a mark. A reference path that is still the
 image (the app closed during the unpack) loads nothing until the disc is picked again.
 
-## D39. 3DS manual simulator: a screenshot is judged against the build that was on the card; occlusion is draw order (2026-10-15)
+## D40. 3DS manual simulator: a screenshot is judged against the build that was on the card; occlusion is draw order (2026-10-15)
 
 **Context.** The owner's New 3DS screenshots (`shots_r19`, 114 pairs dated 2011-01-01 by the console clock) showed
 table labels cut at the cell edge, captions running into each other and lines past the card edge. A first match
