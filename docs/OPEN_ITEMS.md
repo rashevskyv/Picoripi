@@ -25,9 +25,9 @@ the line when it is done or moved into a plan.
 
 ## Link's Awakening Switch for LAS Recomp (`plugins/zelda_las`, 2026-10-14)
 
-- Not run in LAS Recomp yet. The font is the owner's choice and is not in the repo: Noto Sans Regular 2.015 (OFL, `glyf`, has the Ukrainian letters) waits in the RomHacking workspace `Zelda\Links Awakening\Switch\fonts`. Not seen in the game yet: its size and line height against the Standard font.
-- Button icons come from the NintendoExt font (`runtime/hle/pl.c`, type 5). Without the owner's dump of `nintendo_ext_003` the recomp draws them with the Standard font, which has no such glyphs; this is the same with the recomp's own fallback fonts.
-- The SWUK import copies `region_common/ui/StartUp.arc` and `jpn_heading.bffnt`, made for v1.1.0, over the 1.0.0 files. Not checked on 1.0.0.
+- Run in LAS Recomp beta_4 (2026-10-15) with the owner's v1.0.0 dump, the SWUK import and DejaVu Sans 2.37: the Ukrainian title screen, file select, difficulty choice and name entry show. Not reached yet: the first dialogue (the scripted run did not get past the name entry). Noto Sans 2.015 crashed the game at start (no U+25A1); the build now refuses such a font. The font is not in the repo. Not checked yet: the font's size and line height in long dialogue against the Standard font.
+- Button icons come from the NintendoExt font (`runtime/hle/pl.c`, type 5). Without the owner's dump of `nintendo_ext_003` the title screen still showed the L and R icons; other icons in text are not checked.
+- The SWUK import copies `region_common/ui/StartUp.arc` and `jpn_heading.bffnt`, made for v1.1.0, over the 1.0.0 files. On 1.0.0 in LAS Recomp the Ukrainian title logo shows and nothing crashed up to the title screen; later screens are not checked.
 - A killed process or a power loss during an unpack leaves `.unpack-<id>` in the project folder (a cancel or an error removes it), now with the NCZ cache inside; nothing removes it later.
 - An `.nsz` needs Python 3.14: `core/containers/switch_nsz.py` takes the streaming decoder from `core/zstd_frame.stdlib()` (no `zstandard` fallback). NCZBLOCK blocks above 16 MiB (`MAX_BLOCK_EXP` 24) are refused; nsz writes 1 MiB by default.
 

@@ -231,15 +231,24 @@ def test_the_font_check_wants_glyf_outlines_and_every_ukrainian_letter(tmp_path)
     with pytest.raises(ValueError) as refused:
         recomp.find_font(tmp_path)
     assert str(refused.value).splitlines()[1:] == [
-        "a_cff.ttf: not a TrueType font with glyf outlines", "b_short.ttf: no letters ЇїЄєҐґʼ", "c_broken.ttf: cannot read it"]
-    (fonts / "d_good.ttf").write_bytes(_ttf(recomp.UKRAINIAN))
+        "a_cff.ttf: not a TrueType font with glyf outlines", "b_short.ttf: no characters ЇїЄєҐґʼ□", "c_broken.ttf: cannot read it"]
+    (fonts / "d_good.ttf").write_bytes(_ttf(recomp.REQUIRED))
     assert recomp.find_font(tmp_path) == fonts / "d_good.ttf"
+
+
+def test_a_font_without_the_white_square_is_refused(tmp_path):
+    # Noto Sans 2.015 has every Ukrainian letter but no U+25A1, and LAS Recomp crashed at start with it.
+    (tmp_path / "fonts").mkdir()
+    (tmp_path / "fonts" / "Noto.ttf").write_bytes(_ttf(recomp.UKRAINIAN))
+    with pytest.raises(ValueError) as refused:
+        recomp.find_font(tmp_path)
+    assert str(refused.value).splitlines()[1:] == ["Noto.ttf: no characters □"]
 
 
 def test_the_font_setting_names_a_file_outside_the_project(tmp_path):
     own = tmp_path / "elsewhere" / "Mine.ttf"
     own.parent.mkdir()
-    own.write_bytes(_ttf(recomp.UKRAINIAN))
+    own.write_bytes(_ttf(recomp.REQUIRED))
     project = tmp_path / "project"
     project.mkdir()
     (project / "project_settings.json").write_text(json.dumps({recomp.FONT_SETTING: str(own)}), encoding="utf-8")
@@ -265,7 +274,7 @@ def test_a_dot_name_in_both_trees_does_not_stop_the_build(tmp_path):
     translation.mkdir()
     (translation / ".cache").write_bytes(b"y")
     (tmp_path / "fonts").mkdir()
-    (tmp_path / "fonts" / "UA.ttf").write_bytes(_ttf(recomp.UKRAINIAN))
+    (tmp_path / "fonts" / "UA.ttf").write_bytes(_ttf(recomp.REQUIRED))
     out = _build_dir(tmp_path)
     recomp.build(str(romfs), str(translation), str(out), lambda done, total: None, lambda: False)
     assert set(_romfs_contents((out / recomp.ROMFS_NAME).read_bytes())) == {"romfs/region_common/a.bin"}
@@ -274,8 +283,9 @@ def test_a_dot_name_in_both_trees_does_not_stop_the_build(tmp_path):
 
 def test_the_build_replaces_the_translated_files_and_writes_the_folder_copies(tmp_path):
     (tmp_path / "fonts").mkdir()
-    (tmp_path / "fonts" / "UA.ttf").write_bytes(_ttf(recomp.UKRAINIAN))
+    (tmp_path / "fonts" / "UA.ttf").write_bytes(_ttf(recomp.REQUIRED))
     (tmp_path / "fonts" / recomp.FONT_LICENCE).write_text("licence", encoding="utf-8")
+    (tmp_path / "fonts" / "LICENSE").write_text("dejavu licence", encoding="utf-8")
     romfs = tmp_path / "romfs"
     (romfs / "regionEU" / "EUen" / "message").mkdir(parents=True)
     (romfs / "regionEU" / "EUen" / "message" / "Hint.msbt").write_bytes(b"old hint")
@@ -297,6 +307,7 @@ def test_the_build_replaces_the_translated_files_and_writes_the_folder_copies(tm
     assert (out / "romfs" / "regionEU" / "EUen" / "message" / "Hint.msbt").read_bytes() == b"new hint"
     assert (out / "fonts" / recomp.FONT_NAME).read_bytes() == (tmp_path / "fonts" / "UA.ttf").read_bytes()
     assert (out / "fonts" / recomp.FONT_LICENCE).read_text(encoding="utf-8") == "licence"
+    assert (out / "fonts" / "LICENSE").read_text(encoding="utf-8") == "dejavu licence"
     assert "romfs.bin" in (out / "README.txt").read_text(encoding="utf-8")
 
 
@@ -305,7 +316,7 @@ def test_a_cancelled_build_leaves_no_romfs_bin(tmp_path):
     romfs.mkdir()
     (romfs / "a.bin").write_bytes(b"a")
     (tmp_path / "fonts").mkdir()
-    (tmp_path / "fonts" / "UA.ttf").write_bytes(_ttf(recomp.UKRAINIAN))
+    (tmp_path / "fonts" / "UA.ttf").write_bytes(_ttf(recomp.REQUIRED))
     out = _build_dir(tmp_path)
     recomp.build(str(romfs), str(tmp_path / "none"), str(out), lambda done, total: None, lambda: True)
     assert not (out / recomp.ROMFS_NAME).exists()
