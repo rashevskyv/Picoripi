@@ -238,7 +238,7 @@ def test_wii_and_unknown_nkit_images_are_refused_with_the_reason(tmp_path):
     (tmp_path / "other.iso").write_bytes(bytes(other))
 
     assert images.identify(tmp_path / "wii.iso") == {"kind": "wii", "game_id": "\0" * 6, "title_id": "\0" * 6,
-                                                     "encrypted": True, "title_kind": ""}
+                                                     "encrypted": True, "title_kind": "", "revision": 0}
     assert images.needs_key(tmp_path / "wii.iso") == "wii"   # the Wii unpack reads a key file
     with pytest.raises(ImageError, match="needs its key file"):
         with images.open_image(tmp_path / "wii.iso"):

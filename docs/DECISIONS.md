@@ -861,3 +861,38 @@ Spanish, Italian) is context. Reference languages already load through `referenc
 
 **Cost.** A slot the European English rewrote shows that text without a mark. A reference path that is still the
 image (the app closed during the unpack) loads nothing until the disc is picked again.
+
+## D38. Super Mario Galaxy 1 and 2: one project for every version, keyed by message label (2026-10-15)
+
+**Context.** The owner wants one Super Mario Galaxy project whose translation goes to the Wii disc (RMGE01 rev 0), the
+Switch release (010099C022B96000) and the Nebula PC recompilation, and the same for Super Mario Galaxy 2 (SB4E01,
+0100FD8022DAA000). The Ukrainian SMG1 translation exists as a Switch LayeredFS mod. The versions do not share message
+order: SMG1 Wii has 2463 labels, the Switch 2246 (1938 shared; 504 of the 525 Wii-only labels are empty, the
+Switch-only ones are new menus). The game looks every message up by its name (`messageid.tbl`, or the MSBT label in
+SMG2), so the name is stable where the index is not.
+
+**Decision.**
+- The editable unit is a plugin document per message archive (`MessageData/<archive>.smgmsg`, JSON): one row per
+  label over the Wii and Switch English slots, the Wii text first, then the labels only the Switch has; each row lists
+  the versions that have it. A build writes each version's own archives by label and keeps every untouched message
+  (the Switch rewords some English). SMG1 archives are BMG + BCSV labels; SMG2 archives are one per zone with MSBT
+  members (key `<member>/<label>`). What differs between the games (ids, Nebula) is data in `unpack.GAMES`.
+- Editor tags show the Wii bytes on every version. The Switch files are the same formats little-endian (CRAR, swapped
+  section magics, UTF-16LE); tag fields are swapped by a measured rule: BMG tag number and groups 1 (u16), 6 and 7
+  (u32); every u16 of an LMS tag. Button pictures (group 3) differ in number and are paired per label from the English
+  of both versions (majority pair as fallback).
+- Wii WIA/RVZ images are read with no key: the format stores partitions decrypted with hashes removed
+  (`core/containers/wia.py` `partition_view`; `WiiImage(stream, None)`). A Wii ISO still needs the key file; DolphinTool
+  can convert it to RVZ (done for SB4E01). `WiiImage` now reads the FST size as divided by 4 (it was taken as bytes).
+- Builds: Wii a Riivolution patch plus a Dolphin game-mod descriptor (smallest, also works on a console); Nebula a
+  `GALAXY_DISC_MOD_MANIFEST` whose grown archive goes into a free gap before the first file, with a patched FST;
+  Switch an Atmosphere LayeredFS folder for every English slot.
+- An imported mod's archive becomes that version's base archive (`translation/versions/<version>/...`): the Ukrainian
+  and Russian Switch mods were made for a game update whose archive has labels the base game lacks, and Picoripi cannot
+  read update (BKTR) RomFS. Its `Font.arc` goes beside it.
+- Fonts: the Wii `Font.arc` BRFNTs open in the font editor; `bcfnt` gained the RGB5A3 sheets of the number and
+  button fonts, so all five save byte for byte. No Cyrillic is drawn.
+
+**Cost.** The Nebula path needs the patched `fst.bin` copied over Nebula's `content\sys\fst.bin` as well: Nebula loads
+the loose FST at boot and ignores the manifest for it (measured). The Wii fonts have no Cyrillic, so Ukrainian shows as
+`?` on Wii and in Nebula until a font is made. A Switch picture with no Wii pair stays a Switch number in the Wii build.

@@ -2328,5 +2328,19 @@
   "main.dol: the word at {0:#x} is not the expected instruction ({1})": "main.dol: слово за адресою {0:#x} не є очікуваною інструкцією ({1})",
   "{0}: the message attributes (INF1) changed; only the text may change": "{0}: змінено атрибути повідомлень (INF1); можна змінювати лише текст",
   "{0}: the character {1} has no code in the game's text": "{0}: символ {1} не має коду в тексті гри",
-  "Message {0}": "Повідомлення {0}"
+  "Message {0}": "Повідомлення {0}",
+  "No free space in the disc for a file of {0} bytes.": "На диску немає вільного місця для файлу розміром {0} байтів.",
+  "The project's source has no Super Mario Galaxy version.": "У вихідних файлах проєкту немає жодної версії Super Mario Galaxy.",
+  "The project has no message documents ({0}).": "У проєкті немає документів повідомлень ({0}).",
+  "The project has no {0} version: add its game file and unpack again.": "У проєкті немає версії {0}: додайте її файл гри й розпакуйте знову.",
+  "Nebula runs only Super Mario Galaxy.": "Nebula запускає лише Super Mario Galaxy.",
+  "Nebula runs only the USA disc revision 0 (its main.dol): this project has another.": "Nebula запускає лише диск USA ревізії 0 (його main.dol): у цьому проєкті інший.",
+  "The disc has no file {0}.": "На диску немає файлу {0}.",
+  "Wii disc (USA)": "Диск Wii (USA)",
+  "Switch game": "Гра для Switch",
+  "Another Wii disc (reference languages)": "Інший диск Wii (мови для довідки)",
+  "Wii: Riivolution patch and Dolphin launcher": "Wii: патч Riivolution і запуск у Dolphin",
+  "Nebula (PC): disc mod manifest": "Nebula (ПК): маніфест мода диска",
+  "Switch: Atmosphere LayeredFS mod": "Switch: мод LayeredFS для Atmosphere",
+  "Tag group {0}": "Група тегів {0}"
 }
