@@ -6,7 +6,9 @@ its data folder. The build writes that image from the unpacked ``romfs`` tree, w
 The game draws its text with the console's Standard font, which no game file holds. The recomp loads it from
 ``<data root>/fonts/nintendo_udsg-r_std_003.ttf`` (``runtime/hle/pl.c``). Its font engine needs TrueType (``glyf``)
 outlines and crashes on CFF. The build copies the project's font there: the file named by ``lasrecomp_font`` in
-``project_settings.json``, else a ``.ttf`` in ``<project>/fonts/``. It refuses a font without the Ukrainian letters.
+``project_settings.json``, else a ``.ttf`` in ``<project>/fonts/``. It refuses a font without the Ukrainian letters
+or without U+25A1 (white square): the game's text code looks that glyph up at start and crashes when the font has
+none (seen with Noto Sans 2.015; Arial and DejaVu Sans have it).
 """
 from __future__ import annotations
 
@@ -29,7 +31,9 @@ FONT_DIR = "fonts"                               # in the project folder, and in
 FONT_NAME = "nintendo_udsg-r_std_003.ttf"        # the Standard font name pl.c loads (its "Import fonts" takes it too)
 FONT_SETTING = "lasrecomp_font"                  # project_settings.json: a .ttf file or a folder
 FONT_LICENCE = "OFL.txt"                         # copied with the font when it lies beside it
+FONT_LICENCES = (FONT_LICENCE, "LICENSE")         # OFL fonts ship OFL.txt; DejaVu ships LICENSE
 UKRAINIAN = "ІіЇїЄєҐґʼ"
+REQUIRED = UKRAINIAN + "□"                  # U+25A1: without it the game crashes at start (module docstring)
 TRUETYPE = b"\x00\x01\x00\x00"
 README = r"""Link's Awakening (Switch) for LAS Recomp
 
@@ -69,8 +73,8 @@ def _font_problem(path: Path) -> str:
         return tr("cannot read it")
     if data[:4] != TRUETYPE or "glyf" not in font.tables or "CFF " in font.tables:
         return tr("not a TrueType font with glyf outlines")
-    missing = "".join(char for char in UKRAINIAN if ord(char) not in mapped)
-    return tr("no letters {0}", missing) if missing else ""
+    missing = "".join(char for char in REQUIRED if ord(char) not in mapped)
+    return tr("no characters {0}", missing) if missing else ""
 
 
 def find_font(project_dir: Path) -> Path:
@@ -89,8 +93,8 @@ def find_font(project_dir: Path) -> Path:
         if not problem:
             return path
         reasons.append(f"{path.name}: {problem}")
-    raise ValueError(tr("LAS Recomp needs a TrueType font (.ttf, glyf outlines) with the letters {0}. Put one into {1}, "
-                        "or name it with \"{2}\" in project_settings.json.", UKRAINIAN, str(folder), FONT_SETTING)
+    raise ValueError(tr("LAS Recomp needs a TrueType font (.ttf, glyf outlines) with the characters {0}. Put one into "
+                        "{1}, or name it with \"{2}\" in project_settings.json.", REQUIRED, str(folder), FONT_SETTING)
                      + "".join(f"\n{line}" for line in reasons))
 
 
@@ -132,7 +136,8 @@ def build(source_dir: str, translation_dir: str, output_dir: str,
         shutil.copyfile(source, target)
     (out / FONT_DIR).mkdir()
     shutil.copyfile(font, out / FONT_DIR / FONT_NAME)
-    if (font.parent / FONT_LICENCE).is_file():
-        shutil.copyfile(font.parent / FONT_LICENCE, out / FONT_DIR / FONT_LICENCE)
+    for licence in FONT_LICENCES:
+        if (font.parent / licence).is_file():
+            shutil.copyfile(font.parent / licence, out / FONT_DIR / licence)
     (out / "README.txt").write_text(README, encoding="utf-8")
     return output_dir
