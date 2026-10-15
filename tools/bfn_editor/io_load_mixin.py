@@ -75,6 +75,9 @@ class IoLoadMixin:
             self.bfn_path = str(write_path)
             self.folder_path = ''
             self.load_from_extracted_dir(self.temp_dir)
+            # Saved in place only: never through the last tree font's save callback or into its cache
+            self.archive_save_callback, self.archive_name, self.archive_files = None, "", {}
+            self.current_bfn_name = os.path.basename(path)
             self.status.showMessage(tr("Successfully loaded BFN: {0} (editing in-place)", os.path.basename(path)))
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, tr('Error'), tr('Failed to parse BFN file: {0}', e))
@@ -253,6 +256,9 @@ class IoLoadMixin:
             )
             if reply == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.save_changes()
+                if self._dirty:         # the save failed or a plugin font's write job runs: keep the edits open
+                    event.ignore()
+                    return
                 self.clear_temp()
                 event.accept()
             elif reply == QtWidgets.QMessageBox.StandardButton.No:

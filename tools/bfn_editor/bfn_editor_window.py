@@ -133,18 +133,20 @@ class BfnEditorWindow(
         self.archive_files = archive_files or {}
         self.current_bfn_name = bfn_name
         
-        # Populate in_memory font sources first
+        # Populate in_memory font sources first; a switch back to this font restores its save callback
         if self.archive_name:
             self.font_sources[self.archive_name] = {
                 "type": "in_memory",
                 "path": "",
-                "files": self.archive_files
+                "files": self.archive_files,
+                "save_callback": save_callback,
             }
         else:
             self.font_sources[bfn_name] = {
                 "type": "in_memory",
                 "path": "",
-                "files": {bfn_name: bfn_bytes}
+                "files": {bfn_name: bfn_bytes},
+                "save_callback": save_callback,
             }
             
         self.scan_fonts_directories()

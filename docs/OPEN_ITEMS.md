@@ -18,10 +18,6 @@ the line when it is done or moved into a plan.
 - Rule 9: `io_save_mixin.save_changes` writes `data.json` and `sheet_*.png` with plain `open`/`QImage.save`; in
   extracted-folder mode (no BFN path) these are the user's files, so a crash mid-save can leave them torn.
 - `WiaStream.read()` with no size allocates the header-declared disc size at once; only tests call it so.
-- Font Editor `closeEvent`: "Yes, save" closes the window also when the save failed (the font stays unsaved, the
-  error box is shown, the edits are lost). A plugin font's save job can also end after the window closed.
-- Font Editor tree: after a fonts-folder font, `archive_save_callback` stays `save_disk_font` for that font; a
-  switch back to the project archive's font (`in_memory`) then saves it into the fonts-folder file.
 - `bfn_actions.save_callback` puts the font into the project's in-memory archive before the disk write; after a
   failed write the in-memory archive is ahead of the file until the next save.
 - A plugin BFN font's width map, translation map and main-window preview cache are updated before its file is written (unchanged); a failed font

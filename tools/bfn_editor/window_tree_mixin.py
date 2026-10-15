@@ -284,7 +284,8 @@ class WindowTreeMixin:
             )
             if reply == QtWidgets.QMessageBox.StandardButton.Yes:
                 self.save_changes()
-            elif reply == QtWidgets.QMessageBox.StandardButton.Cancel:
+            if self._dirty and reply != QtWidgets.QMessageBox.StandardButton.No:
+                # Cancel, a failed save, or a plugin font's write job still running: stay on this font.
                 self.set_current_sheet_row(self.current_sheet_index)
                 return
                 
@@ -307,8 +308,8 @@ class WindowTreeMixin:
         self.current_bfn_name = bfn_name
         
         if source_type == "in_memory":
-            # Callback is provided by Picoripi
-            # self.archive_save_callback is preserved
+            # The callback Picoripi gave with this font (open_from_bytes), not the last fonts-folder font's
+            self.archive_save_callback = source_info.get("save_callback")
             self.archive_files = source_info["files"]
         elif source_type in ("disk_archive", "disk_loose"):
             # A failed write raises into save_changes, which reports it and leaves the font unsaved.

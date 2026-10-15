@@ -423,17 +423,9 @@ class IoFormatMixin:
                 self.status.showMessage(tr("Failed to save changes."))
                 return
             self.font_original = data
-            self._set_dirty(False)
-            self.changes_saved_during_session = True
-            self.status.showMessage(tr("Saved font: {0}", source.label if source else os.path.basename(write_path)))
             log_info(f"Font editor: saved {fmt} font ({len(data)} bytes).")
-            if self.font_sync_callback:    # the window calls it after a BFN save; here the file is now written
-                try:
-                    self.font_sync_callback()
-                except Exception as exc:
-                    log_error(f"Font editor: width reload after save failed: {exc}")
-            if not silent:
-                QtWidgets.QMessageBox.information(self, tr('Success'), tr('All changes saved successfully!'))
+            self._mark_saved(silent)
+            self.status.showMessage(tr("Saved font: {0}", source.label if source else os.path.basename(write_path)))
 
         self.run_font_job(work, done)
 
