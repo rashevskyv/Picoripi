@@ -180,6 +180,9 @@ HOOK_GROUPS: Tuple[Tuple[str, Tuple[Hook, ...]], ...] = (
         Hook("get_reference_language_label", "Label of the reference tab.", call=(), returns=str),
         Hook("load_reference_patch", "Read a reference translation: (block, string) -> text."),
         Hook("load_multi_reference", "Read reference translations in several languages."),
+        Hook("unpack_reference", "Unpack a picked reference file (a game image) into a project folder on a worker "
+             "thread: progress(percent, text) and is_cancelled() are passed in. Returns the folder to store as the "
+             "reference path, or None to use the path as it is.", call=None, returns=str, optional=True),
     )),
     ('Project Manager (worker thread: no widgets, no self.mw)', (
         Hook("get_source_roles", "Roles the project's source files can have: [{id, label}]. The first is the default.",

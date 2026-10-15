@@ -411,6 +411,15 @@ class BaseGameRules:
             return {label: ref_dict}
         return {}
 
+    def unpack_reference(self, path: str, project_dir: str, progress, is_cancelled) -> Optional[str]:
+        """Unpack a reference file the user picked (a game image) into a folder of the project; return that folder.
+
+        Runs on a worker thread (no widgets): ``progress(percent, text)`` and ``is_cancelled()`` are passed in.
+        Return None when the path is read as it is (a folder, or a file ``load_multi_reference`` reads itself);
+        None after a cancel too. The host then stores the returned folder as the reference path.
+        """
+        return None
+
     def get_problem_definitions(self) -> Dict[str, Dict[str, Any]]:
         """Get the problem definitions."""
         return self.problem_definitions

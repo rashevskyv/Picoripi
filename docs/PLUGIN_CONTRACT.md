@@ -119,6 +119,7 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_reference_language_label` | Label of the reference tab. |  |
 | `load_reference_patch` | Read a reference translation: (block, string) -> text. |  |
 | `load_multi_reference` | Read reference translations in several languages. |  |
+| `unpack_reference` | Unpack a picked reference file (a game image) into a project folder on a worker thread: progress(percent, text) and is_cancelled() are passed in. Returns the folder to store as the reference path, or None to use the path as it is. |  |
 
 ## Project Manager (worker thread: no widgets, no self.mw)
 

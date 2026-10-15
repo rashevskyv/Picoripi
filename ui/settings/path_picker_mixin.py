@@ -140,7 +140,7 @@ class SettingsPathPickerMixin:
 
         browse_menu = QMenu(self)
         folder_act = browse_menu.addAction(tr("Select Folder (Patch or Unpacked ROM)..."))
-        iso_act = browse_menu.addAction(tr("Select Game ISO Image (*.iso)..."))
+        iso_act = browse_menu.addAction(tr("Select Game Disc Image (ISO, RVZ)..."))
         clear_act = browse_menu.addAction(tr("Clear Path"))
 
         pos = anchor_widget.mapToGlobal(anchor_widget.rect().bottomLeft()) if anchor_widget else self.cursor().pos()
@@ -155,7 +155,7 @@ class SettingsPathPickerMixin:
                 self,
                 tr("Select Multi-Language ROM ISO Image"),
                 start_dir,
-                "Game ISO Images (*.iso);;All Files (*)"
+                "Game disc images (*.iso *.gcm *.rvz *.wia);;All Files (*)"
             )
             if p:
                 line_edit.setText(p)

@@ -68,7 +68,7 @@ First, ask me these questions:
    - Can conversations, branches, or scene membership be reconstructed from the data? (Knowing which lines form one conversation also lets Picoripi keep them in the same AI request.)
    - Is there a community wiki or reference source for this game that glossary descriptions could be grounded in (get_external_lore) or directly linked to in the glossary UI (get_external_reference_url)?
    - Is there a fan script or walkthrough transcript containing scenes and speakers?
-   - Are there existing translation patches or external localizations in other languages that could serve as reference material (`load_reference_patch`, `load_multi_reference`, `get_reference_language_label`)?
+   - Are there existing translation patches or external localizations in other languages that could serve as reference material (`load_reference_patch`, `load_multi_reference`, `get_reference_language_label`)? Is another region's disc the source of those languages? Then `unpack_reference` copies only the text files of that image into a project folder on a worker thread, and `load_multi_reference` reads that folder.
    - Does the text insert names the player can change (hero, horse)? Should the translation keep the tag, or a
      fixed declined name through a force alias (`{F:Name}` in aliases.json)? Does the game draw that name in a
      colour by itself? Then `get_force_alias_wrapping` returns the colour tags so the translated name keeps them.

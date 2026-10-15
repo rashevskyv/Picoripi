@@ -6,6 +6,7 @@ delegated to the active plugin via the BaseGameRules contract:
 - game_rules.supports_reference_patch()
 - game_rules.get_reference_language_label()
 - game_rules.load_reference_patch(patch_path, block_names)
+- game_rules.unpack_reference(path, project_dir, progress, is_cancelled), run by ReferenceUnpackWorker
 """
 from __future__ import annotations
 from utils.atomic_io import atomic_write_json
@@ -14,7 +15,10 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from PyQt6.QtCore import pyqtSignal
+
 from utils.logging_utils import log_error, log_info, log_warning
+from utils.thread_utils import WorkerThread
 
 # Reference languages the prompt trusts least: they go last, after every other one. Russian wording leaks into
 # Ukrainian translations as calques (live run 2026-10-03: «Уговори Линка» taken from the Russian line).
@@ -24,6 +28,38 @@ LEAST_TRUSTED_REFERENCE_LANGUAGES = ("russian",)
 def least_trusted_last(references):
     """``(label, text)`` pairs in their order, the least trusted languages moved to the end."""
     return sorted(references, key=lambda pair: str(pair[0]).casefold().startswith(LEAST_TRUSTED_REFERENCE_LANGUAGES))
+
+
+class ReferenceUnpackWorker(WorkerThread):
+    """Runs the plugin's ``unpack_reference`` for a picked file off the UI thread.
+
+    ``finished_signal(folder, error)``: the folder to use ('' when the picked path is used as it is) or the error
+    text. Nothing is emitted after a cancel; the plugin removes its partial folder.
+    """
+    finished_signal = pyqtSignal(str, str)
+
+    def __init__(self, game_rules: Any, path: str, project_dir: str):
+        super().__init__()
+        self._rules, self._path, self._project_dir = game_rules, path, project_dir
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        self._cancelled = True
+
+    def _is_cancelled(self) -> bool:
+        return self._cancelled or self.isInterruptionRequested()
+
+    def run(self) -> None:
+        try:
+            folder = self._rules.unpack_reference(self._path, self._project_dir, lambda _percent, _text: None,
+                                                  self._is_cancelled)
+        except Exception as error:   # a broken image or a plugin bug: reported, the old reference stays
+            log_error(f"ReferenceUnpackWorker: {self._path}: {error}", exc_info=True)
+            if not self._is_cancelled():
+                self.finished_signal.emit("", str(error) or type(error).__name__)
+            return
+        if not self._is_cancelled():
+            self.finished_signal.emit(folder or "", "")
 
 
 class ReferenceManager:
