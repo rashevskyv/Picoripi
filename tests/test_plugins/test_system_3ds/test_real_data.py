@@ -9,6 +9,8 @@ import json
 import shutil
 import subprocess
 import sys
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -81,3 +83,20 @@ def test_the_widths_equal_the_owners_validate(project_files):
     widths = rules._widths_table()
     mine = [round(max(line_widths(text, widths))) for text in texts]
     assert mine == json.loads(done.stdout)
+
+
+def test_the_budgets_name_the_owners_labels_and_cover_most_strings(project_files):
+    rules, files = project_files
+    rel = [path.relative_to(path.parents[2] if path.parent.parent.name == "strings" else path.parents[1]).as_posix()
+           for path, _, _ in files]
+    rules.mw = SimpleNamespace(project_manager=SimpleNamespace(project=SimpleNamespace(
+        blocks=[SimpleNamespace(source_file=path) for path in rel])))
+    covered = sum(rules.budget(block, string) is not None
+                  for block, (_, _, texts) in enumerate(files) for string in range(len(texts)))
+    assert covered >= 10000
+    labels = {}
+    for path, (_, raw, _) in zip(rel, files):
+        labels.setdefault(path.split("/")[1], set()).update(entry.key for entry in read_entries(raw.decode("utf-8")))
+    budgets = json.loads((Path(rules.data_dir) / "budgets.json").read_text(encoding="utf-8"))
+    for title, by_label in budgets["labels"].items():
+        assert set(by_label) <= labels[title], title  # a budget for a label the part does not have is a stale file

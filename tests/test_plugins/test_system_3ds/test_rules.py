@@ -1,12 +1,14 @@
 """3DS system plugin on synthetic 3ds-ua files: which column a parse fills, byte-exact saves, ids, widths, reference."""
 import difflib
 import json
+from types import SimpleNamespace
 
 import pytest
 
 from core.formats import SaveContext, translation_parse
 from core.project_library import plugin_facts
 from plugins.system_3ds import rules as system_rules
+from plugins.system_3ds.config import WIDTH_PROBLEM
 from plugins.system_3ds.rules import GameRules, read_entries
 
 # Indented, CRLF, a comment, a Russian column, an extra key the save must keep, a null English.
@@ -114,20 +116,47 @@ def test_widths_follow_the_scale_tags_and_take_the_widest_line():
     assert rules.calculate_string_width_override("За\nЗаЗа", {}) == round(word * 2)
 
 
-def test_only_a_string_with_a_known_pane_box_has_a_limit():
-    rules, _, _ = _loaded(STRINGS, LAYOUT)
-    assert rules.get_string_layout(0, 0) is None
-    # The pane is 194 px wide at font size 18.75: 194 * 25 / 18.75 font pixels.
-    assert rules.get_string_layout(1, 0) == {"max_width": 258, "warn_width": 258}
+def _with_project(rules, *files):
+    """An open project whose data blocks are these files, as the host's project manager lists them."""
+    blocks = [SimpleNamespace(source_file=path) for path in files]
+    rules.mw = SimpleNamespace(project_manager=SimpleNamespace(project=SimpleNamespace(blocks=blocks)))
+    return rules
 
 
-def test_the_reference_is_the_russian_column_of_the_matching_file(tmp_path):
+def test_the_owners_budgets_limit_labels_and_panes_by_the_blocks_file():
+    rules, _, _ = _loaded(STRINGS, LAYOUT, COMPACT, STRINGS)
+    assert rules.budget(0, 0) is None  # no open project: the block's file is not known
+    _with_project(rules, "strings/home_menu/message__menu_msbt_LZ.json", "layouts/system_settings.json",
+                  "strings/area/EU_100.json", "strings/home_menu/_smdh.json")
+    assert (rules.budget(0, 0), rules.budget(0, 1)) == (157, 126)  # lau_title_menu, lau_1b_start (budgets.json)
+    assert rules.get_string_layout(1, 0) == {"max_width": 258, "warn_width": 258}  # the pane's widest other line
+    assert rules.budget(2, 0) is None  # area names: no MSBT budget
+    assert rules.budget(3, 0) is None  # validate.py skips "_" files
+    assert rules.get_string_layout(2, 0) is None
+
+
+def test_a_line_wider_than_its_budget_is_a_width_problem_with_its_numbers():
+    rules = _with_project(_loaded(STRINGS)[0], "strings/home_menu/message__menu_msbt_LZ.json")
+    analyzer = rules.problem_analyzer
+    analyzer._current_scan_block_idx, analyzer._current_scan_string_idx = 0, 1
+    long_text = "Запустити програму негайно"
+    width = rules.calculate_string_width_override(long_text, {})
+    assert width > 126
+    assert analyzer.analyze_data_string(long_text, {}, 0) == [{WIDTH_PROBLEM}]
+    assert rules.get_problem_detail(0, 1, WIDTH_PROBLEM) == f"{width} px, budget 126 px"
+    # The 62 % scale tag shrinks the word below the budget, as on the console.
+    assert analyzer.analyze_data_string("{t:1.0:6200}Запустити{/t:1.0}", {}, 0) == [set()]
+
+
+def test_the_reference_is_the_russian_column_of_each_blocks_own_file_even_before_the_load(tmp_path):
     folder = tmp_path / "strings" / "home_menu"
     folder.mkdir(parents=True)
     (folder / "message__menu.json").write_bytes(STRINGS)
     (tmp_path / "layouts").mkdir()
     (tmp_path / "layouts" / "system_settings.json").write_bytes(LAYOUT)
-    rules, _, _ = _loaded(LAYOUT, STRINGS)
+    # No file parsed yet: the host reads the reference while the project is still loading.
+    rules = _with_project(GameRules(), "layouts/system_settings.json", "strings/home_menu/message__menu.json",
+                          "strings/home_menu/missing.json")
     assert rules.load_reference_patch(str(tmp_path)) == {(0, 0): "Выберите язык.", (1, 0): "Меню HOME"}
 
 

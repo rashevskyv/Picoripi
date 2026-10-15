@@ -1,4 +1,0 @@
-{
-  "_comment": "Text pane boxes of the layout-bound strings (src/layouts/*.json), keyed by the string id without its '#<line>'. Read once from the decrypted System Settings applet (0004001000022000, romfs/up_LZ.bin, LZ11 + DARC) with the owner's tools/bclyt.py: width in screen pixels, font_size = the pane's fontSizeX (the system font is drawn at fontSize / 25). A new layout spec in the owner's repo needs its pane here; until then its strings show their width only.",
-  "up_LZ.bin/./blyt/StartTopEU_U_00.bclyt/TextBoxTitle_00": {"width": 194.0, "font_size": 18.75}
-}

@@ -13,20 +13,23 @@ saved without a change is the same bytes, whatever its layout (indented, one ent
 Widths: the glyph advances are the 3DS system font table of plugins/manual_3ds (widths.json: the owner's
 assets/font_widths.json plus the letters the patched font adds, and the build's homoglyphs). A string is measured as
 the owner's tools/validate.py measures it: the widest line, {t:1.0:XXXX} / {t:1.1:XXXX} scale the glyphs, other tags
-draw nothing. A string whose pane box is known (boxes.json) is checked against the box; the others show their width.
+draw nothing. The limits are the owner's own budgets (budgets.json, built by scripts/build_system_3ds_budgets.py from
+the decrypted titles): per MSBT label the widest official localisation, per layout pane the widest line of the other
+languages. A string wider than its budget is a width problem, the same rule as the owner's validate.py; a string with
+no budget (no dump, or a part the owner checks another way) shows its width only.
 """
-import hashlib
 import json
 import os
 import re
 from json.decoder import scanstring
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
 from plugins.base_game_rules import BaseGameRules
+from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from plugins.manual_3ds import layout as manual_layout
 
-from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS, WIDTH_PROBLEM
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 _WIDTHS_FILE = os.path.join(os.path.dirname(_DATA_DIR), "manual_3ds", "widths.json")
@@ -130,11 +133,6 @@ def _text(raw: Any) -> str:
     return bytes(raw).decode("utf-8")
 
 
-def _fingerprint(entries: List[Entry]) -> str:
-    """Which file a block is: its ids and English (two hud files with the same content are the same file here)."""
-    return hashlib.sha1("\0".join(f"{e.key}\0{e.en}" for e in entries).encode("utf-8")).hexdigest()
-
-
 def line_widths(text: str, widths: manual_layout.Widths) -> List[float]:
     """Painted width of each line in font pixels, as the owner's tools/validate.py line_widths measures it."""
     text = widths.apply_homoglyphs(text)
@@ -158,21 +156,33 @@ def line_widths(text: str, widths: manual_layout.Widths) -> List[float]:
     return lines
 
 
+class SystemProblemAnalyzer(GenericProblemAnalyzer):
+    """The owner's width rule for the string being scanned; the generic dialog rules do not apply to menu text."""
+
+    def analyze_data_string(self, data_string, font_map, threshold, logical_hard_limit=None):
+        block, string = self._current_scan_block_idx, self._current_scan_string_idx
+        if block is None or string is None:
+            return [set()]
+        return [self.game_rules.width_problems(block, string, data_string)]
+
+
 class GameRules(BaseGameRules):
     """Nintendo 3DS system menus and applets (Ukrainian), from the 3ds-ua repo's JSON files."""
 
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
+    problem_analyzer_class = SystemProblemAnalyzer
     tag_style = "curly"
     data_dir = _DATA_DIR
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
-        self._blocks: List[Dict[str, Any]] = []  # per data block, in load order: {"keys": [...], "fp": "..."}
+        self._blocks: List[Dict[str, Any]] = []  # per data block, in load order: {"keys": [string ids]}
         self._load_role = "source"
         self._save_text: Optional[str] = None
         self._widths: Optional[manual_layout.Widths] = None
-        self._boxes: Optional[Dict[str, Any]] = None
+        self._budgets: Optional[Dict[str, Any]] = None
+        self._details: Dict[Tuple[int, int], str] = {}  # (block, string) -> "N px, budget M px" of the last check
 
     def get_display_name(self) -> str:
         return "Nintendo 3DS system (Ukrainian)"
@@ -198,7 +208,7 @@ class GameRules(BaseGameRules):
         # The source and the translation are the same file: the host's load role says which column a parse fills.
         if self._load_role == "translation":
             return [[entry.ua for entry in entries]], {}
-        self._blocks.append({"keys": [entry.key for entry in entries], "fp": _fingerprint(entries)})
+        self._blocks.append({"keys": [entry.key for entry in entries]})
         return [[entry.en for entry in entries]], {}
 
     def set_load_role(self, role: str) -> None:
@@ -268,21 +278,17 @@ class GameRules(BaseGameRules):
         return "Russian (RU)"
 
     def load_reference_patch(self, patch_path: str, block_names: Any = None) -> Dict[Tuple[int, int], str]:
-        """The ``ru`` of the files under ``patch_path`` (the repo's src folder, or one file), matched by content."""
-        wanted: Dict[str, List[int]] = {}
-        for block, info in enumerate(self._blocks):
-            wanted.setdefault(str(info.get("fp")), []).append(block)
-        root = Path(patch_path)
-        paths = [root] if root.is_file() else [path for path in sorted(root.rglob("*.json"))
-                                                if self.includes_source_file(path.relative_to(root).as_posix())]
+        """The ``ru`` of each block's own file under ``patch_path`` (the repo's src folder).
+
+        The files come from the open project, not from what the load has parsed so far: the host reads the reference
+        while the project's files are still loading."""
         out: Dict[Tuple[int, int], str] = {}
-        for path in paths:
+        for block, path in enumerate(self._project_files()):
             try:
-                entries = read_entries(_text(path.read_bytes()))
+                entries = read_entries(_text((Path(patch_path) / path).read_bytes()))
             except (OSError, ValueError, UnicodeDecodeError):
                 continue
-            for block in wanted.get(_fingerprint(entries), []):
-                out.update({(block, index): entry.ru for index, entry in enumerate(entries) if entry.ru})
+            out.update({(block, index): entry.ru for index, entry in enumerate(entries) if entry.ru})
         return out
 
     # -- widths ---------------------------------------------------------------------------
@@ -294,19 +300,51 @@ class GameRules(BaseGameRules):
         return self._widths
 
     def calculate_string_width_override(self, text: str, font_map: dict, default_char_width: int = 8) -> Optional[int]:
-        """Font pixels of the widest line (the unit of the owner's budgets and of ``get_string_layout``)."""
+        """Font pixels of the widest line (the owner's pixel_width, the unit of the budgets)."""
         return round(max(line_widths(text, self._widths_table())))
 
-    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
-        """The pane box of a layout-bound string, in font pixels; None when the string's box is not known."""
+    def _project_blocks(self) -> list:
+        """The open project's blocks, [] without one. Each file is one data block, read in project order, so a data
+        block's index is its project block's index."""
+        try:
+            return list(self.mw.project_manager.project.blocks)
+        except (AttributeError, TypeError):
+            return []
+
+    def _project_files(self) -> List[str]:
+        return [str(block.source_file).replace("\\", "/") for block in self._project_blocks()]
+
+    def budget(self, block_idx: int, string_idx: int) -> Optional[int]:
+        """The owner's width budget of a string in font pixels (budgets.json), or None when it has none."""
         key = self.string_key(block_idx, string_idx)
-        if key is None:
+        blocks = self._project_blocks()
+        if key is None or not 0 <= block_idx < len(blocks):
             return None
-        if self._boxes is None:
-            with open(os.path.join(_DATA_DIR, "boxes.json"), encoding="utf-8") as handle:
-                self._boxes = json.load(handle)
-        box = self._boxes.get(key.split("#", 1)[0])
-        if not isinstance(box, dict):
-            return None
-        limit = int(float(box["width"]) * manual_layout.FONT_WIDTH / float(box["font_size"]))
-        return {"max_width": limit, "warn_width": limit}
+        path = str(blocks[block_idx].source_file).replace("\\", "/")
+        if self._budgets is None:
+            with open(os.path.join(_DATA_DIR, "budgets.json"), encoding="utf-8") as handle:
+                self._budgets = json.load(handle)
+        parts = path.split("/")
+        value = None
+        if len(parts) == 3 and parts[0] == "strings" and not parts[2].startswith("_"):  # validate.py skips "_" files
+            value = self._budgets["labels"].get(parts[1], {}).get(key)
+        elif len(parts) == 2 and parts[0] == "layouts":
+            value = self._budgets["panes"].get(Path(parts[1]).stem, {}).get(key.split("#", 1)[0])
+        return int(value) if value else None
+
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """The budget as the string's width limit (the editor's guide line); None when the string has none."""
+        limit = self.budget(block_idx, string_idx)
+        return {"max_width": limit, "warn_width": limit} if limit else None
+
+    def width_problems(self, block_idx: int, string_idx: int, text: str) -> Set[str]:
+        """{WIDTH_PROBLEM} when the widest line is wider than the budget (the owner's check_entry), else empty."""
+        limit = self.budget(block_idx, string_idx)
+        if not limit:
+            return set()
+        width = self.calculate_string_width_override(text, {})
+        self._details[(block_idx, string_idx)] = f"{width} px, budget {limit} px"
+        return {WIDTH_PROBLEM} if width > limit else set()
+
+    def get_problem_detail(self, block_idx: int, string_idx: int, problem_id: str) -> str:
+        return self._details.get((block_idx, string_idx), "") if problem_id == WIDTH_PROBLEM else ""
