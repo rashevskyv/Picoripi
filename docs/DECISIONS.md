@@ -861,3 +861,39 @@ Spanish, Italian) is context. Reference languages already load through `referenc
 
 **Cost.** A slot the European English rewrote shows that text without a mark. A reference path that is still the
 image (the app closed during the unpack) loads nothing until the disc is picked again.
+
+## D38. 3DS manual simulator: a screenshot is judged against the build that was on the card; occlusion is draw order (2026-10-15)
+
+**Context.** The owner's New 3DS screenshots (`shots_r19`, 114 pairs dated 2011-01-01 by the console clock) showed
+table labels cut at the cell edge, captions running into each other and lines past the card edge. A first match
+against rounds 17–19 gave a median text difference of 7.5 / 255 where the older pairs gave 1.3: most of those pairs
+were shot with a card build that no tmp folder holds (`D:\RomHacking_tmp\calib\nd000_card_*.bin`, `card_romfs_before_r*`
+and `card_before_r19_*` are the copies of what the card held). The "AABBB CCC DDD" and lone "I" / "J" texts on two
+pairs are the owner's own width-calibration probes (`calib_v2`-era builds), not viewer panes.
+
+**Decision.**
+- A pair is classified by machine (badge and title against the header of every page of every manual, size from the
+  bottom bar) and matched by `match_shot` against every build on disk, the card copies included; a pair whose best
+  build is none of them is reported as such, never fitted. The simulator is changed only where the exact build's
+  render differs from the console.
+- The cut labels are not clipping: the console draws panes in file order, and a table's next cell (a `wnd1` with a
+  filled content) is drawn after the label. The renderer records what each filled pane paints (`Cover`) and the defect
+  finder reports a line a later pane paints over (`covered`) and two lines whose ink meets (`text_overlap`), so the
+  text can be shortened; the render itself already showed the cut.
+- A box frame's inner edge is the painted width of its texture (the opaque columns from the outer edge), not the
+  texture's width: Nintendo's own lines end on the clear inner columns of its 4 px frames, and the untouched original
+  must show no defect. An outline frame (a texture that is mostly clear) paints nothing over a line.
+- The viewer breaks a stored line only when it is wider than its pane by more than `SUB_PIXEL` (`WRAP_SLACK` −0.5,
+  before 2.0): the card build's lines 0.17 to 1.71 px short of their pane and 0.09 px past it are drawn whole on the
+  console (pages 8, 21, 22, 3), where the 2 px slack broke them in the render ("центру технічної підтримки",
+  "головний ключ."). The 2 px came from a round-8 pair with an older font. `layout.BOX_PADDING` stays 2.5: it is the
+  build's widening (the owner's `manual.BOX_PADDING`), not the viewer's.
+- One render function: `simulator.render_page` draws the files and `simulator.page_defects` judges them; the preview
+  panel (the page built from the current text) and the CLI (a build folder's page) call the same two, so what the
+  preview shows is what `validate` measures.
+
+**Cost.** The rules' BESIDE still takes the frame width from `geometry.json` (the texture width, 4 px), so it is 2 px
+stricter than the render on box frames until the geometry carries the painted width. The chrome stays measured from
+screenshots: the viewer's own layouts (`BtnHeadLineTxt`, `PageNum`, `SideScrollArw` in the applet's romfs) give the
+textures and sizes, but the applet's code places and animates them, so the stored positions do not land where the
+console draws them.

@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .console_render import COLUMN_WIDTH, FONT_WIDTH, FRAME_INNER, SUB_PIXEL, WRAP_SLACK
 
 CARD_EDGE = float(COLUMN_WIDTH)   # the build keeps every line inside the card (manual.CARD_EDGE)
-BOX_PADDING = WRAP_SLACK + 0.5    # the build widens a pane to its text plus this (manual.to_edits)
+BOX_PADDING = 2.5    # the build widens a pane to its text plus this (the owner's manual.BOX_PADDING)
 SAFETY = 1.0
 PANE_PARTS = ("small",)           # the parts laid out with the pane model
 PANE_MARGIN = 0.0                 # extra safety the pane model keeps (manual.PANE_MARGIN)

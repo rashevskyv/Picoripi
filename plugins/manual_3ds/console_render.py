@@ -45,10 +45,12 @@ FRAME_INNER = 4.0
 # An overrun under this (px) is not a defect: the console rounds glyph positions to whole pixels, so a line that
 # ends 0.3 px past an edge shows no ink there. The defect finder and the layout check share it.
 SUB_PIXEL = 0.5
-# The viewer breaks a stored line inside its pane when the line's advance comes within this of the pane width.
-# Measured on shots_r17b 2011-01-04_01-58-38.378 against the round-8 health document: a 301.0 px line in a
-# 301.8 px box was broken, a 316.2 px line in a 321.3 px box was not. Refined by the validation run.
-WRAP_SLACK = 2.0
+# The viewer breaks a stored line inside its pane only when the line's advance exceeds the pane width by more than
+# SUB_PIXEL: lines of the card build nd000_card_1653 drawn whole on the New 3DS (shots_r19 2011-01-01) end 0.17,
+# 0.33, 0.50, 0.83 and 1.71 px short of their pane and 0.09 px past it (home_menu_manual pages 8, 21, 22, 3).
+# The earlier 2.0 (a 301.0 px line in a 301.8 px box broken on shots_r17b 2011-01-04_01-58-38.378, round-8 health
+# document) came from an older font's widths. The constant is the slack short of the pane width: negative here.
+WRAP_SLACK = -SUB_PIXEL
 # Texture flip codes of a window frame (nw4r TextureFlip).
 FLIP_NONE, FLIP_H, FLIP_V, FLIP_HV, FLIP_R90, FLIP_L90 = range(6)
 
@@ -297,6 +299,29 @@ class TextRun:
     width: float      # advance of the whole line
     wrapped: bool     # the viewer broke this line inside the pane (the text did not fit the box)
     ink_right: float = 0.0   # page x where the last glyph's ink ends (its left bearing plus glyph width)
+    height: float = 20.0     # the line step (fontSize y plus lineSpace): the ink box is top .. top - height
+    order: int = 0           # draw order of the pane (a pane drawn later paints over this line)
+    ink_left: float = 0.0    # page x where the first glyph's ink starts (pen plus its left bearing)
+
+
+@dataclass
+class Cover:
+    """A filled rectangle a pane paints (page coordinates, top > bottom): what a line drawn before it loses.
+
+    Seen on the console (shots_r19 2011-01-01_21-00-53.280, home_menu_manual page 8): the label "Прикріпити
+    жетони" of a table's left cell is cut at the cell's edge, because the next row's white cell is drawn after it.
+    """
+
+    order: int
+    pane: str
+    left: float
+    top: float
+    right: float
+    bottom: float
+
+    def covers(self, left: float, top: float, right: float, bottom: float, slack: float) -> bool:
+        return (min(self.right, right) - max(self.left, left) > slack
+                and min(self.top, top) - max(self.bottom, bottom) > slack)
 
 
 def _blend(colour: RGBA, alpha: int) -> RGBA:
@@ -355,7 +380,9 @@ class PageRenderer:
         self.use_char_space = char_space
         self.wrap_slack = WRAP_SLACK
         self.runs: List[TextRun] = []
+        self.covers: List[Cover] = []
         self.missing: set = set()
+        self._order = 0
 
     # -- page -------------------------------------------------------------------------------------
 
@@ -369,6 +396,7 @@ class PageRenderer:
             for pane in layout.panes:
                 if not pane.visible:
                     continue
+                self._order += 1
                 if pane.kind == "wnd1":
                     self._draw_window(canvas, layout, pane)
                 elif pane.kind == "pic1":
@@ -420,8 +448,16 @@ class PageRenderer:
         if content[3] and cw > 0 and ch > 0:
             fill = Image.new("RGBA", (cw, ch), _blend(content, alpha))
             canvas.alpha_composite(fill, (x0 + cl, y0 + ct))
+            self.covers.append(Cover(self._order, pane.name, left + cl, top - ct, left + cl + cw, top - ct - ch))
         if fl == 0 and ft == 0:
             return
+        # Solid frame strips paint too (a table cell's edge); an outline texture (mostly clear) paints nothing.
+        right, bottom = left + pane.w, top - pane.h
+        if all(_opaque(f[0]) for f in frames[:4] if f[0] is not None):
+            self.covers.extend((Cover(self._order, pane.name, left, top, left + fl, bottom),
+                                Cover(self._order, pane.name, right - fr, top, right, bottom),
+                                Cover(self._order, pane.name, left, top, right, top - ft),
+                                Cover(self._order, pane.name, left, bottom + fb, right, bottom)))
         # Frames: four L-shaped quads, each a corner plus the edge that follows it clockwise (nw4r DrawFrame).
         if len(frames) == 1:
             base = frames[0][0]
@@ -463,7 +499,9 @@ class PageRenderer:
             colour = tuple(sum(c[i] for c in pane.colours) // 4 for i in range(4))
             if colour[3]:
                 canvas.alpha_composite(Image.new("RGBA", (width, height), _blend(colour, alpha)), (x0, y0))
+                self.covers.append(Cover(self._order, pane.name, left, top, left + pane.w, top - pane.h))
             return
+        self.covers.append(Cover(self._order, pane.name, left, top, left + pane.w, top - pane.h))
         u0, v0, u1, _v1, _u2, v2, _u3, _v3 = pane.texcoords
         tw, th = texture.size
         # Texture coordinates of the top-left, top-right and bottom-left corners; reversed ones mirror the picture.
@@ -545,19 +583,24 @@ class PageRenderer:
             width = self._line_width(line, scale_x, char_space)
             start = left + (pane.w - width) * column_align * 0.5
             line_top = block_top - index * line_height
-            self.runs.append(TextRun(pane.name, line, start, line_top, width, wrapped, self._ink_right(line, start, scale_x, char_space)))
+            ink_left, ink_right = self._ink_span(line, start, scale_x, char_space)
+            self.runs.append(TextRun(pane.name, line, start, line_top, width, wrapped, ink_right, line_height, self._order, ink_left))
             self._draw_line(canvas, line, start, line_top, scale_x, scale_y, char_space, colour_top, colour_bottom, alpha)
 
-    def _ink_right(self, line: str, x: float, scale_x: float, char_space: float) -> float:
+    def _ink_span(self, line: str, x: float, scale_x: float, char_space: float) -> Tuple[float, float]:
+        """(ink left, ink right) of a line whose pen starts at x: the glyphs' bearings, spaces left out."""
         pen = x
+        first: Optional[float] = None
         right = x
         for ch in line:
             code = ord(ch)
             if not ch.isspace():
                 left, glyph_w, _char_w = self.glyphs.metrics(code)
+                if first is None:
+                    first = pen + left * scale_x
                 right = max(right, pen + (left + glyph_w) * scale_x)
             pen += self._advance(code, scale_x) + char_space
-        return right
+        return (x if first is None else first), right
 
     def _draw_line(self, canvas: Image.Image, line: str, x: float, top: float, scale_x: float, scale_y: float,
                    char_space: float, colour_top: RGBA, colour_bottom: RGBA, alpha: int) -> None:
@@ -599,6 +642,13 @@ class PageRenderer:
             ink = Image.composite(bottom, ink, ramp)
         ink.putalpha(Image.eval(mask, lambda v: v) if colour_top[3] == 255 else mask.point(lambda v: v * colour_top[3] // 255))
         canvas.alpha_composite(ink, (x0, y0))
+
+
+def _opaque(texture: Image.Image) -> bool:
+    """A texture that paints most of its box (mean alpha over half): a cell edge, not a rounded outline."""
+    histogram = texture.getchannel("A").histogram()
+    total = sum(histogram)
+    return total > 0 and sum(index * count for index, count in enumerate(histogram)) / total > 127
 
 
 def _with_alpha(image: Image.Image, alpha: int) -> Image.Image:

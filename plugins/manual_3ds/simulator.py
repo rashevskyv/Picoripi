@@ -6,7 +6,8 @@ scripts/manual_3ds_render.py and by the preview panel:
 
 - ``Simulator.render(...)``: one page of one build at one scroll -> the two screens;
 - ``find_defects(...)``: what the render shows wrong: a line whose ink runs past the card's edge onto the scroll
-  track, a line the viewer broke inside its pane, a line over a picture or a frame, a glyph the font lacks;
+  track, a line the viewer broke inside its pane, a line over a picture or a frame, a line painted over by a pane
+  drawn after it (a table cell), two lines whose ink overlaps, a glyph the font lacks;
 - ``match_shot(...)``: which build, scroll and size a console screenshot pair shows, and how far the render is from it.
 
 Nothing here reads JSON translations: the pages come from the archives a build wrote (the console reads the same).
@@ -38,6 +39,10 @@ REGIONS = {
     "bottom_bar": [(40, 452, 360, 480)],
 }
 MATCH_STEP = 4              # coarse scroll search step; refined by +-MATCH_STEP after
+# Two ink boxes must meet by more than this (px, both ways) to be an occlusion or an overlap: a line's box is its
+# whole step (fontSize y), so a line that sits on a box frame is none, and Nintendo's own adjacent glyph panes
+# (the circled digits of home_menu_manual page 14 meet by 1.6 px) are none.
+OVERLAP_SLACK = 2.0
 SAME_EPS = 0.1              # builds whose text-band difference is this close to the best show the same page here
 
 
@@ -61,7 +66,7 @@ def build_files(tools: Any, build: Path) -> Dict[str, Path]:
 
 @dataclass
 class Defect:
-    kind: str                   # over_edge | wrapped | over_picture | over_frame | missing_glyph
+    kind: str                   # over_edge | wrapped | over_picture | over_frame | covered | text_overlap | missing_glyph
     manual: str
     page: int                   # console page number
     page_file: str              # Page_NNN
@@ -71,6 +76,31 @@ class Defect:
     page_y: float               # page y of the line's top (0 at the text origin, down is negative)
     scroll: int                 # a scroll that puts the line in the top screen
     detail: str = ""
+
+
+@dataclass
+class RenderedPage:
+    """What one page's BCLYT files draw: the column and everything the defect finder reads off the render."""
+
+    column: Image.Image
+    runs: List[cr.TextRun]
+    missing: List[str]
+    covers: List[cr.Cover]
+    layouts: List[cr.Layout]
+
+
+def render_page(files: List[bytes], textures: cr.Textures, glyphs: cr.Glyphs, wrap_slack: Optional[float] = None) -> RenderedPage:
+    """One page drawn as the console draws it. The preview panel (the page it built from the current text) and the
+    CLI (the page of a build folder) both go through here, so the live preview is the simulator."""
+    renderer = cr.PageRenderer(textures, glyphs)
+    if wrap_slack is not None:
+        renderer.wrap_slack = wrap_slack
+    column = renderer.render(files)
+    return RenderedPage(column, renderer.runs, sorted(renderer.missing), renderer.covers, [cr.parse(data) for data in files])
+
+
+def page_defects(page: RenderedPage, textures: cr.Textures, name: str, number: int, page_name: str, size: str) -> List[Defect]:
+    return defects_of(page.runs, page.missing, page.layouts, textures, name, number, page_name, size, page.covers)
 
 
 @dataclass
@@ -133,7 +163,7 @@ class Simulator:
         self.chrome = ss.Chrome.load(chrome_dir)
         self.wrap_slack = cr.WRAP_SLACK if wrap_slack is None else wrap_slack
         self._manuals: Dict[str, Manual] = {}
-        self._columns: Dict[Tuple[str, int, str], Tuple[Image.Image, List[cr.TextRun], List[str], List[cr.Layout]]] = {}
+        self._pages: Dict[Tuple[str, int, str], RenderedPage] = {}
 
     def manual(self, name: str) -> Manual:
         if name not in self._manuals:
@@ -144,17 +174,18 @@ class Simulator:
 
     def column(self, name: str, page_file: int, size: str):
         """-> (column image, text runs, missing glyphs, layouts) of one page, cached."""
+        page = self.page(name, page_file, size)
+        return page.column, page.runs, page.missing, page.layouts
+
+    def page(self, name: str, page_file: int, size: str) -> "RenderedPage":
         key = (name, page_file, size)
-        if key not in self._columns:
+        if key not in self._pages:
             manual = self.manual(name)
             files = manual.page_files(page_file, size)
             if not files:
                 raise repo_tools.ToolsError(f"{name}: no {size} page file {page_file}")
-            renderer = cr.PageRenderer(manual.textures, self.glyphs)
-            renderer.wrap_slack = self.wrap_slack
-            image = renderer.render(files)
-            self._columns[key] = (image, renderer.runs, sorted(renderer.missing), [cr.parse(data) for data in files])
-        return self._columns[key]
+            self._pages[key] = render_page(files, manual.textures, self.glyphs, self.wrap_slack)
+        return self._pages[key]
 
     def info(self, name: str, page_file: int, size: str, buttons: int = 3) -> ss.PageInfo:
         manual = self.manual(name)
@@ -190,17 +221,18 @@ def _scroll_for(page_y: float) -> int:
 
 def find_defects(sim: Simulator, name: str, page_file: int, size: str) -> List[Defect]:
     """What the render of one page of a build shows wrong (see the module docstring)."""
-    _column, runs, missing, layouts = sim.column(name, page_file, size)
     manual = sim.manual(name)
-    return defects_of(runs, missing, layouts, manual.textures, name, manual.index.number_of(page_file),
-                      f"Page_{page_file:03d}", size)
+    return page_defects(sim.page(name, page_file, size), manual.textures, name, manual.index.number_of(page_file),
+                        f"Page_{page_file:03d}", size)
 
 
 def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.Layout], textures: cr.Textures,
-               name: str, number: int, page_name: str, size: str) -> List[Defect]:
+               name: str, number: int, page_name: str, size: str, covers: Iterable[cr.Cover] = ()) -> List[Defect]:
     """The defects a rendered page shows: a cut line, a line the viewer broke, a line over a picture or a frame,
-    a missing glyph. An overrun under cr.SUB_PIXEL is none. Pure: works on what PageRenderer.render left behind."""
+    a line a later pane paints over (`covers`, from the renderer), two lines whose ink overlaps, a missing glyph.
+    An overrun under cr.SUB_PIXEL is none. Pure: works on what PageRenderer.render left behind."""
     out: List[Defect] = []
+    out.extend(_occlusions(runs, covers, name, number, page_name, size))
     for ch in missing:
         out.append(Defect("missing_glyph", name, number, page_name, size, "", ch, 0.0, 0, f"U+{ord(ch):04X}"))
     pictures = []
@@ -235,23 +267,63 @@ def defects_of(runs: List[cr.TextRun], missing: Iterable[str], layouts: List[cr.
                 out.append(Defect("over_picture", name, number, page_name, size, run.pane, run.text, run.top,
                                   _scroll_for(run.top), f"ink ends at {right:.1f} px, picture {pic_name} starts at {px:.1f}"))
         for win_name, wx, wy, ww, wh, fw in windows:
-            inner_right = wx + ww - max(fw, cr.FRAME_INNER)
+            inner_right = wx + ww - (fw or cr.FRAME_INNER)
             if wx <= run.x < wx + ww and wy > bottom + 1.0 and wy - wh < run.top - 1.0 and right > inner_right + cr.SUB_PIXEL:
                 out.append(Defect("over_frame", name, number, page_name, size, run.pane, run.text, run.top,
                                   _scroll_for(run.top), f"ink ends at {right:.1f} px, the frame {win_name} starts at {inner_right:.1f}"))
     return out
 
 
+def _occlusions(runs: List[cr.TextRun], covers: Iterable[cr.Cover], name: str, number: int, page_name: str,
+                size: str) -> List[Defect]:
+    """`covered`: a pane drawn after the line paints over its ink (the console shows the line cut there);
+    `text_overlap`: the ink of two lines of different panes meets (a caption running into the next caption).
+    Overlaps of at most OVERLAP_SLACK px in either direction are none: adjacent panes touch by design."""
+    out: List[Defect] = []
+    inked = [run for run in runs if run.text.strip()]
+    later = sorted(covers, key=lambda cover: cover.order)
+    for run in inked:
+        box = (run.ink_left, run.top, run.ink_right, run.top - run.height)
+        for cover in later:
+            if cover.order > run.order and cover.covers(*box, OVERLAP_SLACK):
+                out.append(Defect("covered", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
+                                  f"{cover.pane} is drawn after this line and paints over it from {max(cover.left, run.x):.1f} px"))
+                break
+    # ponytail: pairwise over the page's lines (a few hundred); a sweep if a manual ever has thousands.
+    for index, run in enumerate(inked):
+        for other in inked[index + 1:]:
+            if other.pane == run.pane:
+                continue
+            if (min(run.ink_right, other.ink_right) - max(run.ink_left, other.ink_left) > OVERLAP_SLACK
+                    and min(run.top, other.top) - max(run.top - run.height, other.top - other.height) > OVERLAP_SLACK):
+                out.append(Defect("text_overlap", name, number, page_name, size, run.pane, run.text, run.top, _scroll_for(run.top),
+                                  f"its ink meets {other.pane} {other.text[:40]!r} at {max(run.ink_left, other.ink_left):.1f} px"))
+    return out
+
+
 def _frame_width(layout: cr.Layout, pane: cr.Pane, textures: cr.Textures) -> float:
-    """The right frame's width of a window pane (its texture's width), 0 when the frame has no texture."""
-    material = pane.frames[1][0] if len(pane.frames) >= 4 else pane.frames[0][0]
+    """The painted width of a window's right frame: the texture columns from the outer edge inward that are
+    opaque (Nintendo's box frames are 4 px textures whose inner 2 columns are clear, and its own lines end on
+    them: home_menu_manual page 3 'кнопок, можно сделать скриншот' ends 1.9 px past the texture's inner edge).
+    0 when the frame has no texture."""
+    material, flip = pane.frames[1] if len(pane.frames) >= 4 else pane.frames[0]
     if material >= len(layout.materials) or not layout.materials[material].textures:
         return 0.0
     index = layout.materials[material].textures[0][0]
     if index >= len(layout.textures):
         return 0.0
     image = textures.get(layout.textures[index])
-    return float(image.width) if image is not None else 0.0
+    if image is None:
+        return 0.0
+    drawn = cr._frame_image(image, flip) if len(pane.frames) >= 4 else image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    alpha = drawn.getchannel("A")
+    width = 0
+    for column in range(drawn.width - 1, -1, -1):
+        strip = alpha.crop((column, 0, column + 1, drawn.height)).histogram()
+        if sum(i * c for i, c in enumerate(strip)) / max(1, drawn.height) <= 127:
+            break
+        width += 1
+    return float(width)
 
 
 # -- screenshots ------------------------------------------------------------------------------------
@@ -291,7 +363,7 @@ def _column_sheet(column: Image.Image) -> Image.Image:
 
 def best_scroll(shot: Image.Image, column: Image.Image, limit: int) -> Tuple[float, float]:
     """The scroll that puts the column closest to the screenshot's text bands: whole pixels at a coarse step,
-    then whole pixels around the best, then quarter pixels (the console scrolls by fractions of a pixel)."""
+    then whole pixels around the best, then eighth pixels (the console scrolls by fractions of a pixel)."""
     sheet = _column_sheet(column)
     bands = [(x0 - ss.CARD_X, y0, x1 - ss.CARD_X, y1) for x0, y0, x1, y1 in TEXT_BANDS]
     shot_bands = [shot.crop(box).convert("L") for box in TEXT_BANDS]
@@ -316,8 +388,8 @@ def best_scroll(shot: Image.Image, column: Image.Image, limit: int) -> Tuple[flo
     coarse = min(((score(s), s) for s in range(0, limit + 1, MATCH_STEP)), default=(0.0, 0))
     around = range(max(0, coarse[1] - MATCH_STEP), min(limit, coarse[1] + MATCH_STEP) + 1)
     fine = min((score(s), s) for s in around)
-    quarters = [fine[1] + q / 4.0 for q in range(-3, 4) if 0 <= fine[1] + q / 4.0 <= limit]
-    best = min((score(s), s) for s in quarters)
+    eighths = [fine[1] + q / 8.0 for q in range(-7, 8) if 0 <= fine[1] + q / 8.0 <= limit]
+    best = min((score(s), s) for s in eighths)
     return best[1], best[0]
 
 

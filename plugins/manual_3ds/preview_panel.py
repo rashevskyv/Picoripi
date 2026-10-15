@@ -49,7 +49,7 @@ WORKER_STOP_MS = 3000
 Y_BUTTON_START = 180          # the Y label area of the bottom bar starts here (x, in card pixels)
 PAGE_NUMBER = re.compile(r"Page_(\d+)_(large|small)")
 DEFECT_RGBA = (255, 0, 0, 60)
-MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame")
+MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame", "covered", "text_overlap")
 
 _GROUPS_LOCK = threading.Lock()
 _ARCHIVES: Dict[Tuple[str, str], Any] = {}
@@ -261,13 +261,12 @@ def draw_request(request: _Request, should_stop: Any) -> PagePreview:
         files, owners, failed = build_page(tools, archive, flows, part, page, request.texts, budgets, should_stop)
     if not files:
         raise repo_tools.ToolsError(f"no {part} page {page} in the manual")
-    renderer = cr.PageRenderer(textures, cr.Glyphs(font, tools.bcfnt))
-    column = renderer.render(files)
+    glyphs = cr.Glyphs(font, tools.bcfnt)
+    rendered = simulator.render_page(files, textures, glyphs)
+    column = rendered.column
     if should_stop():
         raise RenderCancelled()
-    layouts = [cr.parse(data) for data in files]
-    defects = simulator.defects_of(renderer.runs, sorted(renderer.missing), layouts, textures, manual_name,
-                                   index.number_of(page), f"Page_{page:03d}", part)
+    defects = simulator.page_defects(rendered, textures, manual_name, index.number_of(page), f"Page_{page:03d}", part)
     defect_keys: Dict[str, List[str]] = {}
     for defect in defects:
         key = owners.get(defect.pane)
@@ -278,9 +277,9 @@ def draw_request(request: _Request, should_stop: Any) -> PagePreview:
     info = ss.PageInfo(index.number_of(page), title, index.category_of(page), has_previous=page - 1 in pages,
                        has_next=page + 1 in pages, large=(part == "large"))
     chrome = ss.Chrome.load(user_plugin_dir(PLUGIN_NAME) / CHROME_DIR)
-    overlay = ss.overlay(info, chrome, renderer.glyphs)
+    overlay = ss.overlay(info, chrome, glyphs)
     return PagePreview(_qimage(column), _qimage(overlay), column.height, info.number, title, defects, defect_keys, failed,
-                       sorted(renderer.missing), renderer.runs)
+                       rendered.missing, rendered.runs)
 
 
 class PageRenderWorker(WorkerThread):
