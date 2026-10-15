@@ -297,6 +297,34 @@ def test_host_docks_the_panel_in_place_of_the_bfn_preview(qtbot, monkeypatch):
     assert not bfn.isHidden() and not bar.isHidden()
 
 
+def test_a_preview_widget_that_fails_is_logged_and_the_bfn_preview_stays(qtbot, monkeypatch):
+    """pythonw has no stderr: an error of the plugin's widget must reach the app log, not end the plugin load."""
+    from PyQt6.QtWidgets import QVBoxLayout, QWidget
+
+    from ui.main_window import main_window_plugin_handler
+    from ui.main_window.main_window_plugin_handler import MainWindowPluginHandler
+
+    logged = []
+    monkeypatch.setattr(main_window_plugin_handler, "log_error",
+                        lambda message, exc_info=False, **kwargs: logged.append((message, exc_info)))
+
+    class BrokenRules(m3d.GameRules):
+        def get_custom_preview_widget(self, main_window):
+            raise RuntimeError("no panel today")
+
+    host = _Store(["Text"])
+    column = QWidget()
+    qtbot.addWidget(column)
+    bfn = QWidget(column)
+    QVBoxLayout(column).addWidget(bfn)
+    host.bfn_preview_column, host.bfn_preview_widget, host.current_game_rules = column, bfn, BrokenRules()
+
+    MainWindowPluginHandler(host).attach_custom_preview()
+
+    assert getattr(host, "custom_preview_widget", None) is None and not bfn.isHidden()
+    assert logged == [("The preview widget of BrokenRules failed: no panel today", True)]
+
+
 def test_the_index_entry_of_a_page_is_its_title_string():
     rules = m3d.GameRules()
     rules.load_data_from_json_obj(_document(["index/Index#0", PAGE_KEY, "index/Index#2"]))
