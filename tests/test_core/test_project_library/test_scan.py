@@ -67,6 +67,30 @@ def _png(path, width=300, height=200):
     return path
 
 
+def test_every_card_comes_before_the_icons_and_file_checks(tmp_path):
+    """The names reach the window before the slow part (each project's files are checked for its signature)."""
+    projects = [("k1", _project(tmp_path, "one")), ("k2", _project(tmp_path, "two"))]
+
+    events, _summary = _scan(tmp_path / "data", projects)
+
+    kinds = [event["event"] for event in events]
+    assert kinds[:2] == ["card", "card"], "every card before any icon or check"
+    assert [kind for kind in kinds if kind != "icon"][2:5] == ["checked", "checked", "plan"]
+    assert [event["done"] for event in _of(events, "checked")] == [1, 2]
+
+
+def test_a_project_without_a_name_is_named_after_its_game_folder(tmp_path):
+    from core.project_library.cards import fallback_name, read_card
+
+    folder = tmp_path / "Nintendo 3DS manuals" / "PicoRipi"
+    folder.mkdir(parents=True)
+    project = folder / "project.uiproj"
+    project.write_text(json.dumps({"id": "x", "blocks": []}), encoding="utf-8")
+
+    assert read_card(project)["name"] == "Nintendo 3DS manuals"
+    assert fallback_name(tmp_path / "Aria" / "project.uiproj") == "Aria"  # a project not in a picoripi folder
+
+
 def test_first_scan_reads_each_card_and_counts_each_project(tmp_path):
     projects = [("k1", _project(tmp_path, "one")), ("k2", _project(tmp_path, "two"))]
 

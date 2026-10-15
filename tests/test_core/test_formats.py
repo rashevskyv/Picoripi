@@ -243,9 +243,19 @@ class TestRuntimeState:
         rules.restore_runtime_state.assert_called_with([["k1"]])
         manager._restore_runtime_session_state({"plugin_runtime_state": {"cursor": 3}})
         rules.restore_runtime_state.assert_called_with({"cursor": 3})
+        assert manager.restored_plugin_state is True
         rules.restore_runtime_state.reset_mock()
         manager._restore_runtime_session_state({})
         rules.restore_runtime_state.assert_not_called()
+        assert manager.restored_plugin_state is False  # a session of a plugin that kept no state yet
+
+        # An empty dict is stored, so the session says it has the state; restoring it restores nothing.
+        rules.export_runtime_state.return_value = {}
+        snapshot = manager._attach_runtime_session_state({})
+        assert snapshot == {"plugin_runtime_state": {}}
+        manager._restore_runtime_session_state(snapshot)
+        rules.restore_runtime_state.assert_not_called()
+        assert manager.restored_plugin_state is True
 
 
 class TestZeldaBmg:

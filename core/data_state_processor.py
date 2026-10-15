@@ -121,6 +121,10 @@ class DataStateProcessor(UiMsgMixin, QueryMixin, SaveMixin):
         """Load entire project state from a JSON file (preferred) or a pickle file (fallback)."""
         return self.session_manager.load_session_file()
 
+    def session_had_plugin_state(self) -> bool:
+        """False when the last restored session carried no plugin runtime state (written before the plugin kept any)."""
+        return self.session_manager.restored_plugin_state
+
     def clear_session_file(self) -> None:
         """Delete the temporary session file if it exists."""
         self.session_manager.clear_session_file()

@@ -24,10 +24,12 @@ class ProjectLoadWorker(WorkerThread):
     finished_with_result = pyqtSignal(dict)
     progress = pyqtSignal(int, int)
 
-    def __init__(self, project_manager, current_game_rules):
+    def __init__(self, project_manager, current_game_rules, state_only: bool = False):
         super().__init__()
         self.project_manager = project_manager
         self.current_game_rules = current_game_rules
+        # Only the plugin's runtime state is wanted (a restored session keeps the strings): no series memory.
+        self.state_only = state_only
         self.blocks = list(project_manager.project.blocks) if project_manager and project_manager.project else []
         self.error_occurred = None
 
@@ -255,8 +257,8 @@ class ProjectLoadWorker(WorkerThread):
                 'block_names': block_names,
                 'block_to_project_file_map': block_to_project_file_map,
                 'plugin_keys_backup': plugin_keys_backup,
-                'series_memory': self._series_memory(),
-                'source_positions': index_source_positions(data),
+                'series_memory': {} if self.state_only else self._series_memory(),
+                'source_positions': {} if self.state_only else index_source_positions(data),
             })
         except Exception as e:
             self.error_occurred = e

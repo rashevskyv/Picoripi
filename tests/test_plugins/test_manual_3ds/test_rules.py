@@ -235,8 +235,8 @@ def test_every_real_manual_file_has_its_geometry():
     folder = romhacking_root.path("_shared", "3ds_sysfont_ua", "repo_manual", "src", "manuals")
     rules = check_loads(PLUGIN)
     m3d._DATA.load()
-    # browser and face_raiders have no dump on the owner's disk, so they have no geometry.
-    no_dump = {"browser.json", "face_raiders.json"}
+    # browser has no dump on the owner's disk, so it has no geometry.
+    no_dump = {"browser.json"}
     for path in sorted(folder.glob("*.json")):
         text = path.read_text(encoding="utf-8")
         blocks, _ = rules.load_data_from_json_obj(text)
@@ -257,7 +257,7 @@ def test_the_column_is_laid_out_to_the_card_edge_not_the_budget(widths, monkeypa
     rules.load_data_from_json_obj(_text(SAMPLE))
     # 20 letters are 192 px: past the 100 px budget, inside the card, on one line.
     assert rules.manual_problems(0, 0, "а" * 20) == set()
-    assert rules.preview_budget(SAMPLE_KEYS[0]) == 100.0
+    assert rules.preview_budget(0, SAMPLE_KEYS[0]) == 100.0
 
 
 def _geo_on(occluders, lines, part="large", budget=300.0):

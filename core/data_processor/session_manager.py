@@ -21,6 +21,9 @@ class SessionManager:
         self._durable_session_dirty = False
         self._last_pickle_checkpoint_id = None
         self._last_pickle_saved_at = 0.0
+        # False after a restore from a session that carried no plugin runtime state (written before the plugin
+        # kept any): the caller reads the project files once for that state.
+        self.restored_plugin_state = True
 
     def get_session_file_path(self) -> Optional[Path]:
         """Get the file path for saving/loading session data."""
@@ -92,18 +95,21 @@ class SessionManager:
         # key lists; anything else into the general one.
         if isinstance(runtime_state, list):
             snapshot["plugin_original_keys"] = list(runtime_state)
-        elif isinstance(runtime_state, dict) and runtime_state:
-            snapshot["plugin_runtime_state"] = runtime_state
+        elif isinstance(runtime_state, dict):
+            snapshot["plugin_runtime_state"] = runtime_state  # even empty: the session then says it has the state
         return snapshot
 
     def _restore_runtime_session_state(self, snapshot: dict) -> None:
         """Restore runtime-only state that is required before project saves."""
+        runtime_state = snapshot.get("plugin_original_keys")
+        if runtime_state is None:
+            runtime_state = snapshot.get("plugin_runtime_state")
+        self.restored_plugin_state = runtime_state is not None
         game_rules = getattr(self.mw, 'current_game_rules', None)
         if game_rules is None:
             return
-        runtime_state = snapshot.get("plugin_original_keys")
-        if runtime_state is None:
-            runtime_state = snapshot.get("plugin_runtime_state") or None
+        if runtime_state == {}:
+            runtime_state = None  # an empty state restores nothing, as before
         try:
             formats.restore_state(game_rules, runtime_state)
         except Exception as e:

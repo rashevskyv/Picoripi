@@ -18,7 +18,8 @@ import re
 import threading
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PIL import Image
 from PyQt6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QTimer, pyqtSignal
@@ -33,7 +34,7 @@ from plugins.manual_3ds import simulator
 from utils.atomic_io import atomic_write_json
 from utils.constants import user_plugin_dir
 from utils.logging_utils import log_warning
-from utils.thread_utils import WorkerThread
+from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
 PLUGIN_NAME = "manual_3ds"
 SETTINGS_FILE = "preview.json"
@@ -108,19 +109,34 @@ class PagePreview:
         return ss.scroll_range(self.column_height)
 
 
-class _Request:
-    """What a worker draws: the folder, the manual, the page group and the texts. Plain data."""
+def _no_name() -> str:
+    return ""
 
-    def __init__(self, root: str, manual_name: str, group: str, texts: Dict[str, str], budgets: Dict[str, Any],
-                 title: str, save_root: str = ""):
+
+def _no_budget(key: str) -> Optional[float]:
+    return None
+
+
+class _Request:
+    """What a worker draws: the folder, the manual, the page group and the texts.
+
+    ``block_name`` is the editor's name of the block (a project names it after the manual's file); when the tools
+    do not know it, ``name_of`` gives the manual the plugin matched by the file's keys. ``name_of`` and ``budget_of``
+    may read the plugin's geometry once, so the worker calls them, not the UI thread.
+    """
+
+    def __init__(self, root: str, block_name: str, group: str, texts: Dict[str, str], title: str,
+                 save_root: str = "", name_of: Callable[[], str] = _no_name,
+                 budget_of: Callable[[str], Optional[float]] = _no_budget):
         self.root = root
-        self.manual_name = manual_name
+        self.block_name = block_name
         self.group = group
         self.texts = texts
-        self.budgets = budgets
         self.title = title
         self.save_root = save_root  # a folder the user just chose: the worker stores it before drawing
-        self.key = (root, manual_name, group, hash(tuple(sorted(texts.items()))), title)
+        self.name_of = name_of
+        self.budget_of = budget_of
+        self.key = (root, block_name, group, hash(tuple(sorted(texts.items()))), title)
 
 
 def _archive_of(tools: Any, manual_name: str) -> Any:
@@ -232,14 +248,17 @@ def draw_request(request: _Request, should_stop: Any) -> PagePreview:
         raise repo_tools.ToolsError(repo_tools.NO_FOLDER)
     tools = repo_tools.load_tools(root)
     font = repo_tools.load_font(tools)
-    archive = _archive_of(tools, request.manual_name)
-    flows = _flows_of(tools, request.manual_name)
-    textures = _textures_of(tools, request.manual_name)
-    index = _index_of(tools, request.manual_name)
+    # Two manuals can share one key list (face_raiders, face_raiders_n3ds): the block's own name picks the archive.
+    manual_name = request.block_name if request.block_name in tools.manual.MANUALS else request.name_of()
+    archive = _archive_of(tools, manual_name)
+    flows = _flows_of(tools, manual_name)
+    textures = _textures_of(tools, manual_name)
+    index = _index_of(tools, manual_name)
     part, page_name = request.group.split("/", 1)
     page = int(page_name.split("_")[1])
+    budgets = {key: request.budget_of(key) for key in request.texts}
     with _RENDER_LOCK:  # the owner's layout model keeps per-flow state; one page at a time
-        files, owners, failed = build_page(tools, archive, flows, part, page, request.texts, request.budgets, should_stop)
+        files, owners, failed = build_page(tools, archive, flows, part, page, request.texts, budgets, should_stop)
     if not files:
         raise repo_tools.ToolsError(f"no {part} page {page} in the manual")
     renderer = cr.PageRenderer(textures, cr.Glyphs(font, tools.bcfnt))
@@ -247,7 +266,7 @@ def draw_request(request: _Request, should_stop: Any) -> PagePreview:
     if should_stop():
         raise RenderCancelled()
     layouts = [cr.parse(data) for data in files]
-    defects = simulator.defects_of(renderer.runs, sorted(renderer.missing), layouts, textures, request.manual_name,
+    defects = simulator.defects_of(renderer.runs, sorted(renderer.missing), layouts, textures, manual_name,
                                    index.number_of(page), f"Page_{page:03d}", part)
     defect_keys: Dict[str, List[str]] = {}
     for defect in defects:
@@ -269,7 +288,7 @@ class PageRenderWorker(WorkerThread):
 
     rendered = pyqtSignal(int, object, object)
 
-    def __init__(self, generation: int, request: _Request, parent: QObject):
+    def __init__(self, generation: int, request: _Request, parent: Optional[QObject]):
         super().__init__(parent)
         self._generation = generation
         self._request = request
@@ -400,12 +419,15 @@ class ManualPreviewPanel(QWidget):
         self.refresh()
 
     def shutdown(self) -> None:
-        """Stop the worker and wait a bounded time for it. Call before the widget is deleted."""
+        """Stop the workers and wait a bounded time for them. Call before the widget is deleted.
+
+        A worker still loading the manual's files is parked (utils.thread_utils): it has no parent, so deleting the
+        panel never destroys a running thread (Qt aborts the process then)."""
         self._timer.stop()
         for worker in self._workers:
             worker.cancel()
         for worker in self._workers:
-            worker.wait(WORKER_STOP_MS)
+            safe_shutdown_thread(worker, worker, WORKER_STOP_MS)
         self._workers.clear()
 
     # -- what the canvas shows ----------------------------------------------------------------
@@ -467,22 +489,25 @@ class ManualPreviewPanel(QWidget):
         if block is None or block < 0 or index is None or index < 0:
             self._show_message(tr("Select a string of a manual page."))
             return
-        string_key = self._rules.string_key(index)
+        if not self._rules.manual_loaded(block):
+            self._show_message(tr("This manual is not read yet. The page is drawn when it is."))
+            return
+        string_key = self._rules.string_key(block, index)
         page = page_name_of(string_key) if string_key else None
         if page is None:
             self._show_message(tr("The index is not drawn here. Select a string of a page."))
             return
         part = "large" if self._large else "small"
         group = f"{part}/{page}_{part}"
-        indices = self._rules.strings_of_group(group)
+        indices = self._rules.strings_of_group(block, group)
         texts = {key: self._mw.data_processor.get_current_string_text(block, i)[0] for key, i in indices.items()}
-        budgets = {key: self._rules.preview_budget(key) for key in indices}
         page_no = int(page.split("_")[1])
-        title_index = self._rules.index_string_of_page(page_no)
+        title_index = self._rules.index_string_of_page(block, page_no)
         title = ""
         if title_index is not None:
             title = self._mw.data_processor.get_current_string_text(block, title_index)[0] or ""
-        request = _Request(self._root, self._rules.manual_name(), group, texts, budgets, title, self._save_pending)
+        request = _Request(self._root, str(ds.block_names.get(str(block), "")), group, texts, title, self._save_pending,
+                           partial(self._rules.manual_name, block), partial(self._rules.preview_budget, block))
         self._save_pending = ""
         self._page_file = page
         self._current_key = string_key or ""
@@ -492,10 +517,10 @@ class ManualPreviewPanel(QWidget):
             return
         for worker in self._workers:
             worker.cancel()
-        worker = PageRenderWorker(self._generation, request, self)
+        worker = PageRenderWorker(self._generation, request, None)  # no parent: see shutdown
         worker.rendered.connect(self._on_rendered)
+        self._reap()  # before the append: the new worker does not run yet and would be dropped
         self._workers.append(worker)
-        self._reap()
         self._set_status(tr("Drawing the page..."))
         worker.start()
 
@@ -506,6 +531,9 @@ class ManualPreviewPanel(QWidget):
         if isinstance(payload, str):
             if payload == repo_tools.NO_FOLDER:
                 payload = tr("Set the repo_manual folder to draw the page.")
+            elif payload.startswith(repo_tools.NO_MANUAL):
+                payload = tr("The repo_manual folder has no console files of the manual {0}, so its pages cannot be drawn.",
+                             payload[len(repo_tools.NO_MANUAL):])
             elif payload.startswith("missing:") or payload.startswith("not a folder:"):
                 payload = tr("Not a repo_manual folder: {0}", payload)
             self._show_message(payload)
