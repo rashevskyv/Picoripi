@@ -2330,5 +2330,11 @@
   "Writing the ROM...": "Запис ROM...",
   "String {0}: {1}": "Рядок {0}: {1}",
   "{0} is not Final Fantasy Tactics Advance (USA, AFXE).": "{0} — не Final Fantasy Tactics Advance (США, AFXE).",
-  "The unpacked folder has no ROM in {0}.": "У розпакованій теці немає ROM у {0}."
+  "The unpacked folder has no ROM in {0}.": "У розпакованій теці немає ROM у {0}.",
+  "String {0}: the character {1} has no code in the game's font": "Рядок {0}: символ {1} не має коду в шрифті гри",
+  "The translated ROM would be {0} bytes; a GBA cartridge holds {1}.": "Перекладений ROM мав би {0} байтів; картридж GBA вміщує {1}.",
+  "Table {0} would take {1} bytes; its offsets reach 65535.": "Таблиця {0} зайняла б {1} байтів; її зсуви сягають лише 65535.",
+  "The source is not Final Fantasy Tactics Advance (USA, AFXE).": "Джерело — не Final Fantasy Tactics Advance (США, AFXE).",
+  "The font file has {0} bytes; the game's font has {1}.": "Файл шрифту має {0} байтів; шрифт гри має {1}.",
+  "Table {0} ({1}) has no pointer the build can move.": "Таблиця {0} ({1}) не має вказівника, який збирання може перенести."
 }

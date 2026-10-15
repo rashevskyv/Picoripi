@@ -21,6 +21,8 @@ import struct
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Optional, Tuple
 
+from core.i18n import tr
+
 from . import codec
 
 GAME_CODE = b"AFXE"
@@ -273,7 +275,7 @@ def _append(rom: bytearray, payload: bytes, align: int = 4) -> int:
     at = len(rom)
     rom += payload
     if len(rom) > MAX_ROM:
-        raise BuildError(f"The translated ROM would be {len(rom)} bytes; a GBA cartridge holds {MAX_ROM}.")
+        raise BuildError(tr("The translated ROM would be {0} bytes; a GBA cartridge holds {1}.", len(rom), MAX_ROM))
     return at
 
 
@@ -291,7 +293,8 @@ def _rebuild_table(data: bytes, address: int, new: Dict[int, bytes]) -> bytes:
         body += by_offset.get(offset, slices[offset])
         body += bytes(len(body) % 2)
     if head + len(body) > 0xFFFF:
-        raise BuildError(f"Table {address:06X} would take {head + len(body)} bytes; its offsets reach 65535.")
+        raise BuildError(tr("Table {0} would take {1} bytes; its offsets reach 65535.", f"{address:06X}",
+                            head + len(body)))
     return struct.pack(f"<{len(entries)}H", *(0xFFFF if o == 0xFFFF else placed[o] for o in entries)) + bytes(body)
 
 
@@ -299,11 +302,12 @@ def build(data: bytes, banks: Iterable[dict], font: Optional[bytes] = None) -> b
     """The ROM with the banks' edited strings and ``font`` (the bytes of ``FONT_START:FONT_END``) written in."""
     data = bytes(data)
     if not is_ffta(data):
-        raise BuildError("The source is not Final Fantasy Tactics Advance (USA, AFXE).")
+        raise BuildError(tr("The source is not Final Fantasy Tactics Advance (USA, AFXE)."))
     rom = bytearray(data)
     if font is not None:
         if len(font) != FONT_END - FONT_START:
-            raise BuildError(f"The font file has {len(font)} bytes; the game's font has {FONT_END - FONT_START}.")
+            raise BuildError(tr("The font file has {0} bytes; the game's font has {1}.", len(font),
+                                FONT_END - FONT_START))
         rom[FONT_START:FONT_END] = font
     changes = _changes(data, banks)
     if not changes:
@@ -321,7 +325,8 @@ def build(data: bytes, banks: Iterable[dict], font: Optional[bytes] = None) -> b
         if not new:
             continue
         if not (table.abs_refs or table.rel_refs):
-            raise BuildError(f"Table {table.address:06X} ({table.name}) has no pointer the build can move.")
+            raise BuildError(tr("Table {0} ({1}) has no pointer the build can move.", f"{table.address:06X}",
+                                table.name))
         at = _append(rom, _rebuild_table(data, table.address, new))
         for ref in table.abs_refs:
             struct.pack_into("<I", rom, ref, ROM_BASE + at)

@@ -72,7 +72,11 @@ _PARAM_DESCRIPTIONS = {"crn": "A character's name (CRN number)", "var": "A name 
 
 
 class EncodeError(ValueError):
-    """A text that cannot be written in the game's codes."""
+    """A text that cannot be written in the game's codes; ``char`` is the character with no code, if that is why."""
+
+    def __init__(self, message: str, char: str = ""):
+        super().__init__(message)
+        self.char = char
 
 
 def describe(tag: str) -> str:
@@ -166,7 +170,7 @@ def encode_db(text: str) -> bytes:
                 raise EncodeError(f"Unknown tag {token}")
             out += bytes((0x40, code)) + params
         else:
-            raise EncodeError(f"The character {token!r} has no code in the game's font")
+            raise EncodeError(f"The character {token!r} has no code in the game's font", token)
     return bytes(out)
 
 

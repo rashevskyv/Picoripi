@@ -171,6 +171,9 @@ class GameRules(BaseGameRules):
                     try:
                         raw = rom_text.tbl_encode(text, raw) if kind == "offsets" else rom_text.abs_encode(text, raw)
                     except codec.EncodeError as error:
+                        if error.char:
+                            raise ValueError(tr("String {0}: the character {1} has no code in the game's font",
+                                                string["id"], repr(error.char))) from None
                         raise ValueError(tr("String {0}: {1}", string["id"], str(error))) from None
                 strings.append({**string, "raw": raw.hex()})
             blocks.append({**block, "strings": strings})

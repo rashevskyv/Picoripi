@@ -567,7 +567,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
    - `ffta_gba` — Final Fantasy Tactics Advance (Game Boy Advance, USA AFXE). **Source:** the project's `unpacked`
      folder: New Project (Project Manager) recognises the ROM and writes `rom/` (the copy the build starts from),
      `text/*.fftatext` (menus, items, names, missions and notices, story events and battles: 9,543 strings in 104
-     tables) and `fonts/font.bin` (the 16x16 font with its widths); **Translation:** `translation`. A space and a
+     blocks: 10 pointer tables and 94 offset tables) and `fonts/font.bin` (the 16x16 font with its widths); **Translation:** `translation`. A space and a
      line break are plain text; `[wait]`, `[next]`, `[clear]` wait, turn the page and clear the box (after a
      `[clear]` inside a text the editor starts a new line); `[crn:XX]` and
      `[var:XX]` insert a name or a number; `[choice:XX]` starts a two-way choice whose answers end with `[sep]`;
