@@ -333,6 +333,9 @@ def _frame_width(layout: cr.Layout, pane: cr.Pane, textures: cr.Textures) -> flo
         return 0.0
     drawn = cr._frame_image(image, flip) if len(pane.frames) >= 4 else image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
     alpha = drawn.getchannel("A")
+    # The opaque columns that run in from the outer edge (the last column). ponytail: an outline texture whose
+    # outer column is clear counts as painting nothing; counting to the innermost painted column instead flags
+    # Nintendo's own lines inside its shadowed 8 px frames (health_safety_n3ds page 12), so the outer run it is.
     width = 0
     for column in range(drawn.width - 1, -1, -1):
         strip = alpha.crop((column, 0, column + 1, drawn.height)).histogram()

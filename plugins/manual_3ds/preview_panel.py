@@ -12,8 +12,6 @@ so what the panel shows is what the card shows. Drawing runs in a QThread worker
 """
 from __future__ import annotations
 
-import copy
-import json
 import re
 import threading
 from collections import OrderedDict
@@ -31,13 +29,12 @@ from plugins.manual_3ds import console_render as cr
 from plugins.manual_3ds import repo_tools
 from plugins.manual_3ds import sim_screens as ss
 from plugins.manual_3ds import simulator
-from utils.atomic_io import atomic_write_json
+from plugins.manual_3ds.page_build import (PLUGIN_NAME, RENDER_LOCK, RenderCancelled, archive_of, build_page, flows_of,
+                                           index_of, load_folder, save_folder, textures_of)
 from utils.constants import user_plugin_dir
 from utils.logging_utils import log_warning
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
-PLUGIN_NAME = "manual_3ds"
-SETTINGS_FILE = "preview.json"
 CHROME_DIR = "chrome"         # <data>/plugins/manual_3ds/chrome: screenshot crops of the viewer's chrome (git-ignored)
 TOP_SIZE = ss.TOP
 BOTTOM_SIZE = ss.BOTTOM
@@ -50,29 +47,6 @@ Y_BUTTON_START = 180          # the Y label area of the bottom bar starts here (
 PAGE_NUMBER = re.compile(r"Page_(\d+)_(large|small)")
 DEFECT_RGBA = (255, 0, 0, 60)
 MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame", "covered", "over_cell", "text_overlap")
-
-_GROUPS_LOCK = threading.Lock()
-_ARCHIVES: Dict[Tuple[str, str], Any] = {}
-_FLOWS: Dict[Tuple[str, str], Dict[str, List[Any]]] = {}
-_TEXTURES: Dict[Tuple[str, str], cr.Textures] = {}
-_INDEXES: Dict[Tuple[str, str], cr.Index] = {}
-_RENDER_LOCK = threading.Lock()
-
-
-def load_folder() -> str:
-    """The repo_manual folder the user chose, or "" (per user, outside the repository)."""
-    try:
-        data = json.loads((user_plugin_dir(PLUGIN_NAME) / SETTINGS_FILE).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return ""
-    value = data.get("repo_manual", "") if isinstance(data, dict) else ""
-    return value if isinstance(value, str) else ""
-
-
-def save_folder(folder: str) -> None:
-    target = user_plugin_dir(PLUGIN_NAME)
-    target.mkdir(parents=True, exist_ok=True)
-    atomic_write_json(target / SETTINGS_FILE, {"repo_manual": folder}, indent=2, ensure_ascii=False)
 
 
 def _persist_folder(folder: str) -> None:
@@ -139,106 +113,9 @@ class _Request:
         self.key = (root, block_name, group, hash(tuple(sorted(texts.items()))), title)
 
 
-def _archive_of(tools: Any, manual_name: str) -> Any:
-    """The manual's archive, read once per folder. Called from the worker only."""
-    key = (str(tools.root), manual_name)
-    with _GROUPS_LOCK:
-        if key not in _ARCHIVES:
-            _ARCHIVES[key] = tools.bcma.load(repo_tools.manual_path(tools, manual_name))
-        return _ARCHIVES[key]
-
-
-def _flows_of(tools: Any, manual_name: str) -> Dict[str, List[Any]]:
-    """The owner's paragraphs of every page ({"small/Page_003_small_0": [Flow, ...]}), once per manual."""
-    key = (str(tools.root), manual_name)
-    archive = _archive_of(tools, manual_name)
-    with _GROUPS_LOCK:
-        if key not in _FLOWS:
-            _FLOWS[key] = tools.manual.pages_of(archive, tools.manual.BASE_SLOT)
-        return _FLOWS[key]
-
-
-def _textures_of(tools: Any, manual_name: str) -> cr.Textures:
-    key = (str(tools.root), manual_name)
-    archive = _archive_of(tools, manual_name)
-    with _GROUPS_LOCK:
-        if key not in _TEXTURES:
-            files: Dict[str, bytes] = {}
-            for member in ("Common_texture", f"{tools.manual.BASE_SLOT}_texture"):
-                try:
-                    files.update(archive.read(member))
-                except KeyError:
-                    pass
-            _TEXTURES[key] = cr.Textures(files)
-        return _TEXTURES[key]
-
-
-def _index_of(tools: Any, manual_name: str) -> cr.Index:
-    key = (str(tools.root), manual_name)
-    archive = _archive_of(tools, manual_name)
-    with _GROUPS_LOCK:
-        if key not in _INDEXES:
-            _INDEXES[key] = cr.read_index(archive.read(f"{tools.manual.BASE_SLOT}_index")["Index.bclyt"])
-        return _INDEXES[key]
-
-
 def _qimage(image: Image.Image) -> QImage:
     rgba = image.convert("RGBA")
     return QImage(rgba.tobytes("raw", "RGBA"), rgba.width, rgba.height, 4 * rgba.width, QImage.Format.Format_RGBA8888).copy()
-
-
-class RenderCancelled(Exception):
-    """The caller asked the render to stop."""
-
-
-def build_page(tools: Any, archive: Any, flows_by_key: Dict[str, List[Any]], part: str, page: int, texts: Dict[str, str],
-               budgets: Dict[str, Any], should_stop: Any) -> Tuple[List[bytes], Dict[str, str], Dict[str, str]]:
-    """The page's BCLYT files with the current texts laid out on them, as the console build writes them.
-
-    -> (files in draw order, pane name -> string key, string key -> layout error). A paragraph the owner's layout
-    cannot place keeps the stored text (the console build would stop; the panel shows the page anyway).
-    """
-    manual = tools.manual
-    slot = manual.BASE_SLOT
-    files = archive.read(f"{slot}_{part}")
-    widths = repo_tools.widths_of(tools)
-    table = manual.load_homoglyphs()
-    out: List[bytes] = []
-    owners: Dict[str, str] = {}
-    failed: Dict[str, str] = {}
-    backdrop = files.get(f"Page_{page:03d}_{part}_bg.bclyt")
-    if backdrop is not None:
-        out.append(backdrop)
-    prefix = f"Page_{page:03d}_{part}_"
-    subs = sorted((name for name in files if name.startswith(prefix) and name[len(prefix):-6].isdigit()),
-                  key=lambda name: int(name[len(prefix):-6]))
-    for file_name in subs:
-        if should_stop():
-            raise RenderCancelled()
-        data = files[file_name]
-        page_key = f"{part}/{file_name.removesuffix('.bclyt')}"
-        edits: Dict[str, Any] = {}
-        for index, flow in enumerate(flows_by_key.get(page_key, [])):
-            key = f"{page_key}#{index}"
-            for pane in flow.panes:
-                owners[pane.name] = key
-            text = texts.get(key)
-            if not text:
-                continue
-            try:
-                # The build's own steps on a copy: mark_panes_out reassigns the copy's lines (the shared flow
-                # keeps its panes for the next render).
-                laid = copy.copy(flow)
-                manual.mark_panes_out(laid, text)
-                rendered = manual.apply_homoglyphs(text, table)
-                budget = budgets.get(key)
-                limit = (float(budget) if budget else cr.COLUMN_WIDTH) + manual.WIDTH_SLACK
-                lines = manual.layout_for(rendered, laid, limit, widths)
-                edits.update(manual.to_edits(lines, laid))
-            except Exception as exc:  # the owner's layout refuses the text: the page keeps the stored text there
-                failed[key] = repr(exc)
-        out.append(tools.bclyt.rewrite(data, edits) if edits else data)
-    return out, owners, failed
 
 
 def draw_request(request: _Request, should_stop: Any) -> PagePreview:
@@ -250,14 +127,14 @@ def draw_request(request: _Request, should_stop: Any) -> PagePreview:
     font = repo_tools.load_font(tools)
     # Two manuals can share one key list (face_raiders, face_raiders_n3ds): the block's own name picks the archive.
     manual_name = request.block_name if request.block_name in tools.manual.MANUALS else request.name_of()
-    archive = _archive_of(tools, manual_name)
-    flows = _flows_of(tools, manual_name)
-    textures = _textures_of(tools, manual_name)
-    index = _index_of(tools, manual_name)
+    archive = archive_of(tools, manual_name)
+    flows = flows_of(tools, manual_name)
+    textures = textures_of(tools, manual_name)
+    index = index_of(tools, manual_name)
     part, page_name = request.group.split("/", 1)
     page = int(page_name.split("_")[1])
     budgets = {key: request.budget_of(key) for key in request.texts}
-    with _RENDER_LOCK:  # the owner's layout model keeps per-flow state; one page at a time
+    with RENDER_LOCK:  # the owner's layout model keeps per-flow state; one page at a time
         files, owners, failed = build_page(tools, archive, flows, part, page, request.texts, budgets, should_stop)
     if not files:
         raise repo_tools.ToolsError(f"no {part} page {page} in the manual")

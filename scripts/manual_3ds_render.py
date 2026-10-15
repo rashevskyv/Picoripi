@@ -39,7 +39,7 @@ SIZES = ("large", "small")
 
 def _default_repo() -> str:
     try:
-        from plugins.manual_3ds.preview_panel import load_folder
+        from plugins.manual_3ds.page_build import load_folder
         saved = load_folder()
     except Exception:
         saved = ""

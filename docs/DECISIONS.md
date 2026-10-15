@@ -862,7 +862,7 @@ Spanish, Italian) is context. Reference languages already load through `referenc
 **Cost.** A slot the European English rewrote shows that text without a mark. A reference path that is still the
 image (the app closed during the unpack) loads nothing until the disc is picked again.
 
-## D38. 3DS manual simulator: a screenshot is judged against the build that was on the card; occlusion is draw order (2026-10-15)
+## D39. 3DS manual simulator: a screenshot is judged against the build that was on the card; occlusion is draw order (2026-10-15)
 
 **Context.** The owner's New 3DS screenshots (`shots_r19`, 114 pairs dated 2011-01-01 by the console clock) showed
 table labels cut at the cell edge, captions running into each other and lines past the card edge. A first match
@@ -891,6 +891,13 @@ are byte-identical copies of `shots_new` and `shots_r17b`.
   console (pages 8, 21, 22, 3), where the 2 px slack broke them in the render ("центру технічної підтримки",
   "головний ключ."). The 2 px came from a round-8 pair with an older font. `layout.BOX_PADDING` stays 2.5: it is the
   build's widening (the owner's `manual.BOX_PADDING`), not the viewer's.
+- The editor scan reports what the render reports. A label leaving its cell or two paragraphs' ink meeting cannot be
+  judged from one string's geometry (the other paragraph's text decides), so `rules.manual_problems` builds the
+  string's page from every current text on it with the owner's tools (`page_build.page_kinds`, the preview's build,
+  byte-identical to the owner's: every page of cand_r19) and draws it once per set of texts. The render never runs on
+  the UI thread: the whole-project scan (UI thread) schedules a background render of the block and the host rescans
+  the block when it is done; the per-string scan worker renders inline. `geometry.json` carries the painted frame
+  width so the geometric BESIDE and the render's `over_frame` agree.
 - One render function: `simulator.render_page` draws the files and `simulator.page_defects` judges them; the preview
   panel (the page built from the current text) and the CLI (a build folder's page) call the same two, so what the
   preview shows is what `validate` measures.

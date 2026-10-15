@@ -16,7 +16,8 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from plugins.manual_3ds import layout, repo_tools  # noqa: E402
+from plugins.manual_3ds import console_render as cr  # noqa: E402
+from plugins.manual_3ds import layout, repo_tools, simulator  # noqa: E402
 
 DEFAULT_OUT = os.path.join(ROOT, "plugins", "manual_3ds", "geometry.json")
 DEFAULT_WIDTHS = os.path.join(ROOT, "plugins", "manual_3ds", "widths.json")
@@ -56,6 +57,26 @@ def _entry(flow, budget, manual):
     }
 
 
+def _textures(tools, archive):
+    """The manual's BCLIM textures (the common ones and the base slot's), as the simulator reads them."""
+    files = {}
+    for member in ("Common_texture", f"{tools.manual.BASE_SLOT}_texture"):
+        try:
+            files.update(archive.read(member))
+        except KeyError:
+            pass
+    return cr.Textures(files)
+
+
+def _painted_frames(tools, archive, page, textures):
+    """{window pane name: painted width of its right frame} for one page ("small/Page_003_small_0")."""
+    part, file_name = page.split("/", 1)
+    data = archive.read(f"{tools.manual.BASE_SLOT}_{part}")[f"{file_name}.bclyt"]
+    parsed = cr.parse(data)
+    return {pane.name: simulator._frame_width(parsed, pane, textures)
+            for pane in parsed.panes if pane.kind == "wnd1" and pane.frames}
+
+
 def build(tools):
     """-> {fingerprint: {"name", "entries", "pages"}} for every manual of the folder that has a dump."""
     manual = tools.manual
@@ -69,6 +90,7 @@ def build(tools):
         archive = tools.bcma.load(path)
         pages = manual.pages_of(archive, manual.BASE_SLOT)
         budgets = manual.budgets(archive, manual.BASE_SLOT, widths)
+        textures = _textures(tools, archive)
         entries, occluders = {}, {}
         for page, flows in pages.items():
             for index, flow in enumerate(flows):
@@ -76,12 +98,16 @@ def build(tools):
             if flows:
                 # The page's pictures and frames (manual.occluder_rules), the union over its flows: a flow's own
                 # inline icons are not in its way (manual.paragraphs_of), so each entry lists those as "own"
-                # (indexes to leave out). A window carries the width of its right frame texture, None when it has none.
+                # (indexes to leave out). A window carries the painted width of its right frame (the opaque columns
+                # of the frame texture, as the simulator measures it; 0 for a frame that paints nothing), None when
+                # it has no frame texture.
                 shared = {}
                 for flow in flows:
                     for pane in flow.occluders:
                         shared.setdefault(id(pane), pane)
-                occluders[page] = [[p.kind, p.abs_x, p.abs_y, p.width, p.height, getattr(p, "frame_width", None)]
+                painted = _painted_frames(tools, archive, page, textures)
+                occluders[page] = [[p.kind, p.abs_x, p.abs_y, p.width, p.height,
+                                    painted.get(p.name) if getattr(p, "frame_width", None) is not None else None]
                                    for p in shared.values()]
                 for index, flow in enumerate(flows):
                     mine = {id(pane) for pane in flow.occluders}

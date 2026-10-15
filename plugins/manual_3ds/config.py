@@ -24,13 +24,27 @@ CUSTOM_PROBLEMS = {
     },
     "WRAP": {
         "name": "Line breaks on the console", "color": QColor(255, 80, 0, 110), "priority": 2,
-        "description": "The console breaks this stored line inside its pane: the line is wider than its pane box less "
-                       "2 px, so its end lands on the next line, over the text there.",
+        "description": "The console breaks this stored line inside its pane: the line is wider than its pane box, "
+                       "so its end lands on the next line, over the text there.",
     },
     "BESIDE": {
         "name": "Line runs into a picture or frame", "color": QColor(255, 80, 0, 110), "priority": 2,
         "description": "A line runs into a picture or a box frame beside it on the console page. Shorten the line or "
                        "the paragraph.",
+    },
+    "CELL": {
+        "name": "Line leaves its cell", "color": QColor(255, 80, 0, 110), "priority": 2,
+        "description": "A line starts inside a filled cell (a table's grey label cell) and runs out of it on the "
+                       "console page: white text vanishes on the white page there. Shorten the line.",
+    },
+    "OVERLAP": {
+        "name": "Lines overlap", "color": QColor(255, 80, 0, 110), "priority": 2,
+        "description": "The ink of this line meets the ink of a line of another paragraph on the console page (a "
+                       "table label under the next cell's text, a caption running into the next caption).",
+    },
+    "COVERED": {
+        "name": "Line painted over", "color": QColor(255, 80, 0, 110), "priority": 2,
+        "description": "A picture or a filled box drawn after this line paints over its ink on the console page.",
     },
     "ICON": {
         "name": "Button glyph mismatch", "color": QColor(255, 0, 0, 120), "priority": 1,
