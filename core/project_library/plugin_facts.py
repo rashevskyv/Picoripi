@@ -143,19 +143,24 @@ def _sub_block_index(names: Dict[str, str], count: int, internal_key: str) -> in
     return -1
 
 
-def _parse(rules: Any, path: Path, cache: Dict[str, Any]) -> Any:
-    """``(blocks, names)`` of one file, parsed once per count. ``None`` when the file cannot be read.
+def _parse(rules: Any, path: Path, cache: Dict[Any, Any], translation: bool = False) -> Any:
+    """``(blocks, names)`` of one file, parsed once per count and role. ``None`` when the file cannot be read.
 
     A file no format of the plugin claims (fonts, images, archives) is skipped, never read as text. The default
-    ``UNKNOWN_IS_ERROR`` policy answers "unsupported" without opening the file.
+    ``UNKNOWN_IS_ERROR`` policy answers "unsupported" without opening the file. A translation file is parsed in the
+    translation role (``formats.translation_parse``): one file read in place can be both, and gives different text.
     """
-    key = str(path)
+    key = (str(path), translation)
     if key not in cache:
         content, error = formats.read_file(rules, path)
         if error or content is None:
             cache[key] = None
         else:
-            blocks, names = rules.load_data_from_json_obj(content)
+            if translation:
+                with formats.translation_parse(rules):
+                    blocks, names = rules.load_data_from_json_obj(content)
+            else:
+                blocks, names = rules.load_data_from_json_obj(content)
             cache[key] = (blocks or [], names or {})
     return cache[key]
 
@@ -205,7 +210,7 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
     totals = {"lines": 0, "needs_translation": 0, "translated": 0}
     groups: Dict[str, Dict[str, int]] = {}
     skipped = 0
-    cache: Dict[str, Any] = {}
+    cache: Dict[Any, Any] = {}
     for block in data.get("blocks") or []:
         if is_cancelled():
             return None
@@ -220,7 +225,7 @@ def count_project(project_file: str | os.PathLike, load_rules: LoadRules = defau
             skipped += 1
             continue
         translation = _resolve(str(block.get("translation_file") or ""), translation_roots)
-        translated = _block_of(_parse(rules, translation, cache), internal_key) if translation else None
+        translated = _block_of(_parse(rules, translation, cache, translation=True), internal_key) if translation else None
         counts = count_strings([original], [translated or []], {})
         for key in totals:
             totals[key] += counts[key]
