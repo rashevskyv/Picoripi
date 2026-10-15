@@ -877,10 +877,14 @@ SMG2), so the name is stable where the index is not.
   the versions that have it. A build writes each version's own archives by label and keeps every untouched message
   (the Switch rewords some English). SMG1 archives are BMG + BCSV labels; SMG2 archives are one per zone with MSBT
   members (key `<member>/<label>`). What differs between the games (ids, Nebula) is data in `unpack.GAMES`.
+- A label whose English words differ between the versions (tags left out) gets one row per version, both marked
+  `split` and flagged in the editor ("Switch translation; Wii English differs"). An imported Switch translation fills
+  only the Switch row; the Wii and Nebula builds take the Wii row, or the Wii English, never the Switch wording.
 - Editor tags show the Wii bytes on every version. The Switch files are the same formats little-endian (CRAR, swapped
   section magics, UTF-16LE); tag fields are swapped by a measured rule: BMG tag number and groups 1 (u16), 6 and 7
   (u32); every u16 of an LMS tag. Button pictures (group 3) differ in number and are paired per label from the English
-  of both versions (majority pair as fallback).
+  of both versions, then by the most common pair over the game; a picture with no pair takes the other version's
+  English picture at the same place.
 - Wii WIA/RVZ images are read with no key: the format stores partitions decrypted with hashes removed
   (`core/containers/wia.py` `partition_view`; `WiiImage(stream, None)`). A Wii ISO still needs the key file; DolphinTool
   can convert it to RVZ (done for SB4E01). `WiiImage` now reads the FST size as divided by 4 (it was taken as bytes).
@@ -900,4 +904,4 @@ SMG2), so the name is stable where the index is not.
   the Switch build for the mod's font, the Wii and Nebula builds only ґ as г.
 
 **Cost.** The Nebula path needs the patched `fst.bin` copied over Nebula's `content\sys\fst.bin` as well: Nebula loads
-the loose FST at boot and ignores the manifest for it (measured). The ported glyphs are scaled bitmaps, not redrawn letters. A Switch picture with no Wii pair stays a Switch number in the Wii build.
+the loose FST at boot and ignores the manifest for it (measured). The ported glyphs are scaled bitmaps, not redrawn letters. A label the versions word differently stays English on the Wii until its Wii row is translated.

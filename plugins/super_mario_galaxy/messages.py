@@ -265,30 +265,53 @@ def pictures(text: str) -> List[str]:
 
 
 def picture_pairs(wii: Dict[str, str], switch: Dict[str, str]) -> Dict[str, Dict[str, str]]:
-    """``{label: {Wii picture tag: Switch picture tag}}`` from the English text of both versions, plus ``"*"``: the
-    most common pair of each Wii tag, for a label whose English pictures do not line up one to one."""
+    """``{label: {Wii picture tag: Switch picture tag}}`` from the English text of both versions where a label's
+    pictures line up one to one, plus ``"*"`` (Wii -> Switch) and ``"*back"`` (Switch -> Wii): the most common pair of
+    each tag over every label, for a label whose own pictures do not line up."""
     per_label: Dict[str, Dict[str, str]] = {}
     votes: Dict[str, Counter] = defaultdict(Counter)
+    back: Dict[str, Counter] = defaultdict(Counter)
     for label, wii_text in wii.items():
         a, b = pictures(wii_text), pictures(switch.get(label, ""))
         if not a or len(a) != len(b):
             continue
-        pairs = dict(zip(a, b))
-        per_label[label] = pairs
-        for old, new in pairs.items():
+        per_label[label] = dict(zip(a, b))
+        for old, new in zip(a, b):
             votes[old][new] += 1
+            back[new][old] += 1
     per_label["*"] = {old: counter.most_common(1)[0][0] for old, counter in votes.items()}
+    per_label["*back"] = {new: counter.most_common(1)[0][0] for new, counter in back.items()}
     return per_label
 
 
-def swap_pictures(text: str, label: str, pairs: Dict[str, Dict[str, str]], reverse: bool = False) -> str:
-    """``text`` with its picture tags moved to the other version (Wii -> Switch, or back with ``reverse``)."""
-    table = dict(pairs.get("*", {}))
-    table.update(pairs.get(label, {}))
-    if reverse:
-        table = {new: old for old, new in reversed(list(table.items()))}
-    return TAG_RE.sub(lambda match: table.get(match.group(0), match.group(0)) if _is_picture(match)
-                      else match.group(0), text)
+def swap_pictures(text: str, label: str, pairs: Dict[str, Dict[str, str]], reverse: bool = False,
+                  english: str = "") -> str:
+    """``text`` with its picture tags moved to the other version (Wii -> Switch, or back with ``reverse``).
+
+    A tag takes the label's own pair, else the most common pair over the game. A tag with no pair at all takes the
+    picture at the same place in ``english`` (the other version's English text of the label), or its last one."""
+    table = dict(pairs.get("*back" if reverse else "*", {}))
+    own = pairs.get(label, {})
+    table.update({new: old for old, new in own.items()} if reverse else own)
+    targets = pictures(english)
+    position = 0
+
+    def swap(match: re.Match) -> str:
+        nonlocal position
+        if not _is_picture(match):
+            return match.group(0)
+        tag, index = match.group(0), position
+        position += 1
+        if tag in table:
+            return table[tag]
+        return targets[min(index, len(targets) - 1)] if targets else tag
+    return TAG_RE.sub(swap, text)
+
+
+def plain_words(text: str) -> str:
+    """``text`` without its tags and with single spaces: the words a reader sees (the Switch dropped some timing tags
+    and swapped the button icons without rewording)."""
+    return " ".join(TAG_RE.sub(" ", text).split())
 
 
 # -- the project document (one row per label) -------------------------------------------------------------------------
@@ -312,10 +335,19 @@ def read_document(data: bytes) -> Optional[List[Dict[str, object]]]:
 
 def union_rows(versions: List[Tuple[str, Dict[str, str]]]) -> List[Dict[str, object]]:
     """One row per label over every version: the first version's order and text, then the labels only a later
-    version has, in its order. ``in`` lists the versions that have the label."""
-    rows: Dict[str, Dict[str, object]] = {}
+    version has, in its order. ``in`` lists the versions that have the label. A label whose English differs between
+    the versions in its words (``plain_words``: tags left out) gets one row per version, each marked ``"split": true``:
+    the Switch rewords some messages, and its translation must not reach the Wii."""
+    rows: Dict[str, List[Dict[str, object]]] = {}
     for version, texts in versions:
         for label, text in texts.items():
-            row = rows.setdefault(label, {"label": label, "text": text, "in": []})
-            row["in"].append(version)
-    return list(rows.values())
+            found = rows.setdefault(label, [])
+            if not found:
+                found.append({"label": label, "text": text, "in": [version]})
+            elif plain_words(str(found[0]["text"])) == plain_words(text):
+                found[0]["in"].append(version)
+            else:
+                for row in found:
+                    row["split"] = True
+                found.append({"label": label, "text": text, "in": [version], "split": True})
+    return [row for found in rows.values() for row in found]

@@ -12,10 +12,10 @@ from plugins.super_mario_galaxy.rules import GameRules
 
 from .fixture import message_arc
 
-LABELS = ["Title_Press", "Npc_Hello", "Wii_Only"]
-WII = [["Press ", (3, b"\x00\x00")], ["Hello"], ["Old line"]]
-SWITCH_LABELS = ["Title_Press", "Npc_Hello", "ZZZ_New"]
-SWITCH = [["Press ", (3, b"\x49\x00")], ["Hello"], ["New line"]]
+LABELS = ["Title_Press", "Npc_Hello", "Wii_Only", "File_Prompt"]
+WII = [["Press ", (3, b"\x00\x00")], ["Hello"], ["Old line"], ["Point at a file"]]
+SWITCH_LABELS = ["Title_Press", "Npc_Hello", "ZZZ_New", "File_Prompt"]
+SWITCH = [["Press ", (3, b"\x49\x00")], ["Hello"], ["New line"], ["Touch a file"]]
 FST_AT, ARC_AT, OTHER_AT = 0x3000, 0x40000, 0x48000
 
 
@@ -33,7 +33,7 @@ def project(tmp_path):
     wii = root / "versions" / "wii"
     wii_arc = message_arc(LABELS, WII)
     files = {"files/UsEnglish/MessageData/Message.arc": wii_arc, "files/UsFrench/MessageData/Message.arc":
-             message_arc(LABELS, [["Appuyez"], ["Salut"], ["Vieux"]]), "sys/fst.bin": _fst(len(wii_arc)),
+             message_arc(LABELS, [["Appuyez"], ["Salut"], ["Vieux"], ["Pointez"]]), "sys/fst.bin": _fst(len(wii_arc)),
              "sys/apploader.img": bytes(0x40), "sys/main.dol": b"DOL" * 100}
     boot = bytearray(0x440)
     struct.pack_into(">II", boot, 0x420, 0x2800 >> 2, FST_AT >> 2)
@@ -63,8 +63,9 @@ def _rows(path):
 def test_one_document_per_archive_over_both_versions(project):
     root, _translation = project
     rows = _rows(root / "MessageData" / "Message.smgmsg")
-    assert [(r["label"], r["in"]) for r in rows] == [("Title_Press", ["wii", "switch"]), ("Npc_Hello", ["wii", "switch"]),
-                                                     ("Wii_Only", ["wii"]), ("ZZZ_New", ["switch"])]
+    assert [(r["label"], r["in"], r.get("split", False)) for r in rows] == [
+        ("Title_Press", ["wii", "switch"], False), ("Npc_Hello", ["wii", "switch"], False), ("Wii_Only", ["wii"], False),
+        ("File_Prompt", ["wii"], True), ("File_Prompt", ["switch"], True), ("ZZZ_New", ["switch"], False)]
     assert rows[0]["text"] == "Press {escape:3:0000}"   # the Wii text first
     assert _rows(root / "MessageData" / "System.smgmsg") == [{"label": "#0", "text": "Saving", "in": ["switch"]}]
     columns = json.loads((root / unpack.REFERENCES).read_text(encoding="utf-8"))
@@ -149,17 +150,27 @@ def test_place_keeps_a_file_that_still_fits():
 def test_import_by_label_from_a_switch_mod_zip(project, tmp_path):
     root, translation = project
     mod = tmp_path / "mod.zip"
-    ua = message_arc(SWITCH_LABELS + ["ZZZ_Update"], [["Тисни ", (3, b"\x49\x00")], ["Привіт"], ["Нове"], ["Онов"]],
-                     True)
+    ua = message_arc(SWITCH_LABELS + ["ZZZ_Update"], [["Тисни ", (3, b"\x49\x00")], ["Привiт"], ["Нове"],
+                                                      ["Торкнiться файлу"], ["Онов"]], True)
     with zipfile.ZipFile(mod, "w") as archive:
         archive.writestr("010099c022b96000/romfs/EuEnglish/MessageData/Message.arc", ua)
         archive.writestr("010099c022b96000/romfs/EuEnglish/LayoutData/Font.arc", b"FONT")
     report = import_mod.import_translation(str(root), str(translation), str(mod))
     part = report["archives"]["Message"]
-    assert (part["matched"], part["missing_with_text"], part["extra"]) == (3, 1, ["ZZZ_Update"])
-    rows = {row["label"]: row["text"] for row in _rows(translation / "MessageData" / "Message.smgmsg")}
-    assert rows["Title_Press"] == "Тисни {escape:3:0000}"   # back to the Wii picture number
-    assert rows["Wii_Only"] == "Old line" and rows["ZZZ_New"] == "Нове"
+    assert (part["matched"], part["missing_with_text"], part["extra"]) == (4, 1, ["ZZZ_Update"])
+    assert part["other_version_wording"] == 1
+    rows = {(row["label"], tuple(row["in"])): row["text"] for row in _rows(translation / "MessageData" / "Message.smgmsg")}
+    assert rows[("Title_Press", ("wii", "switch"))] == "Тисни {escape:3:0000}"   # back to the Wii picture number
+    assert rows[("Npc_Hello", ("wii", "switch"))] == "Привіт"                     # proper Ukrainian і
+    assert rows[("Wii_Only", ("wii",))] == "Old line" and rows[("ZZZ_New", ("switch",))] == "Нове"
+    # the Switch wording reaches only the Switch row; the Wii row keeps the Wii English until it is translated
+    assert rows[("File_Prompt", ("switch",))] == "Торкніться файлу"
+    assert rows[("File_Prompt", ("wii",))] == "Point at a file"
+    wii = tmp_path / "wii"
+    build.build_wii_riivolution(str(root), str(translation), str(wii), lambda *a: None, lambda: False)
+    wii_texts = messages.texts_by_label(
+        (wii / "SuperMarioGalaxyUA" / "UsEnglish" / "MessageData" / "Message.arc").read_bytes())
+    assert wii_texts["File_Prompt"] == "Point at a file" and wii_texts["Npc_Hello"] == "Привіт"
     assert report["fonts"] == ["versions/switch/romfs/EuEnglish/LayoutData/Font.arc",
                                "versions/switch/romfs/UsEnglish/LayoutData/Font.arc"]
     # the Switch build starts from the mod's archive (its update's labels) and takes its font
@@ -168,6 +179,8 @@ def test_import_by_label_from_a_switch_mod_zip(project, tmp_path):
     base = out / "atmosphere" / "contents" / "010099C022B96000" / "romfs" / "EuEnglish"
     assert messages.texts_by_label((base / "MessageData" / "Message.arc").read_bytes())["ZZZ_Update"] == "Онов"
     assert (base / "LayoutData" / "Font.arc").read_bytes() == b"FONT"
+    switch_texts = messages.texts_by_label((base / "MessageData" / "Message.arc").read_bytes())
+    assert switch_texts["File_Prompt"] == "Торкніться файлу"
 
 
 def test_rules_load_save_and_reference_columns(project):
@@ -177,8 +190,10 @@ def test_rules_load_save_and_reference_columns(project):
     blocks, names = rules.load_data_from_json_obj(data)
     assert blocks[0][0] == "Press {escape:3:0000}" and names == {}
     assert rules.get_scene_context_for_string(0, 1) == {"label": "Npc_Hello", "versions": ["wii", "switch"]}
-    saved = messages.read_document(rules.save_data_to_json_obj([["A", "B", "C", "D"]], {}))
-    assert [row["text"] for row in saved] == ["A", "B", "C", "D"] and saved[3]["label"] == "ZZZ_New"
+    saved = messages.read_document(rules.save_data_to_json_obj([["A", "B", "C", "D", "E", "F"]], {}))
+    assert [row["text"] for row in saved] == ["A", "B", "C", "D", "E", "F"] and saved[5]["label"] == "ZZZ_New"
+    assert [rules.is_split(0, index) for index in range(6)] == [False, False, False, True, True, False]
+    assert "translate it" in rules.get_problem_detail(0, 3, "SMG_VERSION_WORDING")
     columns = rules.load_multi_reference(str(root), {"0": "Message"})
     assert columns["UsFrench (wii)"][(0, 1)] == "Salut"
     assert "Picture" in rules.get_tag_tooltip("{escape:3:0000}")

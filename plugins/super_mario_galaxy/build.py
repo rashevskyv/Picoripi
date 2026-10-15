@@ -66,14 +66,19 @@ def documents(source_dir: str, translation_dir: str) -> Dict[str, List[Dict[str,
     return found
 
 
+def row_key(row: Dict[str, object]) -> Tuple[str, Tuple[str, ...]]:
+    """A row's identity in a document: its label and versions (a split label has one row per version)."""
+    return str(row["label"]), tuple(row.get("in") or [])
+
+
 def texts_for(version: str, stem: str, rows: List[Dict[str, object]], source_dir: str) -> Dict[str, str]:
     """``{label: text}`` of one archive for one version: the rows it has, with the Wii button pictures moved to the
-    Switch numbers."""
-    pairs = {}
+    Switch numbers (a picture with no pair takes the Switch English one at the same place)."""
+    pairs, switch_english = {}, {}
     if version == SWITCH:
         english = dict(english_versions(Path(source_dir), stem))
         if WII in english and SWITCH in english:
-            pairs = messages.picture_pairs(english[WII], english[SWITCH])
+            pairs, switch_english = messages.picture_pairs(english[WII], english[SWITCH]), english[SWITCH]
     out = {}
     for row in rows:
         present = row.get("in") or []
@@ -81,7 +86,7 @@ def texts_for(version: str, stem: str, rows: List[Dict[str, object]], source_dir
             continue
         text, label = str(row.get("text", "")), str(row["label"])
         if pairs and WII in present:
-            text = messages.swap_pictures(text, label, pairs)
+            text = messages.swap_pictures(text, label, pairs, english=switch_english.get(label, ""))
         out[label] = text
     return out
 
@@ -102,9 +107,9 @@ def version_files(version: str, source_dir: str, translation_dir: str, progress:
     if not slots:
         raise ValueError(tr("The project has no {0} version: add its game file and unpack again.", version))
     docs = documents(source_dir, translation_dir)
-    english = {stem: {row["label"]: row.get("text") for row in rows} for stem, rows in documents(source_dir, "").items()}
+    english = {stem: {row_key(row): row.get("text") for row in rows} for stem, rows in documents(source_dir, "").items()}
     # only the translated rows: an untouched row keeps each version's own English (the Switch rewords some messages)
-    docs = {stem: [row for row in rows if row.get("text") != english.get(stem, {}).get(row["label"])]
+    docs = {stem: [row for row in rows if row.get("text") != english.get(stem, {}).get(row_key(row))]
             for stem, rows in docs.items()}
     replaced = overrides(translation_dir, version)
     chars = _font_chars(source_dir, version, replaced)

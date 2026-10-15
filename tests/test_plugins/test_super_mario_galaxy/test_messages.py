@@ -68,9 +68,24 @@ def test_pictures_move_between_versions_by_the_english_pairs():
         "{escape:3:0001}{escape:255:00000100}"
 
 
-def test_union_rows_keep_the_first_version_order_and_list_where_each_label_is():
-    rows = messages.union_rows([("wii", {"a": "A", "b": "B"}), ("switch", {"b": "B2", "c": "C"})])
-    assert rows == [{"label": "a", "text": "A", "in": ["wii"]}, {"label": "b", "text": "B", "in": ["wii", "switch"]},
+def test_a_picture_with_no_pair_takes_the_other_versions_english_picture_at_its_place():
+    pairs = messages.picture_pairs({"A": "Press {escape:3:0000}"}, {"A": "Press {escape:3:0049}"})
+    title_wii = "Press both {escape:3:0000} and {escape:3:0001}."
+    # the Switch-only picture 0x38 has no pair anywhere: it becomes the Wii English picture at the same place
+    assert messages.swap_pictures("Тисни {escape:3:0038}", "Title", pairs, reverse=True, english=title_wii) == \
+        "Тисни {escape:3:0000}"
+    assert messages.swap_pictures("{escape:3:0049} {escape:3:0038} {escape:3:0039}", "T", pairs, reverse=True,
+                                  english=title_wii) == "{escape:3:0000} {escape:3:0001} {escape:3:0001}"
+    assert messages.swap_pictures("{escape:3:0038}", "T", pairs, reverse=True) == "{escape:3:0038}"
+
+
+def test_union_rows_keep_the_first_version_order_and_split_a_label_worded_differently():
+    rows = messages.union_rows([("wii", {"a": "A", "b": "Point at it", "d": "Press {escape:3:0000}"}),
+                                ("switch", {"b": "Touch it", "c": "C", "d": "Press  {escape:3:0049}"})])
+    assert rows == [{"label": "a", "text": "A", "in": ["wii"]},
+                    {"label": "b", "text": "Point at it", "in": ["wii"], "split": True},
+                    {"label": "b", "text": "Touch it", "in": ["switch"], "split": True},
+                    {"label": "d", "text": "Press {escape:3:0000}", "in": ["wii", "switch"]},   # pictures only
                     {"label": "c", "text": "C", "in": ["switch"]}]
     assert messages.read_document(messages.make_document(rows)) == rows
     assert messages.read_document(b'{"format": "other"}') is None and messages.read_document(b"\xff") is None

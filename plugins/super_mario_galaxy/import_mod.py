@@ -3,7 +3,9 @@
 ``import_translation`` writes the project's translated documents (``MessageData/<archive>.smgmsg``) from the mod's
 message archives: each project row whose label the mod's archive of the same name has takes the mod's text. A mod
 made for the Switch has the Switch button pictures; rows that came from the Wii text get the Wii numbers back
-(``messages.swap_pictures``). Each mod archive is also kept as that version's base archive (``versions/<version>/
+(``messages.swap_pictures``). A label whose English differs between the versions has a row per version
+(``messages.union_rows``); the mod fills only its own version's row, and the other row keeps its English until it is
+translated. Each mod archive is also kept as that version's base archive (``versions/<version>/
 <slot>/MessageData/<archive>.arc`` of the translation folder): a mod made for a game update carries the update's
 labels, and the build writes the text into it. The text is stored as proper Ukrainian (``font_port.
 normalize_ukrainian``: the Ukrainian Switch mod writes і, ї, є as Latin i, ï and Russian э for its font); each build
@@ -87,8 +89,12 @@ def import_translation(source_dir: str, translation_dir: str, mod_path: str) -> 
         pairs = messages.picture_pairs(english[WII], english[SWITCH]) if mod_version == SWITCH and \
             WII in english and SWITCH in english else {}
         matched, missing, missing_empty, tag_diff = 0, [], 0, []
+        other_wording = 0
         for row in rows:
             label = str(row["label"])
+            if row.get("split") and mod_version not in (row.get("in") or []):
+                other_wording += 1   # the other version's own wording: left for the translator
+                continue
             if label not in mod_texts:
                 if str(row.get("text", "")).strip():
                     missing.append(label)
@@ -97,7 +103,7 @@ def import_translation(source_dir: str, translation_dir: str, mod_path: str) -> 
                 continue
             text = mod_texts[label]
             if pairs and WII in (row.get("in") or []):
-                text = messages.swap_pictures(text, label, pairs, reverse=True)
+                text = messages.swap_pictures(text, label, pairs, reverse=True, english=english[WII].get(label, ""))
             text = font_port.normalize_ukrainian(text, messages.TAG_RE)
             if _tags(text) != _tags(str(row.get("text", ""))):
                 tag_diff.append(label)
@@ -110,7 +116,8 @@ def import_translation(source_dir: str, translation_dir: str, mod_path: str) -> 
             "mod_version": mod_version, "mod_labels": len(mod_texts), "project_labels": len(rows), "matched": matched,
             "missing_with_text": len(missing), "missing_empty": missing_empty, "missing_sample": missing[:60],
             "extra": sorted(set(mod_texts) - {str(row["label"]) for row in rows}),
-            "tag_differences": len(tag_diff), "tag_difference_sample": tag_diff[:60]}
+            "tag_differences": len(tag_diff), "tag_difference_sample": tag_diff[:60],
+            "other_version_wording": other_wording}
     if font is not None:
         for slot in english_slots(source, mod_version):
             rel = f"{VERSIONS}/{mod_version}/{slot}/{FONT}"

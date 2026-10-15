@@ -21,12 +21,13 @@ the line when it is done or moved into a plan.
   which needs v1.3.0 = v196608).
 - Switch build not run in an emulator (skipped for now): Eden cannot open the `.nsz` packages (NCZ inside); an NSP is
   needed.
-- Some imported SMG1 texts were written for the Switch (Nebula's file select shows "У портативі торкніться"); they
-  need Wii wording.
+- 73 SMG1 labels (110 in SMG2) are worded differently on the Wii and the Switch, so each has a Wii row and a Switch
+  row (warning "Switch translation; Wii English differs"). The SMG1 Wii rows have no Ukrainian yet and build as the
+  Wii English; the Wii title prompt ("Press both A and B") is one of them.
 - Nebula: the build's `sys/fst.bin` must also replace Nebula's `content\sys\fst.bin` (the runtime loads that copy at
   boot). Setup or repair of Nebula writes it back.
-- Picture tags of a Switch text with no Wii pair stay Switch numbers in the Wii build (SMG1 import: for example
-  `Layout_PressStartPressAB` keeps `{escape:3:0038}`); 158 imported SMG1 messages have other tags than the English.
+- 132 imported SMG1 messages have other tags than the English (colour and timing tags the translator moved);
+  every button picture in a Wii row is now a Wii picture.
 - The 22 SMG1 Wii-only labels with text have no Ukrainian yet (the Switch mod does not have them); the Switch
   `System.arc` (6 messages) is not in the mod either.
 

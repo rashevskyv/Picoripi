@@ -17,10 +17,11 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.formats import FileFormat
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
+from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from utils.logging_utils import log_debug, log_warning
 
 from . import build, messages, unpack
-from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
+from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS, VERSION_WORDING
 
 # Tag groups (Petari, CC0: CustomTagProcessor.cpp): what each tag does in the game.
 TAG_GROUPS = {
@@ -38,17 +39,33 @@ TAG_GROUPS = {
 _TAG_RE = re.compile(r"\{escape:(\d+):([0-9a-fA-F]*)\}")
 
 
+class GalaxyProblemAnalyzer(GenericProblemAnalyzer):
+    """The shared checks, plus ``SMG_VERSION_WORDING`` on each row of a label the versions word differently."""
+
+    def analyze_data_string(self, data_string, font_map, threshold, logical_hard_limit=None):
+        found = super().analyze_data_string(data_string, font_map, threshold, logical_hard_limit)
+        rules = getattr(self, "game_rules", None)
+        block, string = self._current_scan_block_idx, self._current_scan_string_idx
+        if rules is not None and block is not None and string is not None and rules.is_split(block, string):
+            if not found:
+                found = [set()]
+            found[0].add(VERSION_WORDING)
+        return found
+
+
 class GameRules(BaseGameRules):
     """Super Mario Galaxy and Super Mario Galaxy 2."""
 
     problem_prefix = PLUGIN_PREFIX
     problem_definitions = PROBLEM_DEFINITIONS
+    problem_analyzer_class = GalaxyProblemAnalyzer
     tag_style = "curly"
     analyze_whole_string_first = True
 
     def __init__(self, main_window_ref=None):
         super().__init__(main_window_ref)
         self._rows: Optional[List[Dict[str, Any]]] = None   # the document loaded or about to be saved
+        self._split: Dict[int, Dict[int, str]] = {}         # block -> {row: the version it is the wording of}
 
     def get_display_name(self) -> str:
         return "Super Mario Galaxy"
@@ -84,6 +101,7 @@ class GameRules(BaseGameRules):
 
     def reset_runtime_state(self) -> None:
         self._rows = None
+        self._split.clear()
 
     # -- context ---------------------------------------------------------------------------------------------------
 
@@ -100,6 +118,21 @@ class GameRules(BaseGameRules):
     def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
         row = self._row(string_idx)
         return f"Message label {row['label']}" if row else None
+
+    def is_split(self, block_idx: int, string_idx: int) -> bool:
+        """True for a row of a label the Wii and the Switch word differently (``messages.union_rows``)."""
+        if block_idx not in self._split:
+            _stem, rows = self._block_rows(block_idx)
+            self._split[block_idx] = {index: ",".join(row.get("in") or []) for index, row in enumerate(rows)
+                                      if row.get("split")}
+        return string_idx in self._split[block_idx]
+
+    def get_problem_detail(self, block_idx: int, string_idx: int, problem_id: str) -> str:
+        if problem_id != VERSION_WORDING or not self.is_split(block_idx, string_idx):
+            return ""
+        version = self._split[block_idx][string_idx]
+        return (tr("The Wii row of this label: translate it for the Wii wording.") if version == unpack.WII
+                else tr("The {0} row of this label; the Wii row has its own English.", version))
 
     def get_tag_tooltip(self, tag: str) -> str:
         match = _TAG_RE.fullmatch(self.replace_aliases_with_tags(str(tag)))
