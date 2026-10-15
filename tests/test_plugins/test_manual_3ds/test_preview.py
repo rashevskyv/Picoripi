@@ -9,6 +9,7 @@ import pytest
 from PyQt6 import sip
 
 import romhacking_root
+from core import formats
 from plugins.manual_3ds import preview_panel
 from plugins.manual_3ds import rules as m3d
 
@@ -235,9 +236,10 @@ def test_a_page_paragraph_of_activity_log_in_the_whole_project_draws_its_ukraini
     monkeypatch.setattr(preview_panel, "load_folder", lambda: str(folder))
     rules = m3d.GameRules()
     blocks, names = {}, {}
-    for block, path in enumerate(sorted((folder / "src" / "manuals").glob("*.json"))):
-        blocks[block] = rules.load_data_from_json_obj(path.read_text(encoding="utf-8"))[0][0]
-        names[str(block)] = path.stem
+    with formats.translation_parse(rules):  # the store's text is the translation the editor shows
+        for block, path in enumerate(sorted((folder / "src" / "manuals").glob("*.json"))):
+            blocks[block] = rules.load_data_from_json_obj(path.read_text(encoding="utf-8"))[0][0]
+            names[str(block)] = path.stem
     block = next(int(index) for index, name in names.items() if name == "activity_log")
     store = _Store([], blocks=blocks, block_names=names)
     store.current_block_idx = store.physical_block_idx = block
