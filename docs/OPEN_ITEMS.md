@@ -24,7 +24,7 @@ the line when it is done or moved into a plan.
   switch back to the project archive's font (`in_memory`) then saves it into the fonts-folder file.
 - `bfn_actions.save_callback` puts the font into the project's in-memory archive before the disk write; after a
   failed write the in-memory archive is ahead of the file until the next save.
-- A plugin BFN font's width map and translation map are written before its file (unchanged); a failed font
+- A plugin BFN font's width map, translation map and main-window preview cache are updated before its file is written (unchanged); a failed font
   write leaves them ahead of the file.
 
 ## Link's Awakening Switch for LAS Recomp (`plugins/zelda_las`, 2026-10-14)
