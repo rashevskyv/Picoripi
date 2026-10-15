@@ -234,9 +234,10 @@ class GameRules(BaseGameRules):
 
     def _manual(self, block_idx: Optional[int]) -> Optional[_Manual]:
         """The manual of a data block, its geometry looked up, or None."""
-        if block_idx is None or not (0 <= block_idx < len(self._manuals)):
+        manuals = self._manuals  # one read: the UI thread may replace the list while the preview worker asks
+        if block_idx is None or not (0 <= block_idx < len(manuals)):
             return None
-        return self._manuals[block_idx].resolved()
+        return manuals[block_idx].resolved()
 
     def _entry(self, block_idx: int, string_idx: int) -> Optional[Tuple[_Manual, str, Dict[str, Any]]]:
         """(manual, key, entry) of one paragraph, or None."""
@@ -353,7 +354,8 @@ class GameRules(BaseGameRules):
         return 0 <= block_idx < len(self._manuals)
 
     def _keys_of(self, block_idx: int) -> List[str]:
-        return self._manuals[block_idx].keys if 0 <= block_idx < len(self._manuals) else []
+        manuals = self._manuals  # one read (see _manual)
+        return manuals[block_idx].keys if 0 <= block_idx < len(manuals) else []
 
     def string_key(self, block_idx: int, string_idx: int) -> Optional[str]:
         """The manual key ("large/Page_003_large_0#4") of a string, or None."""

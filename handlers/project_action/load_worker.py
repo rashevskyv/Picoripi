@@ -28,7 +28,7 @@ class ProjectLoadWorker(WorkerThread):
         super().__init__()
         self.project_manager = project_manager
         self.current_game_rules = current_game_rules
-        # Only the plugin's runtime state is wanted (a restored session keeps the strings): no series memory.
+        # Only the plugin's runtime state is wanted (a restored session keeps the strings): the source files only.
         self.state_only = state_only
         self.blocks = list(project_manager.project.blocks) if project_manager and project_manager.project else []
         self.error_occurred = None
@@ -171,6 +171,10 @@ class ProjectLoadWorker(WorkerThread):
             # What the plugin learned from the source files. Parsing the
             # translations below must not add to it; the caller restores this.
             plugin_keys_backup = formats.export_state(self.current_game_rules)
+            if self.state_only:  # the restored session keeps the strings: the translation files add nothing
+                self.project_manager.clear_archive_cache()
+                self.finished_with_result.emit({'plugin_keys_backup': plugin_keys_backup})
+                return
 
             # Load edited_file_data
             edited_file_data = []
@@ -257,8 +261,8 @@ class ProjectLoadWorker(WorkerThread):
                 'block_names': block_names,
                 'block_to_project_file_map': block_to_project_file_map,
                 'plugin_keys_backup': plugin_keys_backup,
-                'series_memory': {} if self.state_only else self._series_memory(),
-                'source_positions': {} if self.state_only else index_source_positions(data),
+                'series_memory': self._series_memory(),
+                'source_positions': index_source_positions(data),
             })
         except Exception as e:
             self.error_occurred = e

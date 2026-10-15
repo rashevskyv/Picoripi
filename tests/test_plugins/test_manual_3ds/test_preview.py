@@ -120,7 +120,14 @@ def test_a_session_without_plugin_state_reads_the_manuals_on_a_worker_and_keeps_
                               internal_key=None, metadata={}) for name in files]
     project_manager = SimpleNamespace(project=SimpleNamespace(blocks=blocks), clear_archive_cache=lambda: None,
                                       get_absolute_path=lambda relative, is_translation=False: str(tmp_path / relative))
-    rules = m3d.GameRules()
+    parsed = []
+
+    class CountingRules(m3d.GameRules):
+        def load_data_from_json_obj(self, json_obj):
+            parsed.append(json_obj)
+            return super().load_data_from_json_obj(json_obj)
+
+    rules = CountingRules()
     scans, redraws = [], []
     edits = {(0, 1): "an unsaved edit"}
     window = SimpleNamespace(
@@ -135,6 +142,7 @@ def test_a_session_without_plugin_state_reads_the_manuals_on_a_worker_and_keeps_
     SessionMixin._read_missing_plugin_state(owner)
 
     assert [rules.string_key(0, 1), rules.string_key(1, 1)] == [PAGE_KEY, "index/Index#0"]
+    assert len(parsed) == 2, "the state-only pass reads the two source files, not the translation files"
     assert (scans, redraws) == ([True], [True])
     assert window.data_store.edited_data == {(0, 1): "an unsaved edit"}
     # A session written by this plugin carries the state, so the files are not read again.
