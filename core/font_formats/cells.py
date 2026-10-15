@@ -5,8 +5,10 @@ A cell is ``cell`` = ``[width, height]`` pixels of ``bpp`` bits (4: two pixels a
 byte a pixel), rows top to bottom, starting at ``offset``; ``count`` cells follow. The sheet shows them
 ``columns`` to a row, grey ``17 * value`` (4 bpp) with alpha where the value is not 0, so an unedited font packs
 back to the same bytes. Cell ``i`` is character ``chars[i]`` (a string; a cell past the end has no character);
-every glyph advances ``advance`` px (default: the cell width; widths are not stored in the file). ``tiles``
-true: a 16x16 cell is four 8x8 tiles (top left, top right, bottom left, bottom right), the DS character layout.
+every glyph advances ``advance`` px (default: the cell width), or, with ``widths`` (a byte offset in the same file),
+the byte of its cell in that table, which a save writes back. ``tiles`` true: a 16x16 cell is four 8x8 tiles (top
+left, top right, bottom left, bottom right), the DS character layout; ``tiles: "columns"`` puts them top left,
+bottom left, top right, bottom right (Final Fantasy Tactics Advance, GBA).
 """
 from __future__ import annotations
 
@@ -28,17 +30,26 @@ def _geometry(params: Dict[str, Any]) -> Tuple[int, int, int, int, int, int]:
     return _int(params.get("offset", 0)), count, width, height, bpp, columns
 
 
-def _xy(p: int, width: int, tiles: bool) -> Tuple[int, int]:
-    """Pixel ``p`` of a cell: plain rows, or 8x8 tiles of a 16-wide cell."""
+def _xy(p: int, width: int, tiles: Any) -> Tuple[int, int]:
+    """Pixel ``p`` of a cell: plain rows, or 8x8 tiles of a 16-wide cell (row by row, or ``"columns"``)."""
     if tiles and width == 16:
         tile, i = divmod(p, 64)
-        return (tile % 2) * 8 + i % 8, (tile // 2) * 8 + i // 8
+        column, row = (tile // 2, tile % 2) if tiles == "columns" else (tile % 2, tile // 2)
+        return column * 8 + i % 8, row * 8 + i // 8
     return p % width, p // width
+
+
+def _widths(data: bytes, params: Dict[str, Any], count: int):
+    """The width byte of each cell, or None when the font stores no widths."""
+    if "widths" not in params:
+        return None
+    at = _int(params["widths"])
+    return list(data[at:at + count])
 
 
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     offset, count, width, height, bpp, columns = _geometry(params)
-    tiles = bool(params.get("tiles"))
+    tiles = params.get("tiles")
     rows = (count + columns - 1) // columns
     sheet = Image.new("RGBA", (columns * width, rows * height), (0, 0, 0, 0))
     pixels = sheet.load()
@@ -55,6 +66,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
     chars = str(params.get("chars", ""))[:count]
     pairs = [(char_code(char), glyph) for glyph, char in enumerate(chars) if char != "\0"]
     advance = _int(params.get("advance", width))
+    widths = _widths(data, params, count) or [advance] * count
     metadata = {
         "header": {"signature": "Glyph cells", "num_chunks": 4},
         "INF1": [{"encoding": 0, "ascent": height, "descent": 0, "width": advance, "leading": height,
@@ -64,7 +76,7 @@ def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:
                   "glyph_vertical_count": rows, "texture_width": sheet.width, "texture_height": sheet.height}],
         "MAP1": [map_entries(pairs)],
         "WID1": [{"first_code_included": 0, "last_code_included": count,
-                  "packets": [{"kerning": 0, "width": advance} for _ in range(count)]}],
+                  "packets": [{"kerning": 0, "width": w} for w in widths]}],
     }
     return metadata, [sheet]
 
@@ -77,7 +89,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
     if sheet.size != (columns * width, rows * height):
         raise ValueError(f"The sheet is {sheet.width}x{sheet.height}, the font needs {columns * width}x{rows * height}")
     pixels = sheet.load()
-    tiles = bool(params.get("tiles"))
+    tiles = params.get("tiles")
     out = bytearray(original)
     size = width * height * bpp // 8
     for glyph in range(count):
@@ -93,4 +105,12 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
             else:
                 cell[p] = value
         out[offset + glyph * size:offset + (glyph + 1) * size] = cell
+    if "widths" in params:
+        packets = (metadata.get("WID1") or [{}])[0].get("packets") or []
+        at = _int(params["widths"])
+        for glyph, packet in enumerate(packets[:count]):
+            width = int(packet.get("width", 0))
+            if not 0 <= width <= 255:
+                raise ValueError(f"Glyph {glyph}: width {width} does not fit a byte")
+            out[at + glyph] = width
     return bytes(out)

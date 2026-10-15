@@ -1158,3 +1158,16 @@ Checked on the real 1.4.0 romfs 2026-10-04 (every MSBT round-trips, an edited ti
 - Super Mario Sunshine: escape tags and the attribute tables are still the Twilight Princess ones; the SMS tag catalogue is not written.
 - Super Mario Sunshine reference languages (2026-10-15, D37): the European disc gives English (EU), French, German, Spanish and Italian for 186 of 191 US message files (3193 of 3481 messages, every language). No reference: the four Japanese `dolpic1.bmg`, `title.szs/marisun_stage.bmg` (same file on both discs) and `main_strings.dolstr`. Open: the European English of a few slots says something else (`sys_message` #19 and #21, `pinnaParco5` and `test11/pinnaparco_5` #12, `ricco7` and `test11/ricco_7` #21; `loadmessage` #6 and #22-25 by the text pairing); a reworded slot or a moved message is not told apart.
 - Super Mario Sunshine reference, open: the owner's project folder holds `reference_eu`, but `project_settings.json` was not written (the agent's write was blocked); the owner runs the agent's `sms_set_eu_reference.bat` or picks the folder in Settings. A reference path that is still the disc image (Picoripi closed during the unpack) loads nothing at the next open; pick the disc again.
+
+## Final Fantasy Tactics Advance (GBA) plugin (`plugins/ffta_gba`, 2026-10-15)
+
+- Not opened yet: the name-entry keyboard grid (u16 LE codes from about 0xA33F00) and a few text runs outside the known
+  tables (0x4B9011, 0x4B658E, 0x4C3006, debug strings near 0x391000 and 0x3C4000).
+- The title menu words (New Game, Saved Game, Color Mode) and the intro captions are pictures; texture support is not
+  done.
+- Single-byte strings of the offset tables are not shown: 5,478 strings, all placeholder codes (5,474 `8D 8A FF` /
+  `8A FF` and four short kana strings); the build keeps their bytes.
+- The text buffer size is not read from the code (`rom_text.TEXT_LIMIT` = the longest string of the game).
+- FFTARecomp: upstream runs a translated ROM "Unpatched" (whole-ROM hash: no widescreen patches). A one-line fork
+  (`ffta_rom::eligible` = `verify_hooks`) shows it in 16:9 with the patches on (checked headless, 2026-10-15); the fork
+  is local and unpublished, and its installer still checks `KNOWN_SHA1`.
