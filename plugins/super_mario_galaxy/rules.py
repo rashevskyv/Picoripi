@@ -66,6 +66,7 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._rows: Optional[List[Dict[str, Any]]] = None   # the document loaded or about to be saved
         self._split: Dict[int, Dict[int, str]] = {}         # block -> {row: the version it is the wording of}
+        self._documents: Dict[int, Tuple[str, List[Dict[str, Any]]]] = {}   # block -> its source document on disk
 
     def get_display_name(self) -> str:
         return "Super Mario Galaxy"
@@ -102,21 +103,23 @@ class GameRules(BaseGameRules):
     def reset_runtime_state(self) -> None:
         self._rows = None
         self._split.clear()
+        self._documents.clear()
 
     # -- context ---------------------------------------------------------------------------------------------------
 
-    def _row(self, string_idx: int) -> Optional[Dict[str, Any]]:
-        rows = self._rows or []
+    def _row(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """The row of the block's own document: ``_rows`` is only the document parsed last."""
+        rows = self._block_rows(block_idx)[1]
         return rows[string_idx] if 0 <= string_idx < len(rows) else None
 
     def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
-        row = self._row(string_idx)
+        row = self._row(block_idx, string_idx)
         if row is None:
             return {}
         return {"label": row["label"], "versions": list(row.get("in") or [])}
 
     def get_ai_flow_context_for_string(self, block_idx: int, string_idx: int) -> Optional[str]:
-        row = self._row(string_idx)
+        row = self._row(block_idx, string_idx)
         return f"Message label {row['label']}" if row else None
 
     def is_split(self, block_idx: int, string_idx: int) -> bool:
@@ -176,15 +179,18 @@ class GameRules(BaseGameRules):
         return result
 
     def _block_rows(self, block: int) -> Tuple[str, List[Dict[str, Any]]]:
-        """``(archive stem, rows)`` of a block's source document, read from disk; without a project, the loaded
+        """``(archive stem, rows)`` of a block's source document, read from disk once; without a project, the loaded
         document as ``Message``."""
+        if block in self._documents:
+            return self._documents[block]
         try:
             manager = self.mw.project_manager
             source = manager.project.blocks[self.mw.block_to_project_file_map.get(block, block)].source_file
             path = Path(manager.get_absolute_path(source))
             found = messages.read_document(path.read_bytes())
             if found is not None:
-                return path.name[:-len(unpack.DOCUMENT_SUFFIX)], found
+                self._documents[block] = (path.name[:-len(unpack.DOCUMENT_SUFFIX)], found)
+                return self._documents[block]
         except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
             log_debug(f"super_mario_galaxy: block {block} has no document on disk: {error}")
         return "Message", list(self._rows or [])

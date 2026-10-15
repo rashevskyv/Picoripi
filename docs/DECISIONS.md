@@ -924,6 +924,9 @@ SMG2), so the name is stable where the index is not.
 - Text: the project keeps proper Ukrainian. The import turns the mod's font workarounds back (Latin i, ï and Russian
   э in Cyrillic words become і, ї, є); each build writes a letter its font lacks as the mod did (`encode_for_font`):
   the Switch build for the mod's font, the Wii and Nebula builds only ґ as г.
+- Licences: Nebula is GPL-3.0-only, so Picoripi (GPL-3.0-or-later) takes only its interface facts (the manifest
+  lines, the `GALAXY_DISC_MOD_MANIFEST` variable, the pinned `main.dol` SHA-1) and no code. The tag meanings come
+  from Petari (CC0) and the WIA/RVZ layout from Dolphin's format document, as facts.
 
 **Cost.** The Nebula path needs the patched `fst.bin` copied over Nebula's `content\sys\fst.bin` as well: Nebula loads
 the loose FST at boot and ignores the manifest for it (measured). The ported glyphs are scaled bitmaps, not redrawn letters. A label the versions word differently stays English on the Wii until its Wii row is translated.

@@ -3,6 +3,7 @@ import hashlib
 import json
 import struct
 import zipfile
+from types import SimpleNamespace
 
 import pytest
 
@@ -197,6 +198,18 @@ def test_rules_load_save_and_reference_columns(project):
     columns = rules.load_multi_reference(str(root), {"0": "Message"})
     assert columns["UsFrench (wii)"][(0, 1)] == "Salut"
     assert "Picture" in rules.get_tag_tooltip("{escape:3:0000}")
+
+
+def test_each_block_gets_the_labels_of_its_own_document(project):
+    root, _translation = project
+    docs = [root / "MessageData" / "Message.smgmsg", root / "MessageData" / "System.smgmsg"]
+    rules = GameRules()
+    rules.mw = SimpleNamespace(block_to_project_file_map={}, project_manager=SimpleNamespace(
+        project=SimpleNamespace(blocks=[SimpleNamespace(source_file=str(doc)) for doc in docs]), get_absolute_path=str))
+    for doc in docs:   # the project load parses every document; the last one stays loaded
+        rules.load_data_from_json_obj(doc.read_bytes())
+    assert rules.get_scene_context_for_string(0, 1) == {"label": "Npc_Hello", "versions": ["wii", "switch"]}
+    assert rules.get_ai_flow_context_for_string(1, 0) == "Message label #0"
 
 
 def test_identify_takes_only_the_game_files(tmp_path):
