@@ -5,9 +5,13 @@ message archives: each project row whose label the mod's archive of the same nam
 made for the Switch has the Switch button pictures; rows that came from the Wii text get the Wii numbers back
 (``messages.swap_pictures``). Each mod archive is also kept as that version's base archive (``versions/<version>/
 <slot>/MessageData/<archive>.arc`` of the translation folder): a mod made for a game update carries the update's
-labels, and the build writes the text into it. The mod's ``Font.arc`` (when it has one) goes to ``versions/<version>/<slot>/LayoutData/
-Font.arc`` of the translation folder for every English slot of that version, where the build takes it. The report
-counts matched, missing and extra labels, and lists the labels whose tags differ from the English text.
+labels, and the build writes the text into it. The text is stored as proper Ukrainian (``font_port.
+normalize_ukrainian``: the Ukrainian Switch mod writes і, ї, є as Latin i, ï and Russian э for its font); each build
+writes it for its own font. The mod's ``Font.arc`` (when it has one) goes to ``versions/<version>/<slot>/LayoutData/
+Font.arc`` of the translation folder for every English slot of that version, where the build takes it. A Switch mod's
+Cyrillic glyphs are also copied into the Wii fonts (``font_port.port_font_arc``), written as the Wii version's
+``Font.arc`` of the translation folder. The report counts matched, missing and extra labels, and lists the labels whose
+tags differ from the English text.
 
 Command line: ``python -m plugins.super_mario_galaxy.import_mod <source folder> <translation folder> <mod>``.
 """
@@ -23,8 +27,9 @@ from typing import Dict, List, Optional, Tuple
 
 from utils.atomic_io import atomic_write_bytes
 
-from . import messages
-from .unpack import FONT, MESSAGE_DIR, SWITCH, VERSIONS, WII, document_rel, english_slots, english_versions
+from . import font_port, messages
+from .unpack import (FONT, MESSAGE_DIR, SWITCH, VERSIONS, WII, document_rel, english_slots, english_versions,
+                     font_file)
 
 TAG_RE = re.compile(r"\{escape:\d+:[0-9a-f]*\}")
 
@@ -93,6 +98,7 @@ def import_translation(source_dir: str, translation_dir: str, mod_path: str) -> 
             text = mod_texts[label]
             if pairs and WII in (row.get("in") or []):
                 text = messages.swap_pictures(text, label, pairs, reverse=True)
+            text = font_port.normalize_ukrainian(text, messages.TAG_RE)
             if _tags(text) != _tags(str(row.get("text", ""))):
                 tag_diff.append(label)
             row["text"] = text
@@ -110,6 +116,13 @@ def import_translation(source_dir: str, translation_dir: str, mod_path: str) -> 
             rel = f"{VERSIONS}/{mod_version}/{slot}/{FONT}"
             atomic_write_bytes(Path(translation_dir) / rel, font)
             report["fonts"].append(rel)
+        wii_font = font_file(source, WII)
+        if mod_version == SWITCH and wii_font is not None:
+            ported, done = font_port.port_font_arc(wii_font.read_bytes(), font)
+            rel = f"{VERSIONS}/{WII}/{wii_font.relative_to(source / VERSIONS / WII).as_posix()}"
+            atomic_write_bytes(Path(translation_dir) / rel, ported)
+            report["fonts"].append(rel)
+            report["wii_glyphs"] = {member: len(chars) for member, chars in done.items()}
     return report
 
 

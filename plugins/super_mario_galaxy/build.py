@@ -21,14 +21,14 @@ import hashlib
 import json
 import struct
 from pathlib import Path
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from core.i18n import tr
 from utils.atomic_io import atomic_write_bytes
 
-from . import messages
+from . import font_port, messages
 from .unpack import (DOCUMENT_DIR, DOCUMENT_SUFFIX, GAMES, MESSAGE_DIR, SWITCH, VERSIONS, WII, document_rel,
-                     english_slots, english_versions, game_of)
+                     english_slots, english_versions, font_file, game_of)
 
 Progress = Callable[[int, str], None]
 Cancelled = Callable[[], bool]
@@ -106,8 +106,11 @@ def version_files(version: str, source_dir: str, translation_dir: str, progress:
     # only the translated rows: an untouched row keeps each version's own English (the Switch rewords some messages)
     docs = {stem: [row for row in rows if row.get("text") != english.get(stem, {}).get(row["label"])]
             for stem, rows in docs.items()}
-    texts = {stem: texts_for(version, stem, rows, source_dir) for stem, rows in docs.items()}
     replaced = overrides(translation_dir, version)
+    chars = _font_chars(source_dir, version, replaced)
+    texts = {stem: {label: font_port.encode_for_font(text, chars) if chars is not None else text
+                    for label, text in texts_for(version, stem, rows, source_dir).items()}
+             for stem, rows in docs.items()}
     jobs = [f"{slot}/{MESSAGE_DIR}/{stem}.arc" for slot in slots for stem in docs]
     jobs = [rel for rel in jobs if rel in replaced or (base / rel).is_file()]
     out: Dict[str, bytes] = {}
@@ -124,6 +127,19 @@ def version_files(version: str, source_dir: str, translation_dir: str, progress:
         if rel not in out and rel != "source.json":
             out[rel] = path.read_bytes()
     return out
+
+
+def _font_chars(source_dir: str, version: str, replaced: Dict[str, Path]) -> Optional[Set[str]]:
+    """The characters of the message font this version's build ships (the translation's font, else the game's), or
+    None when it cannot be read; the text is then written as it is."""
+    original = font_file(Path(source_dir), version)
+    if original is None:
+        return None
+    rel = original.relative_to(Path(source_dir) / VERSIONS / version).as_posix()
+    try:
+        return font_port.archive_font_chars(replaced.get(rel, original).read_bytes())
+    except (KeyError, OSError, ValueError, struct.error):
+        return None
 
 
 def disc_files(source_dir: str, translation_dir: str, progress: Progress) -> Dict[str, bytes]:

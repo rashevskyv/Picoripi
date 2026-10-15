@@ -126,6 +126,13 @@ def archives(source_root: Path, version: str) -> Dict[str, Path]:
     return {path.stem: path for path in sorted(folder.glob("*.arc"))}
 
 
+def font_file(source_root: Path, version: str) -> Optional[Path]:
+    """The version's ``Font.arc`` the game reads: in the English slot, else the shared ``files/LayoutData`` one."""
+    base = source_root / VERSIONS / version
+    slots = english_slots(source_root, version) + (["files"] if version == WII else [])
+    return next((base / slot / FONT for slot in slots if (base / slot / FONT).is_file()), None)
+
+
 def document_rel(stem: str) -> str:
     """The project path of the document of message archive ``stem``."""
     return f"{DOCUMENT_DIR}/{stem}{DOCUMENT_SUFFIX}"

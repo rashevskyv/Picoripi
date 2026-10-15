@@ -14,7 +14,7 @@ from core.containers.wia import open_disc
 from core.containers.wii_disc import WiiImage
 from core.font_formats import bcfnt
 from core.project_library import images
-from plugins.super_mario_galaxy import build, import_mod, messages, unpack
+from plugins.super_mario_galaxy import build, font_port, import_mod, messages, unpack
 
 RVZ = ("Super Mario", "Super Mario Galaxy", "Wii", "source", "Super Mario Galaxy (USA) (En,Fr,Es).rvz")
 UA_MOD = ("Super Mario", "Super Mario Galaxy", "Switch", "source", "Super Mario Galaxy ukr translate.zip")
@@ -72,3 +72,15 @@ def test_the_ukrainian_switch_mod_matches_the_wii_english_by_label(wii_files):
     ua = messages.texts_by_label(archives["Message"])
     wii = messages.texts_by_label(wii_files["files/UsEnglish/MessageData/Message.arc"])
     assert len(ua) == 2247 and len(set(ua) & set(wii)) == 1938 and font is not None
+
+
+def test_the_mods_cyrillic_goes_into_the_wii_fonts(wii_files):
+    reason = romhacking_root.missing(*UA_MOD)
+    if reason:
+        pytest.skip(reason)
+    _archives, font = import_mod.read_mod(str(romhacking_root.path(*UA_MOD)))
+    ported, report = font_port.port_font_arc(wii_files["files/LayoutData/Font.arc"], font)
+    assert {member: len(done) for member, done in report.items()} == {
+        "messagefont26.brfnt": 70, "menufont64.brfnt": 70, "cinemafont26.brfnt": 70}
+    chars = font_port.archive_font_chars(ported)
+    assert set("АЯабвгґжєіїя") - chars == {"ґ"}   # the mod draws no ґ: the build writes г for it
