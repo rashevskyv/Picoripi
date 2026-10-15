@@ -1583,7 +1583,6 @@
   "The first line of a page is empty, but subsequent lines on the page are not.": "Перший рядок сторінки порожній, а наступні — ні.",
   "The glossary is empty. Run structural seed or text sweep first to collect terms.": "Глосарій порожній. Спочатку виконайте структурне заповнення або сканування тексту, щоб зібрати терміни.",
   "The line width in pixels exceeds the maximum warning threshold.": "Ширина рядка в пікселях перевищує поріг попередження.",
-  "The linked font was not updated: {0}": "Пов’язаний шрифт не оновлено: {0}",
   "The linked Text block or its owning Speaker block could not be updated.": "Неможливо оновити пов'язаний блок тексту або блок мовця, якому він належить.",
   "The message's fuki_kind selects one of these default layouts automatically.": "Тип fuki_kind повідомлення автоматично вибирає один із цих стандартних макетів.",
   "The open project has no eligible dialogue strings.": "У відкритому проєкті немає відповідних діалогових рядків.",

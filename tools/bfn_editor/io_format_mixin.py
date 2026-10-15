@@ -233,15 +233,13 @@ class IoFormatMixin:
             self.current_bfn_name = source.label
             self.archive_name = ""
             self.archive_files = {}
-            if source.format == "bfn":
-                self.archive_save_callback = lambda _name, data: self._save_plugin_bfn(source, data)
+            if source.format == "bfn":         # save_changes writes it with _save_plugin_bfn
                 self.original_font_metadata, self.original_sheet_images = None, []
                 if original != current:
                     self.load_original_bfn_bytes(original, source.name)
                 self.load_bfn_bytes(current, source.name)
                 self.font_source = source       # load_bfn_bytes starts a new font
                 return
-            self.archive_save_callback = None
             self.load_formatted_bytes(current, source.name, source.format, source.params, original=original)
 
         self.run_font_job(work, done)
@@ -298,8 +296,9 @@ class IoFormatMixin:
         self._save_sync_pairs()
         self.status.showMessage(tr("Copy changes to {0}: {1}", partner.label, tr("on") if on else tr("off")))
 
-    def _save_plugin_bfn(self, source, data):
-        """Write a plugin BFN font. With an identical partner whose pair is on, the changes are copied by the sync."""
+    def _save_plugin_bfn(self, source, data, on_saved):
+        """Write a plugin BFN font in a job and call ``on_saved()`` once it is written; a failed write is reported
+        and the font stays unsaved. With an identical partner whose pair is on, the changes are copied by the sync."""
         partner = source.sync_partner
         state_path = self._sync_state_path()
         loaded = getattr(self, "_sync_loaded", None)
@@ -321,8 +320,11 @@ class IoFormatMixin:
 
         def done(result, error):
             if error:
-                QtWidgets.QMessageBox.warning(self, tr('Error'), tr('The linked font was not updated: {0}', error))
+                QtWidgets.QMessageBox.critical(self, tr('Error'), tr('Failed to save changes: {0}', error))
+                self.status.showMessage(tr("Failed to save changes."))
                 return
+            self.status.showMessage(tr("Saved font: {0}", source.label))
+            on_saved()
             final, _partner_bytes, taken, given, deferred = result
             if deferred:
                 log_info(f"Font sync: {len(deferred)} glyphs wait for {partner.label} (unsaved edits): "

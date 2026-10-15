@@ -10,7 +10,7 @@ from core.i18n import tr
 from tools.bfn_editor.bfn_engine import repack_bfn_logic
 from tools.bfn_editor.bfn_commands import ImportSheetCommand, ImportGlyphCommand
 from utils.atomic_io import atomic_write_json
-from utils.logging_utils import log_debug
+from utils.logging_utils import log_debug, log_error
 
 
 class IoSaveMixin:
@@ -56,50 +56,69 @@ class IoSaveMixin:
 
             if self.bfn_path:
                 repack_bfn_logic(target_dir, self.bfn_path)
-                self.status.showMessage(tr("Successfully saved and compiled BFN: {0}", os.path.basename(self.bfn_path)))
-                
                 with open(self.bfn_path, 'rb') as f:
                     saved_bytes = f.read()
-                    
-                # Update local cache of this file in archive
-                if self.archive_files:
-                    self.archive_files[self.current_bfn_name] = saved_bytes
-                
-                # Якщо це файл з архіву, то викличемо колбек для збереження назад в Picoripi
-                if hasattr(self, "archive_save_callback") and self.archive_save_callback:
-                    self.archive_save_callback(self.current_bfn_name, saved_bytes)
- 
-                # Update our font sources cache for this file to avoid out-of-sync
-                key = self.archive_name if self.archive_name else self.current_bfn_name
-                if key in self.font_sources:
-                    self.font_sources[key]["files"][self.current_bfn_name] = saved_bytes
-                if getattr(self, "font_source", None) is not None:   # a font the game plugin described: its widths feed the checks
+                remember = self._remember_saved_bfn(saved_bytes)
+                source = getattr(self, "font_source", None)
+                if source is not None:
+                    # A font the game plugin described: its widths feed the checks; the file is written in a job,
+                    # and only a written font is marked saved.
                     self.write_project_font_map()
+                    self._save_translation_map_and_preview()
+                    self._save_plugin_bfn(source, saved_bytes, lambda: (remember(), self._mark_saved(silent)))
+                    return
+                if self.archive_save_callback:
+                    self.archive_save_callback(self.current_bfn_name, saved_bytes)   # raises when the write fails
+                remember()
+                self.status.showMessage(tr("Successfully saved and compiled BFN: {0}", os.path.basename(self.bfn_path)))
             else:
                 self.status.showMessage(tr("Successfully saved files in folder: {0}", os.path.basename(target_dir)))
-                
-            # Save the virtual translation map if it contains entries,
-            # otherwise fall back to auto-generating from MAP1 difference (for unit tests and legacy compatibility)
-            if hasattr(self, 'translation_map') and self.translation_map:
-                self.save_translation_map()
-            elif self.original_font_metadata:
-                try:
-                    translation_map = self.generate_translation_map()
-                    mapping_path = self.get_translation_map_path(for_write=True)
-                    if mapping_path:
-                        atomic_write_json(mapping_path, translation_map, indent=4, ensure_ascii=False)
-                        self.status.showMessage(tr("Successfully saved BFN and updated translation_map.json with {0} characters!", len(translation_map)))
-                except Exception as ex:
-                    print(f"Failed to auto-generate or save translation map: {ex}")
-                
-            self._sync_with_global_preview_cache()
-            self._set_dirty(False)
-            self.changes_saved_during_session = True
-            if not silent:
-                QtWidgets.QMessageBox.information(self, tr('Success'), tr('All changes saved successfully!'))
+            self._save_translation_map_and_preview()
+            self._mark_saved(silent)
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, tr('Error'), tr('Failed to save changes: {0}', e))
             self.status.showMessage(tr("Failed to save changes."))
+
+    def _remember_saved_bfn(self, data):
+        """Return a function that puts the written bytes into this font's caches; bound now, since a write job
+        can end after the user switched fonts."""
+        name, files = self.current_bfn_name, self.archive_files
+        entry = self.font_sources.get(self.archive_name or name)
+
+        def remember():
+            if files:
+                files[name] = data
+            if entry is not None:
+                entry["files"][name] = data
+        return remember
+
+    def _mark_saved(self, silent):
+        """Only after the font's file is written; Picoripi then reloads the widths."""
+        self._set_dirty(False)
+        self.changes_saved_during_session = True
+        if self.font_sync_callback:
+            try:
+                self.font_sync_callback()
+            except Exception as exc:
+                log_error(f"Font editor: width reload after save failed: {exc}")
+        if not silent:
+            QtWidgets.QMessageBox.information(self, tr('Success'), tr('All changes saved successfully!'))
+
+    def _save_translation_map_and_preview(self):
+        # Save the virtual translation map if it contains entries,
+        # otherwise fall back to auto-generating from MAP1 difference (for unit tests and legacy compatibility)
+        if hasattr(self, 'translation_map') and self.translation_map:
+            self.save_translation_map()
+        elif self.original_font_metadata:
+            try:
+                translation_map = self.generate_translation_map()
+                mapping_path = self.get_translation_map_path(for_write=True)
+                if mapping_path:
+                    atomic_write_json(mapping_path, translation_map, indent=4, ensure_ascii=False)
+                    self.status.showMessage(tr("Successfully saved BFN and updated translation_map.json with {0} characters!", len(translation_map)))
+            except Exception as ex:
+                print(f"Failed to auto-generate or save translation map: {ex}")
+        self._sync_with_global_preview_cache()
 
     def _sync_with_global_preview_cache(self):
         """Sync the current font state with global Picoripi preview cache."""

@@ -403,30 +403,86 @@ def test_a_failed_replace_leaves_the_old_font_and_no_temporary_file(qtbot, tmp_p
     assert info["files"]["main.bfn"] == _bfn()
 
 
-def test_a_failed_disk_font_save_keeps_the_font_unsaved_and_shows_no_success(qtbot, tmp_path, monkeypatch):
-    shipped = _plugin_font(tmp_path, monkeypatch, archived=False)
+def _record_boxes(monkeypatch):
+    shown = []
+    for kind in ("information", "warning", "critical"):
+        monkeypatch.setattr(QtWidgets.QMessageBox, kind, lambda *args, kind=kind: shown.append(kind))
+    return shown
+
+
+def _refuse(*_args):
+    raise OSError("disk full")
+
+
+@pytest.mark.parametrize("archived", [False, True])
+def test_a_failed_disk_font_save_keeps_the_font_unsaved_and_shows_no_success(qtbot, tmp_path, monkeypatch, archived):
+    shipped = _plugin_font(tmp_path, monkeypatch, archived)
     window = _MainWindow(tmp_path, [])
     window.active_game_plugin = "game"
     qtbot.addWidget(window)
     editor = BfnEditorWindow(parent=window)
     editor.scan_fonts_directories()
-    info = editor.font_sources["main.bfn"]
-    editor.switch_active_bfn_new("main.bfn", "", info["type"], info["path"], 0)
+    key = shipped.name
+    info = editor.font_sources[key]
+    editor.switch_active_bfn_new("main.bfn", key if archived else "", info["type"], info["path"], 0)
     editor.metadata["WID1"][0]["packets"][1]["width"] = 5
     editor._set_dirty(True)
-    shown = []
-    monkeypatch.setattr(QtWidgets.QMessageBox, "information", lambda *args: shown.append("information"))
-    monkeypatch.setattr(QtWidgets.QMessageBox, "critical", lambda *args: shown.append("critical"))
-
-    def refuse(_target, _data):
-        raise OSError("disk full")
-    monkeypatch.setattr(window_tree_mixin, "atomic_write_bytes", refuse)
+    shown = _record_boxes(monkeypatch)
+    monkeypatch.setattr(window_tree_mixin, "atomic_write_bytes", _refuse)
     editor.save_changes()
 
     assert shown == ["critical"]
     assert editor._dirty
-    assert not (constants.SETTINGS_DIR / "plugins" / "game" / "fonts" / "main.bfn").exists()
-    assert shipped.read_bytes() == _bfn()
+    assert not (constants.SETTINGS_DIR / "plugins" / "game" / "fonts" / key).exists()
+    assert shipped.read_bytes() == (_u8("main.bfn", _bfn()) if archived else _bfn())
+    assert _width_of_b(info["files"]["main.bfn"]) == 7                       # the cache keeps the written font
+    editor._set_dirty(False)        # the edit is dropped, so the teardown close asks nothing
+
+
+def test_a_failed_save_of_a_plugin_bfn_keeps_the_font_unsaved_and_shows_no_success(qtbot, tmp_path, monkeypatch):
+    archive = tmp_path / "source" / "res" / "fontres.arc"
+    archive.parent.mkdir(parents=True)
+    archive.write_bytes(_u8("main.bfn", _bfn()))
+    window = _MainWindow(tmp_path, [{"label": "Message font", "format": "bfn", "path": "res/fontres.arc",
+                                     "member": "*.bfn"}])
+    qtbot.addWidget(window)
+    editor = _open(window, "Message font: main.bfn")
+    editor.metadata["WID1"][0]["packets"][1]["width"] = 5
+    editor._set_dirty(True)
+    shown = _record_boxes(monkeypatch)
+    monkeypatch.setattr(sources, "atomic_write_bytes", _refuse)
+    editor.save_changes()
+
+    assert shown == ["critical"]
+    assert editor._dirty
+    assert not (tmp_path / "mod" / "res" / "fontres.arc").exists()
+    editor._set_dirty(False)        # the edit is dropped, so the teardown close asks nothing
+
+
+def test_a_failed_save_into_a_project_archive_keeps_the_font_unsaved_and_shows_no_success(qtbot, tmp_path, monkeypatch):
+    from core.containers import ContainerManager
+    from ui.main_window import bfn_actions
+    container = ContainerManager.open(_u8("main.bfn", _bfn()))
+    block = SimpleNamespace(metadata={"is_archive_member": True, "archive_rel_path": "res/fontres.arc",
+                                      "archive_file_name": "main.bfn"})
+    window = _MainWindow(tmp_path, [])
+    window.project_manager.project.blocks = [block]
+    window.project_manager.get_archive_container = lambda _path, is_translation: container
+    window.project_manager.get_absolute_path = lambda path, is_translation: str(tmp_path / path)
+    qtbot.addWidget(window)
+    bfn_actions.BfnActions(window).open_bfn_editor_for_block(0)
+    editor = window._bfn_editor_window
+    qtbot.addWidget(editor)
+    editor.metadata["WID1"][0]["packets"][1]["width"] = 5
+    editor._set_dirty(True)
+    shown = _record_boxes(monkeypatch)
+    monkeypatch.setattr(bfn_actions, "atomic_write_bytes", _refuse)
+    editor.save_changes()
+
+    assert shown == ["critical"]
+    assert editor._dirty
+    assert _width_of_b(editor.archive_files["main.bfn"]) == 7
+    editor._set_dirty(False)        # the edit is dropped, so the teardown close asks nothing
 
 
 def test_a_font_file_opened_from_a_plugin_folder_is_saved_to_the_users_copy(qtbot, tmp_path, monkeypatch):
