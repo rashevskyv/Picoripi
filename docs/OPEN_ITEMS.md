@@ -12,14 +12,17 @@ the line when it is done or moved into a plan.
 
 ## Super Mario Galaxy 1 and 2 (`plugins/super_mario_galaxy`, 2026-10-15, D38)
 
-- The Wii fonts have no Cyrillic: Ukrainian shows as `?` on the Wii (Dolphin) and in Nebula. A Wii font with the
-  Ukrainian letters is needed (the Switch mod's fonts are little-endian RFNT `TNFR` at a larger size and do not open in
-  the Font Editor yet). The Switch mod writes і and ї as Latin i and ï and є as Russian э; that only looks right with
-  its own font.
+- The Wii fonts get the Ukrainian mod's Cyrillic glyphs, scaled from the Switch fonts (`font_port.py`); the mod has
+  no ґ, so the builds write г for it. The scaled glyphs are not reviewed letter by letter yet. The Switch fonts
+  (little-endian `TNFR`) do not open in the Font Editor.
 - Picoripi cannot read a Switch update's RomFS (BKTR). The Switch build takes the update's archives from the imported
   mod; a project without a mod builds on the base game's archives, which lack the update's labels (SMG1 v0 has 2246,
-  the mods 2247).
-- Switch build not run in an emulator: Eden cannot open the `.nsz` packages (NCZ inside); an NSP is needed.
+  the mods 2247). The update the Ukrainian SMG1 mod was made for is unknown (its labels are those of the Russian mod,
+  which needs v1.3.0 = v196608).
+- Switch build not run in an emulator (skipped for now): Eden cannot open the `.nsz` packages (NCZ inside); an NSP is
+  needed.
+- Some imported SMG1 texts were written for the Switch (Nebula's file select shows "У портативі торкніться"); they
+  need Wii wording.
 - Nebula: the build's `sys/fst.bin` must also replace Nebula's `content\sys\fst.bin` (the runtime loads that copy at
   boot). Setup or repair of Nebula writes it back.
 - Picture tags of a Switch text with no Wii pair stay Switch numbers in the Wii build (SMG1 import: for example

@@ -891,8 +891,13 @@ SMG2), so the name is stable where the index is not.
   and Russian Switch mods were made for a game update whose archive has labels the base game lacks, and Picoripi cannot
   read update (BKTR) RomFS. Its `Font.arc` goes beside it.
 - Fonts: the Wii `Font.arc` BRFNTs open in the font editor; `bcfnt` gained the RGB5A3 sheets of the number and
-  button fonts, so all five save byte for byte. No Cyrillic is drawn.
+  button fonts, so all five save byte for byte. Nothing is drawn: the import copies the Ukrainian mod's Cyrillic
+  glyphs from its Switch fonts (`TNFR`, the Wii format little-endian at about 2.4 times the size) into new cells of the
+  Wii message, menu and cinema fonts, scaled by the ratio of the two fonts' Latin advances and set on the Wii baseline
+  (`font_port.py`). і and ї use the Wii font's own i and ï glyphs; the mod draws є at э, so that glyph goes to є.
+- Text: the project keeps proper Ukrainian. The import turns the mod's font workarounds back (Latin i, ï and Russian
+  э in Cyrillic words become і, ї, є); each build writes a letter its font lacks as the mod did (`encode_for_font`):
+  the Switch build for the mod's font, the Wii and Nebula builds only ґ as г.
 
 **Cost.** The Nebula path needs the patched `fst.bin` copied over Nebula's `content\sys\fst.bin` as well: Nebula loads
-the loose FST at boot and ignores the manifest for it (measured). The Wii fonts have no Cyrillic, so Ukrainian shows as
-`?` on Wii and in Nebula until a font is made. A Switch picture with no Wii pair stays a Switch number in the Wii build.
+the loose FST at boot and ignores the manifest for it (measured). The ported glyphs are scaled bitmaps, not redrawn letters. A Switch picture with no Wii pair stays a Switch number in the Wii build.
