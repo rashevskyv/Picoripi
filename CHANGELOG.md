@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon Generation III ROM mode: a text the image holds in more places opens as one unit with its other places (`places` in the facts, from `tools/pokemon_fr_copies.py`); the wiki (EN and UK) names the argument aliases and the byte budget
 - Pokémon Generation III ROM mode: a message no pointer reaches keeps its length in the editor (byte budget warning, the build refuses a longer text); the relocator also follows Thumb pointers (address + 1); 15 more default tag aliases for the argument codes (`{COLOR:Red}`, `{HIGHLIGHT:Red}`, `{SHADOW:DarkGray}`, `{Pause}`, `{PlaySE:Select}`, `{PlayBGM:LevelUp}`, `{FONT:Normal}`), each tested to build the bytes of its raw tag
 - Pokémon Generation III ROM mode: the C text scanner follows the DEBUG, REVISION and `defined()` guards and the version-named files; a text placed twice opens as one unit with its places; braille labels keep all their `.braille` lines; Ruby and Sapphire decoration names and battle tower trainer names are fixed fields; literals the image does not hold are classed (debug build, other revision, other version, fill)
 - Pokémon Generation III ROM mode: braille texts (`.braille`, with the window format kept as a fixed budget), decoration names, region map names and the Japanese berry descriptions the ROM holds unpack as texts; short repeated literals that are code pieces stay closed.
