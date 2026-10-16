@@ -2,16 +2,17 @@
 
 Layout (big-endian): the signature ``UnityFS\\0``, u32 format version, the Unity version and revision (C strings),
 i64 bundle size, u32 compressed and u32 uncompressed size of the block info, u32 flags. Flags: bits 0-5 the compression of
-the block info and the data blocks (0 none, 2 and 3 LZ4 or LZ4HC), bit 0x40 directory combined with the blocks (not
-written here), bit 0x80 block info at the end of the bundle (read only when it is at the start), bit 0x200 the block
-info is padded to 16 bytes at the start and the data starts on a 16-byte boundary.
+the block info and the data blocks (0 none, 2 and 3 LZ4 or LZ4HC), bit 0x40 directory combined with the blocks (the
+directory is in the block info; the game needs this bit to find it), bit 0x80 block info at the end of the bundle (read
+only when it is at the start), bit 0x200 the block info is padded to 16 bytes at the start and the data starts on a
+16-byte boundary.
 
 The block info, once decompressed, holds a 16-byte hash, u32 block count, the blocks (u32 uncompressed size, u32
 compressed size, u16 flags) and the directory (u32 count, then per file: i64 offset, i64 size, u32 flags, C string
 name). The files are the byte ranges of the concatenated decompressed blocks.
 
-``Bundle.build`` writes a bundle whose data blocks and block info are stored, not compressed: the game reads it the
-same way. It keeps the header of the bundle it came from.
+``Bundle.build`` writes a bundle whose data blocks (128 KiB each) and block info are stored, not compressed. It keeps the
+header of the bundle it came from.
 """
 from __future__ import annotations
 
@@ -27,6 +28,7 @@ FLAG_DIRECTORY_COMBINED = 0x40
 FLAG_INFO_AT_END = 0x80
 FLAG_INFO_PADDED = 0x200
 _ALIGN = 16
+BLOCK_SIZE = 0x20000   # uncompressed size of a block the writer makes (the game's own bundles use 128 KiB)
 
 
 class UnityFsError(ValueError):
@@ -132,12 +134,16 @@ class Bundle:
             nodes.append(Node(node.name, len(stream), len(raw), node.flags))
             stream += raw
         info = bytearray(self.info_hash)
-        info += struct.pack(">i", 1)
-        info += struct.pack(">IIH", len(stream), len(stream), 0)
+        chunks = [stream[at:at + BLOCK_SIZE] for at in range(0, len(stream), BLOCK_SIZE)]
+        info += struct.pack(">i", len(chunks))
+        for chunk in chunks:   # stored blocks of the size the game's own bundles use
+            info += struct.pack(">IIH", len(chunk), len(chunk), 0)
         info += struct.pack(">i", len(nodes))
         for node in nodes:
             info += struct.pack(">qqI", node.offset, node.size, node.flags) + node.name.encode("utf-8") + b"\x00"
-        flags = (self.flags & ~(FLAG_COMPRESSION | FLAG_DIRECTORY_COMBINED | FLAG_INFO_AT_END))
+        # keep the directory-combined bit: the directory is in the block info, and without the bit the game reads it
+        # after the blocks and crashes (found on Eden, Brilliant Diamond, 2026-10-16)
+        flags = self.flags & ~(FLAG_COMPRESSION | FLAG_INFO_AT_END)
         head = bytearray(SIGNATURE)
         head += struct.pack(">I", self.format_version) + self.unity_version + b"\x00"
         head += self.unity_revision + b"\x00"
