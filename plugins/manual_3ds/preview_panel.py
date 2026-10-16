@@ -319,9 +319,11 @@ class ManualPreviewPanel(QWidget):
         A worker still loading the manual's files is parked (utils.thread_utils): it has no parent, so deleting the
         panel never destroys a running thread (Qt aborts the process then)."""
         self._timer.stop()
-        self._rules.stop_scan_render()  # the problem scan's page render stops with the panel (close, plugin switch)
         for worker in self._workers:
             worker.cancel()
+        # The problem scan's page render stops with the panel (close, plugin switch); after the cancels, so a preview
+        # build holding page_build.RENDER_LOCK lets go of it first.
+        self._rules.stop_scan_render()
         for worker in self._workers:
             safe_shutdown_thread(worker, worker, WORKER_STOP_MS)
         self._workers.clear()
