@@ -49,3 +49,14 @@ def test_edited_cell_goes_to_translation_only(tmp_path):
     assert font.translation_path.endswith("0196_ascii.12lo.png")
     assert Image.open(font.translation_path).convert("RGBA").getpixel((110, 70))[3] == 255
     assert Image.open(font.source_path).convert("RGBA").getpixel((110, 70))[3] == 0
+
+
+def test_jak2_and_jak3_sheets_follow_their_code_prefixes():
+    # 12 Latin: byte 16 + cell; 12 kana: code 01 (16 + cell); 24 kanji: code 02 (16 + cell)
+    for tag in ("Jak 2", "Jak 3"):
+        latin = next(d for d in _descriptors() if d["label"] == f"{tag} font 12 Latin (GAME font.12lo)")
+        kana = next(d for d in _descriptors() if d["label"] == f"{tag} font 12 kana (GAME font.12hi)")
+        kanji = next(d for d in _descriptors() if d["label"] == f"{tag} font 24 kanji (GAME font.24lo2)")
+        assert latin["params"]["chars"][49] == "A"
+        assert kana["params"]["chars"][7] == "あ"
+        assert kanji["params"]["chars"][0] == "発"
