@@ -10,7 +10,7 @@ The result is ``atmosphere\\contents\\<title id>\\romfs\\...`` for both games.
 import json
 from io import BytesIO
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PIL import Image
 
@@ -20,6 +20,8 @@ from plugins.pokemon_bdsp.widths import Widths, edited_labels
 
 TITLE_IDS = ("0100000011D90000", "010018E011D92000")   # Brilliant Diamond, Shining Pearl (same romfs)
 MOD_DIR = "atmosphere"
+# The glyph tables of a font asset (its JSON is the whole MonoBehaviour; these are the keys a build writes back).
+GLYPH_TABLES = ("m_GlyphTable", "m_CharacterTable", "m_glyphInfoList")
 
 
 def changed_tables(source_dir: Path, translation_dir: Path) -> Dict[str, bytes]:
@@ -33,16 +35,17 @@ def changed_tables(source_dir: Path, translation_dir: Path) -> Dict[str, bytes]:
     return changed
 
 
-def _changed_pngs(source_dir: Path, translation_dir: Path, top: str) -> Dict[str, Dict[str, bytes]]:
-    """{folder: {workspace PNG path: new PNG bytes}} for the PNGs under ``top`` that differ from the source.
+def _changed_pngs(source_dir: Path, translation_dir: Path, top: str,
+                  suffixes: Tuple[str, ...] = (".png",)) -> Dict[str, Dict[str, bytes]]:
+    """{folder: {workspace path: new bytes}} for the files under ``top`` with one of ``suffixes`` that differ from the source.
 
-    The folder is the PNG's parent folder (``texture/<bundle path>`` or ``font/<bundle name>``), keys are as the reader names them.
+    The folder is the file's parent folder (``texture/<bundle path>`` or ``font/<bundle name>``), keys are as the reader names them.
     """
     root = translation_dir / top
     changed: Dict[str, Dict[str, bytes]] = {}
     if not root.is_dir():
         return changed
-    for path in sorted(root.rglob("*.png")):
+    for path in sorted(p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in suffixes):
         rel = path.relative_to(translation_dir).as_posix()
         data = path.read_bytes()
         original = source_dir / rel
@@ -57,10 +60,22 @@ def changed_pictures(source_dir: Path, translation_dir: Path) -> Dict[str, Dict[
     return {folder[len("texture/"):]: pngs for folder, pngs in _changed_pngs(source_dir, translation_dir, "texture").items()}
 
 
-def build_fonts(romfs: Path, changes: Dict[str, Dict[str, bytes]], out: Path, is_cancelled: Callable[[], bool]) -> None:
-    """Write each font bundle whose atlas picture changed: the TextMesh Pro atlas (inline A8 data) is written again.
+def _with_glyph_tables(font: Dict[str, Any], data: bytes) -> Optional[Dict[str, Any]]:
+    """The font asset with its glyph tables taken from an edited ``<font>.json``; None when they are the same."""
+    edited = json.loads(data.decode("utf-8"))
+    changed = dict(font)
+    for key in GLYPH_TABLES:
+        if key not in edited:
+            raise ValueError(tr("The glyph table JSON has no {0}.", key))
+        changed[key] = edited[key]
+    return changed if any(changed[key] != font.get(key) for key in GLYPH_TABLES) else None
 
-    ponytail: only the atlas pictures are written; the glyph tables (the font's JSON) are not, add them when a glyph is added.
+
+def build_fonts(romfs: Path, changes: Dict[str, Dict[str, bytes]], out: Path, is_cancelled: Callable[[], bool]) -> None:
+    """Write each font bundle whose atlas picture or glyph table JSON changed.
+
+    The atlas picture is written as its TextMesh Pro atlas (inline A8 data). The glyph tables (``m_GlyphTable``,
+    ``m_CharacterTable``, ``m_glyphInfoList``) come from the edited ``<font>.json``; the other fields keep their values.
     """
     font_dir = romfs / assets.ASSETS[1:] / assets.FONT_FOLDER
     for raw in sorted(font_dir.glob("*")) if font_dir.is_dir() else []:
@@ -79,7 +94,13 @@ def build_fonts(romfs: Path, changes: Dict[str, Dict[str, bytes]], out: Path, is
             font = serialized.read(obj.path_id)
             if not font.get("m_GlyphTable") or not font.get("m_AtlasTextures"):
                 continue
-            rel = f"{folder}/{assets.safe(font.get('m_Name', ''))}.png"
+            name = assets.safe(font.get("m_Name", ""))
+            table_rel = f"{folder}/{name}.json"
+            if table_rel in pictures:
+                table = _with_glyph_tables(font, pictures[table_rel])
+                if table is not None:
+                    edits[obj.path_id] = serialized.write(obj.path_id, table)
+            rel = f"{folder}/{name}.png"
             if rel not in pictures:
                 continue
             atlas_id = font["m_AtlasTextures"][0]["m_PathID"]
@@ -187,7 +208,7 @@ def build_switch(source_dir: str, translation_dir: str, output_dir: str,
     if pictures:
         progress(0, tr("Building {0} edited picture bundles", str(len(pictures))))
         build_pictures(romfs, pictures, out, is_cancelled)
-    fonts = _changed_pngs(source, translation, "font")
+    fonts = _changed_pngs(source, translation, "font", (".png", ".json"))
     if fonts:
         progress(0, tr("Building {0} edited font bundles", str(len(fonts))))
         build_fonts(romfs, fonts, out, is_cancelled)

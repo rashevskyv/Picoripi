@@ -2397,5 +2397,6 @@
   "Reading the game layout...": "Читання розмітки гри...",
   "The dialogue layout is not in this project's unpacked game.": "Розмітки діалогу немає в розпакованій грі цього проєкту.",
   "Line too wide for the box: %1": "Рядок завеликий для вікна: %1",
-  "Too many lines for the box: %1 (box holds %2)": "Забагато рядків для вікна: %1 (вміщує %2)"
+  "Too many lines for the box: %1 (box holds %2)": "Забагато рядків для вікна: %1 (вміщує %2)",
+  "The glyph table JSON has no {0}.": "У JSON таблиці гліфів немає {0}."
 }
