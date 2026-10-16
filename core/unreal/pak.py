@@ -90,7 +90,9 @@ class Pak:
         else:
             name = self.methods[entry.method - 1] if 0 < entry.method <= len(self.methods) else ""
             parts = []
-            for (start, end), raw_size in zip(entry.blocks, _block_raw_sizes(entry)):
+            # only Oodle needs the raw size of each block; zstd and zlib frames carry their own
+            raw_sizes = _block_raw_sizes(entry) if name == "Oodle" else [0] * len(entry.blocks)
+            for (start, end), raw_size in zip(entry.blocks, raw_sizes):
                 raw = self.read(base + start, end - start)
                 if name == "Zstd":
                     parts.append(_zstd_decompress(raw, entry.name))
@@ -128,6 +130,8 @@ def _block_raw_sizes(entry: Entry) -> List[int]:
         raise PakError(f"{entry.name}: {count} blocks and no block size")
     sizes = [entry.block_size] * count
     sizes[-1] = entry.usize - entry.block_size * (count - 1)
+    if not 0 < sizes[-1] <= entry.block_size:
+        raise PakError(f"{entry.name}: {count} blocks of {entry.block_size} bytes do not make {entry.usize}")
     return sizes
 
 

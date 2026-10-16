@@ -68,6 +68,14 @@ def test_encoded_record_with_two_blocks_reads_their_sizes():
     assert pak._block_raw_sizes(entry) == [65536, 100000 - 65536]
 
 
+def test_block_sizes_that_do_not_make_the_uncompressed_size_are_refused():
+    flags = 0xE0000000 | (1 << 23) | (2 << 6) | 0x20   # two 65536-byte blocks
+    blob = struct.pack("<IIIIII", flags, 0, 60000, 300, 100, 200)   # but only 60000 uncompressed bytes
+    entry = pak._decode_encoded_entry(blob, 0)
+    with pytest.raises(pak.PakError, match="do not make"):
+        pak._block_raw_sizes(entry)
+
+
 def test_an_encrypted_encoded_record_is_refused():
     flags = 0xE0000000 | (1 << 22)
     with pytest.raises(pak.PakError, match="encrypted"):
