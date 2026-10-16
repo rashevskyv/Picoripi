@@ -366,6 +366,11 @@ class GameRules(BaseGameRules):
         """Get the display name."""
         return "Pokémon FireRed / LeafGreen, Ruby / Sapphire, Emerald"
 
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The message box in the game's own font (plugins/pokemon_fr/preview_panel.py)."""
+        from plugins.pokemon_fr.preview_panel import MessageWindowPreview
+        return MessageWindowPreview(main_window)
+
     def get_default_tag_mappings(self) -> Dict[str, str]:
         """Get the default tag mappings: the short aliases of config.json, in place of the raw tags they stand for."""
         aliases = _config_aliases()

@@ -2395,5 +2395,11 @@
   "A fixed-width name needs the width of its table.": "Фіксована назва потребує ширини таблиці.",
   "Name longer than {0} characters: {1}": "Назва довша за {0} символів: {1}",
   "{0}: the name table has no room for the longer entries; shorten them.": "{0}: у таблиці немає місця для довших записів; скоротіть їх.",
-  "{0} is longer than its space and cannot move; shorten it.": "{0} довший за своє місце і не може переміститися; скоротіть текст."
+  "{0} is longer than its space and cannot move; shorten it.": "{0} довший за своє місце і не може переміститися; скоротіть текст.",
+  "Page {0} of {1}": "Сторінка {0} з {1}",
+  "Loading the game's font...": "Завантаження шрифту гри...",
+  "Open a game project to see the message box.": "Відкрийте проєкт гри, щоб побачити вікно повідомлення.",
+  "The font of this game is not in its facts yet.": "Шрифту цієї гри ще немає у фактах.",
+  "Line {0} is {1} px wide; the box holds {2} px.": "Рядок {0} має {1} пкс; вікно вміщує {2} пкс.",
+  "Line {0} does not fit the box; add a line scroll or a new page before it.": "Рядок {0} не вміщується у вікно; перед ним додайте прокрутку рядка або нову сторінку."
 }

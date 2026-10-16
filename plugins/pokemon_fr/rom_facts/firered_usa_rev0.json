@@ -3,6 +3,7 @@
 "build_name": "Pokemon FireRed UA",
 "rom_sha1": "41cb23d8dccc8ebd7c649cd8fbb58eeace6e2fdc",
 "rom_size": 16777216,
+"font": {"half_row_table": 2007108, "width_table": 2126592, "glyph_table": 2093824, "glyph_count": 512, "window": {"text_x": 16, "text_width": 216, "lines": 2, "line_height": 16, "box_width": 240, "box_height": 56, "source": "measured on the FireRed rev0 proof frame; the box edge is an estimate"}},
 "charmap": "charmap_gen3.json",
 "source": "pret decompilation (facts only); messages located by ELF symbols (nm)",
 "free_start": 15403808,

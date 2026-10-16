@@ -3,6 +3,7 @@
 "build_name": "Pokemon Emerald UA",
 "rom_sha1": "f3ae088181bf583e55daf962a92bb46f4f1d07b7",
 "rom_size": 16777216,
+"font": {"half_row_table": 3052940, "width_table": 6636260, "glyph_table": 6603492, "glyph_count": 512, "window": {"text_x": 16, "text_width": 216, "lines": 2, "line_height": 16, "box_width": 240, "box_height": 56, "source": "measured on the FireRed rev0 proof frame; the box edge is an estimate"}},
 "charmap": "charmap_emerald.json",
 "source": "pret decompilation (facts only); messages located by ELF symbols (nm)",
 "free_start": 14929764,

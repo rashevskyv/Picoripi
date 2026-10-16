@@ -3,6 +3,7 @@
 "build_name": "Pokemon LeafGreen Rev1 UA",
 "rom_sha1": "7862c67bdecbe21d1d69ce082ce34327e1c6ed5e",
 "rom_size": 16777216,
+"font": {"half_row_table": 2007184, "width_table": 2126668, "glyph_table": 2093900, "glyph_count": 512, "window": {"text_x": 16, "text_width": 216, "lines": 2, "line_height": 16, "box_width": 240, "box_height": 56, "source": "measured on the FireRed rev0 proof frame; the box edge is an estimate"}},
 "charmap": "charmap_gen3.json",
 "source": "pret decompilation (facts only); messages located by ELF symbols (nm)",
 "free_start": 15404564,
