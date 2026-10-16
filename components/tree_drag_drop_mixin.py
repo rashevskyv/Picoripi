@@ -557,6 +557,14 @@ class TreeDragDropMixin:
             self._pending_drag_items = []
             return
 
+        # Only blocks and project folders move. A dragged Story chapter or Speaker leaf carries a negative UserRole
+        # (-2, -3), which the code below would read as blocks[-2] or blocks[-3].
+        drag_source_items = [item for item in drag_source_items if self._is_reorder_target(item)]
+        if not drag_source_items:
+            event.ignore()
+            self._pending_drag_items = []
+            return
+
         if target_info and drag_source_items:
             target_item, drop_pos = target_info
             valid_source_items = [i for i in drag_source_items if i != target_item]
@@ -667,12 +675,6 @@ class TreeDragDropMixin:
             return
 
         # ── Fallback: drop on empty space → append to root ──────────────────
-        target_item = self.itemAt(self._event_point(event))
-        selected_items = self._draggable(self.selectedItems())
-        main_window = self.window()
-        undo_mgr = getattr(main_window, 'undo_manager', None)
-        before = undo_mgr.get_project_snapshot() if undo_mgr else None
-        drag_source_items = self._pending_drag_items or selected_items
 
         root = self.invisibleRootItem()
         nodes = []
