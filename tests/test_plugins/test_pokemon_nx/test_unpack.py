@@ -1,5 +1,11 @@
-"""Sword / Shield wizard unpack: the base game with its update's BKTR patch, read by Picoripi's Switch reader."""
+"""Pokémon Sword / Legends: Arceus wizard unpack: the base game with its update's BKTR patch, read by Picoripi's reader.
+
+The real-data tests run through ``build.run_unpack`` (the wizard's own job) and skip unless the owner's packages and the
+Switch key path (``switch_keys`` in the shared ``zelda_env.ini``, a path only) are on disk. The key file is opened by
+Picoripi's reader, never by these tests.
+"""
 import hashlib
+import re
 import struct
 from pathlib import Path
 
@@ -9,19 +15,39 @@ import romhacking_root
 from core.containers import console_crypto
 from core.containers.image_files import ImageError
 from core.containers.switch_bktr import _shallow_tree
-from core.project_library import console_keys
-from plugins.pokemon_nx import unpack
+from core.project_library import build
+from plugins.testing import load_rules
 
-WORKSPACE = romhacking_root.under('Pokemon') / "Sword and Shield"
-BASE = WORKSPACE / "nsp" / "Pokemon Sword [0100ABF008968000][v0].nsp"
-UPDATE = WORKSPACE / "nsp" / "Pokemon Sword [0100ABF008968800][v458752].nsp"
+ROOT = romhacking_root.under('Pokemon')
+SWORD = ROOT / "Sword and Shield"
+ARCEUS = ROOT / "Legends Arceus"
+SWORD_BASE = SWORD / "nsp" / "Pokemon Sword [0100ABF008968000][v0].nsp"
+SWORD_UPDATE = SWORD / "nsp" / "Pokemon Sword [0100ABF008968800][v458752].nsp"
+ARCEUS_BASE = ARCEUS / "nsp" / "Pokemon Legends Arceus [01001F5010DFA000][v0].nsp"
+ARCEUS_UPDATE = ARCEUS / "nsp" / "Pokemon Legends Arceus [01001F5010DFA800][v262144].nsp"
+KEY_INI = romhacking_root.root() / "_shared" / "scripts" / "zelda_env.ini" if romhacking_root.root() else None
 
 
-def _need_real_data():
-    if not (BASE.is_file() and UPDATE.is_file() and (WORKSPACE / "source").is_dir()):
-        pytest.skip("the Sword packages and the workspace source are not on disk")
-    if console_keys.path_for("switch") is None:
-        pytest.skip("the Switch key file is not set in Picoripi's console key store")
+def _switch_key_path():
+    """The ``switch_keys`` path of the shared env file, or None (paths only; the key file is not opened here)."""
+    if KEY_INI is None or not KEY_INI.is_file():
+        return None
+    for line in KEY_INI.read_text(encoding="utf-8", errors="replace").splitlines():
+        match = re.match(r"^\s*switch_keys\s*=\s*(.+?)\s*$", line)
+        if match and Path(match.group(1)).is_file():
+            return match.group(1)
+    return None
+
+
+def _provider(console):
+    return _switch_key_path() if console == "switch" else None
+
+
+def _need(*paths):
+    if not all(p.is_file() for p in paths):
+        pytest.skip("the owner's Pokémon Switch packages are not on disk")
+    if _switch_key_path() is None:
+        pytest.skip("the Switch key path is not in the shared env file")
 
 
 def _sha(path: Path) -> str:
@@ -30,6 +56,13 @@ def _sha(path: Path) -> str:
         for block in iter(lambda: stream.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _run_wizard(sources, project_dir):
+    """The wizard's own unpack job: build.run_unpack with the rules of the plugin and the key path provider."""
+    rules = load_rules("pokemon_nx")
+    with console_crypto.key_source(_provider):
+        return build.run_unpack(rules, sources, str(project_dir), lambda percent, text: None, lambda: False, _provider)
 
 
 def test_a_deeper_patch_table_is_refused():
@@ -42,22 +75,40 @@ def test_a_deeper_patch_table_is_refused():
         _shallow_tree(read, 0x100, 0x10, 2)   # the table claims two entries
 
 
-def test_unpack_matches_the_workspace_source(tmp_path):
-    _need_real_data()
-    target = tmp_path / "source"
-    with console_crypto.key_source(console_keys.path_for):
-        done = unpack.unpack({"base": str(BASE), "update": str(UPDATE)}, str(target),
-                             lambda percent, text: None, lambda: False)
-    assert done == str(target)
-    ours = {p.relative_to(target).as_posix(): p for p in target.rglob("*") if p.is_file()}
-    theirs = {p.relative_to(WORKSPACE / "source").as_posix(): p
-              for p in (WORKSPACE / "source").rglob("*") if p.is_file()}
+def test_sword_wizard_unpack_matches_the_workspace_source(tmp_path):
+    _need(SWORD_BASE, SWORD_UPDATE)
+    if not (SWORD / "source").is_dir():
+        pytest.skip("the workspace source is not on disk")
+    folder = _run_wizard({"base": str(SWORD_BASE), "update": str(SWORD_UPDATE)}, tmp_path / "project")
+    unpacked = Path(folder)
+    assert (unpacked / "bin" / "message" / "English").is_dir()
+    ours = {p.relative_to(unpacked).as_posix(): p for p in unpacked.rglob("*") if p.is_file()}
+    theirs = {p.relative_to(SWORD / "source").as_posix(): p
+              for p in (SWORD / "source").rglob("*") if p.is_file()}
     assert ours.keys() == theirs.keys() and len(ours) > 2000
     assert all(_sha(ours[name]) == _sha(theirs[name]) for name in ours)
 
 
+def test_arceus_wizard_unpack_keeps_the_text_and_the_packs_as_files(tmp_path):
+    _need(ARCEUS_BASE, ARCEUS_UPDATE)
+    if not (ARCEUS / "source").is_dir():
+        pytest.skip("the workspace source is not on disk")
+    folder = Path(_run_wizard({"base": str(ARCEUS_BASE), "update": str(ARCEUS_UPDATE)}, tmp_path / "project"))
+    assert (folder / "bin" / "message" / "English").is_dir()
+    packs = sorted(p.relative_to(folder).as_posix() for p in folder.rglob("*_eng.gfpak"))
+    theirs = sorted(p.relative_to(ARCEUS / "source").as_posix() for p in (ARCEUS / "source").rglob("*_eng.gfpak"))
+    assert packs == theirs and packs
+    assert _sha(folder / packs[0]) == _sha(ARCEUS / "source" / packs[0])
+
+
 def test_a_missing_update_is_an_error_not_a_silent_unpack(tmp_path):
-    _need_real_data()
-    with console_crypto.key_source(console_keys.path_for):
-        with pytest.raises(ImageError):
-            unpack.unpack({"base": str(BASE)}, str(tmp_path / "source"), lambda percent, text: None, lambda: False)
+    _need(SWORD_BASE)
+    with pytest.raises(ImageError):
+        _run_wizard({"base": str(SWORD_BASE)}, tmp_path / "project")
+
+
+def test_a_file_that_is_not_a_pokemon_image_is_an_error(tmp_path):
+    fake = tmp_path / "not_a_game.nsp"
+    fake.write_bytes(b"not a switch package")
+    with pytest.raises(ImageError):
+        _run_wizard({"base": str(fake), "update": str(fake)}, tmp_path / "project")
