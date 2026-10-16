@@ -103,3 +103,49 @@ def dialogue_split(data: bytes, start: int = DIALOGUE_START) -> List[Tuple[bool,
 def dialogue_text(chunk: bytes) -> bytes:
     """The text of a record chunk from dialogue_split()."""
     return chunk[3:]
+
+
+# MG1 menu and result strings: NUL-terminated runs in this window that do not overlap a dialogue record.
+MENU_START = 0x15DF00
+MENU_END = 0x15EC00
+_NUL_TEXT = re.compile(rb"[\x20-\x7e\n]{4,}\x00")
+_WORDS4 = re.compile(rb"[A-Za-z]{4,}")
+
+
+def text_units(data: bytes, start: int = DIALOGUE_START) -> List[Tuple[int, int, bytes]]:
+    """(offset, budget, text) for every text unit: dialogue records and menu strings.
+
+    budget is the number of bytes the text may fill in place. A record's budget is its length field,
+    a NUL string's budget is its text length (the NUL stays). Writing shorter text pads it with spaces,
+    so no header and no offset moves.
+    """
+    units: List[Tuple[int, int, bytes]] = []
+    records: List[Tuple[int, int]] = []
+    pos = 0
+    for is_record, chunk in dialogue_split(data, start):
+        if is_record:
+            units.append((pos + 3, len(chunk) - 3, chunk[3:]))
+            records.append((pos, pos + len(chunk)))
+        pos += len(chunk)
+    for m in _NUL_TEXT.finditer(data, MENU_START, MENU_END):
+        a, b = m.start(), m.end() - 1
+        if any(s < m.end() and a < t for s, t in records):
+            continue
+        text = data[a:b]
+        if _WORDS4.search(text):
+            units.append((a, b - a, text))
+    units.sort()
+    return units
+
+
+def apply_units(data: bytes, texts: List[bytes], start: int = DIALOGUE_START) -> bytes:
+    """data with each text unit replaced, in order. Raises ValueError when a text is longer than its budget."""
+    units = text_units(data, start)
+    if len(texts) != len(units):
+        raise ValueError(f"expected {len(units)} texts, got {len(texts)}")
+    out = bytearray(data)
+    for (offset, budget, _old), new in zip(units, texts):
+        if len(new) > budget:
+            raise ValueError(f"text at 0x{offset:x} is {len(new)} bytes, budget {budget}")
+        out[offset:offset + budget] = new.ljust(budget, b" ")
+    return bytes(out)
