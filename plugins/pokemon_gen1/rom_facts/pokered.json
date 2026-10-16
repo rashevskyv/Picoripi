@@ -20060,6 +20060,90 @@
      ]
     }
    ]
+  },
+  {
+   "file": "data/battle/stat_mod_names.asm",
+   "labels": [
+    {
+     "label": "StatModTextStrings",
+     "offset": 259743,
+     "size": 44,
+     "fixed": false,
+     "mode": "li",
+     "width": 0,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "data/battle/stat_names.asm",
+   "labels": [
+    {
+     "label": "VitaminStats",
+     "offset": 57134,
+     "size": 36,
+     "fixed": false,
+     "mode": "li",
+     "width": 0,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "data/items/names.asm",
+   "labels": [
+    {
+     "label": "ItemNames",
+     "offset": 18219,
+     "size": 871,
+     "fixed": false,
+     "mode": "li",
+     "width": 0,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "data/moves/names.asm",
+   "labels": [
+    {
+     "label": "MoveNames",
+     "offset": 720896,
+     "size": 1551,
+     "fixed": false,
+     "mode": "li",
+     "width": 0,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "data/pokemon/names.asm",
+   "labels": [
+    {
+     "label": "MonsterNames",
+     "offset": 115230,
+     "size": 1900,
+     "fixed": false,
+     "mode": "dname",
+     "width": 10,
+     "far": []
+    }
+   ]
+  },
+  {
+   "file": "data/trainers/names.asm",
+   "labels": [
+    {
+     "label": "TrainerNames",
+     "offset": 236031,
+     "size": 392,
+     "fixed": false,
+     "mode": "li",
+     "width": 0,
+     "far": []
+    }
+   ]
   }
  ],
  "gaps": [

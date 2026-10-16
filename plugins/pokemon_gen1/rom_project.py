@@ -58,6 +58,11 @@ def _facts_for(rom: bytes) -> Tuple[str, Dict[str, Any]]:
     raise ValueError(tr("This ROM is not a version the Pokemon plugin has text facts for."))
 
 
+def unit_name(file: str) -> str:
+    """The asm file a decompilation file unpacks to: its path with "/" replaced by "__" (names files repeat)."""
+    return file.replace("/", "__")
+
+
 def _names(facts: Dict[str, Any]) -> rom_text.Names:
     return rom_text.Names(facts["charmap"], facts["ram"], facts["far"])
 
@@ -76,11 +81,14 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
         bodies = []
         for body in item["labels"]:
             region = rom[body["offset"]:body["offset"] + body["size"]]
-            lines = rom_text.decode(region, names, body.get("bcd_hex", ()))
+            if body.get("mode"):
+                lines = rom_text.decode_names(region, names, body["mode"], body["width"])
+            else:
+                lines = rom_text.decode(region, names, body.get("bcd_hex", ()))
             bodies.append(rom_text.format_body(body["label"], lines))
         text = HEADER + "\n" + "\n".join(bodies)
-        (target / SOURCE_DIR / Path(item["file"]).name).write_text(text, encoding="utf-8", newline="\n")
-        progress(10 + 80 * (index + 1) // len(files), Path(item["file"]).name)
+        (target / SOURCE_DIR / unit_name(item["file"])).write_text(text, encoding="utf-8", newline="\n")
+        progress(10 + 80 * (index + 1) // len(files), unit_name(item["file"]))
     (target / ROM_DIR).mkdir(parents=True, exist_ok=True)
     (target / BASE_ROM).write_bytes(rom)
     (target / META_FILE).write_text(json.dumps({"facts": facts_name, "build_name": facts["build_name"]},
@@ -94,7 +102,7 @@ def _edited_bodies(text_dirs: Sequence[Path], facts: Dict[str, Any]) -> Dict[str
     found: Dict[str, List[rom_text.Line]] = {}
     for text_dir in text_dirs:
         for item in facts["files"]:
-            path = text_dir / Path(item["file"]).name
+            path = text_dir / unit_name(item["file"])
             if not path.is_file():
                 continue
             bodies = {label: lines for label, lines in rom_text.read_labels(path.read_text(encoding="utf-8"))}
@@ -126,7 +134,7 @@ def build(source_dir: str, translation_dir: str, output_dir: str, progress: Prog
             if lines is None:
                 continue
             try:
-                data = rom_text.encode(lines, names)
+                data = rom_text.encode(lines, names, body.get("width", 0))
             except rom_text.CodecError as error:
                 raise ValueError(f"{body['label']}: {error}") from error
             if data != base[body["offset"]:body["offset"] + body["size"]]:
@@ -152,6 +160,8 @@ def _patched(base: bytes, facts: Dict[str, Any], changes: List[Tuple[Dict[str, A
     for body, data in changes:
         if len(data) <= body["size"]:
             place = body["offset"]
+        elif body.get("mode"):
+            raise ValueError(tr("{0}: the name table has no room for the longer entries; shorten them.", body["label"]))
         elif body["fixed"]:
             raise ValueError(tr("{0} is longer than its space and is followed by code; shorten it.", body["label"]))
         else:

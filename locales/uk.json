@@ -2391,5 +2391,8 @@
   "Writing {0} changed texts": "Записую змінених текстів: {0}",
   "{0} is longer than its space and is followed by code; shorten it.": "{0} довший за місце, а далі йде код; скоротіть текст.",
   "No free space for {0}; shorten the text.": "Немає вільного місця для {0}; скоротіть текст.",
-  "A reference to {0} sits inside a text body; it cannot be moved.": "Посилання на {0} лежить усередині тексту; його не можна перенести."
+  "A reference to {0} sits inside a text body; it cannot be moved.": "Посилання на {0} лежить усередині тексту; його не можна перенести.",
+  "A fixed-width name needs the width of its table.": "Фіксована назва потребує ширини таблиці.",
+  "Name longer than {0} characters: {1}": "Назва довша за {0} символів: {1}",
+  "{0}: the name table has no room for the longer entries; shorten them.": "{0}: у таблиці немає місця для довших записів; скоротіть їх."
 }

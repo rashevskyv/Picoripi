@@ -290,11 +290,26 @@ def _command_bytes(names: Names, name: str, args: str) -> bytes:
     return bytes(out)
 
 
-def encode(lines: Sequence[Line], names: Names) -> bytes:
-    """The bytes of a text body from its macro lines. Lines after ``text_asm`` are code and are not encoded."""
+def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
+    """The bytes of a text body from its macro lines. Lines after ``text_asm`` are code and are not encoded.
+
+    ``width`` is the field width of a ``dname`` table (the table_width of the decompilation); a ``dname`` that does
+    not fit the field raises, as pret's own assert does. ``li`` entries are "@"-terminated and any length.
+    """
     out = bytearray()
     for word, args in lines:
-        if word in FLOW_CODE:
+        if word == "dname":
+            if not width:
+                raise CodecError(tr("A fixed-width name needs the width of its table."))
+            data = _string_bytes(names, args)
+            if len(data) > width:
+                raise CodecError(tr("Name longer than {0} characters: {1}", str(width), args))
+            out += data + bytes([TX_END]) * (width - len(data))
+        elif word == "li":
+            out += _string_bytes(names, args) + bytes([TX_END])
+        elif word in ("table_width", "list_start") or word.startswith("assert"):
+            continue
+        elif word in FLOW_CODE:
             out.append(FLOW_CODE[word])
             out += _string_bytes(names, args) if args.strip() else b""
         elif word == "db":
@@ -309,6 +324,26 @@ def encode(lines: Sequence[Line], names: Names) -> bytes:
         else:
             raise CodecError(tr("Unknown text macro {0}.", word))
     return bytes(out)
+
+
+def decode_names(region: bytes, names: Names, mode: str, width: int = 0) -> List[Line]:
+    """The lines of a name table: ``dname`` fields of ``width`` bytes, or ``li`` entries ending at "@"."""
+    def quoted(chunk: bytes) -> str:
+        return '"' + escape("".join(_show_byte(names, code) for code in chunk)) + '"'
+
+    out: List[Line] = []
+    if mode == "dname":
+        for start in range(0, len(region), width):
+            chunk = region[start:start + width]
+            out.append(("dname", quoted(chunk.split(bytes([TX_END]))[0])))
+        return out
+    at = 0
+    while at < len(region):
+        end = region.find(bytes([TX_END]), at)
+        end = len(region) if end < 0 else end
+        out.append(("li", quoted(region[at:end])))
+        at = end + 1
+    return out
 
 
 # ----- asm files -----

@@ -93,6 +93,26 @@ def test_free_space_takes_first_fit_in_allowed_banks():
     assert free.take(0x20) == 0x100                     # no filter: the first run, bank 0
 
 
+def test_dname_fields_pad_with_at_sign_and_reject_overflow():
+    names = _names()
+    assert rom_text.encode([("dname", '"abc"')], names, 5) == bytes([0xA0, 0xA1, 0xA2, 0x50, 0x50])
+    assert rom_text.encode([("dname", '"abcde"')], names, 5) == bytes([0xA0, 0xA1, 0xA2, 0xA3, 0xA4])
+    with pytest.raises(rom_text.CodecError):
+        rom_text.encode([("dname", '"abcdef"')], names, 5)
+    raw = bytes([0xA0, 0xA1, 0x50, 0x50, 0x50, 0xA2, 0xA3, 0x50, 0x50, 0x50])
+    lines = rom_text.decode_names(raw, names, "dname", 5)
+    assert lines == [("dname", '"ab"'), ("dname", '"cd"')]
+    assert rom_text.encode(lines, names, 5) == raw
+
+
+def test_li_entries_end_at_at_sign_and_have_any_length():
+    names = _names()
+    raw = bytes([0xA0, 0x50, 0xA1, 0xA2, 0x50])
+    lines = rom_text.decode_names(raw, names, "li")
+    assert lines == [("li", '"a"'), ("li", '"bc"')]
+    assert rom_text.encode(lines, names) == raw
+
+
 def test_facts_files_are_consistent():
     for facts_path in sorted(rom_project.FACTS_DIR.glob("*.json")):
         facts = json.loads(facts_path.read_text(encoding="utf-8"))
@@ -121,7 +141,7 @@ def test_real_rom_moved_body_is_reached_through_its_far_reference(tmp_path):
     names = rom_project._names(facts)
     target = next(body for item in facts["files"] for body in item["labels"]
                   if body["far"] and not body["fixed"] and body["size"] < 60)
-    file_name = next(Path(item["file"]).name for item in facts["files"] if target in item["labels"])
+    file_name = next(rom_project.unit_name(item["file"]) for item in facts["files"] if target in item["labels"])
     source_file = project / rom_project.SOURCE_DIR / file_name
     groups = rom_text.read_labels(source_file.read_text(encoding="utf-8"))
     edited = "\n".join(rom_text.format_body(label, LONG_TEXT if label == target["label"] else lines)

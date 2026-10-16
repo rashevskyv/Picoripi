@@ -1,15 +1,16 @@
 """Write the ROM facts of one Pokemon Red, Blue or Yellow image for plugins/pokemon_gen1/rom_facts/.
 
-Facts are addresses, charmap values, sizes and reference sites. They come from the decompilation (text files and
-the charmap), the symbol and map files of its build, and the ROM itself. Every text body is checked before the file
-is written, and the tool stops on the first mismatch:
+Facts are addresses, charmap values, sizes and reference sites. They come from the decompilation (the text and name
+files, the charmap and the constants), the symbol and map files of its build, and the ROM itself. Every body is checked
+before the file is written, and the tool stops on the first mismatch:
 
 - the body's macro lines encode to exactly the ROM bytes at its label;
 - decoding those bytes gives the same editor text as the decompilation (the same ``asm_text.texts``);
 - the number of ``text_far`` references found in the ROM equals the number in the decompilation.
 
+Bodies are the text files (``text/*.asm``) and the name tables (``data/**.asm`` with ``dname`` or ``li`` lines).
+
 Usage: python tools/pokemon_gen1_rom_facts.py <build name> <decomp dir> <sym> <map> <rom> <out json>
-Example: python tools/pokemon_gen1_rom_facts.py pokered "<decomp>" pokered.sym pokered.map "<ROM>" out.json
 """
 from __future__ import annotations
 
@@ -33,6 +34,8 @@ CHARMAP_LINE = re.compile(r'^\s*charmap\s+"((?:[^"\\]|\\.)*)"\s*,\s*\$([0-9A-Fa-
 SYM_LINE = re.compile(r"^([0-9A-Fa-f]{2}):([0-9A-Fa-f]{4}) (\S+)$")
 SECTION_LINE = re.compile(r"^\s*SECTION: \$([0-9a-f]{4})-\$([0-9a-f]{4}) ", re.I)
 BANK_LINE = re.compile(r"^(ROM0|ROMX) bank #(\d+):")
+DEF_LINE = re.compile(r"^\s*DEF\s+(\w+)\s+EQU\s+([^;]+?)\s*(?:;.*)?$")
+NAME_LINE = re.compile(r'^\s+(li|dname)\s+"')
 
 
 def fail(message: str) -> None:
@@ -52,23 +55,30 @@ def read_charmap(decomp: Path) -> list:
     return out
 
 
-def read_sym(path: Path):
-    """``(rom_labels, ram_labels)``: name -> (bank, cpu) for ROM labels, name -> address for WRAM labels."""
-    rom_labels, ram_labels = {}, {}
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        match = SYM_LINE.match(line)
-        if not match:
-            continue
-        bank, addr, name = int(match.group(1), 16), int(match.group(2), 16), match.group(3)
-        if 0xC000 <= addr < 0xE000 or 0xFF80 <= addr <= 0xFFFE:
-            ram_labels.setdefault(name, addr)
-        elif addr < 0x8000:
-            rom_labels.setdefault(name, (bank, addr))
-    return rom_labels, ram_labels
+def read_constants(decomp: Path) -> dict:
+    """``DEF NAME EQU expr`` lines of the constants folder, as text (evaluated on use)."""
+    defs = {}
+    for path in (decomp / "constants").glob("*.asm"):
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            match = DEF_LINE.match(line)
+            if match:
+                defs.setdefault(match.group(1), match.group(2))
+    return defs
+
+
+def evaluate(expr: str, defs: dict, depth: int = 0) -> int:
+    """A constant expression of digits, names and + - * / ( ). Names come from the constants folder."""
+    if depth > 20:
+        fail(f"constant loop at {expr}")
+    text = re.sub(r"[A-Za-z_]\w*", lambda m: f"({evaluate(defs[m.group(0)], defs, depth + 1)})"
+                  if m.group(0) in defs else fail(f"unknown constant {m.group(0)} in {expr}") or "0", expr.strip())
+    if not re.fullmatch(r"[\d\s+\-*/()]+", text):
+        fail(f"cannot evaluate {expr}")
+    return int(eval(text, {"__builtins__": {}}, {}))  # digits and operators only, checked above
 
 
 def read_free_runs(path: Path, rom: bytes):
-    """Free runs ``[bank, start, end)`` of the switchable and fixed windows, from the map's SECTION lines."""
+    """Free runs ``[bank, start, end, pad]`` of the switchable and fixed windows, from the map's SECTION lines."""
     bank_kind, bank_no = None, None
     used = {}
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -91,8 +101,7 @@ def read_free_runs(path: Path, rom: bytes):
             runs.append((bank, cursor, high))
     out = []
     for bank, low, high in runs:
-        cpu_low = low
-        offset_low = offset_of(bank, cpu_low)
+        offset_low = offset_of(bank, low)
         offset_high = offset_of(bank, high - 1) + 1
         if offset_high - offset_low < 16:
             continue
@@ -111,7 +120,7 @@ def read_free_runs(path: Path, rom: bytes):
     return out
 
 
-def far_reference_sites(rom: bytes, offset_of_label: dict) -> dict:
+def far_reference_sites(rom: bytes) -> dict:
     """Operand sites of every ``text_far`` (opcode 0x17 + address + bank) in the ROM, keyed by (bank, cpu)."""
     sites: dict = {}
     at = rom.find(bytes([FAR_OPCODE]))
@@ -126,11 +135,32 @@ def far_reference_sites(rom: bytes, offset_of_label: dict) -> dict:
 def pret_far_counts(decomp: Path) -> Counter:
     counts: Counter = Counter()
     for path in decomp.rglob("*.asm"):
-        if "text_far" not in path.read_text(encoding="utf-8", errors="replace"):
+        source = path.read_text(encoding="utf-8", errors="replace")
+        if "text_far" not in source:
             continue
-        for match in re.finditer(r"text_far\s+([A-Za-z_][\w.]*)", path.read_text(encoding="utf-8", errors="replace")):
+        for match in re.finditer(r"text_far\s+([A-Za-z_][\w.]*)", source):
             counts[match.group(1)] += 1
     return counts
+
+
+def name_files(decomp: Path) -> list:
+    """The data files with name tables (``li`` or ``dname`` entries), in path order."""
+    found = []
+    for path in sorted((decomp / "data").rglob("*.asm")):
+        if any(NAME_LINE.match(line) for line in path.read_text(encoding="utf-8", errors="replace").splitlines()):
+            found.append(path)
+    return found
+
+
+def body_mode(lines, defs):
+    """``(mode, width)`` of a body: a name table has a mode; a text body has none."""
+    words = [word for word, _args in lines]
+    if "dname" in words:
+        width = next((evaluate(args, defs) for word, args in lines if word == "table_width"), 0)
+        return "dname", width
+    if "li" in words:
+        return "li", 0
+    return "", 0
 
 
 def main(argv: list) -> int:
@@ -138,38 +168,54 @@ def main(argv: list) -> int:
         print(__doc__)
         return 2
     build, decomp_text, sym_text, map_text, rom_text_path, out_text = argv[1:]
-    decomp, sym_path, map_path, rom_path, out_path = (Path(p) for p in (decomp_text, sym_text, map_text, rom_text_path, out_text))
+    decomp, sym_path, map_path, rom_path, out_path = (Path(p) for p in (decomp_text, sym_text, map_text,
+                                                                         rom_text_path, out_text))
     rom = rom_path.read_bytes()
-    rom_labels, ram_labels = read_sym(sym_path)
+    rom_labels, ram_labels = {}, {}
+    for line in sym_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        match = SYM_LINE.match(line)
+        if not match:
+            continue
+        bank, addr, name = int(match.group(1), 16), int(match.group(2), 16), match.group(3)
+        if 0xC000 <= addr < 0xE000 or 0xFF80 <= addr <= 0xFFFE:
+            ram_labels.setdefault(name, addr)
+        elif addr < 0x8000:
+            rom_labels.setdefault(name, (bank, addr))
     charmap = read_charmap(decomp)
+    defs = read_constants(decomp)
     everything = rom_text.Names(charmap, ram_labels, rom_labels)
 
+    sources = sorted((decomp / "text").glob("*.asm")) + name_files(decomp)
     files = []
     all_labels = {}
-    total_bytes = 0
-    for path in sorted((decomp / "text").glob("*.asm")):
+    total_bodies = total_bytes = 0
+    for path in sources:
         source = path.read_text(encoding="utf-8")
         groups = rom_text.read_labels(source)
-        rel = f"text/{path.name}"
+        rel = path.relative_to(decomp).as_posix()
         entries = []
         for label, lines in groups:
             if not label:
-                fail(f"{rel}: lines without a label")
+                continue
             if label not in rom_labels:
                 fail(f"{label} is not in the symbol file")
+            mode, width = body_mode(lines, defs)
             bank, cpu = rom_labels[label]
             offset = offset_of(bank, cpu)
             try:
-                data = rom_text.encode(lines, everything)
+                data = rom_text.encode(lines, everything, width)
             except rom_text.CodecError as error:
                 fail(f"{rel} {label}: {error}")
             if rom[offset:offset + len(data)] != data:
                 fail(f"{rel} {label}: the decompilation does not encode to the ROM bytes at {offset:#x}")
-            bcd_args = [args for word, args in lines if word == "text_bcd"]
-            bcd_hex = [index for index, args in enumerate(bcd_args) if "|" not in args]
-            entries.append({"label": label, "offset": offset, "size": len(data),
-                           "fixed": bool(data) and data[-1] == TEXT_ASM, "lines": lines, "bcd_hex": bcd_hex})
+            entry = {"label": label, "offset": offset, "size": len(data),
+                     "fixed": bool(data) and data[-1] == TEXT_ASM, "lines": lines,
+                     "bcd_hex": [i for i, a in enumerate([a for w, a in lines if w == "text_bcd"]) if "|" not in a]}
+            if mode:
+                entry["mode"], entry["width"] = mode, width
+            entries.append(entry)
             all_labels[label] = (bank, cpu)
+            total_bodies += 1
             total_bytes += len(data)
         files.append((rel, entries, source))
 
@@ -187,7 +233,7 @@ def main(argv: list) -> int:
                     used_far[name] = all_labels.get(name, rom_labels.get(name))
 
     runtime = rom_text.Names(charmap, used_ram, used_far)
-    far_hits = far_reference_sites(rom, {})
+    far_hits = far_reference_sites(rom)
     far_pret = pret_far_counts(decomp)
     mismatch_far = []
     out_files = []
@@ -195,9 +241,14 @@ def main(argv: list) -> int:
         decoded_source = []
         for entry in entries:
             region = rom[entry["offset"]:entry["offset"] + entry["size"]]
-            lines = rom_text.decode(region, runtime, entry["bcd_hex"])
-            if rom_text.encode(lines, runtime) != region:
-                fail(f"{rel} {entry['label']}: decode then encode is not the same bytes")
+            if entry.get("mode"):
+                lines = rom_text.decode_names(region, runtime, entry["mode"], entry["width"])
+                if rom_text.encode(lines, runtime, entry["width"]) != region:
+                    fail(f"{rel} {entry['label']}: decode then encode is not the same bytes")
+            else:
+                lines = rom_text.decode(region, runtime, entry["bcd_hex"])
+                if rom_text.encode(lines, runtime) != region:
+                    fail(f"{rel} {entry['label']}: decode then encode is not the same bytes")
             decoded_source.append(rom_text.format_body(entry["label"], lines))
             bank, cpu = rom_labels[entry["label"]]
             hits = far_hits.get((bank, cpu), [])
@@ -209,7 +260,8 @@ def main(argv: list) -> int:
             pairs = [(a, b) for a, b in zip(mine, theirs) if a != b][:3]
             fail(f"{rel}: decoded text differs (counts {len(mine)} vs {len(theirs)}): {pairs}")
         out_files.append({"file": rel, "labels": [
-            {key: value for key, value in entry.items() if key != "lines" and (key != "bcd_hex" or value)}
+            {key: value for key, value in entry.items()
+             if key not in ("lines",) and not (key == "bcd_hex" and not value)}
             for entry in entries]})
 
     if mismatch_far:
@@ -227,8 +279,7 @@ def main(argv: list) -> int:
         "gaps": gaps,
     }
     out_path.write_text(json.dumps(facts, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
-    labels = sum(len(item["labels"]) for item in out_files)
-    print(f"OK {build}: {len(out_files)} files, {labels} bodies, {total_bytes} text bytes,"
+    print(f"OK {build}: {len(out_files)} files, {total_bodies} bodies, {total_bytes} bytes,"
           f" {len(gaps)} free runs ({sum(end - start for _b, start, end, _p in gaps)} bytes), {out_path}")
     return 0
 
