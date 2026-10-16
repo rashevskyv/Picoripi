@@ -12,7 +12,7 @@ Read the row, then open only the document you need.
 | `docs/FEATURES.md` | Every feature in detail; the wiki wins on a conflict | 14.5k | current | feature inventory |
 | `docs/MEMPALACE_CONTEXT_MANIFESTO.md` | MemPalace contract: principles, data flow, stage status | 2.3k | design | core/mempalace, ui/mempalace |
 | `docs/OPEN_ITEMS.md` | Everything left open, one line each, by work package | 35.4k | current | unfinished work |
-| `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 11.8k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
+| `docs/PIPELINE_ROADMAP.md` | Pipeline design of record (Ukrainian); shipped vs planned on top | 11.9k | current | core/glossary_build, ui/pipeline_wizard_dialog.py |
 | `docs/PROJECT_MANAGER_PHASE2.md` | Project Manager phase 2 | 0.7k | current | project manager |
 | `docs/REVIEW_QUEUE.md` | What is left for the owner after the audit: decisions with evidence, live runs, environment | 2.5k | current | owner decisions and live checks |
 | `docs/ROADMAP.md` | Master plan: the work packages of Picoripi, their state and the order | 1.6k | current | work packages, order of work |
@@ -21,12 +21,12 @@ Read the row, then open only the document you need.
 | `docs/wiki/11_AI_Translation.md` (+uk) | Providers, prompts, chunks, run memory, translation memory | 5.1k | current | handlers/translation, core/translation |
 | `docs/wiki/12_Picoripi_Companion.md` (+uk) | Companion server and glossary sync | 1.8k | current | core/companion_sync.py, companion/ |
 | `docs/wiki/13_Working_Together.md` (+uk) | Rooms, roles, claims, comments | 2.9k | current | core/collab |
-| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 48.9k | current | ui/, components/, dialogs/ |
+| `docs/wiki/1_User_Guide_and_Workflow_Pipeline.md` (+uk) | Main window, menus, filters, settings tabs, shortcuts | 49.0k | current | ui/, components/, dialogs/ |
 | `docs/wiki/2_API_Reference.md` (+uk) | Which Python file implements which control | 0.8k | current | module map |
-| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 12.8k | current | plugins/ |
+| `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 13.0k | current | plugins/ |
 | `docs/wiki/4_Configuration_Guide.md` (+uk) | Settings files, project files, where data is stored | 2.1k | current | core/settings |
 | `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.1k | current | core/translation/providers.py |
-| `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.1k | current | ui/updaters/block_list |
+| `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.3k | current | ui/updaters/block_list |
 | `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 0.7k | current | docs/wiki |
 | `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.2k | current | core/glossary_build, core/glossary |
 | `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.8k | current | core/script_markup, ui/script_markup |
