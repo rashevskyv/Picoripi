@@ -31,6 +31,10 @@ from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread
 
 LINE_PX = 16
+# Palette of the message box, read from an emulator frame of the Diamond intro box (exact RGB): level 1 is the
+# dark ink, level 2 the grey ink, level 3 the box colour.
+BOX_RGB = (251, 251, 251)
+INK = {1: QColor(81, 81, 89), 2: QColor(162, 162, 170), 3: QColor(*BOX_RGB)}
 LINES_PER_PAGE = 2
 SCALE = 2
 WIDEST_BOX_PX = 216
@@ -218,7 +222,7 @@ class MessageWindowPreview(QWidget):
         lines, more = page_lines(self._text)
         self._more = more
         self._overflow = False
-        ink = {3: QColor(0, 0, 0), 2: QColor(90, 90, 90), 1: QColor(170, 170, 170)}
+        ink = INK
         for row, chars in enumerate(lines):
             x = 0
             if line_width([c for c in chars if c], self._width_of) > self._box_px:
@@ -249,7 +253,7 @@ class MessageWindowPreview(QWidget):
         painter.fillRect(self.rect(), QColor(40, 40, 46))
         left, top = 10, 10
         box = QRect(left - 4, top - 4, self._box_px * SCALE + 8, LINES_PER_PAGE * LINE_PX * SCALE + 8)
-        painter.fillRect(box, QColor(246, 246, 242))
+        painter.fillRect(box, QColor(*BOX_RGB))
         painter.setPen(QPen(QColor(20, 20, 20), 2))
         painter.drawRect(box)
         painter.drawImage(left, top, self._image)

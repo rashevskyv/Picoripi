@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon message window colours: the box uses the game palette read from an emulator frame of the Diamond intro box (ink 81,81,89 and 162,162,170, box 251,251,251); the preview matches the frame pixel for pixel on the first two lines (`plugins/pokemon_gen4/message_preview.py` `INK`, `BOX_RGB`).
 - Pokémon message window preview for Diamond, Pearl, HeartGold and SoulSilver: the same renderer as Platinum, with each game's font (`graphic/font.narc` or `a/0/1/6`, member 1) and a 216 px box (27 x 4 tiles, from the pret and ctrl-cheeb-del window templates). The game code and font are read on a worker thread (`plugins/pokemon_gen4/message_preview.py` `WindowResolver`), not on the UI thread; a game without facts says so in the box.
 - Pokémon Platinum message window preview: the box is drawn with the game's font (`pl_font.narc` member 1, 216 px, 2 lines, from pret facts) and overflowing lines are flagged (`plugins/pokemon_gen4/message_preview.py`, `core/font_formats/gen4_glyphs.py` `glyph_levels`/`glyph_widths`; tests in `tests/test_plugins/test_pokemon_gen4/test_message_preview.py`).
 - Nintendo DS image writer in Picoripi (`core/containers/nds_write.py`, `narc_write.py`, `plugins/common/nds_build.py`): the Pokémon Diamond/Pearl/Platinum/HeartGold/SoulSilver and Black/White/Black 2/White 2 plugins build a translated ROM (`Translated DS ROM` target) from the wizard project without the zt scripts; the unpack keeps the clean image in `source
