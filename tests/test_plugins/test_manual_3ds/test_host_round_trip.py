@@ -107,10 +107,10 @@ def test_edit_save_revert_save_gives_back_the_original_file(qtbot, qapp, tmp_pat
 @pytest.mark.skipif(romhacking_root.missing(*MANUAL_DIR) is not None,
                     reason=romhacking_root.missing(*MANUAL_DIR) or "")
 @pytest.mark.usefixtures("restore_plugin_modules")
-def test_a_project_on_the_owner_files_in_place_shows_english_as_original_and_ukrainian_as_edited(
+def test_a_project_on_the_owner_files_in_place_shows_russian_as_original_and_ukrainian_as_edited(
         qtbot, qapp, tmp_path, monkeypatch):
     """Regression: the owner's project reads repo_manual/src/manuals in place (source = translation folder), and those
-    files hold en, ru and ua; the Original (EN) column showed the Ukrainian. Runs on a copy of the owner's file."""
+    files hold en, ru and ua; the Original column showed the Ukrainian. Runs on a copy of the owner's file."""
     original = romhacking_root.path(*MANUAL_DIR, MANUAL_FILE).read_bytes()
     document = json.loads(original.decode("utf-8"))
     manuals, project = tmp_path / "manuals", tmp_path / "project"
@@ -129,10 +129,10 @@ def test_a_project_on_the_owner_files_in_place_shows_english_as_original_and_ukr
     _pump(qapp, 60, lambda: bool(mw.data_store.data and mw.data_store.data[0]))
 
     entries = list(document.values())
-    assert mw.data_store.data[0] == [entry.get("en") or entry.get("ru", "") for entry in entries]
+    assert mw.data_store.data[0] == [entry.get("ru", "") for entry in entries]
     assert [mw.data_processor.get_current_string_text(0, index)[0] for index in range(len(entries))] == \
         [entry.get("ua", "") for entry in entries]
-    assert any(entry.get("en") and entry.get("ua") and entry["en"] != entry["ua"] for entry in entries)
+    assert any(entry.get("ru") and entry.get("ua") and entry["ru"] != entry["ua"] for entry in entries)
     mw.close()
 
 

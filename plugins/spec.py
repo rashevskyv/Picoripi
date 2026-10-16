@@ -247,6 +247,8 @@ MAIN_WINDOW_ATTRIBUTES = frozenset({
     # widgets and handlers
     "original_text_edit", "edited_text_edit", "preview_text_edit", "block_list_widget",
     "plugin_handler", "translation_handler", "list_selection_handler",
+    # manual_3ds asks for a block's problems again when its background page render is done
+    "issue_scan_handler",
 })
 
 # Keys that describe one user's session or project. The application stores them

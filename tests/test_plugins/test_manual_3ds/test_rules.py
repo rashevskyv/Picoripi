@@ -73,26 +73,47 @@ def test_source_and_translation_load_differently(widths, geometry):
     rules = check_loads(PLUGIN)
     source = {k: {x: y for x, y in v.items() if x != "ua"} for k, v in SAMPLE.items()}
     blocks, names = rules.load_data_from_json_obj(_text(source))
-    assert blocks == [["Hello there", "Note"]], "the source role gives the original, the English"
+    assert blocks == [["Привет", "Заметка"]], "the source role gives the original, the Russian"
     assert names == {"0": "synthetic"}
     with formats.translation_parse(rules):
         blocks, _ = rules.load_data_from_json_obj(_text(SAMPLE))
     assert blocks == [["Привіт", ""]], "the translation role gives ua; an empty ua stays empty"
 
 
-def test_a_file_with_every_language_gives_english_as_source_and_ukrainian_as_translation(widths, geometry):
-    """Regression: a project that reads the owner's files in place parses the same en+ru+ua file for both columns;
-    the original column showed the Ukrainian. A page the English manual lacks (empty en) shows the Russian."""
+def test_a_file_with_every_language_gives_russian_as_source_and_ukrainian_as_translation(widths, geometry):
+    """Regression: a project that reads the owner's files in place parses the same en+ru+ua file for both columns.
+    The original is the Russian even where the English is empty: the keys follow the Russian document."""
     rules = check_loads(PLUGIN)
     both = {SAMPLE_KEYS[0]: _entry(2, 50.0, "Hello there", "Привет", "Привіт"),
             SAMPLE_KEYS[1]: _entry(1, 300.0, "", "Заметка", "Нотатка")}
     original, _ = rules.load_data_from_json_obj(_text(both))
     with formats.translation_parse(rules):
         edited, _ = rules.load_data_from_json_obj(_text(both))
-    assert original == [["Hello there", "Заметка"]]
+    assert original == [["Привет", "Заметка"]]
     assert edited == [["Привіт", "Нотатка"]]
     again, _ = rules.load_data_from_json_obj(_text(both))
     assert again == original, "the role goes back to source after the translation parse"
+
+
+def test_english_pairs_with_the_russian_only_where_the_kinds_agree():
+    """Page 3 of ar_games: the English layout lists a lone marker where the Russian has a sentence with a tag."""
+    assert m3d.pairs_agree([("❺", "Нажмите {i0} во время игры")]) is False
+    assert m3d.pairs_agree([("Press {i0} during play", "Нажмите {i0} во время игры"), ("❺", "❺")]) is True
+    assert m3d.pairs_agree([("Press {s1|x}", "Нажмите {i0}")]) is False, "a different tag kind is a different paragraph"
+    assert m3d.pairs_agree([("", "Заметка")]) is False, "a small-text key has no English: the page shows none"
+
+
+def test_the_english_of_a_page_that_does_not_pair_is_left_out_of_the_reference(tmp_path, widths, geometry):
+    """The reference file has the loaded file's key list (the match is by key list); page 001 does not pair."""
+    rules = check_loads(PLUGIN)
+    shifted = "large/Page_001_large_0"
+    reference = {SAMPLE_KEYS[0]: _entry(2, 50.0, "Hello there", "Привет"),
+                 SAMPLE_KEYS[1]: _entry(1, 300.0, "Note", "Заметка"),
+                 f"{shifted}#0": _entry(1, 300.0, "❺", "Нажмите {i0} во время игры")}
+    rules.load_data_from_json_obj(_text(reference))
+    (tmp_path / "ref.json").write_text(_text(reference), encoding="utf-8")
+    assert rules.get_reference_language_label() == "English (EN)"
+    assert rules.load_reference_patch(str(tmp_path / "ref.json")) == {(0, 0): "Hello there", (0, 1): "Note"}
 
 
 def test_an_unchanged_save_is_the_same_file_and_ua_goes_back_by_key(widths, geometry):
@@ -297,11 +318,14 @@ def test_a_box_frame_the_line_starts_in_ends_it_inside_its_right_edge():
     box = layout.Occluder("wnd1", 8.0, 40.0, 304.0, 345.0)
     geo = _geo_on([box], [layout.Line(20.0, 200.0, 40.0, 0.0, 20.0)])
     assert geo.right_limit(0) == 8.0 + 304.0 - layout.FRAME_MARGIN
-    # With the frame texture's width known, the inner edge is the right edge less that width (never less than 4).
-    thin = layout.Occluder("wnd1", 8.0, 40.0, 304.0, 345.0, frame_width=4.0)
+    # With the painted width of the frame known, the inner edge is the right edge less that width (Nintendo's 4 px
+    # box frames paint 2 columns); a frame that paints nothing is no edge at all.
+    painted = layout.Occluder("wnd1", 8.0, 40.0, 304.0, 345.0, frame_width=2.0)
     wide = layout.Occluder("wnd1", 8.0, 40.0, 304.0, 345.0, frame_width=18.0)
-    assert _geo_on([thin], geo.lines).right_limit(0) == 8.0 + 304.0 - 4.0
+    clear = layout.Occluder("wnd1", 8.0, 40.0, 304.0, 345.0, frame_width=0.0)
+    assert _geo_on([painted], geo.lines).right_limit(0) == 8.0 + 304.0 - 2.0
     assert _geo_on([wide], geo.lines).right_limit(0, 0.0, layout.FRAME_INNER) == 8.0 + 304.0 - 18.0
+    assert _geo_on([clear], geo.lines).right_limit(0) == float("inf")
 
 
 def test_a_small_frame_is_not_a_box():
@@ -476,3 +500,153 @@ def test_home_menu_line_keeps_off_the_picture_or_frame_beside_it(key):
     assert geometry[key].occluders, f"{key}: the page's pictures and frames are missing from the geometry"
     problems = layout.check_entry(entry["ua"], entry.get("ru", ""), entry, geometry[key], m3d._DATA.widths)
     assert [message for name, message in problems if name == "BESIDE"] == []
+
+
+# -- the render's problems in the editor scan -------------------------------------------------------
+
+
+class _FakeRender:
+    """page_build.page_kinds stand-in: records its calls, answers with fixed kinds (detail "d") for a string."""
+
+    def __init__(self, kinds, error=None):
+        self.calls = []
+        self.kinds = kinds
+        self.error = error
+
+    def __call__(self, tools, manual_name, part, page, texts, budgets):
+        self.calls.append((manual_name, part, page, dict(texts)))
+        if self.error is not None:
+            raise self.error
+        return {key: {kind: f"{kind} d" for kind in found} for key, found in self.kinds.items()}, {}
+
+
+def _rules_with_render(monkeypatch, kinds):
+    monkeypatch.setattr(m3d.page_build, "load_folder", lambda: "repo")
+    monkeypatch.setattr(m3d.repo_tools, "load_tools", lambda root: object())
+    render = _FakeRender(kinds)
+    monkeypatch.setattr(m3d.page_build, "page_kinds", render)
+    rules = check_loads(PLUGIN)
+    rules.load_data_from_json_obj(_text(SAMPLE))
+    return rules, render
+
+
+def test_the_render_problems_of_the_page_reach_the_strings_that_own_them(widths, geometry, monkeypatch):
+    """A page is built from every current text on it and judged once; its render-only defects (a label leaving its
+    cell, two paragraphs' ink meeting, a line painted over) are the editor problems of the strings that own them."""
+    rules, render = _rules_with_render(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell", "text_overlap"}, SAMPLE_KEYS[1]: {"covered"}})
+    assert rules.manual_problems(0, 0, "Привіт") == {"M3D_CELL", "M3D_OVERLAP"}
+    assert rules.get_problem_detail(0, 0, "M3D_CELL") == "over_cell d"
+    assert rules.manual_problems(0, 1, "") == {"M3D_COVERED"}
+    assert render.calls == [("synthetic", "large", 0, {SAMPLE_KEYS[0]: "Привіт", SAMPLE_KEYS[1]: ""})]
+    # The same texts again: the page is not rendered again. A changed text renders it once more.
+    rules.manual_problems(0, 0, "Привіт")
+    assert len(render.calls) == 1
+    rules._manuals[0].doc[SAMPLE_KEYS[1]]["ua"] = "Нотатка"
+    rules.manual_problems(0, 1, "Нотатка")
+    assert len(render.calls) == 2 and render.calls[1][3][SAMPLE_KEYS[1]] == "Нотатка"
+
+
+def test_a_page_without_a_translation_is_not_rendered(widths, geometry, monkeypatch):
+    rules, render = _rules_with_render(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell"}})
+    for entry in rules._manuals[0].doc.values():
+        entry["ua"] = ""
+    assert rules.manual_problems(0, 0, "") == set()
+    assert render.calls == []
+
+
+def test_a_page_the_tools_cannot_draw_is_cached_as_drawn_and_not_tried_again(widths, geometry, monkeypatch):
+    """A failing render leaves no render problems and is not repeated for the same texts (so a background render
+    and the host's rescan never chase each other); the folder setting is read from disk once."""
+    reads = []
+    rules, render = _rules_with_render(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell"}})
+    render.error = RuntimeError("no font")
+    monkeypatch.setattr(m3d.page_build, "load_folder", lambda: reads.append(1) or "repo")
+    first = rules.manual_problems(0, 0, "Привіт")
+    second = rules.manual_problems(0, 0, "Привіт")
+    assert (first, second, len(render.calls), len(reads)) == (set(), set(), 1, 1)
+
+
+def test_on_the_ui_thread_the_page_renders_in_the_background_and_the_block_is_rescanned(widths, geometry, monkeypatch):
+    """The whole-project scan runs on the UI thread: there the render is only scheduled, and when the background
+    render is done the host rescans the block (then the scan reads the page cache)."""
+    from utils import app_mode
+
+    monkeypatch.setattr(app_mode, "headless", False)
+    rules, render = _rules_with_render(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell"}})
+    rescanned = []
+
+    class _Scanner:
+        def rescan_issues_for_single_block(self, block, show_message_on_completion=True, use_default_mappings=True):
+            rescanned.append(block)
+
+    class _Window:
+        issue_scan_handler = _Scanner()
+
+    rules.mw = _Window()
+    assert rules.manual_problems(0, 0, "Привіт") == set()   # scheduled, not rendered here
+    for _ in range(200):
+        if not rules._rendering and rules._page_problems:
+            break
+        import time
+        time.sleep(0.01)
+    assert render.calls and rules._page_problems[(0, m3d.group_key_of(PAGE))][1] == {SAMPLE_KEYS[0]: {"M3D_CELL": "over_cell d"}}
+    assert rules.manual_problems(0, 0, "Привіт") == {"M3D_CELL"}
+    rules._rescan_block(0)
+    assert rescanned == [0]
+
+
+def test_a_folder_without_the_tools_leaves_the_render_problems_out(widths, geometry, monkeypatch):
+    monkeypatch.setattr(m3d.page_build, "load_folder", lambda: "nowhere")
+    rules = check_loads(PLUGIN)
+    rules.load_data_from_json_obj(_text(SAMPLE))
+    assert rules.manual_problems(0, 0, "Привіт") == set()
+
+
+_CAND = "cand_r19"
+
+
+@pytest.mark.skipif(_GATE is not None, reason=_GATE or "")
+@pytest.mark.parametrize("name", ["home_menu_manual", "system_settings", "camera", "browser_n3ds", "mii_plaza", "eshop",
+                                  "friend_list_n3ds", "health_safety_n3ds", "sound", "face_raiders"])
+def test_the_editor_scan_flags_what_the_render_of_the_built_manual_flags(name, monkeypatch):
+    """The gate: on the sources of tmp/cand_r19 the scan flags the same strings with the same render problems as
+    simulator.page_defects on the built archive (the preview build is byte-identical to the owner's build), and the
+    untouched original (no translation) flags nothing."""
+    from plugins.manual_3ds import page_build, simulator
+
+    tools = _owner_tools()
+    _require_geometry_from_owner_head(tools)
+    build = tools.root / "tmp" / _CAND
+    if not build.is_dir():
+        pytest.skip(f"no {build}")
+    sim = simulator.Simulator(str(tools.root), build, None)
+    if name not in sim.files:
+        pytest.skip(f"{name} is not in {build}")
+    monkeypatch.setattr(page_build, "load_folder", lambda: str(tools.root))
+    doc = tools.manual.load_json(name)
+    rules = check_loads(PLUGIN)
+    rules.load_data_from_json_obj(_text(doc))
+    assert rules._manuals[0].resolved().name == name
+    flows = page_build.flows_of(tools, name)
+    manual = sim.manual(name)
+    expected = {}
+    for size in ("small", "large"):
+        for page in manual.pages(size):
+            owners = {pane.name: f"{size}/Page_{page:03d}_{size}_{index}#{position}"
+                      for flow_key, page_flows in flows.items() if flow_key.startswith(f"{size}/Page_{page:03d}_")
+                      for position, flow in enumerate(page_flows) for pane in flow.panes
+                      for index in [int(flow_key.rsplit("_", 1)[1])]}
+            for defect in simulator.find_defects(sim, name, page, size):
+                if defect.kind in m3d.RENDER_IDS and defect.pane in owners:
+                    expected.setdefault(owners[defect.pane], set()).add(m3d.RENDER_IDS[defect.kind])
+    found = {}
+    for index, key in enumerate(doc):
+        ids = {pid for pid in rules.manual_problems(0, index, str(doc[key].get("ua", ""))) if pid in m3d.RENDER_IDS.values()}
+        if ids:
+            found[key] = ids
+    assert found == expected
+    untouched = {key: {k: v for k, v in entry.items() if k != "ua"} for key, entry in doc.items()}
+    plain = check_loads(PLUGIN)
+    plain.load_data_from_json_obj(_text(untouched))
+    assert all(not {pid for pid in plain.manual_problems(0, index, "") if pid in m3d.RENDER_IDS.values()}
+               for index in range(len(untouched)))

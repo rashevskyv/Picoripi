@@ -170,18 +170,25 @@ def test_wrap_breaks_a_line_at_the_last_space_that_fits():
     assert renderer._wrap("aaaa bbbb cccc", 100.0, scale, 0.0) == [("aaaa bbbb cccc", False)]
 
 
-def test_wrap_uses_the_pane_width_less_the_slack():
+def test_wrap_breaks_only_a_line_wider_than_its_pane_by_more_than_a_subpixel():
+    """The console draws a line 0.09 px wider than its pane whole (card build, shots_r19 page 21) and breaks a
+    line that does not fit; the slack is negative: the limit is the pane width plus SUB_PIXEL."""
     width = 16.67 / 25 * 10 * 5   # "aaaaa" exactly
-    roomy = _bclyt([_mat1([("m", None)]), _txt1("A", 0.0, 0.0, width + cr.WRAP_SLACK + 0.5, 20.0, "aaaaa bb", char_space=0.0)])
+    snug = _bclyt([_mat1([("m", None)]), _txt1("A", 0.0, 0.0, width - 0.3, 20.0, "aaaaa bb", char_space=0.0)])
     renderer = _renderer()
-    renderer.render([roomy])
+    renderer.render([snug])
     assert [run.text for run in renderer.runs] == ["aaaaa", "bb"]
     assert renderer.runs[1].wrapped and renderer.runs[1].top == pytest.approx(-20.0)
-    # A box only 1 px wider than the word: within the slack, so the viewer breaks inside the word.
-    tight = _bclyt([_mat1([("m", None)]), _txt1("A", 0.0, 0.0, width + 1.0, 20.0, "aaaaa bb", char_space=0.0)])
+    # A box narrower than the word by more than the sub-pixel: the viewer breaks inside the word.
+    tight = _bclyt([_mat1([("m", None)]), _txt1("A", 0.0, 0.0, width - 1.0, 20.0, "aaaaa bb", char_space=0.0)])
     renderer = _renderer()
     renderer.render([tight])
     assert [run.text for run in renderer.runs] == ["aaaa", "a bb"]
+    # "aaaaa bb" is 76.7 px: a box 76.4 px wide holds it whole (0.3 px over, under the sub-pixel).
+    whole = _bclyt([_mat1([("m", None)]), _txt1("A", 0.0, 0.0, width + 5 * 16.67 / 25 + 2 * 10 * 16.67 / 25 - 0.3, 20.0, "aaaaa bb", char_space=0.0)])
+    renderer = _renderer()
+    renderer.render([whole])
+    assert [run.text for run in renderer.runs] == ["aaaaa bb"]
 
 
 def test_text_line_lands_at_its_pane_and_advances_with_char_space():
@@ -298,6 +305,133 @@ def test_an_overrun_under_half_a_pixel_is_not_a_defect():
     assert kinds(200.6) == ["over_picture"]
     assert kinds(simulator.LINE_LIMIT + 0.4) == ["over_picture"]
     assert kinds(simulator.LINE_LIMIT + 0.6) == ["over_edge", "over_picture"]
+
+
+def _defects(renderer, layouts):
+    return simulator.defects_of(renderer.runs, [], layouts, renderer.textures, "m", 1, "Page_000", "small", renderer.covers)
+
+
+def test_a_line_that_leaves_the_filled_cell_it_starts_in_is_over_cell():
+    """A table label in white that runs out of its grey cell onto the white page (page 8 of the HOME manual on the
+    console): the cell is drawn before the label, so nothing covers it, and the ink past the cell is invisible."""
+    cell = _wnd1("Cell", 10.0, -5.0, 60.0, 30.0, (140, 140, 140, 255), [])
+    label = _txt1("Label", 12.0, -10.0, 100.0, 20.0, "aaaaaaaaaa", char_space=0.0)   # ink 12.7 .. 78.7
+    data = _bclyt([_mat1([("m", None)]), cell, label])
+    renderer = _renderer()
+    renderer.render([data])
+    found = _defects(renderer, [cr.parse(data)])
+    assert [(d.kind, d.pane) for d in found] == [("over_cell", "Label")] and "Cell" in found[0].detail
+    # The same label in a cell wide enough for it: nothing.
+    roomy = _bclyt([_mat1([("m", None)]), _wnd1("Cell", 10.0, -5.0, 80.0, 30.0, (140, 140, 140, 255), []), label])
+    renderer = _renderer()
+    renderer.render([roomy])
+    assert _defects(renderer, [cr.parse(roomy)]) == []
+    # A label that starts outside the cell is no cell label (an icon box beside the text).
+    outside = _bclyt([_mat1([("m", None)]), _wnd1("Cell", 40.0, -5.0, 30.0, 30.0, (140, 140, 140, 255), []), label])
+    renderer = _renderer()
+    renderer.render([outside])
+    assert _defects(renderer, [cr.parse(outside)]) == []
+
+
+def test_a_filled_pane_drawn_after_a_line_covers_it():
+    """A pane drawn after a line paints over it (a picture placed over a line's end); the same pane drawn before
+    the line paints nothing over it (the line starting outside it is no cell label either)."""
+    cell = _wnd1("Cell", 60.0, -5.0, 100.0, 30.0, (140, 140, 140, 255), [])
+    label = _txt1("Label", 10.0, -10.0, 100.0, 20.0, "aaaaaaaaaa", char_space=0.0)   # ink 10 .. 76.7
+    after = _bclyt([_mat1([("m", None)]), label, cell])
+    renderer = _renderer()
+    renderer.render([after])
+    found = _defects(renderer, [cr.parse(after)])
+    assert [(d.kind, d.pane) for d in found] == [("covered", "Label")] and "Cell" in found[0].detail
+    before = _bclyt([_mat1([("m", None)]), cell, label])
+    renderer = _renderer()
+    renderer.render([before])
+    assert _defects(renderer, [cr.parse(before)]) == []
+    # A cell whose box starts past the label's ink paints nothing over it.
+    clear = _bclyt([_mat1([("m", None)]), label, _wnd1("Cell", 80.0, -5.0, 100.0, 30.0, (140, 140, 140, 255), [])])
+    renderer = _renderer()
+    renderer.render([clear])
+    assert _defects(renderer, [cr.parse(clear)]) == []
+
+
+def test_an_outline_frame_paints_no_cover_but_a_solid_one_does():
+    """A highlight box whose frame texture is mostly clear leaves the line under it readable; a table edge does not."""
+    textures = cr.Textures({})
+    outline = Image.new("RGBA", (4, 4), (255, 82, 0, 0))
+    outline.putpixel((0, 0), (255, 82, 0, 255))
+    textures._images["outline.bclim"] = outline
+    textures._images["edge.bclim"] = Image.new("RGBA", (4, 4), (140, 140, 140, 255))
+    label = _txt1("Label", 10.0, -10.0, 100.0, 20.0, "aaaaaaaaaa", char_space=0.0)
+    for name, expected in (("outline.bclim", []), ("edge.bclim", [("covered", "Label")])):
+        data = _bclyt([_txl1([name]), _mat1([("content", None), ("frame", 0)]), label,
+                       _wnd1("Box", 70.0, -5.0, 100.0, 30.0, (0, 0, 0, 0), [(1, 0)])])
+        renderer = cr.PageRenderer(textures, cr.Glyphs(_Font(), _Bcfnt()))
+        renderer.render([data])
+        assert [(d.kind, d.pane) for d in _defects(renderer, [cr.parse(data)])] == expected, name
+
+
+def test_two_lines_whose_ink_meets_overlap_but_touching_ones_do_not():
+    """A caption that runs into the next caption is a text_overlap; adjacent glyph panes that meet by 2 px are none."""
+    scale = 16.67 / 25
+    first = _txt1("A", 10.0, -10.0, 60.0, 20.0, "aaaaa", char_space=0.0)
+    renderer = _renderer()
+    renderer.render([_bclyt([_mat1([("m", None)]), first])])
+    ink_right = renderer.runs[0].ink_right
+    meeting = _bclyt([_mat1([("m", None)]), first, _txt1("B", ink_right - 1.0 - scale - 3.0, -10.0, 60.0, 20.0, "bbbbb", char_space=0.0)])
+    renderer = _renderer()
+    renderer.render([meeting])
+    found = _defects(renderer, [cr.parse(meeting)])
+    assert [(d.kind, d.pane) for d in found] == [("text_overlap", "A")] and "B" in found[0].detail
+    touching = _bclyt([_mat1([("m", None)]), first, _txt1("B", ink_right - scale - 1.5, -10.0, 60.0, 20.0, "bbbbb", char_space=0.0)])
+    renderer = _renderer()
+    renderer.render([touching])
+    assert _defects(renderer, [cr.parse(touching)]) == []
+    # The same pane's own lines never overlap each other; a line one step below meets nothing.
+    below = _bclyt([_mat1([("m", None)]), first, _txt1("B", 10.0, -30.0, 60.0, 20.0, "bbbbb", char_space=0.0)])
+    renderer = _renderer()
+    renderer.render([below])
+    assert _defects(renderer, [cr.parse(below)]) == []
+
+
+def test_frame_width_counts_the_painted_columns_of_the_right_frame():
+    """Nintendo's 4 px box frames paint their outer 2 columns only, and its own lines end on the clear ones: the
+    inner edge a line must stop at is the painted width, not the texture's."""
+    textures = cr.Textures({})
+    frame = Image.new("RGBA", (4, 4), (0, 150, 230, 255))
+    for x in (2, 3):
+        for y in range(4):
+            frame.putpixel((x, y), (0, 0, 0, 0))        # the texture's inner columns (x 2, 3 of the LT corner)
+    textures._images["frame.bclim"] = frame
+    data = _bclyt([_txl1(["frame.bclim"]), _mat1([("content", None), ("frame", 0)]),
+                   _wnd1("Box", 0.0, 0.0, 304.0, 100.0, (0, 0, 0, 0), [(1, 0)]),
+                   _txt1("Line", 8.0, -10.0, 300.0, 20.0, "aaaa", char_space=0.0)])
+    layout = cr.parse(data)
+    box = next(p for p in layout.panes if p.name == "Box")
+    assert simulator._frame_width(layout, box, textures) == 2.0
+    run = cr.TextRun("Line", "aaaa", 8.0, -10.0, 290.0, False, ink_right=301.9, ink_left=8.5)
+    assert simulator.defects_of([run], [], [layout], textures, "m", 1, "Page_000", "small") == []
+    run = cr.TextRun("Line", "aaaa", 8.0, -10.0, 290.0, False, ink_right=302.6, ink_left=8.5)
+    assert [d.kind for d in simulator.defects_of([run], [], [layout], textures, "m", 1, "Page_000", "small")] == ["over_frame"]
+
+
+@pytest.mark.skipif(_GATE is not None or not os.environ.get(CALIB_ENV), reason=_GATE or f"{CALIB_ENV} is not set")
+def test_new_3ds_page_22_draws_a_line_short_of_its_pane_whole():
+    """shots_r19 2011-01-01_04-23-50.283 (New 3DS, the card copy nd000 in the calib folder) shows home_menu_manual
+    page 22 (small) with "центру технічної підтримки" (0.83 px short of its pane) on one line: the viewer does not
+    break a line that fits, and the render matches the console within anti-aliasing."""
+    repo = romhacking_root.path(*_REPO_MANUAL)
+    calib = Path(os.environ[CALIB_ENV])
+    top = calib / "shots_r19" / "2011-01-01_04-23-50.283_top.bmp"
+    bottom = calib / "shots_r19" / "2011-01-01_04-23-50.283_bot.bmp"
+    if not (top.is_file() and bottom.is_file() and (calib / "nd000").is_file()):
+        pytest.skip("the shots_r19 pair or the card copy nd000 is not on disk")
+    sim = simulator.Simulator(str(repo), calib, None)
+    shot = simulator.load_pair(top, bottom)
+    best, render, _ = simulator.match_shot({"card": sim}, shot, "home_menu_manual", 21, ["small"], 3, True)
+    assert best is not None and best.size == "small" and best.text_diff < 5.0, best
+    runs = [run for run in render.runs if run.pane == "TextBox_439"]
+    assert [run.text for run in runs] == ["центру технічної підтримки"] and not runs[0].wrapped
+    assert not [d for d in simulator.find_defects(sim, "home_menu_manual", 21, "small") if d.kind == "wrapped"]
 
 
 @pytest.mark.skipif(_GATE is not None or not os.environ.get(CALIB_ENV), reason=_GATE or f"{CALIB_ENV} is not set")

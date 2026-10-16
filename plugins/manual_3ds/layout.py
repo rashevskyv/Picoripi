@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .console_render import COLUMN_WIDTH, FONT_WIDTH, FRAME_INNER, SUB_PIXEL, WRAP_SLACK
 
 CARD_EDGE = float(COLUMN_WIDTH)   # the build keeps every line inside the card (manual.CARD_EDGE)
-BOX_PADDING = WRAP_SLACK + 0.5    # the build widens a pane to its text plus this (manual.to_edits)
+BOX_PADDING = 2.5    # the build widens a pane to its text plus this (the owner's manual.BOX_PADDING)
 SAFETY = 1.0
 PANE_PARTS = ("small",)           # the parts laid out with the pane model
 PANE_MARGIN = 0.0                 # extra safety the pane model keeps (manual.PANE_MARGIN)
@@ -167,8 +167,9 @@ class Geometry:
 
         A line is in the way of an occluder when their vertical extents overlap. A picture to the right of the
         line's start ends the line before its left edge; a frame the line starts inside ends it at its inner edge
-        (the right edge less the frame texture's width, never less than FRAME_INNER; `frame_margin` when the
-        width is not known). A line past the paragraph's own lines continues below the last one.
+        (the right edge less the painted width of its frame texture, as the simulator measures it; a frame that
+        paints nothing is no edge; `frame_margin` when the width is not known). A line past the paragraph's own
+        lines continues below the last one.
         """
         last = len(self.lines) - 1
         pane = self.lines[min(line, last)]
@@ -188,7 +189,10 @@ class Geometry:
             elif (occluder.kind == "wnd1" and occluder.abs_x <= left < right
                   and occluder.width >= OCC_BOX_MIN_W and occluder.height >= OCC_BOX_MIN_H):
                 frame = occluder.frame_width
-                limit = min(limit, right - (frame_margin if frame is None else max(frame, FRAME_INNER)))
+                if frame is None:
+                    limit = min(limit, right - frame_margin)
+                elif frame > 0:
+                    limit = min(limit, right - frame)
         return limit
 
     def room(self, line: int, pane: bool) -> float:

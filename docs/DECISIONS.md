@@ -930,3 +930,55 @@ SMG2), so the name is stable where the index is not.
 
 **Cost.** The Nebula path needs the patched `fst.bin` copied over Nebula's `content\sys\fst.bin` as well: Nebula loads
 the loose FST at boot and ignores the manifest for it (measured). The ported glyphs are scaled bitmaps, not redrawn letters. A label the versions word differently stays English on the Wii until its Wii row is translated.
+## D40. 3DS manual simulator: a screenshot is judged against the build that was on the card; occlusion is draw order (2026-10-15)
+
+**Context.** The owner's New 3DS screenshots (`shots_r19`, 114 pairs dated 2011-01-01 by the console clock) showed
+table labels cut at the cell edge, captions running into each other and lines past the card edge. A first match
+against rounds 17–19 gave a median text difference of 7.5 / 255 where the older pairs gave 1.3: 103 of the 113 pairs
+were shot with the card copy `D:\RomHacking_tmp\calib\nd000_card_1653.bin` (also `calib\nd000`), a build no tmp folder
+holds; matched to it the median is 1.1. The "AABBB CCC DDD" and lone "I" / "J" texts on two pairs are the owner's own
+width-calibration probes (`calib_v2`-era builds), not viewer panes; those two pairs and 34 more in `shots_r19_new`
+are byte-identical copies of `shots_new` and `shots_r17b`.
+
+**Decision.**
+- A pair is classified by machine (badge and title against the header of every page of every manual, size from the
+  bottom bar) and matched by `match_shot` against every build on disk, the card copies included; a pair whose best
+  build is none of them is reported as such, never fitted. The simulator is changed only where the exact build's
+  render differs from the console.
+- The cut table labels are neither clipping nor occlusion: the label is white ink on the grey cell, drawn after the
+  cell, and past the cell's edge it is white on the white page — invisible until it resurfaces under the next cell's
+  dark text. The render already showed that; the renderer now records what each filled pane paints and in what order
+  (`Cover`) and the defect finder reports a line that starts inside a filled cell and leaves it (`over_cell`), two
+  lines whose ink meets (`text_overlap`) and a line a later pane paints over (`covered`), so the text can be shortened.
+  Nintendo's own lines reach 6.0 px past a box's filled inside into its clear frame (`CELL_SLACK` 6.5).
+- A box frame's inner edge is the painted width of its texture (the opaque columns from the outer edge), not the
+  texture's width: Nintendo's own lines end on the clear inner columns of its 4 px frames, and the untouched original
+  must show no defect. An outline frame (a texture that is mostly clear) paints nothing over a line.
+- The viewer breaks a stored line only when it is wider than its pane by more than `SUB_PIXEL` (`WRAP_SLACK` −0.5,
+  before 2.0): the card build's lines 0.17 to 1.71 px short of their pane and 0.09 px past it are drawn whole on the
+  console (pages 8, 21, 22, 3), where the 2 px slack broke them in the render ("центру технічної підтримки",
+  "головний ключ."). The 2 px came from a round-8 pair with an older font. `layout.BOX_PADDING` stays 2.5: it is the
+  build's widening (the owner's `manual.BOX_PADDING`), not the viewer's.
+- The editor scan reports what the render reports. A label leaving its cell or two paragraphs' ink meeting cannot be
+  judged from one string's geometry (the other paragraph's text decides), so `rules.manual_problems` builds the
+  string's page from every current text on it with the owner's tools (`page_build.page_kinds`, the preview's build,
+  byte-identical to the owner's: every page of cand_r19) and draws it once per set of texts. The render never runs on
+  the UI thread: the whole-project scan (UI thread) schedules a background render of the block and the host rescans
+  the block when it is done; the per-string scan worker renders inline. `geometry.json` carries the painted frame
+  width so the geometric BESIDE and the render's `over_frame` agree.
+- One render function: `simulator.render_page` draws the files and `simulator.page_defects` judges them; the preview
+  panel (the page built from the current text) and the CLI (a build folder's page) call the same two, so what the
+  preview shows is what `validate` measures.
+
+**Cost.** The rules' BESIDE still takes the frame width from `geometry.json` (the texture width, 4 px), so it is 2 px
+stricter than the render on box frames until the geometry carries the painted width. The chrome stays measured from
+screenshots: the viewer's own layouts (`BtnHeadLineTxt`, `PageNum`, `SideScrollArw` in the applet's romfs) give the
+textures and sizes, but the applet's code places and animates them, so the stored positions do not land where the
+console draws them.
+
+**Original column (audit r32).** The keys and `ua` follow the Russian document, so the Original column is `ru`; the
+host's load role gives `ru` for a source parse and `ua` for a translation parse. The English (`en`) comes from the
+English document by flow index, and the English layout orders flows differently on many pages. So English shows only on
+a page where every paragraph has the same kind in English and Russian (`rules.pairs_agree`: a lone marker, or text with
+its tag kinds). Other pages show no English, so a wrong English line never shows. The check is per page, the stricter
+reading: per flow would show 304 more keys of the owner's files.

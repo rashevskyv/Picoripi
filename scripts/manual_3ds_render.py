@@ -39,7 +39,7 @@ SIZES = ("large", "small")
 
 def _default_repo() -> str:
     try:
-        from plugins.manual_3ds.preview_panel import load_folder
+        from plugins.manual_3ds.page_build import load_folder
         saved = load_folder()
     except Exception:
         saved = ""
@@ -247,7 +247,7 @@ def _write_report(out: Path, results: List[Dict[str, Any]], sims: Dict[str, Simu
                      f"{record['size']}, scroll {record['scroll']}/{record['scroll_max']}, build {html.escape(record['build'])} "
                      f"(same page in {html.escape(', '.join(record['same_page_in']))}); text diff {record['text_diff']}, "
                      f"bad pixels {record['bad_text_pixels']}, regions {html.escape(json.dumps(record['regions']))}</p>"
-                     f"<img src='{_png_data(Image.open(out / record['sheet']))}' alt='console, render, difference'></div>")
+                     f"<img src='{html.escape(record['sheet'])}' loading='lazy' alt='console, render, difference'></div>")
     parts.append("</body></html>")
     (out / "index.html").write_text("\n".join(parts), encoding="utf-8")
 

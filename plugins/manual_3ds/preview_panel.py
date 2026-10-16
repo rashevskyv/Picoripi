@@ -12,8 +12,6 @@ so what the panel shows is what the card shows. Drawing runs in a QThread worker
 """
 from __future__ import annotations
 
-import copy
-import json
 import re
 import threading
 from collections import OrderedDict
@@ -23,7 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PIL import Image
 from PyQt6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QColor, QImage, QPainter
+from PyQt6.QtGui import QColor, QImage, QPainter, QPen
 from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from core.i18n import tr
@@ -31,13 +29,12 @@ from plugins.manual_3ds import console_render as cr
 from plugins.manual_3ds import repo_tools
 from plugins.manual_3ds import sim_screens as ss
 from plugins.manual_3ds import simulator
-from utils.atomic_io import atomic_write_json
+from plugins.manual_3ds.page_build import (PLUGIN_NAME, RENDER_LOCK, RenderCancelled, archive_of, build_page, flows_of,
+                                           index_of, load_folder, save_folder, textures_of)
 from utils.constants import user_plugin_dir
 from utils.logging_utils import log_warning
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
-PLUGIN_NAME = "manual_3ds"
-SETTINGS_FILE = "preview.json"
 CHROME_DIR = "chrome"         # <data>/plugins/manual_3ds/chrome: screenshot crops of the viewer's chrome (git-ignored)
 TOP_SIZE = ss.TOP
 BOTTOM_SIZE = ss.BOTTOM
@@ -49,30 +46,11 @@ WORKER_STOP_MS = 3000
 Y_BUTTON_START = 180          # the Y label area of the bottom bar starts here (x, in card pixels)
 PAGE_NUMBER = re.compile(r"Page_(\d+)_(large|small)")
 DEFECT_RGBA = (255, 0, 0, 60)
-MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame")
-
-_GROUPS_LOCK = threading.Lock()
-_ARCHIVES: Dict[Tuple[str, str], Any] = {}
-_FLOWS: Dict[Tuple[str, str], Dict[str, List[Any]]] = {}
-_TEXTURES: Dict[Tuple[str, str], cr.Textures] = {}
-_INDEXES: Dict[Tuple[str, str], cr.Index] = {}
-_RENDER_LOCK = threading.Lock()
-
-
-def load_folder() -> str:
-    """The repo_manual folder the user chose, or "" (per user, outside the repository)."""
-    try:
-        data = json.loads((user_plugin_dir(PLUGIN_NAME) / SETTINGS_FILE).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return ""
-    value = data.get("repo_manual", "") if isinstance(data, dict) else ""
-    return value if isinstance(value, str) else ""
-
-
-def save_folder(folder: str) -> None:
-    target = user_plugin_dir(PLUGIN_NAME)
-    target.mkdir(parents=True, exist_ok=True)
-    atomic_write_json(target / SETTINGS_FILE, {"repo_manual": folder}, indent=2, ensure_ascii=False)
+HIGHLIGHT_RGBA = (255, 200, 0, 70)   # the selected paragraph: a translucent fill ...
+HIGHLIGHT_EDGE = (230, 120, 0)       # ... and an outline, both over the page column
+HIGHLIGHT_WIDTH = 2.0                # outline width in canvas units
+REVEAL_ROWS = 60                     # a paragraph scrolled into view starts a third of the way down the top screen
+MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame", "covered", "over_cell", "text_overlap")
 
 
 def _persist_folder(folder: str) -> None:
@@ -89,6 +67,19 @@ def page_name_of(string_key: str) -> Optional[str]:
     return match.group(0).rsplit("_", 1)[0] if match else None
 
 
+def key_rect(runs: List[cr.TextRun], owners: Dict[str, str], key: str) -> Optional[QRectF]:
+    """The drawn lines of one string key as one rect in content units: x is the page x, y is the distance below the
+    text origin (``-top``). On the canvas the rect's top row is ``PAGE_TOP + y - scroll``. None when no line belongs
+    to the key (a marker or picture paragraph, an empty translation)."""
+    rect: Optional[QRectF] = None
+    for run in runs:
+        if owners.get(run.pane) != key:
+            continue
+        line = QRectF(run.ink_left, -run.top, run.ink_right - run.ink_left, run.height)
+        rect = line if rect is None else rect.united(line)
+    return rect
+
+
 @dataclass
 class PagePreview:
     """What the worker hands the panel: the drawn column and chrome (as QImages), and what the render shows wrong."""
@@ -103,6 +94,7 @@ class PagePreview:
     failed_keys: Dict[str, str] = field(default_factory=dict)         # string key -> the layout error
     missing_glyphs: List[str] = field(default_factory=list)
     runs: List[cr.TextRun] = field(default_factory=list)
+    owners: Dict[str, str] = field(default_factory=dict)              # pane name -> string key (what drew the pane)
 
     @property
     def scroll_max(self) -> int:
@@ -139,106 +131,9 @@ class _Request:
         self.key = (root, block_name, group, hash(tuple(sorted(texts.items()))), title)
 
 
-def _archive_of(tools: Any, manual_name: str) -> Any:
-    """The manual's archive, read once per folder. Called from the worker only."""
-    key = (str(tools.root), manual_name)
-    with _GROUPS_LOCK:
-        if key not in _ARCHIVES:
-            _ARCHIVES[key] = tools.bcma.load(repo_tools.manual_path(tools, manual_name))
-        return _ARCHIVES[key]
-
-
-def _flows_of(tools: Any, manual_name: str) -> Dict[str, List[Any]]:
-    """The owner's paragraphs of every page ({"small/Page_003_small_0": [Flow, ...]}), once per manual."""
-    key = (str(tools.root), manual_name)
-    archive = _archive_of(tools, manual_name)
-    with _GROUPS_LOCK:
-        if key not in _FLOWS:
-            _FLOWS[key] = tools.manual.pages_of(archive, tools.manual.BASE_SLOT)
-        return _FLOWS[key]
-
-
-def _textures_of(tools: Any, manual_name: str) -> cr.Textures:
-    key = (str(tools.root), manual_name)
-    archive = _archive_of(tools, manual_name)
-    with _GROUPS_LOCK:
-        if key not in _TEXTURES:
-            files: Dict[str, bytes] = {}
-            for member in ("Common_texture", f"{tools.manual.BASE_SLOT}_texture"):
-                try:
-                    files.update(archive.read(member))
-                except KeyError:
-                    pass
-            _TEXTURES[key] = cr.Textures(files)
-        return _TEXTURES[key]
-
-
-def _index_of(tools: Any, manual_name: str) -> cr.Index:
-    key = (str(tools.root), manual_name)
-    archive = _archive_of(tools, manual_name)
-    with _GROUPS_LOCK:
-        if key not in _INDEXES:
-            _INDEXES[key] = cr.read_index(archive.read(f"{tools.manual.BASE_SLOT}_index")["Index.bclyt"])
-        return _INDEXES[key]
-
-
 def _qimage(image: Image.Image) -> QImage:
     rgba = image.convert("RGBA")
     return QImage(rgba.tobytes("raw", "RGBA"), rgba.width, rgba.height, 4 * rgba.width, QImage.Format.Format_RGBA8888).copy()
-
-
-class RenderCancelled(Exception):
-    """The caller asked the render to stop."""
-
-
-def build_page(tools: Any, archive: Any, flows_by_key: Dict[str, List[Any]], part: str, page: int, texts: Dict[str, str],
-               budgets: Dict[str, Any], should_stop: Any) -> Tuple[List[bytes], Dict[str, str], Dict[str, str]]:
-    """The page's BCLYT files with the current texts laid out on them, as the console build writes them.
-
-    -> (files in draw order, pane name -> string key, string key -> layout error). A paragraph the owner's layout
-    cannot place keeps the stored text (the console build would stop; the panel shows the page anyway).
-    """
-    manual = tools.manual
-    slot = manual.BASE_SLOT
-    files = archive.read(f"{slot}_{part}")
-    widths = repo_tools.widths_of(tools)
-    table = manual.load_homoglyphs()
-    out: List[bytes] = []
-    owners: Dict[str, str] = {}
-    failed: Dict[str, str] = {}
-    backdrop = files.get(f"Page_{page:03d}_{part}_bg.bclyt")
-    if backdrop is not None:
-        out.append(backdrop)
-    prefix = f"Page_{page:03d}_{part}_"
-    subs = sorted((name for name in files if name.startswith(prefix) and name[len(prefix):-6].isdigit()),
-                  key=lambda name: int(name[len(prefix):-6]))
-    for file_name in subs:
-        if should_stop():
-            raise RenderCancelled()
-        data = files[file_name]
-        page_key = f"{part}/{file_name.removesuffix('.bclyt')}"
-        edits: Dict[str, Any] = {}
-        for index, flow in enumerate(flows_by_key.get(page_key, [])):
-            key = f"{page_key}#{index}"
-            for pane in flow.panes:
-                owners[pane.name] = key
-            text = texts.get(key)
-            if not text:
-                continue
-            try:
-                # The build's own steps on a copy: mark_panes_out reassigns the copy's lines (the shared flow
-                # keeps its panes for the next render).
-                laid = copy.copy(flow)
-                manual.mark_panes_out(laid, text)
-                rendered = manual.apply_homoglyphs(text, table)
-                budget = budgets.get(key)
-                limit = (float(budget) if budget else cr.COLUMN_WIDTH) + manual.WIDTH_SLACK
-                lines = manual.layout_for(rendered, laid, limit, widths)
-                edits.update(manual.to_edits(lines, laid))
-            except Exception as exc:  # the owner's layout refuses the text: the page keeps the stored text there
-                failed[key] = repr(exc)
-        out.append(tools.bclyt.rewrite(data, edits) if edits else data)
-    return out, owners, failed
 
 
 def draw_request(request: _Request, should_stop: Any) -> PagePreview:
@@ -250,24 +145,23 @@ def draw_request(request: _Request, should_stop: Any) -> PagePreview:
     font = repo_tools.load_font(tools)
     # Two manuals can share one key list (face_raiders, face_raiders_n3ds): the block's own name picks the archive.
     manual_name = request.block_name if request.block_name in tools.manual.MANUALS else request.name_of()
-    archive = _archive_of(tools, manual_name)
-    flows = _flows_of(tools, manual_name)
-    textures = _textures_of(tools, manual_name)
-    index = _index_of(tools, manual_name)
+    archive = archive_of(tools, manual_name)
+    flows = flows_of(tools, manual_name)
+    textures = textures_of(tools, manual_name)
+    index = index_of(tools, manual_name)
     part, page_name = request.group.split("/", 1)
     page = int(page_name.split("_")[1])
     budgets = {key: request.budget_of(key) for key in request.texts}
-    with _RENDER_LOCK:  # the owner's layout model keeps per-flow state; one page at a time
+    with RENDER_LOCK:  # the owner's layout model keeps per-flow state; one page at a time
         files, owners, failed = build_page(tools, archive, flows, part, page, request.texts, budgets, should_stop)
     if not files:
         raise repo_tools.ToolsError(f"no {part} page {page} in the manual")
-    renderer = cr.PageRenderer(textures, cr.Glyphs(font, tools.bcfnt))
-    column = renderer.render(files)
+    glyphs = cr.Glyphs(font, tools.bcfnt)
+    rendered = simulator.render_page(files, textures, glyphs)
+    column = rendered.column
     if should_stop():
         raise RenderCancelled()
-    layouts = [cr.parse(data) for data in files]
-    defects = simulator.defects_of(renderer.runs, sorted(renderer.missing), layouts, textures, manual_name,
-                                   index.number_of(page), f"Page_{page:03d}", part)
+    defects = simulator.page_defects(rendered, textures, manual_name, index.number_of(page), f"Page_{page:03d}", part)
     defect_keys: Dict[str, List[str]] = {}
     for defect in defects:
         key = owners.get(defect.pane)
@@ -278,9 +172,9 @@ def draw_request(request: _Request, should_stop: Any) -> PagePreview:
     info = ss.PageInfo(index.number_of(page), title, index.category_of(page), has_previous=page - 1 in pages,
                        has_next=page + 1 in pages, large=(part == "large"))
     chrome = ss.Chrome.load(user_plugin_dir(PLUGIN_NAME) / CHROME_DIR)
-    overlay = ss.overlay(info, chrome, renderer.glyphs)
+    overlay = ss.overlay(info, chrome, glyphs)
     return PagePreview(_qimage(column), _qimage(overlay), column.height, info.number, title, defects, defect_keys, failed,
-                       sorted(renderer.missing), renderer.runs)
+                       rendered.missing, rendered.runs, owners)
 
 
 class PageRenderWorker(WorkerThread):
@@ -390,6 +284,7 @@ class ManualPreviewPanel(QWidget):
         self._timer.timeout.connect(self._start_render)
         self._page_file = ""
         self._current_key = ""
+        self._highlight: Optional[QRectF] = None   # the selected paragraph's lines, in content units (key_rect)
 
         self._screens = _Screens(self)
         self._size_button = QPushButton(self)
@@ -459,6 +354,8 @@ class ManualPreviewPanel(QWidget):
             if defect.kind in MARKED_DEFECTS:
                 row = ss.PAGE_TOP - defect.page_y - self._scroll
                 painter.fillRect(QRectF(BOTTOM_X, row, BOTTOM_SIZE[0], 20), QColor(*DEFECT_RGBA))
+        if self._highlight is not None:
+            self._paint_highlight(painter, self._highlight)
         painter.drawImage(QPointF(0, 0), result.overlay)
         # Ink past the card's edge lies over the scroll track on the top screen, as on the console.
         strip_top = ss.HEADER_ROWS + len(ss.HEADER_SHADOW)
@@ -467,6 +364,28 @@ class ManualPreviewPanel(QWidget):
         x0, y0, x1, y1 = ss.bar_rect(result.column_height, self._scroll)
         painter.fillRect(QRectF(x0 - 1, y0 - 1, x1 - x0 + 3, y1 - y0 + 3), QColor(*ss.BAR_OUTLINE))
         painter.fillRect(QRectF(x0, y0, x1 - x0 + 1, y1 - y0 + 1), QColor(*ss.BAR_FILL))
+
+    def _paint_highlight(self, painter: QPainter, rect: QRectF) -> None:
+        """Outline the selected paragraph: the same transform as the page column (content y -> canvas row)."""
+        canvas = QRectF(BOTTOM_X + rect.left(), ss.PAGE_TOP + rect.top() - self._scroll, rect.width(), rect.height())
+        painter.fillRect(canvas, QColor(*HIGHLIGHT_RGBA))
+        painter.save()
+        painter.setPen(QPen(QColor(*HIGHLIGHT_EDGE), HIGHLIGHT_WIDTH))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRect(canvas)
+        painter.restore()
+
+    def _reveal(self) -> None:
+        """Scroll the selected paragraph into view. A paragraph whose top is in view stays where it is (no jump while
+        the user edits it); a paragraph taller than the view is in view once its top is."""
+        if self._highlight is None:
+            return
+        top, bottom = self._highlight.top(), self._highlight.bottom()
+        top_in_view = self._scroll <= top < self._scroll + ss.VISIBLE_ROWS
+        fits = bottom <= self._scroll + ss.VISIBLE_ROWS or bottom - top > ss.VISIBLE_ROWS
+        if top_in_view and fits:
+            return
+        self._scroll = self._clamped(top - REVEAL_ROWS)
 
     def _clamped(self, value: float) -> float:
         if self._result is None:
@@ -548,6 +467,7 @@ class ManualPreviewPanel(QWidget):
 
     def _show_message(self, text: str) -> None:
         self._result = None
+        self._highlight = None
         self._message = text
         self._set_status(text)
         self._screens.update()
@@ -556,6 +476,10 @@ class ManualPreviewPanel(QWidget):
         self._result = result
         self._message = ""
         self._scroll = self._clamped(self._scroll)
+        # The selected string belongs to the drawn page only in its own size (a large key is not drawn in small text).
+        drawn = self._current_key.startswith(("large" if self._large else "small") + "/")
+        self._highlight = key_rect(result.runs, result.owners, self._current_key) if drawn else None
+        self._reveal()
         kinds = sorted({defect.kind for defect in result.defects})
         own = result.defect_keys.get(self._current_key, [])
         status = tr("Console page {0} (file {1}). {2} defect(s) on the render: {3}. Missing glyphs: {4}",
@@ -563,6 +487,8 @@ class ManualPreviewPanel(QWidget):
                     "".join(result.missing_glyphs) or "-")
         if own:
             status += " " + tr("This paragraph: {0}.", ", ".join(sorted(set(own))))
+        if drawn and self._highlight is None:
+            status += " " + tr("This string draws no text on the page.")
         if result.failed_keys:
             status += " " + tr("{0} paragraph(s) kept the stored text (the layout refused the translation).",
                                len(result.failed_keys))

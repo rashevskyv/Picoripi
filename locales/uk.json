@@ -2312,6 +2312,7 @@
     "Show large text": "Показати великий текст",
     "Show small text": "Показати малий текст",
     "The index is not drawn here. Select a string of a page.": "Індекс тут не малюється. Оберіть рядок сторінки.",
+    "This string draws no text on the page.": "Цей рядок не малює тексту на сторінці.",
     "Y  Large text": "Y  Великий текст",
     "Y  Small text": "Y  Малий текст",
     "{0} paragraph(s) over the line width. Missing glyphs: {1}": "{0} абзац(ів) за межею рядка. Відсутні гліфи: {1}",
