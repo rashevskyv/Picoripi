@@ -91,12 +91,13 @@ class BoxFont:
     """A bitmap font decoded for drawing: glyph cells, advances and the character map."""
 
     def __init__(self, sheets: List[Image.Image], cell: Tuple[int, int], grid: Tuple[int, int],
-                 cmap: Dict[int, int], advances: List[int]):
+                 cmap: Dict[int, int], advances: List[int], kerning: Optional[List[int]] = None):
         self.sheets = sheets
         self.cell_w, self.cell_h = cell
         self.columns, self.rows = grid
         self.cmap = cmap
         self.advances = advances
+        self.kerning = kerning or [0] * len(advances)   # the ink starts this many px left of the pen
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "BoxFont":
@@ -114,7 +115,8 @@ class BoxFont:
         packets = metadata["WID1"][0]["packets"]
         return cls(sheets, (gly["cell_width"], gly["cell_height"]),
                    (gly["glyph_horizontal_count"], gly["glyph_vertical_count"]),
-                   char_to_glyph(metadata["MAP1"]), [int(p["width"]) for p in packets])
+                   char_to_glyph(metadata["MAP1"]), [int(p["width"]) for p in packets],
+                   [-int(p.get("kerning", 0)) for p in packets])
 
     def glyph_of(self, ch: str) -> Optional[int]:
         g = self.cmap.get(ord(_SAME_GLYPH.get(ch, ch)))
@@ -199,7 +201,7 @@ def render_page(page: List[Tuple[str, str]], font: BoxFont, facts: BoxFacts) -> 
             cell = font.cell(g, facts.scale_x, facts.scale_y)
             glyph = Image.new("RGBA", cell.size, ink)
             glyph.putalpha(cell)
-            out.alpha_composite(glyph, (round(pen), top))
+            out.alpha_composite(glyph, (round(pen + font.kerning[g] * facts.scale_x), top))
             pen += font.advances[g] * facts.scale_x
     return out
 

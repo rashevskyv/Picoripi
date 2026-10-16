@@ -64,3 +64,13 @@ def test_build_writes_a_longer_member_into_the_pack_and_a_loose_file(tmp_path):
     got = farc.member_bytes((mod_romfs / "message_en.bin").read_bytes())
     assert got[farc.name_hash("a.bin")][:48] == b"\3" * 48
     assert got[farc.name_hash("b.bin")][:32] == b"\2" * 32
+
+
+def test_gti_dialogue_is_the_cyan_box_with_the_font_pair():
+    from pathlib import Path as _P
+    from plugins.common import message_window as mw
+    facts = mw.BoxFacts.load(_P(unpack.__file__).resolve().parent / "config.json", "dialogue_gti")
+    assert facts.font_member == "romfs/font/FOT-RodinProN-DB_14.dic"
+    assert facts.font_companion == "romfs/font/FOT-RodinProN-DB_14.img"
+    assert facts.box_rect == (14, 170, 386, 232) and facts.line_pitch == 25.0
+    assert (facts.text_x, facts.first_line_top, facts.box_lines) == (66, 182, 2)

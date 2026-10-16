@@ -51,5 +51,41 @@
     "newline_bold": true,
     "newline_italic": false,
     "newline_underline": false,
-    "translation_config": {}
+    "translation_config": {},
+    "dialogue_gti": {
+        "font_member": "romfs/font/FOT-RodinProN-DB_14.dic",
+        "font_companion": "romfs/font/FOT-RodinProN-DB_14.img",
+        "screen_width": 400,
+        "text_x": 66,
+        "first_line_top": 182,
+        "line_pitch": 25.0,
+        "text_width": 215,
+        "box_lines": 2,
+        "draw_box": true,
+        "box_rect": [
+            14,
+            170,
+            386,
+            232
+        ],
+        "box_rgba": [
+            250,
+            250,
+            240,
+            235
+        ],
+        "edge_rgb": [
+            110,
+            225,
+            230
+        ],
+        "ink_rgb": [
+            20,
+            20,
+            20
+        ],
+        "scale_x": 0.75,
+        "scale_y": 0.75,
+        "measured_on": "Gates to Infinity intro dialogue, top screen (Azahar frames gti_dlg2/w039_t078.png (one line) and w058_t116.png (two lines); top screen at frame x 446, y 57): the box is a cyan-bordered panel at x 14..386, y 170..232; line 1 cell top at y 182, line 2 at 207 (pitch 25); text origin x 66; dark ink (4,4,3). Wrap: a line of 209 px ink wraps before 'a' (about 221 px): text_width 215 is the middle of that range, not an exact value."
+    }
 }

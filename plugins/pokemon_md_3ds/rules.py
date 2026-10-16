@@ -13,12 +13,14 @@ two games' code tables differ in the icon codes.
 from __future__ import annotations
 
 from pathlib import Path
+import os
 from struct import error as struct_error
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.i18n import tr
 from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
+from plugins.common import message_window
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
@@ -27,6 +29,7 @@ from . import message, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
+_CONFIG = Path(__file__).resolve().parent / "config.json"
 PSMD_MARKER = "message_en.bin"
 BUILD_TARGET = "layeredfs"
 
@@ -48,9 +51,25 @@ class GameRules(BaseGameRules):
         self._save_source: Optional[bytes] = None
         self._last_loaded: Optional[bytes] = None
         self._attributes: Dict[int, Optional[List[Dict[str, str]]]] = {}
+        self._window_fonts = message_window.WindowFonts()
 
     def get_display_name(self) -> str:
         return "Pokémon Mystery Dungeon (3DS)"
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The dialogue box drawn with the game's own font and box (the window of the game in the project)."""
+        try:
+            root = str(self.mw.project_manager.project.metadata.get("source_path") or "")
+        except AttributeError:
+            return None
+        if not root or not os.path.isdir(root):
+            return None
+        window = "dialogue_psmd" if self.game() == "psmd" else "dialogue_gti"
+        try:
+            facts = message_window.BoxFacts.load(_CONFIG, window)
+        except KeyError:                       # the window is not measured yet
+            return None
+        return self._window_fonts.widget(root, facts)
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
