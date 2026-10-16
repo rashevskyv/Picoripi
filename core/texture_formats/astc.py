@@ -451,9 +451,21 @@ def encode_block(texels: Sequence[Sequence[int]], bw: int = 4, bh: int = 4) -> b
 
 
 def encode(image: Image.Image, bw: int = 4, bh: int = 4) -> bytes:
-    """An RGBA image (multiples of the block size) -> ``bw`` x ``bh`` blocks in row order."""
+    """An RGBA image -> ``bw`` x ``bh`` blocks in row order; a picture that is not a whole number of blocks is padded at
+    its right and bottom edges by repeating its last column and row (the decoder drops the padding)."""
     image = image.convert("RGBA")
     width, height = image.size
+    padded_w, padded_h = -(-width // bw) * bw, -(-height // bh) * bh
+    if (padded_w, padded_h) != (width, height):
+        canvas = Image.new("RGBA", (padded_w, padded_h))
+        canvas.paste(image, (0, 0))
+        if padded_w > width:
+            edge = image.crop((width - 1, 0, width, height)).resize((padded_w - width, height), Image.Resampling.NEAREST)
+            canvas.paste(edge, (width, 0))
+        if padded_h > height:
+            edge = canvas.crop((0, height - 1, padded_w, height)).resize((padded_w, padded_h - height), Image.Resampling.NEAREST)
+            canvas.paste(edge, (0, height))
+        image, (width, height) = canvas, (padded_w, padded_h)
     raw = image.tobytes()
     out = bytearray()
     for by in range(0, height, bh):

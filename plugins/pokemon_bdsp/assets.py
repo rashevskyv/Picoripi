@@ -129,8 +129,8 @@ def font_files(bundle: Bundle, serialized: SerializedFile, folder: str) -> Itera
             yield f"{stem}.png", png(atlas)
 
 
-def texture_files(bundle: Bundle, serialized: SerializedFile, folder: str) -> Iterator[Tuple[str, bytes]]:
-    """(workspace path, PNG bytes) of each Texture2D of one picture bundle; names repeat with ``~n`` like zt's."""
+def texture_objects(serialized: SerializedFile, folder: str) -> Iterator[Tuple[str, int, dict]]:
+    """(workspace path, path id, value) of each Texture2D of one picture bundle; names repeat with ``~n`` like zt's."""
     seen: Dict[str, int] = {}
     for obj in serialized.objects:
         if obj.class_id != TEXTURE2D:
@@ -145,4 +145,29 @@ def texture_files(bundle: Bundle, serialized: SerializedFile, folder: str) -> It
             name = f"{folder}/{stem}~{seen[name]}.png"
         else:
             seen[name] = 1
+        yield name, obj.path_id, value
+
+
+def texture_files(bundle: Bundle, serialized: SerializedFile, folder: str) -> Iterator[Tuple[str, bytes]]:
+    """(workspace path, PNG bytes) of each Texture2D of one picture bundle."""
+    for name, _path_id, value in texture_objects(serialized, folder):
         yield name, png(texture_image(bundle, value))
+
+
+def encode_texture(value: dict, picture: Image.Image) -> bytes:
+    """The data of a Texture2D value for the workspace PNG ``picture`` (the inverse of ``texture_image``).
+
+    The picture keeps the size of the texture. Raw formats are stored as they are; block formats go through their codec.
+    """
+    width, height = int(value.get("m_Width", 0)), int(value.get("m_Height", 0))
+    fmt = int(value.get("m_TextureFormat", -1))
+    if fmt not in FORMATS:
+        raise UnsupportedTexture(f"texture format {fmt} is not encoded")
+    if picture.size != (width, height):
+        raise UnsupportedTexture(f"picture is {picture.size[0]}x{picture.size[1]}, the texture is {width}x{height}")
+    codec_name = FORMATS[fmt][0]
+    flipped = picture.transpose(Image.Transpose.FLIP_TOP_BOTTOM)   # texture_image flips the decoded picture back
+    if fmt in (1, 3, 4):
+        mode = {1: "L", 3: "RGB", 4: "RGBA"}[fmt]
+        return flipped.convert(mode).tobytes()
+    return pixels.codec(codec_name).encode(flipped.convert("RGBA"))
