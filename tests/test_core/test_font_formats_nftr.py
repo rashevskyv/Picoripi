@@ -4,7 +4,9 @@ import struct
 import pytest
 from PIL import Image
 
+import romhacking_root
 from core import font_formats
+from core.containers.narc_members import narc_members
 from core.font_formats import nftr
 
 WHITE = (255, 255, 255, 255)
@@ -144,3 +146,128 @@ def test_a_block_whose_declared_size_leaves_out_its_padding_is_read_and_packs_ba
     assert len(font.glyphs) == 3 and font.codes() == {0x41: 0, 0x42: 1, 0x401: 2}
     metadata, sheets = font_formats.extract("nftr", data, PARAMS)
     assert font_formats.pack("nftr", metadata, sheets, data, PARAMS) == data
+
+
+# -- Gen 5 layout (Pokémon Black / White): widths in row 0 of each glyph, an HDWC block that is not a table ----
+
+GEN5_PARAMS = {"columns": 4, "spare": 2}
+
+
+def _gen5_font() -> bytes:
+    """12 x 16 two-bit cells (48 bytes). Row 0 of each glyph holds (left, glyph width, advance); the HDWC block
+    does not parse as a width table (first > last) and is kept as it is; one scan list of three codes."""
+    glyphs = [bytes([0, 6, 6]) + bytes(45),                    # 0: 'A' with no ink (widths only)
+              bytes([0, 2, 3, 0xC0]) + bytes(44),              # 1: 'i', ink at row 1 column 0
+              bytes([1, 3, 5, 0x40]) + bytes(44)]              # 2: ',', ink at row 1 column 0, one to the right
+    plgc = _block(b"PLGC", struct.pack("<BBHbBBB", 12, 16, 48, 14, 12, 2, 0) + b"".join(glyphs))
+    hdwc = _block(b"HDWC", struct.pack("<HHI", 3339, 12, 16) + bytes(range(64)))
+    pairs = [(0x2C, 2), (0x41, 0), (0x69, 1)]
+    pamc = _block(b"PAMC", struct.pack("<HHII", 0x2C, 0x69, 2, 0) + struct.pack("<H", len(pairs))
+                  + b"".join(struct.pack("<HH", *pair) for pair in pairs))
+    plgc_at = 16 + 0x20
+    hdwc_at = plgc_at + len(plgc)
+    pamc_at = hdwc_at + len(hdwc)
+    finf = b"FNIF" + struct.pack("<IBBHbBBBIIIBBBB", 0x20, 0, 15, 0, 0, 12, 12, 1, plgc_at + 8, hdwc_at + 8,
+                                 pamc_at + 8, 4, 4, 3, 0)
+    body = finf + plgc + hdwc + pamc
+    return b"RTFN\xff\xfe\x01\x01" + struct.pack("<IHH", 16 + len(body), 16, 4) + body
+
+
+def test_gen5_widths_are_row_zero_and_the_opaque_hdwc_is_kept_byte_exact():
+    data = _gen5_font()
+    font = nftr.Font(data)
+    assert font.row0_widths and font.opaque_hdwc and font.width_chain == []
+    assert font.width_entries() == {0: (0, 6, 6), 1: (0, 2, 3), 2: (1, 3, 5)}
+    assert font.codes() == {0x41: 0, 0x69: 1, 0x2C: 2}
+    assert font.raw[0][:4] == b"HDWC"
+    assert font.build() == data
+    assert not nftr.Font(_font()).row0_widths                         # a table font keeps its HDWC table
+
+
+def test_gen5_extract_shows_the_widths_and_row_zero_is_not_ink():
+    data = _gen5_font()
+    metadata, sheets = font_formats.extract("nftr", data, GEN5_PARAMS)
+    packets = metadata["WID1"][0]["packets"]
+    assert packets[1] == {"kerning": 0, "width": 3} and packets[2] == {"kerning": -1, "width": 5}
+    assert metadata["WID1"][0]["glyph_widths"][1] == 2
+    ink = font_formats.coverage(sheets[0])
+    assert all(ink.getpixel((x, 0)) == 0 for x in range(12))          # glyph 0: row 0 holds widths only
+    assert ink.getpixel((12, 1)) != 0                                 # glyph 1: its ink at row 1
+    assert font_formats.pack("nftr", metadata, sheets, data, GEN5_PARAMS) == data
+
+
+def test_gen5_edited_width_and_glyph_round_trip_through_build_and_read():
+    data = _gen5_font()
+    metadata, sheets = font_formats.extract("nftr", data, GEN5_PARAMS)
+    metadata["WID1"][0]["packets"][1] = {"kerning": 0, "width": 4}  # 'i' advances 4 px, not 3
+    sheets[0].putpixel((12 + 5, 3), WHITE)                            # and gets ink at row 3, column 5
+    packed = font_formats.pack("nftr", metadata, sheets, data, GEN5_PARAMS)
+    assert len(packed) == len(data)
+    font = nftr.Font(packed)
+    assert font.width_entries()[1] == (0, 6, 4)                       # the width follows the new ink (0..5)
+    assert font.raw == nftr.Font(data).raw                            # the HDWC block is untouched
+    assert font.build() == packed
+    again, again_sheets = font_formats.extract("nftr", packed, GEN5_PARAMS)
+    assert again["WID1"][0]["packets"][1] == {"kerning": 0, "width": 4}
+    assert font_formats.coverage(again_sheets[0]).getpixel((17, 3)) != 0
+    assert font_formats.pack("nftr", again, again_sheets, packed, GEN5_PARAMS) == packed
+
+
+def test_gen5_new_character_gets_its_widths_in_row_zero_and_no_table():
+    data = _gen5_font()
+    metadata, sheets = font_formats.extract("nftr", data, GEN5_PARAMS)
+    sheets[0].paste(Image.new("RGBA", (3, 4), WHITE), (36, 1))        # cell 3: ink from row 1
+    _add(metadata, "’", 3, width=4)
+    packed = font_formats.pack("nftr", metadata, sheets, data, GEN5_PARAMS)
+    font = nftr.Font(packed)
+    assert len(font.glyphs) == 4 and font.width_entries()[3] == (0, 3, 4)
+    assert font.codes()[0x2019] == 3 and font.widths == []
+    assert font.build() == packed
+    again, again_sheets = font_formats.extract("nftr", packed, GEN5_PARAMS)
+    assert font_formats.pack("nftr", again, again_sheets, packed, GEN5_PARAMS) == packed
+
+
+# -- real game fonts (skip without the workspace, PICORIPI_ROMHACKING) ----------------------------------------
+
+_GEN5_FONTS = [("Pokemon", "Black and White"), ("Pokemon", "Black 2 and White 2")]
+_REAL = {"columns": 16, "spare": 32}
+
+
+def _real_font(game: tuple):
+    parts = (*game, "source", "a", "0", "2", "3")
+    reason = romhacking_root.missing(*parts)
+    if reason:
+        pytest.skip(reason)
+    return narc_members(romhacking_root.path(*parts).read_bytes())[0]
+
+
+@pytest.mark.parametrize("game", _GEN5_FONTS, ids=["black", "black_2"])
+def test_real_gen5_message_font_reads_row_zero_widths_and_builds_byte_exact(game):
+    data = _real_font(game)
+    font = nftr.Font(data)
+    assert font.row0_widths and font.opaque_hdwc
+    assert font.build() == data
+    entries = font.width_entries()
+    assert entries[0] == (4, 0, 4) and entries[73] == (0, 2, 3) and entries[76] == (0, 3, 4)
+    assert entries[12] == (1, 3, 5)                                   # the comma: one pixel right, advance 5
+    metadata, sheets = font_formats.extract("nftr", data, _REAL)
+    assert font_formats.font_map(metadata)["i"] == {"width": 3}
+    assert font_formats.pack("nftr", metadata, sheets, data, _REAL) == data
+
+
+@pytest.mark.parametrize("game", _GEN5_FONTS, ids=["black", "black_2"])
+def test_real_gen5_edited_glyph_and_width_round_trip(game):
+    data = _real_font(game)
+    metadata, sheets = font_formats.extract("nftr", data, _REAL)
+    glyph = 79                                                        # 'o' in Black: advance 6
+    x, y = (glyph % 16) * 12, (glyph // 16) * 16
+    sheets[0].putpixel((x + 2, y + 8), WHITE)
+    metadata["WID1"][0]["packets"][glyph] = {"kerning": 0, "width": 5}
+    packed = font_formats.pack("nftr", metadata, sheets, data, _REAL)
+    assert len(packed) == len(data)
+    font = nftr.Font(packed)
+    assert font.width_entries()[glyph][2] == 5
+    assert font.raw == nftr.Font(data).raw and font.build() == packed
+    again, again_sheets = font_formats.extract("nftr", packed, _REAL)
+    assert font_formats.coverage(again_sheets[0]).getpixel((x + 2, y + 8)) != 0
+    assert again["WID1"][0]["packets"][glyph] == {"kerning": 0, "width": 5}

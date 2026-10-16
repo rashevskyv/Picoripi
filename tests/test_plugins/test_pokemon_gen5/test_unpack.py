@@ -50,7 +50,7 @@ def test_plugin_identifies_the_cartridge(tmp_path):
     assert rules.identify_source(str(rom)) == {"role": "base", "platform": "nds"}
     assert rules.unpack_sources({"base": str(rom)}, str(tmp_path / "out"), lambda *_: None, lambda: False) == \
         str(tmp_path / "out")
-    assert set(_tree(tmp_path / "out")) == {"gfl_font.dat"}
+    assert set(_tree(tmp_path / "out")) == {"gfl_font.dat", "rom/base.nds"}
 
 
 BW_ROM = ("Pokemon", "Black and White", "ISO", "Pokemon - Black Version (DSi Enhanced)(USA) (E)(SweeTnDs).nds")
@@ -62,4 +62,5 @@ def test_black_unpack_equals_the_workspace_source(tmp_path):
     out = GameRules(None).unpack_sources({"base": str(romhacking_root.path(*BW_ROM))},
                                          str(tmp_path / "out"), lambda *_: None, lambda: False)
     unpacked = _tree(Path(out))
+    unpacked.pop("rom/base.nds")       # the build keeps the clean image in the source folder
     assert unpacked == _tree(romhacking_root.path(*BW_SOURCE))

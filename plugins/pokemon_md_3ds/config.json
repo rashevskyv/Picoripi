@@ -1,6 +1,10 @@
 {
     "display_name": "Pokémon Mystery Dungeon (3DS)",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "[PLAYER]": "[hero]",
+        "[CLEAR]": "[C]",
+        "[WAIT_KEY]": "[K]"
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",

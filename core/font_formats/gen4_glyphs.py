@@ -19,7 +19,7 @@ game's charmap, text code - 1; a glyph index past the font's end is left out), o
 from __future__ import annotations
 
 import struct
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 from PIL import Image
 
@@ -49,6 +49,31 @@ def is_font_bin(data: bytes) -> bool:
     except (ValueError, struct.error):
         return False
     return True
+
+
+def glyph_levels(data: bytes, index: int) -> List[List[int]]:
+    """The 2-bit pixel levels (0-3) of glyph index, row by row, as the Font Editor draws it."""
+    glyph, _widths_at, count, gw, gh, _fixed = _header(data)
+    if not 0 <= index < count:
+        raise ValueError(f"glyph {index} is not in the font ({count} glyphs)")
+    base = HEADER + index * glyph
+    rows: List[List[int]] = []
+    for r in range(8 * gh):
+        ty, row = divmod(r, 8)
+        line: List[int] = []
+        for tx in range(gw):
+            at = base + (ty * gw + tx) * TILE_BYTES + row * 2
+            for x in range(8):
+                byte = data[at + 1] if x < 4 else data[at]
+                line.append((byte >> (6 - 2 * (x % 4))) & 3)
+        rows.append(line)
+    return rows
+
+
+def glyph_widths(data: bytes) -> List[int]:
+    """The advance width of every glyph (the WID table at widthDataStart)."""
+    _glyph, widths_at, count, _gw, _gh, _fixed = _header(data)
+    return list(data[widths_at:widths_at + count])
 
 
 def extract(data: bytes, params: Dict[str, Any]) -> Tuple[Metadata, Sheets]:

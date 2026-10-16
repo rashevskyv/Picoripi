@@ -1,0 +1,408 @@
+"""The message window of a Pokémon DS game, as the game draws it: one renderer for Gen 4 and Gen 5.
+
+Facts (pret decomp and ctrl-cheeb-del, used for numbers only; no code or text is copied, and the Gen 5 numbers
+come from melonDS frames of Black):
+  - Gen 4: the message font is a Gen 4 font bin (``core.font_formats.gen4_glyphs``): 16 x 16 glyphs, advance widths
+    in its WID table. ``WINDOWS`` gives its place per game code. Platinum's is pl_font.narc member 1.
+    A message box is 4 tiles (32 px) high: a line is 16 px high and there is no line spacing, so a box shows 2 lines.
+    The text code of a character is its glyph index + 1 (pret ``TryLoadGlyph``).
+  - Gen 5 (Black, White, Black 2, White 2): the message font is the NFTR ``a/0/2/3`` member 0 (12 x 16 cells).
+    Row 0 of each cell holds that glyph's widths, not ink: left offset, ink width, advance (one byte each).
+    Box: text origin 20 px from the box's left edge, lines 16 px apart.
+  - Colours: Gen 4 ink 81,81,89 and 162,162,170 (Diamond frame); Gen 5 ink 89,81,81 and 162,162,170
+    (Black frame); the box is 251,251,251 in both.
+  - ``\\n`` (E000 / Gen 5 editor newline) breaks a line; ``\\r`` (Gen 4) and ``{PAGE}`` / ``{SCROLL}`` (Gen 5) end a page.
+  - The renderer does not wrap lines: a line wider than the box runs past its edge. The preview marks such a line.
+
+``WindowResolver`` reads the game code and the font on a worker thread (AGENTS rule 5). The widget draws when the
+result arrives.
+"""
+from __future__ import annotations
+
+import os
+import re
+import threading
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+from PyQt6.QtCore import QRect, pyqtSignal
+from PyQt6.QtGui import QColor, QFont, QImage, QPainter, QPen
+from PyQt6.QtWidgets import QWidget
+
+from core.containers.narc_members import narc_members
+from core.font_formats import gen4_glyphs, nftr
+from core.i18n import tr
+from plugins.common import gen4msg
+from utils.logging_utils import log_debug
+from utils.thread_utils import WorkerThread
+
+LINE_PX = 16
+LINES_PER_PAGE = 2
+SCALE = 2
+WIDEST_BOX_PX = 216
+_CHARMAPS = Path(__file__).resolve().parent / "charmaps"
+_TAG = re.compile(r"\{[^{}]*\}")
+_PAGE_TAG = re.compile(r"\{(?:PAGE|SCROLL)\}")
+_PLAYER = "PLAYER"
+BOX_RGB = (251, 251, 251)
+INK = {1: QColor(81, 81, 89), 2: QColor(162, 162, 170), 3: QColor(*BOX_RGB)}
+INK5 = {1: QColor(89, 81, 81), 2: QColor(162, 162, 170)}
+GEN5_TEXT_X, GEN5_LINE_PX = 20, 16
+# The page arrow of Gen 5 (measured on the Black frame): origin (x, y) in the box image and its levels.
+GEN5_ARROW = (225, 27, ["2222222", "1222222", ".122222", "..12221", "...1211"])
+
+
+@dataclass(frozen=True)
+class Window:
+    """Where the message font is (a NARC path in the unpacked source and a member) and how wide the box is."""
+    font_narc: str
+    font_member: int
+    box_px: int
+
+
+@dataclass(frozen=True)
+class Window5:
+    """Gen 5: the NFTR message font (``a/0/2/3`` member 0) and the box width (the text area, from the frames)."""
+    font_narc: str
+    font_member: int
+    box_px: int
+
+
+# Game code (ROM header) -> window. Box widths: 27 x 4 tiles in all five games (pret pokediamond
+# arm9/src/text_02054590.c, ctrl-cheeb-del pokeheartgold src/dialog_box.c); font member 1 is fontId 1.
+WINDOWS: Dict[str, Window] = {
+    "CPUE": Window("graphic/pl_font.narc", 1, 216),   # Platinum
+    "ADAE": Window("graphic/font.narc", 1, 216),      # Diamond
+    "APAE": Window("graphic/font.narc", 1, 216),      # Pearl
+    "IPKE": Window("a/0/1/6", 1, 216),                # HeartGold
+    "IPGE": Window("a/0/1/6", 1, 216),                # SoulSilver
+}
+# Black and Black 2 (their text box is wider than the Gen 4 one; the longest measured line ends at x 242).
+GEN5_WINDOWS: Dict[str, Window5] = {
+    "IRBO": Window5("a/0/2/3", 0, 230),               # Black
+    "IREO": Window5("a/0/2/3", 0, 230),               # Black 2
+}
+
+
+@dataclass(frozen=True)
+class Resolved:
+    window: Any              # Window (Gen 4) or Window5 (Gen 5)
+    font: Any                # bytes of a Gen 4 font bin, or an nftr.Font (Gen 5); None: not in the source
+    charmap: str             # Gen 4 charmap path; "" for Gen 5
+
+
+def game_code(source_dir: str) -> Optional[str]:
+    """The game code of the clean image the unpack kept (``rom/base.nds``), or None."""
+    path = Path(source_dir) / "rom" / "base.nds"
+    if not path.is_file():
+        return None
+    with open(path, "rb") as stream:
+        code = stream.read(0x10)[0x0C:0x10]
+    return code.decode("ascii", "replace")
+
+
+def load_font(source_dir: str, narc_path: str, member: int) -> Optional[bytes]:
+    """The font bin of ``member`` in the unpacked NARC, or None when the workspace has none."""
+    path = Path(source_dir) / narc_path.replace("/", os.sep)
+    if not path.is_file():
+        return None
+    members = narc_members(path.read_bytes())
+    if member >= len(members) or not gen4_glyphs.is_font_bin(members[member]):
+        return None
+    return members[member]
+
+
+def load_nftr(source_dir: str, narc_path: str, member: int) -> Optional[nftr.Font]:
+    """The NFTR font of ``member`` in a Gen 5 font NARC, or None when the workspace has none."""
+    path = Path(source_dir) / narc_path.replace("/", os.sep)
+    if not path.is_file():
+        return None
+    members = narc_members(path.read_bytes())
+    if member >= len(members) or not nftr.is_nftr(members[member]):
+        return None
+    return nftr.Font(members[member])
+
+
+def charmap_for(source_dir: str) -> str:
+    """Platinum has pl_msg banks; the other Gen 4 games use the Diamond / Pearl / HeartGold table."""
+    if source_dir and (Path(source_dir) / "text" / "msgdata+pl_msg.narc").is_dir():
+        return str(_CHARMAPS / "charmap_platinum.txt")
+    return str(_CHARMAPS / "charmap_dp_hgss.txt")
+
+
+def resolve(source_dir: str) -> Optional[Resolved]:
+    """The window facts and the font of a project folder; None for a game without facts."""
+    code = game_code(source_dir)
+    if code and code in GEN5_WINDOWS:
+        window = GEN5_WINDOWS[code]
+        return Resolved(window, load_nftr(source_dir, window.font_narc, window.font_member), "")
+    window = WINDOWS.get(code) if code else None
+    if window is None:
+        return None
+    font = load_font(source_dir, window.font_narc, window.font_member)
+    return Resolved(window, font, charmap_for(source_dir))
+
+
+class WindowResolver(WorkerThread):
+    """Reads a project's window facts and font off the UI thread. ``resolved`` carries (folder, Resolved or None)."""
+
+    resolved = pyqtSignal(object)
+
+    def __init__(self, source_dir: str):
+        super().__init__()
+        self._source_dir = source_dir
+        self._stop = threading.Event()
+
+    def cancel(self) -> None:
+        self._stop.set()
+
+    def run(self) -> None:
+        try:
+            result = resolve(self._source_dir)
+        except (OSError, ValueError) as exc:
+            log_debug(f"pokemon message window: no window facts for {self._source_dir}: {exc}")
+            result = None
+        if not self._stop.is_set():
+            self.resolved.emit((self._source_dir, result))
+
+
+def page_lines(text: str, lines_per_page: int = LINES_PER_PAGE) -> Tuple[List[List[str]], bool]:
+    """The first page of ``text`` as lines of glyph characters, and whether more text follows.
+
+    Tags are shown as their placeholder (a player name) or not at all; they take no width.
+    Gen 5 pages end at ``{PAGE}`` or ``{SCROLL}``; Gen 4 pages end at ``\\r``.
+    """
+    raw = text.replace("\\r", "\r").replace("\\n", "\n")
+    parts = _PAGE_TAG.split(raw)
+    raw = parts[0]
+    raw = _TAG.sub(lambda m: _PLAYER if m.group(0).upper().startswith("{STRVAR") else "", raw)
+    pages = raw.split("\r")
+    first = pages[0]
+    lines = first.split("\n")
+    shown = [list(line) for line in lines[:lines_per_page]]
+    more = (len(lines) > lines_per_page or any(p.strip() for p in pages[1:])
+            or any(p.strip() for p in parts[1:]))
+    return shown, more
+
+
+def line_width(chars: List[str], width_of) -> int:
+    total = 0
+    for ch in chars:
+        advance = width_of(ch)
+        total += advance or 0
+    return total
+
+
+class _Gen4Face:
+    """A Gen 4 font bin: 16 x 16 glyphs, the WID table for advances, the game's charmap for codes."""
+
+    ink = INK
+    line_px = LINE_PX
+
+    def __init__(self, font: bytes, charmap: str):
+        self._font = font
+        self._widths = gen4_glyphs.glyph_widths(font)
+        self._codec = gen4msg.Codec(charmap)
+        self._glyphs: Dict[int, List[List[int]]] = {}
+
+    def _code(self, ch: str) -> Optional[int]:
+        code = self._codec.char_codes.get(ch)
+        if code is None or not 0 <= code - 1 < len(self._widths):
+            return None
+        return code
+
+    def advance(self, ch: str) -> Optional[int]:
+        code = self._code(ch)
+        return self._widths[code - 1] if code is not None else None
+
+    def shift(self, ch: str) -> int:
+        return 0                                    # Gen 4 ink starts at the pen
+
+    def levels(self, ch: str) -> Optional[List[List[int]]]:
+        code = self._code(ch)
+        if code is None:
+            return None
+        if code - 1 not in self._glyphs:
+            self._glyphs[code - 1] = gen4_glyphs.glyph_levels(self._font, code - 1)
+        return self._glyphs[code - 1]
+
+
+class _Gen5Face:
+    """A Gen 5 NFTR font. A cell is 12 x 16 two-bit pixels; row 0 holds the glyph's widths, not ink: the left
+    offset, the ink width and the advance, one byte each. Rows 1-15 are the ink."""
+
+    ink = INK5
+    line_px = GEN5_LINE_PX
+
+    def __init__(self, font: nftr.Font):
+        self._font = font
+        self._codes = font.codes()
+        self._glyphs: Dict[int, List[List[int]]] = {}
+
+    def _glyph(self, ch: str) -> Optional[bytes]:
+        glyph = self._codes.get(ord(ch))
+        return self._font.glyphs[glyph] if glyph is not None else None
+
+    def advance(self, ch: str) -> Optional[int]:
+        data = self._glyph(ch)
+        return data[2] if data is not None else None
+
+    def shift(self, ch: str) -> int:
+        data = self._glyph(ch)
+        return data[0] if data is not None else 0
+
+    def levels(self, ch: str) -> Optional[List[List[int]]]:
+        glyph = self._codes.get(ord(ch))
+        if glyph is None:
+            return None
+        if glyph not in self._glyphs:
+            data = self._font.glyphs[glyph]
+            cell_w = self._font.cell_width
+            raw = int.from_bytes(data, "big")
+            total = len(data) * 8
+            rows = [[0] * cell_w]                     # row 0 is the widths, not drawn
+            for y in range(1, total // (2 * cell_w)):
+                row = []
+                for x in range(cell_w):
+                    shift = total - 2 * (y * cell_w + x + 1)
+                    row.append((raw >> shift) & 3)
+                rows.append(row)
+            self._glyphs[glyph] = rows
+        return self._glyphs[glyph]
+
+
+def _face_of(resolved: Resolved):
+    if isinstance(resolved.window, Window5):
+        return _Gen5Face(resolved.font) if resolved.font is not None else None
+    return _Gen4Face(resolved.font, resolved.charmap) if resolved.font is not None else None
+
+
+class MessageWindowPreview(QWidget):
+    """The message box of one project. It draws with the game's font once ``receive`` gets the resolved facts.
+
+    Until then it shows only the empty box. ``refresh`` draws it again; ``update_preview_text`` takes new text.
+    """
+
+    def __init__(self, source_dir: str):
+        super().__init__()
+        self._root = source_dir
+        self._box_px = WIDEST_BOX_PX
+        self._face: Any = None
+        self._text = ""
+        self._note = tr("Reading the game font...")
+        self._overflow = False
+        self._more = False
+        self._image = QImage(WIDEST_BOX_PX * SCALE, LINES_PER_PAGE * LINE_PX * SCALE, QImage.Format.Format_ARGB32)
+        self.setMinimumSize(WIDEST_BOX_PX * SCALE + 20, LINES_PER_PAGE * LINE_PX * SCALE + 46)
+        self._render()
+
+    # -- font ----------------------------------------------------------------------------------------------------
+
+    def receive(self, payload: object) -> None:
+        """Takes the (folder, Resolved or None) of a ``WindowResolver``. Another folder's result is ignored."""
+        source_dir, resolved = payload
+        if source_dir != self._root:
+            return
+        self._face = None
+        if resolved is None:
+            self._note = tr("This game has no message window facts.")
+        elif resolved.font is None:
+            self._note = tr("The game font is not in this project.")
+        else:
+            self._note = ""
+            self._box_px = resolved.window.box_px
+            self._face = _face_of(resolved)
+        self._render()
+
+    def _width_of(self, ch: str) -> Optional[int]:
+        return self._face.advance(ch) if self._face is not None else None
+
+    # -- drawing -------------------------------------------------------------------------------------------------
+
+    def _render(self) -> None:
+        line_px = self._face.line_px if self._face is not None else LINE_PX
+        image = QImage(self._box_px * SCALE, LINES_PER_PAGE * line_px * SCALE, QImage.Format.Format_ARGB32)
+        image.fill(QColor(0, 0, 0, 0))
+        lines, more = page_lines(self._text)
+        self._more = more
+        self._overflow = False
+        ink = self._face.ink if self._face is not None else INK
+        for row, chars in enumerate(lines):
+            x = 0
+            if line_width([c for c in chars if c], self._width_of) > self._box_px:
+                self._overflow = True
+            for ch in chars:
+                levels = self._face.levels(ch) if (self._face is not None and ch) else None
+                advance = self._width_of(ch) if ch else None
+                if levels is None:
+                    if advance:
+                        x += advance
+                    continue
+                shift = self._face.shift(ch)
+                for gy, row_levels in enumerate(levels):
+                    for gx, level in enumerate(row_levels):
+                        if not level or level not in ink:
+                            continue
+                        colour = ink[level]
+                        px, py = (x + gx + shift) * SCALE, (row * line_px + gy) * SCALE
+                        for dy in range(SCALE):
+                            for dx in range(SCALE):
+                                if 0 <= px + dx < image.width() and 0 <= py + dy < image.height():
+                                    image.setPixelColor(px + dx, py + dy, colour)
+                x += advance or 0
+        if isinstance(self._face, _Gen5Face) and (more or _PAGE_TAG.search(self._text)):
+            x0, y0, rows = GEN5_ARROW
+            for dy, row in enumerate(rows):
+                for dx, ch in enumerate(row):
+                    if ch not in "12":
+                        continue
+                    colour = ink[int(ch)]
+                    px, py = (x0 + dx) * SCALE, (y0 + dy) * SCALE
+                    for ddy in range(SCALE):
+                        for ddx in range(SCALE):
+                            if 0 <= px + ddx < image.width() and 0 <= py + ddy < image.height():
+                                image.setPixelColor(px + ddx, py + ddy, colour)
+        self._image = image
+        self.update()
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - Qt name
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(40, 40, 46))
+        left, top = 10, 10
+        line_px = self._face.line_px if self._face is not None else LINE_PX
+        box = QRect(left - 4, top - 4, self._box_px * SCALE + 8, LINES_PER_PAGE * line_px * SCALE + 8)
+        painter.fillRect(box, QColor(*BOX_RGB))
+        painter.setPen(QPen(QColor(20, 20, 20), 2))
+        painter.drawRect(box)
+        painter.drawImage(left, top, self._image)
+        painter.setPen(QColor(230, 230, 230))
+        notes = [self._note] if self._note else []
+        if self._overflow:
+            notes.append(tr("A line is wider than the box."))
+        if self._more:
+            notes.append(tr("More text follows on the next page or line."))
+        painter.setFont(QFont(painter.font().family(), 9))
+        y = top + LINES_PER_PAGE * line_px * SCALE + 18
+        for text in notes:
+            painter.drawText(left, y, text)
+            y += 16
+        painter.end()
+
+    # -- host interface ------------------------------------------------------------------------------------------
+
+    def refresh(self) -> None:
+        self._render()
+
+    def update_preview_text(self, text: object = None, original: object = None) -> None:
+        self._text = text if isinstance(text, str) else ""
+        self._render()
+
+    def shutdown(self) -> None:
+        if self._face is not None:
+            self._face._glyphs.clear()
+
+
+__all__ = ["MessageWindowPreview", "Resolved", "Window", "Window5", "WindowResolver", "WINDOWS", "GEN5_WINDOWS",
+           "charmap_for", "game_code", "load_font", "load_nftr", "page_lines", "resolve", "LINE_PX",
+           "LINES_PER_PAGE", "WIDEST_BOX_PX"]

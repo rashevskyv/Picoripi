@@ -7,18 +7,24 @@ glyph: rows of ``cell width`` pixels, the bits run on from row to row, most sign
 ``HDWC`` (left, glyph width, advance per glyph, from a first to a last glyph) and ``PAMC`` (code -> glyph:
 direct range, table or scan list; the same layout as the 3DS ``CWDH`` / ``CMAP`` of ``bcfnt``).
 
+Pokémon Black / White / Black 2 / White 2 (Gen 5) differ: their ``HDWC`` block is not a width table (its header
+does not parse), so it is kept as it is. The widths are in row 0 of every glyph: three bytes (left, glyph
+width, advance) that take the place of the cell's first row. Such a font is read with ``row0_widths``: row 0
+is never ink, and the widths are the three bytes of row 0.
+
 The model puts glyph ``i`` in cell ``i`` of one sheet (``params``: ``columns``, default 16, and ``spare``
 empty cells after the glyphs for new characters, default 32). Packing an unedited model returns the original
-bytes. Editing re-encodes the redrawn bitmaps and writes the widths; a character typed into a spare cell
-adds a glyph: its bitmap goes at the end of ``PLGC``, its widths at the end of the ``HDWC`` that ends with the
-last glyph, its code into the ``PAMC`` table or scan list that covers it (else a new scan list at the end of
-the chain). The blocks behind a grown one move and every pointer follows. Changing or removing a code the file
-already has is refused, as for the other fonts with a character map.
+bytes, and ``Font.build`` returns the original bytes for an unedited file. Editing re-encodes the redrawn bitmaps
+and writes the widths; a character typed into a spare cell adds a glyph: its bitmap goes at the end of ``PLGC``,
+its widths at the end of the ``HDWC`` that ends with the last glyph (or into its row 0), its code into the
+``PAMC`` table or scan list that covers it (else a new scan list at the end of the chain). The blocks behind a
+grown one move and every pointer follows. Changing or removing a code the file already has is refused, as for
+the other fonts with a character map.
 """
 from __future__ import annotations
 
 import struct
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image
 
@@ -26,10 +32,27 @@ from core.font_formats import Metadata, Sheets, char_map, char_code, coverage, g
 
 ADDS_GLYPHS = True  # a character typed into a spare cell gets a new glyph, its widths and its PAMC code
 _NO_GLYPH = 0xFFFF
+_FINF_POINTERS = (0x10, 0x14, 0x18)     # FNIF fields: first PLGC, first HDWC, first PAMC (block start + 8)
 
 
 def is_nftr(data: bytes) -> bool:
     return bytes(data[:6]) == b"RTFN\xff\xfe"
+
+
+def _width_table(block: bytes) -> Optional[List[Any]]:
+    """An HDWC block as ``[first glyph, [(left, glyph width, advance), ...]]``, or None when it is not a table."""
+    if len(block) < 16:
+        return None
+    first, last = struct.unpack_from("<HH", block, 8)
+    if first > last or 16 + 3 * (last - first + 1) > len(block):
+        return None
+    return [first, [struct.unpack_from("bBB", block, 16 + 3 * i) for i in range(last - first + 1)]]
+
+
+def _row0_plausible(glyph: bytes, cell_width: int) -> bool:
+    """Row 0 holds widths that fit a cell: left and glyph width within the cell, advance within twice of it."""
+    left, width, advance = glyph[0], glyph[1], glyph[2]
+    return left <= cell_width and width <= cell_width and advance <= 2 * cell_width
 
 
 class Font:
@@ -39,14 +62,16 @@ class Font:
         data = bytes(data)
         if not is_nftr(data):
             raise ValueError("Not an NFTR font (RTFN)")
-        self.version, _size, header_size, _count = struct.unpack_from("<HIHH", data, 6)
+        self.version, self.declared_size, header_size, self.declared_blocks = struct.unpack_from("<HIHH", data, 6)
+        self._length = len(data)
         self.header = data[:header_size]
         self.order: List[Tuple[str, int]] = []      # (kind, index in its list) in file order
         self.raw: List[bytes] = []                   # blocks of other kinds, kept as they are
         self.finf = b""
         self.widths: List[List[Any]] = []            # [first glyph, [(left, glyph width, advance), ...]]
         self.maps: List[List[Any]] = []              # [begin, end, method, payload]
-        at, starts = header_size, {}
+        self.opaque_hdwc = False                     # an HDWC block that is not a width table (kept as raw)
+        at, refs = header_size, {}                   # block start -> (kind, index)
         while at + 8 <= len(data):
             magic, size = struct.unpack_from("<4sI", data, at)
             if size < 8 or at + size > len(data):
@@ -56,37 +81,48 @@ class Font:
             if at + span > len(data) or any(data[at + size:at + span]):
                 span = size
             block = data[at:at + span]
-            starts[at] = (magic, len(self.widths), len(self.maps))
+            table = _width_table(block) if magic == b"HDWC" else None
             if magic == b"FNIF":
                 self.finf = block
-                self.order.append(("finf", 0))
+                ref = ("finf", 0)
             elif magic == b"PLGC":
                 self._read_glyphs(block)
-                self.order.append(("cglp", 0))
-            elif magic == b"HDWC":
-                first, last = struct.unpack_from("<HH", block, 8)
-                entries = [struct.unpack_from("bBB", block, 16 + 3 * i) for i in range(last - first + 1)]
-                self.widths.append([first, entries])
-                self.order.append(("cwdh", len(self.widths) - 1))
+                ref = ("cglp", 0)
+            elif table is not None:
+                self.widths.append(table)
+                ref = ("cwdh", len(self.widths) - 1)
             elif magic == b"PAMC":
                 self.maps.append(self._read_map(block))
-                self.order.append(("cmap", len(self.maps) - 1))
+                ref = ("cmap", len(self.maps) - 1)
             else:
+                self.opaque_hdwc = self.opaque_hdwc or magic == b"HDWC"
                 self.raw.append(block)
-                self.order.append(("raw", len(self.raw) - 1))
+                ref = ("raw", len(self.raw) - 1)
+            self.order.append(ref)
+            refs[at] = ref
             at += span
         if not self.finf or not hasattr(self, "glyphs"):
             raise ValueError("NFTR font without FNIF or PLGC")
+        self._order_count = len(self.order)
+        pointers = struct.unpack_from("<III", self.finf, 0x10)
+        # Where the FNIF pointers lead: a block of any kind (an opaque HDWC is kept and pointed to as it is).
+        self.finf_refs = {field: refs.get(pointer - 8) if pointer else None
+                          for field, pointer in zip(_FINF_POINTERS, pointers)}
         # The chains as the pointers link them (the file order is kept when writing).
-        self.width_chain = self._chain(data, 0x14, 12, b"HDWC", starts, 1)
-        self.map_chain = self._chain(data, 0x18, 16, b"PAMC", starts, 2)
+        self._terminal: Dict[Tuple[str, int], int] = {}   # the next pointer that ends a chain, as the file has it
+        self.width_chain = self._chain(data, pointers[1], 12, "cwdh", refs, "cwdh")
+        self.map_chain = self._chain(data, pointers[2], 16, "cmap", refs, "cmap")
+        # Gen 5 variant: no width table, but an opaque HDWC, and every glyph's row 0 holds plausible widths.
+        self.row0_widths = (self.opaque_hdwc and not self.widths and self.cell_width * self.bpp == 24
+                            and all(_row0_plausible(glyph, self.cell_width) for glyph in self.glyphs))
 
-    def _chain(self, data: bytes, finf_field: int, next_field: int, magic: bytes, starts, slot: int) -> List[int]:
-        finf_at = next(at for at, (m, _w, _c) in starts.items() if m == b"FNIF")
-        pointer, chain = struct.unpack_from("<I", data, finf_at + finf_field)[0], []
-        while pointer and (pointer - 8) in starts and starts[pointer - 8][0] == magic and len(chain) < 4096:
-            chain.append(starts[pointer - 8][slot])
+    def _chain(self, data: bytes, pointer: int, next_field: int, kind: str, refs, tag: str) -> List[int]:
+        chain: List[int] = []
+        while pointer and refs.get(pointer - 8, ("", 0))[0] == kind and len(chain) < 4096:
+            chain.append(refs[pointer - 8][1])
             pointer = struct.unpack_from("<I", data, pointer - 8 + next_field)[0]
+        if chain:
+            self._terminal[(tag, chain[-1])] = pointer
         return chain
 
     def _read_glyphs(self, block: bytes) -> None:
@@ -132,6 +168,9 @@ class Font:
         return result
 
     def width_entries(self) -> Dict[int, Tuple[int, int, int]]:
+        """``{glyph: (left, glyph width, advance)}``: from the HDWC tables, or from row 0 of each glyph."""
+        if self.row0_widths:
+            return {index: (glyph[0], glyph[1], glyph[2]) for index, glyph in enumerate(self.glyphs)}
         result: Dict[int, Tuple[int, int, int]] = {}
         for first, entries in self.widths:
             for offset, entry in enumerate(entries):
@@ -166,7 +205,7 @@ class Font:
         return struct.unpack_from("bBB", self.finf, 12)
 
     def decode(self, glyph: bytes) -> Image.Image:
-        """The ink of one glyph bitmap (grey levels scaled to 0..255)."""
+        """The ink of one glyph bitmap (grey levels scaled to 0..255). Row 0 of a Gen 5 glyph is its widths: no ink."""
         bits, width, height = self.bpp, self.cell_width, self.cell_height
         top = (1 << bits) - 1
         number = int.from_bytes(glyph, "big")
@@ -177,17 +216,22 @@ class Font:
             if shift < 0:
                 break
             pixels[index] = ((number >> shift) & top) * 255 // top
+        if self.row0_widths:
+            pixels[:width] = bytes(width)
         return Image.frombytes("L", (width, height), bytes(pixels))
 
     def encode(self, ink: Image.Image) -> bytes:
-        """A glyph bitmap of a cell of ink (the inverse of ``decode``)."""
+        """A glyph bitmap of a cell of ink (the inverse of ``decode``). Row 0 of a Gen 5 glyph is left for its widths."""
         bits, top = self.bpp, (1 << self.bpp) - 1
         number = 0
         for value in ink.tobytes():
             number = number << bits | (value * top + 127) // 255
         total = self.glyph_size * 8
         used = self.cell_width * self.cell_height * bits
-        return (number << (total - used)).to_bytes(self.glyph_size, "big")
+        data = (number << (total - used)).to_bytes(self.glyph_size, "big")
+        if self.row0_widths:
+            data = bytes(self.cell_width * bits // 8) + data[self.cell_width * bits // 8:]
+        return data
 
     # -- writing ---------------------------------------------------------------------------------
 
@@ -203,14 +247,18 @@ class Font:
             at += len(block)
         out = bytearray(self.header + b"".join(pieces))
         finf = starts[("finf", 0)]
-        struct.pack_into("<I", out, finf + 0x10, starts[("cglp", 0)] + 8)
-        for chain, kind, field, next_field in ((self.width_chain, "cwdh", 0x14, 12),
-                                               (self.map_chain, "cmap", 0x18, 16)):
-            struct.pack_into("<I", out, finf + field, starts[(kind, chain[0])] + 8 if chain else 0)
+        first_width = ("cwdh", self.width_chain[0]) if self.width_chain else self.finf_refs.get(0x14)
+        first_map = ("cmap", self.map_chain[0]) if self.map_chain else self.finf_refs.get(0x18)
+        for field, ref in ((0x10, ("cglp", 0)), (0x14, first_width), (0x18, first_map)):
+            struct.pack_into("<I", out, finf + field, starts[ref] + 8 if ref in starts else 0)
+        for chain, kind, next_field in ((self.width_chain, "cwdh", 12), (self.map_chain, "cmap", 16)):
             for current, following in zip(chain, chain[1:] + [None]):
-                pointer = starts[(kind, following)] + 8 if following is not None else 0
+                pointer = starts[(kind, following)] + 8 if following is not None else self._terminal.get((kind, current), 0)
                 struct.pack_into("<I", out, starts[(kind, current)] + next_field, pointer)
-        struct.pack_into("<IHH", out, 8, len(out), len(self.header), len(self.order))
+        # The declared size and block count move with the blocks added or removed; an unedited file keeps its own.
+        grown = len(out) - self._length
+        struct.pack_into("<IHH", out, 8, self.declared_size + grown, len(self.header),
+                         self.declared_blocks + len(self.order) - self._order_count)
         return bytes(out)
 
     def _block(self, kind: str, index: int) -> bytes:
@@ -323,6 +371,7 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
 
     widths = font.width_entries()
     default = font.defaults()
+    left_range = (0, 255) if font.row0_widths else (-128, 127)
     entries: Dict[int, Tuple[int, int, int]] = {}
     for index in range(last + 1):
         box = _box(font, columns, index)
@@ -348,21 +397,26 @@ def pack(metadata: Metadata, sheets: Sheets, original: bytes, params: Dict[str, 
         if advance == was_advance and left == was_left and glyph_width != was_glyph:
             # the spacing to the right of the glyph is kept: the advance moves with the glyph's width
             advance = left + glyph_width + (was_advance - was_left - was_glyph)
-        entries[index] = (_clamp(left, -128, 127), _clamp(glyph_width, 0, 255), _clamp(advance, 0, 255))
+        entries[index] = (_clamp(left, *left_range), _clamp(glyph_width, 0, 255), _clamp(advance, 0, 255))
 
-    # Widths of the glyphs the file describes, then the new glyphs at the end of the range that ends the font.
-    for block in font.widths:
-        first, block_entries = block
-        block[1] = [entries.get(first + offset, entry) for offset, entry in enumerate(block_entries)]
-    if last >= count:
-        tail = next((block for block in font.widths if block[0] + len(block[1]) == count), None)
-        added = [entries[index] for index in range(count, last + 1)]
-        if tail is not None:
-            tail[1].extend(added)
-        else:
-            font.widths.append([count, added])
-            font.order.insert(_after(font, "cwdh"), ("cwdh", len(font.widths) - 1))
-            font.width_chain.append(len(font.widths) - 1)
+    if font.row0_widths:
+        # Gen 5: the widths are the glyph's row 0 (every glyph, the new ones too).
+        for index, entry in entries.items():
+            font.glyphs[index] = bytes(entry) + font.glyphs[index][len(entry):]
+    else:
+        # Widths of the glyphs the file describes, then the new glyphs at the end of the range that ends the font.
+        for block in font.widths:
+            first, block_entries = block
+            block[1] = [entries.get(first + offset, entry) for offset, entry in enumerate(block_entries)]
+        if last >= count:
+            tail = next((block for block in font.widths if block[0] + len(block[1]) == count), None)
+            added = [entries[index] for index in range(count, last + 1)]
+            if tail is not None:
+                tail[1].extend(added)
+            else:
+                font.widths.append([count, added])
+                font.order.insert(_after(font, "cwdh"), ("cwdh", len(font.widths) - 1))
+                font.width_chain.append(len(font.widths) - 1)
 
     # New codes: a table slot, else the scan list that covers them, else a new scan list.
     loose: List[Tuple[int, int]] = []

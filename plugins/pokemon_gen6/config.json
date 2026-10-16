@@ -1,6 +1,18 @@
 {
     "display_name": "Pokémon X/Y + Omega Ruby/Alpha Sapphire (3DS)",
-    "default_tag_mappings": {},
+    "default_tag_mappings": {
+        "{PLAYER}": "{VAR 0100 0000}",
+        "{POKEMON}": "{VAR 0101 0000}",
+        "{OPPONENT}": "{VAR 0102 0000}",
+        "{ITEM}": "{VAR 0109 0000}",
+        "{ITEMALT}": "{VAR 0109 0001}",
+        "{COLORON}": "{COLOR 0001}",
+        "{COLORTWO}": "{COLOR 0002}",
+        "{COLOROFF}": "{COLOR 0000}",
+        "{WAITSHORT}": "{WAIT 0005}",
+        "{WAITLONG}": "{WAIT 001E}",
+        "{PLURALS}": "{PLURAL 00FE||s}"
+    },
     "block_names": {},
     "block_color_markers": {},
     "newline_display_symbol": "↵",

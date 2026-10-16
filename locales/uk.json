@@ -2366,5 +2366,10 @@
   "Large text": "Великий текст",
   "Sections": "Розділи",
   "Contents": "Зміст",
-  "Page {0}": "Сторінка {0}"
+  "Page {0}": "Сторінка {0}",
+  "A line is wider than the box.": "Один рядок ширший за вікно.",
+  "More text follows on the next page or line.": "Далі йде ще текст на наступній сторінці або рядку.",
+  "Reading the game font...": "Читаю шрифт гри...",
+  "This game has no message window facts.": "Для цієї гри немає даних про вікно повідомлень.",
+  "The game font is not in this project.": "Шрифту гри немає в цьому проєкті."
 }
