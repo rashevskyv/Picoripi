@@ -2378,5 +2378,8 @@
   "The update file is not the update of this game.": "Файл оновлення не належить до цієї гри.",
   "The source folder has no single game archive set: unpack the game again.": "У папці source немає одного набору архівів гри: розпакуйте гру знову.",
   "The original archive {0} is not in the source folder: unpack the game again.": "Оригінального архіву {0} немає в папці source: розпакуйте гру знову.",
-  "The rebuilt archive {0} does not hold member {1}.": "Зібраний архів {0} не містить файлу {1}."
+  "The rebuilt archive {0} does not hold member {1}.": "Зібраний архів {0} не містить файлу {1}.",
+  "This Pokémon X / Y or Omega Ruby / Alpha Sapphire title is not known: {0}.": "Ця назва Pokémon X / Y або Omega Ruby / Alpha Sapphire невідома: {0}.",
+  "The member {0} of {1} is not a pack: its translated parts cannot be put back.": "Член {0} архіву {1} не є пакетом: перекладені частини не можна повернути на місце.",
+  "The darc has no file {0}.": "У darc немає файлу {0}."
 }

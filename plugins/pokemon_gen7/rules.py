@@ -157,7 +157,8 @@ class GameRules(BaseGameRules):
             return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
         try:
             title = garc_mod.base_title(Path(source_dir))
-            result = garc_mod.build(Path(source_dir), Path(translation_dir), Path(output_dir), title, unpack.GARCS,
+            result = garc_mod.build(Path(source_dir), Path(translation_dir), Path(output_dir), title,
+                                    garc_mod.stored_garcs(Path(source_dir), title),
                                     progress, is_cancelled)
         except garc_mod.ModError as error:
             raise ValueError(str(error)) from None
