@@ -26,7 +26,7 @@ Read the row, then open only the document you need.
 | `docs/wiki/3_Plugin_Developer_Guide.md` (+uk) | The one plugin guide: files, hooks, capabilities, tests | 13.0k | current | plugins/ |
 | `docs/wiki/4_Configuration_Guide.md` (+uk) | Settings files, project files, where data is stored | 2.1k | current | core/settings |
 | `docs/wiki/5_Gemini_Web2API.md` (+uk) | The local Gemini proxy: start, settings, errors | 2.1k | current | core/translation/providers.py |
-| `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.3k | current | ui/updaters/block_list |
+| `docs/wiki/6_Virtual_Navigation_and_Preview.md` (+uk) | Virtual folders, story and speaker views, preview | 1.4k | current | ui/updaters/block_list |
 | `docs/wiki/7_Maintaining_This_Wiki.md` (+uk) | Which page owns which fact; how to update EN and UK | 0.7k | current | docs/wiki |
 | `docs/wiki/8_Localization_Pipeline.md` (+uk) | Pipeline wizard: script, glossary build, reconcile | 4.2k | current | core/glossary_build, core/glossary |
 | `docs/wiki/9_Script_Markup.md` (+uk) | Script Markup Studio | 1.8k | current | core/script_markup, ui/script_markup |
