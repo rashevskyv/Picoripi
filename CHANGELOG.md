@@ -2,6 +2,9 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- 3DS system preview draws the string in its console layout when the string's text pane is in one: a label named by the user data of a text pane, or a line baked in a layout (System Settings startup). The pane is outlined; the backdrop is a placeholder and the status line says so. Other strings keep the budget box (`plugins/system_3ds/layout_render.py`, `preview_panel.py`, `rules.py`: `part_of` for layouts; `layout_render.link_of` looks a key up; links from `scripts/build_system_3ds_layouts.py` into `plugins/system_3ds/layout_links.json`; tests in `tests/test_plugins/test_system_3ds/test_layout_link.py`, `test_layout_real.py`; `uk.json` has the status texts).
+- manual_3ds `repo_tools.Tools` gives the owner's DARC reader (`darc`, None when a test builds Tools without it), so the 3DS system preview reads the layouts through the same tools.
+
 - 3DS system live preview: the selected string is drawn as a budget box in the console's system font, with the real width and line budgets, a red rule on an overflowing line and a status line with the numbers and missing glyphs (`plugins/system_3ds/box.py`, `preview_panel.py`, `rules.py`: `budget`, `line_budget`, `part_of`; tests in `tests/test_plugins/test_system_3ds/test_box.py`, `test_box_real.py`; `uk.json` has the status texts).
 - 3DS system budgets carry each label's line budget (`budgets.json` `lines`, from the owner's validate.py `budget.lines`; the widths are unchanged, `scripts/build_system_3ds_budgets.py`).
 

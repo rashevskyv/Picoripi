@@ -353,12 +353,16 @@ class GameRules(BaseGameRules):
         return int(value) if value else None
 
     def part_of(self, block_idx: int) -> str:
-        """The part folder of a block ("home_menu" for strings/home_menu/...), or "" when the block is not one."""
+        """The part of a block: the folder of strings/<part>/... or the stem of layouts/<part>.json; "" otherwise."""
         blocks = self._project_blocks()
         if not 0 <= block_idx < len(blocks):
             return ""
         parts = str(blocks[block_idx].source_file).replace("\\", "/").split("/")
-        return parts[1] if len(parts) == 3 and parts[0] == "strings" else ""
+        if len(parts) == 3 and parts[0] == "strings":
+            return parts[1]
+        if len(parts) == 2 and parts[0] == "layouts":
+            return Path(parts[1]).stem
+        return ""
 
     def line_widths_of(self, text: str) -> List[float]:
         """The painted width of each line in font pixels (the owner's measure; reads widths.json once)."""

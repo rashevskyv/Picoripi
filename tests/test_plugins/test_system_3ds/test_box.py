@@ -131,7 +131,8 @@ def test_the_panel_paints_a_result_and_states_its_numbers(qtbot):
     qtbot.addWidget(panel)
     panel._generation = 1
     result = box.draw_box("abc\nde", [12.0, 41.0], 40, 1, _glyphs())
-    panel._on_rendered(1, ("", "abc\nde", 40, 1), result)
+    shown = preview_panel.Shown(result.image, preview_panel.status_text(result))
+    panel._on_rendered(1, ("", "abc\nde", 40, 1), shown)
     assert panel._image is not None
     assert panel._image.width() == result.image.width
     assert "wider than the budget" in panel._status.text()

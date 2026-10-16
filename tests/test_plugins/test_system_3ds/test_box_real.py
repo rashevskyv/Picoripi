@@ -83,4 +83,4 @@ def test_the_panel_draws_a_label_on_the_worker_path(real_glyphs, monkeypatch):
     request = preview_panel._Request("", text, 157, 1, "", rules.line_widths_of)
     result = preview_panel.draw_request(request, lambda: False)
     assert result is not None
-    assert result.wide_lines == []
+    assert "wider than the budget" not in result.status

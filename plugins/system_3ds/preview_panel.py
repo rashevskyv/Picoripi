@@ -1,9 +1,10 @@
-"""The live preview of a 3DS system string: its budget box, drawn with the console's system font.
+"""The live preview of a 3DS system string: the layout that holds it, or its budget box.
 
-The panel shows the box of the selected string (box.py) and a status line with the numbers: the widest line against
-the width budget, the line count against the line budget, and the characters the font cannot draw. The font and the
-widths come from the owner's repo_manual folder (the same folder the manual preview uses, set there). Drawing runs in
-a QThread worker; the panel only paints the picture it gets back.
+A string with a layout link (layout_render.py) is drawn in place: its text pane in the layout, outlined. Any other string
+gets its budget box (box.py), with the system font and the owner's width and line budgets. The status line states the
+numbers, and that the backdrop is a placeholder for an in-place layout. The font, widths and layouts come from the
+owner's repo_manual folder (the same folder the manual preview uses, set there). Drawing runs in a QThread worker; the
+panel only paints the picture it gets back.
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ from plugins.manual_3ds import console_render as cr
 from plugins.manual_3ds import repo_tools
 from plugins.manual_3ds.page_build import load_folder, save_folder
 from plugins.system_3ds import box
+from plugins.system_3ds import layout_render as lr
 from utils.logging_utils import log_warning
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
@@ -37,7 +39,9 @@ def _no_budget(_text: str) -> List[float]:
 
 @dataclass
 class _Request:
-    """What a worker draws. ``line_widths_of`` reads widths.json once, so the worker calls it, not the UI thread."""
+    """What a worker draws. ``line_widths_of`` reads widths.json once, so the worker calls it, not the UI thread.
+
+    ``part`` and ``string_key`` find the string's layout link (layout_render.link_of); the worker reads the links file."""
 
     root: str
     text: str
@@ -45,24 +49,61 @@ class _Request:
     line_budget: Optional[int]
     save_root: str
     line_widths_of: Callable[[str], List[float]]
+    part: str = ""
+    string_key: Optional[str] = None
 
     @property
-    def key(self) -> Tuple[str, str, Optional[int], Optional[int]]:
-        return self.root, self.text, self.width_budget, self.line_budget
+    def key(self) -> Tuple[Any, ...]:
+        return self.root, self.text, self.width_budget, self.line_budget, self.part, self.string_key
 
 
-def draw_request(request: _Request, should_stop: Callable[[], bool]) -> Optional[box.BoxResult]:
-    """Draw the box of one request; None when stopped. Raises repo_tools.ToolsError when the folder has no font."""
+@dataclass
+class Shown:
+    """What the panel paints: the picture and the status line that states its numbers."""
+
+    image: Image.Image
+    status: str
+
+
+def layout_status(drawn: lr.LinkedDraw) -> str:
+    """The status line of an in-place layout: its pane, the wrapped lines and what the render could not draw."""
+    parts = [tr("In place: pane {0} of the console layout (outlined).", drawn.pane)]
+    if drawn.kind == "spec":
+        parts.append(tr("Other languages of the pane are drawn as stored."))
+    if drawn.wrapped:
+        parts.append(tr("{0} line(s) of the pane wrap.", drawn.wrapped))
+    if drawn.missing_glyphs:
+        parts.append(tr("Missing glyphs: {0}", "".join(drawn.missing_glyphs)))
+    parts.append(tr("Backdrop: placeholder, not the console's."))
+    return " ".join(parts)
+
+
+def draw_request(request: _Request, should_stop: Callable[[], bool]) -> Optional[Shown]:
+    """Draw one request; None when stopped. Raises repo_tools.ToolsError when the folder is not set or has no font."""
     root = request.root or load_folder()
     if not root:
         raise repo_tools.ToolsError(repo_tools.NO_FOLDER)
+    link = lr.link_of(request.part, request.string_key)
+    note = ""
+    if link is not None:
+        try:
+            drawn = lr.draw_link(root, link, request.text, should_stop)
+        except repo_tools.ToolsError:
+            raise
+        except Exception as exc:  # the layout did not read: the budget box is shown, and the status says so
+            note = tr("The layout did not draw ({0}); the budget box is shown.", repr(exc))
+        else:
+            if drawn is None:
+                return None
+            return Shown(drawn.image, layout_status(drawn))
     tools = repo_tools.load_tools(root)
     font = repo_tools.load_font(tools)
     glyphs = cr.Glyphs(font, tools.bcfnt)
     widths = request.line_widths_of(request.text)
     if should_stop():
         return None
-    return box.draw_box(request.text, widths, request.width_budget, request.line_budget, glyphs)
+    result = box.draw_box(request.text, widths, request.width_budget, request.line_budget, glyphs)
+    return Shown(result.image, " ".join(part for part in (status_text(result), note) if part))
 
 
 def _qimage(image: Image.Image) -> QImage:
@@ -72,7 +113,7 @@ def _qimage(image: Image.Image) -> QImage:
 
 
 class BoxRenderWorker(WorkerThread):
-    """Draws one request. ``rendered`` carries (generation, request key, BoxResult or an error message)."""
+    """Draws one request. ``rendered`` carries (generation, request key, Shown or an error message)."""
 
     rendered = pyqtSignal(int, object, object)
 
@@ -136,7 +177,7 @@ class SystemPreviewPanel(QWidget):
         self._save_pending = ""    # a folder the user chose; the next worker stores it
         self._image: Optional[QImage] = None
         self._generation = 0
-        self._cache: "OrderedDict[Any, box.BoxResult]" = OrderedDict()
+        self._cache: "OrderedDict[Any, Shown]" = OrderedDict()
         self._workers: List[BoxRenderWorker] = []
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
@@ -187,7 +228,8 @@ class SystemPreviewPanel(QWidget):
             return
         text = self._mw.data_processor.get_current_string_text(block, index)[0] or ""
         request = _Request(self._root, text, self._rules.budget(block, index), self._rules.line_budget(block, index),
-                           self._save_pending, partial(self._rules.line_widths_of))
+                           self._save_pending, partial(self._rules.line_widths_of), self._rules.part_of(block),
+                           self._rules.string_key(block, index))
         self._save_pending = ""
         if request.key in self._cache:
             self._cache.move_to_end(request.key)
@@ -224,9 +266,9 @@ class SystemPreviewPanel(QWidget):
         self._status.setText(text)
         self._canvas.update()
 
-    def _show_result(self, result: box.BoxResult) -> None:
+    def _show_result(self, result: Shown) -> None:
         self._image = _qimage(result.image)
-        self._status.setText(status_text(result))
+        self._status.setText(result.status)
         self._canvas.update()
 
     def _choose_folder(self) -> None:
