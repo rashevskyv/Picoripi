@@ -98,9 +98,9 @@ def test_sword_wizard_unpack_matches_the_workspace_source(tmp_path):
     ours = {p.relative_to(unpacked).as_posix(): p for p in unpacked.rglob("*") if p.is_file()}
     theirs = {p.relative_to(SWORD / "source").as_posix(): p
               for p in (SWORD / "source").rglob("*") if p.is_file()}
-    # the workspace source predates the dialogue layout (bin/appli/msg/bin/msg_00.arc): it is the only extra file
+    # the wizard output and the workspace source hold the same files (the dialogue layout is in both)
     assert theirs.keys() <= ours.keys() and len(theirs) > 2000
-    assert set(ours) - set(theirs) == {"bin/appli/msg/bin/msg_00.arc"}
+    assert set(ours) == set(theirs)
     assert all(_sha(ours[name]) == _sha(theirs[name]) for name in theirs)
 
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import threading
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
@@ -21,15 +22,23 @@ from core.i18n import tr
 from plugins.common import flyt_message as fm
 from plugins.common.message_window import split_pages
 from utils.logging_utils import log_debug
-from utils.thread_utils import WorkerThread
+from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
 SCALE = 1.0
 LAYOUT = "bin/appli/msg/bin/msg_00.arc"
 LAYOUT_MEMBER = "blyt/msg_00.bflyt"
 FCPX_MEMBER = "fcpx/system54_jpn.bfcpx"
 FONT_DIR = "bin/font"
+# The text font and its em. Measured, not read from the layout: the game's hand-broken dialogue lines fit the 1080 px
+# pane only with FOT-UDKakugoC80Pro at 44 px (the largest broken line is 1078 px; at 54 px a third of them would
+# not fit). The language screen's band text (UA TEST, Eden frame) is 502 px: UDKakugo at 44 px gives 501 px.
+# The layout's own fcpx names Rodin first; the in-game binding is not read yet. Rodin and or_font only add glyphs
+# that UDKakugo lacks.
+MESSAGE_FONTS = ["FOT-UDKakugoC80Pro-DB.otf", "FOT-RodinNTLGPro-DB.otf", "or_font.otf"]
+MESSAGE_EM = 44.0
 WINDOW_BG = (238, 240, 242, 255)     # the window texture is not read yet: a flat light box stands in for it
 _MARGIN = 10
+WORKER_STOP_MS = 2000               # the bounded wait for the layout read when the widget is closed
 
 
 def source_folder(project_dir: str) -> Optional[str]:
@@ -97,7 +106,7 @@ class LayoutLoader(WorkerThread):
             root = Path(self._source_dir)
             arc = Sarc((root / LAYOUT).read_bytes())
             layout = fm.read_layout(arc.files[LAYOUT_MEMBER], arc.files[FCPX_MEMBER])
-            faces = [fm.Face.from_bfotf(path.read_bytes()) for path in font_files(root / FONT_DIR, layout.fonts)]
+            faces = [fm.Face.from_bfotf(path.read_bytes()) for path in font_files(root / FONT_DIR, MESSAGE_FONTS)]
             result = (layout, fm.FontChain(faces))
         except (OSError, ValueError, KeyError, IndexError, FileNotFoundError) as exc:
             log_debug(f"switch message preview: no dialogue layout for {self._source_dir}: {exc}")
@@ -132,6 +141,7 @@ class SwitchMessagePreview(QWidget):
     def shutdown(self) -> None:
         if self._loader is not None:
             self._loader.cancel()
+            safe_shutdown_thread(self._loader, self._loader, WORKER_STOP_MS)
             self._loader = None
         self._loaded = None
 
@@ -165,10 +175,11 @@ class SwitchMessagePreview(QWidget):
             self.update()
             return
         layout, chain = self._loaded
+        layout = replace(layout, panes=[replace(pane, size=(MESSAGE_EM, MESSAGE_EM)) for pane in layout.panes])
         page = (split_pages(self._text) or [[]])[0]
         lines = [[page[i][0]] if i < len(page) else [] for i in range(len(layout.panes))]
         wide = [i for i, pane in enumerate(layout.panes) if lines[i] and fm.overflow(pane, chain, lines[i][0])]
-        image, _ = fm.render_window(layout, chain, lines, background=WINDOW_BG)
+        image = fm.render_window(layout, chain, lines, background=WINDOW_BG)
         self._image = _to_qimage(image)
         notes = []
         if wide:

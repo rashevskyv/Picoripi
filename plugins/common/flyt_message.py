@@ -45,11 +45,13 @@ class TextPane:
 
 @dataclass(frozen=True)
 class MessageLayout:
-    """A message window: the canvas size, its frame (the first ``wnd1``), the text panes and the font names."""
+    """A message window: the canvas size, its frame (the first ``wnd1``), the message panes (visible ``txt1``
+    panes inside the frame, one line each, in order), the speaker-name pane and the font names."""
     canvas: Tuple[float, float]
     window: Optional[Rect]
     panes: List[TextPane]
     fonts: List[str]                 # font names of the layout's font setting, in fallback order
+    name: Optional[TextPane] = None  # the speaker-name pane (hidden, or outside the frame); not drawn yet
 
 
 def font_names(fcpx: bytes) -> List[str]:
@@ -63,20 +65,31 @@ def _rect(pane: cr.Pane, canvas: Tuple[float, float]) -> Rect:
     return (cx - pane.w / 2, cy - pane.h / 2, cx + pane.w / 2, cy + pane.h / 2)
 
 
+def _inside(rect: Rect, outer: Rect) -> bool:
+    return rect[0] >= outer[0] - 0.5 and rect[1] >= outer[1] - 0.5 and rect[2] <= outer[2] + 0.5 and rect[3] <= outer[3] + 0.5
+
+
 def read_layout(layout: bytes, fcpx: bytes) -> MessageLayout:
-    """The message window of a FLYT layout (its text panes, its first window frame) and its font names."""
+    """The message window of a FLYT layout (its message panes, its frame, the name pane) and its font names."""
     parsed = cr.parse(layout)
     canvas = (parsed.width, parsed.height)
     window: Optional[Rect] = None
-    panes: List[TextPane] = []
+    texts: List[Tuple[cr.Pane, TextPane]] = []
     for pane in parsed.panes:
         if pane.kind == "wnd1" and window is None:
             window = _rect(pane, canvas)
         elif pane.kind == "txt1":
-            panes.append(TextPane(pane.name, _rect(pane, canvas), pane.origin, pane.font_index,
-                                  (pane.font_size[0], pane.font_size[1]), pane.char_space, pane.line_space,
-                                  pane.text_pos, pane.text_align, _colour(pane.colours[0])))
-    return MessageLayout(canvas, window, panes, font_names(fcpx))
+            texts.append((pane, TextPane(pane.name, _rect(pane, canvas), pane.origin, pane.font_index,
+                                         (pane.font_size[0], pane.font_size[1]), pane.char_space, pane.line_space,
+                                         pane.text_pos, pane.text_align, _colour(pane.colours[0]))))
+    panes: List[TextPane] = []
+    name: Optional[TextPane] = None
+    for raw, text in texts:
+        if window is not None and raw.visible and _inside(text.rect, window):
+            panes.append(text)
+        elif name is None:
+            name = text
+    return MessageLayout(canvas, window, panes, font_names(fcpx), name)
 
 
 def _colour(value: Tuple[int, int, int, int]) -> RGBA:
@@ -176,19 +189,17 @@ def draw_pane(image: Image.Image, pane: TextPane, chain: FontChain, lines: List[
 
 
 def render_window(layout: MessageLayout, chain: FontChain, lines_by_pane: Sequence[List[str]],
-                  background: RGBA = (0, 0, 0, 0)) -> Tuple[Image.Image, List[int]]:
-    """The canvas with the window's text: the lines of each pane in layout order (the first pane gets the first
-    line of a page, and so on). Returns the image cropped to the window and the (pane, line) pairs too wide."""
+                  background: RGBA = (0, 0, 0, 0)) -> Image.Image:
+    """The window with its text: pane i gets ``lines_by_pane[i]``. Cropped to the window frame when there is one.
+    A line wider than its pane is drawn anyway; the caller reports it with ``overflow``."""
     width, height = (int(v) for v in layout.canvas)
     image = Image.new("RGBA", (width, height), background)
-    wide: List[int] = []
     for pane, lines in zip(layout.panes, lines_by_pane):
-        for index in draw_pane(image, pane, chain, lines):
-            wide.append(index)
+        draw_pane(image, pane, chain, lines)
     if layout.window is not None:
         x0, y0, x1, y1 = (int(round(v)) for v in layout.window)
-        return image.crop((max(0, x0), max(0, y0), min(width, x1), min(height, y1))), wide
-    return image, wide
+        return image.crop((max(0, x0), max(0, y0), min(width, x1), min(height, y1)))
+    return image
 
 
 __all__ = ["Face", "FontChain", "MessageLayout", "TextPane", "draw_pane", "font_names", "line_pitch", "overflow",
