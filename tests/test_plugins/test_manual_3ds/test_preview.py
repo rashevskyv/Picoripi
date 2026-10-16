@@ -543,3 +543,19 @@ def test_the_view_follows_the_size_of_the_selected_string(qtbot, monkeypatch):
     panel._start_render()
     assert panel._large is True
     panel.shutdown()
+
+
+def test_the_size_button_keeps_the_other_size_while_the_selection_stays(qtbot, monkeypatch):
+    monkeypatch.setattr(preview_panel, "load_folder", lambda: "")
+    rules = m3d.GameRules()
+    rules.load_data_from_json_obj(_document([KEY_A]))
+    store = _Store(["Text"])
+    store.current_string_idx = 0
+    panel = preview_panel.ManualPreviewPanel(store, rules)
+    qtbot.addWidget(panel)
+    panel._start_render()
+    assert panel._large is True
+    panel._large = False   # what toggle_size does before its refresh
+    panel._start_render()  # a text edit or the toggle's own refresh: same string
+    assert panel._large is False
+    panel.shutdown()
