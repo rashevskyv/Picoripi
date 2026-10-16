@@ -2,6 +2,7 @@
  "build_name": "pokeyellow",
  "rom_sha1": "cc7d03262ebfaf2f06772c1a480c7d9d5f4a38e1",
  "rom_size": 1048576,
+ "profile": "gen1",
  "charmap": [
   [
    "e",
@@ -22909,7 +22910,8 @@
      "fixed": false,
      "far": [
       263825
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IvysaurDexEntry",
@@ -22918,7 +22920,8 @@
      "fixed": false,
      "far": [
       263839
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VenusaurDexEntry",
@@ -22927,7 +22930,8 @@
      "fixed": false,
      "far": [
       263853
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CharmanderDexEntry",
@@ -22936,7 +22940,8 @@
      "fixed": false,
      "far": [
       263869
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CharmeleonDexEntry",
@@ -22945,7 +22950,8 @@
      "fixed": false,
      "far": [
       263884
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CharizardDexEntry",
@@ -22954,7 +22960,8 @@
      "fixed": false,
      "far": [
       263899
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SquirtleDexEntry",
@@ -22963,7 +22970,8 @@
      "fixed": false,
      "far": [
       263919
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WartortleDexEntry",
@@ -22972,7 +22980,8 @@
      "fixed": false,
      "far": [
       263935
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BlastoiseDexEntry",
@@ -22981,7 +22990,8 @@
      "fixed": false,
      "far": [
       263954
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CaterpieDexEntry",
@@ -22990,7 +23000,8 @@
      "fixed": false,
      "far": [
       263968
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MetapodDexEntry",
@@ -22999,7 +23010,8 @@
      "fixed": false,
      "far": [
       263984
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ButterfreeDexEntry",
@@ -23008,7 +23020,8 @@
      "fixed": false,
      "far": [
       264003
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WeedleDexEntry",
@@ -23017,7 +23030,8 @@
      "fixed": false,
      "far": [
       264022
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KakunaDexEntry",
@@ -23026,7 +23040,8 @@
      "fixed": false,
      "far": [
       264038
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BeedrillDexEntry",
@@ -23035,7 +23050,8 @@
      "fixed": false,
      "far": [
       264058
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PidgeyDexEntry",
@@ -23044,7 +23060,8 @@
      "fixed": false,
      "far": [
       264077
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PidgeottoDexEntry",
@@ -23053,7 +23070,8 @@
      "fixed": false,
      "far": [
       264091
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PidgeotDexEntry",
@@ -23062,7 +23080,8 @@
      "fixed": false,
      "far": [
       264105
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RattataDexEntry",
@@ -23071,7 +23090,8 @@
      "fixed": false,
      "far": [
       264118
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RaticateDexEntry",
@@ -23080,7 +23100,8 @@
      "fixed": false,
      "far": [
       264131
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SpearowDexEntry",
@@ -23089,7 +23110,8 @@
      "fixed": false,
      "far": [
       264150
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FearowDexEntry",
@@ -23098,7 +23120,8 @@
      "fixed": false,
      "far": [
       264164
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EkansDexEntry",
@@ -23107,7 +23130,8 @@
      "fixed": false,
      "far": [
       264179
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ArbokDexEntry",
@@ -23116,7 +23140,8 @@
      "fixed": false,
      "far": [
       264194
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PikachuDexEntry",
@@ -23125,7 +23150,8 @@
      "fixed": false,
      "far": [
       264209
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RaichuDexEntry",
@@ -23134,7 +23160,8 @@
      "fixed": false,
      "far": [
       264224
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SandshrewDexEntry",
@@ -23143,7 +23170,8 @@
      "fixed": false,
      "far": [
       264239
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SandslashDexEntry",
@@ -23152,7 +23180,8 @@
      "fixed": false,
      "far": [
       264254
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NidoranFDexEntry",
@@ -23161,7 +23190,8 @@
      "fixed": false,
      "far": [
       264274
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NidorinaDexEntry",
@@ -23170,7 +23200,8 @@
      "fixed": false,
      "far": [
       264294
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NidoqueenDexEntry",
@@ -23179,7 +23210,8 @@
      "fixed": false,
      "far": [
       264309
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NidoranMDexEntry",
@@ -23188,7 +23220,8 @@
      "fixed": false,
      "far": [
       264329
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NidorinoDexEntry",
@@ -23197,7 +23230,8 @@
      "fixed": false,
      "far": [
       264349
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NidokingDexEntry",
@@ -23206,7 +23240,8 @@
      "fixed": false,
      "far": [
       264364
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ClefairyDexEntry",
@@ -23215,7 +23250,8 @@
      "fixed": false,
      "far": [
       264379
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ClefableDexEntry",
@@ -23224,7 +23260,8 @@
      "fixed": false,
      "far": [
       264394
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VulpixDexEntry",
@@ -23233,7 +23270,8 @@
      "fixed": false,
      "far": [
       264407
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NinetalesDexEntry",
@@ -23242,7 +23280,8 @@
      "fixed": false,
      "far": [
       264420
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_JigglypuffDexEntry",
@@ -23251,7 +23290,8 @@
      "fixed": false,
      "far": [
       264437
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WigglytuffDexEntry",
@@ -23260,7 +23300,8 @@
      "fixed": false,
      "far": [
       264454
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ZubatDexEntry",
@@ -23269,7 +23310,8 @@
      "fixed": false,
      "far": [
       264467
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GolbatDexEntry",
@@ -23278,7 +23320,8 @@
      "fixed": false,
      "far": [
       264480
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OddishDexEntry",
@@ -23287,7 +23330,8 @@
      "fixed": false,
      "far": [
       264494
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GloomDexEntry",
@@ -23296,7 +23340,8 @@
      "fixed": false,
      "far": [
       264508
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VileplumeDexEntry",
@@ -23305,7 +23350,8 @@
      "fixed": false,
      "far": [
       264524
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ParasDexEntry",
@@ -23314,7 +23360,8 @@
      "fixed": false,
      "far": [
       264542
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ParasectDexEntry",
@@ -23323,7 +23370,8 @@
      "fixed": false,
      "far": [
       264560
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VenonatDexEntry",
@@ -23332,7 +23380,8 @@
      "fixed": false,
      "far": [
       264576
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VenomothDexEntry",
@@ -23341,7 +23390,8 @@
      "fixed": false,
      "far": [
       264596
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DiglettDexEntry",
@@ -23350,7 +23400,8 @@
      "fixed": false,
      "far": [
       264610
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DugtrioDexEntry",
@@ -23359,7 +23410,8 @@
      "fixed": false,
      "far": [
       264624
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MeowthDexEntry",
@@ -23368,7 +23420,8 @@
      "fixed": false,
      "far": [
       264644
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PersianDexEntry",
@@ -23377,7 +23430,8 @@
      "fixed": false,
      "far": [
       264664
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PsyduckDexEntry",
@@ -23386,7 +23440,8 @@
      "fixed": false,
      "far": [
       264678
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GolduckDexEntry",
@@ -23395,7 +23450,8 @@
      "fixed": false,
      "far": [
       264692
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MankeyDexEntry",
@@ -23404,7 +23460,8 @@
      "fixed": false,
      "far": [
       264712
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PrimeapeDexEntry",
@@ -23413,7 +23470,8 @@
      "fixed": false,
      "far": [
       264732
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GrowlitheDexEntry",
@@ -23422,7 +23480,8 @@
      "fixed": false,
      "far": [
       264747
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ArcanineDexEntry",
@@ -23431,7 +23490,8 @@
      "fixed": false,
      "far": [
       264766
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PoliwagDexEntry",
@@ -23440,7 +23500,8 @@
      "fixed": false,
      "far": [
       264783
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PoliwhirlDexEntry",
@@ -23449,7 +23510,8 @@
      "fixed": false,
      "far": [
       264800
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PoliwrathDexEntry",
@@ -23458,7 +23520,8 @@
      "fixed": false,
      "far": [
       264817
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AbraDexEntry",
@@ -23467,7 +23530,8 @@
      "fixed": false,
      "far": [
       264830
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KadabraDexEntry",
@@ -23476,7 +23540,8 @@
      "fixed": false,
      "far": [
       264843
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AlakazamDexEntry",
@@ -23485,7 +23550,8 @@
      "fixed": false,
      "far": [
       264856
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MachopDexEntry",
@@ -23494,7 +23560,8 @@
      "fixed": false,
      "far": [
       264876
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MachokeDexEntry",
@@ -23503,7 +23570,8 @@
      "fixed": false,
      "far": [
       264896
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MachampDexEntry",
@@ -23512,7 +23580,8 @@
      "fixed": false,
      "far": [
       264916
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BellsproutDexEntry",
@@ -23521,7 +23590,8 @@
      "fixed": false,
      "far": [
       264932
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WeepinbellDexEntry",
@@ -23530,7 +23600,8 @@
      "fixed": false,
      "far": [
       264952
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VictreebelDexEntry",
@@ -23539,7 +23610,8 @@
      "fixed": false,
      "far": [
       264972
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TentacoolDexEntry",
@@ -23548,7 +23620,8 @@
      "fixed": false,
      "far": [
       264991
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TentacruelDexEntry",
@@ -23557,7 +23630,8 @@
      "fixed": false,
      "far": [
       265010
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GeodudeDexEntry",
@@ -23566,7 +23640,8 @@
      "fixed": false,
      "far": [
       265024
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GravelerDexEntry",
@@ -23575,7 +23650,8 @@
      "fixed": false,
      "far": [
       265038
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GolemDexEntry",
@@ -23584,7 +23660,8 @@
      "fixed": false,
      "far": [
       265055
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PonytaDexEntry",
@@ -23593,7 +23670,8 @@
      "fixed": false,
      "far": [
       265075
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RapidashDexEntry",
@@ -23602,7 +23680,8 @@
      "fixed": false,
      "far": [
       265095
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SlowpokeDexEntry",
@@ -23611,7 +23690,8 @@
      "fixed": false,
      "far": [
       265110
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SlowbroDexEntry",
@@ -23620,7 +23700,8 @@
      "fixed": false,
      "far": [
       265130
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MagnemiteDexEntry",
@@ -23629,7 +23710,8 @@
      "fixed": false,
      "far": [
       265146
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MagnetonDexEntry",
@@ -23638,7 +23720,8 @@
      "fixed": false,
      "far": [
       265162
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FarfetchdDexEntry",
@@ -23647,7 +23730,8 @@
      "fixed": false,
      "far": [
       265181
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DoduoDexEntry",
@@ -23656,7 +23740,8 @@
      "fixed": false,
      "far": [
       265200
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DodrioDexEntry",
@@ -23665,7 +23750,8 @@
      "fixed": false,
      "far": [
       265220
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SeelDexEntry",
@@ -23674,7 +23760,8 @@
      "fixed": false,
      "far": [
       265238
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DewgongDexEntry",
@@ -23683,7 +23770,8 @@
      "fixed": false,
      "far": [
       265256
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GrimerDexEntry",
@@ -23692,7 +23780,8 @@
      "fixed": false,
      "far": [
       265272
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MukDexEntry",
@@ -23701,7 +23790,8 @@
      "fixed": false,
      "far": [
       265288
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ShellderDexEntry",
@@ -23710,7 +23800,8 @@
      "fixed": false,
      "far": [
       265305
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CloysterDexEntry",
@@ -23719,7 +23810,8 @@
      "fixed": false,
      "far": [
       265322
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GastlyDexEntry",
@@ -23728,7 +23820,8 @@
      "fixed": false,
      "far": [
       265335
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HaunterDexEntry",
@@ -23737,7 +23830,8 @@
      "fixed": false,
      "far": [
       265348
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GengarDexEntry",
@@ -23746,7 +23840,8 @@
      "fixed": false,
      "far": [
       265364
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OnixDexEntry",
@@ -23755,7 +23850,8 @@
      "fixed": false,
      "far": [
       265384
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DrowzeeDexEntry",
@@ -23764,7 +23860,8 @@
      "fixed": false,
      "far": [
       265402
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HypnoDexEntry",
@@ -23773,7 +23870,8 @@
      "fixed": false,
      "far": [
       265420
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KrabbyDexEntry",
@@ -23782,7 +23880,8 @@
      "fixed": false,
      "far": [
       265440
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KinglerDexEntry",
@@ -23791,7 +23890,8 @@
      "fixed": false,
      "far": [
       265456
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VoltorbDexEntry",
@@ -23800,7 +23900,8 @@
      "fixed": false,
      "far": [
       265470
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ElectrodeDexEntry",
@@ -23809,7 +23910,8 @@
      "fixed": false,
      "far": [
       265484
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ExeggcuteDexEntry",
@@ -23818,7 +23920,8 @@
      "fixed": false,
      "far": [
       265497
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ExeggutorDexEntry",
@@ -23827,7 +23930,8 @@
      "fixed": false,
      "far": [
       265514
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CuboneDexEntry",
@@ -23836,7 +23940,8 @@
      "fixed": false,
      "far": [
       265530
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MarowakDexEntry",
@@ -23845,7 +23950,8 @@
      "fixed": false,
      "far": [
       265550
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HitmonleeDexEntry",
@@ -23854,7 +23960,8 @@
      "fixed": false,
      "far": [
       265567
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HitmonchanDexEntry",
@@ -23863,7 +23970,8 @@
      "fixed": false,
      "far": [
       265585
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LickitungDexEntry",
@@ -23872,7 +23980,8 @@
      "fixed": false,
      "far": [
       265602
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KoffingDexEntry",
@@ -23882,7 +23991,8 @@
      "end_char": true,
      "far": [
       265622
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WeezingDexEntry",
@@ -23891,7 +24001,8 @@
      "fixed": false,
      "far": [
       265642
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RhyhornDexEntry",
@@ -23900,7 +24011,8 @@
      "fixed": false,
      "far": [
       265658
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RhydonDexEntry",
@@ -23909,7 +24021,8 @@
      "fixed": false,
      "far": [
       265673
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ChanseyDexEntry",
@@ -23918,7 +24031,8 @@
      "fixed": false,
      "far": [
       265686
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TangelaDexEntry",
@@ -23927,7 +24041,8 @@
      "fixed": false,
      "far": [
       265700
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KangaskhanDexEntry",
@@ -23936,7 +24051,8 @@
      "fixed": false,
      "far": [
       265716
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HorseaDexEntry",
@@ -23945,7 +24061,8 @@
      "fixed": false,
      "far": [
       265732
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SeadraDexEntry",
@@ -23954,7 +24071,8 @@
      "fixed": false,
      "far": [
       265748
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GoldeenDexEntry",
@@ -23963,7 +24081,8 @@
      "fixed": false,
      "far": [
       265766
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SeakingDexEntry",
@@ -23972,7 +24091,8 @@
      "fixed": false,
      "far": [
       265784
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_StaryuDexEntry",
@@ -23981,7 +24101,8 @@
      "fixed": false,
      "far": [
       265803
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_StarmieDexEntry",
@@ -23990,7 +24111,8 @@
      "fixed": false,
      "far": [
       265823
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MrMimeDexEntry",
@@ -23999,7 +24121,8 @@
      "fixed": false,
      "far": [
       265840
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ScytherDexEntry",
@@ -24008,7 +24131,8 @@
      "fixed": false,
      "far": [
       265856
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_JynxDexEntry",
@@ -24017,7 +24141,8 @@
      "fixed": false,
      "far": [
       265876
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ElectabuzzDexEntry",
@@ -24026,7 +24151,8 @@
      "fixed": false,
      "far": [
       265894
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MagmarDexEntry",
@@ -24035,7 +24161,8 @@
      "fixed": false,
      "far": [
       265912
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PinsirDexEntry",
@@ -24044,7 +24171,8 @@
      "fixed": false,
      "far": [
       265932
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TaurosDexEntry",
@@ -24053,7 +24181,8 @@
      "fixed": false,
      "far": [
       265951
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MagikarpDexEntry",
@@ -24062,7 +24191,8 @@
      "fixed": false,
      "far": [
       265965
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GyaradosDexEntry",
@@ -24071,7 +24201,8 @@
      "fixed": false,
      "far": [
       265984
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LaprasDexEntry",
@@ -24080,7 +24211,8 @@
      "fixed": false,
      "far": [
       266003
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DittoDexEntry",
@@ -24089,7 +24221,8 @@
      "fixed": false,
      "far": [
       266022
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EeveeDexEntry",
@@ -24098,7 +24231,8 @@
      "fixed": false,
      "far": [
       266041
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VaporeonDexEntry",
@@ -24107,7 +24241,8 @@
      "fixed": false,
      "far": [
       266061
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_JolteonDexEntry",
@@ -24116,7 +24251,8 @@
      "fixed": false,
      "far": [
       266080
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FlareonDexEntry",
@@ -24125,7 +24261,8 @@
      "fixed": false,
      "far": [
       266095
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PorygonDexEntry",
@@ -24134,7 +24271,8 @@
      "fixed": false,
      "far": [
       266112
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OmanyteDexEntry",
@@ -24143,7 +24281,8 @@
      "fixed": false,
      "far": [
       266128
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OmastarDexEntry",
@@ -24152,7 +24291,8 @@
      "fixed": false,
      "far": [
       266144
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KabutoDexEntry",
@@ -24161,7 +24301,8 @@
      "fixed": false,
      "far": [
       266163
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KabutopsDexEntry",
@@ -24170,7 +24311,8 @@
      "fixed": false,
      "far": [
       266182
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AerodactylDexEntry",
@@ -24179,7 +24321,8 @@
      "fixed": false,
      "far": [
       266198
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SnorlaxDexEntry",
@@ -24188,7 +24331,8 @@
      "fixed": false,
      "far": [
       266216
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ArticunoDexEntry",
@@ -24197,7 +24341,8 @@
      "fixed": false,
      "far": [
       266232
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ZapdosDexEntry",
@@ -24206,7 +24351,8 @@
      "fixed": false,
      "far": [
       266250
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MoltresDexEntry",
@@ -24215,7 +24361,8 @@
      "fixed": false,
      "far": [
       266265
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DratiniDexEntry",
@@ -24224,7 +24371,8 @@
      "fixed": false,
      "far": [
       266281
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DragonairDexEntry",
@@ -24233,7 +24381,8 @@
      "fixed": false,
      "far": [
       266297
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DragoniteDexEntry",
@@ -24242,7 +24391,8 @@
      "fixed": false,
      "far": [
       266313
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MewtwoDexEntry",
@@ -24251,7 +24401,8 @@
      "fixed": false,
      "far": [
       266330
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MewDexEntry",
@@ -24260,7 +24411,8 @@
      "fixed": false,
      "far": [
       266350
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -24288,7 +24440,8 @@
      "fixed": false,
      "far": [
       337489
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CardKeySuccessText2",
@@ -24297,7 +24450,8 @@
      "fixed": false,
      "far": [
       337494
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CardKeyFailText",
@@ -24306,7 +24460,8 @@
      "fixed": false,
      "far": [
       337499
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TrainerNameText",
@@ -24315,7 +24470,8 @@
      "fixed": false,
      "far": [
       13164
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoNibbleText",
@@ -24324,7 +24480,8 @@
      "fixed": false,
      "far": [
       460969
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NothingHereText",
@@ -24333,7 +24490,8 @@
      "fixed": false,
      "far": [
       460974
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItsABiteText",
@@ -24342,7 +24500,8 @@
      "fixed": false,
      "far": [
       460979
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ExclamationText",
@@ -24351,7 +24510,8 @@
      "fixed": false,
      "far": [
       9175
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GroundRoseText",
@@ -24360,7 +24520,8 @@
      "fixed": false,
      "far": [
       9180
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BoulderText",
@@ -24369,7 +24530,8 @@
      "fixed": false,
      "far": [
       9185
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MartSignText",
@@ -24378,7 +24540,8 @@
      "fixed": false,
      "far": [
       9190
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokeCenterSignText",
@@ -24387,7 +24550,8 @@
      "fixed": false,
      "far": [
       9195
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FoundItemText",
@@ -24396,7 +24560,8 @@
      "fixed": false,
      "far": [
       19867
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoMoreRoomForItemText",
@@ -24405,7 +24570,8 @@
      "fixed": false,
      "far": [
       19873
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OaksAideHiText",
@@ -24419,7 +24585,8 @@
      ],
      "far": [
       364329
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OaksAideUhOhText",
@@ -24433,7 +24600,8 @@
      ],
      "far": [
       364334
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OaksAideComeBackText",
@@ -24446,7 +24614,8 @@
      ],
      "far": [
       364339
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OaksAideHereYouGoText",
@@ -24455,7 +24624,8 @@
      "fixed": false,
      "far": [
       364344
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OaksAideGotItemText",
@@ -24464,7 +24634,8 @@
      "fixed": false,
      "far": [
       364349
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OaksAideNoRoomText",
@@ -24473,7 +24644,8 @@
      "fixed": false,
      "far": [
       364355
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NurseChanseyText",
@@ -24482,7 +24654,8 @@
      "fixed": false,
      "far": [
       986914
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -24496,7 +24669,8 @@
      "fixed": false,
      "far": [
       239640
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AIBattleUseItemText",
@@ -24505,21 +24679,24 @@
      "fixed": false,
      "far": [
       239835
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BoxFullDebugText",
      "offset": 646796,
      "size": 18,
      "fixed": false,
-     "far": []
+     "far": [],
+     "movable": true
     },
     {
      "label": "_BoxWillBeClearedText",
      "offset": 646814,
      "size": 26,
      "fixed": false,
-     "far": []
+     "far": [],
+     "movable": true
     },
     {
      "label": "_TradeWentToText",
@@ -24528,7 +24705,8 @@
      "fixed": false,
      "far": [
       268578
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TradeForText",
@@ -24537,7 +24715,8 @@
      "fixed": false,
      "far": [
       268601
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TradeSendsText",
@@ -24546,7 +24725,8 @@
      "fixed": false,
      "far": [
       268606
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TradeWavesFarewellText",
@@ -24555,7 +24735,8 @@
      "fixed": false,
      "far": [
       268632
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TradeTransferredText",
@@ -24564,7 +24745,8 @@
      "fixed": false,
      "far": [
       268637
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TradeTakeCareText",
@@ -24573,7 +24755,8 @@
      "fixed": false,
      "far": [
       268651
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TradeWillTradeText",
@@ -24582,7 +24765,8 @@
      "fixed": false,
      "far": [
       268674
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TradeforText",
@@ -24591,7 +24775,8 @@
      "fixed": false,
      "far": [
       268679
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PlaySlotMachineText",
@@ -24600,7 +24785,8 @@
      "fixed": false,
      "far": [
       226745
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OutOfCoinsSlotMachineText",
@@ -24609,7 +24795,8 @@
      "fixed": false,
      "far": [
       226959
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BetHowManySlotMachineText",
@@ -24618,7 +24805,8 @@
      "fixed": false,
      "far": [
       226964
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_StartSlotMachineText",
@@ -24627,7 +24815,8 @@
      "fixed": false,
      "far": [
       226969
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NotEnoughCoinsSlotMachineText",
@@ -24636,7 +24825,8 @@
      "fixed": false,
      "far": [
       226974
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OneMoreGoSlotMachineText",
@@ -24645,7 +24835,8 @@
      "fixed": false,
      "far": [
       226979
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LinedUpText",
@@ -24654,7 +24845,8 @@
      "fixed": false,
      "far": [
       227489
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NotThisTimeText",
@@ -24663,7 +24855,8 @@
      "fixed": false,
      "far": [
       227531
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_YeahText",
@@ -24672,7 +24865,8 @@
      "fixed": false,
      "far": [
       227664
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DexSeenOwnedText",
@@ -24685,7 +24879,8 @@
      ],
      "far": [
       459859
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DexRatingText",
@@ -24694,7 +24889,8 @@
      "fixed": false,
      "far": [
       459864
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GymStatueText1",
@@ -24703,7 +24899,8 @@
      "fixed": false,
      "far": [
       402979
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GymStatueText2",
@@ -24712,7 +24909,8 @@
      "fixed": false,
      "far": [
       402984
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianCityPokecenterGuyText",
@@ -24721,7 +24919,8 @@
      "fixed": false,
      "far": [
       403068
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PewterCityPokecenterGuyText",
@@ -24730,7 +24929,8 @@
      "fixed": false,
      "far": [
       403073
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CeruleanPokecenterGuyText",
@@ -24739,7 +24939,8 @@
      "fixed": false,
      "far": [
       403078
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LavenderPokecenterGuyText",
@@ -24748,7 +24949,8 @@
      "fixed": false,
      "far": [
       403083
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MtMoonPokecenterBenchGuyText",
@@ -24757,7 +24959,8 @@
      "fixed": false,
      "far": [
       403088
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RockTunnelPokecenterGuyText",
@@ -24766,7 +24969,8 @@
      "fixed": false,
      "far": [
       403093
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UnusedBenchGuyText1",
@@ -24775,7 +24979,8 @@
      "fixed": false,
      "far": [
       403098
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UnusedBenchGuyText2",
@@ -24784,7 +24989,8 @@
      "fixed": false,
      "far": [
       403103
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UnusedBenchGuyText3",
@@ -24793,7 +24999,8 @@
      "fixed": false,
      "far": [
       403108
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VermilionPokecenterGuyText",
@@ -24802,7 +25009,8 @@
      "fixed": false,
      "far": [
       403113
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CeladonCityPokecenterGuyText",
@@ -24811,7 +25019,8 @@
      "fixed": false,
      "far": [
       403118
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FuchsiaCityPokecenterGuyText",
@@ -24820,7 +25029,8 @@
      "fixed": false,
      "far": [
       403123
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarPokecenterGuyText",
@@ -24829,7 +25039,8 @@
      "fixed": false,
      "far": [
       403128
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SaffronCityPokecenterGuyText1",
@@ -24838,7 +25049,8 @@
      "fixed": false,
      "far": [
       403153
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SaffronCityPokecenterGuyText2",
@@ -24847,7 +25059,8 @@
      "fixed": false,
      "far": [
       403158
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CeladonCityHotelText",
@@ -24856,7 +25069,8 @@
      "fixed": false,
      "far": [
       403163
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BookcaseText",
@@ -24865,7 +25079,8 @@
      "fixed": false,
      "far": [
       403178
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NewBicycleText",
@@ -24874,7 +25089,8 @@
      "fixed": false,
      "far": [
       123629
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PushStartText",
@@ -24883,7 +25099,8 @@
      "fixed": false,
      "far": [
       123642
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SaveOptionText",
@@ -24892,7 +25109,8 @@
      "fixed": false,
      "far": [
       123672
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_StrengthsAndWeaknessesText",
@@ -24901,7 +25119,8 @@
      "fixed": false,
      "far": [
       123677
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TimesUpText",
@@ -24910,7 +25129,8 @@
      "fixed": false,
      "far": [
       123814
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GameOverText",
@@ -24919,7 +25139,8 @@
      "fixed": false,
      "far": [
       123819
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarGymQuizDummyIntroText",
@@ -24928,7 +25149,8 @@
      "fixed": false,
      "far": [
       123906
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarGymQuizIntroText",
@@ -24937,7 +25159,8 @@
      "fixed": false,
      "far": [
       123911
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarGymQuizShortIntroText",
@@ -24946,7 +25169,8 @@
      "fixed": false,
      "far": [
       123916
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarQuizQuestionsText1",
@@ -24955,7 +25179,8 @@
      "fixed": false,
      "far": [
       123933
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarQuizQuestionsText2",
@@ -24964,7 +25189,8 @@
      "fixed": false,
      "far": [
       123938
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarQuizQuestionsText3",
@@ -24973,7 +25199,8 @@
      "fixed": false,
      "far": [
       123943
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarQuizQuestionsText4",
@@ -24982,7 +25209,8 @@
      "fixed": false,
      "far": [
       123948
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarQuizQuestionsText5",
@@ -24991,7 +25219,8 @@
      "fixed": false,
      "far": [
       123953
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarQuizQuestionsText6",
@@ -25000,7 +25229,8 @@
      "fixed": false,
      "far": [
       123958
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarGymQuizCorrectText",
@@ -25009,7 +25239,8 @@
      "fixed": false,
      "far": [
       124050
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CinnabarGymQuizIncorrectText",
@@ -25018,7 +25249,8 @@
      "fixed": false,
      "far": [
       124083
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MagazinesText",
@@ -25027,7 +25259,8 @@
      "fixed": false,
      "far": [
       124229
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BillsHouseMonitorText",
@@ -25036,7 +25269,8 @@
      "fixed": false,
      "far": [
       124345
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BillsHouseInitiatedText",
@@ -25045,7 +25279,8 @@
      "fixed": false,
      "far": [
       124350
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BillsHousePokemonListText1",
@@ -25054,7 +25289,8 @@
      "fixed": false,
      "far": [
       124501
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BillsHousePokemonListText2",
@@ -25063,7 +25299,8 @@
      "fixed": false,
      "far": [
       124544
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OakLabEmailText",
@@ -25072,7 +25309,8 @@
      "fixed": false,
      "far": [
       124564
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GameCornerCoinCaseText",
@@ -25081,7 +25319,8 @@
      "fixed": false,
      "far": [
       196135
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GameCornerNoCoinsText",
@@ -25090,7 +25329,8 @@
      "fixed": false,
      "far": [
       196140
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GameCornerOutOfOrderText",
@@ -25099,7 +25339,8 @@
      "fixed": false,
      "far": [
       229150
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GameCornerOutToLunchText",
@@ -25108,7 +25349,8 @@
      "fixed": false,
      "far": [
       229155
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GameCornerSomeonesKeysText",
@@ -25117,7 +25359,8 @@
      "fixed": false,
      "far": [
       229160
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_JustAMomentText",
@@ -25126,7 +25369,8 @@
      "fixed": false,
      "far": [
       137384
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "TMNotebookText",
@@ -25135,7 +25379,8 @@
      "fixed": false,
      "far": [
       338181
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TurnPageText",
@@ -25144,7 +25389,8 @@
      "fixed": false,
      "far": [
       338250
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianSchoolNotebookText5",
@@ -25153,7 +25399,8 @@
      "fixed": false,
      "far": [
       338255
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianSchoolNotebookText1",
@@ -25162,7 +25409,8 @@
      "fixed": false,
      "far": [
       338261
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianSchoolNotebookText2",
@@ -25171,7 +25419,8 @@
      "fixed": false,
      "far": [
       338266
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianSchoolNotebookText3",
@@ -25180,7 +25429,8 @@
      "fixed": false,
      "far": [
       338271
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianSchoolNotebookText4",
@@ -25189,7 +25439,8 @@
      "fixed": false,
      "far": [
       338276
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EnemiesOnEverySideText",
@@ -25198,7 +25449,8 @@
      "fixed": false,
      "far": [
       338289
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhatGoesAroundComesAroundText",
@@ -25207,7 +25459,8 @@
      "fixed": false,
      "far": [
       338302
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FightingDojoText",
@@ -25216,7 +25469,8 @@
      "fixed": false,
      "far": [
       338315
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IndigoPlateauHQText",
@@ -25225,7 +25479,8 @@
      "fixed": false,
      "far": [
       338334
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RedBedroomSNESText",
@@ -25234,7 +25489,8 @@
      "fixed": false,
      "far": [
       383927
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_Route15UpstairsBinocularsText",
@@ -25243,7 +25499,8 @@
      "fixed": false,
      "far": [
       383970
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AerodactylFossilText",
@@ -25252,7 +25509,8 @@
      "fixed": false,
      "far": [
       383992
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KabutopsFossilText",
@@ -25261,7 +25519,8 @@
      "fixed": false,
      "far": [
       384014
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FanClubPicture1Text",
@@ -25270,7 +25529,8 @@
      "fixed": false,
      "far": [
       384036
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FanClubPicture2Text",
@@ -25279,7 +25539,8 @@
      "fixed": false,
      "far": [
       384058
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LinkCableHelpText1",
@@ -25288,7 +25549,8 @@
      "fixed": false,
      "far": [
       384259
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LinkCableHelpText2",
@@ -25297,7 +25559,8 @@
      "fixed": false,
      "far": [
       384264
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LinkCableInfoText1",
@@ -25306,7 +25569,8 @@
      "fixed": false,
      "far": [
       384323
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LinkCableInfoText2",
@@ -25315,7 +25579,8 @@
      "fixed": false,
      "far": [
       384328
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LinkCableInfoText3",
@@ -25324,7 +25589,8 @@
      "fixed": false,
      "far": [
       384333
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianSchoolBlackboardText1",
@@ -25333,7 +25599,8 @@
      "fixed": false,
      "far": [
       384519
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianSchoolBlackboardText2",
@@ -25342,7 +25609,8 @@
      "fixed": false,
      "far": [
       384524
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianBlackboardSleepText",
@@ -25351,7 +25619,8 @@
      "fixed": false,
      "far": [
       384571
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianBlackboardPoisonText",
@@ -25360,7 +25629,8 @@
      "fixed": false,
      "far": [
       384576
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianBlackboardPrlzText",
@@ -25369,7 +25639,8 @@
      "fixed": false,
      "far": [
       384581
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianBlackboardBurnText",
@@ -25378,7 +25649,8 @@
      "fixed": false,
      "far": [
       384586
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ViridianBlackboardFrozenText",
@@ -25387,7 +25659,8 @@
      "fixed": false,
      "far": [
       384591
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VermilionGymTrashText",
@@ -25396,7 +25669,8 @@
      "fixed": false,
      "far": [
       384604
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VermilionGymTrashSuccessText1",
@@ -25405,7 +25679,8 @@
      "fixed": false,
      "far": [
       384788
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VermilionGymTrashSuccessText2",
@@ -25414,7 +25689,8 @@
      "fixed": false,
      "far": [
       384807
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VermilionGymTrashSuccessText3",
@@ -25423,7 +25699,8 @@
      "fixed": false,
      "far": [
       384827
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VermilionGymTrashFailText",
@@ -25432,7 +25709,8 @@
      "fixed": false,
      "far": [
       384846
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FoundHiddenItemText",
@@ -25441,7 +25719,8 @@
      "fixed": false,
      "far": [
       483409
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HiddenItemBagFullText",
@@ -25450,7 +25729,8 @@
      "fixed": false,
      "far": [
       483466
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FoundHiddenCoinsText",
@@ -25459,7 +25739,8 @@
      "fixed": false,
      "far": [
       483652
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FoundHiddenCoins2Text",
@@ -25468,7 +25749,8 @@
      "fixed": false,
      "far": [
       483658
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DroppedHiddenCoinsText",
@@ -25477,7 +25759,8 @@
      "fixed": false,
      "far": [
       483663
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IndigoPlateauStatuesText1",
@@ -25486,7 +25769,8 @@
      "fixed": false,
      "far": [
       64104
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IndigoPlateauStatuesText2",
@@ -25495,7 +25779,8 @@
      "fixed": false,
      "far": [
       64109
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IndigoPlateauStatuesText3",
@@ -25504,7 +25789,8 @@
      "fixed": false,
      "far": [
       64114
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemonBooksText",
@@ -25513,7 +25799,8 @@
      "fixed": false,
      "far": [
       64146
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DiglettSculptureText",
@@ -25522,7 +25809,8 @@
      "fixed": false,
      "far": [
       64151
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ElevatorText",
@@ -25531,7 +25819,8 @@
      "fixed": false,
      "far": [
       64156
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TownMapText",
@@ -25540,7 +25829,8 @@
      "fixed": false,
      "far": [
       64161
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemonStuffText",
@@ -25549,7 +25839,8 @@
      "fixed": false,
      "far": [
       64212
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OutOfSafariBallsText",
@@ -25558,7 +25849,8 @@
      "fixed": false,
      "far": [
       246207
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WildRanText",
@@ -25567,7 +25859,8 @@
      "fixed": false,
      "far": [
       246336
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EnemyRanText",
@@ -25576,7 +25869,8 @@
      "fixed": false,
      "far": [
       246341
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HurtByPoisonText",
@@ -25585,7 +25879,8 @@
      "fixed": false,
      "far": [
       246853
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HurtByBurnText",
@@ -25594,7 +25889,8 @@
      "fixed": false,
      "far": [
       246858
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HurtByLeechSeedText",
@@ -25603,7 +25899,8 @@
      "fixed": false,
      "far": [
       246863
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EnemyMonFaintedText",
@@ -25612,7 +25909,8 @@
      "fixed": false,
      "far": [
       247381
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MoneyForWinningText",
@@ -25621,7 +25919,8 @@
      "fixed": false,
      "far": [
       247559
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TrainerDefeatedText",
@@ -25630,7 +25929,8 @@
      "fixed": false,
      "far": [
       247564
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PlayerMonFaintedText",
@@ -25639,7 +25939,8 @@
      "fixed": false,
      "far": [
       247803
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UseNextMonText",
@@ -25648,7 +25949,8 @@
      "fixed": false,
      "far": [
       247864
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_Rival1WinText",
@@ -25657,7 +25959,8 @@
      "fixed": false,
      "far": [
       248042
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PlayerBlackedOutText2",
@@ -25666,7 +25969,8 @@
      "fixed": false,
      "far": [
       248047
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LinkBattleLostText",
@@ -25675,7 +25979,8 @@
      "fixed": false,
      "far": [
       248052
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TrainerAboutToUseText",
@@ -25684,7 +25989,8 @@
      "fixed": false,
      "far": [
       248543
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TrainerSentOutText",
@@ -25693,7 +25999,8 @@
      "fixed": false,
      "far": [
       248548
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoWillText",
@@ -25702,7 +26009,8 @@
      "fixed": false,
      "far": [
       248602
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CantEscapeText",
@@ -25711,7 +26019,8 @@
      "fixed": false,
      "far": [
       248834
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoRunningText",
@@ -25720,7 +26029,8 @@
      "fixed": false,
      "far": [
       248839
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GotAwayText",
@@ -25729,7 +26039,8 @@
      "fixed": false,
      "far": [
       248844
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RunAwayText",
@@ -25738,7 +26049,8 @@
      "fixed": false,
      "far": [
       250080
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemsCantBeUsedHereText",
@@ -25747,7 +26059,8 @@
      "fixed": false,
      "far": [
       250313
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AlreadyOutText",
@@ -25756,7 +26069,8 @@
      "fixed": false,
      "far": [
       250621
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MoveNoPPText",
@@ -25765,7 +26079,8 @@
      "fixed": false,
      "far": [
       251055
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MoveDisabledText",
@@ -25774,7 +26089,8 @@
      "fixed": false,
      "far": [
       251060
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoMovesLeftText",
@@ -25783,7 +26099,8 @@
      "fixed": false,
      "far": [
       251292
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MultiHitText",
@@ -25792,7 +26109,8 @@
      "fixed": false,
      "far": [
       252280
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ScaredText",
@@ -25801,7 +26119,8 @@
      "fixed": false,
      "far": [
       252323
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GetOutText",
@@ -25810,7 +26129,8 @@
      "fixed": false,
      "far": [
       252328
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FastAsleepText",
@@ -25819,7 +26139,8 @@
      "fixed": false,
      "far": [
       252848
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WokeUpText",
@@ -25828,7 +26149,8 @@
      "fixed": false,
      "far": [
       252853
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IsFrozenText",
@@ -25837,7 +26159,8 @@
      "fixed": false,
      "far": [
       252858
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FullyParalyzedText",
@@ -25846,7 +26169,8 @@
      "fixed": false,
      "far": [
       252863
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FlinchedText",
@@ -25855,7 +26179,8 @@
      "fixed": false,
      "far": [
       252868
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MustRechargeText",
@@ -25864,7 +26189,8 @@
      "fixed": false,
      "far": [
       252873
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DisabledNoMoreText",
@@ -25873,7 +26199,8 @@
      "fixed": false,
      "far": [
       252878
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IsConfusedText",
@@ -25882,7 +26209,8 @@
      "fixed": false,
      "far": [
       252883
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HurtItselfText",
@@ -25891,7 +26219,8 @@
      "fixed": false,
      "far": [
       252888
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ConfusedNoMoreText",
@@ -25900,7 +26229,8 @@
      "fixed": false,
      "far": [
       252893
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SavingEnergyText",
@@ -25909,7 +26239,8 @@
      "fixed": false,
      "far": [
       252898
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UnleashedEnergyText",
@@ -25918,7 +26249,8 @@
      "fixed": false,
      "far": [
       252903
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ThrashingAboutText",
@@ -25927,7 +26259,8 @@
      "fixed": false,
      "far": [
       252908
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AttackContinuesText",
@@ -25936,7 +26269,8 @@
      "fixed": false,
      "far": [
       252913
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CantMoveText",
@@ -25945,7 +26279,8 @@
      "fixed": false,
      "far": [
       252918
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MoveIsDisabledText",
@@ -25954,7 +26289,8 @@
      "fixed": false,
      "far": [
       252955
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ActorNameText",
@@ -25963,7 +26299,8 @@
      "fixed": false,
      "far": [
       253038
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UsedMove1Text",
@@ -25972,7 +26309,8 @@
      "fixed": false,
      "far": [
       253088
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UsedMove2Text",
@@ -25981,7 +26319,8 @@
      "fixed": false,
      "far": [
       253095
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UsedInsteadText",
@@ -25990,7 +26329,8 @@
      "fixed": false,
      "far": [
       253110
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MoveNameText",
@@ -26000,7 +26340,8 @@
      "end_char": true,
      "far": [
       253119
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EndUsedMove1Text",
@@ -26009,7 +26350,8 @@
      "fixed": false,
      "far": [
       253151
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EndUsedMove2Text",
@@ -26018,7 +26360,8 @@
      "fixed": false,
      "far": [
       253156
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EndUsedMove3Text",
@@ -26027,7 +26370,8 @@
      "fixed": false,
      "far": [
       253161
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EndUsedMove4Text",
@@ -26036,7 +26380,8 @@
      "fixed": false,
      "far": [
       253166
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EndUsedMove5Text",
@@ -26045,7 +26390,8 @@
      "fixed": false,
      "far": [
       253171
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AttackMissedText",
@@ -26054,7 +26400,8 @@
      "fixed": false,
      "far": [
       253365
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_KeptGoingAndCrashedText",
@@ -26063,7 +26410,8 @@
      "fixed": false,
      "far": [
       253370
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UnaffectedText",
@@ -26072,7 +26420,8 @@
      "fixed": false,
      "far": [
       253375
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DoesntAffectMonText",
@@ -26081,7 +26430,8 @@
      "fixed": false,
      "far": [
       253386
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CriticalHitText",
@@ -26090,7 +26440,8 @@
      "fixed": false,
      "far": [
       253425
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OHKOText",
@@ -26099,7 +26450,8 @@
      "fixed": false,
      "far": [
       253430
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LoafingAroundText",
@@ -26108,7 +26460,8 @@
      "fixed": false,
      "far": [
       253737
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BeganToNapText",
@@ -26117,7 +26470,8 @@
      "fixed": false,
      "far": [
       253742
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WontObeyText",
@@ -26126,7 +26480,8 @@
      "fixed": false,
      "far": [
       253747
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TurnedAwayText",
@@ -26135,7 +26490,8 @@
      "fixed": false,
      "far": [
       253752
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IgnoredOrdersText",
@@ -26144,7 +26500,8 @@
      "fixed": false,
      "far": [
       253757
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SubstituteTookDamageText",
@@ -26153,7 +26510,8 @@
      "fixed": false,
      "far": [
       255007
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SubstituteBrokeText",
@@ -26162,7 +26520,8 @@
      "fixed": false,
      "far": [
       255012
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BuildingRageText",
@@ -26171,7 +26530,8 @@
      "fixed": false,
      "far": [
       255083
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MirrorMoveFailedText",
@@ -26180,7 +26540,8 @@
      "fixed": false,
      "far": [
       255127
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HitXTimesText",
@@ -26189,7 +26550,8 @@
      "fixed": false,
      "far": [
       256526
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GainedText",
@@ -26198,7 +26560,8 @@
      "fixed": false,
      "far": [
       349383
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WithExpAllText",
@@ -26207,7 +26570,8 @@
      "fixed": false,
      "far": [
       349408
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BoostedText",
@@ -26216,7 +26580,8 @@
      "fixed": false,
      "far": [
       349417
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ExpPointsText",
@@ -26228,7 +26593,8 @@
      ],
      "far": [
       349421
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GrewLevelText",
@@ -26237,7 +26603,8 @@
      "fixed": false,
      "far": [
       349426
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SuperEffectiveText",
@@ -26246,7 +26613,8 @@
      "fixed": false,
      "far": [
       195897
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NotVeryEffectiveText",
@@ -26255,7 +26623,8 @@
      "fixed": false,
      "far": [
       195902
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SafariZoneEatingText",
@@ -26264,7 +26633,8 @@
      "fixed": false,
      "far": [
       16706
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SafariZoneAngryText",
@@ -26273,7 +26643,8 @@
      "fixed": false,
      "far": [
       16711
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WildMonAppearedText",
@@ -26282,7 +26653,8 @@
      "fixed": false,
      "far": [
       999624
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HookedMonAttackedText",
@@ -26291,7 +26663,8 @@
      "fixed": false,
      "far": [
       999629
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -26305,7 +26678,8 @@
      "fixed": false,
      "far": [
       999634
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TrainerWantsToFightText",
@@ -26314,7 +26688,8 @@
      "fixed": false,
      "far": [
       999639
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UnveiledGhostText",
@@ -26323,7 +26698,8 @@
      "fixed": false,
      "far": [
       999644
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GhostCantBeIDdText",
@@ -26332,7 +26708,8 @@
      "fixed": false,
      "far": [
       999649
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GoText",
@@ -26341,7 +26718,8 @@
      "fixed": false,
      "far": [
       999739
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DoItText",
@@ -26350,7 +26728,8 @@
      "fixed": false,
      "far": [
       999746
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GetmText",
@@ -26359,7 +26738,8 @@
      "fixed": false,
      "far": [
       999753
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EnemysWeakText",
@@ -26368,7 +26748,8 @@
      "fixed": false,
      "far": [
       999760
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PlayerMon1Text",
@@ -26377,7 +26758,8 @@
      "fixed": false,
      "far": [
       999769
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PlayerMon2Text",
@@ -26386,7 +26768,8 @@
      "fixed": false,
      "far": [
       999780
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EnoughText",
@@ -26395,7 +26778,8 @@
      "fixed": false,
      "far": [
       999858
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OKExclamationText",
@@ -26404,7 +26788,8 @@
      "fixed": false,
      "far": [
       999865
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GoodText",
@@ -26413,7 +26798,8 @@
      "fixed": false,
      "far": [
       999872
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ComeBackText",
@@ -26422,7 +26808,8 @@
      "fixed": false,
      "far": [
       999883
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PickUpPayDayMoneyText",
@@ -26431,7 +26818,8 @@
      "fixed": false,
      "far": [
       79926
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ClearSaveDataText",
@@ -26440,7 +26828,8 @@
      "fixed": false,
      "far": [
       115296
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhichFloorText",
@@ -26449,7 +26838,8 @@
      "fixed": false,
      "far": [
       115390
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SleepingPikachuText1",
@@ -26458,7 +26848,8 @@
      "fixed": false,
      "far": [
       4813
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PartyMenuNormalText",
@@ -26467,7 +26858,8 @@
      "fixed": false,
      "far": [
       72249
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PartyMenuItemUseText",
@@ -26476,7 +26868,8 @@
      "fixed": false,
      "far": [
       72254
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PartyMenuBattleText",
@@ -26485,7 +26878,8 @@
      "fixed": false,
      "far": [
       72259
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PartyMenuUseTMText",
@@ -26494,7 +26888,8 @@
      "fixed": false,
      "far": [
       72264
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PartyMenuSwapMonText",
@@ -26503,7 +26898,8 @@
      "fixed": false,
      "far": [
       72269
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PotionText",
@@ -26512,7 +26908,8 @@
      "fixed": false,
      "far": [
       72274
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AntidoteText",
@@ -26521,7 +26918,8 @@
      "fixed": false,
      "far": [
       72279
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ParlyzHealText",
@@ -26530,7 +26928,8 @@
      "fixed": false,
      "far": [
       72284
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BurnHealText",
@@ -26539,7 +26938,8 @@
      "fixed": false,
      "far": [
       72289
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IceHealText",
@@ -26548,7 +26948,8 @@
      "fixed": false,
      "far": [
       72294
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AwakeningText",
@@ -26557,7 +26958,8 @@
      "fixed": false,
      "far": [
       72299
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FullHealText",
@@ -26566,7 +26968,8 @@
      "fixed": false,
      "far": [
       72304
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ReviveText",
@@ -26575,7 +26978,8 @@
      "fixed": false,
      "far": [
       72309
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RareCandyText",
@@ -26584,7 +26988,8 @@
      "fixed": false,
      "far": [
       72314
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TurnedOnPC1Text",
@@ -26593,7 +26998,8 @@
      "fixed": false,
      "far": [
       97704
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AccessedBillsPCText",
@@ -26602,7 +27008,8 @@
      "fixed": false,
      "far": [
       97709
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AccessedSomeonesPCText",
@@ -26611,7 +27018,8 @@
      "fixed": false,
      "far": [
       97714
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AccessedMyPCText",
@@ -26620,7 +27028,8 @@
      "fixed": false,
      "far": [
       97719
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TurnedOnPC2Text",
@@ -26629,7 +27038,8 @@
      "fixed": false,
      "far": [
       31178
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhatDoYouWantText",
@@ -26638,7 +27048,8 @@
      "fixed": false,
      "far": [
       31183
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhatToDepositText",
@@ -26647,7 +27058,8 @@
      "fixed": false,
      "far": [
       31188
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DepositHowManyText",
@@ -26656,7 +27068,8 @@
      "fixed": false,
      "far": [
       31193
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemWasStoredText",
@@ -26665,7 +27078,8 @@
      "fixed": false,
      "far": [
       31198
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NothingToDepositText",
@@ -26674,7 +27088,8 @@
      "fixed": false,
      "far": [
       31203
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoRoomToStoreText",
@@ -26683,7 +27098,8 @@
      "fixed": false,
      "far": [
       31208
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhatToWithdrawText",
@@ -26692,7 +27108,8 @@
      "fixed": false,
      "far": [
       31213
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WithdrawHowManyText",
@@ -26701,7 +27118,8 @@
      "fixed": false,
      "far": [
       31218
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WithdrewItemText",
@@ -26710,7 +27128,8 @@
      "fixed": false,
      "far": [
       31223
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NothingStoredText",
@@ -26719,7 +27138,8 @@
      "fixed": false,
      "far": [
       31228
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CantCarryMoreText",
@@ -26728,7 +27148,8 @@
      "fixed": false,
      "far": [
       31233
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhatToTossText",
@@ -26737,7 +27158,8 @@
      "fixed": false,
      "far": [
       31238
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TossHowManyText",
@@ -26746,7 +27168,8 @@
      "fixed": false,
      "far": [
       31243
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AccessedHoFPCText",
@@ -26755,7 +27178,8 @@
      "fixed": false,
      "far": [
       483075
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SleepingPikachuText2",
@@ -26764,7 +27188,8 @@
      "fixed": false,
      "far": [
       136719
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SwitchOnText",
@@ -26773,7 +27198,8 @@
      "fixed": false,
      "far": [
       137255
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhatText",
@@ -26782,7 +27208,8 @@
      "fixed": false,
      "far": [
       137260
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DepositWhichMonText",
@@ -26791,7 +27218,8 @@
      "fixed": false,
      "far": [
       137265
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MonWasStoredText",
@@ -26804,7 +27232,8 @@
      ],
      "far": [
       137270
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CantDepositLastMonText",
@@ -26813,7 +27242,8 @@
      "fixed": false,
      "far": [
       137275
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BoxFullText",
@@ -26822,7 +27252,8 @@
      "fixed": false,
      "far": [
       137280
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MonIsTakenOutText",
@@ -26831,7 +27262,8 @@
      "fixed": false,
      "far": [
       137285
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoMonText",
@@ -26840,7 +27272,8 @@
      "fixed": false,
      "far": [
       137290
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CantTakeMonText",
@@ -26849,7 +27282,8 @@
      "fixed": false,
      "far": [
       137295
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PikachuUnhappyText",
@@ -26858,7 +27292,8 @@
      "fixed": false,
      "far": [
       137300
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ReleaseWhichMonText",
@@ -26867,7 +27302,8 @@
      "fixed": false,
      "far": [
       137305
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OnceReleasedText",
@@ -26876,7 +27312,8 @@
      "fixed": false,
      "far": [
       137310
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MonWasReleasedText",
@@ -26885,7 +27322,8 @@
      "fixed": false,
      "far": [
       137315
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RequireCoinCaseText",
@@ -26894,7 +27332,8 @@
      "fixed": false,
      "far": [
       337632
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ExchangeCoinsForPrizesText",
@@ -26903,7 +27342,8 @@
      "fixed": false,
      "far": [
       337638
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhichPrizeText",
@@ -26912,7 +27352,8 @@
      "fixed": false,
      "far": [
       337643
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HereYouGoText",
@@ -26921,7 +27362,8 @@
      "fixed": false,
      "far": [
       338107
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SoYouWantPrizeText",
@@ -26930,7 +27372,8 @@
      "fixed": false,
      "far": [
       338113
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SorryNeedMoreCoinsText",
@@ -26939,7 +27382,8 @@
      "fixed": false,
      "far": [
       338118
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OopsYouDontHaveEnoughRoomText",
@@ -26948,7 +27392,8 @@
      "fixed": false,
      "far": [
       338124
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OhFineThenText",
@@ -26957,7 +27402,8 @@
      "fixed": false,
      "far": [
       338130
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GetDexRatedText",
@@ -26966,7 +27412,8 @@
      "fixed": false,
      "far": [
       123605
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ClosedOaksPCText",
@@ -26975,7 +27422,8 @@
      "fixed": false,
      "far": [
       123610
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AccessedOaksPCText",
@@ -26984,14 +27432,16 @@
      "fixed": false,
      "far": [
       123616
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ExpressionText",
      "offset": 657271,
      "size": 32,
      "fixed": false,
-     "far": []
+     "far": [],
+     "movable": true
     },
     {
      "label": "_NotEnoughMemoryText",
@@ -27000,7 +27450,8 @@
      "fixed": false,
      "far": [
       23758
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OakSpeechText1",
@@ -27009,7 +27460,8 @@
      "fixed": false,
      "far": [
       24506
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OakSpeechText2A",
@@ -27018,7 +27470,8 @@
      "fixed": false,
      "far": [
       24511
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OakSpeechText2B",
@@ -27027,7 +27480,8 @@
      "fixed": false,
      "far": [
       24516
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IntroducePlayerText",
@@ -27036,7 +27490,8 @@
      "fixed": false,
      "far": [
       24521
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IntroduceRivalText",
@@ -27045,7 +27500,8 @@
      "fixed": false,
      "far": [
       24526
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OakSpeechText3",
@@ -27054,7 +27510,8 @@
      "fixed": false,
      "far": [
       24531
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DoYouWantToNicknameText",
@@ -27063,7 +27520,8 @@
      "fixed": false,
      "far": [
       25289
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_YourNameIsText",
@@ -27072,7 +27530,8 @@
      "fixed": false,
      "far": [
       26398
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HisNameIsText",
@@ -27081,7 +27540,8 @@
      "fixed": false,
      "far": [
       26470
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WillBeTradedText",
@@ -27094,7 +27554,8 @@
      ],
      "far": [
       23257
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_Colosseum3MonsText",
@@ -27103,7 +27564,8 @@
      "fixed": false,
      "far": [
       1005501
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumMewText",
@@ -27112,7 +27574,8 @@
      "fixed": false,
      "far": [
       1005506
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumDifferentMonsText",
@@ -27121,7 +27584,8 @@
      "fixed": false,
      "far": [
       1005511
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumMaxL55Text",
@@ -27130,7 +27594,8 @@
      "fixed": false,
      "far": [
       1005516
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumMinL50Text",
@@ -27139,7 +27604,8 @@
      "fixed": false,
      "far": [
       1005521
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumTotalL155Text",
@@ -27148,7 +27614,8 @@
      "fixed": false,
      "far": [
       1005526
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumMaxL30Text",
@@ -27157,7 +27624,8 @@
      "fixed": false,
      "far": [
       1005531
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumMinL25Text",
@@ -27166,7 +27634,8 @@
      "fixed": false,
      "far": [
       1005536
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumTotalL80Text",
@@ -27175,7 +27644,8 @@
      "fixed": false,
      "far": [
       1005541
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumMaxL20Text",
@@ -27184,7 +27654,8 @@
      "fixed": false,
      "far": [
       1005546
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumMinL15Text",
@@ -27193,7 +27664,8 @@
      "fixed": false,
      "far": [
       1005551
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumTotalL50Text",
@@ -27202,7 +27674,8 @@
      "fixed": false,
      "far": [
       1005556
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumHeightText",
@@ -27211,7 +27684,8 @@
      "fixed": false,
      "far": [
       1005561
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumWeightText",
@@ -27220,7 +27694,8 @@
      "fixed": false,
      "far": [
       1005566
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumEvolvedText",
@@ -27229,7 +27704,8 @@
      "fixed": false,
      "far": [
       1005571
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumIneligibleText",
@@ -27238,7 +27714,8 @@
      "fixed": false,
      "far": [
       1005576
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumWhereToText",
@@ -27247,7 +27724,8 @@
      "fixed": false,
      "far": [
       1006083
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumPleaseWaitText",
@@ -27256,7 +27734,8 @@
      "fixed": false,
      "far": [
       1006088
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumCanceledText",
@@ -27265,7 +27744,8 @@
      "fixed": false,
      "far": [
       1006093
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumVersionText",
@@ -27274,7 +27754,8 @@
      "fixed": false,
      "far": [
       1006098
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TextIDErrorText",
@@ -27283,7 +27764,8 @@
      "fixed": false,
      "far": [
       6083
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ContCharText",
@@ -27292,7 +27774,8 @@
      "fixed": false,
      "far": [
       6235
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoPokemonText",
@@ -27301,7 +27784,8 @@
      "fixed": false,
      "far": [
       953888
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -27315,7 +27799,8 @@
      "fixed": false,
      "far": [
       473488
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WouldYouLikeToSaveText",
@@ -27324,7 +27809,8 @@
      "fixed": false,
      "far": [
       473810
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SavingText",
@@ -27333,7 +27819,8 @@
      "fixed": false,
      "far": [
       473815
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GameSavedText",
@@ -27342,7 +27829,8 @@
      "fixed": false,
      "far": [
       473820
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OlderFileWillBeErasedText",
@@ -27351,7 +27839,8 @@
      "fixed": false,
      "far": [
       473825
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhenYouChangeBoxText",
@@ -27360,7 +27849,8 @@
      "fixed": false,
      "far": [
       474195
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ChooseABoxText",
@@ -27369,7 +27859,8 @@
      "fixed": false,
      "far": [
       474385
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EvolvedText",
@@ -27378,7 +27869,8 @@
      "fixed": false,
      "far": [
       241648
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IntoText",
@@ -27387,7 +27879,8 @@
      "fixed": false,
      "far": [
       241653
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_StoppedEvolvingText",
@@ -27396,7 +27889,8 @@
      "fixed": false,
      "far": [
       241658
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -27410,7 +27904,8 @@
      "fixed": false,
      "far": [
       241663
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FellAsleepText",
@@ -27419,7 +27914,8 @@
      "fixed": false,
      "far": [
       258505
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AlreadyAsleepText",
@@ -27428,7 +27924,8 @@
      "fixed": false,
      "far": [
       258510
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PoisonedText",
@@ -27437,7 +27934,8 @@
      "fixed": false,
      "far": [
       258659
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BadlyPoisonedText",
@@ -27446,7 +27944,8 @@
      "fixed": false,
      "far": [
       258664
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BurnedText",
@@ -27455,7 +27954,8 @@
      "fixed": false,
      "far": [
       258959
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FrozenText",
@@ -27464,7 +27964,8 @@
      "fixed": false,
      "far": [
       258964
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FireDefrostedText",
@@ -27473,7 +27974,8 @@
      "fixed": false,
      "far": [
       259034
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MonsStatsRoseText",
@@ -27482,7 +27984,8 @@
      "fixed": false,
      "far": [
       259295
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GreatlyRoseText",
@@ -27491,7 +27994,8 @@
      "fixed": false,
      "far": [
       259322
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RoseText",
@@ -27500,7 +28004,8 @@
      "fixed": false,
      "far": [
       259326
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MonsStatsFellText",
@@ -27509,7 +28014,8 @@
      "fixed": false,
      "far": [
       259608
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GreatlyFellText",
@@ -27518,7 +28024,8 @@
      "fixed": false,
      "far": [
       259638
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FellText",
@@ -27527,7 +28034,8 @@
      "fixed": false,
      "far": [
       259642
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RanFromBattleText",
@@ -27536,7 +28044,8 @@
      "fixed": false,
      "far": [
       260025
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RanAwayScaredText",
@@ -27545,7 +28054,8 @@
      "fixed": false,
      "far": [
       260030
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WasBlownAwayText",
@@ -27554,7 +28064,8 @@
      "fixed": false,
      "far": [
       260035
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ChargeMoveEffectText",
@@ -27563,7 +28074,8 @@
      "fixed": false,
      "far": [
       260260
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MadeWhirlwindText",
@@ -27572,7 +28084,8 @@
      "fixed": false,
      "far": [
       260309
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TookInSunlightText",
@@ -27581,7 +28094,8 @@
      "fixed": false,
      "far": [
       260314
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LoweredItsHeadText",
@@ -27590,7 +28104,8 @@
      "fixed": false,
      "far": [
       260319
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SkyAttackGlowingText",
@@ -27599,7 +28114,8 @@
      "fixed": false,
      "far": [
       260324
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FlewUpHighText",
@@ -27608,7 +28124,8 @@
      "fixed": false,
      "far": [
       260329
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DugAHoleText",
@@ -27617,7 +28134,8 @@
      "fixed": false,
      "far": [
       260334
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BecameConfusedText",
@@ -27626,7 +28144,8 @@
      "fixed": false,
      "far": [
       260477
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MimicLearnedMoveText",
@@ -27635,7 +28154,8 @@
      "fixed": false,
      "far": [
       260691
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MoveWasDisabledText",
@@ -27644,7 +28164,8 @@
      "fixed": false,
      "far": [
       260837
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NothingHappenedText",
@@ -27653,7 +28174,8 @@
      "fixed": false,
      "far": [
       260890
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoEffectText",
@@ -27662,7 +28184,8 @@
      "fixed": false,
      "far": [
       260901
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ButItFailedText",
@@ -27671,7 +28194,8 @@
      "fixed": false,
      "far": [
       260917
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DidntAffectText",
@@ -27680,7 +28204,8 @@
      "fixed": false,
      "far": [
       260928
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IsUnaffectedText",
@@ -27689,7 +28214,8 @@
      "fixed": false,
      "far": [
       260933
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ParalyzedMayNotAttackText",
@@ -27698,7 +28224,8 @@
      "fixed": false,
      "far": [
       260944
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SubstituteText",
@@ -27707,7 +28234,8 @@
      "fixed": false,
      "far": [
       97442
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HasSubstituteText",
@@ -27716,7 +28244,8 @@
      "fixed": false,
      "far": [
       97447
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TooWeakSubstituteText",
@@ -27725,7 +28254,8 @@
      "fixed": false,
      "far": [
       97452
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WasSeededText",
@@ -27734,7 +28264,8 @@
      "fixed": false,
      "far": [
       179716
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_EvadedAttackText",
@@ -27743,7 +28274,8 @@
      "fixed": false,
      "far": [
       179721
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HitWithRecoilText",
@@ -27752,7 +28284,8 @@
      "fixed": false,
      "far": [
       80233
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ConvertedTypeText",
@@ -27761,7 +28294,8 @@
      "fixed": false,
      "far": [
       80280
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_StatusChangesEliminatedText",
@@ -27770,7 +28304,8 @@
      "fixed": false,
      "far": [
       80414
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GettingPumpedText",
@@ -27779,7 +28314,8 @@
      "fixed": false,
      "far": [
       1008310
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_StartedSleepingEffect",
@@ -27788,7 +28324,8 @@
      "fixed": false,
      "far": [
       1008497
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FellAsleepBecameHealthyText",
@@ -27797,7 +28334,8 @@
      "fixed": false,
      "far": [
       1008502
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RegainedHealthText",
@@ -27806,7 +28344,8 @@
      "fixed": false,
      "far": [
       1008507
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TransformedText",
@@ -27815,7 +28354,8 @@
      "fixed": false,
      "far": [
       1008729
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LightScreenProtectedText",
@@ -27824,7 +28364,8 @@
      "fixed": false,
      "far": [
       1008798
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ReflectGainedArmorText",
@@ -27833,7 +28374,8 @@
      "fixed": false,
      "far": [
       1008803
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ShroudedInMistText",
@@ -27842,7 +28384,8 @@
      "fixed": false,
      "far": [
       1008852
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CoinsScatteredText",
@@ -27851,7 +28394,8 @@
      "fixed": false,
      "far": [
       1008990
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SuckedHealthText",
@@ -27860,7 +28404,8 @@
      "fixed": false,
      "far": [
       30597
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DreamWasEatenText",
@@ -27869,7 +28414,8 @@
      "fixed": false,
      "far": [
       30602
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TradeCenterOpponentText",
@@ -27878,7 +28424,8 @@
      "fixed": false,
      "far": [
       327364
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ColosseumOpponentText",
@@ -27887,7 +28434,8 @@
      "fixed": false,
      "far": [
       327416
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -27901,7 +28449,8 @@
      "fixed": false,
      "far": [
       105751
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -27915,7 +28464,8 @@
      "fixed": false,
      "far": [
       10259
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartGreetingText",
@@ -27924,7 +28474,8 @@
      "fixed": false,
      "far": [
       10553
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemonFaintedText",
@@ -27933,7 +28484,8 @@
      "fixed": false,
      "far": [
       10628
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PlayerBlackedOutText",
@@ -27942,7 +28494,8 @@
      "fixed": false,
      "far": [
       10676
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RepelWoreOffText",
@@ -27951,7 +28504,8 @@
      "fixed": false,
      "far": [
       10690
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartBuyingGreetingText",
@@ -27960,7 +28514,8 @@
      "fixed": false,
      "far": [
       27538
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartTellBuyPriceText",
@@ -27969,7 +28524,8 @@
      "fixed": false,
      "far": [
       27543
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartBoughtItemText",
@@ -27978,7 +28534,8 @@
      "fixed": false,
      "far": [
       27548
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartNotEnoughMoneyText",
@@ -27987,7 +28544,8 @@
      "fixed": false,
      "far": [
       27553
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartItemBagFullText",
@@ -27996,7 +28554,8 @@
      "fixed": false,
      "far": [
       27558
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemonSellingGreetingText",
@@ -28005,7 +28564,8 @@
      "fixed": false,
      "far": [
       27563
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartTellSellPriceText",
@@ -28014,7 +28574,8 @@
      "fixed": false,
      "far": [
       27568
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartItemBagEmptyText",
@@ -28023,7 +28584,8 @@
      "fixed": false,
      "far": [
       27573
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartUnsellableItemText",
@@ -28032,7 +28594,8 @@
      "fixed": false,
      "far": [
       27578
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartThankYouText",
@@ -28041,7 +28604,8 @@
      "fixed": false,
      "far": [
       27583
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemartAnythingElseText",
@@ -28050,7 +28614,8 @@
      "fixed": false,
      "far": [
       27588
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LearnedMove1Text",
@@ -28059,7 +28624,8 @@
      "fixed": false,
      "far": [
       27954
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WhichMoveToForgetText",
@@ -28068,7 +28634,8 @@
      "fixed": false,
      "far": [
       27961
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AbandonLearningText",
@@ -28077,7 +28644,8 @@
      "fixed": false,
      "far": [
       27966
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DidNotLearnText",
@@ -28086,7 +28654,8 @@
      "fixed": false,
      "far": [
       27971
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TryingToLearnText",
@@ -28095,7 +28664,8 @@
      "fixed": false,
      "far": [
       27976
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_OneTwoAndText",
@@ -28104,7 +28674,8 @@
      "fixed": false,
      "far": [
       27981
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PoofText",
@@ -28113,7 +28684,8 @@
      "fixed": false,
      "far": [
       28041
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ForgotAndText",
@@ -28122,7 +28694,8 @@
      "fixed": false,
      "far": [
       28046
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_HMCantDeleteText",
@@ -28131,7 +28704,8 @@
      "fixed": false,
      "far": [
       28051
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemonCenterWelcomeText",
@@ -28140,7 +28714,8 @@
      "fixed": false,
      "far": [
       28369
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ShallWeHealYourPokemonText",
@@ -28149,7 +28724,8 @@
      "fixed": false,
      "far": [
       28375
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NeedYourPokemonText",
@@ -28158,7 +28734,8 @@
      "fixed": false,
      "far": [
       28380
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemonFightingFitText",
@@ -28167,7 +28744,8 @@
      "fixed": false,
      "far": [
       28385
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PokemonCenterFarewellText",
@@ -28176,7 +28754,8 @@
      "fixed": false,
      "far": [
       28391
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_LooksContentText",
@@ -28185,7 +28764,8 @@
      "fixed": false,
      "far": [
       28396
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CableClubNPCAreaReservedFor2FriendsLinkedByCableText",
@@ -28194,7 +28774,8 @@
      "fixed": false,
      "far": [
       29065
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CableClubNPCWelcomeText",
@@ -28203,7 +28784,8 @@
      "fixed": false,
      "far": [
       29070
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CableClubNPCPleaseApplyHereHaveToSaveText",
@@ -28212,7 +28794,8 @@
      "fixed": false,
      "far": [
       29075
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -28226,7 +28809,8 @@
      "fixed": false,
      "far": [
       29080
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CableClubNPCLinkClosedBecauseOfInactivityText",
@@ -28235,7 +28819,8 @@
      "fixed": false,
      "far": [
       29086
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CableClubNPCPleaseComeAgainText",
@@ -28244,7 +28829,8 @@
      "fixed": false,
      "far": [
       29091
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CableClubNPCMakingPreparationsText",
@@ -28253,7 +28839,8 @@
      "fixed": false,
      "far": [
       29096
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FlashLightsAreaText",
@@ -28262,7 +28849,8 @@
      "fixed": false,
      "far": [
       73169
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WarpToLastPokemonCenterText",
@@ -28271,7 +28859,8 @@
      "fixed": false,
      "far": [
       73255
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CannotUseTeleportNowText",
@@ -28280,7 +28869,8 @@
      "fixed": false,
      "far": [
       73260
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CannotFlyHereText",
@@ -28289,7 +28879,8 @@
      "fixed": false,
      "far": [
       73265
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NotHealthyEnoughText",
@@ -28298,7 +28889,8 @@
      "fixed": false,
      "far": [
       73344
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NewBadgeRequiredText",
@@ -28307,7 +28899,8 @@
      "fixed": false,
      "far": [
       73364
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CannotUseItemsHereText",
@@ -28316,7 +28909,8 @@
      "fixed": false,
      "far": [
       73685
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CannotGetOffHereText",
@@ -28325,7 +28919,8 @@
      "fixed": false,
      "far": [
       73690
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UsedStrengthText",
@@ -28334,7 +28929,8 @@
      "fixed": false,
      "far": [
       1006360
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CanMoveBouldersText",
@@ -28343,7 +28939,8 @@
      "fixed": false,
      "far": [
       1006377
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CurrentTooFastText",
@@ -28352,7 +28949,8 @@
      "fixed": false,
      "far": [
       1006440
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CyclingIsFunText",
@@ -28361,7 +28959,8 @@
      "fixed": false,
      "far": [
       1006445
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GotMonText",
@@ -28370,7 +28969,8 @@
      "fixed": false,
      "far": [
       1009558
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SentToBoxText",
@@ -28379,7 +28979,8 @@
      "fixed": false,
      "far": [
       1009564
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BoxIsFullText",
@@ -28388,7 +28989,8 @@
      "fixed": false,
      "far": [
       1009569
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -28402,7 +29004,8 @@
      "fixed": false,
      "far": [
       54936
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseBallText01",
@@ -28411,7 +29014,8 @@
      "fixed": false,
      "far": [
       54941
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseBallText02",
@@ -28420,7 +29024,8 @@
      "fixed": false,
      "far": [
       54946
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseBallText03",
@@ -28429,7 +29034,8 @@
      "fixed": false,
      "far": [
       54951
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseBallText04",
@@ -28438,7 +29044,8 @@
      "fixed": false,
      "far": [
       54956
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseBallText05",
@@ -28447,7 +29054,8 @@
      "fixed": false,
      "far": [
       54961
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseBallText07",
@@ -28456,7 +29064,8 @@
      "fixed": false,
      "far": [
       54968
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseBallText08",
@@ -28465,7 +29074,8 @@
      "fixed": false,
      "far": [
       54973
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseBallText06",
@@ -28474,7 +29084,8 @@
      "fixed": false,
      "far": [
       54978
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SurfingGotOnText",
@@ -28483,7 +29094,8 @@
      "fixed": false,
      "far": [
       55234
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_SurfingNoPlaceToGetOffText",
@@ -28492,7 +29104,8 @@
      "fixed": false,
      "far": [
       55239
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RefusingText",
@@ -28501,7 +29114,8 @@
      "fixed": false,
      "far": [
       55459
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VitaminStatRoseText",
@@ -28510,7 +29124,8 @@
      "fixed": false,
      "far": [
       56645
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_VitaminNoEffectText",
@@ -28519,7 +29134,8 @@
      "fixed": false,
      "far": [
       56650
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ThrewBaitText",
@@ -28528,7 +29144,8 @@
      "fixed": false,
      "far": [
       56774
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ThrewRockText",
@@ -28537,7 +29154,8 @@
      "fixed": false,
      "far": [
       56779
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PlayedFluteNoEffectText",
@@ -28546,7 +29164,8 @@
      "fixed": false,
      "far": [
       57531
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_FluteWokeUpText",
@@ -28555,7 +29174,8 @@
      "fixed": false,
      "far": [
       57536
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PlayedFluteHadEffectText",
@@ -28564,7 +29184,8 @@
      "fixed": false,
      "far": [
       57541
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_CoinCaseNumCoinsText",
@@ -28573,7 +29194,8 @@
      "fixed": false,
      "far": [
       57589
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemfinderFoundItemText",
@@ -28582,7 +29204,8 @@
      "fixed": false,
      "far": [
       57831
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemfinderFoundNothingText",
@@ -28591,7 +29214,8 @@
      "fixed": false,
      "far": [
       57836
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RaisePPWhichTechniqueText",
@@ -28600,7 +29224,8 @@
      "fixed": false,
      "far": [
       58201
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_RestorePPWhichTechniqueText",
@@ -28609,7 +29234,8 @@
      "fixed": false,
      "far": [
       58206
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PPMaxedOutText",
@@ -28618,7 +29244,8 @@
      "fixed": false,
      "far": [
       58211
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PPIncreasedText",
@@ -28627,7 +29254,8 @@
      "fixed": false,
      "far": [
       58216
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_PPRestoredText",
@@ -28636,7 +29264,8 @@
      "fixed": false,
      "far": [
       58221
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BootedUpTMText",
@@ -28645,7 +29274,8 @@
      "fixed": false,
      "far": [
       58500
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BootedUpHMText",
@@ -28654,7 +29284,8 @@
      "fixed": false,
      "far": [
       58505
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TeachMachineMoveText",
@@ -28663,7 +29294,8 @@
      "fixed": false,
      "far": [
       58510
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_MonCannotLearnMachineMoveText",
@@ -28672,7 +29304,8 @@
      "fixed": false,
      "far": [
       58515
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseNotTimeText",
@@ -28681,7 +29314,8 @@
      "fixed": false,
      "far": [
       58624
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseNotYoursToUseText",
@@ -28690,7 +29324,8 @@
      "fixed": false,
      "far": [
       58629
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseNoEffectText",
@@ -28699,7 +29334,8 @@
      "fixed": false,
      "far": [
       58634
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ThrowBallAtTrainerMonText1",
@@ -28708,7 +29344,8 @@
      "fixed": false,
      "far": [
       58639
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ThrowBallAtTrainerMonText2",
@@ -28717,7 +29354,8 @@
      "fixed": false,
      "far": [
       58644
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoCyclingAllowedHereText",
@@ -28726,7 +29364,8 @@
      "fixed": false,
      "far": [
       58649
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoSurfingHereText",
@@ -28735,7 +29374,8 @@
      "fixed": false,
      "far": [
       58654
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_BoxFullCannotThrowBallText",
@@ -28744,7 +29384,8 @@
      "fixed": false,
      "far": [
       58659
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_DontHavePokemonText",
@@ -28753,7 +29394,8 @@
      "fixed": false,
      "far": [
       58664
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseText001",
@@ -28762,7 +29404,8 @@
      "fixed": false,
      "far": [
       58669
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ItemUseText002",
@@ -28771,7 +29414,8 @@
      "fixed": false,
      "far": [
       58674
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GotOnBicycleText1",
@@ -28780,7 +29424,8 @@
      "fixed": false,
      "far": [
       58679
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GotOnBicycleText2",
@@ -28789,7 +29434,8 @@
      "fixed": false,
      "far": [
       58684
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GotOffBicycleText1",
@@ -28798,7 +29444,8 @@
      "fixed": false,
      "far": [
       58689
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_GotOffBicycleText2",
@@ -28807,7 +29454,8 @@
      "fixed": false,
      "far": [
       58694
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ThrewAwayItemText",
@@ -28816,7 +29464,8 @@
      "fixed": false,
      "far": [
       59034
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_IsItOKToTossItemText",
@@ -28825,7 +29474,8 @@
      "fixed": false,
      "far": [
       59039
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TooImportantToTossText",
@@ -28834,7 +29484,8 @@
      "fixed": false,
      "far": [
       59044
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AlreadyKnowsText",
@@ -28843,7 +29494,8 @@
      "fixed": false,
      "far": [
       195942
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_ConnectCableText",
@@ -28852,7 +29504,8 @@
      "fixed": false,
      "far": [
       466525
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_TradedForText",
@@ -28861,7 +29514,8 @@
      "fixed": false,
      "far": [
       466530
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WannaTrade1Text",
@@ -28870,7 +29524,8 @@
      "fixed": false,
      "far": [
       466537
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoTrade1Text",
@@ -28879,7 +29534,8 @@
      "fixed": false,
      "far": [
       466542
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WrongMon1Text",
@@ -28888,7 +29544,8 @@
      "fixed": false,
      "far": [
       466547
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_Thanks1Text",
@@ -28897,7 +29554,8 @@
      "fixed": false,
      "far": [
       466552
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AfterTrade1Text",
@@ -28906,7 +29564,8 @@
      "fixed": false,
      "far": [
       466557
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WannaTrade2Text",
@@ -28915,7 +29574,8 @@
      "fixed": false,
      "far": [
       466562
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoTrade2Text",
@@ -28924,7 +29584,8 @@
      "fixed": false,
      "far": [
       466567
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WrongMon2Text",
@@ -28933,7 +29594,8 @@
      "fixed": false,
      "far": [
       466572
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_Thanks2Text",
@@ -28942,7 +29604,8 @@
      "fixed": false,
      "far": [
       466577
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AfterTrade2Text",
@@ -28951,7 +29614,8 @@
      "fixed": false,
      "far": [
       466582
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WannaTrade3Text",
@@ -28960,7 +29624,8 @@
      "fixed": false,
      "far": [
       466587
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NoTrade3Text",
@@ -28969,7 +29634,8 @@
      "fixed": false,
      "far": [
       466592
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_WrongMon3Text",
@@ -28978,7 +29644,8 @@
      "fixed": false,
      "far": [
       466597
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_Thanks3Text",
@@ -28987,7 +29654,8 @@
      "fixed": false,
      "far": [
       466602
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_AfterTrade3Text",
@@ -28996,7 +29664,8 @@
      "fixed": false,
      "far": [
       466607
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_NothingToCutText",
@@ -29005,7 +29674,8 @@
      "fixed": false,
      "far": [
       60923
-     ]
+     ],
+     "movable": true
     },
     {
      "label": "_UsedCutText",
@@ -29014,7 +29684,8 @@
      "fixed": false,
      "far": [
       61040
-     ]
+     ],
+     "movable": true
     }
    ]
   },
@@ -29427,7 +30098,8 @@
      "offset": 384811,
      "size": 1,
      "fixed": true,
-     "far": []
+     "far": [],
+     "movable": true
     }
    ]
   },
@@ -29743,7 +30415,8 @@
      "offset": 26789,
      "size": 1,
      "fixed": false,
-     "far": []
+     "far": [],
+     "movable": true
     }
    ]
   },

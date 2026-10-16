@@ -30,6 +30,7 @@ from plugins.pokemon_gen1 import rom_text  # noqa: E402
 
 TEXT_ASM = 0x08
 FAR_OPCODE = 0x17
+GEN2_BUILDS = {"pokegold", "pokesilver", "pokecrystal", "pokecrystal11"}
 CHARMAP_LINE = re.compile(r'^\s*charmap\s+"((?:[^"\\]|\\.)*)"\s*,\s*\$([0-9A-Fa-f]{2})')
 SYM_LINE = re.compile(r"^([0-9A-Fa-f]{2}):([0-9A-Fa-f]{4}) (\S+)$")
 SECTION_LINE = re.compile(r"^\s*SECTION: \$([0-9a-f]{4})-\$([0-9a-f]{4}) ", re.I)
@@ -41,6 +42,7 @@ EXCLUDED_DATA = set()
 SKIP_DIRS = {"constants", "macros", "tools", "docs", "vc", "ram", "gfx", "audio", "home", "lib", "scripts_skip"}
 # Macro words that belong to a text body (a label's leading text is encoded; the first other line ends it).
 BODY_WORDS = (set(rom_text.FLOW_CODE) | set(rom_text.TERMINATOR) | set(rom_text.COMMAND_BY_NAME)
+              | set(rom_text.GEN2_COMMAND_BY_NAME)
               | {"db", "dname", "li", "table_width", "list_start", "vc_patch", "vc_patch_end", "text_asm"})
 # Yellow: these bodies are referenced only by debug-only or unused code (not in the normal ROM); no reference exists.
 FAR_ABSENT_OK = {"_BoxFullDebugText", "_BoxWillBeClearedText", "_ExpressionText"}
@@ -131,15 +133,15 @@ def read_free_runs(path: Path, rom: bytes):
     return out
 
 
-def far_reference_sites(rom: bytes) -> dict:
+def far_reference_sites(rom: bytes, far_opcode: int = FAR_OPCODE) -> dict:
     """Operand sites of every ``text_far`` (opcode 0x17 + address + bank) in the ROM, keyed by (bank, cpu)."""
     sites: dict = {}
-    at = rom.find(bytes([FAR_OPCODE]))
+    at = rom.find(bytes([far_opcode]))
     while at >= 0:
         cpu = rom[at + 1] | rom[at + 2] << 8
         bank = rom[at + 3] if at + 3 < len(rom) else -1
         sites.setdefault((bank, cpu), []).append(at + 1)
-        at = rom.find(bytes([FAR_OPCODE]), at + 1)
+        at = rom.find(bytes([far_opcode]), at + 1)
     return sites
 
 
@@ -207,8 +209,8 @@ def ram_arguments(lines, everything, runtime) -> list:
     """The RAM names the body's commands use, in order, when the address alone would give another name (aliases)."""
     names = []
     for word, args in lines:
-        code = rom_text.COMMAND_BY_NAME.get(word)
-        if code is None or "ram" not in rom_text.COMMANDS[code][1]:
+        code = everything.command_by_name.get(word)
+        if code is None or "ram" not in everything.commands[code][1]:
             continue
         name = args.split(",")[0].strip()
         names.append(name)
@@ -260,7 +262,8 @@ def main(argv: list) -> int:
             rom_labels.setdefault(name, (bank, addr))
     charmap = read_charmap(decomp)
     defs = read_constants(decomp)
-    everything = rom_text.Names(charmap, ram_labels, rom_labels)
+    gen2 = build in GEN2_BUILDS
+    everything = rom_text.Names(charmap, ram_labels, rom_labels, gen2)
 
     sources = sorted((decomp / "text").glob("*.asm")) + name_files(decomp)
     files = []
@@ -314,7 +317,7 @@ def main(argv: list) -> int:
     for _rel, entries, _source in files:
         for entry in entries:
             for word, args in entry["lines"]:
-                if word in rom_text.COMMAND_BY_NAME and word != "text_far":
+                if word in everything.command_by_name and word != "text_far":
                     for token in re.findall(r"[A-Za-z_]\w*", args):
                         if token in ram_labels:
                             used_ram[token] = ram_labels[token]
@@ -322,13 +325,13 @@ def main(argv: list) -> int:
                     name = args.strip()
                     used_far[name] = all_labels.get(name, rom_labels.get(name))
 
-    runtime = rom_text.Names(charmap, used_ram, used_far)
+    runtime = rom_text.Names(charmap, used_ram, used_far, gen2)
     for _rel, entries, _source in files:
         for entry in entries:
             entry["ram_args"] = ram_arguments(entry["lines"], everything, runtime)
             last_word, last_args = entry["lines"][-1] if entry["lines"] else ("", "")
             entry["end_char"] = (last_word in rom_text.FLOW_CODE and last_args.endswith('@"'))
-    far_hits = far_reference_sites(rom)
+    far_hits = far_reference_sites(rom, rom_text.GEN2_TX_FAR if gen2 else FAR_OPCODE)
     far_pret = pret_far_counts(decomp)
     other_refs = other_reference_counts(decomp)
     mismatch_far = []
@@ -359,7 +362,7 @@ def main(argv: list) -> int:
             if len(hits) != expected:
                 mismatch_far.append((entry["label"], len(hits), far_pret.get(entry["label"], 0)))
             entry["far"] = hits
-            entry["movable"] = rel.startswith("text/") and other_refs[entry["label"]] == 0
+            entry["movable"] = other_refs[entry["label"]] == 0
         entries = [entry for entry in entries if not entry.get("drop")]
         out_files.append({"file": rel, "labels": [
             {key: value for key, value in entry.items()
@@ -374,6 +377,7 @@ def main(argv: list) -> int:
         "build_name": build,
         "rom_sha1": hashlib.sha1(rom).hexdigest(),
         "rom_size": len(rom),
+        "profile": "gen2" if gen2 else "gen1",
         "charmap": charmap,
         "ram": used_ram,
         "far": {name: list(place) for name, place in used_far.items() if place},

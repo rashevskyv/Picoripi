@@ -52,6 +52,33 @@ COMMANDS: Dict[int, Tuple[str, str]] = {
     TX_FAR: ("text_far", "far"),
 }
 COMMAND_BY_NAME = {name: code for code, (name, _kind) in COMMANDS.items()}
+# Generation II (Gold, Silver, Crystal): the same macros with other codes; TX_FAR is 0x16 and the sounds differ.
+GEN2_TX_FAR = 0x16
+GEN2_COMMANDS: Dict[int, Tuple[str, str]] = {
+    0x00: ("text_start", ""),
+    0x01: ("text_ram", "ram"),
+    0x02: ("text_bcd", "ram_f"),
+    0x03: ("text_move", "ram"),
+    0x04: ("text_box", "ram_nn"),
+    0x05: ("text_low", ""),
+    0x06: ("text_promptbutton", ""),
+    0x07: ("text_scroll", ""),
+    0x09: ("text_decimal", "ram_dn"),
+    0x0A: ("text_pause", ""),
+    0x0B: ("sound_dex_fanfare_50_79", ""),
+    0x0C: ("text_dots", "n"),
+    0x0D: ("text_waitbutton", ""),
+    0x0E: ("sound_dex_fanfare_20_49", ""),
+    0x0F: ("sound_item", ""),
+    0x10: ("sound_caught_mon", ""),
+    0x11: ("sound_dex_fanfare_80_109", ""),
+    0x12: ("sound_fanfare", ""),
+    0x13: ("sound_slot_machine_start", ""),
+    0x14: ("text_buffer", "n"),
+    0x15: ("text_today", ""),
+    GEN2_TX_FAR: ("text_far", "far"),
+}
+GEN2_COMMAND_BY_NAME = {name: code for code, (name, _kind) in GEN2_COMMANDS.items()}
 _ARG_KINDS = {"ram_f": ["ram", "f"], "ram_nn": ["ram", "n", "n"], "ram_dn": ["ram", "dn"]}
 # Flags of text_bcd (constants/text_constants.asm): a count and any of these, joined with "|".
 FLAGS = {"LEADING_ZEROES": 0x80, "LEFT_ALIGN": 0x40, "MONEY_SIGN": 0x20}
@@ -68,7 +95,10 @@ class Names:
     """What the codec needs from the facts: the charmap, RAM names and banked labels (name <-> bank, CPU address)."""
 
     def __init__(self, charmap: Sequence[Sequence[object]], ram: Dict[str, int],
-                 far: Dict[str, Sequence[int]]) -> None:
+                 far: Dict[str, Sequence[int]], gen2: bool = False) -> None:
+        self.commands = GEN2_COMMANDS if gen2 else COMMANDS
+        self.command_by_name = GEN2_COMMAND_BY_NAME if gen2 else COMMAND_BY_NAME
+        self.tx_far = GEN2_TX_FAR if gen2 else TX_FAR
         self.byte_of: Dict[str, int] = {}
         self.char_of: Dict[int, str] = {}
         for token, code in charmap:
@@ -175,7 +205,7 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: S
         code = region[at]
         follow = region[at + 1] if at + 1 < end else None
         if code == 0x00 and (follow is None or follow in FLOW_BY_CODE or follow in TERMINATOR_BY_CODE
-                             or (follow in COMMANDS and follow != 0x00)):
+                             or (follow in names.commands and follow != 0x00)):
             flush()
             out.append(("text_start", ""))
             at += 1
@@ -199,9 +229,9 @@ def decode(region: bytes, names: Names, bcd_hex: Sequence[int] = (), ram_args: S
             flush()
             out.append(("text_asm", ""))
             break
-        elif code in COMMANDS and code not in (0x00,):
+        elif code in names.commands and code not in (0x00,):
             flush()
-            name, kind = COMMANDS[code]
+            name, kind = names.commands[code]
             hexed = False
             if code == 0x02:
                 hexed = bcd_seen in bcd_hex
@@ -271,8 +301,8 @@ def _far_bytes(names: Names, value: str) -> bytes:
 
 
 def _command_bytes(names: Names, name: str, args: str) -> bytes:
-    code = COMMAND_BY_NAME[name]
-    kind = COMMANDS[code][1]
+    code = names.command_by_name[name]
+    kind = names.commands[code][1]
     if not kind:
         return bytes([code])
     values = [part.strip() for part in args.split(",")] if args.strip() else []
@@ -326,7 +356,7 @@ def encode(lines: Sequence[Line], names: Names, width: int = 0) -> bytes:
         elif word == "text_asm":
             out.append(TEXT_ASM)
             break
-        elif word in COMMAND_BY_NAME:
+        elif word in names.command_by_name:
             out += _command_bytes(names, word, args)
         else:
             raise CodecError(tr("Unknown text macro {0}.", word))

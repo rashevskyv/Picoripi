@@ -23,18 +23,20 @@ BASE_ROM = Path(ROM_DIR) / "base.gb"
 META_FILE = Path(ROM_DIR) / "meta.json"
 FACTS_DIR = Path(__file__).with_name("rom_facts")
 OUTPUT_NAMES = {"pokered": "Pokemon Red (UA).gb", "pokeblue": "Pokemon Blue (UA).gb",
-                "pokeyellow": "Pokemon Yellow (UA).gb"}
+                "pokeyellow": "Pokemon Yellow (UA).gb", "pokegold": "Pokemon Gold (UA).gbc",
+                "pokesilver": "Pokemon Silver (UA).gbc", "pokecrystal": "Pokemon Crystal (UA).gbc",
+                "pokecrystal11": "Pokemon Crystal 1.1 (UA).gbc"}
 HEADER = "; Written by Picoripi from the ROM. Edit the text between the quotes; keep the macro lines.\n"
 Progress = Callable[[int, str], None]
 Cancelled = Callable[[], bool]
 
 
-def _facts_files() -> Dict[str, Dict[str, Any]]:
-    """The facts files of this build, by file name."""
-    return {path.name: json.loads(path.read_text(encoding="utf-8")) for path in sorted(FACTS_DIR.glob("*.json"))}
+def _facts_files(facts_dir: Path = FACTS_DIR) -> Dict[str, Dict[str, Any]]:
+    """The facts files of this build, by file name. ``facts_dir`` lets another generation reuse this module."""
+    return {path.name: json.loads(path.read_text(encoding="utf-8")) for path in sorted(facts_dir.glob("*.json"))}
 
 
-def identify(path: str) -> Optional[Dict[str, str]]:
+def identify(path: str, facts_dir: Path = FACTS_DIR) -> Optional[Dict[str, str]]:
     """``{"role", "platform"}`` when the file is a ROM this build has facts for, else None. Reads the file once."""
     if not str(path).lower().endswith((".gb", ".gbc")):
         return None
@@ -45,14 +47,14 @@ def identify(path: str) -> Optional[Dict[str, str]]:
                 digest.update(block)
     except OSError:
         return None
-    if any(item["rom_sha1"] == digest.hexdigest() for item in _facts_files().values()):
+    if any(item["rom_sha1"] == digest.hexdigest() for item in _facts_files(facts_dir).values()):
         return {"role": ROM_ROLE, "platform": "gb"}
     return None
 
 
-def _facts_for(rom: bytes) -> Tuple[str, Dict[str, Any]]:
+def _facts_for(rom: bytes, facts_dir: Path = FACTS_DIR) -> Tuple[str, Dict[str, Any]]:
     digest = hashlib.sha1(rom).hexdigest()
-    for name, facts in _facts_files().items():
+    for name, facts in _facts_files(facts_dir).items():
         if facts["rom_sha1"] == digest:
             return name, facts
     raise ValueError(tr("This ROM is not a version the Pokemon plugin has text facts for."))
@@ -64,13 +66,14 @@ def unit_name(file: str) -> str:
 
 
 def _names(facts: Dict[str, Any]) -> rom_text.Names:
-    return rom_text.Names(facts["charmap"], facts["ram"], facts["far"])
+    return rom_text.Names(facts["charmap"], facts["ram"], facts["far"], facts.get("profile") == "gen2")
 
 
-def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Cancelled) -> Optional[str]:
+def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Cancelled,
+           facts_dir: Path = FACTS_DIR) -> Optional[str]:
     """Write ``text/*.asm`` and ``rom/`` into ``target_dir``; returns ``target_dir`` (the host takes ``text``)."""
     rom = Path(rom_path).read_bytes()
-    facts_name, facts = _facts_for(rom)
+    facts_name, facts = _facts_for(rom, facts_dir)
     names = _names(facts)
     target = Path(target_dir)
     (target / SOURCE_DIR).mkdir(parents=True, exist_ok=True)
@@ -116,7 +119,7 @@ def _edited_bodies(text_dirs: Sequence[Path], facts: Dict[str, Any]) -> Dict[str
 
 
 def build(source_dir: str, translation_dir: str, output_dir: str, progress: Progress,
-          is_cancelled: Cancelled) -> str:
+          is_cancelled: Cancelled, facts_dir: Path = FACTS_DIR) -> str:
     """Write the patched ROM into ``output_dir``. Bodies come from the translation folder, else from the source."""
     source = Path(source_dir)
     rom_dir = source.parent / ROM_DIR
@@ -125,7 +128,7 @@ def build(source_dir: str, translation_dir: str, output_dir: str, progress: Prog
         raise ValueError(tr("This project was not unpacked from a ROM."))
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     base = (rom_dir / "base.gb").read_bytes()
-    facts = json.loads((FACTS_DIR / meta["facts"]).read_text(encoding="utf-8"))
+    facts = json.loads((facts_dir / meta["facts"]).read_text(encoding="utf-8"))
     names = _names(facts)
     edited = _edited_bodies([source, Path(translation_dir)], facts)
     changes: List[Tuple[Dict[str, Any], bytes]] = []
