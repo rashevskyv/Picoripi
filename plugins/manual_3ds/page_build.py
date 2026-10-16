@@ -73,13 +73,7 @@ def textures_of(tools: Any, manual_name: str) -> cr.Textures:
     archive = archive_of(tools, manual_name)
     with _GROUPS_LOCK:
         if key not in _TEXTURES:
-            files: Dict[str, bytes] = {}
-            for member in ("Common_texture", f"{tools.manual.BASE_SLOT}_texture"):
-                try:
-                    files.update(archive.read(member))
-                except KeyError:
-                    pass
-            _TEXTURES[key] = cr.Textures(files)
+            _TEXTURES[key] = cr.Textures.from_archive(archive, tools.manual.BASE_SLOT)
         return _TEXTURES[key]
 
 

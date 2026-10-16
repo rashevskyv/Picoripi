@@ -58,14 +58,8 @@ def _entry(flow, budget, manual):
 
 
 def _textures(tools, archive):
-    """The manual's BCLIM textures (the common ones and the base slot's), as the simulator reads them."""
-    files = {}
-    for member in ("Common_texture", f"{tools.manual.BASE_SLOT}_texture"):
-        try:
-            files.update(archive.read(member))
-        except KeyError:
-            pass
-    return cr.Textures(files)
+    """The manual's BCLIM textures (every picture archive), as the simulator reads them."""
+    return cr.Textures.from_archive(archive, tools.manual.BASE_SLOT)
 
 
 def _painted_frames(tools, archive, page, textures):

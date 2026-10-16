@@ -15,6 +15,7 @@ Every constant that was measured against console screenshots carries the screens
 from __future__ import annotations
 
 import math
+import re
 import struct
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple
@@ -227,12 +228,37 @@ def decode_bclim(data: bytes) -> Image.Image:
     return flim.read(data, {})[0].image.convert("RGBA")
 
 
+# A language member of a manual's archive: its text (`EUR_de_large.arc`) or its texture archive (`EUR_de_texture.arc`).
+# The slot's own texture archive is read by Textures.from_archive, not by this rule. Every other member except
+# BcmaInfo.arc is a picture archive (`distance.arc`, `cap_29_0.arc`, `Common_texture.arc`).
+_LOCALE_MEMBER = re.compile(r"^[A-Z]{3}_[a-z]{2}_(index|large|small|texture)\.arc$")
+
+
 class Textures:
     """BCLIM textures by name, decoded once (decode_bclim)."""
 
     def __init__(self, files: Dict[str, bytes]):
         self._files = files
         self._images: Dict[str, Optional[Image.Image]] = {}
+
+    @classmethod
+    def from_archive(cls, archive: Any, slot: str) -> "Textures":
+        """Every picture of a manual: each picture archive, then Common_texture and the slot's texture archive.
+
+        Common_texture and the slot's archive are read last, so they win a name a picture archive also holds, as
+        before. No such name exists in the manuals checked.
+        """
+        files: Dict[str, bytes] = {}
+        for member in archive.members:
+            if member in ("BcmaInfo.arc", "Common_texture.arc") or _LOCALE_MEMBER.match(member):
+                continue
+            files.update(archive.read(member))
+        for member in ("Common_texture", f"{slot}_texture"):
+            try:
+                files.update(archive.read(member))
+            except KeyError:
+                pass
+        return cls(files)
 
     def get(self, name: str) -> Optional[Image.Image]:
         if name not in self._images:

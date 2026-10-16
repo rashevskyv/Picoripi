@@ -127,13 +127,7 @@ class Manual:
         self.archive = tools.bcma.load(path)
         slot = tools.manual.BASE_SLOT
         self.index = cr.read_index(self.archive.read(f"{slot}_index")["Index.bclyt"])
-        textures: Dict[str, bytes] = {}
-        for member in ("Common_texture", f"{slot}_texture"):
-            try:
-                textures.update(self.archive.read(member))
-            except KeyError:
-                pass
-        self.textures = cr.Textures(textures)
+        self.textures = cr.Textures.from_archive(self.archive, slot)
         self._parts: Dict[str, Dict[str, bytes]] = {}
         self._slot = slot
 
