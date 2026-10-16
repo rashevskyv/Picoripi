@@ -2,7 +2,7 @@
 status: current
 updated: 2026-10-15
 owns: unfinished work
-tokens: 35.4k
+tokens: 35.5k
 purpose: Everything left open, one line each, by work package
 ---
 # Open items
@@ -74,6 +74,9 @@ the line when it is done or moved into a plan.
 - Audit r30 on the state-only read: it now reads the source files only (before: the translation files too). The worker only appends to `rules._manuals`; the readers take the list once (`_manual`, `_keys_of`), so a list the UI thread replaces never gives an IndexError. Open, small: (1) Picoripi closed or killed while that read runs saves a session with part of the manuals, and the next open does not read the files again; the blocks without a manual say "This manual is not read yet" until a session predates the plugin code. Fix: write no plugin state while the read runs. (2) After a restored session the first issue scan resolves the geometry on the UI thread (`geometry.json`, 3.8 MB, once per process: about 0.25 s measured). Fix: resolve it on a worker after the restore. (3) The autosave (pickle on the UI thread, as before) now also copies the manuals (about 1.4 MB).
 - Open: `face_raiders` and `face_raiders_n3ds` have the same key list, so `geometry.json` (keyed by the key-list fingerprint) holds one of them (`face_raiders`, the later in `manual.MANUALS`). The preview picks the archive by the block's name; the problems of `face_raiders_n3ds` use the `face_raiders` geometry. Fix when the two layouts differ: key `geometry.json` by manual name and match a file by its block name.
 - Not ported from the owner's `beside_overruns`: the icon bands of other lines (an icon whose origin is at the bottom reaches up into the line above). The plugin's BESIDE sees pictures and frames only; the preview's render (`simulator.defects_of`) sees every icon as a picture. The parity test does not compare BESIDE.
+- Open (2026-10-16): `geometry.json` is stamped with the owner commit it was built from, so any change to the owner's `src/manuals` breaks the gated real-data tests until `scripts/build_manual_geometry.py` is run again (r35 rebuilt it for 1e25146). Either rebuild the stamp with every owner change, or let the gate compare against the commit the file names.
+- Done (2026-10-16): the simulator was checked against Azahar screenshots of our own build (Camera, Face Raiders, System Settings; small and large text, tables): 698 lines, 0 wrap or line-position mismatches; small text in Azahar is within the console band (median 0.66 vs 1.13). Report: `_shared
+eportszahar_large_2026-10-16index.html`.
 
 ## Slop baseline: reduce the count (deslop, 2026-10-14)
 
