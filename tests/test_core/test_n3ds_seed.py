@@ -47,4 +47,3 @@ def test_seed_database_is_read_next_to_the_key_file(tmp_path):
     entry = PROGRAM_ID + SEED + bytes(8)                     # 32 bytes: id, seed, padding
     (tmp_path / "seeddb.bin").write_bytes(struct.pack("<I", 1) + bytes(12) + entry)
     assert n3ds._seeds(str(tmp_path)) == {PROGRAM_ID: SEED}
-

@@ -78,9 +78,9 @@ def test_a_lua_dump_round_trips_and_its_text_constants_are_the_prose_ones():
 
 def test_a_longer_text_constant_is_written_back_and_the_dump_still_reads():
     raw = _dump()
-    longer = lua_text.rebuild(raw, ["©2013 Pokémon. Все права защищены, пожалуйста, посмотрите ниже."])
+    longer = lua_text.rebuild(raw, ["©2013 Pokémon. All rights reserved, please see below for more."])
     assert len(longer) > len(raw)
-    assert lua_text.texts(longer) == ["©2013 Pokémon. Все права защищены, пожалуйста, посмотрите ниже."]
+    assert lua_text.texts(longer) == ["©2013 Pokémon. All rights reserved, please see below for more."]
     assert lua_text.rebuild(raw, lua_text.texts(raw)) == raw
 
 

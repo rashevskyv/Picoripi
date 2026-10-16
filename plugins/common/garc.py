@@ -99,4 +99,3 @@ class Garc:
         if self.version == 0x0600:
             struct.pack_into("<I", head, 0x1C, largest)
         return bytes(head) + bytes(fatb) + fimb + bytes(body)
-
