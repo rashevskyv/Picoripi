@@ -29,7 +29,7 @@ from utils import app_mode
 from utils.logging_utils import log_warning
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
-from . import layout, page_build, repo_tools
+from . import folders, layout, page_build, repo_tools
 from .layout import fingerprint
 from .config import CUSTOM_IDS, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
@@ -582,6 +582,10 @@ class GameRules(BaseGameRules):
         keys = self._keys_of(block_idx)
         key = f"index/Index#{page}"
         return keys.index(key) if key in keys else None
+
+    def get_virtual_folders(self, block_idx: int, text_of) -> List[Dict[str, Any]]:
+        """Small text, Large text, Sections and Contents of the manual, from its keys (folders.build_folders)."""
+        return folders.build_folders(block_idx, self._keys_of(block_idx), text_of)
 
     def preview_budget(self, block_idx: int, key: str) -> Optional[float]:
         """The column width a paragraph is drawn in on the console (from geometry.json), or None."""

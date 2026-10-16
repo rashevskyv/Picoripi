@@ -97,6 +97,12 @@ that defines `class GameRules(BaseGameRules)`. Every hook below has a working de
 | `get_default_script_name` | Default file name of the game script. |  |
 | `parse_walkthrough_transcript` | Parse a walkthrough or script file into dialogue cues. |  |
 
+## Block tree
+
+| Hook | What it is for | Notes |
+|---|---|---|
+| `get_virtual_folders` | Plugin folders under a block in the block tree: nodes of title, rows and children; selecting one shows its rows. Gets text_of(string) for the current text of a string. Default: none. |  |
+
 ## Message windows (capability message_window_preview)
 
 | Hook | What it is for | Notes |
