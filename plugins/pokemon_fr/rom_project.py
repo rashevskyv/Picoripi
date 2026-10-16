@@ -10,11 +10,12 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple
 
 from core.i18n import tr
 from plugins.pokemon_fr import pret_text
-from plugins.pokemon_fr.rom_text import CHARMAP_FILE, FACTS_DIR, Charmap, load_units, read_all, write_all
+from plugins.pokemon_fr.rom_text import (CHARMAP_FILE, FACTS_DIR, Charmap, load_tables, load_units, read_all,
+                                        table_files, write_all)
 
 ROM_ROLE = "rom"
 SOURCE_DIR = "text"                       # the project's source root, inside the unpacked tree
@@ -86,6 +87,12 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
     target = Path(target_dir)
     (target / SOURCE_DIR).mkdir(parents=True, exist_ok=True)
     (target / SOURCE_DIR / TEXT_FILE).write_text(_asm_text(units, texts), encoding="utf-8", newline="\n")
+    tables = load_tables(FACTS_DIR / facts_name)
+    if tables:
+        names = read_all(rom, tables, Charmap.load(FACTS_DIR / facts.get("charmap", CHARMAP_FILE)))
+        for file, labels in table_files(FACTS_DIR / facts_name).items():
+            members = [unit for unit in tables if unit.label in labels]
+            (target / SOURCE_DIR / file).write_text(_asm_text(members, names), encoding="utf-8", newline="\n")
     progress(60, "Copying the base ROM")
     (target / ROM_DIR).mkdir(parents=True, exist_ok=True)
     (target / BASE_ROM).write_bytes(rom)
@@ -107,6 +114,22 @@ def _edited_texts(text_dir: Path, expected: int) -> Dict[str, str]:
     return {unit.label: unit.content for unit in units}
 
 
+def _edited_table_texts(text_dirs: Sequence[Path], facts_name: str) -> Dict[str, str]:
+    """The entries of the C-built table files (later folders win). An entry missing from its file is refused."""
+    found: Dict[str, str] = {}
+    for text_dir in text_dirs:
+        for file, labels in table_files(FACTS_DIR / facts_name).items():
+            path = text_dir / file
+            if not path.is_file():
+                continue
+            texts = {unit.label: unit.content for unit in pret_text.parse(path.read_text(encoding="utf-8"), asm=True)}
+            for label in labels:
+                if label not in texts:
+                    raise ValueError(tr("{0} has no entry {1}; the ROM has it. Restore the label.", str(path), label))
+                found[label] = texts[label]
+    return found
+
+
 def build(source_dir: str, translation_dir: str, output_dir: str, progress: Progress,
           is_cancelled: Cancelled) -> str:
     """Write the patched ROM into ``output_dir``. Messages come from the translation folder, else from the source.
@@ -122,14 +145,16 @@ def build(source_dir: str, translation_dir: str, output_dir: str, progress: Prog
     base = (rom_dir / "base.gba").read_bytes()
     units, floor, header = load_units(FACTS_DIR / meta["facts"])
     charmap = Charmap.load(FACTS_DIR / header.get("charmap", CHARMAP_FILE))
-    original = read_all(base, units, charmap)
+    tables = load_tables(FACTS_DIR / meta["facts"])
+    original = read_all(base, units + tables, charmap)
     edited = _edited_texts(source, len(units))
     edited.update(_edited_texts(Path(translation_dir), len(units)))
+    edited.update(_edited_table_texts([source, Path(translation_dir)], meta["facts"]))
     changed = {label: text for label, text in edited.items() if label in original and text != original[label]}
     progress(20, f"Writing {len(changed)} changed messages")
     if is_cancelled():
         return ""
-    patched = write_all(base, units, charmap, floor, changed)
+    patched = write_all(base, units + tables, charmap, floor, changed)
     out = Path(output_dir) / f"{meta['build_name']}.gba"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(patched)

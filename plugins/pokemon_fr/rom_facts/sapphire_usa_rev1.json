@@ -3,6 +3,7 @@
 "build_name": "Pokemon Sapphire Rev1 UA",
 "rom_sha1": "4722efb8cd45772ca32555b98fd3b9719f8e60a9",
 "rom_size": 16777216,
+"c_tables": [{"name": "species", "file": "species_names.inc", "label": "gSpeciesName_", "offset": 2060564, "stride": 11, "count": 412, "pad": 0}],
 "charmap": "charmap_ruby.json",
 "source": "pret decompilation (facts only); messages located by ELF symbols (nm)",
 "free_start": 15393776,

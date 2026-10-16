@@ -29,11 +29,17 @@ class CodecError(ValueError):
 
 @dataclass(frozen=True)
 class Unit:
-    """One message: its label, its file offset and its size in bytes including the terminator."""
+    """One message: its label, its file offset and its size in bytes including the terminator.
+
+    A ``fixed`` unit is an entry of a C-built table: it never moves, nothing points to it, and it is padded with
+    the byte ``pad`` up to its size. A longer text is refused at build time.
+    """
 
     label: str
     offset: int
     size: int
+    fixed: bool = False
+    pad: int = 0
 
 
 class Charmap:
@@ -195,6 +201,26 @@ def load_units(path: Optional[Path] = None) -> Tuple[List[Unit], int, Dict[str, 
     return units, int(data["free_start"]), header
 
 
+def load_tables(path: Optional[Path] = None) -> List[Unit]:
+    """The entries of the C-built tables of a facts file (``c_tables``): one fixed unit per entry."""
+    data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
+    units: List[Unit] = []
+    for table in data.get("c_tables", []):
+        for index in range(int(table["count"])):
+            units.append(Unit(f"{table['label']}{index}", int(table["offset"]) + index * int(table["stride"]),
+                              int(table["stride"]), True, int(table.get("pad", 0))))
+    return units
+
+
+def table_files(path: Optional[Path] = None) -> Dict[str, List[str]]:
+    """The source file of each C-built table, with the labels of its entries in order."""
+    data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
+    files: Dict[str, List[str]] = {}
+    for table in data.get("c_tables", []):
+        files.setdefault(table["file"], []).extend(f"{table['label']}{i}" for i in range(int(table["count"])))
+    return files
+
+
 def read_all(rom: bytes, units: Sequence[Unit], charmap: Charmap) -> Dict[str, str]:
     """The editor text of every message, keyed by label."""
     return {unit.label: charmap.decode(rom[unit.offset:unit.offset + unit.size]) for unit in units}
@@ -215,7 +241,12 @@ def write_all(rom: bytes, units: Sequence[Unit], charmap: Charmap, floor: int,
         if unit is None:
             raise RomError(tr("No message named {0} in this game.", label))
         data = charmap.encode(text)
-        if len(data) <= unit.size:
+        if unit.fixed:
+            if len(data) > unit.size:
+                raise RomError(tr("{0} is {1} bytes long; its table gives {2} bytes, the terminator included. "
+                                  "Shorten it.", unit.label, str(len(data)), str(unit.size)))
+            patched[unit.offset:unit.offset + unit.size] = data + bytes([unit.pad]) * (unit.size - len(data))
+        elif len(data) <= unit.size:
             write_in_place(patched, unit.offset, unit.size, data)
         else:
             relocator.move(unit.offset, unit.size, data)

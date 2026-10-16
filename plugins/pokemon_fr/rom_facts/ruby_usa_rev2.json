@@ -3,6 +3,7 @@
 "build_name": "Pokemon Ruby Rev2 UA",
 "rom_sha1": "5b64eacf892920518db4ec664e62a086dd5f5bc8",
 "rom_size": 16777216,
+"c_tables": [{"name": "species", "file": "species_names.inc", "label": "gSpeciesName_", "offset": 2060676, "stride": 11, "count": 412, "pad": 0}],
 "charmap": "charmap_ruby.json",
 "source": "pret decompilation (facts only); messages located by ELF symbols (nm)",
 "free_start": 15393348,
