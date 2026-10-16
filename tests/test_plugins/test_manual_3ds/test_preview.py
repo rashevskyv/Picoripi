@@ -7,9 +7,12 @@ import threading
 
 import pytest
 from PyQt6 import sip
+from PyQt6.QtCore import QRectF
+from PyQt6.QtGui import QColor, QImage, QPainter
 
 import romhacking_root
 from core import formats
+from plugins.manual_3ds import console_render as cr
 from plugins.manual_3ds import preview_panel
 from plugins.manual_3ds import rules as m3d
 
@@ -74,6 +77,126 @@ def test_panel_reports_a_string_outside_a_page(qtbot, monkeypatch):
     panel._start_render()
     assert panel._workers == []
     assert panel._message == "The index is not drawn here. Select a string of a page."
+
+
+KEY_A = "large/Page_003_large_0#0"
+KEY_B = "large/Page_003_large_0#1"
+KEY_NO_TEXT = "large/Page_003_large_0#2"
+
+
+def _run(pane, top):
+    """One drawn line 50 px wide at page x 10, 20 px high, its top at page y ``top`` (down is negative)."""
+    return cr.TextRun(pane=pane, text="Line", x=10.0, top=top, width=50.0, wrapped=False, ink_right=60.0, height=20.0,
+                      order=0, ink_left=10.0)
+
+
+def _page(runs, owners):
+    """A PagePreview of a 2400-row column with blank images, the given lines and the pane owners."""
+    column = QImage(cr.COLUMN_WIDTH, 2400, QImage.Format.Format_RGBA8888)
+    overlay = QImage(400, 480, QImage.Format.Format_RGBA8888)
+    return preview_panel.PagePreview(column, overlay, 2400, 3, "Title", runs=runs, owners=owners)
+
+
+def _large_panel(qtbot, monkeypatch, texts=("Text", "Text")):
+    monkeypatch.setattr(preview_panel, "load_folder", lambda: "")
+    panel = preview_panel.ManualPreviewPanel(_Store(list(texts)), m3d.GameRules())
+    qtbot.addWidget(panel)
+    panel._large = True
+    return panel
+
+
+def test_the_selected_paragraph_is_outlined_and_the_page_scrolls_to_it(qtbot, monkeypatch):
+    panel = _large_panel(qtbot, monkeypatch)
+    result = _page([_run("pane_a", -300.0), _run("pane_b", -900.0)], {"pane_a": KEY_A, "pane_b": KEY_B})
+    panel._current_key = KEY_A
+    panel._show_result(result)
+    assert panel._highlight == QRectF(10.0, 300.0, 50.0, 20.0)
+    assert panel._scroll == 0.0, "a paragraph already in view does not move the page"
+    panel._current_key = KEY_B
+    panel._show_result(result)
+    assert panel._highlight == QRectF(10.0, 900.0, 50.0, 20.0)
+    assert panel._scroll == 840.0, "the selected paragraph's top sits 60 rows below the top of the page"
+    panel._current_key = KEY_A
+    panel._show_result(result)
+    assert panel._scroll == 240.0, "a paragraph above the view scrolls back to it"
+
+
+def test_a_visible_paragraph_does_not_move_the_page(qtbot, monkeypatch):
+    panel = _large_panel(qtbot, monkeypatch)
+    panel._current_key = KEY_A
+    panel._scroll = 100.0
+    panel._show_result(_page([_run("pane_a", -300.0)], {"pane_a": KEY_A}))
+    assert panel._scroll == 100.0
+
+
+def test_the_highlight_is_painted_over_the_column(qtbot, monkeypatch):
+    panel = _large_panel(qtbot, monkeypatch)
+    panel._current_key = KEY_A
+    panel._show_result(_page([_run("pane_a", -300.0)], {"pane_a": KEY_A}))
+    image = QImage(400, 480, QImage.Format.Format_RGB32)
+    painter = QPainter(image)
+    try:
+        panel.paint_screens(painter)
+    finally:
+        painter.end()
+    assert image.pixelColor(55, 345) != QColor(255, 255, 255), "inside the selected lines"
+    assert image.pixelColor(300, 100) == QColor(255, 255, 255), "outside them the page is as it was"
+
+
+def test_a_string_that_draws_no_text_says_so_and_a_string_of_the_other_size_is_not_judged(qtbot, monkeypatch):
+    panel = _large_panel(qtbot, monkeypatch)
+    result = _page([_run("pane_a", -300.0)], {"pane_a": KEY_A})
+    panel._current_key = KEY_NO_TEXT
+    panel._show_result(result)
+    assert panel._highlight is None
+    assert "This string draws no text on the page." in panel._status.text()
+    panel._large = False   # the large string is not drawn in small text: nothing to outline, nothing to say
+    panel._show_result(result)
+    assert panel._highlight is None
+    assert "This string draws no text on the page." not in panel._status.text()
+
+
+def test_selecting_another_string_of_the_page_moves_the_highlight_without_a_render(qtbot, monkeypatch):
+    """The second string is on the same page with the same texts: the cache answers, no worker starts."""
+    started = []
+
+    class _Signal:
+        def connect(self, slot):
+            pass
+
+    class _Worker:
+        def __init__(self, generation, request, parent):
+            self.request = request
+            self.rendered = _Signal()
+            started.append(self)
+
+        def start(self):
+            pass
+
+        def isRunning(self):  # noqa: N802 - Qt name
+            return False
+
+        def cancel(self):
+            pass
+
+    monkeypatch.setattr(preview_panel, "PageRenderWorker", _Worker)
+    monkeypatch.setattr(preview_panel, "load_folder", lambda: "")
+    rules = m3d.GameRules()
+    rules.load_data_from_json_obj(_document([KEY_A, KEY_B]))
+    store = _Store(["Text", "Text"])
+    panel = preview_panel.ManualPreviewPanel(store, rules)
+    qtbot.addWidget(panel)
+    store.current_string_idx = 0
+    panel._start_render()
+    assert len(started) == 1
+    page = _page([_run("pane_a", -300.0), _run("pane_b", -500.0)], {"pane_a": KEY_A, "pane_b": KEY_B})
+    panel._on_rendered(panel._generation, started[0].request.key, page)
+    assert panel._highlight == QRectF(10.0, 300.0, 50.0, 20.0)
+    store.current_string_idx = 1
+    panel._start_render()
+    assert len(started) == 1, "the same page is in the cache: no new render"
+    assert panel._current_key == KEY_B
+    assert panel._highlight == QRectF(10.0, 500.0, 50.0, 20.0)
 
 
 def _two_manuals_loaded_as_a_project():
@@ -254,6 +377,36 @@ def test_a_page_paragraph_of_activity_log_in_the_whole_project_draws_its_ukraini
     tools = preview_panel.repo_tools.load_tools(str(folder))
     word = tools.manual.apply_homoglyphs("кроків", tools.manual.load_homoglyphs())  # drawn as the build writes it
     assert word in " ".join(run.text for run in panel._result.runs)
+
+
+@pytest.mark.skipif(romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") is not None,
+                    reason=romhacking_root.missing(*_REPO_MANUAL, "tools", "manual.py") or "")
+def test_the_outline_of_a_real_paragraph_lies_on_the_drawn_column(qtbot, monkeypatch):
+    """The owner's activity_log paragraph 22 (its own page, large text): its outline is inside the column the render
+    drew, so the page x and the content y of the outline are the ones the column uses."""
+    folder = romhacking_root.path(*_REPO_MANUAL)
+    monkeypatch.setattr(preview_panel, "load_folder", lambda: str(folder))
+    rules = m3d.GameRules()
+    blocks, names = {}, {}
+    with formats.translation_parse(rules):
+        for block, path in enumerate(sorted((folder / "src" / "manuals").glob("*.json"))):
+            blocks[block] = rules.load_data_from_json_obj(path.read_text(encoding="utf-8"))[0][0]
+            names[str(block)] = path.stem
+    block = next(int(index) for index, name in names.items() if name == "activity_log")
+    store = _Store([], blocks=blocks, block_names=names)
+    store.current_block_idx = store.physical_block_idx = block
+    store.current_string_idx = 22
+    panel = preview_panel.ManualPreviewPanel(store, rules)
+    qtbot.addWidget(panel)
+    panel._start_render()
+    qtbot.waitUntil(lambda: panel._result is not None or bool(panel._message), timeout=60000)
+    panel.shutdown()
+    result = panel._result
+    assert result is not None, panel._message
+    rect = panel._highlight
+    assert rect is not None, "the paragraph's lines are on the page"
+    assert 0 <= rect.left() and rect.right() <= cr.COLUMN_WIDTH + cr.OVERRUN
+    assert -cr.TOP_MARGIN_ROWS <= rect.top() and rect.bottom() <= result.column_height - cr.TOP_MARGIN_ROWS
 
 
 def _real_keys():

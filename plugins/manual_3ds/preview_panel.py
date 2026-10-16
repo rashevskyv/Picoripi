@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PIL import Image
 from PyQt6.QtCore import QObject, QPointF, QRectF, QSize, Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QColor, QImage, QPainter
+from PyQt6.QtGui import QColor, QImage, QPainter, QPen
 from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from core.i18n import tr
@@ -46,6 +46,10 @@ WORKER_STOP_MS = 3000
 Y_BUTTON_START = 180          # the Y label area of the bottom bar starts here (x, in card pixels)
 PAGE_NUMBER = re.compile(r"Page_(\d+)_(large|small)")
 DEFECT_RGBA = (255, 0, 0, 60)
+HIGHLIGHT_RGBA = (255, 200, 0, 70)   # the selected paragraph: a translucent fill ...
+HIGHLIGHT_EDGE = (230, 120, 0)       # ... and an outline, both over the page column
+HIGHLIGHT_WIDTH = 2.0                # outline width in canvas units
+REVEAL_ROWS = 60                     # a paragraph scrolled into view starts a third of the way down the top screen
 MARKED_DEFECTS = ("over_edge", "wrapped", "over_picture", "over_frame", "covered", "over_cell", "text_overlap")
 
 
@@ -63,6 +67,19 @@ def page_name_of(string_key: str) -> Optional[str]:
     return match.group(0).rsplit("_", 1)[0] if match else None
 
 
+def key_rect(runs: List[cr.TextRun], owners: Dict[str, str], key: str) -> Optional[QRectF]:
+    """The drawn lines of one string key as one rect in content units: x is the page x, y is the distance below the
+    text origin (``-top``). On the canvas the rect's top row is ``PAGE_TOP + y - scroll``. None when no line belongs
+    to the key (a marker or picture paragraph, an empty translation)."""
+    rect: Optional[QRectF] = None
+    for run in runs:
+        if owners.get(run.pane) != key:
+            continue
+        line = QRectF(run.ink_left, -run.top, run.ink_right - run.ink_left, run.height)
+        rect = line if rect is None else rect.united(line)
+    return rect
+
+
 @dataclass
 class PagePreview:
     """What the worker hands the panel: the drawn column and chrome (as QImages), and what the render shows wrong."""
@@ -77,6 +94,7 @@ class PagePreview:
     failed_keys: Dict[str, str] = field(default_factory=dict)         # string key -> the layout error
     missing_glyphs: List[str] = field(default_factory=list)
     runs: List[cr.TextRun] = field(default_factory=list)
+    owners: Dict[str, str] = field(default_factory=dict)              # pane name -> string key (what drew the pane)
 
     @property
     def scroll_max(self) -> int:
@@ -156,7 +174,7 @@ def draw_request(request: _Request, should_stop: Any) -> PagePreview:
     chrome = ss.Chrome.load(user_plugin_dir(PLUGIN_NAME) / CHROME_DIR)
     overlay = ss.overlay(info, chrome, glyphs)
     return PagePreview(_qimage(column), _qimage(overlay), column.height, info.number, title, defects, defect_keys, failed,
-                       rendered.missing, rendered.runs)
+                       rendered.missing, rendered.runs, owners)
 
 
 class PageRenderWorker(WorkerThread):
@@ -266,6 +284,7 @@ class ManualPreviewPanel(QWidget):
         self._timer.timeout.connect(self._start_render)
         self._page_file = ""
         self._current_key = ""
+        self._highlight: Optional[QRectF] = None   # the selected paragraph's lines, in content units (key_rect)
 
         self._screens = _Screens(self)
         self._size_button = QPushButton(self)
@@ -335,6 +354,8 @@ class ManualPreviewPanel(QWidget):
             if defect.kind in MARKED_DEFECTS:
                 row = ss.PAGE_TOP - defect.page_y - self._scroll
                 painter.fillRect(QRectF(BOTTOM_X, row, BOTTOM_SIZE[0], 20), QColor(*DEFECT_RGBA))
+        if self._highlight is not None:
+            self._paint_highlight(painter, self._highlight)
         painter.drawImage(QPointF(0, 0), result.overlay)
         # Ink past the card's edge lies over the scroll track on the top screen, as on the console.
         strip_top = ss.HEADER_ROWS + len(ss.HEADER_SHADOW)
@@ -343,6 +364,28 @@ class ManualPreviewPanel(QWidget):
         x0, y0, x1, y1 = ss.bar_rect(result.column_height, self._scroll)
         painter.fillRect(QRectF(x0 - 1, y0 - 1, x1 - x0 + 3, y1 - y0 + 3), QColor(*ss.BAR_OUTLINE))
         painter.fillRect(QRectF(x0, y0, x1 - x0 + 1, y1 - y0 + 1), QColor(*ss.BAR_FILL))
+
+    def _paint_highlight(self, painter: QPainter, rect: QRectF) -> None:
+        """Outline the selected paragraph: the same transform as the page column (content y -> canvas row)."""
+        canvas = QRectF(BOTTOM_X + rect.left(), ss.PAGE_TOP + rect.top() - self._scroll, rect.width(), rect.height())
+        painter.fillRect(canvas, QColor(*HIGHLIGHT_RGBA))
+        painter.save()
+        painter.setPen(QPen(QColor(*HIGHLIGHT_EDGE), HIGHLIGHT_WIDTH))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRect(canvas)
+        painter.restore()
+
+    def _reveal(self) -> None:
+        """Scroll the selected paragraph into view. A paragraph whose top is in view stays where it is (no jump while
+        the user edits it); a paragraph taller than the view is in view once its top is."""
+        if self._highlight is None:
+            return
+        top, bottom = self._highlight.top(), self._highlight.bottom()
+        top_in_view = self._scroll <= top < self._scroll + ss.VISIBLE_ROWS
+        fits = bottom <= self._scroll + ss.VISIBLE_ROWS or bottom - top > ss.VISIBLE_ROWS
+        if top_in_view and fits:
+            return
+        self._scroll = self._clamped(top - REVEAL_ROWS)
 
     def _clamped(self, value: float) -> float:
         if self._result is None:
@@ -424,6 +467,7 @@ class ManualPreviewPanel(QWidget):
 
     def _show_message(self, text: str) -> None:
         self._result = None
+        self._highlight = None
         self._message = text
         self._set_status(text)
         self._screens.update()
@@ -432,6 +476,10 @@ class ManualPreviewPanel(QWidget):
         self._result = result
         self._message = ""
         self._scroll = self._clamped(self._scroll)
+        # The selected string belongs to the drawn page only in its own size (a large key is not drawn in small text).
+        drawn = self._current_key.startswith(("large" if self._large else "small") + "/")
+        self._highlight = key_rect(result.runs, result.owners, self._current_key) if drawn else None
+        self._reveal()
         kinds = sorted({defect.kind for defect in result.defects})
         own = result.defect_keys.get(self._current_key, [])
         status = tr("Console page {0} (file {1}). {2} defect(s) on the render: {3}. Missing glyphs: {4}",
@@ -439,6 +487,8 @@ class ManualPreviewPanel(QWidget):
                     "".join(result.missing_glyphs) or "-")
         if own:
             status += " " + tr("This paragraph: {0}.", ", ".join(sorted(set(own))))
+        if drawn and self._highlight is None:
+            status += " " + tr("This string draws no text on the page.")
         if result.failed_keys:
             status += " " + tr("{0} paragraph(s) kept the stored text (the layout refused the translation).",
                                len(result.failed_keys))
