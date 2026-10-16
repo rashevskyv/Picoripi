@@ -746,8 +746,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      game). Tags are the same as `pokemon_nx`: `{PAGE}`, `{COLOR 0002}`, `{VAR 0100 0000}`,
      `Master Ball{PLURAL 00FE||s}`, `{CHAR E08E}`. The fonts have no Cyrillic: the Font Editor adds letters
      (`min_sheets` leaves room). `2_build.bat` rebuilds the GARCs into a Luma / Azahar mod for every CIA in `ISO\`.
-   - `pokemon_gen7` — Pokémon Sun / Moon and Ultra Sun / Ultra Moon (3DS, decrypted `.3ds` images in `ISO\`). Sun and
+     The wizard unpacks the CIA itself (Picoripi readers, no `zt` step): X gives the same 718 files as the workspace `source` (Y the same files), Omega Ruby 993. **Preview:** the language box (bottom screen) and the in-game dialogue (top screen, the cutscene box) are drawn with the game's own font (X `a\1\8\5`, Omega Ruby `a\1\6\7`), at the measured glyph scale and box, by the shared renderer `plugins/common/message_window.py`; a line wider than the measured box is flagged. The unpack keeps the archives in `source\garc_original\<title id>\`, which the build starts from. The build target **3DS mod (LayeredFS)** writes `titles\<title id>\romfs\...`; a pack member (a DARC inside a GARC member) is rebuilt from its translated files.
+   - `pokemon_gen7` — Pokémon Sun / Moon and Ultra Sun / Ultra Moon (3DS, decrypted `.3ds` images in `ISO\`). Sun and The message box preview draws the language-screen box with the game font (`romfs/a/0/2/5/000.bffnt`); the other windows are not measured yet.
      Moon share every English file; so do the two Ultra games. The Ultra games read the v1.2 update as an overlay.
+     The wizard unpacks the image itself (Picoripi's own readers, no `zt` step): Sun gives the same 4667 files as the workspace `source`, Ultra Sun with its v1.2 update 3189. The unpack also keeps the text, font and picture archives in `source\garc_original\<title id>\` (about 37 MB), which the build starts from. The build target **3DS mod (LayeredFS)** writes `titles\<title id>\romfs\...` with each changed archive; a longer line is accepted.
      **Source:** `romfs\a\0\3\2\NNN.dat` English game text (898 tables in Sun), `romfs\a\0\4\2\NNN.dat` Battle Tree
      text, `romfs\a\0\2\5\NNN.bffnt` fonts, and `romfs\a\*\*\*\NNN.bflim` pictures. The fonts have no Cyrillic: the
      Font Editor adds letters. `2_build.bat` rebuilds the changed GARCs into a Luma / Azahar mod for each title.
@@ -1013,10 +1015,17 @@ omase.nds`, made by the unpack) with the edited banks and files put in; no `zt`
    - `pokemon_md_3ds` — Pokémon Mystery Dungeon: Gates to Infinity and Pokémon Super Mystery Dungeon (3DS,
      EUR), one plugin for both games. **Source:** the workspace's `source` (`1_unpack.bat`): the English message
      files — Gates to Infinity `message\*.bin` (884 files, 55,081 lines), Super Mystery Dungeon the members of the
-     `message_en.bin` pack as `message_en.bin\*.bin` (808 files, 68,716 lines) — one block per file (story,
+     `message_en.bin` pack as `message_en.bin\*.bin` (808 files, 68,716 lines), its debug label copies
+     `message_debug_en.bin\*.dbin` (808 files, 68,716 labels) and the scripts with text `script\...\*.lua` (Lua 5.1
+     string constants: the credits, debug labels; 28 files, 359 lines) — one block per file (story,
      dungeon, item, move and Pokémon names and descriptions in `common`, menus, Pelipper and Connection Orb text);
      the fonts `font\*.dic` + `*.img` (Font Editor format `pmd_font`) and the pictures `image_2d\*.img` /
-     `image_2d.bin\*.img` (title logo, menus; Textures window format `pmd_img`). Tags: `[CN]` centre a line,
+     `image_2d.bin\*.img` (title logo, menus; Textures window format `pmd_img`). The wizard unpacks the image itself
+     (Picoripi readers; the Super Mystery Dungeon CIA needs the 9.6 seed from the key folder, `seeds\` or `seeddb.bin`)
+     and writes the same tree as `1_unpack.bat`. **Build target 3DS mod (LayeredFS)** writes `titles\<title id>\romfs\...`:
+     a changed loose file as it is, a changed pack member rebuilt into the game's own pack. **Preview:** Gates to
+     Infinity draws the intro dialogue on the top screen with the game's font (`FOT-RodinProN-DB_14`, the box at
+     y 170..232); Super Mystery Dungeon draws the story text on the top screen with `Fot-TskuARdGothic_Std_B_14` at scale 1.0 (no panel, line pitch 24). Gates to Infinity marks every line wider than the box edge (text width 320 px); the game does not word-wrap there. Tags: `[CN]` centre a line,
      `[K]` wait for a button, `[C]` new box, `[hero]` / `[partner]` / `[my_team]` names, `[CS:06]…[CR]` colour,
      `[M:B05]` button icons, `[value:02:0003:0001]` numbers and inserted names (keep them as they are); a literal
      bracket is `[[` / `]]`. Text may grow: `2_build.bat` lays each message file out again and repacks the packs.

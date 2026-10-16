@@ -1,23 +1,32 @@
 """Pokémon Sun / Moon and Ultra Sun / Ultra Moon (3DS) plugin: Game Freak ``.dat`` text tables (the same
 ``plugins/common/gfmsg`` codec as the Switch games), one block per GARC file."""
 import json
+import os
 import re
 import urllib.parse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gfmsg
+from plugins.common import garc_mod, gfmsg, message_window
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
+from . import unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
+BUILD_TARGET = "layeredfs"
+BASE_CODES = ("BNDA", "BNEA", "A2AA", "A2BA")   # Sun, Moon, Ultra Sun, Ultra Moon (product codes)
+ULTRA_CODES = ("A2AA", "A2BA")                    # the v1.2 update CIAs of the Ultra pair
+
 _PLUGIN = "pokemon_gen7"
 _PLUGIN_DIR = Path(__file__).resolve().parent
+_CONFIG = _PLUGIN_DIR / "config.json"
 # English GARC -> (game key of tables.json, kind)
-_GARCS = {"a/0/3/2": ("sm", "game"), "a/0/4/2": ("sm", "battle")}
+_GARCS = {"a/0/3/2": ("sm", "game"), "a/0/4/2": ("sm", "battle"), "a/0/7/3": ("sm", "ultra")}
 _ROLE_WORDS = (("Species names", "Pokémon name", "The name of a Pokémon species."),
                ("Form names", "Form name", "The name of a Pokémon form."),
                ("Move names", "Move name", "The name of a move."),
@@ -55,6 +64,8 @@ def table_name(rel: str) -> str:
     if where is None:
         return Path(_rel(rel)).stem
     game, kind, index = where
+    if kind == "ultra":
+        return f"Ultra text {index:03d}"
     if kind == "story":
         return f"Story {index:03d}"
     if kind == "keyboard":
@@ -116,9 +127,53 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._file: Optional[bytes] = None        # the file a save writes over (line flags / keyboard header)
         self._located: Dict[int, Optional[str]] = {}
+        self._window_fonts = message_window.WindowFonts()
 
     def get_display_name(self) -> str:
         return "Pokémon Sun/Moon + Ultra Sun/Ultra Moon (3DS)"
+
+    # Project Manager: the image is read by core/project_library/images.py; unpack.py takes the files.
+    def get_platforms(self) -> list:
+        return [{"id": "3ds", "label": tr("Nintendo 3DS")}]
+
+    def get_source_roles(self) -> list:
+        return [{"id": "base", "label": tr("Base game")},
+                {"id": "update", "label": tr("Update v1.2 (Ultra Sun / Ultra Moon)")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        found = images.identify(path)
+        if found is None or found["kind"] != "3ds":
+            return None
+        if str(found["title_id"]).lower().startswith("0004000e") and found["game_id"] in ULTRA_CODES:
+            return {"role": "update", "platform": "3ds"}
+        if found["game_id"] in BASE_CODES:
+            return {"role": "base", "platform": "3ds"}
+        return None
+
+    def unpack_key_consoles(self) -> list:
+        return ["3ds"]
+
+    def get_build_targets(self) -> list:
+        return [{"id": BUILD_TARGET, "label": tr("3DS mod (LayeredFS)"), "platforms": ["3ds"], "kind": "layeredfs"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != BUILD_TARGET:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        try:
+            title = garc_mod.base_title(Path(source_dir))
+            result = garc_mod.build(Path(source_dir), Path(translation_dir), Path(output_dir), title,
+                                    garc_mod.stored_garcs(Path(source_dir), title),
+                                    progress, is_cancelled)
+        except garc_mod.ModError as error:
+            raise ValueError(str(error)) from None
+        return str(result)
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        if not base:
+            return None
+        return unpack.extract(base, sources.get("update"), target_dir, progress, is_cancelled)
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
@@ -256,6 +311,29 @@ class GameRules(BaseGameRules):
 
     def get_capabilities(self) -> Set[str]:
         return {"glossary_seed"}
+
+    # -- message window ------------------------------------------------------------
+
+    def _source_root(self) -> Optional[str]:
+        """The unpacked source folder of the project (None before a project is open)."""
+        try:
+            root = str(self.mw.project_manager.project.metadata.get("source_path") or "")
+        except AttributeError:
+            return None
+        return root if root and os.path.isdir(root) else None
+
+    def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """The message box of the game: its text width and lines (see ``message_preview``)."""
+        facts = message_window.BoxFacts.load(_CONFIG, "message_window")
+        return {"max_width": facts.text_width, "warn_width": facts.text_width,
+                "lines_per_page": DEFAULT_LINES_PER_PAGE}
+
+    def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
+        """The message box drawn with the game's own font. It fills in when the worker has read the font."""
+        root = self._source_root()
+        if root is None:
+            return None
+        return self._window_fonts.widget(root, message_window.BoxFacts.load(_CONFIG, "dialogue_window"))
 
     # -- editor ------------------------------------------------------------------
 

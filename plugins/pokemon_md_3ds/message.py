@@ -3,7 +3,8 @@
 A message file (``message/*.bin`` in Gates to Infinity, a member of ``message_en.bin`` in Super Mystery Dungeon):
 ``SIR0``, u32 content header offset, u32 pointer list offset, u32 0; the strings from 0x10 (UTF-16LE, each ending in
 0000); padding to 4; the entry table, 12 bytes per message (u32 string offset, u32 name hash, u32 flags) sorted by
-hash; the content header (u32 count, u32 table offset); padding to 16; the pointer list (every pointer's offset as
+hash; the debug copies (``message_debug_en.bin/*.dbin``) have 8 bytes per entry (string offset, hash), no flags. The
+content header (u32 count, u32 table offset); padding to 16; the pointer list (every pointer's offset as
 a big-endian 7-bit varint delta: 4, 8, the table's string offsets, the header's table offset; a 0 ends it); padding to
 16. ``rebuild`` lays the same thing out again around new strings, so text may grow.
 
@@ -140,17 +141,22 @@ def _varint(value: int) -> bytes:
 class File:
     """The entries of a message file: ``(hash, flags, units)`` in table order, and the file order of the strings."""
 
+    stride = 12                     # bytes per table entry: 12 (flags too), or 8 in the debug label tables
+
     def __init__(self, raw: bytes):
         if raw[:4] != MAGIC or len(raw) < 0x20:
             raise FormatError("not a SIR0 message file")
         header = struct.unpack_from("<I", raw, 4)[0]
         count, table = struct.unpack_from("<II", raw, header)
-        if table + count * 12 != header:
+        self.stride = (header - table) // count if count else 12
+        if self.stride not in (8, 12) or table + count * self.stride != header:
             raise FormatError("not a message table")
         self.entries: List[Tuple[int, int, List[int]]] = []
         pointers = []
         for i in range(count):
-            pointer, hash_, flags = struct.unpack_from("<III", raw, table + i * 12)
+            fields = struct.unpack_from("<II" if self.stride == 8 else "<III", raw, table + i * self.stride)
+            pointer, hash_ = fields[0], fields[1]
+            flags = fields[2] if self.stride == 12 else 0
             if pointer < 0x10 or pointer >= table or pointer & 1:
                 raise FormatError("not a message table")
             end = raw.index(b"\0\0", pointer)
@@ -176,12 +182,15 @@ class File:
         table = 0x10 + len(body)
         count = len(self.entries)
         for index, (hash_, flags, _units) in enumerate(self.entries):
-            body += struct.pack("<III", pointers[index], hash_, flags)
+            if self.stride == 8:
+                body += struct.pack("<II", pointers[index], hash_)
+            else:
+                body += struct.pack("<III", pointers[index], hash_, flags)
         header = 0x10 + len(body)
         body += struct.pack("<II", count, table)
         body += bytes(-(0x10 + len(body)) % 16)
         pointer_list = 0x10 + len(body)
-        offsets = [4, 8] + [table + i * 12 for i in range(count)] + [header + 4]
+        offsets = [4, 8] + [table + i * self.stride for i in range(count)] + [header + 4]
         last = 0
         for offset in offsets:
             body += _varint(offset - last)
@@ -194,4 +203,5 @@ class File:
 def attributes(raw: bytes) -> List[Dict[str, str]]:
     """``{"hash", "flags"}`` of every message, in the order ``texts`` gives them."""
     file = File(raw)
-    return [{"hash": f"{file.entries[i][0]:08X}", "flags": f"{file.entries[i][1]:08X}"} for i in file.order]
+    return [{"hash": f"{file.entries[i][0]:08X}", "flags": f"{file.entries[i][1]:08X}" if file.stride == 12 else ""}
+            for i in file.order]
