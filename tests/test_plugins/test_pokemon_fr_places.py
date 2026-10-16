@@ -50,3 +50,24 @@ def test_a_c_text_with_places_loads_every_place(tmp_path):
     units = rom_text.c_text_units(path)
 
     assert units == [rom_text.Unit("L1", 0x10, 4, places=(0x40, 0x80)), rom_text.Unit("L2", 0x100, 3)]
+
+
+def test_a_message_no_word_points_at_has_a_budget_and_a_thumb_pointer_does_not():
+    rom = bytearray(b"\xff" * 0x100)
+    rom[0x80:0x84] = (gba_rom.ROM_BASE + 0x10).to_bytes(4, "little")          # exact pointer to 0x10
+    rom[0x84:0x88] = (gba_rom.ROM_BASE + 0x21).to_bytes(4, "little")          # Thumb pointer to 0x20
+    units = [rom_text.Unit("exact", 0x10, 4), rom_text.Unit("thumb", 0x20, 4),
+             rom_text.Unit("loose", 0x30, 5), rom_text.Unit("fixed", 0x40, 4, fixed=True)]
+
+    assert rom_text.unpointed_budgets(bytes(rom), units) == {"loose": 5}
+
+
+def test_a_thumb_pointer_follows_a_moved_block_when_asked():
+    rom = bytearray(b"\xff" * 0x200)
+    rom[0x10:0x14] = b"ABCD"
+    rom[0x80:0x84] = (gba_rom.ROM_BASE + 0x11).to_bytes(4, "little")
+    index = gba_rom.pointer_index(bytes(rom))
+
+    new = gba_rom.Relocator(rom, index, floor=0x100, thumb_pointers=True).move(0x10, 4, b"LONGER")
+
+    assert int.from_bytes(rom[0x80:0x84], "little") == gba_rom.ROM_BASE + new + 1

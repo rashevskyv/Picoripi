@@ -50,9 +50,10 @@ class Relocator:
     ``floor`` is the file offset where free space starts (``free_start`` of the linked data).
     """
 
-    def __init__(self, rom: bytearray, index: Dict[int, List[int]], floor: int) -> None:
+    def __init__(self, rom: bytearray, index: Dict[int, List[int]], floor: int, thumb_pointers: bool = False) -> None:
         self.rom = rom
         self.index = index
+        self.thumb_pointers = thumb_pointers   # also rewrite the pointers that carry the Thumb bit (address + 1)
         self.cursor = floor
         self.moved: List[Tuple[int, int, int]] = []    # (old offset, new offset, size)
 
@@ -76,14 +77,16 @@ class Relocator:
         Pointers to the old address are rewritten to the new one. The old bytes become 0xFF.
         """
         old_address = ROM_BASE + old
-        pointers = self.index.get(old_address, [])
+        pointers = [(at, 0) for at in self.index.get(old_address, [])]
+        if self.thumb_pointers:
+            pointers += [(at, 1) for at in self.index.get(old_address + 1, [])]
         if not pointers:
             # Nothing points at this block, so a moved copy could never be read: refuse instead of losing the text.
             raise RomError(tr("This message is not used through a pointer, so it cannot move. Keep it within its original length."))
         new = self.place(data)
         new_address = ROM_BASE + new
-        for at in pointers:
-            self.rom[at:at + 4] = new_address.to_bytes(4, "little")
+        for at, bit in pointers:
+            self.rom[at:at + 4] = (new_address + bit).to_bytes(4, "little")
         self.rom[old:old + old_size] = b"\xff" * old_size
         self.moved.append((old, new, old_size))
         return new

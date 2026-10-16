@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple
 from core.i18n import tr
 from plugins.pokemon_fr import pret_text
 from plugins.pokemon_fr.rom_text import (CHARMAP_FILE, FACTS_DIR, Charmap, braille_charmap, load_tables, load_units, read_all,
-                                        table_files, write_all)
+                                        table_files, unpointed_budgets, write_all)
 
 ROM_ROLE = "rom"
 SOURCE_DIR = "text"                       # the project's source root, inside the unpacked tree
@@ -96,8 +96,9 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
     progress(60, "Copying the base ROM")
     (target / ROM_DIR).mkdir(parents=True, exist_ok=True)
     (target / BASE_ROM).write_bytes(rom)
-    (target / META_FILE).write_text(json.dumps({"facts": facts_name, "build_name": facts["build_name"]},
-                                               ensure_ascii=False, indent=1), encoding="utf-8")
+    unpointed = unpointed_budgets(rom, list(units) + [unit for unit in tables if not unit.fixed])
+    (target / META_FILE).write_text(json.dumps({"facts": facts_name, "build_name": facts["build_name"],
+                                                "unpointed": unpointed}, ensure_ascii=False, indent=1), encoding="utf-8")
     progress(100, "Done")
     return str(target)
 
@@ -114,6 +115,7 @@ def field_budgets(text_dir: str) -> Optional[Tuple[Dict[str, int], Charmap]]:
     facts = FACTS_DIR / meta["facts"]
     header = json.loads(facts.read_text(encoding="utf-8"))
     sizes = {unit.label: unit.size for unit in load_tables(facts) + load_units(facts)[0] if unit.fixed}
+    sizes.update(meta.get("unpointed", {}))   # messages no pointer reaches: their size is a budget
     return sizes, Charmap.load(FACTS_DIR / header.get("charmap", CHARMAP_FILE))
 
 

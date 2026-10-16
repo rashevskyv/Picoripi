@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from core.i18n import tr
-from plugins.common.gba_rom import Relocator, RomError, fix_header, pointer_index, write_in_place
+from plugins.common.gba_rom import ROM_BASE, Relocator, RomError, fix_header, pointer_index, write_in_place
 
 TERMINATOR = 0xFF
 FACTS_DIR = Path(__file__).with_name("rom_facts")
@@ -209,6 +209,16 @@ def load_units(path: Optional[Path] = None) -> Tuple[List[Unit], int, Dict[str, 
     return units, int(data["free_start"]), header
 
 
+def unpointed_budgets(rom: bytes, units: Sequence[Unit]) -> Dict[str, int]:
+    """The messages that no ROM word points at, exactly or with the Thumb bit: label -> size in bytes.
+
+    Nothing can move such a text, so the editor keeps each one within its size and the build refuses a longer one.
+    """
+    index = pointer_index(rom)
+    return {unit.label: unit.size for unit in units
+            if not unit.fixed and not index.get(ROM_BASE + unit.offset) and not index.get(ROM_BASE + unit.offset + 1)}
+
+
 def braille_charmap(path: Optional[Path] = None) -> Optional[Charmap]:
     """The braille codes of a facts file (``braille_chars``: ``[char, hex code]``), or None when it has none."""
     data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
@@ -279,7 +289,7 @@ def write_all(rom: bytes, units: Sequence[Unit], charmap: Charmap, floor: int,
     by_label = {unit.label: unit for unit in units}
     index = pointer_index(rom)
     patched = bytearray(rom)
-    relocator = Relocator(patched, index, floor)
+    relocator = Relocator(patched, index, floor, thumb_pointers=True)   # a text may be named with the Thumb bit
     for label, text in texts.items():
         unit = by_label.get(label)
         if unit is None:

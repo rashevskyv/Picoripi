@@ -57,7 +57,25 @@ def test_every_default_alias_targets_a_charmap_control_name():
     for alias, raw in config["default_tag_mappings"].items():
         assert alias.startswith("{") and alias.endswith("}")
         assert raw.startswith("{") and raw.endswith("}")
-        assert raw[1:-1] in names, raw
+        assert raw[1:-1].split()[0] in names, raw     # the control name; its arguments are checked by the round trip
+
+
+def test_an_alias_builds_the_same_bytes_as_its_raw_tag_and_reads_back():
+    """An alias with an argument (``{COLOR:Red}``) builds the bytes of its raw tag (``{COLOR RED}``), and the raw tag
+    reads back as itself."""
+    import json
+
+    from core.tag_utils import apply_default_mappings_only
+    from plugins.pokemon_fr import rom_text
+
+    config = json.loads((rom_text.FACTS_DIR.parent / "config.json").read_text(encoding="utf-8"))
+    mappings = config["default_tag_mappings"]
+    charmap = rom_text.Charmap.load()
+    for alias, raw in mappings.items():
+        applied, changed = apply_default_mappings_only(f"A{alias}B", mappings)
+        assert changed and applied == f"A{raw}B", alias
+        assert charmap.encode(applied) == charmap.encode(f"A{raw}B"), alias
+        assert charmap.decode(charmap.encode(raw)[:-1]) == raw, raw
 
 
 EXPECTED_COUNTS = {
