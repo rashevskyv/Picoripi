@@ -3,6 +3,7 @@
 The real-ROM tests read the FireRed (USA, rev 0) image from ``PICORIPI_FIRERED_ROM`` or the owner's workspace and skip
 when it is not there. Nothing from the image is copied into the repository.
 """
+import json
 import os
 import random
 from pathlib import Path
@@ -194,11 +195,19 @@ def test_real_rom_unpack_writes_the_name_tables_and_their_budgets(tmp_path):
     for name in ("move_names.inc", "item_names.inc", "trainer_names.inc", "berry_names.inc"):
         assert (text_dir / name).is_file(), name
     assert "gMoveName_0::" in (text_dir / "move_names.inc").read_text(encoding="utf-8")
-    sizes, charmap = rom_project.field_budgets(str(text_dir))
+    sizes, charmap = rom_project.meta_budgets(str(text_dir))
     assert (sizes["gMoveName_1"], sizes["gItemName_1"], sizes["gTrainerName_25"]) == (13, 14, 12)
     assert "gMoveName_1" in sizes and "gMoveDescription_1" not in sizes
     assert len(charmap.encode("POUND")) == 6
-    assert rom_project.field_budgets(str(tmp_path)) is None
+    assert rom_project.meta_budgets(str(tmp_path)) is None
+    # An old project (no budgets in meta.json) falls back to its facts; the worker reads them, with the same sizes.
+    meta_path = Path(unpacked) / rom_project.ROM_DIR / rom_project.META_FILE.name
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    assert meta["budgets"]["gMoveName_1"] == 13
+    old_meta = {key: value for key, value in meta.items() if key not in ("budgets", "charmap")}
+    meta_path.write_text(json.dumps(old_meta), encoding="utf-8")
+    assert rom_project.meta_budgets(str(text_dir)) is None
+    assert rom_project.old_project_budgets(str(text_dir))[0]["gMoveName_1"] == 13
 
 
 def test_braille_texts_use_the_braille_codes():
@@ -217,5 +226,5 @@ def test_real_rom_braille_and_decoration_fields_unpack(tmp_path):
     text_dir = Path(unpacked) / rom_project.SOURCE_DIR
     messages = (text_dir / rom_project.TEXT_FILE).read_text(encoding="utf-8")
     assert 'Braille_Text_Up::\n\t.string "UP$"' in messages
-    sizes, _charmap = rom_project.field_budgets(str(text_dir))
+    sizes, _charmap = rom_project.meta_budgets(str(text_dir))
     assert sizes["gDecorationName_0"] == 16
