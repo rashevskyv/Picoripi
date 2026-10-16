@@ -206,9 +206,10 @@ def load_tables(path: Optional[Path] = None) -> List[Unit]:
     data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
     units: List[Unit] = []
     for table in data.get("c_tables", []):
+        size = int(table.get("size", table["stride"]))
         for index in range(int(table["count"])):
             units.append(Unit(f"{table['label']}{index}", int(table["offset"]) + index * int(table["stride"]),
-                              int(table["stride"]), True, int(table.get("pad", 0))))
+                              size, True, int(table.get("pad", 0))))
     return units
 
 
@@ -242,6 +243,8 @@ def write_all(rom: bytes, units: Sequence[Unit], charmap: Charmap, floor: int,
             raise RomError(tr("No message named {0} in this game.", label))
         data = charmap.encode(text)
         if unit.fixed:
+            if charmap.decode(rom[unit.offset:unit.offset + unit.size]) == text:
+                continue          # the field keeps its own padding when its text is unchanged
             if len(data) > unit.size:
                 raise RomError(tr("{0} is {1} bytes long; its table gives {2} bytes, the terminator included. "
                                   "Shorten it.", unit.label, str(len(data)), str(unit.size)))

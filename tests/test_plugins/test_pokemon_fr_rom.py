@@ -183,3 +183,19 @@ def test_real_images_are_identified_and_round_trip_unedited(tmp_path, key):
     built = rom_project.build(str(Path(unpacked) / rom_project.SOURCE_DIR), str(tmp_path / "translation"),
                               str(tmp_path / "build"), lambda p, t: None, lambda: False)
     assert Path(built).read_bytes() == path.read_bytes()
+
+
+def test_real_rom_unpack_writes_the_name_tables_and_their_budgets(tmp_path):
+    path = _rom_path()
+    if path is None:
+        pytest.skip("FireRed ROM not on disk")
+    unpacked = rom_project.unpack(str(path), str(tmp_path / "unpacked"), lambda p, t: None, lambda: False)
+    text_dir = Path(unpacked) / rom_project.SOURCE_DIR
+    for name in ("move_names.inc", "item_names.inc", "trainer_names.inc", "berry_names.inc"):
+        assert (text_dir / name).is_file(), name
+    assert "gMoveName_0::" in (text_dir / "move_names.inc").read_text(encoding="utf-8")
+    sizes, charmap = rom_project.field_budgets(str(text_dir))
+    assert (sizes["gMoveName_1"], sizes["gItemName_1"], sizes["gTrainerName_25"]) == (13, 14, 12)
+    assert "gMoveName_1" in sizes and "gMoveDescription_1" not in sizes
+    assert len(charmap.encode("POUND")) == 6
+    assert rom_project.field_budgets(str(tmp_path)) is None

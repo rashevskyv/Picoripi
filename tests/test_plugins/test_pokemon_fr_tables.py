@@ -19,12 +19,13 @@ ROM = Path(os.environ.get("PICORIPI_FIRERED_ROM",
 
 
 def test_species_table_units_come_from_the_facts():
-    table = json.loads(FACTS.read_text(encoding="utf-8"))["c_tables"][0]
-    units = rom_text.load_tables(FACTS)
+    table = next(item for item in json.loads(FACTS.read_text(encoding="utf-8"))["c_tables"]
+                 if item["name"] == "species")
+    units = [unit for unit in rom_text.load_tables(FACTS) if unit.label.startswith("gSpeciesName_")]
     assert len(units) == table["count"] == 412
     assert units[1] == rom_text.Unit("gSpeciesName_1", table["offset"] + 11, 11, True, 0)
     assert all(unit.fixed and unit.size == 11 for unit in units)
-    assert rom_text.table_files(FACTS) == {"species_names.inc": [unit.label for unit in units]}
+    assert rom_text.table_files(FACTS)["species_names.inc"] == [unit.label for unit in units]
 
 
 @pytest.mark.skipif(not ROM.is_file(), reason="FireRed rev 0 ROM is not on this machine")
@@ -57,3 +58,62 @@ def test_every_default_alias_targets_a_charmap_control_name():
         assert alias.startswith("{") and alias.endswith("}")
         assert raw.startswith("{") and raw.endswith("}")
         assert raw[1:-1] in names, raw
+
+
+EXPECTED_COUNTS = {
+    "firered_usa_rev0": {"species": 412, "moves": 355, "abilities": 78, "types": 18, "items": 375,
+                         "trainer_classes": 107, "trainer_names": 743, "berries": 43},
+    "emerald_usa": {"species": 412, "moves": 355, "abilities": 78, "types": 18, "items": 377,
+                    "trainer_classes": 66, "trainer_names": 855, "berries": 43},
+    "ruby_usa_rev0": {"species": 412, "moves": 355, "abilities": 78, "types": 18, "items": 349,
+                      "trainer_classes": 58, "trainer_names": 694, "berries": 43},
+}
+
+
+@pytest.mark.parametrize("facts_name", sorted(EXPECTED_COUNTS))
+def test_tables_have_the_decompilation_counts(facts_name):
+    """Each name table of a facts file has the count its decompilation declares (checked when it was written)."""
+    data = json.loads((rom_text.FACTS_DIR / f"{facts_name}.json").read_text(encoding="utf-8"))
+    counts = {table["name"]: table["count"] for table in data["c_tables"]}
+    assert {name: counts[name] for name in EXPECTED_COUNTS[facts_name]} == EXPECTED_COUNTS[facts_name]
+
+
+def test_a_table_field_is_read_and_written_inside_its_own_size():
+    facts = json.loads(FACTS.read_text(encoding="utf-8"))
+    table = next(item for item in facts["c_tables"] if item["name"] == "trainer_names")
+    units = rom_text.load_tables(FACTS)
+    trainer = next(unit for unit in units if unit.label == "gTrainerName_25")
+    assert (trainer.offset, trainer.size, trainer.fixed) == (table["offset"] + 25 * table["stride"], 12, True)
+    assert trainer.size < table["stride"]        # the name is a field of a 40-byte struct, not the struct
+
+
+@pytest.mark.skipif(not ROM.is_file(), reason="FireRed rev 0 ROM is not on this machine")
+def test_a_struct_field_write_changes_only_its_own_bytes():
+    rom = ROM.read_bytes()
+    facts = json.loads(FACTS.read_text(encoding="utf-8"))
+    charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / facts["charmap"])
+    units = rom_text.load_tables(FACTS)
+    unit = next(item for item in units if item.label == "gTrainerName_25")
+    patched = rom_text.write_all(rom, units, charmap, 0, {unit.label: "ROCKY"})
+    changed = [at for at in range(len(rom)) if rom[at] != patched[at]]
+    assert changed and all(unit.offset <= at < unit.offset + unit.size for at in changed)
+    assert patched[unit.offset:unit.offset + 6] == charmap.encode("ROCKY")
+
+
+def test_a_fixed_field_over_its_budget_is_flagged_by_the_analyzer():
+    from plugins.pokemon_fr.config import PROBLEM_BYTE_BUDGET
+    from plugins.pokemon_fr.problem_analyzer import ProblemAnalyzer
+    from plugins.pokemon_fr.rules import ProblemIDs
+
+    class Rules:
+        def exceeds_byte_budget(self, block_idx, string_idx, text):
+            return (block_idx, string_idx, len(text)) == (3, 7, 14)
+
+    analyzer = ProblemAnalyzer(None, None, {PROBLEM_BYTE_BUDGET: {}}, ProblemIDs)
+    analyzer.game_rules = Rules()
+    analyzer._current_scan_block_idx = 3
+    analyzer._current_scan_string_idx = 7
+    flagged = analyzer.analyze_data_string("ABCDEFGHIJKLMN", {}, 100, None)
+    assert any(PROBLEM_BYTE_BUDGET in found for found in flagged)
+    analyzer._current_scan_string_idx = 8
+    assert not any(PROBLEM_BYTE_BUDGET in found for found in analyzer.analyze_data_string("ABCDEFGHIJKLMN", {}, 100, None))

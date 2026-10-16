@@ -102,6 +102,21 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
     return str(target)
 
 
+def field_budgets(text_dir: str) -> Optional[Tuple[Dict[str, int], Charmap]]:
+    """The fixed name fields of the ROM project that holds ``text_dir``: label -> byte size, and the charmap.
+
+    None when the folder is not a ROM project. A message (not a C-built field) has no entry: it may grow.
+    """
+    meta_path = Path(text_dir).parent / ROM_DIR / "meta.json"
+    if not meta_path.is_file():
+        return None
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    facts = FACTS_DIR / meta["facts"]
+    header = json.loads(facts.read_text(encoding="utf-8"))
+    sizes = {unit.label: unit.size for unit in load_tables(facts)}
+    return sizes, Charmap.load(FACTS_DIR / header.get("charmap", CHARMAP_FILE))
+
+
 def _edited_texts(text_dir: Path, expected: int) -> Dict[str, str]:
     """The messages of a text file. A file with fewer messages than the ROM has is broken: refuse it, do not drop them."""
     path = text_dir / TEXT_FILE
