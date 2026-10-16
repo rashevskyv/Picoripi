@@ -156,19 +156,21 @@ def test_real_rom_longer_message_moves_and_reads_back(tmp_path, charmap):
     assert patched[unit.offset:unit.offset + unit.size] == b"\xff" * unit.size
 
 
-FOUR_IMAGES = {
-    "Pokemon - FireRed Version (USA, Europe).gba": "FireRed (USA, rev 0)",
-    "Pokemon - FireRed Version (USA, Europe) (Rev 1).gba": "FireRed (USA, rev 1)",
-    "Pokemon - LeafGreen Version (USA, Europe).gba": "LeafGreen (USA, rev 0)",
-    "Pokemon - LeafGreen Version (USA, Europe) (Rev 1).gba": "LeafGreen (USA, rev 1)",
+EMERALD_ROM = Path("E:/Emulators/RomHacking/Pokemon/Emerald/ISO/Pokemon - Emerald Version (USA, Europe).gba")
+IMAGES = {
+    "firered_rev0": (DEFAULT_ROM, "FireRed (USA, rev 0)"),
+    "firered_rev1": (DEFAULT_ROM.parent / "Pokemon - FireRed Version (USA, Europe) (Rev 1).gba", "FireRed (USA, rev 1)"),
+    "leafgreen_rev0": (DEFAULT_ROM.parent / "Pokemon - LeafGreen Version (USA, Europe).gba", "LeafGreen (USA, rev 0)"),
+    "leafgreen_rev1": (DEFAULT_ROM.parent / "Pokemon - LeafGreen Version (USA, Europe) (Rev 1).gba", "LeafGreen (USA, rev 1)"),
+    "emerald": (EMERALD_ROM, "Emerald (USA, Europe)"),
 }
 
 
-@pytest.mark.parametrize("name", sorted(FOUR_IMAGES))
-def test_real_images_are_identified_and_round_trip_unedited(tmp_path, name):
-    path = DEFAULT_ROM.parent / name
+@pytest.mark.parametrize("key", sorted(IMAGES))
+def test_real_images_are_identified_and_round_trip_unedited(tmp_path, key):
+    path, label = IMAGES[key]
     if not path.is_file():
-        pytest.skip(f"{FOUR_IMAGES[name]} not on disk")
+        pytest.skip(f"{label} not on disk")
     assert rom_project.identify(str(path)) == {"role": rom_project.ROM_ROLE, "platform": "gba"}
     unpacked = rom_project.unpack(str(path), str(tmp_path / "unpacked"), lambda p, t: None, lambda: False)
     built = rom_project.build(str(Path(unpacked) / rom_project.SOURCE_DIR), str(tmp_path / "translation"),

@@ -33,8 +33,11 @@ def _facts_files() -> Dict[str, Dict[str, Any]]:
         if path.name == CHARMAP_FILE:
             continue
         header = json.loads(path.read_text(encoding="utf-8"))
+        if "rom_sha1" not in header:
+            continue
         found.setdefault(path.name, {"sha1": header["rom_sha1"], "game": header["game"],
-                                     "build_name": header.get("build_name", path.stem)})
+                                     "build_name": header.get("build_name", path.stem),
+                                     "charmap": header.get("charmap", CHARMAP_FILE)})
     return found
 
 
@@ -77,7 +80,7 @@ def unpack(rom_path: str, target_dir: str, progress: Progress, is_cancelled: Can
     facts_name, facts = _facts_for(rom)
     progress(10, "Reading the messages")
     units, _floor, _header = load_units(FACTS_DIR / facts_name)
-    texts = read_all(rom, units, Charmap.load())
+    texts = read_all(rom, units, Charmap.load(FACTS_DIR / facts["charmap"]))
     if is_cancelled():
         return None
     target = Path(target_dir)
@@ -117,8 +120,8 @@ def build(source_dir: str, translation_dir: str, output_dir: str, progress: Prog
         raise ValueError(tr("This project was not unpacked from a ROM."))
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     base = (rom_dir / "base.gba").read_bytes()
-    units, floor, _header = load_units(FACTS_DIR / meta["facts"])
-    charmap = Charmap.load()
+    units, floor, header = load_units(FACTS_DIR / meta["facts"])
+    charmap = Charmap.load(FACTS_DIR / header.get("charmap", CHARMAP_FILE))
     original = read_all(base, units, charmap)
     edited = _edited_texts(source, len(units))
     edited.update(_edited_texts(Path(translation_dir), len(units)))

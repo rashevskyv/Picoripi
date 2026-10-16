@@ -124,6 +124,21 @@ def map_symbols(path: Path) -> Tuple[Dict[str, int], int]:
     return symbols, end
 
 
+def nm_symbols(path: Path) -> Tuple[Dict[str, int], List[str]]:
+    """Every symbol of the built ELF (``arm-none-eabi-nm -n``), local ones included, with its ROM address.
+
+    A name at two addresses is dropped and returned in the second list: such a message cannot be placed.
+    """
+    found: Dict[str, set] = {}
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        parts = line.split()
+        if len(parts) == 3 and re.fullmatch(r"[0-9a-fA-F]{8}", parts[0]):
+            found.setdefault(parts[2], set()).add(int(parts[0], 16))
+    symbols = {name: next(iter(addresses)) for name, addresses in found.items() if len(addresses) == 1}
+    ambiguous = [name for name, addresses in found.items() if len(addresses) > 1]
+    return symbols, ambiguous
+
+
 def read_message(rom: bytes, offset: int) -> int:
     """The size of the message at ``offset`` including its terminator."""
     end = rom.find(bytes([TERMINATOR]), offset, offset + 0x2000)
@@ -132,13 +147,50 @@ def read_message(rom: bytes, offset: int) -> int:
     return end - offset + 1
 
 
+def locate_by_search(rom: bytes, sources: Dict[str, Tuple[str, str]], charmap: Charmap):
+    """Find each message in the ROM by its exact bytes (the source encoded), when no link map is used.
+
+    A message counts only when its bytes occur once in the ROM. Returns (label -> offset, missing, ambiguous).
+    """
+    located: Dict[str, int] = {}
+    missing: List[str] = []
+    ambiguous: List[str] = []
+    for label, (content, directive) in sources.items():
+        if directive == "braille":
+            continue
+        try:
+            expected = charmap.encode(content)
+        except CodecError:
+            missing.append(label)
+            continue
+        first = rom.find(expected)
+        if first < 0:
+            missing.append(label)
+        elif rom.find(expected, first + 1) >= 0:
+            ambiguous.append(label)
+        else:
+            located[label] = first
+    # Two labels on one offset: neither can be edited alone.
+    seen: Dict[int, str] = {}
+    for label, offset in list(located.items()):
+        if offset in seen:
+            ambiguous.extend([label, seen[offset]])
+            located.pop(label, None)
+            located.pop(seen[offset], None)
+        else:
+            seen[offset] = label
+    return located, missing, ambiguous
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--decomp", required=True, type=Path)
-    parser.add_argument("--map", required=True, type=Path)
+    parser.add_argument("--map", type=Path, help="the link map of the build (the free space start)")
+    parser.add_argument("--nm", type=Path, help="arm-none-eabi-nm -n output of the built ELF (local labels too)")
     parser.add_argument("--rom", required=True, type=Path)
     parser.add_argument("--game", required=True)
     parser.add_argument("--build-name", required=True, help="the file name of a built ROM, without .gba")
+    parser.add_argument("--charmap-name", default=CHARMAP_FILE, help="the charmap facts file of this game")
     parser.add_argument("--out", required=True, type=Path)
     options = parser.parse_args()
 
@@ -152,13 +204,27 @@ def main() -> int:
     charmap = Charmap([(k, int(c, 16)) for k, c in chars], [(n, bytes.fromhex(c)) for n, c in names],
                       PREFIX_ARGS, [(n, bytes.fromhex(c)) for n, c in sounds], SOUND_ARGS)
 
-    symbols, rom_end = map_symbols(options.map)
-    floor = ((rom_end - ROM_BASE) + 3) & ~3
+    if options.map is not None:
+        symbols, rom_end = map_symbols(options.map)
+        floor = ((rom_end - ROM_BASE) + 3) & ~3
+        method = "link map"
+    else:
+        symbols, method = {}, "search"
+        # Used data ends where the 0xFF padding starts; everything after it is free.
+        floor = (len(rom.rstrip(b"\xff")) + 3) & ~3
+    if options.nm is not None:
+        symbols, dropped = nm_symbols(options.nm)
+        method = "ELF symbols (nm)"
+        print(f"symbols at two addresses, not used: {len(dropped)} {dropped[:5]}")
     if any(byte != 0xFF for byte in rom[floor:]):
-        raise SystemExit(f"The ROM is not 0xFF after the linked data at 0x{floor:X}; the free space is not known.")
+        raise SystemExit(f"The ROM is not 0xFF after the used data at 0x{floor:X}; the free space is not known.")
 
     pointers = pointer_index(rom)
     sources = source_units(options.decomp)
+    if options.map is None:
+        located, missing, ambiguous = locate_by_search(rom, sources, charmap)
+        symbols = {label: ROM_BASE + offset for label, offset in located.items()}
+        print(f"search: {len(missing)} not found or not encodable, {len(ambiguous)} ambiguous")
     units: List[Tuple[int, str, int]] = []
     differs: List[str] = []
     unencodable: List[str] = []
@@ -189,7 +255,7 @@ def main() -> int:
         if start + size > next_start:
             raise SystemExit(f"{name} overlaps {next_name}.")
 
-    charmap_path = FACTS_DIR / CHARMAP_FILE
+    charmap_path = FACTS_DIR / options.charmap_name
     charmap_path.parent.mkdir(parents=True, exist_ok=True)
     charmap_path.write_text(json.dumps(charmap_facts, ensure_ascii=False, indent=1) + "\n", encoding="utf-8",
                             newline="\n")
@@ -199,7 +265,8 @@ def main() -> int:
         "build_name": options.build_name,
         "rom_sha1": digest,
         "rom_size": len(rom),
-        "source": "pret decompilation and its link map; facts only",
+        "charmap": options.charmap_name,
+        "source": f"pret decompilation (facts only); messages located by {method}",
         "free_start": floor,
         # A message with no pointer to it can be written only in its original length (see gba_rom.Relocator).
         "unpointed_units": sum(1 for offset, _label, _size in units if ROM_BASE + offset not in pointers),
