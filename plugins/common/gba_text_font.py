@@ -53,6 +53,9 @@ class GlyphSet:
     def width(self, code: int) -> int:
         return self._widths[code] if 0 <= code < len(self._widths) else 0
 
+    def drawn_width(self, code: int) -> int:
+        return self.width(code)
+
     def pixels(self, code: int) -> List[List[int]]:
         if code not in self._cache:
             block = self._glyphs[code * GLYPH_BYTES:(code + 1) * GLYPH_BYTES]
@@ -78,3 +81,70 @@ def read_glyph_set(rom_path: Path, facts: Dict[str, Any]) -> GlyphSet:
 def font_facts(facts_file: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """The ``font`` entry of a facts file, or None when the file has none."""
     return facts_file.get("font") if isinstance(facts_file, dict) else None
+
+
+# -- Ruby and Sapphire: 4bpp glyphs (font 3) --------------------------------------------------------------------
+# A glyph is 8 pixels wide and 16 tall: the upper 8x8 tile (32 bytes, 4 bytes per row, low nibble first) and the
+# lower 8x8 tile (32 bytes). The nibble is the palette index: 0 paper, 1 ink, 2 shadow. Advance widths come from
+# the game's width table, one byte per glyph. The shared renderer draws ``drawn_width`` columns and advances by
+# ``width``. The FireRed set below keeps the old behaviour (its drawn width is its advance width).
+GLYPH4_BYTES = 64
+GLYPH4_ROWS = 16
+GLYPH4_COLUMNS = 8
+
+
+# The GBA nibbles of the Ruby font: 0 paper, 15 ink, 14 shadow (the palette of the text window: ink 1, shadow 8).
+NIBBLE_CLASS = {0: PAPER, 0xF: INK, 0xE: SHADOW}
+
+
+def decode_glyph_4bpp(data: bytes) -> List[List[int]]:
+    """The 16 x 8 pixel classes of one glyph (upper tile first, then the lower tile)."""
+    rows = []
+    for y in range(GLYPH4_ROWS):
+        tile, row = divmod(y, 8)
+        base = 32 * tile + 4 * row
+        cells = []
+        for x in range(GLYPH4_COLUMNS):
+            byte = data[base + x // 2]
+            cells.append(NIBBLE_CLASS.get((byte >> (4 * (x % 2))) & 0xF, PAPER))
+        rows.append(cells)
+    return rows
+
+
+class Glyph4bppSet:
+    """Widths and decoded 4bpp glyphs of one Ruby or Sapphire font. ``code`` is the glyph index (the text byte)."""
+
+    def __init__(self, widths: bytes, glyphs: bytes) -> None:
+        self._widths = widths
+        self._glyphs = glyphs
+        self._cache: Dict[int, List[List[int]]] = {}
+
+    @property
+    def count(self) -> int:
+        return len(self._widths)
+
+    def width(self, code: int) -> int:
+        return self._widths[code] if 0 <= code < len(self._widths) else 0
+
+    def drawn_width(self, code: int) -> int:
+        return GLYPH4_COLUMNS if 0 <= code < len(self._widths) else 0
+
+    def pixels(self, code: int) -> List[List[int]]:
+        if code not in self._cache:
+            block = self._glyphs[code * GLYPH4_BYTES:(code + 1) * GLYPH4_BYTES]
+            self._cache[code] = decode_glyph_4bpp(block)
+        return self._cache[code]
+
+
+def read_glyph_set_4bpp(rom_path: Path, facts: Dict[str, Any]) -> Glyph4bppSet:
+    """Read the width table and the 4bpp glyph table of a Ruby or Sapphire font from the ROM."""
+    count = int(facts["glyph_count"])
+    width_count = int(facts.get("width_count", count))
+    with open(rom_path, "rb") as handle:
+        handle.seek(int(facts["width_table"]))
+        widths = handle.read(width_count)
+        handle.seek(int(facts["glyph_table"]))
+        glyphs = handle.read(count * GLYPH4_BYTES)
+    if len(widths) != width_count or len(glyphs) != count * GLYPH4_BYTES:
+        raise ValueError("the ROM ends before the font tables")
+    return Glyph4bppSet(widths, glyphs)

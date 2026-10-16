@@ -106,3 +106,32 @@ def test_editor_preview_draws_the_firered_box_and_flags_a_wide_line(qtbot, tmp_p
     widget.update_preview_text("UA TEST! This line is longer than before and it keeps on going well past the box")
     qtbot.waitUntil(lambda: "208" in widget._status.text(), timeout=10000)
     widget.shutdown()
+
+
+def test_ruby_4bpp_nibbles_map_to_paper_ink_and_shadow():
+    from plugins.common.gba_text_font import INK, PAPER, SHADOW, decode_glyph_4bpp
+
+    block = bytearray(64)
+    block[8] = 0xF0            # upper tile, row 2, pixel 0 = paper (0), pixel 1 = ink (F)
+    block[9] = 0xEF            # pixel 2 = ink, pixel 3 = shadow (E)
+    rows = decode_glyph_4bpp(bytes(block))
+    assert len(rows) == 16 and all(len(row) == 8 for row in rows)
+    assert rows[2][:4] == [PAPER, INK, INK, SHADOW]
+    assert rows[0] == [PAPER] * 8
+
+
+@pytest.mark.skipif(not (Path("E:/Emulators/RomHacking/Pokemon/Ruby and Sapphire/ISO/"
+                              "Pokemon - Ruby Version (USA, Europe).gba").is_file()),
+                    reason="Ruby rev 0 ROM is not on this machine")
+def test_real_ruby_rom_4bpp_font_matches_the_proof_glyph_a():
+    from plugins.common.gba_text_font import INK, PAPER, SHADOW, read_glyph_set_4bpp
+
+    facts = json.loads((rom_text.FACTS_DIR / "ruby_usa_rev0.json").read_text(encoding="utf-8"))
+    rom = Path("E:/Emulators/RomHacking/Pokemon/Ruby and Sapphire/ISO/Pokemon - Ruby Version (USA, Europe).gba")
+    glyphs = read_glyph_set_4bpp(rom, facts["font"])
+    charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / facts["charmap"])
+    a = charmap.byte_of["A"]
+    assert glyphs.width(a) == 6
+    # Row 0 of the glyph is paper; row 3 has ink and shadow (the proof frame shows "UA" in this font).
+    assert all(v == PAPER for v in glyphs.pixels(a)[0])
+    assert any(v == INK for v in glyphs.pixels(a)[3]) and any(v == SHADOW for v in glyphs.pixels(a)[3])

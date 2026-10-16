@@ -12,7 +12,7 @@ from typing import Callable, Dict, List, Optional, Sequence
 
 from PyQt6.QtGui import QColor, QImage
 
-from plugins.common.gba_text_font import GLYPH_ROWS, INK, SHADOW, GlyphSet
+from plugins.common.gba_text_font import INK, SHADOW, GlyphSet
 
 PAPER_RGB = (255, 255, 255)
 INK_RGB = (99, 99, 99)
@@ -120,8 +120,8 @@ def render_page(lines: Sequence[Line], glyphs: GlyphSet, window: Window) -> QIma
         top = window.text_top + row * window.line_height
         for code in line.codes:
             pixels = glyphs.pixels(code)
-            for py in range(GLYPH_ROWS):
-                for px in range(glyphs.width(code)):
+            for py in range(len(pixels)):
+                for px in range(glyphs.drawn_width(code)):
                     value = pixels[py][px]
                     if value in colours and pen_x + px < window.box_width and top + py < window.box_height:
                         image.setPixelColor(pen_x + px, top + py, colours[value])

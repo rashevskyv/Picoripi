@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidg
 
 from core.i18n import tr
 from plugins.common import text_window_preview as tw
-from plugins.common.gba_text_font import read_glyph_set
+from plugins.common.gba_text_font import read_glyph_set, read_glyph_set_4bpp
 from plugins.pokemon_fr import rom_project, rom_text
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
@@ -41,7 +41,8 @@ def load_context(rom_dir: Path) -> FontContext:
     font = facts.get("font")
     if not font:
         raise ValueError(tr("The font of this game is not in its facts yet."))
-    glyphs = read_glyph_set(rom_dir / rom_project.BASE_ROM.name, font)
+    reader = read_glyph_set_4bpp if font.get("kind") == "gen3_4bpp" else read_glyph_set
+    glyphs = reader(rom_dir / rom_project.BASE_ROM.name, font)
     charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / facts.get("charmap", rom_text.CHARMAP_FILE))
     return FontContext(glyphs, charmap, tw.Window.from_facts(font["window"]))
 

@@ -3,6 +3,7 @@
 "build_name": "Pokemon Sapphire UA",
 "rom_sha1": "3ccbbd45f8553c36463f13b938e833f652b793e4",
 "rom_size": 16777216,
+"font": {"kind": "gen3_4bpp", "layout": "pairs_by_row", "glyph_table": 15347184, "width_table": 1991972, "glyph_count": 256, "width_count": 254, "width_copies": 1, "glyph_bytes": 64, "window": {"text_x": 8, "text_top": 8, "text_width": 192, "lines": 2, "line_height": 16, "box_width": 208, "box_height": 48, "source": "measured on the rev 0 proof frame (text x 24, line tops 114 and 130, paper 22..217); decomp font 3 at window tile (2,15), sLineLength 26; width estimated"}},
 "c_tables": [{"name": "species", "file": "species_names.inc", "label": "gSpeciesName_", "offset": 2060540, "stride": 11, "count": 412, "pad": 0}],
 "charmap": "charmap_ruby.json",
 "source": "pret decompilation (facts only); messages located by ELF symbols (nm)",
