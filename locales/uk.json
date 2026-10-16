@@ -2371,5 +2371,12 @@
   "More text follows on the next page or line.": "Далі йде ще текст на наступній сторінці або рядку.",
   "Reading the game font...": "Читаю шрифт гри...",
   "This game has no message window facts.": "Для цієї гри немає даних про вікно повідомлень.",
-  "The game font is not in this project.": "Шрифту гри немає в цьому проєкті."
+  "The game font is not in this project.": "Шрифту гри немає в цьому проєкті.",
+  "Base game": "Основна гра",
+  "3DS mod (LayeredFS)": "Мод 3DS (LayeredFS)",
+  "Update v1.2 (Ultra Sun / Ultra Moon)": "Оновлення v1.2 (Ultra Sun / Ultra Moon)",
+  "The update file is not the update of this game.": "Файл оновлення не належить до цієї гри.",
+  "The source folder has no single game archive set: unpack the game again.": "У папці source немає одного набору архівів гри: розпакуйте гру знову.",
+  "The original archive {0} is not in the source folder: unpack the game again.": "Оригінального архіву {0} немає в папці source: розпакуйте гру знову.",
+  "The rebuilt archive {0} does not hold member {1}.": "Зібраний архів {0} не містить файлу {1}."
 }

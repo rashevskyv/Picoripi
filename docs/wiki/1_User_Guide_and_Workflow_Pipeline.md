@@ -747,6 +747,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      (`min_sheets` leaves room). `2_build.bat` rebuilds the GARCs into a Luma / Azahar mod for every CIA in `ISO\`.
    - `pokemon_gen7` — Pokémon Sun / Moon and Ultra Sun / Ultra Moon (3DS, decrypted `.3ds` images in `ISO\`). Sun and
      Moon share every English file; so do the two Ultra games. The Ultra games read the v1.2 update as an overlay.
+     The wizard unpacks the image itself (Picoripi's own readers, no `zt` step): Sun gives the same 4667 files as the workspace `source`, Ultra Sun with its v1.2 update 3189. The unpack also keeps the text, font and picture archives in `source\garc_original\<title id>\` (about 37 MB), which the build starts from. The build target **3DS mod (LayeredFS)** writes `titles\<title id>omfs\...` with each changed archive; a longer line is accepted.
      **Source:** `romfs\a\0\3\2\NNN.dat` English game text (898 tables in Sun), `romfs\a\0\4\2\NNN.dat` Battle Tree
      text, `romfs\a\0\2\5\NNN.bffnt` fonts, and `romfs\a\*\*\*\NNN.bflim` pictures. The fonts have no Cyrillic: the
      Font Editor adds letters. `2_build.bat` rebuilds the changed GARCs into a Luma / Azahar mod for each title.

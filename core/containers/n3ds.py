@@ -1,8 +1,8 @@
 """Nintendo 3DS images: a .cia, a card image (.3ds, .cci) or one bare program (NCCH, .cxi or .cfa).
 
 ``locate`` finds the main program and says whether it is encrypted. ``N3dsImage`` lists the files of a program:
-``exheader.bin``, ``exefs/<name>.bin`` and ``romfs/<path>``. A decrypted program (NCCH flag NoCrypto, and a CIA whose
-content is not encrypted) needs no key. An encrypted program is read through a decrypting view with the keys of the
+``exheader.bin``, ``exefs/<name>.bin`` and ``romfs/<path>``. A decrypted program (NCCH flag NoCrypto, or a RomFS that is
+plain IVFC although the flag is unset, and a CIA whose content is not encrypted) needs no key. An encrypted program is read through a decrypting view with the keys of the
 console key file (``Keys3ds``; boot9 is read from the same folder when present). A CIA with encrypted content is
 decrypted with its title key first. Fixed-key titles (NCCH flag 0x01) are not read. When the decrypted tables do not
 parse, an encrypted program reports that the key file does not decrypt it. Every table pointer is bounds-checked and
@@ -165,9 +165,22 @@ def _ncch_program(reader: ImageReader, base: int) -> Program:
     if head[0x100:0x104] != NCCH_MAGIC:
         raise ImageError("the main partition is not a 3DS program")
     nocrypto = bool(head[NCCH_FLAGS7] & NO_CRYPTO_BIT)
+    # Decrypted dumps (for example "[Decrypted].3ds") often leave the NoCrypto flag unset while the RomFS is plain.
+    plain = not nocrypto and not head[NCCH_FLAGS7] & FIXED_KEY_BIT and _plain_romfs(reader, base, head)
     product = head[0x150:0x160].split(b"\0", 1)[0].decode("ascii", "replace")
-    return dict(base=base, encrypted=not nocrypto, product=product, title_id=head[0x118:0x120][::-1].hex(),
-                header=head)
+    return dict(base=base, encrypted=not (nocrypto or plain), plain=plain, product=product,
+                title_id=head[0x118:0x120][::-1].hex(), header=head)
+
+
+def _plain_romfs(reader: ImageReader, base: int, head: bytes) -> bool:
+    """True when the RomFS the header places at ``base`` starts with a plain IVFC header (it needs no key)."""
+    size = _u32(head, 0x1B4) * UNIT
+    if not size:
+        return False
+    try:
+        return reader.read_at(base + _u32(head, 0x1B0) * UNIT, 4) == b"IVFC"
+    except ImageError:
+        return False
 
 
 def _cia_program(reader: ImageReader, head: bytes) -> Program:
@@ -284,7 +297,7 @@ class N3dsImage(ImageReader):
 
     def _key(self, secondary: bool) -> Optional[bytes]:
         head = self.program["header"]
-        if head[NCCH_FLAGS7] & NO_CRYPTO_BIT:
+        if head[NCCH_FLAGS7] & NO_CRYPTO_BIT or self.program.get("plain"):
             return None
         if head[NCCH_FLAGS7] & FIXED_KEY_BIT:
             raise ImageError("fixed-key 3DS titles are not read yet")

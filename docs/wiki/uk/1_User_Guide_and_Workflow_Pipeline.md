@@ -744,6 +744,7 @@ tokens: 63.4k
      `2_build.bat` перезбирає GARC у мод Luma / Azahar для кожного CIA в `ISO\`.
    - `pokemon_gen7` — Pokémon Sun / Moon і Ultra Sun / Ultra Moon (3DS, розшифровані образи `.3ds` у `ISO\`). Sun і
      Moon мають однакові англійські файли; так само два Ultra. Ultra читає оновлення v1.2 як накладку.
+     Майстер розпаковує образ сам (власні читачі Picoripi, без кроку `zt`): Sun дає ті самі 4667 файлів, що й робоча тека `source`, Ultra Sun з оновленням v1.2 — 3189. Розпакування також зберігає архіви тексту, шрифтів і картинок у `source\garc_original\<title id>\` (близько 37 МБ), з яких починає збірка. Цільова збірка **3DS mod (LayeredFS)** пише `titles\<title id>omfs\...` з кожним зміненим архівом; довший рядок приймається.
      **Source:** `romfs\a\0\3\2\NNN.dat` англійський ігровий текст (898 таблиць у Sun), `romfs\a\0\4\2\NNN.dat`
      текст Battle Tree, `romfs\a\0\2\5\NNN.bffnt` шрифти і `romfs\a\*\*\*\NNN.bflim` картинки. У шрифтах немає
      кирилиці: Редактор шрифтів додає літери. `2_build.bat` перезбирає змінені GARC у мод Luma / Azahar для кожного

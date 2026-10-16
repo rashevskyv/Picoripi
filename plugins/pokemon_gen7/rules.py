@@ -6,13 +6,20 @@ import urllib.parse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
+from core.project_library import images
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gfmsg
+from plugins.common import garc_mod, gfmsg
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
+from . import unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
+
+BUILD_TARGET = "layeredfs"
+BASE_CODES = ("BNDA", "BNEA", "A2AA", "A2BA")   # Sun, Moon, Ultra Sun, Ultra Moon (product codes)
+ULTRA_CODES = ("A2AA", "A2BA")                    # the v1.2 update CIAs of the Ultra pair
 
 _PLUGIN = "pokemon_gen7"
 _PLUGIN_DIR = Path(__file__).resolve().parent
@@ -119,6 +126,48 @@ class GameRules(BaseGameRules):
 
     def get_display_name(self) -> str:
         return "Pokémon Sun/Moon + Ultra Sun/Ultra Moon (3DS)"
+
+    # Project Manager: the image is read by core/project_library/images.py; unpack.py takes the files.
+    def get_platforms(self) -> list:
+        return [{"id": "3ds", "label": tr("Nintendo 3DS")}]
+
+    def get_source_roles(self) -> list:
+        return [{"id": "base", "label": tr("Base game")},
+                {"id": "update", "label": tr("Update v1.2 (Ultra Sun / Ultra Moon)")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, str]]:
+        found = images.identify(path)
+        if found is None or found["kind"] != "3ds":
+            return None
+        if str(found["title_id"]).lower().startswith("0004000e") and found["game_id"] in ULTRA_CODES:
+            return {"role": "update", "platform": "3ds"}
+        if found["game_id"] in BASE_CODES:
+            return {"role": "base", "platform": "3ds"}
+        return None
+
+    def unpack_key_consoles(self) -> list:
+        return ["3ds"]
+
+    def get_build_targets(self) -> list:
+        return [{"id": BUILD_TARGET, "label": tr("3DS mod (LayeredFS)"), "platforms": ["3ds"], "kind": "layeredfs"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != BUILD_TARGET:
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        try:
+            title = garc_mod.base_title(Path(source_dir))
+            result = garc_mod.build(Path(source_dir), Path(translation_dir), Path(output_dir), title, unpack.GARCS,
+                                    progress, is_cancelled)
+        except garc_mod.ModError as error:
+            raise ValueError(str(error)) from None
+        return str(result)
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        base = sources.get("base")
+        if not base:
+            return None
+        return unpack.extract(base, sources.get("update"), target_dir, progress, is_cancelled)
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
