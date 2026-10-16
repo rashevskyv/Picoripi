@@ -156,6 +156,7 @@ def test_real_rom_longer_message_moves_and_reads_back(tmp_path, charmap):
     assert patched[unit.offset:unit.offset + unit.size] == b"\xff" * unit.size
 
 
+RUBY_DIR = Path("E:/Emulators/RomHacking/Pokemon/Ruby and Sapphire/ISO")
 EMERALD_ROM = Path("E:/Emulators/RomHacking/Pokemon/Emerald/ISO/Pokemon - Emerald Version (USA, Europe).gba")
 IMAGES = {
     "firered_rev0": (DEFAULT_ROM, "FireRed (USA, rev 0)"),
@@ -163,6 +164,12 @@ IMAGES = {
     "leafgreen_rev0": (DEFAULT_ROM.parent / "Pokemon - LeafGreen Version (USA, Europe).gba", "LeafGreen (USA, rev 0)"),
     "leafgreen_rev1": (DEFAULT_ROM.parent / "Pokemon - LeafGreen Version (USA, Europe) (Rev 1).gba", "LeafGreen (USA, rev 1)"),
     "emerald": (EMERALD_ROM, "Emerald (USA, Europe)"),
+    "ruby_rev0": (RUBY_DIR / "Pokemon - Ruby Version (USA, Europe).gba", "Ruby (USA, Europe)"),
+    "ruby_rev1": (RUBY_DIR / "Pokemon - Ruby Version (USA, Europe) (Rev 1).gba", "Ruby (USA, Europe) (Rev 1)"),
+    "ruby_rev2": (RUBY_DIR / "Pokemon - Ruby Version (USA, Europe) (Rev 2).gba", "Ruby (USA, Europe) (Rev 2)"),
+    "sapphire_rev0": (RUBY_DIR / "Pokemon - Sapphire Version (USA, Europe).gba", "Sapphire (USA, Europe)"),
+    "sapphire_rev1": (RUBY_DIR / "Pokemon - Sapphire Version (USA, Europe) (Rev 1).gba", "Sapphire (USA, Europe) (Rev 1)"),
+    "sapphire_rev2": (RUBY_DIR / "Pokemon - Sapphire Version (USA, Europe) (Rev 2).gba", "Sapphire (USA, Europe) (Rev 2)"),
 }
 
 

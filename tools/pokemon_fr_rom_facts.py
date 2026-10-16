@@ -83,7 +83,8 @@ def source_units(decomp: Path) -> Dict[str, Tuple[str, str]]:
     for path in sorted(decomp.rglob("*")):
         if not path.is_file() or path.suffix.lower() not in pret_text.ASM_SUFFIXES:
             continue
-        if any(part in {"build", "tools", ".git"} for part in path.relative_to(decomp).parts):
+        # The build, the tools and the other-language copies (data-de, graphics-de) are not the English game.
+        if any(part in {"build", "tools", ".git"} or part.endswith("-de") for part in path.relative_to(decomp).parts):
             continue
         text = path.read_text(encoding="utf-8", errors="surrogateescape")
         for unit in pret_text.parse(text, asm=True):
@@ -249,6 +250,10 @@ def main() -> int:
             raise SystemExit(f"Decode and encode do not return the ROM bytes of {label}.")
         units.append((offset, label, size))
     units.sort()
+    # Two labels on the same bytes (an alias): one message is edited, the other label is a copy of it.
+    aliases = [name for (offset, name, _size), (next_offset, next_name, _n) in zip(units, units[1:])
+               if offset == next_offset]
+    units = [unit for index, unit in enumerate(units) if index == len(units) - 1 or units[index + 1][0] != unit[0]]
 
     # Overlap check: two messages must not share bytes, or a move would damage the other.
     for (start, name, size), (next_start, next_name, _) in zip(units, units[1:]):
@@ -280,6 +285,7 @@ def main() -> int:
     print(f"source text differs from ROM bytes: {len(differs)} {differs[:10]}")
     print(f"source form not written by the codec: {len(unencodable)} {unencodable[:10]}")
     print(f"braille messages, not opened yet: {len(braille)}")
+    print(f"aliases (same bytes as another label, one kept): {len(aliases)} {aliases[:5]}")
     print(f"not linked (no symbol in the map): {len(unlinked)} {unlinked[:10]}")
     print(f"free space starts at file offset 0x{floor:X}; ROM {len(rom)} bytes")
     return 0
