@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon Generation III ROM mode: the C text scanner follows the DEBUG, REVISION and `defined()` guards and the version-named files; a text placed twice opens as one unit with its places; braille labels keep all their `.braille` lines; Ruby and Sapphire decoration names and battle tower trainer names are fixed fields; literals the image does not hold are classed (debug build, other revision, other version, fill)
 - Pokémon Generation III ROM mode: braille texts (`.braille`, with the window format kept as a fixed budget), decoration names, region map names and the Japanese berry descriptions the ROM holds unpack as texts; short repeated literals that are code pieces stay closed.
 - Pokémon Generation III ROM mode: the texts the C code builds (string literals of the decompilation, located by linker-map symbol or by their unique bytes in the ROM) unpack as texts that may grow; other-language and debug branches are left out
 - Pokémon Emerald / Ruby / Sapphire ROM mode: the same move, ability and item descriptions, nature names, Pokédex descriptions and categories as FireRed / LeafGreen unpack as texts that may grow (pointer tables from the decompilation link map)

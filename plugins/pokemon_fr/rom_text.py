@@ -41,6 +41,7 @@ class Unit:
     fixed: bool = False
     pad: int = 0
     braille: bool = False     # a braille text: its bytes are braille character codes (the ``braille_chars`` facts)
+    places: Tuple[int, ...] = ()  # the other places of the same text in the image: each gets the same bytes
 
 
 class Charmap:
@@ -200,7 +201,10 @@ def load_units(path: Optional[Path] = None) -> Tuple[List[Unit], int, Dict[str, 
     units = [Unit(label, int(offset), int(size)) for label, offset, size in data["units"]]
     for item in data.get("braille_units", []):
         # A fourth item "fixed" marks a text a window format precedes: its pointer names the format, so it keeps its size.
-        units.append(Unit(item[0], int(item[1]), int(item[2]), fixed=len(item) > 3, braille=True))
+        # A fifth item lists the other places of the same text.
+        extra = tuple(int(place) for place in item[4]) if len(item) > 4 else ()
+        units.append(Unit(item[0], int(item[1]), int(item[2]), fixed=len(item) > 3 and item[3] == "fixed",
+                          braille=True, places=extra))
     header = {key: value for key, value in data.items() if key != "units"}
     return units, int(data["free_start"]), header
 
@@ -234,8 +238,10 @@ def load_tables(path: Optional[Path] = None) -> List[Unit]:
 def c_text_units(path: Optional[Path] = None) -> List[Unit]:
     """The texts the C code builds (``c_texts``): each a unit with its own label, relocatable like a message."""
     data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
-    return [Unit(str(label), int(offset), int(size)) for table in data.get("c_texts", [])
-            for label, offset, size in table["units"]]
+    # A fourth and fifth item give the other places of a text placed more than once (the places list).
+    return [Unit(str(item[0]), int(item[1]), int(item[2]),
+                 places=tuple(int(place) for place in item[4]) if len(item) > 4 else ())
+            for table in data.get("c_texts", []) for item in table["units"]]
 
 
 def table_files(path: Optional[Path] = None) -> Dict[str, List[str]]:
@@ -243,7 +249,7 @@ def table_files(path: Optional[Path] = None) -> Dict[str, List[str]]:
     data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
     files: Dict[str, List[str]] = {}
     for table in data.get("c_texts", []):
-        files.setdefault(table["file"], []).extend(str(label) for label, _, _ in table["units"])
+        files.setdefault(table["file"], []).extend(str(item[0]) for item in table["units"])
     for table in data.get("c_tables", []):
         if table.get("kind") == "pointer":
             files.setdefault(table["file"], []).extend(f"{table['label']}{index}" for index, _, _ in table["units"])
@@ -286,10 +292,14 @@ def write_all(rom: bytes, units: Sequence[Unit], charmap: Charmap, floor: int,
             if len(data) > unit.size:
                 raise RomError(tr("{0} is {1} bytes long; its table gives {2} bytes, the terminator included. "
                                   "Shorten it.", unit.label, str(len(data)), str(unit.size)))
-            patched[unit.offset:unit.offset + unit.size] = data + bytes([unit.pad]) * (unit.size - len(data))
+            for at in (unit.offset, *unit.places):
+                patched[at:at + unit.size] = data + bytes([unit.pad]) * (unit.size - len(data))
         elif len(data) <= unit.size:
-            write_in_place(patched, unit.offset, unit.size, data)
+            for at in (unit.offset, *unit.places):
+                write_in_place(patched, at, unit.size, data)
         else:
-            relocator.move(unit.offset, unit.size, data)
+            # Each place moves on its own: the copies are the same bytes, and each pointer follows its own copy.
+            for at in (unit.offset, *unit.places):
+                relocator.move(at, unit.size, data)
     fix_header(patched)
     return bytes(patched)

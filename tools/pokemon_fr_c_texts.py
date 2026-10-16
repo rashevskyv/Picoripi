@@ -35,7 +35,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from plugins.common.gba_rom import pointer_index  # noqa: E402
 from plugins.pokemon_fr import rom_text  # noqa: E402
-from pokemon_fr_rom_facts import map_symbols  # noqa: E402
+from pokemon_fr_rom_facts import map_symbols, nm_symbols  # noqa: E402
 
 BASE = 0x08000000
 TERMINATOR = 0xFF
@@ -103,49 +103,112 @@ def covered_offsets(facts: Dict[str, object]) -> Set[int]:
 OTHER_LANGUAGE = re.compile(r"_(de|fr|it|es|ja|ko|zh|jp)$")
 
 
-LANGUAGE = re.compile(r"\b(ENGLISH|GERMAN|FRENCH|ITALIAN|SPANISH|JAPANESE)\b")
-IF_LINE = re.compile(r"^\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b\s*(.*)$")
-
-
 VARIANTS = ("RUBY", "SAPPHIRE", "FIRERED", "LEAFGREEN", "EMERALD")
+VERSION_FILE = re.compile(r"_(fr|lg)$")
+VERSION_OF = {"fr": "FIRERED", "lg": "LEAFGREEN"}
+IF_LINE = re.compile(r"^\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b\s*(.*)$")
+IDENTIFIER = re.compile(r"[A-Za-z_]\w*")
+EXPRESSION = re.compile(r"\s*(\d+[uUlL]*|[A-Za-z_]\w*|&&|\|\||==|!=|>=|<=|[()!<>])")
+COMMENT = re.compile(r"/\*.*?\*/|//.*$")
+CONTROL = re.compile(r"\{[^}]*\}|\\[nlp]")
+# A fragment of two letters, or one kana or CJK character, is text; other short pieces are code output.
+TEXT_PIECE = re.compile(r"[A-Za-z]{2}|[\u3040-\u30ff\u4e00-\u9fff]")
 
 
-def language_excluded_lines(text: str, variant: str) -> List[bool]:
-    """Per line: True inside a branch that does not belong to this image.
+def image_macros(variant: str, revision: int) -> Dict[str, int]:
+    """The macros the decompilation's build passes for this image: English, the game version, the revision, and the
+    debug flag (0 in the retail build, the Makefile default)."""
+    return {"ENGLISH": 1, "DEBUG": 0, "MODERN": 0, "REVISION": revision, variant.upper(): 1}
 
-    Two kinds of conditional are read: a language chain (``#if ENGLISH`` / ``#elif GERMAN``), where only the English
-    branch is kept, and a version switch (``#ifdef SAPPHIRE`` / ``#else``), where only the branch of this image's
-    version is kept. A frame is ``[first branch excluded, current branch excluded]``.
-    """
-    flags: List[bool] = []
-    stack: List[List[bool]] = []
+
+def condition_value(kind: str, cond: str, macros: Dict[str, int]) -> bool:
+    """The truth of one conditional for this image. ``#ifdef`` asks whether a macro is defined; ``#if`` reads the
+    expression with C's rule that an undefined name is 0. An expression this reader does not know counts as true."""
+    cond = COMMENT.sub("", cond).strip()
+    if kind in ("ifdef", "ifndef"):
+        defined = bool(cond) and cond.split()[0] in macros
+        return defined if kind == "ifdef" else not defined
+    cond = re.sub(r"defined\s*\(?\s*(\w+)\s*\)?", lambda m: "1" if m.group(1) in macros else "0", cond)
+    parts: List[str] = []
+    at = 0
+    while at < len(cond):
+        match = EXPRESSION.match(cond, at)
+        if match is None:
+            return True
+        token = match.group(1)
+        at = match.end()
+        if token[0].isdigit():
+            parts.append(token.rstrip("uUlL"))
+        elif token in ("&&", "||", "!", "==", "!=", ">=", "<=", "<", ">", "(", ")"):
+            parts.append({"&&": " and ", "||": " or ", "!": " not "}.get(token, " " + token + " "))
+        elif token == "defined":
+            return True
+        else:
+            parts.append(str(macros.get(token, 0)))
+    if not parts:
+        return True
+    # Only digits, operators and parentheses reach eval: every other token was replaced above.
+    try:
+        return bool(eval(" ".join(parts), {"__builtins__": {}}, {}))
+    except SyntaxError:
+        return True
+
+
+def exclusion(cond: str) -> str:
+    """Why a branch with this condition is left out: the debug build, another revision, or another language or version."""
+    words = set(IDENTIFIER.findall(cond))
+    if "DEBUG" in words:
+        return "debug"
+    if "REVISION" in words:
+        return "revision"
+    return "other_language"
+
+
+def conditional_reasons(text: str, variant: str, revision: int) -> List[str]:
+    """Per line: "" when this image builds the line, else why it is left out (see ``exclusion``)."""
+    macros = image_macros(variant, revision)
+    reasons: List[str] = []
+    stack: List[Dict[str, object]] = []      # per open conditional: taken (a branch was chosen), active, why
     for line in text.split("\n"):
         match = IF_LINE.match(line)
         if match:
             kind, cond = match.group(1), match.group(2)
-            words = set(LANGUAGE.findall(cond)) | set(re.findall(r"\b(" + "|".join(VARIANTS) + r")\b", cond))
             if kind in ("if", "ifdef", "ifndef"):
-                if words & set(VARIANTS) and not (words & {"ENGLISH", "GERMAN", "FRENCH", "ITALIAN", "SPANISH",
-                                                            "JAPANESE"}):
-                    mine = variant in words
-                    first = (not mine) if kind != "ifndef" else mine
-                    stack.append([first, first])
-                elif words:
-                    first = "ENGLISH" not in words
-                    stack.append([first, first])
-                else:
-                    stack.append([False, False])
+                value = condition_value(kind, cond, macros)
+                stack.append({"taken": value, "active": value, "why": exclusion(cond)})
             elif kind == "elif" and stack:
-                if words:
-                    top = stack[-1]
-                    top[1] = ("ENGLISH" not in words) if not (words & set(VARIANTS)) else (variant not in words)
+                frame = stack[-1]
+                if frame["taken"]:
+                    frame.update(active=False, why=exclusion(cond))
+                else:
+                    value = condition_value("if", cond, macros)
+                    frame.update(taken=value, active=value, why=exclusion(cond))
             elif kind == "else" and stack:
-                top = stack[-1]
-                top[1] = not top[0]
+                frame = stack[-1]
+                frame.update(active=not frame["taken"], taken=True)
             elif kind == "endif" and stack:
                 stack.pop()
-        flags.append(any(frame[1] for frame in stack))
-    return flags
+        reason = ""
+        for frame in stack:
+            if not frame["active"]:
+                reason = str(frame["why"])
+                break
+        reasons.append(reason)
+    return reasons
+
+
+def missing_class(why: str, shown: str) -> str:
+    """The class of a literal the image does not hold: not built (debug or another revision), a fill of control
+    codes and spaces (no visible character), or missing."""
+    if why == "debug":
+        return "debug_build"
+    if why == "revision":
+        return "other_revision"
+    if why == "other_version":
+        return "other_version"
+    if not re.search(r"\w", CONTROL.sub("", shown)):
+        return "fill"
+    return "missing"
 
 
 def source_files(decomp: Path) -> List[Path]:
@@ -202,8 +265,8 @@ def source_texts(decomp: Path) -> List[Tuple[str, str, str]]:
 
 
 def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str, int],
-         covered: Set[int], variant: str, residue: Optional[List[Dict[str, object]]] = None
-         ) -> Tuple[Dict[str, List[List[object]]], Dict[str, Counter]]:
+         covered: Set[int], variant: str, residue: Optional[List[Dict[str, object]]] = None,
+         revision: int = 0) -> Tuple[Dict[str, List[List[object]]], Dict[str, Counter]]:
     """The new units per source file, and the count of each class per source file. ``residue`` gets one record per literal
     that was not opened (the class, file, line and text), when a list is passed."""
     units: Dict[str, List[List[object]]] = {}
@@ -212,11 +275,17 @@ def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str,
     pointers = pointer_index(rom)
     for key, stem, text in source_texts(decomp):
         found: Counter = Counter()
-        flags = language_excluded_lines(text, variant)
+        version_file = VERSION_FILE.search(stem)
+        if version_file and VERSION_OF[version_file.group(1)] != variant.upper():
+            # a file named for another version (pokedex_text_lg.h) is included under a guard this reader does not follow
+            reasons = ["other_version"] * (text.count("\n") + 1)
+        else:
+            reasons = conditional_reasons(text, variant, revision)
         for match in LITERAL.finditer(text):
             raw = "".join(PIECE.findall(match.group(1)))
             shown = editor_text(raw)
-            if flags[text.count("\n", 0, match.start())]:
+            why = reasons[text.count("\n", 0, match.start())]
+            if why == "other_language":
                 tally(found, residue, key, text, match, shown, "other_language")
                 continue
             if shown == "":
@@ -241,11 +310,16 @@ def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str,
                 while spot >= 0 and len(hits) < MAX_HITS:
                     hits.append(spot)
                     spot = rom.find(expected, spot + 1)
-                if any(h in claimed for h in hits):
+                if not re.search(r"\w", CONTROL.sub("", shown)):
+                    # spaces and control codes found by their bytes: a fill, not a text (it matches many places)
+                    tally(found, residue, key, text, match, shown, "fill")
+                    continue
+                # a place another literal has claimed is covered; a place still free is opened (a text placed twice)
+                if hits and all(any(i in claimed for i in range(h, h + len(expected))) for h in hits):
                     tally(found, residue, key, text, match, shown, "covered")
                     continue
                 if not hits:
-                    tally(found, residue, key, text, match, shown, "missing")
+                    tally(found, residue, key, text, match, shown, missing_class(why, shown))
                     continue
                 # A start is a byte after a terminator, or a place a pointer names: a text may follow data.
                 starts = [h for h in hits if h == 0 or rom[h - 1] in (0x00, TERMINATOR)
@@ -256,19 +330,23 @@ def scan(decomp: Path, rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str,
                         tally(found, residue, key, text, match, shown, "not_a_start")
                         continue
                     starts = hits
-                if len(expected) <= SHORT and len(starts) > 1 and not re.search(r"[A-Za-z]{2}", shown):
+                if len(expected) <= SHORT and len(starts) > 1 and not TEXT_PIECE.search(shown):
                     # A short piece of code output (a control code, a space): not text, not opened.
                     tally(found, residue, key, text, match, shown, "fragment")
                     continue
                 if len(starts) > 1:
-                    # the same text in several places: each place the code has not claimed becomes a unit
+                    # the same text in several places: one unit holds every place the code has not claimed (the
+                    # first free place is the unit, the others are its places: one edit writes them all)
                     line = text.count(chr(10), 0, match.start()) + 1
-                    for k, spot_k in enumerate(starts):
-                        if any(i in claimed for i in range(spot_k, spot_k + len(expected))):
-                            continue
-                        units.setdefault(key, []).append([f"{stem}_L{line}_{k}", spot_k, len(expected)])
-                        claimed.update(range(spot_k, spot_k + len(expected)))
-                        tally(found, residue, key, text, match, shown, "duplicate")
+                    free = [spot for spot in starts if not any(i in claimed for i in range(spot, spot + len(expected)))]
+                    if not free:
+                        tally(found, residue, key, text, match, shown, "covered")
+                        continue
+                    label = f"{stem}_L{line}_{len(units.get(key, []))}"
+                    units.setdefault(key, []).append([label, free[0], len(expected), "", free[1:]])
+                    for spot in free:
+                        claimed.update(range(spot, spot + len(expected)))
+                    tally(found, residue, key, text, match, shown, "duplicate")
                     continue
                 at = starts[0]
             if any(i in claimed for i in range(at, at + len(expected))):
@@ -288,6 +366,7 @@ def main() -> None:
     parser.add_argument("--rom", required=True, type=Path)
     parser.add_argument("--facts", required=True, type=Path)
     parser.add_argument("--map", required=True, type=Path)
+    parser.add_argument("--nm", type=Path, help="arm-none-eabi-nm output of the build: local symbols too")
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
     rom = args.rom.read_bytes()
@@ -297,9 +376,13 @@ def main() -> None:
         raise SystemExit("this ROM is not the one the facts file was made from")
     charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / facts["charmap"])
     symbols = map_symbols(args.map)[0]
+    if args.nm:
+        symbols.update(nm_symbols(args.nm)[0])     # static arrays are local symbols: nm lists them
     game = facts["game"]
+    rev = re.search(r"\brev (\d)", game, re.I)
+    revision = int(rev.group(1)) if rev else 0
     variant = next((name for name in VARIANTS if name.lower() in game.lower().replace(" ", "")), "")
-    units, counts = scan(args.decomp, rom, charmap, symbols, covered_offsets(facts), variant)
+    units, counts = scan(args.decomp, rom, charmap, symbols, covered_offsets(facts), variant, None, revision)
     total: Counter = Counter()
     for file_counts in counts.values():
         total.update(file_counts)

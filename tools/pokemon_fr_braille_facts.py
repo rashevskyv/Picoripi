@@ -31,8 +31,9 @@ WINDOW_FORMAT = 6        # bytes of a ``brailleformat`` block before its text (t
 DEFINE = re.compile(r"^#define\s+BRAILLE_CHAR_(\w+)\s+0x([0-9A-Fa-f]+)", re.M)
 ENTRY = re.compile(r"\{\s*'((?:\\.|[^'\\]))'\s*,\s*BRAILLE_CHAR_(\w+)\s*\}")
 # A label, optionally a ``brailleformat`` line (the window data the pointer names, six bytes in Ruby and Emerald),
-# then the ``.braille`` text.
-TEXT = re.compile(r'^(\w+)::?\s*\n(\s*brailleformat\b[^\n]*\n)?\s*\.braille\s+"((?:[^"\\]|\\.)*)"', re.M)
+# then one or more ``.braille`` lines: the assembler joins them into one block of bytes.
+TEXT = re.compile(r'^(\w+)::?\s*\n(\s*brailleformat\b[^\n]*\n)?((?:\s*\.braille\s+"(?:[^"\\]|\\.)*")+)', re.M)
+PIECE = re.compile(r'\.braille\s+"((?:[^"\\]|\\.)*)"')
 
 
 def braille_table(decomp: Path) -> List[List[str]]:
@@ -63,8 +64,9 @@ def braille_texts(decomp: Path) -> List[Tuple[str, str, bool]]:
     found: List[Tuple[str, str, bool]] = []
     for path in sorted((decomp / "data").rglob("*.inc")) + sorted((decomp / "data").rglob("*.s")):
         text = path.read_text(encoding="utf-8", errors="replace")
-        for label, prefix, content in TEXT.findall(text):
-            found.append((label, content.replace("\\\"", "\"").split("$")[0], bool(prefix)))
+        for label, prefix, lines in TEXT.findall(text):
+            content = "".join(PIECE.findall(lines)).replace("\\\"", "\"")
+            found.append((label, content.split("$")[0], bool(prefix)))
     return found
 
 
@@ -94,6 +96,16 @@ def encode(text: str, table: Dict[str, int]) -> Optional[bytes]:
         at += len(key)
     out.append(TERMINATOR)
     return bytes(out)
+
+
+def _item(label: str, at: int, size: int, windowed: bool, extra: List[int]) -> List[object]:
+    """One braille unit: ``[label, offset, size]``, then ``"fixed"`` or ``""`` and the other places when there are any."""
+    item: List[object] = [label, at, size]
+    if windowed or extra:
+        item.append("fixed" if windowed else "")
+    if extra:
+        item.append(list(extra))
+    return item
 
 
 def main() -> None:
@@ -157,14 +169,13 @@ def main() -> None:
             spot = rom.find(body, spot + 1)
         if not places:
             continue
-        if len(places) > 1:
+        # One text in two or more places: the same bytes to the terminator at each, so one unit holds every place.
+        ends = [rom.find(bytes([TERMINATOR]), place) for place in places]
+        sizes = {end - place + 1 for end, place in zip(ends, places) if end >= 0}
+        if len(sizes) != 1 or min(ends) < 0:
             ambiguous.append(label)
             continue
-        end = rom.find(bytes([TERMINATOR]), places[0])
-        if end < 0:
-            ambiguous.append(label)
-            continue
-        units.append([label, places[0], end - places[0] + 1] + (["fixed"] if windowed else []))
+        units.append(_item(label, places[0], sizes.pop(), windowed, places[1:]))
     units.sort(key=lambda item: item[1])
     for (name, start, size, *_flags), (next_name, next_start, _size, *_more) in zip(units, units[1:]):
         if start + size > next_start:

@@ -82,6 +82,11 @@ FAMILY_TABLES = {
          "count": 58},
         {"name": "trainer_names", "file": "trainer_names.inc", "label": "gTrainerName_", "stride": 40,
          "size": 12, "first": ["RANDALL", "PARKER", "GEORGE"], "first_index": 71, "count": 694},
+        {"name": "decorations", "file": "decoration_names.inc", "label": "gDecorationName_", "stride": 32,
+         "size": 16, "first": ["SMALL DESK", "SMALL DESK", "POKéMON DESK"], "first_index": 0, "count": 121},
+        {"name": "battle_tower_trainers", "file": "battle_tower_trainer_names.inc",
+         "label": "gBattleTowerTrainerName_", "stride": 24, "size": 8, "first": ["ALVIN", "DIRK", "CYBIL"],
+         "first_index": 0, "count": 100},
     ],
 }
 
