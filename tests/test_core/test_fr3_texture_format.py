@@ -61,6 +61,41 @@ def test_changed_rgba_texture_reads_back_and_keeps_the_others():
     assert again[1].image.tobytes() == textures[1].image.tobytes()
 
 
+def _record_v43(w: int, h: int, name: str, words: bytes) -> bytes:
+    return (struct.pack("<HHI", w, h, 7) + struct.pack("<Q", len(words) // 4) + words + _str(name)
+            + _str("common") + bytes([1]))
+
+
+def _synthetic_v43() -> bytes:
+    solid = bytes(v for _ in range(4) for v in (10, 20, 30, 255))            # 2x2 RGBA
+    dot = bytes((200, 100, 50, 255))                                          # 1x1 RGBA
+    payload = (struct.pack("<H", 43) + _str("synthetic") + struct.pack("<Q", 2)
+               + _record_v43(2, 2, "solid", solid) + _record_v43(1, 1, "dot", dot))
+    return _file(payload + b"level-data-kept-as-is")
+
+
+def test_v43_file_reads_rgba_records():
+    textures = fr3.read(_synthetic_v43(), {})
+    assert [t.name for t in textures] == ["solid", "dot"]
+    assert textures[0].pixel_format == "RGBA8" and textures[0].image.getpixel((1, 1)) == (10, 20, 30, 255)
+    assert textures[1].image.getpixel((0, 0)) == (200, 100, 50, 255)
+
+
+def test_v43_no_op_write_returns_the_same_bytes():
+    data = _synthetic_v43()
+    textures = fr3.read(data, {})
+    assert fr3.write(data, {i: t.image for i, t in enumerate(textures)}, {}) == data
+
+
+def test_v43_changed_texture_reads_back_and_keeps_the_other():
+    data = _synthetic_v43()
+    textures = fr3.read(data, {})
+    red = Image.new("RGBA", (1, 1), (255, 0, 0, 255))
+    again = fr3.read(fr3.write(data, {1: red}, {}), {})
+    assert again[1].image.getpixel((0, 0)) == (255, 0, 0, 255)
+    assert again[0].image.tobytes() == textures[0].image.tobytes()
+
+
 @pytest.mark.skipif(not REAL.is_file(), reason="Jak 2 level files not extracted on this machine")
 def test_real_level_no_op_and_one_edit():
     data = REAL.read_bytes()

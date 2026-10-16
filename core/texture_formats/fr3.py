@@ -7,6 +7,9 @@ a u32 vector (RGBA words 0xAABBGGRR), two strings (debug name, tpage name), a bo
 1 BC1, 3 BC3), a byte vector of compressed mips and a u32 vector of mip offsets. Everything after the
 textures is kept as it was.
 
+Version 43 (upstream OpenGOAL v0.3.8, the PC build) stores every texture as RGBA8 words with no BC blocks; it
+is read and written in place the same way (``_parse_v43``).
+
 ``read`` returns one texture per record (RGBA8, BC1 or BC3 base mip decoded). ``write`` re-encodes only the
 images that differ from what ``read`` gives, with the same size and mip layout, and recompresses the frame.
 Writing the images ``read`` returned gives the original bytes back (the file is returned unchanged).
@@ -47,6 +50,9 @@ class _Record:
 
 def _parse(payload: bytes) -> Tuple[List[_Record], int]:
     """The records of a payload and the offset where the texture list ends."""
+    (version,) = struct.unpack_from("<H", payload, 0)
+    if version == 43:
+        return _parse_v43(payload)
     pos = 2  # u16 version
     (name_len,) = struct.unpack_from("<Q", payload, pos)
     pos += 8 + name_len
@@ -80,6 +86,37 @@ def _parse(payload: bytes) -> Tuple[List[_Record], int]:
         pos += 4 * n_mips
         records.append(_Record(strings[0], strings[1], width, height, combo_id, fmt, data_start, data_count,
                                bcn_start, bcn_count, mip_start, n_mips, mip_offsets))
+    return records, pos
+
+
+def _parse_v43(payload: bytes) -> Tuple[List[_Record], int]:
+    """Version 43 (upstream OpenGOAL v0.3.8): every texture is RGBA8 words, with no BC blocks or mips.
+
+    A record is: u16 width, u16 height, u32 combo id, u64 word count, the RGBA words (0xAABBGGRR, the
+    texture's own pixels), two strings (debug name, tpage name), and a bool (load to pool).
+    """
+    pos = 2  # u16 version
+    (name_len,) = struct.unpack_from("<Q", payload, pos)
+    pos += 8 + name_len
+    (count,) = struct.unpack_from("<Q", payload, pos)
+    pos += 8
+    records = []
+    for _ in range(count):
+        width, height = struct.unpack_from("<HH", payload, pos)
+        (combo_id,) = struct.unpack_from("<I", payload, pos + 4)
+        pos += 8
+        (n_data,) = struct.unpack_from("<Q", payload, pos)
+        pos += 8
+        data_start, data_count = pos, n_data
+        pos += 4 * n_data
+        strings = []
+        for _s in range(2):
+            (n,) = struct.unpack_from("<Q", payload, pos)
+            strings.append(payload[pos + 8:pos + 8 + n].decode("latin-1"))
+            pos += 8 + n
+        pos += 1  # bool load_to_pool
+        records.append(_Record(strings[0], strings[1], width, height, combo_id, 0, data_start, data_count,
+                               0, 0, 0, 1, []))
     return records, pos
 
 
