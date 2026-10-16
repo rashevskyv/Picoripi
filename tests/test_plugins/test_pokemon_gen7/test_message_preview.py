@@ -79,3 +79,11 @@ def test_resolver_without_the_font_emits_none(qtbot, tmp_path):
         worker.start()
     assert blocker.args == [(str(tmp_path), None)]
     worker.wait()
+
+
+def test_dialogue_facts_are_the_top_screen_text_with_no_box_and_no_measured_width():
+    facts = mp.BoxFacts.load("dialogue_window")
+    assert (facts.screen_width, facts.text_x, facts.first_line_top, facts.line_pitch) == (400, 57, 205, 21)
+    assert facts.draw_box is False
+    assert facts.text_width == 0
+    assert mp.overflow_lines([("a" * 50, "white")], _font(), facts) == []

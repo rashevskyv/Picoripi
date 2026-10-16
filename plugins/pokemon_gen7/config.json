@@ -58,6 +58,17 @@
         "box_lines": 11,
         "measured_on": "Sun language screen (bottom screen), Azahar frame sm_base_run5/w030_t031.png: line 1 ink 10..264, rows 14..28; line pitch 20; box border at x 6 and 315; rendered extents match within 1 px left, 1 px top and 3 px right (lines 1-8)"
     },
+    "dialogue_window": {
+        "font_member": "romfs/a/0/2/5/000.bffnt",
+        "screen_width": 400,
+        "text_x": 57,
+        "first_line_top": 205,
+        "line_pitch": 21,
+        "text_width": 0,
+        "box_lines": 2,
+        "draw_box": false,
+        "measured_on": "Sun in-game dialogue, top screen, Azahar run sm_dlg1/w022_t067.png (window 1:1): 'So the day has finally come that you're / moving to Alola!' ink rows 209-216 and 230-237, x 57-289 and 57-148; rendered advance 233 and 94 px; no box border visible, so the width is not measured (0)"
+    },
     "default_font_file": "default_font.json",
     "tag_color_rgba": "#ffff8c00",
     "tag_bold": true,

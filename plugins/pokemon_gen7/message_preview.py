@@ -49,14 +49,17 @@ class BoxFacts:
     text_x: int
     first_line_top: int
     line_pitch: int
-    text_width: int
+    text_width: int                 # 0: not measured, the width is not checked
     box_lines: int
+    screen_width: int = 320         # 320: bottom screen; 400: top screen
+    draw_box: bool = True           # the language screen has a box; the dialogue text sits on the scene
 
     @classmethod
-    def load(cls, path: Path = _CONFIG) -> "BoxFacts":
-        raw = json.loads(path.read_text(encoding="utf-8"))["message_window"]
+    def load(cls, window: str = "message_window", path: Path = _CONFIG) -> "BoxFacts":
+        raw = json.loads(path.read_text(encoding="utf-8"))[window]
         return cls(raw["font_member"], int(raw["text_x"]), int(raw["first_line_top"]), int(raw["line_pitch"]),
-                   int(raw["text_width"]), int(raw["box_lines"]))
+                   int(raw["text_width"]), int(raw["box_lines"]), int(raw.get("screen_width", 320)),
+                   bool(raw.get("draw_box", True)))
 
 
 class BoxFont:
@@ -128,17 +131,19 @@ def split_pages(text: str) -> List[List[Tuple[str, str]]]:
 
 def overflow_lines(page: List[Tuple[str, str]], font: BoxFont, facts: BoxFacts) -> List[int]:
     """Indexes of the lines of a page that are wider than the text width or that the box cannot show."""
-    bad = [i for i, (line, _c) in enumerate(page) if font.width(line) > facts.text_width]
+    bad = [i for i, (line, _c) in enumerate(page) if facts.text_width > 0 and font.width(line) > facts.text_width]
     if len(page) > facts.box_lines:
         bad += list(range(facts.box_lines, len(page)))
     return bad
 
 
 def render_page(page: List[Tuple[str, str]], font: BoxFont, facts: BoxFacts) -> Image.Image:
-    """The box with one page of text, as RGBA at native size (320 x 240 bottom screen)."""
-    height = max(240, facts.first_line_top + facts.box_lines * facts.line_pitch + 8)
-    out = Image.new("RGBA", (320, height), _BOX)
-    ImageDraw.Draw(out).rectangle((0, 0, 319, height - 1), outline=_EDGE, width=2)
+    """One page of text at native size on its screen (``facts.screen_width`` x 240), boxed when the window is a box."""
+    height = 240
+    width = facts.screen_width
+    out = Image.new("RGBA", (width, height), _BOX if facts.draw_box else (0, 0, 0, 0))
+    if facts.draw_box:
+        ImageDraw.Draw(out).rectangle((0, 0, width - 1, height - 1), outline=_EDGE, width=2)
     for index, (line, colour) in enumerate(page):
         top = facts.first_line_top + index * facts.line_pitch
         if top >= height:
@@ -194,12 +199,12 @@ class MessageWindowPreview(QWidget):
     def __init__(self, source_dir: str):
         super().__init__()
         self._root = source_dir
-        self._facts = BoxFacts.load()
+        self._facts = BoxFacts.load("dialogue_window")   # the main window: the overworld text
         self._font: Optional[BoxFont] = None
         self._text = ""
         self._note = tr("Reading the game font...")
-        self._image = QImage(320 * SCALE, 240 * SCALE, QImage.Format.Format_ARGB32)
-        self.setMinimumSize(320 * SCALE + 20, 240 * SCALE + 46)
+        self._image = QImage(self._facts.screen_width * SCALE, 240 * SCALE, QImage.Format.Format_ARGB32)
+        self.setMinimumSize(self._facts.screen_width * SCALE + 20, 240 * SCALE + 46)
         self._render()
 
     def receive(self, payload: object) -> None:
