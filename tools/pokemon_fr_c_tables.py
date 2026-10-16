@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import struct
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -26,6 +27,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from plugins.pokemon_fr import rom_text  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "tools"))
+from pokemon_fr_rom_facts import map_symbols  # noqa: E402
+
+BASE = 0x08000000        # the ROM address of file offset 0 (the GBA cartridge)
+MAX_TEXT = 1200          # the longest text the pointer tables are measured over
 
 TERMINATOR = 0xFF
 SPACE = 0x00            # the charmap cell of ' '; a name never starts with it in these tables
@@ -75,6 +82,26 @@ FAMILY_TABLES = {
 }
 
 
+# Tables found through a linker-map symbol: ``symbol`` is the array, ``field`` the offset of the name or of the
+# pointer inside each entry. A pointer table (``pointer``) holds one pointer per entry to a text ending in 0xFF;
+# each distinct text becomes a unit that may grow (it moves, its pointers are rewritten).
+FIRERED_POINTERS = [
+    {"name": "move_descriptions", "file": "move_descriptions.inc", "label": "gMoveDescription_",
+     "symbol": "gMoveDescriptionPointers", "stride": 4, "field": 0, "count": 354, "pointer": True},
+    {"name": "ability_descriptions", "file": "ability_descriptions.inc", "label": "gAbilityDescription_",
+     "symbol": "gAbilityDescriptionPointers", "stride": 4, "field": 0, "count": 78, "pointer": True},
+    {"name": "nature_names", "file": "nature_names.inc", "label": "gNatureName_",
+     "symbol": "gNatureNamePointers", "stride": 4, "field": 0, "count": 25, "pointer": True},
+    {"name": "item_descriptions", "file": "item_descriptions.inc", "label": "gItemDescription_",
+     "symbol": "gItems", "stride": 44, "field": 20, "count": 375, "pointer": True},
+    {"name": "pokedex_descriptions", "file": "pokedex_descriptions.inc", "label": "gPokedexDescription_",
+     "symbol": "gPokedexEntries", "stride": 36, "field": 16, "count": 387, "pointer": True},
+]
+FIRERED_CATEGORIES = {"name": "pokedex_categories", "file": "pokedex_categories.inc",
+                      "label": "gPokedexCategory_", "symbol": "gPokedexEntries", "stride": 36, "size": 12,
+                      "field": 0, "count": 387}
+
+
 def family_of(game: str) -> str:
     """The game family of a facts file: its tables and trainer anchors differ between the three."""
     if "Emerald" in game:
@@ -85,7 +112,44 @@ def family_of(game: str) -> str:
 
 
 def tables_for(game: str) -> List[Dict[str, object]]:
-    return COMMON + FAMILY_TABLES[family_of(game)]
+    family = family_of(game)
+    return COMMON + FAMILY_TABLES[family] + (FIRERED_POINTERS + [FIRERED_CATEGORIES] if family == "firered" else [])
+
+
+def _text_at(rom: bytes, ptr: int, charmap: rom_text.Charmap) -> Optional[Tuple[int, int]]:
+    """``(offset, size with the terminator)`` of the text a pointer names, or None when it names no text."""
+    off = ptr - BASE
+    if not 0 < off < len(rom):
+        return None
+    end = rom.find(bytes([TERMINATOR]), off, off + MAX_TEXT)
+    if end < off:
+        return None
+    text = charmap.decode(rom[off:end])
+    if "{0x" in text:
+        return None
+    plain = sum(1 for ch in text if (ch.isascii() and (ch.isalnum() or ch in " .,!?'-/&:%+()\\\"") or ch == "\u00e9"))
+    if text and plain < 0.7 * len(text):
+        return None
+    return off, end + 1 - off
+
+
+def pointer_table(rom: bytes, charmap: rom_text.Charmap, symbols: Dict[str, int], spec: Dict[str, object]) -> Dict[str, object]:
+    """The texts a pointer table names: one unit per distinct text, the index of its first entry in the label."""
+    base = symbols[str(spec["symbol"])] - BASE
+    stride, field, count = int(spec["stride"]), int(spec["field"]), int(spec["count"])
+    units: List[List[int]] = []
+    seen: Dict[int, int] = {}
+    for index in range(count):
+        ptr = struct.unpack_from("<I", rom, base + index * stride + field)[0]
+        found = _text_at(rom, ptr, charmap)
+        if found is None:
+            raise SystemExit(f"{spec['name']}: entry {index} does not name a text")
+        off, size = found
+        if off not in seen:
+            seen[off] = index
+            units.append([index, off, size])
+    return {"name": spec["name"], "file": spec["file"], "label": spec["label"], "kind": "pointer",
+            "offset": base, "stride": stride, "field": field, "count": count, "units": units}
 
 
 def _field(charmap: rom_text.Charmap, text: str) -> Optional[bytes]:
@@ -148,9 +212,13 @@ def _find_start(rom: bytes, charmap: rom_text.Charmap, spec: Dict[str, object]) 
     return hits[0]
 
 
-def locate(rom: bytes, charmap: rom_text.Charmap, spec: Dict[str, object]) -> Dict[str, object]:
+def locate(rom: bytes, charmap: rom_text.Charmap, spec: Dict[str, object],
+           symbols: Optional[Dict[str, int]] = None) -> Dict[str, object]:
     """The facts of one table: start, stride, field size, count and padding byte."""
-    start, stride = _find_start(rom, charmap, spec)
+    if "symbol" in spec:
+        start, stride = (symbols[str(spec["symbol"])] - BASE + int(spec["field"])), int(spec["stride"])
+    else:
+        start, stride = _find_start(rom, charmap, spec)
     size = int(spec["size"])
     expected = spec.get("count")
     count = 0
@@ -184,6 +252,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--rom", required=True, type=Path)
     parser.add_argument("--facts", required=True, type=Path)
+    parser.add_argument("--map", type=Path, help="the link map of the decompilation build of this ROM")
     args = parser.parse_args()
     rom = args.rom.read_bytes()
     text = args.facts.read_text(encoding="utf-8")
@@ -191,7 +260,16 @@ def main() -> None:
     if hashlib.sha1(rom).hexdigest() != facts["rom_sha1"]:
         raise SystemExit("this ROM is not the one the facts file was made from")
     charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / facts["charmap"])
-    tables = [locate(rom, charmap, spec) for spec in tables_for(facts["game"])]
+    symbols = map_symbols(args.map)[0] if args.map else {}
+    tables = []
+    for spec in tables_for(facts["game"]):
+        if "symbol" in spec and not symbols:
+            print(f"skipped {spec['name']}: no --map")
+            continue
+        if spec.get("pointer"):
+            tables.append(pointer_table(rom, charmap, symbols, spec))
+        else:
+            tables.append(locate(rom, charmap, spec, symbols))
     line = '"c_tables": ' + json.dumps(tables, ensure_ascii=False) + ","
     lines = [item for item in text.split("\n") if not item.startswith('"c_tables":')]
     at = next(i for i, item in enumerate(lines) if item.startswith('"rom_size"'))

@@ -206,6 +206,11 @@ def load_tables(path: Optional[Path] = None) -> List[Unit]:
     data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
     units: List[Unit] = []
     for table in data.get("c_tables", []):
+        if table.get("kind") == "pointer":
+            # a text a pointer table names: it may grow, so it is not a fixed field
+            for index, offset, size in table["units"]:
+                units.append(Unit(f"{table['label']}{index}", int(offset), int(size)))
+            continue
         size = int(table.get("size", table["stride"]))
         for index in range(int(table["count"])):
             units.append(Unit(f"{table['label']}{index}", int(table["offset"]) + index * int(table["stride"]),
@@ -218,6 +223,9 @@ def table_files(path: Optional[Path] = None) -> Dict[str, List[str]]:
     data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
     files: Dict[str, List[str]] = {}
     for table in data.get("c_tables", []):
+        if table.get("kind") == "pointer":
+            files.setdefault(table["file"], []).extend(f"{table['label']}{index}" for index, _, _ in table["units"])
+            continue
         files.setdefault(table["file"], []).extend(f"{table['label']}{i}" for i in range(int(table["count"])))
     return files
 

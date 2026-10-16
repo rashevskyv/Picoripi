@@ -117,3 +117,21 @@ def test_a_fixed_field_over_its_budget_is_flagged_by_the_analyzer():
     assert any(PROBLEM_BYTE_BUDGET in found for found in flagged)
     analyzer._current_scan_string_idx = 8
     assert not any(PROBLEM_BYTE_BUDGET in found for found in analyzer.analyze_data_string("ABCDEFGHIJKLMN", {}, 100, None))
+
+
+@pytest.mark.skipif(not ROM.is_file(), reason="FireRed rev 0 ROM is not on this machine")
+def test_a_pointer_text_that_grows_moves_and_its_pointer_follows():
+    """A move description longer than its unit moves to free space; the table pointer names the new place."""
+    rom = ROM.read_bytes()
+    facts = json.loads(FACTS.read_text(encoding="utf-8"))
+    charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / facts["charmap"])
+    units = rom_text.load_tables(FACTS)
+    table = next(item for item in facts["c_tables"] if item["name"] == "move_descriptions")
+    unit = next(item for item in units if item.label == "gMoveDescription_0")
+    assert not unit.fixed
+    grown = rom_text.read_all(rom, [unit], charmap)[unit.label] + "\\nAND A LONGER LINE WITH MORE WORDS"
+    patched = rom_text.write_all(rom, units, charmap, facts["free_start"], {unit.label: grown})
+    pointer = int.from_bytes(patched[table["offset"]:table["offset"] + 4], "little") - 0x08000000
+    assert pointer != unit.offset and pointer >= facts["free_start"]
+    assert rom_text.read_all(patched, [rom_text.Unit(unit.label, pointer, len(charmap.encode(grown)))],
+                             charmap)[unit.label] == grown

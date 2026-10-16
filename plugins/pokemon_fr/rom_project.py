@@ -113,7 +113,7 @@ def field_budgets(text_dir: str) -> Optional[Tuple[Dict[str, int], Charmap]]:
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     facts = FACTS_DIR / meta["facts"]
     header = json.loads(facts.read_text(encoding="utf-8"))
-    sizes = {unit.label: unit.size for unit in load_tables(facts)}
+    sizes = {unit.label: unit.size for unit in load_tables(facts) if unit.fixed}
     return sizes, Charmap.load(FACTS_DIR / header.get("charmap", CHARMAP_FILE))
 
 
