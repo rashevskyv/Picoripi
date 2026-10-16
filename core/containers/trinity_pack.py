@@ -11,6 +11,7 @@ library.
 """
 from __future__ import annotations
 
+import bisect
 import re
 import struct
 from typing import Callable, Dict, Iterator, List, Sequence, Tuple
@@ -204,3 +205,32 @@ def name_others(found: Dict[int, str], files: Sequence[Tuple[int, bytes]]) -> No
     for name in names:
         if fnv(name) in want:
             found[fnv(name)] = name
+
+
+def base_layout(rel: str) -> List[str]:
+    """[X.arc] for an English layout X_eng.arc. The game takes X_eng.arc only from the packs (listed in data.trpfd)
+    and falls back to X.arc, which it reads from the romfs; so a changed X_eng.arc is written as X.arc too."""
+    found = re.match(r"(.+)_eng\.arc$", rel)
+    return [found.group(1) + ".arc"] if found else []
+
+
+def patch_trpfd(trpfd: bytes, hashes: Sequence[int]) -> bytes:
+    """data.trpfd in which none of ``hashes`` is found any more: each is moved by one (the list stays sorted).
+
+    A hash that is not in the index (a loose romfs file already) is left alone.
+    """
+    fd = FlatBuffer(trpfd)
+    start, count = fd.vector(fd.root(), 0)
+    values = list(struct.unpack_from(f"<{count}Q", trpfd, start))
+    out = bytearray(trpfd)
+    for h in sorted(set(hashes)):
+        i = bisect.bisect_left(values, h)
+        if i == count or values[i] != h:
+            continue
+        lower = values[i - 1] if i else -1
+        new = h - 1 if h - 1 > lower else h + 1
+        if i + 1 < count and new >= values[i + 1]:
+            raise TrinityError(f"cannot remove hash {h:016x} from data.trpfd")
+        values[i] = new
+        struct.pack_into("<Q", out, start + 8 * i, new)
+    return bytes(out)

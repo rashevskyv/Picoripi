@@ -2382,5 +2382,14 @@
   "Switch: Atmosphere LayeredFS mod (both games)": "Switch: мод LayeredFS для Atmosphere (обидві гри)",
   "The base file is not a Scarlet, Violet or Legends: Z-A image.": "Базовий файл не є образом Scarlet, Violet або Legends: Z-A.",
   "The Trinity packs need the Oodle library. Choose its file in the wizard.": "Пакети Trinity потребують бібліотеку Oodle. Оберіть її файл у майстрі.",
-  "The image has no Trinity archive (arc/data.trpfs).": "В образі немає архіву Trinity (arc/data.trpfs)."
+  "The image has no Trinity archive (arc/data.trpfs).": "В образі немає архіву Trinity (arc/data.trpfs).",
+  "Switch: Atmosphere LayeredFS mod (the game of the image)": "Switch: мод LayeredFS для Atmosphere (гра з образу)",
+  "The pack {0} is not in the source: unpack the game again.": "Пака {0} немає в source: розпакуйте гру ще раз.",
+  "The pack {0} does not write: {1}": "Пака {0} не записується: {1}",
+  "The index of the game is missing; unpack the game again.": "Індексу гри немає; розпакуйте гру ще раз.",
+  "Other version: base game": "Інша версія: базова гра",
+  "Other version: update": "Інша версія: оновлення",
+  "Choose the update of the other version too.": "Оберіть оновлення іншої версії також.",
+  "The other version file is not a Scarlet, Violet or Legends: Z-A image.": "Файл іншої версії не є образом Scarlet, Violet або Legends: Z-A.",
+  "The other version has no Trinity index (arc/data.trpfd).": "В іншій версії немає індексу Trinity (arc/data.trpfd)."
 }

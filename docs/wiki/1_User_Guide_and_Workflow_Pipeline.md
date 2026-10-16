@@ -737,7 +737,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      Э э Ъ ъ, whose glyphs are redrawn in the Font Editor. Sword and Shield share one romfs: `2_build.bat` writes
      the mod for both title ids. The Project Manager wizard unpacks Sword / Shield itself: it takes the base game and
      the update (the update's patch is applied) with Picoripi's Switch reader, and gives the same `source` as
-     `1_unpack.bat`. Legends: Arceus: the wizard writes its `.gfpak` packs and decodes them into `<pack>.gfpak.d` with the Oodle library. It asks once for the Oodle library file (`oo2core` or `oo2ext` `*_win64.dll`) and remembers its path. Default tag aliases (Settings →
+     `1_unpack.bat`. Legends: Arceus: the wizard writes its `.gfpak` packs and decodes them into `<pack>.gfpak.d` with the Oodle library. It asks once for the Oodle library file (`oo2core` or `oo2ext` `*_win64.dll`) and remembers its path. The Switch build target writes the changed files as a LayeredFS mod (Sword / Shield: both title ids; Legends: Arceus: a changed pack is stored, not compressed). Default tag aliases (Settings →
      Tag Aliases): `[PAGE]`, `[SCROLL]`, `[POKEMON]`, `[MOVE]`, `[ITEM]`, `[LEVEL]`, `[NAME1]`, colours `[COLOR6]`.
    - `pokemon_gen6` — Pokémon X / Y and Omega Ruby / Alpha Sapphire (3DS), one project per pair (X and Y share
      every text, font and picture file; so do Omega Ruby and Alpha Sapphire). **Source:** the workspace's
@@ -1000,7 +1000,8 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      `appli\font\bin` / `ui\font\bin` and the English layout archives `*_eng.arc`). The Project Manager wizard does
      this itself with Picoripi's readers: the base game and its update, and the Oodle library file, which the wizard
      asks for once and remembers (the packs are Oodle-compressed). The output equals the workspace `source`, file by
-     file. **Translation:**
+     file. The Switch build target writes the changed files and a patched index for each title: Scarlet from its
+     base and update, Violet from the other version's roles (its own base and update). **Translation:**
      `translation`. One block per message file (Scarlet/Violet 913 files, 85,331 lines; Z-A 427 files, 76,810
      lines); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, icons `{CHAR E300}`; grammar branches carry their
      two texts, `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), and their lengths are

@@ -60,3 +60,14 @@ def test_unknown_compression_and_wrong_magic_are_refused():
         gfpak.read_entries(bytes(bad_kind))
     with pytest.raises(gfpak.GfpakError):
         gfpak.read_entries(b"NOTAPACK" + pack[8:])
+
+
+def test_replace_stored_stores_the_changed_entry_and_keeps_the_others():
+    pack = make_pack([(1, gfpak.KIND_STORED, b"AAAA", b"AAAA"),
+                      (2, gfpak.KIND_OODLE, b"BBBBBBBB", b"BBBBBBBB"[::-1])])
+    out = gfpak.replace_stored(pack, {0: b"CCCCCCCCC"})
+    entries = gfpak.read_entries(out)
+    assert [e.kind for e in entries] == [gfpak.KIND_STORED, gfpak.KIND_OODLE]
+    assert entries[0].packed == b"CCCCCCCCC" and entries[0].size == 9
+    assert entries[1].packed == b"BBBBBBBB"[::-1] and entries[1].size == 8
+    assert gfpak.decode(out, lambda packed, size: packed[::-1]) == [b"CCCCCCCCC", b"BBBBBBBB"]

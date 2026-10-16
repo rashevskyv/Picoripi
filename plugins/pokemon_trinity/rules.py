@@ -15,7 +15,7 @@ from plugins.base_game_rules import BaseGameRules
 from plugins.common import gfmsg
 from plugins.common.tag_manager import GenericTagManager
 
-from . import unpack
+from . import build, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 
@@ -52,7 +52,9 @@ class GameRules(BaseGameRules):
     # -- wizard: unpack --------------------------------------------------------
 
     def get_source_roles(self) -> List[Dict[str, str]]:
-        return [{"id": "base", "label": tr("Base game")}, {"id": "update", "label": tr("Update")}]
+        return [{"id": "base", "label": tr("Base game")}, {"id": "update", "label": tr("Update")},
+                {"id": "other_base", "label": tr("Other version: base game")},
+                {"id": "other_update", "label": tr("Other version: update")}]
 
     def identify_source(self, path: str) -> Optional[Dict[str, Any]]:
         return unpack.identify(path)
@@ -65,6 +67,16 @@ class GameRules(BaseGameRules):
 
     def get_source_subfolder(self) -> Optional[str]:
         return unpack.SOURCE_DIR
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": "switch_layeredfs", "label": tr("Switch: Atmosphere LayeredFS mod (the game of the image)"),
+                 "platforms": ["switch"], "kind": "layeredfs"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != "switch_layeredfs":
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return build.build_switch(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):

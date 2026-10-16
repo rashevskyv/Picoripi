@@ -734,7 +734,7 @@ tokens: 63.6k
      а Є є Ґ ґ — як Э э Ъ ъ, чиї гліфи перемальовують у Редакторі шрифтів. Sword і Shield мають спільний romfs:
      `2_build.bat` пише мод для обох title id. Майстер проєкту сам розпаковує Sword / Shield: бере базову гру й
      оновлення (патч оновлення застосовується) читачем Switch з Picoripi і дає той самий `source`, що й
-     `1_unpack.bat`. Legends: Arceus: майстер записує її паки `.gfpak` і розпаковує їх у `<pack>.gfpak.d` бібліотекою Oodle. Один раз питає файл бібліотеки Oodle (`oo2core` або `oo2ext` `*_win64.dll`) і запам'ятовує шлях. Типові теги-псевдоніми
+     `1_unpack.bat`. Legends: Arceus: майстер записує її паки `.gfpak` і розпаковує їх у `<pack>.gfpak.d` бібліотекою Oodle. Один раз питає файл бібліотеки Oodle (`oo2core` або `oo2ext` `*_win64.dll`) і запам'ятовує шлях. Ціль збирання Switch записує змінені файли як мод LayeredFS (Sword / Shield: обидва title id; Legends: Arceus: змінений пак лежить без стиснення). Типові теги-псевдоніми
      (Налаштування → Псевдоніми тегів): `[PAGE]`, `[SCROLL]`, `[POKEMON]`, `[MOVE]`, `[ITEM]`, `[LEVEL]`, `[NAME1]`,
      кольори `[COLOR6]`.
    - `pokemon_gen6` — Pokémon X / Y і Omega Ruby / Alpha Sapphire (3DS), один проєкт на пару (X і Y мають
@@ -996,7 +996,7 @@ tokens: 63.6k
      `message\dat\English\{common,script}\*.dat` — у Z-A `ik_message\...` — шрифти `appli\font\bin` /
      `ui\font\bin` і англійські архіви макетів `*_eng.arc`). Майстер проєкту робить це сам власними читачами
      Picoripi: гру з оновленням і файл бібліотеки Oodle, який майстер питає один раз і запам'ятовує (паки стиснуті
-     Oodle). Результат дорівнює `source` робочої теки побайтово. **Translation:** `translation`. Один блок на файл
+     Oodle). Результат дорівнює `source` робочої теки побайтово. Ціль збирання Switch записує змінені файли і змінений індекс для кожного title id: Scarlet з її бази й оновлення, Violet з ролей іншої версії (її база й оновлення). **Translation:** `translation`. Один блок на файл
      повідомлень (Scarlet/Violet: 913 файлів, 85 331 рядок; Z-A: 427 файлів, 76 810 рядків); змінні мають вигляд
      `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, значки `{CHAR E300}`; граматичні розгалуження несуть обидва тексти,
      `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), а їхні довжини записуються

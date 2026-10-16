@@ -62,3 +62,25 @@ def file_names(files: Sequence[bytes], hashes: Sequence[int]) -> List[str]:
                      if path_hash(f"bin/appli/{layout.rsplit('_', k)[0]}/bin/{layout}{suffix}") == wanted), None)
         names.append(f"{index:02}_{real or layouts[0] + '.arc'}" if layouts else f"{index:02}.bin")
     return names
+
+
+def replace_stored(data: bytes, changed: dict) -> bytes:
+    """The pack with the files ``{index: raw}`` stored (kind 0) in place of the originals; the other files keep their bytes.
+
+    Files keep the order of their data offsets. A stored entry needs no Oodle library; the game is not known to accept
+    one in every case, so the build reports the result of its own test.
+    """
+    count, table = struct.unpack_from("<i4xQ", data, 0x10)
+    entries = read_entries(data)
+    order = sorted(range(count), key=lambda i: struct.unpack_from("<Q", data, table + 24 * i + 16)[0])
+    start = struct.unpack_from("<Q", data, table + 24 * order[0] + 16)[0]
+    out = bytearray(data[:start])
+    for i in order:
+        if i in changed:
+            kind, size, packed = KIND_STORED, len(changed[i]), bytes(changed[i])
+        else:
+            kind, size, packed = entries[i].kind, entries[i].size, entries[i].packed
+        struct.pack_into("<HII", out, table + 24 * i + 2, kind, size, len(packed))
+        struct.pack_into("<Q", out, table + 24 * i + 16, len(out))
+        out += packed + b"\0" * (-len(packed) % 16)
+    return bytes(out)

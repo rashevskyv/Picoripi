@@ -1,7 +1,8 @@
 """Unpack Pokémon Scarlet / Violet or Legends: Z-A in the Project Manager wizard: the English text, fonts and layouts.
 
 The base game and its update are read with Picoripi's Switch reader (the update's RomFS is a BKTR patch over the base).
-``arc/data.trpfd`` (the index) is written beside the source folder, ``romfs/arc/data.trpfd``: the build patches it.
+``arc/data.trpfd`` (the index) is written beside the source folder, at ``romfs/<title id>/arc/data.trpfd``: the build
+patches it for that title.
 The packs of the English text, fonts and layouts (``packs``) are read with the Oodle library, whose path the user gives
 once in the wizard (console key store, slot ``oodle``). Each file is named as zt names it (``trinity_pack.resolve``)
 and written under ``source/``.
@@ -30,6 +31,7 @@ GAMES = {
     "01008F6008C5E000": SV_PACKS,   # Pokémon Violet
     "0100F43008C44000": ZA_PACKS,   # Pokémon Legends: Z-A
 }
+OTHER_VERSION = "01008F6008C5E000"   # Pokémon Violet: the other version of Scarlet (its own index is built too)
 
 
 def identify(path: str) -> Optional[Dict[str, object]]:
@@ -39,7 +41,7 @@ def identify(path: str) -> Optional[Dict[str, object]]:
         return None
     game_id = str(found.get("game_id") or "")
     if game_id in GAMES:
-        role = "base"
+        role = "other_base" if game_id == OTHER_VERSION else "base"
     else:
         try:
             base = f"{int(game_id, 16) - UPDATE_STEP:016X}"
@@ -47,8 +49,26 @@ def identify(path: str) -> Optional[Dict[str, object]]:
             return None
         if base not in GAMES:
             return None
-        role = "update"
+        role = "other_update" if base == OTHER_VERSION else "update"
     return {"role": role, "platform": "switch", "libraries": [OODLE]}
+
+
+def _romfs_entries(reader, base_reader) -> dict:
+    """The patched RomFS entries of an update (its base applied), by path without the ``romfs/`` folder."""
+    return {entry.path[len(ROMFS) + 1:]: entry for entry in reader.patched_romfs_entries(base_reader)
+            if entry.path.startswith(ROMFS + "/")}
+
+
+def _other_index(base: str, update: str, target_dir: str, progress, is_cancelled) -> Tuple[str, bytes]:
+    """(title id, index bytes) of the other version: only its ``arc/data.trpfd`` is read."""
+    found = images.identify(base)
+    if found is None or found.get("game_id") not in GAMES:
+        raise ImageError(tr("The other version file is not a Scarlet, Violet or Legends: Z-A image."))
+    with images.open_image(base, target_dir, is_cancelled, progress) as base_reader,             images.open_image(update, target_dir, is_cancelled, progress) as update_reader:
+        entries = _romfs_entries(update_reader, base_reader)
+        if TRPFD not in entries:
+            raise ImageError(tr("The other version has no Trinity index (arc/data.trpfd)."))
+        return found["game_id"], update_reader.read(entries[TRPFD])
 
 
 def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, str], None],
@@ -72,8 +92,7 @@ def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, st
     root = Path(target_dir)
     with images.open_image(base, target_dir, is_cancelled, progress) as base_reader, \
             images.open_image(update, target_dir, is_cancelled, progress) as update_reader:
-        entries = {entry.path[len(ROMFS) + 1:]: entry for entry in update_reader.patched_romfs_entries(base_reader)
-                   if entry.path.startswith(ROMFS + "/")}
+        entries = _romfs_entries(update_reader, base_reader)
         if TRPFD not in entries or TRPFS not in entries:
             raise ImageError(tr("The image has no Trinity archive (arc/data.trpfs)."))
         index_entry, archive_entry = entries[TRPFD], entries[TRPFS]
@@ -88,11 +107,16 @@ def unpack(sources: Dict[str, str], target_dir: str, progress: Callable[[int, st
             trinity = Trinity(index, read_archive)
         except TrinityError as exc:
             raise ImageError(str(exc)) from None
-        (root / ROMFS / "arc").mkdir(parents=True, exist_ok=True)
-        _write(root / ROMFS / TRPFD, index)
+        _write(root / ROMFS / found["game_id"] / TRPFD, index)   # the build patches each title's own index
         names_written = _extract(trinity, pattern, oodle, root / SOURCE_DIR, progress, is_cancelled)
         if names_written is None:
             return None
+    other_base, other_update = sources.get("other_base"), sources.get("other_update")
+    if other_base or other_update:
+        if not (other_base and other_update):
+            raise ImageError(tr("Choose the update of the other version too."))
+        other_id, other_index = _other_index(other_base, other_update, target_dir, progress, is_cancelled)
+        _write(root / ROMFS / other_id / TRPFD, other_index)
     return target_dir
 
 

@@ -13,7 +13,7 @@ from utils.constants import user_plugin_file_or_shipped
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
 
-from . import unpack
+from . import build, unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -90,6 +90,16 @@ class GameRules(BaseGameRules):
 
     def unpack_key_consoles(self) -> List[str]:
         return ["switch", "oodle"]
+
+    def get_build_targets(self) -> List[Dict[str, Any]]:
+        return [{"id": "switch_layeredfs", "label": tr("Switch: Atmosphere LayeredFS mod"),
+                 "platforms": ["switch"], "kind": "layeredfs"}]
+
+    def build_target(self, target_id: str, source_dir: str, translation_dir: str, output_dir: str,
+                     progress, is_cancelled) -> str:
+        if target_id != "switch_layeredfs":
+            return super().build_target(target_id, source_dir, translation_dir, output_dir, progress, is_cancelled)
+        return build.build_switch(source_dir, translation_dir, output_dir, progress, is_cancelled)
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
