@@ -994,7 +994,9 @@ tokens: 63.6k
      (+ Mega Dimension) (Switch, рушій Trinity від Game Freak). **Source:** тека `source` робочої теки
      (`1_unpack.bat` читає лише потрібні паки з `arc\data.trpfs` і кладе туди, за шляхами гри, англійський текст
      `message\dat\English\{common,script}\*.dat` — у Z-A `ik_message\...` — шрифти `appli\font\bin` /
-     `ui\font\bin` і англійські архіви макетів `*_eng.arc`); **Translation:** `translation`. Один блок на файл
+     `ui\font\bin` і англійські архіви макетів `*_eng.arc`). Майстер проєкту робить це сам власними читачами
+     Picoripi: гру з оновленням і файл бібліотеки Oodle, який майстер питає один раз і запам'ятовує (паки стиснуті
+     Oodle). Результат дорівнює `source` робочої теки побайтово. **Translation:** `translation`. Один блок на файл
      повідомлень (Scarlet/Violet: 913 файлів, 85 331 рядок; Z-A: 427 файлів, 76 810 рядків); змінні мають вигляд
      `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, значки `{CHAR E300}`; граматичні розгалуження несуть обидва тексти,
      `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), а їхні довжини записуються

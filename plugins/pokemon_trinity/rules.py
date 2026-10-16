@@ -10,10 +10,12 @@ the BNTX text pictures: title logo, menus). ``2_build.bat`` writes changed files
 """
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
 from plugins.common import gfmsg
 from plugins.common.tag_manager import GenericTagManager
 
+from . import unpack
 from .config import DEFAULT_LINES_PER_PAGE, PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 
 
@@ -46,6 +48,23 @@ class GameRules(BaseGameRules):
     def get_file_formats(self) -> list:
         from core.formats import FileFormat
         return [FileFormat((".dat",), "bytes", "Game Freak messages (gfmsg)")]
+
+    # -- wizard: unpack --------------------------------------------------------
+
+    def get_source_roles(self) -> List[Dict[str, str]]:
+        return [{"id": "base", "label": tr("Base game")}, {"id": "update", "label": tr("Update")}]
+
+    def identify_source(self, path: str) -> Optional[Dict[str, Any]]:
+        return unpack.identify(path)
+
+    def unpack_key_consoles(self) -> List[str]:
+        return ["switch", "oodle"]
+
+    def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
+        return unpack.unpack(sources, target_dir, progress, is_cancelled)
+
+    def get_source_subfolder(self) -> Optional[str]:
+        return unpack.SOURCE_DIR
 
     def load_data_from_json_obj(self, json_obj: Any) -> Tuple[List[List[str]], Dict[str, str]]:
         if not isinstance(json_obj, (bytes, bytearray)):

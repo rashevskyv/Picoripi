@@ -2379,5 +2379,8 @@
   "Building {0} edited tables": "Збираю змінених таблиць: {0}",
   "The message bundles are missing; unpack the game again.": "Бандлів повідомлень немає; розпакуйте гру ще раз.",
   "These tables are not in the game: {0}": "Цих таблиць немає в грі: {0}",
-  "Switch: Atmosphere LayeredFS mod (both games)": "Switch: мод LayeredFS для Atmosphere (обидві гри)"
+  "Switch: Atmosphere LayeredFS mod (both games)": "Switch: мод LayeredFS для Atmosphere (обидві гри)",
+  "The base file is not a Scarlet, Violet or Legends: Z-A image.": "Базовий файл не є образом Scarlet, Violet або Legends: Z-A.",
+  "The Trinity packs need the Oodle library. Choose its file in the wizard.": "Пакети Trinity потребують бібліотеку Oodle. Оберіть її файл у майстрі.",
+  "The image has no Trinity archive (arc/data.trpfs).": "В образі немає архіву Trinity (arc/data.trpfs)."
 }

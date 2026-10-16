@@ -11,11 +11,11 @@ import re
 import struct
 from typing import Callable, List, NamedTuple, Sequence
 
+from core.containers.game_freak import path_hash
+
 MAGIC = b"GFLXPACK"
 KIND_STORED = 0
 KIND_OODLE = 3
-_FNV_BASIS = 0xCBF29CE484222645    # Game Freak's offset basis (not the standard FNV-1a basis)
-_FNV_PRIME = 0x100000001B3
 _BLYT = re.compile(rb"blyt/([A-Za-z0-9_]+)\.bflyt")
 
 
@@ -28,14 +28,6 @@ class Entry(NamedTuple):
     kind: int
     size: int
     packed: bytes
-
-
-def path_hash(path: str) -> int:
-    """The pack's path hash of ``path`` (e.g. ``bin/appli/<folder>/bin/<layout>_eng.arc``)."""
-    value = _FNV_BASIS
-    for byte in path.encode("utf-8"):
-        value = ((value ^ byte) * _FNV_PRIME) & 0xFFFFFFFFFFFFFFFF
-    return value
 
 
 def read_entries(data: bytes) -> List[Entry]:

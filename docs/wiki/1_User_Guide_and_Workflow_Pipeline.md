@@ -997,7 +997,10 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      (+ Mega Dimension) (Switch, Game Freak's Trinity engine). **Source:** the workspace's `source`
      (`1_unpack.bat` reads only the needed packs of `arc\data.trpfs` and puts there, at the game's paths, the
      English text `message\dat\English\{common,script}\*.dat` — Z-A: `ik_message\...` — the fonts
-     `appli\font\bin` / `ui\font\bin` and the English layout archives `*_eng.arc`); **Translation:**
+     `appli\font\bin` / `ui\font\bin` and the English layout archives `*_eng.arc`). The Project Manager wizard does
+     this itself with Picoripi's readers: the base game and its update, and the Oodle library file, which the wizard
+     asks for once and remembers (the packs are Oodle-compressed). The output equals the workspace `source`, file by
+     file. **Translation:**
      `translation`. One block per message file (Scarlet/Violet 913 files, 85,331 lines; Z-A 427 files, 76,810
      lines); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, icons `{CHAR E300}`; grammar branches carry their
      two texts, `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), and their lengths are
