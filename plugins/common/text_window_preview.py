@@ -36,7 +36,7 @@ class Window:
     @classmethod
     def from_facts(cls, facts: Dict[str, object]) -> "Window":
         return cls(int(facts["text_x"]), int(facts["text_width"]), int(facts["lines"]), int(facts["line_height"]),
-                   int(facts["box_width"]), int(facts["box_height"]))
+                   int(facts["box_width"]), int(facts["box_height"]), int(facts.get("text_top", 12)))
 
 
 @dataclass

@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon FireRed / LeafGreen / Emerald preview: the message window is the decompilation's own size (FireRed 208 px, Emerald 216 px, two lines, box and printer origin from the window template) instead of the 216 px estimate; the facts tool derives it (`--window-only` rewrites it without the ROM).
 - Pokémon FireRed / LeafGreen / Emerald / Ruby / Sapphire ROM mode: the 412 species names (C-built, fixed 11-byte entries) unpack to `text\species_names.inc`; a build refuses a name longer than its entry (`tools/pokemon_fr_c_tables.py`).
 - Pokémon FireRed / LeafGreen / Emerald (Generation III) ROM mode: the message-box preview draws the selected message in the game's own font (read from the base ROM in a worker), page by page, with overflow warnings; the font facts (`font` key) come from `tools/pokemon_fr_font_facts.py`.
 - Pokémon Red / Blue / Yellow (Game Boy, UE) ROM mode: the Project Manager unpacks the `.gb` into `text/*.asm` (every text body, with pret macro lines) and builds a patched ROM from the changed bodies; a longer body moves to free space and its `text_far` references are rewritten; checksums are fixed; facts from the decompilation (`plugins/pokemon_gen1/rom_facts`, `tools/pokemon_gen1_rom_facts.py`).

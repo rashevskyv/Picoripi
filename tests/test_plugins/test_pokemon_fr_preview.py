@@ -5,6 +5,7 @@ when it is not there. Nothing from the image is copied into the repository.
 """
 import json
 import os
+import shutil
 from pathlib import Path
 
 import pytest
@@ -75,3 +76,33 @@ def test_real_firered_rom_font_and_first_line_width():
     assert glyphs.width(charmap.byte_of["A"]) == 6
     line = tw.parse_pages("UA TEST! This line is", charmap.byte_of.get, 0)[0][0]
     assert sum(glyphs.width(code) for code in line.codes) == 116
+
+
+@pytest.mark.skipif(not ROM.is_file(), reason="FireRed rev 0 ROM is not on this machine")
+def test_editor_preview_draws_the_firered_box_and_flags_a_wide_line(qtbot, tmp_path):
+    """The real widget in the editor path: the project's rom folder, the worker loads the font, the box is drawn."""
+    from types import SimpleNamespace
+
+    from plugins.pokemon_fr import preview_panel, rom_project
+
+    rom_dir = tmp_path / rom_project.ROM_DIR
+    rom_dir.mkdir()
+    shutil.copyfile(ROM, rom_dir / rom_project.BASE_ROM.name)
+    (rom_dir / rom_project.META_FILE.name).write_text(json.dumps({"facts": "firered_usa_rev0.json"}), encoding="utf-8")
+
+    class _Manager:
+        project = SimpleNamespace(blocks=[SimpleNamespace(source_file="text/dialogue.txt")])
+
+        def get_absolute_path(self, relative):
+            return str(tmp_path / relative)
+
+    widget = preview_panel.MessageWindowPreview(SimpleNamespace(project_manager=_Manager()))
+    qtbot.addWidget(widget)
+    widget.update_preview_text("UA TEST! This line is\nlonger than befor")
+    qtbot.waitUntil(lambda: widget._page_label.text() != "", timeout=10000)
+    assert widget._picture.pixmap().width() == 240 * preview_panel.SCALE
+    assert widget._picture.pixmap().height() == 48 * preview_panel.SCALE
+    assert widget._status.text() == ""
+    widget.update_preview_text("UA TEST! This line is longer than before and it keeps on going well past the box")
+    qtbot.waitUntil(lambda: "208" in widget._status.text(), timeout=10000)
+    widget.shutdown()
