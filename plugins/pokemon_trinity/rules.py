@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gfmsg
+from plugins.common import gfmsg, message_block
 from plugins.common.tag_manager import GenericTagManager
 
 from . import build, unpack
@@ -41,6 +41,7 @@ class GameRules(BaseGameRules):
         super().__init__(main_window_ref)
         self._loaded: Optional[bytes] = None      # the last message file loaded
         self._base: Optional[bytes] = None        # the message file a save writes over (line flags)
+        self._located: Dict[int, Optional[Tuple[str, List[int], List[str]]]] = {}   # block -> its message file
 
     def get_display_name(self) -> str:
         return "Pokémon Scarlet/Violet, Legends: Z-A (Switch)"
@@ -103,6 +104,25 @@ class GameRules(BaseGameRules):
 
     def reset_runtime_state(self) -> None:
         self._loaded, self._base = None, None
+        self._located.clear()
+
+    def get_message_attributes(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
+        """The line's label (from the ``.tbl`` beside its file), its index and flags."""
+        if block_idx not in self._located:
+            self._located[block_idx] = message_block.locate(self.mw, block_idx, PLUGIN_PREFIX)
+        located = self._located[block_idx]
+        if not located:
+            return None
+        rel, line_flags, labels = located
+        try:
+            index = int(string_idx)
+            flags = line_flags[index]
+        except (IndexError, TypeError, ValueError):
+            return None
+        attributes: Dict[str, Any] = {"file": rel, "line": index, "flags": flags}
+        if index < len(labels):
+            attributes["label"] = labels[index]
+        return attributes
 
     def get_tag_tooltip(self, tag: str) -> str:
         return gfmsg.describe(str(tag))

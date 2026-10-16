@@ -1002,7 +1002,7 @@ Do **not** type in Original. Do **not** treat the Strings list as an editor.
      file. The Switch build target writes the changed files and a patched index for each title: Scarlet from its
      base and update, Violet from the other version's roles (its own base and update). **Translation:**
      `translation`. One block per message file (Scarlet/Violet 913 files, 85,331 lines; Z-A 427 files, 76,810
-     lines); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, icons `{CHAR E300}`; grammar branches carry their
+     lines); the `.tbl` next to each file gives every line its label (the line's name in the game); variables read `{VAR 0101 0000}`, `{PAGE}`, `{SCROLL}`, `{COLOR 0001}`, icons `{CHAR E300}`; grammar branches carry their
      two texts, `M{GENDER 00FF|aster|iss}`, `{VERSION 00FF|Ko|Mi}raidon` (Scarlet | Violet), and their lengths are
      written again on save. The Font Editor opens the `.bfotf` and `.bffnt` fonts; the Textures window opens the
      BNTX pictures of the English layouts (title logo, menus). `2_build.bat` writes the changed files into a

@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.i18n import tr
 from plugins.base_game_rules import BaseGameRules
-from plugins.common import gfmsg
+from plugins.common import gfmsg, message_block
 from utils.constants import user_plugin_file_or_shipped
 from utils.logging_utils import log_debug, log_warning
 from utils.utils import clean_spaces
@@ -172,18 +172,7 @@ class GameRules(BaseGameRules):
         """``(relative path, line flags, line labels)`` of a data block; cached per load."""
         if block_idx in self._located:
             return self._located[block_idx]
-        found = None
-        try:
-            pm = getattr(self.mw, "project_manager", None)
-            block_map = getattr(self.mw, "block_to_project_file_map", None) or {}
-            block = pm.project.blocks[block_map.get(block_idx, block_idx)]
-            path = Path(pm.get_absolute_path(block.source_file))
-            table = path.with_suffix(".tbl")
-            labels = gfmsg.read_labels(table.read_bytes()) if table.is_file() else []
-            flags = [flags for _units, flags in gfmsg.read(path.read_bytes())]
-            found = (str(block.source_file).replace("\\", "/"), flags, labels)
-        except (AttributeError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
-            log_debug(f"{_PLUGIN}: no message file behind block {block_idx}: {error}")
+        found = message_block.locate(self.mw, block_idx, _PLUGIN)
         self._located[block_idx] = found
         return found
 
