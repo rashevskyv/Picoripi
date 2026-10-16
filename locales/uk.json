@@ -2381,5 +2381,15 @@
   "No message named {0} in this game.": "У цій грі немає повідомлення {0}.",
   "The ROM has no free space left for the longer text.": "У ROM немає вільного місця для довшого тексту.",
   "This message is not used through a pointer, so it cannot move. Keep it within its original length.": "Це повідомлення не використовується через вказівник, тому його не можна перенести. Зробіть його не довшим за оригінал.",
-  "{0} has {1} messages; the ROM has {2}. Check each label and each .string line.": "{0} містить {1} повідомлень, а в ROM їх {2}. Перевірте кожну мітку і кожен рядок .string."
+  "{0} has {1} messages; the ROM has {2}. Check each label and each .string line.": "{0} містить {1} повідомлень, а в ROM їх {2}. Перевірте кожну мітку і кожен рядок .string.",
+  "A string literal is expected, got {0}.": "Очікується рядок у лапках, отримано {0}.",
+  "Unknown RAM name {0}.": "Невідома назва RAM {0}.",
+  "Unknown label {0} for text_far.": "Невідома мітка {0} для text_far.",
+  "Unknown text macro {0}.": "Невідомий макрос тексту {0}.",
+  "{0} takes the wrong number of arguments.": "{0} має неправильну кількість аргументів.",
+  "{0} has no text body {1}; the ROM has it. Restore the label.": "У {0} немає тексту {1}, а в ROM він є. Відновіть мітку.",
+  "Writing {0} changed texts": "Записую змінених текстів: {0}",
+  "{0} is longer than its space and is followed by code; shorten it.": "{0} довший за місце, а далі йде код; скоротіть текст.",
+  "No free space for {0}; shorten the text.": "Немає вільного місця для {0}; скоротіть текст.",
+  "A reference to {0} sits inside a text body; it cannot be moved.": "Посилання на {0} лежить усередині тексту; його не можна перенести."
 }
