@@ -21,7 +21,7 @@ from plugins.common import gen4msg, nds_build
 from utils.logging_utils import log_debug
 from utils.utils import clean_spaces
 
-from . import ds_text, unpack
+from . import ds_text, message_preview, unpack
 from .config import PLUGIN_PREFIX, PROBLEM_DEFINITIONS
 from .tag_manager import TagManager
 
@@ -106,6 +106,8 @@ class GameRules(BaseGameRules):
         self._msg_file: Optional[bytes] = None          # the ROM bank a save writes over (raw lines, codec)
         self._bank: Optional[gen4msg.Bank] = None
         self._codec: Optional[gen4msg.Codec] = None
+        self._windows: Dict[str, Optional[message_preview.Resolved]] = {}   # source folder -> facts (None: none)
+        self._resolvers: Dict[str, message_preview.WindowResolver] = {}     # one read per source folder
 
     # Project Manager: the cartridge (USA) is read by core/project_library/images.py; unpack.py picks the files.
     def get_platforms(self) -> list:
@@ -237,15 +239,8 @@ class GameRules(BaseGameRules):
         return sources
 
     def _game_charmap(self) -> str:
-        """The charmap of the game of the unpacked tree: Platinum has pl_msg banks, HeartGold / SoulSilver a+0+2+7,
-        Diamond / Pearl neither."""
-        try:
-            root = Path(str(self.mw.project_manager.project.metadata.get("source_path") or ""))
-        except AttributeError:
-            root = Path("")
-        if (root / "text" / "msgdata+pl_msg.narc").is_dir():
-            return str(_CHARMAPS / "charmap_platinum.txt")
-        return str(_CHARMAPS / "charmap_dp_hgss.txt")
+        """The charmap of the game of the unpacked tree (see ``message_preview.charmap_for``)."""
+        return message_preview.charmap_for(self._source_root() or "")
 
     def get_texture_sources(self) -> List[Dict[str, Any]]:
         """The NCGR pictures of the NARCs, one source per kind per NARC: the raw members, and the LZ10 members with
@@ -283,33 +278,43 @@ class GameRules(BaseGameRules):
             return None
         return root if root and os.path.isdir(root) else None
 
-    def _window_facts(self) -> Optional[Tuple[str, Tuple[str, int]]]:
-        """(source folder, font location) for the games whose message window is known (Platinum)."""
-        from . import message_preview
-        root = self._source_root()
-        code = message_preview.game_code(root) if root else None
-        facts = message_preview.facts_for(code) if code else None
-        return (root, facts) if facts else None
+    def _window_of(self, root: str) -> Optional[message_preview.Resolved]:
+        """The window facts of a source folder. The first call starts the read on a worker; None until it is done."""
+        if root not in self._resolvers:
+            worker = message_preview.WindowResolver(root)
+            worker.resolved.connect(self._on_window_resolved)
+            self._resolvers[root] = worker
+            worker.start()
+        return self._windows.get(root)
+
+    def _on_window_resolved(self, payload: Any) -> None:
+        root, resolved = payload
+        self._windows[root] = resolved
 
     def get_string_layout(self, block_idx: int, string_idx: int) -> Optional[Dict[str, Any]]:
-        """The message box of the game: its width and lines (pret facts, see ``message_preview``)."""
-        if self._window_facts() is None:
+        """The message box of the game: its width and lines (pret facts, see ``message_preview``).
+
+        Until the read of the project's font is done the host gets no layout and uses its defaults.
+        """
+        root = self._source_root()
+        resolved = self._window_of(root) if root else None
+        if resolved is None:
             return None
-        from . import message_preview
-        return {"max_width": message_preview.BOX_PX, "warn_width": message_preview.BOX_PX,
+        return {"max_width": resolved.window.box_px, "warn_width": resolved.window.box_px,
                 "lines_per_page": message_preview.LINES_PER_PAGE}
 
     def get_custom_preview_widget(self, main_window: Any) -> Optional[Any]:
-        """The game's message box drawn with the game's own font; None (the BFN preview) without the facts."""
-        from . import message_preview
-        found = self._window_facts()
-        if found is None:
+        """The message box drawn with the game's own font. It fills in when the worker has read the font."""
+        root = self._source_root()
+        if root is None:
             return None
-        root, (narc, member) = found
-        font = message_preview.load_font(root, narc, member)
-        if font is None:
-            return None
-        return message_preview.MessageWindowPreview(font, gen4msg.Codec(self._game_charmap()))
+        self._window_of(root)
+        widget = message_preview.MessageWindowPreview(root)
+        if root in self._windows:
+            widget.receive((root, self._windows[root]))
+        else:
+            self._resolvers[root].resolved.connect(widget.receive)
+        return widget
 
     def get_scene_context_for_string(self, block_idx: int, string_idx: int) -> Dict[str, Any]:
         rel = self._block_path(block_idx)

@@ -1,16 +1,12 @@
 """Pokémon generation IV message window (``plugins.pokemon_gen4.message_preview``): the page layout, the glyph
 pixels of a Gen 4 font bin, and (real data, skipped without the workspace) the Platinum box drawn with the game's font."""
 import struct
-from pathlib import Path
 
 import pytest
 
 import romhacking_root
 from core.font_formats import gen4_glyphs
-from plugins.common import gen4msg
 from plugins.pokemon_gen4 import message_preview as mp
-
-CHARMAP = Path(__file__).resolve().parents[3] / "plugins" / "pokemon_gen4" / "charmaps" / "charmap_platinum.txt"
 
 
 def test_a_page_has_two_lines_and_a_page_break_says_more_follows():
@@ -71,21 +67,69 @@ def test_glyph_levels_read_back_the_pixels_of_a_glyph():
         gen4_glyphs.glyph_levels(data, 2)
 
 
-def test_facts_name_the_platinum_font_and_only_it():
-    assert mp.facts_for("CPUE") == ("graphic/pl_font.narc", 1)
-    assert mp.facts_for("ADAE") is None
-    assert mp.LINES_PER_PAGE == 2 and mp.BOX_PX == 216
+def test_windows_name_the_font_and_box_of_each_game_and_nothing_else():
+    assert mp.WINDOWS["CPUE"] == mp.Window("graphic/pl_font.narc", 1, 216)
+    assert mp.WINDOWS["IPKE"].font_narc == "a/0/1/6"
+    assert mp.WINDOWS["ADAE"].box_px == 192
+    assert "BOGUS" not in mp.WINDOWS
+    assert mp.LINES_PER_PAGE == 2 and mp.WIDEST_BOX_PX == 216
 
 
-def test_real_platinum_box_is_drawn_with_the_game_font(qtbot, tmp_path):
+def _project(tmp_path, code: bytes):
+    """A source folder with only the ROM header the window read needs: the game code at 0x0C."""
+    root = tmp_path / "src"
+    (root / "rom").mkdir(parents=True)
+    (root / "rom" / "base.nds").write_bytes(b"\0" * 0x0C + code + b"\0" * 8)
+    return root
+
+
+def test_the_resolver_reads_the_window_of_a_game_on_a_worker(qtbot, tmp_path):
+    root = _project(tmp_path, b"CPUE")
+    worker = mp.WindowResolver(str(root))
+    with qtbot.waitSignal(worker.resolved, timeout=5000) as blocker:
+        worker.start()
+    folder, resolved = blocker.args[0]
+    assert folder == str(root)
+    assert resolved.window == mp.WINDOWS["CPUE"]
+    assert resolved.font is None                      # no unpacked font in this folder
+    qtbot.waitUntil(lambda: not worker.isRunning(), timeout=5000)
+
+
+def test_a_game_without_window_facts_resolves_to_none(qtbot, tmp_path):
+    root = _project(tmp_path, b"BOGU")
+    worker = mp.WindowResolver(str(root))
+    with qtbot.waitSignal(worker.resolved, timeout=5000) as blocker:
+        worker.start()
+    assert blocker.args[0] == (str(root), None)
+    qtbot.waitUntil(lambda: not worker.isRunning(), timeout=5000)
+
+
+def test_the_widget_takes_only_its_own_folder_and_draws_the_text_with_the_font(qtbot, tmp_path):
+    blank = [[0] * 16 for _ in range(16)]
+    font = _font_bin([blank] * 509, [20] * 509)     # every charmap code has a width, so a long line overflows
+    widget = mp.MessageWindowPreview(str(tmp_path))
+    qtbot.addWidget(widget)
+    widget.receive((str(tmp_path / "other"), mp.Resolved(mp.WINDOWS["CPUE"], font, mp.charmap_for(""))))
+    assert widget._font is None
+    widget.receive((str(tmp_path), mp.Resolved(mp.Window("x", 1, 192), font, mp.charmap_for(""))))
+    assert widget._font is font and widget._box_px == 192
+    widget.update_preview_text("A line that is far too long for a box this narrow, so it runs past its edge")
+    assert widget._overflow is True
+    widget.shutdown()
+
+
+def test_real_platinum_box_is_drawn_with_the_game_font(qtbot):
     source = romhacking_root.path("Pokemon", "Platinum", "source")
     reason = romhacking_root.missing("Pokemon", "Platinum", "source", "graphic", "pl_font.narc")
     if reason:
         pytest.skip(reason)
+    # The zt-made folder has no rom/base.nds, so the game code is not read here: the window is given by hand.
     font = mp.load_font(str(source), "graphic/pl_font.narc", 1)
     assert font is not None and gen4_glyphs.is_font_bin(font)
-    widget = mp.MessageWindowPreview(font, gen4msg.Codec(str(CHARMAP)))
+    resolved = mp.Resolved(mp.WINDOWS["CPUE"], font, mp.charmap_for(str(source)))
+    widget = mp.MessageWindowPreview(str(source))
     qtbot.addWidget(widget)
+    widget.receive((str(source), resolved))
     widget.update_preview_text("Hello there!\\nWelcome.\\r")
     assert widget._overflow is False
     widget.update_preview_text("A line that is far too long for the box, so it runs past the right edge of it")

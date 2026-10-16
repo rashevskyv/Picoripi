@@ -1,24 +1,25 @@
-"""The message window of a Pokémon generation IV game, as the game draws it: the text box of Platinum, from facts.
+"""The message window of a Pokémon generation IV game, as the game draws it: the text box, from facts.
 
-Facts (pret decomp pokeplatinum, used for numbers only; no code or text is copied):
-  - FONT_MESSAGE is the font ``font_message.NFGR``, the second file of ``graphic/pl_font.narc`` (res/fonts/pl_font.order)
-    and is a Gen 4 font bin (``core.font_formats.gen4_glyphs``): 16 x 16 glyphs, advance widths in its WID table.
-  - The field message window is MESSAGE_WINDOW_TILE_W x MESSAGE_WINDOW_TILE_H = 27 x 4 tiles = 216 x 32 px
-    (include/render_window.h); a line is 16 px high and there is no line spacing (src/font.c), so a box shows 2 lines.
+Facts (pret decomp, used for numbers only; no code or text is copied):
+  - The message font is a Gen 4 font bin (``core.font_formats.gen4_glyphs``): 16 x 16 glyphs, advance widths in its
+    WID table. ``WINDOWS`` gives its place per game code. Platinum's is pl_font.narc member 1 (the message font).
+  - A message box is 4 tiles (32 px) high: a line is 16 px high and there is no line spacing, so a box shows 2 lines.
   - The text code of a character is its glyph index + 1; ``\\n`` (E000) breaks a line, ``\\r`` (25BC) ends a page.
-  - The renderer does not wrap lines (src/render_text.c): a line wider than the box runs past its edge. The preview
-    marks such a line instead of wrapping it.
+  - The renderer does not wrap lines: a line wider than the box runs past its edge. The preview marks such a line.
 
-Only Platinum has these facts; other Gen 4 games get the BFN preview.
+``WindowResolver`` reads the game code and the font on a worker thread (AGENTS rule 5). The widget draws when the
+result arrives.
 """
 from __future__ import annotations
 
 import os
 import re
+import threading
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from PyQt6.QtCore import QRect
+from PyQt6.QtCore import QRect, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QImage, QPainter, QPen
 from PyQt6.QtWidgets import QWidget
 
@@ -26,23 +27,102 @@ from core.containers.narc_members import narc_members
 from core.font_formats import gen4_glyphs
 from core.i18n import tr
 from plugins.common import gen4msg
+from utils.logging_utils import log_debug
+from utils.thread_utils import WorkerThread
 
-WINDOW_TILES = (27, 4)
-TILE_PX = 8
 LINE_PX = 16
-LINES_PER_PAGE = WINDOW_TILES[1] * TILE_PX // LINE_PX
-BOX_PX = WINDOW_TILES[0] * TILE_PX
-FACTS = {
-    # game code (ROM header) -> (font NARC path in the unpacked source, member index of the message font)
-    "CPUE": ("graphic/pl_font.narc", 1),
-}
+LINES_PER_PAGE = 2
 SCALE = 2
+WIDEST_BOX_PX = 216
+_CHARMAPS = Path(__file__).resolve().parent / "charmaps"
 _TAG = re.compile(r"\{[^{}]*\}")
 _PLAYER = "PLAYER"
 
 
-def facts_for(game_code: str) -> Optional[Tuple[str, int]]:
-    return FACTS.get(game_code)
+@dataclass(frozen=True)
+class Window:
+    """Where the message font is (a NARC path in the unpacked source and a member) and how wide the box is."""
+    font_narc: str
+    font_member: int
+    box_px: int
+
+
+# Game code (ROM header) -> window. Platinum's width is pret's; the others use the plugin's 192 px box width.
+WINDOWS: Dict[str, Window] = {
+    "CPUE": Window("graphic/pl_font.narc", 1, 216),   # Platinum
+    "ADAE": Window("graphic/font.narc", 1, 192),      # Diamond
+    "APAE": Window("graphic/font.narc", 1, 192),      # Pearl
+    "IPKE": Window("a/0/1/6", 1, 192),                # HeartGold
+    "IPGE": Window("a/0/1/6", 1, 192),                # SoulSilver
+}
+
+
+@dataclass(frozen=True)
+class Resolved:
+    window: Window
+    font: Optional[bytes]    # None: the font is not in the unpacked source
+    charmap: str
+
+
+def game_code(source_dir: str) -> Optional[str]:
+    """The game code of the clean image the unpack kept (``rom/base.nds``), or None."""
+    path = Path(source_dir) / "rom" / "base.nds"
+    if not path.is_file():
+        return None
+    with open(path, "rb") as stream:
+        code = stream.read(0x10)[0x0C:0x10]
+    return code.decode("ascii", "replace")
+
+
+def load_font(source_dir: str, narc_path: str, member: int) -> Optional[bytes]:
+    """The font bin of ``member`` in the unpacked NARC, or None when the workspace has none."""
+    path = Path(source_dir) / narc_path.replace("/", os.sep)
+    if not path.is_file():
+        return None
+    members = narc_members(path.read_bytes())
+    if member >= len(members) or not gen4_glyphs.is_font_bin(members[member]):
+        return None
+    return members[member]
+
+
+def charmap_for(source_dir: str) -> str:
+    """Platinum has pl_msg banks; the other Gen 4 games use the Diamond / Pearl / HeartGold table."""
+    if source_dir and (Path(source_dir) / "text" / "msgdata+pl_msg.narc").is_dir():
+        return str(_CHARMAPS / "charmap_platinum.txt")
+    return str(_CHARMAPS / "charmap_dp_hgss.txt")
+
+
+def resolve(source_dir: str) -> Optional[Resolved]:
+    """The window facts and the font of a project folder; None for a game without facts."""
+    code = game_code(source_dir)
+    window = WINDOWS.get(code) if code else None
+    if window is None:
+        return None
+    font = load_font(source_dir, window.font_narc, window.font_member)
+    return Resolved(window, font, charmap_for(source_dir))
+
+
+class WindowResolver(WorkerThread):
+    """Reads a project's window facts and font off the UI thread. ``resolved`` carries (folder, Resolved or None)."""
+
+    resolved = pyqtSignal(object)
+
+    def __init__(self, source_dir: str):
+        super().__init__()
+        self._source_dir = source_dir
+        self._stop = threading.Event()
+
+    def cancel(self) -> None:
+        self._stop.set()
+
+    def run(self) -> None:
+        try:
+            result = resolve(self._source_dir)
+        except (OSError, ValueError) as exc:
+            log_debug(f"pokemon_gen4: no window facts for {self._source_dir}: {exc}")
+            result = None
+        if not self._stop.is_set():
+            self.resolved.emit((self._source_dir, result))
 
 
 def page_lines(text: str, lines_per_page: int = LINES_PER_PAGE) -> Tuple[List[List[str]], bool]:
@@ -69,27 +149,50 @@ def line_width(chars: List[str], width_of) -> int:
 
 
 class MessageWindowPreview(QWidget):
-    """The Platinum message box with the game's font, drawn from the unpacked font bin.
+    """The message box of one project. It draws with the game's font once ``receive`` gets the resolved facts.
 
-    It keeps the last text it was given. ``refresh`` draws it again; ``update_preview_text`` takes new text.
+    Until then it shows only the empty box. ``refresh`` draws it again; ``update_preview_text`` takes new text.
     """
 
-    def __init__(self, font_bin: bytes, codec: gen4msg.Codec):
+    def __init__(self, source_dir: str):
         super().__init__()
-        self._font = font_bin
-        self._codec = codec
-        self._widths = gen4_glyphs.glyph_widths(font_bin)
+        self._root = source_dir
+        self._box_px = WIDEST_BOX_PX
+        self._codec: Optional[gen4msg.Codec] = None
+        self._widths: List[int] = []
+        self._font: Optional[bytes] = None
         self._glyphs: Dict[int, List[List[int]]] = {}
         self._text = ""
-        self._image = QImage(BOX_PX * SCALE, LINES_PER_PAGE * LINE_PX * SCALE, QImage.Format.Format_ARGB32)
+        self._note = tr("Reading the game font...")
         self._overflow = False
         self._more = False
-        self.setMinimumSize(BOX_PX * SCALE + 20, LINES_PER_PAGE * LINE_PX * SCALE + 46)
+        self._image = QImage(WIDEST_BOX_PX * SCALE, LINES_PER_PAGE * LINE_PX * SCALE, QImage.Format.Format_ARGB32)
+        self.setMinimumSize(WIDEST_BOX_PX * SCALE + 20, LINES_PER_PAGE * LINE_PX * SCALE + 46)
         self._render()
 
     # -- font ----------------------------------------------------------------------------------------------------
 
+    def receive(self, payload: object) -> None:
+        """Takes the (folder, Resolved or None) of a ``WindowResolver``. Another folder's result is ignored."""
+        source_dir, resolved = payload
+        if source_dir != self._root:
+            return
+        self._glyphs.clear()
+        if resolved is None:
+            self._note = tr("This game has no message window facts.")
+        elif resolved.font is None:
+            self._note = tr("The game font is not in this project.")
+        else:
+            self._note = ""
+            self._box_px = resolved.window.box_px
+            self._font = resolved.font
+            self._widths = gen4_glyphs.glyph_widths(resolved.font)
+            self._codec = gen4msg.Codec(resolved.charmap)
+        self._render()
+
     def _width_of(self, ch: str) -> Optional[int]:
+        if self._codec is None:
+            return None
         code = self._codec.char_codes.get(ch)
         if code is None:
             return None
@@ -97,6 +200,8 @@ class MessageWindowPreview(QWidget):
         return self._widths[index] if 0 <= index < len(self._widths) else None
 
     def _glyph(self, ch: str) -> Optional[List[List[int]]]:
+        if self._codec is None:
+            return None
         code = self._codec.char_codes.get(ch)
         if code is None or not 0 <= code - 1 < len(self._widths):
             return None
@@ -107,7 +212,7 @@ class MessageWindowPreview(QWidget):
     # -- drawing -------------------------------------------------------------------------------------------------
 
     def _render(self) -> None:
-        image = QImage(BOX_PX * SCALE, LINES_PER_PAGE * LINE_PX * SCALE, QImage.Format.Format_ARGB32)
+        image = QImage(self._box_px * SCALE, LINES_PER_PAGE * LINE_PX * SCALE, QImage.Format.Format_ARGB32)
         image.fill(QColor(0, 0, 0, 0))
         lines, more = page_lines(self._text)
         self._more = more
@@ -115,7 +220,7 @@ class MessageWindowPreview(QWidget):
         ink = {3: QColor(0, 0, 0), 2: QColor(90, 90, 90), 1: QColor(170, 170, 170)}
         for row, chars in enumerate(lines):
             x = 0
-            if line_width([c for c in chars if c], self._width_of) > BOX_PX:
+            if line_width([c for c in chars if c], self._width_of) > self._box_px:
                 self._overflow = True
             for ch in chars:
                 glyph = self._glyph(ch) if ch else None
@@ -142,20 +247,20 @@ class MessageWindowPreview(QWidget):
         painter = QPainter(self)
         painter.fillRect(self.rect(), QColor(40, 40, 46))
         left, top = 10, 10
-        box = QRect(left - 4, top - 4, BOX_PX * SCALE + 8, LINES_PER_PAGE * LINE_PX * SCALE + 8)
+        box = QRect(left - 4, top - 4, self._box_px * SCALE + 8, LINES_PER_PAGE * LINE_PX * SCALE + 8)
         painter.fillRect(box, QColor(246, 246, 242))
         painter.setPen(QPen(QColor(20, 20, 20), 2))
         painter.drawRect(box)
         painter.drawImage(left, top, self._image)
         painter.setPen(QColor(230, 230, 230))
-        note = []
+        notes = [self._note] if self._note else []
         if self._overflow:
-            note.append(tr("A line is wider than the box (216 px)."))
+            notes.append(tr("A line is wider than the box."))
         if self._more:
-            note.append(tr("More text follows on the next page or line."))
+            notes.append(tr("More text follows on the next page or line."))
         painter.setFont(QFont(painter.font().family(), 9))
         y = top + LINES_PER_PAGE * LINE_PX * SCALE + 18
-        for text in note:
+        for text in notes:
             painter.drawText(left, y, text)
             y += 16
         painter.end()
@@ -173,26 +278,5 @@ class MessageWindowPreview(QWidget):
         self._glyphs.clear()
 
 
-def load_font(source_dir: str, narc_path: str, member: int) -> Optional[bytes]:
-    """The font bin of ``member`` in the unpacked NARC, or None when the workspace has none."""
-    path = Path(source_dir) / narc_path.replace("/", os.sep)
-    if not path.is_file():
-        return None
-    members = narc_members(path.read_bytes())
-    if member >= len(members) or not gen4_glyphs.is_font_bin(members[member]):
-        return None
-    return members[member]
-
-
-def game_code(source_dir: str) -> Optional[str]:
-    """The game code of the clean image the unpack kept (``rom/base.nds``), or None."""
-    path = Path(source_dir) / "rom" / "base.nds"
-    if not path.is_file():
-        return None
-    with open(path, "rb") as stream:
-        code = stream.read(0x10)[0x0C:0x10]
-    return code.decode("ascii", "replace")
-
-
-__all__ = ["MessageWindowPreview", "facts_for", "game_code", "load_font", "page_lines", "BOX_PX", "LINE_PX",
-           "LINES_PER_PAGE"]
+__all__ = ["MessageWindowPreview", "Resolved", "Window", "WindowResolver", "WINDOWS", "charmap_for", "game_code",
+           "load_font", "page_lines", "resolve", "LINE_PX", "LINES_PER_PAGE", "WIDEST_BOX_PX"]
