@@ -21,12 +21,13 @@ import threading
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 
 from plugins.base_game_rules import BaseGameRules
 from plugins.common.problem_analyzer import GenericProblemAnalyzer
 from utils import app_mode
 from utils.logging_utils import log_warning
+from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
 from . import layout, page_build, repo_tools
 from .layout import fingerprint
@@ -186,10 +187,34 @@ class ManualProblemAnalyzer(GenericProblemAnalyzer):
         return [rules.manual_problems(block, string, data_string)]
 
 
-class _Rescan(QObject):
-    """Carries a finished background render to the UI thread, where the host rescans the block."""
+# How long closing the window or switching the plugin waits for the scan render's current page.
+SCAN_RENDER_STOP_MS = 3000
 
-    block_done = pyqtSignal(int)
+
+class _ScanRender(WorkerThread):
+    """Renders the changed pages of one block for the problem scan. The texts were read on the UI thread; the
+    thread stops between pages when interrupted (plugin switch, window close, application exit). ``done`` carries
+    (block, whether the results were stored) to the UI thread, where the host rescans the block."""
+
+    done = pyqtSignal(int, bool)
+
+    def __init__(self, rules: "GameRules", block_idx: int, manual: "_Manual", pages: List[Tuple[str, List[str], Dict[str, str]]]):
+        super().__init__()
+        self.block_idx = block_idx
+        self._rules = rules
+        self._manual = manual
+        self._pages = pages
+
+    def run(self) -> None:
+        stored = True
+        for group, keys, texts in self._pages:
+            if self.isInterruptionRequested():
+                return
+            found = self._rules._render_page_problems(self._manual, group, keys, texts)
+            if self.isInterruptionRequested():
+                return
+            stored = self._rules._store_page(self.block_idx, self._manual, group, texts, found) and stored
+        self.done.emit(self.block_idx, stored)
 
 
 class GameRules(BaseGameRules):
@@ -214,11 +239,9 @@ class GameRules(BaseGameRules):
         # The render sees what the geometry cannot (a label leaving its cell, two paragraphs' ink meeting), so a
         # page is built from every current text on it and judged once; a changed text renders it again.
         self._page_problems: Dict[Tuple[int, str], Tuple[Tuple[Tuple[str, str], ...], Dict[str, Dict[str, str]]]] = {}
-        self._render_lock = threading.Lock()
-        self._rendering: Set[int] = set()     # blocks a background render is working on
-        # Made on the UI thread when the first background render is scheduled (a queued signal lands on the thread
-        # that owns the object). A render of a rules object the host replaced emits into nothing: harmless.
-        self._rescan: Optional[_Rescan] = None
+        # The scan render (UI thread only): one block at a time, the others wait in order.
+        self._render_queue: List[int] = []
+        self._render_worker: Optional[_ScanRender] = None
         self._render_warned = False
         self._root: Optional[str] = None      # the owner's folder, read from disk once per load (None: not yet)
 
@@ -433,46 +456,56 @@ class GameRules(BaseGameRules):
         return {key: {RENDER_IDS[kind]: detail for kind, detail in found.items() if kind in RENDER_IDS}
                 for key, found in kinds.items()}
 
-    def _render_later(self, block_idx: int) -> None:
-        """Schedule a background render of the block (UI thread only): one thread per block at a time."""
-        with self._render_lock:
-            if block_idx in self._rendering:
-                return
-            self._rendering.add(block_idx)
-        if self._rescan is None:
-            self._rescan = _Rescan()
-            self._rescan.block_done.connect(self._rescan_block)
-        # ponytail: one daemon thread per block (18 manuals at most); a single queue if they ever thrash.
-        threading.Thread(target=self._render_block, args=(block_idx,), name="manual_3ds-scan-render", daemon=True).start()
+    def _store_page(self, block_idx: int, manual: "_Manual", group: str, texts: Dict[str, str],
+                    found: Dict[str, Dict[str, str]]) -> bool:
+        """Cache a page's render results; False (nothing stored) when the block now holds another manual."""
+        manuals = self._manuals
+        if not (0 <= block_idx < len(manuals)) or manuals[block_idx].doc is not manual.doc:
+            return False
+        self._page_problems[(block_idx, group)] = (tuple(sorted(texts.items())), found)
+        return True
 
-    def _render_block(self, block_idx: int) -> None:
-        """Background: render every page of the block whose texts changed, then ask the host to rescan the block."""
-        try:
+    def _render_later(self, block_idx: int) -> None:
+        """Queue a background render of the block (UI thread only); a block already waiting is not queued twice."""
+        if block_idx not in self._render_queue:
+            self._render_queue.append(block_idx)
+        self._start_next_render()
+
+    def _start_next_render(self) -> None:
+        """Start the scan render of the next queued block whose pages changed, unless one is running (UI thread)."""
+        while self._render_worker is None and self._render_queue:
+            block_idx = self._render_queue.pop(0)
             manual = self._manual(block_idx)
             if manual is None or not manual.name:
-                return
-            groups = sorted({group for group in (group_key_of(key) for key in manual.keys) if group})
-            for group in groups:
+                continue
+            pages = []
+            for group in sorted({group for group in (group_key_of(key) for key in manual.keys) if group}):
                 keys = [k for k in manual.keys if group_key_of(k) == group]
-                try:
-                    texts = self._page_texts(block_idx, manual, keys)
-                except Exception as exc:  # the editor's data changed under the read: the next scan renders the page
-                    log_warning(f"manual_3ds: {group} not rendered for the scan: {exc!r}")
-                    continue
-                if not any(texts.values()):
-                    continue
-                signature = tuple(sorted(texts.items()))
+                texts = self._page_texts(block_idx, manual, keys)
                 cached = self._page_problems.get((block_idx, group))
-                if cached is None or cached[0] != signature:
-                    self._page_problems[(block_idx, group)] = (signature, self._render_page_problems(manual, group, keys, texts))
-        finally:
-            with self._render_lock:
-                self._rendering.discard(block_idx)
-        try:
-            if self._rescan is not None:
-                self._rescan.block_done.emit(block_idx)
-        except RuntimeError:
-            pass   # the rules were replaced while the render ran: nothing to rescan
+                if any(texts.values()) and (cached is None or cached[0] != tuple(sorted(texts.items()))):
+                    pages.append((group, keys, texts))
+            if not pages:
+                continue
+            worker = _ScanRender(self, block_idx, manual, pages)
+            worker.done.connect(self._render_done)
+            self._render_worker = worker
+            worker.start()
+
+    def _render_done(self, block_idx: int, stored: bool) -> None:
+        """UI thread: the scan render of a block is done; rescan the block, then render the next one."""
+        self._render_worker = None
+        if stored:
+            self._rescan_block(block_idx)
+        self._start_next_render()
+
+    def stop_scan_render(self) -> None:
+        """Drop the queued scan renders and stop the running one within a bounded time (UI thread; the preview panel
+        calls it when the window closes or the plugin is switched)."""
+        self._render_queue.clear()
+        worker, self._render_worker = self._render_worker, None
+        if worker is not None:
+            safe_shutdown_thread(worker, None, SCAN_RENDER_STOP_MS)
 
     def _rescan_block(self, block_idx: int) -> None:
         scanner = getattr(self.mw, "issue_scan_handler", None)

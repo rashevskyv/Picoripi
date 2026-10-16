@@ -566,33 +566,68 @@ def test_a_page_the_tools_cannot_draw_is_cached_as_drawn_and_not_tried_again(wid
     assert (first, second, len(render.calls), len(reads)) == (set(), set(), 1, 1)
 
 
-def test_on_the_ui_thread_the_page_renders_in_the_background_and_the_block_is_rescanned(widths, geometry, monkeypatch):
-    """The whole-project scan runs on the UI thread: there the render is only scheduled, and when the background
-    render is done the host rescans the block (then the scan reads the page cache)."""
+class _Scanner:
+    def __init__(self):
+        self.rescanned = []
+
+    def rescan_issues_for_single_block(self, block, show_message_on_completion=True, use_default_mappings=True):
+        import threading
+
+        assert threading.current_thread() is threading.main_thread(), 'the rescan must run on the UI thread'
+        self.rescanned.append(block)
+
+
+def _ui_thread_rules(monkeypatch, kinds):
+    from types import SimpleNamespace
     from utils import app_mode
 
     monkeypatch.setattr(app_mode, "headless", False)
-    rules, render = _rules_with_render(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell"}})
-    rescanned = []
+    rules, render = _rules_with_render(monkeypatch, kinds)
+    rules.mw = SimpleNamespace(issue_scan_handler=_Scanner())
+    return rules, render
 
-    class _Scanner:
-        def rescan_issues_for_single_block(self, block, show_message_on_completion=True, use_default_mappings=True):
-            rescanned.append(block)
 
-    class _Window:
-        issue_scan_handler = _Scanner()
+def test_on_the_ui_thread_the_page_renders_in_the_background_and_the_block_is_rescanned(qtbot, widths, geometry, monkeypatch):
+    """The whole-project scan runs on the UI thread: there the render is only scheduled on a WorkerThread (known to
+    the exit registry), and when it is done the host rescans the block through the queued signal (then the scan reads
+    the page cache)."""
+    from utils import thread_utils
 
-    rules.mw = _Window()
+    rules, render = _ui_thread_rules(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell"}})
     assert rules.manual_problems(0, 0, "Привіт") == set()   # scheduled, not rendered here
-    for _ in range(200):
-        if not rules._rendering and rules._page_problems:
-            break
-        import time
-        time.sleep(0.01)
-    assert render.calls and rules._page_problems[(0, m3d.group_key_of(PAGE))][1] == {SAMPLE_KEYS[0]: {"M3D_CELL": "over_cell d"}}
+    worker = rules._render_worker
+    assert worker is not None and (worker in thread_utils._running or worker.isFinished())
+    rules.manual_problems(0, 1, "")   # the same block again: not a second render
+    qtbot.waitUntil(lambda: rules.mw.issue_scan_handler.rescanned == [0], timeout=10000)
+    assert rules._render_worker is None and len(render.calls) == 1
+    assert rules._page_problems[(0, m3d.group_key_of(PAGE))][1] == {SAMPLE_KEYS[0]: {"M3D_CELL": "over_cell d"}}
     assert rules.manual_problems(0, 0, "Привіт") == {"M3D_CELL"}
-    rules._rescan_block(0)
-    assert rescanned == [0]
+    worker.wait(5000)
+
+
+def test_stopping_the_scan_render_drops_its_result_and_rescans_nothing(qtbot, widths, geometry, monkeypatch):
+    """A plugin switch or window close (the preview panel's shutdown) interrupts the render: the page it was drawing
+    is not cached as judged and the block is not rescanned."""
+    import threading
+
+    rules, render = _ui_thread_rules(monkeypatch, {SAMPLE_KEYS[0]: {"over_cell"}})
+    started, release = threading.Event(), threading.Event()
+    inner = render.__call__
+
+    def slow(*args):
+        started.set()
+        release.wait(5)
+        return inner(*args)
+
+    monkeypatch.setattr(m3d.page_build, "page_kinds", slow)
+    rules.manual_problems(0, 0, "Привіт")
+    worker = rules._render_worker
+    assert started.wait(5)
+    threading.Timer(0.1, release.set).start()
+    rules.stop_scan_render()
+    assert worker.isFinished() and rules._render_worker is None
+    qtbot.wait(50)
+    assert rules._page_problems == {} and rules.mw.issue_scan_handler.rescanned == []
 
 
 def test_a_folder_without_the_tools_leaves_the_render_problems_out(widths, geometry, monkeypatch):
