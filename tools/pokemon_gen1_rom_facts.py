@@ -36,9 +36,15 @@ SECTION_LINE = re.compile(r"^\s*SECTION: \$([0-9a-f]{4})-\$([0-9a-f]{4}) ", re.I
 BANK_LINE = re.compile(r"^(ROM0|ROMX) bank #(\d+):")
 DEF_LINE = re.compile(r"^\s*DEF\s+(\w+)\s+EQU\s+([^;]+?)\s*(?:;.*)?$")
 # Files the facts do not cover yet: their bodies are built by code macros (FOR loops), not by text.
-EXCLUDED_DATA = {"data/credits/credits_text.asm", "data/yes_no_menu_strings.asm", "data/text_boxes.asm", "data/player/names.asm", "data/pokemon/dex_entries.asm"}
+EXCLUDED_DATA = set()
+# Folders of the decompilation that never hold text bodies.
+SKIP_DIRS = {"constants", "macros", "tools", "docs", "vc", "ram", "gfx", "audio", "home", "lib", "scripts_skip"}
+# Macro words that belong to a text body (a label's leading text is encoded; the first other line ends it).
+BODY_WORDS = (set(rom_text.FLOW_CODE) | set(rom_text.TERMINATOR) | set(rom_text.COMMAND_BY_NAME)
+              | {"db", "dname", "li", "table_width", "list_start", "vc_patch", "vc_patch_end", "text_asm"})
 # Yellow: these bodies are referenced only by debug-only or unused code (not in the normal ROM); no reference exists.
 FAR_ABSENT_OK = {"_BoxFullDebugText", "_BoxWillBeClearedText", "_ExpressionText"}
+DEFINITION = re.compile(r"^[A-Za-z_][\w.]*::?\s*$")
 NAME_LINE = re.compile(r'^\s+(li|dname)\s+"')
 TEXT_LINE = re.compile(r'^\s+(text|line|cont|para|next|page|done|prompt|dex|text_end)\b')
 
@@ -137,6 +143,21 @@ def far_reference_sites(rom: bytes) -> dict:
     return sites
 
 
+def other_reference_counts(decomp: Path) -> Counter:
+    """How often each identifier appears in code, outside text_far lines and label definitions.
+
+    A text body with no such mention is referred to only by text_far: it may move.
+    """
+    counts: Counter = Counter()
+    for path in decomp.rglob("*.asm"):
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            code = asm_text.split_comment(line)[0]
+            if "text_far" in code or DEFINITION.match(code):
+                continue
+            counts.update(re.findall(r"[A-Za-z_][\w.]*", code))
+    return counts
+
+
 def pret_far_counts(decomp: Path) -> Counter:
     counts: Counter = Counter()
     for path in decomp.rglob("*.asm"):
@@ -151,7 +172,7 @@ def pret_far_counts(decomp: Path) -> Counter:
 def name_files(decomp: Path) -> list:
     """The data files with name tables (``li`` or ``dname`` entries) or text macros, in path order."""
     found = []
-    for path in sorted((decomp / "data").rglob("*.asm")):
+    for path in sorted(p for p in decomp.rglob("*.asm") if p.relative_to(decomp).parts[0] not in SKIP_DIRS | {"text"}):
         if path.relative_to(decomp).as_posix() in EXCLUDED_DATA:
             continue
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -194,6 +215,18 @@ def ram_arguments(lines, everything, runtime) -> list:
     if all(runtime.ram_name.get(everything.ram.get(name)) == name for name in names):
         return []
     return names
+
+
+def text_prefix(lines):
+    """The leading text macros of a label. ``text_asm`` ends the text: the code after it is not text."""
+    out = []
+    for word, args in lines:
+        if word == "text_far" or (word not in BODY_WORDS and not word.startswith("assert")):
+            break
+        out.append((word, args))
+        if word == "text_asm":
+            break
+    return out
 
 
 def body_mode(lines, defs):
@@ -239,19 +272,32 @@ def main(argv: list) -> int:
         rel = path.relative_to(decomp).as_posix()
         entries = []
         for label, lines in groups:
+            lines = text_prefix(lines)
+            if not lines:
+                continue
             if not label:
                 continue
             if label not in rom_labels:
-                fail(f"{label} is not in the symbol file")
+                if rel.startswith("text/"):
+                    fail(f"{label} is not in the symbol file")
+                continue    # a local label inside code: no body of its own
             mode, width = body_mode(lines, defs)
             bank, cpu = rom_labels[label]
             offset = offset_of(bank, cpu)
+            # In text/ every body must check; elsewhere a label that is code or unsupported is not a body.
+            strict = rel.startswith("text/")
             try:
                 data = rom_text.encode(lines, everything, width)
             except rom_text.CodecError as error:
-                fail(f"{rel} {label}: {error}")
+                if strict:
+                    fail(f"{rel} {label}: {error}")
+                continue
+            if not data:
+                continue
             if rom[offset:offset + len(data)] != data:
-                fail(f"{rel} {label}: the decompilation does not encode to the ROM bytes at {offset:#x}")
+                if strict:
+                    fail(f"{rel} {label}: the decompilation does not encode to the ROM bytes at {offset:#x}")
+                continue
             entry = {"label": label, "offset": offset, "size": len(data),
                      "fixed": bool(data) and data[-1] == TEXT_ASM, "lines": lines,
                      "bcd_hex": [i for i, a in enumerate([a for w, a in lines if w == "text_bcd"]) if "|" not in a]}
@@ -284,21 +330,28 @@ def main(argv: list) -> int:
             entry["end_char"] = (last_word in rom_text.FLOW_CODE and last_args.endswith('@"'))
     far_hits = far_reference_sites(rom)
     far_pret = pret_far_counts(decomp)
+    other_refs = other_reference_counts(decomp)
     mismatch_far = []
     out_files = []
     for rel, entries, source in files:
         decoded_source = []
         for entry in entries:
+            strict = rel.startswith("text/")
             region = rom[entry["offset"]:entry["offset"] + entry["size"]]
             if entry.get("mode"):
                 lines = rom_text.decode_names(region, runtime, entry["mode"], entry["width"])
-                if rom_text.encode(lines, runtime, entry["width"]) != region:
-                    fail(f"{rel} {entry['label']}: decode then encode is not the same bytes")
+                same = rom_text.encode(lines, runtime, entry["width"]) == region
             else:
                 lines = rom_text.decode(region, runtime, entry["bcd_hex"], entry.get("ram_args", ()),
                                         entry.get("end_char", False))
-                if rom_text.encode(lines, runtime) != region:
-                    fail(f"{rel} {entry['label']}: decode then encode is not the same bytes")
+                same = rom_text.encode(lines, runtime) == region
+            mine_texts = asm_text.texts(rom_text.format_body(entry["label"], lines))
+            pret_texts = asm_text.texts(rom_text.format_body(entry["label"], entry["lines"]))
+            if not same or mine_texts != pret_texts:
+                if strict:
+                    fail(f"{rel} {entry['label']}: decoded text {mine_texts[:2]} differs from {pret_texts[:2]}")
+                entry["drop"] = True
+                continue
             decoded_source.append(rom_text.format_body(entry["label"], lines))
             bank, cpu = rom_labels[entry["label"]]
             hits = far_hits.get((bank, cpu), [])
@@ -306,13 +359,11 @@ def main(argv: list) -> int:
             if len(hits) != expected:
                 mismatch_far.append((entry["label"], len(hits), far_pret.get(entry["label"], 0)))
             entry["far"] = hits
-        mine, theirs = asm_text.texts("\n".join(decoded_source)), asm_text.texts(source)
-        if mine != theirs:
-            pairs = [(a, b) for a, b in zip(mine, theirs) if a != b][:3]
-            fail(f"{rel}: decoded text differs (counts {len(mine)} vs {len(theirs)}): {pairs}")
+            entry["movable"] = rel.startswith("text/") and other_refs[entry["label"]] == 0
+        entries = [entry for entry in entries if not entry.get("drop")]
         out_files.append({"file": rel, "labels": [
             {key: value for key, value in entry.items()
-             if key not in ("lines",) and not (key in ("bcd_hex", "ram_args", "end_char") and not value)}
+             if key not in ("lines",) and not (key in ("bcd_hex", "ram_args", "end_char", "movable") and not value)}
             for entry in entries]})
 
     if mismatch_far:

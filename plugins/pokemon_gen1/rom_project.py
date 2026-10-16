@@ -163,8 +163,8 @@ def _patched(base: bytes, facts: Dict[str, Any], changes: List[Tuple[Dict[str, A
             place = body["offset"]
         elif body.get("mode"):
             raise ValueError(tr("{0}: the name table has no room for the longer entries; shorten them.", body["label"]))
-        elif body["fixed"]:
-            raise ValueError(tr("{0} is longer than its space and is followed by code; shorten it.", body["label"]))
+        elif body["fixed"] or not body.get("movable"):
+            raise ValueError(tr("{0} is longer than its space and cannot move; shorten it.", body["label"]))
         else:
             place = free.take(len(data), banks)
             if place is None:
