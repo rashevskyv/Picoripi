@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 from utils import constants
 
-CONSOLES = ("3ds", "switch", "wii")
+CONSOLES = ("3ds", "switch", "wii", "oodle")   # "oodle": the Oodle core library (a DLL path), not a key file
 STORE_NAME = "console_keys.json"
 
 

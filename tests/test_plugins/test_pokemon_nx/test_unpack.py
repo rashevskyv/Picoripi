@@ -39,15 +39,28 @@ def _switch_key_path():
     return None
 
 
+OODLE_DLL = (romhacking_root.root() / "_shared" / "tools" / "oodle" / "oo2ext_7_win64.dll"
+             if romhacking_root.root() else None)
+
+
+def _oodle_path():
+    """The Oodle library path of the owner's shared tools (a path only; the library is loaded by Picoripi)."""
+    return str(OODLE_DLL) if OODLE_DLL is not None and OODLE_DLL.is_file() else None
+
+
 def _provider(console):
-    return _switch_key_path() if console == "switch" else None
+    if console == "switch":
+        return _switch_key_path()
+    return _oodle_path() if console == "oodle" else None
 
 
-def _need(*paths):
+def _need(*paths, oodle=False):
     if not all(p.is_file() for p in paths):
         pytest.skip("the owner's Pokémon Switch packages are not on disk")
     if _switch_key_path() is None:
         pytest.skip("the Switch key path is not in the shared env file")
+    if oodle and _oodle_path() is None:
+        pytest.skip("the owner's Oodle library is not on disk")
 
 
 def _sha(path: Path) -> str:
@@ -85,12 +98,14 @@ def test_sword_wizard_unpack_matches_the_workspace_source(tmp_path):
     ours = {p.relative_to(unpacked).as_posix(): p for p in unpacked.rglob("*") if p.is_file()}
     theirs = {p.relative_to(SWORD / "source").as_posix(): p
               for p in (SWORD / "source").rglob("*") if p.is_file()}
-    assert ours.keys() == theirs.keys() and len(ours) > 2000
-    assert all(_sha(ours[name]) == _sha(theirs[name]) for name in ours)
+    # the workspace source predates the dialogue layout (bin/appli/msg/bin/msg_00.arc): it is the only extra file
+    assert theirs.keys() <= ours.keys() and len(theirs) > 2000
+    assert set(ours) - set(theirs) == {"bin/appli/msg/bin/msg_00.arc"}
+    assert all(_sha(ours[name]) == _sha(theirs[name]) for name in theirs)
 
 
-def test_arceus_wizard_unpack_keeps_the_text_and_the_packs_as_files(tmp_path):
-    _need(ARCEUS_BASE, ARCEUS_UPDATE)
+def test_arceus_wizard_unpack_matches_the_workspace_packs(tmp_path):
+    _need(ARCEUS_BASE, ARCEUS_UPDATE, oodle=True)
     if not (ARCEUS / "source").is_dir():
         pytest.skip("the workspace source is not on disk")
     folder = Path(_run_wizard({"base": str(ARCEUS_BASE), "update": str(ARCEUS_UPDATE)}, tmp_path / "project"))
@@ -99,6 +114,24 @@ def test_arceus_wizard_unpack_keeps_the_text_and_the_packs_as_files(tmp_path):
     theirs = sorted(p.relative_to(ARCEUS / "source").as_posix() for p in (ARCEUS / "source").rglob("*_eng.gfpak"))
     assert packs == theirs and packs
     assert _sha(folder / packs[0]) == _sha(ARCEUS / "source" / packs[0])
+    # the decoded files of every pack equal the workspace's <pack>.gfpak.d folder, name and byte
+    for pack in packs:
+        ours = {p.name: _sha(p) for p in (folder / (pack + ".d")).iterdir()}
+        target = {p.name: _sha(p) for p in (ARCEUS / "source" / (pack + ".d")).iterdir()}
+        assert ours == target and ours
+    # every other file of the workspace source is written identically
+    theirs = {p.relative_to(ARCEUS / "source").as_posix(): p
+              for p in (ARCEUS / "source").rglob("*") if p.is_file()}
+    ours_all = {p.relative_to(folder).as_posix(): p for p in folder.rglob("*") if p.is_file()}
+    assert theirs.keys() <= ours_all.keys() and len(theirs) > 300
+    assert all(_sha(ours_all[name]) == _sha(theirs[name]) for name in theirs)
+
+
+def test_arceus_packs_without_the_oodle_path_are_an_error(tmp_path, monkeypatch):
+    _need(ARCEUS_BASE, ARCEUS_UPDATE)
+    monkeypatch.setattr(console_crypto, "key_path", lambda console: _switch_key_path() if console == "switch" else None)
+    with pytest.raises(ImageError):
+        _run_wizard({"base": str(ARCEUS_BASE), "update": str(ARCEUS_UPDATE)}, tmp_path / "project")
 
 
 def test_a_missing_update_is_an_error_not_a_silent_unpack(tmp_path):

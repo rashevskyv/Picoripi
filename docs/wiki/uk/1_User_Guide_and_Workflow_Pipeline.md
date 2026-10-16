@@ -734,7 +734,7 @@ tokens: 63.6k
      а Є є Ґ ґ — як Э э Ъ ъ, чиї гліфи перемальовують у Редакторі шрифтів. Sword і Shield мають спільний romfs:
      `2_build.bat` пише мод для обох title id. Майстер проєкту сам розпаковує Sword / Shield: бере базову гру й
      оновлення (патч оновлення застосовується) читачем Switch з Picoripi і дає той самий `source`, що й
-     `1_unpack.bat`. Legends: Arceus: майстер записує її паки `.gfpak` як файли; їхній вміст досі береться з `1_unpack.bat` (Oodle). Типові теги-псевдоніми
+     `1_unpack.bat`. Legends: Arceus: майстер записує її паки `.gfpak` і розпаковує їх у `<pack>.gfpak.d` бібліотекою Oodle. Один раз питає файл бібліотеки Oodle (`oo2core` або `oo2ext` `*_win64.dll`) і запам'ятовує шлях. Типові теги-псевдоніми
      (Налаштування → Псевдоніми тегів): `[PAGE]`, `[SCROLL]`, `[POKEMON]`, `[MOVE]`, `[ITEM]`, `[LEVEL]`, `[NAME1]`,
      кольори `[COLOR6]`.
    - `pokemon_gen6` — Pokémon X / Y і Omega Ruby / Alpha Sapphire (3DS), один проєкт на пару (X і Y мають

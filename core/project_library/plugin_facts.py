@@ -80,14 +80,17 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
 
     ``role`` is "" when the plugin does not recognise the file. A role the plugin did not declare is dropped, so the
     wizard never shows a role it cannot save. ``key`` is the console whose key file the file needs ("" when none);
-    ``key_ready`` is True when Picoripi already has that console's key file.
+    ``key_ready`` is True when Picoripi already has that console's key file. ``libraries`` lists the other stored
+    paths the unpack of this file loads (an identity's ``"libraries"``, e.g. ``"oodle"``), only those the plugin lists
+    in ``unpack_key_consoles``.
     """
     known = {role["id"] for role in roles_of(rules)}
+    allowed = _unpack_consoles(rules)
     result: List[Dict[str, Any]] = []
     for path in paths:
         if is_cancelled():
             break
-        role, platform = "", ""
+        role, platform, libraries = "", "", []
         try:
             identity = rules.identify_source(path)
         except Exception as exc:  # a plugin's bug must not stop the wizard; the user picks the role
@@ -96,23 +99,27 @@ def identify_sources(rules: Any, paths: Sequence[str], is_cancelled: Cancelled =
         if isinstance(identity, dict) and str(identity.get("role") or "") in known:
             role = str(identity["role"])
             platform = str(identity.get("platform") or "")
+            libraries = [str(item) for item in identity.get("libraries") or [] if str(item) in allowed]
         console = _key_console(rules, path)
         result.append({"path": path, "role": role, "platform": platform, "key": console,
-                       "key_ready": bool(console) and console_keys.path_for(console) is not None})
+                       "key_ready": bool(console) and console_keys.path_for(console) is not None,
+                       "libraries": libraries})
     return result
+
+
+def _unpack_consoles(rules: Any) -> List[str]:
+    """The stored paths this game's unpack reads (``unpack_key_consoles``); a plugin's bug gives none."""
+    try:
+        return [str(item) for item in rules.unpack_key_consoles()]
+    except Exception as exc:  # a plugin's bug must not stop the wizard; no key is asked for
+        log_warning(f"unpack_key_consoles failed: {exc}")
+        return []
 
 
 def _key_console(rules: Any, path: str) -> str:
     """The console whose key file an encrypted file needs, when the game's unpack reads that console; else ""."""
     console = images.needs_key(path) or ""
-    if not console:
-        return ""
-    try:
-        consoles = [str(item) for item in rules.unpack_key_consoles()]
-    except Exception as exc:  # a plugin's bug must not stop the wizard; no key is asked for
-        log_warning(f"unpack_key_consoles failed: {exc}")
-        consoles = []
-    return console if console in consoles else ""
+    return console if console and console in _unpack_consoles(rules) else ""
 
 
 def _root(base: Path, value: Any) -> Optional[Path]:

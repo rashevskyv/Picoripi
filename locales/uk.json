@@ -2369,5 +2369,9 @@
   "Page {0}": "Сторінка {0}",
   "Base game": "Базова гра",
   "Choose the update file too: the English text is in the update.": "Виберіть також файл оновлення: англійський текст є в оновленні.",
-  "Writing {0} files": "Записую файлів: {0}"
+  "Writing {0} files": "Записую файлів: {0}",
+  "Oodle library": "Бібліотека Oodle",
+  "Choose the Oodle library file (oo2core or oo2ext DLL)": "Оберіть файл бібліотеки Oodle (oo2core або oo2ext DLL)",
+  "Legends: Arceus packs need the Oodle library. Choose its file in the wizard.": "Пакети Legends: Arceus потребують бібліотеку Oodle. Оберіть її файл у майстрі.",
+  "Decoding pack {0} of {1}": "Розпаковую пакет {0} з {1}"
 }

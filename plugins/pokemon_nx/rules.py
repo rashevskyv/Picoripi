@@ -80,12 +80,16 @@ class GameRules(BaseGameRules):
         """The base game and its update: the English text is in the update's patched RomFS."""
         return [{"id": "base", "label": tr("Base game")}, {"id": "update", "label": tr("Update")}]
 
+    def identify_source(self, path: str) -> Optional[Dict[str, Any]]:
+        """The base game or the update of Sword, Shield or Legends: Arceus, with the library its unpack needs."""
+        return unpack.identify(path)
+
     def unpack_sources(self, sources: Dict[str, str], target_dir: str, progress, is_cancelled) -> Optional[str]:
-        """Sword / Shield: the base game with its update applied (``unpack.py``); other games keep their source."""
+        """Sword / Shield / Legends: Arceus: the base game with its update applied (``unpack.py``)."""
         return unpack.unpack(sources, target_dir, progress, is_cancelled)
 
     def unpack_key_consoles(self) -> List[str]:
-        return ["switch"]
+        return ["switch", "oodle"]
 
     def get_file_formats(self) -> list:
         from core.formats import DEFAULT_FORMATS, FileFormat
