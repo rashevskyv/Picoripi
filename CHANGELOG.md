@@ -2,6 +2,7 @@ All notable changes to the **Picoripi** project will be documented in this file.
 
 ## [Unreleased]
 
+- Pokémon Generation III ROM mode: the texts the C code builds (string literals of the decompilation, located by linker-map symbol or by their unique bytes in the ROM) unpack as texts that may grow; other-language and debug branches are left out
 - Pokémon Emerald / Ruby / Sapphire ROM mode: the same move, ability and item descriptions, nature names, Pokédex descriptions and categories as FireRed / LeafGreen unpack as texts that may grow (pointer tables from the decompilation link map)
 - Pokémon FireRed / LeafGreen ROM mode: move, ability and item descriptions, nature names, Pokédex descriptions and Pokédex categories unpack as texts that may grow (a longer text moves to free space, its pointer is rewritten); a test moves a longer move description
 - Pokémon FireRed / LeafGreen / Emerald / Ruby / Sapphire ROM mode: moves, abilities, types, trainer classes, item names, trainer names and berry names unpack as C-built fixed fields (per-game counts checked against the decompilation); a name over its field size shows the Byte budget exceeded warning, and the build refuses it

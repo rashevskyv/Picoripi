@@ -215,13 +215,23 @@ def load_tables(path: Optional[Path] = None) -> List[Unit]:
         for index in range(int(table["count"])):
             units.append(Unit(f"{table['label']}{index}", int(table["offset"]) + index * int(table["stride"]),
                               size, True, int(table.get("pad", 0))))
+    units.extend(c_text_units(path))
     return units
+
+
+def c_text_units(path: Optional[Path] = None) -> List[Unit]:
+    """The texts the C code builds (``c_texts``): each a unit with its own label, relocatable like a message."""
+    data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
+    return [Unit(str(label), int(offset), int(size)) for table in data.get("c_texts", [])
+            for label, offset, size in table["units"]]
 
 
 def table_files(path: Optional[Path] = None) -> Dict[str, List[str]]:
     """The source file of each C-built table, with the labels of its entries in order."""
     data = json.loads((path or FACTS_DIR / "firered_usa_rev0.json").read_text(encoding="utf-8"))
     files: Dict[str, List[str]] = {}
+    for table in data.get("c_texts", []):
+        files.setdefault(table["file"], []).extend(str(label) for label, _, _ in table["units"])
     for table in data.get("c_tables", []):
         if table.get("kind") == "pointer":
             files.setdefault(table["file"], []).extend(f"{table['label']}{index}" for index, _, _ in table["units"])

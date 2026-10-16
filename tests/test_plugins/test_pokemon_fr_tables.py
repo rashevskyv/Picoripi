@@ -135,3 +135,28 @@ def test_a_pointer_text_that_grows_moves_and_its_pointer_follows():
     assert pointer != unit.offset and pointer >= facts["free_start"]
     assert rom_text.read_all(patched, [rom_text.Unit(unit.label, pointer, len(charmap.encode(grown)))],
                              charmap)[unit.label] == grown
+
+
+@pytest.mark.skipif(not ROM.is_file(), reason="FireRed rev 0 ROM is not on this machine")
+def test_a_c_text_that_grows_moves_and_every_pointer_to_it_follows():
+    """A C-built text longer than its unit moves; each pointer the code holds to it is rewritten."""
+    rom = ROM.read_bytes()
+    facts = json.loads(FACTS.read_text(encoding="utf-8"))
+    charmap = rom_text.Charmap.load(rom_text.FACTS_DIR / facts["charmap"])
+    units = rom_text.load_tables(FACTS)
+    unit = next(item for item in units if item.label == "gText_PkmnsXPreventsSwitching")
+    assert not unit.fixed
+    old = (0x08000000 + unit.offset).to_bytes(4, "little")
+    refs = []
+    at = rom.find(old)
+    while at >= 0:
+        refs.append(at)
+        at = rom.find(old, at + 1)
+    assert refs
+    grown = rom_text.read_all(rom, [unit], charmap)[unit.label] + "\\nAND A LONGER LINE"
+    patched = rom_text.write_all(rom, units, charmap, facts["free_start"], {unit.label: grown})
+    new = int.from_bytes(patched[refs[0]:refs[0] + 4], "little") - 0x08000000
+    assert new != unit.offset and new >= facts["free_start"]
+    assert all(patched[at:at + 4] == (0x08000000 + new).to_bytes(4, "little") for at in refs)
+    assert rom_text.read_all(patched, [rom_text.Unit(unit.label, new, len(charmap.encode(grown)))],
+                             charmap)[unit.label] == grown
