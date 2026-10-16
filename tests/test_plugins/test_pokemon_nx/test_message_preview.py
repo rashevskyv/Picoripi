@@ -17,7 +17,6 @@ from plugins.common import switch_message_preview as mp
 ROOT = romhacking_root.under("Pokemon")
 SOURCE = ROOT / "Sword and Shield" / "source" if ROOT else None
 HAS_SOURCE = SOURCE is not None and (SOURCE / "bin/appli/msg/bin/msg_00.arc").is_file()
-PANE_WIDTH = 1080.0
 
 
 def test_font_names_keep_otf_names_in_order():
@@ -61,13 +60,18 @@ def test_real_sword_dialogue_layout_has_two_message_panes_and_a_name_pane():
 
 
 @pytest.mark.skipif(not HAS_SOURCE, reason="needs the owner's Sword and Shield unpack with msg_00.arc")
-def test_hand_broken_game_lines_fit_the_pane_at_the_measured_em():
-    """The width rule behind MESSAGE_EM: the game's own hard-broken dialogue lines fit the 1080 px pane."""
+def test_the_game_lines_pile_up_at_the_pane_edge_at_the_layout_size():
+    """The wrap cliff: at the layout's own font size, the game's hand-broken dialogue lines end at the pane edge.
+
+    Few lines pass 1.04 of the pane; a wrap that did not fit lines to the pane would spread them far past it.
+    """
+    arc = Sarc((SOURCE / "bin/appli/msg/bin/msg_00.arc").read_bytes())
+    layout = fm.read_layout(arc.files["blyt/msg_00.bflyt"], arc.files["fcpx/system54_jpn.bfcpx"])
+    pane = layout.panes[0]
     faces = [fm.Face.from_bfotf(path.read_bytes())
-             for path in mp.font_files(SOURCE / "bin/font", mp.MESSAGE_FONTS)]
+             for path in mp.font_files(SOURCE / "bin/font", ["FOT-UDKakugoC80Pro-DB.otf"])]
     chain = fm.FontChain(faces)
-    widest = 0.0
-    seen = 0
+    ratios = []
     for dat in sorted((SOURCE / "bin/message/English/script").glob("*.dat"))[:120]:
         data = dat.read_bytes()
         if not gfmsg.is_gfmsg(data):
@@ -77,10 +81,10 @@ def test_hand_broken_game_lines_fit_the_pane_at_the_measured_em():
                 for page in split_pages(part):
                     for line, _colour in page:
                         if line.strip():
-                            seen += 1
-                            widest = max(widest, chain.width(line, mp.SWORD_SHIELD_BOX.em))
-    assert seen > 500
-    assert widest <= PANE_WIDTH
+                            ratios.append(chain.width(line, pane.size[0]) / (pane.rect[2] - pane.rect[0]))
+    assert len(ratios) > 500
+    assert sum(1 for r in ratios if r > 1.04) < 0.01 * len(ratios)
+    assert sum(1 for r in ratios if r > 1.0) < 0.05 * len(ratios)
 
 
 ARCEUS = ROOT / "Legends Arceus" / "source" if ROOT else None
@@ -106,3 +110,22 @@ def test_real_scarlet_violet_sub_box_has_two_840_px_panes_and_a_name_pane():
     assert [p.name for p in layout.panes] == ["T_00", "T_01"]
     assert layout.name is not None and layout.name.name == "T_name_00"
     assert layout.panes[0].rect[2] - layout.panes[0].rect[0] == 840.0
+
+
+class _FixedWidth:
+    """A chain double: every character is 10 px wide."""
+
+    def width(self, text, px, char_space=0.0):
+        return 10.0 * len(text)
+
+
+def test_wrap_text_flows_words_into_the_next_line():
+    lines, too_long = fm.wrap_text("aaa bbb ccc", 75.0, _FixedWidth(), 10.0)
+    assert lines == ["aaa bbb", "ccc"]
+    assert too_long is False
+
+
+def test_a_word_wider_than_the_pane_is_reported_and_kept_whole():
+    lines, too_long = fm.wrap_text("xxxxxxxxxx y", 75.0, _FixedWidth(), 10.0)
+    assert lines == ["xxxxxxxxxx", "y"]
+    assert too_long is True

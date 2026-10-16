@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import threading
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
@@ -28,8 +28,9 @@ from plugins.common.message_window import split_pages
 from utils.logging_utils import log_debug
 from utils.thread_utils import WorkerThread, safe_shutdown_thread
 
-# The text font chain, in fallback order. The game's own binding is not read yet (the layout's fcpx names Rodin first).
-# UDKakugo is the font the measured line widths fit; Rodin and or_font only add glyphs UDKakugo lacks.
+# The text font chain, in fallback order. OVERRIDE, unverified: the layout's fcpx names Rodin first, and the game's own
+# binding (bin/font/font_data.prmb) is not read yet. UDKakugo is chosen because its widths give the same wrap cliff as
+# the game's lines at the layout size; Rodin at 0.82 x the size gives the same widths, so the widths alone do not pick it.
 MESSAGE_FONTS = ("FOT-UDKakugoC80Pro-DB.otf", "FOT-RodinNTLGPro-DB.otf", "or_font.otf")
 _MARGIN = 10
 WORKER_STOP_MS = 2000               # the bounded wait for the layout read when the widget is closed
@@ -37,32 +38,28 @@ WORKER_STOP_MS = 2000               # the bounded wait for the layout read when 
 
 @dataclass(frozen=True)
 class BoxSpec:
-    """One dialogue box: where its layout is, the font setting and font folder, and the em size of its text."""
+    """One dialogue box: where its layout is, the font setting and font folder, and the flat colour that stands in
+    for the box picture (the picture is not read yet)."""
     arc: str                      # the layout archive, relative to the source folder
     member: str                   # the layout member inside it
     fcpx: str                     # the font setting member
     font_dir: str                 # the folder of the scrambled font files, relative to the source folder
-    em: float                     # the em size the text is drawn at (layout pixels)
-    background: Tuple[int, int, int, int] = (238, 240, 242, 255)   # a flat stand-in for the box picture (not read yet)
+    background: Tuple[int, int, int, int] = (238, 240, 242, 255)
 
 
-# Sword / Shield: msg_00.bflyt, one frame with two text panes (1080 px). Measured: the game's hand-broken lines
-# top out at 1078 px at 44 px in UDKakugo (the largest line that fits the pane); 54 px (the layout's fontSizeX)
-# leaves a third of them too wide.
-SWORD_SHIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", "fcpx/system54_jpn.bfcpx",
-                           "bin/font", 44.0)
-# Scarlet / Violet: msg_sub_00.bflyt from the sub-window archive (appli/data/msg_sub), two text panes of 840 px and no
-# frame. Measured: the hand-broken lines top out at 832 px at 38 px in UDKakugo; 40 px already exceeds 840 px.
+# The text is drawn at each pane's own fontSize (the layout's value). Check: the game's hand-broken lines pile up
+# against the pane edge at that size (Sword 54 px, 1080 px pane: 1.00-1.02 of the pane, then almost none above 1.04;
+# Scarlet / Violet 42 px, 840 px pane: the same shape). The font is UDKakugo; that is an override, see MESSAGE_FONTS.
+# Sword / Shield: msg_00.bflyt, one frame with two text panes (1080 px).
+SWORD_SHIELD_BOX = BoxSpec("bin/appli/msg/bin/msg_00.arc", "blyt/msg_00.bflyt", "fcpx/system54_jpn.bfcpx", "bin/font")
+# Scarlet / Violet: msg_sub_00.bflyt from the sub-window archive (appli/data/msg_sub), two 840 px text panes, no frame.
 # Not yet checked that this is the field dialogue (msg_btl_00 is the battle box, also two panes).
 SCARLET_VIOLET_SUB_BOX = BoxSpec("appli/data/msg_sub/msg_sub_body_00.arc", "blyt/msg_sub_00.bflyt",
-                                 "fcpx/system32_jpn.bfcpx", "appli/font/bin", 38.0,
-                                 background=(38, 42, 52, 255))   # the text is white; the box picture is dark
-
-
-# Legends: Arceus: the battle message box (msg_sys_00_s, in the battle_menu pack, decoded by the wizard). Two 960 px panes,
-# no text from the field dialogue yet. Measured: the hand-broken lines top out at 960 px at 46 px in UDKakugo.
+                                 "fcpx/system32_jpn.bfcpx", "appli/font/bin", background=(38, 42, 52, 255))
+# Legends: Arceus: the battle message box (msg_sys_00_s, in the battle_menu pack, decoded by the wizard). Two 960 px
+# panes, no text from the field dialogue yet. Its cliff is weak: 303 battle lines, none above 1.02 of the pane.
 ARCEUS_BATTLE_BOX = BoxSpec("bin/archive/appli/battle_menu_eng.gfpak.d/11_msg_sys_00_s.arc", "blyt/msg_sys_00_s.bflyt",
-                            "fcpx/system32_jpn.bfcpx", "bin/font", 46.0, background=(38, 42, 52, 255))
+                            "fcpx/system32_jpn.bfcpx", "bin/font", background=(38, 42, 52, 255))
 
 
 def source_folder(project_dir: str) -> Optional[str]:
@@ -202,18 +199,29 @@ class SwitchMessagePreview(QWidget):
             self.update()
             return
         layout, chain = self._loaded
-        layout = replace(layout, panes=[replace(pane, size=(self._spec.em, self._spec.em)) for pane in layout.panes])
+        if not layout.panes:
+            self._note = tr("The dialogue layout is not in this project's unpacked game.")
+            self.update()
+            return
+        # A game line longer than its pane flows into the next pane (word wrap), as the game does.
+        width = min(pane.rect[2] - pane.rect[0] for pane in layout.panes)
+        size = layout.panes[0].size[0]
         page = (split_pages(self._text) or [[]])[0]
-        lines = [[page[i][0]] if i < len(page) else [] for i in range(len(layout.panes))]
-        wide = [i for i, pane in enumerate(layout.panes) if lines[i] and fm.overflow(pane, chain, lines[i][0])]
+        shown: List[str] = []
+        too_long = False
+        for line, _colour in page:
+            parts, long_word = fm.wrap_text(line, width, chain, size, layout.panes[0].char_space)
+            shown += parts
+            too_long = too_long or long_word
+        lines = [[shown[i]] if i < len(shown) else [] for i in range(len(layout.panes))]
         image = fm.render_window(layout, chain, lines, background=self._spec.background)
         self._image = _to_qimage(image)
         notes = []
-        if wide:
-            notes.append(tr("Line too wide for the box: %1") % ", ".join(str(i + 1) for i in wide))
-        if len(page) > len(layout.panes):
+        if too_long:
+            notes.append(tr("A word is wider than the box."))
+        if len(shown) > len(layout.panes):
             notes.append(tr("Too many lines for the box: %1 (box holds %2)")
-                         % (len(page), len(layout.panes)))
+                         % (len(shown), len(layout.panes)))
         self._note = " ".join(notes)
         self.update()
 

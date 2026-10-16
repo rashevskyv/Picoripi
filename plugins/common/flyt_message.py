@@ -148,10 +148,23 @@ def line_pitch(pane: TextPane) -> float:
     return pane.size[1] + pane.line_space
 
 
-def overflow(pane: TextPane, chain: FontChain, text: str) -> bool:
-    """True when the line is wider than its pane (the game would not fit it on one line)."""
-    width = chain.width(text, pane.size[0], pane.char_space)
-    return width > pane.rect[2] - pane.rect[0] + 0.5
+def wrap_text(text: str, width: float, chain: FontChain, px: float, char_space: float = 0.0) -> Tuple[List[str], bool]:
+    """``text`` as lines no wider than ``width`` (word wrap at spaces). Returns the lines and whether a word is wider
+    than ``width`` (that word then stands on its own line, wider than the pane)."""
+    lines: List[str] = []
+    current = ""
+    too_long = False
+    for word in text.split(" "):
+        candidate = word if not current else current + " " + word
+        if current and chain.width(candidate, px, char_space) > width:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+        if chain.width(current, px, char_space) > width:
+            too_long = True
+    lines.append(current)
+    return lines, too_long
 
 
 def draw_pane(image: Image.Image, pane: TextPane, chain: FontChain, lines: List[str]) -> List[int]:
@@ -214,5 +227,5 @@ def _panes_box(panes: Sequence[TextPane]) -> Optional[Rect]:
             max(p.rect[2] for p in panes) + _MARGIN, max(p.rect[3] for p in panes) + _MARGIN)
 
 
-__all__ = ["Face", "FontChain", "MessageLayout", "TextPane", "draw_pane", "font_names", "line_pitch", "overflow",
-           "read_layout", "render_window"]
+__all__ = ["Face", "FontChain", "MessageLayout", "TextPane", "draw_pane", "font_names", "line_pitch",
+           "read_layout", "render_window", "wrap_text"]
